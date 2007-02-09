@@ -289,6 +289,13 @@ class EnzoHierarchy:
         indices = where(self.gridLevels[:,0] == level)[0]
         return indices
 
+    def getSmallestDx(self):
+        for i in range(MAXLEVEL):
+            if (self.levelsStats[i,0]) == 0:
+                break
+            dx = self.gridDxs[self.levelIndices[i][0]]
+        return dx[0]
+
     def printStats(self):
         """
         Prints out relevant information about the simulation
