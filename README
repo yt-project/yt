@@ -1,0 +1,24 @@
+Hi there.  This is the README file for yt, which is a set of Enzo management
+tools.
+
+yt is broken into several categories.  Note that in the descriptions, I will
+speak about them in the present tense, and yet, at the time of writing
+(08FEB07) all of these are mere skeletons.
+
+    yt          -- This base module is always imported, and includes the
+                   global configuration for the yt modules.
+    enki        -- Here we initiate new runs; enki creates parameter files,
+                   manages initial conditions, and handles enzo source code.
+    fido        -- Data movement and automated plotting taes place here.  All
+                   file handling takes place through fido.
+    lagos       -- This is the heart of our Enzo handling.  All Enzo data
+                   structures are kept and defined here.  All data handling
+                   takes place through lagos.
+    raven       -- This is the interface to HippoDraw, where all the slicing
+                   takes place.
+    deliverator -- These classes and routines deal with interaction with The
+                   Deliverator.  (Eventually the deliverator ittself will be
+                   checked into CVS.)
+
+Anyway, please, feel free to help out.  Some somewhat­outdated outlines can be
+found in doc/ and I've sketched out some of the interfaces.
