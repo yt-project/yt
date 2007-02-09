@@ -8,6 +8,7 @@
 
 from yt.raven import *
 import hippo
+import yt.deliverator
 
 class EnzoHippo:
     def __init__(self, hierarchy, app=None, canvas=None, offScreen = False,\
@@ -50,7 +51,7 @@ class EnzoHippo:
         self.runID = submitToDeliverator
         if submitToDeliverator >= 0:
             self.submit = True
-            r=deliverator_upload.SubmitParameterFile(\
+            r=yt.deliverator.SubmitParameterFile(\
                 submitToDeliverator, self.hierarchy)
             print "Received response '%s'" % (r)
         else:
@@ -126,7 +127,7 @@ class EnzoHippo:
 
     def setCenter(self, center, plotIs = None):
         if plotIs:
-            if isinstance(arg, types.IntType):
+            if isinstance(plotIs, types.IntType):
                plotIs = [plotIs]
         else:
             plotIs = range(len(self.plots))
@@ -135,7 +136,7 @@ class EnzoHippo:
 
     def setWidth(self, width, unit, plotIs = None):
         if plotIs:
-            if isinstance(arg, types.IntType):
+            if isinstance(plotIs, types.IntType):
                plotIs = [plotIs]
         else:
             plotIs = range(len(self.plots))
@@ -150,7 +151,7 @@ class EnzoHippo:
 
     def getWidth(self, plotIs = None):
         if plotIs:
-            if isinstance(arg, types.IntType):
+            if isinstance(plotIs, types.IntType):
                plotIs = [plotIs]
         else:
             plotIs = range(len(self.plots))
@@ -160,7 +161,7 @@ class EnzoHippo:
 
     def saveImages(self, prefix, suffix='png', plotIs = None):
         if plotIs:
-            if isinstance(arg, types.IntType):
+            if isinstance(plotIs, types.IntType):
                plotIs = [plotIs]
         else:
             plotIs = range(len(self.plots))
@@ -172,6 +173,6 @@ class EnzoHippo:
             if self.gallery != None:
                 self.gallery.add(self.plots[i].im)
             if self.submit == True:
-                deliverator_upload.SubmitImage(\
+                yt.deliverator.SubmitImage(\
                     self.hierarchy, self.plots[i].im)
         return fn
