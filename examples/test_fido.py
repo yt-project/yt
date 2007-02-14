@@ -2,6 +2,7 @@ import yt.lagos as lagos
 import yt.raven as raven
 import os, os.path, hippo
 import yt.deliverator as deliverator_upload
+import yt.fido
 
 app = hippo.HDApp( )
 
@@ -41,18 +42,23 @@ def makePlots(path, bn):
             fn = plot.saveImages(os.path.join(imageDir,"%s_%010iau" % (bn,w)),"png")
             #print fn
         for w in [10000, 1000, 100, 10, 1]:#, 0.1, 0.01, 0.001]:
-            print w/h["rsun"], dx
+            #print w/h["rsun"], dx
             if (w/h["rsun"] < 10*dx):
                 continue
             plot.setWidth(w,"rsun")
             fn = plot.saveImages(os.path.join(imageDir,"%s_%010irsun" % (bn,w)),"png")
             #print fn
         i += 1
-    p = plot.addThreePhase(["NumberDensity","Temperature","H2I_Fraction"], 1000,"au")
-    plot.saveImages(os.path.join(imageDir,"%s_%010iau" % (bn,1000)),"png",-1)
-    p = plot.addThreePhase(["NumberDensity","Temperature","H2I_Fraction"], 100,"au")
-    plot.saveImages(os.path.join(imageDir,"%s_%010iau" % (bn,100)),"png",-1)
-    p = plot.addRadialProfilePlot(["NumberDensity","H2I_Fraction"], 1000,"au")
-    for field in fields:
-        p.switchField(field)
+    if (1000/h["au"] >= 10*dx):
+        p = plot.addThreePhase(["NumberDensity","Temperature","H2I_Fraction"], 1000,"au")
         plot.saveImages(os.path.join(imageDir,"%s_%010iau" % (bn,1000)),"png",-1)
+    if (100/h["au"] >= 10*dx):
+        p = plot.addThreePhase(["NumberDensity","Temperature","H2I_Fraction"], 100,"au")
+        plot.saveImages(os.path.join(imageDir,"%s_%010iau" % (bn,100)),"png",-1)
+    if (1000/h["au"] >= 10*dx):
+        p = plot.addRadialProfilePlot(["NumberDensity","H2I_Fraction"], 1000,"au")
+        for field in fields:
+            p.switchField(field)
+            plot.saveImages(os.path.join(imageDir,"%s_%010iau" % (bn,1000)),"png",-1)
+
+yt.fido.watchDir(funcHandler=makePlots)
