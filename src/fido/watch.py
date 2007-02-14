@@ -14,7 +14,8 @@ def checkForOutput(skipFiles = []):
     l = glob("*.hierarchy")
     if len(l) > 0:
         for file in l:
-            if file not in skipFiles and os.stat(file).st_size > 0:
+            if file not in skipFiles and os.stat(file).st_size > 0 \
+               and abs(os.stat(file).st_mtime - time.time()) > 1:
                 newFiles.append(file.rsplit(".",1)[0])
         # Log
         return newFiles
@@ -63,10 +64,8 @@ def watchDir(path=".", skip = [], funcHandler = None):
                 print newDir
                 moveFiles(newDir, bn, extraFiles=OTHERFILES)
                 if funcHandler:
-                    pid=os.fork()
-                    if pid == 0:
-                        funcHandler(newDir, bn)
-                        sys.exit()
+                    funcHandler(newDir, bn)
+                    print "Done calling %s, now sleeping" % (funcHandler.func_name)
         time.sleep(WAITBETWEEN)
         doStop = checkForStop()
 
