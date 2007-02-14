@@ -9,6 +9,7 @@
 
 from yt.lagos import *
 import Numeric # Hate doing this, but we have to for inout ability
+from ravenDefs import *
 from numarray import *
 
 import enzo_routines
@@ -23,7 +24,7 @@ import enzo_routines
 #     &                idual, ispecies, imetal, idim,
 #     &                is, js, ks, ie, je, ke, ih2co, ipiht,
 #     &                dt, aye, temstart, temend, 
-#     &                utem, uxyz, uaye, urho, utim,
+#     &                utem, uxyz, uaye, urho, utim, uvel,
 #     &                eta1, eta2, gamma, fh, dtoh,
 #     &                k1a, k2a, k3a, k4a, k5a, k6a, k7a, k8a, k9a, k10a,
 #     &                k11a, k12a, k13a, k13dda, k14a, k15a,
@@ -71,16 +72,24 @@ def runSolveRateCool(g, dt, omaskflag=0):
         exec("%s = a.cool['%s']" % (rate, rate))
     for rate in a.cool.params.keys():
         exec("%s = a.cool.params['%s']" % (rate, rate))
-    #print "\n\n"
-    utim = a.conversionFactors["Time"]
-    urho = a.conversionFactors["Density"]
+    utim = 2.52e17 / sqrt(a.parameters["CosmologyOmegaMatterNow"]) \
+                   / a.parameters["CosmologyHubbleConstantNow"] \
+                   / (1+a.parameters["CosmologyInitialRedshift"])**1.5
+    urho = 1.88e-29 * a.parameters["CosmologyOmegaMatterNow"] \
+                    * a.parameters["CosmologyHubbleConstantNow"]**2 \
+                    * (1.0 + a["CosmologyCurrentRedshift"])**3
     uxyz = 3.086e24 * \
            a.parameters["CosmologyComovingBoxSize"] / \
            a.parameters["CosmologyHubbleConstantNow"] / \
            (1.0 + a.parameters["CosmologyCurrentRedshift"])
     uaye = 1.0/(1.0 + a.parameters["CosmologyInitialRedshift"])
-    uvel = a.conversionFactors["x-velocity"]
-    utem = a.conversionFactors["Temp"]
+    uvel = 1.225e7*a.parameters["CosmologyComovingBoxSize"] \
+                  *sqrt(a.parameters["CosmologyOmegaMatterNow"]) \
+                  *sqrt(1+ a.parameters["CosmologyInitialRedshift"])
+    #uvel = a["x-velocity"]
+    utem = 1.88e6 * (a.parameters["CosmologyComovingBoxSize"]**2) \
+                  * a.parameters["CosmologyOmegaMatterNow"] \
+                  * (1.0 + a.parameters["CosmologyInitialRedshift"])
     aye  = (1.0 + a.parameters["CosmologyInitialRedshift"]) / \
            (a.parameters["CosmologyCurrentRedshift"] - 1.0)
     # Now we have all the units!  We're almost done...
@@ -112,7 +121,7 @@ def runSolveRateCool(g, dt, omaskflag=0):
         0, 3, 0, 0, 0,
         g.ActiveDimensions[0]-1, g.ActiveDimensions[1]-1, g.ActiveDimensions[2]-1,
         1, 1, dt, aye, tgas[0], tgas[-1],
-        utem, uxyz, uaye, urho, utim,
+        utem, uxyz, uaye, urho, utim, uvel,
         a.parameters["DualEnergyFormalismEta1"], a.parameters["DualEnergyFormalismEta2"], 
         a.parameters["Gamma"], 0.76, 2.0*3.4e-5,
         k1, k2, k3, k4, k5, k6, k7, k8, k9, k10,

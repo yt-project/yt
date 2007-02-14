@@ -457,7 +457,7 @@ class EnzoRegion(Enzo3DData):
         i1 = map(int, map(ceil, (self.rightEdge - grid.LeftEdge) / grid.dx))
         i0 = choose(less(i0,0), (i0,0))
         i1 = choose(greater(i1,grid.ActiveDimensions-1), (i1,grid.ActiveDimensions-1))
-        cutMask = zeros(grid.ActiveDimensions, Int32)
+        cutMask = zeros(grid.ActiveDimensions, Int64)
         cutMask[i0[0]:i1[0], i0[1]:i1[1], i0[2]:i1[2]] = 1
         pointI = where(logical_and(cutMask, grid.myChildMask==1) == 1)
         return grid[field][pointI]
@@ -473,7 +473,7 @@ class EnzoRegion(Enzo3DData):
         i1 = map(int, map(ceil, (self.rightEdge - grid.LeftEdge) / grid.dx))
         i0 = choose(less(i0,0), (i0,0))
         i1 = choose(greater(i1,grid.ActiveDimensions-1), (i1,grid.ActiveDimensions-1))
-        cutMask = zeros(grid.ActiveDimensions, Int32)
+        cutMask = zeros(grid.ActiveDimensions, Int64)
         cutMask[i0[0]:i1[0], i0[1]:i1[1], i0[2]:i1[2]] = 1
         pointI = where(logical_and(cutMask, grid.myChildMask==1) == 1)
         dx = ones(pointI[0].shape[0], Float64) * grid.dx
