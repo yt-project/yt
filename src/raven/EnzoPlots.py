@@ -7,6 +7,7 @@
 #
 
 from yt.raven import *
+import Numeric
 
 class EnzoPlot:
     def __init__(self, hierarchy, canvas, enzoHippo, offScreen):
@@ -62,7 +63,8 @@ class EnzoRadialPlot(EnzoPlot):
 
         self.dataLabel = []
 
-        self.tuple = hippo.DataArray('NumArrayTuple')
+        #self.tuple = hippo.DataArray('NumArrayTuple')
+        self.tuple = hippo.DataArray('NTuple')
         self.tuple.register()
         for i in range(len(fields)):
             field = fields[i]
@@ -70,7 +72,7 @@ class EnzoRadialPlot(EnzoPlot):
                 self.dataLabel.append(field + " (%s)" % (fieldInfo[field][0]))
             else:
                 self.dataLabel.append(field)
-            self.tuple.addColumn(field,self.data[field])
+            self.tuple.addColumn(field,list(self.data[field]))
         self.field = self.fields[1]
         self.plotFromData(self.tuple)
 
@@ -133,7 +135,7 @@ class EnzoRadialPlot(EnzoPlot):
         else:
             conv = 1
         if not self.tuple.has_key(field):
-            self.tuple.addColumn(field,self.data[field]*conv)
+            self.tuple.addColumn(field,list(self.data[field]*conv))
 
     def switchField(self, field):
         self.addField(field)
@@ -284,7 +286,9 @@ class EnzoVM(EnzoPlot):
         r_edge_x = self.c[x_dict[self.axis]] + width/2.0
         l_edge_y = self.c[y_dict[self.axis]] - width/2.0
         r_edge_y = self.c[y_dict[self.axis]] + width/2.0
+        time.sleep(1)
         self.plot.setRange('X', max(l_edge_x,0.0), min(r_edge_x,1.0))
+        time.sleep(1)
         self.plot.setRange('Y', max(l_edge_y,0.0), min(r_edge_y,1.0))
 
     def plotFromData(self, dataTuple, cmap = "Blue-Green-Red-Yellow"):
@@ -346,7 +350,8 @@ class EnzoVMSlice(EnzoVM):
         
         self.data = slice_data
         
-        self.tuple = hippo.DataArray('NumArrayTuple')
+        #self.tuple = hippo.DataArray('NumArrayTuple')
+        self.tuple = hippo.DataArray('NTuple')
         self.tuple.register()
         
         #v1 = min(slice_data[field])
@@ -356,11 +361,11 @@ class EnzoVMSlice(EnzoVM):
         else:
             conv = 1
 
-        self.tuple.addColumn('x',self.data.x)
-        self.tuple.addColumn('y',self.data.y)
-        self.tuple.addColumn(field,self.data[field]*conv)
-        self.tuple.addColumn('dx',self.data.dx)
-        self.tuple.addColumn('dy',self.data.dy)
+        self.tuple.addColumn('x',list(self.data.x))
+        self.tuple.addColumn('y',list(self.data.y))
+        self.tuple.addColumn(field,list(self.data[field]*conv))
+        self.tuple.addColumn('dx',list(self.data.dx))
+        self.tuple.addColumn('dy',list(self.data.dy))
         
         if fieldInfo.has_key(field):
             self.dataLabel = field + " (%s)" % (fieldInfo[field][0])
@@ -447,17 +452,18 @@ class EnzoVMProj(EnzoVM):
         self.data = array([(0.5+x_data)*dx_data, (0.5+y_data)*dx_data, z_data, dx_data/2.0, dx_data/2.0])
         self.data.swapaxes(0,1)
 
-        self.tuple = hippo.DataArray('NumArrayTuple')
+        #self.tuple = hippo.DataArray('NumArrayTuple')
+        self.tuple = hippo.DataArray('NTuple')
         self.tuple.register()
         
         v1 = self.data[:,2].min()
         v2 = self.data[:,2].max()
 
-        self.tuple.addColumn('x',self.data[:,0])
-        self.tuple.addColumn('y',self.data[:,1])
-        self.tuple.addColumn(field,self.data[:,2])
-        self.tuple.addColumn('dx',self.data[:,3])
-        self.tuple.addColumn('dy',self.data[:,4])
+        self.tuple.addColumn('x',list(self.data[:,0]))
+        self.tuple.addColumn('y',list(self.data[:,1]))
+        self.tuple.addColumn(field,list(self.data[:,2]))
+        self.tuple.addColumn('dx',list(self.data[:,3]))
+        self.tuple.addColumn('dy',list(self.data[:,4]))
         
         #for i in range(5):
             #self.tuple.addColumn(vm_axis_names[i],self.data[:,i].copy())
