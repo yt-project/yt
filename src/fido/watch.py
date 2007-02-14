@@ -5,7 +5,7 @@
 WAITBETWEEN=5
 OTHERFILES=["rates.out","cool_rates.out"]
 
-import os, os.path, time
+import os, os.path, time, sys, shutil
 from glob import glob
 
 def checkForOutput(skipFiles = []):
@@ -14,7 +14,7 @@ def checkForOutput(skipFiles = []):
     l = glob("*.hierarchy")
     if len(l) > 0:
         for file in l:
-            if file not in skipFiles:
+            if file not in skipFiles and os.stat(file).st_size > 0:
                 newFiles.append(file.rsplit(".",1)[0])
         # Log
         return newFiles
@@ -35,7 +35,7 @@ def moveFiles(path, basename, extraFiles = []):
     # Log here
     for file in extraFiles:
         try:
-            os.rename(file, path+os.path.sep+file)
+            shutil.copy2(file, path+os.path.sep+file)
         except:
             pass
     return retVal
@@ -63,7 +63,10 @@ def watchDir(path=".", skip = [], funcHandler = None):
                 print newDir
                 moveFiles(newDir, bn, extraFiles=OTHERFILES)
                 if funcHandler:
-                    funcHandler(newDir, bn)
+                    pid=os.fork()
+                    if pid == 0:
+                        funcHandler(newDir, bn)
+                        sys.exit()
         time.sleep(WAITBETWEEN)
         doStop = checkForStop()
 
