@@ -1,7 +1,9 @@
 import yt.lagos as lagos
 import yt.raven as raven
-import os, os.path
+import os, os.path, hippo
 import yt.deliverator as deliverator_upload
+
+app = hippo.HDApp( )
 
 fields = ["NumberDensity", "Temperature", "H2I_Fraction", "RadialVelocity"]
 imageSkel = "/u/ki/mturk/public_html/ravenimages/%s/"
@@ -22,7 +24,7 @@ def makePlots(path, bn):
     if not os.path.isdir(imageDir):
         os.makedirs(imageDir)
     dx = h.getSmallestDx()
-    plot=raven.EnzoHippo(h, submitToDeliverator=RunID, httpPrefix=httpPrefix % (md))
+    plot=raven.EnzoHippo(h, submitToDeliverator=RunID, httpPrefix=httpPrefix % (md), app=app)
     plot.canvas.setPlotMatrix(1,1)
     i = 0
     for field in fields:
