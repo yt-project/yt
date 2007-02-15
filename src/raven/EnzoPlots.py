@@ -41,7 +41,7 @@ class EnzoPlot:
             u.append((item[1],item[0]))
         u.sort()
         for unit in u:
-            print "\tWidth: %0.3e %s" % (self.width*unit[0], unit[1])
+            mylog.debug("Setting Width: %0.3e %s", self.width*unit[0], unit[1])
 
 class EnzoRadialPlot(EnzoPlot):
     def makePlot(self, center, radius, unit, fields):
@@ -51,7 +51,7 @@ class EnzoRadialPlot(EnzoPlot):
             try:
                 unit = self.hierarchy.units[unit]
             except:
-                print "Unit %s not found, setting to 1.0" % (unit)
+                mylog.warning("Unit %s not found, setting to 1.0", unit)
                 unit = 1
         self.radius = radius/unit
         self.center = center
@@ -77,7 +77,7 @@ class EnzoRadialPlot(EnzoPlot):
         self.plotFromData(self.tuple)
 
         time2=time.time()
-        print "Took %0.3e seconds for everything" % (time2-time1)
+        mylog.debug("Took %0.3e seconds for everything", time2-time1)
 
     def refresh(self):
         self.plot.setLabel('Y',self.dataLabel[1])
@@ -85,14 +85,14 @@ class EnzoRadialPlot(EnzoPlot):
             sl = fieldInfo[self.field][2]
         else:
             sl = self.field in log_fields
-        print "Setting log to %s" % (sl)
+        mylog.debug("Setting log to %s",  sl)
         self.plot.setLog('Y',sl)
 
     def plotFromData(self, dataTuple):
         # We assume we already have the data associated with the instance
         if self.data == None:
-            print "Okay dumbface, it's not gonna work!  You need to have DATA!"
-            print "Try calling makePlot"
+            mylog.error("Okay dumbface, it's not gonna work!  You need to have DATA!")
+            mylog.error( "Try calling makePlot")
             return
         self.plot =  hippo.Display(self.plotType, dataTuple, \
                     (tuple(self.fields)))
@@ -103,7 +103,7 @@ class EnzoRadialPlot(EnzoPlot):
             sl = fieldInfo[self.field][2]
         else:
             sl = self.field in log_fields
-        print "Setting log to %s" % (sl)
+        mylog.debug("Setting log to %s",  sl)
         self.plot.setLog('Y',sl)
         self.plot.setAspectRatio(1)
 
@@ -115,7 +115,7 @@ class EnzoRadialPlot(EnzoPlot):
         self.im["Fields"] = string.join(self.fields,"_")
         self.im["Unit"] = self.unit
         self.im["Width"] = self.radius * self.hierarchy[self.unit]
-        print "Setting width to",self.im["Width"] * self.hierarchy[self.unit]
+        mylog.info("Setting width to %s",self.im["Width"] * self.hierarchy[self.unit])
 
     def setWidth(self, width, conv):
         # In the future, we may want to consider re-generating the sphere based
@@ -123,7 +123,7 @@ class EnzoRadialPlot(EnzoPlot):
         # expensive operation that we will avoid.  Additionally, it would be
         # possible to get ALL of the data and then cut out the portions we
         # don't want, but that is not very memory-efficient.
-        print "Not setting width of Radial Plot"
+        mylog.debug( "Not setting width of Radial Plot")
         return
         # For future reference, to regenerate the sphere we should first clear
         # the data tuple in HD's memory, erase the current data, and then
@@ -180,7 +180,7 @@ class EnzoRadialProfilePlot(EnzoRadialPlot):
         self.dataLabel = ["Radius (cm)", ""]
 
     def setYRange(self, minVal, maxVal):
-        print "Setting range to %0.5e - %0.5e" % (minVal, maxVal)
+        mylog.info("Setting range to %0.5e - %0.5e", minVal, maxVal)
         self.plot.setRange('Y', minVal, maxVal)
 
 class EnzoRadialScatterPlot(EnzoRadialPlot):
@@ -207,8 +207,7 @@ class EnzoTwoPhase(EnzoRadialPlot):
     def plotFromData(self, dataTuple):
         # We assume we already have the data associated with the instance
         if self.data == None:
-            print "Okay dumbface, it's not gonna work!  You need to have DATA!"
-            print "Try calling makePlot"
+            mylog.error( "Okay dumbface, it's not gonna work!  You need to have DATA!")
             return
         self.plot =  hippo.Display("Color Plot", dataTuple, \
                     (tuple(self.fields)))
@@ -231,8 +230,7 @@ class EnzoThreePhase(EnzoRadialPlot):
     def plotFromData(self, dataTuple):
         # We assume we already have the data associated with the instance
         if self.data == None:
-            print "Okay dumbface, it's not gonna work!  You need to have DATA!"
-            print "Try calling makePlot"
+            mylog.error("Okay dumbface, it's not gonna work!  You need to have DATA!")
             return
         self.plot =  hippo.Display("Profile 2D", dataTuple, \
                     (self.fields[0],self.fields[1],self.fields[2]))
@@ -291,15 +289,16 @@ class EnzoVM(EnzoPlot):
         time.sleep(1)
         self.plot.setRange('Y', max(l_edge_y,0.0), min(r_edge_y,1.0))
 
-    def plotFromData(self, dataTuple, cmap = "Blue-Green-Red-Yellow"):
-        if self.field == "TemperatureOFF":
-            cmap = ""
+    def plotFromData(self, dataTuple, cmap = None):
+        if colormap_dict.has_key(self.field) and cmap == None:
+            cmap = colormap_dict[self.field]
+        elif cmap == None:
+            cmap = "Blue-Green-Red-Yellow"
         # We assume we already have the data associated with the instance
         if self.data == None:
-            print "Okay dumbface, it's not gonna work!  You need to have DATA!"
-            print "Try calling makePlot"
+            mylog.error( "Okay dumbface, it's not gonna work!  You need to have DATA!")
             return
-        print "Creating VM Display"
+        mylog.debug( "Creating VM Display")
         if self.plot == None:
             self.plot =  hippo.Display("Variable Mesh", dataTuple, ('x','y',self.field,'dx','dx'))
         self.plot.setColorMap(cmap)
@@ -324,7 +323,7 @@ class EnzoVM(EnzoPlot):
         self.plot.setLabel('Z',self.dataLabel)
 
     def setZRange(self, minVal, maxVal):
-        print "Setting range to %0.5e - %0.5e" % (minVal, maxVal)
+        mylog.info( "Setting range to %0.5e - %0.5e" ,  minVal, maxVal)
         self.plot.setRange('Z', minVal, maxVal)
 
 class EnzoVMSlice(EnzoVM):
@@ -334,19 +333,19 @@ class EnzoVMSlice(EnzoVM):
         self.typeName = "Slice"
         
         if (center == None) and (self.c == None):
-            print "Searching for center"
+            mylog.debug( "Searching for center")
             v, center = self.hierarchy.findMax('Density')
         if (center != None):
             self.c = center
 
         self.field = field
         
-        print "Getting from field = %s at center %s on axis %s" % (field, self.c, axis)
+        mylog.info( "Getting from field = %s at center %s on axis %s", field, self.c, axis)
         if slice_data == None:
             slice_data = lagos.EnzoSlice(self.hierarchy, axis, self.c[axis], field)
         
         time2 = time.time()
-        print "Took %0.3e seconds to slice" % (time2-time1)
+        mylog.info( "Took %0.3e seconds to slice",  time2-time1)
         
         self.data = slice_data
         
@@ -377,7 +376,7 @@ class EnzoVMSlice(EnzoVM):
         #self.refreshDisplayWidth()
         
         time2=time.time()
-        print "Took %0.3e seconds for everything" % (time2-time1)
+        mylog.info( "Took %0.3e seconds for everything" ,  time2-time1)
 
     def addField(self, field):
         if self.hierarchy.conversionFactors.has_key(field):
@@ -385,7 +384,7 @@ class EnzoVMSlice(EnzoVM):
         else:
             conv = 1
         if not self.tuple.has_key(field):
-            self.tuple.addColumn(field,self.data[field]*conv)
+            self.tuple.addColumn(field,list(self.data[field]*conv))
 
     def switchField(self, field):
         self.addField(field)
@@ -401,16 +400,16 @@ class EnzoVMSlice(EnzoVM):
     def shift(self, val):
         self.data.shift(val)
         #self.tuple.dataSource().clear()
-        print "Replacing x"
+        mylog.debug( "Replacing x")
         self.tuple.replaceColumn('x',self.data.x)
-        print "Replacing y"
+        mylog.debug( "Replacing y")
         self.tuple.replaceColumn('y',self.data.y)
-        print "Replacing dx"
+        mylog.debug( "Replacing dx")
         self.tuple.replaceColumn('dx',self.data.dx)
-        print "Replacing dy"
+        mylog.debug( "Replacing dy")
         self.tuple.replaceColumn('dy',self.data.dy)
         for field in self.data.fields:
-            print "Replacing field %s" % (field)
+            mylog.debug( "Replacing field %s" ,  field)
             self.tuple.replaceColumn(field,self.data[field])
         self.refresh()
 
@@ -421,14 +420,14 @@ class EnzoVMProj(EnzoVM):
         self.typeName = "Projection"
         
         if (center == None) and (self.c == None):
-            print "Searching for center"
+            mylog.debug( "Searching for center")
             v, center = self.hierarchy.findMax('Density')
         if (center != None):
             self.c = center
 
         self.field = field
 
-        print "Getting from field = %s at center %s" % (field, self.c)
+        mylog.info( "Getting from field = %s at center %s", field, self.c)
         projData = self.hierarchy.getProjection(axis, field)
         totalEntries = 0
         for level in projData.keys():
@@ -447,7 +446,7 @@ class EnzoVMProj(EnzoVM):
             index+=entries
         
         time2 = time.time()
-        print "Took %0.3e seconds to project" % (time2-time1)
+        mylog.info( "Took %0.3e seconds to project" ,  time2-time1)
         
         self.data = array([(0.5+x_data)*dx_data, (0.5+y_data)*dx_data, z_data, dx_data/2.0, dx_data/2.0])
         self.data.swapaxes(0,1)
@@ -473,10 +472,10 @@ class EnzoVMProj(EnzoVM):
         else:
             self.dataLabel = field
 
-        print "Min: %0.3e Max: %0.3e" % (v1, v2)
+        mylog.info( "Min: %0.3e Max: %0.3e",  v1, v2)
         self.plotFromData(self.tuple)
         #self.refreshDisplayWidth()
         
         time2=time.time()
-        print "Took %0.3e seconds for everything" % (time2-time1)
+        mylog.info( "Took %0.3e seconds for everything" ,  time2-time1)
 

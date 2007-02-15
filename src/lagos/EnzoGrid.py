@@ -140,18 +140,12 @@ class EnzoGrid:
             ei = [None]*3
             startIndex = (child.LeftEdge - self.LeftEdge)/self.dx
             endIndex = (child.RightEdge - self.LeftEdge)/self.dx
-            #print startIndex[0], endIndex[0], child.LeftEdge[0], child.RightEdge[0]
-            #print child.LeftEdge, child.RightEdge, self.LeftEdge, self.RightEdge
-            #print self.id, startIndex, endIndex
             for i in range(3):
-                #print startIndex[i], endIndex[i]
                 si[i] = int(startIndex[i])
                 ei[i] = int(endIndex[i])
             self.myChildMask[si[0]:ei[0], si[1]:ei[1], si[2]:ei[2]] = 0
         #self.myIndices = where(self.myChildMask==1)
         self.myChildIndices = where(self.myChildMask==0)
-        #print "Grid %s has %s children and %s / %s child indices" % \
-            #(self.id, len(self.Children), len(self.myChildIndices[0]), product(self.ActiveDimensions))
 
     def generateOverlapMasks(self, axis, LE, RE):
         """
@@ -212,7 +206,6 @@ class EnzoGrid:
         Deprecated.  Gets a slice from the grid.  Don't use.
         """
         if self.myChildMask == None:
-            #print "Generating child mask"
             self.generateChildMask()
         # So what's our index of slicing?  This is what we need to figure out
         # first, so we can deal with our data in the fastest way.
@@ -230,8 +223,6 @@ class EnzoGrid:
         if axis == 0:
             cm = where(self.myChildMask[wantedIndex,:,:] == 1)
             cmI = indices(self.myChildMask[wantedIndex,:,:].shape)
-            #print "GRID %s: %s : %s" % \
-                #(self.id, self.myChildMask[wantedIndex,:,:].shape, self.ActiveDimensions)
             slicedData = self[field][wantedIndex,:,:]
         elif axis == 1:
             cm = where(self.myChildMask[:,wantedIndex,:] == 1)
@@ -377,7 +368,6 @@ class EnzoGrid:
         Returns a sphere from within the grid.  Don't use.
         """
         if self.myChildMask == None or self.myChildIndices == None:
-            #print "\tGenerating child mask"
             self.generateChildMask()
         # First we find the cells that are within the sphere
         pointI = where(logical_and((self["RadiusCode"]<=radius),self.myChildMask==1)==1)

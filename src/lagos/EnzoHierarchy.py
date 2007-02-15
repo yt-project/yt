@@ -96,7 +96,7 @@ class EnzoHierarchy:
         
         self.populateHierarchy()
         time2=time.time()
-        print "Took %s seconds" % (time2-time1)
+        mylog.info("Took %s seconds to read the hierarchy.", time2-time1)
 
     def __getitem__(self, key):
         """
@@ -137,9 +137,7 @@ class EnzoHierarchy:
             if len(line) < 2:
                 continue
             param, vals = map(strip,map(rstrip,line.split("=")))
-            #print param
             if parameterDict.has_key(param):
-                #print param, vals
                 t = map(parameterDict[param], vals.split())
                 if len(t) == 1:
                     self.parameters[param] = t[0]
@@ -211,7 +209,6 @@ class EnzoHierarchy:
             if param == "Grid ":
                 curGrid = int(vals)
                 self.grids[curGrid-1] = EnzoGrid(self, curGrid)
-                #print "Creating curGrid = %i" % (curGrid)
             elif param == "GridDimension     ":
                 splitConvertGridParameter(vals, float, self.gridDimensions, curGrid)
             elif param == "GridStartIndex    ":
@@ -242,22 +239,16 @@ class EnzoHierarchy:
                     secondGrid=int(line[line.rfind("=")+1:])-1
                     if secondGrid != -1:
                         firstGrid=int(line[14:line.find(']')])-1
-                        #print "Connecting %s to %s due to %s" % (firstGrid+1, secondGrid+1, line[:-1])
                         l1=len(self.gridTree[firstGrid])
                         self.gridTree[firstGrid].append(self.grids[secondGrid])
                         l2=len(self.gridTree[firstGrid])
-                        #print "%s went from %s to %s" % (firstGrid, l1, l2)
                         self.gridReverseTree[secondGrid] = firstGrid + 1
                         self.grids[secondGrid].Level = self.grids[firstGrid].Level + 1
                         self.gridLevels[secondGrid] = self.gridLevels[firstGrid] + 1
-                        #print "%s = %s ; %s = %s" % \
-                            #(secondGrid+1, self.grids[secondGrid].id, \
-                             #firstGrid+1, self.grids[firstGrid].id)
                 if line.find("sL")!=-1:
                     secondGrid=int(line[line.rfind("=")+1:])-1
                     if secondGrid != -1:
                         firstGrid=int(line[14:line.find(']')])-1
-                        #print "Connecting %s to %s due to %s" % (firstGrid+1, secondGrid+1, line[:-1])
                         parent = self.gridReverseTree[firstGrid]
                         if parent:
                             self.gridTree[parent-1].append(self.grids[secondGrid])
@@ -268,7 +259,6 @@ class EnzoHierarchy:
         # Now we do things that we need all the grids to do
         self.fieldList = self.grids[0].getFields()
         for i in range(self.numGrids):
-            #print "Preparing %s" % (i)
             self.levelsStats[self.gridLevels[i,0],0] += 1
             self.grids[i].prepareGrid()
             self.levelsStats[self.gridLevels[i,0],1] += product(self.grids[i].ActiveDimensions)
@@ -396,14 +386,13 @@ class EnzoHierarchy:
         g,ind = self.findSliceGrids(center[axis],axis)
         time1=time.time()
         for grid in g:
-            print "Getting from grid %s" % (grid.id)
+            mylog.info("Getting from grid %s", grid.id)
             rvs.append(grid.getSlice(center[axis],axis,field,outline))
         allPoints = concatenate(rvs)
         if fileName:
             time2=time.time()
-            print "It took %s seconds to generate a slice through all levels" % (time2-time1)
-            print "This means %s points in %s grids!" % (allPoints.shape[0], len(g))
-            print
+            mylog.info("It took %s seconds to generate a slice through all levels", time2-time1)
+            mylog.info("This means %s points in %s grids!", allPoints.shape[0], len(g))
             f=open(fileName, "w")
             f.write("x\ty\tz\tdx\tdy\n")
             for i in range(allPoints.shape[0]):
@@ -456,8 +445,8 @@ class EnzoHierarchy:
             i+=1
             # Get the points now
             x,y,z, v = grid.getSphere(center, radius, fields)
-            print "Took %s / %s points from %s at level %s ( %s / %s )" % \
-                (len(x), product(grid.ActiveDimensions), grid.id, grid.Level, i, ind[0].shape[0])
+            mylog.debug("Took %s / %s points from %s at level %s ( %s / %s )",  \
+                len(x), product(grid.ActiveDimensions), grid.id, grid.Level, i, ind[0].shape[0])
             xs.append(x)
             ys.append(y)
             zs.append(z)
@@ -468,7 +457,7 @@ class EnzoHierarchy:
         zs = concatenate(zs)
         values = concatenate(values)
         time2 = time.time()
-        print "Total of %s points in %0.3e seconds!" % (xs.shape[0], time2-time1)
+        mylog.info("Total of %s points in %0.3e seconds!", xs.shape[0], time2-time1)
         return [xs, ys, zs, values]
 
     def findMax(self, field, finestLevels = 1):
@@ -487,7 +476,7 @@ class EnzoHierarchy:
             gI = where(self.gridLevels >= 0) # Slow but pedantic
         maxVal = -1e100
         for grid in self.grids[gI[0]]:
-            print "Checking %s (level %s)" % (grid.id, grid.Level)
+            mylog.debug("Checking %s (level %s)", grid.id, grid.Level)
             val, coord = grid.findMax(field)
             if val > maxVal:
                 maxCoord = coord
@@ -498,14 +487,13 @@ class EnzoHierarchy:
         pos[0] += 0.5*maxGrid.dx
         pos[1] += 0.5*maxGrid.dx
         pos[2] += 0.5*maxGrid.dx
-        print "Max Value is %0.5e at %0.16f %0.16f %0.16f in grid %s at level %s" % \
-              (maxVal, pos[0], pos[1], pos[2], maxGrid, maxGrid.Level)
+        mylog.info("Max Value is %0.5e at %0.16f %0.16f %0.16f in grid %s at level %s", \
+              maxVal, pos[0], pos[1], pos[2], maxGrid, maxGrid.Level)
         self.center = pos
         # This probably won't work for anyone else
         self.bulkVelocity = (maxGrid["x-velocity"][maxCoord], \
                              maxGrid["y-velocity"][maxCoord], \
                              maxGrid["z-velocity"][maxCoord])
-        print self.bulkVelocity
         self.parameters["Max%sValue" % (field)] = maxVal
         self.parameters["Max%sPos" % (field)] = "%s" % (pos)
         return maxVal, pos
@@ -517,7 +505,6 @@ class EnzoHierarchy:
         # Currently weightField does nothing.
         if maxLevel == None:
             maxLevel = self.maxLevel
-            print "maxlevel = %s minlevel = %s" % (maxLevel, minLevel)
         # First we precalculate how much memory we will need
         totalProj = 0
         memoryPerLevel = {}
@@ -525,14 +512,14 @@ class EnzoHierarchy:
         i = 0
         for level in range(self.maxLevel+1):
             memoryPerLevel[level] = 0
-            print "Working on level %s" % (level)
+            mylog.info( "Working on level %s", level)
             grids = self.levelIndices[level]
             numGrids = len(grids)
             RE = self.gridRightEdge[grids].copy()
             LE = self.gridLeftEdge[grids].copy()
             for grid in self.grids[grids]:
                 if (i%1e3) == 0:
-                    print "\tReading and masking %s / %s" % (i, self.numGrids)
+                    mylog.info("Reading and masking %s / %s", i, self.numGrids)
                 for ax in range(3):
                     grid.generateOverlapMasks(ax, LE, RE)
                     grid.myOverlapGrids[ax] = self.grids[grids[where(grid.myOverlapMasks[ax] == 1)]]
@@ -543,9 +530,9 @@ class EnzoHierarchy:
             memoryPerLevel[grid.Level] += myNeeds
         for level in range(maxLevel+1):
             gI = where(self.gridLevels==level)
-            print "\t%s cells and %s grids for level %s" % \
-             (memoryPerLevel[level], len(gI[0]), level)
-        print "\nWe need %s cells total" % (totalProj)
+            mylog.info("%s cells and %s grids for level %s", \
+             memoryPerLevel[level], len(gI[0]), level)
+        mylog.debug("We need %s cells total", totalProj)
         # We start at the coarsest resolution levels
         i = 0
         dataByLevel = {}
@@ -556,11 +543,10 @@ class EnzoHierarchy:
         self.dbl_coarse = {}
         for level in range(minLevel,maxLevel+1):
             if level == maxLevel:
-                print "Not zeroing out on level %s" % (level)
                 zeroOut = False
             time3 = time.time()
             #levelData = {}
-            print "Projecting through level = %s" % level
+            mylog.info("Projecting through level = %s", level)
             #levelData = [zeros(memoryPerLevel[level], Int64), \
                             #zeros(memoryPerLevel[level], Int64), \
                             #zeros(memoryPerLevel[level], Float64), \
@@ -590,11 +576,11 @@ class EnzoHierarchy:
                       #(i,ng, grid.ActiveDimensions, len(grid.myOverlapGrids[axis]))
             time6=time.time()
             totalGridsProjected += i
-            print "\tGrid projecting done in %s seconds (%s / %s total) with %s points" % \
-                    (time6-time5, totalGridsProjected, self.numGrids, index)
+            mylog.info("Grid projecting done in %s seconds (%s / %s total) with %s points", \
+                    time6-time5, totalGridsProjected, self.numGrids, index)
             time5=time.time()
             #print "\tCombining with a maximum of %s operations" % (index*index)
-            print "\tCombining ..."
+            mylog.info("Combining ...")
             i=0
             for grid1 in gridsToProject:
                 i += 1
@@ -629,7 +615,6 @@ class EnzoHierarchy:
                             grid1.retVal[0], grid1.retVal[1], grid1.retVal[2],
                             grid2.coarseData[0], grid2.coarseData[1], grid2.coarseData[2], 2)
             all_data = [[],[],[],[]]
-            print "\tCombining arrays..."
             for grid in gridsToProject:
                 #print grid.retVal[0]
                 all_data[0].append(grid.retVal[0])
@@ -643,14 +628,13 @@ class EnzoHierarchy:
                                    grid.retVal[3][cI]]
             # Now we concatenate our lists into an array
             #print all_data[0]
-            print "\tConcatenating..."
             levelData = []
             levelData.append(concatenate(all_data[0]))
             levelData.append(concatenate(all_data[1]))
             levelData.append(concatenate(all_data[2]))
             levelData.append(concatenate(all_data[3]))
             time6=time.time()
-            print "\tTook %s seconds with a final %s points" % (time6-time5, levelData[0].shape[0])
+            mylog.info("Took %s seconds with a final %s points", time6-time5, levelData[0].shape[0])
             dx=gridsToProject[0].dx
             #print "\tdx = %s" % (dx)
             # Make new memory-aligned arrays from the old, and disregarding
@@ -660,11 +644,11 @@ class EnzoHierarchy:
             dblI = where(logical_and((levelData[0]>-1), (levelData[3] == 1))==1)
             dataByLevel[level] = [levelData[0][dblI], levelData[1][dblI], levelData[2][dblI], dx]
             time4 = time.time()
-            print "\tLevel %s done in %s seconds: %s final of %s (%s)" % \
-                  (level, time4-time3, dataByLevel[level][0].shape[0], levelData[0].shape[0], dataByLevel[level][2][0])
+            mylog.info("Level %s done in %s seconds: %s final of %s (%s)", \
+                  level, time4-time3, dataByLevel[level][0].shape[0], levelData[0].shape[0], dataByLevel[level][2][0])
             del levelData
         time2 = time.time()
-        print "Got all the projected points in %s seconds" % (time2-time1)
+        mylog.info("Got all the projected points in %s seconds", time2-time1)
         self.dataByLevel = dataByLevel
         if fileName == None:
             return dataByLevel
@@ -675,7 +659,7 @@ def outputProjectionASCII(dataByLevel, fileName, minLevel, maxLevel):
         """
         Don't use directly.  Currently in flux.
         """
-        print "Now outputting to %s in five-column ascii.  How efficient!" % (fileName)
+        mylog.debug("Now outputting to %s in five-column ascii.  How efficient!", fileName)
         k=0
         f=open(fileName,"w")
         f.write("x\ty\tz\tdx\tdy\n")
@@ -698,9 +682,8 @@ def outputProjectionASCII(dataByLevel, fileName, minLevel, maxLevel):
                     continue
                 f.write("%0.20e %0.20e %0.20e %0.20e %0.20e\n" % \
                         (x[i]+0.5*dx, y[i]+0.5*dx, (vals[i]), dx/2.0, dx/2.0))
-            print "Wrote level %s (%s lines) with %s bad" % (level, k-j, numBad)
         f.close()
-        print "Wrote %s lines" % (k)
+        mylog.debug( "Wrote %s lines", k)
             
 def splitConvertGridParameter(vals, func, toAdd, curGrid):
     """

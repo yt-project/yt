@@ -53,7 +53,7 @@ class EnzoTable:
             else:
                 toArray.append(map(float, line.split()))
         self.columns = array(toArray, Float32)
-        print "Found %s bins of values" % (self.columns.shape[0])
+        mylog.info("Found %s bins of rate values", self.columns.shape[0])
     def __getitem__(self, item):
         ## This WILL get cleaned up, but it does what I want for now
         x_vals = []

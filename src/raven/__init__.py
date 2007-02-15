@@ -7,6 +7,7 @@ try:
 except:
     print "Deliverator upload failed; all deliverator actions will fail!"
 
+from yt.logger import ravenLogger as mylog
 import yt.lagos as lagos
 from yt.lagos.EnzoDerivedFields import *
 from EnzoPlots import *

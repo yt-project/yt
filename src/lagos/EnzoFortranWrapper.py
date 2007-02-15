@@ -9,10 +9,10 @@
 
 from yt.lagos import *
 import Numeric # Hate doing this, but we have to for inout ability
-from ravenDefs import *
+#from EnzoDefs import *
 from numarray import *
 
-import enzo_routines
+#import enzo_routines
 
 # So I will first write a wrapper for the solve_rate_cool function
 # This will take an actual grid and its actual data, and then get some results
@@ -55,14 +55,12 @@ def runSolveRateCool(g, dt, omaskflag=0):
             t = Numeric.array(g.data[ds].copy(), Numeric.Float32)
             dataCopy[ds] = t
         except TypeError:
-            print "Skipping %s" % (ds)
             del g.data[ds]
         #t.transpose()
         #dataCopy[ds] = t
     # Let's get all the rates
     #print "Getting chemistry rates from rate file"
     for rate in rates_out_key:
-        #print rate,
         exec("%s = a.rates['%s']" % (rate, rate))
     for rate in a.rates.params.keys():
         exec("%s = a.rates.params['%s']" % (rate, rate))
@@ -108,7 +106,6 @@ def runSolveRateCool(g, dt, omaskflag=0):
     #subgridmask = Numeric.array(g.myChildMask, Numeric.Int64)
     subgridmask = g.myChildMask * Numeric.ones(g.ActiveDimensions, Numeric.Int32)
     #subgridmask = Numeric.reshape(Numeric.transpose(subgridmask), subgridmask.shape)
-    print subgridmask.shape
     #return subgridmask
     enzo_routines.solve_rate_cool( \
         dataCopy["Density"], dataCopy["Total_Energy"], dataCopy["Gas_Energy"],
@@ -213,7 +210,6 @@ def runCoolMultiTime(g):
             AD[j] = min(NUMPERROW,numElements)
             #print AD
             numElements = ceil(numElements / float(AD[j]))
-            print "AD:", AD, numElements
         #AD.reverse()
         #AD = array(AD)
     else:
@@ -222,9 +218,7 @@ def runCoolMultiTime(g):
         try:
             dataCopy[ds] = Numeric.resize(g.data[ds], tuple(AD.tolist()))
             #dataCopy[ds] = Numeric.reshape(Numeric.transpose(dataCopy[ds]), dataCopy[ds].shape)
-            print "Copying %s" % (ds)
         except KeyError:
-            print "Skipping %s" % (ds)
             del g.data[ds]
     utim = a.conversionFactors["Time"]
     urho = a.conversionFactors["Density"]
@@ -252,7 +246,7 @@ def runCoolMultiTime(g):
     #cooltime = Numeric.reshape(Numeric.transpose(cooltime), cooltime.shape)
     # cool1d_multi is one-d, and works on a slice at a time
     #h = Reshaper(g)
-    print "Going to call it!"
+    mylog.debug("Calling cool_multi_time")
     dc = Numeric.reshape(Numeric.transpose(dataCopy["Density"]), dataCopy["Density"].shape)
     #print dataCopy["Density"].shape, dc.shape
     enzo_routines.cool_multi_time( \
@@ -283,7 +277,6 @@ def runCoolMultiTime(g):
         1, 1)
     # On some platforms you need the following three lines:
     #print hdc, cieco
-    print "SHAPE",hdc.shape,hdc[3000,:],cieco[3000]
     t = Numeric.transpose(cooltime)
     cooltime = Numeric.reshape(cooltime, t.shape)
     cooltime = Numeric.transpose(cooltime)

@@ -11,7 +11,7 @@ from yt.lagos import *
 try:
     import EnzoFortranWrapper
 except:
-    print "EnzoFortranWrapper not properly installed -- no fortran fields available!"
+    mylog.warning("EnzoFortranWrapper not properly installed -- no fortran fields available!")
 
 # Add the info for any non-derived fields up here.  For any added derived
 # fields, add it immediately after the function definition.
@@ -30,6 +30,8 @@ fieldInfo["H2I_Fraction"] = ("mass fraction", None, True, None)
 # These are all the fields that should be logged when plotted
 # NOTE THAT THIS IS OVERRIDEN BY fieldInfo !
 log_fields = [ "Density_Squared", "k23", "k22", "k13" ]
+
+colormap_dict = {"Temperature":"Red Temperature"}
 
 def Entropy(self, fieldName):
     self[fieldName] = self["Density"]**(-2./3.) * \

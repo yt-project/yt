@@ -13,6 +13,8 @@ from stat import ST_CTIME
 #import RavenCombine, fields, chemistry
 import time
 
+from yt.logger import lagosLogger as mylog
+
 from EnzoDefs import *
 from EnzoDerivedFields import *
 from EnzoFortranWrapper import *

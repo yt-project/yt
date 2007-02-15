@@ -239,12 +239,10 @@ class EnzoSlice(Enzo2DData):
         #print g
         points = []
         if self.dx == None:
-            print "Generating coordinates"
             for grid in g:
                 #print "Generating coords for grid %s" % (grid.id)
                 points.append(self.generateGridCoords(grid))
             t = concatenate(points)
-            print t.shape
             self.x = t[:,0]
             self.y = t[:,1]
             self.z = t[:,2]
@@ -395,7 +393,6 @@ class Enzo3DData(EnzoData):
         self.ActiveDimensions = (len(self.x), 1, 1)
         if self.coords == None:
             self.coords = array([self.x, self.y, self.z])
-            print "Returning from generateCoords"
 
 class EnzoRegion(Enzo3DData):
     def __init__(self, hierarchy, center, leftEdge, rightEdge, fields = None):
@@ -417,7 +414,6 @@ class EnzoRegion(Enzo3DData):
                 #print "Generating coords for grid %s" % (grid.id)
                 points.append(self.generateGridCoords(grid))
             t = concatenate(points)
-            print t.shape
             self.x = t[:,0]
             self.y = t[:,1]
             self.z = t[:,2]
@@ -434,7 +430,7 @@ class EnzoRegion(Enzo3DData):
         for field in fieldsToGet:
             if self.data.has_key(field):
                 continue
-            print "Getting field %s from %s" % (field, len(g))
+            mylog.info("Getting field %s from %s", field, len(g))
             sf = zeros(self.x.shape[0],Float64)
             i = 0
             if field in self.hierarchy.fieldList:
@@ -506,7 +502,6 @@ class EnzoSphere(Enzo3DData):
                 #print "Generating coords for grid %s" % (grid.id)
                 points.append(self.generateGridCoords(grid))
             t = concatenate(points)
-            print t.shape
             self.x = t[:,0]
             self.y = t[:,1]
             self.z = t[:,2]
@@ -523,7 +518,7 @@ class EnzoSphere(Enzo3DData):
         for field in fieldsToGet:
             if self.data.has_key(field):
                 continue
-            print "Getting field %s from %s" % (field, len(g))
+            mylog.info("Getting field %s from %s", field, len(g))
             sf = zeros(self.x.shape[0],Float64)
             i = 0
             if field in self.hierarchy.fieldList:
