@@ -4,6 +4,12 @@ import os, os.path, hippo
 import yt.deliverator as deliverator_upload
 import yt.fido
 
+import logging
+
+f=logging.getLogger("yt.fido")
+s=logging.StreamHandler()
+f.addHandler(s)
+
 app = hippo.HDApp( )
 
 fields = ["NumberDensity", "Temperature", "H2I_Fraction", "RadialVelocity"]
