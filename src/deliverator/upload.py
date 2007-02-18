@@ -13,10 +13,8 @@ from yt.deliverator import *
 
 import os, cPickle, sys, StringIO
 
-hdir = os.getenv("HOME")
-APIKeyFileName = hdir + "/.raven/APIKey"
-if os.path.exists(APIKeyFileName):
-    APIKey=open(hdir+"/.raven/APIKey").read()
+if ytcfg.has_option("Deliverator","api-key"):
+    APIKey=ytcfg.get("Deliverator","api-key")
 else:
     APIKey = None
     mylog.warning("No API Key Found!  All actions will fail.")
