@@ -12,8 +12,6 @@ import Numeric # Hate doing this, but we have to for inout ability
 #from EnzoDefs import *
 from numarray import *
 
-#import enzo_routines
-
 # So I will first write a wrapper for the solve_rate_cool function
 # This will take an actual grid and its actual data, and then get some results
 # back.
@@ -73,9 +71,11 @@ def runSolveRateCool(g, dt, omaskflag=0):
     utim = 2.52e17 / sqrt(a.parameters["CosmologyOmegaMatterNow"]) \
                    / a.parameters["CosmologyHubbleConstantNow"] \
                    / (1+a.parameters["CosmologyInitialRedshift"])**1.5
+    print "UTIM:",utim, a["Time"]
     urho = 1.88e-29 * a.parameters["CosmologyOmegaMatterNow"] \
                     * a.parameters["CosmologyHubbleConstantNow"]**2 \
                     * (1.0 + a["CosmologyCurrentRedshift"])**3
+    print "URHO:",urho, a["Density"]
     uxyz = 3.086e24 * \
            a.parameters["CosmologyComovingBoxSize"] / \
            a.parameters["CosmologyHubbleConstantNow"] / \
@@ -89,7 +89,7 @@ def runSolveRateCool(g, dt, omaskflag=0):
                   * a.parameters["CosmologyOmegaMatterNow"] \
                   * (1.0 + a.parameters["CosmologyInitialRedshift"])
     aye  = (1.0 + a.parameters["CosmologyInitialRedshift"]) / \
-           (a.parameters["CosmologyCurrentRedshift"] - 1.0)
+           (1.0 + a.parameters["CosmologyCurrentRedshift"])
     # Now we have all the units!  We're almost done...
     blank_field = Numeric.zeros(g.data["Total_Energy"].shape, Numeric.Float32)
     hdc = array([hdc_1, hdc_2, hdc_3, hdc_4, hdc_5], Float32)
@@ -107,7 +107,7 @@ def runSolveRateCool(g, dt, omaskflag=0):
     subgridmask = g.myChildMask * Numeric.ones(g.ActiveDimensions, Numeric.Int32)
     #subgridmask = Numeric.reshape(Numeric.transpose(subgridmask), subgridmask.shape)
     #return subgridmask
-    enzo_routines.solve_rate_cool( \
+    EnzoFortranRoutines.solve_rate_cool( \
         dataCopy["Density"], dataCopy["Total_Energy"], dataCopy["Gas_Energy"],
         dataCopy["x-velocity"], dataCopy["y-velocity"], dataCopy["z-velocity"], 
         dataCopy["Electron_Density"], dataCopy["HI_Density"], dataCopy["HII_Density"],
@@ -249,7 +249,7 @@ def runCoolMultiTime(g):
     mylog.debug("Calling cool_multi_time")
     dc = Numeric.reshape(Numeric.transpose(dataCopy["Density"]), dataCopy["Density"].shape)
     #print dataCopy["Density"].shape, dc.shape
-    enzo_routines.cool_multi_time( \
+    EnzoFortranRoutines.cool_multi_time( \
         dataCopy["Density"], dataCopy["Total_Energy"], dataCopy["Gas_Energy"],
         dataCopy["x-velocity"], dataCopy["y-velocity"], dataCopy["z-velocity"], 
         dataCopy["Electron_Density"], dataCopy["HI_Density"], dataCopy["HII_Density"],

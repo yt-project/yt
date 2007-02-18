@@ -11,7 +11,10 @@ def getFieldsHDF5(self):
     """
     Current unimplemented.  Fix me, someone!
     """
-    return 0
+    fls = []
+    for fl in tables.openFile(self.filename).listNodes("/"):
+        fls.append(fl.name)
+    return fls
 
 def readDataHDF4(self, field):
     """
@@ -64,6 +67,12 @@ def readAllDataHDF5(self):
     Not implemented.  Fix me!
     """
     pass
+
+def readDataSliceHDF5(self, grid, field, sl):
+    f = tables.openFile(grid.filename)
+    ss = f.getNode("/", field)[sl]
+    f.close()
+    return ss
 
 def readDataSliceHDF4(self, grid, field, sl):
     return SD.SD(grid.filename).select(field)[sl]

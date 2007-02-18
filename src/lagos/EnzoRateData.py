@@ -8,9 +8,10 @@
 # Modified:
 #
 
+from yt.lagos import *
 from numarray import *
 import numarray.nd_image as nd
-import RavenCombine
+import EnzoCombine
 import types, exceptions
 
 class EnzoTable:
@@ -90,7 +91,7 @@ class EnzoTable:
         ind = zeros(len(x_vals),Int64)
         x_axis = self.columns[:,0]
         x_vals_arr = array(x_vals, Float32)
-        RavenCombine.Interpolate(x_axis, self.columns, x_vals_arr, valsToReturn, colsToReturn)
+        EnzoCombine.Interpolate(x_axis, self.columns, x_vals_arr, valsToReturn, colsToReturn)
         if toReshape != None:
             if len(colsToReturn == 1):
                 valsToReturn = reshape(valsToReturn, toReshape)

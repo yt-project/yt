@@ -29,6 +29,7 @@ mu = 1.22
 # them from a string
 parameterDict = {"CosmologyCurrentRedshift": float,
                  "CosmologyComovingBoxSize": float,
+                 "CosmologyOmegaMatterNow": float,
                  "CosmologyHubbleConstantNow": float,
                  "CosmologyInitialRedshift": float,
                  "DualEnergyFormalismEta1": float,

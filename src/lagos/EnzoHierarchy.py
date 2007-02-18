@@ -31,6 +31,7 @@ class EnzoHierarchy:
         if hdf_version == 5:
             EnzoGrid.readDataFast = readDataHDF5
             EnzoGrid.readAllData = readAllDataHDF5
+            EnzoSlice.readDataSlice = readDataSliceHDF5
             EnzoGrid.getFields = getFieldsHDF5
             warnings.filterwarnings("ignore",".*PyTables format.*")
         else:
@@ -148,7 +149,11 @@ class EnzoHierarchy:
                     self.conversionFactors[dataType] = self.parameters[param]
             elif param.startswith("#DataCGS"):
                 # Assume of the form: #DataCGSConversionFactor[7] = 2.38599e-26 g/cm^3
-                dataType = lines[lineI-1].split("=")[-1].rstrip().strip()
+                if lines[lineI-1].find("Label") >= 0:
+                    kk = lineI-1
+                elif lines[lineI-2].find("Label") >= 0:
+                    kk = lineI-2
+                dataType = lines[kk].split("=")[-1].rstrip().strip()
                 convFactor = float(line.split("=")[-1].split()[0])
                 self.conversionFactors[dataType] = convFactor
             elif param.startswith("#CGSConversionFactor"):
@@ -598,7 +603,7 @@ class EnzoHierarchy:
                         continue
                     if grid1.id == grid2.id:
                         continue
-                    index=RavenCombine.CombineData( \
+                    index=EnzoCombine.CombineData( \
                             grid1.retVal[0], grid1.retVal[1], grid1.retVal[2], grid1.retVal[3], \
                             grid2.retVal[0], grid2.retVal[1], grid2.retVal[2], grid2.retVal[3], 0)
                     goodI = where(grid2.retVal[0] > -1)
@@ -611,7 +616,7 @@ class EnzoHierarchy:
                     for grid2 in grid1.Parent.myOverlapGrids[axis]:
                         if grid2.coarseData[0].shape[0] == 0:
                             continue
-                        numRefined += RavenCombine.RefineCoarseData( \
+                        numRefined += EnzoCombine.RefineCoarseData( \
                             grid1.retVal[0], grid1.retVal[1], grid1.retVal[2],
                             grid2.coarseData[0], grid2.coarseData[1], grid2.coarseData[2], 2)
             all_data = [[],[],[],[]]

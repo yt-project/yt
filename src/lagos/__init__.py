@@ -15,6 +15,10 @@ import time
 
 from yt.logger import lagosLogger as mylog
 
+try:
+    import EnzoFortranRoutines
+except:
+    mylog.warning("EnzoFortranRoutines import failed; all fortran calls will fail!")
 from EnzoDefs import *
 from EnzoDerivedFields import *
 from EnzoFortranWrapper import *
@@ -23,3 +27,6 @@ from EnzoGrid import *
 from EnzoData import *
 from EnzoHierarchy import *
 from EnzoRun import *
+from EnzoCombine import *
+from EnzoRateData import *
+

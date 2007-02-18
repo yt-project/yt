@@ -476,12 +476,12 @@ static PyMethodDef _combineMethods[] = {
 __declspec(dllexport)
 #endif
 
-void initRavenCombine(void)
+void initEnzoCombine(void)
 {
     PyObject *m, *d;
-    m = Py_InitModule("RavenCombine", _combineMethods);
+    m = Py_InitModule("EnzoCombine", _combineMethods);
     d = PyModule_GetDict(m);
-    _combineError = PyErr_NewException("RavenCombine.error", NULL, NULL);
+    _combineError = PyErr_NewException("EnzoCombine.error", NULL, NULL);
     PyDict_SetItemString(d, "error", _combineError);
     import_libnumarray();
 }
