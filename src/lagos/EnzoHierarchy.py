@@ -660,6 +660,57 @@ class EnzoHierarchy:
         else:
             outputProjectionASCII(dataByLevel, fileName, minLevel, maxLevel)
 
+    def exportParticlesPB(self, filename, filter = 1, fields = None, scale=1.0, center = [0.5, 0.5, 0.5]):
+        """
+        Exports all the star particles, or a subset, to a pb file for viewing in
+        partiview
+
+        Arguments:
+            filename -- filename of the .pb file to create
+        Keyword Arguments:
+            filter -- the particle type you want to get (assumes 2)
+            fields -- the fields you want to snag.  If not supplied, it just
+                      grabs the position.
+        """
+        import struct
+        pbf_magic = 0xffffff98
+        header_fmt = 'Iii'
+        fmt = 'ifff'
+        if fields:
+            header_fmt += len(fields)*('10s')
+            fmt += len(fields)*'f'
+            padded_fields = []
+            for f in fields:
+                padded_fields.append("%19s\0" % f)
+            args = [pbf_magic, struct.calcsize(header_fmt), len(fields)] + padded_fields
+            fields = ["particle_index","particle_position_x","particle_position_y","particle_position_z"] \
+                   + fields
+        else:
+            args = [pbf_magic, struct.calcsize(header_fmt), 0]
+            fields = ["particle_index","particle_position_x","particle_position_y","particle_position_z"]
+        f = open(filename,"w")
+        f.write(struct.pack(header_fmt, *args))
+        tot = 0
+        sc = array([1.0] + [scale] * 3 + [1.0]*(len(fields)-4))
+        print sc
+        for g in self.grids:
+            if "particle_type" not in g.getFields():
+                continue
+            #mylog.debug( "Grabbing from %i", g)
+            pI = where(g["particle_type"] == filter)
+            particle_info = ones((pI[0].shape[0],len(fields)), Float32)
+            tot += pI[0].shape[0]
+            i=0
+            for field in fields:
+                particle_info[:,i]=g[field][pI]
+                i += 1
+            for i in range(particle_info.shape[0]):
+                #print i, particle_info.shape
+                args = (particle_info[i,:]*sc).tolist()
+                f.write(struct.pack(fmt, *args))
+        f.close()
+        mylog.info("Wrote %s particles to %s", tot, filename)
+
 def outputProjectionASCII(dataByLevel, fileName, minLevel, maxLevel):
         """
         Don't use directly.  Currently in flux.
