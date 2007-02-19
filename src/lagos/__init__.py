@@ -4,6 +4,7 @@ import tables, warnings
 from numarray import *
 import numarray.objects as obj
 import numarray.nd_image as nd
+import numarray.records as rec
 import numarray
 from string import strip, rstrip
 from math import ceil, floor, log10, pi

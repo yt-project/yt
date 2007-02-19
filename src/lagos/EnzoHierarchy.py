@@ -8,6 +8,7 @@
 #
 
 from yt.lagos import *
+import string
 #from EnzoDataFuncs import *
 #from EnzoDefs import *
 #from EnzoData import *
@@ -676,38 +677,31 @@ class EnzoHierarchy:
         pbf_magic = 0xffffff98
         header_fmt = 'Iii'
         fmt = 'ifff'
+        f = open(filename,"w")
         if fields:
-            header_fmt += len(fields)*('10s')
             fmt += len(fields)*'f'
-            padded_fields = []
-            for f in fields:
-                padded_fields.append("%19s\0" % f)
-            args = [pbf_magic, struct.calcsize(header_fmt), len(fields)] + padded_fields
+            padded_fields = string.join(fields,"\0") + "\0"
+            header_fmt += "%ss" % len(padded_fields)
+            args = [pbf_magic, struct.calcsize(header_fmt), len(fields), padded_fields]
             fields = ["particle_index","particle_position_x","particle_position_y","particle_position_z"] \
                    + fields
+            format = 'Int32,Float32,Float32,Float32' + ',Float32'*(len(fields)-4)
         else:
             args = [pbf_magic, struct.calcsize(header_fmt), 0]
             fields = ["particle_index","particle_position_x","particle_position_y","particle_position_z"]
-        f = open(filename,"w")
+            format = 'Int32,Float32,Float32,Float32'
         f.write(struct.pack(header_fmt, *args))
         tot = 0
         sc = array([1.0] + [scale] * 3 + [1.0]*(len(fields)-4))
-        print sc
-        for g in self.grids:
-            if "particle_type" not in g.getFields():
-                continue
-            #mylog.debug( "Grabbing from %i", g)
+        gI = where(self.gridNumberOfParticles.flat > 0)
+        for g in self.grids[gI]:
             pI = where(g["particle_type"] == filter)
-            particle_info = ones((pI[0].shape[0],len(fields)), Float32)
             tot += pI[0].shape[0]
-            i=0
-            for field in fields:
-                particle_info[:,i]=g[field][pI]
-                i += 1
-            for i in range(particle_info.shape[0]):
-                #print i, particle_info.shape
-                args = (particle_info[i,:]*sc).tolist()
-                f.write(struct.pack(fmt, *args))
+            toRec = []
+            for field, scale in zip(fields, sc):
+                toRec.append(scale*g[field][pI])
+            particle_info = rec.array(toRec,formats=format)
+            particle_info.tofile(f)
         f.close()
         mylog.info("Wrote %s particles to %s", tot, filename)
 
