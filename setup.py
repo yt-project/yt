@@ -14,8 +14,8 @@ setup(name = "yt",
     package_dir={"yt":"src"},
     packages = ["yt.enki", "yt.fido", "yt.lagos", "yt", "yt.raven", "yt.deliverator"],
     license="GPL-2",
-    #ext_modules=[NumarrayExtension("lagos.RavenCombine",['lagos/point_combine.c'],\
-        #include_dirs=["./"],
-        #library_dirs=["./"],
-        #libraries=['m'])]
+    ext_modules=[NumarrayExtension("yt.lagos.EnzoCombine",['src/lagos/EnzoCombine.c'],\
+        include_dirs=["./"],
+        library_dirs=["./"],
+        libraries=['m'])]
     )
