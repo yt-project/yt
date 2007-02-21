@@ -237,11 +237,12 @@ fieldInfo["Radius"] = ("cm", None, True, Radius)
 
 def Metallicity(self, fieldName):
     zSolar = 0.0204
-    try:
+    if self.hierarchy.has_key('Metal_Density'):
         self[fieldName] = self["Metal_Fraction"] / zSolar
-    except:
+    else:
         self[fieldName] = self["SN_Colour"] / self["Density"] / \
-                               zSolar
+                          zSolar
+        
 fieldInfo["Metallicity"] = ("Z/Z_solar", None, True, Metallicity)
 
 def CellMass(self, fieldName):
