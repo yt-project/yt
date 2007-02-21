@@ -661,7 +661,7 @@ class EnzoHierarchy:
         else:
             outputProjectionASCII(dataByLevel, fileName, minLevel, maxLevel)
 
-    def exportParticlesPB(self, filename, filter = 1, fields = None, scale=1.0, center = [0.5, 0.5, 0.5]):
+    def exportParticlesPB(self, filename, filter = 1, fields = None, scale=1.0):
         """
         Exports all the star particles, or a subset, to a pb file for viewing in
         partiview
@@ -671,7 +671,8 @@ class EnzoHierarchy:
         Keyword Arguments:
             filter -- the particle type you want to get (assumes 2)
             fields -- the fields you want to snag.  If not supplied, it just
-                      grabs the position.
+                      grabs the position and index.
+            scale -- the factor to multiply the position by (defaults to 1.0)
         """
         import struct
         pbf_magic = 0xffffff98

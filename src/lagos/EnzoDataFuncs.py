@@ -5,7 +5,7 @@ def getFieldsHDF4(self):
     Returns a list of fields associated with the filename
     Should *only* be called as EnzoGridInstance.getFields, never as getFields(object)
     """
-    return SD.SD(self.filename).datasets()
+    return SD.SD(self.filename).datasets().keys()
 
 def getFieldsHDF5(self):
     """
