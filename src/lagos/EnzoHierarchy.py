@@ -661,7 +661,7 @@ class EnzoHierarchy:
         else:
             outputProjectionASCII(dataByLevel, fileName, minLevel, maxLevel)
 
-    def exportParticlesPB(self, filename, filter = 1, fields = None, scale=1.0):
+    def exportParticlesPB(self, filename, filter = 1, indexboundary = 0, fields = None, scale=1.0):   #########
         """
         Exports all the star particles, or a subset, to a pb file for viewing in
         partiview
@@ -672,6 +672,7 @@ class EnzoHierarchy:
             filter -- the particle type you want to get (assumes 2)
             fields -- the fields you want to snag.  If not supplied, it just
                       grabs the position and index.
+            indexboundary -- for those who want to discriminate the particles with particle index...          
             scale -- the factor to multiply the position by (defaults to 1.0)
         """
         import struct
@@ -696,7 +697,7 @@ class EnzoHierarchy:
         sc = array([1.0] + [scale] * 3 + [1.0]*(len(fields)-4))
         gI = where(self.gridNumberOfParticles.flat > 0)
         for g in self.grids[gI]:
-            pI = where(g["particle_type"] == filter)
+            pI = where(logical_and((g["particle_type"] == filter),(g["particle_index"] >= indexboundary)) == 1)
             tot += pI[0].shape[0]
             toRec = []
             for field, scale in zip(fields, sc):
