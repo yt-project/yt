@@ -9,6 +9,7 @@
 
 from yt.lagos import *
 import string
+import EnzoCombine
 #from EnzoDataFuncs import *
 #from EnzoDefs import *
 #from EnzoData import *
@@ -64,7 +65,8 @@ class EnzoHierarchy:
         self.setUnits()
 
         if self.parameters.has_key("CompilerPrecision") \
-           and self.parameters["CompilerPrecision"] == "r8":
+           and (self.parameters["CompilerPrecision"] == "r8" \
+                or self.parameters["CompilerPrecision"] == "r4"):
             EnzoFloatType = Float32
         else:
             EnzoFloatType = Float64
@@ -504,7 +506,8 @@ class EnzoHierarchy:
         self.parameters["Max%sPos" % (field)] = "%s" % (pos)
         return maxVal, pos
 
-    def getProjection(self, axis, field, fileName=None, minLevel=0, maxLevel=None, weightField=None):
+    def getProjection(self, axis, field, fileName=None, minLevel=0, maxLevel=None, \
+                      weightField=None):
         """
         Returns projection.  Currently in flux.  Don't use directly.
         """
@@ -570,16 +573,9 @@ class EnzoHierarchy:
             index=0
             time5=time.time()
             #print "Allocating %s for level %s" % (tempLevelData[0].shape, level)
-            global x_axis
-            global y_axis
-            x_axis = x_dict[axis]
-            y_axis = y_dict[axis]
             for grid in gridsToProject:
                 i+=1
-                grid.retVal=grid.getProjection(axis, field, zeroOut)
-                #print grid.retVal.shape
-                #print "\tProjecting through grid (%s / %s) with dims %s (%s)" % \
-                      #(i,ng, grid.ActiveDimensions, len(grid.myOverlapGrids[axis]))
+                grid.retVal=grid.getProjection(axis, field, zeroOut, weight=weightField)
             time6=time.time()
             totalGridsProjected += i
             mylog.info("Grid projecting done in %s seconds (%s / %s total) with %s points", \
@@ -605,33 +601,40 @@ class EnzoHierarchy:
                     if grid1.id == grid2.id:
                         continue
                     index=EnzoCombine.CombineData( \
-                            grid1.retVal[0], grid1.retVal[1], grid1.retVal[2], grid1.retVal[3], \
-                            grid2.retVal[0], grid2.retVal[1], grid2.retVal[2], grid2.retVal[3], 0)
+                            grid1.retVal[0], grid1.retVal[1], \
+                            grid1.retVal[2], grid1.retVal[3], grid1.retVal[4], \
+                            grid2.retVal[0], grid2.retVal[1], \
+                            grid2.retVal[2], grid2.retVal[3], grid2.retVal[4], 0)
                     goodI = where(grid2.retVal[0] > -1)
                     grid2.retVal[0] = grid2.retVal[0][goodI].copy()
                     grid2.retVal[1] = grid2.retVal[1][goodI].copy()
                     grid2.retVal[2] = grid2.retVal[2][goodI].copy()
                     grid2.retVal[3] = grid2.retVal[3][goodI].copy()
+                    grid2.retVal[4] = grid2.retVal[4][goodI].copy()
                 numRefined = 0
                 if (level > minLevel) and (level <= maxLevel):
                     for grid2 in grid1.Parent.myOverlapGrids[axis]:
                         if grid2.coarseData[0].shape[0] == 0:
                             continue
                         numRefined += EnzoCombine.RefineCoarseData( \
-                            grid1.retVal[0], grid1.retVal[1], grid1.retVal[2],
-                            grid2.coarseData[0], grid2.coarseData[1], grid2.coarseData[2], 2)
-            all_data = [[],[],[],[]]
+                            grid1.retVal[0], grid1.retVal[1], grid1.retVal[2], \
+                            grid1.retVal[4], \
+                            grid2.coarseData[0], grid2.coarseData[1], grid2.coarseData[2], \
+                            grid2.coarseData[4], 2)
+            all_data = [[],[],[],[],[]]
             for grid in gridsToProject:
                 #print grid.retVal[0]
                 all_data[0].append(grid.retVal[0])
                 all_data[1].append(grid.retVal[1])
                 all_data[2].append(grid.retVal[2])
                 all_data[3].append(grid.retVal[3])
+                all_data[4].append(grid.retVal[4])
                 cI = where(grid.retVal[3]==0)
                 grid.coarseData = [grid.retVal[0][cI], \
                                    grid.retVal[1][cI], \
                                    grid.retVal[2][cI], \
-                                   grid.retVal[3][cI]]
+                                   grid.retVal[3][cI], \
+                                   grid.retVal[4][cI]]
             # Now we concatenate our lists into an array
             #print all_data[0]
             levelData = []
@@ -639,6 +642,7 @@ class EnzoHierarchy:
             levelData.append(concatenate(all_data[1]))
             levelData.append(concatenate(all_data[2]))
             levelData.append(concatenate(all_data[3]))
+            levelData.append(concatenate(all_data[4]))
             time6=time.time()
             mylog.info("Took %s seconds with a final %s points", time6-time5, levelData[0].shape[0])
             dx=gridsToProject[0].dx
@@ -646,12 +650,23 @@ class EnzoHierarchy:
             # Make new memory-aligned arrays from the old, and disregarding
             # unneeded points
             # Now we use the coarser data to add to our finer data
+            # Here we also divide the weighting factor out (if used)
             time5 = time.time()
             dblI = where(logical_and((levelData[0]>-1), (levelData[3] == 1))==1)
-            dataByLevel[level] = [levelData[0][dblI], levelData[1][dblI], levelData[2][dblI], dx]
+            if weightField != None:
+                weightedData = levelData[2][dblI] / levelData[4][dblI]
+            else:
+                weightedData = levelData[2][dblI]
+            dataByLevel[level] = [levelData[0][dblI], levelData[1][dblI], \
+                                  weightedData, dx]
             time4 = time.time()
+            if dataByLevel[level][0].shape[0] > 0:
+                exampleValue = dataByLevel[level][2][0]
+            else:
+                exampleValue = 0.0
             mylog.info("Level %s done in %s seconds: %s final of %s (%s)", \
-                  level, time4-time3, dataByLevel[level][0].shape[0], levelData[0].shape[0], dataByLevel[level][2][0])
+                       level, time4-time3, dataByLevel[level][0].shape[0], \
+                       levelData[0].shape[0], exampleValue)
             del levelData
         time2 = time.time()
         mylog.info("Got all the projected points in %s seconds", time2-time1)

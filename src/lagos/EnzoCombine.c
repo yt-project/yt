@@ -28,8 +28,8 @@
 static PyObject *_combineError;
 
 static void 
-RefineCoarseData(long fpoints, Int64 *finedata_x, Int64 *finedata_y, Float64 *finedata_vals,
-                 long cpoints, Int64 *coarsedata_x, Int64 *coarsedata_y, Float64 *coarsedata_vals,
+RefineCoarseData(long fpoints, Int64 *finedata_x, Int64 *finedata_y, Float64 *finedata_vals, Float64 *finedata_wgt,
+                 long cpoints, Int64 *coarsedata_x, Int64 *coarsedata_y, Float64 *coarsedata_vals, Float64 *coarsedata_wgt,
                  int refinementFactor, int *totalRefined)
 {
     long fi, ci;
@@ -50,6 +50,7 @@ RefineCoarseData(long fpoints, Int64 *finedata_x, Int64 *finedata_y, Float64 *fi
                 (coarseCell_y == coarsedata_y[ci])) {
                     tr += 1;
                     finedata_vals[fi] = COMB(coarsedata_vals[ci], finedata_vals[fi]);
+                    finedata_wgt[fi]  = COMB(coarsedata_wgt[ci],  finedata_wgt[fi]);
                     flagged[ci] = 1;
                     break;  // Each fine cell maps to one and only one coarse
                             // cell
@@ -63,6 +64,7 @@ RefineCoarseData(long fpoints, Int64 *finedata_x, Int64 *finedata_y, Float64 *fi
             coarsedata_x[ci]=-1;
             coarsedata_y[ci]=-1;
             coarsedata_vals[ci]=0.0;
+	    coarsedata_wgt[ci]=0.0;
         }
     }
 }
@@ -70,16 +72,16 @@ RefineCoarseData(long fpoints, Int64 *finedata_x, Int64 *finedata_y, Float64 *fi
 static PyObject *
 Py_RefineCoarseData(PyObject *obj, PyObject *args)
 {
-    PyObject   *ofinedata_x, *ofinedata_y, *ofinedata_vals,
-               *ocoarsedata_x, *ocoarsedata_y, *ocoarsedata_vals,
+    PyObject   *ofinedata_x, *ofinedata_y, *ofinedata_vals, *ofinedata_wgt,
+               *ocoarsedata_x, *ocoarsedata_y, *ocoarsedata_vals, *ocoarsedata_wgt,
                *oreturn_index;
-    PyArrayObject   *finedata_x, *finedata_y, *finedata_vals,
-               *coarsedata_x, *coarsedata_y, *coarsedata_vals;
+    PyArrayObject   *finedata_x, *finedata_y, *finedata_vals, *finedata_wgt,
+	    *coarsedata_x, *coarsedata_y, *coarsedata_vals, *coarsedata_wgt;
     int refinementFactor;
 
-    if (!PyArg_ParseTuple(args, "OOOOOOi", 
-        &ofinedata_x, &ofinedata_y, &ofinedata_vals,
-        &ocoarsedata_x, &ocoarsedata_y, &ocoarsedata_vals,
+    if (!PyArg_ParseTuple(args, "OOOOOOOOi", 
+        &ofinedata_x, &ofinedata_y, &ofinedata_vals, &ofinedata_wgt,
+        &ocoarsedata_x, &ocoarsedata_y, &ocoarsedata_vals, &ocoarsedata_wgt,
         &refinementFactor))
         return PyErr_Format(_combineError, 
                     "CombineData: Invalid parameters.");
@@ -88,15 +90,17 @@ Py_RefineCoarseData(PyObject *obj, PyObject *args)
     finedata_x    = NA_IoArray(ofinedata_x   , tInt64, NUM_C_ARRAY | NUM_WRITABLE);
     finedata_y    = NA_IoArray(ofinedata_y   , tInt64, NUM_C_ARRAY | NUM_WRITABLE);
     finedata_vals = NA_IoArray(ofinedata_vals, tFloat64, NUM_C_ARRAY | NUM_WRITABLE);
+    finedata_wgt  = NA_IoArray(ofinedata_wgt , tFloat64, NUM_C_ARRAY | NUM_WRITABLE);
 
     coarsedata_x    = NA_IoArray(ocoarsedata_x   , tInt64, NUM_C_ARRAY | NUM_WRITABLE);
     coarsedata_y    = NA_IoArray(ocoarsedata_y   , tInt64, NUM_C_ARRAY | NUM_WRITABLE);
     coarsedata_vals = NA_IoArray(ocoarsedata_vals, tFloat64, NUM_C_ARRAY | NUM_WRITABLE);
+    coarsedata_wgt  = NA_IoArray(ocoarsedata_wgt , tFloat64, NUM_C_ARRAY | NUM_WRITABLE);
 
     //convolved = NA_OptionalOutputArray(oconvolved, tFloat64, NUM_C_ARRAY, data);
 
-    if (!finedata_x || !finedata_y || !finedata_vals
-     || !coarsedata_x || !coarsedata_y || !coarsedata_vals) {
+    if (!finedata_x || !finedata_y || !finedata_vals || !finedata_wgt
+     || !coarsedata_x || !coarsedata_y || !coarsedata_vals || !coarsedata_wgt) {
         PyErr_Format( _combineError, 
                   "CombineData: error converting array inputs.");
         goto _fail;
@@ -114,6 +118,12 @@ Py_RefineCoarseData(PyObject *obj, PyObject *args)
         goto _fail;
     }
 
+    if (!NA_ShapeEqual(finedata_x, finedata_wgt)) {
+        PyErr_Format(_combineError,
+                 "CombineData: x and weight finedata numarray need identitcal shapes.");
+        goto _fail;
+    }
+
     if (!NA_ShapeEqual(coarsedata_x, coarsedata_y)) {
         PyErr_Format(_combineError,
                  "CombineData: x and y coarsedata numarray need identitcal shapes.");
@@ -123,6 +133,12 @@ Py_RefineCoarseData(PyObject *obj, PyObject *args)
     if (!NA_ShapeEqual(coarsedata_x, coarsedata_vals)) {
         PyErr_Format(_combineError,
                  "CombineData: x and vals coarsedata numarray need identitcal shapes.");
+        goto _fail;
+    }
+
+    if (!NA_ShapeEqual(coarsedata_x, coarsedata_wgt)) {
+        PyErr_Format(_combineError,
+                 "CombineData: x and weight coarsedata numarray need identitcal shapes.");
         goto _fail;
     }
 
@@ -138,18 +154,22 @@ Py_RefineCoarseData(PyObject *obj, PyObject *args)
                      NA_OFFSETDATA(finedata_x),
                      NA_OFFSETDATA(finedata_y),
                      NA_OFFSETDATA(finedata_vals),
+                     NA_OFFSETDATA(finedata_wgt),
                      coarsedata_vals->dimensions[0],   
                      NA_OFFSETDATA(coarsedata_x),
                      NA_OFFSETDATA(coarsedata_y),
                      NA_OFFSETDATA(coarsedata_vals),
+                     NA_OFFSETDATA(coarsedata_wgt),
                      refinementFactor, &totalRefined);
 
     Py_XDECREF(finedata_x);
     Py_XDECREF(finedata_y);
     Py_XDECREF(finedata_vals);
+    Py_XDECREF(finedata_wgt);
     Py_XDECREF(coarsedata_x);
     Py_XDECREF(coarsedata_y);
     Py_XDECREF(coarsedata_vals);
+    Py_XDECREF(coarsedata_wgt);
 
     /* Align, Byteswap, Contiguous, Typeconvert */
     oreturn_index = PyInt_FromLong((long)totalRefined);
@@ -159,16 +179,18 @@ Py_RefineCoarseData(PyObject *obj, PyObject *args)
     Py_XDECREF(finedata_x);
     Py_XDECREF(finedata_y);
     Py_XDECREF(finedata_vals);
+    Py_XDECREF(finedata_wgt);
     Py_XDECREF(coarsedata_x);
     Py_XDECREF(coarsedata_y);
     Py_XDECREF(coarsedata_vals);
+    Py_XDECREF(coarsedata_wgt);
 
     return NULL;      
 }
 
 static void 
-CombineData(long dpoints, Int64 *alldata_x, Int64 *alldata_y, Float64 *alldata_vals, Int64 *alldata_mask,
-                 long gpoints, Int64 *griddata_x, Int64 *griddata_y, Float64 *griddata_vals, Int64 *griddata_mask,
+CombineData(long dpoints, Int64 *alldata_x, Int64 *alldata_y, Float64 *alldata_vals, Int64 *alldata_mask, Float64 *alldata_wgt,
+	    long gpoints, Int64 *griddata_x, Int64 *griddata_y, Float64 *griddata_vals, Int64 *griddata_mask, Float64 *griddata_wgt,
                  int *lastIndex)
 {
     long di, gi;
@@ -186,6 +208,7 @@ CombineData(long dpoints, Int64 *alldata_x, Int64 *alldata_y, Float64 *alldata_v
             if ((alldata_x[di] == griddata_x[gi]) &&
                 (alldata_y[di] == griddata_y[gi])) {
                     alldata_vals[di] = COMB(alldata_vals[di], griddata_vals[gi]);
+		    alldata_wgt[di]  = COMB(alldata_wgt[di], griddata_wgt[gi]);
                     alldata_mask[di] = (alldata_mask[di] && griddata_mask[gi]);
                     griddata_x[gi] = -1;
                     appendData = 0;
@@ -198,6 +221,7 @@ CombineData(long dpoints, Int64 *alldata_x, Int64 *alldata_y, Float64 *alldata_v
             alldata_y[myIndex] = griddata_y[gi];
             alldata_mask[myIndex] = griddata_mask[gi];
             alldata_vals[myIndex] = griddata_vals[gi];
+	    alldata_wgt[myIndex] = griddata_wgt[gi];
             myIndex++;
         }
     }
@@ -207,16 +231,16 @@ CombineData(long dpoints, Int64 *alldata_x, Int64 *alldata_y, Float64 *alldata_v
 static PyObject *
 Py_CombineData(PyObject *obj, PyObject *args)
 {
-    PyObject   *oalldata_x, *oalldata_y, *oalldata_vals, *oalldata_mask,
-               *ogriddata_x, *ogriddata_y, *ogriddata_vals, *ogriddata_mask,
+    PyObject   *oalldata_x, *oalldata_y, *oalldata_vals, *oalldata_mask, *oalldata_wgt,
+    	       *ogriddata_x, *ogriddata_y, *ogriddata_vals, *ogriddata_mask, *ogriddata_wgt,
                *oreturn_index;
-    PyArrayObject   *alldata_x, *alldata_y, *alldata_vals, *alldata_mask,
-               *griddata_x, *griddata_y, *griddata_vals, *griddata_mask;
+    PyArrayObject   *alldata_x, *alldata_y, *alldata_vals, *alldata_mask, *alldata_wgt,
+	    *griddata_x, *griddata_y, *griddata_vals, *griddata_mask, *griddata_wgt;
     int lastIndex;
 
-    if (!PyArg_ParseTuple(args, "OOOOOOOOi", 
-        &oalldata_x, &oalldata_y, &oalldata_vals, &oalldata_mask,
-        &ogriddata_x, &ogriddata_y, &ogriddata_vals, &ogriddata_mask,
+    if (!PyArg_ParseTuple(args, "OOOOOOOOOOi", 
+        &oalldata_x, &oalldata_y, &oalldata_vals, &oalldata_mask, &oalldata_wgt,
+        &ogriddata_x, &ogriddata_y, &ogriddata_vals, &ogriddata_mask, &ogriddata_wgt,
         &lastIndex))
         return PyErr_Format(_combineError, 
                     "CombineData: Invalid parameters.");
@@ -225,17 +249,19 @@ Py_CombineData(PyObject *obj, PyObject *args)
     alldata_x    = NA_IoArray(oalldata_x   , tInt64, NUM_C_ARRAY | NUM_WRITABLE);
     alldata_y    = NA_IoArray(oalldata_y   , tInt64, NUM_C_ARRAY | NUM_WRITABLE);
     alldata_vals = NA_IoArray(oalldata_vals, tFloat64, NUM_C_ARRAY | NUM_WRITABLE);
+    alldata_wgt  = NA_IoArray(oalldata_wgt , tFloat64, NUM_C_ARRAY | NUM_WRITABLE);
     alldata_mask = NA_IoArray(oalldata_mask, tInt64, NUM_C_ARRAY | NUM_WRITABLE);
 
     griddata_x    = NA_IoArray(ogriddata_x   , tInt64, NUM_C_ARRAY | NUM_WRITABLE);
     griddata_y    = NA_IoArray(ogriddata_y   , tInt64, NUM_C_ARRAY | NUM_WRITABLE);
     griddata_vals = NA_IoArray(ogriddata_vals, tFloat64, NUM_C_ARRAY | NUM_WRITABLE);
+    griddata_wgt  = NA_IoArray(ogriddata_wgt , tFloat64, NUM_C_ARRAY | NUM_WRITABLE);
     griddata_mask = NA_IoArray(ogriddata_mask, tInt64, NUM_C_ARRAY | NUM_WRITABLE);
 
     //convolved = NA_OptionalOutputArray(oconvolved, tFloat64, NUM_C_ARRAY, data);
 
-    if (!alldata_x || !alldata_y || !alldata_vals || !alldata_mask
-     || !griddata_x || !griddata_y || !griddata_vals || !griddata_mask) {
+    if (!alldata_x || !alldata_y || !alldata_vals || !alldata_mask || !alldata_wgt
+     || !griddata_x || !griddata_y || !griddata_vals || !griddata_mask || !griddata_wgt) {
         PyErr_Format( _combineError, 
                   "CombineData: error converting array inputs.");
         goto _fail;
@@ -253,6 +279,12 @@ Py_CombineData(PyObject *obj, PyObject *args)
         goto _fail;
     }
 
+    if (!NA_ShapeEqual(alldata_x, alldata_wgt)) {
+        PyErr_Format(_combineError,
+                 "CombineData: x and weight alldata numarray need identitcal shapes.");
+        goto _fail;
+    }
+
     if (!NA_ShapeEqual(griddata_x, griddata_y)) {
         PyErr_Format(_combineError,
                  "CombineData: x and y griddata numarray need identitcal shapes.");
@@ -262,6 +294,12 @@ Py_CombineData(PyObject *obj, PyObject *args)
     if (!NA_ShapeEqual(griddata_x, griddata_vals)) {
         PyErr_Format(_combineError,
                  "CombineData: x and vals griddata numarray need identitcal shapes.");
+        goto _fail;
+    }
+
+    if (!NA_ShapeEqual(griddata_wgt, griddata_vals)) {
+        PyErr_Format(_combineError,
+                 "CombineData: weight and vals griddata numarray need identitcal shapes.");
         goto _fail;
     }
 
@@ -276,21 +314,25 @@ Py_CombineData(PyObject *obj, PyObject *args)
                 NA_OFFSETDATA(alldata_y),
                 NA_OFFSETDATA(alldata_vals),
                 NA_OFFSETDATA(alldata_mask),
+                NA_OFFSETDATA(alldata_wgt),		
                 griddata_vals->dimensions[0],   
                 NA_OFFSETDATA(griddata_x),
                 NA_OFFSETDATA(griddata_y),
                 NA_OFFSETDATA(griddata_vals),
                 NA_OFFSETDATA(griddata_mask),
+                NA_OFFSETDATA(griddata_wgt),
                 &lastIndex);
 
     Py_XDECREF(alldata_x);
     Py_XDECREF(alldata_y);
     Py_XDECREF(alldata_vals);
     Py_XDECREF(alldata_mask);
+    Py_XDECREF(alldata_wgt);
     Py_XDECREF(griddata_x);
     Py_XDECREF(griddata_y);
     Py_XDECREF(griddata_vals);
     Py_XDECREF(griddata_mask);
+    Py_XDECREF(griddata_wgt);
 
     /* Align, Byteswap, Contiguous, Typeconvert */
     oreturn_index = PyInt_FromLong((long)lastIndex);
@@ -300,9 +342,11 @@ Py_CombineData(PyObject *obj, PyObject *args)
     Py_XDECREF(alldata_x);
     Py_XDECREF(alldata_y);
     Py_XDECREF(alldata_vals);
+    Py_XDECREF(alldata_wgt);
     Py_XDECREF(griddata_x);
     Py_XDECREF(griddata_y);
     Py_XDECREF(griddata_vals);
+    Py_XDECREF(griddata_wgt);
 
     return NULL;      
 }

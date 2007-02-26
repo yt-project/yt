@@ -274,6 +274,7 @@ class EnzoVM(EnzoPlot):
 
     def setCenter(self, c):
         self.c = c
+        self.refreshDisplayWidth()
 
     def refreshDisplayWidth(self, width=None):
         if width:
@@ -414,7 +415,8 @@ class EnzoVMSlice(EnzoVM):
         self.refresh()
 
 class EnzoVMProj(EnzoVM):
-    def makePlot(self, axis, field = "Density", center = None):
+    def makePlot(self, axis, field = "Density", center = None, minLevel = 0, \
+                 maxLevel = None, weight = None):
         time1 = time.time()
         self.axis = axis
         self.typeName = "Projection"
@@ -426,9 +428,11 @@ class EnzoVMProj(EnzoVM):
             self.c = center
 
         self.field = field
+        self.weight = weight
 
         mylog.info( "Getting from field = %s at center %s", field, self.c)
-        projData = self.hierarchy.getProjection(axis, field)
+        projData = self.hierarchy.getProjection(axis, field, minLevel=minLevel, \
+                                                maxLevel=maxLevel, weightField=weight)
         totalEntries = 0
         for level in projData.keys():
             totalEntries += projData[level][0].shape[0]

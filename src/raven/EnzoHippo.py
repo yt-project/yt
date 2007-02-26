@@ -113,17 +113,19 @@ class EnzoHippo:
             self.canvas.addDisplay(self.plots[-1].plot)
         return self.plots[startI:]
 
-    def addProj(self, field = "Density", axis = None):
+    def addProj(self, field="Density", axis=None, weight=None, center=None, \
+                minLevel=0, maxLevel=None):
         if axis == None:
             axis = [0,1,2]
         else:
             if isinstance(axis, types.IntType):
                 axis = [axis]
-        v, center = self.hierarchy.findMax('Density')
+        if center == None:
+            v, center = self.hierarchy.findMax('Density')
         startI = len(self.plots)
         for ax in axis:
             self.plots.append(EnzoVMProj(self.hierarchy, self.canvas, self, offScreen=self.offScreen))
-            self.plots[-1].makePlot(ax, field, center)
+            self.plots[-1].makePlot(ax, field, center, minLevel, maxLevel, weight)
             self.canvas.addDisplay(self.plots[-1].plot)
         return self.plots[startI:]
 

@@ -28,6 +28,6 @@ from EnzoGrid import *
 from EnzoData import *
 from EnzoHierarchy import *
 from EnzoRun import *
-from EnzoCombine import *
+import EnzoCombine
 from EnzoRateData import *
 

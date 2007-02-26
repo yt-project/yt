@@ -255,24 +255,29 @@ class EnzoGrid:
             del self[field]
         return retVal
 
-    def getProjection(self, axis, field, zeroOut):
+    def getProjection(self, axis, field, zeroOut, weight=None):
         """
         Projects along an axis.  Currently in flux.  Shouldn't be called
         directly.
         """
-        global x_axis
-        global y_axis
-        maskedData = self[field].copy()
+        if weight == None:
+            maskedData = self[field].copy()
+            weightData = ones(maskedData.shape)
+        else:
+            maskedData = self[field] * self[weight]
+            weightData = self[weight].copy()
         if self.myChildMask == None:
             self.generateChildMask()
         if len(self.myOverlapMasks) == 0:
             self.generateOverlapMasks()
         if zeroOut:
             maskedData[self.myChildIndices]=0
+            weightData[self.myChildIndices]=0
             toCombineMask = logical_and.reduce(self.myChildMask, axis)
         # How do we do this the fastest?
         # We only want to project those values that don't have subgrids
         fullProj = sum(maskedData,axis)*self.dx # Gives correct shape
+        weightProj = sum(weightData,axis)*self.dx
         #fullProj = maximum.reduce(maskedData,axis) # Gives correct shape
         if not zeroOut:
             toCombineMask = ones(fullProj.shape)
@@ -281,9 +286,9 @@ class EnzoGrid:
         # Note that this is currently wrong for anything other than x (axis = 0)
         xind = cmI[0,:]
         yind = cmI[1,:]
-        xpoints = array(xind+(self.LeftEdge[x_axis]/self.dx),Int64)
-        ypoints = array(yind+(self.LeftEdge[y_axis]/self.dx),Int64)
-        return [xpoints.flat, ypoints.flat, fullProj.flat, toCombineMask.flat]
+        xpoints = array(xind+(self.LeftEdge[x_dict[axis]]/self.dx),Int64)
+        ypoints = array(yind+(self.LeftEdge[y_dict[axis]]/self.dx),Int64)
+        return [xpoints.flat, ypoints.flat, fullProj.flat, toCombineMask.flat, weightProj.flat]
 
     def getSliceAll(self, coord, axis, field):
         tempMask = self.myChildMask
@@ -341,7 +346,7 @@ class EnzoGrid:
             baryonField = "%s_Density" % (fieldName[:-9])
             self[fieldName] = self[baryonField] / self["Density"]
         elif fieldName.endswith("Squared"):
-            baryonField = fieldName[:-8]
+            baryonField = fieldName[:-7]
             self[fieldName] = (self[baryonField])**2.0
         elif fieldInfo.has_key(fieldName):
             # We do a fallback to checking the fieldInfo dict
