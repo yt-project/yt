@@ -11,7 +11,7 @@ from yt.deliverator import *
 
 # First we snag the API key
 
-import os, cPickle, sys, StringIO
+import os, cPickle, sys, StringIO, base64
 
 if ytcfg.has_option("Deliverator","api-key"):
     APIKey=ytcfg.get("Deliverator","api-key")
@@ -69,7 +69,7 @@ def SubmitParameterFile(RunID, hierarchy):
     t = hierarchy.parameters.copy()
     t.update(hierarchy.conversionFactors.copy())
     t.update(hierarchy.units.copy())
-    req.PickleObj = cPickle.dumps(t)
+    req.PickleObj = base64.b64encode(cPickle.dumps(t))
     resp=port.SubmitNewParameterFile(req)
     mylog.info("%s (%s)", req.FileName, resp.Response)
     return resp.Response
