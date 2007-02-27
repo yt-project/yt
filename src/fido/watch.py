@@ -35,39 +35,26 @@ def manualCheckForOutput(skipFiles = []):
         return newFiles
     return None
 
-def makeNewDirectory(path, basename):
-    """
-    Makes a new directory, based on the basename and the path
-
-    Arguments
-    """
-    # Log
-    return nn
-
-def moveFiles(path, basename, extraFiles = []):
-    retVal = os.system("ls -1f |grep ^'%s'|grep -v \.dir|xargs mv --target-directory='%s'" \
-                       % (basename, path))
-    # Log here
-    mylog.info("Moved %s to %s", basename, path)
-    for file in extraFiles:
-        try:
-            shutil.copy2(file, path+os.path.sep+file)
-        except:
-            pass
-    return retVal
-
-def checkForStop():
+def checkForStop(process=None):
     if os.path.exists("stopFido"):
         # We should log this rather than print it
         mylog.info("Stopping fido")
         os.unlink("stopFido")
         return 1
+    if process:
+        pp = process.poll()
+        if pp != None:
+            mylog.info("Process has died; stopping fido")
+            return 1
     return 0
 
-def watchDir(path=".", skip = [], funcHandler = None):
+def watchDir(path=".", skip = [], funcHandler = None, process=None):
+    if process:
+        mylog.info("Handed process")
     os.chdir(path)
     doStop = 0
     while not doStop:
+        doStop = checkForStop(process)
         nn = newCheckForOutput(skip)
         if nn:
             for bn in nn:
@@ -80,7 +67,6 @@ def watchDir(path=".", skip = [], funcHandler = None):
                     funcHandler(newDir, bn)
                     mylog.info("Done calling %s, now sleeping", funcHandler.func_name)
         time.sleep(WAITBETWEEN)
-        doStop = checkForStop()
 
 if __name__=="__main__":
     watchDir()
