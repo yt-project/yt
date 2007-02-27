@@ -173,6 +173,14 @@ def SoundSpeed(self, fieldName):
              self["Density"] )**(1.0/2.0)
 fieldInfo["SoundSpeed"] = ("cm/s", None, True, SoundSpeed)
 
+def MachNumber(self, fieldName):
+    self[fieldName] = (self.hierarchy["x-velocity"] * ( \
+        self["x-velocity"]**2.0 + \
+        self["y-velocity"]**2.0 + \
+        self["z-velocity"]**2.0 )**(1.0/2.0)) / self["SoundSpeed"]
+fieldInfo["MachNumber"] = (None, None, False, MachNumber)
+        
+
 def Pressure(self, fieldName):
     self[fieldName] = (self.hierarchy["Gamma"] - 1.0) * \
                             self["Density"] * self["Gas_Energy"]

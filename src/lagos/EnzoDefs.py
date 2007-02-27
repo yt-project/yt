@@ -47,7 +47,8 @@ parameterDict = {"CosmologyCurrentRedshift": float,
                  "Gamma": float,
                  "MultiSpecies": int,
                  "CompilerPrecision": str,
-                 "CurrentTimeIdentifier": int
+                 "CurrentTimeIdentifier": int,
+                 "BoundaryConditionName": str
                 }
 
 unitList = {'mpc'   : 1e0,

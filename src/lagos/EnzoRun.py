@@ -8,7 +8,6 @@
 #
 
 from yt.lagos import *
-from EnzoHierarchy import *
 
 class EnzoRun:
     """
@@ -79,7 +78,7 @@ class EnzoRun:
             filename = [filename]
         k = []
         for fn in filename:
-            mylog.info("Adding %s to EnzoRun", fn)
+            mylog.info("Adding %s to EnzoRun '%s'", fn, self.metaData)
             k.append(EnzoHierarchy(fn, hdf_version=hdf_version))
         self.addOutput(k)
 
@@ -113,3 +112,50 @@ class EnzoRun:
             a += args
             mylog.info("Calling %s on %s", func.func_name, a[0].parameterFilename)
             func(*a)
+
+    def removeOutputFiles(self, outputID):
+        """
+        This function handles things a bit  more simply than
+        removeOutputFilesByGrid, in that it tosses everything over to fido.
+
+        Arguments:
+            outputID -- the numerical ID of the parameter file to toast
+        """
+
+        import yt.fido
+        yt.fido.deleteFiles(self.outputs[outputID].fullpath, \
+                os.path.basename(self.outputs[outputID].parameterFilename))
+
+    def moveOutputFiles(self, outputID, dest):
+        import yt.fido
+        run = self.outputs[outputID]
+        mylog.info("Moving %s to %s", os.path.basename(run.parameterFilename), \
+                    dest)
+        yt.fido.moveFiles(os.path.abspath(dest), \
+            os.path.basename(run.parameterFilename), \
+            extraFiles = [], wd=run.fullpath)
+
+    def removeOutputFilesByGrid(self, outputID):
+        """
+        This function deletes all the files associated with a given parameter
+        file, and then the instance itself.  I am of two minds here; do we want
+        to execute the costly operation of removing each file associated with
+        the hierarchy instance, or do we want to just kill 'em all off via a
+        system command?
+        
+        Arguments:
+            outputID -- the numerical ID of the parameter file to toast
+        """
+        run = self.outputs[outputID]
+        for grid in run.grids:
+            mylog.debug("Deleting %s", grid.filename)
+            os.unlink(grid.filename)
+        mylog.debug("Deleting parameter file %s", run.parameterFilename)
+        os.unlink(run.parameterFilename)
+        mylog.debug("Deleting hierarchy %s", run.hierarchyFilename)
+        os.unlink(run.hierarchyFilename)
+        mylog.debug("Deleting boundary %s", run.boundaryFilename)
+        os.unlink(run.boundaryFilename)
+        mylog.debug("Deleting boundary.hdf  %s", run.boundaryFilename+".hdf")
+        os.unlink(run.boundaryFilename+".hdf")
+        mylog.debug("Deleted everything, I think")

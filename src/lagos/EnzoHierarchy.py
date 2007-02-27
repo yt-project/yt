@@ -46,7 +46,9 @@ class EnzoHierarchy:
         # hierarchy
         self.parameterFilename = "%s" % (filename)
         self.hierarchyFilename = "%s.hierarchy" % (filename)
+        self.boundaryFilename = "%s.boundary" % (filename)
         self.directory = os.path.dirname(filename)
+        self.fullpath = os.path.abspath(self.directory)
         if len(self.directory) == 0:
             self.directory = "."
         # Now we do a bit of a hack to figure out how many grids there are,

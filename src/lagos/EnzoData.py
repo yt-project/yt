@@ -404,8 +404,8 @@ class EnzoRegion(Enzo3DData):
         self.refreshData()
 
     def getData(self, field = None):
-        ind = where(sum(transpose(logical_or(greater(self.gridLeftEdge, rightEdge), \
-                                               less(self.gridRightEdge, leftEdge)))) == 0)
+        ind = where(sum(transpose(logical_or(greater(self.hierarchy.gridLeftEdge, self.rightEdge), \
+                                               less(self.hierarchy.gridRightEdge, self.leftEdge)))) == 0)
         g = self.hierarchy.grids[ind]
         self.grids = g
         points = []
@@ -500,7 +500,10 @@ class EnzoSphere(Enzo3DData):
         if self.dx == None:
             for grid in g:
                 #print "Generating coords for grid %s" % (grid.id)
+                c = grid.center
+                grid.center = self.center
                 points.append(self.generateGridCoords(grid))
+                grid.center = c
             t = concatenate(points)
             self.x = t[:,0]
             self.y = t[:,1]
