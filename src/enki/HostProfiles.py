@@ -4,14 +4,17 @@
 # We define a couple classes and functions to dispatch jobs to hosts.
 #
 
-import os, sys, signal
+from yt.enki import *
+
+import os, sys, signal, subprocess
 
 class HostProfile:
     def __init__(self, hostname, submitFunction):
         self.hostname = hostname
         self.submitFunction = submitFunction
     def spawnProcess(self, d):
-        self.submitFunction(**d)
+        pid = self.submitFunction(**d)
+        return pid
 
 def submitLSF(**args):
     """
@@ -35,7 +38,6 @@ def submitDPLACE(wd='.', parameterFile=None, exe="./enzo", restart = False, npro
         nproc -- the number of processors to run on
         logFile -- the logfile
     """
-    os.chdir(wd)
     commandLine = "/usr/bin/dplace -s1 /usr/bin/mpirun -np %i" % (nproc)
     commandLine += " %s -d" % (exe)
     if restart:
@@ -43,12 +45,13 @@ def submitDPLACE(wd='.', parameterFile=None, exe="./enzo", restart = False, npro
     commandLine += " %s" % (parameterFile)
     if logFile:
         commandLine += " 2>&1 | tee %s" % (logFile)
-    print "Executing:"
-    print commandLine
+    mylog.info("Executing: '%s'", commandLine)
     # Additionally, here we will fork out to the watcher process
     # If this is a restart dump, we'll feed a temporary skipFile to the watcher
     # of the restart basename; then after one iteration it'll be taken out of
     # the skipFiles list, and will get moved out
-    status = os.system(commandLine)
+    p = subprocess.Popen(commandLine, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, cwd=wd, \
+            shell=True, executable="/bin/bash")
+    return p
 
 hostRed = HostProfile("red.slac.stanford.edu", submitDPLACE)
