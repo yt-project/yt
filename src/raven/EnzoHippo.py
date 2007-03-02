@@ -95,7 +95,7 @@ class EnzoHippo:
         self.canvas.addDisplay(self.plots[-1].plot)
         return self.plots[-1]
 
-    def addSlice(self, field = "Density", axis = None, center = None):
+    def addSlice(self, field = "Density", axis = None, center = None, cmap = None):
         if axis == None:
             axis = [0,1,2]
         else:
@@ -109,7 +109,7 @@ class EnzoHippo:
         startI = len(self.plots)
         for ax in axis:
             self.plots.append(EnzoVMSlice(self.hierarchy, self.canvas, self, offScreen=self.offScreen))
-            self.plots[-1].makePlot(ax, field, center)
+            self.plots[-1].makePlot(ax, field, center, cmap = cmap)
             self.canvas.addDisplay(self.plots[-1].plot)
         return self.plots[startI:]
 

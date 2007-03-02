@@ -291,6 +291,7 @@ class EnzoVM(EnzoPlot):
         self.plot.setRange('Y', max(l_edge_y,0.0), min(r_edge_y,1.0))
 
     def plotFromData(self, dataTuple, cmap = None):
+        print "HERE:", colormap_dict, cmap
         if colormap_dict.has_key(self.field) and cmap == None:
             cmap = colormap_dict[self.field]
         elif cmap == None:
@@ -328,7 +329,7 @@ class EnzoVM(EnzoPlot):
         self.plot.setRange('Z', minVal, maxVal)
 
 class EnzoVMSlice(EnzoVM):
-    def makePlot(self, axis, field = "Density", center = None, slice_data = None):
+    def makePlot(self, axis, field = "Density", center = None, slice_data = None, cmap = None):
         time1 = time.time()
         self.axis = axis
         self.typeName = "Slice"
@@ -373,7 +374,7 @@ class EnzoVMSlice(EnzoVM):
             self.dataLabel = field
 
         #print "Min: %0.3e Max: %0.3e" % (v1, v2)
-        self.plotFromData(self.tuple)
+        self.plotFromData(self.tuple, cmap = cmap)
         #self.refreshDisplayWidth()
         
         time2=time.time()
