@@ -5,6 +5,4 @@
 import ConfigParser, os
 
 ytcfg = ConfigParser.ConfigParser()
-ytcfg.read(os.path.join(os.getenv("HOME"),".yt/config"))
-
-
+ytcfg.read(['yt.cfg', os.path.expanduser('~/.yt/config')])

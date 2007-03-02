@@ -37,6 +37,12 @@ lagosLogger = logging.getLogger("yt.lagos")
 lagosLogger.addHandler(lagosHandler)
 lagosLogger.setLevel(logging.NOTSET)
 
+enkiHandler = handlers.RotatingFileHandler("enki.log", maxBytes=10*1024*1024, backupCount=10)
+enkiHandler.setFormatter(f)
+enkiLogger = logging.getLogger("yt.enki")
+enkiLogger.addHandler(enkiHandler)
+enkiLogger.setLevel(logging.NOTSET)
+
 deliveratorHandler = handlers.RotatingFileHandler("deliverator.log", maxBytes=10*1024*1024, backupCount=10)
 deliveratorHandler.setFormatter(f)
 deliveratorLogger = logging.getLogger("yt.deliverator")
