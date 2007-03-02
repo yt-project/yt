@@ -10,6 +10,7 @@
 from yt.lagos import *
 import string
 import EnzoCombine
+import yt.enki
 #from EnzoDataFuncs import *
 #from EnzoDefs import *
 #from EnzoData import *
@@ -99,6 +100,9 @@ class EnzoHierarchy:
         # For use with radial plots
         self.center = None
         self.bulkVelocity = None
+
+        # For SWIG
+        self.eiTopGrid = None
         
         self.populateHierarchy()
         time2=time.time()
@@ -723,6 +727,23 @@ class EnzoHierarchy:
             particle_info.tofile(f)
         f.close()
         mylog.info("Wrote %s particles to %s", tot, filename)
+
+    def initializeEnzoInterface(self, idt_val = 0.0):
+        """
+        Here we start up the SWIG interface, grabbing what we need from it.
+        """
+        ei = yt.enki.EnzoInterface
+        f = ei.fopen(self.parameterFilename, "r")
+        self.eiTopGridData = ei.TopGridData()
+        idt = ei.new_Float()
+        ei.Float_assign(idt,idt_val)
+        ei.cvar.debug = 1 # Set debugging to on, for extra output!
+                          # Hm, we *should* have some kind of redirection here
+        ei.SetDefaultGlobalValues(self.eiTopGridData)
+        # Set up an initial dt
+        ei.ReadParameterFile(f,self.eiTopGridData,idt)
+        ei.InitializeRateData(self.eiTopGridData.Time)
+        ei.InitializeRadiationFieldData(self.eiTopGridData.Time)
 
 def outputProjectionASCII(dataByLevel, fileName, minLevel, maxLevel):
         """

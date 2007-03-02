@@ -8,6 +8,7 @@
 #
 
 from yt.lagos import *
+import yt.enki
 
 class EnzoGrid:
     """
@@ -391,3 +392,23 @@ class EnzoGrid:
                 self.coords[1,:][pointI], \
                 self.coords[2,:][pointI], \
                 trData]
+
+    def getEnzoGrid(self):
+        """
+        This attempts to get an instance of this particular grid from the SWIG
+        interface.  Note that it first checks to see if the ParameterFile has
+        been instantiated.
+        """
+        if self.hierarchy.eiTopGrid == None:
+            self.hierarchy.initializeEnzoInterface()
+        p=re.compile("Grid = %s\n" % (self.id))
+        h=open(self.hierarchyFilename,"r").read()
+        m=re.search(p,h)
+        h=yt.enki.EnzoInterface.fopen(self.hierarchyFilename,"r")
+        retVal = yt.enki.EnzoInterface.fseek(h, long(m.end()), 0)
+        self.eiGrid=yt.enki.EnzoInterface.grid()
+        cwd = os.getcwd() # Hate doing this, need to for relative pathnames
+        os.chdir(self.hierarchy.directory)
+        self.eiGrid.ReadGrid(h, 1)
+        os.chdir(cwd)
+        mylog.debug("Grid read with SWIG")

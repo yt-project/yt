@@ -8,7 +8,7 @@ import numarray.records as rec
 import numarray
 from string import strip, rstrip
 from math import ceil, floor, log10, pi
-import os, os.path, types, exceptions
+import os, os.path, types, exceptions, re
 from stat import ST_CTIME
 
 #import RavenCombine, fields, chemistry
@@ -31,3 +31,4 @@ from EnzoRun import *
 import EnzoCombine
 from EnzoRateData import *
 
+from yt.enki import EnzoInterface
