@@ -1,13 +1,12 @@
-from HostProfiles import *
 import sys
-
 from yt.logger import enkiLogger as mylog
 from yt.config import ytcfg
+
+from numarray import *
 
 # Now we import the SWIG enzo interface
 # Note that we're going to try super-hard to get the one that's local for the
 # user
-
 
 sp = sys.path
 
@@ -18,9 +17,15 @@ if ytcfg.has_option("SWIG", "EnzoInterfacePath"):
 
 try:
     import EnzoInterface
-except:
+except ImportError, e:
     mylog.warning("EnzoInterface failed to import; all SWIG actions will fail")
+    mylog.warning("(%s)", e)
 
 sys.path = sp
+
+from HostProfiles import *
+from CreateNewProblem import *
+from EnzoProblem import *
+import mes
 
 from yt.lagos import *
