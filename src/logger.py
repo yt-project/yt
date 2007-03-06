@@ -1,5 +1,11 @@
-# Logging facility for yt
-# Will initialize everything, and associate one with each module
+"""
+Logging facility for yt
+Will initialize everything, and associate one with each module
+
+@author: U{Matthew Turk<http://www.stanford.edu/~mturk/>}
+@organization: U{KIPAC<http://www-group.slac.stanford.edu/KIPAC/>}
+@contact: U{mturk@slac.stanford.edu<mailto:mturk@slac.stanford.edu>}
+"""
 
 import logging
 import logging.handlers as handlers
