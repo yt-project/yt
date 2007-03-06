@@ -1,11 +1,16 @@
-#
-# gallery:
-#   A module for uploading images from raven
-#   Requires the ZSI modules as well as the generated files
-#
-# Written by: Matthew Turk (mturk@stanford.edu) Jan 2007
-# Modified:
-#
+"""
+Deliverator
+===========
+
+    The Deliverator is a TurboGears-based system for querying and displaying
+    images.  Images are dumped from Raven into local, web-accessible storage space,
+    and then metadata about those images is submitted to The Deliverator.  The user
+    (you) then goes to the Deliverator website and views those plots.
+
+@author: U{Matthew Turk<http://www.stanford.edu/~mturk/>}
+@organization: U{KIPAC<http://www-group.slac.stanford.edu/KIPAC/>}
+@contact: U{mturk@slac.stanford.edu<mailto:mturk@slac.stanford.edu>}
+"""
 
 from yt.deliverator import *
 
@@ -24,10 +29,11 @@ def SubmitRun(metaData, user):
     """
     Submits run information to The Deliverator server.  Returns the RunID
 
-    Arguments:
-        metaData -- whatever string you want to use to identify this run
-        user -- the user submitting the run.  Linked with The Deliverator
-                server.
+    @param metaData: whatever string you want to use to identify this run
+    @type metaData: string
+    @param user: the user submitting the run.  Linked with The Deliverator server.
+    @type user: string (deliverator user)
+    @return: the ID either for the new run, or the existing run the metaData matches
     """
     if not APIKey:
         return
@@ -45,9 +51,11 @@ def SubmitParameterFile(RunID, hierarchy):
     """
     Submits the parameter file to The Deliverator server.  Returns the response.
 
-    Arguments:
-        RunID -- integer identifier for the broader "run"
-        hierarchy -- EnzoHierarchy instance you're submitting
+    @param RunID: identifier for the broader "run"
+    @type RunID: integer
+    @param hierarchy: instance you're submitting
+    @type hierarchy: L{EnzoHierarchy<EnzoHierarchy>}
+    @return: text response from Deliverator
     """
     if not APIKey:
         return
@@ -78,9 +86,11 @@ def SubmitImage(hierarchy, img_info):
     """
     Submits the parameter file to The Deliverator server.  Returns the response.
 
-    Arguments:
-        hierarchy -- EnzoHierarchy instance you're submitting from
-        img_info -- dictionary of keys for the image submission
+    @param hierarchy: instance you're submitting from
+    @type hierarchy: L{EnzoHierarchy<EnzoHierarchy>}
+    @param img_info: info for the image submission
+    @type img_info: dict
+    @return: text response from Deliverator
     """
     if not APIKey:
         return
