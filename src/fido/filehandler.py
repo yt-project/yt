@@ -1,3 +1,14 @@
+"""
+High-level file handling takes place here.
+
+@author: U{Matthew Turk<http://www.stanford.edu/~mturk/>}
+@organization: U{KIPAC<http://www-group.slac.stanford.edu/KIPAC/>}
+@contact: U{mturk@slac.stanford.edu<mailto:mturk@slac.stanford.edu>}
+
+@todo: Moving to storage
+@todo: Update DB with locations of files, as needed
+"""
+
 import os, os.path, time, sys, shutil
 from glob import glob
 from yt.fido import *
@@ -27,9 +38,8 @@ def deleteFiles(path, basename):
     involve any run instantiation, but instead just deletes everything matching the
     pattern.
 
-    Arguments:
-        path -- the path where the files currently reside
-        basename -- the basename of the files to delete
+    @param path: the path where the files currently reside
+    @param basename: the basename of the files to delete
     """
     orig_wd = os.getcwd()
     os.chdir(path)

@@ -1,3 +1,11 @@
+"""
+Output-watcher
+
+@author: U{Matthew Turk<http://www.stanford.edu/~mturk/>}
+@organization: U{KIPAC<http://www-group.slac.stanford.edu/KIPAC/>}
+@contact: U{mturk@slac.stanford.edu<mailto:mturk@slac.stanford.edu>}
+"""
+
 WAITBETWEEN=5
 OTHERFILES=["rates.out","cool_rates.out"]
 NEW_OUTPUT_CREATED = "newOutput"
@@ -49,6 +57,20 @@ def checkForStop(process=None):
     return 0
 
 def watchDir(path=".", skip = [], funcHandler = None, process=None):
+    """
+    This is the heart of Fido.  This function watches a given directory for
+    output, and when that output is found, it calls moves the output and calls a
+    function to deal with the data.
+
+    @keyword path: the path to watch for output
+    @keyword skip: skip these files when looking for output
+    @type skip: list of strings
+    @keyword funcHandler: this function will be called with the path and
+        basename of a new output
+    @type funcHandler: function
+    @keyword process: watch this process for death (don't use directly)
+    @type process: process
+    """
     if process:
         mylog.info("Handed process")
     os.chdir(path)
