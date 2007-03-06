@@ -1,16 +1,31 @@
-#
-# hippo_plot:
-#   A module for interacting with HippoDraw
-#
-# Written by: Matthew Turk (mturk@stanford.edu) Nov 2006
-# Modified:
-#
+"""
+Plot classes for raven
+
+@author: U{Matthew Turk<http://www.stanford.edu/~mturk/>}
+@organization: U{KIPAC<http://www-group.slac.stanford.edu/KIPAC/>}
+@contact: U{mturk@slac.stanford.edu<mailto:mturk@slac.stanford.edu>}
+"""
 
 from yt.raven import *
 import Numeric
 
 class EnzoPlot:
+    """
+    EnzoPlot is the base class for all Enzo plots.
+    """
     def __init__(self, hierarchy, canvas, enzoHippo, offScreen):
+        """
+        The base class of all plots of Enzo data
+
+        @param hierarchy: The hierarchy this plot is associated with
+        @type hierarchy: L{EnzoHierarchy}
+        @param canvas: The hippodraw canvas we're associated with
+        @type canvas: HDApp.canvas
+        @param enzoHippo: The parent instance
+        @type enzoHippo: L{EnzoHippo}
+        @param offScreen: are we rendering offscreen? (Currently doesn't work)
+        @type offScreen: boolean
+        """
         self.hierarchy = hierarchy
         self.canvas = canvas
         self.enzoHippo = enzoHippo
@@ -20,6 +35,15 @@ class EnzoPlot:
         self.im["ParameterFile"] = self.hierarchy.parameterFilename
     
     def saveImage(self, prefix, suffix):
+        """
+        Save this plot image.  Will generate a filename based on the prefix,
+        suffix, and the approriate data stored in the plot.
+
+        @param prefix: the prefix to prepend to the filename
+        @type prefix: string
+        @param suffix: the prefix to append to the filename
+        @type suffix: string
+        """
         self.generatePrefix(prefix)
         fn = "%s.%s" % (self.prefix, suffix)
         #print "Saving to %s" % (fn)

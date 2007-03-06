@@ -1,11 +1,11 @@
-#
-# gallery:
-#   A module for dealing with raven images
-#   TOTALLY STAND ALONE
-#
-# Written by: Matthew Turk (mturk@stanford.edu) Jan 2007
-# Modified:
-#
+"""
+This is an old module for creating non-dynamic galleries
+
+@deprecated: Use the Deliverator
+@author: U{Matthew Turk<http://www.stanford.edu/~mturk/>}
+@organization: U{KIPAC<http://www-group.slac.stanford.edu/KIPAC/>}
+@contact: U{mturk@slac.stanford.edu<mailto:mturk@slac.stanford.edu>}
+"""
 
 import os, os.path, pickle, types, urllib
 
