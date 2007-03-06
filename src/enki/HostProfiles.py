@@ -1,8 +1,12 @@
-#
-# jobdispatch.py
-#
-# We define a couple classes and functions to dispatch jobs to hosts.
-#
+"""
+Profiles for the various hosts we can run on
+
+@author: U{Matthew Turk<http://www.stanford.edu/~mturk/>}
+@organization: U{KIPAC<http://www-group.slac.stanford.edu/KIPAC/>}
+@contact: U{mturk@slac.stanford.edu<mailto:mturk@slac.stanford.edu>}
+
+@todo: Finish testing
+"""
 
 from yt.enki import *
 
@@ -20,10 +24,11 @@ def submitLSF(**args):
     """
     Submits to LSF, based on fully optional arguments
 
-    Keyword Arguments:
-        queue -- the queue to submit to
-        resource -- the resource to submit to
-        exe -- the executable to use
+    NOT FUNCTIONAL YET
+
+    @keyword queue: the queue to submit to
+    @keyword resource: the resource to submit to
+    @keyword exe: the executable to use
     """
     return
 
@@ -31,12 +36,12 @@ def submitDPLACE(wd='.', parameterFile=None, exe="./enzo", restart = False, npro
     """
     Submits directly to a dplaced mpirun command
     
-    Keyword Arguments:
-        parameterFile -- the parameter file to initialize with
-        exe -- the enzo executable
-        restart -- do we need to feed the -r argument?
-        nproc -- the number of processors to run on
-        logFile -- the logfile
+    @keyword parameterFile: the parameter file to initialize with
+    @keyword exe: the enzo executable
+    @keyword restart: do we need to feed the -r argument?
+    @keyword nproc: the number of processors to run on
+    @type nproc: int
+    @keyword logFile: the logfile
     """
     commandLine = "/usr/bin/dplace -s1 /usr/bin/mpirun -np %i" % (nproc)
     commandLine += " %s -d" % (exe)
