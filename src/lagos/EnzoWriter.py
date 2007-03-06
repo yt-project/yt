@@ -1,10 +1,16 @@
-#
-# write:
-#   A module for modifying and writing out Enzo data
-#
-# Written by: Matthew Turk (mturk@stanford.edu) Dec 2006
-# Modified:
-#
+"""
+Module for writing out Enzo data.  May never be finished.
+
+Basically, now that we have wrapped WriteAllData, this module is not
+necessarily necessary.  It might be worthwhile to do spot-changes, though, of
+existing grids.
+
+@deprecated: Use the EnzoInterface module
+
+@author: U{Matthew Turk<http://www.stanford.edu/~mturk/>}
+@organization: U{KIPAC<http://www-group.slac.stanford.edu/KIPAC/>}
+@contact: U{mturk@slac.stanford.edu<mailto:mturk@slac.stanford.edu>}
+"""
 
 from pyhdf import SD
 import pyhdf.error

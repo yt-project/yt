@@ -1,3 +1,10 @@
+"""
+The data-file handling functions
+
+@author: U{Matthew Turk<http://www.stanford.edu/~mturk/>}
+@organization: U{KIPAC<http://www-group.slac.stanford.edu/KIPAC/>}
+@contact: U{mturk@slac.stanford.edu<mailto:mturk@slac.stanford.edu>}
+"""
 from yt.lagos import *
 
 def getFieldsHDF4(self):
@@ -9,7 +16,8 @@ def getFieldsHDF4(self):
 
 def getFieldsHDF5(self):
     """
-    Current unimplemented.  Fix me, someone!
+    Returns a list of fields associated with the filename
+    Should *only* be called as EnzoGridInstance.getFields, never as getFields(object)
     """
     fls = []
     for fl in tables.openFile(self.filename).listNodes("/"):
@@ -21,8 +29,8 @@ def readDataHDF4(self, field):
     Returns after having obtained or generated a field.  Should throw an
     exception.  Should only be called as EnzoGridInstance.readData()
     
-    Arguments:
-        field -- field to read
+    @param field: field to read
+    @type field: string
     """
     if self.data.has_key(field):
         return 1
@@ -47,8 +55,8 @@ def readDataHDF5(self, field):
     Reads a field from an HDF5 file.  Should only be called as
     EnzoGridInstance.realData()
 
-    Arguments:
-        field -- field to read
+    @param field: field to read
+    @type field: string
     """
     if self.has_key(field):
         return 1
@@ -69,10 +77,30 @@ def readAllDataHDF5(self):
     pass
 
 def readDataSliceHDF5(self, grid, field, sl):
+    """
+    Reads a slice through the HDF5 data
+
+    @param grid: Grid to slice
+    @type grid: L{EnzoGrid<EnzoGrid>}
+    @param field: field to get
+    @type field: string
+    @param sl: region to get
+    @type sl: SliceType
+    """
     f = tables.openFile(grid.filename)
     ss = f.getNode("/", field)[sl]
     f.close()
     return ss
 
 def readDataSliceHDF4(self, grid, field, sl):
+    """
+    Reads a slice through the HDF4 data
+
+    @param grid: Grid to slice
+    @type grid: L{EnzoGrid<EnzoGrid>}
+    @param field: field to get
+    @type field: string
+    @param sl: region to get
+    @type sl: SliceType
+    """
     return SD.SD(grid.filename).select(field)[sl]

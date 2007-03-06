@@ -1,12 +1,12 @@
-"""
-Some functions to include chemistry stuff,
-although it should work for generalized
-tables, if fed the appropriate key.
-
-@author: U{Matthew Turk<http://www.stanford.edu/~mturk/>}
-@organization: U{KIPAC<http://www-group.slac.stanford.edu/KIPAC/>}
-@contact: U{mturk@slac.stanford.edu<mailto:mturk@slac.stanford.edu>}
-"""
+#
+# chemistry:
+#   Some functions to include chemistry stuff,
+#   although it should work for generalized
+#   tables, if fed the appropriate key.
+#
+# Written by: Matthew Turk (mturk@stanford.edu) Nov 2006
+# Modified:
+#
 
 from yt.lagos import *
 from numarray import *
@@ -14,7 +14,7 @@ import numarray.nd_image as nd
 import EnzoCombine
 import types, exceptions
 
-class EnzoTable:
+class EnzoTableGSL:
     # This is a class for storing tables of data from enzo.
     # Specifically, we will be storing chemical rates and cooling rates
     def __init__(self, filename, key):

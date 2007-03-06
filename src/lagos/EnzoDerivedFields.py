@@ -1,10 +1,13 @@
-#
-# fields:
-#   A place to hold all the definitions of generated fields
-#
-# Written by: Matthew Turk (mturk@stanford.edu) Nov 2006
-# Modified:
-#
+"""
+Fields derived from other data
+
+@author: U{Matthew Turk<http://www.stanford.edu/~mturk/>}
+@organization: U{KIPAC<http://www-group.slac.stanford.edu/KIPAC/>}
+@contact: U{mturk@slac.stanford.edu<mailto:mturk@slac.stanford.edu>}
+@author: U{John Wise<http://www.slac.stanford.edu/~jwise/>}
+@organization: U{KIPAC<http://www-group.slac.stanford.edu/KIPAC/>}
+@contact: U{jwise@slac.stanford.edu<mailto:jwise@slac.stanford.edu>}
+"""
 
 from yt.lagos import *
 

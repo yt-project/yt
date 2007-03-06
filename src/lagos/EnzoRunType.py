@@ -1,11 +1,10 @@
-#
-# raven:
-#   A module for dealing with Enzo data
-#   Currently isolated fromall HippoDraw classes
-#
-# Written by: Matthew Turk (mturk@stanford.edu) Nov 2006
-# Modified:
-#
+"""
+Handling of sets of EnzoHierarchy objects
+
+@author: U{Matthew Turk<http://www.stanford.edu/~mturk/>}
+@organization: U{KIPAC<http://www-group.slac.stanford.edu/KIPAC/>}
+@contact: U{mturk@slac.stanford.edu<mailto:mturk@slac.stanford.edu>}
+"""
 
 from yt.lagos import *
 
@@ -17,11 +16,6 @@ class EnzoRun:
     """
     def __init__(self, metaData, outputs=[]):
         """
-        Returns an instance of EnzoRun.
-
-        Arguments:
-            metaData -- string, describing the run as a whole.
-
         We're going to try to avoid setting too many of the parameters here,
         as many will be changed on and off.  However, we can definitely set all
         of the parameters that are fixed from the initial conditions -- things
@@ -33,6 +27,11 @@ class EnzoRun:
         This is primarily a storage container.  If we open it up, and add to
         it all of our datadumps, we can snag lots of fun information from them
         all.
+
+        @param metaData: text describing the run as a whole.
+        @type metaData: string
+        @keyword outputs: outputs to add to the run
+        @type outputs: list of L{EnzoHierarchies<EnzoHierarchy>}
         """
         self.metaData = metaData
         self.outputs = obj.array(outputs)       # Object array of EnzoHierarchies
@@ -53,9 +52,8 @@ class EnzoRun:
         """
         Add an output.  Also, sorts.
 
-        Arguments:
-            hierarchy -- either a single hierarchy or a list of hierarchies
-                         (EnzoHierarchy objects)
+        @param hierarchy: either a single hierarchy or a list of hierarchies
+        @type hierarchy: L{EnzoHierarchy<EnzoHierarchy>}
         """
         if not isinstance(hierarchy, types.ListType):
             hierarchy = [hierarchy]
@@ -71,8 +69,9 @@ class EnzoRun:
         """
         Feed it a list of parameter files, andi t will add 'em all
 
-        Arguments:
-            filename -- either a single filename or a list of filenames
+        @param filename: either a single filename or a list of filenames
+        @keyword hdf_version: version of hdf to use
+        @type hdf_version: int
         """
         if not isinstance(filename, types.ListType):
             filename = [filename]
@@ -92,15 +91,17 @@ class EnzoRun:
         The function will be called with every EnzoHierarchy as the first
         argument, and the *args as the rest of the arguments.
 
-        Arguments:
-            func -- function handler to be called for every EnzoHierarchy
-                    note that it will be called as such:
-                    func(EnzoHierarchy, [fmt_string % index], *args)
-            args -- a list of arguments to pass in
-            fmt_string -- this is an optional argument, which will be %'d
-                          against the index of the parameter file.  Note that
-                          it is only %'d against the *index*, so even if the
-                          thing is called DataDump1042, if it's the first one, it'll get 0.
+        @param func: function handler to be called for every EnzoHierarchy
+                     note that it will be called as such:
+                     func(EnzoHierarchy, [fmt_string % index], *args)
+        @type func: function
+        @param args: a list of arguments to pass in
+        @type args: list
+        @param fmt_string: this is an optional argument, which will be %'d
+                           against the index of the parameter file.  Note that
+                           it is only %'d against the *index*, so even if the
+                           thing is called DataDump1042, if it's the first one, it'll get 0.
+        @type fmt_string: string
         """
         if not isinstance(args, types.ListType):
             args = [args]
@@ -117,9 +118,10 @@ class EnzoRun:
         """
         This function handles things a bit  more simply than
         removeOutputFilesByGrid, in that it tosses everything over to fido.
+        This *deletes* files
 
-        Arguments:
-            outputID -- the numerical ID of the parameter file to toast
+        @param outputID: the ID of the parameter file to toast
+        @type outputID: int
         """
 
         import yt.fido
@@ -143,8 +145,9 @@ class EnzoRun:
         the hierarchy instance, or do we want to just kill 'em all off via a
         system command?
         
-        Arguments:
-            outputID -- the numerical ID of the parameter file to toast
+        @param outputID: the ID of the parameter file to toast
+        @type outputID: int
+        @deprecated: Use removeOutputFiles
         """
         run = self.outputs[outputID]
         for grid in run.grids:

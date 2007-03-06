@@ -1,3 +1,18 @@
+"""
+Lagos
+=====
+
+    Lagos defines a set of class structures for Enzo data handling.
+
+G{packagetree}
+
+@author: U{Matthew Turk<http://www.stanford.edu/~mturk/>}
+@organization: U{KIPAC<http://www-group.slac.stanford.edu/KIPAC/>}
+@contact: U{mturk@slac.stanford.edu<mailto:mturk@slac.stanford.edu>}
+
+"""
+
+
 from pyhdf import SD
 import pyhdf.error
 import tables, warnings
@@ -14,8 +29,6 @@ from stat import ST_CTIME
 #import RavenCombine, fields, chemistry
 import time
 
-from yt.logger import lagosLogger as mylog
-
 try:
     import EnzoFortranRoutines
 except:
@@ -24,11 +37,17 @@ from EnzoDefs import *
 from EnzoDerivedFields import *
 from EnzoFortranWrapper import *
 from EnzoDataFuncs import *
-from EnzoGrid import *
-from EnzoData import *
-from EnzoHierarchy import *
-from EnzoRun import *
+from EnzoGridType import *
+from EnzoDataTypes import *
+from EnzoHierarchyType import *
+from EnzoRunType import *
 import EnzoCombine
 from EnzoRateData import *
 
-from yt.enki import EnzoInterface
+try:
+    from yt.enki import EnzoInterface
+except:
+    pass
+
+from yt.logger import lagosLogger as mylog
+

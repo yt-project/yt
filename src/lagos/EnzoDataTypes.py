@@ -1,13 +1,14 @@
-#
-# raven:
-#   A module for dealing with Enzo data
-#   Currently isolated fromall HippoDraw classes
-#
-# Written by: Matthew Turk (mturk@stanford.edu) Nov 2006
-# Modified:
-#
+"""
+Various non-grid data containers.
 
-from yt.lagos import *
+@author: U{Matthew Turk<http://www.stanford.edu/~mturk/>}
+@organization: U{KIPAC<http://www-group.slac.stanford.edu/KIPAC/>}
+@contact: U{mturk@slac.stanford.edu<mailto:mturk@slac.stanford.edu>}
+
+G{importgraph}
+"""
+
+#from yt.lagos import *
 
 class EnzoData:
     """
@@ -18,9 +19,10 @@ class EnzoData:
         """
         Sets up EnzoData instance
 
-        Arguments:
-            hierarchy -- EnzoHierarchy we're associated with
-            fields -- Fields represented in the data
+        @param hierarchy: hierarchy we're associated with
+        @type hierarchy: L{EnzoHierarchy<EnzoHierarchy>}
+        @param fields: Fields represented in the data
+        @type fields: list of strings
         """
         self.hierarchy = hierarchy
         if not isinstance(fields, types.ListType):
@@ -79,6 +81,9 @@ class EnzoData:
         """
         Adds a field to the current fields already in memory.  Will
         read/generate as necessary.
+
+        @param field: the field to add
+        @type field: string
         """
         if field not in self.fields:
             self.fields.append(field)
@@ -89,9 +94,6 @@ class EnzoData:
         """
         Generates, or attempts to generate,  a field not found in the file
 
-        Arguments:
-            fieldName -- string, field name
-
         See fields.py for more information.  fieldInfo.keys() will list all of
         the available derived fields.  Note that we also make available the
         suffices _Fraction and _Squared here.  All fields prefixed with 'k'
@@ -100,6 +102,9 @@ class EnzoData:
         memory.
 
         (should be moved to a standalone?  Or should EnzoGrid subclass EnzoData?)
+
+        @param fieldName: field to generate
+        @type fieldName: string
         """
         if fieldName.endswith("Fraction"):
             # Very simple mass fraction here.  Could be modified easily,
@@ -129,10 +134,12 @@ class Enzo2DData(EnzoData):
         """
         Prepares the Enzo2DData.
 
-        Arguments:
-            hierarchy -- EnzoHierarchy associated with this data
-            axis -- axis to which this data is parallel
-            fields -- list of fields to be processed or generated
+        @param hierarchy: hierarchy associated with this data
+        @type hierarchy: L{EnzoHierarchy<EnzoHierarchy>}
+        @param axis: axis to which this data is parallel
+        @type axis: integer
+        @param fields: fields to be processed or generated
+        @type fields: list of strings
         """
         self.axis = axis
         EnzoData.__init__(self, hierarchy, fields)
@@ -162,7 +169,9 @@ class Enzo2DData(EnzoData):
 class EnzoProj(Enzo2DData):
     """
     EnzoProj data.  Doesn't work yet.  Needs to be implemented, following the
-    method of EnzoHierarchy.getProjection
+    method of EnzoHierarchy.getProjection.
+
+    @todo: Implement
     """
     def __init__(self, hierarchy, axis, fields = None):
         self.coords = None
@@ -177,18 +186,20 @@ class EnzoSlice(Enzo2DData):
         """
         Returns an instance of EnzoSlice.
 
-        Arguments:
-            hierarchy -- EnzoHierarchy we are associated with
-            axis -- axis along which we are slicing (0,1,2)
-            coord -- Array of *three* points defining the center
-        Keyword Arguments:
-            fields -- fields to grab/generated. (Defaults to None.)
-
         We are not mandating a field be passed in
         The field and coordinate we want to be able to change -- however, the
-        axis we do NOT want to change.
-        So think of EnzoSlice as defining a slice operator, rather than a
-        set piece of data.
+        axis we do NOT want to change.  So think of EnzoSlice as defining a slice
+        operator, rather than a set piece of data.
+
+        Arguments:
+        @param hierarchy: hierarchy associated with this data
+        @type hierarchy: L{EnzoHierarchy<EnzoHierarchy>}
+        @param axis: axis to which this data is parallel
+        @type axis: integer
+        @param coord: three points defining the center
+        @type coord: array
+        @keyword fields: fields to be processed or generated
+        @type fields: list of strings
         """
         Enzo2DData.__init__(self, hierarchy, axis, fields)
         self.coord = coord
@@ -203,8 +214,8 @@ class EnzoSlice(Enzo2DData):
         right now, so if the number of points in the slice changes, it will
         kill HD.
 
-        Arguments:
-            val -- integer or float.
+        @param val: shift amount
+        @type val: integer (number of cells) or float (distance)
         """
         if isinstance(val, types.FloatType):
             # We add the dx
@@ -227,9 +238,10 @@ class EnzoSlice(Enzo2DData):
     def getData(self, field = None):
         """
         Iterates over the list of fields and generates/reads them all.
+        Probably shouldn't be called directly.
 
-        Keyword Arguments:
-            field -- field to add (list or single)
+        @keyword field: field to add (list or single)
+        @type field: string or list of strings
         """
         # We get it for the values in fields and coords
         # We take a 3-tuple of the coordinate we want to slice through, as well
@@ -274,8 +286,8 @@ class EnzoSlice(Enzo2DData):
         """
         Returns coordinates (x,y,z,dx) for a single grid.
 
-        Arguments:
-            grid -- EnzoGrid object
+        @param grid: grid to generate coords for
+        @type grid: L{EnzoGrid<EnzoGrid>}
         """
         xaxis = x_dict[self.axis]
         yaxis = y_dict[self.axis]
@@ -307,12 +319,13 @@ class EnzoSlice(Enzo2DData):
         """
         Reads a slice from a single grid
 
-        Arguments:
-            grid -- EnzoGrid object
-            field -- field to read
-
         Could probably be more efficient, possibly by accepting a list of
         fields.
+
+        @param grid: grid to slice
+        @type grid: L{EnzoGrid<EnzoGrid>}
+        @param field: field to read
+        @type field: string
         """
         if grid.myChildMask == None:
             #print "Generating child mask"
@@ -349,10 +362,12 @@ class Enzo3DData(EnzoData):
         """
         Returns an instance of Enzo3DData, or prepares one.
 
-        Arguments:
-            hierarchy -- EnzoHierarchy we are associated with
-            center -- array, center of the region
-            fields -- fields to read/generate
+        @param hierarchy: hierarchy we are associated with
+        @type hierarchy: L{EnzoHierarchy<EnzoHierarchy>}
+        @param center: center of the region
+        @type center: array of floats
+        @param fields: fields to read/generate
+        @type fields: list of strings
         """
         # We are not mandating a field be passed in
         # The field and coordinate we want to be able to change -- however, the
@@ -483,7 +498,20 @@ class EnzoRegion(Enzo3DData):
 
 
 class EnzoSphere(Enzo3DData):
+    """
+    A sphere of points
+    """
     def __init__(self, hierarchy, center, radius, fields = None):
+        """
+        @param hierarchy: hierarchy we are associated with
+        @type hierarchy: L{EnzoHierarchy<EnzoHierarchy>}
+        @param center: center of the region
+        @type center: array of floats
+        @param radius: radius of the sphere
+        @type radius: float
+        @keyword fields: fields to read/generate
+        @type fields: list of strings
+        """
         Enzo3DData.__init__(self, hierarchy, center, fields)
         self.fields = ["Radius"] + self.fields
         self.radius = radius

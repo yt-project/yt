@@ -1,11 +1,10 @@
-#
-# raven:
-#   A module for dealing with Enzo data
-#   Currently isolated fromall HippoDraw classes
-#
-# Written by: Matthew Turk (mturk@stanford.edu) Nov 2006
-# Modified:
-#
+"""
+Enzo hierarchy container class
+
+@author: U{Matthew Turk<http://www.stanford.edu/~mturk/>}
+@organization: U{KIPAC<http://www-group.slac.stanford.edu/KIPAC/>}
+@contact: U{mturk@slac.stanford.edu<mailto:mturk@slac.stanford.edu>}
+"""
 
 from yt.lagos import *
 import string
@@ -19,16 +18,15 @@ import yt.enki
 class EnzoHierarchy:
     """
     Class for handling Enzo timestep outputs
-
     """
     def __init__(self, filename, hdf_version=4):
         """
         Returns a new instance of EnzoHierarchy
 
-        Arguments:
-            filename -- the filename of the parameter file
-        Keyword arguments:
-            hdf_version -- either 4 or 5, depending
+        
+        @param filename:  the filename of the parameter file
+        @type filename: string
+        @keyword hdf_version: either 4 or 5, depending
         """
         # For now, we default to HDF4, but allow specifying HDF5
         if hdf_version == 5:
@@ -286,8 +284,8 @@ class EnzoHierarchy:
         """
         Returns a list of indices of EnzoHierarchy.grids at the specified level
 
-        Arguments:
-            level -- integer
+        @param level: the level
+        @type level: integer
         """
         # We return a numarray of the indices of all the grids on a given level
         indices = where(self.gridLevels[:,0] == level)[0]
@@ -333,8 +331,8 @@ class EnzoHierarchy:
         """
         Returns the objects, indices of grids containing a point
 
-        Arguments:
-            coord -- three floats
+        @param coord: three floats
+        @type coord: tuple of floats
         """
         # Take a floating point 3-tuple, find the grids that contain it
         # We do this the stupid way, looking along all three axes
@@ -356,9 +354,10 @@ class EnzoHierarchy:
         """
         Returns the objects, indices of grids that a ray intersects
 
-        Arguments:
-            coord -- three floats
-            axis -- the axis the ray travels parallel to
+        @param coord: the ray endpoint
+        @type coord: tuple of floats
+        @param axis: the axis the ray travels parallel to
+        @type axis: integer
         """
         # Let's figure out which grids are on the slice
         mask=ones(self.numGrids)
@@ -376,9 +375,10 @@ class EnzoHierarchy:
         """
         Returns the objects, indices of grids that a slice intersects
 
-        Arguments:
-            coord -- three floats
-            axis -- the axis the slice is through
+        @param coord: three floats
+        @type coord: tuple of floats
+        @param axis: the axis the slice is through
+        @type axis: integer
         """
         # Let's figure out which grids are on the slice
         mask=ones(self.numGrids)
@@ -392,7 +392,8 @@ class EnzoHierarchy:
 
     def getSlice(self, center, axis, field, fileName=None, outline=False):
         """
-        Deprecated.  Returns array of vals.  Don't use.
+        Returns array of vals.
+        @deprecated: We now use EnzoSlice
         """
         # We take a 3-tuple of the coordinate we want to slice through, as well
         # as the axis we're slicing along
@@ -424,9 +425,9 @@ class EnzoHierarchy:
         """
         Returns objects, indices of grids within a sphere
 
-        Arguments:
-            center -- coordinate of center
-            radius -- code units!
+        @param center: coordinate of center
+        @type center: tuple of floats
+        @param radius: the radius of the sphere in code units!
         """
         centers = (self.gridRightEdge + self.gridLeftEdge)/2.0
         long_axis = maximum.reduce(self.gridRightEdge - self.gridLeftEdge, 1)
@@ -438,6 +439,8 @@ class EnzoHierarchy:
     def getSphere(self, center, radius, fields):
         """
         Deprecated.  Returns array of vals.  Don't use.
+
+        @deprecated: Use EnzoSphere
         """
         # We first figure out which grids are within distance radius of center
         # If the center of the box is within the distance R+(long axis of box)
@@ -479,10 +482,9 @@ class EnzoHierarchy:
         Returns value, center of location of maximum for a given field
 
         Arguments:
-            field -- field (derived or otherwise) of which to look for maximum
-        Keyword Arguments:
-            finestLevels -- true or false, whether or not to search NUMTOCHECK
-                            finest levels
+        @param field: field (derived or otherwise) of which to look for maximum
+        @keyword finestLevels: whether or not to search NUMTOCHECK finest levels
+        @type finestLevels: boolean
         """
         if finestLevels:
             gI = where(self.gridLevels >= self.maxLevel - NUMTOCHECK)
@@ -682,19 +684,22 @@ class EnzoHierarchy:
         else:
             outputProjectionASCII(dataByLevel, fileName, minLevel, maxLevel)
 
-    def exportParticlesPB(self, filename, filter = 1, indexboundary = 0, fields = None, scale=1.0):   #########
+    def exportParticlesPB(self, filename, filter = 1, indexboundary = 0, fields = None, scale=1.0):
         """
         Exports all the star particles, or a subset, to a pb file for viewing in
         partiview
 
-        Arguments:
-            filename -- filename of the .pb file to create
-        Keyword Arguments:
-            filter -- the particle type you want to get (assumes 2)
-            fields -- the fields you want to snag.  If not supplied, it just
+        @param filename: filename of the .pb file to create
+        @type filename: string
+        @keyword filter: the particle type you want to get (assumes 2)
+        @type filter: integer
+        @keyword fields: the fields you want to snag.  If not supplied, it just
                       grabs the position and index.
-            indexboundary -- for those who want to discriminate the particles with particle index...          
-            scale -- the factor to multiply the position by (defaults to 1.0)
+        @keyword indexboundary: for those who want to discriminate the
+                    particles with particle index
+        @type indexboundary: integer
+        @keyword scale: the factor to multiply the position by (defaults to 1.0)
+        @type scale: float
         """
         import struct
         pbf_magic = 0xffffff98
@@ -731,9 +736,13 @@ class EnzoHierarchy:
     def initializeEnzoInterface(self, idt_val = 0.0):
         """
         Here we start up the SWIG interface, grabbing what we need from it.
+
+        @keyword idt_val: the initialdt fed to ReadParameterFile (doesn't need
+                          to be set)
+        @type idt_val: float
         """
         ei = yt.enki.EnzoInterface
-        f = ei.fopen(self.parameterFilename, "r")
+        f = open(self.parameterFilename, "r")
         self.eiTopGridData = ei.TopGridData()
         idt = ei.new_Float()
         ei.Float_assign(idt,idt_val)
@@ -748,6 +757,8 @@ class EnzoHierarchy:
 def outputProjectionASCII(dataByLevel, fileName, minLevel, maxLevel):
         """
         Don't use directly.  Currently in flux.
+
+        @deprecated: Stupid, and used only for testing, a billion years ago.
         """
         mylog.debug("Now outputting to %s in five-column ascii.  How efficient!", fileName)
         k=0
@@ -778,6 +789,8 @@ def outputProjectionASCII(dataByLevel, fileName, minLevel, maxLevel):
 def splitConvertGridParameter(vals, func, toAdd, curGrid):
     """
     Quick function to split up a parameter and convert it and toss onto a grid
+
+    Will be replaced by usage of the re module...  eventually...
     """
     j = 0
     for v in vals.split():

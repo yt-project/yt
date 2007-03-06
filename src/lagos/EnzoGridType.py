@@ -1,11 +1,10 @@
-#
-# raven:
-#   A module for dealing with Enzo data
-#   Currently isolated fromall HippoDraw classes
-#
-# Written by: Matthew Turk (mturk@stanford.edu) Nov 2006
-# Modified:
-#
+"""
+Python-based grid handler, not to be confused with the SWIG-handler
+
+@author: U{Matthew Turk<http://www.stanford.edu/~mturk/>}
+@organization: U{KIPAC<http://www-group.slac.stanford.edu/KIPAC/>}
+@contact: U{mturk@slac.stanford.edu<mailto:mturk@slac.stanford.edu>}
+"""
 
 from yt.lagos import *
 import yt.enki
@@ -18,11 +17,12 @@ class EnzoGrid:
         """
         Returns an instance of EnzoGrid
 
-        Arguments:
-            hierarchy -- EnzoHierarchy, parent hierarchy
-            id -- int, grid ID (NOT index, which is ID-1)
-        Keyword Arguments:
-            filename -- filename holding grid data
+        @param hierarchy: EnzoHierarchy, parent hierarchy
+        @type hierarchy: L{EnzoHierarchy<EnzoHierarchy>}
+        @param id: grid ID (NOT index, which is ID-1)
+        @type id: int
+        @keyword filename: filename holding grid data
+        @type filename: string
         """
         self.id = id
         self.hierarchy = hierarchy
@@ -155,10 +155,12 @@ class EnzoGrid:
         current level.
         Use algorithm described at http://www.gamedev.net/reference/articles/article735.asp
 
-        Arguments:
-            axis -- axis (0,1,2) along which line of sight is drawn
-            LE -- Array of LeftEdge positions to check against
-            RE -- Array of RightEdge positions to check against
+        @param axis: axis  along which line of sight is drawn
+        @type axis: int
+        @param LE: LeftEdge positions to check against
+        @type LE: array of floats
+        @param RE: RightEdge positions to check against
+        @type RE: array of floats
         """
         x = x_dict[axis]
         y = y_dict[axis]
@@ -183,8 +185,8 @@ class EnzoGrid:
         """
         Returns value, coordinate of maximum value in this gird
 
-        Arguments:
-            field -- field to check
+        @param field: field to check
+        @type field: string
         """
         coord=nd.maximum_position(self[field])
         val = self[field][coord]
@@ -194,8 +196,8 @@ class EnzoGrid:
         """
         Returns position of a coordinate
 
-        Arguments:
-            pos -- Array of position to check
+        @param coord: position to check
+        @type coord: array of floats
         """
         # We accept arrays here, people, not tuples
         pos = (coord + 0.0) * self.dx + self.LeftEdge
@@ -204,7 +206,7 @@ class EnzoGrid:
 
     def getSlice(self, coord, axis, field, outline=False):
         """
-        Deprecated.  Gets a slice from the grid.  Don't use.
+        @deprecated: use EnzoSlice!
         """
         if self.myChildMask == None:
             self.generateChildMask()
@@ -213,7 +215,7 @@ class EnzoGrid:
         # NOTE: This should be fixed.  I don't think it works properly or
         # intelligently.
         wantedIndex = int(((coord-self.LeftEdge[axis])/self.dy))
-        # I can't think of a better way to do this -- because we have lots of
+        # I can't think of a better way to do this: because we have lots of
         # different arrays, and because we don't want to mess that up, we
         # shouldn't do any axis-swapping, I think.  So, looks like we're just
         # going to have to do this the stupid way.  (I suspect there's a more
@@ -323,21 +325,25 @@ class EnzoGrid:
         """
         Generates, or attempts to generate,  a field not found in the file
 
-        Arguments:
-            fieldName -- string, field name
-
         See fields.py for more information.  fieldInfo.keys() will list all of
         the available derived fields.  Note that we also make available the
         suffices _Fraction and _Squared here.  All fields prefixed with 'k'
         will force an attempt to use the chemistry tables to generate them from
         temperature.  All fields used in generation will remain resident in
         memory.
+
+        I feel like there's a reason that EnzoGrid isn't subclassed from
+        EnzoData, and I think it's related to this method.  But I can't remember now.
+
+        @param fieldName: field name
+        @type fieldName: string
+
         """
         # This is for making derived fields
-        # Note that all fields used for derivation are kept resident in memory -- probably a 
+        # Note that all fields used for derivation are kept resident in memory: probably a 
         # mistake, but it is expensive to do a lookup.  I will fix this later.
         #
-        # Note that you can do a couple things -- the suffices _Fraction and
+        # Note that you can do a couple things: the suffices _Fraction and
         # _Squared will be dealt with appropriately.  Not sure what else to
         # add.
         if fieldName.endswith("Fraction"):
@@ -372,6 +378,7 @@ class EnzoGrid:
     def getSphere(self, center, radius, fields, zeroOut = True):
         """
         Returns a sphere from within the grid.  Don't use.
+        @deprecated: Use EnzoSphere!
         """
         if self.myChildMask == None or self.myChildIndices == None:
             self.generateChildMask()
@@ -404,7 +411,7 @@ class EnzoGrid:
         p=re.compile("Grid = %s\n" % (self.id))
         h=open(self.hierarchyFilename,"r").read()
         m=re.search(p,h)
-        h=yt.enki.EnzoInterface.fopen(self.hierarchyFilename,"r")
+        h=open(self.hierarchyFilename,"r")
         retVal = yt.enki.EnzoInterface.fseek(h, long(m.end()), 0)
         self.eiGrid=yt.enki.EnzoInterface.grid()
         cwd = os.getcwd() # Hate doing this, need to for relative pathnames

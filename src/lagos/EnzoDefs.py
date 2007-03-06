@@ -1,11 +1,12 @@
-#
-# ravenDefs:
-#   A poorly named module that includes all the major
-#   definitions we need
-#
-# Written by: Matthew Turk (mturk@stanford.edu) Nov 2006
-# Modified: 
-#
+"""
+Various definitions for various other modules and routines
+
+@author: U{Matthew Turk<http://www.stanford.edu/~mturk/>}
+@organization: U{KIPAC<http://www-group.slac.stanford.edu/KIPAC/>}
+@contact: U{mturk@slac.stanford.edu<mailto:mturk@slac.stanford.edu>}
+
+@todo: Move into yt.Defs, along with enki.EnkiDefs
+"""
 
 # The number of levels we expect to have at most
 MAXLEVEL=48

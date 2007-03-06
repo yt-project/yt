@@ -1,11 +1,10 @@
-#
-# src_wrapper:
-#   Using pyFort, we can make fortran calls
-#   Useful for testing chemistry, getting cooling time, etc
-#
-# Written by: Matthew Turk (mturk@stanford.edu) Nov 2006
-# Modified:
-#
+"""
+Enzo fortran function wrapping
+
+@author: U{Matthew Turk<http://www.stanford.edu/~mturk/>}
+@organization: U{KIPAC<http://www-group.slac.stanford.edu/KIPAC/>}
+@contact: U{mturk@slac.stanford.edu<mailto:mturk@slac.stanford.edu>}
+"""
 
 from yt.lagos import *
 import Numeric # Hate doing this, but we have to for inout ability
