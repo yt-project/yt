@@ -11,15 +11,16 @@ OTHERFILES=["rates.out","cool_rates.out"]
 NEW_OUTPUT_CREATED = "newOutput"
 
 import os, os.path, time, sys, shutil
-from glob import glob
+import yt.lagos as lagos
 from yt.fido import *
+import glob
 
 def newCheckForOutput(skipFiles = []):
     if os.path.isfile(NEW_OUTPUT_CREATED):
         os.unlink(NEW_OUTPUT_CREATED)
         newFiles = []
         # So something is created!  Now let's snag it
-        l = glob("*.hierarchy")
+        l = glob.glob("*.hierarchy")
         if len(l) > 0:
             for file in l:
                 if file not in skipFiles:
@@ -32,7 +33,7 @@ def newCheckForOutput(skipFiles = []):
 def manualCheckForOutput(skipFiles = []):
     newFiles = []
     i = 0
-    l = glob("*.hierarchy")
+    l = glob.glob("*.hierarchy")
     if len(l) > 0:
         for file in l:
             if file not in skipFiles and os.stat(file).st_size > 0 \
@@ -56,7 +57,7 @@ def checkForStop(process=None):
             return 1
     return 0
 
-def watchDir(path=".", skip = [], funcHandler = None, process=None):
+def watchDir(md=None, path=".", skip = [], funcHandler = None, process=None):
     """
     This is the heart of Fido.  This function watches a given directory for
     output, and when that output is found, it calls moves the output and calls a
@@ -65,15 +66,19 @@ def watchDir(path=".", skip = [], funcHandler = None, process=None):
     @keyword path: the path to watch for output
     @keyword skip: skip these files when looking for output
     @type skip: list of strings
-    @keyword funcHandler: this function will be called with the path and
-        basename of a new output
+    @keyword funcHandler: this function will be called with the EnzoHierarchy instance
     @type funcHandler: function
     @keyword process: watch this process for death (don't use directly)
     @type process: process
+    @note: B{This assumes outputs are added in chronological time order!}  This
+           function may behave incorrectly if you don't revert and digup runs.
     """
     if process:
         mylog.info("Handed process")
     os.chdir(path)
+    if not md:
+        md = os.path.basename(os.getcwd())
+    thisRun = fetchRun(md, classType=lagos.EnzoParameterFile)
     doStop = 0
     while not doStop:
         doStop = checkForStop(process)
@@ -84,9 +89,14 @@ def watchDir(path=".", skip = [], funcHandler = None, process=None):
                 if not os.path.exists(newDir):
                     os.mkdir(newDir)
                 moveFiles(newDir, bn, extraFiles=OTHERFILES)
+                mylog.info("Adding to EnzoRun instance")
+                thisRun.addOutputByFilename(os.path.join(newDir,bn))
+                submitRun(thisRun)
                 if funcHandler:
-                    mylog.info("Calling %s", funcHandler.func_name)
-                    funcHandler(newDir, bn)
+                    thisRun.promoteType(-1)
+                    mylog.info("Calling %s" % funcHandler.func_name)
+                    funcHandler(thisRun.outputs[-1])
+                    thisRun.demoteType(-1)
                     mylog.info("Done calling %s, now sleeping", funcHandler.func_name)
         time.sleep(WAITBETWEEN)
 
