@@ -29,10 +29,20 @@ from stat import ST_CTIME
 #import RavenCombine, fields, chemistry
 import time
 
+print "Importing logger"
+from yt.logger import lagosLogger as mylog
+from yt.config import ytcfg
+
+try:
+    from yt.enki import EnzoInterface
+except:
+    pass
+
 try:
     import EnzoFortranRoutines
 except:
     mylog.warning("EnzoFortranRoutines import failed; all fortran calls will fail!")
+
 from EnzoDefs import *
 from EnzoDerivedFields import *
 from EnzoFortranWrapper import *
@@ -43,11 +53,4 @@ from EnzoHierarchyType import *
 from EnzoRunType import *
 import EnzoCombine
 from EnzoRateData import *
-
-try:
-    from yt.enki import EnzoInterface
-except:
-    pass
-
-from yt.logger import lagosLogger as mylog
 

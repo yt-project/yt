@@ -15,97 +15,28 @@ import yt.enki
 #from EnzoData import *
 #from EnzoGrid import *
 
-class EnzoHierarchy:
+class EnzoParameterFile:
     """
-    Class for handling Enzo timestep outputs
+    This class is a stripped down class that simply reads and parses, without
+    looking at the hierarchy.
     """
-    def __init__(self, filename, hdf_version=4):
+    def __init__(self, filename, hdf_version = None):
         """
-        Returns a new instance of EnzoHierarchy
-
-        
-        @param filename:  the filename of the parameter file
-        @type filename: string
-        @keyword hdf_version: either 4 or 5, depending
+        @note: We disregard hdf_version here
         """
-        # For now, we default to HDF4, but allow specifying HDF5
-        if hdf_version == 5:
-            EnzoGrid.readDataFast = readDataHDF5
-            EnzoGrid.readAllData = readAllDataHDF5
-            EnzoSlice.readDataSlice = readDataSliceHDF5
-            EnzoGrid.getFields = getFieldsHDF5
-            warnings.filterwarnings("ignore",".*PyTables format.*")
-        else:
-            EnzoGrid.readDataFast = readDataHDF4
-            EnzoGrid.readAllData = readAllDataHDF4
-            EnzoSlice.readDataSlice = readDataSliceHDF4
-            EnzoGrid.getFields = getFieldsHDF4
-        time1=time.time()
-        # Expect filename to be the name of the parameter file, not the
-        # hierarchy
         self.parameterFilename = "%s" % (filename)
-        self.hierarchyFilename = "%s.hierarchy" % (filename)
-        self.boundaryFilename = "%s.boundary" % (filename)
+        self.basename = os.path.basename(filename)
         self.directory = os.path.dirname(filename)
         self.fullpath = os.path.abspath(self.directory)
         if len(self.directory) == 0:
             self.directory = "."
-        # Now we do a bit of a hack to figure out how many grids there are,
-        # so we can pre-create our arrays of dimensions, indices, etc
-        self.hierarchyLines = open("%s.hierarchy" % filename).readlines()
-        for i in range(len(self.hierarchyLines)-1,0,-1):
-            line = self.hierarchyLines[i]
-            if line.startswith("Grid ="):
-                self.numGrids = int(line.split("=")[-1])
-                break
         self.conversionFactors = {}
         self.parameters = {}
         self.parameters["CurrentTimeIdentifier"] = \
             int(os.stat(self.parameterFilename)[ST_CTIME])
         self.parseParameterFile()
         self.setUnits()
-
-        if self.parameters.has_key("CompilerPrecision") \
-           and (self.parameters["CompilerPrecision"] == "r8" \
-                or self.parameters["CompilerPrecision"] == "r4"):
-            EnzoFloatType = Float32
-        else:
-            EnzoFloatType = Float64
-
-        self.gridDimensions = zeros((self.numGrids,3), Int32)
-        self.gridStartIndices = zeros((self.numGrids,3), Int32)
-        self.gridEndIndices = zeros((self.numGrids,3), Int32)
-        self.gridLeftEdge = zeros((self.numGrids,3), EnzoFloatType)
-        self.gridRightEdge = zeros((self.numGrids,3), EnzoFloatType)
-        self.gridLevels = zeros((self.numGrids,1), Int32)
-        self.gridDxs = zeros((self.numGrids,1), EnzoFloatType)
-        self.gridTimes = zeros((self.numGrids,1), Float64)
-        self.gridNumberOfParticles = zeros((self.numGrids,1))
-        self.grids = obj.array(None,shape=(self.numGrids))
-        self.gridReverseTree = [None] * self.numGrids
-        self.gridTree = []
-        for i in range(self.numGrids):
-            self.gridTree.append([])
-
-        # Now some statistics:
-        #   0 = number of grids
-        #   1 = number of cells
-        #   2 = blank
-        self.levelsStats = zeros((MAXLEVEL,3), Int32)
-        for i in range(MAXLEVEL):
-            self.levelsStats[i,2] = i
-
-        # For use with radial plots
-        self.center = None
-        self.bulkVelocity = None
-
-        # For SWIG
-        self.eiTopGrid = None
         
-        self.populateHierarchy()
-        time2=time.time()
-        mylog.info("Took %s seconds to read the hierarchy.", time2-time1)
-
     def __getitem__(self, key):
         """
         Returns units, parameters, or conversionFactors in that order
@@ -203,6 +134,86 @@ class EnzoHierarchy:
         self.units['1']     = 1
         self.units['years'] = seconds / (365*3600*24.0)
         self.units['days']  = seconds / (3600*24.0)
+
+class EnzoHierarchy(EnzoParameterFile):
+    """
+    Class for handling Enzo timestep outputs
+    """
+    def __init__(self, filename, hdf_version=4):
+        """
+        Returns a new instance of EnzoHierarchy
+
+        
+        @param filename:  the filename of the parameter file
+        @type filename: string
+        @keyword hdf_version: either 4 or 5, depending
+        """
+        EnzoParameterFile.__init__(self, filename)
+        # For now, we default to HDF4, but allow specifying HDF5
+        if hdf_version == 5:
+            EnzoGrid.readDataFast = readDataHDF5
+            EnzoGrid.readAllData = readAllDataHDF5
+            EnzoSlice.readDataSlice = readDataSliceHDF5
+            EnzoGrid.getFields = getFieldsHDF5
+            warnings.filterwarnings("ignore",".*PyTables format.*")
+        else:
+            EnzoGrid.readDataFast = readDataHDF4
+            EnzoGrid.readAllData = readAllDataHDF4
+            EnzoSlice.readDataSlice = readDataSliceHDF4
+            EnzoGrid.getFields = getFieldsHDF4
+        time1=time.time()
+        # Expect filename to be the name of the parameter file, not the
+        # hierarchy
+        self.hierarchyFilename = "%s.hierarchy" % (filename)
+        self.boundaryFilename = "%s.boundary" % (filename)
+        # Now we do a bit of a hack to figure out how many grids there are,
+        # so we can pre-create our arrays of dimensions, indices, etc
+        self.hierarchyLines = open("%s.hierarchy" % filename).readlines()
+        for i in range(len(self.hierarchyLines)-1,0,-1):
+            line = self.hierarchyLines[i]
+            if line.startswith("Grid ="):
+                self.numGrids = int(line.split("=")[-1])
+                break
+        if self.parameters.has_key("CompilerPrecision") \
+           and (self.parameters["CompilerPrecision"] == "r8" \
+                or self.parameters["CompilerPrecision"] == "r4"):
+            EnzoFloatType = Float32
+        else:
+            EnzoFloatType = Float64
+
+        self.gridDimensions = zeros((self.numGrids,3), Int32)
+        self.gridStartIndices = zeros((self.numGrids,3), Int32)
+        self.gridEndIndices = zeros((self.numGrids,3), Int32)
+        self.gridLeftEdge = zeros((self.numGrids,3), EnzoFloatType)
+        self.gridRightEdge = zeros((self.numGrids,3), EnzoFloatType)
+        self.gridLevels = zeros((self.numGrids,1), Int32)
+        self.gridDxs = zeros((self.numGrids,1), EnzoFloatType)
+        self.gridTimes = zeros((self.numGrids,1), Float64)
+        self.gridNumberOfParticles = zeros((self.numGrids,1))
+        self.grids = obj.array(None,shape=(self.numGrids))
+        self.gridReverseTree = [None] * self.numGrids
+        self.gridTree = []
+        for i in range(self.numGrids):
+            self.gridTree.append([])
+
+        # Now some statistics:
+        #   0 = number of grids
+        #   1 = number of cells
+        #   2 = blank
+        self.levelsStats = zeros((MAXLEVEL,3), Int32)
+        for i in range(MAXLEVEL):
+            self.levelsStats[i,2] = i
+
+        # For use with radial plots
+        self.center = None
+        self.bulkVelocity = None
+
+        # For SWIG
+        self.eiTopGrid = None
+        
+        self.populateHierarchy()
+        time2=time.time()
+        mylog.info("Took %s seconds to read the hierarchy.", time2-time1)
 
     def populateHierarchy(self):
         """

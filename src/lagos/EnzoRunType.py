@@ -7,6 +7,7 @@ Handling of sets of EnzoHierarchy objects
 """
 
 from yt.lagos import *
+import ConfigParser, time, os
 
 class EnzoRun:
     """
@@ -14,7 +15,7 @@ class EnzoRun:
     Simulation.  This includes all of the datadumps, the parameter file,
     and possibly even the initial conditions.
     """
-    def __init__(self, metaData, outputs=[]):
+    def __init__(self, metaData, outputs=[], runFilename=None, classType=EnzoHierarchy, timeID=None):
         """
         We're going to try to avoid setting too many of the parameters here,
         as many will be changed on and off.  However, we can definitely set all
@@ -34,8 +35,30 @@ class EnzoRun:
         @type outputs: list of L{EnzoHierarchies<EnzoHierarchy>}
         """
         self.metaData = metaData
+        self.classType = classType
         self.outputs = obj.array(outputs)       # Object array of EnzoHierarchies
         self.timesteps = array(shape=self.outputs.shape, type=Float64) # Timesteps
+        if runFilename:
+            self.Import(runFilename)
+        if not timeID:
+            timeID = int(time.time())
+        self.timeID = timeID
+
+    def promoteType(self, outputID):
+        if hasattr(self.outputs[outputID], "grids"):
+            return
+        pp = self.outputs[outputID]
+        pf_name = os.path.join(pp.fullpath, pp.basename)
+        self.outputs[outputID] = EnzoHierarchy(pf_name)
+        del pp
+
+    def demoteType(self, outputID):
+        if not hasattr(self.outputs[outputID], "grids"):
+            return
+        pp = self.outputs[outputID]
+        pf_name = os.path.join(pp.fullpath, pp.basename)
+        self.outputs[outputID] = EnzoParameterFile(pf_name)
+        del pp
 
     def sortOutputs(self):
         """
@@ -72,13 +95,15 @@ class EnzoRun:
         @param filename: either a single filename or a list of filenames
         @keyword hdf_version: version of hdf to use
         @type hdf_version: int
+        @param classType: the type of object this output is, to keep overhead at minimum
+        @type classType: class (L{EnzoParameterFile<EnzoParameterFile>} or L L{EnzoHierarchy<EnzoHierarchy>})
         """
         if not isinstance(filename, types.ListType):
             filename = [filename]
         k = []
         for fn in filename:
             mylog.info("Adding %s to EnzoRun '%s'", fn, self.metaData)
-            k.append(EnzoHierarchy(fn, hdf_version=hdf_version))
+            k.append(self.classType(fn, hdf_version=hdf_version))
         self.addOutput(k)
 
     def getCommandLine(self):
@@ -114,28 +139,41 @@ class EnzoRun:
             mylog.info("Calling %s on %s", func.func_name, a[0].parameterFilename)
             func(*a)
 
+    def getBefore(self, time):
+        return where(self.timesteps <= time)[0]
+
+    def getAfter(self, time):
+        return where(self.timesteps > time)[0]
+
+    def removeOutput(self, id):
+        pp = self.outputs[id]
+        self.outputs = concatenate([self.outputs[:id], self.outputs[id+1:]])
+        self.timesteps = concatenate([self.timesteps[:id], self.timesteps[id+1:]])
+        del pp
+
     def removeOutputFiles(self, outputID):
         """
         This function handles things a bit  more simply than
         removeOutputFilesByGrid, in that it tosses everything over to fido.
-        This *deletes* files
+        This *deletes* files.  Note that this can be DANGEROUS.  Use with care.
 
         @param outputID: the ID of the parameter file to toast
         @type outputID: int
         """
-
         import yt.fido
-        yt.fido.deleteFiles(self.outputs[outputID].fullpath, \
-                os.path.basename(self.outputs[outputID].parameterFilename))
+        mylog.info("Deleting %s" % (self.outputs[outputID].fullpath))
+        #yt.fido.deleteFiles(self.outputs[outputID].fullpath, \
+                #os.path.basename(self.outputs[outputID].parameterFilename))
+        yt.fido.deleteOutput(self.outputs[outputID].fullpath)
 
     def moveOutputFiles(self, outputID, dest):
         import yt.fido
-        run = self.outputs[outputID]
-        mylog.info("Moving %s to %s", os.path.basename(run.parameterFilename), \
+        pf = self.outputs[outputID]
+        mylog.info("Moving %s to %s", os.path.basename(pf.fullpath), \
                     dest)
         yt.fido.moveFiles(os.path.abspath(dest), \
-            os.path.basename(run.parameterFilename), \
-            extraFiles = [], wd=run.fullpath)
+            os.path.basename(pf.parameterFilename), \
+            extraFiles = [], wd=pf.directory)
 
     def removeOutputFilesByGrid(self, outputID):
         """
@@ -162,3 +200,82 @@ class EnzoRun:
         mylog.debug("Deleting boundary.hdf  %s", run.boundaryFilename+".hdf")
         os.unlink(run.boundaryFilename+".hdf")
         mylog.debug("Deleted everything, I think")
+
+    def Export(self, nn):
+        """
+        This function returns a ConfigParser object that describes the enough
+        that it can be resurrected at a later date.
+
+        @return: ConfigParser
+        """
+        cfg = ConfigParser.ConfigParser()
+        if os.path.exists(nn):
+            cfg.read(nn)
+        if not cfg.has_section("RunInformation"):
+            cfg.add_section("RunInformation")
+        cfg.set("RunInformation","MetaData",self.metaData)
+        cfg.set("RunInformation","User", os.getenv("USER"))
+        cfg.set("RunInformation","ExportTime", time.ctime())
+        # Hm, I guess that's all we need for the metadata...
+        # Now the question, really, is going to be how do we handle the data
+        # listings?
+        self.UpdateOutputs(cfg)
+        return cfg
+
+    def Import(self, filename):
+        """
+        Here we read in an EnzoRun file and import the parameter files
+        @param filename: the run filename
+        @type filename: string
+        @param classType: the method of instantiation for the outputs
+        @type classType: class (EnzoHierarchy or EnzoParameterFile)
+        """
+        cc = ConfigParser.ConfigParser()
+        cc.read(filename)
+        self.metaData = cc.get("RunInformation","MetaData")
+        new_outputs = []
+        for sec in cc.sections():
+            if sec.startswith("Output"):
+                # Okay, so it's an output, now what?
+                d = cc.get(sec,"Directory")
+                f = cc.get(sec,"Basename")
+                new_outputs.append(os.path.join(d,f))
+        self.addOutputByFilename(new_outputs)
+
+    def UpdateOutputs(self, cfg):
+        """
+        This function accepts a filename, and will update the ConfigParser
+        object corresponding to that filename, ensuring that all outputs I{currently}
+        associated with the run instance are in the file.  (It does this by
+        I{deleting} the [Outputs] section, by the way, and re-initializing it.)
+        @param cfg: The filename or ConfigParser object to update
+        @type cfg: string or instantiated ConfigParser
+        """
+        if isinstance(cfg, types.StringType):
+            # We open the file, and we will write to it when done
+            cc = ConfigParser.ConfigParser()
+            cc.read(cfg)
+            toWrite = True
+        else:
+            # Assume it is a ConfigParser object, and let exception get thrown
+            # otherwise.
+            cc = cfg
+            toWrite = False
+        for sec in cc.sections():
+            if sec.startswith("Output"):
+                cc.remove_section(sec)
+        num = self.outputs.shape[0]
+        otherParams=ytcfg.get("Fido","OtherParamsToStore").split(",")
+        for i in range(num):
+            n = "Output%04i" % (i)
+            cc.add_section(n)
+            cc.set(n,"CurrentTimeIdentifier",self.outputs[i]["CurrentTimeIdentifier"])
+            cc.set(n,"Directory",self.outputs[i].fullpath)
+            cc.set(n,"Basename",self.outputs[i].basename)
+            for op in otherParams:
+                if self.outputs[i].has_key(op):
+                    cc.set(n,op,self.outputs[i][op])
+        if toWrite:
+            cc.write(cfg)
+        # We return *nothing*, because we either modify the ConfigParser in
+        # place or we update and write out

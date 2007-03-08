@@ -8,7 +8,7 @@ Various non-grid data containers.
 G{importgraph}
 """
 
-#from yt.lagos import *
+from yt.lagos import *
 
 class EnzoData:
     """
