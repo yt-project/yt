@@ -1,0 +1,16 @@
+#!/usr/work/mturk/local/bin/python2.5
+import glob, os.path, sys
+
+if len(sys.argv) <= 1:
+    print "You need to give me some more info, chuckles!  Like, which is the latest parameter file you want to keep?"
+    sys.exit()
+
+import yt.lagos as lagos
+import yt.fido as fido
+
+# Strictly stupid importing...
+
+new_pf = fido.guessPF(sys.argv[1])
+
+guess = os.path.basename(os.getcwd())
+fido.revert(guess, new_pf)

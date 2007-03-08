@@ -1,0 +1,19 @@
+#!/usr/work/mturk/local/bin/python2.5
+
+import yt.lagos as lagos
+import yt.fido as fido
+import glob, os.path
+
+# Strictly stupid importing...
+
+myRun = lagos.EnzoRun(os.path.basename(os.getcwd()), classType=lagos.EnzoParameterFile)
+
+a = []
+dirs = glob.glob("*.dir")
+dirs.sort()
+for i in dirs:
+    bn = os.path.join(i,i[:i.rfind(".")])
+    a.append(bn)
+
+myRun.addOutputByFilename(a, lagos.EnzoParameterFile)
+fido.submitRun(myRun)
