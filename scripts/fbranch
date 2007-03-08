@@ -1,0 +1,22 @@
+#!/usr/work/mturk/local/bin/python2.5
+import glob, os.path, sys
+
+if len(sys.argv) <= 2:
+    print "You need to give me some more info, chuckles!  Like, what's the new metadata, and which file do you want to split at?"
+    sys.exit()
+
+import yt.lagos as lagos
+import yt.fido as fido
+from yt.config import ytcfg
+
+new_md = sys.argv[1]
+pf = fido.guessPF(sys.argv[2])
+
+# Strictly stupid importing...
+
+guess = os.path.basename(os.getcwd())
+thisRun = fido.fetchRun(guess)
+
+new_dir = ytcfg.get("Fido","WorkDir")
+
+fido.branch(thisRun, pf, new_md, os.path.join(new_dir, new_md))
