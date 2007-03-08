@@ -181,8 +181,8 @@ def revert(md, maxTime):
     after that time.  Note that this is a "Greater-than" operation, not a
     "Greater-than-or-equal-to" operation.
 
-    @param run: the run we're reverting
-    @type run: EnzoRun
+    @param md: the run we're reverting
+    @type md: string
     @param maxTime: the maximum time
     @type maxTime: float
     @note: Does this necessarily work with FP precision?  Do we need to do a
@@ -229,8 +229,8 @@ def digUp(md, pf):
     When fed a parameter file, this will 'dig it up' into the current
     directory.  Note that this *dissociates* it from the EnzoRun.
 
-    @param run: the run we're digging from
-    @type run: EnzoRun
+    @param md: the run we're digging from
+    @type md: string
     @param pf: the pf to dig up
     @type pf: float
     @note: Does this necessarily work with FP precision?  Do we need to do a
@@ -240,9 +240,28 @@ def digUp(md, pf):
     # Otherwise, we'll have to figure it out from the time of the output
     # file
     for i in range(thisRun.outputs.shape[0]):
+        print pf, thisRun.outputs[i].basename, os.path.basename(pf)
         if thisRun.outputs[i].basename == os.path.basename(pf):
             goodI = i
             break
     thisRun.moveOutputFiles(goodI, dest=os.getcwd())
     thisRun.removeOutput(goodI)
     submitRun(thisRun)
+
+def guessPF(pf):
+    """
+    Simple way of guessing a parameter file's name.
+    """
+    try_dir = os.path.join(pf+".dir",pf)
+    if pf[-1] == "/":
+        pf = pf[:-1]
+    if pf[-3:] == "dir":
+        # So we guess that we want the parameterfile with the same basename as
+        # the dir
+        new_pf = os.path.join(pf, pf[:pf.rfind(".dir")])
+    elif not os.path.exists(pf) and os.path.exists(try_dir):
+        new_pf = try_dir
+    else:
+        new_pf = pf
+    print "new_pf:", new_pf
+    return new_pf
