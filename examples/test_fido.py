@@ -16,8 +16,9 @@ fields = ["NumberDensity", "Temperature", "H2I_Fraction", "RadialVelocity"]
 imageSkel = "/u/ki/mturk/public_html/ravenimages/%s/"
 httpPrefix = "http://www.slac.stanford.edu/~mturk/ravenimages/%s/"
 
-def makePlots(path, bn):
-    h=lagos.EnzoHierarchy(os.path.join(path, bn))
+def makePlots(h):
+    bn=h.basename
+    #h=lagos.EnzoHierarchy(os.path.join(path, bn))
     #h.rates = chemistry.EnzoTable(os.path.join(path,"rates.out"),rates_out_key)
     #h.cool = chemistry.EnzoTable(os.path.join(path,"cool_rates.out"),cool_out_key)
     user=os.getenv("USER")
@@ -66,5 +67,6 @@ def makePlots(path, bn):
         for field in fields:
             p.switchField(field)
             plot.saveImages(os.path.join(imageDir,"%s_%010iau" % (bn,1000)),"png",-1)
+
 
 yt.fido.watchDir(funcHandler=makePlots)
