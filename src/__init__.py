@@ -59,6 +59,8 @@ G{packagetree}
 @author: U{Matthew Turk<http://www.stanford.edu/~mturk/>}
 @organization: U{KIPAC<http://www-group.slac.stanford.edu/KIPAC/>}
 @contact: U{mturk@slac.stanford.edu<mailto:mturk@slac.stanford.edu>}
+@see: U{Snow Crash<http://en.wikipedia.org/wiki/Snow_Crash>}
+@see: U{Enki<http://en.wikipedia.org/wiki/Enki>}
 """
 
 from logger import *
