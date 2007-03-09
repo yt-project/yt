@@ -95,8 +95,6 @@ class EnzoRun:
         @param filename: either a single filename or a list of filenames
         @keyword hdf_version: version of hdf to use
         @type hdf_version: int
-        @param classType: the type of object this output is, to keep overhead at minimum
-        @type classType: class (L{EnzoParameterFile<EnzoParameterFile>} or L L{EnzoHierarchy<EnzoHierarchy>})
         """
         if not isinstance(filename, types.ListType):
             filename = [filename]
@@ -166,7 +164,28 @@ class EnzoRun:
                 #os.path.basename(self.outputs[outputID].parameterFilename))
         yt.fido.deleteOutput(self.outputs[outputID].fullpath)
 
+    def moveOutput(self, outputID, dest):
+        """
+        This moves a data directory tree to another location.  This assumes the
+        data is already buried.
+
+        @param outputID: the output we want to move
+        @type outputID: integer
+        @param dest: the basename of the new location
+        @type dest: string
+        """
+        import yt.fido
+        pf = self.outputs[outputID]
+        mylog.info("Moving %s to %s", os.path.basename(pf.fullpath), \
+                    dest)
+        pf.fullpath = yt.fido.moveOutput(pf.fullpath, os.path.abspath(dest))
+
     def moveOutputFiles(self, outputID, dest):
+        """
+        @deprecated: I'm not sure what I was thinking when I wrote this, but
+        since I can't remember, i am not deleting it.  Don't use it, though.  Donny
+        Dont uses it.  And remember -- don't do what Donny Dont does.
+        """
         import yt.fido
         pf = self.outputs[outputID]
         mylog.info("Moving %s to %s", os.path.basename(pf.fullpath), \
