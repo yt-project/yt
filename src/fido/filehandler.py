@@ -59,10 +59,10 @@ def moveOutput(source, dest):
     @param dest: the place we're moving to
     @type dest: string
     """
-    shutil.move(source, os.path.join(os.path.basename(dest,source)))
-    mylog.info("Moved %s to %s", basename, path)
-    
-    
+    new_fullpath = os.path.join(dest,os.path.basename(source))
+    shutil.move(source, new_fullpath)
+    mylog.info("Moved %s to %s", os.path.basename(source), dest)
+    return new_fullpath
 
 def copyOutput(source, dest):
     """

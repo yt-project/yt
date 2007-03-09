@@ -1,7 +1,7 @@
 """
-Not yet functional.  Better strategy needed first...
+Sort of functional.
 
-So the goal here will be to have a set of classes that we can use in a
+So the goal here will be to have a set of methods that we can use on a
 flat-file database.  In fact, everything will be stored in flat-files in a
 directory.  They probably won't be pickled.
 
@@ -35,10 +35,8 @@ association of parameter files with runs.
 @organization: U{KIPAC<http://www-group.slac.stanford.edu/KIPAC/>}
 @contact: U{mturk@slac.stanford.edu<mailto:mturk@slac.stanford.edu>}
 
-@todo: Implement!
-@todo: Create mappers for each object type.
-@todo: Pickle objects?  Deep-pickling, or surface?  Or just do flat-file
-storage?
+@todo: More testing!  Also set up frestart , to automatically digup and restart
+using a given host profile.  Or, possibly, to spawn an editor.
 """
 
 RUN_PREFIX = "runF"
@@ -75,6 +73,8 @@ def submitRun(run, additional = []):
 
     @param run: the EnzoRun instance
     @type run: L{EnzoRun<EnzoRun>}
+    @param additional: any additional parameters that need to be set
+    @type additional: list of tuples
     """
     #id = int(time.time())
     id = run.timeID
@@ -133,7 +133,8 @@ def branch(run, pf, new_md, new_dir):
     """
     This will duplicate a parameter file and all of its consitutent data.
     Additionally, the parameter file gets a new ID.
-    @param run: the run to branch
+    @param run: the run to branch -- but only get the  info from it to put in
+           the new run file; no other info needed.
     @type run: L{EnzoRun<EnzoRun>}
     @param pf: the parameter file to branch at
     @type pf: integer or L{EnzoParameterFile<EnzoParameterFile>}
@@ -174,6 +175,24 @@ def branch(run, pf, new_md, new_dir):
     submitRun(new_run, additional=[("BranchedFrom","%s_%s" % (run.timeID, run.metaData))])
     # And now, it's branched!  Hooray.
     return new_run
+
+def bury(run, index, hole):
+    """
+    This takes a run, a parameter file, and a new location, and it moves the
+    run and updates its location in the run db.  Note that this isn't
+    I{precisely} the opposite of digup, as digup also removes the 'bone' from
+    the run file.  This doesn't add the bone to the run, it just moves a run
+    that's already in the run around.
+
+    @param run: the run from which we're burying a datadump
+    @type run: L{EnzoRun<EnzoRun>}
+    @param index: the index we're burying
+    @type index: integer
+    @param hole: the new directory we're moving to
+    @type hole: string
+    """
+    run.moveOutput(index, hole)
+    submitRun(run)
 
 def revert(md, maxTime):
     """
@@ -250,7 +269,11 @@ def digUp(md, pf):
 
 def guessPF(pf):
     """
-    Simple way of guessing a parameter file's name.
+    Simple way of guessing a parameter file's name.  Expect this function to
+    evolve in time.
+
+    @param pf: some string that somehow describes the parameter file
+    @type pf: string
     """
     try_dir = os.path.join(pf+".dir",pf)
     if pf[-1] == "/":
