@@ -29,7 +29,7 @@ Lagos
 =====
 
     Lagos deals with data structures.  It defines things like EnzoGrid,
-    EnzoData, Enzo2DData, EnzoSphere, etc.  If you want to handlee actual data, use
+    EnzoData, Enzo2DData, EnzoSphere, etc.  If you want to handle actual data, use
     Lagos.
 
 Raven
@@ -52,7 +52,9 @@ Python logger.)
 Also, documentation should follow the epydoc format,
 U{http://epydoc.sourceforge.net/} with the fields listed
 U{here<http://epydoc.sourceforge.net/manual-fields.html>}.  I'm working on
-making my way through the existing code to document it.
+making my way through the existing code to document it.  Symbols and other
+markup information available
+U{here<http://epydoc.sourceforge.net/api/epydoc.markup.epytext-module.html>}.
 
 G{packagetree}
 
@@ -65,6 +67,8 @@ G{packagetree}
 
 from logger import *
 from config import *
+
+import shell
 
 #import enki
 #import lagos
