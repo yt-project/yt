@@ -79,6 +79,7 @@ def submitRun(run, additional = []):
     #id = int(time.time())
     id = run.timeID
     md = run.metaData
+    print type(id),type(md)
     new_filename = "_".join([RUN_PREFIX,str(id),md])
     nn = os.path.join(my_rundir,new_filename)
     cfg=run.Export(nn)
@@ -201,17 +202,23 @@ def revert(md, maxTime):
     "Greater-than-or-equal-to" operation.
 
     @param md: the run we're reverting
-    @type md: string
+    @type md: string or L{EnzoRun<EnzoRun>}
     @param maxTime: the maximum time
     @type maxTime: float
     @note: Does this necessarily work with FP precision?  Do we need to do a
            +1e-30 or something to it?
     """
-    thisRun = fetchRun(md)
-    try:
+    if isinstance(md, types.StringType):
+        thisRun = fetchRun(md)
+    else:
+        thisRun = md
+    if isinstance(maxTime, types.FloatType):
         # Maybe they passed in a float?
         tt = float(maxTime)
-    except ValueError:
+    elif isinstance(maxTime, lagos.EnzoParameterFile) or \
+         isinstance(maxTime, lagos.EnzoHierarchy):
+        tt = maxTime["InitialTime"]
+    elif isinstance(maxTime, types.StringType):
         # Otherwise, we'll have to figure it out from the time of the output file
         for i in thisRun.outputs:
             if i.basename == os.path.basename(maxTime):
@@ -222,7 +229,7 @@ def revert(md, maxTime):
     for oI in bad_outputs:
         mylog.info( "Removing OutputFiles for %s (%s)", oI, thisRun.outputs[oI].fullpath)
         thisRun.removeOutputFiles(oI)
-    newRun = lagos.EnzoRun(md, outputs=thisRun.outputs[(good_outputs,)], classType=lagos.EnzoParameterFile, timeID=thisRun.timeID)
+    newRun = lagos.EnzoRun(str(md), outputs=thisRun.outputs[(good_outputs,)], classType=lagos.EnzoParameterFile, timeID=thisRun.timeID)
     # Note that we're not reinstantiating the config parser object, since the
     # whole point is to I{delete} that and rewrite it!
     submitRun(newRun)
@@ -249,23 +256,19 @@ def digUp(md, pf):
     directory.  Note that this *dissociates* it from the EnzoRun.
 
     @param md: the run we're digging from
-    @type md: string
+    @type md: string or L{EnzoRun<EnzoRun>}
     @param pf: the pf to dig up
     @type pf: float
     @note: Does this necessarily work with FP precision?  Do we need to do a
            +1e-30 or something to it?
     """
-    thisRun = fetchRun(md)
-    # Otherwise, we'll have to figure it out from the time of the output
-    # file
-    for i in range(thisRun.outputs.shape[0]):
-        print pf, thisRun.outputs[i].basename, os.path.basename(pf)
-        if thisRun.outputs[i].basename == os.path.basename(pf):
-            goodI = i
-            break
-    thisRun.moveOutputFiles(goodI, dest=os.getcwd())
-    thisRun.removeOutput(goodI)
-    submitRun(thisRun)
+    if isinstance(md, types.StringType):
+        run = fetchRun(md)
+    else:
+        run = md
+    run.moveOutputFiles(pf.basename, dest=os.getcwd())
+    run.removeOutput(pf.basename)
+    submitRun(run)
 
 def guessPF(pf):
     """
@@ -286,5 +289,4 @@ def guessPF(pf):
         new_pf = try_dir
     else:
         new_pf = pf
-    print "new_pf:", new_pf
     return new_pf

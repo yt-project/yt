@@ -12,51 +12,31 @@ import dialog, sys
 import glob, os.path
 
 import yt.lagos as lagos
+import yt.shell
 from yt.fido import *
 
-from code import InteractiveConsole
-
-FidoBanner="Welcome to Fido!  For help, type fidoHelp()"
-
-def fidoHelp():
-    s = """
-    This is a fully-functional Python prompt.  You should already have access
-    to the modules lagos, raven, enki and fido, and the function selectRun.
-    Additionally, any run you have already fetched will be available as myRun.
-    """
-    print s
-
-def runBranch():
-    if len(sys.argv) <= 2:
-        print "You need to give me some more info, chuckles!"
-        print "Like, what's the new metadata string, and which file do you want to split at?"
-        sys.exit()
-    new_md = sys.argv[1]
-    pf = guessPF(sys.argv[2])
-    guess = os.path.basename(os.getcwd())
-    thisRun = fetchRun(guess)
-    new_dir = ytcfg.get("Fido","WorkDir")
-    branch(thisRun, pf, new_md, os.path.join(new_dir, new_md))
-    sys.exit()
-
 def runDigup():
-    if len(sys.argv) <= 1:
-        print "You need to give me some more info, chuckles!"
-        print "Like, which is the parameter file you want to dig up?"
-        sys.exit()
-    new_pf = guessPF(sys.argv[1])
     guess = os.path.basename(os.getcwd())
-    digUp(guess, new_pf)
+    run = fetchRun(guess)
+    if len(sys.argv) <= 1:
+        new_pf = selectPF(run, prompt="Which run should I dig up?")
+        if new_pf == None:
+            sys.exit()
+    else:
+        new_pf = guessPF(sys.argv[1])
+    digUp(run, new_pf)
     sys.exit()
 
 def runRevert():
-    if len(sys.argv) <= 1:
-        print "You need to give me some more info, chuckles!"
-        print "Like, which is the latest parameter file you want to keep?"
-        sys.exit()
-    new_pf = guessPF(sys.argv[1])
     guess = os.path.basename(os.getcwd())
-    revert(guess, new_pf)
+    run = fetchRun(guess)
+    if len(sys.argv) <= 1:
+        new_pf = selectPF(run, prompt="Which is the last run to keep?")
+        if new_pf == None:
+            sys.exit()
+    else:
+        new_pf = guessPF(sys.argv[1])
+    revert(run, new_pf)
 
 def runImport():
     myRun = lagos.EnzoRun(os.path.basename(os.getcwd()), classType=lagos.EnzoParameterFile)
@@ -69,37 +49,46 @@ def runImport():
     myRun.addOutputByFilename(a, lagos.EnzoParameterFile)
     submitRun(myRun)
 
+def selectPF(run, prompt = "Which parameter file do you want?"):
+    """
+    Choose a parameterfile from a menu, with menu options populated by the database
+    @param run: the run to select from
+    @type run: L{EnzoRun<EnzoRun>}
+    @param prompt: the prompt to give the user
+    @type prompt: string
+    """
+    opts=run.keys()
+    d=dialog.Dialog()
+    d.setBackgroundTitle('FIDO GOES FOR WALKIES!!!!')
+    pfs = zip(map(str,range(1,len(run)+1)),run.keys())
+    retCode,pfI = d.menu(prompt, choices=pfs)
+    if retCode == 1:
+        return None
+    myPF = run[int(pfI)-1]
+    return myPF
+
 def selectRun():
+    """
+    Choose a run from a menu, with menu options populated by the database
+    """
     d=dialog.Dialog()
     d.setBackgroundTitle('FIDO GOES FOR WALKIES!!!!')
     runs_ids, runs_mds = getRuns()
-    runs = zip(runs_mds.keys(), runs_mds.keys())
-    retCode,md = d.menu("Which run do you want?", choices=runs)
+    runs = zip(map(str,range(1,len(runs_mds)+1)),runs_mds.keys())
+    print runs
+    retCode,mdI = d.menu("Which run do you want?", choices=runs)
     if retCode == 1:
         return None
-    myRun = fetchRun(md, classType = lagos.EnzoParameterFile)
+    myRun = fetchRun(runs[int(mdI)-1][1], classType = lagos.EnzoParameterFile)
     return myRun
     
 def runFetch():
     myRun = selectRun()
     if myRun == None:
         sys.exit()
-    runFido({'myRun':myRun})
-
-def runFido(my_dict = {}):
-    fs = FidoShell(my_dict)
-    fs.interact(FidoBanner)
-
-class FidoShell(InteractiveConsole):
-    def __init__(self, my_dict = {}):
-        import yt.fido, yt.lagos, yt.raven, yt.enki
-        my_dict.update({'fido':yt.fido, \
-                        'lagos':yt.lagos, \
-                        'raven':yt.raven, \
-                        'enki':yt.enki, \
-                        'fidoHelp':fidoHelp, \
-                        'selectRun':selectRun})
-        InteractiveConsole.__init__(self, locals=my_dict)
+    newBanner = yt.shell.ytBannerDefault + \
+                "\nmyRun = %s" % (myRun)
+    yt.shell.runyt({'myRun':myRun}, ytBanner=newBanner)
 
 def run():
     exeName = os.path.basename(sys.argv[0])
@@ -113,6 +102,3 @@ def run():
         runImport()
     elif exeName == "ffetch":
         runFetch()
-    elif exeName == "fido":
-        print "Hey!"
-        runFido()
