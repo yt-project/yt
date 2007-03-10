@@ -47,6 +47,9 @@ class EnzoParameterFile:
             return self.parameters[key]
         return self.conversionFactors[key]
 
+    def __repr__(self):
+        return self.basename
+
     def keys(self):
         """
         Returns a list of possible keys, from units, parameters and

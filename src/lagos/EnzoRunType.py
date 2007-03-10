@@ -100,7 +100,7 @@ class EnzoRun:
             filename = [filename]
         k = []
         for fn in filename:
-            mylog.info("Adding %s to EnzoRun '%s'", fn, self.metaData)
+            mylog.debug("Adding %s to EnzoRun '%s'", fn, self.metaData)
             k.append(self.classType(fn, hdf_version=hdf_version))
         self.addOutput(k)
 
@@ -143,10 +143,15 @@ class EnzoRun:
     def getAfter(self, time):
         return where(self.timesteps > time)[0]
 
-    def removeOutput(self, id):
-        pp = self.outputs[id]
-        self.outputs = concatenate([self.outputs[:id], self.outputs[id+1:]])
-        self.timesteps = concatenate([self.timesteps[:id], self.timesteps[id+1:]])
+    def removeOutput(self, key):
+        pp = self[key]
+        id = self.index(key)
+        # Okay, I know this sucks, but, it seems to be the only way, since
+        # concatenate doesn't want to work with ObjectArrays
+        newOutputs = obj.ObjectArray(self.outputs[:id].tolist() + self.outputs[id+1:].tolist())
+        newTimesteps = obj.ObjectArray(self.timesteps[:id].tolist() + self.timesteps[id+1:].tolist())
+        self.outputs = newOutputs
+        self.timesteps = newTimesteps
         del pp
 
     def removeOutputFiles(self, outputID):
@@ -155,14 +160,14 @@ class EnzoRun:
         removeOutputFilesByGrid, in that it tosses everything over to fido.
         This *deletes* files.  Note that this can be DANGEROUS.  Use with care.
 
-        @param outputID: the ID of the parameter file to toast
-        @type outputID: int
+        @param outputID: the ID or basename of the parameter file to toast
+        @type outputID: int or string
         """
         import yt.fido
-        mylog.info("Deleting %s" % (self.outputs[outputID].fullpath))
+        mylog.info("Deleting %s" % (self[outputID].fullpath))
         #yt.fido.deleteFiles(self.outputs[outputID].fullpath, \
                 #os.path.basename(self.outputs[outputID].parameterFilename))
-        yt.fido.deleteOutput(self.outputs[outputID].fullpath)
+        yt.fido.deleteOutput(self[outputID].fullpath)
 
     def moveOutput(self, outputID, dest):
         """
@@ -175,19 +180,14 @@ class EnzoRun:
         @type dest: string
         """
         import yt.fido
-        pf = self.outputs[outputID]
+        pf = self[outputID]
         mylog.info("Moving %s to %s", os.path.basename(pf.fullpath), \
                     dest)
         pf.fullpath = yt.fido.moveOutput(pf.fullpath, os.path.abspath(dest))
 
     def moveOutputFiles(self, outputID, dest):
-        """
-        @deprecated: I'm not sure what I was thinking when I wrote this, but
-        since I can't remember, i am not deleting it.  Don't use it, though.  Donny
-        Dont uses it.  And remember -- don't do what Donny Dont does.
-        """
         import yt.fido
-        pf = self.outputs[outputID]
+        pf = self[outputID]
         mylog.info("Moving %s to %s", os.path.basename(pf.fullpath), \
                     dest)
         yt.fido.moveFiles(os.path.abspath(dest), \
@@ -246,8 +246,6 @@ class EnzoRun:
         Here we read in an EnzoRun file and import the parameter files
         @param filename: the run filename
         @type filename: string
-        @param classType: the method of instantiation for the outputs
-        @type classType: class (EnzoHierarchy or EnzoParameterFile)
         """
         cc = ConfigParser.ConfigParser()
         cc.read(filename)
@@ -298,3 +296,41 @@ class EnzoRun:
             cc.write(cfg)
         # We return *nothing*, because we either modify the ConfigParser in
         # place or we update and write out
+
+    def __getitem__(self, key):
+        """
+        Based on the type of input, we either return based on index or
+        basename.
+        """
+        if isinstance(key, types.StringType):
+            index = self.index(key)
+        elif isinstance(key, types.IntType):
+            index = key
+        return self.outputs[index]
+
+    def index(self, key):
+        t = os.path.basename(key)
+        # Find out the index
+        index = None
+        for i in range(self.outputs.shape[0]):
+            if self.outputs[i].basename == t:
+                index = i
+                break
+        if index == None:
+            raise KeyError
+        return index
+
+    def __repr__(self):
+        return self.metaData
+
+    def __len__(self):
+        return self.outputs.shape[0]
+
+    def keys(self):
+        """
+        Returns a list of parameterfile basenames
+        """
+        keys = []
+        for i in range(self.outputs.shape[0]):
+            keys.append(self.outputs[i].basename)
+        return keys
