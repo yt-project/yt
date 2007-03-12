@@ -171,6 +171,39 @@ class EnzoHippo:
         self.canvas.addDisplay(self.plots[-1].plot)
         return self.plots[-1]
 
+    def addNewProj(self, field = "Density", axis = None, center = None, weight = None, cmap = None):
+        """
+        Add a new plot of this type
+
+        @param field: the field to add to the slice
+        @type field: string
+        @keyword axis: the axis to slice along (defaults to all three)
+        @type axis: integer, list of integers
+        @keyword center: the center (defaults to maximum Density)
+        @type center: tuple of floats
+        @keyword weight: field to weight by
+        @type weight: string
+        @keyword cmap: the colormap
+        @type cmap: string
+        @return: L{EnzoVMSlice<EnzoPlotTypes.EnzoVMSlice>}
+        """
+        if axis == None:
+            axis = [0,1,2]
+        else:
+            if isinstance(axis, types.IntType):
+                axis = [axis]
+        if center==None:
+            v, center = self.hierarchy.findMax('Density')
+        elif len(center) != 3:
+            mylog.warning("Center must be a 3-tuple! Using maximum density.")
+            v, center = self.hierarchy.findMax('Density')
+        startI = len(self.plots)
+        for ax in axis:
+            self.plots.append(EnzoVMProjNew(self.hierarchy, self.canvas, self, offScreen=self.offScreen))
+            self.plots[-1].makePlot(ax, field, center, 0, None, weight, cmap)
+            self.canvas.addDisplay(self.plots[-1].plot)
+        return self.plots[startI:]
+
     def addSlice(self, field = "Density", axis = None, center = None, cmap = None):
         """
         Add a new plot of this type

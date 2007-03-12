@@ -4,6 +4,7 @@ Plot classes for raven
 @author: U{Matthew Turk<http://www.stanford.edu/~mturk/>}
 @organization: U{KIPAC<http://www-group.slac.stanford.edu/KIPAC/>}
 @contact: U{mturk@slac.stanford.edu<mailto:mturk@slac.stanford.edu>}
+@change: Sun Mar 11 18:11:08 PDT 2007 added EnzoProjNew
 """
 
 from yt.raven import *
@@ -438,6 +439,58 @@ class EnzoVMSlice(EnzoVM):
             mylog.debug( "Replacing field %s" ,  field)
             self.tuple.replaceColumn(field,self.data[field])
         self.refresh()
+
+class EnzoVMProjNew(EnzoVM):
+    def makePlot(self, axis, field = "Density", center = None, \
+                minLevel = 0, maxLevel = None, weight = None, \
+                cmap = None):
+        self.field = field
+        self.weight = weight
+
+        time1 = time.time()
+        self.axis = axis
+        self.typeName = "Projection"
+        
+        if (center == None) and (self.c == None):
+            mylog.debug( "Searching for center")
+            v, center = self.hierarchy.findMax('Density')
+        if (center != None):
+            self.c = center
+
+        mylog.info( "Getting from field = %s at center %s", field, self.c)
+        self.data = lagos.EnzoProj(self.hierarchy, axis, field, weight, maxLevel)
+        time2 = time.time()
+        mylog.info( "Took %0.3e seconds to project" ,  time2-time1)
+        
+        #self.tuple = hippo.DataArray('NumArrayTuple')
+        self.tuple = hippo.DataArray('NTuple')
+        self.tuple.register()
+        
+        #v1 = self.data[field].min()
+        #v2 = self.data[field].max()
+
+        self.tuple.addColumn('x',list(self.data.x))
+        self.tuple.addColumn('y',list(self.data.y))
+        self.tuple.addColumn(field,list(self.data[field]))
+        self.tuple.addColumn('dx',list(self.data.dx))
+        self.tuple.addColumn('dy',list(self.data.dy))
+        
+        if fieldInfo.has_key(field):
+            self.dataLabel = field + " (%s)" % (fieldInfo[field][0])
+        else:
+            self.dataLabel = field
+        if weight != None:
+            self.dataLabel += " weighted by %s" % (weight)
+
+        #mylog.info( "Min: %0.3e Max: %0.3e",  v1, v2)
+        self.plotFromData(self.tuple)
+        #self.refreshDisplayWidth()
+        
+        time2=time.time()
+        mylog.info( "Took %0.3e seconds for everything" ,  time2-time1)
+
+    def switchField(self, field):
+        mylog.warning("Sorry, not gonna happen.  Switching fields in projections currently disabled.")
 
 class EnzoVMProj(EnzoVM):
     def makePlot(self, axis, field = "Density", center = None, minLevel = 0, \
