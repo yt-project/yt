@@ -43,6 +43,7 @@ try:
 except:
     mylog.warning("EnzoFortranRoutines import failed; all fortran calls will fail!")
 
+import EnzoCombine
 from EnzoDefs import *
 from EnzoDerivedFields import *
 from EnzoFortranWrapper import *
@@ -51,6 +52,5 @@ from EnzoGridType import *
 from EnzoDataTypes import *
 from EnzoHierarchyType import *
 from EnzoRunType import *
-import EnzoCombine
 from EnzoRateData import *
 

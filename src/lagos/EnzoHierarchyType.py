@@ -539,7 +539,7 @@ class EnzoHierarchy(EnzoParameterFile):
         # First we precalculate how much memory we will need
         totalProj = 0
         memoryPerLevel = {}
-        gridDataIndices = zeros((self.numGrids,4))
+        #gridDataIndices = zeros((self.numGrids,4))
         i = 0
         for level in range(self.maxLevel+1):
             memoryPerLevel[level] = 0
@@ -568,7 +568,7 @@ class EnzoHierarchy(EnzoParameterFile):
         i = 0
         dataByLevel = {}
         time1 = time.time()
-        aRStart = 0
+        #aRStart = 0
         totalGridsProjected = 0
         zeroOut = True
         self.dbl_coarse = {}

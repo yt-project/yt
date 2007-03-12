@@ -5,7 +5,7 @@ Various non-grid data containers.
 @organization: U{KIPAC<http://www-group.slac.stanford.edu/KIPAC/>}
 @contact: U{mturk@slac.stanford.edu<mailto:mturk@slac.stanford.edu>}
 
-G{importgraph}
+@change: Sun Mar 11 18:10:57 PDT 2007 implemented EnzoProj
 """
 
 from yt.lagos import *
@@ -155,7 +155,7 @@ class Enzo2DData(EnzoData):
         for field in fields:
             f.write("\t%s" % (field))
         f.write("\n")
-        for i in range(self.x.shape[0]):
+        for i in xrange(self.x.shape[0]):
             f.write("%0.20f %0.20f %0.20f %0.20f" % \
                     (self.x[i], \
                      self.y[i], \
@@ -171,11 +171,203 @@ class EnzoProj(Enzo2DData):
     EnzoProj data.  Doesn't work yet.  Needs to be implemented, following the
     method of EnzoHierarchy.getProjection.
 
-    @todo: Implement
     """
-    def __init__(self, hierarchy, axis, fields = None):
+    def __getitem__(self, key):
+        """
+        We override this because we don't want to add new fields for new keys.
+        """
+        return self.data[key]
+
+    def __init__(self, hierarchy, axis, field, weightField = None, maxLevel = None):
+        """
+        Returns an instance of EnzoProj.  Note that this object will be fairly static.
+
+        @todo: Implement
+        @param hierarchy: the hierarchy we are projecting
+        @type hierarchy: L{EnzoHierarchy<EnzoHierarchy>}
+        @param axis: axis to project along
+        @type axis: integer
+        @param field: the field to project (NOT multiple)
+        @type field: string
+        @keyword weightField: the field to weight by
+        @keyword maxLevel: the maximum level to project through
+        """
+        Enzo2DData.__init__(self, hierarchy, axis, field)
+        if maxLevel == None:
+            maxLevel = self.hierarchy.maxLevel
+            print "YO!!!!",maxLevel
+        self.maxLevel = maxLevel
+        self.weightField = weightField
         self.coords = None
+        self.calculateMemory()
         self.refreshData()
+
+    def calculateMemory(self):
+        """
+        Here we simply calculate how much memory is needed, which speeds up
+        allocation later
+        """
+        memoryPerLevel = {}
+        totalProj = 0
+        h = self.hierarchy
+        i = 0
+        for level in range(self.maxLevel+1):
+            memoryPerLevel[level] = 0
+            mylog.info("Working on level %s", level)
+            grids = h.levelIndices[level]
+            numGrids = len(grids)
+            RE = h.gridRightEdge[grids].copy()
+            LE = h.gridLeftEdge[grids].copy()
+            for grid in h.grids[grids]:
+                if (i%1e3) == 0:
+                    mylog.info("Reading and masking %s / %s", i, h.numGrids)
+                # We unroll this so as to avoid instantiating a range() for
+                # every grid
+                grid.generateOverlapMasks(0, LE, RE)
+                grid.myOverlapGrids[0] = h.grids[grids[where(grid.myOverlapMasks[0] == 1)]]
+                grid.generateOverlapMasks(1, LE, RE)
+                grid.myOverlapGrids[1] = h.grids[grids[where(grid.myOverlapMasks[1] == 1)]]
+                grid.generateOverlapMasks(2, LE, RE)
+                grid.myOverlapGrids[2] = h.grids[grids[where(grid.myOverlapMasks[2] == 1)]]
+                myNeeds = grid.ActiveDimensions[(self.axis+1)%3]\
+                         *grid.ActiveDimensions[(self.axis+2)%3]
+                memoryPerLevel[level] += myNeeds
+                totalProj += myNeeds
+                i += 1
+        for level in range(self.maxLevel+1):
+            gI = where(h.gridLevels == level)
+            mylog.info("%s cells and %s grids for level %s", \
+                memoryPerLevel[level], len(gI[0]), level)
+        mylog.debug("We need %s cells total", totalProj)
+        self.memoryPerLevel = memoryPerLevel
+
+    def getData(self):
+        """
+        Unfortunately, projecting is more linear, less-OO than slicing, it
+        seems to me.  We don't want to view this as a projection "operator" or
+        anything like that, so this will be a fairly straightforward port of the old
+        getProjection code.
+        """
+        # Note that we only look at the first field, since we know it is a list
+        field = self.fields[0]
+        i = 0
+        zeroOut = True
+        dataByLevel = {}
+        totalGridsProjected = 0
+        dbl_coarse = {}
+        h = self.hierarchy
+        weightField = self.weightField
+        minLevel = 0 # We're not going to allow projections from selected
+                     # levels right now
+        fullLength = 0
+        axis = self.axis # Speed up the access here by a miniscule amount
+        dataFieldName = field
+        print "HEY!!!!!", minLevel, self.maxLevel+1
+        for level in range(minLevel, self.maxLevel+1):
+            zeroOut = (level != self.maxLevel)
+            mylog.info("Projecting through level = %s", level)
+            llen = self.memoryPerLevel[level]
+            tempLevelData = [zeros(llen, Int64), \
+                             zeros(llen, Int64), \
+                             zeros(llen, Float64), \
+                             zeros(llen, Float64)]
+            myInd = where(h.gridLevels == level)[0]
+            gridsToProject = h.grids[myInd]
+            index = 0
+            for grid in gridsToProject:
+                i += 1
+                grid.retVal = grid.getProjection(axis, field, zeroOut, weight=weightField)
+            totalGridsProjected += i
+            mylog.info("Grid projecting done (%s / %s total) with %s points", \
+                        totalGridsProjected, h.numGrids, index)
+            mylog.debug("Combining level %s...", level)
+            i = 0
+            for grid1 in gridsToProject:
+                i += 1
+                if grid1.retVal[0].shape[0] == 0:
+                    continue # We skip anything already processed
+                for grid2 in grid1.myOverlapGrids[axis]:
+                    if grid2.retVal[0].shape[0] == 0:
+                        continue # Already processed
+                    if grid1.id == grid2.id:
+                        continue # Same grid!
+                    index=EnzoCombine.CombineData( \
+                            grid1.retVal[0], grid1.retVal[1], \
+                            grid1.retVal[2], grid1.retVal[3], grid1.retVal[4], \
+                            grid2.retVal[0], grid2.retVal[1], \
+                            grid2.retVal[2], grid2.retVal[3], grid2.retVal[4], 0)
+                    goodI = where(grid2.retVal[0] > -1)
+                    grid2.retVal[0] = grid2.retVal[0][goodI].copy()
+                    grid2.retVal[1] = grid2.retVal[1][goodI].copy()
+                    grid2.retVal[2] = grid2.retVal[2][goodI].copy()
+                    grid2.retVal[3] = grid2.retVal[3][goodI].copy()
+                    grid2.retVal[4] = grid2.retVal[4][goodI].copy()
+                numRefined = 0
+                if (level > minLevel) and (level <= self.maxLevel):
+                    for grid2 in grid1.Parent.myOverlapGrids[axis]:
+                        if grid2.coarseData[0].shape[0] == 0:
+                            continue # Already refined
+                        numRefined += EnzoCombine.RefineCoarseData( \
+                            grid1.retVal[0], grid1.retVal[1], \
+                            grid1.retVal[2], grid1.retVal[4], \
+                            grid2.coarseData[0], grid2.coarseData[1], \
+                            grid2.coarseData[2], grid2.coarseData[4], 2)
+            all_data = [[],[],[],[],[]]
+            for grid in gridsToProject:
+                #print grid.retVal[0]
+                all_data[0].append(grid.retVal[0])
+                all_data[1].append(grid.retVal[1])
+                all_data[2].append(grid.retVal[2])
+                all_data[3].append(grid.retVal[3])
+                all_data[4].append(grid.retVal[4])
+                cI = where(grid.retVal[3]==0)
+                grid.coarseData = [grid.retVal[0][cI], \
+                                   grid.retVal[1][cI], \
+                                   grid.retVal[2][cI], \
+                                   grid.retVal[3][cI], \
+                                   grid.retVal[4][cI]]
+            levelData = []
+            levelData.append(concatenate(all_data[0]))
+            levelData.append(concatenate(all_data[1]))
+            levelData.append(concatenate(all_data[2]))
+            levelData.append(concatenate(all_data[3]))
+            levelData.append(concatenate(all_data[4]))
+            mylog.debug("All done combining and refining with a final %s points", levelData[0].shape[0])
+            dx=gridsToProject[0].dx # Assume uniform dx
+            dblI = where(logical_and((levelData[0]>-1), (levelData[3] == 1))==1)
+            if weightField != None:
+                weightedData = levelData[2][dblI] / levelData[4][dblI]
+            else:
+                weightedData = levelData[2][dblI]
+            dataByLevel[level] = [levelData[0][dblI], levelData[1][dblI], \
+                                  weightedData, dx]
+            time4 = time.time()
+            if dataByLevel[level][0].shape[0] > 0:
+                exampleValue = dataByLevel[level][2][0]
+            else:
+                exampleValue = 0.0
+            mylog.info("Level %s done: %s final of %s (%s)", \
+                       level, dataByLevel[level][0].shape[0], \
+                       levelData[0].shape[0], exampleValue)
+            fullLength += dataByLevel[level][0].shape[0]
+            del levelData
+        # Now we construct a simple dictionary
+        all_x = []
+        all_y = []
+        all_z = []
+        all_dx = []
+        for level in range(minLevel, self.maxLevel+1):
+            all_x.append(dataByLevel[level][0])
+            all_y.append(dataByLevel[level][1])
+            all_z.append(dataByLevel[level][2])
+            all_dx.append(ones(dataByLevel[level][2].shape)*dataByLevel[level][3])
+        # We now convert to half-widths and center-points
+        self.dx = concatenate(all_dx) / 2.0
+        self.dy = concatenate(all_dx) / 2.0
+        self.x = (concatenate(all_x)+0.5) * self.dx*2.0
+        self.y = (concatenate(all_y)+0.5) * self.dy*2.0
+        self.data[field] = concatenate(all_z)
+        
 
 class EnzoSlice(Enzo2DData):
     """
