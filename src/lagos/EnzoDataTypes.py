@@ -619,7 +619,10 @@ class EnzoRegion(Enzo3DData):
         if self.dx == None:
             for grid in g:
                 #print "Generating coords for grid %s" % (grid.id)
+                c = grid.center
+                grid.center = self.center
                 points.append(self.generateGridCoords(grid))
+                grid.center = c
             t = concatenate(points)
             self.x = t[:,0]
             self.y = t[:,1]
