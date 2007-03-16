@@ -314,8 +314,7 @@ def Volume(self, fieldName):
     """
     Useful for volume-weighted plots.
     """
-    self[fieldName] = (self.dx * self.dy * self.dz) * \
-                           ones(self.ActiveDimensions)
+    self[fieldName] = (self.dx * self.dy * self.dz)
 fieldInfo["Volume"] = (None, None, True, Volume)
 
 def CoolingTime(self, fieldName):
