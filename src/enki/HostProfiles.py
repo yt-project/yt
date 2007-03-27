@@ -24,7 +24,7 @@ def submitLSF(**args):
     """
     Submits to LSF, based on fully optional arguments
 
-    NOT FUNCTIONAL YET
+    NOT FUNCTIONAL YET.  Will probably use a swig-ified LSF.
 
     @keyword queue: the queue to submit to
     @keyword resource: the resource to submit to
@@ -59,4 +59,6 @@ def submitDPLACE(wd='.', parameterFile=None, exe="./enzo", restart = False, npro
             shell=True, executable="/bin/bash")
     return p
 
-hostRed = HostProfile("red.slac.stanford.edu", submitDPLACE)
+hosts = {}
+
+hosts["red_dplace"] = HostProfile("red.slac.stanford.edu", submitDPLACE)

@@ -18,7 +18,7 @@ import sys
 from yt.logger import enkiLogger as mylog
 from yt.config import ytcfg
 
-from numarray import *
+import numarray as na
 
 # Now we import the SWIG enzo interface
 # Note that we're going to try super-hard to get the one that's local for the
@@ -47,5 +47,6 @@ from EnkiDefs import *
 from HostProfiles import *
 from CreateNewProblem import *
 import mes
+from Recompile import *
 
-from yt.lagos import *
+from yt.lagos import * # Do we need this?

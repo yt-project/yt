@@ -1,0 +1,29 @@
+%module pyLSF
+%{
+#include <lsf/lsf.h>
+#include <lsf/lsbatch.h>
+%}
+%ignore ls_loadoftype;
+%ignore ls_nioremovetask;
+%ignore ls_nioinit;
+%ignore ls_nioctl;
+%ignore ls_niostatus;
+%ignore ls_readrexlog;
+%ignore ls_nioclose;
+%ignore ls_niotasks;
+%ignore ls_nionewtask;
+%ignore ls_niowrite;
+%ignore ls_niokill;
+%ignore ls_niosetdebug;
+%ignore ls_nioread;
+%ignore ls_niodump;
+%ignore ls_gethostrespriority;
+%ignore ls_nioselect;
+%ignore ls_verrlog;
+%ignore ls_lostconnection;
+%ignore ls_placeoftype;
+%ignore getBEtime;
+%include <lsf/lsbatch.h>
+%import <lsf/lsbatch.h>
+%include <lsf/lsf.h>
+%import <lsf/lsf.h>
