@@ -12,11 +12,10 @@ G{packagetree}
 @contact: U{mturk@slac.stanford.edu<mailto:mturk@slac.stanford.edu>}
 """
 
-from numarray import *
-import hippo, time, types, string
+import numarray as na
+import hippo, time, types, string, os
 
 import yt.lagos as lagos
-from yt.lagos.EnzoDerivedFields import *
 from yt.logger import ravenLogger as mylog
 
 from EnzoPlotTypes import *

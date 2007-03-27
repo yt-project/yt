@@ -93,8 +93,8 @@ class EnzoRadialPlot(EnzoPlot):
         self.tuple.register()
         for i in range(len(fields)):
             field = fields[i]
-            if fieldInfo.has_key(field):
-                self.dataLabel.append(field + " (%s)" % (fieldInfo[field][0]))
+            if lagos.fieldInfo.has_key(field):
+                self.dataLabel.append(field + " (%s)" % (lagos.fieldInfo[field][0]))
             else:
                 self.dataLabel.append(field)
             self.tuple.addColumn(field,list(self.data[field]))
@@ -106,10 +106,10 @@ class EnzoRadialPlot(EnzoPlot):
 
     def refresh(self):
         self.plot.setLabel('Y',self.dataLabel[1])
-        if fieldInfo.has_key(self.field):
-            sl = fieldInfo[self.field][2]
+        if lagos.fieldInfo.has_key(self.field):
+            sl = lagos.fieldInfo[self.field][2]
         else:
-            sl = self.field in log_fields
+            sl = self.field in lagos.log_fields
         mylog.debug("Setting log to %s",  sl)
         self.plot.setLog('Y',sl)
 
@@ -124,10 +124,10 @@ class EnzoRadialPlot(EnzoPlot):
         self.plot.setLabel('X',self.dataLabel[0])
         self.plot.setLog('X',True)
         self.plot.setLabel('Y',self.dataLabel[1])
-        if fieldInfo.has_key(self.field):
-            sl = fieldInfo[self.field][2]
+        if lagos.fieldInfo.has_key(self.field):
+            sl = lagos.fieldInfo[self.field][2]
         else:
-            sl = self.field in log_fields
+            sl = self.field in lagos.log_fields
         mylog.debug("Setting log to %s",  sl)
         self.plot.setLog('Y',sl)
         self.plot.setAspectRatio(1)
@@ -165,8 +165,8 @@ class EnzoRadialPlot(EnzoPlot):
     def switchField(self, field):
         self.addField(field)
         self.field = field
-        if fieldInfo.has_key(field):
-            self.dataLabel[1] = field + " (%s)" % (fieldInfo[field][0])
+        if lagos.fieldInfo.has_key(field):
+            self.dataLabel[1] = field + " (%s)" % (lagos.fieldInfo[field][0])
         else:
             self.dataLabel[1] = field
         rep = self.plot.getDataRep()
@@ -237,12 +237,12 @@ class EnzoTwoPhase(EnzoRadialPlot):
         self.plot =  hippo.Display("Color Plot", dataTuple, \
                     (tuple(self.fields)))
         for i in range(2):
-            self.plot.setLabel(axis_names[i],self.dataLabel[i])
-            if fieldInfo.has_key(self.fields[i]):
-                sl = fieldInfo[self.fields[i]][2]
+            self.plot.setLabel(lagos.axis_names[i],self.dataLabel[i])
+            if lagos.fieldInfo.has_key(self.fields[i]):
+                sl = lagos.fieldInfo[self.fields[i]][2]
             else:
-                sl = self.fields[i] in log_fields
-            self.plot.setLog(axis_names[i],sl)
+                sl = self.fields[i] in lagos.log_fields
+            self.plot.setLog(lagos.axis_names[i],sl)
         self.plot.setAspectRatio(1)
 
 class EnzoThreePhase(EnzoRadialPlot):
@@ -260,12 +260,12 @@ class EnzoThreePhase(EnzoRadialPlot):
         self.plot =  hippo.Display("Profile 2D", dataTuple, \
                     (self.fields[0],self.fields[1],self.fields[2]))
         for i in range(3):
-            self.plot.setLabel(axis_names[i],self.dataLabel[i])
-            if fieldInfo.has_key(self.fields[i]):
-                sl = fieldInfo[self.fields[i]][2]
+            self.plot.setLabel(lagos.axis_names[i],self.dataLabel[i])
+            if lagos.fieldInfo.has_key(self.fields[i]):
+                sl = lagos.fieldInfo[self.fields[i]][2]
             else:
-                sl = self.fields[i] in log_fields
-            self.plot.setLog(axis_names[i],sl)
+                sl = self.fields[i] in lagos.log_fields
+            self.plot.setLog(lagos.axis_names[i],sl)
         self.plot.setAspectRatio(1)
         self.scaleBinWidth(0.25)
 
@@ -284,8 +284,8 @@ class EnzoVM(EnzoPlot):
         self.plot = None
 
     def generatePrefix(self, prefix):
-        self.prefix = "%s_%s_%s_%s" % (prefix, self.typeName, axis_names[self.axis], self.field)
-        self.im["Axis"] = axis_names[self.axis]
+        self.prefix = "%s_%s_%s_%s" % (prefix, self.typeName, lagos.axis_names[self.axis], self.field)
+        self.im["Axis"] = lagos.axis_names[self.axis]
         self.im["FieldList"] = [self.field]
         self.im["Field"] = self.field
 
@@ -316,9 +316,8 @@ class EnzoVM(EnzoPlot):
         self.plot.setRange('Y', max(l_edge_y,0.0), min(r_edge_y,1.0))
 
     def plotFromData(self, dataTuple, cmap = None):
-        print "HERE:", colormap_dict, cmap
-        if colormap_dict.has_key(self.field) and cmap == None:
-            cmap = colormap_dict[self.field]
+        if cmap == None and lagos.colormap_dict.has_key(self.field):
+            cmap = lagos.colormap_dict[self.field]
         elif cmap == None:
             cmap = "Blue-Green-Red-Yellow"
         # We assume we already have the data associated with the instance
@@ -340,13 +339,13 @@ class EnzoVM(EnzoPlot):
         self.plot.setAutoTicks('Y',False)
         self.plot.setTicks('X',[],[])
         self.plot.setTicks('Y',[],[])
-        if fieldInfo.has_key(self.field):
-            sl = fieldInfo[self.field][2]
+        if lagos.fieldInfo.has_key(self.field):
+            sl = lagos.fieldInfo[self.field][2]
         else:
-            sl = self.field in log_fields
+            sl = self.field in lagos.log_fields
         self.plot.setLog('Z',sl)
-        self.plot.setLabel('X',axis_labels[self.axis][0])
-        self.plot.setLabel('Y',axis_labels[self.axis][1])
+        self.plot.setLabel('X',lagos.axis_labels[self.axis][0])
+        self.plot.setLabel('Y',lagos.axis_labels[self.axis][1])
         self.plot.setLabel('Z',self.dataLabel)
 
     def setZRange(self, minVal, maxVal):
@@ -393,8 +392,8 @@ class EnzoVMSlice(EnzoVM):
         self.tuple.addColumn('dx',list(self.data.dx))
         self.tuple.addColumn('dy',list(self.data.dy))
         
-        if fieldInfo.has_key(field):
-            self.dataLabel = field + " (%s)" % (fieldInfo[field][0])
+        if lagos.fieldInfo.has_key(field):
+            self.dataLabel = field + " (%s)" % (lagos.fieldInfo[field][0])
         else:
             self.dataLabel = field
 
@@ -416,8 +415,8 @@ class EnzoVMSlice(EnzoVM):
     def switchField(self, field):
         self.addField(field)
         self.field = field
-        if fieldInfo.has_key(field):
-            self.dataLabel = field + " (%s)" % (fieldInfo[field][0])
+        if lagos.fieldInfo.has_key(field):
+            self.dataLabel = field + " (%s)" % (lagos.fieldInfo[field][0])
         else:
             self.dataLabel = field
         rep = self.plot.getDataRep()
@@ -475,8 +474,8 @@ class EnzoVMProjNew(EnzoVM):
         self.tuple.addColumn('dx',list(self.data.dx))
         self.tuple.addColumn('dy',list(self.data.dy))
         
-        if fieldInfo.has_key(field):
-            self.dataLabel = field + " (%s)" % (fieldInfo[field][0])
+        if lagos.fieldInfo.has_key(field):
+            self.dataLabel = field + " (%s)" % (lagos.fieldInfo[field][0])
         else:
             self.dataLabel = field
         if weight != None:
@@ -514,10 +513,10 @@ class EnzoVMProj(EnzoVM):
         totalEntries = 0
         for level in projData.keys():
             totalEntries += projData[level][0].shape[0]
-        x_data = zeros(totalEntries, Int64)
-        y_data = zeros(totalEntries, Int64)
-        z_data = zeros(totalEntries, Float64)
-        dx_data = zeros(totalEntries, Float64)
+        x_data = na.zeros(totalEntries, na.Int64)
+        y_data = na.zeros(totalEntries, na.Int64)
+        z_data = na.zeros(totalEntries, na.Float64)
+        dx_data = na.zeros(totalEntries, na.Float64)
         index = 0
         for level in projData.keys():
             entries = projData[level][0].shape[0]
@@ -547,10 +546,10 @@ class EnzoVMProj(EnzoVM):
         self.tuple.addColumn('dy',list(self.data[:,4]))
         
         #for i in range(5):
-            #self.tuple.addColumn(vm_axis_names[i],self.data[:,i].copy())
+            #self.tuple.addColumn(vm_lagos.axis_names[i],self.data[:,i].copy())
 
-        if fieldInfo.has_key(field):
-            self.dataLabel = field + " (%s)" % (fieldInfo[field][0])
+        if lagos.fieldInfo.has_key(field):
+            self.dataLabel = field + " (%s)" % (lagos.fieldInfo[field][0])
         else:
             self.dataLabel = field
 
