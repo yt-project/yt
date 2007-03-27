@@ -12,7 +12,7 @@ Collapse Test intiializer
 """
 
 from yt.enki.mes import *
-from EnzoProblem import ProblemType
+#from EnzoProblem import ProblemType
 
 class CollapseTestProblem(ProblemType):
     def InitializeMetaData(self):
@@ -46,8 +46,8 @@ class CollapseTestProblem(ProblemType):
         # Alright, now we set some defaults
         dens = self.Fields[self.FieldIndex["Density"]].flat
         dens[:] = 1.0
-        temp = ones(dens.shape, Float32).flat * self["CollapseTestInitialTemperature"]
-        vel = zeros((3,temp.shape[0]), Float32)
+        temp = na.ones(dens.shape, na.Float32).flat * self["CollapseTestInitialTemperature"]
+        vel = na.zeros((3,temp.shape[0]), na.Float32)
         vel[0,:] = self.Fields[self.FieldIndex["x-velocity"]][:].flat
         vel[1,:] = self.Fields[self.FieldIndex["y-velocity"]][:].flat
         vel[2,:] = self.Fields[self.FieldIndex["z-velocity"]][:].flat
@@ -76,7 +76,7 @@ class CollapseTestSphere:
         r = ((xyz[:,0]-self.Position[0])**2.0 \
           +  (xyz[:,1]-self.Position[1])**2.0 \
           +  (xyz[:,2]-self.Position[2])**2.0)**0.5
-        dI = where(r < self.Radius)
+        dI = na.where(r < self.Radius)
         if dI[0].shape == 0:
             return
         dens[dI] = self.MyGetDensity(prob, grid, xyz[dI], r[dI])
@@ -85,7 +85,7 @@ class CollapseTestSphere:
         r = ((xyz[:,0]-self.Position[0])**2.0 \
           +  (xyz[:,1]-self.Position[1])**2.0 \
           +  (xyz[:,2]-self.Position[2])**2.0)**0.5
-        dI = where(r < self.Radius)
+        dI = na.where(r < self.Radius)
         if dI[0].shape == 0:
             return
         for i in range(3):
@@ -98,24 +98,24 @@ class CollapseTestSphere:
         r = ((xyz[:,0]-self.Position[0])**2.0 \
           +  (xyz[:,1]-self.Position[1])**2.0 \
           +  (xyz[:,2]-self.Position[2])**2.0)**0.5
-        dI = where(r < self.Radius)
+        dI = na.where(r < self.Radius)
         if dI[0].shape == 0:
             return
         temp[dI] = self.GetMyTemperature(prob, grid, xyz[dI], r[dI])
 
     def GetMyDensity(self, prob, grid, xyz, r):
-        return ones(r.shape,Float32)
+        return na.ones(r.shape,na.Float32)
     def GetMyTemperature(self, prob, grid, xyz, r):
-        return ones(r.shape,Float32)*prob["CollapseTestInitialTemperature"]
+        return na.ones(r.shape,na.Float32)*prob["CollapseTestInitialTemperature"]
     def GetMyVelocity(self, prob, grid, xyz, r, dim):
-        return ones(r.shape,Float32)*10
+        return na.ones(r.shape,na.Float32)*10
 
 class CollapseTestSphereUniform(CollapseTestSphere):
     def __init__(self, Density, Temperature, Velocity, Position, Radius, CoreRadius):
         self.Type = "Uniform"
         CollapseTestSphere.__init__(self, Density, Temperature, Velocity, Position, Radius, CoreRadius)
     def MyGetDensity(self, prob, grid, xyz, r):
-        return ones(r.shape, Float32) * self.Density
+        return na.ones(r.shape, na.Float32) * self.Density
 
 class CollapseTestSphereR2(CollapseTestSphere):
     def __init__(self, Density, Temperature, Velocity, Position, Radius, CoreRadius):

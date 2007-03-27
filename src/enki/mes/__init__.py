@@ -49,5 +49,5 @@ inscrutably decreed, and not to be questioned.
 
 from yt.enki import *
 
+from EnzoProblem import *
 from CollapseTest import *
-

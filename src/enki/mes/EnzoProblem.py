@@ -151,9 +151,9 @@ class ProblemType:
         size = grid.GridSize()
         # We will default to 64 here, which may be a mistake
         #print "SIZE",size
-        CellPositions = zeros((size, 3), Float64)
+        CellPositions = na.zeros((size, 3), na.Float64)
         # Okay, we can do this the old way, or the new way
-        ind = indices((ei.intArray_getitem(grid.GridDimension,0), \
+        ind = na.indices((ei.intArray_getitem(grid.GridDimension,0), \
                        ei.intArray_getitem(grid.GridDimension,1), \
                        ei.intArray_getitem(grid.GridDimension,2)))
         for dim in range(3):
