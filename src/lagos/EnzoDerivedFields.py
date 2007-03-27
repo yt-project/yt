@@ -34,6 +34,7 @@ fieldInfo["Density"] = ("g cm^-3", "g cm^-2", True, None)
 fieldInfo["Temperature"] = ("K", None, False, None)
 fieldInfo["HII_Fraction"] = ("mass fraction", None, True, None)
 fieldInfo["H2I_Fraction"] = ("mass fraction", None, True, None)
+fieldInfo["Electron_Fraction"] = ("", None, True, None)
 
 # These are all the fields that should be logged when plotted
 # NOTE THAT THIS IS OVERRIDEN BY fieldInfo !
@@ -109,8 +110,8 @@ fieldInfo["k13DissociationTime"] = ("s" , None, True, k13DissociationTime)
 
 def CIEOpticalDepthFudge(self, fieldName):
     """Optical depth from CIE"""
-    tau = maximum((self["NumberDensity"]/2.0e16)**2.8, 1.0e-5)
-    self[fieldName] = minimum(1.0, (1.0-exp(-tau))/tau)
+    tau = na.maximum((self["NumberDensity"]/2.0e16)**2.8, 1.0e-5)
+    self[fieldName] = na.minimum(1.0, (1.0-exp(-tau))/tau)
 fieldInfo["CIEOpticalDepthFudge"] = (None, None, False, CIEOpticalDepthFudge)
 
 def compH2DissociationTime(self, fieldName):
@@ -122,7 +123,7 @@ fieldInfo["compH2DissociationTime"] = ("t_k13/t_k23" , None, True, compH2Dissoci
 def k13DensityDependent(self, fieldName):
     """k13dd"""
     dom = self.hierarchy["Density"] / 1.67e-24
-    nh = minimum(self["HI_Density"]*dom, 1.0e9)
+    nh = na.minimum(self["HI_Density"]*dom, 1.0e9)
     k1 = self.hierarchy.rates[self["Temperature"],"k13_1"]
     k2 = self.hierarchy.rates[self["Temperature"],"k13_2"]
     k3 = self.hierarchy.rates[self["Temperature"],"k13_3"]
@@ -130,7 +131,7 @@ def k13DensityDependent(self, fieldName):
     k5 = self.hierarchy.rates[self["Temperature"],"k13_5"]
     k6 = self.hierarchy.rates[self["Temperature"],"k13_6"]
     k7 = self.hierarchy.rates[self["Temperature"],"k13_7"]
-    self[fieldName] = maximum( 10.0**( \
+    self[fieldName] = na.maximum( 10.0**( \
             k1-k2/(1+(nh/k5)**k7) \
           + k3-k4/(1+(nh/k6)**k7) )\
           , 1e-30 )
@@ -165,7 +166,7 @@ fieldInfo["DCComp"] = ("t_dyn/t_courant", None, True, DCComp)
 def NumberDensityCode(self, fieldName):
     """amu/cc, in code units."""
     # We are going to *try* to use all the fields, and fallback when we run out
-    self[fieldName] = zeros(self["HI_Density"].shape, self["HI_Density"].type())
+    self[fieldName] = na.zeros(self["HI_Density"].shape, self["HI_Density"].type())
     if self.hierarchy["MultiSpecies"] > 0:
         self[fieldName] += self["HI_Density"] / 1.0
         self[fieldName] += self["HII_Density"] / 1.0
@@ -191,7 +192,7 @@ fieldInfo["NumberDensity"] = ("cm^-3", "cm^-2", True, NumberDensity)
 
 def Outline(self, fieldName):
     """Just the level, for outlines of grid structure"""
-    self[fieldName] = ones(self.myChildMask.shape) * self.Level + 1
+    self[fieldName] = na.ones(self.myChildMask.shape) * self.Level + 1
 fieldInfo["Outline"] = ("Level", "LevelSum", False, Outline)
 
 def SoundSpeed(self, fieldName):
@@ -234,7 +235,7 @@ def CourantTimeStep(self, fieldName):
          (self["SoundSpeed"] +
             (abs(self["z-velocity"])* \
              self.hierarchy["z-velocity"]))
-    self[fieldName] = minimum(minimum(t1,t2),t3)
+    self[fieldName] = na.minimum(na.minimum(t1,t2),t3)
     del t1, t2, t3
 fieldInfo["CourantTimeStep"] = ("s", None, True, CourantTimeStep)
 
@@ -302,7 +303,7 @@ def CellMass(self, fieldName):
     """
     msun = 1.989e33
     unitConversion = (self.hierarchy["Density"] / msun)
-    self[fieldName] = ones(self["Density"].shape, Float64)
+    self[fieldName] = na.ones(self["Density"].shape, na.Float64)
     self[fieldName] *= (self.dx) * self.hierarchy["cm"]
     self[fieldName] *= (self.dy) * self.hierarchy["cm"]
     self[fieldName] *= (self.dz) * self.hierarchy.units["cm"]
@@ -323,7 +324,7 @@ def CoolingTime(self, fieldName):
     additionally it calls the fortran wrapper.  Probably doesn't work right now.
     @todo: fix to work with yt.lagos.EnzoFortranWrapper
     """
-    self[fieldName] = array(src_wrapper.runCoolMultiTime(self), Float64) \
+    self[fieldName] = array(src_wrapper.runCoolMultiTime(self), na.Float64) \
                            * self.hierarchy["Time"]
 fieldInfo["CoolingTime"] = ("s", None, True, CoolingTime)
 
@@ -347,7 +348,7 @@ def Gamma2(self, fieldName):
     x = 6100.0 / self["TempFromGE"]
     x_gt = 2.5
     x_lt = 0.5*(5.0+2.0*x**2.0 * exp(x)/(exp(x)-1.0)**2)
-    self[fieldName] = choose(greater(x,10.0),(x_lt,x_gt))
+    self[fieldName] = na.choose(na.greater(x,10.0),(x_lt,x_gt))
     nH2 = 0.5 * (self["H2I_Density"] + self["H2II_Density"])
     nOther = self["NumberDensityCode"] - nH2
     self[fieldName] = 1.0 + (nH2 + nOther) / \
@@ -393,7 +394,7 @@ def ColorSum(self, fieldName):
     """
     Sum up all the species fields
     """
-    self[fieldName] = zeros(self["HI_Density"].shape, Float64)
+    self[fieldName] = na.zeros(self["HI_Density"].shape, na.Float64)
     if self.hierarchy["MultiSpecies"] > 0:
         self[fieldName] += self["HI_Density"]
         self[fieldName] += self["HII_Density"]

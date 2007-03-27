@@ -4,16 +4,15 @@ Enzo hierarchy container class
 @author: U{Matthew Turk<http://www.stanford.edu/~mturk/>}
 @organization: U{KIPAC<http://www-group.slac.stanford.edu/KIPAC/>}
 @contact: U{mturk@slac.stanford.edu<mailto:mturk@slac.stanford.edu>}
+
+@todo: Either subclass EnzoHierarchy from EnzoParameterFile, or get rid of
+overlap and make Hierarchy an option property of EnzoParameterFile
 """
 
 from yt.lagos import *
-import string
-import EnzoCombine
+import string, re, gc
+#import EnzoCombine
 import yt.enki
-#from EnzoDataFuncs import *
-#from EnzoDefs import *
-#from EnzoData import *
-#from EnzoGrid import *
 
 class EnzoParameterFile:
     """
@@ -130,7 +129,7 @@ class EnzoParameterFile:
         seconds = self["Time"]
         box = boxh/(1+z)
         # Units are all defined in ravenDefs, thus making it easy to add new
-        # ones!  (Not that there are really that many more to add...
+        # na.ones!  (Not that there are really that many more to add...
         for unit in unitList.keys():
             self.units[unit] = unitList[unit] * box
             self.units[unit+'h'] = unitList[unit] * boxh
@@ -171,7 +170,9 @@ class EnzoHierarchy(EnzoParameterFile):
         self.boundaryFilename = "%s.boundary" % (filename)
         # Now we do a bit of a hack to figure out how many grids there are,
         # so we can pre-create our arrays of dimensions, indices, etc
-        self.hierarchyLines = open("%s.hierarchy" % filename).readlines()
+        self.hierarchyLines = open(self.hierarchyFilename).readlines()
+        self.hierarchyString = open(self.hierarchyFilename).read()
+        #re_gridID = re.compile("Grid\s=\s\d*", re.M)
         for i in range(len(self.hierarchyLines)-1,0,-1):
             line = self.hierarchyLines[i]
             if line.startswith("Grid ="):
@@ -180,20 +181,24 @@ class EnzoHierarchy(EnzoParameterFile):
         if self.parameters.has_key("CompilerPrecision") \
            and (self.parameters["CompilerPrecision"] == "r8" \
                 or self.parameters["CompilerPrecision"] == "r4"):
-            EnzoFloatType = Float32
+            EnzoFloatType = na.Float32
         else:
-            EnzoFloatType = Float64
+            EnzoFloatType = na.Float64
 
-        self.gridDimensions = zeros((self.numGrids,3), Int32)
-        self.gridStartIndices = zeros((self.numGrids,3), Int32)
-        self.gridEndIndices = zeros((self.numGrids,3), Int32)
-        self.gridLeftEdge = zeros((self.numGrids,3), EnzoFloatType)
-        self.gridRightEdge = zeros((self.numGrids,3), EnzoFloatType)
-        self.gridLevels = zeros((self.numGrids,1), Int32)
-        self.gridDxs = zeros((self.numGrids,1), EnzoFloatType)
-        self.gridTimes = zeros((self.numGrids,1), Float64)
-        self.gridNumberOfParticles = zeros((self.numGrids,1))
-        self.grids = obj.array(None,shape=(self.numGrids))
+        self.gridDimensions = na.zeros((self.numGrids,3), na.Int32)
+        self.gridStartIndices = na.zeros((self.numGrids,3), na.Int32)
+        self.gridEndIndices = na.zeros((self.numGrids,3), na.Int32)
+        self.gridLeftEdge = na.zeros((self.numGrids,3), EnzoFloatType)
+        self.gridRightEdge = na.zeros((self.numGrids,3), EnzoFloatType)
+        self.gridLevels = na.zeros((self.numGrids,1), na.Int32)
+        self.gridDxs = na.zeros((self.numGrids,1), EnzoFloatType)
+        self.gridTimes = na.zeros((self.numGrids,1), na.Float64)
+        self.gridNumberOfParticles = na.zeros((self.numGrids,1))
+        gg = []
+        for fnI in xrange(self.numGrids):
+            gg.append(EnzoGrid(self, fnI+1))
+        self.grids = obj.array(gg)
+        del gg
         self.gridReverseTree = [None] * self.numGrids
         self.gridTree = []
         for i in range(self.numGrids):
@@ -203,7 +208,7 @@ class EnzoHierarchy(EnzoParameterFile):
         #   0 = number of grids
         #   1 = number of cells
         #   2 = blank
-        self.levelsStats = zeros((MAXLEVEL,3), Int32)
+        self.levelsStats = na.zeros((MAXLEVEL,3), na.Int32)
         for i in range(MAXLEVEL):
             self.levelsStats[i,2] = i
 
@@ -214,82 +219,210 @@ class EnzoHierarchy(EnzoParameterFile):
         # For SWIG
         self.eiTopGrid = None
         
+#        #l=raw_input("Hey dumbface, stopping here to check the memory")
         self.populateHierarchy()
         time2=time.time()
         mylog.info("Took %s seconds to read the hierarchy.", time2-time1)
 
+    def __del__(self):
+        """
+        Let's see if we can delete some stuff here!
+        """
+        #print weakref.getweakrefcount(self)
+        del self.eiTopGrid
+        del self.gridReverseTree
+        #del self.grids
+        del self.gridLeftEdge, self.gridRightEdge
+        del self.gridLevels, self.gridStartIndices, self.gridEndIndices
+        del self.gridTimes, self.hierarchyString, self.hierarchyLines
+        #del self.grids
+        for gridI in xrange(self.numGrids):
+            for g in self.gridTree[gridI]:
+                #print "Deleting", g
+                del g
+        del self.gridTree
+
+    def clearAllGridReferences(self):
+        return
+        del self.grids
+        #for gridI in xrange(self.numGrids):
+            #for g in self.gridTree[gridI]:
+                #print "Deleting", g
+                #g.clearAllGridReferences()
+                #del g.hierarchy
+                #del g
+        #print "Grid 20:", gc.get_referrers(aa)
+        #print "Self:", gc.get_referrers(self)
+
+    def populateHierarchyRE(self):
+        """
+        This is so much slower than the other method.  Ugh.  How unfair!
+        """
+        for i in xrange(self.numGrids):
+            self.grids[i] = EnzoGrid(self, i+1)
+
+        re_Grid = constructRegularExpressions("Grid",('d'))
+
+        re_GridDimension = constructRegularExpressions("GridDimension", ('d','d','d'))
+        t = re.findall(re_GridDimension, self.hierarchyString)
+        self.gridDimensions[:] = \
+             na.array([[int(di[0]), int(di[1]), int(di[2])] for di in t], na.Int32)
+
+        re_GridStartIndex = constructRegularExpressions("GridStartIndex", ('d','d','d'))
+        t = re.findall(re_GridStartIndex, self.hierarchyString)
+        self.gridStartIndices[:] =\
+             na.array([[int(di[0]), int(di[1]), int(di[2])] for di in t], na.Int32)
+
+        re_GridEndIndex = constructRegularExpressions("GridEndIndex", ('d','d','d'))
+        t = re.findall(re_GridEndIndex, self.hierarchyString)
+        self.gridEndIndices[:] =\
+             na.array([[int(di[0]), int(di[1]), int(di[2])] for di in t], na.Int32)
+            
+        re_GridLeftEdge = constructRegularExpressions("GridLeftEdge", ('g','g','g'))
+        t = re.findall(re_GridLeftEdge, self.hierarchyString)
+        self.gridLeftEdge[:] =\
+             na.array([[float(di[0]), float(di[1]), float(di[2])] for di in t], na.Float64)
+            
+        re_GridRightEdge = constructRegularExpressions("GridRightEdge", ('g','g','g'))
+        t = re.findall(re_GridRightEdge, self.hierarchyString)
+        self.gridRightEdge[:] =\
+             na.array([[float(di[0]), float(di[1]), float(di[2])] for di in t], na.Float64)
+            
+        re_GridLevels = constructRegularExpressions("^Level", ('d'))
+        t = re.findall(re_GridLevels, self.hierarchyString)
+        self.gridLevels[:] =\
+             na.array([int(di) for di in t], na.Int32)
+            
+#        re_GridTimes = constructRegularExpressions("Time", ('g'))
+#        t = re.findall(re_GridTimes, self.hierarchyString)
+#        self.gridTimes[:] =\
+#             na.array([[float(di[0]), float(di[1]), float(di[2])] for di in t], na.Float64)
+
+        re_BaryonFileName = constructRegularExpressions("BaryonFileName",('s'))
+        t = re.findall(re_BaryonFileName, self.hierarchyString)
+        for fnI in xrange(len(t)):
+            self.grids[fnI].setFilename(t[fnI])
+
+        re_GridNumberOfParticles = constructRegularExpressions("NumberOfParticles", ('d'))
+        t = re.findall(re_GridNumberOfParticles, self.hierarchyString)
+        self.gridNumberOfParticles[:] =\
+             na.array([int(di) for di in t], na.Int32)
+            
     def populateHierarchy(self):
         """
         Instantiates all of the grid objects, with their appropriate parameters
         """
         # Now, can we do this cleverly?
         # Let's do it the unclever way, I suppose...
-        for line in self.hierarchyLines:
-            # We can do this the slow, 'reliable' way by stripping
-            # or we can manually pad all our strings, which speeds it up by a
-            # factor of about ten
-            #param, vals = map(strip,line.split("="))
-            if len(line) < 2:
-                continue
-            param, vals = line.split("=")
-            if param == "Grid ":
-                curGrid = int(vals)
-                self.grids[curGrid-1] = EnzoGrid(self, curGrid)
-            elif param == "GridDimension     ":
-                splitConvertGridParameter(vals, float, self.gridDimensions, curGrid)
-            elif param == "GridStartIndex    ":
-                splitConvertGridParameter(vals, int, self.gridStartIndices, curGrid)
-            elif param == "GridEndIndex      ":
-                splitConvertGridParameter(vals, int, self.gridEndIndices, curGrid)
-            elif param == "GridLeftEdge      ":
-                splitConvertGridParameter(vals, float, self.gridLeftEdge, curGrid)
-            elif param == "GridRightEdge     ":
-                splitConvertGridParameter(vals, float, self.gridRightEdge, curGrid)
-            elif param == "Level             ":
-                splitConvertGridParameter(vals, int, self.gridLevels, curGrid)
-            elif param == "Time              ":
-                splitConvertGridParameter(vals, float, self.gridTimes, curGrid)
-            elif param == "BaryonFileName ":
-                self.grids[curGrid-1].setFilename(vals[1:-1])
-            elif param == "NumberOfParticles   ":
-                splitConvertGridParameter(vals, float, self.gridNumberOfParticles, curGrid)
+        time12=time.time()
+        # First, we look to see if the pseudo-pickled file is available
+        arrayFilename = os.path.join(self.directory,self.basename+".arrayfile")
+        if os.path.exists(arrayFilename):
+#            loki = raw_input("Pausing")
+            allArrays = na.fromfile(arrayFilename, type=na.Float64, shape=(self.numGrids,18))
+#            loki = raw_input("Loaded")
+            self.gridDimensions[:] = allArrays[:,0:3]
+            self.gridStartIndices[:] = allArrays[:,3:6]
+            self.gridEndIndices[:] = allArrays[:,6:9]
+            self.gridLeftEdge[:] = allArrays[:,9:12]
+            self.gridRightEdge[:] = allArrays[:,12:15]
+            self.gridLevels[:] = allArrays[:,15:16]
+            self.gridTimes[:] = allArrays[:,16:17]
+            self.gridNumberOfParticles[:] = allArrays[:,17:18]
+            del allArrays
+            # Now get the baryon filenames
+            re_BaryonFileName = constructRegularExpressions("BaryonFileName",('s'))
+            t = re.findall(re_BaryonFileName, self.hierarchyString)
+#            loki = raw_input("Instantiating")
+            for fnI in xrange(len(t)):
+                #self.grids[fnI] = EnzoGrid(self, fnI+1)
+                self.grids[fnI].setFilename(t[fnI])
+#            loki = raw_input("Done")
+        else:
+            for line in self.hierarchyLines:
+                # We can do this the slow, 'reliable' way by stripping
+                # or we can manually pad all our strings, which speeds it up by a
+                # factor of about ten
+                #param, vals = map(strip,line.split("="))
+                if len(line) < 2:
+                    continue
+                i = line.index("=")
+                param, vals = line.split("=")
+                #param, vals = line[:i], line[i+1:]
+                if param == "Grid ":
+                    curGrid = int(vals)
+                    self.grids[curGrid-1] = EnzoGrid(self, curGrid)
+                elif param == "GridDimension     ":
+                    splitConvertGridParameter(vals, float, self.gridDimensions, curGrid)
+                elif param == "GridStartIndex    ":
+                    splitConvertGridParameter(vals, int, self.gridStartIndices, curGrid)
+                elif param == "GridEndIndex      ":
+                    splitConvertGridParameter(vals, int, self.gridEndIndices, curGrid)
+                elif param == "GridLeftEdge      ":
+                    splitConvertGridParameter(vals, float, self.gridLeftEdge, curGrid)
+                elif param == "GridRightEdge     ":
+                    splitConvertGridParameter(vals, float, self.gridRightEdge, curGrid)
+                elif param == "Level             ":
+                    splitConvertGridParameter(vals, int, self.gridLevels, curGrid)
+                elif param == "Time              ":
+                    splitConvertGridParameter(vals, float, self.gridTimes, curGrid)
+                elif param == "NumberOfParticles   ":
+                    splitConvertGridParameter(vals, float, self.gridNumberOfParticles, curGrid)
+                elif param == "BaryonFileName ":
+                    self.grids[curGrid-1].setFilename(vals[1:-1])
+            #self.populateHierarchyRE()
+            mylog.info("Creating allArray to dump to file")
+            allArrays = na.zeros((self.numGrids,18),na.Float64)
+            allArrays[:,0:3] = self.gridDimensions[:]
+            allArrays[:,3:6] = self.gridStartIndices[:]
+            allArrays[:,6:9] = self.gridEndIndices[:]
+            allArrays[:,9:12] = self.gridLeftEdge[:]
+            allArrays[:,12:15] = self.gridRightEdge[:]
+            allArrays[:,15:16] = self.gridLevels[:]
+            allArrays[:,16:17] = self.gridTimes[:]
+            allArrays[:,17:18] = self.gridNumberOfParticles[:]
+            mylog.info("Outputting allArray to %s", arrayFilename)
+            allArrays.tofile(arrayFilename)
+            del allArrays
+        time13=time.time()
+        #print "Took %s" % (time13-time12)
         self.grids[0].Level = 0
         self.gridLevels[0] = 0
-        for line in self.hierarchyLines:
-            # Now we check to see if this is a pointer line.  A bit ugly, but
-            # faster than the alternative, pleasant-looking parser.
-            # Note that we iterate over the pointers AGAIN so that we can
-            # create this as grid-pointers, rather than grid indices.
-            if line[0:2]=="Po":
-                if line.find("tL")!=-1:
-                    secondGrid=int(line[line.rfind("=")+1:])-1
-                    if secondGrid != -1:
-                        firstGrid=int(line[14:line.find(']')])-1
-                        l1=len(self.gridTree[firstGrid])
-                        self.gridTree[firstGrid].append(self.grids[secondGrid])
-                        l2=len(self.gridTree[firstGrid])
-                        self.gridReverseTree[secondGrid] = firstGrid + 1
-                        self.grids[secondGrid].Level = self.grids[firstGrid].Level + 1
-                        self.gridLevels[secondGrid] = self.gridLevels[firstGrid] + 1
-                if line.find("sL")!=-1:
-                    secondGrid=int(line[line.rfind("=")+1:])-1
-                    if secondGrid != -1:
-                        firstGrid=int(line[14:line.find(']')])-1
-                        parent = self.gridReverseTree[firstGrid]
-                        if parent:
-                            self.gridTree[parent-1].append(self.grids[secondGrid])
-                        self.gridReverseTree[secondGrid] = parent
-                        self.grids[secondGrid].Level = self.grids[firstGrid].Level
-                        self.gridLevels[secondGrid] = self.gridLevels[firstGrid]
+        time10=time.time()
+        p = re.compile(r"Pointer: Grid\[(\d*)\]->NextGrid(Next|This)Level = (\d*)$", re.M)
+        for m in p.finditer(self.hierarchyString):
+            secondGrid = int(m.group(3))-1
+            if secondGrid == -1:
+                continue
+            firstGrid = int(m.group(1))-1
+            if m.group(2) == "Next":
+                self.gridTree[firstGrid].append(weakref.proxy(self.grids[secondGrid]))
+                self.gridReverseTree[secondGrid] = firstGrid + 1
+                self.grids[secondGrid].Level = self.grids[firstGrid].Level + 1
+                self.gridLevels[secondGrid] = self.gridLevels[firstGrid] + 1
+            elif m.group(2) == "This":
+                parent = self.gridReverseTree[firstGrid]
+                if parent:
+                    self.gridTree[parent-1].append(weakref.proxy(self.grids[secondGrid]))
+                self.gridReverseTree[secondGrid] = parent
+                self.grids[secondGrid].Level = self.grids[firstGrid].Level
+                self.gridLevels[secondGrid] = self.gridLevels[firstGrid]
+#        loki = raw_input("All done with that shit!")
+        time11=time.time()
+        #print "Took %s seconds" % (time11-time10)
         self.maxLevel = self.gridLevels.max()
         # Now we do things that we need all the grids to do
         self.fieldList = self.grids[0].getFields()
+        time14=time.time()
         for i in range(self.numGrids):
             self.levelsStats[self.gridLevels[i,0],0] += 1
             self.grids[i].prepareGrid()
-            self.levelsStats[self.gridLevels[i,0],1] += product(self.grids[i].ActiveDimensions)
+#            self.levelsStats[self.gridLevels[i,0],1] += na.product(self.grids[i].ActiveDimensions)
+#        loki = raw_input("All done with that shit (2)!")
         self.levelIndices = {}
         self.levelNum = {}
+        time15=time.time()
+        #print "Took %s" % (time15-time14)
         for level in range(self.maxLevel+1):
             self.levelIndices[level] = self.selectLevel(level)
             self.levelNum = len(self.levelIndices[level])
@@ -302,7 +435,7 @@ class EnzoHierarchy(EnzoParameterFile):
         @type level: integer
         """
         # We return a numarray of the indices of all the grids on a given level
-        indices = where(self.gridLevels[:,0] == level)[0]
+        indices = na.where(self.gridLevels[:,0] == level)[0]
         return indices
 
     def getSmallestDx(self):
@@ -351,17 +484,17 @@ class EnzoHierarchy(EnzoParameterFile):
         # Take a floating point 3-tuple, find the grids that contain it
         # We do this the stupid way, looking along all three axes
         # Choose works like this:
-        #   choose(condition, (false_result, true_result))
+        #   na.choose(condition, (false_result, true_result))
         #   so here, if gLE > coord, we get a zero, and if it's true, we get
         #   the existing mask.  That way, a single false turns the mask to
         #   zero.
         # We could do this with a 'logical and,' but it's clearer and almost as
         # fast this way.
-        mask=ones(self.numGrids)
+        mask=na.ones(self.numGrids)
         for i in range(len(coord)):
-            choose(greater(self.gridLeftEdge[:,i],coord[i]), (mask,0), mask)
-            choose(greater(self.gridRightEdge[:,i],coord[i]), (0,mask), mask)
-        ind = where(mask == 1)
+            na.choose(na.greater(self.gridLeftEdge[:,i],coord[i]), (mask,0), mask)
+            na.choose(na.greater(self.gridRightEdge[:,i],coord[i]), (0,mask), mask)
+        ind = na.where(mask == 1)
         return self.grids[ind], ind
 
     def findRayGrids(self, coord, axis):
@@ -374,15 +507,15 @@ class EnzoHierarchy(EnzoParameterFile):
         @type axis: integer
         """
         # Let's figure out which grids are on the slice
-        mask=ones(self.numGrids)
+        mask=na.ones(self.numGrids)
         # So if gRE > coord, we get a mask, if not, we get a zero
         #    if gLE > coord, we get a zero, if not, mask
         # Thus, if the coordinate is between the two edges, we win!
-        choose(greater(self.gridRightEdge[:,x_dict[axis]],coord[0]),(0,mask),mask)
-        choose(greater(self.gridLeftEdge[:,x_dict[axis]],coord[0]),(mask,0),mask)
-        choose(greater(self.gridRightEdge[:,y_dict[axis]],coord[1]),(0,mask),mask)
-        choose(greater(self.gridLeftEdge[:,y_dict[axis]],coord[1]),(mask,0),mask)
-        ind = where(mask == 1)
+        na.choose(na.greater(self.gridRightEdge[:,x_dict[axis]],coord[0]),(0,mask),mask)
+        na.choose(na.greater(self.gridLeftEdge[:,x_dict[axis]],coord[0]),(mask,0),mask)
+        na.choose(na.greater(self.gridRightEdge[:,y_dict[axis]],coord[1]),(0,mask),mask)
+        na.choose(na.greater(self.gridLeftEdge[:,y_dict[axis]],coord[1]),(mask,0),mask)
+        ind = na.where(mask == 1)
         return self.grids[ind], ind
 
     def findSliceGrids(self, coord, axis):
@@ -395,13 +528,13 @@ class EnzoHierarchy(EnzoParameterFile):
         @type axis: integer
         """
         # Let's figure out which grids are on the slice
-        mask=ones(self.numGrids)
+        mask=na.ones(self.numGrids)
         # So if gRE > coord, we get a mask, if not, we get a zero
         #    if gLE > coord, we get a zero, if not, mask
         # Thus, if the coordinate is between the edges, we win!
-        choose(greater(self.gridRightEdge[:,axis],coord),(0,mask),mask)
-        choose(greater(self.gridLeftEdge[:,axis],coord),(mask,0),mask)
-        ind = where(mask == 1)
+        na.choose(na.greater(self.gridRightEdge[:,axis],coord),(0,mask),mask)
+        na.choose(na.greater(self.gridLeftEdge[:,axis],coord),(mask,0),mask)
+        ind = na.where(mask == 1)
         return self.grids[ind], ind
 
     def getSlice(self, center, axis, field, fileName=None, outline=False):
@@ -417,7 +550,7 @@ class EnzoHierarchy(EnzoParameterFile):
         for grid in g:
             mylog.info("Getting from grid %s", grid.id)
             rvs.append(grid.getSlice(center[axis],axis,field,outline))
-        allPoints = concatenate(rvs)
+        allPoints = na.concatenate(rvs)
         if fileName:
             time2=time.time()
             mylog.info("It took %s seconds to generate a slice through all levels", time2-time1)
@@ -444,10 +577,10 @@ class EnzoHierarchy(EnzoParameterFile):
         @param radius: the radius of the sphere in code units!
         """
         centers = (self.gridRightEdge + self.gridLeftEdge)/2.0
-        long_axis = maximum.reduce(self.gridRightEdge - self.gridLeftEdge, 1)
+        long_axis = na.maximum.reduce(self.gridRightEdge - self.gridLeftEdge, 1)
         t = centers - center
-        dist = sqrt(t[:,0]**2+t[:,1]**2+t[:,2]**2)
-        gridI = where(logical_and((self.gridDxs<=radius)[:,0],(dist < (radius + long_axis))) == 1)
+        dist = na.sqrt(t[:,0]**2+t[:,1]**2+t[:,2]**2)
+        gridI = na.where(na.logical_and((self.gridDxs<=radius)[:,0],(dist < (radius + long_axis))) == 1)
         return self.grids[gridI], gridI
 
     def getSphere(self, center, radius, fields):
@@ -477,16 +610,16 @@ class EnzoHierarchy(EnzoParameterFile):
             # Get the points now
             x,y,z, v = grid.getSphere(center, radius, fields)
             mylog.debug("Took %s / %s points from %s at level %s ( %s / %s )",  \
-                len(x), product(grid.ActiveDimensions), grid.id, grid.Level, i, ind[0].shape[0])
+                len(x), na.product(grid.ActiveDimensions), grid.id, grid.Level, i, ind[0].shape[0])
             xs.append(x)
             ys.append(y)
             zs.append(z)
             values.append(v)
             grid.clearAll()
-        xs = concatenate(xs)
-        ys = concatenate(ys)
-        zs = concatenate(zs)
-        values = concatenate(values)
+        xs = na.concatenate(xs)
+        ys = na.concatenate(ys)
+        zs = na.concatenate(zs)
+        values = na.concatenate(values)
         time2 = time.time()
         mylog.info("Total of %s points in %0.3e seconds!", xs.shape[0], time2-time1)
         return [xs, ys, zs, values]
@@ -501,9 +634,9 @@ class EnzoHierarchy(EnzoParameterFile):
         @type finestLevels: boolean
         """
         if finestLevels:
-            gI = where(self.gridLevels >= self.maxLevel - NUMTOCHECK)
+            gI = na.where(self.gridLevels >= self.maxLevel - NUMTOCHECK)
         else:
-            gI = where(self.gridLevels >= 0) # Slow but pedantic
+            gI = na.where(self.gridLevels >= 0) # Slow but pedantic
         maxVal = -1e100
         for grid in self.grids[gI[0]]:
             mylog.debug("Checking %s (level %s)", grid.id, grid.Level)
@@ -512,7 +645,7 @@ class EnzoHierarchy(EnzoParameterFile):
                 maxCoord = coord
                 maxVal = val
                 maxGrid = grid
-        mc = array(maxCoord)
+        mc = na.array(maxCoord)
         pos=maxGrid.getPosition(mc)
         pos[0] += 0.5*maxGrid.dx
         pos[1] += 0.5*maxGrid.dx
@@ -539,7 +672,7 @@ class EnzoHierarchy(EnzoParameterFile):
         # First we precalculate how much memory we will need
         totalProj = 0
         memoryPerLevel = {}
-        #gridDataIndices = zeros((self.numGrids,4))
+        #gridDataIndices = na.zeros((self.numGrids,4))
         i = 0
         for level in range(self.maxLevel+1):
             memoryPerLevel[level] = 0
@@ -553,14 +686,14 @@ class EnzoHierarchy(EnzoParameterFile):
                     mylog.info("Reading and masking %s / %s", i, self.numGrids)
                 for ax in range(3):
                     grid.generateOverlapMasks(ax, LE, RE)
-                    grid.myOverlapGrids[ax] = self.grids[grids[where(grid.myOverlapMasks[ax] == 1)]]
+                    grid.myOverlapGrids[ax] = self.grids[grids[na.where(grid.myOverlapMasks[ax] == 1)]]
                 i += 1
         for grid in self.grids:
             myNeeds = grid.ActiveDimensions[(axis+1)%3]*grid.ActiveDimensions[(axis+2)%3]
             totalProj += myNeeds
             memoryPerLevel[grid.Level] += myNeeds
         for level in range(maxLevel+1):
-            gI = where(self.gridLevels==level)
+            gI = na.where(self.gridLevels==level)
             mylog.info("%s cells and %s grids for level %s", \
              memoryPerLevel[level], len(gI[0]), level)
         mylog.debug("We need %s cells total", totalProj)
@@ -578,15 +711,15 @@ class EnzoHierarchy(EnzoParameterFile):
             time3 = time.time()
             #levelData = {}
             mylog.info("Projecting through level = %s", level)
-            #levelData = [zeros(memoryPerLevel[level], Int64), \
-                            #zeros(memoryPerLevel[level], Int64), \
-                            #zeros(memoryPerLevel[level], Float64), \
-                            #zeros(memoryPerLevel[level], Float64) ]    # vals
-            tempLevelData = [zeros(memoryPerLevel[level], Int64), \
-                            zeros(memoryPerLevel[level], Int64), \
-                            zeros(memoryPerLevel[level], Float64), \
-                            zeros(memoryPerLevel[level], Float64) ]    # vals
-            myLevelInd=where(self.gridLevels == level)[0]
+            #levelData = [na.zeros(memoryPerLevel[level], na.Int64), \
+                            #na.zeros(memoryPerLevel[level], na.Int64), \
+                            #na.zeros(memoryPerLevel[level], na.Float64), \
+                            #na.zeros(memoryPerLevel[level], na.Float64) ]    # vals
+            tempLevelData = [na.zeros(memoryPerLevel[level], na.Int64), \
+                            na.zeros(memoryPerLevel[level], na.Int64), \
+                            na.zeros(memoryPerLevel[level], na.Float64), \
+                            na.zeros(memoryPerLevel[level], na.Float64) ]    # vals
+            myLevelInd=na.where(self.gridLevels == level)[0]
             #print myLevelInd
             gridsToProject = self.grids[myLevelInd]
             ng = len(gridsToProject)
@@ -627,7 +760,7 @@ class EnzoHierarchy(EnzoParameterFile):
                             grid1.retVal[2], grid1.retVal[3], grid1.retVal[4], \
                             grid2.retVal[0], grid2.retVal[1], \
                             grid2.retVal[2], grid2.retVal[3], grid2.retVal[4], 0)
-                    goodI = where(grid2.retVal[0] > -1)
+                    goodI = na.where(grid2.retVal[0] > -1)
                     grid2.retVal[0] = grid2.retVal[0][goodI].copy()
                     grid2.retVal[1] = grid2.retVal[1][goodI].copy()
                     grid2.retVal[2] = grid2.retVal[2][goodI].copy()
@@ -651,7 +784,7 @@ class EnzoHierarchy(EnzoParameterFile):
                 all_data[2].append(grid.retVal[2])
                 all_data[3].append(grid.retVal[3])
                 all_data[4].append(grid.retVal[4])
-                cI = where(grid.retVal[3]==0)
+                cI = na.where(grid.retVal[3]==0)
                 grid.coarseData = [grid.retVal[0][cI], \
                                    grid.retVal[1][cI], \
                                    grid.retVal[2][cI], \
@@ -660,11 +793,11 @@ class EnzoHierarchy(EnzoParameterFile):
             # Now we concatenate our lists into an array
             #print all_data[0]
             levelData = []
-            levelData.append(concatenate(all_data[0]))
-            levelData.append(concatenate(all_data[1]))
-            levelData.append(concatenate(all_data[2]))
-            levelData.append(concatenate(all_data[3]))
-            levelData.append(concatenate(all_data[4]))
+            levelData.append(na.concatenate(all_data[0]))
+            levelData.append(na.concatenate(all_data[1]))
+            levelData.append(na.concatenate(all_data[2]))
+            levelData.append(na.concatenate(all_data[3]))
+            levelData.append(na.concatenate(all_data[4]))
             time6=time.time()
             mylog.info("Took %s seconds with a final %s points", time6-time5, levelData[0].shape[0])
             dx=gridsToProject[0].dx
@@ -674,7 +807,7 @@ class EnzoHierarchy(EnzoParameterFile):
             # Now we use the coarser data to add to our finer data
             # Here we also divide the weighting factor out (if used)
             time5 = time.time()
-            dblI = where(logical_and((levelData[0]>-1), (levelData[3] == 1))==1)
+            dblI = na.where(na.logical_and((levelData[0]>-1), (levelData[3] == 1))==1)
             if weightField != None:
                 weightedData = levelData[2][dblI] / levelData[4][dblI]
             else:
@@ -727,17 +860,17 @@ class EnzoHierarchy(EnzoParameterFile):
             args = [pbf_magic, struct.calcsize(header_fmt), len(fields), padded_fields]
             fields = ["particle_index","particle_position_x","particle_position_y","particle_position_z"] \
                    + fields
-            format = 'Int32,Float32,Float32,Float32' + ',Float32'*(len(fields)-4)
+            format = 'na.Int32,na.Float32,na.Float32,na.Float32' + ',na.Float32'*(len(fields)-4)
         else:
             args = [pbf_magic, struct.calcsize(header_fmt), 0]
             fields = ["particle_index","particle_position_x","particle_position_y","particle_position_z"]
-            format = 'Int32,Float32,Float32,Float32'
+            format = 'na.Int32,na.Float32,na.Float32,na.Float32'
         f.write(struct.pack(header_fmt, *args))
         tot = 0
         sc = array([1.0] + [scale] * 3 + [1.0]*(len(fields)-4))
-        gI = where(self.gridNumberOfParticles.flat > 0)
+        gI = na.where(self.gridNumberOfParticles.flat > 0)
         for g in self.grids[gI]:
-            pI = where(logical_and((g["particle_type"] == filter),(g["particle_index"] >= indexboundary)) == 1)
+            pI = na.where(na.logical_and((g["particle_type"] == filter),(g["particle_index"] >= indexboundary)) == 1)
             tot += pI[0].shape[0]
             toRec = []
             for field, scale in zip(fields, sc):
@@ -746,6 +879,18 @@ class EnzoHierarchy(EnzoParameterFile):
             particle_info.tofile(f)
         f.close()
         mylog.info("Wrote %s particles to %s", tot, filename)
+
+    def exportBoxesPV(self, filename):
+        f=open(filename,"w")
+        for l in range(self.maxLevel):
+            f.write("add object g%s = l%s\n" % (l,l))
+            ind = self.selectLevel(l)
+            for i in ind:
+                f.write("add box -n %s -l %s %s,%s %s,%s %s,%s\n" % \
+                    (i+1, self.gridLevels.flat[i],
+                     self.gridLeftEdge[i,0], self.gridRightEdge[i,0],
+                     self.gridLeftEdge[i,1], self.gridRightEdge[i,1],
+                     self.gridLeftEdge[i,2], self.gridRightEdge[i,2]))
 
     def initializeEnzoInterface(self, idt_val = 0.0):
         """
@@ -772,7 +917,8 @@ def outputProjectionASCII(dataByLevel, fileName, minLevel, maxLevel):
         """
         Don't use directly.  Currently in flux.
 
-        @deprecated: Stupid, and used only for testing, a billion years ago.
+        @deprecated: The new EnzoProj datatype already deals with outputting,
+        thanks to EnzoData
         """
         mylog.debug("Now outputting to %s in five-column ascii.  How efficient!", fileName)
         k=0
@@ -803,10 +949,30 @@ def outputProjectionASCII(dataByLevel, fileName, minLevel, maxLevel):
 def splitConvertGridParameter(vals, func, toAdd, curGrid):
     """
     Quick function to split up a parameter and convert it and toss onto a grid
-
-    Will be replaced by usage of the re module...  eventually...
     """
     j = 0
     for v in vals.split():
         toAdd[curGrid-1,j] = func(v)
         j+=1
+    #toAdd[curGrid-1,:] = map(func,vals.split())
+
+scanf_regex = {}
+scanf_regex['e'] = r"[-+]?\d+\.?\d*?|\.\d+[eE][-+]?\d+?"
+scanf_regex['g'] = scanf_regex['e']
+scanf_regex['f'] = scanf_regex['e']
+scanf_regex['F'] = scanf_regex['e']
+#scanf_regex['g'] = r"[-+]?(\d+(\.\d*)?|\.\d+)([eE][-+]?\d+)?"
+#scanf_regex['f'] = r"[-+]?(\d+(\.\d*)?|\.\d+)([eE][-+]?\d+)?"
+#scanf_regex['F'] = r"[-+]?(\d+(\.\d*)?|\.\d+)([eE][-+]?\d+)?"
+scanf_regex['i'] = r"[-+]?(0[xX][\dA-Fa-f]+|0[0-7]*|\d+)"
+scanf_regex['d'] = r"[-+]?\d+"
+scanf_regex['s'] = r"\S+"
+
+def constructRegularExpressions(param, toReadTypes):
+    re_e=r"[-+]?(\d+(\.\d*)?|\.\d+)([eE][-+]?\d+)?"
+    re_i=r"[-+]?(0[xX][\dA-Fa-f]+|0[0-7]*|\d+)"
+    rs = "^%s\s*=\s*" % (param)
+    for t in toReadTypes:
+        rs += "(%s)\s*" % (scanf_regex[t])
+    rs +="$"
+    return re.compile(rs,re.M)

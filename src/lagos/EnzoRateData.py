@@ -9,8 +9,8 @@ tables, if fed the appropriate key.
 """
 
 from yt.lagos import *
-from numarray import *
-import numarray.nd_image as nd
+#from numarray import *
+#import numarray.nd_image as nd
 import EnzoCombine
 import types, exceptions
 
@@ -53,7 +53,7 @@ class EnzoTable:
                 self.params[p.replace(" ","")[1:]] = float(v)
             else:
                 toArray.append(map(float, line.split()))
-        self.columns = array(toArray, Float32)
+        self.columns = na.array(toArray, na.Float32)
         mylog.info("Found %s bins of rate values", self.columns.shape[0])
     def __getitem__(self, item):
         ## This WILL get cleaned up, but it does what I want for now
@@ -86,11 +86,11 @@ class EnzoTable:
             return self.columns[:,self.cols[item]]
         else:
             raise exceptions.TypeError()
-        colsToReturn = array(colsToReturn,Int32)
-        valsToReturn = zeros((len(x_vals),len(colsToReturn)),Float32)
-        ind = zeros(len(x_vals),Int64)
+        colsToReturn = na.array(colsToReturn,Int32)
+        valsToReturn = na.zeros((len(x_vals),len(colsToReturn)),na.Float32)
+        ind = na.zeros(len(x_vals),na.Int64)
         x_axis = self.columns[:,0]
-        x_vals_arr = array(x_vals, Float32)
+        x_vals_arr = na.array(x_vals, na.Float32)
         EnzoCombine.Interpolate(x_axis, self.columns, x_vals_arr, valsToReturn, colsToReturn)
         if toReshape != None:
             if len(colsToReturn == 1):

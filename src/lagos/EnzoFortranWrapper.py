@@ -9,7 +9,7 @@ Enzo fortran function wrapping
 from yt.lagos import *
 import Numeric # Hate doing this, but we have to for inout ability
 #from EnzoDefs import *
-from numarray import *
+#from numarray import *
 
 # So I will first write a wrapper for the solve_rate_cool function
 # This will take an actual grid and its actual data, and then get some results
@@ -91,11 +91,11 @@ def runSolveRateCool(g, dt, omaskflag=0):
            (1.0 + a.parameters["CosmologyCurrentRedshift"])
     # Now we have all the units!  We're almost done...
     blank_field = Numeric.zeros(g.data["Total_Energy"].shape, Numeric.Float32)
-    hdc = array([hdc_1, hdc_2, hdc_3, hdc_4, hdc_5], Float32)
+    hdc = na.array([hdc_1, hdc_2, hdc_3, hdc_4, hdc_5], na.Float32)
     hdc.transpose()
-    k13dd = array([k13_1, k13_2, k13_3, k13_4, k13_5, k13_6, k13_7], Float32)
+    k13dd = na.array([k13_1, k13_2, k13_3, k13_4, k13_5, k13_6, k13_7], na.Float32)
     k13dd.transpose()
-    inutot = array([0, 0, 1, 0], Float32)
+    inutot = na.array([0, 0, 1, 0], na.Float32)
     inutot.transpose()
     comp_xray = 0
     comp_temp = 0
@@ -233,7 +233,7 @@ def runCoolMultiTime(g):
     # Now we have all the units!  We're almost done...
     blank_field = zeros(AD, Numeric.Float32)
     hdc = Numeric.transpose(Numeric.array([hdc_1, hdc_2, hdc_3, hdc_4, hdc_5], Numeric.Float32))
-    inutot = array([0, 0, 1, 0], Float32)
+    inutot = na.array([0, 0, 1, 0], na.Float32)
     inutot.transpose()
     comp_xray = 0
     comp_temp = 0
@@ -279,8 +279,8 @@ def runCoolMultiTime(g):
     t = Numeric.transpose(cooltime)
     cooltime = Numeric.reshape(cooltime, t.shape)
     cooltime = Numeric.transpose(cooltime)
-    cooltime = abs(cooltime)
-    ct = resize(cooltime, k)
+    cooltime = na.abs(cooltime)
+    ct = na.resize(cooltime, k)
     #i = (where(ct == 0))[0].size()
     #j = (where(cooltime == 0))[0].size()
     #print "STUFF", i, j, ct.shape, cooltime.shape, AD
@@ -288,4 +288,4 @@ def runCoolMultiTime(g):
     #print min(ct), max(ct)
     #print min(abs(ct)), max(abs(ct))
     #print "STOP"
-    return abs(ct)
+    return na.abs(ct)

@@ -16,11 +16,11 @@ G{packagetree}
 from pyhdf import SD
 import pyhdf.error
 import tables, warnings
-from numarray import *
+import numarray as na
 import numarray.objects as obj
 import numarray.nd_image as nd
 import numarray.records as rec
-import numarray
+import weakref
 from string import strip, rstrip
 from math import ceil, floor, log10, pi
 import os, os.path, types, exceptions, re

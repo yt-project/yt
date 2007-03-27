@@ -7,7 +7,7 @@ Python-based grid handler, not to be confused with the SWIG-handler
 """
 
 from yt.lagos import *
-import yt.enki
+import yt.enki, gc
 
 class EnzoGrid:
     """
@@ -25,7 +25,7 @@ class EnzoGrid:
         @type filename: string
         """
         self.id = id
-        self.hierarchy = hierarchy
+        self.hierarchy = weakref.proxy(hierarchy)
         self.data = {}
         self.datasets = {}
         self.SDi = None
@@ -33,6 +33,7 @@ class EnzoGrid:
         if filename:
             self.setFilename(filename)
         self.myChildMask = None
+        self.myChildIndices = None
         self.myOverlapMasks = [None, None, None]
         self.myOverlapGrids = [None, None, None]
 
@@ -97,24 +98,55 @@ class EnzoGrid:
         """
         return self.data.keys()
 
+    def clearAllGridReferences(self):
+        #print "clearingAllGridReferences in EnzoGrid ", self.id
+        #return
+        self.clearDerivedQuantities()
+        if hasattr(self, 'hierarchy'):
+            del self.hierarchy
+        if hasattr(self, 'Parent'):
+            if self.Parent != None:
+                self.Parent.clearAllGridReferences()
+            del self.Parent
+        if hasattr(self, 'Children'):
+            for i in self.Children:
+                if i != None:
+                    #i.clearAllGridReferences()
+                    del i
+            del self.Children
+
+    def __del__(self):
+        #self.clearAllGridReferences()
+        return
+        #print weakref.getweakrefcount(self)
+        #print gc.get_referents(self)
+        #del self.Parent
+        #del self.hierarchy
+        #del self.Children
+        #print "Really deleting ", self.id
+        
+
     def prepareGrid(self):
         """
         Copies all the appropriate attributes from the hierarchy
         """
         # Now we give it pointers to all of its attributes
-        self.Dimensions = self.hierarchy.gridDimensions[self.id-1]
-        self.StartIndices = self.hierarchy.gridStartIndices[self.id-1]
-        self.EndIndices = self.hierarchy.gridEndIndices[self.id-1]
-        self.LeftEdge = self.hierarchy.gridLeftEdge[self.id-1]
-        self.RightEdge = self.hierarchy.gridRightEdge[self.id-1]
-        self.Level = self.hierarchy.gridLevels[self.id-1,0]
-        self.Time = self.hierarchy.gridTimes[self.id-1,0]
-        self.NumberOfParticles = self.hierarchy.gridNumberOfParticles[self.id-1,0]
-        self.ActiveDimensions = self.EndIndices - self.StartIndices + 1
-        self.Children = self.hierarchy.gridTree[self.id-1]
-        pID = self.hierarchy.gridReverseTree[self.id-1]
+        h = self.hierarchy # cache it
+        self.Dimensions = h.gridDimensions[self.id-1]
+        #print gc.get_referrers(self)
+        self.StartIndices = h.gridStartIndices[self.id-1]
+        self.EndIndices = h.gridEndIndices[self.id-1]
+        self.LeftEdge = h.gridLeftEdge[self.id-1]
+        self.RightEdge = h.gridRightEdge[self.id-1]
+        self.Level = h.gridLevels[self.id-1,0]
+        self.Time = h.gridTimes[self.id-1,0]
+        self.NumberOfParticles = h.gridNumberOfParticles[self.id-1,0]
+        self.ActiveDimensions = (self.EndIndices - self.StartIndices + 1)
+        #self.ActiveDimensions = self.Dimensions - 3
+        self.Children = h.gridTree[self.id-1]
+        pID = h.gridReverseTree[self.id-1]
         if pID != None:
-            self.Parent = self.hierarchy.grids[pID - 1]
+            self.Parent = weakref.proxy(h.grids[pID - 1])
         else:
             self.Parent = None
         # So first we figure out what the index is.  We assume
@@ -125,16 +157,17 @@ class EnzoGrid:
                   (self.EndIndices[1]-self.StartIndices[1]+1)
         self.dz = (self.RightEdge[2] - self.LeftEdge[2]) / \
                   (self.EndIndices[2]-self.StartIndices[2]+1)
-        self.hierarchy.gridDxs[self.id-1,0] = self.dx
+        h.gridDxs[self.id-1,0] = self.dx
         self.coords = None
         #self.generateCoords()
+        del h
 
     def generateChildMask(self):
         """
         Generates self.myChildMask, which is zero where child grids exist (and
         thus, where higher resolution data is available.)
         """
-        self.myChildMask = ones(self.ActiveDimensions, Int32)
+        self.myChildMask = na.ones(self.ActiveDimensions, na.Int32)
         for child in self.Children:
             # Now let's get our overlap
             si = [None]*3
@@ -145,8 +178,8 @@ class EnzoGrid:
                 si[i] = int(startIndex[i])
                 ei[i] = int(endIndex[i])
             self.myChildMask[si[0]:ei[0], si[1]:ei[1], si[2]:ei[2]] = 0
-        #self.myIndices = where(self.myChildMask==1)
-        self.myChildIndices = where(self.myChildMask==0)
+        #self.myIndices = na.where(self.myChildMask==1)
+        self.myChildIndices = na.where(self.myChildMask==0)
 
     def generateOverlapMasks(self, axis, LE, RE):
         """
@@ -168,8 +201,8 @@ class EnzoGrid:
         cond2 = self.LeftEdge[x] < RE[:,x]
         cond3 = self.RightEdge[y] > LE[:,y]
         cond4 = self.LeftEdge[y] < RE[:,y]
-        self.myOverlapMasks[axis]=logical_and(logical_and(cond1, cond2), \
-                                               logical_and(cond3, cond4))
+        self.myOverlapMasks[axis]=na.logical_and(na.logical_and(cond1, cond2), \
+                                               na.logical_and(cond3, cond4))
     def __repr__(self):
         return "%s" % (self.id)
     def __int__(self):
@@ -224,16 +257,16 @@ class EnzoGrid:
         xaxis = x_dict[axis]
         yaxis = y_dict[axis]
         if axis == 0:
-            cm = where(self.myChildMask[wantedIndex,:,:] == 1)
-            cmI = indices(self.myChildMask[wantedIndex,:,:].shape)
+            cm = na.where(self.myChildMask[wantedIndex,:,:] == 1)
+            cmI = na.indices(self.myChildMask[wantedIndex,:,:].shape)
             slicedData = self[field][wantedIndex,:,:]
         elif axis == 1:
-            cm = where(self.myChildMask[:,wantedIndex,:] == 1)
-            cmI = indices(self.myChildMask[:,wantedIndex,:].shape)
+            cm = na.where(self.myChildMask[:,wantedIndex,:] == 1)
+            cmI = na.indices(self.myChildMask[:,wantedIndex,:].shape)
             slicedData = self[field][:,wantedIndex,:]
         elif axis == 2:
-            cm = where(self.myChildMask[:,:,wantedIndex] == 1)
-            cmI = indices(self.myChildMask[:,:,wantedIndex].shape)
+            cm = na.where(self.myChildMask[:,:,wantedIndex] == 1)
+            cmI = na.indices(self.myChildMask[:,:,wantedIndex].shape)
             slicedData = self[field][:,:,wantedIndex]
         # So now we figure out which points we want, and their (x,y,z) values
         xind = cmI[0,:]
@@ -248,7 +281,7 @@ class EnzoGrid:
         else:
             conv = 1
         numVals = dataVals.shape[0]
-        retVal = array(shape=(numVals,5), type=Float64)
+        retVal = na.array(shape=(numVals,5), type=na.Float64)
         retVal[:,0] = xpoints
         retVal[:,1] = ypoints
         retVal[:,2] = dataVals*conv
@@ -265,7 +298,7 @@ class EnzoGrid:
         """
         if weight == None:
             maskedData = self[field].copy()
-            weightData = ones(maskedData.shape)
+            weightData = na.ones(maskedData.shape)
         else:
             maskedData = self[field] * self[weight]
             weightData = self[weight].copy()
@@ -276,26 +309,26 @@ class EnzoGrid:
         if zeroOut:
             maskedData[self.myChildIndices]=0
             weightData[self.myChildIndices]=0
-            toCombineMask = logical_and.reduce(self.myChildMask, axis)
+            toCombineMask = na.logical_and.reduce(self.myChildMask, axis)
         # How do we do this the fastest?
         # We only want to project those values that don't have subgrids
         fullProj = sum(maskedData,axis)*self.dx # Gives correct shape
         weightProj = sum(weightData,axis)*self.dx
-        #fullProj = maximum.reduce(maskedData,axis) # Gives correct shape
+        #fullProj = na.maximum.reduce(maskedData,axis) # Gives correct shape
         if not zeroOut:
-            toCombineMask = ones(fullProj.shape)
-        cmI = indices(fullProj.shape)
+            toCombineMask = na.ones(fullProj.shape)
+        cmI = na.indices(fullProj.shape)
         # So now we figure out which points we want, and their (x,y,z) values
         # Note that this is currently wrong for anything other than x (axis = 0)
         xind = cmI[0,:]
         yind = cmI[1,:]
-        xpoints = array(xind+(self.LeftEdge[x_dict[axis]]/self.dx),Int64)
-        ypoints = array(yind+(self.LeftEdge[y_dict[axis]]/self.dx),Int64)
+        xpoints = na.array(xind+(self.LeftEdge[x_dict[axis]]/self.dx),na.Int64)
+        ypoints = na.array(yind+(self.LeftEdge[y_dict[axis]]/self.dx),na.Int64)
         return [xpoints.flat, ypoints.flat, fullProj.flat, toCombineMask.flat, weightProj.flat]
 
     def getSliceAll(self, coord, axis, field):
         tempMask = self.myChildMask
-        self.myChildMask = ones(self.ActiveDimensions)
+        self.myChildMask = na.ones(self.ActiveDimensions)
         points,dataVals=self.getSlice(coord, axis, field)
         self.myChildMask = tempMask
         return points,dataVals
@@ -371,8 +404,8 @@ class EnzoGrid:
         """
         if self.coords != None:
             return
-        ind = indices(self.ActiveDimensions)
-        LE = reshape(self.LeftEdge,(3,1,1,1))
+        ind = na.indices(self.ActiveDimensions)
+        LE = na.reshape(self.LeftEdge,(3,1,1,1))
         self.coords = (ind+0.5)*self.dx+LE
     
     def getSphere(self, center, radius, fields, zeroOut = True):
@@ -383,10 +416,10 @@ class EnzoGrid:
         if self.myChildMask == None or self.myChildIndices == None:
             self.generateChildMask()
         # First we find the cells that are within the sphere
-        pointI = where(logical_and((self["RadiusCode"]<=radius),self.myChildMask==1)==1)
-        # Note that we assumed here that all our data will be Float32
+        pointI = na.where(na.logical_and((self["RadiusCode"]<=radius),self.myChildMask==1)==1)
+        # Note that we assumed here that all our data will be na.Float32
         # Not a *terrible* assumption...
-        trData = zeros((pointI[0].shape[0],len(fields)), Float64)
+        trData = na.zeros((pointI[0].shape[0],len(fields)), na.Float64)
         i = 0
         for field in fields:
             if self.hierarchy.conversionFactors.has_key(field):

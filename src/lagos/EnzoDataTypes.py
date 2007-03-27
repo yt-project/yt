@@ -195,7 +195,6 @@ class EnzoProj(Enzo2DData):
         Enzo2DData.__init__(self, hierarchy, axis, field)
         if maxLevel == None:
             maxLevel = self.hierarchy.maxLevel
-            print "YO!!!!",maxLevel
         self.maxLevel = maxLevel
         self.weightField = weightField
         self.coords = None
@@ -224,18 +223,18 @@ class EnzoProj(Enzo2DData):
                 # We unroll this so as to avoid instantiating a range() for
                 # every grid
                 grid.generateOverlapMasks(0, LE, RE)
-                grid.myOverlapGrids[0] = h.grids[grids[where(grid.myOverlapMasks[0] == 1)]]
+                grid.myOverlapGrids[0] = h.grids[grids[na.where(grid.myOverlapMasks[0] == 1)]]
                 grid.generateOverlapMasks(1, LE, RE)
-                grid.myOverlapGrids[1] = h.grids[grids[where(grid.myOverlapMasks[1] == 1)]]
+                grid.myOverlapGrids[1] = h.grids[grids[na.where(grid.myOverlapMasks[1] == 1)]]
                 grid.generateOverlapMasks(2, LE, RE)
-                grid.myOverlapGrids[2] = h.grids[grids[where(grid.myOverlapMasks[2] == 1)]]
+                grid.myOverlapGrids[2] = h.grids[grids[na.where(grid.myOverlapMasks[2] == 1)]]
                 myNeeds = grid.ActiveDimensions[(self.axis+1)%3]\
                          *grid.ActiveDimensions[(self.axis+2)%3]
                 memoryPerLevel[level] += myNeeds
                 totalProj += myNeeds
                 i += 1
         for level in range(self.maxLevel+1):
-            gI = where(h.gridLevels == level)
+            gI = na.where(h.gridLevels == level)
             mylog.info("%s cells and %s grids for level %s", \
                 memoryPerLevel[level], len(gI[0]), level)
         mylog.debug("We need %s cells total", totalProj)
@@ -267,11 +266,11 @@ class EnzoProj(Enzo2DData):
             zeroOut = (level != self.maxLevel)
             mylog.info("Projecting through level = %s", level)
             llen = self.memoryPerLevel[level]
-            tempLevelData = [zeros(llen, Int64), \
-                             zeros(llen, Int64), \
-                             zeros(llen, Float64), \
-                             zeros(llen, Float64)]
-            myInd = where(h.gridLevels == level)[0]
+            tempLevelData = [na.zeros(llen, na.Int64), \
+                             na.zeros(llen, na.Int64), \
+                             na.zeros(llen, na.Float64), \
+                             na.zeros(llen, na.Float64)]
+            myInd = na.where(h.gridLevels == level)[0]
             gridsToProject = h.grids[myInd]
             index = 0
             for grid in gridsToProject:
@@ -296,7 +295,7 @@ class EnzoProj(Enzo2DData):
                             grid1.retVal[2], grid1.retVal[3], grid1.retVal[4], \
                             grid2.retVal[0], grid2.retVal[1], \
                             grid2.retVal[2], grid2.retVal[3], grid2.retVal[4], 0)
-                    goodI = where(grid2.retVal[0] > -1)
+                    goodI = na.where(grid2.retVal[0] > -1)
                     grid2.retVal[0] = grid2.retVal[0][goodI].copy()
                     grid2.retVal[1] = grid2.retVal[1][goodI].copy()
                     grid2.retVal[2] = grid2.retVal[2][goodI].copy()
@@ -320,21 +319,21 @@ class EnzoProj(Enzo2DData):
                 all_data[2].append(grid.retVal[2])
                 all_data[3].append(grid.retVal[3])
                 all_data[4].append(grid.retVal[4])
-                cI = where(grid.retVal[3]==0)
+                cI = na.where(grid.retVal[3]==0)
                 grid.coarseData = [grid.retVal[0][cI], \
                                    grid.retVal[1][cI], \
                                    grid.retVal[2][cI], \
                                    grid.retVal[3][cI], \
                                    grid.retVal[4][cI]]
             levelData = []
-            levelData.append(concatenate(all_data[0]))
-            levelData.append(concatenate(all_data[1]))
-            levelData.append(concatenate(all_data[2]))
-            levelData.append(concatenate(all_data[3]))
-            levelData.append(concatenate(all_data[4]))
+            levelData.append(na.concatenate(all_data[0]))
+            levelData.append(na.concatenate(all_data[1]))
+            levelData.append(na.concatenate(all_data[2]))
+            levelData.append(na.concatenate(all_data[3]))
+            levelData.append(na.concatenate(all_data[4]))
             mylog.debug("All done combining and refining with a final %s points", levelData[0].shape[0])
             dx=gridsToProject[0].dx # Assume uniform dx
-            dblI = where(logical_and((levelData[0]>-1), (levelData[3] == 1))==1)
+            dblI = na.where(na.logical_and((levelData[0]>-1), (levelData[3] == 1))==1)
             if weightField != None:
                 weightedData = levelData[2][dblI] / levelData[4][dblI]
             else:
@@ -360,13 +359,13 @@ class EnzoProj(Enzo2DData):
             all_x.append(dataByLevel[level][0])
             all_y.append(dataByLevel[level][1])
             all_z.append(dataByLevel[level][2])
-            all_dx.append(ones(dataByLevel[level][2].shape)*dataByLevel[level][3])
+            all_dx.append(na.ones(dataByLevel[level][2].shape)*dataByLevel[level][3])
         # We now convert to half-widths and center-points
-        self.dx = concatenate(all_dx) / 2.0
-        self.dy = concatenate(all_dx) / 2.0
-        self.x = (concatenate(all_x)+0.5) * self.dx*2.0
-        self.y = (concatenate(all_y)+0.5) * self.dy*2.0
-        self.data[field] = concatenate(all_z)
+        self.dx = na.concatenate(all_dx) / 2.0
+        self.dy = na.concatenate(all_dx) / 2.0
+        self.x = (na.concatenate(all_x)+0.5) * self.dx*2.0
+        self.y = (na.concatenate(all_y)+0.5) * self.dy*2.0
+        self.data[field] = na.concatenate(all_z)
         
 
 class EnzoSlice(Enzo2DData):
@@ -389,7 +388,7 @@ class EnzoSlice(Enzo2DData):
         @param axis: axis to which this data is parallel
         @type axis: integer
         @param coord: three points defining the center
-        @type coord: array
+        @type coord: na.array
         @keyword fields: fields to be processed or generated
         @type fields: list of strings
         """
@@ -446,14 +445,14 @@ class EnzoSlice(Enzo2DData):
             for grid in g:
                 #print "Generating coords for grid %s" % (grid.id)
                 points.append(self.generateGridCoords(grid))
-            t = concatenate(points)
+            t = na.concatenate(points)
             self.x = t[:,0]
             self.y = t[:,1]
             self.z = t[:,2]
             self.dx = t[:,3]
             self.dy = t[:,3]
             self.dz = t[:,3]
-            self.coords = array([self.x, self.y, self.z])
+            self.coords = na.array([self.x, self.y, self.z])
             self.ActiveDimensions = (len(self.x), 1, 1)
         if isinstance(field, types.StringType):
             fieldsToGet = [field]
@@ -469,7 +468,7 @@ class EnzoSlice(Enzo2DData):
                 for grid in g:
                     #print "Getting %s from grid %s" % (field, grid.id)
                     rvs.append(self.getDataFromGrid(grid, field))
-                    self[field] = concatenate(rvs)
+                    self[field] = na.concatenate(rvs)
             else:
                 i = 0
                 self.generateField(field)
@@ -493,17 +492,17 @@ class EnzoSlice(Enzo2DData):
         sl = tuple(sl)
         nx = grid.myChildMask.shape[xaxis]
         ny = grid.myChildMask.shape[yaxis]
-        cm = where(grid.myChildMask[sl].flat == 1)
-        cmI = indices((nx,ny))
+        cm = na.where(grid.myChildMask[sl].flat == 1)
+        cmI = na.indices((nx,ny))
         xind = cmI[0,:].flat
-        xpoints = ones(cm[0].shape, Float64)
+        xpoints = na.ones(cm[0].shape, na.Float64)
         xpoints *= xind[cm]*grid.dx+(grid.LeftEdge[xaxis] + 0.5*grid.dx)
         yind = cmI[1,:].flat
-        ypoints = ones(cm[0].shape, Float64)
+        ypoints = na.ones(cm[0].shape, na.Float64)
         ypoints *= yind[cm]*grid.dx+(grid.LeftEdge[yaxis] + 0.5*grid.dx)
-        zpoints = ones(xpoints.shape, Float64) * self.coord
-        dx = ones(xpoints.shape, Float64) * grid.dx/2.0
-        t = array([xpoints, ypoints, zpoints, dx])
+        zpoints = na.ones(xpoints.shape, na.Float64) * self.coord
+        dx = na.ones(xpoints.shape, na.Float64) * grid.dx/2.0
+        t = na.array([xpoints, ypoints, zpoints, dx])
         t.swapaxes(0,1)
         return t
 
@@ -536,7 +535,7 @@ class EnzoSlice(Enzo2DData):
         #print sl
         dv = self.readDataSlice(grid, field, slHDF)
         #print dv.flat.shape, grid.myChildMask[slHERE].flat.shape, grid.ActiveDimensions
-        cm = where(grid.myChildMask[slHERE].flat == 1)
+        cm = na.where(grid.myChildMask[slHERE].flat == 1)
         #print field, cm[0].shape, dv.shape
         dv.swapaxes(0,2)
         dataVals = dv.flat[cm]
@@ -599,7 +598,7 @@ class Enzo3DData(EnzoData):
         """
         self.ActiveDimensions = (len(self.x), 1, 1)
         if self.coords == None:
-            self.coords = array([self.x, self.y, self.z])
+            self.coords = na.array([self.x, self.y, self.z])
 
 class EnzoRegion(Enzo3DData):
     def __init__(self, hierarchy, center, leftEdge, rightEdge, fields = None):
@@ -611,8 +610,8 @@ class EnzoRegion(Enzo3DData):
         self.refreshData()
 
     def getData(self, field = None):
-        ind = where(sum(transpose(logical_or(greater(self.hierarchy.gridLeftEdge, self.rightEdge), \
-                                               less(self.hierarchy.gridRightEdge, self.leftEdge)))) == 0)
+        ind = na.where(na.sum(na.transpose(na.logical_or(na.greater(self.hierarchy.gridLeftEdge, self.rightEdge), \
+                                               na.less(self.hierarchy.gridRightEdge, self.leftEdge)))) == 0)
         g = self.hierarchy.grids[ind]
         self.grids = g
         points = []
@@ -622,8 +621,8 @@ class EnzoRegion(Enzo3DData):
                 c = grid.center
                 grid.center = self.center
                 points.append(self.generateGridCoords(grid))
+                t = na.concatenate(points)
                 grid.center = c
-            t = concatenate(points)
             self.x = t[:,0]
             self.y = t[:,1]
             self.z = t[:,2]
@@ -641,7 +640,7 @@ class EnzoRegion(Enzo3DData):
             if self.data.has_key(field):
                 continue
             mylog.info("Getting field %s from %s", field, len(g))
-            sf = zeros(self.x.shape[0],Float64)
+            sf = na.zeros(self.x.shape[0],na.Float64)
             i = 0
             if field in self.hierarchy.fieldList:
                 for grid in g:
@@ -661,11 +660,11 @@ class EnzoRegion(Enzo3DData):
         # First we find the cells that are within the sphere
         i0 = map(int, (self.leftEdge  - grid.LeftEdge) / grid.dx)
         i1 = map(int, map(ceil, (self.rightEdge - grid.LeftEdge) / grid.dx))
-        i0 = choose(less(i0,0), (i0,0))
-        i1 = choose(greater(i1,grid.ActiveDimensions-1), (i1,grid.ActiveDimensions-1))
-        cutMask = zeros(grid.ActiveDimensions, Int64)
+        i0 = na.choose(na.less(i0,0), (i0,0))
+        i1 = na.choose(na.greater(i1,grid.ActiveDimensions-1), (i1,grid.ActiveDimensions-1))
+        cutMask = na.zeros(grid.ActiveDimensions, na.Int64)
         cutMask[i0[0]:i1[0], i0[1]:i1[1], i0[2]:i1[2]] = 1
-        pointI = where(logical_and(cutMask, grid.myChildMask==1) == 1)
+        pointI = na.where(na.logical_and(cutMask, grid.myChildMask==1) == 1)
         return grid[field][pointI]
 
     def generateGridCoords(self, grid):
@@ -677,17 +676,17 @@ class EnzoRegion(Enzo3DData):
         # First we find the cells that are within the sphere
         i0 = map(int, (self.leftEdge  - grid.LeftEdge) / grid.dx)
         i1 = map(int, map(ceil, (self.rightEdge - grid.LeftEdge) / grid.dx))
-        i0 = choose(less(i0,0), (i0,0))
-        i1 = choose(greater(i1,grid.ActiveDimensions-1), (i1,grid.ActiveDimensions-1))
-        cutMask = zeros(grid.ActiveDimensions, Int64)
+        i0 = na.choose(na.less(i0,0), (i0,0))
+        i1 = na.choose(na.greater(i1,grid.ActiveDimensions-1), (i1,grid.ActiveDimensions-1))
+        cutMask = na.zeros(grid.ActiveDimensions, na.Int64)
         cutMask[i0[0]:i1[0], i0[1]:i1[1], i0[2]:i1[2]] = 1
-        pointI = where(logical_and(cutMask, grid.myChildMask==1) == 1)
-        dx = ones(pointI[0].shape[0], Float64) * grid.dx
-        tr = array([grid.coords[0,:][pointI], \
+        pointI = na.where(na.logical_and(cutMask, grid.myChildMask==1) == 1)
+        dx = na.ones(pointI[0].shape[0], na.Float64) * grid.dx
+        tr = na.array([grid.coords[0,:][pointI], \
                 grid.coords[1,:][pointI], \
                 grid.coords[2,:][pointI], \
                 grid["RadiusCode"][pointI],
-                dx], Float64)
+                dx], na.Float64)
         tr.swapaxes(0,1)
         return tr
 
@@ -727,7 +726,7 @@ class EnzoSphere(Enzo3DData):
                 grid.center = self.center
                 points.append(self.generateGridCoords(grid))
                 grid.center = c
-            t = concatenate(points)
+            t = na.concatenate(points)
             self.x = t[:,0]
             self.y = t[:,1]
             self.z = t[:,2]
@@ -745,7 +744,7 @@ class EnzoSphere(Enzo3DData):
             if self.data.has_key(field):
                 continue
             mylog.info("Getting field %s from %s", field, len(g))
-            sf = zeros(self.x.shape[0],Float64)
+            sf = na.zeros(self.x.shape[0],na.Float64)
             i = 0
             if field in self.hierarchy.fieldList:
                 for grid in g:
@@ -763,7 +762,7 @@ class EnzoSphere(Enzo3DData):
             #print "\tGenerating child mask"
             grid.generateChildMask()
         # First we find the cells that are within the sphere
-        pointI = where(logical_and((grid["RadiusCode"]<=self.radius),grid.myChildMask==1)==1)
+        pointI = na.where(na.logical_and((grid["RadiusCode"]<=self.radius),grid.myChildMask==1)==1)
         return grid[field][pointI]
 
     def generateGridCoords(self, grid):
@@ -773,12 +772,12 @@ class EnzoSphere(Enzo3DData):
         if grid.myChildMask == None or grid.myChildIndices == None:
             grid.generateChildMask()
         # First we find the cells that are within the sphere
-        pointI = where(logical_and((grid["RadiusCode"]<=self.radius),grid.myChildMask==1)==1)
-        dx = ones(pointI[0].shape[0], Float64) * grid.dx
-        tr = array([grid.coords[0,:][pointI], \
+        pointI = na.where(na.logical_and((grid["RadiusCode"]<=self.radius),grid.myChildMask==1)==1)
+        dx = na.ones(pointI[0].shape[0], na.Float64) * grid.dx
+        tr = na.array([grid.coords[0,:][pointI], \
                 grid.coords[1,:][pointI], \
                 grid.coords[2,:][pointI], \
                 grid["RadiusCode"][pointI],
-                dx], Float64)
+                dx], na.Float64)
         tr.swapaxes(0,1)
         return tr

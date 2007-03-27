@@ -37,7 +37,7 @@ class EnzoRun:
         self.metaData = metaData
         self.classType = classType
         self.outputs = obj.array(outputs)       # Object array of EnzoHierarchies
-        self.timesteps = array(shape=self.outputs.shape, type=Float64) # Timesteps
+        self.timesteps = na.array(shape=self.outputs.shape, type=na.Float64) # Timesteps
         if runFilename:
             self.Import(runFilename)
         if not timeID:
@@ -67,7 +67,7 @@ class EnzoRun:
         Note that this may not be what we want -- we may actually want the time
         in the simulation at which they were dumped.
         """
-        order = argsort(self.timesteps)
+        order = na.argsort(self.timesteps)
         self.outputs = self.outputs[order]
         self.timesteps = self.timesteps[order]
 
@@ -85,7 +85,7 @@ class EnzoRun:
         for h in hierarchy:
             t.append(h["InitialTime"])
         self.outputs = obj.array(self.outputs.tolist() + hierarchy)
-        self.timesteps=array(self.timesteps.tolist() + t,type=Float64)
+        self.timesteps=na.array(self.timesteps.tolist() + t,type=na.Float64)
         self.sortOutputs()
 
     def addOutputByFilename(self, filename, hdf_version=4):
@@ -138,10 +138,10 @@ class EnzoRun:
             func(*a)
 
     def getBefore(self, time):
-        return where(self.timesteps <= time)[0]
+        return na.where(self.timesteps <= time)[0]
 
     def getAfter(self, time):
-        return where(self.timesteps > time)[0]
+        return na.where(self.timesteps > time)[0]
 
     def removeOutput(self, key):
         pp = self[key]
@@ -152,7 +152,7 @@ class EnzoRun:
         newTimesteps = obj.ObjectArray(self.timesteps[:id].tolist() + self.timesteps[id+1:].tolist())
         self.outputs = newOutputs
         self.timesteps = newTimesteps
-        del pp
+        del pp, newOutputs, newTimesteps
 
     def removeOutputFiles(self, outputID):
         """
@@ -319,6 +319,13 @@ class EnzoRun:
         if index == None:
             raise KeyError
         return index
+
+    #def __del__(self):
+        #o = self.outputs.tolist()
+        #del self.outputs
+        #for i in o:
+            #print "Deleting...", i.__class__
+            #i.clearAllGridReferences()
 
     def __repr__(self):
         return self.metaData
