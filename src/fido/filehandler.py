@@ -4,7 +4,7 @@ High-level file handling takes place here.
 @author: U{Matthew Turk<http://www.stanford.edu/~mturk/>}
 @organization: U{KIPAC<http://www-group.slac.stanford.edu/KIPAC/>}
 @contact: U{mturk@slac.stanford.edu<mailto:mturk@slac.stanford.edu>}
-
+@change: Sun Mar 11 15:07:11 PDT 2007
 @todo: Moving to storage
 @todo: Update DB with locations of files, as needed
 """

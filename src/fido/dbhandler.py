@@ -270,7 +270,7 @@ def digUp(md, pf):
     run.removeOutput(pf.basename)
     submitRun(run)
 
-def guessPF(pf):
+def guessPF(pf, classType = lagos.EnzoParameterFile):
     """
     Simple way of guessing a parameter file's name.  Expect this function to
     evolve in time.
@@ -289,4 +289,4 @@ def guessPF(pf):
         new_pf = try_dir
     else:
         new_pf = pf
-    return new_pf
+    return classType(new_pf)

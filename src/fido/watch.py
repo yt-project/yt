@@ -100,5 +100,20 @@ def watchDir(md=None, path=".", skip = [], funcHandler = None, process=None):
                     mylog.info("Done calling %s, now sleeping", funcHandler.func_name)
         time.sleep(WAITBETWEEN)
 
+def runOnce(md=None):
+    if not md:
+        md = os.path.basename(os.getcwd())
+    thisRun = fetchRun(md, classType=lagos.EnzoParameterFile)
+    nn = newCheckForOutput()
+    for bn in nn:
+        newDir = "%s.dir" % (bn)
+        if not os.path.exists(newDir):
+            os.mkdir(newDir)
+        moveFiles(newDir, bn, extraFiles=OTHERFILES)
+        mylog.info("Adding %s to EnzoRun instance (%s)", bn, md)
+        thisRun.addOutputByFilename(os.path.join(newDir,bn))
+        submitRun(thisRun)
+    mylog.info("All done, exiting")
+
 if __name__=="__main__":
     watchDir()
