@@ -116,7 +116,7 @@ class EnzoParameterFile:
                 LengthUnit = 3.086e24 * boxh / self["CosmologyHubbleConstantNow"] \
                              / (1+self["CosmologyInitialRedshift"])
                 self.conversionFactors["Time"] = LengthUnit / self["x-velocity"]
-        elif self.conversionFactors.has_key("LengthUnits"):
+        elif self.has_key("LengthUnits"):
             # We are given LengthUnits, which is number of cm per box length
             # So we convert that to box-size in Mpc
             z = 0
