@@ -306,10 +306,10 @@ class EnzoVM(EnzoPlot):
             self.width = width
         else:
             width = self.width
-        l_edge_x = self.c[x_dict[self.axis]] - width/2.0
-        r_edge_x = self.c[x_dict[self.axis]] + width/2.0
-        l_edge_y = self.c[y_dict[self.axis]] - width/2.0
-        r_edge_y = self.c[y_dict[self.axis]] + width/2.0
+        l_edge_x = self.c[lagos.x_dict[self.axis]] - width/2.0
+        r_edge_x = self.c[lagos.x_dict[self.axis]] + width/2.0
+        l_edge_y = self.c[lagos.y_dict[self.axis]] - width/2.0
+        r_edge_y = self.c[lagos.y_dict[self.axis]] + width/2.0
         time.sleep(1)
         self.plot.setRange('X', max(l_edge_x,0.0), min(r_edge_x,1.0))
         time.sleep(1)
