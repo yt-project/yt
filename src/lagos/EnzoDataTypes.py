@@ -452,7 +452,12 @@ class EnzoSlice(Enzo2DData):
             self.dx = t[:,3]
             self.dy = t[:,3]
             self.dz = t[:,3]
-            self.coords = na.array([self.x, self.y, self.z])
+            #self.coords = na.array([self.x, self.y, self.z])
+            self.coords = na.zeros((3,len(self.x)),na.Float64)
+            #print self.coords.shape
+            self.coords[x_dict[self.axis],:] = t[:,0]
+            self.coords[y_dict[self.axis],:] = t[:,1]
+            self.coords[self.axis,:] = t[:,2]
             self.ActiveDimensions = (len(self.x), 1, 1)
         if isinstance(field, types.StringType):
             fieldsToGet = [field]
@@ -533,7 +538,10 @@ class EnzoSlice(Enzo2DData):
         sl.reverse()
         slHDF = tuple(sl)
         #print sl
-        dv = self.readDataSlice(grid, field, slHDF)
+        if not(grid.data.has_key(field)):
+            dv = self.readDataSlice(grid, field, slHDF)
+        else:
+            dv = grid[field][slHDF]
         #print dv.flat.shape, grid.myChildMask[slHERE].flat.shape, grid.ActiveDimensions
         cm = na.where(grid.myChildMask[slHERE].flat == 1)
         #print field, cm[0].shape, dv.shape

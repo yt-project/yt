@@ -73,7 +73,7 @@ class EnzoParameterFile:
         """
         # Let's read the file
         lines = open(self.parameterFilename).readlines()
-        for lineI in range(len(lines)):
+        for lineI in xrange(len(lines)):
             line = lines[lineI]
             if len(line) < 2:
                 continue
@@ -173,7 +173,7 @@ class EnzoHierarchy(EnzoParameterFile):
         self.hierarchyLines = open(self.hierarchyFilename).readlines()
         self.hierarchyString = open(self.hierarchyFilename).read()
         #re_gridID = re.compile("Grid\s=\s\d*", re.M)
-        for i in range(len(self.hierarchyLines)-1,0,-1):
+        for i in xrange(len(self.hierarchyLines)-1,0,-1):
             line = self.hierarchyLines[i]
             if line.startswith("Grid ="):
                 self.numGrids = int(line.split("=")[-1])
@@ -201,7 +201,7 @@ class EnzoHierarchy(EnzoParameterFile):
         del gg
         self.gridReverseTree = [None] * self.numGrids
         self.gridTree = []
-        for i in range(self.numGrids):
+        for i in xrange(self.numGrids):
             self.gridTree.append([])
 
         # Now some statistics:
@@ -209,7 +209,7 @@ class EnzoHierarchy(EnzoParameterFile):
         #   1 = number of cells
         #   2 = blank
         self.levelsStats = na.zeros((MAXLEVEL,3), na.Int32)
-        for i in range(MAXLEVEL):
+        for i in xrange(MAXLEVEL):
             self.levelsStats[i,2] = i
 
         # For use with radial plots
@@ -414,7 +414,7 @@ class EnzoHierarchy(EnzoParameterFile):
         # Now we do things that we need all the grids to do
         self.fieldList = self.grids[0].getFields()
         time14=time.time()
-        for i in range(self.numGrids):
+        for i in xrange(self.numGrids):
             self.levelsStats[self.gridLevels[i,0],0] += 1
             self.grids[i].prepareGrid()
 #            self.levelsStats[self.gridLevels[i,0],1] += na.product(self.grids[i].ActiveDimensions)
@@ -423,7 +423,7 @@ class EnzoHierarchy(EnzoParameterFile):
         self.levelNum = {}
         time15=time.time()
         #print "Took %s" % (time15-time14)
-        for level in range(self.maxLevel+1):
+        for level in xrange(self.maxLevel+1):
             self.levelIndices[level] = self.selectLevel(level)
             self.levelNum = len(self.levelIndices[level])
 
@@ -439,7 +439,7 @@ class EnzoHierarchy(EnzoParameterFile):
         return indices
 
     def getSmallestDx(self):
-        for i in range(MAXLEVEL):
+        for i in xrange(MAXLEVEL):
             if (self.levelsStats[i,0]) == 0:
                 break
             dx = self.gridDxs[self.levelIndices[i][0]]
@@ -449,7 +449,7 @@ class EnzoHierarchy(EnzoParameterFile):
         """
         Prints out relevant information about the simulation
         """
-        for i in range(MAXLEVEL):
+        for i in xrange(MAXLEVEL):
             if (self.levelsStats[i,0]) == 0:
                 break
             print "% 3i\t% 6i\t% 11i" % \
@@ -491,7 +491,7 @@ class EnzoHierarchy(EnzoParameterFile):
         # We could do this with a 'logical and,' but it's clearer and almost as
         # fast this way.
         mask=na.ones(self.numGrids)
-        for i in range(len(coord)):
+        for i in xrange(len(coord)):
             na.choose(na.greater(self.gridLeftEdge[:,i],coord[i]), (mask,0), mask)
             na.choose(na.greater(self.gridRightEdge[:,i],coord[i]), (0,mask), mask)
         ind = na.where(mask == 1)
@@ -557,7 +557,7 @@ class EnzoHierarchy(EnzoParameterFile):
             mylog.info("This means %s points in %s grids!", allPoints.shape[0], len(g))
             f=open(fileName, "w")
             f.write("x\ty\tz\tdx\tdy\n")
-            for i in range(allPoints.shape[0]):
+            for i in xrange(allPoints.shape[0]):
                 f.write("%0.20f %0.20f %0.5e %0.20f %0.20f\n" % \
                         (allPoints[i,0], \
                         allPoints[i,1], \
@@ -674,7 +674,7 @@ class EnzoHierarchy(EnzoParameterFile):
         memoryPerLevel = {}
         #gridDataIndices = na.zeros((self.numGrids,4))
         i = 0
-        for level in range(self.maxLevel+1):
+        for level in xrange(self.maxLevel+1):
             memoryPerLevel[level] = 0
             mylog.info( "Working on level %s", level)
             grids = self.levelIndices[level]
@@ -684,7 +684,7 @@ class EnzoHierarchy(EnzoParameterFile):
             for grid in self.grids[grids]:
                 if (i%1e3) == 0:
                     mylog.info("Reading and masking %s / %s", i, self.numGrids)
-                for ax in range(3):
+                for ax in xrange(3):
                     grid.generateOverlapMasks(ax, LE, RE)
                     grid.myOverlapGrids[ax] = self.grids[grids[na.where(grid.myOverlapMasks[ax] == 1)]]
                 i += 1
@@ -692,7 +692,7 @@ class EnzoHierarchy(EnzoParameterFile):
             myNeeds = grid.ActiveDimensions[(axis+1)%3]*grid.ActiveDimensions[(axis+2)%3]
             totalProj += myNeeds
             memoryPerLevel[grid.Level] += myNeeds
-        for level in range(maxLevel+1):
+        for level in xrange(maxLevel+1):
             gI = na.where(self.gridLevels==level)
             mylog.info("%s cells and %s grids for level %s", \
              memoryPerLevel[level], len(gI[0]), level)
@@ -705,7 +705,7 @@ class EnzoHierarchy(EnzoParameterFile):
         totalGridsProjected = 0
         zeroOut = True
         self.dbl_coarse = {}
-        for level in range(minLevel,maxLevel+1):
+        for level in xrange(minLevel,maxLevel+1):
             if level == maxLevel:
                 zeroOut = False
             time3 = time.time()
@@ -860,14 +860,14 @@ class EnzoHierarchy(EnzoParameterFile):
             args = [pbf_magic, struct.calcsize(header_fmt), len(fields), padded_fields]
             fields = ["particle_index","particle_position_x","particle_position_y","particle_position_z"] \
                    + fields
-            format = 'na.Int32,na.Float32,na.Float32,na.Float32' + ',na.Float32'*(len(fields)-4)
+            format = 'Int32,Float32,Float32,Float32' + ',Float32'*(len(fields)-4)
         else:
             args = [pbf_magic, struct.calcsize(header_fmt), 0]
             fields = ["particle_index","particle_position_x","particle_position_y","particle_position_z"]
-            format = 'na.Int32,na.Float32,na.Float32,na.Float32'
+            format = 'Int32,Float32,Float32,Float32'
         f.write(struct.pack(header_fmt, *args))
         tot = 0
-        sc = array([1.0] + [scale] * 3 + [1.0]*(len(fields)-4))
+        sc = na.array([1.0] + [scale] * 3 + [1.0]*(len(fields)-4))
         gI = na.where(self.gridNumberOfParticles.flat > 0)
         for g in self.grids[gI]:
             pI = na.where(na.logical_and((g["particle_type"] == filter),(g["particle_index"] >= indexboundary)) == 1)
@@ -882,7 +882,7 @@ class EnzoHierarchy(EnzoParameterFile):
 
     def exportBoxesPV(self, filename):
         f=open(filename,"w")
-        for l in range(self.maxLevel):
+        for l in xrange(self.maxLevel):
             f.write("add object g%s = l%s\n" % (l,l))
             ind = self.selectLevel(l)
             for i in ind:
@@ -925,7 +925,7 @@ def outputProjectionASCII(dataByLevel, fileName, minLevel, maxLevel):
         f=open(fileName,"w")
         f.write("x\ty\tz\tdx\tdy\n")
         i=0
-        for level in range(minLevel, maxLevel+1):
+        for level in xrange(minLevel, maxLevel+1):
             #f.write("# Level %s\n" % level)
             j=i
             numBad=0
@@ -934,7 +934,7 @@ def outputProjectionASCII(dataByLevel, fileName, minLevel, maxLevel):
             x = (data[0])*dx
             y = (data[1])*dx
             vals = data[2]
-            for i in range(x.shape[0]):
+            for i in xrange(x.shape[0]):
                 k+=1
                 if vals[i]==0 or vals[i]==-1:
                     numBad+=1
