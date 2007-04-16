@@ -251,6 +251,33 @@ class EnzoHippo:
             self.canvas.addDisplay(self.plots[-1].plot)
         return self.plots[startI:]
 
+    def addClusterOutput(self, clusterOutput, name=None):
+        """
+        This will add a cluster output.
+
+        @note: This does not create a new one -- this only adds an existing
+        one.  This may change in the future...
+        @param clusterOutput: The existing ClusterOutput
+        @type clusterOutput: L{AnalyzeClusterOutput<AnalyzeClusterOutput>}
+        @keyword name: The name to give it
+        @type name: string
+        @note: We associate the DataArray with the ClusterOutput.  So if you
+        plan to add the same instance to multiple EnzoHippo instances, this *might*
+        cause problems.
+        @note: We do B{not} associate the ClusterOutput with the EnzoHippo
+        instance -- so once this function passes out, it is inaccessible.
+        """
+        clusterOutput.tuple = hippo.DataArray('NTuple')
+        if name:
+            clusterOutput.tuple.register(name)
+        else:
+            clusterOutput.tuple.register()
+        cols = clusterOutput.columns.keys()
+        cols.sort()
+        for col in cols:
+            clusterOutput.tuple.addColumn(clusterOutput.columns[col],\
+                                          list(clusterOutput.data[col-1,:]))
+
     def setCenter(self, center, plotIs = None):
         """
         Change the center of the plots
