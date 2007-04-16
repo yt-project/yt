@@ -8,13 +8,12 @@ be.
 @todo: Create an AnalyzeCluster file from a given set of parameters, and a
 hierarchy file.
 @todo: Run enzo_anyl and parse the resultant data.
-@todo: Implement the + operator so that we can add two different ClusterFiles
-together (for instance, the Species and the plain) and get a resultant,
-enormous one.
 @todo: Derived fields, somehow?  This could be done with an addColumn.  This
 should definitely be separate from EnzoDerivedFields, I think.
 @todo: Merge back into EnzoDataTypes.py -- separate for now while still
 testing.  (Does it make sense to put it in there?)
+@change: Mon Apr 16 14:17:56 PDT 2007 Added __add__
+@change: Mon Apr 16 10:06:44 PDT 2007 First import
 """
 
 from yt.lagos import *
@@ -30,9 +29,10 @@ class AnalyzeClusterOutput:
         then parse the columns to get the array of values
         """
         self.filename = filename
-        self.lines = open(self.filename).readlines()
-        self.parseKey()
-        self.parseData()
+        if filename:  # For the __add__ method
+            self.lines = open(self.filename).readlines()
+            self.parseKey()
+            self.parseData()
 
     def parseKey(self):
         """
@@ -44,7 +44,7 @@ class AnalyzeClusterOutput:
             if line.rstrip() == "#":
                 break
             col, name = line[1:].strip().split(" ",1)
-            col = int(col)
+            col = int(col) - 1
             self.columns[col] = name.strip().rstrip()
 
     def parseData(self):
@@ -60,9 +60,10 @@ class AnalyzeClusterOutput:
                 numBins += 1
         self.data = na.zeros((len(self.columns), numBins), na.Float64)
         i = 0
+        nc = len(self.columns)
         for line in self.lines:
             if line[0] != "#" and len(line.strip()) > 0:
-                self.data[:,i] = map(float, line.split()[:-3])
+                self.data[:,i] = map(float, line.split()[:nc])
                 i += 1
 
     def outputHippo(self, filename):
@@ -83,15 +84,30 @@ class AnalyzeClusterOutput:
             f.write(fs % tuple(self.data[:,i]))
         f.close()
 
-    def giveHippo(self, myEnzoHippo, name):
+    def __add__(self, other):
         """
-        This will add a datastore to an existing HippoDraw instance.
+        This will add all non-duplicated columns.
 
-        @param myEnzoHippo: the EnzoHippo instance to add it to as a datastore.  Note that
-        this EnzoHippo instance can later go away, since we're only going to be using
-        it to access the appropriate HippoApp.
-        @type myEnzoHippo: L{yt.raven.EnzoHippo<yt.raven.EnzoHippo>}
-        @param name: The name to pass in for the datastore
-        @type name: string
+        @note: We kind of have to do this the slow way, to ensure that no
+        double-columning goes on.  I couldn't come up with a better way than
+        this.  Maybe I will, some day.  But for now, it works!  Hooray!
         """
-        pass
+        comb = AnalyzeClusterOutput(None)
+        comb.columns = self.columns.copy()
+        cols = other.columns.keys()
+        offset = len(comb.columns) # 0-indexed
+        i = offset
+        for col in cols:
+            if other.columns[col] not in self.columns.values():
+                comb.columns[i] = other.columns[col]
+                i += 1
+        comb.data = na.zeros((len(comb.columns), self.data.shape[1]), na.Float64)
+        comb.data[:len(self.columns),:] = self.data
+        i = offset
+        for col in cols:
+            if other.columns[col] not in self.columns.values():
+                comb.data[i,:] = other.data[col,:] # data is zero-indexed
+                i += 1
+        #print comb.data[offset:,:].shape, other.data[1:,:].shape
+        #comb.data[offset:,:] = other.data[1:,:]
+        return comb
