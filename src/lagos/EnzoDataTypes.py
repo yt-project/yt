@@ -125,6 +125,38 @@ class EnzoData:
         else:
             raise exceptions.KeyError, fieldName
 
+    def writeOut(self, filename, header=False):
+        """
+        Writes out the generalized data to an ASCII file.  Probably quite slow.
+        Note that we're doing everything in python, which is ... slow to do.
+        Maybe I'll write a C-extension someday.
+
+        @param filename: The filename to output
+        @type filename: string
+        @keyword header: Should we output a tab-separated header
+        @type header: Boolean
+        """
+        # Now we first set up a new array, with all the stuff, to speed 
+        # things up.
+        data = []
+        for field in self.fields:
+            data.append(self[field])
+        tw = na.array(data,na.Float32)
+        fs = "%0.6e\t" * len(data)
+        #print fs, tw.shape
+        f = open(filename,"w")
+        if header:
+            f.write("x\ty\tz\tdx\t" + "\t".join(self.fields) + "\n")
+        for i in xrange(self.coords.shape[1]):
+            if i % 1000 == 0:
+                mylog.debug("Writing record %i / %i", i, self.coords.shape[1])
+            f.write("%0.15e\t" * 3 % tuple(self.coords[:,i]))
+            f.write("%0.15e\t" % (self.dx[i]))
+            f.write(fs % tuple(tw[:,i]))
+            f.write("\n")
+        f.close()
+        del data
+
 class Enzo2DData(EnzoData):
     """
     Class to represent a set of EnzoData that's 2-D in nature.  Slices and
