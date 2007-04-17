@@ -93,11 +93,18 @@ def watchDir(md=None, path=".", skip = [], funcHandler = None, process=None):
                 thisRun.addOutputByFilename(os.path.join(newDir,bn))
                 submitRun(thisRun)
                 if funcHandler:
-                    thisRun.promoteType(-1)
-                    mylog.info("Calling %s" % funcHandler.func_name)
-                    funcHandler(thisRun.outputs[-1])
-                    thisRun.demoteType(-1)
-                    mylog.info("Done calling %s, now sleeping", funcHandler.func_name)
+                    pid = os.fork()
+                    if pid:
+                        newpid, exit = os.wait()
+                        mylog.info("Exit status %s from PID %s", exit, newpid)
+                    else:
+                        mylog.info("Forked process reporting for duty")
+                        thisRun.promoteType(-1)
+                        mylog.info("Calling %s" % funcHandler.func_name)
+                        funcHandler(thisRun.outputs[-1])
+                        #thisRun.demoteType(-1)
+                        mylog.info("Done calling %s, now dying", funcHandler.func_name)
+                        sys.exit()
         time.sleep(WAITBETWEEN)
 
 def runOnce(md=None):
