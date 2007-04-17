@@ -382,7 +382,10 @@ class EnzoHierarchy(EnzoParameterFile):
             allArrays[:,16:17] = self.gridTimes[:]
             allArrays[:,17:18] = self.gridNumberOfParticles[:]
             mylog.info("Outputting allArray to %s", arrayFilename)
-            allArrays.tofile(arrayFilename)
+            try:
+                allArrays.tofile(arrayFilename)
+            except:
+                mylog.error("There was an error writing to the file.  Skipping.")
             del allArrays
         time13=time.time()
         #print "Took %s" % (time13-time12)
@@ -660,6 +663,38 @@ class EnzoHierarchy(EnzoParameterFile):
         self.parameters["Max%sValue" % (field)] = maxVal
         self.parameters["Max%sPos" % (field)] = "%s" % (pos)
         return maxVal, pos
+
+    def findMin(self, field):
+        """
+        Returns value, center of location of minimum for a given field
+
+        Arguments:
+        @param field: field (derived or otherwise) of which to look for maximum
+        """
+        gI = na.where(self.gridLevels >= 0) # Slow but pedantic
+        minVal = 1e100
+        for grid in self.grids[gI[0]]:
+            mylog.debug("Checking %s (level %s)", grid.id, grid.Level)
+            val, coord = grid.findMin(field)
+            if val < minVal:
+                minCoord = coord
+                minVal = val
+                minGrid = grid
+        mc = na.array(minCoord)
+        pos=minGrid.getPosition(mc)
+        pos[0] += 0.5*minGrid.dx
+        pos[1] += 0.5*minGrid.dx
+        pos[2] += 0.5*minGrid.dx
+        mylog.info("Min Value is %0.5e at %0.16f %0.16f %0.16f in grid %s at level %s", \
+              minVal, pos[0], pos[1], pos[2], minGrid, minGrid.Level)
+        self.center = pos
+        # This probably won't work for anyone else
+        self.binkVelocity = (minGrid["x-velocity"][minCoord], \
+                             minGrid["y-velocity"][minCoord], \
+                             minGrid["z-velocity"][minCoord])
+        self.parameters["Min%sValue" % (field)] = minVal
+        self.parameters["Min%sPos" % (field)] = "%s" % (pos)
+        return minVal, pos
 
     def getProjection(self, axis, field, fileName=None, minLevel=0, maxLevel=None, \
                       weightField=None):

@@ -12,6 +12,7 @@ fieldInfo[fieldName] = (Units, ProjectedUnits, TakeLog, Function)
 @author: U{John Wise<http://www.slac.stanford.edu/~jwise/>}
 @organization: U{KIPAC<http://www-group.slac.stanford.edu/KIPAC/>}
 @contact: U{jwise@slac.stanford.edu<mailto:jwise@slac.stanford.edu>}
+@change: Mon Apr 16 10:07:26 PDT 2007
 """
 
 from yt.lagos import *
@@ -38,7 +39,11 @@ fieldInfo["Electron_Fraction"] = ("", None, True, None)
 
 # These are all the fields that should be logged when plotted
 # NOTE THAT THIS IS OVERRIDEN BY fieldInfo !
-log_fields = [ "Density_Squared", "k23", "k22", "k13" ]
+log_fields = [ "Density_Squared", "k23", "k22", "k13", "Br_Abs","Btheta_Abs","Bphi_Abs" ]
+
+for i in range(3):
+    for f in ["AngularMomentumDisplay", "AngularVelocity"]:
+        log_fields.append("%s_%s_vcomp_Abs" % (f, i))
 
 colormap_dict = {"Temperature":"Red Temperature"}
 
@@ -192,7 +197,8 @@ fieldInfo["NumberDensity"] = ("cm^-3", "cm^-2", True, NumberDensity)
 
 def Outline(self, fieldName):
     """Just the level, for outlines of grid structure"""
-    self[fieldName] = na.ones(self.myChildMask.shape) * self.Level + 1
+    #self[fieldName] = na.ones(self.myChildMask.shape) * self.Level + 1
+    self[fieldName] = na.ones(self["Density"].shape) * (self.dx / self.dx.max())
 fieldInfo["Outline"] = ("Level", "LevelSum", False, Outline)
 
 def SoundSpeed(self, fieldName):
@@ -293,8 +299,15 @@ def Metallicity(self, fieldName):
     else:
         self[fieldName] = self["SN_Colour"] / self["Density"] / \
                           zSolar
-        
 fieldInfo["Metallicity"] = ("Z/Z_solar", None, True, Metallicity)
+
+def CellMassCode(self, fieldName):
+    self[fieldName] = na.ones(self["Density"].shape, na.Float64)
+    self[fieldName] *= (self.dx)
+    self[fieldName] *= (self.dy)
+    self[fieldName] *= (self.dz)
+    self[fieldName] *= self["Density"]
+fieldInfo["CellMassCode"] = (None, None, True, CellMassCode)
 
 def CellMass(self, fieldName):
     """
@@ -302,13 +315,9 @@ def CellMass(self, fieldName):
     Useful for mass-weighted plots.
     """
     msun = 1.989e33
-    unitConversion = (self.hierarchy["Density"] / msun)
-    self[fieldName] = na.ones(self["Density"].shape, na.Float64)
-    self[fieldName] *= (self.dx) * self.hierarchy["cm"]
-    self[fieldName] *= (self.dy) * self.hierarchy["cm"]
-    self[fieldName] *= (self.dz) * self.hierarchy.units["cm"]
-    self[fieldName] *= self["Density"]
-    self[fieldName] *= unitConversion
+    unitConversion = (self.hierarchy["Density"] / msun) * \
+                     (self.hierarchy["cm"]**3.0)
+    self[fieldName] = self["CellMassCode"] * unitConversion
 fieldInfo["CellMass"] = ("Msun", None, True, CellMass)
 
 def Volume(self, fieldName):
@@ -418,3 +427,141 @@ def DensityComp(self, fieldName):
     """
     self[fieldName] = abs((self["ColorSum"] / self["Density"]) - 1.0)
 fieldInfo["DensityComp"] = (None, None, True, DensityComp)
+
+def MagneticEnergyDensity(self, fieldName):
+    self[fieldName] = (self["Bx"]**2) + (self["By"]**2) + (self["Bz"]**2)
+fieldInfo["MagneticEnergyDensity"] = (None, None, True, MagneticEnergyDensity)
+
+def IsothermalMagneticFieldRHS(self, fieldName):
+    """
+    (x^2+z^2)/(v_0 * delta t)
+
+    @note: Right now this assumes that we are in the y=0.5 plane.
+    @todo: Convert to proper B_theta and B_r formulation, so that it works on
+    all coordinate planes.
+    @bug: Only works at y=0.5, and gives wrong results elsewhere.
+    """
+    self[fieldName] = 1.0 - (self.hierarchy["v0"] * \
+                             self.hierarchy["InitialTime"]) / \
+                      self["RadiusCode"]
+fieldInfo["IsothermalMagneticFieldRHS"] = (None, None, False, IsothermalMagneticFieldRHS)
+
+def IsothermalMagneticFieldLHS(self, fieldName):
+    """
+    Compare the actual by versus the analytic solution
+    """
+    # First we calculate Btheta_i from the By_i, Bẕ_i and Bx_i
+    self[fieldName] = self["Btheta"]/self["Btheta_i"]
+fieldInfo["IsothermalMagneticFieldLHS"] = (None, None, True, IsothermalMagneticFieldLHS)
+
+def Btheta_i(self, fieldName):
+    self[fieldName] = na.cos(self["theta"]) * \
+                        (na.cos(self["phi"]) * self.hierarchy["Bx_i"] + \
+                         na.sin(self["phi"]) * self.hierarchy["By_i"]) \
+                    - na.sin(self["theta"]) * self.hierarchy["Bz_i"]
+fieldInfo["Btheta_i"] = (None, None, False, Btheta_i)
+
+def IsothermalMagneticFieldComp(self, fieldName):
+    self[fieldName] = self["IsothermalMagneticFieldLHS"] - \
+                      self["IsothermalMagneticFieldRHS"]
+fieldInfo["IsothermalMagneticFieldComp"] = (None, None, True, IsothermalMagneticFieldComp)
+
+def Br(self, fieldName):
+    self[fieldName] = na.sin(self["theta"]) * \
+                        (na.cos(self["phi"]) * self["Bx"] + \
+                         na.sin(self["phi"]) * self["By"]) \
+                    + na.cos(self["theta"]) * self["Bz"]
+fieldInfo["Br"] = (None, None, False, Br)
+
+def Btheta(self, fieldName):
+    self[fieldName] = na.cos(self["theta"]) * \
+                        (na.cos(self["phi"]) * self["Bx"] + \
+                         na.sin(self["phi"]) * self["By"]) \
+                    - na.sin(self["theta"]) * self["Bz"]
+fieldInfo["Btheta"] = (None, None, False, Btheta)
+
+def Bphi(self, fieldName):
+    self[fieldName] = - na.sin(self["phi"])*self["Bx"] \
+                      + na.cos(self["phi"])*self["By"]
+fieldInfo["Bphi"] = (None, None, False, Bphi)
+
+def theta(self, fieldName):
+    self[fieldName] = na.arctan((self.coords[1,:]-self.center[1])
+                               /(self.coords[0,:]-self.center[0]))
+fieldInfo["theta"] = (None, None, False, theta)
+
+def phi(self, fieldName):
+    self[fieldName] = na.arccos((self.coords[2,:]-self.center[2])/self["RadiusCode"])
+fieldInfo["phi"] = (None, None, False, phi)
+
+def AngularVelocity(self, fieldName):
+    """
+    Calculate the angular velocity.  Returns a vector for each cell.
+    """
+    r_vec = (self.coords - na.reshape(self.center,(3,1)))
+    v_vec = na.array([self["x-velocity"],self["y-velocity"],self["z-velocity"]], \
+                     na.Float32)
+    self[fieldName] = na.zeros(v_vec.shape, na.Float32)
+    self[fieldName][0,:] = (r_vec[1,:] * v_vec[2,:]) - \
+                           (r_vec[2,:] * v_vec[1,:])
+    self[fieldName][1,:] = (r_vec[0,:] * v_vec[2,:]) - \
+                           (r_vec[2,:] * v_vec[0,:])
+    self[fieldName][2,:] = (r_vec[0,:] * v_vec[1,:]) - \
+                           (r_vec[1,:] * v_vec[0,:])
+fieldInfo["AngularVelocity"] = (None, None, False, AngularVelocity)
+
+def AngularMomentum(self, fieldName):
+    """
+    Angular momentum, but keeping things in density-form, so displayable as a
+    slice.
+    """
+    self[fieldName] = self["AngularVelocity"] * self["Density"]
+fieldInfo["AngularMomentum"] = (None, None, False, AngularMomentum)
+
+def InertialTensor(self, fieldName):
+    """
+    Calculate the U{Moment of Inertia<http://en.wikipedia.org/wiki/Moment_of_inertia>} 
+    tensor.  
+    """
+    # We do this all spread out.  It's quicker this way than a set of loops
+    # over indices and letting values cancel out.
+    InertialTensor = na.zeros((3,3,self.coords.shape[1]), na.Float32)
+    Ixx = (self.coords[1,:]**2.0 + self.coords[2,:]**2.0)
+    Iyy = (self.coords[0,:]**2.0 + self.coords[2,:]**2.0)
+    Izz = (self.coords[0,:]**2.0 + self.coords[1,:]**2.0)
+    Ixy = -(self.coords[0,:]*self.coords[1,:])
+    Ixz = -(self.coords[0,:]*self.coords[2,:])
+    Iyz = -(self.coords[1,:]*self.coords[2,:])
+    InertialTensor[0,0,:] = Ixx
+    InertialTensor[1,1,:] = Iyy
+    InertialTensor[2,2,:] = Izz
+    InertialTensor[0,1,:] = Ixy
+    InertialTensor[1,0,:] = Ixy
+    InertialTensor[0,2,:] = Ixz
+    InertialTensor[2,0,:] = Ixz
+    InertialTensor[1,2,:] = Iyz
+    InertialTensor[2,1,:] = Iyz
+    self[fieldName] = InertialTensor * self["Density"]
+fieldInfo["InertialTensor"] = (None, None, False, InertialTensor)
+
+def DiagonalInertialTensor(self, fieldName):
+    """
+    I feel somewhat confident that this field is mostly meaningless when
+    applied to a set of points.  The real strategy should be to bin the
+    InertialTensor, then diagonalize *that*.  I've left this in here in case we
+    set up a generalized EnzoData subclass of binned points.
+    """
+    ii = na.matrixmultiply
+    # Cache some stuff so we don't have to call lots of __getitem__ routines.
+    InertialTensor = self["InertialTensorDisplay"]
+    xr = InertialTensor.shape[2]
+    myField = na.zeros((3,xr),na.Float32)
+    for x in xrange(xr):
+        if x % 1000 == 0:
+            mylog.debug("Diagonalizing %i / %i = %0.1f%% complete", x, xr, 100*float(x)/xr)
+        k = InertialTensor[:,:,x]
+        evl, evc = la.eigenvectors(k)
+        myField[:,x] = na.diagonal(ii(ii(la.inverse(evc),k),evc).real)
+        myField[:,x] /= na.innerproduct(self[fieldName][:,x], self[fieldName][:,x])
+    self[fieldName] = myField
+fieldInfo["DiagonalInertialTensor"] = (None, None, False, DiagonalInertialTensor)

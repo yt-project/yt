@@ -17,6 +17,7 @@ from pyhdf import SD
 import pyhdf.error
 import tables, warnings
 import numarray as na
+import numarray.linear_algebra as la
 import numarray.objects as obj
 import numarray.nd_image as nd
 import numarray.records as rec

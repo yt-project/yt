@@ -101,6 +101,8 @@ class EnzoData:
         temperature.  All fields used in generation will remain resident in
         memory.
 
+        Also, it now works better with vectors.
+
         (should be moved to a standalone?  Or should EnzoGrid subclass EnzoData?)
 
         @param fieldName: field to generate
@@ -115,6 +117,17 @@ class EnzoData:
         elif fieldName.endswith("Squared"):
             baryonField = fieldName[:-8]
             self[fieldName] = (self[baryonField])**2.0
+        elif fieldName.endswith("_vcomp"):
+            baryonField = fieldName[:-8]
+            index = int(fieldName[-7:-6])
+            self[fieldName] = self[baryonField][index,:]
+        elif fieldName.endswith("_tcomp"):
+            baryonField = fieldName[:-9]
+            ii = map(int, fieldName[-8:-6])
+            self[fieldName] = self[baryonField][ii[0],ii[1],:]
+        elif fieldName.endswith("Abs"):
+            baryonField = fieldName[:-4]
+            self[fieldName] = abs(self[baryonField])
         elif fieldInfo.has_key(fieldName):
             # We do a fallback to checking the fieldInfo dict
             # Note that it'll throw an exception here if it's not found...
@@ -569,11 +582,15 @@ class EnzoSlice(Enzo2DData):
         slHERE = tuple(sl)
         sl.reverse()
         slHDF = tuple(sl)
-        #print sl
-        if not(grid.data.has_key(field)):
-            dv = self.readDataSlice(grid, field, slHDF)
-        else:
-            dv = grid[field][slHDF]
+        # The following bit breaks the finest grid.  Hopefully we won't suffer
+        # too much of a performance hit by always reading in the data.
+        #if not(grid.data.has_key(field)):
+            #print "Reading slice", grid
+            #dv = self.readDataSlice(grid, field, slHDF)
+        #else:
+            #print "We seem to have it already...", grid
+            #dv = grid[field][slHERE]
+        dv = self.readDataSlice(grid, field, slHDF)
         #print dv.flat.shape, grid.myChildMask[slHERE].flat.shape, grid.ActiveDimensions
         cm = na.where(grid.myChildMask[slHERE].flat == 1)
         #print field, cm[0].shape, dv.shape

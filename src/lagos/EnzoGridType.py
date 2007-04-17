@@ -225,6 +225,17 @@ class EnzoGrid:
         val = self[field][coord]
         return val, coord
 
+    def findMin(self, field):
+        """
+        Returns value, coordinate of minimum value in this gird
+
+        @param field: field to check
+        @type field: string
+        """
+        coord=nd.minimum_position(self[field])
+        val = self[field][coord]
+        return val, coord
+
     def getPosition(self, coord):
         """
         Returns position of a coordinate
@@ -388,6 +399,17 @@ class EnzoGrid:
         elif fieldName.endswith("Squared"):
             baryonField = fieldName[:-7]
             self[fieldName] = (self[baryonField])**2.0
+        elif fieldName.endswith("_vcomp"):
+            baryonField = fieldName[:-8]
+            index = int(fieldName[-7:-6])
+            self[fieldName] = self[baryonField][index,:]
+        elif fieldName.endswith("_tcomp"):
+            baryonField = fieldName[:-9]
+            ii = map(int, fieldName[-8:-6])
+            self[fieldName] = self[baryonField][ii[0],ii[1],:]
+        elif fieldName.endswith("Abs"):
+            baryonField = fieldName[:-4]
+            self[fieldName] = abs(self[baryonField])
         elif fieldInfo.has_key(fieldName):
             # We do a fallback to checking the fieldInfo dict
             # Note that it'll throw an exception here if it's not found...
