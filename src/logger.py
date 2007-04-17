@@ -25,31 +25,48 @@ f = logging.Formatter("%(levelname)-10s %(asctime)s %(message)s")
 # because all calls to logging.getLogger((WHATEVER) return the same logger
 # object for a given value of WHATEVER.
 #
+# Note that if you don't have permissions to the current directory, it just
+# dumps to /dev/null .  This may be undesirable.
 
-fidoHandler = handlers.RotatingFileHandler("fido.log", maxBytes=10*1024*1024, backupCount=10)
+try:
+    fidoHandler = handlers.RotatingFileHandler("fido.log", maxBytes=10*1024*1024, backupCount=10)
+except IOError:
+    fidoHandler = logging.FileHandler("/dev/null")
 fidoHandler.setFormatter(f)
 fidoLogger = logging.getLogger("yt.fido")
 fidoLogger.addHandler(fidoHandler)
 
-ravenHandler = handlers.RotatingFileHandler("raven.log", maxBytes=10*1024*1024, backupCount=10)
+try:
+    ravenHandler = handlers.RotatingFileHandler("raven.log", maxBytes=10*1024*1024, backupCount=10)
+except IOError:
+    ravenHandler = logging.FileHandler("/dev/null")
 ravenHandler.setFormatter(f)
 ravenLogger = logging.getLogger("yt.raven")
 ravenLogger.addHandler(ravenHandler)
 ravenLogger.setLevel(logging.NOTSET)
 
-lagosHandler = handlers.RotatingFileHandler("lagos.log", maxBytes=10*1024*1024, backupCount=10)
+try:
+    lagosHandler = handlers.RotatingFileHandler("lagos.log", maxBytes=10*1024*1024, backupCount=10)
+except IOError:
+    lagosHandler = logging.FileHandler("/dev/null")
 lagosHandler.setFormatter(f)
 lagosLogger = logging.getLogger("yt.lagos")
 lagosLogger.addHandler(lagosHandler)
 lagosLogger.setLevel(logging.NOTSET)
 
-enkiHandler = handlers.RotatingFileHandler("enki.log", maxBytes=10*1024*1024, backupCount=10)
+try:
+    enkiHandler = handlers.RotatingFileHandler("enki.log", maxBytes=10*1024*1024, backupCount=10)
+except IOError:
+    enkiHandler = logging.FileHandler("/dev/null")
 enkiHandler.setFormatter(f)
 enkiLogger = logging.getLogger("yt.enki")
 enkiLogger.addHandler(enkiHandler)
 enkiLogger.setLevel(logging.NOTSET)
 
-deliveratorHandler = handlers.RotatingFileHandler("deliverator.log", maxBytes=10*1024*1024, backupCount=10)
+try:
+    deliveratorHandler = handlers.RotatingFileHandler("deliverator.log", maxBytes=10*1024*1024, backupCount=10)
+except IOError:
+    deliveratorHandler = logging.FileHandler("/dev/null")
 deliveratorHandler.setFormatter(f)
 deliveratorLogger = logging.getLogger("yt.deliverator")
 deliveratorLogger.addHandler(deliveratorHandler)
