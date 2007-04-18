@@ -80,3 +80,6 @@ cool_out_key = \
 #    from fields import fieldInfo, log_fields
 #except:
 #    pass
+
+weighted_fields = \
+    ["Density", "Temperature"]

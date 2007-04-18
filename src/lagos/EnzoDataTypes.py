@@ -657,14 +657,59 @@ class Enzo3DData(EnzoData):
         if self.coords == None:
             self.coords = na.array([self.x, self.y, self.z])
 
+    def makeProfile(self, fields, nBins, rInner, rOuter):
+        """
+        Here we make a profile.  Note that, for now, we do log-spacing in the
+        bins, and we also assume we are given the radii in code units.
+        """
+        rOuter = min(rOuter, self.findMaxRadius)
+        # Let's make the bins
+        lrI = log10(rInner)
+        lrO = log10(rOuter)
+        st = (lrO-lrI)/(nBins-1)
+        bins = 10**(na.arange(lrI, lrO+st, st))
+        radiiOrder = na.argsort(self["RadiusCode"])
+        fieldCopies = {} # We double up our memory usage here for sorting
+        radii = self["RadiusCode"][radiiOrder]
+        print radii.shape
+        print "BINS!", bins
+        binIndices = na.searchsorted(bins, radii)
+        nE = self["RadiusCode"].shape[0]
+        fieldProfiles = {}
+        for field in fields:
+            fieldCopies[field] = self[field][radiiOrder]
+            oneElementShape = list(fieldCopies[field].shape)[:-1]
+            fieldProfiles[field] = na.zeros(tuple(oneElementShape + [nBins]),na.Float32)
+        # Unweighted at the moment...
+        l=0
+        for binI in range(len(bins)):
+            bin = bins[binI]
+            bI = na.where(binIndices == binI)[0]
+            for field in fields:
+                #print na.take(fieldCopies[field], bI, -1).sum()
+                fieldProfiles[field][binI] += na.take( \
+                    fieldCopies[field], bI, axis=-1).sum()
+        print l
+        return fieldProfiles
+
 class EnzoRegion(Enzo3DData):
     def __init__(self, hierarchy, center, leftEdge, rightEdge, fields = None):
+        """
+        Initializer for a rectangular prism of data.
+
+        @note: Center does not have to be (rightEdge - leftEdge) / 2.0
+        """
         Enzo3DData.__init__(self, hierarchy, center, fields)
         self.fields = ["Radius"] + self.fields
         self.leftEdge = leftEdge
         self.rightEdge = rightEdge
         self.radii = None # Still have radii
         self.refreshData()
+
+    def findMaxRadius(self):
+        RE = na.array(self.rightEdge)
+        LE = na.array(self.leftEdge)
+        return (RE-LE).min()
 
     def getData(self, field = None):
         ind = na.where(na.sum(na.transpose(na.logical_or(na.greater(self.hierarchy.gridLeftEdge, self.rightEdge), \

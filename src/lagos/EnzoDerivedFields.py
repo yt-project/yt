@@ -432,6 +432,34 @@ def MagneticEnergyDensity(self, fieldName):
     self[fieldName] = (self["Bx"]**2) + (self["By"]**2) + (self["Bz"]**2)
 fieldInfo["MagneticEnergyDensity"] = (None, None, True, MagneticEnergyDensity)
 
+def IsothermalMagneticFieldX(self, fieldName):
+    """
+    (x^2+z^2)/(v_0 * delta t)
+
+    @note: Right now this assumes that we are in the y=0.5 plane.
+    @todo: Convert to proper B_theta and B_r formulation, so that it works on
+    all coordinate planes.
+    @bug: Only works at y=0.5, and gives wrong results elsewhere.
+    """
+    rc = ((self.coords[0,:]-0.5)**2.0 + \
+          (self.coords[2,:]-0.5)**2.0) ** 0.5
+    self[fieldName] = rc / (-self.hierarchy["v0"] \
+                            * self.hierarchy["InitialTime"])
+fieldInfo["IsothermalMagneticFieldX"] = (None, None, False, IsothermalMagneticFieldX)
+
+def IsothermalMagneticFieldY(self, fieldName):
+    """
+    Compare the actual by versus the analytic solution
+    """
+    self[fieldName] = self["By"]/self.hierarchy["By_i"] - 1.0
+fieldInfo["IsothermalMagneticFieldY"] = (None, None, True, IsothermalMagneticFieldY)
+
+def IsothermalMagneticFieldCompPlane(self, fieldName):
+    self[fieldName] = self["IsothermalMagneticFieldY"] - \
+                      self["IsothermalMagneticFieldX"]**-1.0
+fieldInfo["IsothermalMagneticFieldCompPlane"] = \
+            (None, None, True, IsothermalMagneticFieldCompPlane)
+
 def IsothermalMagneticFieldRHS(self, fieldName):
     """
     (x^2+z^2)/(v_0 * delta t)
