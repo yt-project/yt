@@ -1,6 +1,7 @@
 //
-// point_combine:
-//   A module for merging points from different grids
+// EnzoCombine
+//   A module for merging points from different grids, in various ways.
+//   Used for projections, interpolations, and binning profiles.
 //
 // Written by: Matthew Turk (mturk@stanford.edu) Nov 2006
 // Modified:
@@ -507,11 +508,106 @@ Py_Interpolate(PyObject *obj, PyObject *args)
     return NULL;      
 }
 
+static void 
+BinProfile(long num_bins, Int32 *binindices, Float32 *profilevalues,
+           long num_elements, Float32 *fieldvalues, Float32 *weightvalues)
+{
+    // We are going to assume -- making an ass out of you and me -- that the
+    // values of the profile are already zero.  
+
+    Float32 weights[num_bins];
+    Float32 myweight;
+    Int32 mybin = -1;
+    int bin;
+    int element;
+
+    for (bin = 0; bin < num_bins ; bin++) {
+        weights[bin] = 0;
+    }
+
+    if (weightvalues[0] != -999) {
+        for (element = 0; element < num_elements ; element++) {
+            mybin = binindices[element];
+            myweight = weightvalues[mybin];
+            profilevalues[mybin] += myweight*fieldvalues[element];
+            weights[mybin] += myweight;
+        }
+        for (bin = 0; bin < num_bins ; bin++) {
+            profilevalues[bin] = profilevalues[bin] / weights[bin];
+        }
+    } else {
+        for (element = 0; element < num_elements ; element++) {
+            mybin = binindices[element];
+            myweight = weightvalues[mybin];
+            profilevalues[mybin] += fieldvalues[element];
+        }
+    }
+
+    // Okay, and we're done.
+
+}
+
+static PyObject *
+Py_BinProfile(PyObject *obj, PyObject *args)
+{
+    PyObject   *ofield, *obinindices, *oprofile, *oweightfield;
+    PyArrayObject   *field, *binindices, *profile, *weightfield;
+
+    if (!PyArg_ParseTuple(args, "OOOO",
+                &ofield, &obinindices, &oprofile, &oweightfield))
+        return PyErr_Format(_combineError, 
+                    "Interpolate: Invalid parameters.");
+
+    /* Align, Byteswap, Contiguous, Typeconvert */
+    field          =  NA_InputArray(ofield         , tFloat32, NUM_C_ARRAY | NUM_WRITABLE );
+    binindices     =  NA_InputArray(obinindices    ,   tInt32, NUM_C_ARRAY | NUM_WRITABLE );
+    profile        =  NA_InputArray(oprofile       , tFloat32, NUM_C_ARRAY | NUM_WRITABLE );
+    weightfield    =  NA_InputArray(oweightfield   , tFloat32, NUM_C_ARRAY | NUM_WRITABLE );
+
+    if (!field || !binindices || !profile || !weightfield) {
+        PyErr_Format( _combineError, 
+                  "BinProfile: error converting array inputs.");
+        goto _fail;
+    }
+
+    if (field->dimensions[0] != binindices->dimensions[0]) {
+        PyErr_Format(_combineError,
+                 "BinProfile: number of field values must match number of "
+                  "indices.  %i, %i", field->dimensions[0],
+                                      binindices->dimensions[0] );
+        goto _fail;
+    }
+
+    BinProfile(profile->dimensions[0],
+               NA_OFFSETDATA(binindices),
+               NA_OFFSETDATA(profile),
+               field->dimensions[0],
+               NA_OFFSETDATA(field),
+               NA_OFFSETDATA(weightfield));
+
+    Py_XDECREF(field);
+    Py_XDECREF(binindices);
+    Py_XDECREF(profile);
+    Py_XDECREF(weightfield);
+
+    /* Align, Byteswap, Contiguous, Typeconvert */
+    return Py_None;
+
+  _fail:
+    Py_XDECREF(field);
+    Py_XDECREF(binindices);
+    Py_XDECREF(profile);
+    Py_XDECREF(weightfield);
+
+    return NULL;      
+}
+
 static PyMethodDef _combineMethods[] = {
     {"RefineCoarseData", Py_RefineCoarseData, METH_VARARGS},
     {"CombineData", Py_CombineData, METH_VARARGS},
     {"FindUpper", Py_FindUpper, METH_VARARGS},
     {"Interpolate", Py_Interpolate, METH_VARARGS},
+    {"BinProfile", Py_BinProfile, METH_VARARGS},
     {NULL, NULL} /* Sentinel */
 };
 

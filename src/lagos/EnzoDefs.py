@@ -81,5 +81,7 @@ cool_out_key = \
 #except:
 #    pass
 
-weighted_fields = \
-    ["Density", "Temperature"]
+# Note that we default to CellMass as the weight
+
+field_weights = \
+    {"CellMass" : -999}

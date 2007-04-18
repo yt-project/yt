@@ -661,36 +661,69 @@ class Enzo3DData(EnzoData):
         """
         Here we make a profile.  Note that, for now, we do log-spacing in the
         bins, and we also assume we are given the radii in code units.
+        field_weights defines the weighting for a given field.  If not given,
+        assumed to be mass-weighted.
+        
+        Units might be screwy, but I don't think so.  Unless otherwise stated,
+        returned in code units.  CellMass, by the way, is Msun.  And
+        accumulated.
+
+        Returns the bin outer radii and a dict of the profiles.
+
+        @param fields: fields to get profiles of
+        @type fields: list of strings
+        @param nBins: number of bins
+        @type nBins: int
+        @param rInner: inner radius, code units
+        @param rOuter: outer radius, code units
         """
+        if not istype(fields, types.ListType):
+            fields = [fields]
         rOuter = min(rOuter, self.findMaxRadius)
         # Let's make the bins
         lrI = log10(rInner)
         lrO = log10(rOuter)
-        st = (lrO-lrI)/(nBins-1)
+        st = (lrO-lrI)/(nBins)
         bins = 10**(na.arange(lrI, lrO+st, st))
         radiiOrder = na.argsort(self["RadiusCode"])
         fieldCopies = {} # We double up our memory usage here for sorting
         radii = self["RadiusCode"][radiiOrder]
-        print radii.shape
-        print "BINS!", bins
+        #print radii.max()
+        #print radii.min()
+        #print radii.shape
+        #print "BINS!", bins
         binIndices = na.searchsorted(bins, radii)
         nE = self["RadiusCode"].shape[0]
+        #defaultWeight = na.ones(nE, na.Float32)
+        defaultWeight = self["CellMass"][radiiOrder]
         fieldProfiles = {}
+        if "CellMass" not in fields:
+            fields.append("CellMass")
         for field in fields:
-            fieldCopies[field] = self[field][radiiOrder]
-            oneElementShape = list(fieldCopies[field].shape)[:-1]
-            fieldProfiles[field] = na.zeros(tuple(oneElementShape + [nBins]),na.Float32)
-        # Unweighted at the moment...
-        l=0
-        for binI in range(len(bins)):
-            bin = bins[binI]
-            bI = na.where(binIndices == binI)[0]
-            for field in fields:
-                #print na.take(fieldCopies[field], bI, -1).sum()
-                fieldProfiles[field][binI] += na.take( \
-                    fieldCopies[field], bI, axis=-1).sum()
-        print l
-        return fieldProfiles
+            fc = self[field][radiiOrder]
+            fp = na.zeros(nBins,na.Float32)
+            if field_weights.has_key(field):
+                if field_weights[field] == -999:
+                    ss = "Accumulation weighting"
+                    weight = na.ones(nE, na.Float32) * -999
+                elif field_weights[field] != None:
+                    ww = field_weights[field]
+                    ss="Weighting with %s" % (ww)
+                    weight = self[ww][radiiOrder]
+                elif field_weights[field] == None:
+                    ss="Not weighted"
+                    weight = na.ones(nE, na.Float32)
+                else:
+                    mylog.warning("UNDEFINED weighting for %s", field)
+                    ss="Undefined weighting"
+            else:
+                ss="Weighting with default"
+                weight = defaultWeight
+            mylog.info("Getting profile of %s (%s)", field, ss)
+            EnzoCombine.BinProfile(fc, binIndices, \
+                                   fp, weight)
+            fieldProfiles[field] = fp
+        return bins, fieldProfiles
 
 class EnzoRegion(Enzo3DData):
     def __init__(self, hierarchy, center, leftEdge, rightEdge, fields = None):
@@ -813,6 +846,9 @@ class EnzoSphere(Enzo3DData):
         self.radius = radius
         self.radii = None
         self.refreshData()
+
+    def findMaxRadius(self):
+        return self.radius
 
     def getData(self, field = None):
         # We get it for the values in fields and coords
