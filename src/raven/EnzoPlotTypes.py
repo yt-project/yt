@@ -97,7 +97,11 @@ class EnzoRadialPlot(EnzoPlot):
                 self.dataLabel.append(field + " (%s)" % (lagos.fieldInfo[field][0]))
             else:
                 self.dataLabel.append(field)
-            self.tuple.addColumn(field,list(self.data[field]))
+            if self.hierarchy.conversionFactors.has_key(field):
+                conv = self.hierarchy.conversionFactors[field]
+            else:
+                conv = 1
+            self.tuple.addColumn(field,list(self.data[field]*conv))
         self.field = self.fields[1]
         self.plotFromData(self.tuple)
 
@@ -369,6 +373,7 @@ class EnzoVMSlice(EnzoVM):
         mylog.info( "Getting from field = %s at center %s on axis %s", field, self.c, axis)
         if slice_data == None:
             slice_data = lagos.EnzoSlice(self.hierarchy, axis, self.c[axis], field)
+        slice_data.center = self.c
         
         time2 = time.time()
         mylog.info( "Took %0.3e seconds to slice",  time2-time1)
