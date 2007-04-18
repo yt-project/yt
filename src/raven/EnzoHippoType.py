@@ -4,6 +4,7 @@ Enzo's interaction with hippodraw
 @author: U{Matthew Turk<http://www.stanford.edu/~mturk/>}
 @organization: U{KIPAC<http://www-group.slac.stanford.edu/KIPAC/>}
 @contact: U{mturk@slac.stanford.edu<mailto:mturk@slac.stanford.edu>}
+@change: Mon Apr 16 10:07:05 PDT 2007 Added addClusterOutput
 """
 
 from EnzoPlotTypes import *
@@ -108,7 +109,7 @@ class EnzoHippo:
         self.canvas.addDisplay(self.plots[-1].plot)
         return self.plots[-1]
 
-    def addRadialScatterPlot(self, fields, radius, unit, center=None):
+    def addRadialScatterPlot(self, fields, radius, unit, center=None, fedData=None):
         """
         Add a new plot of this type
 
@@ -124,7 +125,9 @@ class EnzoHippo:
         """
         if center==None:
             v, center = self.hierarchy.findMax('Density')
-        self.plots.append(EnzoRadialScatterPlot(self.hierarchy, self.canvas, self, offScreen=self.offScreen))
+        self.plots.append( \
+            EnzoRadialScatterPlot(self.hierarchy, self.canvas, \
+                    self, offScreen=self.offScreen, fedData=fedData))
         self.plots[-1].makePlot(center, radius, unit, fields)
         self.canvas.addDisplay(self.plots[-1].plot)
         return self.plots[-1]

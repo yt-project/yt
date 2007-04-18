@@ -69,7 +69,7 @@ class EnzoPlot:
             mylog.debug("Setting Width: %0.3e %s", self.width*unit[0], unit[1])
 
 class EnzoRadialPlot(EnzoPlot):
-    def makePlot(self, center, radius, unit, fields):
+    def makePlot(self, center, radius, unit, fields, fedData = None):
         time1=time.time()
         self.unit = unit
         if isinstance(unit, types.StringType):
@@ -82,7 +82,10 @@ class EnzoRadialPlot(EnzoPlot):
         self.center = center
         self.width = radius
         #xs, ys, zs, vs = self.hierarchy.getSphere(center, radius, fields)
-        self.sphere_data = lagos.EnzoSphere(self.hierarchy, self.center, self.radius, fields)
+        if not fedData:
+            self.sphere_data = lagos.EnzoSphere(self.hierarchy, self.center, self.radius, fields)
+        else:
+            self.sphere_data = fedData
         self.data = self.sphere_data
         self.fields = fields
 
@@ -109,6 +112,7 @@ class EnzoRadialPlot(EnzoPlot):
         mylog.debug("Took %0.3e seconds for everything", time2-time1)
 
     def refresh(self):
+        self.plot.setLabel('X',self.dataLabel[0])
         self.plot.setLabel('Y',self.dataLabel[1])
         if lagos.fieldInfo.has_key(self.field):
             sl = lagos.fieldInfo[self.field][2]
@@ -166,6 +170,16 @@ class EnzoRadialPlot(EnzoPlot):
         if not self.tuple.has_key(field):
             self.tuple.addColumn(field,list(self.data[field]*conv))
 
+    def switchRadius(self, field):
+        self.addField(field)
+        if lagos.fieldInfo.has_key(field):
+            self.dataLabel[0] = field + " (%s)" % (lagos.fieldInfo[field][0])
+        else:
+            self.dataLabel[0] = field
+        rep = self.plot.getDataRep()
+        rep.setAxisBinding('X',field)
+        self.refresh()
+
     def switchField(self, field):
         self.addField(field)
         self.field = field
@@ -176,6 +190,14 @@ class EnzoRadialPlot(EnzoPlot):
         rep = self.plot.getDataRep()
         rep.setAxisBinding('Y',self.field)
         self.refresh()
+
+    def setXRange(self, minVal, maxVal):
+        mylog.info("Setting domain to %0.5e - %0.5e", minVal, maxVal)
+        self.plot.setRange('X', minVal, maxVal)
+
+    def setYRange(self, minVal, maxVal):
+        mylog.info("Setting range to %0.5e - %0.5e", minVal, maxVal)
+        self.plot.setRange('Y', minVal, maxVal)
 
 class EnzoRadialProfilePlot(EnzoRadialPlot):
     def __init__(self, hierarchy, canvas, enzoHippo, offScreen):
@@ -208,15 +230,12 @@ class EnzoRadialProfilePlot(EnzoRadialPlot):
         self.field = self.fields[1]
         self.dataLabel = ["Radius (cm)", ""]
 
-    def setYRange(self, minVal, maxVal):
-        mylog.info("Setting range to %0.5e - %0.5e", minVal, maxVal)
-        self.plot.setRange('Y', minVal, maxVal)
-
 class EnzoRadialScatterPlot(EnzoRadialPlot):
-    def __init__(self, hierarchy, canvas, enzoHippo, offScreen):
+    def __init__(self, hierarchy, canvas, enzoHippo, offScreen, fedData=None):
         self.typeName = "RadialScatter"
         self.numAxes = 2
         self.plotType = "Scatter Plot"
+        self.fedData = fedData
         EnzoPlot.__init__(self, hierarchy, canvas, enzoHippo, offScreen)
 
     def makePlot(self, center, radius, unit, fields):
@@ -224,7 +243,8 @@ class EnzoRadialScatterPlot(EnzoRadialPlot):
             i = fields.index("Radius")
             del fields[i]
         fields = ["Radius"] + fields
-        EnzoRadialPlot.makePlot(self, center, radius, unit, fields)
+        EnzoRadialPlot.makePlot(self, center, radius, unit, fields, \
+                                fedData=self.fedData)
 
 class EnzoTwoPhase(EnzoRadialPlot):
     def __init__(self, hierarchy, canvas, enzoHippo, offScreen):
