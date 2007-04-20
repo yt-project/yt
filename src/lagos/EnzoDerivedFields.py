@@ -282,7 +282,8 @@ def RadiusCode(self, fieldName):
     delx = self.coords[0,:] - self.center[0]
     dely = self.coords[1,:] - self.center[1]
     delz = self.coords[2,:] - self.center[2]
-    self[fieldName] = ((delx**2.0) + (dely**2.0) + (delz**2.0))**0.5
+    self[fieldName] = na.maximum(((delx**2.0) + (dely**2.0) + (delz**2.0))**0.5, \
+                                 1e-30)
 fieldInfo["RadiusCode"] = (None, None, True, RadiusCode)
 
 def Radius(self, fieldName):
@@ -495,6 +496,8 @@ def Btheta_i(self, fieldName):
                         (na.cos(self["phi"]) * self.hierarchy["Bx_i"] + \
                          na.sin(self["phi"]) * self.hierarchy["By_i"]) \
                     - na.sin(self["theta"]) * self.hierarchy["Bz_i"]
+    self[fieldName] = na.maximum(1e-30,na.abs(self[fieldName])) * \
+                      na.sign(self[fieldName]+1e-30)  # Fix for zero
 fieldInfo["Btheta_i"] = (None, None, False, Btheta_i)
 
 def IsothermalMagneticFieldComp(self, fieldName):
@@ -533,7 +536,8 @@ def theta(self, fieldName):
 fieldInfo["theta"] = (None, None, False, theta)
 
 def phi(self, fieldName):
-    self[fieldName] = na.arccos((self.coords[2,:]-self.center[2])/self["RadiusCode"])
+    self[fieldName] = na.arccos((self.coords[2,:]-self.center[2])/ \
+                                    self["RadiusCode"])
 fieldInfo["phi"] = (None, None, False, phi)
 
 def AngularVelocity(self, fieldName):
