@@ -521,9 +521,15 @@ def Bphi(self, fieldName):
                       + na.cos(self["phi"])*self["By"]
 fieldInfo["Bphi"] = (None, None, False, Bphi)
 
+def ByCheck(self, fieldName):
+    self[fieldName] = na.sin(self["theta"])*na.sin(self["phi"])*self["Br"] \
+                    + na.cos(self["theta"])*na.sin(self["phi"])*self["Btheta"] \
+                    + na.cos(self["phi"])*self["Bphi"]
+fieldInfo["ByCheck"] = (None, None, False, ByCheck)
+
 def theta(self, fieldName):
-    self[fieldName] = na.arctan((self.coords[1,:]-self.center[1])
-                               /(self.coords[0,:]-self.center[0]))
+    self[fieldName] = na.arctan2((self.coords[1,:]-self.center[1]), \
+                                 (self.coords[0,:]-self.center[0]))
 fieldInfo["theta"] = (None, None, False, theta)
 
 def phi(self, fieldName):
