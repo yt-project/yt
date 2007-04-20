@@ -59,7 +59,7 @@ def DynamicalTime(self, fieldName):
     Note that we return in our natural units already
     """
     G = self.hierarchy["GravitationalConstant"]
-    t_dyn_coeff = sqrt(3*pi/(16*G)) * self.hierarchy["Time"]
+    t_dyn_coeff = (3*pi/(16*G))**0.5 * self.hierarchy["Time"]
     self[fieldName] = self["Density"]**(-1./2.) * t_dyn_coeff
 fieldInfo["DynamicalTime"] = ("s", None, True, DynamicalTime)
 
@@ -266,7 +266,7 @@ def RadialVelocity(self, fieldName):
     delx = self.coords[0,:] - self.hierarchy.center[0]
     dely = self.coords[1,:] - self.hierarchy.center[1]
     delz = self.coords[2,:] - self.hierarchy.center[2]
-    radius = sqrt((delx**2.0) + (dely**2.0) + (delz**2.0))
+    radius = ((delx**2.0) + (dely**2.0) + (delz**2.0))**0.5
     self[fieldName] = ( \
            ( delx * xv + \
              dely * yv +   \
@@ -319,6 +319,14 @@ def CellMass(self, fieldName):
                      (self.hierarchy["cm"]**3.0)
     self[fieldName] = self["CellMassCode"] * unitConversion
 fieldInfo["CellMass"] = ("Msun", None, True, CellMass)
+
+def DensityCGS(self, fieldName):
+    """
+    Calculates the density in g/cm^3 in each cell.  Useful for manually-created
+    profiles and other plots that don't get converted automagically.
+    """
+    self[fieldName] = self["Density"] * self.hierarchy["Density"]
+fieldInfo["DensityCGS"] = ("g/cm^3", "g/cm^2", True, DensityCGS)
 
 def Volume(self, fieldName):
     """

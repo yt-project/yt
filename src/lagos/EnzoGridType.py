@@ -323,8 +323,8 @@ class EnzoGrid:
             toCombineMask = na.logical_and.reduce(self.myChildMask, axis)
         # How do we do this the fastest?
         # We only want to project those values that don't have subgrids
-        fullProj = sum(maskedData,axis)*self.dx # Gives correct shape
-        weightProj = sum(weightData,axis)*self.dx
+        fullProj = na.sum(maskedData,axis)*self.dx # Gives correct shape
+        weightProj = na.sum(weightData,axis)*self.dx
         #fullProj = na.maximum.reduce(maskedData,axis) # Gives correct shape
         if not zeroOut:
             toCombineMask = na.ones(fullProj.shape)
@@ -333,6 +333,8 @@ class EnzoGrid:
         # Note that this is currently wrong for anything other than x (axis = 0)
         xind = cmI[0,:]
         yind = cmI[1,:]
+        #print "AUGH!", toCombineMask.shape, fullProj.shape, weightProj.shape, maskedData.shape, self.dx, \
+                #weightData.shape
         xpoints = na.array(xind+(self.LeftEdge[x_dict[axis]]/self.dx),na.Int64)
         ypoints = na.array(yind+(self.LeftEdge[y_dict[axis]]/self.dx),na.Int64)
         return [xpoints.flat, ypoints.flat, fullProj.flat, toCombineMask.flat, weightProj.flat]

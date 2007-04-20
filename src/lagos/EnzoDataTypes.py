@@ -306,7 +306,6 @@ class EnzoProj(Enzo2DData):
         fullLength = 0
         axis = self.axis # Speed up the access here by a miniscule amount
         dataFieldName = field
-        print "HEY!!!!!", minLevel, self.maxLevel+1
         for level in range(minLevel, self.maxLevel+1):
             zeroOut = (level != self.maxLevel)
             mylog.info("Projecting through level = %s", level)
@@ -358,7 +357,6 @@ class EnzoProj(Enzo2DData):
                             grid2.coarseData[2], grid2.coarseData[4], 2)
             all_data = [[],[],[],[],[]]
             for grid in gridsToProject:
-                #print grid.retVal[0]
                 all_data[0].append(grid.retVal[0])
                 all_data[1].append(grid.retVal[1])
                 all_data[2].append(grid.retVal[2])
@@ -677,13 +675,13 @@ class Enzo3DData(EnzoData):
         @param rInner: inner radius, code units
         @param rOuter: outer radius, code units
         """
-        if not istype(fields, types.ListType):
+        if not isinstance(fields, types.ListType):
             fields = [fields]
         rOuter = min(rOuter, self.findMaxRadius)
         # Let's make the bins
         lrI = log10(rInner)
         lrO = log10(rOuter)
-        st = (lrO-lrI)/(nBins)
+        st = (lrO-lrI)/(nBins-1)
         bins = 10**(na.arange(lrI, lrO+st, st))
         radiiOrder = na.argsort(self["RadiusCode"])
         fieldCopies = {} # We double up our memory usage here for sorting
@@ -723,7 +721,11 @@ class Enzo3DData(EnzoData):
             EnzoCombine.BinProfile(fc, binIndices, \
                                    fp, weight)
             fieldProfiles[field] = fp
-        return bins, fieldProfiles
+        #return bins
+        #print rOuter, rInner, st, nBins, bins, bins[:nBins]
+        fieldProfiles["OuterRadius"] = bins[:nBins]
+        co = AnalyzeClusterOutput(fieldProfiles)
+        return co
 
 class EnzoRegion(Enzo3DData):
     def __init__(self, hierarchy, center, leftEdge, rightEdge, fields = None):

@@ -23,16 +23,29 @@ import types, exceptions
 
 class AnalyzeClusterOutput:
     # This is a class for storing the results of enzo_anyl runs
-    def __init__(self, filename):
+    def __init__(self, filename, id=None):
         """
         We receive a filename, and then parse it to get the key of columns, and
         then parse the columns to get the array of values
         """
         self.filename = filename
-        if filename:  # For the __add__ method
+        if isinstance(filename, types.StringType):  # For the __add__ method
             self.lines = open(self.filename).readlines()
             self.parseKey()
             self.parseData()
+        elif isinstance(filename, types.DictType):
+            self.filename = id
+            ks = filename.keys()
+            ks.sort()
+            numBins = filename[ks[0]].shape[0]
+            self.data = na.zeros((len(ks), numBins), na.Float64)
+            self.columns = {}
+            i = 1
+            for column in ks:
+                #print column, self.data.shape, self.data[i,:].shape, filename[column].shape
+                self.data[i-1,:] = filename[column]
+                self.columns[i] = column
+                i += 1
 
     def parseKey(self):
         """

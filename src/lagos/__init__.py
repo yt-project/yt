@@ -50,8 +50,8 @@ from EnzoDerivedFields import *
 from EnzoFortranWrapper import *
 from EnzoDataFuncs import *
 from EnzoGridType import *
+from EnzoClusterFile import *
 from EnzoDataTypes import *
 from EnzoHierarchyType import *
 from EnzoRunType import *
 from EnzoRateData import *
-from EnzoClusterFile import *
