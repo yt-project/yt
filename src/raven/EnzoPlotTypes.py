@@ -68,6 +68,9 @@ class EnzoPlot:
         for unit in u:
             mylog.debug("Setting Width: %0.3e %s", self.width*unit[0], unit[1])
 
+    def setZRange(self, min, max):
+        pass
+
 class EnzoRadialPlot(EnzoPlot):
     def makePlot(self, center, radius, unit, fields, fedData = None):
         time1=time.time()

@@ -297,6 +297,31 @@ class EnzoHippo:
         for i in plotIs:
             self.plots[i].setCenter(center)
 
+    def setZRange(self, min, max, plotIs = None):
+        """
+        Change the width of the plots
+
+        @param min: the new minimum
+        @type min: float
+        @param max: the new maximum
+        @type max: float
+        @keyword plotIs: the plots to change (defaults to all)
+        @type plotIs: list of ints
+        """
+        if plotIs:
+            if isinstance(plotIs, types.IntType):
+               plotIs = [plotIs]
+        else:
+            plotIs = range(len(self.plots))
+        #if isinstance(unit, types.StringType):
+            #try:
+                #unit = self.hierarchy.units[unit]
+            #except:
+                #print "Unit %s not found, setting to 1.0" % (unit)
+                #unit = 1
+        for i in plotIs:
+            self.plots[i].setZRange(min, max)
+
     def setWidth(self, width, unit, plotIs = None):
         """
         Change the width of the plots
