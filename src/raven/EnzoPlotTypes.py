@@ -8,7 +8,6 @@ Plot classes for raven
 """
 
 from yt.raven import *
-import Numeric
 
 class EnzoPlot:
     """
@@ -395,8 +394,8 @@ class EnzoVMSlice(EnzoVM):
         
         mylog.info( "Getting from field = %s at center %s on axis %s", field, self.c, axis)
         if slice_data == None:
-            slice_data = lagos.EnzoSlice(self.hierarchy, axis, self.c[axis], field)
-        slice_data.center = self.c
+            slice_data = lagos.EnzoSlice(self.hierarchy, axis, self.c[axis], field, center=self.c)
+        #slice_data.center = self.c
         
         time2 = time.time()
         mylog.info( "Took %0.3e seconds to slice",  time2-time1)

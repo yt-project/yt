@@ -416,7 +416,7 @@ class EnzoSlice(Enzo2DData):
     A slice at a given coordinate along a given axis through the entire grid
     hierarchy.
     """
-    def __init__(self, hierarchy, axis, coord, fields = None):
+    def __init__(self, hierarchy, axis, coord, fields = None, center=None):
         """
         Returns an instance of EnzoSlice.
 
@@ -436,6 +436,7 @@ class EnzoSlice(Enzo2DData):
         @type fields: list of strings
         """
         Enzo2DData.__init__(self, hierarchy, axis, fields)
+        self.center = center
         self.coord = coord
         self.coords = None
         self.refreshData()

@@ -233,7 +233,7 @@ class EnzoHippo:
             v, center = self.hierarchy.findMax('Density')
         startI = len(self.plots)
         for ax in axis:
-            self.plots.append(EnzoVMSlice(self.hierarchy, self.canvas, self, offScreen=self.offScreen))
+            self.plots.append(EnzoVMSlice(self.hierarchy, self.canvas, self, offScreen=self.offScreen, center=center))
             self.plots[-1].makePlot(ax, field, center, cmap = cmap)
             self.canvas.addDisplay(self.plots[-1].plot)
         return self.plots[startI:]
