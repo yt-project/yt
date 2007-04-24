@@ -91,11 +91,11 @@ def runSolveRateCool(g, dt, omaskflag=0):
            (1.0 + a.parameters["CosmologyCurrentRedshift"])
     # Now we have all the units!  We're almost done...
     blank_field = Numeric.zeros(g.data["Total_Energy"].shape, Numeric.Float32)
-    hdc = na.array([hdc_1, hdc_2, hdc_3, hdc_4, hdc_5], na.Float32)
+    hdc = na.array([hdc_1, hdc_2, hdc_3, hdc_4, hdc_5], nT.Float32)
     hdc.transpose()
-    k13dd = na.array([k13_1, k13_2, k13_3, k13_4, k13_5, k13_6, k13_7], na.Float32)
+    k13dd = na.array([k13_1, k13_2, k13_3, k13_4, k13_5, k13_6, k13_7], nT.Float32)
     k13dd.transpose()
-    inutot = na.array([0, 0, 1, 0], na.Float32)
+    inutot = na.array([0, 0, 1, 0], nT.Float32)
     inutot.transpose()
     comp_xray = 0
     comp_temp = 0
@@ -233,7 +233,7 @@ def runCoolMultiTime(g):
     # Now we have all the units!  We're almost done...
     blank_field = zeros(AD, Numeric.Float32)
     hdc = Numeric.transpose(Numeric.array([hdc_1, hdc_2, hdc_3, hdc_4, hdc_5], Numeric.Float32))
-    inutot = na.array([0, 0, 1, 0], na.Float32)
+    inutot = na.array([0, 0, 1, 0], nT.Float32)
     inutot.transpose()
     comp_xray = 0
     comp_temp = 0

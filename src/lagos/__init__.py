@@ -12,15 +12,19 @@ G{packagetree}
 
 """
 
+print "Importing logger"
+from yt.logger import lagosLogger as mylog
+from yt.config import ytcfg
 
 from pyhdf import SD
-import pyhdf.error
-import tables, warnings
-import numarray as na
-import numarray.linear_algebra as la
-import numarray.objects as obj
-import numarray.nd_image as nd
-import numarray.records as rec
+import pyhdf.error, warnings
+try:
+    import tables
+except ImportError:
+    mylog.warning("pyTables import failed; HDF5 support unavailable")
+
+from yt.arraytypes import *
+
 import weakref
 from string import strip, rstrip
 from math import ceil, floor, log10, pi
@@ -29,10 +33,6 @@ from stat import ST_CTIME
 
 #import RavenCombine, fields, chemistry
 import time
-
-print "Importing logger"
-from yt.logger import lagosLogger as mylog
-from yt.config import ytcfg
 
 try:
     from yt.enki import EnzoInterface

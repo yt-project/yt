@@ -271,13 +271,6 @@ class EnzoTwoPhase(EnzoRadialPlot):
             self.plot.setLog(lagos.axis_names[i],sl)
         self.plot.setAspectRatio(1)
 
-    def scaleBinWidth(self, scale):
-        # We scale equally across both
-        x_b = self.plot.getBinWidth('x')
-        y_b = self.plot.getBinWidth('y')
-        self.plot.setBinWidth('x', x_b*scale)
-        self.plot.setBinWidth('y', y_b*scale)
-
 class EnzoThreePhase(EnzoRadialPlot):
     def __init__(self, hierarchy, canvas, enzoHippo, offScreen):
         self.typeName = "ThreePhase"
@@ -547,10 +540,10 @@ class EnzoVMProj(EnzoVM):
         totalEntries = 0
         for level in projData.keys():
             totalEntries += projData[level][0].shape[0]
-        x_data = na.zeros(totalEntries, na.Int64)
-        y_data = na.zeros(totalEntries, na.Int64)
-        z_data = na.zeros(totalEntries, na.Float64)
-        dx_data = na.zeros(totalEntries, na.Float64)
+        x_data = na.zeros(totalEntries, nT.Int64)
+        y_data = na.zeros(totalEntries, nT.Int64)
+        z_data = na.zeros(totalEntries, nT.Float64)
+        dx_data = na.zeros(totalEntries, nT.Float64)
         index = 0
         for level in projData.keys():
             entries = projData[level][0].shape[0]

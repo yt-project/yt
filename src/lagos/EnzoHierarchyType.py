@@ -23,6 +23,8 @@ class EnzoParameterFile:
         """
         @note: We disregard hdf_version here
         """
+        if filename.endswith(".hierarchy"):
+            filename = filename[:-10]
         self.parameterFilename = "%s" % (filename)
         self.basename = os.path.basename(filename)
         self.directory = os.path.dirname(filename)
@@ -181,18 +183,18 @@ class EnzoHierarchy(EnzoParameterFile):
         if self.parameters.has_key("CompilerPrecision") \
            and (self.parameters["CompilerPrecision"] == "r8" \
                 or self.parameters["CompilerPrecision"] == "r4"):
-            EnzoFloatType = na.Float32
+            EnzoFloatType = nT.Float32
         else:
-            EnzoFloatType = na.Float64
+            EnzoFloatType = nT.Float64
 
-        self.gridDimensions = na.zeros((self.numGrids,3), na.Int32)
-        self.gridStartIndices = na.zeros((self.numGrids,3), na.Int32)
-        self.gridEndIndices = na.zeros((self.numGrids,3), na.Int32)
+        self.gridDimensions = na.zeros((self.numGrids,3), nT.Int32)
+        self.gridStartIndices = na.zeros((self.numGrids,3), nT.Int32)
+        self.gridEndIndices = na.zeros((self.numGrids,3), nT.Int32)
         self.gridLeftEdge = na.zeros((self.numGrids,3), EnzoFloatType)
         self.gridRightEdge = na.zeros((self.numGrids,3), EnzoFloatType)
-        self.gridLevels = na.zeros((self.numGrids,1), na.Int32)
+        self.gridLevels = na.zeros((self.numGrids,1), nT.Int32)
         self.gridDxs = na.zeros((self.numGrids,1), EnzoFloatType)
-        self.gridTimes = na.zeros((self.numGrids,1), na.Float64)
+        self.gridTimes = na.zeros((self.numGrids,1), nT.Float64)
         self.gridNumberOfParticles = na.zeros((self.numGrids,1))
         gg = []
         for fnI in xrange(self.numGrids):
@@ -208,7 +210,7 @@ class EnzoHierarchy(EnzoParameterFile):
         #   0 = number of grids
         #   1 = number of cells
         #   2 = blank
-        self.levelsStats = na.zeros((MAXLEVEL,3), na.Int32)
+        self.levelsStats = na.zeros((MAXLEVEL,3), nT.Int32)
         for i in xrange(MAXLEVEL):
             self.levelsStats[i,2] = i
 
@@ -266,37 +268,37 @@ class EnzoHierarchy(EnzoParameterFile):
         re_GridDimension = constructRegularExpressions("GridDimension", ('d','d','d'))
         t = re.findall(re_GridDimension, self.hierarchyString)
         self.gridDimensions[:] = \
-             na.array([[int(di[0]), int(di[1]), int(di[2])] for di in t], na.Int32)
+             na.array([[int(di[0]), int(di[1]), int(di[2])] for di in t], nT.Int32)
 
         re_GridStartIndex = constructRegularExpressions("GridStartIndex", ('d','d','d'))
         t = re.findall(re_GridStartIndex, self.hierarchyString)
         self.gridStartIndices[:] =\
-             na.array([[int(di[0]), int(di[1]), int(di[2])] for di in t], na.Int32)
+             na.array([[int(di[0]), int(di[1]), int(di[2])] for di in t], nT.Int32)
 
         re_GridEndIndex = constructRegularExpressions("GridEndIndex", ('d','d','d'))
         t = re.findall(re_GridEndIndex, self.hierarchyString)
         self.gridEndIndices[:] =\
-             na.array([[int(di[0]), int(di[1]), int(di[2])] for di in t], na.Int32)
+             na.array([[int(di[0]), int(di[1]), int(di[2])] for di in t], nT.Int32)
             
         re_GridLeftEdge = constructRegularExpressions("GridLeftEdge", ('g','g','g'))
         t = re.findall(re_GridLeftEdge, self.hierarchyString)
         self.gridLeftEdge[:] =\
-             na.array([[float(di[0]), float(di[1]), float(di[2])] for di in t], na.Float64)
+             na.array([[float(di[0]), float(di[1]), float(di[2])] for di in t], nT.Float64)
             
         re_GridRightEdge = constructRegularExpressions("GridRightEdge", ('g','g','g'))
         t = re.findall(re_GridRightEdge, self.hierarchyString)
         self.gridRightEdge[:] =\
-             na.array([[float(di[0]), float(di[1]), float(di[2])] for di in t], na.Float64)
+             na.array([[float(di[0]), float(di[1]), float(di[2])] for di in t], nT.Float64)
             
         re_GridLevels = constructRegularExpressions("^Level", ('d'))
         t = re.findall(re_GridLevels, self.hierarchyString)
         self.gridLevels[:] =\
-             na.array([int(di) for di in t], na.Int32)
+             na.array([int(di) for di in t], nT.Int32)
             
 #        re_GridTimes = constructRegularExpressions("Time", ('g'))
 #        t = re.findall(re_GridTimes, self.hierarchyString)
 #        self.gridTimes[:] =\
-#             na.array([[float(di[0]), float(di[1]), float(di[2])] for di in t], na.Float64)
+#             na.array([[float(di[0]), float(di[1]), float(di[2])] for di in t], nT.Float64)
 
         re_BaryonFileName = constructRegularExpressions("BaryonFileName",('s'))
         t = re.findall(re_BaryonFileName, self.hierarchyString)
@@ -306,7 +308,7 @@ class EnzoHierarchy(EnzoParameterFile):
         re_GridNumberOfParticles = constructRegularExpressions("NumberOfParticles", ('d'))
         t = re.findall(re_GridNumberOfParticles, self.hierarchyString)
         self.gridNumberOfParticles[:] =\
-             na.array([int(di) for di in t], na.Int32)
+             na.array([int(di) for di in t], nT.Int32)
             
     def populateHierarchy(self):
         """
@@ -317,9 +319,9 @@ class EnzoHierarchy(EnzoParameterFile):
         time12=time.time()
         # First, we look to see if the pseudo-pickled file is available
         arrayFilename = os.path.join(self.directory,self.basename+".arrayfile")
-        if os.path.exists(arrayFilename):
+        if os.path.exists(arrayFilename) and na.__name__ == "numarray":
 #            loki = raw_input("Pausing")
-            allArrays = na.fromfile(arrayFilename, type=na.Float64, shape=(self.numGrids,18))
+            allArrays = na.fromfile(arrayFilename, type=nT.Float64, shape=(self.numGrids,18))
 #            loki = raw_input("Loaded")
             self.gridDimensions[:] = allArrays[:,0:3]
             self.gridStartIndices[:] = allArrays[:,3:6]
@@ -372,7 +374,7 @@ class EnzoHierarchy(EnzoParameterFile):
                     self.grids[curGrid-1].setFilename(vals[1:-1])
             #self.populateHierarchyRE()
             mylog.info("Creating allArray to dump to file")
-            allArrays = na.zeros((self.numGrids,18),na.Float64)
+            allArrays = na.zeros((self.numGrids,18),nT.Float64)
             allArrays[:,0:3] = self.gridDimensions[:]
             allArrays[:,3:6] = self.gridStartIndices[:]
             allArrays[:,6:9] = self.gridEndIndices[:]
@@ -746,14 +748,14 @@ class EnzoHierarchy(EnzoParameterFile):
             time3 = time.time()
             #levelData = {}
             mylog.info("Projecting through level = %s", level)
-            #levelData = [na.zeros(memoryPerLevel[level], na.Int64), \
-                            #na.zeros(memoryPerLevel[level], na.Int64), \
-                            #na.zeros(memoryPerLevel[level], na.Float64), \
-                            #na.zeros(memoryPerLevel[level], na.Float64) ]    # vals
-            tempLevelData = [na.zeros(memoryPerLevel[level], na.Int64), \
-                            na.zeros(memoryPerLevel[level], na.Int64), \
-                            na.zeros(memoryPerLevel[level], na.Float64), \
-                            na.zeros(memoryPerLevel[level], na.Float64) ]    # vals
+            #levelData = [na.zeros(memoryPerLevel[level], nT.Int64), \
+                            #na.zeros(memoryPerLevel[level], nT.Int64), \
+                            #na.zeros(memoryPerLevel[level], nT.Float64), \
+                            #na.zeros(memoryPerLevel[level], nT.Float64) ]    # vals
+            tempLevelData = [na.zeros(memoryPerLevel[level], nT.Int64), \
+                            na.zeros(memoryPerLevel[level], nT.Int64), \
+                            na.zeros(memoryPerLevel[level], nT.Float64), \
+                            na.zeros(memoryPerLevel[level], nT.Float64) ]    # vals
             myLevelInd=na.where(self.gridLevels == level)[0]
             #print myLevelInd
             gridsToProject = self.grids[myLevelInd]
@@ -926,6 +928,9 @@ class EnzoHierarchy(EnzoParameterFile):
                      self.gridLeftEdge[i,0], self.gridRightEdge[i,0],
                      self.gridLeftEdge[i,1], self.gridRightEdge[i,1],
                      self.gridLeftEdge[i,2], self.gridRightEdge[i,2]))
+
+    def exportBoxes(self):
+        pass
 
     def initializeEnzoInterface(self, idt_val = 0.0):
         """

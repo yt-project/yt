@@ -167,7 +167,7 @@ class EnzoGrid:
         Generates self.myChildMask, which is zero where child grids exist (and
         thus, where higher resolution data is available.)
         """
-        self.myChildMask = na.ones(self.ActiveDimensions, na.Int32)
+        self.myChildMask = na.ones(self.ActiveDimensions, nT.Int32)
         for child in self.Children:
             # Now let's get our overlap
             si = [None]*3
@@ -292,7 +292,7 @@ class EnzoGrid:
         else:
             conv = 1
         numVals = dataVals.shape[0]
-        retVal = na.array(shape=(numVals,5), type=na.Float64)
+        retVal = na.array(shape=(numVals,5), type=nT.Float64)
         retVal[:,0] = xpoints
         retVal[:,1] = ypoints
         retVal[:,2] = dataVals*conv
@@ -335,8 +335,8 @@ class EnzoGrid:
         yind = cmI[1,:]
         #print "AUGH!", toCombineMask.shape, fullProj.shape, weightProj.shape, maskedData.shape, self.dx, \
                 #weightData.shape
-        xpoints = na.array(xind+(self.LeftEdge[x_dict[axis]]/self.dx),na.Int64)
-        ypoints = na.array(yind+(self.LeftEdge[y_dict[axis]]/self.dx),na.Int64)
+        xpoints = na.array(xind+(self.LeftEdge[x_dict[axis]]/self.dx),nT.Int64)
+        ypoints = na.array(yind+(self.LeftEdge[y_dict[axis]]/self.dx),nT.Int64)
         return [xpoints.flat, ypoints.flat, fullProj.flat, toCombineMask.flat, weightProj.flat]
 
     def getSliceAll(self, coord, axis, field):
@@ -441,9 +441,9 @@ class EnzoGrid:
             self.generateChildMask()
         # First we find the cells that are within the sphere
         pointI = na.where(na.logical_and((self["RadiusCode"]<=radius),self.myChildMask==1)==1)
-        # Note that we assumed here that all our data will be na.Float32
+        # Note that we assumed here that all our data will be nT.Float32
         # Not a *terrible* assumption...
-        trData = na.zeros((pointI[0].shape[0],len(fields)), na.Float64)
+        trData = na.zeros((pointI[0].shape[0],len(fields)), nT.Float64)
         i = 0
         for field in fields:
             if self.hierarchy.conversionFactors.has_key(field):
