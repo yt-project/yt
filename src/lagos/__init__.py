@@ -16,8 +16,8 @@ print "Importing logger"
 from yt.logger import lagosLogger as mylog
 from yt.config import ytcfg
 
-from pyhdf import SD
-import pyhdf.error, warnings
+from pyhdf_np import SD          # NumPy
+import pyhdf_np.error, warnings  # NumPy
 try:
     import tables
 except ImportError:

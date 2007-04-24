@@ -905,7 +905,7 @@ class EnzoHierarchy(EnzoParameterFile):
         f.write(struct.pack(header_fmt, *args))
         tot = 0
         sc = na.array([1.0] + [scale] * 3 + [1.0]*(len(fields)-4))
-        gI = na.where(self.gridNumberOfParticles.flat > 0)
+        gI = na.where(self.gridNumberOfParticles.ravel() > 0)
         for g in self.grids[gI]:
             pI = na.where(na.logical_and((g["particle_type"] == filter),(g["particle_index"] >= indexboundary)) == 1)
             tot += pI[0].shape[0]
@@ -924,7 +924,7 @@ class EnzoHierarchy(EnzoParameterFile):
             ind = self.selectLevel(l)
             for i in ind:
                 f.write("add box -n %s -l %s %s,%s %s,%s %s,%s\n" % \
-                    (i+1, self.gridLevels.flat[i],
+                    (i+1, self.gridLevels.ravel()[i],
                      self.gridLeftEdge[i,0], self.gridRightEdge[i,0],
                      self.gridLeftEdge[i,1], self.gridRightEdge[i,1],
                      self.gridLeftEdge[i,2], self.gridRightEdge[i,2]))

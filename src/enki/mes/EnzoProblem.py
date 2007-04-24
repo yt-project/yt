@@ -159,7 +159,7 @@ class ProblemType:
         for dim in range(3):
             l = ei.EFloatArray_getitem(grid.GridLeftEdge, dim)
             w = ei.EFloatArray_getitem(ei.EFloatDimArray_getitem(grid.CellWidth, dim), 0)
-            CellPositions[:,dim] = (ind[dim,:].flat + 0.5) * w + l
+            CellPositions[:,dim] = (ind[dim,:].ravel() + 0.5) * w + l
         return CellPositions
         # The old way, but non-functional:
         for dim in range(3):

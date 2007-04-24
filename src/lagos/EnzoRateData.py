@@ -65,7 +65,7 @@ class EnzoTable:
                 x_vals.append(float(item[0]))
             elif isinstance(item[0], ArrayType):
                 toReshape = item[0].shape
-                x_vals = (item[0].flat)
+                x_vals = (item[0].ravel())
             colsToReturn = []
             for col in item[1:]:
                 if isinstance(col, types.StringType):
@@ -78,7 +78,7 @@ class EnzoTable:
             colsToReturn=arange(1,len(self.cols))
         elif isinstance(item, ArrayType):
             toReshape = item.shape
-            x_vals = item.flat
+            x_vals = item.ravel()
             colsToReturn=arange(1,len(self.cols))
         elif isinstance(item, types.ListType):
             colsToReturn=arange(1,len(self.cols))

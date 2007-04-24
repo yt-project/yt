@@ -541,21 +541,17 @@ class EnzoSlice(Enzo2DData):
         sl = tuple(sl)
         nx = grid.myChildMask.shape[xaxis]
         ny = grid.myChildMask.shape[yaxis]
-        cm = na.where(grid.myChildMask[sl].flat == 1)
+        cm = na.where(grid.myChildMask[sl].ravel() == 1)
         cmI = na.indices((nx,ny))
-        xind = cmI[0,:].flat
+        xind = cmI[0,:].ravel()
         xpoints = na.ones(cm[0].shape, nT.Float64)
         xpoints *= xind[cm]*grid.dx+(grid.LeftEdge[xaxis] + 0.5*grid.dx)
-        yind = cmI[1,:].flat
+        yind = cmI[1,:].ravel()
         ypoints = na.ones(cm[0].shape, nT.Float64)
         ypoints *= yind[cm]*grid.dx+(grid.LeftEdge[yaxis] + 0.5*grid.dx)
         zpoints = na.ones(xpoints.shape, nT.Float64) * self.coord
         dx = na.ones(xpoints.shape, nT.Float64) * grid.dx/2.0
-        t = na.array([xpoints, ypoints, zpoints, dx])
-        if u_numpy:
-            t=t.swapaxes(0,1)
-        else:
-            t.swapaxes(0,1)
+        t = na.array([xpoints, ypoints, zpoints, dx]).swapaxes(0,1)
         return t
 
     def getDataFromGrid(self, grid, field):
@@ -594,13 +590,10 @@ class EnzoSlice(Enzo2DData):
             #dv = grid[field][slHERE]
         dv = self.readDataSlice(grid, field, slHDF)
         #print dv.flat.shape, grid.myChildMask[slHERE].flat.shape, grid.ActiveDimensions
-        cm = na.where(grid.myChildMask[slHERE].flat == 1)
+        cm = na.where(grid.myChildMask[slHERE].ravel() == 1)
         #print field, cm[0].shape, dv.shape
-        if u_numpy:
-            dv=dv.swapaxes(0,2)
-        else:
-            dv.swapaxes(0,2)
-        dataVals = dv.flat[cm]
+        dv=dv.swapaxes(0,2)
+        dataVals = dv.ravel()[cm]
         #print cm[0].shape, grid.myChildMask.shape, dataVals.shape
         # We now have a couple one dimensional arrays.  We will
         # make these one array, and return them as [x y val dx dy]
@@ -830,8 +823,7 @@ class EnzoRegion(Enzo3DData):
                 grid.coords[1,:][pointI], \
                 grid.coords[2,:][pointI], \
                 grid["RadiusCode"][pointI],
-                dx], nT.Float64)
-        tr.swapaxes(0,1)
+                dx], nT.Float64).swapaxes(0,1)
         return tr
 
 
@@ -925,6 +917,5 @@ class EnzoSphere(Enzo3DData):
                 grid.coords[1,:][pointI], \
                 grid.coords[2,:][pointI], \
                 grid["RadiusCode"][pointI],
-                dx], nT.Float64)
-        tr.swapaxes(0,1)
+                dx], nT.Float64).swapaxes(0,1)
         return tr

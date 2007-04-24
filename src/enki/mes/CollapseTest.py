@@ -44,22 +44,22 @@ class CollapseTestProblem(ProblemType):
         self.InitializeFieldsInGrid(grid)
         xyz = self.GetCellPositions(grid)
         # Alright, now we set some defaults
-        dens = self.Fields[self.FieldIndex["Density"]].flat
+        dens = self.Fields[self.FieldIndex["Density"]].ravel()
         dens[:] = 1.0
-        temp = na.ones(dens.shape, nT.Float32).flat * self["CollapseTestInitialTemperature"]
+        temp = na.ones(dens.shape, nT.Float32).ravel() * self["CollapseTestInitialTemperature"]
         vel = na.zeros((3,temp.shape[0]), nT.Float32)
-        vel[0,:] = self.Fields[self.FieldIndex["x-velocity"]][:].flat
-        vel[1,:] = self.Fields[self.FieldIndex["y-velocity"]][:].flat
-        vel[2,:] = self.Fields[self.FieldIndex["z-velocity"]][:].flat
-        #TE = self.Fields[self.FieldIndex["TotalEnergy"]].flat
+        vel[0,:] = self.Fields[self.FieldIndex["x-velocity"]][:].ravel()
+        vel[1,:] = self.Fields[self.FieldIndex["y-velocity"]][:].ravel()
+        vel[2,:] = self.Fields[self.FieldIndex["z-velocity"]][:].ravel()
+        #TE = self.Fields[self.FieldIndex["TotalEnergy"]].ravel()
         for sphere in self.InitArgs["Spheres"]:
             sphere.GetDensity(self, grid, xyz, dens)
             sphere.GetTemperature(self, grid, xyz, temp)
             sphere.GetVelocity(self, grid, xyz, vel)
-        self.Fields[self.FieldIndex["GasEnergy"]].flat = \
+        self.Fields[self.FieldIndex["GasEnergy"]] = \
             temp / 206800 /((5./3.-1.0)*0.6)
             #temp / self["TemperatureUnits"]/((self["Gamma"]-1.0)*self["mu"])
-        self.Fields[self.FieldIndex["TotalEnergy"]].flat = \
+        self.Fields[self.FieldIndex["TotalEnergy"]] = \
             temp / 206800 /((5./3.-1.0)*0.6)
             #temp / self["TemperatureUnits"]/((self["Gamma"]-1.0)*self["mu"])
         self.FlushFieldsToGrid(grid)
