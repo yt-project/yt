@@ -14,7 +14,7 @@ class ArrayNumTypes:
     def __init__(self):
         pass
 
-# This should only be in the yt_numpy branch!
+# This should only be in the yt_numpy branch!  Got it?
 
 u_numpy = False
 u_numarray = False
