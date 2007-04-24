@@ -303,9 +303,9 @@ class EnzoThreePhase(EnzoRadialPlot):
         self.plot.setBinWidth('y', y_b*scale)
 
 class EnzoVM(EnzoPlot):
-    def __init__(self, hierarchy, canvas, enzoHippo, offScreen):
+    def __init__(self, hierarchy, canvas, enzoHippo, offScreen, center=None):
         EnzoPlot.__init__(self, hierarchy, canvas, enzoHippo, offScreen)
-        self.c = None
+        self.c = center
         self.width = 1
         self.plot = None
 
