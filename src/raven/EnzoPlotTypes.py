@@ -106,7 +106,7 @@ class EnzoRadialPlot(EnzoPlot):
                 conv = self.hierarchy.conversionFactors[field]
             else:
                 conv = 1
-            self.tuple.addColumn(field,self.data[field]*conv)
+            self.tuple[field]=self.data[field]*conv
         self.field = self.fields[1]
         self.plotFromData(self.tuple)
 
@@ -170,7 +170,7 @@ class EnzoRadialPlot(EnzoPlot):
         else:
             conv = 1
         if not self.tuple.has_key(field):
-            self.tuple.addColumn(field,self.data[field]*conv)
+            self.tuple[field]=self.data[field]*conv
 
     def switchRadius(self, field):
         self.addField(field)
@@ -413,15 +413,12 @@ class EnzoVMSlice(EnzoVM):
         else:
             conv = 1
 
-        print self.data.x
-        print type(self.data.x)
-        print self.data.x.dtype.name
-        self.tuple.addColumn('x',self.data.x)
-        self.tuple.addColumn('y',self.data.y)
-        self.tuple.addColumn(field,self.data[field]*conv)
-        self.tuple.addColumn('dx',self.data.dx)
-        self.tuple.addColumn('dy',self.data.dy)
-        
+        self.tuple['x']=self.data.x
+        self.tuple['y']=self.data.y
+        self.tuple[field]=self.data[field]*conv
+        self.tuple['dx']=self.data.dx
+        self.tuple['dy']=self.data.dy
+
         if lagos.fieldInfo.has_key(field):
             self.dataLabel = field + " (%s)" % (lagos.fieldInfo[field][0])
         else:
@@ -440,7 +437,7 @@ class EnzoVMSlice(EnzoVM):
         else:
             conv = 1
         if not self.tuple.has_key(field):
-            self.tuple.addColumn(field,self.data[field]*conv)
+            self.tuple[field]=self.data[field]*conv
 
     def switchField(self, field):
         self.addField(field)
@@ -498,11 +495,11 @@ class EnzoVMProjNew(EnzoVM):
         #v1 = self.data[field].min()
         #v2 = self.data[field].max()
 
-        self.tuple.addColumn('x',self.data.x)
-        self.tuple.addColumn('y',self.data.y)
-        self.tuple.addColumn(field,self.data[field])
-        self.tuple.addColumn('dx',self.data.dx)
-        self.tuple.addColumn('dy',self.data.dy)
+        self.tuple['x']=self.data.x
+        self.tuple['y']=self.data.y
+        self.tuple[field]=self.data[field]
+        self.tuple['dx']=self.data.dx
+        self.tuple['dy']=self.data.dy
         
         if lagos.fieldInfo.has_key(field):
             self.dataLabel = field + " (%s)" % (lagos.fieldInfo[field][0])
@@ -568,15 +565,12 @@ class EnzoVMProj(EnzoVM):
         v1 = self.data[:,2].min()
         v2 = self.data[:,2].max()
 
-        self.tuple.addColumn('x',self.data[:,0])
-        self.tuple.addColumn('y',self.data[:,1])
-        self.tuple.addColumn(field,self.data[:,2])
-        self.tuple.addColumn('dx',self.data[:,3])
-        self.tuple.addColumn('dy',self.data[:,4])
+        self.tuple['x']=self.data[:,0]
+        self.tuple['y']=self.data[:,1]
+        self.tuple[field]=self.data[:,2]
+        self.tuple['dx']=self.data[:,3]
+        self.tuple['dy']=self.data[:,4]
         
-        #for i in range(5):
-            #self.tuple.addColumn(vm_lagos.axis_names[i],self.data[:,i].copy())
-
         if lagos.fieldInfo.has_key(field):
             self.dataLabel = field + " (%s)" % (lagos.fieldInfo[field][0])
         else:

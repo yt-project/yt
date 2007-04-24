@@ -327,7 +327,7 @@ class EnzoGrid:
         weightProj = na.sum(weightData,axis)*self.dx
         #fullProj = na.maximum.reduce(maskedData,axis) # Gives correct shape
         if not zeroOut:
-            toCombineMask = na.ones(fullProj.shape)
+            toCombineMask = na.ones(fullProj.shape, dtype=nT.Bool)
         cmI = na.indices(fullProj.shape)
         # So now we figure out which points we want, and their (x,y,z) values
         # Note that this is currently wrong for anything other than x (axis = 0)
