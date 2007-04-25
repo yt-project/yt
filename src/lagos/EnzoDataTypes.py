@@ -211,6 +211,48 @@ class Enzo2DData(EnzoData):
             f.write("\n")
         f.close()
 
+    def discretize(self, LE, RE, field, side, logSpacing=True):
+        """
+        This returns a uniform grid of points.
+
+        @note: Requires NumPy
+        @param LE: Left Edge
+        @type LE: array of Floats
+        @param RE: Right Edge
+        @type RE: array of Floats
+        @param field: The field to discretize
+        @type field: string
+        @param side: The number of points on a side
+        @type side: int
+        """
+        import scipy.sandbox.delaunay as de
+        """
+        points = na.where(na.logical_and( \
+                            na.logical_and( \
+                                self.x <= RE[0], \
+                                self.x >= LE[0]),
+                            na.logical_and( \
+                                self.y <= RE[1], \
+                                self.y >= LE[1])) == 1)
+        """
+        #xx = na.array(self.x[points], dtype=nT.Float64)
+        #yy = na.array(self.y[points], dtype=nT.Float64)
+        #zz = na.array(self[field][points], dtype=nT.Float64)
+        if logSpacing:
+            zz = na.log10(self[field])
+        else:
+            zz = self[field]
+        xi, yi = na.array( \
+                 na.mgrid[LE[0]:RE[0]:side*1j, \
+                          LE[1]:RE[1]:side*1j], nT.Float64)
+        zi = de.Triangulation(self.x,self.y).nn_interpolator(zz)\
+                 [LE[0]:RE[0]:side*1j, \
+                  LE[1]:RE[1]:side*1j]
+        if logSpacing:
+            zi = 10**(zi)
+        return [xi,yi,zi]
+        #return [xx,yy,zz]
+
 class EnzoProj(Enzo2DData):
     """
     EnzoProj data.  Doesn't work yet.  Needs to be implemented, following the
