@@ -65,7 +65,7 @@ RefineCoarseData(long fpoints, npy_int64 *finedata_x, npy_int64 *finedata_y, npy
             coarsedata_x[ci]=-1;
             coarsedata_y[ci]=-1;
             coarsedata_vals[ci]=0.0;
-	    coarsedata_wgt[ci]=0.0;
+            coarsedata_wgt[ci]=0.0;
         }
     }
 }
@@ -88,15 +88,16 @@ Py_RefineCoarseData(PyObject *obj, PyObject *args)
                     "CombineData: Invalid parameters.");
 
     /* Align, Byteswap, Contiguous, Typeconvert */
-    finedata_x    = (PyArrayObject *) PyArray_ContiguousFromObject(ofinedata_x   , NPY_INT64, 1,0);
-    finedata_y    = (PyArrayObject *) PyArray_ContiguousFromObject(ofinedata_y   , NPY_INT64, 1,0);
-    finedata_vals = (PyArrayObject *) PyArray_ContiguousFromObject(ofinedata_vals, NPY_FLOAT64, 1,0);
-    finedata_wgt  = (PyArrayObject *) PyArray_ContiguousFromObject(ofinedata_wgt , NPY_FLOAT64, 1,0);
 
-    coarsedata_x    = (PyArrayObject *) PyArray_ContiguousFromObject(ocoarsedata_x   , NPY_INT64, 1,0);
-    coarsedata_y    = (PyArrayObject *) PyArray_ContiguousFromObject(ocoarsedata_y   , NPY_INT64, 1,0);
-    coarsedata_vals = (PyArrayObject *) PyArray_ContiguousFromObject(ocoarsedata_vals, NPY_FLOAT64, 1,0);
-    coarsedata_wgt  = (PyArrayObject *) PyArray_ContiguousFromObject(ocoarsedata_wgt , NPY_FLOAT64, 1,0);
+    finedata_x    = (PyArrayObject *) PyArray_FromAny(ofinedata_x   , PyArray_DescrFromType(NPY_INT64), 1, 0, NPY_ENSURECOPY | NPY_UPDATEIFCOPY, NULL);
+    finedata_y    = (PyArrayObject *) PyArray_FromAny(ofinedata_y   , PyArray_DescrFromType(NPY_INT64), 1, 0, NPY_ENSURECOPY | NPY_UPDATEIFCOPY, NULL);
+    finedata_vals = (PyArrayObject *) PyArray_FromAny(ofinedata_vals, PyArray_DescrFromType(NPY_FLOAT64), 1, 0, NPY_ENSURECOPY | NPY_UPDATEIFCOPY, NULL);
+    finedata_wgt  = (PyArrayObject *) PyArray_FromAny(ofinedata_wgt , PyArray_DescrFromType(NPY_FLOAT64), 1, 0, NPY_ENSURECOPY | NPY_UPDATEIFCOPY, NULL);
+
+    coarsedata_x    = (PyArrayObject *) PyArray_FromAny(ocoarsedata_x   , PyArray_DescrFromType(NPY_INT64), 1, 0, NPY_ENSURECOPY | NPY_UPDATEIFCOPY, NULL);
+    coarsedata_y    = (PyArrayObject *) PyArray_FromAny(ocoarsedata_y   , PyArray_DescrFromType(NPY_INT64), 1, 0, NPY_ENSURECOPY | NPY_UPDATEIFCOPY, NULL);
+    coarsedata_vals = (PyArrayObject *) PyArray_FromAny(ocoarsedata_vals, PyArray_DescrFromType(NPY_FLOAT64), 1, 0, NPY_ENSURECOPY | NPY_UPDATEIFCOPY, NULL);
+    coarsedata_wgt  = (PyArrayObject *) PyArray_FromAny(ocoarsedata_wgt , PyArray_DescrFromType(NPY_FLOAT64), 1, 0, NPY_ENSURECOPY | NPY_UPDATEIFCOPY, NULL);
 
     if (!finedata_x || !finedata_y || !finedata_vals || !finedata_wgt
      || !coarsedata_x || !coarsedata_y || !coarsedata_vals || !coarsedata_wgt) {
@@ -228,7 +229,7 @@ CombineData(long dpoints, npy_int64 *alldata_x, npy_int64 *alldata_y, npy_float6
             if ((alldata_x[di] == griddata_x[gi]) &&
                 (alldata_y[di] == griddata_y[gi])) {
                     alldata_vals[di] = COMB(alldata_vals[di], griddata_vals[gi]);
-		    alldata_wgt[di]  = COMB(alldata_wgt[di], griddata_wgt[gi]);
+                    alldata_wgt[di]  = COMB(alldata_wgt[di], griddata_wgt[gi]);
                     alldata_mask[di] = (alldata_mask[di] && griddata_mask[gi]);
                     griddata_x[gi] = -1;
                     appendData = 0;
@@ -241,7 +242,7 @@ CombineData(long dpoints, npy_int64 *alldata_x, npy_int64 *alldata_y, npy_float6
             alldata_y[myIndex] = griddata_y[gi];
             alldata_mask[myIndex] = griddata_mask[gi];
             alldata_vals[myIndex] = griddata_vals[gi];
-	    alldata_wgt[myIndex] = griddata_wgt[gi];
+            alldata_wgt[myIndex] = griddata_wgt[gi];
             myIndex++;
         }
     }
@@ -266,17 +267,17 @@ Py_CombineData(PyObject *obj, PyObject *args)
                     "CombineData: Invalid parameters.");
 
     /* Align, Byteswap, Contiguous, Typeconvert */
-    alldata_x    = (PyArrayObject *) PyArray_ContiguousFromObject(oalldata_x   , NPY_INT64, 1,0);
-    alldata_y    = (PyArrayObject *) PyArray_ContiguousFromObject(oalldata_y   , NPY_INT64, 1,0);
-    alldata_vals = (PyArrayObject *) PyArray_ContiguousFromObject(oalldata_vals, NPY_FLOAT64, 1,0);
-    alldata_wgt  = (PyArrayObject *) PyArray_ContiguousFromObject(oalldata_wgt , NPY_FLOAT64, 1,0);
-    alldata_mask = (PyArrayObject *) PyArray_ContiguousFromObject(oalldata_mask, NPY_INT64, 1,0);
+    alldata_x    = (PyArrayObject *) PyArray_FromAny(oalldata_x   , PyArray_DescrFromType(NPY_INT64), 1, 0, NPY_ENSURECOPY | NPY_UPDATEIFCOPY, NULL);
+    alldata_y    = (PyArrayObject *) PyArray_FromAny(oalldata_y   , PyArray_DescrFromType(NPY_INT64), 1, 0, NPY_ENSURECOPY | NPY_UPDATEIFCOPY, NULL);
+    alldata_vals = (PyArrayObject *) PyArray_FromAny(oalldata_vals, PyArray_DescrFromType(NPY_FLOAT64), 1, 0, NPY_ENSURECOPY | NPY_UPDATEIFCOPY, NULL);
+    alldata_wgt  = (PyArrayObject *) PyArray_FromAny(oalldata_wgt , PyArray_DescrFromType(NPY_FLOAT64), 1, 0, NPY_ENSURECOPY | NPY_UPDATEIFCOPY, NULL);
+    alldata_mask = (PyArrayObject *) PyArray_FromAny(oalldata_mask, PyArray_DescrFromType(NPY_INT64), 1, 0, NPY_ENSURECOPY | NPY_UPDATEIFCOPY, NULL);
 
-    griddata_x    = (PyArrayObject *) PyArray_ContiguousFromObject(ogriddata_x   , NPY_INT64, 1,0);
-    griddata_y    = (PyArrayObject *) PyArray_ContiguousFromObject(ogriddata_y   , NPY_INT64, 1,0);
-    griddata_vals = (PyArrayObject *) PyArray_ContiguousFromObject(ogriddata_vals, NPY_FLOAT64, 1,0);
-    griddata_wgt  = (PyArrayObject *) PyArray_ContiguousFromObject(ogriddata_wgt , NPY_FLOAT64, 1,0);
-    griddata_mask = (PyArrayObject *) PyArray_ContiguousFromObject(ogriddata_mask, NPY_INT64, 1,0);
+    griddata_x    = (PyArrayObject *) PyArray_FromAny(ogriddata_x   , PyArray_DescrFromType(NPY_INT64), 1, 0, NPY_ENSURECOPY | NPY_UPDATEIFCOPY, NULL);
+    griddata_y    = (PyArrayObject *) PyArray_FromAny(ogriddata_y   , PyArray_DescrFromType(NPY_INT64), 1, 0, NPY_ENSURECOPY | NPY_UPDATEIFCOPY, NULL);
+    griddata_vals = (PyArrayObject *) PyArray_FromAny(ogriddata_vals, PyArray_DescrFromType(NPY_FLOAT64), 1, 0, NPY_ENSURECOPY | NPY_UPDATEIFCOPY, NULL);
+    griddata_wgt  = (PyArrayObject *) PyArray_FromAny(ogriddata_wgt , PyArray_DescrFromType(NPY_FLOAT64), 1, 0, NPY_ENSURECOPY | NPY_UPDATEIFCOPY, NULL);
+    griddata_mask = (PyArrayObject *) PyArray_FromAny(ogriddata_mask, PyArray_DescrFromType(NPY_INT64), 1, 0, NPY_ENSURECOPY | NPY_UPDATEIFCOPY, NULL);
 
     if (!alldata_x || !alldata_y || !alldata_vals || !alldata_wgt || !alldata_mask
      || !griddata_x || !griddata_y || !griddata_vals || !griddata_wgt || !griddata_mask) {
@@ -312,6 +313,7 @@ Py_CombineData(PyObject *obj, PyObject *args)
               "CombineData: error converting griddata_mask");
         goto _fail;
     }
+
 
 /*
     if (!NA_ShapeEqual(alldata_x, alldata_y)) {
@@ -419,9 +421,9 @@ Py_FindUpper(PyObject *obj, PyObject *args)
                     "FindUpper: Invalid parameters.");
 
     /* Align, Byteswap, Contiguous, Typeconvert */
-    input_axis    =  (PyArrayObject *) PyArray_ContiguousFromObject(oinput_axis   , NPY_FLOAT64, 1, 0 );
-    desired_vals  =  (PyArrayObject *) PyArray_ContiguousFromObject(odesired_vals , NPY_FLOAT64, 1, 0 );
-    output_ind    =  (PyArrayObject *) PyArray_ContiguousFromObject(ooutput_ind   ,   NPY_INT64, 1, 0);
+    input_axis    =  (PyArrayObject *) PyArray_FromAny(oinput_axis   , PyArray_DescrFromType(NPY_FLOAT64), 1, 0, NPY_ENSURECOPY | NPY_UPDATEIFCOPY, NULL );
+    desired_vals  =  (PyArrayObject *) PyArray_FromAny(odesired_vals , PyArray_DescrFromType(NPY_FLOAT64), 1, 0, NPY_ENSURECOPY | NPY_UPDATEIFCOPY, NULL );
+    output_ind    =  (PyArrayObject *) PyArray_FromAny(ooutput_ind   ,   PyArray_DescrFromType(NPY_INT64), 1, 0, NPY_ENSURECOPY | NPY_UPDATEIFCOPY, NULL);
     
     if (!input_axis || !desired_vals) {
         PyErr_Format( _combineError, 
@@ -507,11 +509,11 @@ Py_Interpolate(PyObject *obj, PyObject *args)
                     "Interpolate: Invalid parameters.");
 
     /* Align, Byteswap, Contiguous, Typeconvert */
-    axis          =  (PyArrayObject *) PyArray_ContiguousFromObject(oaxis         , NPY_FLOAT64, 1, 0 );
-    table         =  (PyArrayObject *) PyArray_ContiguousFromObject(otable        , NPY_FLOAT64, 1, 0 );
-    desired       =  (PyArrayObject *) PyArray_ContiguousFromObject(odesired      , NPY_FLOAT64, 1, 0 );
-    outputvals    =  (PyArrayObject *) PyArray_ContiguousFromObject(ooutputvals   , NPY_FLOAT64, 1, 0 );
-    columns       =  (PyArrayObject *) PyArray_ContiguousFromObject(ocolumns      ,   NPY_INT32, 1, 0 );
+    axis          =  (PyArrayObject *) PyArray_FromAny(oaxis         , PyArray_DescrFromType(NPY_FLOAT64), 1, 0, NPY_ENSURECOPY | NPY_UPDATEIFCOPY, NULL );
+    table         =  (PyArrayObject *) PyArray_FromAny(otable        , PyArray_DescrFromType(NPY_FLOAT64), 1, 0, NPY_ENSURECOPY | NPY_UPDATEIFCOPY, NULL );
+    desired       =  (PyArrayObject *) PyArray_FromAny(odesired      , PyArray_DescrFromType(NPY_FLOAT64), 1, 0, NPY_ENSURECOPY | NPY_UPDATEIFCOPY, NULL );
+    outputvals    =  (PyArrayObject *) PyArray_FromAny(ooutputvals   , PyArray_DescrFromType(NPY_FLOAT64), 1, 0, NPY_ENSURECOPY | NPY_UPDATEIFCOPY, NULL );
+    columns       =  (PyArrayObject *) PyArray_FromAny(ocolumns      ,   PyArray_DescrFromType(NPY_INT32), 1, 0, NPY_ENSURECOPY | NPY_UPDATEIFCOPY, NULL );
 
     if (!axis || !table || !desired || !outputvals || !columns) {
         PyErr_Format( _combineError, 
@@ -603,10 +605,10 @@ Py_BinProfile(PyObject *obj, PyObject *args)
                     "Interpolate: Invalid parameters.");
 
     /* Align, Byteswap, Contiguous, Typeconvert */
-    field          =  (PyArrayObject *) PyArray_ContiguousFromObject(ofield         , NPY_FLOAT32, 1, 0);
-    binindices     =  (PyArrayObject *) PyArray_ContiguousFromObject(obinindices    , NPY_INT32  , 1, 0);
-    profile        =  (PyArrayObject *) PyArray_ContiguousFromObject(oprofile       , NPY_FLOAT32, 1, 0);
-    weightfield    =  (PyArrayObject *) PyArray_ContiguousFromObject(oweightfield   , NPY_FLOAT32, 1, 0);
+    field       =  (PyArrayObject *) PyArray_FromAny(ofield         , PyArray_DescrFromType(NPY_FLOAT32), 1, 0, NPY_ENSURECOPY | NPY_UPDATEIFCOPY, NULL);
+    binindices  =  (PyArrayObject *) PyArray_FromAny(obinindices    , PyArray_DescrFromType(NPY_INT32)  , 1, 0, NPY_ENSURECOPY | NPY_UPDATEIFCOPY, NULL);
+    profile     =  (PyArrayObject *) PyArray_FromAny(oprofile       , PyArray_DescrFromType(NPY_FLOAT32), 1, 0, NPY_ENSURECOPY | NPY_UPDATEIFCOPY, NULL);
+    weightfield =  (PyArrayObject *) PyArray_FromAny(oweightfield   , PyArray_DescrFromType(NPY_FLOAT32), 1, 0, NPY_ENSURECOPY | NPY_UPDATEIFCOPY, NULL);
 
     if (!field || !binindices || !profile || !weightfield) {
         PyErr_Format( _combineError, 
@@ -634,7 +636,6 @@ Py_BinProfile(PyObject *obj, PyObject *args)
     Py_XDECREF(profile);
     Py_XDECREF(weightfield);
 
-    /* Align, Byteswap, Contiguous, Typeconvert */
     return Py_None;
 
   _fail:
