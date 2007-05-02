@@ -17,6 +17,8 @@ import yt.lagos as lagos
 import yt.shell
 from yt.fido import *
 
+from IPython.Extensions.ipipe import *
+
 def runDigup():
     guess = os.path.basename(os.getcwd())
     run = fetchRun(guess)
@@ -180,3 +182,24 @@ def run():
         runBury()
     elif exeName == "frecomp":
         runGetNewEnzo()
+    elif exeName == "ibw":
+        runGetNewEnzo()
+
+def runBrowse():
+    """
+    Trying out the new ipipe functionality of IPython
+    """
+    rids, rmds = getRuns()
+    runs = []
+    for md in rmds.keys():
+        runs.append(fetchRun(md))
+    bw = ibrowse()
+    runs | bw
+    myRun = bw.display()
+    return myRun
+
+def outputBrowse(run):
+    ll = list(run.outputs)
+    bw = ibrowse()
+    ll | bw
+    return bw.display()
