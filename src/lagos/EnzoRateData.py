@@ -63,7 +63,7 @@ class EnzoTable:
             if isinstance(item[0], types.FloatType) or \
                isinstance(item[0], types.IntType):
                 x_vals.append(float(item[0]))
-            elif isinstance(item[0], ArrayType):
+            elif isinstance(item[0], na.ArrayType):
                 toReshape = item[0].shape
                 x_vals = (item[0].flat)
             colsToReturn = []
@@ -76,7 +76,7 @@ class EnzoTable:
              isinstance(item, types.IntType):
             x_vals.append(float(item))
             colsToReturn=arange(1,len(self.cols))
-        elif isinstance(item, ArrayType):
+        elif isinstance(item, na.ArrayType):
             toReshape = item.shape
             x_vals = item.flat
             colsToReturn=arange(1,len(self.cols))

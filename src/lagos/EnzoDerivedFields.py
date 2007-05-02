@@ -365,7 +365,7 @@ def Gamma2(self, fieldName):
     """
     x = 6100.0 / self["TempFromGE"]
     x_gt = 2.5
-    x_lt = 0.5*(5.0+2.0*x**2.0 * exp(x)/(exp(x)-1.0)**2)
+    x_lt = 0.5*(5.0+2.0*x**2.0 * na.exp(x)/(na.exp(x)-1.0)**2)
     self[fieldName] = na.choose(na.greater(x,10.0),(x_lt,x_gt))
     nH2 = 0.5 * (self["H2I_Density"] + self["H2II_Density"])
     nOther = self["NumberDensityCode"] - nH2

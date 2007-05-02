@@ -37,6 +37,9 @@ class EnzoGrid:
         self.myOverlapMasks = [None, None, None]
         self.myOverlapGrids = [None, None, None]
 
+    def __len__(self):
+        return 0
+
     def __getattr__(self, attr):
         """
         Attempts to grab an attribute from a grid, and failing that, grabs it

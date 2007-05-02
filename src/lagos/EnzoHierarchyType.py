@@ -10,7 +10,7 @@ overlap and make Hierarchy an option property of EnzoParameterFile
 """
 
 from yt.lagos import *
-import string, re, gc
+import string, re, gc, time
 #import EnzoCombine
 import yt.enki
 
@@ -35,6 +35,12 @@ class EnzoParameterFile:
             int(os.stat(self.parameterFilename)[ST_CTIME])
         self.parseParameterFile()
         self.setUnits()
+
+    def getTime(self):
+        return time.ctime(float(self["CurrentTimeIdentifier"]))
+
+    def __xattrs__(self, mode="default"):
+        return ("basename", "getTime()")
         
     def __getitem__(self, key):
         """
@@ -137,6 +143,9 @@ class EnzoParameterFile:
         self.units['years'] = seconds / (365*3600*24.0)
         self.units['days']  = seconds / (3600*24.0)
 
+    def promote(self):
+        return EnzoHierarchy(self.parameterFilename)
+
 class EnzoHierarchy(EnzoParameterFile):
     """
     Class for handling Enzo timestep outputs
@@ -223,6 +232,9 @@ class EnzoHierarchy(EnzoParameterFile):
         self.populateHierarchy()
         time2=time.time()
         mylog.info("Took %s seconds to read the hierarchy.", time2-time1)
+
+    def __xattrs__(self, mode="default"):
+        return ("basename", "getTime()","maxLevel")
 
     def __del__(self):
         """

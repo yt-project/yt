@@ -44,6 +44,9 @@ class EnzoRun:
             timeID = int(time.time())
         self.timeID = timeID
 
+    def getTime(self):
+        return time.ctime(float(self.timeID))
+
     def promoteType(self, outputID):
         if hasattr(self.outputs[outputID], "grids"):
             return
@@ -102,6 +105,7 @@ class EnzoRun:
         for fn in filename:
             mylog.debug("Adding %s to EnzoRun '%s'", fn, self.metaData)
             k.append(self.classType(fn, hdf_version=hdf_version))
+            k[-1].run = self
         self.addOutput(k)
 
     def getCommandLine(self):
@@ -332,6 +336,9 @@ class EnzoRun:
 
     def __len__(self):
         return self.outputs.shape[0]
+
+    def __xattrs__(self, mode="default"):
+        return("metaData", "getTime()", "-outputs")
 
     def keys(self):
         """
