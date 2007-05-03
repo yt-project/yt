@@ -35,8 +35,8 @@ def readDataHDF4(self, field):
     if self.data.has_key(field):
         return 1
     try:
-        self[field] = SD.SD(self.filename).select(field).get()
-        self[field].swapaxes(0,2)
+        t = SD.SD(self.filename).select(field).get()
+        self[field] = t.swapaxes(0,2)
     except:
         self.generateField(field)
     return 2
@@ -62,8 +62,8 @@ def readDataHDF5(self, field):
         return 1
     f = tables.openFile(self.filename)
     try:
-        self[field] = f.getNode("/", field).read()
-        self[field].swapaxes(0,2)
+        t = f.getNode("/", field).read()
+        self[field] = t.swapaxes(0,2)
     except:
         self.generateField(field)
     #self[field] = ones(self.data[field].shape)

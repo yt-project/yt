@@ -53,7 +53,7 @@ class EnzoTable:
                 self.params[p.replace(" ","")[1:]] = float(v)
             else:
                 toArray.append(map(float, line.split()))
-        self.columns = na.array(toArray, na.Float32)
+        self.columns = na.array(toArray, nT.Float32)
         mylog.info("Found %s bins of rate values", self.columns.shape[0])
     def __getitem__(self, item):
         ## This WILL get cleaned up, but it does what I want for now
@@ -65,7 +65,7 @@ class EnzoTable:
                 x_vals.append(float(item[0]))
             elif isinstance(item[0], na.ArrayType):
                 toReshape = item[0].shape
-                x_vals = (item[0].flat)
+                x_vals = (item[0].ravel())
             colsToReturn = []
             for col in item[1:]:
                 if isinstance(col, types.StringType):
@@ -78,7 +78,7 @@ class EnzoTable:
             colsToReturn=arange(1,len(self.cols))
         elif isinstance(item, na.ArrayType):
             toReshape = item.shape
-            x_vals = item.flat
+            x_vals = item.ravel()
             colsToReturn=arange(1,len(self.cols))
         elif isinstance(item, types.ListType):
             colsToReturn=arange(1,len(self.cols))
@@ -87,10 +87,10 @@ class EnzoTable:
         else:
             raise exceptions.TypeError()
         colsToReturn = na.array(colsToReturn,Int32)
-        valsToReturn = na.zeros((len(x_vals),len(colsToReturn)),na.Float32)
-        ind = na.zeros(len(x_vals),na.Int64)
+        valsToReturn = na.zeros((len(x_vals),len(colsToReturn)),nT.Float32)
+        ind = na.zeros(len(x_vals),nT.Int64)
         x_axis = self.columns[:,0]
-        x_vals_arr = na.array(x_vals, na.Float32)
+        x_vals_arr = na.array(x_vals, nT.Float32)
         EnzoCombine.Interpolate(x_axis, self.columns, x_vals_arr, valsToReturn, colsToReturn)
         if toReshape != None:
             if len(colsToReturn == 1):

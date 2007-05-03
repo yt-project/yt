@@ -151,7 +151,7 @@ class ProblemType:
         size = grid.GridSize()
         # We will default to 64 here, which may be a mistake
         #print "SIZE",size
-        CellPositions = na.zeros((size, 3), na.Float64)
+        CellPositions = na.zeros((size, 3), nT.Float64)
         # Okay, we can do this the old way, or the new way
         ind = na.indices((ei.intArray_getitem(grid.GridDimension,0), \
                        ei.intArray_getitem(grid.GridDimension,1), \
@@ -159,7 +159,7 @@ class ProblemType:
         for dim in range(3):
             l = ei.EFloatArray_getitem(grid.GridLeftEdge, dim)
             w = ei.EFloatArray_getitem(ei.EFloatDimArray_getitem(grid.CellWidth, dim), 0)
-            CellPositions[:,dim] = (ind[dim,:].flat + 0.5) * w + l
+            CellPositions[:,dim] = (ind[dim,:].ravel() + 0.5) * w + l
         return CellPositions
         # The old way, but non-functional:
         for dim in range(3):

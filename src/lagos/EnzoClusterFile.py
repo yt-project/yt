@@ -38,7 +38,7 @@ class AnalyzeClusterOutput:
             ks = filename.keys()
             ks.sort()
             numBins = filename[ks[0]].shape[0]
-            self.data = na.zeros((len(ks), numBins), na.Float64)
+            self.data = na.zeros((len(ks), numBins), nT.Float64)
             self.columns = {}
             i = 1
             for column in ks:
@@ -71,7 +71,7 @@ class AnalyzeClusterOutput:
         for line in self.lines:
             if line[0] != "#" and len(line.strip()) > 0:
                 numBins += 1
-        self.data = na.zeros((len(self.columns), numBins), na.Float64)
+        self.data = na.zeros((len(self.columns), numBins), nT.Float64)
         i = 0
         nc = len(self.columns)
         for line in self.lines:
@@ -114,7 +114,7 @@ class AnalyzeClusterOutput:
             if other.columns[col] not in self.columns.values():
                 comb.columns[i] = other.columns[col]
                 i += 1
-        comb.data = na.zeros((len(comb.columns), self.data.shape[1]), na.Float64)
+        comb.data = na.zeros((len(comb.columns), self.data.shape[1]), nT.Float64)
         comb.data[:len(self.columns),:] = self.data
         i = offset
         for col in cols:

@@ -171,7 +171,7 @@ fieldInfo["DCComp"] = ("t_dyn/t_courant", None, True, DCComp)
 def NumberDensityCode(self, fieldName):
     """amu/cc, in code units."""
     # We are going to *try* to use all the fields, and fallback when we run out
-    self[fieldName] = na.zeros(self["HI_Density"].shape, self["HI_Density"].type())
+    self[fieldName] = na.zeros(self["HI_Density"].shape, self["HI_Density"].dtype)
     if self.hierarchy["MultiSpecies"] > 0:
         self[fieldName] += self["HI_Density"] / 1.0
         self[fieldName] += self["HII_Density"] / 1.0
@@ -303,7 +303,7 @@ def Metallicity(self, fieldName):
 fieldInfo["Metallicity"] = ("Z/Z_solar", None, True, Metallicity)
 
 def CellMassCode(self, fieldName):
-    self[fieldName] = na.ones(self["Density"].shape, na.Float64)
+    self[fieldName] = na.ones(self["Density"].shape, nT.Float64)
     self[fieldName] *= (self.dx)
     self[fieldName] *= (self.dy)
     self[fieldName] *= (self.dz)
@@ -342,7 +342,7 @@ def CoolingTime(self, fieldName):
     additionally it calls the fortran wrapper.  Probably doesn't work right now.
     @todo: fix to work with yt.lagos.EnzoFortranWrapper
     """
-    self[fieldName] = array(src_wrapper.runCoolMultiTime(self), na.Float64) \
+    self[fieldName] = array(src_wrapper.runCoolMultiTime(self), nT.Float64) \
                            * self.hierarchy["Time"]
 fieldInfo["CoolingTime"] = ("s", None, True, CoolingTime)
 
@@ -412,7 +412,7 @@ def ColorSum(self, fieldName):
     """
     Sum up all the species fields
     """
-    self[fieldName] = na.zeros(self["HI_Density"].shape, na.Float64)
+    self[fieldName] = na.zeros(self["HI_Density"].shape, nT.Float64)
     if self.hierarchy["MultiSpecies"] > 0:
         self[fieldName] += self["HI_Density"]
         self[fieldName] += self["HII_Density"]
@@ -546,8 +546,8 @@ def AngularVelocity(self, fieldName):
     """
     r_vec = (self.coords - na.reshape(self.center,(3,1)))
     v_vec = na.array([self["x-velocity"],self["y-velocity"],self["z-velocity"]], \
-                     na.Float32)
-    self[fieldName] = na.zeros(v_vec.shape, na.Float32)
+                     nT.Float32)
+    self[fieldName] = na.zeros(v_vec.shape, nT.Float32)
     self[fieldName][0,:] = (r_vec[1,:] * v_vec[2,:]) - \
                            (r_vec[2,:] * v_vec[1,:])
     self[fieldName][1,:] = (r_vec[0,:] * v_vec[2,:]) - \
@@ -571,7 +571,7 @@ def InertialTensor(self, fieldName):
     """
     # We do this all spread out.  It's quicker this way than a set of loops
     # over indices and letting values cancel out.
-    InertialTensor = na.zeros((3,3,self.coords.shape[1]), na.Float32)
+    InertialTensor = na.zeros((3,3,self.coords.shape[1]), nT.Float32)
     Ixx = (self.coords[1,:]**2.0 + self.coords[2,:]**2.0)
     Iyy = (self.coords[0,:]**2.0 + self.coords[2,:]**2.0)
     Izz = (self.coords[0,:]**2.0 + self.coords[1,:]**2.0)
@@ -601,7 +601,7 @@ def DiagonalInertialTensor(self, fieldName):
     # Cache some stuff so we don't have to call lots of __getitem__ routines.
     InertialTensor = self["InertialTensorDisplay"]
     xr = InertialTensor.shape[2]
-    myField = na.zeros((3,xr),na.Float32)
+    myField = na.zeros((3,xr),nT.Float32)
     for x in xrange(xr):
         if x % 1000 == 0:
             mylog.debug("Diagonalizing %i / %i = %0.1f%% complete", x, xr, 100*float(x)/xr)

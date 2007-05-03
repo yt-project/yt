@@ -37,7 +37,7 @@ class EnzoRun:
         self.metaData = metaData
         self.classType = classType
         self.outputs = obj.array(outputs)       # Object array of EnzoHierarchies
-        self.timesteps = na.array(shape=self.outputs.shape, type=na.Float64) # Timesteps
+        self.timesteps = na.array(shape=self.outputs.shape, type=nT.Float64) # Timesteps
         if runFilename:
             self.Import(runFilename)
         if not timeID:
@@ -88,7 +88,7 @@ class EnzoRun:
         for h in hierarchy:
             t.append(h["InitialTime"])
         self.outputs = obj.array(self.outputs.tolist() + hierarchy)
-        self.timesteps=na.array(self.timesteps.tolist() + t,type=na.Float64)
+        self.timesteps=na.array(self.timesteps.tolist() + t,type=nT.Float64)
         self.sortOutputs()
 
     def addOutputByFilename(self, filename, hdf_version=4):

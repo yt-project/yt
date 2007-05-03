@@ -170,7 +170,7 @@ class EnzoGrid:
         Generates self.myChildMask, which is zero where child grids exist (and
         thus, where higher resolution data is available.)
         """
-        self.myChildMask = na.ones(self.ActiveDimensions, na.Int32)
+        self.myChildMask = na.ones(self.ActiveDimensions, nT.Int32)
         for child in self.Children:
             # Now let's get our overlap
             si = [None]*3
@@ -295,7 +295,7 @@ class EnzoGrid:
         else:
             conv = 1
         numVals = dataVals.shape[0]
-        retVal = na.array(shape=(numVals,5), type=na.Float64)
+        retVal = na.array(shape=(numVals,5), type=nT.Float64)
         retVal[:,0] = xpoints
         retVal[:,1] = ypoints
         retVal[:,2] = dataVals*conv
@@ -330,7 +330,7 @@ class EnzoGrid:
         weightProj = na.sum(weightData,axis)*self.dx
         #fullProj = na.maximum.reduce(maskedData,axis) # Gives correct shape
         if not zeroOut:
-            toCombineMask = na.ones(fullProj.shape)
+            toCombineMask = na.ones(fullProj.shape, dtype=nT.Bool)
         cmI = na.indices(fullProj.shape)
         # So now we figure out which points we want, and their (x,y,z) values
         # Note that this is currently wrong for anything other than x (axis = 0)
@@ -338,9 +338,9 @@ class EnzoGrid:
         yind = cmI[1,:]
         #print "AUGH!", toCombineMask.shape, fullProj.shape, weightProj.shape, maskedData.shape, self.dx, \
                 #weightData.shape
-        xpoints = na.array(xind+(self.LeftEdge[x_dict[axis]]/self.dx),na.Int64)
-        ypoints = na.array(yind+(self.LeftEdge[y_dict[axis]]/self.dx),na.Int64)
-        return [xpoints.flat, ypoints.flat, fullProj.flat, toCombineMask.flat, weightProj.flat]
+        xpoints = na.array(xind+(self.LeftEdge[x_dict[axis]]/self.dx),nT.Int64)
+        ypoints = na.array(yind+(self.LeftEdge[y_dict[axis]]/self.dx),nT.Int64)
+        return [xpoints.ravel(), ypoints.ravel(), fullProj.ravel(), toCombineMask.ravel(), weightProj.ravel()]
 
     def getSliceAll(self, coord, axis, field):
         tempMask = self.myChildMask
@@ -444,9 +444,9 @@ class EnzoGrid:
             self.generateChildMask()
         # First we find the cells that are within the sphere
         pointI = na.where(na.logical_and((self["RadiusCode"]<=radius),self.myChildMask==1)==1)
-        # Note that we assumed here that all our data will be na.Float32
+        # Note that we assumed here that all our data will be nT.Float32
         # Not a *terrible* assumption...
-        trData = na.zeros((pointI[0].shape[0],len(fields)), na.Float64)
+        trData = na.zeros((pointI[0].shape[0],len(fields)), nT.Float64)
         i = 0
         for field in fields:
             if self.hierarchy.conversionFactors.has_key(field):
@@ -479,3 +479,60 @@ class EnzoGrid:
         self.eiGrid.ReadGrid(h, 1)
         os.chdir(cwd)
         mylog.debug("Grid read with SWIG")
+
+    def atResolution(self, level, fields):
+        """
+        This function returns a given grid at a given resolution.  Note,
+        however, that it *does not interpolate*.  If we are using this to
+        extract datacubes -- for things like power spectra -- we don't want to
+        *add* power via interpolation.  So it just doubles up the values for
+        lower res grids.  Returns a dictionary.
+
+        @param level: the level at which we want our data returned.
+        @type level: int
+        @param fields: the fields to return
+        @type fields: list of strings
+        """
+        if level < self.Level:
+            return None
+        if isinstance(fields, types.StringType):
+            fields = [fields]
+        tr = {}
+        if level == self.Level:
+            for field in fields:
+                tr[field] = self[field]
+            return tr
+        diff = 2**(level - self.Level)
+        newShape = self.ActiveDimensions * diff
+        print diff, newShape
+        self.generateChildMask()
+        xind, yind, zind = na.where(self.myChildMask == 1)
+        self['cm'] = self.myChildMask
+        xxind = xind * diff
+        yyind = yind * diff
+        zzind = zind * diff
+        for field in ['cm'] + fields:
+            tt = self[field][xind,yind,zind]
+            tr[field] = na.zeros(newShape, dtype=self[field].dtype)
+            print tr[field].shape
+            for x in range(diff):
+                for y in range(diff):
+                    for z in range(diff):
+                        tr[field][xxind+x, yyind+y, zzind+z] = tt
+            if field == 'cm':
+                newind = na.where(tr['cm']==1)
+            print tr[field].shape, newind
+            tr[field] = tr[field][newind]
+        # Now we need to set up an x, y, z return array, and we also need to
+        # maks out all the shitty, subgridded values
+        tr['x'], tr['y'], tr['z'] = \
+            na.mgrid[self.LeftEdge[0]:self.RightEdge[0]:diff*1j*self.ActiveDimensions[0], \
+                     self.LeftEdge[1]:self.RightEdge[1]:diff*1j*self.ActiveDimensions[1], \
+                     self.LeftEdge[2]:self.RightEdge[2]:diff*1j*self.ActiveDimensions[2]]
+        print tr['cm'].shape
+        for field in ['x','y','z']:
+            tr[field] = tr[field][newind]
+        # Note that we're not going to do anything regarding dx, as it would be
+        # wasteful!
+        del self.data['cm'], tr['cm']
+        return tr

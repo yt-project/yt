@@ -106,7 +106,7 @@ class EnzoRadialPlot(EnzoPlot):
                 conv = self.hierarchy.conversionFactors[field]
             else:
                 conv = 1
-            self.tuple.addColumn(field,list(self.data[field]*conv))
+            self.tuple[field]=self.data[field]*conv
         self.field = self.fields[1]
         self.plotFromData(self.tuple)
 
@@ -170,7 +170,7 @@ class EnzoRadialPlot(EnzoPlot):
         else:
             conv = 1
         if not self.tuple.has_key(field):
-            self.tuple.addColumn(field,list(self.data[field]*conv))
+            self.tuple[field]=self.data[field]*conv
 
     def switchRadius(self, field):
         self.addField(field)
@@ -270,13 +270,6 @@ class EnzoTwoPhase(EnzoRadialPlot):
                 sl = self.fields[i] in lagos.log_fields
             self.plot.setLog(lagos.axis_names[i],sl)
         self.plot.setAspectRatio(1)
-
-    def scaleBinWidth(self, scale):
-        # We scale equally across both
-        x_b = self.plot.getBinWidth('x')
-        y_b = self.plot.getBinWidth('y')
-        self.plot.setBinWidth('x', x_b*scale)
-        self.plot.setBinWidth('y', y_b*scale)
 
 class EnzoThreePhase(EnzoRadialPlot):
     def __init__(self, hierarchy, canvas, enzoHippo, offScreen):
@@ -420,12 +413,12 @@ class EnzoVMSlice(EnzoVM):
         else:
             conv = 1
 
-        self.tuple.addColumn('x',list(self.data.x))
-        self.tuple.addColumn('y',list(self.data.y))
-        self.tuple.addColumn(field,list(self.data[field]*conv))
-        self.tuple.addColumn('dx',list(self.data.dx))
-        self.tuple.addColumn('dy',list(self.data.dy))
-        
+        self.tuple['x']=self.data.x
+        self.tuple['y']=self.data.y
+        self.tuple[field]=self.data[field]*conv
+        self.tuple['dx']=self.data.dx
+        self.tuple['dy']=self.data.dy
+
         if lagos.fieldInfo.has_key(field):
             self.dataLabel = field + " (%s)" % (lagos.fieldInfo[field][0])
         else:
@@ -444,7 +437,7 @@ class EnzoVMSlice(EnzoVM):
         else:
             conv = 1
         if not self.tuple.has_key(field):
-            self.tuple.addColumn(field,list(self.data[field]*conv))
+            self.tuple[field]=self.data[field]*conv
 
     def switchField(self, field):
         self.addField(field)
@@ -502,11 +495,11 @@ class EnzoVMProjNew(EnzoVM):
         #v1 = self.data[field].min()
         #v2 = self.data[field].max()
 
-        self.tuple.addColumn('x',list(self.data.x))
-        self.tuple.addColumn('y',list(self.data.y))
-        self.tuple.addColumn(field,list(self.data[field]))
-        self.tuple.addColumn('dx',list(self.data.dx))
-        self.tuple.addColumn('dy',list(self.data.dy))
+        self.tuple['x']=self.data.x
+        self.tuple['y']=self.data.y
+        self.tuple[field]=self.data[field]
+        self.tuple['dx']=self.data.dx
+        self.tuple['dy']=self.data.dy
         
         if lagos.fieldInfo.has_key(field):
             self.dataLabel = field + " (%s)" % (lagos.fieldInfo[field][0])
@@ -547,10 +540,10 @@ class EnzoVMProj(EnzoVM):
         totalEntries = 0
         for level in projData.keys():
             totalEntries += projData[level][0].shape[0]
-        x_data = na.zeros(totalEntries, na.Int64)
-        y_data = na.zeros(totalEntries, na.Int64)
-        z_data = na.zeros(totalEntries, na.Float64)
-        dx_data = na.zeros(totalEntries, na.Float64)
+        x_data = na.zeros(totalEntries, nT.Int64)
+        y_data = na.zeros(totalEntries, nT.Int64)
+        z_data = na.zeros(totalEntries, nT.Float64)
+        dx_data = na.zeros(totalEntries, nT.Float64)
         index = 0
         for level in projData.keys():
             entries = projData[level][0].shape[0]
@@ -563,8 +556,7 @@ class EnzoVMProj(EnzoVM):
         time2 = time.time()
         mylog.info( "Took %0.3e seconds to project" ,  time2-time1)
         
-        self.data = array([(0.5+x_data)*dx_data, (0.5+y_data)*dx_data, z_data, dx_data/2.0, dx_data/2.0])
-        self.data.swapaxes(0,1)
+        self.data = array([(0.5+x_data)*dx_data, (0.5+y_data)*dx_data, z_data, dx_data/2.0, dx_data/2.0]).swapaxes(0,1)
 
         #self.tuple = hippo.DataArray('NumArrayTuple')
         self.tuple = hippo.DataArray('NTuple')
@@ -573,15 +565,12 @@ class EnzoVMProj(EnzoVM):
         v1 = self.data[:,2].min()
         v2 = self.data[:,2].max()
 
-        self.tuple.addColumn('x',list(self.data[:,0]))
-        self.tuple.addColumn('y',list(self.data[:,1]))
-        self.tuple.addColumn(field,list(self.data[:,2]))
-        self.tuple.addColumn('dx',list(self.data[:,3]))
-        self.tuple.addColumn('dy',list(self.data[:,4]))
+        self.tuple['x']=self.data[:,0]
+        self.tuple['y']=self.data[:,1]
+        self.tuple[field]=self.data[:,2]
+        self.tuple['dx']=self.data[:,3]
+        self.tuple['dy']=self.data[:,4]
         
-        #for i in range(5):
-            #self.tuple.addColumn(vm_lagos.axis_names[i],self.data[:,i].copy())
-
         if lagos.fieldInfo.has_key(field):
             self.dataLabel = field + " (%s)" % (lagos.fieldInfo[field][0])
         else:
