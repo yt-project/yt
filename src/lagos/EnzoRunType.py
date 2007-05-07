@@ -7,7 +7,7 @@ Handling of sets of EnzoHierarchy objects
 """
 
 from yt.lagos import *
-import ConfigParser, time, os
+import ConfigParser, time, os, sys
 
 class EnzoRun:
     """
@@ -37,15 +37,12 @@ class EnzoRun:
         self.metaData = metaData
         self.classType = classType
         self.outputs = obj.array(outputs)       # Object array of EnzoHierarchies
-        self.timesteps = na.array(shape=self.outputs.shape, type=nT.Float64) # Timesteps
+        self.timesteps = na.zeros(shape=self.outputs.shape, dtype=nT.Float64) # Timesteps
         if runFilename:
             self.Import(runFilename)
         if not timeID:
             timeID = int(time.time())
         self.timeID = timeID
-
-    def getTime(self):
-        return time.ctime(float(self.timeID))
 
     def promoteType(self, outputID):
         if hasattr(self.outputs[outputID], "grids"):
@@ -88,7 +85,7 @@ class EnzoRun:
         for h in hierarchy:
             t.append(h["InitialTime"])
         self.outputs = obj.array(self.outputs.tolist() + hierarchy)
-        self.timesteps=na.array(self.timesteps.tolist() + t,type=nT.Float64)
+        self.timesteps=na.array(self.timesteps.tolist() + t,dtype=nT.Float64)
         self.sortOutputs()
 
     def addOutputByFilename(self, filename, hdf_version=4):
@@ -105,7 +102,6 @@ class EnzoRun:
         for fn in filename:
             mylog.debug("Adding %s to EnzoRun '%s'", fn, self.metaData)
             k.append(self.classType(fn, hdf_version=hdf_version))
-            k[-1].run = self
         self.addOutput(k)
 
     def getCommandLine(self):
@@ -133,13 +129,22 @@ class EnzoRun:
         if not isinstance(args, types.ListType):
             args = [args]
         for i in range(self.outputs.shape[0]):
-            a = [self.outputs[i]]
-            if fmt_string != None:
-                s = fmt_string % i
-                a += [s]
-            a += args
-            mylog.info("Calling %s on %s", func.func_name, a[0].parameterFilename)
-            func(*a)
+            pid = os.fork()
+            if pid:
+                newpid, exit = os.wait()
+                mylog.info("Exit status %s from PID %s", exit, newpid)
+            else:
+                mylog.info("Forked process reporting for duty")
+                self.promoteType(i)
+                a = [self.outputs[i]]
+                if fmt_string != None:
+                    s = fmt_string % i
+                    a += [s]
+                a += args
+                mylog.info("Calling %s on %s", func.func_name, a[0].parameterFilename)
+                func(*a)
+                mylog.info("Done calling %s, now dying", func.func_name)
+                sys.exit()
 
     def getBefore(self, time):
         return na.where(self.timesteps <= time)[0]
@@ -152,8 +157,8 @@ class EnzoRun:
         id = self.index(key)
         # Okay, I know this sucks, but, it seems to be the only way, since
         # concatenate doesn't want to work with ObjectArrays
-        newOutputs = obj.ObjectArray(self.outputs[:id].tolist() + self.outputs[id+1:].tolist())
-        newTimesteps = obj.ObjectArray(self.timesteps[:id].tolist() + self.timesteps[id+1:].tolist())
+        newOutputs = obj.array(self.outputs[:id].tolist() + self.outputs[id+1:].tolist())
+        newTimesteps = obj.array(self.timesteps[:id].tolist() + self.timesteps[id+1:].tolist())
         self.outputs = newOutputs
         self.timesteps = newTimesteps
         del pp, newOutputs, newTimesteps
@@ -331,14 +336,14 @@ class EnzoRun:
             #print "Deleting...", i.__class__
             #i.clearAllGridReferences()
 
+    def __xattrs__(self, mode="default"):
+        return("metaData", "getTime()", "-outputs")
+
     def __repr__(self):
         return self.metaData
 
     def __len__(self):
         return self.outputs.shape[0]
-
-    def __xattrs__(self, mode="default"):
-        return("metaData", "getTime()", "-outputs")
 
     def keys(self):
         """
@@ -348,3 +353,4 @@ class EnzoRun:
         for i in range(self.outputs.shape[0]):
             keys.append(self.outputs[i].basename)
         return keys
+

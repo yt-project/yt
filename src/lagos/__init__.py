@@ -12,7 +12,6 @@ G{packagetree}
 
 """
 
-print "Importing logger"
 from yt.logger import lagosLogger as mylog
 from yt.config import ytcfg
 
@@ -24,7 +23,6 @@ except ImportError:
     mylog.warning("pyTables import failed; HDF5 support unavailable")
 
 from yt.arraytypes import *
-
 import weakref
 from string import strip, rstrip
 from math import ceil, floor, log10, pi

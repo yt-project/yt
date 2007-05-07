@@ -35,6 +35,7 @@ fieldInfo["Density"] = ("g cm^-3", "g cm^-2", True, None)
 fieldInfo["Temperature"] = ("K", None, False, None)
 fieldInfo["HII_Fraction"] = ("mass fraction", None, True, None)
 fieldInfo["H2I_Fraction"] = ("mass fraction", None, True, None)
+fieldInfo["HDI_Fraction"] = ("mass fraction", None, True, None)
 fieldInfo["Electron_Fraction"] = ("", None, True, None)
 
 # These are all the fields that should be logged when plotted

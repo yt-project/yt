@@ -524,7 +524,7 @@ Py_Interpolate(PyObject *obj, PyObject *args)
     if (columns->dimensions[0] != outputvals->dimensions[1]) {
         PyErr_Format(_combineError,
                  "Interpolate: number of columns requested must match number "
-                 "of columns in output buffer. %i", columns->dimensions[0]);
+                 "of columns in output buffer. %i", (int) columns->dimensions[0]);
         goto _fail;
     }
 
@@ -619,8 +619,8 @@ Py_BinProfile(PyObject *obj, PyObject *args)
     if (field->dimensions[0] != binindices->dimensions[0]) {
         PyErr_Format(_combineError,
                  "BinProfile: number of field values must match number of "
-                  "indices.  %i, %i", field->dimensions[0],
-                                      binindices->dimensions[0] );
+                  "indices.  %i, %i", (int) field->dimensions[0],
+                                      (int) binindices->dimensions[0] );
         goto _fail;
     }
 
