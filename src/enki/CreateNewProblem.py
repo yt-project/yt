@@ -28,8 +28,8 @@ her throat. Marduk, Enki's son, (earlier Enlil, Enki's half-brother), takes
 from Tiamat the Tablet of Destinies.
 
 In the Sumerian poem 'Ninurta and the Turtle' it is the god Enki, rather
-than Enlil, who holds the tablet. Both this poem and the Akkadian AnzÃ»
-poem concern the theft of the tablet by the bird Imdugud (Sumerian) or AnzÃ»
+than Enlil, who holds the tablet. Both this poem and the Akkadian Anzu
+poem concern the theft of the tablet by the bird Imdugud (Sumerian) or Anzu
 (Akkadian) . Supposedly, whoever possessed the tablets ruled the
 universe.
 
