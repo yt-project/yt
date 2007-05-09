@@ -95,7 +95,7 @@ def watchDir(md=None, path=".", skip = [], funcHandler = None, process=None):
                 if funcHandler:
                     pid = os.fork()
                     if pid:
-                        newpid, exit = os.wait()
+                        newpid, exit = os.waitpid(pid)
                         mylog.info("Exit status %s from PID %s", exit, newpid)
                     else:
                         mylog.info("Forked process reporting for duty")

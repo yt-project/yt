@@ -15,7 +15,7 @@ class EnzoRun:
     Simulation.  This includes all of the datadumps, the parameter file,
     and possibly even the initial conditions.
     """
-    def __init__(self, metaData, outputs=[], runFilename=None, classType=EnzoHierarchy, timeID=None):
+    def __init__(self, metaData, outputs=[], runFilename=None, classType=EnzoHierarchy, timeID=None, getPFs = True):
         """
         We're going to try to avoid setting too many of the parameters here,
         as many will be changed on and off.  However, we can definitely set all
@@ -38,7 +38,9 @@ class EnzoRun:
         self.classType = classType
         self.outputs = obj.array(outputs)       # Object array of EnzoHierarchies
         self.timesteps = na.zeros(shape=self.outputs.shape, dtype=nT.Float64) # Timesteps
-        if runFilename:
+        self.runFilename = runFilename
+        self.gotRuns = False
+        if runFilename and getPFs:
             self.Import(runFilename)
         if not timeID:
             timeID = int(time.time())
@@ -266,6 +268,7 @@ class EnzoRun:
                 d = cc.get(sec,"Directory")
                 f = cc.get(sec,"Basename")
                 new_outputs.append(os.path.join(d,f))
+        self.gotRuns = True
         self.addOutputByFilename(new_outputs)
 
     def UpdateOutputs(self, cfg):
@@ -337,6 +340,7 @@ class EnzoRun:
             #i.clearAllGridReferences()
 
     def __xattrs__(self, mode="default"):
+        self.Import(self.runFilename)
         return("metaData", "getTime()", "-outputs")
 
     def __repr__(self):

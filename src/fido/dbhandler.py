@@ -89,7 +89,7 @@ def submitRun(run, additional = []):
     mylog.info("Added '%s' to %s", md, new_filename)
     return
 
-def fetchRun(md, classType = lagos.EnzoParameterFile):
+def fetchRun(md, classType = lagos.EnzoParameterFile, getPFs = True):
     """
     This takes a metaData string and then returns the EnzoRun instance
     associated with that metaData string
@@ -101,7 +101,7 @@ def fetchRun(md, classType = lagos.EnzoParameterFile):
     ids, mds =getRuns()
     if not mds.has_key(md):
         raise KeyError, "MetaData string (%s) not found!" % (md)
-    run = lagos.EnzoRun(md, runFilename=mds[md][1], classType=classType, timeID=mds[md][0])
+    run = lagos.EnzoRun(md, runFilename=mds[md][1], classType=classType, timeID=mds[md][0], getPFs = getPFs)
     return run
 
 def submitParameterFile(run, pf):

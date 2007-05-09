@@ -192,7 +192,7 @@ def runBrowse():
     rids, rmds = getRuns()
     runs = []
     for md in rmds.keys():
-        runs.append(fetchRun(md))
+        runs.append(fetchRun(md, getPFs=False))
     bw = ibrowse()
     runs | bw
     myRun = bw.display()
