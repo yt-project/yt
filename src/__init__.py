@@ -5,6 +5,14 @@ in prototype form) as well as runnning Enzo simulations, simulating the actions
 of Enzo on various existing data, and analyzing output from Enzo in a
 wide-variety of methods.
 
+The changelog is available in
+U{fancy<http://www.slac.stanford.edu/~mturk/yt_doc/changelog.html>} and
+U{detailed<http://www.slac.stanford.edu/~mturk/yt_doc/changelog.txt>} formats.
+These are automatically regenerated nightly.
+
+An ever-growing HOWTO is also available at
+U{http://www.slac.stanford.edu/~mturk/yt_doc/yt_howto.pdf} .
+
 YT is divided into several packages, all named after characters from Snow
 Crash.
 
@@ -69,6 +77,3 @@ from logger import *
 from config import *
 
 import shell
-
-#import enki
-#import lagos

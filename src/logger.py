@@ -9,13 +9,21 @@ Will initialize everything, and associate one with each module
 
 import logging
 import logging.handlers as handlers
+from yt.config import ytcfg
+
+if ytcfg.has_option("yt","loglevel"):
+    level = min(max(int(ytcfg.get("yt","loglevel")),0),50)
+else:
+    level = 30
 
 logging.basicConfig(
     format="%(name)-10s %(levelname)-10s %(asctime)s %(message)s",
-    level=logging.DEBUG
+    level=level
 )
 
 f = logging.Formatter("%(levelname)-10s %(asctime)s %(message)s")
+
+logging.debug("Set log level to %s", level)
 
 # We initialize each module individually
 # Note that there are LOTS of ways we can log things, and some of these ought

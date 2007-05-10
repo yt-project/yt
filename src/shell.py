@@ -2,13 +2,14 @@
 This module handles both the interactive component as well as the command-line
 scripts.
 
+@deprecated: IPython is the wave of the future, people!
 @author: U{Matthew Turk<http://www.stanford.edu/~mturk/>}
 @organization: U{KIPAC<http://www-group.slac.stanford.edu/KIPAC/>}
 @contact: U{mturk@slac.stanford.edu<mailto:mturk@slac.stanford.edu>}
 """
 
 #from yt.fido import *  # Not sure we want this
-import dialog, sys
+import sys
 import glob, os.path
 
 from yt import ytcfg

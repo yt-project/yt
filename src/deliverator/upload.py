@@ -22,7 +22,7 @@ if ytcfg.has_option("Deliverator","api-key"):
     APIKey=ytcfg.get("Deliverator","api-key")
 else:
     APIKey = None
-    mylog.warning("No API Key Found!  All actions will fail.")
+    mylog.warning("No API Key Found!  All deliverator actions will fail.")
 
 
 def SubmitRun(metaData, user):
@@ -79,7 +79,7 @@ def SubmitParameterFile(RunID, hierarchy):
     t.update(hierarchy.units.copy())
     req.PickleObj = base64.b64encode(cPickle.dumps(t))
     resp=port.SubmitNewParameterFile(req)
-    mylog.info("%s (%s)", req.FileName, resp.Response)
+    mylog.debug("%s (%s)", req.FileName, resp.Response)
     return resp.Response
     
 def SubmitImage(hierarchy, img_info):
@@ -114,5 +114,5 @@ def SubmitImage(hierarchy, img_info):
     req.Type = img_info["Type"]
     req.RunID = img_info["RunID"]
     resp=port.SubmitNewImage(req)
-    mylog.info("%s (%s)", req.IMG_src, resp.Response)
+    mylog.debug("%s (%s)", req.IMG_src, resp.Response)
     return resp.Response
