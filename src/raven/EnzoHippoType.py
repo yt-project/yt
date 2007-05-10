@@ -10,7 +10,6 @@ Enzo's interaction with hippodraw
 from EnzoPlotTypes import *
 from EnzoGallery import *
 from yt.raven import *
-import hippo
 try:
     import yt.deliverator
 except:
@@ -59,6 +58,10 @@ class EnzoHippo:
                 self.canvas = hippo.Canvas()
             else:
                 self.canvas = self.app.canvas()
+        elif canvas == -1:
+            jj = hippo.Canvas()
+            jj.show()
+            self.canvas = self.app.canvas()
         else:
             self.canvas = canvas
 
@@ -87,6 +90,27 @@ class EnzoHippo:
         """
         self.canvas.clear()
         self.canvas.close()
+
+    def addRadialHistogramPlot(self, fields, radius, unit, center=None):
+        """
+        Add a new plot of this type
+
+        @param fields: the fields to add to the plot
+        @type fields: list of strings
+        @param radius: the radius to include
+        @type radius: float
+        @param unit: the unit the radius is listed in
+        @type unit: string
+        @keyword center: the center (defaults to maximum Density)
+        @type center: tuple of floats
+        @return: L{EnzoRadialProfilePlot<EnzoPlotTypes.EnzoRadialProfilePlot>}
+        """
+        if center==None:
+            v, center = self.hierarchy.findMax('Density')
+        self.plots.append(EnzoRadialHistogramPlot(self.hierarchy, self.canvas, self, offScreen=self.offScreen))
+        self.plots[-1].makePlot(center, radius, unit, fields)
+        self.canvas.addDisplay(self.plots[-1].plot)
+        return self.plots[-1]
 
     def addRadialProfilePlot(self, fields, radius, unit, center=None):
         """

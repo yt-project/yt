@@ -201,6 +201,38 @@ class EnzoRadialPlot(EnzoPlot):
         mylog.info("Setting range to %0.5e - %0.5e", minVal, maxVal)
         self.plot.setRange('Y', minVal, maxVal)
 
+class EnzoRadialHistogramPlot(EnzoRadialPlot):
+    def __init__(self, hierarchy, canvas, enzoHippo, offScreen):
+        self.typeName = "Histogram"
+        self.numAxes = 2
+        self.plotType = "Histogram"
+        EnzoPlot.__init__(self, hierarchy, canvas, enzoHippo, offScreen)
+
+    def generatePrefix(self, prefix):
+        self.prefix = prefix + "_%s" % (self.typeName)
+        self.prefix += "_%s" % (self.field)
+        self.im["FieldList"] = [self.field]
+        self.im["Fields"] = self.field
+        self.im["Unit"] = self.unit
+        #self.im["Width"] = self.radius
+        self.im["Width"] = self.radius * self.hierarchy[self.unit]
+        #print "Setting width to",self.im["Width"] * self.hierarchy[self.unit]
+
+    def makePlot(self, center, radius, unit, fields):
+        self.unit = unit
+        self.radius = radius
+        if "CellMass" in fields:
+            i = fields.index("CellMass")
+            del fields[i]
+        fields = fields[:1] + ["CellMass"] + fields[1:]
+        EnzoRadialPlot.makePlot(self, center, radius, unit, fields)
+        self.field = self.fields[0]
+        self.refresh()
+
+    def refresh(self):
+        self.plot.setLabel('X',self.dataLabel[0])
+        self.plot.setLabel('Y',"Entries per Bin")
+
 class EnzoRadialProfilePlot(EnzoRadialPlot):
     def __init__(self, hierarchy, canvas, enzoHippo, offScreen):
         self.typeName = "RadialProfile"
@@ -398,7 +430,7 @@ class EnzoVMSlice(EnzoVM):
         #slice_data.center = self.c
         
         time2 = time.time()
-        mylog.info( "Took %0.3e seconds to slice",  time2-time1)
+        mylog.debug( "Took %0.3e seconds to slice",  time2-time1)
         
         self.data = slice_data
         
@@ -429,7 +461,7 @@ class EnzoVMSlice(EnzoVM):
         #self.refreshDisplayWidth()
         
         time2=time.time()
-        mylog.info( "Took %0.3e seconds for everything" ,  time2-time1)
+        mylog.debug( "Took %0.3e seconds for everything" ,  time2-time1)
 
     def addField(self, field):
         if self.hierarchy.conversionFactors.has_key(field):
