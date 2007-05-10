@@ -7,7 +7,7 @@ Here's our source-tree handler.  For now we will dump to shell to recompile.
 """
 
 from yt.enki import *
-import os, commands, re, os.path
+import os, commands, re, os.path, sys
 
 def compileNew(MachineName=None, Clean=False, nProc=1, target=None, 
                srcDir="src", exeDir="exe"):
@@ -48,6 +48,7 @@ def compileNew(MachineName=None, Clean=False, nProc=1, target=None,
     if not ytcfg.has_option("yt","enzo_source_tree"):
         mylog.error("Section 'yt' option 'enzo_source_tree' not set in yt config file!")
         mylog.error("Returning without compiling.")
+        return None
     mylog.info("Executing %s", command)
     st=commands.getoutput(command)
     os.chdir(old_wd)
@@ -57,6 +58,10 @@ def compileNew(MachineName=None, Clean=False, nProc=1, target=None,
     # Now we should parse it to figure out what was created
     r=re.compile(r"^Created (.*$)", re.M)
     m=r.search(st)
+    if m == None:
+        print st
+        mylog.error("Broken compilation.")
+        sys.exit(1)
     exePath = os.path.join(os.path.join(wd,exeDir),m.group(1))
     mylog.info("Received %s", exePath)
     return exePath

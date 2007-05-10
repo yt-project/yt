@@ -49,4 +49,3 @@ import mes
 from Recompile import *
 
 #from yt.lagos import * # Do we need this?
-import yt.lagos as lagos
