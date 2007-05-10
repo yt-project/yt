@@ -11,7 +11,6 @@ OTHERFILES=["rates.out","cool_rates.out"]
 NEW_OUTPUT_CREATED = "newOutput"
 
 import os, os.path, time, sys, shutil
-import yt.lagos as lagos
 from yt.fido import *
 import glob
 
@@ -57,13 +56,15 @@ def checkForStop(process=None):
             return 1
     return 0
 
-def watchDir(md=None, path=".", skip = [], funcHandler = None, process=None):
+def watchDir(md=None, path=".", newPrefix = "", skip = [], funcHandler = None, process=None):
     """
     This is the heart of Fido.  This function watches a given directory for
     output, and when that output is found, it calls moves the output and calls a
     function to deal with the data.
 
     @keyword path: the path to watch for output
+    @keyword newPrefix: the prefix for the dumps to be moved to
+    @type newPrefix: string
     @keyword skip: skip these files when looking for output
     @type skip: list of strings
     @keyword funcHandler: this function will be called with the EnzoHierarchy instance
@@ -73,8 +74,9 @@ def watchDir(md=None, path=".", skip = [], funcHandler = None, process=None):
     @note: B{This assumes outputs are added in chronological time order!}  This
            function may behave incorrectly if you don't revert and digup runs.
     """
+    import yt.lagos as lagos
     if process:
-        mylog.info("Handed process")
+        mylog.debug("Handed process")
     os.chdir(path)
     if not md:
         md = os.path.basename(os.getcwd())
@@ -85,20 +87,20 @@ def watchDir(md=None, path=".", skip = [], funcHandler = None, process=None):
         nn = newCheckForOutput(skip)
         if nn:
             for bn in nn:
-                newDir = "%s.dir" % (bn)
+                newDir = os.path.join(newPrefix, "%s.dir" % (bn))
                 if not os.path.exists(newDir):
-                    os.mkdir(newDir)
+                    os.makedirs(newDir)
                 moveFiles(newDir, bn, extraFiles=OTHERFILES)
-                mylog.info("Adding to EnzoRun instance")
+                mylog.debug("Adding to EnzoRun instance")
                 thisRun.addOutputByFilename(os.path.join(newDir,bn))
                 submitRun(thisRun)
                 if funcHandler:
                     pid = os.fork()
                     if pid:
-                        newpid, exit = os.waitpid(pid)
-                        mylog.info("Exit status %s from PID %s", exit, newpid)
+                        newpid, exit = os.waitpid(pid,0)
+                        mylog.debug("Exit status %s from PID %s", exit, newpid)
                     else:
-                        mylog.info("Forked process reporting for duty")
+                        mylog.debug("Forked process reporting for duty")
                         thisRun.promoteType(-1)
                         mylog.info("Calling %s" % funcHandler.func_name)
                         funcHandler(thisRun.outputs[-1])
@@ -108,6 +110,7 @@ def watchDir(md=None, path=".", skip = [], funcHandler = None, process=None):
         time.sleep(WAITBETWEEN)
 
 def runOnce(md=None):
+    import yt.lagos as lagos
     if not md:
         md = os.path.basename(os.getcwd())
     thisRun = fetchRun(md, classType=lagos.EnzoParameterFile)
@@ -115,12 +118,12 @@ def runOnce(md=None):
     for bn in nn:
         newDir = "%s.dir" % (bn)
         if not os.path.exists(newDir):
-            os.mkdir(newDir)
+            os.makedirs(newDir)
         moveFiles(newDir, bn, extraFiles=OTHERFILES)
-        mylog.info("Adding %s to EnzoRun instance (%s)", bn, md)
+        mylog.debug("Adding %s to EnzoRun instance (%s)", bn, md)
         thisRun.addOutputByFilename(os.path.join(newDir,bn))
         submitRun(thisRun)
-    mylog.info("All done, exiting")
+    mylog.debug("All done, exiting")
 
 if __name__=="__main__":
     watchDir()

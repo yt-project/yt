@@ -42,7 +42,6 @@ using a given host profile.  Or, possibly, to spawn an editor.
 RUN_PREFIX = "runF"
 
 from yt.fido import *
-import yt.lagos as lagos
 import glob, re, types
 
 my_rundir = ytcfg.get("Fido","rundir")
@@ -89,7 +88,7 @@ def submitRun(run, additional = []):
     mylog.info("Added '%s' to %s", md, new_filename)
     return
 
-def fetchRun(md, classType = lagos.EnzoParameterFile, getPFs = True):
+def fetchRun(md, classType = None, getPFs = True):
     """
     This takes a metaData string and then returns the EnzoRun instance
     associated with that metaData string
@@ -98,10 +97,13 @@ def fetchRun(md, classType = lagos.EnzoParameterFile, getPFs = True):
     @type md: string
     @return: L{EnzoRun<EnzoRun>}
     """
+    import yt.lagos
+    if classType == None:
+        classType = yt.lagos.EnzoParameterFile
     ids, mds =getRuns()
     if not mds.has_key(md):
         raise KeyError, "MetaData string (%s) not found!" % (md)
-    run = lagos.EnzoRun(md, runFilename=mds[md][1], classType=classType, timeID=mds[md][0], getPFs = getPFs)
+    run = yt.lagos.EnzoRun(md, runFilename=mds[md][1], classType=classType, timeID=mds[md][0], getPFs = getPFs)
     return run
 
 def submitParameterFile(run, pf):
@@ -148,6 +150,7 @@ def branch(run, pf, new_md, new_dir):
     but instead EnzoParameterFile objects.  This should make things much less
     intense when dealing with large hierarchies.
     """
+    import yt.lagos as lagos
     if not os.path.exists(new_dir):
         os.makedirs(new_dir)
     if isinstance(pf, types.StringType):
@@ -208,6 +211,7 @@ def revert(md, maxTime):
     @note: Does this necessarily work with FP precision?  Do we need to do a
            +1e-30 or something to it?
     """
+    import yt.lagos as lagos
     if isinstance(md, types.StringType):
         thisRun = fetchRun(md)
     else:
@@ -244,6 +248,7 @@ def guessRun(pf=None, wd="."):
     @param wd: the working directory
     @type wd: string
     """
+    import yt.lagos as lagos
     if pf:
         try:
             md = pf["MetaDataString"]
@@ -270,7 +275,7 @@ def digUp(md, pf):
     run.removeOutput(pf.basename)
     submitRun(run)
 
-def guessPF(pf, classType = lagos.EnzoParameterFile):
+def guessPF(pf, classType = None):
     """
     Simple way of guessing a parameter file's name.  Expect this function to
     evolve in time.
@@ -278,6 +283,9 @@ def guessPF(pf, classType = lagos.EnzoParameterFile):
     @param pf: some string that somehow describes the parameter file
     @type pf: string
     """
+    import yt.lagos as lagos
+    if classType == None:
+        classType = lagos.EnzoParameterFile
     try_dir = os.path.join(pf+".dir",pf)
     if pf[-1] == "/":
         pf = pf[:-1]

@@ -10,10 +10,9 @@ scripts.
 """
 
 #from yt.fido import *  # Not sure we want this
-import dialog, sys, getopt, shutil
+import dialog, sys, optparse, shutil
 import glob, os.path
 
-import yt.lagos as lagos
 import yt.shell
 from yt.fido import *
 
@@ -32,26 +31,20 @@ def runDigup():
     sys.exit()
 
 def runGetNewEnzo(toPut = None):
+    pp = optparse.OptionParser(description="Recompiles Enzo based on configuration file.", \
+                               version="Your Mom")
+    pp.add_option("-j","--numProc", action="store", dest="nproc", \
+                                    default=1, type="int")
+    pp.add_option("-p","--path", action="store", dest="path", \
+                help="Where to copy resultant executable (defaults to no copying)")
+    pp.add_option("-c","--clean", action="store_true", dest="clean", \
+                                  default=False)
+    opts, args = pp.parse_args()
     import yt.enki as enki
-    opts,args = getopt.getopt(sys.argv[1:], 'j:cp:')
-    j = 1
-    clean = False
-    for o,v in opts:
-        if o == "-j":
-            j = v
-            mylog.info("Using %s procs", j)
-        elif o == "-c":
-            clean = True
-            mylog.info("Cleaning")
-        elif o == "-p":
-            toPut = v
-    target = None
-    if len(args) > 0:
-        target = " ".join(args)
-    newExe = enki.compileNew(nProc=j, Clean=clean)
-    if toPut:
-        mylog.info("Copying new enzo exe to %s", toPut)
-        shutil.copy2(newExe, toPut)
+    newExe = enki.compileNew(nProc=opts.nproc, Clean=opts.clean)
+    if opts.path != None:
+        mylog.info("Copying new enzo exe to %s", opts.path)
+        shutil.copy2(newExe, opts.path)
 
 def runBranch():
     """
@@ -69,6 +62,7 @@ def runBranch():
     new_dir=getNewDirectory(new_md)
     # This is awful, but I need to do it
     branch(run, new_pf, new_md, new_dir)
+    # Wait, why is it awful, March-Matt?  Sincerely, May-Matt
 
 def runRevert():
     guess = os.path.basename(os.getcwd())
@@ -82,6 +76,7 @@ def runRevert():
     revert(run, new_pf)
 
 def runImport():
+    import yt.lagos as lagos
     myRun = lagos.EnzoRun(os.path.basename(os.getcwd()), classType=lagos.EnzoParameterFile)
     a = []
     dirs = glob.glob("*.dir")
@@ -148,6 +143,7 @@ def selectRun():
     retCode,mdI = d.menu("Which run do you want?", choices=runs)
     if retCode == 1:
         return None
+    import yt.lagos as lagos
     myRun = fetchRun(runs[int(mdI)-1][1], classType = lagos.EnzoParameterFile)
     return myRun
     
@@ -182,8 +178,6 @@ def run():
         runBury()
     elif exeName == "frecomp":
         runGetNewEnzo()
-    elif exeName == "ibw":
-        runGetNewEnzo()
 
 def runBrowse():
     """
@@ -203,3 +197,22 @@ def outputBrowse(run):
     bw = ibrowse()
     ll | bw
     return bw.display()
+
+# Here is our spec sheet:
+#
+# fbranch:
+#   Takes output to branch at, as well as new metadata and new directory.
+#   Require these options!
+# fdigup:
+#   Which one to dig up
+# frevert:
+#   Which one to revert to
+# ffetch:
+#   We can disregard this one for now
+# fbury:
+#   Does this one even work?
+# frecomp:
+#   -j : number of processors
+#   -c : clean first?
+#   -p : where should we toss the executable?
+#   -t : target to build?
