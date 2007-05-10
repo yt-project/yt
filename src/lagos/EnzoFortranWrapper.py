@@ -7,7 +7,10 @@ Enzo fortran function wrapping
 """
 
 from yt.lagos import *
-import Numeric # Hate doing this, but we have to for inout ability
+try:
+    import Numeric # Hate doing this, but we have to for inout ability
+except:
+    mylog.info("Numeric import failed; unpredictable fortran calls.")
 #from EnzoDefs import *
 #from numarray import *
 

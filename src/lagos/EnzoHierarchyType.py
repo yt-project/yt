@@ -331,10 +331,9 @@ class EnzoHierarchy(EnzoParameterFile):
         time12=time.time()
         # First, we look to see if the pseudo-pickled file is available
         arrayFilename = os.path.join(self.directory,self.basename+".arrayfile")
-        if os.path.exists(arrayFilename) and na.__name__ == "numarray":
-#            loki = raw_input("Pausing")
-            allArrays = na.fromfile(arrayFilename, type=nT.Float64, shape=(self.numGrids,18))
-#            loki = raw_input("Loaded")
+        if os.path.exists(arrayFilename):
+            temp = na.fromfile(arrayFilename, dtype=nT.Float64)
+            allArrays=na.reshape(temp, (self.numGrids,18))
             self.gridDimensions[:] = allArrays[:,0:3]
             self.gridStartIndices[:] = allArrays[:,3:6]
             self.gridEndIndices[:] = allArrays[:,6:9]
@@ -343,15 +342,13 @@ class EnzoHierarchy(EnzoParameterFile):
             self.gridLevels[:] = allArrays[:,15:16]
             self.gridTimes[:] = allArrays[:,16:17]
             self.gridNumberOfParticles[:] = allArrays[:,17:18]
-            del allArrays
+            del temp, allArrays
             # Now get the baryon filenames
             re_BaryonFileName = constructRegularExpressions("BaryonFileName",('s'))
             t = re.findall(re_BaryonFileName, self.hierarchyString)
-#            loki = raw_input("Instantiating")
             for fnI in xrange(len(t)):
                 #self.grids[fnI] = EnzoGrid(self, fnI+1)
                 self.grids[fnI].setFilename(t[fnI])
-#            loki = raw_input("Done")
         else:
             for line in self.hierarchyLines:
                 # We can do this the slow, 'reliable' way by stripping
@@ -424,9 +421,7 @@ class EnzoHierarchy(EnzoParameterFile):
                 self.gridReverseTree[secondGrid] = parent
                 self.grids[secondGrid].Level = self.grids[firstGrid].Level
                 self.gridLevels[secondGrid] = self.gridLevels[firstGrid]
-#        loki = raw_input("All done with that shit!")
         time11=time.time()
-        #print "Took %s seconds" % (time11-time10)
         self.maxLevel = self.gridLevels.max()
         # Now we do things that we need all the grids to do
         self.fieldList = self.grids[0].getFields()
@@ -434,12 +429,10 @@ class EnzoHierarchy(EnzoParameterFile):
         for i in xrange(self.numGrids):
             self.levelsStats[self.gridLevels[i,0],0] += 1
             self.grids[i].prepareGrid()
-#            self.levelsStats[self.gridLevels[i,0],1] += na.product(self.grids[i].ActiveDimensions)
-#        loki = raw_input("All done with that shit (2)!")
+            self.levelsStats[self.gridLevels[i,0],1] += na.product(self.grids[i].ActiveDimensions)
         self.levelIndices = {}
         self.levelNum = {}
         time15=time.time()
-        #print "Took %s" % (time15-time14)
         for level in xrange(self.maxLevel+1):
             self.levelIndices[level] = self.selectLevel(level)
             self.levelNum = len(self.levelIndices[level])
@@ -565,13 +558,13 @@ class EnzoHierarchy(EnzoParameterFile):
         g,ind = self.findSliceGrids(center[axis],axis)
         time1=time.time()
         for grid in g:
-            mylog.info("Getting from grid %s", grid.id)
+            mylog.debug("Getting from grid %s", grid.id)
             rvs.append(grid.getSlice(center[axis],axis,field,outline))
         allPoints = na.concatenate(rvs)
         if fileName:
             time2=time.time()
             mylog.info("It took %s seconds to generate a slice through all levels", time2-time1)
-            mylog.info("This means %s points in %s grids!", allPoints.shape[0], len(g))
+            mylog.debug("This means %s points in %s grids!", allPoints.shape[0], len(g))
             f=open(fileName, "w")
             f.write("x\ty\tz\tdx\tdy\n")
             for i in xrange(allPoints.shape[0]):
@@ -732,7 +725,7 @@ class EnzoHierarchy(EnzoParameterFile):
             LE = self.gridLeftEdge[grids].copy()
             for grid in self.grids[grids]:
                 if (i%1e3) == 0:
-                    mylog.info("Reading and masking %s / %s", i, self.numGrids)
+                    mylog.debug("Reading and masking %s / %s", i, self.numGrids)
                 for ax in xrange(3):
                     grid.generateOverlapMasks(ax, LE, RE)
                     grid.myOverlapGrids[ax] = self.grids[grids[na.where(grid.myOverlapMasks[ax] == 1)]]
@@ -743,7 +736,7 @@ class EnzoHierarchy(EnzoParameterFile):
             memoryPerLevel[grid.Level] += myNeeds
         for level in xrange(maxLevel+1):
             gI = na.where(self.gridLevels==level)
-            mylog.info("%s cells and %s grids for level %s", \
+            mylog.debug("%s cells and %s grids for level %s", \
              memoryPerLevel[level], len(gI[0]), level)
         mylog.debug("We need %s cells total", totalProj)
         # We start at the coarsest resolution levels
@@ -776,7 +769,6 @@ class EnzoHierarchy(EnzoParameterFile):
             i=0
             index=0
             time5=time.time()
-            #print "Allocating %s for level %s" % (tempLevelData[0].shape, level)
             for grid in gridsToProject:
                 i+=1
                 grid.retVal=grid.getProjection(axis, field, zeroOut, weight=weightField)
@@ -786,7 +778,7 @@ class EnzoHierarchy(EnzoParameterFile):
                     time6-time5, totalGridsProjected, self.numGrids, index)
             time5=time.time()
             #print "\tCombining with a maximum of %s operations" % (index*index)
-            mylog.info("Combining ...")
+            mylog.debug("Combining ...")
             i=0
             for grid1 in gridsToProject:
                 i += 1

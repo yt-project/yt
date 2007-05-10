@@ -104,10 +104,15 @@ class EnzoRun:
         for fn in filename:
             mylog.debug("Adding %s to EnzoRun '%s'", fn, self.metaData)
             k.append(self.classType(fn, hdf_version=hdf_version))
+            k[-1].run = self
         self.addOutput(k)
 
     def getCommandLine(self):
         return "./enzo_red_i9_r16"
+
+    def getTime(self):
+        return time.ctime(float(self.timeID))
+
 
     def runFunction(self, func, args, fmt_string = None):
         """
@@ -332,22 +337,27 @@ class EnzoRun:
             raise KeyError
         return index
 
-    #def __del__(self):
-        #o = self.outputs.tolist()
-        #del self.outputs
-        #for i in o:
-            #print "Deleting...", i.__class__
-            #i.clearAllGridReferences()
+    def getOutputs(self):
+        if not self.gotRuns:
+            self.Import(self.runFilename)
+        return self.outputs.tolist()
 
     def __xattrs__(self, mode="default"):
-        self.Import(self.runFilename)
-        return("metaData", "getTime()", "-outputs")
+        return("metaData", "getTime()")
 
     def __repr__(self):
         return self.metaData
 
     def __len__(self):
+        if not self.gotRuns:
+            self.Import(self.runFilename)
         return self.outputs.shape[0]
+
+    def __iter__(self):
+        if not self.gotRuns:
+            self.Import(self.runFilename)
+        for i in range(len(self)):
+            yield self.outputs[i]
 
     def keys(self):
         """
@@ -357,4 +367,3 @@ class EnzoRun:
         for i in range(self.outputs.shape[0]):
             keys.append(self.outputs[i].basename)
         return keys
-
