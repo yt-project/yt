@@ -1,0 +1,61 @@
+<!-- This is a SAMPLE file!  Change it as you see fit -->
+<raven>
+    <proj mindx="1">
+        <field weight="Temperature">Density</field>
+        <width unit="au">10000</width>
+        <width unit="au">1000</width>
+        <width unit="au">100</width>
+        <width unit="au">10</width>
+        <width unit="au">1</width>
+        <width unit="rsun">10000</width>
+        <width unit="rsun">1000</width>
+        <width unit="rsun">100</width>
+        <width unit="rsun">10</width>
+        <width unit="rsun">1</width>
+    </proj>
+    <slice mindx="1">
+        <field>H2I_Fraction</field>
+        <field>Temperature</field>
+        <field>NumberDensity</field>
+        <field>RadialVelocity</field>
+        <width unit="au">10000</width>
+        <width unit="au">1000</width>
+        <width unit="au">100</width>
+        <width unit="au">10</width>
+        <width unit="au">1</width>
+        <width unit="rsun">10000</width>
+        <width unit="rsun">1000</width>
+        <width unit="rsun">100</width>
+        <width unit="rsun">10</width>
+        <width unit="rsun">1</width>
+    </slice>
+    <threephase mindx="1">
+        <field>NumberDensity</field>
+        <field>Temperature</field>
+        <field>H2I_Fraction</field>
+        <width unit="au">10000</width>
+        <width unit="au">1000</width>
+        <width unit="au">100</width>
+        <width unit="au">10</width>
+        <width unit="au">1</width>
+        <width unit="rsun">10000</width>
+        <width unit="rsun">1000</width>
+        <width unit="rsun">100</width>
+        <width unit="rsun">10</width>
+        <width unit="rsun">1</width>
+    </threephase>
+    <twophase mindx="1">
+        <field>NumberDensity</field>
+        <field>Temperature</field>
+        <width unit="au">10000</width>
+        <width unit="au">1000</width>
+        <width unit="au">100</width>
+        <width unit="au">10</width>
+        <width unit="au">1</width>
+        <width unit="rsun">10000</width>
+        <width unit="rsun">1000</width>
+        <width unit="rsun">100</width>
+        <width unit="rsun">10</width>
+        <width unit="rsun">1</width>
+    </twophase>
+</raven>
