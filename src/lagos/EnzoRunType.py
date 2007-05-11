@@ -141,16 +141,16 @@ class EnzoRun:
                 newpid, exit = os.wait()
                 mylog.info("Exit status %s from PID %s", exit, newpid)
             else:
-                mylog.info("Forked process reporting for duty")
+                mylog.debug("Forked process reporting for duty")
                 self.promoteType(i)
                 a = [self.outputs[i]]
                 if fmt_string != None:
                     s = fmt_string % i
                     a += [s]
                 a += args
-                mylog.info("Calling %s on %s", func.func_name, a[0].parameterFilename)
+                mylog.debug("Calling %s on %s", func.func_name, a[0].parameterFilename)
                 func(*a)
-                mylog.info("Done calling %s, now dying", func.func_name)
+                mylog.debug("Done calling %s, now dying", func.func_name)
                 sys.exit()
 
     def getBefore(self, time):

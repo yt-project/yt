@@ -2,19 +2,22 @@
 We want to have flexible arrays, so we do it all in here, and then import from
 this module.
 
+This is all probably overly-complicated, and should be removed at first
+opportunity to ditch numarray.
+
 @author: U{Matthew Turk<http://www.stanford.edu/~mturk/>}
 @organization: U{KIPAC<http://www-group.slac.stanford.edu/KIPAC/>}
 @contact: U{mturk@slac.stanford.edu<mailto:mturk@slac.stanford.edu>}
+@todo: Migrate everybody over to numpy, and ditch this
+@todo: Ditch the numpy = obj usage
 """
 
 from config import ytcfg
-import logging
+import logger.ytLogger as mylog
 
 class ArrayNumTypes:
     def __init__(self):
         pass
-
-# This should only be in the yt_numpy branch!  Got it?
 
 u_numpy = False
 u_numarray = False
@@ -26,9 +29,9 @@ myTypes = [ 'Complex128',  'Bool', 'Int32', 'Complex64', 'UInt16', 'Float32',
             'UInt32', 'Float128', 'Int16']
 
 if not ytcfg.has_option("yt","numarray"):
-    logging.info("Using NumPy.")
-    logging.info("Please report problems to mturk@slac.stanford.edu, including a full traceback.")
-    logging.info("(Check for .flat access to arrays -- it should now be .ravel() !)")
+    mylog.info("Using NumPy.")
+    mylog.info("Please report problems to mturk@slac.stanford.edu, including a full traceback.")
+    mylog.info("(Check for .flat access to arrays -- it should now be .ravel() !)")
     import numpy as na
     import numpy.linalg as la
     import numpy as obj  # Backwards compat
@@ -40,7 +43,7 @@ if not ytcfg.has_option("yt","numarray"):
     for type in myTypes:
         setattr(nT, type, na.typeNA[type])
 else:
-    logging.info("Using NumArray.  Many, many things will probably break.  You should use NumPy!")
+    mylog.warning("Using NumArray.  Many, many things will probably break.  You should use NumPy!")
     import numarray as na
     import numarray.linear_algebra as la
     import numarray.objects as obj
@@ -51,5 +54,4 @@ else:
         try:
             setattr(nT, type, na.typeDict[type])
         except KeyError:
-            pass # We won't log this -- lots of nonsense crap
-            #logging.debug("No type %s - this is probably not a problem", type)
+            pass

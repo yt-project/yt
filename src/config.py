@@ -12,15 +12,15 @@ import ConfigParser, os, os.path, sys
 
 defaults = {'RunDir': os.path.join(os.getenv("HOME"),'EnzoRuns'),\
             'WorkDir': os.path.join('/usr/work/', os.getenv("USER")),\
-            'EnzoInterfacePath': '/usr/work/mturk/local/lib/python2.5/site-packages'}
+            'EnzoInterfacePath': '/usr/work/mturk/local/lib/python2.5/site-packages', \
+            'LogFile': True, \
+            'LogLevel': 30, \
+            'UnifiedLogFile':True, \
+            'User':os.getenv("USER")}
 
 ytcfg = ConfigParser.ConfigParser(defaults)
 ytcfg.read(['yt.cfg', os.path.expanduser('~/.yt/config')])
 
-if ytcfg.has_section("usermodules") and ytcfg.has_option("usermodules","path"):
-    umod_path = ytcfg.get("usermodules","path")
-    mylog.info("Using %s as path to user modules", umod_path)
-    sys.path = sys.path[:1] + [umod_path] + sys.path[1:] # We want '' to be the first
-    # This is dangerous.  But, I know everyone is clamoring for it.
-    for key in ytcfg.options("usermodules"):
-        exec("import %s" % ytcfg.get("usermodules",key))
+# I am hereby getting rid of usermodules...  (They used to be below.)  I can
+# actually think of no reasonable purpose that they would serve.  Also, it
+# messed up the logging import.

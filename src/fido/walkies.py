@@ -2,8 +2,6 @@
 This module handles both the interactive component as well as the command-line
 scripts.
 
-@todo: implement runBranch()
-
 @author: U{Matthew Turk<http://www.stanford.edu/~mturk/>}
 @organization: U{KIPAC<http://www-group.slac.stanford.edu/KIPAC/>}
 @contact: U{mturk@slac.stanford.edu<mailto:mturk@slac.stanford.edu>}
@@ -11,12 +9,14 @@ scripts.
 
 #from yt.fido import *  # Not sure we want this
 import dialog, sys, optparse, shutil
-import glob, os.path
+import glob, os, os.path
 
 import yt.shell
 from yt.fido import *
 
 from IPython.Extensions.ipipe import *
+
+from yt.config import ytcfg
 
 def runDigup():
     guess = os.path.basename(os.getcwd())
@@ -30,7 +30,42 @@ def runDigup():
     digUp(run, new_pf)
     sys.exit()
 
-def runGetNewEnzo(toPut = None):
+def runFido():
+    pp = optparse.OptionParser(description="Archives data and creates plots.", \
+                               version="Your Mom")
+    pp.add_option("-c","--config", action="store", dest="cfgFile", \
+                  default="raven_config.xml", type="string")
+    pp.add_option("-p","--path", action="store", dest="path", \
+                  default="", help="Where to move files when archiving")
+    pp.add_option("-d","--deliverator", action="store", dest="deliverator", \
+                  default=False, type="boolean", \
+                  help="Should we submit to the Deliverator?\n(This requires that httpPrefix be defined in [raven] in your yt config file!)")
+    opts, args = pp.parse_args()
+    imagePath = ytcfg.get("raven", "imagePath")
+    imageSkel = ytcfg.get("raven", "imageSkel")
+    import yt.fido as fido
+    import yt.raven as raven
+    def fidoPlots(h):
+        md = h["MetaDataString"]
+        if md.strip().rstrip() == "(null)":
+            fido.error("MetaDataString undefined in parameter file; either use it, or write your own durn function!")
+            raise KeyError
+        mdd = {'md':md}
+        if opts.deliverator:
+            httpPrefix = ytcfg.get("raven", "httpPrefix")
+            RunID, Response = deliverator_upload.SubmitRun(md, ytcfg.get("deliverator","user"))
+            plot=raven.EnzoHippo(h, submitToDeliverator=RunID, httpPrefix=httpPrefix % mdd)
+        else:
+            plot=raven.EnzoHippo(h)
+        imageDir = imagePath % mdd
+        if not os.path.isdir(imageDir):
+            os.makedirs(imageDir)
+        prefix = os.path.join(imageDir, imageSkel)
+        raven.MakePlots(plot, opts.cfgFile, prefix)
+        return
+    fido.watchDir(funcHandler=fidoPlots, newPrefix=opts.path) 
+
+def runGetNewEnzo():
     pp = optparse.OptionParser(description="Recompiles Enzo based on configuration file.", \
                                version="Your Mom")
     pp.add_option("-j","--numProc", action="store", dest="nproc", \
@@ -178,6 +213,8 @@ def run():
         runBury()
     elif exeName == "frecomp":
         runGetNewEnzo()
+    elif exeName == "fido":
+        runFido()
 
 def runBrowse():
     """
