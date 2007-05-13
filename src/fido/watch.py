@@ -80,7 +80,12 @@ def watchDir(md=None, path=".", newPrefix = "", skip = [], funcHandler = None, p
     os.chdir(path)
     if not md:
         md = os.path.basename(os.getcwd())
-    thisRun = fetchRun(md, classType=lagos.EnzoParameterFile)
+    try:
+        thisRun = fetchRun(md, classType=lagos.EnzoParameterFile)
+    except KeyError:
+        from yt.fido.walkies import runImport
+        runImport()
+        thisRun = fetchRun(md, classType=lagos.EnzoParameterFile)
     doStop = 0
     while not doStop:
         doStop = checkForStop(process)

@@ -13,10 +13,12 @@ import ConfigParser, os, os.path, sys
 defaults = {'RunDir': os.path.join(os.getenv("HOME"),'EnzoRuns'),\
             'WorkDir': os.path.join('/usr/work/', os.getenv("USER")),\
             'EnzoInterfacePath': '/usr/work/mturk/local/lib/python2.5/site-packages', \
-            'LogFile': True, \
-            'LogLevel': 30, \
-            'UnifiedLogFile':True, \
-            'User':os.getenv("USER")}
+            'LogFile': '1', \
+            'LogLevel': '30', \
+            'unifiedlogfile': '1', \
+            'User':os.getenv("USER"), \
+            'ImagePath':".", \
+            'ImageSkel': '%(bn)s_%(width)010i_%(unit)s'}
 
 ytcfg = ConfigParser.ConfigParser(defaults)
 ytcfg.read(['yt.cfg', os.path.expanduser('~/.yt/config')])

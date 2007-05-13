@@ -13,7 +13,7 @@ opportunity to ditch numarray.
 """
 
 from config import ytcfg
-import logger.ytLogger as mylog
+from logger import ytLogger as mylog
 
 class ArrayNumTypes:
     def __init__(self):

@@ -11,7 +11,7 @@ import logging, os
 import logging.handlers as handlers
 from yt.config import ytcfg
 
-level = min(max(ytcfg.getint("yt","loglevel")),0),50)
+level = min(max(ytcfg.getint("yt","loglevel"),0),50)
 fstring = "%(name)-10s %(levelname)-10s %(asctime)s %(message)s"
 logging.basicConfig(
     format=fstring,
@@ -35,8 +35,8 @@ deliveratorLogger = logging.getLogger("yt.deliverator")
 mb = 10*1024*1024
 bc = 10
 
-if ytcfg.getboolean("yt","logfile") == True and os.access(".", os.W_OK):
-    if ytcfg.getboolean("yt","unifiedlogfile") == True:
+if ytcfg.getboolean("yt","logfile") and os.access(".", os.W_OK):
+    if ytcfg.getboolean("yt","unifiedlogfile"):
         ytHandler = handlers.RotatingFileHandler("yt.log", maxBytes=mb, backupCount=bc)
         k = logging.Formatter(fstring)
         ytHandler.setFormatter(k)
@@ -46,7 +46,6 @@ if ytcfg.getboolean("yt","logfile") == True and os.access(".", os.W_OK):
         lagosLogger.addHandler(ytHandler)
         enkiLogger.addHandler(ytHandler)
         deliveratorLogger.addHandler(ytHandler)
-
     else:  # If we *don't* want a unified file handler (which is the default now!)
         fidoHandler = handlers.RotatingFileHandler("fido.log", maxBytes=mb, backupCount=bc)
         fidoHandler.setFormatter(f)

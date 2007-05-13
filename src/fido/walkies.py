@@ -37,12 +37,12 @@ def runFido():
                   default="raven_config.xml", type="string")
     pp.add_option("-p","--path", action="store", dest="path", \
                   default="", help="Where to move files when archiving")
-    pp.add_option("-d","--deliverator", action="store", dest="deliverator", \
-                  default=False, type="boolean", \
+    pp.add_option("-d","--deliverator", action="store_true", dest="deliverator", \
+                  default=False, \
                   help="Should we submit to the Deliverator?\n(This requires that httpPrefix be defined in [raven] in your yt config file!)")
     opts, args = pp.parse_args()
-    imagePath = ytcfg.get("raven", "imagePath")
-    imageSkel = ytcfg.get("raven", "imageSkel")
+    imagePath = ytcfg.get("raven", "imagePath", raw=True)
+    imageSkel = ytcfg.get("raven", "imageSkel", raw=True)
     import yt.fido as fido
     import yt.raven as raven
     def fidoPlots(h):
