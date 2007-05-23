@@ -1,16 +1,4 @@
-#!/usr/work/mturk/local/bin/python2.5
+#!python2.5
+import yt.fido
 
-import glob, os.path, sys
-
-if len(sys.argv) <= 1:
-    print "You need to give me some more info, chuckles!  Like, which is the parameter file you want to dig up?"
-    sys.exit()
-
-import yt.lagos as lagos
-import yt.fido as fido
-
-# Strictly stupid importing...
-
-new_pf = fido.guessPF(sys.argv[1])
-guess = os.path.basename(os.getcwd())
-fido.digUp(guess, new_pf)
+yt.fido.run()

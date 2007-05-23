@@ -1,19 +1,4 @@
-#!/usr/work/mturk/local/bin/python2.5 -i
+#!python2.5
+import yt.fido
 
-import glob, os.path, sys, dialog
-
-import yt.lagos as lagos
-import yt.fido as fido
-
-d=dialog.Dialog("/usr/work/mturk/local/bin/dialog")
-d.setBackgroundTitle('FIDO GOES FOR WALKIES!!!!')
-
-runs_ids, runs_mds = fido.getRuns()
-
-#runs = zip(runs_ids.keys(), runs_mds.keys())
-runs = zip(runs_mds.keys(), runs_mds.keys())
-#print runs_mds.keys()
-
-err,md = d.menu("Which run do you want?", choices=runs)
-
-myRun = fido.fetchRun(md, classType = lagos.EnzoParameterFile)
+yt.fido.run()

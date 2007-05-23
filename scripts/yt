@@ -1,0 +1,8 @@
+#!/bin/sh
+
+if [ $DISPLAY ]
+then
+    ipython -pylab -p yt $*
+else
+    ipython -p yt $*
+fi
