@@ -1,0 +1,10 @@
+pyf('EnzoFortranRoutines.pyf', 
+    sources=['src/lagos/f_src/solve_rate_cool.F',
+             'src/lagos/f_src/cool1d_multi_bdf.F',
+             'src/lagos/f_src/colh2diss.F',
+             'src/lagos/f_src/cie_thin_cooling_rate.F',
+             'src/lagos/f_src/cool_multi_time.F'],
+    compiler_options='-O3 -DPYFORT -DNOMETALS -I/u/ki/mturk/Research/enzo/src/ -Dr16 -ffixed-line-length-none',
+    python_directory='src/lagos/',
+    package_name='yt.lagos',
+    module_name='yt.lagos')

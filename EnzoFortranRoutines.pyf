@@ -1,0 +1,183 @@
+subroutine solve_rate_cool(d, e, ge, u, v, w, de, &
+                     HI, HII, HeI, HeII, HeIII, &
+                     indexn, jn, kn, nratec, iexpand, imethod, &
+                     idual, ispecies, imetal, idim, &
+                     is, js, ks, ie, je, ke, ih2co, ipiht, &
+                     dt, aye, temstart, temend,   &
+                     utem, uxyz, uaye, urho, utim, uvel, &
+                     eta1, eta2, gamma, fh, dtoh, &
+                     k1a, k2a, k3a, k4a, k5a, k6a, k7a, k8a, k9a, k10a, &
+                     k11a, k12a, k13a, k13dda, k14a, k15a, &
+                     k16a, k17a, k18a, k19a, k21a, k22a, k23a, &
+                     k24, k25, k26, k27, k28, k29, k30, k31, &
+                     k50a, k51a, k52a, k53a, k54a, k55a, k56a, &
+                     ceHIa, ceHeIa, ceHeIIa, ciHIa, ciHeIa,  &
+                     ciHeISa, ciHeIIa, reHIIa, reHeII1a,  &
+                     reHeII2a, reHeIIIa, brema, compa, &
+                     comp_xraya, comp_temp, piHI, piHeI, piHeII, &
+                     HM, H2I, H2II, DI, DII, HDI, metal, &
+                     hyd01ka, h2k01a, vibha, rotha, rotla, &
+                     gpldla, gphdla, hdltea, hdlowa, hdcoola, ciecoa, &
+                     inutot, iradtype, nfreq, imetalregen, &
+                     iradshield, avgsighp, avgsighep, avgsighe2p, &
+                     iciecool, ih2optical, errcode, omaskflag, subgridmask )
+           integer indexn
+           integer jn, kn, is, js, ks, ie, je, ke, nratec, imethod, &
+             idual, iexpand, ih2co, ipiht, ispecies, imetal, idim, &
+             iradtype, nfreq, imetalregen, iradshield, iciecool, &
+             ih2optical, errcode, omaskflag
+      real    dt, aye, temstart, temend, eta1, eta2, gamma, &
+             utim, uxyz, uaye, urho, utem, fh, dtoh, uvel
+c
+c  Density, energy and velocity fields fields
+c
+      real, intent(inout) ::  de(indexn,jn,kn),   HI(indexn,jn,kn),   HII(indexn,jn,kn), &
+            HeI(indexn,jn,kn), HeII(indexn,jn,kn), HeIII(indexn,jn,kn)
+      real, intent(inout) :: HM(indexn,jn,kn),  H2I(indexn,jn,kn), H2II(indexn,jn,kn)
+      real, intent(inout) :: DI(indexn,jn,kn),  DII(indexn,jn,kn), HDI(indexn,jn,kn)
+      real, intent(inout) :: d(indexn,jn,kn),   ge(indexn,jn,kn),     e(indexn,jn,kn), &
+             u(indexn,jn,kn),    v(indexn,jn,kn),     w(indexn,jn,kn), &
+             metal(indexn,jn,kn)
+      integer subgridmask(indexn,jn,kn)
+c
+c  Cooling tables (coolings rates as a function of temperature)
+c
+      real    hyd01ka(nratec), h2k01a(nratec), vibha(nratec), &
+             rotha(nratec), rotla(nratec), gpldla(nratec), &
+             gphdla(nratec), hdltea(nratec), hdlowa(nratec), &
+             hdcoola(nratec, 5), ciecoa(nratec)
+      real    ceHIa(nratec), ceHeIa(nratec), ceHeIIa(nratec), &
+             ciHIa(nratec), ciHeIa(nratec), ciHeISa(nratec), &
+             ciHeIIa(nratec), reHIIa(nratec), reHeII1a(nratec), &
+             reHeII2a(nratec), reHeIIIa(nratec), brema(nratec)
+      real    compa, piHI, piHeI, piHeII, comp_xraya, comp_temp, &
+             inutot(nfreq), avgsighp, avgsighep, avgsighe2p
+c
+c  Chemistry tables (rates as a function of temperature)
+c
+      real k1a (nratec), k2a (nratec), k3a (nratec), k4a (nratec), &
+          k5a (nratec), k6a (nratec), k7a (nratec), k8a (nratec), &
+          k9a (nratec), k10a(nratec), k11a(nratec), k12a(nratec), &
+          k13a(nratec), k14a(nratec), k15a(nratec), k16a(nratec), &
+          k17a(nratec), k18a(nratec), k19a(nratec), k21a(nratec), k22a(nratec), &
+          k23a(nratec), k50a(nratec), k51a(nratec), k52a(nratec), &
+          k53a(nratec), k54a(nratec), k55a(nratec), k56a(nratec), &
+          k13dda(nratec, 7), &
+          k24, k25, k26, k27, k28, k29, k30, k31
+
+end subroutine solve_rate_cool
+
+subroutine cool1d_multi_bdf(   &
+                     d, e, ge, u, v, w, de, HI, HII, HeI, HeII, HeIII,   &
+                     indexn, jn, kn, nratec, idual, imethod,   &
+                     iexpand, ispecies, imetal, idim,   &
+                     is, ie, j, k, ih2co, ipiht, iter,   &
+                     aye, temstart, temend,   &
+                     utem, uxyz, uaye, urho, utim,   &
+                     eta1, eta2, gamma,   &
+                     ceHIa, ceHeIa, ceHeIIa, ciHIa, ciHeIa,   &
+                     ciHeISa, ciHeIIa, reHIIa, reHeII1a,   &
+                     reHeII2a, reHeIIIa, brema, compa,   &
+                     comp_xraya, comp_temp,   &
+                     piHI, piHeI, piHeII, comp1, comp2,   &
+                     HM, H2I, H2II, DI, DII, HDI, metal,   &
+                     hyd01ka, h2k01a, vibha, rotha, rotla,   &
+                     hyd01k, h2k01, vibh, roth, rotl,   &
+                     gpldla, gphdla, gpldl, gphdl,   &
+                     hdltea, hdlowa, hdlte, hdlow,   &
+                     hdcoola, hdcool, ciecoa, cieco,   &
+                     ceHI, ceHeI, ceHeII, ciHI, ciHeI, ciHeIS, ciHeII,   &
+                     reHII, reHeII1, reHeII2, reHeIII, brem,   &
+                     indixe, t1, t2, logtem, tdef, edotplus,   &
+                     edotminus, tgas, tgasold, p2d,   &
+                     inutot, iradtype, nfreq, imetalregen,   &
+                     iradshield, avgsighp, avgsighep,   &
+                     avgsighe2p, itmask, iciecool,ih2optical,ifedtgas)
+     integer indexn, jn, kn, is, ie, j, k, nratec, imethod, idim,   &
+             idual, iexpand, ih2co, ipiht, ispecies, imetal,   &
+             nfreq, iradshield, iradtype, imetalregen, iciecool,   &
+             ih2optical, ifedtgas
+
+     real    aye, temstart, temend,   &
+             utem, uxyz, uaye, urho, utim,   &
+             eta1, eta2, gamma
+     real    d(indexn,jn,kn),   ge(indexn,jn,kn),     e(indexn,jn,kn),   &
+             u(indexn,jn,kn),    v(indexn,jn,kn),     w(indexn,jn,kn),   &
+            de(indexn,jn,kn),   HI(indexn,jn,kn),   HII(indexn,jn,kn),   &
+           HeI(indexn,jn,kn), HeII(indexn,jn,kn), HeIII(indexn,jn,kn)
+     real    HM(indexn,jn,kn),  H2I(indexn,jn,kn), H2II(indexn,jn,kn),   &
+             DI(indexn,jn,kn),  DII(indexn,jn,kn), HDI(indexn,jn,kn)
+     real   &
+             metal(indexn,jn,kn)
+     real    hyd01ka(nratec), h2k01a(nratec), vibha(nratec),   &
+             rotha(nratec), rotla(nratec), gpldla(nratec),   &
+             gphdla(nratec), hdltea(nratec), hdlowa(nratec),   &
+             hdcoola(nratec, 5), ciecoa(nratec)
+     real    ceHIa(nratec), ceHeIa(nratec), ceHeIIa(nratec),   &
+             ciHIa(nratec), ciHeIa(nratec), ciHeISa(nratec),   &
+             ciHeIIa(nratec), reHIIa(nratec), reHeII1a(nratec),   &
+             reHeII2a(nratec), reHeIIIa(nratec), brema(nratec)
+     real    compa, piHI, piHeI, piHeII, comp_xraya, comp_temp,   &
+             inutot(nfreq), avgsighp, avgsighep, avgsighe2p
+     integer itmask(indexn)
+     real, intent(temporary) :: t1(indexn), t2(indexn), logtem(indexn), tdef(indexn), p2d(indexn),   &
+          tgas(indexn), tgasold(indexn)
+     double precision, intent(inout) :: edotplus(indexn), edotminus(indexn)
+     double precision, intent(temporary) :: ceHI(indexn), ceHeI(indexn), ceHeII(indexn),   &
+          ciHI(indexn), ciHeI(indexn), ciHeIS(indexn), ciHeII(indexn),   &
+          reHII(indexn), reHeII1(indexn), reHeII2(indexn), reHeIII(indexn),   &
+          brem(indexn)
+     real, intent(temporary) :: hyd01k(indexn), h2k01(indexn), vibh(indexn), roth(indexn), rotl(indexn),   &
+          gpldl(indexn), gphdl(indexn), hdlte(indexn), hdlow(indexn),   &
+          hdcool(indexn, 5), hdcoolval(indexn), cieco(indexn)
+     real, intent(temporary) :: comp1, comp2
+     integer iter
+     integer, intent(temporary) :: indixe(indexn)
+
+end subroutine
+
+subroutine cool_multi_time( &
+                     d, e, ge, u, v, w, de, HI, HII, HeI, HeII, HeIII,  &
+                       cooltime,  &
+                     indexn, jn, kn, nratec, iexpand, imethod,  &
+                     idual, ispecies, imetal, idim,  &
+                     is, js, ks, ie, je, ke, ih2co, ipiht,  &
+                     dt, aye, temstart, temend,  &
+                     utem, uxyz, uaye, urho, utim,  &
+                     eta1, eta2, gamma,  &
+                     ceHIa, ceHeIa, ceHeIIa, ciHIa, ciHeIa,  &
+                     ciHeISa, ciHeIIa, reHIIa, reHeII1a,  &
+                     reHeII2a, reHeIIIa, brema, compa,  &
+                     comp_xraya, comp_temp, piHI, piHeI, piHeII,  &
+                     HM, H2I, H2II, DI, DII, HDI, oldH2I, metal,  &
+                     hyd01ka, h2k01a, vibha, rotha, rotla,  &
+                     gpldla, gphdla, hdltea, hdlowa, hdcoola, ciecoa,  &
+                     inutot, iradtype, nfreq, imetalregen,  &
+                     iradshield, avgsighp, avgsighep,  &
+                     avgsighe2p, iciecool, ih2optical )  
+     integer indexn, jn, kn, is, js, ks, ie, je, ke, nratec, imethod,  &
+             idual, iexpand, ih2co, ipiht, ispecies, imetal, idim,  &
+             iradtype, nfreq, imetalregen, iciecool, iradshield,  &
+             ih2optical  
+     real    dt, aye, temstart, temend,  &
+             utem, uxyz, uaye, urho, utim,  &
+             eta1, eta2, gamma  
+     real    d(indexn,jn,kn),   ge(indexn,jn,kn),     e(indexn,jn,kn),  &
+             u(indexn,jn,kn),    v(indexn,jn,kn),     w(indexn,jn,kn),  &
+            de(indexn,jn,kn),   HI(indexn,jn,kn),   HII(indexn,jn,kn),  &
+           HeI(indexn,jn,kn), HeII(indexn,jn,kn), HeIII(indexn,jn,kn)
+     real, intent(inout) :: cooltime(indexn,jn,kn)  
+     real    HM(indexn,jn,kn),  H2I(indexn,jn,kn), H2II(indexn,jn,kn),  &
+             DI(indexn,jn,kn),  DII(indexn,jn,kn), HDI(indexn,jn,kn),  &
+             oldH2I(indexn,jn,kn),  metal(indexn,jn,kn)  
+     real    hyd01ka(nratec), h2k01a(nratec), vibha(nratec),  &
+             rotha(nratec), rotla(nratec), gpldla(nratec),  &
+             gphdla(nratec), hdltea(nratec), hdlowa(nratec),  &
+             hdcoola(nratec,5), ciecoa(nratec)  
+     real    ceHIa(nratec), ceHeIa(nratec), ceHeIIa(nratec),  &
+             ciHIa(nratec), ciHeIa(nratec), ciHeISa(nratec),  &
+             ciHeIIa(nratec), reHIIa(nratec), reHeII1a(nratec),  &
+             reHeII2a(nratec), reHeIIIa(nratec), brema(nratec)  
+     real    compa, piHI, piHeI, piHeII, comp_xraya, comp_temp,  &
+             inutot(nfreq), avgsighp, avgsighep, avgsighe2p  
+end subroutine
