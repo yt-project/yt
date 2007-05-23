@@ -7,10 +7,6 @@ Enzo fortran function wrapping
 """
 
 from yt.lagos import *
-try:
-    import Numeric # Hate doing this, but we have to for inout ability
-except:
-    mylog.info("Numeric import failed; unpredictable fortran calls.")
 #from EnzoDefs import *
 #from numarray import *
 
@@ -43,7 +39,7 @@ except:
 #     &                iciecool, ih2optical, errcode, omaskflag, subgridmask )
 #
 
-def runSolveRateCool(g, dt, omaskflag=0):
+def runSolveRateCool(g, dt, omaskflag=0, subgridmask=None):
     a = g.hierarchy
     # First we will make the grid read all the data in
     #print "Reading all data and feeding to solve_rate_cool"
@@ -52,32 +48,27 @@ def runSolveRateCool(g, dt, omaskflag=0):
     dataCopy = {}
     for ds in g.data.keys():
         try:
-            t = Numeric.array(g.data[ds].copy(), Numeric.Float32)
+            t = na.array(g[ds], nT.Float32, order="FORTRAN")
             dataCopy[ds] = t
         except TypeError:
             del g.data[ds]
         #t.transpose()
         #dataCopy[ds] = t
     # Let's get all the rates
-    #print "Getting chemistry rates from rate file"
     for rate in rates_out_key:
-        exec("%s = a.rates['%s']" % (rate, rate))
+        exec("%s = na.array(a.rates['%s'].copy(), nT.Float32, order='FORTRAN')" % (rate, rate))
     for rate in a.rates.params.keys():
         exec("%s = a.rates.params['%s']" % (rate, rate))
-    #print "\n\nGetting cooling rates from cooling file"
     for rate in cool_out_key:
-        #print rate,
-        exec("%s = a.cool['%s']" % (rate, rate))
+        exec("%s = na.array(a.cool['%s'].copy(), nT.Float32, order='FORTRAN')" % (rate, rate))
     for rate in a.cool.params.keys():
         exec("%s = a.cool.params['%s']" % (rate, rate))
     utim = 2.52e17 / na.sqrt(a.parameters["CosmologyOmegaMatterNow"]) \
                    / a.parameters["CosmologyHubbleConstantNow"] \
                    / (1+a.parameters["CosmologyInitialRedshift"])**1.5
-    print "UTIM:",utim, a["Time"]
     urho = 1.88e-29 * a.parameters["CosmologyOmegaMatterNow"] \
                     * a.parameters["CosmologyHubbleConstantNow"]**2 \
                     * (1.0 + a["CosmologyCurrentRedshift"])**3
-    print "URHO:",urho, a["Density"]
     uxyz = 3.086e24 * \
            a.parameters["CosmologyComovingBoxSize"] / \
            a.parameters["CosmologyHubbleConstantNow"] / \
@@ -86,36 +77,33 @@ def runSolveRateCool(g, dt, omaskflag=0):
     uvel = 1.225e7*a.parameters["CosmologyComovingBoxSize"] \
                   *na.sqrt(a.parameters["CosmologyOmegaMatterNow"]) \
                   *na.sqrt(1+ a.parameters["CosmologyInitialRedshift"])
-    #uvel = a["x-velocity"]
     utem = 1.88e6 * (a.parameters["CosmologyComovingBoxSize"]**2) \
                   * a.parameters["CosmologyOmegaMatterNow"] \
                   * (1.0 + a.parameters["CosmologyInitialRedshift"])
     aye  = (1.0 + a.parameters["CosmologyInitialRedshift"]) / \
            (1.0 + a.parameters["CosmologyCurrentRedshift"])
-    # Now we have all the units!  We're almost done...
-    blank_field = Numeric.zeros(g.data["Total_Energy"].shape, Numeric.Float32)
-    hdc = na.array([hdc_1, hdc_2, hdc_3, hdc_4, hdc_5], nT.Float32)
-    hdc=hdc.transpose()
-    k13dd = na.array([k13_1, k13_2, k13_3, k13_4, k13_5, k13_6, k13_7], nT.Float32)
-    k13dd=k13dd.transpose()
-    inutot = na.array([0, 0, 1, 0], nT.Float32)
-    inutot=inutot.transpose()
+    blank_field = na.zeros(g["Total_Energy"].shape, nT.Float32, order="FORTRAN")
+    hdc = na.array([hdc_1, hdc_2, hdc_3, hdc_4, hdc_5], nT.Float32, order="FORTRAN")
+    #print hdc
+    hdc=na.array(hdc.transpose(), order="FORTRAN")
+    k13dd = na.array([k13_1, k13_2, k13_3, k13_4, k13_5, k13_6, k13_7], nT.Float32, order="FORTRAN")
+    k13dd=na.array(k13dd.transpose(), order="FORTRAN")
+    inutot = na.array([0, 0, 1, 0], nT.Float32, order="FORTRAN")
+    #inutot=inutot.transpose()
     comp_xray = 0
     comp_temp = 0
     errcode = 0
     g.generateChildMask()
-    #subgridmask = Numeric.ones(g.data["Density"].shape, Numeric.Int32) * array(g.myChildMask, Int32)
-    #subgridmask = Numeric.array(g.myChildMask, Numeric.Int64)
-    subgridmask = g.myChildMask * Numeric.ones(Numeric.array(g.ActiveDimensions), Numeric.Int32)
-    #subgridmask = Numeric.reshape(Numeric.transpose(subgridmask), subgridmask.shape)
-    #return subgridmask
+    if subgridmask == None:
+        print "Generating subgridmask"
+        subgridmask = na.array(g.myChildMask * na.ones(g.ActiveDimensions, nT.Int32), order="FORTRAN")
     EnzoFortranRoutines.solve_rate_cool( \
         dataCopy["Density"], dataCopy["Total_Energy"], dataCopy["Gas_Energy"],
         dataCopy["x-velocity"], dataCopy["y-velocity"], dataCopy["z-velocity"], 
         dataCopy["Electron_Density"], dataCopy["HI_Density"], dataCopy["HII_Density"],
         dataCopy["HeI_Density"], dataCopy["HeII_Density"], dataCopy["HeIII_Density"],
-        g.ActiveDimensions[0], g.ActiveDimensions[1], g.ActiveDimensions[2],
-        len(tgas), a.parameters["ComovingCoordinates"], a.parameters["HydroMethod"],
+        #g.ActiveDimensions[0], g.ActiveDimensions[1], g.ActiveDimensions[2], len(tgas), 
+        a.parameters["ComovingCoordinates"], a.parameters["HydroMethod"],
         a.parameters["DualEnergyFormalism"], a.parameters["MultiSpecies"],
         0, 3, 0, 0, 0,
         g.ActiveDimensions[0]-1, g.ActiveDimensions[1]-1, g.ActiveDimensions[2]-1,
@@ -133,10 +121,11 @@ def runSolveRateCool(g, dt, omaskflag=0):
         reHeII2, reHeIII, brem, comp,
         comp_xray, comp_temp, piHI, piHeI, piHeII,
         dataCopy["HM_Density"], dataCopy["H2I_Density"], dataCopy["H2II_Density"],
-        blank_field, blank_field, blank_field, blank_field,
+        dataCopy["DI_Density"], dataCopy["DII_Density"], dataCopy["HDI_Density"], blank_field,
         hyd01k, h2k01, vibh, roth, rotl, 
         gpldl, gphdl, hdlte, hdlow, hdc, cieco, 
-        inutot[0], int(inutot[1]), int(inutot[2]), int(inutot[3]),
+        inutot[0], int(inutot[1]), #int(inutot[2]), 
+        int(inutot[3]),
         0, 0, 0, 0,
         1, 1, errcode, omaskflag, subgridmask)
     # iciecool, ih2optical

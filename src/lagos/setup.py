@@ -6,7 +6,7 @@ def configuration(parent_package='',top_path=None):
     config = Configuration('lagos',parent_package,top_path)
     config.make_config_py() # installs __config__.py
     config.add_extension("EnzoCombine", "EnzoCombine.c", libraries=["m"])
-    sys.argv.extend(["config_fc","--f77flags","'-Dr16 -ffixed-line-length-none -fno-second-underscore -DNOMETALS'"])
+    sys.argv.extend(["config_fc","--f77flags","'-Dr16 -ffixed-line-length-none -fno-second-underscore -DPYFORT -DNOMETALS'"])
     config.add_extension("EnzoFortranRoutines", \
                         ["solve_rate_cool.pyf", "f_src/*.F"], \
                         include_dirs=["/u/ki/mturk/Research/enzo/src/"])
