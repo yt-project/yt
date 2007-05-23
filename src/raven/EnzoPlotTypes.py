@@ -301,6 +301,7 @@ class EnzoTwoPhase(EnzoRadialPlot):
             else:
                 sl = self.fields[i] in lagos.log_fields
             self.plot.setLog(lagos.axis_names[i],sl)
+        self.plot.setLog('Z', True)
         self.plot.setAspectRatio(1)
 
 class EnzoThreePhase(EnzoRadialPlot):

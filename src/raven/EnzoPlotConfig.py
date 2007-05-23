@@ -17,6 +17,7 @@ def MakePlots(eh, fn, prefix):
     @param eh: The EnzoHippo instance we're going to use
     @param fn: the XML file we're going to interpret to get
                            plot-info
+    @todo: Add "center" argument
     """
     pi = et(file=fn)
     r = pi.getroot()
@@ -44,9 +45,12 @@ def MakePlots(eh, fn, prefix):
         # of that.
         if plotType == "slice":
             f = 0
+            center = None
+            if plot.attrib.has_key("center"):
+                center = map(float(plot.attrib["center"].split()))
             for field in fields:
                 if f == 0:
-                    pis = eh.addSlice(field)
+                    pis = eh.addSlice(field, center=center)
                     pisl = range(-1*len(pis),0)
                 else:
                     for pi in pis:
