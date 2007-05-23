@@ -1,0 +1,144 @@
+!    -*- f90 -*-
+! Note: the context of this file is case sensitive.
+
+python module EnzoFortranRoutines ! in 
+    interface  ! in :EnzoFortranRoutines
+        subroutine solve_rate_cool(d,e,ge,u,v,w,de,hi,hii,hei,heii,heiii,in,jn,kn,nratec,iexpand,imethod,idual,ispecies,imetal,idim,is,js,ks,ie,je,ke,ih2co,ipiht,dt,aye,temstart,temend,utem,uxyz,uaye,urho,utim,uvel,eta1,eta2,gamma,fh,dtoh,k1a,k2a,k3a,k4a,k5a,k6a,k7a,k8a,k9a,k10a,k11a,k12a,k13a,k13dda,k14a,k15a,k16a,k17a,k18a,k19a,k21a,k22a,k23a,k24,k25,k26,k27,k28,k29,k30,k31,k50a,k51a,k52a,k53a,k54a,k55a,k56a,cehia,ceheia,ceheiia,cihia,ciheia,ciheisa,ciheiia,rehiia,reheii1a,reheii2a,reheiiia,brema,compa,comp_xraya,comp_temp,pihi,pihei,piheii,hm,h2i,h2ii,di,dii,hdi,metal,hyd01ka,h2k01a,vibha,rotha,rotla,gpldla,gphdla,hdltea,hdlowa,hdcoola,ciecoa,inutot,iradtype,nfreq,imetalregen,iradshield,avgsighp,avgsighep,avgsighe2p,iciecool,ih2optical,errcode,omaskflag,subgridmask) ! in :EnzoFortranRoutines:f_src/solve_rate_cool.F
+            real dimension(in,jn,kn),intent(inout) :: d
+            real dimension(in,jn,kn),intent(inout),depend(in,jn,kn) :: e
+            real dimension(in,jn,kn),intent(inout),depend(in,jn,kn) :: ge
+            real dimension(in,jn,kn),intent(inout),depend(in,jn,kn) :: u
+            real dimension(in,jn,kn),intent(inout),depend(in,jn,kn) :: v
+            real dimension(in,jn,kn),intent(inout),depend(in,jn,kn) :: w
+            real dimension(in,jn,kn),intent(inout),depend(in,jn,kn) :: de
+            real dimension(in,jn,kn),intent(inout),depend(in,jn,kn) :: hi
+            real dimension(in,jn,kn),intent(inout),depend(in,jn,kn) :: hii
+            real dimension(in,jn,kn),intent(inout),depend(in,jn,kn) :: hei
+            real dimension(in,jn,kn),intent(inout),depend(in,jn,kn) :: heii
+            real dimension(in,jn,kn),intent(inout),depend(in,jn,kn) :: heiii
+            integer optional,check(shape(d,0)==in),depend(d) :: in=shape(d,0)
+            integer optional,check(shape(d,1)==jn),depend(d) :: jn=shape(d,1)
+            integer optional,check(shape(d,2)==kn),depend(d) :: kn=shape(d,2)
+            integer optional,check(len(k1a)>=nratec),depend(k1a) :: nratec=len(k1a)
+            integer :: iexpand
+            integer :: imethod
+            integer :: idual
+            integer :: ispecies
+            integer :: imetal
+            integer :: idim
+            integer :: is
+            integer :: js
+            integer :: ks
+            integer :: ie
+            integer :: je
+            integer :: ke
+            integer :: ih2co
+            integer :: ipiht
+            real :: dt
+            real :: aye
+            real :: temstart
+            real :: temend
+            real :: utem
+            real :: uxyz
+            real :: uaye
+            real :: urho
+            real :: utim
+            real :: uvel
+            real :: eta1
+            real :: eta2
+            real :: gamma
+            real :: fh
+            real :: dtoh
+            real dimension(nratec) :: k1a
+            real dimension(nratec),depend(nratec) :: k2a
+            real dimension(nratec),depend(nratec) :: k3a
+            real dimension(nratec),depend(nratec) :: k4a
+            real dimension(nratec),depend(nratec) :: k5a
+            real dimension(nratec),depend(nratec) :: k6a
+            real dimension(nratec),depend(nratec) :: k7a
+            real dimension(nratec),depend(nratec) :: k8a
+            real dimension(nratec),depend(nratec) :: k9a
+            real dimension(nratec),depend(nratec) :: k10a
+            real dimension(nratec),depend(nratec) :: k11a
+            real dimension(nratec),depend(nratec) :: k12a
+            real dimension(nratec),depend(nratec) :: k13a
+            real dimension(nratec,7),depend(nratec) :: k13dda
+            real dimension(nratec),depend(nratec) :: k14a
+            real dimension(nratec),depend(nratec) :: k15a
+            real dimension(nratec),depend(nratec) :: k16a
+            real dimension(nratec),depend(nratec) :: k17a
+            real dimension(nratec),depend(nratec) :: k18a
+            real dimension(nratec),depend(nratec) :: k19a
+            real dimension(nratec),depend(nratec) :: k21a
+            real dimension(nratec),depend(nratec) :: k22a
+            real dimension(nratec),depend(nratec) :: k23a
+            real :: k24
+            real :: k25
+            real :: k26
+            real :: k27
+            real :: k28
+            real :: k29
+            real :: k30
+            real :: k31
+            real dimension(nratec),depend(nratec) :: k50a
+            real dimension(nratec),depend(nratec) :: k51a
+            real dimension(nratec),depend(nratec) :: k52a
+            real dimension(nratec),depend(nratec) :: k53a
+            real dimension(nratec),depend(nratec) :: k54a
+            real dimension(nratec),depend(nratec) :: k55a
+            real dimension(nratec),depend(nratec) :: k56a
+            real dimension(nratec),depend(nratec) :: cehia
+            real dimension(nratec),depend(nratec) :: ceheia
+            real dimension(nratec),depend(nratec) :: ceheiia
+            real dimension(nratec),depend(nratec) :: cihia
+            real dimension(nratec),depend(nratec) :: ciheia
+            real dimension(nratec),depend(nratec) :: ciheisa
+            real dimension(nratec),depend(nratec) :: ciheiia
+            real dimension(nratec),depend(nratec) :: rehiia
+            real dimension(nratec),depend(nratec) :: reheii1a
+            real dimension(nratec),depend(nratec) :: reheii2a
+            real dimension(nratec),depend(nratec) :: reheiiia
+            real dimension(nratec),depend(nratec) :: brema
+            real :: compa
+            real :: comp_xraya
+            real :: comp_temp
+            real :: pihi
+            real :: pihei
+            real :: piheii
+            real dimension(in,jn,kn),intent(inout),depend(in,jn,kn) :: hm
+            real dimension(in,jn,kn),intent(inout),depend(in,jn,kn) :: h2i
+            real dimension(in,jn,kn),intent(inout),depend(in,jn,kn) :: h2ii
+            real dimension(in,jn,kn),intent(inout),depend(in,jn,kn) :: di
+            real dimension(in,jn,kn),intent(inout),depend(in,jn,kn) :: dii
+            real dimension(in,jn,kn),intent(inout),depend(in,jn,kn) :: hdi
+            real dimension(in,jn,kn),intent(inout),depend(in,jn,kn) :: metal
+            real dimension(nratec),depend(nratec) :: hyd01ka
+            real dimension(nratec),depend(nratec) :: h2k01a
+            real dimension(nratec),depend(nratec) :: vibha
+            real dimension(nratec),depend(nratec) :: rotha
+            real dimension(nratec),depend(nratec) :: rotla
+            real dimension(nratec),depend(nratec) :: gpldla
+            real dimension(nratec),depend(nratec) :: gphdla
+            real dimension(nratec),depend(nratec) :: hdltea
+            real dimension(nratec),depend(nratec) :: hdlowa
+            real dimension(nratec,5),depend(nratec) :: hdcoola
+            real dimension(nratec),depend(nratec) :: ciecoa
+            real dimension(nfreq) :: inutot
+            integer :: iradtype
+            integer optional,check(len(inutot)>=nfreq),depend(inutot) :: nfreq=len(inutot)
+            integer :: imetalregen
+            integer :: iradshield
+            real :: avgsighp
+            real :: avgsighep
+            real :: avgsighe2p
+            integer :: iciecool
+            integer :: ih2optical
+            integer :: errcode
+            integer :: omaskflag
+            integer dimension(in,jn,kn),intent(inout),depend(in,jn,kn) :: subgridmask
+        end subroutine solve_rate_cool
+    end interface 
+end python module EnzoFortranRoutines
+
+! This file was auto-generated with f2py (version:2_3396).
+! See http://cens.ioc.ee/projects/f2py2e/

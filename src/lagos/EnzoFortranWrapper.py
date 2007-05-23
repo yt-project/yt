@@ -60,7 +60,7 @@ def runSolveRateCool(g, dt, omaskflag=0):
         #dataCopy[ds] = t
     # Let's get all the rates
     #print "Getting chemistry rates from rate file"
-    for rate in rat#es_out_key:
+    for rate in rates_out_key:
         exec("%s = a.rates['%s']" % (rate, rate))
     for rate in a.rates.params.keys():
         exec("%s = a.rates.params['%s']" % (rate, rate))
