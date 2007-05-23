@@ -13,7 +13,7 @@ opportunity to ditch numarray.
 """
 
 from config import ytcfg
-from logger import ytLogger as mylog
+from logger import ytLogger as ytlog
 
 class ArrayNumTypes:
     def __init__(self):
@@ -29,9 +29,9 @@ myTypes = [ 'Complex128',  'Bool', 'Int32', 'Complex64', 'UInt16', 'Float32',
             'UInt32', 'Float128', 'Int16']
 
 if not ytcfg.has_option("yt","numarray"):
-    mylog.info("Using NumPy.")
-    mylog.info("Please report problems to mturk@slac.stanford.edu, including a full traceback.")
-    mylog.info("(Check for .flat access to arrays -- it should now be .ravel() !)")
+    ytlog.info("Using NumPy.")
+    ytlog.info("Please report problems to mturk@slac.stanford.edu, including a full traceback.")
+    ytlog.info("(Check for .flat access to arrays -- it should now be .ravel() !)")
     import numpy as na
     import numpy.linalg as la
     import numpy as obj  # Backwards compat
@@ -43,7 +43,7 @@ if not ytcfg.has_option("yt","numarray"):
     for type in myTypes:
         setattr(nT, type, na.typeNA[type])
 else:
-    mylog.warning("Using NumArray.  Many, many things will probably break.  You should use NumPy!")
+    ytlog.warning("Using NumArray.  Many, many things will probably break.  You should use NumPy!")
     import numarray as na
     import numarray.linear_algebra as la
     import numarray.objects as obj

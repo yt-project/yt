@@ -52,8 +52,9 @@ def runFido():
             raise KeyError
         mdd = {'md':md}
         if opts.deliverator:
-            httpPrefix = ytcfg.get("raven", "httpPrefix")
-            RunID, Response = deliverator_upload.SubmitRun(md, ytcfg.get("deliverator","user"))
+            import yt.deliverator as deliverator
+            httpPrefix = ytcfg.get("raven", "httpPrefix", raw=True)
+            RunID, Response = deliverator.SubmitRun(md, ytcfg.get("Deliverator","user"))
             plot=raven.EnzoHippo(h, submitToDeliverator=RunID, httpPrefix=httpPrefix % mdd)
         else:
             plot=raven.EnzoHippo(h)
