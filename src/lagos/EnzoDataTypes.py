@@ -306,7 +306,7 @@ class EnzoProj(Enzo2DData):
             LE = h.gridLeftEdge[grids].copy()
             for grid in h.grids[grids]:
                 if (i%1e3) == 0:
-                    mylog.info("Reading and masking %s / %s", i, h.numGrids)
+                    mylog.debug("Reading and masking %s / %s", i, h.numGrids)
                 # We unroll this so as to avoid instantiating a range() for
                 # every grid
                 grid.generateOverlapMasks(0, LE, RE)
@@ -322,7 +322,7 @@ class EnzoProj(Enzo2DData):
                 i += 1
         for level in range(self.maxLevel+1):
             gI = na.where(h.gridLevels == level)
-            mylog.info("%s cells and %s grids for level %s", \
+            mylog.debug("%s cells and %s grids for level %s", \
                 memoryPerLevel[level], len(gI[0]), level)
         mylog.debug("We need %s cells total", totalProj)
         self.memoryPerLevel = memoryPerLevel
@@ -363,7 +363,7 @@ class EnzoProj(Enzo2DData):
                 i += 1
                 grid.retVal = grid.getProjection(axis, field, zeroOut, weight=weightField)
             totalGridsProjected += i
-            mylog.info("Grid projecting done (%s / %s total) with %s points", \
+            mylog.debug("Grid projecting done (%s / %s total) with %s points", \
                         totalGridsProjected, h.numGrids, index)
             mylog.debug("Combining level %s...", level)
             i = 0
@@ -430,7 +430,7 @@ class EnzoProj(Enzo2DData):
                 exampleValue = dataByLevel[level][2][0]
             else:
                 exampleValue = 0.0
-            mylog.info("Level %s done: %s final of %s (%s)", \
+            mylog.debug("Level %s done: %s final of %s (%s)", \
                        level, dataByLevel[level][0].shape[0], \
                        levelData[0].shape[0], exampleValue)
             fullLength += dataByLevel[level][0].shape[0]

@@ -190,6 +190,13 @@ def NumberDensityCode(self, fieldName):
         self[fieldName] += self["HDI_Density"] / 3.0
 fieldInfo["NumberDensityCode"] = (None, None, True, NumberDensityCode)
 
+def KineticTemperature(self, fieldName):
+    """ mu * v^2 = k T """
+    k_B = 1.3806503e-26 # km^2 g s^-2 K^-1
+    self[fieldName] = (self["Density"]/self["NumberDensity"]) * \
+                      self["RadialVelocity_Abs"]**2.0 * 1.67e-24 / k_B
+fieldInfo["KineticTemperature"] = ("K", None, False, KineticTemperature)
+
 def NumberDensity(self, fieldName):
     """L{NumberDensityCode} M{* DensityConversion/m_h} S{->} particles/cc"""
     self[fieldName] = self["NumberDensityCode"] * \
@@ -217,6 +224,13 @@ def MachNumber(self, fieldName):
         self["z-velocity"]**2.0 )**(1.0/2.0)) / self["SoundSpeed"]
 fieldInfo["MachNumber"] = (None, None, False, MachNumber)
         
+def VelocityMagnitude(self, fieldName):
+    """M{|v|}"""
+    self[fieldName] = (self.hierarchy["x-velocity"] * ( \
+        self["x-velocity"]**2.0 + \
+        self["y-velocity"]**2.0 + \
+        self["z-velocity"]**2.0 )**(1.0/2.0))
+fieldInfo["VelocityMagnitude"] = ("cm/s", None, True, VelocityMagnitude)
 
 def Pressure(self, fieldName):
     """M{(Gamma-1.0)*rho*E}"""

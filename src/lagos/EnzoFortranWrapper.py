@@ -60,7 +60,7 @@ def runSolveRateCool(g, dt, omaskflag=0):
         #dataCopy[ds] = t
     # Let's get all the rates
     #print "Getting chemistry rates from rate file"
-    for rate in rates_out_key:
+    for rate in rat#es_out_key:
         exec("%s = a.rates['%s']" % (rate, rate))
     for rate in a.rates.params.keys():
         exec("%s = a.rates.params['%s']" % (rate, rate))
@@ -70,7 +70,7 @@ def runSolveRateCool(g, dt, omaskflag=0):
         exec("%s = a.cool['%s']" % (rate, rate))
     for rate in a.cool.params.keys():
         exec("%s = a.cool.params['%s']" % (rate, rate))
-    utim = 2.52e17 / sqrt(a.parameters["CosmologyOmegaMatterNow"]) \
+    utim = 2.52e17 / na.sqrt(a.parameters["CosmologyOmegaMatterNow"]) \
                    / a.parameters["CosmologyHubbleConstantNow"] \
                    / (1+a.parameters["CosmologyInitialRedshift"])**1.5
     print "UTIM:",utim, a["Time"]
@@ -84,8 +84,8 @@ def runSolveRateCool(g, dt, omaskflag=0):
            (1.0 + a.parameters["CosmologyCurrentRedshift"])
     uaye = 1.0/(1.0 + a.parameters["CosmologyInitialRedshift"])
     uvel = 1.225e7*a.parameters["CosmologyComovingBoxSize"] \
-                  *sqrt(a.parameters["CosmologyOmegaMatterNow"]) \
-                  *sqrt(1+ a.parameters["CosmologyInitialRedshift"])
+                  *na.sqrt(a.parameters["CosmologyOmegaMatterNow"]) \
+                  *na.sqrt(1+ a.parameters["CosmologyInitialRedshift"])
     #uvel = a["x-velocity"]
     utem = 1.88e6 * (a.parameters["CosmologyComovingBoxSize"]**2) \
                   * a.parameters["CosmologyOmegaMatterNow"] \
@@ -95,18 +95,18 @@ def runSolveRateCool(g, dt, omaskflag=0):
     # Now we have all the units!  We're almost done...
     blank_field = Numeric.zeros(g.data["Total_Energy"].shape, Numeric.Float32)
     hdc = na.array([hdc_1, hdc_2, hdc_3, hdc_4, hdc_5], nT.Float32)
-    hdc.transpose()
+    hdc=hdc.transpose()
     k13dd = na.array([k13_1, k13_2, k13_3, k13_4, k13_5, k13_6, k13_7], nT.Float32)
-    k13dd.transpose()
+    k13dd=k13dd.transpose()
     inutot = na.array([0, 0, 1, 0], nT.Float32)
-    inutot.transpose()
+    inutot=inutot.transpose()
     comp_xray = 0
     comp_temp = 0
     errcode = 0
     g.generateChildMask()
     #subgridmask = Numeric.ones(g.data["Density"].shape, Numeric.Int32) * array(g.myChildMask, Int32)
     #subgridmask = Numeric.array(g.myChildMask, Numeric.Int64)
-    subgridmask = g.myChildMask * Numeric.ones(g.ActiveDimensions, Numeric.Int32)
+    subgridmask = g.myChildMask * Numeric.ones(Numeric.array(g.ActiveDimensions), Numeric.Int32)
     #subgridmask = Numeric.reshape(Numeric.transpose(subgridmask), subgridmask.shape)
     #return subgridmask
     EnzoFortranRoutines.solve_rate_cool( \

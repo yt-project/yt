@@ -54,7 +54,7 @@ class EnzoTable:
             else:
                 toArray.append(map(float, line.split()))
         self.columns = na.array(toArray, nT.Float32)
-        mylog.info("Found %s bins of rate values", self.columns.shape[0])
+        mylog.debug("Found %s bins of rate values", self.columns.shape[0])
     def __getitem__(self, item):
         ## This WILL get cleaned up, but it does what I want for now
         x_vals = []
@@ -63,7 +63,7 @@ class EnzoTable:
             if isinstance(item[0], types.FloatType) or \
                isinstance(item[0], types.IntType):
                 x_vals.append(float(item[0]))
-            elif isinstance(item[0], na.ArrayType):
+            elif isinstance(item[0], na.ndarray):
                 toReshape = item[0].shape
                 x_vals = (item[0].ravel())
             colsToReturn = []
@@ -76,7 +76,7 @@ class EnzoTable:
              isinstance(item, types.IntType):
             x_vals.append(float(item))
             colsToReturn=arange(1,len(self.cols))
-        elif isinstance(item, na.ArrayType):
+        elif isinstance(item, na.ndarray):
             toReshape = item.shape
             x_vals = item.ravel()
             colsToReturn=arange(1,len(self.cols))

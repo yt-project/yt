@@ -36,6 +36,12 @@ class EnzoParameterFile:
         self.parameters["CurrentTimeIdentifier"] = \
             int(os.stat(self.parameterFilename)[ST_CTIME])
         self.parseParameterFile()
+        rp = os.path.join(self.directory, "rates.out")
+        if os.path.exists(rp):
+            self.rates = EnzoTable(rp, rates_out_key)
+        cp = os.path.join(self.directory, "cool_rates.out")
+        if os.path.exists(cp):
+            self.cool = EnzoTable(cp, cool_out_key)
         self.setUnits()
 
     def getTime(self):
