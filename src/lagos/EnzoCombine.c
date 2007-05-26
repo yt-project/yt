@@ -467,7 +467,7 @@ Interpolate(long num_axis_points, npy_float64 *axis, PyArrayObject* table,
     //int table_rows = table->dimensions[0];
     int num_desireds = desiredvals->dimensions[0];
 
-    npy_int64 axis_ind;
+    npy_int axis_ind, col_ind;
     npy_int32 column;
     npy_int64 desired_num;
     
@@ -488,8 +488,9 @@ Interpolate(long num_axis_points, npy_float64 *axis, PyArrayObject* table,
         t2 = (logtem0 + (axis_ind+0)*dlogtem);
         tdef = t2 - t1;
         for (column = 0 ; column < num_columns ; column++) {
-            ki  = *(npy_float64*)PyArray_GETPTR2(table, axis_ind-1, columns[column]);
-            kip = *(npy_float64*)PyArray_GETPTR2(table, axis_ind+0, columns[column]);
+            col_ind = (npy_int) columns[column];
+            ki  = *(npy_float64*)PyArray_GETPTR2(table, (npy_int) (axis_ind-1), col_ind);
+            kip = *(npy_float64*)PyArray_GETPTR2(table, (npy_int) (axis_ind+0), col_ind);
             *(npy_float64*) PyArray_GETPTR2(outputvals, desired_num, column) =
                     ki+(desired-t1)*(kip-ki)/tdef;
         }
