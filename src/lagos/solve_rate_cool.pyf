@@ -3,6 +3,50 @@
 
 python module EnzoFortranRoutines ! in 
     interface  ! in :EnzoFortranRoutines
+        subroutine solve_h2eq(d,ge,hi,hii,hei,heii,heiii,hm,h2i,h2ii,di,dii,hdi,fh,newhi,newh2i,gamma,kunit,kunit_3bdy,chunit,utem,temstart) ! in :EnzoFortranRoutines:f_src/solve_h2eq.F
+            real :: d
+            real :: ge
+            real :: hi
+            real :: hii
+            real :: hei
+            real :: heii
+            real :: heiii
+            real :: hm
+            real :: h2i
+            real :: h2ii
+            real :: di
+            real :: dii
+            real :: hdi
+            real :: fh
+            double precision intent(inout) :: newhi
+            double precision intent(inout) :: newh2i
+            real :: gamma
+            double precision :: kunit
+            double precision :: kunit_3bdy
+            double precision :: chunit
+            real :: utem
+            real :: temstart
+        end subroutine solve_h2eq
+        subroutine calc_tgas0d(d,ge,hi,hii,hei,heii,heiii,hm,h2i,h2ii,di,dii,hdi,fh,tgas,gamma,utem,temstart) ! in :EnzoFortranRoutines:f_src/solve_h2eq.F
+            real :: d
+            real :: ge
+            real :: hi
+            real :: hii
+            real :: hei
+            real :: heii
+            real :: heiii
+            real :: hm
+            real :: h2i
+            real :: h2ii
+            real :: di
+            real :: dii
+            real :: hdi
+            real :: fh
+            double precision intent(inout) :: tgas
+            real :: gamma
+            real :: utem
+            real :: temstart
+        end subroutine calc_tgas0d
         subroutine solve_rate_cool(d,e,ge,u,v,w,de,hi,hii,hei,heii,heiii,in,jn,kn,nratec,iexpand,imethod,idual,ispecies,imetal,idim,is,js,ks,ie,je,ke,ih2co,ipiht,dt,aye,temstart,temend,utem,uxyz,uaye,urho,utim,uvel,eta1,eta2,gamma,fh,dtoh,k1a,k2a,k3a,k4a,k5a,k6a,k7a,k8a,k9a,k10a,k11a,k12a,k13a,k13dda,k14a,k15a,k16a,k17a,k18a,k19a,k21a,k22a,k23a,k24,k25,k26,k27,k28,k29,k30,k31,k50a,k51a,k52a,k53a,k54a,k55a,k56a,cehia,ceheia,ceheiia,cihia,ciheia,ciheisa,ciheiia,rehiia,reheii1a,reheii2a,reheiiia,brema,compa,comp_xraya,comp_temp,pihi,pihei,piheii,hm,h2i,h2ii,di,dii,hdi,metal,hyd01ka,h2k01a,vibha,rotha,rotla,gpldla,gphdla,hdltea,hdlowa,hdcoola,ciecoa,inutot,iradtype,nfreq,imetalregen,iradshield,avgsighp,avgsighep,avgsighe2p,iciecool,ih2optical,errcode,omaskflag,subgridmask) ! in :EnzoFortranRoutines:f_src/solve_rate_cool.F
             real dimension(in,jn,kn),intent(inout) :: d
             real dimension(in,jn,kn),intent(inout),depend(in,jn,kn) :: e
