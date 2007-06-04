@@ -3,7 +3,7 @@
 
 python module EnzoFortranRoutines ! in 
     interface  ! in :EnzoFortranRoutines
-        subroutine solve_h2eq(d,ge,hi,hii,hei,heii,heiii,hm,h2i,h2ii,di,dii,hdi,fh,newhi,newh2i,gamma,kunit,kunit_3bdy,chunit,utem,temstart) ! in :EnzoFortranRoutines:f_src/solve_h2eq.F
+        subroutine solve_h2eq(d,ge,hi,hii,hei,heii,heiii,hm,h2i,h2ii,di,dii,hdi,de,fh,newhi,newh2i,gamma,kunit,kunit_3bdy,chunit,utem,temstart) ! in :EnzoFortranRoutines:f_src/solve_h2eq.F
             real :: d
             real :: ge
             real :: hi
@@ -17,6 +17,7 @@ python module EnzoFortranRoutines ! in
             real :: di
             real :: dii
             real :: hdi
+            real :: de
             real :: fh
             double precision intent(inout) :: newhi
             double precision intent(inout) :: newh2i
@@ -27,7 +28,7 @@ python module EnzoFortranRoutines ! in
             real :: utem
             real :: temstart
         end subroutine solve_h2eq
-        subroutine calc_tgas0d(d,ge,hi,hii,hei,heii,heiii,hm,h2i,h2ii,di,dii,hdi,fh,tgas,gamma,utem,temstart) ! in :EnzoFortranRoutines:f_src/solve_h2eq.F
+        subroutine calc_tgas0d(d,ge,hi,hii,hei,heii,heiii,hm,h2i,h2ii,di,dii,hdi,de,fh,tgas,gamma,utem,temstart) ! in :EnzoFortranRoutines:f_src/solve_h2eq.F
             real :: d
             real :: ge
             real :: hi
@@ -41,6 +42,7 @@ python module EnzoFortranRoutines ! in
             real :: di
             real :: dii
             real :: hdi
+            real :: de
             real :: fh
             double precision intent(inout) :: tgas
             real :: gamma

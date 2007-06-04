@@ -211,9 +211,10 @@ class Enzo2DData(EnzoData):
             f.write("\n")
         f.close()
 
-    def discretize(self, LE, RE, field, side, logSpacing=True):
+    def interpolateDiscretize(self, LE, RE, field, side, logSpacing=True):
         """
-        This returns a uniform grid of points.
+        This returns a uniform grid of points, interpolated using the nearest
+        neighbor method.
 
         @note: Requires NumPy
         @param LE: Left Edge
@@ -252,6 +253,9 @@ class Enzo2DData(EnzoData):
             zi = 10**(zi)
         return [xi,yi,zi]
         #return [xx,yy,zz]
+
+    def discretize(self, LE, RE, field, side, logSpacing=True):
+        pass
 
 class EnzoProj(Enzo2DData):
     """
