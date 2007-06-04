@@ -34,7 +34,7 @@ def runFido():
     pp = optparse.OptionParser(description="Archives data and creates plots.", \
                                version="Your Mom")
     pp.add_option("-c","--config", action="store", dest="cfgFile", \
-                  default="raven_config.xml", type="string")
+                  default=None, type="string")
     pp.add_option("-p","--path", action="store", dest="path", \
                   default="", help="Where to move files when archiving")
     pp.add_option("-d","--deliverator", action="store_true", dest="deliverator", \
@@ -51,18 +51,19 @@ def runFido():
             fido.error("MetaDataString undefined in parameter file; either use it, or write your own durn function!")
             raise KeyError
         mdd = {'md':md}
-        if opts.deliverator:
-            import yt.deliverator as deliverator
-            httpPrefix = ytcfg.get("raven", "httpPrefix", raw=True)
-            RunID, Response = deliverator.SubmitRun(md, ytcfg.get("Deliverator","user"))
-            plot=raven.EnzoHippo(h, submitToDeliverator=RunID, httpPrefix=httpPrefix % mdd)
-        else:
-            plot=raven.EnzoHippo(h)
-        imageDir = imagePath % mdd
-        if not os.path.isdir(imageDir):
-            os.makedirs(imageDir)
-        prefix = os.path.join(imageDir, imageSkel)
-        raven.MakePlots(plot, opts.cfgFile, prefix)
+        if opts.cfgFile != None:
+            if opts.deliverator:
+                import yt.deliverator as deliverator
+                httpPrefix = ytcfg.get("raven", "httpPrefix", raw=True)
+                RunID, Response = deliverator.SubmitRun(md, ytcfg.get("Deliverator","user"))
+                plot=raven.EnzoHippo(h, submitToDeliverator=RunID, httpPrefix=httpPrefix % mdd)
+            else:
+                plot=raven.EnzoHippo(h)
+            imageDir = imagePath % mdd
+            if not os.path.isdir(imageDir):
+                os.makedirs(imageDir)
+            prefix = os.path.join(imageDir, imageSkel)
+            raven.MakePlots(plot, opts.cfgFile, prefix)
         return
     fido.watchDir(funcHandler=fidoPlots, newPrefix=opts.path) 
 
