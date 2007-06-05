@@ -165,12 +165,15 @@ class EnzoGrid:
         #self.generateCoords()
         del h
 
-    def generateChildMask(self):
+    def generateChildMask(self, fRet=False):
         """
         Generates self.myChildMask, which is zero where child grids exist (and
         thus, where higher resolution data is available.)
         """
         self.myChildMask = na.ones(self.ActiveDimensions, nT.Int32)
+        if fRet:
+            self.myChildIndices = na.where(self.myChildMask==1)
+            return
         for child in self.Children:
             # Now let's get our overlap
             si = [None]*3

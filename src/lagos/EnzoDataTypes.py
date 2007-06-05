@@ -462,7 +462,7 @@ class EnzoSlice(Enzo2DData):
     A slice at a given coordinate along a given axis through the entire grid
     hierarchy.
     """
-    def __init__(self, hierarchy, axis, coord, fields = None, center=None):
+    def __init__(self, hierarchy, axis, coord, fields = None, center=None, fRet=False):
         """
         Returns an instance of EnzoSlice.
 
@@ -480,11 +480,15 @@ class EnzoSlice(Enzo2DData):
         @type coord: na.array
         @keyword fields: fields to be processed or generated
         @type fields: list of strings
+        @keyword fRet: Do we want a false return?  As in, do we want all of our
+        data points?
+        @type fRet: bool
         """
         Enzo2DData.__init__(self, hierarchy, axis, fields)
         self.center = center
         self.coord = coord
         self.coords = None
+        self.fRet = fRet
         self.refreshData()
 
     def shift(self, val):
@@ -579,7 +583,7 @@ class EnzoSlice(Enzo2DData):
         yaxis = y_dict[self.axis]
         if grid.myChildMask == None:
             #print "Generating child mask"
-            grid.generateChildMask()
+            grid.generateChildMask(fRet=self.fRet)
         wantedIndex = int(((self.coord-grid.LeftEdge[self.axis])/grid.dx))
         sl = [slice(None), slice(None), slice(None)]
         sl[self.axis] = slice(wantedIndex, wantedIndex + 1)
@@ -614,7 +618,7 @@ class EnzoSlice(Enzo2DData):
         """
         if grid.myChildMask == None:
             #print "Generating child mask"
-            grid.generateChildMask()
+            grid.generateChildMask(fRet=self.fRet)
         # So what's our index of slicing?  This is what we need to figure out
         # first, so we can deal with our data in the fastest way.
         # NOTE: This should be fixed.  I don't think it works properly or
