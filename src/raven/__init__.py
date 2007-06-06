@@ -21,10 +21,16 @@ try:
     import hippo
 except ImportError:
     mylog.warning("hippo import failed")
-
 import yt.lagos as lagos
 
 from EnzoPlotConfig import *
 from EnzoPlotTypes import *
 from EnzoHippoType import *
 from EnzoGallery import *
+
+try:
+    import matplotlib
+    from AMRPlot import *
+except ImportError:
+    mylog.warning("matplotlib failed to import")
+
