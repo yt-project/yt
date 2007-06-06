@@ -23,14 +23,14 @@ static PyObject *_pixelizeError;
 
 static PyObject* Py_Pixelize(PyObject *obj, PyObject *args) {
 
-  PyObject xp, yp, dxp, dyp, dp;
+  PyObject *xp, *yp, *dxp, *dyp, *dp;
   unsigned int rows, cols;
   double x_min, x_max, y_min, y_max;
 
-    if (!PyArg_ParseTuple(args, "OOOOOII(dddd)",
+    if (!PyArg_ParseTuple(args, "OOOOOIIdddd",
         &xp, &yp, &dxp, &dyp, &dp, &rows, &cols, 
         &x_min, &x_max, &y_min, &y_max))
-        return PyErr_Format(_pixelizeError, "amrgrid: Invalid Parameters.");
+        return PyErr_Format(_pixelizeError, "Pixelize: Invalid Parameters.");
 
   double width = x_max - x_min;
   double height = y_max - y_min;
@@ -42,29 +42,34 @@ static PyObject* Py_Pixelize(PyObject *obj, PyObject *args) {
       PyErr_Format( _pixelizeError, "Cannot scale to zero size.");
 
   // Get numeric arrays
-  PyArrayObject *x = (PyArrayObject *) PyArray_ContiguousFromObject(&xp, PyArray_DOUBLE, 1, 1);
+  PyArrayObject *x = (PyArrayObject *) PyArray_FromAny(xp,
+            PyArray_DescrFromType(NPY_FLOAT64), 1, 1, NPY_C_CONTIGUOUS, NULL);
   if (x == NULL)
       PyErr_Format( _pixelizeError, "x is of incorrect type (wanted 1D float)");
-  PyArrayObject *y = (PyArrayObject *) PyArray_ContiguousFromObject(&yp, PyArray_DOUBLE, 1, 1);
+  PyArrayObject *y = (PyArrayObject *) PyArray_FromAny(yp,
+            PyArray_DescrFromType(NPY_FLOAT64), 1, 1, NPY_C_CONTIGUOUS, NULL);
   if (y == NULL) {
       Py_XDECREF(x);
       PyErr_Format( _pixelizeError, "y is of incorrect type (wanted 1D float)");
   }
-  PyArrayObject *d = (PyArrayObject *) PyArray_ContiguousFromObject(&dp, PyArray_DOUBLE, 1, 1);
+  PyArrayObject *d = (PyArrayObject *) PyArray_FromAny(dp,
+            PyArray_DescrFromType(NPY_FLOAT64), 1, 1, NPY_C_CONTIGUOUS, NULL);
   if (d == NULL) {
       Py_XDECREF(x);
       Py_XDECREF(y);
       PyErr_Format( _pixelizeError, "data is of incorrect type (wanted 1D float)");
   }
 
-  PyArrayObject *dx = (PyArrayObject *) PyArray_ContiguousFromObject(&dxp, PyArray_DOUBLE, 1, 1);
+  PyArrayObject *dx = (PyArrayObject *) PyArray_FromAny(dxp,
+            PyArray_DescrFromType(NPY_FLOAT64), 1, 1, NPY_C_CONTIGUOUS, NULL);
   if (x == NULL) {
       Py_XDECREF(x);
       Py_XDECREF(y);
       Py_XDECREF(d);
       PyErr_Format( _pixelizeError, "dx is of incorrect type (wanted 1D float)");
   }
-  PyArrayObject *dy = (PyArrayObject *) PyArray_ContiguousFromObject(&dyp, PyArray_DOUBLE, 1, 1);
+  PyArrayObject *dy = (PyArrayObject *) PyArray_FromAny(dyp,
+            PyArray_DescrFromType(NPY_FLOAT64), 1, 1, NPY_C_CONTIGUOUS, NULL);
   if (x == NULL) {
       Py_XDECREF(x);
       Py_XDECREF(y);
@@ -88,7 +93,8 @@ static PyObject* Py_Pixelize(PyObject *obj, PyObject *args) {
       PyErr_Format( _pixelizeError, "data and axis dimensions do not match");
   }
 
-  double *gridded = malloc(sizeof(double)*rows*cols);
+  npy_float64 *gridded;
+    gridded = malloc(sizeof(npy_float64)*rows*cols);
   if (gridded == NULL) {
       Py_XDECREF(x);
       Py_XDECREF(y);
@@ -102,11 +108,11 @@ static PyObject* Py_Pixelize(PyObject *obj, PyObject *args) {
   int i, j, p;
   double lc, lr, rc, rr;
   double lypx, rypx, lxpx, rxpx, overlap, overlap1, overlap2;
-  double *xs = (double *) PyArray_GETPTR1(x, nx);
-  double *ys = (double *) PyArray_GETPTR1(y, ny);
-  double *dxs = (double *) PyArray_GETPTR1(dx, ndx);
-  double *dys = (double *) PyArray_GETPTR1(dy, ndy);
-  double *ds = (double *) PyArray_GETPTR1(d, nx); // We check this above
+  npy_float64 *xs = (npy_float64 *) PyArray_GETPTR1(x, 0);
+  npy_float64 *ys = (npy_float64 *) PyArray_GETPTR1(y, 0);
+  npy_float64 *dxs = (npy_float64 *) PyArray_GETPTR1(dx, 0);
+  npy_float64 *dys = (npy_float64 *) PyArray_GETPTR1(dy, 0);
+  npy_float64 *ds = (npy_float64 *) PyArray_GETPTR1(d, 0); // We check this above
 
   // Upper left is (center - (dx, dy))/dx_per_pixel
   // Lower right is (center + (dx, dy))/dx_per_pixel
@@ -149,13 +155,13 @@ static PyObject* Py_Pixelize(PyObject *obj, PyObject *args) {
   int dims[] = {rows, cols};
 
   PyObject* gridret = PyArray_FromDimsAndData(
-        2, dims, PyArray_DOUBLE, (char *) gridded);
+        2, dims, NPY_FLOAT64, (char *) gridded);
 
   return gridret;
 }
 
 static PyMethodDef _AMRPixelizeMethods[] = {
-    {"RefineCoarseData", Py_Pixelize, METH_VARARGS},
+    {"Pixelize", Py_Pixelize, METH_VARARGS},
     {NULL, NULL} /* Sentinel */
 };
 

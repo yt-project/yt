@@ -9,6 +9,7 @@ data that is "hidden" in deeper levels of refinement.
 """
 
 from yt.raven import *
+import AMRPixelize
 
 try:
     import matplotlib
@@ -16,7 +17,7 @@ except ImportError:
     mylog.warning("matplotlib failed to import; all AMRPlot commands will fail")
 
 import matplotlib.image
-import matplotlib.axis
+import matplotlib.axes
 import matplotlib._image
 import matplotlib.colors
 
@@ -32,17 +33,17 @@ class _AMRImage(matplotlib.image.NonUniformImage):
         l, b, width, height = self.axes.bbox.get_bounds()
         width *= magnification
         height *= magnification
-        buff = _image.irrcolor(self._Ax, self._Ay, 
-                            self._Adx, self._Ady,
-                            self._A, height, width,
-                           (x0, x0+v_width, y0, y0+v_height),
-                          )
+        buff = AMRPixelize.Pixelize(self._Ax, self._Ay, 
+                                    self._Adx, self._Ady,
+                                    self._A, int(height), int(width),
+                                    x0, x0+v_width, y0, y0+v_height,
+                                    )
         self.norm.autoscale(buff)
         if self.next_clim[0] is not None: self.norm.vmin = self.next_clim[0]
         if self.next_clim[1] is not None: self.norm.vmax = self.next_clim[1]
 
-        Ax = (self.cmap(self.norm(buff))*255).astype(UInt8)
-        im = _image.frombyte(Ax, 1)
+        Ax = (self.cmap(self.norm(buff))*255).astype(nT.UInt8)
+        im = matplotlib._image.frombyte(Ax, 1)
 
         self.next_clim = (None, None)
 
@@ -53,12 +54,12 @@ class _AMRImage(matplotlib.image.NonUniformImage):
         return im
 
     def set_data(self, x, y, dx, dy, d):
-        x = asarray(x).astype(Float64)
-        y = asarray(y).astype(Float64)
-        dx = asarray(dx).astype(Float64)
-        dy = asarray(dy).astype(Float64)
-        d = asarray(d)
-        ind=numerix.argsort(dx)
+        x = na.asarray(x).astype(nT.Float64)
+        y = na.asarray(y).astype(nT.Float64)
+        dx = na.asarray(dx).astype(nT.Float64)
+        dy = na.asarray(dy).astype(nT.Float64)
+        d = na.asarray(d)
+        ind=na.argsort(dx)
         self._A = d[ind][::-1]
         self._Ax = x[ind][::-1]
         self._Ay = y[ind][::-1]
@@ -175,7 +176,7 @@ def amrshow(self, x, y, dx, dy, A,
     if norm is not None: assert(isinstance(norm, matplotlib.colors.Normalize))
     if cmap is not None: assert(isinstance(cmap, matplotlib.colors.Colormap))
     #if aspect is None: aspect = rcParams['image.aspect']
-    if aspect is None: aspect = rcParams['image.aspect']
+    if aspect is None: aspect = 1.0
     self.set_aspect(aspect)
     im = _AMRImage(self, cmap, norm, extent)
 
