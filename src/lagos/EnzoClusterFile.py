@@ -12,13 +12,9 @@ hierarchy file.
 should definitely be separate from EnzoDerivedFields, I think.
 @todo: Merge back into EnzoDataTypes.py -- separate for now while still
 testing.  (Does it make sense to put it in there?)
-@change: Mon Apr 16 14:17:56 PDT 2007 Added __add__
-@change: Mon Apr 16 10:06:44 PDT 2007 First import
 """
 
 from yt.lagos import *
-#from numarray import *
-#import numarray.nd_image as nd
 import types, exceptions
 
 class AnalyzeClusterOutput:
@@ -45,7 +41,15 @@ class AnalyzeClusterOutput:
                 #print column, self.data.shape, self.data[i,:].shape, filename[column].shape
                 self.data[i-1,:] = filename[column]
                 self.columns[i] = column
+                self.rcolumns[column] = i
                 i += 1
+
+    def __getitem__(self, item):
+        if isintance(item, types.StringType):
+            i = self.rcolumns[item]
+        else:
+            i = int(item)
+        return self.data[i]
 
     def parseKey(self):
         """
