@@ -36,6 +36,7 @@ class AnalyzeClusterOutput:
             numBins = filename[ks[0]].shape[0]
             self.data = na.zeros((len(ks), numBins), nT.Float64)
             self.columns = {}
+            self.rcolumns = {}
             i = 1
             for column in ks:
                 #print column, self.data.shape, self.data[i,:].shape, filename[column].shape
@@ -56,6 +57,7 @@ class AnalyzeClusterOutput:
         Scans, grabs the column names
         """
         self.columns = {}
+        self.rcolumns = {}
         index = self.lines.index("# COLUMN   DESCRIPTION\n")
         for line in self.lines[index+1:]:
             if line.rstrip() == "#":
@@ -63,6 +65,7 @@ class AnalyzeClusterOutput:
             col, name = line[1:].strip().split(" ",1)
             col = int(col) - 1
             self.columns[col] = name.strip().rstrip()
+            self.rcolumns[name.strip().rstrip()] = col
 
     def parseData(self):
         """
