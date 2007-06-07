@@ -45,7 +45,7 @@ class AnalyzeClusterOutput:
                 i += 1
 
     def __getitem__(self, item):
-        if isintance(item, types.StringType):
+        if isinstance(item, types.StringType):
             i = self.rcolumns[item]
         else:
             i = int(item)
