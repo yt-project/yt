@@ -7,6 +7,10 @@
 # Color bar support will be added soon.  For now it is not clear to me the best
 # way to proceed.
 
+# NOTE THAT YOUR ~/.matplotlib/matplotlibrc must have "Agg" set as the engine.
+# matplotlibrc will show up automatically after you import pylab the very first
+# time.
+
 # Set the parameters of our movie
 maxwidth = (1,'1')
 minwidth = (0.5,"au")
