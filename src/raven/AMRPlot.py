@@ -9,12 +9,11 @@ data that is "hidden" in deeper levels of refinement.
 """
 
 from yt.raven import *
-import AMRPixelize
+from yt.funcs import *
 
-try:
-    import matplotlib
-except ImportError:
-    mylog.warning("matplotlib failed to import; all AMRPlot commands will fail")
+# We only get imported if matplotlib was imported successfully
+
+import AMRPixelize
 
 import matplotlib.image
 import matplotlib.axes
@@ -36,7 +35,7 @@ class _AMRImage(matplotlib.image.NonUniformImage):
         buff = AMRPixelize.Pixelize(self._Ax, self._Ay, 
                                     self._Adx, self._Ady,
                                     self._A, int(height), int(width),
-                                    x0, x0+v_width, y0, y0+v_height,
+                                   (x0, x0+v_width, y0, y0+v_height),
                                     )
         self.norm.autoscale(buff)
         if self.next_clim[0] is not None: self.norm.vmin = self.next_clim[0]
@@ -71,6 +70,9 @@ class _AMRImage(matplotlib.image.NonUniformImage):
     def set_next_clim(self, vmin, vmax):
         self.next_clim = (vmin, vmax)
 
+    def setWidth(self, width, unit):
+        pass
+
 
 
 def amrshow(self, x, y, dx, dy, A,
@@ -89,86 +91,6 @@ def amrshow(self, x, y, dx, dy, A,
            imlim=None,
            **kwargs):
     """
-
-    IMSHOW(X, cmap=None, norm=None, aspect=None, interpolation=None,
-           alpha=1.0, vmin=None, vmax=None, origin=None, extent=None)
-
-    IMSHOW(X) - plot image X to current axes, resampling to scale to axes
-                size (X may be numarray/Numeric array or PIL image)
-
-    IMSHOW(X, **kwargs) - Use keyword args to control image scaling,
-    colormapping etc. See below for details
-
-
-    Display the image in X to current axes.  X may be a float array, a
-    UInt8 array or a PIL image. If X is an array, X can have the following
-    shapes:
-
-        MxN    : luminance (grayscale, float array only)
-
-        MxNx3  : RGB (float or UInt8 array)
-
-        MxNx4  : RGBA (float or UInt8 array)
-
-    The value for each component of MxNx3 and MxNx4 float arrays should be
-    in the range 0.0 to 1.0; MxN float arrays may be normalised.
-
-    A matplotlib.image.AxesImage instance is returned
-
-    The following kwargs are allowed:
-
-      * cmap is a cm colormap instance, eg cm.jet.  If None, default to rc
-        image.cmap value (Ignored when X has RGB(A) information)
-
-      * aspect is one of: auto, equal, or a number.  If None, default to rc
-        image.aspect value
-
-      * interpolation is one of:
-
-        'nearest', 'bilinear', 'bicubic', 'spline16', 'spline36',
-        'hanning', 'hamming', 'hermite', 'kaiser', 'quadric',
-        'catrom', 'gaussian', 'bessel', 'mitchell', 'sinc',
-        'lanczos', 'blackman'
-
-        if interpolation is None, default to rc
-        image.interpolation.  See also th the filternorm and
-        filterrad parameters
-
-      * norm is a matplotlib.colors.Normalize instance; default is
-        normalization().  This scales luminance -> 0-1 (only used for an
-        MxN float array).
-
-      * vmin and vmax are used to scale a luminance image to 0-1.  If
-        either is None, the min and max of the luminance values will be
-        used.  Note if you pass a norm instance, the settings for vmin and
-        vmax will be ignored.
-
-      * alpha = 1.0 : the alpha blending value
-
-      * origin is either upper or lower, which indicates where the [0,0]
-        index of the array is in the upper left or lower left corner of
-        the axes.  If None, default to rc image.origin
-
-      * extent is a data xmin, xmax, ymin, ymax for making image plots
-        registered with data plots.  Default is the image dimensions
-        in pixels
-
-      * shape is for raw buffer images
-
-      * filternorm is a parameter for the antigrain image resize
-        filter.  From the antigrain documentation, if normalize=1,
-        the filter normalizes integer values and corrects the
-        rounding errors. It doesn't do anything with the source
-        floating point values, it corrects only integers according
-        to the rule of 1.0 which means that any sum of pixel
-        weights must be equal to 1.0.  So, the filter function
-        must produce a graph of the proper shape.
-
-     * filterrad: the filter radius for filters that have a radius
-       parameter, ie when interpolation is one of: 'sinc',
-       'lanczos' or 'blackman'
-
-    Additional kwargs are matplotlib.artist properties
     """
 
     if not self._hold: self.cla()
@@ -202,3 +124,44 @@ def amrshow(self, x, y, dx, dy, A,
     return im
 
 matplotlib.axes.Axes.amrshow = amrshow
+
+class LinkedAMRSubPlots:
+    def __init__(self, linkWidth, linkZ, plots = []):
+        pass
+    def SaveFigure(self, filename, format):
+        pass
+    def setWidth(self, width, unit):
+        pass
+    def setZ(self, zmin, zmax):
+        pass
+    def __getitem__(self, item):
+        pass
+
+class ClassicThreePane:
+    pass
+
+def ClusterFilePlot(cls, x, y, xlog=True, ylog=True, fig=None, filename=None,
+                    format="png", xbounds = None, ybounds = None):
+    """
+    
+    """
+    if not fig:
+        fig = pylab.figure()
+    ax = fig.add_axes()
+    if not iterable(cls):
+        cls = [cls]
+    if xlog and ylog:
+        pp=ax.loglog
+    elif xlog and not ylog:
+        pp=ax.semilogx
+    elif ylog and not xlog:
+        pp=ax.semilogy
+    else:
+        pp=ax.plot
+    fig.hold(True)
+    for cl in cls:
+        pp(cl[x],cl[y])
+    if filename:
+        fig.savefig(filename, format)
+    else:
+        return fig

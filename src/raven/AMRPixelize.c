@@ -21,13 +21,24 @@
 
 static PyObject *_pixelizeError;
 
+char _pixelizeDocstring[] =
+"Returns a static-resolution pixelized version of AMR data.\n\n"
+"@parameter xp: ndarray of x centers\n"
+"@Parameter yp: ndarray of y centers\n"
+"@parameter dxp: ndarray of x half-widths\n"
+"@parameter dyp: ndarray of y half-widths\n"
+"@parameter dp: ndarray of data\n"
+"@parameter rows: number of pixel rows\n"
+"@parameter cols: number of pixel columns\n"
+"@parameter bounds: (x_min, x_max, y_min, y_max)";
+
 static PyObject* Py_Pixelize(PyObject *obj, PyObject *args) {
 
   PyObject *xp, *yp, *dxp, *dyp, *dp;
   unsigned int rows, cols;
   double x_min, x_max, y_min, y_max;
 
-    if (!PyArg_ParseTuple(args, "OOOOOIIdddd",
+    if (!PyArg_ParseTuple(args, "OOOOOII(dddd)",
         &xp, &yp, &dxp, &dyp, &dp, &rows, &cols, 
         &x_min, &x_max, &y_min, &y_max))
         return PyErr_Format(_pixelizeError, "Pixelize: Invalid Parameters.");
@@ -107,7 +118,7 @@ static PyObject* Py_Pixelize(PyObject *obj, PyObject *args) {
   // Calculate the pointer arrays to map input x to output x
   int i, j, p;
   double lc, lr, rc, rr;
-  double lypx, rypx, lxpx, rxpx, overlap, overlap1, overlap2;
+  double lypx, rypx, lxpx, rxpx, overlap1, overlap2;
   npy_float64 *xs = (npy_float64 *) PyArray_GETPTR1(x, 0);
   npy_float64 *ys = (npy_float64 *) PyArray_GETPTR1(y, 0);
   npy_float64 *dxs = (npy_float64 *) PyArray_GETPTR1(dx, 0);
@@ -161,7 +172,7 @@ static PyObject* Py_Pixelize(PyObject *obj, PyObject *args) {
 }
 
 static PyMethodDef _AMRPixelizeMethods[] = {
-    {"Pixelize", Py_Pixelize, METH_VARARGS},
+    {"Pixelize", Py_Pixelize, METH_VARARGS, _pixelizeDocstring},
     {NULL, NULL} /* Sentinel */
 };
 
@@ -179,4 +190,3 @@ void initAMRPixelize(void)
     PyDict_SetItemString(d, "error", _pixelizeError);
     import_array();
 }
-
