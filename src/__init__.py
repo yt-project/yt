@@ -77,5 +77,3 @@ G{packagetree}
 
 from logger import *
 from config import *
-
-import shell # We'll ditch this eventually...

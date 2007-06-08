@@ -11,7 +11,6 @@ scripts.
 import dialog, sys, optparse, shutil
 import glob, os, os.path
 
-import yt.shell
 from yt.fido import *
 
 from IPython.Extensions.ipipe import *
@@ -184,14 +183,6 @@ def selectRun():
     myRun = fetchRun(runs[int(mdI)-1][1], classType = lagos.EnzoParameterFile)
     return myRun
     
-def runFetch():
-    myRun = selectRun()
-    if myRun == None:
-        sys.exit()
-    newBanner = yt.shell.ytBannerDefault + \
-                "\nmyRun = %s" % (myRun)
-    yt.shell.runyt({'myRun':myRun}, ytBanner=newBanner)
-
 def runBury():
     """
     This will just look in the current directory, bury everything, and then
