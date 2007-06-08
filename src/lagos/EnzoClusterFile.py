@@ -114,12 +114,14 @@ class AnalyzeClusterOutput:
         """
         comb = AnalyzeClusterOutput(None)
         comb.columns = self.columns.copy()
+        comb.rcolumns = self.rcolumns.copy()
         cols = other.columns.keys()
         offset = len(comb.columns) # 0-indexed
         i = offset
         for col in cols:
             if other.columns[col] not in self.columns.values():
                 comb.columns[i] = other.columns[col]
+                comb.rcolumns[col] = i
                 i += 1
         comb.data = na.zeros((len(comb.columns), self.data.shape[1]), nT.Float64)
         comb.data[:len(self.columns),:] = self.data
