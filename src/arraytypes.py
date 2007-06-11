@@ -8,7 +8,6 @@ opportunity to ditch numarray.
 @author: U{Matthew Turk<http://www.stanford.edu/~mturk/>}
 @organization: U{KIPAC<http://www-group.slac.stanford.edu/KIPAC/>}
 @contact: U{mturk@slac.stanford.edu<mailto:mturk@slac.stanford.edu>}
-@todo: Migrate everybody over to numpy, and ditch this
 @todo: Ditch the numpy = obj usage
 """
 
@@ -29,9 +28,9 @@ myTypes = [ 'Complex128',  'Bool', 'Int32', 'Complex64', 'UInt16', 'Float32',
             'UInt32', 'Float128', 'Int16']
 
 if not ytcfg.has_option("yt","numarray"):
-    ytlog.info("Using NumPy.")
-    ytlog.info("Please report problems to mturk@slac.stanford.edu, including a full traceback.")
-    ytlog.info("(Check for .flat access to arrays -- it should now be .ravel() !)")
+    ytlog.debug("Using NumPy.")
+    ytlog.debug("Please report problems to mturk@slac.stanford.edu, including a full traceback.")
+    ytlog.debug("(Check for .flat access to arrays -- it should now be .ravel() !)")
     import numpy as na
     import numpy.linalg as la
     import numpy as obj  # Backwards compat
