@@ -359,6 +359,8 @@ class EnzoGrid:
         for key in self.keys():
             del self.data[key]
         del self.data
+        if hasattr(self,"retVal"):
+            del self.retVal
         self.data = {}
         self.clearDerivedQuantities()
 

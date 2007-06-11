@@ -75,11 +75,6 @@ cool_out_key = \
         "gphdl", "gpldl", "cieco", "vibh", "hyd01k", "rotl", "roth", \
         "h2k01", "hdlte", "hdlow", "hdc_1", "hdc_2", "hdc_3", "hdc_4", \
         "hdc_5"]
-#
-#try:
-#    from fields import fieldInfo, log_fields
-#except:
-#    pass
 
 # Note that we default to CellMass as the weight
 

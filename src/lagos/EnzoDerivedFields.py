@@ -12,7 +12,6 @@ fieldInfo[fieldName] = (Units, ProjectedUnits, TakeLog, Function)
 @author: U{John Wise<http://www.slac.stanford.edu/~jwise/>}
 @organization: U{KIPAC<http://www-group.slac.stanford.edu/KIPAC/>}
 @contact: U{jwise@slac.stanford.edu<mailto:jwise@slac.stanford.edu>}
-@change: Mon Apr 16 10:07:26 PDT 2007
 """
 
 from yt.lagos import *
@@ -22,14 +21,15 @@ try:
 except:
     mylog.warning("EnzoFortranWrapper not properly installed -- no fortran fields available!")
 
-# Add the info for any non-derived fields up here.  For any added derived
-# fields, add it immediately after the function definition.
-
+"""
+fieldInfo has the following structure:
+  key == field
+  value == tuple ( naturalUnits, projUnits, takeLog, generatorFunction )
+"""
 fieldInfo = {}
 
-# fieldInfo has the following structure:
-#   key == field
-#   value == tuple ( naturalUnits, projUnits, takeLog, generatorFunction )
+# Add the info for any non-derived fields up here.  For any added derived
+# fields, add it immediately after the function definition.
 
 fieldInfo["Density"] = ("g cm^-3", "g cm^-2", True, None)
 fieldInfo["Temperature"] = ("K", None, False, None)
@@ -173,6 +173,8 @@ def NumberDensityCode(self, fieldName):
     """amu/cc, in code units."""
     # We are going to *try* to use all the fields, and fallback when we run out
     self[fieldName] = na.zeros(self["HI_Density"].shape, self["HI_Density"].dtype)
+    if self.hierarchy["MultiSpecies"] == 0:
+        self[fieldName] += self["Density"] * mu
     if self.hierarchy["MultiSpecies"] > 0:
         self[fieldName] += self["HI_Density"] / 1.0
         self[fieldName] += self["HII_Density"] / 1.0
@@ -207,6 +209,7 @@ def Outline(self, fieldName):
     """Just the level, for outlines of grid structure"""
     #self[fieldName] = na.ones(self.myChildMask.shape) * self.Level + 1
     self[fieldName] = na.ones(self["Density"].shape) * (self.dx / self.dx.max())
+    # Doesn't make sense to call this on grids, right?
 fieldInfo["Outline"] = ("Level", "LevelSum", False, Outline)
 
 def SoundSpeed(self, fieldName):
@@ -461,8 +464,6 @@ def IsothermalMagneticFieldX(self, fieldName):
     (x^2+z^2)/(v_0 * delta t)
 
     @note: Right now this assumes that we are in the y=0.5 plane.
-    @todo: Convert to proper B_theta and B_r formulation, so that it works on
-    all coordinate planes.
     @bug: Only works at y=0.5, and gives wrong results elsewhere.
     """
     rc = ((self.coords[0,:]-0.5)**2.0 + \
@@ -489,8 +490,6 @@ def IsothermalMagneticFieldRHS(self, fieldName):
     (x^2+z^2)/(v_0 * delta t)
 
     @note: Right now this assumes that we are in the y=0.5 plane.
-    @todo: Convert to proper B_theta and B_r formulation, so that it works on
-    all coordinate planes.
     @bug: Only works at y=0.5, and gives wrong results elsewhere.
     """
     self[fieldName] = 1.0 - (self.hierarchy["v0"] * \
@@ -502,7 +501,7 @@ def IsothermalMagneticFieldLHS(self, fieldName):
     """
     Compare the actual by versus the analytic solution
     """
-    # First we calculate Btheta_i from the By_i, Bẕ_i and Bx_i
+    # First we calculate Btheta_i from the By_i, Bz_i and Bx_i
     self[fieldName] = self["Btheta"]/self["Btheta_i"]
 fieldInfo["IsothermalMagneticFieldLHS"] = (None, None, True, IsothermalMagneticFieldLHS)
 

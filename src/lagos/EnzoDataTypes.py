@@ -273,7 +273,6 @@ class EnzoProj(Enzo2DData):
         """
         Returns an instance of EnzoProj.  Note that this object will be fairly static.
 
-        @todo: Implement
         @param hierarchy: the hierarchy we are projecting
         @type hierarchy: L{EnzoHierarchy<EnzoHierarchy>}
         @param axis: axis to project along
@@ -455,6 +454,12 @@ class EnzoProj(Enzo2DData):
         self.x = (na.concatenate(all_x)+0.5) * self.dx*2.0
         self.y = (na.concatenate(all_y)+0.5) * self.dy*2.0
         self.data[field] = na.concatenate(all_z)
+        # Now, we should clean up after ourselves...
+        for level in range(minLevel, self.maxLevel+1):
+            myInd = na.where(h.gridLevels == level)[0]
+            gridsToProject = h.grids[myInd]
+            for grid in gridsToProject:
+                grid.clearAll()
         
 
 class EnzoSlice(Enzo2DData):
