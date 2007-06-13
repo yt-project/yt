@@ -2,8 +2,9 @@
 Raven
 =====
 
-    Raven is the  interface to HippoDraw.  All data plotting goes through
-    Raven.
+    Raven is the plotting interface, with support for several
+    different engines.  Well, two for now, but maybe more later.
+    Who knows?
 
 G{packagetree}
 
@@ -14,23 +15,21 @@ G{packagetree}
 from yt.logger import ravenLogger as mylog
 from yt.config import ytcfg
 from yt.arraytypes import *
+import yt.lagos as lagos
+try:
+    import yt.deliverator
+except:
+    mylog.warning("Deliverator import failed; all deliverator actions will fail!")
 
 import time, types, string, os
 
-try:
-    import hippo
-except ImportError:
-    mylog.warning("hippo import failed")
-import yt.lagos as lagos
+from PlotConfig import *
 
-from EnzoPlotConfig import *
-from EnzoPlotTypes import *
-from EnzoHippoType import *
-from EnzoGallery import *
+# We now check with ytcfg to see which backend we want
 
-try:
-    import matplotlib
-    from AMRPlot import *
-except ImportError:
-    mylog.warning("matplotlib failed to import")
+backend = ytcfg["raven","backend"]
 
+if backend.upper()=="HD":
+    import backends.HD as be
+
+from PlotTypes import *
