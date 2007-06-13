@@ -367,3 +367,41 @@ class EnzoRun:
         for i in range(self.outputs.shape[0]):
             keys.append(self.outputs[i].basename)
         return keys
+
+    def exportAmira(self, basename, fields):
+        a5 = basename + "-%(field)s.a5"
+        sorted_times = []
+        sorted_timesteps = []
+        for field in fields:
+            a5b=tables.openFile(a5 % {'field':field},"w")
+            a5b.close()
+        if (not iterable(fields)) or (isinstance(fields, types.StringType)):
+            fields = [fields]
+        for i in range(len(self)):
+            mylog.info("Exporting %s to Amira format", self[i])
+            bn = basename + "-%06i" % (i) + "-%(field)s.h5"
+            numDone = 0
+            self.promoteType(i)
+            delta = self[i]
+            self[i].exportAmira(bn, fields, a5, i)
+            rootDelta = na.array([self[i].grids[0].dx, self[i].grids[0].dy, self[i].grids[0].dz], dtype=nT.Float64)
+            sorted_timesteps.append(i)
+            sorted_times.append(self[i]["InitialTime"])
+            self.demoteType(i)
+            numDone += 1
+        for field in fields:
+            a5b=tables.openFile(a5 % {'field':field},"a")
+            a5b.createGroup("/","globalMetaData")
+            node=a5b.getNode("/","globalMetaData")
+            node._f_setAttr("datatype",na.array([0],dtype=nT.Int32))
+            node._f_setAttr("fieldtype",na.array([1],dtype=nT.Int32))
+            node._f_setAttr("staggering",na.array([1],dtype=nT.Int32))
+            node._f_setAttr("maxTime",na.array([self.timesteps[-1]],dtype=nT.Float64))
+            node._f_setAttr("maxTimeStep",na.array([len(self)-1],dtype=nT.Int32))
+            node._f_setAttr("minTime",na.array([self.timesteps[0]],dtype=nT.Float64))
+            node._f_setAttr("minTimeStep",na.array([0],dtype=nT.Int32))
+            node._f_setAttr("numTimeSteps",na.array([len(self)],dtype=nT.Int32))
+            node._f_setAttr("rootDelta",rootDelta)
+            a5b.createArray("/","sorted_timesteps", na.array(sorted_timesteps, dtype=nT.Int32))
+            a5b.createArray("/","sorted_times", na.array(sorted_times, dtype=nT.Float64))
+            a5b.close()

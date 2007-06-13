@@ -17,10 +17,8 @@ from yt.config import ytcfg
 
 from pyhdf_np import SD          # NumPy
 import pyhdf_np.error, warnings  # NumPy
-try:
-    import tables
-except ImportError:
-    mylog.warning("pyTables import failed; HDF5 support unavailable")
+import tables
+warnings.simplefilter("ignore", tables.NaturalNameWarning)
 
 from yt.arraytypes import *
 import weakref

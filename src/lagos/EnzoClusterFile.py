@@ -8,14 +8,28 @@ be.
 @todo: Create an AnalyzeCluster file from a given set of parameters, and a
 hierarchy file.
 @todo: Run enzo_anyl and parse the resultant data.
-@todo: Derived fields, somehow?  This could be done with an addColumn.  This
-should definitely be separate from EnzoDerivedFields, I think.
-@todo: Merge back into EnzoDataTypes.py -- separate for now while still
-testing.  (Does it make sense to put it in there?)
 """
 
 from yt.lagos import *
 import types, exceptions
+
+ACOtranslation = {
+        'r' : 'bin central radius (Mpc)',
+        'R' : 'bin outer radius (Mpc)',
+        'rho' : 'd_gas (Ms/Mpc^3)',
+        'v_rms' : 'v_rms_gas_3d (km/s)',
+        'T' : 'temp_gas_mass_weighted (K)',
+        'v_r' : 'vr_gas (km/s)',
+        'v_r_rms' : 'vr_rms_gas (km/s)',
+        'T_cool' : 'T_cool (s)',
+        'T_dyn' : 'T_dyn (s)',
+        'm_enc' : 'm_gas (Ms)'
+                 }
+
+CFfieldInfo = {}
+CFfieldInfo["T"] = (None, r"$T (\rm{K})$", False)
+CFfieldInfo["m_enc"] = (None, r"$M_{\rm{enc}} (M_\odot)$", True)
+CFfieldInfo["v_r"] = (None, r"$v_r (km/s)$", True)
 
 class AnalyzeClusterOutput:
     # This is a class for storing the results of enzo_anyl runs
@@ -47,10 +61,21 @@ class AnalyzeClusterOutput:
 
     def __getitem__(self, item):
         if isinstance(item, types.StringType):
-            i = self.rcolumns[item]
+            if self.rcolumns.has_key(item):
+                i = self.rcolumns[item]
+            elif ACOtranslation.has_key(item):
+                return self[ACOtranslation[item]]
+            else:
+                return self.generateField(item)
+            #print item, i
         else:
             i = int(item)
         return self.data[i]
+
+    def generateField(self, item):
+        if CFfieldInfo.has_key(item):
+            return CFfieldInfo[item][0](self)
+        raise KeyError
 
     def parseKey(self):
         """
@@ -121,7 +146,7 @@ class AnalyzeClusterOutput:
         for col in cols:
             if other.columns[col] not in self.columns.values():
                 comb.columns[i] = other.columns[col]
-                comb.rcolumns[col] = i
+                comb.rcolumns[other.columns[col]] = i
                 i += 1
         comb.data = na.zeros((len(comb.columns), self.data.shape[1]), nT.Float64)
         comb.data[:len(self.columns),:] = self.data
@@ -133,3 +158,29 @@ class AnalyzeClusterOutput:
         #print comb.data[offset:,:].shape, other.data[1:,:].shape
         #comb.data[offset:,:] = other.data[1:,:]
         return comb
+
+def cfRAU(self):
+    return self["r"] * unitList["au"]
+CFfieldInfo["RAU"] = (cfRAU, r"$R (\rm{AU})$", True)
+
+def cfRpc(self):
+    return self["r"] * unitList["pc"]
+CFfieldInfo["Rpc"] = (cfRpc, r"$R (\rm{pc})$", True)
+
+def cfRhoCGS(self):
+    return self["rho"] * 6.769e-41
+CFfieldInfo["RhoCGS"] = (cfRhoCGS, r"$\rho (\rm{g} \rm{cm}^{-3})$", True)
+
+def cfCoolDynComp(self):
+    return self["T_cool"]/self["T_dyn"]
+CFfieldInfo["CoolDynComp"] = (cfCoolDynComp, r"$T_{\rm{cool}} / T_{\rm{dyn}}$", True)
+
+def cfNumberDensity(self):
+    t= (self["RhoCGS"] / mh) * (\
+           (self["HI fraction"] + self["HII fraction"] + self["H- fraction"]) / 1.0 \
+         + (self["HeI fraction"] + self["HeII fraction"] + self["HeIII fraction"]) / 4.0 \
+         + (self["H2I fraction"] + self["H2II fraction"]) / 2.0 \
+         + (self["e- fraction"])) #\
+         #+ (self["DI fraction"] + self["DII fraction"])/2.0 + self["HDI fraction"]/3.0 )
+    return (self["RhoCGS"]/mh) * self["H2I fraction"] / 2.0
+CFfieldInfo["NumberDensity"] = (cfNumberDensity, r"$n (\rm{cm}^{-3})$", True)

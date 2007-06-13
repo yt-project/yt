@@ -8,6 +8,7 @@ Python-based grid handler, not to be confused with the SWIG-handler
 
 from yt.lagos import *
 import yt.enki, gc
+from yt.funcs import *
 
 class EnzoGrid:
     """
@@ -541,3 +542,36 @@ class EnzoGrid:
         # wasteful!
         del self.data['cm'], tr['cm']
         return tr
+
+    def exportAmira(self, filename, fields, timestep = 1, a5Filename=None, gid=0):
+        if (not iterable(fields)) or (isinstance(fields, types.StringType)):
+            fields = [fields]
+        deltas = na.array([self.dx,self.dy,self.dz],dtype=nT.Float64)
+        tn = "time-%i" % (timestep)
+        ln = "level-%i" % (self.Level)
+        for field in fields:
+            new_h5 = tables.openFile(filename % {'field' : field}, "a")
+            new_h5.createArray("/","grid-%i" % (self.id), self[field])
+            node = new_h5.getNode("/","grid-%i" % (self.id))
+            node.setAttr("level",self.Level)
+            node.setAttr("timestep",timestep)
+            node.setAttr("time",self.Time)
+            node.setAttr("cctk_bbox",na.array([0,0,0,0,0,0],dtype=nT.Int32))
+            node.setAttr("cctk_nghostzones",na.array([0,0,0],dtype=nT.Int32))
+            node.setAttr("delta",deltas)
+            node.setAttr("origin",self.LeftEdge)
+            node.setAttr("iorigin",(self.LeftEdge/deltas).astype(nT.Int64))
+            new_h5.close()
+            if a5Filename != None:
+                new_h5 = tables.openFile(a5Filename % {'field' : field}, "a")
+                new_h5.createGroup("/%s/%s" % (tn, ln),"grid-%i" % (gid))
+                node=new_h5.getNode("/%s/%s" % (tn, ln),"grid-%i" % (gid))
+                node._f_setAttr("dims",self.ActiveDimensions)
+                node._f_setAttr("ghostzoneFlags",na.array([0,0,0,0,0,0],dtype=nT.Int32))
+                node._f_setAttr("integerOrigin",(self.LeftEdge/deltas).astype(nT.Int64))
+                node._f_setAttr("numGhostzones",na.array([0,0,0],dtype=nT.Int32))
+                node._f_setAttr("origin",self.LeftEdge)
+                node._f_setAttr("referenceDataPath","/"+"grid-%i" % (self.id))
+                fn = os.path.basename(filename % {'field' : field})
+                node._f_setAttr("referenceFileName", fn)
+                new_h5.close()

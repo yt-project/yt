@@ -10,6 +10,8 @@ overlap and make Hierarchy an option property of EnzoParameterFile
 """
 
 from yt.lagos import *
+from yt.funcs import *
+from collections import defaultdict
 import string, re, gc, time
 #import EnzoCombine
 import yt.enki
@@ -31,7 +33,7 @@ class EnzoParameterFile:
         self.fullpath = os.path.abspath(self.directory)
         if len(self.directory) == 0:
             self.directory = "."
-        self.conversionFactors = {}
+        self.conversionFactors = defaultdict(lambda: 1.0)
         self.parameters = {}
         self.parameters["CurrentTimeIdentifier"] = \
             int(os.stat(self.parameterFilename)[ST_CTIME])
@@ -441,7 +443,7 @@ class EnzoHierarchy(EnzoParameterFile):
         time15=time.time()
         for level in xrange(self.maxLevel+1):
             self.levelIndices[level] = self.selectLevel(level)
-            self.levelNum = len(self.levelIndices[level])
+            self.levelNum[level] = len(self.levelIndices[level])
 
     def selectLevel(self, level):
         """
@@ -939,8 +941,37 @@ class EnzoHierarchy(EnzoParameterFile):
                      self.gridLeftEdge[i,1], self.gridRightEdge[i,1],
                      self.gridLeftEdge[i,2], self.gridRightEdge[i,2]))
 
-    def exportBoxes(self):
-        pass
+    def exportAmira(self, basename, fields, a5basename, timestep):
+        if (not iterable(fields)) or (isinstance(fields, types.StringType)):
+            fields = [fields]
+        for field in fields:
+            tt=tables.openFile(basename % {'field':field},"w")
+            k=tt.createGroup("/","Parameters and Global Attributes")
+            k._f_setAttr("staggering",1)
+            tt.close()
+            a5=tables.openFile(a5basename % {'field':field},"a")
+            a5.createGroup("/", "time-%i" % timestep)
+            node = a5.getNode("/","time-%i" % timestep)
+            node._f_setAttr("numLevels",self.maxLevel+1)
+            node._f_setAttr("time",self["InitialTime"])
+            a5.close()
+        for level in range(self.maxLevel+1):
+            mylog.info("Exporting level %s", level)
+            for field in fields:
+                a5=tables.openFile(a5basename % {'field':field},"a")
+                a5.createGroup("/time-%i" % (timestep),"level-%i" % (level))
+                node=a5.getNode("/time-%i" % (timestep),"level-%i" % (level))
+                delta = na.array([self.gridDxs[self.levelIndices[i][0]]]*3,dtype=nT.Float64)
+                node._f_setAttr("delta",delta)
+                node._f_setAttr("numGrids",self.levelNum[level])
+                # This next one is not necessarily true.  But, it is for
+                # everyone I care about right now...
+                node._f_setAttr("relativeRefinementFactor",na.array([2,2,2],dtype=nT.Int32))
+                a5.close()
+            gid = 0
+            for grid in self.grids[self.levelIndices[level]]:
+                grid.exportAmira(basename, fields, timestep, a5basename, gid)
+                gid += 1
 
     def initializeEnzoInterface(self, idt_val = 0.0):
         """

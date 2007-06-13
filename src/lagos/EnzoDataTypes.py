@@ -65,6 +65,15 @@ class EnzoData:
         Returns a single field.  Will add if necessary.
         """
         #print "Getting item %s" % (key)
+        if key.upper() == "X":
+            return self.x
+        elif key.upper() == "Y":
+            return self.y
+        elif key.upper() == "DX" or key.upper() == "X WIDTH":
+            return self.dx
+        elif key.upper() == "DY" or key.upper() == "Y WIDTH":
+            return self.dy
+
         if self.data.has_key(key):
             return self.data[key]
         else:
@@ -267,6 +276,14 @@ class EnzoProj(Enzo2DData):
         """
         We override this because we don't want to add new fields for new keys.
         """
+        if key.upper() == "X":
+            return self.x
+        elif key.upper() == "Y":
+            return self.y
+        elif key.upper() == "DX" or key.upper() == "X WIDTH":
+            return self.dx
+        elif key.upper() == "DY" or key.upper() == "Y WIDTH":
+            return self.dy
         return self.data[key]
 
     def __init__(self, hierarchy, axis, field, weightField = None, maxLevel = None):

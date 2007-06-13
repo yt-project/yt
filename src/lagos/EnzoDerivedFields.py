@@ -26,7 +26,17 @@ fieldInfo has the following structure:
   key == field
   value == tuple ( naturalUnits, projUnits, takeLog, generatorFunction )
 """
-fieldInfo = {}
+
+#fieldInfo = {}
+#fieldInfo = defaultdict(lambda: ("","",True,None))
+class fieldDefaultDict(dict):
+    def __missing__(self, key):
+        sl = True
+        if str(key).find("_") and self.has_key(str(key).split("_")[0]):
+            sl = self[str(key).split("_")[0]]
+        return (str(key), "Projected %s" % (key), sl, None)
+
+fieldInfo = fieldDefaultDict()
 
 # Add the info for any non-derived fields up here.  For any added derived
 # fields, add it immediately after the function definition.
@@ -37,10 +47,14 @@ fieldInfo["HII_Fraction"] = ("mass fraction", None, True, None)
 fieldInfo["H2I_Fraction"] = ("mass fraction", None, True, None)
 fieldInfo["HDI_Fraction"] = ("mass fraction", None, True, None)
 fieldInfo["Electron_Fraction"] = ("", None, True, None)
+fieldInfo["X"] = ("", None, False, None)
+fieldInfo["Y"] = ("", None, False, None)
+fieldInfo["DY"] = ("", None, False, None)
+fieldInfo["DX"] = ("", None, False, None)
 
 # These are all the fields that should be logged when plotted
 # NOTE THAT THIS IS OVERRIDEN BY fieldInfo !
-log_fields = [ "Density_Squared", "k23", "k22", "k13", "Br_Abs","Btheta_Abs","Bphi_Abs" ]
+log_fields = [ "Density_Squared", "k23", "k22", "k13", "Br_Abs","Btheta_Abs","Bphi_Abs"]
 
 for i in range(3):
     for f in ["AngularMomentumDisplay", "AngularVelocity"]:
