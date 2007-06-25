@@ -49,20 +49,17 @@ def runFido():
         if md.strip().rstrip() == "(null)":
             fido.error("MetaDataString undefined in parameter file; either use it, or write your own durn function!")
             raise KeyError
-        mdd = {'md':md}
         if opts.cfgFile != None:
+            RunID = -1
             if opts.deliverator:
                 import yt.deliverator as deliverator
                 httpPrefix = ytcfg.get("raven", "httpPrefix", raw=True)
                 RunID, Response = deliverator.SubmitRun(md, ytcfg.get("Deliverator","user"))
-                plot=raven.EnzoHippo(h, submitToDeliverator=RunID, httpPrefix=httpPrefix % mdd)
-            else:
-                plot=raven.EnzoHippo(h)
-            imageDir = imagePath % mdd
+            imageDir = imagePath % h
             if not os.path.isdir(imageDir):
                 os.makedirs(imageDir)
             prefix = os.path.join(imageDir, imageSkel)
-            raven.MakePlots(plot, opts.cfgFile, prefix)
+            raven.MakePlots(h, opts.cfgFile, prefix, RunID)
         return
     fido.watchDir(funcHandler=fidoPlots, newPrefix=opts.path) 
 

@@ -87,6 +87,7 @@ def watchDir(md=None, path=".", newPrefix = "", skip = [], funcHandler = None, p
         runImport()
         thisRun = fetchRun(md, classType=lagos.EnzoParameterFile)
     doStop = 0
+    mylog.info("Entering main Fido loop (CTRL-C or touch 'stopFido' to end)")
     while not doStop:
         doStop = checkForStop(process)
         nn = newCheckForOutput(skip)

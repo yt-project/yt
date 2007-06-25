@@ -82,6 +82,22 @@ def SubmitParameterFile(RunID, hierarchy):
     mylog.debug("%s (%s)", req.FileName, resp.Response)
     return resp.Response
     
+
+"""
+APIKey
+IMG_src
+Width
+Unit
+ParameterFile
+Field1
+Field2
+Field3
+Axis
+Type
+metaData
+RunID
+"""
+
 def SubmitImage(hierarchy, img_info):
     """
     Submits the parameter file to The Deliverator server.  Returns the response.
@@ -92,6 +108,7 @@ def SubmitImage(hierarchy, img_info):
     @type img_info: dict
     @return: text response from Deliverator
     """
+    print img_info
     if not APIKey:
         return
     loc = DeliveratorServerLocator()
@@ -99,11 +116,9 @@ def SubmitImage(hierarchy, img_info):
     req = SubmitNewImageInput()
     req.APIKey = APIKey
     req.IMG_src = img_info["Filename"]
-    req.Field1 = img_info["FieldList"][0]
-    if len(img_info["FieldList"])>1:
-        req.Field2 = img_info["FieldList"][1]
-    if len(img_info["FieldList"])>2:
-        req.Field3 = img_info["FieldList"][2]
+    req.Field1 = img_info["Field1"]
+    req.Field2 = img_info["Field2"]
+    req.Field3 = img_info["Field3"]
     if img_info.has_key("Axis"):
         req.Axis = img_info["Axis"]
     else:
