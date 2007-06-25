@@ -1,5 +1,5 @@
 //
-// AMRPixelize
+// _MPL
 //   A module for making static-resolution arrays representing
 //   AMR data.
 //
@@ -171,7 +171,7 @@ static PyObject* Py_Pixelize(PyObject *obj, PyObject *args) {
   return gridret;
 }
 
-static PyMethodDef _AMRPixelizeMethods[] = {
+static PyMethodDef __MPLMethods[] = {
     {"Pixelize", Py_Pixelize, METH_VARARGS, _pixelizeDocstring},
     {NULL, NULL} /* Sentinel */
 };
@@ -181,12 +181,12 @@ static PyMethodDef _AMRPixelizeMethods[] = {
 __declspec(dllexport)
 #endif
 
-void initAMRPixelize(void)
+void init_MPL(void)
 {
     PyObject *m, *d;
-    m = Py_InitModule("AMRPixelize", _AMRPixelizeMethods);
+    m = Py_InitModule("_MPL", __MPLMethods);
     d = PyModule_GetDict(m);
-    _pixelizeError = PyErr_NewException("AMRPixelize.error", NULL, NULL);
+    _pixelizeError = PyErr_NewException("_MPL.error", NULL, NULL);
     PyDict_SetItemString(d, "error", _pixelizeError);
     import_array();
 }

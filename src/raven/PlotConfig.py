@@ -9,19 +9,21 @@ then using that to create and save out the plots.
 
 from xml.etree.ElementTree import ElementTree as et
 
-def MakePlots(eh, fn, prefix):
+from yt.raven import *
+
+def MakePlots(h, fn, prefix, deliverator):
     """
     This is the simplest way I can think of to do this.  We can get basically
     everything we need from the EnzoHippo instance.
 
-    @param eh: The EnzoHippo instance we're going to use
+    @param h: hierarchy instance
     @param fn: the XML file we're going to interpret to get
                            plot-info
+    @param prefix: image file prefix
     @todo: Add "center" argument
     """
     pi = et(file=fn)
     r = pi.getroot()
-    h = eh.hierarchy
     bn = h.basename
     dx = h.getSmallestDx()
     for plot in r.getchildren():
@@ -41,58 +43,65 @@ def MakePlots(eh, fn, prefix):
         #print "widths:", widths
         plotType = plot.tag.lower()
         prefixDict = {'bn':bn, 'type':plotType}
-        # Note that we never set fields in here, as the saveImages takes care
+        # Note that we never set fields in here, as the save takes care
         # of that.
         if plotType == "slice":
+            pc = PlotCollection(h, deliverator)
             f = 0
             center = None
             if plot.attrib.has_key("center"):
                 center = map(float(plot.attrib["center"].split()))
             for field in fields:
                 if f == 0:
-                    pis = eh.addSlice(field, center=center)
-                    pisl = range(-1*len(pis),0)
+                    pc.addSlice(field, 0, center=center)
+                    pc.addSlice(field, 1, center=center)
+                    pc.addSlice(field, 2, center=center)
                 else:
-                    for pi in pis:
-                        pi.switchField(field)
+                    for plot in pc.plots:
+                        plot.switch_z(field)
                 f += 1
                 for width, unit in widths:
                     if (width/h[unit] < mindx*dx):
                         #print "char:", width/h[unit]
                         #print "morechar:",  mindx*dx, mindx, dx
                         continue
-                    eh.setWidth(width, unit, pisl)
+                    pc.set_width(width, unit)
                     prefixDict['width'] = width
                     prefixDict['unit'] = unit
-                    eh.saveImages(prefix % prefixDict, "png", pisl)
-        if plotType == "threephase":
+                    pc.save(prefix % prefixDict, "png")
+        elif plotType == "threephase":
             for width, unit in widths:
+                pc = PlotCollection(h, deliverator)
                 if (width/h[unit] < mindx*dx):
                     continue
                 prefixDict['width'] = width
                 prefixDict['unit'] = unit
-                eh.addThreePhase(fields, width, unit)
-                eh.saveImages(prefix % prefixDict, "png", -1)
+                #print fields, width, unit
+                pc.addThreePhaseSphere(width, unit, fields)
+                pc.save(prefix % prefixDict, "png")
         elif plotType == "twophase":
             for width, unit in widths:
+                pc = PlotCollection(h, deliverator)
                 if (width/h[unit] < mindx*dx):
                     continue
                 prefixDict['width'] = width
                 prefixDict['unit'] = unit
-                eh.addTwoPhase(fields, width, unit)
-                eh.saveImages(prefix % prefixDict, "png", -1)
+                pc.addTwoPhaseSphere(width, unit, fields)
+                pc.save(prefix % prefixDict, "png")
         elif plotType == "proj":
+            pc = PlotCollection(h, deliverator)
             for fe in plot.findall("field"):
                 field = fe.text
                 weight = None
                 if fe.attrib.has_key("weight"):
                     weight = fe.attrib["weight"]
-                pis = eh.addNewProj(field, weight=weight)
-                pisl = range(-1*len(pis),0)
+                pc.addProjection(field, 0, weightField=weight)
+                pc.addProjection(field, 1, weightField=weight)
+                pc.addProjection(field, 2, weightField=weight)
                 for width, unit in widths:
                     if (width/h[unit] < mindx*dx):
                         continue
                     prefixDict['width'] = width
                     prefixDict['unit'] = unit
-                    eh.setWidth(width, unit, pisl)
-                    eh.saveImages(prefix % prefixDict, "png", pisl)
+                    pc.set_width(width, unit)
+                    pc.save(prefix % prefixDict, "png")

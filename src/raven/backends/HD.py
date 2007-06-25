@@ -16,6 +16,8 @@ from yt.funcs import *
 engineVals = {}
 skipAxes = ["X WIDTH", "Y WIDTH", "WEIGHT (OPTIONAL)", "DX", "DY"]
 
+axisFieldDict = {'X':'Field1', 'Y':'Field2', 'Z':'Field3'}
+
 def Initialize(*args, **kwargs):
     if engineVals.has_key("initialized"):
         return
@@ -74,6 +76,8 @@ class RavenPlot:
             self.hdisplay.setLog(axis,True)
         else:
             self.hdisplay.setLog(axis,lagos.fieldInfo[field][2])
+        self.axisNames[axis] = field
+        self.im[axisFieldDict[axis]] = field
 
     def saveImage(self, prefix, format, submit=None):
         """
@@ -88,14 +92,8 @@ class RavenPlot:
         self.generatePrefix(prefix)
         fn = ".".join([self.prefix, format])
         engineVals["canvas"].saveAsImage(self.hdisplay, fn)
-        #if self.enzoHippo.httpPrefix:
-            #self["Filename"] = engineVals["httpPrefix"] + "/" \
-                                #+ os.path.basename(fn)
-        #else:
-            #self["Filename"] = os.path.basename(fn)
         self["Type"] = self.typeName
         self["GeneratedAt"] = self.data.hierarchy["CurrentTimeIdentifier"]
-        #self["RunID"] = self.enzoHippo.runID # ??
         # Now submit
         return fn
 
@@ -170,6 +168,11 @@ class TwoPhasePlot(RavenPlot):
         self.plotType = "Color Plot"
         RavenPlot.__init__(self, data, fields)
 
+    def generatePrefix(self, prefix):
+        self.prefix = prefix + "_%s_" % (self.typeName)
+        self.prefix += "_".join([self.axisNames['X'], \
+                                 self.axisNames['Y']])
+
 class ThreePhasePlot(RavenPlot):
     def __init__(self, data, fields, width=None, unit=None):
         self.axes_names = ["X","Y","Z"]
@@ -183,6 +186,12 @@ class ThreePhasePlot(RavenPlot):
         y_b = self.hdisplay.getBinWidth('Y')
         self.hdisplay.setBinWidth('X', x_b*scale)
         self.hdisplay.setBinWidth('Y', y_b*scale)
+
+    def generatePrefix(self, prefix):
+        self.prefix = prefix + "_%s_" % (self.typeName)
+        self.prefix += "_".join([self.axisNames['X'], \
+                                 self.axisNames['Y'], \
+                                 self.axisNames['Z']])
 
 class VMPlot(RavenPlot):
     def __init__(self, data, field):
@@ -204,6 +213,8 @@ class VMPlot(RavenPlot):
         self.prefix = "_".join([prefix, self.typeName, \
             lagos.axis_names[self.data.axis], self.axisNames['Z']])
         self["Field1"] = self.axisNames["Z"]
+        self["Field2"] = ""
+        self["Field3"] = ""
 
     def set_width(self, width, unit):
         self["Unit"] = str(unit)
@@ -214,10 +225,7 @@ class VMPlot(RavenPlot):
         self.refreshDisplayWidth()
 
     def checkColormap(self, field):
-        if lagos.colormap_dict.has_key(field):
-            cmap = lagos.colormap_dict[field]
-        else:
-            cmap = "Blue-Green-Red-Yellow"
+        cmap = lagos.colormap_dict[field]
         self.hdisplay.setColorMap(cmap)
 
     def refreshDisplayWidth(self, width=None):

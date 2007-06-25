@@ -13,7 +13,7 @@ from yt.funcs import *
 
 # We only get imported if matplotlib was imported successfully
 
-import AMRPixelize
+import _MPL
 
 import matplotlib.image
 import matplotlib.axes
@@ -33,12 +33,15 @@ class _AMRImage(matplotlib.image.NonUniformImage):
         l, b, width, height = self.axes.bbox.get_bounds()
         width *= magnification
         height *= magnification
-        buff = AMRPixelize.Pixelize(self._Ax, self._Ay, 
+        buff = _MPL.Pixelize(self._Ax, self._Ay, 
                                     self._Adx, self._Ady,
-                                    self._A, int(height), int(width),
+                                    self._Adata, int(height), int(width),
                                    (x0, x0+v_width, y0, y0+v_height),
                                     )
         self.norm.autoscale(buff)
+        self.norm.vmin = buff.min()
+        self.norm.vmax = buff.max()
+        #print "NORM", self.norm.vmin, self.norm.vmax, buff.min(), buff.max()
         if self.next_clim[0] is not None: self.norm.vmin = self.next_clim[0]
         if self.next_clim[1] is not None: self.norm.vmax = self.next_clim[1]
 
@@ -50,6 +53,7 @@ class _AMRImage(matplotlib.image.NonUniformImage):
         bg = matplotlib.colors.colorConverter.to_rgba(self.axes.get_frame().get_facecolor(), 0)
         im.set_bg(*bg)
         self._buff = buff
+        self._A = buff
         del buff
         return im
 
@@ -61,6 +65,7 @@ class _AMRImage(matplotlib.image.NonUniformImage):
         d = na.asarray(d)
         ind=na.argsort(dx)
         self._A = d[ind][::-1]
+        self._Adata = d[ind][::-1]
         self._Ax = x[ind][::-1]
         self._Ay = y[ind][::-1]
         self._Adx = dx[ind][::-1]
@@ -174,6 +179,10 @@ def ClusterFilePlot(cls, x, y, xlog=None, ylog=None, fig=None, filename=None,
         ax.set_xlabel(lagos.CFfieldInfo[x][1])
     if lagos.CFfieldInfo.has_key(y):
         ax.set_ylabel(lagos.CFfieldInfo[y][1])
+    if xbounds:
+        ax.set_xlim(xbounds)
+    if ybounds:
+        ax.set_ylim(ybounds)
     if filename:
         canvas.print_figure(filename, format=format)
     else:

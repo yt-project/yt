@@ -23,7 +23,6 @@ except:
 
 import time, types, string, os
 
-from PlotConfig import *
 
 # We now check with ytcfg to see which backend we want
 
@@ -31,5 +30,8 @@ backend = ytcfg["raven","backend"]
 
 if backend.upper()=="HD":
     import backends.HD as be
+elif backend.upper()=="MPL":
+    import backends.MPL as be
 
 from PlotTypes import *
+from PlotConfig import *
