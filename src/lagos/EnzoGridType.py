@@ -166,16 +166,19 @@ class EnzoGrid:
         #self.generateCoords()
         del h
 
+    #@time_execution
     def generateChildMask(self, fRet=False):
         """
         Generates self.myChildMask, which is zero where child grids exist (and
         thus, where higher resolution data is available.)
         """
         self.myChildMask = na.ones(self.ActiveDimensions, nT.Int32)
-        if fRet:
+        if fRet == True:
             self.myChildIndices = na.where(self.myChildMask==1)
             return
         for child in self.Children:
+            #if child.Level > self.Level + 1:
+                #continue
             # Now let's get our overlap
             si = [None]*3
             ei = [None]*3
@@ -188,6 +191,7 @@ class EnzoGrid:
         #self.myIndices = na.where(self.myChildMask==1)
         self.myChildIndices = na.where(self.myChildMask==0)
 
+    #@time_execution
     def generateOverlapMasks(self, axis, LE, RE):
         """
         Generate a mask that shows which cells overlap with other cells on
@@ -309,6 +313,7 @@ class EnzoGrid:
             del self[field]
         return retVal
 
+    #@time_execution
     def getProjection(self, axis, field, zeroOut, weight=None):
         """
         Projects along an axis.  Currently in flux.  Shouldn't be called
@@ -330,18 +335,17 @@ class EnzoGrid:
             toCombineMask = na.logical_and.reduce(self.myChildMask, axis)
         # How do we do this the fastest?
         # We only want to project those values that don't have subgrids
+        #mylog.debug("Starting na.sum")
         fullProj = na.sum(maskedData,axis)*self.dx # Gives correct shape
         weightProj = na.sum(weightData,axis)*self.dx
+        #mylog.debug("Ending na.sum")
         #fullProj = na.maximum.reduce(maskedData,axis) # Gives correct shape
         if not zeroOut:
             toCombineMask = na.ones(fullProj.shape, dtype=nT.Bool)
         cmI = na.indices(fullProj.shape)
         # So now we figure out which points we want, and their (x,y,z) values
-        # Note that this is currently wrong for anything other than x (axis = 0)
         xind = cmI[0,:]
         yind = cmI[1,:]
-        #print "AUGH!", toCombineMask.shape, fullProj.shape, weightProj.shape, maskedData.shape, self.dx, \
-                #weightData.shape
         xpoints = na.array(xind+(self.LeftEdge[x_dict[axis]]/self.dx),nT.Int64)
         ypoints = na.array(yind+(self.LeftEdge[y_dict[axis]]/self.dx),nT.Int64)
         return [xpoints.ravel(), ypoints.ravel(), fullProj.ravel(), toCombineMask.ravel(), weightProj.ravel()]
@@ -550,8 +554,11 @@ class EnzoGrid:
         tn = "time-%i" % (timestep)
         ln = "level-%i" % (self.Level)
         for field in fields:
+            iorigin = (self.LeftEdge/deltas).astype(nT.Int64)
             new_h5 = tables.openFile(filename % {'field' : field}, "a")
-            new_h5.createArray("/","grid-%i" % (self.id), self[field])
+            f = self[field].transpose().reshape(self.ActiveDimensions)
+            new_h5.createArray("/","grid-%i" % (self.id), f)
+            del f
             node = new_h5.getNode("/","grid-%i" % (self.id))
             node.setAttr("level",self.Level)
             node.setAttr("timestep",timestep)
@@ -560,7 +567,7 @@ class EnzoGrid:
             node.setAttr("cctk_nghostzones",na.array([0,0,0],dtype=nT.Int32))
             node.setAttr("delta",deltas)
             node.setAttr("origin",self.LeftEdge)
-            node.setAttr("iorigin",(self.LeftEdge/deltas).astype(nT.Int64))
+            node.setAttr("iorigin",iorigin*(2**(self.hierarchy.maxLevel - self.Level)))
             new_h5.close()
             if a5Filename != None:
                 new_h5 = tables.openFile(a5Filename % {'field' : field}, "a")

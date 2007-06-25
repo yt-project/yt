@@ -40,7 +40,7 @@ class EnzoRun:
         self.timesteps = na.zeros(shape=self.outputs.shape, dtype=nT.Float64) # Timesteps
         self.runFilename = runFilename
         self.gotRuns = False
-        if runFilename and getPFs:
+        if runFilename != None and getPFs:
             self.Import(runFilename)
         if not timeID:
             timeID = int(time.time())
@@ -89,6 +89,7 @@ class EnzoRun:
         self.outputs = obj.array(self.outputs.tolist() + hierarchy)
         self.timesteps=na.array(self.timesteps.tolist() + t,dtype=nT.Float64)
         self.sortOutputs()
+        self.gotRuns = True
 
     def addOutputByFilename(self, filename, hdf_version=4):
         """
@@ -382,7 +383,6 @@ class EnzoRun:
             bn = basename + "-%06i" % (i) + "-%(field)s.h5"
             numDone = 0
             self.promoteType(i)
-            delta = self[i]
             self[i].exportAmira(bn, fields, a5, i)
             rootDelta = na.array([self[i].grids[0].dx, self[i].grids[0].dy, self[i].grids[0].dz], dtype=nT.Float64)
             sorted_timesteps.append(i)
@@ -393,14 +393,14 @@ class EnzoRun:
             a5b=tables.openFile(a5 % {'field':field},"a")
             a5b.createGroup("/","globalMetaData")
             node=a5b.getNode("/","globalMetaData")
-            node._f_setAttr("datatype",na.array([0],dtype=nT.Int32))
-            node._f_setAttr("fieldtype",na.array([1],dtype=nT.Int32))
-            node._f_setAttr("staggering",na.array([1],dtype=nT.Int32))
-            node._f_setAttr("maxTime",na.array([self.timesteps[-1]],dtype=nT.Float64))
-            node._f_setAttr("maxTimeStep",na.array([len(self)-1],dtype=nT.Int32))
-            node._f_setAttr("minTime",na.array([self.timesteps[0]],dtype=nT.Float64))
-            node._f_setAttr("minTimeStep",na.array([0],dtype=nT.Int32))
-            node._f_setAttr("numTimeSteps",na.array([len(self)],dtype=nT.Int32))
+            node._f_setAttr("datatype",0)
+            node._f_setAttr("fieldtype",1)
+            node._f_setAttr("staggering",1)
+            node._f_setAttr("maxTime",self.timesteps[-1])
+            node._f_setAttr("maxTimeStep",len(self)-1)
+            node._f_setAttr("minTime",self.timesteps[0])
+            node._f_setAttr("minTimeStep",0)
+            node._f_setAttr("numTimeSteps",len(self))
             node._f_setAttr("rootDelta",rootDelta)
             a5b.createArray("/","sorted_timesteps", na.array(sorted_timesteps, dtype=nT.Int32))
             a5b.createArray("/","sorted_times", na.array(sorted_times, dtype=nT.Float64))

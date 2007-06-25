@@ -556,15 +556,15 @@ Py_Interpolate(PyObject *obj, PyObject *args)
 }
 
 static void 
-BinProfile(long num_bins, npy_int32 *binindices, npy_float32 *profilevalues,
-           long num_elements, npy_float32 *fieldvalues, npy_float32 *weightvalues)
+BinProfile(long num_bins, npy_int64 *binindices, npy_float64 *profilevalues,
+           long num_elements, npy_float64 *fieldvalues, npy_float64 *weightvalues)
 {
     // We are going to assume -- making an ass out of you and me -- that the
     // values of the profile are already zero.  
 
-    npy_float32 weights[num_bins];
-    npy_float32 myweight;
-    npy_int32 mybin = -1;
+    npy_float64 weights[num_bins];
+    npy_float64 myweight;
+    npy_int64 mybin = -1;
     int bin;
     int element;
 
@@ -588,6 +588,10 @@ BinProfile(long num_bins, npy_int32 *binindices, npy_float32 *profilevalues,
             myweight = weightvalues[mybin];
             profilevalues[mybin] += fieldvalues[element];
         }
+        for (bin = 1; bin < num_bins ; bin++) {
+            profilevalues[bin] += profilevalues[bin-1];
+            //printf("ProfileValues: %i\t%0.4e\n", bin, profilevalues[bin]);
+        }
     }
 
     // Okay, and we're done.
@@ -606,14 +610,32 @@ Py_BinProfile(PyObject *obj, PyObject *args)
                     "Interpolate: Invalid parameters.");
 
     /* Align, Byteswap, Contiguous, Typeconvert */
-    field       =  (PyArrayObject *) PyArray_FromAny(ofield         , PyArray_DescrFromType(NPY_FLOAT32), 1, 0, NPY_ENSURECOPY | NPY_UPDATEIFCOPY, NULL);
-    binindices  =  (PyArrayObject *) PyArray_FromAny(obinindices    , PyArray_DescrFromType(NPY_INT32)  , 1, 0, NPY_ENSURECOPY | NPY_UPDATEIFCOPY, NULL);
-    profile     =  (PyArrayObject *) PyArray_FromAny(oprofile       , PyArray_DescrFromType(NPY_FLOAT32), 1, 0, NPY_ENSURECOPY | NPY_UPDATEIFCOPY, NULL);
-    weightfield =  (PyArrayObject *) PyArray_FromAny(oweightfield   , PyArray_DescrFromType(NPY_FLOAT32), 1, 0, NPY_ENSURECOPY | NPY_UPDATEIFCOPY, NULL);
+    field       =  (PyArrayObject *) PyArray_FromAny(ofield         , PyArray_DescrFromType(NPY_FLOAT64), 1, 0, NPY_ENSURECOPY | NPY_UPDATEIFCOPY, NULL);
+    binindices  =  (PyArrayObject *) PyArray_FromAny(obinindices    , PyArray_DescrFromType(NPY_INT64)  , 1, 0, NPY_ENSURECOPY | NPY_UPDATEIFCOPY, NULL);
+    profile     =  (PyArrayObject *) PyArray_FromAny(oprofile       , PyArray_DescrFromType(NPY_FLOAT64), 1, 0, NPY_ENSURECOPY | NPY_UPDATEIFCOPY, NULL);
+    weightfield =  (PyArrayObject *) PyArray_FromAny(oweightfield   , PyArray_DescrFromType(NPY_FLOAT64), 1, 0, NPY_ENSURECOPY | NPY_UPDATEIFCOPY, NULL);
 
-    if (!field || !binindices || !profile || !weightfield) {
+    if (!field){
         PyErr_Format( _combineError, 
-                  "BinProfile: error converting array inputs.");
+                  "BinProfile: error converting array inputs. (field)");
+        goto _fail;
+    }
+
+    if (!binindices){
+        PyErr_Format( _combineError, 
+                  "BinProfile: error converting array inputs. (binindices)");
+        goto _fail;
+    }
+
+    if (!profile ){
+        PyErr_Format( _combineError, 
+                  "BinProfile: error converting array inputs. (profile)");
+        goto _fail;
+    }
+
+    if (!weightfield) {
+        PyErr_Format( _combineError, 
+                  "BinProfile: error converting array inputs. (weightfield)");
         goto _fail;
     }
 
@@ -626,11 +648,11 @@ Py_BinProfile(PyObject *obj, PyObject *args)
     }
 
     BinProfile(profile->dimensions[0],
-               (npy_int32 *) binindices->data,
-               (npy_float32 *) profile->data,
+               (npy_int64 *) binindices->data,
+               (npy_float64 *) profile->data,
                field->dimensions[0],
-               (npy_float32 *) field->data,
-               (npy_float32 *) weightfield->data);
+               (npy_float64 *) field->data,
+               (npy_float64 *) weightfield->data);
 
     Py_XDECREF(field);
     Py_XDECREF(binindices);

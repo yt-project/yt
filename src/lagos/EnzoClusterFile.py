@@ -51,10 +51,10 @@ class AnalyzeClusterOutput:
             self.data = na.zeros((len(ks), numBins), nT.Float64)
             self.columns = {}
             self.rcolumns = {}
-            i = 1
+            i = 0
             for column in ks:
                 #print column, self.data.shape, self.data[i,:].shape, filename[column].shape
-                self.data[i-1,:] = filename[column]
+                self.data[i,:] = filename[column]
                 self.columns[i] = column
                 self.rcolumns[column] = i
                 i += 1

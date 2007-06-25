@@ -4,11 +4,10 @@ Various non-grid data containers.
 @author: U{Matthew Turk<http://www.stanford.edu/~mturk/>}
 @organization: U{KIPAC<http://www-group.slac.stanford.edu/KIPAC/>}
 @contact: U{mturk@slac.stanford.edu<mailto:mturk@slac.stanford.edu>}
-
-@change: Sun Mar 11 18:10:57 PDT 2007 implemented EnzoProj
 """
 
 from yt.lagos import *
+from yt.funcs import *
 
 class EnzoData:
     """
@@ -268,9 +267,6 @@ class Enzo2DData(EnzoData):
 
 class EnzoProj(Enzo2DData):
     """
-    EnzoProj data.  Doesn't work yet.  Needs to be implemented, following the
-    method of EnzoHierarchy.getProjection.
-
     """
     def __getitem__(self, key):
         """
@@ -286,7 +282,8 @@ class EnzoProj(Enzo2DData):
             return self.dy
         return self.data[key]
 
-    def __init__(self, hierarchy, axis, field, weightField = None, maxLevel = None):
+    def __init__(self, hierarchy, axis, field, weightField = None,
+                 maxLevel = None, center = None):
         """
         Returns an instance of EnzoProj.  Note that this object will be fairly static.
 
@@ -305,9 +302,31 @@ class EnzoProj(Enzo2DData):
         self.maxLevel = maxLevel
         self.weightField = weightField
         self.coords = None
-        self.calculateMemory()
-        self.refreshData()
+        print "CENTER!!!", center
+        self.center = center
+        if not self.deserialize():
+            self.calculateMemory()
+            self.refreshData()
+            self.serialize()
 
+    def serialize(self):
+        nodeName = "%s_%s_%s" % (self.fields[0], self.weightField, self.axis)
+        projArray = na.array([self.x, self.y, self.dx, self.dy, self[self.fields[0]]])
+        self.hierarchy.saveData(projArray, "/Projections", nodeName)
+
+    def deserialize(self):
+        nodeName = "%s_%s_%s" % (self.fields[0], self.weightField, self.axis)
+        array=self.hierarchy.getData("/Projections", nodeName)
+        if array == None:
+            return None
+        self.x = array[0,:]
+        self.y = array[1,:]
+        self.dx = array[2,:]
+        self.dy = array[3,:]
+        self[self.fields[0]] = array[4,:]
+        return 1
+
+    @time_execution
     def calculateMemory(self):
         """
         Here we simply calculate how much memory is needed, which speeds up
@@ -317,9 +336,10 @@ class EnzoProj(Enzo2DData):
         totalProj = 0
         h = self.hierarchy
         i = 0
+        mylog.info("Calculating memory usage")
         for level in range(self.maxLevel+1):
             memoryPerLevel[level] = 0
-            mylog.info("Working on level %s", level)
+            mylog.debug("Working on level %s", level)
             grids = h.levelIndices[level]
             numGrids = len(grids)
             RE = h.gridRightEdge[grids].copy()
@@ -347,6 +367,7 @@ class EnzoProj(Enzo2DData):
         mylog.debug("We need %s cells total", totalProj)
         self.memoryPerLevel = memoryPerLevel
 
+    @time_execution
     def getData(self):
         """
         Unfortunately, projecting is more linear, less-OO than slicing, it
@@ -484,6 +505,7 @@ class EnzoSlice(Enzo2DData):
     A slice at a given coordinate along a given axis through the entire grid
     hierarchy.
     """
+    @time_execution
     def __init__(self, hierarchy, axis, coord, fields = None, center=None, fRet=False):
         """
         Returns an instance of EnzoSlice.
@@ -542,6 +564,7 @@ class EnzoSlice(Enzo2DData):
         """
         pass
 
+    @time_execution
     def getData(self, field = None):
         """
         Iterates over the list of fields and generates/reads them all.
@@ -771,18 +794,18 @@ class Enzo3DData(EnzoData):
             fields.append("CellMass")
         for field in fields:
             fc = self[field][radiiOrder]
-            fp = na.zeros(nBins,nT.Float32)
+            fp = na.zeros(nBins,nT.Float64)
             if field_weights.has_key(field):
                 if field_weights[field] == -999:
                     ss = "Accumulation weighting"
-                    weight = na.ones(nE, nT.Float32) * -999
+                    weight = na.ones(nE, nT.Float64) * -999
                 elif field_weights[field] != None:
                     ww = field_weights[field]
                     ss="Weighting with %s" % (ww)
                     weight = self[ww][radiiOrder]
                 elif field_weights[field] == None:
                     ss="Not weighted"
-                    weight = na.ones(nE, nT.Float32)
+                    weight = na.ones(nE, nT.Float64)
                 else:
                     mylog.warning("UNDEFINED weighting for %s", field)
                     ss="Undefined weighting"
@@ -790,6 +813,7 @@ class Enzo3DData(EnzoData):
                 ss="Weighting with default"
                 weight = defaultWeight
             mylog.info("Getting profile of %s (%s)", field, ss)
+            #print fc.dtype, binIndices.dtype, fp.dtype, weight.dtype
             EnzoCombine.BinProfile(fc, binIndices, \
                                    fp, weight)
             fieldProfiles[field] = fp
@@ -806,6 +830,8 @@ class EnzoRegion(Enzo3DData):
 
         @note: Center does not have to be (rightEdge - leftEdge) / 2.0
         """
+        mylog.warning("ENZOREGION MAY NOT WORK PROPERLY!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+        mylog.warning("(Ji-hoon has more info.)")
         Enzo3DData.__init__(self, hierarchy, center, fields)
         self.fields = ["Radius"] + self.fields
         self.leftEdge = leftEdge
@@ -826,7 +852,7 @@ class EnzoRegion(Enzo3DData):
         points = []
         if self.dx == None:
             for grid in g:
-                #print "Generating coords for grid %s" % (grid.id)
+                print "Generating coords for grid %s" % (grid.id)
                 c = grid.center
                 grid.center = self.center
                 points.append(self.generateGridCoords(grid))

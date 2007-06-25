@@ -21,6 +21,8 @@ try:
 except:
     mylog.warning("EnzoFortranWrapper not properly installed -- no fortran fields available!")
 
+import collections
+
 """
 fieldInfo has the following structure:
   key == field
@@ -60,7 +62,8 @@ for i in range(3):
     for f in ["AngularMomentumDisplay", "AngularVelocity"]:
         log_fields.append("%s_%s_vcomp_Abs" % (f, i))
 
-colormap_dict = {"Temperature":"Red Temperature"}
+colormap_dict = collections.defaultdict(lambda: "Blue-Green-Red-Yellow")
+colormap_dict["Temperature"] = "Red Temperature"
 
 def Entropy(self, fieldName):
     self[fieldName] = self["Density"]**(-2./3.) * \
@@ -249,11 +252,26 @@ def VelocityMagnitude(self, fieldName):
         self["z-velocity"]**2.0 )**(1.0/2.0))
 fieldInfo["VelocityMagnitude"] = ("cm/s", None, True, VelocityMagnitude)
 
+def DensityCode(self, fieldName):
+    self[fieldName] = self["Density"]
+fieldInfo["DensityCode"] = (None, None, True, DensityCode)
+
 def Pressure(self, fieldName):
     """M{(Gamma-1.0)*rho*E}"""
     self[fieldName] = (self.hierarchy["Gamma"] - 1.0) * \
                             self["Density"] * self["Gas_Energy"]
 fieldInfo["Pressure"] = (None, None, True, Pressure)
+
+def PressureCGS(self, fieldName):
+    """M{(Gamma-1.0)*rho*E}"""
+    self[fieldName] = (self["Gamma2"] - 1.0) * \
+                            self["DensityCGS"] * self["Gas_Energy"] * \
+                      (self.hierarchy["x-velocity"]**2.0)
+fieldInfo["PressureCGS"] = ("dyne / cm^2", None, True, PressureCGS)
+
+# ( ergs / g ) * ( g / cm^3)
+# erg = g * cm^2 / s^2
+# 1 erg / cm^3 = 1 dyne / cm^2
 
 def CourantTimeStep(self, fieldName):
     """
