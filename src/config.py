@@ -9,7 +9,8 @@ Everything will be returned in a global config dictionary: ytcfg
 @todo: Implement default rc file outputting
 """
 
-import ConfigParser, os, os.path, sys
+import ConfigParser, os, os.path, sys, types
+from funcs import *
 
 ytcfgDefaults = {
     "Fido":{
@@ -21,13 +22,15 @@ ytcfgDefaults = {
         },\
     "yt":{
         'LogFile': '1', \
-        'LogLevel': '30', \
+        'LogLevel': '20', \
         'unifiedlogfile': '1', \
         'User':os.getenv("USER"), \
+        'timefunctions':'False'
          }, \
     "raven":{
         'ImagePath':".", \
-        'ImageSkel': '%(bn)s_%(width)010i_%(unit)s'\
+        'ImageSkel': '%(bn)s_%(width)010i_%(unit)s',\
+        'backend': 'HD'\
         } \
     }
 
@@ -36,7 +39,7 @@ class YTConfigParser(ConfigParser.ConfigParser):
         ConfigParser.ConfigParser.__init__(self)
         # Note that we're not going to pass in defaults
         self.read(fn)
-        # Okay, we're populated.  Now, we will in the additional values
+        # Okay, we're populated.  Now, we will insert additional values
         # as needed.
         for section in defaults.keys():
             opts = defaults[section]
@@ -45,11 +48,19 @@ class YTConfigParser(ConfigParser.ConfigParser):
             for opt, val in opts.items():
                 if not self.has_option(section, opt):
                     self.set(section, opt, val)
+    def __getitem__(self, item):
+        if iterable(item):
+            tr = []
+            for it in item[1:]:
+                tr.append(self.get(item[0],it,raw=True))
+            if len(tr) == 1:
+                return tr[0]
+            return tr
+        else:
+            raise KeyError
+    def __setitem__(self, item, val):
+        if not isinstance(item, types.TupleType) or not len(item) == 2:
+            raise KeyError
+        self.set(item[0],item[1],val)
 
-#ytcfg = ConfigParser.ConfigParser(defaults)
 ytcfg = YTConfigParser(['yt.cfg', os.path.expanduser('~/.yt/config')], ytcfgDefaults)
-#ytcfg.read(['yt.cfg', os.path.expanduser('~/.yt/config')])
-
-# I am hereby getting rid of usermodules...  (They used to be below.)  I can
-# actually think of no reasonable purpose that they would serve.  Also, it
-# messed up the logging import.

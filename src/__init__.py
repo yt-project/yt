@@ -77,3 +77,4 @@ G{packagetree}
 
 from logger import *
 from config import *
+from funcs import *
