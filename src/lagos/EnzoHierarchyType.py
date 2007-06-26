@@ -6,14 +6,13 @@ Enzo hierarchy container class
 @contact: U{mturk@slac.stanford.edu<mailto:mturk@slac.stanford.edu>}
 
 @todo: Either subclass EnzoHierarchy from EnzoParameterFile, or get rid of
-overlap and make Hierarchy an option property of EnzoParameterFile
+overlap and make Hierarchy a property of EnzoParameterFile
 """
 
 from yt.lagos import *
 from yt.funcs import *
 from collections import defaultdict
 import string, re, gc, time
-#import EnzoCombine
 import yt.enki
 
 class EnzoParameterFile:
@@ -260,10 +259,13 @@ class EnzoHierarchy(EnzoParameterFile):
         # For SWIG
         self.eiTopGrid = None
         
-#        #l=raw_input("Hey dumbface, stopping here to check the memory")
-        self.dataFile = tables.openFile( \
-            os.path.join(self.directory,"%s.yt" % (self["CurrentTimeIdentifier"])), \
-            "a")
+        try:
+            self.dataFile = tables.openFile( \
+                os.path.join(self.directory, \
+                "%s.yt" % (self["CurrentTimeIdentifier"])), \
+                "a")
+        except IOError:
+            pass
 
         self.populateHierarchy()
 
@@ -276,88 +278,17 @@ class EnzoHierarchy(EnzoParameterFile):
         """
         if self.dataFile:
             self.dataFile.close()
-        del self.dataFile
-        #print weakref.getweakrefcount(self)
+            del self.dataFile
         del self.eiTopGrid
         del self.gridReverseTree
-        #del self.grids
         del self.gridLeftEdge, self.gridRightEdge
         del self.gridLevels, self.gridStartIndices, self.gridEndIndices
         del self.gridTimes, self.hierarchyString, self.hierarchyLines
-        #del self.grids
         for gridI in xrange(self.numGrids):
             for g in self.gridTree[gridI]:
-                #print "Deleting", g
                 del g
         del self.gridTree
 
-    def clearAllGridReferences(self):
-        return
-        del self.grids
-        #for gridI in xrange(self.numGrids):
-            #for g in self.gridTree[gridI]:
-                #print "Deleting", g
-                #g.clearAllGridReferences()
-                #del g.hierarchy
-                #del g
-        #print "Grid 20:", gc.get_referrers(aa)
-        #print "Self:", gc.get_referrers(self)
-
-    @time_execution
-    def populateHierarchyRE(self):
-        """
-        This is so much slower than the other method.  Ugh.  How unfair!
-        """
-        for i in xrange(self.numGrids):
-            self.grids[i] = EnzoGrid(self, i+1)
-
-        re_Grid = constructRegularExpressions("Grid",('d'))
-
-        re_GridDimension = constructRegularExpressions("GridDimension", ('d','d','d'))
-        t = re.findall(re_GridDimension, self.hierarchyString)
-        self.gridDimensions[:] = \
-             na.array([[int(di[0]), int(di[1]), int(di[2])] for di in t], nT.Int32)
-
-        re_GridStartIndex = constructRegularExpressions("GridStartIndex", ('d','d','d'))
-        t = re.findall(re_GridStartIndex, self.hierarchyString)
-        self.gridStartIndices[:] =\
-             na.array([[int(di[0]), int(di[1]), int(di[2])] for di in t], nT.Int32)
-
-        re_GridEndIndex = constructRegularExpressions("GridEndIndex", ('d','d','d'))
-        t = re.findall(re_GridEndIndex, self.hierarchyString)
-        self.gridEndIndices[:] =\
-             na.array([[int(di[0]), int(di[1]), int(di[2])] for di in t], nT.Int32)
-            
-        re_GridLeftEdge = constructRegularExpressions("GridLeftEdge", ('g','g','g'))
-        t = re.findall(re_GridLeftEdge, self.hierarchyString)
-        self.gridLeftEdge[:] =\
-             na.array([[float(di[0]), float(di[1]), float(di[2])] for di in t], nT.Float64)
-            
-        re_GridRightEdge = constructRegularExpressions("GridRightEdge", ('g','g','g'))
-        t = re.findall(re_GridRightEdge, self.hierarchyString)
-        self.gridRightEdge[:] =\
-             na.array([[float(di[0]), float(di[1]), float(di[2])] for di in t], nT.Float64)
-            
-        re_GridLevels = constructRegularExpressions("^Level", ('d'))
-        t = re.findall(re_GridLevels, self.hierarchyString)
-        self.gridLevels[:] =\
-             na.array([int(di) for di in t], nT.Int32)
-            
-#        re_GridTimes = constructRegularExpressions("Time", ('g'))
-#        t = re.findall(re_GridTimes, self.hierarchyString)
-#        self.gridTimes[:] =\
-#             na.array([[float(di[0]), float(di[1]), float(di[2])] for di in t], nT.Float64)
-
-        re_BaryonFileName = constructRegularExpressions("BaryonFileName",('s'))
-        t = re.findall(re_BaryonFileName, self.hierarchyString)
-        for fnI in xrange(len(t)):
-            self.grids[fnI].setFilename(t[fnI])
-
-        re_GridNumberOfParticles = constructRegularExpressions("NumberOfParticles", ('d'))
-        t = re.findall(re_GridNumberOfParticles, self.hierarchyString)
-        self.gridNumberOfParticles[:] =\
-             na.array([int(di) for di in t], nT.Int32)
-            
     @time_execution
     def populateHierarchy(self):
         """
@@ -418,7 +349,6 @@ class EnzoHierarchy(EnzoParameterFile):
                     splitConvertGridParameter(vals, float, self.gridNumberOfParticles, curGrid)
                 elif param == "BaryonFileName ":
                     self.grids[curGrid-1].setFilename(vals[1:-1])
-            #self.populateHierarchyRE()
             mylog.info("Creating allArray to dump to file")
             allArrays = na.zeros((self.numGrids,18),nT.Float64)
             allArrays[:,0:3] = self.gridDimensions[:]
@@ -854,7 +784,6 @@ def splitConvertGridParameter(vals, func, toAdd, curGrid):
     for v in vals.split():
         toAdd[curGrid-1,j] = func(v)
         j+=1
-    #toAdd[curGrid-1,:] = map(func,vals.split())
 
 scanf_regex = {}
 scanf_regex['e'] = r"[-+]?\d+\.?\d*?|\.\d+[eE][-+]?\d+?"

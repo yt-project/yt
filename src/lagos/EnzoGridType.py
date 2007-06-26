@@ -29,8 +29,6 @@ class EnzoGrid:
         self.hierarchy = weakref.proxy(hierarchy)
         self.data = {}
         self.datasets = {}
-        self.SDi = None
-        self.SDi_datasets = None
         if filename:
             self.setFilename(filename)
         self.myChildMask = None
@@ -153,8 +151,8 @@ class EnzoGrid:
             self.Parent = weakref.proxy(h.grids[pID - 1])
         else:
             self.Parent = None
-        # So first we figure out what the index is.  We assume
-        # that dx=dy=dz
+        # So first we figure out what the index is.  We don't assume
+        # that dx=dy=dz , at least here.  We probably do elsewhere.
         self.dx = (self.RightEdge[0] - self.LeftEdge[0]) / \
                   (self.EndIndices[0]-self.StartIndices[0]+1)
         self.dy = (self.RightEdge[1] - self.LeftEdge[1]) / \
@@ -163,8 +161,6 @@ class EnzoGrid:
                   (self.EndIndices[2]-self.StartIndices[2]+1)
         h.gridDxs[self.id-1,0] = self.dx
         self.coords = None
-        #self.generateCoords()
-        del h
 
     #@time_execution
     def generateChildMask(self, fRet=False):
@@ -177,18 +173,17 @@ class EnzoGrid:
             self.myChildIndices = na.where(self.myChildMask==1)
             return
         for child in self.Children:
-            #if child.Level > self.Level + 1:
-                #continue
+            if child.Level > self.Level + 1:
+                continue
             # Now let's get our overlap
             si = [None]*3
             ei = [None]*3
-            startIndex = (child.LeftEdge - self.LeftEdge)/self.dx
-            endIndex = (child.RightEdge - self.LeftEdge)/self.dx
-            for i in range(3):
-                si[i] = int(startIndex[i])
-                ei[i] = int(endIndex[i])
+            startIndex = ((child.LeftEdge - self.LeftEdge)/self.dx).astype(nT.Int32)
+            endIndex = ((child.RightEdge - self.LeftEdge)/self.dx).astype(nT.Int32)
+            #for i in range(3):
+                #si[i] = int(startIndex[i])
+                #ei[i] = int(endIndex[i])
             self.myChildMask[si[0]:ei[0], si[1]:ei[1], si[2]:ei[2]] = 0
-        #self.myIndices = na.where(self.myChildMask==1)
         self.myChildIndices = na.where(self.myChildMask==0)
 
     #@time_execution
@@ -258,97 +253,6 @@ class EnzoGrid:
         pos = (coord + 0.0) * self.dx + self.LeftEdge
         # Should 0.0 be 0.5?
         return pos
-
-    def getSlice(self, coord, axis, field, outline=False):
-        """
-        @deprecated: use EnzoSlice!
-        """
-        if self.myChildMask == None:
-            self.generateChildMask()
-        # So what's our index of slicing?  This is what we need to figure out
-        # first, so we can deal with our data in the fastest way.
-        # NOTE: This should be fixed.  I don't think it works properly or
-        # intelligently.
-        wantedIndex = int(((coord-self.LeftEdge[axis])/self.dy))
-        # I can't think of a better way to do this: because we have lots of
-        # different arrays, and because we don't want to mess that up, we
-        # shouldn't do any axis-swapping, I think.  So, looks like we're just
-        # going to have to do this the stupid way.  (I suspect there's a more
-        # clever way, involving generating an array, and using %, but this
-        # works.
-        xaxis = x_dict[axis]
-        yaxis = y_dict[axis]
-        if axis == 0:
-            cm = na.where(self.myChildMask[wantedIndex,:,:] == 1)
-            cmI = na.indices(self.myChildMask[wantedIndex,:,:].shape)
-            slicedData = self[field][wantedIndex,:,:]
-        elif axis == 1:
-            cm = na.where(self.myChildMask[:,wantedIndex,:] == 1)
-            cmI = na.indices(self.myChildMask[:,wantedIndex,:].shape)
-            slicedData = self[field][:,wantedIndex,:]
-        elif axis == 2:
-            cm = na.where(self.myChildMask[:,:,wantedIndex] == 1)
-            cmI = na.indices(self.myChildMask[:,:,wantedIndex].shape)
-            slicedData = self[field][:,:,wantedIndex]
-        # So now we figure out which points we want, and their (x,y,z) values
-        xind = cmI[0,:]
-        xpoints = xind[cm]*self.dx+(self.LeftEdge[xaxis] + 0.5*self.dx)
-        yind = cmI[1,:]
-        ypoints = yind[cm]*self.dx+(self.LeftEdge[yaxis] + 0.5*self.dx)
-        dataVals = slicedData[cm]
-        # We now have a couple one dimensional arrays.  We will
-        # make these one array, and return them as [x y val dx dy]
-        if self.hierarchy.conversionFactors.has_key(field):
-            conv = self.hierarchy.conversionFactors[field]
-        else:
-            conv = 1
-        numVals = dataVals.shape[0]
-        retVal = na.array(shape=(numVals,5), type=nT.Float64)
-        retVal[:,0] = xpoints
-        retVal[:,1] = ypoints
-        retVal[:,2] = dataVals*conv
-        retVal[:,3] = self.dx/2.0
-        retVal[:,4] = self.dx/2.0
-        if outline == True:
-            del self[field]
-        return retVal
-
-    #@time_execution
-    def getProjection(self, axis, field, zeroOut, weight=None):
-        """
-        Projects along an axis.  Currently in flux.  Shouldn't be called
-        directly.
-        """
-        if weight == None:
-            maskedData = self[field].copy()
-            weightData = na.ones(maskedData.shape)
-        else:
-            maskedData = self[field] * self[weight]
-            weightData = self[weight].copy()
-        if self.myChildMask == None:
-            self.generateChildMask()
-        if len(self.myOverlapMasks) == 0:
-            self.generateOverlapMasks()
-        if zeroOut:
-            maskedData[self.myChildIndices]=0
-            weightData[self.myChildIndices]=0
-            toCombineMask = na.logical_and.reduce(self.myChildMask, axis)
-        # How do we do this the fastest?
-        # We only want to project those values that don't have subgrids
-        #mylog.debug("Starting na.sum")
-        fullProj = na.sum(maskedData,axis)*self.dx # Gives correct shape
-        weightProj = na.sum(weightData,axis)*self.dx
-        #mylog.debug("Ending na.sum")
-        #fullProj = na.maximum.reduce(maskedData,axis) # Gives correct shape
-        if not zeroOut:
-            toCombineMask = na.ones(fullProj.shape, dtype=nT.Bool)
-        cmI = na.indices(fullProj.shape)
-        # So now we figure out which points we want, and their (x,y,z) values
-        xind = cmI[0,:]
-        yind = cmI[1,:]
-        xpoints = na.array(xind+(self.LeftEdge[x_dict[axis]]/self.dx),nT.Int64)
-        ypoints = na.array(yind+(self.LeftEdge[y_dict[axis]]/self.dx),nT.Int64)
-        return [xpoints.ravel(), ypoints.ravel(), fullProj.ravel(), toCombineMask.ravel(), weightProj.ravel()]
 
     def getSliceAll(self, coord, axis, field):
         tempMask = self.myChildMask
@@ -445,31 +349,6 @@ class EnzoGrid:
         LE = na.reshape(self.LeftEdge,(3,1,1,1))
         self.coords = (ind+0.5)*self.dx+LE
     
-    def getSphere(self, center, radius, fields, zeroOut = True):
-        """
-        Returns a sphere from within the grid.  Don't use.
-        @deprecated: Use EnzoSphere!
-        """
-        if self.myChildMask == None or self.myChildIndices == None:
-            self.generateChildMask()
-        # First we find the cells that are within the sphere
-        pointI = na.where(na.logical_and((self["RadiusCode"]<=radius),self.myChildMask==1)==1)
-        # Note that we assumed here that all our data will be nT.Float32
-        # Not a *terrible* assumption...
-        trData = na.zeros((pointI[0].shape[0],len(fields)), nT.Float64)
-        i = 0
-        for field in fields:
-            if self.hierarchy.conversionFactors.has_key(field):
-                conv = self.hierarchy.conversionFactors[field]
-            else:
-                conv = 1
-            trData[:,i] = self[field][pointI] * conv
-            i+=1
-        return [self.coords[0,:][pointI], \
-                self.coords[1,:][pointI], \
-                self.coords[2,:][pointI], \
-                trData]
-
     def getEnzoGrid(self):
         """
         This attempts to get an instance of this particular grid from the SWIG
