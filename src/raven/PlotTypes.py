@@ -42,7 +42,6 @@ class PlotCollection:
                 im["RunID"] = self.RunID
                 yt.deliverator.SubmitImage(\
                       self.hierarchy, im)
-                #print im
         return fn
     def set_xlim(self, xmin, xmax):
         for plot in self.plots:
@@ -60,7 +59,6 @@ class PlotCollection:
     def set_width(self, width, unit):
         for plot in self.plots:
             plot.set_width(width, unit)
-
     # Now we get around to adding the plots we want
     def addPlot(self, plot):
         # Accept some instance that's already been created
@@ -113,4 +111,4 @@ class PlotCollection:
         p = self.addPlot(be.ThreePhasePlot(sphere, fields, width=radius, unit=unit))
         p["Width"] = radius
         p["Unit"] = unit
-        return 
+        return p

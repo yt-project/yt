@@ -107,9 +107,9 @@ def watchDir(md=None, path=".", newPrefix = "", skip = [], funcHandler = None, p
                         mylog.debug("Exit status %s from PID %s", exit, newpid)
                     else:
                         mylog.debug("Forked process reporting for duty")
-                        thisRun.promoteType(-1)
+                        thisRun.promoteType(thisRun.index(bn))
                         mylog.info("Calling %s" % funcHandler.func_name)
-                        funcHandler(thisRun.outputs[-1])
+                        funcHandler(thisRun[bn])
                         #thisRun.demoteType(-1)
                         mylog.info("Done calling %s, now dying", funcHandler.func_name)
                         sys.exit()
