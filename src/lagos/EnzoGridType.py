@@ -178,11 +178,11 @@ class EnzoGrid:
             # Now let's get our overlap
             si = [None]*3
             ei = [None]*3
-            startIndex = ((child.LeftEdge - self.LeftEdge)/self.dx).astype(nT.Int32)
-            endIndex = ((child.RightEdge - self.LeftEdge)/self.dx).astype(nT.Int32)
-            #for i in range(3):
-                #si[i] = int(startIndex[i])
-                #ei[i] = int(endIndex[i])
+            startIndex = ((child.LeftEdge - self.LeftEdge)/self.dx)#.astype(nT.Int32)
+            endIndex = ((child.RightEdge - self.LeftEdge)/self.dx)#.astype(nT.Int32)
+            for i in range(3):
+                si[i] = int(startIndex[i])
+                ei[i] = int(endIndex[i])
             self.myChildMask[si[0]:ei[0], si[1]:ei[1], si[2]:ei[2]] = 0
         self.myChildIndices = na.where(self.myChildMask==0)
 
