@@ -225,7 +225,8 @@ fieldInfo["NumberDensity"] = ("cm^-3", "cm^-2", True, NumberDensity)
 def Outline(self, fieldName):
     """Just the level, for outlines of grid structure"""
     #self[fieldName] = na.ones(self.myChildMask.shape) * self.Level + 1
-    self[fieldName] = na.ones(self["Density"].shape) * (self.dx / self.dx.max())
+    self[fieldName] = na.ones(self["Density"].shape) * \
+            (na.log((self.dx.max() / self.dx))/na.log(2))
     # Doesn't make sense to call this on grids, right?
 fieldInfo["Outline"] = ("Level", "LevelSum", False, Outline)
 
@@ -443,20 +444,6 @@ def TempComp(self, fieldName):
     """
     self[fieldName] = self["TempFromGE"]/self["Temperature"]
 fieldInfo["TempComp"] = ("t_ge/t_output",None,False,TempComp)
-
-def HydrogenComp(self, fieldName):
-    """
-    (Hydrogen / Density) - 0.76
-    """
-    self[fieldName] = self["HI_Density"] + \
-                      self["HII_Density"] + \
-                      self["HM_Density"] + \
-                      self["H2I_Density"] + \
-                      self["H2II_Density"]
-    self[fieldName] /= self["Density"]
-    self[fieldName] -= 0.76
-    self[fieldName] = abs(self[fieldName])
-fieldInfo["HydrogenComp"] = ("rhoH/rho - 0.76",None,False,HydrogenComp)
 
 def ColorSum(self, fieldName):
     """

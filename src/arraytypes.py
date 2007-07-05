@@ -18,7 +18,7 @@ class ArrayNumTypes:
     def __init__(self):
         pass
 
-u_numpy = False
+u_numpy = True
 u_numarray = False
 
 nT = ArrayNumTypes()
@@ -27,30 +27,27 @@ myTypes = [ 'Complex128',  'Bool', 'Int32', 'Complex64', 'UInt16', 'Float32',
             'Int64', 'UInt8',  'Int8', 'Complex32',  'UInt64', 'Float64', 
             'UInt32', 'Float128', 'Int16']
 
-if not ytcfg.has_option("yt","numarray"):
-    ytlog.debug("Using NumPy.")
-    ytlog.debug("Please report problems to mturk@slac.stanford.edu, including a full traceback.")
-    ytlog.debug("(Check for .flat access to arrays -- it should now be .ravel() !)")
-    import numpy as na
-    import numpy.linalg as la
-    import numpy as obj  # Backwards compat
-    import numpy.core.records as rec
-    import scipy.ndimage as nd # Moved into scipy
-    import scipy as sp
-    import scipy.weave as weave
-    u_numpy = True
-    for type in myTypes:
-        setattr(nT, type, na.typeNA[type])
-else:
-    ytlog.warning("Using NumArray.  Many, many things will probably break.  You should use NumPy!")
-    import numarray as na
-    import numarray.linear_algebra as la
-    import numarray.objects as obj
-    import numarray.nd_image as nd
-    import numarray.records as rec
-    u_numarray = True
-    for type in myTypes:
-        try:
-            setattr(nT, type, na.typeDict[type])
-        except KeyError:
-            pass
+import numpy as na
+import numpy.linalg as la
+import numpy as obj  # Backwards compat
+import numpy.core.records as rec
+import scipy.ndimage as nd # Moved into scipy
+import scipy as sp
+import scipy.weave as weave
+u_numpy = True
+for type in myTypes:
+    setattr(nT, type, na.typeNA[type])
+
+# Now define convenience functions
+
+def blankRecordArray(desc, elements):
+    """
+    Accept a descriptor describing a recordarray, and return one that's full of
+    zeros
+
+    This seems like it should be in the numpy distribution...
+    """
+    blanks = []
+    for type in desc['formats']:
+        blanks.append(na.zeros(elements, dtype=type))
+    return rec.fromarrays(blanks, **desc)

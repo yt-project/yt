@@ -12,21 +12,20 @@ all of the engine-appropriate methods.
 """
 
 from yt.raven import *
-import yt.deliverator
 
 class PlotCollection:
-    def __init__(self, hierarchy, submitToDeliverator=-1):
+    def __init__(self, pf, submitToDeliverator=-1):
         be.Initialize()
         self.plots = []
         self.runID = submitToDeliverator
-        self.hierarchy = hierarchy
+        self.pf = pf
         if submitToDeliverator > 0:
             self.submit = True
             self.RunID = submitToDeliverator
             r=yt.deliverator.SubmitParameterFile(\
-                submitToDeliverator, self.hierarchy)
+                submitToDeliverator, self.pf)
             mylog.debug("Received response '%s'", r)
-            self.httpPrefix = ytcfg["raven","httpPrefix"] % self.hierarchy
+            self.httpPrefix = ytcfg["raven","httpPrefix"] % self.pf
         else:
             self.submit = False
     def save(self, basename, format="png"):
@@ -41,7 +40,7 @@ class PlotCollection:
                                 + os.path.basename(fn[-1])
                 im["RunID"] = self.RunID
                 yt.deliverator.SubmitImage(\
-                      self.hierarchy, im)
+                      self.pf, im)
         return fn
     def set_xlim(self, xmin, xmax):
         for plot in self.plots:
@@ -72,18 +71,18 @@ class PlotCollection:
         # Pass it in to the engine to get a SlicePlot, which we then append
         # onto self.plots
         if center == None:
-            v,center = self.hierarchy.findMax("Density")
+            v,center = self.pf.hierarchy.findMax("Density")
         if coord == None:
             coord = center[axis]
-        slice = lagos.EnzoSlice(self.hierarchy, axis, coord, field, center)
+        slice = lagos.EnzoSlice(self.pf, axis, coord, field, center)
         return self.addPlot(be.SlicePlot(slice, field))
     def addProjection(self, field, axis, weightField=None, center=None):
         # Make the projection object here
         # Pass it in to the engine to get a SlicePlot, which we then append
         # onto self.plots
         if center == None:
-            v, center = self.hierarchy.findMax("Density")
-        proj = lagos.EnzoProj(self.hierarchy, axis, field, weightField, center=center)
+            v, center = self.pf.findMax("Density")
+        proj = lagos.EnzoProj(self.pf, axis, field, weightField, center=center)
         return self.addPlot(be.ProjectionPlot(proj, field))
     def addACProfile(self):
         # We are given the data already
@@ -96,18 +95,18 @@ class PlotCollection:
         return self.addPlot(be.ProfilePlot())
     def addTwoPhaseSphere(self, radius, unit, fields, center=None):
         if center == None:
-            v,center = self.hierarchy.findMax("Density")
-        r = radius/self.hierarchy[unit]
-        sphere = lagos.EnzoSphere(self.hierarchy, center, r, fields)
+            v,center = self.pf.hierarchy.findMax("Density")
+        r = radius/self.pf[unit]
+        sphere = lagos.EnzoSphere(self.pf, center, r, fields)
         p = self.addPlot(be.TwoPhasePlot(sphere, fields, width=radius, unit=unit))
         p["Width"] = radius
         p["Unit"] = unit
         return p 
     def addThreePhaseSphere(self, radius, unit, fields, center=None):
         if center == None:
-            v,center = self.hierarchy.findMax("Density")
-        r = radius/self.hierarchy[unit]
-        sphere = lagos.EnzoSphere(self.hierarchy, center, r, fields)
+            v,center = self.pf.hierarchy.findMax("Density")
+        r = radius/self.pf[unit]
+        sphere = lagos.EnzoSphere(self.pf, center, r, fields)
         p = self.addPlot(be.ThreePhasePlot(sphere, fields, width=radius, unit=unit))
         p["Width"] = radius
         p["Unit"] = unit

@@ -49,7 +49,8 @@ class YTConfigParser(ConfigParser.ConfigParser):
                 if not self.has_option(section, opt):
                     self.set(section, opt, val)
     def __getitem__(self, item):
-        if iterable(item):
+        #if iterable(item):
+        if hasattr(item,'__getitem__'):
             tr = []
             for it in item[1:]:
                 tr.append(self.get(item[0],it,raw=True))

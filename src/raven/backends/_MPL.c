@@ -39,14 +39,14 @@ static PyObject* Py_Pixelize(PyObject *obj, PyObject *args) {
   double x_min, x_max, y_min, y_max;
 
     if (!PyArg_ParseTuple(args, "OOOOOII(dddd)",
-        &xp, &yp, &dxp, &dyp, &dp, &rows, &cols, 
+        &xp, &yp, &dxp, &dyp, &dp, &cols, &rows, 
         &x_min, &x_max, &y_min, &y_max))
         return PyErr_Format(_pixelizeError, "Pixelize: Invalid Parameters.");
 
   double width = x_max - x_min;
   double height = y_max - y_min;
-  double px_dx = width / ((double) cols);
-  double px_dy = height / ((double) rows);
+  double px_dx = width / ((double) rows);
+  double px_dy = height / ((double) cols);
 
   // Check we have something to output to
   if (rows == 0 || cols ==0)
@@ -125,12 +125,7 @@ static PyObject* Py_Pixelize(PyObject *obj, PyObject *args) {
   npy_float64 *dys = (npy_float64 *) PyArray_GETPTR1(dy, 0);
   npy_float64 *ds = (npy_float64 *) PyArray_GETPTR1(d, 0); // We check this above
 
-  // Upper left is (center - (dx, dy))/dx_per_pixel
-  // Lower right is (center + (dx, dy))/dx_per_pixel
-  // X width in pixels is int(dx / (dx_per_pixel))
-  // Y width in pixels is int(dy / (dy_per_pixel))
-  // Center is at (center - LE)/dx_per_pixel
-
+  //printf("ROWS: %i COLS: %i\n", rows, cols);
   for (p=0;p<cols*rows;p++) gridded[p] = 0;
   for(p=0;p<nx;p++)
   {

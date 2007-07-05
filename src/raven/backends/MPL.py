@@ -17,119 +17,12 @@ import _MPL
 
 import matplotlib.image
 import matplotlib.axes
+import matplotlib.figure
 import matplotlib._image
 import matplotlib.colors
+import matplotlib.colorbar
+import matplotlib.cm
 from matplotlib.backends.backend_agg import FigureCanvasAgg
-
-class _AMRImage(matplotlib.image.NonUniformImage):
-    _buff = None
-    def make_image(self, magnification=1.0):
-        if self._A is None:
-            raise RuntimeError('You must first set the image array')
-        if self._buff != None:
-            del self._buff
-
-        x0, y0, v_width, v_height = self.axes.viewLim.get_bounds()
-        l, b, width, height = self.axes.bbox.get_bounds()
-        width *= magnification
-        height *= magnification
-        buff = _MPL.Pixelize(self._Ax, self._Ay, 
-                                    self._Adx, self._Ady,
-                                    self._Adata, int(height), int(width),
-                                   (x0, x0+v_width, y0, y0+v_height),
-                                    )
-        self.norm.autoscale(buff)
-        self.norm.vmin = buff.min()
-        self.norm.vmax = buff.max()
-        #print "NORM", self.norm.vmin, self.norm.vmax, buff.min(), buff.max()
-        if self.next_clim[0] is not None: self.norm.vmin = self.next_clim[0]
-        if self.next_clim[1] is not None: self.norm.vmax = self.next_clim[1]
-
-        Ax = (self.cmap(self.norm(buff))*255).astype(nT.UInt8)
-        im = matplotlib._image.frombyte(Ax, 1)
-
-        self.next_clim = (None, None)
-
-        bg = matplotlib.colors.colorConverter.to_rgba(self.axes.get_frame().get_facecolor(), 0)
-        im.set_bg(*bg)
-        self._buff = buff
-        self._A = buff
-        del buff
-        return im
-
-    def set_data(self, x, y, dx, dy, d):
-        x = na.asarray(x).astype(nT.Float64)
-        y = na.asarray(y).astype(nT.Float64)
-        dx = na.asarray(dx).astype(nT.Float64)
-        dy = na.asarray(dy).astype(nT.Float64)
-        d = na.asarray(d)
-        ind=na.argsort(dx)
-        self._A = d[ind][::-1]
-        self._Adata = d[ind][::-1]
-        self._Ax = x[ind][::-1]
-        self._Ay = y[ind][::-1]
-        self._Adx = dx[ind][::-1]
-        self._Ady = dy[ind][::-1]
-        self._imcache = None
-        self.next_clim = (None, None)
-
-    def set_next_clim(self, vmin, vmax):
-        self.next_clim = (vmin, vmax)
-
-    def setWidth(self, width, unit):
-        pass
-
-
-
-def amrshow(self, x, y, dx, dy, A,
-           cmap = None,
-           norm = None,
-           aspect=None,
-           interpolation=None,
-           alpha=1.0,
-           vmin = None,
-           vmax = None,
-           origin=None,
-           extent=None,
-           shape=None,
-           filternorm=1,
-           filterrad=4.0,
-           imlim=None,
-           **kwargs):
-    """
-    """
-
-    if not self._hold: self.cla()
-
-    if norm is not None: assert(isinstance(norm, matplotlib.colors.Normalize))
-    if cmap is not None: assert(isinstance(cmap, matplotlib.colors.Colormap))
-    #if aspect is None: aspect = rcParams['image.aspect']
-    if aspect is None: aspect = 1.0
-    self.set_aspect(aspect)
-    im = _AMRImage(self, cmap, norm, extent)
-
-    im.set_data(x, y, dx, dy, A)
-    #im.set_alpha(alpha)
-    self._set_artist_props(im)
-    #if norm is None and shape is None:
-    #    im.set_clim(vmin, vmax)
-    if vmin is not None or vmax is not None:
-        im.set_clim(vmin, vmax)
-    else:
-        im.autoscale()
-
-    xmin, xmax, ymin, ymax = im.get_extent()
-
-    corners = (xmin, ymin), (xmax, ymax)
-    self.update_datalim(corners)
-    if self._autoscaleon:
-        self.set_xlim((xmin, xmax))
-        self.set_ylim((ymin, ymax))
-    self.images.append(im)
-
-    return im
-
-matplotlib.axes.Axes.amrshow = amrshow
 
 class LinkedAMRSubPlots:
     def __init__(self, linkWidth, linkZ, plots = []):
@@ -155,6 +48,7 @@ def ClusterFilePlot(cls, x, y, xlog=None, ylog=None, fig=None, filename=None,
         fig = matplotlib.figure.Figure(figsize=(8,8))
         canvas = FigureCanvasAgg(fig)
     ax = fig.add_subplot(111)
+    fig.subplots_adjust(hspace=0,wspace=0,bottom=0.0, top=1.0, left=0.0, right=1.0)
     if not iterable(cls):
         cls = [cls]
     if xlog == None:
@@ -197,6 +91,8 @@ axisFieldDict = {'X':'Field1', 'Y':'Field2', 'Z':'Field3'}
 
 def Initialize(*args, **kwargs):
     engineVals["initialized"] = True
+    from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
+    engineVals["canvas"] = FigureCanvas
     return
 
 def CleanUp(*args, **kwargs):
@@ -205,38 +101,24 @@ def CleanUp(*args, **kwargs):
 class RavenPlot:
     def __init__(self, data, fields):
         self.data = data
+        self.fields = fields
         # With matplotlib, we don't need to copy data back and forth.
         # Unfortunately, it is also harder to plot things, as they may not have
         # a consistent interface.  Also, the plots are designed to be much more
         # *static* than in hippodraw, so switching axes is going to be a bit of
         # a pain.
         self.im = defaultdict(lambda: "")
-        self["ParameterFile"] = self.data.hierarchy.parameterFilename
+        self["ParameterFile"] = \
+            self.data.hierarchy.parameterFile.parameterFilename
         self.axisNames = {}
-        for field, axis in zip(fields, self.axes_names):
-            if axis.upper() not in ["X","Y","Z"]:
-                continue
-            self.setupAxis(axis, field)
+        self.figure = matplotlib.figure.Figure((10,8))
+        #self.axes = self.figure.add_axes(aspect='equal')
+        self.axes = self.figure.add_subplot(1,1,1)#,aspect=1.0)
+        #self.axes.set_aspect(1.0)
 
-    def __setitem__(self, item, val):
-        self.im[item] = val
-
-    def setAxisToField(self, axis, field):
-        self[field] = self.data[field]
-        self.mdisplay.getDataRep().setAxisBinding(axis, field)
-        self.setupAxis(axis, field)
-
-    def setupAxis(self, axis, field):
-        dataLabel = field
-        if lagos.fieldInfo.has_key(field):
-            dataLabel += " (%s)" % (lagos.fieldInfo[field][0])
-        self.mdisplay.setLabel(axis,dataLabel)
-        if field in lagos.log_fields:
-            self.mdisplay.setLog(axis,True)
-        else:
-            self.mdisplay.setLog(axis,lagos.fieldInfo[field][2])
-        self.axisNames[axis] = field
-        self.im[axisFieldDict[axis]] = field
+    def __getitem__(self, item):
+        return self.data[item] * \
+                    self.data.hierarchy.parameterFile.conversionFactors[item]
 
     def saveImage(self, prefix, format, submit=None):
         """
@@ -250,83 +132,72 @@ class RavenPlot:
         """
         self.generatePrefix(prefix)
         fn = ".".join([self.prefix, format])
-        engineVals["canvas"].saveAsImage(self.mdisplay, fn)
+        canvas = engineVals["canvas"](self.figure)
+        #self.figure.savefig(fn, format)
+        canvas.print_figure(fn,format=format)
         self["Type"] = self.typeName
         self["GeneratedAt"] = self.data.hierarchy["CurrentTimeIdentifier"]
-        # Now submit
         return fn
 
-    def switch_x(self, field):
-        self.setAxisToField('X', field)
-    
-    def switch_y(self, field):
-        self.setAxisToField('Y', field)
-    
-    def switch_z(self, field):
-        self.setAxisToField('Z', field)
-
-    def switch_weight(self, field):
-        self.setAxisToField('Weight (optional)', field)
-
     def set_xlim(self, xmin, xmax):
-        self.mdisplay.setRange('X', xmin, xmax)
+        self.axes.set_xlim(xmin, xmax)
         
     def set_ylim(self, ymin, ymax):
-        self.mdisplay.setRange('Y', ymin, ymax)
+        self.axes.set_ylim(ymin, ymax)
 
     def set_zlim(self, zmin, zmax):
-        self.mdisplay.setRange('Z', zmin, zmax)
+        self.axes.set_zlim(zmin, zmax)
 
-class LinePlot(RavenPlot):
-    def __init__(self, data, fields):
-        self.axes_names = ["X","Y"]
-        self.plotType = "XY Plot"
-        RavenPlot.__init__(self, data, fields)
-
-    def generatePrefix(self, prefix):
-        self.prefix = prefix + "_%s" % (self.typeName)
-
-    def switch_z(self, *args, **kwargs):
-        pass
-
-    def set_zlim(self, *args, **kwargs):
-        pass
-
-    def addField(self, field):
-        if self.hierarchy.conversionFactors.has_key(field):
-            conv = self.hierarchy.conversionFactors[field]
-        else:
-            conv = 1
-        if not self.tuple.has_key(field):
-            self.tuple[field]=self.data[field]*conv
-
-class ProfilePlot(LinePlot):
-    def __init__(self, data, fields, width=None, unit=None):
-        self.typeName = "RadialProfile"
-        self.plotType = "Profile"
-        RavenPlot.__init__(self, data, fields)
-
-    def generatePrefix(self, prefix):
-        self.prefix = prefix + "_%s" % (self.typeName)
-        self.prefix += "_%s" % (self.field)
-
-class ACProfilePlot(LinePlot):
-    pass
-
-class ScatterPlot(RavenPlot):
-    def __init__(self, data, fields, width=None, unit=None):
-        self.axes_names = ["X","Y"]
-        self.typeName = "RadialScatter"
-        self.plotType = "Scatter Plot"
-        RavenPlot.__init__(self, data, fields)
+    def __setitem__(self, item, val):
+        self.im[item] = val
 
 class VMPlot(RavenPlot):
+
     def __init__(self, data, field):
         fields = ['X', 'Y', field, 'X width', 'Y width']
         RavenPlot.__init__(self, data, fields)
+        self.figure.subplots_adjust(hspace=0,wspace=0,bottom=0.0, top=1.0, left=0.0, right=1.0)
+        self.xmin = 0.0
+        self.ymin = 0.0
+        self.xmax = 1.0
+        self.ymax = 1.0
+        self.norm = matplotlib.colors.LogNorm()
+        temparray = na.random.rand(640,640)
+        self.image = \
+            self.axes.imshow(temparray, interpolation='nearest', norm = self.norm,
+                            aspect=1.0)
         self.axisNames["Z"] = field
-        self.checkColormap(field)
+        self.axes.set_xticks(())
+        self.axes.set_yticks(())
+        self.axes.set_ylabel("")
+        self.axes.set_xlabel("")
+        self.colorbar = self.figure.colorbar(self.axes.images[-1], \
+                                             extend='neither', \
+                                             shrink=0.95)
         self.set_width(1,'1')
+        self.redraw_image()
+
+    def redraw_image(self):
+        #x0, y0, v_width, v_height = self.axes.viewLim.get_bounds()
+        x0, x1 = self.xlim
+        y0, y1 = self.ylim
+        l, b, width, height = self.axes.bbox.get_bounds()
+        buff = _MPL.Pixelize(self.data['x'],
+                             self.data['y'],
+                             self.data['dx'],
+                             self.data['dy'],
+                             self[self.axisNames["Z"]],
+                             int(height), int(width),
+                           (x0, x1, y0, y1),)
+        self.image.set_data(buff)
+        self.norm.autoscale((buff.min(),buff.max()))
+        self.colorbar.notify(self.image)
+
+    def set_xlim(self, xmin, xmax):
+        self.xlim = (xmin,xmax)
+        
+    def set_ylim(self, ymin, ymax):
+        self.ylim = (ymin,ymax)
 
     def generatePrefix(self, prefix):
         self.prefix = "_".join([prefix, self.typeName, \
@@ -345,7 +216,7 @@ class VMPlot(RavenPlot):
 
     def checkColormap(self, field):
         cmap = lagos.colormap_dict[field]
-        self.mdisplay.setColorMap(cmap)
+        #self.image.set_cmap(cmap)
 
     def refreshDisplayWidth(self, width=None):
         if width:
@@ -358,6 +229,12 @@ class VMPlot(RavenPlot):
         r_edge_y = self.data.center[lagos.y_dict[self.data.axis]] + width/2.0
         self.set_xlim(max(l_edge_x,0.0), min(r_edge_x,1.0))
         self.set_ylim(max(l_edge_y,0.0), min(r_edge_y,1.0))
+        self.redraw_image()
+
+    def autoscale(self):
+        zmin = self.axes.images[-1]._A.min()
+        zmax = self.axes.images[-1]._A.max()
+        self.set_zlim(zmin, zmax)
 
     def switch_y(self, *args, **kwargs):
         pass
@@ -366,43 +243,128 @@ class VMPlot(RavenPlot):
         pass
 
     def switch_z(self, field):
-        RavenPlot.switch_z(self, field)
-        self.checkColormap(field)
+        self.axisNames["Z"] = field
+        self.redraw_image()
+
+    def set_zlim(self, zmin, zmax):
+        self.norm.autoscale(na.array([zmin,zmax]))
+        self.image.changed()
+        self.colorbar.notify(self.image)
+
+    def set_label(self, label):
+        self.colorbar.set_label(label)
+
+    def set_cmap(self, cmap):
+        if isinstance(cmap, types.StringType):
+            if hasattr(matplotlib.cm, cmap):
+                cmap = getattr(matplotlib.cm, cmap)
+        self.image.set_cmap(cmap)
 
 class SlicePlot(VMPlot):
     def __init__(self, data, fields):
         self.typeName = "Slice"
         VMPlot.__init__(self, data, fields)
-        
+
+    def autoset_label(self):
+        dataLabel = self.axisNames["Z"]
+        if lagos.fieldInfo.has_key(self.axisNames["Z"]):
+            dataLabel += " (%s)" % (lagos.fieldInfo[self.axisNames["Z"]][0])
+        self.colorbar.set_label(dataLabel)
 
 class ProjectionPlot(VMPlot):
     def __init__(self, data, fields):
         self.typeName = "Projection"
         VMPlot.__init__(self, data, fields)
 
-class HistogramPlot(RavenPlot):
-    def __init__(self, data, field, width=0, unit=""):
-        self.typeName = "Histogram"
-        self.plotType = "Histogram"
-        RavenPlot.__init__(self, data, [field])
-        self["Width"] = float(width)
-        self["Unit"] = str(unit)
-        self.mdisplay.setLabel('Y',"Entries per Bin")
+    def autoset_label(self):
+        dataLabel = self.axisNames["Z"]
+        if lagos.fieldInfo.has_key(self.axisNames["Z"]):
+            dataLabel += " (%s)" % (lagos.fieldInfo[self.axisNames["Z"]][1])
+        self.colorbar.set_label(dataLabel)
+
+class TwoPhasePlot(RavenPlot):
+    def __init__(self, data, fields, width=None, unit=None):
+        self.typeName = "TwoPhase"
+        RavenPlot.__init__(self, data, fields)
+        self.axisNames["X"] = fields[0]
+        self.axisNames["Y"] = fields[1]
+        x_v = self.data[self.axisNames["X"]]
+        y_v = self.data[self.axisNames["Y"]]
+        self.axes.set_xscale("log")
+        self.axes.set_yscale("log")
+        x_bins = na.logspace(na.log10(x_v.min()),na.log10(x_v.max()),num=101)
+        y_bins = na.logspace(na.log10(y_v.min()),na.log10(y_v.max()),num=101)
+        vals, x, y = na.histogram2d( \
+            na.log10(x_v), na.log10(y_v),
+            bins = 100, normed=True )
+        i = na.where(vals>0)
+        vmin = vals[i].min()
+        self.norm=matplotlib.colors.LogNorm(vmin=vmin, clip=False)
+        self.cmap = matplotlib.cm.get_cmap()
+        self.cmap.set_under("k")
+        self.image = self.axes.pcolor(x_bins,y_bins, \
+                                      vals,shading='flat', \
+                                      norm=self.norm)
+        self.colorbar = self.figure.colorbar(self.image, \
+                                             extend='neither', \
+                                             shrink=0.95, cmap=self.cmap)
+        self.colorbar.notify(self.image)
 
     def generatePrefix(self, prefix):
-        self.prefix = prefix + "_%s" % (self.typeName)
-        self.prefix += "_%s" % (self.field)
+        self.prefix = "_".join([prefix, self.typeName, \
+            self.axisNames['X'], self.axisNames['Y']])
         self["Field1"] = self.axisNames["X"]
+        self["Field2"] = self.axisNames["Y"]
+        self["Field3"] = ""
 
-    def switch_y(self, *args, **kwargs):
-        pass
+class ThreePhasePlot(RavenPlot):
+    def __init__(self, data, fields, width=None, unit=None):
+        nbins = 100
+        self.typeName = "ThreePhase"
+        RavenPlot.__init__(self, data, fields)
+        self.axisNames["X"] = fields[0]
+        self.axisNames["Y"] = fields[1]
+        self.axisNames["Z"] = fields[2]
+        x_v = self.data[self.axisNames["X"]]
+        y_v = self.data[self.axisNames["Y"]]
+        z_v = self.data[self.axisNames["Z"]]
+        weight = self.data["CellMass"]
+        x_bins = na.logspace(na.log10(x_v.min()*0.99),na.log10(x_v.max()*1.01),num=nbins)
+        y_bins = na.logspace(na.log10(y_v.min()*0.99),na.log10(y_v.max()*1.01),num=nbins)
+        x_bins_ids = na.digitize(x_v, x_bins)
+        y_bins_ids = na.digitize(y_v, y_bins)
+        vals = na.ones((nbins,nbins), dtype=nT.Float64)
+        weight_vals = na.zeros((nbins,nbins), dtype=nT.Float64)
+        for k in range(len(x_v)):
+            j,i = x_bins_ids[k], y_bins_ids[k]
+            weight_vals[i,j] += weight[k]
+            vals[i,j] += z_v[k]*weight[k]
+        vals = vals / weight_vals
+        vi = na.where(na.isinf(abs(vals)))
+        vals[vi] = na.nan
+        self.axes.set_xscale("log")
+        self.axes.set_yscale("log")
+        vmin = na.nanmin(vals)
+        vmax = na.nanmax(vals)
+        vals[vi] = 0.0
+        self.norm=matplotlib.colors.LogNorm(vmin=vmin, vmax=vmax, clip=False)
+        self.cmap = matplotlib.cm.get_cmap()
+        self.cmap.set_bad("k")
+        self.cmap.set_under("k")
+        self.cmap.set_over("k")
+        self.image = self.axes.pcolor(x_bins,y_bins, \
+                                      vals,shading='flat', \
+                                      norm=self.norm)
+        self.colorbar = self.figure.colorbar(self.image, \
+                                             extend='neither', \
+                                             shrink=0.95, cmap=self.cmap)
+        self.colorbar.notify(self.image)
 
-    def set_ylim(self, *args, **kwargs):
-        pass
-
-    def switch_z(self, *args, **kwargs):
-        pass
-
-    def set_zlim(self, *args, **kwargs):
-        pass
+    def generatePrefix(self, prefix):
+        self.prefix = "_".join([prefix, self.typeName, \
+            self.axisNames['X'], self.axisNames['Y'], \
+            self.axisNames['Z']])
+        self["Field1"] = self.axisNames["X"]
+        self["Field2"] = self.axisNames["Y"]
+        self["Field3"] = self.axisNames["Z"]
 

@@ -50,4 +50,5 @@ from EnzoClusterFile import *
 from EnzoDataTypes import *
 from EnzoRateData import *
 from EnzoHierarchyType import *
+from EnzoOutput import *
 from EnzoRunType import *

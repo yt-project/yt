@@ -4,7 +4,6 @@
 ##################################################
 
 
-from raven_services_types import *
 import urlparse, types
 from ZSI.TCcompound import ComplexType, Struct
 from ZSI import client

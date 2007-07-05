@@ -15,201 +15,49 @@ from collections import defaultdict
 import string, re, gc, time
 import yt.enki
 
-class EnzoParameterFile:
-    """
-    This class is a stripped down class that simply reads and parses, without
-    looking at the hierarchy.
-    """
-    def __init__(self, filename, hdf_version = None):
-        """
-        @note: We disregard hdf_version here
-        """
-        if filename.endswith(".hierarchy"):
-            filename = filename[:-10]
-        self.parameterFilename = "%s" % (filename)
-        self.basename = os.path.basename(filename)
-        self.directory = os.path.dirname(filename)
-        self.fullpath = os.path.abspath(self.directory)
-        if len(self.directory) == 0:
-            self.directory = "."
-        self.conversionFactors = defaultdict(lambda: 1.0)
-        self.parameters = {}
-        self.parameters["CurrentTimeIdentifier"] = \
-            int(os.stat(self.parameterFilename)[ST_CTIME])
-        self.parseParameterFile()
-        self.setUnits()
-        # Now let's snag the datafile
-        self.dataFile = None
-
-
-    def getTime(self):
-        return time.ctime(float(self["CurrentTimeIdentifier"]))
-
-    def __xattrs__(self, mode="default"):
-        return ("basename", "getTime()")
-        
-    def __getitem__(self, key):
-        """
-        Returns units, parameters, or conversionFactors in that order
-        """
-        if self.units.has_key(key):
-            return self.units[key]
-        elif self.parameters.has_key(key):
-            return self.parameters[key]
-        return self.conversionFactors[key]
-
-    def __repr__(self):
-        return self.basename
-
-    def keys(self):
-        """
-        Returns a list of possible keys, from units, parameters and
-        conversionFactors
-        """
-        return self.units.keys() \
-             + self.parameters.keys() \
-             + self.conversionFactors.keys()
-
-    def has_key(self, key):
-        """
-        Returns true or false
-        """
-        return (self.units.has_key(key) or \
-                self.parameters.has_key(key) or \
-                self.conversionFactors.has_key(key))
-
-    def parseParameterFile(self):
-        """
-        Parses the parameter file and establishes the various
-        dictionaries.
-        """
-        # Let's read the file
-        lines = open(self.parameterFilename).readlines()
-        for lineI in xrange(len(lines)):
-            line = lines[lineI]
-            if len(line) < 2:
-                continue
-            param, vals = map(strip,map(rstrip,line.split("=")))
-            if parameterDict.has_key(param):
-                t = map(parameterDict[param], vals.split())
-                if len(t) == 1:
-                    self.parameters[param] = t[0]
-                else:
-                    self.parameters[param] = t
-                if param.endswith("Units"):
-                    dataType = param[:-5]
-                    self.conversionFactors[dataType] = self.parameters[param]
-            elif param.startswith("#DataCGS"):
-                # Assume of the form: #DataCGSConversionFactor[7] = 2.38599e-26 g/cm^3
-                if lines[lineI-1].find("Label") >= 0:
-                    kk = lineI-1
-                elif lines[lineI-2].find("Label") >= 0:
-                    kk = lineI-2
-                dataType = lines[kk].split("=")[-1].rstrip().strip()
-                convFactor = float(line.split("=")[-1].split()[0])
-                self.conversionFactors[dataType] = convFactor
-            elif param.startswith("#CGSConversionFactor"):
-                dataType = param[20:].rstrip()
-                convFactor = float(line.split("=")[-1])
-                self.conversionFactors[dataType] = convFactor
-
-    def setUnits(self):
-        """
-        Generates the conversion to various physical units based on the parameter file
-        """
-        self.units = {}
-        if len(self.parameters) == 0:
-            self.parseParameterFile()
-        if self["ComovingCoordinates"]:
-            z = self["CosmologyCurrentRedshift"]
-            boxh = self["CosmologyComovingBoxSize"]
-            self.units['aye']  = (1.0 + self["CosmologyInitialRedshift"])/(z - 1.0)
-            if not self.has_key("Time"):
-                LengthUnit = 3.086e24 * boxh / self["CosmologyHubbleConstantNow"] \
-                             / (1+self["CosmologyInitialRedshift"])
-                self.conversionFactors["Time"] = LengthUnit / self["x-velocity"]
-        elif self.has_key("LengthUnits"):
-            # We are given LengthUnits, which is number of cm per box length
-            # So we convert that to box-size in Mpc
-            z = 0
-            boxh = 3.24077e-25 * self["LengthUnits"]
-            self.units['aye']  = 1.0
-        else:
-            z = 0
-            boxh = 1.0
-            self.units['aye'] = 1.0
-        seconds = self["Time"]
-        box = boxh/(1+z)
-        # Units are all defined in ravenDefs, thus making it easy to add new
-        # na.ones!  (Not that there are really that many more to add...
-        for unit in unitList.keys():
-            self.units[unit] = unitList[unit] * box
-            self.units[unit+'h'] = unitList[unit] * boxh
-        self.units['1']     = 1
-        self.units['years'] = seconds / (365*3600*24.0)
-        self.units['days']  = seconds / (3600*24.0)
-
-    def promote(self):
-        return EnzoHierarchy(self.parameterFilename)
-
-    def initializeDataFile(self):
-        fn = os.path.join(self.directory,"%s.yt" % self["CurrentTimeIdentifier"])
-        try:
-            self.dataFile = tables.openFile(fn, "a")
-        except:
-            pass
-
-    def saveData(self, array, node, name):
-        if self.dataFile != None:
-            self.dataFile.createArray(node, name, array, createparents=True)
-
-    def getData(self, node, name):
-        if self.dataFile == None:
-            return None
-        try:
-            return self.dataFile.getNode(node, name)
-        except tables.exceptions.NoSuchNodeError:
-            return None
-
-class EnzoHierarchy(EnzoParameterFile):
+class EnzoHierarchy:
     """
     Class for handling Enzo timestep outputs
     """
-    @time_execution
-    def __init__(self, filename, hdf_version=4):
+#    @time_execution
+    def __init__(self, pf, data_style=4):
         """
         Returns a new instance of EnzoHierarchy
 
         
-        @param filename:  the filename of the parameter file
-        @type filename: string
-        @keyword hdf_version: either 4 or 5, depending
+        @param pf: existing EnzoOutput
+        @type pf: L{EnzoOutput}
+        @keyword data_style: either 4 or 5, depending
+        @todo: Implement soon-to-be-deprecated transparent passing of queries
+        up to parameter file
         """
-        EnzoParameterFile.__init__(self, filename)
-        rp = os.path.join(self.directory, "rates.out")
-        if os.path.exists(rp):
-            self.rates = EnzoTable(rp, rates_out_key)
-        cp = os.path.join(self.directory, "cool_rates.out")
-        if os.path.exists(cp):
-            self.cool = EnzoTable(cp, cool_out_key)
         # For now, we default to HDF4, but allow specifying HDF5
-        if hdf_version == 5:
-            EnzoGrid.readDataFast = readDataHDF5
-            EnzoGrid.readAllData = readAllDataHDF5
-            EnzoSlice.readDataSlice = readDataSliceHDF5
-            EnzoGrid.getFields = getFieldsHDF5
-            warnings.filterwarnings("ignore",".*PyTables format.*")
-        else:
+        if data_style == 4:
             EnzoGrid.readDataFast = readDataHDF4
             EnzoGrid.readAllData = readAllDataHDF4
-            EnzoSlice.readDataSlice = readDataSliceHDF4
             EnzoGrid.getFields = getFieldsHDF4
+            EnzoSlice.readDataSlice = readDataSliceHDF4
+        elif data_style == 5:
+            mylog.warning("HDF5 format!  Not well tested!")
+            EnzoGrid.readDataFast = readDataHDF5
+            EnzoGrid.readAllData = readAllDataHDF5
+            EnzoGrid.getFields = getFieldsHDF5
+            EnzoSlice.readDataSlice = readDataSliceHDF5
+            warnings.filterwarnings("ignore",".*PyTables format.*")
+        elif data_style == 6:
+            # This will be the packed AMR format
+            raise RunTimeError, "Sorry, not implemented yet!"
         # Expect filename to be the name of the parameter file, not the
         # hierarchy
-        self.hierarchyFilename = "%s.hierarchy" % (filename)
-        self.boundaryFilename = "%s.boundary" % (filename)
-        # Now we do a bit of a hack to figure out how many grids there are,
-        # so we can pre-create our arrays of dimensions, indices, etc
+        self.hierarchyFilename = os.path.abspath(pf.parameterFilename) \
+                               + ".hierarchy"
+        self.boundaryFilename = os.path.abspath(pf.parameterFilename) \
+                               + ".boundary"
+        self.directory = os.path.dirname(self.hierarchyFilename)
+        self.parameterFile = pf
+        self.dataFile = None
+        # Now we search backwards from the end of the file to find out how many
+        # grids we have, which allows us to preallocate memory
         self.hierarchyLines = open(self.hierarchyFilename).readlines()
         self.hierarchyString = open(self.hierarchyFilename).read()
         #re_gridID = re.compile("Grid\s=\s\d*", re.M)
@@ -234,25 +82,23 @@ class EnzoHierarchy(EnzoParameterFile):
         self.gridDxs = na.zeros((self.numGrids,1), EnzoFloatType)
         self.gridTimes = na.zeros((self.numGrids,1), nT.Float64)
         self.gridNumberOfParticles = na.zeros((self.numGrids,1))
-        gg = []
-        for fnI in xrange(self.numGrids):
-            gg.append(EnzoGrid(self, fnI+1))
-        self.grids = obj.array(gg)
-        del gg
+
+        self.grids = obj.array([EnzoGrid(self, i+1) for i in xrange(self.numGrids)])
         self.gridReverseTree = [None] * self.numGrids
-        self.gridTree = []
-        for i in xrange(self.numGrids):
-            self.gridTree.append([])
+        self.gridTree = [ [] for i in range(self.numGrids)]
 
         # Now some statistics:
         #   0 = number of grids
         #   1 = number of cells
         #   2 = blank
-        self.levelsStats = na.zeros((MAXLEVEL,3), nT.Int32)
-        for i in xrange(MAXLEVEL):
-            self.levelsStats[i,2] = i
+        desc = {'names': ['numgrids','numcells','level'],
+                'formats':['Int32']*3}
+        self.levelStats = blankRecordArray(desc, MAXLEVEL)
+        self.levelStats['level'] = [i for i in range(MAXLEVEL)]
 
-        # For use with radial plots
+        # For use with derived quantities depending on centers
+        # Although really, I think perhaps we should take a closer look
+        # at how "center" is used.
         self.center = None
         self.bulkVelocity = None
 
@@ -269,8 +115,28 @@ class EnzoHierarchy(EnzoParameterFile):
 
         self.populateHierarchy()
 
+    def initializeDataFile(self):
+        fn = os.path.join(self.directory,"%s.yt" % self["CurrentTimeIdentifier"])
+        try:
+            self.dataFile = tables.openFile(fn, "a")
+        except:
+            pass
+
+    def saveData(self, array, node, name):
+        if self.dataFile != None:
+            self.dataFile.createArray(node, name, array, createparents=True)
+
+    def getData(self, node, name):
+        if self.dataFile == None:
+            return None
+        try:
+            return self.dataFile.getNode(node, name)
+        except tables.exceptions.NoSuchNodeError:
+            return None
+
+
     def __xattrs__(self, mode="default"):
-        return ("basename", "getTime()","maxLevel")
+        return ("basename", "getTimeID()","maxLevel")
 
     def __del__(self):
         """
@@ -289,17 +155,12 @@ class EnzoHierarchy(EnzoParameterFile):
                 del g
         del self.gridTree
 
-    @time_execution
+#    @time_execution
     def populateHierarchy(self):
         """
-        Instantiates all of the grid objects, with their appropriate parameters
-
-        This is pretty ugly.
+        Instantiates all of the grid objects, with their appropriate
+        parameters.
         """
-        # Now, can we do this cleverly?
-        # Let's do it the unclever way, I suppose...
-        # First, we look to see if the pseudo-pickled file is available
-        #arrayFilename = os.path.join(self.directory,"%s.arrayfile" % self["CurrentTimeIdentifier"])
         harray = self.getData("/", "Hierarchy")
         if harray:
             self.gridDimensions[:] = harray[:,0:3]
@@ -325,9 +186,7 @@ class EnzoHierarchy(EnzoParameterFile):
                 #param, vals = map(strip,line.split("="))
                 if len(line) < 2:
                     continue
-                i = line.index("=")
                 param, vals = line.split("=")
-                #param, vals = line[:i], line[i+1:]
                 if param == "Grid ":
                     curGrid = int(vals)
                     self.grids[curGrid-1] = EnzoGrid(self, curGrid)
@@ -349,7 +208,7 @@ class EnzoHierarchy(EnzoParameterFile):
                     splitConvertGridParameter(vals, float, self.gridNumberOfParticles, curGrid)
                 elif param == "BaryonFileName ":
                     self.grids[curGrid-1].setFilename(vals[1:-1])
-            mylog.info("Creating allArray to dump to file")
+            mylog.info("Caching hierarchy information")
             allArrays = na.zeros((self.numGrids,18),nT.Float64)
             allArrays[:,0:3] = self.gridDimensions[:]
             allArrays[:,3:6] = self.gridStartIndices[:]
@@ -359,16 +218,18 @@ class EnzoHierarchy(EnzoParameterFile):
             allArrays[:,15:16] = self.gridLevels[:]
             allArrays[:,16:17] = self.gridTimes[:]
             allArrays[:,17:18] = self.gridNumberOfParticles[:]
-            try:
-                self.saveData(allArrays, "/","Hierarchy")
-            except:
-                mylog.error("There was an error writing to the file.  Skipping.")
+            #try:
+            self.saveData(allArrays, "/","Hierarchy")
+            #except:
+                #mylog.error("There was an error writing to the file.  Skipping.")
             del allArrays
-        self.grids[0].Level = 0
-        self.gridLevels[0] = 0
+        self.grids[0].Level = 0  # Bootstrap
+        self.gridLevels[0] = 0   # Bootstrap
         p = re.compile(r"Pointer: Grid\[(\d*)\]->NextGrid(Next|This)Level = (\d*)$", re.M)
+        # Now we assemble the grid tree
+        # We heavily use weakref
         for m in p.finditer(self.hierarchyString):
-            secondGrid = int(m.group(3))-1
+            secondGrid = int(m.group(3))-1 # zero-index versus one-index
             if secondGrid == -1:
                 continue
             firstGrid = int(m.group(1))-1
@@ -384,13 +245,18 @@ class EnzoHierarchy(EnzoParameterFile):
                 self.gridReverseTree[secondGrid] = parent
                 self.grids[secondGrid].Level = self.grids[firstGrid].Level
                 self.gridLevels[secondGrid] = self.gridLevels[firstGrid]
+        #for i, grid in enumerate(self.grids):
+            #print len(self.gridTree[i])
         self.maxLevel = self.gridLevels.max()
         # Now we do things that we need all the grids to do
         self.fieldList = self.grids[0].getFields()
-        for i in xrange(self.numGrids):
-            self.levelsStats[self.gridLevels[i,0],0] += 1
-            self.grids[i].prepareGrid()
-            self.levelsStats[self.gridLevels[i,0],1] += na.product(self.grids[i].ActiveDimensions)
+        # The rest of this can probably be done with list comprehensions, but
+        # I think this way is clearer.
+        for i, grid in enumerate(self.grids):
+            tlevel = self.gridLevels[i]
+            grid.prepareGrid()
+            self.levelStats['numgrids'][tlevel] += 1
+            self.levelStats['numcells'][tlevel] += na.product(grid.ActiveDimensions)
         self.levelIndices = {}
         self.levelNum = {}
         for level in xrange(self.maxLevel+1):
@@ -409,11 +275,7 @@ class EnzoHierarchy(EnzoParameterFile):
         return indices
 
     def getSmallestDx(self):
-        for i in xrange(MAXLEVEL):
-            if (self.levelsStats[i,0]) == 0:
-                break
-            dx = self.gridDxs[self.levelIndices[i][0]]
-        return dx[0]
+        return self.gridDxs.min()
 
     def printStats(self):
         """
@@ -588,7 +450,7 @@ class EnzoHierarchy(EnzoParameterFile):
         values = na.concatenate(values)
         return [xs, ys, zs, values]
 
-    @time_execution
+#    @time_execution
     def findMax(self, field, finestLevels = 1):
         """
         Returns value, center of location of maximum for a given field
@@ -626,7 +488,7 @@ class EnzoHierarchy(EnzoParameterFile):
         self.parameters["Max%sPos" % (field)] = "%s" % (pos)
         return maxVal, pos
 
-    @time_execution
+#    @time_execution
     def findMin(self, field):
         """
         Returns value, center of location of minimum for a given field
@@ -659,7 +521,7 @@ class EnzoHierarchy(EnzoParameterFile):
         self.parameters["Min%sPos" % (field)] = "%s" % (pos)
         return minVal, pos
 
-    @time_execution
+#    @time_execution
     def exportParticlesPB(self, filename, filter = 1, indexboundary = 0, fields = None, scale=1.0):
         """
         Exports all the star particles, or a subset, to a pb file for viewing in
@@ -709,7 +571,7 @@ class EnzoHierarchy(EnzoParameterFile):
         f.close()
         mylog.info("Wrote %s particles to %s", tot, filename)
 
-    @time_execution
+#    @time_execution
     def exportBoxesPV(self, filename):
         f=open(filename,"w")
         for l in xrange(self.maxLevel):
@@ -722,7 +584,7 @@ class EnzoHierarchy(EnzoParameterFile):
                      self.gridLeftEdge[i,1], self.gridRightEdge[i,1],
                      self.gridLeftEdge[i,2], self.gridRightEdge[i,2]))
 
-    @time_execution
+#    @time_execution
     def exportAmira(self, basename, fields, a5basename, timestep):
         if (not iterable(fields)) or (isinstance(fields, types.StringType)):
             fields = [fields]
@@ -775,6 +637,15 @@ class EnzoHierarchy(EnzoParameterFile):
         ei.ReadParameterFile(f,self.eiTopGridData,idt)
         ei.InitializeRateData(self.eiTopGridData.Time)
         ei.InitializeRadiationFieldData(self.eiTopGridData.Time)
+
+
+    """@todo: Fix these!"""
+    def _get_parameters(self):
+        return self.parameterFile.parameters
+    parameters=property(_get_parameters)
+
+    def __getitem__(self, item):
+        return self.parameterFile[item]
 
 def splitConvertGridParameter(vals, func, toAdd, curGrid):
     """

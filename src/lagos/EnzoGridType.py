@@ -178,8 +178,8 @@ class EnzoGrid:
             # Now let's get our overlap
             si = [None]*3
             ei = [None]*3
-            startIndex = ((child.LeftEdge - self.LeftEdge)/self.dx)#.astype(nT.Int32)
-            endIndex = ((child.RightEdge - self.LeftEdge)/self.dx)#.astype(nT.Int32)
+            startIndex = ((child.LeftEdge - self.LeftEdge)/self.dx)
+            endIndex = ((child.RightEdge - self.LeftEdge)/self.dx)
             for i in range(3):
                 si[i] = int(startIndex[i])
                 ei[i] = int(endIndex[i])
@@ -461,3 +461,38 @@ class EnzoGrid:
                 fn = os.path.basename(filename % {'field' : field})
                 node._f_setAttr("referenceFileName", fn)
                 new_h5.close()
+
+    def getProjection(self, axis, field, zeroOut, weight=None):
+        """
+        Projects along an axis.  Currently in flux.  Shouldn't be called
+        directly.
+        """
+        if weight == None:
+            maskedData = self[field].copy()
+            weightData = na.ones(maskedData.shape)
+        else:
+            maskedData = self[field] * self[weight]
+            weightData = self[weight].copy()
+        if self.myChildMask == None:
+            self.generateChildMask()
+        if len(self.myOverlapMasks) == 0:
+            self.generateOverlapMasks()
+        if zeroOut:
+            maskedData[self.myChildIndices]=0
+            weightData[self.myChildIndices]=0
+            toCombineMask = na.logical_and.reduce(self.myChildMask, axis)
+        # How do we do this the fastest?
+        # We only want to project those values that don't have subgrids
+        fullProj = na.sum(maskedData,axis)*self.dx # Gives correct shape
+        weightProj = na.sum(weightData,axis)*self.dx
+        #fullProj = na.maximum.reduce(maskedData,axis) # Gives correct shape
+        if not zeroOut:
+            toCombineMask = na.ones(fullProj.shape, dtype=nT.Bool)
+        toCombineMask = toCombineMask.astype(nT.Int64)
+        cmI = na.indices(fullProj.shape)
+        xind = cmI[0,:]
+        yind = cmI[1,:]
+        xpoints = (xind+(self.LeftEdge[x_dict[axis]]/self.dx)).astype(nT.Int64)
+        ypoints = (yind+(self.LeftEdge[y_dict[axis]]/self.dx)).astype(nT.Int64)
+        return [xpoints.ravel(), ypoints.ravel(), fullProj.ravel(), toCombineMask.ravel(), weightProj.ravel()]
+
