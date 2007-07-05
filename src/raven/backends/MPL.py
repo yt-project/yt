@@ -16,6 +16,7 @@ from yt.funcs import *
 import _MPL
 
 import matplotlib.image
+import matplotlib.ticker
 import matplotlib.axes
 import matplotlib.figure
 import matplotlib._image
@@ -303,7 +304,7 @@ class TwoPhasePlot(RavenPlot):
         self.cmap = matplotlib.cm.get_cmap()
         self.cmap.set_under("k")
         self.image = self.axes.pcolor(x_bins,y_bins, \
-                                      vals,shading='flat', \
+                                      vals.transpose(),shading='flat', \
                                       norm=self.norm)
         self.colorbar = self.figure.colorbar(self.image, \
                                              extend='neither', \
@@ -329,23 +330,26 @@ class ThreePhasePlot(RavenPlot):
         y_v = self.data[self.axisNames["Y"]]
         z_v = self.data[self.axisNames["Z"]]
         weight = self.data["CellMass"]
+        #weight = na.ones(weight.shape)
         x_bins = na.logspace(na.log10(x_v.min()*0.99),na.log10(x_v.max()*1.01),num=nbins)
         y_bins = na.logspace(na.log10(y_v.min()*0.99),na.log10(y_v.max()*1.01),num=nbins)
         x_bins_ids = na.digitize(x_v, x_bins)
         y_bins_ids = na.digitize(y_v, y_bins)
-        vals = na.ones((nbins,nbins), dtype=nT.Float64)
+        vals = na.zeros((nbins,nbins), dtype=nT.Float64) 
         weight_vals = na.zeros((nbins,nbins), dtype=nT.Float64)
+        used_bin = na.zeros((nbins,nbins), dtype=nT.Bool)
         for k in range(len(x_v)):
             j,i = x_bins_ids[k], y_bins_ids[k]
+            used_bin[i,j] = True
             weight_vals[i,j] += weight[k]
             vals[i,j] += z_v[k]*weight[k]
+        vi = na.where(used_bin == False)
+        vit = na.where(used_bin == True)
         vals = vals / weight_vals
-        vi = na.where(na.isinf(abs(vals)))
-        vals[vi] = na.nan
         self.axes.set_xscale("log")
         self.axes.set_yscale("log")
-        vmin = na.nanmin(vals)
-        vmax = na.nanmax(vals)
+        vmin = na.nanmin(vals[vit])
+        vmax = na.nanmax(vals[vit])
         vals[vi] = 0.0
         self.norm=matplotlib.colors.LogNorm(vmin=vmin, vmax=vmax, clip=False)
         self.cmap = matplotlib.cm.get_cmap()
@@ -355,9 +359,13 @@ class ThreePhasePlot(RavenPlot):
         self.image = self.axes.pcolor(x_bins,y_bins, \
                                       vals,shading='flat', \
                                       norm=self.norm)
+        #self.ticker = matplotlib.ticker.LogLocator(subs=[0.25, 0.5, 0.75, 1])
+        self.ticker = matplotlib.ticker.LogLocator(subs=[0.1, 0.5, 1])
         self.colorbar = self.figure.colorbar(self.image, \
                                              extend='neither', \
-                                             shrink=0.95, cmap=self.cmap)
+                                             shrink=0.95, cmap=self.cmap, \
+                               ticks = self.ticker, format="%0.2e" )
+                                            #ticks = na.logspace(na.log10(vmin),na.log10(vmax),num=8))
         self.colorbar.notify(self.image)
 
     def generatePrefix(self, prefix):
