@@ -254,6 +254,42 @@ class EnzoGrid:
         # Should 0.0 be 0.5?
         return pos
 
+    def getProjection(self, axis, field, zeroOut, weight=None):
+        """
+        Projects along an axis.  Currently in flux.  Shouldn't be called
+        directly.
+        """
+        if weight == None:
+            maskedData = self[field].copy()
+            weightData = na.ones(maskedData.shape)
+        else:
+            maskedData = self[field] * self[weight]
+            weightData = self[weight].copy()
+        if self.myChildMask == None:
+            self.generateChildMask()
+        if len(self.myOverlapMasks) == 0:
+            self.generateOverlapMasks()
+        if zeroOut:
+            maskedData[self.myChildIndices]=0
+            weightData[self.myChildIndices]=0
+            toCombineMask = na.logical_and.reduce(self.myChildMask, axis)
+        # How do we do this the fastest?
+        # We only want to project those values that don't have subgrids
+        #mylog.debug("Starting na.sum")
+        fullProj = na.sum(maskedData,axis)*self.dx # Gives correct shape
+        weightProj = na.sum(weightData,axis)*self.dx
+        #mylog.debug("Ending na.sum")
+        #fullProj = na.maximum.reduce(maskedData,axis) # Gives correct shape
+        if not zeroOut:
+            toCombineMask = na.ones(fullProj.shape, dtype=nT.Bool)
+        cmI = na.indices(fullProj.shape)
+        # So now we figure out which points we want, and their (x,y,z) values
+        xind = cmI[0,:]
+        yind = cmI[1,:]
+        xpoints = na.array(xind+(self.LeftEdge[x_dict[axis]]/self.dx),nT.Int64)
+        ypoints = na.array(yind+(self.LeftEdge[y_dict[axis]]/self.dx),nT.Int64)
+        return [xpoints.ravel(), ypoints.ravel(), fullProj.ravel(), toCombineMask.ravel(), weightProj.ravel()]
+
     def getSliceAll(self, coord, axis, field):
         tempMask = self.myChildMask
         self.myChildMask = na.ones(self.ActiveDimensions)
