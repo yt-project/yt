@@ -40,7 +40,7 @@ class PlotCollection:
                                 + os.path.basename(fn[-1])
                 im["RunID"] = self.RunID
                 yt.deliverator.SubmitImage(\
-                      self.pf, im)
+                      self.pf.hierarchy, im)
         return fn
     def set_xlim(self, xmin, xmax):
         for plot in self.plots:
