@@ -183,7 +183,6 @@ class VMPlot(RavenPlot):
         x0, x1 = self.xlim
         y0, y1 = self.ylim
         l, b, width, height = self.axes.bbox.get_bounds()
-        print width, height
         buff = _MPL.Pixelize(self.data['x'],
                              self.data['y'],
                              self.data['dx'],
@@ -191,10 +190,10 @@ class VMPlot(RavenPlot):
                              self[self.axisNames["Z"]],
                              int(800), int(800),
                            (x0, x1, y0, y1),)
-        print self.norm.vmin, self.norm.vmax
         self.norm.autoscale(na.array((buff.min(),buff.max())))
         self.image.set_data(buff)
         self.colorbar.notify(self.image)
+        self.autoset_label()
 
     def set_xlim(self, xmin, xmax):
         self.xlim = (xmin,xmax)
@@ -285,66 +284,94 @@ class ProjectionPlot(VMPlot):
             dataLabel += " (%s)" % (lagos.fieldInfo[self.axisNames["Z"]][1])
         self.colorbar.set_label(dataLabel)
 
-class TwoPhasePlot(RavenPlot):
-    def __init__(self, data, fields, width=None, unit=None):
-        self.typeName = "TwoPhase"
+    def __getitem__(self, item):
+        return self.data[item] * \
+                    self.data.hierarchy.parameterFile.conversionFactors[item]
+
+
+class PhasePlot(RavenPlot):
+    def __init__(self, data, fields, bins = 100, width=None, unit=None):
         RavenPlot.__init__(self, data, fields)
+        self.bins = bins
         self.axisNames["X"] = fields[0]
         self.axisNames["Y"] = fields[1]
-        x_v = self.data[self.axisNames["X"]]
-        y_v = self.data[self.axisNames["Y"]]
-        self.axes.set_xscale("log")
-        self.axes.set_yscale("log")
-        x_bins = na.logspace(na.log10(x_v.min()),na.log10(x_v.max()),num=101)
-        y_bins = na.logspace(na.log10(y_v.min()),na.log10(y_v.max()),num=101)
+        logIt, self.x_v, self.x_bins = self.setup_bins(fields[0], self.axes.set_xscale)
+        logIt, self.y_v, self.y_bins = self.setup_bins(fields[1], self.axes.set_yscale)
+
+    def setup_bins(self, field, func):
+        logIt = False
+        v = na.log10(self.data[field])
+        if field in lagos.log_fields or lagos.fieldInfo[field][2]:
+            logIt = True
+            bins = na.logspace(na.log10(v.min()),na.log10(v.max()),num=self.bins+1)
+            func('log')
+        else:
+            bins = na.linspace(v.min(),v.max(),num=self.bins+1)
+            func('linear')
+        return logIt, v, bins
+
+    def autoset_label(self, field, func):
+        dataLabel = field
+        if lagos.fieldInfo.has_key(field):
+            dataLabel += " (%s)" % (lagos.fieldInfo[field][0])
+        func(dataLabel)
+
+class TwoPhasePlot(PhasePlot):
+    def __init__(self, data, fields, bins = 100, width=None, unit=None):
+        self.typeName = "TwoPhase"
+        PhasePlot.__init__(self, data, fields, bins, width, unit)
+
         vals, x, y = na.histogram2d( \
-            na.log10(x_v), na.log10(y_v),
-            bins = 100, normed=True )
+            self.x_v, self.y_v, \
+            bins = (self.x_bins, self.y_bins), \
+            normed=False )
         i = na.where(vals>0)
         vmin = vals[i].min()
         self.norm=matplotlib.colors.LogNorm(vmin=vmin, clip=False)
         self.cmap = matplotlib.cm.get_cmap()
         self.cmap.set_under("k")
-        self.image = self.axes.pcolor(x_bins,y_bins, \
+        self.image = self.axes.pcolor(self.x_bins,self.y_bins, \
                                       vals.transpose(),shading='flat', \
                                       norm=self.norm)
+
+        self.autoset_label(fields[0], self.axes.set_xlabel)
+        self.autoset_label(fields[1], self.axes.set_ylabel)
+
         self.colorbar = self.figure.colorbar(self.image, \
                                              extend='neither', \
                                              shrink=0.95, cmap=self.cmap)
         self.colorbar.notify(self.image)
+        self.colorbar.set_label("Cells per Bin")
 
     def generatePrefix(self, prefix):
         self.prefix = "_".join([prefix, self.typeName, \
             self.axisNames['X'], self.axisNames['Y']])
         self["Field1"] = self.axisNames["X"]
         self["Field2"] = self.axisNames["Y"]
-        self["Field3"] = ""
+        self["Field3"] = None
 
-class ThreePhasePlot(RavenPlot):
-    def __init__(self, data, fields, width=None, unit=None):
-        nbins = 100
+class ThreePhasePlot(PhasePlot):
+    def __init__(self, data, fields, width=None, unit=None, bins=100, weight="CellMass"):
         self.typeName = "ThreePhase"
-        RavenPlot.__init__(self, data, fields)
-        self.axisNames["X"] = fields[0]
-        self.axisNames["Y"] = fields[1]
+        PhasePlot.__init__(self, data, fields)
+
         self.axisNames["Z"] = fields[2]
-        x_v = self.data[self.axisNames["X"]]
-        y_v = self.data[self.axisNames["Y"]]
-        z_v = self.data[self.axisNames["Z"]]
-        weight = self.data["CellMass"]
-        #weight = na.ones(weight.shape)
-        x_bins = na.logspace(na.log10(x_v.min()*0.99),na.log10(x_v.max()*1.01),num=nbins)
-        y_bins = na.logspace(na.log10(y_v.min()*0.99),na.log10(y_v.max()*1.01),num=nbins)
-        x_bins_ids = na.digitize(x_v, x_bins)
-        y_bins_ids = na.digitize(y_v, y_bins)
-        vals = na.zeros((nbins,nbins), dtype=nT.Float64) 
-        weight_vals = na.zeros((nbins,nbins), dtype=nT.Float64)
-        used_bin = na.zeros((nbins,nbins), dtype=nT.Bool)
-        for k in range(len(x_v)):
-            j,i = x_bins_ids[k], y_bins_ids[k]
+        logIt, self.z_v, self.z_bins = self.setup_bins(fields[2], lambda i: None)
+
+        weight = self.data[weight]
+        x_bins_ids = na.digitize(self.x_v, self.x_bins)
+        y_bins_ids = na.digitize(self.y_v, self.y_bins)
+
+        vals = na.zeros((self.bins+1,self.bins+1), dtype=nT.Float64) 
+        weight_vals = na.zeros((self.bins+1,self.bins+1), dtype=nT.Float64)
+        used_bin = na.zeros((self.bins+1,self.bins+1), dtype=nT.Bool)
+
+        for k in range(len(self.x_v)):
+            j,i = x_bins_ids[k]-1, y_bins_ids[k]-1
             used_bin[i,j] = True
             weight_vals[i,j] += weight[k]
-            vals[i,j] += z_v[k]*weight[k]
+            vals[i,j] += self.z_v[k]*weight[k]
+
         vi = na.where(used_bin == False)
         vit = na.where(used_bin == True)
         vals = vals / weight_vals
@@ -353,22 +380,30 @@ class ThreePhasePlot(RavenPlot):
         vmin = na.nanmin(vals[vit])
         vmax = na.nanmax(vals[vit])
         vals[vi] = 0.0
-        self.norm=matplotlib.colors.LogNorm(vmin=vmin, vmax=vmax, clip=False)
+        if logIt:
+            self.norm=matplotlib.colors.LogNorm(vmin=vmin, vmax=vmax, clip=False)
+            self.ticker = matplotlib.ticker.LogLocator(subs=[0.1, 0.5, 1])
+        else:
+            self.norm=matplotlib.colors.Normalize(vmin=vmin, vmax=vmax, clip=False)
+            self.ticker = None
         self.cmap = matplotlib.cm.get_cmap()
         self.cmap.set_bad("k")
         self.cmap.set_under("k")
         self.cmap.set_over("k")
-        self.image = self.axes.pcolor(x_bins,y_bins, \
+        self.image = self.axes.pcolor(self.x_bins, self.y_bins, \
                                       vals,shading='flat', \
                                       norm=self.norm)
         #self.ticker = matplotlib.ticker.LogLocator(subs=[0.25, 0.5, 0.75, 1])
-        self.ticker = matplotlib.ticker.LogLocator(subs=[0.1, 0.5, 1])
+
         self.colorbar = self.figure.colorbar(self.image, \
                                              extend='neither', \
                                              shrink=0.95, cmap=self.cmap, \
                                ticks = self.ticker, format="%0.2e" )
-                                            #ticks = na.logspace(na.log10(vmin),na.log10(vmax),num=8))
         self.colorbar.notify(self.image)
+
+        self.autoset_label(fields[0], self.axes.set_xlabel)
+        self.autoset_label(fields[1], self.axes.set_ylabel)
+        self.autoset_label(fields[2], self.colorbar.set_label)
 
     def generatePrefix(self, prefix):
         self.prefix = "_".join([prefix, self.typeName, \
