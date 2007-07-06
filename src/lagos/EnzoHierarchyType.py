@@ -282,13 +282,13 @@ class EnzoHierarchy:
         Prints out relevant information about the simulation
         """
         for i in xrange(MAXLEVEL):
-            if (self.levelsStats[i,0]) == 0:
+            if (self.levelStats['numgrids'][i]) == 0:
                 break
             print "% 3i\t% 6i\t% 11i" % \
-                  (i, self.levelsStats[i,0], self.levelsStats[i,1])
+                  (i, self.levelStats['numgrids'][i], self.levelStats['numcells'][i])
             dx = self.gridDxs[self.levelIndices[i][0]]
         print "-" * 28
-        print "   \t% 6i\t% 11i" % (self.levelsStats[:,0].sum(), self.levelsStats[:,1].sum())
+        print "   \t% 6i\t% 11i" % (self.levelStats['numgrids'].sum(), self.levelStats['numcells'].sum())
         print "\n"
         try:
             print "z = %0.8f" % (self["CosmologyCurrentRedshift"])
@@ -300,7 +300,7 @@ class EnzoHierarchy:
              t_s, t_s / (365*24*3600.0) )
         print "\nSmallest Cell:"
         u=[]
-        for item in self.units.items():
+        for item in self.parameterFile.units.items():
             u.append((item[1],item[0]))
         u.sort()
         for unit in u:
