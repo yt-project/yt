@@ -75,6 +75,7 @@ class PlotCollection:
         if coord == None:
             coord = center[axis]
         slice = lagos.EnzoSlice(self.pf, axis, coord, field, center)
+        slice["Axis"] = lagos.axis_names[axis]
         return self.addPlot(be.SlicePlot(slice, field))
     def addProjection(self, field, axis, weightField=None, center=None):
         # Make the projection object here
@@ -83,6 +84,7 @@ class PlotCollection:
         if center == None:
             v, center = self.pf.findMax("Density")
         proj = lagos.EnzoProj(self.pf, axis, field, weightField, center=center)
+        proj["Axis"] = lagos.axis_names[axis]
         return self.addPlot(be.ProjectionPlot(proj, field))
     def addACProfile(self):
         # We are given the data already
@@ -101,6 +103,7 @@ class PlotCollection:
         p = self.addPlot(be.TwoPhasePlot(sphere, fields, width=radius, unit=unit))
         p["Width"] = radius
         p["Unit"] = unit
+        p["Axis"] = None
         return p 
     def addThreePhaseSphere(self, radius, unit, fields, center=None):
         if center == None:
@@ -110,4 +113,5 @@ class PlotCollection:
         p = self.addPlot(be.ThreePhasePlot(sphere, fields, width=radius, unit=unit))
         p["Width"] = radius
         p["Unit"] = unit
+        p["Axis"] = None
         return p

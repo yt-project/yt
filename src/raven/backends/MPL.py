@@ -205,8 +205,8 @@ class VMPlot(RavenPlot):
         self.prefix = "_".join([prefix, self.typeName, \
             lagos.axis_names[self.data.axis], self.axisNames['Z']])
         self["Field1"] = self.axisNames["Z"]
-        self["Field2"] = ""
-        self["Field3"] = ""
+        self["Field2"] = None
+        self["Field3"] = None
 
     def set_width(self, width, unit):
         self["Unit"] = str(unit)
