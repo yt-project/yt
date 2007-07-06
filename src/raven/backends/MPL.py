@@ -163,7 +163,7 @@ class VMPlot(RavenPlot):
         self.xmax = 1.0
         self.ymax = 1.0
         self.norm = matplotlib.colors.LogNorm()
-        temparray = na.random.rand(640,640)
+        temparray = na.ones((800,800))
         self.image = \
             self.axes.imshow(temparray, interpolation='nearest', norm = self.norm,
                             aspect=1.0)
@@ -183,15 +183,17 @@ class VMPlot(RavenPlot):
         x0, x1 = self.xlim
         y0, y1 = self.ylim
         l, b, width, height = self.axes.bbox.get_bounds()
+        print width, height
         buff = _MPL.Pixelize(self.data['x'],
                              self.data['y'],
                              self.data['dx'],
                              self.data['dy'],
                              self[self.axisNames["Z"]],
-                             int(height), int(width),
+                             int(800), int(800),
                            (x0, x1, y0, y1),)
+        print self.norm.vmin, self.norm.vmax
+        self.norm.autoscale(na.array((buff.min(),buff.max())))
         self.image.set_data(buff)
-        self.norm.autoscale((buff.min(),buff.max()))
         self.colorbar.notify(self.image)
 
     def set_xlim(self, xmin, xmax):

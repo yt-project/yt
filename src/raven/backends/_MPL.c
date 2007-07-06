@@ -150,6 +150,10 @@ static PyObject* Py_Pixelize(PyObject *obj, PyObject *args) {
       }
   }
 
+  /*for (p = 0 ; p < cols * rows ; p++)
+    printf("%0.3e\n", gridded[p]);*/
+
+
   // Attatch output buffer to output buffer
 
   Py_XDECREF(x);
