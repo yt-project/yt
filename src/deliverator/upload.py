@@ -47,7 +47,7 @@ def SubmitRun(metaData, user):
     mylog.info("RunID: %s (%s)", resp.RunID, resp.Response)
     return resp.RunID, resp.Response
 
-def SubmitParameterFile(RunID, hierarchy):
+def SubmitParameterFile(RunID, pf):
     """
     Submits the parameter file to The Deliverator server.  Returns the response.
 
@@ -63,20 +63,20 @@ def SubmitParameterFile(RunID, hierarchy):
     port = loc.getraven_porttype()
     req = SubmitNewParameterFileInput()
     req.APIKey = APIKey
-    req.GeneratedAt = hierarchy["CurrentTimeIdentifier"]
+    req.GeneratedAt = pf["CurrentTimeIdentifier"]
     req.RunID = RunID
-    req.FileName = hierarchy.parameterFilename
+    req.FileName = pf.parameterFilename
     #req.metaData = hierarchy["MetaDataString"]
     old_stdout = sys.stdout
     k = StringIO.StringIO()
     sys.stdout = k
-    hierarchy.printStats()
+    pf.hierarchy.printStats()
     req.MetaData = k.getvalue()
     #print req.MetaData
     sys.stdout = old_stdout
-    t = hierarchy.parameters.copy()
-    t.update(hierarchy.conversionFactors.copy())
-    t.update(hierarchy.units.copy())
+    t = pf.parameters.copy()
+    t.update(pf.conversionFactors.copy())
+    t.update(pf.units.copy())
     req.PickleObj = base64.b64encode(cPickle.dumps(t))
     resp=port.SubmitNewParameterFile(req)
     mylog.debug("%s (%s)", req.FileName, resp.Response)
