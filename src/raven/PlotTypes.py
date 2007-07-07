@@ -35,12 +35,13 @@ class PlotCollection:
                       format="png", submit=self.runID))
             if self.submit:
                 im = plot.im.copy()
-                print self.httpPrefix, "/", os.path.basename(fn[-1])
+                #print self.httpPrefix, "/", os.path.basename(fn[-1])
                 im["Filename"] = self.httpPrefix + "/" \
                                 + os.path.basename(fn[-1])
                 im["RunID"] = self.RunID
                 yt.deliverator.SubmitImage(\
                       self.pf.hierarchy, im)
+            mylog.info("Saved %s", fn[-1])
         return fn
     def set_xlim(self, xmin, xmax):
         for plot in self.plots:
@@ -75,8 +76,9 @@ class PlotCollection:
         if coord == None:
             coord = center[axis]
         slice = lagos.EnzoSlice(self.pf, axis, coord, field, center)
-        slice["Axis"] = lagos.axis_names[axis]
-        return self.addPlot(be.SlicePlot(slice, field))
+        p = self.addPlot(be.SlicePlot(slice, field))
+        p["Axis"] = lagos.axis_names[axis]
+        return p
     def addProjection(self, field, axis, weightField=None, center=None):
         # Make the projection object here
         # Pass it in to the engine to get a SlicePlot, which we then append
@@ -84,8 +86,9 @@ class PlotCollection:
         if center == None:
             v, center = self.pf.findMax("Density")
         proj = lagos.EnzoProj(self.pf, axis, field, weightField, center=center)
-        proj["Axis"] = lagos.axis_names[axis]
-        return self.addPlot(be.ProjectionPlot(proj, field))
+        p = self.addPlot(be.ProjectionPlot(proj, field))
+        p["Axis"] = lagos.axis_names[axis]
+        return p
     def addACProfile(self):
         # We are given the data already
         # This is handy for plotting time-series evolution
