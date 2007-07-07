@@ -150,6 +150,7 @@ class RavenPlot:
         self.axes.set_zlim(zmin, zmax)
 
     def __setitem__(self, item, val):
+        #print item, val
         self.im[item] = val
 
 class VMPlot(RavenPlot):
@@ -286,8 +287,8 @@ class ProjectionPlot(VMPlot):
 
     def __getitem__(self, item):
         return self.data[item] * \
-                    self.data.hierarchy.parameterFile.conversionFactors[item]
-
+                    self.data.hierarchy.parameterFile.conversionFactors[item] * \
+                    self.data.hierarchy.parameterFile.units["cm"]
 
 class PhasePlot(RavenPlot):
     def __init__(self, data, fields, bins = 100, width=None, unit=None):
@@ -300,7 +301,7 @@ class PhasePlot(RavenPlot):
 
     def setup_bins(self, field, func):
         logIt = False
-        v = na.log10(self.data[field])
+        v = self.data[field]
         if field in lagos.log_fields or lagos.fieldInfo[field][2]:
             logIt = True
             bins = na.logspace(na.log10(v.min()),na.log10(v.max()),num=self.bins+1)
@@ -357,6 +358,7 @@ class ThreePhasePlot(PhasePlot):
 
         self.axisNames["Z"] = fields[2]
         logIt, self.z_v, self.z_bins = self.setup_bins(fields[2], lambda i: None)
+        self.z_v = self.data[fields[2]]
 
         weight = self.data[weight]
         x_bins_ids = na.digitize(self.x_v, self.x_bins)
@@ -375,15 +377,16 @@ class ThreePhasePlot(PhasePlot):
         vi = na.where(used_bin == False)
         vit = na.where(used_bin == True)
         vals = vals / weight_vals
-        self.axes.set_xscale("log")
-        self.axes.set_yscale("log")
+
         vmin = na.nanmin(vals[vit])
         vmax = na.nanmax(vals[vit])
         vals[vi] = 0.0
         if logIt:
+            print "Logging", vmin, vmax
             self.norm=matplotlib.colors.LogNorm(vmin=vmin, vmax=vmax, clip=False)
             self.ticker = matplotlib.ticker.LogLocator(subs=[0.1, 0.5, 1])
         else:
+            print "Not logging", vmin, vmax
             self.norm=matplotlib.colors.Normalize(vmin=vmin, vmax=vmax, clip=False)
             self.ticker = None
         self.cmap = matplotlib.cm.get_cmap()
@@ -394,7 +397,7 @@ class ThreePhasePlot(PhasePlot):
                                       vals,shading='flat', \
                                       norm=self.norm)
         #self.ticker = matplotlib.ticker.LogLocator(subs=[0.25, 0.5, 0.75, 1])
-
+        
         self.colorbar = self.figure.colorbar(self.image, \
                                              extend='neither', \
                                              shrink=0.95, cmap=self.cmap, \
@@ -413,3 +416,6 @@ class ThreePhasePlot(PhasePlot):
         self["Field2"] = self.axisNames["Y"]
         self["Field3"] = self.axisNames["Z"]
 
+#class LinePlot(RavenPlot):
+    #def __init__(self, data, fields):
+        
