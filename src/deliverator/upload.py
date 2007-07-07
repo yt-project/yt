@@ -108,7 +108,7 @@ def SubmitImage(hierarchy, img_info):
     @type img_info: dict
     @return: text response from Deliverator
     """
-    print img_info
+    #print img_info
     if not APIKey:
         return
     loc = DeliveratorServerLocator()
