@@ -8,17 +8,9 @@ Output-watcher
 
 from yt.fido import *
 
-def testFunc():
-    import yt.lagos as lagos, yt.raven as raven
-    def runFunc(filename):
-        a = lagos.EnzoStaticOutput(filename)
-        pc = raven.PlotCollection(a)
-        pc.addProjection("Density", 0, center=[0.5,0.5,0.5])
-        pc.save("temp")
-    return runFunc
-
 class Watcher:
-    def __init__(self, title=None, path=".", newPrefix="", oc=None, process=None):
+    def __init__(self, title=None, path=".", newPrefix="", oc=None,
+                 process=None, functionHandler = None):
         self.originalPath = os.getcwd()
         os.chdir(path)
         if title == None: title = os.path.basename(os.getcwd())
@@ -27,8 +19,11 @@ class Watcher:
         self.oc = oc
         self.process = process
         self.newPrefix = newPrefix
-        self.functionHandler = testFunc()
-        self.skipFiles = []
+        self.skipFiles = [] # Forward compatible
+        if functionHandler == None:
+            self.functionHandler = lambda a: None
+        else:
+            self.functionHandler = functionHandler()
 
     def run(self):
         mylog.info("Entering main Fido loop (CTRL-C or touch 'stopFido' to end)")
