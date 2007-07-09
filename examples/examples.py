@@ -4,6 +4,7 @@ and then we call them if appropriate.
 """
 
 import yt.lagos as lagos
+import yt.fido as fido
 
 fn = "LOCATION_OF_HIERARCHY"
 
@@ -53,3 +54,20 @@ def getWeightedProfile(hierarchy):
     bins,profiles=region.makeProfile(
         ["Density", "NumberDensity"],10,1./a["au"],100./a["au"])
     return bins, profiles
+
+def runWatcher():
+    def watcherFunc():
+        # We do all the setup here,
+        import yt.lagos as lagos, yt.raven as raven
+        # then define our function,
+        def runFunc(filename):
+            a = lagos.EnzoStaticOutput(filename)
+            pc = raven.PlotCollection(a)
+            pc.addProjection("Density", 0, center=[0.5,0.5,0.5])
+            pc.save("temp")
+        # then return the function.
+        # That way we only have to import lagos and raven if we need to to make
+        # plots.  Simply running Fido doesn't require them.
+        return runFunc
+    Giles = fido.Watcher(functionHandler = watcherFunc)
+    Giles.run()
