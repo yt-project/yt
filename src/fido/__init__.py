@@ -1,27 +1,32 @@
 """
-Fido
-====
 
-    Fido is the messenger/protector of data.  It takes data outputs, puts them
-    wherever you want, and then calls a function handler to deal with that data.
-    Ultimately Fido will deal with all file-handling; submission of runs to a
-    central (user-specific) database is in the works, and Fido will be the entity
-    that moves the files in and out of storage.
 
-G{packagetree}
-
-@author: U{Matthew Turk<http://www.stanford.edu/~mturk/>}
-@organization: U{KIPAC<http://www-group.slac.stanford.edu/KIPAC/>}
-@contact: U{mturk@slac.stanford.edu<mailto:mturk@slac.stanford.edu>}
 """
-
-# Nothing here yet
 
 from yt.logger import fidoLogger as mylog
 from yt.config import ytcfg
+from yt.arraytypes import *
 
-import glob, os.path, time, ConfigParser
-from filehandler import *
-from dbhandler import *
-from watch import *
-from walkies import run, selectRun, selectPF, runBrowse, outputBrowse
+mylog.warning("shutil used in FileHandling may lead to sub-optimal performance")
+import os, os.path, shutil, time, sys, glob
+
+WAITBETWEEN=5
+OTHERFILES=["rates.out","cool_rates.out"]
+NEW_OUTPUT_CREATED = "newOutput"
+
+# Let's define some useful functions.  Maybe these should go elsewhere?
+
+def getParameterLine(filename, parameter):
+    f = open(filename)
+    lines = filter(lambda a: a.startswith(parameter), f)
+    if len(lines) > 1:
+        raise KeyError, "More than one line matches that parameter!"
+    else: return lines[0]
+
+def getParentDir(filename):
+    return os.path.normpath( \
+            os.path.split(os.path.dirname(os.path.abspath(filename)))[0])
+
+from OutputCollection import *
+from FileHandling import *
+from OutputWatcher import *
