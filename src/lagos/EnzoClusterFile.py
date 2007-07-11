@@ -23,13 +23,15 @@ ACOtranslation = {
         'v_r_rms' : 'vr_rms_gas (km/s)',
         'T_cool' : 'T_cool (s)',
         'T_dyn' : 'T_dyn (s)',
-        'm_enc' : 'm_gas (Ms)'
+        'm_enc' : 'm_gas (Ms)',
+        'mu' : 'mu (mh) mean mass per particle'
                  }
 
 CFfieldInfo = {}
 CFfieldInfo["T"] = (None, r"$T (\rm{K})$", False)
 CFfieldInfo["m_enc"] = (None, r"$M_{\rm{enc}} (M_\odot)$", True)
 CFfieldInfo["v_r"] = (None, r"$v_r (km/s)$", True)
+CFfieldInfo["H2I fraction"] = (None, r"$\rho({\rm{H}}_2) / \rho$", True)
 
 class AnalyzeClusterOutput:
     # This is a class for storing the results of enzo_anyl runs
@@ -159,6 +161,30 @@ class AnalyzeClusterOutput:
         #comb.data[offset:,:] = other.data[1:,:]
         return comb
 
+def cfCS(self):
+    # Assume gamma = 5./3.
+    k = 1.380e-16 # ergs / K
+    cs = na.sqrt((5./3. * k * self["T"] * self["NumberDensity"] \
+            / self["RhoCGS"])) \
+            / 1.0e5
+    return cs
+CFfieldInfo["cs"] = (cfCS, r"$c_s (\rm{km / s})$", False)
+
+def cfMu(self):
+    # This is in case mu craps out in enzo_anyl
+    # mu = mass / num particles
+    # mu = density / number density
+    return (self["RhoCGS"] / self["NumberDensity"]) / 1.67e-24
+CFfieldInfo["Mu"] = (cfMu, r"$\mu$", False)
+
+def cfMach(self):
+    return abs(self["v_r"]/self["cs"])
+CFfieldInfo["Mach"] = (cfMach, r"$\rm{Radial Mach Number}$", False)
+
+def cfTurbMach(self):
+    return abs(self["vr_rms_gas (km/s)"]/self["cs"])
+CFfieldInfo["TurbMach"] = (cfTurbMach, r"$\rm{Turbulent Mach Number}$", False)
+
 def cfRAU(self):
     return self["r"] * unitList["au"]
 CFfieldInfo["RAU"] = (cfRAU, r"$R (\rm{AU})$", True)
@@ -182,5 +208,6 @@ def cfNumberDensity(self):
          + (self["H2I fraction"] + self["H2II fraction"]) / 2.0 \
          + (self["e- fraction"])) #\
          #+ (self["DI fraction"] + self["DII fraction"])/2.0 + self["HDI fraction"]/3.0 )
-    return (self["RhoCGS"]/mh) * self["H2I fraction"] / 2.0
+    #return (self["RhoCGS"]/mh) * self["H2I fraction"] / 2.0
+    return t
 CFfieldInfo["NumberDensity"] = (cfNumberDensity, r"$n (\rm{cm}^{-3})$", True)

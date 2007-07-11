@@ -75,8 +75,8 @@ G{packagetree}
 @see: U{Enki<http://en.wikipedia.org/wiki/Enki>}
 """
 
-import importer
-importer.install()
+#import importer
+#importer.install()
 
 from logger import *
 from config import *

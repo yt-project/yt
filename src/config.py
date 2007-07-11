@@ -41,13 +41,14 @@ class YTConfigParser(ConfigParser.ConfigParser):
         self.read(fn)
         # Okay, we're populated.  Now, we will insert additional values
         # as needed.
-        for section in defaults.keys():
-            opts = defaults[section]
-            if not self.has_section(section):
-                self.add_section(section)
+        for section, opts in defaults.items():
             for opt, val in opts.items():
                 if not self.has_option(section, opt):
                     self.set(section, opt, val)
+    def set(self, section, opt, val):
+        if not self.has_section(section):
+            self.add_ection(section)
+        ConfigParser.ConfigParser.set(self,section, opt,val)
     def __getitem__(self, item):
         #if iterable(item):
         if hasattr(item,'__getitem__'):

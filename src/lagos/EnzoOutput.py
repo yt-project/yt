@@ -29,7 +29,7 @@ class EnzoStaticOutput(EnzoOutput):
            single-time data?
     """
     _hierarchy = None
-    def __init__(self, filename, data_style = None):
+    def __init__(self, filename, data_style = None, hdf_version=4):
         """
         @note: We disregard data_style here.
                We should probably implement a guess-and-check.

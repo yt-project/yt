@@ -49,7 +49,7 @@ def ClusterFilePlot(cls, x, y, xlog=None, ylog=None, fig=None, filename=None,
         fig = matplotlib.figure.Figure(figsize=(8,8))
         canvas = FigureCanvasAgg(fig)
     ax = fig.add_subplot(111)
-    fig.subplots_adjust(hspace=0,wspace=0,bottom=0.0, top=1.0, left=0.0, right=1.0)
+    #fig.subplots_adjust(hspace=0,wspace=0,bottom=0.0, top=1.0, left=0.0, right=1.0)
     if not iterable(cls):
         cls = [cls]
     if xlog == None:
@@ -69,11 +69,13 @@ def ClusterFilePlot(cls, x, y, xlog=None, ylog=None, fig=None, filename=None,
 
     fig.hold(True)
     for cl in cls:
-        pp(cl[x],cl[y])
+        pp(cl[x],cl[y], lw=2.5)
     if lagos.CFfieldInfo.has_key(x):
         ax.set_xlabel(lagos.CFfieldInfo[x][1])
+        print lagos.CFfieldInfo[x][1]
     if lagos.CFfieldInfo.has_key(y):
         ax.set_ylabel(lagos.CFfieldInfo[y][1])
+        print lagos.CFfieldInfo[y][1]
     if xbounds:
         ax.set_xlim(xbounds)
     if ybounds:
@@ -100,7 +102,7 @@ def CleanUp(*args, **kwargs):
     pass
 
 class RavenPlot:
-    def __init__(self, data, fields):
+    def __init__(self, data, fields, figure = None, axes=None):
         self.data = data
         self.fields = fields
         # With matplotlib, we don't need to copy data back and forth.
@@ -112,9 +114,15 @@ class RavenPlot:
         self["ParameterFile"] = \
             self.data.hierarchy.parameterFile.parameterFilename
         self.axisNames = {}
-        self.figure = matplotlib.figure.Figure((10,8))
+        if not figure:
+            self.figure = matplotlib.figure.Figure((10,8))
+        else:
+            self.figure = figure
         #self.axes = self.figure.add_axes(aspect='equal')
-        self.axes = self.figure.add_subplot(1,1,1)#,aspect=1.0)
+        if not figure:
+            self.axes = self.figure.add_subplot(1,1,1)#,aspect=1.0)
+        else:
+            self.axes = axes
         #self.axes.set_aspect(1.0)
 
     def __getitem__(self, item):
@@ -155,15 +163,18 @@ class RavenPlot:
 
 class VMPlot(RavenPlot):
 
-    def __init__(self, data, field):
+    def __init__(self, data, field, figure = None, axes = None, useColorBar = True):
         fields = ['X', 'Y', field, 'X width', 'Y width']
-        RavenPlot.__init__(self, data, fields)
+        RavenPlot.__init__(self, data, fields, figure, axes)
         self.figure.subplots_adjust(hspace=0,wspace=0,bottom=0.0, top=1.0, left=0.0, right=1.0)
         self.xmin = 0.0
         self.ymin = 0.0
         self.xmax = 1.0
         self.ymax = 1.0
-        self.norm = matplotlib.colors.LogNorm()
+        if field in lagos.log_fields or lagos.fieldInfo[field][2]:
+            self.norm = matplotlib.colors.LogNorm()
+        else:
+            self.norm = matplotlib.colors.Normalize()
         temparray = na.ones((800,800))
         self.image = \
             self.axes.imshow(temparray, interpolation='nearest', norm = self.norm,
@@ -173,11 +184,15 @@ class VMPlot(RavenPlot):
         self.axes.set_yticks(())
         self.axes.set_ylabel("")
         self.axes.set_xlabel("")
-        self.colorbar = self.figure.colorbar(self.axes.images[-1], \
-                                             extend='neither', \
-                                             shrink=0.95)
+        if useColorBar:
+            self.colorbar = self.figure.colorbar(self.axes.images[-1], \
+                                                extend='neither', \
+                                                shrink=0.95)
+        else:
+            self.colorbar = None
         self.set_width(1,'1')
         self.redraw_image()
+        self.selfSetup()
 
     def redraw_image(self):
         #x0, y0, v_width, v_height = self.axes.viewLim.get_bounds()
@@ -193,7 +208,8 @@ class VMPlot(RavenPlot):
                            (x0, x1, y0, y1),)
         self.norm.autoscale(na.array((buff.min(),buff.max())))
         self.image.set_data(buff)
-        self.colorbar.notify(self.image)
+        if self.colorbar != None:
+            self.colorbar.notify(self.image)
         self.autoset_label()
 
     def set_xlim(self, xmin, xmax):
@@ -252,10 +268,11 @@ class VMPlot(RavenPlot):
     def set_zlim(self, zmin, zmax):
         self.norm.autoscale(na.array([zmin,zmax]))
         self.image.changed()
-        self.colorbar.notify(self.image)
+        if self.colorbar != None:
+            self.colorbar.notify(self.image)
 
     def set_label(self, label):
-        self.colorbar.set_label(label)
+        if self.colorbar != None: self.colorbar.set_label(label)
 
     def set_cmap(self, cmap):
         if isinstance(cmap, types.StringType):
@@ -263,27 +280,28 @@ class VMPlot(RavenPlot):
                 cmap = getattr(matplotlib.cm, cmap)
         self.image.set_cmap(cmap)
 
+    def selfSetup(self):
+        pass
+
 class SlicePlot(VMPlot):
-    def __init__(self, data, fields):
+    def selfSetup(self):
         self.typeName = "Slice"
-        VMPlot.__init__(self, data, fields)
 
     def autoset_label(self):
         dataLabel = self.axisNames["Z"]
         if lagos.fieldInfo.has_key(self.axisNames["Z"]):
             dataLabel += " (%s)" % (lagos.fieldInfo[self.axisNames["Z"]][0])
-        self.colorbar.set_label(dataLabel)
+        if self.colorbar != None: self.colorbar.set_label(dataLabel)
 
 class ProjectionPlot(VMPlot):
-    def __init__(self, data, fields):
+    def selfSetup(self):
         self.typeName = "Projection"
-        VMPlot.__init__(self, data, fields)
 
     def autoset_label(self):
         dataLabel = self.axisNames["Z"]
         if lagos.fieldInfo.has_key(self.axisNames["Z"]):
             dataLabel += " (%s)" % (lagos.fieldInfo[self.axisNames["Z"]][1])
-        self.colorbar.set_label(dataLabel)
+        if self.colorbar != None: self.colorbar.set_label(dataLabel)
 
     def __getitem__(self, item):
         return self.data[item] * \
@@ -381,14 +399,17 @@ class ThreePhasePlot(PhasePlot):
         vmin = na.nanmin(vals[vit])
         vmax = na.nanmax(vals[vit])
         vals[vi] = 0.0
+        self.ticker = None
         if logIt:
             print "Logging", vmin, vmax
             self.norm=matplotlib.colors.LogNorm(vmin=vmin, vmax=vmax, clip=False)
-            self.ticker = matplotlib.ticker.LogLocator(subs=[0.1, 0.5, 1])
+            location_of_ticks = na.logspace(vmin*1.1, vmax*0.9, num=6)
+            #self.ticker = matplotlib.ticker.LogLocator( \
+                  #subs=[0.1, 0.17782794,  0.31622777,  0.56234133 ] )
+            self.ticker = matplotlib.ticker.FixedLocator([1e-1, 0.76])
         else:
             print "Not logging", vmin, vmax
             self.norm=matplotlib.colors.Normalize(vmin=vmin, vmax=vmax, clip=False)
-            self.ticker = None
         self.cmap = matplotlib.cm.get_cmap()
         self.cmap.set_bad("k")
         self.cmap.set_under("k")

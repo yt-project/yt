@@ -1,6 +1,12 @@
 """
+Fido is a module for moving and storing data.  It is designed to watch for
+outputs, as well as transparent archiving them during and after a simulation
+run.  Additionally, function handlers can be called to deal with output upon
+its creation.
 
-
+@author: U{Matthew Turk<http://www.stanford.edu/~mturk/>}
+@organization: U{KIPAC<http://www-group.slac.stanford.edu/KIPAC/>}
+@contact: U{mturk@slac.stanford.edu<mailto:mturk@slac.stanford.edu>}
 """
 
 from yt.logger import fidoLogger as mylog
@@ -11,6 +17,7 @@ mylog.warning("shutil used in FileHandling may lead to sub-optimal performance")
 import os, os.path, shutil, time, sys, glob
 
 WAITBETWEEN=5
+# This should go in ytcfg , but it isn't there just yet.
 OTHERFILES=["rates.out","cool_rates.out"]
 NEW_OUTPUT_CREATED = "newOutput"
 
