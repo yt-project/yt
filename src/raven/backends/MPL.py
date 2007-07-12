@@ -455,6 +455,8 @@ def quiverCallback(field_x, field_y, axis, factor):
     def runCallback(plot):
         x0, x1 = plot.xlim
         y0, y1 = plot.ylim
+        xx0, xx1 = plot.axes.get_xlim()
+        yy0, yy1 = plot.axes.get_ylim()
         plot.axes.hold(True)
         numPoints_x = plot.image._A.shape[0] / factor
         numPoints_y = plot.image._A.shape[1] / factor
@@ -474,9 +476,9 @@ def quiverCallback(field_x, field_y, axis, factor):
                            (x0, x1, y0, y1),).transpose()
         X = na.mgrid[0:plot.image._A.shape[0]-1:numPoints_x*1j]# + 0.5*factor
         Y = na.mgrid[0:plot.image._A.shape[1]-1:numPoints_y*1j]# + 0.5*factor
-        print X.shape, Y.shape, pixX.shape, pixY.shape
-        plot.axes.quiver(X,Y, pixX, pixY)
-        engineVals["canvas"](plot.figure).print_figure("/u/ki/mturk/public_html/temp90.png", format="png")
+        plot.axes.quiver(X,Y, pixX, -pixY)
+        plot.axes.set_xlim(xx0,xx1)
+        plot.axes.set_ylim(yy0,yy1)
         plot.axes.hold(False)
     return runCallback
 
@@ -487,6 +489,8 @@ def contourCallback(field, axis, ncont=5, factor=4):
     def runCallback(plot):
         x0, x1 = plot.xlim
         y0, y1 = plot.ylim
+        xx0, xx1 = plot.axes.get_xlim()
+        yy0, yy1 = plot.axes.get_ylim()
         plot.axes.hold(True)
         numPoints_x = plot.image._A.shape[0]
         numPoints_y = plot.image._A.shape[1]
@@ -497,13 +501,14 @@ def contourCallback(field, axis, ncont=5, factor=4):
         ylim = na.logical_and(plot.data["y"] >= y0*0.9,
                               plot.data["y"] <= y1*1.1)
         wI = na.where(na.logical_and(xlim,ylim))
-        xi, yi = na.mgrid[0:numPoints_x:numPoints_x/(factor*j),\
-                          0:numPoints_y:numPoints_y/(factor*j)]
+        xi, yi = na.mgrid[0:numPoints_x:numPoints_x/(factor*1j),\
+                          0:numPoints_y:numPoints_y/(factor*1j)]
         x = (plot.data["x"][wI]-x0)*dx
         y = (plot.data["y"][wI]-y0)*dy
         z = plot.data[field][wI]
         zi = de.Triangulation(x,y).nn_interpolator(z)(xi,yi)
         plot.axes.contour(xi,yi,zi,ncont, colors='k')
-        engineVals["canvas"](plot.figure).print_figure("/u/ki/mturk/public_html/temp90.png", format="png")
+        plot.axes.set_xlim(xx0,xx1)
+        plot.axes.set_ylim(yy0,yy1)
         plot.axes.hold(False)
     return runCallback
