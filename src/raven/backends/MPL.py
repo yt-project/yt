@@ -124,6 +124,7 @@ class RavenPlot:
         else:
             self.axes = axes
         #self.axes.set_aspect(1.0)
+        self._callback = None
 
     def __getitem__(self, item):
         return self.data[item] * \
@@ -161,6 +162,13 @@ class RavenPlot:
         #print item, val
         self.im[item] = val
 
+    def setCallback(self, func):
+        self._callback = func
+
+    def runCallback(self):
+        if self._callback != None:
+            self._callback(self)
+
 class VMPlot(RavenPlot):
 
     def __init__(self, data, field, figure = None, axes = None, useColorBar = True):
@@ -196,6 +204,7 @@ class VMPlot(RavenPlot):
 
     def redraw_image(self):
         #x0, y0, v_width, v_height = self.axes.viewLim.get_bounds()
+        self.axes.clear()
         x0, x1 = self.xlim
         y0, y1 = self.ylim
         l, b, width, height = self.axes.bbox.get_bounds()
@@ -205,12 +214,15 @@ class VMPlot(RavenPlot):
                              self.data['dy'],
                              self[self.axisNames["Z"]],
                              int(800), int(800),
-                           (x0, x1, y0, y1),)
+                           (x0, x1, y0, y1),).transpose()
         self.norm.autoscale(na.array((buff.min(),buff.max())))
-        self.image.set_data(buff)
+        self.image = \
+            self.axes.imshow(buff, interpolation='nearest', norm = self.norm,
+                            aspect=1.0)
         if self.colorbar != None:
             self.colorbar.notify(self.image)
         self.autoset_label()
+        self.runCallback()
 
     def set_xlim(self, xmin, xmax):
         self.xlim = (xmin,xmax)
@@ -437,6 +449,61 @@ class ThreePhasePlot(PhasePlot):
         self["Field2"] = self.axisNames["Y"]
         self["Field3"] = self.axisNames["Z"]
 
-#class LinePlot(RavenPlot):
-    #def __init__(self, data, fields):
-        
+def quiverCallback(field_x, field_y, axis, factor):
+    xName = "x"
+    yName = "y"
+    def runCallback(plot):
+        x0, x1 = plot.xlim
+        y0, y1 = plot.ylim
+        plot.axes.hold(True)
+        numPoints_x = plot.image._A.shape[0] / factor
+        numPoints_y = plot.image._A.shape[1] / factor
+        pixX = _MPL.Pixelize(plot.data['x'],
+                             plot.data['y'],
+                             plot.data['dx'],
+                             plot.data['dy'],
+                             plot.data[field_x],
+                             int(numPoints_x), int(numPoints_y),
+                           (x0, x1, y0, y1),).transpose()
+        pixY = _MPL.Pixelize(plot.data['x'],
+                             plot.data['y'],
+                             plot.data['dx'],
+                             plot.data['dy'],
+                             plot.data[field_y],
+                             int(numPoints_x), int(numPoints_y),
+                           (x0, x1, y0, y1),).transpose()
+        X = na.mgrid[0:plot.image._A.shape[0]-1:numPoints_x*1j]# + 0.5*factor
+        Y = na.mgrid[0:plot.image._A.shape[1]-1:numPoints_y*1j]# + 0.5*factor
+        print X.shape, Y.shape, pixX.shape, pixY.shape
+        plot.axes.quiver(X,Y, pixX, pixY)
+        engineVals["canvas"](plot.figure).print_figure("/u/ki/mturk/public_html/temp90.png", format="png")
+        plot.axes.hold(False)
+    return runCallback
+
+def contourCallback(field, axis, ncont=5, factor=4):
+    import scipy.sandbox.delaunay as de
+    xName = "x"
+    yName = "y"
+    def runCallback(plot):
+        x0, x1 = plot.xlim
+        y0, y1 = plot.ylim
+        plot.axes.hold(True)
+        numPoints_x = plot.image._A.shape[0]
+        numPoints_y = plot.image._A.shape[1]
+        dx = plot.image._A.shape[0] / (x1-x0)
+        dy = plot.image._A.shape[1] / (y1-y0)
+        xlim = na.logical_and(plot.data["x"] >= x0*0.9,
+                              plot.data["x"] <= x1*1.1)
+        ylim = na.logical_and(plot.data["y"] >= y0*0.9,
+                              plot.data["y"] <= y1*1.1)
+        wI = na.where(na.logical_and(xlim,ylim))
+        xi, yi = na.mgrid[0:numPoints_x:numPoints_x/(factor*j),\
+                          0:numPoints_y:numPoints_y/(factor*j)]
+        x = (plot.data["x"][wI]-x0)*dx
+        y = (plot.data["y"][wI]-y0)*dy
+        z = plot.data[field][wI]
+        zi = de.Triangulation(x,y).nn_interpolator(z)(xi,yi)
+        plot.axes.contour(xi,yi,zi,ncont, colors='k')
+        engineVals["canvas"](plot.figure).print_figure("/u/ki/mturk/public_html/temp90.png", format="png")
+        plot.axes.hold(False)
+    return runCallback

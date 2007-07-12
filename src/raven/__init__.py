@@ -12,6 +12,11 @@ G{packagetree}
 @organization: U{KIPAC<http://www-group.slac.stanford.edu/KIPAC/>}
 @contact: U{mturk@slac.stanford.edu<mailto:mturk@slac.stanford.edu>}
 """
+axis_labels = [('y','z'),('x','z'),('x','y')]
+axis_names = {0: 'x', 1: 'y', 2: 'z'}
+
+vm_axis_names = {0:'x', 1:'y', 2:'z', 3:'dx', 4:'dy'}
+
 from yt.logger import ravenLogger as mylog
 from yt.config import ytcfg
 from yt.arraytypes import *
