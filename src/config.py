@@ -47,7 +47,7 @@ class YTConfigParser(ConfigParser.ConfigParser):
                     self.set(section, opt, val)
     def set(self, section, opt, val):
         if not self.has_section(section):
-            self.add_ection(section)
+            self.add_section(section)
         ConfigParser.ConfigParser.set(self,section, opt,val)
     def __getitem__(self, item):
         #if iterable(item):

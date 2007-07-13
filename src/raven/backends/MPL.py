@@ -82,8 +82,7 @@ def ClusterFilePlot(cls, x, y, xlog=None, ylog=None, fig=None, filename=None,
         ax.set_ylim(ybounds)
     if filename:
         canvas.print_figure(filename, format=format)
-    else:
-        return fig
+    return fig
 
 from collections import defaultdict
 
@@ -179,9 +178,12 @@ class VMPlot(RavenPlot):
         self.ymin = 0.0
         self.xmax = 1.0
         self.ymax = 1.0
+        self.cmap = None
         if field in lagos.log_fields or lagos.fieldInfo[field][2]:
+            self.logIt = True
             self.norm = matplotlib.colors.LogNorm()
         else:
+            self.logIt = False
             self.norm = matplotlib.colors.Normalize()
         temparray = na.ones((800,800))
         self.image = \
@@ -209,16 +211,26 @@ class VMPlot(RavenPlot):
         y0, y1 = self.ylim
         l, b, width, height = self.axes.bbox.get_bounds()
         buff = _MPL.Pixelize(self.data['x'],
-                             self.data['y'],
-                             self.data['dx'],
-                             self.data['dy'],
-                             self[self.axisNames["Z"]],
-                             int(800), int(800),
-                           (x0, x1, y0, y1),).transpose()
-        self.norm.autoscale(na.array((buff.min(),buff.max())))
+                            self.data['y'],
+                            self.data['dx'],
+                            self.data['dy'],
+                            self[self.axisNames["Z"]],
+                            int(800), int(800),
+                        (x0, x1, y0, y1),).transpose()
+        if self.logIt:
+            bI = na.where(buff > 0)
+            newmin = buff[bI].min()
+            newmax = buff[bI].max()
+        else:
+            newmin = buff.min()
+            newmax = buff.max()
+        self.norm.autoscale(na.array((newmin,newmax)))
+        #print "VMIN:", self.norm.vmin, "VMAX:",self.norm.vmax
         self.image = \
             self.axes.imshow(buff, interpolation='nearest', norm = self.norm,
                             aspect=1.0)
+        if self.cmap:
+            self.image.set_cmap(self.cmap)
         if self.colorbar != None:
             self.colorbar.notify(self.image)
         self.autoset_label()
@@ -290,7 +302,7 @@ class VMPlot(RavenPlot):
         if isinstance(cmap, types.StringType):
             if hasattr(matplotlib.cm, cmap):
                 cmap = getattr(matplotlib.cm, cmap)
-        self.image.set_cmap(cmap)
+        self.cmap = cmap
 
     def selfSetup(self):
         pass
@@ -382,9 +394,10 @@ class TwoPhasePlot(PhasePlot):
         self["Field3"] = None
 
 class ThreePhasePlot(PhasePlot):
-    def __init__(self, data, fields, width=None, unit=None, bins=100, weight="CellMass"):
+    def __init__(self, data, fields, width=None, unit=None, bins=100, weight="CellMass", ticker=None):
         self.typeName = "ThreePhase"
         PhasePlot.__init__(self, data, fields)
+        self.ticker = ticker
 
         self.axisNames["Z"] = fields[2]
         logIt, self.z_v, self.z_bins = self.setup_bins(fields[2], lambda i: None)
@@ -411,14 +424,13 @@ class ThreePhasePlot(PhasePlot):
         vmin = na.nanmin(vals[vit])
         vmax = na.nanmax(vals[vit])
         vals[vi] = 0.0
-        self.ticker = None
         if logIt:
             print "Logging", vmin, vmax
             self.norm=matplotlib.colors.LogNorm(vmin=vmin, vmax=vmax, clip=False)
             location_of_ticks = na.logspace(vmin*1.1, vmax*0.9, num=6)
             #self.ticker = matplotlib.ticker.LogLocator( \
                   #subs=[0.1, 0.17782794,  0.31622777,  0.56234133 ] )
-            self.ticker = matplotlib.ticker.FixedLocator([1e-1, 0.76])
+            #self.ticker = matplotlib.ticker.FixedLocator([1e-1, 0.76])
         else:
             print "Not logging", vmin, vmax
             self.norm=matplotlib.colors.Normalize(vmin=vmin, vmax=vmax, clip=False)
