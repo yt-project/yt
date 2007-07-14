@@ -1,24 +1,28 @@
 Hi there.  This is the README file for yt, which is a set of Enzo management
 tools.
 
-yt is broken into several categories.  Note that in the descriptions, I will
-speak about them in the present tense, and yet, at the time of writing
-(08FEB07) all of these are mere skeletons.
-
     yt          -- This base module is always imported, and includes the
-                   global configuration for the yt modules.
+                   global configuration for the yt modules.  Additionally,
+                   it deals with access to the dependencies that underlie
+                   all of the packages, and the logging module.
     enki        -- Here we initiate new runs; enki creates parameter files,
                    manages initial conditions, and handles enzo source code.
     fido        -- Data movement and automated plotting taes place here.  All
-                   file handling takes place through fido.
+                   file handling takes place through fido.  It remains mostly
+                   independent of the other modules, so as to be as lightweight
+                   as possible.
     lagos       -- This is the heart of our Enzo handling.  All Enzo data
                    structures are kept and defined here.  All data handling
                    takes place through lagos.
-    raven       -- This is the interface to HippoDraw, where all the slicing
-                   takes place.
+    raven       -- This is the plotter, which currently has interfaces to
+                   HippoDraw and Matplotlib.  The MPL interface is less mature,
+                   but in more active development, and is able to be embedded
+                   within the SAGE (www.sagemath.org) project.
     deliverator -- These classes and routines deal with interaction with The
                    Deliverator.  (Eventually the deliverator ittself will be
-                   checked into CVS.)
+                   checked into SVN, although in a different repository.)
 
-Anyway, please, feel free to help out.  Some somewhat­outdated outlines can be
-found in doc/ and I've sketched out some of the interfaces.
+Please feel free to help out.  The Trac site at http://yt.spacepope.org/ has
+mechanisms for ticket submission, as well as an ever-growing Wiki.
+
+        -- Matthew Turk, mturk@stanford.edu
