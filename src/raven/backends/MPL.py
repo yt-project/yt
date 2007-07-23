@@ -23,7 +23,6 @@ import matplotlib._image
 import matplotlib.colors
 import matplotlib.colorbar
 import matplotlib.cm
-from matplotlib.backends.backend_agg import FigureCanvasAgg
 
 class LinkedAMRSubPlots:
     def __init__(self, linkWidth, linkZ, plots = []):
@@ -46,6 +45,7 @@ def ClusterFilePlot(cls, x, y, xlog=None, ylog=None, fig=None, filename=None,
     
     """
     if not fig:
+        from matplotlib.backends.backend_agg import FigureCanvasAgg
         fig = matplotlib.figure.Figure(figsize=(8,8))
         canvas = FigureCanvasAgg(fig)
     ax = fig.add_subplot(111)
@@ -68,18 +68,23 @@ def ClusterFilePlot(cls, x, y, xlog=None, ylog=None, fig=None, filename=None,
         pp=ax.plot
 
     fig.hold(True)
-    for cl in cls:
-        pp(cl[x],cl[y], lw=2.5)
+    colors = 'krbgm' * 10
+    for cl, cc in zip(cls, colors):
+        #pp(cl[x],cl[y], lw=2.5)
+        pp(cl[x], cl[y], lw=2.5, color=cc)
     if lagos.CFfieldInfo.has_key(x):
-        ax.set_xlabel(lagos.CFfieldInfo[x][1])
+        ax.set_xlabel(lagos.CFfieldInfo[x][1], fontsize=18)
         print lagos.CFfieldInfo[x][1]
     if lagos.CFfieldInfo.has_key(y):
-        ax.set_ylabel(lagos.CFfieldInfo[y][1])
+        ax.set_ylabel(lagos.CFfieldInfo[y][1], fontsize=18)
         print lagos.CFfieldInfo[y][1]
     if xbounds:
         ax.set_xlim(xbounds)
     if ybounds:
         ax.set_ylim(ybounds)
+    ax.axesFrame.set_linewidth(2)
+    for tickLabel in ax.get_xticklabels() + ax.get_yticklabels():
+        tickLabel.set_fontsize(14)
     if filename:
         canvas.print_figure(filename, format=format)
     return fig
@@ -93,7 +98,10 @@ axisFieldDict = {'X':'Field1', 'Y':'Field2', 'Z':'Field3'}
 
 def Initialize(*args, **kwargs):
     engineVals["initialized"] = True
-    from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
+    if not kwargs.has_key("canvas"):
+        from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
+    else:
+        FigureCanvas = kwargs["canvas"]
     engineVals["canvas"] = FigureCanvas
     return
 
