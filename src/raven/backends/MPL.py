@@ -178,7 +178,7 @@ class RavenPlot:
 
 class VMPlot(RavenPlot):
 
-    def __init__(self, data, field, figure = None, axes = None, useColorBar = True):
+    def __init__(self, data, field, figure = None, axes = None, useColorBar = True, size=(800,800)):
         fields = ['X', 'Y', field, 'X width', 'Y width']
         RavenPlot.__init__(self, data, fields, figure, axes)
         self.figure.subplots_adjust(hspace=0,wspace=0,bottom=0.0, top=1.0, left=0.0, right=1.0)
@@ -193,7 +193,8 @@ class VMPlot(RavenPlot):
         else:
             self.logIt = False
             self.norm = matplotlib.colors.Normalize()
-        temparray = na.ones((800,800))
+        temparray = na.ones(size)
+        self.size = size
         self.image = \
             self.axes.imshow(temparray, interpolation='nearest', norm = self.norm,
                             aspect=1.0)
@@ -212,7 +213,7 @@ class VMPlot(RavenPlot):
         self.redraw_image()
         self.selfSetup()
 
-    def redraw_image(self):
+    def redraw_image(self, *args):
         #x0, y0, v_width, v_height = self.axes.viewLim.get_bounds()
         self.axes.clear()
         x0, x1 = self.xlim
@@ -223,7 +224,7 @@ class VMPlot(RavenPlot):
                             self.data['dx'],
                             self.data['dy'],
                             self[self.axisNames["Z"]],
-                            int(800), int(800),
+                            int(width), int(width),
                         (x0, x1, y0, y1),).transpose()
         if self.logIt:
             bI = na.where(buff > 0)
@@ -237,6 +238,10 @@ class VMPlot(RavenPlot):
         self.image = \
             self.axes.imshow(buff, interpolation='nearest', norm = self.norm,
                             aspect=1.0)
+        self.axes.set_xticks(())
+        self.axes.set_yticks(())
+        self.axes.set_ylabel("")
+        self.axes.set_xlabel("")
         if self.cmap:
             self.image.set_cmap(self.cmap)
         if self.colorbar != None:
@@ -433,14 +438,12 @@ class ThreePhasePlot(PhasePlot):
         vmax = na.nanmax(vals[vit])
         vals[vi] = 0.0
         if logIt:
-            print "Logging", vmin, vmax
             self.norm=matplotlib.colors.LogNorm(vmin=vmin, vmax=vmax, clip=False)
             location_of_ticks = na.logspace(vmin*1.1, vmax*0.9, num=6)
             #self.ticker = matplotlib.ticker.LogLocator( \
                   #subs=[0.1, 0.17782794,  0.31622777,  0.56234133 ] )
             #self.ticker = matplotlib.ticker.FixedLocator([1e-1, 0.76])
         else:
-            print "Not logging", vmin, vmax
             self.norm=matplotlib.colors.Normalize(vmin=vmin, vmax=vmax, clip=False)
         self.cmap = matplotlib.cm.get_cmap()
         self.cmap.set_bad("k")
