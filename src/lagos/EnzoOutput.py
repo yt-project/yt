@@ -74,6 +74,8 @@ class EnzoStaticOutput(EnzoOutput):
         """
         if self.units.has_key(key):
             return self.units[key]
+        elif self.timeUnits.has_key(key):
+            return self.timeUnits[key]
         elif self.parameters.has_key(key):
             return self.parameters[key]
         return self.conversionFactors[key]
@@ -87,6 +89,7 @@ class EnzoStaticOutput(EnzoOutput):
         conversionFactors
         """
         return self.units.keys() \
+             + self.timeUnits.keys() \
              + self.parameters.keys() \
              + self.conversionFactors.keys()
 
@@ -95,6 +98,7 @@ class EnzoStaticOutput(EnzoOutput):
         Returns true or false
         """
         return (self.units.has_key(key) or \
+                self.timeUnits.has_key(key) or \
                 self.parameters.has_key(key) or \
                 self.conversionFactors.has_key(key))
 
@@ -137,6 +141,7 @@ class EnzoStaticOutput(EnzoOutput):
         Generates the conversion to various physical units based on the parameter file
         """
         self.units = {}
+        self.timeUnits = {}
         if len(self.parameters) == 0:
             self.parseParameterFile()
         if self["ComovingCoordinates"]:
@@ -162,9 +167,10 @@ class EnzoStaticOutput(EnzoOutput):
         for unit in unitList.keys():
             self.units[unit] = unitList[unit] * box
             self.units[unit+'h'] = unitList[unit] * boxh
+        self.timeUnits['1']     = 1
         self.units['1']     = 1
-        self.units['years'] = seconds / (365*3600*24.0)
-        self.units['days']  = seconds / (3600*24.0)
+        self.timeUnits['years'] = seconds / (365*3600*24.0)
+        self.timeUnits['days']  = seconds / (3600*24.0)
 
     def _get_hierarchy(self):
         if self._hierarchy == None:

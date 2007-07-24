@@ -1,5 +1,4 @@
-"""
-Fields derived from other data
+""" Fields derived from other data
 
 Unless otherwise specified in the field name, all fields should be returned in
 some form of natural, non-code units.  fieldInfo is of the form:
@@ -69,6 +68,13 @@ def Entropy(self, fieldName):
     self[fieldName] = self["Density"]**(-2./3.) * \
                            self["Temperature"]
 fieldInfo["Entropy"] = (None, None, True, Entropy)
+
+def H2IFractionNorm(self, fieldName):
+    """
+    Norm it to the hydrogen fraction
+    """
+    self[fieldName] = self["H2I_Density"]/(0.76*self["Density"])
+fieldInfo["H2I_Fraction_Norm"] = ("mass fraction of H", None, True, H2IFractionNorm)
 
 def DynamicalTime(self, fieldName):
     """
