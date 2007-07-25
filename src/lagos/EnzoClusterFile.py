@@ -201,6 +201,10 @@ def cfCoolDynComp(self):
     return self["T_cool"]/self["T_dyn"]
 CFfieldInfo["CoolDynComp"] = (cfCoolDynComp, r"$T_{\rm{cool}} / T_{\rm{dyn}}$", True)
 
+def cfH2INorm(self):
+    return self["H2I fraction"]/0.76
+CFfieldInfo["H2I fraction Norm"] = (cfH2INorm, r"$\rm{H}_2 \rm{fraction}$", True)
+
 def cfNumberDensity(self):
     t= (self["RhoCGS"] / mh) * (\
            (self["HI fraction"] + self["HII fraction"] + self["H- fraction"]) / 1.0 \
@@ -211,3 +215,16 @@ def cfNumberDensity(self):
     #return (self["RhoCGS"]/mh) * self["H2I fraction"] / 2.0
     return t
 CFfieldInfo["NumberDensity"] = (cfNumberDensity, r"$n (\rm{cm}^{-3})$", True)
+
+def cfMassAccretionRate(self):
+    # Mdot = 4*pi*r^2 * rho * v_r
+    # Convert v_r into Mpc/s, then use rho in M_sun / Mpc^3, r^2 in Mpc
+    vr = na.abs(self["v_r"] *  1.02268e-12) # goes to Mpc/year
+    Mdot = self["d_gas (Ms/Mpc^3)"] * 4 * 3.1415926 * \
+            (self["bin central radius (Mpc)"]**2.0) * vr
+    return Mdot
+CFfieldInfo["MassAccretionRate"] = (cfMassAccretionRate, "Mdot (M_sun)", True)
+
+def cfVRoverVCirc(self):
+    return na.abs(self["v_r"])/na.abs(self["vcirc_gas (km/s)"])
+CFfieldInfo["VRoverVCirc"] = (cfVRoverVCirc, None, True)

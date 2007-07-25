@@ -310,9 +310,12 @@ class EnzoProj(Enzo2DData):
             self.serialize()
 
     def serialize(self):
+        mylog.info("Serializing data...")
         nodeName = "%s_%s_%s" % (self.fields[0], self.weightField, self.axis)
+        mylog.info("nodeName: %s", nodeName)
         projArray = na.array([self.x, self.y, self.dx, self.dy, self[self.fields[0]]])
         self.hierarchy.saveData(projArray, "/Projections", nodeName)
+        mylog.info("Done serializing...")
 
     def deserialize(self):
         nodeName = "%s_%s_%s" % (self.fields[0], self.weightField, self.axis)

@@ -28,6 +28,7 @@ ravenLogger = logging.getLogger("yt.raven")
 lagosLogger = logging.getLogger("yt.lagos")
 enkiLogger = logging.getLogger("yt.enki")
 deliveratorLogger = logging.getLogger("yt.deliverator")
+reasonLogger = logging.getLogger("yt.reason")
 
 # Maybe some day we'll make this more configurable...  unfortunately, for now,
 # we preserve thread-safety by opening in the current directory.
@@ -61,3 +62,7 @@ if ytcfg.getboolean("yt","logfile") and os.access(".", os.W_OK):
         deliveratorHandler = handlers.RotatingFileHandler("deliverator.log", maxBytes=mb, backupCount=bc)
         deliveratorHandler.setFormatter(f)
         deliveratorLogger.addHandler(deliveratorHandler)
+
+        reasonHandler = handlers.RotatingFileHandler("reason.log", maxBytes=mb, backupCount=bc)
+        reasonHandler.setFormatter(f)
+        reasonLogger.addHandler(reasonHandler)

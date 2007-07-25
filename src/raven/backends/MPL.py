@@ -219,6 +219,8 @@ class VMPlot(RavenPlot):
         x0, x1 = self.xlim
         y0, y1 = self.ylim
         l, b, width, height = self.axes.bbox.get_bounds()
+        self.pix = (width,height)
+        #print l,b,width,height
         buff = _MPL.Pixelize(self.data['x'],
                             self.data['y'],
                             self.data['dx'],

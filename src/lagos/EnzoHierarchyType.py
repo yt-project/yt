@@ -125,6 +125,7 @@ class EnzoHierarchy:
     def saveData(self, array, node, name):
         if self.dataFile != None:
             self.dataFile.createArray(node, name, array, createparents=True)
+            self.dataFile.flush()
 
     def getData(self, node, name):
         if self.dataFile == None:
@@ -145,7 +146,10 @@ class EnzoHierarchy:
         if self.dataFile:
             self.dataFile.close()
             del self.dataFile
-        del self.eiTopGrid
+        try:
+            del self.eiTopGrid
+        except:
+            pass
         del self.gridReverseTree
         del self.gridLeftEdge, self.gridRightEdge
         del self.gridLevels, self.gridStartIndices, self.gridEndIndices

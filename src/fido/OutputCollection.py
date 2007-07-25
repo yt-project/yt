@@ -146,3 +146,14 @@ class OutputCollection:
             a5b.createArray("/","sorted_timesteps", na.array(sorted_timesteps, dtype=nT.Int32))
             a5b.createArray("/","sorted_times", na.array(sorted_times, dtype=nT.Float64))
             a5b.close()
+
+def GrabCollections(path=None):
+    if not path: path=ytcfg.get("fido","rundir")
+    ocs = []
+    for file in glob.glob(os.path.join(path,"yt_*")):
+        title=os.path.basename(file)
+        ocs.append(OutputCollection(title))
+        ocs[-1].readIn(file)
+    return ocs
+
+
