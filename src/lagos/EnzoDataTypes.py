@@ -689,7 +689,7 @@ class Enzo3DData(EnzoData):
         if self.coords == None:
             self.coords = na.array([self.x, self.y, self.z])
 
-    def makeProfile(self, fields, nBins, rInner, rOuter):
+    def makeProfile(self, fields, nBins, rInner, rOuter, binBy="RadiusCode", logIt = True):
         """
         Here we make a profile.  Note that, for now, we do log-spacing in the
         bins, and we also assume we are given the radii in code units.
@@ -713,19 +713,19 @@ class Enzo3DData(EnzoData):
             fields = [fields]
         rOuter = min(rOuter, self.findMaxRadius)
         # Let's make the bins
-        lrI = log10(rInner)
-        lrO = log10(rOuter)
-        st = (lrO-lrI)/(nBins-1)
-        bins = 10**(na.arange(lrI, lrO+st, st))
-        radiiOrder = na.argsort(self["RadiusCode"])
+        if logIt:
+            bins = na.logspace(log10(rInner), log10(rOuter), nBins)
+        else:
+            bins = na.linspace(rInner, rOuter, nBins)
+        radiiOrder = na.argsort(self[binBy])
         fieldCopies = {} # We double up our memory usage here for sorting
-        radii = self["RadiusCode"][radiiOrder]
+        radii = self[binBy][radiiOrder]
         #print radii.max()
         #print radii.min()
         #print radii.shape
         #print "BINS!", bins
         binIndices = na.searchsorted(bins, radii)
-        nE = self["RadiusCode"].shape[0]
+        nE = self[binBy].shape[0]
         #defaultWeight = na.ones(nE, nT.Float32)
         defaultWeight = self["CellMass"][radiiOrder]
         fieldProfiles = {}
@@ -758,7 +758,7 @@ class Enzo3DData(EnzoData):
             fieldProfiles[field] = fp
         #return bins
         #print rOuter, rInner, st, nBins, bins, bins[:nBins]
-        fieldProfiles["OuterRadius"] = bins[:nBins]
+        fieldProfiles[binBy] = bins[:nBins]
         co = AnalyzeClusterOutput(fieldProfiles)
         return co
 

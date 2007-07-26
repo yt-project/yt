@@ -38,12 +38,14 @@ except:
 try:
     import EnzoFortranRoutines
 except:
-    mylog.warning("EnzoFortranRoutines import failed; all fortran calls will fail!")
+    pass
+    #mylog.warning("EnzoFortranRoutines import failed; all fortran calls will fail!")
 
 import EnzoCombine
 from EnzoDefs import *
-from EnzoDerivedFields import *
-from EnzoFortranWrapper import *
+from EnzoDerivedFields import fieldInfo, log_fields, colormap_dict
+from EnzoDerivedQuantities import quantityInfo
+#from EnzoFortranWrapper import *
 from EnzoDataFuncs import *
 from EnzoGridType import *
 from EnzoClusterFile import *

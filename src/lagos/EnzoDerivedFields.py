@@ -52,6 +52,7 @@ fieldInfo["X"] = ("", None, False, None)
 fieldInfo["Y"] = ("", None, False, None)
 fieldInfo["DY"] = ("", None, False, None)
 fieldInfo["DX"] = ("", None, False, None)
+fieldInfo["Phi"] = ("", None, False, None)
 
 # These are all the fields that should be logged when plotted
 # NOTE THAT THIS IS OVERRIDEN BY fieldInfo !
@@ -104,88 +105,11 @@ def H2FormationTime(self, fieldName):
                        * self["H2I_Density"]/2.0 ) ) 
 fieldInfo["H2FormationTime"] = ("s", None, True, H2FormationTime)
 
-def H2DissociationTime(self, fieldName):
-    """
-    This calculates the dissociation time using k23 and k13dd
-    """
-    self[fieldName] = abs( (self["H2I_Density"]/2.0) / \
-                       ( self["H2I_Density"]/2.0 \
-                       * self.hierarchy.rates[self["Temperature"],"k23"] \
-                       * self.hierarchy.rates.params["kunit"] \
-                       * self["H2I_Density"]/2.0 + \
-                         self["HI_Density"] \
-                       * self["k13DensityDependent"] \
-                       * self.hierarchy.rates.params["kunit"] \
-                       * self["H2I_Density"]/2.0) )
-fieldInfo["H2DissociationTime"] = ("s", None, True, H2DissociationTime)
-
-def k23DissociationTime(self, fieldName):
-    """Just k23"""
-    self[fieldName] = abs( self["H2I_Density"] / \
-                       ( self["H2I_Density"]*2 \
-                       * self.hierarchy.rates[self["Temperature"],"k23"] \
-                       * self.hierarchy.rates.params["kunit"] \
-                       * self["H2I_Density"]*2) )
-fieldInfo["k23DissociationTime"] = ("s" , None, True, k23DissociationTime)
-
-def k13DissociationTime(self, fieldName):
-    """Just k13dd"""
-    self[fieldName] = abs( self["H2I_Density"] / \
-                       ( self["HI_Density"] \
-                       * self["k13DensityDependent"] \
-                       * self.hierarchy.rates.params["kunit"] \
-                       * self["H2I_Density"] ) )
-fieldInfo["k13DissociationTime"] = ("s" , None, True, k13DissociationTime)
-
 def CIEOpticalDepthFudge(self, fieldName):
     """Optical depth from CIE"""
     tau = na.maximum((self["NumberDensity"]/2.0e16)**2.8, 1.0e-5)
     self[fieldName] = na.minimum(1.0, (1.0-exp(-tau))/tau)
 fieldInfo["CIEOpticalDepthFudge"] = (None, None, False, CIEOpticalDepthFudge)
-
-def compH2DissociationTime(self, fieldName):
-    """k13/k23"""
-    self[fieldName] = self["k13DissociationTime"] \
-                         / self["k23DissociationTime"]
-fieldInfo["compH2DissociationTime"] = ("t_k13/t_k23" , None, True, compH2DissociationTime)
-
-def k13DensityDependent(self, fieldName):
-    """k13dd"""
-    dom = self.hierarchy["Density"] / 1.67e-24
-    nh = na.minimum(self["HI_Density"]*dom, 1.0e9)
-    k1 = self.hierarchy.rates[self["Temperature"],"k13_1"]
-    k2 = self.hierarchy.rates[self["Temperature"],"k13_2"]
-    k3 = self.hierarchy.rates[self["Temperature"],"k13_3"]
-    k4 = self.hierarchy.rates[self["Temperature"],"k13_4"]
-    k5 = self.hierarchy.rates[self["Temperature"],"k13_5"]
-    k6 = self.hierarchy.rates[self["Temperature"],"k13_6"]
-    k7 = self.hierarchy.rates[self["Temperature"],"k13_7"]
-    self[fieldName] = na.maximum( 10.0**( \
-            k1-k2/(1+(nh/k5)**k7) \
-          + k3-k4/(1+(nh/k6)**k7) )\
-          , 1e-30 )
-fieldInfo["k13DensityDependent"] = ("cm^-3" , None, True, k13DensityDependent)
-
-def H2EquilibriumBalance(self, fieldName):
-    """L{H2FormationTime}/L{H2DissociationTime}"""
-    self[fieldName] = abs(
-                        self["H2FormationTime"] \
-                      / self["H2DissociationTime"] )
-fieldInfo["H2EquilibriumBalance"] = ("t_formation/t_dissociation" , None, True, H2EquilibriumBalance)
-
-def H2FormationDynamicalBalance(self, fieldName):
-    """t_dyn / L{H2FormationTime}"""
-    self[fieldName] = abs( \
-                        self["DynamicalTime"]
-                     /  self["H2FormationTime"] )
-fieldInfo["H2FormationDynamicalBalance"] = ("t_dyn/t_k22", None, True, H2FormationDynamicalBalance)
-
-def H2DissociationDynamicalBalance(self, fieldName):
-    """t_dyn / L{H2DissociationTime}"""
-    self[fieldName] = abs( \
-                        self["DynamicalTime"]
-                     /  self["H2DissociationTime"] )
-fieldInfo["H2DissociationDynamicalBalance"] = ("t_dyn/t_k23", None, True, H2DissociationDynamicalBalance)
 
 def DCComp(self, fieldName):
     """t_dyn / courant_time"""
@@ -302,11 +226,6 @@ def CourantTimeStep(self, fieldName):
     del t1, t2, t3
 fieldInfo["CourantTimeStep"] = ("s", None, True, CourantTimeStep)
 
-def H2FormationCourant(self, fieldName):
-    """L{H2FormationTime}/L{CourantTimeStep}"""
-    self[fieldName] = self["H2FormationTime"] / self["CourantTimeStep"]
-fieldInfo["H2FormationCourant"] = ("t_formation/t_courant", None, True, H2FormationCourant)
-
 def RadialVelocity(self, fieldName):
     """
     Velocity toward object.center, subtracting off the object.bulkVelocity
@@ -412,44 +331,6 @@ def CoolingTimeCourantTimeComp(self, fieldName):
     """t_cool / t_courant"""
     self[fieldName] = self["CoolingTime"]/self["CourantTimeStep"]
 fieldInfo["CoolingTimeCourantTimeComp"] = ("t_cool/t_c", None, True, CoolingTimeCourantTimeComp)
-
-def Gamma2(self, fieldName):
-    """
-    The minor H2 correction to the equation of state
-    Note that we use the existing TempFromGE field, which is a little stupid
-    since we're using Gamma2 to calculate temperature at a different time,
-    but we will call it okay since Gamma2 should be a small correction
-    """
-    x = 6100.0 / self["TempFromGE"]
-    x_gt = 2.5
-    x_lt = 0.5*(5.0+2.0*x**2.0 * na.exp(x)/(na.exp(x)-1.0)**2)
-    self[fieldName] = na.choose(na.greater(x,10.0),(x_lt,x_gt))
-    nH2 = 0.5 * (self["H2I_Density"] + self["H2II_Density"])
-    nOther = self["NumberDensityCode"] - nH2
-    self[fieldName] = 1.0 + (nH2 + nOther) / \
-        (nH2*self[fieldName] + nOther/(self.hierarchy["Gamma"]-1))
-fieldInfo["Gamma2"] = (None, None, True, Gamma2)
-
-def TempFromGE(self, fieldName):
-    """
-    We are going to calculate the temperature the same
-    way it's calculated in s_r_c.  Helpful for rate solver checking.
-    Note that this assumes DaulEnergyFormalism.  If you want it to work with
-    RegularEnergyFormalism, do it yourself.  <smiley removed at request of
-    etiquette board>
-    """
-    self[fieldName] = self["Pressure"] * self.hierarchy["Temp"] \
-                    / (self["NumberDensityCode"])
-    self[fieldName] *= (self["Gamma2"] - 1.0) \
-                     / (self.hierarchy["Gamma"] - 1.0)
-fieldInfo["TempFromGE"] = ("K", None, False, TempFromGE)
-
-def TempComp(self, fieldName):
-    """
-    L{TempFromGE}/Temperature
-    """
-    self[fieldName] = self["TempFromGE"]/self["Temperature"]
-fieldInfo["TempComp"] = ("t_ge/t_output",None,False,TempComp)
 
 def ColorSum(self, fieldName):
     """
