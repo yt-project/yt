@@ -393,17 +393,32 @@ class EnzoProj(Enzo2DData):
         axis = self.axis # Speed up the access here by a miniscule amount
         dataFieldName = field
         for level in range(minLevel, self.maxLevel+1):
-            zeroOut = (level != self.maxLevel)
-            mylog.info("Projecting through level = %s", level)
             gridsToProject = h.grids[h.selectLevel(level)]
-            for grid in gridsToProject:
+            widgets = [ 'Projecting level %s / %s' % (level, self.maxLevel),
+                        Percentage(), ' ',
+                        Bar(marker=RotatingMarker()),
+                        ' ', ETA(), ' ']
+            pbar = ProgressBar(widgets=widgets, 
+                                     maxval=len(gridsToProject)).start()
+            zeroOut = (level != self.maxLevel)
+            #mylog.info("Projecting through level = %s", level)
+            for pi, grid in enumerate(gridsToProject):
                 grid.retVal = grid.getProjection(axis, field, zeroOut, weight=weightField)
                 totalGridsProjected += 1
-            mylog.debug("Grid projecting done (%s / %s total)", \
-                        totalGridsProjected, h.numGrids)
-            mylog.debug("Combining level %s...", level)
+                pbar.update(pi)
+            pbar.finish()
+            #mylog.debug("Grid projecting done (%s / %s total)", \
+                        #totalGridsProjected, h.numGrids)
+            #mylog.debug("Combining level %s...", level)
             i = 0
-            for grid1 in gridsToProject:
+            widgets = [ 'Combining level %s / %s' % (level, self.maxLevel),
+                        Percentage(), ' ',
+                        Bar(marker=RotatingMarker()),
+                        ' ', ETA(), ' ']
+            pbar = ProgressBar(widgets=widgets, 
+                                     maxval=len(gridsToProject)).start()
+            for pi, grid1 in enumerate(gridsToProject):
+                pbar.update(pi)
                 i += 1
                 if grid1.retVal[0].shape[0] == 0:
                     continue # We skip anything already processed
@@ -426,6 +441,7 @@ class EnzoProj(Enzo2DData):
                             grid1.retVal[2], grid1.retVal[4], \
                             grid2.coarseData[0], grid2.coarseData[1], \
                             grid2.coarseData[2], grid2.coarseData[4], 2)
+            pbar.finish()
             all_data = [ [grid.retVal[j] for grid in gridsToProject] for j in range(5)]
             for grid in gridsToProject:
                 cI = na.where(grid.retVal[3]==0)

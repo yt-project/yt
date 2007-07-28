@@ -416,6 +416,13 @@ class EnzoHierarchy:
         gridI = na.where(na.logical_and((self.gridDxs<=radius)[:,0],(dist < (radius + long_axis))) == 1)
         return self.grids[gridI], gridI
 
+    def getBoxGrids(self, leftEdge, rightEdge):
+        print self.grids
+        gridI = na.where(na.logical_and(na.any(self.gridRightEdge > leftEdge, axis=1),
+                                        na.any(self.gridLeftEdge < rightEdge, axis=1)) == True)
+        print gridI
+        return self.grids[gridI], gridI
+
     def getSphere(self, center, radius, fields):
         """
         Deprecated.  Returns array of vals.  Don't use.

@@ -7,6 +7,7 @@ Useful functions.  If non-original, see function for citation.
 """
 
 import time
+from progressbar import *
 
 def iterable(obj):
     """
