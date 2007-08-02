@@ -23,8 +23,9 @@ class EnzoData:
         @param fields: Fields represented in the data
         @type fields: list of strings
         """
-        self.pf = pf
-        self.hierarchy = pf.hierarchy
+        if pf != None:
+            self.pf = pf
+            self.hierarchy = pf.hierarchy
         if not isinstance(fields, types.ListType):
             fields = [fields]
         self.fields = fields
@@ -184,7 +185,7 @@ class Enzo2DData(EnzoData):
     Class to represent a set of EnzoData that's 2-D in nature.  Slices and
     projections, primarily.
     """
-    def __init__(self, pf, axis, fields):
+    def __init__(self, axis, fields, pf=None):
         """
         Prepares the Enzo2DData.
 
@@ -266,7 +267,7 @@ class Enzo2DData(EnzoData):
     def discretize(self, LE, RE, field, side, logSpacing=True):
         pass
 
-class EnzoProj(Enzo2DData):
+class EnzoProjBase(Enzo2DData):
     """
     """
     def __getitem__(self, key):
@@ -283,8 +284,8 @@ class EnzoProj(Enzo2DData):
             return self.dy
         return self.data[key]
 
-    def __init__(self, pf, axis, field, weightField = None,
-                 maxLevel = None, center = None):
+    def __init__(self, axis, field, weightField = None,
+                 maxLevel = None, center = None, pf = None):
         """
         Returns an instance of EnzoProj.  Note that this object will be fairly static.
 
@@ -297,7 +298,7 @@ class EnzoProj(Enzo2DData):
         @keyword weightField: the field to weight by
         @keyword maxLevel: the maximum level to project through
         """
-        Enzo2DData.__init__(self, pf, axis, field)
+        Enzo2DData.__init__(self, axis, field, pf)
         if maxLevel == None:
             maxLevel = self.hierarchy.maxLevel
         self.maxLevel = maxLevel
@@ -476,13 +477,13 @@ class EnzoProj(Enzo2DData):
             grid.clearAll()
         
 
-class EnzoSlice(Enzo2DData):
+class EnzoSliceBase(Enzo2DData):
     """
     A slice at a given coordinate along a given axis through the entire grid
     hierarchy.
     """
 #    @time_execution
-    def __init__(self, pf, axis, coord, fields = None, center=None, fRet=False):
+    def __init__(self, axis, coord, fields = None, center=None, fRet=False, pf=None):
         """
         Returns an instance of EnzoSlice.
 
@@ -504,7 +505,7 @@ class EnzoSlice(Enzo2DData):
         data points?
         @type fRet: bool
         """
-        Enzo2DData.__init__(self, pf, axis, fields)
+        Enzo2DData.__init__(self, axis, fields, pf)
         self.center = center
         self.coord = coord
         self.coords = None
@@ -654,7 +655,7 @@ class Enzo3DData(EnzoData):
     Class describing a cluster of data points, not necessarily sharing a
     coordinate.
     """
-    def __init__(self, pf, center, fields):
+    def __init__(self, center, fields, pf = None):
         """
         Returns an instance of Enzo3DData, or prepares one.
 
@@ -778,8 +779,8 @@ class Enzo3DData(EnzoData):
         co = AnalyzeClusterOutput(fieldProfiles)
         return co
 
-class EnzoRegion(Enzo3DData):
-    def __init__(self, pf, center, leftEdge, rightEdge, fields = None):
+class EnzoRegionBase(Enzo3DData):
+    def __init__(self, center, leftEdge, rightEdge, fields = None, pf = None):
         """
         Initializer for a rectangular prism of data.
 
@@ -787,7 +788,7 @@ class EnzoRegion(Enzo3DData):
         """
         mylog.warning("ENZOREGION MAY NOT WORK PROPERLY!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
         mylog.warning("(Ji-hoon has more info.)")
-        Enzo3DData.__init__(self, pf, center, fields)
+        Enzo3DData.__init__(self, center, fields, pf)
         self.fields = ["Radius"] + self.fields
         self.leftEdge = leftEdge
         self.rightEdge = rightEdge
@@ -878,8 +879,8 @@ class EnzoRegion(Enzo3DData):
                 dx], nT.Float64).swapaxes(0,1)
         return tr
 
-class EnzoDataCube(Enzo3DData):
-    def __init__(self, pf, level, center, dim, fields = None):
+class EnzoDataCubeBase(Enzo3DData):
+    def __init__(self, level, center, dim, fields = None, pf = None):
         """
         This returns a cube of equal-resolution data, with 
         dimensions dim x dim x dim .
@@ -899,7 +900,7 @@ class EnzoDataCube(Enzo3DData):
         @type fields: list of strings
         """
 
-        Enzo3DData.__init__(self, pf, center, fields)
+        Enzo3DData.__init__(self, center, fields, pf)
         self.fields = ["Radius"] + self.fields
         dx = hierarchy.gridDxs[hierarchy.levelIndices[level][0]]
         self.leftEdge  = center - dx*(dim/2.0)
@@ -940,11 +941,11 @@ class EnzoDataCube(Enzo3DData):
         self.dx = na.ones(len(self['x']), dtype=self['x'].dtype)*self.dx
         EnzoData.writeOut(self, filename, header)
 
-class EnzoSphere(Enzo3DData):
+class EnzoSphereBase(Enzo3DData):
     """
     A sphere of points
     """
-    def __init__(self, pf, center, radius, fields = None):
+    def __init__(self, center, radius, fields = None, pf = None):
         """
         @param hierarchy: hierarchy we are associated with
         @type hierarchy: L{EnzoHierarchy<EnzoHierarchy>}
@@ -955,7 +956,7 @@ class EnzoSphere(Enzo3DData):
         @keyword fields: fields to read/generate
         @type fields: list of strings
         """
-        Enzo3DData.__init__(self, pf, center, fields)
+        Enzo3DData.__init__(self, center, fields, pf)
         self.fields = ["Radius"] + self.fields
         self.radius = radius
         self.radii = None

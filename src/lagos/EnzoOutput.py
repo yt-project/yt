@@ -28,12 +28,13 @@ class EnzoStaticOutput(EnzoOutput):
            Maybe it is just more appropriate to think of time series data and
            single-time data?
     """
-    _hierarchy = None
-    def __init__(self, filename, data_style = None, hdf_version=4):
+    __hierarchy = None
+    def __init__(self, filename, data_style=4):
         """
         @note: We disregard data_style here.
                We should probably implement a guess-and-check.
         """
+        self.data_style = data_style
         if filename.endswith(".hierarchy"):
             filename = filename[:-10]
         self.parameterFilename = "%s" % (filename)
@@ -173,13 +174,14 @@ class EnzoStaticOutput(EnzoOutput):
         self.timeUnits['days']  = seconds / (3600*24.0)
 
     def _get_hierarchy(self):
-        if self._hierarchy == None:
-            self._hierarchy = EnzoHierarchy(self)
-        return self._hierarchy
+        if self.__hierarchy == None:
+            self.__hierarchy = EnzoHierarchy(self, data_style=self.data_style)
+        return self.__hierarchy
 
     def _set_hierarchy(self, newh):
-        if self._hierarchy != None:
+        if self.__hierarchy != None:
             mylog.warning("Overriding hierarchy attribute!  This is probably unwise!")
-        self._hierarchy = newh
+        self.__hierarchy = newh
 
     hierarchy = property(_get_hierarchy, _set_hierarchy)
+    h = property(_get_hierarchy, _set_hierarchy)

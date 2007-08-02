@@ -15,6 +15,12 @@ from collections import defaultdict
 import string, re, gc, time
 import yt.enki
 
+dataStyleFuncs = \
+   { 4: (readDataHDF4, readAllDataHDF4, getFieldsHDF4, readDataSliceHDF4), \
+     5: (readDataHDF5, readAllDataHDF5, getFieldsHDF5, readDataSliceHDF5), \
+     6: (readDataPacked, readAllDataPacked, getFieldsPacked, readDataSlicePacked) \
+   }
+
 class EnzoHierarchy:
     """
     Class for handling Enzo timestep outputs
@@ -32,21 +38,6 @@ class EnzoHierarchy:
         up to parameter file
         """
         # For now, we default to HDF4, but allow specifying HDF5
-        if data_style == 4:
-            EnzoGrid.readDataFast = readDataHDF4
-            EnzoGrid.readAllData = readAllDataHDF4
-            EnzoGrid.getFields = getFieldsHDF4
-            EnzoSlice.readDataSlice = readDataSliceHDF4
-        elif data_style == 5:
-            mylog.warning("HDF5 format!  Not well tested!")
-            EnzoGrid.readDataFast = readDataHDF5
-            EnzoGrid.readAllData = readAllDataHDF5
-            EnzoGrid.getFields = getFieldsHDF5
-            EnzoSlice.readDataSlice = readDataSliceHDF5
-            warnings.filterwarnings("ignore",".*PyTables format.*")
-        elif data_style == 6:
-            # This will be the packed AMR format
-            raise RunTimeError, "Sorry, not implemented yet!"
         # Expect filename to be the name of the parameter file, not the
         # hierarchy
         self.hierarchyFilename = os.path.abspath(pf.parameterFilename) \
@@ -55,6 +46,7 @@ class EnzoHierarchy:
                                + ".boundary"
         self.directory = os.path.dirname(self.hierarchyFilename)
         self.parameterFile = pf
+        self.setupClasses(data_style)
         self.dataFile = None
         # Now we search backwards from the end of the file to find out how many
         # grids we have, which allows us to preallocate memory
@@ -83,7 +75,7 @@ class EnzoHierarchy:
         self.gridTimes = na.zeros((self.numGrids,1), nT.Float64)
         self.gridNumberOfParticles = na.zeros((self.numGrids,1))
 
-        self.grids = obj.array([EnzoGrid(self, i+1) for i in xrange(self.numGrids)])
+        self.grids = obj.array([self.grid(i+1) for i in xrange(self.numGrids)])
         self.gridReverseTree = [None] * self.numGrids
         self.gridTree = [ [] for i in range(self.numGrids)]
 
@@ -114,6 +106,23 @@ class EnzoHierarchy:
             pass
 
         self.populateHierarchy()
+
+    def setupClasses(self, data_style):
+        def genClass(base):
+            class MyClass(base):
+                pf = self.parameterFile
+                hierarchy = self
+                readDataFast = dataStyleFuncs[data_style][0]
+                readallData = dataStyleFuncs[data_style][1]
+                getFields = dataStyleFuncs[data_style][2]
+                readDataSlice = dataStyleFuncs[data_style][3]
+            return MyClass
+        self.grid = genClass(EnzoGridBase)
+        self.proj = genClass(EnzoProjBase)
+        self.slice = genClass(EnzoSliceBase)
+        self.region = genClass(EnzoRegionBase)
+        self.datacube = genClass(EnzoDataCubeBase)
+        self.sphere = genClass(EnzoSphereBase)
 
     def initializeDataFile(self):
         fn = os.path.join(self.directory,"%s.yt" % self["CurrentTimeIdentifier"])
@@ -180,7 +189,6 @@ class EnzoHierarchy:
             re_BaryonFileName = constructRegularExpressions("BaryonFileName",('s'))
             t = re.findall(re_BaryonFileName, self.hierarchyString)
             for fnI in xrange(len(t)):
-                #self.grids[fnI] = EnzoGrid(self, fnI+1)
                 self.grids[fnI].setFilename(t[fnI])
         else:
             for line in self.hierarchyLines:
@@ -193,7 +201,7 @@ class EnzoHierarchy:
                 param, vals = line.split("=")
                 if param == "Grid ":
                     curGrid = int(vals)
-                    self.grids[curGrid-1] = EnzoGrid(self, curGrid)
+                    self.grids[curGrid-1] = self.grid(curGrid)
                 elif param == "GridDimension     ":
                     splitConvertGridParameter(vals, float, self.gridDimensions, curGrid)
                 elif param == "GridStartIndex    ":
@@ -418,6 +426,7 @@ class EnzoHierarchy:
 
     def getBoxGrids(self, leftEdge, rightEdge):
         print self.grids
+
         gridI = na.where(na.logical_and(na.any(self.gridRightEdge > leftEdge, axis=1),
                                         na.any(self.gridLeftEdge < rightEdge, axis=1)) == True)
         print gridI
