@@ -22,7 +22,7 @@ from yt.config import ytcfg
 from yt.arraytypes import *
 import yt.lagos as lagos
 try:
-    import yt.deliverator
+    import yt.raven.deliveration as deliveration
 except:
     mylog.warning("Deliverator import failed; all deliverator actions will fail!")
 

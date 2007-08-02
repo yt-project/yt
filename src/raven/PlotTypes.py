@@ -22,7 +22,7 @@ class PlotCollection:
         if submitToDeliverator > 0:
             self.submit = True
             self.RunID = submitToDeliverator
-            r=yt.deliverator.SubmitParameterFile(\
+            r=deliveration.SubmitParameterFile(\
                 submitToDeliverator, self.pf)
             mylog.debug("Received response '%s'", r)
             self.httpPrefix = ytcfg["raven","httpPrefix"] % self.pf
@@ -39,7 +39,7 @@ class PlotCollection:
                 im["Filename"] = self.httpPrefix + "/" \
                                 + os.path.basename(fn[-1])
                 im["RunID"] = self.RunID
-                yt.deliverator.SubmitImage(\
+                yt.deliveration.SubmitImage(\
                       self.pf.hierarchy, im)
             mylog.info("Saved %s", fn[-1])
         return fn
