@@ -26,12 +26,10 @@ class EnzoGridBase:
         @type filename: string
         """
         self.id = id
-        if hierarchy:
-            self.hierarchy = hierarchy
         self.data = {}
         self.datasets = {}
-        if filename:
-            self.setFilename(filename)
+        if hierarchy: self.hierarchy = hierarchy
+        if filename: self.setFilename(filename)
         self.myChildMask = None
         self.myChildIndices = None
         self.myOverlapMasks = [None, None, None]
@@ -46,10 +44,8 @@ class EnzoGridBase:
         from the hierarchy
         (Maybe dangerous?)
         """
-        try:
-            return eval("self.hierarchy.%s" % (attr))
-        except:
-            raise AttributeError, attr
+        warnings.warn("Accessing hierarchy attribute via grid", DeprecationWarning)
+        return getattr(self.hierarchy, attr)
 
     def __getitem__(self, key):
         """
@@ -91,7 +87,7 @@ class EnzoGridBase:
     def has_key(self, key):
         """
         Checks to see if this field *is already generated.*  Will not check to
-        see if it *can*  be generated.
+        see if it *can* be generated.
         """
         return self.data.has_key(key)
 
@@ -102,8 +98,6 @@ class EnzoGridBase:
         return self.data.keys()
 
     def clearAllGridReferences(self):
-        #print "clearingAllGridReferences in EnzoGrid ", self.id
-        #return
         self.clearDerivedQuantities()
         if hasattr(self, 'hierarchy'):
             del self.hierarchy
@@ -114,29 +108,20 @@ class EnzoGridBase:
         if hasattr(self, 'Children'):
             for i in self.Children:
                 if i != None:
-                    #i.clearAllGridReferences()
                     del i
             del self.Children
 
     def __del__(self):
-        #self.clearAllGridReferences()
         return
-        #print weakref.getweakrefcount(self)
-        #print gc.get_referents(self)
-        #del self.Parent
-        #del self.hierarchy
-        #del self.Children
-        #print "Really deleting ", self.id
-        
 
     def prepareGrid(self):
         """
         Copies all the appropriate attributes from the hierarchy
         """
+        # This is definitely the slowest part of generating the hierarchy
         # Now we give it pointers to all of its attributes
         h = self.hierarchy # cache it
         self.Dimensions = h.gridDimensions[self.id-1]
-        #print gc.get_referrers(self)
         self.StartIndices = h.gridStartIndices[self.id-1]
         self.EndIndices = h.gridEndIndices[self.id-1]
         self.LeftEdge = h.gridLeftEdge[self.id-1]
@@ -145,11 +130,10 @@ class EnzoGridBase:
         self.Time = h.gridTimes[self.id-1,0]
         self.NumberOfParticles = h.gridNumberOfParticles[self.id-1,0]
         self.ActiveDimensions = (self.EndIndices - self.StartIndices + 1)
-        #self.ActiveDimensions = self.Dimensions - 3
         self.Children = h.gridTree[self.id-1]
         pID = h.gridReverseTree[self.id-1]
         if pID != None:
-            self.Parent = weakref.proxy(h.grids[pID - 1])
+            self.Parent = h.grids[pID - 1]
         else:
             self.Parent = None
         # So first we figure out what the index is.  We don't assume
@@ -212,8 +196,10 @@ class EnzoGridBase:
                                                na.logical_and(cond3, cond4))
     def __repr__(self):
         return "%s" % (self.id)
+
     def __int__(self):
         return self.id
+
     def setFilename(self, filename):
         if filename[0] == os.path.sep:
             self.filename = filename
@@ -250,53 +236,9 @@ class EnzoGridBase:
         @param coord: position to check
         @type coord: array of floats
         """
-        # We accept arrays here, people, not tuples
         pos = (coord + 0.0) * self.dx + self.LeftEdge
         # Should 0.0 be 0.5?
         return pos
-
-    def getProjection(self, axis, field, zeroOut, weight=None):
-        """
-        Projects along an axis.  Currently in flux.  Shouldn't be called
-        directly.
-        """
-        if weight == None:
-            maskedData = self[field].copy()
-            weightData = na.ones(maskedData.shape)
-        else:
-            maskedData = self[field] * self[weight]
-            weightData = self[weight].copy()
-        if self.myChildMask == None:
-            self.generateChildMask()
-        if len(self.myOverlapMasks) == 0:
-            self.generateOverlapMasks()
-        if zeroOut:
-            maskedData[self.myChildIndices]=0
-            weightData[self.myChildIndices]=0
-            toCombineMask = na.logical_and.reduce(self.myChildMask, axis)
-        # How do we do this the fastest?
-        # We only want to project those values that don't have subgrids
-        #mylog.debug("Starting na.sum")
-        fullProj = na.sum(maskedData,axis)*self.dx # Gives correct shape
-        weightProj = na.sum(weightData,axis)*self.dx
-        #mylog.debug("Ending na.sum")
-        #fullProj = na.maximum.reduce(maskedData,axis) # Gives correct shape
-        if not zeroOut:
-            toCombineMask = na.ones(fullProj.shape, dtype=nT.Bool)
-        cmI = na.indices(fullProj.shape)
-        # So now we figure out which points we want, and their (x,y,z) values
-        xind = cmI[0,:]
-        yind = cmI[1,:]
-        xpoints = na.array(xind+(self.LeftEdge[x_dict[axis]]/self.dx),nT.Int64)
-        ypoints = na.array(yind+(self.LeftEdge[y_dict[axis]]/self.dx),nT.Int64)
-        return [xpoints.ravel(), ypoints.ravel(), fullProj.ravel(), toCombineMask.ravel(), weightProj.ravel()]
-
-    def getSliceAll(self, coord, axis, field):
-        tempMask = self.myChildMask
-        self.myChildMask = na.ones(self.ActiveDimensions)
-        points,dataVals=self.getSlice(coord, axis, field)
-        self.myChildMask = tempMask
-        return points,dataVals
 
     def clearAll(self):
         """
@@ -325,7 +267,7 @@ class EnzoGridBase:
         """
         Generates, or attempts to generate,  a field not found in the file
 
-        See fields.py for more information.  fieldInfo.keys() will list all of
+        See DerivedFields.py for more information.  fieldInfo.keys() will list all of
         the available derived fields.  Note that we also make available the
         suffices _Fraction and _Squared here.  All fields prefixed with 'k'
         will force an attempt to use the chemistry tables to generate them from
@@ -405,63 +347,6 @@ class EnzoGridBase:
         self.eiGrid.ReadGrid(h, 1)
         os.chdir(cwd)
         mylog.debug("Grid read with SWIG")
-
-    def atResolution(self, level, fields):
-        """
-        This function returns a given grid at a given resolution.  Note,
-        however, that it *does not interpolate*.  If we are using this to
-        extract datacubes -- for things like power spectra -- we don't want to
-        *add* power via interpolation.  So it just doubles up the values for
-        lower res grids.  Returns a dictionary.
-
-        @param level: the level at which we want our data returned.
-        @type level: int
-        @param fields: the fields to return
-        @type fields: list of strings
-        """
-        if level < self.Level:
-            return None
-        if isinstance(fields, types.StringType):
-            fields = [fields]
-        tr = {}
-        if level == self.Level:
-            for field in fields:
-                tr[field] = self[field]
-            return tr
-        diff = 2**(level - self.Level)
-        newShape = self.ActiveDimensions * diff
-        print diff, newShape
-        self.generateChildMask()
-        xind, yind, zind = na.where(self.myChildMask == 1)
-        self['cm'] = self.myChildMask
-        xxind = xind * diff
-        yyind = yind * diff
-        zzind = zind * diff
-        for field in ['cm'] + fields:
-            tt = self[field][xind,yind,zind]
-            tr[field] = na.zeros(newShape, dtype=self[field].dtype)
-            print tr[field].shape
-            for x in range(diff):
-                for y in range(diff):
-                    for z in range(diff):
-                        tr[field][xxind+x, yyind+y, zzind+z] = tt
-            if field == 'cm':
-                newind = na.where(tr['cm']==1)
-            print tr[field].shape, newind
-            tr[field] = tr[field][newind]
-        # Now we need to set up an x, y, z return array, and we also need to
-        # maks out all the shitty, subgridded values
-        tr['x'], tr['y'], tr['z'] = \
-            na.mgrid[self.LeftEdge[0]:self.RightEdge[0]:diff*1j*self.ActiveDimensions[0], \
-                     self.LeftEdge[1]:self.RightEdge[1]:diff*1j*self.ActiveDimensions[1], \
-                     self.LeftEdge[2]:self.RightEdge[2]:diff*1j*self.ActiveDimensions[2]]
-        print tr['cm'].shape
-        for field in ['x','y','z']:
-            tr[field] = tr[field][newind]
-        # Note that we're not going to do anything regarding dx, as it would be
-        # wasteful!
-        del self.data['cm'], tr['cm']
-        return tr
 
     def exportAmira(self, filename, fields, timestep = 1, a5Filename=None, gid=0):
         if (not iterable(fields)) or (isinstance(fields, types.StringType)):
