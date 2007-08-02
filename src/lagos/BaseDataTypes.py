@@ -426,7 +426,7 @@ class EnzoProjBase(Enzo2DData):
                 for grid2 in grid1.myOverlapGrids[axis]:
                     if grid2.retVal[0].shape[0] == 0 or grid1.id == grid2.id:
                         continue
-                    EnzoCombine.CombineData( \
+                    PointCombine.CombineData( \
                             grid1.retVal[0], grid1.retVal[1], \
                             grid1.retVal[2], grid1.retVal[3], grid1.retVal[4], \
                             grid2.retVal[0], grid2.retVal[1], \
@@ -437,7 +437,7 @@ class EnzoProjBase(Enzo2DData):
                 if (level > minLevel) and (level <= self.maxLevel):
                     for grid2 in grid1.Parent.myOverlapGrids[axis]:
                         if grid2.coarseData[0].shape[0] == 0: continue # Already refined
-                        numRefined += EnzoCombine.RefineCoarseData( \
+                        numRefined += PointCombine.RefineCoarseData( \
                             grid1.retVal[0], grid1.retVal[1], \
                             grid1.retVal[2], grid1.retVal[4], \
                             grid2.coarseData[0], grid2.coarseData[1], \
@@ -770,7 +770,7 @@ class Enzo3DData(EnzoData):
                 weight = defaultWeight
             mylog.info("Getting profile of %s (%s)", field, ss)
             #print fc.dtype, binIndices.dtype, fp.dtype, weight.dtype
-            EnzoCombine.BinProfile(fc, binIndices, \
+            PointCombine.BinProfile(fc, binIndices, \
                                    fp, weight)
             fieldProfiles[field] = fp
         #return bins

@@ -3,7 +3,7 @@
 
 python module EnzoFortranRoutines ! in 
     interface  ! in :EnzoFortranRoutines
-        subroutine solve_h2eq(d,ge,hi,hii,hei,heii,heiii,hm,h2i,h2ii,di,dii,hdi,de,fh,newhi,newh2i,gamma,kunit,kunit_3bdy,chunit,utem,temstart) ! in :EnzoFortranRoutines:f_src/solve_h2eq.F
+        subroutine solve_h2eq(d,ge,hi,hii,hei,heii,heiii,hm,h2i,h2ii,di,dii,hdi,de,fh,newhi,newhii,newh2i,gamma,kunit,kunit_3bdy,chunit,utem,temstart) ! in :EnzoFortranRoutines:f_src/solve_h2eq.F
             real :: d
             real :: ge
             real :: hi
@@ -20,6 +20,7 @@ python module EnzoFortranRoutines ! in
             real :: de
             real :: fh
             double precision intent(inout) :: newhi
+            double precision intent(inout) :: newhii
             double precision intent(inout) :: newh2i
             real :: gamma
             double precision :: kunit

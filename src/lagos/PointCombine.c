@@ -1,5 +1,5 @@
 //
-// EnzoCombine
+// PointCombine
 //   A module for merging points from different grids, in various ways.
 //   Used for projections, interpolations, and binning profiles.
 //
@@ -684,12 +684,12 @@ static PyMethodDef _combineMethods[] = {
 __declspec(dllexport)
 #endif
 
-void initEnzoCombine(void)
+void initPointCombine(void)
 {
     PyObject *m, *d;
-    m = Py_InitModule("EnzoCombine", _combineMethods);
+    m = Py_InitModule("PointCombine", _combineMethods);
     d = PyModule_GetDict(m);
-    _combineError = PyErr_NewException("EnzoCombine.error", NULL, NULL);
+    _combineError = PyErr_NewException("PointCombine.error", NULL, NULL);
     PyDict_SetItemString(d, "error", _combineError);
     import_array();
 }

@@ -11,7 +11,7 @@ tables, if fed the appropriate key.
 from yt.lagos import *
 #from numarray import *
 #import numarray.nd_image as nd
-import EnzoCombine
+import PointCombine
 import types, exceptions
 
 class EnzoTable:
@@ -90,7 +90,7 @@ class EnzoTable:
         valsToReturn = na.zeros((len(x_vals),len(colsToReturn)),nT.Float64)
         x_axis = self.columns[:,0]
         x_vals_arr = na.array(x_vals, nT.Float64)
-        EnzoCombine.Interpolate(x_axis, self.columns, x_vals_arr, valsToReturn, colsToReturn)
+        PointCombine.Interpolate(x_axis, self.columns, x_vals_arr, valsToReturn, colsToReturn)
         if toReshape != None:
             if len(colsToReturn == 1):
                 valsToReturn = na.reshape(valsToReturn, toReshape)

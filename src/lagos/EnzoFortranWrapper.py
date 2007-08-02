@@ -281,3 +281,26 @@ def runCoolMultiTime(g):
     #print min(abs(ct)), max(abs(ct))
     #print "STOP"
     return na.abs(ct)
+
+def cosmologyGetUnits(a):
+    k = {}
+    k["utim"] = 2.52e17 / na.sqrt(a.parameters["CosmologyOmegaMatterNow"]) \
+                   / a.parameters["CosmologyHubbleConstantNow"] \
+                   / (1+a.parameters["CosmologyInitialRedshift"])**1.5
+    k["urho"] = 1.88e-29 * a.parameters["CosmologyOmegaMatterNow"] \
+                    * a.parameters["CosmologyHubbleConstantNow"]**2 \
+                    * (1.0 + a["CosmologyCurrentRedshift"])**3
+    k["uxyz"] = 3.086e24 * \
+           a.parameters["CosmologyComovingBoxSize"] / \
+           a.parameters["CosmologyHubbleConstantNow"] / \
+           (1.0 + a.parameters["CosmologyCurrentRedshift"])
+    k["uaye"] = 1.0/(1.0 + a.parameters["CosmologyInitialRedshift"])
+    k["uvel"] = 1.225e7*a.parameters["CosmologyComovingBoxSize"] \
+                  *na.sqrt(a.parameters["CosmologyOmegaMatterNow"]) \
+                  *na.sqrt(1+ a.parameters["CosmologyInitialRedshift"])
+    k["utem"] = 1.88e6 * (a.parameters["CosmologyComovingBoxSize"]**2) \
+                  * a.parameters["CosmologyOmegaMatterNow"] \
+                  * (1.0 + a.parameters["CosmologyInitialRedshift"])
+    k["aye"]  = (1.0 + a.parameters["CosmologyInitialRedshift"]) / \
+           (1.0 + a.parameters["CosmologyCurrentRedshift"])
+    return k
