@@ -14,7 +14,7 @@ from yt.config import ytcfg
 from yt.arraytypes import *
 
 mylog.warning("shutil used in FileHandling may lead to sub-optimal performance")
-import os, os.path, shutil, time, sys, glob
+import os, os.path, shutil, time, sys, glob, types
 
 WAITBETWEEN=5
 # This should go in ytcfg , but it isn't there just yet.

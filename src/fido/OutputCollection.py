@@ -147,6 +147,25 @@ class OutputCollection:
             a5b.createArray("/","sorted_times", na.array(sorted_times, dtype=nT.Float64))
             a5b.close()
 
+    def runFunction(self, function, args = [], kwargs = {}, prop = None):
+        import yt.lagos as lagos # We import *here* so that we only import if we need it
+        args = list(args)
+        for i,o in enumerate(self):
+            # Now we format string the various args and kwargs
+            myDict = {'fn':o, 'index':i, 'time':self.outputTimes[i],
+                      'timeID':self.outputTimeIDs[i]}
+            for j, arg in enumerate(args):
+                if isinstance(arg, types.StringType):
+                    args[j] = arg % myDict
+            for key in kwargs.keys():
+                if isinstance(kwargs[key], types.StringType):
+                    kwargs[key] = kwargs[key] % myDict
+            if prop:
+                args = [getattr(lagos.EnzoStaticOutput(o),prop)] + args
+            else:
+                args = [lagos.EnzoStaticOutput(o)] + args
+            function(*args, **kwargs)
+
 def GrabCollections(path=None):
     if not path: path=ytcfg.get("fido","rundir")
     ocs = []
@@ -155,5 +174,3 @@ def GrabCollections(path=None):
         ocs.append(OutputCollection(title))
         ocs[-1].readIn(file)
     return ocs
-
-
