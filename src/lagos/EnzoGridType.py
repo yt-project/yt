@@ -10,11 +10,11 @@ from yt.lagos import *
 import yt.enki, gc
 from yt.funcs import *
 
-class EnzoGrid:
+class EnzoGridBase:
     """
     Class representing a single Enzo Grid instance
     """
-    def __init__(self, hierarchy, id, filename=None):
+    def __init__(self, id, filename=None, hierarchy = None):
         """
         Returns an instance of EnzoGrid
 
@@ -26,7 +26,8 @@ class EnzoGrid:
         @type filename: string
         """
         self.id = id
-        self.hierarchy = weakref.proxy(hierarchy)
+        if hierarchy:
+            self.hierarchy = hierarchy
         self.data = {}
         self.datasets = {}
         if filename:
