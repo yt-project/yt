@@ -75,7 +75,7 @@ class PlotCollection:
             v,center = self.pf.hierarchy.findMax("Density")
         if coord == None:
             coord = center[axis]
-        slice = lagos.EnzoSlice(self.pf, axis, coord, field, center)
+        slice = self.pf.hierarchy.slice(axis, coord, field, center)
         p = self.addPlot(be.SlicePlot(slice, field))
         p["Axis"] = lagos.axis_names[axis]
         return p
@@ -84,8 +84,8 @@ class PlotCollection:
         # Pass it in to the engine to get a SlicePlot, which we then append
         # onto self.plots
         if center == None:
-            v, center = self.pf.findMax("Density")
-        proj = lagos.EnzoProj(self.pf, axis, field, weightField, center=center)
+            v, center = self.pf.hierarchy.findMax("Density")
+        proj = self.pf.hierarchy.proj(axis, field, weightField, center=center)
         p = self.addPlot(be.ProjectionPlot(proj, field))
         p["Axis"] = lagos.axis_names[axis]
         return p
@@ -102,7 +102,7 @@ class PlotCollection:
         if center == None:
             v,center = self.pf.hierarchy.findMax("Density")
         r = radius/self.pf[unit]
-        sphere = lagos.EnzoSphere(self.pf, center, r, fields)
+        sphere = self.pf.hierarchy.sphere(center, r, fields)
         p = self.addPlot(be.TwoPhasePlot(sphere, fields, width=radius, unit=unit))
         p["Width"] = radius
         p["Unit"] = unit
@@ -112,7 +112,7 @@ class PlotCollection:
         if center == None:
             v,center = self.pf.hierarchy.findMax("Density")
         r = radius/self.pf[unit]
-        sphere = lagos.EnzoSphere(self.pf, center, r, fields)
+        sphere = self.pf.hierarchy.sphere(center, r, fields)
         p = self.addPlot(be.ThreePhasePlot(sphere, fields, width=radius, unit=unit))
         p["Width"] = radius
         p["Unit"] = unit
