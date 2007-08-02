@@ -76,6 +76,12 @@ def readAllDataHDF5(self):
     """
     pass
 
+def readAllDataPacked(self):
+    """
+    Not implemented.  Fix me!
+    """
+    pass
+
 def readDataSliceHDF5(self, grid, field, sl):
     """
     Reads a slice through the HDF5 data
@@ -104,3 +110,45 @@ def readDataSliceHDF4(self, grid, field, sl):
     @type sl: SliceType
     """
     return SD.SD(grid.filename).select(field)[sl]
+
+def readDataPacked(self, field):
+    if self.has_key(field):
+        return 1
+    f = tables.openFile(self.filename)
+    try:
+        t = f.getNode("/Grid%08i" % (self.id), field).read()
+        self[field] = t.swapaxes(0,2)
+    except:
+        self.generateField(field)
+    #self[field] = ones(self.data[field].shape)
+    f.close()
+    return 2
+
+def readDataSlicePacked(self, grid, field, sl):
+    """
+    Reads a slice through the HDF5 data
+
+    @param grid: Grid to slice
+    @type grid: L{EnzoGrid<EnzoGrid>}
+    @param field: field to get
+    @type field: string
+    @param sl: region to get
+    @type sl: SliceType
+    """
+    f = tables.openFile(grid.filename)
+    ss = f.getNode("/Grid%08i" % (grid.id), field)[sl]
+    f.close()
+    return ss
+
+def getFieldsPacked(self):
+    """
+    Returns a list of fields associated with the filename
+    Should *only* be called as EnzoGridInstance.getFields, never as getFields(object)
+    """
+    fls = []
+    f = tables.openFile(self.filename)
+    for fl in f.listNodes("/Grid%08i" % (self.id)):
+        fls.append(fl.name)
+    f.close()
+    return fls
+
