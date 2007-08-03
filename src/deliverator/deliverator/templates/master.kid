@@ -21,17 +21,31 @@
 </head>
 
 <body py:match="item.tag=='{http://www.w3.org/1999/xhtml}body'" py:attrs="item.items()">
-    <div py:if="tg.config('identity.on',False) and not 'logging_in' in locals()"
-        id="pageLogin">
-        <span py:if="tg.identity.anonymous">
-            <a href="/Deliverator/login">Login</a>
-        </span>
-        <span py:if="not tg.identity.anonymous">
-            Welcome ${tg.identity.user.display_name}.
-            <a href="/Deliverator/logout">Logout</a>
-        </span>
+    <div id="tophalf">
+      <div id="sidebarpadder"> </div>
+      <div id="header"> </div>
     </div>
-    <div id="header"> </div>
+    <div id="sitesidebar">
+      <h2>Stuff to do</h2>
+      <ul class="links">
+        <li><a href="/Deliverator/">Home</a></li>
+        <li><a href="selectRun">Select a Run</a></li>
+        <li py:if="tg.identity.anonymous">
+          <a href="/Deliverator/login">Login</a>
+        </li>
+        <li py:if="not tg.identity.anonymous">
+          <a href="/Deliverator/logout">Logout</a>
+        </li>
+      </ul>
+      <div id="about">
+        <a href="http://turbogears.org/" border="0">
+          <img border="0" height="48" align="middle" 
+            src="/Deliverator/static/images/tg_under_the_hood.png"
+            alt="TurboGears under the hood" />
+        </a>
+        <p><a href="http://yt.spacepope.org/">yt</a> and the Deliverator by Matt Turk</p>
+      </div>
+    </div>
     <div id="main_content">
     <div py:if="tg_flash" class="flash" py:content="tg_flash"></div>
 
@@ -39,12 +53,6 @@
 
 	<!-- End of main_content -->
 	</div>
-<div id="footer"> <img src="/static/images/under_the_hood_blue.png" alt="TurboGears under the hood" />
-  <p>TurboGears is a open source front-to-back web development
-    framework written in Python</p>
-  <p>Copyright &copy; 2006 Kevin Dangoor</p>
-  <p>Raven component by Matt Turk</p>
-</div>
 </body>
 
 </html>

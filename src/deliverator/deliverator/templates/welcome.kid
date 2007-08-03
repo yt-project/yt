@@ -3,23 +3,15 @@
     py:extends="'master.kid'">
 <head>
 <meta content="text/html; charset=utf-8" http-equiv="Content-Type" py:replace="''"/>
-<title>Welcome to TurboGears</title>
+<title>The Deliverator</title>
 </head>
 <body>
-
   <div id="status_block">The Deliverator is now running</div>
-  <div id="sidebar">
-    <h2>Places to go</h2>
-    <ul class="links">
-     <li><a href="login">Login</a></li>
-     <li><a href="selectRun">Select a Run</a></li>
-    </ul>
-  </div>
   <div id="getting_started">
     <ol id="getting_started_steps">
       <li class="getting_started">
         <h3>YT</h3>
-        <p>Use <span class="code"><a href="http://www.stanford.edu/~mturk/yt.html">yt</a></span><br/>
+        <p>Use <span class="code"><a href="http://yt.spacepope.org/">yt</a></span><br/>
         If you're using <span class="code">red</span>, there's an install in the directory <span class="code">/usr/work/mturk/local/</span>.
         </p>
       </li>

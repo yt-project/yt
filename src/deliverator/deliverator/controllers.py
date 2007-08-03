@@ -98,12 +98,6 @@ class RunSelectionForm(widgets.WidgetsList):
 
 
 class Root(controllers.RootController):
-    @expose(template="deliverator.templates.welcome")
-    def index(self):
-        raise redirect("/Deliverator/selectRun")
-        log.debug("The Deliverator reporting for duty.")
-        return dict()
-
 
     @expose(template="deliverator.templates.login")
     def login(self, forward_url=None, previous_url=None, *args, **kw):
@@ -138,8 +132,7 @@ class Root(controllers.RootController):
 
     @expose(template="deliverator.templates.welcome")
     def index(self):
-        import time
-        return dict(now=time.ctime())
+        return dict()
 
     @expose(template="deliverator.templates.selection")
     def selectImages(self, *a, **kw):

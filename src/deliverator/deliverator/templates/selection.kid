@@ -45,7 +45,7 @@ sendXMLHttpRequest(req,data).addCallback(update_count_callback);
 <title>Select Images</title>
 </head>
 <body onload="js:update_count();">
-  <div id="status_block">The Deliverator now open for business</div>
+  <div id="status_block">Select your criteria</div>
   <div id="sidebar">
     <span id="number_of_images">0</span> images will be returned
     <p>

@@ -18,8 +18,8 @@ function checkAll(){
 <title>Image Gallery</title>
 </head>
 <body>
+  <div id="status_block">Selection criteria returned ${len(images)}</div>
   <div class="gallery_header">
-    Selection criteria returned ${len(images)}
   </div>
 <?python
 NUM = 3
@@ -38,6 +38,9 @@ splitImages = k
         <img src="${image.IMG_src}" width="200"/>
         </a>
         <div id="imagecaption">
+        <span py:if="show_delete == True">
+            <INPUT TYPE="CHECKBOX" NAME="todelete" VALUE="${image.id}">Delete Entry</INPUT>
+        </span>
         <ul>
         <li><b>ParameterFile:</b>
             <a href="paraminfo?id=${image.parameterfile.GeneratedAt}">
@@ -50,9 +53,6 @@ splitImages = k
         <li><b>Field2:</b> ${image.Field2}</li>
         <li><b>Field3:</b> ${image.Field3}</li>
         </ul>
-        <span py:if="show_delete == True">
-            <INPUT TYPE="CHECKBOX" NAME="todelete" VALUE="${image.id}">Delete Entry</INPUT>
-        </span>
         </div>
     </td>
     </tr>

@@ -8,7 +8,7 @@
 <title>Select Run</title>
 </head>
 <body>
-  <div id="status_block">The Deliverator now open for business</div>
+  <div id="status_block">Select the run you're interested in</div>
   <div id="getting_started">
     ${form(action="selectImages")}
   </div>

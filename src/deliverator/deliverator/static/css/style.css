@@ -4,19 +4,31 @@
 
 html, body, th, td {
   color: black;
-  background-color: #ddd;
+  background-color: #f7f7f7;
   font: x-small "Lucida Grande", "Lucida Sans Unicode", geneva, verdana, sans-serif;
   margin: 0;
   padding: 0;
 }
 
+#tophalf{
+  height: 75px;
+  width: 100%;
+  border-bottom: 1px solid #999;
+  background-color: #fff;
+}
+
+/*#bottom-half{
+  width: 100%;
+}*/
+
 #header {
-  height: 95px;
-  width: 777px;
-  /*background: blue URL('../images/header_inner.png') no-repeat;*/
-  background: white URL('../images/deliverator2.png') no-repeat;
-  border-left: 1px solid #aaa;
-  border-right: 1px solid #aaa;
+  height: 75px;
+  width: 600px;
+  position: relative;
+  float: left;
+  background: white URL('../images/deliverator_logo.png') no-repeat;
+  /*border-left: 1px solid #aaa;
+  border-right: 1px solid #aaa;*/
   margin: 0 auto 0 auto;
 }
 
@@ -24,16 +36,39 @@ a.link, a, a.active {
   color: #369;
 }
 
-
 #main_content {
+  position: relative;
+  float: left;
   color: black;
   font-size: 127%;
-  background-color: white;
+  background-color: #f7f7f7;
   width: 757px;
   margin: 0 auto 0 auto;
-  border-left: 1px solid #aaa;
-  border-right: 1px solid #aaa;
+  border-left: 1px solid #999;
+  /*border-right: 1px solid #aaa;*/
   padding: 10px;
+  min-height: 400px;
+}
+
+/* This is a good place for a logo */
+#sidebarpadder {
+  border: 0px;
+  background-color: #fff;
+  margin: 0.5em;
+  padding: 1em;
+  position: relative;
+  float: left;
+  width: 140px;
+  font-size: 88%;
+}
+
+#sitesidebar {
+  /*border: 1px solid #aaa;*/
+  background-color: #f7f7f7;
+  position: relative;
+  float: left;
+  width: 140px;
+  font-size: 100%;
 }
 
 #sidebar {
@@ -41,13 +76,24 @@ a.link, a, a.active {
   background-color: #eee;
   margin: 0.5em;
   padding: 1em;
+  position: relative;
   float: right;
-  width: 200px;
+  width: 100px;
   font-size: 88%;
 }
 
 #sidebar h2 {
   margin-top: 0;
+}
+
+#sitesidebar h2 {
+  padding-left: 10px;
+}
+
+#sitesidebar ul {
+  margin-left: 1.5em;
+  padding-left: 10px;
+  font-size: 125%;
 }
 
 #sidebar ul {
@@ -73,7 +119,7 @@ h2 {
 }
 
 #getting_started_steps li {
-  font-size: 80%;
+  font-size: 100%;
   margin-bottom: 0.5em;
 }
 
@@ -85,16 +131,18 @@ h2 {
   font: 100% "Lucida Grande", "Lucida Sans Unicode", geneva, verdana, sans-serif;
 }
 
-#footer {
-  border: 1px solid #aaa;
-  border-top: 0px none;
+#about {
+  border-top: 1px solid #aaa;
+  border-bottom: 1px solid #aaa;
+  /*border-top: 0px none;*/
   color: #999;
   background-color: white;
-  padding: 10px;
+  padding: 0px;
+  margin-top: 1.5in;
   font-size: 80%;
   text-align: center;
-  width: 757px;
-  margin: 0 auto 1em auto;
+  width: 100%;
+  /*margin: 0.5em auto 0.5em auto;*/
 }
 
 .code {
@@ -107,19 +155,27 @@ span.code {
 }
 
 #status_block {
-  margin: 0 auto 0.5em auto;
-  padding: 15px 10px 15px 55px;
-  background: #cec URL('../images/ok.png') left center no-repeat;
+  margin: 0.5em auto 0.5em auto;
+  padding: 15px 10px 15px 15px;
+  background: #cce;
   border: 1px solid #9c9;
-  width: 450px;
+  width: 100%;
   font-size: 120%;
   font-weight: bolder;
+  clear: right;
+  text-align: left;
+  /*left: 5px;
+  top: 5px;*/
 }
 
 .notice {
   margin: 0.5em auto 0.5em auto;
   padding: 15px 10px 15px 55px;
-  width: 450px;
-  background: #eef URL('../images/info.png') left center no-repeat;
-  border: 1px solid #cce;
+  width: 100%;
+  background: #fee;
+  border: 1px solid #9c9;
+}
+
+#imagecaption {
+  border: 1px solid #999;
 }
