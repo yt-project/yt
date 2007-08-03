@@ -105,6 +105,8 @@ class Permission(SQLObject):
                          joinColumn="permission_id", 
                          otherColumn="group_id")
 
+# Start of the Deliverator-specific columns
+
 class EnzoRun(SQLObject):  
     class sqlmeta:  
         table ='EnzoRun'  
@@ -112,7 +114,6 @@ class EnzoRun(SQLObject):
     metaData = StringCol()
     Images = MultipleJoin("Image")
     ParameterFiles = MultipleJoin("ParameterFile")
-  
   
 class ParameterFile(SQLObject):  
     class sqlmeta:  
@@ -123,7 +124,6 @@ class ParameterFile(SQLObject):
     EnzoHierarchy = PickleCol(length=2**16+1)  
     Images = MultipleJoin("Image")
     enzorun = ForeignKey("EnzoRun")  
-  
   
 class Image(SQLObject):  
     class sqlmeta:  
@@ -139,10 +139,3 @@ class Image(SQLObject):
     IMG_src = StringCol()  
     metaData = StringCol()  
     Type = StringCol()  
-
-class Gallery(SQLObject):
-    class sqlmeta:
-        table='Gallery'
-    Title = StringCol()
-    Description = StringCol()
-    Images = MultipleJoin("Image")

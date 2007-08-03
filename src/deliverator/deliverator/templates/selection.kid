@@ -22,7 +22,7 @@ function update_count(){
         Field1: myFormContents('form_Field1'),
         Field2: myFormContents('form_Field2'),
         Field3: myFormContents('form_Field3'),
-        parameterfileID: myFormContents('form_parameterfileID'),
+        parameterfileID: myFormContents('form_ParameterFile'),
         Axis: myFormContents('form_Axis'),
         Type: myFormContents('form_Type'),
         enzorunID: myFormContents('form_enzorunID')

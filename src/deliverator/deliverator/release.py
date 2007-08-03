@@ -1,14 +1,17 @@
 # Release information about deliverator
 
-version = "1.0"
-
-# description = "Your plan to rule the world"
-# long_description = "More description about your plan"
-# author = "Your Name Here"
-# email = "YourEmail@YourDomain"
-# copyright = "Vintage 2006 - a good year indeed"
+version = "0.2"
+description = "An image gallery server for interfacing with yt"
+long_description = """
+            The Deliverator accepts new images (located elsewhere) and
+            displays them, along with appropriate metadata from the Enzo Run they originate
+            from.
+            """
+author = "Matthew Turk"
+email = "mturk@slac.stanford.edu"
+copyright = "2007"
 
 # if it's open source, you might want to specify these
-# url = "http://yourcool.site/"
-# download_url = "http://yourcool.site/download"
-# license = "MIT"
+url = "http://yt.spacepope.org/"
+download_url = "http://yt.spacepope.org/"
+license = "GPL"
