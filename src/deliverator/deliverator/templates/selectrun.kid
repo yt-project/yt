@@ -5,7 +5,7 @@
 <script>
 </script>
 <meta content="text/html; charset=utf-8" http-equiv="Content-Type" py:replace="''"/>
-<title>Select Run</title>
+<title>The Deliverator - Select Run</title>
 </head>
 <body>
   <div id="status_block">Select the run you're interested in</div>

@@ -42,21 +42,22 @@ sendXMLHttpRequest(req,data).addCallback(update_count_callback);
 }
 </script>
 <meta content="text/html; charset=utf-8" http-equiv="Content-Type" py:replace="''"/>
-<title>Select Images</title>
+<title>The Deliverator - Select Images</title>
 </head>
 <body onload="js:update_count();">
   <div id="status_block">Select your criteria</div>
   <div id="sidebar">
-    <span id="number_of_images">0</span> images will be returned
-    <p>
-    <a href="listParams?rid=${rid}">List Parameter Files</a>
+    <p><span id="number_of_images">0</span> images will be returned</p>
+    <p><a href="listParams?rid=${rid}">List Parameter Files</a>
     </p>
   </div>
   <div id="getting_started">
     <?python
     attrs={'rid':rid}
     ?>
-    ${form(action="gallery", attrs=attrs)}
+    <div id="formselect">
+      ${form(action="gallery", attrs=attrs)}
+    </div>
   </div>
 </body>
 </html>

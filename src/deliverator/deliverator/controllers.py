@@ -42,15 +42,17 @@ class MultipleSelectFieldSelectAll(widgets.MultipleSelectField):
             >   
                 <option py:for="value, desc, attrs in options"
                     value="${value}"
-                    py:attrs="attrs"
                     py:content="desc"
+                    py:attrs="attrs"
                 />
             </optgroup>
         </select>
     </th>
     <td>
-        <input type="button" value="All"
-onClick="javascript:SelectAllList(this.form.${name});update_count();"/><br/> <input type="button" value="None" onClick="javascript:DeSelectAllList(this.form.${name});update_count();"/>
+        <input type="button" value="All" style="width:50px;"
+onClick="javascript:SelectAllList(this.form.${name});update_count();"/><br/>
+        <input type="button" value="None" style="width:50px;"
+onClick="javascript:DeSelectAllList(this.form.${name});update_count();"/>
     </td></tr>
     <tr><td>
     &nbsp;
@@ -77,7 +79,9 @@ class EnzoRunIDHiddenField(widgets.HiddenField):
 def getSelForm():
     def getMSFSA(name, val, f):
         j = MultipleSelectFieldSelectAll(validator=val, \
-            options=f, defaults=None, attrs={'onchange':'js:update_count();'})
+            options=f, defaults=None, \
+            attrs={'onchange':'js:update_count();'},\
+            field_class="msfsa")
         return j
     class ImageSelectionFormBase(widgets.WidgetsList):
         ParameterFile = getMSFSA("ParameterFile", validators.Int, getValsParameterFile)
@@ -270,6 +274,25 @@ class Root(controllers.RootController):
         pf = list(model.ParameterFile.select(sqlbuilder.IN(model.ParameterFile.q.GeneratedAt, ids)))
         return dict(pfs=pf, myuser=myuser)
 
+    @expose(template="deliverator.templates.viewimage")
+    def viewimage(self, **data):
+        if not data.has_key("id"): raise redirect("/Deliverator/")
+        ids = data["id"]
+        if not isinstance(ids, types.ListType):
+            ids = [ids]
+        try:
+            ids = map(int, ids)
+        except:
+            raise redirect("/Deliverator/")
+        if identity.current.user:
+            myuser = identity.current.user.user_name
+        else:
+            myuser = None
+        ims = list(model.Image.select(sqlbuilder.IN(model.Image.q.id, ids)))[0]
+        return dict(Image=ims, myuser=myuser)
+
+    
+
     @expose(template="deliverator.templates.listparams")
     def listParams(self, **kw):
         if kw.has_key("rid"):
@@ -288,5 +311,9 @@ class Root(controllers.RootController):
         r = model.EnzoRun.select()
         select_form = widgets.TableForm(fields = RunSelectionForm())
         return dict(form=select_form, action='selectImages', submit_text='Query', title='TITLE')
+
+    @expose(template="deliverator.templates.ajaxselectrun", allow_json=True)
+    def ajaxselectrun(self, **data):
+        pass
 
     DeliveratorMethods = DeliveratorImpl()

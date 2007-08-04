@@ -17,15 +17,11 @@ html, body, th, td {
   background-color: #fff;
 }
 
-/*#bottom-half{
-  width: 100%;
-}*/
-
 #header {
   height: 75px;
   width: 600px;
-  position: relative;
-  float: left;
+  position: absolute;
+  left: 142px;
   background: white URL('../images/deliverator_logo.png') no-repeat;
   /*border-left: 1px solid #aaa;
   border-right: 1px solid #aaa;*/
@@ -37,8 +33,9 @@ a.link, a, a.active {
 }
 
 #main_content {
-  position: relative;
-  float: left;
+  position: absolute;
+  left: 140px;
+  top: 76px;
   color: black;
   font-size: 127%;
   background-color: #f7f7f7;
@@ -50,23 +47,12 @@ a.link, a, a.active {
   min-height: 400px;
 }
 
-/* This is a good place for a logo */
-#sidebarpadder {
-  border: 0px;
-  background-color: #fff;
-  margin: 0.5em;
-  padding: 1em;
-  position: relative;
-  float: left;
-  width: 140px;
-  font-size: 88%;
-}
-
 #sitesidebar {
   /*border: 1px solid #aaa;*/
   background-color: #f7f7f7;
-  position: relative;
-  float: left;
+  position: absolute;
+  left: 0px;
+  top: 76px;
   width: 140px;
   font-size: 100%;
 }
@@ -76,8 +62,10 @@ a.link, a, a.active {
   background-color: #eee;
   margin: 0.5em;
   padding: 1em;
-  position: relative;
-  float: right;
+  position: fixed;
+  top: 150px;
+  left: 777px;
+  /*float: right;*/
   width: 100px;
   font-size: 88%;
 }
@@ -154,6 +142,13 @@ span.code {
   background: #eee;
 }
 
+.imagebox {
+}
+
+.imagebox:hover {
+  background: #cce;
+}
+
 #status_block {
   margin: 0.5em auto 0.5em auto;
   padding: 15px 10px 15px 15px;
@@ -164,8 +159,6 @@ span.code {
   font-weight: bolder;
   clear: right;
   text-align: left;
-  /*left: 5px;
-  top: 5px;*/
 }
 
 .notice {
@@ -176,6 +169,58 @@ span.code {
   border: 1px solid #9c9;
 }
 
+#formselect {
+  margin-left: auto;
+  margin-right: auto;
+  width: 500px;
+}
+
+#imageview {
+  margin-left: auto;
+  margin-right: auto;
+  width: 500px;
+}
+
 #imagecaption {
   border: 1px solid #999;
+}
+
+#plist {
+  padding: 10px;
+}
+
+#plist th {
+  font-size: 120%;
+  align: center;
+  border-bottom: 1px solid black;
+  font-weight: bold;
+  padding-bottom: 5px;
+}
+
+.pfrow:hover {
+  background: #aaa;
+}
+
+.pfinfo1 {
+  font-size: 110%;
+  border-left: 1px solid black;
+  border-bottom: 1px solid black;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+.msfsa {
+  width: 200px;
+}
+
+.pfinfo2 {
+  font-size: 110%;
+  border-right: 1px solid black;
+  border-bottom: 1px solid black;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+.pfinfo2 a {
+  text-decoration: none;
 }

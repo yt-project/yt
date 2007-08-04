@@ -22,7 +22,6 @@
 
 <body py:match="item.tag=='{http://www.w3.org/1999/xhtml}body'" py:attrs="item.items()">
     <div id="tophalf">
-      <div id="sidebarpadder"> </div>
       <div id="header"> </div>
     </div>
     <div id="sitesidebar">

@@ -15,27 +15,25 @@ function checkAll(){
 }
 </script>
 <meta content="text/html; charset=utf-8" http-equiv="Content-Type" py:replace="''"/>
-<title>Image Gallery</title>
+<title>The Deliverator - Image Gallery</title>
 </head>
 <body>
   <div id="status_block">Selection criteria returned ${len(images)}</div>
-  <div class="gallery_header">
-  </div>
 <?python
 NUM = 3
 k = []
-for i in range(len(images)):
+for i, image in enumerate(images):
     if i % NUM == 0:
         k.append([])
-    k[-1].append(images[i])
+    k[-1].append(image)
 splitImages = k
 ?>
   <form action="deleteImages" method="post">
   <table class="imagegallery">
     <tr py:for="row in splitImages">
-    <td py:for="image in row">
-        <a href="${image.IMG_src}">
-        <img src="${image.IMG_src}" width="200"/>
+    <td py:for="image in row" class="imagebox">
+        <a href="viewimage?id=${image.id}">
+        <img src="${image.IMG_src}" width="250"/>
         </a>
         <div id="imagecaption">
         <span py:if="show_delete == True">
@@ -52,6 +50,7 @@ splitImages = k
         <li><b>Field1:</b> ${image.Field1}</li>
         <li><b>Field2:</b> ${image.Field2}</li>
         <li><b>Field3:</b> ${image.Field3}</li>
+        <li>(<a href="${image.IMG_src}">view raw</a>)</li>
         </ul>
         </div>
     </td>

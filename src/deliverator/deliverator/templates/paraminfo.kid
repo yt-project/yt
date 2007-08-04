@@ -9,7 +9,7 @@ import time, types, cPickle
 <title>Image Gallery</title>
 </head>
 <body>
-  <div class="gallery_header">
+  <div id="status_block">
     Selection criteria returned ${len(pfs)}
   </div>
   <table class="paraminfo">

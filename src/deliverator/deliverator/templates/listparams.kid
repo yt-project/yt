@@ -21,15 +21,19 @@ import time,os.path
 <title>Parameter Files</title>
 </head>
 <body>
-  <div class="gallery_header">
+  <div id="status_block">
     Selection criteria returned ${len(run.ParameterFiles)}
   </div>
     <form action="deleteParamFiles" method="post">
-    <table align="top">
+    <table align="top" id="plist" cellpadding="0" cellspacing="0">
     <tr><th>Generated At</th><th>FileName</th></tr>
-    <tr py:for="p in run.ParameterFiles">
-    <td valign="top">${time.ctime(p.GeneratedAt)}</td>
-    <td valign="top"><a href="paraminfo?id=${p.GeneratedAt}">${os.path.basename(p.FileName)}</a></td>
+    <?python
+    pfs = list(run.ParameterFiles)
+    pfs.sort(key=lambda p: p.GeneratedAt)
+    ?>
+    <tr py:for="p in pfs" class="pfrow">
+    <td valign="top" class="pfinfo1">${time.ctime(p.GeneratedAt)}</td>
+    <td valign="top" class="pfinfo2"><a href="paraminfo?id=${p.GeneratedAt}">${os.path.basename(p.FileName)}</a></td>
     <td py:if="show_delete == True">
         <INPUT TYPE="CHECKBOX" NAME="todelete" VALUE="${p.GeneratedAt}">Delete Entry</INPUT>
     </td>

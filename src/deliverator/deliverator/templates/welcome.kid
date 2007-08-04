@@ -3,7 +3,7 @@
     py:extends="'master.kid'">
 <head>
 <meta content="text/html; charset=utf-8" http-equiv="Content-Type" py:replace="''"/>
-<title>The Deliverator</title>
+<title>The Deliverator - Welcome</title>
 </head>
 <body>
   <div id="status_block">The Deliverator is now running</div>

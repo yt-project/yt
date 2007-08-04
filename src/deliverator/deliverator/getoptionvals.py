@@ -1,6 +1,7 @@
 import model
 from sqlobject import sqlbuilder
 import cherrypy
+import os.path
 
 def getValsRID():
     if cherrypy.request.params.has_key("rid") == True:
@@ -10,47 +11,28 @@ def getValsRID():
     return t
 
 def getValsCol(column):
-    c = model.Image.q.__getattr__(column)
-    query = "SELECT DISTINCT %s from %s" % \
-            (sqlbuilder.sqlrepr(c), model.Image.sqlmeta.table)
+    i = sqlbuilder.table.Image
+    c = sqlbuilder.table.Image.__getattr__(column)
     if cherrypy.request.params.has_key("rid") == True:
-        query += " WHERE Image.enzorun_id = %s" % \
-            (int(cherrypy.request.params['rid']))
-    vv = []
-    vals = model.Image._connection.queryAll(query)
-    if len(vals)==1 and vals[0][0] == None:
-        return vv
-    for val in vals:
-        v = str(val[0])
-        vv.append((v,v))
-    vv.sort()
-    return vv
+        rid = int(cherrypy.request.params['rid'])
+        where = (i.enzorun_ID == rid)
+    else: where = None
+    a = sqlbuilder.Select(c, where=where, distinct=True)
+    a = model.Image._connection.queryAll(sqlbuilder.sqlrepr(a))
+    a = map(str, [r[0] for r in a])
+    a.sort()
+    return zip(a,a)
 
 def getValsParameterFile():
-    column = "parameterfileID"
-    c = model.Image.q.__getattr__(column)
-    query = "SELECT DISTINCT %s from %s" % \
-            (sqlbuilder.sqlrepr(c), model.Image.sqlmeta.table)
+    i = sqlbuilder.table.ParameterFile
     if cherrypy.request.params.has_key("rid") == True:
-        query += " WHERE Image.enzorun_id = %s" % \
-            (int(cherrypy.request.params['rid']))
-    query += " ORDER BY %s" % (sqlbuilder.sqlrepr(c))
-    vv = []
-    vals = model.Image._connection.queryAll(query)
-    vals=list(model.ParameterFile.select(sqlbuilder.IN(model.ParameterFile.q.id,vals), distinct=True))
-    if len(vals)==1:
-        return vv
-    for val in vals:
-        v1 = val.id
-        v2 = str(val.FileName).split("/")[-1]
-        vv.append((v2,v1))
-    vv.sort()
-    vv2 = []
-    for v1, v2 in vv:
-        vv2.append((v2,v1))
-    del vv
-    vv = vv2
-    return vv
+        rid = int(cherrypy.request.params['rid'])
+        a = model.ParameterFile.select(i.enzorun_ID == rid, distinct=True)
+    else: a = model.ParameterFile.select()
+    k = [(rec.id,os.path.basename(str(rec.FileName))) for rec in a]
+    k.sort()
+    return k
+    
 
 def getValsWidth():
     return getValsCol("Width")
