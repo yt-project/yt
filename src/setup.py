@@ -7,7 +7,6 @@ def configuration(parent_package='',top_path=None):
     config.add_subpackage('raven')
     config.add_subpackage('enki')
     config.add_subpackage('fido')
-    config.add_subpackage('deliverator')
     config.make_config_py()
     return config
 

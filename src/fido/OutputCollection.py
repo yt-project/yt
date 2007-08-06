@@ -147,7 +147,8 @@ class OutputCollection:
             a5b.createArray("/","sorted_times", na.array(sorted_times, dtype=nT.Float64))
             a5b.close()
 
-    def runFunction(self, function, args = [], kwargs = {}, prop = None):
+    def runFunction(self, function, args = None, kwargs = {}, prop = None):
+        if args == None: args = []
         import yt.lagos as lagos # We import *here* so that we only import if we need it
         args = list(args)
         for i,o in enumerate(self):

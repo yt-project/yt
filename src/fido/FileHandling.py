@@ -4,17 +4,20 @@ We operate on some very simple principles here.
 
 from yt.fido import *
 
-def moveOutput(basename, newLocation, extraFiles=[]):
+def moveOutput(basename, newLocation, extraFiles=None):
+    if extraFiles == None: extraFiles = []
     moveGlob("%s*" % (basename), newLocation)
     for file in extraFiles:
         moveGlob(file, location)
 
-def deleteOutput(basename, extraFiles=[]):
+def deleteOutput(basename, extraFiles=None):
+    if extraFiles == None: extraFiles = []
     deleteGlob("%s*" % os.path.normpath(filename), location)
     for file in extraFiles:
         deleteGlob(file)
 
-def buryOutput(filename, newLocation=None, extraFiles=[]):
+def buryOutput(filename, newLocation=None, extraFiles=None):
+    if extraFiles == None: extraFiles = []
     if not newLocation:
         dirname = "%s.dir" % filename
         newLocation = os.path.abspath(os.path.join(os.getcwd(), dirname))
@@ -23,7 +26,8 @@ def buryOutput(filename, newLocation=None, extraFiles=[]):
         moveGlob(file, newLocation)
     return os.path.join(newLocation, filename)
 
-def digupOutput(filename, newLocation=None, extraFiles=[]):
+def digupOutput(filename, newLocation=None, extraFiles=None):
+    if extraFiles == None: extraFiles = []
     if not newLocation:
         newLocation = getParentDir(filename)
         print newLocation

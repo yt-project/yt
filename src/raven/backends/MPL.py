@@ -25,7 +25,7 @@ import matplotlib.colorbar
 import matplotlib.cm
 
 class LinkedAMRSubPlots:
-    def __init__(self, linkWidth, linkZ, plots = []):
+    def __init__(self, linkWidth, linkZ, plots = None):
         pass
     def SaveFigure(self, filename, format):
         pass

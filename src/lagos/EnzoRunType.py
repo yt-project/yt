@@ -15,7 +15,7 @@ class EnzoRun:
     Simulation.  This includes all of the datadumps, the parameter file,
     and possibly even the initial conditions.
     """
-    def __init__(self, metaData, outputs=[], runFilename=None, classType=EnzoHierarchy, timeID=None, getPFs = True):
+    def __init__(self, metaData, outputs=None, runFilename=None, classType=EnzoHierarchy, timeID=None, getPFs = True):
         """
         We're going to try to avoid setting too many of the parameters here,
         as many will be changed on and off.  However, we can definitely set all
@@ -34,6 +34,7 @@ class EnzoRun:
         @keyword outputs: outputs to add to the run
         @type outputs: list of L{EnzoHierarchies<EnzoHierarchy>}
         """
+        if outputs == None: outputs = []
         self.metaData = metaData
         self.classType = classType
         self.outputs = obj.array(outputs)       # Object array of EnzoHierarchies

@@ -8,7 +8,7 @@ opportunity to ditch numarray.
 @author: U{Matthew Turk<http://www.stanford.edu/~mturk/>}
 @organization: U{KIPAC<http://www-group.slac.stanford.edu/KIPAC/>}
 @contact: U{mturk@slac.stanford.edu<mailto:mturk@slac.stanford.edu>}
-@todo: Ditch the numpy = obj usage
+@todo: Deprecate this.
 """
 
 from config import ytcfg
