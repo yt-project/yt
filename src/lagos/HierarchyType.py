@@ -1,10 +1,11 @@
 """
 Enzo hierarchy container class
-
-@author: U{Matthew Turk<http://www.stanford.edu/~mturk/>}
-@organization: U{KIPAC<http://www-group.slac.stanford.edu/KIPAC/>}
-@contact: U{mturk@slac.stanford.edu<mailto:mturk@slac.stanford.edu>}
 """
+
+__author__ = "U{Matthew Turk<http://www.stanford.edu/~mturk>}"
+__organization__ = "U{KIPAC<http://www-group.slac.stanford.edu/KIPAC/>}"
+__contact__ = "U{mturk@slac.stanford.edu<mailto:mturk@slac.stanford.edu>}"
+__license__ = "GPL-3"
 
 from yt.lagos import *
 from yt.funcs import *
@@ -22,17 +23,16 @@ dataStyleFuncs = \
 class EnzoHierarchy:
     """
     Class for handling Enzo timestep outputs
+
+    @param pf: The OutputFile we're instantiating from
+    @type pf: L{EnzoOutput}
+    @keyword data_style: The type of Enzo Output we're going to read from -- 
+                         4 : hdf4, 5 : hdf5, 6 : packed HDF5
+    @type data_style: int
     """
     eiTopGrid = None
     @time_execution
     def __init__(self, pf, data_style=4):
-        """
-        Returns a new instance of EnzoHierarchy
-        
-        @param pf: existing EnzoOutput
-        @type pf: L{EnzoOutput}
-        @keyword data_style: either 4 or 5, depending
-        """
         # For now, we default to HDF4, but allow specifying HDF5
         # Expect filename to be the name of the parameter file, not the
         # hierarchy
@@ -93,6 +93,14 @@ class EnzoHierarchy:
         self.populateHierarchy()
 
     def setupClasses(self, data_style):
+        """
+        This is our class factory.  It takes the base classes and assigns to
+        them appropriate data-reading functions based on the data-style.
+    
+        @postcondition: .grid, .prof, .slice, .region, .datacube and .sphere
+                        will be classes, instantiated with the appropriate 
+                        methods of obtaining data.
+        """
         def genClass(base):
             class MyClass(base):
                 pf = self.parameterFile
@@ -110,6 +118,12 @@ class EnzoHierarchy:
         self.sphere = genClass(EnzoSphereBase)
 
     def initializeDataFile(self):
+        """
+        We initialize our data-serialization file here.
+
+        @precond: tables must be imported and we must have write access to the
+                  directory the data is contained in.  (Otherwise silent failure.)
+        """
         fn = os.path.join(self.directory,"%s.yt" % self["CurrentTimeIdentifier"])
         try:
             self.dataFile = tables.openFile(fn, "a")
@@ -117,6 +131,16 @@ class EnzoHierarchy:
             pass
 
     def saveData(self, array, node, name):
+        """
+        Arbitrary numpy data will be saved to the region in the datafile
+        described by node and name.
+        @arg array: The data to be saved.
+        @type array: NumPy array
+        @arg node: The HDF5 node to save to
+        @type node: String
+        @arg name: Name of the array in the file
+        @type name: String
+        """
         if self.dataFile != None:
             self.dataFile.createArray(node, name, array, createparents=True)
             self.dataFile.flush()
@@ -156,7 +180,7 @@ class EnzoHierarchy:
     def populateHierarchy(self):
         """
         Instantiates all of the grid objects, with their appropriate
-        parameters.
+        parameters.  This is the work-horse.
         """
         harray = self.getData("/", "Hierarchy")
         if harray:
@@ -293,12 +317,16 @@ class EnzoHierarchy:
 
         @param level: the level
         @type level: integer
+        @note: This would be more intuitive if it returned the *actual grids*.
         """
         # We return a numarray of the indices of all the grids on a given level
         indices = na.where(self.gridLevels[:,0] == level)[0]
         return indices
 
     def getSmallestDx(self):
+        """
+        Returns (in code units) the smallest dx in the simulation.
+        """
         return self.gridDxs.min()
 
     def printStats(self):
@@ -537,6 +565,12 @@ class EnzoHierarchy:
 
     @time_execution
     def exportBoxesPV(self, filename):
+        """
+        Exports the grid structure in partiview text format.
+
+        @arg filename: File to export to.
+        @type filename: String
+        """
         f=open(filename,"w")
         for l in xrange(self.maxLevel):
             f.write("add object g%s = l%s\n" % (l,l))
@@ -550,6 +584,9 @@ class EnzoHierarchy:
 
     @time_execution
     def exportAmira(self, basename, fields, a5basename, timestep):
+        """
+        Exports the grid structure in partiview text format.
+        """
         if (not iterable(fields)) or (isinstance(fields, types.StringType)):
             fields = [fields]
         for field in fields:
