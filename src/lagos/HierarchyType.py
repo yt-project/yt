@@ -55,8 +55,7 @@ class EnzoHierarchy:
                 break
         # For some reason, r8 seems to want Float64
         if self.parameters.has_key("CompilerPrecision") \
-           and (self.parameters["CompilerPrecision"] == "r8" \
-                or self.parameters["CompilerPrecision"] == "r4"):
+            and self.parameters["CompilerPrecision"] == "r4":
             EnzoFloatType = nT.Float32
         else:
             EnzoFloatType = nT.Float64
@@ -72,7 +71,7 @@ class EnzoHierarchy:
         self.gridNumberOfParticles = na.zeros((self.numGrids,1))
 
         self.grids = obj.array([self.grid(i+1) for i in xrange(self.numGrids)])
-        self.gridReverseTree = [None] * self.numGrids
+        self.gridReverseTree = [-1] * self.numGrids
         self.gridTree = [ [] for i in range(self.numGrids)]
 
         # Now some statistics:
@@ -175,6 +174,10 @@ class EnzoHierarchy:
             t = re.findall(re_BaryonFileName, self.hierarchyString)
             for fnI in xrange(len(t)):
                 self.grids[fnI].setFilename(t[fnI])
+            re_BaryonFileName = constructRegularExpressions("FileName",('s'))
+            t = re.findall(re_BaryonFileName, self.hierarchyString)
+            for fnI in xrange(len(t)):
+                self.grids[fnI].setFilename(t[fnI])
         else:
             def splitConvertGridParameter(vals, func, toAdd, curGrid):
                 """
@@ -211,6 +214,8 @@ class EnzoHierarchy:
                     splitConvertGridParameter(vals, float, self.gridTimes, curGrid)
                 elif param == "NumberOfParticles   ":
                     splitConvertGridParameter(vals, float, self.gridNumberOfParticles, curGrid)
+                elif param == "FileName       ":
+                    self.grids[curGrid-1].setFilename(vals[1:-1])
                 elif param == "BaryonFileName ":
                     self.grids[curGrid-1].setFilename(vals[1:-1])
             mylog.info("Caching hierarchy information")
@@ -261,7 +266,9 @@ class EnzoHierarchy:
             self.gridTree = [ [ self.grids[i] for i in pTree[j] ] for j in range(self.numGrids) ]
             self.gridLevels = self.getData("/","Levels")[:]
             mylog.debug("Grabbed")
-        self.gridReverseTree[0] = None
+        for i,v in enumerate(self.gridReverseTree):
+            if v == -1: self.gridReverseTree[i] = None
+        #self.gridReverseTree[0] = None
         self.maxLevel = self.gridLevels.max()
         # Now we do things that we need all the grids to do
         self.fieldList = self.grids[0].getFields()
@@ -368,13 +375,15 @@ class EnzoHierarchy:
         @type axis: integer
         """
         # Let's figure out which grids are on the slice
-        mask=na.ones(self.numGrids)
+        #mask=na.ones(self.numGrids)
         # So if gRE > coord, we get a mask, if not, we get a zero
         #    if gLE > coord, we get a zero, if not, mask
         # Thus, if the coordinate is between the edges, we win!
-        na.choose(na.greater(self.gridRightEdge[:,axis],coord),(0,mask),mask)
-        na.choose(na.greater(self.gridLeftEdge[:,axis],coord),(mask,0),mask)
-        ind = na.where(mask == 1)
+        ind = na.where( na.logical_and(self.gridRightEdge[:,axis] >= coord, \
+                                       self.gridLeftEdge[:,axis] <= coord))
+        #na.choose(na.greater(self.gridRightEdge[:,axis],coord),(0,mask),mask)
+        #na.choose(na.greater(self.gridLeftEdge[:,axis],coord),(mask,0),mask)
+        #ind = na.where(mask == 1)
         return self.grids[ind], ind
 
     def findSphereGrids(self, center, radius):

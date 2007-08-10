@@ -15,9 +15,12 @@ G{packagetree}
 from yt.logger import lagosLogger as mylog
 from yt.config import ytcfg
 
-from pyhdf_np import SD          # NumPy
-import pyhdf_np.error, warnings  # NumPy
-import tables
+try:
+    from pyhdf_np import SD          # NumPy
+    import pyhdf_np.error  # NumPy
+except:
+    mylog.warning("No HDF4 support")
+import warnings, tables
 warnings.simplefilter("ignore", tables.NaturalNameWarning)
 
 from yt.arraytypes import *
@@ -54,5 +57,5 @@ from EnzoRateData import *
 from HierarchyType import *
 from OutputTypes import *
 from EnzoRunType import *
-from ThreadsAndQueues import *
+#from ThreadsAndQueues import *
 from DataCube import *

@@ -152,6 +152,13 @@ def NumberDensity(self, fieldName):
                       ((self.hierarchy["Density"]/1.67e-24))
 fieldInfo["NumberDensity"] = ("cm^-3", "cm^-2", True, NumberDensity)
 
+def ID(self, fieldName):
+    """Just the level, for outlines of grid structure"""
+    self[fieldName] = na.ones(self["Density"].shape) * \
+            (self.id)
+    # Doesn't make sense to call this on grids, right?
+fieldInfo["ID"] = ("ID", None, False, ID)
+
 def Outline(self, fieldName):
     """Just the level, for outlines of grid structure"""
     #self[fieldName] = na.ones(self.myChildMask.shape) * self.Level + 1

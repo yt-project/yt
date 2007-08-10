@@ -74,7 +74,9 @@ class ReasonMainWindow(wx.Frame):
         self.Bind(wx.EVT_BUTTON, self.AddSlice, self.SliceButton)
         self.Bind(wx.EVT_BUTTON, self.AddProj, self.ProjectButton)
 
-        self.AddStaticOutputFile("/Users/matthewturk/Research/data/mornkr/galaxy0398.dir/galaxy0398.hierarchy")
+        #self.AddStaticOutputFile("/Users/matthewturk/Research/data/mornkr/galaxy0398.dir/galaxy0398.hierarchy")
+        self.AddStaticOutputFile("/c/britton/data/cl-4/DataDir0036/DataDump0036.hierarchy")
+        #self.AddStaticOutputFile("/c/mturk/data/RD0069/RD0069.hierarchy")
         self.RefreshOutputs()
 
     def SetupMenubar(self):
@@ -112,7 +114,7 @@ class ReasonMainWindow(wx.Frame):
         # Alright, we choose the hierarchy in the file selector,
         # so let's strip that extension off
         fn = filename[:-10]
-        eso = lagos.EnzoStaticOutput(fn)
+        eso = lagos.EnzoStaticOutput(fn, data_style=5)
         self.outputs.append(eso)
         # Note that we do NOT refresh here, as we may ultimately want to add
         # several at once.  Refreshing the outputs is left as an exercise to
@@ -142,7 +144,7 @@ class ReasonMainWindow(wx.Frame):
             #width, unit = Toolbars.ChooseWidth(o)
             width = 1.0
             unit = "1"
-            for i, ax in zip(range(3), 'xyz'):
+            for i, ax in zip(range(1), 'xyz'):
                 t = "%s - Projection - %s" % (o.basename, ax)
                 self.windows.append( \
                     ReasonVMPlotFrame(parent=self, title=t,
@@ -320,8 +322,8 @@ class ReasonVMPlotPanel(wx.Panel):
 
         self.SetBackgroundColour(wx.NamedColor("WHITE"))
 
-        #self.center = outputfile.hierarchy.findMax("Density")[1]#[0.5,0.5,0.5]
-        self.center = [0.5, 0.5, 0.5]
+        self.center = outputfile.hierarchy.findMax("Density")[1]#[0.5,0.5,0.5]
+        #self.center = [0.5, 0.5, 0.5]
         self.axis = axis
 
         self.makePlot()
@@ -522,13 +524,13 @@ class ReasonVMPlotPanel(wx.Panel):
 
 class ReasonSlicePlotPanel(ReasonVMPlotPanel):
     def makePlot(self):
-        self.data = lagos.EnzoSlice(self.outputfile, self.axis, 
+        self.data = self.outputfile.hierarchy.slice(self.axis, 
                                     self.center[self.axis], self.field, self.center)
         self.plot = be.SlicePlot(self.data, self.field, figure=self.figure, axes=self.axes)
         
 class ReasonProjPlotPanel(ReasonVMPlotPanel):
     def makePlot(self):
-        self.data = lagos.EnzoProj(self.outputfile, self.axis, 
+        self.data = self.outputfile.hierarchy.proj(self.axis, 
                                    self.field, weightField=None, center=self.center)
         self.plot = be.ProjectionPlot(self.data, self.field, figure=self.figure, axes=self.axes)
         

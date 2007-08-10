@@ -166,8 +166,8 @@ class EnzoGridBase:
             startIndex = ((child.LeftEdge - self.LeftEdge)/self.dx)
             endIndex = ((child.RightEdge - self.LeftEdge)/self.dx)
             for i in range(3):
-                si[i] = int(startIndex[i])
-                ei[i] = int(endIndex[i])
+                si[i] = int(startIndex[i]+0.1)
+                ei[i] = int(endIndex[i]+0.1)
             self.myChildMask[si[0]:ei[0], si[1]:ei[1], si[2]:ei[2]] = 0
         self.myChildIndices = na.where(self.myChildMask==0)
 
@@ -405,16 +405,29 @@ class EnzoGridBase:
             toCombineMask = na.logical_and.reduce(self.myChildMask, axis)
         # How do we do this the fastest?
         # We only want to project those values that don't have subgrids
-        fullProj = na.sum(maskedData,axis)*self.dx # Gives correct shape
+        #fullProj = na.sum(maskedData,axis)*self.dx # Gives correct shape
         weightProj = na.sum(weightData,axis)*self.dx
-        #fullProj = na.maximum.reduce(maskedData,axis) # Gives correct shape
+        fullProj = na.maximum.reduce(maskedData,axis) # Gives correct shape
         if not zeroOut:
             toCombineMask = na.ones(fullProj.shape, dtype=nT.Bool)
         toCombineMask = toCombineMask.astype(nT.Int64)
         cmI = na.indices(fullProj.shape)
-        xind = cmI[0,:]
-        yind = cmI[1,:]
-        xpoints = (xind+(self.LeftEdge[x_dict[axis]]/self.dx)).astype(nT.Int64)
-        ypoints = (yind+(self.LeftEdge[y_dict[axis]]/self.dx)).astype(nT.Int64)
-        return [xpoints.ravel(), ypoints.ravel(), fullProj.ravel(), toCombineMask.ravel(), weightProj.ravel()]
-
+        xind = cmI[0,:].ravel()
+        yind = cmI[1,:].ravel()
+        xpoints = na.round(xind + self.LeftEdge[x_dict[axis]]/self.dx).astype(nT.Int64)
+        ypoints = na.round(yind + self.LeftEdge[y_dict[axis]]/self.dx).astype(nT.Int64)
+        #xpoints = na.array(na.round((xind+(self.LeftEdge[x_dict[axis]]/self.dx))+0.1),'int64')
+        return [xpoints, ypoints, fullProj.ravel(), toCombineMask.ravel(), weightProj.ravel()]
+"""
+        cm = na.where(grid.myChildMask[sl].ravel() == 1)
+        cmI = na.indices((nx,ny))
+        xind = cmI[0,:].ravel()
+        xpoints = na.ones(cm[0].shape, nT.Float64)
+        xpoints *= xind[cm]*grid.dx+(grid.LeftEdge[xaxis] + 0.5*grid.dx)
+        yind = cmI[1,:].ravel()
+        ypoints = na.ones(cm[0].shape, nT.Float64)
+        ypoints *= yind[cm]*grid.dx+(grid.LeftEdge[yaxis] + 0.5*grid.dx)
+        zpoints = na.ones(xpoints.shape, nT.Float64) * self.coord
+        dx = na.ones(xpoints.shape, nT.Float64) * grid.dx/2.0
+        t = na.array([xpoints, ypoints, zpoints, dx]).swapaxes(0,1)
+"""

@@ -20,8 +20,8 @@
 // Sometimes a "maximum intensity" line-integral looks better
 // switch these two defs, and then fix EnzoGrid.getProjection, to switch
 
-//#define COMB(A,B) ((A) > (B) ? (A) : (B))
-#define COMB(A,B) (A + B)
+#define COMB(A,B) ((A) > (B) ? (A) : (B))
+//#define COMB(A,B) (A + B)
 
 #define max(A,B) ((A) > (B) ? (A) : (B))
 #define min(A,B) ((A) < (B) ? (A) : (B))
@@ -44,8 +44,8 @@ RefineCoarseData(long fpoints, npy_int64 *finedata_x, npy_int64 *finedata_y, npy
     for (ci=0; ci<cpoints; ci++) flagged[ci]=0;
 
     for (fi = 0; fi < fpoints; fi++) {
-        coarseCell_x = floorl(finedata_x[fi]/rf);
-        coarseCell_y = floorl(finedata_y[fi]/rf);
+        coarseCell_x = floorl((finedata_x[fi])/rf);
+        coarseCell_y = floorl((finedata_y[fi])/rf);
         for (ci = 0; ci < cpoints; ci++) {
             if ((coarseCell_x == coarsedata_x[ci]) &&
                 (coarseCell_y == coarsedata_y[ci])) {
@@ -62,8 +62,8 @@ RefineCoarseData(long fpoints, npy_int64 *finedata_x, npy_int64 *finedata_y, npy
 
     for (ci=0; ci<cpoints; ci++) {
         if (flagged[ci]==1) {
-            coarsedata_x[ci]=-1;
-            coarsedata_y[ci]=-1;
+            coarsedata_x[ci]=-2;
+            coarsedata_y[ci]=-2;
             coarsedata_vals[ci]=0.0;
             coarsedata_wgt[ci]=0.0;
         }
@@ -231,7 +231,7 @@ CombineData(long dpoints, npy_int64 *alldata_x, npy_int64 *alldata_y, npy_float6
                     alldata_vals[di] = COMB(alldata_vals[di], griddata_vals[gi]);
                     alldata_wgt[di]  = COMB(alldata_wgt[di], griddata_wgt[gi]);
                     alldata_mask[di] = (alldata_mask[di] && griddata_mask[gi]);
-                    griddata_x[gi] = -1;
+                    griddata_x[gi] = -2;
                     appendData = 0;
                     myIndex++;
                     break; // We map to one alldata point AT MOST

@@ -62,7 +62,7 @@ def readDataHDF5(self, field):
         return 1
     f = tables.openFile(self.filename)
     try:
-        t = f.getNode("/", field).read()
+        t = f.getNode("/", field).read().astype("float64")
         self[field] = t.swapaxes(0,2)
     except:
         self.generateField(field)

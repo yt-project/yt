@@ -395,7 +395,7 @@ class EnzoProjBase(Enzo2DData):
         dataFieldName = field
         for level in range(minLevel, self.maxLevel+1):
             gridsToProject = h.grids[h.selectLevel(level)]
-            widgets = [ 'Projecting level %s / %s' % (level, self.maxLevel),
+            widgets = [ 'Projecting level % 2i / % 2i ' % (level, self.maxLevel),
                         Percentage(), ' ',
                         Bar(marker=RotatingMarker()),
                         ' ', ETA(), ' ']
@@ -408,11 +408,8 @@ class EnzoProjBase(Enzo2DData):
                 totalGridsProjected += 1
                 pbar.update(pi)
             pbar.finish()
-            #mylog.debug("Grid projecting done (%s / %s total)", \
-                        #totalGridsProjected, h.numGrids)
-            #mylog.debug("Combining level %s...", level)
             i = 0
-            widgets = [ 'Combining level %s / %s' % (level, self.maxLevel),
+            widgets = [ 'Combining level  % 2i / % 2i ' % (level, self.maxLevel),
                         Percentage(), ' ',
                         Bar(marker=RotatingMarker()),
                         ' ', ETA(), ' ']
@@ -464,7 +461,9 @@ class EnzoProjBase(Enzo2DData):
             del levelData
         all_data = na.concatenate([dataByLevel[level][:3] for level in range(minLevel, self.maxLevel+1)],axis=1)
         # Man, I love list comprehensions.  This is sooooo ugly.
-        all_dx = na.concatenate([na.ones(dataByLevel[level][2].shape)*dataByLevel[level][3] for level in range(minLevel, self.maxLevel+1)])
+        all_dx = na.concatenate([na.ones(dataByLevel[level][2].shape,
+                                        dtype=nT.Float64)*dataByLevel[level][3] for level in range(minLevel,
+                                        self.maxLevel+1)])
         # We now convert to half-widths and center-points
         self.dx = all_dx / 2.0
         self.dy = self.dx.copy()
