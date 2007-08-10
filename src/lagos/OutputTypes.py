@@ -2,11 +2,13 @@
 Generalized Enzo output objects, both static and time-series.
 
 Presumably at some point EnzoRun will be absorbed into here.
-
-@author: U{Matthew Turk<http://www.stanford.edu/~mturk/>}
-@organization: U{KIPAC<http://www-group.slac.stanford.edu/KIPAC/>}
-@contact: U{mturk@slac.stanford.edu<mailto:mturk@slac.stanford.edu>}
 """
+
+__author__ = "U{Matthew Turk<http://www.stanford.edu/~mturk>}"
+__organization__ = "U{KIPAC<http://www-group.slac.stanford.edu/KIPAC/>}"
+__contact__ = "U{mturk@slac.stanford.edu<mailto:mturk@slac.stanford.edu>}"
+__license__ = "GPL-3"
+
 
 from yt.lagos import *
 from yt.funcs import *
@@ -27,13 +29,12 @@ class EnzoStaticOutput(EnzoOutput):
     @todo: Move some of the parameters to the EnzoRun?
            Maybe it is just more appropriate to think of time series data and
            single-time data?
+    
+    @param filename: The filename of the parameterfile we want to load
+    @type filename: String
     """
     __hierarchy = None
-    def __init__(self, filename, data_style=4):
-        """
-        @note: We disregard data_style here.
-               We should probably implement a guess-and-check.
-        """
+    def __init__(self, filename):
         self.data_style = data_style
         if filename.endswith(".hierarchy"):
             filename = filename[:-10]
