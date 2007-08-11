@@ -42,7 +42,6 @@ class EnzoHierarchy:
                                + ".boundary"
         self.directory = os.path.dirname(self.hierarchyFilename)
         self.parameterFile = pf
-        self.setupClasses(data_style)
         self.dataFile = None
         # Now we search backwards from the end of the file to find out how many
         # grids we have, which allows us to preallocate memory
@@ -53,6 +52,7 @@ class EnzoHierarchy:
             if line.startswith("Grid ="):
                 self.numGrids = int(line.split("=")[-1])
                 break
+        self.figureOutDataType()
         # For some reason, r8 seems to want Float64
         if self.parameters.has_key("CompilerPrecision") \
             and self.parameters["CompilerPrecision"] == "r4":
@@ -60,6 +60,7 @@ class EnzoHierarchy:
         else:
             EnzoFloatType = nT.Float64
 
+        self.setupClasses()
         self.gridDimensions = na.zeros((self.numGrids,3), nT.Int32)
         self.gridStartIndices = na.zeros((self.numGrids,3), nT.Int32)
         self.gridEndIndices = na.zeros((self.numGrids,3), nT.Int32)
@@ -91,8 +92,32 @@ class EnzoHierarchy:
 
         self.initializeDataFile()
         self.populateHierarchy()
+    def figureOutDataType(self):
+        for i in xrange(len(self.hierarchyLines)-1,0,-1):
+            line = self.hierarchyLines[i]
+            if line.startswith("BaryonFileName") or \
+               line.startswith("FileName "):
+                testGrid = line.split("=")[-1].strip().rstrip()
+                break
+        if testGrid[0] != os.path.sep:
+            testGrid = os.path.join(self.directory, testGrid)
+        try:
+            a = SD.SD(testGrid)
+            self.data_style = 4
+            mylog.debug("Detected HDF4")
+        except:
+            a = tables.openFile(testGrid)
+            for b in a.iterNodes("/"):
+                c = "%s" % (b)
+                break
+            if c.startswith("/Grid"):
+                mylog.debug("Detected packed HDF5")
+                self.data_style = 6
+            else:
+                mylog.debug("Detected unpacked HDF5")
+                self.data_style = 5
 
-    def setupClasses(self, data_style):
+    def setupClasses(self):
         """
         This is our class factory.  It takes the base classes and assigns to
         them appropriate data-reading functions based on the data-style.
@@ -105,10 +130,10 @@ class EnzoHierarchy:
             class MyClass(base):
                 pf = self.parameterFile
                 hierarchy = self
-                readDataFast = dataStyleFuncs[data_style][0]
-                readallData = dataStyleFuncs[data_style][1]
-                getFields = dataStyleFuncs[data_style][2]
-                readDataSlice = dataStyleFuncs[data_style][3]
+                readDataFast = dataStyleFuncs[self.data_style][0]
+                readallData = dataStyleFuncs[self.data_style][1]
+                getFields = dataStyleFuncs[self.data_style][2]
+                readDataSlice = dataStyleFuncs[self.data_style][3]
             return MyClass
         self.grid = genClass(EnzoGridBase)
         self.proj = genClass(EnzoProjBase)

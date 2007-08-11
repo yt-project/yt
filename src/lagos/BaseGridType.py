@@ -132,7 +132,7 @@ class EnzoGridBase:
         self.ActiveDimensions = (self.EndIndices - self.StartIndices + 1)
         self.Children = h.gridTree[self.id-1]
         pID = h.gridReverseTree[self.id-1]
-        if pID != None:
+        if pID != None and pID != -1:
             self.Parent = h.grids[pID - 1]
         else:
             self.Parent = None
@@ -146,6 +146,19 @@ class EnzoGridBase:
                   (self.EndIndices[2]-self.StartIndices[2]+1)
         h.gridDxs[self.id-1,0] = self.dx
         self.coords = None
+        if ytcfg.getboolean("lagos","ReconstructHierarchy") == True:
+            if self.Parent == None: return
+            # Okay, we're going to try to guess
+            # We know that our grid boundary occurs on the cell boundary of our
+            # parent
+            le = self.LeftEdge
+            self.dx = self.Parent.dx/2.0
+            self.dy = self.Parent.dy/2.0
+            self.dz = self.Parent.dz/2.0
+            ParentLeftIndex = na.rint((self.LeftEdge-self.Parent.LeftEdge)/self.Parent.dx)
+            self.LeftEdge = self.Parent.LeftEdge + self.Parent.dx * ParentLeftIndex
+            self.RightEdge = self.LeftEdge + self.ActiveDimensions*self.dx
+            #if self.Level > 20: print "Recon", (self.LeftEdge-le)/self.dx
 
     #@time_execution
     def generateChildMask(self, fRet=False):
@@ -157,7 +170,23 @@ class EnzoGridBase:
         if fRet == True:
             self.myChildIndices = na.where(self.myChildMask==1)
             return
-        for child in self.Children:
+        LE = self.hierarchy.gridLeftEdge
+        RE = self.hierarchy.gridRightEdge
+        cond1 = self.RightEdge[0] >= LE[:,0]
+        cond2 = self.LeftEdge[0] <= RE[:,0]
+        cond3 = self.RightEdge[1] >= LE[:,1]
+        cond4 = self.LeftEdge[1] <= RE[:,1]
+        cond5 = self.RightEdge[2] >= LE[:,2]
+        cond6 = self.LeftEdge[2] <= RE[:,2]
+        cond7 = (self.gridLevels.ravel() == self.Level + 1)
+        condX = na.logical_and(cond1,cond2)
+        condX = na.logical_and(condX,cond3)
+        condX = na.logical_and(condX,cond4)
+        condX = na.logical_and(condX,cond5)
+        condX = na.logical_and(condX,cond6)
+        condX = na.logical_and(condX,cond7)
+        myChildrenGrids = na.where(condX)
+        for child in self.hierarchy.grids[myChildrenGrids]:
             if child.Level > self.Level + 1:
                 continue
             # Now let's get our overlap
@@ -166,8 +195,10 @@ class EnzoGridBase:
             startIndex = ((child.LeftEdge - self.LeftEdge)/self.dx)
             endIndex = ((child.RightEdge - self.LeftEdge)/self.dx)
             for i in range(3):
-                si[i] = int(startIndex[i]+0.1)
-                ei[i] = int(endIndex[i]+0.1)
+                si[i] = na.rint(startIndex[i])
+                ei[i] = na.rint(endIndex[i])
+                si[i] = (si[i])#, 0, self.ActiveDimensions[i])
+                ei[i] = (ei[i])#, 0, self.ActiveDimensions[i])
             self.myChildMask[si[0]:ei[0], si[1]:ei[1], si[2]:ei[2]] = 0
         self.myChildIndices = na.where(self.myChildMask==0)
 
@@ -193,7 +224,7 @@ class EnzoGridBase:
         cond3 = self.RightEdge[y] > LE[:,y]
         cond4 = self.LeftEdge[y] < RE[:,y]
         self.myOverlapMasks[axis]=na.logical_and(na.logical_and(cond1, cond2), \
-                                               na.logical_and(cond3, cond4))
+                                                 na.logical_and(cond3, cond4))
     def __repr__(self):
         return "%s" % (self.id)
 
@@ -204,7 +235,7 @@ class EnzoGridBase:
         if filename[0] == os.path.sep:
             self.filename = filename
         else:
-            self.filename = self.hierarchy.directory + os.path.sep + filename
+            self.filename = os.path.join(self.hierarchy.directory, filename)
         return
 
     def findMax(self, field):
@@ -402,32 +433,21 @@ class EnzoGridBase:
         if zeroOut:
             maskedData[self.myChildIndices]=0
             weightData[self.myChildIndices]=0
-            toCombineMask = na.logical_and.reduce(self.myChildMask, axis)
+            toCombineMask = na.logical_and.reduce(self.myChildMask, axis).astype(nT.Int64)
         # How do we do this the fastest?
         # We only want to project those values that don't have subgrids
-        #fullProj = na.sum(maskedData,axis)*self.dx # Gives correct shape
+        fullProj = na.sum(maskedData,axis)*self.dx # Gives correct shape
         weightProj = na.sum(weightData,axis)*self.dx
-        fullProj = na.maximum.reduce(maskedData,axis) # Gives correct shape
+        #fullProj = na.maximum.reduce(maskedData,axis) # Gives correct shape
         if not zeroOut:
-            toCombineMask = na.ones(fullProj.shape, dtype=nT.Bool)
+            toCombineMask = na.ones(fullProj.shape, dtype=nT.Int64)
         toCombineMask = toCombineMask.astype(nT.Int64)
         cmI = na.indices(fullProj.shape)
         xind = cmI[0,:].ravel()
         yind = cmI[1,:].ravel()
-        xpoints = na.round(xind + self.LeftEdge[x_dict[axis]]/self.dx).astype(nT.Int64)
-        ypoints = na.round(yind + self.LeftEdge[y_dict[axis]]/self.dx).astype(nT.Int64)
-        #xpoints = na.array(na.round((xind+(self.LeftEdge[x_dict[axis]]/self.dx))+0.1),'int64')
+        a = {0:self.dx, 1:self.dy, 2:self.dz}
+        dx = a[x_dict[axis]]
+        dy = a[y_dict[axis]]
+        xpoints = xind + na.rint(self.LeftEdge[x_dict[axis]]/dx).astype(nT.Int64)
+        ypoints = yind + na.rint(self.LeftEdge[y_dict[axis]]/dy).astype(nT.Int64)
         return [xpoints, ypoints, fullProj.ravel(), toCombineMask.ravel(), weightProj.ravel()]
-"""
-        cm = na.where(grid.myChildMask[sl].ravel() == 1)
-        cmI = na.indices((nx,ny))
-        xind = cmI[0,:].ravel()
-        xpoints = na.ones(cm[0].shape, nT.Float64)
-        xpoints *= xind[cm]*grid.dx+(grid.LeftEdge[xaxis] + 0.5*grid.dx)
-        yind = cmI[1,:].ravel()
-        ypoints = na.ones(cm[0].shape, nT.Float64)
-        ypoints *= yind[cm]*grid.dx+(grid.LeftEdge[yaxis] + 0.5*grid.dx)
-        zpoints = na.ones(xpoints.shape, nT.Float64) * self.coord
-        dx = na.ones(xpoints.shape, nT.Float64) * grid.dx/2.0
-        t = na.array([xpoints, ypoints, zpoints, dx]).swapaxes(0,1)
-"""

@@ -20,6 +20,9 @@ ytcfgDefaults = {
     "SWIG":{
         'EnzoInterfacePath': '/usr/work/mturk/local/lib/python2.5/site-packages', \
         },\
+    "lagos":{
+        'ReconstructHierarchy': 'False',
+        },
     "yt":{
         'LogFile': '1', \
         'LogLevel': '20', \

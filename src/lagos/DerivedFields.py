@@ -161,9 +161,8 @@ fieldInfo["ID"] = ("ID", None, False, ID)
 
 def Outline(self, fieldName):
     """Just the level, for outlines of grid structure"""
-    #self[fieldName] = na.ones(self.myChildMask.shape) * self.Level + 1
-    self[fieldName] = na.ones(self["Density"].shape) * \
-            (na.log((self.dx.max() / self.dx))/na.log(2))
+    self[fieldName] = na.ones(self.ActiveDimensions) * \
+                na.log10(self.dx**(-1))/na.log10(2)
     # Doesn't make sense to call this on grids, right?
 fieldInfo["Outline"] = ("Level", "LevelSum", False, Outline)
 
