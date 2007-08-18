@@ -1,0 +1,6 @@
+#!python
+
+import yt.reason
+
+app = yt.reason.ReasonApp(0)
+app.MainLoop()
