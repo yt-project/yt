@@ -9,7 +9,7 @@ Everything will be returned in a global config dictionary: ytcfg
 @todo: Implement default rc file outputting
 """
 
-import ConfigParser, os, os.path, sys, types
+import ConfigParser, optparse, os, os.path, sys, types
 from funcs import *
 
 ytcfgDefaults = {
@@ -30,6 +30,9 @@ ytcfgDefaults = {
         'User':os.getenv("USER"), \
         'timefunctions':'False'
          }, \
+    "lagos": {
+        "ReconstructHierarchy": "False"
+             },
     "raven":{
         'ImagePath':".", \
         'ImageSkel': '%(bn)s_%(width)010i_%(unit)s',\
@@ -69,3 +72,7 @@ class YTConfigParser(ConfigParser.ConfigParser):
         self.set(item[0],item[1],val)
 
 ytcfg = YTConfigParser(['yt.cfg', os.path.expanduser('~/.yt/config')], ytcfgDefaults)
+
+# Now we have parsed the config file.  Overrides come from the command line.
+
+#op = optparse.OptionParser(description="

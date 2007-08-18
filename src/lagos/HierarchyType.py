@@ -428,15 +428,15 @@ class EnzoHierarchy:
         @type axis: integer
         """
         # Let's figure out which grids are on the slice
-        #mask=na.ones(self.numGrids)
+        mask=na.ones(self.numGrids)
         # So if gRE > coord, we get a mask, if not, we get a zero
         #    if gLE > coord, we get a zero, if not, mask
         # Thus, if the coordinate is between the edges, we win!
-        ind = na.where( na.logical_and(self.gridRightEdge[:,axis] >= coord, \
-                                       self.gridLeftEdge[:,axis] <= coord))
-        #na.choose(na.greater(self.gridRightEdge[:,axis],coord),(0,mask),mask)
-        #na.choose(na.greater(self.gridLeftEdge[:,axis],coord),(mask,0),mask)
-        #ind = na.where(mask == 1)
+        #ind = na.where( na.logical_and(self.gridRightEdge[:,axis] > coord, \
+                                       #self.gridLeftEdge[:,axis] < coord))
+        na.choose(na.greater(self.gridRightEdge[:,axis],coord),(0,mask),mask)
+        na.choose(na.greater(self.gridLeftEdge[:,axis],coord),(mask,0),mask)
+        ind = na.where(mask == 1)
         return self.grids[ind], ind
 
     def findSphereGrids(self, center, radius):

@@ -223,7 +223,12 @@ def cfMassAccretionRate(self):
     Mdot = self["d_gas (Ms/Mpc^3)"] * 4 * 3.1415926 * \
             (self["bin central radius (Mpc)"]**2.0) * vr
     return Mdot
-CFfieldInfo["MassAccretionRate"] = (cfMassAccretionRate, "Mdot (M_sun)", True)
+CFfieldInfo["MassAccretionRate"] = (cfMassAccretionRate, r"$\dot{M} (M_\odot / \rm{year})$", True)
+
+def cfMassAccretionTime(self):
+    MTime = (self["m_enc"] / self["MassAccretionRate"])
+    return MTime
+CFfieldInfo["MassAccretionTime"] = (cfMassAccretionTime, "Years", True)
 
 def cfVRoverVCirc(self):
     return na.abs(self["v_r"])/na.abs(self["vcirc_gas (km/s)"])

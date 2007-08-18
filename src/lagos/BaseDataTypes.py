@@ -511,6 +511,11 @@ class EnzoSliceBase(Enzo2DData):
         self.fRet = fRet
         self.refreshData()
 
+    def reslice(self, coord):
+        mylog.debug("Setting coordinate to %0.5e" % coord)
+        self.coord = coord
+        self.refreshData()
+
     def shift(self, val):
         """
         Moves the slice coordinate up by either a floating point value, or an
@@ -637,6 +642,7 @@ class EnzoSliceBase(Enzo2DData):
             grid.generateChildMask(fRet=self.fRet)
         # So what's our index of slicing?  This is what we need to figure out
         # first, so we can deal with our data in the fastest way.
+        #print grid.RightEdge[self.axis], self.coord
         wantedIndex = int(((self.coord-grid.LeftEdge[self.axis])/grid.dx))
         sl = [slice(None), slice(None), slice(None)]
         sl[self.axis] = slice(wantedIndex, wantedIndex + 1)

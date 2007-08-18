@@ -32,7 +32,7 @@ class Watcher:
             for bn in nn:
                 newName = buryOutput(bn)
                 self.dealWithOutput(newName)
-            time.sleep(WAIT_BETWEEN)
+            time.sleep(WAITBETWEEN)
 
     def dealWithOutput(self, filename):
         # First, add it to the OutputCollection

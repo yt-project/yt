@@ -34,7 +34,7 @@ class EnzoStaticOutput(EnzoOutput):
     @type filename: String
     """
     __hierarchy = None
-    def __init__(self, filename):
+    def __init__(self, filename, data_style=4):
         self.data_style = data_style
         if filename.endswith(".hierarchy"):
             filename = filename[:-10]

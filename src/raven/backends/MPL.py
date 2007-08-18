@@ -197,7 +197,7 @@ class VMPlot(RavenPlot):
         self.size = size
         self.image = \
             self.axes.imshow(temparray, interpolation='nearest', norm = self.norm,
-                            aspect=1.0)
+                            aspect=1.0, picker=True)
         self.axisNames["Z"] = field
         self.axes.set_xticks(())
         self.axes.set_yticks(())
@@ -239,7 +239,7 @@ class VMPlot(RavenPlot):
         #print "VMIN:", self.norm.vmin, "VMAX:",self.norm.vmax
         self.image = \
             self.axes.imshow(buff, interpolation='nearest', norm = self.norm,
-                            aspect=1.0)
+                            aspect=1.0, picker=True)
         self.axes.set_xticks(())
         self.axes.set_yticks(())
         self.axes.set_ylabel("")
