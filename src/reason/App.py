@@ -49,7 +49,7 @@ class ReasonMainWindow(wx.Frame):
         self.Bind(wx.EVT_BUTTON, self.AddSlice, self.SliceButton)
         self.Bind(wx.EVT_BUTTON, self.AddProj, self.ProjectButton)
 
-        self.AddStaticOutputFile("/Users/matthewturk/Research/data/mornkr/galaxy0398.dir/galaxy0398.hierarchy")
+        self.AddStaticOutputFile("/Users/matthewturk/Research/data/DataDump0012.dir/DataDump0012.hierarchy")
         # end wxGlade
 
     def __set_properties(self):
@@ -227,6 +227,7 @@ class ReasonMainWindow(wx.Frame):
 
     def AddProj(self, event=None):
         #MyID = wx.NewId()
+        self.interpreter.shell.write("\n")
         for o in self.GetOutputs():
             MyID = o["CurrentTimeIdentifier"]
             #field = Toolbars.ChooseField(o)
@@ -245,10 +246,13 @@ class ReasonMainWindow(wx.Frame):
                                   axis=i,
                                   field = field,
                                   mw = self))
+                self.interpreter.shell.write("Adding %s slice of %s\n" % (ax, o))
                 self.plotPanel.AddPlot(self.windows[-1], t, MyID)
                 self.outputs.append(self.windows[-1].plot.data)
+
     def AddSlice(self, event=None):
         #MyID = wx.NewId()
+        self.interpreter.shell.write("\n")
         for o in self.GetOutputs():
             MyID = o["CurrentTimeIdentifier"]
             #field = Toolbars.ChooseField(o)
@@ -267,6 +271,7 @@ class ReasonMainWindow(wx.Frame):
                                   axis=i,
                                   field = field,
                                   mw = self))
+                self.interpreter.shell.write("Adding %s projection of %s\n" % (ax, o))
                 self.outputs.append(self.windows[-1].plot.data)
                 self.plotPanel.AddPlot(self.windows[-1], t, MyID)
 

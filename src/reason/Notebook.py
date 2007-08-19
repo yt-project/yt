@@ -362,8 +362,10 @@ class VMPlotPage(wx.Panel):
             dy = abs(self.plot.ylim[0] - self.plot.ylim[1])/self.plot.pix[1]
             x = (dx * xp) + self.plot.xlim[0]
             y = (dy * yp) + self.plot.ylim[0]
-            self.statusBar.SetStatusText("x = %0.12e" % (x), 0)
-            self.statusBar.SetStatusText("y = %0.12e" % (y), 1)
+            xn = lagos.axis_names[lagos.x_dict[self.axis]]
+            yn = lagos.axis_names[lagos.y_dict[self.axis]]
+            self.statusBar.SetStatusText("%s = %0.12e" % (xn,x), 0)
+            self.statusBar.SetStatusText("%s = %0.12e" % (yn,y), 1)
             self.statusBar.SetStatusText("v = %0.12e" % \
                                         (self.GetDataValue(xp,yp)), 2)
 
