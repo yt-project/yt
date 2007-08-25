@@ -15,17 +15,17 @@ class PlotPanel(wx.Panel):
 
         # Good thing the aui module breaks naming convention
         self.nb.Bind(wx.aui.EVT_AUINOTEBOOK_PAGE_CHANGED,
-                     self.UpdateSubscriptions)
-
-        #self.vmPanel = vmtype(outputfile, self.statusBar, self.PlotPanel, -1, 
-                                       #field=field, axis=axis)
-        
+                     self.OnPageChanged)
         self.__set_properties()
         self.__do_layout()
 
-    def UpdateSubscriptions(self, event):
-        Publisher().unsubAll(("viewchange"))
+    def OnPageChanged(self, event):
         page = self.nb.GetPage(event.Selection)
+        Publisher().sendMessage("page_changed",page)
+        self.UpdateSubscriptions(page)
+
+    def UpdateSubscriptions(self, page):
+        Publisher().unsubAll(("viewchange"))
         if not hasattr(page,'outputfile'): return
         cti = page.outputfile["CurrentTimeIdentifier"]
         toSubscribe = []
@@ -118,7 +118,7 @@ class VMPlotPage(wx.Panel):
         self.AmDrawingCircle = False
 
         self.outputfile = outputfile
-        self.figure = be.matplotlib.figure.Figure((4,4))
+        self.figure = be.matplotlib.figure.Figure((1,1))
         self.axes = self.figure.add_subplot(111)
         self.statusBar = statusBar
         self.field = field
@@ -208,6 +208,8 @@ class VMPlotPage(wx.Panel):
         self.widthSlider.Bind(wx.EVT_SCROLL, self.UpdateTextFromScrollEvent)
         self.widthSlider.Bind(wx.EVT_SCROLL_THUMBRELEASE, self.UpdateWidth)
         self.widthBox.Bind(wx.EVT_TEXT_ENTER, self.UpdateWidthFromText)
+
+        self.ChangeWidth(1,"1")
 
     def OnCenterOnMax(self, event):
         v, c = self.outputfile.h.findMax("Density")
@@ -319,7 +321,7 @@ class VMPlotPage(wx.Panel):
         self.plot.set_width(width, unit)
         self.UpdateCanvas()
 
-    def UpdateUnit(self, event):
+    def UpdateUnit(self, event=None):
         pos = self.widthSlider.GetValue()
         self.UpdateTextFromScroll(pos)
 
@@ -405,9 +407,11 @@ class VMPlotPage(wx.Panel):
         self.plot.switch_z(field)
         self.UpdateCanvas()
 
-    def switch_field(self, *args):
-        field = Toolbars.ChooseField(self.outputfile)
+    def switch_field(self, event):
+        field = event.GetString()
+        print dir(event)
         self.ChangeField(field)
+        print "Switching the field"
         Publisher().sendMessage(('viewchange','field'), field)
 
     def UpdateCanvas(self, *args):
@@ -429,13 +433,19 @@ class VMPlotPage(wx.Panel):
             canvas = self.figure_canvas.switch_backends(FigureCanvasAgg)
             canvas.print_figure(path,format="png")
         dlg.Destroy()
-        
 
 class SlicePlotPage(VMPlotPage):
     def makePlot(self):
         self.data = self.outputfile.hierarchy.slice(self.axis, 
                                     self.center[self.axis], self.field, self.center)
         self.plot = be.SlicePlot(self.data, self.field, figure=self.figure, axes=self.axes)
+
+    def QueryFields(self):
+        nativeFields = self.outputfile.hierarchy.fieldList
+        nativeFields.sort()
+        derivedFields = lagos.fieldInfo.keys()
+        derivedFields.sort()
+        return nativeFields + [""] + derivedFields
         
 class ProjPlotPage(VMPlotPage):
     def makePlot(self):
@@ -450,6 +460,8 @@ class ProjPlotPage(VMPlotPage):
         self.center[1] = y
         self.center[2] = z
         #self.UpdateWidth()
+    def QueryFields(self):
+        return [self.field]
 
 class PhasePlotPage(wx.Panel):
     def __init__(self, parent, statusBar, dataObject, mw=None):
@@ -464,67 +476,6 @@ class PhasePlotPage(wx.Panel):
         be.Initialize(canvas=FigureCanvas)
         self.figure_canvas = be.engineVals["canvas"](self, -1, self.figure)
 
-class ReasonFidoSelector(wx.Frame):
-    def __init__(self, *args, **kwds):
-        # begin wxGlade: ReasonFidoSelector.__init__
-        kwds["style"] = wx.DEFAULT_FRAME_STYLE
-        wx.Frame.__init__(self, *args, **kwds)
-        self.panel_4 = wx.Panel(self, -1)
-        self.panel_5 = wx.Panel(self.panel_4, -1)
-        self.FidoOutputs = wx.TreeCtrl(self.panel_4, -1, style=wx.TR_HAS_BUTTONS|wx.TR_DEFAULT_STYLE|wx.SUNKEN_BORDER)
-        self.label_1 = wx.StaticText(self.panel_5, -1, "label_1")
-
-        self.__set_properties()
-        self.__do_layout()
-        # end wxGlade
-
-    def __set_properties(self):
-        pass
-        # begin wxGlade: ReasonFidoSelector.__set_properties
-        self.SetTitle("frame_4")
-        # end wxGlade
-
-    def __do_layout(self):
-        # begin wxGlade: ReasonFidoSelector.__do_layout
-        sizer_5 = wx.BoxSizer(wx.VERTICAL)
-        sizer_6 = wx.BoxSizer(wx.HORIZONTAL)
-        sizer_7 = wx.BoxSizer(wx.HORIZONTAL)
-        sizer_6.Add(self.FidoOutputs, 1, wx.EXPAND, 0)
-        sizer_7.Add(self.label_1, 0, 0, 0)
-        self.panel_5.SetSizer(sizer_7)
-        sizer_6.Add(self.panel_5, 1, wx.EXPAND, 0)
-        self.panel_4.SetSizer(sizer_6)
-        sizer_5.Add(self.panel_4, 1, wx.EXPAND, 0)
-        self.SetSizer(sizer_5)
-        sizer_5.Fit(self)
-        self.Layout()
-
-class ReasonParameterFileViewer(wx.Frame):
-    def __init__(self, *args, **kwds):
-        kwds["style"] = wx.DEFAULT_FRAME_STYLE
-        kwds["title"] = "yt - Reason"
-        kwds["size"] = (800,800)
-        pf = kwds.pop("outputfile")
-        wx.Frame.__init__(self, *args, **kwds)
-
-        # Add the text ctrl
-        self.pf = wx.TextCtrl(self, -1, style=wx.TE_READONLY | wx.TE_MULTILINE | wx.HSCROLL)
-        self.pf.LoadFile(pf.parameterFilename)
-
-        self.sizer = wx.BoxSizer(wx.VERTICAL)
-        self.sizer.Add(self.pf, 1, wx.EXPAND, 0)
-        self.SetSizer(self.sizer)
-        self.sizer.Fit(self)
-        self.Layout()
-        self.SetSize((600,600))
-
-class ReasonApp(wx.App):
-    def OnInit(self):
-        wx.InitAllImageHandlers()
-        frame_1 = ReasonMainWindow(None, -1)
-        self.SetTopWindow(frame_1)
-        frame_1.Show()
-        return True
 
 if __name__ == "__main__":
     app = ReasonApp(0)

@@ -92,30 +92,6 @@ class ReasonWidthSelectionWindow(wx.Dialog):
         return float(self.width.GetValue()), \
                self.choices[self.units.GetSelection()]
 
-def ChooseField(outputfile):
-    nativeFields = outputfile.hierarchy.fieldList
-    nativeFields.sort()
-    derivedFields = lagos.fieldInfo.keys()
-    derivedFields.sort()
-    toChoose = nativeFields + [''] + derivedFields
-    dlg = wx.SingleChoiceDialog(None,
-             'Which field?',
-             'Field Chooser (%s)' % outputfile.basename,
-             toChoose)
-    response = None
-    if dlg.ShowModal() == wx.ID_OK:
-        response = dlg.GetStringSelection()
-    if response == "":
-        response = None
-    return response
-
-def ChooseLimits(plot):
-    dlg = ReasonLimitInput(plot)
-    resp = dlg.ShowModal()
-    zmin, zmax = dlg.GetData()
-    dlg.Destroy()
-    return zmin, zmax
-
 def ChooseWidth(outputfile):
     dlg = ReasonWidthSelectionWindow(outputfile)
     resp = dlg.ShowModal()

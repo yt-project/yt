@@ -49,7 +49,8 @@ class ReasonMainWindow(wx.Frame):
         self.Bind(wx.EVT_BUTTON, self.AddSlice, self.SliceButton)
         self.Bind(wx.EVT_BUTTON, self.AddProj, self.ProjectButton)
 
-        self.AddStaticOutputFile("/Users/matthewturk/Research/data/DataDump0012.dir/DataDump0012.hierarchy")
+        #self.AddStaticOutputFile("/Users/matthewturk/Research/data/DataDump0012.dir/DataDump0012.hierarchy")
+        self.AddStaticOutputFile("/Users/matthewturk/Research/data/galaxy0398.dir/galaxy0398.hierarchy")
         # end wxGlade
 
     def __set_properties(self):
@@ -117,40 +118,51 @@ class ReasonMainWindow(wx.Frame):
         self._VMTB_FIELDSWITCH = wx.NewId()
         self._VMTB_CHANGELIMITS = wx.NewId()
         self._VMTB_VIEWPF = wx.NewId()
+        self._VMTB_VELPLOT = wx.NewId()
 
-        self.toolbar = wx.ToolBar(self, -1, style=wx.TB_HORIZONTAL|wx.TB_NOICONS|wx.TB_HORZ_LAYOUT)
+        self.toolbar = wx.ToolBar(self, -1, style=wx.TB_HORIZONTAL|wx.TB_TEXT|wx.TB_HORZ_LAYOUT)
         font = self.toolbar.GetFont()
         font.SetFamily(wx.MODERN)
         self.toolbar.SetFont(font)
+        self.toolbar.SetToolBitmapSize((16,16))
 
-        self.Bind(wx.EVT_MENU, self.plotPanel.OnCallSwitchField, id=self._VMTB_FIELDSWITCH)
+        self.SetToolBar(self.toolbar)
+        def AddButton(id, label, tooltip="", bitmapID=None):
+            if bitmapID != None:
+                bm = wx.ArtProvider.GetBitmap(bitmapID, wx.ART_TOOLBAR, (16,16))
+            else: bm = wx.NullBitmap
+            self.toolbar.AddLabelTool(id, label, bm, bm, wx.ITEM_NORMAL, tooltip, "")
+            self.toolbar.AddSeparator()
+
+        self.toolbar.AddSeparator()
+        AddButton(self._VMTB_REDRAW,"Redraw", "Force a redraw", wx.ART_REDO)
+        #AddButton(self._VMTB_FIELDSWITCH,"Change Field", "Change the displayed field")
+        self.availableFields = wx.Choice(self.toolbar, id=self._VMTB_FIELDSWITCH, choices = [])
+        self.toolbar.AddControl(self.availableFields)
+        Publisher().subscribe(self.UpdateToolbarFieldsMessage, ('page_changed'))
+        #AddButton(self._VMTB_CHANGEZOOM, "Change Width",  "Change the displayed width") # unneeded
+        AddButton(self._VMTB_FULLDOMAIN, "Zoom Top",  "Zoom to the top level", wx.ART_FIND)
+        AddButton(self._VMTB_CHANGELIMITS, "Change Limits", "Change the colorbar limits")
+        AddButton(self._VMTB_VIEWPF, "View ParameterFile", "View the parameter file", wx.ART_NORMAL_FILE)
+        cl = wx.ArtProvider.GetBitmap(wx.ART_TICK_MARK, wx.ART_TOOLBAR, (16,16))
+        self.toolbar.AddCheckLabelTool(self._VMTB_VELPLOT, "VelVecs", cl, shortHelp="Plot Velocity Vectors")
+        self.toolbar.AddSeparator()
+
+        self.Bind(wx.EVT_CHOICE, self.plotPanel.OnCallSwitchField, id=self._VMTB_FIELDSWITCH)
         self.Bind(wx.EVT_MENU, self.plotPanel.OnCallSetWidth, id=self._VMTB_CHANGEZOOM)
         self.Bind(wx.EVT_MENU, self.plotPanel.OnCallRedraw, id=self._VMTB_REDRAW)
         self.Bind(wx.EVT_MENU, self.plotPanel.OnCallZoomTop, id=self._VMTB_FULLDOMAIN)
         self.Bind(wx.EVT_MENU, self.plotPanel.OnCallSetZLim, id=self._VMTB_CHANGELIMITS)
         self.Bind(wx.EVT_MENU, self.plotPanel.OnCallViewPF, id=self._VMTB_VIEWPF)
 
-        self.SetToolBar(self.toolbar)
-        self.toolbar.AddSeparator()
-        self.toolbar.AddLabelTool(self._VMTB_REDRAW, "Redraw", wx.NullBitmap, wx.NullBitmap, wx.ITEM_NORMAL, "Force a redraw", "")
-        self.toolbar.AddSeparator()
-        self.toolbar.AddLabelTool(self._VMTB_FIELDSWITCH, "Change Field", wx.NullBitmap, wx.NullBitmap, wx.ITEM_NORMAL, "Change the displayed field", "")
-        self.toolbar.AddSeparator()
-        self.toolbar.AddLabelTool(self._VMTB_CHANGEZOOM, "Change Width", wx.NullBitmap, wx.NullBitmap, wx.ITEM_NORMAL, "Change the displayed width", "")
-        self.toolbar.AddSeparator()
-        self.toolbar.AddLabelTool(self._VMTB_FULLDOMAIN, "Zoom Top", wx.NullBitmap, wx.NullBitmap, wx.ITEM_NORMAL, "Zoom to the top level", "")
-        self.toolbar.AddSeparator()
-        self.toolbar.AddLabelTool(self._VMTB_CHANGELIMITS, "Change Limits", wx.NullBitmap, wx.NullBitmap, wx.ITEM_NORMAL, "Change the colorbar limits", "")
-        self.toolbar.AddSeparator()
-        self.toolbar.AddLabelTool(self._VMTB_VIEWPF, "View ParameterFile", wx.NullBitmap, wx.NullBitmap, wx.ITEM_NORMAL, "View the parameter file", "")
-        self.toolbar.AddSeparator()
+    def UpdateToolbarFieldsMessage(self, message):
+        page = message.data
+        self.UpdateToolbarFields(page)
+
+    def UpdateToolbarFields(self, page):
+        self.availableFields.SetItems(page.QueryFields())
 
     def SetupDataTree(self):
-        #self.treeImageList = wx.ImageList(16,16)
-        #self.collapsedIcon = self.treeImageList.Add(
-            #wx.ArtProvider.GetBitmap(wx.ART_FOLDER, wx.ART_OTHER, (16,16)))
-        #self.expandedIcon = self.treeImageList.Add(
-            #wx.ArtProvider.GetBitmap(wx.ART_FILE_OPEN, wx.ART_OTHER, (16,16)))
 
         self.root = self.dataList.AddRoot("You shouldn't see me!")
         self.fidoRoot = self.dataList.AppendItem(self.root, "Stored Outputs")
@@ -160,21 +172,6 @@ class ReasonMainWindow(wx.Frame):
         self.dataList.Expand(self.fidoRoot)
         self.dataList.Expand(self.outputRoot)
         self.dataList.Expand(self.dataRoot)
-
-        #self.dataList.AssignImageList(self.treeImageList)
-        #self.dataList.SetItemImage(self.fidoRoot, self.collapsedIcon,
-                                   #wx.TreeItemIcon_Normal)
-        #self.dataList.SetItemImage(self.outputRoot, self.collapsedIcon,
-                                   #wx.TreeItemIcon_Normal)
-        #self.dataList.SetItemImage(self.dataRoot, self.collapsedIcon,
-                                   #wx.TreeItemIcon_Normal)
-
-        #self.dataList.SetItemImage(self.fidoRoot, self.expandedIcon,
-                                   #wx.TreeItemIcon_Expanded)
-        #self.dataList.SetItemImage(self.outputRoot, self.expandedIcon,
-                                   #wx.TreeItemIcon_Expanded)
-        #self.dataList.SetItemImage(self.dataRoot, self.expandedIcon,
-                                   #wx.TreeItemIcon_Expanded)
 
     def OnExit(self, event):
         self.Close()
@@ -284,18 +281,6 @@ class ReasonMainWindow(wx.Frame):
             oss.append(self.dataList.GetItemData(tid).GetData()[0])
         return oss
 
-
-class ReasonInterpreterPanel(wx.Panel):
-    def __init__(self, parent, id, locals):
-        wx.Panel.__init__(self, parent, id)
-        self.shell = wx.py.shell.Shell(
-                           parent=self, id=-1, introText="Welcome to Reason.",
-                           locals=locals)
-        self.sizer = wx.BoxSizer(wx.VERTICAL)
-        self.sizer.Add(self.shell, 1, wx.EXPAND)
-        self.SetSizer(self.sizer)
-        self.Fit()
-
 class ReasonApp(wx.App):
     def OnInit(self):
         wx.InitAllImageHandlers()
@@ -303,3 +288,22 @@ class ReasonApp(wx.App):
         self.SetTopWindow(frame_1)
         frame_1.Show()
         return True
+
+class ReasonParameterFileViewer(wx.Frame):
+    def __init__(self, *args, **kwds):
+        kwds["style"] = wx.DEFAULT_FRAME_STYLE
+        kwds["title"] = "yt - Reason"
+        kwds["size"] = (800,800)
+        pf = kwds.pop("outputfile")
+        wx.Frame.__init__(self, *args, **kwds)
+
+        # Add the text ctrl
+        self.pf = wx.TextCtrl(self, -1, style=wx.TE_READONLY | wx.TE_MULTILINE | wx.HSCROLL)
+        self.pf.LoadFile(pf.parameterFilename)
+
+        self.sizer = wx.BoxSizer(wx.VERTICAL)
+        self.sizer.Add(self.pf, 1, wx.EXPAND, 0)
+        self.SetSizer(self.sizer)
+        self.sizer.Fit(self)
+        self.Layout()
+        self.SetSize((600,600))

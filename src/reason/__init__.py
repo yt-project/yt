@@ -16,8 +16,7 @@ import wx, wx.py, wx.aui
 from wx.lib.pubsub import Publisher
 import matplotlib.backends.backend_wx as be_wx
 
-
+from Windows import *
 from Notebook import *
 from App import *
-
-
+from PlotPages import *
