@@ -24,6 +24,13 @@ We operate on some very simple principles here.
 
 from yt.fido import *
 
+def copyOutput(basename, newLocation, extraFiles=None):
+    if extraFiles == None: extraFiles = []
+    copyGlob("%s*" % (basename), newLocation)
+    for file in extraFiles:
+        copyGlob(file, location)
+    return os.path.join(newLocation, os.path.basename(basename))
+
 def moveOutput(basename, newLocation, extraFiles=None):
     if extraFiles == None: extraFiles = []
     moveGlob("%s*" % (basename), newLocation)
@@ -50,11 +57,17 @@ def digupOutput(filename, newLocation=None, extraFiles=None):
     if extraFiles == None: extraFiles = []
     if not newLocation:
         newLocation = getParentDir(filename)
-        print newLocation
     else:
         # Make sure we have no relative references
         newLocation = os.path.normpath(newLocation)
     moveGlob("%s*" % filename, newLocation)
+
+def copyGlob(globPattern, newLocation):
+    if not os.path.isdir(newLocation):
+        os.makedirs(newLocation)
+    for file in glob.glob(globPattern):
+        mylog.debug("Copying %s to %s", file, newLocation)
+        shutil.copy(file, newLocation)
     
 def moveGlob(globPattern, newLocation):
     if not os.path.isdir(newLocation):

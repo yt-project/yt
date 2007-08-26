@@ -50,8 +50,10 @@ class OutputCollection:
         self.outputTimeIDs = na.array(outputTimeIDs, nT.Int64)
         self.outputTimes = na.array(outputTimes, nT.Float64)
 
-    def writeOut(self, filename):
-        f = open(filename, "w")
+    def writeOut(self):
+        path=ytcfg.get("Fido","rundir")
+        fn = os.path.join(path, "runF_%s" % (self.title))
+        f = open(fn, "w")
         for i, output in enumerate(self.outputNames):
             f.write("Output:%s:%s:%s\n" % ( \
                         os.path.abspath(output), \
@@ -86,7 +88,10 @@ class OutputCollection:
         return na.where(self.outputTimes > time)[0]
 
     def __delitem__(self, key):
-        id = self.index(key)
+        if isinstance(key, types.StringType):
+            id = self.index(key)
+        elif isinstance(key, types.IntType):
+            id = key
         self.outputNames = na.array(self.outputNames[:id].tolist() \
                                   + self.outputNames[id+1:].tolist())
         self.outputTimes = na.array(self.outputTimes[:id].tolist() \
@@ -103,6 +108,7 @@ class OutputCollection:
             index = self.index(key)
         elif isinstance(key, types.IntType):
             index = key
+        # This fails, but I don't know how to fix it.
         return self.outputs[index]
 
     def index(self, key):
@@ -110,7 +116,8 @@ class OutputCollection:
         # Find out the index
         index = None
         for i in range(self.outputNames.shape[0]):
-            if self.outputNames[i] == t:
+            if os.path.basename(self.outputNames[i]) \
+                == os.path.basename(t):
                 index = i
                 break
         if index == None:
@@ -188,10 +195,11 @@ class OutputCollection:
             function(*args, **kwargs)
 
 def GrabCollections(path=None):
-    if not path: path=ytcfg.get("fido","rundir")
+    if not path: path=ytcfg.get("Fido","rundir")
     ocs = []
-    for file in glob.glob(os.path.join(path,"yt_*")):
+    for file in glob.glob(os.path.join(path,"runF_*")):
         title=os.path.basename(file)
+        if title.startswith("runF_"): title = title[5:]
         ocs.append(OutputCollection(title))
         ocs[-1].readIn(file)
     return ocs

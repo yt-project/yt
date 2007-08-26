@@ -40,12 +40,11 @@ class Watcher:
         self.process = process
         self.newPrefix = newPrefix
         self.skipFiles = [] # Forward compatible
-        if functionHandler == None:
-            self.functionHandler = lambda a: None
-        else:
+        self.functionHandler = None
+        if functionHandler != None:
             self.functionHandler = functionHandler()
 
-    def run(self):
+    def run(self, runOnce=False):
         mylog.info("Entering main Fido loop (CTRL-C or touch 'stopFido' to end)")
         while not self.checkForStop():
             nn = self.checkForOutput()
@@ -53,11 +52,14 @@ class Watcher:
                 newName = buryOutput(bn)
                 self.dealWithOutput(newName)
             time.sleep(WAITBETWEEN)
+            if runOnce: break
 
     def dealWithOutput(self, filename):
         # First, add it to the OutputCollection
         self.oc.addOutput(filename)
-        self.oc.writeOut("runF_%s" % (self.title))
+        self.oc.writeOut()
+        if self.functionHandler == None:
+            return
         # Now, we pass it to our function handler
         pid = os.fork()
         if pid:
