@@ -130,8 +130,13 @@ class VMPlotPage(wx.Panel):
         self.center = [0.5, 0.5, 0.5]
         self.axis = axis
 
-        self.makePlot()
+        self.SetupFigure()
+        self.SetupControls()
+        self.SetupMenu()
+        self.DoLayout()
 
+    def SetupFigure(self):
+        self.makePlot()
         be.Initialize(canvas=FigureCanvas)
         self.figure_canvas = be.engineVals["canvas"](self, -1, self.figure)
 
@@ -146,12 +151,21 @@ class VMPlotPage(wx.Panel):
         self.figure_canvas.Bind(wx.EVT_LEFT_UP, self.ClickProcess)
         self.figure_canvas.Bind(wx.EVT_CONTEXT_MENU, self.OnShowContextMenu)
 
+    def SetupMenu(self):
+
         self.popupmenu = wx.Menu()
         self.cmapmenu = wx.Menu()
+        self.editprops = wx.Menu()
         self.popupmenu.AppendMenu(-1, "Color Map", self.cmapmenu)
         for cmap in be.matplotlib.cm.cmapnames:
             item = self.cmapmenu.AppendRadioItem(-1, cmap)
             self.Bind(wx.EVT_MENU, self.OnColorMapChoice, item)
+        self.popupmenu.AppendMenu(-1, "Edit Properties", self.editprops)
+        dd = [('Edit Legend',self.OnEditLegend),
+              ('Edit Title',self.OnEditTitle)]
+        for title, func in dd:
+            ii = self.editprops.Append(-1, title)
+            self.Bind(wx.EVT_MENU, func, ii)
         self.popupmenu.AppendSeparator()
         centerOnMax = self.popupmenu.Append(-1, "Center on max")
         centerHere = self.popupmenu.Append(-1, "Center here")
@@ -166,8 +180,10 @@ class VMPlotPage(wx.Panel):
         ccmap_name = self.plot.colorbar.cmap.name
         self.cmapmenu.FindItemById(self.cmapmenu.FindItem(ccmap_name)).Check(True)
 
+    def SetupControls(self):
+
         self.widthSlider = wx.Slider(self, -1, wx.SL_HORIZONTAL | wx.SL_AUTOTICKS)
-        self.vals = na.logspace(log10(25*outputfile.hierarchy.getSmallestDx()),0,201)
+        self.vals = na.logspace(log10(25*self.outputfile.hierarchy.getSmallestDx()),0,201)
         self.widthSlider.SetRange(0, 200)
         self.widthSlider.SetTickFreq(1,1)
         self.widthSlider.SetValue(200)
@@ -175,10 +191,18 @@ class VMPlotPage(wx.Panel):
         self.widthBox = wx.TextCtrl(self, style=wx.TE_PROCESS_ENTER)
         self.widthBox.SetValue("1.0")
 
-        self.choices = outputfile.units.keys()
+        self.choices = self.outputfile.units.keys()
         self.choices.sort()
 
         self.unitList = wx.Choice(self, choices=self.choices)
+
+        self.unitList.Bind(wx.EVT_CHOICE, self.UpdateUnit)
+        self.widthSlider.Bind(wx.EVT_SCROLL, self.UpdateTextFromScrollEvent)
+        self.widthSlider.Bind(wx.EVT_SCROLL_THUMBRELEASE, self.UpdateWidth)
+        self.widthBox.Bind(wx.EVT_TEXT_ENTER, self.UpdateWidthFromText)
+
+
+    def DoLayout(self):
 
         self.sizer = wx.BoxSizer(wx.VERTICAL)
         self.sizer.Add(self.figure_canvas, 1, wx.EXPAND)
@@ -204,12 +228,28 @@ class VMPlotPage(wx.Panel):
         self.SetSizer(self.sizer)
         self.Fit()
 
-        self.unitList.Bind(wx.EVT_CHOICE, self.UpdateUnit)
-        self.widthSlider.Bind(wx.EVT_SCROLL, self.UpdateTextFromScrollEvent)
-        self.widthSlider.Bind(wx.EVT_SCROLL_THUMBRELEASE, self.UpdateWidth)
-        self.widthBox.Bind(wx.EVT_TEXT_ENTER, self.UpdateWidthFromText)
-
         self.ChangeWidth(1,"1")
+
+    def OnEditTitle(self, event):
+        curTitle = self.figure.axes[-1].title.get_text()
+        dlg = wx.TextEntryDialog(
+                self, 'New title?',
+                'Change Title?', curTitle)
+        if dlg.ShowModal() == wx.ID_OK:
+            self.figure.axes[0].set_title(dlg.GetValue())
+        dlg.Destroy()
+
+    def OnEditLegend(self, event):
+        curTitle = self.figure.axes[-1].title.get_text()
+        try:
+            curLegend = self.plot.colorbar.ax.yaxis.get_label().get_text()
+        except: curLegend = ""
+        dlg = wx.TextEntryDialog(
+                self, 'New legend?',
+                'Change Legend?', curLegend)
+        if dlg.ShowModal() == wx.ID_OK:
+            self.plot.colorbar.set_label(dlg.GetValue())
+        dlg.Destroy()
 
     def OnCenterOnMax(self, event):
         v, c = self.outputfile.h.findMax("Density")
@@ -409,9 +449,7 @@ class VMPlotPage(wx.Panel):
 
     def switch_field(self, event):
         field = event.GetString()
-        print dir(event)
         self.ChangeField(field)
-        print "Switching the field"
         Publisher().sendMessage(('viewchange','field'), field)
 
     def UpdateCanvas(self, *args):
@@ -420,18 +458,17 @@ class VMPlotPage(wx.Panel):
         #else: print "Opting not to update canvas"
 
     def SaveImage(self):
-        print "Generating prefix"
         self.plot.generatePrefix('Plot')
-        print "Got",self.plot.prefix
         wildcard = "PNG (*png)|*.png"
         dlg = wx.FileDialog( \
             self, message="Save Image As ...", defaultDir=os.getcwd(), \
             defaultFile=self.plot.prefix, wildcard=wildcard, style=wx.SAVE)
         if dlg.ShowModal() == wx.ID_OK:
             path = dlg.GetPath()
-            print "Hey, setting up the damn canvas"
-            canvas = self.figure_canvas.switch_backends(FigureCanvasAgg)
-            canvas.print_figure(path,format="png")
+            orig_size = self.figure.get_size_inches()
+            self.figure.set_size_inches((10,8))
+            self.figure_canvas.print_figure(path,format='png')
+            self.figure.set_size_inches(orig_size)
         dlg.Destroy()
 
 class SlicePlotPage(VMPlotPage):

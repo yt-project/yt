@@ -15,6 +15,7 @@ from matplotlib.backends.backend_agg import FigureCanvasAgg
 import wx, wx.py, wx.aui
 from wx.lib.pubsub import Publisher
 import matplotlib.backends.backend_wx as be_wx
+import matplotlib.figure
 
 from Windows import *
 from Notebook import *

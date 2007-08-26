@@ -248,10 +248,10 @@ class ReasonMainWindow(wx.Frame):
                 self.outputs.append(self.windows[-1].plot.data)
 
     def AddSlice(self, event=None):
-        #MyID = wx.NewId()
+        MyID = wx.NewId()
         self.interpreter.shell.write("\n")
         for o in self.GetOutputs():
-            MyID = o["CurrentTimeIdentifier"]
+            #MyID = o["CurrentTimeIdentifier"]
             #field = Toolbars.ChooseField(o)
             field = "Density"
             if not field:

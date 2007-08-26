@@ -131,7 +131,7 @@ class RavenPlot:
         else:
             self.axes = axes
         #self.axes.set_aspect(1.0)
-        self._callback = None
+        self._callback = []
 
     def __getitem__(self, item):
         return self.data[item] * \
@@ -169,12 +169,16 @@ class RavenPlot:
         #print item, val
         self.im[item] = val
 
-    def setCallback(self, func):
-        self._callback = func
+    def addCallback(self, func):
+        self._callback.append(func)
+        return len(self._callback)
+
+    def removeCallback(self, id):
+        self._callback[id] = lambda a: None
 
     def runCallback(self):
-        if self._callback != None:
-            self._callback(self)
+        for cb in self._callback:
+            cb(self)
 
 class VMPlot(RavenPlot):
 
