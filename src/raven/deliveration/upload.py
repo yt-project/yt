@@ -32,7 +32,7 @@ Deliverator
 @contact: U{mturk@slac.stanford.edu<mailto:mturk@slac.stanford.edu>}
 """
 
-from yt.deliverator import *
+from yt.raven.deliveration import *
 
 # First we snag the API key
 
@@ -58,7 +58,7 @@ def SubmitRun(metaData, user):
     if not APIKey:
         return
     loc = DeliveratorServerLocator()
-    port = loc.getraven_porttype()
+    port = loc.getdeliverator_porttype()
     req = SubmitNewRunInput()
     req.APIKey = APIKey
     req.User = user
@@ -80,7 +80,7 @@ def SubmitParameterFile(RunID, pf):
     if not APIKey:
         return
     loc = DeliveratorServerLocator()
-    port = loc.getraven_porttype()
+    port = loc.getdeliverator_porttype()
     req = SubmitNewParameterFileInput()
     req.APIKey = APIKey
     req.GeneratedAt = pf["CurrentTimeIdentifier"]
@@ -132,7 +132,7 @@ def SubmitImage(hierarchy, img_info):
     if not APIKey:
         return
     loc = DeliveratorServerLocator()
-    port = loc.getraven_porttype()
+    port = loc.getdeliverator_porttype()
     req = SubmitNewImageInput()
     req.APIKey = APIKey
     req.IMG_src = img_info["Filename"]

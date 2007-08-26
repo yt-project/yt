@@ -59,7 +59,7 @@ class PlotCollection:
                 im["Filename"] = self.httpPrefix + "/" \
                                 + os.path.basename(fn[-1])
                 im["RunID"] = self.RunID
-                yt.deliveration.SubmitImage(\
+                deliveration.SubmitImage(\
                       self.pf.hierarchy, im)
             mylog.info("Saved %s", fn[-1])
         return fn
