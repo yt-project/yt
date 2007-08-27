@@ -16,6 +16,7 @@ def configuration(parent_package='',top_path=None):
     
     config.make_config_py()
     config.add_subpackage('yt','src')
+    config.add_scripts("scripts/*")
 
     return config
 
@@ -30,7 +31,7 @@ def setup_package():
         url = "http://www.stanford.edu/~mturk/raven.html",
         author="Matthew Turk",
         author_email="mturk@stanford.edu",
-        license="GPL-2",
+        license="GPL-3",
         configuration=configuration
         )
     return

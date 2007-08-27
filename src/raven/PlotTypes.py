@@ -79,6 +79,9 @@ class PlotCollection:
     def set_width(self, width, unit):
         for plot in self.plots:
             plot.set_width(width, unit)
+    def set_cmap(self, cmap):
+        for plot in self.plots:
+            plot.set_cmap(cmap)
     # Now we get around to adding the plots we want
     def addPlot(self, plot):
         # Accept some instance that's already been created
@@ -118,22 +121,24 @@ class PlotCollection:
         # Make the profile here...?
         return None
         return self.addPlot(be.ProfilePlot())
-    def addTwoPhaseSphere(self, radius, unit, fields, center=None):
+    def addTwoPhaseSphere(self, radius, unit, fields, center=None, cmap=None):
         if center == None:
             v,center = self.pf.hierarchy.findMax("Density")
         r = radius/self.pf[unit]
         sphere = self.pf.hierarchy.sphere(center, r, fields)
-        p = self.addPlot(be.TwoPhasePlot(sphere, fields, width=radius, unit=unit))
+        p = self.addPlot(be.TwoPhasePlot(sphere, fields, width=radius,
+                                         unit=unit, cmap=cmap))
         p["Width"] = radius
         p["Unit"] = unit
         p["Axis"] = None
         return p 
-    def addThreePhaseSphere(self, radius, unit, fields, center=None):
+    def addThreePhaseSphere(self, radius, unit, fields, center=None, cmap=None):
         if center == None:
             v,center = self.pf.hierarchy.findMax("Density")
         r = radius/self.pf[unit]
         sphere = self.pf.hierarchy.sphere(center, r, fields)
-        p = self.addPlot(be.ThreePhasePlot(sphere, fields, width=radius, unit=unit))
+        p = self.addPlot(be.ThreePhasePlot(sphere, fields, width=radius,
+                                           unit=unit, cmap=cmap))
         p["Width"] = radius
         p["Unit"] = unit
         p["Axis"] = None

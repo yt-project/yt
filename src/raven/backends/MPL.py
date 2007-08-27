@@ -185,6 +185,13 @@ class RavenPlot:
     def set_zlim(self, zmin, zmax):
         self.axes.set_zlim(zmin, zmax)
 
+    def set_cmap(self, cmap):
+        if isinstance(cmap, types.StringType):
+            if hasattr(matplotlib.cm, cmap):
+                cmap = getattr(matplotlib.cm, cmap)
+        self.cmap = cmap
+        #print "Set cmap", self.cmap.name
+
     def __setitem__(self, item, val):
         #print item, val
         self.im[item] = val
@@ -236,6 +243,10 @@ class VMPlot(RavenPlot):
         self.set_width(1,'1')
         self.redraw_image()
         self.selfSetup()
+
+    def saveImage(self, *args, **kwargs):
+        self.redraw_image()
+        return RavenPlot.saveImage(self, *args, **kwargs)
 
     def redraw_image(self, *args):
         #x0, y0, v_width, v_height = self.axes.viewLim.get_bounds()
@@ -337,12 +348,6 @@ class VMPlot(RavenPlot):
     def set_label(self, label):
         if self.colorbar != None: self.colorbar.set_label(label)
 
-    def set_cmap(self, cmap):
-        if isinstance(cmap, types.StringType):
-            if hasattr(matplotlib.cm, cmap):
-                cmap = getattr(matplotlib.cm, cmap)
-        self.cmap = cmap
-
     def selfSetup(self):
         pass
 
@@ -372,9 +377,11 @@ class ProjectionPlot(VMPlot):
                     self.data.hierarchy.parameterFile.units["cm"]
 
 class PhasePlot(RavenPlot):
-    def __init__(self, data, fields, bins = 100, width=None, unit=None):
+    def __init__(self, data, fields, bins = 100, width=None, unit=None, cmap=None):
         RavenPlot.__init__(self, data, fields)
+        self.image = None
         self.bins = bins
+        self.set_cmap(cmap)
         self.axisNames["X"] = fields[0]
         self.axisNames["Y"] = fields[1]
         logIt, self.x_v, self.x_bins = self.setup_bins(fields[0], self.axes.set_xscale)
@@ -398,10 +405,15 @@ class PhasePlot(RavenPlot):
             dataLabel += " (%s)" % (lagos.fieldInfo[field][0])
         func(dataLabel)
 
+    def set_cmap(self, cmap):
+        RavenPlot.set_cmap(self, cmap)
+        if self.image != None and self.cmap != None:
+            self.image.set_cmap(self.cmap)
+
 class TwoPhasePlot(PhasePlot):
-    def __init__(self, data, fields, bins = 100, width=None, unit=None):
+    def __init__(self, data, fields, bins = 100, width=None, unit=None, cmap=None):
         self.typeName = "TwoPhase"
-        PhasePlot.__init__(self, data, fields, bins, width, unit)
+        PhasePlot.__init__(self, data, fields, bins, width, unit, cmap=cmap)
 
         vals, x, y = na.histogram2d( \
             self.x_v, self.y_v, \
@@ -410,11 +422,14 @@ class TwoPhasePlot(PhasePlot):
         i = na.where(vals>0)
         vmin = vals[i].min()
         self.norm=matplotlib.colors.LogNorm(vmin=vmin, clip=False)
-        self.cmap = matplotlib.cm.get_cmap()
-        self.cmap.set_under("k")
+        if self.cmap == None:
+            self.cmap = matplotlib.cm.get_cmap()
+        self.cmap.set_bad("w")
+        self.cmap.set_under("w")
+        self.cmap.set_over("w")
         self.image = self.axes.pcolor(self.x_bins,self.y_bins, \
                                       vals.transpose(),shading='flat', \
-                                      norm=self.norm)
+                                      norm=self.norm, cmap=self.cmap)
 
         self.autoset_label(fields[0], self.axes.set_xlabel)
         self.autoset_label(fields[1], self.axes.set_ylabel)
@@ -433,9 +448,9 @@ class TwoPhasePlot(PhasePlot):
         self["Field3"] = None
 
 class ThreePhasePlot(PhasePlot):
-    def __init__(self, data, fields, width=None, unit=None, bins=100, weight="CellMass", ticker=None):
+    def __init__(self, data, fields, width=None, unit=None, bins=100, weight="CellMass", ticker=None, cmap=None):
         self.typeName = "ThreePhase"
-        PhasePlot.__init__(self, data, fields)
+        PhasePlot.__init__(self, data, fields, cmap=cmap)
         self.ticker = ticker
 
         self.axisNames["Z"] = fields[2]
@@ -471,13 +486,14 @@ class ThreePhasePlot(PhasePlot):
             #self.ticker = matplotlib.ticker.FixedLocator([1e-1, 0.76])
         else:
             self.norm=matplotlib.colors.Normalize(vmin=vmin, vmax=vmax, clip=False)
-        self.cmap = matplotlib.cm.get_cmap()
-        self.cmap.set_bad("k")
-        self.cmap.set_under("k")
-        self.cmap.set_over("k")
+        if self.cmap == None:
+            self.cmap = matplotlib.cm.get_cmap()
+        self.cmap.set_bad("w")
+        self.cmap.set_under("w")
+        self.cmap.set_over("w")
         self.image = self.axes.pcolor(self.x_bins, self.y_bins, \
                                       vals,shading='flat', \
-                                      norm=self.norm)
+                                      norm=self.norm, cmap=self.cmap)
         #self.ticker = matplotlib.ticker.LogLocator(subs=[0.25, 0.5, 0.75, 1])
         
         self.colorbar = self.figure.colorbar(self.image, \
