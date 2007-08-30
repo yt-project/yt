@@ -1,42 +1,39 @@
 """
-Copyright (C) 2007 Matthew Turk.  All Rights Reserved.
-
-This file is part of yt.
-
-yt is free software; you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 3 of the License, or
-(at your option) any later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with this program.  If not, see <http://www.gnu.org/licenses/>.
-"""
-
-
-"""
 Here we define a method for parsing a plot-descriptor configuration file, and
 then using that to create and save out the plots.
 
 @author: U{Matthew Turk<http://www.stanford.edu/~mturk/>}
 @organization: U{KIPAC<http://www-group.slac.stanford.edu/KIPAC/>}
 @contact: U{mturk@slac.stanford.edu<mailto:mturk@slac.stanford.edu>}
+@license:
+  Copyright (C) 2007 Matthew Turk.  All Rights Reserved.
+
+  This file is part of yt.
+
+  yt is free software; you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation; either version 3 of the License, or
+  (at your option) any later version.
+  
+  This program is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details.
+  
+  You should have received a copy of the GNU General Public License
+  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
 from xml.etree.ElementTree import ElementTree as et
 
 from yt.raven import *
 
-def MakePlots(h, fn, prefix, deliverator):
+def MakePlots(pf, fn, prefix, deliverator):
     """
     This is the simplest way I can think of to do this.  We can get basically
     everything we need from the EnzoHippo instance.
 
-    @param h: hierarchy instance
+    @param pf: EnzoStaticOutput instance
     @param fn: the XML file we're going to interpret to get
                            plot-info
     @param prefix: image file prefix
@@ -44,8 +41,8 @@ def MakePlots(h, fn, prefix, deliverator):
     """
     pi = et(file=fn)
     r = pi.getroot()
-    bn = h.basename
-    dx = h.getSmallestDx()
+    bn = pf.basename
+    dx = pf.h.getSmallestDx()
     for plot in r.getchildren():
         # Now we have a plot type, so let's get going, peoples!
         if plot.attrib.has_key("mindx"):
@@ -66,7 +63,7 @@ def MakePlots(h, fn, prefix, deliverator):
         # Note that we never set fields in here, as the save takes care
         # of that.
         if plotType == "slice":
-            pc = PlotCollection(h, deliverator)
+            pc = PlotCollection(pf, deliverator)
             f = 0
             center = None
             if plot.attrib.has_key("center"):
@@ -81,8 +78,8 @@ def MakePlots(h, fn, prefix, deliverator):
                         plot.switch_z(field)
                 f += 1
                 for width, unit in widths:
-                    if (width/h[unit] < mindx*dx):
-                        #print "char:", width/h[unit]
+                    if (width/pf[unit] < mindx*dx):
+                        #print "char:", width/pf[unit]
                         #print "morechar:",  mindx*dx, mindx, dx
                         continue
                     pc.set_width(width, unit)
@@ -91,8 +88,8 @@ def MakePlots(h, fn, prefix, deliverator):
                     pc.save(prefix % prefixDict, "png")
         elif plotType == "threephase":
             for width, unit in widths:
-                pc = PlotCollection(h, deliverator)
-                if (width/h[unit] < mindx*dx):
+                pc = PlotCollection(pf, deliverator)
+                if (width/pf[unit] < mindx*dx):
                     continue
                 prefixDict['width'] = width
                 prefixDict['unit'] = unit
@@ -101,15 +98,15 @@ def MakePlots(h, fn, prefix, deliverator):
                 pc.save(prefix % prefixDict, "png")
         elif plotType == "twophase":
             for width, unit in widths:
-                pc = PlotCollection(h, deliverator)
-                if (width/h[unit] < mindx*dx):
+                pc = PlotCollection(pf, deliverator)
+                if (width/pf[unit] < mindx*dx):
                     continue
                 prefixDict['width'] = width
                 prefixDict['unit'] = unit
                 pc.addTwoPhaseSphere(width, unit, fields)
                 pc.save(prefix % prefixDict, "png")
         elif plotType == "proj":
-            pc = PlotCollection(h, deliverator)
+            pc = PlotCollection(pf, deliverator)
             for fe in plot.findall("field"):
                 field = fe.text
                 weight = None
@@ -119,7 +116,7 @@ def MakePlots(h, fn, prefix, deliverator):
                 pc.addProjection(field, 1, weightField=weight)
                 pc.addProjection(field, 2, weightField=weight)
                 for width, unit in widths:
-                    if (width/h[unit] < mindx*dx):
+                    if (width/pf[unit] < mindx*dx):
                         continue
                     prefixDict['width'] = width
                     prefixDict['unit'] = unit

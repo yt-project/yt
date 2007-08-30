@@ -1,20 +1,26 @@
 """
-Copyright (C) 2007 Matthew Turk.  All Rights Reserved.
+Notebook pages and main plotpanel classes.
 
-This file is part of yt.
+@author: U{Matthew Turk<http://www.stanford.edu/~mturk/>}
+@organization: U{KIPAC<http://www-group.slac.stanford.edu/KIPAC/>}
+@contact: U{mturk@slac.stanford.edu<mailto:mturk@slac.stanford.edu>}
+@license:
+  Copyright (C) 2007 Matthew Turk.  All Rights Reserved.
 
-yt is free software; you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 3 of the License, or
-(at your option) any later version.
+  This file is part of yt.
 
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with this program.  If not, see <http://www.gnu.org/licenses/>.
+  yt is free software; you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation; either version 3 of the License, or
+  (at your option) any later version.
+  
+  This program is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details.
+  
+  You should have received a copy of the GNU General Public License
+  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
 
@@ -30,8 +36,8 @@ class PlotPanel(wx.Panel):
 
         self._AUI_NOTEBOOK = wx.NewId()
         self.nb = wx.aui.AuiNotebook(self, self._AUI_NOTEBOOK)
-        welcomeMessage = wx.StaticText(self.nb, -1, "Welcome to Reason!")
-        self.nb.AddPage(welcomeMessage, "Welcome")
+        #welcomeMessage = wx.StaticText(self.nb, -1, "Welcome to Reason!")
+        #self.nb.AddPage(welcomeMessage, "Welcome")
 
         # Good thing the aui module breaks naming convention
         self.nb.Bind(wx.aui.EVT_AUINOTEBOOK_PAGE_CHANGED,
@@ -47,13 +53,12 @@ class PlotPanel(wx.Panel):
     def UpdateSubscriptions(self, page):
         Publisher().unsubAll(("viewchange"))
         if not hasattr(page,'outputfile'): return
-        cti = page.outputfile["CurrentTimeIdentifier"]
+        cti = page.CreationID
         toSubscribe = []
         if self.LinkPlots: 
             for i,p in [(i, self.nb.GetPage(i)) for i in range(self.nb.GetPageCount())]:
                 try:
-                    of = p.outputfile
-                    if of["CurrentTimeIdentifier"] == cti: toSubscribe.append(p)
+                    if p.CreationID == cti: toSubscribe.append(p)
                 except:
                     pass
         else: toSubscribe.append(page)
@@ -129,9 +134,10 @@ class PlotPanel(wx.Panel):
         of = self.GetCurrentOutput()
 
 class VMPlotPage(wx.Panel):
-    def __init__(self, parent, statusBar, outputfile, axis, field="Density", mw=None):
+    def __init__(self, parent, statusBar, outputfile, axis, field="Density", mw=None, CreationID = -1):
         wx.Panel.__init__(self, parent)
 
+        self.CreationID = CreationID
         self.parent = parent
         self.mw = mw
 
@@ -154,6 +160,7 @@ class VMPlotPage(wx.Panel):
         self.SetupControls()
         self.SetupMenu()
         self.DoLayout()
+        self.UpdateWidth()
 
     def SetupFigure(self):
         self.makePlot()
@@ -172,12 +179,13 @@ class VMPlotPage(wx.Panel):
         self.figure_canvas.Bind(wx.EVT_CONTEXT_MENU, self.OnShowContextMenu)
 
     def SetupMenu(self):
-
         self.popupmenu = wx.Menu()
         self.cmapmenu = wx.Menu()
         self.editprops = wx.Menu()
         self.popupmenu.AppendMenu(-1, "Color Map", self.cmapmenu)
-        for cmap in be.matplotlib.cm.cmapnames:
+        cmapnames = be.matplotlib.cm.cmapnames
+        cmapnames.sort()
+        for cmap in cmapnames:
             item = self.cmapmenu.AppendRadioItem(-1, cmap)
             self.Bind(wx.EVT_MENU, self.OnColorMapChoice, item)
         self.popupmenu.AppendMenu(-1, "Edit Properties", self.editprops)
@@ -274,6 +282,7 @@ class VMPlotPage(wx.Panel):
     def OnCenterOnMax(self, event):
         v, c = self.outputfile.h.findMax("Density")
         Publisher().sendMessage(('viewchange','center'), c)
+        self.UpdateWidth()
 
     def OnCenterHere(self, event):
         xp, yp = self.ContextMenuPosition
@@ -281,6 +290,7 @@ class VMPlotPage(wx.Panel):
         print "CENTER HERE:", xp, yp, x, y
         if x == None or y == None: return
         self.ChangeCenter(x,y)
+        self.UpdateWidth()
 
     def OnShowContextMenu(self, event):
         pos = event.GetPosition()

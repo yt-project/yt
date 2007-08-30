@@ -1,24 +1,4 @@
 """
-Copyright (C) 2007 Matthew Turk.  All Rights Reserved.
-
-This file is part of yt.
-
-yt is free software; you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 3 of the License, or
-(at your option) any later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with this program.  If not, see <http://www.gnu.org/licenses/>.
-"""
-
-
-"""
 Fido is a module for moving and storing data.  It is designed to watch for
 outputs, as well as transparent archiving them during and after a simulation
 run.  Additionally, function handlers can be called to deal with output upon
@@ -27,17 +7,33 @@ its creation.
 @author: U{Matthew Turk<http://www.stanford.edu/~mturk/>}
 @organization: U{KIPAC<http://www-group.slac.stanford.edu/KIPAC/>}
 @contact: U{mturk@slac.stanford.edu<mailto:mturk@slac.stanford.edu>}
+@license:
+  Copyright (C) 2007 Matthew Turk.  All Rights Reserved.
+
+  This file is part of yt.
+
+  yt is free software; you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation; either version 3 of the License, or
+  (at your option) any later version.
+  
+  This program is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details.
+  
+  You should have received a copy of the GNU General Public License
+  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
 from yt.logger import fidoLogger as mylog
 from yt.config import ytcfg
 from yt.arraytypes import *
 
-mylog.debug("shutil used in FileHandling may lead to sub-optimal performance")
 import os, os.path, shutil, time, sys, glob, types
 
 WAITBETWEEN=5
-# This should go in ytcfg , but it isn't there just yet.
+# This should go in ytcfg, but it isn't there just yet.
 OTHERFILES=["rates.out","cool_rates.out"]
 NEW_OUTPUT_CREATED = "newOutput"
 

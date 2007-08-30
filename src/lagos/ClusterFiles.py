@@ -1,24 +1,4 @@
 """
-Copyright (C) 2007 Matthew Turk.  All Rights Reserved.
-
-This file is part of yt.
-
-yt is free software; you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 3 of the License, or
-(at your option) any later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with this program.  If not, see <http://www.gnu.org/licenses/>.
-"""
-
-
-"""
 Some functions to include the output from enzo_anyl, and generate it if need
 be.
 
@@ -28,6 +8,23 @@ be.
 @todo: Create an AnalyzeCluster file from a given set of parameters, and a
 hierarchy file.
 @todo: Run enzo_anyl and parse the resultant data.
+@license:
+  Copyright (C) 2007 Matthew Turk.  All Rights Reserved.
+
+  This file is part of yt.
+
+  yt is free software; you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation; either version 3 of the License, or
+  (at your option) any later version.
+  
+  This program is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details.
+  
+  You should have received a copy of the GNU General Public License
+  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
 from yt.lagos import *

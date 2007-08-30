@@ -1,27 +1,3 @@
-"""
-Copyright (C) 2007 Matthew Turk.  All Rights Reserved.
-
-This file is part of yt.
-
-yt is free software; you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 3 of the License, or
-(at your option) any later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with this program.  If not, see <http://www.gnu.org/licenses/>.
-"""
-
-
-"""
-We operate on some very simple principles here.
-"""
-
 from yt.fido import *
 
 def copyOutput(basename, newLocation, extraFiles=None):
@@ -60,6 +36,7 @@ def digupOutput(filename, newLocation=None, extraFiles=None):
     else:
         # Make sure we have no relative references
         newLocation = os.path.normpath(newLocation)
+    print "%s*" % (filename), newLocation
     moveGlob("%s*" % filename, newLocation)
 
 def copyGlob(globPattern, newLocation):
@@ -76,8 +53,10 @@ def moveGlob(globPattern, newLocation):
     # But, I trust it.  And it should work on boh
     # BSD and GNU util systems.
     for file in glob.glob(globPattern):
-        mylog.debug("Moving %s to %s", file, newLocation)
-        shutil.move(file, newLocation)
+        if os.path.abspath(file) == os.path.abspath(newLocation): continue
+        nl = os.path.join(newLocation, os.path.basename(file))
+        mylog.debug("Moving %s to %s", file, nl)
+        shutil.move(file, nl)
 
 def deleteGlob(globPattern):
     for file in glob.glob(globPattern):

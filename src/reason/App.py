@@ -1,20 +1,26 @@
 """
-Copyright (C) 2007 Matthew Turk.  All Rights Reserved.
+Main application for Reason.  Includes the basic window outline.
 
-This file is part of yt.
+@author: U{Matthew Turk<http://www.stanford.edu/~mturk/>}
+@organization: U{KIPAC<http://www-group.slac.stanford.edu/KIPAC/>}
+@contact: U{mturk@slac.stanford.edu<mailto:mturk@slac.stanford.edu>}
+@license:
+  Copyright (C) 2007 Matthew Turk.  All Rights Reserved.
 
-yt is free software; you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 3 of the License, or
-(at your option) any later version.
+  This file is part of yt.
 
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with this program.  If not, see <http://www.gnu.org/licenses/>.
+  yt is free software; you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation; either version 3 of the License, or
+  (at your option) any later version.
+  
+  This program is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details.
+  
+  You should have received a copy of the GNU General Public License
+  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
 
@@ -68,10 +74,6 @@ class ReasonMainWindow(wx.Frame):
 
         self.Bind(wx.EVT_BUTTON, self.AddSlice, self.SliceButton)
         self.Bind(wx.EVT_BUTTON, self.AddProj, self.ProjectButton)
-
-        #self.AddStaticOutputFile("/Users/matthewturk/Research/data/DataDump0012.dir/DataDump0012.hierarchy")
-        self.AddStaticOutputFile("/Users/matthewturk/Research/data/galaxy0398.dir/galaxy0398.hierarchy")
-        # end wxGlade
 
     def __set_properties(self):
         # begin wxGlade: ReasonMainWindow.__set_properties
@@ -131,6 +133,7 @@ class ReasonMainWindow(wx.Frame):
 
     def SetupToolBar(self):
         # Tool Bar
+        self._VMTB_REREADFIDO = wx.NewId()
         self._VMTB_FULLDOMAIN = wx.NewId()
         self._VMTB_CHANGEZOOM = wx.NewId()
         self._VMTB_REDRAW = wx.NewId()
@@ -155,12 +158,12 @@ class ReasonMainWindow(wx.Frame):
             self.toolbar.AddSeparator()
 
         self.toolbar.AddSeparator()
+        AddButton(self._VMTB_REREADFIDO,"Update OutputList",
+                                        "Reread from the Fido database", wx.ART_TIP)
         AddButton(self._VMTB_REDRAW,"Redraw", "Force a redraw", wx.ART_REDO)
-        #AddButton(self._VMTB_FIELDSWITCH,"Change Field", "Change the displayed field")
         self.availableFields = wx.Choice(self.toolbar, id=self._VMTB_FIELDSWITCH, choices = [])
         self.toolbar.AddControl(self.availableFields)
         Publisher().subscribe(self.UpdateToolbarFieldsMessage, ('page_changed'))
-        #AddButton(self._VMTB_CHANGEZOOM, "Change Width",  "Change the displayed width") # unneeded
         AddButton(self._VMTB_FULLDOMAIN, "Zoom Top",  "Zoom to the top level", wx.ART_FIND)
         AddButton(self._VMTB_CHANGELIMITS, "Change Limits", "Change the colorbar limits")
         AddButton(self._VMTB_VIEWPF, "View ParameterFile", "View the parameter file", wx.ART_NORMAL_FILE)
@@ -168,6 +171,7 @@ class ReasonMainWindow(wx.Frame):
         self.toolbar.AddCheckLabelTool(self._VMTB_VELPLOT, "VelVecs", cl, shortHelp="Plot Velocity Vectors")
         self.toolbar.AddSeparator()
 
+        self.Bind(wx.EVT_MENU, self.SetupFidoTree, id=self._VMTB_REREADFIDO)
         self.Bind(wx.EVT_CHOICE, self.plotPanel.OnCallSwitchField, id=self._VMTB_FIELDSWITCH)
         self.Bind(wx.EVT_MENU, self.plotPanel.OnCallSetWidth, id=self._VMTB_CHANGEZOOM)
         self.Bind(wx.EVT_MENU, self.plotPanel.OnCallRedraw, id=self._VMTB_REDRAW)
@@ -192,6 +196,29 @@ class ReasonMainWindow(wx.Frame):
         self.dataList.Expand(self.fidoRoot)
         self.dataList.Expand(self.outputRoot)
         self.dataList.Expand(self.dataRoot)
+
+        self.SetupFidoTree()
+
+    def SetupFidoTree(self, event=None):
+        # Calling this delete may not be wise.
+        # However, as long as we have a distinction between
+        # the data outputs and the created data objects, it should be okay.
+        self.dataList.DeleteChildren(self.fidoRoot)
+        gc = fido.GrabCollections()
+        for c in gc:
+            cRoot = self.dataList.AppendItem(self.fidoRoot, c.title)
+            for fn in c:
+                if not os.path.isfile(fn): continue
+                try:
+                    z = str(fido.getParameterLine(fn,
+                                 "CosmologyCurrentRedshift"))
+                except:
+                    z = "N/A"
+                tt = str(fido.getParameterLine(fn,
+                             "InitialTime"))
+                tid = wx.TreeItemData((fn, tt, z))
+                ni = self.dataList.AppendItem(cRoot, 
+                    "%s" % (os.path.basename(fn)), data=tid)
 
     def OnExit(self, event):
         self.Close()
@@ -223,12 +250,12 @@ class ReasonMainWindow(wx.Frame):
         # so let's strip that extension off
         fn = filename[:-10]
         eso = lagos.EnzoStaticOutput(fn)
-        self.outputs.append(eso)
         try:
             z = str(eso["CosmologyCurrentRedshift"])
         except:
             z = "N/A"
-        tid = wx.TreeItemData((eso, str(eso["InitialTime"]), z, len(self.outputs)))
+        tid = wx.TreeItemData((eso, str(eso["InitialTime"]), z))
+        self.outputs.append(eso)
         ni = self.dataList.AppendItem(self.outputRoot, "%s" % (eso.basename), data=tid)
         self.dataList.Expand(self.outputRoot)
 
@@ -262,10 +289,11 @@ class ReasonMainWindow(wx.Frame):
                                   outputfile = o,
                                   axis=i,
                                   field = field,
-                                  mw = self))
-                self.interpreter.shell.write("Adding %s slice of %s\n" % (ax, o))
-                self.plotPanel.AddPlot(self.windows[-1], t, MyID)
-                self.outputs.append(self.windows[-1].plot.data)
+                                  mw = self, CreationID=MyID))
+                self.interpreter.shell.write("Adding %s projection of %s\n" % (ax, o))
+                self.plotPanel.AddPlot(self.windows[-1], t)
+                self.AddDataObject("Slice: %s %s" % (o, ax),
+                                   self.windows[-1].plot.data)
 
     def AddSlice(self, event=None):
         MyID = wx.NewId()
@@ -287,10 +315,11 @@ class ReasonMainWindow(wx.Frame):
                                   outputfile = o,
                                   axis=i,
                                   field = field,
-                                  mw = self))
-                self.interpreter.shell.write("Adding %s projection of %s\n" % (ax, o))
-                self.outputs.append(self.windows[-1].plot.data)
-                self.plotPanel.AddPlot(self.windows[-1], t, MyID)
+                                  mw = self, CreationID=MyID))
+                self.interpreter.shell.write("Adding %s slice of %s\n" % (ax, o))
+                self.plotPanel.AddPlot(self.windows[-1], t)
+                self.AddDataObject("Slice: %s %s" % (o, ax),
+                                   self.windows[-1].plot.data)
 
     def GetOutputs(self, event=None):
         # Figure out which outputs are selected
@@ -298,7 +327,14 @@ class ReasonMainWindow(wx.Frame):
         #k = self.dataList.GetFirstSelected()
         k = self.dataList.GetSelections()
         for tid in k:
-            oss.append(self.dataList.GetItemData(tid).GetData()[0])
+            ii = self.dataList.GetItemData(tid).GetData()[0]
+            if isinstance(ii, types.StringType):
+                ii = lagos.EnzoStaticOutput(ii) # Instantiate here
+                self.outputs.append(ii)
+                fn, z, t = self.dataList.GetItemData(tid).GetData()
+                newData = wx.TreeItemData((ii, z, t))
+                self.dataList.SetItemData(tid, newData)
+            oss.append(ii)
         return oss
 
 class ReasonApp(wx.App):

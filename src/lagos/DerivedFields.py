@@ -1,23 +1,3 @@
-"""
-Copyright (C) 2007 Matthew Turk.  All Rights Reserved.
-
-This file is part of yt.
-
-yt is free software; you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 3 of the License, or
-(at your option) any later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with this program.  If not, see <http://www.gnu.org/licenses/>.
-"""
-
-
 """ Fields derived from other data
 
 Unless otherwise specified in the field name, all fields should be returned in
@@ -31,6 +11,23 @@ fieldInfo[fieldName] = (Units, ProjectedUnits, TakeLog, Function)
 @author: U{John Wise<http://www.slac.stanford.edu/~jwise/>}
 @organization: U{KIPAC<http://www-group.slac.stanford.edu/KIPAC/>}
 @contact: U{jwise@slac.stanford.edu<mailto:jwise@slac.stanford.edu>}
+@license:
+  Copyright (C) 2007 Matthew Turk.  All Rights Reserved.
+
+  This file is part of yt.
+
+  yt is free software; you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation; either version 3 of the License, or
+  (at your option) any later version.
+  
+  This program is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details.
+  
+  You should have received a copy of the GNU General Public License
+  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
 from yt.lagos import *
@@ -273,7 +270,7 @@ def RadialVelocity(self, fieldName):
            ( delx * xv + \
              dely * yv +   \
              delz * zv ) / \
-           ( radius) ) * self.hierarchy.conversionFactors["x-velocity"] / 100000.0
+           ( radius) ) * self.hierarchy.parameterFile.conversionFactors["x-velocity"] / 100000.0
 fieldInfo["RadialVelocity"] = ("km/s", None, False, RadialVelocity)
 
 def RadiusCode(self, fieldName):
@@ -557,3 +554,9 @@ def DiagonalInertialTensor(self, fieldName):
         myField[:,x] /= na.innerproduct(self[fieldName][:,x], self[fieldName][:,x])
     self[fieldName] = myField
 fieldInfo["DiagonalInertialTensor"] = (None, None, False, DiagonalInertialTensor)
+
+def GEPrime(self, fieldName):
+    self[fieldName] = na.log10( \
+        self["Gas_Energy"] * self.hierarchy["x-velocity"]**2.0 \
+      + ((0.76-self["H2I_Fraction"])/2.0) * 7.17e-12 / 1.67e-24)
+fieldInfo['GEPrime'] = (None, None, False, GEPrime)

@@ -1,24 +1,4 @@
 """
-Copyright (C) 2007 Matthew Turk.  All Rights Reserved.
-
-This file is part of yt.
-
-yt is free software; you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 3 of the License, or
-(at your option) any later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with this program.  If not, see <http://www.gnu.org/licenses/>.
-"""
-
-
-"""
 All of the base-level stuff for plotting.
 
 Think of this as a way of getting rid of EnzoHippo.  We should have access to
@@ -29,6 +9,23 @@ all of the engine-appropriate methods.
 @author: U{Matthew Turk<http://www.stanford.edu/~mturk/>}
 @organization: U{KIPAC<http://www-group.slac.stanford.edu/KIPAC/>}
 @contact: U{mturk@slac.stanford.edu<mailto:mturk@slac.stanford.edu>}
+@license:
+  Copyright (C) 2007 Matthew Turk.  All Rights Reserved.
+
+  This file is part of yt.
+
+  yt is free software; you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation; either version 3 of the License, or
+  (at your option) any later version.
+  
+  This program is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details.
+  
+  You should have received a copy of the GNU General Public License
+  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
 from yt.raven import *
@@ -69,8 +66,12 @@ class PlotCollection:
     def set_ylim(self, ymin, ymax):
         for plot in self.plots:
             plot.set_ylim(ymin, ymax)
+    def autoscale(self):
+        for plot in self.plots:
+            plot.set_autoscale(True)
     def set_zlim(self, zmin, zmax):
         for plot in self.plots:
+            plot.set_autoscale(False)
             plot.set_zlim(zmin, zmax)
     def set_lim(self, lim):
         for plot in self.plots:

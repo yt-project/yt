@@ -1,29 +1,26 @@
 """
-Copyright (C) 2007 Matthew Turk.  All Rights Reserved.
-
-This file is part of yt.
-
-yt is free software; you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 3 of the License, or
-(at your option) any later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with this program.  If not, see <http://www.gnu.org/licenses/>.
-"""
-
-
-"""
 Enzo fortran function wrapping
 
 @author: U{Matthew Turk<http://www.stanford.edu/~mturk/>}
 @organization: U{KIPAC<http://www-group.slac.stanford.edu/KIPAC/>}
 @contact: U{mturk@slac.stanford.edu<mailto:mturk@slac.stanford.edu>}
+@license:
+  Copyright (C) 2007 Matthew Turk.  All Rights Reserved.
+
+  This file is part of yt.
+
+  yt is free software; you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation; either version 3 of the License, or
+  (at your option) any later version.
+  
+  This program is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details.
+  
+  You should have received a copy of the GNU General Public License
+  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
 from yt.lagos import *
@@ -70,19 +67,20 @@ def runSolveRateCool(g, dt, omaskflag=0, subgridmask=None):
         try:
             t = na.array(g[ds], nT.Float32, order="FORTRAN")
             dataCopy[ds] = t
+            print ds, dataCopy[ds].shape
         except TypeError:
             del g.data[ds]
         #t.transpose()
         #dataCopy[ds] = t
     # Let's get all the rates
     for rate in rates_out_key:
-        exec("%s = na.array(a.rates['%s'].copy(), nT.Float32, order='FORTRAN')" % (rate, rate))
-    for rate in a.rates.params.keys():
-        exec("%s = a.rates.params['%s']" % (rate, rate))
+        exec("%s = na.array(a.parameterFile.rates['%s'].copy(), nT.Float32, order='FORTRAN')" % (rate, rate))
+    for rate in a.parameterFile.rates.params.keys():
+        exec("%s = a.parameterFile.rates.params['%s']" % (rate, rate))
     for rate in cool_out_key:
-        exec("%s = na.array(a.cool['%s'].copy(), nT.Float32, order='FORTRAN')" % (rate, rate))
-    for rate in a.cool.params.keys():
-        exec("%s = a.cool.params['%s']" % (rate, rate))
+        exec("%s = na.array(a.parameterFile.cool['%s'].copy(), nT.Float32, order='FORTRAN')" % (rate, rate))
+    for rate in a.parameterFile.cool.params.keys():
+        exec("%s = a.parameterFile.cool.params['%s']" % (rate, rate))
     utim = 2.52e17 / na.sqrt(a.parameters["CosmologyOmegaMatterNow"]) \
                    / a.parameters["CosmologyHubbleConstantNow"] \
                    / (1+a.parameters["CosmologyInitialRedshift"])**1.5
@@ -116,7 +114,18 @@ def runSolveRateCool(g, dt, omaskflag=0, subgridmask=None):
     g.generateChildMask()
     if subgridmask == None:
         print "Generating subgridmask"
-        subgridmask = na.array(g.myChildMask * na.ones(g.ActiveDimensions, nT.Int32), order="FORTRAN")
+        subgridmask = na.array(g.myChildMask * na.ones(dataCopy["Density"].shape, nT.Int32), order="FORTRAN")
+    # Now we get the equilibrium table
+    eqTable = tables.openFile("tab_eq.h5")
+    HIeqtable = na.array(eqTable.getNode("/HItable")[:].transpose(), order='FORTRAN')
+    HIIeqtable = na.array(eqTable.getNode("/HIItable")[:].transpose(), order='FORTRAN')
+    H2Ieqtable = na.array(eqTable.getNode("/H2Itable")[:].transpose(), order='FORTRAN')
+    nrho=eqTable.getNodeAttr("/eq_data", "num_rho_bins")
+    nE=eqTable.getNodeAttr("/eq_data", "num_e_bins")
+    rhostart=eqTable.getNodeAttr("/eq_data","rho_start")
+    rhoend=eqTable.getNodeAttr("/eq_data","rho_end")
+    estart=eqTable.getNodeAttr("/eq_data","e_start")
+    eend=eqTable.getNodeAttr("/eq_data","e_end")
     EnzoFortranRoutines.solve_rate_cool( \
         dataCopy["Density"], dataCopy["Total_Energy"], dataCopy["Gas_Energy"],
         dataCopy["x-velocity"], dataCopy["y-velocity"], dataCopy["z-velocity"], 
@@ -147,7 +156,9 @@ def runSolveRateCool(g, dt, omaskflag=0, subgridmask=None):
         inutot[0], int(inutot[1]), #int(inutot[2]), 
         int(inutot[3]),
         0, 0, 0, 0,
-        1, 1, errcode, omaskflag, subgridmask)
+        1, 1, errcode, omaskflag, subgridmask,
+        HIeqtable, HIIeqtable, H2Ieqtable,
+        rhostart, rhoend, estart, eend)
     # iciecool, ih2optical
     # Okay, now we're done.  Note the couple blank fields, especially the HD
     # ones!
