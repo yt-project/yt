@@ -6,7 +6,7 @@ and then we call them if appropriate.
 import yt.lagos as lagos
 import yt.fido as fido
 
-fn = "LOCATION_OF_HIERARCHY"
+fn = "LOCATION_OF_PARAMETERFILE"
 
 def returnStaticOutput(fn=fn):
     """
@@ -49,8 +49,8 @@ def getWeightedProfile(hierarchy):
     care of automatically deciding on weights, as appropriate, for you.
     """
     v, c = hierarchy.findMax("Density")
-    region = lagos.EnzoSphere(
-        a, c, 100./a["au"], ["CellMass","Density","Volume"])
+    region = hierarchy.sphere(
+        c, 100./a["au"], ["CellMass","Density","Volume"])
     bins,profiles=region.makeProfile(
         ["Density", "NumberDensity"],10,1./a["au"],100./a["au"])
     return bins, profiles

@@ -7,28 +7,32 @@
 # Color bar support will be added soon.  For now it is not clear to me the best
 # way to proceed.
 
-# NOTE THAT YOUR ~/.matplotlib/matplotlibrc must have "Agg" set as the engine.
-# matplotlibrc will show up automatically after you import pylab the very first
-# time.
+from yt import ytcfg
+ytcfg["raven","backend"] = "MPL"
 
 # Set the parameters of our movie
-maxwidth = (1,'1')
-minwidth = (0.5,"au")
-numframes = 100
-filename_template = "frame%04i.png"
+maxwidth = (1.0,'1')
+minwidth = (10.0,"rsun")
+numframes = 400
+
+filename_template = "frames/frame%04i.png"
 fieldName = "NumberDensity"
-hierarchy_filename = "DataDump0022.dir/DataDump0022"
+hierarchy_filename = "DataDump0043.dir/DataDump0043"
 
 # Import the modules we need
 import yt.lagos as lagos
 from yt.arraytypes import *
 import yt.raven as raven
+import matplotlib
+import matplotlib.cm as cm
+import matplotlib.colorbar as colorbar
+import matplotlib.contour as contour
 import pylab
 from math import log10
 
 # Standard data loading
-a=lagos.EnzoHierarchy(hierarchy_filename)
-v,c=a.findMax("Density")
+a=lagos.EnzoStaticOutput(hierarchy_filename)
+v,c=a.hierarchy.findMax("NumberDensity")
 centers = [(c[1],c[2]),(c[0],c[2]),(c[0],c[1])]
 
 # We want a square figure
@@ -51,22 +55,27 @@ ims = []
 
 # Now, for each axis, do the thingie
 for i in range(3):
-    slices.append(lagos.EnzoSlice(a, i, c[i], fieldName))
+    slices.append(a.h.slice(i, c[i], [fieldName], center=c))
     # Subplots are 1-indexed, so we do i+1
     axes.append(fig.add_subplot(2,2,i+1, aspect='equal'))
-    ims.append(axes[-1].amrshow(slices[-1].x, slices[-1].y, slices[-1].dx, \
-                          slices[-1].dy, na.log10(slices[-1][fieldName])))
-    # If you know the bounds in advance, feel free to drop these next two lines
-    absmin = min(na.log10(slices[-1][fieldName]).min(), absmin)
-    absmax = max(na.log10(slices[-1][fieldName]).max(), absmax)
-    axes[-1].set_xticks(()) # we don't want any of these things
-    axes[-1].set_yticks(())
-    axes[-1].set_xlabel("")
-    axes[-1].set_ylabel("")
+    ims.append(raven.be.SlicePlot(slices[-1], fieldName, fig, axes[-1], False))
+    absmin = min((slices[-1][fieldName]).min(), absmin)
+    absmax = max((slices[-1][fieldName]).max(), absmax)
+    #axes[-1].set_xticks(()) # we don't want any of these things
+    #axes[-1].set_yticks(())
+    #axes[-1].set_xlabel("")
+    #axes[-1].set_ylabel("")
+
+axes.append(fig.add_subplot(2,2,4, aspect='equal'))
+axes[-1].axesFrame.set_visible(False)
+axes[-1].set_axis_off()
 
 # For easier access
 ac = zip(axes, centers, ims)
 i=0
+
+#ss = "Your Text Here"
+#text=fig.text(0.55, 0.25, ss, size='large')
 
 # We want to do this log-spaced.
 # Note that we make numframes complex, so that it is regarded by mgrid
@@ -77,14 +86,10 @@ for w in na.mgrid[log10(maxwidth[0]/a[maxwidth[1]])\
     width = 10**w
     # Zoom in...
     for ax, cc, im in ac:
-        ax.set_xlim(cc[0]-0.5*width, cc[0]+0.5*width)
-        ax.set_ylim(cc[1]-0.5*width, cc[1]+0.5*width)
-    for im in ims: 
-        # For now, we need to do this to keep the scale the same on
-        # the next call to draw, which happens on .savefig().
-        # I'm working on a "linked" AMR plot, which will automate all of these
-        # processes.
-        im.set_next_clim(absmin, absmax)
+        im.set_width(width, '1')
+        im.set_zlim(absmin, absmax)
+    #for im in ims: im.set_zlim(absmin, absmax)
+    print "About to save with limits", absmin, absmax
     s = filename_template % (i)
     fig.savefig(s)
     print "Saved %s" % (s)
