@@ -75,6 +75,8 @@ class ReasonMainWindow(wx.Frame):
         self.Bind(wx.EVT_BUTTON, self.AddSlice, self.SliceButton)
         self.Bind(wx.EVT_BUTTON, self.AddProj, self.ProjectButton)
 
+        Publisher().subscribe(self.OnPageDeleted, ('page_deleted'))
+
     def __set_properties(self):
         # begin wxGlade: ReasonMainWindow.__set_properties
         #self.dataList.SetMinSize((300,300))
@@ -186,6 +188,10 @@ class ReasonMainWindow(wx.Frame):
     def UpdateToolbarFields(self, page):
         self.availableFields.SetItems(page.QueryFields())
 
+    def OnPageDeleted(self, message):
+        id = message.data
+        del self.windows[id]
+
     def SetupDataTree(self):
 
         self.root = self.dataList.AddRoot("You shouldn't see me!")
@@ -270,15 +276,12 @@ class ReasonMainWindow(wx.Frame):
         self.AddDataObject(title, sphere)
 
     def AddProj(self, event=None):
-        #MyID = wx.NewId()
+        MyID = wx.NewId()
         self.interpreter.shell.write("\n")
         for o in self.GetOutputs():
-            MyID = o["CurrentTimeIdentifier"]
-            #field = Toolbars.ChooseField(o)
             field = "Density"
             if not field:
                 continue
-            #width, unit = Toolbars.ChooseWidth(o)
             width = 1.0
             unit = "1"
             for i, ax in zip(range(3), 'xyz'):
@@ -291,20 +294,18 @@ class ReasonMainWindow(wx.Frame):
                                   field = field,
                                   mw = self, CreationID=MyID))
                 self.interpreter.shell.write("Adding %s projection of %s\n" % (ax, o))
-                self.plotPanel.AddPlot(self.windows[-1], t)
+                self.plotPanel.AddPlot(self.windows[-1], t, MyID)
                 self.AddDataObject("Slice: %s %s" % (o, ax),
                                    self.windows[-1].plot.data)
+                print "Adding with ID:", MyID
 
     def AddSlice(self, event=None):
         MyID = wx.NewId()
         self.interpreter.shell.write("\n")
         for o in self.GetOutputs():
-            #MyID = o["CurrentTimeIdentifier"]
-            #field = Toolbars.ChooseField(o)
             field = "Density"
             if not field:
                 continue
-            #width, unit = Toolbars.ChooseWidth(o)
             width = 1.0
             unit = "1"
             for i, ax in zip(range(3), 'xyz'):
@@ -317,9 +318,10 @@ class ReasonMainWindow(wx.Frame):
                                   field = field,
                                   mw = self, CreationID=MyID))
                 self.interpreter.shell.write("Adding %s slice of %s\n" % (ax, o))
-                self.plotPanel.AddPlot(self.windows[-1], t)
+                self.plotPanel.AddPlot(self.windows[-1], t, MyID)
                 self.AddDataObject("Slice: %s %s" % (o, ax),
                                    self.windows[-1].plot.data)
+                print "Adding with ID:", MyID
 
     def GetOutputs(self, event=None):
         # Figure out which outputs are selected
@@ -335,6 +337,7 @@ class ReasonMainWindow(wx.Frame):
                 newData = wx.TreeItemData((ii, z, t))
                 self.dataList.SetItemData(tid, newData)
             oss.append(ii)
+            print "Got output:", ii
         return oss
 
 class ReasonApp(wx.App):

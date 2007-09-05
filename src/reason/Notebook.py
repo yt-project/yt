@@ -40,10 +40,16 @@ class PlotPanel(wx.Panel):
         #self.nb.AddPage(welcomeMessage, "Welcome")
 
         # Good thing the aui module breaks naming convention
+        self.nb.Bind(wx.aui.EVT_AUINOTEBOOK_PAGE_CLOSE,
+                     self.OnPageClosed)
         self.nb.Bind(wx.aui.EVT_AUINOTEBOOK_PAGE_CHANGED,
                      self.OnPageChanged)
         self.__set_properties()
         self.__do_layout()
+
+    def OnPageClosed(self, event):
+        deletedPage = event.Selection
+        Publisher().sendMessage("page_deleted",deletedPage)
 
     def OnPageChanged(self, event):
         page = self.nb.GetPage(event.Selection)
@@ -51,7 +57,13 @@ class PlotPanel(wx.Panel):
         self.UpdateSubscriptions(page)
 
     def UpdateSubscriptions(self, page):
-        Publisher().unsubAll(("viewchange"))
+        pairs = [("width","ChangeWidthFromMessage"),
+                 ("field","ChangeFieldFromMessage"),
+                 ("limits","ChangeLimitsFromMessage"),
+                 ("center","ChangeCenterFromMessage"),
+                 ("cmap","ChangeColorMapFromMessage")]
+        for m,f in pairs:
+            Publisher().unsubAll(("viewchange",m))
         if not hasattr(page,'outputfile'): return
         cti = page.CreationID
         toSubscribe = []
@@ -64,11 +76,9 @@ class PlotPanel(wx.Panel):
         else: toSubscribe.append(page)
         for p in toSubscribe:
             Publisher().subscribe(self.MessageLogger)
-            Publisher().subscribe(p.ChangeWidthFromMessage, ('viewchange','width'))
-            Publisher().subscribe(p.ChangeFieldFromMessage, ('viewchange','field'))
-            Publisher().subscribe(p.ChangeLimitsFromMessage, ('viewchange','limits'))
-            Publisher().subscribe(p.ChangeCenterFromMessage, ('viewchange','center'))
-            Publisher().subscribe(p.ChangeColorMapFromMessage, ('viewchange','cmap'))
+            for m, f in pairs:
+                ff = getattr(p,f)
+                Publisher().subscribe(ff, ('viewchange',m))
         page.UpdateCanvas()
 
     def MessageLogger(self, message):

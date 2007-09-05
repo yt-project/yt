@@ -141,21 +141,18 @@ class EnzoHierarchy:
                         will be classes, instantiated with the appropriate 
                         methods of obtaining data.
         """
-        def genClass(base):
-            class MyClass(base):
-                pf = self.parameterFile
-                hierarchy = self
-                readDataFast = dataStyleFuncs[self.data_style][0]
-                readAllData = dataStyleFuncs[self.data_style][1]
-                getFields = dataStyleFuncs[self.data_style][2]
-                readDataSlice = dataStyleFuncs[self.data_style][3]
-            return MyClass
-        self.grid = genClass(EnzoGridBase)
-        self.proj = genClass(EnzoProjBase)
-        self.slice = genClass(EnzoSliceBase)
-        self.region = genClass(EnzoRegionBase)
-        self.datacube = genClass(EnzoDataCubeBase)
-        self.sphere = genClass(EnzoSphereBase)
+        dd = { 'readDataFast' : dataStyleFuncs[self.data_style][0],
+               'readAllData' : dataStyleFuncs[self.data_style][1],
+               'getFields' : dataStyleFuncs[self.data_style][2],
+               'readDataSlice' : dataStyleFuncs[self.data_style][3],
+               'pf' : self.parameterFile,
+               'hierarchy': self }
+        self.grid = classobj("EnzoGrid",(EnzoGridBase,), dd)
+        self.proj = classobj("EnzoProj",(EnzoProjBase,), dd)
+        self.slice = classobj("EnzoSlice",(EnzoSliceBase,), dd)
+        self.region = classobj("EnzoRegion",(EnzoRegionBase,), dd)
+        self.datacube = classobj("EnzoDataCube",(EnzoDataCubeBase,), dd)
+        self.sphere = classobj("EnzoSphere",(EnzoSphereBase,), dd)
 
     def initializeDataFile(self):
         """

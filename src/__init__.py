@@ -43,10 +43,8 @@ Lagos
 Raven
 =====
 
-    Raven is the interface to HippoDraw.  All data plotting goes through
-    Raven.  An interface to Matplotlib is being worked on, and almost ready.
-    (This includes interpolated plots as well as vector plots.  Also,
-    contours.  And overlays.)
+    Raven is the plotting interface.  All data plotting goes through
+    Raven.
 
 Deliverator
 ===========
@@ -92,6 +90,7 @@ G{packagetree}
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
+# For the experimental, mostly non-functional lazy importer.
 #import importer
 #importer.install()
 

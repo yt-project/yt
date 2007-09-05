@@ -41,6 +41,7 @@ warnings.simplefilter("ignore", tables.NaturalNameWarning)
 
 from yt.arraytypes import *
 import weakref
+from new import classobj
 from string import strip, rstrip
 from math import ceil, floor, log10, pi
 import os, os.path, types, exceptions, re
@@ -60,6 +61,8 @@ except:
     pass
     #mylog.warning("EnzoFortranRoutines import failed; all fortran calls will fail!")
 
+# Now we import all the subfiles
+
 import PointCombine
 from EnzoDefs import *
 from DerivedFields import fieldInfo, log_fields, colormap_dict
@@ -73,5 +76,4 @@ from EnzoRateData import *
 from HierarchyType import *
 from OutputTypes import *
 from EnzoRunType import *
-#from ThreadsAndQueues import *
 from DataCube import *
