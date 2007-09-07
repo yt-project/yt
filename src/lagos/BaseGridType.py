@@ -473,6 +473,9 @@ class EnzoGridBase:
             mylog.warning("Overriding coords attribute!  This is probably unwise!")
         self.__coords = newC
 
+    def generateCoords(self):
+        pass
+
     def _generateCoords(self):
         """
         Creates self.coords, which is of dimensions (3,ActiveDimensions)

@@ -765,12 +765,13 @@ class Enzo3DData(EnzoData):
         if "CellMass" not in fields:
             fields.append("CellMass")
         for field in fields:
+            code = WeaveStrings.ProfileBinningWeighted
             fc = self[field][radiiOrder]
             fp = na.zeros(nBins,nT.Float64)
             if field_weights.has_key(field):
                 if field_weights[field] == -999:
                     ss = "Accumulation weighting"
-                    weight = na.ones(nE, nT.Float64) * -999
+                    code = WeaveStrings.ProfileBinningAccumulation
                 elif field_weights[field] != None:
                     ww = field_weights[field]
                     ss="Weighting with %s" % (ww)
@@ -786,8 +787,16 @@ class Enzo3DData(EnzoData):
                 weight = defaultWeight
             mylog.info("Getting profile of %s (%s)", field, ss)
             #print fc.dtype, binIndices.dtype, fp.dtype, weight.dtype
-            PointCombine.BinProfile(fc, binIndices, \
-                                   fp, weight)
+            #PointCombine.BinProfile(fc, binIndices, \
+                                   #fp, weight)
+            ld = { 'num_bins' : nBins,
+                   'weightvalues' : weight,
+                   'profilevalues' : fp,
+                   'binindices' : binIndices,
+                   'num_elements' : fc.shape[0],
+                   'fieldvalues' : fc }
+            weave.inline(code, ld.keys(), local_dict=ld, compiler='gcc',
+                         type_converters=converters.blitz, auto_downcast = 0, verbose=2)
             fieldProfiles[field] = fp
         #return bins
         #print rOuter, rInner, st, nBins, bins, bins[:nBins]
@@ -1028,8 +1037,6 @@ class EnzoSphereBase(Enzo3DData):
         return grid[field][pointI]
 
     def generateGridCoords(self, grid):
-        if grid.coords == None:
-            grid.generateCoords()
         # First we find the cells that are within the sphere
         pointI = na.where(na.logical_and((grid["RadiusCode"]<=self.radius),grid.myChildMask==1)==1)
         dx = na.ones(pointI[0].shape[0], nT.Float64) * grid.dx

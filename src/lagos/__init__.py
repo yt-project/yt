@@ -64,6 +64,7 @@ except:
 # Now we import all the subfiles
 
 import PointCombine
+from WeaveStrings import *
 from EnzoDefs import *
 from DerivedFields import fieldInfo, log_fields, colormap_dict
 from DerivedQuantities import quantityInfo
