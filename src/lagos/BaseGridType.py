@@ -47,8 +47,6 @@ class EnzoGridBase:
         self.datasets = {}
         if hierarchy: self.hierarchy = hierarchy
         if filename: self.setFilename(filename)
-        self.myChildMask = None
-        self.myChildIndices = None
         self.myOverlapMasks = [None, None, None]
         self.myOverlapGrids = [None, None, None]
 
@@ -162,7 +160,6 @@ class EnzoGridBase:
         self.dz = (self.RightEdge[2] - self.LeftEdge[2]) / \
                   (self.EndIndices[2]-self.StartIndices[2]+1)
         h.gridDxs[self.id-1,0] = self.dx
-        self.coords = None
         if ytcfg.getboolean("lagos","ReconstructHierarchy") == True:
             if self.Parent == None: return
             # Okay, we're going to try to guess
@@ -176,48 +173,6 @@ class EnzoGridBase:
             self.LeftEdge = self.Parent.LeftEdge + self.Parent.dx * ParentLeftIndex
             self.RightEdge = self.LeftEdge + self.ActiveDimensions*self.dx
             #if self.Level > 20: print "Recon", (self.LeftEdge-le)/self.dx
-
-    #@time_execution
-    def generateChildMask(self, fRet=False):
-        """
-        Generates self.myChildMask, which is zero where child grids exist (and
-        thus, where higher resolution data is available.)
-        """
-        self.myChildMask = na.ones(self.ActiveDimensions, nT.Int32)
-        if fRet == True:
-            self.myChildIndices = na.where(self.myChildMask==1)
-            return
-        LE = self.hierarchy.gridLeftEdge
-        RE = self.hierarchy.gridRightEdge
-        cond1 = self.RightEdge[0] >= LE[:,0]
-        cond2 = self.LeftEdge[0] <= RE[:,0]
-        cond3 = self.RightEdge[1] >= LE[:,1]
-        cond4 = self.LeftEdge[1] <= RE[:,1]
-        cond5 = self.RightEdge[2] >= LE[:,2]
-        cond6 = self.LeftEdge[2] <= RE[:,2]
-        cond7 = (self.gridLevels.ravel() == self.Level + 1)
-        condX = na.logical_and(cond1,cond2)
-        condX = na.logical_and(condX,cond3)
-        condX = na.logical_and(condX,cond4)
-        condX = na.logical_and(condX,cond5)
-        condX = na.logical_and(condX,cond6)
-        condX = na.logical_and(condX,cond7)
-        myChildrenGrids = na.where(condX)
-        for child in self.hierarchy.grids[myChildrenGrids]:
-            if child.Level > self.Level + 1:
-                continue
-            # Now let's get our overlap
-            si = [None]*3
-            ei = [None]*3
-            startIndex = ((child.LeftEdge - self.LeftEdge)/self.dx)
-            endIndex = ((child.RightEdge - self.LeftEdge)/self.dx)
-            for i in range(3):
-                si[i] = na.rint(startIndex[i])
-                ei[i] = na.rint(endIndex[i])
-                si[i] = (si[i])#, 0, self.ActiveDimensions[i])
-                ei[i] = (ei[i])#, 0, self.ActiveDimensions[i])
-            self.myChildMask[si[0]:ei[0], si[1]:ei[1], si[2]:ei[2]] = 0
-        self.myChildIndices = na.where(self.myChildMask==0)
 
     #@time_execution
     def generateOverlapMasks(self, axis, LE, RE):
@@ -366,16 +321,6 @@ class EnzoGridBase:
         else:
             raise exceptions.KeyError, fieldName
 
-    def generateCoords(self):
-        """
-        Creates self.coords, which is of dimensions (3,ActiveDimensions)
-        """
-        if self.coords != None:
-            return
-        ind = na.indices(self.ActiveDimensions)
-        LE = na.reshape(self.LeftEdge,(3,1,1,1))
-        self.coords = (ind+0.5)*self.dx+LE
-    
     def getEnzoGrid(self):
         """
         This attempts to get an instance of this particular grid from the SWIG
@@ -443,8 +388,6 @@ class EnzoGridBase:
         else:
             maskedData = self[field] * self[weight]
             weightData = self[weight].copy()
-        if self.myChildMask == None:
-            self.generateChildMask()
         if len(self.myOverlapMasks) == 0:
             self.generateOverlapMasks()
         if zeroOut:
@@ -468,3 +411,81 @@ class EnzoGridBase:
         xpoints = xind + na.rint(self.LeftEdge[x_dict[axis]]/dx).astype(nT.Int64)
         ypoints = yind + na.rint(self.LeftEdge[y_dict[axis]]/dy).astype(nT.Int64)
         return [xpoints, ypoints, fullProj.ravel(), toCombineMask.ravel(), weightProj.ravel()]
+
+    def _set_myChildMask(self, newCM):
+        if self.__myChildMask != None:
+            mylog.warning("Overriding myChildMask attribute!  This is probably unwise!")
+        self.__myChildMask = newCM
+
+    def _set_myChildIndices(self, newCI):
+        if self.__myChildIndices != None:
+            mylog.warning("Overriding myChildIndices attribute!  This is probably unwise!")
+        self.__myChildIndices = newCI
+
+    def _get_myChildMask(self):
+        self._generateChildMask()
+        return self.__myChildMask
+
+    def _get_myChildIndices(self):
+        if self.__myChildIndices == None:
+            self._generateChildMask()
+        return self.__myChildIndices
+
+    #@time_execution
+    def _generateChildMask(self):
+        """
+        Generates self.myChildMask, which is zero where child grids exist (and
+        thus, where higher resolution data is available.)
+        """
+        self.__myChildMask = na.ones(self.ActiveDimensions, nT.Int32)
+        LE = self.hierarchy.gridLeftEdge
+        RE = self.hierarchy.gridRightEdge
+        myChildrenGrids = na.where(
+                      ( self.RightEdge[0] >= LE[:,0] )
+                    & ( self.LeftEdge[0] <= RE[:,0]  )
+                    & ( self.RightEdge[1] >= LE[:,1] )
+                    & ( self.LeftEdge[1] <= RE[:,1]  )
+                    & ( self.RightEdge[2] >= LE[:,2] )
+                    & ( self.LeftEdge[2] <= RE[:,2]  )
+                    & (self.gridLevels.ravel() == self.Level + 1) )
+        for child in self.hierarchy.grids[myChildrenGrids]:
+            if child.Level > self.Level + 1:
+                continue
+            # Now let's get our overlap
+            si = [None]*3
+            ei = [None]*3
+            startIndex = ((child.LeftEdge - self.LeftEdge)/self.dx)
+            endIndex = ((child.RightEdge - self.LeftEdge)/self.dx)
+            for i in range(3):
+                si[i] = na.rint(startIndex[i])
+                ei[i] = na.rint(endIndex[i])
+                si[i] = si[i]
+                ei[i] = ei[i]
+            self.__myChildMask[si[0]:ei[0], si[1]:ei[1], si[2]:ei[2]] = 0
+        self.__myChildIndices = na.where(self.__myChildMask==0)
+
+    def _get_coords(self):
+        if self.__coords == None: self._generateCoords()
+        return self.__coords
+
+    def _set_coords(self, newC):
+        if self.__coords != None:
+            mylog.warning("Overriding coords attribute!  This is probably unwise!")
+        self.__coords = newC
+
+    def _generateCoords(self):
+        """
+        Creates self.coords, which is of dimensions (3,ActiveDimensions)
+        """
+        ind = na.indices(self.ActiveDimensions)
+        LE = na.reshape(self.LeftEdge,(3,1,1,1))
+        self.__coords = (ind+0.5)*self.dx+LE
+
+    __coords = None
+    coords = property(_get_coords, _set_coords)
+
+    __myChildMask = None
+    myChildMask = property(_get_myChildMask, _set_myChildMask)
+
+    __myChildIndices = None
+    myChildIndices = property(_get_myChildMask, _set_myChildIndices)

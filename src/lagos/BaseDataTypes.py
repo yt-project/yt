@@ -619,9 +619,6 @@ class EnzoSliceBase(Enzo2DData):
         """
         xaxis = x_dict[self.axis]
         yaxis = y_dict[self.axis]
-        if grid.myChildMask == None:
-            #print "Generating child mask"
-            grid.generateChildMask(fRet=False)
         wantedIndex = int(((self.coord-grid.LeftEdge[self.axis])/grid.dx))
         sl = [slice(None), slice(None), slice(None)]
         sl[self.axis] = slice(wantedIndex, wantedIndex + 1)
@@ -654,9 +651,6 @@ class EnzoSliceBase(Enzo2DData):
         @param field: field to read
         @type field: string
         """
-        if grid.myChildMask == None:
-            #print "Generating child mask"
-            grid.generateChildMask(fRet=self.fRet)
         # So what's our index of slicing?  This is what we need to figure out
         # first, so we can deal with our data in the fastest way.
         #print grid.RightEdge[self.axis], self.coord
@@ -818,6 +812,7 @@ class EnzoRegionBase(Enzo3DData):
         self.refreshData()
 
     def findMaxRadius(self):
+        # I don't think this does anything useful.
         RE = na.array(self.rightEdge)
         LE = na.array(self.leftEdge)
         return (RE-LE).min()
@@ -867,9 +862,6 @@ class EnzoRegionBase(Enzo3DData):
 
     def getDataFromGrid(self, grid, field):
         #print "\tGetting data"
-        if grid.myChildMask == None or grid.myChildIndices == None:
-            #print "\tGenerating child mask"
-            grid.generateChildMask()
         # First we find the cells that are within the sphere
         i0 = map(int, (self.leftEdge  - grid.LeftEdge) / grid.dx)
         i1 = map(int, map(ceil, (self.rightEdge - grid.LeftEdge) / grid.dx))
@@ -883,8 +875,6 @@ class EnzoRegionBase(Enzo3DData):
     def generateGridCoords(self, grid):
         if grid.coords == None:
             grid.generateCoords()
-        if grid.myChildMask == None or grid.myChildIndices == None:
-            grid.generateChildMask()
         # First we find the cells that are within the sphere
         i0 = map(int, (self.leftEdge  - grid.LeftEdge) / grid.dx)
         i1 = map(int, map(ceil, (self.rightEdge - grid.LeftEdge) / grid.dx))
@@ -1033,9 +1023,6 @@ class EnzoSphereBase(Enzo3DData):
 
     def getDataFromGrid(self, grid, field):
         #print "\tGetting data"
-        if grid.myChildMask == None or grid.myChildIndices == None:
-            #print "\tGenerating child mask"
-            grid.generateChildMask()
         # First we find the cells that are within the sphere
         pointI = na.where(na.logical_and((grid["RadiusCode"]<=self.radius),grid.myChildMask==1)==1)
         return grid[field][pointI]
@@ -1043,8 +1030,6 @@ class EnzoSphereBase(Enzo3DData):
     def generateGridCoords(self, grid):
         if grid.coords == None:
             grid.generateCoords()
-        if grid.myChildMask == None or grid.myChildIndices == None:
-            grid.generateChildMask()
         # First we find the cells that are within the sphere
         pointI = na.where(na.logical_and((grid["RadiusCode"]<=self.radius),grid.myChildMask==1)==1)
         dx = na.ones(pointI[0].shape[0], nT.Float64) * grid.dx
