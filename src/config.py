@@ -30,9 +30,14 @@ import ConfigParser, optparse, os, os.path, sys, types
 from funcs import *
 
 ytcfgDefaults = {
-    "Fido":{
+    "fido":{
         'RunDir': os.path.join(os.getenv("HOME"),'EnzoRuns'),\
-        'WorkDir': os.path.join('/usr/work/', os.getenv("USER")) \
+        'WorkDir': os.path.join('/usr/work/', os.getenv("USER")), \
+        'WaitBetween':'5', \
+        'OtherFiles':'rates.out,cool_rates.out',\
+        'NewOutputCreated':'newOutput',\
+        'GlobPatterns':'*.hierarchy,*.dir', \
+        'NewDirectoryPattern':'%s.dir'
         },\
     "SWIG":{
         'EnzoInterfacePath': '/usr/work/mturk/local/lib/python2.5/site-packages', \

@@ -48,7 +48,7 @@ class OutputCollection:
         self.outputTimes = na.array(outputTimes, nT.Float64)
 
     def writeOut(self):
-        path=ytcfg.get("Fido","rundir")
+        path=ytcfg.get("fido","rundir")
         fn = os.path.join(path, "runF_%s" % (self.title))
         f = open(fn, "w")
         for i, output in enumerate(self.outputNames):
@@ -177,25 +177,26 @@ class OutputCollection:
     def runFunction(self, function, args = None, kwargs = {}, prop = None):
         if args == None: args = []
         import yt.lagos as lagos # We import *here* so that we only import if we need it
-        args = list(args)
+        permArgs = list(args)
+        for j, arg in enumerate(args):
+            if isinstance(arg, types.StringType):
+                args[j] = arg % myDict
         for i,o in enumerate(self):
             # Now we format string the various args and kwargs
             myDict = {'fn':o, 'index':i, 'time':self.outputTimes[i],
                       'timeID':self.outputTimeIDs[i]}
-            for j, arg in enumerate(args):
-                if isinstance(arg, types.StringType):
-                    args[j] = arg % myDict
             for key in kwargs.keys():
                 if isinstance(kwargs[key], types.StringType):
                     kwargs[key] = kwargs[key] % myDict
             if prop:
-                args = [getattr(lagos.EnzoStaticOutput(o),prop)] + args
+                args = [getattr(lagos.EnzoStaticOutput(o),prop)] + permArgs
             else:
-                args = [lagos.EnzoStaticOutput(o)] + args
+                args = [lagos.EnzoStaticOutput(o)] + permArgs
+            print args, kwargs
             function(*args, **kwargs)
 
 def GrabCollections(path=None):
-    if not path: path=ytcfg.get("Fido","rundir")
+    if not path: path=ytcfg.get("fido","rundir")
     ocs = []
     for file in glob.glob(os.path.join(path,"runF_*")):
         title=os.path.basename(file)

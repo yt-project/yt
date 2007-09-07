@@ -92,7 +92,7 @@ def H2IFractionNorm(self, fieldName):
     Norm it to the hydrogen fraction
     """
     self[fieldName] = self["H2I_Density"]/(0.76*self["Density"])
-fieldInfo["H2I_Fraction_Norm"] = ("mass fraction of H", None, True, H2IFractionNorm)
+fieldInfo["H2I_Fraction_Norm"] = ("mass fraction of H", None, False, H2IFractionNorm)
 
 def DynamicalTime(self, fieldName):
     """
@@ -560,3 +560,8 @@ def GEPrime(self, fieldName):
         self["Gas_Energy"] * self.hierarchy["x-velocity"]**2.0 \
       + ((0.76-self["H2I_Fraction"])/2.0) * 7.17e-12 / 1.67e-24)
 fieldInfo['GEPrime'] = (None, None, False, GEPrime)
+
+def Ones(self, fieldName):
+    self[fieldName] = na.ones(self["Density"].shape)
+fieldInfo["Ones"] = (None, None, True, Ones)
+fieldInfo["CellsPerBin"] = ("Cells per Bin", None, True, Ones)

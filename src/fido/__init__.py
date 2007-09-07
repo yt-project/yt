@@ -32,10 +32,10 @@ from yt.arraytypes import *
 
 import os, os.path, shutil, time, sys, glob, types
 
-WAITBETWEEN=5
-# This should go in ytcfg, but it isn't there just yet.
 OTHERFILES=["rates.out","cool_rates.out"]
-NEW_OUTPUT_CREATED = "newOutput"
+NEW_OUTPUT_CREATED = ytcfg.get("fido","NewOutputCreated")
+GlobPatterns = ytcfg.get("fido","GlobPatterns").split(",")
+NewDirectoryPattern = ytcfg.get("fido","NewDirectoryPattern",raw=True)
 
 # Let's define some useful functions.  Maybe these should go elsewhere?
 

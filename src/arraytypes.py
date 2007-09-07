@@ -51,6 +51,8 @@ import numpy.core.records as rec
 import scipy.ndimage as nd # Moved into scipy
 import scipy as sp
 import scipy.weave as weave
+from scipy.weave import converters
+
 u_numpy = True
 for type in myTypes:
     setattr(nT, type, na.typeNA[type])

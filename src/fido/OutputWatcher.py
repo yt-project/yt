@@ -43,6 +43,7 @@ class Watcher:
 
     def run(self, runOnce=False):
         mylog.info("Entering main Fido loop (CTRL-C or touch 'stopFido' to end)")
+        wb = ytcfg.getfloat("fido","WaitBetween")
         while not self.checkForStop():
             nn = self.checkForOutput()
             for bn in nn:
@@ -50,7 +51,7 @@ class Watcher:
                 self.dealWithOutput(newName)
             if runOnce: break
             try:
-                time.sleep(WAITBETWEEN)
+                time.sleep(wb)
             except KeyboardInterrupt:
                 sys.exit()
 
@@ -76,8 +77,11 @@ class Watcher:
         if os.path.isfile(NEW_OUTPUT_CREATED):
             os.unlink(NEW_OUTPUT_CREATED)
             # So something is created!  Now let's snag it
-            filesFound = glob.glob("*.hierarchy")
+            # We insert our additional glob patterns here
+            filesFound = glob.glob("*.hierarchy") #\
+                         #[glob.glob(pat) for pat in GlobPatterns]
             for file in filter(lambda a: a not in self.skipFiles, filesFound):
+                #if self.oc.has_key(os.path.basename(file[:-10])): continue
                 newFiles.append(file.rsplit(".",1)[0])
                 mylog.info("Found output %s", newFiles[-1])
         return newFiles

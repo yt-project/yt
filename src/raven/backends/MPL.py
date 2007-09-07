@@ -168,6 +168,7 @@ class RavenPlot:
         @param format: the prefix to append to the filename
         @type format: string
         """
+        self.redraw_image()
         self.generatePrefix(prefix)
         fn = ".".join([self.prefix, format])
         canvas = engineVals["canvas"](self.figure)
@@ -244,10 +245,6 @@ class VMPlot(RavenPlot):
         self.set_width(1,'1')
         self.redraw_image()
         self.selfSetup()
-
-    def saveImage(self, *args, **kwargs):
-        self.redraw_image()
-        return RavenPlot.saveImage(self, *args, **kwargs)
 
     def redraw_image(self, *args):
         #x0, y0, v_width, v_height = self.axes.viewLim.get_bounds()
@@ -379,26 +376,34 @@ class ProjectionPlot(VMPlot):
                     self.data.hierarchy.parameterFile.units["cm"]
 
 class PhasePlot(RavenPlot):
-    def __init__(self, data, fields, bins = 100, width=None, unit=None, cmap=None):
+    #def __init__(self, data, fields,  width=None, unit=None, bins = 100,cmap=None):
+    def __init__(self, data, fields, width=None, unit=None, bins=100, weight=None, ticker=None, cmap=None):
+        self.typeName = "Phase"
         RavenPlot.__init__(self, data, fields)
+        self.ticker = ticker
         self.image = None
         self.bins = bins
         self.set_cmap(cmap)
+        self.weight = weight
+
         self.axisNames["X"] = fields[0]
         self.axisNames["Y"] = fields[1]
-        logIt, self.x_v, self.x_bins = self.setup_bins(fields[0], self.axes.set_xscale)
-        logIt, self.y_v, self.y_bins = self.setup_bins(fields[1], self.axes.set_yscale)
+        self.axisNames["Z"] = fields[2]
 
-    def setup_bins(self, field, func):
+        logIt, self.x_v, self.x_bins = self.setup_bins(self.fields[0], self.axes.set_xscale)
+        logIt, self.y_v, self.y_bins = self.setup_bins(self.fields[1], self.axes.set_yscale)
+        self.log_z, self.z_v, self.z_bins = self.setup_bins(self.fields[2])
+
+    def setup_bins(self, field, func = None):
         logIt = False
         v = self.data[field]
         if field in lagos.log_fields or lagos.fieldInfo[field][2]:
             logIt = True
             bins = na.logspace(na.log10(v.min()),na.log10(v.max()),num=self.bins+1)
-            func('log')
+            if func: func('log')
         else:
             bins = na.linspace(v.min(),v.max(),num=self.bins+1)
-            func('linear')
+            if func: func('linear')
         return logIt, v, bins
 
     def autoset_label(self, field, func):
@@ -412,54 +417,25 @@ class PhasePlot(RavenPlot):
         if self.image != None and self.cmap != None:
             self.image.set_cmap(self.cmap)
 
-class TwoPhasePlot(PhasePlot):
-    def __init__(self, data, fields, bins = 100, width=None, unit=None, cmap=None):
-        self.typeName = "TwoPhase"
-        PhasePlot.__init__(self, data, fields, bins, width, unit, cmap=cmap)
+    def switch_x(self, field):
+        self.fields[0] = field
+        self.axisNames["X"] = field
+        logIt, self.x_v, self.x_bins = self.setup_bins(self.fields[0], self.axes.set_xscale)
 
-        vals, x, y = na.histogram2d( \
-            self.x_v, self.y_v, \
-            bins = (self.x_bins, self.y_bins), \
-            normed=False )
-        i = na.where(vals>0)
-        vmin = vals[i].min()
-        self.norm=matplotlib.colors.LogNorm(vmin=vmin, clip=False)
-        if self.cmap == None:
-            self.cmap = matplotlib.cm.get_cmap()
-        self.cmap.set_bad("w")
-        self.cmap.set_under("w")
-        self.cmap.set_over("w")
-        self.image = self.axes.pcolor(self.x_bins,self.y_bins, \
-                                      vals.transpose(),shading='flat', \
-                                      norm=self.norm, cmap=self.cmap)
+    def switch_y(self, field):
+        self.fields[1] = field
+        self.axisNames["Y"] = field
+        logIt, self.y_v, self.y_bins = self.setup_bins(self.fields[1], self.axes.set_yscale)
 
-        self.autoset_label(fields[0], self.axes.set_xlabel)
-        self.autoset_label(fields[1], self.axes.set_ylabel)
+    def switch_z(self, field):
+        self.fields[2] = field
+        self.axisNames["Z"] = field
+        self.log_z, self.z_v, self.z_bins = self.setup_bins(self.fields[2])
 
-        self.colorbar = self.figure.colorbar(self.image, \
-                                             extend='neither', \
-                                             shrink=0.95, cmap=self.cmap)
-        self.colorbar.notify(self.image)
-        self.colorbar.set_label("Cells per Bin")
+    def switch_weight(self, weight):
+        self.weight = weight
 
-    def generatePrefix(self, prefix):
-        self.prefix = "_".join([prefix, self.typeName, \
-            self.axisNames['X'], self.axisNames['Y']])
-        self["Field1"] = self.axisNames["X"]
-        self["Field2"] = self.axisNames["Y"]
-        self["Field3"] = None
-
-class ThreePhasePlot(PhasePlot):
-    def __init__(self, data, fields, width=None, unit=None, bins=100, weight="CellMass", ticker=None, cmap=None):
-        self.typeName = "ThreePhase"
-        PhasePlot.__init__(self, data, fields, cmap=cmap)
-        self.ticker = ticker
-
-        self.axisNames["Z"] = fields[2]
-        logIt, self.z_v, self.z_bins = self.setup_bins(fields[2], lambda i: None)
-        self.z_v = self.data[fields[2]]
-
-        weight = self.data[weight]
+    def redraw_image(self):
         x_bins_ids = na.digitize(self.x_v, self.x_bins)
         y_bins_ids = na.digitize(self.y_v, self.y_bins)
 
@@ -467,20 +443,45 @@ class ThreePhasePlot(PhasePlot):
         weight_vals = na.zeros((self.bins+1,self.bins+1), dtype=nT.Float64)
         used_bin = na.zeros((self.bins+1,self.bins+1), dtype=nT.Bool)
 
-        for k in range(len(self.x_v)):
-            j,i = x_bins_ids[k]-1, y_bins_ids[k]-1
-            used_bin[i,j] = True
-            weight_vals[i,j] += weight[k]
-            vals[i,j] += self.z_v[k]*weight[k]
+        x_ind, y_ind = (x_bins_ids-1,y_bins_ids-1)
+        used_bin[y_ind,x_ind] = True
+        nx = len(self.x_v)
+        if self.weight != None:
+            weight = self.data[self.weight]
+        else:
+            weight = na.ones(nx)
 
+        z_v = self.z_v
+
+        code = """
+               int i,j;
+               for(int n = 0; n < nx ; n++) {
+                 j = x_bins_ids(n)-1;
+                 i = y_bins_ids(n)-1;
+                 weight_vals(i,j) += weight(n);
+                 vals(i,j) += z_v(n) * weight(n);
+               }
+               """
+        try:
+            weave.inline(code, ['nx','x_bins_ids','y_bins_ids',
+                                'weight_vals','weight','vals','z_v'],
+                         compiler='gcc', type_converters=converters.blitz,
+                         auto_downcast = 0)
+        except:
+            mylog.debug("SciPy weaving did not work; falling back on loop")
+            for k in range(nx):
+                j,i = x_bins_ids[k]-1, y_bins_ids[k]-1
+                weight_vals[i,j] += weight[k]
+                vals[i,j] += self.z_v[k]*weight[k]
+        
         vi = na.where(used_bin == False)
         vit = na.where(used_bin == True)
-        vals = vals / weight_vals
+        if self.weight != None: vals = vals / weight_vals
 
         vmin = na.nanmin(vals[vit])
         vmax = na.nanmax(vals[vit])
         vals[vi] = 0.0
-        if logIt:
+        if self.log_z:
             self.norm=matplotlib.colors.LogNorm(vmin=vmin, vmax=vmax, clip=False)
             location_of_ticks = na.logspace(vmin*1.1, vmax*0.9, num=6)
             #self.ticker = matplotlib.ticker.LogLocator( \
@@ -504,9 +505,9 @@ class ThreePhasePlot(PhasePlot):
                                ticks = self.ticker, format="%0.2e" )
         self.colorbar.notify(self.image)
 
-        self.autoset_label(fields[0], self.axes.set_xlabel)
-        self.autoset_label(fields[1], self.axes.set_ylabel)
-        self.autoset_label(fields[2], self.colorbar.set_label)
+        self.autoset_label(self.fields[0], self.axes.set_xlabel)
+        self.autoset_label(self.fields[1], self.axes.set_ylabel)
+        self.autoset_label(self.fields[2], self.colorbar.set_label)
 
     def generatePrefix(self, prefix):
         self.prefix = "_".join([prefix, self.typeName, \

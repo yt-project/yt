@@ -545,7 +545,7 @@ class PhasePlotPage(wx.Panel):
         wx.Panel.__init__(self, parent)
         self.parent = parent
         self.mw = mw
-        
+
         self.figure = be.matplotlib.figure.Figure((4,4))
         self.axes = self.figure.add_subplot(111)
         self.statusBar = statusBar

@@ -123,23 +123,27 @@ class PlotCollection:
         return None
         return self.addPlot(be.ProfilePlot())
     def addTwoPhaseSphere(self, radius, unit, fields, center=None, cmap=None):
+        print "Newstyle 2"
         if center == None:
             v,center = self.pf.hierarchy.findMax("Density")
+        fields = fields[:2] + ["CellsPerBin"] + fields[2:]
         r = radius/self.pf[unit]
         sphere = self.pf.hierarchy.sphere(center, r, fields)
-        p = self.addPlot(be.TwoPhasePlot(sphere, fields, width=radius,
-                                         unit=unit, cmap=cmap))
+        p = self.addPlot(be.PhasePlot(sphere, fields, width=radius,
+                                      unit=unit, cmap=cmap))
         p["Width"] = radius
         p["Unit"] = unit
         p["Axis"] = None
         return p 
-    def addThreePhaseSphere(self, radius, unit, fields, center=None, cmap=None):
+    def addThreePhaseSphere(self, radius, unit, fields, center=None, cmap=None,
+                            weight="CellMass"):
+        print "Newstyle 3"
         if center == None:
             v,center = self.pf.hierarchy.findMax("Density")
         r = radius/self.pf[unit]
         sphere = self.pf.hierarchy.sphere(center, r, fields)
-        p = self.addPlot(be.ThreePhasePlot(sphere, fields, width=radius,
-                                           unit=unit, cmap=cmap))
+        p = self.addPlot(be.PhasePlot(sphere, fields, width=radius,
+                                      unit=unit, cmap=cmap, weight=weight))
         p["Width"] = radius
         p["Unit"] = unit
         p["Axis"] = None
