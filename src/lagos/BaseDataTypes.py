@@ -750,23 +750,15 @@ class Enzo3DData(EnzoData):
             bins = na.logspace(log10(rInner), log10(rOuter), nBins)
         else:
             bins = na.linspace(rInner, rOuter, nBins)
-        radiiOrder = na.argsort(self[binBy])
-        fieldCopies = {} # We double up our memory usage here for sorting
-        radii = self[binBy][radiiOrder]
-        #print radii.max()
-        #print radii.min()
-        #print radii.shape
-        #print "BINS!", bins
-        binIndices = na.searchsorted(bins, radii)
-        nE = self[binBy].shape[0]
-        #defaultWeight = na.ones(nE, nT.Float32)
-        defaultWeight = self["CellMass"][radiiOrder]
+        radii = self[binBy]
+        binIndices = na.digitize(radii, bins)
+        defaultWeight = self["CellMass"]
         fieldProfiles = {}
         if "CellMass" not in fields:
             fields.append("CellMass")
         for field in fields:
             code = WeaveStrings.ProfileBinningWeighted
-            fc = self[field][radiiOrder]
+            fc = self[field]
             fp = na.zeros(nBins,nT.Float64)
             if field_weights.has_key(field):
                 if field_weights[field] == -999:
@@ -775,10 +767,10 @@ class Enzo3DData(EnzoData):
                 elif field_weights[field] != None:
                     ww = field_weights[field]
                     ss="Weighting with %s" % (ww)
-                    weight = self[ww][radiiOrder]
+                    weight = self[ww]
                 elif field_weights[field] == None:
                     ss="Not weighted"
-                    weight = na.ones(nE, nT.Float64)
+                    weight = na.ones(self[binBy].shape[0], nT.Float64)
                 else:
                     mylog.warning("UNDEFINED weighting for %s", field)
                     ss="Undefined weighting"
