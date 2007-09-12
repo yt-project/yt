@@ -302,7 +302,8 @@ class EnzoProjBase(Enzo2DData):
         return self.data[key]
 
     def __init__(self, axis, field, weightField = None,
-                 maxLevel = None, center = None, pf = None):
+                 maxLevel = None, center = None, pf = None,
+                 type=0):
         """
         Returns an instance of EnzoProj.  Note that this object will be fairly static.
 
@@ -314,6 +315,7 @@ class EnzoProjBase(Enzo2DData):
         @type field: string
         @keyword weightField: the field to weight by
         @keyword maxLevel: the maximum level to project through
+        @keyword type: The type of projection: 0 for sum, 1 for MIP
         """
         Enzo2DData.__init__(self, axis, field, pf)
         if maxLevel == None:
@@ -322,6 +324,12 @@ class EnzoProjBase(Enzo2DData):
         self.weightField = weightField
         self.coords = None
         self.center = center
+        if type == 1:
+            self.type="MIP"
+            self.func = na.max
+        else:
+            self.type="SUM"
+            self.func = na.sum
         if not self.deserialize():
             self.calculateMemory()
             self.refreshData()
@@ -419,9 +427,10 @@ class EnzoProjBase(Enzo2DData):
             pbar = ProgressBar(widgets=widgets, 
                                      maxval=len(gridsToProject)).start()
             zeroOut = (level != self.maxLevel)
-            #mylog.info("Projecting through level = %s", level)
             for pi, grid in enumerate(gridsToProject):
-                grid.retVal = grid.getProjection(axis, field, zeroOut, weight=weightField)
+                grid.retVal = grid.getProjection(axis, field, zeroOut,
+                                                 weight=weightField,
+                                                 func = self.func)
                 totalGridsProjected += 1
                 pbar.update(pi)
             pbar.finish()
@@ -431,14 +440,14 @@ class EnzoProjBase(Enzo2DData):
                         Bar(marker=RotatingMarker()),
                         ' ', ETA(), ' ']
             pbar = ProgressBar(widgets=widgets, 
-                                     maxval=len(gridsToProject)).start()
+                               maxval=len(gridsToProject)).start()
             for pi, grid1 in enumerate(gridsToProject):
                 pbar.update(pi)
                 i += 1
-                if grid1.retVal[0].shape[0] == 0:
-                    continue # We skip anything already processed
+                if grid1.retVal[0].shape[0] == 0: continue 
                 for grid2 in grid1.myOverlapGrids[axis]:
-                    if grid2.retVal[0].shape[0] == 0 or grid1.id == grid2.id:
+                    if grid2.retVal[0].shape[0] == 0 \
+                      or grid1.id == grid2.id:
                         continue
                     PointCombine.CombineData( \
                             grid1.retVal[0], grid1.retVal[1], \
@@ -464,7 +473,7 @@ class EnzoProjBase(Enzo2DData):
             levelData = [na.concatenate(all_data[i]) for i in range(5)]
             mylog.debug("All done combining and refining with a final %s points", levelData[0].shape[0])
             dx=gridsToProject[0].dx # Assume uniform dx
-            dblI = na.where(na.logical_and((levelData[0]>-1), (levelData[3]==1))==1)
+            dblI = na.where((levelData[0]>-1) & (levelData[3]==1))
             if weightField != None:
                 weightedData = levelData[2][dblI] / levelData[4][dblI]
             else:
@@ -750,30 +759,40 @@ class Enzo3DData(EnzoData):
             bins = na.logspace(log10(rInner), log10(rOuter), nBins)
         else:
             bins = na.linspace(rInner, rOuter, nBins)
-        radii = self[binBy]
-        binIndices = na.digitize(radii, bins)
-        defaultWeight = self["CellMass"]
+        radiiOrder = na.argsort(self[binBy])
+        fieldCopies = {} # We double up our memory usage here for sorting
+        radii = self[binBy][radiiOrder]
+        #print radii.max()
+        #print radii.min()
+        #print radii.shape
+        #print "BINS!", bins
+        binIndices = na.searchsorted(bins, radii)
+        nE = self[binBy].shape[0]
+        #defaultWeight = na.ones(nE, nT.Float32)
+        defaultWeight = self["CellMass"][radiiOrder]
         fieldProfiles = {}
         if "CellMass" not in fields:
             fields.append("CellMass")
         for field in fields:
             code = WeaveStrings.ProfileBinningWeighted
-            fc = self[field]
+            fc = self[field][radiiOrder]
             fp = na.zeros(nBins,nT.Float64)
             if field_weights.has_key(field):
                 if field_weights[field] == -999:
                     ss = "Accumulation weighting"
                     code = WeaveStrings.ProfileBinningAccumulation
+                    weight = na.ones(nE, nT.Float64)
                 elif field_weights[field] != None:
                     ww = field_weights[field]
                     ss="Weighting with %s" % (ww)
-                    weight = self[ww]
+                    weight = self[ww][radiiOrder]
                 elif field_weights[field] == None:
                     ss="Not weighted"
-                    weight = na.ones(self[binBy].shape[0], nT.Float64)
+                    weight = na.ones(nE, nT.Float64)
                 else:
-                    mylog.warning("UNDEFINED weighting for %s", field)
+                    mylog.warning("UNDEFINED weighting for %s; defaulting to unweighted", field)
                     ss="Undefined weighting"
+                    weight = na.ones(nE, nT.Float64)
             else:
                 ss="Weighting with default"
                 weight = defaultWeight
@@ -861,34 +880,28 @@ class EnzoRegionBase(Enzo3DData):
             else:
                 self.generateField(field)
 
+    def getCutMask(self, grid):
+        pointI = \
+               ( (grid.coords[0,:] <= self.rightEdge[0])
+               & (grid.coords[0,:] >= self.leftEdge[0])
+               & (grid.coords[1,:] <= self.rightEdge[1])
+               & (grid.coords[1,:] >= self.leftEdge[1])
+               & (grid.coords[2,:] <= self.rightEdge[2])
+               & (grid.coords[2,:] >= self.leftEdge[2]) )
+        return pointI
+
     def getDataFromGrid(self, grid, field):
-        #print "\tGetting data"
-        # First we find the cells that are within the sphere
-        i0 = map(int, (self.leftEdge  - grid.LeftEdge) / grid.dx)
-        i1 = map(int, map(ceil, (self.rightEdge - grid.LeftEdge) / grid.dx))
-        i0 = na.choose(na.less(i0,0), (i0,0))
-        i1 = na.choose(na.greater(i1,grid.ActiveDimensions-1), (i1,grid.ActiveDimensions-1))
-        cutMask = na.zeros(grid.ActiveDimensions, nT.Int64)
-        cutMask[i0[0]:i1[0], i0[1]:i1[1], i0[2]:i1[2]] = 1
-        pointI = na.where(na.logical_and(cutMask, grid.myChildMask==1) == 1)
-        return grid[field][pointI]
+        print grid[field].shape, grid.myChildMask.shape
+        return grid[field][ self.getCutMask(grid) 
+                          & grid.myChildMask ].ravel()
 
     def generateGridCoords(self, grid):
-        if grid.coords == None:
-            grid.generateCoords()
-        # First we find the cells that are within the sphere
-        i0 = map(int, (self.leftEdge  - grid.LeftEdge) / grid.dx)
-        i1 = map(int, map(ceil, (self.rightEdge - grid.LeftEdge) / grid.dx))
-        i0 = na.choose(na.less(i0,0), (i0,0))
-        i1 = na.choose(na.greater(i1,grid.ActiveDimensions-1), (i1,grid.ActiveDimensions-1))
-        cutMask = na.zeros(grid.ActiveDimensions, nT.Int64)
-        cutMask[i0[0]:i1[0], i0[1]:i1[1], i0[2]:i1[2]] = 1
-        pointI = na.where(na.logical_and(cutMask, grid.myChildMask==1) == 1)
+        pointI = na.where( self.getCutMask(grid) & grid.myChildMask )
         dx = na.ones(pointI[0].shape[0], nT.Float64) * grid.dx
-        tr = na.array([grid.coords[0,:][pointI], \
-                grid.coords[1,:][pointI], \
-                grid.coords[2,:][pointI], \
-                grid["RadiusCode"][pointI],
+        tr = na.array([grid.coords[0,:][pointI].ravel(), \
+                grid.coords[1,:][pointI].ravel(), \
+                grid.coords[2,:][pointI].ravel(), \
+                grid["RadiusCode"][pointI].ravel(),
                 dx], nT.Float64).swapaxes(0,1)
         return tr
 
@@ -1025,8 +1038,8 @@ class EnzoSphereBase(Enzo3DData):
     def getDataFromGrid(self, grid, field):
         #print "\tGetting data"
         # First we find the cells that are within the sphere
-        pointI = na.where(na.logical_and((grid["RadiusCode"]<=self.radius),grid.myChildMask==1)==1)
-        return grid[field][pointI]
+        return grid[field][ (grid["RadiusCode"] <= self.radius) 
+                          & (grid.myChildMask) ]
 
     def generateGridCoords(self, grid):
         # First we find the cells that are within the sphere

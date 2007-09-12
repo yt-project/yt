@@ -53,15 +53,6 @@ class EnzoGridBase:
     def __len__(self):
         return 0
 
-    def __getattr__(self, attr):
-        """
-        Attempts to grab an attribute from a grid, and failing that, grabs it
-        from the hierarchy
-        (Maybe dangerous?)
-        """
-        warnings.warn("Accessing hierarchy attribute via grid", DeprecationWarning)
-        return getattr(self.hierarchy, attr)
-
     def __getitem__(self, key):
         """
         Returns a field or set of fields for a key or set of keys
@@ -125,9 +116,6 @@ class EnzoGridBase:
                 if i != None:
                     del i
             del self.Children
-
-    def __del__(self):
-        return
 
     def prepareGrid(self):
         """
@@ -259,12 +247,10 @@ class EnzoGridBase:
         """
         Clears coordinates, myChildIndices, myChildMask.
         """
-        del self.coords
-        self.coords = None
-        del self.myChildIndices
-        self.myChildIndices = None
+        # Access the property raw-values here
         del self.myChildMask
-        self.myChildMask = None
+        del self.myChildIndices
+        del self.coords
 
     def generateField(self, fieldName):
         """
@@ -377,7 +363,7 @@ class EnzoGridBase:
                 node._f_setAttr("referenceFileName", fn)
                 new_h5.close()
 
-    def getProjection(self, axis, field, zeroOut, weight=None):
+    def getProjection(self, axis, field, zeroOut, weight=None, func=na.sum):
         """
         Projects along an axis.  Currently in flux.  Shouldn't be called
         directly.
@@ -396,9 +382,8 @@ class EnzoGridBase:
             toCombineMask = na.logical_and.reduce(self.myChildMask, axis).astype(nT.Int64)
         # How do we do this the fastest?
         # We only want to project those values that don't have subgrids
-        fullProj = na.sum(maskedData,axis)*self.dx # Gives correct shape
-        weightProj = na.sum(weightData,axis)*self.dx
-        #fullProj = na.maximum.reduce(maskedData,axis) # Gives correct shape
+        fullProj = func(maskedData,axis)*self.dx # Gives correct shape
+        weightProj = func(weightData,axis)*self.dx
         if not zeroOut:
             toCombineMask = na.ones(fullProj.shape, dtype=nT.Int64)
         toCombineMask = toCombineMask.astype(nT.Int64)
@@ -423,13 +408,22 @@ class EnzoGridBase:
         self.__myChildIndices = newCI
 
     def _get_myChildMask(self):
-        self._generateChildMask()
+        if self.__myChildMask == None:
+            self._generateChildMask()
         return self.__myChildMask
 
     def _get_myChildIndices(self):
         if self.__myChildIndices == None:
             self._generateChildMask()
         return self.__myChildIndices
+
+    def _del_myChildIndices(self):
+        print "YO mCI!"
+        del self.__myChildIndices
+        self.__myChildIndices = None
+
+    def _del_myChildMask(self):
+        pass
 
     #@time_execution
     def _generateChildMask(self):
@@ -447,7 +441,7 @@ class EnzoGridBase:
                     & ( self.LeftEdge[1] <= RE[:,1]  )
                     & ( self.RightEdge[2] >= LE[:,2] )
                     & ( self.LeftEdge[2] <= RE[:,2]  )
-                    & (self.gridLevels.ravel() == self.Level + 1) )
+                    & (self.hierarchy.gridLevels.ravel() == self.Level + 1) )
         for child in self.hierarchy.grids[myChildrenGrids]:
             if child.Level > self.Level + 1:
                 continue
@@ -465,13 +459,18 @@ class EnzoGridBase:
         self.__myChildIndices = na.where(self.__myChildMask==0)
 
     def _get_coords(self):
-        if self.__coords == None: self._generateCoords()
-        return self.__coords
+        if self.myPrivateCoords == None: self._generateCoords()
+        return self.myPrivateCoords
 
     def _set_coords(self, newC):
-        if self.__coords != None:
+        if self.myPrivateCoords != None:
             mylog.warning("Overriding coords attribute!  This is probably unwise!")
-        self.__coords = newC
+        self.myPrivateCoords = newC
+
+    def _del_coords(self):
+        print "YO!"
+        del self.myPrivateCoords
+        self.myPrivateCoords = None
 
     def generateCoords(self):
         pass
@@ -480,15 +479,26 @@ class EnzoGridBase:
         """
         Creates self.coords, which is of dimensions (3,ActiveDimensions)
         """
+        #print "Generating coords"
         ind = na.indices(self.ActiveDimensions)
         LE = na.reshape(self.LeftEdge,(3,1,1,1))
-        self.__coords = (ind+0.5)*self.dx+LE
+        #print "Adding"
+        self.myPrivateCoords = (ind+0.5)*self.dx+LE
 
-    __coords = None
-    coords = property(_get_coords, _set_coords)
-
+    myPrivateCoords = None
     __myChildMask = None
-    myChildMask = property(_get_myChildMask, _set_myChildMask)
-
     __myChildIndices = None
-    myChildIndices = property(_get_myChildMask, _set_myChildIndices)
+
+    coords = property(_get_coords, _get_coords, _del_coords)
+    myChildMask = property(fget=_get_myChildMask, fdel=_del_myChildMask)
+    myChildIndices = property(fget=_get_myChildIndices, fdel = _del_myChildIndices)
+
+    def clearDerivedQuantities(self):
+        """
+        Clears coordinates, myChildIndices, myChildMask.
+        """
+        # Access the property raw-values here
+        self.myChildMask = None
+        self.myChildIndices = None
+        self.coords = None
+

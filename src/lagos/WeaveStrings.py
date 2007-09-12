@@ -28,8 +28,8 @@ ProfileBinningWeighted = \
 int bin;
 int element;
 int mybin;
-float myweight;          // should be higher precision
-float weights[num_bins]; // should be higher precision
+npy_float64 myweight;          // should be higher precision
+npy_float64 weights[num_bins]; // should be higher precision
 
 for (bin = 0; bin < num_bins; bin++) {
   weights[bin] = 0;
@@ -53,8 +53,8 @@ ProfileBinningAccumulation = \
 int bin;
 int element;
 int mybin;
-float myweight;          // should be higher precision
-float weights[num_bins]; // should be higher precision
+npy_float64 myweight;          // should be higher precision
+npy_float64 weights[num_bins]; // should be higher precision
 
 for (bin = 0; bin < num_bins; bin++) {
   weights[bin] = 0;
@@ -69,4 +69,53 @@ for (element = 0; element < num_elements ; element++) {
 for (bin = 1 ; bin < num_bins ; bin++ ) {
   profilevalues(bin) += profilevalues(bin-1);
 }
+"""
+
+ProjectionRefineCoarseData = \
+"""
+/*
+fpoints,  finedata_x,  finedata_y, finedata_vals, finedata_wgt,
+cpoints,  coarsedata_x,  coarsedata_y, coarsedata_vals, coarsedata_wgt,
+refinementFactor,  totalRefined
+
+#define MIPCOMB(A,B) ((A) > (B) ? (A) : (B))
+#define SUMCOMB(A,B) (A + B)
+
+long fi, ci;
+
+int flagged[cpoints], tr = 0;
+
+long double rf = refinementFactor;
+
+npy_int64 coarseCell_x, coarseCell_y;
+
+for (ci=0; ci<cpoints; ci++) flagged[ci]=0;
+
+for (fi = 0; fi < fpoints; fi++) {
+    coarseCell_x = floorl((finedata_x(fi))/rf);
+    coarseCell_y = floorl((finedata_y(fi))/rf);
+    for (ci = 0; ci < cpoints; ci++) {
+        if ((coarseCell_x == coarsedata_x(ci)) &&
+            (coarseCell_y == coarsedata_y(ci))) {
+                tr += 1;
+                finedata_vals(fi) = %(COMBTYPE)sCOMB(coarsedata_vals[ci], finedata_vals[fi]);
+                finedata_wgt(fi)  = %(COMBTYPE)sCOMB(coarsedata_wgt[ci],  finedata_wgt[fi]);
+                flagged[ci] = 1;
+                break;  // Each fine cell maps to one and only one coarse
+                        // cell
+        }
+    }
+}
+*totalRefined = tr;
+
+for (ci=0; ci<cpoints; ci++) {
+    if (flagged[ci]==1) {
+        coarsedata_x(ci)=-1;
+        coarsedata_y(ci)=-1;
+        coarsedata_vals(ci)=0.0;
+        coarsedata_wgt(ci)=0.0;
+    }
+}
+*/
+
 """
