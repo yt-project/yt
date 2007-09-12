@@ -845,12 +845,12 @@ class EnzoRegionBase(Enzo3DData):
         points = []
         if self.dx == None:
             for grid in g:
-                print "Generating coords for grid %s" % (grid.id)
-                c = grid.center
+                c = None
+                if hasattr(grid,"center"): c = grid.center
                 grid.center = self.center
                 points.append(self.generateGridCoords(grid))
-                t = na.concatenate(points)
-                grid.center = c
+                if c != None: grid.center = c
+            t = na.concatenate(points)
             self.x = t[:,0]
             self.y = t[:,1]
             self.z = t[:,2]
@@ -872,7 +872,6 @@ class EnzoRegionBase(Enzo3DData):
             i = 0
             if field in self.hierarchy.fieldList:
                 for grid in g:
-                    #print "\tGetting %s from grid %s" % (field, grid.id)
                     ta = self.getDataFromGrid(grid, field)
                     sf[i:i+ta.shape[0]] = ta
                     i += ta.shape[0]
@@ -891,9 +890,8 @@ class EnzoRegionBase(Enzo3DData):
         return pointI
 
     def getDataFromGrid(self, grid, field):
-        print grid[field].shape, grid.myChildMask.shape
-        return grid[field][ self.getCutMask(grid) 
-                          & grid.myChildMask ].ravel()
+        pointI = na.where( self.getCutMask(grid) & grid.myChildMask )
+        return grid[field][pointI].ravel()
 
     def generateGridCoords(self, grid):
         pointI = na.where( self.getCutMask(grid) & grid.myChildMask )
@@ -954,7 +952,6 @@ class EnzoDataCubeBase(Enzo3DData):
         for grid in g:
             if grid.Level > self.level:
                 continue
-            print grid
             tr = grid.atResolution(self.level, self.fields)
             for field in self.fields + ['x', 'y', 'z']:
                 vals[field].append(tr[field])
@@ -1038,8 +1035,9 @@ class EnzoSphereBase(Enzo3DData):
     def getDataFromGrid(self, grid, field):
         #print "\tGetting data"
         # First we find the cells that are within the sphere
-        return grid[field][ (grid["RadiusCode"] <= self.radius) 
-                          & (grid.myChildMask) ]
+        pointI = na.where( (grid["RadiusCode"] <= self.radius) 
+                          & (grid.myChildMask) )
+        return grid[field][pointI]
 
     def generateGridCoords(self, grid):
         # First we find the cells that are within the sphere

@@ -459,18 +459,18 @@ class EnzoGridBase:
         self.__myChildIndices = na.where(self.__myChildMask==0)
 
     def _get_coords(self):
-        if self.myPrivateCoords == None: self._generateCoords()
-        return self.myPrivateCoords
+        if self.__coords == None: self._generateCoords()
+        return self.__coords
 
     def _set_coords(self, newC):
-        if self.myPrivateCoords != None:
+        if self.__coords != None:
             mylog.warning("Overriding coords attribute!  This is probably unwise!")
-        self.myPrivateCoords = newC
+        self.__coords = newC
 
     def _del_coords(self):
         print "YO!"
-        del self.myPrivateCoords
-        self.myPrivateCoords = None
+        del self.__coords
+        self.__coords = None
 
     def generateCoords(self):
         pass
@@ -483,9 +483,9 @@ class EnzoGridBase:
         ind = na.indices(self.ActiveDimensions)
         LE = na.reshape(self.LeftEdge,(3,1,1,1))
         #print "Adding"
-        self.myPrivateCoords = (ind+0.5)*self.dx+LE
+        self.__coords = (ind+0.5)*self.dx+LE
 
-    myPrivateCoords = None
+    __coords = None
     __myChildMask = None
     __myChildIndices = None
 
