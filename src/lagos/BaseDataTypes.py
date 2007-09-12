@@ -815,29 +815,8 @@ class Enzo3DData(EnzoData):
         co = AnalyzeClusterOutput(fieldProfiles)
         return co
 
-class EnzoRegionBase(Enzo3DData):
-    def __init__(self, center, leftEdge, rightEdge, fields = None, pf = None):
-        """
-        Initializer for a rectangular prism of data.
-
-        @note: Center does not have to be (rightEdge - leftEdge) / 2.0
-        """
-        Enzo3DData.__init__(self, center, fields, pf)
-        self.fields = ["Radius"] + self.fields
-        self.leftEdge = leftEdge
-        self.rightEdge = rightEdge
-        self.radii = None # Still have radii
-        self.refreshData()
-
-    def findMaxRadius(self):
-        # I don't think this does anything useful.
-        RE = na.array(self.rightEdge)
-        LE = na.array(self.leftEdge)
-        return (RE-LE).min()
-
-    def getData(self, field = None):
-        ind = na.where(na.sum(na.transpose(na.logical_or(na.greater(self.hierarchy.gridLeftEdge, self.rightEdge), \
-                                               na.less(self.hierarchy.gridRightEdge, self.leftEdge)))) == 0)
+    def getData(self, field=None):
+        ind = self.getListOfGrids()
         g = self.hierarchy.grids[ind]
         self.grids = g
         points = []
@@ -877,6 +856,48 @@ class EnzoRegionBase(Enzo3DData):
             else:
                 self.generateField(field)
 
+    def generateGridCoords(self, grid):
+        pointI = self.getPointIndices(grid)
+        dx = na.ones(pointI[0].shape[0], nT.Float64) * grid.dx
+        tr = na.array([grid.coords[0,:][pointI].ravel(), \
+                grid.coords[1,:][pointI].ravel(), \
+                grid.coords[2,:][pointI].ravel(), \
+                grid["RadiusCode"][pointI].ravel(),
+                dx], nT.Float64).swapaxes(0,1)
+        return tr
+
+    def getDataFromGrid(self, grid, field):
+        pointI = self.getPointIndices(grid)
+        return grid[field][pointI].ravel()
+
+class EnzoRegionBase(Enzo3DData):
+    def __init__(self, center, leftEdge, rightEdge, fields = None, pf = None):
+        """
+        Initializer for a rectangular prism of data.
+
+        @note: Center does not have to be (rightEdge - leftEdge) / 2.0
+        """
+        Enzo3DData.__init__(self, center, fields, pf)
+        self.fields = ["Radius"] + self.fields
+        self.leftEdge = leftEdge
+        self.rightEdge = rightEdge
+        self.radii = None # Still have radii
+        self.refreshData()
+
+    def findMaxRadius(self):
+        # I don't think this does anything useful.
+        RE = na.array(self.rightEdge)
+        LE = na.array(self.leftEdge)
+        return (RE-LE).min()
+
+    def getListOfGrids(self, field = None):
+        ind = na.where(na.sum(na.transpose(
+                        na.logical_or(
+                            na.greater(self.hierarchy.gridLeftEdge, self.rightEdge),
+                                       na.less(self.hierarchy.gridRightEdge,
+                                               self.leftEdge)))) == 0)
+        return ind
+
     def getCutMask(self, grid):
         pointI = \
                ( (grid.coords[0,:] <= self.rightEdge[0])
@@ -888,18 +909,13 @@ class EnzoRegionBase(Enzo3DData):
         return pointI
 
     def getDataFromGrid(self, grid, field):
-        pointI = na.where( self.getCutMask(grid) & grid.myChildMask )
+        pointI = self.getPointIndices(grid)
         return grid[field][pointI].ravel()
 
-    def generateGridCoords(self, grid):
+    def getPointIndices(self, grid):
         pointI = na.where( self.getCutMask(grid) & grid.myChildMask )
-        dx = na.ones(pointI[0].shape[0], nT.Float64) * grid.dx
-        tr = na.array([grid.coords[0,:][pointI].ravel(), \
-                grid.coords[1,:][pointI].ravel(), \
-                grid.coords[2,:][pointI].ravel(), \
-                grid["RadiusCode"][pointI].ravel(),
-                dx], nT.Float64).swapaxes(0,1)
-        return tr
+        return pointI
+
 
 class EnzoDataCubeBase(Enzo3DData):
     def __init__(self, level, center, dim, fields = None, pf = None):
@@ -986,64 +1002,10 @@ class EnzoSphereBase(Enzo3DData):
     def findMaxRadius(self):
         return self.radius
 
-    def getData(self, field = None):
-        # We get it for the values in fields and coords
-        # We take a 3-tuple of the coordinate we want to slice through, as well
-        # as the axis we're slicing along
+    def getListOfGrids(self, field = None):
         g,ind = self.hierarchy.findSphereGrids(self.center, self.radius)
-        self.grids = g
-        points = []
-        if self.dx == None:
-            for grid in g:
-                #print "Generating coords for grid %s" % (grid.id)
-                c = grid.center
-                grid.center = self.center
-                points.append(self.generateGridCoords(grid))
-                grid.center = c
-            t = na.concatenate(points)
-            self.x = t[:,0]
-            self.y = t[:,1]
-            self.z = t[:,2]
-            self.radii = t[:,3]
-            self.dx = t[:,4]
-            self.dy = t[:,4]
-            self.dz = t[:,4]
-        if isinstance(field, types.StringType):
-            fieldsToGet = [field]
-        elif isinstance(field, types.ListType):
-            fieldsToGet = field
-        elif field == None:
-            fieldsToGet = self.fields
-        for field in fieldsToGet:
-            if self.data.has_key(field):
-                continue
-            mylog.info("Getting field %s from %s", field, len(g))
-            sf = na.zeros(self.x.shape[0],nT.Float64)
-            i = 0
-            if field in self.hierarchy.fieldList:
-                for grid in g:
-                    #print "\tGetting %s from grid %s" % (field, grid.id)
-                    ta = self.getDataFromGrid(grid, field)
-                    sf[i:i+ta.shape[0]] = ta
-                    i += ta.shape[0]
-                self[field] = sf
-            else:
-                self.generateField(field)
+        return ind
 
-    def getDataFromGrid(self, grid, field):
-        #print "\tGetting data"
-        # First we find the cells that are within the sphere
-        pointI = na.where( (grid["RadiusCode"] <= self.radius) 
-                          & (grid.myChildMask) )
-        return grid[field][pointI]
-
-    def generateGridCoords(self, grid):
-        # First we find the cells that are within the sphere
+    def getPointIndices(self, grid):
         pointI = na.where(na.logical_and((grid["RadiusCode"]<=self.radius),grid.myChildMask==1)==1)
-        dx = na.ones(pointI[0].shape[0], nT.Float64) * grid.dx
-        tr = na.array([grid.coords[0,:][pointI], \
-                grid.coords[1,:][pointI], \
-                grid.coords[2,:][pointI], \
-                grid["RadiusCode"][pointI],
-                dx], nT.Float64).swapaxes(0,1)
-        return tr
+        return pointI
