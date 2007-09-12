@@ -822,8 +822,6 @@ class EnzoRegionBase(Enzo3DData):
 
         @note: Center does not have to be (rightEdge - leftEdge) / 2.0
         """
-        mylog.warning("ENZOREGION MAY NOT WORK PROPERLY!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
-        mylog.warning("(Ji-hoon has more info.)")
         Enzo3DData.__init__(self, center, fields, pf)
         self.fields = ["Radius"] + self.fields
         self.leftEdge = leftEdge
