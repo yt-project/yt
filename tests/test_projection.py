@@ -1,5 +1,0 @@
-"""
-Testing the projection operation.
-"""
-
-
