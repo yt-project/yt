@@ -13,7 +13,7 @@ import yt.lagos
 # http://yt.spacepope.org/DD0018.zip
 fn = "DD0018/moving7_0018"
 
-class TestDataContainers(unittest.TestCase):
+class TestLagos(unittest.TestCase):
     def setUp(self):
         self.OutputFile = yt.lagos.EnzoStaticOutput(fn)
         self.hierarchy = self.OutputFile.hierarchy

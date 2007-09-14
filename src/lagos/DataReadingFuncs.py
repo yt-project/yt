@@ -167,5 +167,6 @@ def getFieldsPacked(self):
     for fl in f.listNodes("/Grid%08i" % (self.id)):
         fls.append(fl.name)
     f.close()
+    del f
     return fls
 

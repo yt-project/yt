@@ -908,10 +908,6 @@ class EnzoRegionBase(Enzo3DData):
                & (grid.coords[2,:] >= self.leftEdge[2]) )
         return pointI
 
-    def getDataFromGrid(self, grid, field):
-        pointI = self.getPointIndices(grid)
-        return grid[field][pointI].ravel()
-
     def getPointIndices(self, grid):
         pointI = na.where( self.getCutMask(grid) & grid.myChildMask )
         return pointI

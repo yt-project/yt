@@ -36,6 +36,7 @@ class PlotCollection:
         self.plots = []
         self.runID = submitToDeliverator
         self.pf = pf
+        v,self.c = pf.h.findMax("Density")
         if submitToDeliverator > 0:
             self.submit = True
             self.RunID = submitToDeliverator
@@ -96,7 +97,7 @@ class PlotCollection:
         # Pass it in to the engine to get a SlicePlot, which we then append
         # onto self.plots
         if center == None:
-            v,center = self.pf.hierarchy.findMax("Density")
+            center = self.c
         if coord == None:
             coord = center[axis]
         slice = self.pf.hierarchy.slice(axis, coord, field, center)
@@ -108,7 +109,7 @@ class PlotCollection:
         # Pass it in to the engine to get a SlicePlot, which we then append
         # onto self.plots
         if center == None:
-            v, center = self.pf.hierarchy.findMax("Density")
+            center = self.c
         proj = self.pf.hierarchy.proj(axis, field, weightField, center=center)
         p = self.addPlot(be.ProjectionPlot(proj, field))
         p["Axis"] = lagos.axis_names[axis]
@@ -123,9 +124,8 @@ class PlotCollection:
         return None
         return self.addPlot(be.ProfilePlot())
     def addTwoPhaseSphere(self, radius, unit, fields, center=None, cmap=None):
-        print "Newstyle 2"
         if center == None:
-            v,center = self.pf.hierarchy.findMax("Density")
+            center = self.c
         fields = fields[:2] + ["CellsPerBin"] + fields[2:]
         r = radius/self.pf[unit]
         sphere = self.pf.hierarchy.sphere(center, r, fields)
@@ -137,9 +137,8 @@ class PlotCollection:
         return p 
     def addThreePhaseSphere(self, radius, unit, fields, center=None, cmap=None,
                             weight="CellMass"):
-        print "Newstyle 3"
         if center == None:
-            v,center = self.pf.hierarchy.findMax("Density")
+            center = self.c
         r = radius/self.pf[unit]
         sphere = self.pf.hierarchy.sphere(center, r, fields)
         p = self.addPlot(be.PhasePlot(sphere, fields, width=radius,

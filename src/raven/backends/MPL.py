@@ -439,7 +439,7 @@ class PhasePlot(RavenPlot):
         x_bins_ids = na.digitize(self.x_v, self.x_bins)
         y_bins_ids = na.digitize(self.y_v, self.y_bins)
 
-        vals = na.zeros((self.bins+1,self.bins+1), dtype=nT.Float64) 
+        vals = na.zeros((self.bins+1,self.bins+1), dtype=nT.Float64)
         weight_vals = na.zeros((self.bins+1,self.bins+1), dtype=nT.Float64)
         used_bin = na.zeros((self.bins+1,self.bins+1), dtype=nT.Bool)
 
@@ -452,10 +452,10 @@ class PhasePlot(RavenPlot):
             weight = na.ones(nx)
 
         z_v = self.z_v
-
-        code = """
+        code =r"""
                int i,j;
                for(int n = 0; n < nx ; n++) {
+                 //printf("%d\n",n);
                  j = x_bins_ids(n)-1;
                  i = y_bins_ids(n)-1;
                  weight_vals(i,j) += weight(n);
@@ -482,12 +482,15 @@ class PhasePlot(RavenPlot):
         vmax = na.nanmax(vals[vit])
         vals[vi] = 0.0
         if self.log_z:
+            # We want smallest non-zero vmin
+            vmin=vals[vals>0.0].min()
             self.norm=matplotlib.colors.LogNorm(vmin=vmin, vmax=vmax, clip=False)
             location_of_ticks = na.logspace(vmin*1.1, vmax*0.9, num=6)
-            #self.ticker = matplotlib.ticker.LogLocator( \
+            self.ticker = matplotlib.ticker.LogLocator()# \
                   #subs=[0.1, 0.17782794,  0.31622777,  0.56234133 ] )
             #self.ticker = matplotlib.ticker.FixedLocator([1e-1, 0.76])
         else:
+            self.ticker = matplotlib.ticker.MaxNLocator()
             self.norm=matplotlib.colors.Normalize(vmin=vmin, vmax=vmax, clip=False)
         if self.cmap == None:
             self.cmap = matplotlib.cm.get_cmap()

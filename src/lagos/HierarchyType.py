@@ -131,6 +131,7 @@ class EnzoHierarchy:
             else:
                 mylog.debug("Detected unpacked HDF5")
                 self.data_style = 5
+            a.close()
 
     def setupClasses(self):
         """
@@ -193,7 +194,7 @@ class EnzoHierarchy:
     def __xattrs__(self, mode="default"):
         return ("basename", "getTimeID()","maxLevel")
 
-    def ___del__(self):
+    def __del__(self):
         """
         Let's see if we can delete some stuff here!
         """
