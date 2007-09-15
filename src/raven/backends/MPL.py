@@ -399,10 +399,10 @@ class PhasePlot(RavenPlot):
         v = self.data[field]
         if field in lagos.log_fields or lagos.fieldInfo[field][2]:
             logIt = True
-            bins = na.logspace(na.log10(v.min()),na.log10(v.max()),num=self.bins+1)
+            bins = na.logspace(na.log10(v.min()*0.99),na.log10(v.max()*1.01),num=self.bins)
             if func: func('log')
         else:
-            bins = na.linspace(v.min(),v.max(),num=self.bins+1)
+            bins = na.linspace(v.min()*0.99,v.max()*1.01,num=self.bins)
             if func: func('linear')
         return logIt, v, bins
 
@@ -439,11 +439,17 @@ class PhasePlot(RavenPlot):
         x_bins_ids = na.digitize(self.x_v, self.x_bins)
         y_bins_ids = na.digitize(self.y_v, self.y_bins)
 
-        vals = na.zeros((self.bins+1,self.bins+1), dtype=nT.Float64)
-        weight_vals = na.zeros((self.bins+1,self.bins+1), dtype=nT.Float64)
-        used_bin = na.zeros((self.bins+1,self.bins+1), dtype=nT.Bool)
+        vals = na.zeros((self.bins,self.bins), dtype=nT.Float64)
+        weight_vals = na.zeros((self.bins,self.bins), dtype=nT.Float64)
+        used_bin = na.zeros((self.bins,self.bins), dtype=nT.Bool)
 
-        x_ind, y_ind = (x_bins_ids-1,y_bins_ids-1)
+        x_ind, y_ind = (x_bins_ids-1,y_bins_ids-1) # To match up with pcolor
+                # pcolor expects value to be between i and i+1, digitize gives
+                # bin between i-1 and i
+        #print x_ind.max(), y_ind.max()
+        #print x_ind.min(), y_ind.min()
+        #print self.x_bins.shape, self.y_bins.shape
+        #print self.x_v.shape, self.y_v.shape
         used_bin[y_ind,x_ind] = True
         nx = len(self.x_v)
         if self.weight != None:
