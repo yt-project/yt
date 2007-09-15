@@ -11,7 +11,7 @@ import yt.raven
 
 # The dataset used is located at:
 # http://yt.spacepope.org/DD0018.zip
-fn = "DD0018/moving7_0018"
+fn = "/Users/rpwagner/Data/yt_test/DD0018/moving7_0018"
 
 class TestRaven(unittest.TestCase):
     def setUp(self):
