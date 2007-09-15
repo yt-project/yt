@@ -11,7 +11,7 @@ import yt.lagos
 
 # The dataset used is located at:
 # http://yt.spacepope.org/DD0018.zip
-fn = "/Users/rpwagner/Data/yt_test/DD0018/moving7_0018"
+fn = "DD0018/moving7_0018"
 
 class TestLagos(unittest.TestCase):
     def setUp(self):
