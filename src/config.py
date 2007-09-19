@@ -39,6 +39,10 @@ ytcfgDefaults = {
         'GlobPatterns':'*.hierarchy,*.dir', \
         'NewDirectoryPattern':'%s.dir'
         },\
+    "reason":{
+        'width':"600",
+        'height':"600",
+        },
     "SWIG":{
         'EnzoInterfacePath': '/usr/work/mturk/local/lib/python2.5/site-packages', \
         },\

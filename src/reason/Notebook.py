@@ -537,6 +537,7 @@ class ProjPlotPage(VMPlotPage):
         self.center[1] = y
         self.center[2] = z
         #self.UpdateWidth()
+
     def QueryFields(self):
         return [self.field]
 
@@ -546,12 +547,91 @@ class PhasePlotPage(wx.Panel):
         self.parent = parent
         self.mw = mw
 
+        self.dataObject = dataObject
+
         self.figure = be.matplotlib.figure.Figure((4,4))
         self.axes = self.figure.add_subplot(111)
         self.statusBar = statusBar
 
         be.Initialize(canvas=FigureCanvas)
         self.figure_canvas = be.engineVals["canvas"](self, -1, self.figure)
+
+        self.SetupControls()
+        self.DoLayout()
+        self.makePlot()
+
+    def SetupControls(self):
+        self.ButtonPanel = wx.Panel(self, -1)
+        fs = self.GetFieldSelectors()
+        self.FieldX = wx.Choice(self.ButtonPanel, -1, choices=fs)
+        self.FieldY = wx.Choice(self.ButtonPanel, -1, choices=fs)
+        self.FieldZ = wx.Choice(self.ButtonPanel, -1, choices=fs)
+        self.FieldW = wx.Choice(self.ButtonPanel, -1, choices=fs)
+
+        self.Bind(wx.EVT_CHOICE, self.switch_x, self.FieldX)
+        self.Bind(wx.EVT_CHOICE, self.switch_y, self.FieldY)
+        self.Bind(wx.EVT_CHOICE, self.switch_z, self.FieldZ)
+        self.Bind(wx.EVT_CHOICE, self.switch_weight, self.FieldW)
+
+    def DoLayout(self):
+        self.MainSizer = wx.BoxSizer(wx.VERTICAL)
+        self.MainSizer.Add(self.figure_canvas, 1, wx.EXPAND)
+        self.MainSizer.Add(self.ButtonPanel, 0, wx.EXPAND)
+
+        self.ButtonSizer = wx.BoxSizer(wx.HORIZONTAL)
+        self.ButtonSizer.AddSpacer(10)
+        self.ButtonSizer.Add(self.FieldX, 1, wx.EXPAND)
+        self.ButtonSizer.AddSpacer(20)
+        self.ButtonSizer.Add(self.FieldY, 1, wx.EXPAND)
+        self.ButtonSizer.AddSpacer(20)
+        self.ButtonSizer.Add(self.FieldZ, 1, wx.EXPAND)
+        self.ButtonSizer.AddSpacer(20)
+        self.ButtonSizer.Add(self.FieldW, 1, wx.EXPAND)
+        self.ButtonSizer.AddSpacer(10)
+        self.ButtonPanel.SetSizer(self.ButtonSizer)
+
+        self.SetSizer(self.MainSizer)
+        self.Layout()
+
+    def QueryFields(self, *args, **kwargs):
+        pass
+
+    def GetFieldSelectors(self):
+        nativeFields = self.dataObject.hierarchy.fieldList
+        nativeFields.sort()
+        derivedFields = lagos.fieldInfo.keys()
+        derivedFields.sort()
+        return nativeFields + [""] + derivedFields
+
+    def makePlot(self):
+        X = self.FieldX.GetStringSelection()
+        Y = self.FieldY.GetStringSelection()
+        Z = self.FieldZ.GetStringSelection()
+        W = self.FieldW.GetStringSelection()
+        self.plot = be.PhasePlot(self.dataObject, [X,Y,Z], weight = W,
+                                 figure = self.figure, axes = self.axes)
+
+    def switch_weight(self, event):
+        self.plot.switch_weight(event.String)
+        self.UpdateCanvas()
+
+    def switch_x(self, event):
+        self.plot.switch_x(event.String)
+        self.UpdateCanvas()
+
+    def switch_y(self, event):
+        self.plot.switch_y(event.String)
+        self.UpdateCanvas()
+
+    def switch_z(self, event):
+        self.plot.switch_z(event.String)
+        self.UpdateCanvas()
+
+    def UpdateCanvas(self, *args):
+        if self.IsShown():
+            self.plot.redraw_image()
+            self.figure_canvas.draw()
+        #else: print "Opting not to update canvas"
 
 
 if __name__ == "__main__":

@@ -26,11 +26,17 @@ Main application for Reason.  Includes the basic window outline.
 
 from yt.reason import *
 
+_StaticOutputMenuItems = ["proj","slice"]
+_SphereObjectMenuItems = ["phase"]
+_ProjObjectMenuItems = []
+_SliceObjectMenuItems = []
+
 class ReasonMainWindow(wx.Frame):
     def __init__(self, *args, **kwds):
         kwds["style"] = wx.DEFAULT_FRAME_STYLE
         kwds["title"] = "yt - Reason"
-        kwds["size"] = (700,700)
+        kwds["size"] = (ytcfg.getint("reason","width"),
+                        ytcfg.getint("reason","height"))
         wx.Frame.__init__(self, *args, **kwds)
 
         self.windows = []
@@ -53,10 +59,6 @@ class ReasonMainWindow(wx.Frame):
         self.dataList = wx.TreeCtrl(self.dataPanel, -1, style=wx.TR_HIDE_ROOT |
                                     wx.TR_LINES_AT_ROOT | wx.TR_HAS_BUTTONS)
         self.plotPanel = PlotPanel(parent=self.viewPanel)
-        self.SliceButton = wx.Button(self.dataPanel, -1, "Slice")
-        self.ProjectButton = wx.Button(self.dataPanel, -1, "Project")
-        #self.button_2 = wx.Button(self.dataPanel, -1, "button_2")
-        #self.button_3 = wx.Button(self.dataPanel, -1, "button_3")
 
         self.mainSplitter.SetMinimumPaneSize(20)
         self.mainSplitter.SplitHorizontally(self.viewPanel, self.intPanel, -100)
@@ -64,6 +66,7 @@ class ReasonMainWindow(wx.Frame):
         self.viewPanel.SplitVertically(self.dataPanel, self.plotPanel, 200)
 
         self.SetupMenubar()
+        self.SetupPopupMenu()
         self.SetupToolBar()
         self.SetupDataTree()
         
@@ -71,9 +74,6 @@ class ReasonMainWindow(wx.Frame):
 
         self.__set_properties()
         self.__do_layout()
-
-        self.Bind(wx.EVT_BUTTON, self.AddSlice, self.SliceButton)
-        self.Bind(wx.EVT_BUTTON, self.AddProj, self.ProjectButton)
 
         Publisher().subscribe(self.OnPageDeleted, ('page_deleted'))
 
@@ -91,22 +91,13 @@ class ReasonMainWindow(wx.Frame):
 
     def __do_layout(self):
         MainWindowSizer = wx.BoxSizer(wx.VERTICAL)
-        ButtonSizer = wx.BoxSizer(wx.HORIZONTAL)
         DataPanelSizer = wx.BoxSizer(wx.VERTICAL)
 
         IntPanelSizer = wx.BoxSizer(wx.HORIZONTAL)
         IntPanelSizer.Add(self.interpreter, 1, wx.EXPAND, 0)
         self.intPanel.SetSizer(IntPanelSizer)
 
-        ButtonSizer.AddSpacer(10)
-        ButtonSizer.Add(self.SliceButton, 0, wx.ALIGN_CENTER, 0)
-        ButtonSizer.AddSpacer(10)
-        ButtonSizer.Add(self.ProjectButton, 0, wx.ALIGN_CENTER, 0)
-        ButtonSizer.AddSpacer(10)
         DataPanelSizer.Add(self.dataList, 1, wx.EXPAND, 0)
-        DataPanelSizer.AddSpacer(5)
-        DataPanelSizer.Add(ButtonSizer, 0, 0, 0)
-        DataPanelSizer.AddSpacer(5)
         self.dataPanel.SetSizer(DataPanelSizer)
         self.dataPanel.Layout()
 
@@ -132,6 +123,17 @@ class ReasonMainWindow(wx.Frame):
         self.Bind(wx.EVT_MENU, self.OnExit, exit)
 
         self.SetMenuBar(menuBar)
+
+    def SetupPopupMenu(self):
+        self.PopupMenu = wx.Menu()
+        self.PopupMenuIds = {}
+        self.PopupMenuIds["slice"] = self.PopupMenu.Append(-1, "Slice")
+        self.PopupMenuIds["proj"] = self.PopupMenu.Append(-1, "Project")
+        self.PopupMenuIds["phase"] = self.PopupMenu.Append(-1, "Phase Plot")
+
+        self.Bind(wx.EVT_MENU, self.AddSlice, self.PopupMenuIds["slice"])
+        self.Bind(wx.EVT_MENU, self.AddProj, self.PopupMenuIds["proj"])
+        self.Bind(wx.EVT_MENU, self.AddPhase, self.PopupMenuIds["phase"])
 
     def SetupToolBar(self):
         # Tool Bar
@@ -186,11 +188,38 @@ class ReasonMainWindow(wx.Frame):
         self.UpdateToolbarFields(page)
 
     def UpdateToolbarFields(self, page):
-        self.availableFields.SetItems(page.QueryFields())
+        newItems = page.QueryFields()
+        if not newItems:
+            self.availableFields.Enable(False)
+        else:
+            self.availableFields.Enable(True)
+            self.availableFields.SetItems(newItems)
+
+    def OnItemExpanded(self, event):
+        if event.GetItem() == self.fidoRoot:
+            print "Reloading fido outputs"
+            self.SetupFidoTree()
 
     def OnPageDeleted(self, message):
         id = message.data
         del self.windows[id]
+
+    def OnRightDown(self, event):
+        pt = event.GetPosition();
+        item, flags = self.dataList.HitTest(pt)
+        if item:
+            self.dataList.SelectItem(item)
+            pos = event.GetPosition()
+            self.ContextMenuPosition = pos
+            itemData = self.dataList.GetItemData(item).Data
+            if not itemData: return
+            for n,d in self.PopupMenuIds.items():
+                self.PopupMenu.Enable(d.Id,False)
+            if itemData:
+                for n in itemData[3]:
+                    self.PopupMenu.Enable(self.PopupMenuIds[n].Id, True)
+            #self.PopupMenu.Enable(self.PopupMenuIds["proj"].Id,False)
+            self.dataList.PopupMenu(self.PopupMenu, pos)
 
     def SetupDataTree(self):
 
@@ -202,6 +231,10 @@ class ReasonMainWindow(wx.Frame):
         self.dataList.Expand(self.fidoRoot)
         self.dataList.Expand(self.outputRoot)
         self.dataList.Expand(self.dataRoot)
+
+        self.dataList.Bind(wx.EVT_RIGHT_DOWN, self.OnRightDown)
+        self.Bind(wx.EVT_TREE_ITEM_EXPANDED, self.OnItemExpanded, self.dataList)
+
 
         self.SetupFidoTree()
 
@@ -222,7 +255,7 @@ class ReasonMainWindow(wx.Frame):
                     z = "N/A"
                 tt = str(fido.getParameterLine(fn,
                              "InitialTime"))
-                tid = wx.TreeItemData((fn, tt, z))
+                tid = wx.TreeItemData((fn, tt, z, _StaticOutputMenuItems))
                 ni = self.dataList.AppendItem(cRoot, 
                     "%s" % (os.path.basename(fn)), data=tid)
 
@@ -260,20 +293,37 @@ class ReasonMainWindow(wx.Frame):
             z = str(eso["CosmologyCurrentRedshift"])
         except:
             z = "N/A"
-        tid = wx.TreeItemData((eso, str(eso["InitialTime"]), z))
+        tid = wx.TreeItemData((eso, str(eso["InitialTime"]), z, _StaticOutputMenuItems))
         self.outputs.append(eso)
         ni = self.dataList.AppendItem(self.outputRoot, "%s" % (eso.basename), data=tid)
         self.dataList.Expand(self.outputRoot)
 
-    def AddDataObject(self, title, object):
+    def AddDataObject(self, title, object, mids):
         self.dataObjects.append(object)
-        tid = wx.TreeItemData((object, title, "", len(self.dataObjects)))
+        tid = wx.TreeItemData((object, title, len(self.dataObjects), mids))
         ni = self.dataList.AppendItem(self.dataRoot, "%s" % (title), data=tid)
         self.dataList.Expand(self.dataRoot)
 
     def AddSphere(self, title, sphere):
         # These all get passed in
-        self.AddDataObject(title, sphere)
+        self.AddDataObject(title, sphere, _SphereObjectMenuItems)
+
+    def AddPhase(self, event=None):
+        MyID = wx.NewId()
+        self.interpreter.shell.write("\n")
+        for o in self.GetOutputs():
+            t = "Phase Plot"# % (o.basename, ax)
+            self.windows.append( \
+                PhasePlotPage(parent=self.plotPanel.nb, 
+                              statusBar=self.statusBar,
+                              dataObject = o,
+                              mw = self))
+            #self.interpreter.shell.write("Adding %s projection of %s\n" % (ax, o))
+            self.plotPanel.AddPlot(self.windows[-1], t, MyID)
+            #self.AddDataObject("Proj: %s %s" % (o, ax),
+                               #self.windows[-1].plot.data,
+                               #_ProjObjectMenuItems)
+            print "Adding with ID:", MyID
 
     def AddProj(self, event=None):
         MyID = wx.NewId()
@@ -295,8 +345,9 @@ class ReasonMainWindow(wx.Frame):
                                   mw = self, CreationID=MyID))
                 self.interpreter.shell.write("Adding %s projection of %s\n" % (ax, o))
                 self.plotPanel.AddPlot(self.windows[-1], t, MyID)
-                self.AddDataObject("Slice: %s %s" % (o, ax),
-                                   self.windows[-1].plot.data)
+                self.AddDataObject("Proj: %s %s" % (o, ax),
+                                   self.windows[-1].plot.data,
+                                   _ProjObjectMenuItems)
                 print "Adding with ID:", MyID
 
     def AddSlice(self, event=None):
@@ -320,7 +371,8 @@ class ReasonMainWindow(wx.Frame):
                 self.interpreter.shell.write("Adding %s slice of %s\n" % (ax, o))
                 self.plotPanel.AddPlot(self.windows[-1], t, MyID)
                 self.AddDataObject("Slice: %s %s" % (o, ax),
-                                   self.windows[-1].plot.data)
+                                   self.windows[-1].plot.data,
+                                   _SliceObjectMenuItems)
                 print "Adding with ID:", MyID
 
     def GetOutputs(self, event=None):
@@ -333,8 +385,8 @@ class ReasonMainWindow(wx.Frame):
             if isinstance(ii, types.StringType):
                 ii = lagos.EnzoStaticOutput(ii) # Instantiate here
                 self.outputs.append(ii)
-                fn, z, t = self.dataList.GetItemData(tid).GetData()
-                newData = wx.TreeItemData((ii, z, t))
+                fn, z, t, mids = self.dataList.GetItemData(tid).GetData()
+                newData = wx.TreeItemData((ii, z, t, mids))
                 self.dataList.SetItemData(tid, newData)
             oss.append(ii)
             print "Got output:", ii
@@ -342,8 +394,16 @@ class ReasonMainWindow(wx.Frame):
 
 class ReasonApp(wx.App):
     def OnInit(self):
+        myPath = os.path.dirname(os.path.abspath(__file__))
+        img = os.path.join(myPath, "reason_splash.png")
         wx.InitAllImageHandlers()
+        bmp = wx.Image(img, wx.BITMAP_TYPE_PNG).ConvertToBitmap()
+        wx.SplashScreen(bmp,
+                        wx.SPLASH_CENTRE_ON_PARENT | wx.SPLASH_TIMEOUT,
+                        3000, None, -1)
+        wx.Yield()
         frame_1 = ReasonMainWindow(None, -1)
+        frame_1.Center()
         self.SetTopWindow(frame_1)
         frame_1.Show()
         return True
