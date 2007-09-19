@@ -57,9 +57,6 @@ ytcfgDefaults = {
         'User':os.getenv("USER"), \
         'timefunctions':'False'
          }, \
-    "lagos": {
-        "ReconstructHierarchy": "False"
-             },
     "raven":{
         'ImagePath':".", \
         'ImageSkel': '%(bn)s_%(width)010i_%(unit)s',\
