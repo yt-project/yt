@@ -377,9 +377,10 @@ class ProjectionPlot(VMPlot):
 
 class PhasePlot(RavenPlot):
     #def __init__(self, data, fields,  width=None, unit=None, bins = 100,cmap=None):
-    def __init__(self, data, fields, width=None, unit=None, bins=100, weight=None, ticker=None, cmap=None):
+    def __init__(self, data, fields, width=None, unit=None, bins=100,
+                 weight=None, ticker=None, cmap=None, figure=None, axes=None):
         self.typeName = "Phase"
-        RavenPlot.__init__(self, data, fields)
+        RavenPlot.__init__(self, data, fields, figure, axes)
         self.ticker = ticker
         self.image = None
         self.bins = bins
@@ -393,6 +394,8 @@ class PhasePlot(RavenPlot):
         logIt, self.x_v, self.x_bins = self.setup_bins(self.fields[0], self.axes.set_xscale)
         logIt, self.y_v, self.y_bins = self.setup_bins(self.fields[1], self.axes.set_yscale)
         self.log_z, self.z_v, self.z_bins = self.setup_bins(self.fields[2])
+
+        self.colorbar = None
 
     def setup_bins(self, field, func = None):
         logIt = False
@@ -433,6 +436,7 @@ class PhasePlot(RavenPlot):
         self.log_z, self.z_v, self.z_bins = self.setup_bins(self.fields[2])
 
     def switch_weight(self, weight):
+        if weight == "": weight=None
         self.weight = weight
 
     def redraw_image(self):
@@ -508,10 +512,12 @@ class PhasePlot(RavenPlot):
                                       norm=self.norm, cmap=self.cmap)
         #self.ticker = matplotlib.ticker.LogLocator(subs=[0.25, 0.5, 0.75, 1])
         
-        self.colorbar = self.figure.colorbar(self.image, \
-                                             extend='neither', \
-                                             shrink=0.95, cmap=self.cmap, \
-                               ticks = self.ticker, format="%0.2e" )
+        if self.colorbar == None:
+            self.colorbar = self.figure.colorbar(self.image, \
+                                                 extend='neither', \
+                                                 shrink=0.95, cmap=self.cmap, \
+                                   ticks = self.ticker, format="%0.2e" )
+
         self.colorbar.notify(self.image)
 
         self.autoset_label(self.fields[0], self.axes.set_xlabel)
