@@ -26,6 +26,17 @@ Notebook pages and main plotpanel classes.
 
 from yt.reason import *
 
+_WelcomeMessage = \
+"""
+Welcome to Reason.
+
+This GUI was designed as a front-end to a pre-existing toolkit called yt.  As such, it is feature-incomplete -- there's so much more that you can do with the command line.  That aside, there's some fun stuff you can do just in here.
+
+To access the various plotting functions, right click on a dataset in the tree over to the left.  Then you can right-click in the window to shuffle around the center, to change the color map, to save it, and so on.  And then give a shot to shift-clicking in two places -- the first will define the center, the second will define the outer-edge.  Then you can phase plot the sphere!
+
+If you experience any troubles, drop me a line (matt@yt.spacepope.org) or just fill out a ticket at yt.spacepope.org.
+"""
+
 class PlotPanel(wx.Panel):
     def __init__(self, *args, **kwds):
         # begin wxGlade: ReasonVMPlotFrame.__init__
@@ -36,8 +47,8 @@ class PlotPanel(wx.Panel):
 
         self._AUI_NOTEBOOK = wx.NewId()
         self.nb = wx.aui.AuiNotebook(self, self._AUI_NOTEBOOK)
-        #welcomeMessage = wx.StaticText(self.nb, -1, "Welcome to Reason!")
-        #self.nb.AddPage(welcomeMessage, "Welcome")
+        welcomeMessage = wx.StaticText(self.nb, -1, _WelcomeMessage)
+        self.nb.AddPage(welcomeMessage, "Welcome!")
 
         # Good thing the aui module breaks naming convention
         self.nb.Bind(wx.aui.EVT_AUINOTEBOOK_PAGE_CLOSE,
@@ -239,6 +250,7 @@ class VMPlotPage(wx.Panel):
         self.widthSlider.Bind(wx.EVT_SCROLL_THUMBRELEASE, self.UpdateWidth)
         self.widthBox.Bind(wx.EVT_TEXT_ENTER, self.UpdateWidthFromText)
 
+        self.unitList.SetSelection(0)
 
     def DoLayout(self):
 

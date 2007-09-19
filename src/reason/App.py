@@ -78,16 +78,9 @@ class ReasonMainWindow(wx.Frame):
         Publisher().subscribe(self.OnPageDeleted, ('page_deleted'))
 
     def __set_properties(self):
-        # begin wxGlade: ReasonMainWindow.__set_properties
-        #self.dataList.SetMinSize((300,300))
         self.toolbar.SetToolBitmapSize((24, 24))
         self.toolbar.Realize()
         self.statusBar.SetStatusWidths([-1,-1,-1,-1])
-        # statusbar fields
-        #statusBar_fields = ["statusBar"]
-        #for i in range(len(statusBar_fields)):
-            #self.statusBar.SetStatusText(statusBar_fields[i], i)
-        # end wxGlade
 
     def __do_layout(self):
         MainWindowSizer = wx.BoxSizer(wx.VERTICAL)
@@ -188,7 +181,11 @@ class ReasonMainWindow(wx.Frame):
         self.UpdateToolbarFields(page)
 
     def UpdateToolbarFields(self, page):
-        newItems = page.QueryFields()
+        newItems = None
+        try:
+            newItems = page.QueryFields()
+        except:
+            pass
         if not newItems:
             self.availableFields.Enable(False)
         else:
@@ -310,32 +307,37 @@ class ReasonMainWindow(wx.Frame):
 
     def AddPhase(self, event=None):
         MyID = wx.NewId()
-        self.interpreter.shell.write("\n")
+        self.interpreter.shell.writeOut("\n")
         for o in self.GetOutputs():
-            t = "Phase Plot"# % (o.basename, ax)
+            t = "Phase Plot"
             self.windows.append( \
                 PhasePlotPage(parent=self.plotPanel.nb, 
                               statusBar=self.statusBar,
                               dataObject = o,
                               mw = self))
-            #self.interpreter.shell.write("Adding %s projection of %s\n" % (ax, o))
+            self.interpreter.shell.writeOut("Adding phase plot\n")
             self.plotPanel.AddPlot(self.windows[-1], t, MyID)
-            #self.AddDataObject("Proj: %s %s" % (o, ax),
-                               #self.windows[-1].plot.data,
-                               #_ProjObjectMenuItems)
             print "Adding with ID:", MyID
+        self.interpreter.shell.push("\n")
 
     def AddProj(self, event=None):
         MyID = wx.NewId()
-        self.interpreter.shell.write("\n")
+        self.interpreter.shell.writeOut("\n")
         for o in self.GetOutputs():
             field = "Density"
             if not field:
                 continue
             width = 1.0
             unit = "1"
+            #dlg = wx.ProgressDialog("Projecting",
+                                   #"Projecting through the datasets",
+                                   #maximum = 3,
+                                   #parent=self,
+                                   #style = wx.PD_APP_MODAL)
             for i, ax in zip(range(3), 'xyz'):
+                #dlg.Update(i)
                 t = "%s - Projection - %s" % (o.basename, ax)
+                self.interpreter.shell.writeOut("Adding %s projection of %s\n" % (ax, o))
                 self.windows.append( \
                     ProjPlotPage(parent=self.plotPanel.nb, 
                                   statusBar=self.statusBar,
@@ -343,24 +345,34 @@ class ReasonMainWindow(wx.Frame):
                                   axis=i,
                                   field = field,
                                   mw = self, CreationID=MyID))
-                self.interpreter.shell.write("Adding %s projection of %s\n" % (ax, o))
                 self.plotPanel.AddPlot(self.windows[-1], t, MyID)
                 self.AddDataObject("Proj: %s %s" % (o, ax),
                                    self.windows[-1].plot.data,
                                    _ProjObjectMenuItems)
                 print "Adding with ID:", MyID
+            #dlg.Update(3)
+            #dlg.Destroy()
+        for w in self.windows[-3:]: w.ChangeWidth(1,'1')
+        self.interpreter.shell.push("\n")
 
     def AddSlice(self, event=None):
         MyID = wx.NewId()
-        self.interpreter.shell.write("\n")
+        self.interpreter.shell.writeOut("\n")
         for o in self.GetOutputs():
             field = "Density"
             if not field:
                 continue
             width = 1.0
             unit = "1"
+            #dlg = wx.ProgressDialog("Slicing",
+                                   #"Slicing through the datasets",
+                                   #maximum = 3,
+                                   #parent=self,
+                                   #style = wx.PD_APP_MODAL)
             for i, ax in zip(range(3), 'xyz'):
+                #dlg.Update(i)
                 t = "%s - Slice - %s" % (o.basename, ax)
+                self.interpreter.shell.writeOut("Adding %s slice of %s\n" % (ax, o))
                 self.windows.append( \
                     SlicePlotPage(parent=self.plotPanel.nb, 
                                   statusBar=self.statusBar,
@@ -368,12 +380,15 @@ class ReasonMainWindow(wx.Frame):
                                   axis=i,
                                   field = field,
                                   mw = self, CreationID=MyID))
-                self.interpreter.shell.write("Adding %s slice of %s\n" % (ax, o))
                 self.plotPanel.AddPlot(self.windows[-1], t, MyID)
                 self.AddDataObject("Slice: %s %s" % (o, ax),
                                    self.windows[-1].plot.data,
                                    _SliceObjectMenuItems)
                 print "Adding with ID:", MyID
+            #dlg.Update(3)
+            #dlg.Destroy()
+        for w in self.windows[-3:]: w.ChangeWidth(1,'1')
+        self.interpreter.shell.push("\n")
 
     def GetOutputs(self, event=None):
         # Figure out which outputs are selected

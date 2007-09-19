@@ -496,9 +496,7 @@ class PhasePlot(RavenPlot):
             vmin=vals[vals>0.0].min()
             self.norm=matplotlib.colors.LogNorm(vmin=vmin, vmax=vmax, clip=False)
             location_of_ticks = na.logspace(vmin*1.1, vmax*0.9, num=6)
-            self.ticker = matplotlib.ticker.LogLocator()# \
-                  #subs=[0.1, 0.17782794,  0.31622777,  0.56234133 ] )
-            #self.ticker = matplotlib.ticker.FixedLocator([1e-1, 0.76])
+            self.ticker = matplotlib.ticker.LogLocator()
         else:
             self.ticker = matplotlib.ticker.MaxNLocator()
             self.norm=matplotlib.colors.Normalize(vmin=vmin, vmax=vmax, clip=False)
@@ -507,6 +505,7 @@ class PhasePlot(RavenPlot):
         self.cmap.set_bad("w")
         self.cmap.set_under("w")
         self.cmap.set_over("w")
+        self.axes.clear()
         self.image = self.axes.pcolor(self.x_bins, self.y_bins, \
                                       vals,shading='flat', \
                                       norm=self.norm, cmap=self.cmap)
