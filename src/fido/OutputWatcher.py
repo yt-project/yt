@@ -47,7 +47,7 @@ class Watcher:
         while not self.checkForStop():
             nn = self.checkForOutput()
             for bn in nn:
-                newName = buryOutput(bn)
+                newName = buryOutput(bn, newPrefix=self.newPrefix)
                 self.dealWithOutput(newName)
             if runOnce: break
             try:

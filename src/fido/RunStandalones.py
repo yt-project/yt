@@ -206,11 +206,15 @@ class FidoStandalone(FidoAction):
         self.parser.add_option("-c", "--cfg",
                                action='store', type='string',
                                dest='cfgFile', default=None)
+        self.parser.add_option("-p", "--newpath",
+                               action='store', type='string',
+                               dest='newPrefix', default=None)
 
     def PerformAction(self):
         if self.opts.cfgFile != None: func=self.MakePlots
         else: func = None
-        Giles = Watcher(title=self.title, oc=self.oc, functionHandler=func)
+        Giles = Watcher(title=self.title, oc=self.oc, functionHandler=func,
+                        newPrefix=self.opts.newPrefix)
         Giles.run()
         self.oc.writeOut()
 

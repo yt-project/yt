@@ -29,6 +29,8 @@ Very simple nowadays.
 
 from yt.fido import *
 
+from stat import ST_CTIME
+
 class OutputCollection:
     def __init__(self, title):
         self.title = title
@@ -49,6 +51,7 @@ class OutputCollection:
 
     def writeOut(self):
         path=ytcfg.get("fido","rundir")
+        if not os.path.isdir(path): os.makedirs(path)
         fn = os.path.join(path, "runF_%s" % (self.title))
         f = open(fn, "w")
         for i, output in enumerate(self.outputNames):
@@ -69,7 +72,10 @@ class OutputCollection:
         # two appropriate lines in the parameter file.
         time = getParameterLine(filename, "InitialTime").split()[-1]
         # Implement exception catching
-        timeID = getParameterLine(filename, "CurrentTimeIdentifier").split()[-1]
+        try:
+            timeID = getParameterLine(filename, "CurrentTimeIdentifier").split()[-1]
+        except:
+            timeID = int(os.stat(filename)[ST_CTIME])
         self.outputNames = \
             na.array(self.outputNames.tolist() + [filename])
         self.outputTimeIDs = \
@@ -197,6 +203,7 @@ class OutputCollection:
 
 def GrabCollections(path=None):
     if not path: path=ytcfg.get("fido","rundir")
+    if not os.path.isdir(path): os.makedirs(path)
     ocs = []
     for file in glob.glob(os.path.join(path,"runF_*")):
         title=os.path.basename(file)

@@ -45,11 +45,12 @@ def deleteOutput(basename, extraFiles=None):
     for file in extraFiles:
         deleteGlob(file)
 
-def buryOutput(filename, newLocation=None, extraFiles=None):
+def buryOutput(filename, newPrefix = None, newLocation=None, extraFiles=None):
     if extraFiles == None: extraFiles = []
     if not newLocation:
         dirname = NewDirectoryPattern % filename
-        newLocation = os.path.abspath(os.path.join(os.getcwd(), dirname))
+        if not newPrefix: newPrefix = os.getcwd()
+        newLocation = os.path.abspath(os.path.join(newPrefix, dirname))
     moveGlob("%s*" % filename, newLocation)
     for file in extraFiles:
         moveGlob(file, newLocation)
