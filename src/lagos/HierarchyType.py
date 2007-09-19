@@ -162,6 +162,7 @@ class EnzoHierarchy:
         @precond: tables must be imported and we must have write access to the
                   directory the data is contained in.  (Otherwise silent failure.)
         """
+        if not ytcfg.getboolean('lagos','serialize'): return
         fn = os.path.join(self.directory,"%s.yt" % self["CurrentTimeIdentifier"])
         try:
             self.dataFile = tables.openFile(fn, "a")

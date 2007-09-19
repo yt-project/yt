@@ -39,6 +39,8 @@ except:
 
 import collections
 
+__all__ = ["fieldInfo"]
+
 """
 fieldInfo has the following structure:
   key == field

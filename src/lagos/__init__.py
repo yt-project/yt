@@ -78,3 +78,8 @@ from HierarchyType import *
 from OutputTypes import *
 from EnzoRunType import *
 from DataCube import *
+
+try:
+    from ParallelProjection import *
+except:
+    pass

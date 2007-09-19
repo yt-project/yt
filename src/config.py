@@ -48,6 +48,7 @@ ytcfgDefaults = {
         },\
     "lagos":{
         'ReconstructHierarchy': 'False',
+        'serialize' : 'True',
         },
     "yt":{
         'LogFile': '1', \
