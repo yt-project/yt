@@ -576,9 +576,13 @@ class PhasePlotPage(wx.Panel):
         self.ButtonPanel = wx.Panel(self, -1)
         fs = self.GetFieldSelectors()
         self.FieldX = wx.Choice(self.ButtonPanel, -1, choices=fs)
+        self.FieldX.SetSelection(0)
         self.FieldY = wx.Choice(self.ButtonPanel, -1, choices=fs)
+        self.FieldY.SetSelection(0)
         self.FieldZ = wx.Choice(self.ButtonPanel, -1, choices=fs)
+        self.FieldZ.SetSelection(0)
         self.FieldW = wx.Choice(self.ButtonPanel, -1, choices=fs)
+        self.FieldW.SetSelection(0)
 
         self.Bind(wx.EVT_CHOICE, self.switch_x, self.FieldX)
         self.Bind(wx.EVT_CHOICE, self.switch_y, self.FieldY)

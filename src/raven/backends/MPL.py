@@ -506,9 +506,15 @@ class PhasePlot(RavenPlot):
         self.cmap.set_under("w")
         self.cmap.set_over("w")
         self.axes.clear()
+        xs = self.axes.get_xscale()
+        ys = self.axes.get_yscale()
+        self.axes.set_xscale("linear")
+        self.axes.set_yscale("linear")
         self.image = self.axes.pcolor(self.x_bins, self.y_bins, \
                                       vals,shading='flat', \
                                       norm=self.norm, cmap=self.cmap)
+        self.axes.set_xscale(xs)
+        self.axes.set_yscale(ys)
         #self.ticker = matplotlib.ticker.LogLocator(subs=[0.25, 0.5, 0.75, 1])
         
         if self.colorbar == None:
