@@ -74,10 +74,17 @@ class TestLagos(unittest.TestCase):
         mr = r["CellMass"].sum() # Testing adding new field transparently
         self.assertEqual(ms,mr)  # Asserting equality between the two
 
-    def testProjection(self):
+    def testMakingProjections(self):
+        # First we test that we can project various ways
         p = self.hierarchy.proj(0,"Density") # Unweighted
         p = self.hierarchy.proj(1,"Temperature","Density") # Weighted
         p = self.hierarchy.proj(2,"Entropy") # Derived field
+
+    def testProjectionCorrectness(self):
+        # Now we test that we get good answers
+        for axis in range(3):
+            p = self.hierarchy.proj(axis, "Ones") # Derived field
+            self.assertAlmostEqual(p["Ones"].prod(), 1.0, 7)
 
     def testSlice(self):
         s = self.hierarchy.slice(0,0.5,"Density") # Non-derived
