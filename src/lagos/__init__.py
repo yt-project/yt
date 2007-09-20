@@ -66,7 +66,8 @@ except:
 import PointCombine
 from WeaveStrings import *
 from EnzoDefs import *
-from DerivedFields import fieldInfo, log_fields, colormap_dict
+#from DerivedFields import fieldInfo, log_fields, colormap_dict
+from DerivedFields import *
 from DerivedQuantities import quantityInfo
 from EnzoFortranWrapper import cosmologyGetUnits
 from DataReadingFuncs import *

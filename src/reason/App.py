@@ -107,11 +107,13 @@ class ReasonMainWindow(wx.Frame):
         # Set up IDs for event binding
 
         openHierarchy = fileMenu.Append(-1, "Open Hierarchy")
+        fieldInspector = fileMenu.Append(-1, "Inspect Fields")
         saveImage = fileMenu.Append(-1, "Save Image")
         fileMenu.AppendSeparator()
         exit = fileMenu.Append(-1, "Exit")
 
         self.Bind(wx.EVT_MENU, self.OnOpenHierarchy, openHierarchy)
+        self.Bind(wx.EVT_MENU, self.OnInspectFields, fieldInspector)
         self.Bind(wx.EVT_MENU, self.OnSaveImage, saveImage)
         self.Bind(wx.EVT_MENU, self.OnExit, exit)
 
@@ -258,6 +260,10 @@ class ReasonMainWindow(wx.Frame):
 
     def OnExit(self, event):
         self.Close()
+
+    def OnInspectFields(self, event):
+        p = FieldFunctionInspector(self, -1)
+        p.Show()
 
     def OnOpenHierarchy(self, event):
         wildcard = "Hierarchy (*.hierarchy)|*.hierarchy|" \
@@ -423,21 +429,3 @@ class ReasonApp(wx.App):
         frame_1.Show()
         return True
 
-class ReasonParameterFileViewer(wx.Frame):
-    def __init__(self, *args, **kwds):
-        kwds["style"] = wx.DEFAULT_FRAME_STYLE
-        kwds["title"] = "yt - Reason"
-        kwds["size"] = (800,800)
-        pf = kwds.pop("outputfile")
-        wx.Frame.__init__(self, *args, **kwds)
-
-        # Add the text ctrl
-        self.pf = wx.TextCtrl(self, -1, style=wx.TE_READONLY | wx.TE_MULTILINE | wx.HSCROLL)
-        self.pf.LoadFile(pf.parameterFilename)
-
-        self.sizer = wx.BoxSizer(wx.VERTICAL)
-        self.sizer.Add(self.pf, 1, wx.EXPAND, 0)
-        self.SetSizer(self.sizer)
-        self.sizer.Fit(self)
-        self.Layout()
-        self.SetSize((600,600))

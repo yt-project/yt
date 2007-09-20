@@ -37,9 +37,12 @@ try:
 except:
     mylog.warning("EnzoFortranWrapper not properly installed -- no fortran fields available!")
 
-import collections
+import collections, inspect
 
-__all__ = ["fieldInfo"]
+__all__ = ["fieldInfo", "getCode", "log_fields", "colormap_dict"]
+
+def getCode(field):
+    return inspect.getsource(fieldInfo[field][3])
 
 """
 fieldInfo has the following structure:
