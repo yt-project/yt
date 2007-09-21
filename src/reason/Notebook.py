@@ -64,8 +64,8 @@ class PlotPanel(wx.Panel):
 
     def OnPageChanged(self, event):
         page = self.nb.GetPage(event.Selection)
-        Publisher().sendMessage("page_changed",page)
         self.UpdateSubscriptions(page)
+        Publisher().sendMessage("page_changed",page)
 
     def UpdateSubscriptions(self, page):
         pairs = [("width","ChangeWidthFromMessage"),
@@ -75,15 +75,16 @@ class PlotPanel(wx.Panel):
                  ("cmap","ChangeColorMapFromMessage")]
         for m,f in pairs:
             Publisher().unsubAll(("viewchange",m))
-        if not hasattr(page,'outputfile'): return
+        if not hasattr(page,'CreationID'): return
+        #if not hasattr(page,'outputfile'): return
         cti = page.CreationID
         toSubscribe = []
         if self.LinkPlots: 
             for i,p in [(i, self.nb.GetPage(i)) for i in range(self.nb.GetPageCount())]:
                 try:
                     if p.CreationID == cti: toSubscribe.append(p)
-                except:
-                    pass
+                except AttributeError:
+                    continue
         else: toSubscribe.append(page)
         for p in toSubscribe:
             Publisher().subscribe(self.MessageLogger)
@@ -131,6 +132,7 @@ class PlotPanel(wx.Panel):
 
     def AddPlot(self, page, title, ID):
         self.nb.AddPage(page, title)
+        self.nb.SetSelection(self.nb.GetPageCount()+1)
         # Now we subscribe to events with this ID
 
     def GetCurrentOutput(self):
@@ -154,50 +156,87 @@ class PlotPanel(wx.Panel):
     def OnCallViewPF(self, event):
         of = self.GetCurrentOutput()
 
-class VMPlotPage(wx.Panel):
-    def __init__(self, parent, statusBar, outputfile, axis, field="Density", mw=None, CreationID = -1):
+class PlotPage(wx.Panel):
+    def __init__(self, parent, statusBar, mw=None, CreationID = -1):
         wx.Panel.__init__(self, parent)
 
         self.CreationID = CreationID
         self.parent = parent
         self.mw = mw
 
-        self.AmDrawingCircle = False
-
-        self.outputfile = outputfile
         self.figure = be.matplotlib.figure.Figure((1,1))
         self.axes = self.figure.add_subplot(111)
         self.statusBar = statusBar
-        self.field = field
-        self.circles = []
 
-        self.SetBackgroundColour(wx.NamedColor("WHITE"))
-
-        #self.center = outputfile.hierarchy.findMax("Density")[1]#[0.5,0.5,0.5]
-        self.center = [0.5, 0.5, 0.5]
-        self.axis = axis
-
-        self.SetupFigure()
         self.SetupControls()
+        self.SetupFigure()
         self.SetupMenu()
         self.DoLayout()
-        self.UpdateWidth()
 
-    def SetupFigure(self):
-        self.makePlot()
-        be.Initialize(canvas=FigureCanvas)
-        self.figure_canvas = be.engineVals["canvas"](self, -1, self.figure)
+    def set_zlim(self, *args):
+        zmin, zmax = Toolbars.ChooseLimits(self.plot)
+        self.ChangeLimits(zmin, zmax)
+        Publisher().sendMessage(("viewchange","limits"),(zmin,zmax))
 
-        self.axes.set_xticks(())
-        self.axes.set_yticks(())
-        self.axes.set_ylabel("")
-        self.axes.set_xlabel("")
-        
-        # Note that event is a MplEvent
-        self.figure_canvas.mpl_connect('motion_notify_event', self.UpdateStatusBar)
+    def redraw(self, *args):
+        self.UpdateCanvas()
 
-        self.figure_canvas.Bind(wx.EVT_LEFT_UP, self.ClickProcess)
-        self.figure_canvas.Bind(wx.EVT_CONTEXT_MENU, self.OnShowContextMenu)
+    def OnEditTitle(self, event):
+        curTitle = self.figure.axes[-1].title.get_text()
+        dlg = wx.TextEntryDialog(
+                self, 'New title?',
+                'Change Title?', curTitle)
+        if dlg.ShowModal() == wx.ID_OK:
+            self.figure.axes[0].set_title(dlg.GetValue())
+        dlg.Destroy()
+        self.figure_canvas.draw()
+
+    def OnEditLegend(self, event):
+        curTitle = self.figure.axes[-1].title.get_text()
+        try:
+            curLegend = self.plot.colorbar.ax.yaxis.get_label().get_text()
+        except:
+            curLegend = ""
+        dlg = wx.TextEntryDialog(
+                self, 'New legend?',
+                'Change Legend?', curLegend)
+        if dlg.ShowModal() == wx.ID_OK:
+            self.plot.colorbar.set_label(dlg.GetValue())
+        dlg.Destroy()
+        self.figure_canvas.draw()
+
+    def OnShowContextMenu(self, event):
+        pos = event.GetPosition()
+        pos = self.figure_canvas.ScreenToClient(pos)
+        self.ContextMenuPosition = pos
+        self.figure_canvas.PopupMenu(self.popupmenu, pos)
+
+    def OnColorMapChoice(self, event):
+        item = self.cmapmenu.FindItemById(event.GetId())
+        text = item.GetText()
+        Publisher().sendMessage(("viewchange","cmap"),text)
+
+    def ChangeLimits(self, zmin, zmax):
+        self.plot.set_zlim(zmin,zmax)
+        self.UpdateCanvas()
+
+    def ChangeColorMapFromMessage(self, message):
+        cmap = message.data
+        self.plot.set_cmap(cmap)
+        self.UpdateCanvas()
+
+    def ChangeLimitsFromMessage(self, message):
+        zmin, zmax = message.data
+        self.ChangeLimits(zmin,zmax)
+
+    def ChangeFieldFromMessage(self, message):
+        pass
+
+    def ChangeCenterFromMessage(self, message):
+        pass
+
+    def ChangeWidthFromMessage(self, message):
+        pass
 
     def SetupMenu(self):
         self.popupmenu = wx.Menu()
@@ -215,6 +254,63 @@ class VMPlotPage(wx.Panel):
         for title, func in dd:
             ii = self.editprops.Append(-1, title)
             self.Bind(wx.EVT_MENU, func, ii)
+        # Now we pre-select the current cmap
+        try:
+            ccmap_name = self.plot.colorbar.cmap.name
+        except AttributeError:
+            ccmap_name = "jet"
+        self.cmapmenu.FindItemById(self.cmapmenu.FindItem(ccmap_name)).Check(True)
+
+    def makePlot(self):
+        pass
+
+    def UpdateStatusBar(self, event):
+        pass
+
+    def ClickProcess(self, event):
+        pass
+
+    def SaveImage(self):
+        self.plot.generatePrefix('Plot')
+        wildcard = "PNG (*png)|*.png"
+        dlg = wx.FileDialog( \
+            self, message="Save Image As ...", defaultDir=os.getcwd(), \
+            defaultFile=self.plot.prefix, wildcard=wildcard, style=wx.SAVE)
+        if dlg.ShowModal() == wx.ID_OK:
+            path = dlg.GetPath()
+            orig_size = self.figure.get_size_inches()
+            self.figure.set_size_inches((10,8))
+            self.figure_canvas.print_figure(path,format='png')
+            self.figure.set_size_inches(orig_size)
+        dlg.Destroy()
+
+    def SetupFigure(self):
+        self.makePlot()
+
+        be.Initialize(canvas=FigureCanvas)
+        self.figure_canvas = be.engineVals["canvas"](self, -1, self.figure)
+        self.figure_canvas.mpl_connect('motion_notify_event', self.UpdateStatusBar)
+        self.figure_canvas.Bind(wx.EVT_LEFT_DOWN, self.ClickProcess)
+        self.figure_canvas.Bind(wx.EVT_CONTEXT_MENU, self.OnShowContextMenu)
+
+class VMPlotPage(PlotPage):
+    def __init__(self, parent, statusBar, outputfile, axis, field="Density", mw=None, CreationID = -1):
+        self.outputfile = outputfile
+        self.field = field
+        self.axis = axis
+        self.center = [0.5, 0.5, 0.5]
+        self.AmDrawingCircle = False
+        self.circles = []
+
+        if ytcfg.getboolean("reason","centeronmax"):
+            self.center = outputfile.hierarchy.findMax("Density")[1]
+
+        PlotPage.__init__(self, parent, statusBar, mw, CreationID)
+        self.SetBackgroundColour(wx.NamedColor("WHITE"))
+        self.UpdateWidth()
+
+    def SetupMenu(self):
+        PlotPage.SetupMenu(self)
         self.popupmenu.AppendSeparator()
         centerOnMax = self.popupmenu.Append(-1, "Center on max")
         centerHere = self.popupmenu.Append(-1, "Center here")
@@ -225,10 +321,15 @@ class VMPlotPage(wx.Panel):
         self.Bind(wx.EVT_MENU, self.OnCenterHere, centerHere)
         self.Bind(wx.EVT_MENU, self.fulldomain, fullDomain)
 
-        # Now we pre-select the current cmap
-        ccmap_name = self.plot.colorbar.cmap.name
-        self.cmapmenu.FindItemById(self.cmapmenu.FindItem(ccmap_name)).Check(True)
+    def SetupFigure(self):
+        self.makePlot()
+        PlotPage.SetupFigure(self)
 
+        self.axes.set_xticks(())
+        self.axes.set_yticks(())
+        self.axes.set_ylabel("")
+        self.axes.set_xlabel("")
+        
     def SetupControls(self):
 
         self.widthSlider = wx.Slider(self, -1, wx.SL_HORIZONTAL | wx.SL_AUTOTICKS)
@@ -280,26 +381,9 @@ class VMPlotPage(wx.Panel):
 
         self.ChangeWidth(1,"1")
 
-    def OnEditTitle(self, event):
-        curTitle = self.figure.axes[-1].title.get_text()
-        dlg = wx.TextEntryDialog(
-                self, 'New title?',
-                'Change Title?', curTitle)
-        if dlg.ShowModal() == wx.ID_OK:
-            self.figure.axes[0].set_title(dlg.GetValue())
-        dlg.Destroy()
-
-    def OnEditLegend(self, event):
-        curTitle = self.figure.axes[-1].title.get_text()
-        try:
-            curLegend = self.plot.colorbar.ax.yaxis.get_label().get_text()
-        except: curLegend = ""
-        dlg = wx.TextEntryDialog(
-                self, 'New legend?',
-                'Change Legend?', curLegend)
-        if dlg.ShowModal() == wx.ID_OK:
-            self.plot.colorbar.set_label(dlg.GetValue())
-        dlg.Destroy()
+    def ChangeColorMapFromMessage(self, message):
+        PlotPage.ChangeColorMapFromMessage(self, message)
+        self.UpdateWidth()
 
     def OnCenterOnMax(self, event):
         v, c = self.outputfile.h.findMax("Density")
@@ -314,22 +398,6 @@ class VMPlotPage(wx.Panel):
         self.ChangeCenter(x,y)
         self.UpdateWidth()
 
-    def OnShowContextMenu(self, event):
-        pos = event.GetPosition()
-        pos = self.figure_canvas.ScreenToClient(pos)
-        self.ContextMenuPosition = pos
-        self.figure_canvas.PopupMenu(self.popupmenu, pos)
-
-    def OnColorMapChoice(self, event):
-        item = self.cmapmenu.FindItemById(event.GetId())
-        text = item.GetText()
-        Publisher().sendMessage(("viewchange","cmap"),text)
-
-    def ChangeColorMapFromMessage(self, message):
-        cmap = message.data
-        self.plot.set_cmap(cmap)
-        self.UpdateWidth()
-
     def ChangeCenterFromMessage(self, message):
         #print "Hey, got message", message
         x, y, z = message.data
@@ -342,7 +410,7 @@ class VMPlotPage(wx.Panel):
         #self.UpdateWidth()
 
     def ConvertPositionToDataPosition(self, xp, yp):
-        print "CONVERT", xp, yp
+        #print "CONVERT", xp, yp
         #if not self.figure.axes[0].in_axes(xp,yp): return None, None
         #xp, yp = self.figure.axes[0].transData.inverse_xy_tup((xp,yp)) 
         #print xp, yp
@@ -351,7 +419,7 @@ class VMPlotPage(wx.Panel):
         l, b, width, height = self.figure.axes[0].bbox.get_bounds()
         x = (dx * (xp-l)) + self.plot.xlim[0]
         y = (dy * (yp-b)) + self.plot.ylim[0]
-        print x, y
+        #print x, y
         return x, y
 
     def ChangeCenter(self, x, y):
@@ -387,7 +455,7 @@ class VMPlotPage(wx.Panel):
                 cc[lagos.y_dict[self.axis]] = yd
                 print "R: %0.5e %s (%0.9e, %0.9e, %0.9e)" % (r*unit, unitname,
                     cc[0], cc[1], cc[2])
-                print cc, r
+                #print cc, r
                 sphere = self.outputfile.hierarchy.sphere( \
                     cc, r, fields = ["Density"])
                 self.mw.AddSphere("Sphere: %0.3e %s" \
@@ -475,22 +543,6 @@ class VMPlotPage(wx.Panel):
         self.ChangeWidth(w,u)
         Publisher().sendMessage(('viewchange','width'), (w,u))
 
-    def set_zlim(self, *args):
-        zmin, zmax = Toolbars.ChooseLimits(self.plot)
-        self.ChangeLimits(zmin, zmax)
-        Publisher().sendMessage(("viewchange","limits"),(zmin,zmax))
-
-    def ChangeLimits(self, zmin, zmax):
-        self.plot.set_zlim(zmin,zmax)
-        self.UpdateCanvas()
-
-    def ChangeLimitsFromMessage(self, message):
-        zmin, zmax = message.data
-        self.ChangeLimits(zmin,zmax)
-
-    def redraw(self, *args):
-        self.UpdateCanvas()
-
     def ChangeFieldFromMessage(self, message):
         field = message.data
         self.ChangeField(field)
@@ -508,20 +560,6 @@ class VMPlotPage(wx.Panel):
         if self.IsShown():
             self.figure_canvas.draw()
         #else: print "Opting not to update canvas"
-
-    def SaveImage(self):
-        self.plot.generatePrefix('Plot')
-        wildcard = "PNG (*png)|*.png"
-        dlg = wx.FileDialog( \
-            self, message="Save Image As ...", defaultDir=os.getcwd(), \
-            defaultFile=self.plot.prefix, wildcard=wildcard, style=wx.SAVE)
-        if dlg.ShowModal() == wx.ID_OK:
-            path = dlg.GetPath()
-            orig_size = self.figure.get_size_inches()
-            self.figure.set_size_inches((10,8))
-            self.figure_canvas.print_figure(path,format='png')
-            self.figure.set_size_inches(orig_size)
-        dlg.Destroy()
 
 class SlicePlotPage(VMPlotPage):
     def makePlot(self):
@@ -553,35 +591,22 @@ class ProjPlotPage(VMPlotPage):
     def QueryFields(self):
         return [self.field]
 
-class PhasePlotPage(wx.Panel):
-    def __init__(self, parent, statusBar, dataObject, mw=None):
-        wx.Panel.__init__(self, parent)
-        self.parent = parent
-        self.mw = mw
-
+class PhasePlotPage(PlotPage):
+    def __init__(self, parent, statusBar, dataObject, mw=None, CreationID = -1):
         self.dataObject = dataObject
 
-        self.figure = be.matplotlib.figure.Figure((4,4))
-        self.axes = self.figure.add_subplot(111)
-        self.statusBar = statusBar
-
-        be.Initialize(canvas=FigureCanvas)
-        self.figure_canvas = be.engineVals["canvas"](self, -1, self.figure)
-
-        self.SetupControls()
-        self.DoLayout()
-        self.makePlot()
+        PlotPage.__init__(self, parent, statusBar, mw, CreationID)
 
     def SetupControls(self):
         self.ButtonPanel = wx.Panel(self, -1)
         fs = self.GetFieldSelectors()
-        self.FieldX = wx.Choice(self.ButtonPanel, -1, choices=fs)
+        self.FieldX = wx.Choice(self.ButtonPanel, -1, choices=fs, name="X")
         self.FieldX.SetSelection(0)
-        self.FieldY = wx.Choice(self.ButtonPanel, -1, choices=fs)
+        self.FieldY = wx.Choice(self.ButtonPanel, -1, choices=fs, name="Y")
         self.FieldY.SetSelection(0)
-        self.FieldZ = wx.Choice(self.ButtonPanel, -1, choices=fs)
+        self.FieldZ = wx.Choice(self.ButtonPanel, -1, choices=fs, name="Z")
         self.FieldZ.SetSelection(0)
-        self.FieldW = wx.Choice(self.ButtonPanel, -1, choices=fs)
+        self.FieldW = wx.Choice(self.ButtonPanel, -1, choices=fs, name="W")
         self.FieldW.SetSelection(0)
 
         self.Bind(wx.EVT_CHOICE, self.switch_x, self.FieldX)
@@ -610,7 +635,7 @@ class PhasePlotPage(wx.Panel):
         self.Layout()
 
     def QueryFields(self, *args, **kwargs):
-        pass
+        return None
 
     def GetFieldSelectors(self):
         nativeFields = self.dataObject.hierarchy.fieldList

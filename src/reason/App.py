@@ -278,13 +278,9 @@ class ReasonMainWindow(wx.Frame):
         dialog.Destroy()
 
     def OnSaveImage(self, event):
-        print "Getting thingie"
         pgI = self.plotPanel.nb.Selection
-        print "Got thingie"
         pg = self.plotPanel.nb.GetPage(pgI)
-        print "Augh"
         if not hasattr(pg, 'SaveImage'): return
-        print "Calling save"
         pg.SaveImage()
 
     def AddStaticOutputFile(self, filename):
@@ -320,6 +316,7 @@ class ReasonMainWindow(wx.Frame):
                 PhasePlotPage(parent=self.plotPanel.nb, 
                               statusBar=self.statusBar,
                               dataObject = o,
+                              CreationID = MyID,
                               mw = self))
             self.interpreter.shell.writeOut("Adding phase plot\n")
             self.plotPanel.AddPlot(self.windows[-1], t, MyID)
@@ -335,13 +332,7 @@ class ReasonMainWindow(wx.Frame):
                 continue
             width = 1.0
             unit = "1"
-            #dlg = wx.ProgressDialog("Projecting",
-                                   #"Projecting through the datasets",
-                                   #maximum = 3,
-                                   #parent=self,
-                                   #style = wx.PD_APP_MODAL)
             for i, ax in zip(range(3), 'xyz'):
-                #dlg.Update(i)
                 t = "%s - Projection - %s" % (o.basename, ax)
                 self.interpreter.shell.writeOut("Adding %s projection of %s\n" % (ax, o))
                 self.windows.append( \
@@ -356,8 +347,6 @@ class ReasonMainWindow(wx.Frame):
                                    self.windows[-1].plot.data,
                                    _ProjObjectMenuItems)
                 print "Adding with ID:", MyID
-            #dlg.Update(3)
-            #dlg.Destroy()
         for w in self.windows[-3:]: w.ChangeWidth(1,'1')
         self.interpreter.shell.push("\n")
 
@@ -370,13 +359,7 @@ class ReasonMainWindow(wx.Frame):
                 continue
             width = 1.0
             unit = "1"
-            #dlg = wx.ProgressDialog("Slicing",
-                                   #"Slicing through the datasets",
-                                   #maximum = 3,
-                                   #parent=self,
-                                   #style = wx.PD_APP_MODAL)
             for i, ax in zip(range(3), 'xyz'):
-                #dlg.Update(i)
                 t = "%s - Slice - %s" % (o.basename, ax)
                 self.interpreter.shell.writeOut("Adding %s slice of %s\n" % (ax, o))
                 self.windows.append( \
@@ -391,8 +374,6 @@ class ReasonMainWindow(wx.Frame):
                                    self.windows[-1].plot.data,
                                    _SliceObjectMenuItems)
                 print "Adding with ID:", MyID
-            #dlg.Update(3)
-            #dlg.Destroy()
         for w in self.windows[-3:]: w.ChangeWidth(1,'1')
         self.interpreter.shell.push("\n")
 

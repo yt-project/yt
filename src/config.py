@@ -42,6 +42,7 @@ ytcfgDefaults = {
     "reason":{
         'width':"600",
         'height':"600",
+        'centeronmax':'False',
         },
     "SWIG":{
         'EnzoInterfacePath': '/usr/work/mturk/local/lib/python2.5/site-packages', \
