@@ -12,6 +12,7 @@ import yt.raven
 # The dataset used is located at:
 # http://yt.spacepope.org/DD0018.zip
 fn = "DD0018/moving7_0018"
+fn = os.path.join(os.path.dirname(__file__),fn)
 
 class TestRaven(unittest.TestCase):
     def setUp(self):
@@ -53,6 +54,6 @@ class TestRaven(unittest.TestCase):
         print "Testing TwoPhase"
         self.pc.addTwoPhaseSphere(1.0,'1',["Temperature","Density"],center=self.c)
         self.DoSave()
-        
+
 if __name__ == "__main__":
     unittest.main()

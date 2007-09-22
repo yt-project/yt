@@ -16,18 +16,17 @@ Everything will be returned in a global config dictionary: ytcfg
   it under the terms of the GNU General Public License as published by
   the Free Software Foundation; either version 3 of the License, or
   (at your option) any later version.
-  
+
   This program is distributed in the hope that it will be useful,
   but WITHOUT ANY WARRANTY; without even the implied warranty of
   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
   GNU General Public License for more details.
-  
+
   You should have received a copy of the GNU General Public License
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-import ConfigParser, optparse, os, os.path, sys, types
-from funcs import *
+import ConfigParser, os, os.path, types
 
 ytcfgDefaults = {
     "fido":{
@@ -45,7 +44,7 @@ ytcfgDefaults = {
         'centeronmax':'False',
         },
     "SWIG":{
-        'EnzoInterfacePath': '/usr/work/mturk/local/lib/python2.5/site-packages', \
+        'EnzoInterfacePath':'/usr/work/mturk/local/lib/python2.5/site-packages',
         },\
     "lagos":{
         'ReconstructHierarchy': 'False',
@@ -66,7 +65,12 @@ ytcfgDefaults = {
     }
 
 class YTConfigParser(ConfigParser.ConfigParser):
-    def __init__(self, fn, defaults={}):
+    """
+    Simple class providing some functionality I wish existed in the ConfigParser
+    module already
+    """
+    def __init__(self, fn, defaults=None):
+        if not defaults: defaults = {}
         ConfigParser.ConfigParser.__init__(self)
         # Note that we're not going to pass in defaults
         self.read(fn)
@@ -79,13 +83,12 @@ class YTConfigParser(ConfigParser.ConfigParser):
     def set(self, section, opt, val):
         if not self.has_section(section):
             self.add_section(section)
-        ConfigParser.ConfigParser.set(self,section, opt,val)
+        ConfigParser.ConfigParser.set(self, section, opt, val)
     def __getitem__(self, item):
-        #if iterable(item):
         if hasattr(item,'__getitem__'):
             tr = []
             for it in item[1:]:
-                tr.append(self.get(item[0],it,raw=True))
+                tr.append(self.get(item[0], it, raw=True))
             if len(tr) == 1:
                 return tr[0]
             return tr
@@ -94,9 +97,10 @@ class YTConfigParser(ConfigParser.ConfigParser):
     def __setitem__(self, item, val):
         if not isinstance(item, types.TupleType) or not len(item) == 2:
             raise KeyError
-        self.set(item[0],item[1],val)
+        self.set(item[0], item[1], val)
 
-ytcfg = YTConfigParser(['yt.cfg', os.path.expanduser('~/.yt/config')], ytcfgDefaults)
+ytcfg = YTConfigParser(['yt.cfg', os.path.expanduser('~/.yt/config')],
+                       ytcfgDefaults)
 
 # Now we have parsed the config file.  Overrides come from the command line.
 

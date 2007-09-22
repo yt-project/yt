@@ -13,17 +13,18 @@ Various non-grid data containers.
   it under the terms of the GNU General Public License as published by
   the Free Software Foundation; either version 3 of the License, or
   (at your option) any later version.
-  
+
   This program is distributed in the hope that it will be useful,
   but WITHOUT ANY WARRANTY; without even the implied warranty of
   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
   GNU General Public License for more details.
-  
+
   You should have received a copy of the GNU General Public License
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
 from yt.lagos import *
+from yt.progressbar import *
 from yt.funcs import *
 
 class EnzoData:
@@ -47,12 +48,12 @@ class EnzoData:
             fields = [fields]
         self.fields = fields
         self.data = {}
-        
+
     def clearData(self):
         """
         Clears out all data from the EnzoData instance, freeing memory.
         """
-        del self.data 
+        del self.data
         self.data = {}
         self.dx = None
         self.dy = None
@@ -176,7 +177,7 @@ class EnzoData:
         @keyword header: Should we output a tab-separated header
         @type header: Boolean
         """
-        # Now we first set up a new array, with all the stuff, to speed 
+        # Now we first set up a new array, with all the stuff, to speed
         # things up.
         data = []
         for field in self.fields:
@@ -424,7 +425,7 @@ class EnzoProjBase(Enzo2DData):
                         Percentage(), ' ',
                         Bar(marker=RotatingMarker()),
                         ' ', ETA(), ' ']
-            pbar = ProgressBar(widgets=widgets, 
+            pbar = ProgressBar(widgets=widgets,
                                      maxval=len(gridsToProject)).start()
             zeroOut = (level != self.maxLevel)
             for pi, grid in enumerate(gridsToProject):
@@ -439,12 +440,12 @@ class EnzoProjBase(Enzo2DData):
                         Percentage(), ' ',
                         Bar(marker=RotatingMarker()),
                         ' ', ETA(), ' ']
-            pbar = ProgressBar(widgets=widgets, 
+            pbar = ProgressBar(widgets=widgets,
                                maxval=len(gridsToProject)).start()
             for pi, grid1 in enumerate(gridsToProject):
                 pbar.update(pi)
                 i += 1
-                if grid1.retVal[0].shape[0] == 0: continue 
+                if grid1.retVal[0].shape[0] == 0: continue
                 for grid2 in grid1.myOverlapGrids[axis]:
                     if grid2.retVal[0].shape[0] == 0 \
                       or grid1.id == grid2.id:
@@ -500,7 +501,7 @@ class EnzoProjBase(Enzo2DData):
         # Now, we should clean up after ourselves...
         for grid in h.grids[h.selectLevel(level)]:
             grid.clearAll()
-        
+
 
 class EnzoSliceBase(Enzo2DData):
     """
@@ -545,7 +546,7 @@ class EnzoSliceBase(Enzo2DData):
     def shift(self, val):
         """
         Moves the slice coordinate up by either a floating point value, or an
-        integer number of indices of the finest grid.  Note that hippodraw 
+        integer number of indices of the finest grid.  Note that hippodraw
         doesn't like it if we change the number of values in a column, as of
         right now, so if the number of points in the slice changes, it will
         kill HD.
@@ -737,7 +738,7 @@ class Enzo3DData(EnzoData):
         bins, and we also assume we are given the radii in code units.
         field_weights defines the weighting for a given field.  If not given,
         assumed to be mass-weighted.
-        
+
         Units might be screwy, but I don't think so.  Unless otherwise stated,
         returned in code units.  CellMass, by the way, is Msun.  And
         accumulated.
@@ -916,7 +917,7 @@ class EnzoRegionBase(Enzo3DData):
 class EnzoDataCubeBase(Enzo3DData):
     def __init__(self, level, center, dim, fields = None, pf = None):
         """
-        This returns a cube of equal-resolution data, with 
+        This returns a cube of equal-resolution data, with
         dimensions dim x dim x dim .
 
         Note that we typically generate one, then write it out.  We do not

@@ -20,12 +20,12 @@ fieldInfo[fieldName] = (Units, ProjectedUnits, TakeLog, Function)
   it under the terms of the GNU General Public License as published by
   the Free Software Foundation; either version 3 of the License, or
   (at your option) any later version.
-  
+
   This program is distributed in the hope that it will be useful,
   but WITHOUT ANY WARRANTY; without even the implied warranty of
   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
   GNU General Public License for more details.
-  
+
   You should have received a copy of the GNU General Public License
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
@@ -50,8 +50,6 @@ fieldInfo has the following structure:
   value == tuple ( naturalUnits, projUnits, takeLog, generatorFunction )
 """
 
-#fieldInfo = {}
-#fieldInfo = defaultdict(lambda: ("","",True,None))
 class fieldDefaultDict(dict):
     def __missing__(self, key):
         sl = True
@@ -124,7 +122,7 @@ def H2FormationTime(self, fieldName):
                        * self["HI_Density"] \
                        * self.hierarchy.rates[self["Temperature"],"k21"] \
                        * self.hierarchy.rates.params["kunit_3bdy"] \
-                       * self["H2I_Density"]/2.0 ) ) 
+                       * self["H2I_Density"]/2.0 ) )
 fieldInfo["H2FormationTime"] = ("s", None, True, H2FormationTime)
 
 def CIEOpticalDepthFudge(self, fieldName):
@@ -202,7 +200,7 @@ def MachNumber(self, fieldName):
         self["y-velocity"]**2.0 + \
         self["z-velocity"]**2.0 )**(1.0/2.0)) / self["SoundSpeed"]
 fieldInfo["MachNumber"] = (None, None, False, MachNumber)
-        
+
 def VelocityMagnitude(self, fieldName):
     """M{|v|}"""
     self[fieldName] = (self.hierarchy["x-velocity"] * ( \
@@ -514,8 +512,8 @@ fieldInfo["AngularMomentum"] = (None, None, False, AngularMomentum)
 
 def InertialTensor(self, fieldName):
     """
-    Calculate the U{Moment of Inertia<http://en.wikipedia.org/wiki/Moment_of_inertia>} 
-    tensor.  
+    Calculate the U{Moment of Inertia<http://en.wikipedia.org/wiki/Moment_of_inertia>}
+    tensor.
     """
     # We do this all spread out.  It's quicker this way than a set of loops
     # over indices and letting values cancel out.

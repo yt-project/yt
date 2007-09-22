@@ -14,12 +14,12 @@ Will initialize everything, and associate one with each module
   it under the terms of the GNU General Public License as published by
   the Free Software Foundation; either version 3 of the License, or
   (at your option) any later version.
-  
+
   This program is distributed in the hope that it will be useful,
   but WITHOUT ANY WARRANTY; without even the implied warranty of
   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
   GNU General Public License for more details.
-  
+
   You should have received a copy of the GNU General Public License
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
@@ -28,7 +28,7 @@ import logging, os
 import logging.handlers as handlers
 from yt.config import ytcfg
 
-level = min(max(ytcfg.getint("yt","loglevel"),0),50)
+level = min(max(ytcfg.getint("yt", "loglevel"), 0), 50)
 fstring = "%(name)-10s %(levelname)-10s %(asctime)s %(message)s"
 logging.basicConfig(
     format=fstring,
@@ -55,31 +55,39 @@ bc = 10
 
 if ytcfg.getboolean("yt","logfile") and os.access(".", os.W_OK):
     if ytcfg.getboolean("yt","unifiedlogfile"):
-        ytHandler = handlers.RotatingFileHandler("yt.log", maxBytes=mb, backupCount=bc)
+        ytHandler = handlers.RotatingFileHandler("yt.log",
+                                                 maxBytes=mb, backupCount=bc)
         k = logging.Formatter(fstring)
         ytHandler.setFormatter(k)
         ytLogger.addHandler(ytHandler)
-    else:  # If we *don't* want a unified file handler (which is the default now!)
-        fidoHandler = handlers.RotatingFileHandler("fido.log", maxBytes=mb, backupCount=bc)
+    else:
+        # If we *don't* want a unified file handler (which is the default now!)
+        fidoHandler = handlers.RotatingFileHandler("fido.log",
+                                                   maxBytes=mb, backupCount=bc)
         fidoHandler.setFormatter(f)
         fidoLogger.addHandler(fidoHandler)
 
-        ravenHandler = handlers.RotatingFileHandler("raven.log", maxBytes=mb, backupCount=bc)
+        ravenHandler = handlers.RotatingFileHandler("raven.log",
+                                                    maxBytes=mb, backupCount=bc)
         ravenHandler.setFormatter(f)
         ravenLogger.addHandler(ravenHandler)
 
-        lagosHandler = handlers.RotatingFileHandler("lagos.log", maxBytes=mb, backupCount=bc)
+        lagosHandler = handlers.RotatingFileHandler("lagos.log",
+                                                    maxBytes=mb, backupCount=bc)
         lagosHandler.setFormatter(f)
         lagosLogger.addHandler(lagosHandler)
 
-        enkiHandler = handlers.RotatingFileHandler("enki.log", maxBytes=mb, backupCount=bc)
+        enkiHandler = handlers.RotatingFileHandler("enki.log",
+                                                   maxBytes=mb, backupCount=bc)
         enkiHandler.setFormatter(f)
         enkiLogger.addHandler(enkiHandler)
 
-        deliveratorHandler = handlers.RotatingFileHandler("deliverator.log", maxBytes=mb, backupCount=bc)
+        deliveratorHandler = handlers.RotatingFileHandler("deliverator.log",
+                                                maxBytes=mb, backupCount=bc)
         deliveratorHandler.setFormatter(f)
         deliveratorLogger.addHandler(deliveratorHandler)
 
-        reasonHandler = handlers.RotatingFileHandler("reason.log", maxBytes=mb, backupCount=bc)
+        reasonHandler = handlers.RotatingFileHandler("reason.log",
+                                                    maxBytes=mb, backupCount=bc)
         reasonHandler.setFormatter(f)
         reasonLogger.addHandler(reasonHandler)

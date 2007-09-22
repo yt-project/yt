@@ -19,10 +19,10 @@ Crash.
 Enki
 ====
 
-    Enki is the package used to create data, and instantiate runs.  It supports
-    creating Enzo Problems, and then using SWIG-interfaced Enzo calls to actually
-    create the data for those problems.  Additionally, facilities are being
-    developed to use Enki to directly execute runs.
+    Enki is the package used to create data, and instantiate runs. It supports
+    creating Enzo Problems, and then using SWIG-interfaced Enzo calls to
+    actually create the data for those problems. Additionally, facilities are
+    being developed to use Enki to directly execute runs.
 
 Fido
 ====
@@ -30,15 +30,14 @@ Fido
     Fido is the messenger/protector of data.  It takes data outputs, puts them
     wherever you want, and then calls a function handler to deal with that data.
     Ultimately Fido will deal with all file-handling; submission of runs to a
-    central (user-specific) database is in the works, and Fido will be the entity
-    that moves the files in and out of storage.
+    central (user-specific) database is in the works, and Fido will be the
+    entity that moves the files in and out of storage.
 
 Lagos
 =====
 
-    Lagos deals with data structures.  It defines things like EnzoGrid,
-    EnzoData, Enzo2DData, EnzoSphere, etc.  If you want to handle actual data, use
-    Lagos.
+    Lagos deals with data structures. It defines things like EnzoGrid, EnzoData,
+    Enzo2DData, EnzoSphere, etc. If you want to handle actual data, use Lagos.
 
 Raven
 =====
@@ -50,12 +49,12 @@ Deliverator
 ===========
 
     The Deliverator is a TurboGears-based system for querying and displaying
-    images.  Images are dumped from Raven into local, web-accessible storage space,
-    and then metadata about those images is submitted to The Deliverator.  The user
-    (you) then goes to the Deliverator website and views those plots.
+    images. Images are dumped from Raven into local, web-accessible storage
+    space, and then metadata about those images is submitted to The Deliverator.
+    The user (you) then goes to the Deliverator website and views those plots.
 
-The base package YT provides facilities for configuration files and logging (via the
-Python logger.)
+The base package YT provides facilities for configuration files and logging (via
+the Python logger.)
 
 Also, documentation should follow the epydoc format,
 U{http://epydoc.sourceforge.net/} with the fields listed
@@ -80,12 +79,12 @@ G{packagetree}
   it under the terms of the GNU General Public License as published by
   the Free Software Foundation; either version 3 of the License, or
   (at your option) any later version.
-  
+
   This program is distributed in the hope that it will be useful,
   but WITHOUT ANY WARRANTY; without even the implied warranty of
   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
   GNU General Public License for more details.
-  
+
   You should have received a copy of the GNU General Public License
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
@@ -94,6 +93,6 @@ G{packagetree}
 #import importer
 #importer.install()
 
-from logger import *
-from config import *
-from funcs import *
+from yt.logger import *
+from yt.config import *
+from yt.funcs import *

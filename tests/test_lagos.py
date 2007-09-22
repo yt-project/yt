@@ -12,6 +12,7 @@ import yt.lagos
 # The dataset used is located at:
 # http://yt.spacepope.org/DD0018.zip
 fn = "DD0018/moving7_0018"
+fn = os.path.join(os.path.dirname(__file__),fn)
 
 class TestLagos(unittest.TestCase):
     def setUp(self):
@@ -20,7 +21,7 @@ class TestLagos(unittest.TestCase):
         self.v, self.c = self.hierarchy.findMax("Density")
         gp = os.path.join(os.path.dirname(fn),"*.yt")
         ytFiles = glob.glob(gp)
-        for i in ytFiles: 
+        for i in ytFiles:
             print "Removing %s" % (i)
             os.unlink(i)
 
@@ -30,28 +31,28 @@ class TestLagos(unittest.TestCase):
 
     def testGetHierarchy(self):
         self.assert_(self.OutputFile.hierarchy != None)
-        
+
     def testGetUnits(self):
         self.assert_(self.OutputFile["cm"] != 1.0)
 
     def testGetSmallestDx(self):
         self.assertAlmostEqual(self.hierarchy.getSmallestDx(),
                                0.0009765625, 5)
-        
+
     def testGetNumberOfGrids(self):
         self.assertEqual(self.hierarchy.numGrids, len(self.hierarchy.grids))
         self.assertEqual(self.hierarchy.numGrids, 211)
-        
+
     def testChildrenOfRootGrid(self):
         for child in self.hierarchy.grids[0].Children:
             self.assert_(child.Parent.id == self.hierarchy.grids[0].id)
-            
+
     def testGetSelectLevels(self):
         grids = self.hierarchy.grids
         for level in range(self.hierarchy.maxLevel+1):
             for grid in grids[self.hierarchy.selectLevel(level)]:
                 self.assert_(grid.Level == level)
-                
+
     def testPrintStats(self):
         try:
             self.hierarchy.printStats()
