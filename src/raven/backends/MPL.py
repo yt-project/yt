@@ -453,6 +453,8 @@ class PhasePlot(RavenPlot):
         self.weight = weight
 
     def redraw_image(self):
+        l, b, width, height = self.axes.bbox.get_bounds()
+        self.pix = (width,height)
         x_bins_ids = na.digitize(self.x_v, self.x_bins)
         y_bins_ids = na.digitize(self.y_v, self.y_bins)
 
@@ -528,6 +530,7 @@ class PhasePlot(RavenPlot):
         self.image = self.axes.pcolor(self.x_bins, self.y_bins, \
                                       vals,shading='flat', \
                                       norm=self.norm, cmap=self.cmap)
+        self.vals = vals
         self.axes.set_xscale(xs)
         self.axes.set_yscale(ys)
         #self.ticker = matplotlib.ticker.LogLocator(subs=[0.25, 0.5, 0.75, 1])

@@ -181,6 +181,7 @@ class PlotPage(wx.Panel):
     def redraw(self, *args):
         self.UpdateCanvas()
 
+    # These should be done with better DRY style
     def OnEditTitle(self, event):
         curTitle = self.figure.axes[-1].title.get_text()
         dlg = wx.TextEntryDialog(
@@ -192,7 +193,6 @@ class PlotPage(wx.Panel):
         self.figure_canvas.draw()
 
     def OnEditLegend(self, event):
-        curTitle = self.figure.axes[-1].title.get_text()
         try:
             curLegend = self.plot.colorbar.ax.yaxis.get_label().get_text()
         except:
@@ -202,6 +202,32 @@ class PlotPage(wx.Panel):
                 'Change Legend?', curLegend)
         if dlg.ShowModal() == wx.ID_OK:
             self.plot.colorbar.set_label(dlg.GetValue())
+        dlg.Destroy()
+        self.figure_canvas.draw()
+
+    def OnEditXLabel(self, event):
+        try:
+            curXLabel = self.plot.axis.xaxis.get_label().get_text()
+        except:
+            curXLabel = ""
+        dlg = wx.TextEntryDialog(
+                self, 'New x-label?',
+                'Change x-label?', curXLabel)
+        if dlg.ShowModal() == wx.ID_OK:
+            self.plot.axes.set_xlabel(dlg.GetValue())
+        dlg.Destroy()
+        self.figure_canvas.draw()
+
+    def OnEditYLabel(self, event):
+        try:
+            curYLabel = self.plot.axis.yaxis.get_label().get_text()
+        except:
+            curYLabel = ""
+        dlg = wx.TextEntryDialog(
+                self, 'New y-label?',
+                'Change y-label?', curYLabel)
+        if dlg.ShowModal() == wx.ID_OK:
+            self.plot.axes.set_ylabel(dlg.GetValue())
         dlg.Destroy()
         self.figure_canvas.draw()
 
@@ -250,7 +276,9 @@ class PlotPage(wx.Panel):
             self.Bind(wx.EVT_MENU, self.OnColorMapChoice, item)
         self.popupmenu.AppendMenu(-1, "Edit Properties", self.editprops)
         dd = [('Edit Legend',self.OnEditLegend),
-              ('Edit Title',self.OnEditTitle)]
+              ('Edit Title',self.OnEditTitle),
+              ('Edit x-label',self.OnEditXLabel),
+              ('Edit y-label',self.OnEditYLabel)]
         for title, func in dd:
             ii = self.editprops.Append(-1, title)
             self.Bind(wx.EVT_MENU, func, ii)
@@ -737,6 +765,24 @@ class PhasePlotPage(PlotPage):
         W = self.FieldW.GetStringSelection()
         self.plot = be.PhasePlot(self.dataObject, [X,Y,Z], weight = W,
                                  figure = self.figure, axes = self.axes)
+
+    def UpdateStatusBar(self, event):
+        #print event.x, event.y
+        if event.inaxes:
+            if not hasattr(self.plot, 'pix'): return
+            xp, yp = event.xdata, event.ydata
+            xn = self.FieldX.StringSelection
+            yn = self.FieldY.StringSelection
+            vn = self.FieldZ.StringSelection
+            self.statusBar.SetStatusText("%s = %0.5e" % (xn, xp), 0)
+            self.statusBar.SetStatusText("%s = %0.5e" % (yn, yp), 1)
+            self.statusBar.SetStatusText("%s = %0.5e" % \
+                                        (vn, self.GetDataValue(xp,yp)), 2)
+
+    def GetDataValue(self, x, y):
+        xi = na.digitize(na.array([x]), self.plot.x_bins)-1
+        yi = na.digitize(na.array([y]), self.plot.y_bins)-1
+        return self.plot.vals[yi, xi]
 
     def switch_weight(self, event):
         self.plot.switch_weight(event.String)

@@ -30,14 +30,14 @@ import ConfigParser, os, os.path, types
 
 ytcfgDefaults = {
     "fido":{
-        'RunDir': os.path.join(os.getenv("HOME"),'EnzoRuns'),\
-        'WorkDir': os.path.join('/usr/work/', os.getenv("USER")), \
-        'WaitBetween':'5', \
-        'OtherFiles':'rates.out,cool_rates.out',\
-        'NewOutputCreated':'newOutput',\
-        'GlobPatterns':'*.hierarchy,*.dir', \
+        'RunDir': os.path.join(os.getenv("HOME"),'EnzoRuns'),
+        'WorkDir': os.path.join('/usr/work/', os.getenv("USER")),
+        'WaitBetween':'5',
+        'OtherFiles':'rates.out,cool_rates.out',
+        'NewOutputCreated':'newOutput',
+        'GlobPatterns':'*.hierarchy,*.dir',
         'NewDirectoryPattern':'%s.dir'
-        },\
+        },
     "reason":{
         'width':"600",
         'height':"600",
@@ -45,23 +45,24 @@ ytcfgDefaults = {
         },
     "SWIG":{
         'EnzoInterfacePath':'/usr/work/mturk/local/lib/python2.5/site-packages',
-        },\
+        },
     "lagos":{
         'ReconstructHierarchy': 'False',
         'serialize' : 'True',
         },
     "yt":{
-        'LogFile': '1', \
-        'LogLevel': '20', \
-        'unifiedlogfile': '1', \
-        'User':os.getenv("USER"), \
-        'timefunctions':'False'
-         }, \
+        'LogFile': '1',
+        'LogLevel': '20',
+        'unifiedlogfile': '1',
+        'User':os.getenv("USER"),
+        'timefunctions':'False',
+        'inGui':'False',
+         },
     "raven":{
-        'ImagePath':".", \
-        'ImageSkel': '%(bn)s_%(width)010i_%(unit)s',\
-        'backend': 'MPL'\
-        } \
+        'ImagePath':".",
+        'ImageSkel': '%(bn)s_%(width)010i_%(unit)s',
+        'backend': 'MPL'
+        } 
     }
 
 class YTConfigParser(ConfigParser.ConfigParser):
