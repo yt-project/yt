@@ -18,12 +18,12 @@ opportunity to ditch numarray.
   it under the terms of the GNU General Public License as published by
   the Free Software Foundation; either version 3 of the License, or
   (at your option) any later version.
-  
+
   This program is distributed in the hope that it will be useful,
   but WITHOUT ANY WARRANTY; without even the implied warranty of
   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
   GNU General Public License for more details.
-  
+
   You should have received a copy of the GNU General Public License
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
@@ -41,7 +41,7 @@ u_numarray = False
 nT = ArrayNumTypes()
 
 myTypes = [ 'Complex128',  'Bool', 'Int32', 'Complex64', 'UInt16', 'Float32',
-            'Int64', 'UInt8',  'Int8', 'Complex32',  'UInt64', 'Float64', 
+            'Int64', 'UInt8',  'Int8', 'Complex32',  'UInt64', 'Float64',
             'UInt32', 'Float128', 'Int16']
 
 import numpy as na
@@ -54,8 +54,8 @@ import scipy.weave as weave
 from scipy.weave import converters
 
 u_numpy = True
-for type in myTypes:
-    setattr(nT, type, na.typeNA[type])
+for atype in myTypes:
+    setattr(nT, atype, na.typeNA[atype])
 
 # Now define convenience functions
 
@@ -67,6 +67,6 @@ def blankRecordArray(desc, elements):
     This seems like it should be in the numpy distribution...
     """
     blanks = []
-    for type in desc['formats']:
-        blanks.append(na.zeros(elements, dtype=type))
+    for atype in desc['formats']:
+        blanks.append(na.zeros(elements, dtype=atype))
     return rec.fromarrays(blanks, **desc)

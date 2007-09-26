@@ -13,12 +13,12 @@ Main application for Reason.  Includes the basic window outline.
   it under the terms of the GNU General Public License as published by
   the Free Software Foundation; either version 3 of the License, or
   (at your option) any later version.
-  
+
   This program is distributed in the hope that it will be useful,
   but WITHOUT ANY WARRANTY; without even the implied warranty of
   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
   GNU General Public License for more details.
-  
+
   You should have received a copy of the GNU General Public License
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
@@ -27,6 +27,12 @@ Main application for Reason.  Includes the basic window outline.
 from yt.reason import *
 
 _StaticOutputMenuItems = ["proj","slice"]
+try:
+    vtk
+    _StaticOutputMenuItems.append("vr")
+except:
+    pass
+
 _SphereObjectMenuItems = ["phase"]
 _ProjObjectMenuItems = []
 _SliceObjectMenuItems = []
@@ -69,7 +75,7 @@ class ReasonMainWindow(wx.Frame):
         self.SetupPopupMenu()
         self.SetupToolBar()
         self.SetupDataTree()
-        
+
         self.statusBar = self.CreateStatusBar(4, 0)
 
         self.__set_properties()
@@ -103,7 +109,7 @@ class ReasonMainWindow(wx.Frame):
         menuBar = wx.MenuBar()
         fileMenu = wx.Menu()
         menuBar.Append(fileMenu, "File")
-        
+
         # Set up IDs for event binding
 
         openHierarchy = fileMenu.Append(-1, "Open Hierarchy")
@@ -125,10 +131,12 @@ class ReasonMainWindow(wx.Frame):
         self.PopupMenuIds["slice"] = self.PopupMenu.Append(-1, "Slice")
         self.PopupMenuIds["proj"] = self.PopupMenu.Append(-1, "Project")
         self.PopupMenuIds["phase"] = self.PopupMenu.Append(-1, "Phase Plot")
+        self.PopupMenuIds["vr"] = self.PopupMenu.Append(-1, "Volume Render")
 
         self.Bind(wx.EVT_MENU, self.AddSlice, self.PopupMenuIds["slice"])
         self.Bind(wx.EVT_MENU, self.AddProj, self.PopupMenuIds["proj"])
         self.Bind(wx.EVT_MENU, self.AddPhase, self.PopupMenuIds["phase"])
+        self.Bind(wx.EVT_MENU, self.AddVR, self.PopupMenuIds["vr"])
 
     def SetupToolBar(self):
         # Tool Bar
@@ -255,7 +263,7 @@ class ReasonMainWindow(wx.Frame):
                 tt = str(fido.getParameterLine(fn,
                              "InitialTime"))
                 tid = wx.TreeItemData((fn, tt, z, _StaticOutputMenuItems))
-                ni = self.dataList.AppendItem(cRoot, 
+                ni = self.dataList.AppendItem(cRoot,
                     "%s" % (os.path.basename(fn)), data=tid)
 
     def OnExit(self, event):
@@ -313,7 +321,7 @@ class ReasonMainWindow(wx.Frame):
         for o in self.GetOutputs():
             t = "Phase Plot"
             self.windows.append( \
-                PhasePlotPage(parent=self.plotPanel.nb, 
+                PhasePlotPage(parent=self.plotPanel.nb,
                               statusBar=self.statusBar,
                               dataObject = o,
                               CreationID = MyID,
@@ -322,6 +330,29 @@ class ReasonMainWindow(wx.Frame):
             self.plotPanel.AddPlot(self.windows[-1], t, MyID)
             print "Adding with ID:", MyID
         self.interpreter.shell.push("\n")
+
+    def AddVR(self, event=None):
+        MyID = wx.NewId()
+        self.interpreter.shell.writeOut("\n")
+        for o in self.GetOutputs():
+            field = "Density"
+            if not field:
+                continue
+            width = 1.0
+            unit = "1"
+            #t = "%s - Volume Render - %s" % (o.basename, ax)
+            t = "%s - Volume Render" % (o.basename)
+            self.interpreter.shell.writeOut("Adding vr of %s\n" % (o))
+            self.windows.append( \
+                VolRenderPage(parent=self.plotPanel.nb,
+                              statusBar=self.statusBar,
+                              outputfile = o,
+                              mw = self, CreationID=MyID))
+            self.plotPanel.AddPlot(self.windows[-1], t, MyID)
+            print "Adding with ID:", MyID
+        for w in self.windows[-3:]: w.ChangeWidth(1,'1')
+        self.interpreter.shell.push("\n")
+
 
     def AddProj(self, event=None):
         MyID = wx.NewId()
@@ -336,7 +367,7 @@ class ReasonMainWindow(wx.Frame):
                 t = "%s - Projection - %s" % (o.basename, ax)
                 self.interpreter.shell.writeOut("Adding %s projection of %s\n" % (ax, o))
                 self.windows.append( \
-                    ProjPlotPage(parent=self.plotPanel.nb, 
+                    ProjPlotPage(parent=self.plotPanel.nb,
                                   statusBar=self.statusBar,
                                   outputfile = o,
                                   axis=i,
@@ -363,7 +394,7 @@ class ReasonMainWindow(wx.Frame):
                 t = "%s - Slice - %s" % (o.basename, ax)
                 self.interpreter.shell.writeOut("Adding %s slice of %s\n" % (ax, o))
                 self.windows.append( \
-                    SlicePlotPage(parent=self.plotPanel.nb, 
+                    SlicePlotPage(parent=self.plotPanel.nb,
                                   statusBar=self.statusBar,
                                   outputfile = o,
                                   axis=i,
@@ -393,20 +424,3 @@ class ReasonMainWindow(wx.Frame):
             oss.append(ii)
             print "Got output:", ii
         return oss
-
-class ReasonApp(wx.App):
-    def OnInit(self):
-        myPath = os.path.dirname(os.path.abspath(__file__))
-        img = os.path.join(myPath, "reason_splash.png")
-        wx.InitAllImageHandlers()
-        bmp = wx.Image(img, wx.BITMAP_TYPE_PNG).ConvertToBitmap()
-        wx.SplashScreen(bmp,
-                        wx.SPLASH_CENTRE_ON_PARENT | wx.SPLASH_TIMEOUT,
-                        3000, None, -1)
-        wx.Yield()
-        frame_1 = ReasonMainWindow(None, -1)
-        frame_1.Center()
-        self.SetTopWindow(frame_1)
-        frame_1.Show()
-        return True
-

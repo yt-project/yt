@@ -15,12 +15,12 @@ data that is "hidden" in deeper levels of refinement.
   it under the terms of the GNU General Public License as published by
   the Free Software Foundation; either version 3 of the License, or
   (at your option) any later version.
-  
+
   This program is distributed in the hope that it will be useful,
   but WITHOUT ANY WARRANTY; without even the implied warranty of
   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
   GNU General Public License for more details.
-  
+
   You should have received a copy of the GNU General Public License
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
@@ -59,14 +59,13 @@ class ClassicThreePane:
 def ClusterFilePlot(cls, x, y, xlog=None, ylog=None, fig=None, filename=None,
                     format="png", xbounds = None, ybounds = None):
     """
-    
+
     """
     if not fig:
         from matplotlib.backends.backend_agg import FigureCanvasAgg
         fig = matplotlib.figure.Figure(figsize=(8,8))
         canvas = FigureCanvasAgg(fig)
     ax = fig.add_subplot(111)
-    #fig.subplots_adjust(hspace=0,wspace=0,bottom=0.0, top=1.0, left=0.0, right=1.0)
     if not iterable(cls):
         cls = [cls]
     if xlog == None:
@@ -116,7 +115,8 @@ axisFieldDict = {'X':'Field1', 'Y':'Field2', 'Z':'Field3'}
 def Initialize(*args, **kwargs):
     engineVals["initialized"] = True
     if not kwargs.has_key("canvas"):
-        from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
+        from matplotlib.backends.backend_agg \
+                import FigureCanvasAgg as FigureCanvas
     else:
         FigureCanvas = kwargs["canvas"]
     engineVals["canvas"] = FigureCanvas
@@ -178,9 +178,15 @@ class RavenPlot:
         self["GeneratedAt"] = self.data.hierarchy["CurrentTimeIdentifier"]
         return fn
 
+    def redraw_image(self):
+        pass
+
+    def generatePrefix(self):
+        pass
+
     def set_xlim(self, xmin, xmax):
         self.axes.set_xlim(xmin, xmax)
-        
+
     def set_ylim(self, ymin, ymax):
         self.axes.set_ylim(ymin, ymax)
 
@@ -211,10 +217,12 @@ class RavenPlot:
 
 class VMPlot(RavenPlot):
 
-    def __init__(self, data, field, figure = None, axes = None, useColorBar = True, size=(800,800)):
+    def __init__(self, data, field, figure = None, axes = None,
+                 useColorBar = True, size=(800,800)):
         fields = ['X', 'Y', field, 'X width', 'Y width']
         RavenPlot.__init__(self, data, fields, figure, axes)
-        self.figure.subplots_adjust(hspace=0,wspace=0,bottom=0.0, top=1.0, left=0.0, right=1.0)
+        self.figure.subplots_adjust(hspace=0, wspace=0, bottom=0.0,
+                                    top=1.0, left=0.0, right=1.0)
         self.xmin = 0.0
         self.ymin = 0.0
         self.xmax = 1.0
@@ -229,8 +237,8 @@ class VMPlot(RavenPlot):
         temparray = na.ones(size)
         self.size = size
         self.image = \
-            self.axes.imshow(temparray, interpolation='nearest', norm = self.norm,
-                            aspect=1.0, picker=True)
+            self.axes.imshow(temparray, interpolation='nearest',
+                             norm = self.norm, aspect=1.0, picker=True)
         self.axisNames["Z"] = field
         self.axes.set_xticks(())
         self.axes.set_yticks(())
@@ -287,7 +295,7 @@ class VMPlot(RavenPlot):
 
     def set_xlim(self, xmin, xmax):
         self.xlim = (xmin,xmax)
-        
+
     def set_ylim(self, ymin, ymax):
         self.ylim = (ymin,ymax)
 
@@ -372,11 +380,10 @@ class ProjectionPlot(VMPlot):
 
     def __getitem__(self, item):
         return self.data[item] * \
-                    self.data.hierarchy.parameterFile.conversionFactors[item] * \
-                    self.data.hierarchy.parameterFile.units["cm"]
+                  self.data.hierarchy.parameterFile.conversionFactors[item] * \
+                  self.data.hierarchy.parameterFile.units["cm"]
 
 class PhasePlot(RavenPlot):
-    #def __init__(self, data, fields,  width=None, unit=None, bins = 100,cmap=None):
     def __init__(self, data, fields, width=None, unit=None, bins=100,
                  weight=None, ticker=None, cmap=None, figure=None, axes=None):
         self.typeName = "Phase"
@@ -391,8 +398,10 @@ class PhasePlot(RavenPlot):
         self.axisNames["Y"] = fields[1]
         self.axisNames["Z"] = fields[2]
 
-        logIt, self.x_v, self.x_bins = self.setup_bins(self.fields[0], self.axes.set_xscale)
-        logIt, self.y_v, self.y_bins = self.setup_bins(self.fields[1], self.axes.set_yscale)
+        logIt, self.x_v, self.x_bins = self.setup_bins(self.fields[0],
+                                                       self.axes.set_xscale)
+        logIt, self.y_v, self.y_bins = self.setup_bins(self.fields[1],
+                                                       self.axes.set_yscale)
         self.log_z, self.z_v, self.z_bins = self.setup_bins(self.fields[2])
 
         self.colorbar = None
@@ -402,7 +411,9 @@ class PhasePlot(RavenPlot):
         v = self.data[field]
         if field in lagos.log_fields or lagos.fieldInfo[field][2]:
             logIt = True
-            bins = na.logspace(na.log10(v.min()*0.99),na.log10(v.max()*1.01),num=self.bins)
+            bins = na.logspace(na.log10(v.min()*0.99),
+                               na.log10(v.max()*1.01),
+                               num=self.bins)
             if func: func('log')
         else:
             bins = na.linspace(v.min()*0.99,v.max()*1.01,num=self.bins)
@@ -423,12 +434,14 @@ class PhasePlot(RavenPlot):
     def switch_x(self, field):
         self.fields[0] = field
         self.axisNames["X"] = field
-        logIt, self.x_v, self.x_bins = self.setup_bins(self.fields[0], self.axes.set_xscale)
+        logIt, self.x_v, self.x_bins = self.setup_bins(self.fields[0],
+                                                       self.axes.set_xscale)
 
     def switch_y(self, field):
         self.fields[1] = field
         self.axisNames["Y"] = field
-        logIt, self.y_v, self.y_bins = self.setup_bins(self.fields[1], self.axes.set_yscale)
+        logIt, self.y_v, self.y_bins = self.setup_bins(self.fields[1],
+                                                       self.axes.set_yscale)
 
     def switch_z(self, field):
         self.fields[2] = field
@@ -483,7 +496,7 @@ class PhasePlot(RavenPlot):
                 j,i = x_bins_ids[k]-1, y_bins_ids[k]-1
                 weight_vals[i,j] += weight[k]
                 vals[i,j] += self.z_v[k]*weight[k]
-        
+
         vi = na.where(used_bin == False)
         vit = na.where(used_bin == True)
         if self.weight != None: vals = vals / weight_vals
@@ -494,12 +507,14 @@ class PhasePlot(RavenPlot):
         if self.log_z:
             # We want smallest non-zero vmin
             vmin=vals[vals>0.0].min()
-            self.norm=matplotlib.colors.LogNorm(vmin=vmin, vmax=vmax, clip=False)
+            self.norm=matplotlib.colors.LogNorm(vmin=vmin, vmax=vmax,
+                                                clip=False)
             location_of_ticks = na.logspace(vmin*1.1, vmax*0.9, num=6)
             self.ticker = matplotlib.ticker.LogLocator()
         else:
             self.ticker = matplotlib.ticker.MaxNLocator()
-            self.norm=matplotlib.colors.Normalize(vmin=vmin, vmax=vmax, clip=False)
+            self.norm=matplotlib.colors.Normalize(vmin=vmin, vmax=vmax,
+                                                  clip=False)
         if self.cmap == None:
             self.cmap = matplotlib.cm.get_cmap()
         self.cmap.set_bad("w")
@@ -516,7 +531,7 @@ class PhasePlot(RavenPlot):
         self.axes.set_xscale(xs)
         self.axes.set_yscale(ys)
         #self.ticker = matplotlib.ticker.LogLocator(subs=[0.25, 0.5, 0.75, 1])
-        
+
         if self.colorbar == None:
             self.colorbar = self.figure.colorbar(self.image, \
                                                  extend='neither', \

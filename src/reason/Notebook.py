@@ -13,12 +13,12 @@ Notebook pages and main plotpanel classes.
   it under the terms of the GNU General Public License as published by
   the Free Software Foundation; either version 3 of the License, or
   (at your option) any later version.
-  
+
   This program is distributed in the hope that it will be useful,
   but WITHOUT ANY WARRANTY; without even the implied warranty of
   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
   GNU General Public License for more details.
-  
+
   You should have received a copy of the GNU General Public License
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
@@ -79,7 +79,7 @@ class PlotPanel(wx.Panel):
         #if not hasattr(page,'outputfile'): return
         cti = page.CreationID
         toSubscribe = []
-        if self.LinkPlots: 
+        if self.LinkPlots:
             for i,p in [(i, self.nb.GetPage(i)) for i in range(self.nb.GetPageCount())]:
                 try:
                     if p.CreationID == cti: toSubscribe.append(p)
@@ -329,7 +329,7 @@ class VMPlotPage(PlotPage):
         self.axes.set_yticks(())
         self.axes.set_ylabel("")
         self.axes.set_xlabel("")
-        
+
     def SetupControls(self):
 
         self.widthSlider = wx.Slider(self, -1, wx.SL_HORIZONTAL | wx.SL_AUTOTICKS)
@@ -412,7 +412,7 @@ class VMPlotPage(PlotPage):
     def ConvertPositionToDataPosition(self, xp, yp):
         #print "CONVERT", xp, yp
         #if not self.figure.axes[0].in_axes(xp,yp): return None, None
-        #xp, yp = self.figure.axes[0].transData.inverse_xy_tup((xp,yp)) 
+        #xp, yp = self.figure.axes[0].transData.inverse_xy_tup((xp,yp))
         #print xp, yp
         dx = (self.plot.xlim[1] - self.plot.xlim[0])/self.plot.pix[0]
         dy = (self.plot.ylim[1] - self.plot.ylim[0])/self.plot.pix[1]
@@ -563,7 +563,7 @@ class VMPlotPage(PlotPage):
 
 class SlicePlotPage(VMPlotPage):
     def makePlot(self):
-        self.data = self.outputfile.hierarchy.slice(self.axis, 
+        self.data = self.outputfile.hierarchy.slice(self.axis,
                                     self.center[self.axis], self.field, self.center)
         self.plot = be.SlicePlot(self.data, self.field, figure=self.figure, axes=self.axes)
 
@@ -573,10 +573,10 @@ class SlicePlotPage(VMPlotPage):
         derivedFields = lagos.fieldInfo.keys()
         derivedFields.sort()
         return nativeFields + [""] + derivedFields
-        
+
 class ProjPlotPage(VMPlotPage):
     def makePlot(self):
-        self.data = self.outputfile.hierarchy.proj(self.axis, 
+        self.data = self.outputfile.hierarchy.proj(self.axis,
                                    self.field, weightField=None, center=self.center)
         self.plot = be.ProjectionPlot(self.data, self.field, figure=self.figure, axes=self.axes)
 
@@ -590,6 +590,92 @@ class ProjPlotPage(VMPlotPage):
 
     def QueryFields(self):
         return [self.field]
+
+class VTKVolRenderPage(wx.Panel):
+    """
+    This class sort of works, in that it sets up the context and puts things
+    there, but it does not (in my experience) create a usable user experience.
+    """
+    def __init__(self, parent, statusBar, outputfile, mw=None, CreationID = -1):
+        self.outputfile = outputfile
+        wx.Panel.__init__(self, parent)
+        self.SetupControls()
+        self.DoLayout()
+
+    def SetupControls(self):
+        self.Interactor = wxVTKRenderWindowInteractor(self, -1)
+        self.Interactor.Enable(1)
+
+        self.ren = vtk.vtkRenderer()
+        self.SetupVTK()
+        self.Interactor.GetRenderWindow().AddRenderer(self.ren)
+
+    def SetupVTK(self):
+        g = self.outputfile.h.grids[0]
+
+        a,b,c = na.indices(g.ActiveDimensions)
+        k = na.array([a.ravel(),b.ravel(),c.ravel()]).transpose()
+        self.k = k
+        del a, b, c
+        self.pp = ConvertToVTKFloatArray(k)
+        self.points = vtk.vtkPoints()
+        self.points.SetNumberOfPoints(k.shape[0])
+        print "NP:", self.points.GetNumberOfPoints(), k.shape
+        self.points.SetData(self.pp)
+        print "NP:", self.points.GetNumberOfPoints(), k.shape
+
+        self.fa = ConvertToVTKFloatArray(na.log10(g["Density"].ravel()))
+        sGrid = vtk.vtkStructuredGrid()
+#        sGrid = vtk.vtkStructuredPoints()
+        sGrid.SetDimensions(tuple(g.ActiveDimensions))
+
+        sGrid.SetPoints(self.points)
+        sGrid.GetPointData().SetScalars(self.fa)
+
+        self.myPipe = vtk.vtkDataSetTriangleFilter()
+        self.myGrid = sGrid
+        self.myPipe.SetInput(self.myGrid)
+        #self.myPipe = sGrid
+
+#        self.myMapper = vtk.vtkVolumeTextureMapper2D()
+        self.myMapper = vtk.vtkProjectedTetrahedraMapper()
+        self.myUnGrid = self.myPipe.GetOutput()
+        self.myMapper.SetInput(self.myUnGrid)
+#        self.myMapper.SetInput(self.myGrid)
+
+        # Create transfer mapping scalar value to opacity
+        self.opacityTransferFunction = vtk.vtkPiecewiseFunction()
+        self.opacityTransferFunction.AddPoint(20, 0.0)
+        self.opacityTransferFunction.AddPoint(255, 0.2)
+
+        # Create transfer mapping scalar value to color
+        self.colorTransferFunction = vtk.vtkColorTransferFunction()
+        self.colorTransferFunction.AddRGBPoint(0.0, 0.0, 0.0, 0.0)
+        self.colorTransferFunction.AddRGBPoint(64.0, 1.0, 0.0, 0.0)
+        self.colorTransferFunction.AddRGBPoint(128.0, 0.0, 0.0, 1.0)
+        self.colorTransferFunction.AddRGBPoint(192.0, 0.0, 1.0, 0.0)
+        self.colorTransferFunction.AddRGBPoint(255.0, 0.0, 0.2, 0.0)
+
+        # The property describes how the data will look
+        self.volumeProperty = vtk.vtkVolumeProperty()
+        self.volumeProperty.SetColor(self.colorTransferFunction)
+        self.volumeProperty.SetScalarOpacity(self.opacityTransferFunction)
+
+        # The mapper knows how to render the data
+        self.volume = vtk.vtkVolume()
+        self.volume.SetMapper(self.myMapper)
+        self.volume.SetProperty(self.volumeProperty)
+
+        self.ren.AddVolume(self.volume)
+        print "NP:", self.points.GetNumberOfPoints()
+
+    def DoLayout(self):
+        self.MainSizer = wx.BoxSizer(wx.VERTICAL)
+        self.MainSizer.Add(self.Interactor, 1, wx.EXPAND)
+        self.SetSizer(self.MainSizer)
+
+    def ChangeWidth(self, *args, **kwargs):
+        pass
 
 class PhasePlotPage(PlotPage):
     def __init__(self, parent, statusBar, dataObject, mw=None, CreationID = -1):
@@ -674,6 +760,29 @@ class PhasePlotPage(PlotPage):
             self.figure_canvas.draw()
         #else: print "Opting not to update canvas"
 
+class TestingPage(wx.Panel):
+    def __init__(self, *args, **kwargs):
+        wx.Panel.__init__(self,*args,**kwargs)
+        from wxVTKRenderWindowInteractor import wxVTKRenderWindowInteractor
+        self.Interactor = wxVTKRenderWindowInteractor(self, -1)
+        self.MainSizer = wx.BoxSizer(wx.VERTICAL)
+        self.MainSizer.Add(self.Interactor, 1, wx.EXPAND)
+        self.SetSizer(self.MainSizer)
+        self.Layout()
+
+        self.Interactor.Enable(1)
+        #self.Interactor.AddObserver("ExitEvent", lambda o,e,f=frame:f.Close())
+
+        import vtk
+        ren = vtk.vtkRenderer()
+        self.Interactor.GetRenderWindow().AddRenderer(ren)
+        cone = vtk.vtkConeSource()
+        cone.SetResolution(8)
+        coneMapper = vtk.vtkPolyDataMapper()
+        coneMapper.SetInput(cone.GetOutput())
+        coneActor=vtk.vtkActor()
+        coneActor.SetMapper(coneMapper)
+        ren.AddActor(coneActor)
 
 if __name__ == "__main__":
     app = ReasonApp(0)

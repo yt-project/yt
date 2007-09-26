@@ -13,12 +13,12 @@ Standalone windows and other bits that don't fit elsewhere.
   it under the terms of the GNU General Public License as published by
   the Free Software Foundation; either version 3 of the License, or
   (at your option) any later version.
-  
+
   This program is distributed in the hope that it will be useful,
   but WITHOUT ANY WARRANTY; without even the implied warranty of
   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
   GNU General Public License for more details.
-  
+
   You should have received a copy of the GNU General Public License
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
@@ -184,3 +184,16 @@ class FunctionInspectorPage(wx.Panel):
 
         self.SetSizer(self.MainSizer)
         self.Layout()
+
+def ConvertToVTKFloatArray(toConvert):
+    nComp = 1
+    print "Converting",toConvert.shape
+    if len(toConvert.shape) > 1: nComp = toConvert.shape[1]
+    nVals = toConvert.shape[0]
+    stringValue = toConvert.astype('float32').tostring()
+    floatArray = vtk.vtkFloatArray()
+    floatArray.SetNumberOfComponents(nComp)
+    floatArray.SetVoidArray(stringValue, nVals*nComp, 1)
+    floatArrayToReturn = vtk.vtkFloatArray()
+    floatArrayToReturn.DeepCopy(floatArray)
+    return floatArrayToReturn
