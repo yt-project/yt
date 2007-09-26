@@ -13,12 +13,12 @@ The strings we need for weaving.
   it under the terms of the GNU General Public License as published by
   the Free Software Foundation; either version 3 of the License, or
   (at your option) any later version.
-  
+
   This program is distributed in the hope that it will be useful,
   but WITHOUT ANY WARRANTY; without even the implied warranty of
   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
   GNU General Public License for more details.
-  
+
   You should have received a copy of the GNU General Public License
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
@@ -117,5 +117,38 @@ for (ci=0; ci<cpoints; ci++) {
     }
 }
 */
+
+"""
+
+DataCubeRefineCoarseData = \
+"""
+
+// For every cell in fieldData, there are (dx_c / dx_f)**3.0 cells that it maps
+// to in our cube, were dx_f is the fine resolution and dx_c is the coarse
+// resolution.
+
+int bx_f, by_f, bz_f, xc, yc, zc, xf, yf, zf;
+
+for (xc = 0; xc < nxc; xc++)
+  for (yc = 0; yc < nyc; yc++)
+    for (zc = 0; zc < nzc; zc++) {
+        // Now we have a cell.  What are the left edges?
+        bx_f = (int) floorl((leftEdgeCoarse(0)+dx_c*xc - cubeLeftEdge(0))/dx_f);
+        by_f = (int) floorl((leftEdgeCoarse(1)+dy_c*yc - cubeLeftEdge(1))/dy_f);
+        bz_f = (int) floorl((leftEdgeCoarse(2)+dz_c*zc - cubeLeftEdge(2))/dz_f);
+        if ((bx_f + rf > nxf) || (bx_f + rf < 0)
+        ||  (by_f + rf > nyf) || (by_f + rf < 0)
+        ||  (bz_f + rf > nzf) || (bz_f + rf < 0)) continue;
+        for (xf = bx_f; xf < bx_f + rf ; xf++) {
+          if (xf < 0 || xf > nxf) continue;
+          for (yf = by_f; yf < by_f + rf ; yf++) {
+            if (yf < 0 || yf > nyf) continue;
+            for (zf = bz_f; zf < bz_f + rf ; zf++) {
+              if (zf < 0 || zf > nzf) continue;
+              cubeData(xf,yf,zf) = fieldData(xc,yc,zc);
+            }
+          }
+        }
+    }
 
 """
