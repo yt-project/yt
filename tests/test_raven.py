@@ -55,5 +55,22 @@ class TestRaven(unittest.TestCase):
         self.pc.addTwoPhaseSphere(1.0,'1',["Temperature","Density"],center=self.c)
         self.DoSave()
 
+    def testCallbacksOnSlices(self):
+        # We test a couple things here
+        # Add callbacks, then remove one, then do the plot-saving
+        # Both types of callback should be called here
+        for ax in range(3):
+            self.pc.addSlice("Density", 0)
+            x,y = yt.raven.axis_labels[ax]
+            v1 = "%s-velocity" % (x)
+            v2 = "%s-velocity" % (y)
+            qi = self.pc.plots[-1].addCallback(yt.raven.be.quiverCallback(v1,v2,ax,32))
+            ti = self.pc.plots[-1].addCallback(yt.raven.be.contourCallback("Temperature",
+                                               ax, ncont=3, factor=10))
+            gi = self.pc.plots[-1].addCallback(yt.raven.be.contourCallback("Gas_Energy",
+                                               ax, ncont=3, factor=10))
+            self.pc.plots[-1].removeCallback(gi)
+        self.DoSave()
+
 if __name__ == "__main__":
     unittest.main()

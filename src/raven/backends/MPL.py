@@ -206,7 +206,7 @@ class RavenPlot:
 
     def addCallback(self, func):
         self._callback.append(func)
-        return len(self._callback)
+        return len(self._callback)-1
 
     def removeCallback(self, id):
         self._callback[id] = lambda a: None
