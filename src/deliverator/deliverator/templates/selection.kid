@@ -56,7 +56,7 @@ sendXMLHttpRequest(req,data).addCallback(update_count_callback);
     attrs={'rid':rid}
     ?>
     <div id="formselect">
-      ${form(action="gallery", attrs=attrs)}
+      ${form(action=action, attrs=attrs)}
     </div>
   </div>
 </body>

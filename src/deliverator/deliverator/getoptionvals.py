@@ -3,20 +3,18 @@ from sqlobject import sqlbuilder
 import cherrypy
 import os.path
 
-def getValsRID():
+def getRID():
     if cherrypy.request.params.has_key("rid") == True:
-        t = int(cherrypy.request.params['rid'])
+        return int(cherrypy.request.params['rid'])
     else:
-        t = 0
-    return t
+        print cherrypy.request.path
+        return int(os.path.basename(cherrypy.request.path))
 
 def getValsCol(column):
     i = sqlbuilder.table.Image
     c = sqlbuilder.table.Image.__getattr__(column)
-    if cherrypy.request.params.has_key("rid") == True:
-        rid = int(cherrypy.request.params['rid'])
-        where = (i.enzorun_ID == rid)
-    else: where = None
+    rid = getRID()
+    where = (i.enzorun_ID == rid)
     a = sqlbuilder.Select(c, where=where, distinct=True)
     a = model.Image._connection.queryAll(sqlbuilder.sqlrepr(a))
     a = map(str, [r[0] for r in a])
@@ -25,10 +23,7 @@ def getValsCol(column):
 
 def getValsParameterFile():
     i = sqlbuilder.table.ParameterFile
-    if cherrypy.request.params.has_key("rid") == True:
-        rid = int(cherrypy.request.params['rid'])
-        a = model.ParameterFile.select(i.enzorun_ID == rid, distinct=True)
-    else: a = model.ParameterFile.select()
+    a = model.ParameterFile.select(i.enzorun_ID == getRID(), distinct=True)
     k = [(rec.id,os.path.basename(str(rec.FileName))) for rec in a]
     k.sort()
     return k

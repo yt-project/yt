@@ -101,6 +101,19 @@ class RunSelectionForm(widgets.WidgetsList):
         options = getValsRuns, default=None, name="rid")
 
 
+class SelectImagesController:
+    @expose(template="deliverator.templates.selection")
+    def default(self, *a, **kw):
+        if kw.has_key("rid"):
+            raise redirect("/Deliverator/selectImages/%s" % (kw['rid']))
+        else:
+            rid=int(a[0])
+            print "GOT RID:", rid
+        enzorunID = widgets.HiddenField(attrs={'value':rid}, name="enzorunID", defaults=None)
+        select_form = widgets.TableForm(fields = ImageSelectionForm(), hidden_fields=[enzorunID])
+        vals = {'form_enzorunID':rid}
+        return dict(form=select_form, action='/Deliverator/gallery', rid=rid, submit_text='Query', title='New Comment')
+
 class Root(controllers.RootController):
 
     @expose(template="deliverator.templates.login")
@@ -138,16 +151,7 @@ class Root(controllers.RootController):
     def index(self):
         return dict()
 
-    @expose(template="deliverator.templates.selection")
-    def selectImages(self, *a, **kw):
-        if kw.has_key("rid"):
-            rid=kw["rid"]
-        else:
-            raise redirect("/Deliverator/selectRun")
-        enzorunID = widgets.HiddenField(attrs={'value':rid}, name="enzorunID", defaults=None)
-        select_form = widgets.TableForm(fields = ImageSelectionForm(), hidden_fields=[enzorunID])
-        vals = {'form_enzorunID':rid}
-        return dict(form=select_form, action='gallery', rid=rid, submit_text='Query', title='New Comment')
+    selectImages = SelectImagesController()
 
     def generateQuery(self, data):
         def ensureList(v):
@@ -310,7 +314,13 @@ class Root(controllers.RootController):
         # We construct a list of Enzo Runs
         r = model.EnzoRun.select()
         select_form = widgets.TableForm(fields = RunSelectionForm())
-        return dict(form=select_form, action='selectImages', submit_text='Query', title='TITLE')
+        return dict(form=select_form, action='chooseRun', submit_text='Query', title='TITLE')
+
+    def chooseRun(self, *a, **kw):
+        if not kw.has_key('rid'):
+            raise redirect("/Deliverator/selectRun")
+        rid = kw['rid']
+        raise redirect("/Deliverator/selectImages/%s" % (rid))
 
     @expose(template="deliverator.templates.ajaxselectrun", allow_json=True)
     def ajaxselectrun(self, **data):
