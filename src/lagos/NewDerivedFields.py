@@ -3,9 +3,10 @@ from collections import defaultdict
 import numpy as na
 from math import pi
 
+mh = 1.67e-24
 fieldInfo = {}
 
-def AddField(name, function = None, **kwargs):
+def add_field(name, function = None, **kwargs):
     if function == None:
         if kwargs.has_key("function"):
             function = kwargs.pop("function")
@@ -39,56 +40,65 @@ class DerivedField:
         self.function = function
         self.validator = validator
         self.takeLog = takeLog
-    def GetValues(self, data):
+    def get_values(self, data):
         pass
-    def CheckAvailable(self, data):
+    def check_available(self, data):
         if self.validator != None:
             self.validator(self, data)
-    def GetMyDependencies(self):
+    def get_my_dependencies(self):
         pass
-    def GetAllDependencies(self):
+    def get_all_dependencies(self):
         pass
     def __call__(self, data):
         data[self.name] = self.function(self, data)
 
-def ValidateSpecies(species):
-    if not isinstance(species, types.ListType):
-        species = [species]
-    def CheckSpecies(data):
+class FieldValidator(object):
+    pass
+
+class ValidateSpecies(FieldValidator):
+    def __init__(self, species):
+        FieldValidator.__init__(self)
+        if not isinstance(species, types.ListType):
+            species = [species]
+        self.species = species
+    def __call__(self, data):
         for s in species:
             if not data.has_field(s): return False
         return True
 
-def ValidatePropery(prop):
-    if not isinstance(prop, types.ListType):
-        prop = [prop]
-    def CheckProperty(data):
+def ValidateProperty(FieldValidator):
+    def __init__(self, prop):
+        FieldValidator.__init__(self)
+        if not isinstance(prop, types.ListType):
+            prop = [prop]
+        self.prop = prop
+    def __call__(self, data):
         for p in prop:
             if not hasattr(data,p): return False
         return True
 
-speciesList = ["HI","HII","Electron",
+_speciesList = ["HI","HII","Electron",
                "HeI","HeII","HeIII",
                "H2I","H2II","HM",
                "DI","DII","HDI"]
-def _SpeciesFraction(field, data):
+def _SpeciesFractiospecies_fractionn(field, data):
     sp = field.name.split("_")[0]
     return data[sp]/data["Density"]
 for species in speciesList:
-    AddField("%s_Fraction" % species,
-             function=_SpeciesFraction,
+    add_field("%s_Fraction" % species,
+             function=_species_fraction,
              validator=ValidateSpecies("%s_Density" % species))
 
 def _SoundSpeed(field, data):
     return data.convert("x-velocity") * ( \
            data.params["Gamma"]*data["Pressure"] / \
            data["Density"] )**(1.0/2.0)
-AddField("SoundSpeed")
+add_field("SoundSpeed")
 
 def _MachNumber(field, data):
     """M{|v|/t_sound}"""
     return data["VelocityMagnitude"] / data["SoundSpeed"]
-AddField("MachNumber")
+add_field("MachNumber")
 
 def _VelocityMagnitude(field, data):
     """M{|v|}"""
@@ -96,18 +106,18 @@ def _VelocityMagnitude(field, data):
             data["x-velocity"]**2.0 + \
             data["y-velocity"]**2.0 + \
             data["z-velocity"]**2.0 )**(1.0/2.0))
-AddField("VelocityMagnitude", takeLog=False)
+add_field("VelocityMagnitude", takeLog=False)
 
 def _Pressure(field, data):
     """M{(Gamma-1.0)*rho*E}"""
     return (data.params["Gamma"] - 1.0) * \
            data["Density"] * data["Gas_Energy"]
-AddField("Pressure", validator=ValidateSpecies("Gas_Energy"))
+add_field("Pressure", validator=ValidateSpecies("Gas_Energy"))
 
 def _Entropy(field, data):
     return data["Density"]**(-2./3.) * \
            data["Temperature"]
-AddField("Entropy")
+add_field("Entropy")
 
 def _DynamicalTime(field, data):
     """
@@ -118,7 +128,7 @@ def _DynamicalTime(field, data):
     G = data.params["GravitationalConstant"]
     t_dyn_coeff = (3*pi/(16*G))**0.5 * data.convert("Time")
     return data["Density"]**(-1./2.) * t_dyn_coeff
-AddField("DynamicalTime")
+add_field("DynamicalTime")
 
 def _NumberDensity(field, data):
     # We can assume that we at least have Density
@@ -142,7 +152,7 @@ def _NumberDensity(field, data):
         fieldData += data["DII_Density"] / 2.0
         fieldData += data["HDI_Density"] / 3.0
     return fieldData * data.convert("Density") / mh
-AddField("NumberDensity")
+add_field("NumberDensity")
 
 
 

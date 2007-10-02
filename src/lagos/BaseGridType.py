@@ -13,12 +13,12 @@ Python-based grid handler, not to be confused with the SWIG-handler
   it under the terms of the GNU General Public License as published by
   the Free Software Foundation; either version 3 of the License, or
   (at your option) any later version.
-  
+
   This program is distributed in the hope that it will be useful,
   but WITHOUT ANY WARRANTY; without even the implied warranty of
   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
   GNU General Public License for more details.
-  
+
   You should have received a copy of the GNU General Public License
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
@@ -271,7 +271,7 @@ class EnzoGridBase:
 
         """
         # This is for making derived fields
-        # Note that all fields used for derivation are kept resident in memory: probably a 
+        # Note that all fields used for derivation are kept resident in memory: probably a
         # mistake, but it is expensive to do a lookup.  I will fix this later.
         #
         # Note that you can do a couple things: the suffices _Fraction and
@@ -502,3 +502,12 @@ class EnzoGridBase:
         self.myChildIndices = None
         self.coords = None
 
+    def retrieveGhostZones(self, nZones, fields):
+        # We will attempt this by creating a datacube that is exactly bigger
+        # than the grid by nZones*dx in each direction
+        newLeftEdge = self.LeftEdge - nZones * self.dx*1.001
+        newRightEdge = self.RightEdge + nZones * self.dx*1.001
+        # Something different needs to be done for the root grid, though
+        cube = dataCube(self.hierarchy.outputFile,
+                        newLeftEdge, newRightEdge, fields)
+        return cube
