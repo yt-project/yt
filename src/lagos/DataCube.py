@@ -26,6 +26,7 @@ become a fully-featured class, deriving from EnzoData.
 
 
 from yt.lagos import *
+from yt.progressbar import *
 from math import log10
 import types
 
@@ -45,13 +46,29 @@ def dataCube(pf, LE, RE, cubeDim, fields):
     RE = na.array(RE)
     dx = ((RE-LE)/cubeDim).max()
     grids, gridI = pf.hierarchy.getBoxGrids(LE, RE)
-    cubesOut = [na.zeros([cubeDim]*3, dtype=nT.Float32)] * len(fields)
+    #grids, gridI = pf.hierarchy.getBoxGrids([0,0,0],[1,1,1])
+    #grids = pf.hierarchy.grids
+    #gridI = na.indices(grids.shape)
+    cubesOut = [na.zeros([cubeDim]*3, dtype=nT.Float32) - 999] * len(fields)
     gridIbyLevel = na.argsort(pf.hierarchy.gridLevels[gridI], axis=0)
-    for grid in grids[gridIbyLevel].ravel():
+    widgets = [ 'Getting grid data  ',
+                Percentage(), ' ',
+                Bar(marker=RotatingMarker()),
+                ' ', ETA(), ' ']
+    pbar = ProgressBar(widgets=widgets,
+                             maxval=len(grids)).start()
+    for gi,grid in enumerate(grids[gridIbyLevel].ravel()):
+        pbar.update(gi)
+        #print grid, dx, grid.dx#, grid.myChildMask
         if grid.dx < dx:
-            #print "Grid dx too small", grid
+            #print "Grid dx too small", grid, dx, grid.dx
             continue
+        lastLevel = False
+        if grid.dx / 2.0 < dx:
+            lastLevel = True
+            #print "LASTLEVEL", grid.dx / 2.0, dx
         for i,field in enumerate(fields):
+            #print "Getting field", field
             weaveDict = {
                 'nxc': int(grid.ActiveDimensions[0]),
                 'nyc': int(grid.ActiveDimensions[1]),
@@ -65,15 +82,20 @@ def dataCube(pf, LE, RE, cubeDim, fields):
                 'dy_f': float(dx),
                 'dz_f': float(dx),
                 'cubeLeftEdge': na.array(LE),
+                'cubeRightEdge': na.array(RE),
                 'nxf': int(cubeDim),
                 'nyf': int(cubeDim),
                 'nzf': int(cubeDim),
                 'fieldData': grid[field],
-                'cubeData': cubesOut[i]
+                'cubeData': cubesOut[i],
+                'childMask' : grid.myChildMask,
+                'lastLevel': int(lastLevel)
             }
+            #print "Inlining", weaveDict['rf']
             weave.inline(DataCubeRefineCoarseData,
                          weaveDict.keys(), local_dict=weaveDict,
                          compiler='gcc',
                          type_converters=converters.blitz,
                          auto_downcast=0, verbose=2)
+            #print "Done inlining"
     return cubesOut

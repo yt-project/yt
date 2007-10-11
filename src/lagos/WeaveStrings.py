@@ -121,29 +121,41 @@ for (ci=0; ci<cpoints; ci++) {
 """
 
 DataCubeRefineCoarseData = \
-"""
+r"""
 
 // For every cell in fieldData, there are (dx_c / dx_f)**3.0 cells that it maps
-// to in our cube, were dx_f is the fine resolution and dx_c is the coarse
+// to in our cube, where dx_f is the fine resolution and dx_c is the coarse
 // resolution.
+#define MIN(A,B) ((A) < (B) ? (A) : (B))
+#define MAX(A,B) ((A) < (B) ? (B) : (A))
 
 int bx_f, by_f, bz_f, xc, yc, zc, xf, yf, zf;
+int ixf, iyf, izf;
+int max_bx_f, max_by_f, max_bz_f;
 
 for (xc = 0; xc < nxc; xc++)
   for (yc = 0; yc < nyc; yc++)
     for (zc = 0; zc < nzc; zc++) {
+        if (!lastLevel)
+          if (childMask(xc, yc, zc) == 0) continue;
         // Now we have a cell.  What are the left edges?
-        bx_f = (int) floorl((leftEdgeCoarse(0)+dx_c*xc - cubeLeftEdge(0))/dx_f);
-        by_f = (int) floorl((leftEdgeCoarse(1)+dy_c*yc - cubeLeftEdge(1))/dy_f);
-        bz_f = (int) floorl((leftEdgeCoarse(2)+dz_c*zc - cubeLeftEdge(2))/dz_f);
-        if ((bx_f + rf > nxf) || (bx_f + rf < 0)
-        ||  (by_f + rf > nyf) || (by_f + rf < 0)
-        ||  (bz_f + rf > nzf) || (bz_f + rf < 0)) continue;
-        for (xf = bx_f; xf < bx_f + rf ; xf++) {
+        if ((leftEdgeCoarse(0)+dx_c*xc > cubeRightEdge(0))
+        ||  (leftEdgeCoarse(1)+dy_c*yc > cubeRightEdge(1))
+        ||  (leftEdgeCoarse(2)+dz_c*zc > cubeRightEdge(2))) continue;
+        if ((leftEdgeCoarse(0)+dx_c*(xc+1) < cubeLeftEdge(0))
+        ||  (leftEdgeCoarse(1)+dy_c*(yc+1) < cubeLeftEdge(1))
+        ||  (leftEdgeCoarse(2)+dz_c*(zc+1) < cubeLeftEdge(2))) continue;
+        bx_f = MAX(floorl((leftEdgeCoarse(0)+dx_c*xc - cubeLeftEdge(0))/dx_f),0);
+        by_f = MAX(floorl((leftEdgeCoarse(1)+dy_c*yc - cubeLeftEdge(1))/dy_f),0);
+        bz_f = MAX(floorl((leftEdgeCoarse(2)+dz_c*zc - cubeLeftEdge(2))/dz_f),0);
+        max_bx_f = MIN(floorl((leftEdgeCoarse(0)+dx_c*(xc+1) - cubeLeftEdge(0))/dx_f),nxf);
+        max_by_f = MIN(floorl((leftEdgeCoarse(1)+dy_c*(yc+1) - cubeLeftEdge(1))/dy_f),nyf);
+        max_bz_f = MIN(floorl((leftEdgeCoarse(2)+dz_c*(zc+1) - cubeLeftEdge(2))/dz_f),nzf);
+        for (xf = bx_f; xf < max_bx_f ; xf++) {
           if (xf < 0 || xf > nxf) continue;
-          for (yf = by_f; yf < by_f + rf ; yf++) {
+          for (yf = by_f; yf < max_by_f ; yf++) {
             if (yf < 0 || yf > nyf) continue;
-            for (zf = bz_f; zf < bz_f + rf ; zf++) {
+            for (zf = bz_f; zf < max_bz_f ; zf++) {
               if (zf < 0 || zf > nzf) continue;
               cubeData(xf,yf,zf) = fieldData(xc,yc,zc);
             }
