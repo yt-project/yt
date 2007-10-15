@@ -90,10 +90,3 @@ def AngularMomentumVector():
     return GetLog, GetUnits, GetFunc, GetHelp
 addQuantity(AngularMomentumVector)
 
-def LDeclination()
-    def GetLog()
-        return False
-    def GetUnits():
-        return ""
-    def GetFunc():
-        def getDeclination(data, weight="CellMassCode"):
