@@ -17,12 +17,12 @@ Is this needlessly complicated?
   it under the terms of the GNU General Public License as published by
   the Free Software Foundation; either version 3 of the License, or
   (at your option) any later version.
-  
+
   This program is distributed in the hope that it will be useful,
   but WITHOUT ANY WARRANTY; without even the implied warranty of
   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
   GNU General Public License for more details.
-  
+
   You should have received a copy of the GNU General Public License
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
@@ -41,9 +41,10 @@ def Phi():
     def GetUnits():
         return "radians"
     def GetFunc():
-        def getPhi(data, vector):
+        def getPhi(data, vector, r_vec = None):
             # Get the declination here
-            r_vec = (data.coords - na.reshape(data.center,(3,1)))
+            if r_vec == None:
+                r_vec = (data.coords - na.reshape(data.center,(3,1)))
             vec = vector.reshape((3,1))
             nv = vec[0,0] * vec[0,0] + \
                  vec[1,0] * vec[1,0] + \
@@ -88,3 +89,11 @@ def AngularMomentumVector():
         return "Returns a single mass-weighted angular momentum vector"
     return GetLog, GetUnits, GetFunc, GetHelp
 addQuantity(AngularMomentumVector)
+
+def LDeclination()
+    def GetLog()
+        return False
+    def GetUnits():
+        return ""
+    def GetFunc():
+        def getDeclination(data, weight="CellMassCode"):
