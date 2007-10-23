@@ -50,7 +50,7 @@ class PlotCollection:
         fn = []
         for plot in self.plots:
             fn.append(plot.saveImage(basename, \
-                      format="png", submit=self.runID))
+                      format=format, submit=self.runID))
             if self.submit:
                 im = plot.im.copy()
                 #print self.httpPrefix, "/", os.path.basename(fn[-1])
@@ -92,7 +92,9 @@ class PlotCollection:
         # with it, right?
         self.plots.append(plot)
         return plot
-    def addSlice(self, field, axis, coord=None, center=None):
+    def addSlice(self, field, axis, coord=None, center=None,
+                 useColorbar=True,
+                 figure = None, axes = None):
         # Make the slice object here
         # Pass it in to the engine to get a SlicePlot, which we then append
         # onto self.plots
@@ -101,17 +103,21 @@ class PlotCollection:
         if coord == None:
             coord = center[axis]
         slice = self.pf.hierarchy.slice(axis, coord, field, center)
-        p = self.addPlot(be.SlicePlot(slice, field))
+        p = self.addPlot(be.SlicePlot(slice, field, useColorbar=useColorbar,
+                                      axes=axes, figure=figure))
         p["Axis"] = lagos.axis_names[axis]
         return p
-    def addProjection(self, field, axis, weightField=None, center=None):
+    def addProjection(self, field, axis, weightField=None, 
+                      center=None, useColorbar=True,
+                      figure = None, axes = None):
         # Make the projection object here
         # Pass it in to the engine to get a SlicePlot, which we then append
         # onto self.plots
         if center == None:
             center = self.c
         proj = self.pf.hierarchy.proj(axis, field, weightField, center=center)
-        p = self.addPlot(be.ProjectionPlot(proj, field))
+        p = self.addPlot(be.ProjectionPlot(proj, field,
+                         useColorbar=useColorbar, axes=axes, figure=figure))
         p["Axis"] = lagos.axis_names[axis]
         return p
     def addACProfile(self):

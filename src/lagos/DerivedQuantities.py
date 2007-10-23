@@ -80,7 +80,8 @@ def AngularMomentumVector():
             # Then we mass-weight a sum
             #        L' = sum(mass * L) / sum(mass)
             v = na.sum( \
-                data[weight]* data["CellMassCode"] * data["AngularVelocity"], axis=1) / \
+                data[weight]* data["CellMassCode"] * \
+                    data["SpecificAngularMomentum"], axis=1) / \
                 na.sum(data[weight])
             vec = v/na.sqrt(na.sum(v*v))
             return v, vec

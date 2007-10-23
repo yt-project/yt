@@ -126,7 +126,7 @@ def CleanUp(*args, **kwargs):
     pass
 
 class RavenPlot:
-    def __init__(self, data, fields, figure = None, axes=None):
+    def __init__(self, data, fields, figure = None, axes=None, size=(10,8)):
         self.data = data
         self.fields = fields
         # With matplotlib, we don't need to copy data back and forth.
@@ -140,7 +140,7 @@ class RavenPlot:
             self.data.hierarchy.parameterFile.parameterFilename
         self.axisNames = {}
         if not figure:
-            self.figure = matplotlib.figure.Figure((10,8))
+            self.figure = matplotlib.figure.Figure(size)
         else:
             self.figure = figure
         #self.axes = self.figure.add_axes(aspect='equal')
@@ -173,7 +173,7 @@ class RavenPlot:
         fn = ".".join([self.prefix, format])
         canvas = engineVals["canvas"](self.figure)
         #self.figure.savefig(fn, format)
-        canvas.print_figure(fn,format=format)
+        canvas.print_figure(fn)
         self["Type"] = self.typeName
         self["GeneratedAt"] = self.data.hierarchy["CurrentTimeIdentifier"]
         return fn
@@ -213,14 +213,17 @@ class RavenPlot:
 
     def runCallback(self):
         for cb in self._callback:
+            print "Running callback!", cb
             cb(self)
 
 class VMPlot(RavenPlot):
-
+    datalabel = None
     def __init__(self, data, field, figure = None, axes = None,
-                 useColorBar = True, size=(800,800)):
+                 useColorbar = True, size=(800,800)):
         fields = ['X', 'Y', field, 'X width', 'Y width']
-        RavenPlot.__init__(self, data, fields, figure, axes)
+        size = (10,8)
+        if not useColorbar: size=(8,8)
+        RavenPlot.__init__(self, data, fields, figure, axes, size=size)
         self.figure.subplots_adjust(hspace=0, wspace=0, bottom=0.0,
                                     top=1.0, left=0.0, right=1.0)
         self.xmin = 0.0
@@ -244,7 +247,7 @@ class VMPlot(RavenPlot):
         self.axes.set_yticks(())
         self.axes.set_ylabel("")
         self.axes.set_xlabel("")
-        if useColorBar:
+        if useColorbar:
             self.colorbar = self.figure.colorbar(self.axes.images[-1], \
                                                 extend='neither', \
                                                 shrink=0.95)
@@ -363,6 +366,9 @@ class SlicePlot(VMPlot):
         self.typeName = "Slice"
 
     def autoset_label(self):
+        if self.datalabel != None:
+            self.colorbar.set_label(self.datalabel)
+            return
         dataLabel = self.axisNames["Z"]
         if lagos.fieldInfo.has_key(self.axisNames["Z"]):
             dataLabel += " (%s)" % (lagos.fieldInfo[self.axisNames["Z"]][0])

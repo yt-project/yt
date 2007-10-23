@@ -203,10 +203,18 @@ fieldInfo["MachNumber"] = (None, None, False, MachNumber)
 
 def VelocityMagnitude(self, fieldName):
     """M{|v|}"""
-    self[fieldName] = (self.hierarchy["x-velocity"] * ( \
-        self["x-velocity"]**2.0 + \
-        self["y-velocity"]**2.0 + \
-        self["z-velocity"]**2.0 )**(1.0/2.0))
+    if self.hierarchy.bulkVelocity != None:
+        xv = self["x-velocity"] - self.hierarchy.bulkVelocity[0]
+        yv = self["y-velocity"] - self.hierarchy.bulkVelocity[1]
+        zv = self["z-velocity"] - self.hierarchy.bulkVelocity[2]
+    else:
+        xv = self["x-velocity"]
+        yv = self["y-velocity"]
+        zv = self["z-velocity"]
+    self[fieldName] = (self.hierarchy["x-velocity"] *
+       na.sqrt(xv**2.0 + 
+               yv**2.0 +
+               zv**2.0 ))
 fieldInfo["VelocityMagnitude"] = ("cm/s", None, True, VelocityMagnitude)
 
 def DensityCode(self, fieldName):
@@ -312,6 +320,18 @@ def CellMassCode(self, fieldName):
     self[fieldName] *= self["Density"]
 fieldInfo["CellMassCode"] = (None, None, True, CellMassCode)
 
+def DarkMatterMassCode(self, fieldName):
+    try:
+        dens = self["Dark matter density"]
+    except:
+        dens = na.zeros(self["Density"].shape, nT.Float64)
+    self[fieldName] = na.ones(self["Density"].shape, nT.Float64)
+    self[fieldName] *= (self.dx)
+    self[fieldName] *= (self.dy)
+    self[fieldName] *= (self.dz)
+    self[fieldName] *= dens
+fieldInfo["DarkMatterMassCode"] = (None, None, True, DarkMatterMassCode)
+
 def CellMass(self, fieldName):
     """
     Calculates the mass (= rho * dx^3) in solar masses in each cell.
@@ -322,6 +342,17 @@ def CellMass(self, fieldName):
                      (self.hierarchy["cm"]**3.0)
     self[fieldName] = self["CellMassCode"] * unitConversion
 fieldInfo["CellMass"] = ("Msun", None, True, CellMass)
+
+def DarkMatterMass(self, fieldName):
+    """
+    Calculates the mass (= rho * dx^3) in solar masses in each cell.
+    Useful for mass-weighted plots.
+    """
+    msun = 1.989e33
+    unitConversion = (self.hierarchy["Density"] / msun) * \
+                     (self.hierarchy["cm"]**3.0)
+    self[fieldName] = self["DarkMatterMassCode"] * unitConversion
+fieldInfo["DarkMatterMass"] = ("Msun", None, True, DarkMatterMass)
 
 def DensityCGS(self, fieldName):
     """
@@ -486,29 +517,94 @@ def phi(self, fieldName):
                                     self["RadiusCode"])
 fieldInfo["phi"] = (None, None, False, phi)
 
-def AngularVelocity(self, fieldName):
+def SpecificAngularMomentum(self, fieldName):
     """
     Calculate the angular velocity.  Returns a vector for each cell.
     """
+    if self.hierarchy.bulkVelocity != None:
+        xv = self["x-velocity"] - self.hierarchy.bulkVelocity[0]
+        yv = self["y-velocity"] - self.hierarchy.bulkVelocity[1]
+        zv = self["z-velocity"] - self.hierarchy.bulkVelocity[2]
+    else:
+        xv = self["x-velocity"]
+        yv = self["y-velocity"]
+        zv = self["z-velocity"]
+
     r_vec = (self.coords - na.reshape(self.center,(3,1)))
-    v_vec = na.array([self["x-velocity"],self["y-velocity"],self["z-velocity"]], \
-                     nT.Float32)
-    self[fieldName] = na.zeros(v_vec.shape, nT.Float32)
+    v_vec = na.array([xv,yv,zv], \
+                     nT.Float64)
+    r_vec *= self.hierarchy.parameterFile.units["cm"] # cm
+    v_vec *= self.hierarchy.parameterFile.conversionFactors["x-velocity"] # cm /s
+    self[fieldName] = na.zeros(v_vec.shape, nT.Float64)
     self[fieldName][0,:] = (r_vec[1,:] * v_vec[2,:]) - \
                            (r_vec[2,:] * v_vec[1,:])
     self[fieldName][1,:] = (r_vec[0,:] * v_vec[2,:]) - \
                            (r_vec[2,:] * v_vec[0,:])
     self[fieldName][2,:] = (r_vec[0,:] * v_vec[1,:]) - \
                            (r_vec[1,:] * v_vec[0,:])
-fieldInfo["AngularVelocity"] = (None, None, False, AngularVelocity)
+fieldInfo["SpecificAngularMomentum"] = \
+    ("cm^2 / s", None, False, SpecificAngularMomentum)
 
-def AngularMomentum(self, fieldName):
+def SpecificAngularMomentumMagnitude(self, fieldName):
+    self[fieldName] = na.sqrt(na.sum(self["SpecificAngularMomentum"]**2.0,axis=0))
+fieldInfo["SpecificAngularMomentumMagnitude"] = \
+    ("cm^2 / s", None, True, SpecificAngularMomentumMagnitude)
+
+def AngularMomentumDensityCalibrated(self, fieldName):
     """
     Angular momentum, but keeping things in density-form, so displayable as a
     slice.
     """
-    self[fieldName] = self["AngularVelocity"] * self["Density"]
-fieldInfo["AngularMomentum"] = (None, None, False, AngularMomentum)
+    self[fieldName] = self["SpecificAngularMomentum"] * self["DensityCGS"]
+fieldInfo["AngularMomentumDensityCalibrated"] = \
+    ("g / cm / s", None, True, AngularMomentumDensityCalibrated)
+
+def AngularMomentum(self, fieldName):
+    self[fieldName] = self["SpecificAngularMomentum"] * self["CellMass"] 
+fieldInfo["AngularMomentum"] = \
+    ("M_sun cm^2 / s", None, True, AngularMomentum)
+
+def AngularMomentumMagnitude(self, fieldName):
+    self[fieldName] = na.sqrt(na.sum(self["AngularMomentum"]**2.0,axis=0))
+fieldInfo["AngularMomentumMagnitude"] = \
+    ("M_sun cm^2 /s", None, True, AngularMomentumMagnitude)
+
+def CircularVelocityMagnitude(self, fieldName):
+    """
+    This is |specific angular momentum| * radius
+    """
+    self[fieldName] = self["SpecificAngularMomentumMagnitude"] \
+                    / self["Radius"]
+fieldInfo["CircularVelocityMagnitude"] = \
+    ("cm / s", None, True, CircularVelocityMagnitude)
+
+def CircularVelocityFrac(self, fieldName):
+    """
+    This is |specific angular momentum| * radius
+    """
+    self[fieldName] = self["CircularVelocityMagnitude"] \
+                    / self["VelocityMagnitude"]
+fieldInfo["CircularVelocityFrac"] = \
+    (None, None, True, CircularVelocityFrac)
+
+def KeplerianVelocity(self, fieldName):
+    """
+    Recall: v_kep = (GM/r)^0.5
+    G is 6.673e-8 cm^3 / g / s
+    Note that we're not going to help at ALL with getting mass enclosed here.
+    That should be done externally.
+    """
+    self[fieldName] = na.sqrt(
+                        2.0 * 6.673e-8 * self["MassEnclosed"] * 1.989e33
+                        / self["Radius"])
+fieldInfo["KeplerianVelocity"] = \
+    ("cm / s", None, True, KeplerianVelocity)
+
+def VCircOverVKep(self, fieldName):
+    self[fieldName] = self["CircularVelocityMagnitude"] \
+                    / self["KeplerianVelocity"]
+fieldInfo["VCircOverVKep"] = \
+    ("", None, True, VCircOverVKep)
 
 def InertialTensor(self, fieldName):
     """
