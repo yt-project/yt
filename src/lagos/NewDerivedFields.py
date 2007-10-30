@@ -77,6 +77,9 @@ def ValidateProperty(FieldValidator):
             if not hasattr(data,p): return False
         return True
 
+# Note that, despite my newfound efforts to comply with PEP-8,
+# I violate it here in order to keep the name/func_name relationship
+
 _speciesList = ["HI","HII","Electron",
                "HeI","HeII","HeIII",
                "H2I","H2II","HM",
@@ -132,6 +135,8 @@ add_field("DynamicalTime")
 
 def _NumberDensity(field, data):
     # We can assume that we at least have Density
+    # We should actually be guaranteeing the presence of a .shape attribute,
+    # but I am not currently implementing that
     fieldData = na.zeros(data["Density"].shape,
                          dtype = data["Density"].dtype)
     if data.params["MultiSpecies"] == 0:

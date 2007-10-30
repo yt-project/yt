@@ -89,7 +89,7 @@ class EnzoData:
             # First we check the validator
             try:
                 fieldInfo[fieldName].Validate(self)
-            except YTNeedsGridType:
+            except NeedsGridType:
                 # We leave this to be implementation-specific
                 self._generate_field_from_grids(fieldName)
             else:
@@ -124,7 +124,8 @@ class Enzo2DData(EnzoData):
         This returns a uniform grid of points, interpolated using the nearest
         neighbor method.
 
-        @note: Requires NumPy
+        @note: Requires Delaunay triangulation, which is not included in
+        most/all scipy binaries.
         @param LE: Left Edge
         @type LE: array of Floats
         @param RE: Right Edge
