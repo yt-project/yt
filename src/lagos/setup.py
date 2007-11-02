@@ -9,6 +9,5 @@ def configuration(parent_package='',top_path=None):
     sys.argv.extend(["config_fc","--f77flags","'-Dr16 -ffixed-line-length-none -fno-second-underscore -DPYFORT -DNOMETALS'"])
     if os.environ.has_key("YT_FORT"):
         config.add_extension("EnzoFortranRoutines", \
-                            ["src/lagos/solve_rate_cool.pyf", "src/lagos/f_src/*.F"], \
-                            include_dirs=["/u/ki/mturk/Research/enzo/src/"])
+                            ["src/lagos/solve_rate_cool.pyf", "src/lagos/f_src/*.F"])
     return config

@@ -56,7 +56,7 @@ from yt.lagos import *
 #     &                iciecool, ih2optical, errcode, omaskflag, subgridmask )
 #
 
-def runSolveRateCool(g, dt, omaskflag=0, subgridmask=None):
+def runSolveRateCool(g, dt, omaskflag=0, subgridmask=None, orig=True):
     a = g.hierarchy
     # First we will make the grid read all the data in
     #print "Reading all data and feeding to solve_rate_cool"
@@ -111,10 +111,7 @@ def runSolveRateCool(g, dt, omaskflag=0, subgridmask=None):
     comp_xray = 0
     comp_temp = 0
     errcode = 0
-    g.generateChildMask()
-    if subgridmask == None:
-        print "Generating subgridmask"
-        subgridmask = na.array(g.myChildMask * na.ones(dataCopy["Density"].shape, nT.Int32), order="FORTRAN")
+    subgridmask = na.array(na.ones(dataCopy["Density"].shape, nT.Int32), order="FORTRAN")
     # Now we get the equilibrium table
     eqTable = tables.openFile("tab_eq.h5")
     HIeqtable = na.array(eqTable.getNode("/HItable")[:].transpose(), order='FORTRAN')
@@ -126,7 +123,9 @@ def runSolveRateCool(g, dt, omaskflag=0, subgridmask=None):
     rhoend=eqTable.getNodeAttr("/eq_data","rho_end")
     estart=eqTable.getNodeAttr("/eq_data","e_start")
     eend=eqTable.getNodeAttr("/eq_data","e_end")
-    EnzoFortranRoutines.solve_rate_cool( \
+    if not orig: routine = EnzoFortranRoutines.solve_chemeq2
+    else: routine = EnzoFortranRoutines.solve_rate_cool 
+    routine(
         dataCopy["Density"], dataCopy["Total_Energy"], dataCopy["Gas_Energy"],
         dataCopy["x-velocity"], dataCopy["y-velocity"], dataCopy["z-velocity"], 
         dataCopy["Electron_Density"], dataCopy["HI_Density"], dataCopy["HII_Density"],
