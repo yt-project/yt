@@ -84,6 +84,10 @@ class PlotCollection:
     def set_cmap(self, cmap):
         for plot in self.plots:
             plot.set_cmap(cmap)
+    def switch_field(self, field):
+        for plot in self.plots:
+            plot.switch_z(field)
+    switch_z = switch_field
     # Now we get around to adding the plots we want
     def addPlot(self, plot):
         # Accept some instance that's already been created

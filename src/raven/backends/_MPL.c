@@ -143,7 +143,7 @@ static PyObject* Py_Pixelize(PyObject *obj, PyObject *args) {
   npy_float64 *ds = (npy_float64 *) PyArray_GETPTR1(d, 0); // We check this above
 
   //printf("ROWS: %i COLS: %i\n", rows, cols);
-  for (p=0;p<cols*rows;p++) gridded[p] = 0;
+  for (p=0;p<cols*rows;p++) gridded[p] = 0.0;
   for(p=0;p<nx;p++)
   {
     if(((xs[p]+dxs[p]<x_min) ||

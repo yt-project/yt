@@ -241,7 +241,8 @@ class VMPlot(RavenPlot):
         self.size = size
         self.image = \
             self.axes.imshow(temparray, interpolation='nearest',
-                             norm = self.norm, aspect=1.0, picker=True)
+                             norm = self.norm, aspect=1.0, picker=True,
+                             origin='lower')
         self.axisNames["Z"] = field
         self.axes.set_xticks(())
         self.axes.set_yticks(())
@@ -284,7 +285,7 @@ class VMPlot(RavenPlot):
         #print "VMIN:", self.norm.vmin, "VMAX:",self.norm.vmax
         self.image = \
             self.axes.imshow(buff, interpolation='nearest', norm = self.norm,
-                            aspect=1.0, picker=True)
+                            aspect=1.0, picker=True, origin='lower')
         self.axes.set_xticks(())
         self.axes.set_yticks(())
         self.axes.set_ylabel("")
@@ -386,8 +387,8 @@ class ProjectionPlot(VMPlot):
 
     def __getitem__(self, item):
         return self.data[item] * \
-                  self.data.hierarchy.parameterFile.conversionFactors[item] * \
-                  self.data.hierarchy.parameterFile.units["cm"]
+                  self.data.hierarchy.parameterFile.conversionFactors[item]# * \
+                  #self.data.hierarchy.parameterFile.units["cm"]
 
 class PhasePlot(RavenPlot):
     def __init__(self, data, fields, width=None, unit=None, bins=100,
