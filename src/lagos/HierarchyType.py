@@ -258,28 +258,30 @@ class EnzoHierarchy:
                 if len(line) < 2:
                     continue
                 param, vals = line.split("=")
-                if param == "Grid ":
+                param = param.rstrip() # This slows things down considerably...
+                                       # or so I used to think...
+                if param == "Grid":
                     curGrid = int(vals)
                     self.grids[curGrid-1] = self.grid(curGrid)
-                elif param == "GridDimension     ":
+                elif param == "GridDimension":
                     splitConvertGridParameter(vals, float, self.gridDimensions, curGrid)
-                elif param == "GridStartIndex    ":
+                elif param == "GridStartIndex":
                     splitConvertGridParameter(vals, int, self.gridStartIndices, curGrid)
-                elif param == "GridEndIndex      ":
+                elif param == "GridEndIndex":
                     splitConvertGridParameter(vals, int, self.gridEndIndices, curGrid)
-                elif param == "GridLeftEdge      ":
+                elif param == "GridLeftEdge":
                     splitConvertGridParameter(vals, float, self.gridLeftEdge, curGrid)
-                elif param == "GridRightEdge     ":
+                elif param == "GridRightEdge":
                     splitConvertGridParameter(vals, float, self.gridRightEdge, curGrid)
-                elif param == "Level             ":
+                elif param == "Level":
                     splitConvertGridParameter(vals, int, self.gridLevels, curGrid)
-                elif param == "Time              ":
+                elif param == "Time":
                     splitConvertGridParameter(vals, float, self.gridTimes, curGrid)
-                elif param == "NumberOfParticles   ":
+                elif param == "NumberOfParticles":
                     splitConvertGridParameter(vals, float, self.gridNumberOfParticles, curGrid)
-                elif param == "FileName       ":
+                elif param == "FileName":
                     self.grids[curGrid-1].setFilename(vals[1:-1])
-                elif param == "BaryonFileName ":
+                elif param == "BaryonFileName":
                     self.grids[curGrid-1].setFilename(vals[1:-1])
             mylog.info("Caching hierarchy information")
             allArrays = na.zeros((self.numGrids,18),nT.Float64)

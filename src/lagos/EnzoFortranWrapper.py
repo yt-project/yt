@@ -67,7 +67,7 @@ def runSolveRateCool(g, dt, omaskflag=0, subgridmask=None, orig=True):
         try:
             t = na.array(g[ds], nT.Float32, order="FORTRAN")
             dataCopy[ds] = t
-            print ds, dataCopy[ds].shape
+            #print ds, dataCopy[ds].shape
         except TypeError:
             del g.data[ds]
         #t.transpose()

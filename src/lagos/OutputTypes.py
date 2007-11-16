@@ -126,9 +126,15 @@ class EnzoStaticOutput(EnzoOutput):
         # Let's read the file
         lines = open(self.parameterFilename).readlines()
         for lineI, line in enumerate(lines):
+            if line.find("#") >= 1: # Keep the commented lines
+                line=line[:line.find("#")]
+            line=line.strip().rstrip()
             if len(line) < 2:
                 continue
-            param, vals = map(strip,map(rstrip,line.split("=")))
+            try:
+                param, vals = map(strip,map(rstrip,line.split("=")))
+            except ValueError:
+                mylog.error("ValueError: '%s'", line)
             if parameterDict.has_key(param):
                 t = map(parameterDict[param], vals.split())
                 if len(t) == 1:

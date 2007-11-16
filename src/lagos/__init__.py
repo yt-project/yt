@@ -51,12 +51,12 @@ import time
 
 try:
     from yt.enki import EnzoInterface
-except:
+except ImportError:
     pass
 
 try:
     import EnzoFortranRoutines
-except:
+except ImportError:
     pass
 
 # Now we import all the subfiles
