@@ -12,12 +12,12 @@ Enzo hierarchy container class
   it under the terms of the GNU General Public License as published by
   the Free Software Foundation; either version 3 of the License, or
   (at your option) any later version.
-  
+
   This program is distributed in the hope that it will be useful,
   but WITHOUT ANY WARRANTY; without even the implied warranty of
   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
   GNU General Public License for more details.
-  
+
   You should have received a copy of the GNU General Public License
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
@@ -41,7 +41,7 @@ class EnzoHierarchy:
 
     @param pf: The OutputFile we're instantiating from
     @type pf: L{EnzoOutput}
-    @keyword data_style: The type of Enzo Output we're going to read from -- 
+    @keyword data_style: The type of Enzo Output we're going to read from --
                          4 : hdf4, 5 : hdf5, 6 : packed HDF5
     @type data_style: int
     """
@@ -137,15 +137,19 @@ class EnzoHierarchy:
         """
         This is our class factory.  It takes the base classes and assigns to
         them appropriate data-reading functions based on the data-style.
-    
+
         @postcondition: .grid, .prof, .slice, .region, .datacube and .sphere
-                        will be classes, instantiated with the appropriate 
+                        will be classes, instantiated with the appropriate
                         methods of obtaining data.
         """
         dd = { 'readDataFast' : dataStyleFuncs[self.data_style][0],
                'readAllData' : dataStyleFuncs[self.data_style][1],
                'getFields' : dataStyleFuncs[self.data_style][2],
                'readDataSlice' : dataStyleFuncs[self.data_style][3],
+               '_read_data' : dataStyleFuncs[self.data_style][0],
+               '_read_all_data' : dataStyleFuncs[self.data_style][1],
+               '_read_field_names' : dataStyleFuncs[self.data_style][2],
+               '_read_data_slice' : dataStyleFuncs[self.data_style][3],
                'pf' : self.parameterFile,
                'hierarchy': self }
         self.grid = classobj("EnzoGrid",(EnzoGridBase,), dd)
@@ -363,6 +367,9 @@ class EnzoHierarchy:
         # We return a numarray of the indices of all the grids on a given level
         indices = na.where(self.gridLevels[:,0] == level)[0]
         return indices
+
+    def selectGrids(self, level):
+        return self.grids[self.selectLevel(level)]
 
     def getSmallestDx(self):
         """

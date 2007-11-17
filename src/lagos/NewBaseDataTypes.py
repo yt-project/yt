@@ -23,11 +23,15 @@ Various non-grid data containers.
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
+from yt.lagos import *
+
 class EnzoData:
     """
     Generic EnzoData container.  By itself, will attempt to
     generate field, read fields (method defined by derived classes)
     """
+    _grids = None
+
     def __init__(self, pf, fields):
         """
         Sets up EnzoData instance
@@ -47,11 +51,13 @@ class EnzoData:
 
     def clear_data(self):
         """
-        @todo: We want d[xyz] and [xyz] to be data fields from now on
         Clears out all data from the EnzoData instance, freeing memory.
         """
         del self.data
         self.data = {}
+
+    def has_key(self, key):
+        return self.data.has_key(key)
 
     def _refresh_data(self):
         """
@@ -64,13 +70,11 @@ class EnzoData:
         """
         Returns a single field.  Will add if necessary.
         """
-        if self.data.has_key(key):
-            return self.data[key]
-        else:
-            if field not in self.fields:
-                self.fields.append(field)
-            self.get_data(field)
-            return self.data[key]
+        if not self.data.has_key(key):
+            if key not in self.fields:
+                self.fields.append(key)
+            self.get_data(key)
+        return self.data[key]
 
     def __setitem__(self, key, val):
         """
@@ -94,7 +98,7 @@ class EnzoData:
                 self._generate_field_from_grids(fieldName)
             else:
                 self[fieldName] = fieldInfo[fieldName](self)
-        else:
+        else: # Can't find the field, try as it might
             raise exceptions.KeyError, fieldName
 
     def _generate_field_from_grids(self, fieldName):
@@ -156,8 +160,8 @@ class EnzoSliceBase(Enzo2DData):
     A slice at a given coordinate along a given axis through the entire grid
     hierarchy.
     """
-    grids = None
-#    @time_execution
+
+    @time_execution
     def __init__(self, axis, coord, fields = None, center=None, fRet=False,
                  pf=None):
         """
@@ -195,10 +199,7 @@ class EnzoSliceBase(Enzo2DData):
     def shift(self, val):
         """
         Moves the slice coordinate up by either a floating point value, or an
-        integer number of indices of the finest grid.  Note that hippodraw
-        doesn't like it if we change the number of values in a column, as of
-        right now, so if the number of points in the slice changes, it will
-        kill HD.
+        integer number of indices of the finest grid.
 
         @param val: shift amount
         @type val: integer (number of cells) or float (distance)
@@ -208,15 +209,15 @@ class EnzoSliceBase(Enzo2DData):
             self.coord += val
         elif isinstance(val, types.IntType):
             # Here we assume that the grid is the max level
-            level = self.hierarchy.maxLevel
+            level = self.hierarchy.max_level
             self.coord
             dx = self.hierarchy.gridDxs[self.hierarchy.levelIndices[level][0]]
             self.coord += dx * val
         self.refreshData()
 
     def _generate_coords(self):
-        for grid in g:
-            #print "Generating coords for grid %s" % (grid.id)
+        points = []
+        for grid in self.grids:
             points.append(self._generate_grid_coords(grid))
         t = na.concatenate(points)
         self['x'] = t[:,0]
@@ -225,9 +226,9 @@ class EnzoSliceBase(Enzo2DData):
         self['dx'] = t[:,3]
         self['dy'] = t[:,3]
         self['dz'] = t[:,3]
-        self.ActiveDimensions = (len(self.x), 1, 1)
+        self.ActiveDimensions = (t.shape[0], 1, 1)
 
-#    @time_execution
+    @time_execution
     def get_data(self, field = None):
         """
         Iterates over the list of fields and generates/reads them all.
@@ -240,8 +241,6 @@ class EnzoSliceBase(Enzo2DData):
         # We take a 3-tuple of the coordinate we want to slice through, as well
         # as the axis we're slicing along
         self.grids, ind = self.hierarchy.findSliceGrids(self.coord, self.axis)
-        #print g
-        points = []
         if not self.has_key('dx'):
             self._generate_coords()
         if isinstance(field, types.StringType):
@@ -308,3 +307,167 @@ class EnzoSliceBase(Enzo2DData):
             temp = grid[field]
             data.append(self._get_data_from_grid(grid,field))
         self[field] = na.concatenate(data)
+
+class EnzoProjBase(Enzo2DData):
+    def __init__(self, axis, field, weightField = None,
+                 max_level = None, center = None, pf = None,
+                 type=0):
+        """
+        Returns an instance of EnzoProj.
+
+        @param hierarchy: the hierarchy we are projecting
+        @type hierarchy: L{EnzoHierarchy<EnzoHierarchy>}
+        @param axis: axis to project along
+        @type axis: integer
+        @param field: the field to project (NOT multiple)
+        @type field: string
+        @keyword weightField: the field to weight by
+        @keyword max_level: the maximum level to project through
+        @keyword type: The type of projection: 0 for sum, 1 for MIP
+        """
+        Enzo2DData.__init__(self, axis, field, pf)
+        if max_level == None:
+            ###CHANGE###
+            #max_level = self.hierarchy.max_level
+            max_level = self.hierarchy.maxLevel
+        self._max_level = max_level
+        self._weight = weightField
+        self.center = center
+        if type == 1:
+            self.type="MIP"
+            self.func = na.max
+        else:
+            self.type="SUM"
+            self.func = na.sum
+        self.__calculate_memory()
+        self._refresh_data()
+
+    @time_execution
+    def __calculate_memory(self):
+        """
+        Here we simply calculate how much memory is needed, which speeds up
+        allocation later
+        """
+        level_mem = {}
+        h = self.hierarchy
+        i = 0
+        mylog.info("Calculating memory usage")
+        for level in range(self._max_level+1):
+            level_mem[level] = 0
+            mylog.debug("Examining level %s", level)
+            grids = h.levelIndices[level]
+            numGrids = len(grids)
+            RE = h.gridRightEdge[grids].copy()
+            LE = h.gridLeftEdge[grids].copy()
+            for grid in h.grids[grids]:
+                if (i%1e3) == 0:
+                    mylog.debug("Reading and masking %s / %s", i, h.numGrids)
+                for ax in [0,1,2]:
+                    grid.generateOverlapMasks(ax, LE, RE)
+                    grid.myOverlapGrids[ax] = \
+                      h.grids[grids[na.where(grid.myOverlapMasks[ax] == 1)]]
+                level_mem[level] += \
+                          grid.ActiveDimensions.prod() / \
+                          grid.ActiveDimensions[ax]
+                i += 1
+        for level in range(self._max_level+1):
+            gI = h.selectLevel(level)
+            mylog.debug("%s cells and %s grids for level %s", \
+                level_mem[level], len(gI), level)
+        mylog.debug("We need %s cells total",
+                    na.add.reduce(level_mem.values()))
+        self.__memory_per_level = level_mem
+
+    def _serialize(self):
+        mylog.info("Serializing data...")
+        nodeName = "%s_%s_%s" % (self.fields[0], self.weightField, self.axis)
+        mylog.info("nodeName: %s", nodeName)
+        projArray = na.array([self.x, self.y, self.dx, self.dy, self[self.fields[0]]])
+        self.hierarchy.saveData(projArray, "/Projections", nodeName)
+        mylog.info("Done serializing...")
+
+    def _deserialize(self):
+        nodeName = "%s_%s_%s" % (self.fields[0], self.weightField, self.axis)
+        array=self.hierarchy.getData("/Projections", nodeName)
+        if array == None:
+            return
+        self['x'] = array[0,:]
+        self['y'] = array[1,:]
+        self['dx'] = array[2,:]
+        self['dy']= array[3,:]
+        self[self.fields[0]] = array[4,:]
+        return True
+
+    def __project_level(self, level, field):
+        grids_to_project = self.hierarchy.selectGrids(level)
+        zeroOut = (level != self._max_level)
+        pbar = get_pbar('Projecting level % 2i / % 2i ' \
+                          % (level, self._max_level), len(grids_to_project))
+        for pi, grid in enumerate(grids_to_project):
+            grid.retVal = grid.getProjection(self.axis, field, zeroOut,
+                                             weight=self._weight,
+                                             func = self.func)
+            pbar.update(pi)
+        pbar.finish()
+        self.__combine_grids(level) # In-place
+        all_data = [ [grid.retVal[j] for grid in grids_to_project] for j in range(5)]
+        for grid in grids_to_project:
+            cI = na.where(grid.retVal[3]==0) # Where childmask = 0
+            grid.coarseData = [grid.retVal[j][cI] for j in range(5)]
+        levelData = [na.concatenate(all_data[i]) for i in range(5)]
+        mylog.debug("All done combining and refining with a final %s points",
+                    levelData[0].shape[0])
+        dblI = na.where((levelData[0]>-1) & (levelData[3]==1))
+        if self._weight != None:
+            weightedData = levelData[2][dblI] / levelData[4][dblI]
+        else:
+            weightedData = levelData[2][dblI]
+        mylog.debug("Level %s done: %s final of %s", \
+                   level, len(dblI[0]), \
+                   levelData[0].shape[0])
+        dx = grids_to_project[0].dx * na.ones(len(dblI[0]), dtype=nT.Float64)
+        return [levelData[0][dblI], levelData[1][dblI], weightedData, dx]
+
+    def __combine_grids(self, level):
+        grids = self.hierarchy.selectGrids(level)
+        pbar = get_pbar('Combining level % 2i / % 2i ' \
+                          % (level, self._max_level), len(grids))
+        # We have an N^2 check, so we try to be as quick as possible
+        # and to skip as many as possible
+        for pi, grid1 in enumerate(grids):
+            pbar.update(pi)
+            if grid1.retVal[0].shape[0] == 0: continue
+            for grid2 in grid1.myOverlapGrids[self.axis]:
+                if grid2.retVal[0].shape[0] == 0 \
+                  or grid1.id == grid2.id:
+                    continue
+                args = grid1.retVal + grid2.retVal + [0]
+                PointCombine.CombineData(*args)
+                goodI = na.where(grid2.retVal[0] > -1)
+                grid2.retVal = [grid2.retVal[i][goodI] for i in range(5)]
+            numRefined = 0
+            if level <= self._max_level and level > 0:
+                for grid2 in grid1.Parent.myOverlapGrids[self.axis]:
+                    if grid2.coarseData[0].shape[0] == 0: continue # Already refined
+                    args = grid1.retVal[:3] + [grid1.retVal[4]] + \
+                           grid2.coarseData[:3] + [grid2.coarseData[4]] + [2]
+                    numRefined += PointCombine.RefineCoarseData(*args)
+        pbar.finish()
+
+    @time_execution
+    def get_data(self, field = None):
+        if not field: field = self.fields[0]
+        all_data = []
+        h = self.hierarchy
+        for level in range(0, self._max_level+1):
+            all_data.append(self.__project_level(level, field))
+        all_data = na.concatenate(all_data, axis=1)
+        # We now convert to half-widths and center-points
+        self['dx'] = all_data[3,:]
+        self['x'] = (all_data[0,:]+0.5) * self['dx']
+        self['y'] = (all_data[1,:]+0.5) * self['dx']
+        self['dx'] *= 0.5
+        self['dy'] = self['dx'].copy()
+        self.data[field] = all_data[2,:]
+        # Now, we should clean up after ourselves...
+        [grid.clearAll for grid in h.grids]

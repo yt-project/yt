@@ -6,6 +6,10 @@ from math import pi
 mh = 1.67e-24
 fieldInfo = {}
 
+class NeedsGridType(Exception):
+    def __init__(self, field):
+        self.field = field
+
 def add_field(name, function = None, **kwargs):
     if function == None:
         if kwargs.has_key("function"):
@@ -84,7 +88,7 @@ _speciesList = ["HI","HII","Electron",
                "HeI","HeII","HeIII",
                "H2I","H2II","HM",
                "DI","DII","HDI"]
-def _SpeciesFractiospecies_fractionn(field, data):
+def _SpeciesFraction(field, data):
     sp = field.name.split("_")[0]
     return data[sp]/data["Density"]
 for species in speciesList:
@@ -93,10 +97,9 @@ for species in speciesList:
              validator=ValidateSpecies("%s_Density" % species))
 
 def _SoundSpeed(field, data):
-    return data.convert("x-velocity") * ( \
-           data.params["Gamma"]*data["Pressure"] / \
-           data["Density"] )**(1.0/2.0)
-add_field("SoundSpeed")
+    return ( data.params["Gamma"]*data["Pressure"] / \
+             ( data.convert("Density") * data["Density"] ))**(1.0/2.0)
+add_field("SoundSpeed", units="cm/s")
 
 def _MachNumber(field, data):
     """M{|v|/t_sound}"""
@@ -111,16 +114,20 @@ def _VelocityMagnitude(field, data):
             data["z-velocity"]**2.0 )**(1.0/2.0))
 add_field("VelocityMagnitude", takeLog=False)
 
+# @todo: Conversion
 def _Pressure(field, data):
     """M{(Gamma-1.0)*rho*E}"""
+    c = data.convert("Density") * data.convert("x-velocity")**2.0
     return (data.params["Gamma"] - 1.0) * \
-           data["Density"] * data["Gas_Energy"]
-add_field("Pressure", validator=ValidateSpecies("Gas_Energy"))
+           data["Density"] * data["Gas_Energy"] * c
+add_field("Pressure", validator=ValidateSpecies("Gas_Energy"),
+          units="dyne/cm^2")
 
+# @todo: Conversion
 def _Entropy(field, data):
-    return data["Density"]**(-2./3.) * \
+    return (data.convert("Density") * data["Density"])**(-2./3.) * \
            data["Temperature"]
-add_field("Entropy")
+add_field("Entropy", units="WhoKnows")
 
 def _DynamicalTime(field, data):
     """
@@ -129,9 +136,11 @@ def _DynamicalTime(field, data):
     Note that we return in our natural units already
     """
     G = data.params["GravitationalConstant"]
-    t_dyn_coeff = (3*pi/(16*G))**0.5 * data.convert("Time")
+    t_dyn_coeff = (3*pi/(16*G))**0.5 \
+                * data.convert("seconds") \
+                * data.convert("Density")
     return data["Density"]**(-1./2.) * t_dyn_coeff
-add_field("DynamicalTime")
+add_field("DynamicalTime", units="s")
 
 def _NumberDensity(field, data):
     # We can assume that we at least have Density
@@ -157,9 +166,15 @@ def _NumberDensity(field, data):
         fieldData += data["DII_Density"] / 2.0
         fieldData += data["HDI_Density"] / 3.0
     return fieldData * data.convert("Density") / mh
-add_field("NumberDensity")
+add_field("NumberDensity", units="cm^-3")
 
+def _CellMass(field, data):
+    return data["Density"] * data.convert("Density") * data["CellVolume"]
+add_field("CellMass", units="g")
 
+def _CellVolume(field, data):
+    return data["dx"]*data["dy"]*data["dz"] * data.convert("cm")**3.0
+add_field("CellVolume", units="cm^3")
 
 if __name__ == "__main__":
     k = fieldInfo.keys()
