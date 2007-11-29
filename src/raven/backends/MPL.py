@@ -137,7 +137,7 @@ class RavenPlot:
         self.set_autoscale(True)
         self.im = defaultdict(lambda: "")
         self["ParameterFile"] = \
-            self.data.hierarchy.parameterFile.parameterFilename
+            self.data.hierarchy.parameter_file.parameter_filename
         self.axisNames = {}
         if not figure:
             self.figure = matplotlib.figure.Figure(size)
@@ -155,8 +155,8 @@ class RavenPlot:
         self.do_autoscale = val
 
     def __getitem__(self, item):
-        return self.data[item] * \
-                    self.data.hierarchy.parameterFile.conversionFactors[item]
+        return self.data[item]# * \
+                    #self.data.hierarchy.parameter_file.conversion_factors[item]
 
     def saveImage(self, prefix, format, submit=None):
         """
@@ -231,7 +231,7 @@ class VMPlot(RavenPlot):
         self.xmax = 1.0
         self.ymax = 1.0
         self.cmap = None
-        if field in lagos.log_fields or lagos.fieldInfo[field][2]:
+        if field in lagos.log_fields or lagos.fieldInfo[field].take_log:
             self.logIt = True
             self.norm = matplotlib.colors.LogNorm()
         else:
@@ -255,8 +255,7 @@ class VMPlot(RavenPlot):
         else:
             self.colorbar = None
         self.set_width(1,'1')
-        self.redraw_image()
-        self.selfSetup()
+        #self.redraw_image() # set_width does this
 
     def redraw_image(self, *args):
         #x0, y0, v_width, v_height = self.axes.viewLim.get_bounds()
@@ -265,11 +264,14 @@ class VMPlot(RavenPlot):
         y0, y1 = self.ylim
         l, b, width, height = self.axes.bbox.get_bounds()
         self.pix = (width,height)
-        #print l,b,width,height
-        buff = _MPL.Pixelize(self.data['x'],
-                            self.data['y'],
-                            self.data['dx'],
-                            self.data['dy'],
+        # 'px' == pixel x, or x in the plane of the slice
+        # 'x' == actual x
+        #for i in ['px','py','pdx','pdy',self.axisNames['Z']]:
+            #print i, self.data[i].min(), self.data[i].max()
+        buff = _MPL.Pixelize(self.data['px'],
+                            self.data['py'],
+                            self.data['pdx'],
+                            self.data['pdy'],
                             self[self.axisNames["Z"]],
                             int(width), int(width),
                         (x0, x1, y0, y1),).transpose()
@@ -347,6 +349,17 @@ class VMPlot(RavenPlot):
         pass
 
     def switch_z(self, field):
+        if field in lagos.log_fields or lagos.fieldInfo[field].take_log:
+            self.logIt = True
+            self.norm = matplotlib.colors.LogNorm()
+            ttype = matplotlib.ticker.LogFormatter
+        else:
+            self.logIt = False
+            self.norm = matplotlib.colors.Normalize()
+            ttype = matplotlib.ticker.ScalarFormatter
+        if self.colorbar:
+            self.colorbar.set_norm(self.norm)
+            self.colorbar.formatter = ttype()
         self.axisNames["Z"] = field
         self.redraw_image()
 
@@ -363,32 +376,31 @@ class VMPlot(RavenPlot):
         pass
 
 class SlicePlot(VMPlot):
-    def selfSetup(self):
-        self.typeName = "Slice"
+    typeName = "Slice"
 
     def autoset_label(self):
         if self.datalabel != None:
             self.colorbar.set_label(self.datalabel)
             return
-        dataLabel = self.axisNames["Z"]
-        if lagos.fieldInfo.has_key(self.axisNames["Z"]):
-            dataLabel += " (%s)" % (lagos.fieldInfo[self.axisNames["Z"]][0])
-        if self.colorbar != None: self.colorbar.set_label(dataLabel)
+        field_name = self.axisNames["Z"]
+        if lagos.fieldInfo.has_key(field_name):
+            field_name += " (%s)" % (lagos.fieldInfo[field_name].get_units())
+        if self.colorbar != None: self.colorbar.set_label(field_name)
 
 class ProjectionPlot(VMPlot):
-    def selfSetup(self):
-        self.typeName = "Projection"
+    typeName = "Projection"
 
     def autoset_label(self):
         dataLabel = self.axisNames["Z"]
-        if lagos.fieldInfo.has_key(self.axisNames["Z"]):
-            dataLabel += " (%s)" % (lagos.fieldInfo[self.axisNames["Z"]][1])
-        if self.colorbar != None: self.colorbar.set_label(dataLabel)
+        field_name = self.axisNames["Z"]
+        if lagos.fieldInfo.has_key(field_name):
+            field_name += " (%s)" % (lagos.fieldInfo[field_name].get_projected_units())
+        if self.colorbar != None: self.colorbar.set_label(field_name)
 
     def __getitem__(self, item):
         return self.data[item] * \
-                  self.data.hierarchy.parameterFile.conversionFactors[item]# * \
-                  #self.data.hierarchy.parameterFile.units["cm"]
+                  self.data.hierarchy.parameter_file.units["cm"]
+                  #self.data.hierarchy.parameter_file.conversion_factors[item] * \
 
 class PhasePlot(RavenPlot):
     def __init__(self, data, fields, width=None, unit=None, bins=100,
@@ -416,7 +428,7 @@ class PhasePlot(RavenPlot):
     def setup_bins(self, field, func = None):
         logIt = False
         v = self.data[field]
-        if field in lagos.log_fields or lagos.fieldInfo[field][2]:
+        if field in lagos.log_fields or lagos.fieldInfo[field].take_log:
             logIt = True
             bins = na.logspace(na.log10(v.min()*0.99),
                                na.log10(v.max()*1.01),
@@ -430,7 +442,7 @@ class PhasePlot(RavenPlot):
     def autoset_label(self, field, func):
         dataLabel = field
         if lagos.fieldInfo.has_key(field):
-            dataLabel += " (%s)" % (lagos.fieldInfo[field][0])
+            dataLabel += " (%s)" % (lagos.fieldInfo[field].get_units())
         func(dataLabel)
 
     def set_cmap(self, cmap):
@@ -472,10 +484,6 @@ class PhasePlot(RavenPlot):
         x_ind, y_ind = (x_bins_ids-1,y_bins_ids-1) # To match up with pcolor
                 # pcolor expects value to be between i and i+1, digitize gives
                 # bin between i-1 and i
-        #print x_ind.max(), y_ind.max()
-        #print x_ind.min(), y_ind.min()
-        #print self.x_bins.shape, self.y_bins.shape
-        #print self.x_v.shape, self.y_v.shape
         used_bin[y_ind,x_ind] = True
         nx = len(self.x_v)
         if self.weight != None:
@@ -534,7 +542,7 @@ class PhasePlot(RavenPlot):
         ys = self.axes.get_yscale()
         self.axes.set_xscale("linear")
         self.axes.set_yscale("linear")
-        self.image = self.axes.pcolor(self.x_bins, self.y_bins, \
+        self.image = self.axes.pcolormesh(self.x_bins, self.y_bins, \
                                       vals,shading='flat', \
                                       norm=self.norm, cmap=self.cmap)
         self.vals = vals
@@ -563,8 +571,6 @@ class PhasePlot(RavenPlot):
         self["Field3"] = self.axisNames["Z"]
 
 def quiverCallback(field_x, field_y, axis, factor):
-    xName = "x"
-    yName = "y"
     def runCallback(plot):
         x0, x1 = plot.xlim
         y0, y1 = plot.ylim
@@ -573,17 +579,17 @@ def quiverCallback(field_x, field_y, axis, factor):
         plot.axes.hold(True)
         numPoints_x = plot.image._A.shape[0] / factor
         numPoints_y = plot.image._A.shape[1] / factor
-        pixX = _MPL.Pixelize(plot.data['x'],
-                             plot.data['y'],
-                             plot.data['dx'],
-                             plot.data['dy'],
+        pixX = _MPL.Pixelize(plot.data['px'],
+                             plot.data['py'],
+                             plot.data['pdx'],
+                             plot.data['pdy'],
                              plot.data[field_x],
                              int(numPoints_x), int(numPoints_y),
                            (x0, x1, y0, y1),).transpose()
-        pixY = _MPL.Pixelize(plot.data['x'],
-                             plot.data['y'],
-                             plot.data['dx'],
-                             plot.data['dy'],
+        pixY = _MPL.Pixelize(plot.data['px'],
+                             plot.data['py'],
+                             plot.data['pdx'],
+                             plot.data['pdy'],
                              plot.data[field_y],
                              int(numPoints_x), int(numPoints_y),
                            (x0, x1, y0, y1),).transpose()
@@ -595,10 +601,42 @@ def quiverCallback(field_x, field_y, axis, factor):
         plot.axes.hold(False)
     return runCallback
 
+def particleCallback(axis, width, p_size=1.0, col='k'):
+    field_x = "particle_position_%s" % lagos.axis_names[lagos.x_dict[axis]]
+    field_y = "particle_position_%s" % lagos.axis_names[lagos.y_dict[axis]]
+    field_z = "particle_position_%s" % lagos.axis_names[axis]
+    def runCallback(plot):
+        z0 = plot.data.center[axis] - width/2.0
+        z1 = plot.data.center[axis] + width/2.0
+        grids = plot.data._grids
+        particles_x = na.concatenate([g[field_x] for g in grids]).ravel()
+        particles_y = na.concatenate([g[field_y] for g in grids]).ravel()
+        particles_z = na.concatenate([g[field_z] for g in grids]).ravel()
+        if len(particles_x) == 0: return
+        x0, x1 = plot.xlim
+        y0, y1 = plot.ylim
+        xx0, xx1 = plot.axes.get_xlim()
+        yy0, yy1 = plot.axes.get_ylim()
+        # Now we rescale because our axes limits != data limits
+        goodI = na.where( (particles_x < x1) & (particles_x > x0)
+                        & (particles_y < y1) & (particles_y > y0)
+                        & (particles_z < z1) & (particles_z > z0))
+        particles_x = (particles_x[goodI] - x0) * (xx1-xx0)/(x1-x0)
+        particles_y = (particles_y[goodI] - y0) * (yy1-yy0)/(y1-y0)
+        plot.axes.hold(True)
+        plot.axes.scatter(particles_x, particles_y, edgecolors='None',
+                          s=p_size, c=col)
+        plot.axes.set_xlim(xx0,xx1)
+        plot.axes.set_ylim(yy0,yy1)
+        plot.axes.hold(False)
+    return runCallback
+
 def contourCallback(field, axis, ncont=5, factor=4):
-    import scipy.sandbox.delaunay as de
-    xName = "x"
-    yName = "y"
+    try:
+        import scipy.sandbox.delaunay as de
+    except ImportError:
+        mylog.warning("Callback failed; no delaunay module")
+        return lambda a: None
     def runCallback(plot):
         x0, x1 = plot.xlim
         y0, y1 = plot.ylim

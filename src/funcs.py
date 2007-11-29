@@ -23,7 +23,8 @@ Useful functions.  If non-original, see function for citation.
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-import time
+import time, types
+import progressbar as pb
 
 def iterable(obj):
     """
@@ -32,6 +33,11 @@ def iterable(obj):
     try: len(obj)
     except: return False
     return True
+
+def ensure_list(obj):
+    if not isinstance(obj, types.ListType):
+        return [obj]
+    return obj
 
 def time_execution(func):
     """
@@ -50,3 +56,12 @@ def time_execution(func):
         return wrapper
     else:
         return func
+
+def get_pbar(title, maxval):
+    widgets = [ title,
+            pb.Percentage(), ' ',
+            pb.Bar(marker=pb.RotatingMarker()),
+            ' ', pb.ETA(), ' ']
+    pbar = pb.ProgressBar(widgets=widgets,
+                          maxval=maxval).start()
+    return pbar

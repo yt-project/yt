@@ -514,7 +514,9 @@ class VMPlotPage(PlotPage):
         self.UpdateTextFromScroll(pos)
 
     def UpdateTextFromScrollEvent(self, event):
+        print "Updating!"
         self.UpdateTextFromScroll(event.GetPosition())
+        self.UpdateWidth()
 
     def UpdateTextFromScroll(self, pos):
         unitname = self.choices[self.unitList.GetSelection()]

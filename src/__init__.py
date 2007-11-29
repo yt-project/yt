@@ -93,6 +93,6 @@ G{packagetree}
 #import importer
 #importer.install()
 
-from yt.logger import *
 from yt.config import *
+from yt.logger import *
 from yt.funcs import *

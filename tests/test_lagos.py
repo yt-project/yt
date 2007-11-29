@@ -26,7 +26,7 @@ class TestLagos(unittest.TestCase):
             os.unlink(i)
 
     def tearDown(self):
-        self.hierarchy.dataFile.close()
+        #self.hierarchy.data_file.close()
         del self.OutputFile, self.hierarchy
 
     def testGetHierarchy(self):

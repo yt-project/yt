@@ -24,6 +24,8 @@ Will initialize everything, and associate one with each module
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
+print "LOGGER INITIALIZED"
+
 import logging, os
 import logging.handlers as handlers
 from yt.config import ytcfg

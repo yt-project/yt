@@ -68,14 +68,16 @@ from DerivedFields import *
 from DerivedQuantities import quantityInfo
 from EnzoFortranWrapper import cosmologyGetUnits
 from DataReadingFuncs import *
-from BaseGridType import *
 from ClusterFiles import *
 from BaseDataTypes import *
+from BaseGridType import *
 from EnzoRateData import *
 from HierarchyType import *
 from OutputTypes import *
 from EnzoRunType import *
 from DataCube import *
+
+log_fields = ["Temperature","Density"] # BAAAAD!
 
 try:
     from ParallelProjection import *

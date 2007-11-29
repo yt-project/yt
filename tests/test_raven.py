@@ -4,8 +4,10 @@ Test that we can make plots
 
 import unittest, glob, os.path, os
 
-from yt import ytcfg
-ytcfg["yt","LogLevel"] = '20'
+import yt.raven
+from yt.config import ytcfg
+print "Setting loglevel"
+ytcfg["yt","LogLevel"] = '50'
 
 import yt.raven
 
@@ -22,7 +24,7 @@ class TestRaven(unittest.TestCase):
         v,self.c = self.hierarchy.findMax("Density")
 
     def tearDown(self):
-        self.hierarchy.dataFile.close()
+        #self.hierarchy.data_file.close()
         del self.OutputFile, self.hierarchy, self.pc
 
     def DoSave(self):
@@ -60,7 +62,7 @@ class TestRaven(unittest.TestCase):
         # Add callbacks, then remove one, then do the plot-saving
         # Both types of callback should be called here
         for ax in range(3):
-            self.pc.addSlice("Density", 0)
+            self.pc.addSlice("Density", ax)
             x,y = yt.raven.axis_labels[ax]
             v1 = "%s-velocity" % (x)
             v2 = "%s-velocity" % (y)
@@ -70,6 +72,16 @@ class TestRaven(unittest.TestCase):
             gi = self.pc.plots[-1].addCallback(yt.raven.be.contourCallback("Gas_Energy",
                                                ax, ncont=3, factor=10))
             self.pc.plots[-1].removeCallback(gi)
+        self.DoSave()
+
+    def testParticlesOnSlice(self):
+        # We test a couple things here
+        # Add callbacks, then remove one, then do the plot-saving
+        # Both types of callback should be called here
+        for ax in range(3):
+            self.pc.addSlice("Density", ax)
+            gi = self.pc.plots[-1].addCallback(yt.raven.be.particleCallback(
+                                               ax, 0.01))
         self.DoSave()
 
 if __name__ == "__main__":
