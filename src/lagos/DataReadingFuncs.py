@@ -37,8 +37,10 @@ def getFieldsHDF5(self):
     Should *only* be called as EnzoGridInstance.getFields, never as getFields(object)
     """
     fls = []
-    for fl in tables.openFile(self.filename).listNodes("/"):
+    f = tables.openFile(self.filename)
+    for fl in f.listNodes("/"):
         fls.append(fl.name)
+    f.close()
     return fls
 
 def readDataHDF4(self, field):
