@@ -15,7 +15,7 @@ def configuration(parent_package='',top_path=None):
                        quiet=True)
     
     config.make_config_py()
-    config.add_subpackage('yt','src')
+    config.add_subpackage('yt','yt')
     config.add_scripts("scripts/*")
 
     return config
