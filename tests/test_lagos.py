@@ -2,10 +2,16 @@
 Test that we can get outputs, and interact with them in some primitive ways.
 """
 
-import unittest, glob, os.path, os
+import unittest, glob, os.path, os, sys, StringIO
 
-from yt import ytcfg
-ytcfg["yt","LogLevel"] = '20'
+print "Reporting from %s" % (os.getcwd())
+sys.path = ['.'] + sys.path
+
+from yt.config import ytcfg
+ytcfg["yt","LogLevel"] = '50'
+ytcfg["yt","logFile"] = "False"
+ytcfg["yt","suppressStreamLogging"] = "True"
+ytcfg["lagos","serialize"] = "False"
 
 import yt.lagos
 
@@ -14,21 +20,21 @@ import yt.lagos
 fn = "DD0018/moving7_0018"
 fn = os.path.join(os.path.dirname(__file__),fn)
 
-class TestLagos(unittest.TestCase):
+class LagosTestingBase:
     def setUp(self):
         self.OutputFile = yt.lagos.EnzoStaticOutput(fn)
         self.hierarchy = self.OutputFile.hierarchy
-        self.v, self.c = self.hierarchy.findMax("Density")
+        self.v, self.c = self.hierarchy.find_max("Density")
         gp = os.path.join(os.path.dirname(fn),"*.yt")
         ytFiles = glob.glob(gp)
         for i in ytFiles:
-            print "Removing %s" % (i)
+            #print "Removing %s" % (i)
             os.unlink(i)
 
     def tearDown(self):
-        #self.hierarchy.data_file.close()
         del self.OutputFile, self.hierarchy
 
+class TestHierarchy(LagosTestingBase, unittest.TestCase):
     def testGetHierarchy(self):
         self.assert_(self.OutputFile.hierarchy != None)
 
@@ -36,47 +42,47 @@ class TestLagos(unittest.TestCase):
         self.assert_(self.OutputFile["cm"] != 1.0)
 
     def testGetSmallestDx(self):
-        self.assertAlmostEqual(self.hierarchy.getSmallestDx(),
+        self.assertAlmostEqual(self.hierarchy.get_smallest_dx(),
                                0.0009765625, 5)
 
     def testGetNumberOfGrids(self):
-        self.assertEqual(self.hierarchy.numGrids, len(self.hierarchy.grids))
-        self.assertEqual(self.hierarchy.numGrids, 211)
+        self.assertEqual(self.hierarchy.num_grids, len(self.hierarchy.grids))
+        self.assertEqual(self.hierarchy.num_grids, 211)
 
     def testChildrenOfRootGrid(self):
         for child in self.hierarchy.grids[0].Children:
             self.assert_(child.Parent.id == self.hierarchy.grids[0].id)
 
     def testGetSelectLevels(self):
-        grids = self.hierarchy.grids
         for level in range(self.hierarchy.maxLevel+1):
-            for grid in grids[self.hierarchy.selectLevel(level)]:
+            for grid in self.hierarchy.select_grids(level):
                 self.assert_(grid.Level == level)
 
     def testPrintStats(self):
+        a = sys.stdout
+        sys.stdout = StringIO.StringIO()
         try:
-            self.hierarchy.printStats()
+            self.hierarchy.print_stats()
+            worked = True
         except:
-            self.fail()
-        self.assert_(True)
+            worked = False
+        sys.stdout = a
+        self.assert_(worked)
 
-    def testRegions(self):
-        # This tests a couple things
+    def testDataTypes(self):
         r=self.hierarchy.region(
                      [0.5,0.5,0.5],[0.0, 0.0, 0.0],
                      [1.0, 1.0, 1.0],
-                     ["Density","Temperature"])
+                     ["CellMass","Temperature"])
             # Testing multiple fields fed in
         s=self.hierarchy.sphere(
                      [0.5,0.5,0.5],2.0,
                      ["CellMass","Temperature"])
-            # Testing multiple fields fed in
         ms = s["CellMass"].sum() # Testing adding new field transparently
         mr = r["CellMass"].sum() # Testing adding new field transparently
         self.assertEqual(ms,mr)  # Asserting equality between the two
 
-    def testMakingProjections(self):
-        # First we test that we can project various ways
+    def testProjectionMaking(self):
         p = self.hierarchy.proj(0,"Density") # Unweighted
         p = self.hierarchy.proj(1,"Temperature","Density") # Weighted
         p = self.hierarchy.proj(2,"Entropy") # Derived field
@@ -87,11 +93,46 @@ class TestLagos(unittest.TestCase):
             p = self.hierarchy.proj(axis, "Ones") # Derived field
             self.assertAlmostEqual(p["Ones"].prod(), 1.0, 7)
 
-    def testSlice(self):
-        s = self.hierarchy.slice(0,0.5,"Density") # Non-derived
-        s = self.hierarchy.slice(1,0.5,"RadialVelocity") # Derived
-        s = self.hierarchy.slice(2,0.5,["RadialVelocity","Temperature"])
-                         # Multiple, derived
+# Now we test each datatype in turn
+
+def _returnFieldFunction(field):
+    def field_function(self):
+        try:
+            self.data[field.name]
+            del self.data[field.name]
+        except yt.lagos.ValidationException:
+            pass
+    return field_function
+
+class DataTypeTestingBase:
+    def setUp(self):
+        LagosTestingBase.setUp(self)
+for field in yt.lagos.fieldInfo.values()[:3]:
+    func = _returnFieldFunction(field)
+    setattr(DataTypeTestingBase, "test%s" % field.name, func)
+
+class TestRegionDataType(DataTypeTestingBase, LagosTestingBase, unittest.TestCase):
+    def setUp(self):
+        DataTypeTestingBase.setUp(self)
+        self.data=self.hierarchy.region(
+                     [0.5,0.5,0.5],[0.0, 0.0, 0.0],
+                     [1.0, 1.0, 1.0])
+    def testVolume(self):
+        vol = self.data["CellVolume"].sum() / self.data.convert("cm")**3.0
+        self.assertAlmostEqual(vol,1.0,7)
+
+class TestSphereDataType(DataTypeTestingBase, LagosTestingBase, unittest.TestCase):
+    def setUp(self):
+        DataTypeTestingBase.setUp(self)
+        self.data=self.hierarchy.sphere([0.5,0.5,0.5],2.0)
+    def testVolume(self):
+        vol = self.data["CellVolume"].sum() / self.data.convert("cm")**3.0
+        self.assertAlmostEqual(vol,1.0,7)
+
+class TestSliceDataType(DataTypeTestingBase, LagosTestingBase, unittest.TestCase):
+    def setUp(self):
+        DataTypeTestingBase.setUp(self)
+        self.data = self.hierarchy.slice(0,0.5)
 
 if __name__ == "__main__":
     unittest.main()

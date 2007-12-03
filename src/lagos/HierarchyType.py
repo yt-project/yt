@@ -88,7 +88,7 @@ class EnzoHierarchy:
         self.gridTimes = na.zeros((self.num_grids,1), nT.Float64)
         self.gridNumberOfParticles = na.zeros((self.num_grids,1))
 
-        self.grids = obj.array([self.grid(i+1) for i in xrange(self.num_grids)])
+        self.grids = na.array([self.grid(i+1) for i in xrange(self.num_grids)])
         self.gridReverseTree = [-1] * self.num_grids
         self.gridTree = [ [] for i in range(self.num_grids)]
 
@@ -351,6 +351,12 @@ class EnzoHierarchy:
             self.level_stats['numgrids'][tlevel] += 1
             self.level_stats['numcells'][tlevel] += na.product(grid.ActiveDimensions)
         mylog.debug("Prepared")
+        field_list = self.get_data("/", "DataFields")
+        if field_list == None:
+            field_list = sets.Set()
+            for grid in self.grids:
+                field_list = field_list.union(sets.Set(grid.getFields()))
+        self.field_list = list(field_list)
         self.levelIndices = {}
         self.levelNum = {}
         for level in xrange(self.maxLevel+1):

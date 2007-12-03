@@ -18,12 +18,12 @@ all of the engine-appropriate methods.
   it under the terms of the GNU General Public License as published by
   the Free Software Foundation; either version 3 of the License, or
   (at your option) any later version.
-  
+
   This program is distributed in the hope that it will be useful,
   but WITHOUT ANY WARRANTY; without even the implied warranty of
   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
   GNU General Public License for more details.
-  
+
   You should have received a copy of the GNU General Public License
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
@@ -111,7 +111,7 @@ class PlotCollection:
                                       axes=axes, figure=figure))
         p["Axis"] = lagos.axis_names[axis]
         return p
-    def addProjection(self, field, axis, weightField=None, 
+    def addProjection(self, field, axis, weightField=None,
                       center=None, useColorbar=True,
                       figure = None, axes = None):
         # Make the projection object here
@@ -144,7 +144,7 @@ class PlotCollection:
         p["Width"] = radius
         p["Unit"] = unit
         p["Axis"] = None
-        return p 
+        return p
     def addThreePhaseSphere(self, radius, unit, fields, center=None, cmap=None,
                             weight="CellMass"):
         if center == None:

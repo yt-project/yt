@@ -207,3 +207,26 @@ class EnzoStaticOutput(EnzoOutput):
 
     hierarchy = property(_get_hierarchy, _set_hierarchy)
     h = property(_get_hierarchy, _set_hierarchy)
+
+    def cosmology_get_units(self):
+        k = {}
+        k["utim"] = 2.52e17/na.sqrt(self.parameters["CosmologyOmegaMatterNow"])\
+                       / self.parameters["CosmologyHubbleConstantNow"] \
+                       / (1+self.parameters["CosmologyInitialRedshift"])**1.5
+        k["urho"] = 1.88e-29 * self.parameters["CosmologyOmegaMatterNow"] \
+                        * self.parameters["CosmologyHubbleConstantNow"]**2 \
+                        * (1.0 + self.parameters["CosmologyCurrentRedshift"])**3
+        k["uxyz"] = 3.086e24 * \
+               self.parameters["CosmologyComovingBoxSize"] / \
+               self.parameters["CosmologyHubbleConstantNow"] / \
+               (1.0 + self.parameters["CosmologyCurrentRedshift"])
+        k["uaye"] = 1.0/(1.0 + self.parameters["CosmologyInitialRedshift"])
+        k["uvel"] = 1.225e7*self.parameters["CosmologyComovingBoxSize"] \
+                      *na.sqrt(self.parameters["CosmologyOmegaMatterNow"]) \
+                      *na.sqrt(1+ self.parameters["CosmologyInitialRedshift"])
+        k["utem"] = 1.88e6 * (self.parameters["CosmologyComovingBoxSize"]**2) \
+                      * self.parameters["CosmologyOmegaMatterNow"] \
+                      * (1.0 + self.parameters["CosmologyInitialRedshift"])
+        k["aye"]  = (1.0 + self.parameters["CosmologyInitialRedshift"]) / \
+               (1.0 + self.parameters["CosmologyCurrentRedshift"])
+        return k

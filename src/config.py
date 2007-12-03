@@ -49,9 +49,12 @@ ytcfgDefaults = {
     "lagos":{
         'ReconstructHierarchy': 'False',
         'serialize' : 'True',
+        'usefortran' : 'False',
+        'useswig' : 'False',
         },
     "yt":{
-        'LogFile': '1',
+        'LogFile': 'True',
+        'suppressStreamLogging': 'False',
         'LogLevel': '20',
         'unifiedlogfile': '1',
         'User':os.getenv("USER"),
@@ -62,7 +65,7 @@ ytcfgDefaults = {
         'ImagePath':".",
         'ImageSkel': '%(bn)s_%(width)010i_%(unit)s',
         'backend': 'MPL'
-        } 
+        }
     }
 
 class YTConfigParser(ConfigParser.ConfigParser):
@@ -105,4 +108,9 @@ ytcfg = YTConfigParser(['yt.cfg', os.path.expanduser('~/.yt/config')],
 
 # Now we have parsed the config file.  Overrides come from the command line.
 
-#op = optparse.OptionParser(description="
+# This should be implemented at some point.  The idea would be to have a set of
+# command line options, fed through an option parser, that would override
+# the settings in ytcfg.  *However*, because we want to have the command-line
+# scripts work, we'd probably want to have them only be long options, and also
+# along the lines of --yt-something=somethingelse.  The command line scripts
+# would then not get their options from sys.argv, but instead from this module.

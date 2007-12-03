@@ -46,7 +46,6 @@ myTypes = [ 'Complex128',  'Bool', 'Int32', 'Complex64', 'UInt16', 'Float32',
 
 import numpy as na
 import numpy.linalg as la
-import numpy as obj  # Backwards compat
 import numpy.core.records as rec
 import scipy.ndimage as nd # Moved into scipy
 import scipy as sp

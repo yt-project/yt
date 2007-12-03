@@ -24,8 +24,6 @@ Will initialize everything, and associate one with each module
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-print "LOGGER INITIALIZED"
-
 import logging, os
 import logging.handlers as handlers
 from yt.config import ytcfg
@@ -38,6 +36,8 @@ logging.basicConfig(
 )
 
 f = logging.Formatter("%(levelname)-10s %(asctime)s %(message)s")
+
+rootLogger = logging.getLogger()
 
 ytLogger = logging.getLogger("yt")
 ytLogger.debug("Set log level to %s", level)
@@ -93,3 +93,8 @@ if ytcfg.getboolean("yt","logfile") and os.access(".", os.W_OK):
                                                     maxBytes=mb, backupCount=bc)
         reasonHandler.setFormatter(f)
         reasonLogger.addHandler(reasonHandler)
+
+if ytcfg.getboolean("yt","suppressStreamLogging"):
+    # We just remove the root logger's handlers
+    for handler in rootLogger.handlers:
+        handler.disabled = 1

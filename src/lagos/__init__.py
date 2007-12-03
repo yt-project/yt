@@ -28,8 +28,8 @@ G{packagetree}
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-from yt.logger import lagosLogger as mylog
 from yt.config import ytcfg
+from yt.logger import lagosLogger as mylog
 
 try:
     from pyhdf_np import SD # NumPy
@@ -46,18 +46,21 @@ from string import strip, rstrip
 from math import ceil, floor, log10, pi
 import os, os.path, types, exceptions, re
 from stat import ST_CTIME
+import sets
 
 import time
 
-try:
-    from yt.enki import EnzoInterface
-except ImportError:
-    pass
+if ytcfg.getboolean("lagos","useswig"):
+    try:
+        from yt.enki import EnzoInterface
+    except ImportError:
+        pass
 
-try:
-    import EnzoFortranRoutines
-except ImportError:
-    pass
+if ytcfg.getboolean("lagos","usefortran"):
+    try:
+        import EnzoFortranRoutines
+    except ImportError:
+        pass
 
 # Now we import all the subfiles
 
@@ -66,7 +69,6 @@ from WeaveStrings import *
 from EnzoDefs import *
 from DerivedFields import *
 from DerivedQuantities import quantityInfo
-from EnzoFortranWrapper import cosmologyGetUnits
 from DataReadingFuncs import *
 from ClusterFiles import *
 from BaseDataTypes import *
@@ -74,12 +76,3 @@ from BaseGridType import *
 from EnzoRateData import *
 from HierarchyType import *
 from OutputTypes import *
-from EnzoRunType import *
-from DataCube import *
-
-log_fields = ["Temperature","Density"] # BAAAAD!
-
-try:
-    from ParallelProjection import *
-except:
-    pass

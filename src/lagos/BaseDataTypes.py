@@ -45,9 +45,15 @@ class EnzoData:
         if pf != None:
             self.pf = pf
             self.hierarchy = pf.hierarchy
+        if fields == None: fields = []
         self.fields = ensure_list(fields)
         self.data = {}
         self.field_parameters = {}
+        self.__set_default_field_parameters()
+
+    def __set_default_field_parameters(self):
+        self.set_field_parameter("center",na.zeros(3,dtype=nT.Float64))
+        self.set_field_parameter("bulk_velocity",na.zeros(3,dtype=nT.Float64))
 
     def get_field_parameter(self, name):
         if self.field_parameters.has_key(name):
@@ -92,7 +98,18 @@ class EnzoData:
         """
         Sets a field to be some other value.
         """
+        if key not in self.fields: self.fields.append(key)
         self.data[key] = val
+
+    def __delitem__(self, key):
+        """
+        Sets a field to be some other value.
+        """
+        try:
+            del self.fields[self.fields.index(key)]
+        except ValueError:
+            pass
+        del self.data[key]
 
     def _generate_field_in_grids(self, fieldName):
         pass
@@ -135,7 +152,7 @@ class Enzo2DData(EnzoData):
                 self[field] = fieldInfo[field](self)
                 return True
         else: # Can't find the field, try as it might
-            raise exceptions.KeyError, field
+            raise exceptions.KeyError(field)
 
 
     def interpolate_discretize(self, LE, RE, field, side, logSpacing=True):
@@ -710,7 +727,7 @@ class Enzo3DData(EnzoData):
                 self[field] = fieldInfo[field](self)
                 return True
         else: # Can't find the field, try as it might
-            raise exceptions.KeyError, field
+            raise exceptions.KeyError(field)
 
     def _generate_field_in_grids(self, field, num_ghost_zones=0):
         for grid in self._grids:
@@ -738,12 +755,12 @@ class EnzoRegionBase(Enzo3DData):
 
     def _get_cut_mask(self, grid):
         pointI = \
-               ( (grid.coords[0,:] <= self.rightEdge[0])
-               & (grid.coords[0,:] >= self.leftEdge[0])
-               & (grid.coords[1,:] <= self.rightEdge[1])
-               & (grid.coords[1,:] >= self.leftEdge[1])
-               & (grid.coords[2,:] <= self.rightEdge[2])
-               & (grid.coords[2,:] >= self.leftEdge[2]) )
+               ( (grid['x'] <= self.right_edge[0])
+               & (grid['x'] >= self.left_edge[0])
+               & (grid['y'] <= self.right_edge[1])
+               & (grid['y'] >= self.left_edge[1])
+               & (grid['z'] <= self.right_edge[2])
+               & (grid['z'] >= self.left_edge[2]) )
         return pointI
 
 class EnzoSphereBase(Enzo3DData):

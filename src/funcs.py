@@ -35,6 +35,8 @@ def iterable(obj):
     return True
 
 def ensure_list(obj):
+    if obj == None:
+        return [obj]
     if not isinstance(obj, types.ListType):
         return [obj]
     return obj
@@ -50,14 +52,28 @@ def time_execution(func):
         t2 = time.time()
         mylog.debug('%s took %0.3f s', func.func_name, (t2-t1))
         return res
-    from yt import ytcfg
-    from yt import lagosLogger as mylog
+    from yt.config import ytcfg
+    from yt.logger import lagosLogger as mylog
     if ytcfg.getboolean("yt","timefunctions") == True:
         return wrapper
     else:
         return func
 
+class DummyProgressBar:
+    def __init__(self, *args, **kwargs):
+        return
+    def update(self, *args, **kwargs):
+        return
+    def finish(sefl, *args, **kwargs):
+        return
+
 def get_pbar(title, maxval):
+    from yt.config import ytcfg
+    from yt.logger import lagosLogger as mylog
+    if ytcfg.getboolean("yt","inGui"):
+        return DummyProgressBar()
+    elif ytcfg.getboolean("yt","suppressStreamLogging"):
+        return DummyProgressBar()
     widgets = [ title,
             pb.Percentage(), ' ',
             pb.Bar(marker=pb.RotatingMarker()),

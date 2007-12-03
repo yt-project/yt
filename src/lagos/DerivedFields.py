@@ -12,19 +12,22 @@ from yt.funcs import *
 mh = 1.67e-24
 fieldInfo = {}
 
-class NeedsGridType(Exception):
+class ValidationException(Exception):
+    pass
+
+class NeedsGridType(ValidationException):
     def __init__(self, ghost_zones = 0):
         self.ghost_zones = ghost_zones
 
-class NeedsDataField(Exception):
+class NeedsDataField(ValidationException):
     def __init__(self, missing_fields):
         self.missing_fields = missing_fields
 
-class NeedsProperty(Exception):
+class NeedsProperty(ValidationException):
     def __init__(self, missing_properties):
         self.missing_properties = missing_properties
 
-class NeedsParameter(Exception):
+class NeedsParameter(ValidationException):
     def __init__(self, missing_parameters):
         self.missing_parameters = missing_parameters
 
@@ -84,8 +87,12 @@ class DerivedField:
     def get_projected_units(self):
         return self._projected_units
     def __call__(self, data):
+        original_fields = data.fields[:] # Copy
         dd = self._function(self, data)
         dd *= self._convert_function(data)
+        for field_name in data.fields:
+            if field_name not in original_fields:
+                del data[field_name]
         return dd
     def get_source(self):
         return inspect.getsource(self._function)
@@ -113,10 +120,10 @@ class ValidateDataField(FieldValidator):
     def __call__(self, data):
         doesnt_have = []
         for f in self.fields:
-            if not data.has_datafield(f):
+            if f not in data.hierarchy.field_list:
                 doesnt_have.append(f)
         if len(doesnt_have) > 0:
-            raise NeedsDatafield(doesnt_have)
+            raise NeedsDataField(doesnt_have)
         return True
 
 class ValidateProperty(FieldValidator):
@@ -317,17 +324,41 @@ add_field("Radius", validators=[ValidateParameter("center")],
 add_field("RadiusCode", function=_Radius,
           validators=[ValidateParameter("center")])
 
+def _RadialVelocity(field, data):
+    center = data.get_field_parameter("center")
+    bulk_velocity = data.get_field_parameter("bulk_velocity")
+    if bulk_velocity == None:
+        bulk_velocity = na.zeros(3)
+    new_field = ( (data['x']-center[0])*data["x-velocity"]
+                + (data['y']-center[1])*data["y-velocity"]
+                + (data['z']-center[2])*data["z-velocity"])/data["RadiusCode"]
+    return new_field
+def _ConvertRadialVelocity(data):
+    return (data.convert("x-velocity") / 1e5)
+def _ConvertRadialVelocityCGS(data):
+    return (data.convert("x-velocity"))
+add_field("RadialVelocity", function=_RadialVelocity,
+          convert_function=_ConvertRadialVelocity, units="km/s",
+          validators=[ValidateParameter("center"),
+                      ValidateParameter("bulk_velocity")])
+add_field("RadialVelocityCGS", function=_RadialVelocity,
+          convert_function=_ConvertRadialVelocityCGS, units="cm/s")
+
 # Now we add all the fields that we want to control, but we give a null function
 # This is every Enzo field we can think of.  This will be installation-dependent,
 
 _enzo_fields = ["Density","Temperature","Gas_Energy","Total_Energy",
                 "x-velocity","y-velocity","z-velocity"]
 _enzo_fields += [ "%s_Density" % sp for sp in _speciesList ]
+def _returnCodeField(real_field):
+    def _fieldFunction(field, data):
+        return data[real_field]
+    return _fieldFunction
 for field in _enzo_fields:
     add_field(field, function=lambda a, b: None, take_log=True,
               validators=[ValidateDataField(field)])
-    add_field("_Code%s" % field, function=lambda a, b: None, take_log=True,
-              validators=[ValidateDataField(field)])
+    add_field("_Code%s" % field, function=_returnCodeField(field),
+              take_log=True, validators=[ValidateDataField(field)])
 
 # Now we override
 
