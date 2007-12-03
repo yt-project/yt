@@ -1,0 +1,2 @@
+db_module=deliverator.model
+history_dir=$base/deliverator/sqlobject-history
