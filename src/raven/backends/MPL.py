@@ -359,6 +359,9 @@ class VMPlot(RavenPlot):
     def set_label(self, label):
         if self.colorbar != None: self.colorbar.set_label(label)
 
+    def autoset_label(self):
+        pass
+    
     def selfSetup(self):
         pass
 
