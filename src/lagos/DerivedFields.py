@@ -664,3 +664,24 @@ def Ones(self, fieldName):
     self[fieldName] = na.ones(self["Density"].shape)
 fieldInfo["Ones"] = (None, None, True, Ones)
 fieldInfo["CellsPerBin"] = ("Cells per Bin", None, True, Ones)
+
+def Gas_Energy(self,fieldName):
+    """If DualEnergyFormalism is off in enzo, then there is only
+    TotalEnergy, and Gas_Energy is derived: Gas_Energy = Total_Energy
+    - 0.5*v**2"""
+    self[fieldName] = self["TotalEnergy"] - self["KineticEnergy"]
+fieldInfo["Gas_Energy"] = (None, None, True, Gas_Energy)
+
+def KineticEnergy(self,fieldName):
+    """KE = 0.5*v**2"""
+    if self.hierarchy.bulkVelocity != None:
+        xv = self["x-velocity"] - self.hierarchy.bulkVelocity[0]
+        yv = self["y-velocity"] - self.hierarchy.bulkVelocity[1]
+        zv = self["z-velocity"] - self.hierarchy.bulkVelocity[2]
+    else:
+        xv = self["x-velocity"]
+        yv = self["y-velocity"]
+        zv = self["z-velocity"]
+
+    self[fieldName] = 0.5*(xv**2.0 + yv**2.0 + zv**2.0)
+fieldInfo["KineticEnergy"] = (None, None, True, KineticEnergy)

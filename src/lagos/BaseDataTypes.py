@@ -122,12 +122,12 @@ class EnzoData:
         """
         Generates, or attempts to generate,  a field not found in the file
 
-        See fields.py for more information.  fieldInfo.keys() will list all of
-        the available derived fields.  Note that we also make available the
-        suffices _Fraction and _Squared here.  All fields prefixed with 'k'
-        will force an attempt to use the chemistry tables to generate them from
-        temperature.  All fields used in generation will remain resident in
-        memory.
+        See DerivedFields.py for more information.  fieldInfo.keys()
+        will list all of the available derived fields.  Note that we
+        also make available the suffices _Fraction and _Squared here.
+        All fields prefixed with 'k' will force an attempt to use the
+        chemistry tables to generate them from temperature.  All
+        fields used in generation will remain resident in memory.
 
         Also, it now works better with vectors.
 
