@@ -133,19 +133,20 @@ class EnzoGridBase(EnzoData):
             self.Parent = None
         # So first we figure out what the index is.  We don't assume
         # that dx=dy=dz , at least here.  We probably do elsewhere.
-        self.dx = (self.RightEdge[0] - self.LeftEdge[0]) / \
-                  (self.EndIndices[0]-self.StartIndices[0]+1)
-        self['dx'] = self.dx
-        self.dy = (self.RightEdge[1] - self.LeftEdge[1]) / \
-                  (self.EndIndices[1]-self.StartIndices[1]+1)
-        self['dy'] = self.dy
-        self.dz = (self.RightEdge[2] - self.LeftEdge[2]) / \
-                  (self.EndIndices[2]-self.StartIndices[2]+1)
-        self['dz'] = self.dz
-        h.gridDxs[self.id-1,0] = self.dx
         if ytcfg.getboolean("lagos","ReconstructHierarchy") == True \
            and self.Parent != None:
             self._guess_properties_from_parent()
+        else:
+            self.dx = (self.RightEdge[0] - self.LeftEdge[0]) / \
+                      (self.EndIndices[0]-self.StartIndices[0]+1)
+            self.dy = (self.RightEdge[1] - self.LeftEdge[1]) / \
+                      (self.EndIndices[1]-self.StartIndices[1]+1)
+            self.dz = (self.RightEdge[2] - self.LeftEdge[2]) / \
+                  (self.EndIndices[2]-self.StartIndices[2]+1)
+        self['dx'] = self.dx * na.ones(self.ActiveDimensions, dtype='Float64')
+        self['dy'] = self.dy * na.ones(self.ActiveDimensions, dtype='Float64')
+        self['dz'] = self.dz * na.ones(self.ActiveDimensions, dtype='Float64')
+        h.gridDxs[self.id-1,0] = self.dx
 
     def _guess_properties_from_parent(self):
         # Okay, we're going to try to guess
@@ -269,11 +270,11 @@ class EnzoGridBase(EnzoData):
 
     def export_amira(self, filename, fields, timestep = 1, a5Filename=None, gid=0):
         fields = ensure_list(fields)
-        deltas = na.array([self.dx,self.dy,self.dz],dtype=nT.Float64)
+        deltas = na.array([self.dx,self.dy,self.dz],dtype='float64')
         tn = "time-%i" % (timestep)
         ln = "level-%i" % (self.Level)
         for field in fields:
-            iorigin = (self.LeftEdge/deltas).astype(nT.Int64)
+            iorigin = (self.LeftEdge/deltas).astype('int64')
             new_h5 = tables.openFile(filename % {'field' : field}, "a")
             f = self[field].transpose().reshape(self.ActiveDimensions)
             new_h5.createArray("/","grid-%i" % (self.id), f)
@@ -282,8 +283,8 @@ class EnzoGridBase(EnzoData):
             node.setAttr("level",self.Level)
             node.setAttr("timestep",timestep)
             node.setAttr("time",self.Time)
-            node.setAttr("cctk_bbox",na.array([0,0,0,0,0,0],dtype=nT.Int32))
-            node.setAttr("cctk_nghostzones",na.array([0,0,0],dtype=nT.Int32))
+            node.setAttr("cctk_bbox",na.array([0,0,0,0,0,0],dtype='int32'))
+            node.setAttr("cctk_nghostzones",na.array([0,0,0],dtype='int32'))
             node.setAttr("delta",deltas)
             node.setAttr("origin",self.LeftEdge)
             node.setAttr("iorigin",iorigin*(2**(self.hierarchy.maxLevel - self.Level)))
@@ -293,9 +294,9 @@ class EnzoGridBase(EnzoData):
                 new_h5.createGroup("/%s/%s" % (tn, ln),"grid-%i" % (gid))
                 node=new_h5.getNode("/%s/%s" % (tn, ln),"grid-%i" % (gid))
                 node._f_setAttr("dims",self.ActiveDimensions)
-                node._f_setAttr("ghostzoneFlags",na.array([0,0,0,0,0,0],dtype=nT.Int32))
-                node._f_setAttr("integerOrigin",(self.LeftEdge/deltas).astype(nT.Int64))
-                node._f_setAttr("numGhostzones",na.array([0,0,0],dtype=nT.Int32))
+                node._f_setAttr("ghostzoneFlags",na.array([0,0,0,0,0,0],dtype='int32'))
+                node._f_setAttr("integerOrigin",(self.LeftEdge/deltas).astype('int64'))
+                node._f_setAttr("numGhostzones",na.array([0,0,0],dtype='int32'))
                 node._f_setAttr("origin",self.LeftEdge)
                 node._f_setAttr("referenceDataPath","/"+"grid-%i" % (self.id))
                 fn = os.path.basename(filename % {'field' : field})
@@ -318,7 +319,7 @@ class EnzoGridBase(EnzoData):
         if zeroOut:
             maskedData[self.child_indices]=0
             weightData[self.child_indices]=0
-            toCombineMask = na.logical_and.reduce(self.child_mask, axis).astype(nT.Int64)
+            toCombineMask = na.logical_and.reduce(self.child_mask, axis).astype('int64')
         # How do we do this the fastest?
         # We only want to project those values that don't have subgrids
         # How much time would we save if we had dx=dy=dz?
@@ -326,15 +327,15 @@ class EnzoGridBase(EnzoData):
         fullProj = func(maskedData,axis)*a[axis] # Gives correct shape
         weightProj = func(weightData,axis)*a[axis]
         if not zeroOut:
-            toCombineMask = na.ones(fullProj.shape, dtype=nT.Int64)
-        toCombineMask = toCombineMask.astype(nT.Int64)
+            toCombineMask = na.ones(fullProj.shape, dtype='int64')
+        toCombineMask = toCombineMask.astype('int64')
         cmI = na.indices(fullProj.shape)
         xind = cmI[0,:].ravel()
         yind = cmI[1,:].ravel()
         dx = a[x_dict[axis]]
         dy = a[y_dict[axis]]
-        xpoints = xind + na.rint(self.LeftEdge[x_dict[axis]]/dx).astype(nT.Int64)
-        ypoints = yind + na.rint(self.LeftEdge[y_dict[axis]]/dy).astype(nT.Int64)
+        xpoints = xind + na.rint(self.LeftEdge[x_dict[axis]]/dx).astype('int64')
+        ypoints = yind + na.rint(self.LeftEdge[y_dict[axis]]/dy).astype('int64')
         return [xpoints, ypoints, fullProj.ravel(), toCombineMask.ravel(), weightProj.ravel()]
 
     def _set_child_mask(self, newCM):
@@ -370,7 +371,7 @@ class EnzoGridBase(EnzoData):
         Generates self.child_mask, which is zero where child grids exist (and
         thus, where higher resolution data is available.)
         """
-        self.__child_mask = na.ones(self.ActiveDimensions, nT.Int32)
+        self.__child_mask = na.ones(self.ActiveDimensions, 'int32')
         LE = self.hierarchy.gridLeftEdge
         RE = self.hierarchy.gridRightEdge
         my_child_grids = na.where(

@@ -17,12 +17,12 @@ hierarchy file.
   it under the terms of the GNU General Public License as published by
   the Free Software Foundation; either version 3 of the License, or
   (at your option) any later version.
-  
+
   This program is distributed in the hope that it will be useful,
   but WITHOUT ANY WARRANTY; without even the implied warranty of
   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
   GNU General Public License for more details.
-  
+
   You should have received a copy of the GNU General Public License
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
@@ -67,7 +67,7 @@ class AnalyzeClusterOutput:
             ks = filename.keys()
             ks.sort()
             numBins = filename[ks[0]].shape[0]
-            self.data = na.zeros((len(ks), numBins), nT.Float64)
+            self.data = na.zeros((len(ks), numBins), 'float64')
             self.columns = {}
             self.rcolumns = {}
             i = 0
@@ -122,7 +122,7 @@ class AnalyzeClusterOutput:
         for line in self.lines:
             if line[0] != "#" and len(line.strip()) > 0:
                 numBins += 1
-        self.data = na.zeros((len(self.columns), numBins), nT.Float64)
+        self.data = na.zeros((len(self.columns), numBins), 'float64')
         i = 0
         nc = len(self.columns)
         for line in self.lines:
@@ -137,7 +137,7 @@ class AnalyzeClusterOutput:
         fs = "\t".join(["%0.15e"] * len(self.columns)) + "\n"
         f = open(filename,"w")
         # Dicts are unsorted, so we do this.  Could probably be better.
-        fields = [] 
+        fields = []
         keys = self.columns.keys()
         keys.sort()
         for key in keys:
@@ -167,7 +167,7 @@ class AnalyzeClusterOutput:
                 comb.columns[i] = other.columns[col]
                 comb.rcolumns[other.columns[col]] = i
                 i += 1
-        comb.data = na.zeros((len(comb.columns), self.data.shape[1]), nT.Float64)
+        comb.data = na.zeros((len(comb.columns), self.data.shape[1]), 'float64')
         comb.data[:len(self.columns),:] = self.data
         i = offset
         for col in cols:

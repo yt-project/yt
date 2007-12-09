@@ -156,6 +156,25 @@ class ValidateSpatial(FieldValidator):
 # Note that, despite my newfound efforts to comply with PEP-8,
 # I violate it here in order to keep the name/func_name relationship
 
+def _coordX(field, data):
+    return (na.indices(data.ActiveDimensions, dtype='float64')[0]+0.5) \
+           * data['dx'] + data.LeftEdge[0]
+add_field('x', function=_coordX,
+          validators=[ValidateSpatial(0)])
+
+def _coordY(field, data):
+    return (na.indices(data.ActiveDimensions, dtype='float64')[1]+0.5) \
+           * data['dy'] + data.LeftEdge[1]
+add_field('y', function=_coordY,
+          validators=[ValidateSpatial(0)])
+
+def _coordZ(field, data):
+    return (na.indices(data.ActiveDimensions, dtype='float64')[2]+0.5) \
+           * data['dz'] + data.LeftEdge[2]
+add_field('z', function=_coordZ,
+          validators=[ValidateSpatial(0)])
+
+
 _speciesList = ["HI","HII","Electron",
                "HeI","HeII","HeIII",
                "H2I","H2II","HM",
@@ -231,7 +250,7 @@ def _DynamicalTime(field, data):
 def _ConvertDynamicalTime(data):
     G = data.pf["GravitationalConstant"]
     t_dyn_coeff = (3*pi/(16*G))**0.5 \
-                * data.convert("seconds")
+                * data.convert("Time")
     return t_dyn_coeff
 add_field("DynamicalTime", units="s",
           convert_function=_ConvertDynamicalTime)
@@ -243,7 +262,7 @@ def _NumberDensity(field, data):
     fieldData = na.zeros(data["Density"].shape,
                          dtype = data["Density"].dtype)
     if data.pf["MultiSpecies"] == 0:
-        fieldData += data["Density"] * data.params["mu"]
+        fieldData += data["Density"] * data.get_field_parameter("mu", 0.6)
     if data.pf["MultiSpecies"] > 0:
         fieldData += data["HI_Density"] / 1.0
         fieldData += data["HII_Density"] / 1.0

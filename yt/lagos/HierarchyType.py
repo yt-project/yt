@@ -73,19 +73,19 @@ class EnzoHierarchy:
         # For some reason, r8 seems to want Float64
         if self.parameters.has_key("CompilerPrecision") \
             and self.parameters["CompilerPrecision"] == "r4":
-            EnzoFloatType = nT.Float32
+            EnzoFloatType = 'float32'
         else:
-            EnzoFloatType = nT.Float64
+            EnzoFloatType = 'float64'
 
         self.__setup_classes()
-        self.gridDimensions = na.zeros((self.num_grids,3), nT.Int32)
-        self.gridStartIndices = na.zeros((self.num_grids,3), nT.Int32)
-        self.gridEndIndices = na.zeros((self.num_grids,3), nT.Int32)
+        self.gridDimensions = na.zeros((self.num_grids,3), 'int32')
+        self.gridStartIndices = na.zeros((self.num_grids,3), 'int32')
+        self.gridEndIndices = na.zeros((self.num_grids,3), 'int32')
         self.gridLeftEdge = na.zeros((self.num_grids,3), EnzoFloatType)
         self.gridRightEdge = na.zeros((self.num_grids,3), EnzoFloatType)
-        self.gridLevels = na.zeros((self.num_grids,1), nT.Int32)
+        self.gridLevels = na.zeros((self.num_grids,1), 'int32')
         self.gridDxs = na.zeros((self.num_grids,1), EnzoFloatType)
-        self.gridTimes = na.zeros((self.num_grids,1), nT.Float64)
+        self.gridTimes = na.zeros((self.num_grids,1), 'float64')
         self.gridNumberOfParticles = na.zeros((self.num_grids,1))
 
         self.grids = na.array([self.grid(i+1) for i in xrange(self.num_grids)])
@@ -289,7 +289,7 @@ class EnzoHierarchy:
                 elif param == "BaryonFileName":
                     self.grids[curGrid-1].set_filename(vals[1:-1])
             mylog.info("Caching hierarchy information")
-            allArrays = na.zeros((self.num_grids,18),nT.Float64)
+            allArrays = na.zeros((self.num_grids,18),'float64')
             allArrays[:,0:3] = self.gridDimensions[:]
             allArrays[:,3:6] = self.gridStartIndices[:]
             allArrays[:,6:9] = self.gridEndIndices[:]
@@ -663,12 +663,12 @@ class EnzoHierarchy:
                 a5=tables.openFile(a5basename % {'field':field},"a")
                 a5.createGroup("/time-%i" % (timestep),"level-%i" % (level))
                 node=a5.getNode("/time-%i" % (timestep),"level-%i" % (level))
-                delta = na.array([self.gridDxs[self.levelIndices[level][0]]]*3,dtype=nT.Float64)
+                delta = na.array([self.gridDxs[self.levelIndices[level][0]]]*3,dtype='float64')
                 node._f_setAttr("delta",delta)
                 node._f_setAttr("num_grids",self.levelNum[level])
                 # This next one is not necessarily true.  But, it is for
                 # everyone I care about right now...
-                node._f_setAttr("relativeRefinementFactor",na.array([2,2,2],dtype=nT.Int32))
+                node._f_setAttr("relativeRefinementFactor",na.array([2,2,2],dtype='int32'))
                 a5.close()
             gid = 0
             for grid in self.grids[self.levelIndices[level]]:

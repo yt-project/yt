@@ -52,14 +52,14 @@ class EnzoData:
         self.__set_default_field_parameters()
 
     def __set_default_field_parameters(self):
-        self.set_field_parameter("center",na.zeros(3,dtype=nT.Float64))
-        self.set_field_parameter("bulk_velocity",na.zeros(3,dtype=nT.Float64))
+        self.set_field_parameter("center",na.zeros(3,dtype='float64'))
+        self.set_field_parameter("bulk_velocity",na.zeros(3,dtype='float64'))
 
-    def get_field_parameter(self, name):
+    def get_field_parameter(self, name, default=None):
         if self.field_parameters.has_key(name):
             return self.field_parameters[name]
         else:
-            return None
+            return default
 
     def set_field_parameter(self, name, val):
         self.field_parameters[name] = val
@@ -119,6 +119,7 @@ class Enzo2DData(EnzoData):
     Class to represent a set of EnzoData that's 2-D in nature.  Slices and
     projections, primarily.
     """
+    _spatial = False
     def __init__(self, axis, fields, pf=None):
         """
         Prepares the Enzo2DData.
@@ -178,7 +179,7 @@ class Enzo2DData(EnzoData):
             zz = self[field]
         xi, yi = na.array( \
                  na.mgrid[LE[0]:RE[0]:side*1j, \
-                          LE[1]:RE[1]:side*1j], nT.Float64)
+                          LE[1]:RE[1]:side*1j], 'float64')
         zi = de.Triangulation(self['px'],self['py']).nn_interpolator(zz)\
                  [LE[0]:RE[0]:side*1j, \
                   LE[1]:RE[1]:side*1j]
@@ -194,11 +195,8 @@ class EnzoSliceBase(Enzo2DData):
     """
 
     @time_execution
-    def __init__(self, axis, coord, fields = None, center=None, fRet=False,
-                 pf=None):
+    def __init__(self, axis, coord, fields = None, center=None, pf=None):
         """
-        Returns an instance of EnzoSlice.
-
         We are not mandating a field be passed in
         The field and coordinate we want to be able to change -- however, the
         axis we do NOT want to change.  So think of EnzoSlice as defining a slice
@@ -213,14 +211,10 @@ class EnzoSliceBase(Enzo2DData):
         @type coord: na.array
         @keyword fields: fields to be processed or generated
         @type fields: list of strings
-        @keyword fRet: Do we want a false return?  As in, do we want all of our
-        data points?
-        @type fRet: bool
         """
         Enzo2DData.__init__(self, axis, fields, pf)
         self.center = center
         self.coord = coord
-        self.fRet = fRet
         self._refresh_data()
 
     def reslice(self, coord):
@@ -245,6 +239,8 @@ class EnzoSliceBase(Enzo2DData):
             self.coord
             dx = self.hierarchy.gridDxs[self.hierarchy.levelIndices[level][0]]
             self.coord += dx * val
+        else:
+            raise ValueError(val)
         self.refreshData()
 
     def _generate_coords(self):
@@ -273,7 +269,6 @@ class EnzoSliceBase(Enzo2DData):
     def get_data(self, fields = None):
         """
         Iterates over the list of fields and generates/reads them all.
-        Probably shouldn't be called directly.
 
         @keyword field: field to add (list or single)
         @type field: string or list of strings
@@ -312,13 +307,13 @@ class EnzoSliceBase(Enzo2DData):
         cm = na.where(grid.child_mask[sl].ravel() == 1)
         cmI = na.indices((nx,ny))
         xind = cmI[0,:].ravel()
-        xpoints = na.ones(cm[0].shape, nT.Float64)
+        xpoints = na.ones(cm[0].shape, 'float64')
         xpoints *= xind[cm]*grid.dx+(grid.LeftEdge[xaxis] + 0.5*grid.dx)
         yind = cmI[1,:].ravel()
-        ypoints = na.ones(cm[0].shape, nT.Float64)
+        ypoints = na.ones(cm[0].shape, 'float64')
         ypoints *= yind[cm]*grid.dx+(grid.LeftEdge[yaxis] + 0.5*grid.dx)
-        zpoints = na.ones(xpoints.shape, nT.Float64) * self.coord
-        dx = na.ones(xpoints.shape, nT.Float64) * grid.dx/2.0
+        zpoints = na.ones(xpoints.shape, 'float64') * self.coord
+        dx = na.ones(xpoints.shape, 'float64') * grid.dx/2.0
         t = na.array([xpoints, ypoints, zpoints, dx]).swapaxes(0,1)
         return t
 
@@ -376,12 +371,13 @@ class EnzoCuttingPlaneBase(Enzo2DData):
 
 
 class EnzoProjBase(Enzo2DData):
-    def __init__(self, axis, field, weightField = None,
+    def __init__(self, axis, field, weight_field = None,
                  max_level = None, center = None, pf = None,
                  type=0):
         """
         Returns an instance of EnzoProj.
 
+        @todo: Set up for multiple fields
         @param hierarchy: the hierarchy we are projecting
         @type hierarchy: L{EnzoHierarchy<EnzoHierarchy>}
         @param axis: axis to project along
@@ -394,11 +390,9 @@ class EnzoProjBase(Enzo2DData):
         """
         Enzo2DData.__init__(self, axis, field, pf)
         if max_level == None:
-            ###CHANGE###
-            #max_level = self.hierarchy.max_level
             max_level = self.hierarchy.maxLevel
         self._max_level = max_level
-        self._weight = weightField
+        self._weight = weight_field
         self.center = center
         if type == 1:
             self.type="MIP"
@@ -413,7 +407,7 @@ class EnzoProjBase(Enzo2DData):
     def __calculate_memory(self):
         """
         Here we simply calculate how much memory is needed, which speeds up
-        allocation later
+        allocation later.  Additionally, overlap masks get pre-generated.
         """
         level_mem = {}
         h = self.hierarchy
@@ -492,7 +486,7 @@ class EnzoProjBase(Enzo2DData):
         mylog.debug("Level %s done: %s final of %s", \
                    level, len(dblI[0]), \
                    levelData[0].shape[0])
-        dx = grids_to_project[0].dx * na.ones(len(dblI[0]), dtype=nT.Float64)
+        dx = grids_to_project[0].dx * na.ones(len(dblI[0]), dtype='float64')
         return [levelData[0][dblI], levelData[1][dblI], weightedData, dx]
 
     def __combine_grids(self, level):
@@ -628,23 +622,23 @@ class Enzo3DData(EnzoData):
         for field in fields:
             code = WeaveStrings.ProfileBinningWeighted
             fc = self[field][radiiOrder]
-            fp = na.zeros(nBins,nT.Float64)
+            fp = na.zeros(nBins,'float64')
             if field_weights.has_key(field):
                 if field_weights[field] == -999:
                     ss = "Accumulation weighting"
                     code = WeaveStrings.ProfileBinningAccumulation
-                    weight = na.ones(nE, nT.Float64)
+                    weight = na.ones(nE, 'float64')
                 elif field_weights[field] != None:
                     ww = field_weights[field]
                     ss="Weighting with %s" % (ww)
                     weight = self[ww][radiiOrder]
                 elif field_weights[field] == None:
                     ss="Not weighted"
-                    weight = na.ones(nE, nT.Float64)
+                    weight = na.ones(nE, 'float64')
                 else:
                     mylog.warning("UNDEFINED weighting for %s; defaulting to unweighted", field)
                     ss="Undefined weighting"
-                    weight = na.ones(nE, nT.Float64)
+                    weight = na.ones(nE, 'float64')
             else:
                 ss="Weighting with default"
                 weight = defaultWeight
@@ -682,12 +676,12 @@ class Enzo3DData(EnzoData):
 
     def _generate_grid_coords(self, grid):
         pointI = self._get_point_indices(grid)
-        dx = na.ones(pointI[0].shape[0], nT.Float64) * grid.dx
+        dx = na.ones(pointI[0].shape[0], 'float64') * grid.dx
         tr = na.array([grid['x'][pointI].ravel(), \
                 grid['y'][pointI].ravel(), \
                 grid['z'][pointI].ravel(), \
                 grid["RadiusCode"][pointI].ravel(),
-                dx], nT.Float64).swapaxes(0,1)
+                dx], 'float64').swapaxes(0,1)
         return tr
 
     def get_data(self, fields=None):
@@ -843,7 +837,7 @@ class EnzoCoveringGrid(Enzo3DData):
             if self.data.has_key(field):
                 continue
             mylog.info("Getting field %s from %s", field, len(self._grids))
-            self[field] = na.zeros(self.ActiveDimensions, dtype=nT.Float32)
+            self[field] = na.zeros(self.ActiveDimensions, dtype='float32')
             for grid in self._grids:
                 self._get_data_from_grid(grid, field)
 

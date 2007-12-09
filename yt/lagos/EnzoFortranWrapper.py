@@ -65,7 +65,7 @@ def runSolveRateCool(g, dt, omaskflag=0, subgridmask=None, orig=True):
     dataCopy = {}
     for ds in g.data.keys():
         try:
-            t = na.array(g[ds], nT.Float32, order="FORTRAN")
+            t = na.array(g[ds], 'float32', order="FORTRAN")
             dataCopy[ds] = t
             #print ds, dataCopy[ds].shape
         except TypeError:
@@ -74,11 +74,11 @@ def runSolveRateCool(g, dt, omaskflag=0, subgridmask=None, orig=True):
         #dataCopy[ds] = t
     # Let's get all the rates
     for rate in rates_out_key:
-        exec("%s = na.array(a.parameterFile.rates['%s'].copy(), nT.Float32, order='FORTRAN')" % (rate, rate))
+        exec("%s = na.array(a.parameterFile.rates['%s'].copy(), 'float32', order='FORTRAN')" % (rate, rate))
     for rate in a.parameterFile.rates.params.keys():
         exec("%s = a.parameterFile.rates.params['%s']" % (rate, rate))
     for rate in cool_out_key:
-        exec("%s = na.array(a.parameterFile.cool['%s'].copy(), nT.Float32, order='FORTRAN')" % (rate, rate))
+        exec("%s = na.array(a.parameterFile.cool['%s'].copy(), 'float32', order='FORTRAN')" % (rate, rate))
     for rate in a.parameterFile.cool.params.keys():
         exec("%s = a.parameterFile.cool.params['%s']" % (rate, rate))
     utim = 2.52e17 / na.sqrt(a.parameters["CosmologyOmegaMatterNow"]) \
@@ -100,18 +100,18 @@ def runSolveRateCool(g, dt, omaskflag=0, subgridmask=None, orig=True):
                   * (1.0 + a.parameters["CosmologyInitialRedshift"])
     aye  = (1.0 + a.parameters["CosmologyInitialRedshift"]) / \
            (1.0 + a.parameters["CosmologyCurrentRedshift"])
-    blank_field = na.zeros(g["Total_Energy"].shape, nT.Float32, order="FORTRAN")
-    hdc = na.array([hdc_1, hdc_2, hdc_3, hdc_4, hdc_5], nT.Float32, order="FORTRAN")
+    blank_field = na.zeros(g["Total_Energy"].shape, 'float32', order="FORTRAN")
+    hdc = na.array([hdc_1, hdc_2, hdc_3, hdc_4, hdc_5], 'float32', order="FORTRAN")
     #print hdc
     hdc=na.array(hdc.transpose(), order="FORTRAN")
-    k13dd = na.array([k13_1, k13_2, k13_3, k13_4, k13_5, k13_6, k13_7], nT.Float32, order="FORTRAN")
+    k13dd = na.array([k13_1, k13_2, k13_3, k13_4, k13_5, k13_6, k13_7], 'float32', order="FORTRAN")
     k13dd=na.array(k13dd.transpose(), order="FORTRAN")
-    inutot = na.array([0, 0, 1, 0], nT.Float32, order="FORTRAN")
+    inutot = na.array([0, 0, 1, 0], 'float32', order="FORTRAN")
     #inutot=inutot.transpose()
     comp_xray = 0
     comp_temp = 0
     errcode = 0
-    subgridmask = na.array(na.ones(dataCopy["Density"].shape, nT.Int32), order="FORTRAN")
+    subgridmask = na.array(na.ones(dataCopy["Density"].shape, 'int32'), order="FORTRAN")
     # Now we get the equilibrium table
     eqTable = tables.openFile("tab_eq.h5")
     HIeqtable = na.array(eqTable.getNode("/HItable")[:].transpose(), order='FORTRAN')
@@ -255,7 +255,7 @@ def runCoolMultiTime(g):
     # Now we have all the units!  We're almost done...
     blank_field = zeros(AD, Numeric.Float32)
     hdc = Numeric.transpose(Numeric.array([hdc_1, hdc_2, hdc_3, hdc_4, hdc_5], Numeric.Float32))
-    inutot = na.array([0, 0, 1, 0], nT.Float32)
+    inutot = na.array([0, 0, 1, 0], 'float32')
     inutot.transpose()
     comp_xray = 0
     comp_temp = 0
