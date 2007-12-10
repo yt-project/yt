@@ -28,33 +28,12 @@ opportunity to ditch numarray.
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-from config import ytcfg
-from logger import ytLogger as ytlog
-
-class ArrayNumTypes:
-    def __init__(self):
-        pass
-
-u_numpy = True
-u_numarray = False
-
-nT = ArrayNumTypes()
-
-myTypes = [ 'Complex128',  'Bool', 'Int32', 'Complex64', 'UInt16', 'Float32',
-            'Int64', 'UInt8',  'Int8', 'Complex32',  'UInt64', 'Float64',
-            'UInt32', 'Float128', 'Int16']
-
 import numpy as na
-import numpy.linalg as la
 import numpy.core.records as rec
 import scipy.ndimage as nd # Moved into scipy
 import scipy as sp
 import scipy.weave as weave
 from scipy.weave import converters
-
-u_numpy = True
-for atype in myTypes:
-    setattr(nT, atype, na.typeNA[atype])
 
 # Now define convenience functions
 

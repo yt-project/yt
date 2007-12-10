@@ -40,7 +40,7 @@ except:
 
 import time, types, string, os
 
-# XXX: Get rid of these
+# @todo: Get rid of these
 axis_labels = [('y','z'),('x','z'),('x','y')]
 axis_names = {0: 'x', 1: 'y', 2: 'z'}
 

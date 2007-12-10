@@ -41,20 +41,7 @@ import matplotlib.colors
 import matplotlib.colorbar
 import matplotlib.cm
 
-class LinkedAMRSubPlots:
-    def __init__(self, linkWidth, linkZ, plots = None):
-        pass
-    def SaveFigure(self, filename, format):
-        pass
-    def setWidth(self, width, unit):
-        pass
-    def setZ(self, zmin, zmax):
-        pass
-    def __getitem__(self, item):
-        pass
-
-class ClassicThreePane:
-    pass
+from collections import defaultdict
 
 def ClusterFilePlot(cls, x, y, xlog=None, ylog=None, fig=None, filename=None,
                     format="png", xbounds = None, ybounds = None):
@@ -105,8 +92,6 @@ def ClusterFilePlot(cls, x, y, xlog=None, ylog=None, fig=None, filename=None,
         canvas.print_figure(filename, format=format)
     return fig
 
-from collections import defaultdict
-
 engineVals = {}
 skipAxes = ["X WIDTH", "Y WIDTH", "WEIGHT (OPTIONAL)", "DX", "DY"]
 
@@ -129,36 +114,28 @@ class RavenPlot:
     def __init__(self, data, fields, figure = None, axes=None, size=(10,8)):
         self.data = data
         self.fields = fields
-        # With matplotlib, we don't need to copy data back and forth.
-        # Unfortunately, it is also harder to plot things, as they may not have
-        # a consistent interface.  Also, the plots are designed to be much more
-        # *static* than in hippodraw, so switching axes is going to be a bit of
-        # a pain.
+        self.size = size
         self.set_autoscale(True)
         self.im = defaultdict(lambda: "")
-        self["ParameterFile"] = \
-            self.data.hierarchy.parameter_file.parameter_filename
-        self.axisNames = {}
+        self["ParameterFile"] = "%s" % self.data.pf
+        self.axis_names = {}
         if not figure:
-            self.figure = matplotlib.figure.Figure(size)
+            self._figure = matplotlib.figure.Figure(size)
         else:
-            self.figure = figure
-        #self.axes = self.figure.add_axes(aspect='equal')
+            self._figure = figure
         if not figure:
-            self.axes = self.figure.add_subplot(1,1,1)#,aspect=1.0)
+            self._axes = self._figure.add_subplot(1,1,1)
         else:
-            self.axes = axes
-        #self.axes.set_aspect(1.0)
-        self._callback = []
+            self._axes = axes
+        self._callbacks = []
 
     def set_autoscale(self, val):
         self.do_autoscale = val
 
     def __getitem__(self, item):
-        return self.data[item]# * \
-                    #self.data.hierarchy.parameter_file.conversion_factors[item]
+        return self.data[item] # Should be returned in CGS
 
-    def saveImage(self, prefix, format, submit=None):
+    def save_image(self, prefix, format, submit=None):
         """
         Save this plot image.  Will generate a filename based on the prefix,
         format, and the approriate data stored in the plot.
@@ -168,114 +145,112 @@ class RavenPlot:
         @param format: the prefix to append to the filename
         @type format: string
         """
-        self.redraw_image()
-        self.generatePrefix(prefix)
+        self._redraw_image()
+        self._generate_prefix(prefix)
         fn = ".".join([self.prefix, format])
-        canvas = engineVals["canvas"](self.figure)
-        #self.figure.savefig(fn, format)
+        canvas = engineVals["canvas"](self._figure)
+        #self._figure.savefig(fn, format)
         canvas.print_figure(fn)
-        self["Type"] = self.typeName
+        self["Type"] = self._type_name
         self["GeneratedAt"] = self.data.hierarchy["CurrentTimeIdentifier"]
         return fn
 
-    def redraw_image(self):
+    def _redraw_image(self):
         pass
 
-    def generatePrefix(self):
+    def _generate_prefix(self):
         pass
 
     def set_xlim(self, xmin, xmax):
-        self.axes.set_xlim(xmin, xmax)
+        self._axes.set_xlim(xmin, xmax)
 
     def set_ylim(self, ymin, ymax):
-        self.axes.set_ylim(ymin, ymax)
+        self._axes.set_ylim(ymin, ymax)
 
     def set_zlim(self, zmin, zmax):
-        self.axes.set_zlim(zmin, zmax)
+        self._axes.set_zlim(zmin, zmax)
 
     def set_cmap(self, cmap):
         if isinstance(cmap, types.StringType):
             if hasattr(matplotlib.cm, cmap):
                 cmap = getattr(matplotlib.cm, cmap)
         self.cmap = cmap
-        #print "Set cmap", self.cmap.name
 
     def __setitem__(self, item, val):
-        #print item, val
         self.im[item] = val
 
-    def addCallback(self, func):
-        self._callback.append(func)
-        return len(self._callback)-1
+    def add_callback(self, func):
+        self._callbacks.append(func)
+        return len(self._callbacks)-1
 
-    def removeCallback(self, id):
-        self._callback[id] = lambda a: None
+    def remove_callback(self, id):
+        self._callbacks[id] = lambda a: None
 
-    def runCallback(self):
-        for cb in self._callback:
-            print "Running callback!", cb
+    def _run_callbacks(self):
+        for cb in self._callbacks:
             cb(self)
 
 class VMPlot(RavenPlot):
     datalabel = None
     def __init__(self, data, field, figure = None, axes = None,
-                 useColorbar = True, size=(800,800)):
+                 use_colorbar = True, size=(800,800)):
         fields = ['X', 'Y', field, 'X width', 'Y width']
         size = (10,8)
-        if not useColorbar: size=(8,8)
+        if not use_colorbar: size=(8,8)
         RavenPlot.__init__(self, data, fields, figure, axes, size=size)
-        self.figure.subplots_adjust(hspace=0, wspace=0, bottom=0.0,
+        self._figure.subplots_adjust(hspace=0, wspace=0, bottom=0.0,
                                     top=1.0, left=0.0, right=1.0)
         self.xmin = 0.0
         self.ymin = 0.0
         self.xmax = 1.0
         self.ymax = 1.0
         self.cmap = None
+        self.__setup_from_field(field)
+        self.__init_temp_image(self, use_colorbar)
+
+    def __setup_from_field(self, field):
         if field in lagos.log_fields or lagos.fieldInfo[field].take_log:
-            self.logIt = True
+            self.log_field = True
             self.norm = matplotlib.colors.LogNorm()
         else:
-            self.logIt = False
+            self.log_field = False
             self.norm = matplotlib.colors.Normalize()
-        temparray = na.ones(size)
-        self.size = size
+        self.axis_names["Z"] = field
+
+    def __init_temp_image(self, setup_colorbar):
+        temparray = na.ones(self.size)
         self.image = \
-            self.axes.imshow(temparray, interpolation='nearest',
+            self._axes.imshow(temparray, interpolation='nearest',
                              norm = self.norm, aspect=1.0, picker=True,
                              origin='lower')
-        self.axisNames["Z"] = field
-        self.axes.set_xticks(())
-        self.axes.set_yticks(())
-        self.axes.set_ylabel("")
-        self.axes.set_xlabel("")
-        if useColorbar:
-            self.colorbar = self.figure.colorbar(self.axes.images[-1], \
+        self._axes.set_xticks(())
+        self._axes.set_yticks(())
+        self._axes.set_ylabel("")
+        self._axes.set_xlabel("")
+        if setup_colorbar:
+            self.colorbar = self._figure.colorbar(self._axes.images[-1], \
                                                 extend='neither', \
                                                 shrink=0.95)
         else:
             self.colorbar = None
         self.set_width(1,'1')
-        #self.redraw_image() # set_width does this
 
-    def redraw_image(self, *args):
-        #x0, y0, v_width, v_height = self.axes.viewLim.get_bounds()
-        self.axes.clear()
+    def _redraw_image(self, *args):
+        self._axes.clear() # To help out the colorbar
         x0, x1 = self.xlim
         y0, y1 = self.ylim
-        l, b, width, height = self.axes.bbox.get_bounds()
+        l, b, width, height = self._axes.bbox.get_bounds()
         self.pix = (width,height)
         # 'px' == pixel x, or x in the plane of the slice
         # 'x' == actual x
-        #for i in ['px','py','pdx','pdy',self.axisNames['Z']]:
-            #print i, self.data[i].min(), self.data[i].max()
         buff = _MPL.Pixelize(self.data['px'],
                             self.data['py'],
                             self.data['pdx'],
                             self.data['pdy'],
-                            self[self.axisNames["Z"]],
+                            self[self.axis_names["Z"]],
                             int(width), int(width),
                         (x0, x1, y0, y1),).transpose()
-        if self.logIt:
+        if self.log_field:
             bI = na.where(buff > 0)
             newmin = buff[bI].min()
             newmax = buff[bI].max()
@@ -284,20 +259,19 @@ class VMPlot(RavenPlot):
             newmax = buff.max()
         if self.do_autoscale:
             self.norm.autoscale(na.array((newmin,newmax)))
-        #print "VMIN:", self.norm.vmin, "VMAX:",self.norm.vmax
         self.image = \
-            self.axes.imshow(buff, interpolation='nearest', norm = self.norm,
+            self._axes.imshow(buff, interpolation='nearest', norm = self.norm,
                             aspect=1.0, picker=True, origin='lower')
-        self.axes.set_xticks(())
-        self.axes.set_yticks(())
-        self.axes.set_ylabel("")
-        self.axes.set_xlabel("")
+        self._axes.set_xticks(())
+        self._axes.set_yticks(())
+        self._axes.set_ylabel("")
+        self._axes.set_xlabel("")
         if self.cmap:
             self.image.set_cmap(self.cmap)
         if self.colorbar != None:
             self.colorbar.notify(self.image)
         self.autoset_label()
-        self.runCallback()
+        self._run_callbacks()
 
     def set_xlim(self, xmin, xmax):
         self.xlim = (xmin,xmax)
@@ -305,10 +279,10 @@ class VMPlot(RavenPlot):
     def set_ylim(self, ymin, ymax):
         self.ylim = (ymin,ymax)
 
-    def generatePrefix(self, prefix):
-        self.prefix = "_".join([prefix, self.typeName, \
-            lagos.axis_names[self.data.axis], self.axisNames['Z']])
-        self["Field1"] = self.axisNames["Z"]
+    def _generate_prefix(self, prefix):
+        self.prefix = "_".join([prefix, self._type_name, \
+            lagos.axis_names[self.data.axis], self.axis_names['Z']])
+        self["Field1"] = self.axis_names["Z"]
         self["Field2"] = None
         self["Field3"] = None
 
@@ -318,13 +292,9 @@ class VMPlot(RavenPlot):
         if isinstance(unit, types.StringType):
             unit = self.data.hierarchy[unit]
         self.width = width / unit
-        self.refreshDisplayWidth()
+        self._refresh_display_width()
 
-    def checkColormap(self, field):
-        cmap = lagos.colormap_dict[field]
-        #self.image.set_cmap(cmap)
-
-    def refreshDisplayWidth(self, width=None):
+    def _refresh_display_width(self, width=None):
         if width:
             self.width = width
         else:
@@ -335,11 +305,11 @@ class VMPlot(RavenPlot):
         r_edge_y = self.data.center[lagos.y_dict[self.data.axis]] + width/2.0
         self.set_xlim(max(l_edge_x,0.0), min(r_edge_x,1.0))
         self.set_ylim(max(l_edge_y,0.0), min(r_edge_y,1.0))
-        self.redraw_image()
+        self._redraw_image()
 
     def autoscale(self):
-        zmin = self.axes.images[-1]._A.min()
-        zmax = self.axes.images[-1]._A.max()
+        zmin = self._axes.images[-1]._A.min()
+        zmax = self._axes.images[-1]._A.max()
         self.set_zlim(zmin, zmax)
 
     def switch_y(self, *args, **kwargs):
@@ -350,18 +320,18 @@ class VMPlot(RavenPlot):
 
     def switch_z(self, field):
         if field in lagos.log_fields or lagos.fieldInfo[field].take_log:
-            self.logIt = True
+            self.log_field = True
             self.norm = matplotlib.colors.LogNorm()
             ttype = matplotlib.ticker.LogFormatter
         else:
-            self.logIt = False
+            self.log_field = False
             self.norm = matplotlib.colors.Normalize()
             ttype = matplotlib.ticker.ScalarFormatter
         if self.colorbar:
             self.colorbar.set_norm(self.norm)
             self.colorbar.formatter = ttype()
-        self.axisNames["Z"] = field
-        self.redraw_image()
+        self.axis_names["Z"] = field
+        self._redraw_image()
 
     def set_zlim(self, zmin, zmax):
         self.norm.autoscale(na.array([zmin,zmax]))
@@ -376,23 +346,23 @@ class VMPlot(RavenPlot):
         pass
 
 class SlicePlot(VMPlot):
-    typeName = "Slice"
+    _type_name = "Slice"
 
     def autoset_label(self):
         if self.datalabel != None:
             self.colorbar.set_label(self.datalabel)
             return
-        field_name = self.axisNames["Z"]
+        field_name = self.axis_names["Z"]
         if lagos.fieldInfo.has_key(field_name):
             field_name += " (%s)" % (lagos.fieldInfo[field_name].get_units())
         if self.colorbar != None: self.colorbar.set_label(field_name)
 
 class ProjectionPlot(VMPlot):
-    typeName = "Projection"
+    _type_name = "Projection"
 
     def autoset_label(self):
-        dataLabel = self.axisNames["Z"]
-        field_name = self.axisNames["Z"]
+        dataLabel = self.axis_names["Z"]
+        field_name = self.axis_names["Z"]
         if lagos.fieldInfo.has_key(field_name):
             field_name += " (%s)" % (lagos.fieldInfo[field_name].get_projected_units())
         if self.colorbar != None: self.colorbar.set_label(field_name)
@@ -405,7 +375,7 @@ class ProjectionPlot(VMPlot):
 class PhasePlot(RavenPlot):
     def __init__(self, data, fields, width=None, unit=None, bins=100,
                  weight=None, ticker=None, cmap=None, figure=None, axes=None):
-        self.typeName = "Phase"
+        self._type_name = "Phase"
         RavenPlot.__init__(self, data, fields, figure, axes)
         self.ticker = ticker
         self.image = None
@@ -413,23 +383,23 @@ class PhasePlot(RavenPlot):
         self.set_cmap(cmap)
         self.weight = weight
 
-        self.axisNames["X"] = fields[0]
-        self.axisNames["Y"] = fields[1]
-        self.axisNames["Z"] = fields[2]
+        self.axis_names["X"] = fields[0]
+        self.axis_names["Y"] = fields[1]
+        self.axis_names["Z"] = fields[2]
 
-        logIt, self.x_v, self.x_bins = self.setup_bins(self.fields[0],
-                                                       self.axes.set_xscale)
-        logIt, self.y_v, self.y_bins = self.setup_bins(self.fields[1],
-                                                       self.axes.set_yscale)
+        log_field, self.x_v, self.x_bins = self.setup_bins(self.fields[0],
+                                                       self._axes.set_xscale)
+        log_field, self.y_v, self.y_bins = self.setup_bins(self.fields[1],
+                                                       self._axes.set_yscale)
         self.log_z, self.z_v, self.z_bins = self.setup_bins(self.fields[2])
 
         self.colorbar = None
 
     def setup_bins(self, field, func = None):
-        logIt = False
+        log_field = False
         v = self.data[field]
         if field in lagos.log_fields or lagos.fieldInfo[field].take_log:
-            logIt = True
+            log_field = True
             bins = na.logspace(na.log10(v.min()*0.99),
                                na.log10(v.max()*1.01),
                                num=self.bins)
@@ -437,7 +407,7 @@ class PhasePlot(RavenPlot):
         else:
             bins = na.linspace(v.min()*0.99,v.max()*1.01,num=self.bins)
             if func: func('linear')
-        return logIt, v, bins
+        return log_field, v, bins
 
     def autoset_label(self, field, func):
         dataLabel = field
@@ -452,34 +422,34 @@ class PhasePlot(RavenPlot):
 
     def switch_x(self, field):
         self.fields[0] = field
-        self.axisNames["X"] = field
-        logIt, self.x_v, self.x_bins = self.setup_bins(self.fields[0],
-                                                       self.axes.set_xscale)
+        self.axis_names["X"] = field
+        log_field, self.x_v, self.x_bins = self.setup_bins(self.fields[0],
+                                                       self._axes.set_xscale)
 
     def switch_y(self, field):
         self.fields[1] = field
-        self.axisNames["Y"] = field
-        logIt, self.y_v, self.y_bins = self.setup_bins(self.fields[1],
-                                                       self.axes.set_yscale)
+        self.axis_names["Y"] = field
+        log_field, self.y_v, self.y_bins = self.setup_bins(self.fields[1],
+                                                       self._axes.set_yscale)
 
     def switch_z(self, field):
         self.fields[2] = field
-        self.axisNames["Z"] = field
+        self.axis_names["Z"] = field
         self.log_z, self.z_v, self.z_bins = self.setup_bins(self.fields[2])
 
     def switch_weight(self, weight):
         if weight == "": weight=None
         self.weight = weight
 
-    def redraw_image(self):
-        l, b, width, height = self.axes.bbox.get_bounds()
+    def _redraw_image(self):
+        l, b, width, height = self._axes.bbox.get_bounds()
         self.pix = (width,height)
         x_bins_ids = na.digitize(self.x_v, self.x_bins)
         y_bins_ids = na.digitize(self.y_v, self.y_bins)
 
-        vals = na.zeros((self.bins,self.bins), dtype=nT.Float64)
-        weight_vals = na.zeros((self.bins,self.bins), dtype=nT.Float64)
-        used_bin = na.zeros((self.bins,self.bins), dtype=nT.Bool)
+        vals = na.zeros((self.bins,self.bins), dtype='float64')
+        weight_vals = na.zeros((self.bins,self.bins), dtype='float64')
+        used_bin = na.zeros((self.bins,self.bins), dtype='bool')
 
         x_ind, y_ind = (x_bins_ids-1,y_bins_ids-1) # To match up with pcolor
                 # pcolor expects value to be between i and i+1, digitize gives
@@ -537,38 +507,38 @@ class PhasePlot(RavenPlot):
         self.cmap.set_bad("w")
         self.cmap.set_under("w")
         self.cmap.set_over("w")
-        self.axes.clear()
-        xs = self.axes.get_xscale()
-        ys = self.axes.get_yscale()
-        self.axes.set_xscale("linear")
-        self.axes.set_yscale("linear")
-        self.image = self.axes.pcolormesh(self.x_bins, self.y_bins, \
+        self._axes.clear()
+        xs = self._axes.get_xscale()
+        ys = self._axes.get_yscale()
+        self._axes.set_xscale("linear")
+        self._axes.set_yscale("linear")
+        self.image = self._axes.pcolormesh(self.x_bins, self.y_bins, \
                                       vals,shading='flat', \
                                       norm=self.norm, cmap=self.cmap)
         self.vals = vals
-        self.axes.set_xscale(xs)
-        self.axes.set_yscale(ys)
+        self._axes.set_xscale(xs)
+        self._axes.set_yscale(ys)
         #self.ticker = matplotlib.ticker.LogLocator(subs=[0.25, 0.5, 0.75, 1])
 
         if self.colorbar == None:
-            self.colorbar = self.figure.colorbar(self.image, \
+            self.colorbar = self._figure.colorbar(self.image, \
                                                  extend='neither', \
                                                  shrink=0.95, cmap=self.cmap, \
                                    ticks = self.ticker, format="%0.2e" )
 
         self.colorbar.notify(self.image)
 
-        self.autoset_label(self.fields[0], self.axes.set_xlabel)
-        self.autoset_label(self.fields[1], self.axes.set_ylabel)
+        self.autoset_label(self.fields[0], self._axes.set_xlabel)
+        self.autoset_label(self.fields[1], self._axes.set_ylabel)
         self.autoset_label(self.fields[2], self.colorbar.set_label)
 
-    def generatePrefix(self, prefix):
-        self.prefix = "_".join([prefix, self.typeName, \
-            self.axisNames['X'], self.axisNames['Y'], \
-            self.axisNames['Z']])
-        self["Field1"] = self.axisNames["X"]
-        self["Field2"] = self.axisNames["Y"]
-        self["Field3"] = self.axisNames["Z"]
+    def _generate_prefix(self, prefix):
+        self.prefix = "_".join([prefix, self._type_name, \
+            self.axis_names['X'], self.axis_names['Y'], \
+            self.axis_names['Z']])
+        self["Field1"] = self.axis_names["X"]
+        self["Field2"] = self.axis_names["Y"]
+        self["Field3"] = self.axis_names["Z"]
 
 def quiverCallback(field_x, field_y, axis, factor):
     def runCallback(plot):

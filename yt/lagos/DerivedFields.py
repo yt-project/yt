@@ -157,20 +157,26 @@ class ValidateSpatial(FieldValidator):
 # I violate it here in order to keep the name/func_name relationship
 
 def _coordX(field, data):
-    return (na.indices(data.ActiveDimensions, dtype='float64')[0]+0.5) \
-           * data['dx'] + data.LeftEdge[0]
+    dim = data.ActiveDimensions[0]
+    return (na.ones(data.ActiveDimensions, dtype='float64')
+                   * na.arange(data.ActiveDimensions[0]).reshape(dim,1,1)
+            +0.5) * data['dx'] + data.LeftEdge[0]
 add_field('x', function=_coordX,
           validators=[ValidateSpatial(0)])
 
 def _coordY(field, data):
-    return (na.indices(data.ActiveDimensions, dtype='float64')[1]+0.5) \
-           * data['dy'] + data.LeftEdge[1]
+    dim = data.ActiveDimensions[1]
+    return (na.ones(data.ActiveDimensions, dtype='float64')
+                   * na.arange(data.ActiveDimensions[1]).reshape(1,dim,1)
+            +0.5) * data['dy'] + data.LeftEdge[1]
 add_field('y', function=_coordY,
           validators=[ValidateSpatial(0)])
 
 def _coordZ(field, data):
-    return (na.indices(data.ActiveDimensions, dtype='float64')[2]+0.5) \
-           * data['dz'] + data.LeftEdge[2]
+    dim = data.ActiveDimensions[2]
+    return (na.ones(data.ActiveDimensions, dtype='float64')
+                   * na.arange(data.ActiveDimensions[2]).reshape(1,1,dim)
+            +0.5) * data['dz'] + data.LeftEdge[2]
 add_field('z', function=_coordZ,
           validators=[ValidateSpatial(0)])
 
@@ -196,7 +202,7 @@ add_field("CellsPerBin", function=_Ones)
 def _SoundSpeed(field, data):
     return ( data.pf["Gamma"]*data["Pressure"] / \
              data["Density"] )**(1.0/2.0)
-add_field("SoundSpeed", units="cm/s")
+add_field("SoundSpeed", units=r"$\rm{cm}/\rm{s}$")
 
 def particle_func(p_field):
     def _Particles(field, data):
@@ -233,7 +239,7 @@ def _Pressure(field, data):
     return (data.pf["Gamma"] - 1.0) * \
            data["Density"] * data["Gas_Energy"]
 add_field("Pressure", #validators=ValidateDataField("Gas_Energy"),
-          units="dyne/cm^2")
+          units=r"$\rm{dyne}/\rm{cm}^{2}$")
 
 def _Entropy(field, data):
     return data["Density"]**(-2./3.) * \
@@ -252,7 +258,7 @@ def _ConvertDynamicalTime(data):
     t_dyn_coeff = (3*pi/(16*G))**0.5 \
                 * data.convert("Time")
     return t_dyn_coeff
-add_field("DynamicalTime", units="s",
+add_field("DynamicalTime", units=r"$\rm{s}$",
           convert_function=_ConvertDynamicalTime)
 
 def _NumberDensity(field, data):
@@ -281,18 +287,18 @@ def _NumberDensity(field, data):
     return fieldData
 def _ConvertNumberDensity(data):
     return 1.0/mh
-add_field("NumberDensity", units="cm^-3",
+add_field("NumberDensity", units=r"$\rm{cm}^{-3}$",
           convert_function=_ConvertNumberDensity)
 
 def _CellMass(field, data):
     return data["Density"] * data["CellVolume"]
-add_field("CellMass", units="g")
+add_field("CellMass", units=r"$\rm{g}$")
 
 def _CellVolume(field, data):
     return data["dx"]*data["dy"]*data["dz"]
 def _ConvertCellVolume(data):
     return data.convert("cm")**3.0
-add_field("CellVolume", units="cm^3",
+add_field("CellVolume", units=r"$\rm{cm}^3$",
           convert_function=_ConvertCellVolume)
 
 def __gauss_kern(size):
@@ -339,7 +345,7 @@ def _Radius(field, data):
 def _ConvertRadius(data):
     return data.convert("cm")
 add_field("Radius", validators=[ValidateParameter("center")],
-          convert_function = _ConvertRadius)
+          convert_function = _ConvertRadius, units=r"$\rm{cm}$")
 add_field("RadiusCode", function=_Radius,
           validators=[ValidateParameter("center")])
 
@@ -357,11 +363,11 @@ def _ConvertRadialVelocity(data):
 def _ConvertRadialVelocityCGS(data):
     return (data.convert("x-velocity"))
 add_field("RadialVelocity", function=_RadialVelocity,
-          convert_function=_ConvertRadialVelocity, units="km/s",
+          convert_function=_ConvertRadialVelocity, units=r"$\rm{km}/\rm{s}$",
           validators=[ValidateParameter("center"),
                       ValidateParameter("bulk_velocity")])
 add_field("RadialVelocityCGS", function=_RadialVelocity,
-          convert_function=_ConvertRadialVelocityCGS, units="cm/s")
+          convert_function=_ConvertRadialVelocityCGS, units=r"$\rm{cm}/\rm{s}$")
 
 # Now we add all the fields that we want to control, but we give a null function
 # This is every Enzo field we can think of.  This will be installation-dependent,
@@ -375,7 +381,7 @@ def _returnCodeField(real_field):
     return _fieldFunction
 for field in _enzo_fields:
     add_field(field, function=lambda a, b: None, take_log=True,
-              validators=[ValidateDataField(field)])
+              validators=[ValidateDataField(field)], units=r"$\rm{g}/\rm{cm}^3$")
     add_field("_Code%s" % field, function=_returnCodeField(field),
               take_log=True, validators=[ValidateDataField(field)])
 
@@ -384,26 +390,26 @@ for field in _enzo_fields:
 def _convertDensity(data):
     return data.convert("Density")
 for field in ["Density"] + [ "%s_Density" % sp for sp in _speciesList ]:
-    fieldInfo[field]._units = "g/cm^3"
-    fieldInfo[field]._projected_units = "g/cm^2"
+    fieldInfo[field]._units = r"$\rm{g}/\rm{cm}^3$"
+    fieldInfo[field]._projected_units = r"$\rm{g}/\rm{cm}^2$"
     fieldInfo[field]._convert_function=_convertDensity
 
 def _convertEnergy(data):
     return data.convert("x-velocity")**2.0
-fieldInfo["Gas_Energy"].units = "ergs/g"
+fieldInfo["Gas_Energy"].units = r"$\rm{ergs}/\rm{g}$"
 fieldInfo["Gas_Energy"]._convert_function = _convertEnergy
-fieldInfo["Total_Energy"].units = "ergs/g"
+fieldInfo["Total_Energy"].units = r"$\rm{ergs}/\rm{g}$"
 fieldInfo["Total_Energy"]._convert_function = _convertEnergy
 
 def _convertVelocity(data):
     return data.convert("x-velocity")
 for ax in ['x','y','z']:
     f = fieldInfo["%s-velocity" % ax]
-    f.units = "km/s"
+    f.units = $"\rm{km}/\rm{s}$"
     f.convert_function = _convertVelocity
     f.take_log = False
 
-fieldInfo["Temperature"].units = "K"
+fieldInfo["Temperature"].units = r"$K$"
 
 if __name__ == "__main__":
     k = fieldInfo.keys()

@@ -69,9 +69,9 @@ def MakePlots(pf, fn, prefix, deliverator):
                 center = map(float(plot.attrib["center"].split()))
             for field in fields:
                 if f == 0:
-                    pc.addSlice(field, 0, center=center)
-                    pc.addSlice(field, 1, center=center)
-                    pc.addSlice(field, 2, center=center)
+                    pc.add_slice(field, 0, center=center)
+                    pc.add_slice(field, 1, center=center)
+                    pc.add_slice(field, 2, center=center)
                 else:
                     for plot in pc.plots:
                         plot.switch_z(field)
@@ -93,7 +93,7 @@ def MakePlots(pf, fn, prefix, deliverator):
                 prefixDict['width'] = width
                 prefixDict['unit'] = unit
                 #print fields, width, unit
-                pc.addThreePhaseSphere(width, unit, fields)
+                pc.add_threephase_sphere(width, unit, fields)
                 pc.save(prefix % prefixDict, "png")
         elif plotType == "twophase":
             for width, unit in widths:
@@ -102,7 +102,7 @@ def MakePlots(pf, fn, prefix, deliverator):
                     continue
                 prefixDict['width'] = width
                 prefixDict['unit'] = unit
-                pc.addTwoPhaseSphere(width, unit, fields)
+                pc.add_twophase_sphere(width, unit, fields)
                 pc.save(prefix % prefixDict, "png")
         elif plotType == "proj":
             pc = PlotCollection(pf, deliverator)
@@ -111,9 +111,9 @@ def MakePlots(pf, fn, prefix, deliverator):
                 weight = None
                 if fe.attrib.has_key("weight"):
                     weight = fe.attrib["weight"]
-                pc.addProjection(field, 0, weightField=weight)
-                pc.addProjection(field, 1, weightField=weight)
-                pc.addProjection(field, 2, weightField=weight)
+                pc.add_projection(field, 0, weightField=weight)
+                pc.add_projection(field, 1, weightField=weight)
+                pc.add_projection(field, 2, weightField=weight)
                 for width, unit in widths:
                     if (width/pf[unit] < mindx*dx):
                         continue
