@@ -706,8 +706,11 @@ class Enzo3DData(EnzoData):
                  for grid in self._grids])
 
     def _get_data_from_grid(self, grid, field):
-        pointI = self._get_point_indices(grid)
-        return grid[field][pointI].ravel()
+        if not fieldInfo[field].variable_length:
+            pointI = self._get_point_indices(grid)
+            return grid[field][pointI].ravel()
+        else:
+            return grid[field]
 
     def _generate_field(self, field):
         if fieldInfo.has_key(field):

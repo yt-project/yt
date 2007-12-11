@@ -60,7 +60,8 @@ class DerivedField:
     def __init__(self, name, function,
                  convert_function = None,
                  units = "", projected_units = "",
-                 take_log = True, validators = None):
+                 take_log = True, validators = None,
+                 variable_length = False):
         self.name = name
         self._function = function
         if validators:
@@ -73,6 +74,7 @@ class DerivedField:
         if not convert_function:
             convert_function = lambda a: 1.0
         self._convert_function = convert_function
+        self.variable_length = variable_length
     def check_available(self, data):
         for validator in self.validators:
             validator(data)
@@ -87,6 +89,7 @@ class DerivedField:
     def get_projected_units(self):
         return self._projected_units
     def __call__(self, data):
+        ii = self.check_available(data)
         original_fields = data.fields[:] # Copy
         dd = self._function(self, data)
         dd *= self._convert_function(data)
@@ -146,9 +149,8 @@ class ValidateSpatial(FieldValidator):
     def __call__(self, data):
         # When we say spatial information, we really mean
         # that it has a three-dimensional data structure
-        if self.ghost_zones == 0:
-            if data._spatial:
-                return True
+        if not data._spatial:
+            raise NeedsGridType(self.ghost_zones)
         if self.ghost_zones == data._num_ghost_zones:
             return True
         raise NeedsGridType(self.ghost_zones)
@@ -215,8 +217,8 @@ add_field("SoundSpeed", units=r"$\rm{cm}/\rm{s}$")
 def particle_func(p_field):
     def _Particles(field, data):
         try:
-            particles = data["particle_%s" % p_field]
-        except:
+            particles = data._read_data("particle_%s" % p_field)
+        except data._read_exception:
             particles = na.array([], dtype=data["Density"].dtype)
         return particles
     return _Particles
@@ -225,7 +227,8 @@ for pf in ["index","mass","type"] + \
           ["position_%s" % ax for ax in 'xyz']:
     pfunc = particle_func(pf)
     add_field("particle_%s" % pf, function=pfunc,
-              validators = [ValidateSpatial(0)])
+              validators = [ValidateSpatial(0)],
+              variable_length=True)
 
 def _MachNumber(field, data):
     """M{|v|/t_sound}"""

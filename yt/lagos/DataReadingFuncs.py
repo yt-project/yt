@@ -23,6 +23,7 @@ The data-file handling functions
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 from yt.lagos import *
+import exceptions
 
 def getFieldsHDF4(self):
     """
@@ -151,3 +152,9 @@ def getFieldsPacked(self):
     f.close()
     del f
     return fls
+
+def getExceptionHDF4():
+    return SD.HDF4Error
+
+def getExceptionHDF5():
+    return exceptions.KeyError

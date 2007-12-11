@@ -30,9 +30,9 @@ import cPickle
 import yt.enki
 
 _data_style_funcs = \
-   { 4: (readDataHDF4, readAllDataHDF4, getFieldsHDF4, readDataSliceHDF4), \
-     5: (readDataHDF5, readAllDataHDF5, getFieldsHDF5, readDataSliceHDF5), \
-     6: (readDataPacked, readAllDataPacked, getFieldsPacked, readDataSlicePacked) \
+   { 4: (readDataHDF4, readAllDataHDF4, getFieldsHDF4, readDataSliceHDF4, getExceptionHDF4), \
+     5: (readDataHDF5, readAllDataHDF5, getFieldsHDF5, readDataSliceHDF5, getExceptionHDF5), \
+     6: (readDataPacked, readAllDataPacked, getFieldsPacked, readDataSlicePacked, getExceptionHDF5) \
    }
 
 class EnzoHierarchy:
@@ -154,6 +154,7 @@ class EnzoHierarchy:
                '_read_all_data' : _data_style_funcs[self.data_style][1],
                '_read_field_names' : _data_style_funcs[self.data_style][2],
                '_read_data_slice' : _data_style_funcs[self.data_style][3],
+               '_read_exception' : _data_style_funcs[self.data_style][4](),
                'pf' : self.parameter_file,
                'hierarchy': self }
         self.grid = classobj("EnzoGrid",(EnzoGridBase,), dd)
