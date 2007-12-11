@@ -243,7 +243,7 @@ def _VelocityMagnitude(field, data):
     return ( data["x-velocity"]**2.0 + \
              data["y-velocity"]**2.0 + \
              data["z-velocity"]**2.0 )**(1.0/2.0)
-add_field("VelocityMagnitude", take_log=False)
+add_field("VelocityMagnitude", take_log=False, units=r"$\rm{cm}/\rm{s}$")
 
 def _Pressure(field, data):
     """M{(Gamma-1.0)*rho*E}"""
@@ -346,6 +346,34 @@ def _AveragedDensity(field, data):
     new_field2[1:-1,1:-1,1:-1] = new_field/weight_field
     return new_field2
 add_field("AveragedDensity", validators=[ValidateSpatial(1)])
+
+def _DivV(field, data):
+    # We need to set up stencils
+    if data.pf["HydroMethod"] == 0:
+        sl_left = slice(None,-2,None)
+        sl_right = slice(2,None,None)
+        div_fac = 2.0
+    elif data.pf["HydroMethod"] == 2:
+        sl_left = slice(None,-2,None)
+        sl_right = slice(1,-1,None)
+        div_fac = 1.0
+    div_x = (data["x-velocity"][sl_right,1:-1,1:-1] -
+             data["x-velocity"][sl_left,1:-1,1:-1]) \
+          / (div_fac*data["dx"][1:-1,1:-1,1:-1])
+    div_y = (data["y-velocity"][1:-1,sl_right,1:-1] -
+             data["y-velocity"][1:-1,sl_left,1:-1]) \
+          / (div_fac*data["dy"][1:-1,1:-1,1:-1])
+    div_z = (data["z-velocity"][1:-1,1:-1,sl_right] -
+             data["z-velocity"][1:-1,1:-1,sl_left]) \
+          / (div_fac*data["dz"][1:-1,1:-1,1:-1])
+    new_field = na.zeros(data["x-velocity"].shape)
+    new_field[1:-1,1:-1,1:-1] = div_x+div_y+div_z
+    return na.abs(new_field)
+def _convertDivV(data):
+    return data.convert("cm")**-1.0
+add_field("DivV", validators=[ValidateSpatial(1)],
+          units=r"$\rm{s}^{-1}$",
+          convert_function=_convertDivV)
 
 def _Radius(field, data):
     center = data.get_field_parameter("center")
