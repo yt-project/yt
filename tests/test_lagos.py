@@ -14,10 +14,11 @@ ytcfg["yt","suppressStreamLogging"] = "True"
 ytcfg["lagos","serialize"] = "False"
 
 import yt.lagos
+import numpy as na
 
 # The dataset used is located at:
 # http://yt.spacepope.org/DD0018.zip
-fn = "DD0018/moving7_0018"
+fn = "DD0000/moving7_0000"
 fn = os.path.join(os.path.dirname(__file__),fn)
 
 class LagosTestingBase:
@@ -43,11 +44,11 @@ class TestHierarchy(LagosTestingBase, unittest.TestCase):
 
     def testGetSmallestDx(self):
         self.assertAlmostEqual(self.hierarchy.get_smallest_dx(),
-                               0.0009765625, 5)
+                               0.015625, 5)
 
     def testGetNumberOfGrids(self):
         self.assertEqual(self.hierarchy.num_grids, len(self.hierarchy.grids))
-        self.assertEqual(self.hierarchy.num_grids, 211)
+        self.assertEqual(self.hierarchy.num_grids, 3)
 
     def testChildrenOfRootGrid(self):
         for child in self.hierarchy.grids[0].Children:
@@ -107,7 +108,7 @@ def _returnFieldFunction(field):
 class DataTypeTestingBase:
     def setUp(self):
         LagosTestingBase.setUp(self)
-for field in yt.lagos.fieldInfo.values()[:3]:
+for field in yt.lagos.fieldInfo.values():
     func = _returnFieldFunction(field)
     setattr(DataTypeTestingBase, "test%s" % field.name, func)
 
@@ -133,6 +134,40 @@ class TestSliceDataType(DataTypeTestingBase, LagosTestingBase, unittest.TestCase
     def setUp(self):
         DataTypeTestingBase.setUp(self)
         self.data = self.hierarchy.slice(0,0.5)
+
+class TestGridDataType(DataTypeTestingBase, LagosTestingBase, unittest.TestCase):
+    def setUp(self):
+        DataTypeTestingBase.setUp(self)
+        self.data = self.hierarchy.grids[0]
+
+class TestExtractFromSphere(TestSphereDataType):
+    def setUp(self):
+        TestSphereDataType.setUp(self)
+        self.region = self.data
+        self.ind_to_get = na.where(self.region["Temperature"]>500)
+        self.data = self.region.extract_region(self.ind_to_get)
+    def testNumberOfEntries(self):
+        self.assertEqual(self.ind_to_get[0].shape,
+                        self.data["Density"].shape)
+    def testVolume(self):
+        self.ind_to_get = na.where(self.region["CellVolume"]>0.0)
+        vol = self.region.extract_region(self.ind_to_get)["CellVolume"].sum()
+        self.assertAlmostEqual(vol,1.0,7)
+
+class TestExtractFromRegion(TestRegionDataType):
+    def setUp(self):
+        TestRegionDataType.setUp(self)
+        self.region = self.data
+        self.ind_to_get = na.where(self.region["Temperature"]>500)
+        self.data = self.region.extract_region(self.ind_to_get)
+    def testNumberOfEntries(self):
+        self.assertEqual(self.ind_to_get[0].shape,
+                        self.data["Density"].shape)
+    def testVolume(self):
+        ind_to_get = na.where(self.region["CellVolume"]>0.0)
+        vol = self.region.extract_region(ind_to_get)["CellVolume"].sum()
+        self.assertAlmostEqual(vol,1.0,7)
+
 
 if __name__ == "__main__":
     unittest.main()

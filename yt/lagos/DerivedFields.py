@@ -132,7 +132,7 @@ class ValidateProperty(FieldValidator):
         self.prop = ensure_list(prop)
     def __call__(self, data):
         doesnt_have = []
-        for p in prop:
+        for p in self.prop:
             if not hasattr(data,p):
                 doesnt_have.append(p)
         if len(doesnt_have) > 0:
@@ -192,6 +192,14 @@ for species in _speciesList:
     add_field("%s_Fraction" % species,
              function=_SpeciesFraction,
              validators=ValidateDataField("%s_Density" % species))
+
+def _GridLevel(field, data):
+    return na.ones(data["Density"].shape)*(data.Level)
+add_field("GridLevel", validators=[ValidateProperty('Level')])
+
+def _GridIndices(field, data):
+    return na.ones(data["Density"].shape)*(data.id-1)
+add_field("GridIndices", validators=[ValidateProperty('id')])
 
 def _Ones(field, data):
     return na.ones(data["Density"].shape,

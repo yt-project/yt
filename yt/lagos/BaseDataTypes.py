@@ -673,6 +673,7 @@ class Enzo3DData(EnzoData):
         self['dx'] = t[:,4]
         self['dy'] = t[:,4]
         self['dz'] = t[:,4]
+        self['GridIndices'] = t[:,5]
 
     def _generate_grid_coords(self, grid):
         pointI = self._get_point_indices(grid)
@@ -681,7 +682,7 @@ class Enzo3DData(EnzoData):
                 grid['y'][pointI].ravel(), \
                 grid['z'][pointI].ravel(), \
                 grid["RadiusCode"][pointI].ravel(),
-                dx], 'float64').swapaxes(0,1)
+                dx, grid["GridIndices"][pointI].ravel()], 'float64').swapaxes(0,1)
         return tr
 
     def get_data(self, fields=None):
@@ -728,8 +729,52 @@ class Enzo3DData(EnzoData):
             temp = grid[field]
 
     def _get_point_indices(self, grid):
-        pointI = na.where( self._get_cut_mask(grid) & grid.child_mask )
+        k = na.zeros(grid.ActiveDimensions, dtype='bool')
+        k[self._get_cut_mask(grid)] = True
+        pointI = na.where(k & grid.child_mask)
         return pointI
+
+    def extract_region(self, indices):
+        return ExtractedRegionBase(self, indices)
+
+class ExtractedRegionBase(Enzo3DData):
+    def __init__(self, base_region, indices):
+        cen = base_region.get_field_parameter("center")
+        Enzo3DData.__init__(self, center=cen,
+                            fields=None, pf=base_region.pf)
+        self._base_region = base_region
+        self._base_indices = indices
+        self._refresh_data()
+
+    def _get_list_of_grids(self):
+        # Okay, so what we're going to want to do is get the pointI from
+        # region._get_point_indices(grid) for grid in base_region._grids,
+        # and then construct an array of those, which we will select along indices.
+        grid_vals, xi, yi, zi = [], [], [], []
+        for grid in self._base_region._grids:
+            xit,yit,zit = self._base_region._get_point_indices(grid)
+            grid_vals.append(na.ones(xit.shape) * grid.id-1)
+            xi.append(xit)
+            yi.append(yit)
+            zi.append(zit)
+        grid_vals = na.concatenate(grid_vals)
+        xi = na.concatenate(xi)
+        yi = na.concatenate(yi)
+        zi = na.concatenate(zi)
+        # We now have an identical set of indices that the base_region would
+        # use to cut out the grids.  So what we want to do is take only
+        # the points we want from these.
+        self._indices = {}
+        for grid in self._base_region._grids:
+            ind_ind = na.where(grid_vals[self._base_indices] == grid.id-1)
+            self._indices[grid.id-1] = na.array([xi[self._base_indices][ind_ind],
+                                                 yi[self._base_indices][ind_ind],
+                                                 zi[self._base_indices][ind_ind]])
+        self._grids = self._base_region.pf.h.grids[self._indices.keys()]
+
+    def _get_cut_mask(self, grid):
+        x,y,z = self._indices[grid.id-1]
+        return (x,y,z)
 
 class EnzoRegionBase(Enzo3DData):
     def __init__(self, center, left_edge, right_edge, fields = None, pf = None):
