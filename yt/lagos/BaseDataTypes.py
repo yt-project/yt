@@ -834,8 +834,10 @@ class EnzoSphereBase(Enzo3DData):
         return pointI
 
 class EnzoCoveringGrid(Enzo3DData):
+    _spatial = True
+
     def __init__(self, level, left_edge, right_edge, dims, fields = None,
-                 pf = None):
+                 pf = None, num_ghost_zones = 0):
         """
         """
 
@@ -846,12 +848,17 @@ class EnzoCoveringGrid(Enzo3DData):
         self.ActiveDimensions = na.array(dims)
         self.dx, self.dy, self.dz = (self.right_edge-self.left_edge) \
                                   / self.ActiveDimensions
+        self.data["dx"] = self.dx
+        self.data["dy"] = self.dy
+        self.data["dz"] = self.dz
+        self._num_ghost_zones = num_ghost_zones
         self._refresh_data()
 
     def _get_list_of_grids(self):
         grids, ind = self.pf.hierarchy.get_box_grids(self.left_edge, self.right_edge)
-        ind = na.where(self.pf.hierarchy.grids[ind] <= self.level)
-        self._grids = self.pf.hierarchy.grids[ind]
+        level_ind = na.where(self.pf.hierarchy.gridLevels.ravel()[ind] <= self.level)
+        sort_ind = na.argsort(self.pf.h.gridLevels.ravel()[ind][level_ind])[0].reverse()
+        self._grids = self.pf.hierarchy.grids[ind][level_ind][(sort_ind,)]
 
     def __setup_weave_dict(self, grid):
         return {
@@ -874,6 +881,12 @@ class EnzoCoveringGrid(Enzo3DData):
             'childMask' : grid.child_mask
         }
 
+    def _refresh_data(self):
+        Enzo3DData._refresh_data(self)
+        self['dx'] = self.dx * na.ones(self.ActiveDimensions, dtype='float64')
+        self['dy'] = self.dy * na.ones(self.ActiveDimensions, dtype='float64')
+        self['dz'] = self.dz * na.ones(self.ActiveDimensions, dtype='float64')
+
     def get_data(self, field=None):
         self._get_list_of_grids()
         # We don't generate coordinates here.
@@ -884,18 +897,21 @@ class EnzoCoveringGrid(Enzo3DData):
         for field in fields_to_get:
             if self.data.has_key(field):
                 continue
-            mylog.info("Getting field %s from %s", field, len(self._grids))
-            self[field] = na.zeros(self.ActiveDimensions, dtype='float32')
+            mylog.info("Getting field %s from %s possible grids",
+                       field, len(self._grids))
+            self[field] = na.zeros(self.ActiveDimensions, dtype='float64') - 999
             for grid in self._grids:
                 self._get_data_from_grid(grid, field)
+                if not na.any(self[field] == -999): break
+            if na.any(self[field] == -999) and len(self._grids) > 1:
+                raise KeyError
 
     def _get_data_from_grid(self, grid, fields):
-        last_level = (grid.dx / 2.0) < self.dx
         for field in ensure_list(fields):
             locals_dict = self.__setup_weave_dict(grid)
             locals_dict['fieldData'] = grid[field]
             locals_dict['cubeData'] = self[field]
-            locals_dict['lastLevel'] = int(last_level)
+            locals_dict['lastLevel'] = int(grid.Level == self.level)
             weave.inline(DataCubeRefineCoarseData,
                          locals_dict.keys(), local_dict=locals_dict,
                          compiler='gcc',

@@ -494,8 +494,8 @@ class EnzoHierarchy:
         @param rightEdge: the right edge
         @type rightEdge: array
         """
-        gridI = na.where(na.logical_and(na.any(self.gridRightEdge > leftEdge, axis=1),
-                                        na.any(self.gridLeftEdge < rightEdge, axis=1)) == True)
+        gridI = na.where((na.all(self.gridRightEdge > leftEdge, axis=1)
+                        & na.all(self.gridLeftEdge < rightEdge, axis=1)) == True)
         return self.grids[gridI], gridI
 
     @time_execution

@@ -71,7 +71,8 @@ class EnzoGridBase(EnzoData):
             except NeedsGridType, ngt_exception:
                 # This is only going to be raised if n_gz > 0
                 n_gz = ngt_exception.ghost_zones
-                gz_grid = self.retrieve_ghost_zones(n_gz, "Density")
+                f_gz = ngt_exception.fields
+                gz_grid = self.retrieve_ghost_zones(n_gz, f_gz)
                 temp_array = fieldInfo[fieldName](gz_grid)
                 sl = [slice(n_gz,-n_gz)] * 3
                 self[fieldName] = temp_array[sl]
@@ -434,5 +435,6 @@ class EnzoGridBase(EnzoData):
         # Something different needs to be done for the root grid, though
         cube = self.hierarchy.covering_grid(self.Level,
                         new_left_edge, new_right_edge,
-                        self.ActiveDimensions + 2*n_zones, fields)
+                        self.ActiveDimensions + 2*n_zones, fields,
+                        num_ghost_zones=n_zones)
         return cube

@@ -16,8 +16,9 @@ class ValidationException(Exception):
     pass
 
 class NeedsGridType(ValidationException):
-    def __init__(self, ghost_zones = 0):
+    def __init__(self, ghost_zones = 0, fields=None):
         self.ghost_zones = ghost_zones
+        self.fields = fields
 
 class NeedsDataField(ValidationException):
     def __init__(self, missing_fields):
@@ -143,14 +144,15 @@ class ValidateProperty(FieldValidator):
         return True
 
 class ValidateSpatial(FieldValidator):
-    def __init__(self, ghost_zones = 0):
+    def __init__(self, ghost_zones = 0, fields=None):
         FieldValidator.__init__(self)
         self.ghost_zones = ghost_zones
+        self.fields = fields
     def __call__(self, data):
         # When we say spatial information, we really mean
         # that it has a three-dimensional data structure
         if not data._spatial:
-            raise NeedsGridType(self.ghost_zones)
+            raise NeedsGridType(self.ghost_zones,self.fields)
         if self.ghost_zones == data._num_ghost_zones:
             return True
         raise NeedsGridType(self.ghost_zones)
@@ -371,7 +373,8 @@ def _DivV(field, data):
     return na.abs(new_field)
 def _convertDivV(data):
     return data.convert("cm")**-1.0
-add_field("DivV", validators=[ValidateSpatial(1)],
+add_field("DivV", validators=[ValidateSpatial(1,
+            ["x-velocity","y-velocity","z-velocity"])],
           units=r"$\rm{s}^{-1}$",
           convert_function=_convertDivV)
 
@@ -445,7 +448,7 @@ def _convertVelocity(data):
 for ax in ['x','y','z']:
     f = fieldInfo["%s-velocity" % ax]
     f.units = r"$\rm{km}/\rm{s}$"
-    f.convert_function = _convertVelocity
+    f._convert_function = _convertVelocity
     f.take_log = False
 
 fieldInfo["Temperature"].units = r"$K$"
