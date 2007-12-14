@@ -37,20 +37,21 @@ class PlotCollection:
         self._run_id = deliverator_id
         self.pf = pf
         v,self.c = pf.h.findMax("Density") # @todo: ensure no caching
-        if submitToDeliverator > 0:
+        if deliverator_id > 0:
             self.submit = True
-            self._run_id = submitToDeliverator
+            self._run_id = deliverator_id
             r=deliveration.SubmitParameterFile(\
-                submitToDeliverator, self.pf)
+                deliverator_id, self.pf)
             mylog.debug("Received response '%s'", r)
             self._http_prefix = ytcfg["raven","httpPrefix"] % self.pf
         else:
             self.submit = False
-    def save(self, basename, format="png"):
+    def save(self, basename, format="png", override=False):
         fn = []
         for plot in self.plots:
             fn.append(plot.save_image(basename, \
-                      format=format, submit=self._run_id))
+                      format=format, submit=self._run_id,
+                      override=override))
             if self.submit:
                 im = plot.im.copy()
                 im["Filename"] = self._http_prefix + "/" \

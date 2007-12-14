@@ -151,7 +151,7 @@ class TestExtractFromSphere(TestSphereDataType):
                         self.data["Density"].shape)
     def testVolume(self):
         self.ind_to_get = na.where(self.region["CellVolume"]>0.0)
-        vol = self.region.extract_region(ind_to_get)["CellVolume"].sum() \
+        vol = self.region.extract_region(self.ind_to_get)["CellVolume"].sum() \
             / self.data.convert("cm")**3.0
         self.assertAlmostEqual(vol,1.0,7)
 

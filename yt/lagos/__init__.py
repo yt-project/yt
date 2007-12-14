@@ -76,5 +76,6 @@ from BaseGridType import *
 from EnzoRateData import *
 from HierarchyType import *
 from OutputTypes import *
+from Profiles import *
 
 log_fields = [] # @todo: GET RID OF THIS

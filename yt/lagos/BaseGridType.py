@@ -132,6 +132,10 @@ class EnzoGridBase(EnzoData):
             self.Parent = h.grids[pID - 1]
         else:
             self.Parent = None
+        self.__setup_dx()
+        h.gridDxs[self.id-1,0] = self.dx
+
+    def __setup_dx(self):
         # So first we figure out what the index is.  We don't assume
         # that dx=dy=dz , at least here.  We probably do elsewhere.
         if ytcfg.getboolean("lagos","ReconstructHierarchy") == True \
@@ -144,10 +148,19 @@ class EnzoGridBase(EnzoData):
                       (self.EndIndices[1]-self.StartIndices[1]+1)
             self.dz = (self.RightEdge[2] - self.LeftEdge[2]) / \
                   (self.EndIndices[2]-self.StartIndices[2]+1)
-        self['dx'] = self.dx * na.ones(self.ActiveDimensions, dtype='Float64')
-        self['dy'] = self.dy * na.ones(self.ActiveDimensions, dtype='Float64')
-        self['dz'] = self.dz * na.ones(self.ActiveDimensions, dtype='Float64')
-        h.gridDxs[self.id-1,0] = self.dx
+        self['dx'] = self.dx * na.ones((1), dtype='Float64')
+        self['dy'] = self.dy * na.ones((1), dtype='Float64')
+        self['dz'] = self.dz * na.ones((1), dtype='Float64')
+        self._corners = na.array([ # Unroll!
+            [self.LeftEdge[0], self.LeftEdge[1], self.LeftEdge[2]],
+             [self.RightEdge[0], self.LeftEdge[1], self.LeftEdge[2]],
+             [self.RightEdge[0], self.RightEdge[1], self.LeftEdge[2]],
+             [self.RightEdge[0], self.RightEdge[1], self.RightEdge[2]],
+             [self.LeftEdge[0], self.RightEdge[1], self.RightEdge[2]],
+             [self.LeftEdge[0], self.LeftEdge[1], self.RightEdge[2]],
+             [self.RightEdge[0], self.LeftEdge[1], self.RightEdge[2]],
+             [self.LeftEdge[0], self.RightEdge[1], self.LeftEdge[2]],
+            ], dtype='float64')
 
     def _guess_properties_from_parent(self):
         # Okay, we're going to try to guess
@@ -188,6 +201,13 @@ class EnzoGridBase(EnzoData):
 
     def __int__(self):
         return self.id
+
+
+    def clear_data(self):
+        self._del_child_mask
+        self._del_child_indices
+        EnzoData.clear_data(self)
+        self.__setup_dx()
 
     def set_filename(self, filename):
         if filename[0] == os.path.sep:
@@ -364,7 +384,8 @@ class EnzoGridBase(EnzoData):
         self.__child_indices = None
 
     def _del_child_mask(self):
-        pass
+        del self.__child_mask
+        self.__child_mask = None
 
     #@time_execution
     def __generate_child_mask(self):
@@ -384,14 +405,12 @@ class EnzoGridBase(EnzoData):
                     & ( self.LeftEdge[2] <= RE[:,2]  )
                     & (self.hierarchy.gridLevels.ravel() == self.Level + 1) )
         for child in self.hierarchy.grids[my_child_grids]:
-            if child.Level > self.Level + 1:
-                continue
             # Now let's get our overlap
             si = [None]*3
             ei = [None]*3
             startIndex = ((child.LeftEdge - self.LeftEdge)/self.dx)
             endIndex = ((child.RightEdge - self.LeftEdge)/self.dx)
-            for i in range(3):
+            for i in xrange(3):
                 si[i] = na.rint(startIndex[i])
                 ei[i] = na.rint(endIndex[i])
                 si[i] = si[i]

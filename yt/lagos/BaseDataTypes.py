@@ -660,20 +660,23 @@ class Enzo3DData(EnzoData):
         return co
 
     def _generate_coords(self):
+        mylog.info("Generating coords for %s grids", len(self._grids))
         points = []
-        for grid in self._grids:
-            grid._generate_coords()
+        for i,grid in enumerate(self._grids):
+            #grid._generate_coords()
+            if ( (i%100) == 0):
+                mylog.info("Working on % 7i / % 7i", i, len(self._grids))
             grid.set_field_parameter("center", self.center)
-            points.append(self._generate_grid_coords(grid))
+            #points.append(self._generate_grid_coords(grid))
+            points.append((na.ones(
+                grid.ActiveDimensions,dtype='float64')*grid['dx'])\
+                    [self._get_point_indices(grid)])
+
         t = na.concatenate(points)
-        self['x'] = t[:,0]
-        self['y'] = t[:,1]
-        self['z'] = t[:,2]
-        self['RadiusCode'] = t[:,3]
-        self['dx'] = t[:,4]
-        self['dy'] = t[:,4]
-        self['dz'] = t[:,4]
-        self['GridIndices'] = t[:,5]
+        self['dx'] = t
+        self['dy'] = t
+        self['dz'] = t
+        mylog.info("Done with coordinates")
 
     def _generate_grid_coords(self, grid):
         pointI = self._get_point_indices(grid)
@@ -694,6 +697,7 @@ class Enzo3DData(EnzoData):
             fields_to_get = self.fields
         else:
             fields_to_get = ensure_list(fields)
+        mylog.info("Going to obtain %s (%s)", fields_to_get, self.fields)
         for field in fields_to_get:
             if self.data.has_key(field):
                 continue
@@ -787,15 +791,19 @@ class EnzoRegionBase(Enzo3DData):
         @note: Center does not have to be (rightEdge - leftEdge) / 2.0
         """
         Enzo3DData.__init__(self, center, fields, pf)
-        self.fields = ["Radius"] + self.fields
+        self.fields = self.fields
         self.left_edge = left_edge
         self.right_edge = right_edge
         self._refresh_data()
 
     def _get_list_of_grids(self):
-        self._grids, ind = self.pf.hierarchy.get_box_grids(self.left_edge, self.right_edge)
+        self._grids, ind = self.pf.hierarchy.get_box_grids(self.left_edge,
+                                                           self.right_edge)
 
     def _get_cut_mask(self, grid):
+        if na.all( (grid._corners <= self.right_edge)
+                 & (grid._corners >= self.left_edge)):
+            return na.ones(grid.ActiveDimensions, dtype='bool')
         pointI = \
                ( (grid['x'] <= self.right_edge[0])
                & (grid['x'] >= self.left_edge[0])
@@ -821,7 +829,6 @@ class EnzoSphereBase(Enzo3DData):
         @type fields: list of strings
         """
         Enzo3DData.__init__(self, center, fields, pf)
-        self.fields = ["Radius"] + self.fields
         self.radius = radius
         self._refresh_data()
 
@@ -829,6 +836,13 @@ class EnzoSphereBase(Enzo3DData):
         self._grids,ind = self.hierarchy.find_sphere_grids(self.center, self.radius)
 
     def _get_cut_mask(self, grid):
+        # We have the *property* center, which is not necessarily
+        # the same as the field_parameter
+        corner_radius = na.sqrt(((grid._corners - self.center)**2.0).sum(axis=1))
+        if na.all(corner_radius <= self.radius):
+            return na.ones(grid.ActiveDimensions, dtype='bool')
+        if na.all(corner_radius > self.radius):
+            return na.zeros(grid.ActiveDimensions, dtype='bool')
         pointI = ((grid["RadiusCode"]<=self.radius) &
                   (grid.child_mask==1))
         return pointI
@@ -857,7 +871,7 @@ class EnzoCoveringGrid(Enzo3DData):
     def _get_list_of_grids(self):
         grids, ind = self.pf.hierarchy.get_box_grids(self.left_edge, self.right_edge)
         level_ind = na.where(self.pf.hierarchy.gridLevels.ravel()[ind] <= self.level)
-        sort_ind = na.argsort(self.pf.h.gridLevels.ravel()[ind][level_ind])[0].reverse()
+        sort_ind = na.flipud(na.argsort(self.pf.h.gridLevels.ravel()[ind][level_ind]))
         self._grids = self.pf.hierarchy.grids[ind][level_ind][(sort_ind,)]
 
     def __setup_weave_dict(self, grid):

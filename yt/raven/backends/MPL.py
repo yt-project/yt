@@ -135,7 +135,7 @@ class RavenPlot:
     def __getitem__(self, item):
         return self.data[item] # Should be returned in CGS
 
-    def save_image(self, prefix, format, submit=None):
+    def save_image(self, prefix, format, submit=None, override=False):
         """
         Save this plot image.  Will generate a filename based on the prefix,
         format, and the approriate data stored in the plot.
@@ -146,8 +146,12 @@ class RavenPlot:
         @type format: string
         """
         self._redraw_image()
-        self._generate_prefix(prefix)
-        fn = ".".join([self.prefix, format])
+        if not override:
+            self._generate_prefix(prefix)
+            my_prefix = self.prefix
+        else:
+            my_prefix = prefix
+        fn = ".".join([my_prefix, format])
         canvas = engineVals["canvas"](self._figure)
         #self._figure.savefig(fn, format)
         canvas.print_figure(fn)

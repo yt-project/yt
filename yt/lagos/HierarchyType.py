@@ -354,8 +354,10 @@ class EnzoHierarchy:
         mylog.debug("Prepared")
         field_list = self.get_data("/", "DataFields")
         if field_list == None:
+            mylog.info("Gathering a field list (this may take a moment.)")
             field_list = sets.Set()
-            for grid in self.grids:
+            random_sample = na.mgrid[0:len(self.grids)-1:20j].astype("int32")
+            for grid in self.grids[(random_sample,)]:
                 field_list = field_list.union(sets.Set(grid.getFields()))
         self.field_list = list(field_list)
         self.levelIndices = {}

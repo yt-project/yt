@@ -250,14 +250,29 @@ add_field("VelocityMagnitude", take_log=False, units=r"$\rm{cm}/\rm{s}$")
 def _Pressure(field, data):
     """M{(Gamma-1.0)*rho*E}"""
     return (data.pf["Gamma"] - 1.0) * \
-           data["Density"] * data["Gas_Energy"]
-add_field("Pressure", #validators=ValidateDataField("Gas_Energy"),
-          units=r"$\rm{dyne}/\rm{cm}^{2}$")
+           data["Density"] * data["ThermalEnergy"]
+add_field("Pressure", units=r"$\rm{dyne}/\rm{cm}^{2}$")
+
+def _ThermalEnergy(field, data):
+    if data.pf["HydroMethod"] == 2:
+        return data["Total_Energy"]
+    if data.pf["HydroMethod"] == 0:
+        if data.pf["DualEnergyFormalism"]:
+            return data["Gas_Energy"]
+        else:
+            return data["Total_Energy"] - (
+                   data["x-velocity"]**2.0
+                 + data["y-velocity"]**2.0
+                 + data["z-velocity"]**2.0 )
+add_field("ThermalEnergy", units=r"$\rm{ergs}/\rm{g}$")
 
 def _Entropy(field, data):
     return data["Density"]**(-2./3.) * \
            data["Temperature"]
 add_field("Entropy", units="WhoKnows")
+
+def _Height(field, data):
+    pass
 
 def _DynamicalTime(field, data):
     """
@@ -305,9 +320,17 @@ add_field("NumberDensity", units=r"$\rm{cm}^{-3}$",
 
 def _CellMass(field, data):
     return data["Density"] * data["CellVolume"]
+def _convertCellMassMsun(data):
+    return 5.027854e-34 # g^-1
 add_field("CellMass", units=r"$\rm{g}$")
+add_field("CellMassMsun", units=r"$M_{\odot}$",
+          function=_CellMass,
+          convert_function=_convertCellMassMsun)
 
 def _CellVolume(field, data):
+    if data['dx'].size == 1:
+        return data['dx']*data['dy']*data['dx']*\
+            na.ones(data.ActiveDimensions, dtype='float64')
     return data["dx"]*data["dy"]*data["dz"]
 def _ConvertCellVolume(data):
     return data.convert("cm")**3.0
