@@ -114,8 +114,6 @@ class FieldFunctionInspector(wx.Frame):
         fs = lagos.fieldInfo.keys()
         fs.sort()
         for field in fs:
-            # Check if we want to make a page...
-            if lagos.fieldInfo[field][3] == None: continue
             page = self.CreateFieldPage(field)
             self.FunctionNotebook.AddPage(page, field)
 
@@ -129,9 +127,11 @@ class FunctionInspectorPage(wx.Panel):
         self.DoLayout()
 
     def PopulateFields(self):
-        self.units, self.punits, self.logged, self.func = \
-            lagos.fieldInfo[self.field]
-        self.func_source = lagos.getCode(self.field)
+        field = lagos.fieldInfo[self.field]
+        self.units = field.get_units()
+        self.punits = field.get_projected_units()
+        self.logged = field.take_log
+        self.func_source = lagos.fieldInfo[self.field].get_source()
 
     def SetupControllers(self):
         self.legendUnits = wx.StaticText(self, -1, "Units:", style=wx.ALIGN_RIGHT)

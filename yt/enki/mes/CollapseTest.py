@@ -62,8 +62,8 @@ class CollapseTestProblem(ProblemType):
         # Alright, now we set some defaults
         dens = self.Fields[self.FieldIndex["Density"]].ravel()
         dens[:] = 1.0
-        temp = na.ones(dens.shape, nT.Float32).ravel() * self["CollapseTestInitialTemperature"]
-        vel = na.zeros((3,temp.shape[0]), nT.Float32)
+        temp = na.ones(dens.shape, 'float32').ravel() * self["CollapseTestInitialTemperature"]
+        vel = na.zeros((3,temp.shape[0]), 'float32')
         vel[0,:] = self.Fields[self.FieldIndex["x-velocity"]][:].ravel()
         vel[1,:] = self.Fields[self.FieldIndex["y-velocity"]][:].ravel()
         vel[2,:] = self.Fields[self.FieldIndex["z-velocity"]][:].ravel()
@@ -121,18 +121,18 @@ class CollapseTestSphere:
         temp[dI] = self.GetMyTemperature(prob, grid, xyz[dI], r[dI])
 
     def GetMyDensity(self, prob, grid, xyz, r):
-        return na.ones(r.shape,nT.Float32)
+        return na.ones(r.shape,'float32')
     def GetMyTemperature(self, prob, grid, xyz, r):
-        return na.ones(r.shape,nT.Float32)*prob["CollapseTestInitialTemperature"]
+        return na.ones(r.shape,'float32')*prob["CollapseTestInitialTemperature"]
     def GetMyVelocity(self, prob, grid, xyz, r, dim):
-        return na.ones(r.shape,nT.Float32)*10
+        return na.ones(r.shape,'float32')*10
 
 class CollapseTestSphereUniform(CollapseTestSphere):
     def __init__(self, Density, Temperature, Velocity, Position, Radius, CoreRadius):
         self.Type = "Uniform"
         CollapseTestSphere.__init__(self, Density, Temperature, Velocity, Position, Radius, CoreRadius)
     def MyGetDensity(self, prob, grid, xyz, r):
-        return na.ones(r.shape, nT.Float32) * self.Density
+        return na.ones(r.shape, 'float32') * self.Density
 
 class CollapseTestSphereR2(CollapseTestSphere):
     def __init__(self, Density, Temperature, Velocity, Position, Radius, CoreRadius):

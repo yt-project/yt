@@ -37,6 +37,8 @@ logging.basicConfig(
 
 f = logging.Formatter("%(levelname)-10s %(asctime)s %(message)s")
 
+rootLogger = logging.getLogger()
+
 ytLogger = logging.getLogger("yt")
 ytLogger.debug("Set log level to %s", level)
 
@@ -91,3 +93,8 @@ if ytcfg.getboolean("yt","logfile") and os.access(".", os.W_OK):
                                                     maxBytes=mb, backupCount=bc)
         reasonHandler.setFormatter(f)
         reasonLogger.addHandler(reasonHandler)
+
+if ytcfg.getboolean("yt","suppressStreamLogging"):
+    # We just remove the root logger's handlers
+    for handler in rootLogger.handlers:
+        handler.disabled = 1

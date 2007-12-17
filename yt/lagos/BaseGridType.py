@@ -24,13 +24,17 @@ Python-based grid handler, not to be confused with the SWIG-handler
 """
 
 from yt.lagos import *
-import yt.enki, gc
+#import yt.enki, gc
 from yt.funcs import *
 
-class EnzoGridBase:
+class EnzoGridBase(EnzoData):
+    _spatial = True
+    _num_ghost_zones = 0
     """
     Class representing a single Enzo Grid instance
     """
+    _grids = None
+
     def __init__(self, id, filename=None, hierarchy = None):
         """
         Returns an instance of EnzoGrid
@@ -42,74 +46,63 @@ class EnzoGridBase:
         @keyword filename: filename holding grid data
         @type filename: string
         """
+        EnzoData.__init__(self, None, [])
         self.id = id
-        self.data = {}
         self.datasets = {}
         if hierarchy: self.hierarchy = hierarchy
-        if filename: self.setFilename(filename)
-        self.myOverlapMasks = [None, None, None]
-        self.myOverlapGrids = [None, None, None]
+        if filename: self.set_filename(filename)
+        self.overlap_masks = [None, None, None]
+        self._overlap_grids = [None, None, None]
+        self._file_access_pooling = False
 
     def __len__(self):
-        return 0
+        return na.prod(self.ActiveDimensions)
 
-    def __getitem__(self, key):
+    def _generate_field(self, fieldName):
+        """
+        Generates, or attempts to generate, a field not found in the data file
+
+        @param fieldName: field to generate
+        @type fieldName: string
+        """
+        if fieldInfo.has_key(fieldName):
+            # First we check the validator
+            try:
+                fieldInfo[fieldName].check_available(self)
+            except NeedsGridType, ngt_exception:
+                # This is only going to be raised if n_gz > 0
+                n_gz = ngt_exception.ghost_zones
+                f_gz = ngt_exception.fields
+                gz_grid = self.retrieve_ghost_zones(n_gz, f_gz)
+                temp_array = fieldInfo[fieldName](gz_grid)
+                sl = [slice(n_gz,-n_gz)] * 3
+                self[fieldName] = temp_array[sl]
+            else:
+                self[fieldName] = fieldInfo[fieldName](self)
+        else: # Can't find the field, try as it might
+            raise exceptions.KeyError, fieldName
+
+    def get_data(self, field):
         """
         Returns a field or set of fields for a key or set of keys
         """
-        if isinstance(key, types.StringType):
-            if self.data.has_key(key):
-                return self.data[key]
+        if not self.data.has_key(field):
+            if field in self.hierarchy.fieldList:
+                conv_factor = 1.0
+                if fieldInfo.has_key(field):
+                    conv_factor = fieldInfo[field]._convert_function(self)
+                self[field] = self.readDataFast(field) * conv_factor
             else:
-                self.readDataFast(key)
-                return self.data[key]
-        elif isinstance(key, types.ListType) or \
-             isinstance(key, types.TupleType):
-            tr = []
-            for k in key:
-                if self.data.has_key(k):
-                    tr.append(self.data[k])
-                else:
-                    self.readDataFast(k)
-                    tr.append(self.data[k])
-            return tr
-        else:
-            return self.data[key]
+                self._generate_field(field)
+        return self.data[field]
 
-    def __setitem__(self, key, data):
-        """
-        Sets a data field equal to some value or set of values
-        """
-        if isinstance(key, types.StringType):
-            self.data[key] = data
-        elif isinstance(key, types.ListType) or \
-             isinstance(key, types.TupleType):
-            tr = []
-            for kI in range(len(key)):
-                self.data[kI] = data[kI]
-        else:
-            self.data[key] = data
-
-    def has_key(self, key):
-        """
-        Checks to see if this field *is already generated.*  Will not check to
-        see if it *can* be generated.
-        """
-        return self.data.has_key(key)
-
-    def keys(self):
-        """
-        Returns all existing fields.
-        """
-        return self.data.keys()
-
-    def clearAllGridReferences(self):
-        self.clearDerivedQuantities()
+    def clear_all_grid_references(self):
+        self.clear_all_derived_quantities()
         if hasattr(self, 'hierarchy'):
             del self.hierarchy
         if hasattr(self, 'Parent'):
             if self.Parent != None:
-                self.Parent.clearAllGridReferences()
+                self.Parent.clear_all_grid_references()
             del self.Parent
         if hasattr(self, 'Children'):
             for i in self.Children:
@@ -117,12 +110,13 @@ class EnzoGridBase:
                     del i
             del self.Children
 
-    def prepareGrid(self):
+    def _prepare_grid(self):
         """
         Copies all the appropriate attributes from the hierarchy
         """
         # This is definitely the slowest part of generating the hierarchy
         # Now we give it pointers to all of its attributes
+        # Note that to keep in line with Enzo, we have broken PEP-8
         h = self.hierarchy # cache it
         self.Dimensions = h.gridDimensions[self.id-1]
         self.StartIndices = h.gridStartIndices[self.id-1]
@@ -139,31 +133,49 @@ class EnzoGridBase:
             self.Parent = h.grids[pID - 1]
         else:
             self.Parent = None
+        self.__setup_dx()
+        h.gridDxs[self.id-1,0] = self.dx
+
+    def __setup_dx(self):
         # So first we figure out what the index is.  We don't assume
         # that dx=dy=dz , at least here.  We probably do elsewhere.
-        self.dx = (self.RightEdge[0] - self.LeftEdge[0]) / \
-                  (self.EndIndices[0]-self.StartIndices[0]+1)
-        self.dy = (self.RightEdge[1] - self.LeftEdge[1]) / \
-                  (self.EndIndices[1]-self.StartIndices[1]+1)
-        self.dz = (self.RightEdge[2] - self.LeftEdge[2]) / \
+        if ytcfg.getboolean("lagos","ReconstructHierarchy") == True \
+           and self.Parent != None:
+            self._guess_properties_from_parent()
+        else:
+            self.dx = (self.RightEdge[0] - self.LeftEdge[0]) / \
+                      (self.EndIndices[0]-self.StartIndices[0]+1)
+            self.dy = (self.RightEdge[1] - self.LeftEdge[1]) / \
+                      (self.EndIndices[1]-self.StartIndices[1]+1)
+            self.dz = (self.RightEdge[2] - self.LeftEdge[2]) / \
                   (self.EndIndices[2]-self.StartIndices[2]+1)
-        h.gridDxs[self.id-1,0] = self.dx
-        if ytcfg.getboolean("lagos","ReconstructHierarchy") == True:
-            if self.Parent == None: return
-            # Okay, we're going to try to guess
-            # We know that our grid boundary occurs on the cell boundary of our
-            # parent
-            le = self.LeftEdge
-            self.dx = self.Parent.dx/2.0
-            self.dy = self.Parent.dy/2.0
-            self.dz = self.Parent.dz/2.0
-            ParentLeftIndex = na.rint((self.LeftEdge-self.Parent.LeftEdge)/self.Parent.dx)
-            self.LeftEdge = self.Parent.LeftEdge + self.Parent.dx * ParentLeftIndex
-            self.RightEdge = self.LeftEdge + self.ActiveDimensions*self.dx
-            #if self.Level > 20: print "Recon", (self.LeftEdge-le)/self.dx
+        self['dx'] = self.dx * na.ones((1), dtype='Float64')
+        self['dy'] = self.dy * na.ones((1), dtype='Float64')
+        self['dz'] = self.dz * na.ones((1), dtype='Float64')
+        self._corners = na.array([ # Unroll!
+            [self.LeftEdge[0], self.LeftEdge[1], self.LeftEdge[2]],
+             [self.RightEdge[0], self.LeftEdge[1], self.LeftEdge[2]],
+             [self.RightEdge[0], self.RightEdge[1], self.LeftEdge[2]],
+             [self.RightEdge[0], self.RightEdge[1], self.RightEdge[2]],
+             [self.LeftEdge[0], self.RightEdge[1], self.RightEdge[2]],
+             [self.LeftEdge[0], self.LeftEdge[1], self.RightEdge[2]],
+             [self.RightEdge[0], self.LeftEdge[1], self.RightEdge[2]],
+             [self.LeftEdge[0], self.RightEdge[1], self.LeftEdge[2]],
+            ], dtype='float64')
 
-    #@time_execution
-    def generateOverlapMasks(self, axis, LE, RE):
+    def _guess_properties_from_parent(self):
+        # Okay, we're going to try to guess
+        # We know that our grid boundary occurs on the cell boundary of our
+        # parent
+        le = self.LeftEdge
+        self.dx = self.Parent.dx/2.0
+        self.dy = self.Parent.dy/2.0
+        self.dz = self.Parent.dz/2.0
+        ParentLeftIndex = na.rint((self.LeftEdge-self.Parent.LeftEdge)/self.Parent.dx)
+        self.LeftEdge = self.Parent.LeftEdge + self.Parent.dx * ParentLeftIndex
+        self.RightEdge = self.LeftEdge + self.ActiveDimensions*self.dx
+
+    def _generate_overlap_masks(self, axis, LE, RE):
         """
         Generate a mask that shows which cells overlap with other cells on
         different grids.  (If fed appropriate subsets, can be constrained to
@@ -183,22 +195,33 @@ class EnzoGridBase:
         cond2 = self.LeftEdge[x] < RE[:,x]
         cond3 = self.RightEdge[y] > LE[:,y]
         cond4 = self.LeftEdge[y] < RE[:,y]
-        self.myOverlapMasks[axis]=na.logical_and(na.logical_and(cond1, cond2), \
+        self.overlap_masks[axis]=na.logical_and(na.logical_and(cond1, cond2), \
                                                  na.logical_and(cond3, cond4))
     def __repr__(self):
-        return "%s" % (self.id)
+        return "Grid_%04i" % (self.id)
 
     def __int__(self):
         return self.id
 
-    def setFilename(self, filename):
+
+    def clear_data(self):
+        self._del_child_mask()
+        self._del_child_indices()
+        if hasattr(self, 'coarseData'):
+            del self.coarseData
+        if hasattr(self, 'retVal'):
+            del self.retVal
+        EnzoData.clear_data(self)
+        self.__setup_dx()
+
+    def set_filename(self, filename):
         if filename[0] == os.path.sep:
             self.filename = filename
         else:
             self.filename = os.path.join(self.hierarchy.directory, filename)
         return
 
-    def findMax(self, field):
+    def find_max(self, field):
         """
         Returns value, coordinate of maximum value in this gird
 
@@ -209,7 +232,7 @@ class EnzoGridBase:
         val = self[field][coord]
         return val, coord
 
-    def findMin(self, field):
+    def find_min(self, field):
         """
         Returns value, coordinate of minimum value in this gird
 
@@ -220,7 +243,7 @@ class EnzoGridBase:
         val = self[field][coord]
         return val, coord
 
-    def getPosition(self, coord):
+    def get_position(self, coord):
         """
         Returns position of a coordinate
 
@@ -231,7 +254,7 @@ class EnzoGridBase:
         # Should 0.0 be 0.5?
         return pos
 
-    def clearAll(self):
+    def clear_all(self):
         """
         Clears all datafields from memory.
         """
@@ -241,73 +264,17 @@ class EnzoGridBase:
         if hasattr(self,"retVal"):
             del self.retVal
         self.data = {}
-        self.clearDerivedQuantities()
+        self.clear_derived_quantities()
 
-    def clearDerivedQuantities(self):
+    def clear_derived_quantities(self):
         """
-        Clears coordinates, myChildIndices, myChildMask.
+        Clears coordinates, child_indices, child_mask.
         """
         # Access the property raw-values here
-        del self.myChildMask
-        del self.myChildIndices
-        del self.coords
+        del self.child_mask
+        del self.child_ind
 
-    def generateField(self, fieldName):
-        """
-        Generates, or attempts to generate,  a field not found in the file
-
-        See DerivedFields.py for more information.  fieldInfo.keys() will list all of
-        the available derived fields.  Note that we also make available the
-        suffices _Fraction and _Squared here.  All fields prefixed with 'k'
-        will force an attempt to use the chemistry tables to generate them from
-        temperature.  All fields used in generation will remain resident in
-        memory.
-
-        I feel like there's a reason that EnzoGrid isn't subclassed from
-        EnzoData, and I think it's related to this method.  But I can't remember now.
-
-        @param fieldName: field name
-        @type fieldName: string
-
-        """
-        # This is for making derived fields
-        # Note that all fields used for derivation are kept resident in memory: probably a
-        # mistake, but it is expensive to do a lookup.  I will fix this later.
-        #
-        # Note that you can do a couple things: the suffices _Fraction and
-        # _Squared will be dealt with appropriately.  Not sure what else to
-        # add.
-        if fieldName.endswith("Fraction"):
-            # Very simple mass fraction here.  Could be modified easily,
-            # but that would require a dict lookup, which is expensive, or
-            # an elif block, which is inelegant
-            baryonField = "%s_Density" % (fieldName[:-9])
-            self[fieldName] = self[baryonField] / self["Density"]
-        elif fieldName.endswith("Squared"):
-            baryonField = fieldName[:-7]
-            self[fieldName] = (self[baryonField])**2.0
-        elif fieldName.endswith("_vcomp"):
-            baryonField = fieldName[:-8]
-            index = int(fieldName[-7:-6])
-            self[fieldName] = self[baryonField][index,:]
-        elif fieldName.endswith("_tcomp"):
-            baryonField = fieldName[:-9]
-            ii = map(int, fieldName[-8:-6])
-            self[fieldName] = self[baryonField][ii[0],ii[1],:]
-        elif fieldName.endswith("Abs"):
-            baryonField = fieldName[:-4]
-            self[fieldName] = abs(self[baryonField])
-        elif fieldInfo.has_key(fieldName):
-            # We do a fallback to checking the fieldInfo dict
-            # Note that it'll throw an exception here if it's not found...
-            # ...which I'm cool with
-            fieldInfo[fieldName][3](self, fieldName)
-        elif fieldName.startswith("k"):
-            self[fieldName] = abs(self.hierarchy.rates[self["Temperature"],fieldName])
-        else:
-            raise exceptions.KeyError, fieldName
-
-    def getEnzoGrid(self):
+    def get_enzo_grid(self):
         """
         This attempts to get an instance of this particular grid from the SWIG
         interface.  Note that it first checks to see if the ParameterFile has
@@ -327,14 +294,13 @@ class EnzoGridBase:
         os.chdir(cwd)
         mylog.debug("Grid read with SWIG")
 
-    def exportAmira(self, filename, fields, timestep = 1, a5Filename=None, gid=0):
-        if (not iterable(fields)) or (isinstance(fields, types.StringType)):
-            fields = [fields]
-        deltas = na.array([self.dx,self.dy,self.dz],dtype=nT.Float64)
+    def export_amira(self, filename, fields, timestep = 1, a5Filename=None, gid=0):
+        fields = ensure_list(fields)
+        deltas = na.array([self.dx,self.dy,self.dz],dtype='float64')
         tn = "time-%i" % (timestep)
         ln = "level-%i" % (self.Level)
         for field in fields:
-            iorigin = (self.LeftEdge/deltas).astype(nT.Int64)
+            iorigin = (self.LeftEdge/deltas).astype('int64')
             new_h5 = tables.openFile(filename % {'field' : field}, "a")
             f = self[field].transpose().reshape(self.ActiveDimensions)
             new_h5.createArray("/","grid-%i" % (self.id), f)
@@ -343,8 +309,8 @@ class EnzoGridBase:
             node.setAttr("level",self.Level)
             node.setAttr("timestep",timestep)
             node.setAttr("time",self.Time)
-            node.setAttr("cctk_bbox",na.array([0,0,0,0,0,0],dtype=nT.Int32))
-            node.setAttr("cctk_nghostzones",na.array([0,0,0],dtype=nT.Int32))
+            node.setAttr("cctk_bbox",na.array([0,0,0,0,0,0],dtype='int32'))
+            node.setAttr("cctk_nghostzones",na.array([0,0,0],dtype='int32'))
             node.setAttr("delta",deltas)
             node.setAttr("origin",self.LeftEdge)
             node.setAttr("iorigin",iorigin*(2**(self.hierarchy.maxLevel - self.Level)))
@@ -354,16 +320,16 @@ class EnzoGridBase:
                 new_h5.createGroup("/%s/%s" % (tn, ln),"grid-%i" % (gid))
                 node=new_h5.getNode("/%s/%s" % (tn, ln),"grid-%i" % (gid))
                 node._f_setAttr("dims",self.ActiveDimensions)
-                node._f_setAttr("ghostzoneFlags",na.array([0,0,0,0,0,0],dtype=nT.Int32))
-                node._f_setAttr("integerOrigin",(self.LeftEdge/deltas).astype(nT.Int64))
-                node._f_setAttr("numGhostzones",na.array([0,0,0],dtype=nT.Int32))
+                node._f_setAttr("ghostzoneFlags",na.array([0,0,0,0,0,0],dtype='int32'))
+                node._f_setAttr("integerOrigin",(self.LeftEdge/deltas).astype('int64'))
+                node._f_setAttr("numGhostzones",na.array([0,0,0],dtype='int32'))
                 node._f_setAttr("origin",self.LeftEdge)
                 node._f_setAttr("referenceDataPath","/"+"grid-%i" % (self.id))
                 fn = os.path.basename(filename % {'field' : field})
                 node._f_setAttr("referenceFileName", fn)
                 new_h5.close()
 
-    def getProjection(self, axis, field, zeroOut, weight=None, func=na.sum):
+    def _get_projection(self, axis, field, zeroOut, weight=None, func=na.sum):
         """
         Projects along an axis.  Currently in flux.  Shouldn't be called
         directly.
@@ -374,67 +340,74 @@ class EnzoGridBase:
         else:
             maskedData = self[field] * self[weight]
             weightData = self[weight].copy()
-        if len(self.myOverlapMasks) == 0:
+        if len(self.overlap_masks) == 0:
             self.generateOverlapMasks()
         if zeroOut:
-            maskedData[self.myChildIndices]=0
-            weightData[self.myChildIndices]=0
-            toCombineMask = na.logical_and.reduce(self.myChildMask, axis).astype(nT.Int64)
+            maskedData[self.child_indices]=0
+            weightData[self.child_indices]=0
+            toCombineMask = na.logical_and.reduce(self.child_mask, axis).astype('int64')
         # How do we do this the fastest?
         # We only want to project those values that don't have subgrids
-        fullProj = func(maskedData,axis)*self.dx # Gives correct shape
-        weightProj = func(weightData,axis)*self.dx
+        # How much time would we save if we had dx=dy=dz?
+        a = {0:self.dx, 1:self.dy, 2:self.dz}
+        fullProj = func(maskedData,axis)*a[axis] # Gives correct shape
+        weightProj = func(weightData,axis)*a[axis]
         if not zeroOut:
-            toCombineMask = na.ones(fullProj.shape, dtype=nT.Int64)
-        toCombineMask = toCombineMask.astype(nT.Int64)
+            toCombineMask = na.ones(fullProj.shape, dtype='int64')
+        toCombineMask = toCombineMask.astype('int64')
         cmI = na.indices(fullProj.shape)
         xind = cmI[0,:].ravel()
         yind = cmI[1,:].ravel()
-        a = {0:self.dx, 1:self.dy, 2:self.dz}
         dx = a[x_dict[axis]]
         dy = a[y_dict[axis]]
-        xpoints = xind + na.rint(self.LeftEdge[x_dict[axis]]/dx).astype(nT.Int64)
-        ypoints = yind + na.rint(self.LeftEdge[y_dict[axis]]/dy).astype(nT.Int64)
+        xpoints = xind + na.rint(self.LeftEdge[x_dict[axis]]/dx).astype('int64')
+        ypoints = yind + na.rint(self.LeftEdge[y_dict[axis]]/dy).astype('int64')
         return [xpoints, ypoints, fullProj.ravel(), toCombineMask.ravel(), weightProj.ravel()]
 
-    def _set_myChildMask(self, newCM):
-        if self.__myChildMask != None:
-            mylog.warning("Overriding myChildMask attribute!  This is probably unwise!")
-        self.__myChildMask = newCM
+    def _set_child_mask(self, newCM):
+        if self.__child_mask != None:
+            mylog.warning("Overriding child_mask attribute!  This is probably unwise!")
+        self.__child_mask = newCM
 
-    def _set_myChildIndices(self, newCI):
-        if self.__myChildIndices != None:
-            mylog.warning("Overriding myChildIndices attribute!  This is probably unwise!")
-        self.__myChildIndices = newCI
+    def _set_child_indices(self, newCI):
+        if self.__child_indices != None:
+            mylog.warning("Overriding child_indices attribute!  This is probably unwise!")
+        self.__child_indices = newCI
 
-    def _get_myChildMask(self):
-        if self.__myChildMask == None:
-            self._generateChildMask()
-        return self.__myChildMask
+    def _get_child_mask(self):
+        if self.__child_mask == None:
+            self.__generate_child_mask()
+        return self.__child_mask
 
-    def _get_myChildIndices(self):
-        if self.__myChildIndices == None:
-            self._generateChildMask()
-        return self.__myChildIndices
+    def _get_child_indices(self):
+        if self.__child_indices == None:
+            self.__generate_child_mask()
+        return self.__child_indices
 
-    def _del_myChildIndices(self):
-        print "YO mCI!"
-        del self.__myChildIndices
-        self.__myChildIndices = None
+    def _del_child_indices(self):
+        try:
+            del self.__child_indices
+        except AttributeError:
+            pass
+        self.__child_indices = None
 
-    def _del_myChildMask(self):
-        pass
+    def _del_child_mask(self):
+        try:
+            del self.__child_mask
+        except AttributeError:
+            pass
+        self.__child_mask = None
 
     #@time_execution
-    def _generateChildMask(self):
+    def __generate_child_mask(self):
         """
-        Generates self.myChildMask, which is zero where child grids exist (and
+        Generates self.child_mask, which is zero where child grids exist (and
         thus, where higher resolution data is available.)
         """
-        self.__myChildMask = na.ones(self.ActiveDimensions, nT.Int32)
+        self.__child_mask = na.ones(self.ActiveDimensions, 'int32')
         LE = self.hierarchy.gridLeftEdge
         RE = self.hierarchy.gridRightEdge
-        myChildrenGrids = na.where(
+        my_child_grids = na.where(
                       ( self.RightEdge[0] >= LE[:,0] )
                     & ( self.LeftEdge[0] <= RE[:,0]  )
                     & ( self.RightEdge[1] >= LE[:,1] )
@@ -442,24 +415,22 @@ class EnzoGridBase:
                     & ( self.RightEdge[2] >= LE[:,2] )
                     & ( self.LeftEdge[2] <= RE[:,2]  )
                     & (self.hierarchy.gridLevels.ravel() == self.Level + 1) )
-        for child in self.hierarchy.grids[myChildrenGrids]:
-            if child.Level > self.Level + 1:
-                continue
+        for child in self.hierarchy.grids[my_child_grids]:
             # Now let's get our overlap
             si = [None]*3
             ei = [None]*3
             startIndex = ((child.LeftEdge - self.LeftEdge)/self.dx)
             endIndex = ((child.RightEdge - self.LeftEdge)/self.dx)
-            for i in range(3):
+            for i in xrange(3):
                 si[i] = na.rint(startIndex[i])
                 ei[i] = na.rint(endIndex[i])
                 si[i] = si[i]
                 ei[i] = ei[i]
-            self.__myChildMask[si[0]:ei[0], si[1]:ei[1], si[2]:ei[2]] = 0
-        self.__myChildIndices = na.where(self.__myChildMask==0)
+            self.__child_mask[si[0]:ei[0], si[1]:ei[1], si[2]:ei[2]] = 0
+        self.__child_indices = na.where(self.__child_mask==0)
 
     def _get_coords(self):
-        if self.__coords == None: self._generateCoords()
+        if self.__coords == None: self._generate_coords()
         return self.__coords
 
     def _set_coords(self, newC):
@@ -468,46 +439,53 @@ class EnzoGridBase:
         self.__coords = newC
 
     def _del_coords(self):
-        print "YO!"
         del self.__coords
         self.__coords = None
 
-    def generateCoords(self):
-        pass
-
-    def _generateCoords(self):
+    def _generate_coords(self):
         """
         Creates self.coords, which is of dimensions (3,ActiveDimensions)
         """
         #print "Generating coords"
         ind = na.indices(self.ActiveDimensions)
         LE = na.reshape(self.LeftEdge,(3,1,1,1))
-        #print "Adding"
-        self.__coords = (ind+0.5)*self.dx+LE
+        self['x'], self['y'], self['z'] = (ind+0.5)*self.dx+LE
 
-    __coords = None
-    __myChildMask = None
-    __myChildIndices = None
+    __child_mask = None
+    __child_indices = None
 
-    coords = property(_get_coords, _get_coords, _del_coords)
-    myChildMask = property(fget=_get_myChildMask, fdel=_del_myChildMask)
-    myChildIndices = property(fget=_get_myChildIndices, fdel = _del_myChildIndices)
+    child_mask = property(fget=_get_child_mask, fdel=_del_child_mask)
+    child_indices = property(fget=_get_child_indices, fdel = _del_child_indices)
 
-    def clearDerivedQuantities(self):
-        """
-        Clears coordinates, myChildIndices, myChildMask.
-        """
-        # Access the property raw-values here
-        self.myChildMask = None
-        self.myChildIndices = None
-        self.coords = None
-
-    def retrieveGhostZones(self, nZones, fields):
+    def retrieve_ghost_zones(self, n_zones, fields):
         # We will attempt this by creating a datacube that is exactly bigger
         # than the grid by nZones*dx in each direction
-        newLeftEdge = self.LeftEdge - nZones * self.dx*1.001
-        newRightEdge = self.RightEdge + nZones * self.dx*1.001
+        new_left_edge = self.LeftEdge - n_zones * self.dx
+        new_right_edge = self.RightEdge + n_zones * self.dx
         # Something different needs to be done for the root grid, though
-        cube = dataCube(self.hierarchy.outputFile,
-                        newLeftEdge, newRightEdge, fields)
+        cube = self.hierarchy.covering_grid(self.Level,
+                        new_left_edge, new_right_edge,
+                        self.ActiveDimensions + 2*n_zones, fields,
+                        num_ghost_zones=n_zones)
         return cube
+
+    def _save_data_state(self):
+        self.__current_data_keys = self.data.keys()
+        if self.__child_mask != None:
+            self.__current_child_mask == True
+        else:
+            self.__current_child_mask = False
+
+        if self.__child_indices != None:
+            self.__current_child_indices == True
+        else:
+            self.__current_child_indices = False
+
+    def _restore_data_state(self):
+        if not self.__current_child_mask:
+            self._del_child_mask()
+        if not self.__current_child_indices:
+            self._del_child_indices()
+        for key in data.keys():
+            if key not in self.__current_data_keys:
+                del self.data[key]

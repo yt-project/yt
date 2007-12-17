@@ -23,8 +23,8 @@ Useful functions.  If non-original, see function for citation.
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-import time
-import progressbar
+import time, types
+import progressbar as pb
 
 def iterable(obj):
     """
@@ -33,6 +33,13 @@ def iterable(obj):
     try: len(obj)
     except: return False
     return True
+
+def ensure_list(obj):
+    if obj == None:
+        return [obj]
+    if not isinstance(obj, types.ListType):
+        return [obj]
+    return obj
 
 def time_execution(func):
     """
@@ -45,18 +52,32 @@ def time_execution(func):
         t2 = time.time()
         mylog.debug('%s took %0.3f s', func.func_name, (t2-t1))
         return res
-    from yt import ytcfg
-    from yt import lagosLogger as mylog
+    from yt.config import ytcfg
+    from yt.logger import lagosLogger as mylog
     if ytcfg.getboolean("yt","timefunctions") == True:
         return wrapper
     else:
         return func
 
+class DummyProgressBar:
+    def __init__(self, *args, **kwargs):
+        return
+    def update(self, *args, **kwargs):
+        return
+    def finish(sefl, *args, **kwargs):
+        return
+
 def get_pbar(title, maxval):
+    from yt.config import ytcfg
+    from yt.logger import lagosLogger as mylog
+    if ytcfg.getboolean("yt","inGui"):
+        return DummyProgressBar()
+    elif ytcfg.getboolean("yt","suppressStreamLogging"):
+        return DummyProgressBar()
     widgets = [ title,
-                progressbar.Percentage(), ' ',
-                progressbar.Bar(marker=progressbar.RotatingMarker()),
-                ' ', progressbar.ETA(), ' ']
-    pbar = progressbar.ProgressBar(widgets=widgets,
-                       maxval=maxval).start()
+            pb.Percentage(), ' ',
+            pb.Bar(marker=pb.RotatingMarker()),
+            ' ', pb.ETA(), ' ']
+    pbar = pb.ProgressBar(widgets=widgets,
+                          maxval=maxval).start()
     return pbar

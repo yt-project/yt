@@ -18,12 +18,12 @@ all of the engine-appropriate methods.
   it under the terms of the GNU General Public License as published by
   the Free Software Foundation; either version 3 of the License, or
   (at your option) any later version.
-  
+
   This program is distributed in the hope that it will be useful,
   but WITHOUT ANY WARRANTY; without even the implied warranty of
   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
   GNU General Public License for more details.
-  
+
   You should have received a copy of the GNU General Public License
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
@@ -31,32 +31,32 @@ all of the engine-appropriate methods.
 from yt.raven import *
 
 class PlotCollection:
-    def __init__(self, pf, submitToDeliverator=-1):
+    def __init__(self, pf, deliverator_id=-1):
         be.Initialize()
         self.plots = []
-        self.runID = submitToDeliverator
+        self._run_id = deliverator_id
         self.pf = pf
-        v,self.c = pf.h.findMax("Density")
-        if submitToDeliverator > 0:
+        v,self.c = pf.h.findMax("Density") # @todo: ensure no caching
+        if deliverator_id > 0:
             self.submit = True
-            self.RunID = submitToDeliverator
+            self._run_id = deliverator_id
             r=deliveration.SubmitParameterFile(\
-                submitToDeliverator, self.pf)
+                deliverator_id, self.pf)
             mylog.debug("Received response '%s'", r)
-            self.httpPrefix = ytcfg["raven","httpPrefix"] % self.pf
+            self._http_prefix = ytcfg["raven","httpPrefix"] % self.pf
         else:
             self.submit = False
-    def save(self, basename, format="png"):
+    def save(self, basename, format="png", override=False):
         fn = []
         for plot in self.plots:
-            fn.append(plot.saveImage(basename, \
-                      format=format, submit=self.runID))
+            fn.append(plot.save_image(basename, \
+                      format=format, submit=self._run_id,
+                      override=override))
             if self.submit:
                 im = plot.im.copy()
-                #print self.httpPrefix, "/", os.path.basename(fn[-1])
-                im["Filename"] = self.httpPrefix + "/" \
+                im["Filename"] = self._http_prefix + "/" \
                                 + os.path.basename(fn[-1])
-                im["RunID"] = self.RunID
+                im["RunID"] = self._run_id
                 deliveration.SubmitImage(\
                       self.pf.hierarchy, im)
             mylog.info("Saved %s", fn[-1])
@@ -89,15 +89,15 @@ class PlotCollection:
             plot.switch_z(field)
     switch_z = switch_field
     # Now we get around to adding the plots we want
-    def addPlot(self, plot):
+    def _add_plot(self, plot):
         # Accept some instance that's already been created
         # Handy for the subplot stuff that matplotlib is good at
         # And, as long as the 'plot' object is duck-typed, we should be fine
         # with it, right?
         self.plots.append(plot)
         return plot
-    def addSlice(self, field, axis, coord=None, center=None,
-                 useColorbar=True,
+    def add_slice(self, field, axis, coord=None, center=None,
+                 use_colorbar=True,
                  figure = None, axes = None):
         # Make the slice object here
         # Pass it in to the engine to get a SlicePlot, which we then append
@@ -107,51 +107,42 @@ class PlotCollection:
         if coord == None:
             coord = center[axis]
         slice = self.pf.hierarchy.slice(axis, coord, field, center)
-        p = self.addPlot(be.SlicePlot(slice, field, useColorbar=useColorbar,
+        p = self._add_plot(be.SlicePlot(slice, field, use_colorbar=use_colorbar,
                                       axes=axes, figure=figure))
         p["Axis"] = lagos.axis_names[axis]
         return p
-    def addProjection(self, field, axis, weightField=None, 
-                      center=None, useColorbar=True,
+    def add_projection(self, field, axis, weight_field=None,
+                      center=None, use_colorbar=True,
                       figure = None, axes = None):
         # Make the projection object here
         # Pass it in to the engine to get a SlicePlot, which we then append
         # onto self.plots
         if center == None:
             center = self.c
-        proj = self.pf.hierarchy.proj(axis, field, weightField, center=center)
-        p = self.addPlot(be.ProjectionPlot(proj, field,
-                         useColorbar=useColorbar, axes=axes, figure=figure))
+        proj = self.pf.hierarchy.proj(axis, field, weight_field, center=center)
+        p = self._add_plot(be.ProjectionPlot(proj, field,
+                         use_colorbar=use_colorbar, axes=axes, figure=figure))
         p["Axis"] = lagos.axis_names[axis]
         return p
-    def addACProfile(self):
-        # We are given the data already
-        # This is handy for plotting time-series evolution
-        return None
-        return self.addPlot(be.ACProfilePlot())
-    def addProfile(self):
-        # Make the profile here...?
-        return None
-        return self.addPlot(be.ProfilePlot())
-    def addTwoPhaseSphere(self, radius, unit, fields, center=None, cmap=None):
+    def add_twophase_sphere(self, radius, unit, fields, center=None, cmap=None):
         if center == None:
             center = self.c
         fields = fields[:2] + ["CellsPerBin"] + fields[2:]
         r = radius/self.pf[unit]
         sphere = self.pf.hierarchy.sphere(center, r, fields)
-        p = self.addPlot(be.PhasePlot(sphere, fields, width=radius,
+        p = self._add_plot(be.PhasePlot(sphere, fields, width=radius,
                                       unit=unit, cmap=cmap))
         p["Width"] = radius
         p["Unit"] = unit
         p["Axis"] = None
-        return p 
-    def addThreePhaseSphere(self, radius, unit, fields, center=None, cmap=None,
+        return p
+    def add_threephase_sphere(self, radius, unit, fields, center=None, cmap=None,
                             weight="CellMass"):
         if center == None:
             center = self.c
         r = radius/self.pf[unit]
         sphere = self.pf.hierarchy.sphere(center, r, fields)
-        p = self.addPlot(be.PhasePlot(sphere, fields, width=radius,
+        p = self._add_plot(be.PhasePlot(sphere, fields, width=radius,
                                       unit=unit, cmap=cmap, weight=weight))
         p["Width"] = radius
         p["Unit"] = unit

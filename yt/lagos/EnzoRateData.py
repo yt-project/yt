@@ -15,12 +15,12 @@ tables, if fed the appropriate key.
   it under the terms of the GNU General Public License as published by
   the Free Software Foundation; either version 3 of the License, or
   (at your option) any later version.
-  
+
   This program is distributed in the hope that it will be useful,
   but WITHOUT ANY WARRANTY; without even the implied warranty of
   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
   GNU General Public License for more details.
-  
+
   You should have received a copy of the GNU General Public License
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
@@ -70,7 +70,7 @@ class EnzoTable:
                 self.params[p.replace(" ","")[1:]] = float(v)
             else:
                 toArray.append(map(float, line.split()))
-        self.columns = na.array(toArray, nT.Float64)
+        self.columns = na.array(toArray, 'float64')
         mylog.debug("Found %s bins of rate values", self.columns.shape[0])
     def __getitem__(self, item):
         ## This WILL get cleaned up, but it does what I want for now
@@ -103,10 +103,10 @@ class EnzoTable:
             return self.columns[:,self.cols[item]]
         else:
             raise exceptions.TypeError()
-        colsToReturn = na.array(colsToReturn,nT.Int32)
-        valsToReturn = na.zeros((len(x_vals),len(colsToReturn)),nT.Float64)
+        colsToReturn = na.array(colsToReturn,'int32')
+        valsToReturn = na.zeros((len(x_vals),len(colsToReturn)),'float64')
         x_axis = self.columns[:,0]
-        x_vals_arr = na.array(x_vals, nT.Float64)
+        x_vals_arr = na.array(x_vals, 'float64')
         PointCombine.Interpolate(x_axis, self.columns, x_vals_arr, valsToReturn, colsToReturn)
         if toReshape != None:
             if len(colsToReturn == 1):

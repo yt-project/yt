@@ -1,0 +1,212 @@
+CurrentTimeIdentifier = 1188160080
+
+MetaDataString      = new_output
+CompilerPrecision   = r8
+
+InitialCycleNumber  = 0
+InitialTime         = 0.81651319185139
+InitialCPUTime      = 0
+
+StopTime            = 20.097276379555
+StopCycle           = 10000
+StopCPUTime         = 360000
+
+TimeLastRestartDump = 0
+dtRestartDump       = 18000
+TimeLastDataDump    = 0.81651309185139
+dtDataDump          = 0.01
+dtDynamicalFrac     = 0.000000
+TimeLastHistoryDump = 0.81651319185139
+dtHistoryDump       = 0
+
+TimeLastMovieDump     = 0.81651319185139
+dtMovieDump           = 0
+TracerParticleOn           = 0
+TimeLastTracerParticleDump = 0.81651319185139
+dtTracerParticleDump       = 0
+MovieRegionLeftEdge   = 0 0 0 
+MovieRegionRightEdge  = 1 1 1 
+
+NewMovieLeftEdge   = 0 0 0 
+NewMovieRightEdge  = 1 1 1 
+MovieSkipTimestep = -99999
+Movie2DTextures   = 0
+Movie3DVolumes    = 0
+NewMovieParticleOn = 0
+MovieDataField = -99999 -99999 -99999 -99999 -99999 -99999 
+NewMovieDumpNumber = 0
+NewMovieName = MoviePack
+
+CycleLastRestartDump = 0
+CycleSkipRestartDump = 0
+CycleLastDataDump    = 0
+CycleSkipDataDump    = 0
+CycleLastHistoryDump = 0
+CycleSkipHistoryDump = 0
+
+OutputFirstTimeAtLevel = 0
+StopFirstTimeAtLevel = 0
+
+RestartDumpNumber   = 0
+DataDumpNumber      = 1
+HistoryDumpNumber   = 0
+MovieDumpNumber     = 0
+TracerParticleDumpNumber = 0
+RestartDumpName        = restart
+DataDumpName           = moving7_
+HistoryDumpName        = history
+MovieDumpName          = MovieOutput
+TracerParticleDumpName = TracerOutput
+RedshiftDumpName       = RedshiftOutput
+
+StaticHierarchy     = 0
+TopGridRank         = 3
+TopGridDimensions   = 16 16 16 
+
+TopGridGravityBoundary = 0
+ParticleBoundaryType   = 3
+NumberOfParticles      = 0 (do not modify)
+CourantSafetyNumber    = 0.5
+PPMFlatteningParameter = 0
+PPMDiffusionParameter  = 0
+PPMSteepeningParameter = 0
+
+ProblemType            = 27
+HydroMethod            = 2
+RateSolver             = 0
+huge_number            = 1.000000e+20
+tiny_number            = 1.000000e-20
+Gamma                  = 1.6667
+PressureFree           = 0
+RefineBy               = 2
+MaximumRefinementLevel = 9
+MaximumGravityRefinementLevel = 9
+MaximumParticleRefinementLevel = -1
+CellFlaggingMethod     = 2 -99999 -99999 -99999 -99999 
+CellFlaggingSlopeFields     = -99999 -99999 -99999 -99999 -99999 -99999 -99999 -99999 -99999 -99999 
+CellFlaggingMagnitudeFields     = -99999 -99999 -99999 -99999 -99999 -99999 -99999 -99999 -99999 -99999 
+MinimumMagnitudeForRefinement     = -99999 -99999 -99999 -99999 -99999 -99999 -99999 -99999 -99999 -99999 
+FluxCorrection         = 1
+InterpolationMethod    = 3
+ConservativeInterpolation = 0
+MinimumEfficiency      = 0.3
+MaximumSubgridSize     = 10000
+NumberOfBufferZones    = 1
+
+DomainLeftEdge         = 0 0 0 
+DomainRightEdge        = 1 1 1 
+GridVelocity           = 0 0 0 
+RefineRegionLeftEdge   = 0.2 0.2 0.2 
+RefineRegionRightEdge  = 0.9 0.9 0.9 
+RefineRegionTimeType   = 1
+
+DataLabel[0]              = Density
+#DataCGSConversionFactor[0] = 6.2557e-27 g/cm^3
+DataLabel[1]              = TotalEnergy
+DataLabel[2]              = x-velocity
+#DataCGSConversionFactor[2] = 4.06287e+07 cm/s
+DataLabel[3]              = y-velocity
+#DataCGSConversionFactor[3] = 4.06287e+07 cm/s
+DataLabel[4]              = z-velocity
+#DataCGSConversionFactor[4] = 4.06287e+07 cm/s
+#CGSConversionFactorTime       = 1.38147e+16
+#CGSConversionFactorTemp       = 2.068e+07
+
+UniformGravity             = 0
+UniformGravityDirection    = 0
+UniformGravityConstant     = 1
+PointSourceGravity           = 0
+PointSourceGravityPosition   = 0.5 0.5 0.5 
+PointSourceGravityConstant   = 0.02
+PointSourceGravityCoreRadius = 0
+
+SelfGravity                    = 1
+GravitationalConstant          = 1.000000e+00
+S2ParticleSize                 = 3
+GravityResolution              = 1
+ComputePotential               = 0
+PotentialIterations            = 1
+BaryonSelfGravityApproximation = 0
+
+GreensFunctionMaxNumber     = 10
+GreensFunctionMaxSize       = 1
+DualEnergyFormalism         = 0
+DualEnergyFormalismEta1     = 1.000000e-03
+DualEnergyFormalismEta2     = 1.000000e-01
+ParticleCourantSafetyNumber = 0.5
+
+RadiativeCooling               = 1
+MultiSpecies                   = 0
+CIECooling                     = 0
+H2OpticalDepthApproximation    = 0
+MagneticField             = 0
+MagneticDebug             = 0
+MagneticFieldMode         = 3
+MagneticFieldAdd         = 0
+MagneticFieldUnits             = 0
+MagneticSmallNumber             = 0.000001
+TracerMagneticField            = 0
+MagneticFieldMethod            = 0
+MagneticBiermannSave            = 0
+MagneticLagrangeRho            = 0
+MagneticUpwind            = 0
+MagneticLimiter            = 0
+UniformBField    = 0.000000 0.000000 0.000000
+UniformAVector    = 0.000000 0.000000 0.000000
+GradientAVector    = 0 0.000000 0.000000 0.000000
+RadiationFieldType             = 0
+RadiationFieldLevelRecompute   = 0
+RadiationSpectrumNormalization = 1e-21
+RadiationSpectrumSlope         = 1.5
+SterileNeutrinoMass            = 0
+SterileNeutrinoMixingAngle     = 0
+ZEUSLinearArtificialViscosity    = 0
+ZEUSQuadraticArtificialViscosity = 2
+UseMinimumPressureSupport        = 0
+MinimumPressureSupportParameter  = 100.000000
+RefineByJeansLengthSafetyFactor  = 4.000000
+RefineByCoolingTimeSafetyFactor  = 1.000000
+MustRefineParticlesRefineToLevel = 0
+ParticleTypeInFile               = 1
+
+OutputToScratchSpace            = 0
+DataDirectory    = (null)
+ScratchDirectory = (null)
+ScratchDirectoryCleanupScript = procyon1
+
+ParallelRootGridIO              = 0
+MinimumOverDensityForRefinement = 0.2 1.5 1.5 1.5 1.5
+MinimumMassForRefinement = 4.88281257e-05 0.000366210938 0.000366210938 0.000366210938 0.000366210938
+MinimumMassForRefinementLevelExponent = -0.100000 0.000000 0.000000 0.000000 0.000000
+MinimumSlopeForRefinement             = 3.000000e-01
+MinimumPressureJumpForRefinement      = 3.300000e-01
+MinimumEnergyRatioForRefinement       = 4.000000e-01
+ComovingCoordinates                   = 1
+StarParticleCreation                  = 0
+StarParticleFeedback                  = 0
+NumberOfParticleAttributes            = 0
+StarMakerOverDensityThreshold         = 100
+StarMakerMassEfficiency               = 1
+StarMakerMinimumMass                  = 1e+09
+StarMakerMinimumDynamicalTime         = 1e+06
+StarMassEjectionFraction              = 0.25
+StarMetalYield                        = 0.02
+StarEnergyToThermalFeedback           = 1e-05
+StarEnergyToStellarUV                 = 3e-06
+StarEnergyToQuasarUV                  = 5e-06
+
+LeftFaceBoundaryCondition  = 3 3 3 
+RightFaceBoundaryCondition = 3 3 3 
+BoundaryConditionName      = moving7_0000.boundary
+
+CosmologyHubbleConstantNow = 0.5
+CosmologyOmegaMatterNow    = 1
+CosmologyOmegaLambdaNow    = 0
+CosmologyComovingBoxSize   = 1
+CosmologyMaxExpansionRate  = 0.015
+CosmologyInitialRedshift   = 10
+CosmologyFinalRedshift     = 0.3
+CosmologyCurrentRedshift   = 10
+
+VersionNumber              = 1.300000
+

@@ -17,12 +17,12 @@ Very simple nowadays.
   it under the terms of the GNU General Public License as published by
   the Free Software Foundation; either version 3 of the License, or
   (at your option) any later version.
-  
+
   This program is distributed in the hope that it will be useful,
   but WITHOUT ANY WARRANTY; without even the implied warranty of
   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
   GNU General Public License for more details.
-  
+
   You should have received a copy of the GNU General Public License
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
@@ -35,8 +35,8 @@ class OutputCollection:
     def __init__(self, title):
         self.title = title
         self.outputNames = na.array(())
-        self.outputTimeIDs = na.array((), dtype=nT.Int64)
-        self.outputTimes = na.array((), dtype=nT.Float64)
+        self.outputTimeIDs = na.array((), dtype='int64')
+        self.outputTimes = na.array((), dtype='float64')
 
     def readIn(self, filename):
         lines = open(filename).readlines()
@@ -46,8 +46,8 @@ class OutputCollection:
         outputTimes = map(lambda a: float(a.split(":")[3]), outputLines)
 
         self.outputNames = na.array(outputs)
-        self.outputTimeIDs = na.array(outputTimeIDs, nT.Int64)
-        self.outputTimes = na.array(outputTimes, nT.Float64)
+        self.outputTimeIDs = na.array(outputTimeIDs, 'int64')
+        self.outputTimes = na.array(outputTimes, 'float64')
 
     def writeOut(self):
         path=ytcfg.get("fido","rundir")
@@ -68,7 +68,7 @@ class OutputCollection:
         self.outputTimeIDs = self.outputTimeIDs[order]
 
     def addOutput(self, filename):
-        # We're passing in *just* filenames here.  So, we simply snag the 
+        # We're passing in *just* filenames here.  So, we simply snag the
         # two appropriate lines in the parameter file.
         time = getParameterLine(filename, "InitialTime").split()[-1]
         # Implement exception catching
@@ -79,9 +79,9 @@ class OutputCollection:
         self.outputNames = \
             na.array(self.outputNames.tolist() + [filename])
         self.outputTimeIDs = \
-            na.array(self.outputTimeIDs.tolist() + [int(timeID)], dtype=nT.Int64)
+            na.array(self.outputTimeIDs.tolist() + [int(timeID)], dtype='int64')
         self.outputTimes = \
-            na.array(self.outputTimes.tolist() + [float(time)], dtype=nT.Float64)
+            na.array(self.outputTimes.tolist() + [float(time)], dtype='float64')
         self.sortOutputs()
 
     def getBefore(self, time):
@@ -158,7 +158,7 @@ class OutputCollection:
             numDone = 0
             self.promoteType(i)
             self[i].exportAmira(bn, fields, a5, i)
-            rootDelta = na.array([self[i].grids[0].dx, self[i].grids[0].dy, self[i].grids[0].dz], dtype=nT.Float64)
+            rootDelta = na.array([self[i].grids[0].dx, self[i].grids[0].dy, self[i].grids[0].dz], dtype='float64')
             sorted_timesteps.append(i)
             sorted_times.append(self[i]["InitialTime"])
             self.demoteType(i)
@@ -176,8 +176,8 @@ class OutputCollection:
             node._f_setAttr("minTimeStep",0)
             node._f_setAttr("numTimeSteps",len(self))
             node._f_setAttr("rootDelta",rootDelta)
-            a5b.createArray("/","sorted_timesteps", na.array(sorted_timesteps, dtype=nT.Int32))
-            a5b.createArray("/","sorted_times", na.array(sorted_times, dtype=nT.Float64))
+            a5b.createArray("/","sorted_timesteps", na.array(sorted_timesteps, dtype='int32'))
+            a5b.createArray("/","sorted_times", na.array(sorted_times, dtype='float64'))
             a5b.close()
 
     def runFunction(self, function, args = None, kwargs = {}, prop = None):
@@ -211,3 +211,4 @@ def GrabCollections(path=None):
         ocs.append(OutputCollection(title))
         ocs[-1].readIn(file)
     return ocs
+>>>>>>> .merge-right.r325

@@ -46,7 +46,7 @@
 
 static PyObject *_combineError;
 
-static void 
+static void
 RefineCoarseData(long fpoints, npy_int64 *finedata_x, npy_int64 *finedata_y, npy_float64 *finedata_vals, npy_float64 *finedata_wgt,
                  long cpoints, npy_int64 *coarsedata_x, npy_int64 *coarsedata_y, npy_float64 *coarsedata_vals, npy_float64 *coarsedata_wgt,
                  int refinementFactor, int *totalRefined)
@@ -98,11 +98,11 @@ Py_RefineCoarseData(PyObject *obj, PyObject *args)
 	    *coarsedata_x, *coarsedata_y, *coarsedata_vals, *coarsedata_wgt;
     int refinementFactor;
 
-    if (!PyArg_ParseTuple(args, "OOOOOOOOi", 
+    if (!PyArg_ParseTuple(args, "OOOOOOOOi",
         &ofinedata_x, &ofinedata_y, &ofinedata_vals, &ofinedata_wgt,
         &ocoarsedata_x, &ocoarsedata_y, &ocoarsedata_vals, &ocoarsedata_wgt,
         &refinementFactor))
-        return PyErr_Format(_combineError, 
+        return PyErr_Format(_combineError,
                     "CombineData: Invalid parameters.");
 
     /* Align, Byteswap, Contiguous, Typeconvert */
@@ -119,32 +119,32 @@ Py_RefineCoarseData(PyObject *obj, PyObject *args)
 
     if (!finedata_x || !finedata_y || !finedata_vals || !finedata_wgt
      || !coarsedata_x || !coarsedata_y || !coarsedata_vals || !coarsedata_wgt) {
-        /*PyErr_Format( _combineError, 
+        /*PyErr_Format( _combineError,
                   "CombineData: error converting array inputs.");
         */
         if (!coarsedata_x)
-          PyErr_Format( _combineError, 
+          PyErr_Format( _combineError,
               "CombineData: error converting coarsedata_x");
         if (!coarsedata_y)
-          PyErr_Format( _combineError, 
+          PyErr_Format( _combineError,
               "CombineData: error converting coarsedata_y");
         if (!coarsedata_vals)
-          PyErr_Format( _combineError, 
+          PyErr_Format( _combineError,
               "CombineData: error converting coarsedata_vals");
         if (!coarsedata_wgt)
-          PyErr_Format( _combineError, 
+          PyErr_Format( _combineError,
               "CombineData: error converting coarsedata_wgt");
         if (!finedata_x)
-          PyErr_Format( _combineError, 
+          PyErr_Format( _combineError,
               "CombineData: error converting finedata_x");
         if (!finedata_y)
-          PyErr_Format( _combineError, 
+          PyErr_Format( _combineError,
               "CombineData: error converting finedata_y");
         if (!finedata_vals)
-          PyErr_Format( _combineError, 
+          PyErr_Format( _combineError,
               "CombineData: error converting finedata_vals");
         if (!finedata_wgt)
-          PyErr_Format( _combineError, 
+          PyErr_Format( _combineError,
               "CombineData: error converting finedata_wgt");
         goto _fail;
     }
@@ -189,12 +189,12 @@ Py_RefineCoarseData(PyObject *obj, PyObject *args)
 
     int totalRefined;
 
-    RefineCoarseData(finedata_vals->dimensions[0], 
+    RefineCoarseData(finedata_vals->dimensions[0],
                      (npy_int64 *) finedata_x->data,
                      (npy_int64 *) finedata_y->data,
                      (npy_float64 *) finedata_vals->data,
                      (npy_float64 *) finedata_wgt->data,
-                     coarsedata_vals->dimensions[0],   
+                     coarsedata_vals->dimensions[0],
                      (npy_int64 *) coarsedata_x->data,
                      (npy_int64 *) coarsedata_y->data,
                      (npy_float64 *) coarsedata_vals->data,
@@ -224,10 +224,10 @@ Py_RefineCoarseData(PyObject *obj, PyObject *args)
     Py_XDECREF(coarsedata_vals);
     Py_XDECREF(coarsedata_wgt);
 
-    return NULL;      
+    return NULL;
 }
 
-static void 
+static void
 CombineData(long dpoints, npy_int64 *alldata_x, npy_int64 *alldata_y, npy_float64 *alldata_vals, npy_int64 *alldata_mask, npy_float64 *alldata_wgt,
 	    long gpoints, npy_int64 *griddata_x, npy_int64 *griddata_y, npy_float64 *griddata_vals, npy_int64 *griddata_mask, npy_float64 *griddata_wgt,
                  int *lastIndex)
@@ -277,11 +277,11 @@ Py_CombineData(PyObject *obj, PyObject *args)
 	    *griddata_x, *griddata_y, *griddata_vals, *griddata_mask, *griddata_wgt;
     int lastIndex;
 
-    if (!PyArg_ParseTuple(args, "OOOOOOOOOOi", 
+    if (!PyArg_ParseTuple(args, "OOOOOOOOOOi",
         &oalldata_x, &oalldata_y, &oalldata_vals, &oalldata_mask, &oalldata_wgt,
         &ogriddata_x, &ogriddata_y, &ogriddata_vals, &ogriddata_mask, &ogriddata_wgt,
         &lastIndex))
-        return PyErr_Format(_combineError, 
+        return PyErr_Format(_combineError,
                     "CombineData: Invalid parameters.");
 
     /* Align, Byteswap, Contiguous, Typeconvert */
@@ -300,34 +300,34 @@ Py_CombineData(PyObject *obj, PyObject *args)
     if (!alldata_x || !alldata_y || !alldata_vals || !alldata_wgt || !alldata_mask
      || !griddata_x || !griddata_y || !griddata_vals || !griddata_wgt || !griddata_mask) {
         if (!alldata_x)
-          PyErr_Format( _combineError, 
+          PyErr_Format( _combineError,
               "CombineData: error converting alldata_x");
         if (!alldata_y)
-          PyErr_Format( _combineError, 
+          PyErr_Format( _combineError,
               "CombineData: error converting alldata_y");
         if (!alldata_vals)
-          PyErr_Format( _combineError, 
+          PyErr_Format( _combineError,
               "CombineData: error converting alldata_vals");
         if (!alldata_wgt)
-          PyErr_Format( _combineError, 
+          PyErr_Format( _combineError,
               "CombineData: error converting alldata_wgt");
         if (!alldata_mask)
-          PyErr_Format( _combineError, 
+          PyErr_Format( _combineError,
               "CombineData: error converting alldata_mask");
         if (!griddata_x)
-          PyErr_Format( _combineError, 
+          PyErr_Format( _combineError,
               "CombineData: error converting griddata_x");
         if (!griddata_y)
-          PyErr_Format( _combineError, 
+          PyErr_Format( _combineError,
               "CombineData: error converting griddata_y");
         if (!griddata_vals)
-          PyErr_Format( _combineError, 
+          PyErr_Format( _combineError,
               "CombineData: error converting griddata_vals");
         if (!griddata_wgt)
-          PyErr_Format( _combineError, 
+          PyErr_Format( _combineError,
               "CombineData: error converting griddata_wgt");
         if (!griddata_mask)
-          PyErr_Format( _combineError, 
+          PyErr_Format( _combineError,
               "CombineData: error converting griddata_mask");
         goto _fail;
     }
@@ -370,13 +370,13 @@ Py_CombineData(PyObject *obj, PyObject *args)
         goto _fail;
     }*/
 
-    CombineData(alldata_vals->dimensions[0], 
+    CombineData(alldata_vals->dimensions[0],
                 (npy_int64 *) alldata_x->data,
                 (npy_int64 *) alldata_y->data,
                 (npy_float64 *) alldata_vals->data,
                 (npy_int64 *) alldata_mask->data,
-                (npy_float64 *) alldata_wgt->data,		
-                griddata_vals->dimensions[0],   
+                (npy_float64 *) alldata_wgt->data,
+                griddata_vals->dimensions[0],
                 (npy_int64 *) griddata_x->data,
                 (npy_int64 *) griddata_y->data,
                 (npy_float64 *) griddata_vals->data,
@@ -409,11 +409,11 @@ Py_CombineData(PyObject *obj, PyObject *args)
     Py_XDECREF(griddata_vals);
     Py_XDECREF(griddata_wgt);
 
-    return NULL;      
+    return NULL;
 }
 
-static void 
-FindUpper(long ipoints, npy_float64 *input_axis, long vpoints, npy_float64 *wanted_vals, 
+static void
+FindUpper(long ipoints, npy_float64 *input_axis, long vpoints, npy_float64 *wanted_vals,
           npy_int64 *upper_inds)
 {
     npy_int64 i;
@@ -433,18 +433,18 @@ Py_FindUpper(PyObject *obj, PyObject *args)
     PyObject   *oinput_axis, *odesired_vals, *ooutput_ind;
     PyArrayObject   *input_axis, *desired_vals, *output_ind;
 
-    if (!PyArg_ParseTuple(args, "OOO", 
+    if (!PyArg_ParseTuple(args, "OOO",
         &oinput_axis, &odesired_vals, &ooutput_ind))
-        return PyErr_Format(_combineError, 
+        return PyErr_Format(_combineError,
                     "FindUpper: Invalid parameters.");
 
     /* Align, Byteswap, Contiguous, Typeconvert */
     input_axis    =  (PyArrayObject *) PyArray_FromAny(oinput_axis   , PyArray_DescrFromType(NPY_FLOAT64), 1, 0, NPY_ENSURECOPY | NPY_UPDATEIFCOPY, NULL );
     desired_vals  =  (PyArrayObject *) PyArray_FromAny(odesired_vals , PyArray_DescrFromType(NPY_FLOAT64), 1, 0, NPY_ENSURECOPY | NPY_UPDATEIFCOPY, NULL );
     output_ind    =  (PyArrayObject *) PyArray_FromAny(ooutput_ind   ,   PyArray_DescrFromType(NPY_INT64), 1, 0, NPY_ENSURECOPY | NPY_UPDATEIFCOPY, NULL);
-    
+
     if (!input_axis || !desired_vals) {
-        PyErr_Format( _combineError, 
+        PyErr_Format( _combineError,
                   "FindUpper: error converting array inputs.");
         goto _fail;
     }
@@ -456,9 +456,9 @@ Py_FindUpper(PyObject *obj, PyObject *args)
         goto _fail;
     }
 */
-    FindUpper(input_axis->dimensions[0], 
+    FindUpper(input_axis->dimensions[0],
               (npy_float64 *) input_axis->data,
-              desired_vals->dimensions[0],   
+              desired_vals->dimensions[0],
               (npy_float64 *) desired_vals->data,
               (npy_int64 *) output_ind->data);
 
@@ -474,10 +474,10 @@ Py_FindUpper(PyObject *obj, PyObject *args)
     Py_XDECREF(desired_vals);
     Py_XDECREF(output_ind);
 
-    return NULL;      
+    return NULL;
 }
 
-static void 
+static void
 Interpolate(long num_axis_points, npy_float64 *axis, PyArrayObject* table,
             PyArrayObject *desiredvals, long num_columns, npy_int32 *columns,
             PyArrayObject *outputvals)
@@ -488,7 +488,7 @@ Interpolate(long num_axis_points, npy_float64 *axis, PyArrayObject* table,
     npy_int axis_ind, col_ind;
     npy_int32 column;
     npy_int64 desired_num;
-    
+
     npy_float64 desired;
 
     npy_float64 logtem0 = log10(axis[0]);
@@ -522,9 +522,9 @@ Py_Interpolate(PyObject *obj, PyObject *args)
     PyObject   *oaxis, *otable, *odesired, *ooutputvals, *ocolumns;
     PyArrayObject   *axis, *table, *desired, *outputvals, *columns;
 
-    if (!PyArg_ParseTuple(args, "OOOOO", 
+    if (!PyArg_ParseTuple(args, "OOOOO",
         &oaxis, &otable, &odesired, &ooutputvals, &ocolumns))
-        return PyErr_Format(_combineError, 
+        return PyErr_Format(_combineError,
                     "Interpolate: Invalid parameters.");
 
     /* Align, Byteswap, Contiguous, Typeconvert */
@@ -535,7 +535,7 @@ Py_Interpolate(PyObject *obj, PyObject *args)
     columns       =  (PyArrayObject *) PyArray_FromAny(ocolumns      ,   PyArray_DescrFromType(NPY_INT32), 1, 0, NPY_ENSURECOPY | NPY_UPDATEIFCOPY, NULL );
 
     if (!axis || !table || !desired || !outputvals || !columns) {
-        PyErr_Format( _combineError, 
+        PyErr_Format( _combineError,
                   "Interpolate: error converting array inputs.");
         goto _fail;
     }
@@ -547,7 +547,7 @@ Py_Interpolate(PyObject *obj, PyObject *args)
         goto _fail;
     }
 
-    Interpolate(axis->dimensions[0], 
+    Interpolate(axis->dimensions[0],
               (npy_float64 *) axis->data,
               table, desired,
               columns->dimensions[0],
@@ -570,15 +570,15 @@ Py_Interpolate(PyObject *obj, PyObject *args)
     Py_XDECREF(columns);
 
 
-    return NULL;      
+    return NULL;
 }
 
-static void 
+static void
 BinProfile(long num_bins, npy_int64 *binindices, npy_float64 *profilevalues,
            long num_elements, npy_float64 *fieldvalues, npy_float64 *weightvalues)
 {
     // We are going to assume -- making an ass out of you and me -- that the
-    // values of the profile are already zero.  
+    // values of the profile are already zero.
 
     npy_float64 weights[num_bins];
     npy_float64 myweight;
@@ -624,7 +624,7 @@ Py_BinProfile(PyObject *obj, PyObject *args)
 
     if (!PyArg_ParseTuple(args, "OOOO",
                 &ofield, &obinindices, &oprofile, &oweightfield))
-        return PyErr_Format(_combineError, 
+        return PyErr_Format(_combineError,
                     "Interpolate: Invalid parameters.");
 
     /* Align, Byteswap, Contiguous, Typeconvert */
@@ -634,25 +634,25 @@ Py_BinProfile(PyObject *obj, PyObject *args)
     weightfield =  (PyArrayObject *) PyArray_FromAny(oweightfield   , PyArray_DescrFromType(NPY_FLOAT64), 1, 0, NPY_ENSURECOPY | NPY_UPDATEIFCOPY, NULL);
 
     if (!field){
-        PyErr_Format( _combineError, 
+        PyErr_Format( _combineError,
                   "BinProfile: error converting array inputs. (field)");
         goto _fail;
     }
 
     if (!binindices){
-        PyErr_Format( _combineError, 
+        PyErr_Format( _combineError,
                   "BinProfile: error converting array inputs. (binindices)");
         goto _fail;
     }
 
     if (!profile ){
-        PyErr_Format( _combineError, 
+        PyErr_Format( _combineError,
                   "BinProfile: error converting array inputs. (profile)");
         goto _fail;
     }
 
     if (!weightfield) {
-        PyErr_Format( _combineError, 
+        PyErr_Format( _combineError,
                   "BinProfile: error converting array inputs. (weightfield)");
         goto _fail;
     }
@@ -685,7 +685,7 @@ Py_BinProfile(PyObject *obj, PyObject *args)
     Py_XDECREF(profile);
     Py_XDECREF(weightfield);
 
-    return NULL;      
+    return NULL;
 }
 
 static PyMethodDef _combineMethods[] = {

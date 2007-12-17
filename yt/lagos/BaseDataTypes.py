@@ -24,14 +24,15 @@ Various non-grid data containers.
 """
 
 from yt.lagos import *
-from yt.progressbar import *
-from yt.funcs import *
 
 class EnzoData:
     """
     Generic EnzoData container.  By itself, will attempt to
     generate field, read fields (method defined by derived classes)
     """
+    _grids = None
+    _num_ghost_zones = 0
+
     def __init__(self, pf, fields):
         """
         Sets up EnzoData instance
@@ -44,167 +45,81 @@ class EnzoData:
         if pf != None:
             self.pf = pf
             self.hierarchy = pf.hierarchy
-        if not isinstance(fields, types.ListType):
-            fields = [fields]
-        self.fields = fields
+        if fields == None: fields = []
+        self.fields = ensure_list(fields)
         self.data = {}
+        self.field_parameters = {}
+        self.__set_default_field_parameters()
 
-    def clearData(self):
+    def __set_default_field_parameters(self):
+        self.set_field_parameter("center",na.zeros(3,dtype='float64'))
+        self.set_field_parameter("bulk_velocity",na.zeros(3,dtype='float64'))
+
+    def get_field_parameter(self, name, default=None):
+        if self.field_parameters.has_key(name):
+            return self.field_parameters[name]
+        else:
+            return default
+
+    def set_field_parameter(self, name, val):
+        self.field_parameters[name] = val
+
+    def convert(self, datatype):
+        return self.hierarchy[datatype]
+
+    def clear_data(self):
         """
         Clears out all data from the EnzoData instance, freeing memory.
         """
         del self.data
         self.data = {}
-        self.dx = None
-        self.dy = None
-        self.dz = None
-        self.x = None
-        self.y = None
-        self.z = None
 
-    def refreshData(self):
+    def has_key(self, key):
+        return self.data.has_key(key)
+
+    def _refresh_data(self):
         """
         Wipes data and rereads/regenerates it from the self.fields.
         """
-        self.clearData()
-        self.getData()
-
-    def readAllData(self):
-        """
-        Reads all fields defined in self.hierarchy.fieldList except those
-        containing "particle" or "Dark"
-        """
-        for field in self.hierarchy.fieldList:
-            if field.find("particle") > -1 or field.find("Dark") > -1:
-                continue
-            t = self[field]
+        self.clear_data()
+        self.get_data()
 
     def __getitem__(self, key):
         """
         Returns a single field.  Will add if necessary.
         """
-        #print "Getting item %s" % (key)
-        if key.upper() == "X":
-            return self.x
-        elif key.upper() == "Y":
-            return self.y
-        elif key.upper() == "DX" or key.upper() == "X WIDTH":
-            return self.dx
-        elif key.upper() == "DY" or key.upper() == "Y WIDTH":
-            return self.dy
-
-        if self.data.has_key(key):
-            return self.data[key]
-        else:
-            self.addField(key)
-            return self.data[key]
+        if not self.data.has_key(key):
+            if key not in self.fields:
+                self.fields.append(key)
+            self.get_data(key)
+        return self.data[key]
 
     def __setitem__(self, key, val):
         """
         Sets a field to be some other value.
         """
+        if key not in self.fields: self.fields.append(key)
         self.data[key] = val
 
-    def addField(self, field):
+    def __delitem__(self, key):
         """
-        Adds a field to the current fields already in memory.  Will
-        read/generate as necessary.
-
-        @param field: the field to add
-        @type field: string
+        Sets a field to be some other value.
         """
-        if field not in self.fields:
-            self.fields.append(field)
-        if not self.data.has_key(field):
-            self.getData(field)
+        try:
+            del self.fields[self.fields.index(key)]
+        except ValueError:
+            pass
+        del self.data[key]
 
-    def generateField(self, fieldName):
-        """
-        Generates, or attempts to generate,  a field not found in the file
-
-        See DerivedFields.py for more information.  fieldInfo.keys()
-        will list all of the available derived fields.  Note that we
-        also make available the suffices _Fraction and _Squared here.
-        All fields prefixed with 'k' will force an attempt to use the
-        chemistry tables to generate them from temperature.  All
-        fields used in generation will remain resident in memory.
-
-        Also, it now works better with vectors.
-
-        (should be moved to a standalone?  Or should EnzoGrid subclass EnzoData?)
-
-        @param fieldName: field to generate
-        @type fieldName: string
-        """
-        if fieldName.endswith("Fraction"):
-            # Very simple mass fraction here.  Could be modified easily,
-            # but that would require a dict lookup, which is expensive, or
-            # an elif block, which is inelegant
-            baryonField = "%s_Density" % (fieldName[:-9])
-            self[fieldName] = self[baryonField] / self["Density"]
-        elif fieldName.endswith("Squared"):
-            baryonField = fieldName[:-8]
-            self[fieldName] = (self[baryonField])**2.0
-        elif fieldName.endswith("_vcomp"):
-            baryonField = fieldName[:-8]
-            index = int(fieldName[-7:-6])
-            self[fieldName] = self[baryonField][index,:]
-        elif fieldName.endswith("_tcomp"):
-            baryonField = fieldName[:-9]
-            ii = map(int, fieldName[-8:-6])
-            self[fieldName] = self[baryonField][ii[0],ii[1],:]
-        elif fieldName.endswith("Abs"):
-            baryonField = fieldName[:-4]
-            self[fieldName] = abs(self[baryonField])
-        elif fieldInfo.has_key(fieldName):
-            # We do a fallback to checking the fieldInfo dict
-            # Note that it'll throw an exception here if it's not found...
-            # ...which I'm cool with
-            fieldInfo[fieldName][3](self, fieldName)
-        elif fieldName.startswith("k"):
-            self[fieldName] = abs(self.hierarchy.rates[self["Temperature"],fieldName])
-        else:
-            raise exceptions.KeyError, fieldName
-
-    def writeOut(self, filename, fields=None, header=False):
-        """
-        Writes out the generalized data to an ASCII file.  Probably quite slow.
-        Note that we're doing everything in python, which is ... slow to do.
-        Maybe I'll write a C-extension someday.
-
-        @param filename: The filename to output
-        @type filename: string
-        @keyword header: Should we output a tab-separated header
-        @type header: Boolean
-        """
-        # Now we first set up a new array, with all the stuff, to speed
-        # things up.
-        data = []
-        if not fields:
-            fields = self.fields
-        for field in fields:
-            data.append(self[field])
-        tw = na.array(data,nT.Float32)
-        fs = "%0.6e\t" * len(data)
-        #print fs, tw.shape
-        f = open(filename,"w")
-        if header:
-            f.write("x\ty\tz\tdx\t" + "\t".join(fields) + "\n")
-        for i in xrange(self.coords.shape[1]):
-            if i % 1000 == 0:
-                mylog.debug("Writing record %i / %i", i, self.coords.shape[1])
-            f.write("%0.15e\t" * 3 % tuple(self.coords[:,i]))
-            f.write("%0.15e\t" % (self.dx[i]))
-            f.write(fs % tuple(tw[:,i]))
-            f.write("\n")
-        f.close()
-        del data
+    def _generate_field_in_grids(self, fieldName):
+        pass
 
 class Enzo2DData(EnzoData):
     """
     Class to represent a set of EnzoData that's 2-D in nature.  Slices and
     projections, primarily.
     """
+    _spatial = False
     def __init__(self, axis, fields, pf=None):
         """
         Prepares the Enzo2DData.
@@ -219,34 +134,35 @@ class Enzo2DData(EnzoData):
         self.axis = axis
         EnzoData.__init__(self, pf, fields)
 
-    def output(self, fields, filename):
+    def _generate_field(self, field):
         """
-        Doesn't work yet -- allPoints doesn't quite exist.
-        """
-        if not isinstance(fields, types.ListType):
-            fields = [fields]
-        f = open(filename,"w")
-        f.write("x\ty\tdx\tdy")
-        for field in fields:
-            f.write("\t%s" % (field))
-        f.write("\n")
-        for i in xrange(self.x.shape[0]):
-            f.write("%0.20f %0.20f %0.20f %0.20f" % \
-                    (self.x[i], \
-                     self.y[i], \
-                     self.dx[i], \
-                     self.dy[i]))
-            for field in fields:
-                f.write("\t%0.7e" % (self[field][i]))
-            f.write("\n")
-        f.close()
+        Generates, or attempts to generate, a field not found in the data file
 
-    def interpolateDiscretize(self, LE, RE, field, side, logSpacing=True):
+        @param field: field to generate
+        @type field: string
+        """
+        if fieldInfo.has_key(field):
+            # First we check the validator
+            try:
+                fieldInfo[field].check_available(self)
+            except NeedsGridType, ngt_exception:
+                # We leave this to be implementation-specific
+                self._generate_field_in_grids(field, ngt_exception.ghost_zones)
+                return False
+            else:
+                self[field] = fieldInfo[field](self)
+                return True
+        else: # Can't find the field, try as it might
+            raise exceptions.KeyError(field)
+
+
+    def interpolate_discretize(self, LE, RE, field, side, logSpacing=True):
         """
         This returns a uniform grid of points, interpolated using the nearest
         neighbor method.
 
-        @note: Requires NumPy
+        @note: Requires Delaunay triangulation, which is not included in
+        most/all scipy binaries.
         @param LE: Left Edge
         @type LE: array of Floats
         @param RE: Right Edge
@@ -257,26 +173,14 @@ class Enzo2DData(EnzoData):
         @type side: int
         """
         import scipy.sandbox.delaunay as de
-        """
-        points = na.where(na.logical_and( \
-                            na.logical_and( \
-                                self.x <= RE[0], \
-                                self.x >= LE[0]),
-                            na.logical_and( \
-                                self.y <= RE[1], \
-                                self.y >= LE[1])) == 1)
-        """
-        #xx = na.array(self.x[points], dtype=nT.Float64)
-        #yy = na.array(self.y[points], dtype=nT.Float64)
-        #zz = na.array(self[field][points], dtype=nT.Float64)
         if logSpacing:
             zz = na.log10(self[field])
         else:
             zz = self[field]
         xi, yi = na.array( \
                  na.mgrid[LE[0]:RE[0]:side*1j, \
-                          LE[1]:RE[1]:side*1j], nT.Float64)
-        zi = de.Triangulation(self.x,self.y).nn_interpolator(zz)\
+                          LE[1]:RE[1]:side*1j], 'float64')
+        zi = de.Triangulation(self['px'],self['py']).nn_interpolator(zz)\
                  [LE[0]:RE[0]:side*1j, \
                   LE[1]:RE[1]:side*1j]
         if logSpacing:
@@ -284,237 +188,15 @@ class Enzo2DData(EnzoData):
         return [xi,yi,zi]
         #return [xx,yy,zz]
 
-    def discretize(self, LE, RE, field, side, logSpacing=True):
-        pass
-
-class EnzoProjBase(Enzo2DData):
-    """
-    """
-    def __getitem__(self, key):
-        """
-        We override this because we don't want to add new fields for new keys.
-        """
-        if key.upper() == "X":
-            return self.x
-        elif key.upper() == "Y":
-            return self.y
-        elif key.upper() == "DX" or key.upper() == "X WIDTH":
-            return self.dx
-        elif key.upper() == "DY" or key.upper() == "Y WIDTH":
-            return self.dy
-        return self.data[key]
-
-    def __init__(self, axis, field, weightField = None,
-                 maxLevel = None, center = None, pf = None,
-                 type=0):
-        """
-        Returns an instance of EnzoProj.  Note that this object will be fairly static.
-
-        @param hierarchy: the hierarchy we are projecting
-        @type hierarchy: L{EnzoHierarchy<EnzoHierarchy>}
-        @param axis: axis to project along
-        @type axis: integer
-        @param field: the field to project (NOT multiple)
-        @type field: string
-        @keyword weightField: the field to weight by
-        @keyword maxLevel: the maximum level to project through
-        @keyword type: The type of projection: 0 for sum, 1 for MIP
-        """
-        Enzo2DData.__init__(self, axis, field, pf)
-        if maxLevel == None:
-            maxLevel = self.hierarchy.maxLevel
-        self.maxLevel = maxLevel
-        self.weightField = weightField
-        self.coords = None
-        self.center = center
-        if type == 1:
-            self.type="MIP"
-            self.func = na.max
-        else:
-            self.type="SUM"
-            self.func = na.sum
-        if not self.deserialize():
-            self.calculateMemory()
-            self.refreshData()
-            self.serialize()
-
-    def serialize(self):
-        mylog.info("Serializing data...")
-        nodeName = "%s_%s_%s" % (self.fields[0], self.weightField, self.axis)
-        mylog.info("nodeName: %s", nodeName)
-        projArray = na.array([self.x, self.y, self.dx, self.dy, self[self.fields[0]]])
-        self.hierarchy.saveData(projArray, "/Projections", nodeName)
-        mylog.info("Done serializing...")
-
-    def deserialize(self):
-        nodeName = "%s_%s_%s" % (self.fields[0], self.weightField, self.axis)
-        array=self.hierarchy.getData("/Projections", nodeName)
-        if array == None:
-            return None
-        self.x = array[0,:]
-        self.y = array[1,:]
-        self.dx = array[2,:]
-        self.dy = array[3,:]
-        self[self.fields[0]] = array[4,:]
-        return 1
-
-#    @time_execution
-    def calculateMemory(self):
-        """
-        Here we simply calculate how much memory is needed, which speeds up
-        allocation later
-        """
-        memoryPerLevel = {}
-        totalProj = 0
-        h = self.hierarchy
-        i = 0
-        mylog.info("Calculating memory usage")
-        for level in range(self.maxLevel+1):
-            memoryPerLevel[level] = 0
-            mylog.debug("Working on level %s", level)
-            grids = h.levelIndices[level]
-            numGrids = len(grids)
-            RE = h.gridRightEdge[grids].copy()
-            LE = h.gridLeftEdge[grids].copy()
-            for grid in h.grids[grids]:
-                if (i%1e3) == 0:
-                    mylog.debug("Reading and masking %s / %s", i, h.numGrids)
-                # We unroll this so as to avoid instantiating a range() for
-                # every grid
-                grid.generateOverlapMasks(0, LE, RE)
-                grid.myOverlapGrids[0] = h.grids[grids[na.where(grid.myOverlapMasks[0] == 1)]]
-                grid.generateOverlapMasks(1, LE, RE)
-                grid.myOverlapGrids[1] = h.grids[grids[na.where(grid.myOverlapMasks[1] == 1)]]
-                grid.generateOverlapMasks(2, LE, RE)
-                grid.myOverlapGrids[2] = h.grids[grids[na.where(grid.myOverlapMasks[2] == 1)]]
-                myNeeds = grid.ActiveDimensions[(self.axis+1)%3]\
-                         *grid.ActiveDimensions[(self.axis+2)%3]
-                memoryPerLevel[level] += myNeeds
-                totalProj += myNeeds
-                i += 1
-        for level in range(self.maxLevel+1):
-            gI = na.where(h.gridLevels == level)
-            mylog.debug("%s cells and %s grids for level %s", \
-                memoryPerLevel[level], len(gI[0]), level)
-        mylog.debug("We need %s cells total", totalProj)
-        self.memoryPerLevel = memoryPerLevel
-
-#    @time_execution
-    def getData(self):
-        """
-        Unfortunately, projecting is more linear, less-OO than slicing, it
-        seems to me.  We don't want to view this as a projection "operator" or
-        anything like that, so this will be a fairly straightforward port of the old
-        getProjection code.
-        """
-        # Note that we only look at the first field, since we know it is a list
-        field = self.fields[0]
-        i = 0
-        zeroOut = True
-        dataByLevel = {}
-        totalGridsProjected = 0
-        dbl_coarse = {}
-        h = self.hierarchy
-        weightField = self.weightField
-        minLevel = 0 # We're not going to allow projections from selected
-                     # levels right now
-        fullLength = 0
-        axis = self.axis # Speed up the access here by a miniscule amount
-        dataFieldName = field
-        for level in range(minLevel, self.maxLevel+1):
-            gridsToProject = h.grids[h.selectLevel(level)]
-            widgets = [ 'Projecting level % 2i / % 2i ' % (level, self.maxLevel),
-                        Percentage(), ' ',
-                        Bar(marker=RotatingMarker()),
-                        ' ', ETA(), ' ']
-            pbar = ProgressBar(widgets=widgets,
-                                     maxval=len(gridsToProject)).start()
-            zeroOut = (level != self.maxLevel)
-            for pi, grid in enumerate(gridsToProject):
-                grid.retVal = grid.getProjection(axis, field, zeroOut,
-                                                 weight=weightField,
-                                                 func = self.func)
-                totalGridsProjected += 1
-                pbar.update(pi)
-            pbar.finish()
-            i = 0
-            widgets = [ 'Combining level  % 2i / % 2i ' % (level, self.maxLevel),
-                        Percentage(), ' ',
-                        Bar(marker=RotatingMarker()),
-                        ' ', ETA(), ' ']
-            pbar = ProgressBar(widgets=widgets,
-                               maxval=len(gridsToProject)).start()
-            for pi, grid1 in enumerate(gridsToProject):
-                pbar.update(pi)
-                i += 1
-                if grid1.retVal[0].shape[0] == 0: continue
-                for grid2 in grid1.myOverlapGrids[axis]:
-                    if grid2.retVal[0].shape[0] == 0 \
-                      or grid1.id == grid2.id:
-                        continue
-                    PointCombine.CombineData( \
-                            grid1.retVal[0], grid1.retVal[1], \
-                            grid1.retVal[2], grid1.retVal[3], grid1.retVal[4], \
-                            grid2.retVal[0], grid2.retVal[1], \
-                            grid2.retVal[2], grid2.retVal[3], grid2.retVal[4], 0)
-                    goodI = na.where(grid2.retVal[0] > -1)
-                    grid2.retVal = [grid2.retVal[i][goodI] for i in range(5)]
-                numRefined = 0
-                if (level > minLevel) and (level <= self.maxLevel):
-                    for grid2 in grid1.Parent.myOverlapGrids[axis]:
-                        if grid2.coarseData[0].shape[0] == 0: continue # Already refined
-                        numRefined += PointCombine.RefineCoarseData( \
-                            grid1.retVal[0], grid1.retVal[1], \
-                            grid1.retVal[2], grid1.retVal[4], \
-                            grid2.coarseData[0], grid2.coarseData[1], \
-                            grid2.coarseData[2], grid2.coarseData[4], 2)
-            pbar.finish()
-            all_data = [ [grid.retVal[j] for grid in gridsToProject] for j in range(5)]
-            for grid in gridsToProject:
-                cI = na.where(grid.retVal[3]==0)
-                grid.coarseData = [grid.retVal[j][cI] for j in range(5)]
-            levelData = [na.concatenate(all_data[i]) for i in range(5)]
-            mylog.debug("All done combining and refining with a final %s points", levelData[0].shape[0])
-            dx=gridsToProject[0].dx # Assume uniform dx
-            dblI = na.where((levelData[0]>-1) & (levelData[3]==1))
-            if weightField != None:
-                weightedData = levelData[2][dblI] / levelData[4][dblI]
-            else:
-                weightedData = levelData[2][dblI]
-            dataByLevel[level] = [levelData[0][dblI], levelData[1][dblI], \
-                                  weightedData, dx]
-            mylog.debug("Level %s done: %s final of %s", \
-                       level, dataByLevel[level][0].shape[0], \
-                       levelData[0].shape[0])
-            fullLength += dataByLevel[level][0].shape[0]
-            del levelData
-        all_data = na.concatenate([dataByLevel[level][:3] for level in range(minLevel, self.maxLevel+1)],axis=1)
-        # Man, I love list comprehensions.  This is sooooo ugly.
-        all_dx = na.concatenate([na.ones(dataByLevel[level][2].shape,
-                                        dtype=nT.Float64)*dataByLevel[level][3] for level in range(minLevel,
-                                        self.maxLevel+1)])
-        # We now convert to half-widths and center-points
-        self.dx = all_dx / 2.0
-        self.dy = self.dx.copy()
-        self.x = (all_data[0,:]+0.5) * all_dx
-        self.y = (all_data[1,:]+0.5) * all_dx
-        self.data[field] = all_data[2,:]
-        del all_data, all_dx
-        # Now, we should clean up after ourselves...
-        for grid in h.grids[h.selectLevel(level)]:
-            grid.clearAll()
-
-
 class EnzoSliceBase(Enzo2DData):
     """
     A slice at a given coordinate along a given axis through the entire grid
     hierarchy.
     """
-#    @time_execution
-    def __init__(self, axis, coord, fields = None, center=None, fRet=False, pf=None):
-        """
-        Returns an instance of EnzoSlice.
 
+    @time_execution
+    def __init__(self, axis, coord, fields = None, center=None, pf=None):
+        """
         We are not mandating a field be passed in
         The field and coordinate we want to be able to change -- however, the
         axis we do NOT want to change.  So think of EnzoSlice as defining a slice
@@ -529,29 +211,21 @@ class EnzoSliceBase(Enzo2DData):
         @type coord: na.array
         @keyword fields: fields to be processed or generated
         @type fields: list of strings
-        @keyword fRet: Do we want a false return?  As in, do we want all of our
-        data points?
-        @type fRet: bool
         """
         Enzo2DData.__init__(self, axis, fields, pf)
         self.center = center
         self.coord = coord
-        self.coords = None
-        self.fRet = fRet
-        self.refreshData()
+        self._refresh_data()
 
     def reslice(self, coord):
         mylog.debug("Setting coordinate to %0.5e" % coord)
         self.coord = coord
-        self.refreshData()
+        self._refresh_data()
 
     def shift(self, val):
         """
         Moves the slice coordinate up by either a floating point value, or an
-        integer number of indices of the finest grid.  Note that hippodraw
-        doesn't like it if we change the number of values in a column, as of
-        right now, so if the number of points in the slice changes, it will
-        kill HD.
+        integer number of indices of the finest grid.
 
         @param val: shift amount
         @type val: integer (number of cells) or float (distance)
@@ -561,24 +235,40 @@ class EnzoSliceBase(Enzo2DData):
             self.coord += val
         elif isinstance(val, types.IntType):
             # Here we assume that the grid is the max level
-            level = self.hierarchy.maxLevel
+            level = self.hierarchy.max_level
             self.coord
             dx = self.hierarchy.gridDxs[self.hierarchy.levelIndices[level][0]]
             self.coord += dx * val
+        else:
+            raise ValueError(val)
         self.refreshData()
 
-    def generateCoords(self):
-        """
-        Place holder, so that generating fields doesn't die.  Note that
-        coordinates are generated at initialization.
-        """
-        pass
+    def _generate_coords(self):
+        points = []
+        for grid in self._grids:
+            points.append(self._generate_grid_coords(grid))
+        t = na.concatenate(points)
+        self['px'] = t[:,0]
+        self['py'] = t[:,1]
+        self['pz'] = t[:,2]
+        self['pdx'] = t[:,3]
+        self['pdy'] = t[:,3]
+        self['pdz'] = t[:,3]
 
-#    @time_execution
-    def getData(self, field = None):
+        # Now we set the *actual* coordinates
+        self[axis_names[x_dict[self.axis]]] = t[:,0]
+        self[axis_names[y_dict[self.axis]]] = t[:,1]
+        self[axis_names[self.axis]] = t[:,2]
+        self['dx'] = t[:,3]
+        self['dy'] = t[:,3]
+        self['dz'] = t[:,3]
+
+        self.ActiveDimensions = (t.shape[0], 1, 1)
+
+    @time_execution
+    def get_data(self, fields = None):
         """
         Iterates over the list of fields and generates/reads them all.
-        Probably shouldn't be called directly.
 
         @keyword field: field to add (list or single)
         @type field: string or list of strings
@@ -586,49 +276,25 @@ class EnzoSliceBase(Enzo2DData):
         # We get it for the values in fields and coords
         # We take a 3-tuple of the coordinate we want to slice through, as well
         # as the axis we're slicing along
-        g,ind = self.hierarchy.findSliceGrids(self.coord, self.axis)
-        self.grids = g
-        #print g
-        points = []
-        if self.dx == None:
-            for grid in g:
-                #print "Generating coords for grid %s" % (grid.id)
-                points.append(self.generateGridCoords(grid))
-            t = na.concatenate(points)
-            self.x = t[:,0]
-            self.y = t[:,1]
-            self.z = t[:,2]
-            self.dx = t[:,3]
-            self.dy = t[:,3]
-            self.dz = t[:,3]
-            self.coords = na.zeros((3,len(self.x)),nT.Float64)
-            self.coords[x_dict[self.axis],:] = t[:,0]
-            self.coords[y_dict[self.axis],:] = t[:,1]
-            self.coords[self.axis,:] = t[:,2]
-            self.ActiveDimensions = (len(self.x), 1, 1)
-        if isinstance(field, types.StringType):
-            fieldsToGet = [field]
-        elif isinstance(field, types.ListType):
-            fieldsToGet = field
-        elif field == None:
-            fieldsToGet = self.fields
-        for field in fieldsToGet:
+        self._grids, ind = self.hierarchy.find_slice_grids(self.coord, self.axis)
+        if not self.has_key('dx'):
+            self._generate_coords()
+        if fields == None:
+            fields_to_get = self.fields
+        else:
+            fields_to_get = ensure_list(fields)
+        for field in fields_to_get:
             if self.data.has_key(field):
                 continue
             rvs=[]
-            if field in self.hierarchy.fieldList:
-                self[field] = na.concatenate([self.getDataFromGrid(grid, field) for grid in g])
-            else:
-                i = 0
-                self.generateField(field)
+            if field not in self.hierarchy.fieldList:
+                if self._generate_field(field):
+                    continue # A "True" return means we did it
+            self[field] = na.concatenate(
+                [self._get_data_from_grid(grid, field)
+                 for grid in self._grids])
 
-    def generateGridCoords(self, grid):
-        """
-        Returns coordinates (x,y,z,dx) for a single grid.
-
-        @param grid: grid to generate coords for
-        @type grid: L{EnzoGrid<EnzoGrid>}
-        """
+    def _generate_grid_coords(self, grid):
         xaxis = x_dict[self.axis]
         yaxis = y_dict[self.axis]
         wantedIndex = int(((self.coord-grid.LeftEdge[self.axis])/grid.dx))
@@ -636,53 +302,248 @@ class EnzoSliceBase(Enzo2DData):
         sl[self.axis] = slice(wantedIndex, wantedIndex + 1)
         #sl.reverse()
         sl = tuple(sl)
-        nx = grid.myChildMask.shape[xaxis]
-        ny = grid.myChildMask.shape[yaxis]
-        cm = na.where(grid.myChildMask[sl].ravel() == 1)
+        nx = grid.child_mask.shape[xaxis]
+        ny = grid.child_mask.shape[yaxis]
+        cm = na.where(grid.child_mask[sl].ravel() == 1)
         cmI = na.indices((nx,ny))
         xind = cmI[0,:].ravel()
-        xpoints = na.ones(cm[0].shape, nT.Float64)
+        xpoints = na.ones(cm[0].shape, 'float64')
         xpoints *= xind[cm]*grid.dx+(grid.LeftEdge[xaxis] + 0.5*grid.dx)
         yind = cmI[1,:].ravel()
-        ypoints = na.ones(cm[0].shape, nT.Float64)
+        ypoints = na.ones(cm[0].shape, 'float64')
         ypoints *= yind[cm]*grid.dx+(grid.LeftEdge[yaxis] + 0.5*grid.dx)
-        zpoints = na.ones(xpoints.shape, nT.Float64) * self.coord
-        dx = na.ones(xpoints.shape, nT.Float64) * grid.dx/2.0
+        zpoints = na.ones(xpoints.shape, 'float64') * self.coord
+        dx = na.ones(xpoints.shape, 'float64') * grid.dx/2.0
         t = na.array([xpoints, ypoints, zpoints, dx]).swapaxes(0,1)
         return t
 
-    def getDataFromGrid(self, grid, field):
-        """
-        Reads a slice from a single grid
-
-        Could probably be more efficient, possibly by accepting a list of
-        fields.
-
-        @param grid: grid to slice
-        @type grid: L{EnzoGrid<EnzoGrid>}
-        @param field: field to read
-        @type field: string
-        """
+    def _get_data_from_grid(self, grid, field):
         # So what's our index of slicing?  This is what we need to figure out
         # first, so we can deal with our data in the fastest way.
-        #print grid.RightEdge[self.axis], self.coord
         wantedIndex = int(((self.coord-grid.LeftEdge[self.axis])/grid.dx))
         sl = [slice(None), slice(None), slice(None)]
         sl[self.axis] = slice(wantedIndex, wantedIndex + 1)
         slHERE = tuple(sl)
         sl.reverse()
         slHDF = tuple(sl)
-        dv = self.readDataSlice(grid, field, slHDF)
-        cm = na.where(grid.myChildMask[slHERE].ravel() == 1)
-        dv=dv.swapaxes(0,2)
+        if fieldInfo.has_key(field) and fieldInfo[field].variable_length:
+            return grid[field]
+        if not grid.has_key(field):
+            conv_factor = 1.0
+            if fieldInfo.has_key(field):
+                conv_factor = fieldInfo[field]._convert_function(self)
+            dv = self._read_data_slice(grid, field, slHDF) * conv_factor
+        else:
+            dv = grid[field]
+            if dv.size == 1: dv = na.ones(grid.ActiveDimensions)*dv
+            dv = dv[slHERE]
+        cm = na.where(grid.child_mask[slHERE].ravel() == 1)
         dataVals = dv.ravel()[cm]
         return dataVals
+
+    def _generate_field_in_grids(self, field, num_ghost_zones=0):
+        for grid in self._grids:
+            temp = grid[field]
+
+class EnzoCuttingPlaneBase(Enzo2DData):
+    _plane = None
+    def __init__(self, normal, point, fields = None):
+        Enzo2DData.__init__(self, 4, fields, pf)
+        # Let's set up our plane equation
+        # ax + by + cz + d = 0
+        self._norm_vec = normal/na.sqrt(na.dot(normal,normal))
+        self._d = na.dot(self._norm_vec, point)
+
+    def _identify_grids(self):
+        # We want to examine each grid and see if any opposing corner vertices
+        # are on opposite sides of the plane
+        # Check these pairs: [ (LLL,RRR), (LLR,RRL), (LRR,RLL), (LRL,RLR) ]
+        LE = self.pf.h.gridLeftEdge
+        RE = self.pf.h.gridRightEdge
+        vertices = na.array([[[LE[:,0],LE[:,1],LE[:,2]],
+                              [RE[:,0],RE[:,1],RE[:,2]]],
+                             [[LE[:,0],LE[:,1],RE[:,2]],
+                              [RE[:,0],RE[:,1],LE[:,2]]],
+                             [[LE[:,0],RE[:,1],RE[:,2]],
+                              [RE[:,0],LE[:,1],LE[:,2]]],
+                             [[LE[:,0],RE[:,1],LE[:,2]],
+                              [RE[:,0],LE[:,1],RE[:,2]]]])
+        # This gives us shape: 4, 2, 3, n_grid
+        intersect
+        #for i in [0,1,2,3]:
+            # Iterate over each pair
+
+
+class EnzoProjBase(Enzo2DData):
+    def __init__(self, axis, field, weight_field = None,
+                 max_level = None, center = None, pf = None,
+                 type=0):
+        """
+        Returns an instance of EnzoProj.
+
+        @todo: Set up for multiple fields
+        @param hierarchy: the hierarchy we are projecting
+        @type hierarchy: L{EnzoHierarchy<EnzoHierarchy>}
+        @param axis: axis to project along
+        @type axis: integer
+        @param field: the field to project (NOT multiple)
+        @type field: string
+        @keyword weightField: the field to weight by
+        @keyword max_level: the maximum level to project through
+        @keyword type: The type of projection: 0 for sum, 1 for MIP
+        """
+        Enzo2DData.__init__(self, axis, field, pf)
+        if max_level == None:
+            max_level = self.hierarchy.maxLevel
+        self._max_level = max_level
+        self._weight = weight_field
+        self.center = center
+        if type == 1:
+            self.type="MIP"
+            self.func = na.max
+        else:
+            self.type="SUM"
+            self.func = na.sum
+        self.__calculate_memory()
+        self._refresh_data()
+
+    @time_execution
+    def __calculate_memory(self):
+        """
+        Here we simply calculate how much memory is needed, which speeds up
+        allocation later.  Additionally, overlap masks get pre-generated.
+        """
+        level_mem = {}
+        h = self.hierarchy
+        i = 0
+        mylog.info("Calculating memory usage")
+        for level in range(self._max_level+1):
+            level_mem[level] = 0
+            mylog.debug("Examining level %s", level)
+            grids = h.levelIndices[level]
+            num_grids = len(grids)
+            RE = h.gridRightEdge[grids].copy()
+            LE = h.gridLeftEdge[grids].copy()
+            for grid in h.grids[grids]:
+                if (i%1e3) == 0:
+                    mylog.debug("Reading and masking %s / %s", i, h.num_grids)
+                for ax in [0,1,2]:
+                    grid._generate_overlap_masks(ax, LE, RE)
+                    grid._overlap_grids[ax] = \
+                      h.grids[grids[na.where(grid.overlap_masks[ax] == 1)]]
+                level_mem[level] += \
+                          grid.ActiveDimensions.prod() / \
+                          grid.ActiveDimensions[ax]
+                i += 1
+        for level in range(self._max_level+1):
+            gI = h.levelIndices[level]
+            mylog.debug("%s cells and %s grids for level %s", \
+                level_mem[level], len(gI), level)
+        mylog.debug("We need %s cells total",
+                    na.add.reduce(level_mem.values()))
+        self.__memory_per_level = level_mem
+
+    def _serialize(self):
+        mylog.info("Serializing data...")
+        nodeName = "%s_%s_%s" % (self.fields[0], self.weightField, self.axis)
+        mylog.info("nodeName: %s", nodeName)
+        projArray = na.array([self.x, self.y, self.dx, self.dy, self[self.fields[0]]])
+        self.hierarchy.saveData(projArray, "/Projections", nodeName)
+        mylog.info("Done serializing...")
+
+    def _deserialize(self):
+        nodeName = "%s_%s_%s" % (self.fields[0], self.weightField, self.axis)
+        array=self.hierarchy.getData("/Projections", nodeName)
+        if array == None:
+            return
+        self['px'] = array[0,:]
+        self['py'] = array[1,:]
+        self['pdx'] = array[2,:]
+        self['pdy']= array[3,:]
+        self[self.fields[0]] = array[4,:]
+        return True
+
+    def __project_level(self, level, field):
+        grids_to_project = self.hierarchy.select_grids(level)
+        zeroOut = (level != self._max_level)
+        pbar = get_pbar('Projecting level % 2i / % 2i ' \
+                          % (level, self._max_level), len(grids_to_project))
+        for pi, grid in enumerate(grids_to_project):
+            grid.retVal = grid._get_projection(self.axis, field, zeroOut,
+                                               weight=self._weight,
+                                               func = self.func)
+            pbar.update(pi)
+        pbar.finish()
+        self.__combine_grids(level) # In-place
+        all_data = [ [grid.retVal[j] for grid in grids_to_project] for j in range(5)]
+        for grid in grids_to_project:
+            cI = na.where(grid.retVal[3]==0) # Where childmask = 0
+            grid.coarseData = [grid.retVal[j][cI] for j in range(5)]
+        levelData = [na.concatenate(all_data[i]) for i in range(5)]
+        mylog.debug("All done combining and refining with a final %s points",
+                    levelData[0].shape[0])
+        dblI = na.where((levelData[0]>-1) & (levelData[3]==1))
+        if self._weight != None:
+            weightedData = levelData[2][dblI] / levelData[4][dblI]
+        else:
+            weightedData = levelData[2][dblI]
+        mylog.debug("Level %s done: %s final of %s", \
+                   level, len(dblI[0]), \
+                   levelData[0].shape[0])
+        dx = grids_to_project[0].dx * na.ones(len(dblI[0]), dtype='float64')
+        return [levelData[0][dblI], levelData[1][dblI], weightedData, dx]
+
+    def __combine_grids(self, level):
+        grids = self.hierarchy.select_grids(level)
+        pbar = get_pbar('Combining level % 2i / % 2i ' \
+                          % (level, self._max_level), len(grids))
+        # We have an N^2 check, so we try to be as quick as possible
+        # and to skip as many as possible
+        for pi, grid1 in enumerate(grids):
+            pbar.update(pi)
+            if grid1.retVal[0].shape[0] == 0: continue
+            for grid2 in grid1._overlap_grids[self.axis]:
+                if grid2.retVal[0].shape[0] == 0 \
+                  or grid1.id == grid2.id:
+                    continue
+                args = grid1.retVal + grid2.retVal + [0]
+                PointCombine.CombineData(*args)
+                goodI = na.where(grid2.retVal[0] > -1)
+                grid2.retVal = [grid2.retVal[i][goodI] for i in range(5)]
+            numRefined = 0
+            if level <= self._max_level and level > 0:
+                for grid2 in grid1.Parent._overlap_grids[self.axis]:
+                    if grid2.coarseData[0].shape[0] == 0: continue # Already refined
+                    args = grid1.retVal[:3] + [grid1.retVal[4]] + \
+                           grid2.coarseData[:3] + [grid2.coarseData[4]] + [2]
+                    numRefined += PointCombine.RefineCoarseData(*args)
+        pbar.finish()
+
+    @time_execution
+    def get_data(self, field = None):
+        if not field: field = self.fields[0]
+        all_data = []
+        h = self.hierarchy
+        for level in range(0, self._max_level+1):
+            all_data.append(self.__project_level(level, field))
+        all_data = na.concatenate(all_data, axis=1)
+        # We now convert to half-widths and center-points
+        self['pdx'] = all_data[3,:]
+        self['px'] = (all_data[0,:]+0.5) * self['pdx']
+        self['py'] = (all_data[1,:]+0.5) * self['pdx']
+        self['pdx'] *= 0.5
+        self['pdy'] = self['pdx'].copy()
+        self.data[field] = all_data[2,:]
+        # Now, we should clean up after ourselves...
+        [grid.clear_data() for grid in h.grids]
 
 class Enzo3DData(EnzoData):
     """
     Class describing a cluster of data points, not necessarily sharing a
     coordinate.
     """
+    _spatial = False
+    _num_ghost_zones = 0
     def __init__(self, center, fields, pf = None):
         """
         Returns an instance of Enzo3DData, or prepares one.
@@ -694,15 +555,13 @@ class Enzo3DData(EnzoData):
         @param fields: fields to read/generate
         @type fields: list of strings
         """
-        # We are not mandating a field be passed in
-        # The field and coordinate we want to be able to change -- however, the
-        # center we do NOT want to change.
         EnzoData.__init__(self, pf, fields)
         self.center = center
+        self.set_field_parameter("center",center)
         self.coords = None
         self.dx = None
 
-    def output(self, fields, filename):
+    def write_out(self, fields, filename):
         """
         Doesn't work yet -- allPoints doesn't quite exist
         """
@@ -726,15 +585,8 @@ class Enzo3DData(EnzoData):
             f.write("\n")
         f.close()
 
-    def generateCoords(self):
-        """
-        Basically a placeholder for the generated fields.
-        """
-        self.ActiveDimensions = (len(self.x), 1, 1)
-        if self.coords == None:
-            self.coords = na.array([self.x, self.y, self.z])
-
-    def makeProfile(self, fields, nBins, rInner, rOuter, binBy="RadiusCode", logIt = True):
+    def make_profile(self, fields, num_bins, bounds, bin_field="RadiusCode",
+                     take_log = True):
         """
         Here we make a profile.  Note that, for now, we do log-spacing in the
         bins, and we also assume we are given the radii in code units.
@@ -754,24 +606,19 @@ class Enzo3DData(EnzoData):
         @param rInner: inner radius, code units
         @param rOuter: outer radius, code units
         """
-        if not isinstance(fields, types.ListType):
-            fields = [fields]
-        rOuter = min(rOuter, self.findMaxRadius)
+        fields = ensure_list(fields)
+        r_outer = min(bounds[1], self["Radius"].max())
+        r_inner = min(bounds[0], self["Radius"].min())
         # Let's make the bins
         if logIt:
-            bins = na.logspace(log10(rInner), log10(rOuter), nBins)
+            bins = na.logspace(log10(r_inner), log10(r_outer), num_bins)
         else:
-            bins = na.linspace(rInner, rOuter, nBins)
-        radiiOrder = na.argsort(self[binBy])
+            bins = na.logspace(r_inner, r_outer, num_bins)
+        radiiOrder = na.argsort(self[bin_field])
         fieldCopies = {} # We double up our memory usage here for sorting
         radii = self[binBy][radiiOrder]
-        #print radii.max()
-        #print radii.min()
-        #print radii.shape
-        #print "BINS!", bins
         binIndices = na.searchsorted(bins, radii)
         nE = self[binBy].shape[0]
-        #defaultWeight = na.ones(nE, nT.Float32)
         defaultWeight = self["CellMass"][radiiOrder]
         fieldProfiles = {}
         if "CellMass" not in fields:
@@ -779,23 +626,23 @@ class Enzo3DData(EnzoData):
         for field in fields:
             code = WeaveStrings.ProfileBinningWeighted
             fc = self[field][radiiOrder]
-            fp = na.zeros(nBins,nT.Float64)
+            fp = na.zeros(nBins,'float64')
             if field_weights.has_key(field):
                 if field_weights[field] == -999:
                     ss = "Accumulation weighting"
                     code = WeaveStrings.ProfileBinningAccumulation
-                    weight = na.ones(nE, nT.Float64)
+                    weight = na.ones(nE, 'float64')
                 elif field_weights[field] != None:
                     ww = field_weights[field]
                     ss="Weighting with %s" % (ww)
                     weight = self[ww][radiiOrder]
                 elif field_weights[field] == None:
                     ss="Not weighted"
-                    weight = na.ones(nE, nT.Float64)
+                    weight = na.ones(nE, 'float64')
                 else:
                     mylog.warning("UNDEFINED weighting for %s; defaulting to unweighted", field)
                     ss="Undefined weighting"
-                    weight = na.ones(nE, nT.Float64)
+                    weight = na.ones(nE, 'float64')
             else:
                 ss="Weighting with default"
                 weight = defaultWeight
@@ -812,170 +659,180 @@ class Enzo3DData(EnzoData):
             weave.inline(code, ld.keys(), local_dict=ld, compiler='gcc',
                          type_converters=converters.blitz, auto_downcast = 0, verbose=2)
             fieldProfiles[field] = fp
-        #return bins
-        #print rOuter, rInner, st, nBins, bins, bins[:nBins]
         fieldProfiles[binBy] = bins[:nBins]
         co = AnalyzeClusterOutput(fieldProfiles)
         return co
 
-    def getData(self, field=None):
-        ind = self.getListOfGrids()
-        g = self.hierarchy.grids[ind]
-        self.grids = g
+    def _generate_coords(self):
+        mylog.info("Generating coords for %s grids", len(self._grids))
         points = []
-        if self.dx == None:
-            for grid in g:
-                c = None
-                if hasattr(grid,"center"): c = grid.center
-                grid.center = self.center
-                points.append(self.generateGridCoords(grid))
-                if c != None: grid.center = c
-            t = na.concatenate(points)
-            self.x = t[:,0]
-            self.y = t[:,1]
-            self.z = t[:,2]
-            self.radii = t[:,3]
-            self.dx = t[:,4]
-            self.dy = t[:,4]
-            self.dz = t[:,4]
-        if isinstance(field, types.StringType):
-            fieldsToGet = [field]
-        elif isinstance(field, types.ListType):
-            fieldsToGet = field
-        elif field == None:
-            fieldsToGet = self.fields
-        for field in fieldsToGet:
-            if self.data.has_key(field):
-                continue
-            mylog.info("Getting field %s from %s", field, len(g))
-            sf = na.zeros(self.x.shape[0],nT.Float64)
-            i = 0
-            if field in self.hierarchy.fieldList:
-                for grid in g:
-                    ta = self.getDataFromGrid(grid, field)
-                    sf[i:i+ta.shape[0]] = ta
-                    i += ta.shape[0]
-                self[field] = sf
-            else:
-                self.generateField(field)
+        for i,grid in enumerate(self._grids):
+            #grid._generate_coords()
+            if ( (i%100) == 0):
+                mylog.info("Working on % 7i / % 7i", i, len(self._grids))
+            grid.set_field_parameter("center", self.center)
+            points.append((na.ones(
+                grid.ActiveDimensions,dtype='float64')*grid['dx'])\
+                    [self._get_point_indices(grid)])
+            t = na.concatenate([t,points])
+            del points
+        self['dx'] = t
+        #self['dy'] = t
+        #self['dz'] = t
+        mylog.info("Done with coordinates")
 
-    def generateGridCoords(self, grid):
-        pointI = self.getPointIndices(grid)
-        dx = na.ones(pointI[0].shape[0], nT.Float64) * grid.dx
-        tr = na.array([grid.coords[0,:][pointI].ravel(), \
-                grid.coords[1,:][pointI].ravel(), \
-                grid.coords[2,:][pointI].ravel(), \
+    def _generate_grid_coords(self, grid):
+        pointI = self._get_point_indices(grid)
+        dx = na.ones(pointI[0].shape[0], 'float64') * grid.dx
+        tr = na.array([grid['x'][pointI].ravel(), \
+                grid['y'][pointI].ravel(), \
+                grid['z'][pointI].ravel(), \
                 grid["RadiusCode"][pointI].ravel(),
-                dx], nT.Float64).swapaxes(0,1)
+                dx, grid["GridIndices"][pointI].ravel()], 'float64').swapaxes(0,1)
         return tr
 
-    def getDataFromGrid(self, grid, field):
-        pointI = self.getPointIndices(grid)
-        return grid[field][pointI].ravel()
+    def get_data(self, fields=None):
+        self._get_list_of_grids()
+        points = []
+        #if not self.has_key('dx'):
+            #self._generate_coords()
+        if not fields:
+            fields_to_get = self.fields
+        else:
+            fields_to_get = ensure_list(fields)
+        mylog.info("Going to obtain %s (%s)", fields_to_get, self.fields)
+        for field in fields_to_get:
+            if self.data.has_key(field):
+                continue
+            mylog.info("Getting field %s from %s", field, len(self._grids))
+            if field not in self.hierarchy.fieldList:
+                if self._generate_field(field):
+                    continue # True means we already assigned it
+            self[field] = na.concatenate(
+                [self._get_data_from_grid(grid, field)
+                 for grid in self._grids])
+
+    def _get_data_from_grid(self, grid, field):
+        if not fieldInfo[field].variable_length:
+            pointI = self._get_point_indices(grid)
+            if grid[field].size == 1: # dx, dy, dz, cellvolume
+                t = grid[field] * na.ones(grid.ActiveDimensions)
+                return t[pointI].ravel()
+            return grid[field][pointI].ravel()
+        else:
+            return grid[field]
+
+    def _generate_field(self, field):
+        if fieldInfo.has_key(field):
+            # First we check the validator
+            try:
+                fieldInfo[field].check_available(self)
+            except NeedsGridType, ngt_exception:
+                # We leave this to be implementation-specific
+                self._generate_field_in_grids(field, ngt_exception.ghost_zones)
+                return False
+            else:
+                self[field] = fieldInfo[field](self)
+                return True
+        else: # Can't find the field, try as it might
+            raise exceptions.KeyError(field)
+
+    def _generate_field_in_grids(self, field, num_ghost_zones=0):
+        for grid in self._grids:
+            temp = grid[field]
+
+    def _get_point_indices(self, grid):
+        k = na.zeros(grid.ActiveDimensions, dtype='bool')
+        k[self._get_cut_mask(grid)] = True
+        pointI = na.where(k & grid.child_mask)
+        return pointI
+
+    def extract_region(self, indices):
+        return ExtractedRegionBase(self, indices)
+
+class ExtractedRegionBase(Enzo3DData):
+    def __init__(self, base_region, indices):
+        cen = base_region.get_field_parameter("center")
+        Enzo3DData.__init__(self, center=cen,
+                            fields=None, pf=base_region.pf)
+        self._base_region = base_region
+        self._base_indices = indices
+        self._refresh_data()
+
+    def _get_list_of_grids(self):
+        # Okay, so what we're going to want to do is get the pointI from
+        # region._get_point_indices(grid) for grid in base_region._grids,
+        # and then construct an array of those, which we will select along indices.
+        grid_vals, xi, yi, zi = [], [], [], []
+        for grid in self._base_region._grids:
+            xit,yit,zit = self._base_region._get_point_indices(grid)
+            grid_vals.append(na.ones(xit.shape) * grid.id-1)
+            xi.append(xit)
+            yi.append(yit)
+            zi.append(zit)
+        grid_vals = na.concatenate(grid_vals)
+        xi = na.concatenate(xi)
+        yi = na.concatenate(yi)
+        zi = na.concatenate(zi)
+        # We now have an identical set of indices that the base_region would
+        # use to cut out the grids.  So what we want to do is take only
+        # the points we want from these.
+        self._indices = {}
+        for grid in self._base_region._grids:
+            ind_ind = na.where(grid_vals[self._base_indices] == grid.id-1)
+            self._indices[grid.id-1] = na.array([xi[self._base_indices][ind_ind],
+                                                 yi[self._base_indices][ind_ind],
+                                                 zi[self._base_indices][ind_ind]])
+        self._grids = self._base_region.pf.h.grids[self._indices.keys()]
+
+    def _get_cut_mask(self, grid):
+        x,y,z = self._indices[grid.id-1]
+        return (x,y,z)
 
 class EnzoRegionBase(Enzo3DData):
-    def __init__(self, center, leftEdge, rightEdge, fields = None, pf = None):
+    def __init__(self, center, left_edge, right_edge, fields = None, pf = None):
         """
         Initializer for a rectangular prism of data.
 
         @note: Center does not have to be (rightEdge - leftEdge) / 2.0
         """
         Enzo3DData.__init__(self, center, fields, pf)
-        self.fields = ["Radius"] + self.fields
-        self.leftEdge = leftEdge
-        self.rightEdge = rightEdge
-        self.radii = None # Still have radii
-        self.refreshData()
+        self.left_edge = left_edge
+        self.right_edge = right_edge
+        self._refresh_data()
 
-    def findMaxRadius(self):
-        # I don't think this does anything useful.
-        RE = na.array(self.rightEdge)
-        LE = na.array(self.leftEdge)
-        return (RE-LE).min()
+    def _get_list_of_grids(self):
+        self._grids, ind = self.pf.hierarchy.get_box_grids(self.left_edge,
+                                                           self.right_edge)
 
-    def getListOfGrids(self, field = None):
-        ind = na.where(na.sum(na.transpose(
-                        na.logical_or(
-                            na.greater(self.hierarchy.gridLeftEdge, self.rightEdge),
-                                       na.less(self.hierarchy.gridRightEdge,
-                                               self.leftEdge)))) == 0)
-        return ind
-
-    def getCutMask(self, grid):
+    def _get_cut_mask(self, grid):
+        if na.all( (grid._corners <= self.right_edge)
+                 & (grid._corners >= self.left_edge)):
+            return na.ones(grid.ActiveDimensions, dtype='bool')
         pointI = \
-               ( (grid.coords[0,:] <= self.rightEdge[0])
-               & (grid.coords[0,:] >= self.leftEdge[0])
-               & (grid.coords[1,:] <= self.rightEdge[1])
-               & (grid.coords[1,:] >= self.leftEdge[1])
-               & (grid.coords[2,:] <= self.rightEdge[2])
-               & (grid.coords[2,:] >= self.leftEdge[2]) )
+               ( (grid['x'] <= self.right_edge[0])
+               & (grid['x'] >= self.left_edge[0])
+               & (grid['y'] <= self.right_edge[1])
+               & (grid['y'] >= self.left_edge[1])
+               & (grid['z'] <= self.right_edge[2])
+               & (grid['z'] >= self.left_edge[2]) )
         return pointI
 
-    def getPointIndices(self, grid):
-        pointI = na.where( self.getCutMask(grid) & grid.myChildMask )
-        return pointI
-
-
-class EnzoDataCubeBase(Enzo3DData):
-    def __init__(self, level, center, dim, fields = None, pf = None):
-        """
-        This returns a cube of equal-resolution data, with
-        dimensions dim x dim x dim .
-
-        Note that we typically generate one, then write it out.  We do not
-        expect to be modifying them once created -- so I am not really
-        implementing the normal set of niceties.
-
-        @param hierarchy: the EnzoHierarchy to associate with
-        @type hierarchy: L{EnzoHierarchy}
-        @param level: the level we are going to set our data to be at
-        @param center: the center point
-        @type center: sequence of floats
-        @param dim: the number of cells on a side
-        @type dim: int
-        @param fields: fields to snagify
-        @type fields: list of strings
-        """
-
+class EnzoGridCollection(Enzo3DData):
+    def __init__(self, center, grid_list, fields = None, connection_pool = True,
+                 pf = None):
         Enzo3DData.__init__(self, center, fields, pf)
-        self.fields = ["Radius"] + self.fields
-        dx = hierarchy.gridDxs[hierarchy.levelIndices[level][0]]
-        self.leftEdge  = center - dx*(dim/2.0)
-        self.rightEdge = center + dx*(dim/2.0)
-        self.level = level
-        self.dx = dx
-        self.refreshData()
+        self._grids = grid_list
+        self.fields = fields
+        self.connection_pool = True
+        for grid in grid_list:
+            grid._file_access_pooling = True
 
-    def getData(self, field = None):
-        ind = na.where( \
-            na.sum(na.transpose( \
-                na.logical_or( \
-                    na.greater(self.hierarchy.gridLeftEdge, self.rightEdge), \
-                    na.less(self.hierarchy.gridRightEdge, self.leftEdge) \
-                ) \
-            )) == 0)
-        g = self.hierarchy.grids[ind]
-        # I think it's faster if we snag all the points, then cut at the end.
-        # This may not be true for the root grid.  But I don't care.  Again,
-        # this is not supposed to be a super-fast process, or one that's done
-        # interactively.  (Very often, at least.)
-        vals = {}
-        for field in self.fields + ['x','y','z']:
-            vals[field] = []
-        for grid in g:
-            if grid.Level > self.level:
-                continue
-            tr = grid.atResolution(self.level, self.fields)
-            for field in self.fields + ['x', 'y', 'z']:
-                vals[field].append(tr[field])
-        for field in self.fields + ['x','y','z']:
-            vals[field] = na.concatenate(vals[field])
-        self.data = vals
+    def _get_list_of_grids(self):
+        pass
 
-    def writeOut(self, filename, header=False):
-        self.coords = na.array([self['x'], self['y'], self['z']])
-        self.dx = na.ones(len(self['x']), dtype=self['x'].dtype)*self.dx
-        EnzoData.writeOut(self, filename, header)
+    def _get_cut_mask(self, grid):
+        return na.ones(grid.ActiveDimensions, dtype='bool')
 
 class EnzoSphereBase(Enzo3DData):
     """
@@ -993,18 +850,102 @@ class EnzoSphereBase(Enzo3DData):
         @type fields: list of strings
         """
         Enzo3DData.__init__(self, center, fields, pf)
-        self.fields = ["Radius"] + self.fields
         self.radius = radius
-        self.radii = None
-        self.refreshData()
+        self._refresh_data()
 
-    def findMaxRadius(self):
-        return self.radius
+    def _get_list_of_grids(self, field = None):
+        self._grids,ind = self.hierarchy.find_sphere_grids(self.center, self.radius)
 
-    def getListOfGrids(self, field = None):
-        g,ind = self.hierarchy.findSphereGrids(self.center, self.radius)
-        return ind
-
-    def getPointIndices(self, grid):
-        pointI = na.where(na.logical_and((grid["RadiusCode"]<=self.radius),grid.myChildMask==1)==1)
+    def _get_cut_mask(self, grid):
+        # We have the *property* center, which is not necessarily
+        # the same as the field_parameter
+        corner_radius = na.sqrt(((grid._corners - self.center)**2.0).sum(axis=1))
+        if na.all(corner_radius <= self.radius):
+            return na.ones(grid.ActiveDimensions, dtype='bool')
+        if na.all(corner_radius > self.radius):
+            return na.zeros(grid.ActiveDimensions, dtype='bool')
+        pointI = ((grid["RadiusCode"]<=self.radius) &
+                  (grid.child_mask==1))
         return pointI
+
+class EnzoCoveringGrid(Enzo3DData):
+    _spatial = True
+
+    def __init__(self, level, left_edge, right_edge, dims, fields = None,
+                 pf = None, num_ghost_zones = 0):
+        Enzo3DData.__init__(self, center=None, fields=fields, pf=pf)
+        self.left_edge = na.array(left_edge)
+        self.right_edge = na.array(right_edge)
+        self.level = level
+        self.ActiveDimensions = na.array(dims)
+        self.dx, self.dy, self.dz = (self.right_edge-self.left_edge) \
+                                  / self.ActiveDimensions
+        self.data["dx"] = self.dx
+        self.data["dy"] = self.dy
+        self.data["dz"] = self.dz
+        self._num_ghost_zones = num_ghost_zones
+        self._refresh_data()
+
+    def _get_list_of_grids(self):
+        grids, ind = self.pf.hierarchy.get_box_grids(self.left_edge, self.right_edge)
+        level_ind = na.where(self.pf.hierarchy.gridLevels.ravel()[ind] <= self.level)
+        sort_ind = na.flipud(na.argsort(self.pf.h.gridLevels.ravel()[ind][level_ind]))
+        self._grids = self.pf.hierarchy.grids[ind][level_ind][(sort_ind,)]
+
+    def __setup_weave_dict(self, grid):
+        return {
+            'nxc': int(grid.ActiveDimensions[0]),
+            'nyc': int(grid.ActiveDimensions[1]),
+            'nzc': int(grid.ActiveDimensions[2]),
+            'leftEdgeCoarse': na.array(grid.LeftEdge),
+            'rf': int(grid.dx / self.dx),
+            'dx_c': float(grid.dx),
+            'dy_c': float(grid.dy),
+            'dz_c': float(grid.dz),
+            'dx_f': float(self.dx),
+            'dy_f': float(self.dy),
+            'dz_f': float(self.dz),
+            'cubeLeftEdge': na.array(self.left_edge),
+            'cubeRightEdge': na.array(self.right_edge),
+            'nxf': int(self.ActiveDimensions[0]),
+            'nyf': int(self.ActiveDimensions[1]),
+            'nzf': int(self.ActiveDimensions[2]),
+            'childMask' : grid.child_mask
+        }
+
+    def _refresh_data(self):
+        Enzo3DData._refresh_data(self)
+        self['dx'] = self.dx * na.ones(self.ActiveDimensions, dtype='float64')
+        self['dy'] = self.dy * na.ones(self.ActiveDimensions, dtype='float64')
+        self['dz'] = self.dz * na.ones(self.ActiveDimensions, dtype='float64')
+
+    def get_data(self, field=None):
+        self._get_list_of_grids()
+        # We don't generate coordinates here.
+        if field == None:
+            fields_to_get = self.fields
+        else:
+            fields_to_get = ensure_list(field)
+        for field in fields_to_get:
+            if self.data.has_key(field):
+                continue
+            mylog.info("Getting field %s from %s possible grids",
+                       field, len(self._grids))
+            self[field] = na.zeros(self.ActiveDimensions, dtype='float64') - 999
+            for grid in self._grids:
+                self._get_data_from_grid(grid, field)
+                if not na.any(self[field] == -999): break
+            if na.any(self[field] == -999) and len(self._grids) > 1:
+                raise KeyError
+
+    def _get_data_from_grid(self, grid, fields):
+        for field in ensure_list(fields):
+            locals_dict = self.__setup_weave_dict(grid)
+            locals_dict['fieldData'] = grid[field]
+            locals_dict['cubeData'] = self[field]
+            locals_dict['lastLevel'] = int(grid.Level == self.level)
+            weave.inline(DataCubeRefineCoarseData,
+                         locals_dict.keys(), local_dict=locals_dict,
+                         compiler='gcc',
+                         type_converters=converters.blitz,
+                         auto_downcast=0, verbose=2)

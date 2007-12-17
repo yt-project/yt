@@ -89,10 +89,6 @@ G{packagetree}
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-# For the experimental, mostly non-functional lazy importer.
-#import importer
-#importer.install()
-
-from yt.logger import *
-from yt.config import *
-from yt.funcs import *
+#from yt.logger import *
+#from yt.config import *
+#from yt.funcs import *

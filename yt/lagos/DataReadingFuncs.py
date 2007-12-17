@@ -13,16 +13,17 @@ The data-file handling functions
   it under the terms of the GNU General Public License as published by
   the Free Software Foundation; either version 3 of the License, or
   (at your option) any later version.
-  
+
   This program is distributed in the hope that it will be useful,
   but WITHOUT ANY WARRANTY; without even the implied warranty of
   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
   GNU General Public License for more details.
-  
+
   You should have received a copy of the GNU General Public License
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 from yt.lagos import *
+import exceptions
 
 def getFieldsHDF4(self):
     """
@@ -37,28 +38,22 @@ def getFieldsHDF5(self):
     Should *only* be called as EnzoGridInstance.getFields, never as getFields(object)
     """
     fls = []
-    f = tables.openFile(self.filename)
-    for fl in f.listNodes("/"):
+    file = tables.openFile(self.filename)
+    for fl in file.listNodes("/"):
         fls.append(fl.name)
-    f.close()
+    file.close()
     return fls
 
 def readDataHDF4(self, field):
     """
     Returns after having obtained or generated a field.  Should throw an
     exception.  Should only be called as EnzoGridInstance.readData()
-    
+
     @param field: field to read
     @type field: string
     """
-    if self.data.has_key(field):
-        return 1
-    try:
-        t = SD.SD(self.filename).select(field).get()
-        self[field] = t.swapaxes(0,2)
-    except:
-        self.generateField(field)
-    return 2
+    t = SD.SD(self.filename).select(field).get()
+    return t.swapaxes(0,2)
 
 def readAllDataHDF4(self):
     """
@@ -72,22 +67,16 @@ def readAllDataHDF4(self):
 def readDataHDF5(self, field):
     """
     Reads a field from an HDF5 file.  Should only be called as
-    EnzoGridInstance.realData()
+    EnzoGridInstance.readData()
 
     @param field: field to read
     @type field: string
     """
-    if self.has_key(field):
-        return 1
     f = tables.openFile(self.filename)
-    try:
-        t = f.getNode("/", field).read().astype("float64")
-        self[field] = t.swapaxes(0,2)
-    except:
-        self.generateField(field)
-    #self[field] = ones(self.data[field].shape)
+    t = f.getNode("/", field).read().astype("float64")
+    t = t.swapaxes(0,2)
     f.close()
-    return 2
+    return t
 
 def readAllDataHDF5(self):
     """
@@ -113,7 +102,7 @@ def readDataSliceHDF5(self, grid, field, sl):
     @type sl: SliceType
     """
     f = tables.openFile(grid.filename)
-    ss = f.getNode("/", field)[sl]
+    ss = f.getNode("/", field)[sl].swapaxes(0,2)
     f.close()
     return ss
 
@@ -128,20 +117,14 @@ def readDataSliceHDF4(self, grid, field, sl):
     @param sl: region to get
     @type sl: SliceType
     """
-    return SD.SD(grid.filename).select(field)[sl]
+    return SD.SD(grid.filename).select(field)[sl].swapaxes(0,2)
 
 def readDataPacked(self, field):
-    if self.has_key(field):
-        return 1
-    f = tables.openFile(self.filename)
-    try:
-        t = f.getNode("/Grid%08i" % (self.id), field).read()
-        self[field] = t.swapaxes(0,2)
-    except:
-        self.generateField(field)
-    #self[field] = ones(self.data[field].shape)
+    f = tables.openFile(self.filename, rootUEP="/Grid%08i" % (self.id))
+    t = f.getNode("/", field).read()
+    t = t.swapaxes(0,2)
     f.close()
-    return 2
+    return t
 
 def readDataSlicePacked(self, grid, field, sl):
     """
@@ -172,3 +155,8 @@ def getFieldsPacked(self):
     del f
     return fls
 
+def getExceptionHDF4():
+    return SD.HDF4Error
+
+def getExceptionHDF5():
+    return exceptions.KeyError
