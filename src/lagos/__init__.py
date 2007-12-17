@@ -56,8 +56,8 @@ except ImportError:
 
 try:
     import EnzoFortranRoutines
-except ImportError:
-    pass
+except ImportError, err:
+    mylog.debug("EnzoFortranRoutines did not import: %s", err)
 
 # Now we import all the subfiles
 

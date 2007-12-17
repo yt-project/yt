@@ -12,7 +12,7 @@ import yt.lagos
 # The dataset used is located at:
 # http://yt.spacepope.org/DD0018.zip
 fn = "DD0018/moving7_0018"
-fn = os.path.join(os.path.dirname(__file__),fn)
+fn = os.path.join(os.path.dirname(__file__), fn)
 
 class TestLagos(unittest.TestCase):
     def setUp(self):

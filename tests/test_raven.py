@@ -32,7 +32,7 @@ class TestRaven(unittest.TestCase):
 
     def testSlice(self):
         self.pc.addSlice("Density",0)
-        self.pc.plots[-1].switch_z("Temperature")
+        self.pc.plots[-1].switch_z("CellMass")
         self.pc.set_width(0.5,'1')
         self.pc.set_zlim(1,1000)
         self.pc.set_cmap("hot")

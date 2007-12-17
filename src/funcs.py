@@ -24,6 +24,7 @@ Useful functions.  If non-original, see function for citation.
 """
 
 import time
+import progressbar
 
 def iterable(obj):
     """
@@ -50,3 +51,12 @@ def time_execution(func):
         return wrapper
     else:
         return func
+
+def get_pbar(title, maxval):
+    widgets = [ title,
+                progressbar.Percentage(), ' ',
+                progressbar.Bar(marker=progressbar.RotatingMarker()),
+                ' ', progressbar.ETA(), ' ']
+    pbar = progressbar.ProgressBar(widgets=widgets,
+                       maxval=maxval).start()
+    return pbar

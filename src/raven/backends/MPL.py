@@ -194,7 +194,7 @@ class RavenPlot:
         self.axes.set_zlim(zmin, zmax)
 
     def set_cmap(self, cmap):
-        if isinstance(cmap, types.StringType):
+        if isinstance(cmap, types.StringTypes):
             if hasattr(matplotlib.cm, cmap):
                 cmap = getattr(matplotlib.cm, cmap)
         self.cmap = cmap
@@ -313,7 +313,7 @@ class VMPlot(RavenPlot):
     def set_width(self, width, unit):
         self["Unit"] = str(unit)
         self["Width"] = float(width)
-        if isinstance(unit, types.StringType):
+        if isinstance(unit, types.StringTypes):
             unit = self.data.hierarchy[unit]
         self.width = width / unit
         self.refreshDisplayWidth()
@@ -418,7 +418,7 @@ class PhasePlot(RavenPlot):
 
     def setup_bins(self, field, func = None):
         logIt = False
-        v = self.data[field]
+        v = self[field]
         if field in lagos.log_fields or lagos.fieldInfo[field][2]:
             logIt = True
             bins = na.logspace(na.log10(v.min()*0.99),

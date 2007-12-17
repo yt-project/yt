@@ -166,7 +166,7 @@ class EnzoData:
         else:
             raise exceptions.KeyError, fieldName
 
-    def writeOut(self, filename, header=False):
+    def writeOut(self, filename, fields=None, header=False):
         """
         Writes out the generalized data to an ASCII file.  Probably quite slow.
         Note that we're doing everything in python, which is ... slow to do.
@@ -180,14 +180,16 @@ class EnzoData:
         # Now we first set up a new array, with all the stuff, to speed
         # things up.
         data = []
-        for field in self.fields:
+        if not fields:
+            fields = self.fields
+        for field in fields:
             data.append(self[field])
         tw = na.array(data,nT.Float32)
         fs = "%0.6e\t" * len(data)
         #print fs, tw.shape
         f = open(filename,"w")
         if header:
-            f.write("x\ty\tz\tdx\t" + "\t".join(self.fields) + "\n")
+            f.write("x\ty\tz\tdx\t" + "\t".join(fields) + "\n")
         for i in xrange(self.coords.shape[1]):
             if i % 1000 == 0:
                 mylog.debug("Writing record %i / %i", i, self.coords.shape[1])

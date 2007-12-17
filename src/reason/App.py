@@ -415,7 +415,7 @@ class ReasonMainWindow(wx.Frame):
         k = self.dataList.GetSelections()
         for tid in k:
             ii = self.dataList.GetItemData(tid).GetData()[0]
-            if isinstance(ii, types.StringType):
+            if isinstance(ii, types.StringTypes):
                 ii = lagos.EnzoStaticOutput(ii) # Instantiate here
                 self.outputs.append(ii)
                 fn, z, t, mids = self.dataList.GetItemData(tid).GetData()
