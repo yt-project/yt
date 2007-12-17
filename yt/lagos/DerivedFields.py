@@ -160,6 +160,21 @@ class ValidateSpatial(FieldValidator):
 # Note that, despite my newfound efforts to comply with PEP-8,
 # I violate it here in order to keep the name/func_name relationship
 
+def _dx(field, data):
+    return data.dx
+    return na.ones(data.ActiveDimensions, dtype='float64') * data.dx
+add_field('dx', validators=[ValidateSpatial(0)])
+
+def _dy(field, data):
+    return data.dy
+    return na.ones(data.ActiveDimensions, dtype='float64') * data.dy
+add_field('dy', validators=[ValidateSpatial(0)])
+
+def _dz(field, data):
+    return data.dz
+    return na.ones(data.ActiveDimensions, dtype='float64') * data.dz
+add_field('dz', validators=[ValidateSpatial(0)])
+
 def _coordX(field, data):
     dim = data.ActiveDimensions[0]
     return (na.ones(data.ActiveDimensions, dtype='float64')
@@ -199,11 +214,13 @@ for species in _speciesList:
 
 def _GridLevel(field, data):
     return na.ones(data["Density"].shape)*(data.Level)
-add_field("GridLevel", validators=[ValidateProperty('Level')])
+add_field("GridLevel", validators=[ValidateProperty('Level'),
+                                   ValidateSpatial(0)])
 
 def _GridIndices(field, data):
     return na.ones(data["Density"].shape)*(data.id-1)
-add_field("GridIndices", validators=[ValidateProperty('id')])
+add_field("GridIndices", validators=[ValidateProperty('id'),
+                                     ValidateSpatial(0)])
 
 def _Ones(field, data):
     return na.ones(data["Density"].shape,

@@ -326,13 +326,17 @@ class EnzoSliceBase(Enzo2DData):
         slHERE = tuple(sl)
         sl.reverse()
         slHDF = tuple(sl)
+        if fieldInfo.has_key(field) and fieldInfo[field].variable_length:
+            return grid[field]
         if not grid.has_key(field):
             conv_factor = 1.0
             if fieldInfo.has_key(field):
                 conv_factor = fieldInfo[field]._convert_function(self)
             dv = self._read_data_slice(grid, field, slHDF) * conv_factor
         else:
-            dv = grid[field][slHERE]
+            dv = grid[field]
+            if dv.size == 1: dv = na.ones(grid.ActiveDimensions)*dv
+            dv = dv[slHERE]
         cm = na.where(grid.child_mask[slHERE].ravel() == 1)
         dataVals = dv.ravel()[cm]
         return dataVals
@@ -531,7 +535,7 @@ class EnzoProjBase(Enzo2DData):
         self['pdy'] = self['pdx'].copy()
         self.data[field] = all_data[2,:]
         # Now, we should clean up after ourselves...
-        [grid.clear_all for grid in h.grids]
+        [grid.clear_data() for grid in h.grids]
 
 class Enzo3DData(EnzoData):
     """
@@ -667,15 +671,14 @@ class Enzo3DData(EnzoData):
             if ( (i%100) == 0):
                 mylog.info("Working on % 7i / % 7i", i, len(self._grids))
             grid.set_field_parameter("center", self.center)
-            #points.append(self._generate_grid_coords(grid))
             points.append((na.ones(
                 grid.ActiveDimensions,dtype='float64')*grid['dx'])\
                     [self._get_point_indices(grid)])
-
-        t = na.concatenate(points)
+            t = na.concatenate([t,points])
+            del points
         self['dx'] = t
-        self['dy'] = t
-        self['dz'] = t
+        #self['dy'] = t
+        #self['dz'] = t
         mylog.info("Done with coordinates")
 
     def _generate_grid_coords(self, grid):
@@ -691,8 +694,8 @@ class Enzo3DData(EnzoData):
     def get_data(self, fields=None):
         self._get_list_of_grids()
         points = []
-        if not self.has_key('dx'):
-            self._generate_coords()
+        #if not self.has_key('dx'):
+            #self._generate_coords()
         if not fields:
             fields_to_get = self.fields
         else:
@@ -712,6 +715,9 @@ class Enzo3DData(EnzoData):
     def _get_data_from_grid(self, grid, field):
         if not fieldInfo[field].variable_length:
             pointI = self._get_point_indices(grid)
+            if grid[field].size == 1: # dx, dy, dz, cellvolume
+                t = grid[field] * na.ones(grid.ActiveDimensions)
+                return t[pointI].ravel()
             return grid[field][pointI].ravel()
         else:
             return grid[field]
@@ -791,7 +797,6 @@ class EnzoRegionBase(Enzo3DData):
         @note: Center does not have to be (rightEdge - leftEdge) / 2.0
         """
         Enzo3DData.__init__(self, center, fields, pf)
-        self.fields = self.fields
         self.left_edge = left_edge
         self.right_edge = right_edge
         self._refresh_data()
@@ -812,6 +817,22 @@ class EnzoRegionBase(Enzo3DData):
                & (grid['z'] <= self.right_edge[2])
                & (grid['z'] >= self.left_edge[2]) )
         return pointI
+
+class EnzoGridCollection(Enzo3DData):
+    def __init__(self, center, grid_list, fields = None, connection_pool = True,
+                 pf = None):
+        Enzo3DData.__init__(self, center, fields, pf)
+        self._grids = grid_list
+        self.fields = fields
+        self.connection_pool = True
+        for grid in grid_list:
+            grid._file_access_pooling = True
+
+    def _get_list_of_grids(self):
+        pass
+
+    def _get_cut_mask(self, grid):
+        return na.ones(grid.ActiveDimensions, dtype='bool')
 
 class EnzoSphereBase(Enzo3DData):
     """
@@ -852,9 +873,6 @@ class EnzoCoveringGrid(Enzo3DData):
 
     def __init__(self, level, left_edge, right_edge, dims, fields = None,
                  pf = None, num_ghost_zones = 0):
-        """
-        """
-
         Enzo3DData.__init__(self, center=None, fields=fields, pf=pf)
         self.left_edge = na.array(left_edge)
         self.right_edge = na.array(right_edge)

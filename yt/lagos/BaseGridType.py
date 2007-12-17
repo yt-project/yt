@@ -53,6 +53,7 @@ class EnzoGridBase(EnzoData):
         if filename: self.set_filename(filename)
         self.overlap_masks = [None, None, None]
         self._overlap_grids = [None, None, None]
+        self._file_access_pooling = False
 
     def __len__(self):
         return na.prod(self.ActiveDimensions)
@@ -204,8 +205,12 @@ class EnzoGridBase(EnzoData):
 
 
     def clear_data(self):
-        self._del_child_mask
-        self._del_child_indices
+        self._del_child_mask()
+        self._del_child_indices()
+        if hasattr(self, 'coarseData'):
+            del self.coarseData
+        if hasattr(self, 'retVal'):
+            del self.retVal
         EnzoData.clear_data(self)
         self.__setup_dx()
 
@@ -380,11 +385,17 @@ class EnzoGridBase(EnzoData):
         return self.__child_indices
 
     def _del_child_indices(self):
-        del self.__child_indices
+        try:
+            del self.__child_indices
+        except AttributeError:
+            pass
         self.__child_indices = None
 
     def _del_child_mask(self):
-        del self.__child_mask
+        try:
+            del self.__child_mask
+        except AttributeError:
+            pass
         self.__child_mask = None
 
     #@time_execution
@@ -457,3 +468,24 @@ class EnzoGridBase(EnzoData):
                         self.ActiveDimensions + 2*n_zones, fields,
                         num_ghost_zones=n_zones)
         return cube
+
+    def _save_data_state(self):
+        self.__current_data_keys = self.data.keys()
+        if self.__child_mask != None:
+            self.__current_child_mask == True
+        else:
+            self.__current_child_mask = False
+
+        if self.__child_indices != None:
+            self.__current_child_indices == True
+        else:
+            self.__current_child_indices = False
+
+    def _restore_data_state(self):
+        if not self.__current_child_mask:
+            self._del_child_mask()
+        if not self.__current_child_indices:
+            self._del_child_indices()
+        for key in data.keys():
+            if key not in self.__current_data_keys:
+                del self.data[key]

@@ -100,6 +100,9 @@ def _returnFieldFunction(field):
     def field_function(self):
         try:
             self.data[field.name]
+            if not field.variable_length and self.data[field.name].size > 1:
+                self.assertEqual(na.product(self.data["Density"].shape),
+                                 na.product(self.data[field.name].shape))
             del self.data[field.name]
         except yt.lagos.ValidationException:
             pass
@@ -109,6 +112,8 @@ class DataTypeTestingBase:
     def setUp(self):
         LagosTestingBase.setUp(self)
 for field in yt.lagos.fieldInfo.values():
+    #if field.name.find("particle") > -1:
+        #continue
     func = _returnFieldFunction(field)
     setattr(DataTypeTestingBase, "test%s" % field.name, func)
 

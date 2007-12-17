@@ -77,6 +77,7 @@ class EnzoHierarchy:
         else:
             EnzoFloatType = 'float64'
 
+        mylog.debug("Allocating memory for %s grids", self.num_grids)
         self.__setup_classes()
         self.gridDimensions = na.zeros((self.num_grids,3), 'int32')
         self.gridStartIndices = na.zeros((self.num_grids,3), 'int32')
@@ -87,6 +88,7 @@ class EnzoHierarchy:
         self.gridDxs = na.zeros((self.num_grids,1), EnzoFloatType)
         self.gridTimes = na.zeros((self.num_grids,1), 'float64')
         self.gridNumberOfParticles = na.zeros((self.num_grids,1))
+        mylog.debug("Done allocating")
 
         self.grids = na.array([self.grid(i+1) for i in xrange(self.num_grids)])
         self.gridReverseTree = [-1] * self.num_grids
@@ -136,6 +138,11 @@ class EnzoHierarchy:
                 mylog.debug("Detected unpacked HDF5")
                 self.data_style = 5
             a.close()
+
+    def __setup_filemap(self, grid):
+        if not self.data_style == 6:
+            return
+        self.cpu_map[grid.filename].append(grid)
 
     def __setup_classes(self):
         """
@@ -227,6 +234,9 @@ class EnzoHierarchy:
         Instantiates all of the grid objects, with their appropriate
         parameters.  This is the work-horse.
         """
+        if self.data_style == 6:
+            self.cpu_map = defaultdict(lambda: [][:])
+            self.file_access = {}
         harray = self.get_data("/", "Hierarchy")
         if harray:
             self.gridDimensions[:] = harray[:,0:3]
@@ -247,6 +257,8 @@ class EnzoHierarchy:
             t = re.findall(re_BaryonFileName, self.__hierarchy_string)
             for fnI in xrange(len(t)):
                 self.grids[fnI].set_filename(t[fnI])
+            for g in self.grids:
+                self.__setup_filemap(g)
         else:
             def __split_convert(vals, func, toAdd, curGrid):
                 """
@@ -256,11 +268,13 @@ class EnzoHierarchy:
                 for v in vals.split():
                     toAdd[curGrid-1,j] = func(v)
                     j+=1
-            for line in self.__hierarchy_lines:
+            for line_index, line in enumerate(self.__hierarchy_lines):
                 # We can do this the slow, 'reliable' way by stripping
                 # or we can manually pad all our strings, which speeds it up by a
                 # factor of about ten
                 #param, vals = map(strip,line.split("="))
+                if (line_index % 1e5) == 0:
+                    mylog.debug("Parsing line % 9i / % 9i", line_index, len(self.__hierarchy_lines))
                 if len(line) < 2:
                     continue
                 param, vals = line.split("=")
@@ -347,6 +361,7 @@ class EnzoHierarchy:
         # I think this way is clearer.
         mylog.debug("Preparing grids")
         for i, grid in enumerate(self.grids):
+            if (i%1e4) == 0: mylog.debug("Prepared % 7i / % 7i grids", i, self.num_grids)
             tlevel = self.gridLevels[i]
             grid._prepare_grid()
             self.level_stats['numgrids'][tlevel] += 1
