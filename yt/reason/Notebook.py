@@ -361,7 +361,7 @@ class VMPlotPage(PlotPage):
     def SetupControls(self):
 
         self.widthSlider = wx.Slider(self, -1, wx.SL_HORIZONTAL | wx.SL_AUTOTICKS)
-        self.vals = na.logspace(log10(25*self.outputfile.hierarchy.getSmallestDx()),0,201)
+        self.vals = na.logspace(log10(25*self.outputfile.hierarchy.get_smallest_dx()),0,201)
         self.widthSlider.SetRange(0, 200)
         self.widthSlider.SetTickFreq(1,1)
         self.widthSlider.SetValue(200)
@@ -441,19 +441,17 @@ class VMPlotPage(PlotPage):
         #print "CONVERT", xp, yp
         #if not self.figure.axes[0].in_axes(xp,yp): return None, None
         #xp, yp = self.figure.axes[0].transData.inverse_xy_tup((xp,yp))
-        #print xp, yp
         dx = (self.plot.xlim[1] - self.plot.xlim[0])/self.plot.pix[0]
         dy = (self.plot.ylim[1] - self.plot.ylim[0])/self.plot.pix[1]
         l, b, width, height = self.figure.axes[0].bbox.get_bounds()
-        x = (dx * (xp-l)) + self.plot.xlim[0]
-        y = (dy * (yp-b)) + self.plot.ylim[0]
-        #print x, y
+        x = (dx * (xp+l)) + self.plot.xlim[0]
+        y = self.plot.ylim[1] - (dy * (yp-b))
         return x, y
 
     def ChangeCenter(self, x, y):
         newCenter = self.center[:]
-        newCenter[yt.lagos.x_dict[self.axis]] = x
-        newCenter[yt.lagos.y_dict[self.axis]] = y
+        newCenter[lagos.x_dict[self.axis]] = x
+        newCenter[lagos.y_dict[self.axis]] = y
         Publisher().sendMessage(('viewchange','center'), tuple(newCenter))
         self.UpdateWidth()
 
@@ -461,6 +459,8 @@ class VMPlotPage(PlotPage):
         xp, yp = event.X, event.Y
         if event.AltDown():
             x,y = self.ConvertPositionToDataPosition(xp, yp)
+            print x, y
+            mylog.warning("HEY!!! %s %s",x,y)
             self.ChangeCenter(x, y)
         elif event.ShiftDown():
             if self.AmDrawingCircle:
@@ -605,8 +605,10 @@ class SlicePlotPage(VMPlotPage):
 class ProjPlotPage(VMPlotPage):
     def makePlot(self):
         self.data = self.outputfile.hierarchy.proj(self.axis,
-                                   self.field, weightField=None, center=self.center)
-        self.plot = be.ProjectionPlot(self.data, self.field, figure=self.figure, axes=self.axes)
+                                   self.field, weight_field=None,
+                                   center=self.center)
+        self.plot = be.ProjectionPlot(self.data, self.field, figure=self.figure,
+                                      axes=self.axes)
 
     def ChangeCenterFromMessage(self, message):
         x, y, z = message.data
@@ -802,7 +804,7 @@ class PhasePlotPage(PlotPage):
 
     def UpdateCanvas(self, *args):
         if self.IsShown():
-            self.plot.redraw_image()
+            self.plot._redraw_image()
             self.figure_canvas.draw()
         #else: print "Opting not to update canvas"
 

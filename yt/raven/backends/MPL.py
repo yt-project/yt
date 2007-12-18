@@ -210,7 +210,7 @@ class VMPlot(RavenPlot):
         self.ymax = 1.0
         self.cmap = None
         self.__setup_from_field(field)
-        self.__init_temp_image(self, use_colorbar)
+        self.__init_temp_image(use_colorbar)
 
     def __setup_from_field(self, field):
         if field in lagos.log_fields or lagos.fieldInfo[field].take_log:

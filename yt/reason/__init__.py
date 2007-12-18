@@ -24,11 +24,14 @@ Initializer for reason.
 """
 
 
+from yt.config import ytcfg
+from yt.logger import lagosLogger as mylog
+
 import yt.lagos as lagos
 import yt.raven as raven
 import yt.enki as enki
 import yt.fido as fido
-import yt
+
 from yt.arraytypes import *
 
 from math import log10, sqrt

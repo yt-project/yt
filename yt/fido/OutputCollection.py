@@ -211,4 +211,3 @@ def GrabCollections(path=None):
         ocs.append(OutputCollection(title))
         ocs[-1].readIn(file)
     return ocs
->>>>>>> .merge-right.r325
