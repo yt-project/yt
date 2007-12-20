@@ -349,10 +349,13 @@ def _CellVolume(field, data):
         return data['dx']*data['dy']*data['dx']*\
             na.ones(data.ActiveDimensions, dtype='float64')
     return data["dx"]*data["dy"]*data["dz"]
-def _ConvertCellVolume(data):
+def _ConvertCellVolumeCGS(data):
     return data.convert("cm")**3.0
+add_field("CellVolumeCode", units=r"$\rm{BoxVolume}^3$",
+          function=_CellVolume)
 add_field("CellVolume", units=r"$\rm{cm}^3$",
-          convert_function=_ConvertCellVolume)
+          function=_CellVolume,
+          convert_function=_ConvertCellVolumeCGS)
 
 def __gauss_kern(size):
     """ Returns a normalized 2D gauss kernel array for convolutions """

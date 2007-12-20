@@ -100,6 +100,7 @@ for n in range(first,last+1,opts.skip): # This is the array of galaxy outputs we
     else:
         mylog.info("Center fed in; not seeking.")
         center = opts.center
+        a.h.center = na.array(center)
     mylog.info("Setting center to %0.3f %0.3f %0.3f", 
                 center[0], center[1], center[2])
     if opts.axis == 4:

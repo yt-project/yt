@@ -81,8 +81,9 @@ class BinnedProfile:
 
 # @todo: Fix accumulation with overriding
 class BinnedProfile1D(BinnedProfile):
-    def __init__(self, data_source, n_bins, lower_bound, upper_bound,
-                 bin_field="Radius", log_space = True, lazy_reader=False):
+    def __init__(self, data_source, n_bins, bin_field,
+                 lower_bound, upper_bound,
+                 log_space = True, lazy_reader=False):
         BinnedProfile.__init__(self, data_source, lazy_reader)
         self.bin_field = bin_field
         if log_space:
@@ -99,7 +100,8 @@ class BinnedProfile1D(BinnedProfile):
         return na.zeros(self[self.bin_field].size, dtype='float64')
 
     def _bin_field(self, source, field, weight, accumulation,
-                   inv_bin_indices, check_cut=False):
+                   args, check_cut=False):
+        inv_bin_indices = args
         if check_cut:
             cm = self._data_source._get_point_indices(source)
             source_data = source[field][cm]
@@ -118,7 +120,7 @@ class BinnedProfile1D(BinnedProfile):
             binned_field[bin] = temp_field.sum()
         if accumulation: # Fix for laziness
             binned_field = na.add.accumulate(binned_field)
-        return binned_field, weight_field
+        return binned_field, weight_field, True
 
     def _get_bins(self, source, check_cut=False):
         if check_cut:
@@ -220,10 +222,12 @@ class BinnedProfile2D(BinnedProfile):
         if source_data_x.size == 0:
             return
 
-        bin_indices_x = na.digitize(source_data_x.ravel(),
-                                    self[self.x_bin_field])
-        bin_indices_y = na.digitize(source_data_y.ravel(),
-                                    self[self.y_bin_field])
+        sd_x = na.clip(source_data_x.ravel(), self[self.x_bin_field].min()/0.99,
+                                              self[self.x_bin_field].max()/1.01)
+        sd_y = na.clip(source_data_y.ravel(), self[self.y_bin_field].min()/0.99,
+                                              self[self.y_bin_field].max()/1.01)
+        bin_indices_x = na.digitize(sd_x, self[self.x_bin_field])
+        bin_indices_y = na.digitize(sd_y, self[self.y_bin_field])
         # Now we set up our inverse bin indices
         return (bin_indices_x, bin_indices_y)
 
