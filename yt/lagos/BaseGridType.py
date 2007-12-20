@@ -340,15 +340,10 @@ class EnzoGridBase(EnzoData):
         else:
             maskedData = self[field] * self[weight]
             weightData = self[weight].copy()
-        if len(self.overlap_masks) == 0:
-            self.generateOverlapMasks()
         if zeroOut:
             maskedData[self.child_indices]=0
             weightData[self.child_indices]=0
             toCombineMask = na.logical_and.reduce(self.child_mask, axis).astype('int64')
-        # How do we do this the fastest?
-        # We only want to project those values that don't have subgrids
-        # How much time would we save if we had dx=dy=dz?
         a = {0:self.dx, 1:self.dy, 2:self.dz}
         fullProj = func(maskedData,axis)*a[axis] # Gives correct shape
         weightProj = func(weightData,axis)*a[axis]

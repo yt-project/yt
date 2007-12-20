@@ -91,6 +91,7 @@ class EnzoHierarchy:
         mylog.debug("Done allocating")
 
         self.grids = na.array([self.grid(i+1) for i in xrange(self.num_grids)])
+#        self._grids = self.grids
         self.gridReverseTree = [-1] * self.num_grids
         self.gridTree = [ [] for i in range(self.num_grids)]
 

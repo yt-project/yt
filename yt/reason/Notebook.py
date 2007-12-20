@@ -43,7 +43,7 @@ class PlotPanel(wx.Panel):
         self.parent = kwds["parent"]
         self.CurrentlyResizing = False
         wx.Panel.__init__(self, *args, **kwds)
-        self.LinkPlots = True
+        self._link_plots = True
 
         self._AUI_NOTEBOOK = wx.NewId()
         self.nb = wx.aui.AuiNotebook(self, self._AUI_NOTEBOOK)
@@ -76,11 +76,11 @@ class PlotPanel(wx.Panel):
         for m,f in pairs:
             Publisher().unsubAll(("viewchange",m))
         if not hasattr(page,'CreationID'): return
-        #if not hasattr(page,'outputfile'): return
         cti = page.CreationID
         toSubscribe = []
-        if self.LinkPlots:
-            for i,p in [(i, self.nb.GetPage(i)) for i in range(self.nb.GetPageCount())]:
+        if self._link_plots:
+            for i in range(self.nb.GetPageCount()):
+                p = self.nb.GetPage(i)
                 try:
                     if p.CreationID == cti: toSubscribe.append(p)
                 except AttributeError:
@@ -157,7 +157,7 @@ class PlotPanel(wx.Panel):
         of = self.GetCurrentOutput()
 
 class PlotPage(wx.Panel):
-    def __init__(self, parent, statusBar, mw=None, CreationID = -1):
+    def __init__(self, parent, status_bar, mw=None, CreationID = -1):
         wx.Panel.__init__(self, parent)
 
         self.CreationID = CreationID
@@ -166,7 +166,7 @@ class PlotPage(wx.Panel):
 
         self.figure = be.matplotlib.figure.Figure((1,1))
         self.axes = self.figure.add_subplot(111)
-        self.statusBar = statusBar
+        self.status_bar = status_bar
 
         self.SetupControls()
         self.SetupFigure()
@@ -322,7 +322,7 @@ class PlotPage(wx.Panel):
         self.figure_canvas.Bind(wx.EVT_CONTEXT_MENU, self.OnShowContextMenu)
 
 class VMPlotPage(PlotPage):
-    def __init__(self, parent, statusBar, outputfile, axis, field="Density", mw=None, CreationID = -1):
+    def __init__(self, parent, status_bar, outputfile, axis, field="Density", mw=None, CreationID = -1):
         self.outputfile = outputfile
         self.field = field
         self.axis = axis
@@ -333,7 +333,7 @@ class VMPlotPage(PlotPage):
         if ytcfg.getboolean("reason","centeronmax"):
             self.center = outputfile.hierarchy.findMax("Density")[1]
 
-        PlotPage.__init__(self, parent, statusBar, mw, CreationID)
+        PlotPage.__init__(self, parent, status_bar, mw, CreationID)
         self.SetBackgroundColour(wx.NamedColor("WHITE"))
         self.UpdateWidth()
 
@@ -459,8 +459,6 @@ class VMPlotPage(PlotPage):
         xp, yp = event.X, event.Y
         if event.AltDown():
             x,y = self.ConvertPositionToDataPosition(xp, yp)
-            print x, y
-            mylog.warning("HEY!!! %s %s",x,y)
             self.ChangeCenter(x, y)
         elif event.ShiftDown():
             if self.AmDrawingCircle:
@@ -486,7 +484,7 @@ class VMPlotPage(PlotPage):
                 #print cc, r
                 sphere = self.outputfile.hierarchy.sphere( \
                     cc, r, fields = ["Density"])
-                self.mw.AddSphere("Sphere: %0.3e %s" \
+                self.mw._add_sphere("Sphere: %0.3e %s" \
                         % (r*unit, unitname), sphere)
                 self.AmDrawingCircle = False
             else:
@@ -554,9 +552,9 @@ class VMPlotPage(PlotPage):
             y = (dy * yp) + self.plot.ylim[0]
             xn = lagos.axis_names[lagos.x_dict[self.axis]]
             yn = lagos.axis_names[lagos.y_dict[self.axis]]
-            self.statusBar.SetStatusText("%s = %0.12e" % (xn,x), 0)
-            self.statusBar.SetStatusText("%s = %0.12e" % (yn,y), 1)
-            self.statusBar.SetStatusText("v = %0.12e" % \
+            self.status_bar.SetStatusText("%s = %0.12e" % (xn,x), 0)
+            self.status_bar.SetStatusText("%s = %0.12e" % (yn,y), 1)
+            self.status_bar.SetStatusText("v = %0.12e" % \
                                         (self.GetDataValue(xp,yp)), 2)
 
     def GetDataValue(self, x, y):
@@ -621,97 +619,11 @@ class ProjPlotPage(VMPlotPage):
     def QueryFields(self):
         return [self.field]
 
-class VTKVolRenderPage(wx.Panel):
-    """
-    This class sort of works, in that it sets up the context and puts things
-    there, but it does not (in my experience) create a usable user experience.
-    """
-    def __init__(self, parent, statusBar, outputfile, mw=None, CreationID = -1):
-        self.outputfile = outputfile
-        wx.Panel.__init__(self, parent)
-        self.SetupControls()
-        self.DoLayout()
-
-    def SetupControls(self):
-        self.Interactor = wxVTKRenderWindowInteractor(self, -1)
-        self.Interactor.Enable(1)
-
-        self.ren = vtk.vtkRenderer()
-        self.SetupVTK()
-        self.Interactor.GetRenderWindow().AddRenderer(self.ren)
-
-    def SetupVTK(self):
-        g = self.outputfile.h.grids[0]
-
-        a,b,c = na.indices(g.ActiveDimensions)
-        k = na.array([a.ravel(),b.ravel(),c.ravel()]).transpose()
-        self.k = k
-        del a, b, c
-        self.pp = ConvertToVTKFloatArray(k)
-        self.points = vtk.vtkPoints()
-        self.points.SetNumberOfPoints(k.shape[0])
-        print "NP:", self.points.GetNumberOfPoints(), k.shape
-        self.points.SetData(self.pp)
-        print "NP:", self.points.GetNumberOfPoints(), k.shape
-
-        self.fa = ConvertToVTKFloatArray(na.log10(g["Density"].ravel()))
-        sGrid = vtk.vtkStructuredGrid()
-#        sGrid = vtk.vtkStructuredPoints()
-        sGrid.SetDimensions(tuple(g.ActiveDimensions))
-
-        sGrid.SetPoints(self.points)
-        sGrid.GetPointData().SetScalars(self.fa)
-
-        self.myPipe = vtk.vtkDataSetTriangleFilter()
-        self.myGrid = sGrid
-        self.myPipe.SetInput(self.myGrid)
-        #self.myPipe = sGrid
-
-#        self.myMapper = vtk.vtkVolumeTextureMapper2D()
-        self.myMapper = vtk.vtkProjectedTetrahedraMapper()
-        self.myUnGrid = self.myPipe.GetOutput()
-        self.myMapper.SetInput(self.myUnGrid)
-#        self.myMapper.SetInput(self.myGrid)
-
-        # Create transfer mapping scalar value to opacity
-        self.opacityTransferFunction = vtk.vtkPiecewiseFunction()
-        self.opacityTransferFunction.AddPoint(20, 0.0)
-        self.opacityTransferFunction.AddPoint(255, 0.2)
-
-        # Create transfer mapping scalar value to color
-        self.colorTransferFunction = vtk.vtkColorTransferFunction()
-        self.colorTransferFunction.AddRGBPoint(0.0, 0.0, 0.0, 0.0)
-        self.colorTransferFunction.AddRGBPoint(64.0, 1.0, 0.0, 0.0)
-        self.colorTransferFunction.AddRGBPoint(128.0, 0.0, 0.0, 1.0)
-        self.colorTransferFunction.AddRGBPoint(192.0, 0.0, 1.0, 0.0)
-        self.colorTransferFunction.AddRGBPoint(255.0, 0.0, 0.2, 0.0)
-
-        # The property describes how the data will look
-        self.volumeProperty = vtk.vtkVolumeProperty()
-        self.volumeProperty.SetColor(self.colorTransferFunction)
-        self.volumeProperty.SetScalarOpacity(self.opacityTransferFunction)
-
-        # The mapper knows how to render the data
-        self.volume = vtk.vtkVolume()
-        self.volume.SetMapper(self.myMapper)
-        self.volume.SetProperty(self.volumeProperty)
-
-        self.ren.AddVolume(self.volume)
-        print "NP:", self.points.GetNumberOfPoints()
-
-    def DoLayout(self):
-        self.MainSizer = wx.BoxSizer(wx.VERTICAL)
-        self.MainSizer.Add(self.Interactor, 1, wx.EXPAND)
-        self.SetSizer(self.MainSizer)
-
-    def ChangeWidth(self, *args, **kwargs):
-        pass
-
 class PhasePlotPage(PlotPage):
-    def __init__(self, parent, statusBar, dataObject, mw=None, CreationID = -1):
+    def __init__(self, parent, status_bar, dataObject, mw=None, CreationID = -1):
         self.dataObject = dataObject
 
-        PlotPage.__init__(self, parent, statusBar, mw, CreationID)
+        PlotPage.__init__(self, parent, status_bar, mw, CreationID)
 
     def SetupControls(self):
         self.ButtonPanel = wx.Panel(self, -1)
@@ -776,9 +688,9 @@ class PhasePlotPage(PlotPage):
             xn = self.FieldX.StringSelection
             yn = self.FieldY.StringSelection
             vn = self.FieldZ.StringSelection
-            self.statusBar.SetStatusText("%s = %0.5e" % (xn, xp), 0)
-            self.statusBar.SetStatusText("%s = %0.5e" % (yn, yp), 1)
-            self.statusBar.SetStatusText("%s = %0.5e" % \
+            self.status_bar.SetStatusText("%s = %0.5e" % (xn, xp), 0)
+            self.status_bar.SetStatusText("%s = %0.5e" % (yn, yp), 1)
+            self.status_bar.SetStatusText("%s = %0.5e" % \
                                         (vn, self.GetDataValue(xp,yp)), 2)
 
     def GetDataValue(self, x, y):
@@ -807,30 +719,6 @@ class PhasePlotPage(PlotPage):
             self.plot._redraw_image()
             self.figure_canvas.draw()
         #else: print "Opting not to update canvas"
-
-class TestingPage(wx.Panel):
-    def __init__(self, *args, **kwargs):
-        wx.Panel.__init__(self,*args,**kwargs)
-        from wxVTKRenderWindowInteractor import wxVTKRenderWindowInteractor
-        self.Interactor = wxVTKRenderWindowInteractor(self, -1)
-        self.MainSizer = wx.BoxSizer(wx.VERTICAL)
-        self.MainSizer.Add(self.Interactor, 1, wx.EXPAND)
-        self.SetSizer(self.MainSizer)
-        self.Layout()
-
-        self.Interactor.Enable(1)
-        #self.Interactor.AddObserver("ExitEvent", lambda o,e,f=frame:f.Close())
-
-        import vtk
-        ren = vtk.vtkRenderer()
-        self.Interactor.GetRenderWindow().AddRenderer(ren)
-        cone = vtk.vtkConeSource()
-        cone.SetResolution(8)
-        coneMapper = vtk.vtkPolyDataMapper()
-        coneMapper.SetInput(cone.GetOutput())
-        coneActor=vtk.vtkActor()
-        coneActor.SetMapper(coneMapper)
-        ren.AddActor(coneActor)
 
 if __name__ == "__main__":
     app = ReasonApp(0)

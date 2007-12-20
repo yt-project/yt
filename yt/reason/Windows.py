@@ -184,16 +184,3 @@ class FunctionInspectorPage(wx.Panel):
 
         self.SetSizer(self.MainSizer)
         self.Layout()
-
-def ConvertToVTKFloatArray(toConvert):
-    nComp = 1
-    print "Converting",toConvert.shape
-    if len(toConvert.shape) > 1: nComp = toConvert.shape[1]
-    nVals = toConvert.shape[0]
-    stringValue = toConvert.astype('float32').tostring()
-    floatArray = vtk.vtkFloatArray()
-    floatArray.SetNumberOfComponents(nComp)
-    floatArray.SetVoidArray(stringValue, nVals*nComp, 1)
-    floatArrayToReturn = vtk.vtkFloatArray()
-    floatArrayToReturn.DeepCopy(floatArray)
-    return floatArrayToReturn

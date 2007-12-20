@@ -27,12 +27,6 @@ Main application for Reason.  Includes the basic window outline.
 from yt.reason import *
 
 _StaticOutputMenuItems = ["proj","slice"]
-try:
-    vtk
-    _StaticOutputMenuItems.append("vr")
-except:
-    pass
-
 _SphereObjectMenuItems = ["phase"]
 _ProjObjectMenuItems = []
 _SliceObjectMenuItems = []
@@ -45,9 +39,39 @@ class ReasonMainWindow(wx.Frame):
                         ytcfg.getint("reason","height"))
         wx.Frame.__init__(self, *args, **kwds)
 
+        self.__setup_controls()
+
+        self.__setup_menubar()
+        self.__setup_popup_menu()
+        self.__setup_toolbar()
+        self.__setup_data_tree()
+
+        self.status_bar = self.CreateStatusBar(4, 0)
+
+        self.__set_properties()
+        self.__do_layout()
+
+        Publisher().subscribe(self.MessagePageDeleted, ('page_deleted'))
+
+    def __setup_controls(self):
+
+        self.main_splitter = wx.SplitterWindow(self, -1)
+        self.view_panel = wx.SplitterWindow(self.main_splitter, -1)
+        self.data_panel = wx.Panel(self.view_panel, -1)
+        self.data_tree = wx.TreeCtrl(self.data_panel, -1,
+                style=wx.TR_HIDE_ROOT | wx.TR_LINES_AT_ROOT | wx.TR_HAS_BUTTONS)
+        self.plot_panel = PlotPanel(parent=self.view_panel)
+        self.__setup_interpreter()
+
+        self.main_splitter.SetMinimumPaneSize(20)
+        self.main_splitter.SplitHorizontally(self.view_panel, self.int_panel, -100)
+        self.view_panel.SetMinimumPaneSize(20)
+        self.view_panel.SplitVertically(self.data_panel, self.plot_panel, 200)
+
+    def __setup_interpreter(self):
         self.windows = []
         self.outputs = []
-        self.dataObjects = []
+        self.data_objects = []
         self.locals = {'lagos':lagos,
                        'raven':raven,
                        'enki':enki,
@@ -55,77 +79,31 @@ class ReasonMainWindow(wx.Frame):
                        'outputs':self.outputs,
                        'windows':self.windows,
                        'mainwindow':self,
-                       'dataObjects':self.dataObjects}
+                       'data_objects':self.data_objects}
+        self.int_panel = wx.Panel(self.main_splitter, -1)
+        self.interpreter = ReasonInterpreterPanel(self.int_panel, -1, self.locals)
 
-        self.mainSplitter = wx.SplitterWindow(self, -1)
-        self.viewPanel = wx.SplitterWindow(self.mainSplitter, -1)
-        self.dataPanel = wx.Panel(self.viewPanel, -1)
-        self.intPanel = wx.Panel(self.mainSplitter, -1)
-        self.interpreter = ReasonInterpreterPanel(self.intPanel, -1, self.locals)
-        self.dataList = wx.TreeCtrl(self.dataPanel, -1, style=wx.TR_HIDE_ROOT |
-                                    wx.TR_LINES_AT_ROOT | wx.TR_HAS_BUTTONS)
-        self.plotPanel = PlotPanel(parent=self.viewPanel)
-
-        self.mainSplitter.SetMinimumPaneSize(20)
-        self.mainSplitter.SplitHorizontally(self.viewPanel, self.intPanel, -100)
-        self.viewPanel.SetMinimumPaneSize(20)
-        self.viewPanel.SplitVertically(self.dataPanel, self.plotPanel, 200)
-
-        self.SetupMenubar()
-        self.SetupPopupMenu()
-        self.SetupToolBar()
-        self.SetupDataTree()
-
-        self.statusBar = self.CreateStatusBar(4, 0)
-
-        self.__set_properties()
-        self.__do_layout()
-
-        Publisher().subscribe(self.OnPageDeleted, ('page_deleted'))
-
-    def __set_properties(self):
-        self.toolbar.SetToolBitmapSize((24, 24))
-        self.toolbar.Realize()
-        self.statusBar.SetStatusWidths([-1,-1,-1,-1])
-
-    def __do_layout(self):
-        MainWindowSizer = wx.BoxSizer(wx.VERTICAL)
-        DataPanelSizer = wx.BoxSizer(wx.VERTICAL)
-
-        IntPanelSizer = wx.BoxSizer(wx.HORIZONTAL)
-        IntPanelSizer.Add(self.interpreter, 1, wx.EXPAND, 0)
-        self.intPanel.SetSizer(IntPanelSizer)
-
-        DataPanelSizer.Add(self.dataList, 1, wx.EXPAND, 0)
-        self.dataPanel.SetSizer(DataPanelSizer)
-        self.dataPanel.Layout()
-
-        MainWindowSizer.Add(self.mainSplitter, 1, wx.EXPAND)
-        self.SetSizer(MainWindowSizer)
-
-        self.Layout()
-
-    def SetupMenubar(self):
-        menuBar = wx.MenuBar()
-        fileMenu = wx.Menu()
-        menuBar.Append(fileMenu, "File")
+    def __setup_menubar(self):
+        menu_bar = wx.MenuBar()
+        file_menu = wx.Menu()
+        menu_bar.Append(file_menu, "File")
 
         # Set up IDs for event binding
 
-        openHierarchy = fileMenu.Append(-1, "Open Hierarchy")
-        fieldInspector = fileMenu.Append(-1, "Inspect Fields")
-        saveImage = fileMenu.Append(-1, "Save Image")
-        fileMenu.AppendSeparator()
-        exit = fileMenu.Append(-1, "Exit")
+        open_hierarchy = file_menu.Append(-1, "Open Hierarchy")
+        field_inspector = file_menu.Append(-1, "Inspect Fields")
+        save_image = file_menu.Append(-1, "Save Image")
+        file_menu.AppendSeparator()
+        exit = file_menu.Append(-1, "Exit")
 
-        self.Bind(wx.EVT_MENU, self.OnOpenHierarchy, openHierarchy)
-        self.Bind(wx.EVT_MENU, self.OnInspectFields, fieldInspector)
-        self.Bind(wx.EVT_MENU, self.OnSaveImage, saveImage)
+        self.Bind(wx.EVT_MENU, self.OnOpenHierarchy, open_hierarchy)
+        self.Bind(wx.EVT_MENU, self.OnInspectFields, field_inspector)
+        self.Bind(wx.EVT_MENU, self.OnSaveImage, save_image)
         self.Bind(wx.EVT_MENU, self.OnExit, exit)
 
-        self.SetMenuBar(menuBar)
+        self.SetMenuBar(menu_bar)
 
-    def SetupPopupMenu(self):
+    def __setup_popup_menu(self):
         self.PopupMenu = wx.Menu()
         self.PopupMenuIds = {}
         self.PopupMenuIds["slice"] = self.PopupMenu.Append(-1, "Slice")
@@ -133,12 +111,48 @@ class ReasonMainWindow(wx.Frame):
         self.PopupMenuIds["phase"] = self.PopupMenu.Append(-1, "Phase Plot")
         self.PopupMenuIds["vr"] = self.PopupMenu.Append(-1, "Volume Render")
 
-        self.Bind(wx.EVT_MENU, self.AddSlice, self.PopupMenuIds["slice"])
-        self.Bind(wx.EVT_MENU, self.AddProj, self.PopupMenuIds["proj"])
-        self.Bind(wx.EVT_MENU, self.AddPhase, self.PopupMenuIds["phase"])
-        self.Bind(wx.EVT_MENU, self.AddVR, self.PopupMenuIds["vr"])
+        self.Bind(wx.EVT_MENU, self._add_slice, self.PopupMenuIds["slice"])
+        self.Bind(wx.EVT_MENU, self._add_proj, self.PopupMenuIds["proj"])
+        self.Bind(wx.EVT_MENU, self._add_phase, self.PopupMenuIds["phase"])
 
-    def SetupToolBar(self):
+    def __setup_data_tree(self):
+
+        self.root = self.data_tree.AddRoot("You shouldn't see me!")
+        self.fido_root = self.data_tree.AppendItem(self.root, "Stored Outputs")
+        self.output_root = self.data_tree.AppendItem(self.root, "Selected Outputs")
+        self.data_root = self.data_tree.AppendItem(self.root, "Data Objects")
+
+        self.data_tree.Expand(self.fido_root)
+        self.data_tree.Expand(self.output_root)
+        self.data_tree.Expand(self.data_root)
+
+        self.data_tree.Bind(wx.EVT_RIGHT_DOWN, self.OnRightDown)
+        self.Bind(wx.EVT_TREE_ITEM_EXPANDED, self.OnItemExpanded, self.data_tree)
+
+        self.__setup_fido_tree()
+
+    def __setup_fido_tree(self, event=None):
+        # Calling this delete may not be wise.
+        # However, as long as we have a distinction between
+        # the data outputs and the created data objects, it should be okay.
+        self.data_tree.DeleteChildren(self.fido_root)
+        gc = fido.GrabCollections()
+        for c in gc:
+            cRoot = self.data_tree.AppendItem(self.fido_root, c.title)
+            for fn in c:
+                if not os.path.isfile(fn): continue
+                try:
+                    z = str(fido.get_parameter_line(fn,
+                                 "CosmologyCurrentRedshift"))
+                except:
+                    z = "N/A"
+                tt = str(fido.get_parameter_line(fn,
+                             "InitialTime"))
+                tid = wx.TreeItemData((fn, tt, z, _StaticOutputMenuItems))
+                ni = self.data_tree.AppendItem(cRoot,
+                    "%s" % (os.path.basename(fn)), data=tid)
+
+    def __setup_toolbar(self):
         # Tool Bar
         self._VMTB_REREADFIDO = wx.NewId()
         self._VMTB_FULLDOMAIN = wx.NewId()
@@ -168,9 +182,9 @@ class ReasonMainWindow(wx.Frame):
         AddButton(self._VMTB_REREADFIDO,"Update OutputList",
                                         "Reread from the Fido database", wx.ART_TIP)
         AddButton(self._VMTB_REDRAW,"Redraw", "Force a redraw", wx.ART_REDO)
-        self.availableFields = wx.Choice(self.toolbar, id=self._VMTB_FIELDSWITCH, choices = [])
-        self.toolbar.AddControl(self.availableFields)
-        Publisher().subscribe(self.UpdateToolbarFieldsMessage, ('page_changed'))
+        self.available_fields = wx.Choice(self.toolbar, id=self._VMTB_FIELDSWITCH, choices = [])
+        self.toolbar.AddControl(self.available_fields)
+        Publisher().subscribe(self.MessageUpdateToolbarFields, ('page_changed'))
         AddButton(self._VMTB_FULLDOMAIN, "Zoom Top",  "Zoom to the top level", wx.ART_FIND)
         AddButton(self._VMTB_CHANGELIMITS, "Change Limits", "Change the colorbar limits")
         AddButton(self._VMTB_VIEWPF, "View ParameterFile", "View the parameter file", wx.ART_NORMAL_FILE)
@@ -178,93 +192,159 @@ class ReasonMainWindow(wx.Frame):
         self.toolbar.AddCheckLabelTool(self._VMTB_VELPLOT, "VelVecs", cl, shortHelp="Plot Velocity Vectors")
         self.toolbar.AddSeparator()
 
-        self.Bind(wx.EVT_MENU, self.SetupFidoTree, id=self._VMTB_REREADFIDO)
-        self.Bind(wx.EVT_CHOICE, self.plotPanel.OnCallSwitchField, id=self._VMTB_FIELDSWITCH)
-        self.Bind(wx.EVT_MENU, self.plotPanel.OnCallSetWidth, id=self._VMTB_CHANGEZOOM)
-        self.Bind(wx.EVT_MENU, self.plotPanel.OnCallRedraw, id=self._VMTB_REDRAW)
-        self.Bind(wx.EVT_MENU, self.plotPanel.OnCallZoomTop, id=self._VMTB_FULLDOMAIN)
-        self.Bind(wx.EVT_MENU, self.plotPanel.OnCallSetZLim, id=self._VMTB_CHANGELIMITS)
-        self.Bind(wx.EVT_MENU, self.plotPanel.OnCallViewPF, id=self._VMTB_VIEWPF)
+        self.Bind(wx.EVT_MENU, self.__setup_fido_tree, id=self._VMTB_REREADFIDO)
+        self.Bind(wx.EVT_CHOICE, self.plot_panel.OnCallSwitchField, id=self._VMTB_FIELDSWITCH)
+        self.Bind(wx.EVT_MENU, self.plot_panel.OnCallSetWidth, id=self._VMTB_CHANGEZOOM)
+        self.Bind(wx.EVT_MENU, self.plot_panel.OnCallRedraw, id=self._VMTB_REDRAW)
+        self.Bind(wx.EVT_MENU, self.plot_panel.OnCallZoomTop, id=self._VMTB_FULLDOMAIN)
+        self.Bind(wx.EVT_MENU, self.plot_panel.OnCallSetZLim, id=self._VMTB_CHANGELIMITS)
+        self.Bind(wx.EVT_MENU, self.plot_panel.OnCallViewPF, id=self._VMTB_VIEWPF)
 
-    def UpdateToolbarFieldsMessage(self, message):
-        page = message.data
-        self.UpdateToolbarFields(page)
+    def __set_properties(self):
+        self.toolbar.SetToolBitmapSize((24, 24))
+        self.toolbar.Realize()
+        self.status_bar.SetStatusWidths([-1,-1,-1,-1])
 
-    def UpdateToolbarFields(self, page):
+    def __do_layout(self):
+        MainWindowSizer = wx.BoxSizer(wx.VERTICAL)
+        DataPanelSizer = wx.BoxSizer(wx.VERTICAL)
+
+        IntPanelSizer = wx.BoxSizer(wx.HORIZONTAL)
+        IntPanelSizer.Add(self.interpreter, 1, wx.EXPAND, 0)
+        self.int_panel.SetSizer(IntPanelSizer)
+
+        DataPanelSizer.Add(self.data_tree, 1, wx.EXPAND, 0)
+        self.data_panel.SetSizer(DataPanelSizer)
+        self.data_panel.Layout()
+
+        MainWindowSizer.Add(self.main_splitter, 1, wx.EXPAND)
+        self.SetSizer(MainWindowSizer)
+
+        self.Layout()
+
+    def _update_toolbar_fields(self, page):
         newItems = None
-        try:
-            newItems = page.QueryFields()
-        except:
-            pass
+        if hasattr(page,'QueryFields'): newItems = page.QueryFields()
         if not newItems:
-            self.availableFields.Enable(False)
+            self.available_fields.Enable(False)
         else:
-            self.availableFields.Enable(True)
-            self.availableFields.SetItems(newItems)
+            self.available_fields.Enable(True)
+            self.available_fields.SetItems(newItems)
 
-    def OnItemExpanded(self, event):
-        if event.GetItem() == self.fidoRoot:
-            print "Reloading fido outputs"
-            self.SetupFidoTree()
+    def _add_static_output(self, filename):
+        # Alright, we choose the hierarchy in the file selector,
+        # so let's strip that extension off
+        fn = filename[:-10]
+        eso = lagos.EnzoStaticOutput(fn)
+        try:
+            z = str(eso["CosmologyCurrentRedshift"])
+        except:
+            z = "N/A"
+        tid = wx.TreeItemData((eso, str(eso["InitialTime"]), z, _StaticOutputMenuItems))
+        self.outputs.append(eso)
+        ni = self.data_tree.AppendItem(self.output_root, "%s" % (eso.basename), data=tid)
+        self.data_tree.Expand(self.output_root)
 
-    def OnPageDeleted(self, message):
+    def _add_data_object(self, title, object, mids):
+        self.data_objects.append(object)
+        tid = wx.TreeItemData((object, title, len(self.data_objects), mids))
+        ni = self.data_tree.AppendItem(self.data_root, "%s" % (title), data=tid)
+        self.data_tree.Expand(self.data_root)
+
+    def _add_sphere(self, title, sphere):
+        # These all get passed in
+        self._add_data_object(title, sphere, _SphereObjectMenuItems)
+
+    def _add_phase(self, event=None):
+        MyID = wx.NewId()
+        self.interpreter.shell.writeOut("\n")
+        o = self.get_output()
+        t = "Phase Plot"
+        self.windows.append( \
+            PhasePlotPage(parent=self.plot_panel.nb,
+                          statusBar=self.status_bar,
+                          dataObject = o,
+                          CreationID = MyID,
+                          mw = self))
+        self.interpreter.shell.writeOut("Adding phase plot\n")
+        self.plot_panel.AddPlot(self.windows[-1], t, MyID)
+        mylog.debug("Adding with ID: %s", MyID)
+        self.interpreter.shell.push("\n")
+
+    def _add_proj(self, event=None):
+        MyID = wx.NewId()
+        self.interpreter.shell.writeOut("\n")
+        o = self.get_output()
+        field = "Density"
+        width = 1.0
+        unit = "1"
+        for i, ax in zip(range(3), 'xyz'):
+            t = "%s - Projection - %s" % (o.basename, ax)
+            self.interpreter.shell.writeOut("Adding %s projection of %s\n" % (ax, o))
+            self.windows.append( \
+                ProjPlotPage(parent=self.plot_panel.nb,
+                              statusBar=self.status_bar,
+                              outputfile = o,
+                              axis=i,
+                              field = field,
+                              mw = self, CreationID=MyID))
+            self.plot_panel.AddPlot(self.windows[-1], t, MyID)
+            self._add_data_object("Proj: %s %s" % (o, ax),
+                               self.windows[-1].plot.data,
+                               _ProjObjectMenuItems)
+            print "Adding with ID:", MyID
+        for w in self.windows[-3:]: w.ChangeWidth(1,'1')
+        self.interpreter.shell.push("\n")
+
+    def _add_slice(self, event=None):
+        MyID = wx.NewId()
+        self.interpreter.shell.writeOut("\n")
+        o = self.get_output()
+        field = "Density"
+        width = 1.0
+        unit = "1"
+        for i, ax in zip(range(3), 'xyz'):
+            t = "%s - Slice - %s" % (o.basename, ax)
+            self.interpreter.shell.writeOut("Adding %s slice of %s\n" % (ax, o))
+            self.windows.append( \
+                SlicePlotPage(parent=self.plot_panel.nb,
+                              statusBar=self.status_bar,
+                              outputfile = o,
+                              axis=i,
+                              field = field,
+                              mw = self, CreationID=MyID))
+            self.plot_panel.AddPlot(self.windows[-1], t, MyID)
+            self._add_data_object("Slice: %s %s" % (o, ax),
+                               self.windows[-1].plot.data,
+                               _SliceObjectMenuItems)
+            print "Adding with ID:", MyID
+        for w in self.windows[-3:]: w.ChangeWidth(1,'1')
+        self.interpreter.shell.push("\n")
+
+    def get_output(self, event=None):
+        # Figure out which outputs are selected
+        tid = self.data_tree.GetFirstSelected()
+        ii = self.data_tree.GetItemData(tid).GetData()[0]
+        if isinstance(ii, types.StringTypes):
+            ii = lagos.EnzoStaticOutput(ii) # Instantiate here
+            self.outputs.append(ii)
+            fn, z, t, mids = self.data_tree.GetItemData(tid).GetData()
+            newData = wx.TreeItemData((ii, z, t, mids))
+            self.data_tree.SetItemData(tid, newData)
+        print "Got output:", ii
+        return ii
+
+    # Functions bound to messages in pubsub
+
+    def MessageUpdateToolbarFields(self, message):
+        page = message.data
+        self._update_toolbar_fields(page)
+
+    def MessagePageDeleted(self, message):
         id = message.data
         del self.windows[id]
 
-    def OnRightDown(self, event):
-        pt = event.GetPosition();
-        item, flags = self.dataList.HitTest(pt)
-        if item:
-            self.dataList.SelectItem(item)
-            pos = event.GetPosition()
-            self.ContextMenuPosition = pos
-            itemData = self.dataList.GetItemData(item).Data
-            if not itemData: return
-            for n,d in self.PopupMenuIds.items():
-                self.PopupMenu.Enable(d.Id,False)
-            if itemData:
-                for n in itemData[3]:
-                    self.PopupMenu.Enable(self.PopupMenuIds[n].Id, True)
-            #self.PopupMenu.Enable(self.PopupMenuIds["proj"].Id,False)
-            self.dataList.PopupMenu(self.PopupMenu, pos)
-
-    def SetupDataTree(self):
-
-        self.root = self.dataList.AddRoot("You shouldn't see me!")
-        self.fidoRoot = self.dataList.AppendItem(self.root, "Stored Outputs")
-        self.outputRoot = self.dataList.AppendItem(self.root, "Selected Outputs")
-        self.dataRoot = self.dataList.AppendItem(self.root, "Data Objects")
-
-        self.dataList.Expand(self.fidoRoot)
-        self.dataList.Expand(self.outputRoot)
-        self.dataList.Expand(self.dataRoot)
-
-        self.dataList.Bind(wx.EVT_RIGHT_DOWN, self.OnRightDown)
-        self.Bind(wx.EVT_TREE_ITEM_EXPANDED, self.OnItemExpanded, self.dataList)
-
-
-        self.SetupFidoTree()
-
-    def SetupFidoTree(self, event=None):
-        # Calling this delete may not be wise.
-        # However, as long as we have a distinction between
-        # the data outputs and the created data objects, it should be okay.
-        self.dataList.DeleteChildren(self.fidoRoot)
-        gc = fido.GrabCollections()
-        for c in gc:
-            cRoot = self.dataList.AppendItem(self.fidoRoot, c.title)
-            for fn in c:
-                if not os.path.isfile(fn): continue
-                try:
-                    z = str(fido.getParameterLine(fn,
-                                 "CosmologyCurrentRedshift"))
-                except:
-                    z = "N/A"
-                tt = str(fido.getParameterLine(fn,
-                             "InitialTime"))
-                tid = wx.TreeItemData((fn, tt, z, _StaticOutputMenuItems))
-                ni = self.dataList.AppendItem(cRoot,
-                    "%s" % (os.path.basename(fn)), data=tid)
+    # Functions bound exclusively to events:
 
     def OnExit(self, event):
         self.Close()
@@ -281,146 +361,34 @@ class ReasonMainWindow(wx.Frame):
         if dialog.ShowModal() == wx.ID_OK:
             file = dialog.GetPath()
             print file
-            self.AddStaticOutputFile(file)
+            self._add_static_output(file)
             #self.RefreshOutputs()
         dialog.Destroy()
 
     def OnSaveImage(self, event):
-        pgI = self.plotPanel.nb.Selection
-        pg = self.plotPanel.nb.GetPage(pgI)
+        pgI = self.plot_panel.nb.Selection
+        pg = self.plot_panel.nb.GetPage(pgI)
         if not hasattr(pg, 'SaveImage'): return
         pg.SaveImage()
 
-    def AddStaticOutputFile(self, filename):
-        # Alright, we choose the hierarchy in the file selector,
-        # so let's strip that extension off
-        fn = filename[:-10]
-        eso = lagos.EnzoStaticOutput(fn)
-        try:
-            z = str(eso["CosmologyCurrentRedshift"])
-        except:
-            z = "N/A"
-        tid = wx.TreeItemData((eso, str(eso["InitialTime"]), z, _StaticOutputMenuItems))
-        self.outputs.append(eso)
-        ni = self.dataList.AppendItem(self.outputRoot, "%s" % (eso.basename), data=tid)
-        self.dataList.Expand(self.outputRoot)
+    def OnItemExpanded(self, event):
+        if event.GetItem() == self.fido_root:
+            mylog.info("Reloading fido outputs")
+            self.__setup_fido_tree()
 
-    def AddDataObject(self, title, object, mids):
-        self.dataObjects.append(object)
-        tid = wx.TreeItemData((object, title, len(self.dataObjects), mids))
-        ni = self.dataList.AppendItem(self.dataRoot, "%s" % (title), data=tid)
-        self.dataList.Expand(self.dataRoot)
-
-    def AddSphere(self, title, sphere):
-        # These all get passed in
-        self.AddDataObject(title, sphere, _SphereObjectMenuItems)
-
-    def AddPhase(self, event=None):
-        MyID = wx.NewId()
-        self.interpreter.shell.writeOut("\n")
-        for o in self.GetOutputs():
-            t = "Phase Plot"
-            self.windows.append( \
-                PhasePlotPage(parent=self.plotPanel.nb,
-                              statusBar=self.statusBar,
-                              dataObject = o,
-                              CreationID = MyID,
-                              mw = self))
-            self.interpreter.shell.writeOut("Adding phase plot\n")
-            self.plotPanel.AddPlot(self.windows[-1], t, MyID)
-            print "Adding with ID:", MyID
-        self.interpreter.shell.push("\n")
-
-    def AddVR(self, event=None):
-        MyID = wx.NewId()
-        self.interpreter.shell.writeOut("\n")
-        for o in self.GetOutputs():
-            field = "Density"
-            if not field:
-                continue
-            width = 1.0
-            unit = "1"
-            #t = "%s - Volume Render - %s" % (o.basename, ax)
-            t = "%s - Volume Render" % (o.basename)
-            self.interpreter.shell.writeOut("Adding vr of %s\n" % (o))
-            self.windows.append( \
-                VolRenderPage(parent=self.plotPanel.nb,
-                              statusBar=self.statusBar,
-                              outputfile = o,
-                              mw = self, CreationID=MyID))
-            self.plotPanel.AddPlot(self.windows[-1], t, MyID)
-            print "Adding with ID:", MyID
-        for w in self.windows[-3:]: w.ChangeWidth(1,'1')
-        self.interpreter.shell.push("\n")
-
-
-    def AddProj(self, event=None):
-        MyID = wx.NewId()
-        self.interpreter.shell.writeOut("\n")
-        for o in self.GetOutputs():
-            field = "Density"
-            if not field:
-                continue
-            width = 1.0
-            unit = "1"
-            for i, ax in zip(range(3), 'xyz'):
-                t = "%s - Projection - %s" % (o.basename, ax)
-                self.interpreter.shell.writeOut("Adding %s projection of %s\n" % (ax, o))
-                self.windows.append( \
-                    ProjPlotPage(parent=self.plotPanel.nb,
-                                  statusBar=self.statusBar,
-                                  outputfile = o,
-                                  axis=i,
-                                  field = field,
-                                  mw = self, CreationID=MyID))
-                self.plotPanel.AddPlot(self.windows[-1], t, MyID)
-                self.AddDataObject("Proj: %s %s" % (o, ax),
-                                   self.windows[-1].plot.data,
-                                   _ProjObjectMenuItems)
-                print "Adding with ID:", MyID
-        for w in self.windows[-3:]: w.ChangeWidth(1,'1')
-        self.interpreter.shell.push("\n")
-
-    def AddSlice(self, event=None):
-        MyID = wx.NewId()
-        self.interpreter.shell.writeOut("\n")
-        for o in self.GetOutputs():
-            field = "Density"
-            if not field:
-                continue
-            width = 1.0
-            unit = "1"
-            for i, ax in zip(range(3), 'xyz'):
-                t = "%s - Slice - %s" % (o.basename, ax)
-                self.interpreter.shell.writeOut("Adding %s slice of %s\n" % (ax, o))
-                self.windows.append( \
-                    SlicePlotPage(parent=self.plotPanel.nb,
-                                  statusBar=self.statusBar,
-                                  outputfile = o,
-                                  axis=i,
-                                  field = field,
-                                  mw = self, CreationID=MyID))
-                self.plotPanel.AddPlot(self.windows[-1], t, MyID)
-                self.AddDataObject("Slice: %s %s" % (o, ax),
-                                   self.windows[-1].plot.data,
-                                   _SliceObjectMenuItems)
-                print "Adding with ID:", MyID
-        for w in self.windows[-3:]: w.ChangeWidth(1,'1')
-        self.interpreter.shell.push("\n")
-
-    def GetOutputs(self, event=None):
-        # Figure out which outputs are selected
-        oss = []
-        #k = self.dataList.GetFirstSelected()
-        k = self.dataList.GetSelections()
-        for tid in k:
-            ii = self.dataList.GetItemData(tid).GetData()[0]
-            if isinstance(ii, types.StringTypes):
-                ii = lagos.EnzoStaticOutput(ii) # Instantiate here
-                self.outputs.append(ii)
-                fn, z, t, mids = self.dataList.GetItemData(tid).GetData()
-                newData = wx.TreeItemData((ii, z, t, mids))
-                self.dataList.SetItemData(tid, newData)
-            oss.append(ii)
-            print "Got output:", ii
-        return oss
+    def OnRightDown(self, event):
+        pt = event.GetPosition();
+        item, flags = self.data_tree.HitTest(pt)
+        if item:
+            self.data_tree.SelectItem(item)
+            pos = event.GetPosition()
+            self.ContextMenuPosition = pos
+            itemData = self.data_tree.GetItemData(item).Data
+            if not itemData: return
+            for n,d in self.PopupMenuIds.items():
+                self.PopupMenu.Enable(d.Id,False)
+            if itemData:
+                for n in itemData[3]:
+                    self.PopupMenu.Enable(self.PopupMenuIds[n].Id, True)
+            #self.PopupMenu.Enable(self.PopupMenuIds["proj"].Id,False)
+            self.data_tree.PopupMenu(self.PopupMenu, pos)

@@ -377,7 +377,7 @@ class EnzoCuttingPlaneBase(Enzo2DData):
 class EnzoProjBase(Enzo2DData):
     def __init__(self, axis, field, weight_field = None,
                  max_level = None, center = None, pf = None,
-                 type=0):
+                 source=None, type=0):
         """
         Returns an instance of EnzoProj.
 
@@ -393,6 +393,9 @@ class EnzoProjBase(Enzo2DData):
         @keyword type: The type of projection: 0 for sum, 1 for MIP
         """
         Enzo2DData.__init__(self, axis, field, pf)
+        if not source:
+            source = EnzoGridCollection(center, self.hierarchy.grids)
+        self.source = source
         if max_level == None:
             max_level = self.hierarchy.maxLevel
         self._max_level = max_level
@@ -415,28 +418,29 @@ class EnzoProjBase(Enzo2DData):
         """
         level_mem = {}
         h = self.hierarchy
+        s = self.source
         i = 0
         mylog.info("Calculating memory usage")
         for level in range(self._max_level+1):
             level_mem[level] = 0
             mylog.debug("Examining level %s", level)
-            grids = h.levelIndices[level]
+            grids = s.levelIndices[level]
             num_grids = len(grids)
-            RE = h.gridRightEdge[grids].copy()
-            LE = h.gridLeftEdge[grids].copy()
-            for grid in h.grids[grids]:
+            RE = s.gridRightEdge[grids].copy()
+            LE = s.gridLeftEdge[grids].copy()
+            for grid in s._grids[grids]:
                 if (i%1e3) == 0:
-                    mylog.debug("Reading and masking %s / %s", i, h.num_grids)
+                    mylog.debug("Reading and masking %s / %s", i, len(s._grids))
                 for ax in [0,1,2]:
                     grid._generate_overlap_masks(ax, LE, RE)
                     grid._overlap_grids[ax] = \
-                      h.grids[grids[na.where(grid.overlap_masks[ax] == 1)]]
+                      s._grids[grids[na.where(grid.overlap_masks[ax] == 1)]]
                 level_mem[level] += \
                           grid.ActiveDimensions.prod() / \
                           grid.ActiveDimensions[ax]
                 i += 1
         for level in range(self._max_level+1):
-            gI = h.levelIndices[level]
+            gI = s.levelIndices[level]
             mylog.debug("%s cells and %s grids for level %s", \
                 level_mem[level], len(gI), level)
         mylog.debug("We need %s cells total",
@@ -464,14 +468,15 @@ class EnzoProjBase(Enzo2DData):
         return True
 
     def __project_level(self, level, field):
-        grids_to_project = self.hierarchy.select_grids(level)
-        zeroOut = (level != self._max_level)
+        grids_to_project = self.source.select_grids(level)
+        zero_out = (level != self._max_level)
         pbar = get_pbar('Projecting level % 2i / % 2i ' \
                           % (level, self._max_level), len(grids_to_project))
         for pi, grid in enumerate(grids_to_project):
-            grid.retVal = grid._get_projection(self.axis, field, zeroOut,
-                                               weight=self._weight,
-                                               func = self.func)
+            grid.retVal = self._project_grid(grid, field, zero_out)
+            #grid.retVal = grid._get_projection(self.axis, field, zeroOut,
+                                 #weight=self._weight,
+                                 #func = self.func)
             pbar.update(pi)
         pbar.finish()
         self.__combine_grids(level) # In-place
@@ -494,7 +499,7 @@ class EnzoProjBase(Enzo2DData):
         return [levelData[0][dblI], levelData[1][dblI], weightedData, dx]
 
     def __combine_grids(self, level):
-        grids = self.hierarchy.select_grids(level)
+        grids = self.source.select_grids(level)
         pbar = get_pbar('Combining level % 2i / % 2i ' \
                           % (level, self._max_level), len(grids))
         # We have an N^2 check, so we try to be as quick as possible
@@ -523,7 +528,7 @@ class EnzoProjBase(Enzo2DData):
     def get_data(self, field = None):
         if not field: field = self.fields[0]
         all_data = []
-        h = self.hierarchy
+        s = self.source
         for level in range(0, self._max_level+1):
             all_data.append(self.__project_level(level, field))
         all_data = na.concatenate(all_data, axis=1)
@@ -535,7 +540,49 @@ class EnzoProjBase(Enzo2DData):
         self['pdy'] = self['pdx'].copy()
         self.data[field] = all_data[2,:]
         # Now, we should clean up after ourselves...
-        [grid.clear_data() for grid in h.grids]
+        [grid.clear_data() for grid in s._grids]
+
+    def _project_grid(self, grid, field, zero_out):
+        """
+        Projects along an axis.  Currently in flux.  Shouldn't be called
+        directly.
+        """
+        if self._weight == None:
+            masked_data = self._get_data_from_grid(grid, field)
+            weight_data = na.ones(masked_data.shape)
+        else:
+            masked_data = self._get_data_from_grid(grid, field) \
+                        * self._get_data_from_grid(grid, self._weight)
+            weight_data = self._get_data_from_grid(grid, self._weight)
+        dl = grid['d%s' % axis_names[self.axis]]
+        dx = grid['d%s' % axis_names[x_dict[self.axis]]]
+        dy = grid['d%s' % axis_names[y_dict[self.axis]]]
+        full_proj = self.func(masked_data,self.axis)*dl
+        weight_proj = self.func(weight_data,self.axis)*dl
+        used_data = self._get_used_points(grid)
+        used_points = na.where(self.func(used_data, self.axis) > 0)
+        if zero_out:
+            subgrid_mask = na.logical_and.reduce(grid.child_mask, self.axis).astype('int64')
+        else:
+            subgrid_mask = na.ones(full_proj.shape, dtype='int64')
+        xind, yind = [arr[used_points].ravel() for arr in na.indices(full_proj.shape)]
+        xpoints = xind + na.rint(grid.LeftEdge[x_dict[self.axis]]/dx).astype('int64')
+        ypoints = yind + na.rint(grid.LeftEdge[y_dict[self.axis]]/dy).astype('int64')
+        return [xpoints, ypoints,
+                full_proj[used_points].ravel(),
+                subgrid_mask[used_points].ravel(),
+                weight_proj[used_points].ravel()]
+
+    def _get_used_points(self, grid):
+        pointI = self.source._get_point_indices(grid)
+        bad_points = na.zeros(grid.ActiveDimensions)
+        bad_points[pointI] = 1.0
+        return bad_points
+
+    def _get_data_from_grid(self, grid, field):
+        bad_points = self._get_used_points(grid)
+        d = grid[field] * bad_points
+        return d
 
 class Enzo3DData(EnzoData):
     """
@@ -749,6 +796,64 @@ class Enzo3DData(EnzoData):
 
     def extract_region(self, indices):
         return ExtractedRegionBase(self, indices)
+
+    def select_grids(self, level):
+        grids = [g for g in self._grids if g.Level == level]
+        return grids
+
+    def __get_levelIndices(self):
+        if self.__levelIndices: return self.__levelIndices
+        # Otherwise, generate
+        # We only have to do this once, so it's not terribly expensive:
+        ll = {}
+        for level in range(MAXLEVEL):
+            t = [i for i in range(len(self._grids)) if self._grids[i].Level == level]
+            ll[level] = na.array(t)
+        self.__levelIndices = ll
+        return self.__levelIndices
+
+    def __set_levelIndices(self, val):
+        self.__levelIndices = val
+
+    def __del_levelIndices(self):
+        del self.__levelIndices
+        self.__levelIndices = None
+
+    __levelIndices = None
+    levelIndices = property(__get_levelIndices, __set_levelIndices,
+                            __del_levelIndices)
+
+    def __get_gridLeftEdge(self):
+        if self.__gridLeftEdge == None:
+            self.__gridLeftEdge = na.array([g.LeftEdge for g in self._grids])
+        return self.__gridLeftEdge
+
+    def __del_gridLeftEdge(self):
+        del self.__gridLeftEdge
+        self.__gridLeftEdge = None
+
+    def __set_gridLeftEdge(self, val):
+        self.__gridLeftEdge = val
+
+    __gridLeftEdge = None
+    gridLeftEdge = property(__get_gridLeftEdge, __set_gridLeftEdge,
+                              __del_gridLeftEdge)
+
+    def __get_gridRightEdge(self):
+        if self.__gridRightEdge == None:
+            self.__gridRightEdge = na.array([g.RightEdge for g in self._grids])
+        return self.__gridRightEdge
+
+    def __del_gridRightEdge(self):
+        del self.__gridRightEdge
+        self.__gridRightEdge = None
+
+    def __set_gridRightEdge(self, val):
+        self.__gridRightEdge = val
+
+    __gridRightEdge = None
+    gridRightEdge = property(__get_gridRightEdge, __set_gridRightEdge,
+                              __del_gridRightEdge)
 
 class ExtractedRegionBase(Enzo3DData):
     def __init__(self, base_region, indices):
