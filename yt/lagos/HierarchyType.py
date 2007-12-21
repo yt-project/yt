@@ -91,6 +91,7 @@ class EnzoHierarchy:
         mylog.debug("Done allocating")
 
         self.grids = na.array([self.grid(i+1) for i in xrange(self.num_grids)])
+        mylog.debug("Done creating grid objects")
 #        self._grids = self.grids
         self.gridReverseTree = [-1] * self.num_grids
         self.gridTree = [ [] for i in range(self.num_grids)]
@@ -110,8 +111,11 @@ class EnzoHierarchy:
         self.center = None
         self.bulkVelocity = None
 
+        mylog.debug("Initializing data file")
         self.__initialize_data_file()
+        mylog.debug("Populating hierarchy")
         self.__populate_hierarchy()
+        mylog.debug("Done populating hierarchy")
 
     def __guess_data_style(self):
         if self.data_style: return
@@ -240,6 +244,7 @@ class EnzoHierarchy:
             self.file_access = {}
         harray = self.get_data("/", "Hierarchy")
         if harray:
+            mylog.debug("Cached entry found.")
             self.gridDimensions[:] = harray[:,0:3]
             self.gridStartIndices[:] = harray[:,3:6]
             self.gridEndIndices[:] = harray[:,6:9]
@@ -318,6 +323,7 @@ class EnzoHierarchy:
             del allArrays
         treeArray = self.get_data("/", "Tree")
         if treeArray == None:
+            mylog.debug("No cached tree found, creating")
             self.grids[0].Level = 0  # Bootstrap
             self.gridLevels[0] = 0   # Bootstrap
             p = re.compile(r"Pointer: Grid\[(\d*)\]->NextGrid(Next|This)Level = (\d*)$", re.M)
@@ -346,15 +352,15 @@ class EnzoHierarchy:
             self.save_data(na.array(self.gridReverseTree), "/", "ReverseTree")
             self.save_data(self.gridLevels, "/", "Levels")
         else:
-            mylog.debug("Grabbing serialized")
+            mylog.debug("Grabbing serialized tree data")
             pTree = cPickle.loads(treeArray.read())
             self.gridReverseTree = list(self.get_data("/","ReverseTree"))
             self.gridTree = [ [ self.grids[i] for i in pTree[j] ] for j in range(self.num_grids) ]
             self.gridLevels = self.get_data("/","Levels")[:]
             mylog.debug("Grabbed")
         for i,v in enumerate(self.gridReverseTree):
+            # For multiple grids on the root level
             if v == -1: self.gridReverseTree[i] = None
-        #self.gridReverseTree[0] = None
         self.maxLevel = self.gridLevels.max()
         # Now we do things that we need all the grids to do
         self.fieldList = self.grids[0].getFields()

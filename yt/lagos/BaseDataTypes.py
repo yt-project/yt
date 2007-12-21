@@ -449,15 +449,16 @@ class EnzoProjBase(Enzo2DData):
 
     def _serialize(self):
         mylog.info("Serializing data...")
-        nodeName = "%s_%s_%s" % (self.fields[0], self.weightField, self.axis)
-        mylog.info("nodeName: %s", nodeName)
-        projArray = na.array([self.x, self.y, self.dx, self.dy, self[self.fields[0]]])
-        self.hierarchy.saveData(projArray, "/Projections", nodeName)
+        node_name = "%s_%s_%s" % (self.fields[0], self._weight, self.axis)
+        mylog.info("nodeName: %s", node_name)
+        projArray = na.array([self['px'], self['py'],
+                              self['pdx'], self['dy'], self[self.fields[0]]])
+        self.hierarchy.save_data(projArray, "/Projections", node_name)
         mylog.info("Done serializing...")
 
     def _deserialize(self):
-        nodeName = "%s_%s_%s" % (self.fields[0], self.weightField, self.axis)
-        array=self.hierarchy.getData("/Projections", nodeName)
+        node_name = "%s_%s_%s" % (self.fields[0], self._weight, self.axis)
+        array=self.hierarchy.get_data("/Projections", node_name)
         if array == None:
             return
         self['px'] = array[0,:]
