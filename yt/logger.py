@@ -57,7 +57,8 @@ bc = 10
 
 if ytcfg.getboolean("yt","logfile") and os.access(".", os.W_OK):
     if ytcfg.getboolean("yt","unifiedlogfile"):
-        ytHandler = handlers.RotatingFileHandler("yt.log",
+        log_file_name = ytcfg.get("yt","LogFileName")
+        ytHandler = handlers.RotatingFileHandler(log_file_name,
                                                  maxBytes=mb, backupCount=bc)
         k = logging.Formatter(fstring)
         ytHandler.setFormatter(k)

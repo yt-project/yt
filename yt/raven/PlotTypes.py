@@ -31,12 +31,15 @@ all of the engine-appropriate methods.
 from yt.raven import *
 
 class PlotCollection:
-    def __init__(self, pf, deliverator_id=-1):
+    def __init__(self, pf, deliverator_id=-1, center=None):
         be.Initialize()
         self.plots = []
         self._run_id = deliverator_id
         self.pf = pf
-        v,self.c = pf.h.findMax("Density") # @todo: ensure no caching
+        if not center:
+            v,self.c = pf.h.findMax("Density") # @todo: ensure no caching
+        else:
+            self.c = center
         if deliverator_id > 0:
             self.submit = True
             self._run_id = deliverator_id
@@ -113,7 +116,7 @@ class PlotCollection:
         return p
     def add_projection(self, field, axis, weight_field=None,
                       center=None, use_colorbar=True,
-                      figure = None, axes = None):
+                      figure = None, axes = None, fig_size=None):
         # Make the projection object here
         # Pass it in to the engine to get a SlicePlot, which we then append
         # onto self.plots
@@ -121,7 +124,8 @@ class PlotCollection:
             center = self.c
         proj = self.pf.hierarchy.proj(axis, field, weight_field, center=center)
         p = self._add_plot(be.ProjectionPlot(proj, field,
-                         use_colorbar=use_colorbar, axes=axes, figure=figure))
+                         use_colorbar=use_colorbar, axes=axes, figure=figure,
+                         size=fig_size))
         p["Axis"] = lagos.axis_names[axis]
         return p
     def add_twophase_sphere(self, radius, unit, fields, center=None, cmap=None):

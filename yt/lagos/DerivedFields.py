@@ -4,7 +4,11 @@ import numpy as na
 import inspect
 
 # All our math stuff here:
-import scipy.signal
+try:
+    import scipy.signal
+except ImportError:
+    pass
+
 from math import pi
 
 from yt.funcs import *
@@ -222,6 +226,11 @@ def _GridIndices(field, data):
 add_field("GridIndices", validators=[ValidateProperty('id'),
                                      ValidateSpatial(0)])
 
+def _OnesOverDx(field, data):
+    return na.ones(data["Density"].shape,
+                   dtype=data["Density"].dtype)/data['dx']
+add_field("OnesOverDx")
+
 def _Ones(field, data):
     return na.ones(data["Density"].shape,
                    dtype=data["Density"].dtype)
@@ -253,9 +262,6 @@ def _MachNumber(field, data):
     """M{|v|/t_sound}"""
     return data["VelocityMagnitude"] / data["SoundSpeed"]
 add_field("MachNumber")
-
-def _RadialVelocity(field, data):
-    pass
 
 def _VelocityMagnitude(field, data):
     """M{|v|}"""
@@ -452,7 +458,9 @@ add_field("RadialVelocity", function=_RadialVelocity,
           validators=[ValidateParameter("center"),
                       ValidateParameter("bulk_velocity")])
 add_field("RadialVelocityCGS", function=_RadialVelocity,
-          convert_function=_ConvertRadialVelocityCGS, units=r"$\rm{cm}/\rm{s}$")
+          convert_function=_ConvertRadialVelocityCGS, units=r"$\rm{cm}/\rm{s}$",
+          validators=[ValidateParameter("center"),
+                      ValidateParameter("bulk_velocity")])
 
 # Now we add all the fields that we want to control, but we give a null function
 # This is every Enzo field we can think of.  This will be installation-dependent,

@@ -42,18 +42,20 @@ from yt.arraytypes import *
 
 sp = sys.path
 
-if ytcfg.has_option("SWIG", "EnzoInterfacePath"):
-    swig_path = ytcfg.get("SWIG","EnzoInterfacePath")
-    mylog.info("Using %s as path to SWIG Interface", swig_path)
-    sys.path = sys.path[:1] + [swig_path] + sys.path[1:] # We want '' to be the first
-
-try:
-    import EnzoInterface
-    mylog.debug("Imported EnzoInterface successfully")
-    has_SWIG = True
-except ImportError, e:
-    mylog.warning("EnzoInterface failed to import; all SWIG actions will fail")
-    mylog.warning("(%s)", e)
+if ytcfg.getboolean("lagos","useswig"):
+    if ytcfg.has_option("SWIG", "EnzoInterfacePath"):
+        swig_path = ytcfg.get("SWIG","EnzoInterfacePath")
+        mylog.info("Using %s as path to SWIG Interface", swig_path)
+        sys.path = sys.path[:1] + [swig_path] + sys.path[1:] # We want '' to be the first
+    try:
+        import EnzoInterface
+        mylog.debug("Imported EnzoInterface successfully")
+        has_SWIG = True
+    except ImportError, e:
+        mylog.warning("EnzoInterface failed to import; all SWIG actions will fail")
+        mylog.warning("(%s)", e)
+        has_SWIG = False
+else:
     has_SWIG = False
 
 sys.path = sp

@@ -120,7 +120,9 @@ def readDataSliceHDF4(self, grid, field, sl):
     return SD.SD(grid.filename).select(field)[sl].swapaxes(0,2)
 
 def readDataPacked(self, field):
-    f = tables.openFile(self.filename, rootUEP="/Grid%08i" % (self.id))
+    f = tables.openFile(self.filename,
+                        rootUEP="/Grid%08i" % (self.id),
+                        mode='r')
     t = f.getNode("/", field).read()
     t = t.swapaxes(0,2)
     f.close()
@@ -148,8 +150,10 @@ def getFieldsPacked(self):
     Should *only* be called as EnzoGridInstance.getFields, never as getFields(object)
     """
     fls = []
-    f = tables.openFile(self.filename)
-    for fl in f.listNodes("/Grid%08i" % (self.id)):
+    f = tables.openFile(self.filename,
+                        rootUEP="/Grid%08i" % (self.id),
+                        mode='r')
+    for fl in f.listNodes("/"):
         fls.append(fl.name)
     f.close()
     del f

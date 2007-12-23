@@ -197,10 +197,11 @@ class RavenPlot:
 class VMPlot(RavenPlot):
     datalabel = None
     def __init__(self, data, field, figure = None, axes = None,
-                 use_colorbar = True, size=(800,800)):
+                 use_colorbar = True, size=None):
         fields = ['X', 'Y', field, 'X width', 'Y width']
-        size = (10,8)
-        if not use_colorbar: size=(8,8)
+        if not size:
+            size = (10,8)
+            if not use_colorbar: size=(8,8)
         RavenPlot.__init__(self, data, fields, figure, axes, size=size)
         self._figure.subplots_adjust(hspace=0, wspace=0, bottom=0.0,
                                     top=1.0, left=0.0, right=1.0)

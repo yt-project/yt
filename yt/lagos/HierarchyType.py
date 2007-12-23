@@ -27,7 +27,7 @@ from yt.funcs import *
 from collections import defaultdict
 import string, re, gc, time
 import cPickle
-import yt.enki
+#import yt.enki
 
 _data_style_funcs = \
    { 4: (readDataHDF4, readAllDataHDF4, getFieldsHDF4, readDataSliceHDF4, getExceptionHDF4), \
@@ -132,7 +132,7 @@ class EnzoHierarchy:
             self.data_style = 4
             mylog.debug("Detected HDF4")
         except:
-            a = tables.openFile(testGrid)
+            a = tables.openFile(testGrid, 'r')
             for b in a.iterNodes("/"):
                 c = "%s" % (b)
                 break
@@ -185,8 +185,12 @@ class EnzoHierarchy:
         """
         if not ytcfg.getboolean('lagos','serialize'): return
         fn = os.path.join(self.directory,"%s.yt" % self["CurrentTimeIdentifier"])
+        if ytcfg.getboolean('lagos','onlydeserialize'):
+            mode = 'r'
+        else:
+            mode = 'a'
         try:
-            self.__data_file = tables.openFile(fn, "a")
+            self.__data_file = tables.openFile(fn, mode)
         except:
             pass
 
@@ -246,6 +250,7 @@ class EnzoHierarchy:
         if harray:
             mylog.debug("Cached entry found.")
             self.gridDimensions[:] = harray[:,0:3]
+            mylog.debug("Finally got ONE")
             self.gridStartIndices[:] = harray[:,3:6]
             self.gridEndIndices[:] = harray[:,6:9]
             self.gridLeftEdge[:] = harray[:,9:12]
@@ -255,6 +260,7 @@ class EnzoHierarchy:
             self.gridNumberOfParticles[:] = harray[:,17:18]
             del harray
             # Now get the baryon filenames
+            mylog.debug("Getting baryon filenames")
             re_BaryonFileName = constructRegularExpressions("BaryonFileName",('s'))
             t = re.findall(re_BaryonFileName, self.__hierarchy_string)
             for fnI in xrange(len(t)):
@@ -263,8 +269,10 @@ class EnzoHierarchy:
             t = re.findall(re_BaryonFileName, self.__hierarchy_string)
             for fnI in xrange(len(t)):
                 self.grids[fnI].set_filename(t[fnI])
+            mylog.debug("Done with baryon filenames")
             for g in self.grids:
                 self.__setup_filemap(g)
+            mylog.debug("Done with filemap")
         else:
             def __split_convert(vals, func, toAdd, curGrid):
                 """
@@ -363,7 +371,7 @@ class EnzoHierarchy:
             if v == -1: self.gridReverseTree[i] = None
         self.maxLevel = self.gridLevels.max()
         # Now we do things that we need all the grids to do
-        self.fieldList = self.grids[0].getFields()
+        #self.fieldList = self.grids[0].getFields()
         # The rest of this can probably be done with list comprehensions, but
         # I think this way is clearer.
         mylog.debug("Preparing grids")
@@ -378,7 +386,11 @@ class EnzoHierarchy:
         if field_list == None:
             mylog.info("Gathering a field list (this may take a moment.)")
             field_list = sets.Set()
-            random_sample = na.mgrid[0:len(self.grids)-1:20j].astype("int32")
+            if self.num_grids > 40:
+                starter = na.random.randint(0, 20)
+                random_sample = na.mgrid[starter:len(self.grids)-1:20j].astype("int32")
+            else:
+                random_sample = na.mgrid[0:len(self.grids)-1].astype("int32")
             for grid in self.grids[(random_sample,)]:
                 field_list = field_list.union(sets.Set(grid.getFields()))
         self.field_list = list(field_list)

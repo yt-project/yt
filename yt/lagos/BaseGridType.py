@@ -46,9 +46,11 @@ class EnzoGridBase(EnzoData):
         @keyword filename: filename holding grid data
         @type filename: string
         """
-        EnzoData.__init__(self, None, [])
+        #EnzoData.__init__(self, None, [])
+        self.data = {}
+        self.field_parameters = {}
+        self.fields = []
         self.id = id
-        self.datasets = {}
         if hierarchy: self.hierarchy = hierarchy
         if filename: self.set_filename(filename)
         self.overlap_masks = [None, None, None]
@@ -87,7 +89,7 @@ class EnzoGridBase(EnzoData):
         Returns a field or set of fields for a key or set of keys
         """
         if not self.data.has_key(field):
-            if field in self.hierarchy.fieldList:
+            if field in self.hierarchy.field_list:
                 conv_factor = 1.0
                 if fieldInfo.has_key(field):
                     conv_factor = fieldInfo[field]._convert_function(self)
@@ -191,10 +193,10 @@ class EnzoGridBase(EnzoData):
         """
         x = x_dict[axis]
         y = y_dict[axis]
-        cond1 = self.RightEdge[x] > LE[:,x]
-        cond2 = self.LeftEdge[x] < RE[:,x]
-        cond3 = self.RightEdge[y] > LE[:,y]
-        cond4 = self.LeftEdge[y] < RE[:,y]
+        cond1 = self.RightEdge[x] >= LE[:,x]
+        cond2 = self.LeftEdge[x] <= RE[:,x]
+        cond3 = self.RightEdge[y] >= LE[:,y]
+        cond4 = self.LeftEdge[y] <= RE[:,y]
         self.overlap_masks[axis]=na.logical_and(na.logical_and(cond1, cond2), \
                                                  na.logical_and(cond3, cond4))
     def __repr__(self):
@@ -202,7 +204,6 @@ class EnzoGridBase(EnzoData):
 
     def __int__(self):
         return self.id
-
 
     def clear_data(self):
         self._del_child_mask()
@@ -400,17 +401,7 @@ class EnzoGridBase(EnzoData):
         thus, where higher resolution data is available.)
         """
         self.__child_mask = na.ones(self.ActiveDimensions, 'int32')
-        LE = self.hierarchy.gridLeftEdge
-        RE = self.hierarchy.gridRightEdge
-        my_child_grids = na.where(
-                      ( self.RightEdge[0] >= LE[:,0] )
-                    & ( self.LeftEdge[0] <= RE[:,0]  )
-                    & ( self.RightEdge[1] >= LE[:,1] )
-                    & ( self.LeftEdge[1] <= RE[:,1]  )
-                    & ( self.RightEdge[2] >= LE[:,2] )
-                    & ( self.LeftEdge[2] <= RE[:,2]  )
-                    & (self.hierarchy.gridLevels.ravel() == self.Level + 1) )
-        for child in self.hierarchy.grids[my_child_grids]:
+        for child in self.Children:
             # Now let's get our overlap
             si = [None]*3
             ei = [None]*3

@@ -49,11 +49,13 @@ ytcfgDefaults = {
     "lagos":{
         'ReconstructHierarchy': 'False',
         'serialize' : 'True',
+        'onlydeserialize' : 'False',
         'usefortran' : 'False',
         'useswig' : 'False',
         },
     "yt":{
-        'LogFile': 'True',
+        'LogFile': 'False',
+        'LogFileName': 'yt.log',
         'suppressStreamLogging': 'False',
         'LogLevel': '20',
         'unifiedlogfile': '1',
