@@ -111,9 +111,9 @@ def MakePlots(pf, fn, prefix, deliverator):
                 weight = None
                 if fe.attrib.has_key("weight"):
                     weight = fe.attrib["weight"]
-                pc.add_projection(field, 0, weightField=weight)
-                pc.add_projection(field, 1, weightField=weight)
-                pc.add_projection(field, 2, weightField=weight)
+                pc.add_projection(field, 0, weight_field=weight)
+                pc.add_projection(field, 1, weight_field=weight)
+                pc.add_projection(field, 2, weight_field=weight)
                 for width, unit in widths:
                     if (width/pf[unit] < mindx*dx):
                         continue

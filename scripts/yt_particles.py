@@ -111,14 +111,14 @@ for n in range(first,last+1,opts.skip): # This is the array of galaxy outputs we
     mylog.info("Now attempting to zoom in on %s", fn)
     try:
         a = lagos.EnzoStaticOutput(fn)
-        min_dx = a.h.getSmallestDx()
+        min_dx = a.h.get_smallest_dx()
     except:
         mylog.warning("Something messed up!  Are you sure you gave good info?")
         continue
 
     if opts.center == None:
         mylog.info("No center fed in; seeking.")
-        v, center = a.h.findMax("Density")
+        v, center = a.h.find_max("Density")
     else:
         mylog.info("Center fed in; not seeking.")
         center = opts.center

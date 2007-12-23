@@ -50,7 +50,7 @@ for arg in args:
     mylog.info("Now attempting to zoom in on %s", arg)
     try:
         a = lagos.EnzoStaticOutput(arg)
-        min_dx = a.h.getSmallestDx()
+        min_dx = a.h.get_smallest_dx()
         min_width = min_dx * opts.min_width
     except:
         mylog.warning("Something messed up!  Are you sure you specified the file correctly?")
@@ -62,9 +62,9 @@ for arg in args:
     pc = raven.PlotCollection(a)
     for ax in axes:
         mylog.info("Adding plot for axis %i", ax)
-        if opts.projection: pc.addProjection(opts.field, ax,
-                                weightField=opts.weight)
-        else: pc.addSlice(opts.field, ax)
+        if opts.projection: pc.add_projection(opts.field, ax,
+                                weight_field=opts.weight)
+        else: pc.add_slice(opts.field, ax)
     pc.set_width(opts.max_width,'1')
     # Check the output directory
     if not os.path.isdir(opts.output):

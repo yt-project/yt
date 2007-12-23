@@ -88,7 +88,7 @@ for n in range(first,last+1,opts.skip): # This is the array of galaxy outputs we
     mylog.info("Now attempting to make frame from %s", fn)
     try:
         a = lagos.EnzoStaticOutput(fn)
-        min_dx = a.h.getSmallestDx()
+        min_dx = a.h.get_smallest_dx()
     except:
         mylog.warning("Something messed up!  Are you sure you gave good info?")
         continue
@@ -96,7 +96,7 @@ for n in range(first,last+1,opts.skip): # This is the array of galaxy outputs we
     pc=raven.PlotCollection(a)
     if opts.center == None:
         mylog.info("No center fed in; seeking.")
-        v, center = a.h.findMax("Density")
+        v, center = a.h.find_max("Density")
     else:
         mylog.info("Center fed in; not seeking.")
         center = opts.center
@@ -109,9 +109,9 @@ for n in range(first,last+1,opts.skip): # This is the array of galaxy outputs we
         axes = [opts.axis]
     for ax in axes:
         mylog.info("Adding plot for axis %i", ax)
-        if opts.projection: pc.addProjection(opts.field, ax,
-                                weightField=opts.weight, center=center)
-        else: pc.addSlice(opts.field, ax, center=center)
+        if opts.projection: pc.add_projection(opts.field, ax,
+                                weight_field=opts.weight, center=center)
+        else: pc.add_slice(opts.field, ax, center=center)
     pc.set_width(opts.width, opts.unit)
     pc.set_cmap(opts.cmap)
     if opts.zlim: pc.set_zlim(*opts.zlim)
