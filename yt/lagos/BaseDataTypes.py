@@ -930,15 +930,15 @@ class EnzoRegionBase(Enzo3DData):
                                                            self.right_edge)
 
     def _get_cut_mask(self, grid):
-        if na.all( (grid._corners <= self.right_edge)
+        if na.all( (grid._corners < self.right_edge)
                  & (grid._corners >= self.left_edge)):
             return na.ones(grid.ActiveDimensions, dtype='bool')
         pointI = \
-               ( (grid['x'] <= self.right_edge[0])
+               ( (grid['x'] < self.right_edge[0])
                & (grid['x'] >= self.left_edge[0])
-               & (grid['y'] <= self.right_edge[1])
+               & (grid['y'] < self.right_edge[1])
                & (grid['y'] >= self.left_edge[1])
-               & (grid['z'] <= self.right_edge[2])
+               & (grid['z'] < self.right_edge[2])
                & (grid['z'] >= self.left_edge[2]) )
         return pointI
 
