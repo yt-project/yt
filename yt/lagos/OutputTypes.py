@@ -185,6 +185,9 @@ class EnzoStaticOutput(EnzoOutput):
             z = 0
             boxh = 1.0
             self.units['aye'] = 1.0
+            if not self.has_key("TimeUnits"):
+                mylog.warning("No time units.  Setting 1.0 = 1 second.")
+                self.conversion_factors["Time"] = 1.0
         seconds = self["Time"]
         box = boxh/(1+z)
         for unit in unitList.keys():
