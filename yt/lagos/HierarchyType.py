@@ -175,6 +175,7 @@ class EnzoHierarchy:
         self.region = classobj("EnzoRegion",(EnzoRegionBase,), dd)
         self.covering_grid = classobj("EnzoCoveringGrid",(EnzoCoveringGrid,), dd)
         self.sphere = classobj("EnzoSphere",(EnzoSphereBase,), dd)
+        self.cutting = classobj("EnzoCuttingPlane",(EnzoCuttingPlaneBase,), dd)
 
     def __initialize_data_file(self):
         """
@@ -390,7 +391,7 @@ class EnzoHierarchy:
                 starter = na.random.randint(0, 20)
                 random_sample = na.mgrid[starter:len(self.grids)-1:20j].astype("int32")
             else:
-                random_sample = na.mgrid[0:len(self.grids)-1].astype("int32")
+                random_sample = na.mgrid[0:max(len(self.grids)-1,1)].astype("int32")
             for grid in self.grids[(random_sample,)]:
                 field_list = field_list.union(sets.Set(grid.getFields()))
         self.field_list = list(field_list)
