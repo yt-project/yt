@@ -56,7 +56,7 @@ static PyObject* Py_Pixelize(PyObject *obj, PyObject *args) {
   double x_min, x_max, y_min, y_max;
 
     if (!PyArg_ParseTuple(args, "OOOOOII(dddd)",
-        &xp, &yp, &dxp, &dyp, &dp, &cols, &rows, 
+        &xp, &yp, &dxp, &dyp, &dp, &cols, &rows,
         &x_min, &x_max, &y_min, &y_max))
         return PyErr_Format(_pixelizeError, "Pixelize: Invalid Parameters.");
 
@@ -154,17 +154,18 @@ static PyObject* Py_Pixelize(PyObject *obj, PyObject *args) {
     lr = max(((ys[p]-dys[p]-y_min)/px_dy),0);
     rc = min(((xs[p]+dxs[p]-x_min)/px_dx), rows);
     rr = min(((ys[p]+dys[p]-y_min)/px_dy), cols);
-    for (i=lr;i<rr;i++)
+    for (i=lr;i<rr;i++) {
+      lypx = px_dy * i + y_min;
+      rypx = px_dy * (i+1) + y_min;
+      overlap2 = ((min(rypx, ys[p]+dys[p]) - max(lypx, (ys[p]-dys[p])))/px_dy);
       for (j=lc;j<rc;j++) {
-        lypx = px_dy * i + y_min;
-        rypx = px_dy * (i+1) + y_min;
         lxpx = px_dx * j + x_min;
         rxpx = px_dx * (j+1) + x_min;
         overlap1 = ((min(rxpx, xs[p]+dxs[p]) - max(lxpx, (xs[p]-dxs[p])))/px_dx);
-        overlap2 = ((min(rypx, ys[p]+dys[p]) - max(lypx, (ys[p]-dys[p])))/px_dy);
         if (overlap1 < 0.0 || overlap2 < 0.0) continue;
         gridded[j*cols+i] += (ds[p]*overlap1)*(overlap2);
       }
+    }
   }
 
   /*for (p = 0 ; p < cols * rows ; p++)
