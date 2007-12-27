@@ -211,8 +211,9 @@ class VMPlot(RavenPlot):
         self.xmax = 1.0
         self.ymax = 1.0
         self.cmap = None
-        self._x_max = self._ax_max[lagos.x_dict[self.data.axis]]
-        self._y_max = self._ax_max[lagos.y_dict[self.data.axis]]
+        if self.data.axis < 3:
+            self._x_max = self._ax_max[lagos.x_dict[self.data.axis]]
+            self._y_max = self._ax_max[lagos.y_dict[self.data.axis]]
         self.__setup_from_field(field)
         self.__init_temp_image(use_colorbar)
 
@@ -243,8 +244,7 @@ class VMPlot(RavenPlot):
             self.colorbar = None
         self.set_width(1,'1')
 
-    def _redraw_image(self, *args):
-        self._axes.clear() # To help out the colorbar
+    def _get_buff(self):
         x0, x1 = self.xlim
         y0, y1 = self.ylim
         l, b, width, height = self._axes.bbox.get_bounds()
@@ -258,7 +258,11 @@ class VMPlot(RavenPlot):
                             self[self.axis_names["Z"]],
                             int(width), int(width),
                         (x0, x1, y0, y1),).transpose()
-        print x0, x1, y0, y1, width, width
+        return buff
+
+    def _redraw_image(self, *args):
+        self._axes.clear() # To help out the colorbar
+        buff = self._get_buff()
         mylog.debug("Received buffer of min %s and max %s (%s %s)",
                     buff.min(), buff.max(),
                     self[self.axis_names["Z"]].min(),
@@ -275,6 +279,10 @@ class VMPlot(RavenPlot):
         self.image = \
             self._axes.imshow(buff, interpolation='nearest', norm = self.norm,
                             aspect=1.0, picker=True, origin='lower')
+        self._reset_image_parameters()
+        self._run_callbacks()
+
+    def _reset_image_parameters(self):
         self._axes.set_xticks(())
         self._axes.set_yticks(())
         self._axes.set_ylabel("")
@@ -284,7 +292,6 @@ class VMPlot(RavenPlot):
         if self.colorbar != None:
             self.colorbar.notify(self.image)
         self.autoset_label()
-        self._run_callbacks()
 
     def set_xlim(self, xmin, xmax):
         self.xlim = (xmin,xmax)
@@ -389,6 +396,45 @@ class ProjectionPlot(VMPlot):
         return self.data[item] * \
                   self.data.hierarchy.parameter_file.units["cm"]
                   #self.data.hierarchy.parameter_file.conversion_factors[item] * \
+
+class CuttingPlanePlot(SlicePlot):
+    _type_name = "CuttingPlane"
+    def _get_buff(self):
+        px_min, px_max = self.xlim
+        py_min, py_max = self.ylim
+        l, b, width, height = self._axes.bbox.get_bounds()
+        pxs, pys, pzs = self.data['px'], self.data['py'], self.data['pz']
+        xs, ys, zs = self.data['x'], self.data['y'], self.data['z']
+        dxs, dys, dzs = self.data['pdx'], self.data['pdy'], self.data['pdz']
+        ds = self.data[self.axis_names['Z']]
+        nx = ds.size
+        inv_mat = self.data._inv_mat
+        center = na.array(self.data.center)
+        buff = na.zeros((width,height), dtype='float64')
+        weave.inline(_pixelize_cp,
+                    ['pxs','pys','pzs','xs','ys','zs','dxs','dys','dzs',
+                    'buff','ds','nx','inv_mat','width','height',
+                      'px_min','px_max','py_min','py_max', 'center'],
+                    compiler='gcc', type_converters=converters.blitz,
+                     auto_downcast = 0)
+        return buff
+
+    def _refresh_display_width(self, width=None):
+        if width:
+            self.width = width
+        else:
+            width = self.width
+        if iterable(width):
+            width_x, width_y = width
+        else:
+            width_x = width
+            width_y = width
+        l_edge_x = -width_x/2.0
+        r_edge_x = +width_x/2.0
+        l_edge_y = -width_y/2.0
+        r_edge_y = +width_y/2.0
+        self.set_xlim(l_edge_x, r_edge_x) # We have no real limits
+        self.set_ylim(l_edge_y, r_edge_y) # At some point, perhaps calculate them?
 
 class PhasePlot(RavenPlot):
     def __init__(self, data, fields, width=None, unit=None, bins=100,
@@ -651,3 +697,53 @@ def contourCallback(field, axis, ncont=5, factor=4):
         plot.axes.set_ylim(yy0,yy1)
         plot.axes.hold(False)
     return runCallback
+
+_pixelize_cp = r"""
+
+long double md, lxpx, rxpx, lypx, rypx;
+long double lrx, lry, lrz, rrx, rry, rrz;
+int lc, lr, rc, rr;
+
+long double px_dx, px_dy, px_dz, overlap1, overlap2, overlap3;
+px_dx = (px_max-px_min)/height;
+px_dy = (py_max-py_min)/width;
+px_dz = sqrt(0.5 * (px_dy*px_dy + px_dx*px_dx));
+
+#define min(X,Y) ((X) < (Y) ? (X) : (Y))
+#define max(X,Y) ((X) > (Y) ? (X) : (Y))
+using namespace std;
+
+for(int i=0; i<width; i++) for(int j=0; j<height; j++) buff(i,j)=0.0;
+
+for(int p=0; p<nx; p++)
+{
+    // Any point we want to plot is at most this far from the center
+    md = sqrt(dxs(p)*dxs(p) + dys(p)*dys(p) + dzs(p)*dzs(p));
+    if(((pxs(p)+md<px_min) ||
+        (pxs(p)-md>px_max)) ||
+       ((pys(p)+md<py_min) ||
+        (pys(p)-md>py_max))) continue;
+    lc = max(((pxs(p)-md-px_min)/px_dx),0);
+    lr = max(((pys(p)-md-py_min)/px_dy),0);
+    rc = min(((pxs(p)+md-px_min)/px_dx),height);
+    rr = min(((pys(p)+md-py_min)/px_dy),width);
+    for (int i=lr;i<rr;i++) {
+      lypx = px_dy * i + py_min;
+      rypx = px_dy * (i+1) + py_min;
+      for (int j=lc;j<rc;j++) {
+        lxpx = px_dx * j + px_min;
+        rxpx = px_dx * (j+1) + px_min;
+        lrx = inv_mat(0,0)*lxpx + inv_mat(0,1)*lypx + center(0);
+        lry = inv_mat(1,0)*lxpx + inv_mat(1,1)*lypx + center(1);
+        lrz = inv_mat(2,0)*lxpx + inv_mat(2,1)*lypx + center(2);
+        rrx = inv_mat(0,0)*rxpx + inv_mat(0,1)*rypx + center(0);
+        rry = inv_mat(1,0)*rxpx + inv_mat(1,1)*rypx + center(1);
+        rrz = inv_mat(2,0)*rxpx + inv_mat(2,1)*rypx + center(2);
+        if(((abs(xs(p)-lrx)>1.01*dxs(p)) && (abs(xs(p)-rrx)>1.01*dxs(p))) ||
+           ((abs(ys(p)-lry)>1.01*dys(p)) && (abs(ys(p)-rry)>1.01*dys(p))) ||
+           ((abs(zs(p)-lrz)>1.01*dzs(p)) && (abs(zs(p)-rrz)>1.01*dzs(p)))) continue;
+        buff(i,j) = ds(p);
+      }
+    }
+}
+"""

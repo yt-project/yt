@@ -32,7 +32,7 @@ MAXLEVEL=48
 NUMTOCHECK=2
 
 axis_labels = [('y','z'),('x','z'),('x','y')]
-axis_names = {0: 'x', 1: 'y', 2: 'z'}
+axis_names = {0: 'x', 1: 'y', 2: 'z', 4:''}
 
 vm_axis_names = {0:'x', 1:'y', 2:'z', 3:'dx', 4:'dy'}
 

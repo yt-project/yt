@@ -114,6 +114,19 @@ class PlotCollection:
                                       axes=axes, figure=figure))
         p["Axis"] = lagos.axis_names[axis]
         return p
+
+    def add_cutting_plane(self, field, normal,
+                          center=None, use_colorbar=True,
+                          figure = None, axes = None, fig_size=None):
+        if center == None:
+            center = self.c
+        cp = self.pf.hierarchy.cutting(normal, center, field)
+        p = self._add_plot(be.CuttingPlanePlot(cp, field,
+                         use_colorbar=use_colorbar, axes=axes, figure=figure,
+                         size=fig_size))
+        p["Axis"] = "CuttingPlane"
+        return p
+
     def add_projection(self, field, axis, weight_field=None,
                       center=None, use_colorbar=True,
                       figure = None, axes = None, fig_size=None):

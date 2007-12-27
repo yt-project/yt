@@ -34,7 +34,7 @@ def restore_grid_state(func):
         grid.field_parameters = old_params
         return tr
     return save_state
-    
+
 
 class EnzoData:
     """
@@ -432,14 +432,14 @@ class EnzoCuttingPlaneBase(Enzo2DData):
         self['px'] = na.dot(pos, self._x_vec)
         self['py'] = na.dot(pos, self._y_vec)
         self['pz'] = na.dot(pos, self._norm_vec)
-        self['pdx'] = t[:,3]
-        self['pdy'] = t[:,3]
-        self['pdz'] = t[:,3]
+        self['pdx'] = t[:,3] * 0.5
+        self['pdy'] = t[:,3] * 0.5
+        self['pdz'] = t[:,3] * 0.5
 
     def _generate_grid_coords(self, grid):
         pointI = self._get_point_indices(grid)
         coords = [grid[ax][pointI].ravel() for ax in 'xyz']
-        coords.append(na.ones(coords[0].shape, 'float64') * grid['dx']/2.0)
+        coords.append(na.ones(coords[0].shape, 'float64') * grid['dx'])
         return na.array(coords).swapaxes(0,1)
 
     def _get_data_from_grid(self, grid, field):
