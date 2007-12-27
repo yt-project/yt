@@ -119,6 +119,7 @@ class RavenPlot:
         self.im = defaultdict(lambda: "")
         self["ParameterFile"] = "%s" % self.data.pf
         self.axis_names = {}
+        self._ax_max = self.data.pf["DomainRightEdge"]
         if not figure:
             self._figure = matplotlib.figure.Figure(size)
         else:
@@ -210,6 +211,8 @@ class VMPlot(RavenPlot):
         self.xmax = 1.0
         self.ymax = 1.0
         self.cmap = None
+        self._x_max = self._ax_max[lagos.x_dict[self.data.axis]]
+        self._y_max = self._ax_max[lagos.y_dict[self.data.axis]]
         self.__setup_from_field(field)
         self.__init_temp_image(use_colorbar)
 
@@ -255,6 +258,11 @@ class VMPlot(RavenPlot):
                             self[self.axis_names["Z"]],
                             int(width), int(width),
                         (x0, x1, y0, y1),).transpose()
+        print x0, x1, y0, y1, width, width
+        mylog.debug("Received buffer of min %s and max %s (%s %s)",
+                    buff.min(), buff.max(),
+                    self[self.axis_names["Z"]].min(),
+                    self[self.axis_names["Z"]].max())
         if self.log_field:
             bI = na.where(buff > 0)
             newmin = buff[bI].min()
@@ -304,12 +312,17 @@ class VMPlot(RavenPlot):
             self.width = width
         else:
             width = self.width
-        l_edge_x = self.data.center[lagos.x_dict[self.data.axis]] - width/2.0
-        r_edge_x = self.data.center[lagos.x_dict[self.data.axis]] + width/2.0
-        l_edge_y = self.data.center[lagos.y_dict[self.data.axis]] - width/2.0
-        r_edge_y = self.data.center[lagos.y_dict[self.data.axis]] + width/2.0
-        self.set_xlim(max(l_edge_x,0.0), min(r_edge_x,1.0))
-        self.set_ylim(max(l_edge_y,0.0), min(r_edge_y,1.0))
+        if iterable(width):
+            width_x, width_y = width
+        else:
+            width_x = width
+            width_y = width
+        l_edge_x = self.data.center[lagos.x_dict[self.data.axis]] - width_x/2.0
+        r_edge_x = self.data.center[lagos.x_dict[self.data.axis]] + width_x/2.0
+        l_edge_y = self.data.center[lagos.y_dict[self.data.axis]] - width_y/2.0
+        r_edge_y = self.data.center[lagos.y_dict[self.data.axis]] + width_y/2.0
+        self.set_xlim(max(l_edge_x,0.0), min(r_edge_x,self._x_max))
+        self.set_ylim(max(l_edge_y,0.0), min(r_edge_y,self._y_max))
         self._redraw_image()
 
     def autoscale(self):
