@@ -2,6 +2,9 @@
 Test that we can get outputs, and interact with them in some primitive ways.
 """
 
+# @TODO: Add unit test for deleting field from fieldInfo
+# @TODO: Profile unit testing, including for small spheres
+
 import unittest, glob, os.path, os, sys, StringIO
 
 print "Reporting from %s" % (os.getcwd())
