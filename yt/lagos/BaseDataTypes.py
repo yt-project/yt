@@ -25,6 +25,17 @@ Various non-grid data containers.
 
 from yt.lagos import *
 
+def restore_grid_state(func):
+    def save_state(self, grid, field=None):
+        old_params = grid.field_parameters
+        #print old_params, self.field_parameters
+        grid.field_parameters = self.field_parameters
+        tr = func(self, grid, field)
+        grid.field_parameters = old_params
+        return tr
+    return save_state
+    
+
 class EnzoData:
     """
     Generic EnzoData container.  By itself, will attempt to
@@ -317,6 +328,7 @@ class EnzoSliceBase(Enzo2DData):
         t = na.array([xpoints, ypoints, zpoints, dx]).swapaxes(0,1)
         return t
 
+    @restore_grid_state
     def _get_data_from_grid(self, grid, field):
         # So what's our index of slicing?  This is what we need to figure out
         # first, so we can deal with our data in the fastest way.
@@ -343,7 +355,11 @@ class EnzoSliceBase(Enzo2DData):
 
     def _generate_field_in_grids(self, field, num_ghost_zones=0):
         for grid in self._grids:
-            temp = grid[field]
+            self.__touch_grid_field(grid, field)
+
+    @restore_grid_state
+    def __touch_grid_field(self, grid, field):
+        grid[field]
 
 class EnzoCuttingPlaneBase(Enzo2DData):
     _plane = None
@@ -598,6 +614,7 @@ class EnzoProjBase(Enzo2DData):
         bad_points[pointI] = 1.0
         return bad_points
 
+    @restore_grid_state
     def _get_data_from_grid(self, grid, field):
         bad_points = self._get_used_points(grid)
         d = grid[field] * bad_points
@@ -747,7 +764,8 @@ class Enzo3DData(EnzoData):
         #self['dz'] = t
         mylog.info("Done with coordinates")
 
-    def _generate_grid_coords(self, grid):
+    @restore_grid_state
+    def _generate_grid_coords(self, grid, field=None):
         pointI = self._get_point_indices(grid)
         dx = na.ones(pointI[0].shape[0], 'float64') * grid.dx
         tr = na.array([grid['x'][pointI].ravel(), \
@@ -778,15 +796,17 @@ class Enzo3DData(EnzoData):
                 [self._get_data_from_grid(grid, field)
                  for grid in self._grids])
 
+    @restore_grid_state
     def _get_data_from_grid(self, grid, field):
-        if not fieldInfo[field].variable_length:
+        if fieldInfo.has_key(field) and fieldInfo[field].variable_length:
+            tr = grid[field]
+            return tr
+        else:
             pointI = self._get_point_indices(grid)
             if grid[field].size == 1: # dx, dy, dz, cellvolume
                 t = grid[field] * na.ones(grid.ActiveDimensions)
                 return t[pointI].ravel()
             return grid[field][pointI].ravel()
-        else:
-            return grid[field]
 
     def _generate_field(self, field):
         if fieldInfo.has_key(field):
@@ -805,9 +825,14 @@ class Enzo3DData(EnzoData):
 
     def _generate_field_in_grids(self, field, num_ghost_zones=0):
         for grid in self._grids:
-            temp = grid[field]
+            self.__touch_grid_field(field, grid)
 
-    def _get_point_indices(self, grid):
+    @restore_grid_state
+    def __touch_grid_field(self, field, grid):
+        grid[field]
+
+    @restore_grid_state
+    def _get_point_indices(self, grid, field=None):
         k = na.zeros(grid.ActiveDimensions, dtype='bool')
         k[self._get_cut_mask(grid)] = True
         pointI = na.where(k & grid.child_mask)
@@ -974,13 +999,15 @@ class EnzoSphereBase(Enzo3DData):
         @type fields: list of strings
         """
         Enzo3DData.__init__(self, center, fields, pf)
+        self.set_field_parameter('radius',radius)
         self.radius = radius
         self._refresh_data()
 
     def _get_list_of_grids(self, field = None):
         self._grids,ind = self.hierarchy.find_sphere_grids(self.center, self.radius)
 
-    def _get_cut_mask(self, grid):
+    @restore_grid_state
+    def _get_cut_mask(self, grid, field=None):
         # We have the *property* center, which is not necessarily
         # the same as the field_parameter
         corner_radius = na.sqrt(((grid._corners - self.center)**2.0).sum(axis=1))
@@ -1062,6 +1089,7 @@ class EnzoCoveringGrid(Enzo3DData):
             if na.any(self[field] == -999) and len(self._grids) > 1:
                 raise KeyError
 
+    @restore_grid_state
     def _get_data_from_grid(self, grid, fields):
         for field in ensure_list(fields):
             locals_dict = self.__setup_weave_dict(grid)

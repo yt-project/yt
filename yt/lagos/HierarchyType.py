@@ -390,10 +390,13 @@ class EnzoHierarchy:
             if self.num_grids > 40:
                 starter = na.random.randint(0, 20)
                 random_sample = na.mgrid[starter:len(self.grids)-1:20j].astype("int32")
+                mylog.debug("Checking grids: %s", random_sample.tolist())
             else:
                 random_sample = na.mgrid[0:max(len(self.grids)-1,1)].astype("int32")
             for grid in self.grids[(random_sample,)]:
-                field_list = field_list.union(sets.Set(grid.getFields()))
+                gf = grid.getFields()
+                mylog.debug("Grid %s has: %s", grid.id, gf)
+                field_list = field_list.union(sets.Set(gf))
         self.field_list = list(field_list)
         self.levelIndices = {}
         self.levelNum = {}

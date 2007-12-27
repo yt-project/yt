@@ -186,9 +186,9 @@ class BinnedProfile2D(BinnedProfile):
         used_field = self._get_empty_field()
         bin_indices_x = args[0].ravel()
         bin_indices_y = args[1].ravel()
-        self.total_cells += source_data.size
-        #mylog.debug("Binning %s times", source_data.size)
-        nx = source_data.size
+        self.total_cells += bin_indices_x.size
+        nx = bin_indices_x.size
+        mylog.debug("Binning %s / %s times", source_data.size, nx)
         try:
             weave.inline(_2d_profile_code, ['nx','bin_indices_x','bin_indices_y',
                                 'weight_field','weight_data',
@@ -221,20 +221,28 @@ class BinnedProfile2D(BinnedProfile):
             source_data_y = source[self.y_bin_field]
         if source_data_x.size == 0:
             return
-
-        sd_x = na.clip(source_data_x.ravel(), self[self.x_bin_field].min()/0.99,
-                                              self[self.x_bin_field].max()/1.01)
-        sd_y = na.clip(source_data_y.ravel(), self[self.y_bin_field].min()/0.99,
-                                              self[self.y_bin_field].max()/1.01)
+        mi = na.where( (source_data_x > self[self.x_bin_field].min())
+                     & (source_data_x < self[self.x_bin_field].max())
+                     & (source_data_y > self[self.y_bin_field].min())
+                     & (source_data_y < self[self.y_bin_field].max()))
+        sd_x = source_data_x[mi]
+        sd_y = source_data_y[mi]
+        if sd_x.size == 0 or sd_y.size == 0:
+            return
         bin_indices_x = na.digitize(sd_x, self[self.x_bin_field])
         bin_indices_y = na.digitize(sd_y, self[self.y_bin_field])
+        #print bin_indices_x.max(), bin_indices_y.max(),
+        #print bin_indices_x.min(), bin_indices_y.min(),
+        #print sd_x.size, sd_y.size
         # Now we set up our inverse bin indices
         return (bin_indices_x, bin_indices_y)
 
 
 _2d_profile_code = r"""
        int i,j;
+        using namespace std;
        for(int n = 0; n < nx ; n++) {
+         //cerr << bin_indices_x(n) << "\t" << bin_indices_y(n) << endl;
          i = bin_indices_x(n)-1;
          j = bin_indices_y(n)-1;
          weight_field(i,j) += weight_data(n);

@@ -355,10 +355,15 @@ def _CellVolume(field, data):
         return data['dx']*data['dy']*data['dx']*\
             na.ones(data.ActiveDimensions, dtype='float64')
     return data["dx"]*data["dy"]*data["dz"]
+def _ConvertCellVolumeMpc(data):
+    return data.convert("mpc")**3.0
 def _ConvertCellVolumeCGS(data):
     return data.convert("cm")**3.0
 add_field("CellVolumeCode", units=r"$\rm{BoxVolume}^3$",
           function=_CellVolume)
+add_field("CellVolumeMpc", units=r"$\rm{Mpc}^3$",
+          function=_CellVolume,
+          convert_function=_ConvertCellVolumeMpc)
 add_field("CellVolume", units=r"$\rm{cm}^3$",
           function=_CellVolume,
           convert_function=_ConvertCellVolumeCGS)
