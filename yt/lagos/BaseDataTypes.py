@@ -145,6 +145,36 @@ class Enzo2DData(EnzoData):
         self.axis = axis
         EnzoData.__init__(self, pf, fields)
 
+    @time_execution
+    def get_data(self, fields = None):
+        """
+        Iterates over the list of fields and generates/reads them all.
+
+        @keyword field: field to add (list or single)
+        @type field: string or list of strings
+        """
+        # We get it for the values in fields and coords
+        # We take a 3-tuple of the coordinate we want to slice through, as well
+        # as the axis we're slicing along
+        self._get_list_of_grids()
+        if not self.has_key('dx'):
+            self._generate_coords()
+        if fields == None:
+            fields_to_get = self.fields
+        else:
+            fields_to_get = ensure_list(fields)
+        for field in fields_to_get:
+            if self.data.has_key(field):
+                continue
+            rvs=[]
+            if field not in self.hierarchy.field_list:
+                if self._generate_field(field):
+                    continue # A "True" return means we did it
+            self[field] = na.concatenate(
+                [self._get_data_from_grid(grid, field)
+                 for grid in self._grids])
+
+
     def _generate_field(self, field):
         """
         Generates, or attempts to generate, a field not found in the data file
@@ -166,6 +196,9 @@ class Enzo2DData(EnzoData):
         else: # Can't find the field, try as it might
             raise exceptions.KeyError(field)
 
+    def _generate_field_in_grids(self, field, num_ghost_zones=0):
+        for grid in self._grids:
+            temp = grid[field]
 
     def interpolate_discretize(self, LE, RE, field, side, logSpacing=True):
         """
@@ -276,34 +309,8 @@ class EnzoSliceBase(Enzo2DData):
 
         self.ActiveDimensions = (t.shape[0], 1, 1)
 
-    @time_execution
-    def get_data(self, fields = None):
-        """
-        Iterates over the list of fields and generates/reads them all.
-
-        @keyword field: field to add (list or single)
-        @type field: string or list of strings
-        """
-        # We get it for the values in fields and coords
-        # We take a 3-tuple of the coordinate we want to slice through, as well
-        # as the axis we're slicing along
+    def _get_list_of_grids(self):
         self._grids, ind = self.hierarchy.find_slice_grids(self.coord, self.axis)
-        if not self.has_key('dx'):
-            self._generate_coords()
-        if fields == None:
-            fields_to_get = self.fields
-        else:
-            fields_to_get = ensure_list(fields)
-        for field in fields_to_get:
-            if self.data.has_key(field):
-                continue
-            rvs=[]
-            if field not in self.hierarchy.field_list:
-                if self._generate_field(field):
-                    continue # A "True" return means we did it
-            self[field] = na.concatenate(
-                [self._get_data_from_grid(grid, field)
-                 for grid in self._grids])
 
     def _generate_grid_coords(self, grid):
         xaxis = x_dict[self.axis]
@@ -363,32 +370,96 @@ class EnzoSliceBase(Enzo2DData):
 
 class EnzoCuttingPlaneBase(Enzo2DData):
     _plane = None
-    def __init__(self, normal, point, fields = None):
-        Enzo2DData.__init__(self, 4, fields, pf)
+    def __init__(self, normal, center, fields = None):
+        Enzo2DData.__init__(self, 4, fields)
+        self.center = center
+        self._cut_masks = {}
         # Let's set up our plane equation
         # ax + by + cz + d = 0
         self._norm_vec = normal/na.sqrt(na.dot(normal,normal))
-        self._d = na.dot(self._norm_vec, point)
+        self._d = -1.0 * na.dot(self._norm_vec, self.center)
+        # First we try all three, see which has the best result:
+        vecs = na.identity(3)
+        _t = na.cross(self._norm_vec, vecs).sum(axis=1)
+        ax = nd.maximum_position(_t)
+        self._x_vec = na.cross(vecs[ax,:], self._norm_vec).ravel()
+        self._x_vec /= na.dot(self._x_vec, self._x_vec)
+        self._y_vec = na.cross(self._norm_vec, self._x_vec).ravel()
+        self._y_vec /= na.dot(self._y_vec, self._y_vec)
+        self._rot_mat = na.array([self._x_vec,self._y_vec,self._norm_vec])
+        self._inv_mat = na.linalg.pinv(self._rot_mat)
+        self._refresh_data()
 
-    def _identify_grids(self):
-        # We want to examine each grid and see if any opposing corner vertices
-        # are on opposite sides of the plane
-        # Check these pairs: [ (LLL,RRR), (LLR,RRL), (LRR,RLL), (LRL,RLR) ]
+    def _get_list_of_grids(self):
+        # Recall that the projection of the distance vector from a point
+        # onto the normal vector of a plane is:
+        # D = (a x_0 + b y_0 + c z_0 + d)/sqrt(a^2+b^2+c^2)
         LE = self.pf.h.gridLeftEdge
         RE = self.pf.h.gridRightEdge
-        vertices = na.array([[[LE[:,0],LE[:,1],LE[:,2]],
-                              [RE[:,0],RE[:,1],RE[:,2]]],
-                             [[LE[:,0],LE[:,1],RE[:,2]],
-                              [RE[:,0],RE[:,1],LE[:,2]]],
-                             [[LE[:,0],RE[:,1],RE[:,2]],
-                              [RE[:,0],LE[:,1],LE[:,2]]],
-                             [[LE[:,0],RE[:,1],LE[:,2]],
-                              [RE[:,0],LE[:,1],RE[:,2]]]])
-        # This gives us shape: 4, 2, 3, n_grid
-        intersect
-        #for i in [0,1,2,3]:
-            # Iterate over each pair
+        vertices = na.array([[LE[:,0],LE[:,1],LE[:,2]],
+                             [RE[:,0],RE[:,1],RE[:,2]],
+                             [LE[:,0],LE[:,1],RE[:,2]],
+                             [RE[:,0],RE[:,1],LE[:,2]],
+                             [LE[:,0],RE[:,1],RE[:,2]],
+                             [RE[:,0],LE[:,1],LE[:,2]],
+                             [LE[:,0],RE[:,1],LE[:,2]],
+                             [RE[:,0],LE[:,1],RE[:,2]]])
+        # This gives us shape: 8, 3, n_grid
+        D = na.sum(self._norm_vec.reshape((1,3,1)) * vertices, axis=1) + self._d
+        self.D = D
+        self._grids = self.hierarchy.grids[
+            na.where(na.logical_not(na.all(D<0,axis=0) | na.all(D>0,axis=0) )) ]
 
+    def _get_cut_mask(self, grid):
+        if self._cut_masks.has_key(grid.id):
+            return self._cut_masks[grid.id]
+        # This is slow.
+        D = na.sum(self._norm_vec.reshape((3,1,1,1)) * \
+            na.array([grid['x'],grid['y'],grid['z']]), axis=0) + self._d
+        diag_dist = na.sqrt(grid['dx'][0]**2.0
+                          + grid['dy'][0]**2.0
+                          + grid['dz'][0]**2.0)
+        cm = na.where(na.abs(D) <= 0.5*diag_dist)
+        self._cut_masks[grid.id] = cm
+        return cm
+
+    def _generate_coords(self):
+        points = []
+        for grid in self._grids:
+            points.append(self._generate_grid_coords(grid))
+        t = na.concatenate(points)
+        pos = (t[:,0:3] - self.center)
+        self['px'] = na.dot(pos, self._x_vec)
+        self['py'] = na.dot(pos, self._y_vec)
+        self['pz'] = na.dot(pos, self._norm_vec)
+        self['pdx'] = t[:,3]
+        self['pdy'] = t[:,3]
+        self['pdz'] = t[:,3]
+
+    def _generate_grid_coords(self, grid):
+        pointI = self._get_point_indices(grid)
+        coords = [grid[ax][pointI].ravel() for ax in 'xyz']
+        coords.append(na.ones(coords[0].shape, 'float64') * grid['dx']/2.0)
+        return na.array(coords).swapaxes(0,1)
+
+    def _get_data_from_grid(self, grid, field):
+        if not fieldInfo[field].variable_length:
+            pointI = self._get_point_indices(grid)
+            if grid[field].size == 1: # dx, dy, dz, cellvolume
+                t = grid[field] * na.ones(grid.ActiveDimensions)
+                return t[pointI].ravel()
+            return grid[field][pointI].ravel()
+        else:
+            return grid[field]
+
+    def interpolate_discretize(self, *args, **kwargs):
+        pass
+
+    def _get_point_indices(self, grid):
+        k = na.zeros(grid.ActiveDimensions, dtype='bool')
+        k[self._get_cut_mask(grid)] = True
+        pointI = na.where(k & grid.child_mask)
+        return pointI
 
 class EnzoProjBase(Enzo2DData):
     def __init__(self, axis, field, weight_field = None,
