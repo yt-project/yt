@@ -25,6 +25,21 @@ Profile class, to deal with generating and obtaining profiles
 
 from yt.lagos import *
 
+def preserve_source_parameters(func):
+    def save_state(*args, **kwargs):
+        prof = args[0]
+        source = args[1]
+        if hasattr(source, 'field_parameters'):
+            old_params = source.field_parameters
+            source.field_parameters = prof._data_source.field_parameters
+            tr = func(*args, **kwargs)
+            source.field_parameters = old_params
+        else:
+            tr = func(*args, **kwargs)
+        #print func.func_name, tr
+        return tr
+    return save_state
+
 # Note we do not inherit from EnzoData.
 # We could, but I think we instead want to deal with the root datasource.
 class BinnedProfile:
@@ -99,6 +114,7 @@ class BinnedProfile1D(BinnedProfile):
     def _get_empty_field(self):
         return na.zeros(self[self.bin_field].size, dtype='float64')
 
+    @preserve_source_parameters
     def _bin_field(self, source, field, weight, accumulation,
                    args, check_cut=False):
         inv_bin_indices = args
@@ -122,6 +138,7 @@ class BinnedProfile1D(BinnedProfile):
             binned_field = na.add.accumulate(binned_field)
         return binned_field, weight_field, True
 
+    @preserve_source_parameters
     def _get_bins(self, source, check_cut=False):
         if check_cut:
             cm = self._data_source._get_point_indices(source)
@@ -168,6 +185,7 @@ class BinnedProfile2D(BinnedProfile):
         return na.zeros((self[self.x_bin_field].size,
                          self[self.y_bin_field].size), dtype='float64')
 
+    @preserve_source_parameters
     def _bin_field(self, source, field, weight, accumulation,
                    args, check_cut=False):
         #mylog.debug("Binning %s", field)
@@ -211,6 +229,7 @@ class BinnedProfile2D(BinnedProfile):
                 binned_field = na.add.accumulate(binned_field, axis=1)
         return binned_field, weight_field, used_field.astype('bool')
 
+    @preserve_source_parameters
     def _get_bins(self, source, check_cut=False):
         if check_cut:
             cm = self._data_source._get_point_indices(source)

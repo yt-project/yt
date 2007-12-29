@@ -3,7 +3,6 @@ Test that we can get outputs, and interact with them in some primitive ways.
 """
 
 # @TODO: Add unit test for deleting field from fieldInfo
-# @TODO: Profile unit testing, including for small spheres
 
 import unittest, glob, os.path, os, sys, StringIO
 
@@ -111,16 +110,58 @@ def _returnFieldFunction(field):
             pass
     return field_function
 
+def _returnProfile1DFunction(field, weight, accumulation, lazy):
+    def add_field_function(self):
+        self.data.set_field_parameter("center",[.5,.5,.5])
+        profile = yt.lagos.BinnedProfile1D(
+            self.data, 8, "RadiusCode", 0, 1.0, False, lazy)
+        profile.add_fields(field, weight=weight, accumulation=accumulation)
+    return add_field_function
+
+def _returnProfile2DFunction(field, weight, accumulation, lazy):
+    def add_field_function(self):
+        self.data.set_field_parameter("center",[.5,.5,.5])
+        cv_min = self.hierarchy.gridDxs.min()**3.0
+        cv_max = self.hierarchy.gridDxs.max()**3.0
+        profile = yt.lagos.BinnedProfile2D(self.data,
+                    8, "RadiusCode", 1e-3, 1.0, True,
+                    8, "CellVolumeCode", cv_min, cv_max, True, lazy)
+        profile.add_fields(field, weight=weight, accumulation=accumulation)
+    return add_field_function
+
 class DataTypeTestingBase:
     def setUp(self):
         LagosTestingBase.setUp(self)
-for field in yt.lagos.fieldInfo.values():
-    #if field.name.find("particle") > -1:
-        #continue
-    func = _returnFieldFunction(field)
-    setattr(DataTypeTestingBase, "test%s" % field.name, func)
 
-class TestRegionDataType(DataTypeTestingBase, LagosTestingBase, unittest.TestCase):
+class Data3DBase:
+    pass
+
+for field in yt.lagos.fieldInfo.values():
+    setattr(DataTypeTestingBase, "test%s" % field.name, _returnFieldFunction(field))
+
+field = "Temperature"
+for weight in [None, "CellMassMsun"]:
+    for lazy in [True, False]:
+        for accumulation in [True, False]:
+            func = _returnProfile1DFunction(field, weight, accumulation, lazy)
+            name = "test%sProfile1D_w%s_l%s_a%s" % (field,
+                                                weight, lazy,
+                                                accumulation)
+            setattr(Data3DBase, name, func)
+
+for weight in [None, "CellMassMsun"]:
+    for lazy in [True, False]:
+        for accumulation_x in [True, False]:
+            for accumulation_y in [True, False]:
+                acc = (accumulation_x, accumulation_y)
+                func = _returnProfile2DFunction(field, weight, acc, lazy)
+                name = "test%sProfile2D_w%s_l%s_a%s_a%s" % (field,
+                                                        weight, lazy,
+                                                        accumulation_x,
+                                                        accumulation_y)
+                setattr(Data3DBase, name, func)
+
+class TestRegionDataType(Data3DBase, DataTypeTestingBase, LagosTestingBase, unittest.TestCase):
     def setUp(self):
         DataTypeTestingBase.setUp(self)
         self.data=self.hierarchy.region(
@@ -142,6 +183,20 @@ class TestSliceDataType(DataTypeTestingBase, LagosTestingBase, unittest.TestCase
     def setUp(self):
         DataTypeTestingBase.setUp(self)
         self.data = self.hierarchy.slice(0,0.5)
+
+class TestCuttingPlane(DataTypeTestingBase, LagosTestingBase, unittest.TestCase):
+    def setUp(self):
+        DataTypeTestingBase.setUp(self)
+        self.data = self.hierarchy.cutting([0.1,0.3,0.4], [0.5,0.5,0.5])
+    def testAxisVectors(self):
+        x_v = self.data._x_vec
+        y_v = self.data._y_vec
+        z_v = self.data._norm_vec
+        self.assertAlmostEqual(na.dot(x_v, y_v), 0.0, 7)
+        self.assertAlmostEqual(na.dot(x_v, z_v), 0.0, 7)
+        self.assertAlmostEqual(na.dot(y_v, z_v), 0.0, 7)
+    def testZHeight(self):
+        self.assertTrue(na.all(self.data['pz'] < self.data['dx']))
 
 class TestGridDataType(DataTypeTestingBase, LagosTestingBase, unittest.TestCase):
     def setUp(self):
@@ -177,7 +232,6 @@ class TestExtractFromRegion(TestRegionDataType):
         vol = self.region.extract_region(ind_to_get)["CellVolume"].sum() \
             / self.data.convert("cm")**3.0
         self.assertAlmostEqual(vol,1.0,7)
-
 
 if __name__ == "__main__":
     unittest.main()
