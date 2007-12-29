@@ -78,4 +78,15 @@ from HierarchyType import *
 from OutputTypes import *
 from Profiles import *
 
+# We load plugins.  Keep in mind, this can be fairly dangerous -
+# the primary purpose is to allow people to have a set of functions
+# that get used every time that they don't have to *define* every time.
+# This way, other command-line tools can be used very simply.
+# Unfortunately, for now, I think the easiest and simplest way of doing
+# this is also the most dangerous way.
+if ytcfg.getboolean("lagos","loadfieldplugins"):
+    my_plugin_name = ytcfg.get("lagos","pluginfilename")
+    # We assume that it is with respect to the $HOME/.yt directory
+    execfile(os.path.expanduser("~/.yt/%s" % my_plugin_name))
+
 log_fields = [] # @todo: GET RID OF THIS

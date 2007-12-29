@@ -28,7 +28,6 @@ from yt.lagos import *
 def restore_grid_state(func):
     def save_state(self, grid, field=None):
         old_params = grid.field_parameters
-        #print old_params, self.field_parameters
         grid.field_parameters = self.field_parameters
         tr = func(self, grid, field)
         grid.field_parameters = old_params
@@ -896,10 +895,10 @@ class Enzo3DData(EnzoData):
 
     def _generate_field_in_grids(self, field, num_ghost_zones=0):
         for grid in self._grids:
-            self.__touch_grid_field(field, grid)
+            self.__touch_grid_field(grid, field)
 
     @restore_grid_state
-    def __touch_grid_field(self, field, grid):
+    def __touch_grid_field(self, grid, field):
         grid[field]
 
     @restore_grid_state

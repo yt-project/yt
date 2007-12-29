@@ -216,7 +216,10 @@ class EnzoGridBase(EnzoData):
         self.__setup_dx()
 
     def set_filename(self, filename):
-        if filename[0] == os.path.sep:
+        if self.hierarchy._strip_path:
+            self.filename = os.path.join(self.hierarchy.directory,
+                                         os.path.basename(filename))
+        elif filename[0] == os.path.sep:
             self.filename = filename
         else:
             self.filename = os.path.join(self.hierarchy.directory, filename)

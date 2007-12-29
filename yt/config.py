@@ -62,6 +62,8 @@ ytcfgDefaults = {
         'User':os.getenv("USER"),
         'timefunctions':'False',
         'inGui':'False',
+        'loadfieldplugins':'False',
+        'pluginfilename':'yt_plugins.py',
          },
     "raven":{
         'ImagePath':".",

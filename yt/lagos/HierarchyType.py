@@ -46,6 +46,7 @@ class EnzoHierarchy:
     @type data_style: int
     """
     eiTopGrid = None
+    _strip_path = False
     @time_execution
     def __init__(self, pf, data_style=None):
         # For now, we default to HDF4, but allow specifying HDF5
@@ -127,6 +128,11 @@ class EnzoHierarchy:
                 break
         if testGrid[0] != os.path.sep:
             testGrid = os.path.join(self.directory, testGrid)
+        if not os.path.exists(testGrid):
+            testGrid = os.path.join(self.directory,
+                                    os.path.basename(testGrid))
+            mylog.debug("Your data uses the annoying hardcoded path.")
+            self._strip_path = True
         try:
             a = SD.SD(testGrid)
             self.data_style = 4
