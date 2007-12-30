@@ -608,9 +608,9 @@ def quiverCallback(field_x, field_y, axis, factor):
     def runCallback(plot):
         x0, x1 = plot.xlim
         y0, y1 = plot.ylim
-        xx0, xx1 = plot.axes.get_xlim()
-        yy0, yy1 = plot.axes.get_ylim()
-        plot.axes.hold(True)
+        xx0, xx1 = plot._axes.get_xlim()
+        yy0, yy1 = plot._axes.get_ylim()
+        plot._axes.hold(True)
         numPoints_x = plot.image._A.shape[0] / factor
         numPoints_y = plot.image._A.shape[1] / factor
         pixX = _MPL.Pixelize(plot.data['px'],
@@ -629,10 +629,10 @@ def quiverCallback(field_x, field_y, axis, factor):
                            (x0, x1, y0, y1),).transpose()
         X = na.mgrid[0:plot.image._A.shape[0]-1:numPoints_x*1j]# + 0.5*factor
         Y = na.mgrid[0:plot.image._A.shape[1]-1:numPoints_y*1j]# + 0.5*factor
-        plot.axes.quiver(X,Y, pixX, -pixY)
-        plot.axes.set_xlim(xx0,xx1)
-        plot.axes.set_ylim(yy0,yy1)
-        plot.axes.hold(False)
+        plot._axes.quiver(X,Y, pixX, -pixY)
+        plot._axes.set_xlim(xx0,xx1)
+        plot._axes.set_ylim(yy0,yy1)
+        plot._axes.hold(False)
     return runCallback
 
 def particleCallback(axis, width, p_size=1.0, col='k'):
@@ -649,20 +649,20 @@ def particleCallback(axis, width, p_size=1.0, col='k'):
         if len(particles_x) == 0: return
         x0, x1 = plot.xlim
         y0, y1 = plot.ylim
-        xx0, xx1 = plot.axes.get_xlim()
-        yy0, yy1 = plot.axes.get_ylim()
+        xx0, xx1 = plot._axes.get_xlim()
+        yy0, yy1 = plot._axes.get_ylim()
         # Now we rescale because our axes limits != data limits
         goodI = na.where( (particles_x < x1) & (particles_x > x0)
                         & (particles_y < y1) & (particles_y > y0)
                         & (particles_z < z1) & (particles_z > z0))
         particles_x = (particles_x[goodI] - x0) * (xx1-xx0)/(x1-x0)
         particles_y = (particles_y[goodI] - y0) * (yy1-yy0)/(y1-y0)
-        plot.axes.hold(True)
-        plot.axes.scatter(particles_x, particles_y, edgecolors='None',
+        plot._axes.hold(True)
+        plot._axes.scatter(particles_x, particles_y, edgecolors='None',
                           s=p_size, c=col)
-        plot.axes.set_xlim(xx0,xx1)
-        plot.axes.set_ylim(yy0,yy1)
-        plot.axes.hold(False)
+        plot._axes.set_xlim(xx0,xx1)
+        plot._axes.set_ylim(yy0,yy1)
+        plot._axes.hold(False)
     return runCallback
 
 def contourCallback(field, axis, ncont=5, factor=4):
@@ -674,9 +674,9 @@ def contourCallback(field, axis, ncont=5, factor=4):
     def runCallback(plot):
         x0, x1 = plot.xlim
         y0, y1 = plot.ylim
-        xx0, xx1 = plot.axes.get_xlim()
-        yy0, yy1 = plot.axes.get_ylim()
-        plot.axes.hold(True)
+        xx0, xx1 = plot._axes.get_xlim()
+        yy0, yy1 = plot._axes.get_ylim()
+        plot._axes.hold(True)
         numPoints_x = plot.image._A.shape[0]
         numPoints_y = plot.image._A.shape[1]
         dx = plot.image._A.shape[0] / (x1-x0)
@@ -692,10 +692,10 @@ def contourCallback(field, axis, ncont=5, factor=4):
         y = (plot.data["y"][wI]-y0)*dy
         z = plot.data[field][wI]
         zi = de.Triangulation(x,y).nn_interpolator(z)(xi,yi)
-        plot.axes.contour(xi,yi,zi,ncont, colors='k')
-        plot.axes.set_xlim(xx0,xx1)
-        plot.axes.set_ylim(yy0,yy1)
-        plot.axes.hold(False)
+        plot._axes.contour(xi,yi,zi,ncont, colors='k')
+        plot._axes.set_xlim(xx0,xx1)
+        plot._axes.set_ylim(yy0,yy1)
+        plot._axes.hold(False)
     return runCallback
 
 _pixelize_cp = r"""
