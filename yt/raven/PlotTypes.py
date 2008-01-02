@@ -382,7 +382,6 @@ class SlicePlot(VMPlot):
         if lagos.fieldInfo.has_key(field_name):
             data_label += r"\/\/ (%s)" % (lagos.fieldInfo[field_name].get_units())
         data_label += r"$"
-        print field_name, data_label
         if self.colorbar != None: self.colorbar.set_label(data_label)
 
 class ProjectionPlot(VMPlot):
@@ -397,7 +396,6 @@ class ProjectionPlot(VMPlot):
         if lagos.fieldInfo.has_key(field_name):
             data_label += r"\/\/ (%s)" % (lagos.fieldInfo[field_name].get_projected_units())
         data_label += r"$"
-        print field_name, data_label
         if self.colorbar != None: self.colorbar.set_label(data_label)
 
     def __getitem__(self, item):
