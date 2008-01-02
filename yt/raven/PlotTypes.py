@@ -378,19 +378,27 @@ class SlicePlot(VMPlot):
             self.colorbar.set_label(self.datalabel)
             return
         field_name = self.axis_names["Z"]
+        data_label = r"$\rm{%s}" % field_name
         if lagos.fieldInfo.has_key(field_name):
-            field_name += " (%s)" % (lagos.fieldInfo[field_name].get_units())
-        if self.colorbar != None: self.colorbar.set_label(field_name)
+            data_label += r"\/\/ (%s)" % (lagos.fieldInfo[field_name].get_units())
+        data_label += r"$"
+        print field_name, data_label
+        if self.colorbar != None: self.colorbar.set_label(data_label)
 
 class ProjectionPlot(VMPlot):
     _type_name = "Projection"
 
     def autoset_label(self):
-        dataLabel = self.axis_names["Z"]
+        if self.datalabel != None:
+            self.colorbar.set_label(self.datalabel)
+            return
         field_name = self.axis_names["Z"]
+        data_label = r"$\rm{%s}" % field_name
         if lagos.fieldInfo.has_key(field_name):
-            field_name += " (%s)" % (lagos.fieldInfo[field_name].get_projected_units())
-        if self.colorbar != None: self.colorbar.set_label(field_name)
+            data_label += r"\/\/ (%s)" % (lagos.fieldInfo[field_name].get_projected_units())
+        data_label += r"$"
+        print field_name, data_label
+        if self.colorbar != None: self.colorbar.set_label(data_label)
 
     def __getitem__(self, item):
         return self.data[item] * \
@@ -474,9 +482,10 @@ class PhasePlot(RavenPlot):
         return log_field, v, bins
 
     def autoset_label(self, field, func):
-        dataLabel = field
+        dataLabel = r"$\rm{%s}" % (field)
         if lagos.fieldInfo.has_key(field):
-            dataLabel += " (%s)" % (lagos.fieldInfo[field].get_units())
+            dataLabel += r" (%s)" % (lagos.fieldInfo[field].get_units())
+        dataLabel += r"$"
         func(dataLabel)
 
     def set_cmap(self, cmap):
