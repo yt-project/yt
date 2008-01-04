@@ -209,7 +209,7 @@ _speciesList = ["HI","HII","Electron",
                "H2I","H2II","HM",
                "DI","DII","HDI"]
 def _SpeciesFraction(field, data):
-    sp = field.name.split("_")[0]
+    sp = field.name.split("_")[0] + "_Density"
     return data[sp]/data["Density"]
 for species in _speciesList:
     add_field("%s_Fraction" % species,
@@ -438,10 +438,42 @@ def _Radius(field, data):
                      (data["y"] - center[1])**2.0 +
                      (data["z"] - center[2])**2.0)
     return radius
-def _ConvertRadius(data):
+def _ConvertRadiusCGS(data):
     return data.convert("cm")
-add_field("Radius", validators=[ValidateParameter("center")],
-          convert_function = _ConvertRadius, units=r"\rm{cm}")
+add_field("Radius", function=_Radius,
+          validators=[ValidateParameter("center")],
+          convert_function = _ConvertRadiusCGS, units=r"\rm{cm}")
+
+def _ConvertRadiusMpc(data):
+    return data.convert("mpc")
+add_field("RadiusMpc", function=_Radius,
+          validators=[ValidateParameter("center")],
+          convert_function = _ConvertRadiusMpc, units=r"\rm{Mpc}")
+
+def _ConvertRadiuskpc(data):
+    return data.convert("kpc")
+add_field("Radiuskpc", function=_Radius,
+          validators=[ValidateParameter("center")],
+          convert_function = _ConvertRadiuskpc, units=r"\rm{kpc}")
+
+def _ConvertRadiuskpch(data):
+    return data.convert("kpch")
+add_field("Radiuskpch", function=_Radius,
+          validators=[ValidateParameter("center")],
+          convert_function = _ConvertRadiuskpc, units=r"\rm{kpc}/\rm{h}")
+
+def _ConvertRadiuspc(data):
+    return data.convert("pc")
+add_field("Radiuspc", function=_Radius,
+          validators=[ValidateParameter("center")],
+          convert_function = _ConvertRadiuspc, units=r"\rm{pc}")
+
+def _ConvertRadiusAU(data):
+    return data.convert("au")
+add_field("RadiusAU", function=_Radius,
+          validators=[ValidateParameter("center")],
+          convert_function = _ConvertRadiusAU, units=r"\rm{AU}")
+
 add_field("RadiusCode", function=_Radius,
           validators=[ValidateParameter("center")])
 

@@ -171,35 +171,51 @@ class EnzoStaticOutput(EnzoOutput):
         if len(self.parameters) == 0:
             self.__parse_parameter_file()
         if self["ComovingCoordinates"]:
-            z = self["CosmologyCurrentRedshift"]
-            boxh = self["CosmologyComovingBoxSize"]
-            self.units['aye']  = (1.0 + self["CosmologyInitialRedshift"])/(z - 1.0)
-            if not self.has_key("Time"):
-                LengthUnit = 3.086e24 * boxh / self["CosmologyHubbleConstantNow"] \
-                             / (1+self["CosmologyInitialRedshift"])
-                self.conversion_factors["Time"] = LengthUnit / self["x-velocity"]
+            self.__setup_comoving_units()
         elif self.has_key("LengthUnits"):
-            # We are given LengthUnits, which is number of cm per box length
-            # So we convert that to box-size in Mpc
-            z = 0
-            boxh = 3.24077e-25 * self["LengthUnits"]
-            self.units['aye']  = 1.0
+            self.__setup_getunits_units()
         else:
-            z = 0
-            boxh = 1.0
-            self.units['aye'] = 1.0
-            if not self.has_key("TimeUnits"):
-                mylog.warning("No time units.  Setting 1.0 = 1 second.")
-                self.conversion_factors["Time"] = 1.0
+            self.__setup_nounits_units()
+        self.time_units['1'] = 1
+        self.units['1'] = 1
         seconds = self["Time"]
-        box = boxh/(1+z)
-        for unit in unitList.keys():
-            self.units[unit] = unitList[unit] * box
-            self.units[unit+'h'] = unitList[unit] * boxh
-        self.time_units['1']     = 1
-        self.units['1']     = 1
         self.time_units['years'] = seconds / (365*3600*24.0)
         self.time_units['days']  = seconds / (3600*24.0)
+
+    def __setup_comoving_units(self):
+        z = self["CosmologyCurrentRedshift"]
+        h = self["CosmologyHubbleConstantNow"]
+        boxcm_cal = self["CosmologyComovingBoxSize"]
+        boxcm_uncal = boxcm_cal / h
+        box_proper = boxcm_uncal/(1+z)
+        self.units['aye']  = (1.0 + self["CosmologyInitialRedshift"])/(z - 1.0)
+        if not self.has_key("Time"):
+            LengthUnit = 3.086e24 * box_proper
+            self.conversion_factors["Time"] = LengthUnit / self["x-velocity"]
+        for unit in unitList.keys():
+            self.units[unit] = unitList[unit] * box_proper
+            self.units[unit+'h'] = unitList[unit] * box_proper * h
+            self.units[unit+'hcm'] = unitList[unit] * boxcm_cal
+
+    def __setup_getunits_units(self):
+        # We are given LengthUnits, which is number of cm per box length
+        # So we convert that to box-size in Mpc
+        box_proper = 3.24077e-25 * self["LengthUnits"]
+        self.units['aye']  = 1.0
+        for unit in unitList.keys():
+            self.units[unit] = unitList[unit] * box_proper
+
+    def __setup_nounits_units(self):
+        z = 0
+        box_proper = 1.0
+        self.units['aye'] = 1.0
+        mylog.warning("No length units.  Setting 1.0 = 1 proper Mpc.")
+        if not self.has_key("TimeUnits"):
+            mylog.warning("No time units.  Setting 1.0 = 1 second.")
+            self.conversion_factors["Time"] = 1.0
+        for unit in unitList.keys():
+            self.units[unit] = unitList[unit] * box_proper
+        return box, boxh
 
     def _get_hierarchy(self):
         if self.__hierarchy == None:
