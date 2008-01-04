@@ -1,0 +1,331 @@
+<HTML>
+<HEAD><TITLE>yt Demo</TITLE>
+<STYLE>
+body {
+    background-color: #000000;
+    font-family:'Helvetica Neue', 'Lucida Grande', Helvetica, Arial, Verdana, sans-serif;
+}
+#titlebar {
+   background-color: #66DD66;
+   font-size: 200%;
+   width: 759px;
+   margin: 0px;
+   padding: 10px 0px 10px 119px;
+   border: 1px solid #00FF00;
+}
+#navbar {
+    background-color: #FF6666;
+    position: fixed;
+    margin: 0px;
+    padding: 10px;
+    width: 98px;
+    border: 1px solid #FF0000;
+    font-size: 70%;
+
+}
+#navbar ul{
+    list-style-type:none;
+    padding: 0px;
+    margin: 0px;
+}
+#maincontent {
+    position: relative;
+    left: 120px;
+    top: 0px;
+    width:740px;
+    padding: 10px;
+    background-color: #AAAAAA;
+}
+#maincontent pre {
+    background-color: #8888CC;
+    padding: 5px;
+    border: 1px solid #000000;
+}
+</STYLE>
+<BODY>
+<div id="titlebar">
+A Demo of yt
+</div>
+<div id="navbar">
+<ul>
+    <li><a href="#getting-started">Getting Started</a></li>
+    <li><a href="#basic-objects">Basic Objects</a></li>
+    <li><a href="#derived-fields">Derived Fields</a></li>
+    <li><a href="#profiles">Profiles</a></li>
+    <li><a href="#automated-plotting">Automated Plotting</a></li>
+</ul>
+</div>
+<div id="maincontent">
+<p>This is a short little demo of how to use yt from the command line.
+Hope it helps!</p>
+
+<a id="getting-started"><h3>Getting Started</h3></a>
+
+<p>We start out by getting some stuff into our local namespace.
+The import command is how an external module gets loaded.  By default,
+it shows up as the module name itself.  But you can also import it as
+something else, which makes things easier...</p>
+
+<p>Lagos is our data-handler.  If you need to touch data, lagos will be your
+friend.</p>
+<pre>
+>>> import yt.lagos as lagos
+</pre>
+
+<p>We first instantiate a StaticOutput.  This is a pretty simple process - lagos
+will grab the parameter file that you give it, parse it, set up some handy
+units, and then return control to you.</p>
+<pre>
+>>> a = lagos.EnzoStaticOutput("/Users/matthewturk/Research/data/DataDir0036/DataDump0036")
+</pre>
+
+<p>But what good is just a parameter file?  What we really want is to be able to
+manipulate the grids, and all the fields stored in those grids.  Fortunately,
+we can access the hierarchy as either 'hierarchy' or 'h'.
+Let's start out by finding the location of the maximum Density.
+Note that here we use an inline-unpacking -- find_max returns two values,
+packed into a tuple, so we manually unpack them right here.</p>
+<pre>
+>>> v,c = a.h.find_max("Density")
+>>> print v
+>>> print c
+</pre>
+
+<p>The hierarchy object has some interesting methods that let us access the data
+in different ways.  Let's start by looking at the grids.</p>
+
+<pre>
+>>> my_grid = a.h.grids[0] # The root grid
+>>> print my_grid.dx, my_grid.ActiveDimensions # Some of the attributes
+</pre>
+
+<p>You might be asking yourself, how do I know what properties objects have?
+Python gives us a convenient mechanism for determining this:</p>
+
+<pre>
+>>> print dir(my_grid)
+</pre>
+
+<p>In general, a method or property that begins with '_' is not meant to be
+called directly, and '__' means that it definitely shouldn't be called by an
+external process.</p>
+
+<p>Now let's take a look at accessing the data fields inherent to the grid
+object.</p>
+
+<pre>
+>>> print my_grid["Density"]*my_grid["Temperature"]
+</pre>
+
+<a id="basic-objects"><h3>Basic Objects</h3></a>
+
+<p>What the code just did was access the grid files and then spit back the
+results of the read operations.  So we can access the fields pretty easily
+this way, but what about generating new fields from our existing fields?
+Well, that's just as easy!  And yt comes with many derived fields
+pre-defined, but from within a script you can also define your own.</p>
+
+<pre>
+>>> print my_grid["Entropy"]
+</pre>
+
+<p>Entropy is a derived field.  But how does it work?  Well, we have a built-in
+source-code inspector.</p>
+
+<pre>
+>>> print lagos.fieldInfo["Entropy"].get_source()
+</pre>
+
+<p>But what if we only want a couple values?  We can directly grab indices.</p>
+
+<pre>
+>>> print my_grid["Density"][0,10,4] # 0-indexed!
+</pre>
+
+<p>We can also slice, using the slice operator: ':'</p>
+
+<pre>
+>>> print my_grid["Density"][0,:,4]
+>>> print my_grid["Density"][0,2:4,4]
+</pre>
+
+<p>Okay, so now you've seen how to grab fields from a grid.  The thing about
+getting fields from a grid, though, is that it works the exact same way as
+all the other data types!  (Well, maybe not projection :)  So that raises the
+question, how do we get more data objects?  Well, the hierarchy is our friend
+here.  We can get slices, projections, spheres, rectangular prisms,
+fixed-resolution grids and cutting planes from the herarchy.
+
+<p>Let's start with a slice.  A slice needs some info, but how do we know what
+type?  Well, let's use 'help'!</p>
+<pre>
+>>> help(a.h.slice)
+</pre>
+
+<p>Looks like we need to feed it an axis, a coordinate, and maybe some fields
+and a center.  Axes are always done as numbers, with 0 = x, 1 = y, 2 = z.</p>
+<pre>
+>>> my_slice = a.h.slice(0, 0.5, "Density")  # We don't really need to pass the field!
+</pre>
+
+<p>Now let's test out getting new fields.</p>
+
+<pre>
+>>> print my_slice["Pressure"], my_slice["Density"]
+</pre>
+
+<p>Okay, so enough of the slices.  (Although they can do some more stuff, like
+shift around inside the domain, and so on and so forth.)</p>
+
+<p>Let's do a region.  This is a box with a left edge and a right edge, and a
+center.  (You need a center for some other calculations, not for getting the
+region.)  Let's get started by grabbing the ENTIRE domain.</p>
+<pre>
+>>> my_region = a.h.region([0.5,0.5,0.5], [0.0,0.0,0.0], [1.0,1.0,1.0])
+</pre>
+
+<a id="derived-fields"><h3>Derived Fields</h3></a>
+<p>Okay, now we have a region.  We can do stuff with this -- in fact, it has the
+same data-access protocol as a slice or a grid!  Plus, math on these things
+is pretty fast:</p>
+<pre>
+>>> electron_fraction = my_region["Electron_Density"]/my_region["Density"]
+</pre>
+<p>But the thing is, that one happens to be a derived field already:</p>
+<pre>
+>>> electron_fraction = my_region["Electron_Fraction"]
+</pre>
+<p>In fact, every "*_Density" field is automatically set up as a "_Fraction" field.
+But what other fields are available to us?</p>
+
+<pre>
+>>> print lagos.fieldInfo.keys()
+</pre>
+
+<p>There are LOTS!  Not only that, but you can set up your own fields, too,
+which then become available to all data-types. Here's a very simple example,
+where we just cube Density.</p>
+<pre>
+>>> def _DensityCubed(field, data):
+...     return data["Density"]**3.0
+...
+>>> def _ConvertDensityCubed(data):
+...     return 1.0
+...
+>>> # Now we have our field functions, and we just need to tell the fieldinfo
+>>> # object about it.
+>>> lagos.add_field("DensityCubed", function=_DensityCubed,
+...     convert_function= _ConvertDensityCubed, units=r"\rm{g}^3/\rm{cm}^9")
+</pre>
+<p>This last part might need some explanation.  Derived fields are composed of
+three main parts.  The first is the function that defines the field.  It always
+accepts two variables -- field, and data.  'Field' is the DerivedField and
+'data' is the data object.  Note that we stick to a pretty strict means of
+returning fields -- <i>everything is returned in cgs</i>!  This means that when
+we request "Density" from 'data' it is returned to us <i>already</i> in CGS, so we
+don't need to convert anything.</p>
+<p>The last part, the call to add_field, is the most crucial.  It creates a
+DerivedField object which will control the behavior of the derived field in a
+couple crucial ways -- what you see here includes the string used for the units,
+the string used for the name of the field, the functions that govern the
+creation and conversion of the fiels.  However, you can also use
+'validators' -- in fact, for some fields, you <i>should</i> use validators.</p>
+<p>Validators are the most powerful part of the derived field process, because
+they can allow you to require ghost zones, which will be automatically generated.
+Check the "AveragedDensity" and "DivV" fields in the source code for an example
+of this.</p>
+
+<a id="profiles"><h3>Profiles</h3></a>
+<p>Profiles are one of the more interesting data types.  They are a binned average
+of one or more variables, along one or two different dimensions.  For example,
+you could get an average temperature in Density and H2 Fraction space.  Or you could
+Look at the distribution of Volume through Density and Temperature space.  Or you could
+take the spherically-averaged Number Density and see how it changes with radius.</p>
+
+<p>In order to make a profile, we first need a data object we want to get the profile
+<i>from</i>.  This can be a sphere, a region, or even an extracted region.  We'll
+first take a look at doing a spherically-average profile of Temperature with Radius.</p>
+
+<pre>
+>>> sphere = a.h.sphere([0.5,0.5,0.5], 0.1/a["kpc"])
+>>> prof = lagos.BinnedProfile1D(sphere, 16, "Radiuskpc",
+                                 0.0001, 0.1, True, True)
+>>> prof.add_fields(["Density","Temperature"], weight="CellMassMsun")
+</pre>
+
+<p>Alright, again, a bit of explanation.  First, we get our sphere -- and in doing
+so, we tell it where the center is, and how big (in <i>code units</i>) we want it to be.
+(Note that in order to convert a number into some unit, we <i>divide</i> by the conversion
+factor for that unit.</p>
+<p>Once we have that data object, we can do anything with it.  (See above!)
+However, what we <i>want</i> to do is generate a profile.  So we create
+a profile object, telling it where to get the data, which field we want to bin by,
+the lower and upper bounds (in the units of that field), and whether we want those
+bins to be log spaced.  But, there's one more option -- the last one is the "lazy_reader"
+option.  This controls whether we load all the data at once (faster) or whether
+we grab it from each grid individually (slower, but more memory-conservative.) </p>
+<p> Once we have instantiated the profile object, we add fields to it.
+These fields are weighted by CellMassMsun, and we get back an average value for
+each bin in 'Radiuskpc'.  Now we can plot them, or inspect them, with simple
+data-access methods.  Additionally, you can feed them directly into pylab or matplotlib
+(neither of which we will cover in any length here) and plot them:</p>
+
+<pre>
+>>> print prof["Density"]
+>>> import pylab
+>>> pylab.loglog(prof["Radiuskpc"], prof["Density"])
+>>> pylab.xlabel(r"$\rm{Radius} (\rm{kpc})$")
+>>> pylab.ylabel(r"$\rm{Density} (\rm{g}/\rm{cm}^3)$")
+>>> pylab.savefig("my_profile.png")
+</pre>
+
+<p>Two-dimensional profiles are along the same lines.</p>
+
+<pre>
+>>> prof2d = lagos.BinnedProfile2D(sphere,
+...                 16, "Density", 1e-32, 1e-24, True,
+...                 16, "Temperature", 1e2, 1e5, True, True)
+>>> prof2d.add_fields("CellVolume", weight=None)
+>>> pylab.pcolormesh(prof2d["Density"], prof2d["Temperature"],
+...                  prof2d["CellVolume"].transpose())
+</pre>
+
+<a id="automated-plotting"><h3>Automated Plotting</h3></a>
+<p> So now we know how to get and manipulate most of the datatypes, but we
+still have to go through some processes to plot them manually.  However, yt has
+facilities for plotting slices, projections and profiles in much easier ways.</p>
+<p>The plotting tool is called 'raven' and it's organized around the idea of
+PlotCollection objects.  Each PlotCollection object is in some way thematically
+associated -- maybe they are all the same data, sliced along different axes, for instance.
+When you act on a PlotCollection, you act on all the plots that are part of that
+collection.  Each PlotCollection is associated with a single parameter file.
+</p>
+<pre>
+>>> import yt.raven as raven
+>>> pc = raven.PlotCollection(a)
+>>> pc.add_slice("Density", 0)
+>>> pc.add_slice("Density", 1)
+>>> pc.add_slice("Density", 2)
+>>> pc.set_width(15, 'kpc')
+>>> pc.save("somename_15kpc")
+</pre>
+<p>
+There's a lot in that little block of text.  First I add a slice (note that while
+we can feed it a pre-existing slice, it will also grab one automatically if we
+don't!) along each axis (0,1,2) in the field "Density".  Each time we
+add a plot to the PlotCollection, it is accessible as pc.plots[index] where 'index'
+is the 0-based index in order of addition.  Each plot object has a 'data' property,
+so if we wanted the EnzoSlice object, we can access it:
+</p>
+<pre>
+>>> print pc.plots[1].data
+</pre>
+<p>After we've created the plots above, we set the width to 15 kiloparsecs.
+Note that raven understands any length unit that the hierarchy has, so you
+can set to mpc, kpc, pc, au, km or cm.  Then we call save, and feed it a prefix --
+it takes care of adding some more information to the filename, so don't supply it
+a file suffix.  (It defaults to '.png')
+</p>
+
+</div>
+</BODY></HTML>
