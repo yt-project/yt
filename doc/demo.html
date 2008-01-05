@@ -12,6 +12,7 @@ body {
    margin: 0px;
    padding: 10px 0px 10px 119px;
    border: 1px solid #00FF00;
+   font-variant: small-caps;
 }
 #navbar {
     background-color: #FF6666;
@@ -27,6 +28,9 @@ body {
     list-style-type:none;
     padding: 0px;
     margin: 0px;
+}
+#navbar a {
+    text-decoration: none;
 }
 #maincontent {
     position: relative;
@@ -53,7 +57,8 @@ A Demo of yt
     <li><a href="#derived-fields">Derived Fields</a></li>
     <li><a href="#profiles">Profiles</a></li>
     <li><a href="#automated-plotting">Automated Plotting</a></li>
-</ul>
+    <li><a href="#advanced-objects">Advanced Objects</a>
+    <li><a href="#projections">Projections</a></ul>
 </div>
 <div id="maincontent">
 <p>This is a short little demo of how to use yt from the command line.
@@ -324,8 +329,85 @@ so if we wanted the EnzoSlice object, we can access it:
 Note that raven understands any length unit that the hierarchy has, so you
 can set to mpc, kpc, pc, au, km or cm.  Then we call save, and feed it a prefix --
 it takes care of adding some more information to the filename, so don't supply it
-a file suffix.  (It defaults to '.png')
-</p>
+a file suffix.  (It defaults to '.png')</p>
+<p>We have access to most of the interesting plots from the PlotCollection
+interface, including cutting planes and projections.  (More on those later!)</p>
+<pre>
+>>> pc.add_projection("Temperature", 0, weight_field="CellMass")
+>>> pc.add_threephase_sphere(1.0, 'pc', ["Density","Temperature","H2I_Fraction"])
+</pre>
 
+<a id="advanced-objects"><h3>Advanced Objects</h3></a>
+<p>So we've seen simple objects already -- sphere, profiles, and regions.
+There are two other types of objects that are fairly cool, as well, and
+they behave the same way all the others do -- you can get any field from them,
+profile them, all of that, right from the command line like you would a sphere
+or a region.</p>
+<p>The first of these is the cutting plane.  Let's say you're doing some
+collapse-based problem, where you end up with a vector that describes the
+angular momentum.  By feeding this vector into the cutting plane object, you can
+create an object that is sliced using that vector as the normal to the cutting
+plane.  (For more information about how this is done, see the source code.)
+An interface to this is available through raven.</p>
+<pre>
+>>> cutting_plane = a.h.cutting([0.1,0.3,0.4], [0.5,0.5,0.5])
+>>> pc.add_cutting_plane("Density", [0.1,0.3,0.4], center=[0.5,0.5,0.5])
+</pre>
+<p>These two statements create identical cutting-plane objects.  The latter
+also prepares a plot to display the object, however.  Each of these objects
+is uniquely determined by a normal vector and a point on the plane; we have
+supplied the normal vector {0.1, 0.3, 0.4} and the center point of the system.
+(Note that the normal vector need not be a unit vector, as it will be normalized
+during the object instantiation.)  An appropriate 'up' vector is guessed at
+and then used to define the transformed coordinate system.</p>
+
+<p>One of the other interesting data types is mostly only useful for profiles in
+one and two dimensions.  By whatever criteria you like, you can extract a subset
+of any 3D data object.  What this means is that you can apply 'cuts' to the data --
+whether it be by some tracer field or even just by a minimumt temperature --
+and then receive a fully-function data object.</p>
+<p>So for the next example, we will presuppose that we started out with two
+galaxies, one of which was pre-populated with the BaryonField "GalaxyOne"
+and the other with "GalaxyTwo".  As they collide, the gas will mix.  If we
+wanted to profile all the gas that originated in one galaxy, we could create
+a data object:</p>
+
+<pre>
+>>> import numpy
+>>> gal1_region = a.h.sphere([0.25,0.25,0.25], 1.0/a["mpc"])
+>>> indices_we_want = numpy.where(gal1_region["GalaxyTwo"] > 1e-3)
+>>> gal1_mixed = gal1_region.extract_region(indices_we_want)
+</pre>
+<p>We now have a new data source that only contains the points of interest --
+only the points where the contribution from the second galaxy is greater than
+0.001, and we can then feed that as a data source into a Binned2DProfile.</p>
+<p>Note that we used numpy here.  yt uses numpy behind the scenes for just about
+everything, and we have been, too, when we've been using our data.  The 'where'
+command creates a list of indices, which can then get fed into an array accessor
+method, and that's the functionality we use here.</p>
+
+<a id="projections"><h3>Projections</h3></a>
+
+<p>Projections are the line integrals of a given quantity along a given access.
+These are useful in a wide variety of problems -- they can reveal morphologies
+that slicing cannot, in the simplest case.</p>
+<p>There are several ways to generate projections in yt, and with the appropriate
+software package installed (mpi4py) one can even generate them in parallel,
+distributed across an arbitrary number of nodes.  However, I will deal here
+with the simplest case -- generating a projection on a single processor.  Note that
+because it's a time consuming task, yt will automatically store it in an HDF5
+file so that you only have to do it once.</p>
+<p>Much like cutting planes and slices, there are two ways to generate these --
+one driven by the plotting engine raven, and the other as a direct call to
+the hierarchy object.</p>
+<pre>
+>>> a.h.proj(0,"Temperature", weight_field="CellMass")
+>>> pc.add_projection("Temperature", 0, weight_field="CellMass")
+</pre>
+<p>The first call to project something with a given weight along a given axis
+will cause that projection to be generated -- to full resolution -- and then
+stored in an HDF5 file tied to the parameter file.  Then next time you ask
+for it, it is already available.  Zooming and panning is accomplished very
+simply.</p>
 </div>
 </BODY></HTML>

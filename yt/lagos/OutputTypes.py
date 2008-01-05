@@ -68,16 +68,10 @@ class EnzoStaticOutput(EnzoOutput):
         # These can be taken out if you so desire
         rp = os.path.join(self.directory, "rates.out")
         if os.path.exists(rp):
-            try:
-                self.rates = EnzoTable(rp, rates_out_key)
-            except:
-                pass
+            self.rates = EnzoTable(rp, rates_out_key)
         cp = os.path.join(self.directory, "cool_rates.out")
         if os.path.exists(cp):
-            try:
-                self.cool = EnzoTable(cp, cool_out_key)
-            except:
-                pass
+            self.cool = EnzoTable(cp, cool_out_key)
 
     def getTimeID(self):
         return time.ctime(float(self["CurrentTimeIdentifier"]))

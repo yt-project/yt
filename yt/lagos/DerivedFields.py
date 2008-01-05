@@ -263,6 +263,23 @@ def _MachNumber(field, data):
     return data["VelocityMagnitude"] / data["SoundSpeed"]
 add_field("MachNumber")
 
+def _CourantTimeStep(field, data):
+    t1 = data['dx'] / (
+        data["SoundSpeed"] + \
+        abs(data["x-velocity"]))
+    t2 = data['dy'] / (
+        data["SoundSpeed"] + \
+        abs(data["y-velocity"]))
+    t3 = data['dz'] / (
+        data["SoundSpeed"] + \
+        abs(data["z-velocity"]))
+    return na.minimum(na.minimum(t1,t2),t3)
+def _convertCourantTimeStep(data):
+    # SoundSpeed and z-velocity are in cm/s, dx is in code
+    return data.convert("cm")
+add_field("CourantTimeStep", convert_function=_convertCourantTimeStep,
+          units=r"$\rm{s}$")
+
 def _VelocityMagnitude(field, data):
     """M{|v|}"""
     return ( data["x-velocity"]**2.0 + \
@@ -295,7 +312,23 @@ def _Entropy(field, data):
 add_field("Entropy", units="WhoKnows")
 
 def _Height(field, data):
-    pass
+    # We take the dot product of the radius vector with the height-vector
+    center = data.get_field_parameter("center")
+    r_vec = na.array([data["x"] - center[0],
+                      data["y"] - center[1],
+                      data["z"] - center[2]])
+    h_vec = na.array(data.get_field_parameter("height_vector"))
+    h_vec = h_vec / na.sqrt(h_vec[0]**2.0+
+                            h_vec[1]**2.0+
+                            h_vec[2]**2.0)
+    height = r_vec[0,:] * h_vec[0] \
+           + r_vec[1,:] * h_vec[1] \
+           + r_vec[2,:] * h_vec[2]
+    return na.abs(height)
+def _convertHeight(data):
+    return data.convert("cm")
+add_field("Height", convert_function=_convertHeight,
+          validators=[ValidateParameter("height_vector")])
 
 def _DynamicalTime(field, data):
     """
@@ -530,6 +563,7 @@ fieldInfo["Gas_Energy"].units = r"\rm{ergs}/\rm{g}"
 fieldInfo["Gas_Energy"]._convert_function = _convertEnergy
 fieldInfo["Total_Energy"].units = r"\rm{ergs}/\rm{g}"
 fieldInfo["Total_Energy"]._convert_function = _convertEnergy
+fieldInfo["Temperature"].units = r"\rm{K}"
 
 def _convertVelocity(data):
     return data.convert("x-velocity")

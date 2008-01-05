@@ -59,6 +59,7 @@ if ytcfg.getboolean("lagos","useswig"):
 if ytcfg.getboolean("lagos","usefortran"):
     try:
         import EnzoFortranRoutines
+        import EnzoFortranWrapper
     except ImportError:
         pass
 
