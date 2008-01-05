@@ -878,6 +878,17 @@ class Enzo3DData(EnzoData):
                 return t[pointI].ravel()
             return grid[field][pointI].ravel()
 
+    def _flush_data_to_grids(self, field, default_val, dtype='float32'):
+        # Kind of a dangerous thing to do
+        i = 0
+        for grid in self._grids:
+            pointI = self._get_point_indices
+            new_field = na.ones(grid.ActiveDimensions, dtype=dtype) * default_val
+            np = pointI[0].ravel().size
+            new_field[pointI] = self[field][i:i+np]
+            grid[field] = new_field.copy()
+            i += np
+
     def _generate_field(self, field):
         if fieldInfo.has_key(field):
             # First we check the validator
