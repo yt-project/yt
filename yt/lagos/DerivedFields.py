@@ -465,6 +465,10 @@ add_field("DivV", validators=[ValidateSpatial(1,
           units=r"\rm{s}^{-1}",
           convert_function=_convertDivV)
 
+def _Contours(field, data):
+    return na.ones(data["Density"].shape)*-1
+add_field("Contours", validators=[ValidateSpatial(0)], take_log=False)
+
 def _Radius(field, data):
     center = data.get_field_parameter("center")
     radius = na.sqrt((data["x"] - center[0])**2.0 +

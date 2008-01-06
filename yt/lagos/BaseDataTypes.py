@@ -845,7 +845,7 @@ class Enzo3DData(EnzoData):
                 dx, grid["GridIndices"][pointI].ravel()], 'float64').swapaxes(0,1)
         return tr
 
-    def get_data(self, fields=None):
+    def get_data(self, fields=None, in_grids=False):
         self._get_list_of_grids()
         points = []
         #if not self.has_key('dx'):
@@ -859,7 +859,7 @@ class Enzo3DData(EnzoData):
             if self.data.has_key(field):
                 continue
             mylog.info("Getting field %s from %s", field, len(self._grids))
-            if field not in self.hierarchy.field_list:
+            if field not in self.hierarchy.field_list and not in_grids:
                 if self._generate_field(field):
                     continue # True means we already assigned it
             self[field] = na.concatenate(
@@ -882,12 +882,11 @@ class Enzo3DData(EnzoData):
         # Kind of a dangerous thing to do
         i = 0
         for grid in self._grids:
-            pointI = self._get_point_indices
+            pointI = self._get_point_indices(grid)
             new_field = na.ones(grid.ActiveDimensions, dtype=dtype) * default_val
             np = pointI[0].ravel().size
             new_field[pointI] = self[field][i:i+np]
             grid[field] = new_field.copy()
-            i += np
 
     def _generate_field(self, field):
         if fieldInfo.has_key(field):
@@ -978,7 +977,7 @@ class Enzo3DData(EnzoData):
 
     __gridRightEdge = None
     gridRightEdge = property(__get_gridRightEdge, __set_gridRightEdge,
-                              __del_gridRightEdge)
+                             __del_gridRightEdge)
 
 class ExtractedRegionBase(Enzo3DData):
     def __init__(self, base_region, indices):
@@ -1055,8 +1054,6 @@ class EnzoGridCollection(Enzo3DData):
         self._grids = grid_list
         self.fields = fields
         self.connection_pool = True
-        for grid in grid_list:
-            grid._file_access_pooling = True
 
     def _get_list_of_grids(self):
         pass
@@ -1170,6 +1167,21 @@ class EnzoCoveringGrid(Enzo3DData):
             if na.any(self[field] == -999) and len(self._grids) > 1:
                 raise KeyError
 
+    def flush_data(self, field=None):
+        self._get_list_of_grids()
+        # We don't generate coordinates here.
+        if field == None:
+            fields_to_get = self.fields
+        else:
+            fields_to_get = ensure_list(field)
+        for field in fields_to_get:
+            mylog.info("Flushing field %s to %s possible grids",
+                       field, len(self._grids))
+            grid_list = self._grids.tolist()
+            grid_list.reverse()
+            for grid in grid_list:
+                self._flush_data_to_grid(grid, field)
+
     @restore_grid_state
     def _get_data_from_grid(self, grid, fields):
         for field in ensure_list(fields):
@@ -1178,6 +1190,18 @@ class EnzoCoveringGrid(Enzo3DData):
             locals_dict['cubeData'] = self[field]
             locals_dict['lastLevel'] = int(grid.Level == self.level)
             weave.inline(DataCubeRefineCoarseData,
+                         locals_dict.keys(), local_dict=locals_dict,
+                         compiler='gcc',
+                         type_converters=converters.blitz,
+                         auto_downcast=0, verbose=2)
+
+    def _flush_data_to_grid(self, grid, fields):
+        for field in ensure_list(fields):
+            locals_dict = self.__setup_weave_dict(grid)
+            locals_dict['fieldData'] = grid[field]
+            locals_dict['cubeData'] = self[field]
+            locals_dict['lastLevel'] = int(grid.Level == self.level)
+            weave.inline(DataCubeReplaceData,
                          locals_dict.keys(), local_dict=locals_dict,
                          compiler='gcc',
                          type_converters=converters.blitz,

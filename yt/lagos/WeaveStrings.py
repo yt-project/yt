@@ -120,7 +120,7 @@ for (ci=0; ci<cpoints; ci++) {
 
 """
 
-DataCubeRefineCoarseData = \
+_baseDataCubeRefineCoarseData = \
 r"""
 
 // For every cell in fieldData, there are (dx_c / dx_f)**3.0 cells that it maps
@@ -157,10 +157,14 @@ for (xc = 0; xc < nxc; xc++)
             if (yf < 0 || yf > nyf) continue;
             for (zf = bz_f; zf < max_bz_f ; zf++) {
               if (zf < 0 || zf > nzf) continue;
-              cubeData(xf,yf,zf) = fieldData(xc,yc,zc);
+              %s
             }
           }
         }
     }
-
 """
+
+DataCubeRefineCoarseData = _baseDataCubeRefineCoarseData % \
+                           "cubeData(xf,yf,zf) = fieldData(xc,yc,zc);"
+DataCubeReplaceData = _baseDataCubeRefineCoarseData % \
+                           "fieldData(xc,yc,zc) = cubeData(xf,yf,zf);"
