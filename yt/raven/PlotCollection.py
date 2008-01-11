@@ -36,7 +36,7 @@ class PlotCollection:
         self.plots = []
         self._run_id = deliverator_id
         self.pf = pf
-        if not center:
+        if center == None:
             v,self.c = pf.h.findMax("Density") # @todo: ensure no caching
         else:
             self.c = center
@@ -117,10 +117,13 @@ class PlotCollection:
 
     def add_cutting_plane(self, field, normal,
                           center=None, use_colorbar=True,
-                          figure = None, axes = None, fig_size=None):
+                          figure = None, axes = None, fig_size=None, obj=None):
         if center == None:
             center = self.c
-        cp = self.pf.hierarchy.cutting(normal, center, field)
+        if not obj:
+            cp = self.pf.hierarchy.cutting(normal, center, field)
+        else:
+            cp = obj
         p = self._add_plot(PlotTypes.CuttingPlanePlot(cp, field,
                          use_colorbar=use_colorbar, axes=axes, figure=figure,
                          size=fig_size))

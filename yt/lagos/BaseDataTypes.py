@@ -74,6 +74,9 @@ class EnzoData:
     def set_field_parameter(self, name, val):
         self.field_parameters[name] = val
 
+    def has_field_parameter(self, name):
+        return self.field_parameters.has_key(name)
+
     def convert(self, datatype):
         return self.hierarchy[datatype]
 
@@ -372,6 +375,7 @@ class EnzoCuttingPlaneBase(Enzo2DData):
     def __init__(self, normal, center, fields = None):
         Enzo2DData.__init__(self, 4, fields)
         self.center = center
+        self.set_field_parameter('center',center)
         self._cut_masks = {}
         # Let's set up our plane equation
         # ax + by + cz + d = 0
@@ -382,9 +386,9 @@ class EnzoCuttingPlaneBase(Enzo2DData):
         _t = na.cross(self._norm_vec, vecs).sum(axis=1)
         ax = nd.maximum_position(_t)
         self._x_vec = na.cross(vecs[ax,:], self._norm_vec).ravel()
-        self._x_vec /= na.dot(self._x_vec, self._x_vec)
+        self._x_vec /= na.sqrt(na.dot(self._x_vec, self._x_vec))
         self._y_vec = na.cross(self._norm_vec, self._x_vec).ravel()
-        self._y_vec /= na.dot(self._y_vec, self._y_vec)
+        self._y_vec /= na.sqrt(na.dot(self._y_vec, self._y_vec))
         self._rot_mat = na.array([self._x_vec,self._y_vec,self._norm_vec])
         self._inv_mat = na.linalg.pinv(self._rot_mat)
         self._refresh_data()
@@ -412,12 +416,15 @@ class EnzoCuttingPlaneBase(Enzo2DData):
     def _get_cut_mask(self, grid):
         if self._cut_masks.has_key(grid.id):
             return self._cut_masks[grid.id]
-        # This is slow.
-        D = na.sum(self._norm_vec.reshape((3,1,1,1)) * \
-            na.array([grid['x'],grid['y'],grid['z']]), axis=0) + self._d
-        diag_dist = na.sqrt(grid['dx'][0]**2.0
-                          + grid['dy'][0]**2.0
-                          + grid['dz'][0]**2.0)
+        # This is slow.  Suggestions for improvement would be great...
+        ss = grid.ActiveDimensions
+        D = na.ones(ss) * self._d
+        D += (grid['x'][:,0,0] * self._norm_vec[0]).reshape(ss[0],1,1)
+        D += (grid['y'][0,:,0] * self._norm_vec[1]).reshape(1,ss[1],1)
+        D += (grid['z'][0,0,:] * self._norm_vec[2]).reshape(1,1,ss[2])
+        diag_dist = na.sqrt(grid.dx**2.0
+                          + grid.dy**2.0
+                          + grid.dz**2.0)
         cm = na.where(na.abs(D) <= 0.5*diag_dist)
         self._cut_masks[grid.id] = cm
         return cm
@@ -886,7 +893,9 @@ class Enzo3DData(EnzoData):
             new_field = na.ones(grid.ActiveDimensions, dtype=dtype) * default_val
             np = pointI[0].ravel().size
             new_field[pointI] = self[field][i:i+np]
-            grid[field] = new_field.copy()
+            if grid.data.has_key(field): del grid.data[field]
+            grid[field] = new_field
+            i += np
 
     def _generate_field(self, field):
         if fieldInfo.has_key(field):
@@ -978,6 +987,22 @@ class Enzo3DData(EnzoData):
     __gridRightEdge = None
     gridRightEdge = property(__get_gridRightEdge, __set_gridRightEdge,
                              __del_gridRightEdge)
+
+    def __get_gridLevels(self):
+        if self.__gridLevels == None:
+            self.__gridLevels = na.array([g.Level for g in self._grids])
+        return self.__gridLevels
+
+    def __del_gridLevels(self):
+        del self.__gridLevels
+        self.__gridLevels = None
+
+    def __set_gridLevels(self, val):
+        self.__gridLevels = val
+
+    __gridLevels = None
+    gridLevels = property(__get_gridLevels, __set_gridLevels,
+                             __del_gridLevels)
 
 class ExtractedRegionBase(Enzo3DData):
     def __init__(self, base_region, indices):
@@ -1082,7 +1107,11 @@ class EnzoSphereBase(Enzo3DData):
         self._refresh_data()
 
     def _get_list_of_grids(self, field = None):
-        self._grids,ind = self.hierarchy.find_sphere_grids(self.center, self.radius)
+        grids,ind = self.hierarchy.find_sphere_grids(self.center, self.radius)
+        # Now we sort by level
+        grids = grids.tolist()
+        grids.sort(key=lambda x: (x.Level, x.LeftEdge[0], x.LeftEdge[1], x.LeftEdge[2]))
+        self._grids = na.array(grids)
 
     @restore_grid_state
     def _get_cut_mask(self, grid, field=None):
@@ -1118,27 +1147,27 @@ class EnzoCoveringGrid(Enzo3DData):
     def _get_list_of_grids(self):
         grids, ind = self.pf.hierarchy.get_box_grids(self.left_edge, self.right_edge)
         level_ind = na.where(self.pf.hierarchy.gridLevels.ravel()[ind] <= self.level)
-        sort_ind = na.flipud(na.argsort(self.pf.h.gridLevels.ravel()[ind][level_ind]))
+        sort_ind = na.argsort(self.pf.h.gridLevels.ravel()[ind][level_ind])
         self._grids = self.pf.hierarchy.grids[ind][level_ind][(sort_ind,)]
 
     def __setup_weave_dict(self, grid):
         return {
-            'nxc': int(grid.ActiveDimensions[0]),
-            'nyc': int(grid.ActiveDimensions[1]),
-            'nzc': int(grid.ActiveDimensions[2]),
-            'leftEdgeCoarse': na.array(grid.LeftEdge),
+            'nx_g': int(grid.ActiveDimensions[0]),
+            'ny_g': int(grid.ActiveDimensions[1]),
+            'nz_g': int(grid.ActiveDimensions[2]),
+            'leftEdgeGrid': na.array(grid.LeftEdge),
             'rf': int(grid.dx / self.dx),
-            'dx_c': float(grid.dx),
-            'dy_c': float(grid.dy),
-            'dz_c': float(grid.dz),
-            'dx_f': float(self.dx),
-            'dy_f': float(self.dy),
-            'dz_f': float(self.dz),
-            'cubeLeftEdge': na.array(self.left_edge),
+            'dx_g': float(grid.dx),
+            'dy_g': float(grid.dy),
+            'dz_g': float(grid.dz),
+            'dx_m': float(self.dx),
+            'dy_m': float(self.dy),
+            'dz_m': float(self.dz),
+            'leftEdgeCube': na.array(self.left_edge),
             'cubeRightEdge': na.array(self.right_edge),
-            'nxf': int(self.ActiveDimensions[0]),
-            'nyf': int(self.ActiveDimensions[1]),
-            'nzf': int(self.ActiveDimensions[2]),
+            'nx_m': int(self.ActiveDimensions[0]),
+            'ny_m': int(self.ActiveDimensions[1]),
+            'nz_m': int(self.ActiveDimensions[2]),
             'childMask' : grid.child_mask
         }
 
@@ -1164,7 +1193,8 @@ class EnzoCoveringGrid(Enzo3DData):
             for grid in self._grids:
                 self._get_data_from_grid(grid, field)
                 if not na.any(self[field] == -999): break
-            if na.any(self[field] == -999) and len(self._grids) > 1:
+            if na.any(self[field] == -999) and self.dx < self.hierarchy.grids[0].dx:
+                print na.where(self[field]==-999)[0].size
                 raise KeyError
 
     def flush_data(self, field=None):
@@ -1178,7 +1208,6 @@ class EnzoCoveringGrid(Enzo3DData):
             mylog.info("Flushing field %s to %s possible grids",
                        field, len(self._grids))
             grid_list = self._grids.tolist()
-            grid_list.reverse()
             for grid in grid_list:
                 self._flush_data_to_grid(grid, field)
 
@@ -1200,9 +1229,10 @@ class EnzoCoveringGrid(Enzo3DData):
             locals_dict = self.__setup_weave_dict(grid)
             locals_dict['fieldData'] = grid[field]
             locals_dict['cubeData'] = self[field]
-            locals_dict['lastLevel'] = int(grid.Level == self.level)
+            locals_dict['lastLevel'] = 1
             weave.inline(DataCubeReplaceData,
                          locals_dict.keys(), local_dict=locals_dict,
                          compiler='gcc',
                          type_converters=converters.blitz,
                          auto_downcast=0, verbose=2)
+            grid[field] = locals_dict['fieldData'][:]

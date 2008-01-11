@@ -62,7 +62,7 @@ def readAllDataHDF4(self):
     """
     sets = SD.SD(self.filename).datasets()
     for set in sets:
-        self.readDataFast(set)
+        self[set] = self.readDataFast(set)
 
 def readDataHDF5(self, field):
     """

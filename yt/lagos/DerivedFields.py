@@ -142,6 +142,7 @@ class ValidateProperty(FieldValidator):
         doesnt_have = []
         for p in self.prop:
             if not hasattr(data,p):
+                print type(data), p
                 doesnt_have.append(p)
         if len(doesnt_have) > 0:
             raise NeedsProperty(doesnt_have)
@@ -218,13 +219,13 @@ for species in _speciesList:
 
 def _GridLevel(field, data):
     return na.ones(data["Density"].shape)*(data.Level)
-add_field("GridLevel", validators=[ValidateProperty('Level'),
+add_field("GridLevel", validators=[#ValidateProperty('Level'),
                                    ValidateSpatial(0)])
 
 def _GridIndices(field, data):
     return na.ones(data["Density"].shape)*(data.id-1)
-add_field("GridIndices", validators=[ValidateProperty('id'),
-                                     ValidateSpatial(0)])
+add_field("GridIndices", validators=[#ValidateProperty('id'),
+                                     ValidateSpatial(0)], take_log=False)
 
 def _OnesOverDx(field, data):
     return na.ones(data["Density"].shape,
@@ -468,6 +469,39 @@ add_field("DivV", validators=[ValidateSpatial(1,
 def _Contours(field, data):
     return na.ones(data["Density"].shape)*-1
 add_field("Contours", validators=[ValidateSpatial(0)], take_log=False)
+add_field("tempContours", function=_Contours, validators=[ValidateSpatial(0)], take_log=False)
+
+def _SpecificAngularMomentum(field, data):
+    """
+    Calculate the angular velocity.  Returns a vector for each cell.
+    """
+    if data.has_field_parameter("bulk_velocity"):
+        bv = data.get_field_parameter("bulk_velocity")
+        xv = data["x-velocity"] - bv[0]
+        yv = data["y-velocity"] - bv[1]
+        zv = data["z-velocity"] - bv[2]
+    else:
+        xv = self["x-velocity"]
+        yv = self["y-velocity"]
+        zv = self["z-velocity"]
+
+    center = data.get_field_parameter('center')
+    coords = na.array([data['x'],data['y'],data['z']])
+    r_vec = coords - na.reshape(center,(3,1))
+    v_vec = na.array([xv,yv,zv])
+    tr = na.zeros(v_vec.shape, 'float64')
+    tr[0,:] = (r_vec[1,:] * v_vec[2,:]) - \
+              (r_vec[2,:] * v_vec[1,:])
+    tr[1,:] = (r_vec[0,:] * v_vec[2,:]) - \
+              (r_vec[2,:] * v_vec[0,:])
+    tr[2,:] = (r_vec[0,:] * v_vec[1,:]) - \
+              (r_vec[1,:] * v_vec[0,:])
+    return tr
+def _convertSpecificAngularMomentum(data):
+    return data.convert("cm")
+add_field("SpecificAngularMomentum",
+          convert_function=_convertSpecificAngularMomentum,
+          units=r"\rm{cm}^2/\rm{s}", validators=[ValidateParameter('center')])
 
 def _Radius(field, data):
     center = data.get_field_parameter("center")
@@ -523,16 +557,22 @@ def _RadialVelocity(field, data):
                 + (data['y']-center[1])*data["y-velocity"]
                 + (data['z']-center[2])*data["z-velocity"])/data["RadiusCode"]
     return new_field
+def _RadialVelocityABS(field, data):
+    return na.abs(_RadialVelocity(field, data))
 def _ConvertRadialVelocity(data):
-    return (data.convert("x-velocity") / 1e5)
-def _ConvertRadialVelocityCGS(data):
     return (data.convert("x-velocity"))
+def _ConvertRadialVelocityKMS(data):
+    return (data.convert("x-velocity") / 1e5)
 add_field("RadialVelocity", function=_RadialVelocity,
-          convert_function=_ConvertRadialVelocity, units=r"\rm{km}/\rm{s}",
+          convert_function=_ConvertRadialVelocity, units=r"\rm{cm}/\rm{s}",
           validators=[ValidateParameter("center"),
                       ValidateParameter("bulk_velocity")])
-add_field("RadialVelocityCGS", function=_RadialVelocity,
-          convert_function=_ConvertRadialVelocityCGS, units=r"\rm{cm}/\rm{s}",
+add_field("RadialVelocityABS", function=_RadialVelocityABS,
+          convert_function=_ConvertRadialVelocity, units=r"\rm{cm}/\rm{s}",
+          validators=[ValidateParameter("center"),
+                      ValidateParameter("bulk_velocity")])
+add_field("RadialVelocityKMS", function=_RadialVelocity,
+          convert_function=_ConvertRadialVelocityKMS, units=r"\rm{km}/\rm{s}",
           validators=[ValidateParameter("center"),
                       ValidateParameter("bulk_velocity")])
 
@@ -563,11 +603,11 @@ for field in ["Density"] + [ "%s_Density" % sp for sp in _speciesList ]:
 
 def _convertEnergy(data):
     return data.convert("x-velocity")**2.0
-fieldInfo["Gas_Energy"].units = r"\rm{ergs}/\rm{g}"
+fieldInfo["Gas_Energy"]._units = r"\rm{ergs}/\rm{g}"
 fieldInfo["Gas_Energy"]._convert_function = _convertEnergy
-fieldInfo["Total_Energy"].units = r"\rm{ergs}/\rm{g}"
+fieldInfo["Total_Energy"]._units = r"\rm{ergs}/\rm{g}"
 fieldInfo["Total_Energy"]._convert_function = _convertEnergy
-fieldInfo["Temperature"].units = r"\rm{K}"
+fieldInfo["Temperature"]._units = r"\rm{K}"
 
 def _convertVelocity(data):
     return data.convert("x-velocity")

@@ -377,6 +377,7 @@ class EnzoHierarchy:
             # For multiple grids on the root level
             if v == -1: self.gridReverseTree[i] = None
         self.maxLevel = self.gridLevels.max()
+        self.max_level = self.maxLevel
         # Now we do things that we need all the grids to do
         #self.fieldList = self.grids[0].getFields()
         # The rest of this can probably be done with list comprehensions, but
