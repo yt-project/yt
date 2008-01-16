@@ -87,6 +87,8 @@ class EnzoHierarchy:
         self.gridRightEdge = na.zeros((self.num_grids,3), EnzoFloatType)
         self.gridLevels = na.zeros((self.num_grids,1), 'int32')
         self.gridDxs = na.zeros((self.num_grids,1), EnzoFloatType)
+        self.gridDys = na.zeros((self.num_grids,1), EnzoFloatType)
+        self.gridDzs = na.zeros((self.num_grids,1), EnzoFloatType)
         self.gridTimes = na.zeros((self.num_grids,1), 'float64')
         self.gridNumberOfParticles = na.zeros((self.num_grids,1))
         mylog.debug("Done allocating")
@@ -105,6 +107,8 @@ class EnzoHierarchy:
                 'formats':['Int32']*3}
         self.level_stats = blankRecordArray(desc, MAXLEVEL)
         self.level_stats['level'] = [i for i in range(MAXLEVEL)]
+        self.level_stats['numgrids'] = [0 for i in range(MAXLEVEL)]
+        self.level_stats['numcells'] = [0 for i in range(MAXLEVEL)]
 
         # For use with derived quantities depending on centers
         # Although really, I think perhaps we should take a closer look
@@ -244,6 +248,137 @@ class EnzoHierarchy:
                 del g
         del self.gridTree
 
+    def __deserialize_hierarchy(self, harray):
+        mylog.debug("Cached entry found.")
+        self.gridDimensions[:] = harray[:,0:3]
+        self.gridStartIndices[:] = harray[:,3:6]
+        self.gridEndIndices[:] = harray[:,6:9]
+        self.gridLeftEdge[:] = harray[:,9:12]
+        self.gridRightEdge[:] = harray[:,12:15]
+        self.gridLevels[:] = harray[:,15:16]
+        self.gridTimes[:] = harray[:,16:17]
+        self.gridNumberOfParticles[:] = harray[:,17:18]
+        del harray
+        mylog.debug("Copied to local array.")
+        # Now get the baryon filenames
+        mylog.debug("Getting baryon filenames")
+        re_BaryonFileName = constructRegularExpressions("BaryonFileName",('s'))
+        fn_results = re.findall(re_BaryonFileName, self.__hierarchy_string)
+        print len(fn_results)
+        if len(fn_results):
+            self.__set_all_filenames(fn_results)
+            return
+        re_BaryonFileName = constructRegularExpressions("FileName",('s'))
+        fn_results = re.findall(re_BaryonFileName, self.__hierarchy_string)
+        self.__set_all_filenames(fn_results)
+        # This is pretty bad, but we do it to save a significant amount of time
+        # in larger runs.
+
+    def __set_all_filenames(self, fns):
+        if self._strip_path:
+            for fnI, fn in enumerate(fns):
+                self.grids[fnI].filename = os.path.sep.join([self.directory,
+                                                     os.path.basename(fn)])
+        elif fns[0][0] == os.path.sep:
+            for fnI, fn in enumerate(fns):
+                self.grids[fnI].filename = fn
+        else:
+            for fnI, fn in enumerate(fns):
+                self.grids[fnI].filename = os.path.sep.join([self.directory,
+                                                             fn])
+        mylog.debug("Done with baryon filenames")
+        for g in self.grids:
+            self.__setup_filemap(g)
+        mylog.debug("Done with filemap")
+
+    def __parse_hierarchy_file(self):
+        def __split_convert(vals, func, toAdd, curGrid):
+            """
+            Quick function to split up a parameter and convert it and toss onto a grid
+            """
+            j = 0
+            for v in vals.split():
+                toAdd[curGrid-1,j] = func(v)
+                j+=1
+        for line_index, line in enumerate(self.__hierarchy_lines):
+            # We can do this the slow, 'reliable' way by stripping
+            # or we can manually pad all our strings, which speeds it up by a
+            # factor of about ten
+            #param, vals = map(strip,line.split("="))
+            if (line_index % 1e5) == 0:
+                mylog.debug("Parsing line % 9i / % 9i",
+                            line_index, len(self.__hierarchy_lines))
+            if len(line) < 2:
+                continue
+            param, vals = line.split("=")
+            param = param.rstrip() # This slows things down considerably...
+                                   # or so I used to think...
+            if param == "Grid":
+                curGrid = int(vals)
+                self.grids[curGrid-1] = self.grid(curGrid)
+            elif param == "GridDimension":
+                __split_convert(vals, float, self.gridDimensions, curGrid)
+            elif param == "GridStartIndex":
+                __split_convert(vals, int, self.gridStartIndices, curGrid)
+            elif param == "GridEndIndex":
+                __split_convert(vals, int, self.gridEndIndices, curGrid)
+            elif param == "GridLeftEdge":
+                __split_convert(vals, float, self.gridLeftEdge, curGrid)
+            elif param == "GridRightEdge":
+                __split_convert(vals, float, self.gridRightEdge, curGrid)
+            elif param == "Level":
+                __split_convert(vals, int, self.gridLevels, curGrid)
+            elif param == "Time":
+                __split_convert(vals, float, self.gridTimes, curGrid)
+            elif param == "NumberOfParticles":
+                __split_convert(vals, float, self.gridNumberOfParticles, curGrid)
+            elif param == "FileName":
+                self.grids[curGrid-1].set_filename(vals[1:-1])
+            elif param == "BaryonFileName":
+                self.grids[curGrid-1].set_filename(vals[1:-1])
+        mylog.info("Caching hierarchy information")
+        allArrays = na.zeros((self.num_grids,18),'float64')
+        allArrays[:,0:3] = self.gridDimensions[:]
+        allArrays[:,3:6] = self.gridStartIndices[:]
+        allArrays[:,6:9] = self.gridEndIndices[:]
+        allArrays[:,9:12] = self.gridLeftEdge[:]
+        allArrays[:,12:15] = self.gridRightEdge[:]
+        allArrays[:,15:16] = self.gridLevels[:]
+        allArrays[:,16:17] = self.gridTimes[:]
+        allArrays[:,17:18] = self.gridNumberOfParticles[:]
+        self.save_data(allArrays, "/","Hierarchy")
+        del allArrays
+
+    def __setup_grid_tree(self):
+        mylog.debug("No cached tree found, creating")
+        self.grids[0].Level = 0  # Bootstrap
+        self.gridLevels[0] = 0   # Bootstrap
+        p = re.compile(r"Pointer: Grid\[(\d*)\]->NextGrid(Next|This)Level = (\d*)$", re.M)
+        # Now we assemble the grid tree
+        # This is where all the time is spent.
+        for m in p.finditer(self.__hierarchy_string):
+            secondGrid = int(m.group(3))-1 # zero-index versus one-index
+            if secondGrid == -1:
+                continue
+            firstGrid = int(m.group(1))-1
+            if m.group(2) == "Next":
+                self.gridTree[firstGrid].append(self.grids[secondGrid])
+                self.gridReverseTree[secondGrid] = firstGrid + 1
+                self.grids[secondGrid].Level = self.grids[firstGrid].Level + 1
+                self.gridLevels[secondGrid] = self.gridLevels[firstGrid] + 1
+            elif m.group(2) == "This":
+                parent = self.gridReverseTree[firstGrid]
+                if parent:
+                    self.gridTree[parent-1].append(self.grids[secondGrid])
+                self.gridReverseTree[secondGrid] = parent
+                self.grids[secondGrid].Level = self.grids[firstGrid].Level
+                self.gridLevels[secondGrid] = self.gridLevels[firstGrid]
+        pTree = [ [ grid.id - 1 for grid in self.gridTree[i] ] for i in range(self.num_grids) ]
+        self.gridReverseTree[0] = -1
+        self.save_data(cPickle.dumps(pTree), "/", "Tree")
+        self.save_data(na.array(self.gridReverseTree), "/", "ReverseTree")
+        self.save_data(self.gridLevels, "/", "Levels")
+
     @time_execution
     def __populate_hierarchy(self):
         """
@@ -255,117 +390,12 @@ class EnzoHierarchy:
             self.file_access = {}
         harray = self.get_data("/", "Hierarchy")
         if harray:
-            mylog.debug("Cached entry found.")
-            self.gridDimensions[:] = harray[:,0:3]
-            mylog.debug("Finally got ONE")
-            self.gridStartIndices[:] = harray[:,3:6]
-            self.gridEndIndices[:] = harray[:,6:9]
-            self.gridLeftEdge[:] = harray[:,9:12]
-            self.gridRightEdge[:] = harray[:,12:15]
-            self.gridLevels[:] = harray[:,15:16]
-            self.gridTimes[:] = harray[:,16:17]
-            self.gridNumberOfParticles[:] = harray[:,17:18]
-            del harray
-            # Now get the baryon filenames
-            mylog.debug("Getting baryon filenames")
-            re_BaryonFileName = constructRegularExpressions("BaryonFileName",('s'))
-            t = re.findall(re_BaryonFileName, self.__hierarchy_string)
-            for fnI in xrange(len(t)):
-                self.grids[fnI].set_filename(t[fnI])
-            re_BaryonFileName = constructRegularExpressions("FileName",('s'))
-            t = re.findall(re_BaryonFileName, self.__hierarchy_string)
-            for fnI in xrange(len(t)):
-                self.grids[fnI].set_filename(t[fnI])
-            mylog.debug("Done with baryon filenames")
-            for g in self.grids:
-                self.__setup_filemap(g)
-            mylog.debug("Done with filemap")
+            self.__deserialize_hierarchy(harray)
         else:
-            def __split_convert(vals, func, toAdd, curGrid):
-                """
-                Quick function to split up a parameter and convert it and toss onto a grid
-                """
-                j = 0
-                for v in vals.split():
-                    toAdd[curGrid-1,j] = func(v)
-                    j+=1
-            for line_index, line in enumerate(self.__hierarchy_lines):
-                # We can do this the slow, 'reliable' way by stripping
-                # or we can manually pad all our strings, which speeds it up by a
-                # factor of about ten
-                #param, vals = map(strip,line.split("="))
-                if (line_index % 1e5) == 0:
-                    mylog.debug("Parsing line % 9i / % 9i", line_index, len(self.__hierarchy_lines))
-                if len(line) < 2:
-                    continue
-                param, vals = line.split("=")
-                param = param.rstrip() # This slows things down considerably...
-                                       # or so I used to think...
-                if param == "Grid":
-                    curGrid = int(vals)
-                    self.grids[curGrid-1] = self.grid(curGrid)
-                elif param == "GridDimension":
-                    __split_convert(vals, float, self.gridDimensions, curGrid)
-                elif param == "GridStartIndex":
-                    __split_convert(vals, int, self.gridStartIndices, curGrid)
-                elif param == "GridEndIndex":
-                    __split_convert(vals, int, self.gridEndIndices, curGrid)
-                elif param == "GridLeftEdge":
-                    __split_convert(vals, float, self.gridLeftEdge, curGrid)
-                elif param == "GridRightEdge":
-                    __split_convert(vals, float, self.gridRightEdge, curGrid)
-                elif param == "Level":
-                    __split_convert(vals, int, self.gridLevels, curGrid)
-                elif param == "Time":
-                    __split_convert(vals, float, self.gridTimes, curGrid)
-                elif param == "NumberOfParticles":
-                    __split_convert(vals, float, self.gridNumberOfParticles, curGrid)
-                elif param == "FileName":
-                    self.grids[curGrid-1].set_filename(vals[1:-1])
-                elif param == "BaryonFileName":
-                    self.grids[curGrid-1].set_filename(vals[1:-1])
-            mylog.info("Caching hierarchy information")
-            allArrays = na.zeros((self.num_grids,18),'float64')
-            allArrays[:,0:3] = self.gridDimensions[:]
-            allArrays[:,3:6] = self.gridStartIndices[:]
-            allArrays[:,6:9] = self.gridEndIndices[:]
-            allArrays[:,9:12] = self.gridLeftEdge[:]
-            allArrays[:,12:15] = self.gridRightEdge[:]
-            allArrays[:,15:16] = self.gridLevels[:]
-            allArrays[:,16:17] = self.gridTimes[:]
-            allArrays[:,17:18] = self.gridNumberOfParticles[:]
-            self.save_data(allArrays, "/","Hierarchy")
-            del allArrays
+            self.__parse_hierarchy_file()
         treeArray = self.get_data("/", "Tree")
         if treeArray == None:
-            mylog.debug("No cached tree found, creating")
-            self.grids[0].Level = 0  # Bootstrap
-            self.gridLevels[0] = 0   # Bootstrap
-            p = re.compile(r"Pointer: Grid\[(\d*)\]->NextGrid(Next|This)Level = (\d*)$", re.M)
-            # Now we assemble the grid tree
-            # This is where all the time is spent.
-            for m in p.finditer(self.__hierarchy_string):
-                secondGrid = int(m.group(3))-1 # zero-index versus one-index
-                if secondGrid == -1:
-                    continue
-                firstGrid = int(m.group(1))-1
-                if m.group(2) == "Next":
-                    self.gridTree[firstGrid].append(self.grids[secondGrid])
-                    self.gridReverseTree[secondGrid] = firstGrid + 1
-                    self.grids[secondGrid].Level = self.grids[firstGrid].Level + 1
-                    self.gridLevels[secondGrid] = self.gridLevels[firstGrid] + 1
-                elif m.group(2) == "This":
-                    parent = self.gridReverseTree[firstGrid]
-                    if parent:
-                        self.gridTree[parent-1].append(self.grids[secondGrid])
-                    self.gridReverseTree[secondGrid] = parent
-                    self.grids[secondGrid].Level = self.grids[firstGrid].Level
-                    self.gridLevels[secondGrid] = self.gridLevels[firstGrid]
-            pTree = [ [ grid.id - 1 for grid in self.gridTree[i] ] for i in range(self.num_grids) ]
-            self.gridReverseTree[0] = -1
-            self.save_data(cPickle.dumps(pTree), "/", "Tree")
-            self.save_data(na.array(self.gridReverseTree), "/", "ReverseTree")
-            self.save_data(self.gridLevels, "/", "Levels")
+            self.__setup_grid_tree()
         else:
             mylog.debug("Grabbing serialized tree data")
             pTree = cPickle.loads(treeArray.read())
@@ -376,6 +406,7 @@ class EnzoHierarchy:
         for i,v in enumerate(self.gridReverseTree):
             # For multiple grids on the root level
             if v == -1: self.gridReverseTree[i] = None
+        mylog.debug("Tree created")
         self.maxLevel = self.gridLevels.max()
         self.max_level = self.maxLevel
         # Now we do things that we need all the grids to do
@@ -385,10 +416,8 @@ class EnzoHierarchy:
         mylog.debug("Preparing grids")
         for i, grid in enumerate(self.grids):
             if (i%1e4) == 0: mylog.debug("Prepared % 7i / % 7i grids", i, self.num_grids)
-            tlevel = self.gridLevels[i]
             grid._prepare_grid()
-            self.level_stats['numgrids'][tlevel] += 1
-            self.level_stats['numcells'][tlevel] += na.product(grid.ActiveDimensions)
+        self.__setup_grid_dxs()
         mylog.debug("Prepared")
         field_list = self.get_data("/", "DataFields")
         if field_list == None:
@@ -407,9 +436,44 @@ class EnzoHierarchy:
         self.field_list = list(field_list)
         self.levelIndices = {}
         self.levelNum = {}
+        ad = self.gridEndIndices - self.gridStartIndices + 1
         for level in xrange(self.maxLevel+1):
+            self.level_stats[level]['numgrids'] = na.where(self.gridLevels==level)[0].size
+            li = na.where(self.gridLevels[:,0] == level)
+            self.level_stats[level]['numcells'] = ad[li].prod(axis=1).sum()
             self.levelIndices[level] = self.__select_level(level)
             self.levelNum[level] = len(self.levelIndices[level])
+        mylog.debug("Hierarchy fully populated.")
+
+    def __setup_grid_dxs(self):
+        mylog.debug("Setting up corners and dxs")
+        self.gridCorners = na.array([ # Unroll!
+            [self.gridLeftEdge[:,0], self.gridLeftEdge[:,1], self.gridLeftEdge[:,2]],
+            [self.gridRightEdge[:,0], self.gridLeftEdge[:,1], self.gridLeftEdge[:,2]],
+            [self.gridRightEdge[:,0], self.gridRightEdge[:,1], self.gridLeftEdge[:,2]],
+            [self.gridRightEdge[:,0], self.gridRightEdge[:,1], self.gridRightEdge[:,2]],
+            [self.gridLeftEdge[:,0], self.gridRightEdge[:,1], self.gridRightEdge[:,2]],
+            [self.gridLeftEdge[:,0], self.gridLeftEdge[:,1], self.gridRightEdge[:,2]],
+            [self.gridRightEdge[:,0], self.gridLeftEdge[:,1], self.gridRightEdge[:,2]],
+            [self.gridLeftEdge[:,0], self.gridRightEdge[:,1], self.gridLeftEdge[:,2]],
+            ], dtype='float64')
+        dx = (self.gridRightEdge[:,0] - self.gridLeftEdge[:,0]) / \
+             (self.gridEndIndices[:,0]-self.gridStartIndices[:,0]+1)
+        dy = (self.gridRightEdge[:,1] - self.gridLeftEdge[:,1]) / \
+             (self.gridEndIndices[:,1]-self.gridStartIndices[:,1]+1)
+        dz = (self.gridRightEdge[:,2] - self.gridLeftEdge[:,2]) / \
+             (self.gridEndIndices[:,2]-self.gridStartIndices[:,2]+1)
+        self.gridDxs[:,0] = dx[:]
+        self.gridDys[:,0] = dy[:]
+        self.gridDzs[:,0] = dz[:]
+        mylog.debug("Flushing to grids")
+        for grid in self.grids:
+            grid._setup_dx()
+        mylog.debug("Done flushing to grids")
+        if ytcfg.getboolean("lagos","ReconstructHierarchy") == True:
+            mylog.debug("Reconstructing hierarchy")
+            for grid in self.grids:
+                    if grid.Parent: grid._guess_properties_from_parent()
 
     def __select_level(self, level):
         """

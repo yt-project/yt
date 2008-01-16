@@ -209,7 +209,6 @@ class EnzoStaticOutput(EnzoOutput):
             self.conversion_factors["Time"] = 1.0
         for unit in unitList.keys():
             self.units[unit] = unitList[unit] * box_proper
-        return box, boxh
 
     def _get_hierarchy(self):
         if self.__hierarchy == None:
