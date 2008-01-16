@@ -66,7 +66,7 @@ class DerivedField:
                  convert_function = None,
                  units = "", projected_units = "",
                  take_log = True, validators = None,
-                 variable_length = False):
+                 variable_length = False, vector_field=False):
         self.name = name
         self._function = function
         if validators:
@@ -80,6 +80,7 @@ class DerivedField:
             convert_function = lambda a: 1.0
         self._convert_function = convert_function
         self.variable_length = variable_length
+        self.vector_field = vector_field
     def check_available(self, data):
         for validator in self.validators:
             validator(data)
@@ -500,7 +501,7 @@ def _SpecificAngularMomentum(field, data):
 def _convertSpecificAngularMomentum(data):
     return data.convert("cm")
 add_field("SpecificAngularMomentum",
-          convert_function=_convertSpecificAngularMomentum,
+          convert_function=_convertSpecificAngularMomentum, vector_field=True,
           units=r"\rm{cm}^2/\rm{s}", validators=[ValidateParameter('center')])
 
 def _Radius(field, data):
