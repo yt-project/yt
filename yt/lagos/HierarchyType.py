@@ -264,7 +264,6 @@ class EnzoHierarchy:
         mylog.debug("Getting baryon filenames")
         re_BaryonFileName = constructRegularExpressions("BaryonFileName",('s'))
         fn_results = re.findall(re_BaryonFileName, self.__hierarchy_string)
-        print len(fn_results)
         if len(fn_results):
             self.__set_all_filenames(fn_results)
             return
