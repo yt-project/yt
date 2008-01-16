@@ -102,7 +102,8 @@ def _returnFieldFunction(field):
     def field_function(self):
         try:
             self.data[field.name]
-            if not field.variable_length and self.data[field.name].size > 1:
+            if not field.variable_length and not field.vector_field and \
+                self.data[field.name].size > 1:
                 self.assertEqual(na.product(self.data["Density"].shape),
                                  na.product(self.data[field.name].shape))
             del self.data[field.name]
