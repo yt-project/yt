@@ -478,6 +478,7 @@ class PhasePlot(RavenPlot):
         else:
             bins = na.linspace(v.min()*0.99,v.max()*1.01,num=self.bins)
             if func: func('linear')
+        mylog.debug("Field: %s, log_field: %s", field, log_field)
         return log_field, v, bins
 
     def autoset_label(self, field, func):
