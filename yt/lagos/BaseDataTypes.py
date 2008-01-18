@@ -39,16 +39,15 @@ class EnzoData:
     """
     Generic EnzoData container.  By itself, will attempt to
     generate field, read fields (method defined by derived classes)
+    and deal with passing back and forth field parameters.
     """
     _grids = None
     _num_ghost_zones = 0
 
     def __init__(self, pf, fields):
         """
-        Sets up EnzoData instance
-
-        @param hierarchy: hierarchy we're associated with
-        @type hierarchy: L{EnzoHierarchy<EnzoHierarchy>}
+        @param pf: The parameterfile associated with this container
+        @type hierarchy: L{EnzoOutput<EnzoOutput>}
         @param fields: Fields represented in the data
         @type fields: list of strings
         """
@@ -66,12 +65,20 @@ class EnzoData:
         self.set_field_parameter("bulk_velocity",na.zeros(3,dtype='float64'))
 
     def get_field_parameter(self, name, default=None):
+        """
+        This is typically only used by derived field functions, but
+        it returns parameters used to generate fields.
+        """
         if self.field_parameters.has_key(name):
             return self.field_parameters[name]
         else:
             return default
 
     def set_field_parameter(self, name, val):
+        """
+        Here we set up dictionaries that get passed up and down and ultimately
+        to derived fields.
+        """
         self.field_parameters[name] = val
 
     def has_field_parameter(self, name):
@@ -129,18 +136,16 @@ class EnzoData:
 
 class Enzo2DData(EnzoData):
     """
-    Class to represent a set of EnzoData that's 2-D in nature.  Slices and
-    projections, primarily.
+    Class to represent a set of EnzoData that's 2-D in nature, and thus
+    does not have as many actions as the 3-D data types.
     """
     _spatial = False
     def __init__(self, axis, fields, pf=None):
         """
         Prepares the Enzo2DData.
 
-        @param hierarchy: hierarchy associated with this data
-        @type hierarchy: L{EnzoHierarchy<EnzoHierarchy>}
-        @param axis: axis to which this data is parallel
-        @type axis: integer
+        @param axis: Axis to slice along
+        @type axis: integer (0,1,2, 4)
         @param fields: fields to be processed or generated
         @type fields: list of strings
         """
@@ -178,12 +183,6 @@ class Enzo2DData(EnzoData):
 
 
     def _generate_field(self, field):
-        """
-        Generates, or attempts to generate, a field not found in the data file
-
-        @param field: field to generate
-        @type field: string
-        """
         if fieldInfo.has_key(field):
             # First we check the validator
             try:
@@ -209,9 +208,9 @@ class Enzo2DData(EnzoData):
 
         @note: Requires Delaunay triangulation, which is not included in
         most/all scipy binaries.
-        @param LE: Left Edge
+        @param LE: Left Edge of interpolation region
         @type LE: array of Floats
-        @param RE: Right Edge
+        @param RE: Right Edge of interpolation region
         @type RE: array of Floats
         @param field: The field to discretize
         @type field: string
@@ -236,23 +235,17 @@ class Enzo2DData(EnzoData):
 
 class EnzoSliceBase(Enzo2DData):
     """
-    A slice at a given coordinate along a given axis through the entire grid
-    hierarchy.
+    EnzoSlice is an orthogonal slice through the data, taking all the points
+    at the finest resolution available and then indexing them.  It is more
+    appropriately thought of as a slice 'operator' than an object,
+    however, as its field and coordinate can both change.
     """
 
     @time_execution
     def __init__(self, axis, coord, fields = None, center=None, pf=None):
         """
-        We are not mandating a field be passed in
-        The field and coordinate we want to be able to change -- however, the
-        axis we do NOT want to change.  So think of EnzoSlice as defining a slice
-        operator, rather than a set piece of data.
-
-        Arguments:
-        @param hierarchy: hierarchy associated with this data
-        @type hierarchy: L{EnzoHierarchy<EnzoHierarchy>}
         @param axis: axis to which this data is parallel
-        @type axis: integer
+        @type axis: integer (0,1,2)
         @param coord: three points defining the center
         @type coord: na.array
         @keyword fields: fields to be processed or generated
@@ -264,6 +257,13 @@ class EnzoSliceBase(Enzo2DData):
         self._refresh_data()
 
     def reslice(self, coord):
+        """
+        Change the entire dataset, clearing out the current data and slicing at
+        a new location.  Not terribly useful except for in-place plot changes.
+
+        @param coord: New coordinate for slice
+        @type coord: float
+        """
         mylog.debug("Setting coordinate to %0.5e" % coord)
         self.coord = coord
         self._refresh_data()
@@ -371,8 +371,20 @@ class EnzoSliceBase(Enzo2DData):
         grid[field]
 
 class EnzoCuttingPlaneBase(Enzo2DData):
+    """
+    EnzoCuttingPlane is an oblique plane through the data,
+    defined by a normal vector and a coordinate.  It attempts to guess
+    an 'up' vector, which cannot be overridden, and then it pixelizes
+    the appropriate data onto the plane without interpolation.
+    """
     _plane = None
     def __init__(self, normal, center, fields = None):
+        """
+        @param normal: Vector normal to which the plane will be defined
+        @type normal: List or array of floats
+        @param center: The center point of the plane
+        @type center: List or array of floats
+        """
         Enzo2DData.__init__(self, 4, fields)
         self.center = center
         self.set_field_parameter('center',center)
@@ -472,18 +484,19 @@ class EnzoProjBase(Enzo2DData):
                  max_level = None, center = None, pf = None,
                  source=None, type=0):
         """
-        Returns an instance of EnzoProj.
+        EnzoProj is a line integral of a field along an axis.  The field
+        can be weighted, in which case some degree of averaging takes place.
 
-        @todo: Set up for multiple fields
-        @param hierarchy: the hierarchy we are projecting
-        @type hierarchy: L{EnzoHierarchy<EnzoHierarchy>}
         @param axis: axis to project along
         @type axis: integer
         @param field: the field to project (NOT multiple)
         @type field: string
-        @keyword weightField: the field to weight by
+        @keyword weight_field: the field to weight by
+        @type weight_field: string
         @keyword max_level: the maximum level to project through
         @keyword type: The type of projection: 0 for sum, 1 for MIP
+        @keyword source: The data source, particularly for parallel projections.
+        @type source: L{EnzoData<EnzoData>}
         """
         Enzo2DData.__init__(self, axis, field, pf)
         if not source:
@@ -506,10 +519,6 @@ class EnzoProjBase(Enzo2DData):
 
     @time_execution
     def __calculate_memory(self):
-        """
-        Here we simply calculate how much memory is needed, which speeds up
-        allocation later.  Additionally, overlap masks get pre-generated.
-        """
         level_mem = {}
         h = self.hierarchy
         s = self.source
@@ -647,10 +656,6 @@ class EnzoProjBase(Enzo2DData):
         [grid.clear_data() for grid in s._grids]
 
     def _project_grid(self, grid, field, zero_out):
-        """
-        Projects along an axis.  Currently in flux.  Shouldn't be called
-        directly.
-        """
         if self._weight == None:
             masked_data = self._get_data_from_grid(grid, field)
             weight_data = na.ones(masked_data.shape)
@@ -699,14 +704,15 @@ class EnzoProjBase(Enzo2DData):
 
 class Enzo3DData(EnzoData):
     """
-    Class describing a cluster of data points, not necessarily sharing a
-    coordinate.
+    Class describing a cluster of data points, not necessarily sharing any
+    particular attribute.
     """
     _spatial = False
     _num_ghost_zones = 0
     def __init__(self, center, fields, pf = None):
         """
-        Returns an instance of Enzo3DData, or prepares one.
+        Returns an instance of Enzo3DData, or prepares one.  Usually only
+        used as a base class.
 
         @param hierarchy: hierarchy we are associated with
         @type hierarchy: L{EnzoHierarchy<EnzoHierarchy>}
@@ -720,108 +726,6 @@ class Enzo3DData(EnzoData):
         self.set_field_parameter("center",center)
         self.coords = None
         self.dx = None
-
-    def write_out(self, fields, filename):
-        """
-        Doesn't work yet -- allPoints doesn't quite exist
-        """
-        if not isinstance(fields, types.ListType):
-            fields = [fields]
-        f = open(filename,"w")
-        f.write("x\ty\tz\tdx\tdy\tdz")
-        for field in fields:
-            f.write("\t%s" % (field))
-        f.write("\n")
-        for i in range(self.x.shape[0]):
-            f.write("%0.20f %0.20f %0.20f %0.20f %0.20f %0.20f" % \
-                    (self.x[i], \
-                     self.y[i], \
-                     self.z[i], \
-                     self.dx[i], \
-                     self.dy[i], \
-                     self.dz[i]))
-            for field in fields:
-                f.write("\t%0.7e" % (self[field][i]))
-            f.write("\n")
-        f.close()
-
-    def make_profile(self, fields, num_bins, bounds, bin_field="RadiusCode",
-                     take_log = True):
-        """
-        Here we make a profile.  Note that, for now, we do log-spacing in the
-        bins, and we also assume we are given the radii in code units.
-        field_weights defines the weighting for a given field.  If not given,
-        assumed to be mass-weighted.
-
-        Units might be screwy, but I don't think so.  Unless otherwise stated,
-        returned in code units.  CellMass, by the way, is Msun.  And
-        accumulated.
-
-        Returns the bin outer radii and a dict of the profiles.
-
-        @param fields: fields to get profiles of
-        @type fields: list of strings
-        @param nBins: number of bins
-        @type nBins: int
-        @param rInner: inner radius, code units
-        @param rOuter: outer radius, code units
-        """
-        fields = ensure_list(fields)
-        r_outer = min(bounds[1], self["Radius"].max())
-        r_inner = min(bounds[0], self["Radius"].min())
-        # Let's make the bins
-        if logIt:
-            bins = na.logspace(log10(r_inner), log10(r_outer), num_bins)
-        else:
-            bins = na.logspace(r_inner, r_outer, num_bins)
-        radiiOrder = na.argsort(self[bin_field])
-        fieldCopies = {} # We double up our memory usage here for sorting
-        radii = self[binBy][radiiOrder]
-        binIndices = na.searchsorted(bins, radii)
-        nE = self[binBy].shape[0]
-        defaultWeight = self["CellMass"][radiiOrder]
-        fieldProfiles = {}
-        if "CellMass" not in fields:
-            fields.append("CellMass")
-        for field in fields:
-            code = WeaveStrings.ProfileBinningWeighted
-            fc = self[field][radiiOrder]
-            fp = na.zeros(nBins,'float64')
-            if field_weights.has_key(field):
-                if field_weights[field] == -999:
-                    ss = "Accumulation weighting"
-                    code = WeaveStrings.ProfileBinningAccumulation
-                    weight = na.ones(nE, 'float64')
-                elif field_weights[field] != None:
-                    ww = field_weights[field]
-                    ss="Weighting with %s" % (ww)
-                    weight = self[ww][radiiOrder]
-                elif field_weights[field] == None:
-                    ss="Not weighted"
-                    weight = na.ones(nE, 'float64')
-                else:
-                    mylog.warning("UNDEFINED weighting for %s; defaulting to unweighted", field)
-                    ss="Undefined weighting"
-                    weight = na.ones(nE, 'float64')
-            else:
-                ss="Weighting with default"
-                weight = defaultWeight
-            mylog.info("Getting profile of %s (%s)", field, ss)
-            #print fc.dtype, binIndices.dtype, fp.dtype, weight.dtype
-            #PointCombine.BinProfile(fc, binIndices, \
-                                   #fp, weight)
-            ld = { 'num_bins' : nBins,
-                   'weightvalues' : weight,
-                   'profilevalues' : fp,
-                   'binindices' : binIndices,
-                   'num_elements' : fc.shape[0],
-                   'fieldvalues' : fc }
-            weave.inline(code, ld.keys(), local_dict=ld, compiler='gcc',
-                         type_converters=converters.blitz, auto_downcast = 0, verbose=2)
-            fieldProfiles[field] = fp
-        fieldProfiles[binBy] = bins[:nBins]
-        co = AnalyzeClusterOutput(fieldProfiles)
-        return co
 
     def _generate_coords(self):
         mylog.info("Generating coords for %s grids", len(self._grids))
@@ -861,7 +765,7 @@ class Enzo3DData(EnzoData):
             fields_to_get = self.fields
         else:
             fields_to_get = ensure_list(fields)
-        mylog.info("Going to obtain %s (%s)", fields_to_get, self.fields)
+        mylog.debug("Going to obtain %s (%s)", fields_to_get, self.fields)
         for field in fields_to_get:
             if self.data.has_key(field):
                 continue
@@ -886,7 +790,11 @@ class Enzo3DData(EnzoData):
             return grid[field][pointI].ravel()
 
     def _flush_data_to_grids(self, field, default_val, dtype='float32'):
-        # Kind of a dangerous thing to do
+        """
+        A dangerous, thusly underscored, thing to do to a data object,
+        we can flush back any changes in a given field that have been made
+        with a default value for the rest of the grid.
+        """
         i = 0
         for grid in self._grids:
             pointI = self._get_point_indices(grid)
@@ -928,9 +836,19 @@ class Enzo3DData(EnzoData):
         return pointI
 
     def extract_region(self, indices):
+        """
+        Return an ExtractedRegion where the points contained in it are defined
+        as the points in *this* data object with the given indices
+
+        @param indices: The indices of the points to keep
+        @type indices: The return value of a numpy.where call
+        """
         return ExtractedRegionBase(self, indices)
 
     def select_grids(self, level):
+        """
+        Select all grids on a given level.
+        """
         grids = [g for g in self._grids if g.Level == level]
         return grids
 
@@ -1005,7 +923,17 @@ class Enzo3DData(EnzoData):
                              __del_gridLevels)
 
 class ExtractedRegionBase(Enzo3DData):
+    """
+    ExtractedRegions are arbitrarily defined containers of data, useful
+    for things like selection along a baryon field.
+    """
     def __init__(self, base_region, indices):
+        """
+        @param base_region: The Enzo3DData we select points from
+        @type base_region: L{Enzo3DData<Enzo3DData>}
+        @param indices: The indices in the base container to take
+        @type indices: The result of a numpy.where call
+        """
         cen = base_region.get_field_parameter("center")
         Enzo3DData.__init__(self, center=cen,
                             fields=None, pf=base_region.pf)
@@ -1044,11 +972,18 @@ class ExtractedRegionBase(Enzo3DData):
         return (x,y,z)
 
 class EnzoRegionBase(Enzo3DData):
+    """
+    EnzoRegions are rectangular prisms of data.
+    """
     def __init__(self, center, left_edge, right_edge, fields = None, pf = None):
         """
-        Initializer for a rectangular prism of data.
-
         @note: Center does not have to be (rightEdge - leftEdge) / 2.0
+        @param center: The center for calculations that require it
+        @type center: List or array of floats
+        @param left_edge: The left boundary
+        @type left_edge: list or array of floats
+        @param right_edge: The right boundary
+        @type right_edge: list or array of floats
         """
         Enzo3DData.__init__(self, center, fields, pf)
         self.left_edge = left_edge
@@ -1073,10 +1008,19 @@ class EnzoRegionBase(Enzo3DData):
         return pointI
 
 class EnzoGridCollection(Enzo3DData):
+    """
+    An arbitrary selection of grids, within which we accept all points.
+    """
     def __init__(self, center, grid_list, fields = None, connection_pool = True,
                  pf = None):
+        """
+        @param center: The center of the region, for derived fields
+        @type center: List or array of floats
+        @param grid_list: The grids we are composed of
+        @type grid_list: List or array of Grid objects
+        """
         Enzo3DData.__init__(self, center, fields, pf)
-        self._grids = grid_list
+        self._grids = na.array(grid_list)
         self.fields = fields
         self.connection_pool = True
 
@@ -1092,16 +1036,15 @@ class EnzoSphereBase(Enzo3DData):
     """
     def __init__(self, center, radius, fields = None, pf = None):
         """
-        @param hierarchy: hierarchy we are associated with
-        @type hierarchy: L{EnzoHierarchy<EnzoHierarchy>}
         @param center: center of the region
         @type center: array of floats
-        @param radius: radius of the sphere
+        @param radius: radius of the sphere in code units
         @type radius: float
         @keyword fields: fields to read/generate
         @type fields: list of strings
         """
         Enzo3DData.__init__(self, center, fields, pf)
+        self._cut_masks = {}
         self.set_field_parameter('radius',radius)
         self.radius = radius
         self._refresh_data()
@@ -1122,15 +1065,35 @@ class EnzoSphereBase(Enzo3DData):
             return na.ones(grid.ActiveDimensions, dtype='bool')
         if na.all(corner_radius > self.radius):
             return na.zeros(grid.ActiveDimensions, dtype='bool')
+        if self._cut_masks.has_key(grid.id):
+            return self._cut_masks[grid.id]
         pointI = ((grid["RadiusCode"]<=self.radius) &
                   (grid.child_mask==1))
+        self._cut_masks[grid.id] = pointI
         return pointI
 
 class EnzoCoveringGrid(Enzo3DData):
+    """
+    Covering grids represent fixed-resolution data over a given region.
+    In order to achieve this goal -- for instance in order to obtain ghost
+    zones -- grids up to and including the indicated level are included.
+    No interpolation is done (as that would affect the 'power' on small
+    scales) on the input data.
+    """
     _spatial = True
-
     def __init__(self, level, left_edge, right_edge, dims, fields = None,
                  pf = None, num_ghost_zones = 0):
+        """
+        @param level: The maximum level to consider when creating the grid
+        @note: Level does not have to be related to the dx of the object.
+        @param left_edge: The left edge of the covered region
+        @type left_edge: List or array of floats
+        @param right_edge: The right edge of the covered region
+        @type right_edge: List or array of floats
+        @param dims: The dimensions of the returned grid
+        @type dims: List or array of integers
+        @note: It is faster to feed all the fields in at the initialization
+        """
         Enzo3DData.__init__(self, center=None, fields=fields, pf=pf)
         self.left_edge = na.array(left_edge)
         self.right_edge = na.array(right_edge)
@@ -1198,6 +1161,11 @@ class EnzoCoveringGrid(Enzo3DData):
                 raise KeyError
 
     def flush_data(self, field=None):
+        """
+        Any modifications made to the data in this object are pushed back
+        to the originating grids, except the cells where those grids are both
+        below the current level *and* have child cells.
+        """
         self._get_list_of_grids()
         # We don't generate coordinates here.
         if field == None:
@@ -1227,12 +1195,12 @@ class EnzoCoveringGrid(Enzo3DData):
     def _flush_data_to_grid(self, grid, fields):
         for field in ensure_list(fields):
             locals_dict = self.__setup_weave_dict(grid)
-            locals_dict['fieldData'] = grid[field]
+            locals_dict['fieldData'] = grid[field].copy()
             locals_dict['cubeData'] = self[field]
-            locals_dict['lastLevel'] = 1
+            locals_dict['lastLevel'] = int(grid.Level == self.level)
             weave.inline(DataCubeReplaceData,
                          locals_dict.keys(), local_dict=locals_dict,
                          compiler='gcc',
                          type_converters=converters.blitz,
                          auto_downcast=0, verbose=2)
-            grid[field] = locals_dict['fieldData'][:]
+            grid[field] = locals_dict['fieldData'].copy()

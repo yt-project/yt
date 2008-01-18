@@ -554,22 +554,21 @@ def _RadialVelocity(field, data):
     bulk_velocity = data.get_field_parameter("bulk_velocity")
     if bulk_velocity == None:
         bulk_velocity = na.zeros(3)
-    new_field = ( (data['x']-center[0])*data["x-velocity"]
-                + (data['y']-center[1])*data["y-velocity"]
-                + (data['z']-center[2])*data["z-velocity"])/data["RadiusCode"]
+    new_field = ( (data['x']-center[0])*(data["x-velocity"]-bulk_velocity[0])
+                + (data['y']-center[1])*(data["y-velocity"]-bulk_velocity[1])
+                + (data['z']-center[2])*(data["z-velocity"]-bulk_velocity[2])
+                )/data["RadiusCode"]
     return new_field
 def _RadialVelocityABS(field, data):
     return na.abs(_RadialVelocity(field, data))
-def _ConvertRadialVelocity(data):
-    return (data.convert("x-velocity"))
 def _ConvertRadialVelocityKMS(data):
-    return (data.convert("x-velocity") / 1e5)
+    return 1e-5
 add_field("RadialVelocity", function=_RadialVelocity,
-          convert_function=_ConvertRadialVelocity, units=r"\rm{cm}/\rm{s}",
+          units=r"\rm{cm}/\rm{s}",
           validators=[ValidateParameter("center"),
                       ValidateParameter("bulk_velocity")])
 add_field("RadialVelocityABS", function=_RadialVelocityABS,
-          convert_function=_ConvertRadialVelocity, units=r"\rm{cm}/\rm{s}",
+          units=r"\rm{cm}/\rm{s}",
           validators=[ValidateParameter("center"),
                       ValidateParameter("bulk_velocity")])
 add_field("RadialVelocityKMS", function=_RadialVelocity,
