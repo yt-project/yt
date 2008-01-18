@@ -922,6 +922,47 @@ class Enzo3DData(EnzoData):
     gridLevels = property(__get_gridLevels, __set_gridLevels,
                              __del_gridLevels)
 
+    def extract_connected_sets(self, field, num_levels, min_val, max_val,
+                                log_space=True):
+        """
+        This function will create a set of contour objects, defined
+        by having connected cell structures, which can then be
+        studied and used to 'paint' their source grids, thus enabling
+        them to be plotted.
+        """
+        if log_space:
+            cons = na.logspace(na.log10(min_val),na.log10(max_val),
+                               num_levels+1)
+        else:
+            cons = na.linspace(min_val, max_val, num_levels+1)
+        contours = {}
+        for level in range(num_levels):
+            contours[level] = {}
+            cids = identify_contours(self, field, cons[level], cons[level+1])
+            for cid, cid_ind in cids.items():
+                contours[level][cid] = self.extract_region(cid_ind)
+        return cons, contours
+
+    def paint_grids(self, field, value, default_value=None):
+        """
+        This function paints every cell in our dataset with a given value.
+        If default_value is given, the other values for the given in every grid
+        are discarded and replaced with default_value.  Otherwise, the field is
+        mandated to 'know how to exist' in the grid.
+
+        @note: This only paints the cells *in the dataset*, so cells in grids
+        with children are left untouched.
+        @param field: The field to paint
+        @param value: The value to paint
+        @keyword default_value: The value to use for all other cells.  If 'None'
+        then no value is used, and the grid is left untouched except in our cells.
+        """
+        for grid in self._grids:
+            if default_value != None:
+                grid[field] = na.ones(grid.ActiveDimensions)*value
+            grid[field][self._get_point_indices()] = value
+
+
 class ExtractedRegionBase(Enzo3DData):
     """
     ExtractedRegions are arbitrarily defined containers of data, useful
@@ -1150,7 +1191,7 @@ class EnzoCoveringGrid(Enzo3DData):
         for field in fields_to_get:
             if self.data.has_key(field):
                 continue
-            mylog.info("Getting field %s from %s possible grids",
+            mylog.debug("Getting field %s from %s possible grids",
                        field, len(self._grids))
             self[field] = na.zeros(self.ActiveDimensions, dtype='float64') - 999
             for grid in self._grids:
@@ -1173,7 +1214,7 @@ class EnzoCoveringGrid(Enzo3DData):
         else:
             fields_to_get = ensure_list(field)
         for field in fields_to_get:
-            mylog.info("Flushing field %s to %s possible grids",
+            mylog.debug("Flushing field %s to %s possible grids",
                        field, len(self._grids))
             grid_list = self._grids.tolist()
             for grid in grid_list:
