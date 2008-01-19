@@ -55,8 +55,9 @@ class BinnedProfile:
             for field in fields:
                 f, w, u = self._bin_field(self._data_source, field, weight,
                                           accumulation, self._args, check_cut = False)
+                ub = na.where(u)
                 if weight:
-                    f /= w
+                    f[ub] /= w[ub]
                 self[field] = f
             self["UsedBins"] = u
         else:
@@ -79,6 +80,7 @@ class BinnedProfile:
                     used = (used | u)
                 grid.clear_data()
             ub = na.where(used)
+            print ub
             for field in fields:
                 if weight:
                     data[field][ub] /= weight_data[field][ub]
@@ -127,7 +129,7 @@ class BinnedProfile1D(BinnedProfile):
             source_data = source[field]
             if weight: weight_data = source[weight]
         binned_field = self._get_empty_field()
-        weight_field = self._get_empty_field() + 1.0
+        weight_field = self._get_empty_field()
         used_field = na.ones(weight_field.shape, dtype='bool')
         for bin in inv_bin_indices.keys():
             temp_field = source_data[inv_bin_indices[bin]]
@@ -137,7 +139,7 @@ class BinnedProfile1D(BinnedProfile):
             binned_field[bin] = temp_field.sum()
         if accumulation: # Fix for laziness
             binned_field = na.add.accumulate(binned_field)
-        return binned_field, weight_field, True
+        return binned_field, weight_field, na.ones(binned_field.shape,dtype='bool')
 
     @preserve_source_parameters
     def _get_bins(self, source, check_cut=False):
@@ -189,7 +191,6 @@ class BinnedProfile2D(BinnedProfile):
     @preserve_source_parameters
     def _bin_field(self, source, field, weight, accumulation,
                    args, check_cut=False):
-        #mylog.debug("Binning %s", field)
         if check_cut:
             pointI = self._data_source._get_point_indices(source)
             source_data = source[field][pointI].ravel()
