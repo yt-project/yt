@@ -78,9 +78,10 @@ class BinnedProfile:
                     weight_data[field] += w
                     used = (used | u)
                 grid.clear_data()
+            ub = na.where(used)
             for field in fields:
                 if weight:
-                    data[field] /= weight_data[field]
+                    data[field][ub] /= weight_data[field][ub]
                 self[field] = data[field]
             self["UsedBins"] = used
 
@@ -200,7 +201,7 @@ class BinnedProfile2D(BinnedProfile):
             if weight: weight_data = source[weight].ravel()
         self.total_stuff = source_data.sum()
         binned_field = self._get_empty_field()
-        weight_field = na.ones(binned_field.shape,dtype='float64')
+        weight_field = self._get_empty_field()
         used_field = self._get_empty_field()
         bin_indices_x = args[0].ravel()
         bin_indices_y = args[1].ravel()
