@@ -124,30 +124,28 @@ r"""
 int bx_m, by_m, bz_m, xg, yg, zg, xm, ym, zm;
 int ixm, iym, izm;
 int max_bx_m, max_by_m, max_bz_m;
+using namespace std;
 
 for (xg = 0; xg < nx_g; xg++) {
   if (leftEdgeGrid(0)+dx_g*xg > cubeRightEdge(0)) continue;
   if (leftEdgeGrid(0)+dx_g*(xg+1) < leftEdgeCube(0)) continue;
-  bx_m = MAX(ceill((leftEdgeGrid(0)+dx_g*xg - leftEdgeCube(0))/dx_m),0);
-  max_bx_m = MIN(floorl((leftEdgeGrid(0)+dx_g*(xg+1) - leftEdgeCube(0))/dx_m),nx_m);
+  bx_m = MAX(floorl((leftEdgeGrid(0)+dx_g*xg - leftEdgeCube(0))/dx_m),0);
+  max_bx_m = MIN(ceill((leftEdgeGrid(0)+dx_g*(xg+1) - leftEdgeCube(0))/dx_m),nx_m);
   for (yg = 0; yg < ny_g; yg++) {
     if (leftEdgeGrid(1)+dy_g*yg > cubeRightEdge(1)) continue;
     if (leftEdgeGrid(1)+dy_g*(yg+1) < leftEdgeCube(1)) continue;
-    by_m = MAX(ceill((leftEdgeGrid(1)+dy_g*yg - leftEdgeCube(1))/dy_m),0);
-    max_by_m = MIN(floorl((leftEdgeGrid(1)+dy_g*(yg+1) - leftEdgeCube(1))/dy_m),ny_m);
+    by_m = MAX(floorl((leftEdgeGrid(1)+dy_g*yg - leftEdgeCube(1))/dy_m),0);
+    max_by_m = MIN(ceill((leftEdgeGrid(1)+dy_g*(yg+1) - leftEdgeCube(1))/dy_m),ny_m);
     for (zg = 0; zg < nz_g; zg++) {
       if (!lastLevel)
         if (childMask(xg, yg, zg) == 0) continue;
       if (leftEdgeGrid(2)+dz_g*zg > cubeRightEdge(2)) continue;
       if (leftEdgeGrid(2)+dz_g*(zg+1) < leftEdgeCube(2)) continue;
-      bz_m = MAX(ceill((leftEdgeGrid(2)+dz_g*zg - leftEdgeCube(2))/dz_m),0);
-      max_bz_m = MIN(floorl((leftEdgeGrid(2)+dz_g*(zg+1) - leftEdgeCube(2))/dz_m),nz_m);
+      bz_m = MAX(floorl((leftEdgeGrid(2)+dz_g*zg - leftEdgeCube(2))/dz_m),0);
+      max_bz_m = MIN(ceill((leftEdgeGrid(2)+dz_g*(zg+1) - leftEdgeCube(2))/dz_m),nz_m);
       for (xm = bx_m; xm < max_bx_m ; xm++) {
-        //if (xm < 0 || xm > nx_m) continue;
         for (ym = by_m; ym < max_by_m ; ym++) {
-          //if (ym < 0 || ym > ny_m) continue;
           for (zm = bz_m; zm < max_bz_m ; zm++) {
-            //if (zm < 0 || zm > nz_m) continue;
             %s
           }
         }
