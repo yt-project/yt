@@ -1139,9 +1139,9 @@ class ExtractedRegionBase(Enzo3DData):
         self._indices = {}
         for grid in self._base_region._grids:
             ind_ind = na.where(grid_vals[self._base_indices] == grid.id-1)
-            self._indices[grid.id-1] = na.array([xi[self._base_indices][ind_ind],
-                                                 yi[self._base_indices][ind_ind],
-                                                 zi[self._base_indices][ind_ind]])
+            self._indices[grid.id-1] = ([xi[self._base_indices][ind_ind],
+                                         yi[self._base_indices][ind_ind],
+                                         zi[self._base_indices][ind_ind]])
         self._grids = self._base_region.pf.h.grids[self._indices.keys()]
 
     def _get_point_indices(self, grid):
@@ -1297,6 +1297,9 @@ class EnzoCoveringGrid(Enzo3DData):
         sort_ind = na.argsort(self.pf.h.gridLevels.ravel()[ind][level_ind])
         self._grids = self.pf.hierarchy.grids[ind][level_ind][(sort_ind,)]
 
+    def extract_region(self, indices):
+        mylog.error("Sorry, dude, do it yourself, it's already in 3-D.")
+
     def __setup_weave_dict(self, grid):
         return {
             'nx_g': int(grid.ActiveDimensions[0]),
@@ -1341,7 +1344,7 @@ class EnzoCoveringGrid(Enzo3DData):
                 self._get_data_from_grid(grid, field)
                 if not na.any(self[field] == -999): break
             if na.any(self[field] == -999) and self.dx < self.hierarchy.grids[0].dx:
-                print na.where(self[field]==-999)[0].size
+                print "COVERING PROBLEM", na.where(self[field]==-999)[0].size
                 raise KeyError
 
     def flush_data(self, field=None):
