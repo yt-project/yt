@@ -186,6 +186,7 @@ class EnzoHierarchy:
         self.covering_grid = classobj("EnzoCoveringGrid",(EnzoCoveringGrid,), dd)
         self.sphere = classobj("EnzoSphere",(EnzoSphereBase,), dd)
         self.cutting = classobj("EnzoCuttingPlane",(EnzoCuttingPlaneBase,), dd)
+        self.ray = classobj("EnzoOrthoRay",(EnzoOrthoRayBase,), dd)
 
     def __initialize_data_file(self):
         """
@@ -367,9 +368,9 @@ class EnzoHierarchy:
                 self.gridLevels[secondGrid] = self.gridLevels[firstGrid] + 1
             elif m.group(2) == "This":
                 parent = self.gridReverseTree[firstGrid]
-                if parent:
+                if parent and parent > -1:
                     self.gridTree[parent-1].append(self.grids[secondGrid])
-                self.gridReverseTree[secondGrid] = parent
+                    self.gridReverseTree[secondGrid] = parent
                 self.grids[secondGrid].Level = self.grids[firstGrid].Level
                 self.gridLevels[secondGrid] = self.gridLevels[firstGrid]
         pTree = [ [ grid.id - 1 for grid in self.gridTree[i] ] for i in range(self.num_grids) ]
@@ -471,7 +472,8 @@ class EnzoHierarchy:
         mylog.debug("Done flushing to grids")
         if ytcfg.getboolean("lagos","ReconstructHierarchy") == True:
             mylog.debug("Reconstructing hierarchy")
-            for grid in self.grids:
+            for level in range(self.maxLevel+1):
+                for grid in self.select_grids(level):
                     if grid.Parent: grid._guess_properties_from_parent()
 
     def __select_level(self, level):
@@ -635,8 +637,8 @@ class EnzoHierarchy:
         pos[0] += 0.5*maxGrid.dx
         pos[1] += 0.5*maxGrid.dx
         pos[2] += 0.5*maxGrid.dx
-        mylog.info("Max Value is %0.5e at %0.16f %0.16f %0.16f in grid %s at level %s", \
-              maxVal, pos[0], pos[1], pos[2], maxGrid, maxGrid.Level)
+        mylog.info("Max Value is %0.5e at %0.16f %0.16f %0.16f in grid %s at level %s %s", \
+              maxVal, pos[0], pos[1], pos[2], maxGrid, maxGrid.Level, mc)
         self.center = pos
         # This probably won't work for anyone else
         self.bulkVelocity = (maxGrid["x-velocity"][maxCoord], \

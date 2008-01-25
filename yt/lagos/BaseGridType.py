@@ -50,6 +50,7 @@ class EnzoGridBase(EnzoData):
         self.data = {}
         self.field_parameters = {}
         self.fields = []
+        self.start_index = None
         self.id = id
         if hierarchy: self.hierarchy = hierarchy
         if filename: self.set_filename(filename)
@@ -156,11 +157,40 @@ class EnzoGridBase(EnzoData):
         self.dy = self.Parent.dy/2.0
         self.dz = self.Parent.dz/2.0
         ParentLeftIndex = na.rint((self.LeftEdge-self.Parent.LeftEdge)/self.Parent.dx)
+        self.start_index = 2*(ParentLeftIndex + self.Parent.get_global_startindex()).astype('int64')
         self.LeftEdge = self.Parent.LeftEdge + self.Parent.dx * ParentLeftIndex
-        self.RightEdge = self.LeftEdge + self.ActiveDimensions*self.dx
+        self.RightEdge = self.LeftEdge + \
+                         self.ActiveDimensions*na.array([self.dx,self.dy,self.dz])
         self.hierarchy.gridDxs[self.id-1,0] = self.dx
         self.hierarchy.gridDys[self.id-1,0] = self.dy
         self.hierarchy.gridDzs[self.id-1,0] = self.dz
+        self.hierarchy.gridLeftEdge[self.id-1,:] = self.LeftEdge
+        self.hierarchy.gridRightEdge[self.id-1,:] = self.RightEdge
+        self.hierarchy.gridCorners[:,:,self.id-1] = na.array([ # Unroll!
+            [self.LeftEdge[0], self.LeftEdge[1], self.LeftEdge[2]],
+            [self.RightEdge[0], self.LeftEdge[1], self.LeftEdge[2]],
+            [self.RightEdge[0], self.RightEdge[1], self.LeftEdge[2]],
+            [self.RightEdge[0], self.RightEdge[1], self.RightEdge[2]],
+            [self.LeftEdge[0], self.RightEdge[1], self.RightEdge[2]],
+            [self.LeftEdge[0], self.LeftEdge[1], self.RightEdge[2]],
+            [self.RightEdge[0], self.LeftEdge[1], self.RightEdge[2]],
+            [self.LeftEdge[0], self.RightEdge[1], self.LeftEdge[2]],
+            ], dtype='float64')
+        self.__child_mask = None
+        self.__child_indices = None
+        self._setup_dx()
+
+    def get_global_startindex(self):
+        if self.start_index != None:
+            return self.start_index
+        if self.Parent == None:
+            start_index = self.LeftEdge / na.array([self.dx, self.dy, self.dz])
+            return na.rint(start_index).astype('int64').ravel()
+        pdx = na.array([self.Parent.dx, self.Parent.dy, self.Parent.dz]).ravel()
+        start_index = (self.Parent.get_global_startindex()) + \
+                       na.rint((self.LeftEdge - self.Parent.LeftEdge)/pdx)
+        self.start_index = (start_index*2).astype('int64').ravel()
+        return self.start_index
 
     def _generate_overlap_masks(self, axis, LE, RE):
         """
@@ -183,7 +213,7 @@ class EnzoGridBase(EnzoData):
         cond3 = self.RightEdge[y] >= LE[:,y]
         cond4 = self.LeftEdge[y] <= RE[:,y]
         self.overlap_masks[axis]=na.logical_and(na.logical_and(cond1, cond2), \
-                                                 na.logical_and(cond3, cond4))
+                                                na.logical_and(cond3, cond4))
     def __repr__(self):
         return "Grid_%04i" % (self.id)
 
@@ -217,7 +247,7 @@ class EnzoGridBase(EnzoData):
         @param field: field to check
         @type field: string
         """
-        coord=nd.maximum_position(self[field])
+        coord=nd.maximum_position(self[field]*self.child_mask)
         val = self[field][coord]
         return val, coord
 
@@ -393,13 +423,11 @@ class EnzoGridBase(EnzoData):
             # Now let's get our overlap
             si = [None]*3
             ei = [None]*3
-            startIndex = ((child.LeftEdge - self.LeftEdge)/self.dx)
-            endIndex = ((child.RightEdge - self.LeftEdge)/self.dx)
+            startIndex = na.rint((child.LeftEdge - self.LeftEdge)/self.dx)
+            endIndex = na.rint((child.RightEdge - self.LeftEdge)/self.dx)
             for i in xrange(3):
-                si[i] = na.rint(startIndex[i])
-                ei[i] = na.rint(endIndex[i])
-                si[i] = si[i]
-                ei[i] = ei[i]
+                si[i] = startIndex[i]
+                ei[i] = endIndex[i]
             self.__child_mask[si[0]:ei[0], si[1]:ei[1], si[2]:ei[2]] = 0
         self.__child_indices = na.where(self.__child_mask==0)
 

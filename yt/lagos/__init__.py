@@ -59,7 +59,6 @@ if ytcfg.getboolean("lagos","useswig"):
 if ytcfg.getboolean("lagos","usefortran"):
     try:
         import EnzoFortranRoutines
-        import EnzoFortranWrapper
     except ImportError:
         pass
 
@@ -72,6 +71,7 @@ from DerivedFields import *
 from DerivedQuantities import quantityInfo
 from DataReadingFuncs import *
 from ClusterFiles import *
+from ContourFinder import *
 from BaseDataTypes import *
 from BaseGridType import *
 from EnzoRateData import *

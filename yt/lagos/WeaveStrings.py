@@ -71,52 +71,47 @@ for (bin = 1 ; bin < num_bins ; bin++ ) {
 }
 """
 
-ProjectionRefineCoarseData = \
-"""
-/*
-fpoints,  finedata_x,  finedata_y, finedata_vals, finedata_wgt,
-cpoints,  coarsedata_x,  coarsedata_y, coarsedata_vals, coarsedata_wgt,
-refinementFactor,  totalRefined
+ProjectionCombineSameLevel = \
+r"""
+    int g1i, g2i;
 
-#define MIPCOMB(A,B) ((A) > (B) ? (A) : (B))
-#define SUMCOMB(A,B) (A + B)
-
-long fi, ci;
-
-int flagged[cpoints], tr = 0;
-
-long double rf = refinementFactor;
-
-npy_int64 coarseCell_x, coarseCell_y;
-
-for (ci=0; ci<cpoints; ci++) flagged[ci]=0;
-
-for (fi = 0; fi < fpoints; fi++) {
-    coarseCell_x = floorl((finedata_x(fi))/rf);
-    coarseCell_y = floorl((finedata_y(fi))/rf);
-    for (ci = 0; ci < cpoints; ci++) {
-        if ((coarseCell_x == coarsedata_x(ci)) &&
-            (coarseCell_y == coarsedata_y(ci))) {
-                tr += 1;
-                finedata_vals(fi) = %(COMBTYPE)sCOMB(coarsedata_vals[ci], finedata_vals[fi]);
-                finedata_wgt(fi)  = %(COMBTYPE)sCOMB(coarsedata_wgt[ci],  finedata_wgt[fi]);
-                flagged[ci] = 1;
-                break;  // Each fine cell maps to one and only one coarse
-                        // cell
+    for (g1i = 0; g1i < g1points; g1i++) {
+        if (g1data_x(g1i) < 0) continue;
+        for (g2i = 0; g2i < g2points; g2i++) {
+            if (g2data_x(g2i) < 0) continue;
+            if ((g1data_x(g1i) == g2data_x(g2i)) &&
+                (g1data_y(g1i) == g2data_y(g2i))) {
+                    g1data_vals(g1i) += g2data_vals(g2i);
+                    g1data_wgt(g1i) += g2data_wgt(g2i);
+                    g1data_mask(g1i) = ((g1data_mask(g1i)) && (g2data_mask(g2i)));
+                    g2data_x(g2i) = -1;
+                    break; // We map to one g1data point AT MOST
+            }
         }
     }
-}
-*totalRefined = tr;
+"""
 
-for (ci=0; ci<cpoints; ci++) {
-    if (flagged[ci]==1) {
-        coarsedata_x(ci)=-1;
-        coarsedata_y(ci)=-1;
-        coarsedata_vals(ci)=0.0;
-        coarsedata_wgt(ci)=0.0;
+ProjectionRefineCoarseData = \
+r"""
+    int ci, fi, x_off, y_off;
+    long int fine_x, fine_y;
+
+    for (ci = 0; ci < cpoints; ci++) {
+      for (x_off = 0; x_off < rf; x_off++) {
+        for (y_off = 0; y_off < rf; y_off++) {
+          fine_x = 2*coarsedata_x(ci) + x_off;
+          fine_y = 2*coarsedata_y(ci) + y_off;
+          for (fi = 0; fi < fpoints; fi++) {
+            if ((fine_x == finedata_x(fi)) &&
+                (fine_y == finedata_y(fi))) {
+                finedata_vals(fi) += coarsedata_vals(ci);
+                finedata_wgt(fi) += coarsedata_wgt(ci);
+                flagged(ci) += 1;
+            }
+          }
+        }
+      }
     }
-}
-*/
 
 """
 
