@@ -67,6 +67,11 @@ class DummyProgressBar:
     def finish(sefl, *args, **kwargs):
         return
 
+def just_one(obj):
+    if iterable(obj):
+        return obj[0]
+    return obj
+
 def get_pbar(title, maxval):
     from yt.config import ytcfg
     from yt.logger import lagosLogger as mylog
