@@ -36,7 +36,6 @@ def preserve_source_parameters(func):
             source.field_parameters = old_params
         else:
             tr = func(*args, **kwargs)
-        #print func.func_name, tr
         return tr
     return save_state
 
@@ -80,7 +79,6 @@ class BinnedProfile:
                     used = (used | u)
                 grid.clear_data()
             ub = na.where(used)
-            print ub
             for field in fields:
                 if weight:
                     data[field][ub] /= weight_data[field][ub]
@@ -252,9 +250,6 @@ class BinnedProfile2D(BinnedProfile):
             return
         bin_indices_x = na.digitize(sd_x, self[self.x_bin_field])
         bin_indices_y = na.digitize(sd_y, self[self.y_bin_field])
-        #print bin_indices_x.max(), bin_indices_y.max(),
-        #print bin_indices_x.min(), bin_indices_y.min(),
-        #print sd_x.size, sd_y.size
         # Now we set up our inverse bin indices
         return (bin_indices_x, bin_indices_y)
 

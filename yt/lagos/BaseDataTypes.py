@@ -34,6 +34,14 @@ def restore_grid_state(func):
         return tr
     return save_state
 
+def cache_mask(func):
+    def check_cache(self, grid):
+        if not self._cut_masks.has_key(grid.id):
+            cm = func(self, grid)
+            self._cut_masks[grid.id] = cm
+        return self._cut_masks[grid.id]
+    return check_cache
+
 
 class EnzoData:
     """
@@ -492,6 +500,7 @@ class EnzoCuttingPlaneBase(Enzo2DData):
         # Recall that the projection of the distance vector from a point
         # onto the normal vector of a plane is:
         # D = (a x_0 + b y_0 + c z_0 + d)/sqrt(a^2+b^2+c^2)
+        # @todo: Convert to using corners
         LE = self.pf.h.gridLeftEdge
         RE = self.pf.h.gridRightEdge
         vertices = na.array([[LE[:,0],LE[:,1],LE[:,2]],
@@ -508,9 +517,8 @@ class EnzoCuttingPlaneBase(Enzo2DData):
         self._grids = self.hierarchy.grids[
             na.where(na.logical_not(na.all(D<0,axis=0) | na.all(D>0,axis=0) )) ]
 
+    @cache_mask
     def _get_cut_mask(self, grid):
-        if self._cut_masks.has_key(grid.id):
-            return self._cut_masks[grid.id]
         # This is slow.  Suggestions for improvement would be great...
         ss = grid.ActiveDimensions
         D = na.ones(ss) * self._d
@@ -520,8 +528,7 @@ class EnzoCuttingPlaneBase(Enzo2DData):
         diag_dist = na.sqrt(grid.dx**2.0
                           + grid.dy**2.0
                           + grid.dz**2.0)
-        cm = na.where(na.abs(D) <= 0.5*diag_dist)
-        self._cut_masks[grid.id] = cm
+        cm = (na.abs(D) <= 0.5*diag_dist) # Boolean
         return cm
 
     def _generate_coords(self):
@@ -558,7 +565,7 @@ class EnzoCuttingPlaneBase(Enzo2DData):
 
     def _get_point_indices(self, grid, use_child_mask=True):
         k = na.zeros(grid.ActiveDimensions, dtype='bool')
-        k[self._get_cut_mask(grid)] = True
+        k = (k | self._get_cut_mask(grid))
         if use_child_mask:
             pointI = na.where(k & grid.child_mask)
         else:
@@ -961,7 +968,7 @@ class Enzo3DData(EnzoData):
     @restore_grid_state
     def _get_point_indices(self, grid, field=None):
         k = na.zeros(grid.ActiveDimensions, dtype='bool')
-        k[self._get_cut_mask(grid)] = True
+        k = (k | self._get_cut_mask(grid))
         pointI = na.where(k & grid.child_mask)
         return pointI
 
@@ -1147,6 +1154,59 @@ class ExtractedRegionBase(Enzo3DData):
     def _get_point_indices(self, grid):
         return self._indices[grid.id-1]
 
+class EnzoCylinderBase(Enzo3DData):
+    """
+    We define a disk as have an 'up' vector, a radius and a height.
+    """
+    def __init__(self, center, normal, radius, height, fields=None, pf=None):
+        Enzo3DData.__init__(self, na.array(center), fields, pf)
+        self._norm_vec = na.array(normal)/na.sqrt(na.dot(normal,normal))
+        self.set_field_parameter("height_vector", self._norm_vec)
+        self._height = height
+        self._radius = radius
+        self._d = -1.0 * na.dot(self._norm_vec, self.center)
+        self._cut_masks = {}
+        self._refresh_data()
+
+    def _get_list_of_grids(self):
+        H = na.sum(self._norm_vec.reshape((1,3,1)) * self.pf.h.gridCorners,
+                   axis=1) + self._d
+        D = na.sqrt(na.sum((self.pf.h.gridCorners -
+                           self.center.reshape((1,3,1)))**2.0,axis=1))
+        R = na.sqrt(D**2.0-H**2.0)
+        self._grids = self.hierarchy.grids[
+            ( (na.any(na.abs(H)<self._height,axis=0))
+            & (na.any(R<self._radius,axis=0)
+            & (na.logical_not((na.all(H>0,axis=0) | (na.all(H<0, axis=0)))) )
+            ) ) ]
+        self._grids = self.hierarchy.grids
+
+    @cache_mask
+    def _get_cut_mask(self, grid):
+        corners = grid._corners.reshape((8,3,1))
+        H = na.sum(self._norm_vec.reshape((1,3,1)) * corners,
+                   axis=1) + self._d
+        D = na.sqrt(na.sum((corners -
+                           self.center.reshape((1,3,1)))**2.0,axis=1))
+        R = na.sqrt(D**2.0-H**2.0)
+        if na.all(na.abs(H) < self._height, axis=0) \
+            and na.all(R < self._radius, axis=0):
+            cm = na.ones(grid.ActiveDimensions, dtype='bool')
+        else:
+            h = grid['x'] * self._norm_vec[0] \
+              + grid['y'] * self._norm_vec[1] \
+              + grid['z'] * self._norm_vec[2] \
+              + self._d
+            d = na.sqrt(
+                (grid['x'] - self.center[0])**2.0
+              + (grid['y'] - self.center[1])**2.0
+              + (grid['z'] - self.center[2])**2.0
+                )
+            r = na.sqrt(d**2.0-h**2.0)
+            cm = ( (na.abs(h) < self._height)
+                 & (r < self._radius))
+        return cm
+
 class EnzoRegionBase(Enzo3DData):
     """
     EnzoRegions are rectangular prisms of data.
@@ -1164,24 +1224,26 @@ class EnzoRegionBase(Enzo3DData):
         Enzo3DData.__init__(self, center, fields, pf)
         self.left_edge = left_edge
         self.right_edge = right_edge
+        self._cut_masks = {}
         self._refresh_data()
 
     def _get_list_of_grids(self):
         self._grids, ind = self.pf.hierarchy.get_box_grids(self.left_edge,
                                                            self.right_edge)
 
+    @cache_mask
     def _get_cut_mask(self, grid):
         if na.all( (grid._corners < self.right_edge)
                  & (grid._corners >= self.left_edge)):
-            return na.ones(grid.ActiveDimensions, dtype='bool')
-        pointI = na.where(\
-               ( (grid['x'] < self.right_edge[0])
-               & (grid['x'] >= self.left_edge[0])
-               & (grid['y'] < self.right_edge[1])
-               & (grid['y'] >= self.left_edge[1])
-               & (grid['z'] < self.right_edge[2])
-               & (grid['z'] >= self.left_edge[2]) ))
-        return pointI
+            cm = na.ones(grid.ActiveDimensions, dtype='bool')
+        else:
+            cm = ( (grid['x'] < self.right_edge[0])
+                 & (grid['x'] >= self.left_edge[0])
+                 & (grid['y'] < self.right_edge[1])
+                 & (grid['y'] >= self.left_edge[1])
+                 & (grid['z'] < self.right_edge[2])
+                 & (grid['z'] >= self.left_edge[2]) )
+        return cm
 
 class EnzoGridCollection(Enzo3DData):
     """
@@ -1198,13 +1260,15 @@ class EnzoGridCollection(Enzo3DData):
         Enzo3DData.__init__(self, center, fields, pf)
         self._grids = na.array(grid_list)
         self.fields = fields
+        self._cut_masks = {}
         self.connection_pool = True
 
     def _get_list_of_grids(self):
         pass
 
+    @cache_mask
     def _get_cut_mask(self, grid):
-        return na.indices(grid.ActiveDimensions)
+        return na.ones(grid.ActiveDimensions, dtype='bool')
 
     def _get_point_indices(self, grid, use_child_mask=True):
         k = na.ones(grid.ActiveDimensions, dtype='bool')
@@ -1239,7 +1303,7 @@ class EnzoSphereBase(Enzo3DData):
         grids.sort(key=lambda x: (x.Level, x.LeftEdge[0], x.LeftEdge[1], x.LeftEdge[2]))
         self._grids = na.array(grids)
 
-    @restore_grid_state
+    @restore_grid_state # Pains me not to decorate with cache_mask here
     def _get_cut_mask(self, grid, field=None):
         # We have the *property* center, which is not necessarily
         # the same as the field_parameter
@@ -1250,11 +1314,10 @@ class EnzoSphereBase(Enzo3DData):
             return na.zeros(grid.ActiveDimensions, dtype='bool')
         if self._cut_masks.has_key(grid.id):
             return self._cut_masks[grid.id]
-        pointI = na.where(
-                  (grid["RadiusCode"]<=self.radius) &
-                  (grid.child_mask==1) )
-        self._cut_masks[grid.id] = pointI
-        return pointI
+        cm = ( (grid["RadiusCode"]<=self.radius) &
+               (grid.child_mask==1) )
+        self._cut_masks[grid.id] = cm
+        return cm
 
 class EnzoCoveringGrid(Enzo3DData):
     """

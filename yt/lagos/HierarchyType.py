@@ -187,6 +187,7 @@ class EnzoHierarchy:
         self.sphere = classobj("EnzoSphere",(EnzoSphereBase,), dd)
         self.cutting = classobj("EnzoCuttingPlane",(EnzoCuttingPlaneBase,), dd)
         self.ray = classobj("EnzoOrthoRay",(EnzoOrthoRayBase,), dd)
+        self.disk = classobj("EnzoCylinder",(EnzoCylinderBase,), dd)
 
     def __initialize_data_file(self):
         """

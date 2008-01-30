@@ -331,6 +331,8 @@ def _convertHeight(data):
     return data.convert("cm")
 add_field("Height", convert_function=_convertHeight,
           validators=[ValidateParameter("height_vector")])
+add_field("HeightCode", function=_Height,
+          validators=[ValidateParameter("height_vector")])
 
 def _DynamicalTime(field, data):
     """
