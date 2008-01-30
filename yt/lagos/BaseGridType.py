@@ -471,7 +471,7 @@ class EnzoGridBase(EnzoData):
         cube = self.hierarchy.covering_grid(level,
                         new_left_edge, new_right_edge,
                         self.ActiveDimensions + 2*n_zones, fields,
-                        num_ghost_zones=n_zones)
+                        num_ghost_zones=n_zones, use_pbar=False)
         return cube
 
     def _save_data_state(self):

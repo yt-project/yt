@@ -1329,7 +1329,7 @@ class EnzoCoveringGrid(Enzo3DData):
     """
     _spatial = True
     def __init__(self, level, left_edge, right_edge, dims, fields = None,
-                 pf = None, num_ghost_zones = 0):
+                 pf = None, num_ghost_zones = 0, use_pbar = True):
         """
         @param level: The maximum level to consider when creating the grid
         @note: Level does not have to be related to the dx of the object.
@@ -1352,6 +1352,7 @@ class EnzoCoveringGrid(Enzo3DData):
         self.data["dy"] = self.dy
         self.data["dz"] = self.dz
         self._num_ghost_zones = num_ghost_zones
+        self._use_pbar = use_pbar
         self._refresh_data()
 
     def _get_list_of_grids(self):
@@ -1403,9 +1404,13 @@ class EnzoCoveringGrid(Enzo3DData):
             mylog.debug("Getting field %s from %s possible grids",
                        field, len(self._grids))
             self[field] = na.zeros(self.ActiveDimensions, dtype='float64') - 999
-            for grid in self._grids:
+            if self._use_pbar: pbar = \
+                    get_pbar('Searching grids for values ', len(self._grids))
+            for i,grid in enumerate(self._grids):
+                if self._use_pbar: pbar.update(i)
                 self._get_data_from_grid(grid, field)
                 if not na.any(self[field] == -999): break
+            if self._use_pbar: pbar.finish()
             if na.any(self[field] == -999) and self.dx < self.hierarchy.grids[0].dx:
                 print "COVERING PROBLEM", na.where(self[field]==-999)[0].size
                 raise KeyError
