@@ -67,6 +67,7 @@ class EnzoData:
         self.data = {}
         self.field_parameters = {}
         self.__set_default_field_parameters()
+        self._cut_masks = {}
         for key, val in kwargs.items():
             self.set_field_parameter(key, val)
 
@@ -101,6 +102,8 @@ class EnzoData:
         """
         Clears out all data from the EnzoData instance, freeing memory.
         """
+        for key in self.data.keys():
+            del self.data[key]
         del self.data
         self.data = {}
 
@@ -481,7 +484,6 @@ class EnzoCuttingPlaneBase(Enzo2DData):
         Enzo2DData.__init__(self, 4, fields, **kwargs)
         self.center = center
         self.set_field_parameter('center',center)
-        self._cut_masks = {}
         # Let's set up our plane equation
         # ax + by + cz + d = 0
         self._norm_vec = normal/na.sqrt(na.dot(normal,normal))
@@ -1121,7 +1123,8 @@ class ExtractedRegionBase(Enzo3DData):
         cen = base_region.get_field_parameter("center")
         Enzo3DData.__init__(self, center=cen,
                             fields=None, pf=base_region.pf, **kwargs)
-        self._base_region = base_region
+        self._base_region = base_region # We don't weakly reference because
+                                        # It is not cyclic
         self._base_indices = indices
         self._grids = None
         self._refresh_data()
@@ -1168,7 +1171,6 @@ class EnzoCylinderBase(Enzo3DData):
         self._height = height
         self._radius = radius
         self._d = -1.0 * na.dot(self._norm_vec, self.center)
-        self._cut_masks = {}
         self._refresh_data()
 
     def _get_list_of_grids(self):
@@ -1228,7 +1230,6 @@ class EnzoRegionBase(Enzo3DData):
         Enzo3DData.__init__(self, center, fields, pf, **kwargs)
         self.left_edge = left_edge
         self.right_edge = right_edge
-        self._cut_masks = {}
         self._refresh_data()
 
     def _get_list_of_grids(self):
@@ -1264,7 +1265,6 @@ class EnzoGridCollection(Enzo3DData):
         Enzo3DData.__init__(self, center, fields, pf, **kwargs)
         self._grids = na.array(grid_list)
         self.fields = fields
-        self._cut_masks = {}
         self.connection_pool = True
 
     def _get_list_of_grids(self):
@@ -1295,7 +1295,6 @@ class EnzoSphereBase(Enzo3DData):
         @type fields: list of strings
         """
         Enzo3DData.__init__(self, center, fields, pf, **kwargs)
-        self._cut_masks = {}
         self.set_field_parameter('radius',radius)
         self.radius = radius
         self._refresh_data()

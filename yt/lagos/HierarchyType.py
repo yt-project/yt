@@ -57,7 +57,7 @@ class EnzoHierarchy:
         self.boundary_filename = os.path.abspath(pf.parameter_filename) \
                                + ".boundary"
         self.directory = os.path.dirname(self.hierarchy_filename)
-        self.parameter_file = pf
+        self.parameter_file = weakref.proxy(pf)
         self.__data_file = None
         # Now we search backwards from the end of the file to find out how many
         # grids we have, which allows us to preallocate memory
@@ -97,7 +97,6 @@ class EnzoHierarchy:
 
         self.grids = na.array([self.grid(i+1) for i in xrange(self.num_grids)])
         mylog.debug("Done creating grid objects")
-#        self._grids = self.grids
         self.gridReverseTree = [-1] * self.num_grids
         self.gridTree = [ [] for i in range(self.num_grids)]
 
@@ -179,8 +178,8 @@ class EnzoHierarchy:
                '_read_field_names' : _data_style_funcs[self.data_style][2],
                '_read_data_slice' : _data_style_funcs[self.data_style][3],
                '_read_exception' : _data_style_funcs[self.data_style][4](),
-               'pf' : self.parameter_file,
-               'hierarchy': self }
+               'pf' : self.parameter_file, # Already weak
+               'hierarchy': weakref.proxy(self) }
         self.grid = classobj("EnzoGrid",(EnzoGridBase,), dd)
         self.proj = classobj("EnzoProj",(EnzoProjBase,), dd)
         self.slice = classobj("EnzoSlice",(EnzoSliceBase,), dd)
@@ -243,13 +242,13 @@ class EnzoHierarchy:
             del self.eiTopGrid
         except:
             pass
+        for gridI in xrange(self.num_grids):
+            for g in self.gridTree[gridI]:
+                del g
         del self.gridReverseTree
         del self.gridLeftEdge, self.gridRightEdge
         del self.gridLevels, self.gridStartIndices, self.gridEndIndices
         del self.gridTimes, self.__hierarchy_string, self.__hierarchy_lines
-        for gridI in xrange(self.num_grids):
-            for g in self.gridTree[gridI]:
-                del g
         del self.gridTree
 
     def __deserialize_hierarchy(self, harray):
@@ -365,14 +364,14 @@ class EnzoHierarchy:
                 continue
             firstGrid = int(m.group(1))-1
             if m.group(2) == "Next":
-                self.gridTree[firstGrid].append(self.grids[secondGrid])
+                self.gridTree[firstGrid].append(weakref.proxy(self.grids[secondGrid]))
                 self.gridReverseTree[secondGrid] = firstGrid + 1
                 self.grids[secondGrid].Level = self.grids[firstGrid].Level + 1
                 self.gridLevels[secondGrid] = self.gridLevels[firstGrid] + 1
             elif m.group(2) == "This":
                 parent = self.gridReverseTree[firstGrid]
                 if parent and parent > -1:
-                    self.gridTree[parent-1].append(self.grids[secondGrid])
+                    self.gridTree[parent-1].append(weakref.proxy(self.grids[secondGrid]))
                     self.gridReverseTree[secondGrid] = parent
                 self.grids[secondGrid].Level = self.grids[firstGrid].Level
                 self.gridLevels[secondGrid] = self.gridLevels[firstGrid]
@@ -403,7 +402,8 @@ class EnzoHierarchy:
             mylog.debug("Grabbing serialized tree data")
             pTree = cPickle.loads(treeArray.read())
             self.gridReverseTree = list(self.get_data("/","ReverseTree"))
-            self.gridTree = [ [ self.grids[i] for i in pTree[j] ] for j in range(self.num_grids) ]
+            self.gridTree = [ [ weakref.proxy(self.grids[i]) for i in pTree[j] ]
+                for j in range(self.num_grids) ]
             self.gridLevels = self.get_data("/","Levels")[:]
             mylog.debug("Grabbed")
         for i,v in enumerate(self.gridReverseTree):

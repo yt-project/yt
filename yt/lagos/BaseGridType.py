@@ -52,7 +52,7 @@ class EnzoGridBase(EnzoData):
         self.fields = []
         self.start_index = None
         self.id = id
-        if hierarchy: self.hierarchy = hierarchy
+        if hierarchy: self.hierarchy = weakref.proxy(hierarchy)
         if filename: self.set_filename(filename)
         self.overlap_masks = [None, None, None]
         self._overlap_grids = [None, None, None]
@@ -133,7 +133,7 @@ class EnzoGridBase(EnzoData):
         self.Children = h.gridTree[self.id-1]
         pID = h.gridReverseTree[self.id-1]
         if pID != None and pID != -1:
-            self.Parent = h.grids[pID - 1]
+            self.Parent = weakref.proxy(h.grids[pID - 1])
         else:
             self.Parent = None
 
