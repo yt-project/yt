@@ -162,6 +162,12 @@ for weight in [None, "CellMassMsun"]:
                                                         accumulation_y)
                 setattr(Data3DBase, name, func)
 
+class TestDiskDataType(Data3DBase, DataTypeTestingBase, LagosTestingBase, unittest.TestCase):
+    def setUp(self):
+        DataTypeTestingBase.setUp(self)
+        self.data=self.hierarchy.disk(
+                     [0.5,0.5,0.5],[0.2, 0.1, 0.5],0.25,0.25)
+
 class TestRegionDataType(Data3DBase, DataTypeTestingBase, LagosTestingBase, unittest.TestCase):
     def setUp(self):
         DataTypeTestingBase.setUp(self)
@@ -233,6 +239,95 @@ class TestExtractFromRegion(TestRegionDataType):
         vol = self.region.extract_region(ind_to_get)["CellVolume"].sum() \
             / self.data.convert("cm")**3.0
         self.assertAlmostEqual(vol,1.0,7)
+
+class TestUnilinearInterpolator(unittest.TestCase):
+    def setUp(self):
+        x0, x1 = na.random.uniform(-100,100,2)
+        nstep_x = na.random.randint(10,200)
+        nvals = na.random.randint(100,1000)
+
+        table = na.mgrid[x0:x1:nstep_x*1j]
+
+        self.ufi_x = yt.lagos.UnilinearFieldInterpolator(table,
+                      (x0,x1),'x')
+        self.my_dict = {}
+        self.my_dict['x'] = na.random.uniform(x0,x1,nvals)
+
+    def testXInt(self):
+        nv = self.ufi_x(self.my_dict)
+        for i,v in enumerate(nv):
+            self.assertAlmostEqual(v, self.my_dict['x'][i], 5)
+
+class TestBilinearInterpolator(unittest.TestCase):
+    def setUp(self):
+        x0, x1 = na.random.uniform(-100,100,2)
+        y0, y1 = na.random.uniform(-100,100,2)
+        nstep_x = na.random.randint(10,200)
+        nstep_y = na.random.randint(10,200)
+        nvals = na.random.randint(100,1000)
+
+        table = na.mgrid[x0:x1:nstep_x*1j,
+                         y0:y1:nstep_y*1j]
+
+        self.bfi_x = yt.lagos.BilinearFieldInterpolator(table[0,...],
+                      (x0,x1,y0,y1),['x','y'])
+        self.bfi_y = yt.lagos.BilinearFieldInterpolator(table[1,...],
+                      (x0,x1,y0,y1),['x','y'])
+        self.my_dict = {}
+        self.my_dict['x'] = na.random.uniform(x0,x1,nvals)
+        self.my_dict['y'] = na.random.uniform(y0,y1,nvals)
+
+    def testXInt(self):
+        nv = self.bfi_x(self.my_dict)
+        for i,v in enumerate(nv):
+            self.assertAlmostEqual(v, self.my_dict['x'][i], 5)
+
+    def testYInt(self):
+        nv = self.bfi_y(self.my_dict)
+        for i,v in enumerate(nv):
+            self.assertAlmostEqual(v, self.my_dict['y'][i], 5)
+
+class TestTrilinearInterpolator(unittest.TestCase):
+    def setUp(self):
+        x0, x1 = na.random.uniform(-100,100,2)
+        y0, y1 = na.random.uniform(-100,100,2)
+        z0, z1 = na.random.uniform(-100,100,2)
+        nstep_x = na.random.randint(10,200)
+        nstep_y = na.random.randint(10,200)
+        nstep_z = na.random.randint(10,200)
+        nvals = na.random.randint(100,1000)
+
+        table = na.mgrid[x0:x1:nstep_x*1j,
+                         y0:y1:nstep_y*1j,
+                         z0:z1:nstep_z*1j]
+
+        self.tfi_x = yt.lagos.TrilinearFieldInterpolator(table[0,...],
+                      (x0,x1,y0,y1,z0,z1),['x','y','z'])
+        self.tfi_y = yt.lagos.TrilinearFieldInterpolator(table[1,...],
+                      (x0,x1,y0,y1,z0,z1),['x','y','z'])
+        self.tfi_z = yt.lagos.TrilinearFieldInterpolator(table[2,...],
+                      (x0,x1,y0,y1,z0,z1),['x','y','z'])
+        self.my_dict = {}
+        self.my_dict['x'] = na.random.uniform(x0,x1,nvals)
+        self.my_dict['y'] = na.random.uniform(y0,y1,nvals)
+        self.my_dict['z'] = na.random.uniform(z0,z1,nvals)
+
+    def testXInt(self):
+        nv = self.tfi_x(self.my_dict)
+        for i,v in enumerate(nv):
+            self.assertAlmostEqual(v, self.my_dict['x'][i], 5)
+
+    def testYInt(self):
+        nv = self.tfi_y(self.my_dict)
+        for i,v in enumerate(nv):
+            self.assertAlmostEqual(v, self.my_dict['y'][i], 5)
+
+    def testZInt(self):
+        nv = self.tfi_z(self.my_dict)
+        for i,v in enumerate(nv):
+            self.assertAlmostEqual(v, self.my_dict['z'][i], 5)
+
+
 
 if __name__ == "__main__":
     unittest.main()

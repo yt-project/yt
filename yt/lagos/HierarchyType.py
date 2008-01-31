@@ -62,6 +62,8 @@ class EnzoHierarchy:
         # Now we search backwards from the end of the file to find out how many
         # grids we have, which allows us to preallocate memory
         self.__hierarchy_lines = open(self.hierarchy_filename).readlines()
+        if len(self.__hierarchy_lines) == 0:
+            raise IOError(-1,"File empty", self.hierarchy_filename)
         self.__hierarchy_string = open(self.hierarchy_filename).read()
         for i in xrange(len(self.__hierarchy_lines)-1,0,-1):
             line = self.__hierarchy_lines[i]

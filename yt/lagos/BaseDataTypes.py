@@ -52,7 +52,7 @@ class EnzoData:
     _grids = None
     _num_ghost_zones = 0
 
-    def __init__(self, pf, fields):
+    def __init__(self, pf, fields, **kwargs):
         """
         @param pf: The parameterfile associated with this container
         @type hierarchy: L{EnzoOutput<EnzoOutput>}
@@ -67,6 +67,8 @@ class EnzoData:
         self.data = {}
         self.field_parameters = {}
         self.__set_default_field_parameters()
+        for key, val in kwargs.items():
+            self.set_field_parameter(key, val)
 
     def __set_default_field_parameters(self):
         self.set_field_parameter("center",na.zeros(3,dtype='float64'))
@@ -144,8 +146,8 @@ class EnzoData:
 
 class Enzo1DData(EnzoData):
     _spatial = False
-    def __init__(self, pf, fields):
-        EnzoData.__init__(self, pf, fields)
+    def __init__(self, pf, fields, **kwargs):
+        EnzoData.__init__(self, pf, fields, **kwargs)
         self._grids = None
 
     def _generate_field_in_grids(self, field, num_ghost_zones=0):
@@ -169,8 +171,8 @@ class Enzo1DData(EnzoData):
 
 
 class EnzoOrthoRayBase(Enzo1DData):
-    def __init__(self, axis, coords, fields=None, pf=None):
-        Enzo1DData.__init__(self, pf, fields)
+    def __init__(self, axis, coords, fields=None, pf=None, **kwargs):
+        Enzo1DData.__init__(self, pf, fields, **kwargs)
         self.axis = axis
         self.px_ax = x_dict[self.axis]
         self.py_ax = y_dict[self.axis]
@@ -231,7 +233,7 @@ class Enzo2DData(EnzoData):
     does not have as many actions as the 3-D data types.
     """
     _spatial = False
-    def __init__(self, axis, fields, pf=None):
+    def __init__(self, axis, fields, pf=None, **kwargs):
         """
         Prepares the Enzo2DData.
 
@@ -241,7 +243,7 @@ class Enzo2DData(EnzoData):
         @type fields: list of strings
         """
         self.axis = axis
-        EnzoData.__init__(self, pf, fields)
+        EnzoData.__init__(self, pf, fields, **kwargs)
 
     @time_execution
     def get_data(self, fields = None):
@@ -333,7 +335,7 @@ class EnzoSliceBase(Enzo2DData):
     """
 
     @time_execution
-    def __init__(self, axis, coord, fields = None, center=None, pf=None):
+    def __init__(self, axis, coord, fields = None, center=None, pf=None, **kwargs):
         """
         @param axis: axis to which this data is parallel
         @type axis: integer (0,1,2)
@@ -342,7 +344,7 @@ class EnzoSliceBase(Enzo2DData):
         @keyword fields: fields to be processed or generated
         @type fields: list of strings
         """
-        Enzo2DData.__init__(self, axis, fields, pf)
+        Enzo2DData.__init__(self, axis, fields, pf, **kwargs)
         self.center = center
         self.coord = coord
         self._refresh_data()
@@ -469,14 +471,14 @@ class EnzoCuttingPlaneBase(Enzo2DData):
     the appropriate data onto the plane without interpolation.
     """
     _plane = None
-    def __init__(self, normal, center, fields = None):
+    def __init__(self, normal, center, fields = None, **kwargs):
         """
         @param normal: Vector normal to which the plane will be defined
         @type normal: List or array of floats
         @param center: The center point of the plane
         @type center: List or array of floats
         """
-        Enzo2DData.__init__(self, 4, fields)
+        Enzo2DData.__init__(self, 4, fields, **kwargs)
         self.center = center
         self.set_field_parameter('center',center)
         self._cut_masks = {}
@@ -575,7 +577,7 @@ class EnzoCuttingPlaneBase(Enzo2DData):
 class EnzoProjBase(Enzo2DData):
     def __init__(self, axis, field, weight_field = None,
                  max_level = None, center = None, pf = None,
-                 source=None, type=0):
+                 source=None, type=0, **kwargs):
         """
         EnzoProj is a line integral of a field along an axis.  The field
         can be weighted, in which case some degree of averaging takes place.
@@ -591,7 +593,7 @@ class EnzoProjBase(Enzo2DData):
         @keyword source: The data source, particularly for parallel projections.
         @type source: L{EnzoData<EnzoData>}
         """
-        Enzo2DData.__init__(self, axis, field, pf)
+        Enzo2DData.__init__(self, axis, field, pf, **kwargs)
         if not source:
             source = EnzoGridCollection(center, self.hierarchy.grids)
         self.source = source
@@ -844,7 +846,7 @@ class Enzo3DData(EnzoData):
     """
     _spatial = False
     _num_ghost_zones = 0
-    def __init__(self, center, fields, pf = None):
+    def __init__(self, center, fields, pf = None, **kwargs):
         """
         Returns an instance of Enzo3DData, or prepares one.  Usually only
         used as a base class.
@@ -856,7 +858,7 @@ class Enzo3DData(EnzoData):
         @param fields: fields to read/generate
         @type fields: list of strings
         """
-        EnzoData.__init__(self, pf, fields)
+        EnzoData.__init__(self, pf, fields, **kwargs)
         self.center = center
         self.set_field_parameter("center",center)
         self.coords = None
@@ -1109,7 +1111,7 @@ class ExtractedRegionBase(Enzo3DData):
     ExtractedRegions are arbitrarily defined containers of data, useful
     for things like selection along a baryon field.
     """
-    def __init__(self, base_region, indices):
+    def __init__(self, base_region, indices, **kwargs):
         """
         @param base_region: The Enzo3DData we select points from
         @type base_region: L{Enzo3DData<Enzo3DData>}
@@ -1118,7 +1120,7 @@ class ExtractedRegionBase(Enzo3DData):
         """
         cen = base_region.get_field_parameter("center")
         Enzo3DData.__init__(self, center=cen,
-                            fields=None, pf=base_region.pf)
+                            fields=None, pf=base_region.pf, **kwargs)
         self._base_region = base_region
         self._base_indices = indices
         self._grids = None
@@ -1156,10 +1158,11 @@ class ExtractedRegionBase(Enzo3DData):
 
 class EnzoCylinderBase(Enzo3DData):
     """
-    We define a disk as have an 'up' vector, a radius and a height.
+    We define a disk as having an 'up' vector, a radius and a height.
     """
-    def __init__(self, center, normal, radius, height, fields=None, pf=None):
-        Enzo3DData.__init__(self, na.array(center), fields, pf)
+    def __init__(self, center, normal, radius, height, fields=None,
+                 pf=None, **kwargs):
+        Enzo3DData.__init__(self, na.array(center), fields, pf, **kwargs)
         self._norm_vec = na.array(normal)/na.sqrt(na.dot(normal,normal))
         self.set_field_parameter("height_vector", self._norm_vec)
         self._height = height
@@ -1211,7 +1214,8 @@ class EnzoRegionBase(Enzo3DData):
     """
     EnzoRegions are rectangular prisms of data.
     """
-    def __init__(self, center, left_edge, right_edge, fields = None, pf = None):
+    def __init__(self, center, left_edge, right_edge, fields = None,
+                 pf = None, **kwargs):
         """
         @note: Center does not have to be (rightEdge - leftEdge) / 2.0
         @param center: The center for calculations that require it
@@ -1221,7 +1225,7 @@ class EnzoRegionBase(Enzo3DData):
         @param right_edge: The right boundary
         @type right_edge: list or array of floats
         """
-        Enzo3DData.__init__(self, center, fields, pf)
+        Enzo3DData.__init__(self, center, fields, pf, **kwargs)
         self.left_edge = left_edge
         self.right_edge = right_edge
         self._cut_masks = {}
@@ -1250,14 +1254,14 @@ class EnzoGridCollection(Enzo3DData):
     An arbitrary selection of grids, within which we accept all points.
     """
     def __init__(self, center, grid_list, fields = None, connection_pool = True,
-                 pf = None):
+                 pf = None, **kwargs):
         """
         @param center: The center of the region, for derived fields
         @type center: List or array of floats
         @param grid_list: The grids we are composed of
         @type grid_list: List or array of Grid objects
         """
-        Enzo3DData.__init__(self, center, fields, pf)
+        Enzo3DData.__init__(self, center, fields, pf, **kwargs)
         self._grids = na.array(grid_list)
         self.fields = fields
         self._cut_masks = {}
@@ -1281,7 +1285,7 @@ class EnzoSphereBase(Enzo3DData):
     """
     A sphere of points
     """
-    def __init__(self, center, radius, fields = None, pf = None):
+    def __init__(self, center, radius, fields = None, pf = None, **kwargs):
         """
         @param center: center of the region
         @type center: array of floats
@@ -1290,7 +1294,7 @@ class EnzoSphereBase(Enzo3DData):
         @keyword fields: fields to read/generate
         @type fields: list of strings
         """
-        Enzo3DData.__init__(self, center, fields, pf)
+        Enzo3DData.__init__(self, center, fields, pf, **kwargs)
         self._cut_masks = {}
         self.set_field_parameter('radius',radius)
         self.radius = radius
@@ -1329,7 +1333,7 @@ class EnzoCoveringGrid(Enzo3DData):
     """
     _spatial = True
     def __init__(self, level, left_edge, right_edge, dims, fields = None,
-                 pf = None, num_ghost_zones = 0, use_pbar = True):
+                 pf = None, num_ghost_zones = 0, use_pbar = True, **kwargs):
         """
         @param level: The maximum level to consider when creating the grid
         @note: Level does not have to be related to the dx of the object.
@@ -1341,7 +1345,7 @@ class EnzoCoveringGrid(Enzo3DData):
         @type dims: List or array of integers
         @note: It is faster to feed all the fields in at the initialization
         """
-        Enzo3DData.__init__(self, center=None, fields=fields, pf=pf)
+        Enzo3DData.__init__(self, center=None, fields=fields, pf=pf, **kwargs)
         self.left_edge = na.array(left_edge)
         self.right_edge = na.array(right_edge)
         self.level = level
