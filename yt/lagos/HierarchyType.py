@@ -477,6 +477,7 @@ class EnzoHierarchy:
             mylog.debug("Reconstructing hierarchy")
             for level in range(self.maxLevel+1):
                 grids_to_recon = self.select_grids(level)
+                pbar = None
                 if len(self.grids) > 3e5:
                     pbar = get_pbar('Reconsructing  level % 2i / % 2i ' \
                                       % (level, self.maxLevel),
