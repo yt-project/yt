@@ -13,7 +13,12 @@ from math import pi
 
 from yt.funcs import *
 
-mh = 1.67e-24
+mh = 1.67e-24 # g
+me = 9.11e-28 # g
+sigma_thompson = 6.65e-25 # cm^2
+clight = 3.0e10 # cm/s
+kboltz = 1.38e-16
+
 fieldInfo = {}
 
 class ValidationException(Exception):
@@ -66,7 +71,9 @@ class DerivedField:
                  convert_function = None,
                  units = "", projected_units = "",
                  take_log = True, validators = None,
-                 variable_length = False, vector_field=False):
+                 variable_length = False, vector_field=False,
+                 line_integral = True,
+                 projection_conversion = "cm"):
         self.name = name
         self._function = function
         if validators:
@@ -81,6 +88,8 @@ class DerivedField:
         self._convert_function = convert_function
         self.variable_length = variable_length
         self.vector_field = vector_field
+        self.line_integral = line_integral
+        self.projection_conversion = projection_conversion
     def check_available(self, data):
         for validator in self.validators:
             validator(data)
@@ -404,6 +413,36 @@ add_field("CellVolumeMpc", units=r"\rm{Mpc}^3",
 add_field("CellVolume", units=r"\rm{cm}^3",
           function=_CellVolume,
           convert_function=_ConvertCellVolumeCGS)
+
+def _XRayEmissivity(field, data):
+    return ((data["Density"]**2.0)*data["Temperature"]**0.5)
+def _convertXRayEmissivity(data):
+    return 2.168e60
+add_field("XRayEmissivity",
+          convert_function=_convertXRayEmissivity,
+          projection_conversion="1")
+
+
+def _SZKinetic(field, data):
+    vel_axis = data.get_field_parameter('axis')
+    if vel_axis > 2:
+        raise NeedsParameter(['axis'])
+    vel = data["%s-velocity" % ({0:'x',1:'y',2:'z'}[vel_axis])]
+    return (vel*data["Density"])
+def _convertSZKinetic(data):
+    return 0.88*((sigma_thompson/mh)/clight)
+add_field("SZKinetic",
+          convert_function=_convertSZKinetic,
+          validators=[ValidateParameter('axis')])
+
+def _SZY(field, data):
+    return (data["Density"]*data["Temperature"])
+def _convertSZY(data):
+    conv = (0.88/mh) * (kboltz)/(me * clight*clight) * sigma_thompson
+    return conv
+add_field("SZY", convert_function=_convertSZY)
+
+
 
 def __gauss_kern(size):
     """ Returns a normalized 2D gauss kernel array for convolutions """

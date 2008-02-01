@@ -476,8 +476,15 @@ class EnzoHierarchy:
         if ytcfg.getboolean("lagos","ReconstructHierarchy") == True:
             mylog.debug("Reconstructing hierarchy")
             for level in range(self.maxLevel+1):
-                for grid in self.select_grids(level):
+                grids_to_recon = self.select_grids(level)
+                if len(self.grids) > 3e5:
+                    pbar = get_pbar('Reconsructing  level % 2i / % 2i ' \
+                                      % (level, self.maxLevel),
+                                      len(grids_to_recon))
+                for i,grid in enumerate(grids_to_recon):
+                    if pbar: pbar.update(i)
                     if grid.Parent: grid._guess_properties_from_parent()
+                if pbar: pbar.finish()
 
     def __select_level(self, level):
         """

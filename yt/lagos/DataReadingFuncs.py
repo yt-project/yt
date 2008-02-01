@@ -72,7 +72,7 @@ def readDataHDF5(self, field):
     @param field: field to read
     @type field: string
     """
-    f = tables.openFile(self.filename)
+    f = tables.openFile(self.filename, nodeCacheSize=1)
     t = f.getNode("/", field).read().astype("float64")
     try:
         t = t.swapaxes(0,2)
@@ -104,7 +104,7 @@ def readDataSliceHDF5(self, grid, field, sl):
     @param sl: region to get
     @type sl: SliceType
     """
-    f = tables.openFile(grid.filename)
+    f = tables.openFile(grid.filename, nodeCacheSize=1)
     ss = f.getNode("/", field)[sl].swapaxes(0,2)
     f.close()
     return ss
@@ -125,8 +125,8 @@ def readDataSliceHDF4(self, grid, field, sl):
 def readDataPacked(self, field):
     f = tables.openFile(self.filename,
                         rootUEP="/Grid%08i" % (self.id),
-                        mode='r')
-    t = f.getNode("/", field).read()
+                        mode='r', nodeCacheSize=1)
+    t = f.getNode("/", field).read().astype('float64')
     t = t.swapaxes(0,2)
     f.close()
     return t
@@ -142,7 +142,7 @@ def readDataSlicePacked(self, grid, field, sl):
     @param sl: region to get
     @type sl: SliceType
     """
-    f = tables.openFile(grid.filename)
+    f = tables.openFile(grid.filename, nodeCacheSize=1)
     ss = f.getNode("/Grid%08i" % (grid.id), field)[sl]
     f.close()
     return ss

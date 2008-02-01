@@ -247,6 +247,7 @@ class Enzo2DData(EnzoData):
         """
         self.axis = axis
         EnzoData.__init__(self, pf, fields, **kwargs)
+        self.set_field_parameter("axis",axis)
 
     @time_execution
     def get_data(self, fields = None):
@@ -597,7 +598,10 @@ class EnzoProjBase(Enzo2DData):
         """
         Enzo2DData.__init__(self, axis, field, pf, **kwargs)
         if not source:
+            self._check_region = False
             source = EnzoGridCollection(center, self.hierarchy.grids)
+        else:
+            self._check_region = True
         self.source = source
         if max_level == None:
             max_level = self.hierarchy.maxLevel
@@ -809,13 +813,18 @@ class EnzoProjBase(Enzo2DData):
             masked_data[grid.child_indices] = 0
             weight_data[grid.child_indices] = 0
         #@todo: Fix the func to set up a path length too
-        dl = just_one(grid['d%s' % axis_names[self.axis]])
+        dl = 1.0
+        if fieldInfo.has_key(field) and fieldInfo[field].line_integral:
+            dl = just_one(grid['d%s' % axis_names[self.axis]])
         dx = just_one(grid['d%s' % axis_names[x_dict[self.axis]]])
         dy = just_one(grid['d%s' % axis_names[y_dict[self.axis]]])
         full_proj = self.func(masked_data,axis=self.axis)*dl
         weight_proj = self.func(weight_data,axis=self.axis)*dl
-        used_data = self._get_points_in_region(grid)
-        used_points = na.where(na.logical_or.reduce(used_data, self.axis))
+        if self._check_region:
+            used_data = self._get_points_in_region(grid)
+            used_points = na.where(na.logical_or.reduce(used_data, self.axis))
+        else:
+            used_points = slice(None)
         if zero_out:
             subgrid_mask = na.logical_and.reduce(grid.child_mask, self.axis).astype('int64')
         else:
@@ -837,7 +846,10 @@ class EnzoProjBase(Enzo2DData):
 
     @restore_grid_state
     def _get_data_from_grid(self, grid, field):
-        bad_points = self._get_points_in_region(grid)
+        if self._check_region:
+            bad_points = self._get_points_in_region(grid)
+        else:
+            bad_points = 1.0
         d = grid[field] * bad_points
         return d
 

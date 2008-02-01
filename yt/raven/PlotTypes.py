@@ -399,9 +399,15 @@ class ProjectionPlot(VMPlot):
         if self.colorbar != None: self.colorbar.set_label(data_label)
 
     def __getitem__(self, item):
-        return self.data[item] * \
-                  self.data.hierarchy.parameter_file.units["cm"]
-                  #self.data.hierarchy.parameter_file.conversion_factors[item] * \
+        if lagos.fieldInfo.has_key(item):
+            if not lagos.fieldInfo[item].line_integral:
+                dl = 1.0
+            else:
+                dl = self.data.hierarchy.parameter_file.units[
+                    lagos.fieldInfo[item].projection_conversion]
+        else:
+            dl = self.data.hierarchy.parameter_file.units["cm"]
+        return self.data[item] * dl
 
 class CuttingPlanePlot(SlicePlot):
     _type_name = "CuttingPlane"
