@@ -1,7 +1,7 @@
 import types
-from collections import defaultdict
 import numpy as na
 import inspect
+import copy
 
 # All our math stuff here:
 try:
@@ -18,6 +18,31 @@ me = 9.11e-28 # g
 sigma_thompson = 6.65e-25 # cm^2
 clight = 3.0e10 # cm/s
 kboltz = 1.38e-16
+
+class FieldInfoContainer: # We are all Borg.
+    _shared_state = {}
+    def __new__(cls, *args, **kwargs):
+        self = object.__new__(cls, *args, **kwargs)
+        self.__dict__ = cls._shared_state
+        return self
+    def __init__(self):
+        self.__field_list = {}
+    def __getitem__(self, key):
+        if not self.__field_list.has_key(key): # Now we check it out, to see if we need to do anything to it
+            if key.endswith("Code"):
+                old_field = self.__field_list[key[:-4]]
+                new_field = copy.copy(old_field)
+                new_field.convert_function = \
+                            lambda a: 1.0/old_field._convert_function(a)
+            elif key.endswith("Abs"):
+                old_field = self.__field_list[key[:-4]]
+                new_field = copy.copy(old_field)
+                new_field._function = \
+                    lambda a,b: na.abs(old_field._function(a,b))
+            else:
+                raise KeyError
+            self.__field_list[key] = new_field
+        return self.__field_list[key]
 
 fieldInfo = {}
 
@@ -340,8 +365,6 @@ def _convertHeight(data):
     return data.convert("cm")
 add_field("Height", convert_function=_convertHeight,
           validators=[ValidateParameter("height_vector")])
-add_field("HeightCode", function=_Height,
-          validators=[ValidateParameter("height_vector")])
 
 def _DynamicalTime(field, data):
     """
@@ -422,7 +445,6 @@ add_field("XRayEmissivity",
           convert_function=_convertXRayEmissivity,
           projection_conversion="1")
 
-
 def _SZKinetic(field, data):
     vel_axis = data.get_field_parameter('axis')
     if vel_axis > 2:
@@ -441,8 +463,6 @@ def _convertSZY(data):
     conv = (0.88/mh) * (kboltz)/(me * clight*clight) * sigma_thompson
     return conv
 add_field("SZY", convert_function=_convertSZY)
-
-
 
 def __gauss_kern(size):
     """ Returns a normalized 2D gauss kernel array for convolutions """
@@ -623,15 +643,9 @@ add_field("RadialVelocityKMS", function=_RadialVelocity,
 _enzo_fields = ["Density","Temperature","Gas_Energy","Total_Energy",
                 "x-velocity","y-velocity","z-velocity"]
 _enzo_fields += [ "%s_Density" % sp for sp in _speciesList ]
-def _returnCodeField(real_field):
-    def _fieldFunction(field, data):
-        return data[real_field]
-    return _fieldFunction
 for field in _enzo_fields:
     add_field(field, function=lambda a, b: None, take_log=True,
               validators=[ValidateDataField(field)], units=r"\rm{g}/\rm{cm}^3")
-    add_field("_Code%s" % field, function=_returnCodeField(field),
-              take_log=True, validators=[ValidateDataField(field)])
 
 # Now we override
 

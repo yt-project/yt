@@ -86,3 +86,24 @@ def get_pbar(title, maxval):
     pbar = pb.ProgressBar(widgets=widgets,
                           maxval=maxval).start()
     return pbar
+
+# Taken from
+# http://www.goldb.org/goldblog/2008/02/06/PythonConvertSecsIntoHumanReadableTimeStringHHMMSS.aspx
+def humanize_time(secs):
+    mins, secs = divmod(secs, 60)
+    hours, mins = divmod(mins, 60)
+    return '%02d:%02d:%02d' % (hours, mins, secs)
+
+class __defaultdict(dict):
+    def __init__(self, func):
+        self.__func = func
+        dict.__init__(self)
+    def __getitem__(self, key):
+        if not self.has_key(key):
+            self.__setitem__(key, self.__func())
+        return dict.__getitem__(key)
+
+try:
+    from collections import defaultdict
+except ImportError:
+    defaultdict = __defaultdict

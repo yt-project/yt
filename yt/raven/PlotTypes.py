@@ -41,8 +41,6 @@ import matplotlib.colors
 import matplotlib.colorbar
 import matplotlib.cm
 
-from collections import defaultdict
-
 def ClusterFilePlot(cls, x, y, xlog=None, ylog=None, fig=None, filename=None,
                     format="png", xbounds = None, ybounds = None):
     """

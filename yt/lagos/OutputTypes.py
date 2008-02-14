@@ -26,7 +26,6 @@ Presumably at some point EnzoRun will be absorbed into here.
 
 from yt.lagos import *
 from yt.funcs import *
-from collections import defaultdict
 import string, re, gc, time, os, os.path
 
 # We want to support the movie format in the future.
@@ -58,7 +57,6 @@ class EnzoStaticOutput(EnzoOutput):
         self.fullpath = os.path.abspath(self.directory)
         if len(self.directory) == 0:
             self.directory = "."
-        #self.conversion_factors = defaultdict(lambda: 1.0)
         self.conversion_factors = {}
         self.parameters = {}
         self.parameters["CurrentTimeIdentifier"] = \

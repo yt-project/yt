@@ -24,7 +24,6 @@ Enzo hierarchy container class
 
 from yt.lagos import *
 from yt.funcs import *
-from collections import defaultdict
 import string, re, gc, time
 import cPickle
 #import yt.enki
