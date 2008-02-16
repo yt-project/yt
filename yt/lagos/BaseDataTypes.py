@@ -571,11 +571,8 @@ class EnzoCuttingPlaneBase(Enzo2DData):
     def _get_point_indices(self, grid, use_child_mask=True):
         k = na.zeros(grid.ActiveDimensions, dtype='bool')
         k = (k | self._get_cut_mask(grid))
-        if use_child_mask:
-            pointI = na.where(k & grid.child_mask)
-        else:
-            pointI = na.where(k)
-        return pointI
+        if use_child_mask: k = (k & grid.child_mask)
+        return na.where(k)
 
 class EnzoProjBase(Enzo2DData):
     def __init__(self, axis, field, weight_field = None,
@@ -981,12 +978,11 @@ class Enzo3DData(EnzoData):
     def __touch_grid_field(self, grid, field):
         grid[field]
 
-    @restore_grid_state
-    def _get_point_indices(self, grid, field=None):
+    def _get_point_indices(self, grid, use_child_mask=True):
         k = na.zeros(grid.ActiveDimensions, dtype='bool')
         k = (k | self._get_cut_mask(grid))
-        pointI = na.where(k & grid.child_mask)
-        return pointI
+        if use_child_mask: k = (k & grid.child_mask)
+        return na.where(k)
 
     def extract_region(self, indices):
         """
@@ -1168,7 +1164,8 @@ class ExtractedRegionBase(Enzo3DData):
                                          zi[self._base_indices][ind_ind]])
         self._grids = self._base_region.pf.h.grids[self._indices.keys()]
 
-    def _get_point_indices(self, grid):
+    def _get_point_indices(self, grid, use_child_mask=True):
+        # Yeah, if it's not true, we don't care.
         return self._indices[grid.id-1]
 
 class EnzoCylinderBase(Enzo3DData):
