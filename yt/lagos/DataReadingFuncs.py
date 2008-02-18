@@ -143,7 +143,7 @@ def readDataSlicePacked(self, grid, field, sl):
     @type sl: SliceType
     """
     f = tables.openFile(grid.filename, nodeCacheSize=1)
-    ss = f.getNode("/Grid%08i" % (grid.id), field)[sl]
+    ss = f.getNode("/Grid%08i" % (grid.id), field)[sl].transpose()
     f.close()
     return ss
 
