@@ -122,6 +122,11 @@ def readDataSliceHDF4(self, grid, field, sl):
     """
     return SD.SD(grid.filename).select(field)[sl].swapaxes(0,2)
 
+def readDataPackedHandle(self, field):
+    t = self.handle.getNode("/Grid%08i" % (self.id), field).read().astype('float64')
+    t = t.swapaxes(0,2)
+    return t
+
 def readDataPacked(self, field):
     f = tables.openFile(self.filename,
                         rootUEP="/Grid%08i" % (self.id),

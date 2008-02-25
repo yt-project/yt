@@ -243,7 +243,7 @@ add_field('z', function=_coordZ,
 _speciesList = ["HI","HII","Electron",
                "HeI","HeII","HeIII",
                "H2I","H2II","HM",
-               "DI","DII","HDI"]
+               "DI","DII","HDI","Metal"]
 def _SpeciesFraction(field, data):
     sp = field.name.split("_")[0] + "_Density"
     return data[sp]/data["Density"]
@@ -251,6 +251,13 @@ for species in _speciesList:
     add_field("%s_Fraction" % species,
              function=_SpeciesFraction,
              validators=ValidateDataField("%s_Density" % species))
+
+def _Metallicity(field, data):
+    return data["Metal_Fraction"] / 0.0204
+add_field("Metallicity", units=r"Z_{\rm{Solar}}",
+          validators=ValidateDataField("Metal_Density"),
+          projection_conversion="1")
+          
 
 def _GridLevel(field, data):
     return na.ones(data["Density"].shape)*(data.Level)
@@ -286,13 +293,30 @@ def particle_func(p_field):
             particles = na.array([], dtype=data["Density"].dtype)
         return particles
     return _Particles
-for pf in ["index","mass","type"] + \
+for pf in ["index","type"] + \
           ["velocity_%s" % ax for ax in 'xyz'] + \
           ["position_%s" % ax for ax in 'xyz']:
     pfunc = particle_func(pf)
     add_field("particle_%s" % pf, function=pfunc,
               validators = [ValidateSpatial(0)],
               variable_length=True)
+
+def _ParticleMass(field, data):
+    try:
+        particles = data._read_data("particle mass").astype('float64')
+        particles *= just_one(data["CellVolumeCode"].ravel())
+    except data._read_exception:
+        particles = na.array([], dtype=data["Density"].dtype)
+    return particles
+def _convertParticleMass(data):
+    return data.convert("Density")*(data.convert("cm")**3.0)
+def _convertParticleMassMsun(data):
+    return data.convert("Density")*((data.convert("cm")**3.0)/1.989e33)
+add_field("ParticleMass", validators=[ValidateSpatial(0)],
+          variable_length=True, convert_function=_convertParticleMass)
+add_field("ParticleMassMsun", 
+          function=_ParticleMass, validators=[ValidateSpatial(0)],
+          variable_length=True, convert_function=_convertParticleMassMsun)
 
 def _MachNumber(field, data):
     """M{|v|/t_sound}"""
@@ -438,7 +462,8 @@ add_field("CellVolume", units=r"\rm{cm}^3",
           convert_function=_ConvertCellVolumeCGS)
 
 def _XRayEmissivity(field, data):
-    return ((data["Density"]**2.0)*data["Temperature"]**0.5)
+    return ((data["Density"].astype('float64')**2.0) \
+            *data["Temperature"]**0.5)
 def _convertXRayEmissivity(data):
     return 2.168e60
 add_field("XRayEmissivity",
@@ -543,27 +568,26 @@ def _SpecificAngularMomentum(field, data):
         yv = data["y-velocity"] - bv[1]
         zv = data["z-velocity"] - bv[2]
     else:
-        xv = self["x-velocity"]
-        yv = self["y-velocity"]
-        zv = self["z-velocity"]
+        xv = data["x-velocity"]
+        yv = data["y-velocity"]
+        zv = data["z-velocity"]
 
     center = data.get_field_parameter('center')
     coords = na.array([data['x'],data['y'],data['z']])
     r_vec = coords - na.reshape(center,(3,1))
     v_vec = na.array([xv,yv,zv])
-    tr = na.zeros(v_vec.shape, 'float64')
-    tr[0,:] = (r_vec[1,:] * v_vec[2,:]) - \
-              (r_vec[2,:] * v_vec[1,:])
-    tr[1,:] = (r_vec[0,:] * v_vec[2,:]) - \
-              (r_vec[2,:] * v_vec[0,:])
-    tr[2,:] = (r_vec[0,:] * v_vec[1,:]) - \
-              (r_vec[1,:] * v_vec[0,:])
-    return tr
+    return na.cross(r_vec, v_vec, axis=0)
 def _convertSpecificAngularMomentum(data):
     return data.convert("cm")
+def _convertSpecificAngularMomentumKMSMPC(data):
+    return data.convert("mpc")/1e5
 add_field("SpecificAngularMomentum",
           convert_function=_convertSpecificAngularMomentum, vector_field=True,
           units=r"\rm{cm}^2/\rm{s}", validators=[ValidateParameter('center')])
+add_field("SpecificAngularMomentumKMSMPC",
+          function=_SpecificAngularMomentum, vector_field=True,
+          convert_function=_convertSpecificAngularMomentumKMSMPC, vector_field=True,
+          units=r"\rm{km}\rm{Mpc}/\rm{s}", validators=[ValidateParameter('center')])
 
 def _Radius(field, data):
     center = data.get_field_parameter("center")
@@ -646,6 +670,12 @@ _enzo_fields += [ "%s_Density" % sp for sp in _speciesList ]
 for field in _enzo_fields:
     add_field(field, function=lambda a, b: None, take_log=True,
               validators=[ValidateDataField(field)], units=r"\rm{g}/\rm{cm}^3")
+fieldInfo["x-velocity"].projection_conversion='1'
+fieldInfo["x-velocity"].line_integral = False
+fieldInfo["y-velocity"].projection_conversion='1'
+fieldInfo["y-velocity"].line_integral = False
+fieldInfo["z-velocity"].projection_conversion='1'
+fieldInfo["z-velocity"].line_integral = False
 
 # Now we override
 

@@ -613,7 +613,25 @@ class EnzoProjBase(Enzo2DData):
             self.func = na.sum
         if not self._deserialize():
             self.__calculate_memory()
+            if self.hierarchy.data_style == 6:
+                self.__cache_data()
             self._refresh_data()
+
+    @time_execution
+    def __cache_data(self):
+        rdf = self.hierarchy.grid.readDataFast
+        self.hierarchy.grid.readDataFast = readDataPackedHandle
+        for fn,g_list in self.hierarchy.cpu_map.items():
+            to_read = na.intersect1d(g_list, self.source._grids)
+            if len(to_read) == 0: continue
+            fh = tables.openFile(to_read[0].filename,'r')
+            for g in to_read:
+                g.handle = fh
+                for field in ensure_list(self.fields):
+                    g[field]
+                del g.handle
+            fh.close()
+        self.hierarchy.grid.readDataFast = readDataPackedHandle
 
     @time_execution
     def __calculate_memory(self):
@@ -698,6 +716,20 @@ class EnzoProjBase(Enzo2DData):
         dx = grids_to_project[0].dx * na.ones(len(dblI[0]), dtype='float64')
         return [levelData[0][dblI], levelData[1][dblI], weightedData, dx]
 
+    def __cleanup_level(self, level):
+        grids_to_project = self.source.select_grids(level)
+        all_data = []
+        for grid in grids_to_project:
+            if hasattr(grid,'coarseData'):
+                if self._weight is not None:
+                    weightedData = grid.coarseData[2] / grid.coarseData[4]
+                else:
+                    weightedData = grid.coarseData[2]
+                all_data.append([grid.coarseData[0], grid.coarseData[1],
+                    weightedData,
+                    na.ones(grid.coarseData[0].shape,dtype='float64')*grid.dx])
+        return na.concatenate(all_data, axis=1)
+
     def __setup_weave_dict_combine(self, grid1, grid2):
         # Recall: x, y, val, mask, weight
         my_dict = {}
@@ -774,7 +806,7 @@ class EnzoProjBase(Enzo2DData):
                 goodI = na.where(my_dict['flagged'] == 0)
                 grid2.coarseData = [grid2.coarseData[i][goodI] for i in range(5)]
         for grid1 in self.source.select_grids(level-1):
-            if grid1.coarseData[0].shape[0] != 0:
+            if not self._check_region and grid1.coarseData[0].shape[0] != 0:
                 mylog.error("Something messed up, and %s still has %s points of data",
                             grid1, grid1.coarseData[0].size)
                 print grid1.coarseData[0]
@@ -788,6 +820,10 @@ class EnzoProjBase(Enzo2DData):
         s = self.source
         for level in range(0, self._max_level+1):
             all_data.append(self.__project_level(level, field))
+        if self._check_region:
+            for level in range(0, self._max_level+1):
+                check=self.__cleanup_level(level)
+                if len(check) > 0: all_data.append(check)
         all_data = na.concatenate(all_data, axis=1)
         # We now convert to half-widths and center-points
         self['pdx'] = all_data[3,:]
