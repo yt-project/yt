@@ -180,7 +180,7 @@ class EnzoStaticOutput(EnzoOutput):
         boxcm_cal = self["CosmologyComovingBoxSize"]
         boxcm_uncal = boxcm_cal / h
         box_proper = boxcm_uncal/(1+z)
-        self.units['aye']  = (1.0 + self["CosmologyInitialRedshift"])/(z - 1.0)
+        self.units['aye']  = (1.0 + self["CosmologyInitialRedshift"])/(z + 1.0)
         if not self.has_key("Time"):
             LengthUnit = 3.086e24 * box_proper
             self.conversion_factors["Time"] = LengthUnit / self["x-velocity"]
