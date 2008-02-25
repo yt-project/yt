@@ -42,7 +42,6 @@ def cache_mask(func):
         return self._cut_masks[grid.id]
     return check_cache
 
-
 class EnzoData:
     """
     Generic EnzoData container.  By itself, will attempt to
@@ -613,7 +612,7 @@ class EnzoProjBase(Enzo2DData):
             self.func = na.sum
         if not self._deserialize():
             self.__calculate_memory()
-            if self.hierarchy.data_style == 6:
+            if self.hierarchy.data_style == 6 and False:
                 self.__cache_data()
             self._refresh_data()
 
@@ -853,7 +852,7 @@ class EnzoProjBase(Enzo2DData):
         dy = just_one(grid['d%s' % axis_names[y_dict[self.axis]]])
         full_proj = self.func(masked_data,axis=self.axis)*dl
         weight_proj = self.func(weight_data,axis=self.axis)*dl
-        if self._check_region:
+        if self._check_region and not self.source._is_fully_enclosed(grid):
             used_data = self._get_points_in_region(grid)
             used_points = na.where(na.logical_or.reduce(used_data, self.axis))
         else:
@@ -1013,6 +1012,9 @@ class Enzo3DData(EnzoData):
     @restore_grid_state
     def __touch_grid_field(self, grid, field):
         grid[field]
+
+    def _is_fully_enclosed(grid):
+        return na.all(self._get_cut_mask)
 
     def _get_point_indices(self, grid, use_child_mask=True):
         k = na.zeros(grid.ActiveDimensions, dtype='bool')
@@ -1200,6 +1202,9 @@ class ExtractedRegionBase(Enzo3DData):
                                          zi[self._base_indices][ind_ind]])
         self._grids = self._base_region.pf.h.grids[self._indices.keys()]
 
+    def _is_fully_enclosed(self, grid):
+        return (self._indices[grid.id[-1]][0].size == grid.ActiveDimensions.prod())
+
     def _get_point_indices(self, grid, use_child_mask=True):
         # Yeah, if it's not true, we don't care.
         return self._indices[grid.id-1]
@@ -1230,6 +1235,16 @@ class EnzoCylinderBase(Enzo3DData):
             & (na.logical_not((na.all(H>0,axis=0) | (na.all(H<0, axis=0)))) )
             ) ) ]
         self._grids = self.hierarchy.grids
+
+    def _is_fully_enclosed(self, grid):
+        corners = grid._corners.reshape((8,3,1))
+        H = na.sum(self._norm_vec.reshape((1,3,1)) * corners,
+                   axis=1) + self._d
+        D = na.sqrt(na.sum((corners -
+                           self.center.reshape((1,3,1)))**2.0,axis=1))
+        R = na.sqrt(D**2.0-H**2.0)
+        return (na.all(na.abs(H) < self._height, axis=0) \
+            and na.all(R < self._radius, axis=0))
 
     @cache_mask
     def _get_cut_mask(self, grid):
@@ -1281,6 +1296,10 @@ class EnzoRegionBase(Enzo3DData):
         self._grids, ind = self.pf.hierarchy.get_box_grids(self.left_edge,
                                                            self.right_edge)
 
+    def _is_fully_enclosed(self):
+        return na.all( (grid._corners < self.right_edge)
+                     & (grid._corners >= self.left_edge))
+
     @cache_mask
     def _get_cut_mask(self, grid):
         if na.all( (grid._corners < self.right_edge)
@@ -1314,6 +1333,9 @@ class EnzoGridCollection(Enzo3DData):
 
     def _get_list_of_grids(self):
         pass
+
+    def _is_fully_enclosed(self, grid):
+        return True
 
     @cache_mask
     def _get_cut_mask(self, grid):
@@ -1350,6 +1372,10 @@ class EnzoSphereBase(Enzo3DData):
         grids = grids.tolist()
         grids.sort(key=lambda x: (x.Level, x.LeftEdge[0], x.LeftEdge[1], x.LeftEdge[2]))
         self._grids = na.array(grids)
+
+    def _is_fully_enclosed(self, grid):
+        corner_radius = na.sqrt(((grid._corners - self.center)**2.0).sum(axis=1))
+        return na.all(corner_radius <= self.radius)
 
     @restore_grid_state # Pains me not to decorate with cache_mask here
     def _get_cut_mask(self, grid, field=None):
