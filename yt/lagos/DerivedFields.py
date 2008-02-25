@@ -257,7 +257,7 @@ def _Metallicity(field, data):
 add_field("Metallicity", units=r"Z_{\rm{Solar}}",
           validators=ValidateDataField("Metal_Density"),
           projection_conversion="1")
-          
+
 
 def _GridLevel(field, data):
     return na.ones(data["Density"].shape)*(data.Level)
@@ -314,7 +314,7 @@ def _convertParticleMassMsun(data):
     return data.convert("Density")*((data.convert("cm")**3.0)/1.989e33)
 add_field("ParticleMass", validators=[ValidateSpatial(0)],
           variable_length=True, convert_function=_convertParticleMass)
-add_field("ParticleMassMsun", 
+add_field("ParticleMassMsun",
           function=_ParticleMass, validators=[ValidateSpatial(0)],
           variable_length=True, convert_function=_convertParticleMassMsun)
 
@@ -585,7 +585,7 @@ add_field("SpecificAngularMomentum",
           convert_function=_convertSpecificAngularMomentum, vector_field=True,
           units=r"\rm{cm}^2/\rm{s}", validators=[ValidateParameter('center')])
 add_field("SpecificAngularMomentumKMSMPC",
-          function=_SpecificAngularMomentum, vector_field=True,
+          function=_SpecificAngularMomentum,
           convert_function=_convertSpecificAngularMomentumKMSMPC, vector_field=True,
           units=r"\rm{km}\rm{Mpc}/\rm{s}", validators=[ValidateParameter('center')])
 
