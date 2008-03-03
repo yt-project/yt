@@ -35,7 +35,11 @@ class LagosTestingBase:
             os.unlink(i)
 
     def tearDown(self):
+        if hasattr(self,'data'): del self.data
+        if hasattr(self,'region'): del self.region
+        if hasattr(self,'ind_to_get'): del self.ind_to_get
         del self.OutputFile, self.hierarchy
+        
 
 class TestHierarchy(LagosTestingBase, unittest.TestCase):
     def testGetHierarchy(self):
@@ -85,6 +89,14 @@ class TestHierarchy(LagosTestingBase, unittest.TestCase):
         mr = r["CellMass"].sum() # Testing adding new field transparently
         self.assertEqual(ms,mr)  # Asserting equality between the two
 
+    def testProjectionCorrectnessMultipleFields(self):
+        p = self.hierarchy.proj(0,["Density","Ones"]) # Unweighted
+        self.assertTrue(na.all(p["Ones"] == 1.0))
+
+    def testProjectionMakingMultipleFields(self):
+        p = self.hierarchy.proj(0,["Density","Temperature","Ones"],weight_field="Ones") # Unweighted
+        self.assertEqual(len(p.data.keys()), 7)
+
     def testProjectionMaking(self):
         p = self.hierarchy.proj(0,"Density") # Unweighted
         p = self.hierarchy.proj(1,"Temperature","Density") # Weighted
@@ -94,7 +106,7 @@ class TestHierarchy(LagosTestingBase, unittest.TestCase):
         # Now we test that we get good answers
         for axis in range(3):
             p = self.hierarchy.proj(axis, "Ones") # Derived field
-            self.assertAlmostEqual(p["Ones"].prod(), 1.0, 7)
+            self.assertTrue(na.all(p["Ones"] == 1.0))
 
 # Now we test each datatype in turn
 

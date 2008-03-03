@@ -65,6 +65,7 @@ if ytcfg.getboolean("lagos","usefortran"):
 # Now we import all the subfiles
 
 import PointCombine
+import HDF5LightReader
 from WeaveStrings import *
 from EnzoDefs import *
 from DerivedFields import *

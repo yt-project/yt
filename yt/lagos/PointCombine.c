@@ -44,438 +44,226 @@
 #define max(A,B) ((A) > (B) ? (A) : (B))
 #define min(A,B) ((A) < (B) ? (A) : (B))
 
-static PyObject *_combineError;
-
-static void
-RefineCoarseData(long fpoints, npy_int64 *finedata_x, npy_int64 *finedata_y, npy_float64 *finedata_vals, npy_float64 *finedata_wgt,
-                 long cpoints, npy_int64 *coarsedata_x, npy_int64 *coarsedata_y, npy_float64 *coarsedata_vals, npy_float64 *coarsedata_wgt,
-                 int refinementFactor, int *totalRefined)
-{
-    long fi, ci;
-
-    int flagged[cpoints], tr = 0;
-
-    long double rf = refinementFactor;
-
-    npy_int64 coarseCell_x, coarseCell_y;
-
-    for (ci=0; ci<cpoints; ci++) flagged[ci]=0;
-
-    for (fi = 0; fi < fpoints; fi++) {
-        coarseCell_x = floorl((finedata_x[fi])/rf);
-        coarseCell_y = floorl((finedata_y[fi])/rf);
-        for (ci = 0; ci < cpoints; ci++) {
-            if ((coarseCell_x == coarsedata_x[ci]) &&
-                (coarseCell_y == coarsedata_y[ci])) {
-                    tr += 1;
-                    finedata_vals[fi] = COMB(coarsedata_vals[ci], finedata_vals[fi]);
-                    finedata_wgt[fi]  = COMB(coarsedata_wgt[ci],  finedata_wgt[fi]);
-                    flagged[ci] = 1;
-                    break;  // Each fine cell maps to one and only one coarse
-                            // cell
-            }
-        }
-    }
-    *totalRefined = tr;
-
-    for (ci=0; ci<cpoints; ci++) {
-        if (flagged[ci]==1) {
-            coarsedata_x[ci]=-1;
-            coarsedata_y[ci]=-1;
-            coarsedata_vals[ci]=0.0;
-            coarsedata_wgt[ci]=0.0;
-        }
-    }
-}
+static PyObject *_combineGridsError;
 
 static PyObject *
-Py_RefineCoarseData(PyObject *obj, PyObject *args)
+Py_CombineGrids(PyObject *obj, PyObject *args)
 {
-    PyObject   *ofinedata_x, *ofinedata_y, *ofinedata_vals, *ofinedata_wgt,
-               *ocoarsedata_x, *ocoarsedata_y, *ocoarsedata_vals, *ocoarsedata_wgt,
-               *oreturn_index;
-    PyArrayObject   *finedata_x, *finedata_y, *finedata_vals, *finedata_wgt,
-	    *coarsedata_x, *coarsedata_y, *coarsedata_vals, *coarsedata_wgt;
-    int refinementFactor;
+    PyObject    *ogrid_src_x, *ogrid_src_y, *ogrid_src_vals,
+        *ogrid_src_mask, *ogrid_src_wgt;
+    PyObject    *ogrid_dst_x, *ogrid_dst_y, *ogrid_dst_vals,
+        *ogrid_dst_mask, *ogrid_dst_wgt;
 
-    if (!PyArg_ParseTuple(args, "OOOOOOOOi",
-        &ofinedata_x, &ofinedata_y, &ofinedata_vals, &ofinedata_wgt,
-        &ocoarsedata_x, &ocoarsedata_y, &ocoarsedata_vals, &ocoarsedata_wgt,
-        &refinementFactor))
-        return PyErr_Format(_combineError,
-                    "CombineData: Invalid parameters.");
+    PyArrayObject    *grid_src_x, *grid_src_y, **grid_src_vals,
+            *grid_src_mask, *grid_src_wgt;
+    PyArrayObject    *grid_dst_x, *grid_dst_y, **grid_dst_vals,
+            *grid_dst_mask, *grid_dst_wgt;
 
-    /* Align, Byteswap, Contiguous, Typeconvert */
-
-    finedata_x    = (PyArrayObject *) PyArray_FromAny(ofinedata_x   , PyArray_DescrFromType(NPY_INT64), 1, 0, NPY_ENSURECOPY | NPY_UPDATEIFCOPY, NULL);
-    finedata_y    = (PyArrayObject *) PyArray_FromAny(ofinedata_y   , PyArray_DescrFromType(NPY_INT64), 1, 0, NPY_ENSURECOPY | NPY_UPDATEIFCOPY, NULL);
-    finedata_vals = (PyArrayObject *) PyArray_FromAny(ofinedata_vals, PyArray_DescrFromType(NPY_FLOAT64), 1, 0, NPY_ENSURECOPY | NPY_UPDATEIFCOPY, NULL);
-    finedata_wgt  = (PyArrayObject *) PyArray_FromAny(ofinedata_wgt , PyArray_DescrFromType(NPY_FLOAT64), 1, 0, NPY_ENSURECOPY | NPY_UPDATEIFCOPY, NULL);
-
-    coarsedata_x    = (PyArrayObject *) PyArray_FromAny(ocoarsedata_x   , PyArray_DescrFromType(NPY_INT64), 1, 0, NPY_ENSURECOPY | NPY_UPDATEIFCOPY, NULL);
-    coarsedata_y    = (PyArrayObject *) PyArray_FromAny(ocoarsedata_y   , PyArray_DescrFromType(NPY_INT64), 1, 0, NPY_ENSURECOPY | NPY_UPDATEIFCOPY, NULL);
-    coarsedata_vals = (PyArrayObject *) PyArray_FromAny(ocoarsedata_vals, PyArray_DescrFromType(NPY_FLOAT64), 1, 0, NPY_ENSURECOPY | NPY_UPDATEIFCOPY, NULL);
-    coarsedata_wgt  = (PyArrayObject *) PyArray_FromAny(ocoarsedata_wgt , PyArray_DescrFromType(NPY_FLOAT64), 1, 0, NPY_ENSURECOPY | NPY_UPDATEIFCOPY, NULL);
-
-    if (!finedata_x || !finedata_y || !finedata_vals || !finedata_wgt
-     || !coarsedata_x || !coarsedata_y || !coarsedata_vals || !coarsedata_wgt) {
-        /*PyErr_Format( _combineError,
-                  "CombineData: error converting array inputs.");
-        */
-        if (!coarsedata_x)
-          PyErr_Format( _combineError,
-              "CombineData: error converting coarsedata_x");
-        if (!coarsedata_y)
-          PyErr_Format( _combineError,
-              "CombineData: error converting coarsedata_y");
-        if (!coarsedata_vals)
-          PyErr_Format( _combineError,
-              "CombineData: error converting coarsedata_vals");
-        if (!coarsedata_wgt)
-          PyErr_Format( _combineError,
-              "CombineData: error converting coarsedata_wgt");
-        if (!finedata_x)
-          PyErr_Format( _combineError,
-              "CombineData: error converting finedata_x");
-        if (!finedata_y)
-          PyErr_Format( _combineError,
-              "CombineData: error converting finedata_y");
-        if (!finedata_vals)
-          PyErr_Format( _combineError,
-              "CombineData: error converting finedata_vals");
-        if (!finedata_wgt)
-          PyErr_Format( _combineError,
-              "CombineData: error converting finedata_wgt");
-        goto _fail;
-    }
-
-/*
-    if (!NA_ShapeEqual(finedata_x, finedata_y)) {
-        PyErr_Format(_combineError,
-                 "CombineData: x and y finedata numarray need identitcal shapes.");
-        goto _fail;
-    }
-
-    if (!NA_ShapeEqual(finedata_x, finedata_vals)) {
-        PyErr_Format(_combineError,
-                 "CombineData: x and vals finedata numarray need identitcal shapes.");
-        goto _fail;
-    }
-
-    if (!NA_ShapeEqual(finedata_x, finedata_wgt)) {
-        PyErr_Format(_combineError,
-                 "CombineData: x and weight finedata numarray need identitcal shapes.");
-        goto _fail;
-    }
-
-    if (!NA_ShapeEqual(coarsedata_x, coarsedata_y)) {
-        PyErr_Format(_combineError,
-                 "CombineData: x and y coarsedata numarray need identitcal shapes.");
-        goto _fail;
-    }
-
-    if (!NA_ShapeEqual(coarsedata_x, coarsedata_vals)) {
-        PyErr_Format(_combineError,
-                 "CombineData: x and vals coarsedata numarray need identitcal shapes.");
-        goto _fail;
-    }
-
-    if (!NA_ShapeEqual(coarsedata_x, coarsedata_wgt)) {
-        PyErr_Format(_combineError,
-                 "CombineData: x and weight coarsedata numarray need identitcal shapes.");
-        goto _fail;
-    }
-*/
-
-    int totalRefined;
-
-    RefineCoarseData(finedata_vals->dimensions[0],
-                     (npy_int64 *) finedata_x->data,
-                     (npy_int64 *) finedata_y->data,
-                     (npy_float64 *) finedata_vals->data,
-                     (npy_float64 *) finedata_wgt->data,
-                     coarsedata_vals->dimensions[0],
-                     (npy_int64 *) coarsedata_x->data,
-                     (npy_int64 *) coarsedata_y->data,
-                     (npy_float64 *) coarsedata_vals->data,
-                     (npy_float64 *) coarsedata_wgt->data,
-                     refinementFactor, &totalRefined);
-
-    Py_XDECREF(finedata_x);
-    Py_XDECREF(finedata_y);
-    Py_XDECREF(finedata_vals);
-    Py_XDECREF(finedata_wgt);
-    Py_XDECREF(coarsedata_x);
-    Py_XDECREF(coarsedata_y);
-    Py_XDECREF(coarsedata_vals);
-    Py_XDECREF(coarsedata_wgt);
-
-    /* Align, Byteswap, Contiguous, Typeconvert */
-    oreturn_index = PyInt_FromLong((long)totalRefined);
-    return oreturn_index;
-
-  _fail:
-    Py_XDECREF(finedata_x);
-    Py_XDECREF(finedata_y);
-    Py_XDECREF(finedata_vals);
-    Py_XDECREF(finedata_wgt);
-    Py_XDECREF(coarsedata_x);
-    Py_XDECREF(coarsedata_y);
-    Py_XDECREF(coarsedata_vals);
-    Py_XDECREF(coarsedata_wgt);
-
-    return NULL;
-}
-
-static void
-CombineData(long dpoints, npy_int64 *alldata_x, npy_int64 *alldata_y, npy_float64 *alldata_vals, npy_int64 *alldata_mask, npy_float64 *alldata_wgt,
-	    long gpoints, npy_int64 *griddata_x, npy_int64 *griddata_y, npy_float64 *griddata_vals, npy_int64 *griddata_mask, npy_float64 *griddata_wgt,
-                 int *lastIndex)
-{
-    long di, gi;
-
-    int appendData;
-    int myIndex = *lastIndex;
-    myIndex = 0;
-
-    //for (gi=0; gi<gpoints; gi++) flagged[gi]=0;
-
-    for (di = 0; di < dpoints; di++) {
-        appendData = 0;
-        if (alldata_x[di] < 0) continue;
-        for (gi = 0; gi < gpoints; gi++) {
-            if ((alldata_x[di] == griddata_x[gi]) &&
-                (alldata_y[di] == griddata_y[gi])) {
-                    alldata_vals[di] = COMB(alldata_vals[di], griddata_vals[gi]);
-                    alldata_wgt[di]  = COMB(alldata_wgt[di], griddata_wgt[gi]);
-                    alldata_mask[di] = (alldata_mask[di] && griddata_mask[gi]);
-                    griddata_x[gi] = -1;
-                    appendData = 0;
-                    myIndex++;
-                    break; // We map to one alldata point AT MOST
-            }
-        }
-        if (appendData) {
-            alldata_x[myIndex] = griddata_x[gi];
-            alldata_y[myIndex] = griddata_y[gi];
-            alldata_mask[myIndex] = griddata_mask[gi];
-            alldata_vals[myIndex] = griddata_vals[gi];
-            alldata_wgt[myIndex] = griddata_wgt[gi];
-            myIndex++;
-        }
-    }
-    *lastIndex = myIndex;
-}
-
-static PyObject *
-Py_CombineData(PyObject *obj, PyObject *args)
-{
-    PyObject   *oalldata_x, *oalldata_y, *oalldata_vals, *oalldata_mask, *oalldata_wgt,
-    	       *ogriddata_x, *ogriddata_y, *ogriddata_vals, *ogriddata_mask, *ogriddata_wgt,
-               *oreturn_index;
-    PyArrayObject   *alldata_x, *alldata_y, *alldata_vals, *alldata_mask, *alldata_wgt,
-	    *griddata_x, *griddata_y, *griddata_vals, *griddata_mask, *griddata_wgt;
-    int lastIndex;
+    int NumArrays, src_len, dst_len, refinement_factor;
 
     if (!PyArg_ParseTuple(args, "OOOOOOOOOOi",
-        &oalldata_x, &oalldata_y, &oalldata_vals, &oalldata_mask, &oalldata_wgt,
-        &ogriddata_x, &ogriddata_y, &ogriddata_vals, &ogriddata_mask, &ogriddata_wgt,
-        &lastIndex))
-        return PyErr_Format(_combineError,
-                    "CombineData: Invalid parameters.");
+            &ogrid_src_x, &ogrid_src_y, 
+        &ogrid_src_mask, &ogrid_src_wgt, &ogrid_src_vals,
+            &ogrid_dst_x, &ogrid_dst_y,
+        &ogrid_dst_mask, &ogrid_dst_wgt, &ogrid_dst_vals,
+        &refinement_factor))
+    return PyErr_Format(_combineGridsError,
+            "CombineGrids: Invalid parameters.");
 
-    /* Align, Byteswap, Contiguous, Typeconvert */
-    alldata_x    = (PyArrayObject *) PyArray_FromAny(oalldata_x   , PyArray_DescrFromType(NPY_INT64), 1, 0, NPY_ENSURECOPY | NPY_UPDATEIFCOPY, NULL);
-    alldata_y    = (PyArrayObject *) PyArray_FromAny(oalldata_y   , PyArray_DescrFromType(NPY_INT64), 1, 0, NPY_ENSURECOPY | NPY_UPDATEIFCOPY, NULL);
-    alldata_vals = (PyArrayObject *) PyArray_FromAny(oalldata_vals, PyArray_DescrFromType(NPY_FLOAT64), 1, 0, NPY_ENSURECOPY | NPY_UPDATEIFCOPY, NULL);
-    alldata_wgt  = (PyArrayObject *) PyArray_FromAny(oalldata_wgt , PyArray_DescrFromType(NPY_FLOAT64), 1, 0, NPY_ENSURECOPY | NPY_UPDATEIFCOPY, NULL);
-    alldata_mask = (PyArrayObject *) PyArray_FromAny(oalldata_mask, PyArray_DescrFromType(NPY_INT64), 1, 0, NPY_ENSURECOPY | NPY_UPDATEIFCOPY, NULL);
+    /* First the regular source arrays */
 
-    griddata_x    = (PyArrayObject *) PyArray_FromAny(ogriddata_x   , PyArray_DescrFromType(NPY_INT64), 1, 0, NPY_ENSURECOPY | NPY_UPDATEIFCOPY, NULL);
-    griddata_y    = (PyArrayObject *) PyArray_FromAny(ogriddata_y   , PyArray_DescrFromType(NPY_INT64), 1, 0, NPY_ENSURECOPY | NPY_UPDATEIFCOPY, NULL);
-    griddata_vals = (PyArrayObject *) PyArray_FromAny(ogriddata_vals, PyArray_DescrFromType(NPY_FLOAT64), 1, 0, NPY_ENSURECOPY | NPY_UPDATEIFCOPY, NULL);
-    griddata_wgt  = (PyArrayObject *) PyArray_FromAny(ogriddata_wgt , PyArray_DescrFromType(NPY_FLOAT64), 1, 0, NPY_ENSURECOPY | NPY_UPDATEIFCOPY, NULL);
-    griddata_mask = (PyArrayObject *) PyArray_FromAny(ogriddata_mask, PyArray_DescrFromType(NPY_INT64), 1, 0, NPY_ENSURECOPY | NPY_UPDATEIFCOPY, NULL);
+    grid_src_x    = (PyArrayObject *) PyArray_FromAny(ogrid_src_x,
+                    PyArray_DescrFromType(NPY_INT64), 1, 0,
+                    NPY_INOUT_ARRAY | NPY_UPDATEIFCOPY, NULL);
+    src_len = PyArray_SIZE(grid_src_x);
 
-    if (!alldata_x || !alldata_y || !alldata_vals || !alldata_wgt || !alldata_mask
-     || !griddata_x || !griddata_y || !griddata_vals || !griddata_wgt || !griddata_mask) {
-        if (!alldata_x)
-          PyErr_Format( _combineError,
-              "CombineData: error converting alldata_x");
-        if (!alldata_y)
-          PyErr_Format( _combineError,
-              "CombineData: error converting alldata_y");
-        if (!alldata_vals)
-          PyErr_Format( _combineError,
-              "CombineData: error converting alldata_vals");
-        if (!alldata_wgt)
-          PyErr_Format( _combineError,
-              "CombineData: error converting alldata_wgt");
-        if (!alldata_mask)
-          PyErr_Format( _combineError,
-              "CombineData: error converting alldata_mask");
-        if (!griddata_x)
-          PyErr_Format( _combineError,
-              "CombineData: error converting griddata_x");
-        if (!griddata_y)
-          PyErr_Format( _combineError,
-              "CombineData: error converting griddata_y");
-        if (!griddata_vals)
-          PyErr_Format( _combineError,
-              "CombineData: error converting griddata_vals");
-        if (!griddata_wgt)
-          PyErr_Format( _combineError,
-              "CombineData: error converting griddata_wgt");
-        if (!griddata_mask)
-          PyErr_Format( _combineError,
-              "CombineData: error converting griddata_mask");
-        goto _fail;
+    grid_src_y    = (PyArrayObject *) PyArray_FromAny(ogrid_src_y,
+                    PyArray_DescrFromType(NPY_INT64), 1, 0,
+                    NPY_INOUT_ARRAY | NPY_UPDATEIFCOPY, NULL);
+    if(PyArray_SIZE(grid_src_y) != src_len) {
+    PyErr_Format(_combineGridsError,
+             "CombineGrids: src_x and src_y must be the same shape.");
+    goto _fail;
     }
 
-
-/*
-    if (!NA_ShapeEqual(alldata_x, alldata_y)) {
-        PyErr_Format(_combineError,
-                 "CombineData: x and y alldata numarray need identitcal shapes.");
-        goto _fail;
+    grid_src_mask = (PyArrayObject *) PyArray_FromAny(ogrid_src_mask,
+                    PyArray_DescrFromType(NPY_INT64), 1, 0,
+                    NPY_INOUT_ARRAY | NPY_UPDATEIFCOPY, NULL);
+    if(PyArray_SIZE(grid_src_mask) != src_len) {
+    PyErr_Format(_combineGridsError,
+             "CombineGrids: src_x and src_mask must be the same shape.");
+    goto _fail;
     }
 
-    if (!NA_ShapeEqual(alldata_x, alldata_vals)) {
-        PyErr_Format(_combineError,
-                 "CombineData: x and vals alldata numarray need identitcal shapes.");
-        goto _fail;
+    grid_src_wgt  = (PyArrayObject *) PyArray_FromAny(ogrid_src_wgt,
+                    PyArray_DescrFromType(NPY_FLOAT64), 1, 0,
+                    NPY_INOUT_ARRAY | NPY_UPDATEIFCOPY, NULL);
+    if(PyArray_SIZE(grid_src_wgt) != src_len) {
+    PyErr_Format(_combineGridsError,
+             "CombineGrids: src_x and src_wgt must be the same shape.");
+    goto _fail;
     }
 
-    if (!NA_ShapeEqual(alldata_x, alldata_wgt)) {
-        PyErr_Format(_combineError,
-                 "CombineData: x and weight alldata numarray need identitcal shapes.");
-        goto _fail;
+    grid_dst_x    = (PyArrayObject *) PyArray_FromAny(ogrid_dst_x,
+                    PyArray_DescrFromType(NPY_INT64), 1, 0,
+                    NPY_INOUT_ARRAY | NPY_UPDATEIFCOPY, NULL);
+    dst_len = PyArray_SIZE(grid_dst_x);
+
+    grid_dst_y    = (PyArrayObject *) PyArray_FromAny(ogrid_dst_y,
+                    PyArray_DescrFromType(NPY_INT64), 1, 0,
+                    NPY_INOUT_ARRAY | NPY_UPDATEIFCOPY, NULL);
+    if(PyArray_SIZE(grid_dst_y) != dst_len) {
+    PyErr_Format(_combineGridsError,
+             "CombineGrids: dst_x and dst_y must be the same shape.");
+    goto _fail;
     }
 
-    if (!NA_ShapeEqual(griddata_x, griddata_y)) {
-        PyErr_Format(_combineError,
-                 "CombineData: x and y griddata numarray need identitcal shapes.");
-        goto _fail;
+    grid_dst_mask = (PyArrayObject *) PyArray_FromAny(ogrid_dst_mask,
+                    PyArray_DescrFromType(NPY_INT64), 1, 0,
+                    NPY_INOUT_ARRAY | NPY_UPDATEIFCOPY, NULL);
+    if(PyArray_SIZE(grid_dst_mask) != dst_len) {
+    PyErr_Format(_combineGridsError,
+             "CombineGrids: dst_x and dst_mask must be the same shape.");
+    goto _fail;
     }
 
-    if (!NA_ShapeEqual(griddata_x, griddata_vals)) {
-        PyErr_Format(_combineError,
-                 "CombineData: x and vals griddata numarray need identitcal shapes.");
-        goto _fail;
+    grid_dst_wgt  = (PyArrayObject *) PyArray_FromAny(ogrid_dst_wgt,
+                    PyArray_DescrFromType(NPY_FLOAT64), 1, 0,
+                    NPY_INOUT_ARRAY | NPY_UPDATEIFCOPY, NULL);
+    if(PyArray_SIZE(grid_dst_wgt) != dst_len) {
+    PyErr_Format(_combineGridsError,
+             "CombineGrids: dst_x and dst_wgt must be the same shape.");
+    goto _fail;
     }
 
-    if (!NA_ShapeEqual(griddata_wgt, griddata_vals)) {
-        PyErr_Format(_combineError,
-                 "CombineData: weight and vals griddata numarray need identitcal shapes.");
-        goto _fail;
-    }*/
+    /* Now we do our lists of values */
+    NumArrays = PySequence_Length(ogrid_src_vals);
+    if (NumArrays < 1) {
+    PyErr_Format(_combineGridsError,
+             "CombineGrids: You have to pass me lists of things.");
+    goto _fail;
+    }
+    if (!(PySequence_Length(ogrid_dst_vals) == NumArrays)) {
+    PyErr_Format(_combineGridsError,
+             "CombineGrids: Sorry, but your lists of values are different lengths.");
+    goto _fail;
+    }
 
-    CombineData(alldata_vals->dimensions[0],
-                (npy_int64 *) alldata_x->data,
-                (npy_int64 *) alldata_y->data,
-                (npy_float64 *) alldata_vals->data,
-                (npy_int64 *) alldata_mask->data,
-                (npy_float64 *) alldata_wgt->data,
-                griddata_vals->dimensions[0],
-                (npy_int64 *) griddata_x->data,
-                (npy_int64 *) griddata_y->data,
-                (npy_float64 *) griddata_vals->data,
-                (npy_int64 *) griddata_mask->data,
-                (npy_float64 *) griddata_wgt->data,
-                &lastIndex);
+    grid_src_vals = malloc(NumArrays * sizeof(PyArrayObject*));
+    grid_dst_vals = malloc(NumArrays * sizeof(PyArrayObject*));
+    npy_float64 **src_vals = malloc(NumArrays * sizeof(npy_float64*));
+    npy_float64 **dst_vals = malloc(NumArrays * sizeof(npy_float64*));
+    PyObject *temp_object;
+    int i;
+    for (i = 0; i < NumArrays; i++) {
+      temp_object = PySequence_GetItem(ogrid_src_vals, i);
+      grid_src_vals[i] = (PyArrayObject *) PyArray_FromAny(
+          temp_object,
+          PyArray_DescrFromType(NPY_FLOAT64), 1, 0,
+          NPY_INOUT_ARRAY | NPY_UPDATEIFCOPY, NULL);
+      src_vals[i] = (npy_float64 *) grid_src_vals[i]->data;
+      Py_DECREF(temp_object);
 
-    Py_XDECREF(alldata_x);
-    Py_XDECREF(alldata_y);
-    Py_XDECREF(alldata_vals);
-    Py_XDECREF(alldata_mask);
-    Py_XDECREF(alldata_wgt);
-    Py_XDECREF(griddata_x);
-    Py_XDECREF(griddata_y);
-    Py_XDECREF(griddata_vals);
-    Py_XDECREF(griddata_mask);
-    Py_XDECREF(griddata_wgt);
+      temp_object = PySequence_GetItem(ogrid_dst_vals, i);
+      grid_dst_vals[i] = (PyArrayObject *) PyArray_FromAny(
+          temp_object,
+          PyArray_DescrFromType(NPY_FLOAT64), 1, 0,
+          NPY_INOUT_ARRAY | NPY_UPDATEIFCOPY, NULL);
+      dst_vals[i] = (npy_float64 *) grid_dst_vals[i]->data;
+      Py_DECREF(temp_object);
+    }
 
-    /* Align, Byteswap, Contiguous, Typeconvert */
-    oreturn_index = PyInt_FromLong((long)lastIndex);
-    return oreturn_index;
+    /* Now we're all set to call our sub-function. */
 
-  _fail:
-    Py_XDECREF(alldata_x);
-    Py_XDECREF(alldata_y);
-    Py_XDECREF(alldata_vals);
-    Py_XDECREF(alldata_wgt);
-    Py_XDECREF(griddata_x);
-    Py_XDECREF(griddata_y);
-    Py_XDECREF(griddata_vals);
-    Py_XDECREF(griddata_wgt);
+    npy_int64     *src_x    = (npy_int64 *) grid_src_x->data;
+    npy_int64     *src_y    = (npy_int64 *) grid_src_y->data;
+    npy_float64 *src_wgt  = (npy_float64 *) grid_src_wgt->data;
+    npy_int64     *src_mask = (npy_int64 *) grid_src_mask->data;
 
-    return NULL;
-}
+    npy_int64     *dst_x    = (npy_int64 *) grid_dst_x->data;
+    npy_int64     *dst_y    = (npy_int64 *) grid_dst_y->data;
+    npy_float64 *dst_wgt  = (npy_float64 *) grid_dst_wgt->data;
+    npy_int64     *dst_mask = (npy_int64 *) grid_dst_mask->data;
 
-static void
-FindUpper(long ipoints, npy_float64 *input_axis, long vpoints, npy_float64 *wanted_vals,
-          npy_int64 *upper_inds)
-{
-    npy_int64 i;
-    npy_int64 v;
-    for (v = 0 ; v < vpoints ; v++)
-        for (i = 0 ; i < ipoints ; i++)
-            if (input_axis[i] >= wanted_vals[v]) {
-                upper_inds[v] = i;
-                break;
+    int si, di, x_off, y_off;
+    npy_int64  fine_x, fine_y, init_x, init_y;
+    int num_found = 0;
+
+    for (si = 0; si < src_len; si++) {
+      if (src_x[si] < 0) continue;
+      init_x = refinement_factor * src_x[si];
+      init_y = refinement_factor * src_y[si];
+      for (x_off = 0; x_off < refinement_factor; x_off++) {
+        for(y_off = 0; y_off < refinement_factor; y_off++) {
+          fine_x = init_x + x_off;
+          fine_y = init_y + y_off;
+          for (di = 0; di < dst_len; di++) {
+            if (dst_x[di] < 0) continue;
+            if ((fine_x == dst_x[di]) &&
+                (fine_y == dst_y[di])) {
+              num_found++;
+              dst_wgt[di] += src_wgt[di];
+              dst_mask[di] = ((src_mask[si] && dst_mask[di]) ||
+                  ((refinement_factor != 1) && (dst_mask[di])));
+              // So if they are on the same level, then take the logical and
+              // otherwise, set it to the destination mask
+              src_x[si] = -1;
+              for (i = 0; i < NumArrays; i++) {
+                dst_vals[i][di] += src_vals[i][si];
+              }
+              if (refinement_factor == 1) break;
             }
-    return;
-}
-
-static PyObject *
-Py_FindUpper(PyObject *obj, PyObject *args)
-{
-    PyObject   *oinput_axis, *odesired_vals, *ooutput_ind;
-    PyArrayObject   *input_axis, *desired_vals, *output_ind;
-
-    if (!PyArg_ParseTuple(args, "OOO",
-        &oinput_axis, &odesired_vals, &ooutput_ind))
-        return PyErr_Format(_combineError,
-                    "FindUpper: Invalid parameters.");
-
-    /* Align, Byteswap, Contiguous, Typeconvert */
-    input_axis    =  (PyArrayObject *) PyArray_FromAny(oinput_axis   , PyArray_DescrFromType(NPY_FLOAT64), 1, 0, NPY_ENSURECOPY | NPY_UPDATEIFCOPY, NULL );
-    desired_vals  =  (PyArrayObject *) PyArray_FromAny(odesired_vals , PyArray_DescrFromType(NPY_FLOAT64), 1, 0, NPY_ENSURECOPY | NPY_UPDATEIFCOPY, NULL );
-    output_ind    =  (PyArrayObject *) PyArray_FromAny(ooutput_ind   ,   PyArray_DescrFromType(NPY_INT64), 1, 0, NPY_ENSURECOPY | NPY_UPDATEIFCOPY, NULL);
-
-    if (!input_axis || !desired_vals) {
-        PyErr_Format( _combineError,
-                  "FindUpper: error converting array inputs.");
-        goto _fail;
+          }
+        }
+      }
     }
 
-/*
-    if (!NA_ShapeEqual(output_ind, desired_vals)) {
-        PyErr_Format(_combineError,
-                 "FindUpper: vals and output need identical shapes.");
-        goto _fail;
+    Py_DECREF(grid_src_x);
+    Py_DECREF(grid_src_y);
+    Py_DECREF(grid_src_mask);
+    Py_DECREF(grid_src_wgt);
+
+    Py_DECREF(grid_dst_x);
+    Py_DECREF(grid_dst_y);
+    Py_DECREF(grid_dst_mask);
+    Py_DECREF(grid_dst_wgt);
+
+    if (NumArrays > 0){
+      for (i = 0; i < NumArrays; i++) {
+        Py_DECREF(grid_src_vals[i]);
+        Py_DECREF(grid_dst_vals[i]);
+      }
     }
-*/
-    FindUpper(input_axis->dimensions[0],
-              (npy_float64 *) input_axis->data,
-              desired_vals->dimensions[0],
-              (npy_float64 *) desired_vals->data,
-              (npy_int64 *) output_ind->data);
 
-    Py_XDECREF(input_axis);
-    Py_XDECREF(desired_vals);
-    Py_XDECREF(output_ind);
+    free(grid_src_vals);
+    free(grid_dst_vals);
+    free(src_vals);
+    free(dst_vals);
 
-    /* Align, Byteswap, Contiguous, Typeconvert */
-    return Py_None;
+    PyObject *onum_found = PyInt_FromLong((long)num_found);
+    return onum_found;
 
-  _fail:
-    Py_XDECREF(input_axis);
-    Py_XDECREF(desired_vals);
-    Py_XDECREF(output_ind);
+_fail:
+    Py_XDECREF(grid_src_x);
+    Py_XDECREF(grid_src_y);
+    Py_XDECREF(grid_src_wgt);
+    Py_XDECREF(grid_src_mask);
 
+    Py_XDECREF(grid_dst_x);
+    Py_XDECREF(grid_dst_y);
+    Py_XDECREF(grid_dst_wgt);
+    Py_XDECREF(grid_dst_mask);
+    if (NumArrays > 0){
+      for (i = 0; i < NumArrays; i++) {
+        Py_XDECREF(grid_src_vals[i]);
+        Py_XDECREF(grid_dst_vals[i]);
+      }
+    }
     return NULL;
+
 }
+
+static PyObject *_interpolateError;
 
 static void
 Interpolate(long num_axis_points, npy_float64 *axis, PyArrayObject* table,
@@ -524,7 +312,7 @@ Py_Interpolate(PyObject *obj, PyObject *args)
 
     if (!PyArg_ParseTuple(args, "OOOOO",
         &oaxis, &otable, &odesired, &ooutputvals, &ocolumns))
-        return PyErr_Format(_combineError,
+        return PyErr_Format(_interpolateError,
                     "Interpolate: Invalid parameters.");
 
     /* Align, Byteswap, Contiguous, Typeconvert */
@@ -535,13 +323,13 @@ Py_Interpolate(PyObject *obj, PyObject *args)
     columns       =  (PyArrayObject *) PyArray_FromAny(ocolumns      ,   PyArray_DescrFromType(NPY_INT32), 1, 0, NPY_ENSURECOPY | NPY_UPDATEIFCOPY, NULL );
 
     if (!axis || !table || !desired || !outputvals || !columns) {
-        PyErr_Format( _combineError,
+        PyErr_Format(_interpolateError,
                   "Interpolate: error converting array inputs.");
         goto _fail;
     }
 
     if (columns->dimensions[0] != outputvals->dimensions[1]) {
-        PyErr_Format(_combineError,
+        PyErr_Format(_interpolateError,
                  "Interpolate: number of columns requested must match number "
                  "of columns in output buffer. %i", (int) columns->dimensions[0]);
         goto _fail;
@@ -573,127 +361,9 @@ Py_Interpolate(PyObject *obj, PyObject *args)
     return NULL;
 }
 
-static void
-BinProfile(long num_bins, npy_int64 *binindices, npy_float64 *profilevalues,
-           long num_elements, npy_float64 *fieldvalues, npy_float64 *weightvalues)
-{
-    // We are going to assume -- making an ass out of you and me -- that the
-    // values of the profile are already zero.
-
-    npy_float64 weights[num_bins];
-    npy_float64 myweight;
-    npy_int64 mybin = -1;
-    int bin;
-    int element;
-
-    for (bin = 0; bin < num_bins ; bin++) {
-        weights[bin] = 0;
-    }
-
-    if (weightvalues[0] != -999) {
-        for (element = 0; element < num_elements ; element++) {
-            mybin = binindices[element];
-            myweight = weightvalues[mybin];
-            profilevalues[mybin] += myweight*fieldvalues[element];
-            weights[mybin] += myweight;
-        }
-        for (bin = 0; bin < num_bins ; bin++) {
-            profilevalues[bin] = profilevalues[bin] / weights[bin];
-        }
-    } else {
-        for (element = 0; element < num_elements ; element++) {
-            mybin = binindices[element];
-            myweight = weightvalues[mybin];
-            profilevalues[mybin] += fieldvalues[element];
-        }
-        for (bin = 1; bin < num_bins ; bin++) {
-            profilevalues[bin] += profilevalues[bin-1];
-            //printf("ProfileValues: %i\t%0.4e\n", bin, profilevalues[bin]);
-        }
-    }
-
-    // Okay, and we're done.
-
-}
-
-static PyObject *
-Py_BinProfile(PyObject *obj, PyObject *args)
-{
-    PyObject   *ofield, *obinindices, *oprofile, *oweightfield;
-    PyArrayObject   *field, *binindices, *profile, *weightfield;
-
-    if (!PyArg_ParseTuple(args, "OOOO",
-                &ofield, &obinindices, &oprofile, &oweightfield))
-        return PyErr_Format(_combineError,
-                    "Interpolate: Invalid parameters.");
-
-    /* Align, Byteswap, Contiguous, Typeconvert */
-    field       =  (PyArrayObject *) PyArray_FromAny(ofield         , PyArray_DescrFromType(NPY_FLOAT64), 1, 0, NPY_ENSURECOPY | NPY_UPDATEIFCOPY, NULL);
-    binindices  =  (PyArrayObject *) PyArray_FromAny(obinindices    , PyArray_DescrFromType(NPY_INT64)  , 1, 0, NPY_ENSURECOPY | NPY_UPDATEIFCOPY, NULL);
-    profile     =  (PyArrayObject *) PyArray_FromAny(oprofile       , PyArray_DescrFromType(NPY_FLOAT64), 1, 0, NPY_ENSURECOPY | NPY_UPDATEIFCOPY, NULL);
-    weightfield =  (PyArrayObject *) PyArray_FromAny(oweightfield   , PyArray_DescrFromType(NPY_FLOAT64), 1, 0, NPY_ENSURECOPY | NPY_UPDATEIFCOPY, NULL);
-
-    if (!field){
-        PyErr_Format( _combineError,
-                  "BinProfile: error converting array inputs. (field)");
-        goto _fail;
-    }
-
-    if (!binindices){
-        PyErr_Format( _combineError,
-                  "BinProfile: error converting array inputs. (binindices)");
-        goto _fail;
-    }
-
-    if (!profile ){
-        PyErr_Format( _combineError,
-                  "BinProfile: error converting array inputs. (profile)");
-        goto _fail;
-    }
-
-    if (!weightfield) {
-        PyErr_Format( _combineError,
-                  "BinProfile: error converting array inputs. (weightfield)");
-        goto _fail;
-    }
-
-    if (field->dimensions[0] != binindices->dimensions[0]) {
-        PyErr_Format(_combineError,
-                 "BinProfile: number of field values must match number of "
-                  "indices.  %i, %i", (int) field->dimensions[0],
-                                      (int) binindices->dimensions[0] );
-        goto _fail;
-    }
-
-    BinProfile(profile->dimensions[0],
-               (npy_int64 *) binindices->data,
-               (npy_float64 *) profile->data,
-               field->dimensions[0],
-               (npy_float64 *) field->data,
-               (npy_float64 *) weightfield->data);
-
-    Py_XDECREF(field);
-    Py_XDECREF(binindices);
-    Py_XDECREF(profile);
-    Py_XDECREF(weightfield);
-
-    return Py_None;
-
-  _fail:
-    Py_XDECREF(field);
-    Py_XDECREF(binindices);
-    Py_XDECREF(profile);
-    Py_XDECREF(weightfield);
-
-    return NULL;
-}
-
 static PyMethodDef _combineMethods[] = {
-    {"RefineCoarseData", Py_RefineCoarseData, METH_VARARGS},
-    {"CombineData", Py_CombineData, METH_VARARGS},
-    {"FindUpper", Py_FindUpper, METH_VARARGS},
+    {"CombineGrids", Py_CombineGrids, METH_VARARGS},
     {"Interpolate", Py_Interpolate, METH_VARARGS},
-    {"BinProfile", Py_BinProfile, METH_VARARGS},
     {NULL, NULL} /* Sentinel */
 };
 
@@ -707,8 +377,10 @@ void initPointCombine(void)
     PyObject *m, *d;
     m = Py_InitModule("PointCombine", _combineMethods);
     d = PyModule_GetDict(m);
-    _combineError = PyErr_NewException("PointCombine.error", NULL, NULL);
-    PyDict_SetItemString(d, "error", _combineError);
+    _combineGridsError = PyErr_NewException("PointCombine.CombineGridsError", NULL, NULL);
+    PyDict_SetItemString(d, "error", _combineGridsError);
+    _interpolateError = PyErr_NewException("PointCombine.InterpolateError", NULL, NULL);
+    PyDict_SetItemString(d, "error", _interpolateError);
     import_array();
 }
 

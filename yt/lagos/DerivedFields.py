@@ -177,7 +177,6 @@ class ValidateProperty(FieldValidator):
         doesnt_have = []
         for p in self.prop:
             if not hasattr(data,p):
-                print type(data), p
                 doesnt_have.append(p)
         if len(doesnt_have) > 0:
             raise NeedsProperty(doesnt_have)
@@ -275,10 +274,9 @@ def _OnesOverDx(field, data):
 add_field("OnesOverDx")
 
 def _Ones(field, data):
-    return na.ones(data["Density"].shape,
-                   dtype=data["Density"].dtype)
-add_field("Ones")
-add_field("CellsPerBin", function=_Ones)
+    return na.ones(data.ActiveDimensions, dtype='float64')
+add_field("Ones", validators=[ValidateSpatial(0)])
+add_field("CellsPerBin", function=_Ones, validators=[ValidateSpatial(0)])
 
 def _SoundSpeed(field, data):
     return ( data.pf["Gamma"]*data["Pressure"] / \

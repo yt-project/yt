@@ -212,8 +212,8 @@ class EnzoGridBase(EnzoData):
         cond2 = self.LeftEdge[x] <= RE[:,x]
         cond3 = self.RightEdge[y] >= LE[:,y]
         cond4 = self.LeftEdge[y] <= RE[:,y]
-        self.overlap_masks[axis]=na.logical_and(na.logical_and(cond1, cond2), \
-                                                na.logical_and(cond3, cond4))
+        return ((cond1 & cond2) & (cond3 & cond4))
+   
     def __repr__(self):
         return "Grid_%04i" % (self.id)
 

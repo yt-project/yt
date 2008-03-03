@@ -64,7 +64,12 @@ def readAllDataHDF4(self):
     for set in sets:
         self[set] = self.readDataFast(set)
 
+import gc
 def readDataHDF5(self, field):
+    t = HDF5LightReader.ReadData(self.filename, "/%s" % field).swapaxes(0,2)
+    return t
+
+def tables_readDataHDF5(self, field):
     """
     Reads a field from an HDF5 file.  Should only be called as
     EnzoGridInstance.readData()
@@ -72,12 +77,14 @@ def readDataHDF5(self, field):
     @param field: field to read
     @type field: string
     """
-    f = tables.openFile(self.filename, nodeCacheSize=1)
-    t = f.getNode("/", field).read().astype("float64")
+    f = tables.openFile(self.filename)#, nodeCacheSize=1)
+    n = f.getNode("/", field)
+    t = n.read().astype("float64")
     try:
         t = t.swapaxes(0,2)
     except:
         pass
+    n.close()
     f.close()
     return t
 

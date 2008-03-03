@@ -260,7 +260,7 @@ class Enzo2DData(EnzoData):
         # We take a 3-tuple of the coordinate we want to slice through, as well
         # as the axis we're slicing along
         self._get_list_of_grids()
-        if not self.has_key('dx'):
+        if not self.has_key('pdx'):
             self._generate_coords()
         if fields == None:
             fields_to_get = self.fields
@@ -458,14 +458,6 @@ class EnzoSliceBase(Enzo2DData):
         dataVals = dv.ravel()[cm]
         return dataVals
 
-    def _generate_field_in_grids(self, field, num_ghost_zones=0):
-        for grid in self._grids:
-            self.__touch_grid_field(grid, field)
-
-    @restore_grid_state
-    def __touch_grid_field(self, grid, field):
-        grid[field]
-
 class EnzoCuttingPlaneBase(Enzo2DData):
     """
     EnzoCuttingPlane is an oblique plane through the data,
@@ -610,8 +602,13 @@ class EnzoProjBase(Enzo2DData):
         else:
             self.type="SUM"
             self.func = na.sum
+        self.__retval_coords = {}
+        self.__retval_fields = {}
+        self.__retval_coarse = {}
+        self.__overlap_masks = {}
+        self._temp = {}
         if not self._deserialize():
-            self.__calculate_memory()
+            self.__calculate_overlap()
             if self.hierarchy.data_style == 6 and False:
                 self.__cache_data()
             self._refresh_data()
@@ -633,36 +630,22 @@ class EnzoProjBase(Enzo2DData):
         self.hierarchy.grid.readDataFast = readDataPackedHandle
 
     @time_execution
-    def __calculate_memory(self):
-        level_mem = {}
-        h = self.hierarchy
+    def __calculate_overlap(self):
         s = self.source
+        mylog.info("Generating overlap masks")
         i = 0
-        mylog.info("Calculating memory usage")
         for level in range(self._max_level+1):
-            level_mem[level] = 0
             mylog.debug("Examining level %s", level)
             grids = s.levelIndices[level]
-            num_grids = len(grids)
             RE = s.gridRightEdge[grids]
             LE = s.gridLeftEdge[grids]
             for grid in s._grids[grids]:
                 if (i%1e3) == 0:
                     mylog.debug("Reading and masking %s / %s", i, len(s._grids))
-                grid._generate_overlap_masks(self.axis, LE, RE)
-                grid._overlap_grids[self.axis] = \
-                  s._grids[grids][na.where(grid.overlap_masks[self.axis])]
-                level_mem[level] += \
-                          grid.ActiveDimensions.prod() / \
-                          grid.ActiveDimensions[self.axis]
+                self.__overlap_masks[grid.id] = \
+                    grid._generate_overlap_masks(self.axis, LE, RE)
                 i += 1
-        for level in range(self._max_level+1):
-            gI = s.levelIndices[level]
-            mylog.debug("%s cells and %s grids for level %s", \
-                level_mem[level], len(gI), level)
-        mylog.debug("We need %s cells total",
-                    na.add.reduce(level_mem.values()))
-        self.__memory_per_level = level_mem
+        mylog.info("Finished calculating overlap.")
 
     def _serialize(self):
         mylog.info("Serializing data...")
@@ -687,171 +670,158 @@ class EnzoProjBase(Enzo2DData):
         self[self.fields[0]] = array[4,:]
         return True
 
-    def __project_level(self, level, field):
+    def __project_level(self, level, fields):
         grids_to_project = self.source.select_grids(level)
         zero_out = (level != self._max_level)
         pbar = get_pbar('Projecting  level % 2i / % 2i ' \
                           % (level, self._max_level), len(grids_to_project))
         for pi, grid in enumerate(grids_to_project):
-            grid.retVal = self._project_grid(grid, field, zero_out)
+            g_coords, g_fields = self._project_grid(grid, fields, zero_out)
+            for fi, field in enumerate(fields):
+                dl = 1.0
+                if field in fieldInfo and fieldInfo[field].line_integral:
+                    dl = just_one(grid['d%s' % axis_names[self.axis]])
+                g_fields[fi] *= dl
+            self.__retval_coords[grid.id] = g_coords
+            self.__retval_fields[grid.id] = g_fields
             pbar.update(pi)
         pbar.finish()
         self.__combine_grids_on_level(level) # In-place
         if level > 0 and level <= self._max_level:
             self.__refine_to_level(level) # In-place
-        all_data = [ [grid.retVal[j] for grid in grids_to_project] for j in range(5)]
+        coord_data = []
+        field_data = []
         for grid in grids_to_project:
-            cI = na.where(grid.retVal[3]==0) # Where childmask = 0
-            grid.coarseData = [grid.retVal[j][cI] for j in range(5)]
-        levelData = [na.concatenate(all_data[i]) for i in range(5)]
-        dblI = na.where((levelData[0]>-1) & (levelData[3]==1))
+            coarse = self.__retval_coords[grid.id][2]==0 # Where childmask = 0
+            fine = ~coarse
+            coord_data.append([pi[fine] for pi in self.__retval_coords[grid.id]])
+            field_data.append([pi[fine] for pi in self.__retval_fields[grid.id]])
+            self.__retval_coords[grid.id] = [pi[coarse] for pi in self.__retval_coords[grid.id]]
+            self.__retval_fields[grid.id] = [pi[coarse] for pi in self.__retval_fields[grid.id]]
+        coord_data = na.concatenate(coord_data, axis=1)
+        field_data = na.concatenate(field_data, axis=1)
         if self._weight != None:
-            weightedData = levelData[2][dblI] / levelData[4][dblI]
-        else:
-            weightedData = levelData[2][dblI]
-        mylog.debug("Level %s done: %s final of %s", \
-                   level, len(dblI[0]), \
-                   levelData[0].shape[0])
-        dx = grids_to_project[0].dx * na.ones(len(dblI[0]), dtype='float64')
-        return [levelData[0][dblI], levelData[1][dblI], weightedData, dx]
+            field_data = field_data / coord_data[3,:].reshape((1,coord_data.shape[1]))
+        mylog.info("Level %s done: %s final", \
+                   level, coord_data.shape[1])
+        dx = grids_to_project[0].dx# * na.ones(coord_data.shape[0], dtype='float64')
+        return coord_data, dx, field_data
 
     def __cleanup_level(self, level):
+        pass
         grids_to_project = self.source.select_grids(level)
-        all_data = []
+        coord_data = []
+        field_data = []
         for grid in grids_to_project:
-            if hasattr(grid,'coarseData'):
-                if self._weight is not None:
-                    weightedData = grid.coarseData[2] / grid.coarseData[4]
-                else:
-                    weightedData = grid.coarseData[2]
-                all_data.append([grid.coarseData[0], grid.coarseData[1],
-                    weightedData,
-                    na.ones(grid.coarseData[0].shape,dtype='float64')*grid.dx])
+            if self.__retval_coords[grid.id][0].size == 0: continue
+            if self._weight is not None:
+                weightedData = grid.coarseData[2] / grid.coarseData[4]
+            else:
+                weightedData = grid.coarseData[2]
+            all_data.append([grid.coarseData[0], grid.coarseData[1],
+                weightedData,
+                na.ones(grid.coarseData[0].shape,dtype='float64')*grid.dx])
         return na.concatenate(all_data, axis=1)
-
-    def __setup_weave_dict_combine(self, grid1, grid2):
-        # Recall: x, y, val, mask, weight
-        my_dict = {}
-        my_dict['g1data_x'] = grid1.retVal[0]
-        my_dict['g1data_y'] = grid1.retVal[1]
-        my_dict['g1data_vals'] = grid1.retVal[2]
-        my_dict['g1data_mask'] = grid1.retVal[3]
-        my_dict['g1data_wgt'] = grid1.retVal[4]
-        my_dict['g1points'] = grid1.retVal[0].size
-
-        my_dict['g2data_x'] = grid2.retVal[0]
-        my_dict['g2data_y'] = grid2.retVal[1]
-        my_dict['g2data_vals'] = grid2.retVal[2]
-        my_dict['g2data_mask'] = grid2.retVal[3]
-        my_dict['g2data_wgt'] = grid2.retVal[4]
-        my_dict['g2points'] = grid2.retVal[0].size
-        return my_dict
 
     def __combine_grids_on_level(self, level):
         grids = self.source.select_grids(level)
+        grids_i = self.source.levelIndices[level]
         pbar = get_pbar('Combining   level % 2i / % 2i ' \
                           % (level, self._max_level), len(grids))
         # We have an N^2 check, so we try to be as quick as possible
         # and to skip as many as possible
         for pi, grid1 in enumerate(grids):
             pbar.update(pi)
-            if grid1.retVal[0].shape[0] == 0: continue
-            for grid2 in grid1._overlap_grids[self.axis].tolist():
-                if grid2.retVal[0].shape[0] == 0 \
+            if self.__retval_coords[grid1.id][0].shape[0] == 0: continue
+            for grid2 in self.source._grids[grids_i][self.__overlap_masks[grid1.id]]:
+                if self.__retval_coords[grid2.id][0].shape[0] == 0 \
                   or grid1.id == grid2.id:
                     continue
-                my_dict = self.__setup_weave_dict_combine(grid1, grid2)
-                weave.inline(ProjectionCombineSameLevel,
-                             my_dict.keys(), local_dict=my_dict,
-                             compiler='gcc',
-                             type_converters=converters.blitz,
-                             auto_downcast=0, verbose=2)
-                goodI = na.where(grid2.retVal[0] > -1)
-                grid2.retVal = [grid2.retVal[i][goodI] for i in range(5)]
+                args = [] # First is source, then destination
+                args += self.__retval_coords[grid2.id] + [self.__retval_fields[grid2.id]]
+                args += self.__retval_coords[grid1.id] + [self.__retval_fields[grid1.id]]
+                args.append(1) # Refinement factor
+                kk = PointCombine.CombineGrids(*args)
+                goodI = na.where(self.__retval_coords[grid2.id][0] > -1)
+                self.__retval_coords[grid2.id] = \
+                    [coords[goodI] for coords in self.__retval_coords[grid2.id]]
+                self.__retval_fields[grid2.id] = \
+                    [fields[goodI] for fields in self.__retval_fields[grid2.id]]
         pbar.finish()
-
-    def __setup_weave_dict_refine(self, grid1, grid2):
-        # Recall: x, y, val, mask, weight
-        my_dict = {}
-        my_dict['finedata_x'] = grid1.retVal[0]
-        my_dict['finedata_y'] = grid1.retVal[1]
-        my_dict['finedata_vals'] = grid1.retVal[2]
-        my_dict['finedata_wgt'] = grid1.retVal[4]
-        my_dict['fpoints'] = grid1.retVal[0].size
-        my_dict['coarsedata_x'] = grid2.coarseData[0]
-        my_dict['coarsedata_y'] = grid2.coarseData[1]
-        my_dict['coarsedata_vals'] = grid2.coarseData[2]
-        my_dict['coarsedata_wgt'] = grid2.coarseData[4]
-        my_dict['cpoints'] = grid2.coarseData[0].size
-        my_dict['flagged'] = na.zeros(grid2.coarseData[0].size)
-        my_dict['rf'] = int(grid2.dx/grid1.dx)
-        return my_dict
 
     def __refine_to_level(self, level):
         grids = self.source.select_grids(level)
+        grids_up = self.source.levelIndices[level-1]
         pbar = get_pbar('Refining to level % 2i / % 2i ' \
                           % (level, self._max_level), len(grids))
         for pi, grid1 in enumerate(grids):
             pbar.update(pi)
-            o_grids = grid1.Parent._overlap_grids[self.axis].tolist()
-            for grid2 in o_grids:
-                if grid2.coarseData[0].shape[0] == 0: continue # Already refined
-                my_dict = self.__setup_weave_dict_refine(grid1, grid2)
-                weave.inline(ProjectionRefineCoarseData,
-                             my_dict.keys(), local_dict=my_dict,
-                             compiler='gcc',
-                             type_converters=converters.blitz,
-                             auto_downcast=0, verbose=2)
-                goodI = na.where(my_dict['flagged'] == 0)
-                grid2.coarseData = [grid2.coarseData[i][goodI] for i in range(5)]
+            for grid2 in self.source._grids[grids_up][self.__overlap_masks[grid1.Parent.id]]:
+                if self.__retval_coords[grid2.id][0].shape[0] == 0: continue
+                args = []
+                args += self.__retval_coords[grid2.id] + [self.__retval_fields[grid2.id]]
+                args += self.__retval_coords[grid1.id] + [self.__retval_fields[grid1.id]]
+                args.append(int(grid2.dx / grid1.dx))
+                kk = PointCombine.CombineGrids(*args)
+                goodI = (self.__retval_coords[grid2.id][0] > -1)
+                self.__retval_coords[grid2.id] = \
+                    [coords[goodI] for coords in self.__retval_coords[grid2.id]]
+                self.__retval_fields[grid2.id] = \
+                    [fields[goodI] for fields in self.__retval_fields[grid2.id]]
         for grid1 in self.source.select_grids(level-1):
-            if not self._check_region and grid1.coarseData[0].shape[0] != 0:
+            if not self._check_region and self.__retval_coords[grid1.id][0].size != 0:
                 mylog.error("Something messed up, and %s still has %s points of data",
-                            grid1, grid1.coarseData[0].size)
-                print grid1.coarseData[0]
-                raise ValueError(grid1)
+                            grid1, self.__retval_coords[grid1.id][0].size)
+                raise ValueError(grid1, self.__retval_coords[grid1.id])
         pbar.finish()
 
     @time_execution
-    def get_data(self, field = None):
-        if not field: field = self.fields[0]
-        all_data = []
-        s = self.source
+    def get_data(self, fields = None):
+        if fields is None: fields = ensure_list(self.fields)
+        coord_data = []
+        field_data = []
+        dxs = []
         for level in range(0, self._max_level+1):
-            all_data.append(self.__project_level(level, field))
-        if self._check_region:
-            for level in range(0, self._max_level+1):
-                check=self.__cleanup_level(level)
+            my_coords, my_dx, my_fields = self.__project_level(level, fields)
+            coord_data.append(my_coords)
+            field_data.append(my_fields)
+            dxs.append(my_dx * na.ones(my_coords.shape[1], dtype='float64'))
+            if self._check_region and False:
+                check=self.__cleanup_level(level - 1)
                 if len(check) > 0: all_data.append(check)
-        all_data = na.concatenate(all_data, axis=1)
+            # Now, we should clean up after ourselves...
+            for grid in self.source.select_grids(level - 1):
+                grid.clear_data()
+                del self.__retval_coords[grid.id]
+                del self.__retval_fields[grid.id]
+                del self.__overlap_masks[grid.id]
+        coord_data = na.concatenate(coord_data, axis=1)
+        field_data = na.concatenate(field_data, axis=1)
+        dxs = na.concatenate(dxs, axis=1)
         # We now convert to half-widths and center-points
-        self['pdx'] = all_data[3,:]
-        self['px'] = (all_data[0,:]+0.5) * self['pdx']
-        self['py'] = (all_data[1,:]+0.5) * self['pdx']
-        self['pdx'] *= 0.5
-        self['pdy'] = self['pdx'].copy()
-        self[field] = all_data[2,:]
-        # Now, we should clean up after ourselves...
-        [grid.clear_data() for grid in s._grids]
+        self.data['pdx'] = dxs
+        self.data['px'] = (coord_data[0,:]+0.5) * self['pdx']
+        self.data['py'] = (coord_data[1,:]+0.5) * self['pdx']
+        self.data['pdx'] *= 0.5
+        self.data['pdy'] = self.data['pdx'].copy()
+        for fi, field in enumerate(fields):
+            self[field] = field_data[fi,:]
 
-    def _project_grid(self, grid, field, zero_out):
-        if self._weight == None:
-            masked_data = self._get_data_from_grid(grid, field)
-            weight_data = na.ones(masked_data.shape)
+    def add_fields(self, fields, weight = "CellMassMsun"):
+        pass
+
+    def _project_grid(self, grid, fields, zero_out):
+        if self._weight is None:
+            weight_data = na.ones(grid.ActiveDimensions)
         else:
             weight_data = self._get_data_from_grid(grid, self._weight)
-            masked_data = self._get_data_from_grid(grid, field) * weight_data
-        if zero_out:   # Not sure how to do this here
-            masked_data[grid.child_indices] = 0
-            weight_data[grid.child_indices] = 0
-        #@todo: Fix the func to set up a path length too
+        if zero_out: weight_data[grid.child_indices] = 0
+        # if we zero it out here, then we only have to zero out the weight!
+        masked_data = [self._get_data_from_grid(grid, field) * weight_data
+                       for field in fields]
         dl = 1.0
-        if fieldInfo.has_key(field) and fieldInfo[field].line_integral:
-            dl = just_one(grid['d%s' % axis_names[self.axis]])
-        dx = just_one(grid['d%s' % axis_names[x_dict[self.axis]]])
-        dy = just_one(grid['d%s' % axis_names[y_dict[self.axis]]])
-        full_proj = self.func(masked_data,axis=self.axis)*dl
-        weight_proj = self.func(weight_data,axis=self.axis)*dl
+        full_proj = [self.func(field,axis=self.axis) for field in masked_data]
+        weight_proj = self.func(weight_data,axis=self.axis)
         if self._check_region and not self.source._is_fully_enclosed(grid):
             used_data = self._get_points_in_region(grid)
             used_points = na.where(na.logical_or.reduce(used_data, self.axis))
@@ -860,15 +830,15 @@ class EnzoProjBase(Enzo2DData):
         if zero_out:
             subgrid_mask = na.logical_and.reduce(grid.child_mask, self.axis).astype('int64')
         else:
-            subgrid_mask = na.ones(full_proj.shape, dtype='int64')
-        xind, yind = [arr[used_points].ravel() for arr in na.indices(full_proj.shape)]
+            subgrid_mask = na.ones(full_proj[0].shape, dtype='int64')
+        xind, yind = [arr[used_points].ravel() for arr in na.indices(full_proj[0].shape)]
         start_index = grid.get_global_startindex()
-        xpoints = xind + (start_index[x_dict[self.axis]])
-        ypoints = yind + (start_index[y_dict[self.axis]])
-        return [xpoints, ypoints,
-                full_proj[used_points].ravel(),
+        xpoints = (xind + (start_index[x_dict[self.axis]])).astype('int64')
+        ypoints = (yind + (start_index[y_dict[self.axis]])).astype('int64')
+        return ([xpoints, ypoints,
                 subgrid_mask[used_points].ravel(),
-                weight_proj[used_points].ravel()]
+                weight_proj[used_points].ravel()],
+                [data[used_points].ravel() for data in full_proj])
 
     def _get_points_in_region(self, grid):
         pointI = self.source._get_point_indices(grid, use_child_mask=False)
@@ -883,6 +853,7 @@ class EnzoProjBase(Enzo2DData):
         else:
             bad_points = 1.0
         d = grid[field] * bad_points
+        if grid.id == 1: self._temp[grid.id] = d
         return d
 
 class Enzo3DData(EnzoData):
