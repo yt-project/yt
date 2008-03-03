@@ -984,7 +984,7 @@ class Enzo3DData(EnzoData):
     def __touch_grid_field(self, grid, field):
         grid[field]
 
-    def _is_fully_enclosed(grid):
+    def _is_fully_enclosed(self, grid):
         return na.all(self._get_cut_mask)
 
     def _get_point_indices(self, grid, use_child_mask=True):
@@ -1267,7 +1267,7 @@ class EnzoRegionBase(Enzo3DData):
         self._grids, ind = self.pf.hierarchy.get_box_grids(self.left_edge,
                                                            self.right_edge)
 
-    def _is_fully_enclosed(self):
+    def _is_fully_enclosed(self, grid):
         return na.all( (grid._corners < self.right_edge)
                      & (grid._corners >= self.left_edge))
 
