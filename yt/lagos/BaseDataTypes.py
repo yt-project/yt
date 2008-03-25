@@ -1354,7 +1354,7 @@ class EnzoSphereBase(Enzo3DData):
         # the same as the field_parameter
         corner_radius = na.sqrt(((grid._corners - self.center)**2.0).sum(axis=1))
         if na.all(corner_radius <= self.radius):
-            return na.ones(grid.ActiveDimensions, dtype='bool')
+            return grid.child_mask
         if self._cut_masks.has_key(grid.id):
             return self._cut_masks[grid.id]
         cm = ( (grid["RadiusCode"]<=self.radius) &
