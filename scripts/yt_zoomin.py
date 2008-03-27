@@ -35,6 +35,11 @@ my_opts.add_option("-g", "--weight",
                    action="store", type="string",
                    dest="weight", default=None,
                    help="Field to weight projections with")
+my_opts.add_option("-l", "--zlim",
+                   action="store", type="float",
+                   dest="zlim", default=None,
+                   nargs=2,
+                   help="Color limits (min, max)")
 my_opts.add_option("-n", "--nframes",
                    action="store", type="int",
                    dest="nframes", default=100,
@@ -43,6 +48,10 @@ my_opts.add_option("-o", "--output",
                    action="store", type="string",
                    dest="output", default="frames/",
                    help="Folder in which to place output frames")
+my_opts.add_option("-m", "--colormap",
+                   action="store", type="string",
+                   dest="cmap", default="jet",
+                   help="Colormap name")
 
 opts, args = my_opts.parse_args()
 
@@ -66,6 +75,7 @@ for arg in args:
                                 weight_field=opts.weight)
         else: pc.add_slice(opts.field, ax)
     pc.set_width(opts.max_width,'1')
+    pc.set_cmap(opts.cmap)
     # Check the output directory
     if not os.path.isdir(opts.output):
         os.mkdir(opts.output)
@@ -81,5 +91,6 @@ for arg in args:
         mylog.info("Setting width to %0.3e", w)
         mylog.info("Saving frame %06i",i)
         pc.set_width(w,"1")
+        if opts.zlim: pc.set_zlim(*opts.zlim)
         pc.save(os.path.join(opts.output,"%s_frame%06i" % (a,i)))
         w *= factor
