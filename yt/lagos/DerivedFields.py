@@ -288,7 +288,7 @@ def particle_func(p_field):
         try:
             particles = data._read_data("particle_%s" % p_field)
         except data._read_exception:
-            particles = na.array([], dtype=data["Density"].dtype)
+            particles = na.array([], dtype='float64')
         return particles
     return _Particles
 for pf in ["index","type"] + \
@@ -298,13 +298,13 @@ for pf in ["index","type"] + \
     add_field("particle_%s" % pf, function=pfunc,
               validators = [ValidateSpatial(0)],
               variable_length=True)
+add_field("particle mass", function=particle_func("particle mass"),
+          validators=[ValidateSpatial(0)], variable_length=True)
 
 def _ParticleMass(field, data):
-    try:
-        particles = data._read_data("particle mass").astype('float64')
-        particles *= just_one(data["CellVolumeCode"].ravel())
-    except data._read_exception:
-        particles = na.array([], dtype=data["Density"].dtype)
+    particles = data["particle mass"] * \
+                just_one(data["CellVolumeCode"].ravel())
+    # Note that we mandate grid-type here, so this is okay
     return particles
 def _convertParticleMass(data):
     return data.convert("Density")*(data.convert("cm")**3.0)

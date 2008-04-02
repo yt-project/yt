@@ -94,7 +94,12 @@ class EnzoGridBase(EnzoData):
                 conv_factor = 1.0
                 if fieldInfo.has_key(field):
                     conv_factor = fieldInfo[field]._convert_function(self)
-                self[field] = self.readDataFast(field) * conv_factor
+                try:
+                    self[field] = self.readDataFast(field) * conv_factor
+                except self._read_exception:
+                    if field in fieldInfo and fieldInfo[field].variable_length:
+                        self[field] = na.array([],dtype='float64')
+                    else: raise
             else:
                 self._generate_field(field)
         return self.data[field]

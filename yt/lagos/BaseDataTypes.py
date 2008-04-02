@@ -936,7 +936,10 @@ class Enzo3DData(EnzoData):
     @restore_grid_state
     def _get_data_from_grid(self, grid, field):
         if fieldInfo.has_key(field) and fieldInfo[field].variable_length:
-            tr = grid[field]
+            try:
+                tr = grid[field]
+            except grid._read_exception:
+                tr = []
             return tr
         else:
             pointI = self._get_point_indices(grid)
