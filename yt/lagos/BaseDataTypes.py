@@ -36,11 +36,34 @@ def restore_grid_state(func):
 
 def cache_mask(func):
     def check_cache(self, grid):
-        if not self._cut_masks.has_key(grid.id):
+        if isinstance(grid, FakeGridForParticles):
+            return func(self, grid)
+        elif not self._cut_masks.has_key(grid.id):
             cm = func(self, grid)
             self._cut_masks[grid.id] = cm
         return self._cut_masks[grid.id]
     return check_cache
+
+class FakeGridForParticles(object):
+    def __init__(self, grid):
+        self._corners = grid._corners
+        self.field_parameters = {}
+        self.data = {'x':grid['particle_position_x'],
+                     'y':grid['particle_position_y'],
+                     'z':grid['particle_position_z']}
+        self.real_grid = grid
+        self.child_mask = 1
+    def __getitem__(self, field):
+        if field not in self.data.keys():
+            if field == "RadiusCode":
+                center = self.field_parameters['center']
+                tr = na.sqrt( (self['x'] - center[0])**2.0 +
+                              (self['y'] - center[1])**2.0 +
+                              (self['z'] - center[2])**2.0 )
+            else:
+                raise KeyError(field)
+        else: tr = self.data[field]
+        return tr
 
 class EnzoData:
     """
@@ -443,7 +466,7 @@ class EnzoSliceBase(Enzo2DData):
         slHERE = tuple(sl)
         sl.reverse()
         slHDF = tuple(sl)
-        if fieldInfo.has_key(field) and fieldInfo[field].variable_length:
+        if fieldInfo.has_key(field) and fieldInfo[field].particle_type:
             return grid[field]
         if not grid.has_key(field):
             conv_factor = 1.0
@@ -547,7 +570,7 @@ class EnzoCuttingPlaneBase(Enzo2DData):
         return na.array(coords).swapaxes(0,1)
 
     def _get_data_from_grid(self, grid, field):
-        if not fieldInfo[field].variable_length:
+        if not fieldInfo[field].particle_type:
             pointI = self._get_point_indices(grid)
             if grid[field].size == 1: # dx, dy, dz, cellvolume
                 t = grid[field] * na.ones(grid.ActiveDimensions)
@@ -935,9 +958,10 @@ class Enzo3DData(EnzoData):
 
     @restore_grid_state
     def _get_data_from_grid(self, grid, field):
-        if fieldInfo.has_key(field) and fieldInfo[field].variable_length:
+        if field in fieldInfo and fieldInfo[field].particle_type:
+            pointI = self._get_particle_indices(grid)
             try:
-                tr = grid[field]
+                tr = grid[field][pointI].ravel()
             except grid._read_exception:
                 tr = []
             return tr
@@ -994,6 +1018,15 @@ class Enzo3DData(EnzoData):
         k = na.zeros(grid.ActiveDimensions, dtype='bool')
         k = (k | self._get_cut_mask(grid))
         if use_child_mask: k = (k & grid.child_mask)
+        return na.where(k)
+
+    def _get_cut_particle_mask(self, grid):
+        fake_grid = FakeGridForParticles(grid)
+        return self._get_cut_mask(fake_grid)
+
+    def _get_particle_indices(self, grid):
+        k = na.zeros(grid.NumberOfParticles, dtype='bool')
+        k = (k | self._get_cut_particle_mask(grid))
         return na.where(k)
 
     def extract_region(self, indices):
@@ -1149,6 +1182,11 @@ class ExtractedRegionBase(Enzo3DData):
         self._grids = None
         self._refresh_data()
 
+    def _get_cut_particle_mask(self, grid):
+        # Override to provide a warning
+        mylog.warning("Returning all particles from an Extracted Region.  This could be incorrect!")
+        return True
+
     def _get_list_of_grids(self):
         # Okay, so what we're going to want to do is get the pointI from
         # region._get_point_indices(grid) for grid in base_region._grids,
@@ -1222,15 +1260,8 @@ class EnzoCylinderBase(Enzo3DData):
 
     @cache_mask
     def _get_cut_mask(self, grid):
-        corners = grid._corners.reshape((8,3,1))
-        H = na.sum(self._norm_vec.reshape((1,3,1)) * corners,
-                   axis=1) + self._d
-        D = na.sqrt(na.sum((corners -
-                           self.center.reshape((1,3,1)))**2.0,axis=1))
-        R = na.sqrt(D**2.0-H**2.0)
-        if na.all(na.abs(H) < self._height, axis=0) \
-            and na.all(R < self._radius, axis=0):
-            cm = na.ones(grid.ActiveDimensions, dtype='bool')
+        if self._is_fully_enclosed(grid):
+            return True
         else:
             h = grid['x'] * self._norm_vec[0] \
               + grid['y'] * self._norm_vec[1] \
@@ -1276,9 +1307,8 @@ class EnzoRegionBase(Enzo3DData):
 
     @cache_mask
     def _get_cut_mask(self, grid):
-        if na.all( (grid._corners < self.right_edge)
-                 & (grid._corners >= self.left_edge)):
-            cm = na.ones(grid.ActiveDimensions, dtype='bool')
+        if self._is_fully_enclosed(grid):
+            return True
         else:
             cm = ( (grid['x'] < self.right_edge[0])
                  & (grid['x'] >= self.left_edge[0])
@@ -1355,14 +1385,13 @@ class EnzoSphereBase(Enzo3DData):
     def _get_cut_mask(self, grid, field=None):
         # We have the *property* center, which is not necessarily
         # the same as the field_parameter
-        corner_radius = na.sqrt(((grid._corners - self.center)**2.0).sum(axis=1))
-        if na.all(corner_radius <= self.radius):
-            return grid.child_mask
-        if self._cut_masks.has_key(grid.id):
+        if self._is_fully_enclosed(grid):
+            return True # We do not want child masking here
+        if not isinstance(grid, FakeGridForParticles) \
+           and grid.id in self._cut_masks:
             return self._cut_masks[grid.id]
-        cm = ( (grid["RadiusCode"]<=self.radius) &
-               (grid.child_mask==1) )
-        self._cut_masks[grid.id] = cm
+        cm = ( (grid["RadiusCode"]<=self.radius) & grid.child_mask )
+        if not isinstance(grid, FakeGridForParticles): self._cut_masks[grid.id] = cm
         return cm
 
 class EnzoCoveringGrid(Enzo3DData):

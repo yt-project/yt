@@ -96,7 +96,7 @@ class DerivedField:
                  convert_function = None,
                  units = "", projected_units = "",
                  take_log = True, validators = None,
-                 variable_length = False, vector_field=False,
+                 particle_type = False, vector_field=False,
                  line_integral = True,
                  projection_conversion = "cm"):
         self.name = name
@@ -111,7 +111,7 @@ class DerivedField:
         if not convert_function:
             convert_function = lambda a: 1.0
         self._convert_function = convert_function
-        self.variable_length = variable_length
+        self.particle_type = particle_type
         self.vector_field = vector_field
         self.line_integral = line_integral
         self.projection_conversion = projection_conversion
@@ -297,9 +297,9 @@ for pf in ["index","type"] + \
     pfunc = particle_func(pf)
     add_field("particle_%s" % pf, function=pfunc,
               validators = [ValidateSpatial(0)],
-              variable_length=True)
+              particle_type=True)
 add_field("particle mass", function=particle_func("particle mass"),
-          validators=[ValidateSpatial(0)], variable_length=True)
+          validators=[ValidateSpatial(0)], particle_type=True)
 
 def _ParticleMass(field, data):
     particles = data["particle mass"] * \
@@ -311,10 +311,10 @@ def _convertParticleMass(data):
 def _convertParticleMassMsun(data):
     return data.convert("Density")*((data.convert("cm")**3.0)/1.989e33)
 add_field("ParticleMass", validators=[ValidateSpatial(0)],
-          variable_length=True, convert_function=_convertParticleMass)
+          particle_type=True, convert_function=_convertParticleMass)
 add_field("ParticleMassMsun",
           function=_ParticleMass, validators=[ValidateSpatial(0)],
-          variable_length=True, convert_function=_convertParticleMassMsun)
+          particle_type=True, convert_function=_convertParticleMassMsun)
 
 def _MachNumber(field, data):
     """M{|v|/t_sound}"""

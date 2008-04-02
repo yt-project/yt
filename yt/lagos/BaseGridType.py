@@ -97,7 +97,7 @@ class EnzoGridBase(EnzoData):
                 try:
                     self[field] = self.readDataFast(field) * conv_factor
                 except self._read_exception:
-                    if field in fieldInfo and fieldInfo[field].variable_length:
+                    if field in fieldInfo and fieldInfo[field].particle_type:
                         self[field] = na.array([],dtype='float64')
                     else: raise
             else:
