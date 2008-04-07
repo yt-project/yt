@@ -184,18 +184,18 @@ class EnzoStaticOutput(EnzoOutput):
         if not self.has_key("Time"):
             LengthUnit = 3.086e24 * box_proper
             self.conversion_factors["Time"] = LengthUnit / self["x-velocity"]
-        for unit in unitList.keys():
-            self.units[unit] = unitList[unit] * box_proper
-            self.units[unit+'h'] = unitList[unit] * box_proper * h
-            self.units[unit+'hcm'] = unitList[unit] * boxcm_cal
+        for unit in mpc_conversion:
+            self.units[unit] = mpc_conversion[unit] * box_proper
+            self.units[unit+'h'] = mpc_conversion[unit] * box_proper * h
+            self.units[unit+'hcm'] = mpc_conversion[unit] * boxcm_cal
 
     def __setup_getunits_units(self):
         # We are given LengthUnits, which is number of cm per box length
         # So we convert that to box-size in Mpc
         box_proper = 3.24077e-25 * self["LengthUnits"]
         self.units['aye']  = 1.0
-        for unit in unitList.keys():
-            self.units[unit] = unitList[unit] * box_proper
+        for unit in mpc_conversion.keys():
+            self.units[unit] = mpc_conversion[unit] * box_proper
 
     def __setup_nounits_units(self):
         z = 0
@@ -205,8 +205,8 @@ class EnzoStaticOutput(EnzoOutput):
         if not self.has_key("TimeUnits"):
             mylog.warning("No time units.  Setting 1.0 = 1 second.")
             self.conversion_factors["Time"] = 1.0
-        for unit in unitList.keys():
-            self.units[unit] = unitList[unit] * box_proper
+        for unit in mpc_conversion.keys():
+            self.units[unit] = mpc_conversion[unit] * box_proper
 
     def _get_hierarchy(self):
         if self.__hierarchy == None:

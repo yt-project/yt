@@ -203,11 +203,11 @@ def cfTurbMach(self):
 CFfieldInfo["TurbMach"] = (cfTurbMach, r"$\rm{Turbulent Mach Number}$", False)
 
 def cfRAU(self):
-    return self["r"] * unitList["au"]
+    return self["r"] * mpc_conversion["au"]
 CFfieldInfo["RAU"] = (cfRAU, r"$R (\rm{AU})$", True)
 
 def cfRpc(self):
-    return self["r"] * unitList["pc"]
+    return self["r"] * mpc_conversion["pc"]
 CFfieldInfo["Rpc"] = (cfRpc, r"$R (\rm{pc})$", True)
 
 def cfRhoCGS(self):

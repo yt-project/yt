@@ -33,6 +33,7 @@ NUMTOCHECK=2
 
 axis_labels = [('y','z'),('x','z'),('x','y')]
 axis_names = {0: 'x', 1: 'y', 2: 'z', 4:''}
+inv_axis_names = {'x':0,'y':1,'z':2}
 
 vm_axis_names = {0:'x', 1:'y', 2:'z', 3:'dx', 4:'dy'}
 
@@ -70,32 +71,12 @@ parameterDict = {"CosmologyCurrentRedshift": float,
                  "TopGridRank": int,
                 }
 
-unitList = {'mpc'   : 1e0,
-            'kpc'   : 1e3,
-            'pc'    : 1e6,
-            'au'    : 2.063e11,
-            'rsun'  : 2.2167e13,
-            'cm'    : 3.0857e24,
-            'miles' : 1.917e19}
+mpc_conversion = {'mpc'   : 1e0,
+                  'kpc'   : 1e3,
+                  'pc'    : 1e6,
+                  'au'    : 2.063e11,
+                  'rsun'  : 2.2167e13,
+                  'cm'    : 3.0857e24,
+                  'miles' : 1.917e19}
 
 axis_labels = [('y','z'),('x','z'),('x','y')]
-
-rates_out_key = \
-      [ "tgas", \
-        "k1", "k2", "k3", "k4", "k5", "k6", "k7", "k8", "k9", "k10", "k11",  \
-        "k12", "k13", "k14", "k15", "k16", "k17", "k18", "k19", "k21", "k22",\
-        "k23", "k50", "k51", "k52", "k53", "k54", "k55", "k56", \
-        "k13_1", "k13_2", "k13_3", "k13_4", "k13_5", "k13_6", "k13_7"         ]
-
-cool_out_key = \
-      [ "tgas", \
-        "ceHI", "ceHeI", "ceHeII", "ciHI", "ciHeI", "ciHeIS", "ciHeII",\
-        "reHII", "reHeII1", "reHeII2", "reHeIII", "brem", "comp", \
-        "gphdl", "gpldl", "cieco", "vibh", "hyd01k", "rotl", "roth", \
-        "h2k01", "hdlte", "hdlow", "hdc_1", "hdc_2", "hdc_3", "hdc_4", \
-        "hdc_5"]
-
-# Note that we default to CellMass as the weight
-
-field_weights = \
-    {"CellMass" : -999}
