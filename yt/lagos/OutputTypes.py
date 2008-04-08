@@ -31,27 +31,10 @@ import string, re, gc, time, os, os.path
 # We want to support the movie format in the future.
 # When such a thing comes to pass, I'll move all the stuff that is contant up
 # to here, and then have it instantiate EnzoStaticOutputs as appropriate.
-class EnzoOutput:
-    pass
-
-class EnzoStaticOutput(EnzoOutput):
-    """
-    This class is a stripped down class that simply reads and parses, without
-    looking at the hierarchy.
-
-    @todo: Move some of the parameters to the EnzoRun?
-           Maybe it is just more appropriate to think of time series data and
-           single-time data?
-
-    @param filename: The filename of the parameterfile we want to load
-    @type filename: String
-    """
-    __hierarchy = None
+class StaticOutput(object):
     def __init__(self, filename, data_style=None):
         self.data_style = data_style
-        if filename.endswith(".hierarchy"):
-            filename = filename[:-10]
-        self.parameter_filename = "%s" % (filename)
+        self.parameter_filename = str(filename)
         self.basename = os.path.basename(filename)
         self.directory = os.path.dirname(filename)
         self.fullpath = os.path.abspath(self.directory)
@@ -59,38 +42,21 @@ class EnzoStaticOutput(EnzoOutput):
             self.directory = "."
         self.conversion_factors = {}
         self.parameters = {}
-        self.parameters["CurrentTimeIdentifier"] = \
-            int(os.stat(self.parameter_filename)[ST_CTIME])
-        self.__parse_parameter_file()
-        self.__set_units()
+        self._parse_parameter_file()
+        self._set_units()
         # These can be taken out if you so desire
-        rp = os.path.join(self.directory, "rates.out")
-        if os.path.exists(rp):
-            self.rates = EnzoTable(rp, rates_out_key)
-        cp = os.path.join(self.directory, "cool_rates.out")
-        if os.path.exists(cp):
-            self.cool = EnzoTable(cp, cool_out_key)
 
-    def getTimeID(self):
-        return time.ctime(float(self["CurrentTimeIdentifier"]))
-
-    def __xattrs__(self, mode="default"):
-        return ("basename", "getTimeID()")
+    def __repr__(self):
+        return self.basename
 
     def __getitem__(self, key):
         """
         Returns _units, parameters, or _conversion_factors in that order
         """
-        if self.units.has_key(key):
-            return self.units[key]
-        elif self.time_units.has_key(key):
-            return self.time_units[key]
-        elif self.parameters.has_key(key):
-            return self.parameters[key]
-        return self.conversion_factors[key]
-
-    def __repr__(self):
-        return self.basename
+        for d in [self.units, self.time_units, self.parameters, \
+                  self.conversion_factors]:
+            if key in d: return d[key]
+        raise KeyError(key)
 
     def keys(self):
         """
@@ -106,17 +72,58 @@ class EnzoStaticOutput(EnzoOutput):
         """
         Returns true or false
         """
-        return (self.units.has_key(key) or \
-                self.time_units.has_key(key) or \
-                self.parameters.has_key(key) or \
-                self.conversion_factors.has_key(key))
+        return key in self.units or \
+               key in self.time_units or \
+               key in self.parameters or \
+               key in self.conversion_factors
 
-    def __parse_parameter_file(self):
+    def _get_hierarchy(self):
+        if self.__hierarchy == None:
+            if self._hierarchy_class == None:
+                raise RuntimeError("You should not instantiate StaticOutput.")
+            self.__hierarchy = self._hierarchy_class(self, data_style=self.data_style)
+        return self.__hierarchy
+
+    def _set_hierarchy(self, newh):
+        if self.__hierarchy != None:
+            mylog.warning("Overriding hierarchy attribute!  This is probably unwise!")
+        self.__hierarchy = newh
+
+    __hierarchy = None
+    hierarchy = property(_get_hierarchy, _set_hierarchy)
+    h = property(_get_hierarchy, _set_hierarchy)
+
+
+class EnzoStaticOutput(StaticOutput):
+    """
+    This class is a stripped down class that simply reads and parses, without
+    looking at the hierarchy.
+
+    @todo: Move some of the parameters to the EnzoRun?
+           Maybe it is just more appropriate to think of time series data and
+           single-time data?
+
+    @param filename: The filename of the parameterfile we want to load
+    @type filename: String
+    """
+    _hierarchy_class = EnzoHierarchy
+    def __init__(self, filename, data_style=None):
+        StaticOutput.__init__(self, filename, data_style)
+        rp = os.path.join(self.directory, "rates.out")
+        if os.path.exists(rp):
+            self.rates = EnzoTable(rp, rates_out_key)
+        cp = os.path.join(self.directory, "cool_rates.out")
+        if os.path.exists(cp):
+            self.cool = EnzoTable(cp, cool_out_key)
+
+    def _parse_parameter_file(self):
         """
         Parses the parameter file and establishes the various
         dictionaries.
         """
         # Let's read the file
+        self.parameters["CurrentTimeIdentifier"] = \
+            int(os.stat(self.parameter_filename)[ST_CTIME])
         lines = open(self.parameter_filename).readlines()
         for lineI, line in enumerate(lines):
             if line.find("#") >= 1: # Keep the commented lines
@@ -154,27 +161,27 @@ class EnzoStaticOutput(EnzoOutput):
                 self.parameters["DomainRightEdge"] = \
                     na.array([float(i) for i in vals.split()])
 
-    def __set_units(self):
+    def _set_units(self):
         """
         Generates the conversion to various physical _units based on the parameter file
         """
         self.units = {}
         self.time_units = {}
         if len(self.parameters) == 0:
-            self.__parse_parameter_file()
+            self._parse_parameter_file()
         if self["ComovingCoordinates"]:
-            self.__setup_comoving_units()
+            self._setup_comoving_units()
         elif self.has_key("LengthUnits"):
-            self.__setup_getunits_units()
+            self._setup_getunits_units()
         else:
-            self.__setup_nounits_units()
+            self._setup_nounits_units()
         self.time_units['1'] = 1
         self.units['1'] = 1
         seconds = self["Time"]
         self.time_units['years'] = seconds / (365*3600*24.0)
         self.time_units['days']  = seconds / (3600*24.0)
 
-    def __setup_comoving_units(self):
+    def _setup_comoving_units(self):
         z = self["CosmologyCurrentRedshift"]
         h = self["CosmologyHubbleConstantNow"]
         boxcm_cal = self["CosmologyComovingBoxSize"]
@@ -189,7 +196,7 @@ class EnzoStaticOutput(EnzoOutput):
             self.units[unit+'h'] = mpc_conversion[unit] * box_proper * h
             self.units[unit+'hcm'] = mpc_conversion[unit] * boxcm_cal
 
-    def __setup_getunits_units(self):
+    def _setup_getunits_units(self):
         # We are given LengthUnits, which is number of cm per box length
         # So we convert that to box-size in Mpc
         box_proper = 3.24077e-25 * self["LengthUnits"]
@@ -197,7 +204,7 @@ class EnzoStaticOutput(EnzoOutput):
         for unit in mpc_conversion.keys():
             self.units[unit] = mpc_conversion[unit] * box_proper
 
-    def __setup_nounits_units(self):
+    def _setup_nounits_units(self):
         z = 0
         box_proper = 1.0
         self.units['aye'] = 1.0
@@ -207,19 +214,6 @@ class EnzoStaticOutput(EnzoOutput):
             self.conversion_factors["Time"] = 1.0
         for unit in mpc_conversion.keys():
             self.units[unit] = mpc_conversion[unit] * box_proper
-
-    def _get_hierarchy(self):
-        if self.__hierarchy == None:
-            self.__hierarchy = EnzoHierarchy(self, data_style=self.data_style)
-        return self.__hierarchy
-
-    def _set_hierarchy(self, newh):
-        if self.__hierarchy != None:
-            mylog.warning("Overriding hierarchy attribute!  This is probably unwise!")
-        self.__hierarchy = newh
-
-    hierarchy = property(_get_hierarchy, _set_hierarchy)
-    h = property(_get_hierarchy, _set_hierarchy)
 
     def cosmology_get_units(self):
         k = {}
