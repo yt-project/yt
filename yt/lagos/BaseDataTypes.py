@@ -1439,27 +1439,6 @@ class EnzoCoveringGrid(Enzo3DData):
     def extract_region(self, indices):
         mylog.error("Sorry, dude, do it yourself, it's already in 3-D.")
 
-    def __setup_weave_dict(self, grid):
-        return {
-            'nx_g': int(grid.ActiveDimensions[0]),
-            'ny_g': int(grid.ActiveDimensions[1]),
-            'nz_g': int(grid.ActiveDimensions[2]),
-            'leftEdgeGrid': na.array(grid.LeftEdge),
-            'rf': int(grid.dx / self.dx),
-            'dx_g': float(grid.dx),
-            'dy_g': float(grid.dy),
-            'dz_g': float(grid.dz),
-            'dx_m': float(self.dx),
-            'dy_m': float(self.dy),
-            'dz_m': float(self.dz),
-            'leftEdgeCube': na.array(self.left_edge),
-            'cubeRightEdge': na.array(self.right_edge),
-            'nx_m': int(self.ActiveDimensions[0]),
-            'ny_m': int(self.ActiveDimensions[1]),
-            'nz_m': int(self.ActiveDimensions[2]),
-            'childMask' : grid.child_mask
-        }
-
     def _refresh_data(self):
         Enzo3DData._refresh_data(self)
         self['dx'] = self.dx * na.ones(self.ActiveDimensions, dtype='float64')
@@ -1529,29 +1508,3 @@ class EnzoCoveringGrid(Enzo3DData):
                 grid.LeftEdge, g_dx, grid[field], grid.child_mask,
                 self.left_edge, self.right_edge, c_dx, self[field],
                 ll)
-
-    @restore_grid_state
-    def old_get_data_from_grid(self, grid, fields):
-        for field in ensure_list(fields):
-            locals_dict = self.__setup_weave_dict(grid)
-            locals_dict['fieldData'] = grid[field]
-            locals_dict['cubeData'] = self[field]
-            locals_dict['lastLevel'] = int(grid.Level == self.level)
-            weave.inline(DataCubeRefineCoarseData,
-                         locals_dict.keys(), local_dict=locals_dict,
-                         compiler='gcc',
-                         type_converters=converters.blitz,
-                         auto_downcast=0, verbose=2)
-
-    def old_flush_data_to_grid(self, grid, fields):
-        for field in ensure_list(fields):
-            locals_dict = self.__setup_weave_dict(grid)
-            locals_dict['fieldData'] = grid[field].copy()
-            locals_dict['cubeData'] = self[field]
-            locals_dict['lastLevel'] = int(grid.Level == self.level)
-            weave.inline(DataCubeReplaceData,
-                         locals_dict.keys(), local_dict=locals_dict,
-                         compiler='gcc',
-                         type_converters=converters.blitz,
-                         auto_downcast=0, verbose=2)
-            grid[field] = locals_dict['fieldData'].copy()

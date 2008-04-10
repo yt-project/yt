@@ -147,7 +147,15 @@ class DataTypeTestingBase:
         LagosTestingBase.setUp(self)
 
 class Data3DBase:
-    pass
+    def testProfileAccumulateMass(self):
+        self.data.set_field_parameter("center",[0.5]*3)
+        profile = yt.lagos.BinnedProfile1D(self.data, 8, "RadiusCode", 0, 1.0,
+                                           False, True)
+        profile.add_fields("CellMassMsun", weight=None, accumulation=True)
+        v1 = profile["CellMassMsun"].max()
+        v2 = self.data["CellMassMsun"].sum()
+        v2 = na.abs(1.0 - v2/v1)
+        self.assertAlmostEqual(v2, 0.0, 7)
 
 for field in yt.lagos.fieldInfo.values():
     setattr(DataTypeTestingBase, "test%s" % field.name, _returnFieldFunction(field))

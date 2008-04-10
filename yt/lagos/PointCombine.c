@@ -257,8 +257,7 @@ _fail:
 }
 
 /* These functions are both called with
-    func(cubedata, griddata)
-*/
+    func(cubedata, griddata) */
 static void dcRefine(npy_float64 *val1, npy_float64 *val2) {
     *val1 = *val2;
 }
@@ -267,13 +266,127 @@ static void dcReplace(npy_float64 *val1, npy_float64 *val2) {
     *val2 = *val1;
 }
 
+static PyObject *_profile2DError;
+
+static PyObject *Py_Bin2DProfile(PyObject *obj, PyObject *args)
+{
+    int i, j;
+    PyObject *obins_x, *obins_y, *owsource, *obsource, *owresult, *obresult, *oused;
+    PyArrayObject *bins_x, *bins_y, *wsource, *bsource, *wresult, *bresult, *used;
+
+    if (!PyArg_ParseTuple(args, "OOOOOOO",
+                &obins_x, &obins_y, &owsource, &obsource,
+                &owresult, &obresult, &oused))
+        return PyErr_Format(_profile2DError,
+                "Bin2DProfile: Invalid parameters.");
+    i = 0;
+
+    bins_x = (PyArrayObject *) PyArray_FromAny(obins_x,
+                    PyArray_DescrFromType(NPY_INT64), 1, 1,
+                    NPY_IN_ARRAY, NULL);
+    if(bins_x==NULL) {
+    PyErr_Format(_profile2DError,
+             "Bin2DProfile: One dimension required for bins_x.");
+    goto _fail;
+    }
+    
+    bins_y = (PyArrayObject *) PyArray_FromAny(obins_y,
+                    PyArray_DescrFromType(NPY_INT64), 1, 1,
+                    NPY_IN_ARRAY, NULL);
+    if((bins_y==NULL) || (PyArray_SIZE(bins_x) != PyArray_SIZE(bins_y))) {
+    PyErr_Format(_profile2DError,
+             "Bin2DProfile: One dimension required for bins_y, same size as bins_x.");
+    goto _fail;
+    }
+    
+    wsource = (PyArrayObject *) PyArray_FromAny(owsource,
+                    PyArray_DescrFromType(NPY_FLOAT64), 1, 1,
+                    NPY_IN_ARRAY, NULL);
+    if((wsource==NULL) || (PyArray_SIZE(bins_x) != PyArray_SIZE(wsource))) {
+    PyErr_Format(_profile2DError,
+             "Bin2DProfile: One dimension required for wsource, same size as bins_x.");
+    goto _fail;
+    }
+    
+    bsource = (PyArrayObject *) PyArray_FromAny(obsource,
+                    PyArray_DescrFromType(NPY_FLOAT64), 1, 1,
+                    NPY_IN_ARRAY, NULL);
+    if((bsource==NULL) || (PyArray_SIZE(bins_x) != PyArray_SIZE(bsource))) {
+    PyErr_Format(_profile2DError,
+             "Bin2DProfile: One dimension required for bsource, same size as bins_x.");
+    goto _fail;
+    }
+
+    wresult = (PyArrayObject *) PyArray_FromAny(owresult,
+                    PyArray_DescrFromType(NPY_FLOAT64), 2,2,
+                    NPY_INOUT_ARRAY | NPY_UPDATEIFCOPY, NULL);
+    if(wresult==NULL){
+    PyErr_Format(_profile2DError,
+             "Bin2DProfile: Two dimensions required for wresult.");
+    goto _fail;
+    }
+
+    bresult = (PyArrayObject *) PyArray_FromAny(obresult,
+                    PyArray_DescrFromType(NPY_FLOAT64), 2,2,
+                    NPY_INOUT_ARRAY | NPY_UPDATEIFCOPY, NULL);
+    if((bresult==NULL) ||(PyArray_SIZE(wresult) != PyArray_SIZE(bresult))
+       || (PyArray_DIM(bresult,0) != PyArray_DIM(wresult,0))){
+    PyErr_Format(_profile2DError,
+             "Bin2DProfile: Two dimensions required for bresult, same shape as wresult.");
+    goto _fail;
+    }
+    
+    used = (PyArrayObject *) PyArray_FromAny(oused,
+                    PyArray_DescrFromType(NPY_FLOAT64), 2,2,
+                    NPY_INOUT_ARRAY | NPY_UPDATEIFCOPY, NULL);
+    if((used==NULL) ||(PyArray_SIZE(used) != PyArray_SIZE(wresult))
+       || (PyArray_DIM(used,0) != PyArray_DIM(wresult,0))){
+    PyErr_Format(_profile2DError,
+             "Bin2DProfile: Two dimensions required for used, same shape as wresult.");
+    goto _fail;
+    }
+
+    npy_float64 wv;
+    int n;
+
+    for(n=0; n<bins_x->dimensions[0]; n++) {
+      i = bins_x->data[n];
+      j = bins_y->data[n];
+      *(npy_float64*)PyArray_GETPTR2(wresult, i, j) += 
+        wsource->data[n];
+      *(npy_float64*)PyArray_GETPTR2(bresult, i, j) += 
+        wsource->data[n] * bsource->data[n];
+      *(npy_float64*)PyArray_GETPTR2(used, i, j) = 1.0;
+    }
+
+      Py_DECREF(bins_x); 
+      Py_DECREF(bins_y); 
+      Py_DECREF(wsource); 
+      Py_DECREF(bsource); 
+      Py_DECREF(wresult); 
+      Py_DECREF(bresult); 
+      Py_DECREF(used);
+    
+      PyObject *onum_found = PyInt_FromLong((long)1);
+      return onum_found;
+    
+    _fail:
+      Py_XDECREF(bins_x); 
+      Py_XDECREF(bins_y); 
+      Py_XDECREF(wsource); 
+      Py_XDECREF(bsource); 
+      Py_XDECREF(wresult); 
+      Py_XDECREF(bresult); 
+      Py_XDECREF(used);
+      return NULL;
+
+}
+
 static PyObject *_dataCubeError;
 
 static PyObject *DataCubeGeneric(PyObject *obj, PyObject *args,
                              void (*to_call)(npy_float64*,npy_float64*))
 {
-#define DUMB
-#ifdef DUMB
     /* Standard boilerplate unpacking...  */
 
     /* 
@@ -454,7 +567,6 @@ _fail:
     Py_XDECREF(c_data);
     return NULL;
 
-#endif
 }
 
 static PyObject *
@@ -470,6 +582,8 @@ Py_DataCubeReplace(PyObject *obj, PyObject *args)
     PyObject* to_return = DataCubeGeneric(obj, args, dcReplace);
     return to_return;
 }
+
+
 
 static PyObject *_interpolateError;
 
@@ -574,6 +688,7 @@ static PyMethodDef _combineMethods[] = {
     {"Interpolate", Py_Interpolate, METH_VARARGS},
     {"DataCubeRefine", Py_DataCubeRefine, METH_VARARGS},
     {"DataCubeReplace", Py_DataCubeReplace, METH_VARARGS},
+    {"Bin2DProfile", Py_Bin2DProfile, METH_VARARGS},
     {NULL, NULL} /* Sentinel */
 };
 
@@ -593,6 +708,8 @@ void initPointCombine(void)
     PyDict_SetItemString(d, "error", _interpolateError);
     _dataCubeError = PyErr_NewException("PointCombine.DataCubeError", NULL, NULL);
     PyDict_SetItemString(d, "error", _dataCubeError);
+    _profile2DError = PyErr_NewException("PointCombine.Profile2DError", NULL, NULL);
+    PyDict_SetItemString(d, "error", _profile2DError);
     import_array();
 }
 

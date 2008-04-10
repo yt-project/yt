@@ -207,19 +207,8 @@ class BinnedProfile2D(BinnedProfile):
         self.total_cells += bin_indices_x.size
         nx = bin_indices_x.size
         mylog.debug("Binning %s / %s times", source_data.size, nx)
-        try:
-            weave.inline(_2d_profile_code, ['nx','bin_indices_x','bin_indices_y',
-                                'weight_field','weight_data',
-                                'binned_field','source_data', 'used_field'],
-                         compiler='gcc', type_converters=converters.blitz,
-                         auto_downcast = 0)
-        except:
-            mylog.debug("SciPy weaving failed; non-fatal, but slow.")
-            for k in range(nx):
-                i,j = bin_indices_x[k]-1, bin_indices_y[k]-1
-                weight_field[i,j] += weight_data[k]
-                binned_field[i,j] += source_data[k]*weight_data[k]
-                used_field[i,j] = 1.0
+        PointCombine.Bin2DProfile(bin_indices_x, bin_indices_y, weight_data, source_data,
+                     weight_field, binned_field, used_field)
         if accumulation: # Fix for laziness
             if not iterable(accumulation):
                 raise SyntaxError("Accumulation needs to have length 2")
