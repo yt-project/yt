@@ -114,7 +114,7 @@ def _returnFieldFunction(field):
     def field_function(self):
         try:
             self.data[field.name]
-            if not field.variable_length and not field.vector_field and \
+            if not field.particle_type and not field.vector_field and \
                 self.data[field.name].size > 1:
                 self.assertEqual(na.product(self.data["Density"].shape),
                                  na.product(self.data[field.name].shape))
@@ -174,6 +174,36 @@ for weight in [None, "CellMassMsun"]:
                                                         accumulation_y)
                 setattr(Data3DBase, name, func)
 
+class TestDataCube(LagosTestingBase, unittest.TestCase):
+    def setUp(self):
+        LagosTestingBase.setUp(self)
+
+    def testNoGhost(self):
+        for g in self.hierarchy.grids:
+            cube = g.retrieve_ghost_zones(0, "Density")
+            self.assertTrue(na.all(cube["Density"] == g["Density"]))
+            cube["Density"] = na.ones(cube["Density"].shape)
+            cube.flush_data(field="Density")
+            self.assertTrue(na.all(g["Density"] == 1.0))
+
+    def testTwoGhost(self):
+        for g in self.hierarchy.grids:
+            cube = g.retrieve_ghost_zones(2, "Density")
+    
+    def testFlushBack(self):
+        cg = self.hierarchy.covering_grid(3, [0.0]*3, [1.0]*3, [64,64,64])
+        cg["Ones"] *= 2.0
+        cg.flush_data(field="Ones")
+        for g in self.hierarchy.grids:
+            self.assertTrue(g["Ones"].max() == 2.0)
+    
+    def testAllCover(self):
+        cg = self.hierarchy.covering_grid(0, [0.0]*3, [1.0]*3, [32,32,32])
+        self.assertTrue(cg["Density"].max() \
+                     == self.hierarchy.grids[0]["Density"].max())
+        self.assertTrue(cg["Density"].min() \
+                     == self.hierarchy.grids[0]["Density"].min())
+
 class TestDiskDataType(Data3DBase, DataTypeTestingBase, LagosTestingBase, unittest.TestCase):
     def setUp(self):
         DataTypeTestingBase.setUp(self)
@@ -190,7 +220,7 @@ class TestRegionDataType(Data3DBase, DataTypeTestingBase, LagosTestingBase, unit
         vol = self.data["CellVolume"].sum() / self.data.convert("cm")**3.0
         self.assertAlmostEqual(vol,1.0,7)
 
-class TestSphereDataType(DataTypeTestingBase, LagosTestingBase, unittest.TestCase):
+class TestSphereDataType(Data3DBase, DataTypeTestingBase, LagosTestingBase, unittest.TestCase):
     def setUp(self):
         DataTypeTestingBase.setUp(self)
         self.data=self.hierarchy.sphere([0.5,0.5,0.5],2.0)

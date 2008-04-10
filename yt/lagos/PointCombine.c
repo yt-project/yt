@@ -34,13 +34,6 @@
 
 #include "numpy/ndarrayobject.h"
 
-
-// Sometimes a "maximum intensity" line-integral looks better
-// switch these two defs, and then fix EnzoGrid.getProjection, to switch
-
-//#define COMB(A,B) ((A) > (B) ? (A) : (B))
-#define COMB(A,B) (A + B)
-
 #define max(A,B) ((A) > (B) ? (A) : (B))
 #define min(A,B) ((A) < (B) ? (A) : (B))
 
@@ -263,6 +256,221 @@ _fail:
 
 }
 
+/* These functions are both called with
+    func(cubedata, griddata)
+*/
+static void dcRefine(npy_float64 *val1, npy_float64 *val2) {
+    *val1 = *val2;
+}
+
+static void dcReplace(npy_float64 *val1, npy_float64 *val2) {
+    *val2 = *val1;
+}
+
+static PyObject *_dataCubeError;
+
+static PyObject *DataCubeGeneric(PyObject *obj, PyObject *args,
+                             void (*to_call)(npy_float64*,npy_float64*))
+{
+#define DUMB
+#ifdef DUMB
+    /* Standard boilerplate unpacking...  */
+
+    /* 
+       rf              (py_int)                 i
+       grid_leftedge   (npy_float64 COERCE)     O
+       dx_grid         (npy_float64 COERCE)     O
+       griddata        (npy_float64 array)      O
+       childmask       (npy_bool array)         O
+       cube_leftedge   (npy_float64 COERCE)     O
+       cube_rightedge  (npy_float64 COERCE)     O
+       dx_cube         (npy_float64 COERCE)     O
+       cubedata        (npy_float64 array)      O
+       lastlevel       (py_int)                 i
+    */
+
+
+    int ll;
+
+    PyObject *og_le, *og_dx, *og_data, *og_cm,
+             *oc_le, *oc_re, *oc_dx, *oc_data;
+    PyArrayObject *g_le, *g_dx, *g_data, *g_cm,
+                  *c_le, *c_re, *c_dx, *c_data;
+    npy_float64 *ag_le, *ag_dx, *ag_data, 
+                *ac_le, *ac_re, *ac_dx, *ac_data;
+    npy_int *ag_cm;
+
+    if (!PyArg_ParseTuple(args, "OOOOOOOOi",
+            &og_le, &og_dx, &og_data, &og_cm,
+            &oc_le, &oc_re, &oc_dx, &oc_data,
+        &ll))
+    return PyErr_Format(_dataCubeError,
+            "DataCubeGeneric: Invalid parameters.");
+
+    /* First the regular source arrays */
+
+    g_le    = (PyArrayObject *) PyArray_FromAny(og_le,
+                    PyArray_DescrFromType(NPY_FLOAT64), 1, 1,
+                    NPY_INOUT_ARRAY | NPY_UPDATEIFCOPY, NULL);
+    if((g_le==NULL) || (PyArray_SIZE(g_le) != 3)) {
+    PyErr_Format(_dataCubeError,
+             "CombineGrids: Three values, one dimension required for g_le.");
+    goto _fail;
+    }
+    ag_le = (npy_float64*) g_le->data;
+
+    g_dx    = (PyArrayObject *) PyArray_FromAny(og_dx,
+                    PyArray_DescrFromType(NPY_FLOAT64), 1, 1,
+                    NPY_INOUT_ARRAY | NPY_UPDATEIFCOPY, NULL);
+    if((g_dx==NULL) || (PyArray_SIZE(g_dx) != 3)) {
+    PyErr_Format(_dataCubeError,
+             "CombineGrids: Three values, one dimension required for g_dx.");
+    goto _fail;
+    }
+    ag_dx = (npy_float64*) g_dx->data;
+
+    g_data    = (PyArrayObject *) PyArray_FromAny(og_data,
+                    PyArray_DescrFromType(NPY_FLOAT64), 3, 3,
+                    NPY_INOUT_ARRAY | NPY_UPDATEIFCOPY, NULL);
+    if((g_data==NULL) || (g_data->nd != 3)) {
+    PyErr_Format(_dataCubeError,
+             "CombineGrids: Three dimensions required for g_data.");
+    goto _fail;
+    }
+    ag_data = (npy_float64*) g_data->data;
+
+    g_cm    = (PyArrayObject *) PyArray_FromAny(og_cm,
+                    PyArray_DescrFromType(NPY_INT), 3, 3,
+                    NPY_INOUT_ARRAY | NPY_UPDATEIFCOPY, NULL);
+    if((g_cm==NULL) || (g_cm->nd != 3)) {
+    PyErr_Format(_dataCubeError,
+             "CombineGrids: Three dimensions required for g_cm.");
+    goto _fail;
+    }
+    ag_cm = (npy_int*) g_cm->data;
+
+    /* Now the cube */
+ 
+    c_le    = (PyArrayObject *) PyArray_FromAny(oc_le,
+                    PyArray_DescrFromType(NPY_FLOAT64), 1, 1,
+                    NPY_INOUT_ARRAY | NPY_UPDATEIFCOPY, NULL);
+    if((c_le==NULL) || (PyArray_SIZE(c_le) != 3)) {
+    PyErr_Format(_dataCubeError,
+             "CombineGrids: Three values, one dimension required for c_le.");
+    goto _fail;
+    }
+    ac_le = (npy_float64*) c_le->data;
+
+    c_re    = (PyArrayObject *) PyArray_FromAny(oc_re,
+                    PyArray_DescrFromType(NPY_FLOAT64), 1, 1,
+                    NPY_INOUT_ARRAY | NPY_UPDATEIFCOPY, NULL);
+    if((c_re==NULL) || (PyArray_SIZE(c_re) != 3)) {
+    PyErr_Format(_dataCubeError,
+             "CombineGrids: Three values, one dimension required for c_re.");
+    goto _fail;
+    }
+    ac_re = (npy_float64*) c_re->data;
+
+    c_dx    = (PyArrayObject *) PyArray_FromAny(oc_dx,
+                    PyArray_DescrFromType(NPY_FLOAT64), 1, 1,
+                    NPY_INOUT_ARRAY | NPY_UPDATEIFCOPY, NULL);
+    if((c_dx==NULL) || (PyArray_SIZE(c_dx) != 3)) {
+    PyErr_Format(_dataCubeError,
+             "CombineGrids: Three values, one dimension required for c_dx.");
+    goto _fail;
+    }
+    ac_dx = (npy_float64*) c_dx->data;
+
+    c_data    = (PyArrayObject *) PyArray_FromAny(oc_data,
+                    PyArray_DescrFromType(NPY_FLOAT64), 3, 3,
+                    NPY_INOUT_ARRAY | NPY_UPDATEIFCOPY, NULL);
+    if((c_data==NULL) || (c_data->nd != 3)) {
+    PyErr_Format(_dataCubeError,
+             "CombineGrids: Three dimensions required for c_data.");
+    goto _fail;
+    }
+    ac_data = (npy_float64*) c_data->data;
+
+    /* And let's begin */
+
+    npy_int64 xg, yg, zg, xc, yc, zc, cmax_x, cmax_y, cmax_z,
+              cmin_x, cmin_y, cmin_z, cm;
+    npy_float64 *val1, *val2;
+    long int total=0;
+
+    for (xg = 0; xg < g_data->dimensions[0]; xg++) {
+      if (ag_le[0]+ag_dx[0]*xg     > ac_re[0]) continue;
+      if (ag_le[0]+ag_dx[0]*(xg+1) < ac_le[0]) continue;
+      cmin_x = max(floorl((ag_le[0]+ag_dx[0]*xg     - ac_le[0])/ac_dx[0]),0);
+      cmax_x = min( ceill((ag_le[0]+ag_dx[0]*(xg+1) - ac_le[0])/ac_dx[0]),c_data->dimensions[0]);
+      for (yg = 0; yg < g_data->dimensions[1]; yg++) {
+        if (ag_le[1]+ag_dx[1]*yg     > ac_re[1]) continue;
+        if (ag_le[1]+ag_dx[1]*(yg+1) < ac_le[1]) continue;
+        cmin_y = max(floorl((ag_le[1]+ag_dx[1]*yg     - ac_le[1])/ac_dx[1]),0);
+        cmax_y = min( ceill((ag_le[1]+ag_dx[1]*(yg+1) - ac_le[1])/ac_dx[1]),c_data->dimensions[1]);
+        for (zg = 0; zg < g_data->dimensions[2]; zg++) {
+          cm = *(npy_int *)PyArray_GETPTR3(g_cm,xg,yg,zg);
+          if ((!ll) && (cm == 0)) continue;
+          if (ag_le[2]+ag_dx[2]*zg     > ac_re[2]) continue;
+          if (ag_le[2]+ag_dx[2]*(zg+1) < ac_le[2]) continue;
+          cmin_z = max(floorl((ag_le[2]+ag_dx[2]*zg     - ac_le[2])/ac_dx[2]),0);
+          cmax_z = min( ceill((ag_le[2]+ag_dx[2]*(zg+1) - ac_le[2])/ac_dx[2]),c_data->dimensions[2]);
+          for (xc = cmin_x; xc < cmax_x ; xc++) {
+            for (yc = cmin_y; yc < cmax_y ; yc++) {
+              for (zc = cmin_z; zc < cmax_z ; zc++) {
+                val1 = PyArray_GETPTR3(c_data,xc,yc,zc);
+                val2 = PyArray_GETPTR3(g_data,xg,yg,zg);
+                to_call(val1, val2);
+                total += 1;
+              }
+            }
+          }
+        }
+      }
+    }
+
+    /* Cleanup time */
+
+    Py_DECREF(g_le);
+    Py_DECREF(g_dx);
+    Py_DECREF(g_data);
+    Py_DECREF(g_cm);
+    Py_DECREF(c_le);
+    Py_DECREF(c_re);
+    Py_DECREF(c_dx);
+    Py_DECREF(c_data);
+
+    PyObject *status = PyInt_FromLong(total);
+    return status;
+    
+_fail:
+    Py_XDECREF(g_le);
+    Py_XDECREF(g_dx);
+    Py_XDECREF(g_data);
+    Py_XDECREF(g_cm);
+    Py_XDECREF(c_le);
+    Py_XDECREF(c_re);
+    Py_XDECREF(c_dx);
+    Py_XDECREF(c_data);
+    return NULL;
+
+#endif
+}
+
+static PyObject *
+Py_DataCubeRefine(PyObject *obj, PyObject *args)
+{
+    PyObject* to_return = DataCubeGeneric(obj, args, dcRefine);
+    return to_return;
+}
+
+static PyObject *
+Py_DataCubeReplace(PyObject *obj, PyObject *args)
+{
+    PyObject* to_return = DataCubeGeneric(obj, args, dcReplace);
+    return to_return;
+}
+
 static PyObject *_interpolateError;
 
 static void
@@ -364,6 +572,8 @@ Py_Interpolate(PyObject *obj, PyObject *args)
 static PyMethodDef _combineMethods[] = {
     {"CombineGrids", Py_CombineGrids, METH_VARARGS},
     {"Interpolate", Py_Interpolate, METH_VARARGS},
+    {"DataCubeRefine", Py_DataCubeRefine, METH_VARARGS},
+    {"DataCubeReplace", Py_DataCubeReplace, METH_VARARGS},
     {NULL, NULL} /* Sentinel */
 };
 
@@ -381,6 +591,8 @@ void initPointCombine(void)
     PyDict_SetItemString(d, "error", _combineGridsError);
     _interpolateError = PyErr_NewException("PointCombine.InterpolateError", NULL, NULL);
     PyDict_SetItemString(d, "error", _interpolateError);
+    _dataCubeError = PyErr_NewException("PointCombine.DataCubeError", NULL, NULL);
+    PyDict_SetItemString(d, "error", _dataCubeError);
     import_array();
 }
 

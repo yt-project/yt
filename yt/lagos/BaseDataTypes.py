@@ -1511,6 +1511,27 @@ class EnzoCoveringGrid(Enzo3DData):
 
     @restore_grid_state
     def _get_data_from_grid(self, grid, fields):
+        ll = int(grid.Level == self.level)
+        g_dx = na.array([grid.dx, grid.dy, grid.dz])
+        c_dx = na.array([self.dx, self.dy, self.dz])
+        for field in ensure_list(fields):
+            PointCombine.DataCubeRefine(
+                grid.LeftEdge, g_dx, grid[field], grid.child_mask,
+                self.left_edge, self.right_edge, c_dx, self[field],
+                ll)
+
+    def _flush_data_to_grid(self, grid, fields):
+        ll = int(grid.Level == self.level)
+        g_dx = na.array([grid.dx, grid.dy, grid.dz])
+        c_dx = na.array([self.dx, self.dy, self.dz])
+        for field in ensure_list(fields):
+            PointCombine.DataCubeReplace(
+                grid.LeftEdge, g_dx, grid[field], grid.child_mask,
+                self.left_edge, self.right_edge, c_dx, self[field],
+                ll)
+
+    @restore_grid_state
+    def old_get_data_from_grid(self, grid, fields):
         for field in ensure_list(fields):
             locals_dict = self.__setup_weave_dict(grid)
             locals_dict['fieldData'] = grid[field]
@@ -1522,7 +1543,7 @@ class EnzoCoveringGrid(Enzo3DData):
                          type_converters=converters.blitz,
                          auto_downcast=0, verbose=2)
 
-    def _flush_data_to_grid(self, grid, fields):
+    def old_flush_data_to_grid(self, grid, fields):
         for field in ensure_list(fields):
             locals_dict = self.__setup_weave_dict(grid)
             locals_dict['fieldData'] = grid[field].copy()
