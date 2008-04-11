@@ -585,12 +585,13 @@ Py_DataCubeReplace(PyObject *obj, PyObject *args)
 
 static PyObject *_findContoursError;
 
+npy_int64 process_neighbors(PyArrayObject*, npy_int32, npy_int32, npy_int32);
 static PyObject *
 Py_FindContours(PyObject *obj, PyObject *args)
 {
     PyObject *ocon_ids, *oxi, *oyi, *ozi;
     PyArrayObject *con_ids, *xi, *yi, *zi;
-    int i, j, k, n;
+    npy_int32 i, j, k, n;
 
     i = 0;
     if (!PyArg_ParseTuple(args, "OOOO",
@@ -599,7 +600,7 @@ Py_FindContours(PyObject *obj, PyObject *args)
                     "FindContours: Invalid parameters.");
     
     con_ids   = (PyArrayObject *) PyArray_FromAny(ocon_ids,
-                    PyArray_DescrFromType(NPY_FLOAT64), 3, 3,
+                    PyArray_DescrFromType(NPY_INT64), 3, 3,
                     NPY_INOUT_ARRAY | NPY_UPDATEIFCOPY, NULL);
     if((con_ids==NULL) || (con_ids->nd != 3)) {
     PyErr_Format(_findContoursError,
@@ -634,8 +635,10 @@ Py_FindContours(PyObject *obj, PyObject *args)
     goto _fail;
     }
     
-    for(n=0;n<PyArray_SIZE(xi);n++) {
-      i=xi->data[n];j=yi->data[n];k=zi->data[n];
+    for(n=0;n<xi->dimensions[0];n++) {
+      i=*(npy_int32 *)PyArray_GETPTR1(xi,n);
+      j=*(npy_int32 *)PyArray_GETPTR1(yi,n);
+      k=*(npy_int32 *)PyArray_GETPTR1(zi,n);
       process_neighbors(con_ids, i, j, k);
     }
 
@@ -655,38 +658,39 @@ Py_FindContours(PyObject *obj, PyObject *args)
         return NULL;
 }
 
-int process_neighbors(PyArrayObject *con_ids, int i, int j, int k)
+npy_int64 process_neighbors(PyArrayObject *con_ids, npy_int32 i, npy_int32 j, npy_int32 k)
 {
-  int off_i, off_j, off_k, spawn_check;
+  npy_int32 off_i, off_j, off_k;
+  int spawn_check;
   int mi, mj, mk;
-  npy_float64 val1, val2, new_cid;
+  npy_int64 *fd_off, *fd_ijk;
+  npy_int64 new_cid, original_cid;
   mi = con_ids->dimensions[0];
   mj = con_ids->dimensions[1];
   mk = con_ids->dimensions[2];
+  fd_ijk = ((npy_int64*)PyArray_GETPTR3(con_ids, i, j, k));
+  //if(*fd_ijk == -1){return ((npy_int64)*fd_ijk);}
   do {
     spawn_check = 0;
     for (off_i=max(i-1,0);off_i<=min(i+1,mi-1);off_i++)
       for (off_j=max(j-1,0);off_j<=min(j+1,mj-1);off_j++)
         for (off_k=max(k-1,0);off_k<=min(k+1,mk-1);off_k++) {
           if((off_i==i)&&(off_j==j)&&(off_k==k)) continue;
-          val1 = *((npy_float64*)PyArray_GETPTR3(con_ids, off_i, off_j, off_k));
-          val2 = *((npy_float64*)PyArray_GETPTR3(con_ids, i, j, k));
-          if(val1!=-1) {
-            if(val1 > val2){
-              val2 = *((npy_float64*)PyArray_GETPTR3(con_ids, i,j,k)) = val1;
-              spawn_check += 1;
-            }
-            if(val1 < val2){
-              *((npy_float64*)PyArray_GETPTR3(con_ids, off_i,off_j,off_k)) = val2;
-              new_cid = process_neighbors(con_ids, off_i, off_j, off_k);
-              if (new_cid != val2) spawn_check += 1;
-              *((npy_float64*)PyArray_GETPTR3(con_ids, i,j,k)) = new_cid;
-            }
+          fd_off = ((npy_int64*)PyArray_GETPTR3(con_ids, off_i, off_j, off_k));
+          if(*fd_off == -1) continue;
+          if(*fd_off > *fd_ijk){
+            *fd_ijk = *fd_off;
+            spawn_check += 1;
+          }
+          if(*fd_off < *fd_ijk){
+            *fd_off = *fd_ijk;
+            new_cid = process_neighbors(con_ids, off_i, off_j, off_k);
+            if (new_cid != *fd_ijk) spawn_check += 1;
+            *fd_ijk = new_cid;
           }
         }
   } while (spawn_check > 0);
-  val2 = *((npy_float64*)PyArray_GETPTR3(con_ids, i, j, k));
-  return val2;
+  return (npy_int64) *fd_ijk;
 }
 
 static PyObject *_interpolateError;

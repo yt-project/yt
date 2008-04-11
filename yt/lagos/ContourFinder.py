@@ -102,7 +102,7 @@ def identify_contours(data_source, field, min_val, max_val):
             kk = na.arange(cur_max_id, cur_max_id-local_ind[0].size, -1)
             cg["tempContours"][local_ind] = kk[:]
             cur_max_id -= local_ind[0].size
-        fd = cg["tempContours"]
+        fd = cg["tempContours"].astype('int64')
         fd_original = fd.copy()
         xi_u,yi_u,zi_u = na.where(fd > -1)
         cor_order = na.argsort(-1*fd[(xi_u,yi_u,zi_u)])
@@ -110,7 +110,7 @@ def identify_contours(data_source, field, min_val, max_val):
         yi = yi_u[cor_order]
         zi = zi_u[cor_order]
         PointCombine.FindContours(fd, xi, yi, zi)
-        cg["tempContours"] = fd.copy()
+        cg["tempContours"] = fd.copy().astype('float64')
         cg.flush_data("tempContours")
         my_queue.add(cg._grids)
         force_ind = na.unique(cg["GridIndices"][na.where(

@@ -17,6 +17,7 @@ class HDF5LightTestIOBase(object):
         my_table.close()
         recv_array = ReadData("testing_h5lt_io.h5", "/%s" % (self.dtype))
         self.assert_(numpy.all(recv_array == self.rand_array))
+        self.assert_(recv_array.shape == self.rand_array.shape)
     def tearDown(self):
         os.unlink("testing_h5lt_io.h5")
 

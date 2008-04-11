@@ -27,6 +27,20 @@ yt.lagos   INFO       2008-04-11 00:18:37,601 Getting field GridIndices from 197
         Contour id 4.0 has: 4.56339e-14 7.18032e-14  (1669) (3 grids, 11039.0 11051.0)
 """
 
+"""With C extension and no ->data[] accesses
+yt.lagos   INFO       2008-04-11 14:19:24,079 Getting field Density from 197
+yt.lagos   INFO       2008-04-11 14:19:25,356 Contouring over 1061337 cells with 30115 candidates
+yt.lagos   INFO       2008-04-11 14:19:58,070 Getting field tempContours from 197
+yt.lagos   INFO       2008-04-11 14:19:58,455 Identified 5 contours between 4.56276e-14 and 2.15510e-13
+yt.lagos   INFO       2008-04-11 14:19:58,462 Getting field Contours from 197
+yt.lagos   INFO       2008-04-11 14:19:59,418 Getting field GridIndices from 197
+        Contour id 0.0 has: 4.56297e-14 9.88512e-14  (2351) (4 grids, 11081.0 11087.0)
+        Contour id 1.0 has: 4.58381e-14 5.41707e-14  (13) (1 grids, 11079.0 11079.0)
+        Contour id 2.0 has: 4.60523e-14 4.79728e-14  (19) (2 grids, 11079.0 11082.0)
+        Contour id 3.0 has: 4.56287e-14 2.15439e-13  (26063) (32 grids, 11040.0 11103.0)
+        Contour id 4.0 has: 4.56339e-14 7.18032e-14  (1669) (3 grids, 11039.0 11051.0)
+"""
+
 
 import sys
 sys.path.insert(0,"/Users/matthewturk/Development/yt/trunk")

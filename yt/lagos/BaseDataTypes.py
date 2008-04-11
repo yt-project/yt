@@ -1504,6 +1504,8 @@ class EnzoCoveringGrid(Enzo3DData):
         g_dx = na.array([grid.dx, grid.dy, grid.dz])
         c_dx = na.array([self.dx, self.dy, self.dz])
         for field in ensure_list(fields):
+            if not grid.has_key(field): grid[field] = \
+               na.zeros(grid.ActiveDimensions, dtype=self[field].dtype)
             PointCombine.DataCubeReplace(
                 grid.LeftEdge, g_dx, grid[field], grid.child_mask,
                 self.left_edge, self.right_edge, c_dx, self[field],

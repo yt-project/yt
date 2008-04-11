@@ -228,6 +228,15 @@ class TestDataCube(LagosTestingBase, unittest.TestCase):
         cg2 = self.hierarchy.covering_grid(3, [0.0]*3, [1.0]*3, [64,64,64])
         self.assertTrue(na.all(cg["Ones"] == cg2["Ones"]))
 
+    def testRawFlushBack(self):
+        cg = self.hierarchy.covering_grid(3, [0.0]*3, [1.0]*3, [64,64,64])
+        cg["DensityNew"] = cg["Density"] * 2.111
+        cg.flush_data(field="DensityNew")
+        for g in self.hierarchy.grids:
+            ni = g["DensityNew"] > 0
+            self.assertTrue(na.all(g["DensityNew"][ni]/2.111 
+                                == g["Density"][ni]))
+
     def testAllCover(self):
         cg = self.hierarchy.covering_grid(0, [0.0]*3, [1.0]*3, [32,32,32])
         self.assertTrue(cg["Density"].max() \
