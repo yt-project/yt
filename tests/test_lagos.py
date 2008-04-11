@@ -108,27 +108,6 @@ class TestHierarchy(LagosTestingBase, unittest.TestCase):
             p = self.hierarchy.proj(axis, "Ones") # Derived field
             self.assertTrue(na.all(p["Ones"] == 1.0))
 
-    def testContours(self):
-        # As a note, unfortunately this dataset only has one sphere.
-        # Frownie face.
-        dx = self.hierarchy.grids[0].dx
-        reg = self.hierarchy.region([0.5]*3, [2*dx]*3,[1.0-2*dx]*3)
-        cid = yt.lagos.identify_contours(reg, "Density",
-                reg["Density"].min()*0.99, reg["Density"].max()*1.01)
-        self.assertEqual(len(cid), 1)
-        v1 = reg["Density"].max()*0.99
-        v2 = reg["Density"].max()*1.01
-        cid = yt.lagos.identify_contours(reg, "Density", v1, v2)
-        self.assertTrue(na.all(v1 < reg["Density"][cid[0]])
-                    and na.all(v2 > reg["Density"][cid[0]]))
-        self.assertEqual(len(cid), 1)
-        v1 = reg["Density"].min()*0.99
-        v2 = reg["Density"].min()*1.01
-        cid = yt.lagos.identify_contours(reg, "Density", v1, v2)
-        self.assertTrue(na.all(v1 < reg["Density"][cid[0]])
-                    and na.all(v2 > reg["Density"][cid[0]]))
-        self.assertEqual(len(cid), 1)
-
 # Now we test each datatype in turn
 
 def _returnFieldFunction(field):
@@ -177,6 +156,30 @@ class Data3DBase:
         v2 = self.data["CellMassMsun"].sum()
         v2 = na.abs(1.0 - v2/v1)
         self.assertAlmostEqual(v2, 0.0, 7)
+
+    def testContoursObtain(self):
+        # As a note, unfortunately this dataset only has one sphere.
+        # Frownie face.
+        cid = yt.lagos.identify_contours(self.data, "Density",
+                self.data["Density"].min()*0.99, self.data["Density"].max()*1.01)
+        self.assertEqual(len(cid), 1)
+
+    def testContoursValidityMax(self):
+        v1 = self.data["Density"].max()*0.99
+        v2 = self.data["Density"].max()*1.01
+        cid = yt.lagos.identify_contours(self.data, "Density", v1, v2)
+        self.assertTrue(na.all(v1 < self.data["Density"][cid[0]])
+                    and na.all(v2 > self.data["Density"][cid[0]]))
+        self.assertEqual(len(cid), 1)
+
+    def testContoursValidityMin(self):
+        v1 = self.data["Density"].min()*0.99
+        v2 = self.data["Density"].min()*1.01
+        cid = yt.lagos.identify_contours(self.data, "Density", v1, v2)
+        self.assertTrue(na.all(v1 < self.data["Density"][cid[0]])
+                    and na.all(v2 > self.data["Density"][cid[0]]))
+        self.assertEqual(len(cid), 1)
+
 
 for field in yt.lagos.fieldInfo.values():
     setattr(DataTypeTestingBase, "test%s" % field.name, _returnFieldFunction(field))
