@@ -91,7 +91,10 @@ def identify_contours(data_source, field, min_val, max_val):
     my_queue.add(data_source._grids)
     for i,grid in enumerate(my_queue):
         max_before = grid["tempContours"].max()
-        cg = grid.retrieve_ghost_zones(1,["tempContours","GridIndices"], all_levels=False)
+        if na.all(grid.LeftEdge == 0.0) and na.all(grid.RightEdge == 1.0):
+            cg = grid.retrieve_ghost_zones(0,["tempContours","GridIndices"])
+        else:
+            cg = grid.retrieve_ghost_zones(1,["tempContours","GridIndices"])
         local_ind = na.where( (cg[field] > min_val)
                             & (cg[field] < max_val)
                             & (cg["tempContours"] == -1) )
@@ -106,13 +109,7 @@ def identify_contours(data_source, field, min_val, max_val):
         xi = xi_u[cor_order]
         yi = yi_u[cor_order]
         zi = zi_u[cor_order]
-        np = xi.size
-        mi, mj, mk = fd.shape
-        weave.inline(iterate_over_contours,
-                     ['xi','yi','zi','np','fd', 'mi','mj','mk'],
-                     compiler='gcc', type_converters=converters.blitz,
-                     auto_downcast=0, verbose=2, force=0,
-                     support_code=recursively_find_contours)
+        PointCombine.FindContours(fd, xi, yi, zi)
         cg["tempContours"] = fd.copy()
         cg.flush_data("tempContours")
         my_queue.add(cg._grids)

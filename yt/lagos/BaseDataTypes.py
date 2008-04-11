@@ -1457,7 +1457,7 @@ class EnzoCoveringGrid(Enzo3DData):
                 continue
             mylog.debug("Getting field %s from %s possible grids",
                        field, len(self._grids))
-            self[field] = na.zeros(self.ActiveDimensions, dtype='float64') - 999
+            self[field] = na.zeros(self.ActiveDimensions, dtype='float64') -999
             if self._use_pbar: pbar = \
                     get_pbar('Searching grids for values ', len(self._grids))
             for i,grid in enumerate(self._grids):

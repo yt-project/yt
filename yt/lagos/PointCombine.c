@@ -583,7 +583,111 @@ Py_DataCubeReplace(PyObject *obj, PyObject *args)
     return to_return;
 }
 
+static PyObject *_findContoursError;
 
+static PyObject *
+Py_FindContours(PyObject *obj, PyObject *args)
+{
+    PyObject *ocon_ids, *oxi, *oyi, *ozi;
+    PyArrayObject *con_ids, *xi, *yi, *zi;
+    int i, j, k, n;
+
+    i = 0;
+    if (!PyArg_ParseTuple(args, "OOOO",
+        &ocon_ids, &oxi, &oyi, &ozi))
+        return PyErr_Format(_findContoursError,
+                    "FindContours: Invalid parameters.");
+    
+    con_ids   = (PyArrayObject *) PyArray_FromAny(ocon_ids,
+                    PyArray_DescrFromType(NPY_FLOAT64), 3, 3,
+                    NPY_INOUT_ARRAY | NPY_UPDATEIFCOPY, NULL);
+    if((con_ids==NULL) || (con_ids->nd != 3)) {
+    PyErr_Format(_findContoursError,
+             "FindContours: Three dimensions required for con_ids.");
+    goto _fail;
+    }
+
+    xi = (PyArrayObject *) PyArray_FromAny(oxi,
+                    PyArray_DescrFromType(NPY_INT32), 1, 1,
+                    NPY_IN_ARRAY, NULL);
+    if(xi==NULL) {
+    PyErr_Format(_findContoursError,
+             "Bin2DProfile: One dimension required for xi.");
+    goto _fail;
+    }
+    
+    yi = (PyArrayObject *) PyArray_FromAny(oyi,
+                    PyArray_DescrFromType(NPY_INT32), 1, 1,
+                    NPY_IN_ARRAY, NULL);
+    if((yi==NULL) || (PyArray_SIZE(xi) != PyArray_SIZE(yi))) {
+    PyErr_Format(_findContoursError,
+             "Bin2DProfile: One dimension required for yi, same size as xi.");
+    goto _fail;
+    }
+    
+    zi = (PyArrayObject *) PyArray_FromAny(ozi,
+                    PyArray_DescrFromType(NPY_INT32), 1, 1,
+                    NPY_IN_ARRAY, NULL);
+    if((zi==NULL) || (PyArray_SIZE(xi) != PyArray_SIZE(zi))) {
+    PyErr_Format(_findContoursError,
+             "Bin2DProfile: One dimension required for zi, same size as xi.");
+    goto _fail;
+    }
+    
+    for(n=0;n<PyArray_SIZE(xi);n++) {
+      i=xi->data[n];j=yi->data[n];k=zi->data[n];
+      process_neighbors(con_ids, i, j, k);
+    }
+
+    Py_DECREF(con_ids);
+    Py_DECREF(xi);
+    Py_DECREF(yi);
+    Py_DECREF(zi);
+
+    PyObject *status = PyInt_FromLong(1);
+    return status;
+
+    _fail:
+        Py_XDECREF(con_ids);
+        Py_XDECREF(xi);
+        Py_XDECREF(yi);
+        Py_XDECREF(zi);
+        return NULL;
+}
+
+int process_neighbors(PyArrayObject *con_ids, int i, int j, int k)
+{
+  int off_i, off_j, off_k, spawn_check;
+  int mi, mj, mk;
+  npy_float64 val1, val2, new_cid;
+  mi = con_ids->dimensions[0];
+  mj = con_ids->dimensions[1];
+  mk = con_ids->dimensions[2];
+  do {
+    spawn_check = 0;
+    for (off_i=max(i-1,0);off_i<=min(i+1,mi-1);off_i++)
+      for (off_j=max(j-1,0);off_j<=min(j+1,mj-1);off_j++)
+        for (off_k=max(k-1,0);off_k<=min(k+1,mk-1);off_k++) {
+          if((off_i==i)&&(off_j==j)&&(off_k==k)) continue;
+          val1 = *((npy_float64*)PyArray_GETPTR3(con_ids, off_i, off_j, off_k));
+          val2 = *((npy_float64*)PyArray_GETPTR3(con_ids, i, j, k));
+          if(val1!=-1) {
+            if(val1 > val2){
+              val2 = *((npy_float64*)PyArray_GETPTR3(con_ids, i,j,k)) = val1;
+              spawn_check += 1;
+            }
+            if(val1 < val2){
+              *((npy_float64*)PyArray_GETPTR3(con_ids, off_i,off_j,off_k)) = val2;
+              new_cid = process_neighbors(con_ids, off_i, off_j, off_k);
+              if (new_cid != val2) spawn_check += 1;
+              *((npy_float64*)PyArray_GETPTR3(con_ids, i,j,k)) = new_cid;
+            }
+          }
+        }
+  } while (spawn_check > 0);
+  val2 = *((npy_float64*)PyArray_GETPTR3(con_ids, i, j, k));
+  return val2;
+}
 
 static PyObject *_interpolateError;
 
@@ -689,6 +793,7 @@ static PyMethodDef _combineMethods[] = {
     {"DataCubeRefine", Py_DataCubeRefine, METH_VARARGS},
     {"DataCubeReplace", Py_DataCubeReplace, METH_VARARGS},
     {"Bin2DProfile", Py_Bin2DProfile, METH_VARARGS},
+    {"FindContours", Py_FindContours, METH_VARARGS},
     {NULL, NULL} /* Sentinel */
 };
 
@@ -710,6 +815,8 @@ void initPointCombine(void)
     PyDict_SetItemString(d, "error", _dataCubeError);
     _profile2DError = PyErr_NewException("PointCombine.Profile2DError", NULL, NULL);
     PyDict_SetItemString(d, "error", _profile2DError);
+    _findContoursError = PyErr_NewException("PointCombine.FindContoursError", NULL, NULL);
+    PyDict_SetItemString(d, "error", _findContoursError);
     import_array();
 }
 

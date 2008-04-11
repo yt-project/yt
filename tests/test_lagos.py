@@ -108,6 +108,27 @@ class TestHierarchy(LagosTestingBase, unittest.TestCase):
             p = self.hierarchy.proj(axis, "Ones") # Derived field
             self.assertTrue(na.all(p["Ones"] == 1.0))
 
+    def testContours(self):
+        # As a note, unfortunately this dataset only has one sphere.
+        # Frownie face.
+        dx = self.hierarchy.grids[0].dx
+        reg = self.hierarchy.region([0.5]*3, [2*dx]*3,[1.0-2*dx]*3)
+        cid = yt.lagos.identify_contours(reg, "Density",
+                reg["Density"].min()*0.99, reg["Density"].max()*1.01)
+        self.assertEqual(len(cid), 1)
+        v1 = reg["Density"].max()*0.99
+        v2 = reg["Density"].max()*1.01
+        cid = yt.lagos.identify_contours(reg, "Density", v1, v2)
+        self.assertTrue(na.all(v1 < reg["Density"][cid[0]])
+                    and na.all(v2 > reg["Density"][cid[0]]))
+        self.assertEqual(len(cid), 1)
+        v1 = reg["Density"].min()*0.99
+        v2 = reg["Density"].min()*1.01
+        cid = yt.lagos.identify_contours(reg, "Density", v1, v2)
+        self.assertTrue(na.all(v1 < reg["Density"][cid[0]])
+                    and na.all(v2 > reg["Density"][cid[0]]))
+        self.assertEqual(len(cid), 1)
+
 # Now we test each datatype in turn
 
 def _returnFieldFunction(field):
@@ -190,9 +211,9 @@ class TestDataCube(LagosTestingBase, unittest.TestCase):
         for g in self.hierarchy.grids:
             cube = g.retrieve_ghost_zones(0, "Density")
             self.assertTrue(na.all(cube["Density"] == g["Density"]))
-            cube["Density"] = na.ones(cube["Density"].shape)
+            cube["Density"] = na.arange(cube["Density"].size).reshape(cube["Density"].shape)
             cube.flush_data(field="Density")
-            self.assertTrue(na.all(g["Density"] == 1.0))
+            self.assertTrue(na.all(g["Density"] == cube["Density"]))
 
     def testTwoGhost(self):
         for g in self.hierarchy.grids:
@@ -204,7 +225,9 @@ class TestDataCube(LagosTestingBase, unittest.TestCase):
         cg.flush_data(field="Ones")
         for g in self.hierarchy.grids:
             self.assertTrue(g["Ones"].max() == 2.0)
-    
+        cg2 = self.hierarchy.covering_grid(3, [0.0]*3, [1.0]*3, [64,64,64])
+        self.assertTrue(na.all(cg["Ones"] == cg2["Ones"]))
+
     def testAllCover(self):
         cg = self.hierarchy.covering_grid(0, [0.0]*3, [1.0]*3, [32,32,32])
         self.assertTrue(cg["Density"].max() \
