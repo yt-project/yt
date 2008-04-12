@@ -121,11 +121,11 @@ class BinnedProfile1D(BinnedProfile):
         inv_bin_indices = args
         if check_cut:
             cm = self._data_source._get_point_indices(source)
-            source_data = source[field][cm]
-            if weight: weight_data = source[weight][cm]
+            source_data = source[field][cm].astype('float64')
+            if weight: weight_data = source[weight][cm].astype('float64')
         else:
-            source_data = source[field]
-            if weight: weight_data = source[weight]
+            source_data = source[field].astype('float64')
+            if weight: weight_data = source[weight].astype('float64')
         binned_field = self._get_empty_field()
         weight_field = self._get_empty_field()
         used_field = na.ones(weight_field.shape, dtype='bool')
@@ -141,6 +141,27 @@ class BinnedProfile1D(BinnedProfile):
 
     @preserve_source_parameters
     def _get_bins(self, source, check_cut=False):
+        if check_cut:
+            cm = self._data_source._get_point_indices(source)
+            source_data = source[self.bin_field][cm]
+        else:
+            source_data = source[self.bin_field]
+        if source_data.size == 0:
+            return
+        mi = na.where( (source_data > self[self.bin_field].min())
+                     & (source_data < self[self.bin_field].max()))
+        sd = source_data[mi]
+        if sd.size == 0:
+            return
+        bin_indices = na.digitize(sd, self[self.bin_field])
+        # Now we set up our inverse bin indices
+        inv_bin_indices = {}
+        for bin in range(self[self.bin_field].size):
+            inv_bin_indices[bin] = na.where(bin_indices == bin)
+        return inv_bin_indices
+
+    @preserve_source_parameters
+    def old_get_bins(self, source, check_cut=False):
         if check_cut:
             cm = self._data_source._get_point_indices(source)
             source_data = source[self.bin_field][cm]
@@ -191,13 +212,13 @@ class BinnedProfile2D(BinnedProfile):
                    args, check_cut=False):
         if check_cut:
             pointI = self._data_source._get_point_indices(source)
-            source_data = source[field][pointI].ravel()
-            weight_data = na.ones(source_data.shape)
-            if weight: weight_data = source[weight][pointI].ravel()
+            source_data = source[field][pointI].ravel().astype('float64')
+            weight_data = na.ones(source_data.shape).astype('float64')
+            if weight: weight_data = source[weight][pointI].ravel().astype('float64')
         else:
-            source_data = source[field].ravel()
-            weight_data = na.ones(source_data.shape)
-            if weight: weight_data = source[weight].ravel()
+            source_data = source[field].ravel().astype('float64')
+            weight_data = na.ones(source_data.shape).astype('float64')
+            if weight: weight_data = source[weight].ravel().astype('float64')
         self.total_stuff = source_data.sum()
         binned_field = self._get_empty_field()
         weight_field = self._get_empty_field()
