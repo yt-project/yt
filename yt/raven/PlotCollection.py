@@ -168,3 +168,8 @@ class PlotCollection:
         p["Unit"] = unit
         p["Axis"] = None
         return p
+
+    def clear_plots(self):
+        for i in range(len(self.plots)):
+            del self.plots[i].data
+            del self.plots[i]

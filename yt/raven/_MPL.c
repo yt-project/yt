@@ -72,38 +72,36 @@ static PyObject* Py_Pixelize(PyObject *obj, PyObject *args) {
   // Get numeric arrays
   PyArrayObject *x = (PyArrayObject *) PyArray_FromAny(xp,
             PyArray_DescrFromType(NPY_FLOAT64), 1, 1, NPY_C_CONTIGUOUS, NULL);
-  if (x == NULL)
+  if (x == NULL) {
       PyErr_Format( _pixelizeError, "x is of incorrect type (wanted 1D float)");
+      goto _fail;
+  }
+
   PyArrayObject *y = (PyArrayObject *) PyArray_FromAny(yp,
             PyArray_DescrFromType(NPY_FLOAT64), 1, 1, NPY_C_CONTIGUOUS, NULL);
-  if (y == NULL) {
-      Py_XDECREF(x);
+  if ((y == NULL) || (PyArray_SIZE(y) != PyArray_SIZE(x))) {
       PyErr_Format( _pixelizeError, "y is of incorrect type (wanted 1D float)");
+      goto _fail;
   }
+
   PyArrayObject *d = (PyArrayObject *) PyArray_FromAny(dp,
             PyArray_DescrFromType(NPY_FLOAT64), 1, 1, NPY_C_CONTIGUOUS, NULL);
-  if (d == NULL) {
-      Py_XDECREF(x);
-      Py_XDECREF(y);
+  if ((d == NULL) || (PyArray_SIZE(d) != PyArray_SIZE(x))) {
       PyErr_Format( _pixelizeError, "data is of incorrect type (wanted 1D float)");
+      goto _fail;
   }
 
   PyArrayObject *dx = (PyArrayObject *) PyArray_FromAny(dxp,
             PyArray_DescrFromType(NPY_FLOAT64), 1, 1, NPY_C_CONTIGUOUS, NULL);
-  if (x == NULL) {
-      Py_XDECREF(x);
-      Py_XDECREF(y);
-      Py_XDECREF(d);
+  if ((dx == NULL) || (PyArray_SIZE(dx) != PyArray_SIZE(x))) {
       PyErr_Format( _pixelizeError, "dx is of incorrect type (wanted 1D float)");
+      goto _fail;
   }
   PyArrayObject *dy = (PyArrayObject *) PyArray_FromAny(dyp,
             PyArray_DescrFromType(NPY_FLOAT64), 1, 1, NPY_C_CONTIGUOUS, NULL);
-  if (x == NULL) {
-      Py_XDECREF(x);
-      Py_XDECREF(y);
-      Py_XDECREF(d);
-      Py_XDECREF(dx);
+  if ((dy == NULL) || (PyArray_SIZE(dy) != PyArray_SIZE(x))) {
       PyErr_Format( _pixelizeError, "dy is of incorrect type (wanted 1D float)");
+      goto _fail;
   }
 
   // Check dimensions match
@@ -111,25 +109,12 @@ static PyObject* Py_Pixelize(PyObject *obj, PyObject *args) {
   int ny = y->dimensions[0];
   int ndx = dx->dimensions[0];
   int ndy = dy->dimensions[0];
-  if (nx != d->dimensions[0] || ny != d->dimensions[0] ||
-      ndx != d->dimensions[0] || ndy != d->dimensions[0]) {
-      Py_XDECREF(x);
-      Py_XDECREF(y);
-      Py_XDECREF(d);
-      Py_XDECREF(dx);
-      Py_XDECREF(dy);
-      PyErr_Format( _pixelizeError, "data and axis dimensions do not match");
-  }
 
   npy_float64 *gridded;
     gridded = malloc(sizeof(npy_float64)*rows*cols);
   if (gridded == NULL) {
-      Py_XDECREF(x);
-      Py_XDECREF(y);
-      Py_XDECREF(d);
-      Py_XDECREF(dx);
-      Py_XDECREF(dy);
       PyErr_Format(_pixelizeError, "Could not allocate memory for image");
+      goto _fail;
   }
 
   // Calculate the pointer arrays to map input x to output x
@@ -142,8 +127,13 @@ static PyObject* Py_Pixelize(PyObject *obj, PyObject *args) {
   npy_float64 *dys = (npy_float64 *) PyArray_GETPTR1(dy, 0);
   npy_float64 *ds = (npy_float64 *) PyArray_GETPTR1(d, 0); // We check this above
 
-  //printf("ROWS: %i COLS: %i\n", rows, cols);
-  for (p=0;p<cols*rows;p++) gridded[p] = 0.0;
+  npy_intp dims[] = {rows, cols};
+  PyArrayObject *my_array =
+    (PyArrayObject *) PyArray_SimpleNewFromDescr(2, dims,
+              PyArray_DescrFromType(NPY_FLOAT64));
+  gridded = (npy_float64 *) my_array->data;
+
+  for(p=0;p<cols*rows;p++)gridded[p]=0.0;
   for(p=0;p<nx;p++)
   {
     if(((xs[p]+dxs[p]<x_min) ||
@@ -168,28 +158,32 @@ static PyObject* Py_Pixelize(PyObject *obj, PyObject *args) {
     }
   }
 
-  /*for (p = 0 ; p < cols * rows ; p++)
-    printf("%0.3e\n", gridded[p]);*/
-
-
   // Attatch output buffer to output buffer
 
-  Py_XDECREF(x);
-  Py_XDECREF(y);
-  Py_XDECREF(d);
-  Py_XDECREF(dx);
-  Py_XDECREF(dy);
+  Py_DECREF(x);
+  Py_DECREF(y);
+  Py_DECREF(d);
+  Py_DECREF(dx);
+  Py_DECREF(dy);
 
-  int dims[] = {rows, cols};
+  PyObject *return_value = Py_BuildValue("N", my_array);
 
-  PyObject* gridret = PyArray_FromDimsAndData(
-        2, dims, NPY_FLOAT64, (char *) gridded);
+  return return_value;
 
-  return gridret;
+  _fail:
+
+    Py_XDECREF(x);
+    Py_XDECREF(y);
+    Py_XDECREF(d);
+    Py_XDECREF(dx);
+    Py_XDECREF(dy);
+    return NULL;
+
 }
 
 static PyMethodDef __MPLMethods[] = {
     {"Pixelize", Py_Pixelize, METH_VARARGS, _pixelizeDocstring},
+    //{"CPixelize", Py_CPixelize, METH_VARARGS, NULL},
     {NULL, NULL} /* Sentinel */
 };
 

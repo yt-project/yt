@@ -91,9 +91,6 @@ def ClusterFilePlot(cls, x, y, xlog=None, ylog=None, fig=None, filename=None,
     return fig
 
 engineVals = {}
-skipAxes = ["X WIDTH", "Y WIDTH", "WEIGHT (OPTIONAL)", "DX", "DY"]
-
-axisFieldDict = {'X':'Field1', 'Y':'Field2', 'Z':'Field3'}
 
 def Initialize(*args, **kwargs):
     engineVals["initialized"] = True

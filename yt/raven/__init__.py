@@ -46,7 +46,11 @@ axis_names = {0: 'x', 1: 'y', 2: 'z'}
 
 vm_axis_names = {0:'x', 1:'y', 2:'z', 3:'dx', 4:'dy'}
 
+
 import PlotTypes
 import PlotTypes as be
+
+color_maps = PlotTypes.matplotlib.cm.cmapnames
+
 from PlotCollection import *
 from PlotConfig import *
