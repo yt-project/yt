@@ -594,7 +594,7 @@ class SlicePlotPage(VMPlotPage):
         self.plot = be.SlicePlot(self.data, self.field, figure=self.figure, axes=self.axes)
 
     def QueryFields(self):
-        nativeFields = self.outputfile.hierarchy.fieldList
+        nativeFields = self.outputfile.hierarchy.field_list
         nativeFields.sort()
         derivedFields = lagos.fieldInfo.keys()
         derivedFields.sort()
@@ -666,7 +666,7 @@ class PhasePlotPage(PlotPage):
         return None
 
     def GetFieldSelectors(self):
-        nativeFields = self.dataObject.hierarchy.fieldList
+        nativeFields = self.dataObject.hierarchy.field_list
         nativeFields.sort()
         derivedFields = lagos.fieldInfo.keys()
         derivedFields.sort()

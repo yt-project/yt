@@ -262,7 +262,7 @@ class ReasonMainWindow(wx.Frame):
         t = "Phase Plot"
         self.windows.append( \
             PhasePlotPage(parent=self.plot_panel.nb,
-                          statusBar=self.status_bar,
+                          status_bar=self.status_bar,
                           dataObject = o,
                           CreationID = MyID,
                           mw = self))
@@ -283,7 +283,7 @@ class ReasonMainWindow(wx.Frame):
             self.interpreter.shell.writeOut("Adding %s projection of %s\n" % (ax, o))
             self.windows.append( \
                 ProjPlotPage(parent=self.plot_panel.nb,
-                              statusBar=self.status_bar,
+                              status_bar=self.status_bar,
                               outputfile = o,
                               axis=i,
                               field = field,
@@ -308,7 +308,7 @@ class ReasonMainWindow(wx.Frame):
             self.interpreter.shell.writeOut("Adding %s slice of %s\n" % (ax, o))
             self.windows.append( \
                 SlicePlotPage(parent=self.plot_panel.nb,
-                              statusBar=self.status_bar,
+                              status_bar=self.status_bar,
                               outputfile = o,
                               axis=i,
                               field = field,
@@ -323,7 +323,8 @@ class ReasonMainWindow(wx.Frame):
 
     def get_output(self, event=None):
         # Figure out which outputs are selected
-        tid = self.data_tree.GetFirstSelected()
+        #tid = self.data_tree.GetFirstSelected()
+        tid = self.data_tree.GetSelection()
         ii = self.data_tree.GetItemData(tid).GetData()[0]
         if isinstance(ii, types.StringTypes):
             ii = lagos.EnzoStaticOutput(ii) # Instantiate here
