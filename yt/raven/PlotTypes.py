@@ -171,7 +171,7 @@ class RavenPlot:
         self._axes.set_zlim(zmin, zmax)
 
     def set_cmap(self, cmap):
-        if isinstance(cmap, types.StringType):
+        if isinstance(cmap, types.StringTypes):
             if hasattr(matplotlib.cm, cmap):
                 cmap = getattr(matplotlib.cm, cmap)
         self.cmap = cmap
