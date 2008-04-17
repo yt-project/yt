@@ -959,6 +959,7 @@ class Enzo3DData(EnzoData):
     @restore_grid_state
     def _get_data_from_grid(self, grid, field):
         if field in fieldInfo and fieldInfo[field].particle_type:
+            if grid.NumberOfParticles == 0: return []
             pointI = self._get_particle_indices(grid)
             try:
                 tr = grid[field][pointI].ravel()
