@@ -1,37 +1,17 @@
 """
-YT is a package written primarily in python designed to make the task of
-running Enzo  easier.  It contains facilities for creating Enzo data (currently
+YT is a package written primarily in U{http://python.org/ Python} designed to make the task of
+running Enzo easier.  It contains facilities for creating Enzo data (currently
 in prototype form) as well as runnning Enzo simulations, simulating the actions
 of Enzo on various existing data, and analyzing output from Enzo in a
 wide-variety of methods.
 
-The changelog is available in
-U{fancy<http://www.slac.stanford.edu/~mturk/yt_doc/changelog.html>} and
-U{detailed<http://www.slac.stanford.edu/~mturk/yt_doc/changelog.txt>} formats.
-These are automatically regenerated nightly.
-
 An ever-growing HOWTO is also available at
-U{http://www.slac.stanford.edu/~mturk/yt_doc/yt_howto.pdf} .
+U{http://yt.spacepope.org/doc/demo.html}.  Additionally, there is a
+project site at U{http://yt.spacepope.org/} with recipes, a wiki, a subversion
+changelog and a bug-reporting system.
 
 YT is divided into several packages, all named after characters from Snow
 Crash.
-
-Enki
-====
-
-    Enki is the package used to create data, and instantiate runs. It supports
-    creating Enzo Problems, and then using SWIG-interfaced Enzo calls to
-    actually create the data for those problems. Additionally, facilities are
-    being developed to use Enki to directly execute runs.
-
-Fido
-====
-
-    Fido is the messenger/protector of data.  It takes data outputs, puts them
-    wherever you want, and then calls a function handler to deal with that data.
-    Ultimately Fido will deal with all file-handling; submission of runs to a
-    central (user-specific) database is in the works, and Fido will be the
-    entity that moves the files in and out of storage.
 
 Lagos
 =====
@@ -44,6 +24,27 @@ Raven
 
     Raven is the plotting interface.  All data plotting goes through
     Raven.
+
+Enki
+====
+
+    Enki is the package used to create data, and instantiate runs. It supports
+    creating Enzo Problems, and then using SWIG-interfaced Enzo calls to
+    actually create the data for those problems. Additionally, facilities are
+    being developed to use Enki to directly execute runs.
+
+    Right now, Enki is still largely experimental.  It provides some primitive
+    methods for interacting with Enzo, but more work needs to be done before
+    it reaches its vision.
+
+Fido
+====
+
+    Fido is the messenger/protector of data.  It takes data outputs, puts them
+    wherever you want, and then calls a function handler to deal with that data.
+    Ultimately Fido will deal with all file-handling; submission of runs to a
+    central (user-specific) database is in the works, and Fido will be the
+    entity that moves the files in and out of storage.
 
 Deliverator
 ===========
