@@ -157,6 +157,7 @@ class PlotPanel(wx.Panel):
         of = self.GetCurrentOutput()
 
 class PlotPage(wx.Panel):
+    plot = None
     def __init__(self, parent, status_bar, mw=None, CreationID = -1):
         wx.Panel.__init__(self, parent)
 
@@ -443,7 +444,7 @@ class VMPlotPage(PlotPage):
         dx = (self.plot.xlim[1] - self.plot.xlim[0])/self.plot.pix[0]
         dy = (self.plot.ylim[1] - self.plot.ylim[0])/self.plot.pix[1]
         l, b, width, height = self.figure.axes[0].bbox.get_bounds()
-        x = (dx * (xp+l)) + self.plot.xlim[0]
+        x = self.plot.xlim[0] + (dx * (xp-l))
         y = self.plot.ylim[1] - (dy * (yp-b))
         return x, y
 
@@ -635,11 +636,13 @@ class PhasePlotPage(PlotPage):
         self.FieldZ.SetSelection(0)
         self.FieldW = wx.Choice(self.ButtonPanel, -1, choices=fs, name="W")
         self.FieldW.SetSelection(0)
+        self.FirePlot = wx.Button(self.ButtonPanel, label = "Make Plot")
 
         self.Bind(wx.EVT_CHOICE, self.switch_x, self.FieldX)
         self.Bind(wx.EVT_CHOICE, self.switch_y, self.FieldY)
         self.Bind(wx.EVT_CHOICE, self.switch_z, self.FieldZ)
         self.Bind(wx.EVT_CHOICE, self.switch_weight, self.FieldW)
+        self.Bind(wx.EVT_BUTTON, self.fire_plot, self.FirePlot)
 
     def DoLayout(self):
         self.MainSizer = wx.BoxSizer(wx.VERTICAL)
@@ -656,6 +659,8 @@ class PhasePlotPage(PlotPage):
         self.ButtonSizer.AddSpacer(20)
         self.ButtonSizer.Add(self.FieldW, 1, wx.EXPAND)
         self.ButtonSizer.AddSpacer(10)
+        self.ButtonSizer.Add(self.FirePlot, 1, wx.EXPAND)
+        self.ButtonSizer.AddSpacer(10)
         self.ButtonPanel.SetSizer(self.ButtonSizer)
 
         self.SetSizer(self.MainSizer)
@@ -665,19 +670,24 @@ class PhasePlotPage(PlotPage):
         return None
 
     def GetFieldSelectors(self):
-        nativeFields = self.dataObject.hierarchy.field_list
-        nativeFields.sort()
-        derivedFields = lagos.fieldInfo.keys()
-        derivedFields.sort()
+        nativeFields = sorted(self.dataObject.hierarchy.field_list)
+        derivedFields = sorted([fk for fk in lagos.fieldInfo
+                                if not lagos.fieldInfo[fk].particle_type])
         return nativeFields + [""] + derivedFields
 
-    def makePlot(self):
-        X = self.FieldX.GetStringSelection()
-        Y = self.FieldY.GetStringSelection()
-        Z = self.FieldZ.GetStringSelection()
-        W = self.FieldW.GetStringSelection()
-        self.plot = be.PhasePlot(self.dataObject, [X,Y,Z], weight = W,
-                                 figure = self.figure, axes = self.axes)
+    def makePlot(self, event=None):
+        pass
+
+    def fire_plot(self, event):
+        if self.plot is None:
+            X = self.FieldX.GetStringSelection()
+            Y = self.FieldY.GetStringSelection()
+            Z = self.FieldZ.GetStringSelection()
+            W = self.FieldW.GetStringSelection()
+            if len(W) == 0: W=None
+            self.plot = be.PhasePlot(self.dataObject, [X,Y,Z], weight = W,
+                                     figure = self.figure, axes = self.axes)
+        self.UpdateCanvas()
 
     def UpdateStatusBar(self, event):
         #print event.x, event.y
@@ -698,18 +708,24 @@ class PhasePlotPage(PlotPage):
         return self.plot.vals[yi, xi]
 
     def switch_weight(self, event):
-        self.plot.switch_weight(event.String)
+        if self.plot is None: return
+        W = event.String
+        if len(event.String) == 0: W = None
+        self.plot.switch_weight(W)
         self.UpdateCanvas()
 
     def switch_x(self, event):
+        if self.plot is None: return
         self.plot.switch_x(event.String)
         self.UpdateCanvas()
 
     def switch_y(self, event):
+        if self.plot is None: return
         self.plot.switch_y(event.String)
         self.UpdateCanvas()
 
     def switch_z(self, event):
+        if self.plot is None: return
         self.plot.switch_z(event.String)
         self.UpdateCanvas()
 
