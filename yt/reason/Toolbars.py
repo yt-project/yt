@@ -13,12 +13,12 @@ Standalone windows.
   it under the terms of the GNU General Public License as published by
   the Free Software Foundation; either version 3 of the License, or
   (at your option) any later version.
-  
+
   This program is distributed in the hope that it will be useful,
   but WITHOUT ANY WARRANTY; without even the implied warranty of
   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
   GNU General Public License for more details.
-  
+
   You should have received a copy of the GNU General Public License
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
@@ -51,7 +51,7 @@ class OperationsButtonBar(wx.Panel):
         self.SetSizer(self.sizer)
         self.Fit()
 
-class ReasonLimitInput(wx.Dialog):
+class ReasonLimitSelectionWindow(wx.Dialog):
     def __init__(self, plot):
         wx.Dialog.__init__(self, None, -1, 'Limit Setter',
                            size=wx.Size(300,300))
@@ -125,4 +125,9 @@ def ChooseWidth(outputfile):
     dlg.Destroy()
     return w, u
 
-
+def ChooseLimits(plot):
+    dlg = ReasonLimitSelectionWindow(plot)
+    resp = dlg.ShowModal()
+    z1, z2 = dlg.GetData()
+    dlg.Destroy()
+    return z1, z2

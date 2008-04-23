@@ -186,10 +186,10 @@ class ReasonMainWindow(wx.Frame):
         self.toolbar.AddControl(self.available_fields)
         Publisher().subscribe(self.MessageUpdateToolbarFields, ('page_changed'))
         AddButton(self._VMTB_FULLDOMAIN, "Zoom Top",  "Zoom to the top level", wx.ART_FIND)
-        AddButton(self._VMTB_CHANGELIMITS, "Change Limits", "Change the colorbar limits")
+        AddButton(self._VMTB_CHANGELIMITS, "Change Limits", "Change the colorbar limits", wx.ART_GO_UP)
         AddButton(self._VMTB_VIEWPF, "View ParameterFile", "View the parameter file", wx.ART_NORMAL_FILE)
         cl = wx.ArtProvider.GetBitmap(wx.ART_TICK_MARK, wx.ART_TOOLBAR, (16,16))
-        self.toolbar.AddCheckLabelTool(self._VMTB_VELPLOT, "VelVecs", cl, shortHelp="Plot Velocity Vectors")
+        #self.toolbar.AddCheckLabelTool(self._VMTB_VELPLOT, "VelVecs", cl, shortHelp="Plot Velocity Vectors")
         self.toolbar.AddSeparator()
 
         self.Bind(wx.EVT_MENU, self.__setup_fido_tree, id=self._VMTB_REREADFIDO)
