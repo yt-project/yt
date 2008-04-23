@@ -638,10 +638,10 @@ class PhasePlotPage(PlotPage):
         self.FieldW.SetSelection(0)
         self.FirePlot = wx.Button(self.ButtonPanel, label = "Make Plot")
 
-        self.Bind(wx.EVT_CHOICE, self.switch_x, self.FieldX)
-        self.Bind(wx.EVT_CHOICE, self.switch_y, self.FieldY)
-        self.Bind(wx.EVT_CHOICE, self.switch_z, self.FieldZ)
-        self.Bind(wx.EVT_CHOICE, self.switch_weight, self.FieldW)
+        #self.Bind(wx.EVT_CHOICE, self.switch_x, self.FieldX)
+        #self.Bind(wx.EVT_CHOICE, self.switch_y, self.FieldY)
+        #self.Bind(wx.EVT_CHOICE, self.switch_z, self.FieldZ)
+        #self.Bind(wx.EVT_CHOICE, self.switch_weight, self.FieldW)
         self.Bind(wx.EVT_BUTTON, self.fire_plot, self.FirePlot)
 
     def DoLayout(self):
@@ -679,14 +679,22 @@ class PhasePlotPage(PlotPage):
         pass
 
     def fire_plot(self, event):
-        if self.plot is None:
-            X = self.FieldX.GetStringSelection()
-            Y = self.FieldY.GetStringSelection()
-            Z = self.FieldZ.GetStringSelection()
-            W = self.FieldW.GetStringSelection()
-            if len(W) == 0: W=None
-            self.plot = be.PhasePlot(self.dataObject, [X,Y,Z], weight = W,
-                                     figure = self.figure, axes = self.axes)
+        if self.plot is not None:
+            for ax in self.figure.axes[1:]: self.figure.delaxes(ax)
+            self.axes.clear()
+            self.figure.subplots_adjust()
+            self.axes.set_xscale('linear')
+            self.axes.set_xlim([0.0,1.0])
+            self.axes.set_yscale('linear')
+            self.axes.set_ylim([0.0,1.0])
+            del self.plot
+        X = self.FieldX.GetStringSelection()
+        Y = self.FieldY.GetStringSelection()
+        Z = self.FieldZ.GetStringSelection()
+        W = self.FieldW.GetStringSelection()
+        if len(W) == 0: W=None
+        self.plot = be.PhasePlot(self.dataObject, [X,Y,Z], weight = W,
+                                 figure = self.figure, axes = self.axes)
         self.UpdateCanvas()
 
     def UpdateStatusBar(self, event):
