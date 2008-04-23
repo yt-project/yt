@@ -299,7 +299,7 @@ class PlotPage(wx.Panel):
         pass
 
     def SaveImage(self):
-        self.plot.generatePrefix('Plot')
+        self.plot._generate_prefix('Plot')
         wildcard = "PNG (*png)|*.png"
         dlg = wx.FileDialog( \
             self, message="Save Image As ...", defaultDir=os.getcwd(), \
@@ -350,7 +350,6 @@ class VMPlotPage(PlotPage):
         self.Bind(wx.EVT_MENU, self.fulldomain, fullDomain)
 
     def SetupFigure(self):
-        self.makePlot()
         PlotPage.SetupFigure(self)
 
         self.axes.set_xticks(())
