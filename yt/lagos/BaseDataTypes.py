@@ -704,6 +704,7 @@ class EnzoProjBase(Enzo2DData):
                 dl = 1.0
                 if field in fieldInfo and fieldInfo[field].line_integral:
                     dl = just_one(grid['d%s' % axis_names[self.axis]])
+                    dl *= self.pf.units[fieldInfo[field].projection_conversion]
                 g_fields[fi] *= dl
             self.__retval_coords[grid.id] = g_coords
             self.__retval_fields[grid.id] = g_fields

@@ -393,17 +393,6 @@ class ProjectionPlot(VMPlot):
         data_label += r"$"
         if self.colorbar != None: self.colorbar.set_label(data_label)
 
-    def __getitem__(self, item):
-        if lagos.fieldInfo.has_key(item):
-            if not lagos.fieldInfo[item].line_integral:
-                dl = 1.0
-            else:
-                dl = self.data.hierarchy.parameter_file.units[
-                    lagos.fieldInfo[item].projection_conversion]
-        else:
-            dl = self.data.hierarchy.parameter_file.units["cm"]
-        return self.data[item] * dl
-
 class CuttingPlanePlot(SlicePlot):
     _type_name = "CuttingPlane"
     def _get_buff(self):
@@ -487,7 +476,7 @@ class PhasePlot(RavenPlot):
         if lagos.fieldInfo.has_key(field):
             dataLabel += r" (%s)" % (lagos.fieldInfo[field].get_units())
         dataLabel += r"$"
-        func(dataLabel)
+        func(str(dataLabel))
 
     def set_cmap(self, cmap):
         RavenPlot.set_cmap(self, cmap)
