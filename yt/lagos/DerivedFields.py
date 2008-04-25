@@ -443,8 +443,11 @@ add_field("CellMassMsun", units=r"M_{\odot}",
 
 def _CellVolume(field, data):
     if data['dx'].size == 1:
-        return data['dx']*data['dy']*data['dx']*\
-            na.ones(data.ActiveDimensions, dtype='float64')
+        try:
+            return data['dx']*data['dy']*data['dx']*\
+                na.ones(data.ActiveDimensions, dtype='float64')
+        except AttributeError:
+            return data['dx']*data['dy']*data['dx']
     return data["dx"]*data["dy"]*data["dz"]
 def _ConvertCellVolumeMpc(data):
     return data.convert("mpc")**3.0
