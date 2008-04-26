@@ -346,16 +346,16 @@ static PyObject *Py_Bin2DProfile(PyObject *obj, PyObject *args)
     goto _fail;
     }
 
-    npy_float64 wv;
+    npy_float64 wval, bval;
     int n;
 
     for(n=0; n<bins_x->dimensions[0]; n++) {
-      i = bins_x->data[n];
-      j = bins_y->data[n];
-      *(npy_float64*)PyArray_GETPTR2(wresult, i, j) += 
-        wsource->data[n];
-      *(npy_float64*)PyArray_GETPTR2(bresult, i, j) += 
-        wsource->data[n] * bsource->data[n];
+      i = *(npy_int64*)PyArray_GETPTR1(bins_x, n);
+      j = *(npy_int64*)PyArray_GETPTR1(bins_y, n);
+      bval = *(npy_float64*)PyArray_GETPTR1(bsource, n);
+      wval = *(npy_float64*)PyArray_GETPTR1(wsource, n);
+      *(npy_float64*)PyArray_GETPTR2(wresult, i, j) += wval;
+      *(npy_float64*)PyArray_GETPTR2(bresult, i, j) += wval*bval;
       *(npy_float64*)PyArray_GETPTR2(used, i, j) = 1.0;
     }
 
