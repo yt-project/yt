@@ -1118,6 +1118,13 @@ class Enzo3DData(EnzoData):
     gridLevels = property(__get_gridLevels, __set_gridLevels,
                              __del_gridLevels)
 
+    def __get_quantities(self):
+        if self.__quantities is None:
+            self.__quantities = DerivedQuantityCollection(self)
+        return self.__quantities
+    __quantities = None
+    quantities = property(__get_quantities)
+
     def extract_connected_sets(self, field, num_levels, min_val, max_val,
                                 log_space=True, cumulative=True):
         """

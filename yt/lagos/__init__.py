@@ -57,10 +57,8 @@ if ytcfg.getboolean("lagos","useswig"):
         pass
 
 if ytcfg.getboolean("lagos","usefortran"):
-    try:
-        import EnzoFortranRoutines
-    except ImportError:
-        pass
+    pass
+    #import EnzoFortranRoutines
 
 # Now we import all the subfiles
 
@@ -69,7 +67,7 @@ import HDF5LightReader
 from WeaveStrings import *
 from EnzoDefs import *
 from DerivedFields import *
-from DerivedQuantities import quantityInfo
+from DerivedQuantities import DerivedQuantityCollection
 from DataReadingFuncs import *
 from ClusterFiles import *
 from ContourFinder import *
