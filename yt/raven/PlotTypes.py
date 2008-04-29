@@ -597,6 +597,109 @@ class PhasePlot(RavenPlot):
         self["Field2"] = self.axis_names["Y"]
         self["Field3"] = self.axis_names["Z"]
 
+class NewPhasePlot(RavenPlot):
+    def __init__(self, data, fields, width=None, unit=None,
+                 ticker=None, cmap=None, figure=None, axes=None):
+        self._type_name = "Phase"
+        RavenPlot.__init__(self, data, fields, figure, axes)
+        self.ticker = ticker
+        self.image = None
+        self.set_cmap(cmap)
+
+        self.axis_names["X"] = fields[0]
+        self.axis_names["Y"] = fields[1]
+        self.axis_names["Z"] = fields[2]
+
+        self.x_bins = self.data[self.fields[0]]
+        self.y_bins = self.data[self.fields[1]]
+        self._log_x = self.data._x_log
+        self._log_y = self.data._y_log
+        self._log_z = self.setup_bins(self.fields[2])
+        self.__init_colorbar()
+
+    def __init_colorbar(self):
+        temparray = na.ones((self.x_bins.size, self.y_bins.size))
+        self.norm = matplotlib.colors.Normalize()
+        self.image = self._axes.pcolormesh(self.x_bins, self.y_bins,
+                                      temparray, shading='flat',
+                                      norm=self.norm)
+        self.colorbar = self._figure.colorbar(self.image,
+                                    extend='neither', shrink=0.95,
+                                    format="%0.2e" )
+
+    def setup_bins(self, field, func=None):
+        if field in lagos.fieldInfo and lagos.fieldInfo[field].take_log:
+            log_field = True
+            if func: func('log')
+        else:
+            log_field = False
+            if func: func('linear')
+        mylog.debug("Field: %s, log_field: %s", field, log_field)
+        return log_field
+
+    def autoset_label(self, field, func):
+        dataLabel = r"$\rm{%s}" % (field)
+        if field in lagos.fieldInfo:
+            dataLabel += r" (%s)" % (lagos.fieldInfo[field].get_units())
+        dataLabel += r"$"
+        func(str(dataLabel))
+
+    def set_cmap(self, cmap):
+        RavenPlot.set_cmap(self, cmap)
+        if self.image != None and self.cmap != None:
+            self.image.set_cmap(self.cmap)
+
+    def switch_z(self, field, weight="CellMassMsun", accumulation=False):
+        self.fields[2] = field
+        self.axis_names["Z"] = field
+        if field not in self.data.keys(): self.data.add_fields(field, weight, accumulation)
+        self._log_z = self.setup_bins(self.fields[2])
+
+    def _redraw_image(self):
+        vals = self.data[self.fields[2]].transpose()
+        used_bin = self.data["UsedBins"].transpose()
+        vals[~used_bin] = na.nan
+        vmin = na.nanmin(vals[used_bin])
+        vmax = na.nanmax(vals[used_bin])
+        if self._log_z:
+            # We want smallest non-zero vmin
+            self.norm=matplotlib.colors.LogNorm(vmin=vmin, vmax=vmax,
+                                                clip=False)
+            self.ticker = matplotlib.ticker.LogLocator()
+        else:
+            self.norm=matplotlib.colors.Normalize(vmin=vmin, vmax=vmax,
+                                                  clip=False)
+            self.ticker = matplotlib.ticker.MaxNLocator()
+        self.colorbar.set_norm(self.norm)
+        if self.cmap == None:
+            self.cmap = matplotlib.cm.get_cmap()
+        self.cmap.set_bad("w")
+        self.cmap.set_under("w")
+        self.cmap.set_over("w")
+        self._axes.clear()
+        self._axes.set_xscale("linear")
+        self._axes.set_yscale("linear")
+        self.image = self._axes.pcolormesh(self.x_bins, self.y_bins, \
+                                      vals, shading='flat', \
+                                      norm=self.norm, cmap=self.cmap)
+        self._axes.set_xscale("log" if self._log_x else "linear")
+        self._axes.set_yscale("log" if self._log_y else "linear")
+        self.vals = vals
+
+        self.colorbar.notify(self.image)
+
+        self.autoset_label(self.fields[0], self._axes.set_xlabel)
+        self.autoset_label(self.fields[1], self._axes.set_ylabel)
+        self.autoset_label(self.fields[2], self.colorbar.set_label)
+
+    def _generate_prefix(self, prefix):
+        self.prefix = "_".join([prefix, self._type_name, \
+            self.axis_names['X'], self.axis_names['Y'], \
+            self.axis_names['Z']])
+        self["Field1"] = self.axis_names["X"]
+        self["Field2"] = self.axis_names["Y"]
+        self["Field3"] = self.axis_names["Z"]
+
 def quiverCallback(field_x, field_y, axis, factor):
     def runCallback(plot):
         x0, x1 = plot.xlim

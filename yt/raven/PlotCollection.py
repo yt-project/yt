@@ -169,6 +169,38 @@ class PlotCollection:
         p["Axis"] = None
         return p
 
+    def add_new_threephase_sphere(self, radius, unit, fields, center=None, cmap=None,
+                                  weight="CellMassMsun", accumulation=False,
+                                  x_bins=64, x_log=True, x_bounds=None,
+                                  y_bins=64, y_log=True, y_bounds=None,
+                                  lazy_reader=False):
+        if center == None:
+            center = self.c
+        r = radius/self.pf[unit]
+        sphere = self.pf.hierarchy.sphere(center, r, fields)
+        if x_bounds is None:
+            x_min, x_max = sphere[fields[0]].min(), sphere[fields[0]].max()
+        else:
+            x_min, x_max = x_bounds
+        if y_bounds is None:
+            y_min, y_max = sphere[fields[1]].min(), sphere[fields[1]].max()
+        else:
+            y_min, y_max = y_bounds
+        profile = lagos.BinnedProfile2D(sphere,
+                                     x_bins, fields[0], x_min, x_max, x_log,
+                                     y_bins, fields[1], y_min, y_max, y_log,
+                                     lazy_reader)
+        profile.add_fields(fields[2], weight=weight, accumulation=accumulation)
+        # These next two lines are painful.
+        profile.pf = self.pf
+        profile.hierarchy = self.pf.hierarchy
+        p = self._add_plot(PlotTypes.NewPhasePlot(profile, fields, width=radius,
+                                      unit=unit, cmap=cmap))
+        p["Width"] = radius
+        p["Unit"] = unit
+        p["Axis"] = None
+        return p
+
     def clear_plots(self):
         for i in range(len(self.plots)):
             del self.plots[i].data
