@@ -575,7 +575,8 @@ def _SpecificAngularMomentum(field, data):
 
     center = data.get_field_parameter('center')
     coords = na.array([data['x'],data['y'],data['z']])
-    r_vec = coords - na.reshape(center,(3,1))
+    new_shape = tuple([3] + [1]*(len(coords.shape)-1))
+    r_vec = coords - na.reshape(center,new_shape)
     v_vec = na.array([xv,yv,zv])
     return na.cross(r_vec, v_vec, axis=0)
 def _convertSpecificAngularMomentum(data):

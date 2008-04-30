@@ -32,28 +32,30 @@ from yt.lagos import *
 quantity_info = {}
 
 class GridChildMaskWrapper:
-    def __init__(self, grid):
+    def __init__(self, grid, data_object):
         self.grid = grid
+        self.data_object = data_object
     def __getattr__(self, attr):
         return getattr(self.grid, attr)
     def __getitem__(self, item):
-        return self.grid[item]*self.grid.child_mask
+        return self.data_object._get_data_from_grid(self.grid, item)
 
 def func_wrapper(quantities_collection, quantities_object):
     func = quantities_object.function
     c_func = quantities_object.combine_function
+    data_object = quantities_collection.data_object
     def call_func_unlazy(args, kwargs):
-        retval = func(quantities_collection.data_object, *args, **kwargs)
-        return c_func(quantities_collection.data_object, *retval)
+        retval = func(data_object, *args, **kwargs)
+        return c_func(data_object, *retval)
     def call_func_lazy(args, kwargs):
         n_ret = quantities_object.n_ret
         retvals = [ [] for i in range(n_ret)]
-        for g in quantities_collection.data_object._grids:
-            rv = func(GridChildMaskWrapper(g), *args, **kwargs)
+        for gi,g in enumerate(data_object._grids):
+            rv = func(GridChildMaskWrapper(g, data_object), *args, **kwargs)
             for i in range(n_ret): retvals[i].append(rv[i])
             g.clear_data()
         retvals = [na.array(retvals[i]) for i in range(n_ret)]
-        return c_func(quantities_collection.data_object, *retvals)
+        return c_func(data_object, *retvals)
     def call_func(*args, **kwargs):
         lazy_reader = kwargs.pop('lazy_reader', False)
         if lazy_reader:
@@ -89,6 +91,9 @@ class DerivedQuantityCollection(object):
             raise KeyError(key)
         return func_wrapper(self, self.functions[key])
 
+    def keys(self):
+        return self.functions.keys()
+
 def _CenterOfMass(data):
     x = (data["x"] * data["CellMassMsun"]).sum()
     y = (data["y"] * data["CellMassMsun"]).sum()
@@ -110,7 +115,6 @@ add_quantity("WeightedAverageQuantity", function=_WeightedAverageQuantity,
              combine_function=_combWeightedAverageQuantity, n_ret = 2)
 
 """
-# SpecificAngularMomentum is in cm^2 / s
 j_vec = na.sum(sp["SpecificAngularMomentum"]*sp["CellMassMsun"],axis=1)/m_weight
 j_mag = na.sqrt(na.sum(j_vec**2.0)) # cm^2 / s
 
@@ -124,17 +128,17 @@ spin = j_mag * eterm / (m_vir * G)
 """
 
 def _SpinParameter(data):
-    weight = data["CellMassMsun"].sum()
-    j_vec = (data["SpecificAngularMomentum"]*data["CellMassMsun"]).sum(axis=1)
-    m_enc = data["CellMassMsun"].sum() + data["ParticleMassMsun"].sum()
-    j_mag_pre = na.sum(j_vec**2.0)
+    am = data["SpecificAngularMomentum"]*data["CellMassMsun"]
+    j_mag = na.sqrt((am**2.0).sum(axis=0)).sum()
+    m_enc = data["CellMassMsun"].sum()# + data["ParticleMassMsun"].sum()
     e_term_pre = 0.5*na.sum(data["CellMassMsun"]*data["VelocityMagnitude"]**2.0)
-    return j_mag_pre, weight, m_enc, e_term_pre
-def _combSpinParameter(data, j_mag_pre, weight, m_enc, e_term_pre):
-    e_term = na.sqrt(e_term_pre.sum())/weight.sum()
-    j_mag = na.sqrt(j_mag_pre.sum())/weight.sum()
+    return j_mag, m_enc, e_term_pre
+def _combSpinParameter(data, j_mag, m_enc, e_term_pre):
+    M = m_enc.sum()
+    J = j_mag.sum()/M
+    E = na.sqrt(e_term_pre.sum()/M)
     G = 6.67e-8 # cm^3 g^-1 s^-2
-    spin = j_mag * e_term / (m_enc.sum() * G * 1.989e33)
+    spin = J * E / (M*1.989e33*G)
     return spin
 add_quantity("SpinParameter", function=_SpinParameter,
-             combine_parameter=_combSpinParameter, n_ret=4)
+             combine_function=_combSpinParameter, n_ret=3)

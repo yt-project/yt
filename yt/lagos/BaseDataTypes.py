@@ -960,13 +960,13 @@ class Enzo3DData(EnzoData):
     @restore_grid_state
     def _get_data_from_grid(self, grid, field):
         if field in fieldInfo and fieldInfo[field].particle_type:
-            if grid.NumberOfParticles == 0: return []
+            if grid.NumberOfParticles == 0: return na.array([])
             pointI = self._get_particle_indices(grid)
-            try:
-                tr = grid[field][pointI].ravel()
-            except grid._read_exception:
-                tr = []
-            return tr
+            return grid[field][pointI].ravel()
+        if field in fieldInfo and fieldInfo[field].vector_field:
+            pointI = self._get_point_indices(grid)
+            f = grid[field]
+            return na.array([f[i,:][pointI] for i in range(3)])
         else:
             pointI = self._get_point_indices(grid)
             if grid[field].size == 1: # dx, dy, dz, cellvolume
