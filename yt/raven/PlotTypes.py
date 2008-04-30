@@ -172,7 +172,9 @@ class RavenPlot:
 
     def set_cmap(self, cmap):
         if isinstance(cmap, types.StringTypes):
-            if hasattr(matplotlib.cm, cmap):
+            if str(cmap) in raven_colormaps:
+                cmap = raven_colormaps[str(cmap)]
+            elif hasattr(matplotlib.cm, cmap):
                 cmap = getattr(matplotlib.cm, cmap)
         self.cmap = cmap
 
@@ -761,12 +763,15 @@ def particleCallback(axis, width, p_size=1.0, col='k'):
         plot._axes.hold(False)
     return runCallback
 
-def contourCallback(field, axis, ncont=5, factor=4):
+def contourCallback(field, axis, ncont=5, factor=4, take_log=False,
+                    clim=None):
     try:
         import scipy.sandbox.delaunay as de
     except ImportError:
         mylog.warning("Callback failed; no delaunay module")
         return lambda a: None
+    if take_log and clim is not None: clim = (na.log10(clim[0]), na.log10(clim[1]))
+    if clim is not None: ncont = na.linspace(clim[0], clim[1], ncont)
     def runCallback(plot):
         x0, x1 = plot.xlim
         y0, y1 = plot.ylim
@@ -777,18 +782,20 @@ def contourCallback(field, axis, ncont=5, factor=4):
         numPoints_y = plot.image._A.shape[1]
         dx = plot.image._A.shape[0] / (x1-x0)
         dy = plot.image._A.shape[1] / (y1-y0)
-        xlim = na.logical_and(plot.data["x"] >= x0*0.9,
-                              plot.data["x"] <= x1*1.1)
-        ylim = na.logical_and(plot.data["y"] >= y0*0.9,
-                              plot.data["y"] <= y1*1.1)
+        xlim = na.logical_and(plot.data["px"] >= x0*0.9,
+                              plot.data["px"] <= x1*1.1)
+        ylim = na.logical_and(plot.data["py"] >= y0*0.9,
+                              plot.data["py"] <= y1*1.1)
         wI = na.where(na.logical_and(xlim,ylim))
         xi, yi = na.mgrid[0:numPoints_x:numPoints_x/(factor*1j),\
                           0:numPoints_y:numPoints_y/(factor*1j)]
-        x = (plot.data["x"][wI]-x0)*dx
-        y = (plot.data["y"][wI]-y0)*dy
+        x = (plot.data["px"][wI]-x0)*dx
+        y = (plot.data["py"][wI]-y0)*dy
         z = plot.data[field][wI]
+        if take_log: z=na.log10(z)
         zi = de.Triangulation(x,y).nn_interpolator(z)(xi,yi)
-        plot._axes.contour(xi,yi,zi,ncont, colors='k')
+        print ncont, zi.min(), zi.max()
+        plot._axes.contour(xi,yi,zi,ncont,colors='k')
         plot._axes.set_xlim(xx0,xx1)
         plot._axes.set_ylim(yy0,yy1)
         plot._axes.hold(False)
