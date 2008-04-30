@@ -763,8 +763,7 @@ def particleCallback(axis, width, p_size=1.0, col='k'):
         plot._axes.hold(False)
     return runCallback
 
-def contourCallback(field, axis, ncont=5, factor=4, take_log=False,
-                    clim=None):
+def contourCallback(field, ncont=5, factor=4, take_log=False, clim=None):
     try:
         import scipy.sandbox.delaunay as de
     except ImportError:
