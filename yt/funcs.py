@@ -101,7 +101,7 @@ class __defaultdict(dict):
     def __getitem__(self, key):
         if not self.has_key(key):
             self.__setitem__(key, self.__func())
-        return dict.__getitem__(key)
+        return dict.__getitem__(self, key)
 
 try:
     from collections import defaultdict
