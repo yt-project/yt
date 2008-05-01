@@ -67,7 +67,7 @@ import HDF5LightReader
 from WeaveStrings import *
 from EnzoDefs import *
 from DerivedFields import *
-from DerivedQuantities import DerivedQuantityCollection
+from DerivedQuantities import DerivedQuantityCollection, GridChildMaskWrapper
 from DataReadingFuncs import *
 from ClusterFiles import *
 from ContourFinder import *

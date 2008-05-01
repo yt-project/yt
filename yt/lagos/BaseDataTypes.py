@@ -85,7 +85,7 @@ class EnzoData:
             self.pf = pf
             self.hierarchy = pf.hierarchy
         if fields == None: fields = []
-        self.fields = ensure_list(fields)
+        self.fields = ensure_list(fields)[:]
         self.data = {}
         self.field_parameters = {}
         self.__set_default_field_parameters()
@@ -1396,11 +1396,12 @@ class EnzoSphereBase(Enzo3DData):
         # the same as the field_parameter
         if self._is_fully_enclosed(grid):
             return True # We do not want child masking here
-        if not isinstance(grid, FakeGridForParticles) \
+        if not isinstance(grid, (FakeGridForParticles, GridChildMaskWrapper)) \
            and grid.id in self._cut_masks:
             return self._cut_masks[grid.id]
         cm = ( (grid["RadiusCode"]<=self.radius) & grid.child_mask )
-        if not isinstance(grid, FakeGridForParticles): self._cut_masks[grid.id] = cm
+        if not isinstance(grid, (FakeGridForParticles, GridChildMaskWrapper)):
+            self._cut_masks[grid.id] = cm
         return cm
 
 class EnzoCoveringGrid(Enzo3DData):
