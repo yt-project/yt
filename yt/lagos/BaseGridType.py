@@ -252,7 +252,8 @@ class EnzoGridBase(EnzoData):
         @param field: field to check
         @type field: string
         """
-        coord=nd.maximum_position(self[field]*self.child_mask)
+        coord1d=(self[field]*self.child_mask).argmax()
+        coord=na.unravel_index(coord1d, self[field].shape)
         val = self[field][coord]
         return val, coord
 
@@ -263,8 +264,8 @@ class EnzoGridBase(EnzoData):
         @param field: field to check
         @type field: string
         """
-        coord=nd.minimum_position(self[field])
-        val = self[field][coord]
+        coord1d=(self[field]*self.child_mask).argmin()
+        coord=na.unravel_index(coord1d, self[field].shape)
         return val, coord
 
     def get_position(self, coord):

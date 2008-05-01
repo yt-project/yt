@@ -50,10 +50,13 @@ def func_wrapper(quantities_collection, quantities_object):
     def call_func_lazy(args, kwargs):
         n_ret = quantities_object.n_ret
         retvals = [ [] for i in range(n_ret)]
+        pbar = get_pbar("Calculating ", len(data_object._grids))
         for gi,g in enumerate(data_object._grids):
             rv = func(GridChildMaskWrapper(g, data_object), *args, **kwargs)
             for i in range(n_ret): retvals[i].append(rv[i])
             g.clear_data()
+            pbar.update(gi)
+        pbar.finish()
         retvals = [na.array(retvals[i]) for i in range(n_ret)]
         return c_func(data_object, *retvals)
     def call_func(*args, **kwargs):
@@ -114,31 +117,38 @@ def _combWeightedAverageQuantity(data, field, weight):
 add_quantity("WeightedAverageQuantity", function=_WeightedAverageQuantity,
              combine_function=_combWeightedAverageQuantity, n_ret = 2)
 
-"""
-j_vec = na.sum(sp["SpecificAngularMomentum"]*sp["CellMassMsun"],axis=1)/m_weight
-j_mag = na.sqrt(na.sum(j_vec**2.0)) # cm^2 / s
+def _BulkVelocity(data):
+    xv = (data["x-velocity"] * data["CellMassMsun"]).sum()
+    yv = (data["y-velocity"] * data["CellMassMsun"]).sum()
+    zv = (data["z-velocity"] * data["CellMassMsun"]).sum()
+    w = data["CellMassMsun"].sum()
+    return xv, yv, zv, w
+def _combBulkVelocity(data, xv, yv, zv, w):
+    w = w.sum()
+    xv = xv.sum()/w
+    yv = yv.sum()/w
+    zv = zv.sum()/w
+    return na.array([xv, yv, zv])
+add_quantity("BulkVelocity", function=_BulkVelocity,
+             combine_function=_combBulkVelocity, n_ret=4)
 
-eterm = na.sqrt(0.5*na.sum(sp["CellMassMsun"]*sp["VelocityMagnitude"]**2.0)/m_weight)
-
-G = 6.67e-8 # cm^3 g^-1 s^-2
-m_vir = na.sum(sp["CellMassMsun"]) + na.sum(sp["ParticleMassMsun"])# g
-print "MVIR: %0.5e m_sun" % m_vir
-m_vir *= 1.989e33
-spin = j_mag * eterm / (m_vir * G)
-"""
-
-def _SpinParameter(data):
+def _BaryonSpinParameter(data):
     am = data["SpecificAngularMomentum"]*data["CellMassMsun"]
-    j_mag = na.sqrt((am**2.0).sum(axis=0)).sum()
-    m_enc = data["CellMassMsun"].sum()# + data["ParticleMassMsun"].sum()
-    e_term_pre = 0.5*na.sum(data["CellMassMsun"]*data["VelocityMagnitude"]**2.0)
-    return j_mag, m_enc, e_term_pre
-def _combSpinParameter(data, j_mag, m_enc, e_term_pre):
+    j_mag = am.sum(axis=1)
+    m_enc = data["CellMassMsun"].sum() + data["ParticleMassMsun"].sum()
+    e_term_pre = na.sum(data["CellMassMsun"]*data["VelocityMagnitude"]**2.0)
+    weight=data["CellMassMsun"].sum()
+    return j_mag, m_enc, e_term_pre, weight
+def _combBaryonSpinParameter(data, j_mag, m_enc, e_term_pre, weight):
+    # Because it's a vector field, we have to ensure we have enough dimensions
+    if len(j_mag.shape) < 2: j_mag = na.expand_dims(j_mag, 0)
+    W = weight.sum()
     M = m_enc.sum()
-    J = j_mag.sum()/M
-    E = na.sqrt(e_term_pre.sum()/M)
+    J = na.sqrt(((j_mag.sum(axis=0))**2.0).sum())/W
+    E = na.sqrt(e_term_pre.sum()/W)
     G = 6.67e-8 # cm^3 g^-1 s^-2
     spin = J * E / (M*1.989e33*G)
+    print "WEIGHT", W, M, J, E, G, spin
     return spin
-add_quantity("SpinParameter", function=_SpinParameter,
-             combine_function=_combSpinParameter, n_ret=3)
+add_quantity("BaryonSpinParameter", function=_BaryonSpinParameter,
+             combine_function=_combBaryonSpinParameter, n_ret=4)

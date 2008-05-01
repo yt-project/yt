@@ -285,16 +285,14 @@ add_field("SoundSpeed", units=r"\rm{cm}/\rm{s}")
 
 def particle_func(p_field):
     def _Particles(field, data):
-        try:
-            particles = data._read_data("particle_%s" % p_field)
-        except data._read_exception:
-            particles = na.array([], dtype='float64')
-        return particles
+        if not data.NumberOfParticles > 0:
+            return na.array([], dtype='float64')
+        return data._read_data(p_field).astype('float64')
     return _Particles
 for pf in ["index","type"] + \
           ["velocity_%s" % ax for ax in 'xyz'] + \
           ["position_%s" % ax for ax in 'xyz']:
-    pfunc = particle_func(pf)
+    pfunc = particle_func("particle_%s" % (pf))
     add_field("particle_%s" % pf, function=pfunc,
               validators = [ValidateSpatial(0)],
               particle_type=True)
@@ -302,7 +300,7 @@ add_field("particle mass", function=particle_func("particle mass"),
           validators=[ValidateSpatial(0)], particle_type=True)
 
 def _ParticleMass(field, data):
-    particles = data["particle mass"] * \
+    particles = data["particle mass"].astype('float64') * \
                 just_one(data["CellVolumeCode"].ravel())
     # Note that we mandate grid-type here, so this is okay
     return particles
@@ -574,10 +572,10 @@ def _SpecificAngularMomentum(field, data):
         zv = data["z-velocity"]
 
     center = data.get_field_parameter('center')
-    coords = na.array([data['x'],data['y'],data['z']])
+    coords = na.array([data['x'],data['y'],data['z']], dtype='float64')
     new_shape = tuple([3] + [1]*(len(coords.shape)-1))
     r_vec = coords - na.reshape(center,new_shape)
-    v_vec = na.array([xv,yv,zv])
+    v_vec = na.array([xv,yv,zv], dtype='float64')
     return na.cross(r_vec, v_vec, axis=0)
 def _convertSpecificAngularMomentum(data):
     return data.convert("cm")

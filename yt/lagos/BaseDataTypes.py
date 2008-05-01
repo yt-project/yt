@@ -506,7 +506,7 @@ class EnzoCuttingPlaneBase(Enzo2DData):
         # First we try all three, see which has the best result:
         vecs = na.identity(3)
         _t = na.cross(self._norm_vec, vecs).sum(axis=1)
-        ax = nd.maximum_position(_t)
+        ax = _t.argmax()
         self._x_vec = na.cross(vecs[ax,:], self._norm_vec).ravel()
         self._x_vec /= na.sqrt(na.dot(self._x_vec, self._x_vec))
         self._y_vec = na.cross(self._norm_vec, self._x_vec).ravel()
