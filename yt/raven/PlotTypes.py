@@ -675,12 +675,11 @@ class NewPhasePlot(RavenPlot):
         self.image = self._axes.pcolormesh(self.x_bins, self.y_bins, \
                                       vals, shading='flat', \
                                       norm=self.norm, cmap=self.cmap)
-        self._axes.set_xscale("log" if self._log_x else "linear")
-        self._axes.set_yscale("log" if self._log_y else "linear")
+        self._axes.set_xscale({0:"linear",1:"log"}[int(self._log_x)])
+        self._axes.set_yscale({0:"linear",1:"log"}[int(self._log_y)])
         self.vals = vals
 
         self.colorbar.notify(self.image)
-
         self.autoset_label(self.fields[0], self._axes.set_xlabel)
         self.autoset_label(self.fields[1], self._axes.set_ylabel)
         self.autoset_label(self.fields[2], self.colorbar.set_label)

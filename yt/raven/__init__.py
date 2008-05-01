@@ -46,6 +46,7 @@ axis_names = {0: 'x', 1: 'y', 2: 'z'}
 
 vm_axis_names = {0:'x', 1:'y', 2:'z', 3:'dx', 4:'dy'}
 
+raven_colormaps = {}
 
 import PlotTypes
 import PlotTypes as be
