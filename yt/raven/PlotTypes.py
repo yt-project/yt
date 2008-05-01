@@ -401,23 +401,14 @@ class CuttingPlanePlot(SlicePlot):
         px_min, px_max = self.xlim
         py_min, py_max = self.ylim
         l, b, width, height = self._axes.bbox.get_bounds()
-        pxs, pys, pzs = self.data['px'], self.data['py'], self.data['pz']
-        xs, ys, zs = self.data['x'], self.data['y'], self.data['z']
-        dxs, dys, dzs = self.data['pdx'], self.data['pdy'], self.data['pdz']
-        field = self.axis_names['Z']
-        ds = self.data[field]
-        indices = na.argsort(dxs)[::-1]
-        nx = indices.size
-        inv_mat = self.data._inv_mat
-        center = na.array(self.data.center)
-        buff = na.zeros((width,height), dtype='float64')
-        count = na.zeros((width,height), dtype='float64')
-        weave.inline(_pixelize_cp,
-                    ['pxs','pys','pzs','xs','ys','zs','dxs','dys','dzs',
-                    'buff','ds','nx','inv_mat','width','height','count',
-                      'px_min','px_max','py_min','py_max', 'center', 'indices'],
-                    compiler='gcc', type_converters=converters.blitz,
-                     auto_downcast = 0, verbose=2)
+        indices = na.argsort(self.data['dx'])[::-1]
+        buff = _MPL.CPixelize( self.data['x'], self.data['y'], self.data['z'],
+                               self.data['px'], self.data['py'],
+                               self.data['pdx'], self.data['pdy'], self.data['pdz'],
+                               self.data.center, self.data._inv_mat, indices,
+                               self.data[self.axis_names['Z']],
+                               int(width), int(height),
+                               (px_min, px_max, py_min, py_max))
         return buff
 
     def _refresh_display_width(self, width=None):
@@ -799,51 +790,3 @@ def contourCallback(field, ncont=5, factor=4, take_log=False, clim=None):
         plot._axes.set_ylim(yy0,yy1)
         plot._axes.hold(False)
     return runCallback
-
-_pixelize_cp = r"""
-
-long double md, cxpx, cypx;
-long double cx, cy, cz;
-long double lrx, lry, lrz;
-long double rrx, rry, rrz;
-int lc, lr, rc, rr, p;
-
-long double px_dx, px_dy, px_dz, overlap1, overlap2, overlap3;
-px_dx = (px_max-px_min)/height;
-px_dy = (py_max-py_min)/width;
-px_dz = sqrt(0.5 * (px_dy*px_dy + px_dx*px_dx));
-
-#define min(X,Y) ((X) < (Y) ? (X) : (Y))
-#define max(X,Y) ((X) > (Y) ? (X) : (Y))
-using namespace std;
-
-//for(int i=0; i<width; i++) for(int j=0; j<height; j++) count(i,j)=buff(i,j)=0.0;
-
-for(int pp=0; pp<nx; pp++)
-{
-    p = indices(pp);
-    // Any point we want to plot is at most this far from the center
-    md = 2.0*sqrtl(dxs(p)*dxs(p) + dys(p)*dys(p) + dzs(p)*dzs(p));
-    if(((pxs(p)+md<px_min) ||
-        (pxs(p)-md>px_max)) ||
-       ((pys(p)+md<py_min) ||
-        (pys(p)-md>py_max))) continue;
-    lc = max(floorl((pxs(p)-md-px_min)/px_dx),0);
-    lr = max(floorl((pys(p)-md-py_min)/px_dy),0);
-    rc = min(ceill((pxs(p)+md-px_min)/px_dx),height);
-    rr = min(ceill((pys(p)+md-py_min)/px_dy),width);
-    for (int i=lr;i<rr;i++) {
-      cypx = px_dy * (i+0.5) + py_min;
-      for (int j=lc;j<rc;j++) {
-        cxpx = px_dx * (j+0.5) + px_min;
-        cx = inv_mat(0,0)*cxpx + inv_mat(0,1)*cypx + center(0);
-        cy = inv_mat(1,0)*cxpx + inv_mat(1,1)*cypx + center(1);
-        cz = inv_mat(2,0)*cxpx + inv_mat(2,1)*cypx + center(2);
-        if( ((xs(p)-cx)>1.01*dxs(p)) || ((xs(p)-cx)<(-1.01*dxs(p)))
-         || ((ys(p)-cy)>1.01*dys(p)) || ((ys(p)-cy)<(-1.01*dys(p)))
-         || ((zs(p)-cz)>1.01*dzs(p)) || ((zs(p)-cz)<(-1.01*dzs(p))) ) continue;
-        buff(i,j) = ds(p);
-      }
-    }
-}
-"""
