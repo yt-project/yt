@@ -403,15 +403,15 @@ static PyObject *DataCubeGeneric(PyObject *obj, PyObject *args,
     */
 
 
-    int ll;
+    int ll, i;
 
     PyObject *og_le, *og_dx, *og_data, *og_cm,
              *oc_le, *oc_re, *oc_dx, *oc_data;
     PyArrayObject *g_le, *g_dx, *g_data, *g_cm,
                   *c_le, *c_re, *c_dx, *c_data;
-    npy_float64 *ag_le, *ag_dx, *ag_data, 
-                *ac_le, *ac_re, *ac_dx, *ac_data;
     npy_int *ag_cm;
+    npy_float64 ag_le[3], ag_dx[3], 
+                ac_le[3], ac_re[3], ac_dx[3];
 
     if (!PyArg_ParseTuple(args, "OOOOOOOOi",
             &og_le, &og_dx, &og_data, &og_cm,
@@ -430,7 +430,7 @@ static PyObject *DataCubeGeneric(PyObject *obj, PyObject *args,
              "CombineGrids: Three values, one dimension required for g_le.");
     goto _fail;
     }
-    ag_le = (npy_float64*) g_le->data;
+    for(i=0;i<3;i++)ag_le[i]=*(npy_float64*)PyArray_GETPTR1(g_le,i);
 
     g_dx    = (PyArrayObject *) PyArray_FromAny(og_dx,
                     PyArray_DescrFromType(NPY_FLOAT64), 1, 1,
@@ -440,7 +440,7 @@ static PyObject *DataCubeGeneric(PyObject *obj, PyObject *args,
              "CombineGrids: Three values, one dimension required for g_dx.");
     goto _fail;
     }
-    ag_dx = (npy_float64*) g_dx->data;
+    for(i=0;i<3;i++)ag_dx[i]=*(npy_float64*)PyArray_GETPTR1(g_dx,i);
 
     g_data    = (PyArrayObject *) PyArray_FromAny(og_data,
                     PyArray_DescrFromType(NPY_FLOAT64), 3, 3,
@@ -450,7 +450,6 @@ static PyObject *DataCubeGeneric(PyObject *obj, PyObject *args,
              "CombineGrids: Three dimensions required for g_data.");
     goto _fail;
     }
-    ag_data = (npy_float64*) g_data->data;
 
     g_cm    = (PyArrayObject *) PyArray_FromAny(og_cm,
                     PyArray_DescrFromType(NPY_INT), 3, 3,
@@ -472,7 +471,7 @@ static PyObject *DataCubeGeneric(PyObject *obj, PyObject *args,
              "CombineGrids: Three values, one dimension required for c_le.");
     goto _fail;
     }
-    ac_le = (npy_float64*) c_le->data;
+    for(i=0;i<3;i++)ac_le[i]=*(npy_float64*)PyArray_GETPTR1(c_le,i);
 
     c_re    = (PyArrayObject *) PyArray_FromAny(oc_re,
                     PyArray_DescrFromType(NPY_FLOAT64), 1, 1,
@@ -482,7 +481,7 @@ static PyObject *DataCubeGeneric(PyObject *obj, PyObject *args,
              "CombineGrids: Three values, one dimension required for c_re.");
     goto _fail;
     }
-    ac_re = (npy_float64*) c_re->data;
+    for(i=0;i<3;i++)ac_re[i]=*(npy_float64*)PyArray_GETPTR1(c_re,i);
 
     c_dx    = (PyArrayObject *) PyArray_FromAny(oc_dx,
                     PyArray_DescrFromType(NPY_FLOAT64), 1, 1,
@@ -492,7 +491,7 @@ static PyObject *DataCubeGeneric(PyObject *obj, PyObject *args,
              "CombineGrids: Three values, one dimension required for c_dx.");
     goto _fail;
     }
-    ac_dx = (npy_float64*) c_dx->data;
+    for(i=0;i<3;i++)ac_dx[i]=*(npy_float64*)PyArray_GETPTR1(c_dx,i);
 
     c_data    = (PyArrayObject *) PyArray_FromAny(oc_data,
                     PyArray_DescrFromType(NPY_FLOAT64), 3, 3,
@@ -502,7 +501,6 @@ static PyObject *DataCubeGeneric(PyObject *obj, PyObject *args,
              "CombineGrids: Three dimensions required for c_data.");
     goto _fail;
     }
-    ac_data = (npy_float64*) c_data->data;
 
     /* And let's begin */
 
@@ -531,8 +529,8 @@ static PyObject *DataCubeGeneric(PyObject *obj, PyObject *args,
           for (xc = cmin_x; xc < cmax_x ; xc++) {
             for (yc = cmin_y; yc < cmax_y ; yc++) {
               for (zc = cmin_z; zc < cmax_z ; zc++) {
-                val1 = PyArray_GETPTR3(c_data,xc,yc,zc);
-                val2 = PyArray_GETPTR3(g_data,xg,yg,zg);
+                val1 = (npy_float64*) PyArray_GETPTR3(c_data,xc,yc,zc);
+                val2 = (npy_float64*) PyArray_GETPTR3(g_data,xg,yg,zg);
                 to_call(val1, val2);
                 total += 1;
               }
@@ -664,7 +662,7 @@ npy_int64 process_neighbors(PyArrayObject *con_ids, npy_int32 i, npy_int32 j, np
   int spawn_check;
   int mi, mj, mk;
   npy_int64 *fd_off, *fd_ijk;
-  npy_int64 new_cid, original_cid;
+  npy_int64 new_cid;
   mi = con_ids->dimensions[0];
   mj = con_ids->dimensions[1];
   mk = con_ids->dimensions[2];
