@@ -589,7 +589,7 @@ Py_FindContours(PyObject *obj, PyObject *args)
 {
     PyObject *ocon_ids, *oxi, *oyi, *ozi;
     PyArrayObject *con_ids, *xi, *yi, *zi;
-    npy_int32 i, j, k, n;
+    npy_int64 i, j, k, n;
 
     i = 0;
     if (!PyArg_ParseTuple(args, "OOOO",
@@ -634,9 +634,9 @@ Py_FindContours(PyObject *obj, PyObject *args)
     }
     
     for(n=0;n<xi->dimensions[0];n++) {
-      i=*(npy_int32 *)PyArray_GETPTR1(xi,n);
-      j=*(npy_int32 *)PyArray_GETPTR1(yi,n);
-      k=*(npy_int32 *)PyArray_GETPTR1(zi,n);
+      i=*(npy_int64 *)PyArray_GETPTR1(xi,n);
+      j=*(npy_int64 *)PyArray_GETPTR1(yi,n);
+      k=*(npy_int64 *)PyArray_GETPTR1(zi,n);
       process_neighbors(con_ids, i, j, k);
     }
 
