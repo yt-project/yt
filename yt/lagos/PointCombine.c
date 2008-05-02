@@ -583,7 +583,7 @@ Py_DataCubeReplace(PyObject *obj, PyObject *args)
 
 static PyObject *_findContoursError;
 
-npy_int64 process_neighbors(PyArrayObject*, npy_int32, npy_int32, npy_int32);
+npy_int64 process_neighbors(PyArrayObject*, npy_int64, npy_int64, npy_int64);
 static PyObject *
 Py_FindContours(PyObject *obj, PyObject *args)
 {
@@ -607,7 +607,7 @@ Py_FindContours(PyObject *obj, PyObject *args)
     }
 
     xi = (PyArrayObject *) PyArray_FromAny(oxi,
-                    PyArray_DescrFromType(NPY_INT32), 1, 1,
+                    PyArray_DescrFromType(NPY_INT64), 1, 1,
                     NPY_IN_ARRAY, NULL);
     if(xi==NULL) {
     PyErr_Format(_findContoursError,
@@ -616,7 +616,7 @@ Py_FindContours(PyObject *obj, PyObject *args)
     }
     
     yi = (PyArrayObject *) PyArray_FromAny(oyi,
-                    PyArray_DescrFromType(NPY_INT32), 1, 1,
+                    PyArray_DescrFromType(NPY_INT64), 1, 1,
                     NPY_IN_ARRAY, NULL);
     if((yi==NULL) || (PyArray_SIZE(xi) != PyArray_SIZE(yi))) {
     PyErr_Format(_findContoursError,
@@ -625,7 +625,7 @@ Py_FindContours(PyObject *obj, PyObject *args)
     }
     
     zi = (PyArrayObject *) PyArray_FromAny(ozi,
-                    PyArray_DescrFromType(NPY_INT32), 1, 1,
+                    PyArray_DescrFromType(NPY_INT64), 1, 1,
                     NPY_IN_ARRAY, NULL);
     if((zi==NULL) || (PyArray_SIZE(xi) != PyArray_SIZE(zi))) {
     PyErr_Format(_findContoursError,
@@ -656,9 +656,9 @@ Py_FindContours(PyObject *obj, PyObject *args)
         return NULL;
 }
 
-npy_int64 process_neighbors(PyArrayObject *con_ids, npy_int32 i, npy_int32 j, npy_int32 k)
+npy_int64 process_neighbors(PyArrayObject *con_ids, npy_int64 i, npy_int64 j, npy_int64 k)
 {
-  npy_int32 off_i, off_j, off_k;
+  npy_int64 off_i, off_j, off_k;
   int spawn_check;
   int mi, mj, mk;
   npy_int64 *fd_off, *fd_ijk;
