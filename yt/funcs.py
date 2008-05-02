@@ -67,6 +67,17 @@ class DummyProgressBar:
     def finish(sefl, *args, **kwargs):
         return
 
+class GUIProgressBar:
+    def __init__(self, title, maxval):
+        import wx
+        self._pbar = wx.ProgressDialog("Working...",
+                    title, maximum=maxval,
+                    style=wx.PD_REMAINING_TIME|wx.PD_ELAPSED_TIME|wx.PD_APP_MODAL)
+    def update(self, val):
+        self._pbar.Update(val)
+    def finish(self):
+        self._pbar.Destroy()
+
 def just_one(obj):
     if iterable(obj):
         return obj[0]
@@ -76,7 +87,10 @@ def get_pbar(title, maxval):
     from yt.config import ytcfg
     from yt.logger import lagosLogger as mylog
     if ytcfg.getboolean("yt","inGui"):
-        return DummyProgressBar()
+        if maxval > ytcfg.getint("reason","minpbar"): # Arbitrary number
+            return GUIProgressBar(title, maxval)
+        else:
+            return DummyProgressBar()
     elif ytcfg.getboolean("yt","suppressStreamLogging"):
         return DummyProgressBar()
     widgets = [ title,

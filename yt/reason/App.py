@@ -37,6 +37,7 @@ class ReasonMainWindow(wx.Frame):
         kwds["title"] = "yt - Reason"
         kwds["size"] = (ytcfg.getint("reason","width"),
                         ytcfg.getint("reason","height"))
+        ytcfg.set('yt','inGui','True')
         wx.Frame.__init__(self, *args, **kwds)
 
         self.__setup_controls()
