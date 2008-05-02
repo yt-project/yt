@@ -74,7 +74,7 @@ def readAllDataPacked(self):
     """
     pass
 
-def readDataSliceHDF5(self, grid, field, sl):
+def readDataSliceHDF5(self, grid, field, axis, coord):
     """
     Reads a slice through the HDF5 data
 
@@ -82,15 +82,15 @@ def readDataSliceHDF5(self, grid, field, sl):
     @type grid: L{EnzoGrid<EnzoGrid>}
     @param field: field to get
     @type field: string
-    @param sl: region to get
-    @type sl: SliceType
+    @param axis: axis to slice along
+    @param coord: coord to slice at
     """
-    f = tables.openFile(grid.filename, nodeCacheSize=1)
-    ss = f.getNode("/", field)[sl].swapaxes(0,2)
-    f.close()
-    return ss
+    axis = {0:2,1:1,2:0}[axis]
+    t = HDF5LightReader.ReadDataSlice(grid.filename, "/%s" %
+                    (field), axis, coord).transpose()
+    return t
 
-def readDataSliceHDF4(self, grid, field, sl):
+def readDataSliceHDF4(self, grid, field, axis, coord):
     """
     Reads a slice through the HDF4 data
 
@@ -101,6 +101,9 @@ def readDataSliceHDF4(self, grid, field, sl):
     @param sl: region to get
     @type sl: SliceType
     """
+    sl = [slice(None), slice(None), slice(None)]
+    sl[axis] = slice(coord, coord + 1)
+    sl = tuple(reversed(sl))
     return SD.SD(grid.filename).select(field)[sl].swapaxes(0,2)
 
 def readDataPackedHandle(self, field):
@@ -111,7 +114,7 @@ def readDataPackedHandle(self, field):
 def readDataPacked(self, field):
     return HDF5LightReader.ReadData(self.filename, "/Grid%08i/%s" % (self.id, field)).swapaxes(0,2)
 
-def readDataSlicePacked(self, grid, field, sl):
+def readDataSlicePacked(self, grid, field, axis, coord):
     """
     Reads a slice through the HDF5 data
 
@@ -122,10 +125,10 @@ def readDataSlicePacked(self, grid, field, sl):
     @param sl: region to get
     @type sl: SliceType
     """
-    f = tables.openFile(grid.filename, nodeCacheSize=1)
-    ss = f.getNode("/Grid%08i" % (grid.id), field)[sl].transpose()
-    f.close()
-    return ss
+    axis = {0:2,1:1,2:0}[axis]
+    t = HDF5LightReader.ReadDataSlice(grid.filename, "/Grid%08i/%s" %
+                    (grid.id, field), axis, coord).transpose()
+    return t
 
 def getFieldsPacked(self):
     """

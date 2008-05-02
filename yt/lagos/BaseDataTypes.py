@@ -463,21 +463,19 @@ class EnzoSliceBase(Enzo2DData):
         wantedIndex = int(((self.coord-grid.LeftEdge[self.axis])/grid.dx))
         sl = [slice(None), slice(None), slice(None)]
         sl[self.axis] = slice(wantedIndex, wantedIndex + 1)
-        slHERE = tuple(sl)
-        sl.reverse()
-        slHDF = tuple(sl)
+        sl = tuple(sl)
         if fieldInfo.has_key(field) and fieldInfo[field].particle_type:
             return grid[field]
         if not grid.has_key(field):
             conv_factor = 1.0
             if fieldInfo.has_key(field):
                 conv_factor = fieldInfo[field]._convert_function(self)
-            dv = self._read_data_slice(grid, field, slHDF) * conv_factor
+            dv = self._read_data_slice(grid, field, self.axis, wantedIndex) * conv_factor
         else:
             dv = grid[field]
             if dv.size == 1: dv = na.ones(grid.ActiveDimensions)*dv
-            dv = dv[slHERE]
-        cm = na.where(grid.child_mask[slHERE].ravel() == 1)
+            dv = dv[sl]
+        cm = na.where(grid.child_mask[sl].ravel() == 1)
         dataVals = dv.ravel()[cm]
         return dataVals
 
