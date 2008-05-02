@@ -37,6 +37,7 @@
 
 
 static PyObject *_hdf5ReadError;
+herr_t iterate_dataset(hid_t loc_id, const char *name, void *nodelist);
 
 static PyObject *
 Py_ReadHDF5DataSet(PyObject *obj, PyObject *args)
@@ -200,8 +201,82 @@ Py_ReadHDF5DataSet(PyObject *obj, PyObject *args)
       return NULL;
 }
 
+static PyObject *
+Py_ReadListOfDatasets(PyObject *obj, PyObject *args)
+{
+    char *filename, *nodename;
+
+    hid_t file_id;
+    herr_t my_error;
+    htri_t file_exists;
+    H5T_class_t class_id;
+    H5E_auto_t err_func;
+    file_id = 0;
+
+    if (!PyArg_ParseTuple(args, "ss",
+            &filename, &nodename))
+        return PyErr_Format(_hdf5ReadError,
+               "ReadListOfDatasets: Invalid parameters.");
+
+    /* How portable is this? */
+    if (access(filename, R_OK) < 0) {
+        PyErr_Format(_hdf5ReadError,
+                 "ReadListOfDatasets: %s does not exist, or no read permissions\n",
+                     filename);
+        goto _fail;
+    }
+
+    file_exists = H5Fis_hdf5(filename);
+    if (file_exists == 0) {
+        PyErr_Format(_hdf5ReadError,
+                 "ReadListOfDatasets: %s is not an HDF5 file", filename);
+        goto _fail;
+    }
+
+    file_id = H5Fopen (filename, H5F_ACC_RDONLY, H5P_DEFAULT); 
+    PyObject *nodelist = PyList_New(0);
+    if (nodelist == NULL) {
+        PyErr_Format(_hdf5ReadError,
+                 "ReadListOfDatasets: List couldn't be made!");
+        goto _fail;
+    }
+
+    my_error = H5Giterate(file_id, nodename, NULL, iterate_dataset, (void *) nodelist);
+    H5Fclose(file_id);
+    if (my_error) {
+        PyErr_Format(_hdf5ReadError,
+                 "ReadListOfDatasets: Problem iterating over HDF5 set.");
+        goto _fail;
+    }
+    
+    PyObject *return_value = Py_BuildValue("N", nodelist);
+    return return_value;
+
+    _fail:
+      Py_XDECREF(nodelist);
+      if(!(file_id <= 0)&&(H5Iget_ref(file_id))) H5Fclose(file_id);
+      return NULL;
+    
+}
+
+herr_t iterate_dataset(hid_t loc_id, const char *name, void *nodelist)
+{
+    H5G_stat_t statbuf;
+    PyObject* node_name, node_list;
+
+    H5Gget_objinfo(loc_id, name, 0, &statbuf);
+    if (statbuf.type == H5G_DATASET) {
+        node_name = PyString_FromString(name);
+        if (node_name == NULL) {return -1;}
+        if (PyList_Append((PyObject *)nodelist, node_name)) {return -1;}
+    }
+    return 0;
+};
+
+
 static PyMethodDef _hdf5LightReaderMethods[] = {
     {"ReadData", Py_ReadHDF5DataSet, METH_VARARGS},
+    {"ReadListOfDatasets", Py_ReadListOfDatasets, METH_VARARGS},
     {NULL, NULL} 
 };
 
