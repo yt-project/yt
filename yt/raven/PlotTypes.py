@@ -755,7 +755,7 @@ def particleCallback(axis, width, p_size=1.0, col='k'):
 
 def contourCallback(field, ncont=5, factor=4, take_log=False, clim=None):
     try:
-        import scipy.sandbox.delaunay as de
+        import delaunay as de
     except ImportError:
         mylog.warning("Callback failed; no delaunay module")
         return lambda a: None
