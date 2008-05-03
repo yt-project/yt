@@ -513,19 +513,19 @@ static PyObject *DataCubeGeneric(PyObject *obj, PyObject *args,
       if (ag_le[0]+ag_dx[0]*xg     > ac_re[0]) continue;
       if (ag_le[0]+ag_dx[0]*(xg+1) < ac_le[0]) continue;
       cmin_x = max(floorl((ag_le[0]+ag_dx[0]*xg     - ac_le[0])/ac_dx[0]),0);
-      cmax_x = min( ceill((ag_le[0]+ag_dx[0]*(xg+1) - ac_le[0])/ac_dx[0]),c_data->dimensions[0]);
+      cmax_x = min( ceill((ag_le[0]+ag_dx[0]*(xg+1) - ac_le[0])/ac_dx[0]),PyArray_DIM(c_data,0));
       for (yg = 0; yg < g_data->dimensions[1]; yg++) {
         if (ag_le[1]+ag_dx[1]*yg     > ac_re[1]) continue;
         if (ag_le[1]+ag_dx[1]*(yg+1) < ac_le[1]) continue;
         cmin_y = max(floorl((ag_le[1]+ag_dx[1]*yg     - ac_le[1])/ac_dx[1]),0);
-        cmax_y = min( ceill((ag_le[1]+ag_dx[1]*(yg+1) - ac_le[1])/ac_dx[1]),c_data->dimensions[1]);
+        cmax_y = min( ceill((ag_le[1]+ag_dx[1]*(yg+1) - ac_le[1])/ac_dx[1]),PyArray_DIM(c_data,1));
         for (zg = 0; zg < g_data->dimensions[2]; zg++) {
           cm = *(npy_int *)PyArray_GETPTR3(g_cm,xg,yg,zg);
           if ((!ll) && (cm == 0)) continue;
           if (ag_le[2]+ag_dx[2]*zg     > ac_re[2]) continue;
           if (ag_le[2]+ag_dx[2]*(zg+1) < ac_le[2]) continue;
           cmin_z = max(floorl((ag_le[2]+ag_dx[2]*zg     - ac_le[2])/ac_dx[2]),0);
-          cmax_z = min( ceill((ag_le[2]+ag_dx[2]*(zg+1) - ac_le[2])/ac_dx[2]),c_data->dimensions[2]);
+          cmax_z = min( ceill((ag_le[2]+ag_dx[2]*(zg+1) - ac_le[2])/ac_dx[2]),PyArray_DIM(c_data,2));
           for (xc = cmin_x; xc < cmax_x ; xc++) {
             for (yc = cmin_y; yc < cmax_y ; yc++) {
               for (zc = cmin_z; zc < cmax_z ; zc++) {

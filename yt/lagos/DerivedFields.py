@@ -287,20 +287,25 @@ def particle_func(p_field):
     def _Particles(field, data):
         if not data.NumberOfParticles > 0:
             return na.array([], dtype='float64')
-        return data._read_data(p_field).astype('float64')
+        try:
+            return data._read_data(p_field).astype('float64')
+        except data._read_exception:
+            pass
+        # This is bad.  But it's the best idea I have right now.
+        return data._read_data(p_field.replace("_"," ")).astype('float64')
     return _Particles
-for pf in ["index","type"] + \
+for pf in ["index", "type", "mass"] + \
           ["velocity_%s" % ax for ax in 'xyz'] + \
           ["position_%s" % ax for ax in 'xyz']:
     pfunc = particle_func("particle_%s" % (pf))
     add_field("particle_%s" % pf, function=pfunc,
               validators = [ValidateSpatial(0)],
               particle_type=True)
-add_field("particle mass", function=particle_func("particle mass"),
+add_field("particle mass", function=particle_func("particle_mass"),
           validators=[ValidateSpatial(0)], particle_type=True)
 
 def _ParticleMass(field, data):
-    particles = data["particle mass"].astype('float64') * \
+    particles = data["particle_mass"].astype('float64') * \
                 just_one(data["CellVolumeCode"].ravel())
     # Note that we mandate grid-type here, so this is okay
     return particles

@@ -1492,8 +1492,7 @@ class EnzoCoveringGrid(Enzo3DData):
         for field in fields_to_get:
             mylog.debug("Flushing field %s to %s possible grids",
                        field, len(self._grids))
-            grid_list = self._grids.tolist()
-            for grid in grid_list:
+            for grid in self._grids:
                 self._flush_data_to_grid(grid, field)
 
     @restore_grid_state

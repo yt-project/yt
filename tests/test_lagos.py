@@ -20,7 +20,7 @@ import numpy as na
 
 # The dataset used is located at:
 # http://yt.spacepope.org/DD0018.zip
-fn = "DD0000/moving7_0000"
+fn = "DD0010/moving7_0010"
 fn = os.path.join(os.path.dirname(__file__), fn)
 
 class LagosTestingBase:
@@ -50,11 +50,11 @@ class TestHierarchy(LagosTestingBase, unittest.TestCase):
 
     def testGetSmallestDx(self):
         self.assertAlmostEqual(self.hierarchy.get_smallest_dx(),
-                               0.015625, 5)
+                               0.00048828125, 7)
 
     def testGetNumberOfGrids(self):
         self.assertEqual(self.hierarchy.num_grids, len(self.hierarchy.grids))
-        self.assertEqual(self.hierarchy.num_grids, 3)
+        self.assertEqual(self.hierarchy.num_grids, 10)
 
     def testChildrenOfRootGrid(self):
         for child in self.hierarchy.grids[0].Children:
@@ -161,8 +161,8 @@ class Data3DBase:
         # As a note, unfortunately this dataset only has one sphere.
         # Frownie face.
         cid = yt.lagos.identify_contours(self.data, "Density",
-                self.data["Density"].min()*0.99, self.data["Density"].max()*1.01)
-        self.assertEqual(len(cid), 1)
+                self.data["Density"].min()*2.00, self.data["Density"].max()*1.01)
+        self.assertEqual(len(cid), 2)
 
     def testContoursValidityMax(self):
         v1 = self.data["Density"].max()*0.99
@@ -178,7 +178,7 @@ class Data3DBase:
         cid = yt.lagos.identify_contours(self.data, "Density", v1, v2)
         self.assertTrue(na.all(v1 < self.data["Density"][cid[0]])
                     and na.all(v2 > self.data["Density"][cid[0]]))
-        self.assertEqual(len(cid), 1)
+        self.assertEqual(len(cid), 3)
 
 
 for field in yt.lagos.fieldInfo.values():
@@ -223,22 +223,29 @@ class TestDataCube(LagosTestingBase, unittest.TestCase):
             cube = g.retrieve_ghost_zones(2, "Density")
     
     def testFlushBack(self):
+        ml = self.hierarchy.max_level
         cg = self.hierarchy.covering_grid(3, [0.0]*3, [1.0]*3, [64,64,64])
         cg["Ones"] *= 2.0
         cg.flush_data(field="Ones")
-        for g in self.hierarchy.grids:
-            self.assertTrue(g["Ones"].max() == 2.0)
+        for g in na.concatenate([self.hierarchy.select_grids(i) for i in range(3)]):
+            self.assertEqual(g["Ones"].max(), 2.0)
+            self.assertEqual(g["Ones"][g["Ones"]*g.child_mask>0].min(), 2.0)
         cg2 = self.hierarchy.covering_grid(3, [0.0]*3, [1.0]*3, [64,64,64])
         self.assertTrue(na.all(cg["Ones"] == cg2["Ones"]))
 
     def testRawFlushBack(self):
+        ml = self.hierarchy.max_level
         cg = self.hierarchy.covering_grid(3, [0.0]*3, [1.0]*3, [64,64,64])
         cg["DensityNew"] = cg["Density"] * 2.111
         cg.flush_data(field="DensityNew")
-        for g in self.hierarchy.grids:
+        for g in na.concatenate([self.hierarchy.select_grids(i) for i in range(3)]):
             ni = g["DensityNew"] > 0
-            self.assertTrue(na.all(g["DensityNew"][ni]/2.111 
-                                == g["Density"][ni]))
+            min_diff = (g["DensityNew"][ni]/g["Density"][ni]).max()
+            max_diff = (g["DensityNew"][ni]/g["Density"][ni]).min()
+            min_diff_i = na.argmin(g["DensityNew"][ni]/g["Density"][ni])
+            max_diff_i = na.argmax(g["DensityNew"][ni]/g["Density"][ni])
+            self.assertAlmostEqual(min_diff, 2.111, 5)
+            self.assertAlmostEqual(max_diff, 2.111, 5)
 
     def testAllCover(self):
         cg = self.hierarchy.covering_grid(0, [0.0]*3, [1.0]*3, [32,32,32])
@@ -251,7 +258,7 @@ class TestDiskDataType(Data3DBase, DataTypeTestingBase, LagosTestingBase, unitte
     def setUp(self):
         DataTypeTestingBase.setUp(self)
         self.data=self.hierarchy.disk(
-                     [0.5,0.5,0.5],[0.2, 0.1, 0.5],0.25,0.25)
+                     [0.5,0.5,0.5],[0.2, 0.1, 0.5],1.0,1.0)
 
 class TestRegionDataType(Data3DBase, DataTypeTestingBase, LagosTestingBase, unittest.TestCase):
     def setUp(self):
