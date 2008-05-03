@@ -1,0 +1,131 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>Profiles &mdash; yt v0.3 documentation</title>
+    <link rel="stylesheet" href="../_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:   '../',
+        VERSION:    '0.3'
+      };
+    </script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/interface.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <link rel="contents" title="Global table of contents" href="../contents.html" />
+    <link rel="index" title="Global index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="top" title="yt v0.3 documentation" href="../index.html" />
+    <link rel="up" title="A Short Tutorial on yt" href="main.html" />
+    <link rel="next" title="Automated Plotting" href="automated_plotting.html" />
+    <link rel="prev" title="Derived Fields" href="derived_fields.html" />
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px"><a href="../genindex.html" title="General Index" accesskey="I">index</a></li>
+        <li class="right"><a href="../modindex.html" title="Global Module Index" accesskey="M">modules</a> |</li>
+          <li class="right"><a href="automated_plotting.html" title="Automated Plotting" accesskey="N">next</a> |</li>
+          <li class="right"><a href="derived_fields.html" title="Derived Fields" accesskey="P">previous</a> |</li>
+        <li><a href="../index.html">yt v0.3 documentation</a> &raquo;</li>
+          <li><a href="main.html" accesskey="U">A Short Tutorial on yt</a> &raquo;</li>
+      </ul>
+    </div>
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  
+  <div class="section">
+<h1 id="profiles">Profiles<a class="headerlink" href="#profiles" title="Permalink to this headline">¶</a></h1>
+<p>Profiles are one of the more interesting data types.  They are a binned average
+of one or more variables, along one or two different dimensions.  For example,
+you could get an average temperature in Density and H2 Fraction space.  Or you could
+Look at the distribution of Volume through Density and Temperature space.  Or you could
+take the spherically-averaged Number Density and see how it changes with radius.</p>
+<p>In order to make a profile, we first need a data object we want to get the profile
+<em>from</em>.  This can be a sphere, a region, or even an extracted region.  We&#8217;ll
+first take a look at doing a spherically-average profile of Temperature with Radius.</p>
+<div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">sphere</span> <span class="o">=</span> <span class="n">a</span><span class="o">.</span><span class="n">h</span><span class="o">.</span><span class="n">sphere</span><span class="p">([</span><span class="mf">0.5</span><span class="p">,</span><span class="mf">0.5</span><span class="p">,</span><span class="mf">0.5</span><span class="p">],</span> <span class="mf">0.1</span><span class="o">/</span><span class="n">a</span><span class="p">[</span><span class="s">&quot;kpc&quot;</span><span class="p">])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">prof</span> <span class="o">=</span> <span class="n">lagos</span><span class="o">.</span><span class="n">BinnedProfile1D</span><span class="p">(</span><span class="n">sphere</span><span class="p">,</span> <span class="mf">16</span><span class="p">,</span> <span class="s">&quot;Radiuskpc&quot;</span><span class="p">,</span>
+<span class="go">                              0.0001, 0.1, True, True)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">prof</span><span class="o">.</span><span class="n">add_fields</span><span class="p">([</span><span class="s">&quot;Density&quot;</span><span class="p">,</span><span class="s">&quot;Temperature&quot;</span><span class="p">],</span> <span class="n">weight</span><span class="o">=</span><span class="s">&quot;CellMassMsun&quot;</span><span class="p">)</span>
+</pre></div>
+<p>Alright, again, a bit of explanation.  First, we get our sphere &#8211; and in doing
+so, we tell it where the center is, and how big (in <em>code units</em>) we want it to be.
+(Note that in order to convert a number into some unit, we <em>divide</em> by the conversion
+factor for that unit.</p>
+<p>Once we have that data object, we can do anything with it.  (See above!)
+However, what we <em>want</em> to do is generate a profile.  So we create
+a profile object, telling it where to get the data, which field we want to bin by,
+the lower and upper bounds (in the units of that field), and whether we want those
+bins to be log spaced.  But, there&#8217;s one more option &#8211; the last one is the &#8220;lazy_reader&#8221;
+option.  This controls whether we load all the data at once (faster) or whether
+we grab it from each grid individually (slower, but more memory-conservative.)</p>
+<p>Once we have instantiated the profile object, we add fields to it.
+These fields are weighted by CellMassMsun, and we get back an average value for
+each bin in &#8216;Radiuskpc&#8217;.  Now we can plot them, or inspect them, with simple
+data-access methods.  Additionally, you can feed them directly into pylab or matplotlib
+(neither of which we will cover in any length here) and plot them:</p>
+<div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="k">print</span> <span class="n">prof</span><span class="p">[</span><span class="s">&quot;Density&quot;</span><span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">import</span> <span class="nn">pylab</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">pylab</span><span class="o">.</span><span class="n">loglog</span><span class="p">(</span><span class="n">prof</span><span class="p">[</span><span class="s">&quot;Radiuskpc&quot;</span><span class="p">],</span> <span class="n">prof</span><span class="p">[</span><span class="s">&quot;Density&quot;</span><span class="p">])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">pylab</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s">r&quot;$\rm{Radius} (\rm{kpc})$&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">pylab</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s">r&quot;$\rm{Density} (\rm{g}/\rm{cm}^3)$&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">pylab</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="s">&quot;my_profile.png&quot;</span><span class="p">)</span>
+</pre></div>
+<p>Two-dimensional profiles are along the same lines.</p>
+<div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">prof2d</span> <span class="o">=</span> <span class="n">lagos</span><span class="o">.</span><span class="n">BinnedProfile2D</span><span class="p">(</span><span class="n">sphere</span><span class="p">,</span>
+<span class="gp">... </span>                <span class="mf">16</span><span class="p">,</span> <span class="s">&quot;Density&quot;</span><span class="p">,</span> <span class="mf">1e-32</span><span class="p">,</span> <span class="mf">1e-24</span><span class="p">,</span> <span class="bp">True</span><span class="p">,</span>
+<span class="gp">... </span>                <span class="mf">16</span><span class="p">,</span> <span class="s">&quot;Temperature&quot;</span><span class="p">,</span> <span class="mf">1e2</span><span class="p">,</span> <span class="mf">1e5</span><span class="p">,</span> <span class="bp">True</span><span class="p">,</span> <span class="bp">True</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">prof2d</span><span class="o">.</span><span class="n">add_fields</span><span class="p">(</span><span class="s">&quot;CellVolume&quot;</span><span class="p">,</span> <span class="n">weight</span><span class="o">=</span><span class="bp">None</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">pylab</span><span class="o">.</span><span class="n">pcolormesh</span><span class="p">(</span><span class="n">prof2d</span><span class="p">[</span><span class="s">&quot;Density&quot;</span><span class="p">],</span> <span class="n">prof2d</span><span class="p">[</span><span class="s">&quot;Temperature&quot;</span><span class="p">],</span>
+<span class="gp">... </span>                 <span class="n">prof2d</span><span class="p">[</span><span class="s">&quot;CellVolume&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">transpose</span><span class="p">())</span>
+</pre></div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sidebar">
+        <div class="sidebarwrapper">
+            <h4>Previous topic</h4>
+            <p class="topless"><a href="derived_fields.html" title="previous chapter">Derived Fields</a></p>
+            <h4>Next topic</h4>
+            <p class="topless"><a href="automated_plotting.html" title="next chapter">Automated Plotting</a></p>
+            <h3>This Page</h3>
+            <ul class="this-page-menu">
+              <li><a href="../_sources/tutorial/profiles.txt">Show Source</a></li>
+            </ul>
+            <h3>Quick search</h3>
+            <form class="search" action="../search.html" method="get">
+              <input type="text" name="q" size="18"> <input type="submit" value="Go" />
+              <input type="hidden" name="check_keywords" value="yes" />
+              <input type="hidden" name="area" value="default" />
+            </form>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px"><a href="../genindex.html" title="General Index" accesskey="I">index</a></li>
+        <li class="right"><a href="../modindex.html" title="Global Module Index" accesskey="M">modules</a> |</li>
+          <li class="right"><a href="automated_plotting.html" title="Automated Plotting" accesskey="N">next</a> |</li>
+          <li class="right"><a href="derived_fields.html" title="Derived Fields" accesskey="P">previous</a> |</li>
+        <li><a href="../index.html">yt v0.3 documentation</a> &raquo;</li>
+          <li><a href="main.html" accesskey="U">A Short Tutorial on yt</a> &raquo;</li>
+      </ul>
+    </div>
+    <div class="footer">
+      &copy; Copyright 2008, Matthew Turk.
+      Last updated on May 03, 2008.
+    </div>
+  </body>
+</html>

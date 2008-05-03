@@ -1,0 +1,121 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>Automated Plotting &mdash; yt v0.3 documentation</title>
+    <link rel="stylesheet" href="../_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:   '../',
+        VERSION:    '0.3'
+      };
+    </script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/interface.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <link rel="contents" title="Global table of contents" href="../contents.html" />
+    <link rel="index" title="Global index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="top" title="yt v0.3 documentation" href="../index.html" />
+    <link rel="up" title="A Short Tutorial on yt" href="main.html" />
+    <link rel="next" title="Advanced Objects" href="advanced_objects.html" />
+    <link rel="prev" title="Profiles" href="profiles.html" />
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px"><a href="../genindex.html" title="General Index" accesskey="I">index</a></li>
+        <li class="right"><a href="../modindex.html" title="Global Module Index" accesskey="M">modules</a> |</li>
+          <li class="right"><a href="advanced_objects.html" title="Advanced Objects" accesskey="N">next</a> |</li>
+          <li class="right"><a href="profiles.html" title="Profiles" accesskey="P">previous</a> |</li>
+        <li><a href="../index.html">yt v0.3 documentation</a> &raquo;</li>
+          <li><a href="main.html" accesskey="U">A Short Tutorial on yt</a> &raquo;</li>
+      </ul>
+    </div>
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  
+  <div class="section">
+<h1 id="automated-plotting">Automated Plotting<a class="headerlink" href="#automated-plotting" title="Permalink to this headline">¶</a></h1>
+<p>So now we know how to get and manipulate most of the datatypes, but we
+still have to go through some processes to plot them manually.  However, yt has
+facilities for plotting slices, projections and profiles in much easier ways.
+The plotting tool is called &#8216;raven&#8217; and it&#8217;s organized around the idea of
+PlotCollection objects.  Each PlotCollection object is in some way thematically
+associated &#8211; maybe they are all the same data, sliced along different axes, for instance.
+When you act on a PlotCollection, you act on all the plots that are part of that
+collection.  Each PlotCollection is associated with a single parameter file.</p>
+<div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="k">import</span> <span class="nn">yt.raven</span> <span class="k">as</span> <span class="nn">raven</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">pc</span> <span class="o">=</span> <span class="n">raven</span><span class="o">.</span><span class="n">PlotCollection</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">pc</span><span class="o">.</span><span class="n">add_slice</span><span class="p">(</span><span class="s">&quot;Density&quot;</span><span class="p">,</span> <span class="mf">0</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">pc</span><span class="o">.</span><span class="n">add_slice</span><span class="p">(</span><span class="s">&quot;Density&quot;</span><span class="p">,</span> <span class="mf">1</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">pc</span><span class="o">.</span><span class="n">add_slice</span><span class="p">(</span><span class="s">&quot;Density&quot;</span><span class="p">,</span> <span class="mf">2</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">pc</span><span class="o">.</span><span class="n">set_width</span><span class="p">(</span><span class="mf">15</span><span class="p">,</span> <span class="s">&#39;kpc&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">pc</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="s">&quot;somename_15kpc&quot;</span><span class="p">)</span>
+</pre></div>
+<p>There&#8217;s a lot in that little block of text.  First I add a slice (note that while
+we can feed it a pre-existing slice, it will also grab one automatically if we
+don&#8217;t!) along each axis (0,1,2) in the field &#8220;Density&#8221;.  Each time we
+add a plot to the PlotCollection, it is accessible as pc.plots[index] where &#8216;index&#8217;
+is the 0-based index in order of addition.  Each plot object has a &#8216;data&#8217; property,
+so if we wanted the EnzoSlice object, we can access it:</p>
+<div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="k">print</span> <span class="n">pc</span><span class="o">.</span><span class="n">plots</span><span class="p">[</span><span class="mf">1</span><span class="p">]</span><span class="o">.</span><span class="n">data</span>
+</pre></div>
+<p>After we&#8217;ve created the plots above, we set the width to 15 kiloparsecs.
+Note that raven understands any length unit that the hierarchy has, so you
+can set to mpc, kpc, pc, au, km or cm.  Then we call save, and feed it a prefix &#8211;
+it takes care of adding some more information to the filename, so don&#8217;t supply it
+a file suffix.  (It defaults to &#8216;.png&#8217;)</p>
+<p>We have access to most of the interesting plots from the PlotCollection
+interface, including cutting planes and projections.  (More on those later!):</p>
+<div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">pc</span><span class="o">.</span><span class="n">add_projection</span><span class="p">(</span><span class="s">&quot;Temperature&quot;</span><span class="p">,</span> <span class="mf">0</span><span class="p">,</span> <span class="n">weight_field</span><span class="o">=</span><span class="s">&quot;CellMass&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">pc</span><span class="o">.</span><span class="n">add_threephase_sphere</span><span class="p">(</span><span class="mf">1.0</span><span class="p">,</span> <span class="s">&#39;pc&#39;</span><span class="p">,</span> <span class="p">[</span><span class="s">&quot;Density&quot;</span><span class="p">,</span><span class="s">&quot;Temperature&quot;</span><span class="p">,</span><span class="s">&quot;H2I_Fraction&quot;</span><span class="p">])</span>
+</pre></div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sidebar">
+        <div class="sidebarwrapper">
+            <h4>Previous topic</h4>
+            <p class="topless"><a href="profiles.html" title="previous chapter">Profiles</a></p>
+            <h4>Next topic</h4>
+            <p class="topless"><a href="advanced_objects.html" title="next chapter">Advanced Objects</a></p>
+            <h3>This Page</h3>
+            <ul class="this-page-menu">
+              <li><a href="../_sources/tutorial/automated_plotting.txt">Show Source</a></li>
+            </ul>
+            <h3>Quick search</h3>
+            <form class="search" action="../search.html" method="get">
+              <input type="text" name="q" size="18"> <input type="submit" value="Go" />
+              <input type="hidden" name="check_keywords" value="yes" />
+              <input type="hidden" name="area" value="default" />
+            </form>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px"><a href="../genindex.html" title="General Index" accesskey="I">index</a></li>
+        <li class="right"><a href="../modindex.html" title="Global Module Index" accesskey="M">modules</a> |</li>
+          <li class="right"><a href="advanced_objects.html" title="Advanced Objects" accesskey="N">next</a> |</li>
+          <li class="right"><a href="profiles.html" title="Profiles" accesskey="P">previous</a> |</li>
+        <li><a href="../index.html">yt v0.3 documentation</a> &raquo;</li>
+          <li><a href="main.html" accesskey="U">A Short Tutorial on yt</a> &raquo;</li>
+      </ul>
+    </div>
+    <div class="footer">
+      &copy; Copyright 2008, Matthew Turk.
+      Last updated on May 03, 2008.
+    </div>
+  </body>
+</html>

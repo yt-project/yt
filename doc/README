@@ -1,3 +1,10 @@
-See the wiki!
+This directory contains the yt documentation, in ReSTructured Text format.
+It's written to be used with Sphinx, a tool designed for writing Python
+documentation.  Sphinx is available at this URL:
 
-http://yt.spacepope.org/
+http://sphinx.pocoo.org/
+
+All of the pre-built HTML files, accessible with any web browser, are available
+in the build/ directory, as well as at:
+
+http://yt.spacepope.org/doc/index.html

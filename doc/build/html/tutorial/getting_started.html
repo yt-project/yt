@@ -1,0 +1,126 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>Getting Started &mdash; yt v0.3 documentation</title>
+    <link rel="stylesheet" href="../_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:   '../',
+        VERSION:    '0.3'
+      };
+    </script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/interface.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <link rel="contents" title="Global table of contents" href="../contents.html" />
+    <link rel="index" title="Global index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="top" title="yt v0.3 documentation" href="../index.html" />
+    <link rel="up" title="A Short Tutorial on yt" href="main.html" />
+    <link rel="next" title="Basic Objects" href="basic_objects.html" />
+    <link rel="prev" title="A Short Tutorial on yt" href="main.html" />
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px"><a href="../genindex.html" title="General Index" accesskey="I">index</a></li>
+        <li class="right"><a href="../modindex.html" title="Global Module Index" accesskey="M">modules</a> |</li>
+          <li class="right"><a href="basic_objects.html" title="Basic Objects" accesskey="N">next</a> |</li>
+          <li class="right"><a href="main.html" title="A Short Tutorial on yt" accesskey="P">previous</a> |</li>
+        <li><a href="../index.html">yt v0.3 documentation</a> &raquo;</li>
+          <li><a href="main.html" accesskey="U">A Short Tutorial on yt</a> &raquo;</li>
+      </ul>
+    </div>
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  
+  <div class="section">
+<h1 id="getting-started">Getting Started<a class="headerlink" href="#getting-started" title="Permalink to this headline">¶</a></h1>
+<p>We start out by getting some stuff into our local namespace.
+The import command is how an external module gets loaded.  By default,
+it shows up as the module name itself.  But you can also import it as
+something else, which makes things easier...</p>
+<p>Lagos is our data-handler.  If you need to touch data, lagos will be your
+friend.</p>
+<div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="k">import</span> <span class="nn">yt.lagos</span> <span class="k">as</span> <span class="nn">lagos</span>
+</pre></div>
+<p>We first instantiate a StaticOutput.  This is a pretty simple process - lagos
+will grab the parameter file that you give it, parse it, set up some handy
+units, and then return control to you.:</p>
+<div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">a</span> <span class="o">=</span> <span class="n">lagos</span><span class="o">.</span><span class="n">EnzoStaticOutput</span><span class="p">(</span><span class="s">&quot;/Users/matthewturk/Research/data/DataDir0036/DataDump0036&quot;</span><span class="p">)</span>
+</pre></div>
+<p>But what good is just a parameter file?  What we really want is to be able to
+manipulate the grids, and all the fields stored in those grids.  Fortunately,
+we can access the hierarchy as either &#8216;hierarchy&#8217; or &#8216;h&#8217;.
+Let&#8217;s start out by finding the location of the maximum Density.
+Note that here we use an inline-unpacking &#8211; find_max returns two values,
+packed into a tuple, so we manually unpack them right here.:</p>
+<div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">v</span><span class="p">,</span><span class="n">c</span> <span class="o">=</span> <span class="n">a</span><span class="o">.</span><span class="n">h</span><span class="o">.</span><span class="n">find_max</span><span class="p">(</span><span class="s">&quot;Density&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">print</span> <span class="n">v</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">print</span> <span class="n">c</span>
+</pre></div>
+<p>The hierarchy object has some interesting methods that let us access the data
+in different ways.  Let&#8217;s start by looking at the grids.</p>
+<div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">my_grid</span> <span class="o">=</span> <span class="n">a</span><span class="o">.</span><span class="n">h</span><span class="o">.</span><span class="n">grids</span><span class="p">[</span><span class="mf">0</span><span class="p">]</span> <span class="c"># The root grid</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">print</span> <span class="n">my_grid</span><span class="o">.</span><span class="n">dx</span><span class="p">,</span> <span class="n">my_grid</span><span class="o">.</span><span class="n">ActiveDimensions</span> <span class="c"># Some of the attributes</span>
+</pre></div>
+<p>You might be asking yourself, how do I know what properties objects have?
+Python gives us a convenient mechanism for determining this:</p>
+<div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="k">print</span> <span class="nb">dir</span><span class="p">(</span><span class="n">my_grid</span><span class="p">)</span>
+</pre></div>
+<p>In general, a method or property that begins with &#8216;_&#8217; is not meant to be
+called directly, and &#8216;__&#8217; means that it definitely shouldn&#8217;t be called by an
+external process.</p>
+<p>Now let&#8217;s take a look at accessing the data fields inherent to the grid
+object.</p>
+<div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="k">print</span> <span class="n">my_grid</span><span class="p">[</span><span class="s">&quot;Density&quot;</span><span class="p">]</span><span class="o">*</span><span class="n">my_grid</span><span class="p">[</span><span class="s">&quot;Temperature&quot;</span><span class="p">]</span>
+</pre></div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sidebar">
+        <div class="sidebarwrapper">
+            <h4>Previous topic</h4>
+            <p class="topless"><a href="main.html" title="previous chapter">A Short Tutorial on yt</a></p>
+            <h4>Next topic</h4>
+            <p class="topless"><a href="basic_objects.html" title="next chapter">Basic Objects</a></p>
+            <h3>This Page</h3>
+            <ul class="this-page-menu">
+              <li><a href="../_sources/tutorial/getting_started.txt">Show Source</a></li>
+            </ul>
+            <h3>Quick search</h3>
+            <form class="search" action="../search.html" method="get">
+              <input type="text" name="q" size="18"> <input type="submit" value="Go" />
+              <input type="hidden" name="check_keywords" value="yes" />
+              <input type="hidden" name="area" value="default" />
+            </form>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px"><a href="../genindex.html" title="General Index" accesskey="I">index</a></li>
+        <li class="right"><a href="../modindex.html" title="Global Module Index" accesskey="M">modules</a> |</li>
+          <li class="right"><a href="basic_objects.html" title="Basic Objects" accesskey="N">next</a> |</li>
+          <li class="right"><a href="main.html" title="A Short Tutorial on yt" accesskey="P">previous</a> |</li>
+        <li><a href="../index.html">yt v0.3 documentation</a> &raquo;</li>
+          <li><a href="main.html" accesskey="U">A Short Tutorial on yt</a> &raquo;</li>
+      </ul>
+    </div>
+    <div class="footer">
+      &copy; Copyright 2008, Matthew Turk.
+      Last updated on May 03, 2008.
+    </div>
+  </body>
+</html>

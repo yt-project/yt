@@ -1,0 +1,129 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>Basic Objects &mdash; yt v0.3 documentation</title>
+    <link rel="stylesheet" href="../_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:   '../',
+        VERSION:    '0.3'
+      };
+    </script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/interface.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <link rel="contents" title="Global table of contents" href="../contents.html" />
+    <link rel="index" title="Global index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="top" title="yt v0.3 documentation" href="../index.html" />
+    <link rel="up" title="A Short Tutorial on yt" href="main.html" />
+    <link rel="next" title="Derived Fields" href="derived_fields.html" />
+    <link rel="prev" title="Getting Started" href="getting_started.html" />
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px"><a href="../genindex.html" title="General Index" accesskey="I">index</a></li>
+        <li class="right"><a href="../modindex.html" title="Global Module Index" accesskey="M">modules</a> |</li>
+          <li class="right"><a href="derived_fields.html" title="Derived Fields" accesskey="N">next</a> |</li>
+          <li class="right"><a href="getting_started.html" title="Getting Started" accesskey="P">previous</a> |</li>
+        <li><a href="../index.html">yt v0.3 documentation</a> &raquo;</li>
+          <li><a href="main.html" accesskey="U">A Short Tutorial on yt</a> &raquo;</li>
+      </ul>
+    </div>
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  
+  <div class="section">
+<h1 id="basic-objects">Basic Objects<a class="headerlink" href="#basic-objects" title="Permalink to this headline">¶</a></h1>
+<p>What the code just did was access the grid files and then spit back the
+results of the read operations.  So we can access the fields pretty easily
+this way, but what about generating new fields from our existing fields?
+Well, that&#8217;s just as easy!  And yt comes with many derived fields
+pre-defined, but from within a script you can also define your own.</p>
+<div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="k">print</span> <span class="n">my_grid</span><span class="p">[</span><span class="s">&quot;Entropy&quot;</span><span class="p">]</span>
+</pre></div>
+<p>Entropy is a derived field.  But how does it work?  Well, we have a built-in
+source-code inspector.</p>
+<div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="k">print</span> <span class="n">lagos</span><span class="o">.</span><span class="n">fieldInfo</span><span class="p">[</span><span class="s">&quot;Entropy&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">get_source</span><span class="p">()</span>
+</pre></div>
+<p>But what if we only want a couple values?  We can directly grab indices.</p>
+<div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="k">print</span> <span class="n">my_grid</span><span class="p">[</span><span class="s">&quot;Density&quot;</span><span class="p">][</span><span class="mf">0</span><span class="p">,</span><span class="mf">10</span><span class="p">,</span><span class="mf">4</span><span class="p">]</span> <span class="c"># 0-indexed!</span>
+</pre></div>
+<p>We can also slice, using the slice operator: &#8216;:&#8217;</p>
+<div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="k">print</span> <span class="n">my_grid</span><span class="p">[</span><span class="s">&quot;Density&quot;</span><span class="p">][</span><span class="mf">0</span><span class="p">,:,</span><span class="mf">4</span><span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">print</span> <span class="n">my_grid</span><span class="p">[</span><span class="s">&quot;Density&quot;</span><span class="p">][</span><span class="mf">0</span><span class="p">,</span><span class="mf">2</span><span class="p">:</span><span class="mf">4</span><span class="p">,</span><span class="mf">4</span><span class="p">]</span>
+</pre></div>
+<p>Okay, so now you&#8217;ve seen how to grab fields from a grid.  The thing about
+getting fields from a grid, though, is that it works the exact same way as
+all the other data types!  (Well, maybe not projection :)  So that raises the
+question, how do we get more data objects?  Well, the hierarchy is our friend
+here.  We can get slices, projections, spheres, rectangular prisms,
+fixed-resolution grids and cutting planes from the herarchy.</p>
+<p>Let&#8217;s start with a slice.  A slice needs some info, but how do we know what
+type?  Well, let&#8217;s use &#8216;help&#8217;!:</p>
+<div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">help</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">h</span><span class="o">.</span><span class="n">slice</span><span class="p">)</span>
+</pre></div>
+<p>Looks like we need to feed it an axis, a coordinate, and maybe some fields
+and a center.  Axes are always done as numbers, with 0 = x, 1 = y, 2 = z.:</p>
+<div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">my_slice</span> <span class="o">=</span> <span class="n">a</span><span class="o">.</span><span class="n">h</span><span class="o">.</span><span class="n">slice</span><span class="p">(</span><span class="mf">0</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">,</span> <span class="s">&quot;Density&quot;</span><span class="p">)</span>  <span class="c"># We don&#39;t really need to pass the field!</span>
+</pre></div>
+<p>Now let&#8217;s test out getting new fields.:</p>
+<div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="k">print</span> <span class="n">my_slice</span><span class="p">[</span><span class="s">&quot;Pressure&quot;</span><span class="p">],</span> <span class="n">my_slice</span><span class="p">[</span><span class="s">&quot;Density&quot;</span><span class="p">]</span>
+</pre></div>
+<p>Okay, so enough of the slices.  (Although they can do some more stuff, like
+shift around inside the domain, and so on and so forth.)</p>
+<p>Let&#8217;s do a region.  This is a box with a left edge and a right edge, and a
+center.  (You need a center for some other calculations, not for getting the
+region.)  Let&#8217;s get started by grabbing the ENTIRE domain.:</p>
+<div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">my_region</span> <span class="o">=</span> <span class="n">a</span><span class="o">.</span><span class="n">h</span><span class="o">.</span><span class="n">region</span><span class="p">([</span><span class="mf">0.5</span><span class="p">,</span><span class="mf">0.5</span><span class="p">,</span><span class="mf">0.5</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.0</span><span class="p">,</span><span class="mf">0.0</span><span class="p">,</span><span class="mf">0.0</span><span class="p">],</span> <span class="p">[</span><span class="mf">1.0</span><span class="p">,</span><span class="mf">1.0</span><span class="p">,</span><span class="mf">1.0</span><span class="p">])</span>
+</pre></div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sidebar">
+        <div class="sidebarwrapper">
+            <h4>Previous topic</h4>
+            <p class="topless"><a href="getting_started.html" title="previous chapter">Getting Started</a></p>
+            <h4>Next topic</h4>
+            <p class="topless"><a href="derived_fields.html" title="next chapter">Derived Fields</a></p>
+            <h3>This Page</h3>
+            <ul class="this-page-menu">
+              <li><a href="../_sources/tutorial/basic_objects.txt">Show Source</a></li>
+            </ul>
+            <h3>Quick search</h3>
+            <form class="search" action="../search.html" method="get">
+              <input type="text" name="q" size="18"> <input type="submit" value="Go" />
+              <input type="hidden" name="check_keywords" value="yes" />
+              <input type="hidden" name="area" value="default" />
+            </form>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px"><a href="../genindex.html" title="General Index" accesskey="I">index</a></li>
+        <li class="right"><a href="../modindex.html" title="Global Module Index" accesskey="M">modules</a> |</li>
+          <li class="right"><a href="derived_fields.html" title="Derived Fields" accesskey="N">next</a> |</li>
+          <li class="right"><a href="getting_started.html" title="Getting Started" accesskey="P">previous</a> |</li>
+        <li><a href="../index.html">yt v0.3 documentation</a> &raquo;</li>
+          <li><a href="main.html" accesskey="U">A Short Tutorial on yt</a> &raquo;</li>
+      </ul>
+    </div>
+    <div class="footer">
+      &copy; Copyright 2008, Matthew Turk.
+      Last updated on May 03, 2008.
+    </div>
+  </body>
+</html>
