@@ -1,6 +1,17 @@
 Getting Started
 ===============
 
+Getting into yt
+---------------
+
+For the purposes of this tutorial, I'm going to assume that python is
+installed, the prerequisites are installed and working, and that you know how
+to launch a python interpreter.  So first off, let's start it up.
+
+.. code-block:: bash
+
+   $ python2.5
+
 We start out by getting some stuff into our local namespace.
 The import command is how an external module gets loaded.  By default,
 it shows up as the module name itself.  But you can also import it as
@@ -11,6 +22,8 @@ friend. ::
 
    >>> import yt.lagos as lagos
 
+The Hierarchy
+-------------
 
 We first instantiate a StaticOutput.  This is a pretty simple process - lagos
 will grab the parameter file that you give it, parse it, set up some handy
@@ -30,6 +43,8 @@ packed into a tuple, so we manually unpack them right here.::
    >>> print v
    >>> print c
 
+The Grids
+---------
 
 The hierarchy object has some interesting methods that let us access the data
 in different ways.  Let's start by looking at the grids.  ::

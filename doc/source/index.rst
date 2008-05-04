@@ -1,18 +1,21 @@
-.. yt documentation master file, created by sphinx-quickstart on Sat May  3 15:25:47 2008.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
+yt Overview
+===========
 
-Welcome to yt's documentation!
-==============================
+yt is a toolkit designed to analyze, manage and plot adaptive mesh refinement
+data from the Enzo code.
 
 Contents:
 
 .. toctree::
    :maxdepth: 2
 
-   A Short Tutorial <tutorial/main>
+   intro
+   tutorial/index
+   extending/index
+   faq
    modules/lagos/index
    modules/raven/index
+   modules/reason/index
 
 Indices and tables
 ==================
