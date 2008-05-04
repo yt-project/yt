@@ -1,5 +1,5 @@
 Introduction
-===========
+============
 
 Adaptive Mesh Refinement Data
 -----------------------------
