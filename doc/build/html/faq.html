@@ -18,6 +18,7 @@
     <link rel="index" title="Global index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="top" title="yt v0.3 documentation" href="index.html" />
+    <link rel="next" title="yt.lagos" href="modules/lagos/index.html" />
     <link rel="prev" title="Extending yt" href="extending/index.html" />
   </head>
   <body>
@@ -26,8 +27,12 @@
       <ul>
         <li class="right" style="margin-right: 10px"><a href="genindex.html" title="General Index" accesskey="I">index</a></li>
         <li class="right"><a href="modindex.html" title="Global Module Index" accesskey="M">modules</a> |</li>
+          <li class="right"><a href="modules/lagos/index.html" title="yt.lagos" accesskey="N">next</a> |</li>
           <li class="right"><a href="extending/index.html" title="Extending yt" accesskey="P">previous</a> |</li>
+    <li><a href="http://yt.spacepope.org/">yt</a> &raquo;</li>
+    
         <li><a href="index.html">yt v0.3 documentation</a> &raquo;</li>
+
       </ul>
     </div>
     <div class="document">
@@ -40,24 +45,60 @@
 <h1 id="faq">FAQ<a class="headerlink" href="#faq" title="Permalink to this headline">¶</a></h1>
 <div class="section">
 <h2 id="why-python">Why Python?<a class="headerlink" href="#why-python" title="Permalink to this headline">¶</a></h2>
+<p>Well, the easiest answer is that I knew it, and it met the requirements.  The
+more interesting answer, though, is a combination of things.  Python right now
+has a lot of momentum behind it, particularly in the scientific community.
+It&#8217;s easy to compile, portable across many architectures, relatively simple to
+write C-based exntesions for, and it&#8217;s well-suited to rapid application
+development.  With access to an interpreter, new avenues of data-exploration
+are opened, and this can lead to much more rapid and interesting analysis.</p>
 </div>
 <div class="section">
-<h2 id="what-do-i-need-to-use-yt">What do I need to use yt?<a class="headerlink" href="#what-do-i-need-to-use-yt" title="Permalink to this headline">¶</a></h2>
+<h2 id="where-can-i-learn-more-about-python">Where can I learn more about Python?<a class="headerlink" href="#where-can-i-learn-more-about-python" title="Permalink to this headline">¶</a></h2>
+<p>There are several good, free books about Python available on the web.  The best
+place to start is with the <a class="reference" href="http://docs.python.org/tut/">official tutorial</a>,
+but there&#8217;s also <a class="reference" href="http://www.diveintopython.org/">Dive Into Python</a>, an
+entire <a class="reference" href="http://showmedo.com/videos/python?topic=beginner_programming">collection of videos</a> on
+<a class="reference" href="http://showmedo.com/">ShowMeDo.com</a>, and a much more specific guide to using
+<a class="reference" href="http://www.scipy.org/Tentative_NumPy_Tutorial">NumPy</a>, which is the backend
+on which all the math done in yt is based.</p>
+<p>As far as books go, the only book I&#8217;ve found to be absolutely indispensible is
+the <a class="reference" href="http://www.amazon.com/exec/obidos/ASIN/0735710910">Beazley Book</a>.</p>
 </div>
 <div class="section">
 <h2 id="what-s-up-with-the-names">What&#8217;s up with the names?<a class="headerlink" href="#what-s-up-with-the-names" title="Permalink to this headline">¶</a></h2>
+<p>In the book <a class="reference" href="http://en.wikipedia.org/wiki/Snow_Crash">Snow Crash</a>, yt is
+Uncle Enzo&#8217;s messenger.  Lagos is the keeper of the data, Raven is a master
+slicer, and so on.</p>
 </div>
 <div class="section">
 <h2 id="are-there-any-restrictions-on-my-use-of-yt">Are there any restrictions on my use of yt?<a class="headerlink" href="#are-there-any-restrictions-on-my-use-of-yt" title="Permalink to this headline">¶</a></h2>
+<p>yt has been released under Version 3 of the
+<a class="reference" href="http://www.gnu.org/licenses/gpl.html">GNU General Public License</a>.</p>
+<p>If you found it useful, and have extended it in some meaningful way, of course
+I&#8217;d love to see your contributions so they can be shared with the community.
+Additionally, if you use yt in a paper, I&#8217;d love it if you&#8217;d drop me a line to
+let me know.</p>
 </div>
 <div class="section">
 <h2 id="how-can-i-help">How can I help?<a class="headerlink" href="#how-can-i-help" title="Permalink to this headline">¶</a></h2>
+<p>If you find a bug, report it.  If you do something cool, write it up.  If you
+find a place to improve the code, send in a patch.</p>
 </div>
 <div class="section">
 <h2 id="something-has-gone-wrong-what-do-i-do">Something has gone wrong.  What do I do?<a class="headerlink" href="#something-has-gone-wrong-what-do-i-do" title="Permalink to this headline">¶</a></h2>
+<p>Well, first off, double check that you&#8217;re giving the code what it needs, and
+not asking it for something it can&#8217;t provide.  Use the <tt class="docutils literal"><span class="pre">help()</span></tt> command on
+an object or a method to get more information.</p>
+<p>If you can&#8217;t figure out what&#8217;s up, please go ahead and copy the resultant
+traceback information (the error message it prints out) along with any log
+files, and either send an email to the <tt class="docutils literal"><span class="pre">yt-users</span></tt> mailing list (subscribe
+first!) or attach them to a ticket at <a class="reference" href="http://yt.spacepope.org/">http://yt.spacepope.org/</a>.</p>
 </div>
 <div class="section">
 <h2 id="where-can-i-go-for-support">Where can I go for support?<a class="headerlink" href="#where-can-i-go-for-support" title="Permalink to this headline">¶</a></h2>
+<p>I&#8217;ve set up a <tt class="docutils literal"><span class="pre">yt-users</span></tt> mailing list.  There&#8217;s more information about it
+at the <a class="reference" href="http://yt.spacepope.org">yt homepage</a>.</p>
 </div>
 </div>
 
@@ -71,7 +112,7 @@
             <ul>
 <li><a class="reference" href="">FAQ</a><ul>
 <li><a class="reference" href="#why-python">Why Python?</a></li>
-<li><a class="reference" href="#what-do-i-need-to-use-yt">What do I need to use yt?</a></li>
+<li><a class="reference" href="#where-can-i-learn-more-about-python">Where can I learn more about Python?</a></li>
 <li><a class="reference" href="#what-s-up-with-the-names">What&#8217;s up with the names?</a></li>
 <li><a class="reference" href="#are-there-any-restrictions-on-my-use-of-yt">Are there any restrictions on my use of yt?</a></li>
 <li><a class="reference" href="#how-can-i-help">How can I help?</a></li>
@@ -83,6 +124,8 @@
 
             <h4>Previous topic</h4>
             <p class="topless"><a href="extending/index.html" title="previous chapter">Extending yt</a></p>
+            <h4>Next topic</h4>
+            <p class="topless"><a href="modules/lagos/index.html" title="next chapter">yt.lagos</a></p>
             <h3>This Page</h3>
             <ul class="this-page-menu">
               <li><a href="_sources/faq.txt">Show Source</a></li>
@@ -102,13 +145,17 @@
       <ul>
         <li class="right" style="margin-right: 10px"><a href="genindex.html" title="General Index" accesskey="I">index</a></li>
         <li class="right"><a href="modindex.html" title="Global Module Index" accesskey="M">modules</a> |</li>
+          <li class="right"><a href="modules/lagos/index.html" title="yt.lagos" accesskey="N">next</a> |</li>
           <li class="right"><a href="extending/index.html" title="Extending yt" accesskey="P">previous</a> |</li>
+    <li><a href="http://yt.spacepope.org/">yt</a> &raquo;</li>
+    
         <li><a href="index.html">yt v0.3 documentation</a> &raquo;</li>
+
       </ul>
     </div>
     <div class="footer">
       &copy; Copyright 2008, Matthew Turk.
-      Last updated on May 03, 2008.
+      Last updated on May 04, 2008.
     </div>
   </body>
 </html>

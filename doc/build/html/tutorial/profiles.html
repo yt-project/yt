@@ -18,7 +18,7 @@
     <link rel="index" title="Global index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
     <link rel="top" title="yt v0.3 documentation" href="../index.html" />
-    <link rel="up" title="A Short Tutorial on yt" href="main.html" />
+    <link rel="up" title="A Short Tutorial" href="index.html" />
     <link rel="next" title="Automated Plotting" href="automated_plotting.html" />
     <link rel="prev" title="Derived Fields" href="derived_fields.html" />
   </head>
@@ -30,8 +30,11 @@
         <li class="right"><a href="../modindex.html" title="Global Module Index" accesskey="M">modules</a> |</li>
           <li class="right"><a href="automated_plotting.html" title="Automated Plotting" accesskey="N">next</a> |</li>
           <li class="right"><a href="derived_fields.html" title="Derived Fields" accesskey="P">previous</a> |</li>
+    <li><a href="http://yt.spacepope.org/">yt</a> &raquo;</li>
+    
         <li><a href="../index.html">yt v0.3 documentation</a> &raquo;</li>
-          <li><a href="main.html" accesskey="U">A Short Tutorial on yt</a> &raquo;</li>
+
+          <li><a href="index.html" accesskey="U">A Short Tutorial</a> &raquo;</li>
       </ul>
     </div>
     <div class="document">
@@ -47,6 +50,8 @@ of one or more variables, along one or two different dimensions.  For example,
 you could get an average temperature in Density and H2 Fraction space.  Or you could
 Look at the distribution of Volume through Density and Temperature space.  Or you could
 take the spherically-averaged Number Density and see how it changes with radius.</p>
+<div class="section">
+<h2 id="one-dimensional-profiles">One Dimensional Profiles<a class="headerlink" href="#one-dimensional-profiles" title="Permalink to this headline">¶</a></h2>
 <p>In order to make a profile, we first need a data object we want to get the profile
 <em>from</em>.  This can be a sphere, a region, or even an extracted region.  We&#8217;ll
 first take a look at doing a spherically-average profile of Temperature with Radius.</p>
@@ -78,6 +83,9 @@ data-access methods.  Additionally, you can feed them directly into pylab or mat
 <span class="gp">&gt;&gt;&gt; </span><span class="n">pylab</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s">r&quot;$\rm{Density} (\rm{g}/\rm{cm}^3)$&quot;</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">pylab</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="s">&quot;my_profile.png&quot;</span><span class="p">)</span>
 </pre></div>
+</div>
+<div class="section">
+<h2 id="two-dimensional-profiles">Two-Dimensional Profiles<a class="headerlink" href="#two-dimensional-profiles" title="Permalink to this headline">¶</a></h2>
 <p>Two-dimensional profiles are along the same lines.</p>
 <div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">prof2d</span> <span class="o">=</span> <span class="n">lagos</span><span class="o">.</span><span class="n">BinnedProfile2D</span><span class="p">(</span><span class="n">sphere</span><span class="p">,</span>
 <span class="gp">... </span>                <span class="mf">16</span><span class="p">,</span> <span class="s">&quot;Density&quot;</span><span class="p">,</span> <span class="mf">1e-32</span><span class="p">,</span> <span class="mf">1e-24</span><span class="p">,</span> <span class="bp">True</span><span class="p">,</span>
@@ -87,6 +95,7 @@ data-access methods.  Additionally, you can feed them directly into pylab or mat
 <span class="gp">... </span>                 <span class="n">prof2d</span><span class="p">[</span><span class="s">&quot;CellVolume&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">transpose</span><span class="p">())</span>
 </pre></div>
 </div>
+</div>
 
 
           </div>
@@ -94,6 +103,15 @@ data-access methods.  Additionally, you can feed them directly into pylab or mat
       </div>
       <div class="sidebar">
         <div class="sidebarwrapper">
+            <h3>Table Of Contents</h3>
+            <ul>
+<li><a class="reference" href="">Profiles</a><ul>
+<li><a class="reference" href="#one-dimensional-profiles">One Dimensional Profiles</a></li>
+<li><a class="reference" href="#two-dimensional-profiles">Two-Dimensional Profiles</a></li>
+</ul>
+</li>
+</ul>
+
             <h4>Previous topic</h4>
             <p class="topless"><a href="derived_fields.html" title="previous chapter">Derived Fields</a></p>
             <h4>Next topic</h4>
@@ -119,13 +137,16 @@ data-access methods.  Additionally, you can feed them directly into pylab or mat
         <li class="right"><a href="../modindex.html" title="Global Module Index" accesskey="M">modules</a> |</li>
           <li class="right"><a href="automated_plotting.html" title="Automated Plotting" accesskey="N">next</a> |</li>
           <li class="right"><a href="derived_fields.html" title="Derived Fields" accesskey="P">previous</a> |</li>
+    <li><a href="http://yt.spacepope.org/">yt</a> &raquo;</li>
+    
         <li><a href="../index.html">yt v0.3 documentation</a> &raquo;</li>
-          <li><a href="main.html" accesskey="U">A Short Tutorial on yt</a> &raquo;</li>
+
+          <li><a href="index.html" accesskey="U">A Short Tutorial</a> &raquo;</li>
       </ul>
     </div>
     <div class="footer">
       &copy; Copyright 2008, Matthew Turk.
-      Last updated on May 03, 2008.
+      Last updated on May 04, 2008.
     </div>
   </body>
 </html>

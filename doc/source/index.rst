@@ -11,6 +11,7 @@ Contents:
 
    intro
    tutorial/index
+   cookbook/index
    extending/index
    faq
    modules/lagos/index

@@ -1,11 +1,14 @@
 Profiles
---------
+========
 
 Profiles are one of the more interesting data types.  They are a binned average
 of one or more variables, along one or two different dimensions.  For example,
 you could get an average temperature in Density and H2 Fraction space.  Or you could
 Look at the distribution of Volume through Density and Temperature space.  Or you could
 take the spherically-averaged Number Density and see how it changes with radius.
+
+One Dimensional Profiles
+------------------------
 
 In order to make a profile, we first need a data object we want to get the profile
 *from*.  This can be a sphere, a region, or even an extracted region.  We'll
@@ -43,6 +46,8 @@ data-access methods.  Additionally, you can feed them directly into pylab or mat
    >>> pylab.ylabel(r"$\rm{Density} (\rm{g}/\rm{cm}^3)$")
    >>> pylab.savefig("my_profile.png")
 
+Two-Dimensional Profiles
+------------------------
 
 Two-dimensional profiles are along the same lines.  ::
 

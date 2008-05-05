@@ -1,6 +1,8 @@
 Getting Started
 ===============
 
+.. index:: Starting yt
+
 Getting into yt
 ---------------
 
@@ -22,6 +24,8 @@ friend. ::
 
    >>> import yt.lagos as lagos
 
+.. index:: hierarchy
+
 The Hierarchy
 -------------
 
@@ -42,6 +46,8 @@ packed into a tuple, so we manually unpack them right here.::
    >>> v,c = a.h.find_max("Density")
    >>> print v
    >>> print c
+
+.. index:: Grid, 3ddata;grid
 
 The Grids
 ---------

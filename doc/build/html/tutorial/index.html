@@ -18,7 +18,7 @@
     <link rel="index" title="Global index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
     <link rel="top" title="yt v0.3 documentation" href="../index.html" />
-    <link rel="prev" title="FAQ" href="../intro.html" />
+    <link rel="prev" title="Introduction" href="../intro.html" />
   </head>
   <body>
     <div class="related">
@@ -26,8 +26,11 @@
       <ul>
         <li class="right" style="margin-right: 10px"><a href="../genindex.html" title="General Index" accesskey="I">index</a></li>
         <li class="right"><a href="../modindex.html" title="Global Module Index" accesskey="M">modules</a> |</li>
-          <li class="right"><a href="../intro.html" title="FAQ" accesskey="P">previous</a> |</li>
+          <li class="right"><a href="../intro.html" title="Introduction" accesskey="P">previous</a> |</li>
+    <li><a href="http://yt.spacepope.org/">yt</a> &raquo;</li>
+    
         <li><a href="../index.html">yt v0.3 documentation</a> &raquo;</li>
+
       </ul>
     </div>
     <div class="document">
@@ -38,6 +41,10 @@
   
   <div class="section">
 <h1 id="a-short-tutorial">A Short Tutorial<a class="headerlink" href="#a-short-tutorial" title="Permalink to this headline">¶</a></h1>
+<p>As with many interactive packages, getting started with yt can be a bit
+daunting.  Following this tutorial we&#8217;ll walk through the intepreter, get used
+to some of the ways that yt works, and performing some common (and
+not-so-common) tasks.</p>
 <p>Contents:</p>
 <ul>
 <li><a class="reference" href="getting_started.html">Getting Started</a><ul>
@@ -48,22 +55,55 @@
 </li>
 </ul>
 <ul>
-<li><a class="reference" href="basic_objects.html">Basic Objects</a></li>
+<li><a class="reference" href="basic_objects.html">Basic Objects</a><ul>
+<li><a class="reference" href="basic_objects.html#derived-fields-and-indices">Derived Fields and Indices</a></li>
+<li><a class="reference" href="basic_objects.html#slices">Slices</a></li>
+<li><a class="reference" href="basic_objects.html#data-regions">Data Regions</a></li>
+</ul>
+</li>
 </ul>
 <ul>
-<li><a class="reference" href="derived_fields.html">Derived Fields</a></li>
+<li><a class="reference" href="derived_fields.html">Derived Fields</a><ul>
+<li><a class="reference" href="derived_fields.html#defining-simple-fields">Defining Simple Fields</a></li>
+<li><a class="reference" href="derived_fields.html#more-complicated-fields">More Complicated Fields</a></li>
+</ul>
+</li>
 </ul>
 <ul>
-<li><a class="reference" href="profiles.html">Profiles</a></li>
+<li><a class="reference" href="profiles.html">Profiles</a><ul>
+<li><a class="reference" href="profiles.html#one-dimensional-profiles">One Dimensional Profiles</a></li>
+<li><a class="reference" href="profiles.html#two-dimensional-profiles">Two-Dimensional Profiles</a></li>
+</ul>
+</li>
 </ul>
 <ul>
-<li><a class="reference" href="automated_plotting.html">Automated Plotting</a></li>
+<li><a class="reference" href="automated_plotting.html">Automated Plotting</a><ul>
+<li><a class="reference" href="automated_plotting.html#collections-of-plots">Collections of Plots</a></li>
+<li><a class="reference" href="automated_plotting.html#adding-plots">Adding Plots</a></li>
+<li><a class="reference" href="automated_plotting.html#more-plots">More Plots</a></li>
+</ul>
+</li>
 </ul>
 <ul>
-<li><a class="reference" href="advanced_objects.html">Advanced Objects</a></li>
+<li><a class="reference" href="advanced_objects.html">Advanced Objects</a><ul>
+<li><a class="reference" href="advanced_objects.html#cutting-plane">Cutting Plane</a></li>
+<li><a class="reference" href="advanced_objects.html#extracted-regions">Extracted Regions</a></li>
+<li><a class="reference" href="advanced_objects.html#grid-collections">Grid Collections</a></li>
+</ul>
+</li>
 </ul>
 <ul>
-<li><a class="reference" href="projections.html">Projections</a></li>
+<li><a class="reference" href="projections.html">Projections</a><ul>
+<li><a class="reference" href="projections.html#simple-projections">Simple Projections</a></li>
+<li><a class="reference" href="projections.html#parallel-projections">Parallel Projections</a></li>
+</ul>
+</li>
+</ul>
+<ul>
+<li><a class="reference" href="derived_quantities.html">Derived Quantities</a></li>
+</ul>
+<ul>
+<li><a class="reference" href="example_script.html">A Demonstrative Example Script</a></li>
 </ul>
 </div>
 
@@ -74,7 +114,7 @@
       <div class="sidebar">
         <div class="sidebarwrapper">
             <h4>Previous topic</h4>
-            <p class="topless"><a href="../intro.html" title="previous chapter">FAQ</a></p>
+            <p class="topless"><a href="../intro.html" title="previous chapter">Introduction</a></p>
             <h3>This Page</h3>
             <ul class="this-page-menu">
               <li><a href="../_sources/tutorial/index.txt">Show Source</a></li>
@@ -94,13 +134,16 @@
       <ul>
         <li class="right" style="margin-right: 10px"><a href="../genindex.html" title="General Index" accesskey="I">index</a></li>
         <li class="right"><a href="../modindex.html" title="Global Module Index" accesskey="M">modules</a> |</li>
-          <li class="right"><a href="../intro.html" title="FAQ" accesskey="P">previous</a> |</li>
+          <li class="right"><a href="../intro.html" title="Introduction" accesskey="P">previous</a> |</li>
+    <li><a href="http://yt.spacepope.org/">yt</a> &raquo;</li>
+    
         <li><a href="../index.html">yt v0.3 documentation</a> &raquo;</li>
+
       </ul>
     </div>
     <div class="footer">
       &copy; Copyright 2008, Matthew Turk.
-      Last updated on May 03, 2008.
+      Last updated on May 04, 2008.
     </div>
   </body>
 </html>

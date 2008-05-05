@@ -1,5 +1,5 @@
 Derived Fields
---------------
+==============
 
 Okay, now we have a region.  We can do stuff with this -- in fact, it has the
 same data-access protocol as a slice or a grid!  Plus, math on these things
@@ -16,6 +16,8 @@ But what other fields are available to us?::
 
    >>> print lagos.fieldInfo.keys()
 
+Defining Simple Fields
+----------------------
 
 There are LOTS!  Not only that, but you can set up your own fields, too,
 which then become available to all data-types. Here's a very simple example,
@@ -39,6 +41,9 @@ accepts two variables -- field, and data.  'Field' is the DerivedField and
 returning fields -- *everything is returned in cgs*!  This means that when
 we request "Density" from 'data' it is returned to us *already* in CGS, so we
 don't need to convert anything.
+
+More Complicated Fields
+-----------------------
 
 The last part, the call to add_field, is the most crucial.  It creates a
 DerivedField object which will control the behavior of the derived field in a

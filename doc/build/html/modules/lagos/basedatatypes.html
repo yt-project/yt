@@ -1,0 +1,239 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>lagos.BaseDataTypes &#8211; Data Types &mdash; yt v0.3 documentation</title>
+    <link rel="stylesheet" href="../../_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:   '../../',
+        VERSION:    '0.3'
+      };
+    </script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/interface.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <link rel="contents" title="Global table of contents" href="../../contents.html" />
+    <link rel="index" title="Global index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="top" title="yt v0.3 documentation" href="../../index.html" />
+    <link rel="up" title="yt.lagos" href="index.html" />
+    <link rel="next" title="yt.lagos" href="index.html" />
+    <link rel="prev" title="yt.lagos" href="index.html" />
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px"><a href="../../genindex.html" title="General Index" accesskey="I">index</a></li>
+        <li class="right"><a href="../../modindex.html" title="Global Module Index" accesskey="M">modules</a> |</li>
+          <li class="right"><a href="index.html" title="yt.lagos" accesskey="N">next</a> |</li>
+          <li class="right"><a href="index.html" title="yt.lagos" accesskey="P">previous</a> |</li>
+    <li><a href="http://yt.spacepope.org/">yt</a> &raquo;</li>
+    
+        <li><a href="../../index.html">yt v0.3 documentation</a> &raquo;</li>
+
+          <li><a href="index.html" accesskey="U">yt.lagos</a> &raquo;</li>
+      </ul>
+    </div>
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  
+  <div class="section">
+<h1 id="module-lagos.BaseDataTypes"><tt class="xref docutils literal"><span class="pre">lagos.BaseDataTypes</span></tt> &#8211; Data Types<a class="headerlink" href="#module-lagos.BaseDataTypes" title="Permalink to this headline">¶</a></h1>
+<dl class="class">
+<dt id="lagos.BaseDataTypes.EnzoData">
+<!--#lagos.BaseDataTypes.EnzoData#-->class <tt class="descclassname">lagos.BaseDataTypes.</tt><tt class="descname">EnzoData</tt><big>(</big><em>pf</em>, <em>fields</em>, <em>**kwargs</em><big>)</big><a class="headerlink" href="#lagos.BaseDataTypes.EnzoData" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generic EnzoData container.  By itself, will attempt to
+generate field, read fields (method defined by derived classes)
+and deal with passing back and forth field parameters.</p>
+<dl class="method">
+<dt id="lagos.BaseDataTypes.EnzoData.clear_data">
+<!--#lagos.BaseDataTypes.EnzoData.clear_data#--><tt class="descname">clear_data</tt><big>(</big><big>)</big><a class="headerlink" href="#lagos.BaseDataTypes.EnzoData.clear_data" title="Permalink to this definition">¶</a></dt>
+<dd>Clears out all data from the EnzoData instance, freeing memory.</dd></dl>
+
+<dl class="method">
+<dt id="lagos.BaseDataTypes.EnzoData.get_field_parameter">
+<!--#lagos.BaseDataTypes.EnzoData.get_field_parameter#--><tt class="descname">get_field_parameter</tt><big>(</big><em>name</em>, <em>default=None</em><big>)</big><a class="headerlink" href="#lagos.BaseDataTypes.EnzoData.get_field_parameter" title="Permalink to this definition">¶</a></dt>
+<dd>This is typically only used by derived field functions, but
+it returns parameters used to generate fields.</dd></dl>
+
+<dl class="method">
+<dt id="lagos.BaseDataTypes.EnzoData.set_field_parameter">
+<!--#lagos.BaseDataTypes.EnzoData.set_field_parameter#--><tt class="descname">set_field_parameter</tt><big>(</big><em>name</em>, <em>val</em><big>)</big><a class="headerlink" href="#lagos.BaseDataTypes.EnzoData.set_field_parameter" title="Permalink to this definition">¶</a></dt>
+<dd>Here we set up dictionaries that get passed up and down and ultimately
+to derived fields.</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="lagos.BaseDataTypes.Enzo3DData">
+<!--#lagos.BaseDataTypes.Enzo3DData#-->class <tt class="descclassname">lagos.BaseDataTypes.</tt><tt class="descname">Enzo3DData</tt><big>(</big><em>center</em>, <em>fields</em>, <em>pf=None</em>, <em>**kwargs</em><big>)</big><a class="headerlink" href="#lagos.BaseDataTypes.Enzo3DData" title="Permalink to this definition">¶</a></dt>
+<dd><p>Class describing a cluster of data points, not necessarily sharing any
+particular attribute.</p>
+<dl class="method">
+<dt id="lagos.BaseDataTypes.Enzo3DData.clear_data">
+<!--#lagos.BaseDataTypes.Enzo3DData.clear_data#--><tt class="descname">clear_data</tt><big>(</big><big>)</big><a class="headerlink" href="#lagos.BaseDataTypes.Enzo3DData.clear_data" title="Permalink to this definition">¶</a></dt>
+<dd>Clears out all data from the EnzoData instance, freeing memory.</dd></dl>
+
+<dl class="method">
+<dt id="lagos.BaseDataTypes.Enzo3DData.extract_connected_sets">
+<!--#lagos.BaseDataTypes.Enzo3DData.extract_connected_sets#--><tt class="descname">extract_connected_sets</tt><big>(</big><em>field</em>, <em>num_levels</em>, <em>min_val</em>, <em>max_val</em>, <em>log_space=True</em>, <em>cumulative=True</em><big>)</big><a class="headerlink" href="#lagos.BaseDataTypes.Enzo3DData.extract_connected_sets" title="Permalink to this definition">¶</a></dt>
+<dd>This function will create a set of contour objects, defined
+by having connected cell structures, which can then be
+studied and used to &#8216;paint&#8217; their source grids, thus enabling
+them to be plotted.</dd></dl>
+
+<dl class="method">
+<dt id="lagos.BaseDataTypes.Enzo3DData.extract_region">
+<!--#lagos.BaseDataTypes.Enzo3DData.extract_region#--><tt class="descname">extract_region</tt><big>(</big><em>indices</em><big>)</big><a class="headerlink" href="#lagos.BaseDataTypes.Enzo3DData.extract_region" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return an ExtractedRegion where the points contained in it are defined
+as the points in <em>this</em> data object with the given indices</p>
+<p>&#64;param indices: The indices of the points to keep
+&#64;type indices: The return value of a numpy.where call</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lagos.BaseDataTypes.Enzo3DData.get_field_parameter">
+<!--#lagos.BaseDataTypes.Enzo3DData.get_field_parameter#--><tt class="descname">get_field_parameter</tt><big>(</big><em>name</em>, <em>default=None</em><big>)</big><a class="headerlink" href="#lagos.BaseDataTypes.Enzo3DData.get_field_parameter" title="Permalink to this definition">¶</a></dt>
+<dd>This is typically only used by derived field functions, but
+it returns parameters used to generate fields.</dd></dl>
+
+<dl class="method">
+<dt id="lagos.BaseDataTypes.Enzo3DData.paint_grids">
+<!--#lagos.BaseDataTypes.Enzo3DData.paint_grids#--><tt class="descname">paint_grids</tt><big>(</big><em>field</em>, <em>value</em>, <em>default_value=None</em><big>)</big><a class="headerlink" href="#lagos.BaseDataTypes.Enzo3DData.paint_grids" title="Permalink to this definition">¶</a></dt>
+<dd><p>This function paints every cell in our dataset with a given value.
+If default_value is given, the other values for the given in every grid
+are discarded and replaced with default_value.  Otherwise, the field is
+mandated to &#8216;know how to exist&#8217; in the grid.</p>
+<p>&#64;note: This only paints the cells <em>in the dataset</em>, so cells in grids
+with children are left untouched.
+&#64;param field: The field to paint
+&#64;param value: The value to paint
+&#64;keyword default_value: The value to use for all other cells.  If &#8216;None&#8217;
+then no value is used, and the grid is left untouched except in our cells.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lagos.BaseDataTypes.Enzo3DData.select_grids">
+<!--#lagos.BaseDataTypes.Enzo3DData.select_grids#--><tt class="descname">select_grids</tt><big>(</big><em>level</em><big>)</big><a class="headerlink" href="#lagos.BaseDataTypes.Enzo3DData.select_grids" title="Permalink to this definition">¶</a></dt>
+<dd>Select all grids on a given level.</dd></dl>
+
+<dl class="method">
+<dt id="lagos.BaseDataTypes.Enzo3DData.set_field_parameter">
+<!--#lagos.BaseDataTypes.Enzo3DData.set_field_parameter#--><tt class="descname">set_field_parameter</tt><big>(</big><em>name</em>, <em>val</em><big>)</big><a class="headerlink" href="#lagos.BaseDataTypes.Enzo3DData.set_field_parameter" title="Permalink to this definition">¶</a></dt>
+<dd>Here we set up dictionaries that get passed up and down and ultimately
+to derived fields.</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="lagos.BaseDataTypes.EnzoSphereBase">
+<!--#lagos.BaseDataTypes.EnzoSphereBase#-->class <tt class="descclassname">lagos.BaseDataTypes.</tt><tt class="descname">EnzoSphereBase</tt><big>(</big><em>center</em>, <em>radius</em>, <em>fields=None</em>, <em>pf=None</em>, <em>**kwargs</em><big>)</big><a class="headerlink" href="#lagos.BaseDataTypes.EnzoSphereBase" title="Permalink to this definition">¶</a></dt>
+<dd><p>A sphere of points</p>
+<dl class="method">
+<dt id="lagos.BaseDataTypes.EnzoSphereBase.clear_data">
+<!--#lagos.BaseDataTypes.EnzoSphereBase.clear_data#--><tt class="descname">clear_data</tt><big>(</big><big>)</big><a class="headerlink" href="#lagos.BaseDataTypes.EnzoSphereBase.clear_data" title="Permalink to this definition">¶</a></dt>
+<dd>Clears out all data from the EnzoData instance, freeing memory.</dd></dl>
+
+<dl class="method">
+<dt id="lagos.BaseDataTypes.EnzoSphereBase.extract_connected_sets">
+<!--#lagos.BaseDataTypes.EnzoSphereBase.extract_connected_sets#--><tt class="descname">extract_connected_sets</tt><big>(</big><em>field</em>, <em>num_levels</em>, <em>min_val</em>, <em>max_val</em>, <em>log_space=True</em>, <em>cumulative=True</em><big>)</big><a class="headerlink" href="#lagos.BaseDataTypes.EnzoSphereBase.extract_connected_sets" title="Permalink to this definition">¶</a></dt>
+<dd>This function will create a set of contour objects, defined
+by having connected cell structures, which can then be
+studied and used to &#8216;paint&#8217; their source grids, thus enabling
+them to be plotted.</dd></dl>
+
+<dl class="method">
+<dt id="lagos.BaseDataTypes.EnzoSphereBase.extract_region">
+<!--#lagos.BaseDataTypes.EnzoSphereBase.extract_region#--><tt class="descname">extract_region</tt><big>(</big><em>indices</em><big>)</big><a class="headerlink" href="#lagos.BaseDataTypes.EnzoSphereBase.extract_region" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return an ExtractedRegion where the points contained in it are defined
+as the points in <em>this</em> data object with the given indices</p>
+<p>&#64;param indices: The indices of the points to keep
+&#64;type indices: The return value of a numpy.where call</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lagos.BaseDataTypes.EnzoSphereBase.get_field_parameter">
+<!--#lagos.BaseDataTypes.EnzoSphereBase.get_field_parameter#--><tt class="descname">get_field_parameter</tt><big>(</big><em>name</em>, <em>default=None</em><big>)</big><a class="headerlink" href="#lagos.BaseDataTypes.EnzoSphereBase.get_field_parameter" title="Permalink to this definition">¶</a></dt>
+<dd>This is typically only used by derived field functions, but
+it returns parameters used to generate fields.</dd></dl>
+
+<dl class="method">
+<dt id="lagos.BaseDataTypes.EnzoSphereBase.paint_grids">
+<!--#lagos.BaseDataTypes.EnzoSphereBase.paint_grids#--><tt class="descname">paint_grids</tt><big>(</big><em>field</em>, <em>value</em>, <em>default_value=None</em><big>)</big><a class="headerlink" href="#lagos.BaseDataTypes.EnzoSphereBase.paint_grids" title="Permalink to this definition">¶</a></dt>
+<dd><p>This function paints every cell in our dataset with a given value.
+If default_value is given, the other values for the given in every grid
+are discarded and replaced with default_value.  Otherwise, the field is
+mandated to &#8216;know how to exist&#8217; in the grid.</p>
+<p>&#64;note: This only paints the cells <em>in the dataset</em>, so cells in grids
+with children are left untouched.
+&#64;param field: The field to paint
+&#64;param value: The value to paint
+&#64;keyword default_value: The value to use for all other cells.  If &#8216;None&#8217;
+then no value is used, and the grid is left untouched except in our cells.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lagos.BaseDataTypes.EnzoSphereBase.select_grids">
+<!--#lagos.BaseDataTypes.EnzoSphereBase.select_grids#--><tt class="descname">select_grids</tt><big>(</big><em>level</em><big>)</big><a class="headerlink" href="#lagos.BaseDataTypes.EnzoSphereBase.select_grids" title="Permalink to this definition">¶</a></dt>
+<dd>Select all grids on a given level.</dd></dl>
+
+<dl class="method">
+<dt id="lagos.BaseDataTypes.EnzoSphereBase.set_field_parameter">
+<!--#lagos.BaseDataTypes.EnzoSphereBase.set_field_parameter#--><tt class="descname">set_field_parameter</tt><big>(</big><em>name</em>, <em>val</em><big>)</big><a class="headerlink" href="#lagos.BaseDataTypes.EnzoSphereBase.set_field_parameter" title="Permalink to this definition">¶</a></dt>
+<dd>Here we set up dictionaries that get passed up and down and ultimately
+to derived fields.</dd></dl>
+
+</dd></dl>
+
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sidebar">
+        <div class="sidebarwrapper">
+            <h4>Previous topic</h4>
+            <p class="topless"><a href="index.html" title="previous chapter">yt.lagos</a></p>
+            <h4>Next topic</h4>
+            <p class="topless"><a href="index.html" title="next chapter">yt.lagos</a></p>
+            <h3>This Page</h3>
+            <ul class="this-page-menu">
+              <li><a href="../../_sources/modules/lagos/basedatatypes.txt">Show Source</a></li>
+            </ul>
+            <h3>Quick search</h3>
+            <form class="search" action="../../search.html" method="get">
+              <input type="text" name="q" size="18"> <input type="submit" value="Go" />
+              <input type="hidden" name="check_keywords" value="yes" />
+              <input type="hidden" name="area" value="default" />
+            </form>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px"><a href="../../genindex.html" title="General Index" accesskey="I">index</a></li>
+        <li class="right"><a href="../../modindex.html" title="Global Module Index" accesskey="M">modules</a> |</li>
+          <li class="right"><a href="index.html" title="yt.lagos" accesskey="N">next</a> |</li>
+          <li class="right"><a href="index.html" title="yt.lagos" accesskey="P">previous</a> |</li>
+    <li><a href="http://yt.spacepope.org/">yt</a> &raquo;</li>
+    
+        <li><a href="../../index.html">yt v0.3 documentation</a> &raquo;</li>
+
+          <li><a href="index.html" accesskey="U">yt.lagos</a> &raquo;</li>
+      </ul>
+    </div>
+    <div class="footer">
+      &copy; Copyright 2008, Matthew Turk.
+      Last updated on May 04, 2008.
+    </div>
+  </body>
+</html>

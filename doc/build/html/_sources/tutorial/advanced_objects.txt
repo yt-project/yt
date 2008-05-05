@@ -1,11 +1,16 @@
 Advanced Objects
-----------------
+================
 
 So we've seen simple objects already -- sphere, profiles, and regions.
 There are two other types of objects that are fairly cool, as well, and
 they behave the same way all the others do -- you can get any field from them,
 profile them, all of that, right from the command line like you would a sphere
 or a region.
+
+.. index:: Cutting Plane, 2ddata;Cutting Plane
+
+Cutting Plane
+-------------
 
 The first of these is the cutting plane.  Let's say you're doing some
 collapse-based problem, where you end up with a vector that describes the
@@ -24,6 +29,11 @@ supplied the normal vector {0.1, 0.3, 0.4} and the center point of the system.
 (Note that the normal vector need not be a unit vector, as it will be normalized
 during the object instantiation.)  An appropriate 'up' vector is guessed at
 and then used to define the transformed coordinate system.
+
+.. index:: Extracted Regions, 3ddata;Extracted Regions
+
+Extracted Regions
+-----------------
 
 One of the other interesting data types is mostly only useful for profiles in
 one and two dimensions.  By whatever criteria you like, you can extract a subset
@@ -49,3 +59,8 @@ Note that we used numpy here.  yt uses numpy behind the scenes for just about
 everything, and we have been, too, when we've been using our data.  The 'where'
 command creates a list of indices, which can then get fed into an array accessor
 method, and that's the functionality we use here.
+
+.. index:: GridCollection, 3ddata;GridCollection
+
+Grid Collections
+----------------

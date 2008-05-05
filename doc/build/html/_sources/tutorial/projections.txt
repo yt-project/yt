@@ -1,9 +1,12 @@
 Projections
------------
+===========
 
 Projections are the line integrals of a given quantity along a given access.
 These are useful in a wide variety of problems -- they can reveal morphologies
 that slicing cannot, in the simplest case.
+
+Simple Projections
+------------------
 
 There are several ways to generate projections in yt, and with the appropriate
 software package installed (mpi4py) one can even generate them in parallel,
@@ -24,3 +27,8 @@ will cause that projection to be generated -- to full resolution -- and then
 stored in an HDF5 file tied to the parameter file.  Then next time you ask
 for it, it is already available.  Zooming and panning is accomplished very
 simply.
+
+Parallel Projections
+--------------------
+
+
