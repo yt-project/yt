@@ -234,6 +234,7 @@ class EnzoHierarchy:
         if self.__data_file:
             self.__data_file.close()
             del self.__data_file
+            self.__data_file = None
 
     def __del__(self):
         """
