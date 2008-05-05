@@ -230,13 +230,16 @@ class EnzoHierarchy:
         except tables.exceptions.NoSuchNodeError:
             return None
 
+    def _close_data_file(self):
+        if self.__data_file:
+            self.__data_file.close()
+            del self.__data_file
+
     def __del__(self):
         """
         Let's see if we can delete some stuff here!
         """
-        if self.__data_file:
-            self.__data_file.close()
-            del self.__data_file
+        self._close_data_file()
         try:
             del self.eiTopGrid
         except:
