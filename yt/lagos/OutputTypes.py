@@ -206,9 +206,9 @@ class EnzoStaticOutput(StaticOutput):
 
     def _setup_nounits_units(self):
         z = 0
-        box_proper = 1.0
+        box_proper = ytcfg.getfloat("lagos","nounitslength")
         self.units['aye'] = 1.0
-        mylog.warning("No length units.  Setting 1.0 = 1 proper Mpc.")
+        mylog.warning("No length units.  Setting 1.0 = %0.3e proper Mpc.", box_proper)
         if not self.has_key("TimeUnits"):
             mylog.warning("No time units.  Setting 1.0 = 1 second.")
             self.conversion_factors["Time"] = 1.0

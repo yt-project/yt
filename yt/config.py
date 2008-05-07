@@ -55,6 +55,7 @@ ytcfgDefaults = {
         'useswig' : 'False',
         'loadfieldplugins':'False',
         'pluginfilename':'yt_plugins.py',
+        'nounitslength':'1.0',
         },
     "yt":{
         'LogFile': 'False',
