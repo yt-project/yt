@@ -17,7 +17,7 @@ def configuration(parent_package='',top_path=None):
         include_dirs=[os.path.join(H5dir,"include")]
         library_dirs=[os.path.join(H5dir,"lib")]
         config.add_extension("HDF5LightReader", "yt/lagos/HDF5LightReader.c",
-                             libraries=["m","hdf5_hl","hdf5"],
+                             libraries=["m","hdf5"],
                              library_dirs=library_dirs, include_dirs=include_dirs)
     sys.argv.extend(["config_fc","--f77flags","'-Dr16 -ffixed-line-length-none -fno-second-underscore -DPYFORT -DNOMETALS -ggdb -O0'"])
     if 0:

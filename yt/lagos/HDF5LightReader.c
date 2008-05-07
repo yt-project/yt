@@ -30,7 +30,6 @@
 #include <math.h>
 #include <signal.h>
 #include <ctype.h>
-#include "H5LT.h"
 #include "hdf5.h"
 
 #include "numpy/ndarrayobject.h"
@@ -84,17 +83,18 @@ Py_ReadHDF5DataSet(PyObject *obj, PyObject *args)
     char *filename, *nodename;
 
     hsize_t *my_dims = NULL;
+    hsize_t *my_max_dims = NULL;
     npy_intp *dims = NULL;
-    hid_t file_id, datatype_id, native_type_id, dataset;
+    hid_t file_id, datatype_id, native_type_id, dataset, dataspace;
     herr_t my_error;
     htri_t file_exists;
-    H5T_class_t class_id;
     size_t type_size;
     int my_typenum, my_rank, i;
     H5E_auto_t err_func;
     void *err_datastream;
     PyArrayObject *my_array = NULL;
     file_id = datatype_id = native_type_id = dataset = 0;
+    dataspace = 0;
 
     if (!PyArg_ParseTuple(args, "ss",
             &filename, &nodename))
@@ -140,8 +140,15 @@ Py_ReadHDF5DataSet(PyObject *obj, PyObject *args)
         goto _fail;
     }
 
-    my_error = H5LTget_dataset_ndims ( file_id, nodename, &my_rank );
-    if(my_error) {
+    dataspace = H5Dget_space(dataset);
+    if(dataspace < 0) {
+        PyErr_Format(_hdf5ReadError,
+                 "ReadHDF5DataSet: Unable to open dataspace (%s, %s).",
+                                    filename, nodename);
+        goto _fail;
+    }
+    my_rank = H5Sget_simple_extent_ndims( dataspace );
+    if(my_rank < 0) {
         PyErr_Format(_hdf5ReadError,
                  "ReadHDF5DataSet: Problem getting dataset rank (%s, %s).",
                                     filename, nodename);
@@ -150,12 +157,11 @@ Py_ReadHDF5DataSet(PyObject *obj, PyObject *args)
 
     /* How do we keep this from leaking in failures? */
     my_dims = malloc(sizeof(hsize_t) * my_rank);
-    my_error = H5LTget_dataset_info ( file_id, nodename,
-                my_dims, &class_id, &type_size );
-
+    my_max_dims = malloc(sizeof(hsize_t) * my_rank);
+    my_error = H5Sget_simple_extent_dims( dataspace, my_dims, my_max_dims );
     if(my_error < 0) {
         PyErr_Format(_hdf5ReadError,
-                 "ReadHDF5DataSet: Problem getting dataset info (%s, %s).",
+                 "ReadHDF5DataSet: Problem getting dataset dimensions (%s, %s).",
                                     filename, nodename);
         goto _fail;
     }
@@ -165,6 +171,7 @@ Py_ReadHDF5DataSet(PyObject *obj, PyObject *args)
 
     datatype_id = H5Dget_type(dataset);
     native_type_id = H5Tget_native_type(datatype_id, H5T_DIR_ASCEND);
+    type_size = H5Tget_size(native_type_id);
 
     /* Behavior here is intentionally undefined for non-native types */
 
@@ -183,16 +190,18 @@ Py_ReadHDF5DataSet(PyObject *obj, PyObject *args)
         goto _fail;
     }
 
-    H5LTread_dataset(file_id, nodename, native_type_id, (void *) my_array->data);
+    H5Dread(dataset, native_type_id, H5S_ALL, H5S_ALL, H5P_DEFAULT, my_array->data);
 
     PyArray_UpdateFlags(my_array, NPY_OWNDATA | my_array->flags);
     PyObject *return_value = Py_BuildValue("N", my_array);
 
-    H5Fclose(file_id);
+    H5Sclose(dataspace);
     H5Dclose(dataset);
     H5Tclose(native_type_id);
     H5Tclose(datatype_id);
+    H5Fclose(file_id);
     free(my_dims);
+    free(my_max_dims);
     free(dims);
 
     return return_value;
@@ -201,9 +210,11 @@ Py_ReadHDF5DataSet(PyObject *obj, PyObject *args)
       Py_XDECREF(my_array);
       if(!(file_id <= 0)&&(H5Iget_ref(file_id))) H5Fclose(file_id);
       if(!(dataset <= 0)&&(H5Iget_ref(dataset))) H5Dclose(dataset);
+      if(!(dataspace <= 0)&&(H5Iget_ref(dataspace))) H5Sclose(dataspace);
       if(!(native_type_id <= 0)&&(H5Iget_ref(native_type_id))) H5Tclose(native_type_id);
       if(!(datatype_id <= 0)&&(H5Iget_ref(datatype_id))) H5Tclose(datatype_id);
       if(my_dims != NULL) free(my_dims);
+      if(my_max_dims != NULL) free(my_max_dims);
       if(dims != NULL) free(dims);
       return NULL;
 }
@@ -214,6 +225,7 @@ Py_ReadHDF5DataSetSlice(PyObject *obj, PyObject *args)
     char *filename, *nodename;
 
     hsize_t *my_dims = NULL;
+    hsize_t *my_max_dims = NULL;
     npy_intp *dims = NULL;
     hid_t file_id, datatype_id, native_type_id, dataset, dataspace, memspace;
     herr_t my_error;
@@ -250,7 +262,7 @@ Py_ReadHDF5DataSetSlice(PyObject *obj, PyObject *args)
 
     if (file_id < 0) {
         PyErr_Format(_hdf5ReadError,
-                 "ReadHDF5DataSetSlice: Unable to open %s", nodename);
+                 "ReadHDF5DataSetSlice: Unable to open %s", filename);
         goto _fail;
     }
 
@@ -269,14 +281,15 @@ Py_ReadHDF5DataSetSlice(PyObject *obj, PyObject *args)
                                     filename, nodename);
         goto _fail;
     }
-
-    my_error = H5LTget_dataset_ndims ( file_id, nodename, &my_rank );
-    if(my_error) {
+    dataspace = H5Dget_space(dataset);
+    if(dataspace < 0) {
         PyErr_Format(_hdf5ReadError,
-                 "ReadHDF5DataSetSlice: Problem getting dataset rank (%s, %s).",
+                 "ReadHDF5DataSetSlice: Unable to open dataspace (%s, %s).",
                                     filename, nodename);
         goto _fail;
     }
+
+    my_rank = H5Sget_simple_extent_ndims( dataspace );
     if(my_rank!=3) {
         PyErr_Format(_hdf5ReadError,
                  "ReadHDF5DataSetSlice: Sorry, I only know how to slice 3D into 2D.");
@@ -285,9 +298,8 @@ Py_ReadHDF5DataSetSlice(PyObject *obj, PyObject *args)
 
     /* How do we keep this from leaking in failures? */
     my_dims = malloc(sizeof(hsize_t) * my_rank);
-    my_error = H5LTget_dataset_info ( file_id, nodename,
-                my_dims, &class_id, &type_size );
-
+    my_max_dims = malloc(sizeof(hsize_t) * my_rank);
+    my_error = H5Sget_simple_extent_dims( dataspace, my_dims, my_max_dims );
     if(my_error < 0) {
         PyErr_Format(_hdf5ReadError,
                  "ReadHDF5DataSetSlice: Problem getting dataset info (%s, %s).",
@@ -316,13 +328,6 @@ Py_ReadHDF5DataSetSlice(PyObject *obj, PyObject *args)
     slice_coords[axis] = coord;
     hsize_t slice_blocks[3] = {dims[0], dims[1], dims[2]};
     slice_blocks[axis] = 1;
-
-    dataspace = H5Dget_space(dataset);
-    if(my_error) {
-        PyErr_Format(_hdf5ReadError,
-                 "ReadHDF5DataSetSlice: Problem getting datasspace.");
-        goto _fail;
-    }
 
     my_error = H5Sselect_hyperslab(dataspace, H5S_SELECT_SET, slice_coords, NULL, 
      slice_blocks, NULL);
@@ -359,6 +364,7 @@ Py_ReadHDF5DataSetSlice(PyObject *obj, PyObject *args)
     H5Tclose(native_type_id);
     H5Tclose(datatype_id);
     free(my_dims);
+    free(my_max_dims);
     free(dims);
 
     return return_value;
@@ -372,6 +378,7 @@ Py_ReadHDF5DataSetSlice(PyObject *obj, PyObject *args)
       if(!(native_type_id <= 0)&&(H5Iget_ref(native_type_id))) H5Tclose(native_type_id);
       if(!(datatype_id <= 0)&&(H5Iget_ref(datatype_id))) H5Tclose(datatype_id);
       if(my_dims != NULL) free(my_dims);
+      if(my_max_dims != NULL) free(my_max_dims);
       if(dims != NULL) free(dims);
       return NULL;
 
