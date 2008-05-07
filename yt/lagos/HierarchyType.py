@@ -64,8 +64,7 @@ class EnzoHierarchy:
         if len(self.__hierarchy_lines) == 0:
             raise IOError(-1,"File empty", self.hierarchy_filename)
         self.__hierarchy_string = open(self.hierarchy_filename).read()
-        for i in xrange(len(self.__hierarchy_lines)-1,0,-1):
-            line = self.__hierarchy_lines[i]
+        for line in reversed(self.__hierarchy_lines):
             if line.startswith("Grid ="):
                 self.num_grids = int(line.split("=")[-1])
                 break
@@ -336,7 +335,7 @@ class EnzoHierarchy:
             elif param == "Time":
                 __split_convert(vals, float, self.gridTimes, curGrid)
             elif param == "NumberOfParticles":
-                __split_convert(vals, float, self.gridNumberOfParticles, curGrid)
+                __split_convert(vals, int, self.gridNumberOfParticles, curGrid)
             elif param == "FileName":
                 self.grids[curGrid-1].set_filename(vals[1:-1])
             elif param == "BaryonFileName":
@@ -344,7 +343,7 @@ class EnzoHierarchy:
         mylog.info("Caching hierarchy information")
         allArrays = na.zeros((self.num_grids,18),'float64')
         allArrays[:,0:3] = self.gridDimensions[:]
-        allArrays[:,3:6] = self.gridStartIndices[:]
+        allArrays[:,3:6] = self.gridStartIndices[:]  
         allArrays[:,6:9] = self.gridEndIndices[:]
         allArrays[:,9:12] = self.gridLeftEdge[:]
         allArrays[:,12:15] = self.gridRightEdge[:]

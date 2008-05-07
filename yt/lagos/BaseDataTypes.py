@@ -169,7 +169,80 @@ class EnzoData:
     def _generate_field_in_grids(self, fieldName):
         pass
 
-class Enzo1DData(EnzoData):
+class GridPropertiesMixin(object):
+
+    def __get_levelIndices(self):
+        if self.__levelIndices: return self.__levelIndices
+        # Otherwise, generate
+        # We only have to do this once, so it's not terribly expensive:
+        ll = {}
+        for level in range(MAXLEVEL):
+            t = [i for i in range(len(self._grids)) if self._grids[i].Level == level]
+            ll[level] = na.array(t)
+        self.__levelIndices = ll
+        return self.__levelIndices
+
+    def __set_levelIndices(self, val):
+        self.__levelIndices = val
+
+    def __del_levelIndices(self):
+        del self.__levelIndices
+        self.__levelIndices = None
+
+    __levelIndices = None
+    levelIndices = property(__get_levelIndices, __set_levelIndices,
+                            __del_levelIndices)
+
+    def __get_gridLeftEdge(self):
+        if self.__gridLeftEdge == None:
+            self.__gridLeftEdge = na.array([g.LeftEdge for g in self._grids])
+        return self.__gridLeftEdge
+
+    def __del_gridLeftEdge(self):
+        del self.__gridLeftEdge
+        self.__gridLeftEdge = None
+
+    def __set_gridLeftEdge(self, val):
+        self.__gridLeftEdge = val
+
+    __gridLeftEdge = None
+    gridLeftEdge = property(__get_gridLeftEdge, __set_gridLeftEdge,
+                              __del_gridLeftEdge)
+
+    def __get_gridRightEdge(self):
+        if self.__gridRightEdge == None:
+            self.__gridRightEdge = na.array([g.RightEdge for g in self._grids])
+        return self.__gridRightEdge
+
+    def __del_gridRightEdge(self):
+        del self.__gridRightEdge
+        self.__gridRightEdge = None
+
+    def __set_gridRightEdge(self, val):
+        self.__gridRightEdge = val
+
+    __gridRightEdge = None
+    gridRightEdge = property(__get_gridRightEdge, __set_gridRightEdge,
+                             __del_gridRightEdge)
+
+    def __get_gridLevels(self):
+        if self.__gridLevels == None:
+            self.__gridLevels = na.array([g.Level for g in self._grids])
+        return self.__gridLevels
+
+    def __del_gridLevels(self):
+        del self.__gridLevels
+        self.__gridLevels = None
+
+    def __set_gridLevels(self, val):
+        self.__gridLevels = val
+
+    __gridLevels = None
+    gridLevels = property(__get_gridLevels, __set_gridLevels,
+                             __del_gridLevels)
+
+
+class Enzo1DData(EnzoData, GridPropertiesMixin):
     _spatial = False
     def __init__(self, pf, fields, **kwargs):
         EnzoData.__init__(self, pf, fields, **kwargs)
@@ -252,7 +325,7 @@ class EnzoOrthoRayBase(Enzo1DData):
             gf = grid[field][sl]
         return gf[na.where(grid.child_mask[sl])]
 
-class Enzo2DData(EnzoData):
+class Enzo2DData(EnzoData, GridPropertiesMixin):
     """
     Class to represent a set of EnzoData that's 2-D in nature, and thus
     does not have as many actions as the 3-D data types.
@@ -878,7 +951,7 @@ class EnzoProjBase(Enzo2DData):
         if grid.id == 1: self._temp[grid.id] = d
         return d
 
-class Enzo3DData(EnzoData):
+class Enzo3DData(EnzoData, GridPropertiesMixin):
     """
     Class describing a cluster of data points, not necessarily sharing any
     particular attribute.
@@ -1045,76 +1118,6 @@ class Enzo3DData(EnzoData):
         """
         grids = [g for g in self._grids if g.Level == level]
         return grids
-
-    def __get_levelIndices(self):
-        if self.__levelIndices: return self.__levelIndices
-        # Otherwise, generate
-        # We only have to do this once, so it's not terribly expensive:
-        ll = {}
-        for level in range(MAXLEVEL):
-            t = [i for i in range(len(self._grids)) if self._grids[i].Level == level]
-            ll[level] = na.array(t)
-        self.__levelIndices = ll
-        return self.__levelIndices
-
-    def __set_levelIndices(self, val):
-        self.__levelIndices = val
-
-    def __del_levelIndices(self):
-        del self.__levelIndices
-        self.__levelIndices = None
-
-    __levelIndices = None
-    levelIndices = property(__get_levelIndices, __set_levelIndices,
-                            __del_levelIndices)
-
-    def __get_gridLeftEdge(self):
-        if self.__gridLeftEdge == None:
-            self.__gridLeftEdge = na.array([g.LeftEdge for g in self._grids])
-        return self.__gridLeftEdge
-
-    def __del_gridLeftEdge(self):
-        del self.__gridLeftEdge
-        self.__gridLeftEdge = None
-
-    def __set_gridLeftEdge(self, val):
-        self.__gridLeftEdge = val
-
-    __gridLeftEdge = None
-    gridLeftEdge = property(__get_gridLeftEdge, __set_gridLeftEdge,
-                              __del_gridLeftEdge)
-
-    def __get_gridRightEdge(self):
-        if self.__gridRightEdge == None:
-            self.__gridRightEdge = na.array([g.RightEdge for g in self._grids])
-        return self.__gridRightEdge
-
-    def __del_gridRightEdge(self):
-        del self.__gridRightEdge
-        self.__gridRightEdge = None
-
-    def __set_gridRightEdge(self, val):
-        self.__gridRightEdge = val
-
-    __gridRightEdge = None
-    gridRightEdge = property(__get_gridRightEdge, __set_gridRightEdge,
-                             __del_gridRightEdge)
-
-    def __get_gridLevels(self):
-        if self.__gridLevels == None:
-            self.__gridLevels = na.array([g.Level for g in self._grids])
-        return self.__gridLevels
-
-    def __del_gridLevels(self):
-        del self.__gridLevels
-        self.__gridLevels = None
-
-    def __set_gridLevels(self, val):
-        self.__gridLevels = val
-
-    __gridLevels = None
-    gridLevels = property(__get_gridLevels, __set_gridLevels,
-                             __del_gridLevels)
 
     def __get_quantities(self):
         if self.__quantities is None:

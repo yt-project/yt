@@ -40,6 +40,7 @@ import matplotlib._image
 import matplotlib.colors
 import matplotlib.colorbar
 import matplotlib.cm
+import matplotlib.collections
 
 def ClusterFilePlot(cls, x, y, xlog=None, ylog=None, fig=None, filename=None,
                     format="png", xbounds = None, ybounds = None):
@@ -787,5 +788,32 @@ def contourCallback(field, ncont=5, factor=4, take_log=False, clim=None):
         plot._axes.contour(xi,yi,zi,ncont,colors='k')
         plot._axes.set_xlim(xx0,xx1)
         plot._axes.set_ylim(yy0,yy1)
+        plot._axes.hold(False)
+    return runCallback
+
+def gridBoundaryCallback(alpha=1.0):
+    def runCallback(plot):
+        x0, x1 = plot.xlim
+        y0, y1 = plot.ylim
+        dx = plot.image._A.shape[0] / (x1-x0)
+        dy = plot.image._A.shape[1] / (y1-y0)
+        GLE = plot.data.gridLeftEdge
+        GRE = plot.data.gridRightEdge
+        px_index = lagos.x_dict[plot.data.axis]
+        py_index = lagos.y_dict[plot.data.axis]
+        left_edge_px = (GLE[:,px_index]-x0)*dx
+        left_edge_py = (GLE[:,py_index]-y0)*dy
+        right_edge_px = (GRE[:,px_index]-x0)*dx
+        right_edge_py = (GRE[:,py_index]-y0)*dy
+        verts = na.array( 
+                [(left_edge_px, left_edge_px, right_edge_px, right_edge_px),
+                 (left_edge_py, right_edge_py, right_edge_py, left_edge_py)])
+        verts=verts.transpose()
+        edgecolors = (0.0,0.0,0.0,alpha)
+        grid_collection = matplotlib.collections.PolyCollection(
+                verts, facecolors=(0.0,0.0,0.0,0.0),
+                       edgecolors=edgecolors)
+        plot._axes.hold(True)
+        plot._axes.add_collection(grid_collection)
         plot._axes.hold(False)
     return runCallback
