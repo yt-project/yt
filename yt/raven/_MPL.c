@@ -110,13 +110,6 @@ static PyObject* Py_Pixelize(PyObject *obj, PyObject *args) {
   int ndx = dx->dimensions[0];
   int ndy = dy->dimensions[0];
 
-  npy_float64 *gridded;
-    gridded = malloc(sizeof(npy_float64)*rows*cols);
-  if (gridded == NULL) {
-      PyErr_Format(_pixelizeError, "Could not allocate memory for image");
-      goto _fail;
-  }
-
   // Calculate the pointer arrays to map input x to output x
   int i, j, p;
   double lc, lr, rc, rr;
@@ -131,7 +124,7 @@ static PyObject* Py_Pixelize(PyObject *obj, PyObject *args) {
   PyArrayObject *my_array =
     (PyArrayObject *) PyArray_SimpleNewFromDescr(2, dims,
               PyArray_DescrFromType(NPY_FLOAT64));
-  gridded = (npy_float64 *) my_array->data;
+  npy_float64 *gridded = (npy_float64 *) my_array->data;
 
   for(p=0;p<cols*rows;p++)gridded[p]=0.0;
   for(p=0;p<nx;p++)
@@ -286,13 +279,6 @@ static PyObject* Py_CPixelize(PyObject *obj, PyObject *args) {
   // Check dimensions match
   int nx = x->dimensions[0];
 
-  npy_float64 *gridded;
-    gridded = malloc(sizeof(npy_float64)*rows*cols);
-  if (gridded == NULL) {
-      PyErr_Format(_pixelizeError, "Could not allocate memory for image");
-      goto _fail;
-  }
-
   // Calculate the pointer arrays to map input x to output x
   int i, j, p;
   int lc, lr, rc, rr;
@@ -315,7 +301,7 @@ static PyObject* Py_CPixelize(PyObject *obj, PyObject *args) {
   PyArrayObject *my_array =
     (PyArrayObject *) PyArray_SimpleNewFromDescr(2, dims,
               PyArray_DescrFromType(NPY_FLOAT64));
-  gridded = (npy_float64 *) my_array->data;
+  npy_float64 *gridded = (npy_float64 *) my_array->data;
 
   npy_float64 inv_mats[3][3];
   for(i=0;i<3;i++)for(j=0;j<3;j++)
