@@ -169,3 +169,35 @@ def check_neighbors(data_object, field="Contours"):
                     compiler='gcc', type_converters=converters.blitz,
                     auto_downcast=0, verbose=2)
     return n_bad[0]
+
+check_cell_distance = \
+r"""
+using namespace std;
+int i, j, k;
+long double cell_dist, rad_m, rad_n;
+k=0;
+for(i=0;i<mp;i++){
+  for(j=0;j<np;j++){
+    /*
+   cell_dist = sqrtl(pow(mx(i)-nx(j),2) +
+                     pow(my(i)-ny(j),2) +
+                     pow(mz(i)-nz(j),2));
+   rad_m = sqrtl(pow(mdx(i),2) +
+                 pow(mdy(i),2) +
+                 pow(mdz(i),2));
+   rad_n = sqrtl(pow(ndx(j),2) +
+                 pow(ndy(j),2) +
+                 pow(ndz(j),2));
+    */
+   //if(cell_dist > 1.01 * (rad_n/2.0+rad_m/2.0)) continue;
+   if(fabsl(mx(i)-nx(j))>(mdx(i)+ndx(j))/2.0) continue;
+   if(fabsl(my(i)-ny(j))>(mdy(i)+ndy(j))/2.0) continue;
+   if(fabsl(mz(i)-nz(j))>(mdz(i)+ndz(j))/2.0) continue;
+   k++;
+   break;
+   cout << cell_dist << "\t" << 1.01*(rad_n/2.0+rad_m/2.0) << "\t";
+   cout << grid_ids_m(i) << "\t" << grid_ids_n(j) << endl;
+  }
+}
+n_bad(0) += k;
+"""

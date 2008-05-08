@@ -64,7 +64,6 @@ if ytcfg.getboolean("lagos","usefortran"):
 
 import PointCombine
 import HDF5LightReader
-from WeaveStrings import *
 from EnzoDefs import *
 from DerivedFields import *
 from DerivedQuantities import DerivedQuantityCollection, GridChildMaskWrapper
