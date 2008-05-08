@@ -17,7 +17,8 @@ mh = 1.67e-24 # g
 me = 9.11e-28 # g
 sigma_thompson = 6.65e-25 # cm^2
 clight = 3.0e10 # cm/s
-kboltz = 1.38e-16
+kboltz = 1.38e-16 # erg K^-1
+G = 6.67e-8   # cm^3 g^-1 s^-2
 
 class FieldInfoContainer: # We are all Borg.
     _shared_state = {}
@@ -665,6 +666,20 @@ add_field("RadialVelocityKMS", function=_RadialVelocity,
           convert_function=_ConvertRadialVelocityKMS, units=r"\rm{km}/\rm{s}",
           validators=[ValidateParameter("center"),
                       ValidateParameter("bulk_velocity")])
+
+def _MeanMolecularWeight(field,data):
+    return (data["Density"] / (mh *data["NumberDensity"]))
+add_field("MeanMolecularWeight",function=_MeanMolecularWeight,units=r"")
+
+def _JeansMassMsun(field,data):
+    MJ_constant = (((5*kboltz)/(G*mh))**(1.5)) * \
+    (3/(4*3.1415926535897931))**(0.5) / 1.989e33
+
+    return (MJ_constant * 
+            ((data["Temperature"]/data["MeanMolecularWeight"])**(1.5)) *
+            (data["Density"]**(-0.5)))
+add_field("JeansMassMsun",function=_JeansMassMsun,
+          units=r"\rm{M_{\odot}}")
 
 # Now we add all the fields that we want to control, but we give a null function
 # This is every Enzo field we can think of.  This will be installation-dependent,
