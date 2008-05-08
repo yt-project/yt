@@ -363,7 +363,7 @@ class VMPlot(RavenPlot):
             self.colorbar.notify(self.image)
 
     def set_label(self, label):
-        if self.colorbar != None: self.colorbar.set_label(label)
+        if self.colorbar != None: self.colorbar.set_label(str(label))
 
     def selfSetup(self):
         pass
@@ -373,28 +373,28 @@ class SlicePlot(VMPlot):
 
     def autoset_label(self):
         if self.datalabel != None:
-            self.colorbar.set_label(self.datalabel)
+            self.colorbar.set_label(str(self.datalabel))
             return
         field_name = self.axis_names["Z"]
         data_label = r"$\rm{%s}" % field_name
         if lagos.fieldInfo.has_key(field_name):
             data_label += r"\/\/ (%s)" % (lagos.fieldInfo[field_name].get_units())
         data_label += r"$"
-        if self.colorbar != None: self.colorbar.set_label(data_label)
+        if self.colorbar != None: self.colorbar.set_label(str(data_label))
 
 class ProjectionPlot(VMPlot):
     _type_name = "Projection"
 
     def autoset_label(self):
         if self.datalabel != None:
-            self.colorbar.set_label(self.datalabel)
+            self.colorbar.set_label(str(self.datalabel))
             return
         field_name = self.axis_names["Z"]
         data_label = r"$\rm{%s}" % field_name
         if lagos.fieldInfo.has_key(field_name):
             data_label += r"\/\/ (%s)" % (lagos.fieldInfo[field_name].get_projected_units())
         data_label += r"$"
-        if self.colorbar != None: self.colorbar.set_label(data_label)
+        if self.colorbar != None: self.colorbar.set_label(str(data_label))
 
 class CuttingPlanePlot(SlicePlot):
     _type_name = "CuttingPlane"
