@@ -791,7 +791,7 @@ def contourCallback(field, ncont=5, factor=4, take_log=False, clim=None):
         plot._axes.hold(False)
     return runCallback
 
-def gridBoundaryCallback(alpha=1.0):
+def gridBoundaryCallback(alpha=1.0, min_pix = 1):
     def runCallback(plot):
         x0, x1 = plot.xlim
         y0, y1 = plot.ylim
@@ -808,12 +808,70 @@ def gridBoundaryCallback(alpha=1.0):
         verts = na.array( 
                 [(left_edge_px, left_edge_px, right_edge_px, right_edge_px),
                  (left_edge_py, right_edge_py, right_edge_py, left_edge_py)])
-        verts=verts.transpose()
+        visible =  ( right_edge_px - left_edge_px > min_pix ) & \
+                   ( right_edge_px - left_edge_px > min_pix ) 
+        verts=verts.transpose()[visible,:,:]
         edgecolors = (0.0,0.0,0.0,alpha)
         grid_collection = matplotlib.collections.PolyCollection(
                 verts, facecolors=(0.0,0.0,0.0,0.0),
                        edgecolors=edgecolors)
         plot._axes.hold(True)
         plot._axes.add_collection(grid_collection)
+        plot._axes.hold(False)
+    return runCallback
+
+def get_smallest_appropriate_unit(v, pf):
+    max_nu = 1e30
+    good_u = None
+    for unit in ['mpc','kpc','pc','au','rsun','cm']:
+        vv = v*pf[unit]
+        if vv < max_nu and vv > 1.0:
+            good_u = unit
+            max_nu = v*pf[unit]
+    return good_u
+
+def unitBoundaryCallback(unit = "au", factor=4, text_annotate=True, text_which=-2):
+    def runCallback(plot):
+        x0, x1 = plot.xlim
+        y0, y1 = plot.ylim
+        l, b, width, height = plot._axes.bbox.get_bounds()
+        xi = lagos.x_dict[plot.data.axis]
+        yi = lagos.y_dict[plot.data.axis]
+        dx = plot.image._A.shape[0] / (x1-x0)
+        dy = plot.image._A.shape[1] / (y1-y0)
+        center = plot.data.center
+        min_dx = plot.data['pdx'].min()
+        max_dx = plot.data['pdx'].max()
+        w_min_x = 250.0 * min_dx
+        w_max_x = 1.0 / factor
+        min_exp_x = na.ceil(na.log10(w_min_x*plot.data.pf[unit])/na.log10(factor))
+        max_exp_x = na.floor(na.log10(w_max_x*plot.data.pf[unit])/na.log10(factor))
+        n_x = max_exp_x - min_exp_x + 1
+        widths = na.logspace(min_exp_x, max_exp_x, num = n_x, base=factor)
+        widths /= plot.data.pf[unit]
+        left_edge_px = (center[xi] - widths/2.0 - x0)*dx
+        left_edge_py = (center[yi] - widths/2.0 - y0)*dy
+        right_edge_px = (center[xi] + widths/2.0 - x0)*dx
+        right_edge_py = (center[yi] + widths/2.0 - y0)*dy
+        verts = na.array( 
+                [(left_edge_px, left_edge_px, right_edge_px, right_edge_px),
+                 (left_edge_py, right_edge_py, right_edge_py, left_edge_py)])
+        visible =  ( right_edge_px - left_edge_px > 25 ) & \
+                   ( right_edge_px - left_edge_px > 25 ) & \
+                   ( (right_edge_px < width) & (left_edge_px > 0) ) & \
+                   ( (right_edge_py < height) & (left_edge_py > 0) )
+        verts=verts.transpose()[visible,:,:]
+        grid_collection = matplotlib.collections.PolyCollection(
+                verts, facecolors=(0.0,0.0,0.0,0.0),
+                       edgecolors = (0.0,0.0,0.0,1.0),
+                       linewidths=2.5)
+        plot._axes.hold(True)
+        plot._axes.add_collection(grid_collection)
+        if text_annotate:
+            ti = max(text_which, -1*len(widths[visible]))
+            w = widths[visible][ti]
+            good_u = get_smallest_appropriate_unit(w, plot.data.pf)
+            w *= plot.data.pf[good_u]
+            plot._axes.annotate("%0.3e %s" % (w,good_u), verts[ti,1,:]+5)
         plot._axes.hold(False)
     return runCallback
