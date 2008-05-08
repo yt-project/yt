@@ -2,6 +2,14 @@ import os, os.path
 import sys
 import time
 import subprocess
+import ez_setup
+ez_setup.use_setuptools()
+
+import setuptools
+
+APP = ['reason.py']
+DATA_FILES = []
+OPTIONS = {'argv_emulation': True}
 
 if os.path.exists('MANIFEST'): os.remove('MANIFEST')
 
@@ -26,31 +34,19 @@ def setup_package():
 
     setup(
         name = "yt",
-        version = getVersion(),
-        description = "A set of classes for manipulating Enzo data",
-        url = "http://www.stanford.edu/~mturk/raven.html",
+        version = "0.3",
+        description = "A set of classes for manipulating Enzo Adaptive Mesh Refinement data",
+        install_requires = ['matplotlib>=0.90.1',
+                            'numpy>=1.0.3',
+                            'wxPython>=2.8.7.1'],
+        url = "http://yt.spacepope.org/",
         author="Matthew Turk",
-        author_email="mturk@stanford.edu",
+        author_email="matt@yt.spacepope.org",
         license="GPL-3",
-        configuration=configuration
+        configuration=configuration,
+        app=APP, data_files=DATA_FILES, options={'py2app':OPTIONS},
         )
     return
-
-def getVersion():
-    # First we try to SVN it
-    repo = os.path.basename(os.path.realpath(__file__))
-    p=subprocess.Popen("svn info %s" % repo, \
-                              stdout=subprocess.PIPE, \
-                              stderr=subprocess.STDOUT, \
-                              shell=True, executable="/bin/bash")
-    p.wait()
-    version = None
-    for line in p.stdout:
-        if line.startswith("Revision:"):
-            print "VERSION",line.split(":")[-1]
-            version = "SVN-r%s" % (line.split(":")[-1].strip().rstrip())
-    if not version: version = time.strftime("%y%m%d")
-    return version
 
 if __name__ == '__main__':
     setup_package()

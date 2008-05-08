@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+import setuptools
 import os, sys, os.path
 
 import os.path
@@ -19,7 +20,7 @@ def configuration(parent_package='',top_path=None):
         config.add_extension("HDF5LightReader", "yt/lagos/HDF5LightReader.c",
                              libraries=["m","hdf5"],
                              library_dirs=library_dirs, include_dirs=include_dirs)
-    sys.argv.extend(["config_fc","--f77flags","'-Dr16 -ffixed-line-length-none -fno-second-underscore -DPYFORT -DNOMETALS -ggdb -O0'"])
+    sys.argv.extend(["config_fc","--f77flags","'-Dr16 -ffixed-line-length-132 -fno-second-underscore -DPYFORT -DNOMETALS -ggdb -O0'"])
     if 0:
         config.add_extension("EnzoFortranRoutines", \
                             ["yt/lagos/solve_rate_cool.pyf", "yt/lagos/f_src/*.F"])

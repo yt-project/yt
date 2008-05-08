@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+import setuptools
 import os, sys, os.path
 
 def configuration(parent_package='',top_path=None):
