@@ -302,13 +302,15 @@ static PyObject* Py_CPixelize(PyObject *obj, PyObject *args) {
     (PyArrayObject *) PyArray_SimpleNewFromDescr(2, dims,
               PyArray_DescrFromType(NPY_FLOAT64));
   npy_float64 *gridded = (npy_float64 *) my_array->data;
+  npy_float64 *mask = malloc(sizeof(npy_float64)*rows*cols);
 
   npy_float64 inv_mats[3][3];
   for(i=0;i<3;i++)for(j=0;j<3;j++)
       inv_mats[i][j]=*(npy_float64*)PyArray_GETPTR2(inv_mat,i,j);
 
   int pp;
-  for(p=0;p<cols*rows;p++)gridded[p]=0.0;
+  npy_float64 radius;
+  for(p=0;p<cols*rows;p++)gridded[p]=mask[p]=0.0;
   for(pp=0; pp<nx; pp++)
   {
     p = indicess[pp];
@@ -329,13 +331,15 @@ static PyObject* Py_CPixelize(PyObject *obj, PyObject *args) {
         cx = inv_mats[0][0]*cxpx + inv_mats[0][1]*cypx + centers[0];
         cy = inv_mats[1][0]*cxpx + inv_mats[1][1]*cypx + centers[1];
         cz = inv_mats[2][0]*cxpx + inv_mats[2][1]*cypx + centers[2];
-        if( (fabs(xs[p]-cx)>dxs[p]) || 
-            (fabs(ys[p]-cy)>dys[p]) ||
-            (fabs(zs[p]-cz)>dzs[p])) continue;
+        if( (fabs(xs[p]-cx)*0.95>dxs[p]) || 
+            (fabs(ys[p]-cy)*0.95>dys[p]) ||
+            (fabs(zs[p]-cz)*0.95>dzs[p])) continue;
+        mask[j*cols+i] += 1;
         gridded[j*cols+i] += ds[p];
       }
     }
   }
+  for(p=0;p<cols*rows;p++)gridded[p]=gridded[p]/mask[p];
 
   // Attatch output buffer to output buffer
 
@@ -351,6 +355,7 @@ static PyObject* Py_CPixelize(PyObject *obj, PyObject *args) {
   Py_DECREF(center);
   Py_DECREF(indices);
   Py_DECREF(inv_mat);
+  free(mask);
 
   PyObject *return_value = Py_BuildValue("N", my_array);
 
