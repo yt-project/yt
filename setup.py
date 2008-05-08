@@ -44,7 +44,7 @@ def setup_package():
         author_email="matt@yt.spacepope.org",
         license="GPL-3",
         configuration=configuration,
-        app=APP, data_files=DATA_FILES, options={'py2app':OPTIONS},
+        #app=APP, data_files=DATA_FILES, options={'py2app':OPTIONS},
         )
     return
 
