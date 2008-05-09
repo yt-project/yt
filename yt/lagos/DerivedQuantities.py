@@ -168,16 +168,17 @@ def _IsBound(data):
     total_cells = len(data['x'])
     cells_done = 0
     potential = 0.0
-    pb = get_pbar("Calculating gravitational potential ", (na.array(range(total_cells)).sum())) # Progress bar
+    pb = get_pbar("Calculating gravitational potential ", (0.5*(total_cells**2 - total_cells)))
     for q in xrange(total_cells-1):
         pot = data['CellMass'][(q+1):total_cells] / \
             (((data['x'][(q+1):total_cells]-data['x'][q])**2 + \
                   (data['y'][(q+1):total_cells]-data['y'][q])**2 + \
                   (data['z'][(q+1):total_cells]-data['z'][q])**2)**(0.5))
-        potential += 2 * data['CellMass'][q] * pot.sum()
+        potential += 2 * G * data['CellMass'][q] * pot.sum()
         cells_done += (total_cells - q - 1)
         pb.update(cells_done)
-    potential *= G
+        if (potential > kinetic):
+            break
     pb.finish()
 
     return (kinetic < potential),1.0
