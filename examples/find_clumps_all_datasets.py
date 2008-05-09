@@ -3,24 +3,28 @@
 # In this example, we are looking for clumps in a sphere of radius 10 pc surrounding 
 # the density maximum in each datadump.
 
+import yt.lagos as lagos
 from find_clumps_dataset import *
 
-data_dir = "/Users/britton/EnzoRuns/real_4/cl-4/"
+data_dir = "/Users/britton/EnzoRuns/runs_08/cl-2.5/"
+#data_dir = "/Volumes/Turducken/EnzoRuns/runs_08/cl-5/"
 
 # Time datadumps.
-time_dumps = [q for q in range(25)]
+time_dumps = [34]
 time_dump_dir = "DataDir"
 time_dump_prefix = "DataDump"
 
 # Redshift datadumps.
-redshift_dumps = [q for q in range(5)]
+redshift_dumps = []
 redshift_dump_dir = "RedshiftDir"
 redshift_dump_prefix = "RedshiftDump"
 
 field = "Density"
-radius = 10
+radius = 0.0001
 units = "pc"
-step = 10**(1./5.) # 5 steps each order of magnitude
+step = 10**(1./4.) # 4 steps each order of magnitude
+
+minCells = 64 # not setting anything, only for file prefix
 
 # Prepare list of datasets.
 datasets = []
@@ -33,13 +37,20 @@ for q in redshift_dumps:
 for dataset in datasets:
     print "Finding clumps in %s." % dataset
 
+    prefix = "%s_%.1e%s_step%.2f_min%d" % (dataset,radius,units,step,minCells)
+
     dataset_object = lagos.EnzoStaticOutput(dataset)
 
     # Look for clumps in a sphere surrounding the density maximum.
     v, c = dataset_object.h.find_max(field)
     sphere = dataset_object.h.sphere(c, radius/dataset_object[units], [field]) # cache our field
 
-    find_clumps_dataset(dataset,sphere,field,step)
+    print "Sphere is %s %s." % (radius,units)
+    print "Min %s: %e, Max %s: %e." % (field,sphere.data[field].min(),
+                                      field,sphere.data[field].max())
 
+    master = find_clumps_dataset(prefix,sphere,field,step)
+
+    del master
     del sphere
     del dataset_object
