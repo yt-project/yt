@@ -1,17 +1,13 @@
-:mod:`yt.lagos` -- Grid Type
-=========================================
+Native Enzo Data Structures
+===========================
 
-.. module:: yt.lagos.HierarchyType
-   :synopsis: The various types of outputs from a simulation
-.. moduleauthor:: Matthew Turk <mturk@stanford.edu>
-
-.. autoclass:: yt.lagos.HierarchyType
-   :members:
+.. currentmodule:: yt.lagos
 
 .. autoclass:: yt.lagos.EnzoStaticOutput
    :members:
 
-.. autoclass:: yt.lagos.BaseGridType
+.. autoclass:: yt.lagos.EnzoHierarchy
    :members:
 
-
+.. autoclass:: yt.lagos.EnzoGridBase
+   :members:

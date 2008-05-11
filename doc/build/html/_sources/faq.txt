@@ -44,6 +44,26 @@ I'd love to see your contributions so they can be shared with the community.
 Additionally, if you use yt in a paper, I'd love it if you'd drop me a line to
 let me know.
 
+What are all these .yt files?
+-----------------------------
+
+By default, yt attempts to serialize a couple pieces of data that help speed it
+up in future invocations.  Specifically, the entire contents of the hierarchy,
+the parent-child relationships between the grids, and any projections of the
+entire volume that are made.
+
+The numbers that make up the filenames are taken from one of two places.  If
+your Enzo outputs the "CurrentTimeIdentifier" parameter, that is the number that it
+uses.  (This is a string of digits representing the number of seconds since the
+epoch.)  If that is unavailable, the creation time of the file as reported by
+the file system is used.
+
+This can cause problems.  Ticket #91 on the bug tracker records some of these.
+If you are creating multiple parameter files per second, this can lead to
+incorrect hierarchies, and thus incorrect behavior, inside your analysis.  In
+such cases, it is recommended that the parameter 'serialize' in the section
+'lagos' of your configuration file is set to 'False'.
+
 How can I help?
 ---------------
 
@@ -61,6 +81,15 @@ If you can't figure out what's up, please go ahead and copy the resultant
 traceback information (the error message it prints out) along with any log
 files, and either send an email to the ``yt-users`` mailing list (subscribe
 first!) or attach them to a ticket at `<http://yt.spacepope.org/>`_.  
+
+.. _axis-specification:
+
+How do I specify an axis?
+-------------------------
+
+For now, axes are specified by integers -- 0,1,2 for x,y,z.  In the next
+version, this will probably change, and allow for string-identification as
+well.
 
 Where can I go for support?
 ---------------------------

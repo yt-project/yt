@@ -1,23 +1,16 @@
 Extending yt
 ============
 
-Writing Scripts
----------------
+yt has been designed to be flexible, with several entry points.
 
-Dealing with the Interpreter
-----------------------------
+.. toctree::
+   :maxdepth: 2
 
-Creating Datatypes
-------------------
-
-Creating Derived Quantities
----------------------------
-
-Creating Derived Fields
------------------------
-
-Analyzing in Parallel
----------------------
-
-Running Fortran Routines
-------------------------
+   writing_scripts
+   using_the_interpreter
+   plugin_file
+   creating_datatypes
+   creating_derived_quantities
+   creating_derived_fields
+   analyzing_in_parallel
+   running_fortran_routines

@@ -81,6 +81,23 @@ Additionally, if you use yt in a paper, I&#8217;d love it if you&#8217;d drop me
 let me know.</p>
 </div>
 <div class="section">
+<h2 id="what-are-all-these-yt-files">What are all these .yt files?<a class="headerlink" href="#what-are-all-these-yt-files" title="Permalink to this headline">¶</a></h2>
+<p>By default, yt attempts to serialize a couple pieces of data that help speed it
+up in future invocations.  Specifically, the entire contents of the hierarchy,
+the parent-child relationships between the grids, and any projections of the
+entire volume that are made.</p>
+<p>The numbers that make up the filenames are taken from one of two places.  If
+your Enzo outputs the &#8220;CurrentTimeIdentifier&#8221; parameter, that is the number that it
+uses.  (This is a string of digits representing the number of seconds since the
+epoch.)  If that is unavailable, the creation time of the file as reported by
+the file system is used.</p>
+<p>This can cause problems.  Ticket #91 on the bug tracker records some of these.
+If you are creating multiple parameter files per second, this can lead to
+incorrect hierarchies, and thus incorrect behavior, inside your analysis.  In
+such cases, it is recommended that the parameter &#8216;serialize&#8217; in the section
+&#8216;lagos&#8217; of your configuration file is set to &#8216;False&#8217;.</p>
+</div>
+<div class="section">
 <h2 id="how-can-i-help">How can I help?<a class="headerlink" href="#how-can-i-help" title="Permalink to this headline">¶</a></h2>
 <p>If you find a bug, report it.  If you do something cool, write it up.  If you
 find a place to improve the code, send in a patch.</p>
@@ -94,6 +111,12 @@ an object or a method to get more information.</p>
 traceback information (the error message it prints out) along with any log
 files, and either send an email to the <tt class="docutils literal"><span class="pre">yt-users</span></tt> mailing list (subscribe
 first!) or attach them to a ticket at <a class="reference" href="http://yt.spacepope.org/">http://yt.spacepope.org/</a>.</p>
+</div>
+<div class="section">
+<h2 id="how-do-i-specify-an-axis"><span id="axis-specification"></span>How do I specify an axis?<a class="headerlink" href="#how-do-i-specify-an-axis" title="Permalink to this headline">¶</a></h2>
+<p>For now, axes are specified by integers &#8211; 0,1,2 for x,y,z.  In the next
+version, this will probably change, and allow for string-identification as
+well.</p>
 </div>
 <div class="section">
 <h2 id="where-can-i-go-for-support">Where can I go for support?<a class="headerlink" href="#where-can-i-go-for-support" title="Permalink to this headline">¶</a></h2>
@@ -115,8 +138,10 @@ at the <a class="reference" href="http://yt.spacepope.org">yt homepage</a>.</p>
 <li><a class="reference" href="#where-can-i-learn-more-about-python">Where can I learn more about Python?</a></li>
 <li><a class="reference" href="#what-s-up-with-the-names">What&#8217;s up with the names?</a></li>
 <li><a class="reference" href="#are-there-any-restrictions-on-my-use-of-yt">Are there any restrictions on my use of yt?</a></li>
+<li><a class="reference" href="#what-are-all-these-yt-files">What are all these .yt files?</a></li>
 <li><a class="reference" href="#how-can-i-help">How can I help?</a></li>
 <li><a class="reference" href="#something-has-gone-wrong-what-do-i-do">Something has gone wrong.  What do I do?</a></li>
+<li><a class="reference" href="#how-do-i-specify-an-axis">How do I specify an axis?</a></li>
 <li><a class="reference" href="#where-can-i-go-for-support">Where can I go for support?</a></li>
 </ul>
 </li>
@@ -132,7 +157,7 @@ at the <a class="reference" href="http://yt.spacepope.org">yt homepage</a>.</p>
             </ul>
             <h3>Quick search</h3>
             <form class="search" action="search.html" method="get">
-              <input type="text" name="q" size="18"> <input type="submit" value="Go" />
+              <input type="text" name="q" size="18" /> <input type="submit" value="Go" />
               <input type="hidden" name="check_keywords" value="yes" />
               <input type="hidden" name="area" value="default" />
             </form>
@@ -155,7 +180,7 @@ at the <a class="reference" href="http://yt.spacepope.org">yt homepage</a>.</p>
     </div>
     <div class="footer">
       &copy; Copyright 2008, Matthew Turk.
-      Last updated on May 04, 2008.
+      Last updated on May 09, 2008.
     </div>
   </body>
 </html>

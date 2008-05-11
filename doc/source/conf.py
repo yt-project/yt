@@ -26,6 +26,8 @@ import sys, os
 extensions = ['sphinx.ext.autodoc']
 autoclass_content = 'both'
 
+inherited_memers = 'true'
+
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['.templates']
 
