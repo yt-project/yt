@@ -1,6 +1,8 @@
 Native Enzo Data Structures
 ===========================
 
+.. currentmodule:: yt.lagos
+
 .. autoclass:: yt.lagos.EnzoStaticOutput
    :members:
 

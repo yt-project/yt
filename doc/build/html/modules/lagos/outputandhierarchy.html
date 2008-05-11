@@ -18,9 +18,9 @@
     <link rel="index" title="Global index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
     <link rel="top" title="yt v0.3 documentation" href="../../index.html" />
-    <link rel="up" title="yt.lagos" href="index.html" />
+    <link rel="up" title="yt.lagos - Data Handling and Analysis" href="index.html" />
     <link rel="next" title="Data Containers" href="basedatatypes.html" />
-    <link rel="prev" title="yt.lagos" href="index.html" />
+    <link rel="prev" title="yt.lagos - Data Handling and Analysis" href="index.html" />
   </head>
   <body>
     <div class="related">
@@ -29,12 +29,12 @@
         <li class="right" style="margin-right: 10px"><a href="../../genindex.html" title="General Index" accesskey="I">index</a></li>
         <li class="right"><a href="../../modindex.html" title="Global Module Index" accesskey="M">modules</a> |</li>
           <li class="right"><a href="basedatatypes.html" title="Data Containers" accesskey="N">next</a> |</li>
-          <li class="right"><a href="index.html" title="yt.lagos" accesskey="P">previous</a> |</li>
+          <li class="right"><a href="index.html" title="yt.lagos - Data Handling and Analysis" accesskey="P">previous</a> |</li>
     <li><a href="http://yt.spacepope.org/">yt</a> &raquo;</li>
     
         <li><a href="../../index.html">yt v0.3 documentation</a> &raquo;</li>
 
-          <li><a href="index.html" accesskey="U">yt.lagos</a> &raquo;</li>
+          <li><a href="index.html" accesskey="U">yt.lagos - Data Handling and Analysis</a> &raquo;</li>
       </ul>
     </div>
     <div class="document">
@@ -46,8 +46,8 @@
   <div class="section">
 <h1 id="native-enzo-data-structures">Native Enzo Data Structures<a class="headerlink" href="#native-enzo-data-structures" title="Permalink to this headline">¶</a></h1>
 <dl class="class">
-<dt id="EnzoStaticOutput">
-<!--#EnzoStaticOutput#-->class <tt class="descname">EnzoStaticOutput</tt><big>(</big><em>filename</em>, <em>data_style=None</em><big>)</big><a class="headerlink" href="#EnzoStaticOutput" title="Permalink to this definition">¶</a></dt>
+<dt id="yt.lagos.EnzoStaticOutput">
+<!--#yt.lagos.EnzoStaticOutput#-->class <tt class="descclassname">yt.lagos.</tt><tt class="descname">EnzoStaticOutput</tt><big>(</big><em>filename</em>, <em>data_style=None</em><big>)</big><a class="headerlink" href="#yt.lagos.EnzoStaticOutput" title="Permalink to this definition">¶</a></dt>
 <dd><p>This class is a stripped down class that simply reads and parses, without
 looking at the hierarchy.</p>
 <dl class="docutils">
@@ -60,180 +60,103 @@ single-time data?</dd>
 </dd></dl>
 
 <dl class="class">
-<dt id="EnzoHierarchy">
-<!--#EnzoHierarchy#-->class <tt class="descname">EnzoHierarchy</tt><big>(</big><em>pf</em>, <em>data_style=None</em><big>)</big><a class="headerlink" href="#EnzoHierarchy" title="Permalink to this definition">¶</a></dt>
-<dd><p>Class for handling Enzo timestep outputs</p>
-<p>&#64;param pf: The OutputFile we&#8217;re instantiating from
-&#64;type pf: L{EnzoOutput}
-&#64;keyword data_style: The type of Enzo Output we&#8217;re going to read from &#8211;</p>
-<div class="system-message">
-<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">&lt;docstring of yt.lagos.EnzoHierarchy&gt;</tt>, line 7)</p>
-Unexpected indentation.</div>
-<blockquote>
-4 : hdf4, 5 : hdf5, 6 : packed HDF5</blockquote>
-<div class="system-message">
-<p class="system-message-title">System Message: WARNING/2 (<tt class="docutils">/Users/matthewturk/Development/yt/trunk/doc/source/modules/lagos/outputandhierarchy.rst</tt>, line 19)</p>
-Block quote ends without a blank line; unexpected unindent.</div>
-<p>&#64;type data_style: int</p>
+<dt id="yt.lagos.EnzoHierarchy">
+<!--#yt.lagos.EnzoHierarchy#-->class <tt class="descclassname">yt.lagos.</tt><tt class="descname">EnzoHierarchy</tt><big>(</big><em>pf</em>, <em>data_style=None</em><big>)</big><a class="headerlink" href="#yt.lagos.EnzoHierarchy" title="Permalink to this definition">¶</a></dt>
+<dd><p>This is the grid structure as Enzo sees it, with some added bonuses.
+It&#8217;s primarily used as a class factor, to generate data objects and
+access grids.</p>
+<p>It should never be created directly &#8211; you should always access it via
+calls to an affiliated <a title="yt.lagos.EnzoStaticOutput" class="reference" href="#yt.lagos.EnzoStaticOutput"><tt class="xref docutils literal"><span class="pre">EnzoStaticOutput</span></tt></a>.</p>
+<p>On instantiation, it processes the hierarchy and generates the grids.</p>
 <dl class="method">
-<dt id="EnzoHierarchy.export_amira">
-<!--#EnzoHierarchy.export_amira#--><tt class="descname">export_amira</tt><big>(</big><em>basename</em>, <em>fields</em>, <em>a5basename</em>, <em>timestep</em><big>)</big><a class="headerlink" href="#EnzoHierarchy.export_amira" title="Permalink to this definition">¶</a></dt>
+<dt id="yt.lagos.EnzoHierarchy.export_boxes_pv">
+<!--#yt.lagos.EnzoHierarchy.export_boxes_pv#--><tt class="descname">export_boxes_pv</tt><big>(</big><em>filename</em><big>)</big><a class="headerlink" href="#yt.lagos.EnzoHierarchy.export_boxes_pv" title="Permalink to this definition">¶</a></dt>
 <dd>Exports the grid structure in partiview text format.</dd></dl>
 
 <dl class="method">
-<dt id="EnzoHierarchy.export_boxes_pv">
-<!--#EnzoHierarchy.export_boxes_pv#--><tt class="descname">export_boxes_pv</tt><big>(</big><em>filename</em><big>)</big><a class="headerlink" href="#EnzoHierarchy.export_boxes_pv" title="Permalink to this definition">¶</a></dt>
-<dd><p>Exports the grid structure in partiview text format.</p>
-<p>&#64;arg filename: File to export to.
-&#64;type filename: String</p>
-</dd></dl>
+<dt id="yt.lagos.EnzoHierarchy.export_particles_pb">
+<!--#yt.lagos.EnzoHierarchy.export_particles_pb#--><tt class="descname">export_particles_pb</tt><big>(</big><em>filename</em>, <em>filter=1</em>, <em>indexboundary=0</em>, <em>fields=None</em>, <em>scale=1.0</em><big>)</big><a class="headerlink" href="#yt.lagos.EnzoHierarchy.export_particles_pb" title="Permalink to this definition">¶</a></dt>
+<dd>Exports all the star particles, or a subset, to pb-format <em>filename</em>
+for viewing in partiview.  Filters based on particle_type=*filter*, 
+particle_index&gt;=*indexboundary*, and exports <em>fields</em>, if supplied.
+Otherwise, index, position(x,y,z).  Optionally <em>scale</em> by a given
+factor before outputting.</dd></dl>
 
 <dl class="method">
-<dt id="EnzoHierarchy.export_particles_pb">
-<!--#EnzoHierarchy.export_particles_pb#--><tt class="descname">export_particles_pb</tt><big>(</big><em>filename</em>, <em>filter=1</em>, <em>indexboundary=0</em>, <em>fields=None</em>, <em>scale=1.0</em><big>)</big><a class="headerlink" href="#EnzoHierarchy.export_particles_pb" title="Permalink to this definition">¶</a></dt>
-<dd><p>Exports all the star particles, or a subset, to a pb file for viewing in
-partiview</p>
-<p>&#64;param filename: filename of the .pb file to create
-&#64;type filename: string
-&#64;keyword filter: the particle type you want to get (assumes 1)
-&#64;type filter: integer
-&#64;keyword fields: the fields you want to snag.  If not supplied, it just</p>
-<div class="system-message">
-<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">&lt;docstring of yt.lagos.EnzoHierarchy.export_particles_pb&gt;</tt>, line 10)</p>
-Unexpected indentation.</div>
-<blockquote>
-grabs the position and index.</blockquote>
-<div class="system-message">
-<p class="system-message-title">System Message: WARNING/2 (<tt class="docutils">/Users/matthewturk/Development/yt/trunk/doc/source/modules/lagos/outputandhierarchy.rst</tt>, line 46)</p>
-Block quote ends without a blank line; unexpected unindent.</div>
-<dl class="docutils">
-<dt>&#64;keyword indexboundary: for those who want to discriminate the</dt>
-<dd>particles with particle index</dd>
-</dl>
-<div class="system-message">
-<p class="system-message-title">System Message: WARNING/2 (<tt class="docutils">/Users/matthewturk/Development/yt/trunk/doc/source/modules/lagos/outputandhierarchy.rst</tt>, line 48)</p>
-Definition list ends without a blank line; unexpected unindent.</div>
-<p>&#64;type indexboundary: integer
-&#64;keyword scale: the factor to multiply the position by (defaults to 1.0)
-&#64;type scale: float</p>
-</dd></dl>
+<dt id="yt.lagos.EnzoHierarchy.findMax">
+<!--#yt.lagos.EnzoHierarchy.findMax#--><tt class="descname">findMax</tt><big>(</big><em>field</em>, <em>finestLevels=True</em><big>)</big><a class="headerlink" href="#yt.lagos.EnzoHierarchy.findMax" title="Permalink to this definition">¶</a></dt>
+<dd>Returns (value, center) of location of maximum for a given field.</dd></dl>
 
 <dl class="method">
-<dt id="EnzoHierarchy.findMax">
-<!--#EnzoHierarchy.findMax#--><tt class="descname">findMax</tt><big>(</big><em>field</em>, <em>finestLevels=1</em><big>)</big><a class="headerlink" href="#EnzoHierarchy.findMax" title="Permalink to this definition">¶</a></dt>
-<dd><p>Returns value, center of location of maximum for a given field</p>
-<p>Arguments:
-&#64;param field: field (derived or otherwise) of which to look for maximum
-&#64;keyword finestLevels: whether or not to search NUMTOCHECK finest levels
-&#64;type finestLevels: boolean</p>
-</dd></dl>
+<dt id="yt.lagos.EnzoHierarchy.find_max">
+<!--#yt.lagos.EnzoHierarchy.find_max#--><tt class="descname">find_max</tt><big>(</big><em>field</em>, <em>finestLevels=True</em><big>)</big><a class="headerlink" href="#yt.lagos.EnzoHierarchy.find_max" title="Permalink to this definition">¶</a></dt>
+<dd>Returns (value, center) of location of maximum for a given field.</dd></dl>
 
 <dl class="method">
-<dt id="EnzoHierarchy.find_max">
-<!--#EnzoHierarchy.find_max#--><tt class="descname">find_max</tt><big>(</big><em>field</em>, <em>finestLevels=1</em><big>)</big><a class="headerlink" href="#EnzoHierarchy.find_max" title="Permalink to this definition">¶</a></dt>
-<dd><p>Returns value, center of location of maximum for a given field</p>
-<p>Arguments:
-&#64;param field: field (derived or otherwise) of which to look for maximum
-&#64;keyword finestLevels: whether or not to search NUMTOCHECK finest levels
-&#64;type finestLevels: boolean</p>
-</dd></dl>
+<dt id="yt.lagos.EnzoHierarchy.find_min">
+<!--#yt.lagos.EnzoHierarchy.find_min#--><tt class="descname">find_min</tt><big>(</big><em>field</em><big>)</big><a class="headerlink" href="#yt.lagos.EnzoHierarchy.find_min" title="Permalink to this definition">¶</a></dt>
+<dd>Returns (value, center) of location of minimum for a given field</dd></dl>
 
 <dl class="method">
-<dt id="EnzoHierarchy.find_min">
-<!--#EnzoHierarchy.find_min#--><tt class="descname">find_min</tt><big>(</big><em>field</em><big>)</big><a class="headerlink" href="#EnzoHierarchy.find_min" title="Permalink to this definition">¶</a></dt>
-<dd><p>Returns value, center of location of minimum for a given field</p>
-<p>Arguments:
-&#64;param field: field (derived or otherwise) of which to look for maximum</p>
-</dd></dl>
+<dt id="yt.lagos.EnzoHierarchy.find_point">
+<!--#yt.lagos.EnzoHierarchy.find_point#--><tt class="descname">find_point</tt><big>(</big><em>coord</em><big>)</big><a class="headerlink" href="#yt.lagos.EnzoHierarchy.find_point" title="Permalink to this definition">¶</a></dt>
+<dd>Returns the (objects, indices) of grids containing an (x,y,z) point</dd></dl>
 
 <dl class="method">
-<dt id="EnzoHierarchy.find_point">
-<!--#EnzoHierarchy.find_point#--><tt class="descname">find_point</tt><big>(</big><em>coord</em><big>)</big><a class="headerlink" href="#EnzoHierarchy.find_point" title="Permalink to this definition">¶</a></dt>
-<dd><p>Returns the objects, indices of grids containing a point</p>
-<p>&#64;param coord: three floats
-&#64;type coord: tuple of floats</p>
-</dd></dl>
+<dt id="yt.lagos.EnzoHierarchy.find_ray_grids">
+<!--#yt.lagos.EnzoHierarchy.find_ray_grids#--><tt class="descname">find_ray_grids</tt><big>(</big><em>coord</em>, <em>axis</em><big>)</big><a class="headerlink" href="#yt.lagos.EnzoHierarchy.find_ray_grids" title="Permalink to this definition">¶</a></dt>
+<dd>Returns the (objects, indices) of grids that an (x,y) ray intersects
+along <em>axis</em></dd></dl>
 
 <dl class="method">
-<dt id="EnzoHierarchy.find_ray_grids">
-<!--#EnzoHierarchy.find_ray_grids#--><tt class="descname">find_ray_grids</tt><big>(</big><em>coord</em>, <em>axis</em><big>)</big><a class="headerlink" href="#EnzoHierarchy.find_ray_grids" title="Permalink to this definition">¶</a></dt>
-<dd><p>Returns the objects, indices of grids that a ray intersects</p>
-<p>&#64;param coord: the ray endpoint
-&#64;type coord: tuple of floats
-&#64;param axis: the axis the ray travels parallel to
-&#64;type axis: integer</p>
-</dd></dl>
+<dt id="yt.lagos.EnzoHierarchy.find_slice_grids">
+<!--#yt.lagos.EnzoHierarchy.find_slice_grids#--><tt class="descname">find_slice_grids</tt><big>(</big><em>coord</em>, <em>axis</em><big>)</big><a class="headerlink" href="#yt.lagos.EnzoHierarchy.find_slice_grids" title="Permalink to this definition">¶</a></dt>
+<dd>Returns the (objects, indices) of grids that a slice intersects along
+<em>axis</em></dd></dl>
 
 <dl class="method">
-<dt id="EnzoHierarchy.find_slice_grids">
-<!--#EnzoHierarchy.find_slice_grids#--><tt class="descname">find_slice_grids</tt><big>(</big><em>coord</em>, <em>axis</em><big>)</big><a class="headerlink" href="#EnzoHierarchy.find_slice_grids" title="Permalink to this definition">¶</a></dt>
-<dd><p>Returns the objects, indices of grids that a slice intersects</p>
-<p>&#64;param coord: three floats
-&#64;type coord: tuple of floats
-&#64;param axis: the axis the slice is through
-&#64;type axis: integer</p>
-</dd></dl>
+<dt id="yt.lagos.EnzoHierarchy.find_sphere_grids">
+<!--#yt.lagos.EnzoHierarchy.find_sphere_grids#--><tt class="descname">find_sphere_grids</tt><big>(</big><em>center</em>, <em>radius</em><big>)</big><a class="headerlink" href="#yt.lagos.EnzoHierarchy.find_sphere_grids" title="Permalink to this definition">¶</a></dt>
+<dd>Returns objects, indices of grids within a sphere</dd></dl>
 
 <dl class="method">
-<dt id="EnzoHierarchy.find_sphere_grids">
-<!--#EnzoHierarchy.find_sphere_grids#--><tt class="descname">find_sphere_grids</tt><big>(</big><em>center</em>, <em>radius</em><big>)</big><a class="headerlink" href="#EnzoHierarchy.find_sphere_grids" title="Permalink to this definition">¶</a></dt>
-<dd><p>Returns objects, indices of grids within a sphere</p>
-<p>&#64;param center: coordinate of center
-&#64;type center: tuple of floats
-&#64;param radius: the radius of the sphere in code units!</p>
-</dd></dl>
+<dt id="yt.lagos.EnzoHierarchy.get_box_grids">
+<!--#yt.lagos.EnzoHierarchy.get_box_grids#--><tt class="descname">get_box_grids</tt><big>(</big><em>leftEdge</em>, <em>rightEdge</em><big>)</big><a class="headerlink" href="#yt.lagos.EnzoHierarchy.get_box_grids" title="Permalink to this definition">¶</a></dt>
+<dd>Gets back all the grids between a left edge and right edge</dd></dl>
 
 <dl class="method">
-<dt id="EnzoHierarchy.get_box_grids">
-<!--#EnzoHierarchy.get_box_grids#--><tt class="descname">get_box_grids</tt><big>(</big><em>leftEdge</em>, <em>rightEdge</em><big>)</big><a class="headerlink" href="#EnzoHierarchy.get_box_grids" title="Permalink to this definition">¶</a></dt>
-<dd><p>Gets back all the grids between a left edge and right edge</p>
-<p>&#64;param leftEdge: the left edge
-&#64;type leftEdge: array
-&#64;param rightEdge: the right edge
-&#64;type rightEdge: array</p>
-</dd></dl>
+<dt id="yt.lagos.EnzoHierarchy.get_data">
+<!--#yt.lagos.EnzoHierarchy.get_data#--><tt class="descname">get_data</tt><big>(</big><em>node</em>, <em>name</em><big>)</big><a class="headerlink" href="#yt.lagos.EnzoHierarchy.get_data" title="Permalink to this definition">¶</a></dt>
+<dd>Return the dataset with a given <em>name</em> located at <em>node</em> in the
+datafile.</dd></dl>
 
 <dl class="method">
-<dt id="EnzoHierarchy.get_smallest_dx">
-<!--#EnzoHierarchy.get_smallest_dx#--><tt class="descname">get_smallest_dx</tt><big>(</big><big>)</big><a class="headerlink" href="#EnzoHierarchy.get_smallest_dx" title="Permalink to this definition">¶</a></dt>
-<dd>Returns (in code units) the smallest dx in the simulation.</dd></dl>
+<dt id="yt.lagos.EnzoHierarchy.get_smallest_dx">
+<!--#yt.lagos.EnzoHierarchy.get_smallest_dx#--><tt class="descname">get_smallest_dx</tt><big>(</big><big>)</big><a class="headerlink" href="#yt.lagos.EnzoHierarchy.get_smallest_dx" title="Permalink to this definition">¶</a></dt>
+<dd>Returns (in code units) the smallest cell size in the simulation.</dd></dl>
 
 <dl class="method">
-<dt id="EnzoHierarchy.initialize_enzo_interface">
-<!--#EnzoHierarchy.initialize_enzo_interface#--><tt class="descname">initialize_enzo_interface</tt><big>(</big><em>idt_val=0.0</em><big>)</big><a class="headerlink" href="#EnzoHierarchy.initialize_enzo_interface" title="Permalink to this definition">¶</a></dt>
-<dd><p>Here we start up the SWIG interface, grabbing what we need from it.</p>
-<dl class="docutils">
-<dt>&#64;keyword idt_val: the initialdt fed to ReadParameterFile (doesn&#8217;t need</dt>
-<dd>to be set)</dd>
-</dl>
-<div class="system-message">
-<p class="system-message-title">System Message: WARNING/2 (<tt class="docutils">/Users/matthewturk/Development/yt/trunk/doc/source/modules/lagos/outputandhierarchy.rst</tt>, line 139)</p>
-Definition list ends without a blank line; unexpected unindent.</div>
-<p>&#64;type idt_val: float</p>
-</dd></dl>
+<dt id="yt.lagos.EnzoHierarchy.print_stats">
+<!--#yt.lagos.EnzoHierarchy.print_stats#--><tt class="descname">print_stats</tt><big>(</big><big>)</big><a class="headerlink" href="#yt.lagos.EnzoHierarchy.print_stats" title="Permalink to this definition">¶</a></dt>
+<dd>Prints out (stdout) relevant information about the simulation</dd></dl>
 
 <dl class="method">
-<dt id="EnzoHierarchy.print_stats">
-<!--#EnzoHierarchy.print_stats#--><tt class="descname">print_stats</tt><big>(</big><big>)</big><a class="headerlink" href="#EnzoHierarchy.print_stats" title="Permalink to this definition">¶</a></dt>
-<dd>Prints out relevant information about the simulation</dd></dl>
-
-<dl class="method">
-<dt id="EnzoHierarchy.save_data">
-<!--#EnzoHierarchy.save_data#--><tt class="descname">save_data</tt><big>(</big><em>array</em>, <em>node</em>, <em>name</em><big>)</big><a class="headerlink" href="#EnzoHierarchy.save_data" title="Permalink to this definition">¶</a></dt>
+<dt id="yt.lagos.EnzoHierarchy.save_data">
+<!--#yt.lagos.EnzoHierarchy.save_data#--><tt class="descname">save_data</tt><big>(</big><em>array</em>, <em>node</em>, <em>name</em><big>)</big><a class="headerlink" href="#yt.lagos.EnzoHierarchy.save_data" title="Permalink to this definition">¶</a></dt>
 <dd>Arbitrary numpy data will be saved to the region in the datafile
-described by node and name.
-&#64;arg array: The data to be saved.
-&#64;type array: NumPy array
-&#64;arg node: The HDF5 node to save to
-&#64;type node: String
-&#64;arg name: Name of the array in the file
-&#64;type name: String</dd></dl>
+described by <em>node</em> and <em>name</em>.  If data file does not exist, it throws
+no error and simply does not save.</dd></dl>
+
+<dl class="method">
+<dt id="yt.lagos.EnzoHierarchy.select_grids">
+<!--#yt.lagos.EnzoHierarchy.select_grids#--><tt class="descname">select_grids</tt><big>(</big><em>level</em><big>)</big><a class="headerlink" href="#yt.lagos.EnzoHierarchy.select_grids" title="Permalink to this definition">¶</a></dt>
+<dd>Returns an array of grids at <em>level</em>.</dd></dl>
 
 </dd></dl>
 
 <dl class="class">
-<dt id="EnzoGridBase">
-<!--#EnzoGridBase#-->class <tt class="descname">EnzoGridBase</tt><big>(</big><em>id</em>, <em>filename=None</em>, <em>hierarchy=None</em><big>)</big><a class="headerlink" href="#EnzoGridBase" title="Permalink to this definition">¶</a></dt>
+<dt id="yt.lagos.EnzoGridBase">
+<!--#yt.lagos.EnzoGridBase#-->class <tt class="descclassname">yt.lagos.</tt><tt class="descname">EnzoGridBase</tt><big>(</big><em>id</em>, <em>filename=None</em>, <em>hierarchy=None</em><big>)</big><a class="headerlink" href="#yt.lagos.EnzoGridBase" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns an instance of EnzoGrid</p>
 <p>&#64;param hierarchy: EnzoHierarchy, parent hierarchy
 &#64;type hierarchy: L{EnzoHierarchy&lt;EnzoHierarchy&gt;}
@@ -242,46 +165,46 @@ described by node and name.
 &#64;keyword filename: filename holding grid data
 &#64;type filename: string</p>
 <dl class="method">
-<dt id="EnzoGridBase.clear_all">
-<!--#EnzoGridBase.clear_all#--><tt class="descname">clear_all</tt><big>(</big><big>)</big><a class="headerlink" href="#EnzoGridBase.clear_all" title="Permalink to this definition">¶</a></dt>
+<dt id="yt.lagos.EnzoGridBase.clear_all">
+<!--#yt.lagos.EnzoGridBase.clear_all#--><tt class="descname">clear_all</tt><big>(</big><big>)</big><a class="headerlink" href="#yt.lagos.EnzoGridBase.clear_all" title="Permalink to this definition">¶</a></dt>
 <dd>Clears all datafields from memory.</dd></dl>
 
 <dl class="method">
-<dt id="EnzoGridBase.clear_derived_quantities">
-<!--#EnzoGridBase.clear_derived_quantities#--><tt class="descname">clear_derived_quantities</tt><big>(</big><big>)</big><a class="headerlink" href="#EnzoGridBase.clear_derived_quantities" title="Permalink to this definition">¶</a></dt>
+<dt id="yt.lagos.EnzoGridBase.clear_derived_quantities">
+<!--#yt.lagos.EnzoGridBase.clear_derived_quantities#--><tt class="descname">clear_derived_quantities</tt><big>(</big><big>)</big><a class="headerlink" href="#yt.lagos.EnzoGridBase.clear_derived_quantities" title="Permalink to this definition">¶</a></dt>
 <dd>Clears coordinates, child_indices, child_mask.</dd></dl>
 
 <dl class="method">
-<dt id="EnzoGridBase.find_max">
-<!--#EnzoGridBase.find_max#--><tt class="descname">find_max</tt><big>(</big><em>field</em><big>)</big><a class="headerlink" href="#EnzoGridBase.find_max" title="Permalink to this definition">¶</a></dt>
+<dt id="yt.lagos.EnzoGridBase.find_max">
+<!--#yt.lagos.EnzoGridBase.find_max#--><tt class="descname">find_max</tt><big>(</big><em>field</em><big>)</big><a class="headerlink" href="#yt.lagos.EnzoGridBase.find_max" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns value, coordinate of maximum value in this gird</p>
 <p>&#64;param field: field to check
 &#64;type field: string</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="EnzoGridBase.find_min">
-<!--#EnzoGridBase.find_min#--><tt class="descname">find_min</tt><big>(</big><em>field</em><big>)</big><a class="headerlink" href="#EnzoGridBase.find_min" title="Permalink to this definition">¶</a></dt>
+<dt id="yt.lagos.EnzoGridBase.find_min">
+<!--#yt.lagos.EnzoGridBase.find_min#--><tt class="descname">find_min</tt><big>(</big><em>field</em><big>)</big><a class="headerlink" href="#yt.lagos.EnzoGridBase.find_min" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns value, coordinate of minimum value in this gird</p>
 <p>&#64;param field: field to check
 &#64;type field: string</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="EnzoGridBase.get_data">
-<!--#EnzoGridBase.get_data#--><tt class="descname">get_data</tt><big>(</big><em>field</em><big>)</big><a class="headerlink" href="#EnzoGridBase.get_data" title="Permalink to this definition">¶</a></dt>
+<dt id="yt.lagos.EnzoGridBase.get_data">
+<!--#yt.lagos.EnzoGridBase.get_data#--><tt class="descname">get_data</tt><big>(</big><em>field</em><big>)</big><a class="headerlink" href="#yt.lagos.EnzoGridBase.get_data" title="Permalink to this definition">¶</a></dt>
 <dd>Returns a field or set of fields for a key or set of keys</dd></dl>
 
 <dl class="method">
-<dt id="EnzoGridBase.get_enzo_grid">
-<!--#EnzoGridBase.get_enzo_grid#--><tt class="descname">get_enzo_grid</tt><big>(</big><big>)</big><a class="headerlink" href="#EnzoGridBase.get_enzo_grid" title="Permalink to this definition">¶</a></dt>
+<dt id="yt.lagos.EnzoGridBase.get_enzo_grid">
+<!--#yt.lagos.EnzoGridBase.get_enzo_grid#--><tt class="descname">get_enzo_grid</tt><big>(</big><big>)</big><a class="headerlink" href="#yt.lagos.EnzoGridBase.get_enzo_grid" title="Permalink to this definition">¶</a></dt>
 <dd>This attempts to get an instance of this particular grid from the SWIG
 interface.  Note that it first checks to see if the ParameterFile has
 been instantiated.</dd></dl>
 
 <dl class="method">
-<dt id="EnzoGridBase.get_position">
-<!--#EnzoGridBase.get_position#--><tt class="descname">get_position</tt><big>(</big><em>coord</em><big>)</big><a class="headerlink" href="#EnzoGridBase.get_position" title="Permalink to this definition">¶</a></dt>
+<dt id="yt.lagos.EnzoGridBase.get_position">
+<!--#yt.lagos.EnzoGridBase.get_position#--><tt class="descname">get_position</tt><big>(</big><em>coord</em><big>)</big><a class="headerlink" href="#yt.lagos.EnzoGridBase.get_position" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns position of a coordinate</p>
 <p>&#64;param coord: position to check
 &#64;type coord: array of floats</p>
@@ -298,7 +221,7 @@ been instantiated.</dd></dl>
       <div class="sidebar">
         <div class="sidebarwrapper">
             <h4>Previous topic</h4>
-            <p class="topless"><a href="index.html" title="previous chapter">yt.lagos</a></p>
+            <p class="topless"><a href="index.html" title="previous chapter">yt.lagos - Data Handling and Analysis</a></p>
             <h4>Next topic</h4>
             <p class="topless"><a href="basedatatypes.html" title="next chapter">Data Containers</a></p>
             <h3>This Page</h3>
@@ -321,17 +244,17 @@ been instantiated.</dd></dl>
         <li class="right" style="margin-right: 10px"><a href="../../genindex.html" title="General Index" accesskey="I">index</a></li>
         <li class="right"><a href="../../modindex.html" title="Global Module Index" accesskey="M">modules</a> |</li>
           <li class="right"><a href="basedatatypes.html" title="Data Containers" accesskey="N">next</a> |</li>
-          <li class="right"><a href="index.html" title="yt.lagos" accesskey="P">previous</a> |</li>
+          <li class="right"><a href="index.html" title="yt.lagos - Data Handling and Analysis" accesskey="P">previous</a> |</li>
     <li><a href="http://yt.spacepope.org/">yt</a> &raquo;</li>
     
         <li><a href="../../index.html">yt v0.3 documentation</a> &raquo;</li>
 
-          <li><a href="index.html" accesskey="U">yt.lagos</a> &raquo;</li>
+          <li><a href="index.html" accesskey="U">yt.lagos - Data Handling and Analysis</a> &raquo;</li>
       </ul>
     </div>
     <div class="footer">
       &copy; Copyright 2008, Matthew Turk.
-      Last updated on May 09, 2008.
+      Last updated on May 10, 2008.
     </div>
   </body>
 </html>
