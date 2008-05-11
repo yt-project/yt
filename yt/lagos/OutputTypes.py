@@ -31,6 +31,7 @@ import string, re, gc, time, os, os.path
 # We want to support the movie format in the future.
 # When such a thing comes to pass, I'll move all the stuff that is contant up
 # to here, and then have it instantiate EnzoStaticOutputs as appropriate.
+
 class StaticOutput(object):
     def __init__(self, filename, data_style=None):
         self.data_style = data_style

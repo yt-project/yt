@@ -1,5 +1,6 @@
 """
 Enzo hierarchy container class
+
 @author: U{Matthew Turk<http://www.stanford.edu/~mturk/>}
 @organization: U{KIPAC<http://www-group.slac.stanford.edu/KIPAC/>}
 @contact: U{mturk@slac.stanford.edu<mailto:mturk@slac.stanford.edu>}
@@ -35,20 +36,20 @@ _data_style_funcs = \
    }
 
 class EnzoHierarchy:
-    """
-    Class for handling Enzo timestep outputs
-
-    @param pf: The OutputFile we're instantiating from
-    @type pf: L{EnzoOutput}
-    @keyword data_style: The type of Enzo Output we're going to read from --
-                         4 : hdf4, 5 : hdf5, 6 : packed HDF5
-    @type data_style: int
-    """
     eiTopGrid = None
     _strip_path = False
     @time_execution
     def __init__(self, pf, data_style=None):
-        # For now, we default to HDF4, but allow specifying HDF5
+        """
+        This is the grid structure as Enzo sees it, with some added bonuses.
+        It's primarily used as a class factor, to generate data objects and
+        access grids.
+
+        It should never be created directly -- you should always access it via
+        calls to an affiliated :class:`~yt.lagos.EnzoStaticOutput`.
+
+        On instantiation, it processes the hierarchy and generates the grids.
+        """
         # Expect filename to be the name of the parameter file, not the
         # hierarchy
         self.hierarchy_filename = os.path.abspath(pf.parameter_filename) \
@@ -159,14 +160,6 @@ class EnzoHierarchy:
         self.cpu_map[grid.filename].append(grid)
 
     def __setup_classes(self):
-        """
-        This is our class factory.  It takes the base classes and assigns to
-        them appropriate data-reading functions based on the data-style.
-
-        @postcondition: .grid, .prof, .slice, .region, .datacube and .sphere
-                        will be classes, instantiated with the appropriate
-                        methods of obtaining data.
-        """
         dd = { 'readDataFast' : _data_style_funcs[self.data_style][0],
                'readAllData' : _data_style_funcs[self.data_style][1],
                'getFields' : _data_style_funcs[self.data_style][2],
@@ -189,12 +182,6 @@ class EnzoHierarchy:
         self.disk = classobj("EnzoCylinder",(EnzoCylinderBase,), dd)
 
     def __initialize_data_file(self):
-        """
-        We initialize our data-serialization file here.
-
-        @precond: tables must be imported and we must have write access to the
-                  directory the data is contained in.  (Otherwise silent failure.)
-        """
         if not ytcfg.getboolean('lagos','serialize'): return
         fn = os.path.join(self.directory,"%s.yt" % self["CurrentTimeIdentifier"])
         if ytcfg.getboolean('lagos','onlydeserialize'):
@@ -209,19 +196,18 @@ class EnzoHierarchy:
     def save_data(self, array, node, name):
         """
         Arbitrary numpy data will be saved to the region in the datafile
-        described by node and name.
-        @arg array: The data to be saved.
-        @type array: NumPy array
-        @arg node: The HDF5 node to save to
-        @type node: String
-        @arg name: Name of the array in the file
-        @type name: String
+        described by *node* and *name*.  If data file does not exist, it throws
+        no error and simply does not save.
         """
         if self.__data_file != None:
             self.__data_file.createArray(node, name, array, createparents=True)
             self.__data_file.flush()
 
     def get_data(self, node, name):
+        """
+        Return the dataset with a given *name* located at *node* in the
+        datafile.
+        """
         if self.__data_file == None:
             return None
         try:
@@ -236,9 +222,6 @@ class EnzoHierarchy:
             self.__data_file = None
 
     def __del__(self):
-        """
-        Let's see if we can delete some stuff here!
-        """
         self._close_data_file()
         try:
             del self.eiTopGrid
@@ -490,29 +473,25 @@ class EnzoHierarchy:
                 if pbar: pbar.finish()
 
     def __select_level(self, level):
-        """
-        Returns a list of indices of EnzoHierarchy.grids at the specified level
-
-        @param level: the level
-        @type level: integer
-        @note: This would be more intuitive if it returned the *actual grids*.
-        """
         # We return a numarray of the indices of all the grids on a given level
         indices = na.where(self.gridLevels[:,0] == level)[0]
         return indices
 
     def select_grids(self, level):
+        """
+        Returns an array of grids at *level*.
+        """
         return self.grids[self.__select_level(level)]
 
     def get_smallest_dx(self):
         """
-        Returns (in code units) the smallest dx in the simulation.
+        Returns (in code units) the smallest cell size in the simulation.
         """
         return self.gridDxs.min()
 
     def print_stats(self):
         """
-        Prints out relevant information about the simulation
+        Prints out (stdout) relevant information about the simulation
         """
         for i in xrange(MAXLEVEL):
             if (self.level_stats['numgrids'][i]) == 0:
@@ -541,10 +520,7 @@ class EnzoHierarchy:
 
     def find_point(self, coord):
         """
-        Returns the objects, indices of grids containing a point
-
-        @param coord: three floats
-        @type coord: tuple of floats
+        Returns the (objects, indices) of grids containing an (x,y,z) point
         """
         mask=na.ones(self.num_grids)
         for i in xrange(len(coord)):
@@ -555,12 +531,8 @@ class EnzoHierarchy:
 
     def find_ray_grids(self, coord, axis):
         """
-        Returns the objects, indices of grids that a ray intersects
-
-        @param coord: the ray endpoint
-        @type coord: tuple of floats
-        @param axis: the axis the ray travels parallel to
-        @type axis: integer
+        Returns the (objects, indices) of grids that an (x,y) ray intersects
+        along *axis*
         """
         # Let's figure out which grids are on the slice
         mask=na.ones(self.num_grids)
@@ -576,12 +548,8 @@ class EnzoHierarchy:
 
     def find_slice_grids(self, coord, axis):
         """
-        Returns the objects, indices of grids that a slice intersects
-
-        @param coord: three floats
-        @type coord: tuple of floats
-        @param axis: the axis the slice is through
-        @type axis: integer
+        Returns the (objects, indices) of grids that a slice intersects along
+        *axis*
         """
         # Let's figure out which grids are on the slice
         mask=na.ones(self.num_grids)
@@ -598,10 +566,6 @@ class EnzoHierarchy:
     def find_sphere_grids(self, center, radius):
         """
         Returns objects, indices of grids within a sphere
-
-        @param center: coordinate of center
-        @type center: tuple of floats
-        @param radius: the radius of the sphere in code units!
         """
         centers = (self.gridRightEdge + self.gridLeftEdge)/2.0
         long_axis = na.maximum.reduce(self.gridRightEdge - self.gridLeftEdge, 1)
@@ -613,25 +577,15 @@ class EnzoHierarchy:
     def get_box_grids(self, leftEdge, rightEdge):
         """
         Gets back all the grids between a left edge and right edge
-
-        @param leftEdge: the left edge
-        @type leftEdge: array
-        @param rightEdge: the right edge
-        @type rightEdge: array
         """
         gridI = na.where((na.all(self.gridRightEdge > leftEdge, axis=1)
                         & na.all(self.gridLeftEdge < rightEdge, axis=1)) == True)
         return self.grids[gridI], gridI
 
     @time_execution
-    def find_max(self, field, finestLevels = 1):
+    def find_max(self, field, finestLevels = True):
         """
-        Returns value, center of location of maximum for a given field
-
-        Arguments:
-        @param field: field (derived or otherwise) of which to look for maximum
-        @keyword finestLevels: whether or not to search NUMTOCHECK finest levels
-        @type finestLevels: boolean
+        Returns (value, center) of location of maximum for a given field.
         """
         if finestLevels:
             gI = na.where(self.gridLevels >= self.maxLevel - NUMTOCHECK)
@@ -666,10 +620,7 @@ class EnzoHierarchy:
     @time_execution
     def find_min(self, field):
         """
-        Returns value, center of location of minimum for a given field
-
-        Arguments:
-        @param field: field (derived or otherwise) of which to look for maximum
+        Returns (value, center) of location of minimum for a given field
         """
         gI = na.where(self.gridLevels >= 0) # Slow but pedantic
         minVal = 1e100
@@ -699,20 +650,11 @@ class EnzoHierarchy:
     @time_execution
     def export_particles_pb(self, filename, filter = 1, indexboundary = 0, fields = None, scale=1.0):
         """
-        Exports all the star particles, or a subset, to a pb file for viewing in
-        partiview
-
-        @param filename: filename of the .pb file to create
-        @type filename: string
-        @keyword filter: the particle type you want to get (assumes 1)
-        @type filter: integer
-        @keyword fields: the fields you want to snag.  If not supplied, it just
-                      grabs the position and index.
-        @keyword indexboundary: for those who want to discriminate the
-                    particles with particle index
-        @type indexboundary: integer
-        @keyword scale: the factor to multiply the position by (defaults to 1.0)
-        @type scale: float
+        Exports all the star particles, or a subset, to pb-format *filename*
+        for viewing in partiview.  Filters based on particle_type=*filter*, 
+        particle_index>=*indexboundary*, and exports *fields*, if supplied.
+        Otherwise, index, position(x,y,z).  Optionally *scale* by a given
+        factor before outputting.
         """
         import struct
         pbf_magic = 0xffffff98
@@ -750,9 +692,6 @@ class EnzoHierarchy:
     def export_boxes_pv(self, filename):
         """
         Exports the grid structure in partiview text format.
-
-        @arg filename: File to export to.
-        @type filename: String
         """
         f=open(filename,"w")
         for l in xrange(self.maxLevel):
@@ -766,9 +705,9 @@ class EnzoHierarchy:
                      self.gridLeftEdge[i,2], self.gridRightEdge[i,2]))
 
     @time_execution
-    def export_amira(self, basename, fields, a5basename, timestep):
+    def __export_amira(self, basename, fields, a5basename, timestep):
         """
-        Exports the grid structure in partiview text format.
+        This is untested, and only remains for possible future usage.
         """
         if (not iterable(fields)) or (isinstance(fields, types.StringType)):
             fields = [fields]
@@ -801,13 +740,11 @@ class EnzoHierarchy:
                 grid.export_amira(basename, fields, timestep, a5basename, gid)
                 gid += 1
 
-    def initialize_enzo_interface(self, idt_val = 0.0):
+    def __initialize_enzo_interface(self, idt_val = 0.0):
         """
-        Here we start up the SWIG interface, grabbing what we need from it.
+        This is old, old code that will some day be revived.
 
-        @keyword idt_val: the initialdt fed to ReadParameterFile (doesn't need
-                          to be set)
-        @type idt_val: float
+        Here we start up the SWIG interface, grabbing what we need from it.
         """
         ei = yt.enki.EnzoInterface
         f = open(self.parameter_filename, "r")
