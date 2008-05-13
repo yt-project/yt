@@ -155,7 +155,7 @@ def _combBaryonSpinParameter(data, j_mag, m_enc, e_term_pre, weight):
 add_quantity("BaryonSpinParameter", function=_BaryonSpinParameter,
              combine_function=_combBaryonSpinParameter, n_ret=4)
 
-def _IsBound(data):
+def _IsBound(data, truncate = True):
     # Kinetic energy
     bv_x,bv_y,bv_z = data.quantities["BulkVelocity"]()
     kinetic = 0.5 * (data["CellMass"] * (
@@ -179,10 +179,11 @@ def _IsBound(data):
         potential += 2 * G * data['CellMass'][q] * pot.sum()
         cells_done += (total_cells - q - 1)
         pb.update(cells_done)
-        if (potential > kinetic):
-            break
+        if truncate and (potential > kinetic):
+            pb.finish()
+            return 1.0
     pb.finish()
-    return (kinetic < potential)
+    return (kinetic / potential)
 def _combIsBound(data,bound):
     return bound
 add_quantity("IsBound",function=_IsBound,combine_function=_combIsBound,n_ret=1,
