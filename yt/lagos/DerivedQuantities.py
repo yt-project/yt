@@ -181,9 +181,9 @@ def _IsBound(data, truncate = True):
         pb.update(cells_done)
         if truncate and (potential > kinetic):
             pb.finish()
-            return 1.0
+            return [1.0]
     pb.finish()
-    return (kinetic / potential)
+    return [(kinetic / potential)]
 def _combIsBound(data,bound):
     return bound
 add_quantity("IsBound",function=_IsBound,combine_function=_combIsBound,n_ret=1,
