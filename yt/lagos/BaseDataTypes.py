@@ -858,6 +858,7 @@ class EnzoProjBase(Enzo2DData):
             if not self._check_region and self.__retval_coords[grid1.id][0].size != 0:
                 mylog.error("Something messed up, and %s still has %s points of data",
                             grid1, self.__retval_coords[grid1.id][0].size)
+                mylog.error("You might try setting the ReconstructHierarchy option in [lagos]")
                 raise ValueError(grid1, self.__retval_coords[grid1.id])
         pbar.finish()
 
