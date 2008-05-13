@@ -62,7 +62,7 @@ def func_wrapper(quantities_collection, quantities_object):
         return c_func(data_object, *retvals)
     def call_func(*args, **kwargs):
         lazy_reader = kwargs.pop('lazy_reader', False)
-        if lazy_reader:
+        if lazy_reader and not quantities_object.force_unlazy:
             return call_func_lazy(args, kwargs)
         else:
             return call_func_unlazy(args, kwargs)
@@ -71,11 +71,12 @@ def func_wrapper(quantities_collection, quantities_object):
 class DerivedQuantity(object):
     def __init__(self, name, function,
                  combine_function, units = "",
-                 n_ret = 0):
+                 n_ret = 0, force_unlazy=False):
         self.name = name
         self.function = function
         self.combine_function = combine_function
         self.n_ret = n_ret
+        self.force_unlazy = force_unlazy
 
 def add_quantity(name, **kwargs):
     if 'function' not in kwargs or 'combine_function' not in kwargs:
@@ -157,13 +158,14 @@ add_quantity("BaryonSpinParameter", function=_BaryonSpinParameter,
 def _IsBound(data):
     # Kinetic energy
     bv_x,bv_y,bv_z = data.quantities["BulkVelocity"]()
-    v_x2 = (data["x-velocity"] - bv_x)**2
-    v_y2 = (data["y-velocity"] - bv_y)**2
-    v_z2 = (data["z-velocity"] - bv_z)**2
-    kinetic = 0.5 * (data["CellMass"] * (v_x2 + v_y2 + v_z2)).sum()
-
+    kinetic = 0.5 * (data["CellMass"] * (
+                       (data["x-velocity"] - bv_x)**2
+                       (data["y-velocity"] - bv_y)**2
+                       (data["z-velocity"] - bv_z)**2 )).sum()
     # Gravitational potential energy
-    G = 6.67e-8 # cm^3 g^-1 s^-2
+    # We only divide once here because we have velocity in cgs, but radius is
+    # in code.
+    G = 6.67e-8 / data.convert("cm") # cm^3 g^-1 s^-2
     # the slow way (someone get clever!)
     total_cells = len(data['x'])
     cells_done = 0
@@ -172,16 +174,16 @@ def _IsBound(data):
     for q in xrange(total_cells-1):
         pot = data['CellMass'][(q+1):total_cells] / \
             (((data['x'][(q+1):total_cells]-data['x'][q])**2 + \
-                  (data['y'][(q+1):total_cells]-data['y'][q])**2 + \
-                  (data['z'][(q+1):total_cells]-data['z'][q])**2)**(0.5))
+              (data['y'][(q+1):total_cells]-data['y'][q])**2 + \
+              (data['z'][(q+1):total_cells]-data['z'][q])**2)**(0.5))
         potential += 2 * G * data['CellMass'][q] * pot.sum()
         cells_done += (total_cells - q - 1)
         pb.update(cells_done)
         if (potential > kinetic):
             break
     pb.finish()
-
-    return (kinetic < potential),1.0
-def _combIsBound(data,bound,weight):
+    return (kinetic < potential)
+def _combIsBound(data,bound):
     return bound
-add_quantity("IsBound",function=_IsBound,combine_function=_combIsBound,n_ret=2)
+add_quantity("IsBound",function=_IsBound,combine_function=_combIsBound,n_ret=1,
+             force_unlazy=True)
