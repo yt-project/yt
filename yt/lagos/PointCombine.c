@@ -789,6 +789,105 @@ Py_Interpolate(PyObject *obj, PyObject *args)
     return NULL;
 }
 
+static PyObject *_findBindingEnergyError;
+
+static PyObject *
+Py_FindBindingEnergy(PyObject *obj, PyObject *args)
+{
+    PyObject *omass, *ox, *oy, *oz;
+    PyArrayObject *mass, *x, *y, *z;
+    int truncate;
+    double kinetic_energy;
+
+    if (!PyArg_ParseTuple(args, "OOOOid",
+        &omass, &ox, &oy, &oz, &truncate, &kinetic_energy))
+        return PyErr_Format(_findBindingEnergyError,
+                    "FindBindingEnergy: Invalid parameters.");
+    
+    mass   = (PyArrayObject *) PyArray_FromAny(omass,
+                    PyArray_DescrFromType(NPY_FLOAT64), 1, 1,
+                    NPY_INOUT_ARRAY | NPY_UPDATEIFCOPY, NULL);
+    if((mass==NULL) || (mass->nd != 1)) {
+    PyErr_Format(_findBindingEnergyError,
+             "FindBindingEnergy: One dimension required for mass.");
+    goto _fail;
+    }
+
+    x      = (PyArrayObject *) PyArray_FromAny(ox,
+                    PyArray_DescrFromType(NPY_FLOAT64), 1, 1,
+                    NPY_INOUT_ARRAY | NPY_UPDATEIFCOPY, NULL);
+    if((x==NULL) || (x->nd != 1) 
+        || (PyArray_SIZE(x) != PyArray_SIZE(mass))) {
+    PyErr_Format(_findBindingEnergyError,
+             "FindBindingEnergy: x must be same size as mass.");
+    goto _fail;
+    }
+
+    y      = (PyArrayObject *) PyArray_FromAny(oy,
+                    PyArray_DescrFromType(NPY_FLOAT64), 1, 1,
+                    NPY_INOUT_ARRAY | NPY_UPDATEIFCOPY, NULL);
+    if((y==NULL) || (y->nd != 1) 
+        || (PyArray_SIZE(y) != PyArray_SIZE(mass))) {
+    PyErr_Format(_findBindingEnergyError,
+             "FindBindingEnergy: y must be same size as mass.");
+    goto _fail;
+    }
+
+    z      = (PyArrayObject *) PyArray_FromAny(oz,
+                    PyArray_DescrFromType(NPY_FLOAT64), 1, 1,
+                    NPY_INOUT_ARRAY | NPY_UPDATEIFCOPY, NULL);
+    if((z==NULL) || (z->nd != 1) 
+        || (PyArray_SIZE(z) != PyArray_SIZE(mass))) {
+    PyErr_Format(_findBindingEnergyError,
+             "FindBindingEnergy: z must be same size as mass.");
+    goto _fail;
+    }
+
+    /* Do the work here. */
+    int q_outer, q_inner;
+    double this_potential, total_potential;
+    total_potential = 0;
+    npy_float64 mass_o, x_o, y_o, z_o;
+    npy_float64 mass_i, x_i, y_i, z_i;
+
+    for (q_outer = 0; q_outer < PyArray_SIZE(mass) ; q_outer++) {
+        this_potential = 0;
+        mass_o = *(npy_float64*) PyArray_GETPTR1(mass, q_outer);
+        x_o = *(npy_float64*) PyArray_GETPTR1(x, q_outer);
+        y_o = *(npy_float64*) PyArray_GETPTR1(y, q_outer);
+        z_o = *(npy_float64*) PyArray_GETPTR1(z, q_outer);
+        for (q_inner = q_outer+1; q_inner < PyArray_SIZE(mass); q_inner++) {
+            mass_i = *(npy_float64*) PyArray_GETPTR1(mass, q_inner);
+            x_i = *(npy_float64*) PyArray_GETPTR1(x, q_inner);
+            y_i = *(npy_float64*) PyArray_GETPTR1(y, q_inner);
+            z_i = *(npy_float64*) PyArray_GETPTR1(z, q_inner);
+            this_potential += mass_o * mass_i / 
+                            sqrtl( (x_i-x_o)*(x_i-x_o)
+                                 + (y_i-y_o)*(y_i-y_o)
+                                 + (z_i-z_o)*(z_i-z_o) );
+        }
+        total_potential += this_potential;
+        if ((truncate == 1) && (total_potential > kinetic_energy)){
+            break;
+        }
+    }
+
+    Py_DECREF(mass);
+    Py_DECREF(x);
+    Py_DECREF(y);
+    Py_DECREF(z);
+
+    PyObject *status = PyFloat_FromDouble(total_potential);
+    return status;
+
+    _fail:
+        Py_XDECREF(mass);
+        Py_XDECREF(x);
+        Py_XDECREF(y);
+        Py_XDECREF(z);
+        return NULL;
+}
+
 static PyMethodDef _combineMethods[] = {
     {"CombineGrids", Py_CombineGrids, METH_VARARGS},
     {"Interpolate", Py_Interpolate, METH_VARARGS},
@@ -796,6 +895,7 @@ static PyMethodDef _combineMethods[] = {
     {"DataCubeReplace", Py_DataCubeReplace, METH_VARARGS},
     {"Bin2DProfile", Py_Bin2DProfile, METH_VARARGS},
     {"FindContours", Py_FindContours, METH_VARARGS},
+    {"FindBindingEnergy", Py_FindBindingEnergy, METH_VARARGS},
     {NULL, NULL} /* Sentinel */
 };
 

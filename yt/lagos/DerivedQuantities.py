@@ -155,7 +155,7 @@ def _combBaryonSpinParameter(data, j_mag, m_enc, e_term_pre, weight):
 add_quantity("BaryonSpinParameter", function=_BaryonSpinParameter,
              combine_function=_combBaryonSpinParameter, n_ret=4)
 
-def _IsBound(data, truncate = True, include_thermal_energy = False):
+def _IsBound(data, truncate = True, include_thermal_energy = False, use_c = False):
     # Kinetic energy
     bv_x,bv_y,bv_z = data.quantities["BulkVelocity"]()
     kinetic = 0.5 * (data["CellMass"] * (
@@ -175,19 +175,30 @@ def _IsBound(data, truncate = True, include_thermal_energy = False):
     cells_done = 0
     potential = 0.0
     pb = get_pbar("Calculating gravitational potential ", (0.5*(total_cells**2 - total_cells)))
-    for q in xrange(total_cells-1):
-        pot = data['CellMass'][(q+1):total_cells] / \
-            (((data['x'][(q+1):total_cells]-data['x'][q])**2 + \
-              (data['y'][(q+1):total_cells]-data['y'][q])**2 + \
-              (data['z'][(q+1):total_cells]-data['z'][q])**2)**(0.5))
-        potential += 2 * G * data['CellMass'][q] * pot.sum()
-        cells_done += (total_cells - q - 1)
-        pb.update(cells_done)
-        if truncate and (potential > kinetic):
-            pb.finish()
-            return [1.0]
+    import time
+    t1 = time.time()
+    if use_c:
+        pot = PointCombine.FindBindingEnergy(data["CellMass"],
+                                       data["x"], data["y"], data["z"],
+                                       truncate, kinetic/(2*G))
+        potential += 2*G*pot
+    else:
+        t1 = time.time()
+        for q in xrange(total_cells-1):
+            pot = data['CellMass'][(q+1):total_cells] / \
+                (((data['x'][(q+1):total_cells]-data['x'][q])**2 + \
+                  (data['y'][(q+1):total_cells]-data['y'][q])**2 + \
+                  (data['z'][(q+1):total_cells]-data['z'][q])**2)**(0.5))
+            potential += 2 * G * data['CellMass'][q] * pot.sum()
+            cells_done += (total_cells - q - 1)
+            pb.update(cells_done)
+            if truncate and (potential > kinetic):
+                pb.finish()
+                break
     pb.finish()
-    return [(kinetic / potential)]
+    print "Took %0.9e" % (time.time() - t1)
+    #if truncate: return [potential > kinetic]
+    return [(potential / kinetic)]
 def _combIsBound(data,bound):
     return bound
 add_quantity("IsBound",function=_IsBound,combine_function=_combIsBound,n_ret=1,
