@@ -155,13 +155,17 @@ def _combBaryonSpinParameter(data, j_mag, m_enc, e_term_pre, weight):
 add_quantity("BaryonSpinParameter", function=_BaryonSpinParameter,
              combine_function=_combBaryonSpinParameter, n_ret=4)
 
-def _IsBound(data, truncate = True):
+def _IsBound(data, truncate = True, include_thermal_energy = False):
     # Kinetic energy
     bv_x,bv_y,bv_z = data.quantities["BulkVelocity"]()
     kinetic = 0.5 * (data["CellMass"] * (
                        (data["x-velocity"] - bv_x)**2
                      + (data["y-velocity"] - bv_y)**2
                      + (data["z-velocity"] - bv_z)**2 )).sum()
+    # Add thermal energy to kinetic energy
+    if (include_thermal_energy):
+        thermal = (data["Gas_Energy"] * data["CellMass"]).sum()
+        kinetic += thermal
     # Gravitational potential energy
     # We only divide once here because we have velocity in cgs, but radius is
     # in code.
