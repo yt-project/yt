@@ -376,7 +376,9 @@ class EnzoHierarchy:
             self.cpu_map = defaultdict(lambda: [][:])
             self.file_access = {}
         harray = self.get_data("/", "Hierarchy")
-        if harray:
+        if self.num_grids <= 1000:
+            mylog.info("Skipping serialization!")
+        if harray and self.num_grids > 1000:
             self.__deserialize_hierarchy(harray)
         else:
             self.__parse_hierarchy_file()
