@@ -844,19 +844,21 @@ Py_FindBindingEnergy(PyObject *obj, PyObject *args)
     }
 
     /* Do the work here. */
-    int q_outer, q_inner;
+    int q_outer, q_inner, n_q = PyArray_SIZE(mass);
     double this_potential, total_potential;
     total_potential = 0;
     npy_float64 mass_o, x_o, y_o, z_o;
     npy_float64 mass_i, x_i, y_i, z_i;
 
-    for (q_outer = 0; q_outer < PyArray_SIZE(mass) ; q_outer++) {
+    for (q_outer = 0; q_outer < n_q ; q_outer++) {
         this_potential = 0;
         mass_o = *(npy_float64*) PyArray_GETPTR1(mass, q_outer);
         x_o = *(npy_float64*) PyArray_GETPTR1(x, q_outer);
         y_o = *(npy_float64*) PyArray_GETPTR1(y, q_outer);
         z_o = *(npy_float64*) PyArray_GETPTR1(z, q_outer);
-        for (q_inner = q_outer+1; q_inner < PyArray_SIZE(mass); q_inner++) {
+        fprintf(stderr,"Calculating Potential: % 12i / % 12i\r", q_outer, n_q);
+        fflush(stdout); fflush(stderr);
+        for (q_inner = q_outer+1; q_inner < n_q; q_inner++) {
             mass_i = *(npy_float64*) PyArray_GETPTR1(mass, q_inner);
             x_i = *(npy_float64*) PyArray_GETPTR1(x, q_inner);
             y_i = *(npy_float64*) PyArray_GETPTR1(y, q_inner);
@@ -868,9 +870,12 @@ Py_FindBindingEnergy(PyObject *obj, PyObject *args)
         }
         total_potential += this_potential;
         if ((truncate == 1) && (total_potential > kinetic_energy)){
+            fprintf(stderr, "Truncating!\r");
             break;
         }
     }
+    fprintf(stderr,"\n");
+    fflush(stdout); fflush(stderr);
 
     Py_DECREF(mass);
     Py_DECREF(x);
