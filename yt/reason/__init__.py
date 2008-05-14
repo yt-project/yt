@@ -39,7 +39,7 @@ from math import log10, sqrt
 import os, types, Toolbars
 
 #import yt.raven.backends.MPL as be
-from yt.raven import be
+from yt.raven import be, color_maps
 from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg as FigureCanvas
 from matplotlib.backends.backend_agg import FigureCanvasAgg
 import wx, wx.py, wx.aui

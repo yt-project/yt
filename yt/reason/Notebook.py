@@ -270,8 +270,7 @@ class PlotPage(wx.Panel):
         self.cmapmenu = wx.Menu()
         self.editprops = wx.Menu()
         self.popupmenu.AppendMenu(-1, "Color Map", self.cmapmenu)
-        cmapnames = be.matplotlib.cm.cmapnames
-        cmapnames.sort()
+        cmapnames = sorted(color_maps)
         for cmap in cmapnames:
             item = self.cmapmenu.AppendRadioItem(-1, cmap)
             self.Bind(wx.EVT_MENU, self.OnColorMapChoice, item)
