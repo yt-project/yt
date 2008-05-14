@@ -333,7 +333,8 @@ class EnzoHierarchy:
         allArrays[:,15:16] = self.gridLevels[:]
         allArrays[:,16:17] = self.gridTimes[:]
         allArrays[:,17:18] = self.gridNumberOfParticles[:]
-        self.save_data(allArrays, "/","Hierarchy")
+        if self.num_grids > 1000:
+            self.save_data(allArrays, "/","Hierarchy")
         del allArrays
 
     def __setup_grid_tree(self):

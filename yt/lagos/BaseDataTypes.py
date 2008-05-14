@@ -678,7 +678,9 @@ class EnzoProjBase(Enzo2DData):
         if not source:
             self._check_region = False
             source = EnzoGridCollection(center, self.hierarchy.grids)
+            self._okay_to_serialize = True
         else:
+            self._okay_to_serialize = False
             self._check_region = True
         self.source = source
         if max_level == None:
@@ -697,6 +699,7 @@ class EnzoProjBase(Enzo2DData):
             if self.hierarchy.data_style == 6 and False:
                 self.__cache_data()
             self._refresh_data()
+            if self._okay_to_serialize: self._serialize()
 
     #@time_execution
     def __cache_data(self):
@@ -742,6 +745,7 @@ class EnzoProjBase(Enzo2DData):
         mylog.info("Done serializing...")
 
     def _deserialize(self):
+        if not self._okay_to_serialize: return
         node_name = "%s_%s_%s" % (self.fields[0], self._weight, self.axis)
         mylog.debug("Trying to get node %s", node_name)
         array=self.hierarchy.get_data("/Projections", node_name)
