@@ -21,6 +21,7 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
+from yt.raven import *
 import matplotlib.colors as cc
 
 raven_colormaps = {}
@@ -57,3 +58,20 @@ cdict = {'red':   ((0.0, 80/256., 80/256.),
                    (1.0, 0.0, 0.0))}
 
 add_cmap('bds_highcontrast', cdict)
+
+
+# This next colormap was designed by Tune Kamae and converted here by Matt
+_vs = na.linspace(0,1,255)
+_kamae_red = na.minimum(255,
+                113.9*na.sin(7.64*(_vs**1.705)+0.701)-916.1*(_vs+1.755)**1.862 \
+              + 3587.9*_vs+2563.4)/255.0
+_kamae_grn = na.minimum(255,
+                70.0*na.sin(8.7*(_vs**1.26)-2.418)+151.7*_vs**0.5+70.0)/255.0
+_kamae_blu = na.minimum(255,
+                194.5*_vs**2.88+99.72*na.exp(-77.24*(_vs-0.742)**2.0)
+              + 45.40*_vs**0.089+10.0)/255.0
+
+cdict = {'red':zip(_vs,_kamae_red,_kamae_red),
+         'green':zip(_vs,_kamae_grn,_kamae_grn),
+         'blue':zip(_vs,_kamae_blu,_kamae_blu)}
+add_cmap('kamae', cdict)
