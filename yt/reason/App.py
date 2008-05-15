@@ -80,7 +80,8 @@ class ReasonMainWindow(wx.Frame):
                        'outputs':self.outputs,
                        'windows':self.windows,
                        'mainwindow':self,
-                       'data_objects':self.data_objects}
+                       'data_objects':self.data_objects,
+                       'pylab':pylab}
         wx.py.buffer.Buffer.updateNamespace = \
                 get_new_updateNamespace(self.locals)
         self.int_panel = wx.Panel(self.main_splitter, -1)

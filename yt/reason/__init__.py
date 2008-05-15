@@ -39,6 +39,12 @@ from math import log10, sqrt
 
 import os, types, Toolbars
 
+# Now let's set up the matplotlib stuff
+import matplotlib
+matplotlib.interactive(True)
+matplotlib.use('WXAgg')
+import pylab
+
 #import yt.raven.backends.MPL as be
 from yt.raven import be, color_maps
 from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg as FigureCanvas
