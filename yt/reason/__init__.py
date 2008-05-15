@@ -25,7 +25,8 @@ Initializer for reason.
 
 
 from yt.config import ytcfg
-from yt.logger import lagosLogger as mylog
+import yt.logger
+mylog = yt.logger.reasonLogger
 
 import yt.lagos as lagos
 import yt.raven as raven
@@ -43,10 +44,12 @@ from yt.raven import be, color_maps
 from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg as FigureCanvas
 from matplotlib.backends.backend_agg import FigureCanvasAgg
 import wx, wx.py, wx.aui
+import wx.lib.mixins.listctrl as listmix
 from wx.lib.pubsub import Publisher
 import matplotlib.backends.backend_wx as be_wx
 import matplotlib.figure
 
+from LoggingSetup import *
 from Windows import *
 from Notebook import *
 from App import *

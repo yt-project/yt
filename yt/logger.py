@@ -95,7 +95,11 @@ if ytcfg.getboolean("yt","logfile") and os.access(".", os.W_OK):
         reasonHandler.setFormatter(f)
         reasonLogger.addHandler(reasonHandler)
 
-if ytcfg.getboolean("yt","suppressStreamLogging"):
+def disable_stream_logging():
     # We just remove the root logger's handlers
     for handler in rootLogger.handlers:
-        handler.disabled = 1
+        if isinstance(handler, logging.StreamHandler):
+            rootLogger.removeHandler(handler)
+
+if ytcfg.getboolean("yt","suppressStreamLogging"):
+    disable_stream_logging()

@@ -37,6 +37,7 @@ class ReasonInterpreterPanel(wx.Panel):
         self.SetSizer(self.sizer)
         self.Fit()
 
+
 def ChooseField(page):
     allFields = page.QueryFields()
     toChoose = nativeFields + [''] + derivedFields
@@ -184,3 +185,64 @@ class FunctionInspectorPage(wx.Panel):
 
         self.SetSizer(self.MainSizer)
         self.Layout()
+
+def get_new_updateNamespace(my_locals):
+    def updateNamespace(self):
+        """Update the namespace for autocompletion and calltips.
+
+        Return True if updated, False if there was an error."""
+        if not self.interp or not hasattr(self.editor, 'getText'):
+            return False
+        syspath = sys.path
+        sys.path = self.syspath
+        text = self.editor.getText()
+        text = text.replace('\r\n', '\n')
+        text = text.replace('\r', '\n')
+        name = self.modulename or self.name
+        try:
+            try:
+                code = compile(text, name, 'exec')
+            except:
+                raise
+            try:
+                exec code in my_locals
+            except:
+                raise
+        finally:
+            sys.path = syspath
+            for m in sys.modules.keys():
+                if m not in self.modules:
+                    del sys.modules[m]
+    return updateNamespace
+
+
+class ReasonEditorNotebookFrame(wx.py.editor.EditorNotebookFrame):
+
+    def _setup(self):
+        """Setup prior to first buffer creation.
+        Called automatically by base class during init.
+
+        Mostly taken from the wx.py.editor source.
+        """
+        self.notebook = wx.py.editor.EditorNotebook(parent=self)
+        intro = 'Reason 0.3'
+        if hasattr(self.Parent, 'locals'):
+            namespace = self.Parent.locals
+        else:
+            import imp
+            module = imp.new_module('__main__')
+            import __builtin__
+            module.__dict__['__builtins__'] = __builtin__
+            namespace = module.__dict__.copy()
+        self.crust = wx.py.crust.Crust(parent=self.notebook, intro=intro, locals=namespace)
+        self.shell = self.crust.shell
+        # Override the filling so that status messages go to the status bar.
+        self.crust.filling.tree.setStatusText = self.SetStatusText
+        # Override the shell so that status messages go to the status bar.
+        self.shell.setStatusText = self.SetStatusText
+        # Fix a problem with the sash shrinking to nothing.
+        self.crust.filling.SetSashPosition(40)
+        self.notebook.AddPage(page=self.crust, text='*Shell*', select=True)
+        self.setEditor(self.crust.editor)
+        self.crust.editor.SetFocus()
+        self.MenuBar.GetMenu(0).GetMenuItems()[11].SetText("Run Script")

@@ -173,11 +173,12 @@ class PlotCollection:
                                   weight="CellMassMsun", accumulation=False,
                                   x_bins=64, x_log=True, x_bounds=None,
                                   y_bins=64, y_log=True, y_bounds=None,
-                                  lazy_reader=False):
+                                  lazy_reader=False, sphere = None):
         if center == None:
             center = self.c
         r = radius/self.pf[unit]
-        sphere = self.pf.hierarchy.sphere(center, r, fields)
+        if sphere is None:
+            sphere = self.pf.hierarchy.sphere(center, r, fields)
         if x_bounds is None:
             x_min, x_max = sphere[fields[0]].min(), sphere[fields[0]].max()
         else:

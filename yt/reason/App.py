@@ -81,8 +81,11 @@ class ReasonMainWindow(wx.Frame):
                        'windows':self.windows,
                        'mainwindow':self,
                        'data_objects':self.data_objects}
+        wx.py.buffer.Buffer.updateNamespace = \
+                get_new_updateNamespace(self.locals)
         self.int_panel = wx.Panel(self.main_splitter, -1)
-        self.interpreter = ReasonInterpreterPanel(self.int_panel, -1, self.locals)
+        #self.interpreter = ReasonInterpreterPanel(self.int_panel, -1, self.locals)
+        self.interpreter = LoggingWindowBox(self.int_panel, -1)
 
     def __setup_menubar(self):
         menu_bar = wx.MenuBar()
@@ -93,12 +96,16 @@ class ReasonMainWindow(wx.Frame):
 
         open_hierarchy = file_menu.Append(-1, "Open Hierarchy")
         field_inspector = file_menu.Append(-1, "Inspect Fields")
+        open_shell = file_menu.Append(-1, "Open Shell")
+        open_editor = file_menu.Append(-1, "Open Editor")
         save_image = file_menu.Append(-1, "Save Image")
         file_menu.AppendSeparator()
         exit = file_menu.Append(-1, "Exit")
 
         self.Bind(wx.EVT_MENU, self.OnOpenHierarchy, open_hierarchy)
         self.Bind(wx.EVT_MENU, self.OnInspectFields, field_inspector)
+        self.Bind(wx.EVT_MENU, self.OnOpenShell, open_shell)
+        self.Bind(wx.EVT_MENU, self.OnOpenEditor, open_editor)
         self.Bind(wx.EVT_MENU, self.OnSaveImage, save_image)
         self.Bind(wx.EVT_MENU, self.OnExit, exit)
 
@@ -258,7 +265,7 @@ class ReasonMainWindow(wx.Frame):
 
     def _add_phase(self, event=None):
         MyID = wx.NewId()
-        self.interpreter.shell.writeOut("\n")
+#        self.interpreter.shell.writeOut("\n")
         o = self.get_output()
         t = "Phase Plot"
         self.windows.append( \
@@ -267,21 +274,21 @@ class ReasonMainWindow(wx.Frame):
                           dataObject = o,
                           CreationID = MyID,
                           mw = self))
-        self.interpreter.shell.writeOut("Adding phase plot\n")
+#        self.interpreter.shell.writeOut("Adding phase plot\n")
         self.plot_panel.AddPlot(self.windows[-1], t, MyID)
         mylog.debug("Adding with ID: %s", MyID)
-        self.interpreter.shell.push("\n")
+#        self.interpreter.shell.push("\n")
 
     def _add_proj(self, event=None):
         MyID = wx.NewId()
-        self.interpreter.shell.writeOut("\n")
+#        self.interpreter.shell.writeOut("\n")
         o = self.get_output()
         field = "Density"
         width = 1.0
         unit = "1"
         for i, ax in zip(range(3), 'xyz'):
             t = "%s - Projection - %s" % (o.basename, ax)
-            self.interpreter.shell.writeOut("Adding %s projection of %s\n" % (ax, o))
+#            self.interpreter.shell.writeOut("Adding %s projection of %s\n" % (ax, o))
             self.windows.append( \
                 ProjPlotPage(parent=self.plot_panel.nb,
                               status_bar=self.status_bar,
@@ -295,18 +302,20 @@ class ReasonMainWindow(wx.Frame):
                                _ProjObjectMenuItems)
             print "Adding with ID:", MyID
         for w in self.windows[-3:]: w.ChangeWidth(1,'1')
-        self.interpreter.shell.push("\n")
+#        self.interpreter.shell.push("\n")
 
     def _add_slice(self, event=None):
+        wx.SafeYield()
         MyID = wx.NewId()
-        self.interpreter.shell.writeOut("\n")
+#        self.interpreter.shell.writeOut("\n")
         o = self.get_output()
         field = "Density"
         width = 1.0
         unit = "1"
         for i, ax in zip(range(3), 'xyz'):
+            wx.Yield()
             t = "%s - Slice - %s" % (o.basename, ax)
-            self.interpreter.shell.writeOut("Adding %s slice of %s\n" % (ax, o))
+#            self.interpreter.shell.writeOut("Adding %s slice of %s\n" % (ax, o))
             self.windows.append( \
                 SlicePlotPage(parent=self.plot_panel.nb,
                               status_bar=self.status_bar,
@@ -320,7 +329,7 @@ class ReasonMainWindow(wx.Frame):
                                _SliceObjectMenuItems)
             print "Adding with ID:", MyID
         for w in self.windows[-3:]: w.ChangeWidth(1,'1')
-        self.interpreter.shell.push("\n")
+#        self.interpreter.shell.push("\n")
 
     def get_output(self, event=None):
         # Figure out which outputs are selected
@@ -366,6 +375,18 @@ class ReasonMainWindow(wx.Frame):
             self._add_static_output(file)
             #self.RefreshOutputs()
         dialog.Destroy()
+
+    def OnOpenEditor(self, event):
+        frame = ReasonEditorNotebookFrame(parent=self,
+                                          title="Editor")
+        frame.SetStatusText("Reason Shell")
+        frame.Show()
+        self.ff = frame
+
+    def OnOpenShell(self, event):
+        frame = wx.py.shell.ShellFrame(parent=self, locals=self.locals)
+        frame.SetStatusText("Reason Shell")
+        frame.Show()
 
     def OnSaveImage(self, event):
         pgI = self.plot_panel.nb.Selection
