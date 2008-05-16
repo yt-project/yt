@@ -1462,20 +1462,24 @@ class EnzoCoveringGrid(Enzo3DData):
         ll = int(grid.Level == self.level)
         g_dx = na.array([grid.dx, grid.dy, grid.dz])
         c_dx = na.array([self.dx, self.dy, self.dz])
-        for field in ensure_list(fields):
-            PointCombine.DataCubeRefine(
-                grid.LeftEdge, g_dx, grid[field], grid.child_mask,
-                self.left_edge, self.right_edge, c_dx, self[field],
-                ll)
+        g_fields = [grid[field] for field in ensure_list(fields)]
+        c_fields = [self[field] for field in ensure_list(fields)]
+        PointCombine.DataCubeRefine(
+            grid.LeftEdge, g_dx, g_fields, grid.child_mask,
+            self.left_edge, self.right_edge, c_dx, c_fields,
+            ll)
 
     def _flush_data_to_grid(self, grid, fields):
         ll = int(grid.Level == self.level)
         g_dx = na.array([grid.dx, grid.dy, grid.dz])
         c_dx = na.array([self.dx, self.dy, self.dz])
+        g_fields = []
         for field in ensure_list(fields):
             if not grid.has_key(field): grid[field] = \
                na.zeros(grid.ActiveDimensions, dtype=self[field].dtype)
-            PointCombine.DataCubeReplace(
-                grid.LeftEdge, g_dx, grid[field], grid.child_mask,
-                self.left_edge, self.right_edge, c_dx, self[field],
-                ll)
+            g_fields.append(grid[field])
+        c_fields = [self[field] for field in ensure_list(fields)]
+        PointCombine.DataCubeReplace(
+            grid.LeftEdge, g_dx, g_fields, grid.child_mask,
+            self.left_edge, self.right_edge, c_dx, c_fields,
+            ll)

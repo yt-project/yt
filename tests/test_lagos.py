@@ -221,6 +221,16 @@ class TestDataCube(LagosTestingBase, unittest.TestCase):
     def testTwoGhost(self):
         for g in self.hierarchy.grids:
             cube = g.retrieve_ghost_zones(2, "Density")
+
+    def testMultipleFields(self):
+        for g in self.hierarchy.grids:
+            cube1 = g.retrieve_ghost_zones(0, ["Density","Temperature"])
+            self.assertTrue(na.all(cube1["Density"] == g["Density"]))
+            self.assertTrue(na.all(cube1["Temperature"] == g["Temperature"]))
+            cube2a = g.retrieve_ghost_zones(0, "Density")
+            cube2b = g.retrieve_ghost_zones(0, "Temperature")
+            self.assertTrue(na.all(cube1["Density"] == cube2a["Density"]))
+            self.assertTrue(na.all(cube1["Temperature"] == cube2b["Temperature"]))
     
     def testFlushBack(self):
         ml = self.hierarchy.max_level

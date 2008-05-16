@@ -404,15 +404,18 @@ static PyObject *DataCubeGeneric(PyObject *obj, PyObject *args,
     */
 
 
-    int ll, i;
+    int ll, i, n;
 
     PyObject *og_le, *og_dx, *og_data, *og_cm,
              *oc_le, *oc_re, *oc_dx, *oc_data;
-    PyArrayObject *g_le, *g_dx, *g_data, *g_cm,
-                  *c_le, *c_re, *c_dx, *c_data;
+    PyArrayObject *g_le, *g_dx, *g_cm,
+                  *c_le, *c_re, *c_dx;
+    PyArrayObject **g_data, **c_data;
+    g_data = c_data = NULL;
     npy_int *ag_cm;
     npy_float64 ag_le[3], ag_dx[3], 
                 ac_le[3], ac_re[3], ac_dx[3];
+    Py_ssize_t n_fields = 0;
 
     if (!PyArg_ParseTuple(args, "OOOOOOOOi",
             &og_le, &og_dx, &og_data, &og_cm,
@@ -442,15 +445,6 @@ static PyObject *DataCubeGeneric(PyObject *obj, PyObject *args,
     goto _fail;
     }
     for(i=0;i<3;i++)ag_dx[i]=*(npy_float64*)PyArray_GETPTR1(g_dx,i);
-
-    g_data    = (PyArrayObject *) PyArray_FromAny(og_data,
-                    PyArray_DescrFromType(NPY_FLOAT64), 3, 3,
-                    NPY_INOUT_ARRAY | NPY_UPDATEIFCOPY, NULL);
-    if((g_data==NULL) || (g_data->nd != 3)) {
-    PyErr_Format(_dataCubeError,
-             "CombineGrids: Three dimensions required for g_data.");
-    goto _fail;
-    }
 
     g_cm    = (PyArrayObject *) PyArray_FromAny(og_cm,
                     PyArray_DescrFromType(NPY_INT), 3, 3,
@@ -494,13 +488,56 @@ static PyObject *DataCubeGeneric(PyObject *obj, PyObject *args,
     }
     for(i=0;i<3;i++)ac_dx[i]=*(npy_float64*)PyArray_GETPTR1(c_dx,i);
 
-    c_data    = (PyArrayObject *) PyArray_FromAny(oc_data,
-                    PyArray_DescrFromType(NPY_FLOAT64), 3, 3,
-                    NPY_INOUT_ARRAY | NPY_UPDATEIFCOPY, NULL);
-    if((c_data==NULL) || (c_data->nd != 3)) {
-    PyErr_Format(_dataCubeError,
-             "CombineGrids: Three dimensions required for c_data.");
-    goto _fail;
+    if (!PyList_Check(oc_data)){
+      PyErr_Format(_dataCubeError,
+          "CombineGrids: c_data must be a list of arrays!");
+      goto _fail;
+    }
+
+    n_fields = PyList_Size(oc_data);
+    if(n_fields == 0) {
+      PyErr_Format(_dataCubeError,
+          "CombineGrids: Length zero for c_data is invalid.");
+      goto _fail;
+    }
+
+    PyObject *tc_data;
+    c_data = (PyArrayObject**)
+             malloc(sizeof(PyArrayObject*)*n_fields);
+    for (n=0;n<n_fields;n++)c_data[n]=NULL;
+    for (n=0;n<n_fields;n++){
+      tc_data = (PyObject *) PyList_GetItem(oc_data, n);
+      c_data[n]    = (PyArrayObject *) PyArray_FromAny(tc_data,
+          PyArray_DescrFromType(NPY_FLOAT64), 3, 3,
+          NPY_INOUT_ARRAY | NPY_UPDATEIFCOPY, NULL);
+      if((c_data[n]==NULL) || (c_data[n]->nd != 3)) {
+        PyErr_Format(_dataCubeError,
+            "CombineGrids: Three dimensions required for c_data[%i].",n);
+        goto _fail;
+      }
+    }
+
+    if ((!PyList_Check(og_data)) ||
+         (PyList_Size(og_data) != n_fields)){
+      PyErr_Format(_dataCubeError,
+          "CombineGrids: g_data must be a list of arrays same length as c_data!");
+      goto _fail;
+    }
+
+    PyObject *tg_data;
+    g_data = (PyArrayObject**)
+             malloc(sizeof(PyArrayObject*)*n_fields);
+    for (n=0;n<n_fields;n++)g_data[n]=NULL;
+    for (n=0;n<n_fields;n++){
+      tg_data = (PyObject *) PyList_GetItem(og_data, n);
+      g_data[n]    = (PyArrayObject *) PyArray_FromAny(tg_data,
+          PyArray_DescrFromType(NPY_FLOAT64), 3, 3,
+          NPY_INOUT_ARRAY | NPY_UPDATEIFCOPY, NULL);
+      if((g_data[n]==NULL) || (g_data[n]->nd != 3)) {
+        PyErr_Format(_dataCubeError,
+            "CombineGrids: Three dimensions required for g_data[%i].",n);
+        goto _fail;
+      }
     }
 
     /* And let's begin */
@@ -510,29 +547,31 @@ static PyObject *DataCubeGeneric(PyObject *obj, PyObject *args,
     npy_float64 *val1, *val2;
     long int total=0;
 
-    for (xg = 0; xg < g_data->dimensions[0]; xg++) {
+    for (xg = 0; xg < g_data[0]->dimensions[0]; xg++) {
       if (ag_le[0]+ag_dx[0]*xg     > ac_re[0]) continue;
       if (ag_le[0]+ag_dx[0]*(xg+1) < ac_le[0]) continue;
       cmin_x = max(floorl((ag_le[0]+ag_dx[0]*xg     - ac_le[0])/ac_dx[0]),0);
-      cmax_x = min( ceill((ag_le[0]+ag_dx[0]*(xg+1) - ac_le[0])/ac_dx[0]),PyArray_DIM(c_data,0));
-      for (yg = 0; yg < g_data->dimensions[1]; yg++) {
+      cmax_x = min( ceill((ag_le[0]+ag_dx[0]*(xg+1) - ac_le[0])/ac_dx[0]),PyArray_DIM(c_data[0],0));
+      for (yg = 0; yg < g_data[0]->dimensions[1]; yg++) {
         if (ag_le[1]+ag_dx[1]*yg     > ac_re[1]) continue;
         if (ag_le[1]+ag_dx[1]*(yg+1) < ac_le[1]) continue;
         cmin_y = max(floorl((ag_le[1]+ag_dx[1]*yg     - ac_le[1])/ac_dx[1]),0);
-        cmax_y = min( ceill((ag_le[1]+ag_dx[1]*(yg+1) - ac_le[1])/ac_dx[1]),PyArray_DIM(c_data,1));
-        for (zg = 0; zg < g_data->dimensions[2]; zg++) {
+        cmax_y = min( ceill((ag_le[1]+ag_dx[1]*(yg+1) - ac_le[1])/ac_dx[1]),PyArray_DIM(c_data[0],1));
+        for (zg = 0; zg < g_data[0]->dimensions[2]; zg++) {
           cm = *(npy_int *)PyArray_GETPTR3(g_cm,xg,yg,zg);
           if ((!ll) && (cm == 0)) continue;
           if (ag_le[2]+ag_dx[2]*zg     > ac_re[2]) continue;
           if (ag_le[2]+ag_dx[2]*(zg+1) < ac_le[2]) continue;
           cmin_z = max(floorl((ag_le[2]+ag_dx[2]*zg     - ac_le[2])/ac_dx[2]),0);
-          cmax_z = min( ceill((ag_le[2]+ag_dx[2]*(zg+1) - ac_le[2])/ac_dx[2]),PyArray_DIM(c_data,2));
+          cmax_z = min( ceill((ag_le[2]+ag_dx[2]*(zg+1) - ac_le[2])/ac_dx[2]),PyArray_DIM(c_data[0],2));
           for (xc = cmin_x; xc < cmax_x ; xc++) {
             for (yc = cmin_y; yc < cmax_y ; yc++) {
               for (zc = cmin_z; zc < cmax_z ; zc++) {
-                val1 = (npy_float64*) PyArray_GETPTR3(c_data,xc,yc,zc);
-                val2 = (npy_float64*) PyArray_GETPTR3(g_data,xg,yg,zg);
-                to_call(val1, val2);
+                for(n=0;n<n_fields;n++){
+                  val1 = (npy_float64*) PyArray_GETPTR3(c_data[n],xc,yc,zc);
+                  val2 = (npy_float64*) PyArray_GETPTR3(g_data[n],xg,yg,zg);
+                  to_call(val1, val2);
+                }
                 total += 1;
               }
             }
@@ -545,12 +584,16 @@ static PyObject *DataCubeGeneric(PyObject *obj, PyObject *args,
 
     Py_DECREF(g_le);
     Py_DECREF(g_dx);
-    Py_DECREF(g_data);
     Py_DECREF(g_cm);
     Py_DECREF(c_le);
     Py_DECREF(c_re);
     Py_DECREF(c_dx);
-    Py_DECREF(c_data);
+    for(n=0;n<n_fields;n++) {
+        Py_DECREF(g_data[n]);
+        Py_DECREF(c_data[n]);
+    }
+    free(g_data);
+    free(c_data);
 
     PyObject *status = PyInt_FromLong(total);
     return status;
@@ -558,12 +601,16 @@ static PyObject *DataCubeGeneric(PyObject *obj, PyObject *args,
 _fail:
     Py_XDECREF(g_le);
     Py_XDECREF(g_dx);
-    Py_XDECREF(g_data);
     Py_XDECREF(g_cm);
     Py_XDECREF(c_le);
     Py_XDECREF(c_re);
     Py_XDECREF(c_dx);
-    Py_XDECREF(c_data);
+    for(n=0;n<n_fields;n++) {
+        if(g_data!=NULL)Py_XDECREF(g_data[n]);
+        if(c_data!=NULL)Py_XDECREF(c_data[n]);
+    }
+    if(g_data!=NULL)free(g_data);
+    if(c_data!=NULL)free(c_data);
     return NULL;
 
 }
