@@ -479,7 +479,10 @@ class EnzoHierarchy:
         self.field_list = list(field_list)
         self.derived_field_list = []
         for field in fieldInfo:
-            fd = fieldInfo[field].get_dependencies(pf = self.parameter_file)
+            try:
+                fd = fieldInfo[field].get_dependencies(pf = self.parameter_file)
+            except:
+                continue
             available = na.all([f in self.field_list for f in fd.requested])
             if available: self.derived_field_list.append(field)
         for field in self.field_list:
