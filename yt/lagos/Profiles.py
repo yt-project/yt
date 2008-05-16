@@ -127,14 +127,14 @@ class BinnedProfile1D(BinnedProfile):
     @preserve_source_parameters
     def _bin_field(self, source, field, weight, accumulation,
                    args, check_cut=False):
-        inv_bin_indices = args
+        mi, inv_bin_indices = args
         if check_cut:
             cm = self._data_source._get_point_indices(source)
-            source_data = source[field][cm].astype('float64')
-            if weight: weight_data = source[weight][cm].astype('float64')
+            source_data = source[field][cm].astype('float64')[mi]
+            if weight: weight_data = source[weight][cm].astype('float64')[mi]
         else:
-            source_data = source[field].astype('float64')
-            if weight: weight_data = source[weight].astype('float64')
+            source_data = source[field].astype('float64')[mi]
+            if weight: weight_data = source[weight].astype('float64')[mi]
         binned_field = self._get_empty_field()
         weight_field = self._get_empty_field()
         used_field = na.ones(weight_field.shape, dtype='bool')
@@ -167,7 +167,7 @@ class BinnedProfile1D(BinnedProfile):
         inv_bin_indices = {}
         for bin in range(self[self.bin_field].size):
             inv_bin_indices[bin] = na.where(bin_indices == bin)
-        return inv_bin_indices
+        return (mi, inv_bin_indices)
 
 
 class BinnedProfile2D(BinnedProfile):
@@ -196,6 +196,11 @@ class BinnedProfile2D(BinnedProfile):
         else:
             self[y_bin_field] = na.linspace(
                 y_lower_bound*0.99, y_upper_bound*1.01, y_n_bins)
+        if na.any(na.isnan(self[x_bin_field])) \
+            or na.any(na.isnan(self[y_bin_field])):
+            mylog.error("Your min/max values for x, y have given me a nan.")
+            mylog.error("Usually this means you are asking for log, with a zero bound.")
+            raise ValueError
         if not lazy_reader:
             self._args = self._get_bins(data_source)
 
@@ -219,8 +224,11 @@ class BinnedProfile2D(BinnedProfile):
         binned_field = self._get_empty_field()
         weight_field = self._get_empty_field()
         used_field = self._get_empty_field()
-        bin_indices_x = args[0].ravel().astype('int64')
-        bin_indices_y = args[1].ravel().astype('int64')
+        mi = args[0]
+        bin_indices_x = args[1].ravel().astype('int64')
+        bin_indices_y = args[2].ravel().astype('int64')
+        source_data = source_data[mi]
+        weight_data = weight_data[mi]
         self.total_cells += bin_indices_x.size
         nx = bin_indices_x.size
         mylog.debug("Binning %s / %s times", source_data.size, nx)
@@ -257,4 +265,4 @@ class BinnedProfile2D(BinnedProfile):
         bin_indices_x = na.digitize(sd_x, self[self.x_bin_field])
         bin_indices_y = na.digitize(sd_y, self[self.y_bin_field])
         # Now we set up our inverse bin indices
-        return (bin_indices_x, bin_indices_y)
+        return (mi, bin_indices_x, bin_indices_y)

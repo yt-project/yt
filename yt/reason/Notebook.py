@@ -610,6 +610,7 @@ class VMPlotPage(PlotPage):
 
     def UpdateCanvas(self, *args):
         if self.IsShown():
+            self.plot._redraw_image()
             self.figure_canvas.draw()
         #else: print "Opting not to update canvas"
 

@@ -273,6 +273,7 @@ static PyObject *Py_Bin2DProfile(PyObject *obj, PyObject *args)
     int i, j;
     PyObject *obins_x, *obins_y, *owsource, *obsource, *owresult, *obresult, *oused;
     PyArrayObject *bins_x, *bins_y, *wsource, *bsource, *wresult, *bresult, *used;
+    bins_x = bins_y = wsource = bsource = wresult = bresult = used = NULL;
 
     if (!PyArg_ParseTuple(args, "OOOOOOO",
                 &obins_x, &obins_y, &owsource, &obsource,

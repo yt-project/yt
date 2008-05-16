@@ -79,18 +79,50 @@ def add_field(name, function = None, **kwargs):
         name, function, **kwargs)
 
 class FieldDetector(defaultdict):
-    pf = defaultdict(lambda: 1)
-    def __init__(self):
+    Level = 1
+    NumberOfParticles = 0
+    def __init__(self, nd = 16, pf = None):
+        self.nd = nd
+        self.ActiveDimensions = [nd,nd,nd]
+        self.LeftEdge = [0.0,0.0,0.0]
+        self.RightEdge = [1.0,1.0,1.0]
+        self.dx = self.dy = self.dz = na.array([1.0])
+        self.fields = []
+        if pf is None:
+            pf = defaultdict(lambda: 1)
+        self.pf = pf
         self.requested = []
-        defaultdict.__init__(self, lambda: na.ones(10))
+        self.requested_parameters = []
+        defaultdict.__init__(self, lambda: na.ones((nd,nd,nd)))
     def __missing__(self, item):
-        if fieldInfo.has_key(item):
-            fieldInfo[item](self)
-            return self[item]
+        if fieldInfo.has_key(item) and \
+            fieldInfo[item]._function.func_name != '<lambda>':
+            try:
+                vv = fieldInfo[item](self)
+            except NeedsGridType, exc:
+                ngz = exc.ghost_zones
+                nfd = FieldDetector(self.nd+ngz*2)
+                vv = fieldInfo[item](nfd)[ngz:-ngz,ngz:-ngz,ngz:-ngz]
+                for i in vv.requested:
+                    if i not in self.requested: self.requested.append(i)
+                for i in vv.requested_parameters:
+                    if i not in self.requested_parameters: self.requested_parameters.append(i)
+            if vv is not None:
+                self[item] = vv
+                return self[item]
         self.requested.append(item)
         return defaultdict.__missing__(self, item)
-    def convert(self, item):
-        return 1
+    def get_field_parameter(self, param):
+        self.requested_parameters.append(param)
+        if param in ['bulk_velocity','center','height_vector']:
+            return na.array([0,0,0])
+        else:
+            return 0.0
+    _spatial = True
+    _num_ghost_zones = 0
+    id = 1
+    def has_field_parameter(self, param): return True
+    def convert(self, item): return 1
 
 class DerivedField:
     def __init__(self, name, function,
@@ -121,10 +153,13 @@ class DerivedField:
             validator(data)
         # If we don't get an exception, we're good to go
         return True
-    def get_dependencies(self):
-        e = FieldDetector()
-        self(e)
-        return e.requested
+    def get_dependencies(self, *args, **kwargs):
+        e = FieldDetector(*args, **kwargs)
+        if self._function.func_name == '<lambda>':
+            e.requested.append(self.name)
+        else:
+            self(e)
+        return e
     def get_units(self):
         return self._units
     def get_projected_units(self):
@@ -151,7 +186,7 @@ class ValidateParameter(FieldValidator):
     def __call__(self, data):
         doesnt_have = []
         for p in self.parameters:
-            if not data.field_parameters.has_key(p):
+            if not data.has_field_parameter(p):
                 doesnt_have.append(p)
         if len(doesnt_have) > 0:
             raise NeedsParameter(doesnt_have)
@@ -163,6 +198,7 @@ class ValidateDataField(FieldValidator):
         self.fields = ensure_list(field)
     def __call__(self, data):
         doesnt_have = []
+        if isinstance(data, FieldDetector): return True
         for f in self.fields:
             if f not in data.hierarchy.field_list:
                 doesnt_have.append(f)
@@ -191,6 +227,7 @@ class ValidateSpatial(FieldValidator):
     def __call__(self, data):
         # When we say spatial information, we really mean
         # that it has a three-dimensional data structure
+        if isinstance(data, FieldDetector): return True
         if not data._spatial:
             raise NeedsGridType(self.ghost_zones,self.fields)
         if self.ghost_zones == data._num_ghost_zones:
@@ -344,10 +381,22 @@ add_field("CourantTimeStep", convert_function=_convertCourantTimeStep,
 
 def _VelocityMagnitude(field, data):
     """M{|v|}"""
-    return ( data["x-velocity"]**2.0 + \
-             data["y-velocity"]**2.0 + \
-             data["z-velocity"]**2.0 )**(1.0/2.0)
+    bulk_velocity = data.get_field_parameter("bulk_velocity")
+    if bulk_velocity == None:
+        bulk_velocity = na.zeros(3)
+    return ( (data["x-velocity"]-bulk_velocity[0])**2.0 + \
+             (data["y-velocity"]-bulk_velocity[1])**2.0 + \
+             (data["z-velocity"]-bulk_velocity[2])**2.0 )**(1.0/2.0)
 add_field("VelocityMagnitude", take_log=False, units=r"\rm{cm}/\rm{s}")
+
+def _TangentialOverVelocityMagnitude(field, data):
+    return na.abs(data["TangentialVelocity"])/na.abs(data["VelocityMagnitude"])
+add_field("TangentialOverVelocityMagnitude", take_log=False)
+
+def _TangentialVelocity(field, data):
+    return na.sqrt(data["VelocityMagnitude"]**2.0
+                 - data["RadialVelocity"]**2.0)
+add_field("TangentialVelocity", take_log=False, units=r"\rm{cm}/\rm{s}")
 
 def _Pressure(field, data):
     """M{(Gamma-1.0)*rho*E}"""
@@ -358,7 +407,7 @@ add_field("Pressure", units=r"\rm{dyne}/\rm{cm}^{2}")
 def _ThermalEnergy(field, data):
     if data.pf["HydroMethod"] == 2:
         return data["Total_Energy"]
-    if data.pf["HydroMethod"] == 0:
+    if data.pf["HydroMethod"] in [0,1]:
         if data.pf["DualEnergyFormalism"]:
             return data["Gas_Energy"]
         else:
@@ -389,8 +438,31 @@ def _Height(field, data):
     return na.abs(height)
 def _convertHeight(data):
     return data.convert("cm")
+def _convertHeightAU(data):
+    return data.convert("au")
 add_field("Height", convert_function=_convertHeight,
-          validators=[ValidateParameter("height_vector")])
+          validators=[ValidateParameter("height_vector")],
+          units=r"cm")
+add_field("HeightAU", function=_Height,
+          convert_function=_convertHeightAU,
+          validators=[ValidateParameter("height_vector")],
+          units=r"AU")
+
+def _DiskAngle(field, data):
+    # We make both r_vec and h_vec into unit vectors
+    center = data.get_field_parameter("center")
+    r_vec = na.array([data["x"] - center[0],
+                      data["y"] - center[1],
+                      data["z"] - center[2]])
+    r_vec = r_vec/na.sqrt((r_vec**2.0).sum(axis=0))
+    h_vec = na.array(data.get_field_parameter("height_vector"))
+    dp = r_vec[0,:] * h_vec[0] \
+       + r_vec[1,:] * h_vec[1] \
+       + r_vec[2,:] * h_vec[2]
+    return na.arccos(dp)
+add_field("DiskAngle", take_log=False,
+          validators=[ValidateParameter("height_vector"),
+                      ValidateParameter("center")])
 
 def _DynamicalTime(field, data):
     """
@@ -414,7 +486,11 @@ def _NumberDensity(field, data):
     fieldData = na.zeros(data["Density"].shape,
                          dtype = data["Density"].dtype)
     if data.pf["MultiSpecies"] == 0:
-        fieldData += data["Density"] * data.get_field_parameter("mu", 0.6)
+        if data.has_field_parameter("mu"):
+            mu = data.get_field_parameter("mu")
+        else:
+            mu = 0.6
+        fieldData += data["Density"] * mu
     if data.pf["MultiSpecies"] > 0:
         fieldData += data["HI_Density"] / 1.0
         fieldData += data["HII_Density"] / 1.0
@@ -531,7 +607,7 @@ add_field("AveragedDensity", validators=[ValidateSpatial(1)])
 
 def _DivV(field, data):
     # We need to set up stencils
-    if data.pf["HydroMethod"] == 0:
+    if data.pf["HydroMethod"] in [0,1]:
         sl_left = slice(None,-2,None)
         sl_right = slice(2,None,None)
         div_fac = 2.0
@@ -541,13 +617,13 @@ def _DivV(field, data):
         div_fac = 1.0
     div_x = (data["x-velocity"][sl_right,1:-1,1:-1] -
              data["x-velocity"][sl_left,1:-1,1:-1]) \
-          / (div_fac*data["dx"][1:-1,1:-1,1:-1])
+          / (div_fac*data["dx"].flat[0])
     div_y = (data["y-velocity"][1:-1,sl_right,1:-1] -
              data["y-velocity"][1:-1,sl_left,1:-1]) \
-          / (div_fac*data["dy"][1:-1,1:-1,1:-1])
+          / (div_fac*data["dy"].flat[0])
     div_z = (data["z-velocity"][1:-1,1:-1,sl_right] -
              data["z-velocity"][1:-1,1:-1,sl_left]) \
-          / (div_fac*data["dz"][1:-1,1:-1,1:-1])
+          / (div_fac*data["dz"].flat[0])
     new_field = na.zeros(data["x-velocity"].shape)
     new_field[1:-1,1:-1,1:-1] = div_x+div_y+div_z
     return na.abs(new_field)
@@ -675,7 +751,7 @@ def _JeansMassMsun(field,data):
     MJ_constant = (((5*kboltz)/(G*mh))**(1.5)) * \
     (3/(4*3.1415926535897931))**(0.5) / 1.989e33
 
-    return (MJ_constant * 
+    return (MJ_constant *
             ((data["Temperature"]/data["MeanMolecularWeight"])**(1.5)) *
             (data["Density"]**(-0.5)))
 add_field("JeansMassMsun",function=_JeansMassMsun,

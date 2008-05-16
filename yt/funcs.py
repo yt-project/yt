@@ -79,7 +79,9 @@ class GUIProgressBar:
         self._pbar.Destroy()
 
 def just_one(obj):
-    if iterable(obj):
+    if hasattr(obj,'flat'):
+        return obj.flat[0]
+    elif iterable(obj):
         return obj[0]
     return obj
 
