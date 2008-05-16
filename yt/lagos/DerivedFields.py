@@ -412,7 +412,7 @@ add_field("Pressure", units=r"\rm{dyne}/\rm{cm}^{2}")
 def _ThermalEnergy(field, data):
     if data.pf["HydroMethod"] == 2:
         return data["Total_Energy"]
-    if data.pf["HydroMethod"] in [0,1]:
+    else:
         if data.pf["DualEnergyFormalism"]:
             return data["Gas_Energy"]
         else:
@@ -612,14 +612,14 @@ add_field("AveragedDensity", validators=[ValidateSpatial(1)])
 
 def _DivV(field, data):
     # We need to set up stencils
-    if data.pf["HydroMethod"] in [0,1]:
-        sl_left = slice(None,-2,None)
-        sl_right = slice(2,None,None)
-        div_fac = 2.0
-    elif data.pf["HydroMethod"] == 2:
+    if data.pf["HydroMethod"] == 2:
         sl_left = slice(None,-2,None)
         sl_right = slice(1,-1,None)
         div_fac = 1.0
+    else:
+        sl_left = slice(None,-2,None)
+        sl_right = slice(2,None,None)
+        div_fac = 2.0
     div_x = (data["x-velocity"][sl_right,1:-1,1:-1] -
              data["x-velocity"][sl_left,1:-1,1:-1]) \
           / (div_fac*data["dx"].flat[0])
