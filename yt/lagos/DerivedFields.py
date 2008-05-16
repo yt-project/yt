@@ -342,7 +342,8 @@ for pf in ["index", "type", "mass"] + \
 for pf in ["creation_time", "dynamical_time", "metallicity_fraction"]:
     pfunc = particle_func(pf)
     add_field(pf, function=pfunc,
-              validators = [ValidateSpatial(0)],
+              validators = [ValidateSpatial(0),
+                            ValidateDataField(pf)],
               particle_type=True)
 add_field("particle mass", function=particle_func("particle_mass"),
           validators=[ValidateSpatial(0)], particle_type=True)
