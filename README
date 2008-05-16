@@ -1,28 +1,21 @@
-Hi there.  This is the README file for yt, which is a set of Enzo management
-tools.
+Hi there!  You've just downloaded yt, an analysis tool for 3D Enzo adaptive
+mesh refinement datasets.  It's written in python and based on the NumPy and
+Matplotlib components.
 
-    yt          -- This base module is always imported, and includes the
-                   global configuration for the yt modules.  Additionally,
-                   it deals with access to the dependencies that underlie
-                   all of the packages, and the logging module.
-    enki        -- Here we initiate new runs; enki creates parameter files,
-                   manages initial conditions, and handles enzo source code.
-    fido        -- Data movement and automated plotting taes place here.  All
-                   file handling takes place through fido.  It remains mostly
-                   independent of the other modules, so as to be as lightweight
-                   as possible.
-    lagos       -- This is the heart of our Enzo handling.  All Enzo data
-                   structures are kept and defined here.  All data handling
-                   takes place through lagos.
-    raven       -- This is the plotter, which currently has interfaces to
-                   HippoDraw and Matplotlib.  The MPL interface is less mature,
-                   but in more active development, and is able to be embedded
-                   within the SAGE (www.sagemath.org) project.
-    deliverator -- These classes and routines deal with interaction with The
-                   Deliverator.  (Eventually the deliverator ittself will be
-                   checked into SVN, although in a different repository.)
+Full documentation is available at doc/build/html/index.html , as well as
+online at http://yt.spacepope.org/ .  For a quick start, assuming you have both
+matplotlib and numpy installed, just set your HDF5 install location:
 
-Please feel free to help out.  The Trac site at http://yt.spacepope.org/ has
-mechanisms for ticket submission, as well as an ever-growing Wiki.
+ $ echo /path/to/your/hdf5/root > hdf5.cfg
+
+and then install:
+
+ $ python setup.py install
+
+You might have to use a --prefix= command, however.
+
+Please feel free to help out, and if you make any cool changes or enhancements,
+let me know!  The Trac site at http://yt.spacepope.org/ has mechanisms for
+ticket and problem submission, as well as an ever-growing Wiki.
 
         -- Matthew Turk, mturk@stanford.edu
