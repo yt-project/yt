@@ -195,6 +195,7 @@ class RavenPlot:
 
 class VMPlot(RavenPlot):
     datalabel = None
+    colorbar = None
     def __init__(self, data, field, figure = None, axes = None,
                  use_colorbar = True, size=None):
         fields = ['X', 'Y', field, 'X width', 'Y width']
@@ -216,13 +217,22 @@ class VMPlot(RavenPlot):
         self.__init_temp_image(use_colorbar)
 
     def __setup_from_field(self, field):
-        if field in lagos.log_fields or lagos.fieldInfo[field].take_log:
+        self.set_log_field(field in lagos.log_fields
+                           or lagos.fieldInfo[field].take_log)
+        self.axis_names["Z"] = field
+
+    def set_log_field(self, val):
+        if val:
             self.log_field = True
             self.norm = matplotlib.colors.LogNorm()
+            ttype = matplotlib.ticker.LogFormatter
         else:
             self.log_field = False
             self.norm = matplotlib.colors.Normalize()
-        self.axis_names["Z"] = field
+            ttype = matplotlib.ticker.ScalarFormatter
+        if self.colorbar:
+            self.colorbar.set_norm(self.norm)
+            self.colorbar.formatter = ttype()
 
     def __init_temp_image(self, setup_colorbar):
         temparray = na.ones(self.size)
@@ -288,6 +298,8 @@ class VMPlot(RavenPlot):
         if self.cmap:
             self.image.set_cmap(self.cmap)
         if self.colorbar != None:
+            self.image.set_norm(self.norm)
+            self.colorbar.set_norm(self.norm)
             self.colorbar.notify(self.image)
         self.autoset_label()
 
@@ -342,17 +354,8 @@ class VMPlot(RavenPlot):
         pass
 
     def switch_z(self, field):
-        if field in lagos.log_fields or lagos.fieldInfo[field].take_log:
-            self.log_field = True
-            self.norm = matplotlib.colors.LogNorm()
-            ttype = matplotlib.ticker.LogFormatter
-        else:
-            self.log_field = False
-            self.norm = matplotlib.colors.Normalize()
-            ttype = matplotlib.ticker.ScalarFormatter
-        if self.colorbar:
-            self.colorbar.set_norm(self.norm)
-            self.colorbar.formatter = ttype()
+        self.set_log_field(field in lagos.log_fields
+                           or lagos.fieldInfo[field].take_log)
         self.axis_names["Z"] = field
         self._redraw_image()
 
@@ -496,6 +499,12 @@ class PhasePlot(RavenPlot):
     def switch_weight(self, weight):
         if weight == "": weight=None
         self.weight = weight
+
+    def set_zlim(self, zmin, zmax):
+        self.norm.autoscale(na.array([zmin,zmax]))
+        self.image.changed()
+        if self.colorbar != None:
+            self.colorbar.notify(self.image)
 
     def _redraw_image(self):
         l, b, width, height = self._axes.bbox.get_bounds()

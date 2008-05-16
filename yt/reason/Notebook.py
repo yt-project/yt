@@ -245,7 +245,8 @@ class PlotPage(wx.Panel):
 
     def ChangeLimits(self, zmin, zmax):
         self.plot.set_zlim(zmin,zmax)
-        self.UpdateCanvas()
+        self.figure_canvas.draw()
+        # We don't call update canvas
 
     def ChangeColorMapFromMessage(self, message):
         cmap = message.data
@@ -255,6 +256,7 @@ class PlotPage(wx.Panel):
     def ChangeLimitsFromMessage(self, message):
         zmin, zmax = message.data
         self.ChangeLimits(zmin,zmax)
+        self.UpdateCanvas()
 
     def ChangeFieldFromMessage(self, message):
         pass
@@ -348,12 +350,15 @@ class VMPlotPage(PlotPage):
         velocities = self.popupmenu.AppendCheckItem(-1, "Show Velocities")
         velocities.Check(False)
         self.popupmenu.AppendSeparator()
+        self.take_log_menu = self.popupmenu.AppendCheckItem(-1, "Take Log")
+        self.take_log_menu.Check(self.plot.log_field)
         fullDomain = self.popupmenu.Append(-1, "Zoom Top")
 
         self.Bind(wx.EVT_MENU, self.OnCenterOnMax, centerOnMax)
         self.Bind(wx.EVT_MENU, self.OnCenterHere, centerHere)
         self.Bind(wx.EVT_MENU, self.show_grid_boundaries, gridBoundaries)
         self.Bind(wx.EVT_MENU, self.show_velocities, velocities)
+        self.Bind(wx.EVT_MENU, self.take_log, self.take_log_menu)
         self.Bind(wx.EVT_MENU, self.fulldomain, fullDomain)
 
     def SetupFigure(self):
@@ -586,6 +591,10 @@ class VMPlotPage(PlotPage):
     def GetDataValue(self, x, y):
         return self.plot.image._A[int(y), int(x)]
 
+    def take_log(self, event):
+        self.plot.set_log_field(self.take_log_menu.IsChecked())
+        self.UpdateCanvas()
+
     def fulldomain(self, *args):
         self.ChangeWidth(1,'1')
         Publisher().sendMessage(('viewchange','width'), (1,'1'))
@@ -602,6 +611,7 @@ class VMPlotPage(PlotPage):
     def ChangeField(self, field):
         self.plot.switch_z(field)
         self.UpdateCanvas()
+        self.take_log_menu.Check(self.plot.log_field)
 
     def switch_field(self, event):
         field = event.GetString()
@@ -769,6 +779,16 @@ class PhasePlotPage(PlotPage):
             self.plot._redraw_image()
             self.figure_canvas.draw()
         #else: print "Opting not to update canvas"
+
+    def ChangeLimitsFromMessage(self, message):
+        zmin, zmax = message.data
+        self.ChangeLimits(zmin,zmax)
+
+    def ChangeLimits(self, zmin, zmax):
+        print "Change Limits"
+        self.plot.set_zlim(zmin,zmax)
+        self.figure_canvas.draw()
+        # We don't call update canvas
 
 if __name__ == "__main__":
     app = ReasonApp(0)
