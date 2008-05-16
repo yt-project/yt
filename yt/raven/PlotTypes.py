@@ -428,6 +428,7 @@ class CuttingPlanePlot(SlicePlot):
         r_edge_y = +width_y/2.0
         self.set_xlim(l_edge_x, r_edge_x) # We have no real limits
         self.set_ylim(l_edge_y, r_edge_y) # At some point, perhaps calculate them?
+        self._redraw_image()
 
 class PhasePlot(RavenPlot):
     def __init__(self, data, fields, width=None, unit=None, bins=100,
@@ -805,11 +806,11 @@ def gridBoundaryCallback(alpha=1.0, min_pix = 1):
         left_edge_py = (GLE[:,py_index]-y0)*dy
         right_edge_px = (GRE[:,px_index]-x0)*dx
         right_edge_py = (GRE[:,py_index]-y0)*dy
-        verts = na.array( 
+        verts = na.array(
                 [(left_edge_px, left_edge_px, right_edge_px, right_edge_px),
                  (left_edge_py, right_edge_py, right_edge_py, left_edge_py)])
         visible =  ( right_edge_px - left_edge_px > min_pix ) & \
-                   ( right_edge_px - left_edge_px > min_pix ) 
+                   ( right_edge_px - left_edge_px > min_pix )
         verts=verts.transpose()[visible,:,:]
         edgecolors = (0.0,0.0,0.0,alpha)
         grid_collection = matplotlib.collections.PolyCollection(
@@ -853,7 +854,7 @@ def unitBoundaryCallback(unit = "au", factor=4, text_annotate=True, text_which=-
         left_edge_py = (center[yi] - widths/2.0 - y0)*dy
         right_edge_px = (center[xi] + widths/2.0 - x0)*dx
         right_edge_py = (center[yi] + widths/2.0 - y0)*dy
-        verts = na.array( 
+        verts = na.array(
                 [(left_edge_px, left_edge_px, right_edge_px, right_edge_px),
                  (left_edge_py, right_edge_py, right_edge_py, left_edge_py)])
         visible =  ( right_edge_px - left_edge_px > 25 ) & \

@@ -343,10 +343,17 @@ class VMPlotPage(PlotPage):
         centerOnMax = self.popupmenu.Append(-1, "Center on max")
         centerHere = self.popupmenu.Append(-1, "Center here")
         self.popupmenu.AppendSeparator()
+        gridBoundaries = self.popupmenu.AppendCheckItem(-1, "Show Grid Boundaries")
+        gridBoundaries.Check(False)
+        velocities = self.popupmenu.AppendCheckItem(-1, "Show Velocities")
+        velocities.Check(False)
+        self.popupmenu.AppendSeparator()
         fullDomain = self.popupmenu.Append(-1, "Zoom Top")
 
         self.Bind(wx.EVT_MENU, self.OnCenterOnMax, centerOnMax)
         self.Bind(wx.EVT_MENU, self.OnCenterHere, centerHere)
+        self.Bind(wx.EVT_MENU, self.show_grid_boundaries, gridBoundaries)
+        self.Bind(wx.EVT_MENU, self.show_velocities, velocities)
         self.Bind(wx.EVT_MENU, self.fulldomain, fullDomain)
 
     def SetupFigure(self):
@@ -416,6 +423,26 @@ class VMPlotPage(PlotPage):
         v, c = self.outputfile.h.findMax("Density")
         Publisher().sendMessage(('viewchange','center'), c)
         self.UpdateWidth()
+
+    _grid_boundaries_cbid = None
+    def show_grid_boundaries(self, event):
+        if self._grid_boundaries_cbid is not None:
+            self.plot.remove_callback(self._grid_boundaries_cbid)
+            self._grid_boundaries_cbid = None
+        else:
+            self._grid_boundaries_cbid = \
+                self.plot.add_callback(raven.be.gridBoundaryCallback())
+
+    _velocities_cbid = None
+    def show_velocities(self, event):
+        if self._velocities_cbid is not None:
+            self.plot.remove_callback(self._velocities_cbid)
+            self._velocities_cbid = None
+        else:
+            xv = "%s-velocity" % (lagos.axis_names[lagos.x_dict[self.axis]])
+            yv = "%s-velocity" % (lagos.axis_names[lagos.y_dict[self.axis]])
+            self._velocities_cbid = \
+                self.plot.add_callback(raven.be.quiverCallback(xv,yv,self.axis,20))
 
     def OnCenterHere(self, event):
         xp, yp = self.ContextMenuPosition
