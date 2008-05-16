@@ -621,11 +621,11 @@ class SlicePlotPage(VMPlotPage):
         self.plot = be.SlicePlot(self.data, self.field, figure=self.figure, axes=self.axes)
 
     def QueryFields(self):
-        nativeFields = self.outputfile.hierarchy.field_list
-        nativeFields.sort()
-        derivedFields = lagos.fieldInfo.keys()
-        derivedFields.sort()
-        return nativeFields + [""] + derivedFields
+        fields = []
+        for f in self.outputfile.hierarchy.derived_field_list:
+            if f in lagos.fieldInfo and lagos.fieldInfo[f].particle_type: continue
+            fields.append(f)
+        return sorted(fields)
 
 class ProjPlotPage(VMPlotPage):
     def makePlot(self):

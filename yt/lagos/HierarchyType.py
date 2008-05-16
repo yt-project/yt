@@ -326,7 +326,7 @@ class EnzoHierarchy:
         mylog.info("Caching hierarchy information")
         allArrays = na.zeros((self.num_grids,18),'float64')
         allArrays[:,0:3] = self.gridDimensions[:]
-        allArrays[:,3:6] = self.gridStartIndices[:]  
+        allArrays[:,3:6] = self.gridStartIndices[:]
         allArrays[:,6:9] = self.gridEndIndices[:]
         allArrays[:,9:12] = self.gridLeftEdge[:]
         allArrays[:,12:15] = self.gridRightEdge[:]
@@ -410,21 +410,7 @@ class EnzoHierarchy:
             grid._prepare_grid()
         self.__setup_grid_dxs()
         mylog.debug("Prepared")
-        field_list = self.get_data("/", "DataFields")
-        if field_list == None:
-            mylog.info("Gathering a field list (this may take a moment.)")
-            field_list = sets.Set()
-            if self.num_grids > 40:
-                starter = na.random.randint(0, 20)
-                random_sample = na.mgrid[starter:len(self.grids)-1:20j].astype("int32")
-                mylog.debug("Checking grids: %s", random_sample.tolist())
-            else:
-                random_sample = na.mgrid[0:max(len(self.grids)-1,1)].astype("int32")
-            for grid in self.grids[(random_sample,)]:
-                gf = grid.getFields()
-                mylog.debug("Grid %s has: %s", grid.id, gf)
-                field_list = field_list.union(sets.Set(gf))
-        self.field_list = list(field_list)
+        self.__setup_field_lists()
         self.levelIndices = {}
         self.levelNum = {}
         ad = self.gridEndIndices - self.gridStartIndices + 1
@@ -474,6 +460,33 @@ class EnzoHierarchy:
                     if pbar: pbar.update(i)
                     if grid.Parent: grid._guess_properties_from_parent()
                 if pbar: pbar.finish()
+
+    def __setup_field_lists(self):
+        field_list = self.get_data("/", "DataFields")
+        if field_list == None:
+            mylog.info("Gathering a field list (this may take a moment.)")
+            field_list = sets.Set()
+            if self.num_grids > 40:
+                starter = na.random.randint(0, 20)
+                random_sample = na.mgrid[starter:len(self.grids)-1:20j].astype("int32")
+                mylog.debug("Checking grids: %s", random_sample.tolist())
+            else:
+                random_sample = na.mgrid[0:max(len(self.grids)-1,1)].astype("int32")
+            for grid in self.grids[(random_sample,)]:
+                gf = grid.getFields()
+                mylog.debug("Grid %s has: %s", grid.id, gf)
+                field_list = field_list.union(sets.Set(gf))
+        self.field_list = list(field_list)
+        self.derived_field_list = []
+        for field in fieldInfo:
+            fd = fieldInfo[field].get_dependencies(pf = self.parameter_file)
+            available = na.all([f in self.field_list for f in fd.requested])
+            if available: self.derived_field_list.append(field)
+        for field in self.field_list:
+            if field not in self.derived_field_list:
+                self.derived_field_list.append(field)
+
+
 
     def __select_level(self, level):
         # We return a numarray of the indices of all the grids on a given level
@@ -654,7 +667,7 @@ class EnzoHierarchy:
     def export_particles_pb(self, filename, filter = 1, indexboundary = 0, fields = None, scale=1.0):
         """
         Exports all the star particles, or a subset, to pb-format *filename*
-        for viewing in partiview.  Filters based on particle_type=*filter*, 
+        for viewing in partiview.  Filters based on particle_type=*filter*,
         particle_index>=*indexboundary*, and exports *fields*, if supplied.
         Otherwise, index, position(x,y,z).  Optionally *scale* by a given
         factor before outputting.
