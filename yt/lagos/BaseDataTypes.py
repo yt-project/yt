@@ -554,8 +554,7 @@ class EnzoSliceBase(Enzo2DData):
             dv = grid[field]
             if dv.size == 1: dv = na.ones(grid.ActiveDimensions)*dv
             dv = dv[sl]
-        cm = na.where(grid.child_mask[sl].ravel() == 1)
-        dataVals = dv.ravel()[cm]
+        dataVals = dv.ravel()[grid.child_mask[sl].ravel() == 1]
         return dataVals
 
 class EnzoCuttingPlaneBase(Enzo2DData):

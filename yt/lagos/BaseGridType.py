@@ -427,15 +427,12 @@ class EnzoGridBase(EnzoData):
         self.__child_mask = na.ones(self.ActiveDimensions, 'int32')
         for child in self.Children:
             # Now let's get our overlap
-            si = [None]*3
-            ei = [None]*3
             startIndex = na.rint((child.LeftEdge - self.LeftEdge)/self.dx)
             endIndex = na.rint((child.RightEdge - self.LeftEdge)/self.dx)
-            for i in xrange(3):
-                si[i] = startIndex[i]
-                ei[i] = endIndex[i]
-            self.__child_mask[si[0]:ei[0], si[1]:ei[1], si[2]:ei[2]] = 0
-        self.__child_indices = na.where(self.__child_mask==0)
+            self.__child_mask[startIndex[0]:endIndex[0],
+                              startIndex[1]:endIndex[1],
+                              startIndex[2]:endIndex[2]] = 0
+        self.__child_indices = (self.__child_mask==0)
 
     def _get_coords(self):
         if self.__coords == None: self._generate_coords()
