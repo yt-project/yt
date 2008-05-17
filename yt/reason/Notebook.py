@@ -316,7 +316,6 @@ class PlotPage(wx.Panel):
 
     def SetupFigure(self):
         self.makePlot()
-
         be.Initialize(canvas=FigureCanvas)
         self.figure_canvas = be.engineVals["canvas"](self, -1, self.figure)
         self.figure_canvas.mpl_connect('motion_notify_event', self.UpdateStatusBar)
@@ -687,18 +686,38 @@ class PhasePlotPage(PlotPage):
         self.MainSizer.Add(self.ButtonPanel, 0, wx.EXPAND)
 
         self.ButtonSizer = wx.BoxSizer(wx.HORIZONTAL)
+        self.XSizer = wx.BoxSizer(wx.VERTICAL)
+        self.YSizer = wx.BoxSizer(wx.VERTICAL)
+        self.ZSizer = wx.BoxSizer(wx.VERTICAL)
+        self.WSizer = wx.BoxSizer(wx.VERTICAL)
+
+
         self.ButtonSizer.AddSpacer(10)
-        self.ButtonSizer.Add(self.FieldX, 1, wx.EXPAND)
+
+        self.ButtonSizer.Add(self.XSizer, 1, wx.EXPAND)
+        self.XSizer.Add(wx.StaticText(self.ButtonPanel, -1, "X Field"), 1, wx.EXPAND)
+        self.XSizer.Add(self.FieldX, 1, wx.EXPAND)
         self.ButtonSizer.AddSpacer(20)
-        self.ButtonSizer.Add(self.FieldY, 1, wx.EXPAND)
+
+        self.ButtonSizer.Add(self.YSizer, 1, wx.EXPAND)
+        self.YSizer.Add(wx.StaticText(self.ButtonPanel, -1, "Y Field"), 1, wx.EXPAND)
+        self.YSizer.Add(self.FieldY, 1, wx.EXPAND)
         self.ButtonSizer.AddSpacer(20)
-        self.ButtonSizer.Add(self.FieldZ, 1, wx.EXPAND)
+
+        self.ButtonSizer.Add(self.ZSizer, 1, wx.EXPAND)
+        self.ZSizer.Add(wx.StaticText(self.ButtonPanel, -1, "Z Field"), 1, wx.EXPAND)
+        self.ZSizer.Add(self.FieldZ, 1, wx.EXPAND)
         self.ButtonSizer.AddSpacer(20)
-        self.ButtonSizer.Add(self.FieldW, 1, wx.EXPAND)
+
+        self.ButtonSizer.Add(self.WSizer, 1, wx.EXPAND)
+        self.WSizer.Add(wx.StaticText(self.ButtonPanel, -1, "Weight"), 1, wx.EXPAND)
+        self.WSizer.Add(self.FieldW, 1, wx.EXPAND)
+
         self.ButtonSizer.AddSpacer(10)
         self.ButtonSizer.Add(self.FirePlot, 1, wx.EXPAND)
         self.ButtonSizer.AddSpacer(10)
         self.ButtonPanel.SetSizer(self.ButtonSizer)
+        self.ButtonPanel.Layout()
 
         self.SetSizer(self.MainSizer)
         self.Layout()
