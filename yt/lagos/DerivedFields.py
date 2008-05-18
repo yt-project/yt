@@ -130,7 +130,6 @@ class DerivedField:
                  units = "", projected_units = "",
                  take_log = True, validators = None,
                  particle_type = False, vector_field=False,
-                 line_integral = True,
                  projection_conversion = "cm"):
         self.name = name
         self._function = function
@@ -146,7 +145,6 @@ class DerivedField:
         self._convert_function = convert_function
         self.particle_type = particle_type
         self.vector_field = vector_field
-        self.line_integral = line_integral
         self.projection_conversion = projection_conversion
     def check_available(self, data):
         for validator in self.validators:
@@ -773,11 +771,8 @@ for field in _enzo_fields:
     add_field(field, function=lambda a, b: None, take_log=True,
               validators=[ValidateDataField(field)], units=r"\rm{g}/\rm{cm}^3")
 fieldInfo["x-velocity"].projection_conversion='1'
-fieldInfo["x-velocity"].line_integral = False
 fieldInfo["y-velocity"].projection_conversion='1'
-fieldInfo["y-velocity"].line_integral = False
 fieldInfo["z-velocity"].projection_conversion='1'
-fieldInfo["z-velocity"].line_integral = False
 
 # Now we override
 

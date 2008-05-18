@@ -759,15 +759,14 @@ class EnzoProjBase(Enzo2DData):
         return True
 
     def __get_dls(self, grid, fields):
+        # Place holder for a time when maybe we will not be doing just
+        # a single dx for every field.
         dls = []
         convs = []
-        for fi, field in enumerate(fields):
-            if field in fieldInfo and not fieldInfo[field].line_integral:
-                dls.append(1.0)
-                convs.append(1.0)
-            else:
-                dls.append(just_one(grid['d%s' % axis_names[self.axis]]))
-                convs.append(self.pf.units[fieldInfo[field].projection_conversion])
+        for field in fields + [self._weight]:
+            if field is None: continue
+            dls.append(just_one(grid['d%s' % axis_names[self.axis]]))
+            convs.append(self.pf.units[fieldInfo[field].projection_conversion])
         return na.array(dls), na.array(convs)
 
     def __project_level(self, level, fields):
@@ -780,8 +779,8 @@ class EnzoProjBase(Enzo2DData):
             g_coords, g_fields = self._project_grid(grid, fields, zero_out)
             self.__retval_coords[grid.id] = g_coords
             self.__retval_fields[grid.id] = g_fields
-            if self._weight is None:
-                for fi in range(len(fields)): g_fields[fi] *= dls[fi]
+            for fi in range(len(fields)): g_fields[fi] *= dls[fi]
+            if self._weight is not None: g_coords[3] *= dls[-1]
             pbar.update(pi)
         pbar.finish()
         self.__combine_grids_on_level(level) # In-place
