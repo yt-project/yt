@@ -95,7 +95,8 @@ class TestHierarchy(LagosTestingBase, unittest.TestCase):
 
     def testProjectionMakingMultipleFields(self):
         p = self.hierarchy.proj(0,["Density","Temperature","Ones"],weight_field="Ones") # Unweighted
-        self.assertEqual(len(p.data.keys()), 7)
+        # One for each field, pdx, pdy, px, py, and one for the weight
+        self.assertEqual(len(p.data.keys()), 8)
 
     def testProjectionMaking(self):
         p = self.hierarchy.proj(0,"Density") # Unweighted
