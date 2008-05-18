@@ -758,21 +758,30 @@ class EnzoProjBase(Enzo2DData):
         self[self.fields[0]] = array[4,:]
         return True
 
+    def __get_dls(self, grid, fields):
+        dls = []
+        convs = []
+        for fi, field in enumerate(fields):
+            if field in fieldInfo and not fieldInfo[field].line_integral:
+                dls.append(1.0)
+                convs.append(1.0)
+            else:
+                dls.append(just_one(grid['d%s' % axis_names[self.axis]]))
+                convs.append(self.pf.units[fieldInfo[field].projection_conversion])
+        return na.array(dls), na.array(convs)
+
     def __project_level(self, level, fields):
         grids_to_project = self.source.select_grids(level)
+        dls, convs = self.__get_dls(grids_to_project[0], fields)
         zero_out = (level != self._max_level)
         pbar = get_pbar('Projecting  level % 2i / % 2i ' \
                           % (level, self._max_level), len(grids_to_project))
         for pi, grid in enumerate(grids_to_project):
             g_coords, g_fields = self._project_grid(grid, fields, zero_out)
-            for fi, field in enumerate(fields):
-                dl = 1.0
-                if field in fieldInfo and fieldInfo[field].line_integral:
-                    dl = just_one(grid['d%s' % axis_names[self.axis]])
-                    dl *= self.pf.units[fieldInfo[field].projection_conversion]
-                g_fields[fi] *= dl
             self.__retval_coords[grid.id] = g_coords
             self.__retval_fields[grid.id] = g_fields
+            if self._weight is None:
+                for fi in range(len(fields)): g_fields[fi] *= dls[fi]
             pbar.update(pi)
         pbar.finish()
         self.__combine_grids_on_level(level) # In-place
@@ -789,8 +798,10 @@ class EnzoProjBase(Enzo2DData):
             self.__retval_fields[grid.id] = [pi[coarse] for pi in self.__retval_fields[grid.id]]
         coord_data = na.concatenate(coord_data, axis=1)
         field_data = na.concatenate(field_data, axis=1)
-        if self._weight != None:
+        if self._weight is not None:
             field_data = field_data / coord_data[3,:].reshape((1,coord_data.shape[1]))
+        else:
+            field_data *= convs
         mylog.info("Level %s done: %s final", \
                    level, coord_data.shape[1])
         dx = grids_to_project[0].dx# * na.ones(coord_data.shape[0], dtype='float64')
@@ -896,20 +907,20 @@ class EnzoProjBase(Enzo2DData):
         self.data['pdy'] = self.data['pdx'].copy()
         for fi, field in enumerate(fields):
             self[field] = field_data[fi,:]
+        self.data['weight_field'] = coord_data[3,:]
 
     def add_fields(self, fields, weight = "CellMassMsun"):
         pass
 
     def _project_grid(self, grid, fields, zero_out):
         if self._weight is None:
-            weight_data = na.ones(grid.ActiveDimensions)
+            weight_data = na.ones(grid.ActiveDimensions, dtype='float64')
         else:
-            weight_data = self._get_data_from_grid(grid, self._weight)
+            weight_data = self._get_data_from_grid(grid, self._weight).astype('float64')
         if zero_out: weight_data[grid.child_indices] = 0
         # if we zero it out here, then we only have to zero out the weight!
         masked_data = [self._get_data_from_grid(grid, field) * weight_data
                        for field in fields]
-        dl = 1.0
         full_proj = [self.func(field,axis=self.axis) for field in masked_data]
         weight_proj = self.func(weight_data,axis=self.axis)
         if self._check_region and not self.source._is_fully_enclosed(grid):

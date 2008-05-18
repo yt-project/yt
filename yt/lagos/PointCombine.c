@@ -66,12 +66,12 @@ Py_CombineGrids(PyObject *obj, PyObject *args)
     /* First the regular source arrays */
 
     grid_src_x    = (PyArrayObject *) PyArray_FromAny(ogrid_src_x,
-                    PyArray_DescrFromType(NPY_INT64), 1, 0,
+                    PyArray_DescrFromType(NPY_INT64), 1, 1,
                     NPY_INOUT_ARRAY | NPY_UPDATEIFCOPY, NULL);
     src_len = PyArray_SIZE(grid_src_x);
 
     grid_src_y    = (PyArrayObject *) PyArray_FromAny(ogrid_src_y,
-                    PyArray_DescrFromType(NPY_INT64), 1, 0,
+                    PyArray_DescrFromType(NPY_INT64), 1, 1,
                     NPY_INOUT_ARRAY | NPY_UPDATEIFCOPY, NULL);
     if(PyArray_SIZE(grid_src_y) != src_len) {
     PyErr_Format(_combineGridsError,
@@ -80,7 +80,7 @@ Py_CombineGrids(PyObject *obj, PyObject *args)
     }
 
     grid_src_mask = (PyArrayObject *) PyArray_FromAny(ogrid_src_mask,
-                    PyArray_DescrFromType(NPY_INT64), 1, 0,
+                    PyArray_DescrFromType(NPY_INT64), 1, 1,
                     NPY_INOUT_ARRAY | NPY_UPDATEIFCOPY, NULL);
     if(PyArray_SIZE(grid_src_mask) != src_len) {
     PyErr_Format(_combineGridsError,
@@ -89,21 +89,21 @@ Py_CombineGrids(PyObject *obj, PyObject *args)
     }
 
     grid_src_wgt  = (PyArrayObject *) PyArray_FromAny(ogrid_src_wgt,
-                    PyArray_DescrFromType(NPY_FLOAT64), 1, 0,
+                    PyArray_DescrFromType(NPY_FLOAT64), 1, 1,
                     NPY_INOUT_ARRAY | NPY_UPDATEIFCOPY, NULL);
-    if(PyArray_SIZE(grid_src_wgt) != src_len) {
+    if((grid_src_wgt == NULL) || (PyArray_SIZE(grid_src_wgt) != src_len)) {
     PyErr_Format(_combineGridsError,
              "CombineGrids: src_x and src_wgt must be the same shape.");
     goto _fail;
     }
 
     grid_dst_x    = (PyArrayObject *) PyArray_FromAny(ogrid_dst_x,
-                    PyArray_DescrFromType(NPY_INT64), 1, 0,
+                    PyArray_DescrFromType(NPY_INT64), 1, 1,
                     NPY_INOUT_ARRAY | NPY_UPDATEIFCOPY, NULL);
     dst_len = PyArray_SIZE(grid_dst_x);
 
     grid_dst_y    = (PyArrayObject *) PyArray_FromAny(ogrid_dst_y,
-                    PyArray_DescrFromType(NPY_INT64), 1, 0,
+                    PyArray_DescrFromType(NPY_INT64), 1, 1,
                     NPY_INOUT_ARRAY | NPY_UPDATEIFCOPY, NULL);
     if(PyArray_SIZE(grid_dst_y) != dst_len) {
     PyErr_Format(_combineGridsError,
@@ -112,7 +112,7 @@ Py_CombineGrids(PyObject *obj, PyObject *args)
     }
 
     grid_dst_mask = (PyArrayObject *) PyArray_FromAny(ogrid_dst_mask,
-                    PyArray_DescrFromType(NPY_INT64), 1, 0,
+                    PyArray_DescrFromType(NPY_INT64), 1, 1,
                     NPY_INOUT_ARRAY | NPY_UPDATEIFCOPY, NULL);
     if(PyArray_SIZE(grid_dst_mask) != dst_len) {
     PyErr_Format(_combineGridsError,
@@ -121,9 +121,9 @@ Py_CombineGrids(PyObject *obj, PyObject *args)
     }
 
     grid_dst_wgt  = (PyArrayObject *) PyArray_FromAny(ogrid_dst_wgt,
-                    PyArray_DescrFromType(NPY_FLOAT64), 1, 0,
+                    PyArray_DescrFromType(NPY_FLOAT64), 1, 1,
                     NPY_INOUT_ARRAY | NPY_UPDATEIFCOPY, NULL);
-    if(PyArray_SIZE(grid_dst_wgt) != dst_len) {
+    if((grid_dst_wgt == NULL) || (PyArray_SIZE(grid_dst_wgt) != dst_len)) {
     PyErr_Format(_combineGridsError,
              "CombineGrids: dst_x and dst_wgt must be the same shape.");
     goto _fail;
@@ -154,7 +154,7 @@ Py_CombineGrids(PyObject *obj, PyObject *args)
           temp_object,
           PyArray_DescrFromType(NPY_FLOAT64), 1, 0,
           NPY_INOUT_ARRAY | NPY_UPDATEIFCOPY, NULL);
-      src_vals[i] = (npy_float64 *) grid_src_vals[i]->data;
+      src_vals[i] = (npy_float64 *) PyArray_GETPTR1(grid_src_vals[i],0);
       Py_DECREF(temp_object);
 
       temp_object = PySequence_GetItem(ogrid_dst_vals, i);
@@ -162,21 +162,21 @@ Py_CombineGrids(PyObject *obj, PyObject *args)
           temp_object,
           PyArray_DescrFromType(NPY_FLOAT64), 1, 0,
           NPY_INOUT_ARRAY | NPY_UPDATEIFCOPY, NULL);
-      dst_vals[i] = (npy_float64 *) grid_dst_vals[i]->data;
+      dst_vals[i] = (npy_float64 *) PyArray_GETPTR1(grid_dst_vals[i],0);
       Py_DECREF(temp_object);
     }
 
     /* Now we're all set to call our sub-function. */
 
-    npy_int64     *src_x    = (npy_int64 *) grid_src_x->data;
-    npy_int64     *src_y    = (npy_int64 *) grid_src_y->data;
-    npy_float64 *src_wgt  = (npy_float64 *) grid_src_wgt->data;
-    npy_int64     *src_mask = (npy_int64 *) grid_src_mask->data;
+    npy_int64     *src_x    = (npy_int64 *) PyArray_GETPTR1(grid_src_x,0);
+    npy_int64     *src_y    = (npy_int64 *) PyArray_GETPTR1(grid_src_y,0);
+    npy_float64 *src_wgt  = (npy_float64 *) PyArray_GETPTR1(grid_src_wgt,0);
+    npy_int64     *src_mask = (npy_int64 *) PyArray_GETPTR1(grid_src_mask,0);
 
-    npy_int64     *dst_x    = (npy_int64 *) grid_dst_x->data;
-    npy_int64     *dst_y    = (npy_int64 *) grid_dst_y->data;
-    npy_float64 *dst_wgt  = (npy_float64 *) grid_dst_wgt->data;
-    npy_int64     *dst_mask = (npy_int64 *) grid_dst_mask->data;
+    npy_int64     *dst_x    = (npy_int64 *) PyArray_GETPTR1(grid_dst_x,0);
+    npy_int64     *dst_y    = (npy_int64 *) PyArray_GETPTR1(grid_dst_y,0);
+    npy_float64 *dst_wgt  = (npy_float64 *) PyArray_GETPTR1(grid_dst_wgt,0);
+    npy_int64     *dst_mask = (npy_int64 *) PyArray_GETPTR1(grid_dst_mask,0);
 
     int si, di, x_off, y_off;
     npy_int64  fine_x, fine_y, init_x, init_y;
@@ -195,12 +195,12 @@ Py_CombineGrids(PyObject *obj, PyObject *args)
             if ((fine_x == dst_x[di]) &&
                 (fine_y == dst_y[di])) {
               num_found++;
-              dst_wgt[di] += src_wgt[di];
+              dst_wgt[di] += src_wgt[si];
               dst_mask[di] = ((src_mask[si] && dst_mask[di]) ||
                   ((refinement_factor != 1) && (dst_mask[di])));
               // So if they are on the same level, then take the logical and
               // otherwise, set it to the destination mask
-              src_x[si] = -1;
+              src_x[si] = -2;
               for (i = 0; i < NumArrays; i++) {
                 dst_vals[i][di] += src_vals[i][si];
               }
