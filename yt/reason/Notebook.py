@@ -323,9 +323,11 @@ class PlotPage(wx.Panel):
         self.figure_canvas.Bind(wx.EVT_CONTEXT_MENU, self.OnShowContextMenu)
 
 class VMPlotPage(PlotPage):
-    def __init__(self, parent, status_bar, outputfile, axis, field="Density", mw=None, CreationID = -1):
+    def __init__(self, parent, status_bar, outputfile, axis, field="Density",
+                 weight_field = None, mw=None, CreationID = -1):
         self.outputfile = outputfile
         self.field = field
+        self.weight_field = weight_field
         self.axis = axis
         self.center = [0.5, 0.5, 0.5]
         self.AmDrawingCircle = False
@@ -623,23 +625,19 @@ class VMPlotPage(PlotPage):
             self.figure_canvas.draw()
         #else: print "Opting not to update canvas"
 
+    def QueryFields(self):
+        return QueryFields(self.outputfile)
+
 class SlicePlotPage(VMPlotPage):
     def makePlot(self):
         self.data = self.outputfile.hierarchy.slice(self.axis,
                                     self.center[self.axis], self.field, self.center)
         self.plot = be.SlicePlot(self.data, self.field, figure=self.figure, axes=self.axes)
 
-    def QueryFields(self):
-        fields = []
-        for f in self.outputfile.hierarchy.derived_field_list:
-            if f in lagos.fieldInfo and lagos.fieldInfo[f].particle_type: continue
-            fields.append(f)
-        return sorted(fields)
-
 class ProjPlotPage(VMPlotPage):
     def makePlot(self):
         self.data = self.outputfile.hierarchy.proj(self.axis,
-                                   self.field, weight_field=None,
+                                   self.field, weight_field=self.weight_field,
                                    center=self.center)
         self.plot = be.ProjectionPlot(self.data, self.field, figure=self.figure,
                                       axes=self.axes)
@@ -655,15 +653,24 @@ class ProjPlotPage(VMPlotPage):
     def QueryFields(self):
         return [self.field]
 
-class PhasePlotPage(PlotPage):
-    def __init__(self, parent, status_bar, dataObject, mw=None, CreationID = -1):
-        self.dataObject = dataObject
+class NewPhasePlotPage(PlotPage):
+    def __init__(self, parent, status_bar, data_object, mw=None, CreationID = -1):
+        self.data_object = data_object
 
         PlotPage.__init__(self, parent, status_bar, mw, CreationID)
 
     def SetupControls(self):
         self.ButtonPanel = wx.Panel(self, -1)
-        fs = self.GetFieldSelectors()
+
+class PhasePlotPage(PlotPage):
+    def __init__(self, parent, status_bar, data_object, mw=None, CreationID = -1):
+        self.data_object = data_object
+
+        PlotPage.__init__(self, parent, status_bar, mw, CreationID)
+
+    def SetupControls(self):
+        self.ButtonPanel = wx.Panel(self, -1)
+        fs = self.QueryFields()
         self.FieldX = wx.Choice(self.ButtonPanel, -1, choices=fs, name="X")
         self.FieldX.SetSelection(0)
         self.FieldY = wx.Choice(self.ButtonPanel, -1, choices=fs, name="Y")
@@ -722,14 +729,9 @@ class PhasePlotPage(PlotPage):
         self.SetSizer(self.MainSizer)
         self.Layout()
 
-    def QueryFields(self, *args, **kwargs):
-        return None
 
-    def GetFieldSelectors(self):
-        nativeFields = sorted(self.dataObject.hierarchy.field_list)
-        derivedFields = sorted([fk for fk in lagos.fieldInfo
-                                if not lagos.fieldInfo[fk].particle_type])
-        return nativeFields + [""] + derivedFields
+    def QueryFields(self):
+        return QueryFields(self.data_object)
 
     def makePlot(self, event=None):
         pass
@@ -749,7 +751,7 @@ class PhasePlotPage(PlotPage):
         Z = self.FieldZ.GetStringSelection()
         W = self.FieldW.GetStringSelection()
         if len(W) == 0: W=None
-        self.plot = be.PhasePlot(self.dataObject, [X,Y,Z], weight = W,
+        self.plot = be.PhasePlot(self.data_object, [X,Y,Z], weight = W,
                                  figure = self.figure, axes = self.axes)
         self.UpdateCanvas()
 

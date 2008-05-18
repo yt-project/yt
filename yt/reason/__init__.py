@@ -56,6 +56,7 @@ import matplotlib.backends.backend_wx as be_wx
 import matplotlib.figure
 
 from LoggingSetup import *
+from Functions import *
 from Windows import *
 from Notebook import *
 from App import *

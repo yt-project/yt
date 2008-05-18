@@ -266,71 +266,74 @@ class ReasonMainWindow(wx.Frame):
 
     def _add_phase(self, event=None):
         MyID = wx.NewId()
-#        self.interpreter.shell.writeOut("\n")
-        o = self.get_output()
+        data_object = self.get_output()
         t = "Phase Plot"
         self.windows.append( \
             PhasePlotPage(parent=self.plot_panel.nb,
                           status_bar=self.status_bar,
-                          dataObject = o,
+                          data_object = data_object,
                           CreationID = MyID,
                           mw = self))
-#        self.interpreter.shell.writeOut("Adding phase plot\n")
         self.plot_panel.AddPlot(self.windows[-1], t, MyID)
         mylog.debug("Adding with ID: %s", MyID)
-#        self.interpreter.shell.push("\n")
 
     def _add_proj(self, event=None):
         MyID = wx.NewId()
-#        self.interpreter.shell.writeOut("\n")
-        o = self.get_output()
-        field = "Density"
+        data_object = self.get_output()
         width = 1.0
         unit = "1"
-        for i, ax in zip(range(3), 'xyz'):
-            t = "%s - Projection - %s" % (o.basename, ax)
-#            self.interpreter.shell.writeOut("Adding %s projection of %s\n" % (ax, o))
+        proj_setup = ProjectionSetup(data_object, self)
+        if not proj_setup.ShowModal() == wx.ID_OK:
+            proj_setup.Destroy()
+            return
+        field = proj_setup.field.GetStringSelection()
+        weight_field = proj_setup.weight_field.GetStringSelection()
+        if weight_field == "": weight_field = None
+        axes = []
+        for i, ax in enumerate('xyz'):
+            if not getattr(proj_setup,'%s_ax' % ax).GetValue(): continue
+            t = "%s - Projection - %s" % (data_object.basename, ax)
+            mylog.info("Adding %s projection of %s\n" % (ax, data_object))
             self.windows.append( \
                 ProjPlotPage(parent=self.plot_panel.nb,
                               status_bar=self.status_bar,
-                              outputfile = o,
+                              outputfile = data_object,
                               axis=i,
                               field = field,
+                              weight_field = weight_field,
                               mw = self, CreationID=MyID))
             self.plot_panel.AddPlot(self.windows[-1], t, MyID)
-            self._add_data_object("Proj: %s %s" % (o, ax),
+            wx.SafeYield(onlyIfNeeded = True)
+            self._add_data_object("Proj: %s %s" % (data_object, ax),
                                self.windows[-1].plot.data,
                                _ProjObjectMenuItems)
             print "Adding with ID:", MyID
         for w in self.windows[-3:]: w.ChangeWidth(1,'1')
-#        self.interpreter.shell.push("\n")
+        proj_setup.Destroy()
 
     def _add_slice(self, event=None):
-        wx.SafeYield()
         MyID = wx.NewId()
-#        self.interpreter.shell.writeOut("\n")
-        o = self.get_output()
+        data_object = self.get_output()
         field = "Density"
         width = 1.0
         unit = "1"
-        for i, ax in zip(range(3), 'xyz'):
-            wx.Yield()
-            t = "%s - Slice - %s" % (o.basename, ax)
-#            self.interpreter.shell.writeOut("Adding %s slice of %s\n" % (ax, o))
+        for i, ax in enumerate('xyz'):
+            t = "%s - Slice - %s" % (data_object.basename, ax)
+            mylog.info("Adding %s projection of %s\n" % (ax, data_object))
             self.windows.append( \
                 SlicePlotPage(parent=self.plot_panel.nb,
                               status_bar=self.status_bar,
-                              outputfile = o,
+                              outputfile = data_object,
                               axis=i,
                               field = field,
                               mw = self, CreationID=MyID))
             self.plot_panel.AddPlot(self.windows[-1], t, MyID)
-            self._add_data_object("Slice: %s %s" % (o, ax),
+            wx.SafeYield(onlyIfNeeded = True)
+            self._add_data_object("Slice: %s %s" % (data_object, ax),
                                self.windows[-1].plot.data,
                                _SliceObjectMenuItems)
             print "Adding with ID:", MyID
         for w in self.windows[-3:]: w.ChangeWidth(1,'1')
-#        self.interpreter.shell.push("\n")
 
     def get_output(self, event=None):
         # Figure out which outputs are selected
@@ -375,6 +378,7 @@ class ReasonMainWindow(wx.Frame):
             print file
             self._add_static_output(file)
             #self.RefreshOutputs()
+            #print ChooseField(self.outputs[-1])
         dialog.Destroy()
 
     def OnOpenEditor(self, event):

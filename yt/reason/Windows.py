@@ -26,38 +26,200 @@ Standalone windows and other bits that don't fit elsewhere.
 
 from yt.reason import *
 
-class ReasonInterpreterPanel(wx.Panel):
-    def __init__(self, parent, id, locals):
-        wx.Panel.__init__(self, parent, id)
-        self.shell = wx.py.shell.Shell(
-                           parent=self, id=-1, introText="Welcome to Reason.",
-                           locals=locals)
-        self.sizer = wx.BoxSizer(wx.VERTICAL)
-        self.sizer.Add(self.shell, 1, wx.EXPAND)
-        self.SetSizer(self.sizer)
+class Profile2DSetup(wx.Dialog):
+    def __init__(self, data_object, parent):
+        wx.Dialog.__init__(self, parent, -1, title="Setup 2D Profile")
+
+        fields = QueryFields(data_object)
+        
+        border = wx.BoxSizer(wx.VERTICAL)
+        inner_border = wx.BoxSizer(wx.VERTICAL)
+
+        sbox = wx.StaticBox(self, -1, "X Field Specifications")
+        box = wx.StaticBoxSizer(sbox, wx.VERTICAL)
+        gbs = wx.GridBagSizer(5, 5)
+        self.x_field = wx.Choice(self, -1, choices=fields, name="X")
+        text = wx.StaticText(self, -1, "Bin Count")
+        self.x_bins = wx.TextCtrl(self, style=wx.TE_PROCESS_ENTER)
+        self.x_bins.SetValue('64')
+        self.x_bc = wx.CheckBox(self, -1, "Auto-bounds")
+        self.x_bc.SetValue(True)
+        self.Bind(wx.EVT_CHECKBOX, self.OnToggleXBounds, self.x_bc)
+        self.x_min = wx.TextCtrl(self, style=wx.TE_PROCESS_ENTER)
+        self.x_max = wx.TextCtrl(self, -1, style=wx.TE_PROCESS_ENTER)
+        self.x_log = wx.CheckBox(self, -1, "Take Log")
+        self.x_log.SetValue(True)
+
+        gbs.Add(self.x_field, (0,0), (1,2))
+        gbs.Add(text, (1,0))
+        gbs.Add(self.x_bins, (1,1))
+        gbs.Add(self.x_bc, (2,0))
+        gbs.Add(self.x_min, (2,1))
+        gbs.Add(self.x_max, (3,1))
+        gbs.Add(self.x_log, (4,0))
+        box.Add(gbs, 1, wx.EXPAND | wx.ALL)
+        inner_border.Add(box, 1, wx.EXPAND)
+        inner_border.AddSpacer(15)
+        
+        sbox = wx.StaticBox(self, -1, "Y Field Specifications")
+        box = wx.StaticBoxSizer(sbox, wx.VERTICAL)
+        gbs = wx.GridBagSizer(5, 5)
+        self.y_field = wx.Choice(self, -1, choices=fields, name="Y")
+        text = wx.StaticText(self, -1, "Bin Count")
+        self.y_bins = wx.TextCtrl(self, style=wx.TE_PROCESS_ENTER)
+        self.y_bins.SetValue('64')
+        self.y_bc = wx.CheckBox(self, -1, "Auto-bounds")
+        self.y_bc.SetValue(True)
+        self.Bind(wx.EVT_CHECKBOX, self.OnToggleYBounds, self.y_bc)
+        self.y_min = wx.TextCtrl(self, style=wx.TE_PROCESS_ENTER)
+        self.y_max = wx.TextCtrl(self, -1, style=wx.TE_PROCESS_ENTER)
+        self.y_log = wx.CheckBox(self, -1, "Take Log")
+        self.y_log.SetValue(True)
+
+        gbs.Add(self.y_field, (0,0), (1,2))
+        gbs.Add(text, (1,0))
+        gbs.Add(self.y_bins, (1,1))
+        gbs.Add(self.y_bc, (2,0))
+        gbs.Add(self.y_min, (2,1))
+        gbs.Add(self.y_max, (3,1))
+        gbs.Add(self.y_log, (4,0))
+        box.Add(gbs, 1, wx.EXPAND | wx.ALL)
+        inner_border.Add(box, 1, wx.EXPAND)
+        inner_border.AddSpacer(15)
+
+        sbox = wx.StaticBox(self, -1, "Z Field Specifications")
+        box = wx.StaticBoxSizer(sbox, wx.VERTICAL)
+        gbs = wx.GridBagSizer(5, 5)
+        self.z_field = wx.Choice(self, -1, choices=fields, name="Y")
+        text = wx.StaticText(self, -1, "Weighting Field")
+        self.z_weight = wx.Choice(self, -1, choices=[''] + fields, name="Weight")
+        if "CellMassMsun" in fields: self.z_weight.Select(fields.index("CellMassMsun")+1)
+        self.z_accx = wx.CheckBox(self, -1, "X Accumulation")
+        self.z_accx.SetValue(False)
+        self.z_accy = wx.CheckBox(self, -1, "Y Accumulation")
+        self.z_accy.SetValue(False)
+
+        gbs.Add(self.z_field, (0,0), (1,2))
+        gbs.Add(text, (1,0))
+        gbs.Add(self.z_weight, (2,0), (1,2))
+        gbs.Add(self.z_accx, (3,0), (1,2))
+        gbs.Add(self.z_accy, (4,0), (1,2))
+        box.Add(gbs, 1, wx.EXPAND | wx.ALL)
+        inner_border.Add(box, 1, wx.EXPAND)
+        inner_border.AddSpacer(15)
+
+        gbs = wx.GridBagSizer(5,5)
+        self.lazy_reader = wx.CheckBox(self, -1, "Memory Conservative")
+        self.Bind(wx.EVT_CHECKBOX, self.OnToggleLaziness, self.lazy_reader)
+        ok_button = wx.Button(self, wx.ID_OK, "OK")
+        ok_button.SetDefault()
+        cancel_button = wx.Button(self, wx.ID_CANCEL, "Cancel")
+        gbs.Add(self.lazy_reader, (0,0), (1,2), flag=wx.ALIGN_LEFT)
+        gbs.Add(ok_button, (1,0), flag=wx.EXPAND)
+        gbs.Add(cancel_button, (1,1), flag=wx.EXPAND)
+        inner_border.Add(gbs, 0, wx.EXPAND)
+        
+        self.OnToggleXBounds(None)
+        self.OnToggleYBounds(None)
+
+        border.Add(inner_border, 1, wx.EXPAND|wx.ALL, 25)
+        self.SetSizer(border)
         self.Fit()
 
+    def __toggle(self, b,mi,ma):
+        en = b.GetValue()
+        mi.Enable(not en)
+        ma.Enable(not en)
+        if en:
+            mi.SetValue("Min")
+            ma.SetValue("Max")
+        else:
+            mi.SetValue("")
+            ma.SetValue("")
 
-def ChooseField(page):
-    allFields = page.QueryFields()
-    toChoose = nativeFields + [''] + derivedFields
-    dlg = wx.SingleChoiceDialog(None,
-             'Which field?',
-             'Field Chooser (%s)' % outputfile.basename,
-             toChoose)
-    response = None
-    if dlg.ShowModal() == wx.ID_OK:
-        response = dlg.GetStringSelection()
-    if response == "":
-        response = None
-    return response
+    def OnToggleLaziness(self, event):
+        if self.lazy_reader.GetValue():
+            if self.x_bc.GetValue():
+                self.x_bc.SetValue(False)
+                self.OnToggleXBounds(None)
+            if self.y_bc.GetValue():
+                self.y_bc.SetValue(False)
+                self.OnToggleYBounds(None)
 
-def ChooseLimits(plot):
-    dlg = ReasonLimitInput(plot)
-    resp = dlg.ShowModal()
-    zmin, zmax = dlg.GetData()
-    dlg.Destroy()
-    return zmin, zmax
+    def OnToggleXBounds(self, event):
+        self.__toggle(self.x_bc, self.x_min, self.x_max)
+
+    def OnToggleYBounds(self, event):
+        self.__toggle(self.y_bc, self.y_min, self.y_max)
+
+    def return_argdict(self):
+        argdict = {}
+        try:
+            if self.lazy_reader.GetValue():
+                argdict['lazy_reader'] = True
+                argdict['x_bounds'] = (float(self.x_min.GetValue()),
+                                       float(self.x_max.GetValue()))
+                argdict['y_bounds'] = (float(self.y_min.GetValue()),
+                                       float(self.y_max.GetValue()))
+            else:
+                argdict['lazy_reader'] = False
+                argdict['x_bounds'] = None
+                argdict['y_bounds'] = None
+            argdict['x_log'] = self.x_log.GetValue()
+            argdict['y_log'] = self.y_log.GetValue()
+            argdict['x_bins'] = int(self.x_bins.GetValue())
+            argdict['y_bins'] = int(self.y_bins.GetValue())
+            argdict['fields'] = [str(x.GetStringSelection()) for x in 
+                                  [self.x_field, self.y_field, self.z_field]]
+            argdict['weight'] = str(self.z_weight.GetStringSelection())
+            if argdict['weight'] == '': argdict['weight'] = None
+        except ValueError:  
+            return None
+        return argdict
+
+class ProjectionSetup(wx.Dialog):
+    def __init__(self, data_object, parent):
+        wx.Dialog.__init__(self, parent, -1, title="Setup Projection")
+
+        fields = QueryFields(data_object)
+        
+        border = wx.BoxSizer(wx.VERTICAL)
+        gbs = wx.GridBagSizer(5, 5)
+        text = wx.StaticText(self, -1, "Projected Field")
+        self.field = wx.Choice(self, -1, choices=fields, name="Field")
+        if "Density" in fields: self.field.Select(fields.index("Density"))
+        gbs.Add(text, (0,0))
+        gbs.Add(self.field, (0,1))
+
+        text = wx.StaticText(self, -1, "Weighting Field")
+        self.weight_field = wx.Choice(self, -1, choices=[""]+fields,
+                                      name="Weight field")
+        gbs.Add(text, (1,0))
+        gbs.Add(self.weight_field, (1,1))
+
+        gbs.Add(wx.StaticText(self, -1, "Axes to Project"), (2,0),
+                flag = wx.ALIGN_CENTER | wx.ALL)
+        box = wx.BoxSizer(wx.HORIZONTAL)
+        self.x_ax = wx.CheckBox(self, -1, "X")
+        self.y_ax = wx.CheckBox(self, -1, "Y")
+        self.z_ax = wx.CheckBox(self, -1, "Z")
+        for i in [self.x_ax, self.y_ax, self.z_ax]:
+            box.Add(i, 1, wx.EXPAND, border=5)
+            i.SetValue(True)
+        gbs.Add(box, (2,1), flag = wx.ALL | wx.EXPAND)
+
+        box = wx.BoxSizer(wx.HORIZONTAL)
+        ok_button = wx.Button(self, wx.ID_OK, "OK")
+        ok_button.SetDefault()
+        cancel_button = wx.Button(self, wx.ID_CANCEL, "Cancel")
+        box.Add(ok_button, 1, wx.EXPAND)
+        box.Add(cancel_button, 1, wx.EXPAND)
+        gbs.Add(box, (3,1), flag=wx.EXPAND)
+
+        border.Add(gbs, 1, wx.EXPAND|wx.ALL, 25)
+        self.SetSizer(border)
+        self.Fit()
+        
 
 class ReasonParameterFileViewer(wx.Frame):
     def __init__(self, *args, **kwds):
@@ -185,35 +347,6 @@ class FunctionInspectorPage(wx.Panel):
 
         self.SetSizer(self.MainSizer)
         self.Layout()
-
-def get_new_updateNamespace(my_locals):
-    def updateNamespace(self):
-        """Update the namespace for autocompletion and calltips.
-
-        Return True if updated, False if there was an error."""
-        if not self.interp or not hasattr(self.editor, 'getText'):
-            return False
-        syspath = sys.path
-        sys.path = self.syspath
-        text = self.editor.getText()
-        text = text.replace('\r\n', '\n')
-        text = text.replace('\r', '\n')
-        name = self.modulename or self.name
-        try:
-            try:
-                code = compile(text, name, 'exec')
-            except:
-                raise
-            try:
-                exec code in my_locals
-            except:
-                raise
-        finally:
-            sys.path = syspath
-            for m in sys.modules.keys():
-                if m not in self.modules:
-                    del sys.modules[m]
-    return updateNamespace
 
 
 class ReasonEditorNotebookFrame(wx.py.editor.EditorNotebookFrame):
