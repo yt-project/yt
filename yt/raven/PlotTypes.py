@@ -659,6 +659,19 @@ class NewPhasePlot(RavenPlot):
         if field not in self.data.keys(): self.data.add_fields(field, weight, accumulation)
         self._log_z = self.setup_bins(self.fields[2])
 
+    def set_log_field(self, val):
+        if val:
+            self._log_z = True
+            self.norm = matplotlib.colors.LogNorm()
+            ttype = matplotlib.ticker.LogFormatter
+        else:
+            self._log_z = False
+            self.norm = matplotlib.colors.Normalize()
+            ttype = matplotlib.ticker.ScalarFormatter
+        if self.colorbar:
+            self.colorbar.set_norm(self.norm)
+            self.colorbar.formatter = ttype()
+
     def _redraw_image(self):
         vals = self.data[self.fields[2]].transpose()
         used_bin = self.data["UsedBins"].transpose()
@@ -670,10 +683,15 @@ class NewPhasePlot(RavenPlot):
             self.norm=matplotlib.colors.LogNorm(vmin=vmin, vmax=vmax,
                                                 clip=False)
             self.ticker = matplotlib.ticker.LogLocator()
+            vI = na.where(vals > 0)
+            newmin = vals[vI].min()
+            newmax = vals[vI].max()
+            self.norm.autoscale(na.array((newmin,newmax)))
         else:
             self.norm=matplotlib.colors.Normalize(vmin=vmin, vmax=vmax,
                                                   clip=False)
             self.ticker = matplotlib.ticker.MaxNLocator()
+        self.colorbar.set_norm(self.norm)
         self.colorbar.set_norm(self.norm)
         if self.cmap == None:
             self.cmap = matplotlib.cm.get_cmap()

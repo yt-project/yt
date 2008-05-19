@@ -669,6 +669,14 @@ class NewPhasePlotPage(PlotPage):
         self.Bind(wx.EVT_BUTTON, self.AddField, self.add_field)
         self.Bind(wx.EVT_CHOICE, self.switch_z, self.z_field)
 
+    def SetupMenu(self):
+        PlotPage.SetupMenu(self)
+        self.popupmenu.AppendSeparator()
+        self.take_log_menu = self.popupmenu.AppendCheckItem(-1, "Take Log")
+        self.take_log_menu.Check(self.plot._log_z)
+
+        self.Bind(wx.EVT_MENU, self.take_log, self.take_log_menu)
+
     def DoLayout(self):
         self.MainSizer = wx.BoxSizer(wx.VERTICAL)
         self.MainSizer.Add(self.figure_canvas, 1, wx.EXPAND)
@@ -737,6 +745,10 @@ class NewPhasePlotPage(PlotPage):
                field != self.data.y_bin_field:
                 fields.append(field)
         return fields
+
+    def take_log(self, event):
+        self.plot.set_log_field(self.take_log_menu.IsChecked())
+        self.UpdateCanvas()
 
     def switch_z(self, event=None):
         if self.plot is None: return
