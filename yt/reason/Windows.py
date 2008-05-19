@@ -26,6 +26,60 @@ Standalone windows and other bits that don't fit elsewhere.
 
 from yt.reason import *
 
+class Profile2DAddField(wx.Dialog):
+    def __init__(self, data_object, parent):
+        wx.Dialog.__init__(self, parent, -1, title="Add Field to 2D Profile")
+
+        fields = QueryFields(data_object)
+        
+        border = wx.BoxSizer(wx.VERTICAL)
+        inner_border = wx.BoxSizer(wx.VERTICAL)
+
+        sbox = wx.StaticBox(self, -1, "Z Field Specifications")
+        box = wx.StaticBoxSizer(sbox, wx.VERTICAL)
+        gbs = wx.GridBagSizer(5, 5)
+        self.z_field = wx.Choice(self, -1, choices=fields, name="Y")
+        text = wx.StaticText(self, -1, "Weighting Field")
+        self.z_weight = wx.Choice(self, -1, choices=[''] + fields, name="Weight")
+        if "CellMassMsun" in fields: self.z_weight.Select(fields.index("CellMassMsun")+1)
+        self.z_accx = wx.CheckBox(self, -1, "X Accumulation")
+        self.z_accx.SetValue(False)
+        self.z_accy = wx.CheckBox(self, -1, "Y Accumulation")
+        self.z_accy.SetValue(False)
+
+        gbs.Add(self.z_field, (0,0), (1,2))
+        gbs.Add(text, (1,0))
+        gbs.Add(self.z_weight, (2,0), (1,2))
+        gbs.Add(self.z_accx, (3,0), (1,2))
+        gbs.Add(self.z_accy, (4,0), (1,2))
+        box.Add(gbs, 1, wx.EXPAND | wx.ALL)
+        inner_border.Add(box, 1, wx.EXPAND)
+        inner_border.AddSpacer(15)
+
+        gbs = wx.GridBagSizer(5,5)
+        ok_button = wx.Button(self, wx.ID_OK, "OK")
+        ok_button.SetDefault()
+        cancel_button = wx.Button(self, wx.ID_CANCEL, "Cancel")
+        gbs.Add(ok_button, (1,0), flag=wx.EXPAND)
+        gbs.Add(cancel_button, (1,1), flag=wx.EXPAND)
+        inner_border.Add(gbs, 0, wx.EXPAND)
+        
+        border.Add(inner_border, 1, wx.EXPAND|wx.ALL, 25)
+        self.SetSizer(border)
+        self.Fit()
+
+    def return_argdict(self):
+        argdict = {}
+        try:
+            argdict['fields'] = str(self.z_field.GetStringSelection())
+            argdict['weight'] = str(self.z_weight.GetStringSelection())
+            argdict['accumulation'] = (self.z_accx.GetValue(),
+                                       self.z_accy.GetValue())
+            if argdict['weight'] == '': argdict['weight'] = None
+        except ValueError:  
+            return None
+        return argdict
+
 class Profile2DSetup(wx.Dialog):
     def __init__(self, data_object, parent):
         wx.Dialog.__init__(self, parent, -1, title="Setup 2D Profile")
@@ -87,27 +141,6 @@ class Profile2DSetup(wx.Dialog):
         inner_border.Add(box, 1, wx.EXPAND)
         inner_border.AddSpacer(15)
 
-        sbox = wx.StaticBox(self, -1, "Z Field Specifications")
-        box = wx.StaticBoxSizer(sbox, wx.VERTICAL)
-        gbs = wx.GridBagSizer(5, 5)
-        self.z_field = wx.Choice(self, -1, choices=fields, name="Y")
-        text = wx.StaticText(self, -1, "Weighting Field")
-        self.z_weight = wx.Choice(self, -1, choices=[''] + fields, name="Weight")
-        if "CellMassMsun" in fields: self.z_weight.Select(fields.index("CellMassMsun")+1)
-        self.z_accx = wx.CheckBox(self, -1, "X Accumulation")
-        self.z_accx.SetValue(False)
-        self.z_accy = wx.CheckBox(self, -1, "Y Accumulation")
-        self.z_accy.SetValue(False)
-
-        gbs.Add(self.z_field, (0,0), (1,2))
-        gbs.Add(text, (1,0))
-        gbs.Add(self.z_weight, (2,0), (1,2))
-        gbs.Add(self.z_accx, (3,0), (1,2))
-        gbs.Add(self.z_accy, (4,0), (1,2))
-        box.Add(gbs, 1, wx.EXPAND | wx.ALL)
-        inner_border.Add(box, 1, wx.EXPAND)
-        inner_border.AddSpacer(15)
-
         gbs = wx.GridBagSizer(5,5)
         self.lazy_reader = wx.CheckBox(self, -1, "Memory Conservative")
         self.Bind(wx.EVT_CHECKBOX, self.OnToggleLaziness, self.lazy_reader)
@@ -157,22 +190,22 @@ class Profile2DSetup(wx.Dialog):
         try:
             if self.lazy_reader.GetValue():
                 argdict['lazy_reader'] = True
-                argdict['x_bounds'] = (float(self.x_min.GetValue()),
-                                       float(self.x_max.GetValue()))
-                argdict['y_bounds'] = (float(self.y_min.GetValue()),
-                                       float(self.y_max.GetValue()))
+                argdict['x_lower_bound'] = float(self.x_min.GetValue())
+                argdict['x_upper_bound'] = float(self.x_max.GetValue())
+                argdict['y_lower_bound'] = float(self.y_min.GetValue())
+                argdict['y_upper_bound'] = float(self.y_max.GetValue())
             else:
                 argdict['lazy_reader'] = False
-                argdict['x_bounds'] = None
-                argdict['y_bounds'] = None
+                argdict['x_lower_bound'] = None
+                argdict['x_upper_bound'] = None
+                argdict['y_lower_bound'] = None
+                argdict['y_upper_bound'] = None
             argdict['x_log'] = self.x_log.GetValue()
             argdict['y_log'] = self.y_log.GetValue()
-            argdict['x_bins'] = int(self.x_bins.GetValue())
-            argdict['y_bins'] = int(self.y_bins.GetValue())
-            argdict['fields'] = [str(x.GetStringSelection()) for x in 
-                                  [self.x_field, self.y_field, self.z_field]]
-            argdict['weight'] = str(self.z_weight.GetStringSelection())
-            if argdict['weight'] == '': argdict['weight'] = None
+            argdict['x_n_bins'] = int(self.x_bins.GetValue())
+            argdict['y_n_bins'] = int(self.y_bins.GetValue())
+            argdict['x_bin_field'] = str(self.x_field.GetStringSelection())
+            argdict['y_bin_field'] = str(self.y_field.GetStringSelection())
         except ValueError:  
             return None
         return argdict

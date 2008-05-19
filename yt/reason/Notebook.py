@@ -654,13 +654,106 @@ class ProjPlotPage(VMPlotPage):
         return [self.field]
 
 class NewPhasePlotPage(PlotPage):
-    def __init__(self, parent, status_bar, data_object, mw=None, CreationID = -1):
+    def __init__(self, parent, status_bar, data_object, argdict, mw=None, CreationID = -1):
         self.data_object = data_object
+        self.argdict = argdict
 
         PlotPage.__init__(self, parent, status_bar, mw, CreationID)
+        self.UpdateAvailableFields()
 
     def SetupControls(self):
         self.ButtonPanel = wx.Panel(self, -1)
+        self.sbox = wx.StaticBox(self.ButtonPanel, -1, "Field Selection")
+        self.z_field = wx.Choice(self.ButtonPanel, -1, choices=[])
+        self.add_field = wx.Button(self.ButtonPanel, -1, "Add Field")
+        self.Bind(wx.EVT_BUTTON, self.AddField, self.add_field)
+        self.Bind(wx.EVT_CHOICE, self.switch_z, self.z_field)
+
+    def DoLayout(self):
+        self.MainSizer = wx.BoxSizer(wx.VERTICAL)
+        self.MainSizer.Add(self.figure_canvas, 1, wx.EXPAND)
+        self.MainSizer.Add(self.ButtonPanel, 0, wx.EXPAND)
+
+        sizer = wx.BoxSizer(wx.HORIZONTAL)
+        sizer.Add(self.z_field, 1, wx.EXPAND)
+        sizer.Add(self.add_field, 0, wx.EXPAND)
+        self.ButtonPanel.SetSizer(sizer)
+        self.ButtonPanel.Layout()
+
+        self.SetSizer(self.MainSizer)
+        self.Layout()
+
+    def AddField(self, event=None):
+        pf2daf = Profile2DAddField(self.data_object, self)
+        if pf2daf.ShowModal() == wx.ID_OK:
+            argdict = pf2daf.return_argdict()
+            if argdict is None:
+                pf2daf.Destroy()
+                return
+            self.data.add_fields(**argdict)
+            self.UpdateAvailableFields()
+            self.z_field.SetSelection(
+                    self.z_field.GetItems().index(argdict['fields']))
+            self.switch_z()
+        pf2daf.Destroy()
+
+    def makePlot(self, event=None):
+        self.data = lagos.BinnedProfile2D(self.data_object, **self.argdict)
+        self.data.pf = self.data_object.pf
+        self.data.hierarchy = self.data_object.pf.h
+        # Now, unfortunately, we prompt for the field
+        self.AddField(None)
+        self.plot = be.NewPhasePlot(self.data, 
+                                    [self.argdict['x_bin_field'],
+                                     self.argdict['y_bin_field'],
+                                     self.z_field.GetStringSelection()],
+                                    figure=self.figure, axes=self.axes)
+
+    def UpdateStatusBar(self, event):
+        #print event.x, event.y
+        if event.inaxes:
+            if not hasattr(self.plot, 'pix'): return
+            xp, yp = event.xdata, event.ydata
+            xn = self.data.x_bin_field
+            yn = self.data.y_bin_field
+            vn = self.FieldZ.StringSelection
+            self.status_bar.SetStatusText("%s = %0.5e" % (xn, xp), 0)
+            self.status_bar.SetStatusText("%s = %0.5e" % (yn, yp), 1)
+            self.status_bar.SetStatusText("%s = %0.5e" % \
+                                        (vn, self.GetDataValue(xp,yp)), 2)
+
+    def GetDataValue(self, x, y):
+        xi = na.digitize(na.array([x]), self.plot.x_bins)-1
+        yi = na.digitize(na.array([y]), self.plot.y_bins)-1
+        return self.plot.vals[yi, xi]
+
+    def UpdateAvailableFields(self):
+        self.z_field.SetItems(sorted(self.QueryAvailableFields()))
+
+    def QueryAvailableFields(self):
+        fields = []
+        for field in self.data.keys():
+            if field != self.data.x_bin_field and \
+               field != self.data.y_bin_field:
+                fields.append(field)
+        return fields
+
+    def switch_z(self, event=None):
+        if self.plot is None: return
+        self.plot.switch_z(self.z_field.GetStringSelection())
+        self.UpdateCanvas()
+
+    def UpdateCanvas(self, *args):
+        if self.IsShown():
+            self.plot._redraw_image()
+            self.figure_canvas.draw()
+        #else: print "Opting not to update canvas"
+
+    def ChangeLimits(self, zmin, zmax):
+        print "Change Limits"
+        self.plot.set_zlim(zmin,zmax)
+        self.figure_canvas.draw()
+        # We don't call update canvas
 
 class PhasePlotPage(PlotPage):
     def __init__(self, parent, status_bar, data_object, mw=None, CreationID = -1):

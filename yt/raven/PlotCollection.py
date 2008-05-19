@@ -191,7 +191,8 @@ class PlotCollection:
                                      x_bins, fields[0], x_min, x_max, x_log,
                                      y_bins, fields[1], y_min, y_max, y_log,
                                      lazy_reader)
-        profile.add_fields(fields[2], weight=weight, accumulation=accumulation)
+        if len(fields) > 2:
+            profile.add_fields(fields[2], weight=weight, accumulation=accumulation)
         # These next two lines are painful.
         profile.pf = self.pf
         profile.hierarchy = self.pf.hierarchy

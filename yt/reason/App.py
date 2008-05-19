@@ -267,15 +267,36 @@ class ReasonMainWindow(wx.Frame):
     def _add_phase(self, event=None):
         MyID = wx.NewId()
         data_object = self.get_output()
+        p2ds = Profile2DSetup(data_object, self)
+        if not p2ds.ShowModal() == wx.ID_OK:
+            p2ds.Destroy()
+            return
+        argdict = p2ds.return_argdict()
+        if argdict is None:
+            p2ds.Destroy()
+            return
+        for ax in 'xy':
+            if argdict['%s_lower_bound'%ax] is None:
+                argdict['%s_lower_bound'%ax] = \
+                    self.__find_min(data_object, argdict['%s_bin_field'%ax])
+            if argdict['%s_upper_bound'%ax] is None:
+                argdict['%s_upper_bound'%ax] = \
+                    self.__find_max(data_object, argdict['%s_bin_field'%ax])
         t = "Phase Plot"
         self.windows.append( \
-            PhasePlotPage(parent=self.plot_panel.nb,
+            NewPhasePlotPage(parent=self.plot_panel.nb,
                           status_bar=self.status_bar,
                           data_object = data_object,
-                          CreationID = MyID,
+                          argdict = argdict, CreationID = MyID,
                           mw = self))
         self.plot_panel.AddPlot(self.windows[-1], t, MyID)
         mylog.debug("Adding with ID: %s", MyID)
+
+    def __find_min(self, data_object, field):
+        return data_object[field].min()
+
+    def __find_max(self, data_object, field):
+        return data_object[field].max()
 
     def _add_proj(self, event=None):
         MyID = wx.NewId()
