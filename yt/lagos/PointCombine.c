@@ -898,14 +898,16 @@ Py_FindBindingEnergy(PyObject *obj, PyObject *args)
     npy_float64 mass_o, x_o, y_o, z_o;
     npy_float64 mass_i, x_i, y_i, z_i;
 
-    for (q_outer = 0; q_outer < n_q ; q_outer++) {
+    /* progress bar stuff */
+    float totalWork = 0.5 * (pow(n_q,2.0) - n_q);
+    float workDone = 0;
+
+    for (q_outer = 0; q_outer < n_q - 1; q_outer++) {
         this_potential = 0;
         mass_o = *(npy_float64*) PyArray_GETPTR1(mass, q_outer);
         x_o = *(npy_float64*) PyArray_GETPTR1(x, q_outer);
         y_o = *(npy_float64*) PyArray_GETPTR1(y, q_outer);
         z_o = *(npy_float64*) PyArray_GETPTR1(z, q_outer);
-        fprintf(stderr,"Calculating Potential: % 12i / % 12i\r", q_outer, n_q);
-        fflush(stdout); fflush(stderr);
         for (q_inner = q_outer+1; q_inner < n_q; q_inner++) {
             mass_i = *(npy_float64*) PyArray_GETPTR1(mass, q_inner);
             x_i = *(npy_float64*) PyArray_GETPTR1(x, q_inner);
@@ -917,6 +919,9 @@ Py_FindBindingEnergy(PyObject *obj, PyObject *args)
                                  + (z_i-z_o)*(z_i-z_o) );
         }
         total_potential += this_potential;
+	workDone += n_q - q_outer - 1;
+	fprintf(stderr,"Calculating Potential for %i cells: %.2f%%\t(pe/ke = %e)\r", n_q,((100*workDone)/totalWork),(total_potential/kinetic_energy));
+	fflush(stdout); fflush(stderr);
         if ((truncate == 1) && (total_potential > kinetic_energy)){
             fprintf(stderr, "Truncating!\r");
             break;
