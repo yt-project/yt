@@ -477,6 +477,10 @@ class EnzoHierarchy:
                 mylog.debug("Grid %s has: %s", grid.id, gf)
                 field_list = field_list.union(sets.Set(gf))
         self.field_list = list(field_list)
+        for field in self.field_list:
+            if field in fieldInfo: continue
+            mylog.info("Adding %s to list of fields", field)
+            add_field(field, lambda a, b: None)
         self.derived_field_list = []
         for field in fieldInfo:
             try:
