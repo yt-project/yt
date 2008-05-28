@@ -405,17 +405,19 @@ class CuttingPlanePlot(SlicePlot):
         px_min, px_max = self.xlim
         py_min, py_max = self.ylim
         l, b, width, height = self._axes.bbox.get_bounds()
+        self.pix = (width,height)
         indices = na.argsort(self.data['dx'])[::-1]
         buff = _MPL.CPixelize( self.data['x'], self.data['y'], self.data['z'],
                                self.data['px'], self.data['py'],
                                self.data['pdx'], self.data['pdy'], self.data['pdz'],
                                self.data.center, self.data._inv_mat, indices,
                                self.data[self.axis_names['Z']],
-                               int(width), int(height),
+                               int(width), int(width),
                                (px_min, px_max, py_min, py_max))
         return buff
 
     def _refresh_display_width(self, width=None):
+        
         if width:
             self.width = width
         else:

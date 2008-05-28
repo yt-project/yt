@@ -266,6 +266,12 @@ class PlotPage(wx.Panel):
     def ChangeCenterFromMessage(self, message):
         pass
 
+    def ChangeFieldParamFromMessage(self, message):
+        pass
+
+    def WipePlotDataFromMessage(self, message):
+        pass
+
     def ChangeWidthFromMessage(self, message):
         pass
 
@@ -326,12 +332,15 @@ class PlotPage(wx.Panel):
 
 class VMPlotPage(PlotPage):
     def __init__(self, parent, status_bar, outputfile, axis, field="Density",
-                 weight_field = None, mw=None, CreationID = -1):
+                 weight_field = None, mw=None, CreationID = -1,
+                 center = None):
         self.outputfile = outputfile
         self.field = field
         self.weight_field = weight_field
         self.axis = axis
-        self.center = [0.5, 0.5, 0.5]
+        if center is None:
+            center = [0.5, 0.5, 0.5]
+        self.center = center
         self.AmDrawingCircle = False
         self.circles = []
 
@@ -345,11 +354,11 @@ class VMPlotPage(PlotPage):
     def SetupMenu(self):
         PlotPage.SetupMenu(self)
         self.popupmenu.AppendSeparator()
-        centerOnMax = self.popupmenu.Append(-1, "Center on max")
-        centerHere = self.popupmenu.Append(-1, "Center here")
+        self.center_on_max = self.popupmenu.Append(-1, "Center on max")
+        self.center_here = self.popupmenu.Append(-1, "Center here")
         self.popupmenu.AppendSeparator()
-        gridBoundaries = self.popupmenu.AppendCheckItem(-1, "Show Grid Boundaries")
-        gridBoundaries.Check(False)
+        self.grid_boundaries = self.popupmenu.AppendCheckItem(-1, "Show Grid Boundaries")
+        self.grid_boundaries.Check(False)
         velocities = self.popupmenu.AppendCheckItem(-1, "Show Velocities")
         velocities.Check(False)
         self.popupmenu.AppendSeparator()
@@ -358,9 +367,9 @@ class VMPlotPage(PlotPage):
         fullDomain = self.popupmenu.Append(-1, "Zoom Top")
         bulk_velocity = self.popupmenu.Append(-1, "Set Bulk Velocity")
 
-        self.Bind(wx.EVT_MENU, self.OnCenterOnMax, centerOnMax)
-        self.Bind(wx.EVT_MENU, self.OnCenterHere, centerHere)
-        self.Bind(wx.EVT_MENU, self.show_grid_boundaries, gridBoundaries)
+        self.Bind(wx.EVT_MENU, self.OnCenterOnMax, self.center_on_max)
+        self.Bind(wx.EVT_MENU, self.OnCenterHere, self.center_here)
+        self.Bind(wx.EVT_MENU, self.show_grid_boundaries, self.grid_boundaries)
         self.Bind(wx.EVT_MENU, self.show_velocities, velocities)
         self.Bind(wx.EVT_MENU, self.take_log, self.take_log_menu)
         self.Bind(wx.EVT_MENU, self.fulldomain, fullDomain)
@@ -682,6 +691,26 @@ class ProjPlotPage(VMPlotPage):
 
     def QueryFields(self):
         return [self.field]
+
+class CuttingPlanePlotPage(VMPlotPage):
+    def __init__(self, *args, **kwargs):
+        self.normal = kwargs.pop("normal")
+        VMPlotPage.__init__(self, *args, **kwargs)
+        self.__fix_menu()
+
+    def makePlot(self):
+        self.data = self.outputfile.hierarchy.cutting(self.normal,
+                                    self.center, self.field)
+        self.plot = be.CuttingPlanePlot(self.data, self.field,
+                                    figure=self.figure, axes=self.axes)
+
+    def UpdateStatusBar(self, event):
+        pass
+
+    def __fix_menu(self):
+        self.center_on_max.Enable(False)
+        self.center_here.Enable(False)
+        self.grid_boundaries.Enable(False)
 
 class PhasePlotPage(PlotPage):
     def __init__(self, parent, status_bar, data_object, argdict, mw=None, CreationID = -1):

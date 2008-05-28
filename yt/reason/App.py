@@ -27,9 +27,10 @@ Main application for Reason.  Includes the basic window outline.
 from yt.reason import *
 
 _StaticOutputMenuItems = ["proj","slice"]
-_SphereObjectMenuItems = ["phase"]
+_SphereObjectMenuItems = ["phase","cutting"]
 _ProjObjectMenuItems = []
 _SliceObjectMenuItems = []
+_CuttingPlaneObjectMenuItems = []
 
 class ReasonMainWindow(wx.Frame):
     def __init__(self, *args, **kwds):
@@ -81,7 +82,8 @@ class ReasonMainWindow(wx.Frame):
                        'windows':self.windows,
                        'mainwindow':self,
                        'data_objects':self.data_objects,
-                       'pylab':pylab}
+                       'pylab':pylab,
+                       'add_phase':self.__add_phase_wrapper}
         wx.py.buffer.Buffer.updateNamespace = \
                 get_new_updateNamespace(self.locals)
         self.int_panel = wx.Panel(self.main_splitter, -1)
@@ -118,11 +120,13 @@ class ReasonMainWindow(wx.Frame):
         self.PopupMenuIds["slice"] = self.PopupMenu.Append(-1, "Slice")
         self.PopupMenuIds["proj"] = self.PopupMenu.Append(-1, "Project")
         self.PopupMenuIds["phase"] = self.PopupMenu.Append(-1, "Phase Plot")
-        self.PopupMenuIds["vr"] = self.PopupMenu.Append(-1, "Volume Render")
+        self.PopupMenuIds["cutting"] = self.PopupMenu.Append(-1, "Cutting Plane")
+        self.PopupMenuIds["extract"] = self.PopupMenu.Append(-1, "Extract Set")
 
         self.Bind(wx.EVT_MENU, self._add_slice, self.PopupMenuIds["slice"])
         self.Bind(wx.EVT_MENU, self._add_proj, self.PopupMenuIds["proj"])
         self.Bind(wx.EVT_MENU, self._add_phase, self.PopupMenuIds["phase"])
+        self.Bind(wx.EVT_MENU, self._add_cutting, self.PopupMenuIds["cutting"])
 
     def __setup_data_tree(self):
 
@@ -264,9 +268,21 @@ class ReasonMainWindow(wx.Frame):
         # These all get passed in
         self._add_data_object(title, sphere, _SphereObjectMenuItems)
 
-    def _add_phase(self, event=None):
+    def __add_phase_wrapper(self, obj):
+        """
+        Add a phase plot from an arbitrary object.
+        """
+        self._add_phase(data_object=obj)
+
+    def _add_page_to_notebook(self, page, name, id):
+        self.windows.append(page)
+        self.plot_panel.AddPlot(self.windows[-1], name, id)
+        mylog.debug("Adding page with ID: %s", id)
+        wx.SafeYield(onlyIfNeeded = True)
+
+    def _add_phase(self, event=None, data_object = None):
         MyID = wx.NewId()
-        data_object = self.get_output()
+        if data_object is None: parent_id, data_object = self.get_output()
         p2ds = Profile2DSetup(data_object, self)
         if not p2ds.ShowModal() == wx.ID_OK:
             p2ds.Destroy()
@@ -282,15 +298,13 @@ class ReasonMainWindow(wx.Frame):
             if argdict['%s_upper_bound'%ax] is None:
                 argdict['%s_upper_bound'%ax] = \
                     self.__find_max(data_object, argdict['%s_bin_field'%ax])
-        t = "Phase Plot"
-        self.windows.append( \
+        self._add_page_to_notebook(
             PhasePlotPage(parent=self.plot_panel.nb,
                           status_bar=self.status_bar,
                           data_object = data_object,
                           argdict = argdict, CreationID = MyID,
-                          mw = self))
-        self.plot_panel.AddPlot(self.windows[-1], t, MyID)
-        mylog.debug("Adding with ID: %s", MyID)
+                          mw = self),
+            "Phase Plot %s" % MyID, MyID)
 
     def __find_min(self, data_object, field):
         return data_object[field].min()
@@ -300,7 +314,7 @@ class ReasonMainWindow(wx.Frame):
 
     def _add_proj(self, event=None):
         MyID = wx.NewId()
-        data_object = self.get_output()
+        parent_id, data_object = self.get_output()
         width = 1.0
         unit = "1"
         proj_setup = ProjectionSetup(data_object, self)
@@ -313,18 +327,17 @@ class ReasonMainWindow(wx.Frame):
         axes = []
         for i, ax in enumerate('xyz'):
             if not getattr(proj_setup,'%s_ax' % ax).GetValue(): continue
-            t = "%s - Projection - %s" % (data_object.basename, ax)
-            mylog.info("Adding %s projection of %s\n" % (ax, data_object))
-            self.windows.append( \
+            mylog.info("Adding %s projection of %s" % (ax, data_object))
+            self._add_page_to_notebook(
                 ProjPlotPage(parent=self.plot_panel.nb,
                               status_bar=self.status_bar,
                               outputfile = data_object,
                               axis=i,
                               field = field,
                               weight_field = weight_field,
-                              mw = self, CreationID=MyID))
-            self.plot_panel.AddPlot(self.windows[-1], t, MyID)
-            wx.SafeYield(onlyIfNeeded = True)
+                              mw = self, CreationID=MyID),
+                "%s - Projection - %s" % (data_object.basename, ax),
+                MyID)
             self._add_data_object("Proj: %s %s" % (data_object, ax),
                                self.windows[-1].plot.data,
                                _ProjObjectMenuItems)
@@ -334,27 +347,51 @@ class ReasonMainWindow(wx.Frame):
 
     def _add_slice(self, event=None):
         MyID = wx.NewId()
-        data_object = self.get_output()
-        field = "Density"
-        width = 1.0
-        unit = "1"
+        parent_id, data_object = self.get_output()
+        field, width, unit = "Density", 1.0, '1'
         for i, ax in enumerate('xyz'):
-            t = "%s - Slice - %s" % (data_object.basename, ax)
-            mylog.info("Adding %s projection of %s\n" % (ax, data_object))
-            self.windows.append( \
+            mylog.info("Adding %s slice of %s" % (ax, data_object))
+            self._add_page_to_notebook(
                 SlicePlotPage(parent=self.plot_panel.nb,
                               status_bar=self.status_bar,
                               outputfile = data_object,
                               axis=i,
                               field = field,
-                              mw = self, CreationID=MyID))
-            self.plot_panel.AddPlot(self.windows[-1], t, MyID)
-            wx.SafeYield(onlyIfNeeded = True)
+                              mw = self, CreationID=MyID),
+                "%s - Slice - %s" % (data_object.basename, ax),
+                MyID)
             self._add_data_object("Slice: %s %s" % (data_object, ax),
                                self.windows[-1].plot.data,
                                _SliceObjectMenuItems)
-            print "Adding with ID:", MyID
         for w in self.windows[-3:]: w.ChangeWidth(1,'1')
+
+    def __add_cutting_wrapper(self, parameter_file, normal):
+        self._add_cutting(parameter_file=parameter_file, normal=normal)
+
+    def _add_cutting(self, event=None, parameter_file = None, normal=None,
+                     center = None):
+        if parameter_file is None or normal is None or center is None:
+            parent_id, data_object = self.get_output()
+            data_object.set_field_parameter("bulk_velocity",
+                data_object.quantities["BulkVelocity"](lazy_reader=True))
+            normal = data_object.quantities["AngularMomentumVector"](lazy_reader=True)
+            center = data_object.get_field_parameter("center")
+            parameter_file = data_object.pf
+        MyID = wx.NewId()
+        field, width, unit = "Density", 1.0, '1'
+        mylog.info("Adding cutting plane of %s with normal %s",
+                   data_object, normal)
+        self._add_page_to_notebook(
+            CuttingPlanePlotPage(parent=self.plot_panel.nb,
+                            status_bar=self.status_bar,
+                            outputfile=parameter_file, field=field, mw=self,
+                            CreationID=MyID, axis=4, normal=normal,
+                            center = center),
+            "%s - Cutting Plane" % (parameter_file.basename), MyID)
+        self._add_data_object("Cutting Plane" % (parameter_file),
+                              self.windows[-1].plot.data,
+                              _CuttingPlaneObjectMenuItems)
+        self.windows[-1].ChangeWidth(1,'1')
 
     def get_output(self, event=None):
         # Figure out which outputs are selected
@@ -368,7 +405,7 @@ class ReasonMainWindow(wx.Frame):
             newData = wx.TreeItemData((ii, z, t, mids))
             self.data_tree.SetItemData(tid, newData)
         print "Got output:", ii
-        return ii
+        return tid, ii
 
     # Functions bound to messages in pubsub
 
