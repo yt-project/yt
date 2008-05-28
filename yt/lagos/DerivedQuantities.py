@@ -134,6 +134,18 @@ def _combBulkVelocity(data, xv, yv, zv, w):
 add_quantity("BulkVelocity", function=_BulkVelocity,
              combine_function=_combBulkVelocity, n_ret=4)
 
+def _AngularMomentumVector(data):
+    am = data["SpecificAngularMomentum"]*data["CellMassMsun"]
+    j_mag = am.sum(axis=1)
+    return [j_mag]
+def _combAngularMomentumVector(data, j_mag):
+    if len(j_mag.shape) < 2: j_mag = na.expand_dims(j_mag, 0)
+    L_vec = j_mag.sum(axis=0)
+    L_vec_norm = L_vec / na.sqrt((L_vec**2.0).sum())
+    return L_vec_norm
+add_quantity("AngularMomentumVector", function=_AngularMomentumVector,
+             combine_function=_combAngularMomentumVector, n_ret=1)
+
 def _BaryonSpinParameter(data):
     am = data["SpecificAngularMomentum"]*data["CellMassMsun"]
     j_mag = am.sum(axis=1)
