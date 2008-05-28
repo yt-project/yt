@@ -72,6 +72,8 @@ class PlotPanel(wx.Panel):
                  ("field","ChangeFieldFromMessage"),
                  ("limits","ChangeLimitsFromMessage"),
                  ("center","ChangeCenterFromMessage"),
+                 ("field_param","ChangeFieldParamFromMessage"),
+                 ("wipe","WipePlotDataFromMessage"),
                  ("cmap","ChangeColorMapFromMessage")]
         for m,f in pairs:
             Publisher().unsubAll(("viewchange",m))
@@ -354,6 +356,7 @@ class VMPlotPage(PlotPage):
         self.take_log_menu = self.popupmenu.AppendCheckItem(-1, "Take Log")
         self.take_log_menu.Check(self.plot.log_field)
         fullDomain = self.popupmenu.Append(-1, "Zoom Top")
+        bulk_velocity = self.popupmenu.Append(-1, "Set Bulk Velocity")
 
         self.Bind(wx.EVT_MENU, self.OnCenterOnMax, centerOnMax)
         self.Bind(wx.EVT_MENU, self.OnCenterHere, centerHere)
@@ -361,6 +364,7 @@ class VMPlotPage(PlotPage):
         self.Bind(wx.EVT_MENU, self.show_velocities, velocities)
         self.Bind(wx.EVT_MENU, self.take_log, self.take_log_menu)
         self.Bind(wx.EVT_MENU, self.fulldomain, fullDomain)
+        self.Bind(wx.EVT_MENU, self.set_bulk_velocity, bulk_velocity)
 
     def SetupFigure(self):
         PlotPage.SetupFigure(self)
@@ -448,6 +452,16 @@ class VMPlotPage(PlotPage):
             xv = "%s-velocity" % (lagos.axis_names[lagos.x_dict[self.axis]])
             yv = "%s-velocity" % (lagos.axis_names[lagos.y_dict[self.axis]])
             self._velocities_cbid = \
+                self.plot.add_callback(raven.be.quiverCallback(xv,yv,self.axis,20))
+
+    _particles_cbid = None
+    def show_particles(self, event):
+        if self._particles_cbid is not None:
+            self.plot.remove_callback(self._particles_cbid)
+            self._particles_cbid = None
+        else:
+            
+            self._particles_cbid = \
                 self.plot.add_callback(raven.be.quiverCallback(xv,yv,self.axis,20))
 
     def OnCenterHere(self, event):
@@ -600,6 +614,21 @@ class VMPlotPage(PlotPage):
         self.ChangeWidth(1,'1')
         Publisher().sendMessage(('viewchange','width'), (1,'1'))
 
+    def set_bulk_velocity(self, *args):
+        bv = Toolbars.GetBulkVelocity(self.outputfile, self.center)
+        if bv is not None:
+            Publisher().sendMessage(('viewchange','field_param'),
+                                    ('bulk_velocity', bv))
+            Publisher().sendMessage(('viewchange','wipe'),())
+
+    def WipePlotDataFromMessage(self, message):
+        self.data.clear_data()
+        self.UpdateCanvas()
+
+    def ChangeFieldParamFromMessage(self, message):
+        param, val = message.data
+        self.data.set_field_parameter(param, val)
+
     def set_width(self, *args):
         w, u = Toolbars.ChooseWidth(self.outputfile)
         self.ChangeWidth(w,u)
@@ -625,6 +654,15 @@ class VMPlotPage(PlotPage):
             self.figure_canvas.draw()
         #else: print "Opting not to update canvas"
 
+    def ChangeCenterFromMessage(self, message):
+        x, y, z = message.data
+        # We are dealing with a pass-by-reference center
+        self.center[0] = x
+        self.center[1] = y
+        self.center[2] = z
+        self.data.set_field_parameter('center',[x,y,z])
+        #self.UpdateWidth()
+
     def QueryFields(self):
         return QueryFields(self.outputfile)
 
@@ -641,14 +679,6 @@ class ProjPlotPage(VMPlotPage):
                                    center=self.center)
         self.plot = be.ProjectionPlot(self.data, self.field, figure=self.figure,
                                       axes=self.axes)
-
-    def ChangeCenterFromMessage(self, message):
-        x, y, z = message.data
-        # We are dealing with a pass-by-reference center
-        self.center[0] = x
-        self.center[1] = y
-        self.center[2] = z
-        #self.UpdateWidth()
 
     def QueryFields(self):
         return [self.field]

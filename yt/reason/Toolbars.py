@@ -30,6 +30,8 @@ import yt.enki as enki
 import yt.fido as fido
 import yt
 
+import numpy as na
+
 import os
 
 #from yt.reason import *
@@ -94,10 +96,14 @@ class ReasonLimitSelectionWindow(wx.Dialog):
                float(self.maxVal.GetValue())
 
 class ReasonWidthSelectionWindow(wx.Dialog):
-    def __init__(self, outputfile):
-        wx.Dialog.__init__(self, None, -1, 'Width Selector',
+    def __init__(self, outputfile, title="Width Selector",
+                 text="Choose the width you would like"):
+        wx.Dialog.__init__(self, None, -1, title,
                            size=wx.Size(300,300))
         self.sizer = wx.BoxSizer(wx.VERTICAL)
+        text = wx.StaticText(self, -1, text)
+        self.sizer.Add(text, 1)
+
         self.width = wx.TextCtrl(self, -1, "1")
         self.width.SetInsertionPoint(0)
         self.sizer.Add(self.width, 1)
@@ -124,6 +130,27 @@ def ChooseWidth(outputfile):
     w, u = dlg.GetData()
     dlg.Destroy()
     return w, u
+
+def GetBulkVelocity(outputfile, center):
+    dlg = ReasonWidthSelectionWindow(outputfile,
+                "Radius Selector",
+            "With the current display-center, over \n" + \
+            "what radius should bulk velocity be calculated?")
+    resp = dlg.ShowModal()
+    bv = None
+    if resp == wx.ID_OK:
+        w, u = dlg.GetData()
+        sp = outputfile.h.sphere(center=center, radius=w/outputfile[u])
+        bv = sp.quantities["BulkVelocity"](lazy_reader=True)
+        if na.any(na.isnan(bv)):
+            err = wx.MessageDialog(None, "Error",
+                            "The values were bad.  Try a bigger sphere?",
+                            wx.OK)
+            err.ShowModal()
+            err.Destroy()
+            bv = None
+    dlg.Destroy()
+    return bv
 
 def ChooseLimits(plot):
     dlg = ReasonLimitSelectionWindow(plot)
