@@ -300,7 +300,7 @@ class VMPlot(RavenPlot):
         if self.colorbar != None:
             self.image.set_norm(self.norm)
             self.colorbar.set_norm(self.norm)
-            self.colorbar.notify(self.image)
+            if self.do_autoscale: self.colorbar.notify(self.image)
         self.autoset_label()
 
     def set_xlim(self, xmin, xmax):
@@ -434,177 +434,10 @@ class CuttingPlanePlot(SlicePlot):
         self._redraw_image()
 
 class PhasePlot(RavenPlot):
-    def __init__(self, data, fields, width=None, unit=None, bins=100,
-                 weight=None, ticker=None, cmap=None, figure=None, axes=None):
+    def __init__(self, data, fields, id, ticker=None, cmap=None,
+                 figure=None, axes=None):
         self._type_name = "Phase"
-        RavenPlot.__init__(self, data, fields, figure, axes)
-        self.ticker = ticker
-        self.image = None
-        self.bins = bins
-        self.set_cmap(cmap)
-        self.weight = weight
-
-        self.axis_names["X"] = fields[0]
-        self.axis_names["Y"] = fields[1]
-        self.axis_names["Z"] = fields[2]
-
-        self._log_x, self.x_v, self.x_bins = self.setup_bins(self.fields[0])
-        self._log_y, self.y_v, self.y_bins = self.setup_bins(self.fields[1])
-        self._log_z, self.z_v, self.z_bins = self.setup_bins(self.fields[2])
-
-        self.colorbar = None
-
-    def setup_bins(self, field, func = None):
-        log_field = False
-        v = self.data[field]
-        if field in lagos.log_fields or lagos.fieldInfo[field].take_log:
-            log_field = True
-            bins = na.logspace(na.log10(v.min()*0.99),
-                               na.log10(v.max()*1.01),
-                               num=self.bins)
-            if func: func('log')
-        else:
-            bins = na.linspace(v.min()*0.99,v.max()*1.01,num=self.bins)
-            if func: func('linear')
-        mylog.debug("Field: %s, log_field: %s", field, log_field)
-        return log_field, v, bins
-
-    def autoset_label(self, field, func):
-        dataLabel = r"$\rm{%s}" % (field)
-        if lagos.fieldInfo.has_key(field):
-            dataLabel += r" (%s)" % (lagos.fieldInfo[field].get_units())
-        dataLabel += r"$"
-        func(str(dataLabel))
-
-    def set_cmap(self, cmap):
-        RavenPlot.set_cmap(self, cmap)
-        if self.image != None and self.cmap != None:
-            self.image.set_cmap(self.cmap)
-
-    def switch_x(self, field):
-        self.fields[0] = field
-        self.axis_names["X"] = field
-        self._log_x, self.x_v, self.x_bins = self.setup_bins(self.fields[0])
-
-    def switch_y(self, field):
-        self.fields[1] = field
-        self.axis_names["Y"] = field
-        self._log_y, self.y_v, self.y_bins = self.setup_bins(self.fields[1])
-
-    def switch_z(self, field):
-        self.fields[2] = field
-        self.axis_names["Z"] = field
-        self._log_z, self.z_v, self.z_bins = self.setup_bins(self.fields[2])
-
-    def switch_weight(self, weight):
-        if weight == "": weight=None
-        self.weight = weight
-
-    def set_zlim(self, zmin, zmax):
-        self.norm.autoscale(na.array([zmin,zmax]))
-        self.image.changed()
-        if self.colorbar != None:
-            self.colorbar.notify(self.image)
-
-    def _redraw_image(self):
-        l, b, width, height = self._axes.bbox.get_bounds()
-        self.pix = (width,height)
-        x_bins_ids = na.digitize(self.x_v, self.x_bins)
-        y_bins_ids = na.digitize(self.y_v, self.y_bins)
-
-        vals = na.zeros((self.bins,self.bins), dtype='float64')
-        weight_vals = na.zeros((self.bins,self.bins), dtype='float64')
-        used_bin = na.zeros((self.bins,self.bins), dtype='bool')
-
-        x_ind, y_ind = (x_bins_ids-1,y_bins_ids-1) # To match up with pcolor
-                # pcolor expects value to be between i and i+1, digitize gives
-                # bin between i-1 and i
-        used_bin[y_ind,x_ind] = True
-        nx = len(self.x_v)
-        if self.weight != None:
-            weight = self.data[self.weight]
-        else:
-            weight = na.ones(nx)
-
-        z_v = self.z_v
-        code =r"""
-               int i,j;
-               for(int n = 0; n < nx ; n++) {
-                 //printf("%d\n",n);
-                 j = x_bins_ids(n)-1;
-                 i = y_bins_ids(n)-1;
-                 weight_vals(i,j) += weight(n);
-                 vals(i,j) += z_v(n) * weight(n);
-               }
-               """
-        try:
-            weave.inline(code, ['nx','x_bins_ids','y_bins_ids',
-                                'weight_vals','weight','vals','z_v'],
-                         compiler='gcc', type_converters=converters.blitz,
-                         auto_downcast = 0)
-        except:
-            mylog.debug("SciPy weaving did not work; falling back on loop")
-            for k in range(nx):
-                j,i = x_bins_ids[k]-1, y_bins_ids[k]-1
-                weight_vals[i,j] += weight[k]
-                vals[i,j] += self.z_v[k]*weight[k]
-
-        vi = na.where(used_bin == False)
-        vit = na.where(used_bin == True)
-        if self.weight != None: vals = vals / weight_vals
-
-        vmin = na.nanmin(vals[vit])
-        vmax = na.nanmax(vals[vit])
-        vals[vi] = 0.0
-        if self._log_z:
-            # We want smallest non-zero vmin
-            vmin=vals[vals>0.0].min()
-            self.norm=matplotlib.colors.LogNorm(vmin=vmin, vmax=vmax,
-                                                clip=False)
-            location_of_ticks = na.logspace(vmin*1.1, vmax*0.9, num=6)
-            self.ticker = matplotlib.ticker.LogLocator()
-        else:
-            self.ticker = matplotlib.ticker.MaxNLocator()
-            self.norm=matplotlib.colors.Normalize(vmin=vmin, vmax=vmax,
-                                                  clip=False)
-        if self.cmap == None:
-            self.cmap = matplotlib.cm.get_cmap()
-        self.cmap.set_bad("w")
-        self.cmap.set_under("w")
-        self.cmap.set_over("w")
-        self._axes.clear()
-        self.image = self._axes.pcolormesh(self.x_bins, self.y_bins, \
-                                      vals,shading='flat', \
-                                      norm=self.norm, cmap=self.cmap)
-        self._axes.set_xscale("log" if self._log_x else "linear")
-        self._axes.set_yscale("log" if self._log_y else "linear")
-        self.vals = vals
-        #self.ticker = matplotlib.ticker.LogLocator(subs=[0.25, 0.5, 0.75, 1])
-
-        if self.colorbar == None:
-            self.colorbar = self._figure.colorbar(self.image, \
-                                                 extend='neither', \
-                                                 shrink=0.95, cmap=self.cmap, \
-                                   ticks = self.ticker, format="%0.2e" )
-
-        self.colorbar.notify(self.image)
-
-        self.autoset_label(self.fields[0], self._axes.set_xlabel)
-        self.autoset_label(self.fields[1], self._axes.set_ylabel)
-        self.autoset_label(self.fields[2], self.colorbar.set_label)
-
-    def _generate_prefix(self, prefix):
-        self.prefix = "_".join([prefix, self._type_name, \
-            self.axis_names['X'], self.axis_names['Y'], \
-            self.axis_names['Z']])
-        self["Field1"] = self.axis_names["X"]
-        self["Field2"] = self.axis_names["Y"]
-        self["Field3"] = self.axis_names["Z"]
-
-class NewPhasePlot(RavenPlot):
-    def __init__(self, data, fields, width=None, unit=None,
-                 ticker=None, cmap=None, figure=None, axes=None):
-        self._type_name = "Phase"
+        self._semi_unique_id = id
         RavenPlot.__init__(self, data, fields, figure, axes)
         self.ticker = ticker
         self.image = None
@@ -714,9 +547,10 @@ class NewPhasePlot(RavenPlot):
         self.autoset_label(self.fields[2], self.colorbar.set_label)
 
     def _generate_prefix(self, prefix):
-        self.prefix = "_".join([prefix, self._type_name, \
-            self.axis_names['X'], self.axis_names['Y'], \
-            self.axis_names['Z']])
+        self.prefix = "_".join([prefix, self._type_name,
+            str(self._semi_unique_id),
+            self.axis_names['X'], self.axis_names['Y'],
+            self.axis_names['Z'], ])
         self["Field1"] = self.axis_names["X"]
         self["Field2"] = self.axis_names["Y"]
         self["Field3"] = self.axis_names["Z"]

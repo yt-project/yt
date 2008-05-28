@@ -653,7 +653,7 @@ class ProjPlotPage(VMPlotPage):
     def QueryFields(self):
         return [self.field]
 
-class NewPhasePlotPage(PlotPage):
+class PhasePlotPage(PlotPage):
     def __init__(self, parent, status_bar, data_object, argdict, mw=None, CreationID = -1):
         self.data_object = data_object
         self.argdict = argdict
@@ -711,11 +711,12 @@ class NewPhasePlotPage(PlotPage):
         self.data.hierarchy = self.data_object.pf.h
         # Now, unfortunately, we prompt for the field
         self.AddField(None)
-        self.plot = be.NewPhasePlot(self.data, 
-                                    [self.argdict['x_bin_field'],
-                                     self.argdict['y_bin_field'],
-                                     self.z_field.GetStringSelection()],
-                                    figure=self.figure, axes=self.axes)
+        self.plot = be.PhasePlot(self.data, 
+                                [self.argdict['x_bin_field'],
+                                 self.argdict['y_bin_field'],
+                                 self.z_field.GetStringSelection()],
+                                 id = wx.NewId(),
+                                 figure=self.figure, axes=self.axes)
 
     def UpdateStatusBar(self, event):
         #print event.x, event.y
@@ -760,155 +761,6 @@ class NewPhasePlotPage(PlotPage):
             self.plot._redraw_image()
             self.figure_canvas.draw()
         #else: print "Opting not to update canvas"
-
-    def ChangeLimits(self, zmin, zmax):
-        print "Change Limits"
-        self.plot.set_zlim(zmin,zmax)
-        self.figure_canvas.draw()
-        # We don't call update canvas
-
-class PhasePlotPage(PlotPage):
-    def __init__(self, parent, status_bar, data_object, mw=None, CreationID = -1):
-        self.data_object = data_object
-
-        PlotPage.__init__(self, parent, status_bar, mw, CreationID)
-
-    def SetupControls(self):
-        self.ButtonPanel = wx.Panel(self, -1)
-        fs = self.QueryFields()
-        self.FieldX = wx.Choice(self.ButtonPanel, -1, choices=fs, name="X")
-        self.FieldX.SetSelection(0)
-        self.FieldY = wx.Choice(self.ButtonPanel, -1, choices=fs, name="Y")
-        self.FieldY.SetSelection(0)
-        self.FieldZ = wx.Choice(self.ButtonPanel, -1, choices=fs, name="Z")
-        self.FieldZ.SetSelection(0)
-        self.FieldW = wx.Choice(self.ButtonPanel, -1, choices=fs, name="W")
-        self.FieldW.SetSelection(0)
-        self.FirePlot = wx.Button(self.ButtonPanel, label = "Make Plot")
-
-        #self.Bind(wx.EVT_CHOICE, self.switch_x, self.FieldX)
-        #self.Bind(wx.EVT_CHOICE, self.switch_y, self.FieldY)
-        #self.Bind(wx.EVT_CHOICE, self.switch_z, self.FieldZ)
-        #self.Bind(wx.EVT_CHOICE, self.switch_weight, self.FieldW)
-        self.Bind(wx.EVT_BUTTON, self.fire_plot, self.FirePlot)
-
-    def DoLayout(self):
-        self.MainSizer = wx.BoxSizer(wx.VERTICAL)
-        self.MainSizer.Add(self.figure_canvas, 1, wx.EXPAND)
-        self.MainSizer.Add(self.ButtonPanel, 0, wx.EXPAND)
-
-        self.ButtonSizer = wx.BoxSizer(wx.HORIZONTAL)
-        self.XSizer = wx.BoxSizer(wx.VERTICAL)
-        self.YSizer = wx.BoxSizer(wx.VERTICAL)
-        self.ZSizer = wx.BoxSizer(wx.VERTICAL)
-        self.WSizer = wx.BoxSizer(wx.VERTICAL)
-
-
-        self.ButtonSizer.AddSpacer(10)
-
-        self.ButtonSizer.Add(self.XSizer, 1, wx.EXPAND)
-        self.XSizer.Add(wx.StaticText(self.ButtonPanel, -1, "X Field"), 1, wx.EXPAND)
-        self.XSizer.Add(self.FieldX, 1, wx.EXPAND)
-        self.ButtonSizer.AddSpacer(20)
-
-        self.ButtonSizer.Add(self.YSizer, 1, wx.EXPAND)
-        self.YSizer.Add(wx.StaticText(self.ButtonPanel, -1, "Y Field"), 1, wx.EXPAND)
-        self.YSizer.Add(self.FieldY, 1, wx.EXPAND)
-        self.ButtonSizer.AddSpacer(20)
-
-        self.ButtonSizer.Add(self.ZSizer, 1, wx.EXPAND)
-        self.ZSizer.Add(wx.StaticText(self.ButtonPanel, -1, "Z Field"), 1, wx.EXPAND)
-        self.ZSizer.Add(self.FieldZ, 1, wx.EXPAND)
-        self.ButtonSizer.AddSpacer(20)
-
-        self.ButtonSizer.Add(self.WSizer, 1, wx.EXPAND)
-        self.WSizer.Add(wx.StaticText(self.ButtonPanel, -1, "Weight"), 1, wx.EXPAND)
-        self.WSizer.Add(self.FieldW, 1, wx.EXPAND)
-
-        self.ButtonSizer.AddSpacer(10)
-        self.ButtonSizer.Add(self.FirePlot, 1, wx.EXPAND)
-        self.ButtonSizer.AddSpacer(10)
-        self.ButtonPanel.SetSizer(self.ButtonSizer)
-        self.ButtonPanel.Layout()
-
-        self.SetSizer(self.MainSizer)
-        self.Layout()
-
-
-    def QueryFields(self):
-        return QueryFields(self.data_object)
-
-    def makePlot(self, event=None):
-        pass
-
-    def fire_plot(self, event):
-        if self.plot is not None:
-            for ax in self.figure.axes[1:]: self.figure.delaxes(ax)
-            self.axes.clear()
-            self.figure.subplots_adjust()
-            self.axes.set_xscale('linear')
-            self.axes.set_xlim([0.0,1.0])
-            self.axes.set_yscale('linear')
-            self.axes.set_ylim([0.0,1.0])
-            del self.plot
-        X = self.FieldX.GetStringSelection()
-        Y = self.FieldY.GetStringSelection()
-        Z = self.FieldZ.GetStringSelection()
-        W = self.FieldW.GetStringSelection()
-        if len(W) == 0: W=None
-        self.plot = be.PhasePlot(self.data_object, [X,Y,Z], weight = W,
-                                 figure = self.figure, axes = self.axes)
-        self.UpdateCanvas()
-
-    def UpdateStatusBar(self, event):
-        #print event.x, event.y
-        if event.inaxes:
-            if not hasattr(self.plot, 'pix'): return
-            xp, yp = event.xdata, event.ydata
-            xn = self.FieldX.StringSelection
-            yn = self.FieldY.StringSelection
-            vn = self.FieldZ.StringSelection
-            self.status_bar.SetStatusText("%s = %0.5e" % (xn, xp), 0)
-            self.status_bar.SetStatusText("%s = %0.5e" % (yn, yp), 1)
-            self.status_bar.SetStatusText("%s = %0.5e" % \
-                                        (vn, self.GetDataValue(xp,yp)), 2)
-
-    def GetDataValue(self, x, y):
-        xi = na.digitize(na.array([x]), self.plot.x_bins)-1
-        yi = na.digitize(na.array([y]), self.plot.y_bins)-1
-        return self.plot.vals[yi, xi]
-
-    def switch_weight(self, event):
-        if self.plot is None: return
-        W = event.String
-        if len(event.String) == 0: W = None
-        self.plot.switch_weight(W)
-        self.UpdateCanvas()
-
-    def switch_x(self, event):
-        if self.plot is None: return
-        self.plot.switch_x(event.String)
-        self.UpdateCanvas()
-
-    def switch_y(self, event):
-        if self.plot is None: return
-        self.plot.switch_y(event.String)
-        self.UpdateCanvas()
-
-    def switch_z(self, event):
-        if self.plot is None: return
-        self.plot.switch_z(event.String)
-        self.UpdateCanvas()
-
-    def UpdateCanvas(self, *args):
-        if self.IsShown():
-            self.plot._redraw_image()
-            self.figure_canvas.draw()
-        #else: print "Opting not to update canvas"
-
-    def ChangeLimitsFromMessage(self, message):
-        zmin, zmax = message.data
-        self.ChangeLimits(zmin,zmax)
 
     def ChangeLimits(self, zmin, zmax):
         print "Change Limits"

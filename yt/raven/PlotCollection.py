@@ -31,6 +31,7 @@ all of the engine-appropriate methods.
 from yt.raven import *
 
 class PlotCollection:
+    __id_counter = 0
     def __init__(self, pf, deliverator_id=-1, center=None):
         PlotTypes.Initialize()
         self.plots = []
@@ -144,50 +145,21 @@ class PlotCollection:
                          size=fig_size))
         p["Axis"] = lagos.axis_names[axis]
         return p
-    def add_twophase_sphere(self, radius, unit, fields, center=None, cmap=None):
-        if center == None:
-            center = self.c
-        fields = fields[:2] + ["CellsPerBin"] + fields[2:]
-        r = radius/self.pf[unit]
-        sphere = self.pf.hierarchy.sphere(center, r, fields)
-        p = self._add_plot(PlotTypes.PhasePlot(sphere, fields, width=radius,
-                                      unit=unit, cmap=cmap))
-        p["Width"] = radius
-        p["Unit"] = unit
-        p["Axis"] = None
-        return p
-    def add_threephase_sphere(self, radius, unit, fields, center=None, cmap=None,
-                            weight="CellMass"):
-        if center == None:
-            center = self.c
-        r = radius/self.pf[unit]
-        sphere = self.pf.hierarchy.sphere(center, r, fields)
-        p = self._add_plot(PlotTypes.PhasePlot(sphere, fields, width=radius,
-                                      unit=unit, cmap=cmap, weight=weight))
-        p["Width"] = radius
-        p["Unit"] = unit
-        p["Axis"] = None
-        return p
 
-    def add_new_threephase_sphere(self, radius, unit, fields, center=None, cmap=None,
-                                  weight="CellMassMsun", accumulation=False,
-                                  x_bins=64, x_log=True, x_bounds=None,
-                                  y_bins=64, y_log=True, y_bounds=None,
-                                  lazy_reader=False, sphere = None):
-        if center == None:
-            center = self.c
-        r = radius/self.pf[unit]
-        if sphere is None:
-            sphere = self.pf.hierarchy.sphere(center, r, fields)
+    def add_phase_object(self, object, fields, cmap=None,
+                               weight="CellMassMsun", accumulation=False,
+                               x_bins=64, x_log=True, x_bounds=None,
+                               y_bins=64, y_log=True, y_bounds=None,
+                               lazy_reader=False):
         if x_bounds is None:
-            x_min, x_max = sphere[fields[0]].min(), sphere[fields[0]].max()
+            x_min, x_max = object[fields[0]].min(), object[fields[0]].max()
         else:
             x_min, x_max = x_bounds
         if y_bounds is None:
-            y_min, y_max = sphere[fields[1]].min(), sphere[fields[1]].max()
+            y_min, y_max = object[fields[1]].min(), object[fields[1]].max()
         else:
             y_min, y_max = y_bounds
-        profile = lagos.BinnedProfile2D(sphere,
+        profile = lagos.BinnedProfile2D(object,
                                      x_bins, fields[0], x_min, x_max, x_log,
                                      y_bins, fields[1], y_min, y_max, y_log,
                                      lazy_reader)
@@ -196,8 +168,25 @@ class PlotCollection:
         # These next two lines are painful.
         profile.pf = self.pf
         profile.hierarchy = self.pf.hierarchy
-        p = self._add_plot(PlotTypes.NewPhasePlot(profile, fields, width=radius,
-                                      unit=unit, cmap=cmap))
+        p = self._add_plot(PlotTypes.NewPhasePlot(profile, fields, 
+                                                  self._get_new_id(),
+                                                  cmap=cmap))
+        return p
+
+    def _get_new_id(self):
+        self.__id_counter += 1
+        return self.__id_counter-1
+
+    def add_phase_sphere(self, radius, unit, fields, **kwargs):
+        center = kwargs.pop("center",self.c)
+        r = radius/self.pf[unit]
+        if 'sphere' in kwargs:
+            sphere = kwargs.pop('sphere')
+        else:
+            ftg = fields[:]
+            if kwargs.get("lazy_reader",False): ftg = []
+            sphere = self.pf.hierarchy.sphere(center, r, ftg)
+        p = self.add_phase_object(sphere, fields, **kwargs)
         p["Width"] = radius
         p["Unit"] = unit
         p["Axis"] = None

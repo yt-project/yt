@@ -284,7 +284,7 @@ class ReasonMainWindow(wx.Frame):
                     self.__find_max(data_object, argdict['%s_bin_field'%ax])
         t = "Phase Plot"
         self.windows.append( \
-            NewPhasePlotPage(parent=self.plot_panel.nb,
+            PhasePlotPage(parent=self.plot_panel.nb,
                           status_bar=self.status_bar,
                           data_object = data_object,
                           argdict = argdict, CreationID = MyID,
