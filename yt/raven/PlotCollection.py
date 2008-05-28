@@ -150,7 +150,7 @@ class PlotCollection:
                                weight="CellMassMsun", accumulation=False,
                                x_bins=64, x_log=True, x_bounds=None,
                                y_bins=64, y_log=True, y_bounds=None,
-                               lazy_reader=False):
+                               lazy_reader=False, id=None):
         if x_bounds is None:
             x_min, x_max = object[fields[0]].min(), object[fields[0]].max()
         else:
@@ -168,9 +168,9 @@ class PlotCollection:
         # These next two lines are painful.
         profile.pf = self.pf
         profile.hierarchy = self.pf.hierarchy
+        if id is None: id = self._get_new_id()
         p = self._add_plot(PlotTypes.NewPhasePlot(profile, fields, 
-                                                  self._get_new_id(),
-                                                  cmap=cmap))
+                                                  id, cmap=cmap))
         return p
 
     def _get_new_id(self):
