@@ -190,7 +190,15 @@ class EnzoHierarchy:
             mode = 'a'
         try:
             self.__data_file = tables.openFile(fn, mode)
+            my_name = self.get_data("/","MyName")
+            if my_name is None:
+                self.save_data(str(self.parameter_file), "/", "MyName")
+            else:
+                if str(my_name.read())!=str(self.parameter_file):
+                    self.__data_file.close()
+                    self.__data_file = None
         except:
+            self.__data_file = None
             pass
 
     def save_data(self, array, node, name):
