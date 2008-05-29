@@ -307,7 +307,6 @@ class ReasonMainWindow(wx.Frame):
                           argdict = argdict, CreationID = MyID,
                           mw = self),
             "Phase Plot %s" % MyID, MyID)
-        self.plot_panel.UpdateSubscriptions()
 
     def __find_min(self, data_object, field):
         return data_object[field].min()

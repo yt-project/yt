@@ -762,6 +762,7 @@ class PhasePlotPage(PlotPage):
             argdict = pf2daf.return_argdict()
             if argdict is None:
                 pf2daf.Destroy()
+                self.UpdateAvailableFields()
                 return
             self.data.add_fields(**argdict)
             self.UpdateAvailableFields()

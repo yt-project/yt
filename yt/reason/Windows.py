@@ -30,7 +30,9 @@ class Profile2DAddField(wx.Dialog):
     def __init__(self, data_object, parent):
         wx.Dialog.__init__(self, parent, -1, title="Add Field to 2D Profile")
 
-        fields = QueryFields(data_object)
+        fields = [field for field in QueryFields(data_object)
+                  if field not in [parent.data.x_bin_field,
+                        parent.data.y_bin_field, parent.data.keys()]]
         
         border = wx.BoxSizer(wx.VERTICAL)
         inner_border = wx.BoxSizer(wx.VERTICAL)
