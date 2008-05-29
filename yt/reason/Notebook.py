@@ -92,6 +92,7 @@ class PlotPanel(wx.Panel):
             Publisher().subscribe(self.MessageLogger)
             for m, f in pairs:
                 ff = getattr(p,f)
+                if ff is None: continue
                 Publisher().subscribe(ff, ('viewchange',m))
         page.UpdateCanvas()
 
@@ -134,7 +135,9 @@ class PlotPanel(wx.Panel):
 
     def AddPlot(self, page, title, ID):
         self.nb.AddPage(page, title)
-        self.nb.SetSelection(self.nb.GetPageCount()+1)
+        wx.YieldIfNeeded()
+        self.nb.SetSelection(self.nb.GetPageCount()-1)
+        wx.YieldIfNeeded()
         # Now we subscribe to events with this ID
 
     def GetCurrentOutput(self):
@@ -162,6 +165,7 @@ class PlotPage(wx.Panel):
     plot = None
     def __init__(self, parent, status_bar, mw=None, CreationID = -1):
         wx.Panel.__init__(self, parent)
+        self.Hide()
 
         self.CreationID = CreationID
         self.parent = parent
@@ -175,11 +179,13 @@ class PlotPage(wx.Panel):
         self.SetupFigure()
         self.SetupMenu()
         self.DoLayout()
+        self.Show()
 
     def set_zlim(self, *args):
         zmin, zmax = Toolbars.ChooseLimits(self.plot)
-        self.ChangeLimits(zmin, zmax)
+        #self.ChangeLimits(zmin, zmax)
         Publisher().sendMessage(("viewchange","limits"),(zmin,zmax))
+        self.UpdateCanvas(only_fig=True)
 
     def redraw(self, *args):
         self.UpdateCanvas()
@@ -258,7 +264,7 @@ class PlotPage(wx.Panel):
     def ChangeLimitsFromMessage(self, message):
         zmin, zmax = message.data
         self.ChangeLimits(zmin,zmax)
-        self.UpdateCanvas()
+        #self.UpdateCanvas()
 
     def ChangeFieldFromMessage(self, message):
         pass
@@ -359,8 +365,8 @@ class VMPlotPage(PlotPage):
         self.popupmenu.AppendSeparator()
         self.grid_boundaries = self.popupmenu.AppendCheckItem(-1, "Show Grid Boundaries")
         self.grid_boundaries.Check(False)
-        velocities = self.popupmenu.AppendCheckItem(-1, "Show Velocities")
-        velocities.Check(False)
+        self.velocities = self.popupmenu.AppendCheckItem(-1, "Show Velocities")
+        self.velocities.Check(False)
         self.popupmenu.AppendSeparator()
         self.take_log_menu = self.popupmenu.AppendCheckItem(-1, "Take Log")
         self.take_log_menu.Check(self.plot.log_field)
@@ -370,7 +376,7 @@ class VMPlotPage(PlotPage):
         self.Bind(wx.EVT_MENU, self.OnCenterOnMax, self.center_on_max)
         self.Bind(wx.EVT_MENU, self.OnCenterHere, self.center_here)
         self.Bind(wx.EVT_MENU, self.show_grid_boundaries, self.grid_boundaries)
-        self.Bind(wx.EVT_MENU, self.show_velocities, velocities)
+        self.Bind(wx.EVT_MENU, self.show_velocities, self.velocities)
         self.Bind(wx.EVT_MENU, self.take_log, self.take_log_menu)
         self.Bind(wx.EVT_MENU, self.fulldomain, fullDomain)
         self.Bind(wx.EVT_MENU, self.set_bulk_velocity, bulk_velocity)
@@ -656,6 +662,7 @@ class VMPlotPage(PlotPage):
         Publisher().sendMessage(('viewchange','field'), field)
 
     def UpdateCanvas(self, only_fig=False):
+        print self, self.axis, self.IsShown()
         if self.IsShown():
             if not only_fig: self.plot._redraw_image()
             self.figure_canvas.draw()
@@ -709,6 +716,7 @@ class CuttingPlanePlotPage(VMPlotPage):
         self.center_on_max.Enable(False)
         self.center_here.Enable(False)
         self.grid_boundaries.Enable(False)
+        self.velocities.Enable(False)
 
 class PhasePlotPage(PlotPage):
     def __init__(self, parent, status_bar, data_object, argdict, mw=None, CreationID = -1):

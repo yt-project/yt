@@ -280,6 +280,7 @@ class ReasonMainWindow(wx.Frame):
         self.plot_panel.AddPlot(self.windows[-1], name, id)
         mylog.debug("Adding page with ID: %s", id)
         wx.SafeYield(onlyIfNeeded = True)
+        self.plot_panel.UpdateSubscriptions(page)
 
     def _add_phase(self, event=None, data_object = None):
         MyID = wx.NewId()
@@ -306,6 +307,7 @@ class ReasonMainWindow(wx.Frame):
                           argdict = argdict, CreationID = MyID,
                           mw = self),
             "Phase Plot %s" % MyID, MyID)
+        self.plot_panel.UpdateSubscriptions()
 
     def __find_min(self, data_object, field):
         return data_object[field].min()
