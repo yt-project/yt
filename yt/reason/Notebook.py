@@ -454,7 +454,7 @@ class VMPlotPage(PlotPage):
             self._grid_boundaries_cbid = None
         else:
             self._grid_boundaries_cbid = \
-                self.plot.add_callback(raven.be.gridBoundaryCallback())
+                self.plot.add_callback(raven.GridBoundaryCallback())
 
     _velocities_cbid = None
     def show_velocities(self, event):
@@ -465,7 +465,7 @@ class VMPlotPage(PlotPage):
             xv = "%s-velocity" % (lagos.axis_names[lagos.x_dict[self.axis]])
             yv = "%s-velocity" % (lagos.axis_names[lagos.y_dict[self.axis]])
             self._velocities_cbid = \
-                self.plot.add_callback(raven.be.quiverCallback(xv,yv,self.axis,20))
+                self.plot.add_callback(raven.QuiverCallback(xv,yv,self.axis,20))
 
     _particles_cbid = None
     def show_particles(self, event):
@@ -473,20 +473,17 @@ class VMPlotPage(PlotPage):
             self.plot.remove_callback(self._particles_cbid)
             self._particles_cbid = None
         else:
-            
             self._particles_cbid = \
-                self.plot.add_callback(raven.be.quiverCallback(xv,yv,self.axis,20))
+                self.plot.add_callback(raven.QuiverCallback(xv,yv,self.axis,20))
 
     def OnCenterHere(self, event):
         xp, yp = self.ContextMenuPosition
         x, y = self.ConvertPositionToDataPosition(xp, yp)
-        print "CENTER HERE:", xp, yp, x, y
         if x == None or y == None: return
         self.ChangeCenter(x,y)
         self.UpdateWidth()
 
     def ChangeCenterFromMessage(self, message):
-        #print "Hey, got message", message
         x, y, z = message.data
         # We are dealing with a pass-by-reference center
         self.center[0] = x
@@ -497,7 +494,6 @@ class VMPlotPage(PlotPage):
         #self.UpdateWidth()
 
     def ConvertPositionToDataPosition(self, xp, yp):
-        #print "CONVERT", xp, yp
         #if not self.figure.axes[0].in_axes(xp,yp): return None, None
         #xp, yp = self.figure.axes[0].transData.inverse_xy_tup((xp,yp))
         dx = (self.plot.xlim[1] - self.plot.xlim[0])/self.plot.pix[0]
@@ -538,9 +534,6 @@ class VMPlotPage(PlotPage):
                 xd,yd = self.ConvertPositionToDataPosition(self.x1, self.y1)
                 cc[lagos.x_dict[self.axis]] = xd
                 cc[lagos.y_dict[self.axis]] = yd
-                print "R: %0.5e %s (%0.9e, %0.9e, %0.9e)" % (r*unit, unitname,
-                    cc[0], cc[1], cc[2])
-                #print cc, r
                 sphere = self.outputfile.hierarchy.sphere( \
                     cc, r, fields = ["Density"])
                 self.mw._add_sphere("Sphere: %0.3e %s" \
@@ -577,7 +570,6 @@ class VMPlotPage(PlotPage):
         unitname = self.choices[self.unitList.GetSelection()]
         unit = self.outputfile[unitname]
         val = self.vals[pos] * unit
-        #print unit, val
         self.widthBox.SetValue("%0.5e" % (val))
 
     def UpdateWidthFromText(self, event):
@@ -589,7 +581,6 @@ class VMPlotPage(PlotPage):
         # Now we figure out the closest slider tick
         dx = (log10(self.vals[0])-log10(self.vals[-1]))/201
         self.widthSlider.SetValue(200-int(log10(val)/dx))
-        #print dx, val, log10(val)/dx, int(log10(val)/dx)
         Publisher().sendMessage(('viewchange','width'), (val,unitname))
 
     def UpdateWidth(self, pos = None):
@@ -602,7 +593,6 @@ class VMPlotPage(PlotPage):
         self.figure_canvas.SetCursor(wx.StockCursor(wx.CURSOR_BULLSEYE))
 
     def UpdateStatusBar(self, event):
-        #print event.x, event.y
         if event.inaxes:
             xp, yp = event.xdata, event.ydata
             dx = abs(self.plot.xlim[0] - self.plot.xlim[1])/self.plot.pix[0]
@@ -662,11 +652,9 @@ class VMPlotPage(PlotPage):
         Publisher().sendMessage(('viewchange','field'), field)
 
     def UpdateCanvas(self, only_fig=False):
-        print self, self.axis, self.IsShown()
         if self.IsShown():
             if not only_fig: self.plot._redraw_image()
             self.figure_canvas.draw()
-        #else: print "Opting not to update canvas"
 
     def ChangeCenterFromMessage(self, message):
         x, y, z = message.data
@@ -785,7 +773,6 @@ class PhasePlotPage(PlotPage):
                                  figure=self.figure, axes=self.axes)
 
     def UpdateStatusBar(self, event):
-        #print event.x, event.y
         if event.inaxes:
             if not hasattr(self.plot, 'pix'): return
             xp, yp = event.xdata, event.ydata
@@ -826,10 +813,8 @@ class PhasePlotPage(PlotPage):
         if self.IsShown():
             if not only_fig: self.plot._redraw_image()
             self.figure_canvas.draw()
-        #else: print "Opting not to update canvas"
 
     def ChangeLimits(self, zmin, zmax):
-        print "Change Limits"
         self.plot.set_zlim(zmin,zmax)
         self.figure_canvas.draw()
         # We don't call update canvas

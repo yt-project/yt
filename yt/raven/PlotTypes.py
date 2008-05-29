@@ -28,19 +28,9 @@ data that is "hidden" in deeper levels of refinement.
 from yt.raven import *
 from yt.funcs import *
 
-# We only get imported if matplotlib was imported successfully
-
 import _MPL
 
-import matplotlib.image
-import matplotlib.ticker
-import matplotlib.axes
-import matplotlib.figure
-import matplotlib._image
-import matplotlib.colors
-import matplotlib.colorbar
-import matplotlib.cm
-import matplotlib.collections
+# We only get imported if matplotlib was imported successfully
 
 def ClusterFilePlot(cls, x, y, xlog=None, ylog=None, fig=None, filename=None,
                     format="png", xbounds = None, ybounds = None):
@@ -268,6 +258,7 @@ class VMPlot(RavenPlot):
                         (x0, x1, y0, y1),).transpose()
         return buff
 
+    @print_tb
     def _redraw_image(self, *args):
         self._axes.clear() # To help out the colorbar
         buff = self._get_buff()
@@ -507,6 +498,7 @@ class PhasePlot(RavenPlot):
             self.colorbar.set_norm(self.norm)
             self.colorbar.formatter = ttype()
 
+    @print_tb
     def _redraw_image(self):
         vals = self.data[self.fields[2]].transpose()
         used_bin = self.data["UsedBins"].transpose()
@@ -556,186 +548,3 @@ class PhasePlot(RavenPlot):
         self["Field1"] = self.axis_names["X"]
         self["Field2"] = self.axis_names["Y"]
         self["Field3"] = self.axis_names["Z"]
-
-def quiverCallback(field_x, field_y, axis, factor):
-    def runCallback(plot):
-        x0, x1 = plot.xlim
-        y0, y1 = plot.ylim
-        xx0, xx1 = plot._axes.get_xlim()
-        yy0, yy1 = plot._axes.get_ylim()
-        plot._axes.hold(True)
-        numPoints_x = plot.image._A.shape[0] / factor
-        numPoints_y = plot.image._A.shape[1] / factor
-        pixX = _MPL.Pixelize(plot.data['px'],
-                             plot.data['py'],
-                             plot.data['pdx'],
-                             plot.data['pdy'],
-                             plot.data[field_x],
-                             int(numPoints_x), int(numPoints_y),
-                           (x0, x1, y0, y1),).transpose()
-        pixY = _MPL.Pixelize(plot.data['px'],
-                             plot.data['py'],
-                             plot.data['pdx'],
-                             plot.data['pdy'],
-                             plot.data[field_y],
-                             int(numPoints_x), int(numPoints_y),
-                           (x0, x1, y0, y1),).transpose()
-        X = na.mgrid[0:plot.image._A.shape[0]-1:numPoints_x*1j]# + 0.5*factor
-        Y = na.mgrid[0:plot.image._A.shape[1]-1:numPoints_y*1j]# + 0.5*factor
-        plot._axes.quiver(X,Y, pixX, -pixY)
-        plot._axes.set_xlim(xx0,xx1)
-        plot._axes.set_ylim(yy0,yy1)
-        plot._axes.hold(False)
-    return runCallback
-
-def particleCallback(axis, width, p_size=1.0, col='k'):
-    field_x = "particle_position_%s" % lagos.axis_names[lagos.x_dict[axis]]
-    field_y = "particle_position_%s" % lagos.axis_names[lagos.y_dict[axis]]
-    field_z = "particle_position_%s" % lagos.axis_names[axis]
-    def runCallback(plot):
-        z0 = plot.data.center[axis] - width/2.0
-        z1 = plot.data.center[axis] + width/2.0
-        grids = plot.data._grids
-        particles_x = na.concatenate([g[field_x] for g in grids]).ravel()
-        particles_y = na.concatenate([g[field_y] for g in grids]).ravel()
-        particles_z = na.concatenate([g[field_z] for g in grids]).ravel()
-        if len(particles_x) == 0: return
-        x0, x1 = plot.xlim
-        y0, y1 = plot.ylim
-        xx0, xx1 = plot._axes.get_xlim()
-        yy0, yy1 = plot._axes.get_ylim()
-        # Now we rescale because our axes limits != data limits
-        goodI = na.where( (particles_x < x1) & (particles_x > x0)
-                        & (particles_y < y1) & (particles_y > y0)
-                        & (particles_z < z1) & (particles_z > z0))
-        particles_x = (particles_x[goodI] - x0) * (xx1-xx0)/(x1-x0)
-        particles_y = (particles_y[goodI] - y0) * (yy1-yy0)/(y1-y0)
-        plot._axes.hold(True)
-        plot._axes.scatter(particles_x, particles_y, edgecolors='None',
-                          s=p_size, c=col)
-        plot._axes.set_xlim(xx0,xx1)
-        plot._axes.set_ylim(yy0,yy1)
-        plot._axes.hold(False)
-    return runCallback
-
-def contourCallback(field, ncont=5, factor=4, take_log=False, clim=None):
-    try:
-        import delaunay as de
-    except ImportError:
-        mylog.warning("Callback failed; no delaunay module")
-        return lambda a: None
-    if take_log and clim is not None: clim = (na.log10(clim[0]), na.log10(clim[1]))
-    if clim is not None: ncont = na.linspace(clim[0], clim[1], ncont)
-    def runCallback(plot):
-        x0, x1 = plot.xlim
-        y0, y1 = plot.ylim
-        xx0, xx1 = plot._axes.get_xlim()
-        yy0, yy1 = plot._axes.get_ylim()
-        plot._axes.hold(True)
-        numPoints_x = plot.image._A.shape[0]
-        numPoints_y = plot.image._A.shape[1]
-        dx = plot.image._A.shape[0] / (x1-x0)
-        dy = plot.image._A.shape[1] / (y1-y0)
-        xlim = na.logical_and(plot.data["px"] >= x0*0.9,
-                              plot.data["px"] <= x1*1.1)
-        ylim = na.logical_and(plot.data["py"] >= y0*0.9,
-                              plot.data["py"] <= y1*1.1)
-        wI = na.where(na.logical_and(xlim,ylim))
-        xi, yi = na.mgrid[0:numPoints_x:numPoints_x/(factor*1j),\
-                          0:numPoints_y:numPoints_y/(factor*1j)]
-        x = (plot.data["px"][wI]-x0)*dx
-        y = (plot.data["py"][wI]-y0)*dy
-        z = plot.data[field][wI]
-        if take_log: z=na.log10(z)
-        zi = de.Triangulation(x,y).nn_interpolator(z)(xi,yi)
-        print ncont, zi.min(), zi.max()
-        plot._axes.contour(xi,yi,zi,ncont,colors='k')
-        plot._axes.set_xlim(xx0,xx1)
-        plot._axes.set_ylim(yy0,yy1)
-        plot._axes.hold(False)
-    return runCallback
-
-def gridBoundaryCallback(alpha=1.0, min_pix = 1):
-    def runCallback(plot):
-        x0, x1 = plot.xlim
-        y0, y1 = plot.ylim
-        dx = plot.image._A.shape[0] / (x1-x0)
-        dy = plot.image._A.shape[1] / (y1-y0)
-        GLE = plot.data.gridLeftEdge
-        GRE = plot.data.gridRightEdge
-        px_index = lagos.x_dict[plot.data.axis]
-        py_index = lagos.y_dict[plot.data.axis]
-        left_edge_px = (GLE[:,px_index]-x0)*dx
-        left_edge_py = (GLE[:,py_index]-y0)*dy
-        right_edge_px = (GRE[:,px_index]-x0)*dx
-        right_edge_py = (GRE[:,py_index]-y0)*dy
-        verts = na.array(
-                [(left_edge_px, left_edge_px, right_edge_px, right_edge_px),
-                 (left_edge_py, right_edge_py, right_edge_py, left_edge_py)])
-        visible =  ( right_edge_px - left_edge_px > min_pix ) & \
-                   ( right_edge_px - left_edge_px > min_pix )
-        verts=verts.transpose()[visible,:,:]
-        edgecolors = (0.0,0.0,0.0,alpha)
-        grid_collection = matplotlib.collections.PolyCollection(
-                verts, facecolors=(0.0,0.0,0.0,0.0),
-                       edgecolors=edgecolors)
-        plot._axes.hold(True)
-        plot._axes.add_collection(grid_collection)
-        plot._axes.hold(False)
-    return runCallback
-
-def get_smallest_appropriate_unit(v, pf):
-    max_nu = 1e30
-    good_u = None
-    for unit in ['mpc','kpc','pc','au','rsun','cm']:
-        vv = v*pf[unit]
-        if vv < max_nu and vv > 1.0:
-            good_u = unit
-            max_nu = v*pf[unit]
-    return good_u
-
-def unitBoundaryCallback(unit = "au", factor=4, text_annotate=True, text_which=-2):
-    def runCallback(plot):
-        x0, x1 = plot.xlim
-        y0, y1 = plot.ylim
-        l, b, width, height = plot._axes.bbox.get_bounds()
-        xi = lagos.x_dict[plot.data.axis]
-        yi = lagos.y_dict[plot.data.axis]
-        dx = plot.image._A.shape[0] / (x1-x0)
-        dy = plot.image._A.shape[1] / (y1-y0)
-        center = plot.data.center
-        min_dx = plot.data['pdx'].min()
-        max_dx = plot.data['pdx'].max()
-        w_min_x = 250.0 * min_dx
-        w_max_x = 1.0 / factor
-        min_exp_x = na.ceil(na.log10(w_min_x*plot.data.pf[unit])/na.log10(factor))
-        max_exp_x = na.floor(na.log10(w_max_x*plot.data.pf[unit])/na.log10(factor))
-        n_x = max_exp_x - min_exp_x + 1
-        widths = na.logspace(min_exp_x, max_exp_x, num = n_x, base=factor)
-        widths /= plot.data.pf[unit]
-        left_edge_px = (center[xi] - widths/2.0 - x0)*dx
-        left_edge_py = (center[yi] - widths/2.0 - y0)*dy
-        right_edge_px = (center[xi] + widths/2.0 - x0)*dx
-        right_edge_py = (center[yi] + widths/2.0 - y0)*dy
-        verts = na.array(
-                [(left_edge_px, left_edge_px, right_edge_px, right_edge_px),
-                 (left_edge_py, right_edge_py, right_edge_py, left_edge_py)])
-        visible =  ( right_edge_px - left_edge_px > 25 ) & \
-                   ( right_edge_px - left_edge_px > 25 ) & \
-                   ( (right_edge_px < width) & (left_edge_px > 0) ) & \
-                   ( (right_edge_py < height) & (left_edge_py > 0) )
-        verts=verts.transpose()[visible,:,:]
-        grid_collection = matplotlib.collections.PolyCollection(
-                verts, facecolors=(0.0,0.0,0.0,0.0),
-                       edgecolors = (0.0,0.0,0.0,1.0),
-                       linewidths=2.5)
-        plot._axes.hold(True)
-        plot._axes.add_collection(grid_collection)
-        if text_annotate:
-            ti = max(text_which, -1*len(widths[visible]))
-            w = widths[visible][ti]
-            good_u = get_smallest_appropriate_unit(w, plot.data.pf)
-            w *= plot.data.pf[good_u]
-            plot._axes.annotate("%0.3e %s" % (w,good_u), verts[ti,1,:]+5)
-        plot._axes.hold(False)
-    return runCallback

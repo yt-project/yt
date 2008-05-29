@@ -38,6 +38,16 @@ try:
 except:
     mylog.warning("Deliverator import failed; all deliverator actions will fail!")
 
+import matplotlib.image
+import matplotlib.ticker
+import matplotlib.axes
+import matplotlib.figure
+import matplotlib._image
+import matplotlib.colors
+import matplotlib.colorbar
+import matplotlib.cm
+import matplotlib.collections
+
 import time, types, string, os
 
 # @todo: Get rid of these
@@ -49,9 +59,11 @@ vm_axis_names = {0:'x', 1:'y', 2:'z', 3:'dx', 4:'dy'}
 from ColorMaps import raven_colormaps, add_cmap
 
 import PlotTypes
-import PlotTypes as be
+be = PlotTypes
 
-color_maps = PlotTypes.matplotlib.cm.cmapnames + raven_colormaps.keys()
+from Callbacks import *
+
+color_maps = matplotlib.cm.cmapnames + raven_colormaps.keys()
 
 from PlotCollection import *
 from PlotConfig import *
