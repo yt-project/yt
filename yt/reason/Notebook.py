@@ -432,8 +432,6 @@ class VMPlotPage(PlotPage):
         self.SetSizer(self.sizer)
         self.Fit()
 
-        self.ChangeWidth(1,"1")
-
     def ChangeColorMapFromMessage(self, message):
         PlotPage.ChangeColorMapFromMessage(self, message)
         self.UpdateWidth()
@@ -560,7 +558,7 @@ class VMPlotPage(PlotPage):
 
     def ChangeWidth(self, width, unit):
         self.plot.set_width(width, unit)
-        self.UpdateCanvas()
+        self.UpdateCanvas(only_fig=True)
 
     def UpdateUnit(self, event=None):
         pos = self.widthSlider.GetValue()
@@ -640,7 +638,7 @@ class VMPlotPage(PlotPage):
 
     def set_width(self, *args):
         w, u = Toolbars.ChooseWidth(self.outputfile)
-        self.ChangeWidth(w,u)
+        #self.ChangeWidth(w,u) # Do we need this?
         Publisher().sendMessage(('viewchange','width'), (w,u))
 
     def ChangeFieldFromMessage(self, message):
@@ -657,9 +655,9 @@ class VMPlotPage(PlotPage):
         self.ChangeField(field)
         Publisher().sendMessage(('viewchange','field'), field)
 
-    def UpdateCanvas(self, *args):
+    def UpdateCanvas(self, only_fig=False):
         if self.IsShown():
-            self.plot._redraw_image()
+            if not only_fig: self.plot._redraw_image()
             self.figure_canvas.draw()
         #else: print "Opting not to update canvas"
 
@@ -815,9 +813,9 @@ class PhasePlotPage(PlotPage):
         self.plot.switch_z(self.z_field.GetStringSelection())
         self.UpdateCanvas()
 
-    def UpdateCanvas(self, *args):
+    def UpdateCanvas(self, only_fig=False):
         if self.IsShown():
-            self.plot._redraw_image()
+            if not only_fig: self.plot._redraw_image()
             self.figure_canvas.draw()
         #else: print "Opting not to update canvas"
 

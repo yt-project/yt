@@ -341,7 +341,7 @@ class ReasonMainWindow(wx.Frame):
                 MyID)
             self._add_data_object("Proj: %s %s" % (data_object, ax),
                                self.windows[-1].plot.data,
-                               _ProjObjectMenuItems)
+                               _ProjObjectMenuItems, parent_id)
             print "Adding with ID:", MyID
         for w in self.windows[-3:]: w.ChangeWidth(1,'1')
         proj_setup.Destroy()
@@ -363,7 +363,7 @@ class ReasonMainWindow(wx.Frame):
                 MyID)
             self._add_data_object("Slice: %s %s" % (data_object, ax),
                                self.windows[-1].plot.data,
-                               _SliceObjectMenuItems)
+                               _SliceObjectMenuItems, parent_id)
         for w in self.windows[-3:]: w.ChangeWidth(1,'1')
 
     def __add_cutting_wrapper(self, parameter_file, normal):
@@ -371,6 +371,7 @@ class ReasonMainWindow(wx.Frame):
 
     def _add_cutting(self, event=None, parameter_file = None, normal=None,
                      center = None):
+        parent_id = None
         if parameter_file is None or normal is None or center is None:
             parent_id, data_object = self.get_output()
             data_object.set_field_parameter("bulk_velocity",
@@ -391,7 +392,7 @@ class ReasonMainWindow(wx.Frame):
             "%s - Cutting Plane" % (parameter_file.basename), MyID)
         self._add_data_object("Cutting Plane" % (parameter_file),
                               self.windows[-1].plot.data,
-                              _CuttingPlaneObjectMenuItems)
+                              _CuttingPlaneObjectMenuItems, parent_id)
         self.windows[-1].ChangeWidth(1,'1')
 
     def get_output(self, event=None):

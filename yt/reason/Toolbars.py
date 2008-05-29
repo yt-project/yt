@@ -100,24 +100,38 @@ class ReasonWidthSelectionWindow(wx.Dialog):
                  text="Choose the width you would like"):
         wx.Dialog.__init__(self, None, -1, title,
                            size=wx.Size(300,300))
+        hsizer = wx.BoxSizer(wx.HORIZONTAL)
         self.sizer = wx.BoxSizer(wx.VERTICAL)
+        hsizer.AddSpacer(10)
+        hsizer.Add(self.sizer, 1, wx.EXPAND)
+        hsizer.AddSpacer(10)
+
         text = wx.StaticText(self, -1, text)
+        self.sizer.AddSpacer(10)
         self.sizer.Add(text, 1)
+        self.sizer.AddSpacer(5)
 
         self.width = wx.TextCtrl(self, -1, "1")
         self.width.SetInsertionPoint(0)
-        self.sizer.Add(self.width, 1)
+        self.sizer.Add(self.width, 1, wx.EXPAND)
+        self.sizer.AddSpacer(5)
 
         self.choices = outputfile.units.keys()
         self.choices.sort()
         self.units = wx.Choice(self, -1, (85,25), choices=self.choices)
-        self.sizer.Add(self.units, 1)
+        self.sizer.Add(self.units, 1, wx.EXPAND)
+        self.sizer.AddSpacer(5)
 
+        self.cancel = wx.Button(self, wx.ID_CANCEL, "Cancel")
         self.ok = wx.Button(self, wx.ID_OK, "OK")
-        self.sizer.Add(self.ok, 1)
+        buttonsizer = wx.BoxSizer(wx.HORIZONTAL)
+        buttonsizer.Add(self.cancel, 0)
+        buttonsizer.Add(self.ok, 0)
+        self.sizer.Add(buttonsizer, 1, wx.EXPAND)
+        self.sizer.AddSpacer(10)
         self.ok.SetDefault()
 
-        self.SetSizer(self.sizer)
+        self.SetSizer(hsizer)
         self.Fit()
 
     def GetData(self):
@@ -155,8 +169,8 @@ def GetAngularMomentumVector(outputfile, center):
 def GetBulkVelocity(outputfile, center):
     dlg = ReasonWidthSelectionWindow(outputfile,
                 "Radius Selector",
-            "With the current display-center, over \n" + \
-            "what radius should bulk velocity be calculated?")
+            "With the current display-center, over what\n" + \
+            "radius should bulk velocity be calculated?")
     resp = dlg.ShowModal()
     bv = None
     if resp == wx.ID_OK:
