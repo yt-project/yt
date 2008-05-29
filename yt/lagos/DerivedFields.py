@@ -130,6 +130,7 @@ class DerivedField:
                  units = "", projected_units = "",
                  take_log = True, validators = None,
                  particle_type = False, vector_field=False,
+                 display_field = True,
                  projection_conversion = "cm"):
         self.name = name
         self._function = function
@@ -146,6 +147,7 @@ class DerivedField:
         self.particle_type = particle_type
         self.vector_field = vector_field
         self.projection_conversion = projection_conversion
+        self.display_field = display_field
     def check_available(self, data):
         for validator in self.validators:
             validator(data)
@@ -238,24 +240,24 @@ class ValidateSpatial(FieldValidator):
 def _dx(field, data):
     return data.dx
     return na.ones(data.ActiveDimensions, dtype='float64') * data.dx
-add_field('dx', validators=[ValidateSpatial(0)])
+add_field('dx', display_field=False, validators=[ValidateSpatial(0)])
 
 def _dy(field, data):
     return data.dy
     return na.ones(data.ActiveDimensions, dtype='float64') * data.dy
-add_field('dy', validators=[ValidateSpatial(0)])
+add_field('dy', display_field=False, validators=[ValidateSpatial(0)])
 
 def _dz(field, data):
     return data.dz
     return na.ones(data.ActiveDimensions, dtype='float64') * data.dz
-add_field('dz', validators=[ValidateSpatial(0)])
+add_field('dz', display_field=False, validators=[ValidateSpatial(0)])
 
 def _coordX(field, data):
     dim = data.ActiveDimensions[0]
     return (na.ones(data.ActiveDimensions, dtype='float64')
                    * na.arange(data.ActiveDimensions[0]).reshape(dim,1,1)
             +0.5) * data['dx'] + data.LeftEdge[0]
-add_field('x', function=_coordX,
+add_field('x', function=_coordX, display_field=False,
           validators=[ValidateSpatial(0)])
 
 def _coordY(field, data):
@@ -263,7 +265,7 @@ def _coordY(field, data):
     return (na.ones(data.ActiveDimensions, dtype='float64')
                    * na.arange(data.ActiveDimensions[1]).reshape(1,dim,1)
             +0.5) * data['dy'] + data.LeftEdge[1]
-add_field('y', function=_coordY,
+add_field('y', function=_coordY, display_field=False,
           validators=[ValidateSpatial(0)])
 
 def _coordZ(field, data):
@@ -271,7 +273,7 @@ def _coordZ(field, data):
     return (na.ones(data.ActiveDimensions, dtype='float64')
                    * na.arange(data.ActiveDimensions[2]).reshape(1,1,dim)
             +0.5) * data['dz'] + data.LeftEdge[2]
-add_field('z', function=_coordZ,
+add_field('z', function=_coordZ, display_field=False,
           validators=[ValidateSpatial(0)])
 
 
@@ -307,12 +309,14 @@ add_field("GridIndices", validators=[#ValidateProperty('id'),
 def _OnesOverDx(field, data):
     return na.ones(data["Density"].shape,
                    dtype=data["Density"].dtype)/data['dx']
-add_field("OnesOverDx")
+add_field("OnesOverDx", display_field=False)
 
 def _Ones(field, data):
     return na.ones(data.ActiveDimensions, dtype='float64')
-add_field("Ones", validators=[ValidateSpatial(0)], projection_conversion="1")
-add_field("CellsPerBin", function=_Ones, validators=[ValidateSpatial(0)])
+add_field("Ones", validators=[ValidateSpatial(0)], projection_conversion="1",
+          display_field = False)
+add_field("CellsPerBin", function=_Ones, validators=[ValidateSpatial(0)],
+          display_field = False)
 
 def _SoundSpeed(field, data):
     return ( data.pf["Gamma"]*data["Pressure"] / \
@@ -345,6 +349,9 @@ for pf in ["creation_time", "dynamical_time", "metallicity_fraction"]:
               particle_type=True)
 add_field("particle mass", function=particle_func("particle_mass"),
           validators=[ValidateSpatial(0)], particle_type=True)
+
+add_field("Dark matter density", function=lambda a,b:None,
+          display_field=False)
 
 def _ParticleMass(field, data):
     particles = data["particle_mass"].astype('float64') * \
@@ -446,11 +453,11 @@ def _convertHeightAU(data):
     return data.convert("au")
 add_field("Height", convert_function=_convertHeight,
           validators=[ValidateParameter("height_vector")],
-          units=r"cm")
+          units=r"cm", display_field=False)
 add_field("HeightAU", function=_Height,
           convert_function=_convertHeightAU,
           validators=[ValidateParameter("height_vector")],
-          units=r"AU")
+          units=r"AU", display_field=False)
 
 def _DiskAngle(field, data):
     # We make both r_vec and h_vec into unit vectors
@@ -466,7 +473,8 @@ def _DiskAngle(field, data):
     return na.arccos(dp)
 add_field("DiskAngle", take_log=False,
           validators=[ValidateParameter("height_vector"),
-                      ValidateParameter("center")])
+                      ValidateParameter("center")],
+          display_field=False)
 
 def _DynamicalTime(field, data):
     """
@@ -640,8 +648,10 @@ add_field("DivV", validators=[ValidateSpatial(1,
 
 def _Contours(field, data):
     return na.ones(data["Density"].shape)*-1
-add_field("Contours", validators=[ValidateSpatial(0)], take_log=False)
-add_field("tempContours", function=_Contours, validators=[ValidateSpatial(0)], take_log=False)
+add_field("Contours", validators=[ValidateSpatial(0)], take_log=False,
+          display_field=False)
+add_field("tempContours", function=_Contours, validators=[ValidateSpatial(0)],
+          take_log=False, display_field=False)
 
 def _SpecificAngularMomentum(field, data):
     """

@@ -673,7 +673,7 @@ class VMPlotPage(PlotPage):
         #self.UpdateWidth()
 
     def QueryFields(self):
-        return QueryFields(self.outputfile)
+        return QueryFields(self.outputfile, True)
 
 class SlicePlotPage(VMPlotPage):
     def makePlot(self):

@@ -214,7 +214,7 @@ class ProjectionSetup(wx.Dialog):
     def __init__(self, data_object, parent):
         wx.Dialog.__init__(self, parent, -1, title="Setup Projection")
 
-        fields = QueryFields(data_object)
+        fields = QueryFields(data_object, True)
         
         border = wx.BoxSizer(wx.VERTICAL)
         gbs = wx.GridBagSizer(5, 5)

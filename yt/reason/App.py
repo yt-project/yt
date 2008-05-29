@@ -258,11 +258,12 @@ class ReasonMainWindow(wx.Frame):
         ni = self.data_tree.AppendItem(self.output_root, "%s" % (eso.basename), data=tid)
         self.data_tree.Expand(self.output_root)
 
-    def _add_data_object(self, title, object, mids):
+    def _add_data_object(self, title, object, mids, parent_id = None):
         self.data_objects.append(object)
         tid = wx.TreeItemData((object, title, len(self.data_objects), mids))
-        ni = self.data_tree.AppendItem(self.data_root, "%s" % (title), data=tid)
-        self.data_tree.Expand(self.data_root)
+        if parent_id is None: parent_id = self.data_root
+        ni = self.data_tree.AppendItem(parent_id, "%s" % (title), data=tid)
+        self.data_tree.Expand(parent_id)
 
     def _add_sphere(self, title, sphere):
         # These all get passed in

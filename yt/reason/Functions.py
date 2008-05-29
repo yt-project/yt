@@ -26,10 +26,13 @@ but not any subclassing of window objects.
 
 from yt.reason import *
 
-def QueryFields(outputfile):
+def QueryFields(outputfile, only_display_fields = False):
     fields = []
     for f in outputfile.hierarchy.derived_field_list:
         if f in lagos.fieldInfo and lagos.fieldInfo[f].particle_type: continue
+        if only_display_fields and \
+            f in lagos.fieldInfo and \
+            not lagos.fieldInfo[f].display_field: continue
         fields.append(f)
     return sorted(fields)
 
