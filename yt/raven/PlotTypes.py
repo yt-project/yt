@@ -258,7 +258,6 @@ class VMPlot(RavenPlot):
                         (x0, x1, y0, y1),).transpose()
         return buff
 
-    @print_tb
     def _redraw_image(self, *args):
         self._axes.clear() # To help out the colorbar
         buff = self._get_buff()
@@ -498,7 +497,6 @@ class PhasePlot(RavenPlot):
             self.colorbar.set_norm(self.norm)
             self.colorbar.formatter = ttype()
 
-    @print_tb
     def _redraw_image(self):
         vals = self.data[self.fields[2]].transpose()
         used_bin = self.data["UsedBins"].transpose()
