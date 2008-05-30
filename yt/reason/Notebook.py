@@ -324,8 +324,18 @@ class PlotPage(wx.Panel):
             path = dlg.GetPath()
             orig_size = self.figure.get_size_inches()
             self.figure.set_size_inches((10,8))
-            self.figure_canvas.print_figure(path,format='png')
+            width = self.figure.get_dpi()*8.0
+            buff = self.plot._get_buff(width=width)
+            self.plot._axes.images[0].set_data(buff)
+            self.plot._axes.set_xlim(-0.5,width-0.5)
+            self.plot._axes.set_ylim(-0.5,width-0.5)
+            self.UpdateCanvas(only_fig=True)
+            self.figure_canvas.print_figure(path,format='png',
+                                            dpi=self.figure.get_dpi())
+            # We leave the higher-resolution buffer in there
+            self.figure.savefig(path,format='png')
             self.figure.set_size_inches(orig_size)
+            self.UpdateCanvas(only_fig=True)
         dlg.Destroy()
 
     def SetupFigure(self):

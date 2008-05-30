@@ -242,10 +242,13 @@ class VMPlot(RavenPlot):
             self.colorbar = None
         self.set_width(1,'1')
 
-    def _get_buff(self):
+    def _get_buff(self, width=None):
         x0, x1 = self.xlim
         y0, y1 = self.ylim
-        l, b, width, height = self._axes.bbox.get_bounds()
+        if width is None:
+            l, b, width, height = self._axes.bbox.get_bounds()
+        else:
+            height = width
         self.pix = (width,height)
         # 'px' == pixel x, or x in the plane of the slice
         # 'x' == actual x
@@ -390,11 +393,16 @@ class ProjectionPlot(VMPlot):
         if self.colorbar != None: self.colorbar.set_label(str(data_label))
 
 class CuttingPlanePlot(SlicePlot):
+
     _type_name = "CuttingPlane"
-    def _get_buff(self):
+
+    def _get_buff(self, width=None):
         px_min, px_max = self.xlim
         py_min, py_max = self.ylim
-        l, b, width, height = self._axes.bbox.get_bounds()
+        if width is None:
+            l, b, width, height = self._axes.bbox.get_bounds()
+        else:
+            height = width
         self.pix = (width,height)
         indices = na.argsort(self.data['dx'])[::-1]
         buff = _MPL.CPixelize( self.data['x'], self.data['y'], self.data['z'],
