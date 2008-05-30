@@ -28,10 +28,12 @@ from yt.raven import *
 import _MPL
 
 class PlotCallback(object):
-    pass
+    def __init__(self, *args, **kwargs):
+        pass
 
 class QuiverCallback(PlotCallback):
     def __init__(self, field_x, field_y, axis, factor):
+        PlotCallback.__init__(self)
         self.field_x = field_x
         self.field_y = field_y
         self.axis = axis
@@ -68,6 +70,7 @@ class QuiverCallback(PlotCallback):
 
 class ParticleCallback(PlotCallback):
     def __init__(self, axis, width, p_size=1.0, col='k'):
+        PlotCallback.__init__(self)
         self.axis = axis
         self.width = width
         self.p_size = p_size
@@ -103,6 +106,7 @@ class ParticleCallback(PlotCallback):
 
 class ContourCallback(PlotCallback):
     def __init__(self, field, ncont=5, factor=4, take_log=False, clim=None):
+        PlotCallback.__init__(self)
         self.factor = factor
         self.take_log = take_log
         try:
@@ -143,6 +147,7 @@ class ContourCallback(PlotCallback):
 
 class GridBoundaryCallback(PlotCallback):
     def __init__(self, alpha=1.0, min_pix = 1):
+        PlotCallback.__init__(self)
         self.alpha = alpha
         self.min_pix = min_pix
 
@@ -185,6 +190,7 @@ def get_smallest_appropriate_unit(v, pf):
 
 class UnitBoundaryCallback(PlotCallback):
     def __init__(self, unit = "au", factor=4, text_annotate=True, text_which=-2):
+        PlotCallback.__init__(self)
         self.unit = unit
         self.factor = factor
         self.text_annotate = text_annotate
@@ -224,7 +230,7 @@ class UnitBoundaryCallback(PlotCallback):
         verts=verts.transpose()[visible,:,:]
         grid_collection = matplotlib.collections.PolyCollection(
                 verts, facecolors=(0.0,0.0,0.0,0.0),
-                       edgecolors = (0.0,0.0,0.0,1.0),
+                       edgecolors=(0.0,0.0,0.0,1.0),
                        linewidths=2.5)
         plot._axes.hold(True)
         plot._axes.add_collection(grid_collection)
@@ -234,4 +240,17 @@ class UnitBoundaryCallback(PlotCallback):
             good_u = get_smallest_appropriate_unit(w, plot.data.pf)
             w *= plot.data.pf[good_u]
             plot._axes.annotate("%0.3e %s" % (w,good_u), verts[ti,1,:]+5)
+        plot._axes.hold(False)
+
+class LinePlotCallback(PlotCallback):
+    def __init__(self, x, y, plot_args = None):
+        PlotCallback.__init__(self)
+        self.x = x
+        self.y = y
+        if plot_args is None: plot_args = {}
+        self.plot_args = plot_args
+
+    def __call__(self, plot):
+        plot._axes.hold(True)
+        plot._axes.plot(self.x, self.y, **self.plot_args)
         plot._axes.hold(False)

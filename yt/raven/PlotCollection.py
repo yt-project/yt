@@ -169,8 +169,8 @@ class PlotCollection:
         profile.pf = self.pf
         profile.hierarchy = self.pf.hierarchy
         if id is None: id = self._get_new_id()
-        p = self._add_plot(PlotTypes.NewPhasePlot(profile, fields, 
-                                                  id, cmap=cmap))
+        p = self._add_plot(PlotTypes.PhasePlot(profile, fields, 
+                                               id, cmap=cmap))
         return p
 
     def _get_new_id(self):

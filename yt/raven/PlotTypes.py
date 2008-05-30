@@ -545,6 +545,7 @@ class PhasePlot(RavenPlot):
         self.autoset_label(self.fields[0], self._axes.set_xlabel)
         self.autoset_label(self.fields[1], self._axes.set_ylabel)
         self.autoset_label(self.fields[2], self.colorbar.set_label)
+        self._run_callbacks()
 
     def _generate_prefix(self, prefix):
         self.prefix = "_".join([prefix, self._type_name,
