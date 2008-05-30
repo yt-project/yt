@@ -642,7 +642,7 @@ class EnzoCuttingPlaneBase(Enzo2DData):
     def _generate_grid_coords(self, grid):
         pointI = self._get_point_indices(grid)
         coords = [grid[ax][pointI].ravel() for ax in 'xyz']
-        coords.append(na.ones(coords[0].shape, 'float64') * grid['dx'])
+        coords.append(na.ones(coords[0].shape, 'float64') * just_one(grid['dx']))
         return na.array(coords).swapaxes(0,1)
 
     def _get_data_from_grid(self, grid, field):
