@@ -130,7 +130,7 @@ class DerivedField:
                  units = "", projected_units = "",
                  take_log = True, validators = None,
                  particle_type = False, vector_field=False,
-                 display_field = True,
+                 display_field = True, not_in_all=False,
                  projection_conversion = "cm"):
         self.name = name
         self._function = function
@@ -148,6 +148,7 @@ class DerivedField:
         self.vector_field = vector_field
         self.projection_conversion = projection_conversion
         self.display_field = display_field
+        self.not_in_all = not_in_all
     def check_available(self, data):
         for validator in self.validators:
             validator(data)
@@ -350,8 +351,10 @@ for pf in ["creation_time", "dynamical_time", "metallicity_fraction"]:
 add_field("particle mass", function=particle_func("particle_mass"),
           validators=[ValidateSpatial(0)], particle_type=True)
 
-add_field("Dark matter density", function=lambda a,b:None,
-          display_field=False)
+add_field("Dark matter density", function=lambda a,b: None,
+          validators=[ValidateDataField("Dark matter density"),
+                      ValidateSpatial(0)],
+          not_in_all = True)
 
 def _ParticleMass(field, data):
     particles = data["particle_mass"].astype('float64') * \

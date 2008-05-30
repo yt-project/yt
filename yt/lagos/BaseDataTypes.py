@@ -297,6 +297,27 @@ class Enzo1DData(EnzoData, GridPropertiesMixin):
         else: # Can't find the field, try as it might
             raise exceptions.KeyError(field)
 
+    def get_data(self, fields=None, in_grids=False):
+        if self._grids == None:
+            self._get_list_of_grids()
+        points = []
+        #if not self.has_key('dx'):
+            #self._generate_coords()
+        if not fields:
+            fields_to_get = self.fields
+        else:
+            fields_to_get = ensure_list(fields)
+        mylog.debug("Going to obtain %s (%s)", fields_to_get, self.fields)
+        for field in fields_to_get:
+            if self.data.has_key(field):
+                continue
+            mylog.info("Getting field %s from %s", field, len(self._grids))
+            if field not in self.hierarchy.field_list and not in_grids:
+                if self._generate_field(field):
+                    continue # True means we already assigned it
+            self[field] = na.concatenate(
+                [self._get_data_from_grid(grid, field)
+                 for grid in self._grids])
 
 class EnzoOrthoRayBase(Enzo1DData):
     def __init__(self, axis, coords, fields=None, pf=None, **kwargs):
@@ -319,28 +340,6 @@ class EnzoOrthoRayBase(Enzo1DData):
                     & (self.py > self.pf.hierarchy.gridLeftEdge[:,self.py_ax])
                     & (self.py < self.pf.hierarchy.gridRightEdge[:,self.py_ax]))
         self._grids = self.hierarchy.grids[y]
-
-    def get_data(self, fields=None, in_grids=False):
-        if self._grids == None:
-            self._get_list_of_grids()
-        points = []
-        #if not self.has_key('dx'):
-            #self._generate_coords()
-        if not fields:
-            fields_to_get = self.fields
-        else:
-            fields_to_get = ensure_list(fields)
-        mylog.debug("Going to obtain %s (%s)", fields_to_get, self.fields)
-        for field in fields_to_get:
-            if self.data.has_key(field):
-                continue
-            mylog.info("Getting field %s from %s", field, len(self._grids))
-            if field not in self.hierarchy.field_list and not in_grids:
-                if self._generate_field(field):
-                    continue # True means we already assigned it
-            self[field] = na.concatenate(
-                [self._get_data_from_grid(grid, field)
-                 for grid in self._grids])
 
     def _get_data_from_grid(self, grid, field):
         # We are orthogonal, so we can feel free to make assumptions
@@ -545,7 +544,9 @@ class EnzoSliceBase(Enzo2DData):
         sl = tuple(sl)
         if fieldInfo.has_key(field) and fieldInfo[field].particle_type:
             return grid[field]
-        if not grid.has_key(field):
+        elif field in fieldInfo and fieldInfo[field].not_in_all:
+            dv = grid[field][sl]
+        elif not grid.has_key(field):
             conv_factor = 1.0
             if fieldInfo.has_key(field):
                 conv_factor = fieldInfo[field]._convert_function(self)
