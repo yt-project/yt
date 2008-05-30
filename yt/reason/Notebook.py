@@ -365,6 +365,8 @@ class VMPlotPage(PlotPage):
         self.popupmenu.AppendSeparator()
         self.grid_boundaries = self.popupmenu.AppendCheckItem(-1, "Show Grid Boundaries")
         self.grid_boundaries.Check(False)
+        self.particles = self.popupmenu.AppendCheckItem(-1, "Show particles")
+        self.particles.Check(False)
         self.velocities = self.popupmenu.AppendCheckItem(-1, "Show Velocities")
         self.velocities.Check(False)
         self.popupmenu.AppendSeparator()
@@ -376,6 +378,7 @@ class VMPlotPage(PlotPage):
         self.Bind(wx.EVT_MENU, self.OnCenterOnMax, self.center_on_max)
         self.Bind(wx.EVT_MENU, self.OnCenterHere, self.center_here)
         self.Bind(wx.EVT_MENU, self.show_grid_boundaries, self.grid_boundaries)
+        self.Bind(wx.EVT_MENU, self.show_particles, self.particles)
         self.Bind(wx.EVT_MENU, self.show_velocities, self.velocities)
         self.Bind(wx.EVT_MENU, self.take_log, self.take_log_menu)
         self.Bind(wx.EVT_MENU, self.fulldomain, fullDomain)
@@ -455,6 +458,7 @@ class VMPlotPage(PlotPage):
         else:
             self._grid_boundaries_cbid = \
                 self.plot.add_callback(raven.GridBoundaryCallback())
+        self.UpdateCanvas()
 
     _velocities_cbid = None
     def show_velocities(self, event):
@@ -466,6 +470,7 @@ class VMPlotPage(PlotPage):
             yv = "%s-velocity" % (lagos.axis_names[lagos.y_dict[self.axis]])
             self._velocities_cbid = \
                 self.plot.add_callback(raven.QuiverCallback(xv,yv,self.axis,20))
+        self.UpdateCanvas()
 
     _particles_cbid = None
     def show_particles(self, event):
@@ -474,7 +479,8 @@ class VMPlotPage(PlotPage):
             self._particles_cbid = None
         else:
             self._particles_cbid = \
-                self.plot.add_callback(raven.QuiverCallback(xv,yv,self.axis,20))
+                self.plot.add_callback(raven.ParticleCallback(self.axis, 1.0))
+        self.UpdateCanvas()
 
     def OnCenterHere(self, event):
         xp, yp = self.ContextMenuPosition
@@ -705,6 +711,7 @@ class CuttingPlanePlotPage(VMPlotPage):
         self.center_here.Enable(False)
         self.grid_boundaries.Enable(False)
         self.velocities.Enable(False)
+        self.particles.Enable(False)
 
 class PhasePlotPage(PlotPage):
     def __init__(self, parent, status_bar, data_object, argdict, mw=None, CreationID = -1):

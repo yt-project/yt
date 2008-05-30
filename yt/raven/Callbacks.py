@@ -77,8 +77,8 @@ class ParticleCallback(PlotCallback):
         self.field_z = "particle_position_%s" % lagos.axis_names[axis]
 
     def __call__(self, plot):
-        z0 = plot.data.center[axis] - self.width/2.0
-        z1 = plot.data.center[axis] + self.width/2.0
+        z0 = plot.data.center[self.axis] - self.width/2.0
+        z1 = plot.data.center[self.axis] + self.width/2.0
         grids = plot.data._grids
         particles_x = na.concatenate([g[self.field_x] for g in grids]).ravel()
         particles_y = na.concatenate([g[self.field_y] for g in grids]).ravel()
