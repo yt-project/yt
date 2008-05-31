@@ -169,6 +169,15 @@ class BinnedProfile1D(BinnedProfile):
             inv_bin_indices[bin] = na.where(bin_indices == bin)
         return (mi, inv_bin_indices)
 
+    def write_out(self, filename, format="%0.16e"):
+        fid = open(filename,"w")
+        fields = [field for field in sorted(self._data.keys()) if field != "UsedBins"]
+        fid.write("\t".join(["#"] + fields + ["\n"]))
+        field_data = na.array([self._data[field] for field in fields])
+        for line in range(field_data.shape[1]):
+            field_data[:,line].tofile(fid, sep="\t", format=format)
+            fid.write("\n")
+        fid.close()
 
 class BinnedProfile2D(BinnedProfile):
     def __init__(self, data_source,
@@ -266,3 +275,19 @@ class BinnedProfile2D(BinnedProfile):
         bin_indices_y = na.digitize(sd_y, self[self.y_bin_field])
         # Now we set up our inverse bin indices
         return (mi, bin_indices_x, bin_indices_y)
+
+    def write_out(self, filename, format="%0.16e"):
+        fid = open(filename,"w")
+        fields = [field for field in sorted(self._data.keys()) if field != "UsedBins"]
+        fid.write("\t".join(["#"] + [self.x_bin_field, self.y_bin_field]
+                          + fields + ["\n"]))
+        x,y = na.meshgrid(self._data[self.y_bin_field],
+                          self._data[self.y_bin_field])
+        field_data = [x.ravel(), y.ravel()]
+        field_data += [self._data[field].ravel() for field in fields
+                       if field not in [self.x_bin_field, self.y_bin_field]]
+        field_data = na.array(field_data)
+        for line in range(field_data.shape[1]):
+            field_data[:,line].tofile(fid, sep="\t", format=format)
+            fid.write("\n")
+        fid.close()

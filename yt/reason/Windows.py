@@ -26,6 +26,148 @@ Standalone windows and other bits that don't fit elsewhere.
 
 from yt.reason import *
 
+class Profile1DAddField(wx.Dialog):
+    def __init__(self, data_object, parent):
+        wx.Dialog.__init__(self, parent, -1, title="Add Field to 1D Profile")
+
+        fields = [field for field in QueryFields(data_object)
+                  if field not in [parent.data.bin_field,
+                        parent.data.keys()]]
+        
+        border = wx.BoxSizer(wx.VERTICAL)
+        inner_border = wx.BoxSizer(wx.VERTICAL)
+
+        sbox = wx.StaticBox(self, -1, "Y Field Specifications")
+        box = wx.StaticBoxSizer(sbox, wx.VERTICAL)
+        gbs = wx.GridBagSizer(5, 5)
+        self.y_field = wx.Choice(self, -1, choices=fields, name="Y")
+        text = wx.StaticText(self, -1, "Weighting Field")
+        self.y_weight = wx.Choice(self, -1, choices=[''] + fields, name="Weight")
+        if "CellMassMsun" in fields: self.y_weight.Select(fields.index("CellMassMsun")+1)
+        self.y_accx = wx.CheckBox(self, -1, "X Accumulation")
+        self.y_accx.SetValue(False)
+
+        gbs.Add(self.y_field, (0,0), (1,2))
+        gbs.Add(text, (1,0))
+        gbs.Add(self.y_weight, (2,0), (1,2))
+        gbs.Add(self.y_accx, (3,0), (1,2))
+        box.Add(gbs, 1, wx.EXPAND | wx.ALL)
+        inner_border.Add(box, 1, wx.EXPAND)
+        inner_border.AddSpacer(15)
+
+        gbs = wx.GridBagSizer(5,5)
+        ok_button = wx.Button(self, wx.ID_OK, "OK")
+        ok_button.SetDefault()
+        cancel_button = wx.Button(self, wx.ID_CANCEL, "Cancel")
+        gbs.Add(ok_button, (1,0), flag=wx.EXPAND)
+        gbs.Add(cancel_button, (1,1), flag=wx.EXPAND)
+        inner_border.Add(gbs, 0, wx.EXPAND)
+        
+        border.Add(inner_border, 1, wx.EXPAND|wx.ALL, 25)
+        self.SetSizer(border)
+        self.Fit()
+
+    def return_argdict(self):
+        argdict = {}
+        try:
+            argdict['fields'] = str(self.y_field.GetStringSelection())
+            argdict['weight'] = str(self.y_weight.GetStringSelection())
+            argdict['accumulation'] = self.y_accx.GetValue()
+            if argdict['weight'] == '': argdict['weight'] = None
+        except ValueError:  
+            return None
+        return argdict
+
+class Profile1DSetup(wx.Dialog):
+    def __init__(self, data_object, parent):
+        wx.Dialog.__init__(self, parent, -1, title="Setup 1D Profile")
+
+        fields = QueryFields(data_object)
+        
+        border = wx.BoxSizer(wx.VERTICAL)
+        inner_border = wx.BoxSizer(wx.VERTICAL)
+
+        sbox = wx.StaticBox(self, -1, "X Field Specifications")
+        box = wx.StaticBoxSizer(sbox, wx.VERTICAL)
+        gbs = wx.GridBagSizer(5, 5)
+        self.x_field = wx.Choice(self, -1, choices=fields, name="X")
+        text = wx.StaticText(self, -1, "Bin Count")
+        self.x_bins = wx.TextCtrl(self, style=wx.TE_PROCESS_ENTER)
+        self.x_bins.SetValue('16')
+        self.x_bc = wx.CheckBox(self, -1, "Auto-bounds")
+        self.x_bc.SetValue(True)
+        self.Bind(wx.EVT_CHECKBOX, self.OnToggleXBounds, self.x_bc)
+        self.x_min = wx.TextCtrl(self, style=wx.TE_PROCESS_ENTER)
+        self.x_max = wx.TextCtrl(self, -1, style=wx.TE_PROCESS_ENTER)
+        self.x_log = wx.CheckBox(self, -1, "Take Log")
+        self.x_log.SetValue(True)
+
+        gbs.Add(self.x_field, (0,0), (1,2))
+        gbs.Add(text, (1,0))
+        gbs.Add(self.x_bins, (1,1))
+        gbs.Add(self.x_bc, (2,0))
+        gbs.Add(self.x_min, (2,1))
+        gbs.Add(self.x_max, (3,1))
+        gbs.Add(self.x_log, (4,0))
+        box.Add(gbs, 1, wx.EXPAND | wx.ALL)
+        inner_border.Add(box, 1, wx.EXPAND)
+        inner_border.AddSpacer(15)
+        
+        gbs = wx.GridBagSizer(5,5)
+        self.lazy_reader = wx.CheckBox(self, -1, "Memory Conservative")
+        self.Bind(wx.EVT_CHECKBOX, self.OnToggleLaziness, self.lazy_reader)
+        ok_button = wx.Button(self, wx.ID_OK, "OK")
+        ok_button.SetDefault()
+        cancel_button = wx.Button(self, wx.ID_CANCEL, "Cancel")
+        gbs.Add(self.lazy_reader, (0,0), (1,2), flag=wx.ALIGN_LEFT)
+        gbs.Add(ok_button, (1,0), flag=wx.EXPAND)
+        gbs.Add(cancel_button, (1,1), flag=wx.EXPAND)
+        inner_border.Add(gbs, 0, wx.EXPAND)
+        
+        self.OnToggleXBounds(None)
+
+        border.Add(inner_border, 1, wx.EXPAND|wx.ALL, 25)
+        self.SetSizer(border)
+        self.Fit()
+
+    def __toggle(self, b,mi,ma):
+        en = b.GetValue()
+        mi.Enable(not en)
+        ma.Enable(not en)
+        if en:
+            mi.SetValue("Min")
+            ma.SetValue("Max")
+        else:
+            mi.SetValue("")
+            ma.SetValue("")
+
+    def OnToggleLaziness(self, event):
+        if self.lazy_reader.GetValue():
+            if self.x_bc.GetValue():
+                self.x_bc.SetValue(False)
+                self.OnToggleXBounds(None)
+
+    def OnToggleXBounds(self, event):
+        self.__toggle(self.x_bc, self.x_min, self.x_max)
+
+    def return_argdict(self):
+        argdict = {}
+        try:
+            if self.lazy_reader.GetValue():
+                argdict['lazy_reader'] = True
+                argdict['lower_bound'] = float(self.x_min.GetValue())
+                argdict['upper_bound'] = float(self.x_max.GetValue())
+            else:
+                argdict['lazy_reader'] = False
+                argdict['lower_bound'] = None
+                argdict['upper_bound'] = None
+            argdict['log_space'] = self.x_log.GetValue()
+            argdict['n_bins'] = int(self.x_bins.GetValue())
+            argdict['bin_field'] = str(self.x_field.GetStringSelection())
+        except ValueError:  
+            return None
+        return argdict
+
 class Profile2DAddField(wx.Dialog):
     def __init__(self, data_object, parent):
         wx.Dialog.__init__(self, parent, -1, title="Add Field to 2D Profile")
@@ -211,6 +353,12 @@ class Profile2DSetup(wx.Dialog):
         except ValueError:  
             return None
         return argdict
+
+class ExtractSetSetup(wx.Dialog):
+    pass
+
+class ExtractCubeSetup(wx.Dialog):
+    pass
 
 class ProjectionSetup(wx.Dialog):
     def __init__(self, data_object, parent):

@@ -26,11 +26,12 @@ Main application for Reason.  Includes the basic window outline.
 
 from yt.reason import *
 
-_StaticOutputMenuItems = ["proj","slice"]
-_SphereObjectMenuItems = ["phase","cutting"]
-_ProjObjectMenuItems = []
+_StaticOutputMenuItems = ["proj","slice","export",]
+_SphereObjectMenuItems = ["phase","profile","cutting","export",]
+_ProjObjectMenuItems = ["export",]
 _SliceObjectMenuItems = []
-_CuttingPlaneObjectMenuItems = []
+_CuttingPlaneObjectMenuItems = ["export",]
+_ProfileObjectMenuItems = ["export",]
 
 class ReasonMainWindow(wx.Frame):
     def __init__(self, *args, **kwds):
@@ -54,6 +55,7 @@ class ReasonMainWindow(wx.Frame):
         self.__do_layout()
 
         Publisher().subscribe(self.MessagePageDeleted, ('page_deleted'))
+        self.Bind(wx.EVT_CLOSE, self.OnClose)
 
     def __setup_controls(self):
 
@@ -83,6 +85,7 @@ class ReasonMainWindow(wx.Frame):
                        'mainwindow':self,
                        'data_objects':self.data_objects,
                        'pylab':pylab,
+                       'add_profile':self.__add_profile_wrapper,
                        'add_phase':self.__add_phase_wrapper}
         wx.py.buffer.Buffer.updateNamespace = \
                 get_new_updateNamespace(self.locals)
@@ -120,13 +123,20 @@ class ReasonMainWindow(wx.Frame):
         self.PopupMenuIds["slice"] = self.PopupMenu.Append(-1, "Slice")
         self.PopupMenuIds["proj"] = self.PopupMenu.Append(-1, "Project")
         self.PopupMenuIds["phase"] = self.PopupMenu.Append(-1, "Phase Plot")
+        self.PopupMenuIds["profile"] = self.PopupMenu.Append(-1, "Profile Plot")
         self.PopupMenuIds["cutting"] = self.PopupMenu.Append(-1, "Cutting Plane")
         self.PopupMenuIds["extract"] = self.PopupMenu.Append(-1, "Extract Set")
+        self.PopupMenuIds["cube"] = self.PopupMenu.Append(-1, "Extract Cube")
+        self.PopupMenuIds["export"] = self.PopupMenu.Append(-1, "Export Data")
 
         self.Bind(wx.EVT_MENU, self._add_slice, self.PopupMenuIds["slice"])
         self.Bind(wx.EVT_MENU, self._add_proj, self.PopupMenuIds["proj"])
         self.Bind(wx.EVT_MENU, self._add_phase, self.PopupMenuIds["phase"])
+        self.Bind(wx.EVT_MENU, self._add_profile, self.PopupMenuIds["profile"])
         self.Bind(wx.EVT_MENU, self._add_cutting, self.PopupMenuIds["cutting"])
+        #self.Bind(wx.EVT_MENU, self._extract_set, self.PopupMenuIds["extract"])
+        #self.Bind(wx.EVT_MENU, self._extract_cube, self.PopupMenuIds["cube"])
+        self.Bind(wx.EVT_MENU, self._export_data_object, self.PopupMenuIds["export"])
 
     def __setup_data_tree(self):
 
@@ -253,6 +263,7 @@ class ReasonMainWindow(wx.Frame):
             z = str(eso["CosmologyCurrentRedshift"])
         except:
             z = "N/A"
+        mylog.info("Adding output %s", fn)
         tid = wx.TreeItemData((eso, str(eso["InitialTime"]), z, _StaticOutputMenuItems))
         self.outputs.append(eso)
         ni = self.data_tree.AppendItem(self.output_root, "%s" % (eso.basename), data=tid)
@@ -269,6 +280,12 @@ class ReasonMainWindow(wx.Frame):
         # These all get passed in
         self._add_data_object(title, sphere, _SphereObjectMenuItems)
 
+    def __add_profile_wrapper(self, obj):
+        """
+        Add a profile plot from an arbitrary object.
+        """
+        pass
+
     def __add_phase_wrapper(self, obj):
         """
         Add a phase plot from an arbitrary object.
@@ -282,8 +299,40 @@ class ReasonMainWindow(wx.Frame):
         wx.SafeYield(onlyIfNeeded = True)
         self.plot_panel.UpdateSubscriptions(page)
 
+    def _add_profile(self, event=None, data_object = None):
+        MyID = wx.NewId()
+        parent_id = None
+        if data_object is None: parent_id, data_object = self.get_output()
+        p1ds = Profile1DSetup(data_object, self)
+        if not p1ds.ShowModal() == wx.ID_OK:
+            p1ds.Destroy()
+            return
+        argdict = p1ds.return_argdict()
+        if argdict is None:
+            p1ds.Destroy()
+            return
+        if argdict['lower_bound']is None:
+           argdict['lower_bound']= \
+                self.__find_min(data_object, argdict['bin_field'])
+        if argdict['upper_bound'] is None:
+           argdict['upper_bound'] = \
+                self.__find_max(data_object, argdict['bin_field'])
+        self._add_page_to_notebook(
+            Profile1DPlotPage(parent=self.plot_panel.nb,
+                            status_bar=self.status_bar,
+                            data_object = data_object,
+                            argdict = argdict, CreationID = MyID,
+                            mw = self),
+            "Profile Plot %s" % MyID, MyID)
+        if parent_id is not None:
+            self._add_data_object("Profile: %s" % (argdict['bin_field']),
+                               self.windows[-1].plot.data,
+                               _ProfileObjectMenuItems, parent_id)
+
+
     def _add_phase(self, event=None, data_object = None):
         MyID = wx.NewId()
+        parent_id = None
         if data_object is None: parent_id, data_object = self.get_output()
         p2ds = Profile2DSetup(data_object, self)
         if not p2ds.ShowModal() == wx.ID_OK:
@@ -307,6 +356,12 @@ class ReasonMainWindow(wx.Frame):
                           argdict = argdict, CreationID = MyID,
                           mw = self),
             "Phase Plot %s" % MyID, MyID)
+        if parent_id is not None:
+            self.pid = parent_id
+            self._add_data_object("Phase: %s, %s" % (argdict['x_bin_field'],
+                                                 argdict['y_bin_field']),
+                               self.windows[-1].plot.data,
+                               _ProfileObjectMenuItems, parent_id)
 
     def __find_min(self, data_object, field):
         return data_object[field].min()
@@ -340,7 +395,7 @@ class ReasonMainWindow(wx.Frame):
                               mw = self, CreationID=MyID),
                 "%s - Projection - %s" % (data_object.basename, ax),
                 MyID)
-            self._add_data_object("Proj: %s %s" % (data_object, ax),
+            self._add_data_object("Proj: %s %s" % (data_object.parameter_file, ax),
                                self.windows[-1].plot.data,
                                _ProjObjectMenuItems, parent_id)
             print "Adding with ID:", MyID
@@ -366,6 +421,25 @@ class ReasonMainWindow(wx.Frame):
                                self.windows[-1].plot.data,
                                _SliceObjectMenuItems, parent_id)
         for w in self.windows[-3:]: w.ChangeWidth(1,'1')
+
+    def _export_data_object(self, event):
+        parent_id, data_object = self.get_output()
+        # Get a file name and then attempt to export.
+        dlg = wx.FileDialog( \
+            self, message="Save Data As ...", defaultDir=os.getcwd(), \
+            defaultFile="exported.dat", wildcard="dat (*.dat)|*.dat", style=wx.SAVE)
+        if dlg.ShowModal() == wx.ID_OK:
+            try:
+                path = dlg.GetPath()
+                data_object.write_out(path)
+            except (ValueError, AttributeError), exc:
+                print exc, dir(exc)
+                err = wx.MessageDialog(None, "Error",
+                                "The writing out has failed.\n\n" + \
+                                "See the console for more information.")
+                err.ShowModal()
+                err.Destroy()
+        dlg.Destroy()
 
     def __add_cutting_wrapper(self, parameter_file, normal):
         self._add_cutting(parameter_file=parameter_file, normal=normal)
@@ -425,6 +499,10 @@ class ReasonMainWindow(wx.Frame):
     def OnExit(self, event):
         self.Close()
 
+    def OnClose(self, event):
+        Publisher().unsubAll()
+        self.Destroy()
+
     def OnInspectFields(self, event):
         p = FieldFunctionInspector(self, -1)
         p.Show()
@@ -436,10 +514,7 @@ class ReasonMainWindow(wx.Frame):
                                "", wildcard, wx.OPEN)
         if dialog.ShowModal() == wx.ID_OK:
             file = dialog.GetPath()
-            print file
             self._add_static_output(file)
-            #self.RefreshOutputs()
-            #print ChooseField(self.outputs[-1])
         dialog.Destroy()
 
     def OnOpenEditor(self, event):

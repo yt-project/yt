@@ -192,6 +192,21 @@ class EnzoData:
     def _generate_field_in_grids(self, fieldName):
         pass
 
+    _key_fields = None
+    def write_out(self, filename, fields=None, format="%0.16e"):
+        if fields is None: fields=sorted(self.data.keys())
+        if self._key_fields is None: raise ValueError
+        field_order = self._key_fields[:]
+        for field in field_order: self[field]
+        field_order += [field for field in fields if field not in field_order]
+        fid = open(filename,"w")
+        fid.write("\t".join(["#"] + field_order + ["\n"]))
+        field_data = na.array([self.data[field] for field in field_order])
+        for line in range(field_data.shape[1]):
+            field_data[:,line].tofile(fid, sep="\t", format=format)
+            fid.write("\n")
+        fid.close()
+
 class GridPropertiesMixin(object):
 
     def select_grids(self, level):
@@ -320,6 +335,7 @@ class Enzo1DData(EnzoData, GridPropertiesMixin):
                  for grid in self._grids])
 
 class EnzoOrthoRayBase(Enzo1DData):
+    _key_fields = ['x','y','z','dx','dy','dz']
     def __init__(self, axis, coords, fields=None, pf=None, **kwargs):
         """
         Dimensionality is reduced to one, and an ordered list of points at an
@@ -359,6 +375,7 @@ class EnzoOrthoRayBase(Enzo1DData):
         return gf[na.where(grid.child_mask[sl])]
 
 class Enzo2DData(EnzoData, GridPropertiesMixin):
+    _key_fields = ['x','y','z','dx','dy','dz']
     """
     Class to represent a set of :class:`EnzoData` that's 2-D in nature, and
     thus does not have as many actions as the 3-D data types.
@@ -665,6 +682,7 @@ class EnzoCuttingPlaneBase(Enzo2DData):
         return na.where(k)
 
 class EnzoProjBase(Enzo2DData):
+    _key_fields = ['px','py','pdx','pdy']
     def __init__(self, axis, field, weight_field = None,
                  max_level = None, center = None, pf = None,
                  source=None, **kwargs):
@@ -801,7 +819,7 @@ class EnzoProjBase(Enzo2DData):
         if self._weight is not None:
             field_data = field_data / coord_data[3,:].reshape((1,coord_data.shape[1]))
         else:
-            field_data *= convs
+            field_data *= convs[...,na.newaxis]
         mylog.info("Level %s done: %s final", \
                    level, coord_data.shape[1])
         dx = grids_to_project[0].dx# * na.ones(coord_data.shape[0], dtype='float64')
@@ -958,6 +976,7 @@ class EnzoProjBase(Enzo2DData):
         return d
 
 class Enzo3DData(EnzoData, GridPropertiesMixin):
+    _key_fields = ['x','y','z','dx','dy','dz']
     """
     Class describing a cluster of data points, not necessarily sharing any
     particular attribute.

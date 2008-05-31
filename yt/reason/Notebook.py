@@ -68,14 +68,7 @@ class PlotPanel(wx.Panel):
         Publisher().sendMessage("page_changed",page)
 
     def UpdateSubscriptions(self, page):
-        pairs = [("width","ChangeWidthFromMessage"),
-                 ("field","ChangeFieldFromMessage"),
-                 ("limits","ChangeLimitsFromMessage"),
-                 ("center","ChangeCenterFromMessage"),
-                 ("field_param","ChangeFieldParamFromMessage"),
-                 ("wipe","WipePlotDataFromMessage"),
-                 ("cmap","ChangeColorMapFromMessage")]
-        for m,f in pairs:
+        for m,f in subscription_pairs:
             Publisher().unsubAll(("viewchange",m))
         if not hasattr(page,'CreationID'): return
         cti = page.CreationID
@@ -90,7 +83,7 @@ class PlotPanel(wx.Panel):
         else: toSubscribe.append(page)
         for p in toSubscribe:
             Publisher().subscribe(self.MessageLogger)
-            for m, f in pairs:
+            for m, f in subscription_pairs:
                 ff = getattr(p,f)
                 if ff is None: continue
                 Publisher().subscribe(ff, ('viewchange',m))
@@ -723,8 +716,9 @@ class CuttingPlanePlotPage(VMPlotPage):
         self.velocities.Enable(False)
         self.particles.Enable(False)
 
-class PhasePlotPage(PlotPage):
-    def __init__(self, parent, status_bar, data_object, argdict, mw=None, CreationID = -1):
+class ProfilePlotPage(PlotPage):
+    def __init__(self, parent, status_bar, data_object, argdict, mw=None,
+                 CreationID = -1):
         self.data_object = data_object
         self.argdict = argdict
 
@@ -743,7 +737,6 @@ class PhasePlotPage(PlotPage):
         PlotPage.SetupMenu(self)
         self.popupmenu.AppendSeparator()
         self.take_log_menu = self.popupmenu.AppendCheckItem(-1, "Take Log")
-        self.take_log_menu.Check(self.plot._log_z)
 
         self.Bind(wx.EVT_MENU, self.take_log, self.take_log_menu)
 
@@ -761,6 +754,66 @@ class PhasePlotPage(PlotPage):
         self.SetSizer(self.MainSizer)
         self.Layout()
 
+    def UpdateAvailableFields(self):
+        self.z_field.SetItems(sorted(self.QueryAvailableFields()))
+
+    def switch_z(self, event=None):
+        if self.plot is None: return
+        self.plot.switch_z(self.z_field.GetStringSelection())
+        self.UpdateCanvas()
+
+    def UpdateCanvas(self, only_fig=False):
+        if self.IsShown():
+            if not only_fig: self.plot._redraw_image()
+            self.figure_canvas.draw()
+
+    def take_log(self, event):
+        self.plot.set_log_field(self.take_log_menu.IsChecked())
+        self.UpdateCanvas()
+
+class Profile1DPlotPage(ProfilePlotPage):
+    def AddField(self, event=None):
+        pf1daf = Profile1DAddField(self.data_object, self)
+        if pf1daf.ShowModal() == wx.ID_OK:
+            argdict = pf1daf.return_argdict()
+            if argdict is None:
+                pf1daf.Destroy()
+                self.UpdateAvailableFields()
+                return
+            self.data.add_fields(**argdict)
+            self.UpdateAvailableFields()
+            self.z_field.SetSelection(
+                    self.z_field.GetItems().index(argdict['fields']))
+            self.switch_z()
+        pf1daf.Destroy()
+
+    def SetupMenu(self):
+        ProfilePlotPage.SetupMenu(self)
+        self.take_log_menu.Check(self.plot._log_y)
+
+    def QueryAvailableFields(self):
+        fields = []
+        for field in self.data.keys():
+            if field != self.data.bin_field:
+                fields.append(field)
+        return fields
+
+    def makePlot(self, event=None):
+        self.data = lagos.BinnedProfile1D(self.data_object, **self.argdict)
+        self.data.pf = self.data_object.pf
+        self.data.hierarchy = self.data_object.pf.h
+        # Now, unfortunately, we prompt for the field
+        self.AddField(None)
+        self.plot = be.Profile1DPlot(self.data, 
+                                [self.argdict['bin_field'],
+                                 self.z_field.GetStringSelection()],
+                                 id = wx.NewId(),
+                                 figure=self.figure, axes=self.axes)
+
+    def UpdateStatusBar(self, event):
+        pass
+
+class PhasePlotPage(ProfilePlotPage):
     def AddField(self, event=None):
         pf2daf = Profile2DAddField(self.data_object, self)
         if pf2daf.ShowModal() == wx.ID_OK:
@@ -775,6 +828,10 @@ class PhasePlotPage(PlotPage):
                     self.z_field.GetItems().index(argdict['fields']))
             self.switch_z()
         pf2daf.Destroy()
+
+    def SetupMenu(self):
+        ProfilePlotPage.SetupMenu(self)
+        self.take_log_menu.Check(self.plot._log_z)
 
     def makePlot(self, event=None):
         self.data = lagos.BinnedProfile2D(self.data_object, **self.argdict)
@@ -806,9 +863,6 @@ class PhasePlotPage(PlotPage):
         yi = na.digitize(na.array([y]), self.plot.y_bins)-1
         return self.plot.vals[yi, xi]
 
-    def UpdateAvailableFields(self):
-        self.z_field.SetItems(sorted(self.QueryAvailableFields()))
-
     def QueryAvailableFields(self):
         fields = []
         for field in self.data.keys():
@@ -816,20 +870,6 @@ class PhasePlotPage(PlotPage):
                field != self.data.y_bin_field:
                 fields.append(field)
         return fields
-
-    def take_log(self, event):
-        self.plot.set_log_field(self.take_log_menu.IsChecked())
-        self.UpdateCanvas()
-
-    def switch_z(self, event=None):
-        if self.plot is None: return
-        self.plot.switch_z(self.z_field.GetStringSelection())
-        self.UpdateCanvas()
-
-    def UpdateCanvas(self, only_fig=False):
-        if self.IsShown():
-            if not only_fig: self.plot._redraw_image()
-            self.figure_canvas.draw()
 
     def ChangeLimits(self, zmin, zmax):
         self.plot.set_zlim(zmin,zmax)

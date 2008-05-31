@@ -26,6 +26,14 @@ but not any subclassing of window objects.
 
 from yt.reason import *
 
+subscription_pairs = [("width","ChangeWidthFromMessage"),
+                      ("field","ChangeFieldFromMessage"),
+                      ("limits","ChangeLimitsFromMessage"),
+                      ("center","ChangeCenterFromMessage"),
+                      ("field_param","ChangeFieldParamFromMessage"),
+                      ("wipe","WipePlotDataFromMessage"),
+                      ("cmap","ChangeColorMapFromMessage")]
+
 def QueryFields(outputfile, only_display_fields = False):
     fields = []
     for f in outputfile.hierarchy.derived_field_list:
