@@ -433,7 +433,88 @@ class CuttingPlanePlot(SlicePlot):
         self.set_ylim(l_edge_y, r_edge_y) # At some point, perhaps calculate them?
         self._redraw_image()
 
-class PhasePlot(RavenPlot):
+class ProfilePlot(RavenPlot):
+    def setup_bins(self, field, func=None):
+        if field in lagos.fieldInfo and lagos.fieldInfo[field].take_log:
+            log_field = True
+            if func: func('log')
+        else:
+            log_field = False
+            if func: func('linear')
+        mylog.debug("Field: %s, log_field: %s", field, log_field)
+        return log_field
+
+    def autoset_label(self, field, func):
+        dataLabel = r"$\rm{%s}" % (field)
+        if field in lagos.fieldInfo:
+            dataLabel += r" (%s)" % (lagos.fieldInfo[field].get_units())
+        dataLabel += r"$"
+        func(str(dataLabel))
+
+
+class Profile1DPlot(ProfilePlot):
+    def __init__(self, data, fields, id, ticker=None, cmap=None,
+                 figure=None, axes=None, plot_options=None):
+        self._type_name = "Profile"
+        self._semi_unique_id = id
+        RavenPlot.__init__(self, data, fields, figure, axes)
+
+        self.axis_names["X"] = fields[0]
+        self.axis_names["Y"] = fields[1]
+
+        if plot_options is None: plot_options = {}
+        self.plot_options = plot_options
+
+        self._log_x = self.data._x_log
+        self._log_y = self.setup_bins(self.fields[1])
+
+    def _generate_prefix(self, prefix):
+        self.prefix = "_".join([prefix, self._type_name,
+                       str(self._semi_unique_id),
+                       self.axis_names['X'], self.axis_names['Y']])
+        self["Field1"] = self.axis_names["X"]
+        self["Field2"] = self.axis_names["Y"]
+
+    def _redraw_image(self):
+        self._axes.clear()
+        if not self._log_x and not self._log_y:
+            func = self._axes.plot
+        elif self._log_x and not self._log_y:
+            func = self._axes.semilogx
+        elif not self._log_x and self._log_y:
+            func = self._axes.semilogy
+        elif self._log_x and self._log_y:
+            func = self._axes.loglog
+        indices = na.argsort(self.data[self.fields[0]])
+        func(self.data[self.fields[0]][indices],
+             self.data[self.fields[1]][indices],
+             **self.plot_options)
+        self.autoset_label(self.fields[0], self._axes.set_xlabel)
+        self.autoset_label(self.fields[1], self._axes.set_ylabel)
+        self._run_callbacks()
+
+    def set_log_field(self, val):
+        if val:
+            self._log_y = True
+        else:
+            self._log_y = False
+
+    def switch_x(self, field, weight="CellMassMsun", accumulation=False):
+        self.fields[0] = field
+        self.axis_names["X"] = field
+        if field not in self.data.keys():
+            self.data.add_fields(field, weight, accumulation)
+        self._log_x = self.setup_bins(self.fields[0])
+    
+    def switch_z(self, field, weight="CellMassMsun", accumulation=False):
+        self.fields[1] = field
+        self.axis_names["Y"] = field
+        if field not in self.data.keys():
+            self.data.add_fields(field, weight, accumulation)
+        self._log_y = self.setup_bins(self.fields[1])
+    switch_y = switch_z # Compatibility...
+
+class PhasePlot(ProfilePlot):
     def __init__(self, data, fields, id, ticker=None, cmap=None,
                  figure=None, axes=None):
         self._type_name = "Phase"
@@ -463,23 +544,6 @@ class PhasePlot(RavenPlot):
         self.colorbar = self._figure.colorbar(self.image,
                                     extend='neither', shrink=0.95,
                                     format="%0.2e" )
-
-    def setup_bins(self, field, func=None):
-        if field in lagos.fieldInfo and lagos.fieldInfo[field].take_log:
-            log_field = True
-            if func: func('log')
-        else:
-            log_field = False
-            if func: func('linear')
-        mylog.debug("Field: %s, log_field: %s", field, log_field)
-        return log_field
-
-    def autoset_label(self, field, func):
-        dataLabel = r"$\rm{%s}" % (field)
-        if field in lagos.fieldInfo:
-            dataLabel += r" (%s)" % (lagos.fieldInfo[field].get_units())
-        dataLabel += r"$"
-        func(str(dataLabel))
 
     def set_cmap(self, cmap):
         RavenPlot.set_cmap(self, cmap)

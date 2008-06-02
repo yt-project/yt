@@ -146,6 +146,42 @@ class PlotCollection:
         p["Axis"] = lagos.axis_names[axis]
         return p
 
+    def add_profile_object(self, object, fields, cmap=None,
+                           weight="CellMassMsun", accumulation=False,
+                           x_bins=64, x_log=True, x_bounds=None,
+                           lazy_reader=False, id=None):
+        if x_bounds is None:
+            x_min, x_max = object[fields[0]].min(), object[fields[0]].max()
+        else:
+            x_min, x_max = x_bounds
+        profile = lagos.BinnedProfile1D(object,
+                                     x_bins, fields[0], x_min, x_max, x_log,
+                                     lazy_reader)
+        if len(fields) > 1:
+            profile.add_fields(fields[1], weight=weight, accumulation=accumulation)
+        # These next two lines are painful.
+        profile.pf = self.pf
+        profile.hierarchy = self.pf.hierarchy
+        if id is None: id = self._get_new_id()
+        p = self._add_plot(PlotTypes.Profile1DPlot(profile, fields, 
+                                                   id, cmap=cmap))
+        return p
+
+    def add_profile_sphere(self, radius, unit, fields, **kwargs):
+        center = kwargs.pop("center",self.c)
+        r = radius/self.pf[unit]
+        if 'sphere' in kwargs:
+            sphere = kwargs.pop('sphere')
+        else:
+            ftg = fields[:]
+            if kwargs.get("lazy_reader",False): ftg = []
+            sphere = self.pf.hierarchy.sphere(center, r, ftg)
+        p = self.add_profile_object(sphere, fields, **kwargs)
+        p["Width"] = radius
+        p["Unit"] = unit
+        p["Axis"] = None
+        return p
+
     def add_phase_object(self, object, fields, cmap=None,
                                weight="CellMassMsun", accumulation=False,
                                x_bins=64, x_log=True, x_bounds=None,
@@ -173,10 +209,6 @@ class PlotCollection:
                                                id, cmap=cmap))
         return p
 
-    def _get_new_id(self):
-        self.__id_counter += 1
-        return self.__id_counter-1
-
     def add_phase_sphere(self, radius, unit, fields, **kwargs):
         center = kwargs.pop("center",self.c)
         r = radius/self.pf[unit]
@@ -191,6 +223,11 @@ class PlotCollection:
         p["Unit"] = unit
         p["Axis"] = None
         return p
+
+    def _get_new_id(self):
+        self.__id_counter += 1
+        return self.__id_counter-1
+
 
     def clear_plots(self):
         for i in range(len(self.plots)):
