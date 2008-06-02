@@ -812,16 +812,16 @@ Py_Interpolate(PyObject *obj, PyObject *args)
     }
 
     Interpolate(axis->dimensions[0],
-              (npy_float64 *) axis->data,
+              (npy_float64 *) PyArray_GETPTR1(axis, 0),
               table, desired,
               columns->dimensions[0],
-              (npy_int32 *) columns->data,
+              (npy_int32 *) PyArray_GETPTR1(columns, 0),
               outputvals);
-    Py_XDECREF(axis);
-    Py_XDECREF(table);
-    Py_XDECREF(desired);
-    Py_XDECREF(outputvals);
-    Py_XDECREF(columns);
+    Py_DECREF(axis);
+    Py_DECREF(table);
+    Py_DECREF(desired);
+    Py_DECREF(outputvals);
+    Py_DECREF(columns);
 
     /* Align, Byteswap, Contiguous, Typeconvert */
     return Py_None;
