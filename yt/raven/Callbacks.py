@@ -107,6 +107,8 @@ class ParticleCallback(PlotCallback):
 class ContourCallback(PlotCallback):
     def __init__(self, field, ncont=5, factor=4, take_log=False, clim=None):
         PlotCallback.__init__(self)
+        self.ncont = ncont
+        self.field = field
         self.factor = factor
         self.take_log = take_log
         try:
@@ -137,7 +139,7 @@ class ContourCallback(PlotCallback):
                           0:numPoints_y:numPoints_y/(self.factor*1j)]
         x = (plot.data["px"][wI]-x0)*dx
         y = (plot.data["py"][wI]-y0)*dy
-        z = plot.data[field][wI]
+        z = plot.data[self.field][wI]
         if self.take_log: z=na.log10(z)
         zi = self.de.Triangulation(x,y).nn_interpolator(z)(xi,yi)
         plot._axes.contour(xi,yi,zi,self.ncont,colors='k')
