@@ -97,6 +97,9 @@ def CleanUp(*args, **kwargs):
     pass
 
 class RavenPlot:
+
+    datalabel = None
+    colorbar = None
     def __init__(self, data, fields, figure = None, axes=None, size=(10,8)):
         self.data = data
         self.fields = fields
@@ -159,7 +162,10 @@ class RavenPlot:
         self._axes.set_ylim(ymin, ymax)
 
     def set_zlim(self, zmin, zmax):
-        self._axes.set_zlim(zmin, zmax)
+        self.norm.autoscale(na.array([zmin,zmax]))
+        self.image.changed()
+        if self.colorbar != None:
+            self.colorbar.notify(self.image)
 
     def set_cmap(self, cmap):
         if isinstance(cmap, types.StringTypes):
@@ -183,9 +189,11 @@ class RavenPlot:
         for cb in self._callbacks:
             cb(self)
 
+    def set_label(self, label):
+        self.datalabel = label
+        if self.colorbar != None: self.colorbar.set_label(str(label))
+
 class VMPlot(RavenPlot):
-    datalabel = None
-    colorbar = None
     def __init__(self, data, field, figure = None, axes = None,
                  use_colorbar = True, size=None):
         fields = ['X', 'Y', field, 'X width', 'Y width']
@@ -352,15 +360,6 @@ class VMPlot(RavenPlot):
         self.axis_names["Z"] = field
         self._redraw_image()
 
-    def set_zlim(self, zmin, zmax):
-        self.norm.autoscale(na.array([zmin,zmax]))
-        self.image.changed()
-        if self.colorbar != None:
-            self.colorbar.notify(self.image)
-
-    def set_label(self, label):
-        if self.colorbar != None: self.colorbar.set_label(str(label))
-
     def selfSetup(self):
         pass
 
@@ -379,8 +378,8 @@ class SlicePlot(VMPlot):
         if self.colorbar != None: self.colorbar.set_label(str(data_label))
 
 class ProjectionPlot(VMPlot):
-    _type_name = "Projection"
 
+    _type_name = "Projection"
     def autoset_label(self):
         if self.datalabel != None:
             self.colorbar.set_label(str(self.datalabel))
@@ -392,10 +391,13 @@ class ProjectionPlot(VMPlot):
         data_label += r"$"
         if self.colorbar != None: self.colorbar.set_label(str(data_label))
 
+    def switch_z(self, field):
+        mylog.warning("Choosing not to change the field of a projection instance")
+
+
 class CuttingPlanePlot(SlicePlot):
 
     _type_name = "CuttingPlane"
-
     def _get_buff(self, width=None):
         px_min, px_max = self.xlim
         py_min, py_max = self.ylim
@@ -453,9 +455,10 @@ class ProfilePlot(RavenPlot):
 
 
 class Profile1DPlot(ProfilePlot):
+
+    _type_name = "Profile1D"
     def __init__(self, data, fields, id, ticker=None, cmap=None,
                  figure=None, axes=None, plot_options=None):
-        self._type_name = "Profile"
         self._semi_unique_id = id
         RavenPlot.__init__(self, data, fields, figure, axes)
 
@@ -515,9 +518,10 @@ class Profile1DPlot(ProfilePlot):
     switch_y = switch_z # Compatibility...
 
 class PhasePlot(ProfilePlot):
+
+    _type_name = "Profile2D"
     def __init__(self, data, fields, id, ticker=None, cmap=None,
                  figure=None, axes=None):
-        self._type_name = "Phase"
         self._semi_unique_id = id
         RavenPlot.__init__(self, data, fields, figure, axes)
         self.ticker = ticker
@@ -619,3 +623,17 @@ class PhasePlot(ProfilePlot):
         self["Field1"] = self.axis_names["X"]
         self["Field2"] = self.axis_names["Y"]
         self["Field3"] = self.axis_names["Z"]
+
+    def autoset_label(self, field_name, func):
+        if self.datalabel != None:
+            func(str(self.datalabel))
+            return
+        data_label = r"$\rm{%s}" % field_name
+        if field_name in lagos.fieldInfo:
+            data_label += r"\/\/ (%s)" % (lagos.fieldInfo[field_name].get_units())
+        data_label += r"$"
+        func(str(data_label))
+
+    def set_width(self, width, unit):
+        mylog.warning("Choosing not to change the width of a phase plot instance")
+

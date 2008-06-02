@@ -80,8 +80,8 @@ class PlotCollection:
             plot.set_zlim(zmin, zmax)
     def set_lim(self, lim):
         for plot in self.plots:
-            plot.set_xlim(lim[:2])
-            plot.set_ylim(lim[2:])
+            plot.set_xlim(*lim[:2])
+            plot.set_ylim(*lim[2:])
     def set_width(self, width, unit):
         for plot in self.plots:
             plot.set_width(width, unit)
@@ -231,5 +231,5 @@ class PlotCollection:
 
     def clear_plots(self):
         for i in range(len(self.plots)):
-            del self.plots[i].data
-            del self.plots[i]
+            del self.plots[-1].data
+            del self.plots[-1]

@@ -4,27 +4,27 @@ clear how to append additional tests.
 
 You can run this using: 
 
-$ python runall.py
+$ python tests/runall.py
 
-This can be done from any directory.
+This should be done from the root directory of the installation.
 
-Currently, YT needs to be installed to run the tests, so that Python
-can find the modules.
+YT can either be installed globally, or the extensions build with:
+
+$ python setup.py build_ext --inplace
 """
 
 import unittest
 
-from test_lagos import TestLagos
-from test_raven import TestRaven
+import test_lagos
+import test_raven
+import test_hdf5_reader
 
 def get_suite():
-    suite_l = unittest.TestLoader().loadTestsFromTestCase(TestLagos)
-    suite_r = unittest.TestLoader().loadTestsFromTestCase(TestRaven)
+    suite_l = unittest.defaultTestLoader.loadTestsFromModule(test_lagos)
+    suite_r = unittest.defaultTestLoader.loadTestsFromModule(test_raven)
+    suite_h = unittest.defaultTestLoader.loadTestsFromModule(test_hdf5_reader)
     suite = unittest.TestSuite([suite_l, suite_r])
     return suite
 
 if __name__ == '__main__':
-    suite = get_suite()
-    unittest.main()
-
-
+    unittest.main(defaultTest='get_suite')

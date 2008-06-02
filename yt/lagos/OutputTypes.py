@@ -69,6 +69,16 @@ class StaticOutput(object):
              + self.parameters.keys() \
              + self.conversion_factors.keys()
 
+    def get_smallest_appropriate_unit(self, v):
+        max_nu = 1e30
+        good_u = None
+        for unit in ['mpc','kpc','pc','au','rsun','cm']:
+            vv = v*self[unit]
+            if vv < max_nu and vv > 1.0:
+                good_u = unit
+                max_nu = v*self[unit]
+        return good_u
+
     def has_key(self, key):
         """
         Returns true or false
