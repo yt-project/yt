@@ -314,7 +314,7 @@ class PlotPage(wx.Panel):
             self, message="Save Image As ...", defaultDir=os.getcwd(), \
             defaultFile=self.plot.prefix, wildcard=wildcard, style=wx.SAVE)
         if dlg.ShowModal() == wx.ID_OK:
-            path = dlg.GetPath()
+            path = str(dlg.GetPath())
             orig_size = self.figure.get_size_inches()
             self.figure.set_size_inches((10,8))
             width = self.figure.get_dpi()*8.0

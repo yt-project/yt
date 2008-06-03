@@ -395,7 +395,7 @@ class ReasonMainWindow(wx.Frame):
                               mw = self, CreationID=MyID),
                 "%s - Projection - %s" % (data_object.basename, ax),
                 MyID)
-            self._add_data_object("Proj: %s %s" % (data_object.parameter_file, ax),
+            self._add_data_object("Proj: %s %s" % (data_object, ax),
                                self.windows[-1].plot.data,
                                _ProjObjectMenuItems, parent_id)
             print "Adding with ID:", MyID
