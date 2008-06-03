@@ -236,8 +236,8 @@ class PlotPage(wx.Panel):
     def OnShowContextMenu(self, event):
         pos = event.GetPosition()
         pos = self.figure_canvas.ScreenToClient(pos)
-        self.ContextMenuPosition = pos
-        self.figure_canvas.PopupMenu(self.popupmenu, pos)
+        self.__context_menu_position = pos
+        self.figure_canvas.PopupMenu(self.popupmenu)
 
     def OnColorMapChoice(self, event):
         item = self.cmapmenu.FindItemById(event.GetId())
@@ -338,6 +338,7 @@ class PlotPage(wx.Panel):
         self.figure_canvas.mpl_connect('motion_notify_event', self.UpdateStatusBar)
         self.figure_canvas.Bind(wx.EVT_LEFT_DOWN, self.ClickProcess)
         self.figure_canvas.Bind(wx.EVT_CONTEXT_MENU, self.OnShowContextMenu)
+        self.figure_canvas.Bind(wx.EVT_LEFT_DCLICK, self.OnShowContextMenu)
 
 class VMPlotPage(PlotPage):
     def __init__(self, parent, status_bar, outputfile, axis, field="Density",
@@ -486,7 +487,7 @@ class VMPlotPage(PlotPage):
         self.UpdateCanvas()
 
     def OnCenterHere(self, event):
-        xp, yp = self.ContextMenuPosition
+        xp, yp = self.__context_menu_position
         x, y = self.ConvertPositionToDataPosition(xp, yp)
         if x == None or y == None: return
         self.ChangeCenter(x,y)
