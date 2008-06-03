@@ -34,73 +34,73 @@ from stat import ST_CTIME
 class OutputCollection:
     def __init__(self, title):
         self.title = title
-        self.outputNames = na.array(())
-        self.outputTimeIDs = na.array((), dtype='int64')
-        self.outputTimes = na.array((), dtype='float64')
+        self.output_names = na.array(())
+        self.output_time_ids = na.array((), dtype='int64')
+        self.output_times = na.array((), dtype='float64')
 
-    def readIn(self, filename):
+    def read_in(self, filename):
         lines = open(filename).readlines()
-        outputLines = filter(lambda a: a.startswith("Output:"), lines)
-        outputs = map(lambda a: a.split(":")[1], outputLines)
-        outputTimeIDs = map(lambda a: int(a.split(":")[2]), outputLines)
-        outputTimes = map(lambda a: float(a.split(":")[3]), outputLines)
+        output_lines = [line for line in lines if line.startswith("Output:")]
+        outputs = [line.split(":")[1] for line in output_lines]
+        output_time_ids = [int(line.split(":")[2]) for line in output_lines]
+        output_time = [float(line.split(":")[3]) for line in output_lines]
 
-        self.outputNames = na.array(outputs)
-        self.outputTimeIDs = na.array(outputTimeIDs, 'int64')
-        self.outputTimes = na.array(outputTimes, 'float64')
+        self.output_names = na.array(outputs)
+        self.output_time_ids = na.array(output_time_ids, dtype='int64')
+        self.output_times = na.array(output_times, dtype='float64')
 
-    def writeOut(self):
+    def write_out(self):
         path=ytcfg.get("fido","rundir")
         if not os.path.isdir(path): os.makedirs(path)
         fn = os.path.join(path, "runF_%s" % (self.title))
         f = open(fn, "w")
-        for i, output in enumerate(self.outputNames):
+        for i, output in enumerate(self.output_names):
             f.write("Output:%s:%s:%s\n" % ( \
                         os.path.abspath(output), \
-                        self.outputTimeIDs[i], \
-                        self.outputTimes[i]))
+                        self.output_time_ids[i], \
+                        self.output_times[i]))
         f.close()
 
-    def sortOutputs(self):
-        order = na.argsort(self.outputTimes)
-        self.outputNames = self.outputNames[order]
-        self.outputTimes = self.outputTimes[order]
-        self.outputTimeIDs = self.outputTimeIDs[order]
+    def sort(self):
+        order = na.argsort(self.output_times)
+        self.output_names = self.output_names[order]
+        self.output_times = self.output_times[order]
+        self.output_time_ids = self.output_time_ids[order]
 
-    def addOutput(self, filename):
+    def add_output(self, filename):
         # We're passing in *just* filenames here.  So, we simply snag the
         # two appropriate lines in the parameter file.
-        time = getParameterLine(filename, "InitialTime").split()[-1]
+        time = get_parameter_line(filename, "InitialTime").split()[-1]
         # Implement exception catching
         try:
-            timeID = getParameterLine(filename, "CurrentTimeIdentifier").split()[-1]
+            timeID = get_parameter_line(filename, "CurrentTimeIdentifier").split()[-1]
         except:
             timeID = int(os.stat(filename)[ST_CTIME])
-        self.outputNames = \
-            na.array(self.outputNames.tolist() + [filename])
-        self.outputTimeIDs = \
-            na.array(self.outputTimeIDs.tolist() + [int(timeID)], dtype='int64')
-        self.outputTimes = \
-            na.array(self.outputTimes.tolist() + [float(time)], dtype='float64')
-        self.sortOutputs()
+        self.output_names = \
+            na.array(self.output_names.tolist() + [filename])
+        self.output_time_ids = \
+            na.array(self.output_time_ids.tolist() + [int(timeID)], dtype='int64')
+        self.output_times = \
+            na.array(self.output_times.tolist() + [float(time)], dtype='float64')
+        self.sort()
 
-    def getBefore(self, time):
-        return na.where(self.outputTimes <= time)[0]
+    def get_before(self, time):
+        return na.where(self.output_times <= time)[0]
 
-    def getAfter(self, time):
-        return na.where(self.outputTimes > time)[0]
+    def get_after(self, time):
+        return na.where(self.output_times > time)[0]
 
     def __delitem__(self, key):
         if isinstance(key, types.StringType):
             id = self.index(key)
         elif isinstance(key, types.IntType):
             id = key
-        self.outputNames = na.array(self.outputNames[:id].tolist() \
-                                  + self.outputNames[id+1:].tolist())
-        self.outputTimes = na.array(self.outputTimes[:id].tolist() \
-                                  + self.outputTimes[id+1:].tolist())
-        self.outputTimeIDs = na.array(self.outputTimeIDs[:id].tolist() \
-                                  + self.outputTimeIDs[id+1:].tolist())
+        self.output_names = na.array(self.output_names[:id].tolist() \
+                                  + self.output_names[id+1:].tolist())
+        self.output_times = na.array(self.output_times[:id].tolist() \
+                                  + self.output_times[id+1:].tolist())
+        self.output_time_ids = na.array(self.output_time_ids[:id].tolist() \
+                                  + self.output_time_ids[id+1:].tolist())
 
     def __getitem__(self, key):
         """
@@ -112,17 +112,17 @@ class OutputCollection:
         elif isinstance(key, types.IntType):
             index = key
         # This fails, but I don't know how to fix it.
-        a = (self.outputNames[index],  \
-             self.outputTimes[index],  \
-             self.outputTimeIDs[index] )
+        a = (self.output_names[index],  \
+             self.output_times[index],  \
+             self.output_time_ids[index] )
         return a
 
     def index(self, key):
         t = os.path.basename(key)
         # Find out the index
         index = None
-        for i in range(self.outputNames.shape[0]):
-            if os.path.basename(self.outputNames[i]) \
+        for i in range(self.output_names.shape[0]):
+            if os.path.basename(self.output_names[i]) \
                 == os.path.basename(t):
                 index = i
                 break
@@ -134,72 +134,37 @@ class OutputCollection:
         return self.title
 
     def __len__(self):
-        return len(self.outputNames)
+        return len(self.output_names)
 
     def __iter__(self):
         for i in range(len(self)):
-            yield self.outputNames[i]
+            yield self.output_names[i]
 
     def keys(self):
-        return self.outputNames.tolist()
+        return self.output_names.tolist()
 
-    def exportAmira(self, basename, fields):
-        a5 = basename + "-%(field)s.a5"
-        sorted_times = []
-        sorted_timesteps = []
-        for field in fields:
-            a5b=tables.openFile(a5 % {'field':field},"w")
-            a5b.close()
-        if (not iterable(fields)) or (isinstance(fields, types.StringType)):
-            fields = [fields]
-        for i in range(len(self)):
-            mylog.info("Exporting %s to Amira format", self[i])
-            bn = basename + "-%06i" % (i) + "-%(field)s.h5"
-            numDone = 0
-            self.promoteType(i)
-            self[i].exportAmira(bn, fields, a5, i)
-            rootDelta = na.array([self[i].grids[0].dx, self[i].grids[0].dy, self[i].grids[0].dz], dtype='float64')
-            sorted_timesteps.append(i)
-            sorted_times.append(self[i]["InitialTime"])
-            self.demoteType(i)
-            numDone += 1
-        for field in fields:
-            a5b=tables.openFile(a5 % {'field':field},"a")
-            a5b.createGroup("/","globalMetaData")
-            node=a5b.getNode("/","globalMetaData")
-            node._f_setAttr("datatype",0)
-            node._f_setAttr("fieldtype",1)
-            node._f_setAttr("staggering",1)
-            node._f_setAttr("maxTime",self.timesteps[-1])
-            node._f_setAttr("maxTimeStep",len(self)-1)
-            node._f_setAttr("minTime",self.timesteps[0])
-            node._f_setAttr("minTimeStep",0)
-            node._f_setAttr("numTimeSteps",len(self))
-            node._f_setAttr("rootDelta",rootDelta)
-            a5b.createArray("/","sorted_timesteps", na.array(sorted_timesteps, dtype='int32'))
-            a5b.createArray("/","sorted_times", na.array(sorted_times, dtype='float64'))
-            a5b.close()
-
-    def runFunction(self, function, args = None, kwargs = {}, prop = None):
-        if args == None: args = []
-        import yt.lagos as lagos # We import *here* so that we only import if we need it
-        permArgs = list(args)
+    def __convert_args(self, args, kwargs, my_dict):
+        newArgs = list(args)[:]
+        newKwargs = {}
         for j, arg in enumerate(args):
             if isinstance(arg, types.StringType):
-                args[j] = arg % myDict
+                newArgs[j] = arg % myDict
+        for key in kwargs.keys():
+            if isinstance(kwargs[key], types.StringType):
+                newKwargs[key] = kwargs[key] % myDict
+        return newArgs, newKwargs
+
+    def run_functions(self, function, args = None, kwargs = None):
+        if args is None: args = []
+        if kwargs is None: kwargs = {}
+        import yt.lagos as lagos # We import *here* so that we only import if we need it
         for i,o in enumerate(self):
             # Now we format string the various args and kwargs
-            myDict = {'fn':o, 'index':i, 'time':self.outputTimes[i],
-                      'timeID':self.outputTimeIDs[i]}
-            for key in kwargs.keys():
-                if isinstance(kwargs[key], types.StringType):
-                    kwargs[key] = kwargs[key] % myDict
-            if prop:
-                args = [getattr(lagos.EnzoStaticOutput(o),prop)] + permArgs
-            else:
-                args = [lagos.EnzoStaticOutput(o)] + permArgs
+            myDict = {'fn':str(o), 'index':i, 'time':self.output_times[i],
+                      'timeID':self.output_time_ids[i]}
+            newa, newk = self.__convert_args(args, kwargs)
             print args, kwargs
-            function(*args, **kwargs)
+            function(*newa, **newk)
 
 def GrabCollections(path=None):
     if not path: path=ytcfg.get("fido","rundir")
@@ -209,5 +174,5 @@ def GrabCollections(path=None):
         title=os.path.basename(file)
         if title.startswith("runF_"): title = title[5:]
         ocs.append(OutputCollection(title))
-        ocs[-1].readIn(file)
+        ocs[-1].read_in(file)
     return ocs

@@ -59,7 +59,7 @@ def buryOutput(filename, newPrefix = None, newLocation=None, extraFiles=None):
 def digupOutput(filename, newLocation=None, extraFiles=None):
     if extraFiles == None: extraFiles = []
     if not newLocation:
-        newLocation = getParentDir(filename)
+        newLocation = get_parent_dir(filename)
     else:
         # Make sure we have no relative references
         newLocation = os.path.normpath(newLocation)
