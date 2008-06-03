@@ -183,7 +183,9 @@ class Import(FidoAction):
         open(NEW_OUTPUT_CREATED,"w").close()
 
     def PerformAction(self):
-        for i in glob.glob("*.dir/*.hierarchy"):
+        for i in glob.glob("*.dir/*.hierarchy") + \
+                 glob.glob("*Dir/*.hierarchy"):
+            print i
             fn = i[:-10]
             self.oc.add_output(os.path.abspath(fn))
         Giles = Watcher(title=self.title, oc=self.oc)
