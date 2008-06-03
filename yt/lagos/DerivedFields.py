@@ -785,6 +785,31 @@ add_field("RadialVelocityKMS", function=_RadialVelocity,
           validators=[ValidateParameter("center"),
                       ValidateParameter("bulk_velocity")])
 
+def _CuttingPlaneVelocityX(field, data):
+    x_vec, y_vec, z_vec = [data.get_field_parameter("cp_%s_vec" % (ax))
+                           for ax in 'xyz']
+    bulk_velocity = data.get_field_parameter("bulk_velocity")
+    if bulk_velocity == None:
+        bulk_velocity = na.zeros(3)
+    v_vec = na.array([data["%s-velocity" % ax] for ax in 'xyz']) \
+                - bulk_velocity[...,na.newaxis]
+    return na.dot(x_vec, v_vec)
+add_field("CuttingPlaneVelocityX", 
+          validators=[ValidateParameter("cp_%s_vec" % ax)
+                      for ax in 'xyz'], units=r"\rm{km}/\rm{s}")
+def _CuttingPlaneVelocityY(field, data):
+    x_vec, y_vec, z_vec = [data.get_field_parameter("cp_%s_vec" % (ax))
+                           for ax in 'xyz']
+    bulk_velocity = data.get_field_parameter("bulk_velocity")
+    if bulk_velocity == None:
+        bulk_velocity = na.zeros(3)
+    v_vec = na.array([data["%s-velocity" % ax] for ax in 'xyz']) \
+                - bulk_velocity[...,na.newaxis]
+    return na.dot(y_vec, v_vec)
+add_field("CuttingPlaneVelocityY", 
+          validators=[ValidateParameter("cp_%s_vec" % ax)
+                      for ax in 'xyz'], units=r"\rm{km}/\rm{s}")
+
 def _MeanMolecularWeight(field,data):
     return (data["Density"] / (mh *data["NumberDensity"]))
 add_field("MeanMolecularWeight",function=_MeanMolecularWeight,units=r"")

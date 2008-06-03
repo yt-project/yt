@@ -606,6 +606,9 @@ class EnzoCuttingPlaneBase(Enzo2DData):
         self._y_vec /= na.sqrt(na.dot(self._y_vec, self._y_vec))
         self._rot_mat = na.array([self._x_vec,self._y_vec,self._norm_vec])
         self._inv_mat = na.linalg.pinv(self._rot_mat)
+        self.set_field_parameter('cp_x_vec',self._x_vec)
+        self.set_field_parameter('cp_y_vec',self._y_vec)
+        self.set_field_parameter('cp_z_vec',self._norm_vec)
         self._refresh_data()
 
     def _get_list_of_grids(self):

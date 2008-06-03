@@ -472,7 +472,7 @@ class VMPlotPage(PlotPage):
             xv = "%s-velocity" % (lagos.axis_names[lagos.x_dict[self.axis]])
             yv = "%s-velocity" % (lagos.axis_names[lagos.y_dict[self.axis]])
             self._velocities_cbid = \
-                self.plot.add_callback(raven.QuiverCallback(xv,yv,self.axis,20))
+                self.plot.add_callback(raven.QuiverCallback(xv,yv,20))
         self.UpdateCanvas()
 
     _particles_cbid = None
@@ -708,8 +708,18 @@ class CuttingPlanePlotPage(VMPlotPage):
         self.center_on_max.Enable(False)
         self.center_here.Enable(False)
         self.grid_boundaries.Enable(False)
-        self.velocities.Enable(False)
         self.particles.Enable(False)
+
+    def show_velocities(self, event):
+        if self._velocities_cbid is not None:
+            self.plot.remove_callback(self._velocities_cbid)
+            self._velocities_cbid = None
+        else:
+            xv = "CuttingPlaneVelocityX"
+            yv = "CuttingPlaneVelocityY"
+            self._velocities_cbid = \
+                self.plot.add_callback(raven.CuttingQuiverCallback(xv,yv,16))
+        self.UpdateCanvas()
 
 class ProfilePlotPage(PlotPage):
     def __init__(self, parent, status_bar, data_object, argdict, mw=None,

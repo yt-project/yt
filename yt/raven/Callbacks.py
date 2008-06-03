@@ -44,24 +44,24 @@ class QuiverCallback(PlotCallback):
         xx0, xx1 = plot._axes.get_xlim()
         yy0, yy1 = plot._axes.get_ylim()
         plot._axes.hold(True)
-        numPoints_x = plot.image._A.shape[0] / self.factor
-        numPoints_y = plot.image._A.shape[1] / self.factor
+        nx = plot.image._A.shape[0] / self.factor
+        ny = plot.image._A.shape[1] / self.factor
         pixX = _MPL.Pixelize(plot.data['px'],
                              plot.data['py'],
                              plot.data['pdx'],
                              plot.data['pdy'],
                              plot.data[self.field_x],
-                             int(numPoints_x), int(numPoints_y),
+                             int(nx), int(ny),
                            (x0, x1, y0, y1),).transpose()
         pixY = _MPL.Pixelize(plot.data['px'],
                              plot.data['py'],
                              plot.data['pdx'],
                              plot.data['pdy'],
                              plot.data[self.field_y],
-                             int(numPoints_x), int(numPoints_y),
+                             int(nx), int(ny),
                            (x0, x1, y0, y1),).transpose()
-        X = na.mgrid[0:plot.image._A.shape[0]-1:numPoints_x*1j]# + 0.5*factor
-        Y = na.mgrid[0:plot.image._A.shape[1]-1:numPoints_y*1j]# + 0.5*factor
+        X = na.mgrid[0:plot.image._A.shape[0]-1:nx*1j]# + 0.5*factor
+        Y = na.mgrid[0:plot.image._A.shape[1]-1:ny*1j]# + 0.5*factor
         plot._axes.quiver(X,Y, pixX, -pixY)
         plot._axes.set_xlim(xx0,xx1)
         plot._axes.set_ylim(yy0,yy1)
@@ -255,3 +255,42 @@ class LinePlotCallback(PlotCallback):
         plot._axes.hold(True)
         plot._axes.plot(self.x, self.y, **self.plot_args)
         plot._axes.hold(False)
+
+class CuttingQuiverCallback(PlotCallback):
+    def __init__(self, field_x, field_y, factor):
+        PlotCallback.__init__(self)
+        self.field_x = field_x
+        self.field_y = field_y
+        self.factor = factor
+
+    def __call__(self, plot):
+        x0, x1 = plot.xlim
+        y0, y1 = plot.ylim
+        xx0, xx1 = plot._axes.get_xlim()
+        yy0, yy1 = plot._axes.get_ylim()
+        plot._axes.hold(True)
+        nx = plot.image._A.shape[0] / self.factor
+        ny = plot.image._A.shape[1] / self.factor
+        indices = na.argsort(plot.data['dx'])[::-1]
+        pixX = _MPL.CPixelize( plot.data['x'], plot.data['y'], plot.data['z'],
+                               plot.data['px'], plot.data['py'],
+                               plot.data['pdx'], plot.data['pdy'], plot.data['pdz'],
+                               plot.data.center, plot.data._inv_mat, indices,
+                               plot.data[self.field_x],
+                               int(nx), int(ny),
+                               (x0, x1, y0, y1),)
+        pixY = _MPL.CPixelize( plot.data['x'], plot.data['y'], plot.data['z'],
+                               plot.data['px'], plot.data['py'],
+                               plot.data['pdx'], plot.data['pdy'], plot.data['pdz'],
+                               plot.data.center, plot.data._inv_mat, indices,
+                               plot.data[self.field_y],
+                               int(nx), int(ny),
+                               (x0, x1, y0, y1),)
+        X = na.mgrid[0:plot.image._A.shape[0]-1:nx*1j]# + 0.5*factor
+        Y = na.mgrid[0:plot.image._A.shape[1]-1:ny*1j]# + 0.5*factor
+        plot._axes.quiver(X,Y, pixX, -pixY)
+        plot._axes.set_xlim(xx0,xx1)
+        plot._axes.set_ylim(yy0,yy1)
+        plot._axes.hold(False)
+
+
