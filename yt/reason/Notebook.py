@@ -492,16 +492,6 @@ class VMPlotPage(PlotPage):
         self.ChangeCenter(x,y)
         self.UpdateWidth()
 
-    def ChangeCenterFromMessage(self, message):
-        x, y, z = message.data
-        # We are dealing with a pass-by-reference center
-        self.center[0] = x
-        self.center[1] = y
-        self.center[2] = z
-        self.data.reslice(self.center[self.axis])
-        # If we do this, we get 3x as many updates as we want
-        #self.UpdateWidth()
-
     def ConvertPositionToDataPosition(self, xp, yp):
         #if not self.figure.axes[0].in_axes(xp,yp): return None, None
         #xp, yp = self.figure.axes[0].transData.inverse_xy_tup((xp,yp))
@@ -682,6 +672,11 @@ class SlicePlotPage(VMPlotPage):
         self.data = self.outputfile.hierarchy.slice(self.axis,
                                     self.center[self.axis], self.field, self.center)
         self.plot = be.SlicePlot(self.data, self.field, figure=self.figure, axes=self.axes)
+
+    def ChangeCenterFromMessage(self, message):
+        VMPlotPage.ChangeCenterFromMessage(self, message)
+        self.data.reslice(self.center[self.axis])
+
 
 class ProjPlotPage(VMPlotPage):
     def makePlot(self):
