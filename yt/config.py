@@ -30,7 +30,7 @@ import ConfigParser, os, os.path, types
 
 ytcfgDefaults = {
     "fido":{
-        'RunDir': os.path.join(os.getenv("HOME"),'EnzoRuns'),
+        'RunDir': os.path.join(os.getenv("HOME"),'.yt/EnzoRuns/'),
         'WorkDir': os.path.join('/usr/work/', os.getenv("USER")),
         'WaitBetween':'5',
         'OtherFiles':'rates.out,cool_rates.out',
