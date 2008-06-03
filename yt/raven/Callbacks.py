@@ -32,11 +32,10 @@ class PlotCallback(object):
         pass
 
 class QuiverCallback(PlotCallback):
-    def __init__(self, field_x, field_y, axis, factor):
+    def __init__(self, field_x, field_y, factor):
         PlotCallback.__init__(self)
         self.field_x = field_x
         self.field_y = field_y
-        self.axis = axis
         self.factor = factor
 
     def __call__(self, plot):
