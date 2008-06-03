@@ -26,41 +26,40 @@ Output-watcher
 from yt.fido import *
 
 class Watcher:
-    def __init__(self, title=None, path=".", newPrefix="", oc=None,
-                 process=None, functionHandler = None):
-        self.originalPath = os.getcwd()
+    def __init__(self, title=None, path=".", new_prefix="", oc=None,
+                 process=None, function_handler = None):
+        self.original_path = os.getcwd()
         os.chdir(path)
         if title == None: title = os.path.basename(os.getcwd())
         if oc == None: oc = OutputCollection(title)
         self.title = title
         self.oc = oc
         self.process = process
-        self.newPrefix = newPrefix
-        self.skipFiles = [] # Forward compatible
-        self.functionHandler = None
-        if functionHandler != None:
-            self.functionHandler = functionHandler()
+        self.new_prefix = new_prefix
+        self.skip_files = [] # Forward compatible
+        self.function_handler = None
+        if function_handler != None:
+            self.function_handler = function_handler()
 
-    def run(self, runOnce=False):
+    def run(self, run_once=False):
         mylog.info("Entering main Fido loop (CTRL-C or touch 'stopFido' to end)")
         wb = ytcfg.getfloat("fido","WaitBetween")
-        while not self.checkForStop():
-            nn = self.checkForOutput()
+        while not self.check_for_stop():
+            nn = self.check_for_output()
             for bn in nn:
-                newName = buryOutput(bn, newPrefix=self.newPrefix)
-                self.dealWithOutput(newName)
-            if runOnce: break
+                new_name = bury_output(bn, new_prefix=self.new_prefix)
+                self.handle_output(new_name)
+            if run_once: break
             try:
                 time.sleep(wb)
             except KeyboardInterrupt:
                 sys.exit()
 
-    def dealWithOutput(self, filename):
+    def handle_output(self, filename):
         # First, add it to the OutputCollection
-        self.oc.addOutput(filename)
-        self.oc.writeOut()
-        if self.functionHandler == None:
-            return
+        self.oc.add_output(filename)
+        self.oc.write_out()
+        if self.function_handler == None: return
         # Now, we pass it to our function handler
         pid = os.fork()
         if pid:
@@ -69,24 +68,24 @@ class Watcher:
             mylog.debug("Exit status %s from PID %s", exit, newpid)
         else:
             mylog.info("Forked process reporting for duty!")
-            self.functionHandler(filename)
+            self.function_handler(filename)
             sys.exit()
 
-    def checkForOutput(self):
-        newFiles = []
+    def check_for_output(self):
+        new_files = []
         if os.path.isfile(NEW_OUTPUT_CREATED):
             os.unlink(NEW_OUTPUT_CREATED)
             # So something is created!  Now let's snag it
             # We insert our additional glob patterns here
-            filesFound = glob.glob("*.hierarchy") #\
+            files_found = glob.glob("*.hierarchy") #\
                          #[glob.glob(pat) for pat in GlobPatterns]
-            for file in filter(lambda a: a not in self.skipFiles, filesFound):
+            for file in [fn for fn in files_found if fn not in self.skip_files]:
                 #if self.oc.has_key(os.path.basename(file[:-10])): continue
-                newFiles.append(file.rsplit(".",1)[0])
-                mylog.info("Found output %s", newFiles[-1])
-        return newFiles
+                new_files.append(file.rsplit(".",1)[0])
+                mylog.info("Found output %s", new_files[-1])
+        return new_files
 
-    def checkForStop(self):
+    def check_for_stop(self):
         if os.path.exists("stopFido"):
             # We should log this rather than print it
             mylog.info("Stopping fido")

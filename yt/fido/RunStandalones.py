@@ -26,15 +26,15 @@ import os, os.path, sys, re, time
 from yt.fido import *
 import exceptions
 
-def selectOutput(collection = None):
-    if not collection: collection = selectCollection()
+def select_output(collection = None):
+    if not collection: collection = select_collection()
     for i, o in enumerate(collection):
         print "%s\t %s" % (i+1,o)
     print
     loki = int(raw_input("Which output do you want?"))-1
     return collection[loki-1]
 
-def selectCollection():
+def select_collection():
     cs = GrabCollections()
     for i, o in enumerate(cs):
         print "%s\t %s" % (i+1,o)
@@ -56,7 +56,7 @@ class FidoAction:
     def SetupParser(self):
         pass
 
-    def GuessOC(self, createNew = False):
+    def _guess_collection(self, createNew = False):
         tryTitle=os.path.basename(os.getcwd())
         gc = GrabCollections()
         for c in gc:
@@ -66,9 +66,9 @@ class FidoAction:
         self.oc = None
         if createNew:
             Import().PerformAction()
-            self.GuessOC(createNew=False)
+            self._guess_collection(createNew=False)
 
-    def ParseArgs(self):
+    def _parse_args(self):
         self.SetupParser()
         self.opts, self.args = self.parser.parse_args()
 
@@ -82,24 +82,24 @@ class Bury(FidoAction):
     description = "Bury an output in a subdirectory"
     def __init__(self):
         FidoAction.__init__(self)
-        self.ParseArgs()
-        self.GuessOC()
+        self._parse_args()
+        self._guess_collection()
         if not self.oc:
             # Should we import here?
             raise KeyError, "Needs to be imported before you can bury."
 
     def PerformAction(self):
         for bn in self.args:
-            newName = buryOutput(bn)
-            self.oc.addOutput(newName)
-        self.oc.writeOut()
+            newName = bury_output(bn)
+            self.oc.add_output(newName)
+        self.oc.write_out()
 
 class DigUp(FidoAction):
     description = "Un-bury an output"
     def __init__(self):
         FidoAction.__init__(self)
-        self.ParseArgs()
-        self.GuessOC()
+        self._parse_args()
+        self._guess_collection()
         if not self.oc:
             # Should we import here?
             raise KeyError, "Needs to be imported before you can bury."
@@ -107,7 +107,7 @@ class DigUp(FidoAction):
     def SetupParser(self):
         self.parser.add_option("-d", "--dest",
                                action='store', type='string',
-                               dest='newLocation', default=os.getcwd())
+                               dest='new_location', default=os.getcwd())
 
     def PerformAction(self):
         for bn in self.args:
@@ -119,21 +119,21 @@ class DigUp(FidoAction):
             b = os.path.basename(b)
             print b
             toGlob = self.oc[b][0]
-            digupOutput(toGlob, newLocation=self.opts.newLocation)
+            digup_output(toGlob, new_location=self.opts.new_location)
             del self.oc[b]
-        self.oc.writeOut()
+        self.oc.write_out()
 
 class Branch(FidoAction):
     description = "Un-bury an output"
     def __init__(self):
         FidoAction.__init__(self)
-        self.ParseArgs()
-        if self.opts.newLocation == None:
+        self._parse_args()
+        if self.opts.new_location == None:
             print "You must supply a location for the branching."
             print "See --help ."
             print
             raise KeyError
-        self.GuessOC()
+        self._guess_collection()
         if not self.oc:
             # Should we import here?
             raise KeyError, "Needs to be imported before you can branch."
@@ -141,7 +141,7 @@ class Branch(FidoAction):
     def SetupParser(self):
         self.parser.add_option("-d", "--newdir",
                                action='store', type='string',
-                               dest='newLocation', default=None)
+                               dest='new_location', default=None)
         self.parser.add_option("-m", "--metadatastring",
                                action='store', type='string',
                                dest='md', default=None)
@@ -155,8 +155,8 @@ class Branch(FidoAction):
             b = os.path.basename(b)
         if b.endswith('.dir'):
             b = os.path.join(b, b[:-4])
-        #print "Copying %s to %s" % (b, self.opts.newLocation)
-        newName=copyOutput(b, self.opts.newLocation)
+        #print "Copying %s to %s" % (b, self.opts.new_location)
+        newName=copy_outputs(b, self.opts.new_location)
         print newName
         #Okay, now that we've copied it...
         #First we update the CurrentTimeIdentifier string
@@ -175,8 +175,8 @@ class Import(FidoAction):
     description = "Import an existing set of buried outputs"
     def __init__(self):
         FidoAction.__init__(self)
-        self.ParseArgs()
-        self.GuessOC()
+        self._parse_args()
+        self._guess_collection()
         self.title = os.path.basename(os.getcwd())
         if self.oc != None: self.title = self.oc.title
         else: self.oc=OutputCollection(self.title)
@@ -185,17 +185,17 @@ class Import(FidoAction):
     def PerformAction(self):
         for i in glob.glob("*.dir/*.hierarchy"):
             fn = i[:-10]
-            self.oc.addOutput(os.path.abspath(fn))
+            self.oc.add_output(os.path.abspath(fn))
         Giles = Watcher(title=self.title, oc=self.oc)
         Giles.run(True)
-        self.oc.writeOut()
+        self.oc.write_out()
 
 class FidoStandalone(FidoAction):
     description = "Run Fido, all by itself."
     def __init__(self):
         FidoAction.__init__(self)
-        self.ParseArgs()
-        self.GuessOC()
+        self._parse_args()
+        self._guess_collection()
         self.title = os.path.basename(os.getcwd())
         if self.oc != None: self.title = self.oc.title
 
@@ -208,15 +208,15 @@ class FidoStandalone(FidoAction):
                                dest='cfgFile', default=None)
         self.parser.add_option("-p", "--newpath",
                                action='store', type='string',
-                               dest='newPrefix', default=None)
+                               dest='new_prefix', default=None)
 
     def PerformAction(self):
         if self.opts.cfgFile != None: func=self.MakePlots
         else: func = None
-        Giles = Watcher(title=self.title, oc=self.oc, functionHandler=func,
-                        newPrefix=self.opts.newPrefix)
+        Giles = Watcher(title=self.title, oc=self.oc, function_handler=func,
+                        new_prefix=self.opts.new_prefix)
         Giles.run()
-        self.oc.writeOut()
+        self.oc.write_out()
 
     def MakePlots(self):
         import yt.lagos as lagos
@@ -248,7 +248,4 @@ def runAction():
     acts = {'fbury':Bury, 'fdigup':DigUp,
             'fbranch':Branch, 'fimport':Import,
             'fido':FidoStandalone}
-    #try:
     acts[pg]().PerformAction()
-    #except:
-        #print "Error: terminating."

@@ -26,66 +26,66 @@ All file-handling takes place in here.
 
 from yt.fido import *
 
-def copyOutput(basename, newLocation, extraFiles=None):
-    if extraFiles == None: extraFiles = []
-    copyGlob("%s*" % (basename), newLocation)
-    for file in extraFiles:
-        copyGlob(file, location)
-    return os.path.join(newLocation, os.path.basename(basename))
+def copy_output(basename, new_location, extra_files=None):
+    if extra_files == None: extra_files = []
+    copy_glob("%s*" % (basename), new_location)
+    for file in extra_files:
+        copy_glob(file, location)
+    return os.path.join(new_location, os.path.basename(basename))
 
-def moveOutput(basename, newLocation, extraFiles=None):
-    if extraFiles == None: extraFiles = []
-    moveGlob("%s*" % (basename), newLocation)
-    for file in extraFiles:
-        moveGlob(file, location)
+def move_output(basename, new_location, extra_files=None):
+    if extra_files == None: extra_files = []
+    move_glob("%s*" % (basename), new_location)
+    for file in extra_files:
+        move_glob(file, location)
 
-def deleteOutput(basename, extraFiles=None):
-    if extraFiles == None: extraFiles = []
-    deleteGlob("%s*" % os.path.normpath(filename), location)
-    for file in extraFiles:
-        deleteGlob(file)
+def delete_output(basename, extra_files=None):
+    if extra_files == None: extra_files = []
+    delete_glob("%s*" % os.path.normpath(filename), location)
+    for file in extra_files:
+        delete_glob(file)
 
-def buryOutput(filename, newPrefix = None, newLocation=None, extraFiles=None):
-    if extraFiles == None: extraFiles = []
-    if not newLocation:
+def bury_output(filename, new_prefix = None, new_location=None, extra_files=None):
+    if extra_files == None: extra_files = []
+    if not new_location:
         dirname = NewDirectoryPattern % filename
-        if not newPrefix: newPrefix = os.getcwd()
-        newLocation = os.path.abspath(os.path.join(newPrefix, dirname))
-    moveGlob("%s*" % filename, newLocation)
-    for file in extraFiles:
-        moveGlob(file, newLocation)
-    return os.path.join(newLocation, filename)
+        if not new_prefix: new_prefix = os.getcwd()
+        new_location = os.path.abspath(os.path.join(new_prefix, dirname))
+    move_glob("%s*" % filename, new_location)
+    for file in extra_files:
+        move_glob(file, new_location)
+    return os.path.join(new_location, filename)
 
-def digupOutput(filename, newLocation=None, extraFiles=None):
-    if extraFiles == None: extraFiles = []
-    if not newLocation:
-        newLocation = get_parent_dir(filename)
+def digup_output(filename, new_location=None, extra_files=None):
+    if extra_files == None: extra_files = []
+    if not new_location:
+        new_location = get_parent_dir(filename)
     else:
         # Make sure we have no relative references
-        newLocation = os.path.normpath(newLocation)
-    print "%s*" % (filename), newLocation
-    moveGlob("%s*" % filename, newLocation)
+        new_location = os.path.normpath(new_location)
+    print "%s*" % (filename), new_location
+    move_glob("%s*" % filename, new_location)
 
-def copyGlob(globPattern, newLocation):
-    if not os.path.isdir(newLocation):
-        os.makedirs(newLocation)
-    for file in glob.glob(globPattern):
-        mylog.debug("Copying %s to %s", file, newLocation)
-        shutil.copy(file, newLocation)
+def copy_glob(glob_pattern, new_location):
+    if not os.path.isdir(new_location):
+        os.makedirs(new_location)
+    for file in glob.glob(glob_pattern):
+        mylog.debug("Copying %s to %s", file, new_location)
+        shutil.copy(file, new_location)
     
-def moveGlob(globPattern, newLocation):
-    if not os.path.isdir(newLocation):
-        os.makedirs(newLocation)
+def move_glob(glob_pattern, new_location):
+    if not os.path.isdir(new_location):
+        os.makedirs(new_location)
     # This is slower than dumping to shell.
     # But, I trust it.  And it should work on boh
     # BSD and GNU util systems.
-    for file in glob.glob(globPattern):
-        if os.path.abspath(file) == os.path.abspath(newLocation): continue
-        nl = os.path.join(newLocation, os.path.basename(file))
+    for file in glob.glob(glob_pattern):
+        if os.path.abspath(file) == os.path.abspath(new_location): continue
+        nl = os.path.join(new_location, os.path.basename(file))
         mylog.debug("Moving %s to %s", file, nl)
         shutil.move(file, nl)
 
-def deleteGlob(globPattern):
-    for file in glob.glob(globPattern):
+def delete_glob(glob_pattern):
+    for file in glob.glob(glob_pattern):
         print "Removing %s" % (file)
         shutil.unlink(file)

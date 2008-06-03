@@ -41,7 +41,7 @@ def MakePlots(pf, fn, prefix, deliverator):
     pi = et(file=fn)
     r = pi.getroot()
     bn = pf.basename
-    dx = pf.h.getSmallestDx()
+    dx = pf.h.get_smallest_dx()
     for plot in r.getchildren():
         # Now we have a plot type, so let's get going, peoples!
         if plot.attrib.has_key("mindx"):
@@ -85,7 +85,7 @@ def MakePlots(pf, fn, prefix, deliverator):
                     prefixDict['width'] = width
                     prefixDict['unit'] = unit
                     pc.save(prefix % prefixDict, "png")
-        elif plotType == "threephase":
+        elif plotType == "phase":
             for width, unit in widths:
                 pc = PlotCollection(pf, deliverator)
                 if (width/pf[unit] < mindx*dx):
@@ -93,16 +93,7 @@ def MakePlots(pf, fn, prefix, deliverator):
                 prefixDict['width'] = width
                 prefixDict['unit'] = unit
                 #print fields, width, unit
-                pc.add_threephase_sphere(width, unit, fields)
-                pc.save(prefix % prefixDict, "png")
-        elif plotType == "twophase":
-            for width, unit in widths:
-                pc = PlotCollection(pf, deliverator)
-                if (width/pf[unit] < mindx*dx):
-                    continue
-                prefixDict['width'] = width
-                prefixDict['unit'] = unit
-                pc.add_twophase_sphere(width, unit, fields)
+                pc.add_phase_sphere(width, unit, fields)
                 pc.save(prefix % prefixDict, "png")
         elif plotType == "proj":
             pc = PlotCollection(pf, deliverator)
