@@ -190,3 +190,22 @@ def _combIsBound(data,bound):
     return bound
 add_quantity("IsBound",function=_IsBound,combine_function=_combIsBound,n_ret=1,
              force_unlazy=True)
+
+def _Extrema(data, fields):
+    fields = ensure_list(fields)
+    mins, maxs = [], []
+    for field in fields:
+        if data[field].size < 1:
+            mins.append(1e90)
+            maxs.append(-1e90)
+            continue
+        mins.append(data[field].min())
+        maxs.append(data[field].max())
+    return len(fields), mins, maxs
+def _combExtrema(data, n_fields, mins, maxs):
+    mins, maxs = na.atleast_2d(mins, maxs)
+    n_fields = mins.shape[1]
+    return [(na.min(mins[:,i]), na.max(maxs[:,i])) for i in range(n_fields)]
+add_quantity("Extrema", function=_Extrema, combine_function=_combExtrema,
+             n_ret=3)
+        
