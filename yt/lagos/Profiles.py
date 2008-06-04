@@ -57,7 +57,6 @@ class BinnedProfile:
         pbar = get_pbar('Binning grids', len(self._data_source._grids))
         for gi,grid in enumerate(self._data_source._grids):
             pbar.update(gi)
-            mylog.debug("Binner adding fields from grid %s", grid)
             args = self._get_bins(grid, check_cut=True)
             if not args:
                 continue
