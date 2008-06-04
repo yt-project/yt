@@ -704,6 +704,7 @@ class EnzoProjBase(Enzo2DData):
             self._okay_to_serialize = False
             self._check_region = True
         self.source = source
+        self._grids = self.source._grids
         if max_level == None:
             max_level = self.hierarchy.maxLevel
         self._max_level = max_level

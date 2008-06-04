@@ -242,7 +242,7 @@ class BinnedProfile2D(BinnedProfile):
         weight_data = weight_data[mi]
         self.total_cells += bin_indices_x.size
         nx = bin_indices_x.size
-        mylog.debug("Binning %s / %s times", source_data.size, nx)
+        #mylog.debug("Binning %s / %s times", source_data.size, nx)
         PointCombine.Bin2DProfile(bin_indices_x, bin_indices_y, weight_data, source_data,
                      weight_field, binned_field, used_field)
         if accumulation: # Fix for laziness

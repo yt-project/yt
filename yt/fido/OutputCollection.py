@@ -43,7 +43,7 @@ class OutputCollection:
         output_lines = [line for line in lines if line.startswith("Output:")]
         outputs = [line.split(":")[1] for line in output_lines]
         output_time_ids = [int(line.split(":")[2]) for line in output_lines]
-        output_time = [float(line.split(":")[3]) for line in output_lines]
+        output_times = [float(line.split(":")[3]) for line in output_lines]
 
         self.output_names = na.array(outputs)
         self.output_time_ids = na.array(output_time_ids, dtype='int64')
