@@ -54,7 +54,9 @@ class BinnedProfile:
             data[field] = self._get_empty_field()
             weight_data[field] = self._get_empty_field()
         used = self._get_empty_field().astype('bool')
-        for grid in self._data_source._grids:
+        pbar = get_pbar('Binning grids', len(self._data_source._grids))
+        for gi,grid in enumerate(self._data_source._grids):
+            pbar.update(gi)
             mylog.debug("Binner adding fields from grid %s", grid)
             args = self._get_bins(grid, check_cut=True)
             if not args:
@@ -66,6 +68,7 @@ class BinnedProfile:
                 weight_data[field] += w
                 used = (used | u)
             grid.clear_data()
+        pbar.finish()
         ub = na.where(used)
         for field in fields:
             if weight:
