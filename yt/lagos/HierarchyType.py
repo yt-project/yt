@@ -201,15 +201,17 @@ class EnzoHierarchy:
             self.__data_file = None
             pass
 
-    def save_data(self, array, node, name):
+    def save_data(self, array, node, name, set_attr=None):
         """
         Arbitrary numpy data will be saved to the region in the datafile
         described by *node* and *name*.  If data file does not exist, it throws
         no error and simply does not save.
         """
-        if self.__data_file != None:
-            self.__data_file.createArray(node, name, array, createparents=True)
-            self.__data_file.flush()
+        if self.__data_file is None: return
+        arr = self.__data_file.createArray(node, name, array, createparents=True)
+        if set_attr is not None:
+            for i, j in set_attr.items(): arr.setAttr(i,j)
+        self.__data_file.flush()
 
     def get_data(self, node, name):
         """

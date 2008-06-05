@@ -39,6 +39,7 @@ def must_have_s2plot(func):
     return check_started
 
 class VolumeRendering(object):
+    xyz = None
     def __init__(self, data, take_log=True,
                  window_opts="/S2MONO", cmap="rainbow",
                  amin=0.0, amax=0.1, bounds = None):
@@ -143,6 +144,9 @@ class VolumeRendering(object):
 
     def __my_callback(self, t, kc):
         s2plot.ds2dvr(self.vrid, 0)
+        if self.xyz is not None and kc % 2 == 0 and kc > 0:
+            s2plot.s2sci(s2plot.S2_PG_LTGREY)
+            s2plot.s2pt(*self.xyz)
 
 class VolumeRenderingDataCube(VolumeRendering):
     def __init__(self, pf, center=None, width=1, unit='1',
@@ -156,6 +160,7 @@ class VolumeRenderingDataCube(VolumeRendering):
         dx = self.width / dims
         self.max_level = na.unique(pf.h.gridDxs[pf.h.gridDxs>=dx]).argmax()+1
         self.data_grid = self.__get_data()
+        self.xyz = None
         VolumeRendering.__init__(self, self.data_grid[field], **kwargs)
         
     def __get_data(self):
@@ -188,3 +193,7 @@ class VolumeRendering3DProfile(VolumeRendering):
     def _setup_labels(self):
         s2plot.s2env(self.x0,self.x1, self.y0,self.y1, self.z0,self.z1, 0, 1)
         s2plot.s2lab(self.bf[0][1],self.bf[1][1],self.bf[2][1],self.field)
+
+    def setup_plot_points(self):
+        xyz = [f[0](self.profile._data_source[f[1]]) for f in self.bf]
+        self.xyz = [xyz[0].size] + xyz +  [1]

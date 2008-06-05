@@ -397,3 +397,51 @@ class BinnedProfile3D(BinnedProfile):
 
     def write_out(self, filename, format="%0.16e"):
         pass # Will eventually dump HDF5
+
+    def store_profile(self, name):
+        """
+        By identifying the profile with a fixed, user-input *name* we can
+        store it in the serialized data section of the hierarchy file.
+        """
+        # First we get our data in order
+        order = []
+        set_attr = {'x_bin_field':self.x_bin_field,
+                    'y_bin_field':self.y_bin_field,
+                    'z_bin_field':self.z_bin_field,
+                    'x_bin_values':self[self.x_bin_field],
+                    'y_bin_values':self[self.y_bin_field],
+                    'z_bin_values':self[self.z_bin_field],
+                    '_x_log':self._x_log,
+                    '_y_log':self._y_log,
+                    '_z_log':self._z_log,
+                    'shape': (self[self.x_bin_field].size,
+                              self[self.y_bin_field].size,
+                              self[self.z_bin_field].size),
+                    'field_order':order }
+        values = []
+        for field in self._data:
+            if field in set_attr.values(): continue
+            order.append(field)
+            values.append(self[field].ravel())
+        values = na.array(values).transpose()
+        self._data_source.hierarchy.save_data(values, "/Profiles", name,
+                                              set_attr)
+
+class StoredBinnedProfile3D(BinnedProfile3D):
+    def __init__(self, pf, name):
+        self._data = {}
+        prof_arr = pf.h.get_data("/Profiles", name)
+        if prof_arr is None: raise KeyError("No such array")
+        for ax in 'xyz':
+            for base in ['%s_bin_field', '_%s_log']:
+                setattr(self, base % ax, prof_arr.getAttr(base % ax))
+        for ax in 'xyz':
+            fn = getattr(self, '%s_bin_field' % ax)
+            self._data[fn] = prof_arr.getAttr('%s_bin_values' % ax)
+        shape = prof_arr.getAttr('shape')
+        for fn, fd in zip(prof_arr.getAttr('field_order'),
+                          prof_arr.read().transpose()):
+            self._data[fn] = fd.reshape(shape)
+
+    def add_fields(self, *args, **kwargs):
+        raise RuntimeError("Sorry, you can't add to a stored profile.")
