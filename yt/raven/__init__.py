@@ -66,7 +66,10 @@ from Callbacks import *
 color_maps = matplotlib.cm.cmapnames + raven_colormaps.keys()
 
 from PlotCollection import *
-from PlotConfig import *
+try:
+    from PlotConfig import *
+except ImportError:
+    mylog.warn("No automated plotting.  Thanks, elementtree!")
 
 try:
     from Plot3DInterface import *
