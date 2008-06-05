@@ -398,7 +398,7 @@ class BinnedProfile3D(BinnedProfile):
     def write_out(self, filename, format="%0.16e"):
         pass # Will eventually dump HDF5
 
-    def store_profile(self, name):
+    def store_profile(self, name, force=False):
         """
         By identifying the profile with a fixed, user-input *name* we can
         store it in the serialized data section of the hierarchy file.
@@ -425,7 +425,7 @@ class BinnedProfile3D(BinnedProfile):
             values.append(self[field].ravel())
         values = na.array(values).transpose()
         self._data_source.hierarchy.save_data(values, "/Profiles", name,
-                                              set_attr)
+                                              set_attr, force=force)
 
 class StoredBinnedProfile3D(BinnedProfile3D):
     def __init__(self, pf, name):
