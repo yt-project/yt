@@ -67,3 +67,8 @@ color_maps = matplotlib.cm.cmapnames + raven_colormaps.keys()
 
 from PlotCollection import *
 from PlotConfig import *
+
+try:
+    from Plot3DInterface import *
+except ImportError:
+    mylog.debug("S2PLOT interface not available")
