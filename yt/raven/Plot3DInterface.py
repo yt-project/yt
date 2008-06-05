@@ -38,38 +38,36 @@ def must_have_s2plot(func):
         func(obj, *args, **kwargs)
     return check_started
 
-class VolumeRenderingCube(object):
-    def __init__(self, pf, center=None, width=1, unit='1',
-                 field='Density', dims=128, take_log=True,
+class VolumeRendering(object):
+    def __init__(self, data, take_log=True,
                  window_opts="/S2MONO", cmap="rainbow",
-                 amin=0.01, amax=0.1):
-        self.pf = pf
-        self.width = width/pf[unit]
-        if center is None: center = pf.h.find_max("Density")[1]
-        self.center = center
-        self.field = field
-        self.dims = dims
-        dx = self.width / dims
-        self.max_level = na.unique(pf.h.gridDxs[pf.h.gridDxs>=dx]).argmax()+1
-        self.__setup_data(take_log)
+                 amin=0.0, amax=0.1, bounds = None):
+        if bounds is None:
+            self.x0,self.x1, self.y0,self.y1, self.z0,self.z1 = \
+                0.0,1.0, 0.0,1.0, 0.0,1.0
+        else:
+            self.x0,self.x1, self.y0,self.y1, self.z0,self.z1 = \
+                bounds
+        self.__setup_data(data, take_log)
         self.vrid = None
         self.isoids = []
         self.window_opts = window_opts
         self.cmap = cmap
         self._amin, self._amax = amin, amax
-        self.tr = na.array([ 0.0, (1.0-0.0)/(self.dims-1.0), 0, 0,
-                             0.0, 0, (1.0-0.0)/(self.dims-1.0), 0,
-                             0.0, 0, 0, (1.0-0.0)/(self.dims-1.0) ])
+        nx, ny, nz = self.dims
+        self.tr = na.array([
+            self.x0, (self.x1-self.x0)/(nx-1.0), 0               , 0,
+            self.y0, 0               , (self.y1-self.y0)/(ny-1.0), 0,
+            self.z0, 0               , 0               , (self.z1-self.z0)/(nz-1.0)
+        ])
         self.started = False
         
-    def __setup_data(self, take_log):
-        self.data_grid = self.pf.h.covering_grid(self.max_level,
-            self.center - self.width/2.0,
-            self.center + self.width/2.0,
-            [self.dims]*3, fields=[self.field])
-        if take_log: self.data=na.log10(self.data_grid[self.field])
-        else: self.data=self.data_grid[self.field]
+    def __setup_data(self, data, take_log):
+        self.dims = na.array(data.shape)
+        if take_log: self.data=na.log10(data).copy()
+        else: self.data=data.copy()
         self._dmin = self.data.min()
+        if take_log: self._dmin=na.log10(data[data>0]).min()
         self._dmax = self.data.max()
 
     @must_have_s2plot
@@ -95,27 +93,36 @@ class VolumeRenderingCube(object):
     def __add_isosurface(self, val, alpha, cm):
         scaled_val = ((val-self._dmin)/(self._dmax-self._dmin))
         r,g,b,a = cm(scaled_val)
-        nx = self.dims-1
+        nx,ny,nz = self.dims
         print "Adding",val,scaled_val,alpha,r,g,b
-        return s2plot.ns2cis(self.data, self.dims, self.dims, self.dims,
-                             0, nx, 0, nx, 0, nx, self.tr, val,
+        return s2plot.ns2cis(self.data, nx, ny, nz,
+                             0, nx-1, 0, ny-1, 0, ny-1,
+                             self.tr, val,
                              1, 't', alpha, r,g,b)
                             
     def run(self, pre_call=None):
         self.__setup_s2plot()
         self.__setup_volrendering()
         self.__register_callbacks()
+        self._setup_labels()
         if pre_call is not None: pre_call(self)
-        self.__start_rendering()
+        s2plot.s2disp(-1, 1)
 
     def restart(self):
-        self.__start_rendering()
+        s2plot.s2disp(-1, 0)
+
+    def _setup_labels(self):
+        pass
 
     def __setup_s2plot(self):
-        dx = 1.0/(self.dims-1.0)
+        dx,dy,dz = 1.0/(self.dims-1.0)
         s2plot.s2opendo(self.window_opts)
-        s2plot.s2swin(-dx,1.0+dx,-dx,1.0+dx,-dx,1.0+dx) # We mandate cube
-        s2plot.s2box("BCDE",0,0,"BCDE",0,0,"BCDE",0,0)
+        s2plot.s2swin(-dx/1.0,1.0+dx/1.0,
+                      -dy/1.0,1.0+dy/1.0,
+                      -dz/1.0,1.0+dz/1.0)
+        #opts = "BCDETMNOPQ"
+        opts = "BCDE"
+        s2plot.s2box(opts,0,0,opts,0,0,opts,0,0)
         s2plot.s2scir(1000,2000)            # Set colour range
         s2plot.s2icm(self.cmap,1000,2000)   # Install colour map
         amb = {'r':0.8, 'g':0.8, 'b':0.8}   # ambient light
@@ -124,9 +131,9 @@ class VolumeRenderingCube(object):
         self.started = True
 
     def __setup_volrendering(self):
-        nd = self.dims
-        self.vrid = s2plot.ns2cvr(self.data, nd, nd, nd,
-                           0, nd-1, 0, nd-1, 0, nd-1, 
+        ndx,ndy,ndz = self.dims
+        self.vrid = s2plot.ns2cvr(self.data, ndx, ndy, ndz,
+                           0, ndx-1, 0, ndy-1, 0, ndz-1, 
                            self.tr, 's',
                            self._dmin, self._dmax, self._amin, self._amax)
         
@@ -134,8 +141,50 @@ class VolumeRenderingCube(object):
         # More should go here for functional changes to the object
         s2plot.cs2scb(self.__my_callback)                           # Install a dynamic callback
 
-    def __start_rendering(self):
-        s2plot.s2disp(-1, 1)
-
     def __my_callback(self, t, kc):
         s2plot.ds2dvr(self.vrid, 0)
+
+class VolumeRenderingDataCube(VolumeRendering):
+    def __init__(self, pf, center=None, width=1, unit='1',
+                 field='Density', dims=128, **kwargs):
+        self.pf = pf
+        self.width = width/pf[unit]
+        if center is None: center = pf.h.find_max("Density")[1]
+        self.center = center
+        self.field = field
+        self.dims = dims
+        dx = self.width / dims
+        self.max_level = na.unique(pf.h.gridDxs[pf.h.gridDxs>=dx]).argmax()+1
+        self.data_grid = self.__get_data()
+        VolumeRendering.__init__(self, self.data_grid[field], **kwargs)
+        
+    def __get_data(self):
+        data_grid = self.pf.h.covering_grid(self.max_level,
+            self.center - self.width/2.0,
+            self.center + self.width/2.0,
+            [self.dims]*3, fields=[self.field])
+        return data_grid
+
+class VolumeRendering3DProfile(VolumeRendering):
+    def __init__(self, profile, field, **kwargs):
+        self.profile = profile
+        self.field = field
+        if 'bounds' not in kwargs:
+            kwargs['bounds'] = self._setup_bounds()
+        VolumeRendering.__init__(self, self.profile[field], **kwargs)
+
+    def _setup_bounds(self):
+        nolog = lambda a: a
+        self.bf = [[nolog, self.profile.x_bin_field], \
+                   [nolog, self.profile.y_bin_field], \
+                   [nolog, self.profile.z_bin_field]]
+        if self.profile._x_log: self.bf[0][0] = na.log10
+        if self.profile._y_log: self.bf[1][0] = na.log10
+        if self.profile._z_log: self.bf[2][0] = na.log10
+        xmi, ymi, zmi = [f(self.profile[fn]).min() for f,fn in self.bf]
+        xma, yma, zma = [f(self.profile[fn]).max() for f,fn in self.bf]
+        return (xmi,xma,ymi,yma,zmi,zma)
+
+    def _setup_labels(self):
+        s2plot.s2env(self.x0,self.x1, self.y0,self.y1, self.z0,self.z1, 0, 1)
+        s2plot.s2lab(self.bf[0][1],self.bf[1][1],self.bf[2][1],self.field)

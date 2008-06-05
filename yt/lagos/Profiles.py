@@ -104,7 +104,6 @@ class BinnedProfile:
     def __setitem__(self, key, value):
         self._data[key] = value
 
-
 # @todo: Fix accumulation with overriding
 class BinnedProfile1D(BinnedProfile):
     def __init__(self, data_source, n_bins, bin_field,
@@ -186,26 +185,20 @@ class BinnedProfile2D(BinnedProfile):
                  x_n_bins, x_bin_field, x_lower_bound, x_upper_bound, x_log,
                  y_n_bins, y_bin_field, y_lower_bound, y_upper_bound, y_log,
                  lazy_reader=False):
-
-        self.total_cells = 0
         BinnedProfile.__init__(self, data_source, lazy_reader)
         self.x_bin_field = x_bin_field
         self.y_bin_field = y_bin_field
         self._x_log = x_log
         self._y_log = y_log
-        if x_log:
-            self[x_bin_field] = na.logspace(na.log10(x_lower_bound*0.99),
-                                            na.log10(x_upper_bound*1.01),
-                                            x_n_bins)
-        else:
-            self[x_bin_field] = na.linspace(
+        if x_log: self[x_bin_field] = na.logspace(na.log10(x_lower_bound*0.99),
+                                                  na.log10(x_upper_bound*1.01),
+                                                  x_n_bins)
+        else: self[x_bin_field] = na.linspace(
                 x_lower_bound*0.99, x_upper_bound*1.01, x_n_bins)
-        if y_log:
-            self[y_bin_field] = na.logspace(na.log10(y_lower_bound*0.99),
-                                            na.log10(y_upper_bound*1.01),
-                                            y_n_bins)
-        else:
-            self[y_bin_field] = na.linspace(
+        if y_log: self[y_bin_field] = na.logspace(na.log10(y_lower_bound*0.99),
+                                                  na.log10(y_upper_bound*1.01),
+                                                  y_n_bins)
+        else: self[y_bin_field] = na.linspace(
                 y_lower_bound*0.99, y_upper_bound*1.01, y_n_bins)
         if na.any(na.isnan(self[x_bin_field])) \
             or na.any(na.isnan(self[y_bin_field])):
@@ -240,7 +233,6 @@ class BinnedProfile2D(BinnedProfile):
         bin_indices_y = args[2].ravel().astype('int64')
         source_data = source_data[mi]
         weight_data = weight_data[mi]
-        self.total_cells += bin_indices_x.size
         nx = bin_indices_x.size
         #mylog.debug("Binning %s / %s times", source_data.size, nx)
         PointCombine.Bin2DProfile(bin_indices_x, bin_indices_y, weight_data, source_data,
@@ -293,3 +285,115 @@ class BinnedProfile2D(BinnedProfile):
             field_data[:,line].tofile(fid, sep="\t", format=format)
             fid.write("\n")
         fid.close()
+
+class BinnedProfile3D(BinnedProfile):
+    def __init__(self, data_source,
+                 x_n_bins, x_bin_field, x_lower_bound, x_upper_bound, x_log,
+                 y_n_bins, y_bin_field, y_lower_bound, y_upper_bound, y_log,
+                 z_n_bins, z_bin_field, z_lower_bound, z_upper_bound, z_log,
+                 lazy_reader=False):
+        BinnedProfile.__init__(self, data_source, lazy_reader)
+        self.x_bin_field = x_bin_field
+        self.y_bin_field = y_bin_field
+        self.z_bin_field = z_bin_field
+        self._x_log = x_log
+        self._y_log = y_log
+        self._z_log = z_log
+        if x_log: self[x_bin_field] = na.logspace(na.log10(x_lower_bound*0.99),
+                                                  na.log10(x_upper_bound*1.01),
+                                                  x_n_bins)
+        else: self[x_bin_field] = na.linspace(
+                x_lower_bound*0.99, x_upper_bound*1.01, x_n_bins)
+        if y_log: self[y_bin_field] = na.logspace(na.log10(y_lower_bound*0.99),
+                                                  na.log10(y_upper_bound*1.01),
+                                                  y_n_bins)
+        else: self[y_bin_field] = na.linspace(
+                y_lower_bound*0.99, y_upper_bound*1.01, y_n_bins)
+        if z_log: self[z_bin_field] = na.logspace(na.log10(z_lower_bound*0.99),
+                                                  na.log10(z_upper_bound*1.01),
+                                                  z_n_bins)
+        else: self[z_bin_field] = na.linspace(
+                z_lower_bound*0.99, z_upper_bound*1.01, z_n_bins)
+        if na.any(na.isnan(self[x_bin_field])) \
+            or na.any(na.isnan(self[y_bin_field])) \
+            or na.any(na.isnan(self[z_bin_field])):
+            mylog.error("Your min/max values for x, y or z have given me a nan.")
+            mylog.error("Usually this means you are asking for log, with a zero bound.")
+            raise ValueError
+        if not lazy_reader:
+            self._args = self._get_bins(data_source)
+
+    def _get_empty_field(self):
+        return na.zeros((self[self.x_bin_field].size,
+                         self[self.y_bin_field].size,
+                         self[self.z_bin_field].size), dtype='float64')
+
+    @preserve_source_parameters
+    def _bin_field(self, source, field, weight, accumulation,
+                   args, check_cut=False):
+        if check_cut:
+            pointI = self._data_source._get_point_indices(source)
+            source_data = source[field][pointI].ravel().astype('float64')
+            weight_data = na.ones(source_data.shape).astype('float64')
+            if weight: weight_data = source[weight][pointI].ravel().astype('float64')
+        else:
+            source_data = source[field].ravel().astype('float64')
+            weight_data = na.ones(source_data.shape).astype('float64')
+            if weight: weight_data = source[weight].ravel().astype('float64')
+        self.total_stuff = source_data.sum()
+        binned_field = self._get_empty_field()
+        weight_field = self._get_empty_field()
+        used_field = self._get_empty_field()
+        mi = args[0]
+        bin_indices_x = args[1].ravel().astype('int64')
+        bin_indices_y = args[2].ravel().astype('int64')
+        bin_indices_z = args[3].ravel().astype('int64')
+        source_data = source_data[mi]
+        weight_data = weight_data[mi]
+        PointCombine.Bin3DProfile(
+                     bin_indices_x, bin_indices_y, bin_indices_z,
+                     weight_data, source_data,
+                     weight_field, binned_field, used_field)
+        if accumulation: # Fix for laziness
+            if not iterable(accumulation):
+                raise SyntaxError("Accumulation needs to have length 2")
+            if accumulation[0]:
+                binned_field = na.add.accumulate(binned_field, axis=0)
+            if accumulation[1]:
+                binned_field = na.add.accumulate(binned_field, axis=1)
+            if accumulation[2]:
+                binned_field = na.add.accumulate(binned_field, axis=2)
+        return binned_field, weight_field, used_field.astype('bool')
+
+    @preserve_source_parameters
+    def _get_bins(self, source, check_cut=False):
+        if check_cut:
+            cm = self._data_source._get_point_indices(source)
+            source_data_x = source[self.x_bin_field][cm]
+            source_data_y = source[self.y_bin_field][cm]
+            source_data_z = source[self.z_bin_field][cm]
+        else:
+            source_data_x = source[self.x_bin_field]
+            source_data_y = source[self.y_bin_field]
+            source_data_z = source[self.z_bin_field]
+        if source_data_x.size == 0:
+            return
+        mi = na.where( (source_data_x > self[self.x_bin_field].min())
+                     & (source_data_x < self[self.x_bin_field].max())
+                     & (source_data_y > self[self.y_bin_field].min())
+                     & (source_data_y < self[self.y_bin_field].max())
+                     & (source_data_z > self[self.z_bin_field].min())
+                     & (source_data_z < self[self.z_bin_field].max()))
+        sd_x = source_data_x[mi]
+        sd_y = source_data_y[mi]
+        sd_z = source_data_z[mi]
+        if sd_x.size == 0 or sd_y.size == 0 or sd_z.size == 0:
+            return
+        bin_indices_x = na.digitize(sd_x, self[self.x_bin_field])
+        bin_indices_y = na.digitize(sd_y, self[self.y_bin_field])
+        bin_indices_z = na.digitize(sd_z, self[self.z_bin_field])
+        # Now we set up our inverse bin indices
+        return (mi, bin_indices_x, bin_indices_y, bin_indices_z)
+
+    def write_out(self, filename, format="%0.16e"):
+        pass # Will eventually dump HDF5
