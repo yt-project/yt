@@ -50,7 +50,7 @@ class VolumeRenderingCube(object):
         self.field = field
         self.dims = dims
         dx = self.width / dims
-        self.max_level = na.unique(pf.h.gridDxs[pf.h.gridDxs>=dx]).argmax()
+        self.max_level = na.unique(pf.h.gridDxs[pf.h.gridDxs>=dx]).argmax()+1
         self.__setup_data(take_log)
         self.vrid = None
         self.isoids = []
@@ -126,7 +126,7 @@ class VolumeRenderingCube(object):
         nd = self.dims
         self.vrid = s2plot.ns2cvr(self.data, nd, nd, nd,
                            0, nd-1, 0, nd-1, 0, nd-1, 
-                           self.tr, 't',
+                           self.tr, 's',
                            self._dmin, self._dmax, self._amin, self._amax)
         
     def __register_callbacks(self):
