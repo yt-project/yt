@@ -85,7 +85,7 @@ class VolumeRenderingCube(object):
         if vals is None:
             if log_space: func=na.logspace
             else: func=na.linspace
-            vals = func(self._dmin, self._dmax, number)
+            vals = func(self._dmin, self._dmax, number+2)[1:-1]
             if log_space: vals = na.log10(vals)
         for val,a in zip(vals, na.linspace(amin, amax, number)):
             self.isoids.append(
@@ -101,10 +101,11 @@ class VolumeRenderingCube(object):
                              0, nx, 0, nx, 0, nx, self.tr, val,
                              1, 't', alpha, r,g,b)
                             
-    def run(self):
+    def run(self, pre_call=None):
         self.__setup_s2plot()
         self.__setup_volrendering()
         self.__register_callbacks()
+        if pre_call is not None: pre_call(self)
         self.__start_rendering()
 
     def restart(self):
