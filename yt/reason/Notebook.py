@@ -156,13 +156,15 @@ class PlotPanel(wx.Panel):
 
 class PlotPage(wx.Panel):
     plot = None
-    def __init__(self, parent, status_bar, mw=None, CreationID = -1):
+    def __init__(self, parent, status_bar, mw=None, CreationID = -1,
+                 parent_id = None):
         wx.Panel.__init__(self, parent)
         self.Hide()
 
         self.CreationID = CreationID
         self.parent = parent
         self.mw = mw
+        self.parent_id = parent_id
 
         self.figure = be.matplotlib.figure.Figure((1,1))
         self.axes = self.figure.add_subplot(111)
@@ -343,7 +345,7 @@ class PlotPage(wx.Panel):
 class VMPlotPage(PlotPage):
     def __init__(self, parent, status_bar, outputfile, axis, field="Density",
                  weight_field = None, mw=None, CreationID = -1,
-                 center = None):
+                 center = None, parent_id = None):
         self.outputfile = outputfile
         self.field = field
         self.weight_field = weight_field
@@ -357,7 +359,7 @@ class VMPlotPage(PlotPage):
         if ytcfg.getboolean("reason","centeronmax"):
             self.center = outputfile.hierarchy.findMax("Density")[1]
 
-        PlotPage.__init__(self, parent, status_bar, mw, CreationID)
+        PlotPage.__init__(self, parent, status_bar, mw, CreationID, parent_id)
         self.SetBackgroundColour(wx.NamedColor("WHITE"))
         self.UpdateWidth()
 
@@ -539,7 +541,8 @@ class VMPlotPage(PlotPage):
                 sphere = self.outputfile.hierarchy.sphere( \
                     cc, r)
                 self.mw._add_sphere("Sphere: %0.3e %s" \
-                        % (r*unit, unitname), sphere)
+                        % (r*unit, unitname), sphere,
+                        self.parent_id)
                 self.AmDrawingCircle = False
             else:
                 self.x1 = xp
@@ -634,7 +637,7 @@ class VMPlotPage(PlotPage):
                 self.center,
                 radius/self.outputfile[unit])
             self.mw._add_sphere("Sphere: %0.3e %s" \
-                    % (radius, unit), sphere)
+                    % (radius, unit), sphere, self.parent_id)
 
     def WipePlotDataFromMessage(self, message):
         self.data.clear_data()
@@ -736,11 +739,11 @@ class CuttingPlanePlotPage(VMPlotPage):
 
 class ProfilePlotPage(PlotPage):
     def __init__(self, parent, status_bar, data_object, argdict, mw=None,
-                 CreationID = -1):
+                 CreationID = -1, parent_id = None):
         self.data_object = data_object
         self.argdict = argdict
 
-        PlotPage.__init__(self, parent, status_bar, mw, CreationID)
+        PlotPage.__init__(self, parent, status_bar, mw, CreationID, parent_id)
         self.UpdateAvailableFields()
 
     def SetupControls(self):

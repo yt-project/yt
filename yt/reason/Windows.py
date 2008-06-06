@@ -355,7 +355,86 @@ class Profile2DSetup(wx.Dialog):
         return argdict
 
 class ExtractSetSetup(wx.Dialog):
-    pass
+    def __init__(self, data_object, parent):
+
+        wx.Dialog.__init__(self, parent, -1, title="Set Arbitrary Bounds")
+
+        self.data_object = data_object
+        fields = QueryFields(data_object)
+        
+        border = wx.BoxSizer(wx.VERTICAL)
+        inner_border = wx.BoxSizer(wx.VERTICAL)
+
+        sbox = wx.StaticBox(self, -1, "Bounded Cell Extraction")
+        box = wx.StaticBoxSizer(sbox, wx.VERTICAL)
+        gbs = wx.GridBagSizer(5, 5)
+
+        self.field = wx.Choice(self, -1, choices=fields, name="Field")
+
+        self.bound_above = wx.CheckBox(self, -1, "Bound from above")
+        self.bound_above.SetValue(False)
+        self.upper_bound = wx.TextCtrl(self, style=wx.TE_PROCESS_ENTER)
+        self.upper_bound.SetValue('Upper Bound')
+        self.upper_bound.Enable(False)
+
+        self.bound_below = wx.CheckBox(self, -1, "Bound from below")
+        self.bound_below.SetValue(False)
+        self.lower_bound = wx.TextCtrl(self, style=wx.TE_PROCESS_ENTER)
+        self.lower_bound.SetValue('Lower Bound')
+        self.lower_bound.Enable(False)
+
+        ok_button = wx.Button(self, wx.ID_OK, "OK")
+        ok_button.SetDefault()
+        cancel_button = wx.Button(self, wx.ID_CANCEL, "Cancel")
+
+        gbs.Add(self.field, (0,0), (1,2))
+        gbs.Add(self.bound_above, (1,0))
+        gbs.Add(self.upper_bound, (1,1))
+        gbs.Add(self.bound_below, (2,0))
+        gbs.Add(self.lower_bound, (2,1))
+        gbs.Add(ok_button, (3,0), flag=wx.EXPAND)
+        gbs.Add(cancel_button, (3,1), flag=wx.EXPAND)
+
+        box.Add(gbs, 1, wx.EXPAND | wx.ALL)
+        inner_border.Add(box, 1, wx.EXPAND)
+        inner_border.AddSpacer(15)
+
+        border.Add(inner_border, 1, wx.EXPAND|wx.ALL, 25)
+        self.SetSizer(border)
+        self.Fit()
+        
+        self.Bind(wx.EVT_CHECKBOX, self.OnToggleUpper, self.bound_above)
+        self.Bind(wx.EVT_CHECKBOX, self.OnToggleLower, self.bound_below)
+
+    def OnToggleUpper(self, event):
+        if self.bound_above.GetValue():
+            self.upper_bound.Enable(True)
+            self.upper_bound.SetValue('')
+        else:
+            self.upper_bound.Enable(False)
+            self.upper_bound.SetValue('Upper Bound')
+
+    def OnToggleLower(self, event):
+        if self.bound_below.GetValue():
+            self.lower_bound.Enable(True)
+            self.lower_bound.SetValue('')
+        else:
+            self.lower_bound.Enable(False)
+            self.lower_bound.SetValue('Lower Bound')
+
+    def return_indices(self):
+        field = str(self.field.GetStringSelection())
+        if field == '': return None
+        # Now we do the logical operation
+        if self.bound_below.GetValue():
+           lb = float(self.lower_bound.GetValue())
+        else: lb = -na.inf
+        if self.bound_above.GetValue():
+           ub = float(self.upper_bound.GetValue())
+        else: ub = na.inf
+        ind = ((self.data_object[field] > lb)
+            &  (self.data_object[field] < ub))
+        return na.where(ind)
 
 class ExtractCubeSetup(wx.Dialog):
     pass

@@ -27,7 +27,7 @@ Main application for Reason.  Includes the basic window outline.
 from yt.reason import *
 
 _StaticOutputMenuItems = ["proj","slice","export",]
-_SphereObjectMenuItems = ["phase","profile","cutting","export",]
+_SphereObjectMenuItems = ["phase","profile","cutting","export","extract"]
 _ProjObjectMenuItems = ["export",]
 _SliceObjectMenuItems = []
 _CuttingPlaneObjectMenuItems = ["export",]
@@ -134,7 +134,7 @@ class ReasonMainWindow(wx.Frame):
         self.Bind(wx.EVT_MENU, self._add_phase, self.PopupMenuIds["phase"])
         self.Bind(wx.EVT_MENU, self._add_profile, self.PopupMenuIds["profile"])
         self.Bind(wx.EVT_MENU, self._add_cutting, self.PopupMenuIds["cutting"])
-        #self.Bind(wx.EVT_MENU, self._extract_set, self.PopupMenuIds["extract"])
+        self.Bind(wx.EVT_MENU, self._extract_set, self.PopupMenuIds["extract"])
         #self.Bind(wx.EVT_MENU, self._extract_cube, self.PopupMenuIds["cube"])
         self.Bind(wx.EVT_MENU, self._export_data_object, self.PopupMenuIds["export"])
 
@@ -282,9 +282,9 @@ class ReasonMainWindow(wx.Frame):
         ni = self.data_tree.AppendItem(parent_id, "%s" % (title), data=tid)
         self.data_tree.Expand(parent_id)
 
-    def _add_sphere(self, title, sphere):
+    def _add_sphere(self, title, sphere, parent_id=None):
         # These all get passed in
-        self._add_data_object(title, sphere, _SphereObjectMenuItems)
+        self._add_data_object(title, sphere, _SphereObjectMenuItems, parent_id)
 
     def __add_profile_wrapper(self, obj):
         """
@@ -328,7 +328,7 @@ class ReasonMainWindow(wx.Frame):
                             status_bar=self.status_bar,
                             data_object = data_object,
                             argdict = argdict, CreationID = MyID,
-                            mw = self),
+                            mw = self, parent_id=parent_id),
             "Profile Plot %s" % MyID, MyID)
         if parent_id is not None:
             self._add_data_object("Profile: %s" % (argdict['bin_field']),
@@ -360,10 +360,9 @@ class ReasonMainWindow(wx.Frame):
                           status_bar=self.status_bar,
                           data_object = data_object,
                           argdict = argdict, CreationID = MyID,
-                          mw = self),
+                          mw = self, parent_id=parent_id),
             "Phase Plot %s" % MyID, MyID)
         if parent_id is not None:
-            self.pid = parent_id
             self._add_data_object("Phase: %s, %s" % (argdict['x_bin_field'],
                                                  argdict['y_bin_field']),
                                self.windows[-1].plot.data,
@@ -387,7 +386,7 @@ class ReasonMainWindow(wx.Frame):
         field = proj_setup.field.GetStringSelection()
         weight_field = proj_setup.weight_field.GetStringSelection()
         if weight_field == "": weight_field = None
-        axes = []
+        total = 0
         for i, ax in enumerate('xyz'):
             if not getattr(proj_setup,'%s_ax' % ax).GetValue(): continue
             mylog.info("Adding %s projection of %s" % (ax, data_object))
@@ -398,14 +397,16 @@ class ReasonMainWindow(wx.Frame):
                               axis=i,
                               field = field,
                               weight_field = weight_field,
-                              mw = self, CreationID=MyID),
+                              mw = self, CreationID=MyID,
+                              parent_id=parent_id),
                 "%s - Projection - %s" % (data_object.basename, ax),
                 MyID)
-            self._add_data_object("Proj: %s %s" % (data_object, ax),
+            self._add_data_object("Proj: %s - %s (%s)" % (ax, field, weight_field),
                                self.windows[-1].plot.data,
                                _ProjObjectMenuItems, parent_id)
             print "Adding with ID:", MyID
-        for w in self.windows[-3:]: w.ChangeWidth(1,'1')
+            total += 1
+        for w in self.windows[-total:]: w.ChangeWidth(1,'1')
         proj_setup.Destroy()
 
     def _add_slice(self, event=None):
@@ -420,10 +421,11 @@ class ReasonMainWindow(wx.Frame):
                               outputfile = data_object,
                               axis=i,
                               field = field,
-                              mw = self, CreationID=MyID),
+                              mw = self, CreationID=MyID,
+                              parent_id = parent_id),
                 "%s - Slice - %s" % (data_object.basename, ax),
                 MyID)
-            self._add_data_object("Slice: %s %s" % (data_object, ax),
+            self._add_data_object("Slice: %s" % (ax),
                                self.windows[-1].plot.data,
                                _SliceObjectMenuItems, parent_id)
         for w in self.windows[-3:]: w.ChangeWidth(1,'1')
@@ -447,6 +449,21 @@ class ReasonMainWindow(wx.Frame):
                 err.Destroy()
         dlg.Destroy()
 
+    def _extract_set(self, event=None, data_object=None):
+        MyID = wx.NewId()
+        parent_id = None
+        if data_object is None: parent_id, data_object = self.get_output()
+        ess = ExtractSetSetup(data_object, self)
+        if not ess.ShowModal() == wx.ID_OK:
+            ess.Destroy()
+            return
+        ind = ess.return_indices()
+        ess.Destroy()
+        extracted_set = data_object.extract_region(ind)
+        self._add_data_object("Extracted Set",
+                              extracted_set,
+                              _SphereObjectMenuItems, parent_id)
+
     def __add_cutting_wrapper(self, parameter_file, normal):
         self._add_cutting(parameter_file=parameter_file, normal=normal)
 
@@ -469,7 +486,7 @@ class ReasonMainWindow(wx.Frame):
                             status_bar=self.status_bar,
                             outputfile=parameter_file, field=field, mw=self,
                             CreationID=MyID, axis=4, normal=normal,
-                            center = center),
+                            center = center, parent_id=parent_id),
             "%s - Cutting Plane" % (parameter_file.basename), MyID)
         self._add_data_object("Cutting Plane" % (parameter_file),
                               self.windows[-1].plot.data,
