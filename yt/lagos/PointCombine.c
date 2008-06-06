@@ -256,16 +256,6 @@ _fail:
 
 }
 
-/* These functions are both called with
-    func(cubedata, griddata) */
-static void dcRefine(npy_float64 *val1, npy_float64 *val2) {
-    *val1 = *val2;
-}
-
-static void dcReplace(npy_float64 *val1, npy_float64 *val2) {
-    *val2 = *val1;
-}
-
 static PyObject *_profile2DError;
 
 static PyObject *Py_Bin2DProfile(PyObject *obj, PyObject *args)
@@ -517,7 +507,10 @@ static PyObject *Py_Bin3DProfile(PyObject *obj, PyObject *args)
 static PyObject *_dataCubeError;
 
 static PyObject *DataCubeGeneric(PyObject *obj, PyObject *args,
-                             void (*to_call)(npy_float64*,npy_float64*))
+                   void (*to_call)(PyArrayObject* c_data, npy_int64 xc,
+                                        npy_int64 yc, npy_int64 zc,
+                                   PyArrayObject* g_data, npy_int64 xg,
+                                        npy_int64 yg, npy_int64 zg))
 {
     /* Standard boilerplate unpacking...  */
 
@@ -699,9 +692,8 @@ static PyObject *DataCubeGeneric(PyObject *obj, PyObject *args,
             for (yc = cmin_y; yc < cmax_y ; yc++) {
               for (zc = cmin_z; zc < cmax_z ; zc++) {
                 for(n=0;n<n_fields;n++){
-                  val1 = (npy_float64*) PyArray_GETPTR3(c_data[n],xc,yc,zc);
-                  val2 = (npy_float64*) PyArray_GETPTR3(g_data[n],xg,yg,zg);
-                  to_call(val1, val2);
+                  to_call(c_data[n], xc, yc, zc,
+                          g_data[n], xg, yg, zg);
                 }
                 total += 1;
               }
@@ -744,6 +736,27 @@ _fail:
     if(c_data!=NULL)free(c_data);
     return NULL;
 
+}
+
+/* These functions are both called with
+    func(cubedata, griddata) */
+
+static void dcRefine(PyArrayObject* c_data, npy_int64 xc, npy_int64 yc, npy_int64 zc,
+                     PyArrayObject* g_data, npy_int64 xg, npy_int64 yg, npy_int64 zg)
+{
+    // c_data used to be val1, g_data used to be val2
+    // so we go val2 -> val1, or grid -> covering grid
+    *(npy_float64*) PyArray_GETPTR3(c_data,xc,yc,zc) =
+        *(npy_float64*) PyArray_GETPTR3(g_data,xg,yg,zg);
+}
+
+static void dcReplace(PyArrayObject* c_data, npy_int64 xc, npy_int64 yc, npy_int64 zc,
+                      PyArrayObject* g_data, npy_int64 xg, npy_int64 yg, npy_int64 zg)
+{
+    // c_data used to be val1, g_data used to be val2
+    // so we go val1 -> val2, or covering grid -> grid
+    *(npy_float64*) PyArray_GETPTR3(g_data,xg,yg,zg) =
+        *(npy_float64*) PyArray_GETPTR3(c_data,xc,yc,zc);
 }
 
 static PyObject *
