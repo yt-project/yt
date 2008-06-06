@@ -190,7 +190,6 @@ class EnzoHierarchy:
             mode = 'a'
         try:
             self.__data_file = tables.openFile(fn, mode)
-            self.hithere = self.__data_file
             my_name = self.get_data("/","MyName")
             if my_name is None:
                 self.save_data(str(self.parameter_file), "/", "MyName")

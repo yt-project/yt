@@ -175,6 +175,12 @@ class ReasonMainWindow(wx.Frame):
                 ni = self.data_tree.AppendItem(cRoot,
                     "%s" % (os.path.basename(fn)), data=tid)
 
+    def _remove_fido_output(self, event=None):
+        pass
+
+    def _remove_fido_outputcollection(self, event=None):
+        pass
+
     def __setup_toolbar(self):
         # Tool Bar
         self._VMTB_REREADFIDO = wx.NewId()
@@ -475,7 +481,7 @@ class ReasonMainWindow(wx.Frame):
         #tid = self.data_tree.GetFirstSelected()
         tid = self.data_tree.GetSelection()
         ii = self.data_tree.GetItemData(tid).GetData()[0]
-        if isinstance(ii, types.StringTypes):
+        if isinstance(ii, types.StringTypes): # We promote
             ii = lagos.EnzoStaticOutput(ii) # Instantiate here
             self.outputs.append(ii)
             fn, z, t, mids = self.data_tree.GetItemData(tid).GetData()

@@ -145,26 +145,16 @@ def ChooseWidth(outputfile):
     dlg.Destroy()
     return w, u
 
-def GetAngularMomentumVector(outputfile, center):
+def GetSphereRadius(outputfile, center):
     dlg = ReasonWidthSelectionWindow(outputfile,
                 "Radius Selector",
-            "With the current display-center, over \n" + \
-            "what radius should bulk velocity be calculated?")
+            "With the current display-center, how large\n" + \
+            "should our sphere be?")
     resp = dlg.ShowModal()
-    bv = None
-    if resp == wx.ID_OK:
-        w, u = dlg.GetData()
-        sp = outputfile.h.sphere(center=center, radius=w/outputfile[u])
-        bv = sp.quantities["BulkVelocity"](lazy_reader=True)
-        if na.any(na.isnan(bv)):
-            err = wx.MessageDialog(None, "Error",
-                            "The values were bad.  Try a bigger sphere?",
-                            wx.OK)
-            err.ShowModal()
-            err.Destroy()
-            bv = None
+    tr = None
+    if resp == wx.ID_OK: tr = dlg.GetData()
     dlg.Destroy()
-    return bv
+    return tr
 
 def GetBulkVelocity(outputfile, center):
     dlg = ReasonWidthSelectionWindow(outputfile,

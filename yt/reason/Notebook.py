@@ -34,7 +34,7 @@ This GUI was designed as a front-end to a pre-existing toolkit called yt.  As su
 
 To access the various plotting functions, right click on a dataset in the tree over to the left.  Then you can right-click in the window to shuffle around the center, to change the color map, to save it, and so on.  And then give a shot to shift-clicking in two places -- the first will define the center, the second will define the outer-edge.  Then you can phase plot the sphere!
 
-If you experience any troubles, drop me a line (matt@yt.spacepope.org) or just fill out a ticket at yt.spacepope.org.
+If you experience any troubles, drop me a line (matthewturk@gmail.com) or just fill out a ticket at yt.enzotools.org.
 """
 
 class PlotPanel(wx.Panel):
@@ -378,6 +378,7 @@ class VMPlotPage(PlotPage):
         self.take_log_menu.Check(self.plot.log_field)
         fullDomain = self.popupmenu.Append(-1, "Zoom Top")
         bulk_velocity = self.popupmenu.Append(-1, "Set Bulk Velocity")
+        centered_sphere = self.popupmenu.Append(-1, "Get Sphere")
 
         self.Bind(wx.EVT_MENU, self.OnCenterOnMax, self.center_on_max)
         self.Bind(wx.EVT_MENU, self.OnCenterHere, self.center_here)
@@ -387,6 +388,7 @@ class VMPlotPage(PlotPage):
         self.Bind(wx.EVT_MENU, self.take_log, self.take_log_menu)
         self.Bind(wx.EVT_MENU, self.fulldomain, fullDomain)
         self.Bind(wx.EVT_MENU, self.set_bulk_velocity, bulk_velocity)
+        self.Bind(wx.EVT_MENU, self.get_centered_sphere, centered_sphere)
 
     def SetupFigure(self):
         PlotPage.SetupFigure(self)
@@ -535,7 +537,7 @@ class VMPlotPage(PlotPage):
                 cc[lagos.x_dict[self.axis]] = xd
                 cc[lagos.y_dict[self.axis]] = yd
                 sphere = self.outputfile.hierarchy.sphere( \
-                    cc, r, fields = ["Density"])
+                    cc, r)
                 self.mw._add_sphere("Sphere: %0.3e %s" \
                         % (r*unit, unitname), sphere)
                 self.AmDrawingCircle = False
@@ -623,6 +625,16 @@ class VMPlotPage(PlotPage):
             Publisher().sendMessage(('viewchange','field_param'),
                                     ('bulk_velocity', bv))
             Publisher().sendMessage(('viewchange','wipe'),())
+
+    def get_centered_sphere(self, *args):
+        rv = Toolbars.GetSphereRadius(self.outputfile, self.center)
+        if rv is not None:
+            radius, unit = rv
+            sphere = self.outputfile.hierarchy.sphere( \
+                self.center,
+                radius/self.outputfile[unit])
+            self.mw._add_sphere("Sphere: %0.3e %s" \
+                    % (radius, unit), sphere)
 
     def WipePlotDataFromMessage(self, message):
         self.data.clear_data()
