@@ -176,6 +176,7 @@ class EnzoHierarchy:
         self.slice = classobj("EnzoSlice",(EnzoSliceBase,), dd)
         self.region = classobj("EnzoRegion",(EnzoRegionBase,), dd)
         self.covering_grid = classobj("EnzoCoveringGrid",(EnzoCoveringGrid,), dd)
+        self.smoothed_covering_grid = classobj("EnzoSmoothedCoveringGrid",(EnzoSmoothedCoveringGrid,), dd)
         self.sphere = classobj("EnzoSphere",(EnzoSphereBase,), dd)
         self.cutting = classobj("EnzoCuttingPlane",(EnzoCuttingPlaneBase,), dd)
         self.ray = classobj("EnzoOrthoRay",(EnzoOrthoRayBase,), dd)

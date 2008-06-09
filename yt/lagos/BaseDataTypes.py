@@ -1516,3 +1516,101 @@ class EnzoCoveringGrid(Enzo3DData):
             grid.LeftEdge, g_dx, g_fields, grid.child_mask,
             self.left_edge, self.right_edge, c_dx, c_fields,
             ll)
+
+class EnzoSmoothedCoveringGrid(EnzoCoveringGrid):
+    def __init__(self, *args, **kwargs):
+        dlog2 = na.log10(kwargs['dims'])/na.log10(2)
+        if not na.all(na.floor(dlog2) == na.ceil(dlog2)):
+            mylog.warning("Must be power of two dimensions")
+            raise ValueError
+        kwargs['num_ghost_zones'] = 0
+        EnzoCoveringGrid.__init__(self, *args, **kwargs)
+        if na.any(self.left_edge == 0):
+            self.left_edge += self.dx
+            self.ActiveDimensions -= 1
+        if na.any(self.right_edge == 0):
+            self.right_edge -= self.dx
+            self.ActiveDimensions -= 1
+
+    def _get_list_of_grids(self):
+        grids, ind = self.pf.hierarchy.get_box_grids(self.left_edge-self.dx,
+                                                     self.right_edge+self.dx)
+        level_ind = na.where(self.pf.hierarchy.gridLevels.ravel()[ind] <= self.level)
+        sort_ind = na.argsort(self.pf.h.gridLevels.ravel()[ind][level_ind])
+        self._grids = self.pf.hierarchy.grids[ind][level_ind][(sort_ind,)]
+
+    def _get_level_array(self, level, fields):
+        fields = ensure_list(fields)
+        # We assume refinement by a factor of two
+        rf = 2**(self.level - level)
+        dims = na.maximum(1,self.ActiveDimensions/rf) + 2
+        dx = (self.right_edge-self.left_edge)/(dims-2)
+        x,y,z = (na.mgrid[0:dims[0],0:dims[1],0:dims[2]].astype('float64')+0.5)\
+              * dx[0]
+        x += self.left_edge[0] - dx[0]
+        y += self.left_edge[1] - dx[1]
+        z += self.left_edge[2] - dx[2]
+        bounds = [self.left_edge[0]-self['cdx'], self.right_edge[0]+self['cdx'],
+                  self.left_edge[1]-self['cdy'], self.right_edge[1]+self['cdy'],
+                  self.left_edge[2]-self['cdz'], self.right_edge[2]+self['cdz']]
+        fake_grid = {'x':x,'y':y,'z':z,'dx':dx[0],'dy':dx[1],'dz':dx[2]}
+        for ax in 'xyz': self['cd%s'%ax] = fake_grid['d%s'%ax]
+        for field in fields:
+            # Generate the new grid field
+            if field in fieldInfo and fieldInfo[field].take_log:
+                interpolator = TrilinearFieldInterpolator(
+                                na.log10(self[field]), bounds, ['x','y','z'])
+                self[field] = 10**interpolator(fake_grid)
+            else:
+                interpolator = TrilinearFieldInterpolator(
+                                self[field], bounds, ['x','y','z'])
+                self[field] = interpolator(fake_grid)
+        return fake_grid
+
+    def get_data(self, field=None):
+        self._get_list_of_grids()
+        # We don't generate coordinates here.
+        if field == None:
+            fields_to_get = self.fields
+        else:
+            fields_to_get = ensure_list(field)
+        for field in fields_to_get:
+            grid_count = 0
+            if self.data.has_key(field):
+                continue
+            mylog.debug("Getting field %s from %s possible grids",
+                       field, len(self._grids))
+            self[field] = na.zeros(self.ActiveDimensions, dtype='float64') -999
+            if self._use_pbar: pbar = \
+                    get_pbar('Searching grids for values ', len(self._grids))
+            # How do we find out the root grid base dx?
+            idims = na.array([3,3,3])
+            dx = na.minimum((self.right_edge-self.left_edge)/(idims-2),
+                            self.pf.h.grids[0].dx)
+            idims = na.floor((self.right_edge-self.left_edge)/dx) + 2
+            for ax in 'xyz': self['cd%s'%ax] = dx[0]
+            self[field] = na.zeros(idims,dtype='float64')-999
+            for level in range(self.level+1):
+                for grid in self.select_grids(level):
+                    if self._use_pbar: pbar.update(grid_count)
+                    self._get_data_from_grid(grid, field)
+                    grid_count += 1
+                if level < self.level: self._get_level_array(level+1, field)
+            self[field] = self[field][1:-1,1:-1,1:-1]
+            if self._use_pbar: pbar.finish()
+        
+    @restore_grid_state
+    def _get_data_from_grid(self, grid, fields):
+        fields = ensure_list(fields)
+        g_dx = na.array([grid.dx, grid.dy, grid.dz])
+        c_dx = na.array([self['cdx'],self['cdy'],self['cdz']])
+        g_fields = [grid[field] for field in fields]
+        c_fields = [self[field] for field in fields]
+        total = PointCombine.DataCubeRefine(
+            grid.LeftEdge, g_dx, g_fields, grid.child_mask,
+            self.left_edge-c_dx, self.right_edge+c_dx,
+            c_dx, c_fields,
+            1)
+
+    def flush_data(self, *args, **kwargs):
+        raise KeyError("Can't do this")

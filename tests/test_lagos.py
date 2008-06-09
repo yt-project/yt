@@ -90,7 +90,7 @@ class TestHierarchy(LagosTestingBase, unittest.TestCase):
         self.assertEqual(ms,mr)  # Asserting equality between the two
 
     def testProjectionCorrectnessMultipleFields(self):
-        p = self.hierarchy.proj(0,["Density","Ones"]) # Unweighted
+        p = self.hierarchy.proj(0,["Density","Ones"], weight=None) # Unweighted
         self.assertTrue(na.all(p["Ones"] == 1.0))
 
     def testProjectionMakingMultipleFields(self):
@@ -98,15 +98,23 @@ class TestHierarchy(LagosTestingBase, unittest.TestCase):
         # One for each field, pdx, pdy, px, py, and one for the weight
         self.assertEqual(len(p.data.keys()), 8)
 
-    def testProjectionMaking(self):
+    def testProjectionSuccess(self):
         p = self.hierarchy.proj(0,"Density") # Unweighted
         p = self.hierarchy.proj(1,"Temperature","Density") # Weighted
         p = self.hierarchy.proj(2,"Entropy") # Derived field
 
-    def testProjectionCorrectness(self):
+    def testUnweightedProjectionCorrectness(self):
         # Now we test that we get good answers
         for axis in range(3):
             p = self.hierarchy.proj(axis, "Ones") # Derived field
+            self.assertTrue(na.all(p["Ones"] == 1.0))
+            # Regardless of weighting, we want ones back
+
+    def testWeightedProjectionCorrectness(self):
+        # Now we test that we get good answers
+        for axis in range(3):
+            # Regardless of weighting, we want ones back
+            p = self.hierarchy.proj(axis, "Ones", "Density")
             self.assertTrue(na.all(p["Ones"] == 1.0))
 
 # Now we test each datatype in turn
@@ -206,6 +214,43 @@ for weight in [None, "CellMassMsun"]:
                                                         accumulation_x,
                                                         accumulation_y)
                 setattr(Data3DBase, name, func)
+
+class TestSmoothedCoveringGrid(LagosTestingBase, unittest.TestCase):
+    def setUp(self):
+        LagosTestingBase.setUp(self)
+
+    def testAllCover(self):
+        DIMS = 32
+        for i in range(self.hierarchy.max_level+1):
+            dx = (DIMS*2**i)**-1
+            LE = na.array([0.5,0.5,0.5])-(dx*DIMS/2.0)
+            RE = na.array([0.5,0.5,0.5])+(dx*DIMS/2.0)
+            cg = self.hierarchy.smoothed_covering_grid(
+                    level=i, left_edge=LE, right_edge=RE,
+                    dims=[DIMS]*3, fields=["Density"])
+            self.assertFalse(na.any(na.isnan(cg["Density"])))
+            self.assertFalse(na.any(cg["Density"]==-999))
+
+    def testWrongDims(self):
+        self.failUnlessRaises(ValueError,
+                self.hierarchy.smoothed_covering_grid,
+                level=2, left_edge=[0.25, 0.25, 0.25],
+                right_edge=[0.75, 0.75, 0.75],
+                dims=[123, 124, 125])
+
+    def testAddField(self):
+        DIMS = 64
+        i = 5
+        dx = (DIMS*2**i)**-1
+        LE = na.array([0.5,0.5,0.5])-(dx*DIMS/2.0)
+        RE = na.array([0.5,0.5,0.5])+(dx*DIMS/2.0)
+        cg = self.hierarchy.smoothed_covering_grid(
+                level=i, left_edge=LE, right_edge=RE,
+                dims=[DIMS]*3, fields=["Density"])
+        self.assertFalse(na.any(na.isnan(cg["Temperature"])))
+        self.assertFalse(na.any(cg["Temperature"]==-999))
+
+        
 
 class TestDataCube(LagosTestingBase, unittest.TestCase):
     def setUp(self):

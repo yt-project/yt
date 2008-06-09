@@ -37,7 +37,7 @@ class UnilinearFieldInterpolator:
         orig_shape = data_object[self.x_name].shape
         x_vals = data_object[self.x_name].ravel()
 
-        x_i = na.digitize(data_object[self.x_name], self.x_bins) - 1
+        x_i = na.digitize(x_vals, self.x_bins) - 1
         if na.any((x_i == -1) | (x_i == len(self.x_bins)-1)):
             mylog.error("Sorry, but your values are outside" + \
                         " the table!  Dunno what to do, so dying.")
@@ -63,8 +63,8 @@ class BilinearFieldInterpolator:
         x_vals = data_object[self.x_name].ravel()
         y_vals = data_object[self.y_name].ravel()
 
-        x_i = na.digitize(data_object[self.x_name], self.x_bins) - 1
-        y_i = na.digitize(data_object[self.y_name], self.y_bins) - 1
+        x_i = na.digitize(x_vals, self.x_bins) - 1
+        y_i = na.digitize(y_vals, self.y_bins) - 1
         if na.any((x_i == -1) | (x_i == len(self.x_bins)-1)) \
             or na.any((y_i == -1) | (y_i == len(self.y_bins)-1)):
             mylog.error("Sorry, but your values are outside" + \
@@ -98,9 +98,9 @@ class TrilinearFieldInterpolator:
         y_vals = data_object[self.y_name].ravel()
         z_vals = data_object[self.z_name].ravel()
 
-        x_i = na.digitize(data_object[self.x_name], self.x_bins) - 1
-        y_i = na.digitize(data_object[self.y_name], self.y_bins) - 1
-        z_i = na.digitize(data_object[self.z_name], self.z_bins) - 1
+        x_i = na.digitize(x_vals, self.x_bins) - 1
+        y_i = na.digitize(y_vals, self.y_bins) - 1
+        z_i = na.digitize(z_vals, self.z_bins) - 1
         if na.any((x_i == -1) | (x_i == len(self.x_bins)-1)) \
             or na.any((y_i == -1) | (y_i == len(self.y_bins)-1)) \
             or na.any((z_i == -1) | (z_i == len(self.z_bins)-1)):
@@ -117,6 +117,12 @@ class TrilinearFieldInterpolator:
         xm = (self.x_bins[x_i+1] - x_vals) / (self.x_bins[x_i+1] - self.x_bins[x_i])
         ym = (self.y_bins[y_i+1] - y_vals) / (self.y_bins[y_i+1] - self.y_bins[y_i])
         zm = (self.z_bins[z_i+1] - z_vals) / (self.z_bins[z_i+1] - self.z_bins[z_i])
+        if na.any(na.isnan(self.table)):
+            raise ValueError
+        if na.any(na.isnan(x) | na.isnan(y) | na.isnan(z)):
+            raise ValueError
+        if na.any(na.isnan(xm) | na.isnan(ym) | na.isnan(zm)):
+            raise ValueError
         my_vals = \
                   self.table[x_i  ,y_i  ,z_i  ] * (xm*ym*zm) \
                 + self.table[x_i+1,y_i  ,z_i  ] * (x *ym*zm) \
