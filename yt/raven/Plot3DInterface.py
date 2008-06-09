@@ -150,11 +150,13 @@ class VolumeRendering(object):
 
 class VolumeRenderingDataCube(VolumeRendering):
     def __init__(self, pf, center=None, width=1, unit='1',
-                 field='Density', dims=128, **kwargs):
+                 field='Density', dims=128, smooth_data=True,
+                 **kwargs):
         self.pf = pf
         self.width = width/pf[unit]
         if center is None: center = pf.h.find_max("Density")[1]
         self.center = center
+        self._use_smoothed = smooth_data
         self.field = field
         self.dims = dims
         dx = self.width / dims
@@ -164,10 +166,13 @@ class VolumeRenderingDataCube(VolumeRendering):
         VolumeRendering.__init__(self, self.data_grid[field], **kwargs)
         
     def __get_data(self):
-        data_grid = self.pf.h.covering_grid(self.max_level,
-            self.center - self.width/2.0,
-            self.center + self.width/2.0,
-            [self.dims]*3, fields=[self.field])
+        if self._use_smoothed: cl = self.pf.h.smoothed_covering_grid
+        else: cl = self.pf.h.covering_grid
+        data_grid = cl(
+            level=self.max_level,
+            left_edge=self.center - self.width/2.0,
+            right_edge=self.center + self.width/2.0,
+            dims=[self.dims]*3, fields=[self.field])
         return data_grid
 
 class VolumeRendering3DProfile(VolumeRendering):
