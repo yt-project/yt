@@ -62,6 +62,7 @@ if ytcfg.getboolean("lagos","usefortran"):
 
 # Now we import all the subfiles
 
+from HelperFunctions import *
 import PointCombine
 import HDF5LightReader
 from EnzoDefs import *
@@ -76,7 +77,6 @@ from EnzoRateData import *
 from HierarchyType import *
 from OutputTypes import *
 from Profiles import *
-from HelperFunctions import *
 
 # We load plugins.  Keep in mind, this can be fairly dangerous -
 # the primary purpose is to allow people to have a set of functions
