@@ -1,0 +1,22 @@
+Matthew Turk
+May 2008
+
+This code (described below) has been modified to be wrapped as a shared library
+callable from Python, as a part of the yt toolkit.
+
+Stephen Skory
+May/June 2007
+
+This is a new implementation of hop for enzo datasets, to replace the
+fragile 'enzohop.' enzohop uses the enzo grid functionality to extract
+the particle data from the HDF5 datasets. newhop uses plain HDF5 C++ calls
+to extract the data, which is then fed into the hop mechanism. As far as I
+know, this version is fine with 64 bit integers/floats, which enzohop isn't.
+
+There are a few versions of newhop which build on datastar just fine. I 
+haven't tested it on other machines. The default build 'newhop' is for
+packed datasets and will include both stars and dm in the grouping.
+THe other versions are for non-packed datasets, or if you want to only
+consider dm particles for grouping. Hop doesn't like datasets with too
+many particles, (I've never done tests, but I know that 20 million
+particles give hop problems) so sometimes dm-only is the only way to go.
