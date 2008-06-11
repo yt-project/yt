@@ -47,10 +47,24 @@ def cache_mask(func):
     def check_cache(self, grid):
         if isinstance(grid, FakeGridForParticles):
             return func(self, grid)
-        elif not self._cut_masks.has_key(grid.id):
+        elif grid.id not in self._cut_masks:
             cm = func(self, grid)
             self._cut_masks[grid.id] = cm
         return self._cut_masks[grid.id]
+    return check_cache
+
+def cache_point_indices(func):
+    """
+    For computationally intensive indexing operations, we can cache
+    between calls.
+    """
+    def check_cache(self, grid, use_child_mask=True):
+        if isinstance(grid, FakeGridForParticles):
+            return func(self, grid, use_child_mask)
+        elif grid.id not in self._point_indices:
+            cm = func(self, grid, use_child_mask)
+            self._point_indices[grid.id] = cm
+        return self._point_indices[grid.id]
     return check_cache
 
 class FakeGridForParticles(object):
@@ -103,6 +117,7 @@ class EnzoData:
         self.field_parameters = {}
         self.__set_default_field_parameters()
         self._cut_masks = {}
+        self._point_indices = {}
         for key, val in kwargs.items():
             self.set_field_parameter(key, val)
 
@@ -637,9 +652,15 @@ class EnzoCuttingPlaneBase(Enzo2DData):
         # This is slow.  Suggestions for improvement would be great...
         ss = grid.ActiveDimensions
         D = na.ones(ss) * self._d
-        D += (grid['x'][:,0,0] * self._norm_vec[0]).reshape(ss[0],1,1)
-        D += (grid['y'][0,:,0] * self._norm_vec[1]).reshape(1,ss[1],1)
-        D += (grid['z'][0,0,:] * self._norm_vec[2]).reshape(1,1,ss[2])
+        x = grid.LeftEdge[0] + grid.dx * \
+                (na.arange(grid.ActiveDimensions[0], dtype='float64')+0.5)
+        y = grid.LeftEdge[1] + grid.dy * \
+                (na.arange(grid.ActiveDimensions[1], dtype='float64')+0.5)
+        z = grid.LeftEdge[2] + grid.dz * \
+                (na.arange(grid.ActiveDimensions[2], dtype='float64')+0.5)
+        D += (x * self._norm_vec[0]).reshape(ss[0],1,1)
+        D += (y * self._norm_vec[1]).reshape(1,ss[1],1)
+        D += (z * self._norm_vec[2]).reshape(1,1,ss[2])
         diag_dist = na.sqrt(grid.dx**2.0
                           + grid.dy**2.0
                           + grid.dz**2.0)
@@ -678,6 +699,7 @@ class EnzoCuttingPlaneBase(Enzo2DData):
     def interpolate_discretize(self, *args, **kwargs):
         pass
 
+    @cache_point_indices
     def _get_point_indices(self, grid, use_child_mask=True):
         k = na.zeros(grid.ActiveDimensions, dtype='bool')
         k = (k | self._get_cut_mask(grid))

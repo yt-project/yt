@@ -95,11 +95,12 @@ class VolumeRendering(object):
         scaled_val = ((val-self._dmin)/(self._dmax-self._dmin))
         r,g,b,a = cm(scaled_val)
         nx,ny,nz = self.dims
-        print "Adding",val,scaled_val,alpha,r,g,b
+        mylog.info("Adding isosurface at %0.5e (%0.3e) with alpha %0.2f (%0.2f %0.2f %0.2f)",
+                   val,scaled_val,alpha, r,g,b)
         return s2plot.ns2cis(self.data, nx, ny, nz,
                              0, nx-1, 0, ny-1, 0, ny-1,
                              self.tr, val,
-                             1, 't', alpha, r,g,b)
+                             1, 's', alpha, r,g,b)
                             
     def run(self, pre_call=None):
         self.__setup_s2plot()
