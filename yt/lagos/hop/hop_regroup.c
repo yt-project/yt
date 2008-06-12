@@ -233,8 +233,9 @@ void regroup_main(float dens_outer, HC *my_comm)
 	merge_groups_boundaries(s,gl,c.gmergename,
 		c.peak_thresh, c.saddle_thresh, c.densthresh, my_comm);
 	/* Renumber the groups from large to small; remove any tiny ones */
-	if (c.qsort) sort_groups(s, gl, c.mingroupsize, c.outsizename);
-	writegmerge(s, gl, c.outgmergename, c.peak_thresh, c.saddle_thresh);
+	//if (c.qsort) sort_groups(s, gl, c.mingroupsize, c.outsizename);
+	if (c.qsort) sort_groups(s, gl, c.mingroupsize, NULL);
+	//writegmerge(s, gl, c.outgmergename, c.peak_thresh, c.saddle_thresh);
 	translatetags(s,gl);
     }
     else if (c.qgmerge_given) {
@@ -672,8 +673,8 @@ numbering, setting any below mingroupsize to -1. */
 	fprintf(f,"%"ISYM"\n%"ISYM"\n%"ISYM"\n", s->numpart, partingroup, gl->nnewgroups);
 	for (j=0;j<gl->nnewgroups;j++)
 	    fprintf(f,"%"ISYM" %"ISYM"\n", j, (int)gsize[order[nmergedgroups-j]-1]);
-    }
     fclose(f);
+    }
     free_ivector(order,1,nmergedgroups);
     free_vector(gsize,0,nmergedgroups-1);
     free_ivector(newnum,0,nmergedgroups-1);

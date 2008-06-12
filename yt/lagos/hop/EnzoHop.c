@@ -48,11 +48,12 @@ Py_EnzoHop(PyObject *obj, PyObject *args)
                      *mass, *ID;
     xpos=ypos=zpos=mass=ID=NULL;
     npy_float64 totalmass = 0;
+    float thresh = 160.0;
 
     int i;
 
-    if (!PyArg_ParseTuple(args, "OOOOO",
-        &oxpos, &oypos, &ozpos, &omass, &oID))
+    if (!PyArg_ParseTuple(args, "OOOOO|f",
+        &oxpos, &oypos, &ozpos, &omass, &oID, &thresh))
     return PyErr_Format(_HOPerror,
             "EnzoHop: Invalid parameters.");
 
@@ -135,7 +136,6 @@ Py_EnzoHop(PyObject *obj, PyObject *args)
     initgrouplist(my_comm.gl);
 
     fprintf(stderr, "Calling hop... %d\n",num_particles);
-    float thresh = 80.0;
     hop_main(kd, &my_comm, thresh);
 
     fprintf(stderr, "Calling regroup...\n");

@@ -47,8 +47,6 @@ void ReSizeSMX(SMX smx, int nSmooth);
  
 void PrepareKD(KD kd);
 void binOutHop(SMX smx, HC *my_comm, float densthres);
-void binOutDensity(SMX smx, HC *my_comm, float densthres);
-void binInDensity(SMX smx, FILE *fp);
 void outGroupMerge(SMX smx, HC *my_comm);
 
 /* void main(int argc,char **argv) */
@@ -67,7 +65,8 @@ void hop_main(KD kd, HC *my_comm, float densthres)
 	nSmooth = 64;
 	nDens = 64;
 	nHop = -1;
-	fDensThresh = -1.0;
+/*    fDensThresh = 3.0; */
+    fDensThresh = -1.0;
 	bDensity = 3;
 	bGroup = 3;
 	bMerge = 3;
@@ -103,7 +102,6 @@ void hop_main(KD kd, HC *my_comm, float densthres)
 	PrepareKD(kd);
  
 	smInit(&smx,kd,nSmooth,fPeriod);
-    
 	smx->nHop = nHop;
 	smx->nDens = nDens;
 	smx->nMerge = nMerge;
@@ -531,38 +529,6 @@ void binOutHop(SMX smx, HC *my_comm, float densthres)
 
     /* Here I'm going to add on the end of the file the real particle IDs for all the particles
        added above, in the same order as above. S Skory */
-    return;
-}
- 
-/* ----------------------------------------------------------------- */
- 
-void binOutDensity(SMX smx, HC *my_comm, float densthres)
-/* Write the density for each particle.  Particles should be ordered. */
-/* Binary file: nActive, list of Densities */
-{
-    int j,dummy;
-    Slice *s = my_comm->s;
-    fprintf(stderr, "binOutDensity %d\n", smx->kd->nActive);
-    for (j=0;j<smx->kd->nActive;j++);     return;
-}
- 
-/* ----------------------------------------------------------------- */
- 
-void binInDensity(SMX smx, FILE *fp)
-/* Read in the densities for each particle.  Particles should be ordered. */
-/* Binary file: nActive, list of Densities */
-{
-    int j, dummy;
- 
-    if (fread(&dummy,sizeof(int),1,fp)!=1) {
-	fprintf(stderr,"Format of density file seems wrong.\n"); exit(1);
-    }
-    assert(dummy==smx->kd->nActive);
-    for (j=0;j<smx->kd->nActive;j++)
-	if (fread(&(smx->kd->p[j].fDensity),sizeof(float),1,fp)!=1) {
-	    fprintf(stderr,"Error reading density file.\n");
-	    exit(1);
-	}
     return;
 }
  
