@@ -14,7 +14,7 @@ the case of equal mass particles. */
 /* HOP Version 1.0 (12/15/97) -- Original Release */
  
 #include <stdio.h>
-//#include <malloc.h>
+#include <malloc.h>
 #include <math.h>
 #include <assert.h>
 #include "smooth.h"
@@ -36,6 +36,8 @@ int smInit(SMX *psmx,KD kd,int nSmooth,float *fPeriod)
 	assert(nSmooth <= kd->nActive);
 	smx = (SMX)malloc(sizeof(struct smContext));
 	assert(smx != NULL);
+    smx->kd = NULL;
+    
 	smx->kd = kd;
 	smx->nSmooth = nSmooth;
 	smx->pq = (PQ *)malloc(nSmooth*sizeof(PQ));

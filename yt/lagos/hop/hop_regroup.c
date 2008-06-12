@@ -423,8 +423,8 @@ the idmerge field. */
     if (gl->list==NULL) myerror("Error in allocating gl->list.");
     for (j=0,gr=gl->list;j<gl->ngroups;j++,gr++) {
 	/* If group is too underdense, it cannot be a group center */
-	if (gdensity[j]<peakdensthresh) gr->idmerge=(-1);
-	    else gr->idmerge = j;
+	if (gdensity[j]<peakdensthresh) {gr->idmerge=(-1);}
+	    else {gr->idmerge = j;}
 	gr->npart = -1;	/* Not doing anything with this */
 	densestbound[j] = 2.0*MINDENS;	/* Initialize */
 	densestboundgroup[j] = -1;	/* Initialize */

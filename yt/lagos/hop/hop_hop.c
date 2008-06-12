@@ -525,7 +525,7 @@ void binOutHop(SMX smx, HC *my_comm, float densthres)
     for (j=0;j<smx->kd->nActive;j++) {
       s->ID[1+j] = smx->kd->p[j].iID; /* S Skory's addition */
       if (smx->kd->p[j].fDensity < densthres) s->ntag[j+1] = -1;
-      else smx->kd->p[j].iHop;
+      else s->ntag[j+1] = smx->kd->p[j].iHop;
 
     }
 
@@ -578,6 +578,7 @@ void outGroupMerge(SMX smx, HC *my_comm)
  
     my_comm->gdensity = vector(0,smx->nGroups-1);
     for (j=0;j<smx->nGroups;j++) {
+        den = smx->densestingroup[j];
 	    my_comm->gdensity[j]=smx->kd->p[den].fDensity;
     }
     int nb = 0;
