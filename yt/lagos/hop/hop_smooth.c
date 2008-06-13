@@ -14,7 +14,7 @@ the case of equal mass particles. */
 /* HOP Version 1.0 (12/15/97) -- Original Release */
  
 #include <stdio.h>
-#include <malloc.h>
+#include <stdlib.h>
 #include <math.h>
 #include <assert.h>
 #include "smooth.h"
