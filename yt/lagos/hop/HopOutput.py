@@ -82,8 +82,7 @@ class HopList(object):
         return len(self._groups)
  
     def __iter__(self):
-        self.__index = 1 # Start with the first non-zero group
-        return self
+        return HopIterator(self)
 
     def next(self):
         if self.__index == len(self): raise StopIteration
@@ -95,7 +94,33 @@ class HopList(object):
         return self._groups[key]
 
     def write_out(self, filename="HopAnalysis.out"):
-        pass
+        f = open(filename,"w")
+        f.write("\t".join(["# Group","Mass","# part","max dens"
+                           "x","y","z", "center-of-mass",
+                           "x","y","z",
+                           "vx","vy","vz"]))
+        for group in self:
+            f.write("%10i\t" % group.id)
+            f.write("%0.9e\t" % group.total_mass())
+            f.write("%10i\t" % group.indices.size)
+            f.write("%0.9e\t" % group.maximum_density())
+            f.write("\t".join(["%0.9e" % v for v in group.maximum_density_location()]))
+            f.write("\t")
+            f.write("\t".join(["%0.9e" % v for v in group.center_of_mass()]))
+            f.write("\t")
+            f.write("\t".join(["%0.9e" % v for v in group.bulk_velocity()]))
+            f.write("\n")
+        f.close()
+
+class HopIterator(object):
+    def __init__(self, hop):
+        self.hop = hop
+        self.index = 0
+
+    def next(self):
+        self.index += 1
+        if self.index == len(self.hop): raise StopIteration
+        return self.hop[self.index]
 
 class HopGroup(object):
 
