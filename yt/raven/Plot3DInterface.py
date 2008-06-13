@@ -141,7 +141,7 @@ class VolumeRendering(object):
         
     def __register_callbacks(self):
         # More should go here for functional changes to the object
-        s2plot.cs2scb(self.__my_callback)                           # Install a dynamic callback
+        s2plot.cs2scb(self.__my_callback) # Install a dynamic callback
 
     def __my_callback(self, t, kc):
         s2plot.ds2dvr(self.vrid, 0)
@@ -203,3 +203,60 @@ class VolumeRendering3DProfile(VolumeRendering):
     def setup_plot_points(self):
         xyz = [f[0](self.profile._data_source[f[1]]) for f in self.bf]
         self.xyz = [xyz[0].size] + xyz +  [1]
+
+class HaloMassesPositionPlot(object):
+    def __init__(self, hop_results, window_opts="/S2MONO",
+                 cmap="jet"):
+        self.hop_results = hop_results
+        self.window_opts = window_opts
+        self.cmap = cmap
+        self.started = False
+        self.__setup_data()
+
+    def __setup_data(self):
+        c, r, m = [], [], []
+        for g in self.hop_results:
+            c.append(g.center_of_mass())
+            r.append(g.maximum_radius())
+            m.append(g.total_mass())
+        self.centers = na.array(c)
+        self.radii = na.array(r)
+        self.masses = na.log10(na.array(m))
+        self._dmax = self.masses.max()
+        self._dmin = self.masses.min()
+
+    def __setup_spheres(self):
+        cm = matplotlib.cm.get_cmap(self.cmap)
+        scaled_masses = ((self.masses-self._dmin)/(self._dmax-self._dmin))
+        for i in xrange(self.radii.size):
+            r,g,b,a = cm(scaled_masses[i])
+            s2plot.ns2sphere(self.centers[i,0],
+                             self.centers[i,1],
+                             self.centers[i,2], 
+                             self.radii[i], r,g,b)
+        
+    def run(self, pre_call=None):
+        self.__setup_s2plot()
+        self.__setup_spheres()
+        self.__setup_labels()
+        self.__register_callbacks()
+        if pre_call is not None: pre_call(self)
+        s2plot.s2disp(-1, 1)
+
+    def __setup_labels(self):
+        pass
+
+    def __setup_s2plot(self):
+        s2plot.s2opendo(self.window_opts)
+        s2plot.s2swin(0.,1., 0.,1., 0.,1.)
+        opts = "BCDE"
+        s2plot.s2box(opts,0,0, opts,0,0, opts,0,0)
+        
+        amb = {'r':0.8, 'g':0.8, 'b':0.8}   # ambient light
+        s2plot.ss2srm(s2plot.SHADE_FLAT);   # Set shading type to FLAT
+        s2plot.ss2sl(amb, 0, None, None, 0) # Ambient lighting only
+
+        self.started = True
+
+    def __register_callbacks(self):
+        pass

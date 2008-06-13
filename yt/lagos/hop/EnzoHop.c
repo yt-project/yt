@@ -153,15 +153,15 @@ Py_EnzoHop(PyObject *obj, PyObject *args)
                     PyArray_DescrFromType(NPY_FLOAT64));
     PyArrayObject *particle_group_id = (PyArrayObject *)
             PyArray_SimpleNewFromDescr(1, PyArray_DIMS(xpos),
-                    PyArray_DescrFromType(NPY_INT64));
+                    PyArray_DescrFromType(NPY_INT32));
     
     for (i = 0; i < num_particles; i++) {
       // Density is in kd->p[i].fDensity
       *(npy_float64*)(PyArray_GETPTR1(particle_density, i)) =
             (npy_float64) kd->p[i].fDensity;
       // tag is in gl.s->ntag[i+1]
-      *(npy_int64*)(PyArray_GETPTR1(particle_group_id, i)) =
-            (npy_int64) my_comm.s->ntag[i+1];
+      *(npy_int32*)(PyArray_GETPTR1(particle_group_id, i)) =
+            (npy_int32) my_comm.s->ntag[i+1];
     }
 
 	kdFinish(kd);
