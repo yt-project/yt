@@ -63,7 +63,7 @@ class HopList(object):
 
     def __parse_output(self):
         unique_ids = na.unique(self.tags)
-        counts = na.bincount((self.tags+1)
+        counts = na.bincount(self.tags+1)
         sort_indices = na.argsort(self.tags)
         grab_indices = na.indices(self.tags.shape).ravel()[sort_indices]
         cp = 0
