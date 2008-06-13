@@ -154,7 +154,22 @@ class HopGroup(object):
         vy = (self["particle_velocity_x"] * pm).sum()
         vz = (self["particle_velocity_x"] * pm).sum()
         return na.array([vx,vy,vz])/pm.sum()
-        
+
+    def maximum_radius(self):
+        center = self.center_of_mass()
+        r = na.sqrt((self["particle_position_x"]-center[0])**2.0
+                +   (self["particle_position_y"]-center[1])**2.0
+                +   (self["particle_position_z"]-center[2])**2.0)
+        return r.max()
 
     def __getitem__(self, key):
         return self.data[key][self.indices]
+
+    def get_sphere(self, center_of_mass=True):
+        if center_of_mass: center = self.center_of_mass()
+        else: center = self.maximum_density_location()
+        radius = self.maximum_radius()
+        # A bit of a long-reach here...
+        sphere = self.hop_output.data_source.hierarchy.sphere(
+                        center, radius=radius)
+        return sphere
