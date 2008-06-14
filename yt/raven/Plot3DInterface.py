@@ -176,6 +176,31 @@ class VolumeRenderingDataCube(VolumeRendering):
             dims=[self.dims]*3, fields=[self.field])
         return data_grid
 
+    def add_vectors(self, vfields, dims, offsets = None):
+        tr = na.array([
+            self.x0, (self.x1-self.x0)/(dims-1.0), 0               , 0,
+            self.y0, 0               , (self.y1-self.y0)/(dims-1.0), 0,
+            self.z0, 0               , 0               , (self.z1-self.z0)/(dims-1.0)
+        ])
+        dx = self.width / dims
+        max_level = na.unique(self.pf.h.gridDxs[self.pf.h.gridDxs>=dx]).argmax()+1
+        vector_grid = self.pf.h.smoothed_covering_grid(
+                level=max_level,
+                left_edge=self.center - self.width/2.0,
+                right_edge=self.center + self.width/2.0,
+                dims=[dims]*3, fields=vfields)
+        if offsets is not None:
+            for i,vfield in enumerate(vfields): vector_grid[vfield] -= offsets[i]
+        vec_mags = na.sqrt(na.array(
+                        [vector_grid[vf].ravel()**2.0 
+                         for vf in vfields]).sum(axis=0))
+        dmin, dmax = vec_mags.min(), vec_mags.max()
+        v1, v2, v3 = [vector_grid[vfield] for vfield in vfields]
+        s2plot.s2vect3(v1, v2, v3,
+                       dims, dims, dims,
+                       0, dims-1, 0, dims-1, 0, dims-1, 1.0/(dims*dmax),
+                       1, tr, 0, 1, dmin, dmax)
+
 class VolumeRendering3DProfile(VolumeRendering):
     def __init__(self, profile, field, **kwargs):
         self.profile = profile
