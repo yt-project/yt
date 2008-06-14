@@ -130,20 +130,22 @@ class HopGroup(object):
         self._base_indices = hop_output._base_indices
         
     def center_of_mass(self):
-        # Center of mass does not account for periodicity and is likely wrong!
+        c_vec = self.maximum_density_location() - na.array([0.5,0.5,0.5])
         pm = self["ParticleMassMsun"]
-        cx = (self["particle_position_x"] * pm).sum()
-        cy = (self["particle_position_y"] * pm).sum()
-        cz = (self["particle_position_z"] * pm).sum()
-        return na.array([cx,cy,cz])/pm.sum()
+        cx = (self["particle_position_x"] - c_vec[0])
+        cy = (self["particle_position_y"] - c_vec[1])
+        cz = (self["particle_position_z"] - c_vec[2])
+        com = na.array([v-na.floor(v) for v in [cx,cy,cz]])
+        return (com*pm).sum(axis=1)/pm.sum() + c_vec
 
     def maximum_density(self):
         return self.hop_output._max_dens[self.id][0]
 
     def maximum_density_location(self):
-        return (self.hop_output._max_dens[self.id][1],
+        return na.array([
+                self.hop_output._max_dens[self.id][1],
                 self.hop_output._max_dens[self.id][2],
-                self.hop_output._max_dens[self.id][3])
+                self.hop_output._max_dens[self.id][3]])
 
     def total_mass(self):
         return self["ParticleMassMsun"].sum()
@@ -155,9 +157,9 @@ class HopGroup(object):
         vz = (self["particle_velocity_z"] * pm).sum()
         return na.array([vx,vy,vz])/pm.sum()
 
-    def maximum_radius(self):
-        center = self.maximum_density_location()
-        #center = self.center_of_mass()
+    def maximum_radius(self, center_of_mass=True):
+        if use_com: center = self.center_of_mass()
+        else: center = self.maximum_density_location()
         rx = na.abs(self["particle_position_x"]-center[0])
         ry = na.abs(self["particle_position_y"]-center[1])
         rz = na.abs(self["particle_position_z"]-center[2])
