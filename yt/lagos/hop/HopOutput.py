@@ -158,7 +158,7 @@ class HopGroup(object):
         return na.array([vx,vy,vz])/pm.sum()
 
     def maximum_radius(self, center_of_mass=True):
-        if use_com: center = self.center_of_mass()
+        if center_of_mass: center = self.center_of_mass()
         else: center = self.maximum_density_location()
         rx = na.abs(self["particle_position_x"]-center[0])
         ry = na.abs(self["particle_position_y"]-center[1])
