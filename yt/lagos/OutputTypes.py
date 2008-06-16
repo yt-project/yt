@@ -37,7 +37,7 @@ class StaticOutput(object):
         self.data_style = data_style
         self.parameter_filename = str(filename)
         self.basename = os.path.basename(filename)
-        self.directory = os.path.dirname(filename)
+        self.directory = os.path.expanduser(os.path.dirname(filename))
         self.fullpath = os.path.abspath(self.directory)
         if len(self.directory) == 0:
             self.directory = "."
