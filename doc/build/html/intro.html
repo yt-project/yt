@@ -70,7 +70,86 @@ slower than purely C-based analysis codes, although I believe that to be
 mitigated by a cleverness of algorithms and a substantially improved
 development time for the user in the case of a desire to expand the
 functionality.</p>
-<p><tt class="docutils literal"><span class="pre">`EXPAND`</span></tt></p>
+</div>
+<div class="section">
+<h2 id="what-functionality-does-yt-offer">What functionality does yt offer?<a class="headerlink" href="#what-functionality-does-yt-offer" title="Permalink to this headline">¶</a></h2>
+<p>yt has evolved substantially over the time of its development.  Here is a
+non-comprehensive list of features:</p>
+<ul class="simple">
+<li>Data Objects</li>
+</ul>
+<blockquote>
+<ul class="simple">
+<li>Arbitrary data objects (Spheres, cylinders, rectangular prisms, arbitrary index selection)</li>
+<li>Covering grids (smoothed and raw) for automatic ghost-zone generation</li>
+<li>Identification of topologically-connected sets in arbitrary fields</li>
+<li>Projections, orthogonal slices, oblique slices</li>
+<li>Axially-aligned rays</li>
+<li>Memory-conserving 1-, 2- and 3-D profiles of arbitrary fields.</li>
+<li>Halo-finding (HOP) algorithm with full particle information and sphere access</li>
+</ul>
+</blockquote>
+<ul class="simple">
+<li>Data access</li>
+</ul>
+<blockquote>
+<ul class="simple">
+<li>Arbitrary field definition</li>
+<li>Derived quantities (average values, spin parameter, bulk velocity, etc)</li>
+<li>Fast-HDF5 backend for packed and unpacked AMR, NumPy-based HDF4 backend</li>
+<li>CGS units used everywhere</li>
+<li>Per-user field and quantity plugins</li>
+</ul>
+</blockquote>
+<ul class="simple">
+<li>Plotting</li>
+</ul>
+<blockquote>
+<ul class="simple">
+<li>Mathtext TeX-like text formatting</li>
+<li>Slices, projections, oblique slices</li>
+<li>Profiles and phase diagrams</li>
+<li>Linked zooms, colormaps, and saving</li>
+<li>Contours, vector plots, annotated boxes, grid boundary plot overlays.</li>
+<li>Simple 3D plotting of phase plots and volume-rendered boxes via hooks into the S2PLOT library</li>
+</ul>
+</blockquote>
+<ul class="simple">
+<li>GUI</li>
+</ul>
+<blockquote>
+<ul class="simple">
+<li>Linked zooming via slider</li>
+<li>Interactive re-centering</li>
+<li>Length scales in human-readable coordinates</li>
+<li>Drawing of circles for generation of data objects and phase plots</li>
+<li>Image saving</li>
+<li>Arbitrary plots within the GUI namespace</li>
+<li>Full interpreter access to data objects</li>
+<li>Macros and other scripts able to be run from within the namespace</li>
+</ul>
+</blockquote>
+<ul class="simple">
+<li>Command-line tools</li>
+</ul>
+<blockquote>
+<ul class="simple">
+<li>Zooming movies</li>
+<li>Time-series movies</li>
+<li>Particle movies</li>
+<li>Radial profile tool</li>
+</ul>
+</blockquote>
+<ul class="simple">
+<li>Access to components</li>
+</ul>
+<blockquote>
+<ul class="simple">
+<li>Monetary cost: <strong>FREE</strong>.</li>
+<li>Source code availability: <strong>FULL</strong>.</li>
+<li>Portability: <strong>YES</strong>.</li>
+</ul>
+</blockquote>
 </div>
 </div>
 
@@ -85,6 +164,7 @@ functionality.</p>
 <li><a class="reference" href="">Introduction</a><ul>
 <li><a class="reference" href="#history">History</a></li>
 <li><a class="reference" href="#what-yt-is-and-is-not">What yt is and is not</a></li>
+<li><a class="reference" href="#what-functionality-does-yt-offer">What functionality does yt offer?</a></li>
 </ul>
 </li>
 </ul>

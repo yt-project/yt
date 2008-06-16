@@ -7,12 +7,13 @@ PYTHONPATH=$HOME/Development/yt/trunk/
 make html
 
 echo "Files deleted since last svn commit:"
+echo " (generated with 'svn stat | grep \! ')"
 echo 
 svn stat | grep \!
 echo
 
 echo "Files added since last svn commit:"
-echo " (generated with 'svn stat | grep \? )'"
+echo " (generated with 'svn stat | grep \? ')"
 echo
 svn stat | grep \?
 echo
