@@ -23,7 +23,8 @@ help:
 	@echo "  linkcheck to check all external links for integrity"
 
 clean:
-	-rm -rf build/*
+	@echo "I WILL NOT CLEAN THIS FOR YOU"
+	#-rm -rf build/*
 
 html:
 	mkdir -p build/html build/doctrees

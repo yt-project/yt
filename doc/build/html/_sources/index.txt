@@ -10,6 +10,7 @@ Contents:
    :maxdepth: 2
 
    intro
+   getting_started
    tutorial/index
    cookbook/index
    extending/index

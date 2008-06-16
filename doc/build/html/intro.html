@@ -18,7 +18,7 @@
     <link rel="index" title="Global index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="top" title="yt v0.3-pre documentation" href="index.html" />
-    <link rel="next" title="A Short Tutorial" href="tutorial/index.html" />
+    <link rel="next" title="Getting Started" href="getting_started.html" />
     <link rel="prev" title="yt Overview" href="index.html" />
   </head>
   <body>
@@ -27,7 +27,7 @@
       <ul>
         <li class="right" style="margin-right: 10px"><a href="genindex.html" title="General Index" accesskey="I">index</a></li>
         <li class="right"><a href="modindex.html" title="Global Module Index" accesskey="M">modules</a> |</li>
-          <li class="right"><a href="tutorial/index.html" title="A Short Tutorial" accesskey="N">next</a> |</li>
+          <li class="right"><a href="getting_started.html" title="Getting Started" accesskey="N">next</a> |</li>
           <li class="right"><a href="index.html" title="yt Overview" accesskey="P">previous</a> |</li>
     <li><a href="http://yt.enzotools.org/">yt</a> &raquo;</li>
     
@@ -72,54 +72,6 @@ development time for the user in the case of a desire to expand the
 functionality.</p>
 <p><tt class="docutils literal"><span class="pre">`EXPAND`</span></tt></p>
 </div>
-<div class="section">
-<h2 id="prerequisites-for-yt">Prerequisites for yt<a class="headerlink" href="#prerequisites-for-yt" title="Permalink to this headline">¶</a></h2>
-<p>A driving factor in the development of yt over the months leading to release
-0.3 has been the reduction of dependencies.  To that extent, only a few
-packages are required for the base usage, and a GUI toolkit if you are going to use
-the graphical user interface, Reason.</p>
-<blockquote>
-<ul class="simple">
-<li><a class="reference" href="http://python.org/">Python</a>, at least version 2.4, but preferably 2.5.</li>
-<li><a class="reference" href="http://www.hdfgroup.org/">HDF5</a>, the data storage backend used by Enzo
-and yt (if you can run Enzo, this is already installed!)</li>
-<li><a class="reference" href="http://numpy.scipy.org/">NumPy</a>, the fast numerical backend for Python</li>
-<li><a class="reference" href="http://matplotlib.sf.net/">MatPlotLib</a>, the plotting package</li>
-<li><a class="reference" href="http://www.wxpython.org/">wxPython</a>, the GUI toolkit</li>
-</ul>
-</blockquote>
-<p>(If you are only interested in manipulating data without any graphical plotting
-or interfaces, you only need to install NumPy and Python!)</p>
-</div>
-<div class="section">
-<h2 id="installing-the-necessary-packages">Installing the Necessary Packages<a class="headerlink" href="#installing-the-necessary-packages" title="Permalink to this headline">¶</a></h2>
-<p>Installing Python itself is usually quite simple, and often very fast.  Because
-we&#8217;re setting up a small system of packages, even if you have a system-wide
-install of python2.5 it can be easier in some cases to create a local directory
-structure:</p>
-<div class="highlight"><pre><span class="nv">$ </span>tar xvf Python-2.5.2.tar.gz
-<span class="nv">$ </span><span class="nb">cd </span>Python-2.5.2
-<span class="nv">$ </span>./configure --prefix<span class="o">=</span><span class="nv">$HOME</span>/local/
-<span class="nv">$ </span>make install
-</pre></div>
-<p>This will create (if necessary) a directory named local in your home directory,
-along with the necessary subdirectories.  When the executable
-<tt class="docutils literal"><span class="pre">$HOME/lcoal/bin/python2.4</span></tt> is used to install a package, it will install it
-to the <tt class="docutils literal"><span class="pre">$HOME/local/</span></tt> directory structure.</p>
-<p>The python packages are fairly straightforward to install.  The process of
-installing packages in python has been greatly simplified over the last few
-years with the addition of setuptools, but for these particular packages I
-typically recommend installing from source, which for Python packages consists
-of changing to the source directory and issues the command:</p>
-<div class="highlight"><pre><span class="nv">$ </span>tar xvfz <span class="nv">$PKGNAME</span>.tar.gz
-<span class="nv">$ </span><span class="nb">cd</span> <span class="nv">$PKGNAME</span>
-<span class="nv">$ </span>python2.5 setup.py install
-</pre></div>
-<p>This method works for NumPy, Matplotlib and yt itself, but for wxPython, I
-<strong>strongly</strong> suggest you seek binaries for your platform.  If they are not
-available, I recommend you read the <tt class="docutils literal"><span class="pre">INSTALL</span></tt> file and follow its directions
-closely.</p>
-</div>
 </div>
 
 
@@ -133,8 +85,6 @@ closely.</p>
 <li><a class="reference" href="">Introduction</a><ul>
 <li><a class="reference" href="#history">History</a></li>
 <li><a class="reference" href="#what-yt-is-and-is-not">What yt is and is not</a></li>
-<li><a class="reference" href="#prerequisites-for-yt">Prerequisites for yt</a></li>
-<li><a class="reference" href="#installing-the-necessary-packages">Installing the Necessary Packages</a></li>
 </ul>
 </li>
 </ul>
@@ -142,7 +92,7 @@ closely.</p>
             <h4>Previous topic</h4>
             <p class="topless"><a href="index.html" title="previous chapter">yt Overview</a></p>
             <h4>Next topic</h4>
-            <p class="topless"><a href="tutorial/index.html" title="next chapter">A Short Tutorial</a></p>
+            <p class="topless"><a href="getting_started.html" title="next chapter">Getting Started</a></p>
             <h3>This Page</h3>
             <ul class="this-page-menu">
               <li><a href="_sources/intro.txt">Show Source</a></li>
@@ -162,7 +112,7 @@ closely.</p>
       <ul>
         <li class="right" style="margin-right: 10px"><a href="genindex.html" title="General Index" accesskey="I">index</a></li>
         <li class="right"><a href="modindex.html" title="Global Module Index" accesskey="M">modules</a> |</li>
-          <li class="right"><a href="tutorial/index.html" title="A Short Tutorial" accesskey="N">next</a> |</li>
+          <li class="right"><a href="getting_started.html" title="Getting Started" accesskey="N">next</a> |</li>
           <li class="right"><a href="index.html" title="yt Overview" accesskey="P">previous</a> |</li>
     <li><a href="http://yt.enzotools.org/">yt</a> &raquo;</li>
     
