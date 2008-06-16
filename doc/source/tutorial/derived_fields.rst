@@ -19,7 +19,7 @@ But what other fields are available to us?::
 Defining Simple Fields
 ----------------------
 
-There are LOTS!  Not only that, but you can set up your own fields, too,
+There are **lots**.  Not only that, but you can set up your own fields, too,
 which then become available to all data-types. Here's a very simple example,
 where we just cube Density.::
 

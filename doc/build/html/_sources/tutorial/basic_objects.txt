@@ -3,14 +3,6 @@
 Basic Objects
 =============
 
-What the code just did was access the grid files and then spit back the
-results of the read operations.  So we can access the fields pretty easily
-this way, but what about generating new fields from our existing fields?
-Well, that's just as easy!  And yt comes with many derived fields
-pre-defined, but from within a script you can also define your own.
-
-.. index:: derivedfield, indices
-
 Derived Fields and Indices
 --------------------------
 
@@ -31,6 +23,10 @@ We can also slice, using the slice operator: ':' ::
 
    >>> print my_grid["Density"][0,:,4]
    >>> print my_grid["Density"][0,2:4,4]
+
+The first will return to us everything where the x index is zero and the z
+index is four.  The second will return the same, except restrict the return to
+only between indices 2 and 4.
 
 Okay, so now you've seen how to grab fields from a grid.  The thing about
 getting fields from a grid, though, is that it works the exact same way as
@@ -63,11 +59,18 @@ shift around inside the domain, and so on and so forth.)  Slices are typically
 used implicity with plotting (more on that later) and not very often from
 the interpreter.
 
-Data Regions
-------------
+Boxes
+-----
 
 Let's do a region.  This is a box with a left edge and a right edge, and a
 center.  (You need a center for some other calculations, not for getting the
 region.)  Let's get started by grabbing the ENTIRE domain.::
 
    >>> my_region = a.h.region([0.5,0.5,0.5], [0.0,0.0,0.0], [1.0,1.0,1.0])
+
+This data object will respect a fixed protocol, as will all the 3D objects.
+You ask it for a field, and it returns that field: ::
+
+   >>> my_region["Density"]
+
+We'll talk more about which fields are available in the next section.

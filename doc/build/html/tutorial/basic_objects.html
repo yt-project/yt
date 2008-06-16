@@ -2,13 +2,13 @@
   "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml">
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    <title>Basic Objects &mdash; yt v0.3 documentation</title>
+    <title>Basic Objects &mdash; yt v0.3-pre documentation</title>
     <link rel="stylesheet" href="../_static/default.css" type="text/css" />
     <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:   '../',
-        VERSION:    '0.3'
+        VERSION:    '0.3-pre'
       };
     </script>
     <script type="text/javascript" src="../_static/jquery.js"></script>
@@ -17,7 +17,7 @@
     <link rel="contents" title="Global table of contents" href="../contents.html" />
     <link rel="index" title="Global index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="top" title="yt v0.3 documentation" href="../index.html" />
+    <link rel="top" title="yt v0.3-pre documentation" href="../index.html" />
     <link rel="up" title="A Short Tutorial" href="index.html" />
     <link rel="next" title="Derived Fields" href="derived_fields.html" />
     <link rel="prev" title="Getting Started" href="getting_started.html" />
@@ -30,9 +30,9 @@
         <li class="right"><a href="../modindex.html" title="Global Module Index" accesskey="M">modules</a> |</li>
           <li class="right"><a href="derived_fields.html" title="Derived Fields" accesskey="N">next</a> |</li>
           <li class="right"><a href="getting_started.html" title="Getting Started" accesskey="P">previous</a> |</li>
-    <li><a href="http://yt.spacepope.org/">yt</a> &raquo;</li>
+    <li><a href="http://yt.enzotools.org/">yt</a> &raquo;</li>
     
-        <li><a href="../index.html">yt v0.3 documentation</a> &raquo;</li>
+        <li><a href="../index.html">yt v0.3-pre documentation</a> &raquo;</li>
 
           <li><a href="index.html" accesskey="U">A Short Tutorial</a> &raquo;</li>
       </ul>
@@ -45,13 +45,8 @@
   
   <div class="section">
 <h1 id="id1"><span id="basic-objects"></span>Basic Objects<a class="headerlink" href="#id1" title="Permalink to this headline">¶</a></h1>
-<p>What the code just did was access the grid files and then spit back the
-results of the read operations.  So we can access the fields pretty easily
-this way, but what about generating new fields from our existing fields?
-Well, that&#8217;s just as easy!  And yt comes with many derived fields
-pre-defined, but from within a script you can also define your own.</p>
 <div class="section">
-<h2 id="derived-fields-and-indices"><span id="index-49"></span>Derived Fields and Indices<a class="headerlink" href="#derived-fields-and-indices" title="Permalink to this headline">¶</a></h2>
+<h2 id="derived-fields-and-indices">Derived Fields and Indices<a class="headerlink" href="#derived-fields-and-indices" title="Permalink to this headline">¶</a></h2>
 <p>Let&#8217;s try out some of the derived fields.:</p>
 <div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="k">print</span> <span class="n">my_grid</span><span class="p">[</span><span class="s">&quot;Entropy&quot;</span><span class="p">]</span>
 </pre></div>
@@ -66,6 +61,9 @@ source-code inspector.</p>
 <div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="k">print</span> <span class="n">my_grid</span><span class="p">[</span><span class="s">&quot;Density&quot;</span><span class="p">][</span><span class="mf">0</span><span class="p">,:,</span><span class="mf">4</span><span class="p">]</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="k">print</span> <span class="n">my_grid</span><span class="p">[</span><span class="s">&quot;Density&quot;</span><span class="p">][</span><span class="mf">0</span><span class="p">,</span><span class="mf">2</span><span class="p">:</span><span class="mf">4</span><span class="p">,</span><span class="mf">4</span><span class="p">]</span>
 </pre></div>
+<p>The first will return to us everything where the x index is zero and the z
+index is four.  The second will return the same, except restrict the return to
+only between indices 2 and 4.</p>
 <p>Okay, so now you&#8217;ve seen how to grab fields from a grid.  The thing about
 getting fields from a grid, though, is that it works the exact same way as
 all the other data types!  (Well, maybe not projection.)  So that raises the
@@ -74,7 +72,7 @@ here.  We can get slices, projections, spheres, rectangular prisms,
 fixed-resolution grids and cutting planes from the herarchy.</p>
 </div>
 <div class="section">
-<h2 id="slices"><span id="index-50"></span>Slices<a class="headerlink" href="#slices" title="Permalink to this headline">¶</a></h2>
+<h2 id="slices"><span id="index-6"></span>Slices<a class="headerlink" href="#slices" title="Permalink to this headline">¶</a></h2>
 <p>Let&#8217;s start with a slice.  A slice needs some info, but how do we know what
 type?  Well, let&#8217;s use &#8216;help&#8217;!:</p>
 <div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">help</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">h</span><span class="o">.</span><span class="n">slice</span><span class="p">)</span>
@@ -92,12 +90,17 @@ used implicity with plotting (more on that later) and not very often from
 the interpreter.</p>
 </div>
 <div class="section">
-<h2 id="data-regions">Data Regions<a class="headerlink" href="#data-regions" title="Permalink to this headline">¶</a></h2>
+<h2 id="boxes">Boxes<a class="headerlink" href="#boxes" title="Permalink to this headline">¶</a></h2>
 <p>Let&#8217;s do a region.  This is a box with a left edge and a right edge, and a
 center.  (You need a center for some other calculations, not for getting the
 region.)  Let&#8217;s get started by grabbing the ENTIRE domain.:</p>
 <div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">my_region</span> <span class="o">=</span> <span class="n">a</span><span class="o">.</span><span class="n">h</span><span class="o">.</span><span class="n">region</span><span class="p">([</span><span class="mf">0.5</span><span class="p">,</span><span class="mf">0.5</span><span class="p">,</span><span class="mf">0.5</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.0</span><span class="p">,</span><span class="mf">0.0</span><span class="p">,</span><span class="mf">0.0</span><span class="p">],</span> <span class="p">[</span><span class="mf">1.0</span><span class="p">,</span><span class="mf">1.0</span><span class="p">,</span><span class="mf">1.0</span><span class="p">])</span>
 </pre></div>
+<p>This data object will respect a fixed protocol, as will all the 3D objects.
+You ask it for a field, and it returns that field:</p>
+<div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">my_region</span><span class="p">[</span><span class="s">&quot;Density&quot;</span><span class="p">]</span>
+</pre></div>
+<p>We&#8217;ll talk more about which fields are available in the next section.</p>
 </div>
 </div>
 
@@ -112,7 +115,7 @@ region.)  Let&#8217;s get started by grabbing the ENTIRE domain.:</p>
 <li><a class="reference" href="">Basic Objects</a><ul>
 <li><a class="reference" href="#derived-fields-and-indices">Derived Fields and Indices</a></li>
 <li><a class="reference" href="#slices">Slices</a></li>
-<li><a class="reference" href="#data-regions">Data Regions</a></li>
+<li><a class="reference" href="#boxes">Boxes</a></li>
 </ul>
 </li>
 </ul>
@@ -142,16 +145,16 @@ region.)  Let&#8217;s get started by grabbing the ENTIRE domain.:</p>
         <li class="right"><a href="../modindex.html" title="Global Module Index" accesskey="M">modules</a> |</li>
           <li class="right"><a href="derived_fields.html" title="Derived Fields" accesskey="N">next</a> |</li>
           <li class="right"><a href="getting_started.html" title="Getting Started" accesskey="P">previous</a> |</li>
-    <li><a href="http://yt.spacepope.org/">yt</a> &raquo;</li>
+    <li><a href="http://yt.enzotools.org/">yt</a> &raquo;</li>
     
-        <li><a href="../index.html">yt v0.3 documentation</a> &raquo;</li>
+        <li><a href="../index.html">yt v0.3-pre documentation</a> &raquo;</li>
 
           <li><a href="index.html" accesskey="U">A Short Tutorial</a> &raquo;</li>
       </ul>
     </div>
     <div class="footer">
-      &copy; Copyright 2008, Matthew Turk.
-      Last updated on May 09, 2008.
+      &copy; Copyright 2008, Matthew J. Turk.
+      Last updated on Jun 16, 2008.
     </div>
   </body>
 </html>

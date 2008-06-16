@@ -64,3 +64,29 @@ method, and that's the functionality we use here.
 
 Grid Collections
 ----------------
+
+Disks
+-----
+
+Clumps
+------
+
+Derived Quantities
+==================
+
+Associated with a given data object, one can imagine various quantities being
+described.  Several of these are already included in yt, and more can be added.
+To access a derived quantity, the property 'quantities' is available in a given
+data object.  It acts as a dictionary, returning callable functions.::
+
+   >>> L_vec = gal1_region.quantities["AngularMomentumVector"]()
+   >>> com = gal1_region.quantities["CenterOfMass"]()
+   >>> avg_T = gal1_region.quantities["WeightedAverageQuantity"]("Temperature", \
+   ...                                                           "CellMassMsun")
+
+All derived quantities accept the parameter :keyword:`lazy_reader`, which
+tells the function to attempt to operate in a memory-conservative fashion --
+reading and then flushing the data back to disk.  This is not possible for all
+functions, notably the :func:`IsBound` function, which checks for
+gravitationally-bound status.
+

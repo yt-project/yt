@@ -80,7 +80,7 @@ an object or a method to get more information.
 If you can't figure out what's up, please go ahead and copy the resultant
 traceback information (the error message it prints out) along with any log
 files, and either send an email to the ``yt-users`` mailing list (subscribe
-first!) or attach them to a ticket at `<http://yt.spacepope.org/>`_.  
+first!) or attach them to a ticket at `<http://yt.enzotools.org/>`_.  
 
 .. _axis-specification:
 
@@ -95,4 +95,4 @@ Where can I go for support?
 ---------------------------
 
 I've set up a ``yt-users`` mailing list.  There's more information about it
-at the `yt homepage <http://yt.spacepope.org>`_.
+at the `yt homepage <http://yt.enzotools.org>`_.

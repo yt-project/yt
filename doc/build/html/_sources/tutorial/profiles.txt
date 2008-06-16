@@ -2,7 +2,7 @@ Profiles
 ========
 
 Profiles are one of the more interesting data types.  They are a binned average
-of one or more variables, along one or two different dimensions.  For example,
+of one or more variables, along one, two or three different dimensions.  For example,
 you could get an average temperature in Density and H2 Fraction space.  Or you could
 Look at the distribution of Volume through Density and Temperature space.  Or you could
 take the spherically-averaged Number Density and see how it changes with radius.
@@ -46,6 +46,9 @@ data-access methods.  Additionally, you can feed them directly into pylab or mat
    >>> pylab.ylabel(r"$\rm{Density} (\rm{g}/\rm{cm}^3)$")
    >>> pylab.savefig("my_profile.png")
 
+Note that we manually plot it, but :mod:`raven` also includes an automated
+plotting method for obtaining and displaying radial profiles.
+
 Two-Dimensional Profiles
 ------------------------
 
@@ -57,3 +60,59 @@ Two-dimensional profiles are along the same lines.  ::
    >>> prof2d.add_fields("CellVolume", weight=None)
    >>> pylab.pcolormesh(prof2d["Density"], prof2d["Temperature"],
    ...                  prof2d["CellVolume"].transpose())
+
+Again, we have manually plotted this, but an automated plotter is available.::
+
+   >>> pc = raven.PlotCollection(a)
+   >>> pc.add_phase_object(sphere, ["Density", "Temperature", "x-velocity"],
+   ...                 16, True, (1e-32, 1e-24), 
+   ...                 16, True, (1e2, 1e5), lazy_reader=True)
+
+The API is slightly different here, but it will accept any object (a sphere in
+our case) and generate the profile based on the arguments.  If you simply want
+a sphere, you can ask for that and the sphere will be generated as well -- and
+the function will automatically generate the bounds.  (Although, keep in mind,
+if you do not supply bounds it will have to read the data into memory, which
+means you are no longer able to use the :keyword:`lazy_reader` functionality.
+This will change in future versions.) ::
+
+
+   >>> pc.add_phase_sphere(0.1, 'kpc', ["Density", "Temperature", "x-velocity"])
+
+Three-Dimensional Profiles
+--------------------------
+
+.. image:: ../_images/example_3dphase.png
+   :align: left
+   :width: 250
+
+If you have the `S2PLOT <http://astronomy.swin.edu.au/s2plot/index.php?title=S2PLOT>`_
+bindings installed, you can visualize three-dimensional profiles with yt.  The
+API is nearly identical to that used to generate the lower-dimensionality
+profiles. ::
+
+   >>> prof = lagos.BinnedProfile3D(sphere,
+   ...                 128, "Density",     extrema[0][0], extrema[0][1], True,
+   ...                 128, "Temperature", extrema[1][0], extrema[1][1], True,
+   ...                 128, "z-velocity",  extrema[2][0], extrema[2][1], True,
+   ...                 lazy_reader=True)
+   >>> prof.add_fields("CellMassMsun", None)
+
+I've wrapped the bounds into the variable *extrema*, to make it more clear.
+Once you have this profile, you can plot it with S2PLOT by calling initializing
+a 3D plot and calling :func:`run`. ::
+
+   >>> vrc = raven.VolumeRendering3DProfile(k, "CellMassMsun", amax=1.0)
+   >>> vrc.run()
+
+They can be generated anywhere -- and serialized -- so if you want to generate
+them on a remote machine and use a local-machine for display, you only have to
+call :func:`store` and then initialize, instead of the standard
+:class:`BinnedProfile3D`, :class:`StoredBinnedProfile3D`.  ::
+
+   >>> prof.store_profile('MyProfile')
+   >>> new_prof = lagos.StoredBinnedProfile3D(a, 'MyProfile')
+
+The retrieved profile is static, and new data cannot be added.  However, it
+becomes useful in the likely circumstance that your data is stored on a machine
+on which is inconvenient to do OpenGL-based data exploration.

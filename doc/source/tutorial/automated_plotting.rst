@@ -57,4 +57,4 @@ We have access to most of the interesting plots from the PlotCollection
 interface, including cutting planes and projections.  (More on those later!)::
 
    >>> pc.add_projection("Temperature", 0, weight_field="CellMass")
-   >>> pc.add_threephase_sphere(1.0, 'pc', ["Density","Temperature","H2I_Fraction"])
+   >>> pc.add_phase_sphere(1.0, 'pc', ["Density","Temperature","H2I_Fraction"])

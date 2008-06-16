@@ -18,5 +18,4 @@ Contents:
    automated_plotting
    advanced_objects
    projections
-   derived_quantities
    example_script

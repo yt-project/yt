@@ -1,0 +1,113 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>Extracting Data &mdash; yt v0.3-pre documentation</title>
+    <link rel="stylesheet" href="../_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:   '../',
+        VERSION:    '0.3-pre'
+      };
+    </script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/interface.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <link rel="contents" title="Global table of contents" href="../contents.html" />
+    <link rel="index" title="Global index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="top" title="yt v0.3-pre documentation" href="../index.html" />
+    <link rel="up" title="Cookbook" href="index.html" />
+    <link rel="next" title="Cookbook" href="index.html" />
+    <link rel="prev" title="Making Timeseries Plots" href="making_timeseries_plots.html" />
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px"><a href="../genindex.html" title="General Index" accesskey="I">index</a></li>
+        <li class="right"><a href="../modindex.html" title="Global Module Index" accesskey="M">modules</a> |</li>
+          <li class="right"><a href="index.html" title="Cookbook" accesskey="N">next</a> |</li>
+          <li class="right"><a href="making_timeseries_plots.html" title="Making Timeseries Plots" accesskey="P">previous</a> |</li>
+    <li><a href="http://yt.enzotools.org/">yt</a> &raquo;</li>
+    
+        <li><a href="../index.html">yt v0.3-pre documentation</a> &raquo;</li>
+
+          <li><a href="index.html" accesskey="U">Cookbook</a> &raquo;</li>
+      </ul>
+    </div>
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  
+  <div class="section">
+<h1 id="extracting-data">Extracting Data<a class="headerlink" href="#extracting-data" title="Permalink to this headline">¶</a></h1>
+<p>Oftentimes you will want to export data from yt to plot in another plotting
+package, or to compare against another set of data elsewhere.  (Although, note
+should be made that ever effort has been made to make yt into a
+publication-quality plotter.)</p>
+<p>Data objects all have the <tt class="xref docutils literal"><span class="pre">write_out()</span></tt> method, which accepts a field
+list and a filename.  This will dump to text.</p>
+<p>However, if you have <a class="reference" href="http://www.pytables.org/">PyTables</a> installed, you can
+also export things in a different way:</p>
+<div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">cube</span> <span class="o">=</span> <span class="n">pf</span><span class="o">.</span><span class="n">h</span><span class="o">.</span><span class="n">smoothed_covering_grid</span><span class="p">(</span><span class="mf">3</span><span class="p">,</span> <span class="n">left_edge</span><span class="o">=</span><span class="p">[</span><span class="mf">0.0</span><span class="p">,</span><span class="mf">0.0</span><span class="p">,</span><span class="mf">0.0</span><span class="p">],</span>
+<span class="gp">... </span>                                      <span class="n">right_edge</span><span class="o">=</span><span class="p">[</span><span class="mf">1.0</span><span class="p">,</span><span class="mf">1.0</span><span class="p">,</span><span class="mf">1.0</span><span class="p">],</span>
+<span class="gp">... </span>                                      <span class="n">dims</span><span class="o">=</span><span class="p">[</span><span class="mf">512</span><span class="p">,</span><span class="mf">512</span><span class="p">,</span><span class="mf">512</span><span class="p">],</span>
+<span class="gp">... </span>                                      <span class="n">fields</span><span class="o">=</span><span class="p">[</span><span class="s">&quot;Density&quot;</span><span class="p">])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">f</span> <span class="o">=</span> <span class="n">tables</span><span class="o">.</span><span class="n">openFile</span><span class="p">(</span><span class="s">&quot;my_cube.h5&quot;</span><span class="p">,</span><span class="s">&quot;w&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">f</span><span class="o">.</span><span class="n">createArray</span><span class="p">(</span><span class="s">&quot;/&quot;</span><span class="p">,</span><span class="s">&quot;my_cube_density&quot;</span><span class="p">,</span> <span class="n">cube</span><span class="p">[</span><span class="s">&quot;Density&quot;</span><span class="p">])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">f</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+</pre></div>
+<p>This will generate an HDF5 file with the &#8220;Density&#8221; array from our smoothed cube
+at the root node, and called &#8220;my_cube_density&#8221;.  With PyTables you can nest
+these, set attributes, and access the data through any application that can
+read HDF5.</p>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sidebar">
+        <div class="sidebarwrapper">
+            <h4>Previous topic</h4>
+            <p class="topless"><a href="making_timeseries_plots.html" title="previous chapter">Making Timeseries Plots</a></p>
+            <h4>Next topic</h4>
+            <p class="topless"><a href="index.html" title="next chapter">Cookbook</a></p>
+            <h3>This Page</h3>
+            <ul class="this-page-menu">
+              <li><a href="../_sources/cookbook/extracting_data.txt">Show Source</a></li>
+            </ul>
+            <h3>Quick search</h3>
+            <form class="search" action="../search.html" method="get">
+              <input type="text" name="q" size="18" /> <input type="submit" value="Go" />
+              <input type="hidden" name="check_keywords" value="yes" />
+              <input type="hidden" name="area" value="default" />
+            </form>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px"><a href="../genindex.html" title="General Index" accesskey="I">index</a></li>
+        <li class="right"><a href="../modindex.html" title="Global Module Index" accesskey="M">modules</a> |</li>
+          <li class="right"><a href="index.html" title="Cookbook" accesskey="N">next</a> |</li>
+          <li class="right"><a href="making_timeseries_plots.html" title="Making Timeseries Plots" accesskey="P">previous</a> |</li>
+    <li><a href="http://yt.enzotools.org/">yt</a> &raquo;</li>
+    
+        <li><a href="../index.html">yt v0.3-pre documentation</a> &raquo;</li>
+
+          <li><a href="index.html" accesskey="U">Cookbook</a> &raquo;</li>
+      </ul>
+    </div>
+    <div class="footer">
+      &copy; Copyright 2008, Matthew J. Turk.
+      Last updated on Jun 16, 2008.
+    </div>
+  </body>
+</html>
