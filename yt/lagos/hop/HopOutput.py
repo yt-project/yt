@@ -28,6 +28,11 @@ from yt.lagos.hop import *
 class HopList(object):
     def __init__(self, data_source, threshold=160.0,
                  dm_only = True):
+        """
+        Run hop on *data_source* with a given density *threshold*.  If
+        *dm_only* is set, only run it on the dark matter particles, otherwise
+        on all particles.  Returns an iterable collection of *HopGroup* items.
+        """
         self.data_source = data_source
         self.dm_only = dm_only
         self.threshold = threshold
@@ -91,6 +96,9 @@ class HopList(object):
         return self._groups[key]
 
     def write_out(self, filename="HopAnalysis.out"):
+        """
+        Write out standard HOP information to *filename*.
+        """
         f = open(filename,"w")
         f.write("# Center of mass does NOT account for periodicity!\n")
         f.write("\t".join(["# Group","Mass","# part","max dens"
@@ -121,7 +129,10 @@ class HopIterator(object):
         return self.hop[self.index]
 
 class HopGroup(object):
-
+    """
+    A data source that returns particle information about the members of a
+    HOP-identified halo.
+    """
     def __init__(self, hop_output, id, indices):
         self.hop_output = hop_output
         self.id = id
@@ -130,6 +141,9 @@ class HopGroup(object):
         self._base_indices = hop_output._base_indices
         
     def center_of_mass(self):
+        """
+        Calculate and return the center of mass.
+        """
         c_vec = self.maximum_density_location() - na.array([0.5,0.5,0.5])
         pm = self["ParticleMassMsun"]
         cx = (self["particle_position_x"] - c_vec[0])
@@ -139,18 +153,30 @@ class HopGroup(object):
         return (com*pm).sum(axis=1)/pm.sum() + c_vec
 
     def maximum_density(self):
+        """
+        Return the HOP-identified maximum density.
+        """
         return self.hop_output._max_dens[self.id][0]
 
     def maximum_density_location(self):
+        """
+        Return the location HOP identified as maximally dense.
+        """
         return na.array([
                 self.hop_output._max_dens[self.id][1],
                 self.hop_output._max_dens[self.id][2],
                 self.hop_output._max_dens[self.id][3]])
 
     def total_mass(self):
+        """
+        Returns the total mass in solar masses of the halo.
+        """
         return self["ParticleMassMsun"].sum()
 
     def bulk_velocity(self):
+        """
+        Returns the mass-weighted average velocity.
+        """
         pm = self["ParticleMassMsun"]
         vx = (self["particle_velocity_x"] * pm).sum()
         vy = (self["particle_velocity_y"] * pm).sum()
@@ -158,6 +184,11 @@ class HopGroup(object):
         return na.array([vx,vy,vz])/pm.sum()
 
     def maximum_radius(self, center_of_mass=True):
+        """
+        Returns the maximum radius in the halo for all particles,
+        either from the point of maximum density or from the (default)
+        *center_of_mass*.
+        """
         if center_of_mass: center = self.center_of_mass()
         else: center = self.maximum_density_location()
         rx = na.abs(self["particle_position_x"]-center[0])
@@ -172,6 +203,10 @@ class HopGroup(object):
         return self.data[key][self._base_indices][self.indices]
 
     def get_sphere(self, center_of_mass=True):
+        """
+        Returns an EnzoSphere centered on either the point of maximum density
+        or the *center_of_mass*, with the maximum radius of the halo.
+        """
         if center_of_mass: center = self.center_of_mass()
         else: center = self.maximum_density_location()
         radius = self.maximum_radius()
