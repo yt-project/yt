@@ -25,6 +25,12 @@ from yt.lagos import *
 
 class GridConsiderationQueue:
     def __init__(self, white_list = None, priority_func=None):
+        """
+        This class exists to serve the contour finder.  It ensures that
+        we can create a cascading set of queue dependencies, and if
+        a grid is touched again ahead of time we can bump it to the top
+        of the queue again.  It like has few uses.
+        """
         self.to_consider = []
         self.considered = []
         self.n = 0
@@ -73,6 +79,10 @@ class GridConsiderationQueue:
 # cells in a grid.
 
 def identify_contours(data_source, field, min_val, max_val):
+    """
+    Given a *data_source*, we will search for topologically connected sets
+    in *field* between *min_val* and *max_val*.
+    """
     maxn_cells = 0
     maxn_cells = na.sum([g.ActiveDimensions.prod() for g in data_source._grids])
     contour_ind = na.where( (data_source[field] > min_val)
@@ -138,6 +148,9 @@ def identify_contours(data_source, field, min_val, max_val):
     return contour_ind
 
 def check_neighbors(data_object, field="Contours"):
+    """
+    This method is a means of error checking in the contour finder.
+    """
     n_bad = na.zeros(1, dtype='int32')
     for cid in na.unique(data_object[field]):
         if cid == -1: continue
