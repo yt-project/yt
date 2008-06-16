@@ -86,6 +86,11 @@ class BinnedProfile:
         self["UsedBins"] = u
 
     def add_fields(self, fields, weight = "CellMassMsun", accumulation = False):
+        """
+        We accept a list of *fields* which will be binned if *weight* is not
+        None and otherwise summed.  *accumulation* determines whether or not
+        they will be accumulated from low to high along the appropriate axes.
+        """
         # Note that the specification has to be the same for all of these
         fields = ensure_list(fields)
         if self._lazy_reader:
@@ -109,6 +114,13 @@ class BinnedProfile1D(BinnedProfile):
     def __init__(self, data_source, n_bins, bin_field,
                  lower_bound, upper_bound,
                  log_space = True, lazy_reader=False):
+        """
+        We accept a *data_source*, which will be binned into *n_bins* by the
+        field *bin_field* between the *lower_bound* and the *upper_bound*.
+        These bins may or may not be equally divided in *log_space*, and the
+        *lazy_reader* flag controls whether we use a memory conservative
+        approach.
+        """
         BinnedProfile.__init__(self, data_source, lazy_reader)
         self.bin_field = bin_field
         self._x_log = log_space
@@ -185,6 +197,15 @@ class BinnedProfile2D(BinnedProfile):
                  x_n_bins, x_bin_field, x_lower_bound, x_upper_bound, x_log,
                  y_n_bins, y_bin_field, y_lower_bound, y_upper_bound, y_log,
                  lazy_reader=False):
+        """
+        We accept a *data_source*, which will be binned into *x_n_bins* by the
+        field *x_bin_field* between the *x_lower_bound* and the *x_upper_bound*
+        and then again binned into *y_n_bins* by the field *y_bin_field*
+        between the *y_lower_bound* and the *y_upper_bound*.  These bins may or
+        may not be equally divided in log-space as specified by *x_log* and *y_log*,
+        and the *lazy_reader* flag controls whether we use a memory
+        conservative approach.
+        """
         BinnedProfile.__init__(self, data_source, lazy_reader)
         self.x_bin_field = x_bin_field
         self.y_bin_field = y_bin_field
@@ -271,6 +292,10 @@ class BinnedProfile2D(BinnedProfile):
         return (mi, bin_indices_x, bin_indices_y)
 
     def write_out(self, filename, format="%0.16e"):
+        """
+        Write out the values of x,y,v in ascii to *filename* for every field in
+        the profile.  Optionally a *format* can be specified.
+        """
         fid = open(filename,"w")
         fields = [field for field in sorted(self._data.keys()) if field != "UsedBins"]
         fid.write("\t".join(["#"] + [self.x_bin_field, self.y_bin_field]
@@ -401,7 +426,9 @@ class BinnedProfile3D(BinnedProfile):
     def store_profile(self, name, force=False):
         """
         By identifying the profile with a fixed, user-input *name* we can
-        store it in the serialized data section of the hierarchy file.
+        store it in the serialized data section of the hierarchy file.  *force*
+        governs whether or not an existing profile with that name will be
+        overwritten.
         """
         # First we get our data in order
         order = []
@@ -429,6 +456,10 @@ class BinnedProfile3D(BinnedProfile):
 
 class StoredBinnedProfile3D(BinnedProfile3D):
     def __init__(self, pf, name):
+        """
+        Given a *pf* parameterfile and the *name* of a stored profile, retrieve
+        it into a read-only data structure.
+        """
         self._data = {}
         prof_arr = pf.h.get_data("/Profiles", name)
         if prof_arr is None: raise KeyError("No such array")
