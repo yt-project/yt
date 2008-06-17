@@ -766,17 +766,18 @@ class EnzoProjBase(Enzo2DData):
         s = self.source
         mylog.info("Generating overlap masks")
         i = 0
+        pbar = get_pbar("Reading and masking grids ", len(s._grids))
         for level in range(self._max_level+1):
             mylog.debug("Examining level %s", level)
             grids = s.levelIndices[level]
             RE = s.gridRightEdge[grids]
             LE = s.gridLeftEdge[grids]
             for grid in s._grids[grids]:
-                if (i%1e3) == 0:
-                    mylog.debug("Reading and masking %s / %s", i, len(s._grids))
+                pbar.update(i)
                 self.__overlap_masks[grid.id] = \
                     grid._generate_overlap_masks(self.axis, LE, RE)
                 i += 1
+        pbar.finish()
         mylog.info("Finished calculating overlap.")
 
     def _serialize(self):
