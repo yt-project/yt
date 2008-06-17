@@ -39,22 +39,33 @@ class HopList(object):
         self._groups = []
         self._max_dens = {}
         mylog.info("Initializing HOP")
+        self.__obtain_particles()
         self.__run_hop()
         mylog.info("Parsing outputs")
         self.__parse_output()
         mylog.debug("Finished.")
 
-    def __run_hop(self):
+    def __obtain_particles(self):
         if self.dm_only: ii = self.__get_dm_indices()
         else: ii = slice(None)
         self._base_indices = ii
+        self.particle_fields = {}
+        for field in ["particle_position_%s" % ax for ax in 'xyz'] + \
+                     ["ParticleMassMsun"]:
+            self.particle_fields[field] = self.data_source[field][ii]
+        self.particle_fields["particle_index"] = \
+            self.data_source["particle_index"][ii].astype('int64')
+
+    def __run_hop(self):
         self.densities, self.tags = \
-            RunHOP(self.data_source["particle_position_x"][ii],
-                   self.data_source["particle_position_y"][ii],
-                   self.data_source["particle_position_z"][ii],
-                   self.data_source["ParticleMassMsun"][ii],
-                   self.data_source["particle_index"][ii].astype('int64'),
+            RunHOP(self.particle_fields["particle_position_x"],
+                   self.particle_fields["particle_position_y"],
+                   self.particle_fields["particle_position_z"],
+                   self.particle_fields["ParticleMassMsun"],
+                   self.particle_fields["particle_index"],
                    self.threshold)
+        self.particle_fields["densities"] = self.densities
+        self.particle_fields["tags"] = self.tags
 
     def __get_dm_indices(self):
         if 'creation_time' in self.data_source.hierarchy.field_list:
@@ -80,7 +91,7 @@ class HopList(object):
             group_indices = grab_indices[cp:cp_c]
             self._groups.append(HopGroup(self, i, group_indices))
             md_i = na.argmax(self.densities[sort_indices][cp:cp_c])
-            px, py, pz = [self.data_source['particle_position_%s'%ax][self._base_indices][group_indices]
+            px, py, pz = [self.particle_fields['particle_position_%s'%ax][group_indices]
                                             for ax in 'xyz']
             self._max_dens[i] = (self.densities[sort_indices][cp:cp_c][md_i],
                                  px[md_i], py[md_i], pz[md_i])
