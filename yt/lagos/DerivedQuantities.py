@@ -99,6 +99,15 @@ class DerivedQuantityCollection(object):
     def keys(self):
         return self.functions.keys()
 
+def _TotalMass(data):
+    baryon_mass = data["CellMassMsun"].sum()
+    particle_mass = data["ParticleMassMsun"].sum()
+    return baryon_mass, particle_mass
+def _combTotalMass(data, baryon_mass, particle_mass):
+    return baryon_mass.sum() + particle_mass.sum()
+add_quantity("TotalMass", function=_TotalMass,
+             combine_function=_combTotalMass, n_ret = 2)
+
 def _CenterOfMass(data):
     x = (data["x"] * data["CellMassMsun"]).sum()
     y = (data["y"] * data["CellMassMsun"]).sum()
