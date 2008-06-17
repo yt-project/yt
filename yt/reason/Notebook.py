@@ -238,7 +238,7 @@ class PlotPage(wx.Panel):
     def OnShowContextMenu(self, event):
         pos = event.GetPosition()
         pos = self.figure_canvas.ScreenToClient(pos)
-        self.__context_menu_position = pos
+        self._context_menu_position = pos
         self.figure_canvas.PopupMenu(self.popupmenu)
 
     def OnColorMapChoice(self, event):
@@ -491,7 +491,7 @@ class VMPlotPage(PlotPage):
         self.UpdateCanvas()
 
     def OnCenterHere(self, event):
-        xp, yp = self.__context_menu_position
+        xp, yp = self._context_menu_position
         x, y = self.ConvertPositionToDataPosition(xp, yp)
         if x == None or y == None: return
         self.ChangeCenter(x,y)
