@@ -31,21 +31,17 @@ class EnzoGridBase(EnzoData):
     _spatial = True
     _num_ghost_zones = 0
     """
-    Class representing a single Enzo Grid instance
+    Class representing a single Enzo Grid instance.
     """
     _grids = None
 
     def __init__(self, id, filename=None, hierarchy = None):
         """
-        Returns an instance of EnzoGrid
-
-        @param hierarchy: EnzoHierarchy, parent hierarchy
-        @type hierarchy: L{EnzoHierarchy<EnzoHierarchy>}
-        @param id: grid ID (NOT index, which is ID-1)
-        @type id: int
-        @keyword filename: filename holding grid data
-        @type filename: string
+        Returns an instance of EnzoGrid with *id*, associated with
+        *filename* and *hierarchy*.
         """
+        #EnzoData's init function is a time-burglar.
+        #All of the field parameters will be passed to us as needed.
         #EnzoData.__init__(self, None, [])
         self.data = {}
         self.field_parameters = {}
@@ -61,29 +57,23 @@ class EnzoGridBase(EnzoData):
     def __len__(self):
         return na.prod(self.ActiveDimensions)
 
-    def _generate_field(self, fieldName):
-        """
-        Generates, or attempts to generate, a field not found in the data file
-
-        @param fieldName: field to generate
-        @type fieldName: string
-        """
-        if fieldInfo.has_key(fieldName):
+    def _generate_field(self, field):
+        if fieldInfo.has_key(field):
             # First we check the validator
             try:
-                fieldInfo[fieldName].check_available(self)
+                fieldInfo[field].check_available(self)
             except NeedsGridType, ngt_exception:
                 # This is only going to be raised if n_gz > 0
                 n_gz = ngt_exception.ghost_zones
                 f_gz = ngt_exception.fields
                 gz_grid = self.retrieve_ghost_zones(n_gz, f_gz)
-                temp_array = fieldInfo[fieldName](gz_grid)
+                temp_array = fieldInfo[field](gz_grid)
                 sl = [slice(n_gz,-n_gz)] * 3
-                self[fieldName] = temp_array[sl]
+                self[field] = temp_array[sl]
             else:
-                self[fieldName] = fieldInfo[fieldName](self)
+                self[field] = fieldInfo[field](self)
         else: # Can't find the field, try as it might
-            raise exceptions.KeyError, fieldName
+            raise exceptions.KeyError, field
 
     def get_data(self, field):
         """
@@ -99,7 +89,7 @@ class EnzoGridBase(EnzoData):
                 except self._read_exception:
                     if field in fieldInfo:
                         if fieldInfo[field].particle_type:
-                            self[field] = na.array([],dtype='float64')
+                            self[field] = na.array([],dtype='int64')
                         if fieldInfo[field].not_in_all:
                             self[field] = na.zeros(self.ActiveDimensions, dtype='float64')
                     else: raise
@@ -108,6 +98,10 @@ class EnzoGridBase(EnzoData):
         return self.data[field]
 
     def clear_all_grid_references(self):
+        """
+        This clears out all references this grid has to any others, as
+        well as the hierarchy.  It's like extra-cleaning after clear_data.
+        """
         self.clear_all_derived_quantities()
         if hasattr(self, 'hierarchy'):
             del self.hierarchy
@@ -157,9 +151,13 @@ class EnzoGridBase(EnzoData):
         self._corners = self.hierarchy.gridCorners[:,:,self.id-1]
 
     def _guess_properties_from_parent(self):
-        # Okay, we're going to try to guess
-        # We know that our grid boundary occurs on the cell boundary of our
-        # parent
+        """
+        We know that our grid boundary occurs on the cell boundary of our
+        parent.  This can be a very expensive process, but it is necessary
+        in some hierarchys, where yt is unable to generate a completely
+        space-filling tiling of grids, possibly due to the finite accuracy in a
+        standard Enzo hierarchy file.
+        """
         le = self.LeftEdge
         self.dx = self.Parent.dx/2.0
         self.dy = self.Parent.dy/2.0
@@ -189,6 +187,10 @@ class EnzoGridBase(EnzoData):
         self._setup_dx()
 
     def get_global_startindex(self):
+        """
+        Return the integer starting index for each dimension at the current
+        level.
+        """
         if self.start_index != None:
             return self.start_index
         if self.Parent == None:
@@ -202,25 +204,17 @@ class EnzoGridBase(EnzoData):
 
     def _generate_overlap_masks(self, axis, LE, RE):
         """
-        Generate a mask that shows which cells overlap with other cells on
-        different grids.  (If fed appropriate subsets, can be constrained to
-        current level.
+        Generate a mask that shows which cells overlap with arbitrary arrays
+        *LE* and *RE*) of edges, typically grids, along *axis*.
         Use algorithm described at http://www.gamedev.net/reference/articles/article735.asp
-
-        @param axis: axis  along which line of sight is drawn
-        @type axis: int
-        @param LE: LeftEdge positions to check against
-        @type LE: array of floats
-        @param RE: RightEdge positions to check against
-        @type RE: array of floats
         """
         x = x_dict[axis]
         y = y_dict[axis]
-        cond1 = self.RightEdge[x] >= LE[:,x]
-        cond2 = self.LeftEdge[x] <= RE[:,x]
-        cond3 = self.RightEdge[y] >= LE[:,y]
-        cond4 = self.LeftEdge[y] <= RE[:,y]
-        return ((cond1 & cond2) & (cond3 & cond4))
+        cond = self.RightEdge[x] >= LE[:,x]
+        cond = na.logical_and(cond, self.LeftEdge[x] <= RE[:,x])
+        cond = na.logical_and(cond, self.RightEdge[y] >= LE[:,y])
+        cond = na.logical_and(cond, self.LeftEdge[y] <= RE[:,y])
+        return cond
    
     def __repr__(self):
         return "Grid_%04i" % (self.id)
@@ -229,6 +223,10 @@ class EnzoGridBase(EnzoData):
         return self.id
 
     def clear_data(self):
+        """
+        Clear out the following things: child_mask, child_indices,
+        all fields, all field parameters.
+        """
         self._del_child_mask()
         self._del_child_indices()
         if hasattr(self, 'coarseData'):
@@ -239,6 +237,9 @@ class EnzoGridBase(EnzoData):
         self._setup_dx()
 
     def set_filename(self, filename):
+        """
+        Intelligently set the filename.
+        """
         if self.hierarchy._strip_path:
             self.filename = os.path.join(self.hierarchy.directory,
                                          os.path.basename(filename))
@@ -250,10 +251,7 @@ class EnzoGridBase(EnzoData):
 
     def find_max(self, field):
         """
-        Returns value, coordinate of maximum value in this gird
-
-        @param field: field to check
-        @type field: string
+        Returns value, index of maximum value of *field* in this gird
         """
         coord1d=(self[field]*self.child_mask).argmax()
         coord=na.unravel_index(coord1d, self[field].shape)
@@ -262,29 +260,23 @@ class EnzoGridBase(EnzoData):
 
     def find_min(self, field):
         """
-        Returns value, coordinate of minimum value in this gird
-
-        @param field: field to check
-        @type field: string
+        Returns value, index of minimum value of *field* in this gird
         """
         coord1d=(self[field]*self.child_mask).argmin()
         coord=na.unravel_index(coord1d, self[field].shape)
         return val, coord
 
-    def get_position(self, coord):
+    def get_position(self, index):
         """
-        Returns position of a coordinate
-
-        @param coord: position to check
-        @type coord: array of floats
+        Returns center position of an *index*
         """
-        pos = (coord + 0.0) * self.dx + self.LeftEdge
-        # Should 0.0 be 0.5?
+        pos = (index + 0.5) * self.dx + self.LeftEdge
         return pos
 
     def clear_all(self):
         """
-        Clears all datafields from memory.
+        Clears all datafields from memory and calls
+        :meth:`clear_derived_quantities`.
         """
         for key in self.keys():
             del self.data[key]
@@ -302,8 +294,10 @@ class EnzoGridBase(EnzoData):
         del self.child_mask
         del self.child_ind
 
-    def get_enzo_grid(self):
+    def __get_enzo_grid(self):
         """
+        **DO NOT USE**
+
         This attempts to get an instance of this particular grid from the SWIG
         interface.  Note that it first checks to see if the ParameterFile has
         been instantiated.
@@ -322,7 +316,10 @@ class EnzoGridBase(EnzoData):
         os.chdir(cwd)
         mylog.debug("Grid read with SWIG")
 
-    def export_amira(self, filename, fields, timestep = 1, a5Filename=None, gid=0):
+    def __export_amira(self, filename, fields, timestep = 1, a5Filename=None, gid=0):
+        """
+        **DO NOT USE**
+        """
         fields = ensure_list(fields)
         deltas = na.array([self.dx,self.dy,self.dz],dtype='float64')
         tn = "time-%i" % (timestep)
@@ -356,36 +353,6 @@ class EnzoGridBase(EnzoData):
                 fn = os.path.basename(filename % {'field' : field})
                 node._f_setAttr("referenceFileName", fn)
                 new_h5.close()
-
-    def _get_projection(self, axis, field, zeroOut, weight=None, func=na.sum):
-        """
-        Projects along an axis.  Currently in flux.  Shouldn't be called
-        directly.
-        """
-        if weight == None:
-            maskedData = self[field].copy()
-            weightData = na.ones(maskedData.shape)
-        else:
-            maskedData = self[field] * self[weight]
-            weightData = self[weight].copy()
-        if zeroOut:
-            maskedData[self.child_indices]=0
-            weightData[self.child_indices]=0
-            toCombineMask = na.logical_and.reduce(self.child_mask, axis).astype('int64')
-        a = {0:self.dx, 1:self.dy, 2:self.dz}
-        fullProj = func(maskedData,axis)*a[axis] # Gives correct shape
-        weightProj = func(weightData,axis)*a[axis]
-        if not zeroOut:
-            toCombineMask = na.ones(fullProj.shape, dtype='int64')
-        toCombineMask = toCombineMask.astype('int64')
-        cmI = na.indices(fullProj.shape)
-        xind = cmI[0,:].ravel()
-        yind = cmI[1,:].ravel()
-        dx = a[x_dict[axis]]
-        dy = a[y_dict[axis]]
-        xpoints = xind + na.rint(self.LeftEdge[x_dict[axis]]/dx).astype('int64')
-        ypoints = yind + na.rint(self.LeftEdge[y_dict[axis]]/dy).astype('int64')
-        return [xpoints, ypoints, fullProj.ravel(), toCombineMask.ravel(), weightProj.ravel()]
 
     def _set_child_mask(self, newCM):
         if self.__child_mask != None:
@@ -435,7 +402,7 @@ class EnzoGridBase(EnzoData):
             self.__child_mask[startIndex[0]:endIndex[0],
                               startIndex[1]:endIndex[1],
                               startIndex[2]:endIndex[2]] = 0
-        self.__child_indices = (self.__child_mask==0)
+        self.__child_indices = (self.__child_mask==0) # bool, possibly redundant
 
     def _get_coords(self):
         if self.__coords == None: self._generate_coords()

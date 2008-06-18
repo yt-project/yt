@@ -34,6 +34,10 @@ import string, re, gc, time, os, os.path
 
 class StaticOutput(object):
     def __init__(self, filename, data_style=None):
+        """
+        Base class for generating new output types.  Principally consists of
+        a *filename* and a *data_style* which will be passed on to children.
+        """
         self.data_style = data_style
         self.parameter_filename = str(filename)
         self.basename = os.path.basename(filename)
@@ -107,18 +111,16 @@ class StaticOutput(object):
 
 class EnzoStaticOutput(StaticOutput):
     """
-    This class is a stripped down class that simply reads and parses, without
-    looking at the hierarchy.
-
-    @todo: Move some of the parameters to the EnzoRun?
-           Maybe it is just more appropriate to think of time series data and
-           single-time data?
-
-    @param filename: The filename of the parameterfile we want to load
-    @type filename: String
+    Enzo-specific output, set at a fixed time.
     """
     _hierarchy_class = EnzoHierarchy
     def __init__(self, filename, data_style=None):
+        """
+        This class is a stripped down class that simply reads and parses
+        *filename* without looking at the hierarchy.  *data_style* gets passed
+        to the hierarchy to pre-determine the style of data-output.  However,
+        it is not strictly necessary.
+        """
         StaticOutput.__init__(self, filename, data_style)
         rp = os.path.join(self.directory, "rates.out")
         if os.path.exists(rp):
@@ -227,6 +229,11 @@ class EnzoStaticOutput(StaticOutput):
             self.units[unit] = mpc_conversion[unit] * box_proper
 
     def cosmology_get_units(self):
+        """
+        Return an Enzo-fortran style dictionary of units to feed into custom
+        routines.  This is typically only necessary if you are interacting
+        with fortran code.
+        """
         k = {}
         k["utim"] = 2.52e17/na.sqrt(self.parameters["CosmologyOmegaMatterNow"])\
                        / self.parameters["CosmologyHubbleConstantNow"] \
