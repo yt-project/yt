@@ -16,3 +16,4 @@ it.
    :maxdepth: 2
 
    plotcollection
+   plot3dinterface

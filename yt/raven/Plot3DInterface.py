@@ -43,6 +43,16 @@ class VolumeRendering(object):
     def __init__(self, data, take_log=True,
                  window_opts="/S2MONO", cmap="rainbow",
                  amin=0.0, amax=0.1, bounds = None):
+        """
+        This is the base class for volume rendering plots.  It sets up
+        the translation information, the UI (*window_opts*),
+        the *cmap* (S2PLOT colormap), and then using the *data* fed it to
+        generate the plot.  *amin* and *amax* govern the minimum and maximum
+        alpha, and *bounds* is an override for the boundaries, but otherwise
+        it uses 0..1 in all dimensions.
+
+        This class is meant to be exclusively a base class.
+        """
         if bounds is None:
             self.x0,self.x1, self.y0,self.y1, self.z0,self.z1 = \
                 0.0,1.0, 0.0,1.0, 0.0,1.0
@@ -75,6 +85,14 @@ class VolumeRendering(object):
     def add_isosurfaces(self, number=None, vals=None,
                         log_space=True, cmap="jet",
                         amin=None, amax=None):
+        """
+        Add isosurfaces with the data associated with the volume rendering,
+        using *number* to govern how many.  They will be automatically generated
+        between the minimum and maximum for the data, excluding the boundaries.  *vals*
+        optionally specifies the exact values at which isosurfaces will be generated,
+        *log_space* will determine auto-distribution, *cmap* is a matplotlib colormap,
+        *amin* and *amax* are the alpha mins and maxes.
+        """
         if amin is None: amin = self._amin
         if amax is None: amax = self._amax
         cm = matplotlib.cm.get_cmap(cmap)
@@ -103,6 +121,12 @@ class VolumeRendering(object):
                              1, 's', alpha, r,g,b)
                             
     def run(self, pre_call=None):
+        """
+        Initiate the plotting, transfer control to the GLUT handler.
+        *pre_call* is a function which will be called with this object as the first
+        (and only) argument, for instance for automatically adding isosurfaces or
+        particles.
+        """
         self.__setup_s2plot()
         self.__setup_volrendering()
         self.__register_callbacks()
@@ -111,6 +135,10 @@ class VolumeRendering(object):
         s2plot.s2disp(-1, 1)
 
     def restart(self):
+        """
+        If control has been returned to the prompt, this will reinitiate
+        GLUT-control.
+        """
         s2plot.s2disp(-1, 0)
 
     def _setup_labels(self):
@@ -153,6 +181,14 @@ class VolumeRenderingDataCube(VolumeRendering):
     def __init__(self, pf, center=None, width=1, unit='1',
                  field='Density', dims=128, smooth_data=True,
                  **kwargs):
+        """
+        This is a convenience function for generating a volume rendering from
+        an extracted subset of a static output (*pf*).  Optionally specify
+        the *center*, then given a *width* and a *unit* generate a datacube
+        (optionally with *smooth_data* off) of *dims* on a side in *field*.
+        This will then be plotted.  Remaining kwargs are fed into the S2PLOT
+        controller function.
+        """
         self.pf = pf
         self.width = width/pf[unit]
         if center is None: center = pf.h.find_max("Density")[1]
@@ -177,6 +213,11 @@ class VolumeRenderingDataCube(VolumeRendering):
         return data_grid
 
     def add_vectors(self, vfields, dims, offsets = None):
+        """
+        Add vectors in *vfields* (list of three) of *dims* on a side, with the
+        fixed list of *offsets* applied before plotting.  Typically one would
+        use velocity with some bulk offset, for instance.
+        """
         tr = na.array([
             self.x0, (self.x1-self.x0)/(dims-1.0), 0               , 0,
             self.y0, 0               , (self.y1-self.y0)/(dims-1.0), 0,
@@ -203,6 +244,10 @@ class VolumeRenderingDataCube(VolumeRendering):
 
 class VolumeRendering3DProfile(VolumeRendering):
     def __init__(self, profile, field, **kwargs):
+        """
+        Given a 3D *profile*, volume render *field* and pass *kwargs* on to the
+        plot controller.
+        """
         self.profile = profile
         self.field = field
         if 'bounds' not in kwargs:
@@ -226,12 +271,21 @@ class VolumeRendering3DProfile(VolumeRendering):
         s2plot.s2lab(self.bf[0][1],self.bf[1][1],self.bf[2][1],self.field)
 
     def setup_plot_points(self):
+        """
+        Add all the attendant data points from the profile's data source,
+        toggled on and off with the space bar.
+        """
         xyz = [f[0](self.profile._data_source[f[1]]) for f in self.bf]
         self.xyz = [xyz[0].size] + xyz +  [1]
 
 class HaloMassesPositionPlot(object):
     def __init__(self, hop_results, window_opts="/S2MONO",
                  cmap="jet"):
+        """
+        With a HopList (*hop_results*), create a simple plot
+        using their masses as color, their radii as radius, and *window_opts*
+        as the options to the S2PLOT interface.  *cmap* is a matplotlib cmap.
+        """
         self.hop_results = hop_results
         self.window_opts = window_opts
         self.cmap = cmap
@@ -261,6 +315,12 @@ class HaloMassesPositionPlot(object):
                              self.radii[i], r,g,b)
         
     def run(self, pre_call=None):
+        """
+        Initiate the plotting, transfer control to the GLUT handler.
+        *pre_call* is a function which will be called with this object as the first
+        (and only) argument, for instance for automatically adding isosurfaces or
+        particles.
+        """
         self.__setup_s2plot()
         self.__setup_spheres()
         self.__setup_labels()
