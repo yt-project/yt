@@ -32,6 +32,7 @@ _ProjObjectMenuItems = ["export",]
 _SliceObjectMenuItems = []
 _CuttingPlaneObjectMenuItems = ["export",]
 _ProfileObjectMenuItems = ["export",]
+_FidoOutputMenuItems = ["delete",]
 
 class ReasonMainWindow(wx.Frame):
     def __init__(self, *args, **kwds):
@@ -100,17 +101,20 @@ class ReasonMainWindow(wx.Frame):
 
         # Set up IDs for event binding
 
-        open_hierarchy = file_menu.Append(-1, "Open Hierarchy")
+        open_hierarchy = file_menu.Append(-1, "Open Individual Hierarchy")
+        import_directory = file_menu.Append(-1, "Import Data Directory")
+        file_menu.AppendSeparator()
         field_inspector = file_menu.Append(-1, "Inspect Fields")
-        open_shell = file_menu.Append(-1, "Open Shell")
-        open_editor = file_menu.Append(-1, "Open Editor")
+        #open_shell = file_menu.Append(-1, "Open Shell")
+        open_editor = file_menu.Append(-1, "Open Shell & Editor")
         save_image = file_menu.Append(-1, "Save Image")
         file_menu.AppendSeparator()
         exit = file_menu.Append(-1, "Exit")
 
         self.Bind(wx.EVT_MENU, self.OnOpenHierarchy, open_hierarchy)
+        self.Bind(wx.EVT_MENU, self.OnImportDirectory, import_directory)
         self.Bind(wx.EVT_MENU, self.OnInspectFields, field_inspector)
-        self.Bind(wx.EVT_MENU, self.OnOpenShell, open_shell)
+        #self.Bind(wx.EVT_MENU, self.OnOpenShell, open_shell)
         self.Bind(wx.EVT_MENU, self.OnOpenEditor, open_editor)
         self.Bind(wx.EVT_MENU, self.OnSaveImage, save_image)
         self.Bind(wx.EVT_MENU, self.OnExit, exit)
@@ -128,6 +132,7 @@ class ReasonMainWindow(wx.Frame):
         self.PopupMenuIds["extract"] = self.PopupMenu.Append(-1, "Extract Set")
         self.PopupMenuIds["cube"] = self.PopupMenu.Append(-1, "Extract Cube")
         self.PopupMenuIds["export"] = self.PopupMenu.Append(-1, "Export Data")
+        self.PopupMenuIds["delete"] = self.PopupMenu.Append(-1, "Delete Item")
 
         self.Bind(wx.EVT_MENU, self._add_slice, self.PopupMenuIds["slice"])
         self.Bind(wx.EVT_MENU, self._add_proj, self.PopupMenuIds["proj"])
@@ -137,6 +142,7 @@ class ReasonMainWindow(wx.Frame):
         self.Bind(wx.EVT_MENU, self._extract_set, self.PopupMenuIds["extract"])
         #self.Bind(wx.EVT_MENU, self._extract_cube, self.PopupMenuIds["cube"])
         self.Bind(wx.EVT_MENU, self._export_data_object, self.PopupMenuIds["export"])
+        self.Bind(wx.EVT_MENU, self._remove_fido_output, self.PopupMenuIds["delete"])
 
     def __setup_data_tree(self):
 
@@ -161,7 +167,9 @@ class ReasonMainWindow(wx.Frame):
         self.data_tree.DeleteChildren(self.fido_root)
         gc = fido.GrabCollections()
         for c in gc:
-            cRoot = self.data_tree.AppendItem(self.fido_root, c.title)
+            tid = wx.TreeItemData((c.title, c._last_read_filename,
+                                  -1, _FidoOutputMenuItems,))
+            cRoot = self.data_tree.AppendItem(self.fido_root, c.title, data=tid)
             for fn in c:
                 if not os.path.isfile(fn): continue
                 try:
@@ -171,15 +179,22 @@ class ReasonMainWindow(wx.Frame):
                     z = "N/A"
                 tt = str(fido.get_parameter_line(fn,
                              "InitialTime"))
-                tid = wx.TreeItemData((fn, tt, z, _StaticOutputMenuItems))
+                tid = wx.TreeItemData((fn, tt, z, _StaticOutputMenuItems, ))
                 ni = self.data_tree.AppendItem(cRoot,
                     "%s" % (os.path.basename(fn)), data=tid)
 
     def _remove_fido_output(self, event=None):
-        pass
-
-    def _remove_fido_outputcollection(self, event=None):
-        pass
+        tid = self.data_tree.GetSelection()
+        data_object = self.data_tree.GetItemData(tid).GetData()
+        dlg = wx.MessageDialog(self,
+                'Are you sure you want to delete the record of that output?\n' + \
+                'This will leave the data itself unaffected.',
+                'Record Deletion Confirmation', wx.YES_NO | wx.ICON_INFORMATION)
+        if dlg.ShowModal() == wx.ID_YES and os.path.isfile(data_object[1]):
+            mylog.info("Removing %s", data_object[1])
+            os.unlink(data_object[1])
+        dlg.Destroy()
+        self.__setup_fido_tree()
 
     def __setup_toolbar(self):
         # Tool Bar
@@ -529,6 +544,15 @@ class ReasonMainWindow(wx.Frame):
     def OnInspectFields(self, event):
         p = FieldFunctionInspector(self, -1)
         p.Show()
+
+    def OnImportDirectory(self, event=None):
+        dialog = wx.DirDialog(self, "Choose a data directory",
+                    style=wx.DD_DEFAULT_STYLE | wx.DD_DIR_MUST_EXIST)
+        if dialog.ShowModal() == wx.ID_OK:
+            file = dialog.GetPath()
+            fido.Import(current_path = file).PerformAction()
+        self.__setup_fido_tree()
+        dialog.Destroy()
 
     def OnOpenHierarchy(self, event):
         wildcard = "Hierarchy (*.hierarchy)|*.hierarchy|" \

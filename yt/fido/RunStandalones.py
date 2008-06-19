@@ -173,21 +173,27 @@ class Branch(FidoAction):
 
 class Import(FidoAction):
     description = "Import an existing set of buried outputs"
-    def __init__(self):
+    _matches = ["*.dir/*.hierarchy", "*Dir/*.hierarchy", "RD*/*.hierarchy",
+                "DD*/*.hierarchy", "moving*/*.hierarchy", "star*/*.hierarchy",
+                "*.hierarchy"]
+    def __init__(self, current_path = None, title = None):
+        if current_path is None: current_path = os.getcwd()
+        self.current_path = current_path
         FidoAction.__init__(self)
         self._parse_args()
         self._guess_collection()
-        self.title = os.path.basename(os.getcwd())
-        if self.oc != None: self.title = self.oc.title
-        else: self.oc=OutputCollection(self.title)
+        if title is None:
+            if self.oc is not None: title = self.oc.title
+            else: title = os.path.basename(current_path)
+        self.title = title
+        if self.oc is None:
+            self.oc=OutputCollection(self.title)
         open(NEW_OUTPUT_CREATED,"w").close()
 
     def PerformAction(self):
-        for i in glob.glob("*.dir/*.hierarchy") + \
-                 glob.glob("*Dir/*.hierarchy"):
-            print i
-            fn = i[:-10]
-            self.oc.add_output(os.path.abspath(fn))
+        patterns = [os.path.join(self.current_path, m) for m in self._matches]
+        for p in patterns:
+            for i in glob.glob(p): self.oc.add_output(os.path.abspath(i[:-10]))
         Giles = Watcher(title=self.title, oc=self.oc)
         Giles.run(True)
         self.oc.write_out()

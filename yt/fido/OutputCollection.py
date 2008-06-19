@@ -39,6 +39,7 @@ class OutputCollection:
         self.output_times = na.array((), dtype='float64')
 
     def read_in(self, filename):
+        self._last_read_filename = filename
         lines = open(filename).readlines()
         output_lines = [line for line in lines if line.startswith("Output:")]
         outputs = [line.split(":")[1] for line in output_lines]
@@ -70,6 +71,7 @@ class OutputCollection:
     def add_output(self, filename):
         # We're passing in *just* filenames here.  So, we simply snag the
         # two appropriate lines in the parameter file.
+        if filename in self.output_names: return
         time = get_parameter_line(filename, "InitialTime").split()[-1]
         # Implement exception catching
         try:
