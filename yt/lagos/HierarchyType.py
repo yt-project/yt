@@ -745,42 +745,6 @@ class EnzoHierarchy:
                      self.gridLeftEdge[i,1], self.gridRightEdge[i,1],
                      self.gridLeftEdge[i,2], self.gridRightEdge[i,2]))
 
-    @time_execution
-    def __export_amira(self, basename, fields, a5basename, timestep):
-        """
-        This is untested, and only remains for possible future usage.
-        """
-        if (not iterable(fields)) or (isinstance(fields, types.StringType)):
-            fields = [fields]
-        for field in fields:
-            tt=tables.openFile(basename % {'field':field},"w")
-            k=tt.createGroup("/","Parameters and Global Attributes")
-            k._f_setAttr("staggering",1)
-            tt.close()
-            a5=tables.openFile(a5basename % {'field':field},"a")
-            a5.createGroup("/", "time-%i" % timestep)
-            node = a5.getNode("/","time-%i" % timestep)
-            node._f_setAttr("numLevels",self.maxLevel+1)
-            node._f_setAttr("time",self["InitialTime"])
-            a5.close()
-        for level in range(self.maxLevel+1):
-            mylog.info("Exporting level %s", level)
-            for field in fields:
-                a5=tables.openFile(a5basename % {'field':field},"a")
-                a5.createGroup("/time-%i" % (timestep),"level-%i" % (level))
-                node=a5.getNode("/time-%i" % (timestep),"level-%i" % (level))
-                delta = na.array([self.gridDxs[self.levelIndices[level][0]]]*3,dtype='float64')
-                node._f_setAttr("delta",delta)
-                node._f_setAttr("num_grids",self.levelNum[level])
-                # This next one is not necessarily true.  But, it is for
-                # everyone I care about right now...
-                node._f_setAttr("relativeRefinementFactor",na.array([2,2,2],dtype='int32'))
-                a5.close()
-            gid = 0
-            for grid in self.grids[self.levelIndices[level]]:
-                grid.export_amira(basename, fields, timestep, a5basename, gid)
-                gid += 1
-
     def __initialize_enzo_interface(self, idt_val = 0.0):
         """
         This is old, old code that will some day be revived.

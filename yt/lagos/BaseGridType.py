@@ -316,44 +316,6 @@ class EnzoGridBase(EnzoData):
         os.chdir(cwd)
         mylog.debug("Grid read with SWIG")
 
-    def __export_amira(self, filename, fields, timestep = 1, a5Filename=None, gid=0):
-        """
-        **DO NOT USE**
-        """
-        fields = ensure_list(fields)
-        deltas = na.array([self.dx,self.dy,self.dz],dtype='float64')
-        tn = "time-%i" % (timestep)
-        ln = "level-%i" % (self.Level)
-        for field in fields:
-            iorigin = (self.LeftEdge/deltas).astype('int64')
-            new_h5 = tables.openFile(filename % {'field' : field}, "a")
-            f = self[field].transpose().reshape(self.ActiveDimensions)
-            new_h5.createArray("/","grid-%i" % (self.id), f)
-            del f
-            node = new_h5.getNode("/","grid-%i" % (self.id))
-            node.setAttr("level",self.Level)
-            node.setAttr("timestep",timestep)
-            node.setAttr("time",self.Time)
-            node.setAttr("cctk_bbox",na.array([0,0,0,0,0,0],dtype='int32'))
-            node.setAttr("cctk_nghostzones",na.array([0,0,0],dtype='int32'))
-            node.setAttr("delta",deltas)
-            node.setAttr("origin",self.LeftEdge)
-            node.setAttr("iorigin",iorigin*(2**(self.hierarchy.maxLevel - self.Level)))
-            new_h5.close()
-            if a5Filename != None:
-                new_h5 = tables.openFile(a5Filename % {'field' : field}, "a")
-                new_h5.createGroup("/%s/%s" % (tn, ln),"grid-%i" % (gid))
-                node=new_h5.getNode("/%s/%s" % (tn, ln),"grid-%i" % (gid))
-                node._f_setAttr("dims",self.ActiveDimensions)
-                node._f_setAttr("ghostzoneFlags",na.array([0,0,0,0,0,0],dtype='int32'))
-                node._f_setAttr("integerOrigin",(self.LeftEdge/deltas).astype('int64'))
-                node._f_setAttr("numGhostzones",na.array([0,0,0],dtype='int32'))
-                node._f_setAttr("origin",self.LeftEdge)
-                node._f_setAttr("referenceDataPath","/"+"grid-%i" % (self.id))
-                fn = os.path.basename(filename % {'field' : field})
-                node._f_setAttr("referenceFileName", fn)
-                new_h5.close()
-
     def _set_child_mask(self, newCM):
         if self.__child_mask != None:
             mylog.warning("Overriding child_mask attribute!  This is probably unwise!")
