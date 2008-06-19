@@ -114,13 +114,23 @@ class EnzoStaticOutput(StaticOutput):
     Enzo-specific output, set at a fixed time.
     """
     _hierarchy_class = EnzoHierarchy
-    def __init__(self, filename, data_style=None):
+    def __init__(self, filename, data_style=None,
+                 parameter_override = None,
+                 conversion_override = None):
         """
         This class is a stripped down class that simply reads and parses
         *filename* without looking at the hierarchy.  *data_style* gets passed
         to the hierarchy to pre-determine the style of data-output.  However,
-        it is not strictly necessary.
+        it is not strictly necessary.  Optionally you may specify a
+        *parameter_override* dictionary that will override anything in the
+        paarmeter file and a *conversion_override* dictionary that consists
+        of {fieldname : conversion_to_cgs} that will override the #DataCGS.
         """
+        if parameter_override is None: parameter_override = {}
+        self.__parameter_override = parameter_override
+        if conversion_override is None: conversion_override = {}
+        self.__conversion_override = conversion_override
+
         StaticOutput.__init__(self, filename, data_style)
         rp = os.path.join(self.directory, "rates.out")
         if os.path.exists(rp):
@@ -173,6 +183,10 @@ class EnzoStaticOutput(StaticOutput):
             elif param.startswith("DomainRightEdge"):
                 self.parameters["DomainRightEdge"] = \
                     na.array([float(i) for i in vals.split()])
+        for p, v in self.__parameter_override.items():
+            self.parameters[p] = v
+        for p, v in self.__conversion_override.items():
+            self.conversion_factors[p] = v
 
     def _set_units(self):
         """
