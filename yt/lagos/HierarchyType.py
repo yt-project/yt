@@ -1,5 +1,5 @@
 """
-Enzo hierarchy container class
+AMR hierarchy container class
 
 @author: U{Matthew Turk<http://www.stanford.edu/~mturk/>}
 @organization: U{KIPAC<http://www-group.slac.stanford.edu/KIPAC/>}
@@ -35,14 +35,17 @@ _data_style_funcs = \
      6: (readDataPacked, readAllDataPacked, getFieldsPacked, readDataSlicePacked, getExceptionHDF5) \
    }
 
-class EnzoHierarchy:
+class AMRHierarchy:
+    pass
+
+class EnzoHierarchy(AMRHierarchy):
     eiTopGrid = None
     _strip_path = False
     @time_execution
     def __init__(self, pf, data_style=None):
         """
         This is the grid structure as Enzo sees it, with some added bonuses.
-        It's primarily used as a class factor, to generate data objects and
+        It's primarily used as a class factory, to generate data objects and
         access grids.
 
         It should never be created directly -- you should always access it via
@@ -172,15 +175,15 @@ class EnzoHierarchy:
                'pf' : self.parameter_file, # Already weak
                'hierarchy': weakref.proxy(self) }
         self.grid = classobj("EnzoGrid",(EnzoGridBase,), dd)
-        self.proj = classobj("EnzoProj",(EnzoProjBase,), dd)
-        self.slice = classobj("EnzoSlice",(EnzoSliceBase,), dd)
-        self.region = classobj("EnzoRegion",(EnzoRegionBase,), dd)
-        self.covering_grid = classobj("EnzoCoveringGrid",(EnzoCoveringGrid,), dd)
-        self.smoothed_covering_grid = classobj("EnzoSmoothedCoveringGrid",(EnzoSmoothedCoveringGrid,), dd)
-        self.sphere = classobj("EnzoSphere",(EnzoSphereBase,), dd)
-        self.cutting = classobj("EnzoCuttingPlane",(EnzoCuttingPlaneBase,), dd)
-        self.ray = classobj("EnzoOrthoRay",(EnzoOrthoRayBase,), dd)
-        self.disk = classobj("EnzoCylinder",(EnzoCylinderBase,), dd)
+        self.proj = classobj("AMRProj",(AMRProjBase,), dd)
+        self.slice = classobj("AMRSlice",(AMRSliceBase,), dd)
+        self.region = classobj("AMRRegion",(AMRRegionBase,), dd)
+        self.covering_grid = classobj("AMRCoveringGrid",(AMRCoveringGrid,), dd)
+        self.smoothed_covering_grid = classobj("AMRSmoothedCoveringGrid",(AMRSmoothedCoveringGrid,), dd)
+        self.sphere = classobj("AMRSphere",(AMRSphereBase,), dd)
+        self.cutting = classobj("AMRCuttingPlane",(AMRCuttingPlaneBase,), dd)
+        self.ray = classobj("AMROrthoRay",(AMROrthoRayBase,), dd)
+        self.disk = classobj("AMRCylinder",(AMRCylinderBase,), dd)
 
     def __initialize_data_file(self):
         if not ytcfg.getboolean('lagos','serialize'): return
@@ -744,25 +747,6 @@ class EnzoHierarchy:
                      self.gridLeftEdge[i,0], self.gridRightEdge[i,0],
                      self.gridLeftEdge[i,1], self.gridRightEdge[i,1],
                      self.gridLeftEdge[i,2], self.gridRightEdge[i,2]))
-
-    def __initialize_enzo_interface(self, idt_val = 0.0):
-        """
-        This is old, old code that will some day be revived.
-
-        Here we start up the SWIG interface, grabbing what we need from it.
-        """
-        ei = yt.enki.EnzoInterface
-        f = open(self.parameter_filename, "r")
-        self.eiTopGridData = ei.TopGridData()
-        idt = ei.new_Float()
-        ei.Float_assign(idt,idt_val)
-        ei.cvar.debug = 1 # Set debugging to on, for extra output!
-                          # Hm, we *should* have some kind of redirection here
-        ei.SetDefaultGlobalValues(self.eiTopGridData)
-        # Set up an initial dt
-        ei.ReadParameterFile(f,self.eiTopGridData,idt)
-        ei.InitializeRateData(self.eiTopGridData.Time)
-        ei.InitializeRadiationFieldData(self.eiTopGridData.Time)
 
 
     """@todo: Fix these!"""

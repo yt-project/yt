@@ -70,7 +70,7 @@ def cache_point_indices(func):
 class FakeGridForParticles(object):
     """
     Mock up a grid to insert particle positions and radii
-    into for purposes of confinement in an :class:`Enzo3DData`.
+    into for purposes of confinement in an :class:`AMR3DData`.
     """
     def __init__(self, grid):
         self._corners = grid._corners
@@ -92,9 +92,9 @@ class FakeGridForParticles(object):
         else: tr = self.data[field]
         return tr
 
-class EnzoData:
+class AMRData:
     """
-    Generic EnzoData container.  By itself, will attempt to
+    Generic AMRData container.  By itself, will attempt to
     generate field, read fields (method defined by derived classes)
     and deal with passing back and forth field parameters.
     """
@@ -104,7 +104,7 @@ class EnzoData:
     def __init__(self, pf, fields, **kwargs):
         """
         Typically this is never called directly, but only due to inheritance.
-        It associates a :class:`~yt.lagos.EnzoStaticOutput` with the class,
+        It associates a :class:`~yt.lagos.AMRStaticOutput` with the class,
         sets its initial set of fields, and the remainder of the arguments
         are passed as field_parameters.
         """
@@ -157,7 +157,7 @@ class EnzoData:
 
     def clear_data(self):
         """
-        Clears out all data from the EnzoData instance, freeing memory.
+        Clears out all data from the AMRData instance, freeing memory.
         """
         for key in self.data.keys():
             del self.data[key]
@@ -302,10 +302,10 @@ class GridPropertiesMixin(object):
                              __del_gridLevels)
 
 
-class Enzo1DData(EnzoData, GridPropertiesMixin):
+class AMR1DData(AMRData, GridPropertiesMixin):
     _spatial = False
     def __init__(self, pf, fields, **kwargs):
-        EnzoData.__init__(self, pf, fields, **kwargs)
+        AMRData.__init__(self, pf, fields, **kwargs)
         self._grids = None
 
     def _generate_field_in_grids(self, field, num_ghost_zones=0):
@@ -349,14 +349,14 @@ class Enzo1DData(EnzoData, GridPropertiesMixin):
                 [self._get_data_from_grid(grid, field)
                  for grid in self._grids])
 
-class EnzoOrthoRayBase(Enzo1DData):
+class AMROrthoRayBase(AMR1DData):
     _key_fields = ['x','y','z','dx','dy','dz']
     def __init__(self, axis, coords, fields=None, pf=None, **kwargs):
         """
         Dimensionality is reduced to one, and an ordered list of points at an
         (x,y) tuple along *axis* are available.
         """
-        Enzo1DData.__init__(self, pf, fields, **kwargs)
+        AMR1DData.__init__(self, pf, fields, **kwargs)
         self.axis = axis
         self.px_ax = x_dict[self.axis]
         self.py_ax = y_dict[self.axis]
@@ -389,20 +389,20 @@ class EnzoOrthoRayBase(Enzo1DData):
             gf = grid[field][sl]
         return gf[na.where(grid.child_mask[sl])]
 
-class Enzo2DData(EnzoData, GridPropertiesMixin):
+class AMR2DData(AMRData, GridPropertiesMixin):
     _key_fields = ['x','y','z','dx','dy','dz']
     """
-    Class to represent a set of :class:`EnzoData` that's 2-D in nature, and
+    Class to represent a set of :class:`AMRData` that's 2-D in nature, and
     thus does not have as many actions as the 3-D data types.
     """
     _spatial = False
     def __init__(self, axis, fields, pf=None, **kwargs):
         """
-        Prepares the Enzo2DData, normal to *axis*.  If *axis* is 4, we are not
+        Prepares the AMR2DData, normal to *axis*.  If *axis* is 4, we are not
         aligned with any axis.
         """
         self.axis = axis
-        EnzoData.__init__(self, pf, fields, **kwargs)
+        AMRData.__init__(self, pf, fields, **kwargs)
         self.set_field_parameter("axis",axis)
 
     #@time_execution
@@ -472,9 +472,9 @@ class Enzo2DData(EnzoData, GridPropertiesMixin):
             zi = 10**(zi)
         return [xi,yi,zi]
 
-class EnzoSliceBase(Enzo2DData):
+class AMRSliceBase(AMR2DData):
     """
-    EnzoSlice is an orthogonal slice through the data, taking all the points
+    AMRSlice is an orthogonal slice through the data, taking all the points
     at the finest resolution available and then indexing them.  It is more
     appropriately thought of as a slice 'operator' than an object,
     however, as its field and coordinate can both change.
@@ -486,7 +486,7 @@ class EnzoSliceBase(Enzo2DData):
         Slice along *axis*:ref:`axis-specification`, at the coordinate *coord*.
         Optionally supply fields.
         """
-        Enzo2DData.__init__(self, axis, fields, pf, **kwargs)
+        AMR2DData.__init__(self, axis, fields, pf, **kwargs)
         self.center = center
         self.coord = coord
         self._refresh_data()
@@ -590,9 +590,9 @@ class EnzoSliceBase(Enzo2DData):
         dataVals = dv.ravel()[grid.child_mask[sl].ravel() == 1]
         return dataVals
 
-class EnzoCuttingPlaneBase(Enzo2DData):
+class AMRCuttingPlaneBase(AMR2DData):
     """
-    EnzoCuttingPlane is an oblique plane through the data,
+    AMRCuttingPlane is an oblique plane through the data,
     defined by a normal vector and a coordinate.  It attempts to guess
     an 'up' vector, which cannot be overridden, and then it pixelizes
     the appropriate data onto the plane without interpolation.
@@ -604,7 +604,7 @@ class EnzoCuttingPlaneBase(Enzo2DData):
         the *normal* vector and the *center* to define the viewing plane.
         The 'up' direction is guessed at automatically.
         """
-        Enzo2DData.__init__(self, 4, fields, **kwargs)
+        AMR2DData.__init__(self, 4, fields, **kwargs)
         self.center = center
         self.set_field_parameter('center',center)
         # Let's set up our plane equation
@@ -706,21 +706,21 @@ class EnzoCuttingPlaneBase(Enzo2DData):
         if use_child_mask: k = (k & grid.child_mask)
         return na.where(k)
 
-class EnzoProjBase(Enzo2DData):
+class AMRProjBase(AMR2DData):
     _key_fields = ['px','py','pdx','pdy']
     def __init__(self, axis, field, weight_field = None,
                  max_level = None, center = None, pf = None,
                  source=None, **kwargs):
         """
-        EnzoProj is a projection of a *field* along an *axis*.  The field
+        AMRProj is a projection of a *field* along an *axis*.  The field
         can have an associated *weight_field*, in which case the values are
         multiplied by a weight before being summed, and then divided by the sum
         of that weight.
         """
-        Enzo2DData.__init__(self, axis, field, pf, **kwargs)
+        AMR2DData.__init__(self, axis, field, pf, **kwargs)
         if not source:
             self._check_region = False
-            source = EnzoGridCollection(center, self.hierarchy.grids)
+            source = AMRGridCollection(center, self.hierarchy.grids)
             self._okay_to_serialize = True
         else:
             self._okay_to_serialize = False
@@ -1002,7 +1002,7 @@ class EnzoProjBase(Enzo2DData):
         if grid.id == 1: self._temp[grid.id] = d
         return d
 
-class Enzo3DData(EnzoData, GridPropertiesMixin):
+class AMR3DData(AMRData, GridPropertiesMixin):
     _key_fields = ['x','y','z','dx','dy','dz']
     """
     Class describing a cluster of data points, not necessarily sharing any
@@ -1012,11 +1012,11 @@ class Enzo3DData(EnzoData, GridPropertiesMixin):
     _num_ghost_zones = 0
     def __init__(self, center, fields, pf = None, **kwargs):
         """
-        Returns an instance of Enzo3DData, or prepares one.  Usually only
+        Returns an instance of AMR3DData, or prepares one.  Usually only
         used as a base class.  Note that *center* is supplied, but only used
         for fields and quantities that require it.
         """
-        EnzoData.__init__(self, pf, fields, **kwargs)
+        AMRData.__init__(self, pf, fields, **kwargs)
         self.center = center
         self.set_field_parameter("center",center)
         self.coords = None
@@ -1203,14 +1203,14 @@ class Enzo3DData(EnzoData, GridPropertiesMixin):
             grid[field][self._get_point_indices()] = value
 
 
-class ExtractedRegionBase(Enzo3DData):
+class ExtractedRegionBase(AMR3DData):
     """
     ExtractedRegions are arbitrarily defined containers of data, useful
     for things like selection along a baryon field.
     """
     def __init__(self, base_region, indices, **kwargs):
         cen = base_region.get_field_parameter("center")
-        Enzo3DData.__init__(self, center=cen,
+        AMR3DData.__init__(self, center=cen,
                             fields=None, pf=base_region.pf, **kwargs)
         self._base_region = base_region # We don't weakly reference because
                                         # It is not cyclic
@@ -1257,7 +1257,7 @@ class ExtractedRegionBase(Enzo3DData):
         # Yeah, if it's not true, we don't care.
         return self._indices[grid.id-1]
 
-class EnzoCylinderBase(Enzo3DData):
+class AMRCylinderBase(AMR3DData):
     """
     We can define a cylinder (or disk) to act as a data object.
     """
@@ -1268,7 +1268,7 @@ class EnzoCylinderBase(Enzo3DData):
         can define a cylinder of any proportion.  Only cells whose centers are
         within the cylinder will be selected.
         """
-        Enzo3DData.__init__(self, na.array(center), fields, pf, **kwargs)
+        AMR3DData.__init__(self, na.array(center), fields, pf, **kwargs)
         self._norm_vec = na.array(normal)/na.sqrt(na.dot(normal,normal))
         self.set_field_parameter("height_vector", self._norm_vec)
         self._height = height
@@ -1318,9 +1318,9 @@ class EnzoCylinderBase(Enzo3DData):
                  & (r < self._radius))
         return cm
 
-class EnzoRegionBase(Enzo3DData):
+class AMRRegionBase(AMR3DData):
     """
-    EnzoRegions are rectangular prisms of data.
+    AMRRegions are rectangular prisms of data.
     """
     def __init__(self, center, left_edge, right_edge, fields = None,
                  pf = None, **kwargs):
@@ -1329,7 +1329,7 @@ class EnzoRegionBase(Enzo3DData):
         three *right_edge* coordinates, and a *center* that need not be the
         center.
         """
-        Enzo3DData.__init__(self, center, fields, pf, **kwargs)
+        AMR3DData.__init__(self, center, fields, pf, **kwargs)
         self.left_edge = left_edge
         self.right_edge = right_edge
         self._refresh_data()
@@ -1355,7 +1355,7 @@ class EnzoRegionBase(Enzo3DData):
                  & (grid['z'] >= self.left_edge[2]) )
         return cm
 
-class EnzoGridCollection(Enzo3DData):
+class AMRGridCollection(AMR3DData):
     """
     An arbitrary selection of grids, within which we accept all points.
     """
@@ -1365,7 +1365,7 @@ class EnzoGridCollection(Enzo3DData):
         By selecting an arbitrary *grid_list*, we can act on those grids.
         Child cells are not returned.
         """
-        Enzo3DData.__init__(self, center, fields, pf, **kwargs)
+        AMR3DData.__init__(self, center, fields, pf, **kwargs)
         self._grids = na.array(grid_list)
         self.fields = fields
         self.connection_pool = True
@@ -1387,7 +1387,7 @@ class EnzoGridCollection(Enzo3DData):
         pointI = na.where(k == True)
         return pointI
 
-class EnzoSphereBase(Enzo3DData):
+class AMRSphereBase(AMR3DData):
     """
     A sphere of points
     """
@@ -1396,7 +1396,7 @@ class EnzoSphereBase(Enzo3DData):
         The most famous of all the data objects, we define it via a
         *center* and a *radius*.
         """
-        Enzo3DData.__init__(self, center, fields, pf, **kwargs)
+        AMR3DData.__init__(self, center, fields, pf, **kwargs)
         self.set_field_parameter('radius',radius)
         self.radius = radius
         self._refresh_data()
@@ -1426,7 +1426,7 @@ class EnzoSphereBase(Enzo3DData):
             self._cut_masks[grid.id] = cm
         return cm
 
-class EnzoCoveringGrid(Enzo3DData):
+class AMRCoveringGrid(AMR3DData):
     """
     Covering grids represent fixed-resolution data over a given region.
     In order to achieve this goal -- for instance in order to obtain ghost
@@ -1442,7 +1442,7 @@ class EnzoCoveringGrid(Enzo3DData):
         generating fixed resolution data between *left_edge* and *right_edge*
         that is *dims* (3-values) on a side.
         """
-        Enzo3DData.__init__(self, center=None, fields=fields, pf=pf, **kwargs)
+        AMR3DData.__init__(self, center=None, fields=fields, pf=pf, **kwargs)
         self.left_edge = na.array(left_edge)
         self.right_edge = na.array(right_edge)
         self.level = level
@@ -1466,7 +1466,7 @@ class EnzoCoveringGrid(Enzo3DData):
         mylog.error("Sorry, dude, do it yourself, it's already in 3-D.")
 
     def _refresh_data(self):
-        Enzo3DData._refresh_data(self)
+        AMR3DData._refresh_data(self)
         self['dx'] = self.dx * na.ones(self.ActiveDimensions, dtype='float64')
         self['dy'] = self.dy * na.ones(self.ActiveDimensions, dtype='float64')
         self['dz'] = self.dz * na.ones(self.ActiveDimensions, dtype='float64')
@@ -1540,14 +1540,14 @@ class EnzoCoveringGrid(Enzo3DData):
             self.left_edge, self.right_edge, c_dx, c_fields,
             ll)
 
-class EnzoSmoothedCoveringGrid(EnzoCoveringGrid):
+class AMRSmoothedCoveringGrid(AMRCoveringGrid):
     def __init__(self, *args, **kwargs):
         dlog2 = na.log10(kwargs['dims'])/na.log10(2)
         if not na.all(na.floor(dlog2) == na.ceil(dlog2)):
             mylog.warning("Must be power of two dimensions")
             raise ValueError
         kwargs['num_ghost_zones'] = 0
-        EnzoCoveringGrid.__init__(self, *args, **kwargs)
+        AMRCoveringGrid.__init__(self, *args, **kwargs)
         if na.any(self.left_edge == 0):
             self.left_edge += self.dx
             self.ActiveDimensions -= 1
