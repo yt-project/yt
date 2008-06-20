@@ -151,10 +151,8 @@ class Branch(FidoAction):
         # First we copy, then we modify the MDS.  Note that we don't need to
         # create a new OC.
         b = bn
-        if b.endswith('/'):
-            b = os.path.basename(b)
-        if b.endswith('.dir'):
-            b = os.path.join(b, b[:-4])
+        if b.endswith('/'): b = os.path.basename(b)
+        if b.endswith('.dir'): b = os.path.join(b, b[:-4])
         #print "Copying %s to %s" % (b, self.opts.new_location)
         newName=copy_outputs(b, self.opts.new_location)
         print newName
@@ -163,13 +161,13 @@ class Branch(FidoAction):
         expr=re.compile("CurrentTimeIdentifier\s*=\s*[0-9]*$",re.M)
         pfContents = open(newName).read()
         newId = time.time()
-        newPf=expr.sub("CurrentTimeIdentifier = %i" % (newId), pfContents)
+        new_pf=expr.sub("CurrentTimeIdentifier = %i" % (newId), pfContents)
         expr=re.compile("MetaDataString\s*=\s*.*$",re.M)
         if self.opts.md == None: self.opts.md = os.path.basename(
                                                  os.path.dirname(
                                                   os.path.abspath(newName)))
-        newPf=expr.sub("MetaDataString      = %s" % (self.opts.md),newPf)
-        open(newName,"w").write(newPf)
+        new_pf=expr.sub("MetaDataString      = %s" % (self.opts.md),new_pf)
+        open(newName,"w").write(new_pf)
 
 class Import(FidoAction):
     description = "Import an existing set of buried outputs"

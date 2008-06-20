@@ -146,15 +146,15 @@ class OutputCollection:
         return self.output_names.tolist()
 
     def __convert_args(self, args, kwargs, my_dict):
-        newArgs = list(args)[:]
-        newKwargs = {}
+        new_args = list(args)[:]
+        new_kwargs = {}
         for j, arg in enumerate(args):
             if isinstance(arg, types.StringType):
-                newArgs[j] = arg % myDict
+                new_args[j] = arg % myDict
         for key in kwargs.keys():
             if isinstance(kwargs[key], types.StringType):
-                newKwargs[key] = kwargs[key] % myDict
-        return newArgs, newKwargs
+                new_kwargs[key] = kwargs[key] % myDict
+        return new_args, new_kwargs
 
     def run_functions(self, function, args = None, kwargs = None):
         if args is None: args = []
