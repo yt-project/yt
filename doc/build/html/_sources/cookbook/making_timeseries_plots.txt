@@ -1,6 +1,9 @@
 Making Timeseries Plots
 =======================
 
+.. note:: Unlike the other scripts in this cookbook, these do not serve
+   as standalone executables.  You must edit them with your data information.
+
 I don't think anyone will argue that timeseries data is important.  It is
 possible to create it with yt; however, a few things should be noted.
 

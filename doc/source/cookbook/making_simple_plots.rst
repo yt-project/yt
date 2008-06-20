@@ -52,3 +52,15 @@ outer loop to be over the field and the inner loop to be over the widths.
 .. literalinclude:: ../../../examples/cookbook_multiple_fields_multiple_widths_plot.py
    :language: python
    :linenos:
+
+Awesome Linked Plots Saving
+---------------------------
+
+This is an idiom with which one can link several plots in widths, naming, and
+colorbars.
+(``cookbook_linked_plot_save.py``)
+
+.. literalinclude:: ../../../examples/cookbook_linked_plot_save.py
+   :language: python
+   :linenos:
+

@@ -66,12 +66,20 @@ and access the data through any application that can read HDF5.</p>
  7
  8
  9
-10</pre></td><td class="code"><div class="highlight"><pre><span class="k">from</span> <span class="nn">yt.mods</span> <span class="k">import</span> <span class="o">*</span>
+10
+11
+12
+13
+14</pre></td><td class="code"><div class="highlight"><pre><span class="k">from</span> <span class="nn">yt.mods</span> <span class="k">import</span> <span class="o">*</span>
+<span class="k">import</span> <span class="nn">tables</span>
+
 <span class="n">pf</span> <span class="o">=</span> <span class="n">get_pf</span><span class="p">()</span>
 
-<span class="n">cube</span> <span class="o">=</span> <span class="n">pf</span><span class="o">.</span><span class="n">h</span><span class="o">.</span><span class="n">smoothed_covering_grid</span><span class="p">(</span><span class="mf">3</span><span class="p">,</span> <span class="n">left_edge</span><span class="o">=</span><span class="p">[</span><span class="mf">0.0</span><span class="p">,</span><span class="mf">0.0</span><span class="p">,</span><span class="mf">0.0</span><span class="p">],</span>
-                                      <span class="n">right_edge</span><span class="o">=</span><span class="p">[</span><span class="mf">1.0</span><span class="p">,</span><span class="mf">1.0</span><span class="p">,</span><span class="mf">1.0</span><span class="p">],</span>
-                                      <span class="n">dims</span><span class="o">=</span><span class="p">[</span><span class="mf">512</span><span class="p">,</span><span class="mf">512</span><span class="p">,</span><span class="mf">512</span><span class="p">],</span>
+<span class="n">DIMS</span> <span class="o">=</span> <span class="mf">64</span>
+
+<span class="n">cube</span> <span class="o">=</span> <span class="n">pf</span><span class="o">.</span><span class="n">h</span><span class="o">.</span><span class="n">smoothed_covering_grid</span><span class="p">(</span><span class="mf">2</span><span class="p">,</span> <span class="n">left_edge</span><span class="o">=</span><span class="p">[</span><span class="mf">0.25</span><span class="p">]</span><span class="o">*</span><span class="mf">3</span><span class="p">,</span>
+                                      <span class="n">right_edge</span><span class="o">=</span><span class="p">[</span><span class="mf">0.75</span><span class="p">]</span><span class="o">*</span><span class="mf">3</span><span class="p">,</span>
+                                      <span class="n">dims</span><span class="o">=</span><span class="p">[</span><span class="n">DIMS</span><span class="p">]</span><span class="o">*</span><span class="mf">3</span><span class="p">,</span>
                                       <span class="n">fields</span><span class="o">=</span><span class="p">[</span><span class="s">&quot;Density&quot;</span><span class="p">])</span>
 <span class="n">f</span> <span class="o">=</span> <span class="n">tables</span><span class="o">.</span><span class="n">openFile</span><span class="p">(</span><span class="s">&quot;my_cube.h5&quot;</span><span class="p">,</span><span class="s">&quot;w&quot;</span><span class="p">)</span>
 <span class="n">f</span><span class="o">.</span><span class="n">createArray</span><span class="p">(</span><span class="s">&quot;/&quot;</span><span class="p">,</span><span class="s">&quot;my_cube_density&quot;</span><span class="p">,</span> <span class="n">cube</span><span class="p">[</span><span class="s">&quot;Density&quot;</span><span class="p">])</span>
@@ -119,7 +127,7 @@ and access the data through any application that can read HDF5.</p>
     </div>
     <div class="footer">
       &copy; Copyright 2008, Matthew J. Turk.
-      Last updated on Jun 19, 2008.
+      Last updated on Jun 20, 2008.
     </div>
   </body>
 </html>

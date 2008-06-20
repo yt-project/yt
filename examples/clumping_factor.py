@@ -1,3 +1,5 @@
+# Contributed by: Britton Smith (brittons@origins.colorado.edu)
+#
 # Calculates clumping factors over the entire simulation box.
 # Arguments:
 #     dataset_object: EnzoStaticOutput object.
