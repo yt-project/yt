@@ -47,21 +47,27 @@
 <h1 id="native-enzo-data-structures">Native Enzo Data Structures<a class="headerlink" href="#native-enzo-data-structures" title="Permalink to this headline">¶</a></h1>
 <dl class="class">
 <dt id="yt.lagos.EnzoStaticOutput">
-<!--#yt.lagos.EnzoStaticOutput#-->class <tt class="descclassname">yt.lagos.</tt><tt class="descname">EnzoStaticOutput</tt><big>(</big><em>filename</em>, <em>data_style=None</em><big>)</big><a class="headerlink" href="#yt.lagos.EnzoStaticOutput" title="Permalink to this definition">¶</a></dt>
-<dd><p>This class is a stripped down class that simply reads and parses, without
-looking at the hierarchy.</p>
-<dl class="docutils">
-<dt>&#64;todo: Move some of the parameters to the EnzoRun?</dt>
-<dd>Maybe it is just more appropriate to think of time series data and
-single-time data?</dd>
-</dl>
-<p>&#64;param filename: The filename of the parameterfile we want to load
-&#64;type filename: String</p>
+<!--#yt.lagos.EnzoStaticOutput#-->class <tt class="descclassname">yt.lagos.</tt><tt class="descname">EnzoStaticOutput</tt><big>(</big><em>filename</em>, <em>data_style=None</em>, <em>parameter_override=None</em>, <em>conversion_override=None</em><big>)</big><a class="headerlink" href="#yt.lagos.EnzoStaticOutput" title="Permalink to this definition">¶</a></dt>
+<dd><p>Enzo-specific output, set at a fixed time.</p>
+<p>This class is a stripped down class that simply reads and parses
+<em>filename</em> without looking at the hierarchy.  <em>data_style</em> gets passed
+to the hierarchy to pre-determine the style of data-output.  However,
+it is not strictly necessary.  Optionally you may specify a
+<em>parameter_override</em> dictionary that will override anything in the
+paarmeter file and a <em>conversion_override</em> dictionary that consists
+of {fieldname : conversion_to_cgs} that will override the #DataCGS.</p>
+<dl class="method">
+<dt id="yt.lagos.EnzoStaticOutput.cosmology_get_units">
+<!--#yt.lagos.EnzoStaticOutput.cosmology_get_units#--><tt class="descname">cosmology_get_units</tt><big>(</big><big>)</big><a class="headerlink" href="#yt.lagos.EnzoStaticOutput.cosmology_get_units" title="Permalink to this definition">¶</a></dt>
+<dd>Return an Enzo-fortran style dictionary of units to feed into custom
+routines.  This is typically only necessary if you are interacting
+with fortran code.</dd></dl>
+
 </dd></dl>
 
 <dl class="class">
 <dt id="yt.lagos.EnzoHierarchy">
-<!--#yt.lagos.EnzoHierarchy#-->class <tt class="descclassname">yt.lagos.</tt><tt class="descname">EnzoHierarchy</tt><big>(</big><em>pf</em>, <em>data_style=None</em><big>)</big><a class="headerlink" href="#yt.lagos.EnzoHierarchy" title="Permalink to this definition">¶</a></dt>
+<!--#yt.lagos.EnzoHierarchy#-->class <tt class="descclassname">yt.lagos.</tt><tt class="descname">EnzoHierarchy</tt><big>(</big><em>*arg</em>, <em>**kw</em><big>)</big><a class="headerlink" href="#yt.lagos.EnzoHierarchy" title="Permalink to this definition">¶</a></dt>
 <dd><p>This is the grid structure as Enzo sees it, with some added bonuses.
 It&#8217;s primarily used as a class factor, to generate data objects and
 access grids.</p>
@@ -70,12 +76,12 @@ calls to an affiliated <a title="yt.lagos.EnzoStaticOutput" class="reference" hr
 <p>On instantiation, it processes the hierarchy and generates the grids.</p>
 <dl class="method">
 <dt id="yt.lagos.EnzoHierarchy.export_boxes_pv">
-<!--#yt.lagos.EnzoHierarchy.export_boxes_pv#--><tt class="descname">export_boxes_pv</tt><big>(</big><em>filename</em><big>)</big><a class="headerlink" href="#yt.lagos.EnzoHierarchy.export_boxes_pv" title="Permalink to this definition">¶</a></dt>
+<!--#yt.lagos.EnzoHierarchy.export_boxes_pv#--><tt class="descname">export_boxes_pv</tt><big>(</big><em>*arg</em>, <em>**kw</em><big>)</big><a class="headerlink" href="#yt.lagos.EnzoHierarchy.export_boxes_pv" title="Permalink to this definition">¶</a></dt>
 <dd>Exports the grid structure in partiview text format.</dd></dl>
 
 <dl class="method">
 <dt id="yt.lagos.EnzoHierarchy.export_particles_pb">
-<!--#yt.lagos.EnzoHierarchy.export_particles_pb#--><tt class="descname">export_particles_pb</tt><big>(</big><em>filename</em>, <em>filter=1</em>, <em>indexboundary=0</em>, <em>fields=None</em>, <em>scale=1.0</em><big>)</big><a class="headerlink" href="#yt.lagos.EnzoHierarchy.export_particles_pb" title="Permalink to this definition">¶</a></dt>
+<!--#yt.lagos.EnzoHierarchy.export_particles_pb#--><tt class="descname">export_particles_pb</tt><big>(</big><em>*arg</em>, <em>**kw</em><big>)</big><a class="headerlink" href="#yt.lagos.EnzoHierarchy.export_particles_pb" title="Permalink to this definition">¶</a></dt>
 <dd>Exports all the star particles, or a subset, to pb-format <em>filename</em>
 for viewing in partiview.  Filters based on particle_type=*filter*,
 particle_index&gt;=*indexboundary*, and exports <em>fields</em>, if supplied.
@@ -84,17 +90,17 @@ factor before outputting.</dd></dl>
 
 <dl class="method">
 <dt id="yt.lagos.EnzoHierarchy.findMax">
-<!--#yt.lagos.EnzoHierarchy.findMax#--><tt class="descname">findMax</tt><big>(</big><em>field</em>, <em>finestLevels=True</em><big>)</big><a class="headerlink" href="#yt.lagos.EnzoHierarchy.findMax" title="Permalink to this definition">¶</a></dt>
+<!--#yt.lagos.EnzoHierarchy.findMax#--><tt class="descname">findMax</tt><big>(</big><em>*arg</em>, <em>**kw</em><big>)</big><a class="headerlink" href="#yt.lagos.EnzoHierarchy.findMax" title="Permalink to this definition">¶</a></dt>
 <dd>Returns (value, center) of location of maximum for a given field.</dd></dl>
 
 <dl class="method">
 <dt id="yt.lagos.EnzoHierarchy.find_max">
-<!--#yt.lagos.EnzoHierarchy.find_max#--><tt class="descname">find_max</tt><big>(</big><em>field</em>, <em>finestLevels=True</em><big>)</big><a class="headerlink" href="#yt.lagos.EnzoHierarchy.find_max" title="Permalink to this definition">¶</a></dt>
+<!--#yt.lagos.EnzoHierarchy.find_max#--><tt class="descname">find_max</tt><big>(</big><em>*arg</em>, <em>**kw</em><big>)</big><a class="headerlink" href="#yt.lagos.EnzoHierarchy.find_max" title="Permalink to this definition">¶</a></dt>
 <dd>Returns (value, center) of location of maximum for a given field.</dd></dl>
 
 <dl class="method">
 <dt id="yt.lagos.EnzoHierarchy.find_min">
-<!--#yt.lagos.EnzoHierarchy.find_min#--><tt class="descname">find_min</tt><big>(</big><em>field</em><big>)</big><a class="headerlink" href="#yt.lagos.EnzoHierarchy.find_min" title="Permalink to this definition">¶</a></dt>
+<!--#yt.lagos.EnzoHierarchy.find_min#--><tt class="descname">find_min</tt><big>(</big><em>*arg</em>, <em>**kw</em><big>)</big><a class="headerlink" href="#yt.lagos.EnzoHierarchy.find_min" title="Permalink to this definition">¶</a></dt>
 <dd>Returns (value, center) of location of minimum for a given field</dd></dl>
 
 <dl class="method">
@@ -157,17 +163,25 @@ no error and simply does not save.</dd></dl>
 <dl class="class">
 <dt id="yt.lagos.EnzoGridBase">
 <!--#yt.lagos.EnzoGridBase#-->class <tt class="descclassname">yt.lagos.</tt><tt class="descname">EnzoGridBase</tt><big>(</big><em>id</em>, <em>filename=None</em>, <em>hierarchy=None</em><big>)</big><a class="headerlink" href="#yt.lagos.EnzoGridBase" title="Permalink to this definition">¶</a></dt>
-<dd><p>Returns an instance of EnzoGrid</p>
-<p>&#64;param hierarchy: EnzoHierarchy, parent hierarchy
-&#64;type hierarchy: L{EnzoHierarchy&lt;EnzoHierarchy&gt;}
-&#64;param id: grid ID (NOT index, which is ID-1)
-&#64;type id: int
-&#64;keyword filename: filename holding grid data
-&#64;type filename: string</p>
+<dd><p>Returns an instance of EnzoGrid with <em>id</em>, associated with
+<em>filename</em> and <em>hierarchy</em>.</p>
 <dl class="method">
 <dt id="yt.lagos.EnzoGridBase.clear_all">
 <!--#yt.lagos.EnzoGridBase.clear_all#--><tt class="descname">clear_all</tt><big>(</big><big>)</big><a class="headerlink" href="#yt.lagos.EnzoGridBase.clear_all" title="Permalink to this definition">¶</a></dt>
-<dd>Clears all datafields from memory.</dd></dl>
+<dd>Clears all datafields from memory and calls
+<a title="yt.lagos.EnzoGridBase.clear_derived_quantities" class="reference" href="#yt.lagos.EnzoGridBase.clear_derived_quantities"><tt class="xref docutils literal"><span class="pre">clear_derived_quantities()</span></tt></a>.</dd></dl>
+
+<dl class="method">
+<dt id="yt.lagos.EnzoGridBase.clear_all_grid_references">
+<!--#yt.lagos.EnzoGridBase.clear_all_grid_references#--><tt class="descname">clear_all_grid_references</tt><big>(</big><big>)</big><a class="headerlink" href="#yt.lagos.EnzoGridBase.clear_all_grid_references" title="Permalink to this definition">¶</a></dt>
+<dd>This clears out all references this grid has to any others, as
+well as the hierarchy.  It&#8217;s like extra-cleaning after clear_data.</dd></dl>
+
+<dl class="method">
+<dt id="yt.lagos.EnzoGridBase.clear_data">
+<!--#yt.lagos.EnzoGridBase.clear_data#--><tt class="descname">clear_data</tt><big>(</big><big>)</big><a class="headerlink" href="#yt.lagos.EnzoGridBase.clear_data" title="Permalink to this definition">¶</a></dt>
+<dd>Clear out the following things: child_mask, child_indices,
+all fields, all field parameters.</dd></dl>
 
 <dl class="method">
 <dt id="yt.lagos.EnzoGridBase.clear_derived_quantities">
@@ -177,18 +191,12 @@ no error and simply does not save.</dd></dl>
 <dl class="method">
 <dt id="yt.lagos.EnzoGridBase.find_max">
 <!--#yt.lagos.EnzoGridBase.find_max#--><tt class="descname">find_max</tt><big>(</big><em>field</em><big>)</big><a class="headerlink" href="#yt.lagos.EnzoGridBase.find_max" title="Permalink to this definition">¶</a></dt>
-<dd><p>Returns value, coordinate of maximum value in this gird</p>
-<p>&#64;param field: field to check
-&#64;type field: string</p>
-</dd></dl>
+<dd>Returns value, index of maximum value of <em>field</em> in this gird</dd></dl>
 
 <dl class="method">
 <dt id="yt.lagos.EnzoGridBase.find_min">
 <!--#yt.lagos.EnzoGridBase.find_min#--><tt class="descname">find_min</tt><big>(</big><em>field</em><big>)</big><a class="headerlink" href="#yt.lagos.EnzoGridBase.find_min" title="Permalink to this definition">¶</a></dt>
-<dd><p>Returns value, coordinate of minimum value in this gird</p>
-<p>&#64;param field: field to check
-&#64;type field: string</p>
-</dd></dl>
+<dd>Returns value, index of minimum value of <em>field</em> in this gird</dd></dl>
 
 <dl class="method">
 <dt id="yt.lagos.EnzoGridBase.get_data">
@@ -196,19 +204,20 @@ no error and simply does not save.</dd></dl>
 <dd>Returns a field or set of fields for a key or set of keys</dd></dl>
 
 <dl class="method">
-<dt id="yt.lagos.EnzoGridBase.get_enzo_grid">
-<!--#yt.lagos.EnzoGridBase.get_enzo_grid#--><tt class="descname">get_enzo_grid</tt><big>(</big><big>)</big><a class="headerlink" href="#yt.lagos.EnzoGridBase.get_enzo_grid" title="Permalink to this definition">¶</a></dt>
-<dd>This attempts to get an instance of this particular grid from the SWIG
-interface.  Note that it first checks to see if the ParameterFile has
-been instantiated.</dd></dl>
+<dt id="yt.lagos.EnzoGridBase.get_global_startindex">
+<!--#yt.lagos.EnzoGridBase.get_global_startindex#--><tt class="descname">get_global_startindex</tt><big>(</big><big>)</big><a class="headerlink" href="#yt.lagos.EnzoGridBase.get_global_startindex" title="Permalink to this definition">¶</a></dt>
+<dd>Return the integer starting index for each dimension at the current
+level.</dd></dl>
 
 <dl class="method">
 <dt id="yt.lagos.EnzoGridBase.get_position">
-<!--#yt.lagos.EnzoGridBase.get_position#--><tt class="descname">get_position</tt><big>(</big><em>coord</em><big>)</big><a class="headerlink" href="#yt.lagos.EnzoGridBase.get_position" title="Permalink to this definition">¶</a></dt>
-<dd><p>Returns position of a coordinate</p>
-<p>&#64;param coord: position to check
-&#64;type coord: array of floats</p>
-</dd></dl>
+<!--#yt.lagos.EnzoGridBase.get_position#--><tt class="descname">get_position</tt><big>(</big><em>index</em><big>)</big><a class="headerlink" href="#yt.lagos.EnzoGridBase.get_position" title="Permalink to this definition">¶</a></dt>
+<dd>Returns center position of an <em>index</em></dd></dl>
+
+<dl class="method">
+<dt id="yt.lagos.EnzoGridBase.set_filename">
+<!--#yt.lagos.EnzoGridBase.set_filename#--><tt class="descname">set_filename</tt><big>(</big><em>filename</em><big>)</big><a class="headerlink" href="#yt.lagos.EnzoGridBase.set_filename" title="Permalink to this definition">¶</a></dt>
+<dd>Intelligently set the filename.</dd></dl>
 
 </dd></dl>
 
@@ -254,7 +263,7 @@ been instantiated.</dd></dl>
     </div>
     <div class="footer">
       &copy; Copyright 2008, Matthew J. Turk.
-      Last updated on Jun 17, 2008.
+      Last updated on Jun 19, 2008.
     </div>
   </body>
 </html>

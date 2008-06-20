@@ -11,39 +11,33 @@ references, but if references are created in your code that generates the
 timeseries data, you may find that more memory is used than is desired.
 
 The process of generating time series data is fairly simple: you iterate over
-the datasets, and generate a value for each. ::
+the datasets, and generate a value for each.
+(``cookbook_timeseries_max_dens.py``)
 
-   >>> max_rho = []
-   >>> max_pos = []
-   >>> times = []
-   >>> for i in range(30):
-   ...     pf = lagos.EnzoStaticOutput("my_output%04i" % (i))
-   ...     v, c = pf.h.find_max("Density")
-   ...     max_rho.append(v)
-   ...     max_pos.append(c)
-   ...     times.append(pf["CosmologyCurrentTime"] * pf["years"])
-   >>> pylab.loglog(times, max_rho)
-   >>> pylab.clf()
+.. literalinclude:: ../../../examples/cookbook_timeseries_max_dens.py
+   :language: python
+   :linenos:
 
-You could also imagine doing a time-evolution of an averaged quantity::
+You could also imagine doing a time-evolution of an averaged quantity.  This
+next example will (in a memory-conservative fashion) iterate over a bunch of
+outputs and then return to you the averaged Temperature, weighted by Cell Mass.
+(``cookbook_timeseries_avg_temp.py``)
 
-   >>> avg_T = []
-   >>> times = []
-   >>> for i in range(30):
-   ...     pf = lagos.EnzoStaticOutput("my_output%04i" % (i))
-   ...     v, c = pf.h.find_max("Density")
-   ...     sp = pf.h.sphere(c, 10.0/pf['kpc'])
-   ...     avg_T.append(sp.quantities["WeightedAverageQuantity"]("Temperature",
-   ...                                                           "CellMassMsun")
-   ...     times.append(pf["CosmologyCurrentTime"] * pf["years"])
-   >>> pylab.loglog(times, avg_T)
+
+.. literalinclude:: ../../../examples/cookbook_timeseries_avg_temp.py
+   :language: python
+   :linenos:
 
 At this point, you can also write out the data to a file and plot it in another
-plotting package: ::
+plotting package:
 
-   >>> f = open("my_data.dat", "w")
-   >>> for i in range(len(times)):
-   ...     f.write("%0.5e %0.5e\n" % (times[i], avg_T[i]))
+.. code-block:: python
+   :linenos:
+
+   f = open("my_data.dat", "w")
+   for i in range(len(times)):
+       f.write("%0.5e %0.5e\n" % (times[i], avg_T[i]))
+   f.close()
 
 More complicated analysis can be done as well; :class:`PlotCollections`
 created, slices made, etc.

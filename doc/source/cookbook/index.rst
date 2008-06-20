@@ -6,8 +6,20 @@ lot you can do, and this section of the manual will assist with figuring out
 how to do some fairly common tasks -- which can lead to combining these, with
 other Python code, into more complicated and advanced tasks.
 
+There are some convenience functions to make writing standalone scripts a bit
+easier.  Specifically, if you start your scripts with
+
+.. code-block:: python
+
+   from yt.mods import *
+   pf = get_pf()
+
+then your namespace is populated, and the last argument on the command line is
+automatically turned into an :class:`EnzoStaticOutput`.
+
 .. note::
-   All of these scripts assume that you have imported the standard yt modules.
+   All of these scripts are located in the examples/ directory of the main
+   distribution!
 
 .. toctree::
    :maxdepth: 2

@@ -22,9 +22,6 @@ And so on.  For more information, see the
 Base Containers
 ---------------
 
-.. autoclass:: yt.lagos.FakeGridForParticles
-   :members:
-
 .. autoclass:: yt.lagos.EnzoData
    :members:
 
@@ -39,6 +36,9 @@ Base Containers
 .. autoclass:: yt.lagos.Enzo3DData
    :members:
    :inherited-members:
+
+.. autoclass:: yt.lagos.FakeGridForParticles
+   :members:
 
 1D Data Containers
 ------------------

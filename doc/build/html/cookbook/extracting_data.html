@@ -52,20 +52,32 @@ publication-quality plotter.)</p>
 <p>Data objects all have the <tt class="xref docutils literal"><span class="pre">write_out()</span></tt> method, which accepts a field
 list and a filename.  This will dump to text.</p>
 <p>However, if you have <a class="reference" href="http://www.pytables.org/">PyTables</a> installed, you can
-also export things in a different way:</p>
-<div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">cube</span> <span class="o">=</span> <span class="n">pf</span><span class="o">.</span><span class="n">h</span><span class="o">.</span><span class="n">smoothed_covering_grid</span><span class="p">(</span><span class="mf">3</span><span class="p">,</span> <span class="n">left_edge</span><span class="o">=</span><span class="p">[</span><span class="mf">0.0</span><span class="p">,</span><span class="mf">0.0</span><span class="p">,</span><span class="mf">0.0</span><span class="p">],</span>
-<span class="gp">... </span>                                      <span class="n">right_edge</span><span class="o">=</span><span class="p">[</span><span class="mf">1.0</span><span class="p">,</span><span class="mf">1.0</span><span class="p">,</span><span class="mf">1.0</span><span class="p">],</span>
-<span class="gp">... </span>                                      <span class="n">dims</span><span class="o">=</span><span class="p">[</span><span class="mf">512</span><span class="p">,</span><span class="mf">512</span><span class="p">,</span><span class="mf">512</span><span class="p">],</span>
-<span class="gp">... </span>                                      <span class="n">fields</span><span class="o">=</span><span class="p">[</span><span class="s">&quot;Density&quot;</span><span class="p">])</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">f</span> <span class="o">=</span> <span class="n">tables</span><span class="o">.</span><span class="n">openFile</span><span class="p">(</span><span class="s">&quot;my_cube.h5&quot;</span><span class="p">,</span><span class="s">&quot;w&quot;</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">f</span><span class="o">.</span><span class="n">createArray</span><span class="p">(</span><span class="s">&quot;/&quot;</span><span class="p">,</span><span class="s">&quot;my_cube_density&quot;</span><span class="p">,</span> <span class="n">cube</span><span class="p">[</span><span class="s">&quot;Density&quot;</span><span class="p">])</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">f</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+also export things in a different way.</p>
+<p>The following code snippet (<tt class="docutils literal"><span class="pre">cookbook_extract_data.py</span></tt>) will generate an
+HDF5 file with the &#8220;Density&#8221; array from our smoothed cube at the root node, and
+called &#8220;my_cube_density&#8221;.  With PyTables you can nest these, set attributes,
+and access the data through any application that can read HDF5.</p>
+<table class="highlighttable"><tr><td class="linenos"><pre> 1
+ 2
+ 3
+ 4
+ 5
+ 6
+ 7
+ 8
+ 9
+10</pre></td><td class="code"><div class="highlight"><pre><span class="k">from</span> <span class="nn">yt.mods</span> <span class="k">import</span> <span class="o">*</span>
+<span class="n">pf</span> <span class="o">=</span> <span class="n">get_pf</span><span class="p">()</span>
+
+<span class="n">cube</span> <span class="o">=</span> <span class="n">pf</span><span class="o">.</span><span class="n">h</span><span class="o">.</span><span class="n">smoothed_covering_grid</span><span class="p">(</span><span class="mf">3</span><span class="p">,</span> <span class="n">left_edge</span><span class="o">=</span><span class="p">[</span><span class="mf">0.0</span><span class="p">,</span><span class="mf">0.0</span><span class="p">,</span><span class="mf">0.0</span><span class="p">],</span>
+                                      <span class="n">right_edge</span><span class="o">=</span><span class="p">[</span><span class="mf">1.0</span><span class="p">,</span><span class="mf">1.0</span><span class="p">,</span><span class="mf">1.0</span><span class="p">],</span>
+                                      <span class="n">dims</span><span class="o">=</span><span class="p">[</span><span class="mf">512</span><span class="p">,</span><span class="mf">512</span><span class="p">,</span><span class="mf">512</span><span class="p">],</span>
+                                      <span class="n">fields</span><span class="o">=</span><span class="p">[</span><span class="s">&quot;Density&quot;</span><span class="p">])</span>
+<span class="n">f</span> <span class="o">=</span> <span class="n">tables</span><span class="o">.</span><span class="n">openFile</span><span class="p">(</span><span class="s">&quot;my_cube.h5&quot;</span><span class="p">,</span><span class="s">&quot;w&quot;</span><span class="p">)</span>
+<span class="n">f</span><span class="o">.</span><span class="n">createArray</span><span class="p">(</span><span class="s">&quot;/&quot;</span><span class="p">,</span><span class="s">&quot;my_cube_density&quot;</span><span class="p">,</span> <span class="n">cube</span><span class="p">[</span><span class="s">&quot;Density&quot;</span><span class="p">])</span>
+<span class="n">f</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
 </pre></div>
-<p>This will generate an HDF5 file with the &#8220;Density&#8221; array from our smoothed cube
-at the root node, and called &#8220;my_cube_density&#8221;.  With PyTables you can nest
-these, set attributes, and access the data through any application that can
-read HDF5.</p>
-</div>
+</td></tr></table></div>
 
 
           </div>
@@ -107,7 +119,7 @@ read HDF5.</p>
     </div>
     <div class="footer">
       &copy; Copyright 2008, Matthew J. Turk.
-      Last updated on Jun 17, 2008.
+      Last updated on Jun 19, 2008.
     </div>
   </body>
 </html>

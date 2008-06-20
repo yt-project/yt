@@ -51,38 +51,73 @@ the other?  Efforts have been made to identify and remove all leaking
 references, but if references are created in your code that generates the
 timeseries data, you may find that more memory is used than is desired.</p>
 <p>The process of generating time series data is fairly simple: you iterate over
-the datasets, and generate a value for each.</p>
-<div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">max_rho</span> <span class="o">=</span> <span class="p">[]</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">max_pos</span> <span class="o">=</span> <span class="p">[]</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">times</span> <span class="o">=</span> <span class="p">[]</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mf">30</span><span class="p">):</span>
-<span class="gp">... </span>    <span class="n">pf</span> <span class="o">=</span> <span class="n">lagos</span><span class="o">.</span><span class="n">EnzoStaticOutput</span><span class="p">(</span><span class="s">&quot;my_output</span><span class="si">%04i</span><span class="s">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">i</span><span class="p">))</span>
-<span class="gp">... </span>    <span class="n">v</span><span class="p">,</span> <span class="n">c</span> <span class="o">=</span> <span class="n">pf</span><span class="o">.</span><span class="n">h</span><span class="o">.</span><span class="n">find_max</span><span class="p">(</span><span class="s">&quot;Density&quot;</span><span class="p">)</span>
-<span class="gp">... </span>    <span class="n">max_rho</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
-<span class="gp">... </span>    <span class="n">max_pos</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">c</span><span class="p">)</span>
-<span class="gp">... </span>    <span class="n">times</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">pf</span><span class="p">[</span><span class="s">&quot;CosmologyCurrentTime&quot;</span><span class="p">]</span> <span class="o">*</span> <span class="n">pf</span><span class="p">[</span><span class="s">&quot;years&quot;</span><span class="p">])</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">pylab</span><span class="o">.</span><span class="n">loglog</span><span class="p">(</span><span class="n">times</span><span class="p">,</span> <span class="n">max_rho</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">pylab</span><span class="o">.</span><span class="n">clf</span><span class="p">()</span>
+the datasets, and generate a value for each.
+(<tt class="docutils literal"><span class="pre">cookbook_timeseries_max_dens.py</span></tt>)</p>
+<table class="highlighttable"><tr><td class="linenos"><pre> 1
+ 2
+ 3
+ 4
+ 5
+ 6
+ 7
+ 8
+ 9
+10
+11
+12
+13</pre></td><td class="code"><div class="highlight"><pre><span class="k">from</span> <span class="nn">yt.mods</span> <span class="k">import</span> <span class="o">*</span>
+
+<span class="n">max_rho</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="n">max_pos</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="n">times</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mf">30</span><span class="p">):</span>
+    <span class="n">pf</span> <span class="o">=</span> <span class="n">lagos</span><span class="o">.</span><span class="n">EnzoStaticOutput</span><span class="p">(</span><span class="s">&quot;my_output</span><span class="si">%04i</span><span class="s">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">i</span><span class="p">))</span>
+    <span class="n">v</span><span class="p">,</span> <span class="n">c</span> <span class="o">=</span> <span class="n">pf</span><span class="o">.</span><span class="n">h</span><span class="o">.</span><span class="n">find_max</span><span class="p">(</span><span class="s">&quot;Density&quot;</span><span class="p">)</span>
+    <span class="n">max_rho</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
+    <span class="n">max_pos</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">c</span><span class="p">)</span>
+    <span class="n">times</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">pf</span><span class="p">[</span><span class="s">&quot;CosmologyCurrentTime&quot;</span><span class="p">]</span> <span class="o">*</span> <span class="n">pf</span><span class="p">[</span><span class="s">&quot;years&quot;</span><span class="p">])</span>
+<span class="n">pylab</span><span class="o">.</span><span class="n">loglog</span><span class="p">(</span><span class="n">times</span><span class="p">,</span> <span class="n">max_rho</span><span class="p">)</span>
+<span class="n">pylab</span><span class="o">.</span><span class="n">clf</span><span class="p">()</span>
 </pre></div>
-<p>You could also imagine doing a time-evolution of an averaged quantity:</p>
-<div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">avg_T</span> <span class="o">=</span> <span class="p">[]</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">times</span> <span class="o">=</span> <span class="p">[]</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mf">30</span><span class="p">):</span>
-<span class="gp">... </span>    <span class="n">pf</span> <span class="o">=</span> <span class="n">lagos</span><span class="o">.</span><span class="n">EnzoStaticOutput</span><span class="p">(</span><span class="s">&quot;my_output</span><span class="si">%04i</span><span class="s">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">i</span><span class="p">))</span>
-<span class="gp">... </span>    <span class="n">v</span><span class="p">,</span> <span class="n">c</span> <span class="o">=</span> <span class="n">pf</span><span class="o">.</span><span class="n">h</span><span class="o">.</span><span class="n">find_max</span><span class="p">(</span><span class="s">&quot;Density&quot;</span><span class="p">)</span>
-<span class="gp">... </span>    <span class="n">sp</span> <span class="o">=</span> <span class="n">pf</span><span class="o">.</span><span class="n">h</span><span class="o">.</span><span class="n">sphere</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="mf">10.0</span><span class="o">/</span><span class="n">pf</span><span class="p">[</span><span class="s">&#39;kpc&#39;</span><span class="p">])</span>
-<span class="gp">... </span>    <span class="n">avg_T</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">sp</span><span class="o">.</span><span class="n">quantities</span><span class="p">[</span><span class="s">&quot;WeightedAverageQuantity&quot;</span><span class="p">](</span><span class="s">&quot;Temperature&quot;</span><span class="p">,</span>
-<span class="gp">... </span>                                                          <span class="s">&quot;CellMassMsun&quot;</span><span class="p">)</span>
-<span class="gp">... </span>    <span class="n">times</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">pf</span><span class="p">[</span><span class="s">&quot;CosmologyCurrentTime&quot;</span><span class="p">]</span> <span class="o">*</span> <span class="n">pf</span><span class="p">[</span><span class="s">&quot;years&quot;</span><span class="p">])</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">pylab</span><span class="o">.</span><span class="n">loglog</span><span class="p">(</span><span class="n">times</span><span class="p">,</span> <span class="n">avg_T</span><span class="p">)</span>
+</td></tr></table><p>You could also imagine doing a time-evolution of an averaged quantity.  This
+next example will (in a memory-conservative fashion) iterate over a bunch of
+outputs and then return to you the averaged Temperature, weighted by Cell Mass.
+(<tt class="docutils literal"><span class="pre">cookbook_timeseries_avg_temp.py</span></tt>)</p>
+<table class="highlighttable"><tr><td class="linenos"><pre> 1
+ 2
+ 3
+ 4
+ 5
+ 6
+ 7
+ 8
+ 9
+10
+11
+12</pre></td><td class="code"><div class="highlight"><pre><span class="k">from</span> <span class="nn">yt.mods</span> <span class="k">import</span> <span class="o">*</span>
+
+<span class="n">avg_T</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="n">times</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mf">30</span><span class="p">):</span>
+    <span class="n">pf</span> <span class="o">=</span> <span class="n">lagos</span><span class="o">.</span><span class="n">EnzoStaticOutput</span><span class="p">(</span><span class="s">&quot;my_output</span><span class="si">%04i</span><span class="s">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">i</span><span class="p">))</span>
+    <span class="n">v</span><span class="p">,</span> <span class="n">c</span> <span class="o">=</span> <span class="n">pf</span><span class="o">.</span><span class="n">h</span><span class="o">.</span><span class="n">find_max</span><span class="p">(</span><span class="s">&quot;Density&quot;</span><span class="p">)</span>
+    <span class="n">sp</span> <span class="o">=</span> <span class="n">pf</span><span class="o">.</span><span class="n">h</span><span class="o">.</span><span class="n">sphere</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="mf">10.0</span><span class="o">/</span><span class="n">pf</span><span class="p">[</span><span class="s">&#39;kpc&#39;</span><span class="p">])</span>
+    <span class="n">avg_T</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">sp</span><span class="o">.</span><span class="n">quantities</span><span class="p">[</span><span class="s">&quot;WeightedAverageQuantity&quot;</span><span class="p">]</span>\
+        <span class="p">(</span><span class="s">&quot;Temperature&quot;</span><span class="p">,</span> <span class="s">&quot;CellMassMsun&quot;</span><span class="p">))</span>
+    <span class="n">times</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">pf</span><span class="p">[</span><span class="s">&quot;CosmologyCurrentTime&quot;</span><span class="p">]</span> <span class="o">*</span> <span class="n">pf</span><span class="p">[</span><span class="s">&quot;years&quot;</span><span class="p">])</span>
+<span class="n">pylab</span><span class="o">.</span><span class="n">loglog</span><span class="p">(</span><span class="n">times</span><span class="p">,</span> <span class="n">avg_T</span><span class="p">)</span>
 </pre></div>
-<p>At this point, you can also write out the data to a file and plot it in another
+</td></tr></table><p>At this point, you can also write out the data to a file and plot it in another
 plotting package:</p>
-<div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s">&quot;my_data.dat&quot;</span><span class="p">,</span> <span class="s">&quot;w&quot;</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">times</span><span class="p">)):</span>
-<span class="gp">... </span>    <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s">&quot;</span><span class="si">%0.5e</span><span class="s"> </span><span class="si">%0.5e</span><span class="se">\n</span><span class="s">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">times</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">avg_T</span><span class="p">[</span><span class="n">i</span><span class="p">]))</span>
+<table class="highlighttable"><tr><td class="linenos"><pre>1
+2
+3
+4</pre></td><td class="code"><div class="highlight"><pre><span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s">&quot;my_data.dat&quot;</span><span class="p">,</span> <span class="s">&quot;w&quot;</span><span class="p">)</span>
+<span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">times</span><span class="p">)):</span>
+    <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s">&quot;</span><span class="si">%0.5e</span><span class="s"> </span><span class="si">%0.5e</span><span class="se">\n</span><span class="s">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">times</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">avg_T</span><span class="p">[</span><span class="n">i</span><span class="p">]))</span>
+<span class="n">f</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
 </pre></div>
-<p>More complicated analysis can be done as well; <tt class="xref docutils literal"><span class="pre">PlotCollections</span></tt>
+</td></tr></table><p>More complicated analysis can be done as well; <tt class="xref docutils literal"><span class="pre">PlotCollections</span></tt>
 created, slices made, etc.</p>
 <p>The package <tt class="xref docutils literal"><span class="pre">fido</span></tt> inside of yt is also available, but it is not
 well-documented.  It will store information about outputs, associated with a
@@ -127,7 +162,7 @@ process, but it is not resilient against data movement.</p>
     </div>
     <div class="footer">
       &copy; Copyright 2008, Matthew J. Turk.
-      Last updated on Jun 17, 2008.
+      Last updated on Jun 19, 2008.
     </div>
   </body>
 </html>

@@ -48,8 +48,19 @@
 <p>Making plots can be considered one of the simplest things to do in yt, and at
 its most primitive you can simply declare which plots to make.</p>
 <p>The following recipe opens the parameter file, creates a &#8216;collection&#8217; of plots,
-adds a few slices, and then saves it at a fixed width.</p>
-<div class="highlight"><pre><span class="n">pf</span> <span class="o">=</span> <span class="n">lagos</span><span class="o">.</span><span class="n">EnzoStaticOutput</span><span class="p">(</span><span class="s">&quot;my_data/my_data0001&quot;</span><span class="p">)</span>
+adds a few slices, and then saves it at a fixed width.
+(<tt class="docutils literal"><span class="pre">cookbook_single_width_plot.py</span></tt>)</p>
+<table class="highlighttable"><tr><td class="linenos"><pre>1
+2
+3
+4
+5
+6
+7
+8
+9</pre></td><td class="code"><div class="highlight"><pre><span class="k">from</span> <span class="nn">yt.mods</span> <span class="k">import</span> <span class="o">*</span>
+<span class="n">pf</span> <span class="o">=</span> <span class="n">get_pf</span><span class="p">()</span>
+
 <span class="n">pc</span> <span class="o">=</span> <span class="n">raven</span><span class="o">.</span><span class="n">PlotCollection</span><span class="p">(</span><span class="n">pf</span><span class="p">)</span>
 <span class="n">pc</span><span class="o">.</span><span class="n">add_slice</span><span class="p">(</span><span class="s">&quot;Density&quot;</span><span class="p">,</span><span class="mf">0</span><span class="p">)</span>
 <span class="n">pc</span><span class="o">.</span><span class="n">add_slice</span><span class="p">(</span><span class="s">&quot;Density&quot;</span><span class="p">,</span><span class="mf">1</span><span class="p">)</span>
@@ -57,67 +68,116 @@ adds a few slices, and then saves it at a fixed width.</p>
 <span class="n">pc</span><span class="o">.</span><span class="n">set_width</span><span class="p">(</span><span class="mf">100.0</span><span class="p">,</span><span class="s">&#39;kpc&#39;</span><span class="p">)</span>
 <span class="n">pc</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="s">&quot;my_data0001_100kpc&quot;</span><span class="p">)</span>
 </pre></div>
-</div>
+</td></tr></table></div>
 <div class="section">
 <h2 id="multiple-fields-single-width">Multiple Fields Single Width<a class="headerlink" href="#multiple-fields-single-width" title="Permalink to this headline">¶</a></h2>
 <p>The &#8216;save&#8217; command encodes the name of the field into the filename.  It is more
-efficient to &#8216;switch&#8217; a field than to add a new slice with a different field.</p>
-<div class="highlight"><pre><span class="n">fields</span> <span class="o">=</span> <span class="p">[</span><span class="s">&quot;Density&quot;</span><span class="p">,</span> <span class="s">&quot;Temperature&quot;</span><span class="p">,</span> <span class="s">&quot;x-velocity&quot;</span><span class="p">]</span>
-<span class="n">pf</span> <span class="o">=</span> <span class="n">lagos</span><span class="o">.</span><span class="n">EnzoStaticOutput</span><span class="p">(</span><span class="s">&quot;my_data/my_data0001&quot;</span><span class="p">)</span>
+efficient to &#8216;switch&#8217; a field than to add a new slice with a different field.
+(<tt class="docutils literal"><span class="pre">cookbook_multiple_fields_single_width_plot.py</span></tt>)</p>
+<table class="highlighttable"><tr><td class="linenos"><pre> 1
+ 2
+ 3
+ 4
+ 5
+ 6
+ 7
+ 8
+ 9
+10
+11
+12</pre></td><td class="code"><div class="highlight"><pre><span class="k">from</span> <span class="nn">yt.mods</span> <span class="k">import</span> <span class="o">*</span>
+<span class="n">pf</span> <span class="o">=</span> <span class="n">get_pf</span><span class="p">()</span>
+
+<span class="n">fields</span> <span class="o">=</span> <span class="p">[</span><span class="s">&quot;Density&quot;</span><span class="p">,</span> <span class="s">&quot;Temperature&quot;</span><span class="p">,</span> <span class="s">&quot;x-velocity&quot;</span><span class="p">]</span>
 <span class="n">pc</span> <span class="o">=</span> <span class="n">raven</span><span class="o">.</span><span class="n">PlotCollection</span><span class="p">(</span><span class="n">pf</span><span class="p">)</span>
 <span class="n">pc</span><span class="o">.</span><span class="n">add_slice</span><span class="p">(</span><span class="n">fields</span><span class="p">[</span><span class="mf">0</span><span class="p">],</span><span class="mf">0</span><span class="p">)</span>
 <span class="n">pc</span><span class="o">.</span><span class="n">add_slice</span><span class="p">(</span><span class="n">fields</span><span class="p">[</span><span class="mf">0</span><span class="p">],</span><span class="mf">1</span><span class="p">)</span>
 <span class="n">pc</span><span class="o">.</span><span class="n">add_slice</span><span class="p">(</span><span class="n">fields</span><span class="p">[</span><span class="mf">0</span><span class="p">],</span><span class="mf">2</span><span class="p">)</span>
 <span class="n">pc</span><span class="o">.</span><span class="n">set_width</span><span class="p">(</span><span class="mf">100.0</span><span class="p">,</span><span class="s">&#39;kpc&#39;</span><span class="p">)</span>
 <span class="k">for</span> <span class="n">field</span> <span class="ow">in</span> <span class="n">fields</span><span class="p">:</span>
-    <span class="n">pc</span><span class="o">.</span><span class="n">switch_field</span><span class="p">(</span><span class="n">field</span><span class="p">)</span>
-    <span class="n">pc</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="s">&quot;my_data0001_100kpc&quot;</span><span class="p">)</span>
+   <span class="n">pc</span><span class="o">.</span><span class="n">switch_field</span><span class="p">(</span><span class="n">field</span><span class="p">)</span>
+   <span class="n">pc</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="s">&quot;my_data0001_100kpc&quot;</span><span class="p">)</span>
 </pre></div>
-</div>
+</td></tr></table></div>
 <div class="section">
 <h2 id="single-field-multiple-widths">Single Field Multiple Widths<a class="headerlink" href="#single-field-multiple-widths" title="Permalink to this headline">¶</a></h2>
 <p>We can zoom in on our slice very easily, and we can define it to do that and
-vary units, too, thus ensuring we have a consistent set of plots.</p>
+vary units, too, thus ensuring we have a consistent set of plots.
+(<tt class="docutils literal"><span class="pre">cookbook_multiple_widths_plot.py</span></tt>)</p>
 <div class="admonition note">
 <p class="first admonition-title">Note</p>
 <p class="last">We do some fancy footwork here with the creation of <em>my_pairs</em> but it is an
 idiom that can be applied elsewhere.</p>
 </div>
-<div class="highlight"><pre><span class="n">widths</span> <span class="o">=</span> <span class="p">[</span><span class="mf">1000.0</span><span class="p">,</span> <span class="mf">100.0</span><span class="p">,</span> <span class="mf">10.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">]</span>
+<table class="highlighttable"><tr><td class="linenos"><pre> 1
+ 2
+ 3
+ 4
+ 5
+ 6
+ 7
+ 8
+ 9
+10
+11
+12
+13
+14</pre></td><td class="code"><div class="highlight"><pre><span class="k">from</span> <span class="nn">yt.mods</span> <span class="k">import</span> <span class="o">*</span>
+<span class="n">pf</span> <span class="o">=</span> <span class="n">get_pf</span><span class="p">()</span>
+
+<span class="n">widths</span> <span class="o">=</span> <span class="p">[</span><span class="mf">1000.0</span><span class="p">,</span> <span class="mf">100.0</span><span class="p">,</span> <span class="mf">10.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">]</span>
 <span class="n">units</span> <span class="o">=</span> <span class="p">[</span><span class="s">&#39;mpc&#39;</span><span class="p">,</span><span class="s">&#39;kpc&#39;</span><span class="p">,</span><span class="s">&#39;pc&#39;</span><span class="p">,</span><span class="s">&#39;au&#39;</span><span class="p">]</span>
 <span class="n">my_pairs</span> <span class="o">=</span> <span class="p">[</span> <span class="p">(</span><span class="n">w</span><span class="p">,</span><span class="n">u</span><span class="p">)</span> <span class="k">for</span> <span class="n">u</span> <span class="ow">in</span> <span class="n">units</span> <span class="k">for</span> <span class="n">w</span> <span class="ow">in</span> <span class="n">widths</span> <span class="p">]</span>
 
-<span class="n">pf</span> <span class="o">=</span> <span class="n">lagos</span><span class="o">.</span><span class="n">EnzoStaticOutput</span><span class="p">(</span><span class="s">&quot;my_data/my_data0001&quot;</span><span class="p">)</span>
 <span class="n">pc</span> <span class="o">=</span> <span class="n">raven</span><span class="o">.</span><span class="n">PlotCollection</span><span class="p">(</span><span class="n">pf</span><span class="p">)</span>
 <span class="n">pc</span><span class="o">.</span><span class="n">add_slice</span><span class="p">(</span><span class="s">&quot;Density&quot;</span><span class="p">,</span><span class="mf">0</span><span class="p">)</span>
 <span class="n">pc</span><span class="o">.</span><span class="n">add_slice</span><span class="p">(</span><span class="s">&quot;Density&quot;</span><span class="p">,</span><span class="mf">1</span><span class="p">)</span>
 <span class="n">pc</span><span class="o">.</span><span class="n">add_slice</span><span class="p">(</span><span class="s">&quot;Density&quot;</span><span class="p">,</span><span class="mf">2</span><span class="p">)</span>
 <span class="k">for</span> <span class="n">w</span><span class="p">,</span> <span class="n">u</span> <span class="ow">in</span> <span class="n">my_pairs</span><span class="p">:</span>
-     <span class="n">pc</span><span class="o">.</span><span class="n">set_width</span><span class="p">(</span><span class="n">w</span><span class="p">,</span><span class="n">u</span><span class="p">)</span>
-     <span class="n">pc</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="s">&quot;my_data0001_</span><span class="si">%05i%s</span><span class="s">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">w</span><span class="p">,</span> <span class="n">u</span><span class="p">))</span>
+    <span class="n">pc</span><span class="o">.</span><span class="n">set_width</span><span class="p">(</span><span class="n">w</span><span class="p">,</span><span class="n">u</span><span class="p">)</span>
+    <span class="n">pc</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="s">&quot;my_data0001_</span><span class="si">%05i%s</span><span class="s">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">w</span><span class="p">,</span> <span class="n">u</span><span class="p">))</span>
 </pre></div>
-</div>
+</td></tr></table></div>
 <div class="section">
 <h2 id="multiple-fields-multiple-widths">Multiple Fields Multiple Widths<a class="headerlink" href="#multiple-fields-multiple-widths" title="Permalink to this headline">¶</a></h2>
 <p>Because of the way the slices are created and the fields handled, we set our
-outer loop to be over the field and the inner loop to be over the widths.</p>
-<div class="highlight"><pre><span class="n">fields</span> <span class="o">=</span> <span class="p">[</span><span class="s">&quot;Density&quot;</span><span class="p">,</span> <span class="s">&quot;Temperature&quot;</span><span class="p">,</span> <span class="s">&quot;x-velocity&quot;</span><span class="p">]</span>
+outer loop to be over the field and the inner loop to be over the widths.
+(<tt class="docutils literal"><span class="pre">cookbook_multiple_fields_multiple_widths_plot.py</span></tt>)</p>
+<table class="highlighttable"><tr><td class="linenos"><pre> 1
+ 2
+ 3
+ 4
+ 5
+ 6
+ 7
+ 8
+ 9
+10
+11
+12
+13
+14
+15
+16
+17</pre></td><td class="code"><div class="highlight"><pre><span class="k">from</span> <span class="nn">yt.mods</span> <span class="k">import</span> <span class="o">*</span>
+<span class="n">pf</span> <span class="o">=</span> <span class="n">get_pf</span><span class="p">()</span>
+
+<span class="n">fields</span> <span class="o">=</span> <span class="p">[</span><span class="s">&quot;Density&quot;</span><span class="p">,</span> <span class="s">&quot;Temperature&quot;</span><span class="p">,</span> <span class="s">&quot;x-velocity&quot;</span><span class="p">]</span>
 <span class="n">widths</span> <span class="o">=</span> <span class="p">[</span><span class="mf">1000.0</span><span class="p">,</span> <span class="mf">100.0</span><span class="p">,</span> <span class="mf">10.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">]</span>
 <span class="n">units</span> <span class="o">=</span> <span class="p">[</span><span class="s">&#39;mpc&#39;</span><span class="p">,</span><span class="s">&#39;kpc&#39;</span><span class="p">,</span><span class="s">&#39;pc&#39;</span><span class="p">,</span><span class="s">&#39;au&#39;</span><span class="p">]</span>
 <span class="n">my_pairs</span> <span class="o">=</span> <span class="p">[</span> <span class="p">(</span><span class="n">w</span><span class="p">,</span><span class="n">u</span><span class="p">)</span> <span class="k">for</span> <span class="n">u</span> <span class="ow">in</span> <span class="n">units</span> <span class="k">for</span> <span class="n">w</span> <span class="ow">in</span> <span class="n">widths</span> <span class="p">]</span>
 
-<span class="n">pf</span> <span class="o">=</span> <span class="n">lagos</span><span class="o">.</span><span class="n">EnzoStaticOutput</span><span class="p">(</span><span class="s">&quot;my_data/my_data0001&quot;</span><span class="p">)</span>
 <span class="n">pc</span> <span class="o">=</span> <span class="n">raven</span><span class="o">.</span><span class="n">PlotCollection</span><span class="p">(</span><span class="n">pf</span><span class="p">)</span>
 <span class="n">pc</span><span class="o">.</span><span class="n">add_slice</span><span class="p">(</span><span class="n">fields</span><span class="p">[</span><span class="mf">0</span><span class="p">],</span><span class="mf">0</span><span class="p">)</span>
 <span class="n">pc</span><span class="o">.</span><span class="n">add_slice</span><span class="p">(</span><span class="n">fields</span><span class="p">[</span><span class="mf">0</span><span class="p">],</span><span class="mf">1</span><span class="p">)</span>
 <span class="n">pc</span><span class="o">.</span><span class="n">add_slice</span><span class="p">(</span><span class="n">fields</span><span class="p">[</span><span class="mf">0</span><span class="p">],</span><span class="mf">2</span><span class="p">)</span>
 <span class="k">for</span> <span class="n">field</span> <span class="ow">in</span> <span class="n">fields</span><span class="p">:</span>
-    <span class="n">pc</span><span class="o">.</span><span class="n">switch_field</span><span class="p">(</span><span class="n">field</span><span class="p">)</span>
-    <span class="k">for</span> <span class="n">w</span><span class="p">,</span> <span class="n">u</span> <span class="ow">in</span> <span class="n">my_pairs</span><span class="p">:</span>
-         <span class="n">pc</span><span class="o">.</span><span class="n">set_width</span><span class="p">(</span><span class="n">w</span><span class="p">,</span><span class="n">u</span><span class="p">)</span>
-         <span class="n">pc</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="s">&quot;my_data0001_</span><span class="si">%05i%s</span><span class="s">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">w</span><span class="p">,</span> <span class="n">u</span><span class="p">))</span>
+   <span class="n">pc</span><span class="o">.</span><span class="n">switch_field</span><span class="p">(</span><span class="n">field</span><span class="p">)</span>
+   <span class="k">for</span> <span class="n">w</span><span class="p">,</span> <span class="n">u</span> <span class="ow">in</span> <span class="n">my_pairs</span><span class="p">:</span>
+        <span class="n">pc</span><span class="o">.</span><span class="n">set_width</span><span class="p">(</span><span class="n">w</span><span class="p">,</span><span class="n">u</span><span class="p">)</span>
+        <span class="n">pc</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="s">&quot;my_data0001_</span><span class="si">%05i%s</span><span class="s">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">w</span><span class="p">,</span> <span class="n">u</span><span class="p">))</span>
 </pre></div>
-</div>
+</td></tr></table></div>
 </div>
 
 
@@ -168,7 +228,7 @@ outer loop to be over the field and the inner loop to be over the widths.</p>
     </div>
     <div class="footer">
       &copy; Copyright 2008, Matthew J. Turk.
-      Last updated on Jun 17, 2008.
+      Last updated on Jun 19, 2008.
     </div>
   </body>
 </html>

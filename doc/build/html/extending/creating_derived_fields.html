@@ -45,7 +45,38 @@
   
   <div class="section">
 <h1 id="creating-derived-fields">Creating Derived Fields<a class="headerlink" href="#creating-derived-fields" title="Permalink to this headline">¶</a></h1>
+<p>One of the more powerful means of extending yt is through the usage of derived
+fields.  These are fields that describe a value at each cell in a simulation.</p>
+<div class="section">
+<h2 id="defining-a-new-field">Defining a New Field<a class="headerlink" href="#defining-a-new-field" title="Permalink to this headline">¶</a></h2>
+<p>So once a new field has been</p>
+</div>
+<div class="section">
+<h2 id="field-options">Field Options<a class="headerlink" href="#field-options" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section">
+<h2 id="how-do-units-work">How Do Units Work?<a class="headerlink" href="#how-do-units-work" title="Permalink to this headline">¶</a></h2>
+<p>Everything is done under the assumption that all of the native Enzo fields that
+yt knows about are converted to cgs before being handed to any processing
+routines.</p>
+</div>
+<div class="section">
+<h2 id="which-enzo-fields-does-yt-know-about">Which Enzo Fields Does yt Know About?<a class="headerlink" href="#which-enzo-fields-does-yt-know-about" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li>Density</li>
+<li>Temperature</li>
+<li>Gas Energy</li>
+<li>Total Energy</li>
+<li>[xyz]-velocity</li>
+<li>Species fields: HI, HII, Electron, HeI, HeII, HeIII, HM, H2I, H2II, DI, DII, HDI</li>
+<li>Particle mass, velocity,</li>
+</ul>
+<div class="system-message">
+<p class="system-message-title">System Message: WARNING/2 (<tt class="docutils">/Users/matthewturk/Development/yt/trunk/doc/source/extending/creating_derived_fields.rst</tt>, line 32)</p>
+Bullet list ends without a blank line; unexpected unindent.</div>
+<hr class="docutils" />
 <p>Derived fields are one of the more powerful ways in which you can extend yt.</p>
+</div>
 </div>
 
 
@@ -54,6 +85,17 @@
       </div>
       <div class="sidebar">
         <div class="sidebarwrapper">
+            <h3>Table Of Contents</h3>
+            <ul>
+<li><a class="reference" href="">Creating Derived Fields</a><ul>
+<li><a class="reference" href="#defining-a-new-field">Defining a New Field</a></li>
+<li><a class="reference" href="#field-options">Field Options</a></li>
+<li><a class="reference" href="#how-do-units-work">How Do Units Work?</a></li>
+<li><a class="reference" href="#which-enzo-fields-does-yt-know-about">Which Enzo Fields Does yt Know About?</a></li>
+</ul>
+</li>
+</ul>
+
             <h4>Previous topic</h4>
             <p class="topless"><a href="creating_derived_quantities.html" title="previous chapter">Creating Derived Quantities</a></p>
             <h4>Next topic</h4>
@@ -88,7 +130,7 @@
     </div>
     <div class="footer">
       &copy; Copyright 2008, Matthew J. Turk.
-      Last updated on Jun 17, 2008.
+      Last updated on Jun 19, 2008.
     </div>
   </body>
 </html>

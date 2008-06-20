@@ -47,9 +47,17 @@
 lot you can do, and this section of the manual will assist with figuring out
 how to do some fairly common tasks &#8211; which can lead to combining these, with
 other Python code, into more complicated and advanced tasks.</p>
+<p>There are some convenience functions to make writing standalone scripts a bit
+easier.  Specifically, if you start your scripts with</p>
+<div class="highlight"><pre><span class="k">from</span> <span class="nn">yt.mods</span> <span class="k">import</span> <span class="o">*</span>
+<span class="n">pf</span> <span class="o">=</span> <span class="n">get_pf</span><span class="p">()</span>
+</pre></div>
+<p>then your namespace is populated, and the last argument on the command line is
+automatically turned into an <tt class="xref docutils literal"><span class="pre">EnzoStaticOutput</span></tt>.</p>
 <div class="admonition note">
 <p class="first admonition-title">Note</p>
-<p class="last">All of these scripts assume that you have imported the standard yt modules.</p>
+<p class="last">All of these scripts are located in the examples/ directory of the main
+distribution!</p>
 </div>
 <ul>
 <li><a class="reference" href="making_simple_plots.html">Making Simple Plots</a><ul>
@@ -113,7 +121,7 @@ other Python code, into more complicated and advanced tasks.</p>
     </div>
     <div class="footer">
       &copy; Copyright 2008, Matthew J. Turk.
-      Last updated on Jun 17, 2008.
+      Last updated on Jun 19, 2008.
     </div>
   </body>
 </html>
