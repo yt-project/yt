@@ -1,0 +1,432 @@
+__init__.py:running Enzo easier.  It contains facilities for creating Enzo data (currently
+__init__.py:in prototype form) as well as runnning Enzo simulations, simulating the actions
+__init__.py:of Enzo on various existing data, and analyzing output from Enzo in a
+__init__.py:    Lagos deals with data structures. It defines things like EnzoGrid, EnzoData,
+__init__.py:    Enzo2DData, EnzoSphere, etc. If you want to handle actual data, use Lagos.
+__init__.py:    creating Enzo Problems, and then using SWIG-interfaced Enzo calls to
+__init__.py:    methods for interacting with Enzo, but more work needs to be done before
+config.py:        'RunDir': os.path.join(os.getenv("HOME"),'.yt/EnzoRuns/'),
+config.py:        'EnzoInterfacePath':'/usr/work/mturk/local/lib/python2.5/site-packages',
+deliverator/deliverator/controllers.py:class EnzoRunIDHiddenField(widgets.HiddenField):
+deliverator/deliverator/controllers.py:        enzorunID = widgets.HiddenField(attrs={'value':rid}, name="enzorunID", defaults=None)
+deliverator/deliverator/controllers.py:        select_form = widgets.TableForm(fields = ImageSelectionForm(), hidden_fields=[enzorunID])
+deliverator/deliverator/controllers.py:        vals = {'form_enzorunID':rid}
+deliverator/deliverator/controllers.py:        if data.has_key("enzorunID"):
+deliverator/deliverator/controllers.py:            pids = ensureList(data.pop("enzorunID"))
+deliverator/deliverator/controllers.py:            queries.append(sqlbuilder.IN(i.enzorun_ID,
+deliverator/deliverator/controllers.py:            s = ll[0].enzorun.user
+deliverator/deliverator/controllers.py:            if image.enzorun.user == identity.current.user.user_name:
+deliverator/deliverator/controllers.py:        for run in model.EnzoRun.select(sqlbuilder.IN(model.EnzoRun.q.id, rs_to_verify)):
+deliverator/deliverator/controllers.py:                model.EnzoRun.delete(run.id)
+deliverator/deliverator/controllers.py:            if pf.enzorun.user == identity.current.user.user_name:
+deliverator/deliverator/controllers.py:        run = model.EnzoRun.select(model.EnzoRun.q.id == rid)[0]
+deliverator/deliverator/controllers.py:        # We construct a list of Enzo Runs
+deliverator/deliverator/controllers.py:        r = model.EnzoRun.select()
+deliverator/deliverator/getoptionvals.py:    where = (i.enzorun_ID == rid)
+deliverator/deliverator/getoptionvals.py:    a = model.ParameterFile.select(i.enzorun_ID == getRID(), distinct=True)
+deliverator/deliverator/getoptionvals.py:    for run in model.EnzoRun.select():
+deliverator/deliverator/model.py:class EnzoRun(SQLObject):  
+deliverator/deliverator/model.py:        table ='EnzoRun'  
+deliverator/deliverator/model.py:    EnzoHierarchy = PickleCol(length=2**16+1)  
+deliverator/deliverator/model.py:    enzorun = ForeignKey("EnzoRun")  
+deliverator/deliverator/model.py:    enzorun = ForeignKey("EnzoRun")  
+deliverator/deliverator/raven_impl.py:        r = model.EnzoRun.select( \
+deliverator/deliverator/raven_impl.py:             model.EnzoRun.q.id ==
+deliverator/deliverator/raven_impl.py:                enzorun = r)
+deliverator/deliverator/raven_impl.py:        r=list(model.EnzoRun.select(model.EnzoRun.q.metaData == req.MetaData))
+deliverator/deliverator/raven_impl.py:        r=list(model.EnzoRun.select(model.EnzoRun.q.metaData == str(req.MetaData)))
+deliverator/deliverator/raven_impl.py:            r = model.EnzoRun(user=str(req.User), metaData=str(req.MetaData))
+deliverator/deliverator/raven_impl.py:            r = model.EnzoRun.select( \
+deliverator/deliverator/raven_impl.py:                model.EnzoRun.q.id ==
+deliverator/deliverator/raven_impl.py:                GeneratedAt=int(req.GeneratedAt), enzorun=r,
+deliverator/deliverator/raven_impl.py:                metaData=str(req.MetaData), EnzoHierarchy = base64.b64decode(str(req.PickleObj)), \
+deliverator/deliverator/release.py:            displays them, along with appropriate metadata from the Enzo Parameter File 
+deliverator/deliverator/templates/paraminfo.kid:pc = cPickle.loads(str(p.EnzoHierarchy))
+deliverator/deliverator/templates/paraminfo.kid:    <tr py:if="p.enzorun.user == myuser"><td valign="bottom"><a href="deleteParamFiles?toDelete=${p.GeneratedAt}">Delete All Images</a></td></tr>
+deliverator/deliverator/templates/selection.kid:        enzorunID: myFormContents('form_enzorunID')
+enki/__init__.py:creating Enzo Problems, and then using SWIG-interfaced Enzo calls to actually
+enki/__init__.py:# Now we import the SWIG enzo interface
+enki/__init__.py:    if ytcfg.has_option("SWIG", "EnzoInterfacePath"):
+enki/__init__.py:        swig_path = ytcfg.get("SWIG","EnzoInterfacePath")
+enki/__init__.py:        import EnzoInterface
+enki/__init__.py:        mylog.debug("Imported EnzoInterface successfully")
+enki/__init__.py:        mylog.warning("EnzoInterface failed to import; all SWIG actions will fail")
+enki/CreateNewProblem.py:    EnzoInterface.cvar.debug = TRUE
+enki/CreateNewProblem.py:    MetaData = EnzoInterface.TopGridData()
+enki/CreateNewProblem.py:    TopGrid = EnzoInterface.HierarchyEntry()
+enki/CreateNewProblem.py:    Exterior = EnzoInterface.ExternalBoundary()
+enki/CreateNewProblem.py:    Initialdt = EnzoInterface.new_Float()
+enki/CreateNewProblem.py:    EnzoInterface.Float_assign(Initialdt, 0.0)
+enki/CreateNewProblem.py:    EnzoInterface.SetDefaultGlobalValues(MetaData)
+enki/CreateNewProblem.py:        retVal = EnzoInterface.ReadParameterFile(f, MetaData, Initialdt)
+enki/CreateNewProblem.py:        EnzoInterface.WriteAllData(OutputFilename, 0, TopGrid, MetaData, Exterior, -1)
+enki/CreateNewProblem.py:    All the stuff enzo does in InitializeNew before calling the problem
+enki/CreateNewProblem.py:        EnzoInterface.intArray_setitem(MetaData.TopGridDims, i, \
+enki/CreateNewProblem.py:            EnzoInterface.intArray_getitem(MetaData.TopGridDims, i) + \
+enki/CreateNewProblem.py:    TopGrid.GridData = EnzoInterface.grid()
+enki/CreateNewProblem.py:            EnzoInterface.cvar.DomainLeftEdge, EnzoInterface.cvar.DomainRightEdge, \
+enki/CreateNewProblem.py:        EnzoInterface.intArray_setitem(MetaData.TopGridDims, i, \
+enki/CreateNewProblem.py:            EnzoInterface.intArray_getitem(MetaData.TopGridDims, i) - \
+enki/CreateNewProblem.py:    ei = EnzoInterface
+enki/EnkiDefs.py:ENZO_SUCCESS = 1
+enki/EnkiDefs.py:    FieldTypes["Density"] = EnzoInterface.Density
+enki/EnkiDefs.py:    FieldTypes["TotalEnergy"] = EnzoInterface.TotalEnergy
+enki/EnkiDefs.py:    FieldTypes["GasEnergy"] = EnzoInterface.InternalEnergy
+enki/EnkiDefs.py:    FieldTypes["x-velocity"] = EnzoInterface.Velocity1
+enki/EnkiDefs.py:    FieldTypes["y-velocity"] = EnzoInterface.Velocity2
+enki/EnkiDefs.py:    FieldTypes["z-velocity"] = EnzoInterface.Velocity3
+enki/EnkiDefs.py:    FieldTypes["colour"] = EnzoInterface.Metallicity
+enki/EnkiDefs.py:    FieldTypes["Electron_Density"] = EnzoInterface.ElectronDensity
+enki/EnkiDefs.py:    FieldTypes["HI_Density"] = EnzoInterface.HIDensity
+enki/EnkiDefs.py:    FieldTypes["HII_Density"] = EnzoInterface.HIIDensity
+enki/EnkiDefs.py:    FieldTypes["HeI_Density"] = EnzoInterface.HeIDensity
+enki/EnkiDefs.py:    FieldTypes["HeII_Density"] = EnzoInterface.HeIIDensity
+enki/EnkiDefs.py:    FieldTypes["HeIII_Density"] = EnzoInterface.HeIIIDensity
+enki/EnkiDefs.py:    FieldTypes["HM_Density"] = EnzoInterface.HMDensity
+enki/EnkiDefs.py:    FieldTypes["H2I_Density"] = EnzoInterface.H2IDensity
+enki/EnkiDefs.py:    FieldTypes["H2II_Density"] = EnzoInterface.H2IIDensity
+enki/EnkiDefs.py:    FieldTypes["DI_Density"] = EnzoInterface.DIDensity
+enki/EnkiDefs.py:    FieldTypes["DII_Density"] = EnzoInterface.DIIDensity
+enki/EnkiDefs.py:    FieldTypes["HDI_Density"] = EnzoInterface.HDIDensity
+enki/EnkiDefs.py:    FieldTypes["Metal_Density"] = EnzoInterface.Metallicity
+enki/EnkiDefs.py:        self.la = EnzoInterface.new_LevelHierarchyEntryArray(MAX_DEPTH_OF_HIERARCHY)
+enki/EnkiDefs.py:            EnzoInterface.LevelHierarchyEntryArray_setitem(self.la, i, None)
+enki/EnkiDefs.py:        EnzoInterface.LevelHierarchyEntryArray_setitem(self.la, item, val)
+enki/EnkiDefs.py:        return EnzoInterface.LevelHierarchyEntryArray_getitem(self.la, level)
+enki/HostProfiles.py:def submitDPLACE(wd='.', parameterFile=None, exe="./enzo", restart = False, nproc=1, logFile=None):
+enki/HostProfiles.py:    @keyword exe: the enzo executable
+enki/mes/__init__.py:from EnzoProblem import *
+enki/mes/CollapseTest.py:#from EnzoProblem import ProblemType
+enki/mes/CollapseTest.py:        EnzoInterface.AddLevel(self.LevelArray.la, self.TopGrid, 0)
+enki/mes/EnzoProblem.py:    Enzo.  Includes several helper functions that could be useful for new data
+enki/mes/EnzoProblem.py:        @type MetaData: EnzoInterface.MetaData
+enki/mes/EnzoProblem.py:        @type TopGrid: EnzoInterface.HierarchyEntry
+enki/mes/EnzoProblem.py:            exec("tr = EnzoInterface.cvar.%s" % (item))
+enki/mes/EnzoProblem.py:        EnzoInterface.charSArray_setitem(EnzoInterface.cvar.DataLabel, self.count, field)
+enki/mes/EnzoProblem.py:            EnzoInterface.intArray_setitem(grid.FieldType, fieldI, self.GridFieldTypes[fieldI])
+enki/mes/EnzoProblem.py:            retVal = EnzoInterface.RebuildHierarchy(self.MetaData, self.LevelArray.la, level)
+enki/mes/EnzoProblem.py:            if retVal != ENZO_SUCCESS:
+enki/mes/EnzoProblem.py:        ei = EnzoInterface
+enki/Recompile.py:    wd = ytcfg.get("yt","enzo_source_tree")
+enki/Recompile.py:        if os.environ.has_key("ENZO_MACHINE_NAME"):
+enki/Recompile.py:            MachineName = os.environ["ENZO_MACHINE_NAME"]
+enki/Recompile.py:        elif ytcfg.has_option("yt","ENZO_MACHINE_NAME"):
+enki/Recompile.py:            MachineName = ytcfg.get("yt","ENZO_MACHINE_NAME")
+enki/Recompile.py:    if not ytcfg.has_option("yt","enzo_source_tree"):
+enki/Recompile.py:        mylog.error("Section 'yt' option 'enzo_source_tree' not set in yt config file!")
+enki/SimulationInterface.py:The python interface to running a full Enzo simulation
+enki/SimulationInterface.py:        EnzoInterface.CommunicationBarrier()
+fido/RunStandalones.py:            pf = lagos.EnzoStaticOutput(fn)
+lagos/__init__.py:    Lagos defines a set of class structures for Enzo data handling.
+lagos/__init__.py:        from yt.enki import EnzoInterface
+lagos/__init__.py:    #import EnzoFortranRoutines
+lagos/__init__.py:from EnzoDefs import *
+lagos/__init__.py:from EnzoRateData import *
+lagos/BaseDataTypes.py:    into for purposes of confinement in an :class:`Enzo3DData`.
+lagos/BaseDataTypes.py:class EnzoData:
+lagos/BaseDataTypes.py:    Generic EnzoData container.  By itself, will attempt to
+lagos/BaseDataTypes.py:        It associates a :class:`~yt.lagos.EnzoStaticOutput` with the class,
+lagos/BaseDataTypes.py:        Clears out all data from the EnzoData instance, freeing memory.
+lagos/BaseDataTypes.py:class Enzo1DData(EnzoData, GridPropertiesMixin):
+lagos/BaseDataTypes.py:        EnzoData.__init__(self, pf, fields, **kwargs)
+lagos/BaseDataTypes.py:class EnzoOrthoRayBase(Enzo1DData):
+lagos/BaseDataTypes.py:        Enzo1DData.__init__(self, pf, fields, **kwargs)
+lagos/BaseDataTypes.py:class Enzo2DData(EnzoData, GridPropertiesMixin):
+lagos/BaseDataTypes.py:    Class to represent a set of :class:`EnzoData` that's 2-D in nature, and
+lagos/BaseDataTypes.py:        Prepares the Enzo2DData, normal to *axis*.  If *axis* is 4, we are not
+lagos/BaseDataTypes.py:        EnzoData.__init__(self, pf, fields, **kwargs)
+lagos/BaseDataTypes.py:class EnzoSliceBase(Enzo2DData):
+lagos/BaseDataTypes.py:    EnzoSlice is an orthogonal slice through the data, taking all the points
+lagos/BaseDataTypes.py:        Enzo2DData.__init__(self, axis, fields, pf, **kwargs)
+lagos/BaseDataTypes.py:class EnzoCuttingPlaneBase(Enzo2DData):
+lagos/BaseDataTypes.py:    EnzoCuttingPlane is an oblique plane through the data,
+lagos/BaseDataTypes.py:        Enzo2DData.__init__(self, 4, fields, **kwargs)
+lagos/BaseDataTypes.py:class EnzoProjBase(Enzo2DData):
+lagos/BaseDataTypes.py:        EnzoProj is a projection of a *field* along an *axis*.  The field
+lagos/BaseDataTypes.py:        Enzo2DData.__init__(self, axis, field, pf, **kwargs)
+lagos/BaseDataTypes.py:            source = EnzoGridCollection(center, self.hierarchy.grids)
+lagos/BaseDataTypes.py:class Enzo3DData(EnzoData, GridPropertiesMixin):
+lagos/BaseDataTypes.py:        Returns an instance of Enzo3DData, or prepares one.  Usually only
+lagos/BaseDataTypes.py:        EnzoData.__init__(self, pf, fields, **kwargs)
+lagos/BaseDataTypes.py:class ExtractedRegionBase(Enzo3DData):
+lagos/BaseDataTypes.py:        Enzo3DData.__init__(self, center=cen,
+lagos/BaseDataTypes.py:class EnzoCylinderBase(Enzo3DData):
+lagos/BaseDataTypes.py:        Enzo3DData.__init__(self, na.array(center), fields, pf, **kwargs)
+lagos/BaseDataTypes.py:class EnzoRegionBase(Enzo3DData):
+lagos/BaseDataTypes.py:    EnzoRegions are rectangular prisms of data.
+lagos/BaseDataTypes.py:        Enzo3DData.__init__(self, center, fields, pf, **kwargs)
+lagos/BaseDataTypes.py:class EnzoGridCollection(Enzo3DData):
+lagos/BaseDataTypes.py:        Enzo3DData.__init__(self, center, fields, pf, **kwargs)
+lagos/BaseDataTypes.py:class EnzoSphereBase(Enzo3DData):
+lagos/BaseDataTypes.py:        Enzo3DData.__init__(self, center, fields, pf, **kwargs)
+lagos/BaseDataTypes.py:class EnzoCoveringGrid(Enzo3DData):
+lagos/BaseDataTypes.py:        Enzo3DData.__init__(self, center=None, fields=fields, pf=pf, **kwargs)
+lagos/BaseDataTypes.py:        Enzo3DData._refresh_data(self)
+lagos/BaseDataTypes.py:class EnzoSmoothedCoveringGrid(EnzoCoveringGrid):
+lagos/BaseDataTypes.py:        EnzoCoveringGrid.__init__(self, *args, **kwargs)
+lagos/BaseGridType.py:class EnzoGridBase(EnzoData):
+lagos/BaseGridType.py:    Class representing a single Enzo Grid instance.
+lagos/BaseGridType.py:        Returns an instance of EnzoGrid with *id*, associated with
+lagos/BaseGridType.py:        #EnzoData's init function is a time-burglar.
+lagos/BaseGridType.py:        #EnzoData.__init__(self, None, [])
+lagos/BaseGridType.py:        # Note that to keep in line with Enzo, we have broken PEP-8
+lagos/BaseGridType.py:        standard Enzo hierarchy file.
+lagos/BaseGridType.py:        EnzoData.clear_data(self)
+lagos/BaseGridType.py:    def __get_enzo_grid(self):
+lagos/BaseGridType.py:            self.hierarchy.initializeEnzoInterface()
+lagos/BaseGridType.py:        retVal = yt.enki.EnzoInterface.fseek(h, long(m.end()), 0)
+lagos/BaseGridType.py:        self.eiGrid=yt.enki.EnzoInterface.grid()
+lagos/ClusterFiles.py:Some functions to include the output from enzo_anyl, and generate it if need
+lagos/ClusterFiles.py:@todo: Run enzo_anyl and parse the resultant data.
+lagos/ClusterFiles.py:    # This is a class for storing the results of enzo_anyl runs
+lagos/ClusterFiles.py:    # This is in case mu craps out in enzo_anyl
+lagos/DataReadingFuncs.py:    Should *only* be called as EnzoGridInstance.getFields, never as getFields(object)
+lagos/DataReadingFuncs.py:    Should *only* be called as EnzoGridInstance.getFields, never as getFields(object)
+lagos/DataReadingFuncs.py:    exception.  Should only be called as EnzoGridInstance.readData()
+lagos/DataReadingFuncs.py:    EnzoGridInstance.readAllData() .
+lagos/DataReadingFuncs.py:    @type grid: L{EnzoGrid<EnzoGrid>}
+lagos/DataReadingFuncs.py:    @type grid: L{EnzoGrid<EnzoGrid>}
+lagos/DataReadingFuncs.py:    @type grid: L{EnzoGrid<EnzoGrid>}
+lagos/DataReadingFuncs.py:    Should *only* be called as EnzoGridInstance.getFields, never as getFields(object)
+lagos/DerivedFields.py:# This is every Enzo field we can think of.  This will be installation-dependent,
+lagos/DerivedFields.py:_enzo_fields = ["Density","Temperature","Gas_Energy","Total_Energy",
+lagos/DerivedFields.py:_enzo_fields += [ "%s_Density" % sp for sp in _speciesList ]
+lagos/DerivedFields.py:for field in _enzo_fields:
+lagos/DerivedQuantities.py:Quantities that can be derived from Enzo data that may also required additional
+lagos/DerivedQuantities.py:points -- are excluded here, and left to the EnzoDerivedFields.)
+lagos/EnzoFortranWrapper.py:Enzo fortran function wrapping
+lagos/EnzoFortranWrapper.py:#from EnzoDefs import *
+lagos/EnzoFortranWrapper.py:    if not orig: routine = EnzoFortranRoutines.solve_chemeq2
+lagos/EnzoFortranWrapper.py:    else: routine = EnzoFortranRoutines.solve_rate_cool
+lagos/EnzoFortranWrapper.py:    EnzoFortranRoutines.cool_multi_time( \
+lagos/EnzoRateData.py:class EnzoTable:
+lagos/EnzoRateData.py:    # This is a class for storing tables of data from enzo.
+lagos/EnzoRunType.py:Handling of sets of EnzoHierarchy objects
+lagos/EnzoRunType.py:class EnzoRun:
+lagos/EnzoRunType.py:    A class that is used to hold the information about an entire Enzo
+lagos/EnzoRunType.py:    def __init__(self, metaData, outputs=None, runFilename=None, classType=EnzoHierarchy, timeID=None, getPFs = True):
+lagos/EnzoRunType.py:        @type outputs: list of L{EnzoHierarchies<EnzoHierarchy>}
+lagos/EnzoRunType.py:        self.outputs = obj.array(outputs)       # Object array of EnzoHierarchies
+lagos/EnzoRunType.py:        self.outputs[outputID] = EnzoHierarchy(pf_name)
+lagos/EnzoRunType.py:        self.outputs[outputID] = EnzoParameterFile(pf_name)
+lagos/EnzoRunType.py:        @type hierarchy: L{EnzoHierarchy<EnzoHierarchy>}
+lagos/EnzoRunType.py:            mylog.debug("Adding %s to EnzoRun '%s'", fn, self.metaData)
+lagos/EnzoRunType.py:        return "./enzo_red_i9_r16"
+lagos/EnzoRunType.py:        The function will be called with every EnzoHierarchy as the first
+lagos/EnzoRunType.py:        @param func: function handler to be called for every EnzoHierarchy
+lagos/EnzoRunType.py:                     func(EnzoHierarchy, [fmt_string % index], *args)
+lagos/EnzoRunType.py:        Here we read in an EnzoRun file and import the parameter files
+lagos/HierarchyType.py:Enzo hierarchy container class
+lagos/HierarchyType.py:class EnzoHierarchy:
+lagos/HierarchyType.py:        This is the grid structure as Enzo sees it, with some added bonuses.
+lagos/HierarchyType.py:        calls to an affiliated :class:`~yt.lagos.EnzoStaticOutput`.
+lagos/HierarchyType.py:            EnzoFloatType = 'float32'
+lagos/HierarchyType.py:            EnzoFloatType = 'float64'
+lagos/HierarchyType.py:        self.gridLeftEdge = na.zeros((self.num_grids,3), EnzoFloatType)
+lagos/HierarchyType.py:        self.gridRightEdge = na.zeros((self.num_grids,3), EnzoFloatType)
+lagos/HierarchyType.py:        self.gridDxs = na.zeros((self.num_grids,1), EnzoFloatType)
+lagos/HierarchyType.py:        self.gridDys = na.zeros((self.num_grids,1), EnzoFloatType)
+lagos/HierarchyType.py:        self.gridDzs = na.zeros((self.num_grids,1), EnzoFloatType)
+lagos/HierarchyType.py:        self.grid = classobj("EnzoGrid",(EnzoGridBase,), dd)
+lagos/HierarchyType.py:        self.proj = classobj("EnzoProj",(EnzoProjBase,), dd)
+lagos/HierarchyType.py:        self.slice = classobj("EnzoSlice",(EnzoSliceBase,), dd)
+lagos/HierarchyType.py:        self.region = classobj("EnzoRegion",(EnzoRegionBase,), dd)
+lagos/HierarchyType.py:        self.covering_grid = classobj("EnzoCoveringGrid",(EnzoCoveringGrid,), dd)
+lagos/HierarchyType.py:        self.smoothed_covering_grid = classobj("EnzoSmoothedCoveringGrid",(EnzoSmoothedCoveringGrid,), dd)
+lagos/HierarchyType.py:        self.sphere = classobj("EnzoSphere",(EnzoSphereBase,), dd)
+lagos/HierarchyType.py:        self.cutting = classobj("EnzoCuttingPlane",(EnzoCuttingPlaneBase,), dd)
+lagos/HierarchyType.py:        self.ray = classobj("EnzoOrthoRay",(EnzoOrthoRayBase,), dd)
+lagos/HierarchyType.py:        self.disk = classobj("EnzoCylinder",(EnzoCylinderBase,), dd)
+lagos/HierarchyType.py:    def __initialize_enzo_interface(self, idt_val = 0.0):
+lagos/HierarchyType.py:        ei = yt.enki.EnzoInterface
+lagos/hop/__init__.py:from EnzoHop import *
+lagos/hop/EnzoHop.c:// EnzoHop
+lagos/hop/EnzoHop.c:Py_EnzoHop(PyObject *obj, PyObject *args)
+lagos/hop/EnzoHop.c:            "EnzoHop: Invalid parameters.");
+lagos/hop/EnzoHop.c:             "EnzoHop: xpos didn't work.");
+lagos/hop/EnzoHop.c:             "EnzoHop: xpos and ypos must be the same length.");
+lagos/hop/EnzoHop.c:             "EnzoHop: xpos and zpos must be the same length.");
+lagos/hop/EnzoHop.c:             "EnzoHop: xpos and mass must be the same length.");
+lagos/hop/EnzoHop.c:             "EnzoHop: xpos and ID must be the same length.");
+lagos/hop/EnzoHop.c:    {"RunHOP", Py_EnzoHop, METH_VARARGS},
+lagos/hop/EnzoHop.c:void initEnzoHop(void)
+lagos/hop/EnzoHop.c:    m = Py_InitModule("EnzoHop", _HOPMethods);
+lagos/hop/EnzoHop.c:    _HOPerror = PyErr_NewException("EnzoHop.HOPerror", NULL, NULL);
+lagos/hop/HopOutput.py:        Returns an EnzoSphere centered on either the point of maximum density
+lagos/hop/README:This is a new implementation of hop for enzo datasets, to replace the
+lagos/hop/README:fragile 'enzohop.' enzohop uses the enzo grid functionality to extract
+lagos/hop/README:know, this version is fine with 64 bit integers/floats, which enzohop isn't.
+lagos/hop/setup.py:    config.add_extension("EnzoHop", sources=
+lagos/hop/setup.py:                                    ["EnzoHop.c",
+lagos/OutputTypes.py:Generalized Enzo output objects, both static and time-series.
+lagos/OutputTypes.py:Presumably at some point EnzoRun will be absorbed into here.
+lagos/OutputTypes.py:# to here, and then have it instantiate EnzoStaticOutputs as appropriate.
+lagos/OutputTypes.py:class EnzoStaticOutput(StaticOutput):
+lagos/OutputTypes.py:    Enzo-specific output, set at a fixed time.
+lagos/OutputTypes.py:    _hierarchy_class = EnzoHierarchy
+lagos/OutputTypes.py:            self.rates = EnzoTable(rp, rates_out_key)
+lagos/OutputTypes.py:            self.cool = EnzoTable(cp, cool_out_key)
+lagos/OutputTypes.py:        Return an Enzo-fortran style dictionary of units to feed into custom
+lagos/Profiles.py:# Note we do not inherit from EnzoData.
+lagos/setup.py:        config.add_extension("EnzoFortranRoutines", \
+lagos/solve_rate_cool.pyf:python module EnzoFortranRoutines ! in 
+lagos/solve_rate_cool.pyf:    interface  ! in :EnzoFortranRoutines
+lagos/solve_rate_cool.pyf:        subroutine solve_chemeq2(d,e,ge,u,v,w,de,hi,hii,hei,heii,heiii,in,jn,kn,nratec,iexpand,imethod,idual,ispecies,imetal,idim,is,js,ks,ie,je,ke,ih2co,ipiht,dt,aye,temstart,temend,utem,uxyz,uaye,urho,utim,uvel,eta1,eta2,gamma,fh,dtoh,k1a,k2a,k3a,k4a,k5a,k6a,k7a,k8a,k9a,k10a,k11a,k12a,k13a,k13dda,k14a,k15a,k16a,k17a,k18a,k19a,k21a,k22a,k23a,k24,k25,k26,k27,k28,k29,k30,k31,k50a,k51a,k52a,k53a,k54a,k55a,k56a,cehia,ceheia,ceheiia,cihia,ciheia,ciheisa,ciheiia,rehiia,reheii1a,reheii2a,reheiiia,brema,compa,comp_xraya,comp_temp,pihi,pihei,piheii,hm,h2i,h2ii,di,dii,hdi,metal,hyd01ka,h2k01a,vibha,rotha,rotla,gpldla,gphdla,hdltea,hdlowa,hdcoola,ciecoa,inutot,iradtype,nfreq,imetalregen,iradshield,avgsighp,avgsighep,avgsighe2p,iciecool,ih2optical,errcode,omaskflag,subgridmask,HIeqtable, HIIeqtable, H2Ieqtable, nrhobins, nebins, rhostart, rhoend, estart, eend) ! in :EnzoFortranRoutines:f_src/solve_rate_cool.F
+lagos/solve_rate_cool.pyf:end python module EnzoFortranRoutines
+list_of_enzo_uses.txt:__init__.py:running Enzo easier.  It contains facilities for creating Enzo data (currently
+list_of_enzo_uses.txt:__init__.py:in prototype form) as well as runnning Enzo simulations, simulating the actions
+list_of_enzo_uses.txt:__init__.py:of Enzo on various existing data, and analyzing output from Enzo in a
+list_of_enzo_uses.txt:__init__.py:    Lagos deals with data structures. It defines things like EnzoGrid, EnzoData,
+list_of_enzo_uses.txt:__init__.py:    Enzo2DData, EnzoSphere, etc. If you want to handle actual data, use Lagos.
+list_of_enzo_uses.txt:__init__.py:    creating Enzo Problems, and then using SWIG-interfaced Enzo calls to
+list_of_enzo_uses.txt:__init__.py:    methods for interacting with Enzo, but more work needs to be done before
+list_of_enzo_uses.txt:config.py:        'RunDir': os.path.join(os.getenv("HOME"),'.yt/EnzoRuns/'),
+list_of_enzo_uses.txt:config.py:        'EnzoInterfacePath':'/usr/work/mturk/local/lib/python2.5/site-packages',
+list_of_enzo_uses.txt:deliverator/deliverator/controllers.py:class EnzoRunIDHiddenField(widgets.HiddenField):
+list_of_enzo_uses.txt:deliverator/deliverator/controllers.py:        enzorunID = widgets.HiddenField(attrs={'value':rid}, name="enzorunID", defaults=None)
+list_of_enzo_uses.txt:deliverator/deliverator/controllers.py:        select_form = widgets.TableForm(fields = ImageSelectionForm(), hidden_fields=[enzorunID])
+list_of_enzo_uses.txt:deliverator/deliverator/controllers.py:        vals = {'form_enzorunID':rid}
+list_of_enzo_uses.txt:deliverator/deliverator/controllers.py:        if data.has_key("enzorunID"):
+list_of_enzo_uses.txt:deliverator/deliverator/controllers.py:            pids = ensureList(data.pop("enzorunID"))
+list_of_enzo_uses.txt:deliverator/deliverator/controllers.py:            queries.append(sqlbuilder.IN(i.enzorun_ID,
+list_of_enzo_uses.txt:deliverator/deliverator/controllers.py:            s = ll[0].enzorun.user
+list_of_enzo_uses.txt:deliverator/deliverator/controllers.py:            if image.enzorun.user == identity.current.user.user_name:
+list_of_enzo_uses.txt:deliverator/deliverator/controllers.py:        for run in model.EnzoRun.select(sqlbuilder.IN(model.EnzoRun.q.id, rs_to_verify)):
+list_of_enzo_uses.txt:deliverator/deliverator/controllers.py:                model.EnzoRun.delete(run.id)
+list_of_enzo_uses.txt:deliverator/deliverator/controllers.py:            if pf.enzorun.user == identity.current.user.user_name:
+list_of_enzo_uses.txt:deliverator/deliverator/controllers.py:        run = model.EnzoRun.select(model.EnzoRun.q.id == rid)[0]
+list_of_enzo_uses.txt:deliverator/deliverator/controllers.py:        # We construct a list of Enzo Runs
+list_of_enzo_uses.txt:deliverator/deliverator/controllers.py:        r = model.EnzoRun.select()
+list_of_enzo_uses.txt:deliverator/deliverator/getoptionvals.py:    where = (i.enzorun_ID == rid)
+list_of_enzo_uses.txt:deliverator/deliverator/getoptionvals.py:    a = model.ParameterFile.select(i.enzorun_ID == getRID(), distinct=True)
+list_of_enzo_uses.txt:deliverator/deliverator/getoptionvals.py:    for run in model.EnzoRun.select():
+list_of_enzo_uses.txt:deliverator/deliverator/model.py:class EnzoRun(SQLObject):  
+list_of_enzo_uses.txt:deliverator/deliverator/model.py:        table ='EnzoRun'  
+list_of_enzo_uses.txt:deliverator/deliverator/model.py:    EnzoHierarchy = PickleCol(length=2**16+1)  
+list_of_enzo_uses.txt:deliverator/deliverator/model.py:    enzorun = ForeignKey("EnzoRun")  
+list_of_enzo_uses.txt:deliverator/deliverator/model.py:    enzorun = ForeignKey("EnzoRun")  
+list_of_enzo_uses.txt:deliverator/deliverator/raven_impl.py:        r = model.EnzoRun.select( \
+list_of_enzo_uses.txt:deliverator/deliverator/raven_impl.py:             model.EnzoRun.q.id ==
+list_of_enzo_uses.txt:deliverator/deliverator/raven_impl.py:                enzorun = r)
+list_of_enzo_uses.txt:deliverator/deliverator/raven_impl.py:        r=list(model.EnzoRun.select(model.EnzoRun.q.metaData == req.MetaData))
+list_of_enzo_uses.txt:deliverator/deliverator/raven_impl.py:        r=list(model.EnzoRun.select(model.EnzoRun.q.metaData == str(req.MetaData)))
+list_of_enzo_uses.txt:deliverator/deliverator/raven_impl.py:            r = model.EnzoRun(user=str(req.User), metaData=str(req.MetaData))
+list_of_enzo_uses.txt:deliverator/deliverator/raven_impl.py:            r = model.EnzoRun.select( \
+list_of_enzo_uses.txt:deliverator/deliverator/raven_impl.py:                model.EnzoRun.q.id ==
+list_of_enzo_uses.txt:deliverator/deliverator/raven_impl.py:                GeneratedAt=int(req.GeneratedAt), enzorun=r,
+list_of_enzo_uses.txt:deliverator/deliverator/raven_impl.py:                metaData=str(req.MetaData), EnzoHierarchy = base64.b64decode(str(req.PickleObj)), \
+list_of_enzo_uses.txt:deliverator/deliverator/release.py:            displays them, along with appropriate metadata from the Enzo Parameter File 
+list_of_enzo_uses.txt:deliverator/deliverator/templates/paraminfo.kid:pc = cPickle.loads(str(p.EnzoHierarchy))
+list_of_enzo_uses.txt:deliverator/deliverator/templates/paraminfo.kid:    <tr py:if="p.enzorun.user == myuser"><td valign="bottom"><a href="deleteParamFiles?toDelete=${p.GeneratedAt}">Delete All Images</a></td></tr>
+list_of_enzo_uses.txt:deliverator/deliverator/templates/selection.kid:        enzorunID: myFormContents('form_enzorunID')
+list_of_enzo_uses.txt:enki/__init__.py:creating Enzo Problems, and then using SWIG-interfaced Enzo calls to actually
+list_of_enzo_uses.txt:enki/__init__.py:# Now we import the SWIG enzo interface
+list_of_enzo_uses.txt:enki/__init__.py:    if ytcfg.has_option("SWIG", "EnzoInterfacePath"):
+list_of_enzo_uses.txt:enki/__init__.py:        swig_path = ytcfg.get("SWIG","EnzoInterfacePath")
+list_of_enzo_uses.txt:enki/__init__.py:        import EnzoInterface
+list_of_enzo_uses.txt:enki/__init__.py:        mylog.debug("Imported EnzoInterface successfully")
+list_of_enzo_uses.txt:enki/__init__.py:        mylog.warning("EnzoInterface failed to import; all SWIG actions will fail")
+list_of_enzo_uses.txt:enki/CreateNewProblem.py:    EnzoInterface.cvar.debug = TRUE
+list_of_enzo_uses.txt:enki/CreateNewProblem.py:    MetaData = EnzoInterface.TopGridData()
+list_of_enzo_uses.txt:enki/CreateNewProblem.py:    TopGrid = EnzoInterface.HierarchyEntry()
+list_of_enzo_uses.txt:enki/CreateNewProblem.py:    Exterior = EnzoInterface.ExternalBoundary()
+list_of_enzo_uses.txt:enki/CreateNewProblem.py:    Initialdt = EnzoInterface.new_Float()
+list_of_enzo_uses.txt:enki/CreateNewProblem.py:    EnzoInterface.Float_assign(Initialdt, 0.0)
+list_of_enzo_uses.txt:enki/CreateNewProblem.py:    EnzoInterface.SetDefaultGlobalValues(MetaData)
+list_of_enzo_uses.txt:enki/CreateNewProblem.py:        retVal = EnzoInterface.ReadParameterFile(f, MetaData, Initialdt)
+list_of_enzo_uses.txt:enki/CreateNewProblem.py:        EnzoInterface.WriteAllData(OutputFilename, 0, TopGrid, MetaData, Exterior, -1)
+list_of_enzo_uses.txt:enki/CreateNewProblem.py:    All the stuff enzo does in InitializeNew before calling the problem
+list_of_enzo_uses.txt:enki/CreateNewProblem.py:        EnzoInterface.intArray_setitem(MetaData.TopGridDims, i, \
+list_of_enzo_uses.txt:enki/CreateNewProblem.py:            EnzoInterface.intArray_getitem(MetaData.TopGridDims, i) + \
+list_of_enzo_uses.txt:enki/CreateNewProblem.py:    TopGrid.GridData = EnzoInterface.grid()
+list_of_enzo_uses.txt:enki/CreateNewProblem.py:            EnzoInterface.cvar.DomainLeftEdge, EnzoInterface.cvar.DomainRightEdge, \
+list_of_enzo_uses.txt:enki/CreateNewProblem.py:        EnzoInterface.intArray_setitem(MetaData.TopGridDims, i, \
+list_of_enzo_uses.txt:enki/CreateNewProblem.py:            EnzoInterface.intArray_getitem(MetaData.TopGridDims, i) - \
+list_of_enzo_uses.txt:enki/CreateNewProblem.py:    ei = EnzoInterface
+list_of_enzo_uses.txt:enki/EnkiDefs.py:ENZO_SUCCESS = 1
+list_of_enzo_uses.txt:enki/EnkiDefs.py:    FieldTypes["Density"] = EnzoInterface.Density
+list_of_enzo_uses.txt:enki/EnkiDefs.py:    FieldTypes["TotalEnergy"] = EnzoInterface.TotalEnergy
+list_of_enzo_uses.txt:enki/EnkiDefs.py:    FieldTypes["GasEnergy"] = EnzoInterface.InternalEnergy
+list_of_enzo_uses.txt:enki/EnkiDefs.py:    FieldTypes["x-velocity"] = EnzoInterface.Velocity1
+list_of_enzo_uses.txt:enki/EnkiDefs.py:    FieldTypes["y-velocity"] = EnzoInterface.Velocity2
+list_of_enzo_uses.txt:enki/EnkiDefs.py:    FieldTypes["z-velocity"] = EnzoInterface.Velocity3
+list_of_enzo_uses.txt:enki/EnkiDefs.py:    FieldTypes["colour"] = EnzoInterface.Metallicity
+list_of_enzo_uses.txt:enki/EnkiDefs.py:    FieldTypes["Electron_Density"] = EnzoInterface.ElectronDensity
+list_of_enzo_uses.txt:enki/EnkiDefs.py:    FieldTypes["HI_Density"] = EnzoInterface.HIDensity
+list_of_enzo_uses.txt:enki/EnkiDefs.py:    FieldTypes["HII_Density"] = EnzoInterface.HIIDensity
+list_of_enzo_uses.txt:enki/EnkiDefs.py:    FieldTypes["HeI_Density"] = EnzoInterface.HeIDensity
+list_of_enzo_uses.txt:enki/EnkiDefs.py:    FieldTypes["HeII_Density"] = EnzoInterface.HeIIDensity
+list_of_enzo_uses.txt:enki/EnkiDefs.py:    FieldTypes["HeIII_Density"] = EnzoInterface.HeIIIDensity
+list_of_enzo_uses.txt:enki/EnkiDefs.py:    FieldTypes["HM_Density"] = EnzoInterface.HMDensity
+list_of_enzo_uses.txt:enki/EnkiDefs.py:    FieldTypes["H2I_Density"] = EnzoInterface.H2IDensity
+list_of_enzo_uses.txt:enki/EnkiDefs.py:    FieldTypes["H2II_Density"] = EnzoInterface.H2IIDensity
+list_of_enzo_uses.txt:enki/EnkiDefs.py:    FieldTypes["DI_Density"] = EnzoInterface.DIDensity
+list_of_enzo_uses.txt:enki/EnkiDefs.py:    FieldTypes["DII_Density"] = EnzoInterface.DIIDensity
+list_of_enzo_uses.txt:enki/EnkiDefs.py:    FieldTypes["HDI_Density"] = EnzoInterface.HDIDensity
+list_of_enzo_uses.txt:enki/EnkiDefs.py:    FieldTypes["Metal_Density"] = EnzoInterface.Metallicity
+list_of_enzo_uses.txt:enki/EnkiDefs.py:        self.la = EnzoInterface.new_LevelHierarchyEntryArray(MAX_DEPTH_OF_HIERARCHY)
+list_of_enzo_uses.txt:enki/EnkiDefs.py:            EnzoInterface.LevelHierarchyEntryArray_setitem(self.la, i, None)
+list_of_enzo_uses.txt:enki/EnkiDefs.py:        EnzoInterface.LevelHierarchyEntryArray_setitem(self.la, item, val)
+list_of_enzo_uses.txt:enki/EnkiDefs.py:        return EnzoInterface.LevelHierarchyEntryArray_getitem(self.la, level)
+list_of_enzo_uses.txt:enki/HostProfiles.py:def submitDPLACE(wd='.', parameterFile=None, exe="./enzo", restart = False, nproc=1, logFile=None):
+list_of_enzo_uses.txt:enki/HostProfiles.py:    @keyword exe: the enzo executable
+list_of_enzo_uses.txt:enki/mes/__init__.py:from EnzoProblem import *
+list_of_enzo_uses.txt:enki/mes/CollapseTest.py:#from EnzoProblem import ProblemType
+list_of_enzo_uses.txt:enki/mes/CollapseTest.py:        EnzoInterface.AddLevel(self.LevelArray.la, self.TopGrid, 0)
+list_of_enzo_uses.txt:enki/mes/EnzoProblem.py:    Enzo.  Includes several helper functions that could be useful for new data
+list_of_enzo_uses.txt:enki/mes/EnzoProblem.py:        @type MetaData: EnzoInterface.MetaData
+list_of_enzo_uses.txt:enki/mes/EnzoProblem.py:        @type TopGrid: EnzoInterface.HierarchyEntry
+list_of_enzo_uses.txt:enki/mes/EnzoProblem.py:            exec("tr = EnzoInterface.cvar.%s" % (item))
+list_of_enzo_uses.txt:enki/mes/EnzoProblem.py:        EnzoInterface.charSArray_setitem(EnzoInterface.cvar.DataLabel, self.count, field)
+list_of_enzo_uses.txt:enki/mes/EnzoProblem.py:            EnzoInterface.intArray_setitem(grid.FieldType, fieldI, self.GridFieldTypes[fieldI])
+list_of_enzo_uses.txt:enki/mes/EnzoProblem.py:            retVal = EnzoInterface.RebuildHierarchy(self.MetaData, self.LevelArray.la, level)
+list_of_enzo_uses.txt:enki/mes/EnzoProblem.py:            if retVal != ENZO_SUCCESS:
+list_of_enzo_uses.txt:enki/mes/EnzoProblem.py:        ei = EnzoInterface
+list_of_enzo_uses.txt:enki/Recompile.py:    wd = ytcfg.get("yt","enzo_source_tree")
+list_of_enzo_uses.txt:enki/Recompile.py:        if os.environ.has_key("ENZO_MACHINE_NAME"):
+list_of_enzo_uses.txt:enki/Recompile.py:            MachineName = os.environ["ENZO_MACHINE_NAME"]
+list_of_enzo_uses.txt:enki/Recompile.py:        elif ytcfg.has_option("yt","ENZO_MACHINE_NAME"):
+list_of_enzo_uses.txt:enki/Recompile.py:            MachineName = ytcfg.get("yt","ENZO_MACHINE_NAME")
+list_of_enzo_uses.txt:enki/Recompile.py:    if not ytcfg.has_option("yt","enzo_source_tree"):
+list_of_enzo_uses.txt:enki/Recompile.py:        mylog.error("Section 'yt' option 'enzo_source_tree' not set in yt config file!")
+list_of_enzo_uses.txt:enki/SimulationInterface.py:The python interface to running a full Enzo simulation
+list_of_enzo_uses.txt:enki/SimulationInterface.py:        EnzoInterface.CommunicationBarrier()
+list_of_enzo_uses.txt:fido/RunStandalones.py:            pf = lagos.EnzoStaticOutput(fn)
+list_of_enzo_uses.txt:lagos/__init__.py:    Lagos defines a set of class structures for Enzo data handling.
+list_of_enzo_uses.txt:lagos/__init__.py:        from yt.enki import EnzoInterface
+list_of_enzo_uses.txt:lagos/__init__.py:    #import EnzoFortranRoutines
+list_of_enzo_uses.txt:lagos/__init__.py:from EnzoDefs import *
+list_of_enzo_uses.txt:lagos/__init__.py:from EnzoRateData import *
+list_of_enzo_uses.txt:lagos/BaseDataTypes.py:    into for purposes of confinement in an :class:`Enzo3DData`.
+list_of_enzo_uses.txt:lagos/BaseDataTypes.py:class EnzoData:
+list_of_enzo_uses.txt:lagos/BaseDataTypes.py:    Generic EnzoData container.  By itself, will attempt to
+list_of_enzo_uses.txt:lagos/BaseDataTypes.py:        It associates a :class:`~yt.lagos.EnzoStaticOutput` with the class,
+list_of_enzo_uses.txt:lagos/BaseDataTypes.py:        Clears out all data from the EnzoData instance, freeing memory.
+list_of_enzo_uses.txt:lagos/BaseDataTypes.py:class Enzo1DData(EnzoData, GridPropertiesMixin):
+list_of_enzo_uses.txt:lagos/BaseDataTypes.py:        EnzoData.__init__(self, pf, fields, **kwargs)
+list_of_enzo_uses.txt:lagos/BaseDataTypes.py:class EnzoOrthoRayBase(Enzo1DData):
+list_of_enzo_uses.txt:lagos/BaseDataTypes.py:        Enzo1DData.__init__(self, pf, fields, **kwargs)
+list_of_enzo_uses.txt:lagos/BaseDataTypes.py:class Enzo2DData(EnzoData, GridPropertiesMixin):
+list_of_enzo_uses.txt:lagos/BaseDataTypes.py:    Class to represent a set of :class:`EnzoData` that's 2-D in nature, and
+list_of_enzo_uses.txt:lagos/BaseDataTypes.py:        Prepares the Enzo2DData, normal to *axis*.  If *axis* is 4, we are not
+list_of_enzo_uses.txt:lagos/BaseDataTypes.py:        EnzoData.__init__(self, pf, fields, **kwargs)
+list_of_enzo_uses.txt:lagos/BaseDataTypes.py:class EnzoSliceBase(Enzo2DData):
+list_of_enzo_uses.txt:lagos/BaseDataTypes.py:    EnzoSlice is an orthogonal slice through the data, taking all the points
+list_of_enzo_uses.txt:lagos/BaseDataTypes.py:        Enzo2DData.__init__(self, axis, fields, pf, **kwargs)
+list_of_enzo_uses.txt:lagos/BaseDataTypes.py:class EnzoCuttingPlaneBase(Enzo2DData):
+list_of_enzo_uses.txt:lagos/BaseDataTypes.py:    EnzoCuttingPlane is an oblique plane through the data,
+list_of_enzo_uses.txt:lagos/BaseDataTypes.py:        Enzo2DData.__init__(self, 4, fields, **kwargs)
+list_of_enzo_uses.txt:lagos/BaseDataTypes.py:class EnzoProjBase(Enzo2DData):
+list_of_enzo_uses.txt:lagos/BaseDataTypes.py:        EnzoProj is a projection of a *field* along an *axis*.  The field
+list_of_enzo_uses.txt:lagos/BaseDataTypes.py:        Enzo2DData.__init__(self, axis, field, pf, **kwargs)
+list_of_enzo_uses.txt:lagos/BaseDataTypes.py:            source = EnzoGridCollection(center, self.hierarchy.grids)
+list_of_enzo_uses.txt:lagos/BaseDataTypes.py:class Enzo3DData(EnzoData, GridPropertiesMixin):
+mods.py:    return lagos.EnzoStaticOutput(sys.argv[-1])
+raven/deliveration/upload.py:    @type hierarchy: L{EnzoHierarchy<EnzoHierarchy>}
+raven/deliveration/upload.py:    @type hierarchy: L{EnzoHierarchy<EnzoHierarchy>}
+raven/PlotCollection.py:Think of this as a way of getting rid of EnzoHippo.  We should have access to
+raven/PlotConfig.py:    everything we need from the EnzoHippo instance.
+raven/PlotConfig.py:    @param pf: EnzoStaticOutput instance
+reason/App.py:        eso = lagos.EnzoStaticOutput(fn)
+reason/App.py:            ii = lagos.EnzoStaticOutput(ii) # Instantiate here
+reason/Notebook.py:If you experience any troubles, drop me a line (matthewturk@gmail.com) or just fill out a ticket at yt.enzotools.org.
