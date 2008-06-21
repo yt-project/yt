@@ -1460,7 +1460,7 @@ class EnzoCoveringGrid(Enzo3DData):
         if na.any(self.left_edge < self.pf["DomainLeftEdge"]) or \
            na.any(self.right_edge > self.pf["DomainRightEdge"]):
             grids,ind = self.pf.hierarchy.get_periodic_box_grids(
-                            self.left_edge.copy(), self.right_edge.copy())
+                            self.left_edge, self.right_edge)
         else:
             grids,ind = self.pf.hierarchy.get_box_grids(
                             self.left_edge, self.right_edge)

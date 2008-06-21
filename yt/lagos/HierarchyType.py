@@ -629,13 +629,13 @@ class EnzoHierarchy:
         dr = self.parameters["DomainRightEdge"]
         db = right_edge - left_edge
         for off_x in [-1, 0, 1]:
-            nle = left_edge[:]
-            nre = left_edge[:]
-            nle[0] = dl[0] + (dr[0]-dl[0])*off_x
+            nle = left_edge.copy()
+            nre = left_edge.copy()
+            nle[0] = dl[0] + (dr[0]-dl[0])*off_x + left_edge[0]
             for off_y in [-1, 0, 1]:
-                nle[1] = dl[1] + (dr[1]-dl[1])*off_y
+                nle[1] = dl[1] + (dr[1]-dl[1])*off_y + left_edge[1]
                 for off_z in [-1, 0, 1]:
-                    nle[2] = dl[2] + (dr[2]-dl[2])*off_z
+                    nle[2] = dl[2] + (dr[2]-dl[2])*off_z + left_edge[2]
                     nre = nle + db
                     g, gi = self.get_box_grids(nle, nre)
                     mask[gi] = True
