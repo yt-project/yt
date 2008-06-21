@@ -887,8 +887,30 @@ class OrionHierarchy(AMRHierarchy):
                                   # for each level
             self.levels[-1]._fileprefix = self.__global_header_lines[counter]
             counter+=1
+            self.num_grids = grid_counter
+            self.float_type = 'float64'
 
         self.__header_file.close()
+
+    def _initialize_grids(self):
+        mylog.debug("Allocating memory for %s grids", self.num_grids)
+        self.gridDimensions = na.zeros((self.num_grids,3), 'int32')
+        self.gridStartIndices = na.zeros((self.num_grids,3), 'int32')
+        self.gridEndIndices = na.zeros((self.num_grids,3), 'int32')
+        self.gridLeftEdge = na.zeros((self.num_grids,3), self.float_type)
+        self.gridRightEdge = na.zeros((self.num_grids,3), self.float_type)
+        self.gridLevels = na.zeros((self.num_grids,1), 'int32')
+        self.gridDxs = na.zeros((self.num_grids,1), self.float_type)
+        self.gridDys = na.zeros((self.num_grids,1), self.float_type)
+        self.gridDzs = na.zeros((self.num_grids,1), self.float_type)
+        self.gridTimes = na.zeros((self.num_grids,1), 'float64')
+        self.gridNumberOfParticles = na.zeros((self.num_grids,1))
+        mylog.debug("Done allocating")
+        mylog.debug("Creating grid objects")
+        self.grids = na.concatenate([level.grids for level in self.levels])
+        self.gridReverseTree = [-1] * self.num_grids
+        self.gridTree = [ [] for i in range(self.num_grids)]
+        mylog.debug("Done creating grid objects")
 
     def _setup_classes(self):
         dd = self._get_data_reader_dict()
