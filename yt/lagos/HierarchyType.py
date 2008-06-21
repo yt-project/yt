@@ -32,7 +32,8 @@ import cPickle
 _data_style_funcs = \
    { 4: (readDataHDF4, readAllDataHDF4, getFieldsHDF4, readDataSliceHDF4, getExceptionHDF4), \
      5: (readDataHDF5, readAllDataHDF5, getFieldsHDF5, readDataSliceHDF5, getExceptionHDF5), \
-     6: (readDataPacked, readAllDataPacked, getFieldsPacked, readDataSlicePacked, getExceptionHDF5) \
+     6: (readDataPacked, readAllDataPacked, getFieldsPacked, readDataSlicePacked, getExceptionHDF5), \
+     7: (readDataNative, readAllDataNative, readDataSliceNative) \
    }
 
 class AMRHierarchy:
@@ -796,3 +797,94 @@ def constructRegularExpressions(param, toReadTypes):
         rs += "(%s)\s*" % (scanf_regex[t])
     rs +="$"
     return re.compile(rs,re.M)
+
+class OrionHierarchy(AMRHierarchy):
+    def __init__(self,filename):
+        self.readGlobalHeader(filename)
+        
+    def readGlobalHeader(self,filename):
+        """
+        read the global header file for an Orion plotfile output.
+        
+        
+        """
+
+        # domain_pattern = r"\(\((\d+,\d+,\d+)\) \((\d+,\d+,\d+)\) \((\d+,\d+,\d+)\)\) \(\((\d+,\d+,\d+)\) \((\d+,\d+,\d+)\) \((\d+,\d+,\d+)\)\)"
+        # domain_re = re.compile(domain_pattern)
+
+        counter = 0
+        # CHANGE FOLLOWING: __header_file SHOULD NOT BE A CLASS MEMBER
+        self.__header_file = open(filename,'r')
+        self.__global_header_lines = self.__header_file.readlines()
+
+        # parse the file
+        self.orion_version = self.__global_header_lines[0].rstrip()
+        self.n_fields      = int(self.__global_header_lines[1])
+
+        self.fields = []
+        counter = self.n_fields+2
+        for line in self.__global_header_lines[2:counter]:
+            self.fields.append(line.rstrip())
+
+        self.dimension = int(self.__global_header_lines[counter])
+        if self.dimension != 3:
+            raise RunTimeError("Orion must be in 3D to use yt.")
+        counter += 1
+        self.Time = float(self.__global_header_lines[counter])
+        counter += 1
+        self.finest_grid_level = int(self.__global_header_lines[counter])
+        self.n_levels = self.finest_grid_level + 1
+        counter += 1
+        self.domainLeftEdge_unnecessary = na.array(map(float,self.__global_header_lines[counter].split()))
+        counter += 1
+        self.domainRightEdge_unnecessary = na.array(map(float,self.__global_header_lines[counter].split()))
+        counter += 1
+        self.refinementFactor_unnecessary = na.array(map(int,self.__global_header_lines[counter].split()))
+        counter += 1
+        self.globalIndexSpace_unnecessary = self.__global_header_lines[counter]
+        #domain_re.search(self.__global_header_lines[counter]).groups()
+        counter += 1
+        self.timestepsPerLevel_unnecessary = self.__global_header_lines[counter]
+        counter += 1
+        self.dx = na.zeros((self.n_levels,3))
+        for i,line in enumerate(self.__global_header_lines[counter:counter+self.n_levels]):
+            self.dx[i] = na.array(map(int,line.split()))
+        counter += self.n_levels
+        self.geometry = int(self.__global_header_lines[counter])
+        if self.geometry != 0:
+            raise RunTimeError("yt only supports cartesian coordinates.")
+        counter += 1
+
+        # this is just to debug. eventually it should go away.
+        linebreak = int(self.__global_header_lines[counter])
+        if linebreak != 0:
+            raise RunTimeError("INTERNAL ERROR! This should be a zero. the reader function be broke, J.S.")
+        counter += 1
+
+        # each level is one group with ngrids on it. each grid has 3 lines of 2 reals
+        self.levels = []
+        grid_counter = 0
+        for level in range(0,self.n_levels):
+            tmp = self.__global_header_lines[counter].split()
+            # should this be grid_time or level_time??
+            lev,ngrids,grid_time = int(tmp[0]),int(tmp[1]),float(tmp[2])
+            counter += 1
+            nsteps = int(self.__global_header_lines[counter])
+            counter += 1
+            self.levels.append(OrionLevel(lev,ngrids))
+            for grid in range(0,ngrids):
+                xlo,xhi = map(float,self.__global_header_lines[counter].split())
+                counter+=1
+                ylo,yhi = map(float,self.__global_header_lines[counter].split())
+                counter+=1
+                zlo,zhi = map(float,self.__global_header_lines[counter].split())
+                counter+=1
+                lo = na.array([xlo,ylo,zlo])
+                hi = na.array([xhi,yhi,zhi])
+                self.levels[-1].grids.append(OrionGrid(lo,hi,grid_counter))
+                grid_counter += 1 # this is global, and shouldn't be reset
+                                  # for each level
+            self.levels[-1]._fileprefix = self.__global_header_lines[counter]
+            counter+=1
+
+        self.__header_file.close()

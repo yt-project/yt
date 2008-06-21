@@ -6,7 +6,7 @@ Presumably at some point EnzoRun will be absorbed into here.
 @organization: U{KIPAC<http://www-group.slac.stanford.edu/KIPAC/>}
 @contact: U{mturk@slac.stanford.edu<mailto:mturk@slac.stanford.edu>}
 @license:
-  Copyright (C) 2007 Matthew Turk.  All Rights Reserved.
+  Copyright (C) 2007-2008 Matthew Turk, J. S. Oishi.  All Rights Reserved.
 
   This file is part of yt.
 
@@ -269,3 +269,124 @@ class EnzoStaticOutput(StaticOutput):
         k["aye"]  = (1.0 + self.parameters["CosmologyInitialRedshift"]) / \
                (1.0 + self.parameters["CosmologyCurrentRedshift"])
         return k
+
+class OrionStaticOutput(StaticOutput):
+    """
+    This class is a stripped down class that simply reads and parses, without
+    looking at the Orion hierarchy.
+
+    @todo: 
+
+    @param filename: The filename of the parameterfile we want to load
+    @type filename: String
+    """
+    _hierarchy_class = OrionHierarchy
+
+    def __init__(self, plotname, paramFilename='inputs',data_style='Native'):
+        """need to override for Orion file structure.
+
+        the paramfile is usually called "inputs"
+        plotname here will be a directory name
+        as per BoxLib, data_style will be one of
+          Native
+          IEEE
+          ASCII
+
+        """
+        self.data_style = data_style
+        self.basename = os.path.basename(plotname)
+        # this will be the directory ENCLOSING the pltNNNN directory
+        self.directory = os.path.dirname(plotname)
+        self.parameter_filename = self.directory+paramFilename
+        self.fullpath = os.path.abspath(self.directory)
+        if len(self.directory) == 0:
+            self.directory = "."
+        self.conversion_factors = {}
+        self.parameters = {}
+        self._parse_parameter_file()
+        self._set_units()
+        
+        # These should maybe not be hardcoded?
+        self.parameters["HydroMethod"] = 0 # always PPM DE
+        self.parameters["InitialTime"] = 0. # FIX ME!!!
+        
+    def _parse_parameter_file(self):
+        """
+        Parses the parameter file and establishes the various
+        dictionaries.
+        """
+        # Let's read the file
+        self.parameters["CurrentTimeIdentifier"] = \
+            int(os.stat(self.parameter_filename)[ST_CTIME])
+        lines = open(self.parameter_filename).readlines()
+        for lineI, line in enumerate(lines):
+            if line.find("#") >= 1: # Keep the commented lines...
+                line=line[:line.find("#")]
+            line=line.strip().rstrip()
+            if len(line) < 2 or line.find("#") == 0: # ...but skip comments
+                continue
+            try:
+                param, vals = map(strip,map(rstrip,line.split("=")))
+            except ValueError:
+                mylog.error("ValueError: '%s'", line)
+            if orion2enzoDict.has_key(param):
+                paramName = orion2enzoDict[param]
+                t = map(parameterDict[paramName], vals.split())
+                if len(t) == 1:
+                    self.parameters[paramName] = t[0]
+                else:
+                    self.parameters[paramName] = t
+                if paramName.endswith("Units") and not paramName.startswith("Temperature"):
+                    dataType = paramName[:-5]
+                    self.conversion_factors[dataType] = self.parameters[paramName]
+            # elif param.startswith("#DataCGS"):
+#                 # Assume of the form: #DataCGSConversionFactor[7] = 2.38599e-26 g/cm^3
+#                 if lines[lineI-1].find("Label") >= 0:
+#                     kk = lineI-1
+#                 elif lines[lineI-2].find("Label") >= 0:
+#                     kk = lineI-2
+#                 dataType = lines[kk].split("=")[-1].rstrip().strip()
+#                 convFactor = float(line.split("=")[-1].split()[0])
+#                 self.conversion_factors[dataType] = convFactor
+#             elif param.startswith("#CGSConversionFactor"):
+#                 dataType = param[20:].rstrip()
+#                 convFactor = float(line.split("=")[-1])
+#                 self.conversion_factors[dataType] = convFactor
+            elif param.startswith("geometry.prob_hi"):
+                self.parameters["DomainRightEdge"] = \
+                    na.array([float(i) for i in vals.split()])
+            elif param.startswith("geometry.prob_lo"):
+                self.parameters["DomainLeftEdge"] = \
+                    na.array([float(i) for i in vals.split()])
+                
+    def _set_units(self):
+        """
+        Generates the conversion to various physical _units based on the parameter file
+        """
+        self.units = {}
+        self.time_units = {}
+        if len(self.parameters) == 0:
+            self._parse_parameter_file()
+        if self["ComovingCoordinates"]:
+            raise RuntimeError("Orion doesn't do cosmology.")
+        elif self.has_key("LengthUnits"):
+            raise RuntimeError("Units not yet implemented.")
+            #self._setup_getunits_units()
+        else:
+            self._setup_nounits_units()
+        self.time_units['1'] = 1
+        self.units['1'] = 1
+        seconds = self["Time"]
+        self.time_units['years'] = seconds / (365*3600*24.0)
+        self.time_units['days']  = seconds / (3600*24.0)
+
+    def _setup_nounits_units(self):
+        z = 0
+        box_proper = ytcfg.getfloat("lagos","nounitslength")
+        self.units['aye'] = 1.0
+        mylog.warning("No length units.  Setting 1.0 = %0.3e proper Mpc.", box_proper)
+        if not self.has_key("TimeUnits"):
+            mylog.warning("No time units.  Setting 1.0 = 1 second.")
+            self.conversion_factors["Time"] = 1.0
+        for unit in mpc_conversion.keys():
+            self.units[unit] = mpc_conversion[unit] * box_proper

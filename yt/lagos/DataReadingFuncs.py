@@ -142,3 +142,14 @@ def getExceptionHDF4():
 
 def getExceptionHDF5():
     return (exceptions.KeyError, HDF5LightReader.ReadingError)
+
+def readDataNative():
+    pass
+
+def readAllDataNative():
+    pass
+
+def readDataSliceNative():
+    """wishful thinking?
+    """
+    pass
