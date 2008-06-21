@@ -110,6 +110,18 @@ class AMRHierarchy:
             self._data_file = None
             pass
 
+    def _setup_grid_corners(self):
+        self.gridCorners = na.array([ # Unroll!
+            [self.gridLeftEdge[:,0], self.gridLeftEdge[:,1], self.gridLeftEdge[:,2]],
+            [self.gridRightEdge[:,0], self.gridLeftEdge[:,1], self.gridLeftEdge[:,2]],
+            [self.gridRightEdge[:,0], self.gridRightEdge[:,1], self.gridLeftEdge[:,2]],
+            [self.gridRightEdge[:,0], self.gridRightEdge[:,1], self.gridRightEdge[:,2]],
+            [self.gridLeftEdge[:,0], self.gridRightEdge[:,1], self.gridRightEdge[:,2]],
+            [self.gridLeftEdge[:,0], self.gridLeftEdge[:,1], self.gridRightEdge[:,2]],
+            [self.gridRightEdge[:,0], self.gridLeftEdge[:,1], self.gridRightEdge[:,2]],
+            [self.gridLeftEdge[:,0], self.gridRightEdge[:,1], self.gridLeftEdge[:,2]],
+            ], dtype='float64')
+
     def save_data(self, array, node, name, set_attr=None, force=False):
         """
         Arbitrary numpy data will be saved to the region in the datafile
@@ -648,16 +660,7 @@ class EnzoHierarchy(AMRHierarchy):
 
     def __setup_grid_dxs(self):
         mylog.debug("Setting up corners and dxs")
-        self.gridCorners = na.array([ # Unroll!
-            [self.gridLeftEdge[:,0], self.gridLeftEdge[:,1], self.gridLeftEdge[:,2]],
-            [self.gridRightEdge[:,0], self.gridLeftEdge[:,1], self.gridLeftEdge[:,2]],
-            [self.gridRightEdge[:,0], self.gridRightEdge[:,1], self.gridLeftEdge[:,2]],
-            [self.gridRightEdge[:,0], self.gridRightEdge[:,1], self.gridRightEdge[:,2]],
-            [self.gridLeftEdge[:,0], self.gridRightEdge[:,1], self.gridRightEdge[:,2]],
-            [self.gridLeftEdge[:,0], self.gridLeftEdge[:,1], self.gridRightEdge[:,2]],
-            [self.gridRightEdge[:,0], self.gridLeftEdge[:,1], self.gridRightEdge[:,2]],
-            [self.gridLeftEdge[:,0], self.gridRightEdge[:,1], self.gridLeftEdge[:,2]],
-            ], dtype='float64')
+        self._setup_grid_corners()
         dx = (self.gridRightEdge[:,0] - self.gridLeftEdge[:,0]) / \
              (self.gridEndIndices[:,0]-self.gridStartIndices[:,0]+1)
         dy = (self.gridRightEdge[:,1] - self.gridLeftEdge[:,1]) / \
