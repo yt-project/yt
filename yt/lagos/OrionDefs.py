@@ -32,3 +32,10 @@ Various definitions for various other modules and routines
 # throughout the code. key is Orion name, value is Enzo/yt equivalent
 orion2enzoDict = {"amr.n_cell": "TopGridRank",
                   }
+
+orion2ytFieldsDict = {"x-velocity": "xvel",
+                      "y-velocity": "yvel",
+                      "z-velocity": "zvel",
+                      "Density": "density",
+                      "Total_Energy": "eden",
+                     }

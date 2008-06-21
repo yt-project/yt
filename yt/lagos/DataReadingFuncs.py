@@ -143,8 +143,56 @@ def getExceptionHDF4():
 def getExceptionHDF5():
     return (exceptions.KeyError, HDF5LightReader.ReadingError)
 
-def readDataNative():
-    pass
+def readDataNative(self,field):
+    """
+    reads packed multiFABs output by BoxLib in "NATIVE" format.
+
+    """
+    inFile = open(os.path.expanduser(filename),'rb')
+    header = inFile.readline()
+    header.strip()
+
+    pattern = r"^FAB \(\((\d+), \([0-9 ]+\)\),\(\d+, \(([0-9 ]+)\)\)\)\(\((\d+,\d+,\d+)\) \((\d+,\d+,\d+)\) \((\d+,\d+,\d+)\)\) (\d+)\n"
+
+    headerRe = re.compile(pattern)
+    bytesPerReal,endian,start,stop,centerType,nComponents = headerRe.search(header).groups()
+
+    # we will build up a dtype string, starting with endian
+    # check endianness (this code is ugly. fix?)
+
+    swapEndian = False
+
+    if int(bytesPerReal) == int(endian[0]):
+        dtype = '<'
+    elif int(bytesPerReal) == int(endian[-1]):
+        dtype = '>'
+    else:
+        raise ValueError("FAB header is neither big nor little endian. Perhaps the file is corrupt?")
+
+    dtype += 'f' + bytesPerReal #always a floating point
+
+    # determine size of FAB
+    # TODO: we should check consistency of this against the MF header...
+    start = na.array(map(int,start.split(',')))
+    stop = na.array(map(int,stop.split(',')))
+
+    gridSize = stop - start + 1
+    nElements = 1
+    for i in gridSize:
+        nElements = nElements*i 
+
+
+    # one field has nElements*bytesPerReal bytes
+    # and is located at offset
+    offset = 0 # change this
+
+    field = na.fromfile(inFile,count=nElements,dtype=dtype)
+    field.reshape(gridSize[::-1]) #the FAB is fortran ordered; we want C
+
+    # we can/should also check against the max and min in the header file
+
+    inFile.close()
+    return field
 
 def readAllDataNative():
     pass
