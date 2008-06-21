@@ -32,9 +32,69 @@ class AMRGridPatch(AMRData):
     _num_ghost_zones = 0
     _grids = None
 
-    def __init__(self, *args, **kwargs):
-        pass
+    def __init__(self, id, filename=None, hierarchy = None):
+        self.data = {}
+        self.field_parameters = {}
+        self.fields = []
+        self.start_index = None
+        self.id = id
+        if hierarchy: self.hierarchy = weakref.proxy(hierarchy)
+        if filename: self.set_filename(filename)
+        self.overlap_masks = [None, None, None]
+        self._overlap_grids = [None, None, None]
     
+    def get_data(self, field):
+        """
+        Returns a field or set of fields for a key or set of keys
+        """
+        if not self.data.has_key(field):
+            if field in self.hierarchy.field_list:
+                conv_factor = 1.0
+                if fieldInfo.has_key(field):
+                    conv_factor = fieldInfo[field]._convert_function(self)
+                try:
+                    self[field] = self.readDataFast(field) * conv_factor
+                except self._read_exception:
+                    if field in fieldInfo:
+                        if fieldInfo[field].particle_type:
+                            self[field] = na.array([],dtype='int64')
+                        if fieldInfo[field].not_in_all:
+                            self[field] = na.zeros(self.ActiveDimensions, dtype='float64')
+                    else: raise
+            else:
+                self._generate_field(field)
+        return self.data[field]
+
+    def _generate_field(self, field):
+        if fieldInfo.has_key(field):
+            # First we check the validator
+            try:
+                fieldInfo[field].check_available(self)
+            except NeedsGridType, ngt_exception:
+                # This is only going to be raised if n_gz > 0
+                n_gz = ngt_exception.ghost_zones
+                f_gz = ngt_exception.fields
+                gz_grid = self.retrieve_ghost_zones(n_gz, f_gz)
+                temp_array = fieldInfo[field](gz_grid)
+                sl = [slice(n_gz,-n_gz)] * 3
+                self[field] = temp_array[sl]
+            else:
+                self[field] = fieldInfo[field](self)
+        else: # Can't find the field, try as it might
+            raise exceptions.KeyError, field
+
+    def _setup_dx(self):
+        # So first we figure out what the index is.  We don't assume
+        # that dx=dy=dz , at least here.  We probably do elsewhere.
+        self.dx = self.hierarchy.gridDxs[self.id-1,0]
+        self.dy = self.hierarchy.gridDys[self.id-1,0]
+        self.dz = self.hierarchy.gridDzs[self.id-1,0]
+        self.data['dx'] = self.dx
+        self.data['dy'] = self.dy
+        self.data['dz'] = self.dz
+        self._corners = self.hierarchy.gridCorners[:,:,self.id-1]
+
+
     def _generate_overlap_masks(self, axis, LE, RE):
         """
         Generate a mask that shows which cells overlap with arbitrary arrays
@@ -86,6 +146,30 @@ class AMRGridPatch(AMRData):
             del self.retVal
         AMRData.clear_data(self)
         self._setup_dx()
+
+    def _prepare_grid(self):
+        """
+        Copies all the appropriate attributes from the hierarchy
+        """
+        # This is definitely the slowest part of generating the hierarchy
+        # Now we give it pointers to all of its attributes
+        # Note that to keep in line with Enzo, we have broken PEP-8
+        h = self.hierarchy # cache it
+        self.Dimensions = h.gridDimensions[self.id-1]
+        self.StartIndices = h.gridStartIndices[self.id-1]
+        self.EndIndices = h.gridEndIndices[self.id-1]
+        self.LeftEdge = h.gridLeftEdge[self.id-1]
+        self.RightEdge = h.gridRightEdge[self.id-1]
+        self.Level = h.gridLevels[self.id-1,0]
+        self.Time = h.gridTimes[self.id-1,0]
+        self.NumberOfParticles = h.gridNumberOfParticles[self.id-1,0]
+        self.ActiveDimensions = (self.EndIndices - self.StartIndices + 1)
+        self.Children = h.gridTree[self.id-1]
+        pID = h.gridReverseTree[self.id-1]
+        if pID != None and pID != -1:
+            self.Parent = weakref.proxy(h.grids[pID - 1])
+        else:
+            self.Parent = None
 
     def __len__(self):
         return na.prod(self.ActiveDimensions)
@@ -259,92 +343,8 @@ class EnzoGridBase(AMRGridPatch):
         *filename* and *hierarchy*.
         """
         #All of the field parameters will be passed to us as needed.
-        AMRGridPatch.__init__(self, None, [])
-        self.data = {}
-        self.field_parameters = {}
-        self.fields = []
-        self.start_index = None
-        self.id = id
-        if hierarchy: self.hierarchy = weakref.proxy(hierarchy)
-        if filename: self.set_filename(filename)
-        self.overlap_masks = [None, None, None]
-        self._overlap_grids = [None, None, None]
+        AMRGridPatch.__init__(self, id, filename, hierarchy)
         self._file_access_pooling = False
-
-    def _generate_field(self, field):
-        if fieldInfo.has_key(field):
-            # First we check the validator
-            try:
-                fieldInfo[field].check_available(self)
-            except NeedsGridType, ngt_exception:
-                # This is only going to be raised if n_gz > 0
-                n_gz = ngt_exception.ghost_zones
-                f_gz = ngt_exception.fields
-                gz_grid = self.retrieve_ghost_zones(n_gz, f_gz)
-                temp_array = fieldInfo[field](gz_grid)
-                sl = [slice(n_gz,-n_gz)] * 3
-                self[field] = temp_array[sl]
-            else:
-                self[field] = fieldInfo[field](self)
-        else: # Can't find the field, try as it might
-            raise exceptions.KeyError, field
-
-    def get_data(self, field):
-        """
-        Returns a field or set of fields for a key or set of keys
-        """
-        if not self.data.has_key(field):
-            if field in self.hierarchy.field_list:
-                conv_factor = 1.0
-                if fieldInfo.has_key(field):
-                    conv_factor = fieldInfo[field]._convert_function(self)
-                try:
-                    self[field] = self.readDataFast(field) * conv_factor
-                except self._read_exception:
-                    if field in fieldInfo:
-                        if fieldInfo[field].particle_type:
-                            self[field] = na.array([],dtype='int64')
-                        if fieldInfo[field].not_in_all:
-                            self[field] = na.zeros(self.ActiveDimensions, dtype='float64')
-                    else: raise
-            else:
-                self._generate_field(field)
-        return self.data[field]
-
-    def _prepare_grid(self):
-        """
-        Copies all the appropriate attributes from the hierarchy
-        """
-        # This is definitely the slowest part of generating the hierarchy
-        # Now we give it pointers to all of its attributes
-        # Note that to keep in line with Enzo, we have broken PEP-8
-        h = self.hierarchy # cache it
-        self.Dimensions = h.gridDimensions[self.id-1]
-        self.StartIndices = h.gridStartIndices[self.id-1]
-        self.EndIndices = h.gridEndIndices[self.id-1]
-        self.LeftEdge = h.gridLeftEdge[self.id-1]
-        self.RightEdge = h.gridRightEdge[self.id-1]
-        self.Level = h.gridLevels[self.id-1,0]
-        self.Time = h.gridTimes[self.id-1,0]
-        self.NumberOfParticles = h.gridNumberOfParticles[self.id-1,0]
-        self.ActiveDimensions = (self.EndIndices - self.StartIndices + 1)
-        self.Children = h.gridTree[self.id-1]
-        pID = h.gridReverseTree[self.id-1]
-        if pID != None and pID != -1:
-            self.Parent = weakref.proxy(h.grids[pID - 1])
-        else:
-            self.Parent = None
-
-    def _setup_dx(self):
-        # So first we figure out what the index is.  We don't assume
-        # that dx=dy=dz , at least here.  We probably do elsewhere.
-        self.dx = self.hierarchy.gridDxs[self.id-1,0]
-        self.dy = self.hierarchy.gridDys[self.id-1,0]
-        self.dz = self.hierarchy.gridDzs[self.id-1,0]
-        self.data['dx'] = self.dx
-        self.data['dy'] = self.dy
-        self.data['dz'] = self.dz
-        self._corners = self.hierarchy.gridCorners[:,:,self.id-1]
 
     def _guess_properties_from_parent(self):
         """
@@ -412,8 +412,11 @@ class EnzoGridBase(AMRGridPatch):
         return
 
 class OrionGridBase(AMRGridPatch):
-    def __init__(self,LeftEdge,RightEdge,index):
+    def __init__(self,LeftEdge,RightEdge,index, level):
+        AMRGridPatch.__init__(self, index)
+        self._file_access_pooling = False
         # should error check this
         self.LeftEdge  = LeftEdge
         self.RightEdge = RightEdge
         self.index = index
+        self.Level = level

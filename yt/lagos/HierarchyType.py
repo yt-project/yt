@@ -802,10 +802,13 @@ def constructRegularExpressions(param, toReadTypes):
 
 class OrionHierarchy(AMRHierarchy):
     def __init__(self,pf,data_style=7):
+        self.parameter_file = pf
         header_filename = os.path.join(pf.fullplotdir,'Header')
         self.data_style = data_style
+        self._setup_classes()
         self.readGlobalHeader(header_filename)
         AMRHierarchy.__init__(self,pf)
+
     def readGlobalHeader(self,filename):
         """
         read the global header file for an Orion plotfile output.
@@ -825,10 +828,10 @@ class OrionHierarchy(AMRHierarchy):
         self.orion_version = self.__global_header_lines[0].rstrip()
         self.n_fields      = int(self.__global_header_lines[1])
 
-        self.fields = []
+        self.field_list = []
         counter = self.n_fields+2
         for line in self.__global_header_lines[2:counter]:
-            self.fields.append(line.rstrip())
+            self.field_list.append(line.rstrip())
 
         self.dimension = int(self.__global_header_lines[counter])
         if self.dimension != 3:
@@ -885,7 +888,7 @@ class OrionHierarchy(AMRHierarchy):
                 counter+=1
                 lo = na.array([xlo,ylo,zlo])
                 hi = na.array([xhi,yhi,zhi])
-                self.levels[-1].grids.append(OrionGridBase(lo,hi,grid_counter))
+                self.levels[-1].grids.append(self.grid(lo,hi,grid_counter,level))
                 grid_counter += 1 # this is global, and shouldn't be reset
                                   # for each level
             self.levels[-1]._fileprefix = self.__global_header_lines[counter]
@@ -893,6 +896,8 @@ class OrionHierarchy(AMRHierarchy):
             self.num_grids = grid_counter
             self.float_type = 'float64'
 
+        self.maxLevel = self.n_levels
+        self.max_level = self.n_levels
         self.__header_file.close()
 
     def _initialize_grids(self):
@@ -915,11 +920,30 @@ class OrionHierarchy(AMRHierarchy):
         self.gridTree = [ [] for i in range(self.num_grids)]
         mylog.debug("Done creating grid objects")
 
+    def _populate_hierarchy(self):
+        self.__setup_grid_tree()
+        for i, grid in enumerate(self.grids):
+            if (i%1e4) == 0: mylog.debug("Prepared % 7i / % 7i grids", i, self.num_grids)
+            grid._prepare_grid()
+
+    def __setup_grid_tree(self):
+        for i, grid in enumerate(self.grids):
+            children = self._get_grid_children(grid)
+            for child in children:
+                self.gridReverseTree[child.id] = i
+                self.gridTree[i].append(weakref.proxy(child))
+
     def _setup_classes(self):
         dd = self._get_data_reader_dict()
         self.grid = classobj("OrionGrid",(OrionGridBase,), dd)
         AMRHierarchy._setup_classes(self, dd)
 
+    def _get_grid_children(self, grid):
+        mask = na.zeros(self.num_grids, dtype='bool')
+        grids, grid_ind = self.get_box_grids(grid.LeftEdge, grid.RightEdge)
+        mask[grid_ind] = True
+        mask = na.logical_and(mask, (self.gridLevels == (grid.Level+1)).flat)
+        return self.grids[mask]
 
 class OrionLevel:
     def __init__(self,level,ngrids):
