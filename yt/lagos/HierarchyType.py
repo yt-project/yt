@@ -189,6 +189,11 @@ class AMRHierarchy:
         """
         return self.grids[self._select_level(level)]
 
+    def _select_level(self, level):
+        # We return a numarray of the indices of all the grids on a given level
+        indices = na.where(self.gridLevels[:,0] == level)[0]
+        return indices
+
     def get_smallest_dx(self):
         """
         Returns (in code units) the smallest cell size in the simulation.
@@ -712,12 +717,6 @@ class EnzoHierarchy(AMRHierarchy):
             if field not in self.derived_field_list:
                 self.derived_field_list.append(field)
 
-
-
-    def _select_level(self, level):
-        # We return a numarray of the indices of all the grids on a given level
-        indices = na.where(self.gridLevels[:,0] == level)[0]
-        return indices
 
     @time_execution
     def export_particles_pb(self, filename, filter = 1, indexboundary = 0, fields = None, scale=1.0):
