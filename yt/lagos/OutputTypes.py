@@ -180,6 +180,9 @@ class EnzoStaticOutput(StaticOutput):
                 dataType = param[20:].rstrip()
                 convFactor = float(line.split("=")[-1])
                 self.conversion_factors[dataType] = convFactor
+            elif param.startswith("DomainLeftEdge"):
+                self.parameters["DomainLeftEdge"] = \
+                    na.array([float(i) for i in vals.split()])
             elif param.startswith("DomainRightEdge"):
                 self.parameters["DomainRightEdge"] = \
                     na.array([float(i) for i in vals.split()])
