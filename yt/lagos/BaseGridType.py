@@ -410,3 +410,10 @@ class EnzoGridBase(AMRGridPatch):
         else:
             self.filename = os.path.join(self.hierarchy.directory, filename)
         return
+
+class OrionGridBase(AMRGridPatch):
+    def __init__(self,LeftEdge,RightEdge,index):
+        # should error check this
+        self.LeftEdge  = LeftEdge
+        self.RightEdge = RightEdge
+        self.index = index

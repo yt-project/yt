@@ -20,7 +20,7 @@ import numpy as na
 
 # The dataset used is located at:
 # http://yt.spacepope.org/DD0018.zip
-fn = "uniformCollapse_base64_maxLev4"
+fn = "uniformCollapse_base64_maxLev4/plt0005"
 fn = os.path.join(os.path.dirname(__file__), fn)
 print "I AM GOING TO GET",fn
 

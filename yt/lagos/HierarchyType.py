@@ -33,7 +33,7 @@ _data_style_funcs = \
    { 4: (readDataHDF4, readAllDataHDF4, getFieldsHDF4, readDataSliceHDF4, getExceptionHDF4), \
      5: (readDataHDF5, readAllDataHDF5, getFieldsHDF5, readDataSliceHDF5, getExceptionHDF5), \
      6: (readDataPacked, readAllDataPacked, getFieldsPacked, readDataSlicePacked, getExceptionHDF5), \
-     7: (readDataNative, readAllDataNative, readDataSliceNative) \
+     7: (readDataNative, readAllDataNative, None, readDataSliceNative, getExceptionHDF5) \
    }
 
 class AMRHierarchy:
@@ -798,9 +798,11 @@ def constructRegularExpressions(param, toReadTypes):
     return re.compile(rs,re.M)
 
 class OrionHierarchy(AMRHierarchy):
-    def __init__(self,filename):
-        self.readGlobalHeader(filename)
-        
+    def __init__(self,pf,data_style=7):
+        header_filename = os.path.join(pf.fullplotdir,'Header')
+        self.data_style = data_style
+        self.readGlobalHeader(header_filename)
+        AMRHierarchy.__init__(self,pf)
     def readGlobalHeader(self,filename):
         """
         read the global header file for an Orion plotfile output.
@@ -880,10 +882,24 @@ class OrionHierarchy(AMRHierarchy):
                 counter+=1
                 lo = na.array([xlo,ylo,zlo])
                 hi = na.array([xhi,yhi,zhi])
-                self.levels[-1].grids.append(OrionGrid(lo,hi,grid_counter))
+                self.levels[-1].grids.append(OrionGridBase(lo,hi,grid_counter))
                 grid_counter += 1 # this is global, and shouldn't be reset
                                   # for each level
             self.levels[-1]._fileprefix = self.__global_header_lines[counter]
             counter+=1
 
         self.__header_file.close()
+
+    def _setup_classes(self):
+        dd = self._get_data_reader_dict()
+        self.grid = classobj("OrionGrid",(OrionGridBase,), dd)
+        AMRHierarchy._setup_classes(self, dd)
+
+
+class OrionLevel:
+    def __init__(self,level,ngrids):
+        self.level = level
+        self.ngrids = ngrids
+        self.grids = []
+    
+

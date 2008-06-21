@@ -282,7 +282,7 @@ class OrionStaticOutput(StaticOutput):
     """
     _hierarchy_class = OrionHierarchy
 
-    def __init__(self, plotname, paramFilename='inputs',data_style='Native'):
+    def __init__(self, plotname, paramFilename='inputs',data_style=7):
         """need to override for Orion file structure.
 
         the paramfile is usually called "inputs"
@@ -297,8 +297,9 @@ class OrionStaticOutput(StaticOutput):
         self.basename = os.path.basename(plotname)
         # this will be the directory ENCLOSING the pltNNNN directory
         self.directory = os.path.dirname(plotname)
-        self.parameter_filename = self.directory+paramFilename
+        self.parameter_filename = os.path.join(self.directory,paramFilename)
         self.fullpath = os.path.abspath(self.directory)
+        self.fullplotdir = os.path.abspath(plotname)
         if len(self.directory) == 0:
             self.directory = "."
         self.conversion_factors = {}
@@ -367,13 +368,7 @@ class OrionStaticOutput(StaticOutput):
         self.time_units = {}
         if len(self.parameters) == 0:
             self._parse_parameter_file()
-        if self["ComovingCoordinates"]:
-            raise RuntimeError("Orion doesn't do cosmology.")
-        elif self.has_key("LengthUnits"):
-            raise RuntimeError("Units not yet implemented.")
-            #self._setup_getunits_units()
-        else:
-            self._setup_nounits_units()
+        self._setup_nounits_units()
         self.time_units['1'] = 1
         self.units['1'] = 1
         seconds = self["Time"]
