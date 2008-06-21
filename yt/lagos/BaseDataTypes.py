@@ -1457,7 +1457,13 @@ class EnzoCoveringGrid(Enzo3DData):
         self._refresh_data()
 
     def _get_list_of_grids(self):
-        grids, ind = self.pf.hierarchy.get_box_grids(self.left_edge, self.right_edge)
+        if na.any(self.left_edge < self.pf["DomainLeftEdge"]) or \
+           na.any(self.right_edge > self.pf["DomainRightEdge"]):
+            grids,ind = self.pf.hierarchy.get_periodic_box_grids(
+                            self.left_edge.copy(), self.right_edge.copy())
+        else:
+            grids,ind = self.pf.hierarchy.get_box_grids(
+                            self.left_edge, self.right_edge)
         level_ind = na.where(self.pf.hierarchy.gridLevels.ravel()[ind] <= self.level)
         sort_ind = na.argsort(self.pf.h.gridLevels.ravel()[ind][level_ind])
         self._grids = self.pf.hierarchy.grids[ind][level_ind][(sort_ind,)]
@@ -1493,6 +1499,8 @@ class EnzoCoveringGrid(Enzo3DData):
             if self._use_pbar: pbar.finish()
             if na.any(self[field] == -999) and self.dx < self.hierarchy.grids[0].dx:
                 print "COVERING PROBLEM", na.where(self[field]==-999)[0].size
+                print na.where(self[field]==-999)
+                return
                 raise KeyError
 
     def flush_data(self, field=None):
@@ -1523,7 +1531,7 @@ class EnzoCoveringGrid(Enzo3DData):
         PointCombine.DataCubeRefine(
             grid.LeftEdge, g_dx, g_fields, grid.child_mask,
             self.left_edge, self.right_edge, c_dx, c_fields,
-            ll)
+            ll, self.pf["DomainLeftEdge"], self.pf["DomainRightEdge"])
 
     def _flush_data_to_grid(self, grid, fields):
         ll = int(grid.Level == self.level)
@@ -1538,7 +1546,7 @@ class EnzoCoveringGrid(Enzo3DData):
         PointCombine.DataCubeReplace(
             grid.LeftEdge, g_dx, g_fields, grid.child_mask,
             self.left_edge, self.right_edge, c_dx, c_fields,
-            ll)
+            ll, self.pf["DomainLeftEdge"], self.pf["DomainRightEdge"])
 
 class EnzoSmoothedCoveringGrid(EnzoCoveringGrid):
     def __init__(self, *args, **kwargs):
@@ -1633,7 +1641,7 @@ class EnzoSmoothedCoveringGrid(EnzoCoveringGrid):
             grid.LeftEdge, g_dx, g_fields, grid.child_mask,
             self.left_edge-c_dx, self.right_edge+c_dx,
             c_dx, c_fields,
-            1)
+            1, self.pf["DomainLeftEdge"], self.pf["DomainRightEdge"])
 
     def flush_data(self, *args, **kwargs):
         raise KeyError("Can't do this")

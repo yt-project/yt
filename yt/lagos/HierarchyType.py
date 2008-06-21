@@ -615,13 +615,31 @@ class EnzoHierarchy:
         gridI = na.where(na.logical_and((self.gridDxs<=radius)[:,0],(dist < (radius + long_axis))) == 1)
         return self.grids[gridI], gridI
 
-    def get_box_grids(self, leftEdge, rightEdge):
+    def get_box_grids(self, left_edge, right_edge):
         """
         Gets back all the grids between a left edge and right edge
         """
-        gridI = na.where((na.all(self.gridRightEdge > leftEdge, axis=1)
-                        & na.all(self.gridLeftEdge < rightEdge, axis=1)) == True)
-        return self.grids[gridI], gridI
+        grid_i = na.where((na.all(self.gridRightEdge > left_edge, axis=1)
+                         & na.all(self.gridLeftEdge < right_edge, axis=1)) == True)
+        return self.grids[grid_i], grid_i
+
+    def get_periodic_box_grids(self, left_edge, right_edge):
+        mask = na.zeros(self.grids.shape, dtype='bool')
+        dl = self.parameters["DomainLeftEdge"]
+        dr = self.parameters["DomainRightEdge"]
+        db = right_edge - left_edge
+        for off_x in [-1, 0, 1]:
+            nle = left_edge[:]
+            nre = left_edge[:]
+            nle[0] = dl[0] + (dr[0]-dl[0])*off_x
+            for off_y in [-1, 0, 1]:
+                nle[1] = dl[1] + (dr[1]-dl[1])*off_y
+                for off_z in [-1, 0, 1]:
+                    nle[2] = dl[2] + (dr[2]-dl[2])*off_z
+                    nre = nle + db
+                    g, gi = self.get_box_grids(nle, nre)
+                    mask[gi] = True
+        return self.grids[mask], na.where(mask)
 
     @time_execution
     def find_max(self, field, finestLevels = True):
