@@ -815,14 +815,9 @@ class OrionHierarchy(AMRHierarchy):
         
         
         """
-
-        # domain_pattern = r"\(\((\d+,\d+,\d+)\) \((\d+,\d+,\d+)\) \((\d+,\d+,\d+)\)\) \(\((\d+,\d+,\d+)\) \((\d+,\d+,\d+)\) \((\d+,\d+,\d+)\)\)"
-        # domain_re = re.compile(domain_pattern)
-
         counter = 0
-        # CHANGE FOLLOWING: __header_file SHOULD NOT BE A CLASS MEMBER
-        self.__header_file = open(filename,'r')
-        self.__global_header_lines = self.__header_file.readlines()
+        header_file = open(filename,'r')
+        self.__global_header_lines = header_file.readlines()
 
         # parse the file
         self.orion_version = self.__global_header_lines[0].rstrip()
@@ -865,12 +860,14 @@ class OrionHierarchy(AMRHierarchy):
         # this is just to debug. eventually it should go away.
         linebreak = int(self.__global_header_lines[counter])
         if linebreak != 0:
-            raise RunTimeError("INTERNAL ERROR! This should be a zero. the reader function be broke, J.S.")
+            raise RunTimeError("INTERNAL ERROR! This should be a zero.")
         counter += 1
 
         # each level is one group with ngrids on it. each grid has 3 lines of 2 reals
         self.levels = []
         grid_counter = 0
+        file_finder_pattern = r"FabOnDisk: (Cell_D_[0-9]{4}) (\d+)\n"
+        re_file_finder = re.compile(file_finder_pattern)
         for level in range(0,self.n_levels):
             tmp = self.__global_header_lines[counter].split()
             # should this be grid_time or level_time??
@@ -879,7 +876,14 @@ class OrionHierarchy(AMRHierarchy):
             nsteps = int(self.__global_header_lines[counter])
             counter += 1
             self.levels.append(OrionLevel(lev,ngrids))
+            # open level header, extract file names and offsets for
+            # each grid
+            fn = os.path.join(self.parameter_file.directory,'Level_%i'%level)
+            level_header_file = open(os.path.join(fn,'Cell_H'),'r').read()
+            grid_file_offset = re_file_finder.findall(level_header_file)
+            
             for grid in range(0,ngrids):
+                gfn = os.path.join(fn,grid_file_offset[grid][0])
                 xlo,xhi = map(float,self.__global_header_lines[counter].split())
                 counter+=1
                 ylo,yhi = map(float,self.__global_header_lines[counter].split())
@@ -898,7 +902,7 @@ class OrionHierarchy(AMRHierarchy):
 
         self.maxLevel = self.n_levels
         self.max_level = self.n_levels
-        self.__header_file.close()
+        header_file.close()
 
     def _initialize_grids(self):
         mylog.debug("Allocating memory for %s grids", self.num_grids)

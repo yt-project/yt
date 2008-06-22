@@ -412,9 +412,11 @@ class EnzoGridBase(AMRGridPatch):
         return
 
 class OrionGridBase(AMRGridPatch):
-    def __init__(self,LeftEdge,RightEdge,index, level):
+    def __init__(self, LeftEdge, RightEdge, index, level, filename, offset):
         AMRGridPatch.__init__(self, index)
         self._file_access_pooling = False
+        self.filename = filename
+        self._offset = offset
         # should error check this
         self.LeftEdge  = LeftEdge
         self.RightEdge = RightEdge
