@@ -81,6 +81,22 @@ Additionally, if you use yt in a paper, I&#8217;d love it if you&#8217;d drop me
 let me know.</p>
 </div>
 <div class="section">
+<h2 id="how-do-i-know-what-the-units-returned-are">How do I know what the units returned are?<a class="headerlink" href="#how-do-i-know-what-the-units-returned-are" title="Permalink to this headline">¶</a></h2>
+<p>This is a very important question.  The derived fields &#8211; and the native data
+types &#8211; are returned as CGS units, to the best knowledge of the code; but if
+you see something that looks way off, you should investigate.  To see,
+specifically, what yt is returning for a given field, you can do:</p>
+<div class="highlight"><pre><span class="k">print</span> <span class="n">lagos</span><span class="o">.</span><span class="n">fieldInfo</span><span class="p">[</span><span class="n">some_field</span><span class="p">]</span><span class="o">.</span><span class="n">units</span>
+</pre></div>
+<p>and it will show you the units that have been assigned to it.</p>
+<p>If you are defining your own derived field, you should assume that the units
+given to the function you define are already in CGS.</p>
+<p>That being said, if for some reason yt is unable to determine the correct units
+for your simulation, it will notify you.  It knows how to parse output from
+all of the versions of Enzo I have used or encountered, and the newest public
+release is a target platform.</p>
+</div>
+<div class="section">
 <h2 id="what-are-all-these-yt-files">What are all these .yt files?<a class="headerlink" href="#what-are-all-these-yt-files" title="Permalink to this headline">¶</a></h2>
 <p>By default, yt attempts to serialize a couple pieces of data that help speed it
 up in future invocations.  Specifically, the entire contents of the hierarchy,
@@ -138,6 +154,7 @@ at the <a class="reference" href="http://yt.enzotools.org">yt homepage</a>.</p>
 <li><a class="reference" href="#where-can-i-learn-more-about-python">Where can I learn more about Python?</a></li>
 <li><a class="reference" href="#what-s-up-with-the-names">What&#8217;s up with the names?</a></li>
 <li><a class="reference" href="#are-there-any-restrictions-on-my-use-of-yt">Are there any restrictions on my use of yt?</a></li>
+<li><a class="reference" href="#how-do-i-know-what-the-units-returned-are">How do I know what the units returned are?</a></li>
 <li><a class="reference" href="#what-are-all-these-yt-files">What are all these .yt files?</a></li>
 <li><a class="reference" href="#how-can-i-help">How can I help?</a></li>
 <li><a class="reference" href="#something-has-gone-wrong-what-do-i-do">Something has gone wrong.  What do I do?</a></li>
@@ -180,7 +197,7 @@ at the <a class="reference" href="http://yt.enzotools.org">yt homepage</a>.</p>
     </div>
     <div class="footer">
       &copy; Copyright 2008, Matthew J. Turk.
-      Last updated on Jun 20, 2008.
+      Last updated on Jun 22, 2008.
     </div>
   </body>
 </html>

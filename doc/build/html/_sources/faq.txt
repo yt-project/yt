@@ -44,6 +44,26 @@ I'd love to see your contributions so they can be shared with the community.
 Additionally, if you use yt in a paper, I'd love it if you'd drop me a line to
 let me know.
 
+How do I know what the units returned are?
+------------------------------------------
+
+This is a very important question.  The derived fields -- and the native data
+types -- are returned as CGS units, to the best knowledge of the code; but if
+you see something that looks way off, you should investigate.  To see,
+specifically, what yt is returning for a given field, you can do: ::
+
+   print lagos.fieldInfo[some_field].units
+
+and it will show you the units that have been assigned to it.
+
+If you are defining your own derived field, you should assume that the units
+given to the function you define are already in CGS.
+
+That being said, if for some reason yt is unable to determine the correct units
+for your simulation, it will notify you.  It knows how to parse output from
+all of the versions of Enzo I have used or encountered, and the newest public
+release is a target platform.
+
 What are all these .yt files?
 -----------------------------
 

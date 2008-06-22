@@ -17,3 +17,7 @@ echo " (generated with 'svn stat | grep \? ')"
 echo
 svn stat | grep \?
 echo
+
+echo "Examples files status:"
+echo
+svn stat ../examples/

@@ -17,12 +17,10 @@ easier.  Specifically, if you start your scripts with
 then your namespace is populated, and the last argument on the command line is
 automatically turned into an :class:`EnzoStaticOutput`.
 
-Executing Example Scripts
--------------------------
-
-All of these scripts are located in the examples/ directory of the main
-distribution.  Except as otherwise noted, they are all executable if the last
-argument on the command line is the location of your parameter file:
+.. note::
+   All of these scripts are located in the examples/ directory of the main
+   distribution.  Except as otherwise noted, they are all executable if the last
+   argument on the command line is the location of your parameter file:
 
 .. code-block:: bash
 
@@ -33,6 +31,7 @@ argument on the command line is the location of your parameter file:
 
    making_simple_plots
    analyzing_data
+   making_profiles
    grouping_data
    making_movies
    making_timeseries_plots
