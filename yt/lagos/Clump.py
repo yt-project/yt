@@ -1,8 +1,6 @@
 import yt.lagos as lagos
 import numpy as na
 
-cl_parameters = {'minCells':64}
-
 class Clump(object):
     children = None
     def __init__(self, data, parent, field):
@@ -23,24 +21,40 @@ class Clump(object):
             new_clump = self.data.extract_region(contour_info[cid])
             self.children.append(Clump(new_clump, self, self.field))
 
+    def get_IsBound(self):
+        if self.isBound is None:
+            self.isBound = self.data.quantities["IsBound"](truncate=True,include_thermal_energy=True)
+        return self.isBound
+
 def find_clumps(clump, min, max, d_clump):
     print "Finding clumps: min: %e, max: %e, step: %f" % (min, max, d_clump)
     if min >= max: return
     clump.find_children(min)
 
-    these_children = []
-    for child in clump.children:
-        if (len(child.data["CellMassMsun"]) >= cl_parameters['minCells']):
-            these_children.append(child)
-        else:
-            print "Eliminating clump with %d cells." % len(child.data["CellMassMsun"])
-    clump.children = these_children
-
     if (len(clump.children) == 1):
         find_clumps(clump, min*d_clump, max, d_clump)
-    else:
+
+    elif (len(clump.children) > 0):
+        these_children = []
+        print "Investigating %d children." % len(clump.children)
         for child in clump.children:
             find_clumps(child, min*d_clump, max, d_clump)
+            if ((child.children is not None) and (len(child.children) > 0)):
+                these_children.append(child)
+            elif (child.get_IsBound() > 1.0):
+                these_children.append(child)
+            else:
+                print "Eliminating unbound, childless clump with %d cells." % len(child.data["CellMassMsun"])
+        if (len(these_children) > 1):
+            print "%d of %d children survived." % (len(these_children),len(clump.children))            
+            clump.children = these_children
+        elif (len(these_children) == 1):
+            print "%d of %d children survived, linking its children to parent." % (len(these_children),len(clump.children))
+            clump.children = these_children[0].children
+        else:
+            print "%d of %d children survived, erasing children." % (len(these_children),len(clump.children))
+            clump.children = []
+
 
 def write_clump_hierarchy(clump,level,f_ptr):
     for q in range(level):
@@ -65,13 +79,7 @@ def write_clumps(clump,level,f_ptr):
         for child in clump.children:
             write_clumps(child,0,f_ptr)
 
-def write_clump_finder_parameters(f_ptr):
-    for par in cl_parameters.keys():
-        f_ptr.write("# %s: %s\n" % (par,cl_parameters[par]))
-
 def write_clump_info(clump,level,f_ptr):
-    if clump.isBound is None:
-        clump.isBound = clump.data.quantities["IsBound"]()
     for q in range(level):
         f_ptr.write("\t")
     f_ptr.write("Cells: %d\n" % len(clump.data["CellMassMsun"]))
@@ -95,6 +103,3 @@ def write_clump_info(clump,level,f_ptr):
     for q in range(level):
         f_ptr.write("\t")
     f_ptr.write("Max number density: %.6e cm^-3\n" % clump.data["NumberDensity"].max())
-    for q in range(level):
-        f_ptr.write("\t")
-    f_ptr.write("Bound: %s\n" % clump.isBound)
