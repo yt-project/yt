@@ -200,7 +200,10 @@ def readDataNative(self,field):
 def readAllDataNative():
     pass
 
-def readDataSliceNative():
+def readDataSliceNative(self, grid, field, axis, coord):
     """wishful thinking?
     """
-    pass
+    sl = [slice(None), slice(None), slice(None)]
+    sl[axis] = slice(coord, coord + 1)
+    sl = tuple(reversed(sl))
+    return self.readDataFast(field)[sl]
