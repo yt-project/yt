@@ -328,7 +328,7 @@ add_field("GridLevel", validators=[#ValidateProperty('Level'),
                                    ValidateSpatial(0)])
 
 def _GridIndices(field, data):
-    return na.ones(data["Density"].shape)*(data.id-1)
+    return na.ones(data["Density"].shape)*(data.id-data._id_offset)
 add_field("GridIndices", validators=[#ValidateProperty('id'),
                                      ValidateSpatial(0)], take_log=False)
 

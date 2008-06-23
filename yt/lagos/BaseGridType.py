@@ -31,6 +31,7 @@ class AMRGridPatch(AMRData):
     _spatial = True
     _num_ghost_zones = 0
     _grids = None
+    _id_offset = 1
 
     def __init__(self, id, filename=None, hierarchy = None):
         self.data = {}
@@ -86,13 +87,14 @@ class AMRGridPatch(AMRData):
     def _setup_dx(self):
         # So first we figure out what the index is.  We don't assume
         # that dx=dy=dz , at least here.  We probably do elsewhere.
-        self.dx = self.hierarchy.gridDxs[self.id-1,0]
-        self.dy = self.hierarchy.gridDys[self.id-1,0]
-        self.dz = self.hierarchy.gridDzs[self.id-1,0]
+        id = self.id - self._id_offset
+        self.dx = self.hierarchy.gridDxs[id,0]
+        self.dy = self.hierarchy.gridDys[id,0]
+        self.dz = self.hierarchy.gridDzs[id,0]
         self.data['dx'] = self.dx
         self.data['dy'] = self.dy
         self.data['dz'] = self.dz
-        self._corners = self.hierarchy.gridCorners[:,:,self.id-1]
+        self._corners = self.hierarchy.gridCorners[:,:,id]
 
 
     def _generate_overlap_masks(self, axis, LE, RE):
@@ -414,6 +416,7 @@ class EnzoGridBase(AMRGridPatch):
         return
 
 class OrionGridBase(AMRGridPatch):
+    _id_offset = 0
     def __init__(self, LeftEdge, RightEdge, index, level, filename, offset, dimensions,start,stop,paranoia=True):
         AMRGridPatch.__init__(self, index)
         self._file_access_pooling = False
