@@ -823,7 +823,6 @@ class AMRProjBase(AMR2DData):
                           % (level, self._max_level), len(grids_to_project))
         for pi, grid in enumerate(grids_to_project):
             g_coords, g_fields = self._project_grid(grid, fields, zero_out)
-            print "FIGHTIN'", na.where(g_coords[0]<0)[0].size
             self.__retval_coords[grid.id] = g_coords
             self.__retval_fields[grid.id] = g_fields
             for fi in range(len(fields)): g_fields[fi] *= dls[fi]
@@ -887,8 +886,9 @@ class AMRProjBase(AMR2DData):
                 args += self.__retval_coords[grid2.id] + [self.__retval_fields[grid2.id]]
                 args += self.__retval_coords[grid1.id] + [self.__retval_fields[grid1.id]]
                 args.append(1) # Refinement factor
+                args.append(na.ones(args[0].shape, dtype='int64'))
                 kk = PointCombine.CombineGrids(*args)
-                goodI = na.where(self.__retval_coords[grid2.id][0] > -1)
+                goodI = args[-1].astype('bool')
                 self.__retval_coords[grid2.id] = \
                     [coords[goodI] for coords in self.__retval_coords[grid2.id]]
                 self.__retval_fields[grid2.id] = \
@@ -909,8 +909,9 @@ class AMRProjBase(AMR2DData):
                     args += self.__retval_coords[grid2.id] + [self.__retval_fields[grid2.id]]
                     args += self.__retval_coords[grid1.id] + [self.__retval_fields[grid1.id]]
                     args.append(int(grid2.dx / grid1.dx))
+                    args.append(na.ones(args[0].shape, dtype='int64'))
                     kk = PointCombine.CombineGrids(*args)
-                    goodI = (self.__retval_coords[grid2.id][0] > -1)
+                    goodI = args[-1].astype('bool')
                     self.__retval_coords[grid2.id] = \
                         [coords[goodI] for coords in self.__retval_coords[grid2.id]]
                     self.__retval_fields[grid2.id] = \
@@ -931,7 +932,6 @@ class AMRProjBase(AMR2DData):
         dxs = []
         for level in range(0, self._max_level+1):
             my_coords, my_dx, my_fields = self.__project_level(level, fields)
-            print "MID COORDS", level, na.where(my_coords[0,:] < 0)[0].size
             coord_data.append(my_coords)
             field_data.append(my_fields)
             dxs.append(my_dx * na.ones(my_coords.shape[1], dtype='float64'))
@@ -950,8 +950,6 @@ class AMRProjBase(AMR2DData):
         # We now convert to half-widths and center-points
         self.data['pdx'] = dxs
         xax, yax = x_dict[self.axis], y_dict[self.axis]
-        print "FINAL COORDS", na.where(coord_data[0,:]<0)[0].size,\
-                              na.where(coord_data[1,:]<0)[0].size
         self.data['px'] = (coord_data[0,:]+0.5) * self['pdx']
         self.data['py'] = (coord_data[1,:]+0.5) * self['pdx']
         self.data['pdx'] *= 0.5
@@ -987,7 +985,6 @@ class AMRProjBase(AMR2DData):
         start_index = grid.get_global_startindex()
         xpoints = (xind + (start_index[x_dict[self.axis]])).astype('int64')
         ypoints = (yind + (start_index[y_dict[self.axis]])).astype('int64')
-        print "FUCK", grid.id, na.where(xpoints < 0)[0].size, na.where(ypoints < 0)[0].size
         return ([xpoints, ypoints,
                 subgrid_mask[used_points].ravel(),
                 weight_proj[used_points].ravel()],

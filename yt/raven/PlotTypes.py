@@ -259,7 +259,6 @@ class VMPlot(RavenPlot):
     def _get_buff(self, width=None):
         x0, x1 = self.xlim
         y0, y1 = self.ylim
-        print "LIMITS BITCHES", x0, x1, y0, y1
         if width is None:
             l, b, width, height = self._axes.bbox.get_bounds()
         else:
