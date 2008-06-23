@@ -22,7 +22,8 @@ redshift_dump_prefix = "RedshiftDump"
 field = "Density"
 radius = 0.0001
 units = "pc"
-step = 10**(1./4.) # 4 steps each order of magnitude
+steps_per_dex = 4.
+step = 10**(1./steps_per_dex)
 
 minCells = 64 # not setting anything, only for file prefix
 
@@ -37,7 +38,7 @@ for q in redshift_dumps:
 for dataset in datasets:
     print "Finding clumps in %s." % dataset
 
-    prefix = "%s_%.1e%s_step%.2f_min%d" % (dataset,radius,units,step,minCells)
+    prefix = "%s_%.1e%s_spd%d_min%d" % (dataset,radius,units,steps_per_dex,minCells)
 
     dataset_object = lagos.EnzoStaticOutput(dataset)
 

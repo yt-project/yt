@@ -23,12 +23,10 @@ def find_clumps_dataset(prefix,data_object,field,step):
     print "Took %0.3e seconds" % (t2-t1)
 
     f = open('%s_clump_hierarchy.txt' % prefix,'w')
-    cl.write_clump_finder_parameters(f)
     cl.write_clump_hierarchy(master_clump,0,f)
     f.close()
 
     f = open('%s_clumps.txt' % prefix,'w')
-    cl.write_clump_finder_parameters(f)
     cl.write_clumps(master_clump,0,f)
     f.close()
 
