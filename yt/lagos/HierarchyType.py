@@ -56,7 +56,7 @@ class AMRHierarchy:
         mylog.debug("Populating hierarchy")
         self._populate_hierarchy()
         mylog.debug("Done populating hierarchy")
-        
+
     def _initialize_grids(self):
         mylog.debug("Allocating memory for %s grids", self.num_grids)
         self.gridDimensions = na.zeros((self.num_grids,3), 'int32')
@@ -802,6 +802,7 @@ def constructRegularExpressions(param, toReadTypes):
 
 class OrionHierarchy(AMRHierarchy):
     def __init__(self,pf,data_style=7):
+        self.field_indexes = {}
         self.parameter_file = pf
         header_filename = os.path.join(pf.fullplotdir,'Header')
         self.data_style = data_style
@@ -823,10 +824,13 @@ class OrionHierarchy(AMRHierarchy):
         self.orion_version = self.__global_header_lines[0].rstrip()
         self.n_fields      = int(self.__global_header_lines[1])
 
-        self.field_list = []
         counter = self.n_fields+2
-        for line in self.__global_header_lines[2:counter]:
-            self.field_list.append(line.rstrip())
+        for i,line in enumerate(self.__global_header_lines[2:counter]):
+            self.field_indexes[line.rstrip()] =i
+        self.field_list = []
+        for f in self.field_indexes:
+            print f, orion2ytFieldsDict.get(f,f)
+            self.field_list.append(orion2ytFieldsDict.get(f,f))
 
         self.dimension = int(self.__global_header_lines[counter])
         if self.dimension != 3:
@@ -868,6 +872,9 @@ class OrionHierarchy(AMRHierarchy):
         grid_counter = 0
         file_finder_pattern = r"FabOnDisk: (Cell_D_[0-9]{4}) (\d+)\n"
         re_file_finder = re.compile(file_finder_pattern)
+        dim_finder_pattern = r"\(\((\d+,\d+,\d+)\) \((\d+,\d+,\d+)\) \(\d+,\d+,\d+\)\)\n"
+        re_dim_finder = re.compile(dim_finder_pattern)
+        
         for level in range(0,self.n_levels):
             tmp = self.__global_header_lines[counter].split()
             # should this be grid_time or level_time??
@@ -878,12 +885,13 @@ class OrionHierarchy(AMRHierarchy):
             self.levels.append(OrionLevel(lev,ngrids))
             # open level header, extract file names and offsets for
             # each grid
-            fn = os.path.join(self.parameter_file.directory,'Level_%i'%level)
+            fn = os.path.join(self.parameter_file.fullplotdir,'Level_%i'%level)
             level_header_file = open(os.path.join(fn,'Cell_H'),'r').read()
             grid_file_offset = re_file_finder.findall(level_header_file)
-            
+            start_stop_index = re_dim_finder.findall(level_header_file)
             for grid in range(0,ngrids):
                 gfn = os.path.join(fn,grid_file_offset[grid][0])
+                gfo = int(grid_file_offset[grid][1])
                 xlo,xhi = map(float,self.__global_header_lines[counter].split())
                 counter+=1
                 ylo,yhi = map(float,self.__global_header_lines[counter].split())
@@ -892,7 +900,8 @@ class OrionHierarchy(AMRHierarchy):
                 counter+=1
                 lo = na.array([xlo,ylo,zlo])
                 hi = na.array([xhi,yhi,zhi])
-                self.levels[-1].grids.append(self.grid(lo,hi,grid_counter,level))
+                dims,start,stop = self.__calculate_grid_dimensions(start_stop_index[grid])
+                self.levels[-1].grids.append(self.grid(lo,hi,grid_counter,level,gfn, gfo, dims,start,stop))
                 grid_counter += 1 # this is global, and shouldn't be reset
                                   # for each level
             self.levels[-1]._fileprefix = self.__global_header_lines[counter]
@@ -900,45 +909,65 @@ class OrionHierarchy(AMRHierarchy):
             self.num_grids = grid_counter
             self.float_type = 'float64'
 
-        self.maxLevel = self.n_levels
-        self.max_level = self.n_levels
+        self.maxLevel = self.n_levels - 1 
+        self.max_level = self.n_levels - 1
         header_file.close()
+
+    def __calculate_grid_dimensions(self,start_stop):
+        start = na.array(map(int,start_stop[0].split(',')))
+        stop = na.array(map(int,start_stop[1].split(',')))
+        dimension = stop - start + 1
+        return dimension,start,stop
+        
 
     def _initialize_grids(self):
         mylog.debug("Allocating memory for %s grids", self.num_grids)
         self.gridDimensions = na.zeros((self.num_grids,3), 'int32')
         self.gridStartIndices = na.zeros((self.num_grids,3), 'int32')
         self.gridEndIndices = na.zeros((self.num_grids,3), 'int32')
-        self.gridLeftEdge = na.zeros((self.num_grids,3), self.float_type)
-        self.gridRightEdge = na.zeros((self.num_grids,3), self.float_type)
-        self.gridLevels = na.zeros((self.num_grids,1), 'int32')
-        self.gridDxs = na.zeros((self.num_grids,1), self.float_type)
-        self.gridDys = na.zeros((self.num_grids,1), self.float_type)
-        self.gridDzs = na.zeros((self.num_grids,1), self.float_type)
         self.gridTimes = na.zeros((self.num_grids,1), 'float64')
         self.gridNumberOfParticles = na.zeros((self.num_grids,1))
         mylog.debug("Done allocating")
         mylog.debug("Creating grid objects")
         self.grids = na.concatenate([level.grids for level in self.levels])
-        self.gridReverseTree = [-1] * self.num_grids
+        self.gridLevels = na.concatenate([level.ngrids*[level.level] for level in self.levels])
+        self.gridLevels = self.gridLevels.reshape((self.num_grids,1))
+        gridDcs = na.concatenate([level.ngrids*[self.dx[level.level]] for level in self.levels],axis=0)
+        self.gridDxs = gridDcs[:,0].reshape((self.num_grids,1))
+        self.gridDys = gridDcs[:,1].reshape((self.num_grids,1))
+        self.gridDzs = gridDcs[:,2].reshape((self.num_grids,1))
+        left_edges = []
+        right_edges = []
+        for level in self.levels:
+            left_edges += [g.LeftEdge for g in level.grids]
+            right_edges += [g.RightEdge for g in level.grids]
+        self.gridLeftEdge = na.array(left_edges)
+        self.gridRightEdge = na.array(right_edges)
+        print self.gridLeftEdge.shape, self.gridRightEdge.shape
+        self.gridReverseTree = [] * self.num_grids
+        self.gridReverseTree = [ [] for i in range(self.num_grids)]
         self.gridTree = [ [] for i in range(self.num_grids)]
         mylog.debug("Done creating grid objects")
 
     def _populate_hierarchy(self):
         self.__setup_grid_tree()
+        self._setup_grid_corners()
         for i, grid in enumerate(self.grids):
             if (i%1e4) == 0: mylog.debug("Prepared % 7i / % 7i grids", i, self.num_grids)
             grid._prepare_grid()
+            grid._setup_dx()
 
     def __setup_grid_tree(self):
         for i, grid in enumerate(self.grids):
             children = self._get_grid_children(grid)
+            print i, grid.id, children
             for child in children:
-                self.gridReverseTree[child.id] = i
+                self.gridReverseTree[child.id].append(i)
                 self.gridTree[i].append(weakref.proxy(child))
 
     def _setup_classes(self):
         dd = self._get_data_reader_dict()
+        dd["field_indexes"] = self.field_indexes
         self.grid = classobj("OrionGrid",(OrionGridBase,), dd)
         AMRHierarchy._setup_classes(self, dd)
 
@@ -948,6 +977,7 @@ class OrionHierarchy(AMRHierarchy):
         mask[grid_ind] = True
         mask = na.logical_and(mask, (self.gridLevels == (grid.Level+1)).flat)
         return self.grids[mask]
+
 
 class OrionLevel:
     def __init__(self,level,ngrids):

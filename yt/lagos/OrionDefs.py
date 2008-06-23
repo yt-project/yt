@@ -25,7 +25,7 @@ Various definitions for various other modules and routines
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 """
-
+from yt.funcs import *
 ### this assumes EnzoDefs.py has *already* been imported
 
 # converts the Orion inputs file name to the Enzo/yt name expected
@@ -33,9 +33,13 @@ Various definitions for various other modules and routines
 orion2enzoDict = {"amr.n_cell": "TopGridRank",
                   }
 
-orion2ytFieldsDict = {"x-velocity": "xvel",
-                      "y-velocity": "yvel",
-                      "z-velocity": "zvel",
-                      "Density": "density",
-                      "Total_Energy": "eden",
-                     }
+
+yt2orionFieldsDict = {"x-velocity": "xvel",
+                        "y-velocity": "yvel",
+                        "z-velocity": "zvel",
+                        "Density": "density",
+                        "Total_Energy": "eden",
+                        }
+orion2ytFieldsDict = {}
+for f,v in yt2orionFieldsDict.items():
+    orion2ytFieldsDict[v] = f

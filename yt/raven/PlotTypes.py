@@ -108,6 +108,7 @@ class RavenPlot:
         self.im = defaultdict(lambda: "")
         self["ParameterFile"] = "%s" % self.data.pf
         self.axis_names = {}
+        self._ax_min = self.data.pf["DomainLeftEdge"]
         self._ax_max = self.data.pf["DomainRightEdge"]
         if not figure:
             self._figure = matplotlib.figure.Figure(size)
@@ -156,9 +157,11 @@ class RavenPlot:
         pass
 
     def set_xlim(self, xmin, xmax):
+        mylog.debug("Setting limits in x: %0.5e %0.5e", xmin, xmax)
         self._axes.set_xlim(xmin, xmax)
 
     def set_ylim(self, ymin, ymax):
+        mylog.debug("Setting limits in y: %4.5e %0.5e", ymin, ymax)
         self._axes.set_ylim(ymin, ymax)
 
     def set_zlim(self, zmin, zmax):
@@ -209,6 +212,8 @@ class VMPlot(RavenPlot):
         self.ymax = 1.0
         self.cmap = None
         if self.data.axis < 3:
+            self._x_min = self._ax_min[lagos.x_dict[self.data.axis]]
+            self._y_min = self._ax_min[lagos.y_dict[self.data.axis]]
             self._x_max = self._ax_max[lagos.x_dict[self.data.axis]]
             self._y_max = self._ax_max[lagos.y_dict[self.data.axis]]
         self.__setup_from_field(field)
@@ -248,11 +253,13 @@ class VMPlot(RavenPlot):
                                                 shrink=0.95)
         else:
             self.colorbar = None
-        self.set_width(1,'1')
+        w = self.data.pf["DomainRightEdge"]-self.data.pf["DomainLeftEdge"]
+        self.set_width(w.min(),'1')
 
     def _get_buff(self, width=None):
         x0, x1 = self.xlim
         y0, y1 = self.ylim
+        print "LIMITS BITCHES", x0, x1, y0, y1
         if width is None:
             l, b, width, height = self._axes.bbox.get_bounds()
         else:
@@ -305,9 +312,11 @@ class VMPlot(RavenPlot):
         self.autoset_label()
 
     def set_xlim(self, xmin, xmax):
+        mylog.error("Setting limits in x: %0.5e %0.5e", xmin, xmax)
         self.xlim = (xmin,xmax)
 
     def set_ylim(self, ymin, ymax):
+        mylog.error("Setting limits in y: %4.5e %0.5e", ymin, ymax)
         self.ylim = (ymin,ymax)
 
     def _generate_prefix(self, prefix):
@@ -339,8 +348,8 @@ class VMPlot(RavenPlot):
         r_edge_x = self.data.center[lagos.x_dict[self.data.axis]] + width_x/2.0
         l_edge_y = self.data.center[lagos.y_dict[self.data.axis]] - width_y/2.0
         r_edge_y = self.data.center[lagos.y_dict[self.data.axis]] + width_y/2.0
-        self.set_xlim(max(l_edge_x,0.0), min(r_edge_x,self._x_max))
-        self.set_ylim(max(l_edge_y,0.0), min(r_edge_y,self._y_max))
+        self.set_xlim(max(l_edge_x,self._x_min), min(r_edge_x,self._x_max))
+        self.set_ylim(max(l_edge_y,self._y_min), min(r_edge_y,self._y_max))
         self._redraw_image()
 
     def autoscale(self):

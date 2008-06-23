@@ -26,6 +26,7 @@ print "I AM GOING TO GET",fn
 
 class LagosTestingBase:
     def setUp(self):
+        print fn
         self.OutputFile = yt.lagos.OrionStaticOutput(fn)
         self.hierarchy = self.OutputFile.hierarchy
         self.v, self.c = self.hierarchy.find_max("Density")

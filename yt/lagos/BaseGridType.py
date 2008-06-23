@@ -263,7 +263,9 @@ class AMRGridPatch(AMRData):
         for child in self.Children:
             # Now let's get our overlap
             startIndex = na.rint((child.LeftEdge - self.LeftEdge)/self.dx)
-            endIndex = na.rint((child.RightEdge - self.LeftEdge)/self.dx)
+            endIndex = na.minimum(na.rint((child.RightEdge - self.LeftEdge)/self.dx),
+                                  startIndex + self.ActiveDimensions)
+            startIndex = na.maximum(0, startIndex)
             self.__child_mask[startIndex[0]:endIndex[0],
                               startIndex[1]:endIndex[1],
                               startIndex[2]:endIndex[2]] = 0
@@ -412,13 +414,47 @@ class EnzoGridBase(AMRGridPatch):
         return
 
 class OrionGridBase(AMRGridPatch):
-    def __init__(self, LeftEdge, RightEdge, index, level, filename, offset):
+    def __init__(self, LeftEdge, RightEdge, index, level, filename, offset, dimensions,start,stop,paranoia=True):
         AMRGridPatch.__init__(self, index)
         self._file_access_pooling = False
         self.filename = filename
         self._offset = offset
+        self._paranoid = paranoia
+        
         # should error check this
-        self.LeftEdge  = LeftEdge
-        self.RightEdge = RightEdge
+        self.ActiveDimensions = dimensions.copy()#.transpose()
+        self.start = start.copy()#.transpose()
+        self.stop = stop.copy()#.transpose()
+        self.LeftEdge  = LeftEdge.copy()
+        self.RightEdge = RightEdge.copy()
         self.index = index
         self.Level = level
+
+    def get_global_startindex(self):
+        return self.start + na.rint(self.pf["DomainLeftEdge"]/self.dx)
+
+    def _prepare_grid(self):
+        """
+        Copies all the appropriate attributes from the hierarchy
+        """
+        # This is definitely the slowest part of generating the hierarchy
+        # Now we give it pointers to all of its attributes
+        # Note that to keep in line with Enzo, we have broken PEP-8
+        h = self.hierarchy # cache it
+        self.StartIndices = h.gridStartIndices[self.id]
+        self.EndIndices = h.gridEndIndices[self.id]
+        h.gridLevels[self.id,0] = self.Level
+        h.gridLeftEdge[self.id,:] = self.LeftEdge[:]
+        h.gridRightEdge[self.id,:] = self.RightEdge[:]
+#        self.Level = h.gridLevels[self.id+1,0]
+#        self.LeftEdge = h.gridLeftEdge[self.id]
+#        self.RightEdge = h.gridRightEdge[self.id]
+        self.Time = h.gridTimes[self.id,0]
+        self.NumberOfParticles = h.gridNumberOfParticles[self.id,0]
+        self.Children = h.gridTree[self.id]
+        pIDs = h.gridReverseTree[self.id]
+        if len(pIDs) > 0:
+            self.Parent = [weakref.proxy(h.grids[pID]) for pID in pIDs]
+        else:
+            self.Parent = []
+

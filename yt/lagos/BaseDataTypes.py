@@ -823,6 +823,7 @@ class AMRProjBase(AMR2DData):
                           % (level, self._max_level), len(grids_to_project))
         for pi, grid in enumerate(grids_to_project):
             g_coords, g_fields = self._project_grid(grid, fields, zero_out)
+            print "FIGHTIN'", na.where(g_coords[0]<0)[0].size
             self.__retval_coords[grid.id] = g_coords
             self.__retval_fields[grid.id] = g_fields
             for fi in range(len(fields)): g_fields[fi] *= dls[fi]
@@ -901,24 +902,25 @@ class AMRProjBase(AMR2DData):
                           % (level, self._max_level), len(grids))
         for pi, grid1 in enumerate(grids):
             pbar.update(pi)
-            for grid2 in self.source._grids[grids_up][self.__overlap_masks[grid1.Parent.id]]:
-                if self.__retval_coords[grid2.id][0].shape[0] == 0: continue
-                args = []
-                args += self.__retval_coords[grid2.id] + [self.__retval_fields[grid2.id]]
-                args += self.__retval_coords[grid1.id] + [self.__retval_fields[grid1.id]]
-                args.append(int(grid2.dx / grid1.dx))
-                kk = PointCombine.CombineGrids(*args)
-                goodI = (self.__retval_coords[grid2.id][0] > -1)
-                self.__retval_coords[grid2.id] = \
-                    [coords[goodI] for coords in self.__retval_coords[grid2.id]]
-                self.__retval_fields[grid2.id] = \
-                    [fields[goodI] for fields in self.__retval_fields[grid2.id]]
+            for parent in grid1.Parent:
+                for grid2 in self.source._grids[grids_up][self.__overlap_masks[parent.id]]:
+                    if self.__retval_coords[grid2.id][0].shape[0] == 0: continue
+                    args = []
+                    args += self.__retval_coords[grid2.id] + [self.__retval_fields[grid2.id]]
+                    args += self.__retval_coords[grid1.id] + [self.__retval_fields[grid1.id]]
+                    args.append(int(grid2.dx / grid1.dx))
+                    kk = PointCombine.CombineGrids(*args)
+                    goodI = (self.__retval_coords[grid2.id][0] > -1)
+                    self.__retval_coords[grid2.id] = \
+                        [coords[goodI] for coords in self.__retval_coords[grid2.id]]
+                    self.__retval_fields[grid2.id] = \
+                        [fields[goodI] for fields in self.__retval_fields[grid2.id]]
         for grid1 in self.source.select_grids(level-1):
             if not self._check_region and self.__retval_coords[grid1.id][0].size != 0:
                 mylog.error("Something messed up, and %s still has %s points of data",
                             grid1, self.__retval_coords[grid1.id][0].size)
                 mylog.error("You might try setting the ReconstructHierarchy option in [lagos]")
-                raise ValueError(grid1, self.__retval_coords[grid1.id])
+                #raise ValueError(grid1, self.__retval_coords[grid1.id])
         pbar.finish()
 
     #@time_execution
@@ -929,6 +931,7 @@ class AMRProjBase(AMR2DData):
         dxs = []
         for level in range(0, self._max_level+1):
             my_coords, my_dx, my_fields = self.__project_level(level, fields)
+            print "MID COORDS", level, na.where(my_coords[0,:] < 0)[0].size
             coord_data.append(my_coords)
             field_data.append(my_fields)
             dxs.append(my_dx * na.ones(my_coords.shape[1], dtype='float64'))
@@ -946,6 +949,9 @@ class AMRProjBase(AMR2DData):
         dxs = na.concatenate(dxs, axis=1)
         # We now convert to half-widths and center-points
         self.data['pdx'] = dxs
+        xax, yax = x_dict[self.axis], y_dict[self.axis]
+        print "FINAL COORDS", na.where(coord_data[0,:]<0)[0].size,\
+                              na.where(coord_data[1,:]<0)[0].size
         self.data['px'] = (coord_data[0,:]+0.5) * self['pdx']
         self.data['py'] = (coord_data[1,:]+0.5) * self['pdx']
         self.data['pdx'] *= 0.5
@@ -981,6 +987,7 @@ class AMRProjBase(AMR2DData):
         start_index = grid.get_global_startindex()
         xpoints = (xind + (start_index[x_dict[self.axis]])).astype('int64')
         ypoints = (yind + (start_index[y_dict[self.axis]])).astype('int64')
+        print "FUCK", grid.id, na.where(xpoints < 0)[0].size, na.where(ypoints < 0)[0].size
         return ([xpoints, ypoints,
                 subgrid_mask[used_points].ravel(),
                 weight_proj[used_points].ravel()],

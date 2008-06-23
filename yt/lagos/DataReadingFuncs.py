@@ -149,50 +149,53 @@ def readDataNative(self,field):
 
     """
     inFile = open(os.path.expanduser(self.filename),'rb')
+    inFile.seek(self._offset)
     header = inFile.readline()
     header.strip()
 
-    pattern = r"^FAB \(\((\d+), \([0-9 ]+\)\),\(\d+, \(([0-9 ]+)\)\)\)\(\((\d+,\d+,\d+)\) \((\d+,\d+,\d+)\) \((\d+,\d+,\d+)\)\) (\d+)\n"
+    if self._paranoid:
+        mylog.warn("Orion Native reader: Paranoid read mode.")
+        pattern = r"^FAB \(\((\d+), \([0-9 ]+\)\),\(\d+, \(([0-9 ]+)\)\)\)\(\((\d+,\d+,\d+)\) \((\d+,\d+,\d+)\) \((\d+,\d+,\d+)\)\) (\d+)\n"
 
-    headerRe = re.compile(pattern)
-    bytesPerReal,endian,start,stop,centerType,nComponents = headerRe.search(header).groups()
+        headerRe = re.compile(pattern)
+        bytesPerReal,endian,start,stop,centerType,nComponents = headerRe.search(header).groups()
 
-    # we will build up a dtype string, starting with endian
-    # check endianness (this code is ugly. fix?)
+        # we will build up a dtype string, starting with endian
+        # check endianness (this code is ugly. fix?)
+        bytesPerReal = int(bytesPerReal)
+        if bytesPerReal == int(endian[0]):
+            dtype = '<'
+        elif bytesPerReal == int(endian[-1]):
+            dtype = '>'
+        else:
+            raise ValueError("FAB header is neither big nor little endian. Perhaps the file is corrupt?")
 
-    swapEndian = False
+        dtype += ('f%i'% bytesPerReal) #always a floating point
 
-    if int(bytesPerReal) == int(endian[0]):
-        dtype = '<'
-    elif int(bytesPerReal) == int(endian[-1]):
-        dtype = '>'
-    else:
-        raise ValueError("FAB header is neither big nor little endian. Perhaps the file is corrupt?")
+        self._dtype = dtype
+        # determine size of FAB
+        # TODO: we should check consistency of this against the MF header...
+        start = na.array(map(int,start.split(',')))
+        stop = na.array(map(int,stop.split(',')))
 
-    dtype += 'f' + bytesPerReal #always a floating point
+        gridSize = stop - start + 1
+        if (gridSize != self.ActiveDimensions).any():
+            pass
+            #raise KeyError("Your paranoia was well warrented. Cell_H and %s do not agree on grid size." % self.filename)
+    nElements = self.ActiveDimensions.prod()
 
-    # determine size of FAB
-    # TODO: we should check consistency of this against the MF header...
-    start = na.array(map(int,start.split(',')))
-    stop = na.array(map(int,stop.split(',')))
-
-    gridSize = stop - start + 1
-    nElements = 1
-    for i in gridSize:
-        nElements = nElements*i 
-
-
-    # one field has nElements*bytesPerReal bytes
-    # and is located at offset
-    offset = 0 # change this
-
-    field = na.fromfile(inFile,count=nElements,dtype=dtype)
-    field.reshape(gridSize[::-1]) #the FAB is fortran ordered; we want C
+    # one field has nElements*bytesPerReal bytes and is located
+    # nElements*bytesPerReal*field_index from the offset location
+    field_index = self.field_indexes[yt2orionFieldsDict[field]]
+    inFile.seek(int(nElements*bytesPerReal*field_index),1)
+    field = na.fromfile(inFile,count=nElements,dtype=self._dtype)
+    field = field.reshape(self.ActiveDimensions[::-1]).swapaxes(0,2)
 
     # we can/should also check against the max and min in the header file
-
+    
     inFile.close()
     return field
+    return na.ones(self.ActiveDimensions, dtype='float64')#field
 
 def readAllDataNative():
     pass

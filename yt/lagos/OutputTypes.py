@@ -369,9 +369,10 @@ class OrionStaticOutput(StaticOutput):
         if len(self.parameters) == 0:
             self._parse_parameter_file()
         self._setup_nounits_units()
+        self.conversion_factors = defaultdict(lambda: 1.0)
         self.time_units['1'] = 1
         self.units['1'] = 1
-        seconds = self["Time"]
+        seconds = 1 #self["Time"]
         self.time_units['years'] = seconds / (365*3600*24.0)
         self.time_units['days']  = seconds / (3600*24.0)
 
