@@ -27,7 +27,7 @@ for p in pc.plots:
     y1,y2 = p._axes.get_ylim()
     #p.add_callback(raven.LinePlotCallback([(x1+x2)/2.0]*2, [y1,y2]))
     p.add_callback(raven.GridBoundaryCallback())
-    #p.set_log_field(False)
+    p.set_log_field(False)
 pc.save('hi')
 #for p in pc.plots: p._axes.plot([0.0,0.0],p.ylim)
 
