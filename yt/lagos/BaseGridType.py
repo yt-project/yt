@@ -264,6 +264,7 @@ class EnzoGridBase(EnzoData):
         """
         coord1d=(self[field]*self.child_mask).argmin()
         coord=na.unravel_index(coord1d, self[field].shape)
+        val = self[field][coord]
         return val, coord
 
     def get_position(self, index):
