@@ -62,7 +62,7 @@ class QuiverCallback(PlotCallback):
                            (x0, x1, y0, y1),).transpose()
         X = na.mgrid[0:plot.image._A.shape[0]-1:nx*1j]# + 0.5*factor
         Y = na.mgrid[0:plot.image._A.shape[1]-1:ny*1j]# + 0.5*factor
-        plot._axes.quiver(X,Y, pixX, -pixY)
+        plot._axes.quiver(X,Y, pixX, pixY)
         plot._axes.set_xlim(xx0,xx1)
         plot._axes.set_ylim(yy0,yy1)
         plot._axes.hold(False)
