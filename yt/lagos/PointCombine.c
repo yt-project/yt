@@ -199,7 +199,7 @@ Py_CombineGrids(PyObject *obj, PyObject *args)
     int num_found = 0;
 
     for (si = 0; si < src_len; si++) {
-      if (src_x[si] < 0) continue;
+      if (src_used_mask[si] == 0) continue;
       init_x = refinement_factor * src_x[si];
       init_y = refinement_factor * src_y[si];
       for (x_off = 0; x_off < refinement_factor; x_off++) {
@@ -207,7 +207,6 @@ Py_CombineGrids(PyObject *obj, PyObject *args)
           fine_x = init_x + x_off;
           fine_y = init_y + y_off;
           for (di = 0; di < dst_len; di++) {
-            if (dst_x[di] < 0) continue;
             if ((fine_x == dst_x[di]) &&
                 (fine_y == dst_y[di])) {
               num_found++;
