@@ -403,13 +403,16 @@ class VMPlotPage(PlotPage):
     def SetupControls(self):
 
         self.widthSlider = wx.Slider(self, -1, wx.SL_HORIZONTAL | wx.SL_AUTOTICKS)
-        self.vals = na.logspace(log10(25*self.outputfile.hierarchy.get_smallest_dx()),0,201)
+        max_val = (self.outputfile["DomainRightEdge"] -
+                   self.outputfile["DomainLeftEdge"]).max()
+        self.vals = na.logspace(log10(25*self.outputfile.hierarchy.get_smallest_dx()),
+                                log10(max_val),201)
         self.widthSlider.SetRange(0, 200)
         self.widthSlider.SetTickFreq(1,1)
         self.widthSlider.SetValue(200)
 
         self.widthBox = wx.TextCtrl(self, style=wx.TE_PROCESS_ENTER)
-        self.widthBox.SetValue("1.0")
+        self.widthBox.SetValue("%s" % max_val)
 
         self.choices = self.outputfile.units.keys()
         self.choices.sort()

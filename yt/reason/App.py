@@ -35,6 +35,7 @@ _ProfileObjectMenuItems = ["export",]
 _FidoOutputMenuItems = ["delete",]
 
 class ReasonMainWindow(wx.Frame):
+    _fn = "/Users/matthewturk/Development/yt/branches/yt-generalization/tests/uniformCollapse_base64_maxLev4/plt0005"
     def __init__(self, *args, **kwds):
         kwds["style"] = wx.DEFAULT_FRAME_STYLE
         kwds["title"] = "yt - Reason"
@@ -278,8 +279,9 @@ class ReasonMainWindow(wx.Frame):
     def _add_static_output(self, filename):
         # Alright, we choose the hierarchy in the file selector,
         # so let's strip that extension off
-        fn = filename[:-10]
-        eso = lagos.EnzoStaticOutput(fn)
+        fn = filename#[:-10]
+        #eso = lagos.EnzoStaticOutput(fn)
+        eso = lagos.OrionStaticOutput(fn)
         try:
             z = str(eso["CosmologyCurrentRedshift"])
         except:

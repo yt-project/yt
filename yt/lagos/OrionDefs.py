@@ -39,6 +39,7 @@ yt2orionFieldsDict = {"x-velocity": "xvel",
                         "z-velocity": "zvel",
                         "Density": "density",
                         "Total_Energy": "eden",
+                        "Temperature": "temperature",
                         }
 orion2ytFieldsDict = {}
 for f,v in yt2orionFieldsDict.items():

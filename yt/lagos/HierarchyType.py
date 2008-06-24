@@ -809,6 +809,7 @@ class OrionHierarchy(AMRHierarchy):
         self._setup_classes()
         self.readGlobalHeader(header_filename)
         AMRHierarchy.__init__(self,pf)
+        self._setup_field_list()
 
     def readGlobalHeader(self,filename):
         """
@@ -975,6 +976,18 @@ class OrionHierarchy(AMRHierarchy):
         mask = na.logical_and(mask, (self.gridLevels == (grid.Level+1)).flat)
         return self.grids[mask]
 
+    def _setup_field_list(self):
+        self.derived_field_list = []
+        for field in fieldInfo:
+            try:
+                fd = fieldInfo[field].get_dependencies(pf = self.parameter_file)
+            except:
+                continue
+            available = na.all([f in self.field_list for f in fd.requested])
+            if available: self.derived_field_list.append(field)
+        for field in self.field_list:
+            if field not in self.derived_field_list:
+                self.derived_field_list.append(field)
 
 class OrionLevel:
     def __init__(self,level,ngrids):
