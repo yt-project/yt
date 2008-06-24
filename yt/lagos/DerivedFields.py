@@ -339,7 +339,8 @@ add_field("OnesOverDx", display_field=False)
 
 def _Ones(field, data):
     return na.ones(data.ActiveDimensions, dtype='float64')
-add_field("Ones", validators=[ValidateSpatial(0)], projection_conversion="1",
+add_field("Ones", validators=[ValidateSpatial(0)],
+          projection_conversion="unitary",
           display_field = False)
 add_field("CellsPerBin", function=_Ones, validators=[ValidateSpatial(0)],
           display_field = False)

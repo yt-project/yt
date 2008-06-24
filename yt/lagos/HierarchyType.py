@@ -829,7 +829,6 @@ class OrionHierarchy(AMRHierarchy):
             self.field_indexes[line.rstrip()] =i
         self.field_list = []
         for f in self.field_indexes:
-            print f, orion2ytFieldsDict.get(f,f)
             self.field_list.append(orion2ytFieldsDict.get(f,f))
 
         self.dimension = int(self.__global_header_lines[counter])
@@ -943,7 +942,6 @@ class OrionHierarchy(AMRHierarchy):
             right_edges += [g.RightEdge for g in level.grids]
         self.gridLeftEdge = na.array(left_edges)
         self.gridRightEdge = na.array(right_edges)
-        print self.gridLeftEdge.shape, self.gridRightEdge.shape
         self.gridReverseTree = [] * self.num_grids
         self.gridReverseTree = [ [] for i in range(self.num_grids)]
         self.gridTree = [ [] for i in range(self.num_grids)]
@@ -960,7 +958,6 @@ class OrionHierarchy(AMRHierarchy):
     def __setup_grid_tree(self):
         for i, grid in enumerate(self.grids):
             children = self._get_grid_children(grid)
-            print i, grid.id, children
             for child in children:
                 self.gridReverseTree[child.id].append(i)
                 self.gridTree[i].append(weakref.proxy(child))

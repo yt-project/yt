@@ -207,6 +207,7 @@ class EnzoStaticOutput(StaticOutput):
             self._setup_nounits_units()
         self.time_units['1'] = 1
         self.units['1'] = 1
+        self.units['unitary'] = 1.0 / (self["DomainRightEdge"] - self["DomainLeftEdge"]).max()
         seconds = self["Time"]
         self.time_units['years'] = seconds / (365*3600*24.0)
         self.time_units['days']  = seconds / (3600*24.0)
@@ -374,18 +375,19 @@ class OrionStaticOutput(StaticOutput):
         self._setup_nounits_units()
         self.conversion_factors = defaultdict(lambda: 1.0)
         self.time_units['1'] = 1
-        self.units['1'] = 1
+        self.units['1'] = 1.0
+        self.units['unitary'] = 1.0 / (self["DomainRightEdge"] - self["DomainLeftEdge"]).max()
         seconds = 1 #self["Time"]
         self.time_units['years'] = seconds / (365*3600*24.0)
         self.time_units['days']  = seconds / (3600*24.0)
+        for key in yt2orionFieldsDict:
+            self.conversion_factors[key] = 1.0
 
     def _setup_nounits_units(self):
         z = 0
-        box_proper = ytcfg.getfloat("lagos","nounitslength")
-        self.units['aye'] = 1.0
-        mylog.warning("No length units.  Setting 1.0 = %0.3e proper Mpc.", box_proper)
+        mylog.warning("Setting 1.0 in code units to be 1.0 cm")
         if not self.has_key("TimeUnits"):
             mylog.warning("No time units.  Setting 1.0 = 1 second.")
             self.conversion_factors["Time"] = 1.0
         for unit in mpc_conversion.keys():
-            self.units[unit] = mpc_conversion[unit] * box_proper
+            self.units[unit] = mpc_conversion[unit] / mpc_conversion["cm"]
