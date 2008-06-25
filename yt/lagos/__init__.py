@@ -36,7 +36,13 @@ try:
     import pyhdf_np.error   # NumPy
 except:
     mylog.warning("No HDF4 support")
-import warnings, tables
+
+try:
+     import tables
+except ImportError:
+    mylog.warning("No PyTables. Data serialization will fail.")
+
+import warnings
 warnings.simplefilter("ignore", tables.NaturalNameWarning)
 
 from yt.arraytypes import *
