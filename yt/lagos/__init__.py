@@ -37,13 +37,15 @@ try:
 except:
     mylog.warning("No HDF4 support")
 
+import warnings
 try:
      import tables
+     warnings.simplefilter("ignore", tables.NaturalNameWarning)
 except ImportError:
     mylog.warning("No PyTables. Data serialization will fail.")
 
-import warnings
-warnings.simplefilter("ignore", tables.NaturalNameWarning)
+
+
 
 from yt.arraytypes import *
 import weakref
