@@ -118,7 +118,7 @@ __clump_info_template = \
 def write_clump_info(clump,level,f_ptr):
     fmt_dict = {'tl':  "\t" * level}
     fmt_dict['num_cells'] = clump.data["CellMassMsun"].size,
-    fmt_dict['total_mass'] = clump.data["CellMassMsun"].sum(),
+    fmt_dict['total_mass'] = clump.data["CellMassMsun"].sum()
     fmt_dict['jeans_mass_vol'] = clump.data.quantities["WeightedAverageQuantity"]("JeansMassMsun","CellVolume")
     fmt_dict['jeans_mass_mass'] = clump.data.quantities["WeightedAverageQuantity"]("JeansMassMsun","CellMassMsun")
     fmt_dict['max_level'] =  clump.data["GridLevel"].max()
