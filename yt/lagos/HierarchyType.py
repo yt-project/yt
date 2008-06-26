@@ -803,7 +803,7 @@ def constructRegularExpressions(param, toReadTypes):
 class OrionHierarchy(AMRHierarchy):
     def __init__(self,pf,data_style=7):
         self.field_indexes = {}
-        self.parameter_file = pf
+        self.parameter_file = weakref.proxy(pf)
         header_filename = os.path.join(pf.fullplotdir,'Header')
         self.data_style = data_style
         self._setup_classes()
