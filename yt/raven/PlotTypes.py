@@ -194,6 +194,7 @@ class RavenPlot:
         if self.colorbar != None: self.colorbar.set_label(str(label))
 
 class VMPlot(RavenPlot):
+    _antialias = True
     def __init__(self, data, field, figure = None, axes = None,
                  use_colorbar = True, size=None):
         fields = ['X', 'Y', field, 'X width', 'Y width']
@@ -260,13 +261,14 @@ class VMPlot(RavenPlot):
         self.pix = (width,height)
         # 'px' == pixel x, or x in the plane of the slice
         # 'x' == actual x
+        aa = int(self._antialias)
         buff = _MPL.Pixelize(self.data['px'],
                             self.data['py'],
                             self.data['pdx'],
                             self.data['pdy'],
                             self[self.axis_names["Z"]],
                             int(width), int(width),
-                        (x0, x1, y0, y1),).transpose()
+                            (x0, x1, y0, y1),aa).transpose()
         return buff
 
     def _redraw_image(self, *args):

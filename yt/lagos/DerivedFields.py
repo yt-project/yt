@@ -381,6 +381,11 @@ add_field("Dark matter density", function=lambda a,b: None,
                       ValidateSpatial(0)],
           not_in_all = True)
 
+add_field("Dark_Matter_Density", function=lambda a,b: None,
+          validators=[ValidateDataField("Dark_Matter_Density"),
+                      ValidateSpatial(0)],
+          not_in_all = True)
+
 def _ParticleMass(field, data):
     particles = data["particle_mass"].astype('float64') * \
                 just_one(data["CellVolumeCode"].ravel())
