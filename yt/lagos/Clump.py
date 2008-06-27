@@ -24,7 +24,7 @@ Clump finding helper classes
 """
 
 
-import yt.lagos as lagos
+from yt.lagos import *
 import numpy as na
 
 class Clump(object):
@@ -42,7 +42,7 @@ class Clump(object):
             print "Wiping out existing children clumps."
         self.children = []
         if max is None: max = self.max
-        contour_info = lagos.identify_contours(self.data, self.field, min, max)
+        contour_info = identify_contours(self.data, self.field, min, max)
         for cid in contour_info:
             new_clump = self.data.extract_region(contour_info[cid])
             self.children.append(Clump(new_clump, self, self.field))

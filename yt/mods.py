@@ -26,10 +26,26 @@ the namespace and getting the last argument on the command line.
 
 
 import yt.lagos as lagos
+import yt.lagos.hop as hop
 import yt.raven as raven
 import yt.fido as fido
 import numpy as na
 import sys
 
+from yt.lagos import EnzoStaticOutput, \
+    BinnedProfile1D, BinnedProfile2D, BinnedProfile3D, \
+    add_field, fieldInfo, \
+    Clump, write_clump_hierarchy, find_clumps, write_clumps
+
+from yt.raven import PlotCollection, \
+    QuiverCallback, ParticleCallback, ContourCallback, \
+    GridBoundaryCallback, UnitBoundaryCallback, \
+    LinePlotCallback, CuttingQuiverCallback, \
+    VolumeRenderingDataCube, VolumeRendering3DProfile, \
+    HaloMassesPositionPlot
+
+from yt.fido import GrabCollections, OutputCollection
+
 def get_pf():
     return lagos.EnzoStaticOutput(sys.argv[-1])
+

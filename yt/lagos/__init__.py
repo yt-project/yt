@@ -71,6 +71,7 @@ if ytcfg.getboolean("lagos","usefortran"):
 # Now we import all the subfiles
 
 from HelperFunctions import *
+from Clump import *
 import PointCombine
 import HDF5LightReader
 from EnzoDefs import *
