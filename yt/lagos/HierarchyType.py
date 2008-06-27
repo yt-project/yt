@@ -124,11 +124,12 @@ class EnzoHierarchy:
 
     def __guess_data_style(self):
         if self.data_style: return
-        for i in xrange(len(self.__hierarchy_lines)-1,0,-1):
-            line = self.__hierarchy_lines[i]
+        for line in reversed(self.__hierarchy_lines):
             if line.startswith("BaryonFileName") or \
                line.startswith("FileName "):
                 testGrid = line.split("=")[-1].strip().rstrip()
+            if line.startswith("Grid "):
+                testGridID = int(line.split("=")[-1])
                 break
         if testGrid[0] != os.path.sep:
             testGrid = os.path.join(self.directory, testGrid)
@@ -142,17 +143,13 @@ class EnzoHierarchy:
             self.data_style = 4
             mylog.debug("Detected HDF4")
         except:
-            a = tables.openFile(testGrid, 'r')
-            for b in a.iterNodes("/"):
-                c = "%s" % (b)
-                break
-            if c.startswith("/Grid"):
+            list_of_sets = HDF5LightReader.ReadListOfDatasets(testGrid, "/")
+            if len(list_of_sets) == 0:
                 mylog.debug("Detected packed HDF5")
                 self.data_style = 6
             else:
                 mylog.debug("Detected unpacked HDF5")
                 self.data_style = 5
-            a.close()
 
     def __setup_filemap(self, grid):
         if not self.data_style == 6:
