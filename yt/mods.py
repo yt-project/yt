@@ -40,9 +40,13 @@ from yt.lagos import EnzoStaticOutput, \
 from yt.raven import PlotCollection, \
     QuiverCallback, ParticleCallback, ContourCallback, \
     GridBoundaryCallback, UnitBoundaryCallback, \
-    LinePlotCallback, CuttingQuiverCallback, \
-    VolumeRenderingDataCube, VolumeRendering3DProfile, \
-    HaloMassesPositionPlot
+    LinePlotCallback, CuttingQuiverCallback
+
+try:
+    from yt.raven import VolumeRenderingDataCube, \
+        VolumeRendering3DProfile, HaloMassesPositionPlot
+except ImportError:
+    pass
 
 from yt.fido import GrabCollections, OutputCollection
 
