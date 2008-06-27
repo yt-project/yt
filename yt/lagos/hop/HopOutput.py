@@ -75,7 +75,8 @@ class HopList(object):
             mylog.debug("Differentiating based on particle type")
             return (self.data_source["particle_type"] == 1)
         else:
-            raise KeyError
+            mylog.warning("No particle_type, no creation_time, so not distinguishing.")
+            return slice(None)
 
     def __parse_output(self):
         unique_ids = na.unique(self.tags)
