@@ -286,10 +286,11 @@ class OrionStaticOutput(StaticOutput):
     """
     _hierarchy_class = OrionHierarchy
 
-    def __init__(self, plotname, paramFilename='inputs',data_style=7):
+    def __init__(self, plotname, paramFilename='inputs',fparamFilename='probin',data_style=7):
         """need to override for Orion file structure.
 
         the paramfile is usually called "inputs"
+        and there may be a fortran inputs file usually called "probin"
         plotname here will be a directory name
         as per BoxLib, data_style will be one of
           Native
@@ -298,10 +299,14 @@ class OrionStaticOutput(StaticOutput):
 
         """
         self.data_style = data_style
+        plotname = plotname.rstrip('/')
         self.basename = os.path.basename(plotname)
         # this will be the directory ENCLOSING the pltNNNN directory
         self.directory = os.path.dirname(plotname)
         self.parameter_filename = os.path.join(self.directory,paramFilename)
+        # fortran parameters
+        self.fparameters = {}
+        self.fparameter_filename = os.path.join(self.directory,fparamFilename)
         self.fullpath = os.path.abspath(self.directory)
         self.fullplotdir = os.path.abspath(plotname)
         if len(self.directory) == 0:
@@ -309,11 +314,16 @@ class OrionStaticOutput(StaticOutput):
         self.conversion_factors = {}
         self.parameters = {}
         self._parse_parameter_file()
+        if os.path.isfile(self.fparameter_filename):
+            self._parse_fparameter_file()
         self._set_units()
         
         # These should maybe not be hardcoded?
-        self.parameters["HydroMethod"] = 0 # always PPM DE
+        self.parameters["HydroMethod"] = 'orion' # always PPM DE
         self.parameters["InitialTime"] = 0. # FIX ME!!!
+
+        if self.fparameters.has_key("mu"):
+            self.parameters["mu"] = self.fparameters["mu"]
         
     def _parse_parameter_file(self):
         """
@@ -344,25 +354,30 @@ class OrionStaticOutput(StaticOutput):
                 if paramName.endswith("Units") and not paramName.startswith("Temperature"):
                     dataType = paramName[:-5]
                     self.conversion_factors[dataType] = self.parameters[paramName]
-            # elif param.startswith("#DataCGS"):
-#                 # Assume of the form: #DataCGSConversionFactor[7] = 2.38599e-26 g/cm^3
-#                 if lines[lineI-1].find("Label") >= 0:
-#                     kk = lineI-1
-#                 elif lines[lineI-2].find("Label") >= 0:
-#                     kk = lineI-2
-#                 dataType = lines[kk].split("=")[-1].rstrip().strip()
-#                 convFactor = float(line.split("=")[-1].split()[0])
-#                 self.conversion_factors[dataType] = convFactor
-#             elif param.startswith("#CGSConversionFactor"):
-#                 dataType = param[20:].rstrip()
-#                 convFactor = float(line.split("=")[-1])
-#                 self.conversion_factors[dataType] = convFactor
             elif param.startswith("geometry.prob_hi"):
                 self.parameters["DomainRightEdge"] = \
                     na.array([float(i) for i in vals.split()])
             elif param.startswith("geometry.prob_lo"):
                 self.parameters["DomainLeftEdge"] = \
                     na.array([float(i) for i in vals.split()])
+
+    def _parse_fparameter_file(self):
+        """
+        Parses the fortran parameter file for Orion. Most of this will
+        be useless, but this is where it keeps mu = mass per
+        particle/m_hydrogen.
+        """
+        lines = open(self.fparameter_filename).readlines()
+        for line in lines:
+            if line.count("=") == 1:
+                param, vals = map(strip,map(rstrip,line.split("=")))
+                t = map(float,[a.replace('D','e').replace('d','e') for a in vals.split()]) # all are floating point.
+                
+                if len(t) == 1:
+                    self.fparameters[param] = t[0]
+                else:
+                    self.fparameters[param] = t
+                
                 
     def _set_units(self):
         """

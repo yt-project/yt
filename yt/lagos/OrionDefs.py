@@ -31,6 +31,7 @@ from yt.funcs import *
 # converts the Orion inputs file name to the Enzo/yt name expected
 # throughout the code. key is Orion name, value is Enzo/yt equivalent
 orion2enzoDict = {"amr.n_cell": "TopGridRank",
+                  "materials.gamma": "Gamma"
                   }
 
 

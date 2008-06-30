@@ -440,13 +440,21 @@ add_field("TangentialVelocity", take_log=False, units=r"\rm{cm}/\rm{s}")
 
 def _Pressure(field, data):
     """M{(Gamma-1.0)*rho*E}"""
-    return (data.pf["Gamma"] - 1.0) * \
-           data["Density"] * data["ThermalEnergy"]
+    if data.pf["HydroMethod"] == 'orion':
+        return (data.pf["Gamma"] - 1.0) * data["ThermalEnergy"]
+    else:
+        return (data.pf["Gamma"] - 1.0) * \
+               data["Density"] * data["ThermalEnergy"]
 add_field("Pressure", units=r"\rm{dyne}/\rm{cm}^{2}")
 
 def _ThermalEnergy(field, data):
     if data.pf["HydroMethod"] == 2:
         return data["Total_Energy"]
+    elif data.pf["HydroMethod"] == 'orion':
+        return data["Total_Energy"] - 0.5 * data["Density"] * (
+                   data["x-velocity"]**2.0
+                 + data["y-velocity"]**2.0
+                 + data["z-velocity"]**2.0 )
     else:
         if data.pf["DualEnergyFormalism"]:
             return data["Gas_Energy"]

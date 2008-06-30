@@ -805,6 +805,7 @@ class OrionHierarchy(AMRHierarchy):
         self.field_indexes = {}
         self.parameter_file = weakref.proxy(pf)
         header_filename = os.path.join(pf.fullplotdir,'Header')
+        self.directory = pf.fullpath
         self.data_style = data_style
         self._setup_classes()
         self.readGlobalHeader(header_filename)
