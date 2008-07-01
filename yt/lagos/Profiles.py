@@ -25,6 +25,11 @@ Profile classes, to deal with generating and obtaining profiles
 
 from yt.lagos import *
 
+_field_mapping = {
+    "total_mass": ("CellMassMsun", "ParticleMassMsun"),
+    "hybrid_radius": ("RadiusCode", "ParticleRadiusCode"),
+                 }
+
 def preserve_source_parameters(func):
     def save_state(*args, **kwargs):
         # Temporarily replace the 'field_parameters' for a
@@ -113,14 +118,20 @@ class BinnedProfile:
         self._data[key] = value
 
     def _get_field(self, source, field, check_cut):
-        if check_cut:
-            if field in fieldInfo and fieldInfo[field].particle_type:
-                pointI = self._data_source._get_particle_indices(source)
+        # This is where we will iterate to get all contributions to a field
+        # which is how we will implement hybrid particle/cell fields
+        # but...  we default to just the field.
+        data = []
+        for field in _field_mapping.get(field, (field,)):
+            if check_cut:
+                if field in fieldInfo and fieldInfo[field].particle_type:
+                    pointI = self._data_source._get_particle_indices(source)
+                else:
+                    pointI = self._data_source._get_point_indices(source)
             else:
-                pointI = self._data_source._get_point_indices(source)
-        else:
-            pointI = slice(None)
-        return source[field][pointI].ravel().astype('float64')
+                pointI = slice(None)
+            data.append(source[field][pointI].ravel().astype('float64'))
+        return na.concatenate(data, axis=0)
 
 # @todo: Fix accumulation with overriding
 class BinnedProfile1D(BinnedProfile):
