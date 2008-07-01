@@ -71,7 +71,6 @@ if ytcfg.getboolean("lagos","usefortran"):
 # Now we import all the subfiles
 
 from HelperFunctions import *
-from Clump import *
 import PointCombine
 import HDF5LightReader
 from EnzoDefs import *
@@ -80,6 +79,7 @@ from DerivedQuantities import DerivedQuantityCollection, GridChildMaskWrapper
 from DataReadingFuncs import *
 from ClusterFiles import *
 from ContourFinder import *
+from Clump import *
 from BaseDataTypes import *
 from BaseGridType import *
 from EnzoRateData import *
