@@ -46,8 +46,8 @@ class UnilinearFieldInterpolator:
 
         x = (x_vals - self.x_bins[x_i]) / (self.x_bins[x_i+1] - self.x_bins[x_i])
         xm = (self.x_bins[x_i+1] - x_vals) / (self.x_bins[x_i+1] - self.x_bins[x_i])
-        my_vals = self.table[x_i  ] * (xm) \
-                + self.table[x_i+1] * (x )
+        my_vals  = self.table[x_i  ] * (xm)
+        my_vals += self.table[x_i+1] * (x )
         return my_vals.reshape(orig_shape)
 
 class BilinearFieldInterpolator:
@@ -76,11 +76,10 @@ class BilinearFieldInterpolator:
         y = (y_vals - self.y_bins[y_i]) / (self.y_bins[y_i+1] - self.y_bins[y_i])
         xm = (self.x_bins[x_i+1] - x_vals) / (self.x_bins[x_i+1] - self.x_bins[x_i])
         ym = (self.y_bins[y_i+1] - y_vals) / (self.y_bins[y_i+1] - self.y_bins[y_i])
-        my_vals = \
-                  self.table[x_i  ,y_i  ] * (xm*ym) \
-                + self.table[x_i+1,y_i  ] * (x *ym) \
-                + self.table[x_i  ,y_i+1] * (xm*y ) \
-                + self.table[x_i+1,y_i+1] * (x *y )
+        my_vals  = self.table[x_i  ,y_i  ] * (xm*ym)
+        my_vals += self.table[x_i+1,y_i  ] * (x *ym)
+        my_vals += self.table[x_i  ,y_i+1] * (xm*y )
+        my_vals += self.table[x_i+1,y_i+1] * (x *y )
         return my_vals.reshape(orig_shape)
 
 class TrilinearFieldInterpolator:
@@ -123,13 +122,12 @@ class TrilinearFieldInterpolator:
             raise ValueError
         if na.any(na.isnan(xm) | na.isnan(ym) | na.isnan(zm)):
             raise ValueError
-        my_vals = \
-                  self.table[x_i  ,y_i  ,z_i  ] * (xm*ym*zm) \
-                + self.table[x_i+1,y_i  ,z_i  ] * (x *ym*zm) \
-                + self.table[x_i  ,y_i+1,z_i  ] * (xm*y *zm) \
-                + self.table[x_i  ,y_i  ,z_i+1] * (xm*ym*z ) \
-                + self.table[x_i+1,y_i  ,z_i+1] * (x *ym*z ) \
-                + self.table[x_i  ,y_i+1,z_i+1] * (xm*y *z ) \
-                + self.table[x_i+1,y_i+1,z_i  ] * (x *y *zm) \
-                + self.table[x_i+1,y_i+1,z_i+1] * (x *y *z )
+        my_vals  = self.table[x_i  ,y_i  ,z_i  ] * (xm*ym*zm)
+        my_vals += self.table[x_i+1,y_i  ,z_i  ] * (x *ym*zm)
+        my_vals += self.table[x_i  ,y_i+1,z_i  ] * (xm*y *zm)
+        my_vals += self.table[x_i  ,y_i  ,z_i+1] * (xm*ym*z )
+        my_vals += self.table[x_i+1,y_i  ,z_i+1] * (x *ym*z )
+        my_vals += self.table[x_i  ,y_i+1,z_i+1] * (xm*y *z )
+        my_vals += self.table[x_i+1,y_i+1,z_i  ] * (x *y *zm)
+        my_vals += self.table[x_i+1,y_i+1,z_i+1] * (x *y *z )
         return my_vals.reshape(orig_shape)
