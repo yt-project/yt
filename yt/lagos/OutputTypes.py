@@ -322,7 +322,7 @@ class OrionStaticOutput(StaticOutput):
         # These should maybe not be hardcoded?
         self.parameters["HydroMethod"] = 'orion' # always PPM DE
         self.parameters["InitialTime"] = 0. # FIX ME!!!
-
+        self.parameters["DualEnergyFormalism"] = 0 # always off.
         if self.fparameters.has_key("mu"):
             self.parameters["mu"] = self.fparameters["mu"]
         
@@ -352,9 +352,9 @@ class OrionStaticOutput(StaticOutput):
                     self.parameters[paramName] = t[0]
                 else:
                     self.parameters[paramName] = t
-                if paramName.endswith("Units") and not paramName.startswith("Temperature"):
-                    dataType = paramName[:-5]
-                    self.conversion_factors[dataType] = self.parameters[paramName]
+#                 if paramName.endswith("Units") and not paramName.startswith("Temperature"):
+#                     dataType = paramName[:-5]
+#                     self.conversion_factors[dataType] = self.parameters[paramName]
             elif param.startswith("geometry.prob_hi"):
                 self.parameters["DomainRightEdge"] = \
                     na.array([float(i) for i in vals.split()])
