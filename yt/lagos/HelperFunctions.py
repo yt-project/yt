@@ -83,8 +83,9 @@ class BilinearFieldInterpolator:
         return my_vals.reshape(orig_shape)
 
 class TrilinearFieldInterpolator:
-    def __init__(self, table, boundaries, field_names):
+    def __init__(self, table, boundaries, field_names, truncate = False):
         self.table = table
+        self.truncate = truncate
         x0, x1, y0, y1, z0, z1 = boundaries
         self.x_name, self.y_name, self.z_name = field_names
         self.x_bins = na.linspace(x0, x1, table.shape[0])
@@ -103,10 +104,15 @@ class TrilinearFieldInterpolator:
         if na.any((x_i == -1) | (x_i == len(self.x_bins)-1)) \
             or na.any((y_i == -1) | (y_i == len(self.y_bins)-1)) \
             or na.any((z_i == -1) | (z_i == len(self.z_bins)-1)):
-            mylog.error("Sorry, but your values are outside" + \
-                        " the table!  Dunno what to do, so dying.")
-            mylog.error("Error was in: %s", data_object)
-            raise ValueError
+            if not self.truncate:
+                mylog.error("Sorry, but your values are outside" + \
+                            " the table!  Dunno what to do, so dying.")
+                mylog.error("Error was in: %s", data_object)
+                raise ValueError
+            else:
+                x_i = na.minimum(na.maximum(x_i,0), len(self.x_bins)-2)
+                y_i = na.minimum(na.maximum(y_i,0), len(self.y_bins)-2)
+                z_i = na.minimum(na.maximum(z_i,0), len(self.z_bins)-2)
 
         # Use notation from Paul Bourke's page on interpolation
         # http://local.wasp.uwa.edu.au/~pbourke/other/interpolation/

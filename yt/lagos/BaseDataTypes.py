@@ -1497,7 +1497,7 @@ class EnzoCoveringGrid(Enzo3DData):
                 self._get_data_from_grid(grid, field)
                 if not na.any(self[field] == -999): break
             if self._use_pbar: pbar.finish()
-            if na.any(self[field] == -999) and self.dx < self.hierarchy.grids[0].dx:
+            if na.any(self[field] == -999):# and self.dx < self.hierarchy.grids[0].dx:
                 print "COVERING PROBLEM", na.where(self[field]==-999)[0].size
                 print na.where(self[field]==-999)
                 return
@@ -1553,7 +1553,7 @@ class EnzoSmoothedCoveringGrid(EnzoCoveringGrid):
         dlog2 = na.log10(kwargs['dims'])/na.log10(2)
         if not na.all(na.floor(dlog2) == na.ceil(dlog2)):
             mylog.warning("Must be power of two dimensions")
-            raise ValueError
+            #raise ValueError
         kwargs['num_ghost_zones'] = 0
         EnzoCoveringGrid.__init__(self, *args, **kwargs)
         if na.any(self.left_edge == 0):
@@ -1573,7 +1573,7 @@ class EnzoSmoothedCoveringGrid(EnzoCoveringGrid):
     def _get_level_array(self, level, fields):
         fields = ensure_list(fields)
         # We assume refinement by a factor of two
-        rf = 2**(self.level - level)
+        rf = float(2**(self.level - level))
         dims = na.maximum(1,self.ActiveDimensions/rf) + 2
         dx = (self.right_edge-self.left_edge)/(dims-2)
         x,y,z = (na.mgrid[0:dims[0],0:dims[1],0:dims[2]].astype('float64')+0.5)\
@@ -1581,20 +1581,23 @@ class EnzoSmoothedCoveringGrid(EnzoCoveringGrid):
         x += self.left_edge[0] - dx[0]
         y += self.left_edge[1] - dx[1]
         z += self.left_edge[2] - dx[2]
-        bounds = [self.left_edge[0]-self['cdx'], self.right_edge[0]+self['cdx'],
-                  self.left_edge[1]-self['cdy'], self.right_edge[1]+self['cdy'],
-                  self.left_edge[2]-self['cdz'], self.right_edge[2]+self['cdz']]
+        offsets = [self['cd%s' % ax]*0.5 for ax in 'xyz']
+        bounds = [self.left_edge[0]-offsets[0], self.right_edge[0]+offsets[0],
+                  self.left_edge[1]-offsets[1], self.right_edge[1]+offsets[1],
+                  self.left_edge[2]-offsets[2], self.right_edge[2]+offsets[2]]
         fake_grid = {'x':x,'y':y,'z':z,'dx':dx[0],'dy':dx[1],'dz':dx[2]}
         for ax in 'xyz': self['cd%s'%ax] = fake_grid['d%s'%ax]
         for field in fields:
             # Generate the new grid field
             if field in fieldInfo and fieldInfo[field].take_log:
                 interpolator = TrilinearFieldInterpolator(
-                                na.log10(self[field]), bounds, ['x','y','z'])
+                                na.log10(self[field]), bounds, ['x','y','z'],
+                                truncate = True)
                 self[field] = 10**interpolator(fake_grid)
             else:
                 interpolator = TrilinearFieldInterpolator(
-                                self[field], bounds, ['x','y','z'])
+                                self[field], bounds, ['x','y','z'],
+                                truncate = True)
                 self[field] = interpolator(fake_grid)
         return fake_grid
 

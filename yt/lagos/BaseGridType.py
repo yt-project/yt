@@ -395,7 +395,8 @@ class EnzoGridBase(EnzoData):
     child_mask = property(fget=_get_child_mask, fdel=_del_child_mask)
     child_indices = property(fget=_get_child_indices, fdel = _del_child_indices)
 
-    def retrieve_ghost_zones(self, n_zones, fields, all_levels=False):
+    def retrieve_ghost_zones(self, n_zones, fields, all_levels=False,
+                             smoothed=False):
         # We will attempt this by creating a datacube that is exactly bigger
         # than the grid by nZones*dx in each direction
         new_left_edge = self.LeftEdge - n_zones * self.dx
@@ -404,10 +405,14 @@ class EnzoGridBase(EnzoData):
         level = self.Level
         if all_levels:
             level = self.hierarchy.max_level + 1
-        cube = self.hierarchy.covering_grid(level,
-                        new_left_edge, new_right_edge,
-                        self.ActiveDimensions + 2*n_zones, fields,
-                        num_ghost_zones=n_zones, use_pbar=False)
+        args = (level, new_left_edge, new_right_edge)
+        kwargs = {'dims': self.ActiveDimensions + 2*n_zones,
+                  'num_ghost_zones':n_zones,
+                  'use_pbar':False, 'fields':fields}
+        if smoothed:
+            cube = self.hierarchy.smoothed_covering_grid(*args, **kwargs)
+        else:
+            cube = self.hierarchy.covering_grid(*args, **kwargs)
         return cube
 
     def _save_data_state(self):
