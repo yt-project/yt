@@ -286,7 +286,7 @@ class OrionStaticOutput(StaticOutput):
     """
     _hierarchy_class = OrionHierarchy
 
-    def __init__(self, plotname, paramFilename='inputs',fparamFilename='probin',data_style=7):
+    def __init__(self, plotname, paramFilename='inputs',fparamFilename='probin',data_style=7,paranoia=False):
         """need to override for Orion file structure.
 
         the paramfile is usually called "inputs"
@@ -299,6 +299,7 @@ class OrionStaticOutput(StaticOutput):
 
         """
         self.data_style = data_style
+        self.paranoid_read = paranoia
         plotname = plotname.rstrip('/')
         self.basename = os.path.basename(plotname)
         # this will be the directory ENCLOSING the pltNNNN directory

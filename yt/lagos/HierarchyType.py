@@ -808,11 +808,12 @@ class OrionHierarchy(AMRHierarchy):
         self.directory = pf.fullpath
         self.data_style = data_style
         self._setup_classes()
-        self.readGlobalHeader(header_filename)
+        self.readGlobalHeader(header_filename,self.parameter_file.paranoid_read) # also sets up the grid objects
+        self.__cache_endianness(self.levels[-1].grids[-1])
         AMRHierarchy.__init__(self,pf)
         self._setup_field_list()
 
-    def readGlobalHeader(self,filename):
+    def readGlobalHeader(self,filename,paranoid_read):
         """
         read the global header file for an Orion plotfile output.
         
@@ -891,8 +892,8 @@ class OrionHierarchy(AMRHierarchy):
             grid_file_offset = re_file_finder.findall(level_header_file)
             start_stop_index = re_dim_finder.findall(level_header_file)
             for grid in range(0,ngrids):
-                gfn = os.path.join(fn,grid_file_offset[grid][0])
-                gfo = int(grid_file_offset[grid][1])
+                gfn = os.path.join(fn,grid_file_offset[grid][0]) # filename of file containing this grid
+                gfo = int(grid_file_offset[grid][1]) # offset within that file
                 xlo,xhi = map(float,self.__global_header_lines[counter].split())
                 counter+=1
                 ylo,yhi = map(float,self.__global_header_lines[counter].split())
@@ -902,7 +903,7 @@ class OrionHierarchy(AMRHierarchy):
                 lo = na.array([xlo,ylo,zlo])
                 hi = na.array([xhi,yhi,zhi])
                 dims,start,stop = self.__calculate_grid_dimensions(start_stop_index[grid])
-                self.levels[-1].grids.append(self.grid(lo,hi,grid_counter,level,gfn, gfo, dims,start,stop))
+                self.levels[-1].grids.append(self.grid(lo,hi,grid_counter,level,gfn, gfo, dims,start,stop,paranoia=paranoid_read))
                 grid_counter += 1 # this is global, and shouldn't be reset
                                   # for each level
             self.levels[-1]._fileprefix = self.__global_header_lines[counter]
@@ -913,6 +914,34 @@ class OrionHierarchy(AMRHierarchy):
         self.maxLevel = self.n_levels - 1 
         self.max_level = self.n_levels - 1
         header_file.close()
+
+    def __cache_endianness(self,test_grid):
+        """
+        Cache the endianness and bytes perreal of the grids by using a
+        test grid and assuming that all grids have the same
+        endianness. This is a pretty safe assumption since Orion uses
+        one file per processor, and if you're running on a cluster
+        with different endian processors, then you're on your own!
+        """
+        # open the test file & grab the header
+        inFile = open(os.path.expanduser(test_grid.filename),'rb')
+        header = inFile.readline()
+        inFile.close()
+        header.strip()
+        
+        # parse it. the patter is in OrionDefs.py
+        headerRe = re.compile(orion_FAB_header_pattern)
+        bytesPerReal,endian,start,stop,centerType,nComponents = headerRe.search(header).groups()
+        self._bytesPerReal = int(bytesPerReal)
+        if self._bytesPerReal == int(endian[0]):
+            dtype = '<'
+        elif self._bytesPerReal == int(endian[-1]):
+            dtype = '>'
+        else:
+            raise ValueError("FAB header is neither big nor little endian. Perhaps the file is corrupt?")
+
+        dtype += ('f%i' % self._bytesPerReal) # always a floating point
+        self._dtype = dtype
 
     def __calculate_grid_dimensions(self,start_stop):
         start = na.array(map(int,start_stop[0].split(',')))

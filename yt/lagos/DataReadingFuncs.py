@@ -155,9 +155,7 @@ def readDataNative(self,field):
 
     if self._paranoid:
         mylog.warn("Orion Native reader: Paranoid read mode.")
-        pattern = r"^FAB \(\((\d+), \([0-9 ]+\)\),\(\d+, \(([0-9 ]+)\)\)\)\(\((\d+,\d+,\d+)\) \((\d+,\d+,\d+)\) \((\d+,\d+,\d+)\)\) (\d+)\n"
-
-        headerRe = re.compile(pattern)
+        headerRe = re.compile(orion_FAB_header_pattern)
         bytesPerReal,endian,start,stop,centerType,nComponents = headerRe.search(header).groups()
 
         # we will build up a dtype string, starting with endian
@@ -172,31 +170,52 @@ def readDataNative(self,field):
 
         dtype += ('f%i'% bytesPerReal) #always a floating point
 
-        self._dtype = dtype
         # determine size of FAB
-        # TODO: we should check consistency of this against the MF header...
         start = na.array(map(int,start.split(',')))
         stop = na.array(map(int,stop.split(',')))
 
         gridSize = stop - start + 1
+
+        error_count = 0
+        if (start != self.start).any():
+            print "Paranoia Error: Cell_H and %s do not agree on grid start." %self.filename
+            error_count += 1
+        if (stop != self.stop).any():
+            print "Paranoia Error: Cell_H and %s do not agree on grid stop." %self.filename
+            error_count += 1
         if (gridSize != self.ActiveDimensions).any():
-            pass
-            #raise KeyError("Your paranoia was well warrented. Cell_H and %s do not agree on grid size." % self.filename)
+            print "Paranoia Error: Cell_H and %s do not agree on grid dimensions." %self.filename
+            error_count += 1
+        if bytesPerReal != self.hierarchy._bytesPerReal:
+            print "Paranoia Error: Cell_H and %s do not agree on bytes per real number." %self.filename
+            error_count += 1
+        if (bytesPerReal == self.hierarchy._bytesPerReal and dtype != self.hierarchy._dtype):
+            print "Paranoia Error: Cell_H and %s do not agree on endianness." %self.filename
+            error_count += 1
+
+        if error_count > 0:
+            raise RunTimeError("Paranoia unveiled %i differences between Cell_H and %s." % (error_count, self.filename))
+
+    else:
+        start = self.start
+        stop = self.stop
+        dtype = self.hierarchy._dtype
+        bytesPerReal = self.hierarchy._bytesPerReal
+        
     nElements = self.ActiveDimensions.prod()
 
     # one field has nElements*bytesPerReal bytes and is located
     # nElements*bytesPerReal*field_index from the offset location
     field_index = self.field_indexes[yt2orionFieldsDict[field]]
     inFile.seek(int(nElements*bytesPerReal*field_index),1)
-    field = na.fromfile(inFile,count=nElements,dtype=self._dtype)
+    field = na.fromfile(inFile,count=nElements,dtype=dtype)
     field = field.reshape(self.ActiveDimensions[::-1]).swapaxes(0,2)
 
     # we can/should also check against the max and min in the header file
     
     inFile.close()
     return field
-    return na.ones(self.ActiveDimensions, dtype='float64')#field
-
+    
 def readAllDataNative():
     pass
 

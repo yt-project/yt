@@ -43,5 +43,8 @@ yt2orionFieldsDict = {"x-velocity": "xvel",
                         "Temperature": "temperature",
                         }
 orion2ytFieldsDict = {}
+
 for f,v in yt2orionFieldsDict.items():
     orion2ytFieldsDict[v] = f
+
+orion_FAB_header_pattern = r"^FAB \(\((\d+), \([0-9 ]+\)\),\(\d+, \(([0-9 ]+)\)\)\)\(\((\d+,\d+,\d+)\) \((\d+,\d+,\d+)\) \((\d+,\d+,\d+)\)\) (\d+)\n"
