@@ -17,4 +17,4 @@ for i in range(min_output_number, max_output_number+1, skip):
     pc.add_projection("Density",0)
     pc.set_zlim(rho_min, rho_max)
     # Override the name
-    pc.save(frame_template % (i), force=True)
+    pc.save(frame_template % (i), override=True)
