@@ -20,7 +20,7 @@ variables initialized */
     s->pid = NULL; s->offset = 0;
     s->px = s->py = s->pz = s->vx = s->vy = s->vz = NULL;
     s->ntag = NULL;
-    s->ID = NULL; /* S Skory */
+    //s->ID = NULL; /* S Skory */
     s->numpart = s->numlist = 0;
     return s;
 }
@@ -31,8 +31,8 @@ void free_tags(Slice *s)
     if (s->ntag!=NULL) {
       free_ivector(s->ntag, 1, s->numlist);
       s->ntag=NULL;
-      free_ivector(s->ID, 1, s->numlist); /* S Skory */
-     s->ID=NULL;
+      //free_ivector(s->ID, 1, s->numlist); /* S Skory */
+     //s->ID=NULL;
     }
     return;
 }

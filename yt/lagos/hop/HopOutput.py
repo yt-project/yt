@@ -53,8 +53,6 @@ class HopList(object):
         for field in ["particle_position_%s" % ax for ax in 'xyz'] + \
                      ["ParticleMassMsun"]:
             self.particle_fields[field] = self.data_source[field][ii]
-        self.particle_fields["particle_index"] = \
-            self.data_source["particle_index"][ii].astype('int64')
 
     def __run_hop(self):
         self.densities, self.tags = \
@@ -62,7 +60,6 @@ class HopList(object):
                    self.particle_fields["particle_position_y"],
                    self.particle_fields["particle_position_z"],
                    self.particle_fields["ParticleMassMsun"],
-                   self.particle_fields["particle_index"],
                    self.threshold)
         self.particle_fields["densities"] = self.densities
         self.particle_fields["tags"] = self.tags

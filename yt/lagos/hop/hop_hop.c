@@ -519,9 +519,9 @@ void binOutHop(SMX smx, HC *my_comm, float densthres)
     g->npart = s->numlist = s->numpart = smx->kd->nActive;
     g->ngroups = smx->nGroups;
     s->ntag = ivector(1,s->numlist);
-    s->ID = ivector(1,s->numlist);
+    //s->ID = ivector(1,s->numlist);
     for (j=0;j<smx->kd->nActive;j++) {
-      s->ID[1+j] = smx->kd->p[j].iID; /* S Skory's addition */
+      //s->ID[1+j] = smx->kd->p[j].iID; /* S Skory's addition */
       if (smx->kd->p[j].fDensity < densthres) s->ntag[j+1] = -1;
       else s->ntag[j+1] = smx->kd->p[j].iHop;
 

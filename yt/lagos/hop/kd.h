@@ -37,7 +37,7 @@ typedef struct Particle {
 	float r[3];
 	int iOrder;
 	float fDensity;
-	int iID;  /* the real ID of the particle S. Skory */
+	// int iID;  /* the real ID of the particle S. Skory */
 	int iHop;	/* DJE: The number of the highest-density neighbor;
 				Later, the group number. */
 #ifdef DIFFERENT_MASSES
