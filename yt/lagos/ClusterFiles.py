@@ -2,14 +2,14 @@
 Some functions to include the output from enzo_anyl, and generate it if need
 be.
 
-@author: U{Matthew Turk<http://www.stanford.edu/~mturk/>}
-@organization: U{KIPAC<http://www-group.slac.stanford.edu/KIPAC/>}
-@contact: U{mturk@slac.stanford.edu<mailto:mturk@slac.stanford.edu>}
+Author: Matthew Turk <matthewturk@gmail.com>
+Affiliation: KIPAC/SLAC/Stanford
+Homepage: http://yt.enzotools.org/
 @todo: Create an AnalyzeCluster file from a given set of parameters, and a
 hierarchy file.
 @todo: Run enzo_anyl and parse the resultant data.
-@license:
-  Copyright (C) 2007 Matthew Turk.  All Rights Reserved.
+License:
+  Copyright (C) 2007-2008 Matthew Turk.  All Rights Reserved.
 
   This file is part of yt.
 

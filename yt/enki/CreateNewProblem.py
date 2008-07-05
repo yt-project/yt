@@ -1,69 +1,11 @@
 """
 New problems are created with this function
 
-Enki, the creator of Humankind
-==============================
-
-In Sumerian myth, Enki lay asleep in the depths of the primeval ocean, unable
-to hear the lament of the gods as they complained about the difficulty of
-cultivating wheat and making bread. Eventually the primeval sea, Nammu
-brought the gods' tears to Enki. Enki, as the god of wisdom, was expected to
-devise a solution, so he solicited Nammu and the birth-goddess Ninmah to use
-clay to form the first men, who would toil and farm so that the gods could
-relax.
-
-In later Akkadian or Babylonian Cosmology there were six generations of Gods
-that led to the creation of the Younger (Igigi) divinities of the Anunaki. In
-the seventh generation (Akkadian "Shappatu" hence the Hebrew Shabbath =>
-English Sabbath), the younger Gods went on strike, put down their tools and
-refused to keep the creation working. In the Babylonian creation myth the
-Enuma Elish, Abzu, the water lord, threatens to take back the creation with a
-universal flood, but Enki averts the threat by imprisoning Abzu beneath the
-Earth. Kingu, his son, informs his mother, Abzu's wife, the serpentine Tiamat
-(Ti = Life, Ama = mother, Biblical tehwom = the deeps), and in anger she
-threatens to take back the whole of creation. The Gods gather in terror, but
-Enlil (his place in the Enuma Elish is later taken by Enki's son Marduk)
-subdues and slays Tiamat with the arrows of his winds which he shoots down
-her throat. Marduk, Enki's son, (earlier Enlil, Enki's half-brother), takes
-from Tiamat the Tablet of Destinies.
-
-In the Sumerian poem 'Ninurta and the Turtle' it is the god Enki, rather
-than Enlil, who holds the tablet. Both this poem and the Akkadian Anzu
-poem concern the theft of the tablet by the bird Imdugud (Sumerian) or Anzu
-(Akkadian) . Supposedly, whoever possessed the tablets ruled the
-universe.
-
-The tablet can be compared with the concept of the Me, divine decrees that
-are the special attribute of Enki.
-
-But the problem created by the "strike of the Gods" remains, how is creation
-to continue? Enki proposes that the Gods make humankind as their servant, and
-give humans the task of keeping creation going. It is agreed, and Enki forms
-humanity out of the red earth (Hebrew Adamah), mingled with the red blood of
-the God Kingu, slain for his part in Tiamat's attack. Enlil fills his lungs
-with air (Hebrew ruach, Greek pneuma, Latin spiritus), and humans are alive.
-In this way, Humanity is given the task of maintaining the balance of nature
-and keeping the created order in place.
-
-Another myth, "Enki and Adapa", tells of how humanity loses the chance at
-immortality. Adapa U-an (Berossus' Oannes), who is Abgallu (Ab = Water, Gal =
-Great, Lu = Man) (Akkadian Apkallu), Enki's advisor, to the first king of
-Eridu, Allulim, inadvertently breaks the wings of the South Wind, Ninlil (See
-Lilith) (Nin = Lady, Lil = Air), daughter of Anu (the Heavens) and wife to
-Enlil, King of the Gods. In terror at the thought of their retribution, Adapa
-seeks the advice of Enki. Enki advises that Adapa make a deep and sincere
-atonement, but advises Adapa to eat nothing given to him by the Gods, as he
-will probably be given the food of death, out of their anger at his deeds.
-Adapa takes Enki's advice, but the Gods, so impressed by the sincerity of
-Adapa's sorrow and grief as to what he did, offered instead the fruit of
-immortality. Adapa remembering Enki's words, refuses, and so misses out on
-the chance of eternal life.
-
-@author: U{Matthew Turk<http://www.stanford.edu/~mturk/>}
-@organization: U{KIPAC<http://www-group.slac.stanford.edu/KIPAC/>}
-@contact: U{mturk@slac.stanford.edu<mailto:mturk@slac.stanford.edu>}
-@license:
-  Copyright (C) 2007 Matthew Turk.  All Rights Reserved.
+Author: Matthew Turk <matthewturk@gmail.com>
+Affiliation: KIPAC/SLAC/Stanford
+Homepage: http://yt.enzotools.org/
+License:
+  Copyright (C) 2007-2008 Matthew Turk.  All Rights Reserved.
 
   This file is part of yt.
 

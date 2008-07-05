@@ -1,13 +1,13 @@
 """
-This is an interface to U{MatPlotLib <http://matplotlib.sf.net>} to plot
+This is an interface to MatPlotLib <http://matplotlib.sf.net> to plot
 irregularly shaped grids, with the presumption that at any point we could have
 data that is "hidden" in deeper levels of refinement.
 
-@author: U{Matthew Turk<http://www.stanford.edu/~mturk/>}
-@organization: U{KIPAC<http://www-group.slac.stanford.edu/KIPAC/>}
-@contact: U{mturk@slac.stanford.edu<mailto:mturk@slac.stanford.edu>}
-@license:
-  Copyright (C) 2007 Matthew Turk.  All Rights Reserved.
+Author: Matthew Turk <matthewturk@gmail.com>
+Affiliation: KIPAC/SLAC/Stanford
+Homepage: http://yt.enzotools.org/
+License:
+  Copyright (C) 2007-2008 Matthew Turk.  All Rights Reserved.
 
   This file is part of yt.
 

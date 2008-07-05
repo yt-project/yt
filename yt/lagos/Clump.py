@@ -1,10 +1,9 @@
 """
 Clump finding helper classes
 
-@author: Britton Smith
-@organization: University of Colorado at Boulder
-@contact: U{Britton.Smith@colorado.edu<mailto:Britton.Smith@colorado.edu>
-@license:
+Author: Britton Smith <Britton.Smith@colorado.edu>
+Affiliation: University of Colorado at Boulder
+License:
   Copyright (C) 2008 Britton Smith.  All Rights Reserved.
 
   This file is part of yt.

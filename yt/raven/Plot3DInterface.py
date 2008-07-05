@@ -1,12 +1,12 @@
 """
 This is an interface to 
-U{S2PLOT <http://http://astronomy.swin.edu.au/s2plot/index.php?title=S2PLOT>}
+S2PLOT <http://http://astronomy.swin.edu.au/s2plot/index.php?title=S2PLOT>
 to plot uniform-spaced grids, derived from AMR data.
 
-@author: U{Matthew Turk<http://www.stanford.edu/~mturk/>}
-@organization: U{KIPAC<http://www-group.slac.stanford.edu/KIPAC/>}
-@contact: U{mturk@slac.stanford.edu<mailto:mturk@slac.stanford.edu>}
-@license:
+Author: Matthew Turk <matthewturk@gmail.com>
+Affiliation: KIPAC/SLAC/Stanford
+Homepage: http://yt.enzotools.org/
+License:
   Copyright (C) 2008 Matthew Turk.  All Rights Reserved.
 
   This file is part of yt.

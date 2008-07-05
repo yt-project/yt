@@ -12,6 +12,6 @@ email = "mturk@slac.stanford.edu"
 copyright = "2007"
 
 # if it's open source, you might want to specify these
-url = "http://yt.spacepope.org/"
-download_url = "http://yt.spacepope.org/"
+url = "http://yt.enzotools.org/"
+download_url = "http://yt.enzotools.org/"
 license = "GPL-3"
