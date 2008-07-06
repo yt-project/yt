@@ -141,8 +141,7 @@ class BinnedProfile1D(BinnedProfile):
         """
         A 'Profile' produces either a weighted (or unweighted) average or a
         straight sum of a field in a bin defined by another field.  In the case
-        of a weighted average, we have:
-            p_i = sum( w_i * v_i ) / sum(w_i)
+        of a weighted average, we have: p_i = sum( w_i * v_i ) / sum(w_i)
 
         We accept a *data_source*, which will be binned into *n_bins* by the
         field *bin_field* between the *lower_bound* and the *upper_bound*.
@@ -235,8 +234,7 @@ class BinnedProfile2D(BinnedProfile):
         """
         A 'Profile' produces either a weighted (or unweighted) average or a
         straight sum of a field in a bin defined by two other fields.  In the case
-        of a weighted average, we have:
-            p_i = sum( w_i * v_i ) / sum(w_i)
+        of a weighted average, we have: p_i = sum( w_i * v_i ) / sum(w_i)
 
         We accept a *data_source*, which will be binned into *x_n_bins* by the
         field *x_bin_field* between the *x_lower_bound* and the *x_upper_bound*

@@ -7,8 +7,9 @@
     <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
-        URL_ROOT:   '../../',
-        VERSION:    '0.3-pre'
+          URL_ROOT:   '../../',
+          VERSION:    '0.3-pre',
+          COLLAPSE_MODINDEX: false,
       };
     </script>
     <script type="text/javascript" src="../../_static/jquery.js"></script>
@@ -19,17 +20,21 @@
     <link rel="search" title="Search" href="../../search.html" />
     <link rel="top" title="yt v0.3-pre documentation" href="../../index.html" />
     <link rel="up" title="yt.raven - Data Plotting and Display" href="index.html" />
-    <link rel="next" title="yt.raven - Data Plotting and Display" href="index.html" />
     <link rel="prev" title="Primary Plot Interface" href="plotcollection.html" />
   </head>
   <body>
     <div class="related">
       <h3>Navigation</h3>
       <ul>
-        <li class="right" style="margin-right: 10px"><a href="../../genindex.html" title="General Index" accesskey="I">index</a></li>
-        <li class="right"><a href="../../modindex.html" title="Global Module Index" accesskey="M">modules</a> |</li>
-          <li class="right"><a href="index.html" title="yt.raven - Data Plotting and Display" accesskey="N">next</a> |</li>
-          <li class="right"><a href="plotcollection.html" title="Primary Plot Interface" accesskey="P">previous</a> |</li>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../modindex.html" title="Global Module Index"
+             accesskey="M">modules</a> |</li>
+        <li class="right" >
+          <a href="plotcollection.html" title="Primary Plot Interface"
+             accesskey="P">previous</a> |</li>
     <li><a href="http://yt.enzotools.org/">yt</a> &raquo;</li>
     
         <li><a href="../../index.html">yt v0.3-pre documentation</a> &raquo;</li>
@@ -51,7 +56,7 @@ disconnected use.  Furthermore, typically after a plot has been created the UI
 remains onscreen for the remainder of the Python session.</p>
 <dl class="class">
 <dt id="yt.raven.VolumeRendering">
-<!--#yt.raven.VolumeRendering#-->class <tt class="descclassname">yt.raven.</tt><tt class="descname">VolumeRendering</tt><big>(</big><em>data</em>, <em>take_log=True</em>, <em>window_opts='/S2MONO'</em>, <em>cmap='rainbow'</em>, <em>amin=0.0</em>, <em>amax=0.10000000000000001</em>, <em>bounds=None</em><big>)</big><a class="headerlink" href="#yt.raven.VolumeRendering" title="Permalink to this definition">¶</a></dt>
+<!--[yt.raven.VolumeRendering]-->class <tt class="descclassname">yt.raven.</tt><tt class="descname">VolumeRendering</tt><big>(</big><em>data</em>, <em>take_log=True</em>, <em>window_opts='/S2MONO'</em>, <em>cmap='rainbow'</em>, <em>amin=0.0</em>, <em>amax=0.10000000000000001</em>, <em>bounds=None</em><big>)</big><a class="headerlink" href="#yt.raven.VolumeRendering" title="Permalink to this definition">¶</a></dt>
 <dd><p>This is the base class for volume rendering plots.  It sets up
 the translation information, the UI (<em>window_opts</em>),
 the <em>cmap</em> (S2PLOT colormap), and then using the <em>data</em> fed it to
@@ -61,13 +66,13 @@ it uses 0..1 in all dimensions.</p>
 <p>This class is meant to be exclusively a base class.</p>
 <dl class="method">
 <dt id="yt.raven.VolumeRendering.restart">
-<!--#yt.raven.VolumeRendering.restart#--><tt class="descname">restart</tt><big>(</big><big>)</big><a class="headerlink" href="#yt.raven.VolumeRendering.restart" title="Permalink to this definition">¶</a></dt>
+<!--[yt.raven.VolumeRendering.restart]--><tt class="descname">restart</tt><big>(</big><big>)</big><a class="headerlink" href="#yt.raven.VolumeRendering.restart" title="Permalink to this definition">¶</a></dt>
 <dd>If control has been returned to the prompt, this will reinitiate
 GLUT-control.</dd></dl>
 
 <dl class="method">
 <dt id="yt.raven.VolumeRendering.run">
-<!--#yt.raven.VolumeRendering.run#--><tt class="descname">run</tt><big>(</big><em>pre_call=None</em><big>)</big><a class="headerlink" href="#yt.raven.VolumeRendering.run" title="Permalink to this definition">¶</a></dt>
+<!--[yt.raven.VolumeRendering.run]--><tt class="descname">run</tt><big>(</big><em>pre_call=None</em><big>)</big><a class="headerlink" href="#yt.raven.VolumeRendering.run" title="Permalink to this definition">¶</a></dt>
 <dd>Initiate the plotting, transfer control to the GLUT handler.
 <em>pre_call</em> is a function which will be called with this object as the first
 (and only) argument, for instance for automatically adding isosurfaces or
@@ -77,7 +82,7 @@ particles.</dd></dl>
 
 <dl class="class">
 <dt id="yt.raven.VolumeRenderingDataCube">
-<!--#yt.raven.VolumeRenderingDataCube#-->class <tt class="descclassname">yt.raven.</tt><tt class="descname">VolumeRenderingDataCube</tt><big>(</big><em>pf</em>, <em>center=None</em>, <em>width=1</em>, <em>unit='1'</em>, <em>field='Density'</em>, <em>dims=128</em>, <em>smooth_data=True</em>, <em>**kwargs</em><big>)</big><a class="headerlink" href="#yt.raven.VolumeRenderingDataCube" title="Permalink to this definition">¶</a></dt>
+<!--[yt.raven.VolumeRenderingDataCube]-->class <tt class="descclassname">yt.raven.</tt><tt class="descname">VolumeRenderingDataCube</tt><big>(</big><em>pf</em>, <em>center=None</em>, <em>width=1</em>, <em>unit='1'</em>, <em>field='Density'</em>, <em>dims=128</em>, <em>smooth_data=True</em>, <em>**kwargs</em><big>)</big><a class="headerlink" href="#yt.raven.VolumeRenderingDataCube" title="Permalink to this definition">¶</a></dt>
 <dd><p>This is a convenience function for generating a volume rendering from
 an extracted subset of a static output (<em>pf</em>).  Optionally specify
 the <em>center</em>, then given a <em>width</em> and a <em>unit</em> generate a datacube
@@ -86,20 +91,20 @@ This will then be plotted.  Remaining kwargs are fed into the S2PLOT
 controller function.</p>
 <dl class="method">
 <dt id="yt.raven.VolumeRenderingDataCube.add_vectors">
-<!--#yt.raven.VolumeRenderingDataCube.add_vectors#--><tt class="descname">add_vectors</tt><big>(</big><em>vfields</em>, <em>dims</em>, <em>offsets=None</em><big>)</big><a class="headerlink" href="#yt.raven.VolumeRenderingDataCube.add_vectors" title="Permalink to this definition">¶</a></dt>
+<!--[yt.raven.VolumeRenderingDataCube.add_vectors]--><tt class="descname">add_vectors</tt><big>(</big><em>vfields</em>, <em>dims</em>, <em>offsets=None</em><big>)</big><a class="headerlink" href="#yt.raven.VolumeRenderingDataCube.add_vectors" title="Permalink to this definition">¶</a></dt>
 <dd>Add vectors in <em>vfields</em> (list of three) of <em>dims</em> on a side, with the
 fixed list of <em>offsets</em> applied before plotting.  Typically one would
 use velocity with some bulk offset, for instance.</dd></dl>
 
 <dl class="method">
 <dt id="yt.raven.VolumeRenderingDataCube.restart">
-<!--#yt.raven.VolumeRenderingDataCube.restart#--><tt class="descname">restart</tt><big>(</big><big>)</big><a class="headerlink" href="#yt.raven.VolumeRenderingDataCube.restart" title="Permalink to this definition">¶</a></dt>
+<!--[yt.raven.VolumeRenderingDataCube.restart]--><tt class="descname">restart</tt><big>(</big><big>)</big><a class="headerlink" href="#yt.raven.VolumeRenderingDataCube.restart" title="Permalink to this definition">¶</a></dt>
 <dd>If control has been returned to the prompt, this will reinitiate
 GLUT-control.</dd></dl>
 
 <dl class="method">
 <dt id="yt.raven.VolumeRenderingDataCube.run">
-<!--#yt.raven.VolumeRenderingDataCube.run#--><tt class="descname">run</tt><big>(</big><em>pre_call=None</em><big>)</big><a class="headerlink" href="#yt.raven.VolumeRenderingDataCube.run" title="Permalink to this definition">¶</a></dt>
+<!--[yt.raven.VolumeRenderingDataCube.run]--><tt class="descname">run</tt><big>(</big><em>pre_call=None</em><big>)</big><a class="headerlink" href="#yt.raven.VolumeRenderingDataCube.run" title="Permalink to this definition">¶</a></dt>
 <dd>Initiate the plotting, transfer control to the GLUT handler.
 <em>pre_call</em> is a function which will be called with this object as the first
 (and only) argument, for instance for automatically adding isosurfaces or
@@ -109,18 +114,18 @@ particles.</dd></dl>
 
 <dl class="class">
 <dt id="yt.raven.VolumeRendering3DProfile">
-<!--#yt.raven.VolumeRendering3DProfile#-->class <tt class="descclassname">yt.raven.</tt><tt class="descname">VolumeRendering3DProfile</tt><big>(</big><em>profile</em>, <em>field</em>, <em>**kwargs</em><big>)</big><a class="headerlink" href="#yt.raven.VolumeRendering3DProfile" title="Permalink to this definition">¶</a></dt>
+<!--[yt.raven.VolumeRendering3DProfile]-->class <tt class="descclassname">yt.raven.</tt><tt class="descname">VolumeRendering3DProfile</tt><big>(</big><em>profile</em>, <em>field</em>, <em>**kwargs</em><big>)</big><a class="headerlink" href="#yt.raven.VolumeRendering3DProfile" title="Permalink to this definition">¶</a></dt>
 <dd><p>Given a 3D <em>profile</em>, volume render <em>field</em> and pass <em>kwargs</em> on to the
 plot controller.</p>
 <dl class="method">
 <dt id="yt.raven.VolumeRendering3DProfile.restart">
-<!--#yt.raven.VolumeRendering3DProfile.restart#--><tt class="descname">restart</tt><big>(</big><big>)</big><a class="headerlink" href="#yt.raven.VolumeRendering3DProfile.restart" title="Permalink to this definition">¶</a></dt>
+<!--[yt.raven.VolumeRendering3DProfile.restart]--><tt class="descname">restart</tt><big>(</big><big>)</big><a class="headerlink" href="#yt.raven.VolumeRendering3DProfile.restart" title="Permalink to this definition">¶</a></dt>
 <dd>If control has been returned to the prompt, this will reinitiate
 GLUT-control.</dd></dl>
 
 <dl class="method">
 <dt id="yt.raven.VolumeRendering3DProfile.run">
-<!--#yt.raven.VolumeRendering3DProfile.run#--><tt class="descname">run</tt><big>(</big><em>pre_call=None</em><big>)</big><a class="headerlink" href="#yt.raven.VolumeRendering3DProfile.run" title="Permalink to this definition">¶</a></dt>
+<!--[yt.raven.VolumeRendering3DProfile.run]--><tt class="descname">run</tt><big>(</big><em>pre_call=None</em><big>)</big><a class="headerlink" href="#yt.raven.VolumeRendering3DProfile.run" title="Permalink to this definition">¶</a></dt>
 <dd>Initiate the plotting, transfer control to the GLUT handler.
 <em>pre_call</em> is a function which will be called with this object as the first
 (and only) argument, for instance for automatically adding isosurfaces or
@@ -128,7 +133,7 @@ particles.</dd></dl>
 
 <dl class="method">
 <dt id="yt.raven.VolumeRendering3DProfile.setup_plot_points">
-<!--#yt.raven.VolumeRendering3DProfile.setup_plot_points#--><tt class="descname">setup_plot_points</tt><big>(</big><big>)</big><a class="headerlink" href="#yt.raven.VolumeRendering3DProfile.setup_plot_points" title="Permalink to this definition">¶</a></dt>
+<!--[yt.raven.VolumeRendering3DProfile.setup_plot_points]--><tt class="descname">setup_plot_points</tt><big>(</big><big>)</big><a class="headerlink" href="#yt.raven.VolumeRendering3DProfile.setup_plot_points" title="Permalink to this definition">¶</a></dt>
 <dd>Add all the attendant data points from the profile&#8217;s data source,
 toggled on and off with the space bar.</dd></dl>
 
@@ -136,13 +141,13 @@ toggled on and off with the space bar.</dd></dl>
 
 <dl class="class">
 <dt id="yt.raven.HaloMassesPositionPlot">
-<!--#yt.raven.HaloMassesPositionPlot#-->class <tt class="descclassname">yt.raven.</tt><tt class="descname">HaloMassesPositionPlot</tt><big>(</big><em>hop_results</em>, <em>window_opts='/S2MONO'</em>, <em>cmap='jet'</em><big>)</big><a class="headerlink" href="#yt.raven.HaloMassesPositionPlot" title="Permalink to this definition">¶</a></dt>
+<!--[yt.raven.HaloMassesPositionPlot]-->class <tt class="descclassname">yt.raven.</tt><tt class="descname">HaloMassesPositionPlot</tt><big>(</big><em>hop_results</em>, <em>window_opts='/S2MONO'</em>, <em>cmap='jet'</em><big>)</big><a class="headerlink" href="#yt.raven.HaloMassesPositionPlot" title="Permalink to this definition">¶</a></dt>
 <dd><p>With a HopList (<em>hop_results</em>), create a simple plot
 using their masses as color, their radii as radius, and <em>window_opts</em>
 as the options to the S2PLOT interface.  <em>cmap</em> is a matplotlib cmap.</p>
 <dl class="method">
 <dt id="yt.raven.HaloMassesPositionPlot.run">
-<!--#yt.raven.HaloMassesPositionPlot.run#--><tt class="descname">run</tt><big>(</big><em>pre_call=None</em><big>)</big><a class="headerlink" href="#yt.raven.HaloMassesPositionPlot.run" title="Permalink to this definition">¶</a></dt>
+<!--[yt.raven.HaloMassesPositionPlot.run]--><tt class="descname">run</tt><big>(</big><em>pre_call=None</em><big>)</big><a class="headerlink" href="#yt.raven.HaloMassesPositionPlot.run" title="Permalink to this definition">¶</a></dt>
 <dd>Initiate the plotting, transfer control to the GLUT handler.
 <em>pre_call</em> is a function which will be called with this object as the first
 (and only) argument, for instance for automatically adding isosurfaces or
@@ -156,12 +161,10 @@ particles.</dd></dl>
           </div>
         </div>
       </div>
-      <div class="sidebar">
-        <div class="sidebarwrapper">
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
             <h4>Previous topic</h4>
             <p class="topless"><a href="plotcollection.html" title="previous chapter">Primary Plot Interface</a></p>
-            <h4>Next topic</h4>
-            <p class="topless"><a href="index.html" title="next chapter">yt.raven - Data Plotting and Display</a></p>
             <h3>This Page</h3>
             <ul class="this-page-menu">
               <li><a href="../../_sources/modules/raven/plot3dinterface.txt">Show Source</a></li>
@@ -179,10 +182,15 @@ particles.</dd></dl>
     <div class="related">
       <h3>Navigation</h3>
       <ul>
-        <li class="right" style="margin-right: 10px"><a href="../../genindex.html" title="General Index" accesskey="I">index</a></li>
-        <li class="right"><a href="../../modindex.html" title="Global Module Index" accesskey="M">modules</a> |</li>
-          <li class="right"><a href="index.html" title="yt.raven - Data Plotting and Display" accesskey="N">next</a> |</li>
-          <li class="right"><a href="plotcollection.html" title="Primary Plot Interface" accesskey="P">previous</a> |</li>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../modindex.html" title="Global Module Index"
+             accesskey="M">modules</a> |</li>
+        <li class="right" >
+          <a href="plotcollection.html" title="Primary Plot Interface"
+             accesskey="P">previous</a> |</li>
     <li><a href="http://yt.enzotools.org/">yt</a> &raquo;</li>
     
         <li><a href="../../index.html">yt v0.3-pre documentation</a> &raquo;</li>
@@ -192,7 +200,8 @@ particles.</dd></dl>
     </div>
     <div class="footer">
       &copy; Copyright 2008, Matthew J. Turk.
-      Last updated on Jun 22, 2008.
+      Last updated on Jul 06, 2008.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a>.
     </div>
   </body>
 </html>

@@ -62,15 +62,6 @@ method, and that's the functionality we use here.
 
 .. index:: GridCollection, 3ddata;GridCollection
 
-Grid Collections
-----------------
-
-Disks
------
-
-Clumps
-------
-
 Derived Quantities
 ==================
 

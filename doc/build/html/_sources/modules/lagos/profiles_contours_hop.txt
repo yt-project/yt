@@ -12,17 +12,21 @@ phase diagrams, radial profiles, and even more complicated 3D examinations.
 .. autoclass:: yt.lagos.BinnedProfile1D
    :members:
    :inherited-members:
+   :show-inheritance:
 
 .. autoclass:: yt.lagos.BinnedProfile2D
    :members:
    :inherited-members:
+   :show-inheritance:
 
 .. autoclass:: yt.lagos.BinnedProfile3D
    :members:
    :inherited-members:
+   :show-inheritance:
 
 .. autoclass:: yt.lagos.StoredBinnedProfile3D
    :members:
+   :show-inheritance:
 
 Contour Finding
 ---------------

@@ -2,13 +2,14 @@
   "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml">
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    <title>Creating Datatypes &mdash; yt v0.3-pre documentation</title>
+    <title>Creating 3D Datatypes &mdash; yt v0.3-pre documentation</title>
     <link rel="stylesheet" href="../_static/default.css" type="text/css" />
     <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
-        URL_ROOT:   '../',
-        VERSION:    '0.3-pre'
+          URL_ROOT:   '../',
+          VERSION:    '0.3-pre',
+          COLLAPSE_MODINDEX: false,
       };
     </script>
     <script type="text/javascript" src="../_static/jquery.js"></script>
@@ -26,10 +27,18 @@
     <div class="related">
       <h3>Navigation</h3>
       <ul>
-        <li class="right" style="margin-right: 10px"><a href="../genindex.html" title="General Index" accesskey="I">index</a></li>
-        <li class="right"><a href="../modindex.html" title="Global Module Index" accesskey="M">modules</a> |</li>
-          <li class="right"><a href="creating_derived_quantities.html" title="Creating Derived Quantities" accesskey="N">next</a> |</li>
-          <li class="right"><a href="plugin_file.html" title="The Plugin File" accesskey="P">previous</a> |</li>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../modindex.html" title="Global Module Index"
+             accesskey="M">modules</a> |</li>
+        <li class="right" >
+          <a href="creating_derived_quantities.html" title="Creating Derived Quantities"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="plugin_file.html" title="The Plugin File"
+             accesskey="P">previous</a> |</li>
     <li><a href="http://yt.enzotools.org/">yt</a> &raquo;</li>
     
         <li><a href="../index.html">yt v0.3-pre documentation</a> &raquo;</li>
@@ -44,15 +53,53 @@
             
   
   <div class="section">
-<h1 id="creating-datatypes">Creating Datatypes<a class="headerlink" href="#creating-datatypes" title="Permalink to this headline">¶</a></h1>
+<h1 id="creating-3d-datatypes">Creating 3D Datatypes<a class="headerlink" href="#creating-3d-datatypes" title="Permalink to this headline">¶</a></h1>
+<p>The three-dimensional datatypes in yt follow a fairly simple protocol.  The
+basic principle is that if you want to define a region in space, that region
+must be identifable from some sort of cut applied against the cells &#8211;
+typically, in yt, this is done by examining the geomery.  (The
+<a title="yt.lagos.ExtractedRegionBase" class="reference" href="../modules/lagos/basedatatypes.html#yt.lagos.ExtractedRegionBase"><tt class="xref docutils literal"><span class="pre">yt.lagos.ExtractedRegionBase</span></tt></a> type is a notable exception to this, as
+it is defined as a subset of an existing data object.)</p>
+<p>In principle, you can define any number of 3D data objects, as long as the
+following methods are implemented to protocol specifications.</p>
+<dl class="function">
+<dt id="__init__">
+<!--[__init__]--><tt class="descname">__init__</tt><big>(</big><em>self</em>, <em>args</em>, <em>kwargs</em><big>)</big><a class="headerlink" href="#__init__" title="Permalink to this definition">¶</a></dt>
+<dd>This function can accept any number of arguments but must eventually call
+Enzo3DData.__init__.  It is used to set up the various parameters that
+define the object.</dd></dl>
+
+<dl class="function">
+<dt id="_get_list_of_grids">
+<!--[_get_list_of_grids]--><tt class="descname">_get_list_of_grids</tt><big>(</big><em>self</em><big>)</big><a class="headerlink" href="#_get_list_of_grids" title="Permalink to this definition">¶</a></dt>
+<dd>This function must set the property _grids to be a list of the grids
+that should be considered to be a part of the data object.  Each of these
+will be partly or completely contained within the object.</dd></dl>
+
+<dl class="function">
+<dt id="_is_fully_enclosed">
+<!--[_is_fully_enclosed]--><tt class="descname">_is_fully_enclosed</tt><big>(</big><em>self</em>, <em>grid</em><big>)</big><a class="headerlink" href="#_is_fully_enclosed" title="Permalink to this definition">¶</a></dt>
+<dd>This function returns true if the entire grid is part of the data object
+and false if it is only partly enclosed.</dd></dl>
+
+<dl class="function">
+<dt id="_get_cut_mask">
+<!--[_get_cut_mask]--><tt class="descname">_get_cut_mask</tt><big>(</big><em>self</em>, <em>grid</em><big>)</big><a class="headerlink" href="#_get_cut_mask" title="Permalink to this definition">¶</a></dt>
+<dd>This function returns a boolean mask in the shape of the grid.  All of the
+cells set to &#8216;True&#8217; will be included in the data object and all of those set
+to &#8216;False&#8217; will be excluded.  Typically this is done via some logical
+operation.</dd></dl>
+
+<p>For a good example of how to do this, see the
+<a title="yt.lagos.EnzoCylinderBase" class="reference" href="../modules/lagos/basedatatypes.html#yt.lagos.EnzoCylinderBase"><tt class="xref docutils literal"><span class="pre">yt.lagos.EnzoCylinderBase</span></tt></a> source code.</p>
 </div>
 
 
           </div>
         </div>
       </div>
-      <div class="sidebar">
-        <div class="sidebarwrapper">
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
             <h4>Previous topic</h4>
             <p class="topless"><a href="plugin_file.html" title="previous chapter">The Plugin File</a></p>
             <h4>Next topic</h4>
@@ -74,10 +121,18 @@
     <div class="related">
       <h3>Navigation</h3>
       <ul>
-        <li class="right" style="margin-right: 10px"><a href="../genindex.html" title="General Index" accesskey="I">index</a></li>
-        <li class="right"><a href="../modindex.html" title="Global Module Index" accesskey="M">modules</a> |</li>
-          <li class="right"><a href="creating_derived_quantities.html" title="Creating Derived Quantities" accesskey="N">next</a> |</li>
-          <li class="right"><a href="plugin_file.html" title="The Plugin File" accesskey="P">previous</a> |</li>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../modindex.html" title="Global Module Index"
+             accesskey="M">modules</a> |</li>
+        <li class="right" >
+          <a href="creating_derived_quantities.html" title="Creating Derived Quantities"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="plugin_file.html" title="The Plugin File"
+             accesskey="P">previous</a> |</li>
     <li><a href="http://yt.enzotools.org/">yt</a> &raquo;</li>
     
         <li><a href="../index.html">yt v0.3-pre documentation</a> &raquo;</li>
@@ -87,7 +142,8 @@
     </div>
     <div class="footer">
       &copy; Copyright 2008, Matthew J. Turk.
-      Last updated on Jun 22, 2008.
+      Last updated on Jul 06, 2008.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a>.
     </div>
   </body>
 </html>

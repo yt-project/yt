@@ -7,8 +7,9 @@
     <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
-        URL_ROOT:   '../',
-        VERSION:    '0.3-pre'
+          URL_ROOT:   '../',
+          VERSION:    '0.3-pre',
+          COLLAPSE_MODINDEX: false,
       };
     </script>
     <script type="text/javascript" src="../_static/jquery.js"></script>
@@ -20,16 +21,24 @@
     <link rel="top" title="yt v0.3-pre documentation" href="../index.html" />
     <link rel="up" title="Extending yt" href="index.html" />
     <link rel="next" title="Creating Derived Fields" href="creating_derived_fields.html" />
-    <link rel="prev" title="Creating Datatypes" href="creating_datatypes.html" />
+    <link rel="prev" title="Creating 3D Datatypes" href="creating_datatypes.html" />
   </head>
   <body>
     <div class="related">
       <h3>Navigation</h3>
       <ul>
-        <li class="right" style="margin-right: 10px"><a href="../genindex.html" title="General Index" accesskey="I">index</a></li>
-        <li class="right"><a href="../modindex.html" title="Global Module Index" accesskey="M">modules</a> |</li>
-          <li class="right"><a href="creating_derived_fields.html" title="Creating Derived Fields" accesskey="N">next</a> |</li>
-          <li class="right"><a href="creating_datatypes.html" title="Creating Datatypes" accesskey="P">previous</a> |</li>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../modindex.html" title="Global Module Index"
+             accesskey="M">modules</a> |</li>
+        <li class="right" >
+          <a href="creating_derived_fields.html" title="Creating Derived Fields"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="creating_datatypes.html" title="Creating 3D Datatypes"
+             accesskey="P">previous</a> |</li>
     <li><a href="http://yt.enzotools.org/">yt</a> &raquo;</li>
     
         <li><a href="../index.html">yt v0.3-pre documentation</a> &raquo;</li>
@@ -45,16 +54,41 @@
   
   <div class="section">
 <h1 id="creating-derived-quantities">Creating Derived Quantities<a class="headerlink" href="#creating-derived-quantities" title="Permalink to this headline">¶</a></h1>
+<p>Derived quantities are a way of operating on a collection of cells and
+returning a set of values that is fewer in number than the number of cells &#8211;
+for instance yt already knows about several.</p>
+<p>The basic idea is that you need to be able to operate both on a set of data,
+and a set of sets of data.  (If this is not possible, the quantity needs to be
+added with the <tt class="docutils literal"><span class="pre">force_unlazy</span></tt> option.)</p>
+<p>Two functions are necessary.  One will operate on arrays of data, either fed
+from each grid individually or fed from the entire data object at once.  The
+second one takes the results of the first, either as lists of arrays or as
+single arrays, and returns the final values.  For an example, we look at the
+<tt class="docutils literal"><span class="pre">TotalMass</span></tt> function:</p>
+<div class="highlight"><pre><span class="k">def</span> <span class="nf">_TotalMass</span><span class="p">(</span><span class="n">data</span><span class="p">):</span>
+    <span class="n">baryon_mass</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s">&quot;CellMassMsun&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+    <span class="n">particle_mass</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s">&quot;ParticleMassMsun&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">baryon_mass</span><span class="p">,</span> <span class="n">particle_mass</span>
+<span class="k">def</span> <span class="nf">_combTotalMass</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">baryon_mass</span><span class="p">,</span> <span class="n">particle_mass</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">baryon_mass</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span> <span class="o">+</span> <span class="n">particle_mass</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+<span class="n">add_quantity</span><span class="p">(</span><span class="s">&quot;TotalMass&quot;</span><span class="p">,</span> <span class="n">function</span><span class="o">=</span><span class="n">_TotalMass</span><span class="p">,</span>
+             <span class="n">combine_function</span><span class="o">=</span><span class="n">_combTotalMass</span><span class="p">,</span> <span class="n">n_ret</span> <span class="o">=</span> <span class="mf">2</span><span class="p">)</span>
+</pre></div>
+<p>Once the two functions have been defined, we then call <tt class="xref docutils literal"><span class="pre">add_quantity()</span></tt> to
+tell it the function that defines the data, the collator function, and the
+number of values that get passed between them.  In this case we return both the
+particle and the baryon mass, so we have two total values passed from the main
+function into the collator.</p>
 </div>
 
 
           </div>
         </div>
       </div>
-      <div class="sidebar">
-        <div class="sidebarwrapper">
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
             <h4>Previous topic</h4>
-            <p class="topless"><a href="creating_datatypes.html" title="previous chapter">Creating Datatypes</a></p>
+            <p class="topless"><a href="creating_datatypes.html" title="previous chapter">Creating 3D Datatypes</a></p>
             <h4>Next topic</h4>
             <p class="topless"><a href="creating_derived_fields.html" title="next chapter">Creating Derived Fields</a></p>
             <h3>This Page</h3>
@@ -74,10 +108,18 @@
     <div class="related">
       <h3>Navigation</h3>
       <ul>
-        <li class="right" style="margin-right: 10px"><a href="../genindex.html" title="General Index" accesskey="I">index</a></li>
-        <li class="right"><a href="../modindex.html" title="Global Module Index" accesskey="M">modules</a> |</li>
-          <li class="right"><a href="creating_derived_fields.html" title="Creating Derived Fields" accesskey="N">next</a> |</li>
-          <li class="right"><a href="creating_datatypes.html" title="Creating Datatypes" accesskey="P">previous</a> |</li>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../modindex.html" title="Global Module Index"
+             accesskey="M">modules</a> |</li>
+        <li class="right" >
+          <a href="creating_derived_fields.html" title="Creating Derived Fields"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="creating_datatypes.html" title="Creating 3D Datatypes"
+             accesskey="P">previous</a> |</li>
     <li><a href="http://yt.enzotools.org/">yt</a> &raquo;</li>
     
         <li><a href="../index.html">yt v0.3-pre documentation</a> &raquo;</li>
@@ -87,7 +129,8 @@
     </div>
     <div class="footer">
       &copy; Copyright 2008, Matthew J. Turk.
-      Last updated on Jun 22, 2008.
+      Last updated on Jul 06, 2008.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a>.
     </div>
   </body>
 </html>

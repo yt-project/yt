@@ -67,6 +67,12 @@ or interfaces, you only need to install NumPy and Python!)
 Installing the Necessary Packages
 ---------------------------------
 
+.. note::
+   In the ``doc/`` directory in the yt source distribution, there is a script I
+   have used in the past to set up a full installation of yt.  It may need
+   tweaking or modification, but it gives a good idea of the roadmap to
+   installation.
+
 Installing Python itself is usually quite simple, and often very fast.  Because
 we're setting up a small system of packages, even if you have a system-wide
 install of python2.5 it can be easier in some cases to create a local directory

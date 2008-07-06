@@ -7,8 +7,9 @@
     <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
-        URL_ROOT:   '../',
-        VERSION:    '0.3-pre'
+          URL_ROOT:   '../',
+          VERSION:    '0.3-pre',
+          COLLAPSE_MODINDEX: false,
       };
     </script>
     <script type="text/javascript" src="../_static/jquery.js"></script>
@@ -19,17 +20,25 @@
     <link rel="search" title="Search" href="../search.html" />
     <link rel="top" title="yt v0.3-pre documentation" href="../index.html" />
     <link rel="up" title="Extending yt" href="index.html" />
-    <link rel="next" title="Running Fortran Routines" href="running_fortran_routines.html" />
+    <link rel="next" title="FAQ" href="../faq.html" />
     <link rel="prev" title="Creating Derived Fields" href="creating_derived_fields.html" />
   </head>
   <body>
     <div class="related">
       <h3>Navigation</h3>
       <ul>
-        <li class="right" style="margin-right: 10px"><a href="../genindex.html" title="General Index" accesskey="I">index</a></li>
-        <li class="right"><a href="../modindex.html" title="Global Module Index" accesskey="M">modules</a> |</li>
-          <li class="right"><a href="running_fortran_routines.html" title="Running Fortran Routines" accesskey="N">next</a> |</li>
-          <li class="right"><a href="creating_derived_fields.html" title="Creating Derived Fields" accesskey="P">previous</a> |</li>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../modindex.html" title="Global Module Index"
+             accesskey="M">modules</a> |</li>
+        <li class="right" >
+          <a href="../faq.html" title="FAQ"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="creating_derived_fields.html" title="Creating Derived Fields"
+             accesskey="P">previous</a> |</li>
     <li><a href="http://yt.enzotools.org/">yt</a> &raquo;</li>
     
         <li><a href="../index.html">yt v0.3-pre documentation</a> &raquo;</li>
@@ -45,19 +54,225 @@
   
   <div class="section">
 <h1 id="analyzing-in-parallel">Analyzing in Parallel<a class="headerlink" href="#analyzing-in-parallel" title="Permalink to this headline">¶</a></h1>
-<p>Right now, analyzing in parallel is a tricky business.  Of the two</p>
+<p>Right now, analyzing in parallel is a tricky business.  With the next major
+release of yt, we intend to include a significantly improved infrastructure for
+dispatching analysis via a queuing system.</p>
+<div class="section">
+<h2 id="projecting-in-parallel">Projecting in Parallel<a class="headerlink" href="#projecting-in-parallel" title="Permalink to this headline">¶</a></h2>
+<p>Below is a script (<tt class="docutils literal"><span class="pre">parallel_projection_mpi4py.py</span></tt>) that shows a
+proof-of-concept parallel projection.  It relies on <a class="reference" href="http://mpi4py.scipy.org/">MPI4Py</a> and <a class="reference" href="http://www.pytables.org/">PyTables</a>, and
+currently only works with a decomposition onto a square number of processors.</p>
+<table class="highlighttable"><tr><td class="linenos"><pre> 1
+ 2
+ 3
+ 4
+ 5
+ 6
+ 7
+ 8
+ 9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+27
+28
+29
+30
+31
+32
+33
+34
+35
+36
+37
+38
+39
+40
+41
+42
+43
+44
+45
+46
+47
+48
+49
+50
+51
+52
+53
+54
+55
+56
+57
+58
+59
+60
+61
+62
+63
+64</pre></td><td class="code"><div class="highlight"><pre><span class="c">#</span>
+<span class="c"># This is a quick-and-dirty method of testing the parallel projection sketch</span>
+<span class="c"># I&#39;ve created.  (Matt)</span>
+<span class="c">#</span>
+<span class="n">fn</span> <span class="o">=</span> <span class="s">&quot;my_gigantic_data.dir/my_gigantic_data&quot;</span>
+
+<span class="k">from</span> <span class="nn">mpi4py</span> <span class="k">import</span> <span class="n">MPI</span>
+
+<span class="k">import</span> <span class="nn">math</span><span class="o">,</span> <span class="nn">time</span>
+<span class="k">from</span> <span class="nn">yt.config</span> <span class="k">import</span> <span class="n">ytcfg</span>
+<span class="n">num_proc</span> <span class="o">=</span> <span class="n">MPI</span><span class="o">.</span><span class="n">COMM_WORLD</span><span class="o">.</span><span class="n">size</span>
+<span class="n">my_id</span> <span class="o">=</span> <span class="n">MPI</span><span class="o">.</span><span class="n">COMM_WORLD</span><span class="o">.</span><span class="n">rank</span>
+<span class="n">field_name</span> <span class="o">=</span> <span class="s">&quot;Density&quot;</span>
+<span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="n">my_id</span><span class="p">)</span> <span class="c"># Offset our IO slightly</span>
+
+<span class="c"># Now a bit of boilerplate to ensure we&#39;re not doing any IO</span>
+<span class="c"># unless we&#39;re the root processor.</span>
+<span class="n">ytcfg</span><span class="p">[</span><span class="s">&quot;yt&quot;</span><span class="p">,</span><span class="s">&quot;logfile&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s">&quot;False&quot;</span>
+<span class="n">ytcfg</span><span class="p">[</span><span class="s">&quot;lagos&quot;</span><span class="p">,</span><span class="s">&quot;ReconstructHierarchy&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s">&quot;False&quot;</span>
+<span class="k">if</span> <span class="n">my_id</span> <span class="o">==</span> <span class="mf">0</span><span class="p">:</span>
+    <span class="n">ytcfg</span><span class="p">[</span><span class="s">&quot;lagos&quot;</span><span class="p">,</span><span class="s">&quot;serialize&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s">&quot;True&quot;</span>
+    <span class="n">ytcfg</span><span class="p">[</span><span class="s">&quot;lagos&quot;</span><span class="p">,</span><span class="s">&quot;onlydeserialize&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s">&quot;False&quot;</span>
+<span class="k">else</span><span class="p">:</span>
+    <span class="n">ytcfg</span><span class="p">[</span><span class="s">&quot;lagos&quot;</span><span class="p">,</span><span class="s">&quot;onlydeserialize&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s">&quot;True&quot;</span>
+
+<span class="k">from</span> <span class="nn">yt.mods</span> <span class="k">import</span> <span class="o">*</span>
+<span class="n">pf</span> <span class="o">=</span> <span class="n">get_pf</span><span class="p">()</span>
+
+<span class="c"># Domain decomposition.</span>
+<span class="n">x_edge</span> <span class="o">=</span> <span class="n">na</span><span class="o">.</span><span class="n">mgrid</span><span class="p">[</span><span class="mf">0</span><span class="p">:</span><span class="mf">1</span><span class="p">:(</span><span class="n">na</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">num_proc</span><span class="p">)</span> <span class="o">+</span> <span class="mf">1</span><span class="p">)</span><span class="o">*</span><span class="mf">1</span><span class="n">j</span><span class="p">]</span>
+<span class="n">y_edge</span> <span class="o">=</span> <span class="n">na</span><span class="o">.</span><span class="n">mgrid</span><span class="p">[</span><span class="mf">0</span><span class="p">:</span><span class="mf">1</span><span class="p">:(</span><span class="n">na</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">num_proc</span><span class="p">)</span> <span class="o">+</span> <span class="mf">1</span><span class="p">)</span><span class="o">*</span><span class="mf">1</span><span class="n">j</span><span class="p">]</span>
+
+<span class="n">xe_i</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">floor</span><span class="p">(</span><span class="n">my_id</span><span class="o">/</span><span class="n">na</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">num_proc</span><span class="p">)))</span>
+<span class="n">ye_i</span> <span class="o">=</span> <span class="n">my_id</span> <span class="o">%</span> <span class="n">na</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">num_proc</span><span class="p">)</span>
+
+<span class="c"># Note that here we are setting it to be projected along axis zero</span>
+<span class="n">LE</span> <span class="o">=</span> <span class="p">[</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">x_edge</span><span class="p">[</span><span class="n">xe_i</span><span class="p">],</span> <span class="n">y_edge</span><span class="p">[</span><span class="n">ye_i</span><span class="p">]]</span>
+<span class="n">RE</span> <span class="o">=</span> <span class="p">[</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">x_edge</span><span class="p">[</span><span class="n">xe_i</span><span class="o">+</span><span class="mf">1</span><span class="p">],</span> <span class="n">y_edge</span><span class="p">[</span><span class="n">ye_i</span><span class="o">+</span><span class="mf">1</span><span class="p">]]</span>
+
+<span class="n">reg</span> <span class="o">=</span> <span class="n">pf</span><span class="o">.</span><span class="n">h</span><span class="o">.</span><span class="n">region</span><span class="p">([</span><span class="o">.</span><span class="mf">5</span><span class="p">,</span><span class="o">.</span><span class="mf">5</span><span class="p">,</span><span class="o">.</span><span class="mf">5</span><span class="p">],</span><span class="n">LE</span><span class="p">,</span><span class="n">RE</span><span class="p">)</span> <span class="c"># center at 0.5 but only project sub-regions</span>
+<span class="c"># Record the corners of our region</span>
+<span class="nb">open</span><span class="p">(</span><span class="s">&quot;LE_RE_</span><span class="si">%02i</span><span class="s">.txt&quot;</span> <span class="o">%</span> <span class="n">my_id</span><span class="p">,</span><span class="s">&quot;w&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s">&quot;</span><span class="si">%s</span><span class="s">, </span><span class="si">%s</span><span class="se">\n</span><span class="s">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">LE</span><span class="p">,</span><span class="n">RE</span><span class="p">))</span>
+<span class="n">proj</span> <span class="o">=</span> <span class="n">pf</span><span class="o">.</span><span class="n">h</span><span class="o">.</span><span class="n">proj</span><span class="p">(</span><span class="mf">0</span><span class="p">,</span><span class="n">field_name</span><span class="p">,</span><span class="n">source</span><span class="o">=</span><span class="n">reg</span><span class="p">)</span> <span class="c"># Actually *do* the projection here</span>
+
+<span class="k">if</span> <span class="n">my_id</span> <span class="o">==</span> <span class="mf">0</span><span class="p">:</span>
+    <span class="c"># Now we collect!</span>
+    <span class="n">d</span> <span class="o">=</span> <span class="p">[</span><span class="n">proj</span><span class="o">.</span><span class="n">data</span><span class="p">]</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mf">1</span><span class="p">,</span><span class="n">num_proc</span><span class="p">):</span>
+        <span class="c"># Blocking receive</span>
+        <span class="n">d</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">MPI</span><span class="o">.</span><span class="n">COMM_WORLD</span><span class="o">.</span><span class="n">Recv</span><span class="p">(</span><span class="n">source</span><span class="o">=</span><span class="n">i</span><span class="p">,</span> <span class="n">tag</span><span class="o">=</span><span class="mf">0</span><span class="p">))</span>
+    <span class="n">new_proj</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">proj</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+        <span class="n">new_proj</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">na</span><span class="o">.</span><span class="n">concatenate</span><span class="p">([</span><span class="n">mm</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="k">for</span> <span class="n">mm</span> <span class="ow">in</span> <span class="n">d</span><span class="p">])</span>
+    <span class="n">proj_array</span> <span class="o">=</span> <span class="n">na</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">new_proj</span><span class="p">[</span><span class="s">&#39;px&#39;</span><span class="p">],</span><span class="n">new_proj</span><span class="p">[</span><span class="s">&#39;py&#39;</span><span class="p">],</span>
+                           <span class="n">new_proj</span><span class="p">[</span><span class="s">&#39;pdx&#39;</span><span class="p">],</span><span class="n">new_proj</span><span class="p">[</span><span class="s">&#39;pdy&#39;</span><span class="p">],</span>
+                           <span class="n">new_proj</span><span class="p">[</span><span class="n">field_name</span><span class="p">]])</span>
+    <span class="c"># We&#39;ve now received all of our data and constructed an</span>
+    <span class="c"># array of the pixelization.  So, let&#39;s store it.</span>
+    <span class="k">import</span> <span class="nn">tables</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">tables</span><span class="o">.</span><span class="n">openFile</span><span class="p">(</span><span class="s">&quot;result_mpi4py.h5&quot;</span><span class="p">,</span><span class="s">&quot;w&quot;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">createArray</span><span class="p">(</span><span class="s">&quot;/&quot;</span><span class="p">,</span><span class="s">&quot;Test&quot;</span><span class="p">,</span><span class="n">proj_array</span><span class="p">)</span>
+<span class="k">else</span><span class="p">:</span>
+    <span class="c"># proj.data is where the dictionary of projection values is kept</span>
+    <span class="n">MPI</span><span class="o">.</span><span class="n">COMM_WORLD</span><span class="o">.</span><span class="n">Send</span><span class="p">(</span><span class="n">proj</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="mf">0</span><span class="p">,</span> <span class="n">tag</span><span class="o">=</span><span class="mf">0</span><span class="p">)</span>
+</pre></div>
+</td></tr></table></div>
+<div class="section">
+<h2 id="analyzing-objects-in-parallel">Analyzing Objects in Parallel<a class="headerlink" href="#analyzing-objects-in-parallel" title="Permalink to this headline">¶</a></h2>
+<p>The process of analyzing objects in parallel if they don&#8217;t require in-line data
+comparison &#8211; for example, creating phase diagrams of multiple galaxies in a
+large scale cosmological simulation &#8211; is significantly simpler, and can be
+conducted in a very straightforward fashion.</p>
+<p>The below example takes a list of HOP centers, generated by yt and then written
+out with the <tt class="xref docutils literal"><span class="pre">write_out()</span></tt> method, reads them in and then chooses which one
+to examine based on the processor number.  Note that MPI4Py might be overkill
+here, but it suffices for our purposes.</p>
+<table class="highlighttable"><tr><td class="linenos"><pre> 1
+ 2
+ 3
+ 4
+ 5
+ 6
+ 7
+ 8
+ 9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25</pre></td><td class="code"><div class="highlight"><pre><span class="k">from</span> <span class="nn">mpi4py</span> <span class="k">import</span> <span class="n">MPI</span>
+<span class="k">from</span> <span class="nn">yt.mods</span> <span class="k">import</span> <span class="o">*</span>
+
+<span class="n">num_proc</span> <span class="o">=</span> <span class="n">MPI</span><span class="o">.</span><span class="n">COMM_WORLD</span><span class="o">.</span><span class="n">size</span>
+<span class="n">my_id</span> <span class="o">=</span> <span class="n">MPI</span><span class="o">.</span><span class="n">COMM_WORLD</span><span class="o">.</span><span class="n">rank</span>
+
+<span class="n">pf</span> <span class="o">=</span> <span class="n">get_pf</span><span class="p">()</span>
+
+<span class="n">hop_centers</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="nb">open</span><span class="p">(</span><span class="s">&quot;HOP.txt&quot;</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">line</span><span class="p">[</span><span class="mf">0</span><span class="p">]</span> <span class="o">==</span> <span class="s">&quot;#&quot;</span><span class="p">:</span> <span class="k">continue</span>
+    <span class="c"># Maximum density location</span>
+    <span class="n">hop_centers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span> <span class="p">[</span><span class="nb">float</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">()[</span><span class="mf">4</span><span class="p">:</span><span class="mf">7</span><span class="p">]]</span> <span class="p">)</span>
+    <span class="c"># Maximum radius</span>
+    <span class="n">hop_radii</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">()[</span><span class="o">-</span><span class="mf">1</span><span class="p">]))</span>
+
+<span class="n">results</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s">&quot;results_</span><span class="si">%04i</span><span class="s">.txt&quot;</span> <span class="o">%</span> <span class="n">my_id</span><span class="p">)</span>
+<span class="c"># Now we want to start at my_id, jump by num_proc each step</span>
+<span class="c"># and hit the len(hop_centers).</span>
+<span class="k">for</span> <span class="n">hop_id</span> <span class="ow">in</span> <span class="n">na</span><span class="o">.</span><span class="n">mgrid</span><span class="p">[</span><span class="n">my_id</span><span class="p">:</span><span class="nb">len</span><span class="p">(</span><span class="n">hop_centers</span><span class="p">):</span><span class="n">num_proc</span><span class="p">]:</span>
+    <span class="c"># This is where our analysis goes.</span>
+    <span class="n">sp</span> <span class="o">=</span> <span class="n">pf</span><span class="o">.</span><span class="n">h</span><span class="o">.</span><span class="n">sphere</span><span class="p">(</span><span class="n">hop_centers</span><span class="p">[</span><span class="n">hop_id</span><span class="p">],</span> <span class="n">hop_radii</span><span class="p">[</span><span class="n">hop_id</span><span class="p">])</span>
+    <span class="n">axv</span> <span class="o">=</span> <span class="n">sp</span><span class="o">.</span><span class="n">quantities</span><span class="p">[</span><span class="s">&quot;WeightedAverageQuantity&quot;</span><span class="p">](</span><span class="s">&quot;x-velocity&quot;</span><span class="p">,</span><span class="s">&quot;CellMassMsun&quot;</span><span class="p">)</span>
+    <span class="n">results</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s">&quot;</span><span class="si">%04i</span><span class="se">\t</span><span class="si">%0.9e</span><span class="se">\n</span><span class="s">&quot;</span> <span class="o">%</span> <span class="n">hop_id</span><span class="p">,</span> <span class="n">axv</span><span class="p">)</span>
+<span class="n">results</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+</pre></div>
+</td></tr></table></div>
 </div>
 
 
           </div>
         </div>
       </div>
-      <div class="sidebar">
-        <div class="sidebarwrapper">
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+            <h3>Table Of Contents</h3>
+            <ul>
+<li><a class="reference" href="">Analyzing in Parallel</a><ul>
+<li><a class="reference" href="#projecting-in-parallel">Projecting in Parallel</a></li>
+<li><a class="reference" href="#analyzing-objects-in-parallel">Analyzing Objects in Parallel</a></li>
+</ul>
+</li>
+</ul>
+
             <h4>Previous topic</h4>
             <p class="topless"><a href="creating_derived_fields.html" title="previous chapter">Creating Derived Fields</a></p>
             <h4>Next topic</h4>
-            <p class="topless"><a href="running_fortran_routines.html" title="next chapter">Running Fortran Routines</a></p>
+            <p class="topless"><a href="../faq.html" title="next chapter">FAQ</a></p>
             <h3>This Page</h3>
             <ul class="this-page-menu">
               <li><a href="../_sources/extending/analyzing_in_parallel.txt">Show Source</a></li>
@@ -75,10 +290,18 @@
     <div class="related">
       <h3>Navigation</h3>
       <ul>
-        <li class="right" style="margin-right: 10px"><a href="../genindex.html" title="General Index" accesskey="I">index</a></li>
-        <li class="right"><a href="../modindex.html" title="Global Module Index" accesskey="M">modules</a> |</li>
-          <li class="right"><a href="running_fortran_routines.html" title="Running Fortran Routines" accesskey="N">next</a> |</li>
-          <li class="right"><a href="creating_derived_fields.html" title="Creating Derived Fields" accesskey="P">previous</a> |</li>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../modindex.html" title="Global Module Index"
+             accesskey="M">modules</a> |</li>
+        <li class="right" >
+          <a href="../faq.html" title="FAQ"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="creating_derived_fields.html" title="Creating Derived Fields"
+             accesskey="P">previous</a> |</li>
     <li><a href="http://yt.enzotools.org/">yt</a> &raquo;</li>
     
         <li><a href="../index.html">yt v0.3-pre documentation</a> &raquo;</li>
@@ -88,7 +311,8 @@
     </div>
     <div class="footer">
       &copy; Copyright 2008, Matthew J. Turk.
-      Last updated on Jun 22, 2008.
+      Last updated on Jul 06, 2008.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a>.
     </div>
   </body>
 </html>

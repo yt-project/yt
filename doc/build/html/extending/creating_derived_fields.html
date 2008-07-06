@@ -7,8 +7,9 @@
     <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
-        URL_ROOT:   '../',
-        VERSION:    '0.3-pre'
+          URL_ROOT:   '../',
+          VERSION:    '0.3-pre',
+          COLLAPSE_MODINDEX: false,
       };
     </script>
     <script type="text/javascript" src="../_static/jquery.js"></script>
@@ -26,10 +27,18 @@
     <div class="related">
       <h3>Navigation</h3>
       <ul>
-        <li class="right" style="margin-right: 10px"><a href="../genindex.html" title="General Index" accesskey="I">index</a></li>
-        <li class="right"><a href="../modindex.html" title="Global Module Index" accesskey="M">modules</a> |</li>
-          <li class="right"><a href="analyzing_in_parallel.html" title="Analyzing in Parallel" accesskey="N">next</a> |</li>
-          <li class="right"><a href="creating_derived_quantities.html" title="Creating Derived Quantities" accesskey="P">previous</a> |</li>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../modindex.html" title="Global Module Index"
+             accesskey="M">modules</a> |</li>
+        <li class="right" >
+          <a href="analyzing_in_parallel.html" title="Analyzing in Parallel"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="creating_derived_quantities.html" title="Creating Derived Quantities"
+             accesskey="P">previous</a> |</li>
     <li><a href="http://yt.enzotools.org/">yt</a> &raquo;</li>
     
         <li><a href="../index.html">yt v0.3-pre documentation</a> &raquo;</li>
@@ -49,10 +58,131 @@
 fields.  These are fields that describe a value at each cell in a simulation.</p>
 <div class="section">
 <h2 id="defining-a-new-field">Defining a New Field<a class="headerlink" href="#defining-a-new-field" title="Permalink to this headline">¶</a></h2>
-<p>So once a new field has been</p>
+<p>So once a new field has been conceived of, the best way to create it is to
+construct a function that performs an array operation &#8211; operating on a
+collection of data, neutral to its size, shape, and type.  (All fields should
+be provided as 64-bit floats.)</p>
+<p>A simple example of this is the pressure field, which demonstrates the ease of
+this approach.</p>
+<div class="highlight"><pre><span class="k">def</span> <span class="nf">_Pressure</span><span class="p">(</span><span class="n">field</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>
+    <span class="k">return</span> <span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">pf</span><span class="p">[</span><span class="s">&quot;Gamma&quot;</span><span class="p">]</span> <span class="o">-</span> <span class="mf">1.0</span><span class="p">)</span> <span class="o">*</span> \
+           <span class="n">data</span><span class="p">[</span><span class="s">&quot;Density&quot;</span><span class="p">]</span> <span class="o">*</span> <span class="n">data</span><span class="p">[</span><span class="s">&quot;ThermalEnergy&quot;</span><span class="p">]</span>
+</pre></div>
+<p>Note that we do a couple different things here.  We access the &#8220;Gamma&#8221;
+parameter from the parameter file, we access the &#8220;Density&#8221; field and we access
+the &#8220;ThermalEnergy&#8221; field.  &#8220;ThermalEnergy&#8221; is, in fact, another derived field!
+(&#8220;ThermalEnergy&#8221; deals with the distinction in storage of energy between dual
+energy formalism and non-DEF.)  We don&#8217;t do any loops, we don&#8217;t do any
+type-checking, we can simply multiply the three items together.</p>
+<p>Once we&#8217;ve defined our function, we need to notify yt that the field is
+available.  The <tt class="xref docutils literal"><span class="pre">add_field()</span></tt> function is the means of doing this; it has a
+number of fairly specific parameters that can be passed in, but here we&#8217;ll only
+look at the most basic ones needed for a simple scalar baryon field.</p>
+<div class="highlight"><pre><span class="n">add_field</span><span class="p">(</span><span class="s">&quot;Pressure&quot;</span><span class="p">,</span> <span class="n">units</span><span class="o">=</span><span class="s">r&quot;\rm{dyne}/\rm{cm}^{2}&quot;</span><span class="p">)</span>
+</pre></div>
+<p>We feed it the name of the field, and the units.  Note that the units parameter
+is a &#8220;raw&#8221; string, with some LaTeX-style formatting &#8211; Matplotlib actually has
+a MathText rendering engine, so if you include LaTeX it will be rendered
+appropriately.</p>
+<p>One very important thing to note about the call to <tt class="docutils literal"><span class="pre">add_field</span></tt> is that it
+<strong>does not</strong> need to specify the function name <strong>if</strong> the function is the name
+of the field prefixed with an underscore.  If it is not &#8211; and it won&#8217;t be, for
+fields in different units (such as &#8220;CellMassMsun&#8221;, for instance) &#8211; then you
+need to specify it with the argument <tt class="docutils literal"><span class="pre">function</span></tt>.</p>
+<p>Note one last thing about this definition; we do not unit conversion.  All of
+the fields fed into the field are pre-supposed to be in CGS.  If we need no
+constants applied after that, we need not include them.  (If we do, it is
+better if you define a second function and use the argument
+<tt class="docutils literal"><span class="pre">convert_function</span></tt> to <tt class="docutils literal"><span class="pre">add_field</span></tt> to point to it.)</p>
+</div>
+<div class="section">
+<h2 id="some-more-complicated-examples">Some More Complicated Examples<a class="headerlink" href="#some-more-complicated-examples" title="Permalink to this headline">¶</a></h2>
+<p>But what if we want to do some more fancy stuff?  Here&#8217;s an example of getting
+parameters from the data object and using those to define the field;
+specifically, here we obtain the <tt class="docutils literal"><span class="pre">center</span></tt> and <tt class="docutils literal"><span class="pre">height_vector</span></tt> parameters
+and use those to define an angle of declination of a point with respect to a
+disk.</p>
+<div class="highlight"><pre><span class="k">def</span> <span class="nf">_DiskAngle</span><span class="p">(</span><span class="n">field</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>
+    <span class="c"># We make both r_vec and h_vec into unit vectors</span>
+    <span class="n">center</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">get_field_parameter</span><span class="p">(</span><span class="s">&quot;center&quot;</span><span class="p">)</span>
+    <span class="n">r_vec</span> <span class="o">=</span> <span class="n">na</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">data</span><span class="p">[</span><span class="s">&quot;x&quot;</span><span class="p">]</span> <span class="o">-</span> <span class="n">center</span><span class="p">[</span><span class="mf">0</span><span class="p">],</span>
+                      <span class="n">data</span><span class="p">[</span><span class="s">&quot;y&quot;</span><span class="p">]</span> <span class="o">-</span> <span class="n">center</span><span class="p">[</span><span class="mf">1</span><span class="p">],</span>
+                      <span class="n">data</span><span class="p">[</span><span class="s">&quot;z&quot;</span><span class="p">]</span> <span class="o">-</span> <span class="n">center</span><span class="p">[</span><span class="mf">2</span><span class="p">]])</span>
+    <span class="n">r_vec</span> <span class="o">=</span> <span class="n">r_vec</span><span class="o">/</span><span class="n">na</span><span class="o">.</span><span class="n">sqrt</span><span class="p">((</span><span class="n">r_vec</span><span class="o">**</span><span class="mf">2.0</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mf">0</span><span class="p">))</span>
+    <span class="n">h_vec</span> <span class="o">=</span> <span class="n">na</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">get_field_parameter</span><span class="p">(</span><span class="s">&quot;height_vector&quot;</span><span class="p">))</span>
+    <span class="n">dp</span> <span class="o">=</span> <span class="n">r_vec</span><span class="p">[</span><span class="mf">0</span><span class="p">,:]</span> <span class="o">*</span> <span class="n">h_vec</span><span class="p">[</span><span class="mf">0</span><span class="p">]</span> \
+       <span class="o">+</span> <span class="n">r_vec</span><span class="p">[</span><span class="mf">1</span><span class="p">,:]</span> <span class="o">*</span> <span class="n">h_vec</span><span class="p">[</span><span class="mf">1</span><span class="p">]</span> \
+       <span class="o">+</span> <span class="n">r_vec</span><span class="p">[</span><span class="mf">2</span><span class="p">,:]</span> <span class="o">*</span> <span class="n">h_vec</span><span class="p">[</span><span class="mf">2</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">na</span><span class="o">.</span><span class="n">arccos</span><span class="p">(</span><span class="n">dp</span><span class="p">)</span>
+<span class="n">add_field</span><span class="p">(</span><span class="s">&quot;DiskAngle&quot;</span><span class="p">,</span> <span class="n">take_log</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span>
+          <span class="n">validators</span><span class="o">=</span><span class="p">[</span><span class="n">ValidateParameter</span><span class="p">(</span><span class="s">&quot;height_vector&quot;</span><span class="p">),</span>
+                      <span class="n">ValidateParameter</span><span class="p">(</span><span class="s">&quot;center&quot;</span><span class="p">)],</span>
+          <span class="n">display_field</span><span class="o">=</span><span class="bp">False</span><span class="p">)</span>
+</pre></div>
+<p>Note that we have added a few parameters below the main function; we specify
+that we do not wish to display this field as logged, that we require both
+<tt class="docutils literal"><span class="pre">height_vector</span></tt> and <tt class="docutils literal"><span class="pre">center</span></tt> to be present in a given data object we wish
+to calculate this for, and we say that it should not be displayed in a
+drop-down box of fields to display.</p>
+<p>We can also define vector fields.</p>
+<div class="highlight"><pre><span class="k">def</span> <span class="nf">_SpecificAngularMomentum</span><span class="p">(</span><span class="n">field</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">data</span><span class="o">.</span><span class="n">has_field_parameter</span><span class="p">(</span><span class="s">&quot;bulk_velocity&quot;</span><span class="p">):</span>
+        <span class="n">bv</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">get_field_parameter</span><span class="p">(</span><span class="s">&quot;bulk_velocity&quot;</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span> <span class="n">bv</span> <span class="o">=</span> <span class="n">na</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="mf">3</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="s">&#39;float64&#39;</span><span class="p">)</span>
+    <span class="n">xv</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s">&quot;x-velocity&quot;</span><span class="p">]</span> <span class="o">-</span> <span class="n">bv</span><span class="p">[</span><span class="mf">0</span><span class="p">]</span>
+    <span class="n">yv</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s">&quot;y-velocity&quot;</span><span class="p">]</span> <span class="o">-</span> <span class="n">bv</span><span class="p">[</span><span class="mf">1</span><span class="p">]</span>
+    <span class="n">zv</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s">&quot;z-velocity&quot;</span><span class="p">]</span> <span class="o">-</span> <span class="n">bv</span><span class="p">[</span><span class="mf">2</span><span class="p">]</span>
+    <span class="n">center</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">get_field_parameter</span><span class="p">(</span><span class="s">&#39;center&#39;</span><span class="p">)</span>
+    <span class="n">coords</span> <span class="o">=</span> <span class="n">na</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">data</span><span class="p">[</span><span class="s">&#39;x&#39;</span><span class="p">],</span><span class="n">data</span><span class="p">[</span><span class="s">&#39;y&#39;</span><span class="p">],</span><span class="n">data</span><span class="p">[</span><span class="s">&#39;z&#39;</span><span class="p">]],</span> <span class="n">dtype</span><span class="o">=</span><span class="s">&#39;float64&#39;</span><span class="p">)</span>
+    <span class="n">new_shape</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">([</span><span class="mf">3</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="mf">1</span><span class="p">]</span><span class="o">*</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">coords</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span><span class="o">-</span><span class="mf">1</span><span class="p">))</span>
+    <span class="n">r_vec</span> <span class="o">=</span> <span class="n">coords</span> <span class="o">-</span> <span class="n">na</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">center</span><span class="p">,</span><span class="n">new_shape</span><span class="p">)</span>
+    <span class="n">v_vec</span> <span class="o">=</span> <span class="n">na</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">xv</span><span class="p">,</span><span class="n">yv</span><span class="p">,</span><span class="n">zv</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="s">&#39;float64&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">na</span><span class="o">.</span><span class="n">cross</span><span class="p">(</span><span class="n">r_vec</span><span class="p">,</span> <span class="n">v_vec</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mf">0</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">_convertSpecificAngularMomentum</span><span class="p">(</span><span class="n">data</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">data</span><span class="o">.</span><span class="n">convert</span><span class="p">(</span><span class="s">&quot;cm&quot;</span><span class="p">)</span>
+<span class="n">add_field</span><span class="p">(</span><span class="s">&quot;SpecificAngularMomentum&quot;</span><span class="p">,</span>
+          <span class="n">convert_function</span><span class="o">=</span><span class="n">_convertSpecificAngularMomentum</span><span class="p">,</span> <span class="n">vector_field</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
+          <span class="n">units</span><span class="o">=</span><span class="s">r&quot;\rm{cm}^2/\rm{s}&quot;</span><span class="p">,</span> <span class="n">validators</span><span class="o">=</span><span class="p">[</span><span class="n">ValidateParameter</span><span class="p">(</span><span class="s">&#39;center&#39;</span><span class="p">)])</span>
+</pre></div>
+<p>Here we define the SpecificAngularMomentum field, optionally taking a
+<tt class="docutils literal"><span class="pre">bulk_velocity</span></tt>, and returning a vector field that needs conversion by the
+function <tt class="docutils literal"><span class="pre">_convertSpecificAngularMomentum</span></tt>.</p>
 </div>
 <div class="section">
 <h2 id="field-options">Field Options<a class="headerlink" href="#field-options" title="Permalink to this headline">¶</a></h2>
+<p>The arguments to <tt class="xref docutils literal"><span class="pre">add_field()</span></tt> are passed on to the constructor of
+<tt class="xref docutils literal"><span class="pre">DerivedField</span></tt>.  <tt class="xref docutils literal"><span class="pre">add_field()</span></tt> takes care of finding the arguments
+<cite>function</cite> and <cite>convert_function</cite> if it can, however.</p>
+<dl class="class">
+<dt id="yt.lagos.DerivedField">
+<!--[yt.lagos.DerivedField]-->class <tt class="descclassname">yt.lagos.</tt><tt class="descname">DerivedField</tt><big>(</big><em>name</em>, <em>function</em>, <em>convert_function=None</em>, <em>units=''</em>, <em>projected_units=''</em>, <em>take_log=True</em>, <em>validators=None</em>, <em>particle_type=False</em>, <em>vector_field=False</em>, <em>display_field=True</em>, <em>not_in_all=False</em>, <em>projection_conversion='cm'</em><big>)</big><a class="headerlink" href="#yt.lagos.DerivedField" title="Permalink to this definition">¶</a></dt>
+<dd><p>This is the base class used to describe a cell-by-cell derived field.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><em>name</em> &#8211; is the name of the field.</li>
+<li><em>function</em> &#8211; is a function handle that defines the field</li>
+<li><em>convert_function</em> &#8211; must convert to CGS, if it needs to be done</li>
+<li><em>units</em> &#8211; is a mathtext-formatted string that describes the field</li>
+<li><em>projected_units</em> &#8211; if we display a projection, what should the units be?</li>
+<li><em>take_log</em> &#8211; describes whether the field should be logged</li>
+<li><em>validators</em> &#8211; is a list of <tt class="xref docutils literal"><span class="pre">FieldValidator</span></tt> objects</li>
+<li><em>particle_type</em> &#8211; is this field based on particles?</li>
+<li><em>vector_field</em> &#8211; describes the dimensionality of the field</li>
+<li><em>display_field</em> &#8211; governs its appearance in the dropdowns in reason</li>
+<li><em>not_in_all</em> &#8211; is used for baryon fields from the data that are not in
+all the grids</li>
+<li><em>projection_conversion</em> &#8211; which unit should we multiply by in a
+projection?</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
 </div>
 <div class="section">
 <h2 id="how-do-units-work">How Do Units Work?<a class="headerlink" href="#how-do-units-work" title="Permalink to this headline">¶</a></h2>
@@ -71,11 +201,6 @@ routines.</p>
 <li>Species fields: HI, HII, Electron, HeI, HeII, HeIII, HM, H2I, H2II, DI, DII, HDI</li>
 <li>Particle mass, velocity,</li>
 </ul>
-<div class="system-message">
-<p class="system-message-title">System Message: WARNING/2 (<tt class="docutils">/Users/matthewturk/Development/yt/trunk/doc/source/extending/creating_derived_fields.rst</tt>, line 32)</p>
-Bullet list ends without a blank line; unexpected unindent.</div>
-<hr class="docutils" />
-<p>Derived fields are one of the more powerful ways in which you can extend yt.</p>
 </div>
 </div>
 
@@ -83,12 +208,13 @@ Bullet list ends without a blank line; unexpected unindent.</div>
           </div>
         </div>
       </div>
-      <div class="sidebar">
-        <div class="sidebarwrapper">
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
             <h3>Table Of Contents</h3>
             <ul>
 <li><a class="reference" href="">Creating Derived Fields</a><ul>
 <li><a class="reference" href="#defining-a-new-field">Defining a New Field</a></li>
+<li><a class="reference" href="#some-more-complicated-examples">Some More Complicated Examples</a></li>
 <li><a class="reference" href="#field-options">Field Options</a></li>
 <li><a class="reference" href="#how-do-units-work">How Do Units Work?</a></li>
 <li><a class="reference" href="#which-enzo-fields-does-yt-know-about">Which Enzo Fields Does yt Know About?</a></li>
@@ -117,10 +243,18 @@ Bullet list ends without a blank line; unexpected unindent.</div>
     <div class="related">
       <h3>Navigation</h3>
       <ul>
-        <li class="right" style="margin-right: 10px"><a href="../genindex.html" title="General Index" accesskey="I">index</a></li>
-        <li class="right"><a href="../modindex.html" title="Global Module Index" accesskey="M">modules</a> |</li>
-          <li class="right"><a href="analyzing_in_parallel.html" title="Analyzing in Parallel" accesskey="N">next</a> |</li>
-          <li class="right"><a href="creating_derived_quantities.html" title="Creating Derived Quantities" accesskey="P">previous</a> |</li>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../modindex.html" title="Global Module Index"
+             accesskey="M">modules</a> |</li>
+        <li class="right" >
+          <a href="analyzing_in_parallel.html" title="Analyzing in Parallel"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="creating_derived_quantities.html" title="Creating Derived Quantities"
+             accesskey="P">previous</a> |</li>
     <li><a href="http://yt.enzotools.org/">yt</a> &raquo;</li>
     
         <li><a href="../index.html">yt v0.3-pre documentation</a> &raquo;</li>
@@ -130,7 +264,8 @@ Bullet list ends without a blank line; unexpected unindent.</div>
     </div>
     <div class="footer">
       &copy; Copyright 2008, Matthew J. Turk.
-      Last updated on Jun 22, 2008.
+      Last updated on Jul 06, 2008.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a>.
     </div>
   </body>
 </html>

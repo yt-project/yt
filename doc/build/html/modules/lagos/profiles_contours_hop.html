@@ -7,8 +7,9 @@
     <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
-        URL_ROOT:   '../../',
-        VERSION:    '0.3-pre'
+          URL_ROOT:   '../../',
+          VERSION:    '0.3-pre',
+          COLLAPSE_MODINDEX: false,
       };
     </script>
     <script type="text/javascript" src="../../_static/jquery.js"></script>
@@ -19,17 +20,25 @@
     <link rel="search" title="Search" href="../../search.html" />
     <link rel="top" title="yt v0.3-pre documentation" href="../../index.html" />
     <link rel="up" title="yt.lagos - Data Handling and Analysis" href="index.html" />
-    <link rel="next" title="yt.lagos - Data Handling and Analysis" href="index.html" />
+    <link rel="next" title="yt.raven - Data Plotting and Display" href="../raven/index.html" />
     <link rel="prev" title="Data Containers" href="basedatatypes.html" />
   </head>
   <body>
     <div class="related">
       <h3>Navigation</h3>
       <ul>
-        <li class="right" style="margin-right: 10px"><a href="../../genindex.html" title="General Index" accesskey="I">index</a></li>
-        <li class="right"><a href="../../modindex.html" title="Global Module Index" accesskey="M">modules</a> |</li>
-          <li class="right"><a href="index.html" title="yt.lagos - Data Handling and Analysis" accesskey="N">next</a> |</li>
-          <li class="right"><a href="basedatatypes.html" title="Data Containers" accesskey="P">previous</a> |</li>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../modindex.html" title="Global Module Index"
+             accesskey="M">modules</a> |</li>
+        <li class="right" >
+          <a href="../raven/index.html" title="yt.raven - Data Plotting and Display"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="basedatatypes.html" title="Data Containers"
+             accesskey="P">previous</a> |</li>
     <li><a href="http://yt.enzotools.org/">yt</a> &raquo;</li>
     
         <li><a href="../../index.html">yt v0.3-pre documentation</a> &raquo;</li>
@@ -51,15 +60,19 @@
 phase diagrams, radial profiles, and even more complicated 3D examinations.</p>
 <dl class="class">
 <dt id="yt.lagos.BinnedProfile1D">
-<!--#yt.lagos.BinnedProfile1D#-->class <tt class="descclassname">yt.lagos.</tt><tt class="descname">BinnedProfile1D</tt><big>(</big><em>data_source</em>, <em>n_bins</em>, <em>bin_field</em>, <em>lower_bound</em>, <em>upper_bound</em>, <em>log_space=True</em>, <em>lazy_reader=False</em><big>)</big><a class="headerlink" href="#yt.lagos.BinnedProfile1D" title="Permalink to this definition">¶</a></dt>
-<dd><p>We accept a <em>data_source</em>, which will be binned into <em>n_bins</em> by the
+<!--[yt.lagos.BinnedProfile1D]-->class <tt class="descclassname">yt.lagos.</tt><tt class="descname">BinnedProfile1D</tt><big>(</big><em>data_source</em>, <em>n_bins</em>, <em>bin_field</em>, <em>lower_bound</em>, <em>upper_bound</em>, <em>log_space=True</em>, <em>lazy_reader=False</em><big>)</big><a class="headerlink" href="#yt.lagos.BinnedProfile1D" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <tt class="xref docutils literal"><span class="pre">yt.lagos.Profiles.BinnedProfile</span></tt></p>
+<p>A &#8216;Profile&#8217; produces either a weighted (or unweighted) average or a
+straight sum of a field in a bin defined by another field.  In the case
+of a weighted average, we have: p_i = sum( w_i * v_i ) / sum(w_i)</p>
+<p>We accept a <em>data_source</em>, which will be binned into <em>n_bins</em> by the
 field <em>bin_field</em> between the <em>lower_bound</em> and the <em>upper_bound</em>.
 These bins may or may not be equally divided in <em>log_space</em>, and the
 <em>lazy_reader</em> flag controls whether we use a memory conservative
 approach.</p>
 <dl class="method">
 <dt id="yt.lagos.BinnedProfile1D.add_fields">
-<!--#yt.lagos.BinnedProfile1D.add_fields#--><tt class="descname">add_fields</tt><big>(</big><em>fields</em>, <em>weight='CellMassMsun'</em>, <em>accumulation=False</em><big>)</big><a class="headerlink" href="#yt.lagos.BinnedProfile1D.add_fields" title="Permalink to this definition">¶</a></dt>
+<!--[yt.lagos.BinnedProfile1D.add_fields]--><tt class="descname">add_fields</tt><big>(</big><em>fields</em>, <em>weight='CellMassMsun'</em>, <em>accumulation=False</em><big>)</big><a class="headerlink" href="#yt.lagos.BinnedProfile1D.add_fields" title="Permalink to this definition">¶</a></dt>
 <dd>We accept a list of <em>fields</em> which will be binned if <em>weight</em> is not
 None and otherwise summed.  <em>accumulation</em> determines whether or not
 they will be accumulated from low to high along the appropriate axes.</dd></dl>
@@ -68,8 +81,12 @@ they will be accumulated from low to high along the appropriate axes.</dd></dl>
 
 <dl class="class">
 <dt id="yt.lagos.BinnedProfile2D">
-<!--#yt.lagos.BinnedProfile2D#-->class <tt class="descclassname">yt.lagos.</tt><tt class="descname">BinnedProfile2D</tt><big>(</big><em>data_source</em>, <em>x_n_bins</em>, <em>x_bin_field</em>, <em>x_lower_bound</em>, <em>x_upper_bound</em>, <em>x_log</em>, <em>y_n_bins</em>, <em>y_bin_field</em>, <em>y_lower_bound</em>, <em>y_upper_bound</em>, <em>y_log</em>, <em>lazy_reader=False</em><big>)</big><a class="headerlink" href="#yt.lagos.BinnedProfile2D" title="Permalink to this definition">¶</a></dt>
-<dd><p>We accept a <em>data_source</em>, which will be binned into <em>x_n_bins</em> by the
+<!--[yt.lagos.BinnedProfile2D]-->class <tt class="descclassname">yt.lagos.</tt><tt class="descname">BinnedProfile2D</tt><big>(</big><em>data_source</em>, <em>x_n_bins</em>, <em>x_bin_field</em>, <em>x_lower_bound</em>, <em>x_upper_bound</em>, <em>x_log</em>, <em>y_n_bins</em>, <em>y_bin_field</em>, <em>y_lower_bound</em>, <em>y_upper_bound</em>, <em>y_log</em>, <em>lazy_reader=False</em><big>)</big><a class="headerlink" href="#yt.lagos.BinnedProfile2D" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <tt class="xref docutils literal"><span class="pre">yt.lagos.Profiles.BinnedProfile</span></tt></p>
+<p>A &#8216;Profile&#8217; produces either a weighted (or unweighted) average or a
+straight sum of a field in a bin defined by two other fields.  In the case
+of a weighted average, we have: p_i = sum( w_i * v_i ) / sum(w_i)</p>
+<p>We accept a <em>data_source</em>, which will be binned into <em>x_n_bins</em> by the
 field <em>x_bin_field</em> between the <em>x_lower_bound</em> and the <em>x_upper_bound</em>
 and then again binned into <em>y_n_bins</em> by the field <em>y_bin_field</em>
 between the <em>y_lower_bound</em> and the <em>y_upper_bound</em>.  These bins may or
@@ -78,14 +95,14 @@ and the <em>lazy_reader</em> flag controls whether we use a memory
 conservative approach.</p>
 <dl class="method">
 <dt id="yt.lagos.BinnedProfile2D.add_fields">
-<!--#yt.lagos.BinnedProfile2D.add_fields#--><tt class="descname">add_fields</tt><big>(</big><em>fields</em>, <em>weight='CellMassMsun'</em>, <em>accumulation=False</em><big>)</big><a class="headerlink" href="#yt.lagos.BinnedProfile2D.add_fields" title="Permalink to this definition">¶</a></dt>
+<!--[yt.lagos.BinnedProfile2D.add_fields]--><tt class="descname">add_fields</tt><big>(</big><em>fields</em>, <em>weight='CellMassMsun'</em>, <em>accumulation=False</em><big>)</big><a class="headerlink" href="#yt.lagos.BinnedProfile2D.add_fields" title="Permalink to this definition">¶</a></dt>
 <dd>We accept a list of <em>fields</em> which will be binned if <em>weight</em> is not
 None and otherwise summed.  <em>accumulation</em> determines whether or not
 they will be accumulated from low to high along the appropriate axes.</dd></dl>
 
 <dl class="method">
 <dt id="yt.lagos.BinnedProfile2D.write_out">
-<!--#yt.lagos.BinnedProfile2D.write_out#--><tt class="descname">write_out</tt><big>(</big><em>filename</em>, <em>format='%0.16e'</em><big>)</big><a class="headerlink" href="#yt.lagos.BinnedProfile2D.write_out" title="Permalink to this definition">¶</a></dt>
+<!--[yt.lagos.BinnedProfile2D.write_out]--><tt class="descname">write_out</tt><big>(</big><em>filename</em>, <em>format='%0.16e'</em><big>)</big><a class="headerlink" href="#yt.lagos.BinnedProfile2D.write_out" title="Permalink to this definition">¶</a></dt>
 <dd>Write out the values of x,y,v in ascii to <em>filename</em> for every field in
 the profile.  Optionally a <em>format</em> can be specified.</dd></dl>
 
@@ -93,17 +110,18 @@ the profile.  Optionally a <em>format</em> can be specified.</dd></dl>
 
 <dl class="class">
 <dt id="yt.lagos.BinnedProfile3D">
-<!--#yt.lagos.BinnedProfile3D#-->class <tt class="descclassname">yt.lagos.</tt><tt class="descname">BinnedProfile3D</tt><big>(</big><em>data_source</em>, <em>x_n_bins</em>, <em>x_bin_field</em>, <em>x_lower_bound</em>, <em>x_upper_bound</em>, <em>x_log</em>, <em>y_n_bins</em>, <em>y_bin_field</em>, <em>y_lower_bound</em>, <em>y_upper_bound</em>, <em>y_log</em>, <em>z_n_bins</em>, <em>z_bin_field</em>, <em>z_lower_bound</em>, <em>z_upper_bound</em>, <em>z_log</em>, <em>lazy_reader=False</em><big>)</big><a class="headerlink" href="#yt.lagos.BinnedProfile3D" title="Permalink to this definition">¶</a></dt>
-<dd><dl class="method">
+<!--[yt.lagos.BinnedProfile3D]-->class <tt class="descclassname">yt.lagos.</tt><tt class="descname">BinnedProfile3D</tt><big>(</big><em>data_source</em>, <em>x_n_bins</em>, <em>x_bin_field</em>, <em>x_lower_bound</em>, <em>x_upper_bound</em>, <em>x_log</em>, <em>y_n_bins</em>, <em>y_bin_field</em>, <em>y_lower_bound</em>, <em>y_upper_bound</em>, <em>y_log</em>, <em>z_n_bins</em>, <em>z_bin_field</em>, <em>z_lower_bound</em>, <em>z_upper_bound</em>, <em>z_log</em>, <em>lazy_reader=False</em><big>)</big><a class="headerlink" href="#yt.lagos.BinnedProfile3D" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <tt class="xref docutils literal"><span class="pre">yt.lagos.Profiles.BinnedProfile</span></tt></p>
+<dl class="method">
 <dt id="yt.lagos.BinnedProfile3D.add_fields">
-<!--#yt.lagos.BinnedProfile3D.add_fields#--><tt class="descname">add_fields</tt><big>(</big><em>fields</em>, <em>weight='CellMassMsun'</em>, <em>accumulation=False</em><big>)</big><a class="headerlink" href="#yt.lagos.BinnedProfile3D.add_fields" title="Permalink to this definition">¶</a></dt>
+<!--[yt.lagos.BinnedProfile3D.add_fields]--><tt class="descname">add_fields</tt><big>(</big><em>fields</em>, <em>weight='CellMassMsun'</em>, <em>accumulation=False</em><big>)</big><a class="headerlink" href="#yt.lagos.BinnedProfile3D.add_fields" title="Permalink to this definition">¶</a></dt>
 <dd>We accept a list of <em>fields</em> which will be binned if <em>weight</em> is not
 None and otherwise summed.  <em>accumulation</em> determines whether or not
 they will be accumulated from low to high along the appropriate axes.</dd></dl>
 
 <dl class="method">
 <dt id="yt.lagos.BinnedProfile3D.store_profile">
-<!--#yt.lagos.BinnedProfile3D.store_profile#--><tt class="descname">store_profile</tt><big>(</big><em>name</em>, <em>force=False</em><big>)</big><a class="headerlink" href="#yt.lagos.BinnedProfile3D.store_profile" title="Permalink to this definition">¶</a></dt>
+<!--[yt.lagos.BinnedProfile3D.store_profile]--><tt class="descname">store_profile</tt><big>(</big><em>name</em>, <em>force=False</em><big>)</big><a class="headerlink" href="#yt.lagos.BinnedProfile3D.store_profile" title="Permalink to this definition">¶</a></dt>
 <dd>By identifying the profile with a fixed, user-input <em>name</em> we can
 store it in the serialized data section of the hierarchy file.  <em>force</em>
 governs whether or not an existing profile with that name will be
@@ -113,9 +131,11 @@ overwritten.</dd></dl>
 
 <dl class="class">
 <dt id="yt.lagos.StoredBinnedProfile3D">
-<!--#yt.lagos.StoredBinnedProfile3D#-->class <tt class="descclassname">yt.lagos.</tt><tt class="descname">StoredBinnedProfile3D</tt><big>(</big><em>pf</em>, <em>name</em><big>)</big><a class="headerlink" href="#yt.lagos.StoredBinnedProfile3D" title="Permalink to this definition">¶</a></dt>
-<dd>Given a <em>pf</em> parameterfile and the <em>name</em> of a stored profile, retrieve
-it into a read-only data structure.</dd></dl>
+<!--[yt.lagos.StoredBinnedProfile3D]-->class <tt class="descclassname">yt.lagos.</tt><tt class="descname">StoredBinnedProfile3D</tt><big>(</big><em>pf</em>, <em>name</em><big>)</big><a class="headerlink" href="#yt.lagos.StoredBinnedProfile3D" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <tt class="xref docutils literal"><span class="pre">yt.lagos.Profiles.BinnedProfile3D</span></tt></p>
+<p>Given a <em>pf</em> parameterfile and the <em>name</em> of a stored profile, retrieve
+it into a read-only data structure.</p>
+</dd></dl>
 
 </div>
 <div class="section">
@@ -124,13 +144,13 @@ it into a read-only data structure.</dd></dl>
 However, you can call it manually, as is done in the clump finding scripts.</p>
 <dl class="function">
 <dt id="yt.lagos.identify_contours">
-<!--#yt.lagos.identify_contours#--><tt class="descclassname">yt.lagos.</tt><tt class="descname">identify_contours</tt><big>(</big><em>data_source</em>, <em>field</em>, <em>min_val</em>, <em>max_val</em><big>)</big><a class="headerlink" href="#yt.lagos.identify_contours" title="Permalink to this definition">¶</a></dt>
+<!--[yt.lagos.identify_contours]--><tt class="descclassname">yt.lagos.</tt><tt class="descname">identify_contours</tt><big>(</big><em>data_source</em>, <em>field</em>, <em>min_val</em>, <em>max_val</em><big>)</big><a class="headerlink" href="#yt.lagos.identify_contours" title="Permalink to this definition">¶</a></dt>
 <dd>Given a <em>data_source</em>, we will search for topologically connected sets
 in <em>field</em> between <em>min_val</em> and <em>max_val</em>.</dd></dl>
 
 <dl class="class">
 <dt id="yt.lagos.GridConsiderationQueue">
-<!--#yt.lagos.GridConsiderationQueue#-->class <tt class="descclassname">yt.lagos.</tt><tt class="descname">GridConsiderationQueue</tt><big>(</big><em>white_list=None</em>, <em>priority_func=None</em><big>)</big><a class="headerlink" href="#yt.lagos.GridConsiderationQueue" title="Permalink to this definition">¶</a></dt>
+<!--[yt.lagos.GridConsiderationQueue]-->class <tt class="descclassname">yt.lagos.</tt><tt class="descname">GridConsiderationQueue</tt><big>(</big><em>white_list=None</em>, <em>priority_func=None</em><big>)</big><a class="headerlink" href="#yt.lagos.GridConsiderationQueue" title="Permalink to this definition">¶</a></dt>
 <dd>This class exists to serve the contour finder.  It ensures that
 we can create a cascading set of queue dependencies, and if
 a grid is touched again ahead of time we can bump it to the top
@@ -142,59 +162,59 @@ of the queue again.  It like has few uses.</dd></dl>
 <p>yt now includes the HOP algorithm and implementation from the Enzo source
 distribution, with some modifications by both Stephen Skory and myself.</p>
 <dl class="class">
-<dt id="yt.lagos.HopList">
-<!--#yt.lagos.HopList#-->class <tt class="descclassname">yt.lagos.</tt><tt class="descname">HopList</tt><big>(</big><em>data_source</em>, <em>threshold=160.0</em>, <em>dm_only=True</em><big>)</big><a class="headerlink" href="#yt.lagos.HopList" title="Permalink to this definition">¶</a></dt>
+<dt id="yt.lagos.hop.HopList">
+<!--[yt.lagos.hop.HopList]-->class <tt class="descclassname">yt.lagos.hop.</tt><tt class="descname">HopList</tt><big>(</big><em>data_source</em>, <em>threshold=160.0</em>, <em>dm_only=True</em><big>)</big><a class="headerlink" href="#yt.lagos.hop.HopList" title="Permalink to this definition">¶</a></dt>
 <dd><p>Run hop on <em>data_source</em> with a given density <em>threshold</em>.  If
 <em>dm_only</em> is set, only run it on the dark matter particles, otherwise
 on all particles.  Returns an iterable collection of <em>HopGroup</em> items.</p>
 <dl class="method">
-<dt id="yt.lagos.HopList.write_out">
-<!--#yt.lagos.HopList.write_out#--><tt class="descname">write_out</tt><big>(</big><em>filename='HopAnalysis.out'</em><big>)</big><a class="headerlink" href="#yt.lagos.HopList.write_out" title="Permalink to this definition">¶</a></dt>
+<dt id="yt.lagos.hop.HopList.write_out">
+<!--[yt.lagos.hop.HopList.write_out]--><tt class="descname">write_out</tt><big>(</big><em>filename='HopAnalysis.out'</em><big>)</big><a class="headerlink" href="#yt.lagos.hop.HopList.write_out" title="Permalink to this definition">¶</a></dt>
 <dd>Write out standard HOP information to <em>filename</em>.</dd></dl>
 
 </dd></dl>
 
 <dl class="class">
-<dt id="yt.lagos.HopGroup">
-<!--#yt.lagos.HopGroup#-->class <tt class="descclassname">yt.lagos.</tt><tt class="descname">HopGroup</tt><big>(</big><em>hop_output</em>, <em>id</em>, <em>indices</em><big>)</big><a class="headerlink" href="#yt.lagos.HopGroup" title="Permalink to this definition">¶</a></dt>
+<dt id="yt.lagos.hop.HopGroup">
+<!--[yt.lagos.hop.HopGroup]-->class <tt class="descclassname">yt.lagos.hop.</tt><tt class="descname">HopGroup</tt><big>(</big><em>hop_output</em>, <em>id</em>, <em>indices</em><big>)</big><a class="headerlink" href="#yt.lagos.hop.HopGroup" title="Permalink to this definition">¶</a></dt>
 <dd><p>A data source that returns particle information about the members of a
 HOP-identified halo.</p>
 <dl class="method">
-<dt id="yt.lagos.HopGroup.bulk_velocity">
-<!--#yt.lagos.HopGroup.bulk_velocity#--><tt class="descname">bulk_velocity</tt><big>(</big><big>)</big><a class="headerlink" href="#yt.lagos.HopGroup.bulk_velocity" title="Permalink to this definition">¶</a></dt>
+<dt id="yt.lagos.hop.HopGroup.bulk_velocity">
+<!--[yt.lagos.hop.HopGroup.bulk_velocity]--><tt class="descname">bulk_velocity</tt><big>(</big><big>)</big><a class="headerlink" href="#yt.lagos.hop.HopGroup.bulk_velocity" title="Permalink to this definition">¶</a></dt>
 <dd>Returns the mass-weighted average velocity.</dd></dl>
 
 <dl class="method">
-<dt id="yt.lagos.HopGroup.center_of_mass">
-<!--#yt.lagos.HopGroup.center_of_mass#--><tt class="descname">center_of_mass</tt><big>(</big><big>)</big><a class="headerlink" href="#yt.lagos.HopGroup.center_of_mass" title="Permalink to this definition">¶</a></dt>
+<dt id="yt.lagos.hop.HopGroup.center_of_mass">
+<!--[yt.lagos.hop.HopGroup.center_of_mass]--><tt class="descname">center_of_mass</tt><big>(</big><big>)</big><a class="headerlink" href="#yt.lagos.hop.HopGroup.center_of_mass" title="Permalink to this definition">¶</a></dt>
 <dd>Calculate and return the center of mass.</dd></dl>
 
 <dl class="method">
-<dt id="yt.lagos.HopGroup.get_sphere">
-<!--#yt.lagos.HopGroup.get_sphere#--><tt class="descname">get_sphere</tt><big>(</big><em>center_of_mass=True</em><big>)</big><a class="headerlink" href="#yt.lagos.HopGroup.get_sphere" title="Permalink to this definition">¶</a></dt>
+<dt id="yt.lagos.hop.HopGroup.get_sphere">
+<!--[yt.lagos.hop.HopGroup.get_sphere]--><tt class="descname">get_sphere</tt><big>(</big><em>center_of_mass=True</em><big>)</big><a class="headerlink" href="#yt.lagos.hop.HopGroup.get_sphere" title="Permalink to this definition">¶</a></dt>
 <dd>Returns an EnzoSphere centered on either the point of maximum density
 or the <em>center_of_mass</em>, with the maximum radius of the halo.</dd></dl>
 
 <dl class="method">
-<dt id="yt.lagos.HopGroup.maximum_density">
-<!--#yt.lagos.HopGroup.maximum_density#--><tt class="descname">maximum_density</tt><big>(</big><big>)</big><a class="headerlink" href="#yt.lagos.HopGroup.maximum_density" title="Permalink to this definition">¶</a></dt>
+<dt id="yt.lagos.hop.HopGroup.maximum_density">
+<!--[yt.lagos.hop.HopGroup.maximum_density]--><tt class="descname">maximum_density</tt><big>(</big><big>)</big><a class="headerlink" href="#yt.lagos.hop.HopGroup.maximum_density" title="Permalink to this definition">¶</a></dt>
 <dd>Return the HOP-identified maximum density.</dd></dl>
 
 <dl class="method">
-<dt id="yt.lagos.HopGroup.maximum_density_location">
-<!--#yt.lagos.HopGroup.maximum_density_location#--><tt class="descname">maximum_density_location</tt><big>(</big><big>)</big><a class="headerlink" href="#yt.lagos.HopGroup.maximum_density_location" title="Permalink to this definition">¶</a></dt>
+<dt id="yt.lagos.hop.HopGroup.maximum_density_location">
+<!--[yt.lagos.hop.HopGroup.maximum_density_location]--><tt class="descname">maximum_density_location</tt><big>(</big><big>)</big><a class="headerlink" href="#yt.lagos.hop.HopGroup.maximum_density_location" title="Permalink to this definition">¶</a></dt>
 <dd>Return the location HOP identified as maximally dense.</dd></dl>
 
 <dl class="method">
-<dt id="yt.lagos.HopGroup.maximum_radius">
-<!--#yt.lagos.HopGroup.maximum_radius#--><tt class="descname">maximum_radius</tt><big>(</big><em>center_of_mass=True</em><big>)</big><a class="headerlink" href="#yt.lagos.HopGroup.maximum_radius" title="Permalink to this definition">¶</a></dt>
+<dt id="yt.lagos.hop.HopGroup.maximum_radius">
+<!--[yt.lagos.hop.HopGroup.maximum_radius]--><tt class="descname">maximum_radius</tt><big>(</big><em>center_of_mass=True</em><big>)</big><a class="headerlink" href="#yt.lagos.hop.HopGroup.maximum_radius" title="Permalink to this definition">¶</a></dt>
 <dd>Returns the maximum radius in the halo for all particles,
 either from the point of maximum density or from the (default)
 <em>center_of_mass</em>.</dd></dl>
 
 <dl class="method">
-<dt id="yt.lagos.HopGroup.total_mass">
-<!--#yt.lagos.HopGroup.total_mass#--><tt class="descname">total_mass</tt><big>(</big><big>)</big><a class="headerlink" href="#yt.lagos.HopGroup.total_mass" title="Permalink to this definition">¶</a></dt>
+<dt id="yt.lagos.hop.HopGroup.total_mass">
+<!--[yt.lagos.hop.HopGroup.total_mass]--><tt class="descname">total_mass</tt><big>(</big><big>)</big><a class="headerlink" href="#yt.lagos.hop.HopGroup.total_mass" title="Permalink to this definition">¶</a></dt>
 <dd>Returns the total mass in solar masses of the halo.</dd></dl>
 
 </dd></dl>
@@ -206,8 +226,8 @@ either from the point of maximum density or from the (default)
           </div>
         </div>
       </div>
-      <div class="sidebar">
-        <div class="sidebarwrapper">
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
             <h3>Table Of Contents</h3>
             <ul>
 <li><a class="reference" href="">Profiles, Contours and Halo Finding</a><ul>
@@ -221,7 +241,7 @@ either from the point of maximum density or from the (default)
             <h4>Previous topic</h4>
             <p class="topless"><a href="basedatatypes.html" title="previous chapter">Data Containers</a></p>
             <h4>Next topic</h4>
-            <p class="topless"><a href="index.html" title="next chapter">yt.lagos - Data Handling and Analysis</a></p>
+            <p class="topless"><a href="../raven/index.html" title="next chapter">yt.raven - Data Plotting and Display</a></p>
             <h3>This Page</h3>
             <ul class="this-page-menu">
               <li><a href="../../_sources/modules/lagos/profiles_contours_hop.txt">Show Source</a></li>
@@ -239,10 +259,18 @@ either from the point of maximum density or from the (default)
     <div class="related">
       <h3>Navigation</h3>
       <ul>
-        <li class="right" style="margin-right: 10px"><a href="../../genindex.html" title="General Index" accesskey="I">index</a></li>
-        <li class="right"><a href="../../modindex.html" title="Global Module Index" accesskey="M">modules</a> |</li>
-          <li class="right"><a href="index.html" title="yt.lagos - Data Handling and Analysis" accesskey="N">next</a> |</li>
-          <li class="right"><a href="basedatatypes.html" title="Data Containers" accesskey="P">previous</a> |</li>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../modindex.html" title="Global Module Index"
+             accesskey="M">modules</a> |</li>
+        <li class="right" >
+          <a href="../raven/index.html" title="yt.raven - Data Plotting and Display"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="basedatatypes.html" title="Data Containers"
+             accesskey="P">previous</a> |</li>
     <li><a href="http://yt.enzotools.org/">yt</a> &raquo;</li>
     
         <li><a href="../../index.html">yt v0.3-pre documentation</a> &raquo;</li>
@@ -252,7 +280,8 @@ either from the point of maximum density or from the (default)
     </div>
     <div class="footer">
       &copy; Copyright 2008, Matthew J. Turk.
-      Last updated on Jun 22, 2008.
+      Last updated on Jul 06, 2008.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a>.
     </div>
   </body>
 </html>
