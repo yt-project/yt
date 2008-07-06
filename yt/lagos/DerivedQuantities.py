@@ -26,7 +26,7 @@ License:
 """
 
 from yt.lagos import *
-from yt.funcs import get_pbar
+from yt.funcs import get_pbar, wraps
 
 quantity_info = {}
 
@@ -58,6 +58,7 @@ def func_wrapper(quantities_collection, quantities_object):
         pbar.finish()
         retvals = [na.array(retvals[i]) for i in range(n_ret)]
         return c_func(data_object, *retvals)
+    @wraps(func)
     def call_func(*args, **kwargs):
         lazy_reader = kwargs.pop('lazy_reader', False)
         if lazy_reader and not quantities_object.force_unlazy:
@@ -98,6 +99,10 @@ class DerivedQuantityCollection(object):
         return self.functions.keys()
 
 def _TotalMass(data):
+    """
+    This function takes no arguments and returns the sum of cell masses and
+    particle masses in the object.
+    """
     baryon_mass = data["CellMassMsun"].sum()
     particle_mass = data["ParticleMassMsun"].sum()
     return baryon_mass, particle_mass
@@ -107,6 +112,10 @@ add_quantity("TotalMass", function=_TotalMass,
              combine_function=_combTotalMass, n_ret = 2)
 
 def _CenterOfMass(data):
+    """
+    This function takes no arguments and returns the location of the center
+    of mass of the *non-particle* data in the object.
+    """
     x = (data["x"] * data["CellMassMsun"]).sum()
     y = (data["y"] * data["CellMassMsun"]).sum()
     z = (data["z"] * data["CellMassMsun"]).sum()
@@ -118,6 +127,12 @@ add_quantity("CenterOfMass", function=_CenterOfMass,
              combine_function=_combCenterOfMass, n_ret = 4)
 
 def _WeightedAverageQuantity(data, field, weight):
+    """
+    This function returns an averaged quantity.
+
+    :param field: The field to average
+    :param weight: The field to weight by
+    """
     num = (data[field] * data[weight]).sum()
     den = data[weight].sum()
     return num, den
@@ -127,6 +142,9 @@ add_quantity("WeightedAverageQuantity", function=_WeightedAverageQuantity,
              combine_function=_combWeightedAverageQuantity, n_ret = 2)
 
 def _BulkVelocity(data):
+    """
+    This function returns the mass-weighted average velocity in the object.
+    """
     xv = (data["x-velocity"] * data["CellMassMsun"]).sum()
     yv = (data["y-velocity"] * data["CellMassMsun"]).sum()
     zv = (data["z-velocity"] * data["CellMassMsun"]).sum()
@@ -142,6 +160,9 @@ add_quantity("BulkVelocity", function=_BulkVelocity,
              combine_function=_combBulkVelocity, n_ret=4)
 
 def _AngularMomentumVector(data):
+    """
+    This function returns the mass-weighted average angular momentum vector.
+    """
     am = data["SpecificAngularMomentum"]*data["CellMassMsun"]
     j_mag = am.sum(axis=1)
     return [j_mag]
@@ -154,6 +175,10 @@ add_quantity("AngularMomentumVector", function=_AngularMomentumVector,
              combine_function=_combAngularMomentumVector, n_ret=1)
 
 def _BaryonSpinParameter(data):
+    """
+    This function returns the spin parameter for the baryons, but it uses
+    the particles in calculating enclosed mass.
+    """
     am = data["SpecificAngularMomentum"]*data["CellMassMsun"]
     j_mag = am.sum(axis=1)
     m_enc = data["CellMassMsun"].sum() + data["ParticleMassMsun"].sum()
@@ -175,6 +200,15 @@ add_quantity("BaryonSpinParameter", function=_BaryonSpinParameter,
              combine_function=_combBaryonSpinParameter, n_ret=4)
 
 def _IsBound(data, truncate = True, include_thermal_energy = False):
+    """
+    This returns whether or not the object is gravitationally bound
+    
+    :param truncate: Should the calculation stop once the ratio of
+                     gravitational:kinetic is 1.0?
+    :param include_thermal_energy: Should we add the energy from ThermalEnergy
+                                   on to the kinetic energy to calculate 
+                                   binding energy?
+    """
     # Kinetic energy
     bv_x,bv_y,bv_z = data.quantities["BulkVelocity"]()
     kinetic = 0.5 * (data["CellMass"] * (
@@ -183,7 +217,7 @@ def _IsBound(data, truncate = True, include_thermal_energy = False):
                      + (data["z-velocity"] - bv_z)**2 )).sum()
     # Add thermal energy to kinetic energy
     if (include_thermal_energy):
-        thermal = (data["Gas_Energy"] * data["CellMass"]).sum()
+        thermal = (data["ThermalEnergy"] * data["CellMass"]).sum()
         kinetic += thermal
     # Gravitational potential energy
     # We only divide once here because we have velocity in cgs, but radius is
@@ -198,7 +232,13 @@ def _combIsBound(data,bound):
 add_quantity("IsBound",function=_IsBound,combine_function=_combIsBound,n_ret=1,
              force_unlazy=True)
 
+    
 def _Extrema(data, fields):
+    """
+    This function returns the extrema of a set of fields
+    
+    :param fields: A field name, or a list of field names
+    """
     fields = ensure_list(fields)
     mins, maxs = [], []
     for field in fields:
