@@ -164,8 +164,8 @@ class RavenPlot:
     def set_zlim(self, zmin, zmax):
         self.norm.autoscale(na.array([zmin,zmax]))
         self.image.changed()
-        if self.colorbar != None:
-            self.colorbar.notify(self.image)
+        if self.colorbar is not None:
+            _notify(self.image, self.colorbar)
 
     def set_cmap(self, cmap):
         if isinstance(cmap, types.StringTypes):
@@ -245,8 +245,8 @@ class VMPlot(RavenPlot):
         self._axes.set_xlabel("")
         if setup_colorbar:
             self.colorbar = self._figure.colorbar(self._axes.images[-1], \
-                                                extend='neither', \
-                                                shrink=0.95)
+                                                  extend='neither', \
+                                                  shrink=0.95)
         else:
             self.colorbar = None
         self.set_width(1,'1')
@@ -255,7 +255,7 @@ class VMPlot(RavenPlot):
         x0, x1 = self.xlim
         y0, y1 = self.ylim
         if width is None:
-            l, b, width, height = self._axes.bbox.get_bounds()
+            l, b, width, height = _get_bounds(self._axes.bbox)
         else:
             height = width
         self.pix = (width,height)
@@ -303,7 +303,7 @@ class VMPlot(RavenPlot):
         if self.colorbar != None:
             self.image.set_norm(self.norm)
             self.colorbar.set_norm(self.norm)
-            if self.do_autoscale: self.colorbar.notify(self.image)
+            if self.do_autoscale: _notify(self.image, self.colorbar)
         self.autoset_label()
 
     def set_xlim(self, xmin, xmax):
@@ -404,7 +404,7 @@ class CuttingPlanePlot(SlicePlot):
         px_min, px_max = self.xlim
         py_min, py_max = self.ylim
         if width is None:
-            l, b, width, height = self._axes.bbox.get_bounds()
+            l, b, width, height = _get_bounds(self._axes.bbox)
         else:
             height = width
         self.pix = (width,height)
@@ -595,7 +595,6 @@ class PhasePlot(ProfilePlot):
                                                   clip=False)
             self.ticker = matplotlib.ticker.MaxNLocator()
         self.colorbar.set_norm(self.norm)
-        self.colorbar.set_norm(self.norm)
         if self.cmap == None:
             self.cmap = matplotlib.cm.get_cmap()
         self.cmap.set_bad("w")
@@ -611,7 +610,7 @@ class PhasePlot(ProfilePlot):
         self._axes.set_yscale({0:"linear",1:"log"}[int(self._log_y)])
         self.vals = vals
 
-        self.colorbar.notify(self.image)
+        _notify(self.image, self.colorbar)
         self.autoset_label(self.fields[0], self._axes.set_xlabel)
         self.autoset_label(self.fields[1], self._axes.set_ylabel)
         self.autoset_label(self.fields[2], self.colorbar.set_label)
@@ -639,3 +638,33 @@ class PhasePlot(ProfilePlot):
     def set_width(self, width, unit):
         mylog.warning("Choosing not to change the width of a phase plot instance")
 
+
+# Now we provide some convenience functions to get information about plots.
+# With Matplotlib 0.98.x, the 'transforms' branch broke backwards
+# compatibility.  Despite that, the various packagers are plowing ahead with
+# packaging 0.98.x with new distributions of python software.  So I guess
+# we have to support it.
+
+_compatibility_functions = ["_get_bounds","_notify"]
+
+_mpl98_get_bounds = lambda bbox: bbox.bounds
+_mpl9x_get_bounds = lambda bbox: bbox.get_bounds()
+_mpl98_notify = lambda im,cb: cb.update_bruteforce(im)
+_mpl9x_notify = lambda im,cb: cb.notify(im)
+
+# This next function hurts, because it relies on the fact that
+# we're only differentiating between 0.9[01] and 0.98.
+
+_mpl_version = float(matplotlib.__version__[:4])
+
+if _mpl_version < 0.98:
+    _prefix = '_mpl9x'
+    mylog.debug("Turning on matplotlib 0.9X compat (%s)",
+                matplotlib.__version__)
+else:
+    _prefix = '_mpl98'
+    mylog.debug("Turning on matplotlib 0.98 compat (%s)",
+                matplotlib.__version__)
+
+for fn in _compatibility_functions:
+    exec("%s = %s%s" % (fn, _prefix, fn))
