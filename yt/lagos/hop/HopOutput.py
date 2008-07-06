@@ -113,7 +113,7 @@ class HopList(object):
         f.write("\t".join(["# Group","Mass","# part","max dens"
                            "x","y","z", "center-of-mass",
                            "x","y","z",
-                           "vx","vy","vz"]))
+                           "vx","vy","vz","max_r","\n"]))
         for group in self:
             f.write("%10i\t" % group.id)
             f.write("%0.9e\t" % group.total_mass())
@@ -124,6 +124,7 @@ class HopList(object):
             f.write("\t".join(["%0.9e" % v for v in group.center_of_mass()]))
             f.write("\t")
             f.write("\t".join(["%0.9e" % v for v in group.bulk_velocity()]))
+            f.write("%0.9e\t" % group.maximum_radius())
             f.write("\n")
         f.close()
 
