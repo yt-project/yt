@@ -729,6 +729,8 @@ class EnzoProjBase(Enzo2DData):
         self._grids = self.source._grids
         if max_level == None:
             max_level = self.hierarchy.maxLevel
+        if source is not None:
+            max_level = min(max_level, source.gridLevels.max())
         self._max_level = max_level
         self._weight = weight_field
         self.center = center
