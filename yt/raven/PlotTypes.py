@@ -127,13 +127,9 @@ class RavenPlot:
 
     def save_image(self, prefix, format, submit=None, override=False):
         """
-        Save this plot image.  Will generate a filename based on the prefix,
-        format, and the approriate data stored in the plot.
-
-        @param prefix: the prefix to prepend to the filename
-        @type prefix: string
-        @param format: the prefix to append to the filename
-        @type format: string
+        Save this plot image.  Will generate a filename based on the *prefix*,
+        *format*.  *submit* will govern the submission to the Deliverator and
+        *override* will force no filename generation beyond the prefix.
         """
         self._redraw_image()
         if not override:
@@ -156,18 +152,30 @@ class RavenPlot:
         pass
 
     def set_xlim(self, xmin, xmax):
+        """
+        Set the x boundaries of this plot.
+        """
         self._axes.set_xlim(xmin, xmax)
 
     def set_ylim(self, ymin, ymax):
+        """
+        Set the y boundaries of this plot.
+        """
         self._axes.set_ylim(ymin, ymax)
 
     def set_zlim(self, zmin, zmax):
+        """
+        Set the z boundaries of this plot.
+        """
         self.norm.autoscale(na.array([zmin,zmax]))
         self.image.changed()
         if self.colorbar is not None:
             _notify(self.image, self.colorbar)
 
     def set_cmap(self, cmap):
+        """
+        Change the colormap of this plot to *cmap*.
+        """
         if isinstance(cmap, types.StringTypes):
             if str(cmap) in raven_colormaps:
                 cmap = raven_colormaps[str(cmap)]
@@ -179,10 +187,18 @@ class RavenPlot:
         self.im[item] = val
 
     def add_callback(self, func):
+        """
+        Add *func* as a callback to this plot.  *func* will be called with this
+        plot as its first argument every time the plot is redrawn.  Returns the
+        id of the callback (for use with :meth:`remove_callback`.)
+        """
         self._callbacks.append(func)
         return len(self._callbacks)-1
 
     def remove_callback(self, id):
+        """
+        Given an *id*, remove that index in the callbacks list.
+        """
         self._callbacks[id] = lambda a: None
 
     def _run_callbacks(self):
@@ -190,6 +206,10 @@ class RavenPlot:
             cb(self)
 
     def set_label(self, label):
+        """
+        Set the datalabel to *label*.  (This has different meanings based on
+        the plot.)
+        """
         self.datalabel = label
         if self.colorbar != None: self.colorbar.set_label(str(label))
 
@@ -415,7 +435,7 @@ class CuttingPlanePlot(SlicePlot):
                                self.data.center, self.data._inv_mat, indices,
                                self.data[self.axis_names['Z']],
                                int(width), int(width),
-                               (px_min, px_max, py_min, py_max))
+                               (px_min, px_max, py_min, py_max)).transpose()
         return buff
 
     def _refresh_display_width(self, width=None):
@@ -459,7 +479,7 @@ class ProfilePlot(RavenPlot):
 class Profile1DPlot(ProfilePlot):
 
     _type_name = "Profile1D"
-    def __init__(self, data, fields, id, ticker=None, cmap=None,
+    def __init__(self, data, fields, id, ticker=None, 
                  figure=None, axes=None, plot_options=None):
         self._semi_unique_id = id
         RavenPlot.__init__(self, data, fields, figure, axes)

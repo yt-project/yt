@@ -33,6 +33,10 @@ class PlotCallback(object):
 
 class QuiverCallback(PlotCallback):
     def __init__(self, field_x, field_y, factor):
+        """
+        Adds a 'quiver' plot to any plot, using the *field_x* and *field_y*
+        from the associated data, skipping every *factor* datapoints.
+        """
         PlotCallback.__init__(self)
         self.field_x = field_x
         self.field_y = field_y
@@ -69,6 +73,11 @@ class QuiverCallback(PlotCallback):
 
 class ParticleCallback(PlotCallback):
     def __init__(self, axis, width, p_size=1.0, col='k'):
+        """
+        Adds particle positions, based on a thick slab along *axis* with a
+        *width* along the line of sight.  *p_size* controls the number of
+        pixels per particle, and *col* governs the color.
+        """
         PlotCallback.__init__(self)
         self.axis = axis
         self.width = width
@@ -105,6 +114,12 @@ class ParticleCallback(PlotCallback):
 
 class ContourCallback(PlotCallback):
     def __init__(self, field, ncont=5, factor=4, take_log=False, clim=None):
+        """
+        Add contours in *field* to the plot.  *ncont* governs the number of
+        contours generated, *factor* governs the number of points used in the
+        interpolation, *take_log* governs how it is contoured and *clim* gives
+        the (upper, lower) limits for contouring.
+        """
         PlotCallback.__init__(self)
         self.ncont = ncont
         self.field = field
@@ -148,6 +163,10 @@ class ContourCallback(PlotCallback):
 
 class GridBoundaryCallback(PlotCallback):
     def __init__(self, alpha=1.0, min_pix = 1):
+        """
+        Adds grid boundaries to a plot, optionally with *alpha*-blending.
+        Cuttoff for display is at *min_pix* wide.
+        """
         PlotCallback.__init__(self)
         self.alpha = alpha
         self.min_pix = min_pix
@@ -191,6 +210,10 @@ def get_smallest_appropriate_unit(v, pf):
 
 class UnitBoundaryCallback(PlotCallback):
     def __init__(self, unit = "au", factor=4, text_annotate=True, text_which=-2):
+        """
+        Add on a plot indicating where *factor*s of *unit* are shown.
+        Optionally *text_annotate* on the *text_which*-indexed box on display.
+        """
         PlotCallback.__init__(self)
         self.unit = unit
         self.factor = factor
@@ -245,6 +268,9 @@ class UnitBoundaryCallback(PlotCallback):
 
 class LinePlotCallback(PlotCallback):
     def __init__(self, x, y, plot_args = None):
+        """
+        Over plot *x* and *y* with *plot_args* fed into the plot.
+        """
         PlotCallback.__init__(self)
         self.x = x
         self.y = y
@@ -258,6 +284,10 @@ class LinePlotCallback(PlotCallback):
 
 class CuttingQuiverCallback(PlotCallback):
     def __init__(self, field_x, field_y, factor):
+        """
+        Get a quiver plot on top of a cutting plane, using *field_x* and
+        *field_y*, skipping every *factor* datapoint in the discretization.
+        """
         PlotCallback.__init__(self)
         self.field_x = field_x
         self.field_y = field_y
@@ -278,14 +308,14 @@ class CuttingQuiverCallback(PlotCallback):
                                plot.data.center, plot.data._inv_mat, indices,
                                plot.data[self.field_x],
                                int(nx), int(ny),
-                               (x0, x1, y0, y1),)
+                               (x0, x1, y0, y1),).transpose()
         pixY = _MPL.CPixelize( plot.data['x'], plot.data['y'], plot.data['z'],
                                plot.data['px'], plot.data['py'],
                                plot.data['pdx'], plot.data['pdy'], plot.data['pdz'],
                                plot.data.center, plot.data._inv_mat, indices,
                                plot.data[self.field_y],
                                int(nx), int(ny),
-                               (x0, x1, y0, y1),)
+                               (x0, x1, y0, y1),).transpose()
         X = na.mgrid[0:plot.image._A.shape[0]-1:nx*1j]# + 0.5*factor
         Y = na.mgrid[0:plot.image._A.shape[1]-1:ny*1j]# + 0.5*factor
         plot._axes.quiver(X,Y, pixX, pixY)
