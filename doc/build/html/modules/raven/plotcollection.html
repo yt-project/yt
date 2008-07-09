@@ -202,37 +202,46 @@ providing pre-existing Matplotlib <em>figure</em> and <em>axes</em> objects.
 <dl class="class">
 <dt id="yt.raven.QuiverCallback">
 <!--[yt.raven.QuiverCallback]-->class <tt class="descclassname">yt.raven.</tt><tt class="descname">QuiverCallback</tt><big>(</big><em>field_x</em>, <em>field_y</em>, <em>factor</em><big>)</big><a class="headerlink" href="#yt.raven.QuiverCallback" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd>Adds a &#8216;quiver&#8217; plot to any plot, using the <em>field_x</em> and <em>field_y</em>
+from the associated data, skipping every <em>factor</em> datapoints.</dd></dl>
 
 <dl class="class">
 <dt id="yt.raven.ParticleCallback">
 <!--[yt.raven.ParticleCallback]-->class <tt class="descclassname">yt.raven.</tt><tt class="descname">ParticleCallback</tt><big>(</big><em>axis</em>, <em>width</em>, <em>p_size=1.0</em>, <em>col='k'</em><big>)</big><a class="headerlink" href="#yt.raven.ParticleCallback" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd>Adds particle positions, based on a thick slab along <em>axis</em> with a
+<em>width</em> along the line of sight.  <em>p_size</em> controls the number of
+pixels per particle, and <em>col</em> governs the color.</dd></dl>
 
 <dl class="class">
 <dt id="yt.raven.ContourCallback">
 <!--[yt.raven.ContourCallback]-->class <tt class="descclassname">yt.raven.</tt><tt class="descname">ContourCallback</tt><big>(</big><em>field</em>, <em>ncont=5</em>, <em>factor=4</em>, <em>take_log=False</em>, <em>clim=None</em><big>)</big><a class="headerlink" href="#yt.raven.ContourCallback" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd>Add contours in <em>field</em> to the plot.  <em>ncont</em> governs the number of
+contours generated, <em>factor</em> governs the number of points used in the
+interpolation, <em>take_log</em> governs how it is contoured and <em>clim</em> gives
+the (upper, lower) limits for contouring.</dd></dl>
 
 <dl class="class">
 <dt id="yt.raven.GridBoundaryCallback">
 <!--[yt.raven.GridBoundaryCallback]-->class <tt class="descclassname">yt.raven.</tt><tt class="descname">GridBoundaryCallback</tt><big>(</big><em>alpha=1.0</em>, <em>min_pix=1</em><big>)</big><a class="headerlink" href="#yt.raven.GridBoundaryCallback" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd>Adds grid boundaries to a plot, optionally with <em>alpha</em>-blending.
+Cuttoff for display is at <em>min_pix</em> wide.</dd></dl>
 
 <dl class="class">
 <dt id="yt.raven.UnitBoundaryCallback">
 <!--[yt.raven.UnitBoundaryCallback]-->class <tt class="descclassname">yt.raven.</tt><tt class="descname">UnitBoundaryCallback</tt><big>(</big><em>unit='au'</em>, <em>factor=4</em>, <em>text_annotate=True</em>, <em>text_which=-2</em><big>)</big><a class="headerlink" href="#yt.raven.UnitBoundaryCallback" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd>Add on a plot indicating where <em>factor*s of *unit</em> are shown.
+Optionally <em>text_annotate</em> on the <em>text_which</em>-indexed box on display.</dd></dl>
 
 <dl class="class">
 <dt id="yt.raven.LinePlotCallback">
 <!--[yt.raven.LinePlotCallback]-->class <tt class="descclassname">yt.raven.</tt><tt class="descname">LinePlotCallback</tt><big>(</big><em>x</em>, <em>y</em>, <em>plot_args=None</em><big>)</big><a class="headerlink" href="#yt.raven.LinePlotCallback" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd>Over plot <em>x</em> and <em>y</em> with <em>plot_args</em> fed into the plot.</dd></dl>
 
 <dl class="class">
 <dt id="yt.raven.CuttingQuiverCallback">
 <!--[yt.raven.CuttingQuiverCallback]-->class <tt class="descclassname">yt.raven.</tt><tt class="descname">CuttingQuiverCallback</tt><big>(</big><em>field_x</em>, <em>field_y</em>, <em>factor</em><big>)</big><a class="headerlink" href="#yt.raven.CuttingQuiverCallback" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd>Get a quiver plot on top of a cutting plane, using <em>field_x</em> and
+<em>field_y</em>, skipping every <em>factor</em> datapoint in the discretization.</dd></dl>
 
 </div>
 <div class="section">
@@ -302,7 +311,7 @@ remains onscreen for the remainder of the Python session.</p>
     </div>
     <div class="footer">
       &copy; Copyright 2008, Matthew J. Turk.
-      Last updated on Jul 06, 2008.
+      Last updated on Jul 09, 2008.
       Created using <a href="http://sphinx.pocoo.org/">Sphinx</a>.
     </div>
   </body>
