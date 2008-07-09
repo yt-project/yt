@@ -4,7 +4,7 @@ Profiles
 Profiles are one of the more interesting data types.  They are a binned average
 of one or more variables, along one, two or three different dimensions.  For example,
 you could get an average temperature in Density and H2 Fraction space.  Or you could
-Look at the distribution of Volume through Density and Temperature space.  Or you could
+look at the distribution of Volume through Density and Temperature space.  Or you could
 take the spherically-averaged Number Density and see how it changes with radius.
 
 One Dimensional Profiles
@@ -61,20 +61,21 @@ Two-dimensional profiles are along the same lines.  ::
    >>> pylab.pcolormesh(prof2d["Density"], prof2d["Temperature"],
    ...                  prof2d["CellVolume"].transpose())
 
-Again, we have manually plotted this, but an automated plotter is available.::
+Again, we have manually plotted this, but an automated plotter is available vi
+:mod:`raven`::
 
    >>> pc = raven.PlotCollection(a)
    >>> pc.add_phase_object(sphere, ["Density", "Temperature", "x-velocity"],
    ...                 16, True, (1e-32, 1e-24), 
    ...                 16, True, (1e2, 1e5), lazy_reader=True)
 
-The API is slightly different here, but it will accept any object (a sphere in
-our case) and generate the profile based on the arguments.  If you simply want
-a sphere, you can ask for that and the sphere will be generated as well -- and
-the function will automatically generate the bounds.  (Although, keep in mind,
-if you do not supply bounds it will have to read the data into memory, which
-means you are no longer able to use the :keyword:`lazy_reader` functionality.
-This will change in future versions.) ::
+The yt API is slightly different here, but it will accept any object (a sphere
+in our case) and generate the profile based on the arguments.  If you simply
+want a sphere, you can ask for that and the sphere will be generated as well --
+and the function will automatically generate the bounds.  (Although, keep in
+mind, if you do not supply bounds it will have to read the data into memory,
+which means you are no longer able to use the :keyword:`lazy_reader`
+functionality.  This will change in future versions.) ::
 
 
    >>> pc.add_phase_sphere(0.1, 'kpc', ["Density", "Temperature", "x-velocity"])
@@ -107,8 +108,8 @@ a 3D plot and calling :func:`run`. ::
 
 They can be generated anywhere -- and serialized -- so if you want to generate
 them on a remote machine and use a local-machine for display, you only have to
-call :func:`store` and then initialize, instead of the standard
-:class:`BinnedProfile3D`, :class:`StoredBinnedProfile3D`.  ::
+call :func:`store` and then initialize using :class:`StoredBinnedProfile3D`,
+instead of the standard :class:`BinnedProfile3D`.  ::
 
    >>> prof.store_profile('MyProfile')
    >>> new_prof = lagos.StoredBinnedProfile3D(a, 'MyProfile')

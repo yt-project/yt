@@ -38,9 +38,10 @@ This last part might need some explanation.  Derived fields are composed of
 three main parts.  The first is the function that defines the field.  It always
 accepts two variables -- field, and data.  'Field' is the DerivedField and
 'data' is the data object.  Note that we stick to a pretty strict means of
-returning fields -- *everything is returned in cgs*!  This means that when
-we request "Density" from 'data' it is returned to us *already* in CGS, so we
-don't need to convert anything.
+returning fields -- *everything is returned in cgs*!  This means that when we
+request "Density" from 'data' it is returned to us *already* in CGS, so we don't
+need to convert the units. This may not always be the case for derived fields,
+so the second function defines the necessary unit conversion.
 
 More Complicated Fields
 -----------------------
