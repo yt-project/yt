@@ -971,12 +971,16 @@ class EnzoProjBase(Enzo2DData):
         full_proj = [self.func(field,axis=self.axis) for field in masked_data]
         weight_proj = self.func(weight_data,axis=self.axis)
         if self._check_region and not self.source._is_fully_enclosed(grid):
-            used_data = self._get_points_in_region(grid)
+            used_data = self._get_points_in_region(grid).astype('bool')
             used_points = na.where(na.logical_or.reduce(used_data, self.axis))
         else:
+            used_data = na.array([1.0], dtype='bool')
             used_points = slice(None)
         if zero_out:
-            subgrid_mask = na.logical_and.reduce(grid.child_mask, self.axis).astype('int64')
+            subgrid_mask = na.logical_and.reduce(
+                                na.logical_or(grid.child_mask,
+                                             ~used_data),
+                                self.axis).astype('int64')
         else:
             subgrid_mask = na.ones(full_proj[0].shape, dtype='int64')
         xind, yind = [arr[used_points].ravel() for arr in na.indices(full_proj[0].shape)]
