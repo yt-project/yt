@@ -63,7 +63,8 @@
 source-code inspector.</p>
 <div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="k">print</span> <span class="n">lagos</span><span class="o">.</span><span class="n">fieldInfo</span><span class="p">[</span><span class="s">&quot;Entropy&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">get_source</span><span class="p">()</span>
 </pre></div>
-<p>But what if we only want a couple values?  We can directly grab indices.</p>
+<p>But what if we only want a couple values?  We can directly grab indices, in C
+order.</p>
 <div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="k">print</span> <span class="n">my_grid</span><span class="p">[</span><span class="s">&quot;Density&quot;</span><span class="p">][</span><span class="mf">0</span><span class="p">,</span><span class="mf">10</span><span class="p">,</span><span class="mf">4</span><span class="p">]</span> <span class="c"># 0-indexed!</span>
 </pre></div>
 <p>We can also slice, using the slice operator: &#8216;:&#8217;</p>
@@ -81,7 +82,7 @@ here.  We can get slices, projections, spheres, rectangular prisms,
 fixed-resolution grids and cutting planes from the herarchy.</p>
 </div>
 <div class="section">
-<h2 id="slices"><span id="index-6"></span>Slices<a class="headerlink" href="#slices" title="Permalink to this headline">¶</a></h2>
+<h2 id="slices"><span id="index-14"></span>Slices<a class="headerlink" href="#slices" title="Permalink to this headline">¶</a></h2>
 <p>Let&#8217;s start with a slice.  A slice needs some info, but how do we know what
 type?  Well, let&#8217;s use &#8216;help&#8217;!:</p>
 <div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">help</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">h</span><span class="o">.</span><span class="n">slice</span><span class="p">)</span>
@@ -100,7 +101,7 @@ the interpreter.</p>
 </div>
 <div class="section">
 <h2 id="boxes">Boxes<a class="headerlink" href="#boxes" title="Permalink to this headline">¶</a></h2>
-<p>Let&#8217;s do a region.  This is a box with a left edge and a right edge, and a
+<p>Let&#8217;s do a region.  A region is a box with a left edge and a right edge, and a
 center.  (You need a center for some other calculations, not for getting the
 region.)  Let&#8217;s get started by grabbing the ENTIRE domain.:</p>
 <div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">my_region</span> <span class="o">=</span> <span class="n">a</span><span class="o">.</span><span class="n">h</span><span class="o">.</span><span class="n">region</span><span class="p">([</span><span class="mf">0.5</span><span class="p">,</span><span class="mf">0.5</span><span class="p">,</span><span class="mf">0.5</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.0</span><span class="p">,</span><span class="mf">0.0</span><span class="p">,</span><span class="mf">0.0</span><span class="p">],</span> <span class="p">[</span><span class="mf">1.0</span><span class="p">,</span><span class="mf">1.0</span><span class="p">,</span><span class="mf">1.0</span><span class="p">])</span>
@@ -171,7 +172,7 @@ You ask it for a field, and it returns that field:</p>
     </div>
     <div class="footer">
       &copy; Copyright 2008, Matthew J. Turk.
-      Last updated on Jul 06, 2008.
+      Last updated on Jul 10, 2008.
       Created using <a href="http://sphinx.pocoo.org/">Sphinx</a>.
     </div>
   </body>

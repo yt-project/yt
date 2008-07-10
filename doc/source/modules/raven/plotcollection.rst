@@ -35,12 +35,3 @@ These are all meant to be instantiated and fed into
 
 .. autoclass:: yt.raven.CuttingQuiverCallback
 
-3D Plots
---------
-
-All of these plots require the usage of S2PLOT and its Python bindings.  Note,
-also, that these require interaction with the user and do not support
-disconnected use.  Furthermore, typically after a plot has been created the UI
-remains onscreen for the remainder of the Python session.
-
-

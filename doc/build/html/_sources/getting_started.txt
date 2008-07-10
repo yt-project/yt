@@ -62,16 +62,16 @@ the graphical user interface, Reason.
  * `wxPython <http://www.wxpython.org/>`_, the GUI toolkit
 
 (If you are only interested in manipulating data without any graphical plotting
-or interfaces, you only need to install NumPy and Python!)
+or interfaces, you only need to install HDF5, NumPy, and Python!)
 
 Installing the Necessary Packages
 ---------------------------------
 
-.. note::
-   In the ``doc/`` directory in the yt source distribution, there is a script I
-   have used in the past to set up a full installation of yt.  It may need
-   tweaking or modification, but it gives a good idea of the roadmap to
-   installation.
+.. note:: 
+   In the ``doc/`` directory in the yt source distribution, there is a script,
+   ``install_script.sh``, that I have used in the past to set up a full
+   installation of yt.  It may need tweaking or modification, but it gives a
+   good idea of the roadmap to installation.
 
 Installing Python itself is usually quite simple, and often very fast.  Because
 we're setting up a small system of packages, even if you have a system-wide

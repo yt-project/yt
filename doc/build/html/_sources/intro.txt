@@ -19,9 +19,9 @@ and has been designed from the ground up to enable users to be as immersed in
 the data as they desire.
 
 Originally, yt was written as a frontend to HippoDraw, an extensible and
-comprehensive plotting package built at SLAC by Paul Kunz.  Over time, however,
-it has been generalized to rely on mostly commodity Python packages, and its
-dependencies reduced and ease of installation increased.
+comprehensive plotting package built at SLAC by Paul Kunz.  Over time
+it has been generalized to rely on commodity Python packages (mostly), its
+dependencies have been reduced, and thus its installation made significantly easier.
 
 What yt is and is not
 ---------------------
@@ -58,7 +58,7 @@ non-comprehensive list of features:
 
   * Arbitrary field definition
   * Derived quantities (average values, spin parameter, bulk velocity, etc)
-  * Fast-HDF5 backend for packed and unpacked AMR, NumPy-based HDF4 backend
+  * Custom C- written HDF5 backend for packed and unpacked AMR, NumPy-based HDF4 backend
   * CGS units used everywhere
   * Per-user field and quantity plugins
 
@@ -67,7 +67,7 @@ non-comprehensive list of features:
   * Mathtext TeX-like text formatting
   * Slices, projections, oblique slices
   * Profiles and phase diagrams
-  * Linked zooms, colormaps, and saving
+  * Linked zooms, colormaps, and saving across multiple plots
   * Contours, vector plots, annotated boxes, grid boundary plot overlays.
   * Simple 3D plotting of phase plots and volume-rendered boxes via hooks into the S2PLOT library
 

@@ -57,7 +57,7 @@
 <p>Profiles are one of the more interesting data types.  They are a binned average
 of one or more variables, along one, two or three different dimensions.  For example,
 you could get an average temperature in Density and H2 Fraction space.  Or you could
-Look at the distribution of Volume through Density and Temperature space.  Or you could
+look at the distribution of Volume through Density and Temperature space.  Or you could
 take the spherically-averaged Number Density and see how it changes with radius.</p>
 <div class="section">
 <h2 id="one-dimensional-profiles">One Dimensional Profiles<a class="headerlink" href="#one-dimensional-profiles" title="Permalink to this headline">¶</a></h2>
@@ -105,19 +105,20 @@ plotting method for obtaining and displaying radial profiles.</p>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">pylab</span><span class="o">.</span><span class="n">pcolormesh</span><span class="p">(</span><span class="n">prof2d</span><span class="p">[</span><span class="s">&quot;Density&quot;</span><span class="p">],</span> <span class="n">prof2d</span><span class="p">[</span><span class="s">&quot;Temperature&quot;</span><span class="p">],</span>
 <span class="gp">... </span>                 <span class="n">prof2d</span><span class="p">[</span><span class="s">&quot;CellVolume&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">transpose</span><span class="p">())</span>
 </pre></div>
-<p>Again, we have manually plotted this, but an automated plotter is available.:</p>
+<p>Again, we have manually plotted this, but an automated plotter is available vi
+<tt class="xref docutils literal"><span class="pre">raven</span></tt>:</p>
 <div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">pc</span> <span class="o">=</span> <span class="n">raven</span><span class="o">.</span><span class="n">PlotCollection</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">pc</span><span class="o">.</span><span class="n">add_phase_object</span><span class="p">(</span><span class="n">sphere</span><span class="p">,</span> <span class="p">[</span><span class="s">&quot;Density&quot;</span><span class="p">,</span> <span class="s">&quot;Temperature&quot;</span><span class="p">,</span> <span class="s">&quot;x-velocity&quot;</span><span class="p">],</span>
 <span class="gp">... </span>                <span class="mf">16</span><span class="p">,</span> <span class="bp">True</span><span class="p">,</span> <span class="p">(</span><span class="mf">1e-32</span><span class="p">,</span> <span class="mf">1e-24</span><span class="p">),</span>
 <span class="gp">... </span>                <span class="mf">16</span><span class="p">,</span> <span class="bp">True</span><span class="p">,</span> <span class="p">(</span><span class="mf">1e2</span><span class="p">,</span> <span class="mf">1e5</span><span class="p">),</span> <span class="n">lazy_reader</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
 </pre></div>
-<p>The API is slightly different here, but it will accept any object (a sphere in
-our case) and generate the profile based on the arguments.  If you simply want
-a sphere, you can ask for that and the sphere will be generated as well &#8211; and
-the function will automatically generate the bounds.  (Although, keep in mind,
-if you do not supply bounds it will have to read the data into memory, which
-means you are no longer able to use the <tt class="xref docutils literal"><span class="pre">lazy_reader</span></tt> functionality.
-This will change in future versions.)</p>
+<p>The yt API is slightly different here, but it will accept any object (a sphere
+in our case) and generate the profile based on the arguments.  If you simply
+want a sphere, you can ask for that and the sphere will be generated as well &#8211;
+and the function will automatically generate the bounds.  (Although, keep in
+mind, if you do not supply bounds it will have to read the data into memory,
+which means you are no longer able to use the <tt class="xref docutils literal"><span class="pre">lazy_reader</span></tt>
+functionality.  This will change in future versions.)</p>
 <div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">pc</span><span class="o">.</span><span class="n">add_phase_sphere</span><span class="p">(</span><span class="mf">0.1</span><span class="p">,</span> <span class="s">&#39;kpc&#39;</span><span class="p">,</span> <span class="p">[</span><span class="s">&quot;Density&quot;</span><span class="p">,</span> <span class="s">&quot;Temperature&quot;</span><span class="p">,</span> <span class="s">&quot;x-velocity&quot;</span><span class="p">])</span>
 </pre></div>
 </div>
@@ -143,8 +144,8 @@ a 3D plot and calling <tt class="xref docutils literal"><span class="pre">run()<
 </pre></div>
 <p>They can be generated anywhere &#8211; and serialized &#8211; so if you want to generate
 them on a remote machine and use a local-machine for display, you only have to
-call <tt class="xref docutils literal"><span class="pre">store()</span></tt> and then initialize, instead of the standard
-<tt class="xref docutils literal"><span class="pre">BinnedProfile3D</span></tt>, <tt class="xref docutils literal"><span class="pre">StoredBinnedProfile3D</span></tt>.</p>
+call <tt class="xref docutils literal"><span class="pre">store()</span></tt> and then initialize using <tt class="xref docutils literal"><span class="pre">StoredBinnedProfile3D</span></tt>,
+instead of the standard <tt class="xref docutils literal"><span class="pre">BinnedProfile3D</span></tt>.</p>
 <div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">prof</span><span class="o">.</span><span class="n">store_profile</span><span class="p">(</span><span class="s">&#39;MyProfile&#39;</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">new_prof</span> <span class="o">=</span> <span class="n">lagos</span><span class="o">.</span><span class="n">StoredBinnedProfile3D</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="s">&#39;MyProfile&#39;</span><span class="p">)</span>
 </pre></div>
@@ -212,7 +213,7 @@ on which is inconvenient to do OpenGL-based data exploration.</p>
     </div>
     <div class="footer">
       &copy; Copyright 2008, Matthew J. Turk.
-      Last updated on Jul 06, 2008.
+      Last updated on Jul 10, 2008.
       Created using <a href="http://sphinx.pocoo.org/">Sphinx</a>.
     </div>
   </body>

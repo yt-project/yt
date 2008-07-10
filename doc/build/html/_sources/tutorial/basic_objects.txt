@@ -15,7 +15,8 @@ source-code inspector.  ::
 
    >>> print lagos.fieldInfo["Entropy"].get_source()
 
-But what if we only want a couple values?  We can directly grab indices.  ::
+But what if we only want a couple values?  We can directly grab indices, in C
+order.  ::
 
    >>> print my_grid["Density"][0,10,4] # 0-indexed!
 
@@ -62,7 +63,7 @@ the interpreter.
 Boxes
 -----
 
-Let's do a region.  This is a box with a left edge and a right edge, and a
+Let's do a region.  A region is a box with a left edge and a right edge, and a
 center.  (You need a center for some other calculations, not for getting the
 region.)  Let's get started by grabbing the ENTIRE domain.::
 

@@ -44,11 +44,15 @@ so if we wanted the EnzoSlice object, we can access it: ::
 
    >>> print pc.plots[1].data
 
-After we've created the plots above, we set the width to 15 kiloparsecs.
-Note that raven understands any length unit that the hierarchy has, so you
-can set to mpc, kpc, pc, au, km or cm.  Then we call save, and feed it a prefix --
-it takes care of adding some more information to the filename, so don't supply it
-a file suffix.  (It defaults to '.png')
+After we've created the plots above, we set the width to 15 kiloparsecs.  Note
+that raven understands any length unit that the hierarchy has, so you can set to
+mpc, kpc, pc, au, km or cm.  Then we call save, and feed it a prefix -- it takes
+care of adding some more information to the filename, so don't supply it a file
+suffix. pc.save defaults to '.png', but a "format" keyword can be supplied::
+
+   >>> pc.save("somename_15kpc",format='ps')
+
+to get postscript output suitable for publication.
 
 More Plots
 ----------

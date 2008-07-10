@@ -86,9 +86,10 @@ where we just cube Density.:</p>
 three main parts.  The first is the function that defines the field.  It always
 accepts two variables &#8211; field, and data.  &#8216;Field&#8217; is the DerivedField and
 &#8216;data&#8217; is the data object.  Note that we stick to a pretty strict means of
-returning fields &#8211; <em>everything is returned in cgs</em>!  This means that when
-we request &#8220;Density&#8221; from &#8216;data&#8217; it is returned to us <em>already</em> in CGS, so we
-don&#8217;t need to convert anything.</p>
+returning fields &#8211; <em>everything is returned in cgs</em>!  This means that when we
+request &#8220;Density&#8221; from &#8216;data&#8217; it is returned to us <em>already</em> in CGS, so we don&#8217;t
+need to convert the units. This may not always be the case for derived fields,
+so the second function defines the necessary unit conversion.</p>
 </div>
 <div class="section">
 <h2 id="more-complicated-fields">More Complicated Fields<a class="headerlink" href="#more-complicated-fields" title="Permalink to this headline">¶</a></h2>
@@ -161,7 +162,7 @@ require ghost zones, which will be automatically generated.  Check the
     </div>
     <div class="footer">
       &copy; Copyright 2008, Matthew J. Turk.
-      Last updated on Jul 06, 2008.
+      Last updated on Jul 10, 2008.
       Created using <a href="http://sphinx.pocoo.org/">Sphinx</a>.
     </div>
   </body>
