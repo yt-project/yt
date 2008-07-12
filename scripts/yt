@@ -1,8 +1,6 @@
-#!/bin/sh
+#!python
 
-if [ $DISPLAY ]
-then
-    ipython -pylab -p yt $*
-else
-    ipython -p yt $*
-fi
+import yt.mods, code
+
+interp = code.InteractiveConsole(yt.mods.__dict__)
+interp.interact("Welcome to yt")

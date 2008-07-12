@@ -1,7 +1,5 @@
 # Modify this line to change where we install
-MY_DIR=$HOME/local
-#MY_DIR=$HOME/ki02/testing_eric
-MY_DIR=/data/mturk/testing_eric
+MY_DIR=/u/ki/mturk/ki02/make_yt/build_`uname -p`/
 
 
 mkdir -p $MY_DIR/src
@@ -11,60 +9,89 @@ cd $MY_DIR/src
 [ ! -e hdf5-1.8.1.tar.gz ] && wget ftp://ftp.hdfgroup.org/HDF5/current/src/hdf5-1.8.1.tar.gz
 [ ! -e Python-2.5.2.tgz ] && wget http://python.org/ftp/python/2.5.2/Python-2.5.2.tgz
 [ ! -e pytables-2.0.4.tar.gz ] && wget http://www.pytables.org/download/stable/pytables-2.0.4.tar.gz
-[ ! -e matplotlib-0.91.2.tar.gz ] && wget "http://downloads.sourceforge.net/matplotlib/matplotlib-0.91.2.tar.gz?modtime=1199627250&big_mirror=0"
+[ ! -e matplotlib-0.91.4.tar.gz ] && wget "http://downloads.sourceforge.net/matplotlib/matplotlib-0.91.4.tar.gz"
 [ ! -e numpy-1.0.4.tar.gz ] && wget "http://downloads.sourceforge.net/numpy/numpy-1.0.4.tar.gz?modtime=1194536674&big_mirror=0"
 [ ! -e wxPython-src-2.8.7.1.tar.bz2 ] && wget http://downloads.sourceforge.net/wxpython/wxPython-src-2.8.7.1.tar.bz2
+[ ! -e yt-0.3.tar.gz ] && wget http://yt.enzotools.org/files/yt-0.3.tar.gz
 
-[ ! -e hdf5-1.8.1/done ] && tar xvfz hdf5-1.8.1.tar.gz
-echo "Doing HDF5"
-cd hdf5-1.8.1
-./configure --prefix=$MY_DIR/ || exit 1
-make install || exit 1
-touch done
-cd ..
+if [ ! -e hdf5-1.8.1/done ]
+then
+    [ ! -e hdf5-1.8.1 ] && tar xvfz hdf5-1.8.1.tar.gz
+    echo "Doing HDF5"
+    cd hdf5-1.8.1
+    ./configure --prefix=$MY_DIR/ || exit 1
+    make install || exit 1
+    touch done
+    cd ..
+fi
 
-[ ! -e Python-2.5.2/done ] && tar xvfz Python-2.5.2.tgz
-echo "Doing Python"
-cd Python-2.5.2
-./configure --prefix=$MY_DIR/ || exit 1
-make || exit 1
-make install || exit 1
-touch done
-cd ..
+if [ ! -e Python-2.5.2/done ]
+then
+    echo "Doing Python"
+    [ ! -e Python-2.5.2 ] && tar xvfz Python-2.5.2.tgz
+    cd Python-2.5.2
+    ./configure --prefix=$MY_DIR/ || exit 1
+    make || exit 1
+    make install || exit 1
+    touch done
+    cd ..
+fi
 
-[ ! -e numpy-1.0.4/done ] && tar xvfz numpy-1.0.4.tar.gz
-echo "Doing NumPy"
-cd numpy-1.0.4
-$MY_DIR/bin/python2.5 setup.py install || exit 1
-touch done
-cd ..
+if [ ! -e numpy-1.0.4/done ]
+then
+    echo "Doing NumPy"
+    [ ! -e numpy-1.0.4 ] && tar xvfz numpy-1.0.4.tar.gz
+    cd numpy-1.0.4
+    $MY_DIR/bin/python2.5 setup.py install || exit 1
+    touch done
+    cd ..
+fi
 
-[ ! -e pytables-2.0.4/done ] && tar xvfz pytables-2.0.4.tar.gz
-echo "Doing PyTables"
-cd pytables-2.0.4
-$MY_DIR/bin/python2.5 setup.py install --hdf5=$MY_DIR/ || exit 1
-touch done
-cd ..
+if [ ! -e pytables-2.0.4/done ]
+then
+    echo "Doing PyTables"
+    [ ! -e pytables-2.0.4 ] && tar xvfz pytables-2.0.4.tar.gz
+    cd pytables-2.0.4
+    $MY_DIR/bin/python2.5 setup.py install --hdf5=$MY_DIR/ || exit 1
+    touch done
+    cd ..
+fi
 
-[ ! -e matplotlib-0.91.2/done ] && tar xvfz matplotlib-0.91.2.tar.gz
-echo "Doing Matplotlib"
-cd matplotlib-0.91.2
-$MY_DIR/bin/python2.5 setup.py install || exit 1
-touch done
-cd ..
+if [ ! -e matplotlib-0.91.4/done ]
+then
+    echo "Doing Matplotlib"
+    [ ! -e matplotlib-0.91.4 ] && tar xvfz matplotlib-0.91.4.tar.gz
+    cd matplotlib-0.91.4
+    $MY_DIR/bin/python2.5 setup.py install || exit 1
+    touch done
+    cd ..
+fi
 
-[ ! -e wxPython-src-2.8.7.1/done ] && tar xvfj wxPython-src-2.8.7.1.tar.bz2
-echo "Doing wxPython"
-cd wxPython-src-2.8.7.1
-./configure --prefix=$MY_DIR/ || exit 1
-make
-cd contrib
-make
-cd ..
-make install || exit 1
-cd wxPython
-$MY_DIR/bin/python2.5 setup.py install || exit 1
-touch done
-cd ../..
+if [ ! -e wxPython-src-2.8.7.1/done ]
+then
+    echo "Doing wxPython"
+    [ ! -e wxPython-src-2.8.7.1 ] && tar xvfj wxPython-src-2.8.7.1.tar.bz2
+    cd wxPython-src-2.8.7.1
+    ./configure --prefix=$MY_DIR/ --with-opengl || exit 1
+    make install || exit 1
+    cd contrib
+    make install || exit 1
+    cd ../wxPython/
+    $MY_DIR/bin/python2.5 setup.py WX_CONFIG=$MY_DIR/bin/wx-config install || exit 1
+    touch ../done
+    cd ../..
+fi
 
+if [ ! -e yt-0.3/done ]
+then
+    echo "Doing yt installation"
+    [ ! -e yt-0.3 ] && tar xvfz yt-0.3.tar.gz
+    cd yt-0.3
+    echo $MY_DIR > hdf5.cfg
+    python2.5 setup.py install || exit 1
+    touch done
+    cd ..
+fi
 
+echo Python 2.5 is now installed in $MY_DIR .
+echo To run from this new installation, run place $MY_DIR/bin in your path.
