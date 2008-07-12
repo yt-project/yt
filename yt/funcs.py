@@ -27,7 +27,7 @@ import time, types
 import progressbar as pb
 
 def blank_wrapper(f):
-    return f
+    return lambda a: a
 
 try:
     from functools import wraps
