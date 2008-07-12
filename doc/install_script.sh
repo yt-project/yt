@@ -1,12 +1,17 @@
 # Modify this line to change where we install
-MY_DIR=/u/ki/mturk/ki02/make_yt/build_`uname -p`/
+#MY_DIR=$HOME/yt-`uname -p`/
 
+if [ -z "$MY_DIR" ]
+then
+    echo "Edit this script, set the MY_DIR parameter and re-run."
+    exit 1
+fi
 
 mkdir -p $MY_DIR/src
 cd $MY_DIR/src
 
 # Individual processes
-[ ! -e hdf5-1.8.1.tar.gz ] && wget ftp://ftp.hdfgroup.org/HDF5/current/src/hdf5-1.8.1.tar.gz
+[ ! -e hdf5-1.6.7.tar.gz ] && wget ftp://ftp.hdfgroup.org/HDF5/current16/src/hdf5-1.6.7.tar.gz
 [ ! -e Python-2.5.2.tgz ] && wget http://python.org/ftp/python/2.5.2/Python-2.5.2.tgz
 [ ! -e pytables-2.0.4.tar.gz ] && wget http://www.pytables.org/download/stable/pytables-2.0.4.tar.gz
 [ ! -e matplotlib-0.91.4.tar.gz ] && wget "http://downloads.sourceforge.net/matplotlib/matplotlib-0.91.4.tar.gz"
@@ -14,11 +19,11 @@ cd $MY_DIR/src
 [ ! -e wxPython-src-2.8.7.1.tar.bz2 ] && wget http://downloads.sourceforge.net/wxpython/wxPython-src-2.8.7.1.tar.bz2
 [ ! -e yt-0.3.tar.gz ] && wget http://yt.enzotools.org/files/yt-0.3.tar.gz
 
-if [ ! -e hdf5-1.8.1/done ]
+if [ ! -e hdf5-1.6.7/done ]
 then
-    [ ! -e hdf5-1.8.1 ] && tar xvfz hdf5-1.8.1.tar.gz
+    [ ! -e hdf5-1.6.7 ] && tar xvfz hdf5-1.6.7.tar.gz
     echo "Doing HDF5"
-    cd hdf5-1.8.1
+    cd hdf5-1.6.7
     ./configure --prefix=$MY_DIR/ || exit 1
     make install || exit 1
     touch done
@@ -36,6 +41,8 @@ then
     touch done
     cd ..
 fi
+
+export PYTHONPATH=$MY_DIR/lib/python2.5/site-packages/
 
 if [ ! -e numpy-1.0.4/done ]
 then
@@ -88,10 +95,19 @@ then
     [ ! -e yt-0.3 ] && tar xvfz yt-0.3.tar.gz
     cd yt-0.3
     echo $MY_DIR > hdf5.cfg
-    python2.5 setup.py install || exit 1
+    $MY_DIR/bin/python2.5 setup.py install || exit 1
     touch done
     cd ..
 fi
 
-echo Python 2.5 is now installed in $MY_DIR .
-echo To run from this new installation, run place $MY_DIR/bin in your path.
+echo "yt is now installed in $MY_DIR ."
+echo "To run from this new installation, the a few variables need to be"
+echo "prepended with the following information:"
+echo
+echo "PATH            => $MY_DIR/bin/"
+echo "PYTHONPATH      => $MY_DIR/lib/python2.5/site-packages/"
+echo "LD_LIBRARY_PATH => $MY_DIR/lib/"
+echo
+echo "You can get a fully-loaded yt prompt by running:"
+echo "$MY_DIR/bin/yt"
+echo
