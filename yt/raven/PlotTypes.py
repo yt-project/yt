@@ -393,7 +393,7 @@ class SlicePlot(VMPlot):
             self.colorbar.set_label(str(self.datalabel))
             return
         field_name = self.axis_names["Z"]
-        data_label = r"$\rm{%s}" % field_name
+        data_label = r"$\rm{%s}" % field_name.replace("_","\hspace{0.5}")
         if lagos.fieldInfo.has_key(field_name):
             data_label += r"\/\/ (%s)" % (lagos.fieldInfo[field_name].get_units())
         data_label += r"$"
@@ -407,7 +407,7 @@ class ProjectionPlot(VMPlot):
             self.colorbar.set_label(str(self.datalabel))
             return
         field_name = self.axis_names["Z"]
-        data_label = r"$\rm{%s}" % field_name
+        data_label = r"$\rm{%s}" % field_name.replace("_","\hspace{0.5}")
         if lagos.fieldInfo.has_key(field_name):
             data_label += r"\/\/ (%s)" % (lagos.fieldInfo[field_name].get_projected_units())
         data_label += r"$"
@@ -469,7 +469,7 @@ class ProfilePlot(RavenPlot):
         return log_field
 
     def autoset_label(self, field, func):
-        dataLabel = r"$\rm{%s}" % (field)
+        dataLabel = r"$\rm{%s}" % (field.replace("_","\hspace{0.5}"))
         if field in lagos.fieldInfo:
             dataLabel += r" (%s)" % (lagos.fieldInfo[field].get_units())
         dataLabel += r"$"
@@ -598,7 +598,6 @@ class PhasePlot(ProfilePlot):
     def _redraw_image(self):
         vals = self.data[self.fields[2]].transpose()
         used_bin = self.data["UsedBins"].transpose()
-        vals[~used_bin] = na.nan
         vmin = na.nanmin(vals[used_bin])
         vmax = na.nanmax(vals[used_bin])
         if self._log_z:
@@ -649,7 +648,7 @@ class PhasePlot(ProfilePlot):
         if self.datalabel != None:
             func(str(self.datalabel))
             return
-        data_label = r"$\rm{%s}" % field_name
+        data_label = r"$\rm{%s}" % field_name.replace("_"," ")
         if field_name in lagos.fieldInfo:
             data_label += r"\/\/ (%s)" % (lagos.fieldInfo[field_name].get_units())
         data_label += r"$"
