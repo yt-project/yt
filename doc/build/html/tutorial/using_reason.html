@@ -1,0 +1,198 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>Using Reason &mdash; yt v1.0 documentation</title>
+    <link rel="stylesheet" href="../_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+          URL_ROOT:   '../',
+          VERSION:    '1.0',
+          COLLAPSE_MODINDEX: false
+      };
+    </script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/interface.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <link rel="contents" title="Global table of contents" href="../contents.html" />
+    <link rel="index" title="Global index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="top" title="yt v1.0 documentation" href="../index.html" />
+    <link rel="up" title="A Short Tutorial" href="index.html" />
+    <link rel="next" title="Cookbook" href="../cookbook/index.html" />
+    <link rel="prev" title="A Demonstrative Example Script" href="example_script.html" />
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../modindex.html" title="Global Module Index"
+             accesskey="M">modules</a> |</li>
+        <li class="right" >
+          <a href="../cookbook/index.html" title="Cookbook"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="example_script.html" title="A Demonstrative Example Script"
+             accesskey="P">previous</a> |</li>
+    <li><a href="http://yt.enzotools.org/">yt</a> &raquo;</li>
+    
+        <li><a href="../index.html">yt v1.0 documentation</a> &raquo;</li>
+
+          <li><a href="index.html" accesskey="U">A Short Tutorial</a> &raquo;</li>
+      </ul>
+    </div>
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  
+  <div class="section">
+<h1 id="using-reason"><span id="index-11"></span>Using Reason<a class="headerlink" href="#using-reason" title="Permalink to this headline">¶</a></h1>
+<p>Reason is the GUI for yt.  It&#8217;s developed in wxPython, and all attempts have
+been made to expose a susbtantial API to enable interactive plot addition, as
+well as a command-line for examining raw data.</p>
+<div class="section">
+<h2 id="starting-up-reason">Starting Up Reason<a class="headerlink" href="#starting-up-reason" title="Permalink to this headline">¶</a></h2>
+<p>If you&#8217;ve downloaded the binary package for OSX, you can simply double-click
+the icon.  Otherwise, if you have <a class="reference" href="http://www.wxpython.org/">wxPython</a>
+installed, and yt is installed globally, you should be able to simply type
+<tt class="docutils literal"><span class="pre">reason</span></tt> to initiate it.</p>
+<p>When reason starts up, it will execute all the code in your plugin file, so any
+fields you&#8217;ve defined there will be defined in the dialog boxes.</p>
+<p>Go ahead and open up a dataset now, using the file menu&#8217;s &#8220;Open Hierarchy&#8221;
+option.  It&#8217;ll get added to the tree on the left.  All of its subsequent
+derived data objects &#8211; slices, projections, spheres, etc &#8211; will be added
+there.</p>
+</div>
+<div class="section">
+<h2 id="making-slices-and-projections"><span id="index-12"></span>Making Slices and Projections<a class="headerlink" href="#making-slices-and-projections" title="Permalink to this headline">¶</a></h2>
+<p>By right clicking on an output file, you can generate a slice.  The software
+will automatically add a slice for all three axes; with projections, you&#8217;re
+given more control over the field, weight and axes.</p>
+<p>Each created plot will reside in its own tabs; these tabs are linked in their
+display of fields, their width, and their center.  They can be rearranged by
+clicking and dragging &#8211; for instance, multiple panes can be viewed at a single
+time by clicking and dragging to the region you&#8217;d like to split into.</p>
+<p>These plots can be recentered by getting the context menu on the plot image and
+choosing to either center on the location of the click or to center on the
+location of maximum density.</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">On some platforms, the right-click on a plot in wxPython is
+non-functional; on these platforms, double-click to pop up the context menu.</p>
+</div>
+<p>Give it a shot; re-center somewhere else.  All of the plots generated at a
+given time will be linked, so they should all re-center on wherever you told
+them to.</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">Even though a projection loses some information, by re-centering on
+two of the three axes, you can uniquely determine a new center.</p>
+</div>
+</div>
+<div class="section">
+<h2 id="obtaining-spheres"><span id="index-13"></span>Obtaining Spheres<a class="headerlink" href="#obtaining-spheres" title="Permalink to this headline">¶</a></h2>
+<p>So now we&#8217;ve got a slice through our data, and we&#8217;ve dealt with recentering,
+changing the width and so on.  Now let&#8217;s try something more advanced.</p>
+<p>You can generate a sphere by two methods.  The first is to bring up the context
+menu on a plot (either right- or double-click it) and then requesting one.
+This will be centered at the current &#8220;plot center&#8221; and you can specify the
+width exactly.</p>
+<p>Alternatively, you can hold down the <em>shift</em> key and click once on the center
+and once on the outer edge.  This will generate a sphere using those two pieces
+of information as the defining characteristics.</p>
+<p>This sphere will appear in the object tree as a child of the current plot.</p>
+</div>
+<div class="section">
+<h2 id="making-phase-and-profile-plots"><span id="index-14"></span>Making Phase and Profile Plots<a class="headerlink" href="#making-phase-and-profile-plots" title="Permalink to this headline">¶</a></h2>
+<p>Now that you have a sphere, you are able to make phase and profile plots from
+it.  Right click on it in the object tree and choose to make either a phase
+(two-dimensional) or profile (one-dimensional) plot.</p>
+<p>Each of these choices will present you with a constructor window, where you can
+enter the appropriate parameters to define the plot.  Each of these options is
+reflected in the API for the <tt class="xref docutils literal"><span class="pre">BinnedProfile1D</span></tt> and <tt class="xref docutils literal"><span class="pre">BinnedProfile2D</span></tt>
+classes respectively.</p>
+</div>
+<div class="section">
+<h2 id="making-cutting-planes"><span id="index-15"></span>Making Cutting Planes<a class="headerlink" href="#making-cutting-planes" title="Permalink to this headline">¶</a></h2>
+<p>Within the GUI, once you have selected a sphere, you can generate a cutting
+plane based on the mass-weighted angular momentum vector of that sphere, and
+centered at its center.  You can access this by right-clicking on a sphere and
+choosing &#8220;Cutting Plane.&#8221;</p>
+<p>Additionally, you can overlay a vector plot of the velocity vectors on this
+plot via the context menu.</p>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+            <p class="logo"><img class="logo" src="../_static/yt_icon.png" alt="Logo"/></p>
+            <h3>Table Of Contents</h3>
+            <ul>
+<li><a class="reference" href="">Using Reason</a><ul>
+<li><a class="reference" href="#starting-up-reason">Starting Up Reason</a></li>
+<li><a class="reference" href="#making-slices-and-projections">Making Slices and Projections</a></li>
+<li><a class="reference" href="#obtaining-spheres">Obtaining Spheres</a></li>
+<li><a class="reference" href="#making-phase-and-profile-plots">Making Phase and Profile Plots</a></li>
+<li><a class="reference" href="#making-cutting-planes">Making Cutting Planes</a></li>
+</ul>
+</li>
+</ul>
+
+            <h4>Previous topic</h4>
+            <p class="topless"><a href="example_script.html" title="previous chapter">A Demonstrative Example Script</a></p>
+            <h4>Next topic</h4>
+            <p class="topless"><a href="../cookbook/index.html" title="next chapter">Cookbook</a></p>
+            <h3>This Page</h3>
+            <ul class="this-page-menu">
+              <li><a href="../_sources/tutorial/using_reason.txt">Show Source</a></li>
+            </ul>
+            <h3>Quick search</h3>
+            <form class="search" action="../search.html" method="get">
+              <input type="text" name="q" size="18" /> <input type="submit" value="Go" />
+              <input type="hidden" name="check_keywords" value="yes" />
+              <input type="hidden" name="area" value="default" />
+            </form>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../modindex.html" title="Global Module Index"
+             accesskey="M">modules</a> |</li>
+        <li class="right" >
+          <a href="../cookbook/index.html" title="Cookbook"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="example_script.html" title="A Demonstrative Example Script"
+             accesskey="P">previous</a> |</li>
+    <li><a href="http://yt.enzotools.org/">yt</a> &raquo;</li>
+    
+        <li><a href="../index.html">yt v1.0 documentation</a> &raquo;</li>
+
+          <li><a href="index.html" accesskey="U">A Short Tutorial</a> &raquo;</li>
+      </ul>
+    </div>
+    <div class="footer">
+      &copy; Copyright 2008, Matthew J. Turk.
+      Last updated on Jul 15, 2008.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a>.
+    </div>
+  </body>
+</html>

@@ -15,9 +15,7 @@ Contents:
    cookbook/index
    extending/index
    faq
-   modules/lagos/index
-   modules/raven/index
-   modules/reason/index
+   modules/index
 
 Indices and tables
 ==================

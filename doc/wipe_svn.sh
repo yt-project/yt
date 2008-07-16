@@ -3,7 +3,7 @@ do
     find build/ -name "*.${ext}" -exec rm -v {} \;
 done
 
-PYTHONPATH=$HOME/Development/yt/trunk/
+PYTHONPATH=`pwd`/../
 make html
 
 echo "Files deleted since last svn commit:"

@@ -26,6 +26,12 @@ on which all the math done in yt is based.
 As far as books go, the only book I've found to be absolutely indispensible is
 the `Beazley Book <http://www.amazon.com/exec/obidos/ASIN/0735710910>`_.
 
+Who works on yt?
+----------------
+
+Matthew Turk is the lead developer, but Jeff Oishi, Britton Smith, Dave Collins
+and Stephen Skory have all made substantive contributions.
+
 What's up with the names?
 -------------------------
 
