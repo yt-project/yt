@@ -275,9 +275,10 @@ class ReasonMainWindow(wx.Frame):
             self.available_fields.Enable(True)
             self.available_fields.SetItems(newItems)
 
-    def _add_static_output(self, filename):
-        # Alright, we choose the hierarchy in the file selector,
-        # so let's strip that extension off
+    def add_static_output(self, filename):
+        """
+        Given a filename, add an :class:`EnzoStaticOutput` to the instance.
+        """
         fn = filename[:-10]
         eso = lagos.EnzoStaticOutput(fn)
         try:
@@ -290,7 +291,12 @@ class ReasonMainWindow(wx.Frame):
         ni = self.data_tree.AppendItem(self.output_root, "%s" % (eso.basename), data=tid)
         self.data_tree.Expand(self.output_root)
 
-    def _add_data_object(self, title, object, mids, parent_id = None):
+    def add_data_object(self, title, object, mids = _SphereObjectMenuItems,
+                        parent_id = None):
+        """
+        Given a *title* for the object, the *object* itself, add a data
+        object to the menu.  User API requires this be a 3D data object.
+        """
         self.data_objects.append(object)
         tid = wx.TreeItemData((object, title, len(self.data_objects), mids))
         if parent_id is None: parent_id = self.data_root
@@ -299,7 +305,7 @@ class ReasonMainWindow(wx.Frame):
 
     def _add_sphere(self, title, sphere, parent_id=None):
         # These all get passed in
-        self._add_data_object(title, sphere, _SphereObjectMenuItems, parent_id)
+        self.add_data_object(title, sphere, _SphereObjectMenuItems, parent_id)
 
     def __add_profile_wrapper(self, obj):
         """
@@ -323,7 +329,7 @@ class ReasonMainWindow(wx.Frame):
     def _add_profile(self, event=None, data_object = None):
         MyID = wx.NewId()
         parent_id = None
-        if data_object is None: parent_id, data_object = self.get_output()
+        if data_object is None: parent_id, data_object = self._get_output()
         p1ds = Profile1DSetup(data_object, self)
         if not p1ds.ShowModal() == wx.ID_OK:
             p1ds.Destroy()
@@ -346,7 +352,7 @@ class ReasonMainWindow(wx.Frame):
                             mw = self, parent_id=parent_id),
             "Profile Plot %s" % MyID, MyID)
         if parent_id is not None:
-            self._add_data_object("Profile: %s" % (argdict['bin_field']),
+            self.add_data_object("Profile: %s" % (argdict['bin_field']),
                                self.windows[-1].plot.data,
                                _ProfileObjectMenuItems, parent_id)
 
@@ -354,7 +360,7 @@ class ReasonMainWindow(wx.Frame):
     def _add_phase(self, event=None, data_object = None):
         MyID = wx.NewId()
         parent_id = None
-        if data_object is None: parent_id, data_object = self.get_output()
+        if data_object is None: parent_id, data_object = self._get_output()
         p2ds = Profile2DSetup(data_object, self)
         if not p2ds.ShowModal() == wx.ID_OK:
             p2ds.Destroy()
@@ -378,7 +384,7 @@ class ReasonMainWindow(wx.Frame):
                           mw = self, parent_id=parent_id),
             "Phase Plot %s" % MyID, MyID)
         if parent_id is not None:
-            self._add_data_object("Phase: %s, %s" % (argdict['x_bin_field'],
+            self.add_data_object("Phase: %s, %s" % (argdict['x_bin_field'],
                                                  argdict['y_bin_field']),
                                self.windows[-1].plot.data,
                                _ProfileObjectMenuItems, parent_id)
@@ -391,7 +397,7 @@ class ReasonMainWindow(wx.Frame):
 
     def _add_proj(self, event=None):
         MyID = wx.NewId()
-        parent_id, data_object = self.get_output()
+        parent_id, data_object = self._get_output()
         width = 1.0
         unit = "1"
         proj_setup = ProjectionSetup(data_object, self)
@@ -416,7 +422,7 @@ class ReasonMainWindow(wx.Frame):
                               parent_id=parent_id),
                 "%s - Projection - %s" % (data_object.basename, ax),
                 MyID)
-            self._add_data_object("Proj: %s - %s (%s)" % (ax, field, weight_field),
+            self.add_data_object("Proj: %s - %s (%s)" % (ax, field, weight_field),
                                self.windows[-1].plot.data,
                                _ProjObjectMenuItems, parent_id)
             print "Adding with ID:", MyID
@@ -426,7 +432,7 @@ class ReasonMainWindow(wx.Frame):
 
     def _add_slice(self, event=None):
         MyID = wx.NewId()
-        parent_id, data_object = self.get_output()
+        parent_id, data_object = self._get_output()
         field, width, unit = "Density", 1.0, '1'
         for i, ax in enumerate('xyz'):
             mylog.info("Adding %s slice of %s" % (ax, data_object))
@@ -440,13 +446,13 @@ class ReasonMainWindow(wx.Frame):
                               parent_id = parent_id),
                 "%s - Slice - %s" % (data_object.basename, ax),
                 MyID)
-            self._add_data_object("Slice: %s" % (ax),
+            self.add_data_object("Slice: %s" % (ax),
                                self.windows[-1].plot.data,
                                _SliceObjectMenuItems, parent_id)
         for w in self.windows[-3:]: w.ChangeWidth(1,'1')
 
     def _export_data_object(self, event):
-        parent_id, data_object = self.get_output()
+        parent_id, data_object = self._get_output()
         # Get a file name and then attempt to export.
         dlg = wx.FileDialog( \
             self, message="Save Data As ...", defaultDir=os.getcwd(), \
@@ -467,7 +473,7 @@ class ReasonMainWindow(wx.Frame):
     def _extract_set(self, event=None, data_object=None):
         MyID = wx.NewId()
         parent_id = None
-        if data_object is None: parent_id, data_object = self.get_output()
+        if data_object is None: parent_id, data_object = self._get_output()
         ess = ExtractSetSetup(data_object, self)
         if not ess.ShowModal() == wx.ID_OK:
             ess.Destroy()
@@ -475,18 +481,23 @@ class ReasonMainWindow(wx.Frame):
         ind = ess.return_indices()
         ess.Destroy()
         extracted_set = data_object.extract_region(ind)
-        self._add_data_object("Extracted Set",
+        self.add_data_object("Extracted Set",
                               extracted_set,
                               _SphereObjectMenuItems, parent_id)
 
-    def __add_cutting_wrapper(self, parameter_file, normal):
-        self._add_cutting(parameter_file=parameter_file, normal=normal)
+    def add_cutting_wrapper(self, parameter_file, normal, center):
+        """
+        Given a *parameter_file*, a *normal* vector and a *center*, create
+        and add an :class:`EnzoCuttingPlane` object.
+        """
+        self._add_cutting(parameter_file=parameter_file, normal=normal,
+                         center=center)
 
     def _add_cutting(self, event=None, parameter_file = None, normal=None,
                      center = None):
         parent_id = None
         if parameter_file is None or normal is None or center is None:
-            parent_id, data_object = self.get_output()
+            parent_id, data_object = self._get_output()
             data_object.set_field_parameter("bulk_velocity",
                 data_object.quantities["BulkVelocity"](lazy_reader=True))
             normal = data_object.quantities["AngularMomentumVector"](lazy_reader=True)
@@ -503,13 +514,15 @@ class ReasonMainWindow(wx.Frame):
                             CreationID=MyID, axis=4, normal=normal,
                             center = center, parent_id=parent_id),
             "%s - Cutting Plane" % (parameter_file.basename), MyID)
-        self._add_data_object("Cutting Plane" % (parameter_file),
+        self.add_data_object("Cutting Plane" % (parameter_file),
                               self.windows[-1].plot.data,
                               _CuttingPlaneObjectMenuItems, parent_id)
         self.windows[-1].ChangeWidth(1,'1')
 
-    def get_output(self, event=None):
-        # Figure out which outputs are selected
+    def _get_output(self, event=None):
+        """
+        Determine and return the selected outputs.
+        """
         #tid = self.data_tree.GetFirstSelected()
         tid = self.data_tree.GetSelection()
         ii = self.data_tree.GetItemData(tid).GetData()[0]
@@ -561,7 +574,7 @@ class ReasonMainWindow(wx.Frame):
                                "", wildcard, wx.OPEN)
         if dialog.ShowModal() == wx.ID_OK:
             file = dialog.GetPath()
-            self._add_static_output(file)
+            self.add_static_output(file)
         dialog.Destroy()
 
     def OnOpenEditor(self, event):
