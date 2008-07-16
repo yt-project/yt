@@ -51,6 +51,7 @@ class PlotCollection:
             self._http_prefix = ytcfg["raven","httpPrefix"] % self.pf
         else:
             self.submit = False
+        mylog.info("Created plot collection with default plot-center = %s", center)
 
     def save(self, basename, format="png", override=False):
         """
