@@ -21,6 +21,9 @@ collection.  Each PlotCollection is associated with a single parameter file.  ::
    >>> import yt.raven as raven
    >>> pc = raven.PlotCollection(a)
 
+You can also -- optionally -- feed it a "center" argument.  Otherwise, it'll
+search for the point of maximum density.
+
 .. index:: Plotting;Adding plots to PlotCollections, Raven, PlotCollections;Adding Plots
 
 Adding Plots
@@ -37,7 +40,14 @@ and then manipulate as a group.  So, let's try adding some plots to it!::
 
 There's a lot in that little block of text.  First I add a slice (note that while
 we can feed it a pre-existing slice, it will also grab one automatically if we
-don't!) along each axis (0,1,2) in the field "Density".  Each time we
+don't!) along each axis (0,1,2) in the field "Density".  The slice will use the
+*c* attribute of its parent PlotCollection to center itself.
+
+.. note:: The center of a slice does not have to be the same as where it is
+   sliced!  *center* gets used for lots of stuff, like RadialVelocity, but
+   *coord* determines where the slice is taken.
+
+Each time we
 add a plot to the PlotCollection, it is accessible as pc.plots[index] where 'index'
 is the 0-based index in order of addition.  Each plot object has a 'data' property,
 so if we wanted the EnzoSlice object, we can access it: ::
