@@ -51,7 +51,8 @@ class PlotCollection:
             self._http_prefix = ytcfg["raven","httpPrefix"] % self.pf
         else:
             self.submit = False
-        mylog.info("Created plot collection with default plot-center = %s", self.c)
+        mylog.info("Created plot collection with default plot-center = %s",
+                    list(self.c))
 
     def save(self, basename, format="png", override=False):
         """
@@ -163,6 +164,8 @@ class PlotCollection:
         p = self._add_plot(PlotTypes.SlicePlot(slice, field, use_colorbar=use_colorbar,
                          axes=axes, figure=figure,
                          size=fig_size))
+        mylog.info("Added slice of %s at %s = %s with 'center' = %s", field,
+                    axis_names[axis], coord, list(center))
         p["Axis"] = lagos.axis_names[axis]
         return p
 
@@ -186,6 +189,8 @@ class PlotCollection:
         p = self._add_plot(PlotTypes.CuttingPlanePlot(cp, field,
                          use_colorbar=use_colorbar, axes=axes, figure=figure,
                          size=fig_size))
+        mylog.info("Added plane of %s with 'center' = %s and normal = %s", field,
+                    list(center), list(normal))
         p["Axis"] = "CuttingPlane"
         return p
 
