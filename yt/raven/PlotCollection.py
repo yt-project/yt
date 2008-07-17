@@ -288,8 +288,6 @@ class PlotCollection:
                                      x_bins, fields[0], x_min, x_max, x_log,
                                      y_bins, fields[1], y_min, y_max, y_log,
                                      lazy_reader)
-        if len(fields) > 2:
-            profile.add_fields(fields[2], weight=weight, accumulation=accumulation)
         # These next two lines are painful.
         profile.pf = self.pf
         profile.hierarchy = self.pf.hierarchy
@@ -297,6 +295,9 @@ class PlotCollection:
         p = self._add_plot(PlotTypes.PhasePlot(profile, fields, 
                                                id, cmap=cmap,
                                                figure=figure, axes=axes))
+        if len(fields) > 2:
+            # This will add it to the profile object
+            p.switch_z(fields[2], weight=weight, accumulation=accumulation)
         return p
 
     def add_phase_sphere(self, radius, unit, fields, **kwargs):
@@ -338,19 +339,23 @@ def wrap_pylab_newplot(func):
         import pylab
         # Let's assume that axes and figure are not in the positional
         # arguments -- probably safe!
-        pylab.clf()
+        new_fig = pylab.figure()
         kwargs['axes'] = pylab.gca()
         kwargs['figure'] = pylab.gcf()
-        func(*args, **kwargs)
+        retval = func(*args, **kwargs)
+        retval._redraw_image()
+        retval._fig_num = new_fig.number
         pylab.show()
+        return retval
     return pylabify
 
 def wrap_pylab_show(func):
     @wraps(func)
     def pylabify(*args, **kwargs):
         import pylab
-        func(*args, **kwargs)
+        retval = func(*args, **kwargs)
         pylab.show()
+        return retval
     return pylabify
 
 class PlotCollectionInteractive(PlotCollection):
@@ -368,3 +373,10 @@ class PlotCollectionInteractive(PlotCollection):
     set_width = wrap_pylab_show(PlotCollection.set_width)
     set_cmap = wrap_pylab_show(PlotCollection.set_cmap)
     switch_field = wrap_pylab_show(PlotCollection.switch_field)
+
+    def clear_plots(self):
+        import pylab
+        for plot in self.plots:
+            pylab.figure(pylab._fig_num)
+            pylab.clf()
+        PlotCollection.clear_data(self)
