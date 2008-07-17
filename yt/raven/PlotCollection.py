@@ -216,7 +216,8 @@ class PlotCollection:
     def add_profile_object(self, data_source, fields, 
                            weight="CellMassMsun", accumulation=False,
                            x_bins=64, x_log=True, x_bounds=None,
-                           lazy_reader=False, id=None):
+                           lazy_reader=False, id=None,
+                           axes=None, figure=None):
         """
         Use an existing data object, *data_source*, to be the source of a
         one-dimensional profile.  *fields* will define the x and y bin-by
@@ -239,7 +240,8 @@ class PlotCollection:
         profile.pf = self.pf
         profile.hierarchy = self.pf.hierarchy
         if id is None: id = self._get_new_id()
-        p = self._add_plot(PlotTypes.Profile1DPlot(profile, fields, id))
+        p = self._add_plot(PlotTypes.Profile1DPlot(profile, fields, id,
+                                                   axes=axes, figure=figure))
         return p
 
     def add_profile_sphere(self, radius, unit, fields, **kwargs):
@@ -266,7 +268,8 @@ class PlotCollection:
                                weight="CellMassMsun", accumulation=False,
                                x_bins=64, x_log=True, x_bounds=None,
                                y_bins=64, y_log=True, y_bounds=None,
-                               lazy_reader=False, id=None):
+                               lazy_reader=False, id=None,
+                               axes = None, figure = None):
         """
         Given a *data_source*, and *fields*, automatically generate a 2D
         profile and plot it.  *id* is used internally to add onto the prefix,
@@ -292,7 +295,8 @@ class PlotCollection:
         profile.hierarchy = self.pf.hierarchy
         if id is None: id = self._get_new_id()
         p = self._add_plot(PlotTypes.PhasePlot(profile, fields, 
-                                               id, cmap=cmap))
+                                               id, cmap=cmap,
+                                               figure=figure, axes=axes))
         return p
 
     def add_phase_sphere(self, radius, unit, fields, **kwargs):
@@ -327,3 +331,22 @@ class PlotCollection:
         for i in range(len(self.plots)):
             del self.plots[-1].data
             del self.plots[-1]
+
+def wrap_pylab(func):
+    @wraps(func)
+    def pylabify(*args, **kwargs):
+        import pylab
+        # Let's assume that axes and figure are not in the positional
+        # arguments -- probably safe!
+        pylab.clf()
+        kwargs['axes'] = pylab.gca()
+        kwargs['figure'] = pylab.gcf()
+        func(*args, **kwargs)
+    return pylabify
+
+class PlotCollectionInteractive(PlotCollection):
+    add_slice = wrap_pylab(PlotCollection.add_slice)
+    add_cutting_plane = wrap_pylab(PlotCollection.add_cutting_plane)
+    add_projection = wrap_pylab(PlotCollection.add_projection)
+    add_profile_object = wrap_pylab(PlotCollection.add_profile_object)
+    add_phase_object = wrap_pylab(PlotCollection.add_phase_object)

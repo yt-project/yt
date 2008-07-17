@@ -30,6 +30,7 @@ License:
 from yt.config import ytcfg
 from yt.logger import ravenLogger as mylog
 from yt.arraytypes import *
+from yt.funcs import *
 import yt.lagos as lagos
 try:
     import deliveration
