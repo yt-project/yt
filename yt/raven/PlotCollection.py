@@ -89,13 +89,6 @@ class PlotCollection:
         for plot in self.plots:
             plot.set_ylim(ymin, ymax)
 
-    def autoscale(self):
-        """
-        Turn back on autoscaling.
-        """
-        for plot in self.plots:
-            plot.set_autoscale(True)
-
     def set_zlim(self, zmin, zmax):
         """
         Set the limits of the colorbar.
@@ -112,6 +105,13 @@ class PlotCollection:
         for plot in self.plots:
             plot.set_xlim(*lim[:2])
             plot.set_ylim(*lim[2:])
+
+    def autoscale(self):
+        """
+        Turn back on autoscaling.
+        """
+        for plot in self.plots:
+            plot.set_autoscale(True)
 
     def set_width(self, width, unit):
         """
@@ -332,7 +332,7 @@ class PlotCollection:
             del self.plots[-1].data
             del self.plots[-1]
 
-def wrap_pylab(func):
+def wrap_pylab_newplot(func):
     @wraps(func)
     def pylabify(*args, **kwargs):
         import pylab
@@ -342,11 +342,29 @@ def wrap_pylab(func):
         kwargs['axes'] = pylab.gca()
         kwargs['figure'] = pylab.gcf()
         func(*args, **kwargs)
+        pylab.show()
+    return pylabify
+
+def wrap_pylab_show(func):
+    @wraps(func)
+    def pylabify(*args, **kwargs):
+        import pylab
+        func(*args, **kwargs)
+        pylab.show()
     return pylabify
 
 class PlotCollectionInteractive(PlotCollection):
-    add_slice = wrap_pylab(PlotCollection.add_slice)
-    add_cutting_plane = wrap_pylab(PlotCollection.add_cutting_plane)
-    add_projection = wrap_pylab(PlotCollection.add_projection)
-    add_profile_object = wrap_pylab(PlotCollection.add_profile_object)
-    add_phase_object = wrap_pylab(PlotCollection.add_phase_object)
+    add_slice = wrap_pylab_newplot(PlotCollection.add_slice)
+    add_cutting_plane = wrap_pylab_newplot(PlotCollection.add_cutting_plane)
+    add_projection = wrap_pylab_newplot(PlotCollection.add_projection)
+    add_profile_object = wrap_pylab_newplot(PlotCollection.add_profile_object)
+    add_phase_object = wrap_pylab_newplot(PlotCollection.add_phase_object)
+    
+    set_xlim = wrap_pylab_show(PlotCollection.set_xlim)
+    set_ylim = wrap_pylab_show(PlotCollection.set_ylim)
+    set_zlim = wrap_pylab_show(PlotCollection.set_zlim)
+    set_lim = wrap_pylab_show(PlotCollection.set_lim)
+    autoscale = wrap_pylab_show(PlotCollection.autoscale)
+    set_width = wrap_pylab_show(PlotCollection.set_width)
+    set_cmap = wrap_pylab_show(PlotCollection.set_cmap)
+    switch_field = wrap_pylab_show(PlotCollection.switch_field)
