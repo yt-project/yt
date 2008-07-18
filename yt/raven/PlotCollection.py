@@ -89,13 +89,6 @@ class PlotCollection:
         for plot in self.plots:
             plot.set_ylim(ymin, ymax)
 
-    def autoscale(self):
-        """
-        Turn back on autoscaling.
-        """
-        for plot in self.plots:
-            plot.set_autoscale(True)
-
     def set_zlim(self, zmin, zmax):
         """
         Set the limits of the colorbar.
@@ -112,6 +105,13 @@ class PlotCollection:
         for plot in self.plots:
             plot.set_xlim(*lim[:2])
             plot.set_ylim(*lim[2:])
+
+    def autoscale(self):
+        """
+        Turn back on autoscaling.
+        """
+        for plot in self.plots:
+            plot.set_autoscale(True)
 
     def set_width(self, width, unit):
         """
@@ -216,7 +216,8 @@ class PlotCollection:
     def add_profile_object(self, data_source, fields, 
                            weight="CellMassMsun", accumulation=False,
                            x_bins=64, x_log=True, x_bounds=None,
-                           lazy_reader=False, id=None):
+                           lazy_reader=False, id=None,
+                           axes=None, figure=None):
         """
         Use an existing data object, *data_source*, to be the source of a
         one-dimensional profile.  *fields* will define the x and y bin-by
@@ -239,7 +240,8 @@ class PlotCollection:
         profile.pf = self.pf
         profile.hierarchy = self.pf.hierarchy
         if id is None: id = self._get_new_id()
-        p = self._add_plot(PlotTypes.Profile1DPlot(profile, fields, id))
+        p = self._add_plot(PlotTypes.Profile1DPlot(profile, fields, id,
+                                                   axes=axes, figure=figure))
         return p
 
     def add_profile_sphere(self, radius, unit, fields, **kwargs):
@@ -266,7 +268,8 @@ class PlotCollection:
                                weight="CellMassMsun", accumulation=False,
                                x_bins=64, x_log=True, x_bounds=None,
                                y_bins=64, y_log=True, y_bounds=None,
-                               lazy_reader=False, id=None):
+                               lazy_reader=False, id=None,
+                               axes = None, figure = None):
         """
         Given a *data_source*, and *fields*, automatically generate a 2D
         profile and plot it.  *id* is used internally to add onto the prefix,
@@ -285,14 +288,16 @@ class PlotCollection:
                                      x_bins, fields[0], x_min, x_max, x_log,
                                      y_bins, fields[1], y_min, y_max, y_log,
                                      lazy_reader)
-        if len(fields) > 2:
-            profile.add_fields(fields[2], weight=weight, accumulation=accumulation)
         # These next two lines are painful.
         profile.pf = self.pf
         profile.hierarchy = self.pf.hierarchy
         if id is None: id = self._get_new_id()
         p = self._add_plot(PlotTypes.PhasePlot(profile, fields, 
-                                               id, cmap=cmap))
+                                               id, cmap=cmap,
+                                               figure=figure, axes=axes))
+        if len(fields) > 2:
+            # This will add it to the profile object
+            p.switch_z(fields[2], weight=weight, accumulation=accumulation)
         return p
 
     def add_phase_sphere(self, radius, unit, fields, **kwargs):
@@ -327,3 +332,51 @@ class PlotCollection:
         for i in range(len(self.plots)):
             del self.plots[-1].data
             del self.plots[-1]
+
+def wrap_pylab_newplot(func):
+    @wraps(func)
+    def pylabify(*args, **kwargs):
+        import pylab
+        # Let's assume that axes and figure are not in the positional
+        # arguments -- probably safe!
+        new_fig = pylab.figure()
+        kwargs['axes'] = pylab.gca()
+        kwargs['figure'] = pylab.gcf()
+        retval = func(*args, **kwargs)
+        retval._redraw_image()
+        retval._fig_num = new_fig.number
+        pylab.show()
+        return retval
+    return pylabify
+
+def wrap_pylab_show(func):
+    @wraps(func)
+    def pylabify(*args, **kwargs):
+        import pylab
+        retval = func(*args, **kwargs)
+        pylab.show()
+        return retval
+    return pylabify
+
+class PlotCollectionInteractive(PlotCollection):
+    add_slice = wrap_pylab_newplot(PlotCollection.add_slice)
+    add_cutting_plane = wrap_pylab_newplot(PlotCollection.add_cutting_plane)
+    add_projection = wrap_pylab_newplot(PlotCollection.add_projection)
+    add_profile_object = wrap_pylab_newplot(PlotCollection.add_profile_object)
+    add_phase_object = wrap_pylab_newplot(PlotCollection.add_phase_object)
+    
+    set_xlim = wrap_pylab_show(PlotCollection.set_xlim)
+    set_ylim = wrap_pylab_show(PlotCollection.set_ylim)
+    set_zlim = wrap_pylab_show(PlotCollection.set_zlim)
+    set_lim = wrap_pylab_show(PlotCollection.set_lim)
+    autoscale = wrap_pylab_show(PlotCollection.autoscale)
+    set_width = wrap_pylab_show(PlotCollection.set_width)
+    set_cmap = wrap_pylab_show(PlotCollection.set_cmap)
+    switch_field = wrap_pylab_show(PlotCollection.switch_field)
+
+    def clear_plots(self):
+        import pylab
+        for plot in self.plots:
+            pylab.figure(pylab._fig_num)
+            pylab.clf()
+        PlotCollection.clear_data(self)
