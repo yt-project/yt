@@ -23,7 +23,7 @@ Making 2D Profiles
 In this next example we construct a two-dimensional, weighted-average binning
 of a sphere centered at the point of maximum density in an output.  This sets
 up the basic :class:`BinnedProfile2D` object, which we then add fields to.
-Note that we allow the default weighting to be applied to the Temperature
+Note that we allow the default weighting to be applied to the x-velocity
 field, which will give us an average value, weighted by CellMassMsun.  For the
 second field we add, we explicitly ask to have the values returned to us
 unweighted, which means we are given the distribution of mass along the dimensions
