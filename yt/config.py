@@ -30,7 +30,6 @@ import ConfigParser, os, os.path, types
 ytcfgDefaults = {
     "fido":{
         'RunDir': os.path.join(os.getenv("HOME"),'.yt/EnzoRuns/'),
-        'WorkDir': os.path.join('/usr/work/', os.getenv("USER")),
         'WaitBetween':'5',
         'OtherFiles':'rates.out,cool_rates.out',
         'NewOutputCreated':'newOutput',
@@ -62,9 +61,9 @@ ytcfgDefaults = {
         'suppressStreamLogging': 'False',
         'LogLevel': '20',
         'unifiedlogfile': '1',
-        'User':os.getenv("USER"),
         'timefunctions':'False',
         'inGui':'False',
+        'parallel':'False',
          },
     "raven":{
         'ImagePath':".",
