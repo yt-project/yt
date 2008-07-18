@@ -48,10 +48,11 @@ def preserve_source_parameters(func):
 
 # Note we do not inherit from EnzoData.
 # We could, but I think we instead want to deal with the root datasource.
-class BinnedProfile:
+class BinnedProfile(ParallelAnalysisInterface):
     def __init__(self, data_source, lazy_reader):
         self._data_source = data_source
         self._data = {}
+        self._pdata = {}
         self._lazy_reader = lazy_reader
 
     def _lazy_add_fields(self, fields, weight, accumulation):
@@ -62,7 +63,7 @@ class BinnedProfile:
             weight_data[field] = self._get_empty_field()
         used = self._get_empty_field().astype('bool')
         pbar = get_pbar('Binning grids', len(self._data_source._grids))
-        for gi,grid in enumerate(self._data_source._grids):
+        for gi,grid in enumerate(self._get_grids(data, weight_data, used)):
             pbar.update(gi)
             args = self._get_bins(grid, check_cut=True)
             if not args: # No bins returned for this grid, so forget it!
@@ -77,6 +78,9 @@ class BinnedProfile:
             grid.clear_data()
         pbar.finish()
         ub = na.where(used)
+        self._finalize(data, weight_data, fields, weight, ub, used)
+
+    def _finalize(self, data, weight_data, fields, weight, ub, used):
         for field in fields:
             if weight: # Now, at the end, we divide out.
                 data[field][ub] /= weight_data[field][ub]

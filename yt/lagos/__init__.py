@@ -28,6 +28,7 @@ License:
 
 from yt.config import ytcfg
 from yt.logger import lagosLogger as mylog
+from yt.parallel_tools import *
 
 try:
     from pyhdf_np import SD # NumPy
@@ -63,8 +64,7 @@ if ytcfg.getboolean("lagos","useswig"):
         pass
 
 if ytcfg.getboolean("lagos","usefortran"):
-    pass
-    #import EnzoFortranRoutines
+    import EnzoFortranRoutines
 
 # Now we import all the subfiles
 
