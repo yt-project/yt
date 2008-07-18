@@ -9,7 +9,7 @@
       var DOCUMENTATION_OPTIONS = {
           URL_ROOT:   '../../',
           VERSION:    '1.0',
-          COLLAPSE_MODINDEX: false
+          COLLAPSE_MODINDEX: false,
       };
     </script>
     <script type="text/javascript" src="../../_static/jquery.js"></script>
@@ -79,7 +79,7 @@ providing pre-existing Matplotlib <em>figure</em> and <em>axes</em> objects.
 
 <dl class="method">
 <dt id="yt.raven.PlotCollection.add_phase_object">
-<!--[yt.raven.PlotCollection.add_phase_object]--><tt class="descname">add_phase_object</tt><big>(</big><em>data_source</em>, <em>fields</em>, <em>cmap=None</em>, <em>weight='CellMassMsun'</em>, <em>accumulation=False</em>, <em>x_bins=64</em>, <em>x_log=True</em>, <em>x_bounds=None</em>, <em>y_bins=64</em>, <em>y_log=True</em>, <em>y_bounds=None</em>, <em>lazy_reader=False</em>, <em>id=None</em><big>)</big><a class="headerlink" href="#yt.raven.PlotCollection.add_phase_object" title="Permalink to this definition">¶</a></dt>
+<!--[yt.raven.PlotCollection.add_phase_object]--><tt class="descname">add_phase_object</tt><big>(</big><em>data_source</em>, <em>fields</em>, <em>cmap=None</em>, <em>weight='CellMassMsun'</em>, <em>accumulation=False</em>, <em>x_bins=64</em>, <em>x_log=True</em>, <em>x_bounds=None</em>, <em>y_bins=64</em>, <em>y_log=True</em>, <em>y_bounds=None</em>, <em>lazy_reader=False</em>, <em>id=None</em>, <em>axes=None</em>, <em>figure=None</em><big>)</big><a class="headerlink" href="#yt.raven.PlotCollection.add_phase_object" title="Permalink to this definition">¶</a></dt>
 <dd>Given a <em>data_source</em>, and <em>fields</em>, automatically generate a 2D
 profile and plot it.  <em>id</em> is used internally to add onto the prefix,
 and will be automatically generated if not given. Remainder of
@@ -94,7 +94,7 @@ arguments are identical to <a title="yt.raven.PlotCollection.add_profile_object"
 
 <dl class="method">
 <dt id="yt.raven.PlotCollection.add_profile_object">
-<!--[yt.raven.PlotCollection.add_profile_object]--><tt class="descname">add_profile_object</tt><big>(</big><em>data_source</em>, <em>fields</em>, <em>weight='CellMassMsun'</em>, <em>accumulation=False</em>, <em>x_bins=64</em>, <em>x_log=True</em>, <em>x_bounds=None</em>, <em>lazy_reader=False</em>, <em>id=None</em><big>)</big><a class="headerlink" href="#yt.raven.PlotCollection.add_profile_object" title="Permalink to this definition">¶</a></dt>
+<!--[yt.raven.PlotCollection.add_profile_object]--><tt class="descname">add_profile_object</tt><big>(</big><em>data_source</em>, <em>fields</em>, <em>weight='CellMassMsun'</em>, <em>accumulation=False</em>, <em>x_bins=64</em>, <em>x_log=True</em>, <em>x_bounds=None</em>, <em>lazy_reader=False</em>, <em>id=None</em>, <em>axes=None</em>, <em>figure=None</em><big>)</big><a class="headerlink" href="#yt.raven.PlotCollection.add_profile_object" title="Permalink to this definition">¶</a></dt>
 <dd>Use an existing data object, <em>data_source</em>, to be the source of a
 one-dimensional profile.  <em>fields</em> will define the x and y bin-by
 fields, <em>weight</em> is used to weight the y value, <em>accumulation</em> determines
@@ -306,7 +306,7 @@ Optionally <em>text_annotate</em> on the <em>text_which</em>-indexed box on disp
     </div>
     <div class="footer">
       &copy; Copyright 2008, Matthew J. Turk.
-      Last updated on Jul 15, 2008.
+      Last updated on Jul 18, 2008.
       Created using <a href="http://sphinx.pocoo.org/">Sphinx</a>.
     </div>
   </body>

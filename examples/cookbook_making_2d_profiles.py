@@ -21,5 +21,5 @@ prof2d = lagos.BinnedProfile2D(sphere,
                          y_bins, "Temperature", T_min, T_max, True,
                          lazy_reader=True)
 
-prof2d.add_fields("Temperature")
+prof2d.add_fields("x-velocity")
 prof2d.add_fields("CellMassMsun", weight=None)
