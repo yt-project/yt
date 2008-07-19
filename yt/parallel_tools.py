@@ -1,10 +1,10 @@
 """
 Parallel data mapping techniques for yt
 
-@author: U{Matthew Turk<http://www.stanford.edu/~mturk/>}
-@organization: U{KIPAC<http://www-group.slac.stanford.edu/KIPAC/>}
-@contact: U{mturk@slac.stanford.edu<mailto:mturk@slac.stanford.edu>}
-@license:
+Author: Matthew Turk <matthewturk@gmail.com>
+Affiliation: KIPAC/SLAC/Stanford
+Homepage: http://yt.enzotools.org/
+License:
   Copyright (C) 2008 Matthew Turk.  All Rights Reserved.
 
   This file is part of yt.
@@ -36,12 +36,9 @@ class GridIterator(object):
     def __init__(self, pobj):
         self.pobj = pobj
         if hasattr(pobj, '_grids') and pobj._grids is not None:
-            print "I Killed"
             self._grids = pobj._grids
         else:
-            print "Yo"
             self._grids = pobj._data_source._grids
-        print pobj._data_source._grids, self._grids
         self.ng = len(self._grids)
 
     def __iter__(self):

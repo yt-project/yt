@@ -64,7 +64,10 @@ if ytcfg.getboolean("lagos","useswig"):
         pass
 
 if ytcfg.getboolean("lagos","usefortran"):
-    import EnzoFortranRoutines
+    try:
+        import EnzoFortranRoutines
+    except ImportError:
+        mylog.warning("Told to import fortan, but unable!")
 
 # Now we import all the subfiles
 

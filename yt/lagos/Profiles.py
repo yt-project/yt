@@ -56,14 +56,14 @@ class BinnedProfile(ParallelAnalysisInterface):
         self._lazy_reader = lazy_reader
 
     def _lazy_add_fields(self, fields, weight, accumulation):
-        data = {}         # final results will go here
-        weight_data = {}  # we need to track the weights as we go
+        self.__data = {}         # final results will go here
+        self.__weight_data = {}  # we need to track the weights as we go
         for field in fields:
-            data[field] = self._get_empty_field()
-            weight_data[field] = self._get_empty_field()
-        used = self._get_empty_field().astype('bool')
+            self.__data[field] = self._get_empty_field()
+            self.__weight_data[field] = self._get_empty_field()
+        self.__used = self._get_empty_field().astype('bool')
         pbar = get_pbar('Binning grids', len(self._data_source._grids))
-        for gi,grid in enumerate(self._get_grids(data, weight_data, used)):
+        for gi,grid in enumerate(self._get_grids()):
             pbar.update(gi)
             args = self._get_bins(grid, check_cut=True)
             if not args: # No bins returned for this grid, so forget it!
@@ -72,20 +72,31 @@ class BinnedProfile(ParallelAnalysisInterface):
                 # We get back field values, weight values, used bins
                 f, w, u = self._bin_field(grid, field, weight, accumulation,
                                           args=args, check_cut=True)
-                data[field] += f        # running total
-                weight_data[field] += w # running total
-                used = (used | u)       # running 'or'
+                self.__data[field] += f        # running total
+                self.__weight_data[field] += w # running total
+                self.__used = (self.__used | u)       # running 'or'
             grid.clear_data()
+        # When the loop completes the parallel finalizer gets called
         pbar.finish()
-        ub = na.where(used)
-        self._finalize(data, weight_data, fields, weight, ub, used)
-
-    def _finalize(self, data, weight_data, fields, weight, ub, used):
+        ub = na.where(self.__used)
         for field in fields:
             if weight: # Now, at the end, we divide out.
-                data[field][ub] /= weight_data[field][ub]
-            self[field] = data[field]
-        self["UsedBins"] = used
+                self.__data[field][ub] /= self.__weight_data[field][ub]
+            self[field] = self.__data[field]
+        self["UsedBins"] = self.__used
+        del self.__data, self.__weight_data, self.__used
+
+    def _finalize_parallel(self):
+        from mpi4py import MPI # I am displeased by importing here
+        temp = self._get_empty_field()
+        for key in self.__data:
+            temp = MPI.COMM_WORLD.Allreduce(self.__data[key], temp, MPI.SUM)
+            self.__data[key] += temp
+        for key in self.__weight_data:
+            temp = MPI.COMM_WORLD.Allreduce(self.__weight_data[key], temp, MPI.SUM)
+            self.__weight_data[key] += temp
+        temp = self.__used.copy()
+        self.__used = MPI.COMM_WORLD.Allreduce(self.__used, temp, MPI.LOR)
 
     def _unlazy_add_fields(self, fields, weight, accumulation):
         for field in fields:
