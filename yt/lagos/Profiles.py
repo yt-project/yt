@@ -56,6 +56,7 @@ class BinnedProfile(ParallelAnalysisInterface):
         self._lazy_reader = lazy_reader
 
     def _lazy_add_fields(self, fields, weight, accumulation):
+        self._ngrids = 0
         self.__data = {}         # final results will go here
         self.__weight_data = {}  # we need to track the weights as we go
         for field in fields:
@@ -64,6 +65,7 @@ class BinnedProfile(ParallelAnalysisInterface):
         self.__used = self._get_empty_field().astype('bool')
         pbar = get_pbar('Binning grids', len(self._data_source._grids))
         for gi,grid in enumerate(self._get_grids()):
+            self._ngrids += 1
             pbar.update(gi)
             args = self._get_bins(grid, check_cut=True)
             if not args: # No bins returned for this grid, so forget it!
@@ -90,13 +92,14 @@ class BinnedProfile(ParallelAnalysisInterface):
         from mpi4py import MPI # I am displeased by importing here
         temp = self._get_empty_field()
         for key in self.__data:
-            temp = MPI.COMM_WORLD.Allreduce(self.__data[key], temp, MPI.SUM)
+            MPI.COMM_WORLD.Allreduce(self.__data[key], temp, MPI.SUM)
             self.__data[key] += temp
         for key in self.__weight_data:
-            temp = MPI.COMM_WORLD.Allreduce(self.__weight_data[key], temp, MPI.SUM)
+            MPI.COMM_WORLD.Allreduce(self.__weight_data[key], temp, MPI.SUM)
             self.__weight_data[key] += temp
-        temp = self.__used.copy()
-        self.__used = MPI.COMM_WORLD.Allreduce(self.__used, temp, MPI.LOR)
+        temp = self.__used.copy().astype('int32')
+        MPI.COMM_WORLD.Allreduce(self.__used.astype('int32'), temp, MPI.SUM)
+        self.__used = (temp > 0)
 
     def _unlazy_add_fields(self, fields, weight, accumulation):
         for field in fields:

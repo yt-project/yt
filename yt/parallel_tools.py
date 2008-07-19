@@ -24,21 +24,26 @@ License:
 """
 
 import itertools
+from yt.config import ytcfg
 from yt.arraytypes import *
 
 try:
     from mpi4py import MPI
     parallel_capable = True
+    print "MPI %s / %s" % (MPI.COMM_WORLD.rank, MPI.COMM_WORLD.size)
 except ImportError:
     parallel_capable = False
+
+print "PARALLEL COMPATIBLE:", parallel_capable
 
 class GridIterator(object):
     def __init__(self, pobj):
         self.pobj = pobj
         if hasattr(pobj, '_grids') and pobj._grids is not None:
-            self._grids = pobj._grids
+            gs = pobj._grids
         else:
-            self._grids = pobj._data_source._grids
+            gs = pobj._data_source._grids
+        self._grids = sorted(gs, key = lambda g: g.filename)
         self.ng = len(self._grids)
 
     def __iter__(self):
@@ -73,7 +78,7 @@ class ParallelGridIterator(GridIterator):
 
     def next(self):
         if self.pos < len(self.my_grid_ids):
-            gid = self.my_grids_ids[self.pos]
+            gid = self.my_grid_ids[self.pos]
             self.pos += 1
             return self._grids[gid]
         self.pobj._finalize_parallel()
@@ -84,7 +89,7 @@ class ParallelAnalysisInterface(object):
 
     def _get_grids(self):
         if parallel_capable and \
-           ytcfg.get_boolean("yt","parallel"):
+           ytcfg.getboolean("yt","parallel"):
             return ParallelGridIterator(self)
         return GridIterator(self)
 
