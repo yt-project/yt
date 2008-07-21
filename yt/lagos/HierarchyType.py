@@ -90,9 +90,7 @@ class AMRHierarchy:
         self.level_stats['numcells'] = [0 for i in range(MAXLEVEL)]
 
 
-<<<<<<< .working
     def _initialize_data_file(self):
-=======
         mylog.debug("Initializing data file")
         self.__initialize_data_file()
         mylog.debug("Populating hierarchy")
@@ -157,7 +155,6 @@ class AMRHierarchy:
         self.disk = classobj("EnzoCylinder",(EnzoCylinderBase,), dd)
 
     def __initialize_data_file(self):
->>>>>>> .merge-right.r687
         if not ytcfg.getboolean('lagos','serialize'): return
         fn = os.path.join(self.directory,"%s.yt" % self["CurrentTimeIdentifier"])
         if ytcfg.getboolean('lagos','onlydeserialize'):
@@ -784,7 +781,6 @@ class EnzoHierarchy(AMRHierarchy):
                          & na.all(self.gridLeftEdge < right_edge, axis=1)) == True)
         return self.grids[grid_i], grid_i
 
-<<<<<<< .working
     def get_periodic_box_grids(self, left_edge, right_edge):
         mask = na.zeros(self.grids.shape, dtype='bool')
         dl = self.parameters["DomainLeftEdge"]
@@ -802,7 +798,7 @@ class EnzoHierarchy(AMRHierarchy):
                     g, gi = self.get_box_grids(nle, nre)
                     mask[gi] = True
         return self.grids[mask], na.where(mask)
-=======
+
     def get_periodic_box_grids(self, left_edge, right_edge):
         mask = na.zeros(self.grids.shape, dtype='bool')
         dl = self.parameters["DomainLeftEdge"]
@@ -853,7 +849,6 @@ class EnzoHierarchy(AMRHierarchy):
         self.parameters["Max%sValue" % (field)] = maxVal
         self.parameters["Max%sPos" % (field)] = "%s" % (pos)
         return maxVal, pos
->>>>>>> .merge-right.r687
 
     @time_execution
     def export_particles_pb(self, filename, filter = 1, indexboundary = 0, fields = None, scale=1.0):
