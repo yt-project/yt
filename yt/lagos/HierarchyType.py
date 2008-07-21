@@ -94,29 +94,6 @@ class AMRHierarchy:
             return
         self.cpu_map[grid.filename].append(grid)
 
-    def __setup_classes(self):
-        dd = { 'readDataFast' : _data_style_funcs[self.data_style][0],
-               'readAllData' : _data_style_funcs[self.data_style][1],
-               'getFields' : _data_style_funcs[self.data_style][2],
-               'readDataSlice' : _data_style_funcs[self.data_style][3],
-               '_read_data' : _data_style_funcs[self.data_style][0],
-               '_read_all_data' : _data_style_funcs[self.data_style][1],
-               '_read_field_names' : _data_style_funcs[self.data_style][2],
-               '_read_data_slice' : _data_style_funcs[self.data_style][3],
-               '_read_exception' : _data_style_funcs[self.data_style][4](),
-               'pf' : self.parameter_file, # Already weak
-               'hierarchy': weakref.proxy(self) }
-        self.grid = classobj("EnzoGrid",(EnzoGridBase,), dd)
-        self.proj = classobj("EnzoProj",(EnzoProjBase,), dd)
-        self.slice = classobj("EnzoSlice",(EnzoSliceBase,), dd)
-        self.region = classobj("EnzoRegion",(EnzoRegionBase,), dd)
-        self.covering_grid = classobj("EnzoCoveringGrid",(EnzoCoveringGrid,), dd)
-        self.smoothed_covering_grid = classobj("EnzoSmoothedCoveringGrid",(EnzoSmoothedCoveringGrid,), dd)
-        self.sphere = classobj("EnzoSphere",(EnzoSphereBase,), dd)
-        self.cutting = classobj("EnzoCuttingPlane",(EnzoCuttingPlaneBase,), dd)
-        self.ray = classobj("EnzoOrthoRay",(EnzoOrthoRayBase,), dd)
-        self.disk = classobj("EnzoCylinder",(EnzoCylinderBase,), dd)
-
     def _initialize_data_file(self):
         if not ytcfg.getboolean('lagos','serialize'): return
         fn = os.path.join(self.directory,"%s.yt" % self["CurrentTimeIdentifier"])
@@ -416,24 +393,6 @@ class AMRHierarchy:
                     mask[gi] = True
         return self.grids[mask], na.where(mask)
 
-    def get_periodic_box_grids(self, left_edge, right_edge):
-        mask = na.zeros(self.grids.shape, dtype='bool')
-        dl = self.parameters["DomainLeftEdge"]
-        dr = self.parameters["DomainRightEdge"]
-        db = right_edge - left_edge
-        for off_x in [-1, 0, 1]:
-            nle = left_edge.copy()
-            nre = left_edge.copy()
-            nle[0] = dl[0] + (dr[0]-dl[0])*off_x + left_edge[0]
-            for off_y in [-1, 0, 1]:
-                nle[1] = dl[1] + (dr[1]-dl[1])*off_y + left_edge[1]
-                for off_z in [-1, 0, 1]:
-                    nle[2] = dl[2] + (dr[2]-dl[2])*off_z + left_edge[2]
-                    nre = nle + db
-                    g, gi = self.get_box_grids(nle, nre)
-                    mask[gi] = True
-        return self.grids[mask], na.where(mask)
-
     @time_execution
     def find_max(self, field, finestLevels = True):
         """
@@ -523,6 +482,12 @@ class AMRHierarchy:
                      self.gridLeftEdge[i,0], self.gridRightEdge[i,0],
                      self.gridLeftEdge[i,1], self.gridRightEdge[i,1],
                      self.gridLeftEdge[i,2], self.gridRightEdge[i,2]))
+
+    def _select_level(self, level):
+        # We return a numarray of the indices of all the grids on a given level
+        indices = na.where(self.gridLevels[:,0] == level)[0]
+        return indices
+
 
 class EnzoHierarchy(AMRHierarchy):
     eiTopGrid = None
@@ -862,12 +827,6 @@ class EnzoHierarchy(AMRHierarchy):
         for field in self.field_list:
             if field not in self.derived_field_list:
                 self.derived_field_list.append(field)
-
-    def _select_level(self, level):
-        # We return a numarray of the indices of all the grids on a given level
-        indices = na.where(self.gridLevels[:,0] == level)[0]
-        return indices
-
 
 scanf_regex = {}
 scanf_regex['e'] = r"[-+]?\d+\.?\d*?|\.\d+[eE][-+]?\d+?"

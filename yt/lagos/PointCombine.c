@@ -720,22 +720,21 @@ static PyObject *DataCubeGeneric(PyObject *obj, PyObject *args,
     for(i=0;i<3;i++) {
             itc = 1;
             if (ac_le[i] < adl_edge[i]) {
-                ac_le_p[i][itc  ] = adr_edge[i] + ac_le[i];
-                ac_re_p[i][itc++] = adr_edge[i] + ac_re[i];
-                //fprintf(stderr, "le axis: %d (%d) le: %0.5f re: %0.5f\n", 
-                //        i, itc-1, ac_le_p[i][itc-1], ac_re_p[i][itc-1]);
+                ac_le_p[i][itc  ] = adr_edge[i] - (adl_edge[i] - ac_le[i]);
+                ac_re_p[i][itc++] = adr_edge[i] + (ac_re[i] - adl_edge[i]);
+/*                 fprintf(stderr, "le axis: %d (%d) le: %0.5e re: %0.5e\n",  */
+/*                        i, itc-1, ac_le_p[i][itc-1], ac_re_p[i][itc-1]); */
             }
             if (ac_re[i] > adr_edge[i]) {
-                ac_le_p[i][itc  ] = adl_edge[i] - (adr_edge[i]-adl_edge[i])
-                                  + ac_le[i];
-                ac_re_p[i][itc++] = adl_edge[i] - (adr_edge[i]-adl_edge[i])
-                                  + ac_re[i];
-                //fprintf(stderr, "re axis: %d (%d) le: %0.5f re: %0.5f\n", 
-                //        i, itc-1, ac_le_p[i][itc-1], ac_re_p[i][itc-1]);
+                ac_le_p[i][itc  ] = ac_le[i] - (adr_edge[i] - adl_edge[i]);
+                ac_re_p[i][itc++] = adl_edge[i] + (ac_re[i] - adr_edge[i]);
+
+/*                 fprintf(stderr, "re axis: %d (%d) le: %0.5e re: %0.5e\n",  */
+/*                        i, itc-1, ac_le_p[i][itc-1], ac_re_p[i][itc-1]); */
             }
             p_niter[i] = itc;
-            //fprintf(stderr, "Iterating on %d %d (%d) times\n",
-            //        i, itc, p_niter[i]);
+/*             fprintf(stderr, "Iterating on %d %d (%d) times\n", */
+/*                    i, itc, p_niter[i]); */
     }
 
     for (xg = 0; xg < g_data[0]->dimensions[0]; xg++) {

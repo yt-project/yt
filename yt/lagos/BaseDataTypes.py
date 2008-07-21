@@ -1471,6 +1471,7 @@ class AMRCoveringGrid(AMR3DData):
            na.any(self.right_edge > self.pf["DomainRightEdge"]):
             grids,ind = self.pf.hierarchy.get_periodic_box_grids(
                             self.left_edge, self.right_edge)
+            ind = slice(None)
         else:
             grids,ind = self.pf.hierarchy.get_box_grids(
                             self.left_edge, self.right_edge)
@@ -1510,7 +1511,7 @@ class AMRCoveringGrid(AMR3DData):
             if na.any(self[field] == -999):# and self.dx < self.hierarchy.grids[0].dx:
                 print "COVERING PROBLEM", na.where(self[field]==-999)[0].size
                 print na.where(self[field]==-999)
-                return
+#                return
                 raise KeyError
 
     def flush_data(self, field=None):
