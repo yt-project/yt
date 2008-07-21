@@ -89,43 +89,6 @@ class AMRHierarchy:
         self.level_stats['numgrids'] = [0 for i in range(MAXLEVEL)]
         self.level_stats['numcells'] = [0 for i in range(MAXLEVEL)]
 
-
-    def _initialize_data_file(self):
-        mylog.debug("Initializing data file")
-        self.__initialize_data_file()
-        mylog.debug("Populating hierarchy")
-        self.__populate_hierarchy()
-        mylog.debug("Done populating hierarchy")
-
-    def __guess_data_style(self):
-        if self.data_style: return
-        for line in reversed(self.__hierarchy_lines):
-            if line.startswith("BaryonFileName") or \
-               line.startswith("FileName "):
-                testGrid = line.split("=")[-1].strip().rstrip()
-            if line.startswith("Grid "):
-                testGridID = int(line.split("=")[-1])
-                break
-        if testGrid[0] != os.path.sep:
-            testGrid = os.path.join(self.directory, testGrid)
-        if not os.path.exists(testGrid):
-            testGrid = os.path.join(self.directory,
-                                    os.path.basename(testGrid))
-            mylog.debug("Your data uses the annoying hardcoded path.")
-            self._strip_path = True
-        try:
-            a = SD.SD(testGrid)
-            self.data_style = 4
-            mylog.debug("Detected HDF4")
-        except:
-            list_of_sets = HDF5LightReader.ReadListOfDatasets(testGrid, "/")
-            if len(list_of_sets) == 0:
-                mylog.debug("Detected packed HDF5")
-                self.data_style = 6
-            else:
-                mylog.debug("Detected unpacked HDF5")
-                self.data_style = 5
-
     def __setup_filemap(self, grid):
         if not self.data_style == 6:
             return
@@ -154,7 +117,7 @@ class AMRHierarchy:
         self.ray = classobj("EnzoOrthoRay",(EnzoOrthoRayBase,), dd)
         self.disk = classobj("EnzoCylinder",(EnzoCylinderBase,), dd)
 
-    def __initialize_data_file(self):
+    def _initialize_data_file(self):
         if not ytcfg.getboolean('lagos','serialize'): return
         fn = os.path.join(self.directory,"%s.yt" % self["CurrentTimeIdentifier"])
         if ytcfg.getboolean('lagos','onlydeserialize'):
@@ -353,7 +316,213 @@ class AMRHierarchy:
 
     def __getitem__(self, item):
         return self.parameter_file[item]
+    def select_grids(self, level):
+        """
+        Returns an array of grids at *level*.
+        """
+        return self.grids[self._select_level(level)]
 
+    def print_stats(self):
+        """
+        Prints out (stdout) relevant information about the simulation
+        """
+        for i in xrange(MAXLEVEL):
+            if (self.level_stats['numgrids'][i]) == 0:
+                break
+            print "% 3i\t% 6i\t% 11i" % \
+                  (i, self.level_stats['numgrids'][i], self.level_stats['numcells'][i])
+            dx = self.gridDxs[self.levelIndices[i][0]]
+        print "-" * 28
+        print "   \t% 6i\t% 11i" % (self.level_stats['numgrids'].sum(), self.level_stats['numcells'].sum())
+        print "\n"
+        try:
+            print "z = %0.8f" % (self["CosmologyCurrentRedshift"])
+        except:
+            pass
+        t_s = self["InitialTime"] * self["Time"]
+        print "t = %0.8e = %0.8e s = %0.8e years" % \
+            (self["InitialTime"], \
+             t_s, t_s / (365*24*3600.0) )
+        print "\nSmallest Cell:"
+        u=[]
+        for item in self.parameter_file.units.items():
+            u.append((item[1],item[0]))
+        u.sort()
+        for unit in u:
+            print "\tWidth: %0.3e %s" % (dx*unit[0], unit[1])
+
+    def find_point(self, coord):
+        """
+        Returns the (objects, indices) of grids containing an (x,y,z) point
+        """
+        mask=na.ones(self.num_grids)
+        for i in xrange(len(coord)):
+            na.choose(na.greater(self.gridLeftEdge[:,i],coord[i]), (mask,0), mask)
+            na.choose(na.greater(self.gridRightEdge[:,i],coord[i]), (0,mask), mask)
+        ind = na.where(mask == 1)
+        return self.grids[ind], ind
+
+    def find_slice_grids(self, coord, axis):
+        """
+        Returns the (objects, indices) of grids that a slice intersects along
+        *axis*
+        """
+        # Let's figure out which grids are on the slice
+        mask=na.ones(self.num_grids)
+        # So if gRE > coord, we get a mask, if not, we get a zero
+        #    if gLE > coord, we get a zero, if not, mask
+        # Thus, if the coordinate is between the edges, we win!
+        #ind = na.where( na.logical_and(self.gridRightEdge[:,axis] > coord, \
+                                       #self.gridLeftEdge[:,axis] < coord))
+        na.choose(na.greater(self.gridRightEdge[:,axis],coord),(0,mask),mask)
+        na.choose(na.greater(self.gridLeftEdge[:,axis],coord),(mask,0),mask)
+        ind = na.where(mask == 1)
+        return self.grids[ind], ind
+
+    def find_sphere_grids(self, center, radius):
+        """
+        Returns objects, indices of grids within a sphere
+        """
+        centers = (self.gridRightEdge + self.gridLeftEdge)/2.0
+        long_axis = na.maximum.reduce(self.gridRightEdge - self.gridLeftEdge, 1)
+        t = centers - center
+        dist = na.sqrt(t[:,0]**2+t[:,1]**2+t[:,2]**2)
+        gridI = na.where(na.logical_and((self.gridDxs<=radius)[:,0],(dist < (radius + long_axis))) == 1)
+        return self.grids[gridI], gridI
+
+    def get_box_grids(self, left_edge, right_edge):
+        """
+        Gets back all the grids between a left edge and right edge
+        """
+        grid_i = na.where((na.all(self.gridRightEdge > left_edge, axis=1)
+                         & na.all(self.gridLeftEdge < right_edge, axis=1)) == True)
+        return self.grids[grid_i], grid_i
+
+    def get_periodic_box_grids(self, left_edge, right_edge):
+        mask = na.zeros(self.grids.shape, dtype='bool')
+        dl = self.parameters["DomainLeftEdge"]
+        dr = self.parameters["DomainRightEdge"]
+        db = right_edge - left_edge
+        for off_x in [-1, 0, 1]:
+            nle = left_edge.copy()
+            nre = left_edge.copy()
+            nle[0] = dl[0] + (dr[0]-dl[0])*off_x + left_edge[0]
+            for off_y in [-1, 0, 1]:
+                nle[1] = dl[1] + (dr[1]-dl[1])*off_y + left_edge[1]
+                for off_z in [-1, 0, 1]:
+                    nle[2] = dl[2] + (dr[2]-dl[2])*off_z + left_edge[2]
+                    nre = nle + db
+                    g, gi = self.get_box_grids(nle, nre)
+                    mask[gi] = True
+        return self.grids[mask], na.where(mask)
+
+    def get_periodic_box_grids(self, left_edge, right_edge):
+        mask = na.zeros(self.grids.shape, dtype='bool')
+        dl = self.parameters["DomainLeftEdge"]
+        dr = self.parameters["DomainRightEdge"]
+        db = right_edge - left_edge
+        for off_x in [-1, 0, 1]:
+            nle = left_edge.copy()
+            nre = left_edge.copy()
+            nle[0] = dl[0] + (dr[0]-dl[0])*off_x + left_edge[0]
+            for off_y in [-1, 0, 1]:
+                nle[1] = dl[1] + (dr[1]-dl[1])*off_y + left_edge[1]
+                for off_z in [-1, 0, 1]:
+                    nle[2] = dl[2] + (dr[2]-dl[2])*off_z + left_edge[2]
+                    nre = nle + db
+                    g, gi = self.get_box_grids(nle, nre)
+                    mask[gi] = True
+        return self.grids[mask], na.where(mask)
+
+    @time_execution
+    def find_max(self, field, finestLevels = True):
+        """
+        Returns (value, center) of location of maximum for a given field.
+        """
+        if finestLevels:
+            gI = na.where(self.gridLevels >= self.maxLevel - NUMTOCHECK)
+        else:
+            gI = na.where(self.gridLevels >= 0) # Slow but pedantic
+        maxVal = -1e100
+        for grid in self.grids[gI[0]]:
+            mylog.debug("Checking %s (level %s)", grid.id, grid.Level)
+            val, coord = grid.find_max(field)
+            if val > maxVal:
+                maxCoord = coord
+                maxVal = val
+                maxGrid = grid
+        mc = na.array(maxCoord)
+        pos=maxGrid.get_position(mc)
+        pos[0] += 0.5*maxGrid.dx
+        pos[1] += 0.5*maxGrid.dx
+        pos[2] += 0.5*maxGrid.dx
+        mylog.info("Max Value is %0.5e at %0.16f %0.16f %0.16f in grid %s at level %s %s", \
+              maxVal, pos[0], pos[1], pos[2], maxGrid, maxGrid.Level, mc)
+        self.center = pos
+        # This probably won't work for anyone else
+        self.bulkVelocity = (maxGrid["x-velocity"][maxCoord], \
+                             maxGrid["y-velocity"][maxCoord], \
+                             maxGrid["z-velocity"][maxCoord])
+        self.parameters["Max%sValue" % (field)] = maxVal
+        self.parameters["Max%sPos" % (field)] = "%s" % (pos)
+        return maxVal, pos
+
+    @time_execution
+    def export_particles_pb(self, filename, filter = 1, indexboundary = 0, fields = None, scale=1.0):
+        """
+        Exports all the star particles, or a subset, to pb-format *filename*
+        for viewing in partiview.  Filters based on particle_type=*filter*,
+        particle_index>=*indexboundary*, and exports *fields*, if supplied.
+        Otherwise, index, position(x,y,z).  Optionally *scale* by a given
+        factor before outputting.
+        """
+        import struct
+        pbf_magic = 0xffffff98
+        header_fmt = 'Iii'
+        fmt = 'ifff'
+        f = open(filename,"w")
+        if fields:
+            fmt += len(fields)*'f'
+            padded_fields = string.join(fields,"\0") + "\0"
+            header_fmt += "%ss" % len(padded_fields)
+            args = [pbf_magic, struct.calcsize(header_fmt), len(fields), padded_fields]
+            fields = ["particle_index","particle_position_x","particle_position_y","particle_position_z"] \
+                   + fields
+            format = 'Int32,Float32,Float32,Float32' + ',Float32'*(len(fields)-4)
+        else:
+            args = [pbf_magic, struct.calcsize(header_fmt), 0]
+            fields = ["particle_index","particle_position_x","particle_position_y","particle_position_z"]
+            format = 'Int32,Float32,Float32,Float32'
+        f.write(struct.pack(header_fmt, *args))
+        tot = 0
+        sc = na.array([1.0] + [scale] * 3 + [1.0]*(len(fields)-4))
+        gI = na.where(self.gridNumberOfParticles.ravel() > 0)
+        for g in self.grids[gI]:
+            pI = na.where(na.logical_and((g["particle_type"] == filter),(g["particle_index"] >= indexboundary)) == 1)
+            tot += pI[0].shape[0]
+            toRec = []
+            for field, scale in zip(fields, sc):
+                toRec.append(scale*g[field][pI])
+            particle_info = rec.array(toRec,formats=format)
+            particle_info.tofile(f)
+        f.close()
+        mylog.info("Wrote %s particles to %s", tot, filename)
+
+    @time_execution
+    def export_boxes_pv(self, filename):
+        """
+        Exports the grid structure in partiview text format.
+        """
+        f=open(filename,"w")
+        for l in xrange(self.maxLevel):
+            f.write("add object g%s = l%s\n" % (l,l))
+            ind = self._select_level(l)
+            for i in ind:
+                f.write("add box -n %s -l %s %s,%s %s,%s %s,%s\n" % \
+                    (i+1, self.gridLevels.ravel()[i],
+                     self.gridLeftEdge[i,0], self.gridRightEdge[i,0],
+                     self.gridLeftEdge[i,1], self.gridRightEdge[i,1],
+                     self.gridLeftEdge[i,2], self.gridRightEdge[i,2]))
 
 class EnzoHierarchy(AMRHierarchy):
     eiTopGrid = None
@@ -628,7 +797,7 @@ class EnzoHierarchy(AMRHierarchy):
             self.level_stats[level]['numgrids'] = na.where(self.gridLevels==level)[0].size
             li = na.where(self.gridLevels[:,0] == level)
             self.level_stats[level]['numcells'] = ad[li].prod(axis=1).sum()
-            self.levelIndices[level] = self.__select_level(level)
+            self.levelIndices[level] = self._select_level(level)
             self.levelNum[level] = len(self.levelIndices[level])
         mylog.debug("Hierarchy fully populated.")
 
@@ -694,218 +863,10 @@ class EnzoHierarchy(AMRHierarchy):
             if field not in self.derived_field_list:
                 self.derived_field_list.append(field)
 
-    def __select_level(self, level):
+    def _select_level(self, level):
         # We return a numarray of the indices of all the grids on a given level
         indices = na.where(self.gridLevels[:,0] == level)[0]
         return indices
-
-    def select_grids(self, level):
-        """
-        Returns an array of grids at *level*.
-        """
-        return self.grids[self.__select_level(level)]
-
-    def print_stats(self):
-        """
-        Prints out (stdout) relevant information about the simulation
-        """
-        for i in xrange(MAXLEVEL):
-            if (self.level_stats['numgrids'][i]) == 0:
-                break
-            print "% 3i\t% 6i\t% 11i" % \
-                  (i, self.level_stats['numgrids'][i], self.level_stats['numcells'][i])
-            dx = self.gridDxs[self.levelIndices[i][0]]
-        print "-" * 28
-        print "   \t% 6i\t% 11i" % (self.level_stats['numgrids'].sum(), self.level_stats['numcells'].sum())
-        print "\n"
-        try:
-            print "z = %0.8f" % (self["CosmologyCurrentRedshift"])
-        except:
-            pass
-        t_s = self["InitialTime"] * self["Time"]
-        print "t = %0.8e = %0.8e s = %0.8e years" % \
-            (self["InitialTime"], \
-             t_s, t_s / (365*24*3600.0) )
-        print "\nSmallest Cell:"
-        u=[]
-        for item in self.parameter_file.units.items():
-            u.append((item[1],item[0]))
-        u.sort()
-        for unit in u:
-            print "\tWidth: %0.3e %s" % (dx*unit[0], unit[1])
-
-    def find_point(self, coord):
-        """
-        Returns the (objects, indices) of grids containing an (x,y,z) point
-        """
-        mask=na.ones(self.num_grids)
-        for i in xrange(len(coord)):
-            na.choose(na.greater(self.gridLeftEdge[:,i],coord[i]), (mask,0), mask)
-            na.choose(na.greater(self.gridRightEdge[:,i],coord[i]), (0,mask), mask)
-        ind = na.where(mask == 1)
-        return self.grids[ind], ind
-
-    def find_slice_grids(self, coord, axis):
-        """
-        Returns the (objects, indices) of grids that a slice intersects along
-        *axis*
-        """
-        # Let's figure out which grids are on the slice
-        mask=na.ones(self.num_grids)
-        # So if gRE > coord, we get a mask, if not, we get a zero
-        #    if gLE > coord, we get a zero, if not, mask
-        # Thus, if the coordinate is between the edges, we win!
-        #ind = na.where( na.logical_and(self.gridRightEdge[:,axis] > coord, \
-                                       #self.gridLeftEdge[:,axis] < coord))
-        na.choose(na.greater(self.gridRightEdge[:,axis],coord),(0,mask),mask)
-        na.choose(na.greater(self.gridLeftEdge[:,axis],coord),(mask,0),mask)
-        ind = na.where(mask == 1)
-        return self.grids[ind], ind
-
-    def find_sphere_grids(self, center, radius):
-        """
-        Returns objects, indices of grids within a sphere
-        """
-        centers = (self.gridRightEdge + self.gridLeftEdge)/2.0
-        long_axis = na.maximum.reduce(self.gridRightEdge - self.gridLeftEdge, 1)
-        t = centers - center
-        dist = na.sqrt(t[:,0]**2+t[:,1]**2+t[:,2]**2)
-        gridI = na.where(na.logical_and((self.gridDxs<=radius)[:,0],(dist < (radius + long_axis))) == 1)
-        return self.grids[gridI], gridI
-
-    def get_box_grids(self, left_edge, right_edge):
-        """
-        Gets back all the grids between a left edge and right edge
-        """
-        grid_i = na.where((na.all(self.gridRightEdge > left_edge, axis=1)
-                         & na.all(self.gridLeftEdge < right_edge, axis=1)) == True)
-        return self.grids[grid_i], grid_i
-
-    def get_periodic_box_grids(self, left_edge, right_edge):
-        mask = na.zeros(self.grids.shape, dtype='bool')
-        dl = self.parameters["DomainLeftEdge"]
-        dr = self.parameters["DomainRightEdge"]
-        db = right_edge - left_edge
-        for off_x in [-1, 0, 1]:
-            nle = left_edge.copy()
-            nre = left_edge.copy()
-            nle[0] = dl[0] + (dr[0]-dl[0])*off_x + left_edge[0]
-            for off_y in [-1, 0, 1]:
-                nle[1] = dl[1] + (dr[1]-dl[1])*off_y + left_edge[1]
-                for off_z in [-1, 0, 1]:
-                    nle[2] = dl[2] + (dr[2]-dl[2])*off_z + left_edge[2]
-                    nre = nle + db
-                    g, gi = self.get_box_grids(nle, nre)
-                    mask[gi] = True
-        return self.grids[mask], na.where(mask)
-
-    def get_periodic_box_grids(self, left_edge, right_edge):
-        mask = na.zeros(self.grids.shape, dtype='bool')
-        dl = self.parameters["DomainLeftEdge"]
-        dr = self.parameters["DomainRightEdge"]
-        db = right_edge - left_edge
-        for off_x in [-1, 0, 1]:
-            nle = left_edge.copy()
-            nre = left_edge.copy()
-            nle[0] = dl[0] + (dr[0]-dl[0])*off_x + left_edge[0]
-            for off_y in [-1, 0, 1]:
-                nle[1] = dl[1] + (dr[1]-dl[1])*off_y + left_edge[1]
-                for off_z in [-1, 0, 1]:
-                    nle[2] = dl[2] + (dr[2]-dl[2])*off_z + left_edge[2]
-                    nre = nle + db
-                    g, gi = self.get_box_grids(nle, nre)
-                    mask[gi] = True
-        return self.grids[mask], na.where(mask)
-
-    @time_execution
-    def find_max(self, field, finestLevels = True):
-        """
-        Returns (value, center) of location of maximum for a given field.
-        """
-        if finestLevels:
-            gI = na.where(self.gridLevels >= self.maxLevel - NUMTOCHECK)
-        else:
-            gI = na.where(self.gridLevels >= 0) # Slow but pedantic
-        maxVal = -1e100
-        for grid in self.grids[gI[0]]:
-            mylog.debug("Checking %s (level %s)", grid.id, grid.Level)
-            val, coord = grid.find_max(field)
-            if val > maxVal:
-                maxCoord = coord
-                maxVal = val
-                maxGrid = grid
-        mc = na.array(maxCoord)
-        pos=maxGrid.get_position(mc)
-        pos[0] += 0.5*maxGrid.dx
-        pos[1] += 0.5*maxGrid.dx
-        pos[2] += 0.5*maxGrid.dx
-        mylog.info("Max Value is %0.5e at %0.16f %0.16f %0.16f in grid %s at level %s %s", \
-              maxVal, pos[0], pos[1], pos[2], maxGrid, maxGrid.Level, mc)
-        self.center = pos
-        # This probably won't work for anyone else
-        self.bulkVelocity = (maxGrid["x-velocity"][maxCoord], \
-                             maxGrid["y-velocity"][maxCoord], \
-                             maxGrid["z-velocity"][maxCoord])
-        self.parameters["Max%sValue" % (field)] = maxVal
-        self.parameters["Max%sPos" % (field)] = "%s" % (pos)
-        return maxVal, pos
-
-    @time_execution
-    def export_particles_pb(self, filename, filter = 1, indexboundary = 0, fields = None, scale=1.0):
-        """
-        Exports all the star particles, or a subset, to pb-format *filename*
-        for viewing in partiview.  Filters based on particle_type=*filter*,
-        particle_index>=*indexboundary*, and exports *fields*, if supplied.
-        Otherwise, index, position(x,y,z).  Optionally *scale* by a given
-        factor before outputting.
-        """
-        import struct
-        pbf_magic = 0xffffff98
-        header_fmt = 'Iii'
-        fmt = 'ifff'
-        f = open(filename,"w")
-        if fields:
-            fmt += len(fields)*'f'
-            padded_fields = string.join(fields,"\0") + "\0"
-            header_fmt += "%ss" % len(padded_fields)
-            args = [pbf_magic, struct.calcsize(header_fmt), len(fields), padded_fields]
-            fields = ["particle_index","particle_position_x","particle_position_y","particle_position_z"] \
-                   + fields
-            format = 'Int32,Float32,Float32,Float32' + ',Float32'*(len(fields)-4)
-        else:
-            args = [pbf_magic, struct.calcsize(header_fmt), 0]
-            fields = ["particle_index","particle_position_x","particle_position_y","particle_position_z"]
-            format = 'Int32,Float32,Float32,Float32'
-        f.write(struct.pack(header_fmt, *args))
-        tot = 0
-        sc = na.array([1.0] + [scale] * 3 + [1.0]*(len(fields)-4))
-        gI = na.where(self.gridNumberOfParticles.ravel() > 0)
-        for g in self.grids[gI]:
-            pI = na.where(na.logical_and((g["particle_type"] == filter),(g["particle_index"] >= indexboundary)) == 1)
-            tot += pI[0].shape[0]
-            toRec = []
-            for field, scale in zip(fields, sc):
-                toRec.append(scale*g[field][pI])
-            particle_info = rec.array(toRec,formats=format)
-            particle_info.tofile(f)
-        f.close()
-        mylog.info("Wrote %s particles to %s", tot, filename)
-
-    @time_execution
-    def export_boxes_pv(self, filename):
-        """
-        Exports the grid structure in partiview text format.
-        """
-        f=open(filename,"w")
-        for l in xrange(self.maxLevel):
-            f.write("add object g%s = l%s\n" % (l,l))
-            ind = self.__select_level(l)
-            for i in ind:
-                f.write("add box -n %s -l %s %s,%s %s,%s %s,%s\n" % \
-                    (i+1, self.gridLevels.ravel()[i],
-                     self.gridLeftEdge[i,0], self.gridRightEdge[i,0],
-                     self.gridLeftEdge[i,1], self.gridRightEdge[i,1],
-                     self.gridLeftEdge[i,2], self.gridRightEdge[i,2]))
 
 
 scanf_regex = {}
