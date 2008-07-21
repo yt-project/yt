@@ -65,7 +65,7 @@ typedef struct slicestruct {
 
 	/* And here's the group tag information */
 	int *ntag;	/* Only stored for the numlist above */
-        int *ID;       /* The real, true ID of the particle. S Skory */
+        //int *ID;       /* The real, true ID of the particle. S Skory */
 	int numgroups;	/* The number of groups read out of the tag file */
 } Slice;	/* Type Slice is defined */
 

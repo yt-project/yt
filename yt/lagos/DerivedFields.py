@@ -1,10 +1,10 @@
 """
 Derived fields and support for existing fields included in here.
 
-@author: U{Matthew Turk<http://www.stanford.edu/~mturk/>}
-@organization: U{KIPAC<http://www-group.slac.stanford.edu/KIPAC/>}
-@contact: U{mturk@slac.stanford.edu<mailto:mturk@slac.stanford.edu>}
-@license:
+Author: Matthew Turk <matthewturk@gmail.com>
+Affiliation: KIPAC/SLAC/Stanford
+Homepage: http://yt.enzotools.org/
+License:
   Copyright (C) 2008 Matthew Turk.  All Rights Reserved.
 
   This file is part of yt.
@@ -157,6 +157,24 @@ class DerivedField:
                  particle_type = False, vector_field=False,
                  display_field = True, not_in_all=False,
                  projection_conversion = "cm"):
+        """
+        This is the base class used to describe a cell-by-cell derived field.
+
+        :param name: is the name of the field.
+        :param function: is a function handle that defines the field
+        :param convert_function: must convert to CGS, if it needs to be done
+        :param units: is a mathtext-formatted string that describes the field
+        :param projected_units: if we display a projection, what should the units be?
+        :param take_log: describes whether the field should be logged
+        :param validators: is a list of :class:`FieldValidator` objects
+        :param particle_type: is this field based on particles?
+        :param vector_field: describes the dimensionality of the field
+        :param display_field: governs its appearance in the dropdowns in reason
+        :param not_in_all: is used for baryon fields from the data that are not in
+                           all the grids
+        :param projection_conversion: which unit should we multiply by in a
+                                      projection?
+        """
         self.name = name
         self._function = function
         if validators:
@@ -379,6 +397,11 @@ add_field("particle mass", function=particle_func("particle_mass"),
 
 add_field("Dark matter density", function=lambda a,b: None,
           validators=[ValidateDataField("Dark matter density"),
+                      ValidateSpatial(0)],
+          not_in_all = True)
+
+add_field("Dark_Matter_Density", function=lambda a,b: None,
+          validators=[ValidateDataField("Dark_Matter_Density"),
                       ValidateSpatial(0)],
           not_in_all = True)
 
@@ -696,14 +719,10 @@ def _SpecificAngularMomentum(field, data):
     """
     if data.has_field_parameter("bulk_velocity"):
         bv = data.get_field_parameter("bulk_velocity")
-        xv = data["x-velocity"] - bv[0]
-        yv = data["y-velocity"] - bv[1]
-        zv = data["z-velocity"] - bv[2]
-    else:
-        xv = data["x-velocity"]
-        yv = data["y-velocity"]
-        zv = data["z-velocity"]
-
+    else: bv = na.zeros(3, dtype='float64')
+    xv = data["x-velocity"] - bv[0]
+    yv = data["y-velocity"] - bv[1]
+    zv = data["z-velocity"] - bv[2]
     center = data.get_field_parameter('center')
     coords = na.array([data['x'],data['y'],data['z']], dtype='float64')
     new_shape = tuple([3] + [1]*(len(coords.shape)-1))
@@ -712,11 +731,11 @@ def _SpecificAngularMomentum(field, data):
     return na.cross(r_vec, v_vec, axis=0)
 def _convertSpecificAngularMomentum(data):
     return data.convert("cm")
-def _convertSpecificAngularMomentumKMSMPC(data):
-    return data.convert("mpc")/1e5
 add_field("SpecificAngularMomentum",
           convert_function=_convertSpecificAngularMomentum, vector_field=True,
           units=r"\rm{cm}^2/\rm{s}", validators=[ValidateParameter('center')])
+def _convertSpecificAngularMomentumKMSMPC(data):
+    return data.convert("mpc")/1e5
 add_field("SpecificAngularMomentumKMSMPC",
           function=_SpecificAngularMomentum,
           convert_function=_convertSpecificAngularMomentumKMSMPC, vector_field=True,

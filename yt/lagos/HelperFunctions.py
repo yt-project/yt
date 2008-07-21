@@ -2,11 +2,11 @@
 A collection of helper functions, most generally for things
 that SciPy doesn't have that I expected it to
 
-@author: U{Matthew Turk<http://www.stanford.edu/~mturk/>}
-@organization: U{KIPAC<http://www-group.slac.stanford.edu/KIPAC/>}
-@contact: U{mturk@slac.stanford.edu<mailto:mturk@slac.stanford.edu>}
-@license:
-  Copyright (C) 2007 Matthew Turk.  All Rights Reserved.
+Author: Matthew Turk <matthewturk@gmail.com>
+Affiliation: KIPAC/SLAC/Stanford
+Homepage: http://yt.enzotools.org/
+License:
+  Copyright (C) 2007-2008 Matthew Turk.  All Rights Reserved.
 
   This file is part of yt.
 
@@ -46,8 +46,8 @@ class UnilinearFieldInterpolator:
 
         x = (x_vals - self.x_bins[x_i]) / (self.x_bins[x_i+1] - self.x_bins[x_i])
         xm = (self.x_bins[x_i+1] - x_vals) / (self.x_bins[x_i+1] - self.x_bins[x_i])
-        my_vals = self.table[x_i  ] * (xm) \
-                + self.table[x_i+1] * (x )
+        my_vals  = self.table[x_i  ] * (xm)
+        my_vals += self.table[x_i+1] * (x )
         return my_vals.reshape(orig_shape)
 
 class BilinearFieldInterpolator:
@@ -76,16 +76,16 @@ class BilinearFieldInterpolator:
         y = (y_vals - self.y_bins[y_i]) / (self.y_bins[y_i+1] - self.y_bins[y_i])
         xm = (self.x_bins[x_i+1] - x_vals) / (self.x_bins[x_i+1] - self.x_bins[x_i])
         ym = (self.y_bins[y_i+1] - y_vals) / (self.y_bins[y_i+1] - self.y_bins[y_i])
-        my_vals = \
-                  self.table[x_i  ,y_i  ] * (xm*ym) \
-                + self.table[x_i+1,y_i  ] * (x *ym) \
-                + self.table[x_i  ,y_i+1] * (xm*y ) \
-                + self.table[x_i+1,y_i+1] * (x *y )
+        my_vals  = self.table[x_i  ,y_i  ] * (xm*ym)
+        my_vals += self.table[x_i+1,y_i  ] * (x *ym)
+        my_vals += self.table[x_i  ,y_i+1] * (xm*y )
+        my_vals += self.table[x_i+1,y_i+1] * (x *y )
         return my_vals.reshape(orig_shape)
 
 class TrilinearFieldInterpolator:
-    def __init__(self, table, boundaries, field_names):
+    def __init__(self, table, boundaries, field_names, truncate = False):
         self.table = table
+        self.truncate = truncate
         x0, x1, y0, y1, z0, z1 = boundaries
         self.x_name, self.y_name, self.z_name = field_names
         self.x_bins = na.linspace(x0, x1, table.shape[0])
@@ -104,10 +104,15 @@ class TrilinearFieldInterpolator:
         if na.any((x_i == -1) | (x_i == len(self.x_bins)-1)) \
             or na.any((y_i == -1) | (y_i == len(self.y_bins)-1)) \
             or na.any((z_i == -1) | (z_i == len(self.z_bins)-1)):
-            mylog.error("Sorry, but your values are outside" + \
-                        " the table!  Dunno what to do, so dying.")
-            mylog.error("Error was in: %s", data_object)
-            raise ValueError
+            if not self.truncate:
+                mylog.error("Sorry, but your values are outside" + \
+                            " the table!  Dunno what to do, so dying.")
+                mylog.error("Error was in: %s", data_object)
+                raise ValueError
+            else:
+                x_i = na.minimum(na.maximum(x_i,0), len(self.x_bins)-2)
+                y_i = na.minimum(na.maximum(y_i,0), len(self.y_bins)-2)
+                z_i = na.minimum(na.maximum(z_i,0), len(self.z_bins)-2)
 
         # Use notation from Paul Bourke's page on interpolation
         # http://local.wasp.uwa.edu.au/~pbourke/other/interpolation/
@@ -123,13 +128,12 @@ class TrilinearFieldInterpolator:
             raise ValueError
         if na.any(na.isnan(xm) | na.isnan(ym) | na.isnan(zm)):
             raise ValueError
-        my_vals = \
-                  self.table[x_i  ,y_i  ,z_i  ] * (xm*ym*zm) \
-                + self.table[x_i+1,y_i  ,z_i  ] * (x *ym*zm) \
-                + self.table[x_i  ,y_i+1,z_i  ] * (xm*y *zm) \
-                + self.table[x_i  ,y_i  ,z_i+1] * (xm*ym*z ) \
-                + self.table[x_i+1,y_i  ,z_i+1] * (x *ym*z ) \
-                + self.table[x_i  ,y_i+1,z_i+1] * (xm*y *z ) \
-                + self.table[x_i+1,y_i+1,z_i  ] * (x *y *zm) \
-                + self.table[x_i+1,y_i+1,z_i+1] * (x *y *z )
+        my_vals  = self.table[x_i  ,y_i  ,z_i  ] * (xm*ym*zm)
+        my_vals += self.table[x_i+1,y_i  ,z_i  ] * (x *ym*zm)
+        my_vals += self.table[x_i  ,y_i+1,z_i  ] * (xm*y *zm)
+        my_vals += self.table[x_i  ,y_i  ,z_i+1] * (xm*ym*z )
+        my_vals += self.table[x_i+1,y_i  ,z_i+1] * (x *ym*z )
+        my_vals += self.table[x_i  ,y_i+1,z_i+1] * (xm*y *z )
+        my_vals += self.table[x_i+1,y_i+1,z_i  ] * (x *y *zm)
+        my_vals += self.table[x_i+1,y_i+1,z_i+1] * (x *y *z )
         return my_vals.reshape(orig_shape)

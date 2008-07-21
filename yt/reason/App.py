@@ -423,13 +423,13 @@ class ReasonMainWindow(wx.Frame):
                                _ProjObjectMenuItems, parent_id)
             print "Adding with ID:", MyID
             total += 1
-        for w in self.windows[-total:]: w.ChangeWidth(1,'1')
+        for w in self.windows[-total:]: w.ChangeWidth(1,'unitary')
         proj_setup.Destroy()
 
     def _add_slice(self, event=None):
         MyID = wx.NewId()
         parent_id, data_object = self.get_output()
-        field, width, unit = "Density", 1.0, '1'
+        field, width, unit = "Density", 1.0, 'unitary'
         for i, ax in enumerate('xyz'):
             mylog.info("Adding %s slice of %s" % (ax, data_object))
             self._add_page_to_notebook(
@@ -445,7 +445,7 @@ class ReasonMainWindow(wx.Frame):
             self._add_data_object("Slice: %s" % (ax),
                                self.windows[-1].plot.data,
                                _SliceObjectMenuItems, parent_id)
-        for w in self.windows[-3:]: w.ChangeWidth(1,'1')
+        for w in self.windows[-3:]: w.ChangeWidth(1,'unitary')
 
     def _export_data_object(self, event):
         parent_id, data_object = self.get_output()
@@ -495,7 +495,7 @@ class ReasonMainWindow(wx.Frame):
             center = data_object.get_field_parameter("center")
             parameter_file = data_object.pf
         MyID = wx.NewId()
-        field, width, unit = "Density", 1.0, '1'
+        field, width, unit = "Density", 1.0, 'unitary'
         mylog.info("Adding cutting plane of %s with normal %s",
                    data_object, normal)
         self._add_page_to_notebook(
@@ -508,7 +508,7 @@ class ReasonMainWindow(wx.Frame):
         self._add_data_object("Cutting Plane" % (parameter_file),
                               self.windows[-1].plot.data,
                               _CuttingPlaneObjectMenuItems, parent_id)
-        self.windows[-1].ChangeWidth(1,'1')
+        self.windows[-1].ChangeWidth(1,'unitary')
 
     def get_output(self, event=None):
         # Figure out which outputs are selected

@@ -1,7 +1,30 @@
-import yt.lagos as lagos
-import numpy as na
+"""
+Clump finding helper classes
 
-cl_parameters = {'minCells':64}
+Author: Britton Smith <Britton.Smith@colorado.edu>
+Affiliation: University of Colorado at Boulder
+License:
+  Copyright (C) 2008 Britton Smith.  All Rights Reserved.
+
+  This file is part of yt.
+
+  yt is free software; you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation; either version 3 of the License, or
+  (at your option) any later version.
+
+  This program is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details.
+
+  You should have received a copy of the GNU General Public License
+  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+"""
+
+
+from yt.lagos import *
+import numpy as na
 
 class Clump(object):
     children = None
@@ -18,29 +41,45 @@ class Clump(object):
             print "Wiping out existing children clumps."
         self.children = []
         if max is None: max = self.max
-        contour_info = lagos.identify_contours(self.data, self.field, min, max)
+        contour_info = identify_contours(self.data, self.field, min, max)
         for cid in contour_info:
             new_clump = self.data.extract_region(contour_info[cid])
             self.children.append(Clump(new_clump, self, self.field))
+
+    def get_IsBound(self):
+        if self.isBound is None:
+            self.isBound = self.data.quantities["IsBound"](truncate=True,include_thermal_energy=True)
+        return self.isBound
 
 def find_clumps(clump, min, max, d_clump):
     print "Finding clumps: min: %e, max: %e, step: %f" % (min, max, d_clump)
     if min >= max: return
     clump.find_children(min)
 
-    these_children = []
-    for child in clump.children:
-        if (len(child.data["CellMassMsun"]) >= cl_parameters['minCells']):
-            these_children.append(child)
-        else:
-            print "Eliminating clump with %d cells." % len(child.data["CellMassMsun"])
-    clump.children = these_children
-
     if (len(clump.children) == 1):
         find_clumps(clump, min*d_clump, max, d_clump)
-    else:
+
+    elif (len(clump.children) > 0):
+        these_children = []
+        print "Investigating %d children." % len(clump.children)
         for child in clump.children:
             find_clumps(child, min*d_clump, max, d_clump)
+            if ((child.children is not None) and (len(child.children) > 0)):
+                these_children.append(child)
+            elif (child.get_IsBound() > 1.0):
+                these_children.append(child)
+            else:
+                print "Eliminating unbound, childless clump with %d cells." % len(child.data["CellMassMsun"])
+        if (len(these_children) > 1):
+            print "%d of %d children survived." % (len(these_children),len(clump.children))            
+            clump.children = these_children
+        elif (len(these_children) == 1):
+            print "%d of %d children survived, linking its children to parent." % (len(these_children),len(clump.children))
+            clump.children = these_children[0].children
+        else:
+            print "%d of %d children survived, erasing children." % (len(these_children),len(clump.children))
+            clump.children = []
+
 
 def write_clump_hierarchy(clump,level,f_ptr):
     for q in range(level):
@@ -55,9 +94,7 @@ def write_clump_hierarchy(clump,level,f_ptr):
 
 def write_clumps(clump,level,f_ptr):
     if ((clump.children is None) or (len(clump.children) == 0)):
-        for q in range(level):
-            f_ptr.write("\t")
-        f_ptr.write("Clump:\n")
+        f_ptr.write("%sClump:\n" % ("\t"*level))
         write_clump_info(clump,level,f_ptr)
         f_ptr.write("\n")
         f_ptr.flush()
@@ -65,36 +102,25 @@ def write_clumps(clump,level,f_ptr):
         for child in clump.children:
             write_clumps(child,0,f_ptr)
 
-def write_clump_finder_parameters(f_ptr):
-    for par in cl_parameters.keys():
-        f_ptr.write("# %s: %s\n" % (par,cl_parameters[par]))
+__clump_info_template = \
+"""
+%(tl)sCells: %(num_cells)s
+%(tl)sMass: %(total_mass).6e Msolar
+%(tl)sJeans Mass (vol-weighted): %(jeans_mass_vol).6e Msolar
+%(tl)sJeans Mass (mass-weighted): %(jeans_mass_mass).6e Msolar
+%(tl)sMax grid level: %(max_level)s
+%(tl)sMin number density: %(min_density).6e cm^-3
+%(tl)sMax number density: %(max_density).6e cm^-3
+
+"""
 
 def write_clump_info(clump,level,f_ptr):
-    if clump.isBound is None:
-        clump.isBound = clump.data.quantities["IsBound"]()
-    for q in range(level):
-        f_ptr.write("\t")
-    f_ptr.write("Cells: %d\n" % len(clump.data["CellMassMsun"]))
-    for q in range(level):
-        f_ptr.write("\t")
-    f_ptr.write("Mass: %.6e Msolar\n" % clump.data["CellMassMsun"].sum())
-    for q in range(level):
-        f_ptr.write("\t")
-    f_ptr.write("Jeans Mass (vol-weighted): %.6e Msolar\n" % \
-                    (clump.data.quantities["WeightedAverageQuantity"]("JeansMassMsun","CellVolume")))
-    for q in range(level):
-        f_ptr.write("\t")
-    f_ptr.write("Jeans Mass (mass-weighted): %.6e Msolar\n" % \
-                    (clump.data.quantities["WeightedAverageQuantity"]("JeansMassMsun","CellMassMsun")))
-    for q in range(level):
-        f_ptr.write("\t")
-    f_ptr.write("Max grid level: %d\n" % clump.data["GridLevel"].max())
-    for q in range(level):
-        f_ptr.write("\t")
-    f_ptr.write("Min number density: %.6e cm^-3\n" % clump.data["NumberDensity"].min())
-    for q in range(level):
-        f_ptr.write("\t")
-    f_ptr.write("Max number density: %.6e cm^-3\n" % clump.data["NumberDensity"].max())
-    for q in range(level):
-        f_ptr.write("\t")
-    f_ptr.write("Bound: %s\n" % clump.isBound)
+    fmt_dict = {'tl':  "\t" * level}
+    fmt_dict['num_cells'] = clump.data["CellMassMsun"].size,
+    fmt_dict['total_mass'] = clump.data["CellMassMsun"].sum()
+    fmt_dict['jeans_mass_vol'] = clump.data.quantities["WeightedAverageQuantity"]("JeansMassMsun","CellVolume")
+    fmt_dict['jeans_mass_mass'] = clump.data.quantities["WeightedAverageQuantity"]("JeansMassMsun","CellMassMsun")
+    fmt_dict['max_level'] =  clump.data["GridLevel"].max()
+    fmt_dict['min_density'] =  clump.data["NumberDensity"].min()
+    fmt_dict['max_density'] =  clump.data["NumberDensity"].max()
+    f_ptr.write(__clump_info_template % fmt_dict)

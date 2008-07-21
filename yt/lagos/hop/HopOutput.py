@@ -1,10 +1,10 @@
 """
 HOP-output data handling
 
-@author: U{Matthew Turk<http://www.stanford.edu/~mturk/>}
-@organization: U{KIPAC<http://www-group.slac.stanford.edu/KIPAC/>}
-@contact: U{mturk@slac.stanford.edu<mailto:mturk@slac.stanford.edu>}
-@license:
+Author: Matthew Turk <matthewturk@gmail.com>
+Affiliation: KIPAC/SLAC/Stanford
+Homepage: http://yt.enzotools.org/
+License:
   Copyright (C) 2008 Matthew Turk.  All Rights Reserved.
 
   This file is part of yt.
@@ -53,8 +53,6 @@ class HopList(object):
         for field in ["particle_position_%s" % ax for ax in 'xyz'] + \
                      ["ParticleMassMsun"]:
             self.particle_fields[field] = self.data_source[field][ii]
-        self.particle_fields["particle_index"] = \
-            self.data_source["particle_index"][ii].astype('int64')
 
     def __run_hop(self):
         self.densities, self.tags = \
@@ -62,7 +60,6 @@ class HopList(object):
                    self.particle_fields["particle_position_y"],
                    self.particle_fields["particle_position_z"],
                    self.particle_fields["ParticleMassMsun"],
-                   self.particle_fields["particle_index"],
                    self.threshold)
         self.particle_fields["densities"] = self.densities
         self.particle_fields["tags"] = self.tags
@@ -75,7 +72,8 @@ class HopList(object):
             mylog.debug("Differentiating based on particle type")
             return (self.data_source["particle_type"] == 1)
         else:
-            raise KeyError
+            mylog.warning("No particle_type, no creation_time, so not distinguishing.")
+            return slice(None)
 
     def __parse_output(self):
         unique_ids = na.unique(self.tags)
@@ -115,7 +113,7 @@ class HopList(object):
         f.write("\t".join(["# Group","Mass","# part","max dens"
                            "x","y","z", "center-of-mass",
                            "x","y","z",
-                           "vx","vy","vz"]))
+                           "vx","vy","vz","max_r","\n"]))
         for group in self:
             f.write("%10i\t" % group.id)
             f.write("%0.9e\t" % group.total_mass())
@@ -126,6 +124,7 @@ class HopList(object):
             f.write("\t".join(["%0.9e" % v for v in group.center_of_mass()]))
             f.write("\t")
             f.write("\t".join(["%0.9e" % v for v in group.bulk_velocity()]))
+            f.write("%0.9e\t" % group.maximum_radius())
             f.write("\n")
         f.close()
 

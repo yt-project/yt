@@ -424,7 +424,8 @@ class VMPlotPage(PlotPage):
         self.widthSlider.Bind(wx.EVT_SCROLL_THUMBRELEASE, self.UpdateWidth)
         self.widthBox.Bind(wx.EVT_TEXT_ENTER, self.UpdateWidthFromText)
 
-        self.unitList.SetSelection(0)
+        wI = self.unitList.GetItems().index('unitary')
+        self.unitList.SetSelection(wI)
 
     def DoLayout(self):
 
@@ -560,7 +561,9 @@ class VMPlotPage(PlotPage):
         self.widthBox.SetValue("%0.5e" % (w))
         val = w/self.outputfile[u]
         dx = (log10(self.vals[0])-log10(self.vals[-1]))/201
-        self.widthSlider.SetValue(200-int(log10(val)/dx))
+        vv = 200-int(log10(val)/dx)
+        print "Setting to vv", vv, u, w, self.outputfile[u]
+        self.widthSlider.SetValue(vv)
         self.ChangeWidth(w,u)
 
     def ChangeWidth(self, width, unit):
@@ -622,8 +625,8 @@ class VMPlotPage(PlotPage):
         self.UpdateCanvas()
 
     def fulldomain(self, *args):
-        self.ChangeWidth(1,'1')
-        Publisher().sendMessage(('viewchange','width'), (1,'1'))
+        self.ChangeWidth(1,'unitary')
+        Publisher().sendMessage(('viewchange','width'), (1,'unitary'))
 
     def set_bulk_velocity(self, *args):
         bv = Toolbars.GetBulkVelocity(self.outputfile, self.center)

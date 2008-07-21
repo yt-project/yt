@@ -42,18 +42,18 @@ static PyObject *
 Py_EnzoHop(PyObject *obj, PyObject *args)
 {
     PyObject    *oxpos, *oypos, *ozpos,
-                *omass, *oID;
+                *omass;
 
     PyArrayObject    *xpos, *ypos, *zpos,
-                     *mass, *ID;
-    xpos=ypos=zpos=mass=ID=NULL;
+                     *mass;
+    xpos=ypos=zpos=mass=NULL;
     npy_float64 totalmass = 0;
     float thresh = 160.0;
 
     int i;
 
-    if (!PyArg_ParseTuple(args, "OOOOO|f",
-        &oxpos, &oypos, &ozpos, &omass, &oID, &thresh))
+    if (!PyArg_ParseTuple(args, "OOOO|f",
+        &oxpos, &oypos, &ozpos, &omass, &thresh))
     return PyErr_Format(_HOPerror,
             "EnzoHop: Invalid parameters.");
 
@@ -96,15 +96,6 @@ Py_EnzoHop(PyObject *obj, PyObject *args)
     goto _fail;
     }
 
-    ID    = (PyArrayObject *) PyArray_FromAny(oID,
-                    PyArray_DescrFromType(NPY_INT64), 1, 1,
-                    NPY_INOUT_ARRAY | NPY_UPDATEIFCOPY, NULL);
-    if((!ID)||(PyArray_SIZE(ID) != num_particles)) {
-    PyErr_Format(_HOPerror,
-             "EnzoHop: xpos and ID must be the same length.");
-    goto _fail;
-    }
-
     for(i = 0; i < num_particles; i++)
         totalmass+=*(npy_float64*)PyArray_GETPTR1(mass,i);
 
@@ -127,7 +118,6 @@ Py_EnzoHop(PyObject *obj, PyObject *args)
 	  kd->p[i].r[1] = (float)*(npy_float64*) PyArray_GETPTR1(ypos, i);
 	  kd->p[i].r[2] = (float)*(npy_float64*) PyArray_GETPTR1(zpos, i);
 	  kd->p[i].fMass = (float)(*(npy_float64*) PyArray_GETPTR1(mass, i)/totalmass);
-	  kd->p[i].iID = (int)*(npy_int64*) PyArray_GETPTR1(ID,i); /* S. Skory */
 	}
 
     HC my_comm;
@@ -176,7 +166,6 @@ Py_EnzoHop(PyObject *obj, PyObject *args)
     Py_DECREF(ypos);
     Py_DECREF(zpos);
     Py_DECREF(mass);
-    Py_DECREF(ID);
 
     /* We don't need this, as it's done in kdFinish
     if(kd->p!=NULL)free(kd->p);
@@ -189,7 +178,6 @@ _fail:
     Py_XDECREF(ypos);
     Py_XDECREF(zpos);
     Py_XDECREF(mass);
-    Py_XDECREF(ID);
 
     if(kd->p!=NULL)free(kd->p);
 

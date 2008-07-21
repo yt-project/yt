@@ -1,5 +1,5 @@
 /************************************************************************
-* Copyright (C) 2007 Matthew Turk.  All Rights Reserved.
+* Copyright (C) 2007-2008 Matthew Turk.  All Rights Reserved.
 *
 * This file is part of yt.
 *
@@ -548,20 +548,21 @@ static PyObject *DataCubeGeneric(PyObject *obj, PyObject *args,
     int ll, i, n;
 
     PyObject *og_le, *og_dx, *og_data, *og_cm,
-             *oc_le, *oc_re, *oc_dx, *oc_data;
+             *oc_le, *oc_re, *oc_dx, *oc_data, *odr_edge, *odl_edge;
     PyArrayObject *g_le, *g_dx, *g_cm,
-                  *c_le, *c_re, *c_dx;
+                  *c_le, *c_re, *c_dx, *dr_edge, *dl_edge;
     PyArrayObject **g_data, **c_data;
     g_data = c_data = NULL;
     npy_int *ag_cm;
     npy_float64 ag_le[3], ag_dx[3], 
-                ac_le[3], ac_re[3], ac_dx[3];
+                ac_le[3], ac_re[3], ac_dx[3],
+                adl_edge[3], adr_edge[3];
     Py_ssize_t n_fields = 0;
 
-    if (!PyArg_ParseTuple(args, "OOOOOOOOi",
+    if (!PyArg_ParseTuple(args, "OOOOOOOOiOO",
             &og_le, &og_dx, &og_data, &og_cm,
             &oc_le, &oc_re, &oc_dx, &oc_data,
-        &ll))
+        &ll, &odl_edge, &odr_edge))
     return PyErr_Format(_dataCubeError,
             "DataCubeGeneric: Invalid parameters.");
 
@@ -635,6 +636,26 @@ static PyObject *DataCubeGeneric(PyObject *obj, PyObject *args,
       goto _fail;
     }
 
+    dl_edge    = (PyArrayObject *) PyArray_FromAny(odl_edge,
+                    PyArray_DescrFromType(NPY_FLOAT64), 1, 1,
+                    NPY_INOUT_ARRAY | NPY_UPDATEIFCOPY, NULL);
+    if((dl_edge==NULL) || (PyArray_SIZE(dl_edge) != 3)) {
+    PyErr_Format(_dataCubeError,
+             "CombineGrids: Three values, one dimension required for dl_edge.");
+    goto _fail;
+    }
+    for(i=0;i<3;i++)adl_edge[i]=*(npy_float64*)PyArray_GETPTR1(dl_edge,i);
+
+    dr_edge    = (PyArrayObject *) PyArray_FromAny(odr_edge,
+                    PyArray_DescrFromType(NPY_FLOAT64), 1, 1,
+                    NPY_INOUT_ARRAY | NPY_UPDATEIFCOPY, NULL);
+    if((dr_edge==NULL) || (PyArray_SIZE(dr_edge) != 3)) {
+    PyErr_Format(_dataCubeError,
+             "CombineGrids: Three values, one dimension required for dr_edge.");
+    goto _fail;
+    }
+    for(i=0;i<3;i++)adr_edge[i]=*(npy_float64*)PyArray_GETPTR1(dr_edge,i);
+
     n_fields = PyList_Size(oc_data);
     if(n_fields == 0) {
       PyErr_Format(_dataCubeError,
@@ -684,27 +705,59 @@ static PyObject *DataCubeGeneric(PyObject *obj, PyObject *args,
     /* And let's begin */
 
     npy_int64 xg, yg, zg, xc, yc, zc, cmax_x, cmax_y, cmax_z,
-              cmin_x, cmin_y, cmin_z, cm;
+              cmin_x, cmin_y, cmin_z, cm, pxl, pyl, pzl;
     npy_float64 *val1, *val2;
     long int total=0;
 
+    int p_niter[3] = {1,1,1};
+    int itc;
+    npy_float64 ac_le_p[3][3];
+    npy_float64 ac_re_p[3][3];
+    npy_float64 ag_re[3];
+    for (i=0;i<3;i++){ag_re[i] = ag_le[i]+ag_dx[i]*(g_data[0]->dimensions[i]+1);}
+
+    for (i=0;i<3;i++){ac_le_p[i][0] = ac_le[i]; ac_re_p[i][0] = ac_re[i];}
+    for(i=0;i<3;i++) {
+            itc = 1;
+            if (ac_le[i] < adl_edge[i]) {
+                ac_le_p[i][itc  ] = adr_edge[i] + ac_le[i];
+                ac_re_p[i][itc++] = adr_edge[i] + ac_re[i];
+                //fprintf(stderr, "le axis: %d (%d) le: %0.5f re: %0.5f\n", 
+                //        i, itc-1, ac_le_p[i][itc-1], ac_re_p[i][itc-1]);
+            }
+            if (ac_re[i] > adr_edge[i]) {
+                ac_le_p[i][itc  ] = adl_edge[i] - (adr_edge[i]-adl_edge[i])
+                                  + ac_le[i];
+                ac_re_p[i][itc++] = adl_edge[i] - (adr_edge[i]-adl_edge[i])
+                                  + ac_re[i];
+                //fprintf(stderr, "re axis: %d (%d) le: %0.5f re: %0.5f\n", 
+                //        i, itc-1, ac_le_p[i][itc-1], ac_re_p[i][itc-1]);
+            }
+            p_niter[i] = itc;
+            //fprintf(stderr, "Iterating on %d %d (%d) times\n",
+            //        i, itc, p_niter[i]);
+    }
+
     for (xg = 0; xg < g_data[0]->dimensions[0]; xg++) {
-      if (ag_le[0]+ag_dx[0]*xg     > ac_re[0]) continue;
-      if (ag_le[0]+ag_dx[0]*(xg+1) < ac_le[0]) continue;
-      cmin_x = max(floorl((ag_le[0]+ag_dx[0]*xg     - ac_le[0])/ac_dx[0]),0);
-      cmax_x = min( ceill((ag_le[0]+ag_dx[0]*(xg+1) - ac_le[0])/ac_dx[0]),PyArray_DIM(c_data[0],0));
+    for (pxl = 0; pxl < p_niter[0]; pxl++) {
+      if (ag_le[0]+ag_dx[0]*xg     > ac_re_p[0][pxl]) continue;
+      if (ag_le[0]+ag_dx[0]*(xg+1) < ac_le_p[0][pxl]) continue;
+      cmin_x = max(floorl((ag_le[0]+ag_dx[0]*xg     - ac_le_p[0][pxl])/ac_dx[0]),0);
+      cmax_x = min( ceill((ag_le[0]+ag_dx[0]*(xg+1) - ac_le_p[0][pxl])/ac_dx[0]),PyArray_DIM(c_data[0],0));
       for (yg = 0; yg < g_data[0]->dimensions[1]; yg++) {
-        if (ag_le[1]+ag_dx[1]*yg     > ac_re[1]) continue;
-        if (ag_le[1]+ag_dx[1]*(yg+1) < ac_le[1]) continue;
-        cmin_y = max(floorl((ag_le[1]+ag_dx[1]*yg     - ac_le[1])/ac_dx[1]),0);
-        cmax_y = min( ceill((ag_le[1]+ag_dx[1]*(yg+1) - ac_le[1])/ac_dx[1]),PyArray_DIM(c_data[0],1));
+      for (pyl = 0; pyl < p_niter[1]; pyl++) {
+        if (ag_le[1]+ag_dx[1]*yg     > ac_re_p[1][pyl]) continue;
+        if (ag_le[1]+ag_dx[1]*(yg+1) < ac_le_p[1][pyl]) continue;
+        cmin_y = max(floorl((ag_le[1]+ag_dx[1]*yg     - ac_le_p[1][pyl])/ac_dx[1]),0);
+        cmax_y = min( ceill((ag_le[1]+ag_dx[1]*(yg+1) - ac_le_p[1][pyl])/ac_dx[1]),PyArray_DIM(c_data[0],1));
         for (zg = 0; zg < g_data[0]->dimensions[2]; zg++) {
+        for (pzl = 0; pzl < p_niter[2]; pzl++) {
           cm = *(npy_int *)PyArray_GETPTR3(g_cm,xg,yg,zg);
           if ((!ll) && (cm == 0)) continue;
-          if (ag_le[2]+ag_dx[2]*zg     > ac_re[2]) continue;
-          if (ag_le[2]+ag_dx[2]*(zg+1) < ac_le[2]) continue;
-          cmin_z = max(floorl((ag_le[2]+ag_dx[2]*zg     - ac_le[2])/ac_dx[2]),0);
-          cmax_z = min( ceill((ag_le[2]+ag_dx[2]*(zg+1) - ac_le[2])/ac_dx[2]),PyArray_DIM(c_data[0],2));
+          if (ag_le[2]+ag_dx[2]*zg     > ac_re_p[2][pzl]) continue;
+          if (ag_le[2]+ag_dx[2]*(zg+1) < ac_le_p[2][pzl]) continue;
+          cmin_z = max(floorl((ag_le[2]+ag_dx[2]*zg     - ac_le_p[2][pzl])/ac_dx[2]),0);
+          cmax_z = min( ceill((ag_le[2]+ag_dx[2]*(zg+1) - ac_le_p[2][pzl])/ac_dx[2]),PyArray_DIM(c_data[0],2));
           for (xc = cmin_x; xc < cmax_x ; xc++) {
             for (yc = cmin_y; yc < cmax_y ; yc++) {
               for (zc = cmin_z; zc < cmax_z ; zc++) {
@@ -716,9 +769,9 @@ static PyObject *DataCubeGeneric(PyObject *obj, PyObject *args,
               }
             }
           }
-        }
-      }
-    }
+        }}
+      }}
+    }}
 
     /* Cleanup time */
 
@@ -728,6 +781,8 @@ static PyObject *DataCubeGeneric(PyObject *obj, PyObject *args,
     Py_DECREF(c_le);
     Py_DECREF(c_re);
     Py_DECREF(c_dx);
+    Py_DECREF(dl_edge);
+    Py_DECREF(dr_edge);
     for(n=0;n<n_fields;n++) {
         Py_DECREF(g_data[n]);
         Py_DECREF(c_data[n]);

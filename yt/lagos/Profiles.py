@@ -1,11 +1,11 @@
 """
 Profile classes, to deal with generating and obtaining profiles
 
-@author: U{Matthew Turk<http://www.stanford.edu/~mturk/>}
-@organization: U{KIPAC<http://www-group.slac.stanford.edu/KIPAC/>}
-@contact: U{mturk@slac.stanford.edu<mailto:mturk@slac.stanford.edu>}
-@license:
-  Copyright (C) 2007 Matthew Turk.  All Rights Reserved.
+Author: Matthew Turk <matthewturk@gmail.com>
+Affiliation: KIPAC/SLAC/Stanford
+Homepage: http://yt.enzotools.org/
+License:
+  Copyright (C) 2007-2008 Matthew Turk.  All Rights Reserved.
 
   This file is part of yt.
 
@@ -25,8 +25,15 @@ Profile classes, to deal with generating and obtaining profiles
 
 from yt.lagos import *
 
+_field_mapping = {
+    "total_mass": ("CellMassMsun", "ParticleMassMsun"),
+    "hybrid_radius": ("RadiusCode", "ParticleRadiusCode"),
+                 }
+
 def preserve_source_parameters(func):
     def save_state(*args, **kwargs):
+        # Temporarily replace the 'field_parameters' for a
+        # grid with the 'field_parameters' for the data source
         prof = args[0]
         source = args[1]
         if hasattr(source, 'field_parameters'):
@@ -48,8 +55,8 @@ class BinnedProfile:
         self._lazy_reader = lazy_reader
 
     def _lazy_add_fields(self, fields, weight, accumulation):
-        data = {}
-        weight_data = {}
+        data = {}         # final results will go here
+        weight_data = {}  # we need to track the weights as we go
         for field in fields:
             data[field] = self._get_empty_field()
             weight_data[field] = self._get_empty_field()
@@ -58,19 +65,20 @@ class BinnedProfile:
         for gi,grid in enumerate(self._data_source._grids):
             pbar.update(gi)
             args = self._get_bins(grid, check_cut=True)
-            if not args:
+            if not args: # No bins returned for this grid, so forget it!
                 continue
             for field in fields:
+                # We get back field values, weight values, used bins
                 f, w, u = self._bin_field(grid, field, weight, accumulation,
                                           args=args, check_cut=True)
-                data[field] += f
-                weight_data[field] += w
-                used = (used | u)
+                data[field] += f        # running total
+                weight_data[field] += w # running total
+                used = (used | u)       # running 'or'
             grid.clear_data()
         pbar.finish()
         ub = na.where(used)
         for field in fields:
-            if weight:
+            if weight: # Now, at the end, we divide out.
                 data[field][ub] /= weight_data[field][ub]
             self[field] = data[field]
         self["UsedBins"] = used
@@ -109,12 +117,32 @@ class BinnedProfile:
     def __setitem__(self, key, value):
         self._data[key] = value
 
+    def _get_field(self, source, field, check_cut):
+        # This is where we will iterate to get all contributions to a field
+        # which is how we will implement hybrid particle/cell fields
+        # but...  we default to just the field.
+        data = []
+        for field in _field_mapping.get(field, (field,)):
+            if check_cut:
+                if field in fieldInfo and fieldInfo[field].particle_type:
+                    pointI = self._data_source._get_particle_indices(source)
+                else:
+                    pointI = self._data_source._get_point_indices(source)
+            else:
+                pointI = slice(None)
+            data.append(source[field][pointI].ravel().astype('float64'))
+        return na.concatenate(data, axis=0)
+
 # @todo: Fix accumulation with overriding
 class BinnedProfile1D(BinnedProfile):
     def __init__(self, data_source, n_bins, bin_field,
                  lower_bound, upper_bound,
                  log_space = True, lazy_reader=False):
         """
+        A 'Profile' produces either a weighted (or unweighted) average or a
+        straight sum of a field in a bin defined by another field.  In the case
+        of a weighted average, we have: p_i = sum( w_i * v_i ) / sum(w_i)
+
         We accept a *data_source*, which will be binned into *n_bins* by the
         field *bin_field* between the *lower_bound* and the *upper_bound*.
         These bins may or may not be equally divided in *log_space*, and the
@@ -124,6 +152,7 @@ class BinnedProfile1D(BinnedProfile):
         BinnedProfile.__init__(self, data_source, lazy_reader)
         self.bin_field = bin_field
         self._x_log = log_space
+        # Get our bins
         if log_space:
             func = na.logspace
             lower_bound, upper_bound = na.log10(lower_bound), na.log10(upper_bound)
@@ -131,6 +160,8 @@ class BinnedProfile1D(BinnedProfile):
             func = na.linspace
         self[bin_field] = func(lower_bound, upper_bound, n_bins)
 
+        # If we are not being memory-conservative, grab all the bins
+        # and the inverse indices right now.
         if not lazy_reader:
             self._args = self._get_bins(data_source)
 
@@ -140,45 +171,48 @@ class BinnedProfile1D(BinnedProfile):
     @preserve_source_parameters
     def _bin_field(self, source, field, weight, accumulation,
                    args, check_cut=False):
-        mi, inv_bin_indices = args
-        if check_cut:
-            cm = self._data_source._get_point_indices(source)
-            source_data = source[field][cm].astype('float64')[mi]
-            if weight: weight_data = source[weight][cm].astype('float64')[mi]
-        else:
-            source_data = source[field].astype('float64')[mi]
-            if weight: weight_data = source[weight].astype('float64')[mi]
+        mi, inv_bin_indices = args # Args has the indices to use as input
+        # check_cut is set if source != self._data_source
+        # (i.e., lazy_reader)
+        source_data = self._get_field(source, field, check_cut)[mi]
+        if weight: weight_data = self._get_field(source, weight, check_cut)[mi]
         binned_field = self._get_empty_field()
         weight_field = self._get_empty_field()
         used_field = na.ones(weight_field.shape, dtype='bool')
+        # Now we perform the actual binning
         for bin in inv_bin_indices.keys():
+            # temp_field is *all* the points from source that go into this bin
             temp_field = source_data[inv_bin_indices[bin]]
             if weight:
+                # now w_i * v_i and store sum(w_i)
                 weight_field[bin] = weight_data[inv_bin_indices[bin]].sum()
                 temp_field *= weight_data[inv_bin_indices[bin]]
             binned_field[bin] = temp_field.sum()
-        if accumulation: # Fix for laziness
+        # Fix for laziness, because at the *end* we will be
+        # summing up all of the histograms and dividing by the
+        # weights.  Accumulation likely doesn't work with weighted
+        # average fields.
+        if accumulation: 
             binned_field = na.add.accumulate(binned_field)
         return binned_field, weight_field, na.ones(binned_field.shape,dtype='bool')
 
     @preserve_source_parameters
     def _get_bins(self, source, check_cut=False):
-        if check_cut:
-            cm = self._data_source._get_point_indices(source)
-            source_data = source[self.bin_field][cm]
-        else:
-            source_data = source[self.bin_field]
-        if source_data.size == 0:
+        source_data = self._get_field(source, self.bin_field, check_cut)
+        if source_data.size == 0: # Nothing for us here.
             return
+        # Truncate at boundaries.
         mi = na.where( (source_data > self[self.bin_field].min())
                      & (source_data < self[self.bin_field].max()))
         sd = source_data[mi]
         if sd.size == 0:
             return
+        # Stick the bins into our fixed bins, set at initialization
         bin_indices = na.digitize(sd, self[self.bin_field])
         # Now we set up our inverse bin indices
         inv_bin_indices = {}
         for bin in range(self[self.bin_field].size):
+            # Which fall into our bin?
             inv_bin_indices[bin] = na.where(bin_indices == bin)
         return (mi, inv_bin_indices)
 
@@ -198,6 +232,10 @@ class BinnedProfile2D(BinnedProfile):
                  y_n_bins, y_bin_field, y_lower_bound, y_upper_bound, y_log,
                  lazy_reader=False):
         """
+        A 'Profile' produces either a weighted (or unweighted) average or a
+        straight sum of a field in a bin defined by two other fields.  In the case
+        of a weighted average, we have: p_i = sum( w_i * v_i ) / sum(w_i)
+
         We accept a *data_source*, which will be binned into *x_n_bins* by the
         field *x_bin_field* between the *x_lower_bound* and the *x_upper_bound*
         and then again binned into *y_n_bins* by the field *y_bin_field*
@@ -236,15 +274,9 @@ class BinnedProfile2D(BinnedProfile):
     @preserve_source_parameters
     def _bin_field(self, source, field, weight, accumulation,
                    args, check_cut=False):
-        if check_cut:
-            pointI = self._data_source._get_point_indices(source)
-            source_data = source[field][pointI].ravel().astype('float64')
-            weight_data = na.ones(source_data.shape).astype('float64')
-            if weight: weight_data = source[weight][pointI].ravel().astype('float64')
-        else:
-            source_data = source[field].ravel().astype('float64')
-            weight_data = na.ones(source_data.shape).astype('float64')
-            if weight: weight_data = source[weight].ravel().astype('float64')
+        source_data = self._get_field(source, field, check_cut)
+        if weight: weight_data = self._get_field(source, weight, check_cut)
+        else: weight_data = na.ones(source_data.shape, dtype='float64')
         self.total_stuff = source_data.sum()
         binned_field = self._get_empty_field()
         weight_field = self._get_empty_field()
@@ -269,13 +301,8 @@ class BinnedProfile2D(BinnedProfile):
 
     @preserve_source_parameters
     def _get_bins(self, source, check_cut=False):
-        if check_cut:
-            cm = self._data_source._get_point_indices(source)
-            source_data_x = source[self.x_bin_field][cm]
-            source_data_y = source[self.y_bin_field][cm]
-        else:
-            source_data_x = source[self.x_bin_field]
-            source_data_y = source[self.y_bin_field]
+        source_data_x = self._get_field(source, self.x_bin_field, check_cut)
+        source_data_y = self._get_field(source, self.y_bin_field, check_cut)
         if source_data_x.size == 0:
             return
         mi = na.where( (source_data_x > self[self.x_bin_field].min())
@@ -356,15 +383,10 @@ class BinnedProfile3D(BinnedProfile):
     @preserve_source_parameters
     def _bin_field(self, source, field, weight, accumulation,
                    args, check_cut=False):
-        if check_cut:
-            pointI = self._data_source._get_point_indices(source)
-            source_data = source[field][pointI].ravel().astype('float64')
-            weight_data = na.ones(source_data.shape).astype('float64')
-            if weight: weight_data = source[weight][pointI].ravel().astype('float64')
-        else:
-            source_data = source[field].ravel().astype('float64')
-            weight_data = na.ones(source_data.shape).astype('float64')
-            if weight: weight_data = source[weight].ravel().astype('float64')
+        source_data = self._get_field(source, field, check_cut)
+        weight_data = na.ones(source_data.shape).astype('float64')
+        if weight: weight_data = self._get_field(source, weight, check_cut)
+        else: weight_data = na.ones(source_data.shape).astype('float64')
         self.total_stuff = source_data.sum()
         binned_field = self._get_empty_field()
         weight_field = self._get_empty_field()
@@ -392,15 +414,9 @@ class BinnedProfile3D(BinnedProfile):
 
     @preserve_source_parameters
     def _get_bins(self, source, check_cut=False):
-        if check_cut:
-            cm = self._data_source._get_point_indices(source)
-            source_data_x = source[self.x_bin_field][cm]
-            source_data_y = source[self.y_bin_field][cm]
-            source_data_z = source[self.z_bin_field][cm]
-        else:
-            source_data_x = source[self.x_bin_field]
-            source_data_y = source[self.y_bin_field]
-            source_data_z = source[self.z_bin_field]
+        source_data_x = self._get_field(source, self.x_bin_field, check_cut)
+        source_data_y = self._get_field(source, self.y_bin_field, check_cut)
+        source_data_y = self._get_field(source, self.z_bin_field, check_cut)
         if source_data_x.size == 0:
             return
         mi = na.where( (source_data_x > self[self.x_bin_field].min())

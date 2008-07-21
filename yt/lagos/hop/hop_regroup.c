@@ -289,9 +289,9 @@ void readtags(Slice *s, Grouplist *g, char *fname)
     s->numpart = g->npart;
     s->numlist = g->npart;
     s->ntag = ivector(1,s->numlist);
-    s->ID = ivector(1,s->numlist);
+    //s->ID = ivector(1,s->numlist);
     fread(s->ntag+1, sizeof(int), s->numlist, f); /* Read in all the tags */
-    fread(s->ID+1, sizeof(int), s->numlist,f); /* Read in the real particle IDs. S Skory */
+    //fread(s->ID+1, sizeof(int), s->numlist,f); /* Read in the real particle IDs. S Skory */
     fclose(f);
 
     return;
@@ -585,7 +585,7 @@ void writetags(Slice *s, Grouplist *gl, char *fname)
     	s->numpart, gl->ngroups);
     fwrite(&(gl->ngroups),sizeof(int),1,f);
     fwrite(s->ntag+1,sizeof(int),s->numlist,f);
-    fwrite(s->ID+1,sizeof(int),s->numlist,f); /* S Skory */
+    //fwrite(s->ID+1,sizeof(int),s->numlist,f); /* S Skory */
     fclose(f);
 
     return;

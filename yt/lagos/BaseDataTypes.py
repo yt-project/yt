@@ -1,11 +1,11 @@
 """
 Various non-grid data containers.
 
-@author: U{Matthew Turk<http://www.stanford.edu/~mturk/>}
-@organization: U{KIPAC<http://www-group.slac.stanford.edu/KIPAC/>}
-@contact: U{mturk@slac.stanford.edu<mailto:mturk@slac.stanford.edu>}
-@license:
-  Copyright (C) 2007 Matthew Turk.  All Rights Reserved.
+Author: Matthew Turk <matthewturk@gmail.com>
+Affiliation: KIPAC/SLAC/Stanford
+Homepage: http://yt.enzotools.org/
+License:
+  Copyright (C) 2007-2008 Matthew Turk.  All Rights Reserved.
 
   This file is part of yt.
 
@@ -729,6 +729,8 @@ class AMRProjBase(AMR2DData):
         self._grids = self.source._grids
         if max_level == None:
             max_level = self.hierarchy.maxLevel
+        if source is not None:
+            max_level = min(max_level, source.gridLevels.max())
         self._max_level = max_level
         self._weight = weight_field
         self.center = center
@@ -973,12 +975,16 @@ class AMRProjBase(AMR2DData):
         full_proj = [self.func(field,axis=self.axis) for field in masked_data]
         weight_proj = self.func(weight_data,axis=self.axis)
         if self._check_region and not self.source._is_fully_enclosed(grid):
-            used_data = self._get_points_in_region(grid)
+            used_data = self._get_points_in_region(grid).astype('bool')
             used_points = na.where(na.logical_or.reduce(used_data, self.axis))
         else:
+            used_data = na.array([1.0], dtype='bool')
             used_points = slice(None)
         if zero_out:
-            subgrid_mask = na.logical_and.reduce(grid.child_mask, self.axis).astype('int64')
+            subgrid_mask = na.logical_and.reduce(
+                                na.logical_or(grid.child_mask,
+                                             ~used_data),
+                                self.axis).astype('int64')
         else:
             subgrid_mask = na.ones(full_proj[0].shape, dtype='int64')
         xind, yind = [arr[used_points].ravel() for arr in na.indices(full_proj[0].shape)]
@@ -1461,7 +1467,13 @@ class AMRCoveringGrid(AMR3DData):
         self._refresh_data()
 
     def _get_list_of_grids(self):
-        grids, ind = self.pf.hierarchy.get_box_grids(self.left_edge, self.right_edge)
+        if na.any(self.left_edge < self.pf["DomainLeftEdge"]) or \
+           na.any(self.right_edge > self.pf["DomainRightEdge"]):
+            grids,ind = self.pf.hierarchy.get_periodic_box_grids(
+                            self.left_edge, self.right_edge)
+        else:
+            grids,ind = self.pf.hierarchy.get_box_grids(
+                            self.left_edge, self.right_edge)
         level_ind = na.where(self.pf.hierarchy.gridLevels.ravel()[ind] <= self.level)
         sort_ind = na.argsort(self.pf.h.gridLevels.ravel()[ind][level_ind])
         self._grids = self.pf.hierarchy.grids[ind][level_ind][(sort_ind,)]
@@ -1495,8 +1507,10 @@ class AMRCoveringGrid(AMR3DData):
                 self._get_data_from_grid(grid, field)
                 if not na.any(self[field] == -999): break
             if self._use_pbar: pbar.finish()
-            if na.any(self[field] == -999) and self.dx < self.hierarchy.grids[0].dx:
+            if na.any(self[field] == -999):# and self.dx < self.hierarchy.grids[0].dx:
                 print "COVERING PROBLEM", na.where(self[field]==-999)[0].size
+                print na.where(self[field]==-999)
+                return
                 raise KeyError
 
     def flush_data(self, field=None):
@@ -1527,7 +1541,7 @@ class AMRCoveringGrid(AMR3DData):
         PointCombine.DataCubeRefine(
             grid.LeftEdge, g_dx, g_fields, grid.child_mask,
             self.left_edge, self.right_edge, c_dx, c_fields,
-            ll)
+            ll, self.pf["DomainLeftEdge"], self.pf["DomainRightEdge"])
 
     def _flush_data_to_grid(self, grid, fields):
         ll = int(grid.Level == self.level)
@@ -1542,14 +1556,14 @@ class AMRCoveringGrid(AMR3DData):
         PointCombine.DataCubeReplace(
             grid.LeftEdge, g_dx, g_fields, grid.child_mask,
             self.left_edge, self.right_edge, c_dx, c_fields,
-            ll)
+            ll, self.pf["DomainLeftEdge"], self.pf["DomainRightEdge"])
 
 class AMRSmoothedCoveringGrid(AMRCoveringGrid):
     def __init__(self, *args, **kwargs):
         dlog2 = na.log10(kwargs['dims'])/na.log10(2)
         if not na.all(na.floor(dlog2) == na.ceil(dlog2)):
             mylog.warning("Must be power of two dimensions")
-            raise ValueError
+            #raise ValueError
         kwargs['num_ghost_zones'] = 0
         AMRCoveringGrid.__init__(self, *args, **kwargs)
         if na.any(self.left_edge == 0):
@@ -1569,7 +1583,7 @@ class AMRSmoothedCoveringGrid(AMRCoveringGrid):
     def _get_level_array(self, level, fields):
         fields = ensure_list(fields)
         # We assume refinement by a factor of two
-        rf = 2**(self.level - level)
+        rf = float(2**(self.level - level))
         dims = na.maximum(1,self.ActiveDimensions/rf) + 2
         dx = (self.right_edge-self.left_edge)/(dims-2)
         x,y,z = (na.mgrid[0:dims[0],0:dims[1],0:dims[2]].astype('float64')+0.5)\
@@ -1577,20 +1591,23 @@ class AMRSmoothedCoveringGrid(AMRCoveringGrid):
         x += self.left_edge[0] - dx[0]
         y += self.left_edge[1] - dx[1]
         z += self.left_edge[2] - dx[2]
-        bounds = [self.left_edge[0]-self['cdx'], self.right_edge[0]+self['cdx'],
-                  self.left_edge[1]-self['cdy'], self.right_edge[1]+self['cdy'],
-                  self.left_edge[2]-self['cdz'], self.right_edge[2]+self['cdz']]
+        offsets = [self['cd%s' % ax]*0.5 for ax in 'xyz']
+        bounds = [self.left_edge[0]-offsets[0], self.right_edge[0]+offsets[0],
+                  self.left_edge[1]-offsets[1], self.right_edge[1]+offsets[1],
+                  self.left_edge[2]-offsets[2], self.right_edge[2]+offsets[2]]
         fake_grid = {'x':x,'y':y,'z':z,'dx':dx[0],'dy':dx[1],'dz':dx[2]}
         for ax in 'xyz': self['cd%s'%ax] = fake_grid['d%s'%ax]
         for field in fields:
             # Generate the new grid field
             if field in fieldInfo and fieldInfo[field].take_log:
                 interpolator = TrilinearFieldInterpolator(
-                                na.log10(self[field]), bounds, ['x','y','z'])
+                                na.log10(self[field]), bounds, ['x','y','z'],
+                                truncate = True)
                 self[field] = 10**interpolator(fake_grid)
             else:
                 interpolator = TrilinearFieldInterpolator(
-                                self[field], bounds, ['x','y','z'])
+                                self[field], bounds, ['x','y','z'],
+                                truncate = True)
                 self[field] = interpolator(fake_grid)
         return fake_grid
 
@@ -1637,7 +1654,7 @@ class AMRSmoothedCoveringGrid(AMRCoveringGrid):
             grid.LeftEdge, g_dx, g_fields, grid.child_mask,
             self.left_edge-c_dx, self.right_edge+c_dx,
             c_dx, c_fields,
-            1)
+            1, self.pf["DomainLeftEdge"], self.pf["DomainRightEdge"])
 
     def flush_data(self, *args, **kwargs):
         raise KeyError("Can't do this")
