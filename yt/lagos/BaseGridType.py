@@ -267,7 +267,8 @@ class AMRGridPatch(AMRData):
             # Now let's get our overlap
             startIndex = na.rint((child.LeftEdge - self.LeftEdge)/self.dx)
             endIndex = na.minimum(na.rint((child.RightEdge - self.LeftEdge)/self.dx),
-                                  startIndex + self.ActiveDimensions)
+                                  self.ActiveDimensions)
+                                  #startIndex + self.ActiveDimensions)
             startIndex = na.maximum(0, startIndex)
             self.__child_mask[startIndex[0]:endIndex[0],
                               startIndex[1]:endIndex[1],
