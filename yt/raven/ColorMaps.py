@@ -1,8 +1,9 @@
 """
-@author: Britton Smith, Matthew Turk
-@organization: UC Boulder, KIPAC
-@contact: brittonsmith@gmail.com, mturk@slac.stanford.edu
-@license:
+Author: Britton Smith <brittonsmith@gmail.com>
+Affiliation:  UC Boulder, KIPAC
+Author: Matthew Turk <matthewturk@gmail.com>
+Affiliation: KIPAC/SLAC/Stanford
+License:
   Copyright (C) 2008 Britton Smith, Matthew Turk  All Rights Reserved.
 
   This file is part of yt.

@@ -3,12 +3,11 @@ This module is very simple.  It imports the configuration
 we have written for yt.
 Everything will be returned in a global config dictionary: ytcfg
 
-@author: U{Matthew Turk<http://www.stanford.edu/~mturk/>}
-@organization: U{KIPAC<http://www-group.slac.stanford.edu/KIPAC/>}
-@contact: U{mturk@slac.stanford.edu<mailto:mturk@slac.stanford.edu>}
-@todo: Implement default rc file outputting
-@license:
-  Copyright (C) 2007 Matthew Turk.  All Rights Reserved.
+Author: Matthew Turk <matthewturk@gmail.com>
+Affiliation: KIPAC/SLAC/Stanford
+Homepage: http://yt.enzotools.org/
+License:
+  Copyright (C) 2007-2008 Matthew Turk.  All Rights Reserved.
 
   This file is part of yt.
 
@@ -31,7 +30,6 @@ import ConfigParser, os, os.path, types
 ytcfgDefaults = {
     "fido":{
         'RunDir': os.path.join(os.getenv("HOME"),'.yt/EnzoRuns/'),
-        'WorkDir': os.path.join('/usr/work/', os.getenv("USER")),
         'WaitBetween':'5',
         'OtherFiles':'rates.out,cool_rates.out',
         'NewOutputCreated':'newOutput',
@@ -63,9 +61,9 @@ ytcfgDefaults = {
         'suppressStreamLogging': 'False',
         'LogLevel': '20',
         'unifiedlogfile': '1',
-        'User':os.getenv("USER"),
         'timefunctions':'False',
         'inGui':'False',
+        'parallel':'False',
          },
     "raven":{
         'ImagePath':".",

@@ -5,12 +5,11 @@ this module.
 This is all probably overly-complicated, and should be removed at first
 opportunity to ditch numarray.
 
-@author: U{Matthew Turk<http://www.stanford.edu/~mturk/>}
-@organization: U{KIPAC<http://www-group.slac.stanford.edu/KIPAC/>}
-@contact: U{mturk@slac.stanford.edu<mailto:mturk@slac.stanford.edu>}
-@todo: Deprecate this.
-@license:
-  Copyright (C) 2007 Matthew Turk.  All Rights Reserved.
+Author: Matthew Turk <matthewturk@gmail.com>
+Affiliation: KIPAC/SLAC/Stanford
+Homepage: http://yt.enzotools.org/
+License:
+  Copyright (C) 2007-2008 Matthew Turk.  All Rights Reserved.
 
   This file is part of yt.
 

@@ -1,13 +1,12 @@
 """
 New run instantiation
 
-@author: U{Matthew Turk<http://www.stanford.edu/~mturk/>}
-@organization: U{KIPAC<http://www-group.slac.stanford.edu/KIPAC/>}
-@contact: U{mturk@slac.stanford.edu<mailto:mturk@slac.stanford.edu>}
+Author: Matthew Turk <matthewturk@gmail.com>
+Affiliation: KIPAC/SLAC/Stanford
+Homepage: http://yt.enzotools.org/
 
-@todo: IMPLEMENT!
-@license:
-  Copyright (C) 2007 Matthew Turk.  All Rights Reserved.
+License:
+  Copyright (C) 2007-2008 Matthew Turk.  All Rights Reserved.
 
   This file is part of yt.
 

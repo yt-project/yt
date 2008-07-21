@@ -1,11 +1,11 @@
 """
 Useful functions.  If non-original, see function for citation.
 
-@author: U{Matthew Turk<http://www.stanford.edu/~mturk/>}
-@organization: U{KIPAC<http://www-group.slac.stanford.edu/KIPAC/>}
-@contact: U{mturk@slac.stanford.edu<mailto:mturk@slac.stanford.edu>}
-@license:
-  Copyright (C) 2007 Matthew Turk.  All Rights Reserved.
+Author: Matthew Turk <matthewturk@gmail.com>
+Affiliation: KIPAC/SLAC/Stanford
+Homepage: http://yt.enzotools.org/
+License:
+  Copyright (C) 2007-2008 Matthew Turk.  All Rights Reserved.
 
   This file is part of yt.
 
@@ -25,6 +25,14 @@ Useful functions.  If non-original, see function for citation.
 
 import time, types
 import progressbar as pb
+
+def blank_wrapper(f):
+    return lambda a: a
+
+try:
+    from functools import wraps
+except ImportError:
+    wraps = blank_wrapper
 
 def iterable(obj):
     """
@@ -46,6 +54,7 @@ def time_execution(func):
     Decorator for seeing how long a given function takes, depending on whether
     or not the global 'yt.timefunctions' config parameter is set.
     """
+    @wraps(func)
     def wrapper(*arg, **kw):
         t1 = time.time()
         res = func(*arg, **kw)
@@ -118,6 +127,13 @@ class __defaultdict(dict):
         if not self.has_key(key):
             self.__setitem__(key, self.__func())
         return dict.__getitem__(self, key)
+
+import traceback
+def print_tb(func):
+    def run_func(*args, **kwargs):
+        traceback.print_stack()
+        func(*args, **kwargs)
+    return run_func
 
 try:
     from collections import defaultdict

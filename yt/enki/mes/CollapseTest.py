@@ -1,15 +1,15 @@
 """
 Collapse Test intiializer
 
-@author: U{Matthew Turk<http://www.stanford.edu/~mturk/>}
-@organization: U{KIPAC<http://www-group.slac.stanford.edu/KIPAC/>}
-@contact: U{mturk@slac.stanford.edu<mailto:mturk@slac.stanford.edu>}
+Author: Matthew Turk <matthewturk@gmail.com>
+Affiliation: KIPAC/SLAC/Stanford
+Homepage: http://yt.enzotools.org/
 
-@todo: Add remainder of sphere types
-@todo: Add multispecies abundance setting
-@todo: Get TemperatureUnits from reasonable source, not hardcoded
-@license:
-  Copyright (C) 2007 Matthew Turk.  All Rights Reserved.
+Todo: Add remainder of sphere types
+Todo: Add multispecies abundance setting
+Todo: Get TemperatureUnits from reasonable source, not hardcoded
+License:
+  Copyright (C) 2007-2008 Matthew Turk.  All Rights Reserved.
 
   This file is part of yt.
 

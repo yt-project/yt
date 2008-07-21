@@ -2,17 +2,15 @@
 Raven
 =====
 
-    Raven is the plotting interface, with support for several
-    different engines.  Well, two for now, but maybe more later.
-    Who knows?
+Raven is the plotting interface, with support for several
+different engines.  Well, two for now, but maybe more later.
+Who knows?
 
-G{packagetree}
-
-@author: U{Matthew Turk<http://www.stanford.edu/~mturk/>}
-@organization: U{KIPAC<http://www-group.slac.stanford.edu/KIPAC/>}
-@contact: U{mturk@slac.stanford.edu<mailto:mturk@slac.stanford.edu>}
-@license:
-  Copyright (C) 2007 Matthew Turk.  All Rights Reserved.
+Author: Matthew Turk <matthewturk@gmail.com>
+Affiliation: KIPAC/SLAC/Stanford
+Homepage: http://yt.enzotools.org/
+License:
+  Copyright (C) 2007-2008 Matthew Turk.  All Rights Reserved.
 
   This file is part of yt.
 
@@ -32,6 +30,7 @@ G{packagetree}
 from yt.config import ytcfg
 from yt.logger import ravenLogger as mylog
 from yt.arraytypes import *
+from yt.funcs import *
 import yt.lagos as lagos
 try:
     import deliveration

@@ -53,11 +53,12 @@ static PyObject* Py_Pixelize(PyObject *obj, PyObject *args) {
 
   PyObject *xp, *yp, *dxp, *dyp, *dp;
   unsigned int rows, cols;
+  int antialias = 1;
   double x_min, x_max, y_min, y_max;
 
-    if (!PyArg_ParseTuple(args, "OOOOOII(dddd)",
+    if (!PyArg_ParseTuple(args, "OOOOOII(dddd)|i",
         &xp, &yp, &dxp, &dyp, &dp, &cols, &rows,
-        &x_min, &x_max, &y_min, &y_max))
+        &x_min, &x_max, &y_min, &y_max, &antialias))
         return PyErr_Format(_pixelizeError, "Pixelize: Invalid Parameters.");
 
   double width = x_max - x_min;
@@ -146,7 +147,8 @@ static PyObject* Py_Pixelize(PyObject *obj, PyObject *args) {
         rxpx = px_dx * (j+1) + x_min;
         overlap1 = ((min(rxpx, xs[p]+dxs[p]) - max(lxpx, (xs[p]-dxs[p])))/px_dx);
         if (overlap1 < 0.0 || overlap2 < 0.0) continue;
-        gridded[j*cols+i] += (ds[p]*overlap1)*(overlap2);
+        if (antialias == 1) gridded[j*cols+i] += (ds[p]*overlap1)*overlap2;
+        else gridded[j*cols+i] = ds[p];
       }
     }
   }

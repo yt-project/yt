@@ -1,13 +1,13 @@
 """
-This is an interface to U{MatPlotLib <http://matplotlib.sf.net>} to plot
+This is an interface to MatPlotLib <http://matplotlib.sf.net> to plot
 irregularly shaped grids, with the presumption that at any point we could have
 data that is "hidden" in deeper levels of refinement.
 
-@author: U{Matthew Turk<http://www.stanford.edu/~mturk/>}
-@organization: U{KIPAC<http://www-group.slac.stanford.edu/KIPAC/>}
-@contact: U{mturk@slac.stanford.edu<mailto:mturk@slac.stanford.edu>}
-@license:
-  Copyright (C) 2007 Matthew Turk.  All Rights Reserved.
+Author: Matthew Turk <matthewturk@gmail.com>
+Affiliation: KIPAC/SLAC/Stanford
+Homepage: http://yt.enzotools.org/
+License:
+  Copyright (C) 2007-2008 Matthew Turk.  All Rights Reserved.
 
   This file is part of yt.
 
@@ -128,13 +128,9 @@ class RavenPlot:
 
     def save_image(self, prefix, format, submit=None, override=False):
         """
-        Save this plot image.  Will generate a filename based on the prefix,
-        format, and the approriate data stored in the plot.
-
-        @param prefix: the prefix to prepend to the filename
-        @type prefix: string
-        @param format: the prefix to append to the filename
-        @type format: string
+        Save this plot image.  Will generate a filename based on the *prefix*,
+        *format*.  *submit* will govern the submission to the Deliverator and
+        *override* will force no filename generation beyond the prefix.
         """
         self._redraw_image()
         if not override:
@@ -157,20 +153,30 @@ class RavenPlot:
         pass
 
     def set_xlim(self, xmin, xmax):
-        mylog.debug("Setting limits in x: %0.5e %0.5e", xmin, xmax)
+        """
+        Set the x boundaries of this plot.
+        """
         self._axes.set_xlim(xmin, xmax)
 
     def set_ylim(self, ymin, ymax):
-        mylog.debug("Setting limits in y: %4.5e %0.5e", ymin, ymax)
+        """
+        Set the y boundaries of this plot.
+        """
         self._axes.set_ylim(ymin, ymax)
 
     def set_zlim(self, zmin, zmax):
+        """
+        Set the z boundaries of this plot.
+        """
         self.norm.autoscale(na.array([zmin,zmax]))
         self.image.changed()
-        if self.colorbar != None:
-            self.colorbar.notify(self.image)
+        if self.colorbar is not None:
+            _notify(self.image, self.colorbar)
 
     def set_cmap(self, cmap):
+        """
+        Change the colormap of this plot to *cmap*.
+        """
         if isinstance(cmap, types.StringTypes):
             if str(cmap) in raven_colormaps:
                 cmap = raven_colormaps[str(cmap)]
@@ -182,10 +188,18 @@ class RavenPlot:
         self.im[item] = val
 
     def add_callback(self, func):
+        """
+        Add *func* as a callback to this plot.  *func* will be called with this
+        plot as its first argument every time the plot is redrawn.  Returns the
+        id of the callback (for use with :meth:`remove_callback`.)
+        """
         self._callbacks.append(func)
         return len(self._callbacks)-1
 
     def remove_callback(self, id):
+        """
+        Given an *id*, remove that index in the callbacks list.
+        """
         self._callbacks[id] = lambda a: None
 
     def _run_callbacks(self):
@@ -193,10 +207,15 @@ class RavenPlot:
             cb(self)
 
     def set_label(self, label):
+        """
+        Set the datalabel to *label*.  (This has different meanings based on
+        the plot.)
+        """
         self.datalabel = label
         if self.colorbar != None: self.colorbar.set_label(str(label))
 
 class VMPlot(RavenPlot):
+    _antialias = True
     def __init__(self, data, field, figure = None, axes = None,
                  use_colorbar = True, size=None):
         fields = ['X', 'Y', field, 'X width', 'Y width']
@@ -249,8 +268,8 @@ class VMPlot(RavenPlot):
         self._axes.set_xlabel("")
         if setup_colorbar:
             self.colorbar = self._figure.colorbar(self._axes.images[-1], \
-                                                extend='neither', \
-                                                shrink=0.95)
+                                                  extend='neither', \
+                                                  shrink=0.95)
         else:
             self.colorbar = None
         w = self.data.pf["DomainRightEdge"]-self.data.pf["DomainLeftEdge"]
@@ -260,19 +279,20 @@ class VMPlot(RavenPlot):
         x0, x1 = self.xlim
         y0, y1 = self.ylim
         if width is None:
-            l, b, width, height = self._axes.bbox.get_bounds()
+            l, b, width, height = _get_bounds(self._axes.bbox)
         else:
             height = width
         self.pix = (width,height)
         # 'px' == pixel x, or x in the plane of the slice
         # 'x' == actual x
+        aa = int(self._antialias)
         buff = _MPL.Pixelize(self.data['px'],
                             self.data['py'],
                             self.data['pdx'],
                             self.data['pdy'],
                             self[self.axis_names["Z"]],
                             int(width), int(width),
-                        (x0, x1, y0, y1),).transpose()
+                            (x0, x1, y0, y1),aa).transpose()
         return buff
 
     def _redraw_image(self, *args):
@@ -307,7 +327,7 @@ class VMPlot(RavenPlot):
         if self.colorbar != None:
             self.image.set_norm(self.norm)
             self.colorbar.set_norm(self.norm)
-            if self.do_autoscale: self.colorbar.notify(self.image)
+            if self.do_autoscale: _notify(self.image, self.colorbar)
         self.autoset_label()
 
     def set_xlim(self, xmin, xmax):
@@ -379,7 +399,7 @@ class SlicePlot(VMPlot):
             self.colorbar.set_label(str(self.datalabel))
             return
         field_name = self.axis_names["Z"]
-        data_label = r"$\rm{%s}" % field_name
+        data_label = r"$\rm{%s}" % field_name.replace("_","\hspace{0.5}")
         if lagos.fieldInfo.has_key(field_name):
             data_label += r"\/\/ (%s)" % (lagos.fieldInfo[field_name].get_units())
         data_label += r"$"
@@ -393,7 +413,7 @@ class ProjectionPlot(VMPlot):
             self.colorbar.set_label(str(self.datalabel))
             return
         field_name = self.axis_names["Z"]
-        data_label = r"$\rm{%s}" % field_name
+        data_label = r"$\rm{%s}" % field_name.replace("_","\hspace{0.5}")
         if lagos.fieldInfo.has_key(field_name):
             data_label += r"\/\/ (%s)" % (lagos.fieldInfo[field_name].get_projected_units())
         data_label += r"$"
@@ -410,7 +430,7 @@ class CuttingPlanePlot(SlicePlot):
         px_min, px_max = self.xlim
         py_min, py_max = self.ylim
         if width is None:
-            l, b, width, height = self._axes.bbox.get_bounds()
+            l, b, width, height = _get_bounds(self._axes.bbox)
         else:
             height = width
         self.pix = (width,height)
@@ -421,7 +441,7 @@ class CuttingPlanePlot(SlicePlot):
                                self.data.center, self.data._inv_mat, indices,
                                self.data[self.axis_names['Z']],
                                int(width), int(width),
-                               (px_min, px_max, py_min, py_max))
+                               (px_min, px_max, py_min, py_max)).transpose()
         return buff
 
     def _refresh_display_width(self, width=None):
@@ -455,7 +475,7 @@ class ProfilePlot(RavenPlot):
         return log_field
 
     def autoset_label(self, field, func):
-        dataLabel = r"$\rm{%s}" % (field)
+        dataLabel = r"$\rm{%s}" % (field.replace("_","\hspace{0.5}"))
         if field in lagos.fieldInfo:
             dataLabel += r" (%s)" % (lagos.fieldInfo[field].get_units())
         dataLabel += r"$"
@@ -465,7 +485,7 @@ class ProfilePlot(RavenPlot):
 class Profile1DPlot(ProfilePlot):
 
     _type_name = "Profile1D"
-    def __init__(self, data, fields, id, ticker=None, cmap=None,
+    def __init__(self, data, fields, id, ticker=None, 
                  figure=None, axes=None, plot_options=None):
         self._semi_unique_id = id
         RavenPlot.__init__(self, data, fields, figure, axes)
@@ -584,7 +604,6 @@ class PhasePlot(ProfilePlot):
     def _redraw_image(self):
         vals = self.data[self.fields[2]].transpose()
         used_bin = self.data["UsedBins"].transpose()
-        vals[~used_bin] = na.nan
         vmin = na.nanmin(vals[used_bin])
         vmax = na.nanmax(vals[used_bin])
         if self._log_z:
@@ -601,7 +620,6 @@ class PhasePlot(ProfilePlot):
                                                   clip=False)
             self.ticker = matplotlib.ticker.MaxNLocator()
         self.colorbar.set_norm(self.norm)
-        self.colorbar.set_norm(self.norm)
         if self.cmap == None:
             self.cmap = matplotlib.cm.get_cmap()
         self.cmap.set_bad("w")
@@ -617,7 +635,7 @@ class PhasePlot(ProfilePlot):
         self._axes.set_yscale({0:"linear",1:"log"}[int(self._log_y)])
         self.vals = vals
 
-        self.colorbar.notify(self.image)
+        _notify(self.image, self.colorbar)
         self.autoset_label(self.fields[0], self._axes.set_xlabel)
         self.autoset_label(self.fields[1], self._axes.set_ylabel)
         self.autoset_label(self.fields[2], self.colorbar.set_label)
@@ -636,7 +654,7 @@ class PhasePlot(ProfilePlot):
         if self.datalabel != None:
             func(str(self.datalabel))
             return
-        data_label = r"$\rm{%s}" % field_name
+        data_label = r"$\rm{%s}" % field_name.replace("_"," ")
         if field_name in lagos.fieldInfo:
             data_label += r"\/\/ (%s)" % (lagos.fieldInfo[field_name].get_units())
         data_label += r"$"
@@ -645,3 +663,33 @@ class PhasePlot(ProfilePlot):
     def set_width(self, width, unit):
         mylog.warning("Choosing not to change the width of a phase plot instance")
 
+
+# Now we provide some convenience functions to get information about plots.
+# With Matplotlib 0.98.x, the 'transforms' branch broke backwards
+# compatibility.  Despite that, the various packagers are plowing ahead with
+# packaging 0.98.x with new distributions of python software.  So I guess
+# we have to support it.
+
+_compatibility_functions = ["_get_bounds","_notify"]
+
+_mpl98_get_bounds = lambda bbox: bbox.bounds
+_mpl9x_get_bounds = lambda bbox: bbox.get_bounds()
+_mpl98_notify = lambda im,cb: cb.update_bruteforce(im)
+_mpl9x_notify = lambda im,cb: cb.notify(im)
+
+# This next function hurts, because it relies on the fact that
+# we're only differentiating between 0.9[01] and 0.98.
+
+_mpl_version = float(matplotlib.__version__[:4])
+
+if _mpl_version < 0.98:
+    _prefix = '_mpl9x'
+    mylog.debug("Turning on matplotlib 0.9X compat (%s)",
+                matplotlib.__version__)
+else:
+    _prefix = '_mpl98'
+    mylog.debug("Turning on matplotlib 0.98 compat (%s)",
+                matplotlib.__version__)
+
+for fn in _compatibility_functions:
+    exec("%s = %s%s" % (fn, _prefix, fn))

@@ -1,12 +1,12 @@
 """
 This is an interface to 
-U{S2PLOT <http://http://astronomy.swin.edu.au/s2plot/index.php?title=S2PLOT>}
+S2PLOT <http://http://astronomy.swin.edu.au/s2plot/index.php?title=S2PLOT>
 to plot uniform-spaced grids, derived from AMR data.
 
-@author: U{Matthew Turk<http://www.stanford.edu/~mturk/>}
-@organization: U{KIPAC<http://www-group.slac.stanford.edu/KIPAC/>}
-@contact: U{mturk@slac.stanford.edu<mailto:mturk@slac.stanford.edu>}
-@license:
+Author: Matthew Turk <matthewturk@gmail.com>
+Affiliation: KIPAC/SLAC/Stanford
+Homepage: http://yt.enzotools.org/
+License:
   Copyright (C) 2008 Matthew Turk.  All Rights Reserved.
 
   This file is part of yt.
@@ -53,6 +53,8 @@ class VolumeRendering(object):
 
         This class is meant to be exclusively a base class.
         """
+        mylog.info("You are now using the S2PLOT library.  Please be aware of the licensing terms.")
+        mylog.info("http://astronomy.swin.edu.au/s2plot/index.php?title=S2PLOT")
         if bounds is None:
             self.x0,self.x1, self.y0,self.y1, self.z0,self.z1 = \
                 0.0,1.0, 0.0,1.0, 0.0,1.0
@@ -286,6 +288,8 @@ class HaloMassesPositionPlot(object):
         using their masses as color, their radii as radius, and *window_opts*
         as the options to the S2PLOT interface.  *cmap* is a matplotlib cmap.
         """
+        mylog.info("You are now using the S2PLOT library.  Please be aware of the licensing terms.")
+        mylog.info("http://astronomy.swin.edu.au/s2plot/index.php?title=S2PLOT")
         self.hop_results = hop_results
         self.window_opts = window_opts
         self.cmap = cmap

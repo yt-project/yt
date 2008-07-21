@@ -2,11 +2,19 @@
 Generalized Enzo output objects, both static and time-series.
 
 Presumably at some point EnzoRun will be absorbed into here.
+<<<<<<< .working
 Author: Matthew Turk <matthewturk@gmail.com>
 Affiliation: KIPAC/SLAC/Stanford
 Homepage: http://yt.enzotools.org/
 License:
   Copyright (C) 2007-2008 Matthew Turk, J. S. Oishi.  All Rights Reserved.
+=======
+Author: Matthew Turk <matthewturk@gmail.com>
+Affiliation: KIPAC/SLAC/Stanford
+Homepage: http://yt.enzotools.org/
+License:
+  Copyright (C) 2007-2008 Matthew Turk.  All Rights Reserved.
+>>>>>>> .merge-right.r687
 
   This file is part of yt.
 

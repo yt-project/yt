@@ -90,7 +90,74 @@ class AMRHierarchy:
         self.level_stats['numcells'] = [0 for i in range(MAXLEVEL)]
 
 
+<<<<<<< .working
     def _initialize_data_file(self):
+=======
+        mylog.debug("Initializing data file")
+        self.__initialize_data_file()
+        mylog.debug("Populating hierarchy")
+        self.__populate_hierarchy()
+        mylog.debug("Done populating hierarchy")
+
+    def __guess_data_style(self):
+        if self.data_style: return
+        for line in reversed(self.__hierarchy_lines):
+            if line.startswith("BaryonFileName") or \
+               line.startswith("FileName "):
+                testGrid = line.split("=")[-1].strip().rstrip()
+            if line.startswith("Grid "):
+                testGridID = int(line.split("=")[-1])
+                break
+        if testGrid[0] != os.path.sep:
+            testGrid = os.path.join(self.directory, testGrid)
+        if not os.path.exists(testGrid):
+            testGrid = os.path.join(self.directory,
+                                    os.path.basename(testGrid))
+            mylog.debug("Your data uses the annoying hardcoded path.")
+            self._strip_path = True
+        try:
+            a = SD.SD(testGrid)
+            self.data_style = 4
+            mylog.debug("Detected HDF4")
+        except:
+            list_of_sets = HDF5LightReader.ReadListOfDatasets(testGrid, "/")
+            if len(list_of_sets) == 0:
+                mylog.debug("Detected packed HDF5")
+                self.data_style = 6
+            else:
+                mylog.debug("Detected unpacked HDF5")
+                self.data_style = 5
+
+    def __setup_filemap(self, grid):
+        if not self.data_style == 6:
+            return
+        self.cpu_map[grid.filename].append(grid)
+
+    def __setup_classes(self):
+        dd = { 'readDataFast' : _data_style_funcs[self.data_style][0],
+               'readAllData' : _data_style_funcs[self.data_style][1],
+               'getFields' : _data_style_funcs[self.data_style][2],
+               'readDataSlice' : _data_style_funcs[self.data_style][3],
+               '_read_data' : _data_style_funcs[self.data_style][0],
+               '_read_all_data' : _data_style_funcs[self.data_style][1],
+               '_read_field_names' : _data_style_funcs[self.data_style][2],
+               '_read_data_slice' : _data_style_funcs[self.data_style][3],
+               '_read_exception' : _data_style_funcs[self.data_style][4](),
+               'pf' : self.parameter_file, # Already weak
+               'hierarchy': weakref.proxy(self) }
+        self.grid = classobj("EnzoGrid",(EnzoGridBase,), dd)
+        self.proj = classobj("EnzoProj",(EnzoProjBase,), dd)
+        self.slice = classobj("EnzoSlice",(EnzoSliceBase,), dd)
+        self.region = classobj("EnzoRegion",(EnzoRegionBase,), dd)
+        self.covering_grid = classobj("EnzoCoveringGrid",(EnzoCoveringGrid,), dd)
+        self.smoothed_covering_grid = classobj("EnzoSmoothedCoveringGrid",(EnzoSmoothedCoveringGrid,), dd)
+        self.sphere = classobj("EnzoSphere",(EnzoSphereBase,), dd)
+        self.cutting = classobj("EnzoCuttingPlane",(EnzoCuttingPlaneBase,), dd)
+        self.ray = classobj("EnzoOrthoRay",(EnzoOrthoRayBase,), dd)
+        self.disk = classobj("EnzoCylinder",(EnzoCylinderBase,), dd)
+
+    def __initialize_data_file(self):
+>>>>>>> .merge-right.r687
         if not ytcfg.getboolean('lagos','serialize'): return
         fn = os.path.join(self.directory,"%s.yt" % self["CurrentTimeIdentifier"])
         if ytcfg.getboolean('lagos','onlydeserialize'):
@@ -717,6 +784,7 @@ class EnzoHierarchy(AMRHierarchy):
                          & na.all(self.gridLeftEdge < right_edge, axis=1)) == True)
         return self.grids[grid_i], grid_i
 
+<<<<<<< .working
     def get_periodic_box_grids(self, left_edge, right_edge):
         mask = na.zeros(self.grids.shape, dtype='bool')
         dl = self.parameters["DomainLeftEdge"]
@@ -734,6 +802,58 @@ class EnzoHierarchy(AMRHierarchy):
                     g, gi = self.get_box_grids(nle, nre)
                     mask[gi] = True
         return self.grids[mask], na.where(mask)
+=======
+    def get_periodic_box_grids(self, left_edge, right_edge):
+        mask = na.zeros(self.grids.shape, dtype='bool')
+        dl = self.parameters["DomainLeftEdge"]
+        dr = self.parameters["DomainRightEdge"]
+        db = right_edge - left_edge
+        for off_x in [-1, 0, 1]:
+            nle = left_edge.copy()
+            nre = left_edge.copy()
+            nle[0] = dl[0] + (dr[0]-dl[0])*off_x + left_edge[0]
+            for off_y in [-1, 0, 1]:
+                nle[1] = dl[1] + (dr[1]-dl[1])*off_y + left_edge[1]
+                for off_z in [-1, 0, 1]:
+                    nle[2] = dl[2] + (dr[2]-dl[2])*off_z + left_edge[2]
+                    nre = nle + db
+                    g, gi = self.get_box_grids(nle, nre)
+                    mask[gi] = True
+        return self.grids[mask], na.where(mask)
+
+    @time_execution
+    def find_max(self, field, finestLevels = True):
+        """
+        Returns (value, center) of location of maximum for a given field.
+        """
+        if finestLevels:
+            gI = na.where(self.gridLevels >= self.maxLevel - NUMTOCHECK)
+        else:
+            gI = na.where(self.gridLevels >= 0) # Slow but pedantic
+        maxVal = -1e100
+        for grid in self.grids[gI[0]]:
+            mylog.debug("Checking %s (level %s)", grid.id, grid.Level)
+            val, coord = grid.find_max(field)
+            if val > maxVal:
+                maxCoord = coord
+                maxVal = val
+                maxGrid = grid
+        mc = na.array(maxCoord)
+        pos=maxGrid.get_position(mc)
+        pos[0] += 0.5*maxGrid.dx
+        pos[1] += 0.5*maxGrid.dx
+        pos[2] += 0.5*maxGrid.dx
+        mylog.info("Max Value is %0.5e at %0.16f %0.16f %0.16f in grid %s at level %s %s", \
+              maxVal, pos[0], pos[1], pos[2], maxGrid, maxGrid.Level, mc)
+        self.center = pos
+        # This probably won't work for anyone else
+        self.bulkVelocity = (maxGrid["x-velocity"][maxCoord], \
+                             maxGrid["y-velocity"][maxCoord], \
+                             maxGrid["z-velocity"][maxCoord])
+        self.parameters["Max%sValue" % (field)] = maxVal
+        self.parameters["Max%sPos" % (field)] = "%s" % (pos)
+        return maxVal, pos
+>>>>>>> .merge-right.r687
 
     @time_execution
     def export_particles_pb(self, filename, filter = 1, indexboundary = 0, fields = None, scale=1.0):
