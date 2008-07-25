@@ -1,4 +1,4 @@
-# Modify this line to change where we install
+# Modify this line and uncomment to set where we install
 #MY_DIR=$HOME/yt-`uname -p`/
 
 if [ -z "$MY_DIR" ]
