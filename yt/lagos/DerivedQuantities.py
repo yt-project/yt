@@ -256,3 +256,24 @@ def _combExtrema(data, n_fields, mins, maxs):
 add_quantity("Extrema", function=_Extrema, combine_function=_combExtrema,
              n_ret=3)
         
+def _TotalQuantity(data, fields):
+    """
+    This function sums up a given field over the entire region
+
+    :param fields: The fields to sum up
+    """
+    fields = ensure_list(fields)
+    totals = []
+    for field in fields:
+        if data[field].size < 1:
+            totals.append(0)
+            continue
+        totals.append(data[field].sum())
+    return len(fields), totals
+def _combTotalQuantity(data, n_fields, totals):
+    totals = na.atleast_2d(totals)
+    n_fields = totals.shape[1]
+    return [na.sum(totals[:,i]) for i in range(n_fields)]
+add_quantity("TotalQuantity", function=_TotalQuantity,
+                combine_function=_combTotalQuantity, n_ret=2)
+        
