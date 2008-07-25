@@ -44,6 +44,9 @@ sigma_thompson = 6.65e-25 # cm^2
 clight = 3.0e10 # cm/s
 kboltz = 1.38e-16 # erg K^-1
 G = 6.67e-8   # cm^3 g^-1 s^-2
+Msun2g = 1.989e33
+MJ_constant = (((5*kboltz)/(G*mh))**(1.5)) * (3/(4*pi))**(0.5) / Msun2g
+
 
 class FieldInfoContainer: # We are all Borg.
     _shared_state = {}
@@ -574,6 +577,13 @@ def _ConvertNumberDensity(data):
     return 1.0/mh
 add_field("NumberDensity", units=r"\rm{cm}^{-3}",
           convert_function=_ConvertNumberDensity)
+
+def JeansMassMsun(field,data):
+    return (MJ_constant * 
+            ((data["Temperature"]/data["MeanMolecularWeight"])**(1.5)) *
+            (data["Density"]**(-0.5)))
+add_field("JeansMassMsun",function=JeansMassMsun,units=r"\rm{Msun}")
+
 
 def _CellMass(field, data):
     return data["Density"] * data["CellVolume"]
