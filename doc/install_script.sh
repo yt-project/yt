@@ -64,16 +64,6 @@ then
     cd ..
 fi
 
-if [ ! -e matplotlib-0.91.4/done ]
-then
-    echo "Doing Matplotlib"
-    [ ! -e matplotlib-0.91.4 ] && tar xvfz matplotlib-0.91.4.tar.gz
-    cd matplotlib-0.91.4
-    $MY_DIR/bin/python2.5 setup.py install || exit 1
-    touch done
-    cd ..
-fi
-
 if [ ! -e wxPython-src-2.8.7.1/done ]
 then
     echo "Doing wxPython"
@@ -87,6 +77,16 @@ then
     $MY_DIR/bin/python2.5 setup.py WX_CONFIG=$MY_DIR/bin/wx-config install || exit 1
     touch ../done
     cd ../..
+fi
+
+if [ ! -e matplotlib-0.91.4/done ]
+then
+    echo "Doing Matplotlib"
+    [ ! -e matplotlib-0.91.4 ] && tar xvfz matplotlib-0.91.4.tar.gz
+    cd matplotlib-0.91.4
+    $MY_DIR/bin/python2.5 setup.py install || exit 1
+    touch done
+    cd ..
 fi
 
 if [ ! -e yt-0.3/done ]
