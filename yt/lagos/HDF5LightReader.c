@@ -471,17 +471,18 @@ Py_ReadMultipleGrids(PyObject *obj, PyObject *args)
     // Format arguments
 
     char *filename = NULL;
-    PyObject *grid_names = NULL;
+    char *format_string = NULL;
+    PyObject *grid_ids = NULL;
     PyObject *set_names = NULL;
     Py_ssize_t num_sets = 0;
     Py_ssize_t num_grids = 0;
 
     if (!PyArg_ParseTuple(args, "sOO",
-            &filename, &grid_names, &set_names))
+            &filename, &grid_ids, &set_names))
         return PyErr_Format(_hdf5ReadError,
                "ReadMultipleGrids: Invalid parameters.");
 
-    num_grids = PyList_Size(grid_names);
+    num_grids = PyList_Size(grid_ids);
     num_sets = PyList_Size(set_names);
     PyObject *grids_dict = PyDict_New(); // New reference
     PyObject *grid_key = NULL;
@@ -492,6 +493,8 @@ Py_ReadMultipleGrids(PyObject *obj, PyObject *args)
     hid_t file_id, grid_node;
     file_id = grid_node = 0;
     int i, n;
+    long id;
+    char grid_node_name[13]; // Grid + 8 + \0
 
     file_id = H5Fopen (filename, H5F_ACC_RDONLY, H5P_DEFAULT); 
 
@@ -502,14 +505,16 @@ Py_ReadMultipleGrids(PyObject *obj, PyObject *args)
     }
 
     for(i = 0; i < num_grids; i++) {
-        grid_key = PyList_GetItem(grid_names, i);
+        grid_key = PyList_GetItem(grid_ids, i);
+        id = PyInt_AsLong(grid_key);
+        sprintf(grid_node_name, "Grid%08li", id);
         grid_data = PyDict_New(); // New reference
         PyDict_SetItem(grids_dict, grid_key, grid_data);
-        grid_node = H5Gopen(file_id, PyString_AsString(grid_key));
+        grid_node = H5Gopen(file_id, grid_node_name);
         if (grid_node < 0) {
               PyErr_Format(_hdf5ReadError,
                   "ReadHDF5DataSet: Error opening (%s, %s)",
-                  filename, grid_key);
+                  filename, grid_node_name);
               goto _fail;
         }
         for(n = 0; n < num_sets; n++) {

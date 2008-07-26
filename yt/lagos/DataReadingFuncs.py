@@ -142,3 +142,41 @@ def getExceptionHDF4():
 
 def getExceptionHDF5():
     return (exceptions.KeyError, HDF5LightReader.ReadingError)
+
+class BaseDataQueue(object):
+
+    def __init__(self):
+        self.queue = defaultdict(lambda: {})
+
+    # We need a function for reading a list of sets
+    # and a function for *popping* from a queue all the appropriate sets
+
+    def preload(self, grids, sets):
+        pass
+
+    def pop(self, grid, field):
+        if grid.id in self.queue and field in self.queue[grid.id]:
+            return self.queue[grid.id].pop(field)
+        else:
+            # We only read the one set and do not store it if it isn't pre-loaded
+            return self._read_set(grid, field)
+
+    def peek(self, grid, field):
+        return self.queue[grid.id].get(field, None)
+
+    def push(self, grid, field, data):
+        if grid.id in self.queue and field in self.queue[grid.id]:
+            raise ValueError
+        self.queue[grid][field] = data
+
+class DataQueuePackedHDF5(BaseDataQueue):
+    _read_set = readDataHDF5
+
+    def preload(self, grids, sets):
+        # We need to deal with files first
+        files_keys = defaultdict(lambda: [])
+        for g in sorted(grids): files_keys[g.filename].append(g)
+        for file in files_keys:
+            nodes = [g.id for g in grids]
+            data = HDF5LightReader.ReadMultipleGrids(file, nodes, sets)
+            for gid in data: self.queue[gid].update(data[gid])
