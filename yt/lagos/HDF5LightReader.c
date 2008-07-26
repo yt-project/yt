@@ -476,6 +476,11 @@ Py_ReadMultipleGrids(PyObject *obj, PyObject *args)
     Py_ssize_t num_sets = 0;
     Py_ssize_t num_grids = 0;
 
+    if (!PyArg_ParseTuple(args, "sOO",
+            &filename, &grid_names, &set_names))
+        return PyErr_Format(_hdf5ReadError,
+               "ReadMultipleGrids: Invalid parameters.");
+
     num_grids = PyList_Size(grid_names);
     num_sets = PyList_Size(set_names);
     PyObject *grids_dict = PyDict_New(); // New reference
@@ -487,11 +492,6 @@ Py_ReadMultipleGrids(PyObject *obj, PyObject *args)
     hid_t file_id, grid_node;
     file_id = grid_node = 0;
     int i, n;
-
-    if (!PyArg_ParseTuple(args, "sOO",
-            &filename, &grid_names, &set_names))
-        return PyErr_Format(_hdf5ReadError,
-               "ReadMultipleGrids: Invalid parameters.");
 
     file_id = H5Fopen (filename, H5F_ACC_RDONLY, H5P_DEFAULT); 
 
@@ -531,6 +531,7 @@ Py_ReadMultipleGrids(PyObject *obj, PyObject *args)
         H5Gclose(grid_node);
     }
 
+    H5Fclose(file_id);
     PyObject *return_value = Py_BuildValue("N", grids_dict);
     return return_value;
 
