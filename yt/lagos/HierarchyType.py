@@ -147,6 +147,7 @@ class EnzoHierarchy:
             if len(list_of_sets) == 0:
                 mylog.debug("Detected packed HDF5")
                 self.data_style = 6
+                self.queue = DataQueuePackedHDF5()
             else:
                 mylog.debug("Detected unpacked HDF5")
                 self.data_style = 5

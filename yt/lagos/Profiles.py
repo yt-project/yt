@@ -55,18 +55,27 @@ class BinnedProfile(ParallelAnalysisInterface):
         self._pdata = {}
         self._lazy_reader = lazy_reader
 
+    def _get_dependencies(self, fields):
+        deps = []
+        for field in fields + self._get_bin_fields(): 
+            deps += fieldInfo[field].get_dependencies().requested
+        return list(set(deps))
+
     def _lazy_add_fields(self, fields, weight, accumulation):
         self._ngrids = 0
         self.__data = {}         # final results will go here
         self.__weight_data = {}  # we need to track the weights as we go
+        if hasattr(self._data_source.hierarchy, 'queue'):
+            self._data_source.hierarchy.queue.preload(self._get_grid_objs(), 
+                                                      self._get_dependencies(fields))
         for field in fields:
             self.__data[field] = self._get_empty_field()
             self.__weight_data[field] = self._get_empty_field()
         self.__used = self._get_empty_field().astype('bool')
-        pbar = get_pbar('Binning grids', len(self._data_source._grids))
+        #pbar = get_pbar('Binning grids', len(self._data_source._grids))
         for gi,grid in enumerate(self._get_grids()):
             self._ngrids += 1
-            pbar.update(gi)
+            #pbar.update(gi)
             args = self._get_bins(grid, check_cut=True)
             if not args: # No bins returned for this grid, so forget it!
                 continue
@@ -79,7 +88,7 @@ class BinnedProfile(ParallelAnalysisInterface):
                 self.__used = (self.__used | u)       # running 'or'
             grid.clear_data()
         # When the loop completes the parallel finalizer gets called
-        pbar.finish()
+        #pbar.finish()
         ub = na.where(self.__used)
         for field in fields:
             if weight: # Now, at the end, we divide out.
@@ -90,16 +99,14 @@ class BinnedProfile(ParallelAnalysisInterface):
 
     def _finalize_parallel(self):
         from mpi4py import MPI # I am displeased by importing here
-        temp = self._get_empty_field()
+        MPI.COMM_WORLD.Barrier()
         for key in self.__data:
-            MPI.COMM_WORLD.Allreduce(self.__data[key], temp, MPI.SUM)
-            self.__data[key] += temp
+            self.__data[key] = \
+                MPI.COMM_WORLD.Allreduce(self.__data[key], op=MPI.SUM)
         for key in self.__weight_data:
-            MPI.COMM_WORLD.Allreduce(self.__weight_data[key], temp, MPI.SUM)
-            self.__weight_data[key] += temp
-        temp = self.__used.copy().astype('int32')
-        MPI.COMM_WORLD.Allreduce(self.__used.astype('int32'), temp, MPI.SUM)
-        self.__used = (temp > 0)
+            self.__weight_data[key] = \
+                MPI.COMM_WORLD.Allreduce(self.__weight_data[key], op=MPI.SUM)
+        self.__used = MPI.COMM_WORLD.Allreduce(self.__used, op=MPI.SUM)
 
     def _unlazy_add_fields(self, fields, weight, accumulation):
         for field in fields:
@@ -244,6 +251,9 @@ class BinnedProfile1D(BinnedProfile):
             fid.write("\n")
         fid.close()
 
+    def _get_bin_fields(self):
+        return [self.bin_field]
+
 class BinnedProfile2D(BinnedProfile):
     def __init__(self, data_source,
                  x_n_bins, x_bin_field, x_lower_bound, x_upper_bound, x_log,
@@ -356,6 +366,9 @@ class BinnedProfile2D(BinnedProfile):
             fid.write("\n")
         fid.close()
 
+    def _get_bin_fields(self):
+        return [self.x_bin_field, self.y_bin_field]
+
 class BinnedProfile3D(BinnedProfile):
     def __init__(self, data_source,
                  x_n_bins, x_bin_field, x_lower_bound, x_upper_bound, x_log,
@@ -456,6 +469,9 @@ class BinnedProfile3D(BinnedProfile):
 
     def write_out(self, filename, format="%0.16e"):
         pass # Will eventually dump HDF5
+
+    def _get_bin_fields(self):
+        return [self.x_bin_field, self.y_bin_field, self.z_bin_field]
 
     def store_profile(self, name, force=False):
         """

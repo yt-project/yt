@@ -525,7 +525,7 @@ Py_ReadMultipleGrids(PyObject *obj, PyObject *args)
             if (cur_data == NULL) {
               PyErr_Format(_hdf5ReadError,
                   "ReadHDF5DataSet: Error reading (%s, %s, %s)",
-                  filename, grid_key, grid_node);
+                  filename, grid_node_name, set_name);
               goto _fail;
             }
             PyDict_SetItem(grid_data, oset_name, (PyObject *) cur_data);

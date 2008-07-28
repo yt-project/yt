@@ -156,7 +156,7 @@ class BaseDataQueue(object):
 
     def pop(self, grid, field):
         if grid.id in self.queue and field in self.queue[grid.id]:
-            return self.queue[grid.id].pop(field)
+            return self.modify(self.queue[grid.id].pop(field))
         else:
             # We only read the one set and do not store it if it isn't pre-loaded
             return self._read_set(grid, field)
@@ -170,13 +170,22 @@ class BaseDataQueue(object):
         self.queue[grid][field] = data
 
 class DataQueuePackedHDF5(BaseDataQueue):
-    _read_set = readDataHDF5
+
+    def _read_set(self, grid, field):
+        return readDataPacked(grid, field)
+
+    def modify(self, field):
+        return field.swapaxes(0,2)
 
     def preload(self, grids, sets):
         # We need to deal with files first
         files_keys = defaultdict(lambda: [])
-        for g in sorted(grids): files_keys[g.filename].append(g)
+        sets = list(sets)
+        for g in grids: files_keys[g.filename].append(g)
         for file in files_keys:
-            nodes = [g.id for g in grids]
+            mylog.debug("Starting read %s", file)
+            nodes = [g.id for g in files_keys[file]]
+            nodes.sort()
             data = HDF5LightReader.ReadMultipleGrids(file, nodes, sets)
+            mylog.debug("Read %s items from %s", len(data), os.path.basename(file))
             for gid in data: self.queue[gid].update(data[gid])

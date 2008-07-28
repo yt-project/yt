@@ -37,7 +37,7 @@ except ImportError:
 print "PARALLEL COMPATIBLE:", parallel_capable
 
 class GridIterator(object):
-    def __init__(self, pobj):
+    def __init__(self, pobj, just_list = False):
         self.pobj = pobj
         if hasattr(pobj, '_grids') and pobj._grids is not None:
             gs = pobj._grids
@@ -45,6 +45,7 @@ class GridIterator(object):
             gs = pobj._data_source._grids
         self._grids = sorted(gs, key = lambda g: g.filename)
         self.ng = len(self._grids)
+        self.just_list = just_list
 
     def __iter__(self):
         self.pos = 0
@@ -63,16 +64,17 @@ class ParallelGridIterator(GridIterator):
     This takes an object, pobj, that implements ParallelAnalysisInterface,
     and then does its thing.
     """
-    def __init__(self, pobj):
-        GridIterator.__init__(self, pobj)
+    def __init__(self, pobj, just_list = False):
+        GridIterator.__init__(self, pobj, just_list)
         self._offset = MPI.COMM_WORLD.rank
         self._skip = MPI.COMM_WORLD.size
         # Note that we're doing this in advance, and with a simple means
         # of choosing them; more advanced methods will be explored later.
-        self.my_grid_ids = na.mgrid[self._offset:self.ng:self._skip]
+        upper, lower = na.mgrid[0:self.ng:(self._skip+1)*1j][self._offset:self._offset+2]
+        self.my_grid_ids = na.mgrid[upper:lower-1].astype("int64")
         
     def __iter__(self):
-        self.pobj._initialize_parallel()
+        if not self.just_list: self.pobj._initialize_parallel()
         self.pos = 0
         return self
 
@@ -81,7 +83,7 @@ class ParallelGridIterator(GridIterator):
             gid = self.my_grid_ids[self.pos]
             self.pos += 1
             return self._grids[gid]
-        self.pobj._finalize_parallel()
+        if not self.just_list: self.pobj._finalize_parallel()
         raise StopIteration
 
 class ParallelAnalysisInterface(object):
@@ -92,6 +94,12 @@ class ParallelAnalysisInterface(object):
            ytcfg.getboolean("yt","parallel"):
             return ParallelGridIterator(self)
         return GridIterator(self)
+
+    def _get_grid_objs(self):
+        if parallel_capable and \
+           ytcfg.getboolean("yt","parallel"):
+            return ParallelGridIterator(self, True)
+        return GridIterator(self, True)
 
     def _initialize_parallel(self):
         pass
