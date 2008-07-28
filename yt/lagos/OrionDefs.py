@@ -41,6 +41,9 @@ yt2orionFieldsDict = {"x-velocity": "xvel",
                         "Density": "density",
                         "Gas_Energy": "eden",
                         "Temperature": "temperature",
+                      "x-momentum": "xmom",
+                      "y-momentum": "ymom",
+                      "z-momentum": "zmom"
                         }
 orion2ytFieldsDict = {}
 

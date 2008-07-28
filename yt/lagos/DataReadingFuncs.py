@@ -206,7 +206,11 @@ def readDataNative(self,field):
 
     # one field has nElements*bytesPerReal bytes and is located
     # nElements*bytesPerReal*field_index from the offset location
-    field_index = self.field_indexes[yt2orionFieldsDict[field]]
+    if yt2orionFieldsDict.has_key(field):
+        fieldname = yt2orionFieldsDict[field]
+    else:
+        fieldname = field
+    field_index = self.field_indexes[fieldname]
     inFile.seek(int(nElements*bytesPerReal*field_index),1)
     field = na.fromfile(inFile,count=nElements,dtype=dtype)
     field = field.reshape(self.ActiveDimensions[::-1]).swapaxes(0,2)

@@ -486,7 +486,9 @@ def _ThermalEnergy(field, data):
                    data["x-velocity"]**2.0
                  + data["y-velocity"]**2.0
                  + data["z-velocity"]**2.0 )
-add_field("ThermalEnergy", units=r"\rm{ergs}/\rm{g}")
+    add_field("ThermalEnergy", units=r"\rm{ergs}/\rm{cm^3}")
+# for Orion, units are different...how to do this?
+#    add_field("ThermalEnergy", units=r"\rm{ergs}/\rm{g}")
 
 def _Entropy(field, data):
     return data["Density"]**(-2./3.) * \
@@ -854,11 +856,16 @@ add_field("JeansMassMsun",function=_JeansMassMsun,
 
 # Now we add all the fields that we want to control, but we give a null function
 # This is every Enzo field we can think of.  This will be installation-dependent,
+#if data.pf["HydroMethod"] == 'orion':
+_default_fields = ["Density","Temperature","Gas_Energy","Total_Energy",
+                   "x-velocity","y-velocity","z-velocity",
+                   "x-momentum","y-momentum","z-momentum"]
+# else:
+#     _default_fields = ["Density","Temperature","Gas_Energy","Total_Energy",
+#                        "x-velocity","y-velocity","z-velocity"]
+_default_fields += [ "%s_Density" % sp for sp in _speciesList ]
 
-_enzo_fields = ["Density","Temperature","Gas_Energy","Total_Energy",
-                "x-velocity","y-velocity","z-velocity"]
-_enzo_fields += [ "%s_Density" % sp for sp in _speciesList ]
-for field in _enzo_fields:
+for field in _default_fields:
     add_field(field, function=lambda a, b: None, take_log=True,
               validators=[ValidateDataField(field)], units=r"\rm{g}/\rm{cm}^3")
 fieldInfo["x-velocity"].projection_conversion='1'
@@ -888,6 +895,14 @@ for ax in ['x','y','z']:
     f = fieldInfo["%s-velocity" % ax]
     f._units = r"\rm{km}/\rm{s}"
     f._convert_function = _convertVelocity
+    f.take_log = False
+
+def _convertMomentum(data):
+    return data.convert("x-velocity")*data.convert("Density")*1e5 # want this in cm/s not km/s
+for ax in ['x','y','z']:
+    f = fieldInfo["%s-momentum" % ax]
+    f._units = r"\rm{erg\ s}/\rm{cm^3}"
+    f._convert_function = _convertMomentum
     f.take_log = False
 
 fieldInfo["Temperature"].units = r"K"
