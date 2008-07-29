@@ -335,26 +335,24 @@ class PlotCollection:
 
 def wrap_pylab_newplot(func):
     @wraps(func)
-    def pylabify(*args, **kwargs):
-        import pylab
+    def pylabify(self, *args, **kwargs):
         # Let's assume that axes and figure are not in the positional
         # arguments -- probably safe!
-        new_fig = pylab.figure()
-        kwargs['axes'] = pylab.gca()
-        kwargs['figure'] = pylab.gcf()
-        retval = func(*args, **kwargs)
+        new_fig = self.pylab.figure()
+        kwargs['axes'] = self.pylab.gca()
+        kwargs['figure'] = self.pylab.gcf()
+        retval = func(self, *args, **kwargs)
         retval._redraw_image()
         retval._fig_num = new_fig.number
-        pylab.show()
+        self.pylab.show()
         return retval
     return pylabify
 
 def wrap_pylab_show(func):
     @wraps(func)
-    def pylabify(*args, **kwargs):
-        import pylab
-        retval = func(*args, **kwargs)
-        pylab.show()
+    def pylabify(self, *args, **kwargs):
+        retval = func(self, *args, **kwargs)
+        self.pylab.show()
         return retval
     return pylabify
 
@@ -374,9 +372,18 @@ class PlotCollectionInteractive(PlotCollection):
     set_cmap = wrap_pylab_show(PlotCollection.set_cmap)
     switch_field = wrap_pylab_show(PlotCollection.switch_field)
 
-    def clear_plots(self):
+    def __init__(self, *args, **kwargs):
         import pylab
+        self.pylab = pylab
+        PlotCollection.__init__(self, *args, **kwargs)
+
+    def redraw(self):
         for plot in self.plots:
-            pylab.figure(pylab._fig_num)
-            pylab.clf()
+            plot._redraw_image()
+        self.pylab.show()
+
+    def clear_plots(self):
+        for plot in self.plots:
+            self.pylab.figure(pylab._fig_num)
+            self.pylab.clf()
         PlotCollection.clear_data(self)
