@@ -53,3 +53,6 @@ from yt.fido import GrabCollections, OutputCollection
 def get_pf():
     return lagos.EnzoStaticOutput(sys.argv[-1])
 
+def get_oso():
+    return lagos.OrionStatiOutput(sys.argv[-1])
+
