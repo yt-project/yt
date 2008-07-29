@@ -384,6 +384,6 @@ class PlotCollectionInteractive(PlotCollection):
 
     def clear_plots(self):
         for plot in self.plots:
-            self.pylab.figure(pylab._fig_num)
+            self.pylab.figure(plot._fig_num)
             self.pylab.clf()
-        PlotCollection.clear_data(self)
+        PlotCollection.clear_plots(self)
