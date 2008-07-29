@@ -54,5 +54,5 @@ def get_eso():
     return lagos.EnzoStaticOutput(sys.argv[-1])
 
 def get_oso():
-    return lagos.OrionStatiOutput(sys.argv[-1])
+    return lagos.OrionStaticOutput(sys.argv[-1])
 
