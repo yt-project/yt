@@ -50,7 +50,7 @@ except ImportError:
 
 from yt.fido import GrabCollections, OutputCollection
 
-def get_pf():
+def get_eso():
     return lagos.EnzoStaticOutput(sys.argv[-1])
 
 def get_oso():
