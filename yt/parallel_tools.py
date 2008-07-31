@@ -74,7 +74,6 @@ class ParallelGridIterator(GridIterator):
         self.my_grid_ids = na.mgrid[upper:lower-1].astype("int64")
         
     def __iter__(self):
-        if not self.just_list: self.pobj._initialize_parallel()
         self.pos = 0
         return self
 
@@ -89,9 +88,10 @@ class ParallelGridIterator(GridIterator):
 class ParallelAnalysisInterface(object):
     _grids = None
 
-    def _get_grids(self):
+    def _get_grids(self, *args, **kwargs):
         if parallel_capable and \
            ytcfg.getboolean("yt","parallel"):
+            self._initialize_parallel(*args, **kwargs)
             return ParallelGridIterator(self)
         return GridIterator(self)
 

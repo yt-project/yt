@@ -61,19 +61,21 @@ class BinnedProfile(ParallelAnalysisInterface):
             deps += fieldInfo[field].get_dependencies().requested
         return list(set(deps))
 
+    def _initialize_parallel(self, fields):
+        if hasattr(self._data_source.hierarchy, 'queue'):
+            self._data_source.hierarchy.queue.preload(self._get_grid_objs(), 
+                                                      self._get_dependencies(fields))
+
     def _lazy_add_fields(self, fields, weight, accumulation):
         self._ngrids = 0
         self.__data = {}         # final results will go here
         self.__weight_data = {}  # we need to track the weights as we go
-        if hasattr(self._data_source.hierarchy, 'queue'):
-            self._data_source.hierarchy.queue.preload(self._get_grid_objs(), 
-                                                      self._get_dependencies(fields))
         for field in fields:
             self.__data[field] = self._get_empty_field()
             self.__weight_data[field] = self._get_empty_field()
         self.__used = self._get_empty_field().astype('bool')
         #pbar = get_pbar('Binning grids', len(self._data_source._grids))
-        for gi,grid in enumerate(self._get_grids()):
+        for gi,grid in enumerate(self._get_grids(fields)):
             self._ngrids += 1
             #pbar.update(gi)
             args = self._get_bins(grid, check_cut=True)
