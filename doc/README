@@ -8,3 +8,10 @@ All of the pre-built HTML files, accessible with any web browser, are available
 in the build/ directory, as well as at:
 
 http://yt.enzotools.org/doc/index.html
+
+Additionally, we include pre-generated docs right here for you, inside the zip
+file docs_html.zip.  Just do this, and you get the docs, right here!
+
+unzip docs_html.zip
+
+Then open build/html/index.html . 
