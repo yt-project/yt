@@ -64,6 +64,8 @@ suffix. pc.save defaults to '.png', but a "format" keyword can be supplied::
 
 to get postscript output suitable for publication.
 
+.. _plotcollection_phase_sphere:
+
 More Plots
 ----------
 

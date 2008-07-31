@@ -7,9 +7,10 @@
     <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
-          URL_ROOT:   '../',
-          VERSION:    '1.0',
-          COLLAPSE_MODINDEX: false
+          URL_ROOT:    '../',
+          VERSION:     '1.0',
+          COLLAPSE_MODINDEX: false,
+          FILE_SUFFIX: ''
       };
     </script>
     <script type="text/javascript" src="../_static/jquery.js"></script>
@@ -59,6 +60,12 @@ of one or more variables, along one, two or three different dimensions.  For exa
 you could get an average temperature in Density and H2 Fraction space.  Or you could
 look at the distribution of Volume through Density and Temperature space.  Or you could
 take the spherically-averaged Number Density and see how it changes with radius.</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">This is all about how to hand-generate profiles.  You probably only
+want to do this if you&#8217;re exporting them for plotting elsewhere!  To plot
+these things, see <a class="reference" href="automated_plotting.html#plotcollection-phase-sphere"><em>More Plots</em></a>.</p>
+</div>
 <div class="section">
 <h2 id="one-dimensional-profiles">One Dimensional Profiles<a class="headerlink" href="#one-dimensional-profiles" title="Permalink to this headline">¶</a></h2>
 <p>In order to make a profile, we first need a data object we want to get the profile
@@ -214,7 +221,7 @@ on which is inconvenient to do OpenGL-based data exploration.</p>
     </div>
     <div class="footer">
       &copy; Copyright 2008, Matthew J. Turk.
-      Last updated on Jul 18, 2008.
+      Last updated on Jul 31, 2008.
       Created using <a href="http://sphinx.pocoo.org/">Sphinx</a>.
     </div>
   </body>

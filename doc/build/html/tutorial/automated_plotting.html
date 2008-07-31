@@ -7,9 +7,10 @@
     <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
-          URL_ROOT:   '../',
-          VERSION:    '1.0',
-          COLLAPSE_MODINDEX: false
+          URL_ROOT:    '../',
+          VERSION:     '1.0',
+          COLLAPSE_MODINDEX: false,
+          FILE_SUFFIX: ''
       };
     </script>
     <script type="text/javascript" src="../_static/jquery.js"></script>
@@ -53,12 +54,12 @@
             
   
   <div class="section">
-<h1 id="automated-plotting"><span id="index-3"></span>Automated Plotting<a class="headerlink" href="#automated-plotting" title="Permalink to this headline">¶</a></h1>
+<h1 id="automated-plotting"><span id="index-16"></span>Automated Plotting<a class="headerlink" href="#automated-plotting" title="Permalink to this headline">¶</a></h1>
 <p>So now we know how to get and manipulate most of the datatypes, but we
 still have to go through some processes to plot them manually.  However, yt has
 facilities for plotting slices, projections and profiles in much easier ways.</p>
 <div class="section">
-<h2 id="collections-of-plots"><span id="index-4"></span>Collections of Plots<a class="headerlink" href="#collections-of-plots" title="Permalink to this headline">¶</a></h2>
+<h2 id="collections-of-plots"><span id="index-17"></span>Collections of Plots<a class="headerlink" href="#collections-of-plots" title="Permalink to this headline">¶</a></h2>
 <p>The plotting tool is called &#8216;raven&#8217; and it&#8217;s organized around the idea of
 PlotCollection objects.  Each PlotCollection object is in some way thematically
 associated &#8211; maybe they are all the same data, sliced along different axes, for instance.
@@ -71,7 +72,7 @@ collection.  Each PlotCollection is associated with a single parameter file.</p>
 search for the point of maximum density.</p>
 </div>
 <div class="section">
-<h2 id="adding-plots"><span id="index-5"></span>Adding Plots<a class="headerlink" href="#adding-plots" title="Permalink to this headline">¶</a></h2>
+<h2 id="adding-plots"><span id="index-18"></span>Adding Plots<a class="headerlink" href="#adding-plots" title="Permalink to this headline">¶</a></h2>
 <p>Now we&#8217;ve got a plot collection &#8211; a container for more plots that we can add
 and then manipulate as a group.  So, let&#8217;s try adding some plots to it!:</p>
 <div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">pc</span><span class="o">.</span><span class="n">add_slice</span><span class="p">(</span><span class="s">&quot;Density&quot;</span><span class="p">,</span> <span class="mf">0</span><span class="p">)</span>
@@ -106,7 +107,7 @@ suffix. pc.save defaults to &#8216;.png&#8217;, but a &#8220;format&#8221; keywo
 <p>to get postscript output suitable for publication.</p>
 </div>
 <div class="section">
-<h2 id="more-plots">More Plots<a class="headerlink" href="#more-plots" title="Permalink to this headline">¶</a></h2>
+<h2 id="more-plots"><span id="plotcollection-phase-sphere"></span>More Plots<a class="headerlink" href="#more-plots" title="Permalink to this headline">¶</a></h2>
 <p>We have access to most of the interesting plots from the PlotCollection
 interface, including cutting planes and projections.  (More on those later!):</p>
 <div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">pc</span><span class="o">.</span><span class="n">add_projection</span><span class="p">(</span><span class="s">&quot;Temperature&quot;</span><span class="p">,</span> <span class="mf">0</span><span class="p">,</span> <span class="n">weight_field</span><span class="o">=</span><span class="s">&quot;CellMass&quot;</span><span class="p">)</span>
@@ -174,7 +175,7 @@ interface, including cutting planes and projections.  (More on those later!):</p
     </div>
     <div class="footer">
       &copy; Copyright 2008, Matthew J. Turk.
-      Last updated on Jul 18, 2008.
+      Last updated on Jul 31, 2008.
       Created using <a href="http://sphinx.pocoo.org/">Sphinx</a>.
     </div>
   </body>

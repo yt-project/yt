@@ -32,6 +32,7 @@ automatically turned into an :class:`EnzoStaticOutput`.
    making_simple_plots
    analyzing_data
    making_profiles
+   plotting_profiles
    grouping_data
    making_movies
    making_timeseries_plots

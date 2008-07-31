@@ -7,6 +7,11 @@ you could get an average temperature in Density and H2 Fraction space.  Or you c
 look at the distribution of Volume through Density and Temperature space.  Or you could
 take the spherically-averaged Number Density and see how it changes with radius.
 
+.. note:: This is all about how to hand-generate profiles.  You probably only
+   want to do this if you're exporting them for plotting elsewhere!  To plot
+   these things, see :ref:`plotcollection_phase_sphere`.
+   
+
 One Dimensional Profiles
 ------------------------
 
