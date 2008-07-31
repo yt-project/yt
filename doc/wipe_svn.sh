@@ -17,4 +17,5 @@ echo "Examples files status:"
 echo
 svn stat ../examples/
 
-zip -r docs_html.zip build/html/
+cd ./build/html/
+zip -r ../../docs_html.zip .

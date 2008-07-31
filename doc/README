@@ -14,4 +14,4 @@ file docs_html.zip.  Just do this, and you get the docs, right here!
 
 unzip docs_html.zip
 
-Then open build/html/index.html . 
+Then open index.html with your favorite web browser, and be off!
