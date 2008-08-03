@@ -233,13 +233,13 @@ class UnitBoundaryCallback(PlotCallback):
         max_dx = plot.data['pdx'].max()
         w_min_x = 250.0 * min_dx
         w_max_x = 1.0 / self.factor
-        min_exp_x = na.ceil(na.log10(w_min_x*plot.data.pf[unit])
+        min_exp_x = na.ceil(na.log10(w_min_x*plot.data.pf[self.unit])
                            /na.log10(self.factor))
-        max_exp_x = na.floor(na.log10(w_max_x*plot.data.pf[unit])
+        max_exp_x = na.floor(na.log10(w_max_x*plot.data.pf[self.unit])
                             /na.log10(self.factor))
         n_x = max_exp_x - min_exp_x + 1
         widths = na.logspace(min_exp_x, max_exp_x, num = n_x, base=self.factor)
-        widths /= plot.data.pf[unit]
+        widths /= plot.data.pf[self.unit]
         left_edge_px = (center[xi] - widths/2.0 - x0)*dx
         left_edge_py = (center[yi] - widths/2.0 - y0)*dy
         right_edge_px = (center[xi] + widths/2.0 - x0)*dx
