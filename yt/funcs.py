@@ -23,8 +23,17 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-import time, types
+import time, types, signal, traceback
 import progressbar as pb
+from math import floor, ceil
+
+def signal_print_traceback(signo, frame):
+    print traceback.print_stack(frame)
+
+try:
+    signal.signal(signal.SIGUSR1, signal_print_traceback)
+except ValueError:  # Not in main thread
+    pass
 
 def blank_wrapper(f):
     return lambda a: a
@@ -79,11 +88,17 @@ class DummyProgressBar:
 class GUIProgressBar:
     def __init__(self, title, maxval):
         import wx
+        self.maxval = maxval
+        self.last = 0
         self._pbar = wx.ProgressDialog("Working...",
                     title, maximum=maxval,
                     style=wx.PD_REMAINING_TIME|wx.PD_ELAPSED_TIME|wx.PD_APP_MODAL)
     def update(self, val):
-        self._pbar.Update(val)
+        # An update is only meaningful if it's on the order of 1/100 or greater
+        if ceil(100*self.last / self.maxval) + 1 == \
+           floor(100*val / self.maxval) or val == self.maxval:
+            self._pbar.Update(val)
+            self.last = val
     def finish(self):
         self._pbar.Destroy()
 
