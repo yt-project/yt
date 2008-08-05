@@ -11,6 +11,7 @@ Contents:
 
    intro
    getting_started
+   quick_guide/index
    tutorial/index
    cookbook/index
    extending/index
