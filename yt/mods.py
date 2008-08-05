@@ -37,7 +37,7 @@ from yt.lagos import EnzoStaticOutput, \
     add_field, fieldInfo, \
     Clump, write_clump_hierarchy, find_clumps, write_clumps
 
-from yt.raven import PlotCollection, \
+from yt.raven import PlotCollection, PlotCollectionInteractive, \
     QuiverCallback, ParticleCallback, ContourCallback, \
     GridBoundaryCallback, UnitBoundaryCallback, \
     LinePlotCallback, CuttingQuiverCallback
