@@ -1145,6 +1145,60 @@ Py_FindBindingEnergy(PyObject *obj, PyObject *args)
         return NULL;
 }
 
+static PyObject *_outputFloatsToFileError;
+
+static PyObject *
+Py_OutputFloatsToFile(PyObject *obj, PyObject *args)
+{
+    PyObject *oarray;
+    PyArrayObject *array;
+    char *filename, *header = NULL;
+    npy_intp i, j, imax, jmax;
+
+    if (!PyArg_ParseTuple(args, "Os|s", &oarray, &filename, &header))
+        return PyErr_Format(_outputFloatsToFileError,
+                    "OutputFloatsToFile: Invalid parameters.");
+
+    array   = (PyArrayObject *) PyArray_FromAny(oarray,
+                    PyArray_DescrFromType(NPY_FLOAT64), 2, 2,
+                    0, NULL);
+    if(array==NULL){
+    PyErr_Format(_outputFloatsToFileError,
+             "OutputFloatsToFile: Failure to convert array ( nd == 2 ?)");
+    goto _fail;
+    }
+
+    FILE *to_write = fopen(filename, "w");
+    if(to_write == NULL){
+    PyErr_Format(_outputFloatsToFileError,
+             "OutputFloatsToFile: Unable to open %s for writing.", filename);
+      goto _fail;
+    }
+
+    if(header!=NULL)fprintf(to_write,"%s\n", header);
+
+    imax = PyArray_DIM(array, 0);
+    jmax = PyArray_DIM(array, 1);
+    for(i=0;i<imax;i++){
+      for(j=0;j<jmax;j++){
+        fprintf(to_write, "%0.16e",
+                *((npy_float64*)PyArray_GETPTR2(array,i,j)));
+        if(j<jmax-1)fprintf(to_write, "\t");
+      }
+      fprintf(to_write, "\n");
+    }
+    fclose(to_write);
+
+    Py_DECREF(array);
+    return Py_None;
+
+   _fail:
+    Py_XDECREF(array);
+
+    return NULL;
+}
+
+
 static PyMethodDef _combineMethods[] = {
     {"CombineGrids", Py_CombineGrids, METH_VARARGS},
     {"Interpolate", Py_Interpolate, METH_VARARGS},
@@ -1154,6 +1208,7 @@ static PyMethodDef _combineMethods[] = {
     {"Bin3DProfile", Py_Bin3DProfile, METH_VARARGS},
     {"FindContours", Py_FindContours, METH_VARARGS},
     {"FindBindingEnergy", Py_FindBindingEnergy, METH_VARARGS},
+    {"OutputFloatsToFile", Py_OutputFloatsToFile, METH_VARARGS},
     {NULL, NULL} /* Sentinel */
 };
 
@@ -1179,6 +1234,8 @@ void initPointCombine(void)
     PyDict_SetItemString(d, "error", _profile3DError);
     _findContoursError = PyErr_NewException("PointCombine.FindContoursError", NULL, NULL);
     PyDict_SetItemString(d, "error", _findContoursError);
+    _outputFloatsToFileError = PyErr_NewException("PointCombine.OutputFloatsToFileError", NULL, NULL);
+    PyDict_SetItemString(d, "error", _outputFloatsToFileError);
     import_array();
 }
 
