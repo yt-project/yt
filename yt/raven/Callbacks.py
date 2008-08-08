@@ -323,4 +323,36 @@ class CuttingQuiverCallback(PlotCallback):
         plot._axes.set_ylim(yy0,yy1)
         plot._axes.hold(False)
 
+class ClumpContourCallback(PlotCallback):
+    def __init__(self, clumps, axis, plot_args = None):
+        """
+        Take a list of *clumps* and plot them as a set of contours.
+        """
+        self.clumps = clumps
+        self.xf = lagos.axis_names[lagos.x_dict[axis]]
+        self.yf = lagos.axis_names[lagos.y_dict[axis]]
+        if plot_args is None: plot_args = {}
+        self.plot_args = plot_args
 
+    def __call__(self, plot):
+        x0, x1 = plot.xlim
+        y0, y1 = plot.ylim
+        xx0, xx1 = plot._axes.get_xlim()
+        yy0, yy1 = plot._axes.get_ylim()
+        plot._axes.hold(True)
+        
+        nx, ny = plot.image._A.shape
+        buff = na.zeros((nx,ny),dtype='float64')
+        for i,clump in enumerate(reversed(self.clumps)):
+            mylog.debug("Pixelizing contour %s", i)
+            temp = _MPL.Pixelize(clump[self.xf],
+                                 clump[self.yf],
+                                 clump['dx'],
+                                 clump['dx'],
+                                 clump['dx']*0.0+i+1, # inits inside Pixelize
+                                 int(nx), int(ny),
+                             (x0, x1, y0, y1), 0).transpose()
+            buff = na.maximum(temp, buff)
+        self.rv = plot._axes.contour(buff, len(self.clumps)+1,
+                                     **self.plot_args)
+        plot._axes.hold(False)
