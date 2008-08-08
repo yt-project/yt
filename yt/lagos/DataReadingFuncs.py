@@ -189,3 +189,4 @@ class DataQueuePackedHDF5(BaseDataQueue):
             data = HDF5LightReader.ReadMultipleGrids(file, nodes, sets)
             mylog.debug("Read %s items from %s", len(data), os.path.basename(file))
             for gid in data: self.queue[gid].update(data[gid])
+        mylog.debug("Finished read of %s", sets)

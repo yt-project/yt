@@ -98,15 +98,11 @@ class BinnedProfile(ParallelAnalysisInterface):
         del self.__data, self.__weight_data, self.__used
 
     def _finalize_parallel(self):
-        from mpi4py import MPI # I am displeased by importing here
-        MPI.COMM_WORLD.Barrier()
         for key in self.__data:
-            self.__data[key] = \
-                MPI.COMM_WORLD.Allreduce(self.__data[key], op=MPI.SUM)
+            self.__data[key] = self._mpi_gather(self.__data[key])
         for key in self.__weight_data:
-            self.__weight_data[key] = \
-                MPI.COMM_WORLD.Allreduce(self.__weight_data[key], op=MPI.SUM)
-        self.__used = MPI.COMM_WORLD.Allreduce(self.__used, op=MPI.SUM)
+            self.__weight_data[key] = self._mpi_gather(self.__weight_data[key])
+        self.__used = self._mpi_allsum(self.__used)
 
     def _unlazy_add_fields(self, fields, weight, accumulation):
         for field in fields:

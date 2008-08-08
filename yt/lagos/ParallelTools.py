@@ -106,8 +106,55 @@ class ParallelAnalysisInterface(object):
     def _finalize_parallel(self):
         pass
 
+    def _partition_hierarchy_2d(self, axis):
+        if not parallel_capable:
+           return False, self.hierarchy.grid_collection(self.center, self.hierarchy.grids)
+
+        cc = MPI.Compute_dims(MPI.COMM_WORLD.size, 2)
+        mi = MPI.COMM_WORLD.rank
+        cx, cy = na.unravel_index(mi, cc)
+        x = na.mgrid[0:1:(cc[0]+1)*1j][cx:cx+2]
+        y = na.mgrid[0:1:(cc[1]+1)*1j][cy:cy+2]
+
+        LE = na.zeros(3, dtype='float64')
+        RE = na.ones(3, dtype='float64')
+        LE[x_dict[axis]] = x[0]  # It actually doesn't matter if this is x or y
+        RE[x_dict[axis]] = x[1]
+        LE[y_dict[axis]] = y[0]
+        RE[y_dict[axis]] = y[1]
+
+        return True, self.hierarchy.region(self.center, LE, RE)
+
+    def _mpi_catdict(self, data):
+        if not parallel_capable: return data
+        mylog.debug("Opening MPI Barrier on %s", MPI.COMM_WORLD.rank)
+        MPI.COMM_WORLD.Barrier()
+        if MPI.COMM_WORLD.rank == 0:
+            data = self.__mpi_recvdict(data)
+        else:
+            MPI.COMM_WORLD.Send(data, dest=0, tag=0)
+        mylog.debug("Opening MPI Broadcast on %s", MPI.COMM_WORLD.rank)
+        data = MPI.COMM_WORLD.Bcast(data, root=0)
+        MPI.COMM_WORLD.Barrier()
+        return data
+
+    def __mpi_recvdict(self, data):
+        # First we receive, then we make a new dict.
+        for i in range(1,MPI.COMM_WORLD.size):
+            buf = MPI.COMM_WORLD.Recv(source=i, tag=0)
+            for j in buf: data[j] = na.concatenate([data[j],buf[j]], axis=-1)
+        return data
+
+    def _should_i_write(self):
+        if not parallel_capable: return True
+        return (MPI.COMM_WORLD == 0)
+
+    def _mpi_allsum(self, data):
+        MPI.COMM_WORLD.Barrier()
+        return MPI.COMM_WORLD.Allreduce(data, op=MPI.SUM)
+
     def _get_dependencies(self, fields):
         deps = []
         for field in fields:
-            deps += fieldInfo[field].get_dependencies().requested
+            deps += ensure_list(fieldInfo[field].get_dependencies().requested)
         return list(set(deps))

@@ -179,6 +179,7 @@ class EnzoHierarchy:
         self.cutting = classobj("EnzoCuttingPlane",(EnzoCuttingPlaneBase,), dd)
         self.ray = classobj("EnzoOrthoRay",(EnzoOrthoRayBase,), dd)
         self.disk = classobj("EnzoCylinder",(EnzoCylinderBase,), dd)
+        self.grid_collection = classobj("EnzoGridCollection",(EnzoGridCollection,), dd)
 
     def __initialize_data_file(self):
         if not ytcfg.getboolean('lagos','serialize'): return
