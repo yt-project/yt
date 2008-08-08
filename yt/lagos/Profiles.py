@@ -56,10 +56,8 @@ class BinnedProfile(ParallelAnalysisInterface):
         self._lazy_reader = lazy_reader
 
     def _get_dependencies(self, fields):
-        deps = []
-        for field in fields + self._get_bin_fields(): 
-            deps += fieldInfo[field].get_dependencies().requested
-        return list(set(deps))
+        return ParallelAnalysisInterface._get_dependencies(
+                    fields + self._get_bin_fields())
 
     def _initialize_parallel(self, fields):
         if hasattr(self._data_source.hierarchy, 'queue'):

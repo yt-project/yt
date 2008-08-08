@@ -706,7 +706,7 @@ class EnzoCuttingPlaneBase(Enzo2DData):
         if use_child_mask: k = (k & grid.child_mask)
         return na.where(k)
 
-class EnzoProjBase(Enzo2DData):
+class EnzoProjBase(Enzo2DData, ParallelAnalysisInterface):
     _key_fields = ['px','py','pdx','pdy']
     def __init__(self, axis, field, weight_field = None,
                  max_level = None, center = None, pf = None,
@@ -819,6 +819,8 @@ class EnzoProjBase(Enzo2DData):
 
     def __project_level(self, level, fields):
         grids_to_project = self.source.select_grids(level)
+        self.hierarchy.queue.preload(grids_to_project,
+                                     self._get_dependencies(fields))
         dls, convs = self.__get_dls(grids_to_project[0], fields)
         zero_out = (level != self._max_level)
         pbar = get_pbar('Projecting  level % 2i / % 2i ' \
@@ -830,6 +832,7 @@ class EnzoProjBase(Enzo2DData):
             for fi in range(len(fields)): g_fields[fi] *= dls[fi]
             if self._weight is not None: g_coords[3] *= dls[-1]
             pbar.update(pi)
+            grid.clear_data()
         pbar.finish()
         self.__combine_grids_on_level(level) # In-place
         if level > 0 and level <= self._max_level:

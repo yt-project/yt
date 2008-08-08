@@ -28,7 +28,6 @@ License:
 
 from yt.config import ytcfg
 from yt.logger import lagosLogger as mylog
-from yt.parallel_tools import *
 
 try:
     from pyhdf_np import SD # NumPy
@@ -77,6 +76,7 @@ import HDF5LightReader
 from EnzoDefs import *
 from DerivedFields import *
 from DerivedQuantities import DerivedQuantityCollection, GridChildMaskWrapper
+from ParallelTools import *
 from DataReadingFuncs import *
 from ClusterFiles import *
 from ContourFinder import *

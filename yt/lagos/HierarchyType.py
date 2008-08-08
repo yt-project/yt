@@ -492,6 +492,7 @@ class EnzoHierarchy:
                 gf = grid.getFields()
                 mylog.debug("Grid %s has: %s", grid.id, gf)
                 field_list = field_list.union(sets.Set(gf))
+            self.save_data(list(field_list),"/","DataFields")
         self.field_list = list(field_list)
         for field in self.field_list:
             if field in fieldInfo: continue
