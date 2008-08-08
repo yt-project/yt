@@ -23,9 +23,8 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
+from yt.lagos import *
 import itertools
-from yt.config import ytcfg
-from yt.arraytypes import *
 
 try:
     from mpi4py import MPI
@@ -106,3 +105,9 @@ class ParallelAnalysisInterface(object):
 
     def _finalize_parallel(self):
         pass
+
+    def _get_dependencies(self, fields):
+        deps = []
+        for field in fields:
+            deps += fieldInfo[field].get_dependencies().requested
+        return list(set(deps))
