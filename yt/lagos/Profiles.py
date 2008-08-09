@@ -57,7 +57,7 @@ class BinnedProfile(ParallelAnalysisInterface):
 
     def _get_dependencies(self, fields):
         return ParallelAnalysisInterface._get_dependencies(
-                    fields + self._get_bin_fields())
+                    self, fields + self._get_bin_fields())
 
     def _initialize_parallel(self, fields):
         if hasattr(self._data_source.hierarchy, 'queue'):
@@ -99,9 +99,9 @@ class BinnedProfile(ParallelAnalysisInterface):
 
     def _finalize_parallel(self):
         for key in self.__data:
-            self.__data[key] = self._mpi_gather(self.__data[key])
+            self.__data[key] = self._mpi_allsum(self.__data[key])
         for key in self.__weight_data:
-            self.__weight_data[key] = self._mpi_gather(self.__weight_data[key])
+            self.__weight_data[key] = self._mpi_allsum(self.__weight_data[key])
         self.__used = self._mpi_allsum(self.__used)
 
     def _unlazy_add_fields(self, fields, weight, accumulation):

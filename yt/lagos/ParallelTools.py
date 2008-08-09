@@ -67,6 +67,8 @@ class GridIterator(object):
         if self.pos < len(self._grids):
             self.pos += 1
             return self._grids[self.pos - 1]
+        # This next line is debatable.
+        MPI.COMM_WORLD.Barrier()
         raise StopIteration
 
 class ParallelGridIterator(GridIterator):
