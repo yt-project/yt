@@ -139,3 +139,10 @@ try:
     from collections import defaultdict
 except ImportError:
     defaultdict = __defaultdict
+
+def only_on_root(func, *args, **kwargs):
+    from yt.config import ytcfg
+    if not ytcfg.getboolean("yt","__parallel"):
+        return func(*args,**kwargs)
+    if ytcfg.getint("yt","__parallel_rank") > 0: return
+    return func(*args, **kwargs)

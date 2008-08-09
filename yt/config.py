@@ -63,7 +63,9 @@ ytcfgDefaults = {
         'unifiedlogfile': '1',
         'timefunctions':'False',
         'inGui':'False',
-        'parallel':'False',
+        '__parallel':'False',
+        '__parallel_rank':'0',
+        '__parallel_size':'1',
          },
     "raven":{
         'ImagePath':".",

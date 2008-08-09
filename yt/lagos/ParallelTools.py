@@ -24,16 +24,27 @@ License:
 """
 
 from yt.lagos import *
+import yt.logger
 import itertools
 
 try:
     from mpi4py import MPI
-    parallel_capable = True
-    print "MPI %s / %s" % (MPI.COMM_WORLD.rank, MPI.COMM_WORLD.size)
+    parallel_capable = (MPI.COMM_WORLD.size > 1)
+    mylog.info("Parallel computation enabled: %s / %s",
+               MPI.COMM_WORLD.rank, MPI.COMM_WORLD.size)
+    ytcfg["yt","__parallel_rank"] = str(MPI.COMM_WORLD.rank)
+    ytcfg["yt","__parallel_size"] = str(MPI.COMM_WORLD.size)
+    ytcfg["yt","__parallel"] = "True"
+    # Now let's make sure we have the right options set.
+    if MPI.COMM_WORLD.rank > 0:
+        if ytcfg.getboolean("lagos","serialize"):
+            ytcfg["lagos","onlydeserialize"] = "True"
+        if ytcfg.getboolean("yt","LogFile"):
+            ytcfg["yt","LogFile"] = "False"
+            yt.logger.disable_file_logging()
+            
 except ImportError:
     parallel_capable = False
-
-print "PARALLEL COMPATIBLE:", parallel_capable
 
 class GridIterator(object):
     def __init__(self, pobj, just_list = False):
@@ -88,15 +99,13 @@ class ParallelAnalysisInterface(object):
     _grids = None
 
     def _get_grids(self, *args, **kwargs):
-        if parallel_capable and \
-           ytcfg.getboolean("yt","parallel"):
+        if parallel_capable:
             self._initialize_parallel(*args, **kwargs)
             return ParallelGridIterator(self)
         return GridIterator(self)
 
     def _get_grid_objs(self):
-        if parallel_capable and \
-           ytcfg.getboolean("yt","parallel"):
+        if parallel_capable:
             return ParallelGridIterator(self, True)
         return GridIterator(self, True)
 

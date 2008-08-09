@@ -139,8 +139,7 @@ class RavenPlot:
             my_prefix = prefix
         fn = ".".join([my_prefix, format])
         canvas = engineVals["canvas"](self._figure)
-        #self._figure.savefig(fn, format)
-        canvas.print_figure(fn)
+        only_on_root(canvas.print_figure, fn)
         self["Type"] = self._type_name
         self["GeneratedAt"] = self.data.hierarchy["CurrentTimeIdentifier"]
         return fn
