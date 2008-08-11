@@ -786,7 +786,7 @@ class EnzoProjBase(Enzo2DData, ParallelAnalysisInterface):
         mylog.info("Finished calculating overlap.")
 
     def _serialize(self):
-        if not self.should_i_write(): return
+        if not self._should_i_write(): return
         mylog.info("Serializing data...")
         node_name = "%s_%s_%s" % (self.fields[0], self._weight, self.axis)
         mylog.info("nodeName: %s", node_name)
