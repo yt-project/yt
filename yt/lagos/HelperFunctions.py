@@ -51,8 +51,9 @@ class UnilinearFieldInterpolator:
         return my_vals.reshape(orig_shape)
 
 class BilinearFieldInterpolator:
-    def __init__(self, table, boundaries, field_names):
+    def __init__(self, table, boundaries, field_names, truncate=False):
         self.table = table
+        self.truncate = truncate
         x0, x1, y0, y1 = boundaries
         self.x_name, self.y_name = field_names
         self.x_bins = na.linspace(x0, x1, table.shape[0])
@@ -67,10 +68,14 @@ class BilinearFieldInterpolator:
         y_i = na.digitize(y_vals, self.y_bins) - 1
         if na.any((x_i == -1) | (x_i == len(self.x_bins)-1)) \
             or na.any((y_i == -1) | (y_i == len(self.y_bins)-1)):
-            mylog.error("Sorry, but your values are outside" + \
-                        " the table!  Dunno what to do, so dying.")
-            mylog.error("Error was in: %s", data_object)
-            raise ValueError
+            if not self.truncate:
+                mylog.error("Sorry, but your values are outside" + \
+                            " the table!  Dunno what to do, so dying.")
+                mylog.error("Error was in: %s", data_object)
+                raise ValueError
+            else:
+                x_i = na.minimum(na.maximum(x_i,0), len(self.x_bins)-2)
+                y_i = na.minimum(na.maximum(y_i,0), len(self.y_bins)-2)
 
         x = (x_vals - self.x_bins[x_i]) / (self.x_bins[x_i+1] - self.x_bins[x_i])
         y = (y_vals - self.y_bins[y_i]) / (self.y_bins[y_i+1] - self.y_bins[y_i])
