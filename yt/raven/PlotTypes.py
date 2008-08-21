@@ -310,6 +310,10 @@ class VMPlot(RavenPlot):
         self.image = \
             self._axes.imshow(buff, interpolation='nearest', norm = self.norm,
                             aspect=1.0, picker=True, origin='lower')
+        if self.cmap is not None:
+            self.image.set_cmap(self.cmap)
+            if self.colorbar is not None:
+                self.colorbar.set_cmap(self.cmap)
         self._reset_image_parameters()
         self._run_callbacks()
 
