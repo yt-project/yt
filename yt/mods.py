@@ -61,11 +61,13 @@ class _StaticOutputIfier(object):
 static = _StaticOutputIfier()
 
 class __PlotVM(object):
-    def __init__(self, axis = 0, field = "Density", name = None, width = None):
+    def __init__(self, axis = 0, field = "Density", name = None,
+                width = None, **kwargs):
         self.axis = axis
         self.field = field
         self.name = name
         self.width = width
+        self.kwargs = kwargs
 
     def __ror__(self, pf):
         if isinstance(pf, types.StringTypes): pf = EnzoStaticOutput(pf)
@@ -77,21 +79,47 @@ class __PlotVM(object):
         return pc.save(self.name)
 
     def __call__(self, *args, **kwargs):
-        return _PlotSlice(*args, **kwargs)
+        return type(self)(*args, **kwargs)
 
 class _PlotSlice(__PlotVM):
     def _add_plot(self, pc):
-        pc.add_slice(self.field, self.axis)
-slicer = _PlotSlice()
+        pc.add_slice(self.field, self.axis, **self.kwargs)
 x_slicer = _PlotSlice(axis=0)
 y_slicer = _PlotSlice(axis=1)
 z_slicer = _PlotSlice(axis=2)
 
 class _PlotProj(__PlotVM):
     def _add_plot(self, pc):
-        pc.add_projection(self.field, self.axis)
-projector = _PlotProj()
+        pc.add_projection(self.field, self.axis, **self.kwargs)
 x_projector = _PlotProj(axis=0)
 y_projector = _PlotProj(axis=1)
 z_projector = _PlotProj(axis=2)
 
+class __MultiPlotter(object):
+    def __init__(self, field = "Density", name = None, width = None, **kwargs):
+        self.field = field
+        self.name = name
+        self.width = width
+        self.kwargs = kwargs
+
+    def __ror__(self, pf):
+        if isinstance(pf, types.StringTypes): pf = EnzoStaticOutput(pf)
+        pc = PlotCollection(pf)
+        self._add_plot(pc)
+        if self.name is None: self.name = str(pf)
+        if self.width is not None:
+            pc.set_width(*self.width)
+        return pc.save(self.name)
+
+    def __call__(self, *args, **kwargs):
+        return type(self)(*args, **kwargs)
+
+class _MultiPlotSlice(__PlotVM):
+    def _add_plot(self, pc):
+        for ax in range(3): pc.add_slice(self.field, ax, **self.kwargs)
+slicer = _MultiPlotSlice()
+
+class _MultiPlotProj(__PlotVM):
+    def _add_plot(self, pc):
+        for ax in range(3): pc.add_projection(self.field, ax, **self.kwargs)
+projector = _MultiPlotProj()
