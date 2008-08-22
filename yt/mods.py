@@ -30,7 +30,7 @@ import yt.lagos.hop as hop
 import yt.raven as raven
 import yt.fido as fido
 import numpy as na
-import sys
+import sys, types
 
 from yt.lagos import EnzoStaticOutput, \
     BinnedProfile1D, BinnedProfile2D, BinnedProfile3D, \
@@ -52,4 +52,46 @@ from yt.fido import GrabCollections, OutputCollection
 
 def get_pf():
     return lagos.EnzoStaticOutput(sys.argv[-1])
+
+class _StaticOutputIfier(object):
+    def __init__(self):
+        pass
+    def __ror__(self, other):
+        return EnzoStaticOutput(other)
+static = _StaticOutputIfier()
+
+class __PlotVM(object):
+    def __init__(self, axis = 0, field = "Density", name = None, width = None):
+        self.axis = axis
+        self.field = field
+        self.name = name
+        self.width = width
+
+    def __ror__(self, pf):
+        if isinstance(pf, types.StringTypes): pf = EnzoStaticOutput(pf)
+        pc = PlotCollection(pf)
+        self._add_plot(pc)
+        if self.name is None: self.name = str(pf)
+        if self.width is not None:
+            pc.set_width(*self.width)
+        return pc.save(self.name)
+
+    def __call__(self, *args, **kwargs):
+        return _PlotSlice(*args, **kwargs)
+
+class _PlotSlice(__PlotVM):
+    def _add_plot(self, pc):
+        pc.add_slice(self.field, self.axis)
+slicer = _PlotSlice()
+x_slicer = _PlotSlice(axis=0)
+y_slicer = _PlotSlice(axis=1)
+z_slicer = _PlotSlice(axis=2)
+
+class _PlotProj(__PlotVM):
+    def _add_plot(self, pc):
+        pc.add_projection(self.field, self.axis)
+projector = _PlotProj()
+x_projector = _PlotProj(axis=0)
+y_projector = _PlotProj(axis=1)
+z_projector = _PlotProj(axis=2)
 
