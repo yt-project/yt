@@ -887,7 +887,7 @@ def _convertVelocity(data):
     return data.convert("x-velocity")
 for ax in ['x','y','z']:
     f = fieldInfo["%s-velocity" % ax]
-    f._units = r"\rm{km}/\rm{s}"
+    f._units = r"\rm{cm}/\rm{s}"
     f._convert_function = _convertVelocity
     f.take_log = False
 
