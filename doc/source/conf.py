@@ -34,6 +34,9 @@ templates_path = ['.templates']
 # The suffix of source filenames.
 source_suffix = '.rst'
 
+# HTML file suffix workaround to fix search
+html_file_suffix = ".html"
+
 # The master toctree document.
 master_doc = 'index'
 
