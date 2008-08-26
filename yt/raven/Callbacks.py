@@ -113,7 +113,8 @@ class ParticleCallback(PlotCallback):
         plot._axes.hold(False)
 
 class ContourCallback(PlotCallback):
-    def __init__(self, field, ncont=5, factor=4, take_log=False, clim=None):
+    def __init__(self, field, ncont=5, factor=4, take_log=False, clim=None,
+                 plot_args = None):
         """
         Add contours in *field* to the plot.  *ncont* governs the number of
         contours generated, *factor* governs the number of points used in the
@@ -133,6 +134,8 @@ class ContourCallback(PlotCallback):
             self.__call__ = lambda a: None
         if self.take_log and clim is not None: clim = (na.log10(clim[0]), na.log10(clim[1]))
         if clim is not None: self.ncont = na.linspace(clim[0], clim[1], ncont)
+        if plot_args is None: plot_args = {'colors':'k'}
+        self.plot_args = plot_args
 
     def __call__(self, plot):
         x0, x1 = plot.xlim
@@ -156,7 +159,7 @@ class ContourCallback(PlotCallback):
         z = plot.data[self.field][wI]
         if self.take_log: z=na.log10(z)
         zi = self.de.Triangulation(x,y).nn_interpolator(z)(xi,yi)
-        plot._axes.contour(xi,yi,zi,self.ncont,colors='k')
+        plot._axes.contour(xi,yi,zi,self.ncont, **self.plot_args)
         plot._axes.set_xlim(xx0,xx1)
         plot._axes.set_ylim(yy0,yy1)
         plot._axes.hold(False)
