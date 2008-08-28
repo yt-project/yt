@@ -39,7 +39,7 @@ class PlotCollection:
         self._run_id = deliverator_id
         self.pf = pf
         if center == None:
-            v,self.c = pf.h.findMax("Density") # @todo: ensure no caching
+            v,self.c = pf.h.find_max("Density") # @todo: ensure no caching
         else:
             self.c = center
         if deliverator_id > 0:

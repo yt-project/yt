@@ -72,34 +72,34 @@ static PyObject* Py_Pixelize(PyObject *obj, PyObject *args) {
 
   // Get numeric arrays
   PyArrayObject *x = (PyArrayObject *) PyArray_FromAny(xp,
-            PyArray_DescrFromType(NPY_FLOAT64), 1, 1, NPY_C_CONTIGUOUS, NULL);
+            PyArray_DescrFromType(NPY_FLOAT64), 1, 1, 0, NULL);
   if (x == NULL) {
       PyErr_Format( _pixelizeError, "x is of incorrect type (wanted 1D float)");
       goto _fail;
   }
 
   PyArrayObject *y = (PyArrayObject *) PyArray_FromAny(yp,
-            PyArray_DescrFromType(NPY_FLOAT64), 1, 1, NPY_C_CONTIGUOUS, NULL);
+            PyArray_DescrFromType(NPY_FLOAT64), 1, 1, 0, NULL);
   if ((y == NULL) || (PyArray_SIZE(y) != PyArray_SIZE(x))) {
       PyErr_Format( _pixelizeError, "y is of incorrect type (wanted 1D float)");
       goto _fail;
   }
 
   PyArrayObject *d = (PyArrayObject *) PyArray_FromAny(dp,
-            PyArray_DescrFromType(NPY_FLOAT64), 1, 1, NPY_C_CONTIGUOUS, NULL);
+            PyArray_DescrFromType(NPY_FLOAT64), 1, 1, 0, NULL);
   if ((d == NULL) || (PyArray_SIZE(d) != PyArray_SIZE(x))) {
       PyErr_Format( _pixelizeError, "data is of incorrect type (wanted 1D float)");
       goto _fail;
   }
 
   PyArrayObject *dx = (PyArrayObject *) PyArray_FromAny(dxp,
-            PyArray_DescrFromType(NPY_FLOAT64), 1, 1, NPY_C_CONTIGUOUS, NULL);
+            PyArray_DescrFromType(NPY_FLOAT64), 1, 1, 0, NULL);
   if ((dx == NULL) || (PyArray_SIZE(dx) != PyArray_SIZE(x))) {
       PyErr_Format( _pixelizeError, "dx is of incorrect type (wanted 1D float)");
       goto _fail;
   }
   PyArrayObject *dy = (PyArrayObject *) PyArray_FromAny(dyp,
-            PyArray_DescrFromType(NPY_FLOAT64), 1, 1, NPY_C_CONTIGUOUS, NULL);
+            PyArray_DescrFromType(NPY_FLOAT64), 1, 1, 0, NULL);
   if ((dy == NULL) || (PyArray_SIZE(dy) != PyArray_SIZE(x))) {
       PyErr_Format( _pixelizeError, "dy is of incorrect type (wanted 1D float)");
       goto _fail;
@@ -115,40 +115,43 @@ static PyObject* Py_Pixelize(PyObject *obj, PyObject *args) {
   int i, j, p;
   double lc, lr, rc, rr;
   double lypx, rypx, lxpx, rxpx, overlap1, overlap2;
-  npy_float64 *xs = (npy_float64 *) PyArray_GETPTR1(x, 0);
-  npy_float64 *ys = (npy_float64 *) PyArray_GETPTR1(y, 0);
-  npy_float64 *dxs = (npy_float64 *) PyArray_GETPTR1(dx, 0);
-  npy_float64 *dys = (npy_float64 *) PyArray_GETPTR1(dy, 0);
-  npy_float64 *ds = (npy_float64 *) PyArray_GETPTR1(d, 0); // We check this above
+  npy_float64 xsp, ysp, dxsp, dysp, dsp;
 
   npy_intp dims[] = {rows, cols};
   PyArrayObject *my_array =
     (PyArrayObject *) PyArray_SimpleNewFromDescr(2, dims,
               PyArray_DescrFromType(NPY_FLOAT64));
-  npy_float64 *gridded = (npy_float64 *) my_array->data;
+  //npy_float64 *gridded = (npy_float64 *) my_array->data;
 
-  for(p=0;p<cols*rows;p++)gridded[p]=0.0;
+  for(i=0;i<rows;i++)for(j=0;j<cols;j++)
+      *(npy_float64*) PyArray_GETPTR2(my_array, j, i) = 0.0;
   for(p=0;p<nx;p++)
   {
-    if(((xs[p]+dxs[p]<x_min) ||
-        (xs[p]-dxs[p]>x_max)) ||
-       ((ys[p]+dys[p]<y_min) ||
-        (ys[p]-dys[p]>y_max))) continue;
-    lc = max(((xs[p]-dxs[p]-x_min)/px_dx),0);
-    lr = max(((ys[p]-dys[p]-y_min)/px_dy),0);
-    rc = min(((xs[p]+dxs[p]-x_min)/px_dx), rows);
-    rr = min(((ys[p]+dys[p]-y_min)/px_dy), cols);
+    xsp = *((npy_float64 *)PyArray_GETPTR1(x, p));
+    ysp = *((npy_float64 *)PyArray_GETPTR1(y, p));
+    dxsp = *((npy_float64 *)PyArray_GETPTR1(dx, p));
+    dysp = *((npy_float64 *)PyArray_GETPTR1(dy, p));
+    dsp = *((npy_float64 *)PyArray_GETPTR1(d, p));
+    if(((xsp+dxsp<x_min) ||
+        (xsp-dxsp>x_max)) ||
+       ((ysp+dysp<y_min) ||
+        (ysp-dysp>y_max))) continue;
+    lc = max(((xsp-dxsp-x_min)/px_dx),0);
+    lr = max(((ysp-dysp-y_min)/px_dy),0);
+    rc = min(((xsp+dxsp-x_min)/px_dx), rows);
+    rr = min(((ysp+dysp-y_min)/px_dy), cols);
     for (i=lr;i<rr;i++) {
       lypx = px_dy * i + y_min;
       rypx = px_dy * (i+1) + y_min;
-      overlap2 = ((min(rypx, ys[p]+dys[p]) - max(lypx, (ys[p]-dys[p])))/px_dy);
+      overlap2 = ((min(rypx, ysp+dysp) - max(lypx, (ysp-dysp)))/px_dy);
       for (j=lc;j<rc;j++) {
         lxpx = px_dx * j + x_min;
         rxpx = px_dx * (j+1) + x_min;
-        overlap1 = ((min(rxpx, xs[p]+dxs[p]) - max(lxpx, (xs[p]-dxs[p])))/px_dx);
+        overlap1 = ((min(rxpx, xsp+dxsp) - max(lxpx, (xsp-dxsp)))/px_dx);
         if (overlap1 < 0.0 || overlap2 < 0.0) continue;
-        if (antialias == 1) gridded[j*cols+i] += (ds[p]*overlap1)*overlap2;
-        else gridded[j*cols+i] = ds[p];
+        if (antialias == 1)
+             *(npy_float64*) PyArray_GETPTR2(my_array, j, i) += (dsp*overlap1)*overlap2;
+        else *(npy_float64*) PyArray_GETPTR2(my_array, j, i) = dsp;
       }
     }
   }
@@ -200,61 +203,61 @@ static PyObject* Py_CPixelize(PyObject *obj, PyObject *args) {
 
   // Get numeric arrays
   PyArrayObject *x = (PyArrayObject *) PyArray_FromAny(xp,
-            PyArray_DescrFromType(NPY_FLOAT64), 1, 1, NPY_C_CONTIGUOUS, NULL);
+            PyArray_DescrFromType(NPY_FLOAT64), 1, 1, 0, NULL);
   if (x == NULL) {
       PyErr_Format( _pixelizeError, "x is of incorrect type (wanted 1D float)");
       goto _fail;
   }
 
   PyArrayObject *y = (PyArrayObject *) PyArray_FromAny(yp,
-            PyArray_DescrFromType(NPY_FLOAT64), 1, 1, NPY_C_CONTIGUOUS, NULL);
+            PyArray_DescrFromType(NPY_FLOAT64), 1, 1, 0, NULL);
   if ((y == NULL) || (PyArray_SIZE(y) != PyArray_SIZE(x))) {
       PyErr_Format( _pixelizeError, "y is of incorrect type (wanted 1D float)");
       goto _fail;
   }
 
   PyArrayObject *z = (PyArrayObject *) PyArray_FromAny(zp,
-            PyArray_DescrFromType(NPY_FLOAT64), 1, 1, NPY_C_CONTIGUOUS, NULL);
+            PyArray_DescrFromType(NPY_FLOAT64), 1, 1, 0, NULL);
   if ((z == NULL) || (PyArray_SIZE(y) != PyArray_SIZE(x))) {
       PyErr_Format( _pixelizeError, "z is of incorrect type (wanted 1D float)");
       goto _fail;
   }
 
   PyArrayObject *px = (PyArrayObject *) PyArray_FromAny(pxp,
-            PyArray_DescrFromType(NPY_FLOAT64), 1, 1, NPY_C_CONTIGUOUS, NULL);
+            PyArray_DescrFromType(NPY_FLOAT64), 1, 1, 0, NULL);
   if ((px == NULL) || (PyArray_SIZE(y) != PyArray_SIZE(x))) {
       PyErr_Format( _pixelizeError, "px is of incorrect type (wanted 1D float)");
       goto _fail;
   }
 
   PyArrayObject *py = (PyArrayObject *) PyArray_FromAny(pyp,
-            PyArray_DescrFromType(NPY_FLOAT64), 1, 1, NPY_C_CONTIGUOUS, NULL);
+            PyArray_DescrFromType(NPY_FLOAT64), 1, 1, 0, NULL);
   if ((py == NULL) || (PyArray_SIZE(y) != PyArray_SIZE(x))) {
       PyErr_Format( _pixelizeError, "py is of incorrect type (wanted 1D float)");
       goto _fail;
   }
 
   PyArrayObject *d = (PyArrayObject *) PyArray_FromAny(dp,
-            PyArray_DescrFromType(NPY_FLOAT64), 1, 1, NPY_C_CONTIGUOUS, NULL);
+            PyArray_DescrFromType(NPY_FLOAT64), 1, 1, 0, NULL);
   if ((d == NULL) || (PyArray_SIZE(d) != PyArray_SIZE(x))) {
       PyErr_Format( _pixelizeError, "data is of incorrect type (wanted 1D float)");
       goto _fail;
   }
 
   PyArrayObject *dx = (PyArrayObject *) PyArray_FromAny(dxp,
-            PyArray_DescrFromType(NPY_FLOAT64), 1, 1, NPY_C_CONTIGUOUS, NULL);
+            PyArray_DescrFromType(NPY_FLOAT64), 1, 1, 0, NULL);
   if ((dx == NULL) || (PyArray_SIZE(dx) != PyArray_SIZE(x))) {
       PyErr_Format( _pixelizeError, "dx is of incorrect type (wanted 1D float)");
       goto _fail;
   }
   PyArrayObject *dy = (PyArrayObject *) PyArray_FromAny(dyp,
-            PyArray_DescrFromType(NPY_FLOAT64), 1, 1, NPY_C_CONTIGUOUS, NULL);
+            PyArray_DescrFromType(NPY_FLOAT64), 1, 1, 0, NULL);
   if ((dy == NULL) || (PyArray_SIZE(dy) != PyArray_SIZE(x))) {
       PyErr_Format( _pixelizeError, "dy is of incorrect type (wanted 1D float)");
       goto _fail;
   }
   PyArrayObject *dz = (PyArrayObject *) PyArray_FromAny(dzp,
-            PyArray_DescrFromType(NPY_FLOAT64), 1, 1, NPY_C_CONTIGUOUS, NULL);
+            PyArray_DescrFromType(NPY_FLOAT64), 1, 1, 0, NULL);
   if ((dz == NULL) || (PyArray_SIZE(dz) != PyArray_SIZE(x))) {
       PyErr_Format( _pixelizeError, "dz is of incorrect type (wanted 1D float)");
       goto _fail;
@@ -266,13 +269,13 @@ static PyObject* Py_CPixelize(PyObject *obj, PyObject *args) {
       goto _fail;
   }
   PyArrayObject *inv_mat = (PyArrayObject *) PyArray_FromAny(inv_matp,
-            PyArray_DescrFromType(NPY_FLOAT64), 2, 2, NPY_C_CONTIGUOUS, NULL);
+            PyArray_DescrFromType(NPY_FLOAT64), 2, 2, 0, NULL);
   if ((inv_mat == NULL) || (PyArray_SIZE(inv_mat) != 9)) {
       PyErr_Format( _pixelizeError, "inv_mat must be three by three");
       goto _fail;
   }
   PyArrayObject *indices = (PyArrayObject *) PyArray_FromAny(indicesp,
-            PyArray_DescrFromType(NPY_INT64), 1, 1, NPY_C_CONTIGUOUS, NULL);
+            PyArray_DescrFromType(NPY_INT64), 1, 1, 0, NULL);
   if ((indices == NULL) || (PyArray_SIZE(indices) != PyArray_SIZE(dx))) {
       PyErr_Format( _pixelizeError, "indices must be same length as dx");
       goto _fail;
@@ -287,17 +290,8 @@ static PyObject* Py_CPixelize(PyObject *obj, PyObject *args) {
   long double md, cxpx, cypx;
   long double cx, cy, cz;
 
-  npy_float64 *xs = (npy_float64 *) PyArray_GETPTR1(x, 0);
-  npy_float64 *ys = (npy_float64 *) PyArray_GETPTR1(y, 0);
-  npy_float64 *zs = (npy_float64 *) PyArray_GETPTR1(z, 0);
-  npy_float64 *pxs = (npy_float64 *) PyArray_GETPTR1(px, 0);
-  npy_float64 *pys = (npy_float64 *) PyArray_GETPTR1(py, 0);
-  npy_float64 *dxs = (npy_float64 *) PyArray_GETPTR1(dx, 0);
-  npy_float64 *dys = (npy_float64 *) PyArray_GETPTR1(dy, 0);
-  npy_float64 *dzs = (npy_float64 *) PyArray_GETPTR1(dz, 0);
-  npy_float64 *ds = (npy_float64 *) PyArray_GETPTR1(d, 0); // We check this above
+  npy_float64 xsp, ysp, zsp, pxsp, pysp, dxsp, dysp, dzsp, dsp;
   npy_float64 *centers = (npy_float64 *) PyArray_GETPTR1(center,0);
-  npy_int64 *indicess = (npy_int64 *) PyArray_GETPTR1(indices,0);
 
   npy_intp dims[] = {rows, cols};
   PyArrayObject *my_array =
@@ -315,17 +309,26 @@ static PyObject* Py_CPixelize(PyObject *obj, PyObject *args) {
   for(p=0;p<cols*rows;p++)gridded[p]=mask[p]=0.0;
   for(pp=0; pp<nx; pp++)
   {
-    p = indicess[pp];
+    p = *((npy_int64 *) PyArray_GETPTR1(indices, pp));
+    npy_float64 xsp = *((npy_float64 *) PyArray_GETPTR1(x, p));
+    npy_float64 ysp = *((npy_float64 *) PyArray_GETPTR1(y, p));
+    npy_float64 zsp = *((npy_float64 *) PyArray_GETPTR1(z, p));
+    npy_float64 pxsp = *((npy_float64 *) PyArray_GETPTR1(px, p));
+    npy_float64 pysp = *((npy_float64 *) PyArray_GETPTR1(py, p));
+    npy_float64 dxsp = *((npy_float64 *) PyArray_GETPTR1(dx, p));
+    npy_float64 dysp = *((npy_float64 *) PyArray_GETPTR1(dy, p));
+    npy_float64 dzsp = *((npy_float64 *) PyArray_GETPTR1(dz, p));
+    npy_float64 dsp = *((npy_float64 *) PyArray_GETPTR1(d, p)); // We check this above
     // Any point we want to plot is at most this far from the center
-    md = 2.0*sqrtl(dxs[p]*dxs[p] + dys[p]*dys[p] + dzs[p]*dzs[p]);
-    if(((pxs[p]+md<px_min) ||
-        (pxs[p]-md>px_max)) ||
-       ((pys[p]+md<py_min) ||
-        (pys[p]-md>py_max))) continue;
-    lc = max(floorl((pxs[p]-md-px_min)/px_dx),0);
-    lr = max(floorl((pys[p]-md-py_min)/px_dy),0);
-    rc = min(ceill((pxs[p]+md-px_min)/px_dx),rows);
-    rr = min(ceill((pys[p]+md-py_min)/px_dy),cols);
+    md = 2.0*sqrtl(dxsp*dxsp + dysp*dysp + dzsp*dzsp);
+    if(((pxsp+md<px_min) ||
+        (pxsp-md>px_max)) ||
+       ((pysp+md<py_min) ||
+        (pysp-md>py_max))) continue;
+    lc = max(floorl((pxsp-md-px_min)/px_dx),0);
+    lr = max(floorl((pysp-md-py_min)/px_dy),0);
+    rc = min(ceill((pxsp+md-px_min)/px_dx),rows);
+    rr = min(ceill((pysp+md-py_min)/px_dy),cols);
     for (i=lr;i<rr;i++) {
       cypx = px_dy * (i+0.5) + py_min;
       for (j=lc;j<rc;j++) {
@@ -333,11 +336,11 @@ static PyObject* Py_CPixelize(PyObject *obj, PyObject *args) {
         cx = inv_mats[0][0]*cxpx + inv_mats[0][1]*cypx + centers[0];
         cy = inv_mats[1][0]*cxpx + inv_mats[1][1]*cypx + centers[1];
         cz = inv_mats[2][0]*cxpx + inv_mats[2][1]*cypx + centers[2];
-        if( (fabs(xs[p]-cx)*0.95>dxs[p]) || 
-            (fabs(ys[p]-cy)*0.95>dys[p]) ||
-            (fabs(zs[p]-cz)*0.95>dzs[p])) continue;
+        if( (fabs(xsp-cx)*0.95>dxsp) || 
+            (fabs(ysp-cy)*0.95>dysp) ||
+            (fabs(zsp-cz)*0.95>dzsp)) continue;
         mask[j*cols+i] += 1;
-        gridded[j*cols+i] += ds[p];
+        gridded[j*cols+i] += dsp;
       }
     }
   }

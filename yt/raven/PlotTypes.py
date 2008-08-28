@@ -167,6 +167,8 @@ class RavenPlot:
         """
         Set the z boundaries of this plot.
         """
+        # This next call fixes some things, but is slower...
+        #self._redraw_image()
         self.norm.autoscale(na.array([zmin,zmax]))
         self.image.changed()
         if self.colorbar is not None:
@@ -295,25 +297,21 @@ class VMPlot(RavenPlot):
         self._axes.clear() # To help out the colorbar
         buff = self._get_buff()
         mylog.debug("Received buffer of min %s and max %s (%s %s)",
-                    buff.min(), buff.max(),
+                    na.nanmin(buff), na.nanmax(buff),
                     self[self.axis_names["Z"]].min(),
                     self[self.axis_names["Z"]].max())
         if self.log_field:
             bI = na.where(buff > 0)
-            newmin = buff[bI].min()
-            newmax = buff[bI].max()
+            newmin = na.nanmin(buff[bI])
+            newmax = na.nanmax(buff[bI])
         else:
-            newmin = buff.min()
-            newmax = buff.max()
+            newmin = na.nanmin(buff)
+            newmax = na.nanmax(buff)
         if self.do_autoscale:
             self.norm.autoscale(na.array((newmin,newmax)))
         self.image = \
             self._axes.imshow(buff, interpolation='nearest', norm = self.norm,
                             aspect=1.0, picker=True, origin='lower')
-        if self.cmap is not None:
-            self.image.set_cmap(self.cmap)
-            if self.colorbar is not None:
-                self.colorbar.set_cmap(self.cmap)
         self._reset_image_parameters()
         self._run_callbacks()
 
@@ -327,6 +325,7 @@ class VMPlot(RavenPlot):
         if self.colorbar != None:
             self.image.set_norm(self.norm)
             self.colorbar.set_norm(self.norm)
+            if self.cmap: self.colorbar.set_cmap(self.cmap)
             if self.do_autoscale: _notify(self.image, self.colorbar)
         self.autoset_label()
 
@@ -370,8 +369,8 @@ class VMPlot(RavenPlot):
         self._redraw_image()
 
     def autoscale(self):
-        zmin = self._axes.images[-1]._A.min()
-        zmax = self._axes.images[-1]._A.max()
+        zmin = na.nanmin(self._axes.images[-1]._A)
+        zmax = na.nanmax(self._axes.images[-1]._A)
         self.set_zlim(zmin, zmax)
 
     def switch_y(self, *args, **kwargs):
