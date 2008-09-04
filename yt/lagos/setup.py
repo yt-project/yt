@@ -19,7 +19,7 @@ def configuration(parent_package='',top_path=None):
     config = Configuration('lagos',parent_package,top_path)
     config.make_config_py() # installs __config__.py
     config.add_extension("PointCombine", "yt/lagos/PointCombine.c", libraries=["m"])
-    config.add_extension("RTIntegrator", "yt/lagos/RTIntegrator.c")
+    #config.add_extension("RTIntegrator", "yt/lagos/RTIntegrator.c")
     config.add_subpackage("hop")
     H5dir = check_for_hdf5()
     if H5dir is not None:
