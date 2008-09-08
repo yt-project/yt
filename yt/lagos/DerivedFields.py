@@ -44,6 +44,9 @@ sigma_thompson = 6.65e-25 # cm^2
 clight = 3.0e10 # cm/s
 kboltz = 1.38e-16 # erg K^-1
 G = 6.67e-8   # cm^3 g^-1 s^-2
+Msun2g = 1.989e33
+MJ_constant = (((5*kboltz)/(G*mh))**(1.5)) * (3/(4*pi))**(0.5) / Msun2g
+
 
 class FieldInfoContainer: # We are all Borg.
     _shared_state = {}
@@ -399,11 +402,6 @@ add_field("Dark matter density", function=lambda a,b: None,
                       ValidateSpatial(0)],
           not_in_all = True)
 
-add_field("Dark_Matter_Density", function=lambda a,b: None,
-          validators=[ValidateDataField("Dark_Matter_Density"),
-                      ValidateSpatial(0)],
-          not_in_all = True)
-
 def _ParticleMass(field, data):
     particles = data["particle_mass"].astype('float64') * \
                 just_one(data["CellVolumeCode"].ravel())
@@ -575,6 +573,13 @@ def _ConvertNumberDensity(data):
 add_field("NumberDensity", units=r"\rm{cm}^{-3}",
           convert_function=_ConvertNumberDensity)
 
+def JeansMassMsun(field,data):
+    return (MJ_constant * 
+            ((data["Temperature"]/data["MeanMolecularWeight"])**(1.5)) *
+            (data["Density"]**(-0.5)))
+add_field("JeansMassMsun",function=JeansMassMsun,units=r"\rm{Msun}")
+
+
 def _CellMass(field, data):
     return data["Density"] * data["CellVolume"]
 def _convertCellMassMsun(data):
@@ -732,6 +737,12 @@ add_field("SpecificAngularMomentumKMSMPC",
           convert_function=_convertSpecificAngularMomentumKMSMPC, vector_field=True,
           units=r"\rm{km}\rm{Mpc}/\rm{s}", validators=[ValidateParameter('center')])
 
+def _ParticleRadius(field, data):
+    center = data.get_field_parameter("center")
+    radius = na.sqrt((data["particle_position_x"] - center[0])**2.0 +
+                     (data["particle_position_y"] - center[1])**2.0 +
+                     (data["particle_position_z"] - center[2])**2.0)
+    return radius
 def _Radius(field, data):
     center = data.get_field_parameter("center")
     radius = na.sqrt((data["x"] - center[0])**2.0 +
@@ -740,6 +751,9 @@ def _Radius(field, data):
     return radius
 def _ConvertRadiusCGS(data):
     return data.convert("cm")
+add_field("ParticleRadius", function=_ParticleRadius,
+          validators=[ValidateParameter("center")],
+          convert_function = _ConvertRadiusCGS, units=r"\rm{cm}")
 add_field("Radius", function=_Radius,
           validators=[ValidateParameter("center")],
           convert_function = _ConvertRadiusCGS, units=r"\rm{cm}")
@@ -749,31 +763,48 @@ def _ConvertRadiusMpc(data):
 add_field("RadiusMpc", function=_Radius,
           validators=[ValidateParameter("center")],
           convert_function = _ConvertRadiusMpc, units=r"\rm{Mpc}")
+add_field("ParticleRadiusMpc", function=_ParticleRadius,
+          validators=[ValidateParameter("center")],
+          convert_function = _ConvertRadiusMpc, units=r"\rm{Mpc}")
 
 def _ConvertRadiuskpc(data):
     return data.convert("kpc")
+add_field("ParticleRadiuskpc", function=_ParticleRadius,
+          validators=[ValidateParameter("center")],
+          convert_function = _ConvertRadiuskpc, units=r"\rm{kpc}")
 add_field("Radiuskpc", function=_Radius,
           validators=[ValidateParameter("center")],
           convert_function = _ConvertRadiuskpc, units=r"\rm{kpc}")
 
 def _ConvertRadiuskpch(data):
     return data.convert("kpch")
+add_field("ParticleRadiuskpch", function=_ParticleRadius,
+          validators=[ValidateParameter("center")],
+          convert_function = _ConvertRadiuskpc, units=r"\rm{kpc}/\rm{h}")
 add_field("Radiuskpch", function=_Radius,
           validators=[ValidateParameter("center")],
           convert_function = _ConvertRadiuskpc, units=r"\rm{kpc}/\rm{h}")
 
 def _ConvertRadiuspc(data):
     return data.convert("pc")
+add_field("ParticleRadiuspc", function=_ParticleRadius,
+          validators=[ValidateParameter("center")],
+          convert_function = _ConvertRadiuspc, units=r"\rm{pc}")
 add_field("Radiuspc", function=_Radius,
           validators=[ValidateParameter("center")],
           convert_function = _ConvertRadiuspc, units=r"\rm{pc}")
 
 def _ConvertRadiusAU(data):
     return data.convert("au")
+add_field("ParticleRadiusAU", function=_ParticleRadius,
+          validators=[ValidateParameter("center")],
+          convert_function = _ConvertRadiusAU, units=r"\rm{AU}")
 add_field("RadiusAU", function=_Radius,
           validators=[ValidateParameter("center")],
           convert_function = _ConvertRadiusAU, units=r"\rm{AU}")
 
+add_field("ParticleRadiusCode", function=_ParticleRadius,
+          validators=[ValidateParameter("center")])
 add_field("RadiusCode", function=_Radius,
           validators=[ValidateParameter("center")])
 
@@ -864,6 +895,12 @@ for field in ["Density"] + [ "%s_Density" % sp for sp in _speciesList ]:
     fieldInfo[field]._units = r"\rm{g}/\rm{cm}^3"
     fieldInfo[field]._projected_units = r"\rm{g}/\rm{cm}^2"
     fieldInfo[field]._convert_function=_convertDensity
+
+add_field("Dark_Matter_Density", function=lambda a,b: None,
+          convert_function=_convertDensity,
+          validators=[ValidateDataField("Dark_Matter_Density"),
+                      ValidateSpatial(0)],
+          not_in_all = True)
 
 def _convertEnergy(data):
     return data.convert("x-velocity")**2.0
