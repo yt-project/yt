@@ -402,11 +402,6 @@ add_field("Dark matter density", function=lambda a,b: None,
                       ValidateSpatial(0)],
           not_in_all = True)
 
-add_field("Dark_Matter_Density", function=lambda a,b: None,
-          validators=[ValidateDataField("Dark_Matter_Density"),
-                      ValidateSpatial(0)],
-          not_in_all = True)
-
 def _ParticleMass(field, data):
     particles = data["particle_mass"].astype('float64') * \
                 just_one(data["CellVolumeCode"].ravel())
@@ -900,6 +895,12 @@ for field in ["Density"] + [ "%s_Density" % sp for sp in _speciesList ]:
     fieldInfo[field]._units = r"\rm{g}/\rm{cm}^3"
     fieldInfo[field]._projected_units = r"\rm{g}/\rm{cm}^2"
     fieldInfo[field]._convert_function=_convertDensity
+
+add_field("Dark_Matter_Density", function=lambda a,b: None,
+          convert_function=_convertDensity,
+          validators=[ValidateDataField("Dark_Matter_Density"),
+                      ValidateSpatial(0)],
+          not_in_all = True)
 
 def _convertEnergy(data):
     return data.convert("x-velocity")**2.0
