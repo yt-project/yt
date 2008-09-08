@@ -742,6 +742,12 @@ add_field("SpecificAngularMomentumKMSMPC",
           convert_function=_convertSpecificAngularMomentumKMSMPC, vector_field=True,
           units=r"\rm{km}\rm{Mpc}/\rm{s}", validators=[ValidateParameter('center')])
 
+def _ParticleRadius(field, data):
+    center = data.get_field_parameter("center")
+    radius = na.sqrt((data["particle_position_x"] - center[0])**2.0 +
+                     (data["particle_position_y"] - center[1])**2.0 +
+                     (data["particle_position_z"] - center[2])**2.0)
+    return radius
 def _Radius(field, data):
     center = data.get_field_parameter("center")
     radius = na.sqrt((data["x"] - center[0])**2.0 +
@@ -750,6 +756,9 @@ def _Radius(field, data):
     return radius
 def _ConvertRadiusCGS(data):
     return data.convert("cm")
+add_field("ParticleRadius", function=_ParticleRadius,
+          validators=[ValidateParameter("center")],
+          convert_function = _ConvertRadiusCGS, units=r"\rm{cm}")
 add_field("Radius", function=_Radius,
           validators=[ValidateParameter("center")],
           convert_function = _ConvertRadiusCGS, units=r"\rm{cm}")
@@ -759,31 +768,48 @@ def _ConvertRadiusMpc(data):
 add_field("RadiusMpc", function=_Radius,
           validators=[ValidateParameter("center")],
           convert_function = _ConvertRadiusMpc, units=r"\rm{Mpc}")
+add_field("ParticleRadiusMpc", function=_ParticleRadius,
+          validators=[ValidateParameter("center")],
+          convert_function = _ConvertRadiusMpc, units=r"\rm{Mpc}")
 
 def _ConvertRadiuskpc(data):
     return data.convert("kpc")
+add_field("ParticleRadiuskpc", function=_ParticleRadius,
+          validators=[ValidateParameter("center")],
+          convert_function = _ConvertRadiuskpc, units=r"\rm{kpc}")
 add_field("Radiuskpc", function=_Radius,
           validators=[ValidateParameter("center")],
           convert_function = _ConvertRadiuskpc, units=r"\rm{kpc}")
 
 def _ConvertRadiuskpch(data):
     return data.convert("kpch")
+add_field("ParticleRadiuskpch", function=_ParticleRadius,
+          validators=[ValidateParameter("center")],
+          convert_function = _ConvertRadiuskpc, units=r"\rm{kpc}/\rm{h}")
 add_field("Radiuskpch", function=_Radius,
           validators=[ValidateParameter("center")],
           convert_function = _ConvertRadiuskpc, units=r"\rm{kpc}/\rm{h}")
 
 def _ConvertRadiuspc(data):
     return data.convert("pc")
+add_field("ParticleRadiuspc", function=_ParticleRadius,
+          validators=[ValidateParameter("center")],
+          convert_function = _ConvertRadiuspc, units=r"\rm{pc}")
 add_field("Radiuspc", function=_Radius,
           validators=[ValidateParameter("center")],
           convert_function = _ConvertRadiuspc, units=r"\rm{pc}")
 
 def _ConvertRadiusAU(data):
     return data.convert("au")
+add_field("ParticleRadiusAU", function=_ParticleRadius,
+          validators=[ValidateParameter("center")],
+          convert_function = _ConvertRadiusAU, units=r"\rm{AU}")
 add_field("RadiusAU", function=_Radius,
           validators=[ValidateParameter("center")],
           convert_function = _ConvertRadiusAU, units=r"\rm{AU}")
 
+add_field("ParticleRadiusCode", function=_ParticleRadius,
+          validators=[ValidateParameter("center")])
 add_field("RadiusCode", function=_Radius,
           validators=[ValidateParameter("center")])
 
