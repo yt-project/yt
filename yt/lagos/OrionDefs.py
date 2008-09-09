@@ -34,5 +34,7 @@ orion2enzoDict = {"amr.n_cell": "TopGridRank",
                   "materials.gamma": "Gamma"
                   }
 
+yt2orionFieldsDict = {}
+orion2ytFieldsDict = {}
 
 orion_FAB_header_pattern = r"^FAB \(\((\d+), \([0-9 ]+\)\),\(\d+, \(([0-9 ]+)\)\)\)\(\((\d+,\d+,\d+)\) \((\d+,\d+,\d+)\) \((\d+,\d+,\d+)\)\) (\d+)\n"
