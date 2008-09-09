@@ -1,5 +1,7 @@
 """
-Derived fields and support for existing fields included in here.
+The basic field info container resides here.  These classes, code specific and
+universal, are the means by which we access fields across YT, both derived and
+native.
 
 Author: Matthew Turk <matthewturk@gmail.com>
 Affiliation: KIPAC/SLAC/Stanford
@@ -37,6 +39,7 @@ except ImportError:
 from math import pi
 
 from yt.funcs import *
+from FieldInfoContainer import *
 
 mh = 1.67e-24 # g
 me = 9.11e-28 # g
@@ -45,238 +48,7 @@ clight = 3.0e10 # cm/s
 kboltz = 1.38e-16 # erg K^-1
 G = 6.67e-8   # cm^3 g^-1 s^-2
 
-class FieldInfoContainer: # We are all Borg.
-    _shared_state = {}
-    def __new__(cls, *args, **kwargs):
-        self = object.__new__(cls, *args, **kwargs)
-        self.__dict__ = cls._shared_state
-        return self
-    def __init__(self):
-        self.__field_list = {}
-    def __getitem__(self, key):
-        if not self.__field_list.has_key(key): # Now we check it out, to see if we need to do anything to it
-            if key.endswith("Code"):
-                old_field = self.__field_list[key[:-4]]
-                new_field = copy.copy(old_field)
-                new_field.convert_function = \
-                            lambda a: 1.0/old_field._convert_function(a)
-            elif key.endswith("Abs"):
-                old_field = self.__field_list[key[:-4]]
-                new_field = copy.copy(old_field)
-                new_field._function = \
-                    lambda a,b: na.abs(old_field._function(a,b))
-            else:
-                raise KeyError
-            self.__field_list[key] = new_field
-        return self.__field_list[key]
 
-fieldInfo = {}
-
-class ValidationException(Exception):
-    pass
-
-class NeedsGridType(ValidationException):
-    def __init__(self, ghost_zones = 0, fields=None):
-        self.ghost_zones = ghost_zones
-        self.fields = fields
-
-class NeedsDataField(ValidationException):
-    def __init__(self, missing_fields):
-        self.missing_fields = missing_fields
-
-class NeedsProperty(ValidationException):
-    def __init__(self, missing_properties):
-        self.missing_properties = missing_properties
-
-class NeedsParameter(ValidationException):
-    def __init__(self, missing_parameters):
-        self.missing_parameters = missing_parameters
-
-def add_field(name, function = None, **kwargs):
-    if function == None:
-        if kwargs.has_key("function"):
-            function = kwargs.pop("function")
-        else:
-            # This will fail if it does not exist,
-            # which is our desired behavior
-            function = eval("_%s" % name)
-    fieldInfo[name] = DerivedField(
-        name, function, **kwargs)
-
-class FieldDetector(defaultdict):
-    Level = 1
-    NumberOfParticles = 0
-    def __init__(self, nd = 16, pf = None):
-        self.nd = nd
-        self.ActiveDimensions = [nd,nd,nd]
-        self.LeftEdge = [0.0,0.0,0.0]
-        self.RightEdge = [1.0,1.0,1.0]
-        self.dx = self.dy = self.dz = na.array([1.0])
-        self.fields = []
-        if pf is None:
-            pf = defaultdict(lambda: 1)
-        self.pf = pf
-        self.requested = []
-        self.requested_parameters = []
-        defaultdict.__init__(self, lambda: na.ones((nd,nd,nd)))
-    def __missing__(self, item):
-        if fieldInfo.has_key(item) and \
-            fieldInfo[item]._function.func_name != '<lambda>':
-            try:
-                vv = fieldInfo[item](self)
-            except NeedsGridType, exc:
-                ngz = exc.ghost_zones
-                nfd = FieldDetector(self.nd+ngz*2)
-                vv = fieldInfo[item](nfd)[ngz:-ngz,ngz:-ngz,ngz:-ngz]
-                for i in vv.requested:
-                    if i not in self.requested: self.requested.append(i)
-                for i in vv.requested_parameters:
-                    if i not in self.requested_parameters: self.requested_parameters.append(i)
-            if vv is not None:
-                self[item] = vv
-                return self[item]
-        self.requested.append(item)
-        return defaultdict.__missing__(self, item)
-    def get_field_parameter(self, param):
-        self.requested_parameters.append(param)
-        if param in ['bulk_velocity','center','height_vector']:
-            return na.array([0,0,0])
-        else:
-            return 0.0
-    _spatial = True
-    _num_ghost_zones = 0
-    id = 1
-    def has_field_parameter(self, param): return True
-    def convert(self, item): return 1
-
-class DerivedField:
-    def __init__(self, name, function,
-                 convert_function = None,
-                 units = "", projected_units = "",
-                 take_log = True, validators = None,
-                 particle_type = False, vector_field=False,
-                 display_field = True, not_in_all=False,
-                 projection_conversion = "cm"):
-        """
-        This is the base class used to describe a cell-by-cell derived field.
-
-        :param name: is the name of the field.
-        :param function: is a function handle that defines the field
-        :param convert_function: must convert to CGS, if it needs to be done
-        :param units: is a mathtext-formatted string that describes the field
-        :param projected_units: if we display a projection, what should the units be?
-        :param take_log: describes whether the field should be logged
-        :param validators: is a list of :class:`FieldValidator` objects
-        :param particle_type: is this field based on particles?
-        :param vector_field: describes the dimensionality of the field
-        :param display_field: governs its appearance in the dropdowns in reason
-        :param not_in_all: is used for baryon fields from the data that are not in
-                           all the grids
-        :param projection_conversion: which unit should we multiply by in a
-                                      projection?
-        """
-        self.name = name
-        self._function = function
-        if validators:
-            self.validators = ensure_list(validators)
-        else:
-            self.validators = []
-        self.take_log = take_log
-        self._units = units
-        self._projected_units = projected_units
-        if not convert_function:
-            convert_function = lambda a: 1.0
-        self._convert_function = convert_function
-        self.particle_type = particle_type
-        self.vector_field = vector_field
-        self.projection_conversion = projection_conversion
-        self.display_field = display_field
-        self.not_in_all = not_in_all
-    def check_available(self, data):
-        for validator in self.validators:
-            validator(data)
-        # If we don't get an exception, we're good to go
-        return True
-    def get_dependencies(self, *args, **kwargs):
-        e = FieldDetector(*args, **kwargs)
-        if self._function.func_name == '<lambda>':
-            e.requested.append(self.name)
-        else:
-            self(e)
-        return e
-    def get_units(self):
-        return self._units
-    def get_projected_units(self):
-        return self._projected_units
-    def __call__(self, data):
-        ii = self.check_available(data)
-        original_fields = data.fields[:] # Copy
-        dd = self._function(self, data)
-        dd *= self._convert_function(data)
-        for field_name in data.fields:
-            if field_name not in original_fields:
-                del data[field_name]
-        return dd
-    def get_source(self):
-        return inspect.getsource(self._function)
-
-class FieldValidator(object):
-    pass
-
-class ValidateParameter(FieldValidator):
-    def __init__(self, parameters):
-        FieldValidator.__init__(self)
-        self.parameters = ensure_list(parameters)
-    def __call__(self, data):
-        doesnt_have = []
-        for p in self.parameters:
-            if not data.has_field_parameter(p):
-                doesnt_have.append(p)
-        if len(doesnt_have) > 0:
-            raise NeedsParameter(doesnt_have)
-        return True
-
-class ValidateDataField(FieldValidator):
-    def __init__(self, field):
-        FieldValidator.__init__(self)
-        self.fields = ensure_list(field)
-    def __call__(self, data):
-        doesnt_have = []
-        if isinstance(data, FieldDetector): return True
-        for f in self.fields:
-            if f not in data.hierarchy.field_list:
-                doesnt_have.append(f)
-        if len(doesnt_have) > 0:
-            raise NeedsDataField(doesnt_have)
-        return True
-
-class ValidateProperty(FieldValidator):
-    def __init__(self, prop):
-        FieldValidator.__init__(self)
-        self.prop = ensure_list(prop)
-    def __call__(self, data):
-        doesnt_have = []
-        for p in self.prop:
-            if not hasattr(data,p):
-                doesnt_have.append(p)
-        if len(doesnt_have) > 0:
-            raise NeedsProperty(doesnt_have)
-        return True
-
-class ValidateSpatial(FieldValidator):
-    def __init__(self, ghost_zones = 0, fields=None):
-        FieldValidator.__init__(self)
-        self.ghost_zones = ghost_zones
-        self.fields = fields
-    def __call__(self, data):
-        # When we say spatial information, we really mean
-        # that it has a three-dimensional data structure
-        if isinstance(data, FieldDetector): return True
-        if not data._spatial:
-            raise NeedsGridType(self.ghost_zones,self.fields)
-        if self.ghost_zones == data._num_ghost_zones:
-            return True
-        raise NeedsGridType(self.ghost_zones)
 
 # Note that, despite my newfound efforts to comply with PEP-8,
 # I violate it here in order to keep the name/func_name relationship
@@ -319,26 +91,6 @@ def _coordZ(field, data):
             +0.5) * data['dz'] + data.LeftEdge[2]
 add_field('z', function=_coordZ, display_field=False,
           validators=[ValidateSpatial(0)])
-
-
-_speciesList = ["HI","HII","Electron",
-               "HeI","HeII","HeIII",
-               "H2I","H2II","HM",
-               "DI","DII","HDI","Metal"]
-def _SpeciesFraction(field, data):
-    sp = field.name.split("_")[0] + "_Density"
-    return data[sp]/data["Density"]
-for species in _speciesList:
-    add_field("%s_Fraction" % species,
-             function=_SpeciesFraction,
-             validators=ValidateDataField("%s_Density" % species))
-
-def _Metallicity(field, data):
-    return data["Metal_Fraction"] / 0.0204
-add_field("Metallicity", units=r"Z_{\rm{Solar}}",
-          validators=ValidateDataField("Metal_Density"),
-          projection_conversion="1")
-
 
 def _GridLevel(field, data):
     return na.ones(data["Density"].shape)*(data.Level)
@@ -464,24 +216,6 @@ def _Pressure(field, data):
         return (data.pf["Gamma"] - 1.0) * \
                data["Density"] * data["ThermalEnergy"]
 add_field("Pressure", units=r"\rm{dyne}/\rm{cm}^{2}")
-
-def _ThermalEnergy(field, data):
-    if data.pf["HydroMethod"] == 2:
-        return data["Total_Energy"]
-    elif data.pf["HydroMethod"] == 'orion':
-        return data["Total_Energy"] - 0.5 * data["Density"] * (
-                   data["x-velocity"]**2.0
-                 + data["y-velocity"]**2.0
-                 + data["z-velocity"]**2.0 )
-    else:
-        if data.pf["DualEnergyFormalism"]:
-            return data["Gas_Energy"]
-        else:
-            return data["Total_Energy"] - 0.5*(
-                   data["x-velocity"]**2.0
-                 + data["y-velocity"]**2.0
-                 + data["z-velocity"]**2.0 )
-    add_field("ThermalEnergy", units=r"\rm{ergs}/\rm{cm^3}")
 # for Orion, units are different...how to do this?
 #    add_field("ThermalEnergy", units=r"\rm{ergs}/\rm{g}")
 
@@ -547,39 +281,6 @@ def _ConvertDynamicalTime(data):
     return t_dyn_coeff
 add_field("DynamicalTime", units=r"\rm{s}",
           convert_function=_ConvertDynamicalTime)
-
-def _NumberDensity(field, data):
-    # We can assume that we at least have Density
-    # We should actually be guaranteeing the presence of a .shape attribute,
-    # but I am not currently implementing that
-    fieldData = na.zeros(data["Density"].shape,
-                         dtype = data["Density"].dtype)
-    if data.pf["MultiSpecies"] == 0:
-        if data.has_field_parameter("mu"):
-            mu = data.get_field_parameter("mu")
-        else:
-            mu = 0.6
-        fieldData += data["Density"] * mu
-    if data.pf["MultiSpecies"] > 0:
-        fieldData += data["HI_Density"] / 1.0
-        fieldData += data["HII_Density"] / 1.0
-        fieldData += data["HeI_Density"] / 4.0
-        fieldData += data["HeII_Density"] / 4.0
-        fieldData += data["HeIII_Density"] / 4.0
-        fieldData += data["Electron_Density"] / 1.0
-    if data.pf["MultiSpecies"] > 1:
-        fieldData += data["HM_Density"] / 1.0
-        fieldData += data["H2I_Density"] / 2.0
-        fieldData += data["H2II_Density"] / 2.0
-    if data.pf["MultiSpecies"] > 2:
-        fieldData += data["DI_Density"] / 2.0
-        fieldData += data["DII_Density"] / 2.0
-        fieldData += data["HDI_Density"] / 3.0
-    return fieldData
-def _ConvertNumberDensity(data):
-    return 1.0/mh
-add_field("NumberDensity", units=r"\rm{cm}^{-3}",
-          convert_function=_ConvertNumberDensity)
 
 def _CellMass(field, data):
     return data["Density"] * data["CellVolume"]
@@ -874,55 +575,6 @@ def _JeansMassMsun(field,data):
             (data["Density"]**(-0.5)))
 add_field("JeansMassMsun",function=_JeansMassMsun,
           units=r"\rm{M_{\odot}}")
-
-# Now we add all the fields that we want to control, but we give a null function
-# This is every Enzo field we can think of.  This will be installation-dependent,
-#if data.pf["HydroMethod"] == 'orion':
-_default_fields = ["Density","Temperature","Gas_Energy","Total_Energy",
-                   "x-velocity","y-velocity","z-velocity",
-                   "x-momentum","y-momentum","z-momentum"]
-# else:
-#     _default_fields = ["Density","Temperature","Gas_Energy","Total_Energy",
-#                        "x-velocity","y-velocity","z-velocity"]
-_default_fields += [ "%s_Density" % sp for sp in _speciesList ]
-
-for field in _default_fields:
-    add_field(field, function=lambda a, b: None, take_log=True,
-              validators=[ValidateDataField(field)], units=r"\rm{g}/\rm{cm}^3")
-fieldInfo["x-velocity"].projection_conversion='1'
-fieldInfo["y-velocity"].projection_conversion='1'
-fieldInfo["z-velocity"].projection_conversion='1'
-
-# Now we override
-
-def _convertDensity(data):
-    return data.convert("Density")
-for field in ["Density"] + [ "%s_Density" % sp for sp in _speciesList ]:
-    fieldInfo[field]._units = r"\rm{g}/\rm{cm}^3"
-    fieldInfo[field]._projected_units = r"\rm{g}/\rm{cm}^2"
-    fieldInfo[field]._convert_function=_convertDensity
-
-add_field("Dark_Matter_Density", function=lambda a,b: None,
-          convert_function=_convertDensity,
-          validators=[ValidateDataField("Dark_Matter_Density"),
-                      ValidateSpatial(0)],
-          not_in_all = True)
-
-def _convertEnergy(data):
-    return data.convert("x-velocity")**2.0
-fieldInfo["Gas_Energy"]._units = r"\rm{ergs}/\rm{g}"
-fieldInfo["Gas_Energy"]._convert_function = _convertEnergy
-fieldInfo["Total_Energy"]._units = r"\rm{ergs}/\rm{g}"
-fieldInfo["Total_Energy"]._convert_function = _convertEnergy
-fieldInfo["Temperature"]._units = r"\rm{K}"
-
-def _convertVelocity(data):
-    return data.convert("x-velocity")
-for ax in ['x','y','z']:
-    f = fieldInfo["%s-velocity" % ax]
-    f._units = r"\rm{cm}/\rm{s}"
-    f._convert_function = _convertVelocity
-    f.take_log = False
 
 def _convertMomentum(data):
     return data.convert("x-velocity")*data.convert("Density")*1e5 # want this in cm/s not km/s
