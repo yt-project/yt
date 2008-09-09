@@ -506,7 +506,7 @@ class EnzoHierarchy(AMRHierarchy):
         """
         # Expect filename to be the name of the parameter file, not the
         # hierarchy
-        self.field_info = EnzoFields()
+        self.field_info = EnzoFieldContainer()
         self.data_style = data_style
         self.hierarchy_filename = os.path.abspath(pf.parameter_filename) \
                                + ".hierarchy"
@@ -852,7 +852,7 @@ def constructRegularExpressions(param, toReadTypes):
 
 class OrionHierarchy(AMRHierarchy):
     def __init__(self,pf,data_style=7):
-        self.field_info = OrionFields()
+        self.field_info = OrionFieldContainer()
         self.field_indexes = {}
         self.parameter_file = weakref.proxy(pf)
         header_filename = os.path.join(pf.fullplotdir,'Header')

@@ -35,19 +35,4 @@ orion2enzoDict = {"amr.n_cell": "TopGridRank",
                   }
 
 
-yt2orionFieldsDict = {"x-velocity": "xvel",
-                        "y-velocity": "yvel",
-                        "z-velocity": "zvel",
-                        "Density": "density",
-                        "Gas_Energy": "eden",
-                        "Temperature": "temperature",
-                      "x-momentum": "xmom",
-                      "y-momentum": "ymom",
-                      "z-momentum": "zmom"
-                        }
-orion2ytFieldsDict = {}
-
-for f,v in yt2orionFieldsDict.items():
-    orion2ytFieldsDict[v] = f
-
 orion_FAB_header_pattern = r"^FAB \(\((\d+), \([0-9 ]+\)\),\(\d+, \(([0-9 ]+)\)\)\)\(\((\d+,\d+,\d+)\) \((\d+,\d+,\d+)\) \((\d+,\d+,\d+)\)\) (\d+)\n"

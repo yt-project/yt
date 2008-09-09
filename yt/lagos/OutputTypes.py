@@ -146,7 +146,7 @@ class EnzoStaticOutput(StaticOutput):
         cp = os.path.join(self.directory, "cool_rates.out")
         if os.path.exists(cp):
             self.cool = EnzoTable(cp, cool_out_key)
-        self.field_info = EnzoFields()
+        self.field_info = EnzoFieldContainer()
 
     def _parse_parameter_file(self):
         """
@@ -307,6 +307,7 @@ class OrionStaticOutput(StaticOutput):
           ASCII
 
         """
+        self.field_info = OrionFieldContainer()
         self.data_style = data_style
         self.paranoid_read = paranoia
         plotname = plotname.rstrip('/')
