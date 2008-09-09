@@ -107,6 +107,7 @@ class RavenPlot:
         self.set_autoscale(True)
         self.im = defaultdict(lambda: "")
         self["ParameterFile"] = "%s" % self.data.pf
+        self.pf = self.data.pf
         self.axis_names = {}
         self._ax_min = self.data.pf["DomainLeftEdge"]
         self._ax_max = self.data.pf["DomainRightEdge"]
@@ -240,7 +241,7 @@ class VMPlot(RavenPlot):
 
     def __setup_from_field(self, field):
         self.set_log_field(field in lagos.log_fields
-                           or lagos.fieldInfo[field].take_log)
+                           or self.pf.field_info[field].take_log)
         self.axis_names["Z"] = field
 
     def set_log_field(self, val):
@@ -384,7 +385,7 @@ class VMPlot(RavenPlot):
 
     def switch_z(self, field):
         self.set_log_field(field in lagos.log_fields
-                           or lagos.fieldInfo[field].take_log)
+                           or self.pf.field_info[field].take_log)
         self.axis_names["Z"] = field
         self._redraw_image()
 
@@ -400,8 +401,8 @@ class SlicePlot(VMPlot):
             return
         field_name = self.axis_names["Z"]
         data_label = r"$\rm{%s}" % field_name.replace("_","\hspace{0.5}")
-        if lagos.fieldInfo.has_key(field_name):
-            data_label += r"\/\/ (%s)" % (lagos.fieldInfo[field_name].get_units())
+        if self.pf.field_info.has_key(field_name):
+            data_label += r"\/\/ (%s)" % (self.pf.field_info[field_name].get_units())
         data_label += r"$"
         if self.colorbar != None: self.colorbar.set_label(str(data_label))
 
@@ -414,8 +415,8 @@ class ProjectionPlot(VMPlot):
             return
         field_name = self.axis_names["Z"]
         data_label = r"$\rm{%s}" % field_name.replace("_","\hspace{0.5}")
-        if lagos.fieldInfo.has_key(field_name):
-            data_label += r"\/\/ (%s)" % (lagos.fieldInfo[field_name].get_projected_units())
+        if self.pf.field_info.has_key(field_name):
+            data_label += r"\/\/ (%s)" % (self.pf.field_info[field_name].get_projected_units())
         data_label += r"$"
         if self.colorbar != None: self.colorbar.set_label(str(data_label))
 
@@ -465,7 +466,7 @@ class CuttingPlanePlot(SlicePlot):
 
 class ProfilePlot(RavenPlot):
     def setup_bins(self, field, func=None):
-        if field in lagos.fieldInfo and lagos.fieldInfo[field].take_log:
+        if field in self.pf.field_info and self.pf.field_info[field].take_log:
             log_field = True
             if func: func('log')
         else:
@@ -476,8 +477,8 @@ class ProfilePlot(RavenPlot):
 
     def autoset_label(self, field, func):
         dataLabel = r"$\rm{%s}" % (field.replace("_","\hspace{0.5}"))
-        if field in lagos.fieldInfo:
-            dataLabel += r" (%s)" % (lagos.fieldInfo[field].get_units())
+        if field in self.pf.field_info:
+            dataLabel += r" (%s)" % (self.pf.field_info[field].get_units())
         dataLabel += r"$"
         func(str(dataLabel))
 
@@ -655,8 +656,8 @@ class PhasePlot(ProfilePlot):
             func(str(self.datalabel))
             return
         data_label = r"$\rm{%s}" % field_name.replace("_"," ")
-        if field_name in lagos.fieldInfo:
-            data_label += r"\/\/ (%s)" % (lagos.fieldInfo[field_name].get_units())
+        if field_name in self.pf.field_info:
+            data_label += r"\/\/ (%s)" % (self.pf.field_info[field_name].get_units())
         data_label += r"$"
         func(str(data_label))
 

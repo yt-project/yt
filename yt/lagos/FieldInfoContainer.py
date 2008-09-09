@@ -50,6 +50,8 @@ class FieldInfoContainer(object): # We are all Borg.
         return self._universal_field_list.iterkeys()
     def __setitem__(self, key, val):
         self._universal_field_list[key] = val
+    def has_key(self, key):
+        return key in self._universal_field_list
     def add_field(self, name, function = None, **kwargs):
         if function == None:
             if kwargs.has_key("function"):
@@ -70,6 +72,9 @@ class CodeFieldInfoContainer(FieldInfoContainer):
                         self._universal_field_list.iterkeys())
     def keys(self):
         return set(self._field_list.keys() + self._universal_field_list.keys())
+    def has_key(self, key):
+        return key in self._universal_field_list \
+            or key in self._field_list
     def __getitem__(self, key):
         if key in self._field_list:
             return self._field_list[key]

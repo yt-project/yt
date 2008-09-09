@@ -34,8 +34,8 @@ import sys
 
 from yt.lagos import EnzoStaticOutput, \
     BinnedProfile1D, BinnedProfile2D, BinnedProfile3D, \
-    add_field, fieldInfo, \
-    Clump, write_clump_hierarchy, find_clumps, write_clumps
+    add_field, Clump, write_clump_hierarchy, find_clumps, \
+    write_clumps
 
 from yt.raven import PlotCollection, PlotCollectionInteractive, \
     QuiverCallback, ParticleCallback, ContourCallback, \
