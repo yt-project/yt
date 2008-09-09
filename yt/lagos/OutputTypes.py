@@ -146,6 +146,7 @@ class EnzoStaticOutput(StaticOutput):
         cp = os.path.join(self.directory, "cool_rates.out")
         if os.path.exists(cp):
             self.cool = EnzoTable(cp, cool_out_key)
+        self.field_info = EnzoFields()
 
     def _parse_parameter_file(self):
         """

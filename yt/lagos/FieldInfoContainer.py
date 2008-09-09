@@ -29,6 +29,7 @@ import types
 import numpy as na
 import inspect
 import copy
+import itertools
 
 from yt.funcs import *
 
@@ -43,9 +44,13 @@ class FieldInfoContainer(object): # We are all Borg.
         if key in self._universal_field_list:
             return self._universal_field_list[key]
         raise KeyError
+    def keys(self):
+        return self._universal_field_list.keys()
+    def __iter__(self):
+        return self._universal_field_list.iterkeys()
     def __setitem__(self, key, val):
         self._universal_field_list[key] = val
-    def add_field(name, function = None, **kwargs):
+    def add_field(self, name, function = None, **kwargs):
         if function == None:
             if kwargs.has_key("function"):
                 function = kwargs.pop("function")
@@ -60,6 +65,11 @@ add_field = FieldInfo.add_field
 class CodeFieldInfoContainer(FieldInfoContainer):
     def __setitem__(self, key, val):
         self._field_list[key] = val
+    def __iter__(self):
+        return itertools.chain(self._field_list.iterkeys(),
+                        self._universal_field_list.iterkeys())
+    def keys(self):
+        return set(self._field_list.keys() + self._universal_field_list.keys())
     def __getitem__(self, key):
         if key in self._field_list:
             return self._field_list[key]

@@ -506,6 +506,7 @@ class EnzoHierarchy(AMRHierarchy):
         """
         # Expect filename to be the name of the parameter file, not the
         # hierarchy
+        self.field_info = EnzoFields()
         self.data_style = data_style
         self.hierarchy_filename = os.path.abspath(pf.parameter_filename) \
                                + ".hierarchy"
@@ -813,13 +814,13 @@ class EnzoHierarchy(AMRHierarchy):
                 field_list = field_list.union(sets.Set(gf))
         self.field_list = list(field_list)
         for field in self.field_list:
-            if field in fieldInfo: continue
+            if field in self.field_info: continue
             mylog.info("Adding %s to list of fields", field)
             add_field(field, lambda a, b: None)
         self.derived_field_list = []
-        for field in fieldInfo:
+        for field in self.field_info:
             try:
-                fd = fieldInfo[field].get_dependencies(pf = self.parameter_file)
+                fd = self.field_info[field].get_dependencies(pf = self.parameter_file)
             except:
                 continue
             available = na.all([f in self.field_list for f in fd.requested])
@@ -851,6 +852,7 @@ def constructRegularExpressions(param, toReadTypes):
 
 class OrionHierarchy(AMRHierarchy):
     def __init__(self,pf,data_style=7):
+        self.field_info = OrionFields()
         self.field_indexes = {}
         self.parameter_file = weakref.proxy(pf)
         header_filename = os.path.join(pf.fullplotdir,'Header')
@@ -1057,9 +1059,9 @@ class OrionHierarchy(AMRHierarchy):
 
     def _setup_field_list(self):
         self.derived_field_list = []
-        for field in fieldInfo:
+        for field in self.field_info:
             try:
-                fd = fieldInfo[field].get_dependencies(pf = self.parameter_file)
+                fd = self.field_info[field].get_dependencies(pf = self.parameter_file)
             except:
                 continue
             available = na.all([f in self.field_list for f in fd.requested])
