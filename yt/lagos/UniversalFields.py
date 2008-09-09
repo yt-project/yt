@@ -56,17 +56,20 @@ G = 6.67e-8   # cm^3 g^-1 s^-2
 def _dx(field, data):
     return data.dx
     return na.ones(data.ActiveDimensions, dtype='float64') * data.dx
-add_field('dx', display_field=False, validators=[ValidateSpatial(0)])
+add_field('dx', function=_dx, display_field=False,
+          validators=[ValidateSpatial(0)])
 
 def _dy(field, data):
     return data.dy
     return na.ones(data.ActiveDimensions, dtype='float64') * data.dy
-add_field('dy', display_field=False, validators=[ValidateSpatial(0)])
+add_field('dy', function=_dy, display_field=False,
+          validators=[ValidateSpatial(0)])
 
 def _dz(field, data):
     return data.dz
     return na.ones(data.ActiveDimensions, dtype='float64') * data.dz
-add_field('dz', display_field=False, validators=[ValidateSpatial(0)])
+add_field('dz', function=_dz,
+          display_field=False, validators=[ValidateSpatial(0)])
 
 def _coordX(field, data):
     dim = data.ActiveDimensions[0]
@@ -94,22 +97,26 @@ add_field('z', function=_coordZ, display_field=False,
 
 def _GridLevel(field, data):
     return na.ones(data["Density"].shape)*(data.Level)
-add_field("GridLevel", validators=[#ValidateProperty('Level'),
-                                   ValidateSpatial(0)])
+add_field("GridLevel", function=_GridLevel,
+          validators=[#ValidateProperty('Level'),
+                      ValidateSpatial(0)])
 
 def _GridIndices(field, data):
     return na.ones(data["Density"].shape)*(data.id-data._id_offset)
-add_field("GridIndices", validators=[#ValidateProperty('id'),
-                                     ValidateSpatial(0)], take_log=False)
+add_field("GridIndices", function=_GridIndices,
+          validators=[#ValidateProperty('id'),
+                      ValidateSpatial(0)], take_log=False)
 
 def _OnesOverDx(field, data):
     return na.ones(data["Density"].shape,
                    dtype=data["Density"].dtype)/data['dx']
-add_field("OnesOverDx", display_field=False)
+add_field("OnesOverDx", function=_OnesOverDx,
+          display_field=False)
 
 def _Ones(field, data):
     return na.ones(data.ActiveDimensions, dtype='float64')
-add_field("Ones", validators=[ValidateSpatial(0)],
+add_field("Ones", function=_Ones,
+          validators=[ValidateSpatial(0)],
           projection_conversion="unitary",
           display_field = False)
 add_field("CellsPerBin", function=_Ones, validators=[ValidateSpatial(0)],
@@ -118,7 +125,8 @@ add_field("CellsPerBin", function=_Ones, validators=[ValidateSpatial(0)],
 def _SoundSpeed(field, data):
     return ( data.pf["Gamma"]*data["Pressure"] / \
              data["Density"] )**(1.0/2.0)
-add_field("SoundSpeed", units=r"\rm{cm}/\rm{s}")
+add_field("SoundSpeed", function=_SoundSpeed,
+          units=r"\rm{cm}/\rm{s}")
 
 def particle_func(p_field):
     def _Particles(field, data):
@@ -161,7 +169,8 @@ def _convertParticleMass(data):
     return data.convert("Density")*(data.convert("cm")**3.0)
 def _convertParticleMassMsun(data):
     return data.convert("Density")*((data.convert("cm")**3.0)/1.989e33)
-add_field("ParticleMass", validators=[ValidateSpatial(0)],
+add_field("ParticleMass",
+          function=_ParticleMass, validators=[ValidateSpatial(0)],
           particle_type=True, convert_function=_convertParticleMass)
 add_field("ParticleMassMsun",
           function=_ParticleMass, validators=[ValidateSpatial(0)],
@@ -170,7 +179,7 @@ add_field("ParticleMassMsun",
 def _MachNumber(field, data):
     """M{|v|/t_sound}"""
     return data["VelocityMagnitude"] / data["SoundSpeed"]
-add_field("MachNumber")
+add_field("MachNumber", function=_MachNumber)
 
 def _CourantTimeStep(field, data):
     t1 = data['dx'] / (
@@ -186,7 +195,8 @@ def _CourantTimeStep(field, data):
 def _convertCourantTimeStep(data):
     # SoundSpeed and z-velocity are in cm/s, dx is in code
     return data.convert("cm")
-add_field("CourantTimeStep", convert_function=_convertCourantTimeStep,
+add_field("CourantTimeStep", function=_CourantTimeStep,
+          convert_function=_convertCourantTimeStep,
           units=r"$\rm{s}$")
 
 def _VelocityMagnitude(field, data):
@@ -197,16 +207,21 @@ def _VelocityMagnitude(field, data):
     return ( (data["x-velocity"]-bulk_velocity[0])**2.0 + \
              (data["y-velocity"]-bulk_velocity[1])**2.0 + \
              (data["z-velocity"]-bulk_velocity[2])**2.0 )**(1.0/2.0)
-add_field("VelocityMagnitude", take_log=False, units=r"\rm{cm}/\rm{s}")
+add_field("VelocityMagnitude", function=_VelocityMagnitude,
+          take_log=False, units=r"\rm{cm}/\rm{s}")
 
 def _TangentialOverVelocityMagnitude(field, data):
     return na.abs(data["TangentialVelocity"])/na.abs(data["VelocityMagnitude"])
-add_field("TangentialOverVelocityMagnitude", take_log=False)
+add_field("TangentialOverVelocityMagnitude",
+          function=_TangentialOverVelocityMagnitude,
+          take_log=False)
 
 def _TangentialVelocity(field, data):
     return na.sqrt(data["VelocityMagnitude"]**2.0
                  - data["RadialVelocity"]**2.0)
-add_field("TangentialVelocity", take_log=False, units=r"\rm{cm}/\rm{s}")
+add_field("TangentialVelocity", 
+          function=_TangentialVelocity,
+          take_log=False, units=r"\rm{cm}/\rm{s}")
 
 def _Pressure(field, data):
     """M{(Gamma-1.0)*rho*E}"""
@@ -215,14 +230,14 @@ def _Pressure(field, data):
     else:
         return (data.pf["Gamma"] - 1.0) * \
                data["Density"] * data["ThermalEnergy"]
-add_field("Pressure", units=r"\rm{dyne}/\rm{cm}^{2}")
+add_field("Pressure", function=_Pressure, units=r"\rm{dyne}/\rm{cm}^{2}")
 # for Orion, units are different...how to do this?
 #    add_field("ThermalEnergy", units=r"\rm{ergs}/\rm{g}")
 
 def _Entropy(field, data):
     return data["Density"]**(-2./3.) * \
            data["Temperature"]
-add_field("Entropy", units="WhoKnows")
+add_field("Entropy", function=_Entropy, units="WhoKnows")
 
 def _Height(field, data):
     # We take the dot product of the radius vector with the height-vector
@@ -242,7 +257,8 @@ def _convertHeight(data):
     return data.convert("cm")
 def _convertHeightAU(data):
     return data.convert("au")
-add_field("Height", convert_function=_convertHeight,
+add_field("Height", function=_Height,
+          convert_function=_convertHeight,
           validators=[ValidateParameter("height_vector")],
           units=r"cm", display_field=False)
 add_field("HeightAU", function=_Height,
@@ -262,7 +278,8 @@ def _DiskAngle(field, data):
        + r_vec[1,:] * h_vec[1] \
        + r_vec[2,:] * h_vec[2]
     return na.arccos(dp)
-add_field("DiskAngle", take_log=False,
+add_field("DiskAngle", function=_DiskAngle,
+          take_log=False,
           validators=[ValidateParameter("height_vector"),
                       ValidateParameter("center")],
           display_field=False)
@@ -279,14 +296,15 @@ def _ConvertDynamicalTime(data):
     t_dyn_coeff = (3*pi/(16*G))**0.5 \
                 * data.convert("Time")
     return t_dyn_coeff
-add_field("DynamicalTime", units=r"\rm{s}",
+add_field("DynamicalTime", function=_DynamicalTime,
+           units=r"\rm{s}",
           convert_function=_ConvertDynamicalTime)
 
 def _CellMass(field, data):
     return data["Density"] * data["CellVolume"]
 def _convertCellMassMsun(data):
     return 5.027854e-34 # g^-1
-add_field("CellMass", units=r"\rm{g}")
+add_field("CellMass", function=_CellMass, units=r"\rm{g}")
 add_field("CellMassMsun", units=r"M_{\odot}",
           function=_CellMass,
           convert_function=_convertCellMassMsun)
@@ -317,7 +335,7 @@ def _XRayEmissivity(field, data):
             *data["Temperature"]**0.5)
 def _convertXRayEmissivity(data):
     return 2.168e60
-add_field("XRayEmissivity",
+add_field("XRayEmissivity", function=_XRayEmissivity,
           convert_function=_convertXRayEmissivity,
           projection_conversion="1")
 
@@ -329,7 +347,7 @@ def _SZKinetic(field, data):
     return (vel*data["Density"])
 def _convertSZKinetic(data):
     return 0.88*((sigma_thompson/mh)/clight)
-add_field("SZKinetic",
+add_field("SZKinetic", function=_SZKinetic,
           convert_function=_convertSZKinetic,
           validators=[ValidateParameter('axis')])
 
@@ -338,7 +356,7 @@ def _SZY(field, data):
 def _convertSZY(data):
     conv = (0.88/mh) * (kboltz)/(me * clight*clight) * sigma_thompson
     return conv
-add_field("SZY", convert_function=_convertSZY)
+add_field("SZY", function=_SZY, convert_function=_convertSZY)
 
 def __gauss_kern(size):
     """ Returns a normalized 2D gauss kernel array for convolutions """
@@ -358,7 +376,9 @@ def __blur_image(im, n):
 
 def _SmoothedDensity(field, data):
     return __blur_image(data["Density"], 1)
-add_field("SmoothedDensity", validators=[ValidateSpatial(2)])
+add_field("SmoothedDensity",
+          function=_SmoothedDensity,
+          validators=[ValidateSpatial(2)])
 
 def _AveragedDensity(field, data):
     nx, ny, nz = data["Density"].shape
@@ -373,7 +393,9 @@ def _AveragedDensity(field, data):
     new_field2 = na.zeros((nx,ny,nz))
     new_field2[1:-1,1:-1,1:-1] = new_field/weight_field
     return new_field2
-add_field("AveragedDensity", validators=[ValidateSpatial(1)])
+add_field("AveragedDensity",
+          function=_AveragedDensity,
+          validators=[ValidateSpatial(1)])
 
 def _DivV(field, data):
     # We need to set up stencils
@@ -399,7 +421,8 @@ def _DivV(field, data):
     return na.abs(new_field)
 def _convertDivV(data):
     return data.convert("cm")**-1.0
-add_field("DivV", validators=[ValidateSpatial(1,
+add_field("DivV", function=_DivV,
+            validators=[ValidateSpatial(1,
             ["x-velocity","y-velocity","z-velocity"])],
           units=r"\rm{s}^{-1}",
           convert_function=_convertDivV)
@@ -407,7 +430,7 @@ add_field("DivV", validators=[ValidateSpatial(1,
 def _Contours(field, data):
     return na.ones(data["Density"].shape)*-1
 add_field("Contours", validators=[ValidateSpatial(0)], take_log=False,
-          display_field=False)
+          display_field=False, function=_Contours)
 add_field("tempContours", function=_Contours, validators=[ValidateSpatial(0)],
           take_log=False, display_field=False)
 
@@ -430,6 +453,7 @@ def _SpecificAngularMomentum(field, data):
 def _convertSpecificAngularMomentum(data):
     return data.convert("cm")
 add_field("SpecificAngularMomentum",
+          function=_SpecificAngularMomentum,
           convert_function=_convertSpecificAngularMomentum, vector_field=True,
           units=r"\rm{cm}^2/\rm{s}", validators=[ValidateParameter('center')])
 def _convertSpecificAngularMomentumKMSMPC(data):
@@ -547,6 +571,7 @@ def _CuttingPlaneVelocityX(field, data):
                 - bulk_velocity[...,na.newaxis]
     return na.dot(x_vec, v_vec)
 add_field("CuttingPlaneVelocityX", 
+          function=_CuttingPlaneVelocityX,
           validators=[ValidateParameter("cp_%s_vec" % ax)
                       for ax in 'xyz'], units=r"\rm{km}/\rm{s}")
 def _CuttingPlaneVelocityY(field, data):
@@ -559,6 +584,7 @@ def _CuttingPlaneVelocityY(field, data):
                 - bulk_velocity[...,na.newaxis]
     return na.dot(y_vec, v_vec)
 add_field("CuttingPlaneVelocityY", 
+          function=_CuttingPlaneVelocityY,
           validators=[ValidateParameter("cp_%s_vec" % ax)
                       for ax in 'xyz'], units=r"\rm{km}/\rm{s}")
 
@@ -576,20 +602,20 @@ def _JeansMassMsun(field,data):
 add_field("JeansMassMsun",function=_JeansMassMsun,
           units=r"\rm{M_{\odot}}")
 
-def _convertMomentum(data):
-    return data.convert("x-velocity")*data.convert("Density")*1e5 # want this in cm/s not km/s
-for ax in ['x','y','z']:
-    f = fieldInfo["%s-momentum" % ax]
-    f._units = r"\rm{erg\ s}/\rm{cm^3}"
-    f._convert_function = _convertMomentum
-    f.take_log = False
-
-fieldInfo["Temperature"].units = r"K"
-
-if __name__ == "__main__":
-    k = fieldInfo.keys()
-    k.sort()
-    for f in k:
-        e = FieldDetector()
-        fieldInfo[f](e)
-        print f + ":", ", ".join(e.requested)
+#def _convertMomentum(data):
+#    return data.convert("x-velocity")*data.convert("Density")*1e5 # want this in cm/s not km/s
+#for ax in ['x','y','z']:
+#    f = fieldInfo["%s-momentum" % ax]
+#    f._units = r"\rm{erg\ s}/\rm{cm^3}"
+#    f._convert_function = _convertMomentum
+#    f.take_log = False
+#
+#fieldInfo["Temperature"].units = r"K"
+#
+#if __name__ == "__main__":
+#    k = fieldInfo.keys()
+#    k.sort()
+#    for f in k:
+#        e = FieldDetector()
+#        fieldInfo[f](e)
+#        print f + ":", ", ".join(e.requested)

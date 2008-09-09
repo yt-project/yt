@@ -42,6 +42,7 @@ for species in _speciesList:
 def _Metallicity(field, data):
     return data["Metal_Fraction"] / 0.0204
 add_field("Metallicity", units=r"Z_{\rm{Solar}}",
+          function=_Metallicity,
           validators=ValidateDataField("Metal_Density"),
           projection_conversion="1")
 
@@ -61,7 +62,8 @@ def _ThermalEnergy(field, data):
                    data["x-velocity"]**2.0
                  + data["y-velocity"]**2.0
                  + data["z-velocity"]**2.0 )
-    add_field("ThermalEnergy", units=r"\rm{ergs}/\rm{cm^3}")
+add_field("ThermalEnergy", function=_ThermalEnergy,
+          units=r"\rm{ergs}/\rm{cm^3}")
 
 def _NumberDensity(field, data):
     # We can assume that we at least have Density
@@ -94,6 +96,7 @@ def _NumberDensity(field, data):
 def _ConvertNumberDensity(data):
     return 1.0/mh
 add_field("NumberDensity", units=r"\rm{cm}^{-3}",
+          function=_NumberDensity,
           convert_function=_ConvertNumberDensity)
 
 # Now we add all the fields that we want to control, but we give a null function
@@ -110,18 +113,18 @@ _default_fields += [ "%s_Density" % sp for sp in _speciesList ]
 for field in _default_fields:
     add_field(field, function=lambda a, b: None, take_log=True,
               validators=[ValidateDataField(field)], units=r"\rm{g}/\rm{cm}^3")
-fieldInfo["x-velocity"].projection_conversion='1'
-fieldInfo["y-velocity"].projection_conversion='1'
-fieldInfo["z-velocity"].projection_conversion='1'
+EnzoFieldInfo["x-velocity"].projection_conversion='1'
+EnzoFieldInfo["y-velocity"].projection_conversion='1'
+EnzoFieldInfo["z-velocity"].projection_conversion='1'
 
 # Now we override
 
 def _convertDensity(data):
     return data.convert("Density")
 for field in ["Density"] + [ "%s_Density" % sp for sp in _speciesList ]:
-    fieldInfo[field]._units = r"\rm{g}/\rm{cm}^3"
-    fieldInfo[field]._projected_units = r"\rm{g}/\rm{cm}^2"
-    fieldInfo[field]._convert_function=_convertDensity
+    EnzoFieldInfo[field]._units = r"\rm{g}/\rm{cm}^3"
+    EnzoFieldInfo[field]._projected_units = r"\rm{g}/\rm{cm}^2"
+    EnzoFieldInfo[field]._convert_function=_convertDensity
 
 add_field("Dark_Matter_Density", function=lambda a,b: None,
           convert_function=_convertDensity,
@@ -131,16 +134,16 @@ add_field("Dark_Matter_Density", function=lambda a,b: None,
 
 def _convertEnergy(data):
     return data.convert("x-velocity")**2.0
-fieldInfo["Gas_Energy"]._units = r"\rm{ergs}/\rm{g}"
-fieldInfo["Gas_Energy"]._convert_function = _convertEnergy
-fieldInfo["Total_Energy"]._units = r"\rm{ergs}/\rm{g}"
-fieldInfo["Total_Energy"]._convert_function = _convertEnergy
-fieldInfo["Temperature"]._units = r"\rm{K}"
+EnzoFieldInfo["Gas_Energy"]._units = r"\rm{ergs}/\rm{g}"
+EnzoFieldInfo["Gas_Energy"]._convert_function = _convertEnergy
+EnzoFieldInfo["Total_Energy"]._units = r"\rm{ergs}/\rm{g}"
+EnzoFieldInfo["Total_Energy"]._convert_function = _convertEnergy
+EnzoFieldInfo["Temperature"]._units = r"\rm{K}"
 
 def _convertVelocity(data):
     return data.convert("x-velocity")
 for ax in ['x','y','z']:
-    f = fieldInfo["%s-velocity" % ax]
+    f = EnzoFieldInfo["%s-velocity" % ax]
     f._units = r"\rm{cm}/\rm{s}"
     f._convert_function = _convertVelocity
     f.take_log = False
