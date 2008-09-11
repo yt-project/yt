@@ -359,3 +359,27 @@ class ClumpContourCallback(PlotCallback):
         self.rv = plot._axes.contour(buff, len(self.clumps)+1,
                                      **self.plot_args)
         plot._axes.hold(False)
+
+class HopCircleCallback(PlotCallback):
+    def __init__(self, hop_output, axis, max_number=None):
+        self.axis = axis
+        self.hop_output = hop_output
+        self.max_number = max_number
+
+    def __call__(self, plot):
+        from matplotlib.patches import Circle
+        x0, x1 = plot.xlim
+        y0, y1 = plot.ylim
+        l, b, width, height = plot._axes.bbox.get_bounds()
+        xi = lagos.x_dict[plot.data.axis]
+        yi = lagos.y_dict[plot.data.axis]
+        dx = plot.image._A.shape[0] / (x1-x0)
+        dy = plot.image._A.shape[1] / (y1-y0)
+        for hop in self.hop_output[:self.max_number]:
+            radius = hop.maximum_radius() * dx
+            center = hop.center_of_mass()
+            center_x = (center[xi] - x0)*dx
+            center_y = (center[yi] - y0)*dy
+            cir = Circle((center_x, center_y), radius, fill=False)
+            plot._axes.add_patch(cir)
+
