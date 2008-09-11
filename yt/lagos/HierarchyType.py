@@ -867,8 +867,6 @@ class OrionHierarchy(AMRHierarchy):
     def readGlobalHeader(self,filename,paranoid_read):
         """
         read the global header file for an Orion plotfile output.
-        
-        
         """
         counter = 0
         header_file = open(filename,'r')

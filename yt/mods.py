@@ -32,7 +32,7 @@ import yt.fido as fido
 import numpy as na
 import sys
 
-from yt.lagos import EnzoStaticOutput, \
+from yt.lagos import EnzoStaticOutput, OrionStaticOutput, \
     BinnedProfile1D, BinnedProfile2D, BinnedProfile3D, \
     add_field, Clump, write_clump_hierarchy, find_clumps, \
     write_clumps

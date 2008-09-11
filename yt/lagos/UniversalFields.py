@@ -225,14 +225,9 @@ add_field("TangentialVelocity",
 
 def _Pressure(field, data):
     """M{(Gamma-1.0)*rho*E}"""
-    if data.pf["HydroMethod"] == 'orion':
-        return (data.pf["Gamma"] - 1.0) * data["ThermalEnergy"]
-    else:
-        return (data.pf["Gamma"] - 1.0) * \
-               data["Density"] * data["ThermalEnergy"]
+    return (data.pf["Gamma"] - 1.0) * \
+           data["Density"] * data["ThermalEnergy"]
 add_field("Pressure", function=_Pressure, units=r"\rm{dyne}/\rm{cm}^{2}")
-# for Orion, units are different...how to do this?
-#    add_field("ThermalEnergy", units=r"\rm{ergs}/\rm{g}")
 
 def _Entropy(field, data):
     return data["Density"]**(-2./3.) * \

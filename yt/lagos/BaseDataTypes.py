@@ -1567,16 +1567,22 @@ class AMRSmoothedCoveringGrid(AMRCoveringGrid):
             #raise ValueError
         kwargs['num_ghost_zones'] = 0
         AMRCoveringGrid.__init__(self, *args, **kwargs)
-        if na.any(self.left_edge == 0):
+        if na.any(self.left_edge == self.pf["DomainLeftEdge"]):
             self.left_edge += self.dx
             self.ActiveDimensions -= 1
-        if na.any(self.right_edge == 0):
+        if na.any(self.right_edge == self.pf["DomainRightEdge"]):
             self.right_edge -= self.dx
             self.ActiveDimensions -= 1
 
     def _get_list_of_grids(self):
-        grids, ind = self.pf.hierarchy.get_box_grids(self.left_edge-self.dx,
-                                                     self.right_edge+self.dx)
+        if na.any(self.left_edge - self.dx < self.pf["DomainLeftEdge"]) or \
+           na.any(self.right_edge + self.dx > self.pf["DomainRightEdge"]):
+            grids,ind = self.pf.hierarchy.get_periodic_box_grids(
+                            self.left_edge - self.dx, self.right_edge + self.dx)
+            ind = slice(None)
+        else:
+            grids,ind = self.pf.hierarchy.get_box_grids(
+                            self.left_edge - self.dx, self.right_edge + self.dx)
         level_ind = na.where(self.pf.hierarchy.gridLevels.ravel()[ind] <= self.level)
         sort_ind = na.argsort(self.pf.h.gridLevels.ravel()[ind][level_ind])
         self._grids = self.pf.hierarchy.grids[ind][level_ind][(sort_ind,)]

@@ -49,11 +49,6 @@ add_field("Metallicity", units=r"Z_{\rm{Solar}}",
 def _ThermalEnergy(field, data):
     if data.pf["HydroMethod"] == 2:
         return data["Total_Energy"]
-    elif data.pf["HydroMethod"] == 'orion':
-        return data["Total_Energy"] - 0.5 * data["Density"] * (
-                   data["x-velocity"]**2.0
-                 + data["y-velocity"]**2.0
-                 + data["z-velocity"]**2.0 )
     else:
         if data.pf["DualEnergyFormalism"]:
             return data["Gas_Energy"]
