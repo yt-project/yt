@@ -40,7 +40,8 @@ from yt.lagos import EnzoStaticOutput, \
 from yt.raven import PlotCollection, PlotCollectionInteractive, \
     QuiverCallback, ParticleCallback, ContourCallback, \
     GridBoundaryCallback, UnitBoundaryCallback, \
-    LinePlotCallback, CuttingQuiverCallback, ClumpContourCallback
+    LinePlotCallback, CuttingQuiverCallback, ClumpContourCallback, \
+    HopCircleCallback
 
 try:
     from yt.raven import VolumeRenderingDataCube, \
