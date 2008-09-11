@@ -25,7 +25,7 @@ License:
 """
 
 from yt.lagos import *
-import Interpolators as IT
+#import Interpolators as IT
 
 class UnilinearFieldInterpolator:
     def __init__(self, table, boundaries, field_names):
