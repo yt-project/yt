@@ -55,11 +55,14 @@ static PyObject* Py_Pixelize(PyObject *obj, PyObject *args) {
   unsigned int rows, cols;
   int antialias = 1;
   double x_min, x_max, y_min, y_max;
+  double period_x, period_y;
+  period_x = period_y = 0;
 
-    if (!PyArg_ParseTuple(args, "OOOOOII(dddd)|i",
-        &xp, &yp, &dxp, &dyp, &dp, &cols, &rows,
-        &x_min, &x_max, &y_min, &y_max, &antialias))
-        return PyErr_Format(_pixelizeError, "Pixelize: Invalid Parameters.");
+  if (!PyArg_ParseTuple(args, "OOOOOII(dddd)|i(dd)",
+      &xp, &yp, &dxp, &dyp, &dp, &cols, &rows,
+      &x_min, &x_max, &y_min, &y_max,
+      &antialias, &period_x, &period_y))
+      return PyErr_Format(_pixelizeError, "Pixelize: Invalid Parameters.");
 
   double width = x_max - x_min;
   double height = y_max - y_min;
@@ -132,6 +135,10 @@ static PyObject* Py_Pixelize(PyObject *obj, PyObject *args) {
     dxsp = *((npy_float64 *)PyArray_GETPTR1(dx, p));
     dysp = *((npy_float64 *)PyArray_GETPTR1(dy, p));
     dsp = *((npy_float64 *)PyArray_GETPTR1(d, p));
+    if(xsp + dxsp < x_min) (xsp+=period_x);
+    else if (xsp+dxsp > x_max) (xsp-=period_x);
+    if(ysp + dysp < y_min) (ysp+=period_y);
+    else if (ysp+dysp > y_max) (ysp-=period_y);
     if(((xsp+dxsp<x_min) ||
         (xsp-dxsp>x_max)) ||
        ((ysp+dysp<y_min) ||

@@ -147,7 +147,8 @@ class PlotCollection:
         return plot
 
     def add_slice(self, field, axis, coord=None, center=None,
-                 use_colorbar=True, figure = None, axes = None, fig_size=None):
+                 use_colorbar=True, figure = None, axes = None, fig_size=None,
+                 periodic = False):
         """
         Generate a slice through *field* along *axis*, optionally at
         [axis]=*coord*, with the *center* attribute given (some 
@@ -163,7 +164,7 @@ class PlotCollection:
         slice = self.pf.hierarchy.slice(axis, coord, field, center)
         p = self._add_plot(PlotTypes.SlicePlot(slice, field, use_colorbar=use_colorbar,
                          axes=axes, figure=figure,
-                         size=fig_size))
+                         size=fig_size, periodic=periodic))
         mylog.info("Added slice of %s at %s = %s with 'center' = %s", field,
                     axis_names[axis], coord, list(center))
         p["Axis"] = lagos.axis_names[axis]
@@ -196,7 +197,8 @@ class PlotCollection:
 
     def add_projection(self, field, axis, weight_field=None,
                       center=None, use_colorbar=True,
-                      figure = None, axes = None, fig_size=None):
+                      figure = None, axes = None, fig_size=None,
+                      periodic = False):
         """
         Generate a projection of *field* along *axis*, optionally giving
         a *weight_field*-weighted average with *use_colorbar*
@@ -209,7 +211,7 @@ class PlotCollection:
         proj = self.pf.hierarchy.proj(axis, field, weight_field, center=center)
         p = self._add_plot(PlotTypes.ProjectionPlot(proj, field,
                          use_colorbar=use_colorbar, axes=axes, figure=figure,
-                         size=fig_size))
+                         size=fig_size, periodic=periodic))
         p["Axis"] = lagos.axis_names[axis]
         return p
 
