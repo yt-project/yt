@@ -78,11 +78,11 @@ class BilinearFieldInterpolator:
                 x_i = na.minimum(na.maximum(x_i,0), len(self.x_bins)-2)
                 y_i = na.minimum(na.maximum(y_i,0), len(self.y_bins)-2)
 
-        my_vals = na.zeros(x_vals.shape, dtype='float')
-        IT.BilinearlyInterpolate(self.table,
-                                 x_vals, y_vals, self.x_bins, self.y_bins,
-                                 x_i, y_i, my_vals)
-        return my_vals
+        #my_vals = na.zeros(x_vals.shape, dtype='float')
+        #IT.BilinearlyInterpolate(self.table,
+        #                         x_vals, y_vals, self.x_bins, self.y_bins,
+        #                         x_i, y_i, my_vals)
+        #return my_vals
 
         x = (x_vals - self.x_bins[x_i]) / (self.x_bins[x_i+1] - self.x_bins[x_i])
         y = (y_vals - self.y_bins[y_i]) / (self.y_bins[y_i+1] - self.y_bins[y_i])
@@ -126,13 +126,13 @@ class TrilinearFieldInterpolator:
                 y_i = na.minimum(na.maximum(y_i,0), len(self.y_bins)-2)
                 z_i = na.minimum(na.maximum(z_i,0), len(self.z_bins)-2)
 
-        my_vals = na.zeros(x_vals.shape, dtype='float')
-        print self.table.dtype, x_vals.dtype, self.x_bins.dtype
-        IT.TrilinearlyInterpolate(self.table,
-                                 x_vals, y_vals, z_vals,
-                                 self.x_bins, self.y_bins, self.z_bins,
-                                 x_i, y_i, z_i, my_vals)
-        return my_vals
+        #my_vals = na.zeros(x_vals.shape, dtype='float')
+        #print self.table.dtype, x_vals.dtype, self.x_bins.dtype
+        #IT.TrilinearlyInterpolate(self.table,
+        #                         x_vals, y_vals, z_vals,
+        #                         self.x_bins, self.y_bins, self.z_bins,
+        #                         x_i, y_i, z_i, my_vals)
+        #return my_vals
 
         # Use notation from Paul Bourke's page on interpolation
         # http://local.wasp.uwa.edu.au/~pbourke/other/interpolation/
