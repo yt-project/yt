@@ -50,12 +50,27 @@ class FixedResolutionBuffer(object):
                              self.data_source['pdy'],
                              self.data_source[item],
                              self.buff_size[0], self.buff_size[1],
-                             self.bounds, int(self.antialias))
+                             self.bounds, int(self.antialias)).transpose()
         self[item] = buff
         return buff
 
     def __setitem__(self, item, val):
         self.data[item] = val
+
+    def convert_to_pixel(self, coords):
+        dpx = (self.bounds[1]-self.bounds[0])/self.buff_size[0]
+        dpy = (self.bounds[3]-self.bounds[2])/self.buff_size[1]
+        px = (coords[0] - self.bounds[0])/dpx
+        py = (coords[1] - self.bounds[2])/dpy
+        return (px, py)
+
+    def convert_distance_x(self, distance):
+        dpx = (self.bounds[1]-self.bounds[0])/self.buff_size[0]
+        return distance/dpx
+        
+    def convert_distance_y(self, distance):
+        dpy = (self.bounds[3]-self.bounds[2])/self.buff_size[1]
+        return distance/dpy
 
 class AnnuliProfiler(object):
     def __init__(self, fixed_buffer, center, num_bins, min_radius, max_radius):
@@ -94,3 +109,5 @@ class AnnuliProfiler(object):
     def __setitem__(self, item, val):
         self.data[item] = val
 
+    def sum(self, item):
+        return self[item].sum()

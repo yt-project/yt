@@ -31,6 +31,16 @@ class PlotCallback(object):
     def __init__(self, *args, **kwargs):
         pass
 
+    def convert_to_pixels(self, plot, coord):
+        x0, x1 = plot.xlim
+        y0, y1 = plot.ylim
+        l, b, width, height = plot._axes.bbox.get_bounds()
+        xi = lagos.x_dict[plot.data.axis]
+        yi = lagos.y_dict[plot.data.axis]
+        dx = plot.image._A.shape[0] / (x1-x0)
+        dy = plot.image._A.shape[1] / (y1-y0)
+        return ((coord[0] - x0)*dx, (coord[1] - y0)*dy)
+
 class QuiverCallback(PlotCallback):
     def __init__(self, field_x, field_y, factor):
         """
@@ -361,10 +371,12 @@ class ClumpContourCallback(PlotCallback):
         plot._axes.hold(False)
 
 class HopCircleCallback(PlotCallback):
-    def __init__(self, hop_output, axis, max_number=None):
+    def __init__(self, hop_output, axis, max_number=None,
+                 annotate=False):
         self.axis = axis
         self.hop_output = hop_output
         self.max_number = max_number
+        self.annotate = annotate
 
     def __call__(self, plot):
         from matplotlib.patches import Circle
@@ -375,11 +387,13 @@ class HopCircleCallback(PlotCallback):
         yi = lagos.y_dict[plot.data.axis]
         dx = plot.image._A.shape[0] / (x1-x0)
         dy = plot.image._A.shape[1] / (y1-y0)
-        for hop in self.hop_output[:self.max_number]:
-            radius = hop.maximum_radius() * dx
-            center = hop.center_of_mass()
+        for halo in self.hop_output[:self.max_number]:
+            radius = halo.maximum_radius() * dx
+            center = halo.center_of_mass()
             center_x = (center[xi] - x0)*dx
             center_y = (center[yi] - y0)*dy
             cir = Circle((center_x, center_y), radius, fill=False)
             plot._axes.add_patch(cir)
+            if self.annotate:
+                plot._axes.text(center_x, center_y, "%s" % halo.id)
 
