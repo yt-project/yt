@@ -345,7 +345,10 @@ def wrap_pylab_newplot(func):
         # Let's assume that axes and figure are not in the positional
         # arguments -- probably safe!
         new_fig = self.pylab.figure()
-        new_fig.canvas.set_window_title("%s" % (self.pf))
+        try:
+            new_fig.canvas.set_window_title("%s" % (self.pf))
+        except AttributeError:
+            pass
         kwargs['axes'] = self.pylab.gca()
         kwargs['figure'] = self.pylab.gcf()
         retval = func(self, *args, **kwargs)
