@@ -46,7 +46,7 @@ class Watcher:
         wb = ytcfg.getfloat("fido","WaitBetween")
         while not self.check_for_stop():
             nn = self.check_for_output()
-            for bn in nn:
+            for bn in sorted(nn):
                 new_name = bury_output(bn, new_prefix=self.new_prefix)
                 self.handle_output(new_name)
             if run_once: break

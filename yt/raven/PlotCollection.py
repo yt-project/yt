@@ -150,7 +150,13 @@ class PlotCollection:
         self.plots.append(plot)
         return plot
 
-    def add_slice(self, field, axis, coord=None, center=None,
+    def add_slice(self, *args, **kwargs):
+        return self.__add_slice(PlotTypes.SlicePlot, *args, **kwargs)
+
+    def add_slice_interpolated(self, *args, **kwargs):
+        return self.__add_slice(PlotTypes.SlicePlotNaturalNeighbor, *args, **kwargs)
+
+    def __add_slice(self, ptype, field, axis, coord=None, center=None,
                  use_colorbar=True, figure = None, axes = None, fig_size=None,
                  periodic = False):
         """
@@ -166,7 +172,7 @@ class PlotCollection:
         if coord == None:
             coord = center[axis]
         slice = self.pf.hierarchy.slice(axis, coord, field, center)
-        p = self._add_plot(PlotTypes.SlicePlot(slice, field, use_colorbar=use_colorbar,
+        p = self._add_plot(ptype(slice, field, use_colorbar=use_colorbar,
                          axes=axes, figure=figure,
                          size=fig_size, periodic=periodic))
         mylog.info("Added slice of %s at %s = %s with 'center' = %s", field,
@@ -368,6 +374,7 @@ def wrap_pylab_show(func):
 
 class PlotCollectionInteractive(PlotCollection):
     add_slice = wrap_pylab_newplot(PlotCollection.add_slice)
+    add_slice_interpolated = wrap_pylab_newplot(PlotCollection.add_slice_interpolated)
     add_cutting_plane = wrap_pylab_newplot(PlotCollection.add_cutting_plane)
     add_projection = wrap_pylab_newplot(PlotCollection.add_projection)
     add_profile_object = wrap_pylab_newplot(PlotCollection.add_profile_object)

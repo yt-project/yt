@@ -397,6 +397,8 @@ class VMPlot(RavenPlot):
     def selfSetup(self):
         pass
 
+    
+
 class SlicePlot(VMPlot):
     _type_name = "Slice"
 
@@ -410,6 +412,36 @@ class SlicePlot(VMPlot):
             data_label += r"\/\/ (%s)" % (lagos.fieldInfo[field_name].get_units())
         data_label += r"$"
         if self.colorbar != None: self.colorbar.set_label(str(data_label))
+
+class SlicePlotNaturalNeighbor(SlicePlot):
+    
+    def _get_buff(self, width=None):
+        import delaunay as de
+        x0, x1 = self.xlim
+        y0, y1 = self.ylim
+        if width is None:
+            l, b, width, height = _get_bounds(self._axes.bbox)
+        else:
+            height = width
+        self.pix = (width,height)
+        numPoints_x = int(width)
+        numPoints_y = int(width)
+        dx = numPoints_x / (x1-x0)
+        dy = numPoints_y / (y1-y0)
+        xlim = na.logical_and(self.data["px"]+2.0*self.data['pdx'] >= x0,
+                              self.data["px"]-2.0*self.data['pdx'] <= x1)
+        ylim = na.logical_and(self.data["py"]+2.0*self.data['pdy'] >= y0,
+                              self.data["py"]-2.0*self.data['pdy'] <= y1)
+        wI = na.where(na.logical_and(xlim,ylim))
+        xi, yi = na.mgrid[0:numPoints_x, 0:numPoints_y]
+        x = (self.data["px"][wI]-x0)*dx
+        y = (self.data["py"][wI]-y0)*dy
+        z = self.data[self.axis_names["Z"]][wI]
+        if self.log_field: z=na.log10(z)
+        buff = de.Triangulation(x,y).nn_interpolator(z)(xi,yi)
+        buff = buff.clip(z.min(), z.max())
+        if self.log_field: buff = 10**buff
+        return buff.transpose()
 
 class ProjectionPlot(VMPlot):
 
