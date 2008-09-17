@@ -22,7 +22,7 @@ script that I run on each output as it is created.
    
    my_widths = []
    
-   for unit in my_units:
+   for units in my_units:
        my_widths += [(v,units) for v in my_vals]
    
    pc = raven.PlotCollection(pf)

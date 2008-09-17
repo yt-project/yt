@@ -70,7 +70,8 @@ ytcfgDefaults = {
     "raven":{
         'ImagePath':".",
         'ImageSkel': '%(bn)s_%(width)010i_%(unit)s',
-        'backend': 'MPL'
+        'backend': 'MPL',
+        'colormap': 'jet',
         }
     }
 

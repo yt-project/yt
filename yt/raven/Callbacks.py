@@ -31,6 +31,16 @@ class PlotCallback(object):
     def __init__(self, *args, **kwargs):
         pass
 
+    def convert_to_pixels(self, plot, coord):
+        x0, x1 = plot.xlim
+        y0, y1 = plot.ylim
+        l, b, width, height = plot._axes.bbox.get_bounds()
+        xi = lagos.x_dict[plot.data.axis]
+        yi = lagos.y_dict[plot.data.axis]
+        dx = plot.image._A.shape[0] / (x1-x0)
+        dy = plot.image._A.shape[1] / (y1-y0)
+        return ((coord[0] - x0)*dx, (coord[1] - y0)*dy)
+
 class QuiverCallback(PlotCallback):
     def __init__(self, field_x, field_y, factor):
         """
@@ -113,7 +123,8 @@ class ParticleCallback(PlotCallback):
         plot._axes.hold(False)
 
 class ContourCallback(PlotCallback):
-    def __init__(self, field, ncont=5, factor=4, take_log=False, clim=None):
+    def __init__(self, field, ncont=5, factor=4, take_log=False, clim=None,
+                 plot_args = None):
         """
         Add contours in *field* to the plot.  *ncont* governs the number of
         contours generated, *factor* governs the number of points used in the
@@ -133,6 +144,8 @@ class ContourCallback(PlotCallback):
             self.__call__ = lambda a: None
         if self.take_log and clim is not None: clim = (na.log10(clim[0]), na.log10(clim[1]))
         if clim is not None: self.ncont = na.linspace(clim[0], clim[1], ncont)
+        if plot_args is None: plot_args = {'colors':'k'}
+        self.plot_args = plot_args
 
     def __call__(self, plot):
         x0, x1 = plot.xlim
@@ -156,7 +169,7 @@ class ContourCallback(PlotCallback):
         z = plot.data[self.field][wI]
         if self.take_log: z=na.log10(z)
         zi = self.de.Triangulation(x,y).nn_interpolator(z)(xi,yi)
-        plot._axes.contour(xi,yi,zi,self.ncont,colors='k')
+        plot._axes.contour(xi,yi,zi,self.ncont, **self.plot_args)
         plot._axes.set_xlim(xx0,xx1)
         plot._axes.set_ylim(yy0,yy1)
         plot._axes.hold(False)
@@ -233,13 +246,13 @@ class UnitBoundaryCallback(PlotCallback):
         max_dx = plot.data['pdx'].max()
         w_min_x = 250.0 * min_dx
         w_max_x = 1.0 / self.factor
-        min_exp_x = na.ceil(na.log10(w_min_x*plot.data.pf[unit])
+        min_exp_x = na.ceil(na.log10(w_min_x*plot.data.pf[self.unit])
                            /na.log10(self.factor))
-        max_exp_x = na.floor(na.log10(w_max_x*plot.data.pf[unit])
+        max_exp_x = na.floor(na.log10(w_max_x*plot.data.pf[self.unit])
                             /na.log10(self.factor))
         n_x = max_exp_x - min_exp_x + 1
         widths = na.logspace(min_exp_x, max_exp_x, num = n_x, base=self.factor)
-        widths /= plot.data.pf[unit]
+        widths /= plot.data.pf[self.unit]
         left_edge_px = (center[xi] - widths/2.0 - x0)*dx
         left_edge_py = (center[yi] - widths/2.0 - y0)*dy
         right_edge_px = (center[xi] + widths/2.0 - x0)*dx
@@ -323,4 +336,64 @@ class CuttingQuiverCallback(PlotCallback):
         plot._axes.set_ylim(yy0,yy1)
         plot._axes.hold(False)
 
+class ClumpContourCallback(PlotCallback):
+    def __init__(self, clumps, axis, plot_args = None):
+        """
+        Take a list of *clumps* and plot them as a set of contours.
+        """
+        self.clumps = clumps
+        self.xf = lagos.axis_names[lagos.x_dict[axis]]
+        self.yf = lagos.axis_names[lagos.y_dict[axis]]
+        if plot_args is None: plot_args = {}
+        self.plot_args = plot_args
+
+    def __call__(self, plot):
+        x0, x1 = plot.xlim
+        y0, y1 = plot.ylim
+        xx0, xx1 = plot._axes.get_xlim()
+        yy0, yy1 = plot._axes.get_ylim()
+        plot._axes.hold(True)
+        
+        nx, ny = plot.image._A.shape
+        buff = na.zeros((nx,ny),dtype='float64')
+        for i,clump in enumerate(reversed(self.clumps)):
+            mylog.debug("Pixelizing contour %s", i)
+            temp = _MPL.Pixelize(clump[self.xf],
+                                 clump[self.yf],
+                                 clump['dx'],
+                                 clump['dx'],
+                                 clump['dx']*0.0+i+1, # inits inside Pixelize
+                                 int(nx), int(ny),
+                             (x0, x1, y0, y1), 0).transpose()
+            buff = na.maximum(temp, buff)
+        self.rv = plot._axes.contour(buff, len(self.clumps)+1,
+                                     **self.plot_args)
+        plot._axes.hold(False)
+
+class HopCircleCallback(PlotCallback):
+    def __init__(self, hop_output, axis, max_number=None,
+                 annotate=False):
+        self.axis = axis
+        self.hop_output = hop_output
+        self.max_number = max_number
+        self.annotate = annotate
+
+    def __call__(self, plot):
+        from matplotlib.patches import Circle
+        x0, x1 = plot.xlim
+        y0, y1 = plot.ylim
+        l, b, width, height = plot._axes.bbox.get_bounds()
+        xi = lagos.x_dict[plot.data.axis]
+        yi = lagos.y_dict[plot.data.axis]
+        dx = plot.image._A.shape[0] / (x1-x0)
+        dy = plot.image._A.shape[1] / (y1-y0)
+        for halo in self.hop_output[:self.max_number]:
+            radius = halo.maximum_radius() * dx
+            center = halo.center_of_mass()
+            center_x = (center[xi] - x0)*dx
+            center_y = (center[yi] - y0)*dy
+            cir = Circle((center_x, center_y), radius, fill=False)
+            plot._axes.add_patch(cir)
+            if self.annotate:
+                plot._axes.text(center_x, center_y, "%s" % halo.id)
 

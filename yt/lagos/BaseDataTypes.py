@@ -516,7 +516,7 @@ class EnzoSliceBase(Enzo2DData):
             self.coord += dx * val
         else:
             raise ValueError(val)
-        self.refreshData()
+        self._refresh_data()
 
     def _generate_coords(self):
         points = []
@@ -930,7 +930,8 @@ class EnzoProjBase(Enzo2DData, ParallelAnalysisInterface):
 
     #@time_execution
     def get_data(self, fields = None):
-        if fields is None: fields = ensure_list(self.fields)
+        if fields is None: fields = self.fields
+        fields = ensure_list(fields)
         coord_data = []
         field_data = []
         dxs = []

@@ -498,7 +498,10 @@ class EnzoHierarchy:
         for field in self.field_list:
             if field in fieldInfo: continue
             mylog.info("Adding %s to list of fields", field)
-            add_field(field, lambda a, b: None)
+            cf = None
+            if self.parameter_file.has_key(field):
+                cf = lambda d: d.convert(field)
+            add_field(field, lambda a, b: None, convert_function=cf)
         self.derived_field_list = []
         for field in fieldInfo:
             try:

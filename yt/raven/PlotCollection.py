@@ -39,7 +39,7 @@ class PlotCollection:
         self._run_id = deliverator_id
         self.pf = pf
         if center == None:
-            v,self.c = pf.h.findMax("Density") # @todo: ensure no caching
+            v,self.c = pf.h.find_max("Density") # @todo: ensure no caching
         else:
             self.c = center
         if deliverator_id > 0:
@@ -53,6 +53,10 @@ class PlotCollection:
             self.submit = False
         mylog.info("Created plot collection with default plot-center = %s",
                     list(self.c))
+
+    def __iter__(self):
+        for p in self.plots:
+            yield p
 
     def save(self, basename, format="png", override=False):
         """
@@ -146,8 +150,15 @@ class PlotCollection:
         self.plots.append(plot)
         return plot
 
-    def add_slice(self, field, axis, coord=None, center=None,
-                 use_colorbar=True, figure = None, axes = None, fig_size=None):
+    def add_slice(self, *args, **kwargs):
+        return self.__add_slice(PlotTypes.SlicePlot, *args, **kwargs)
+
+    def add_slice_interpolated(self, *args, **kwargs):
+        return self.__add_slice(PlotTypes.SlicePlotNaturalNeighbor, *args, **kwargs)
+
+    def __add_slice(self, ptype, field, axis, coord=None, center=None,
+                 use_colorbar=True, figure = None, axes = None, fig_size=None,
+                 periodic = False):
         """
         Generate a slice through *field* along *axis*, optionally at
         [axis]=*coord*, with the *center* attribute given (some 
@@ -161,9 +172,9 @@ class PlotCollection:
         if coord == None:
             coord = center[axis]
         slice = self.pf.hierarchy.slice(axis, coord, field, center)
-        p = self._add_plot(PlotTypes.SlicePlot(slice, field, use_colorbar=use_colorbar,
+        p = self._add_plot(ptype(slice, field, use_colorbar=use_colorbar,
                          axes=axes, figure=figure,
-                         size=fig_size))
+                         size=fig_size, periodic=periodic))
         mylog.info("Added slice of %s at %s = %s with 'center' = %s", field,
                     axis_names[axis], coord, list(center))
         p["Axis"] = lagos.axis_names[axis]
@@ -196,7 +207,8 @@ class PlotCollection:
 
     def add_projection(self, field, axis, weight_field=None,
                       center=None, use_colorbar=True,
-                      figure = None, axes = None, fig_size=None):
+                      figure = None, axes = None, fig_size=None,
+                      periodic = False):
         """
         Generate a projection of *field* along *axis*, optionally giving
         a *weight_field*-weighted average with *use_colorbar*
@@ -209,7 +221,7 @@ class PlotCollection:
         proj = self.pf.hierarchy.proj(axis, field, weight_field, center=center)
         p = self._add_plot(PlotTypes.ProjectionPlot(proj, field,
                          use_colorbar=use_colorbar, axes=axes, figure=figure,
-                         size=fig_size))
+                         size=fig_size, periodic=periodic))
         p["Axis"] = lagos.axis_names[axis]
         return p
 
@@ -335,31 +347,34 @@ class PlotCollection:
 
 def wrap_pylab_newplot(func):
     @wraps(func)
-    def pylabify(*args, **kwargs):
-        import pylab
+    def pylabify(self, *args, **kwargs):
         # Let's assume that axes and figure are not in the positional
         # arguments -- probably safe!
-        new_fig = pylab.figure()
-        kwargs['axes'] = pylab.gca()
-        kwargs['figure'] = pylab.gcf()
-        retval = func(*args, **kwargs)
+        new_fig = self.pylab.figure()
+        try:
+            new_fig.canvas.set_window_title("%s" % (self.pf))
+        except AttributeError:
+            pass
+        kwargs['axes'] = self.pylab.gca()
+        kwargs['figure'] = self.pylab.gcf()
+        retval = func(self, *args, **kwargs)
         retval._redraw_image()
         retval._fig_num = new_fig.number
-        pylab.show()
+        self.pylab.show()
         return retval
     return pylabify
 
 def wrap_pylab_show(func):
     @wraps(func)
-    def pylabify(*args, **kwargs):
-        import pylab
-        retval = func(*args, **kwargs)
-        pylab.show()
+    def pylabify(self, *args, **kwargs):
+        retval = func(self, *args, **kwargs)
+        self.pylab.show()
         return retval
     return pylabify
 
 class PlotCollectionInteractive(PlotCollection):
     add_slice = wrap_pylab_newplot(PlotCollection.add_slice)
+    add_slice_interpolated = wrap_pylab_newplot(PlotCollection.add_slice_interpolated)
     add_cutting_plane = wrap_pylab_newplot(PlotCollection.add_cutting_plane)
     add_projection = wrap_pylab_newplot(PlotCollection.add_projection)
     add_profile_object = wrap_pylab_newplot(PlotCollection.add_profile_object)
@@ -374,9 +389,18 @@ class PlotCollectionInteractive(PlotCollection):
     set_cmap = wrap_pylab_show(PlotCollection.set_cmap)
     switch_field = wrap_pylab_show(PlotCollection.switch_field)
 
-    def clear_plots(self):
+    def __init__(self, *args, **kwargs):
         import pylab
+        self.pylab = pylab
+        PlotCollection.__init__(self, *args, **kwargs)
+
+    def redraw(self):
         for plot in self.plots:
-            pylab.figure(pylab._fig_num)
-            pylab.clf()
+            plot._redraw_image()
+        self.pylab.show()
+
+    def clear_plots(self):
+        for plot in self.plots:
+            self.pylab.figure(pylab._fig_num)
+            self.pylab.clf()
         PlotCollection.clear_data(self)

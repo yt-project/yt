@@ -1,4 +1,5 @@
 #include "slice.h"
+//#define free(A) if(A==NULL)fprintf(stderr,"FREEING DOUBLE\n");fprintf(stderr,"Freeing "#A" ("__FILE__":%d)\n",__LINE__);free(A);
 
 /* ----------------------------------------------------------------------- */
 /* The following structures track all the information about the groups */

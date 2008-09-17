@@ -24,12 +24,16 @@ License:
 
 from yt.raven import *
 import matplotlib.colors as cc
+import matplotlib.cm as mcm
 
 raven_colormaps = {}
 
 def add_cmap(name, cdict):
     raven_colormaps[name] = \
         cc.LinearSegmentedColormap(name,cdict,256)
+    mcm.datad[name] = cdict
+    mcm.__dict__[name] = cdict
+    
 
 # The format is as follows:
 #   First number is the number at which we are defining a color breakpoint

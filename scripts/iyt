@@ -1,0 +1,21 @@
+#!python
+
+from yt.mods import *
+namespace = locals().copy()
+
+doc = """\
+
+Welcome to yt!
+
+"""
+
+try:
+    import IPython.Shell
+except:
+    print 'ipython is not available. using default python interpreter.'
+    import code
+    import sys
+    code.interact(doc, None, namespace)
+    sys.exit()
+
+IPython.Shell.IPShellMatplotlib(user_ns=namespace).mainloop(sys_exit=1,banner=doc)

@@ -108,12 +108,11 @@ class RavenPlot:
         self.im = defaultdict(lambda: "")
         self["ParameterFile"] = "%s" % self.data.pf
         self.axis_names = {}
-        self._ax_max = self.data.pf["DomainRightEdge"]
         if not figure:
             self._figure = matplotlib.figure.Figure(size)
         else:
             self._figure = figure
-        if not figure:
+        if not axes:
             self._axes = self._figure.add_subplot(1,1,1)
         else:
             self._axes = axes
@@ -166,6 +165,8 @@ class RavenPlot:
         """
         Set the z boundaries of this plot.
         """
+        # This next call fixes some things, but is slower...
+        #self._redraw_image()
         self.norm.autoscale(na.array([zmin,zmax]))
         self.image.changed()
         if self.colorbar is not None:
@@ -214,8 +215,9 @@ class RavenPlot:
 
 class VMPlot(RavenPlot):
     _antialias = True
+    _period = (0.0, 0.0)
     def __init__(self, data, field, figure = None, axes = None,
-                 use_colorbar = True, size=None):
+                 use_colorbar = True, size=None, periodic = False):
         fields = ['X', 'Y', field, 'X width', 'Y width']
         if not size:
             size = (10,8)
@@ -223,14 +225,23 @@ class VMPlot(RavenPlot):
         RavenPlot.__init__(self, data, fields, figure, axes, size=size)
         self._figure.subplots_adjust(hspace=0, wspace=0, bottom=0.0,
                                     top=1.0, left=0.0, right=1.0)
-        self.xmin = 0.0
-        self.ymin = 0.0
-        self.xmax = 1.0
-        self.ymax = 1.0
-        self.cmap = None
+        DLE = self.data.pf["DomainLeftEdge"]
+        DRE = self.data.pf["DomainRightEdge"]
+        DD = float(periodic)*(DRE - DLE)
         if self.data.axis < 3:
-            self._x_max = self._ax_max[lagos.x_dict[self.data.axis]]
-            self._y_max = self._ax_max[lagos.y_dict[self.data.axis]]
+            xax = lagos.x_dict[self.data.axis]
+            yax = lagos.y_dict[self.data.axis]
+            self.xmin = DLE[xax] - DD[xax]
+            self.xmax = DRE[xax] + DD[xax]
+            self.ymin = DLE[yax] - DD[yax]
+            self.ymax = DRE[yax] + DD[yax]
+            self._period = (DD[xax], DD[yax])
+        else:
+            # Not quite sure how to deal with this, particularly
+            # in the Orion case.  Cutting planes are tricky.
+            self.xmin = self.ymin = 0.0
+            self.xmax = self.ymax = 1.0
+        self.cmap = None
         self.__setup_from_field(field)
         self.__init_temp_image(use_colorbar)
 
@@ -287,23 +298,23 @@ class VMPlot(RavenPlot):
                             self.data['pdy'],
                             self[self.axis_names["Z"]],
                             int(width), int(width),
-                            (x0, x1, y0, y1),aa).transpose()
+                            (x0, x1, y0, y1),aa,self._period).transpose()
         return buff
 
     def _redraw_image(self, *args):
         self._axes.clear() # To help out the colorbar
         buff = self._get_buff()
         mylog.debug("Received buffer of min %s and max %s (%s %s)",
-                    buff.min(), buff.max(),
+                    na.nanmin(buff), na.nanmax(buff),
                     self[self.axis_names["Z"]].min(),
                     self[self.axis_names["Z"]].max())
         if self.log_field:
             bI = na.where(buff > 0)
-            newmin = buff[bI].min()
-            newmax = buff[bI].max()
+            newmin = na.nanmin(buff[bI])
+            newmax = na.nanmax(buff[bI])
         else:
-            newmin = buff.min()
-            newmax = buff.max()
+            newmin = na.nanmin(buff)
+            newmax = na.nanmax(buff)
         if self.do_autoscale:
             self.norm.autoscale(na.array((newmin,newmax)))
         self.image = \
@@ -322,6 +333,7 @@ class VMPlot(RavenPlot):
         if self.colorbar != None:
             self.image.set_norm(self.norm)
             self.colorbar.set_norm(self.norm)
+            if self.cmap: self.colorbar.set_cmap(self.cmap)
             if self.do_autoscale: _notify(self.image, self.colorbar)
         self.autoset_label()
 
@@ -360,13 +372,13 @@ class VMPlot(RavenPlot):
         r_edge_x = self.data.center[lagos.x_dict[self.data.axis]] + width_x/2.0
         l_edge_y = self.data.center[lagos.y_dict[self.data.axis]] - width_y/2.0
         r_edge_y = self.data.center[lagos.y_dict[self.data.axis]] + width_y/2.0
-        self.set_xlim(max(l_edge_x,0.0), min(r_edge_x,self._x_max))
-        self.set_ylim(max(l_edge_y,0.0), min(r_edge_y,self._y_max))
+        self.set_xlim(max(l_edge_x,self.xmin), min(r_edge_x,self.xmax))
+        self.set_ylim(max(l_edge_y,self.ymin), min(r_edge_y,self.ymax))
         self._redraw_image()
 
     def autoscale(self):
-        zmin = self._axes.images[-1]._A.min()
-        zmax = self._axes.images[-1]._A.max()
+        zmin = na.nanmin(self._axes.images[-1]._A)
+        zmax = na.nanmax(self._axes.images[-1]._A)
         self.set_zlim(zmin, zmax)
 
     def switch_y(self, *args, **kwargs):
@@ -384,6 +396,8 @@ class VMPlot(RavenPlot):
     def selfSetup(self):
         pass
 
+    
+
 class SlicePlot(VMPlot):
     _type_name = "Slice"
 
@@ -397,6 +411,36 @@ class SlicePlot(VMPlot):
             data_label += r"\/\/ (%s)" % (lagos.fieldInfo[field_name].get_units())
         data_label += r"$"
         if self.colorbar != None: self.colorbar.set_label(str(data_label))
+
+class SlicePlotNaturalNeighbor(SlicePlot):
+    
+    def _get_buff(self, width=None):
+        import delaunay as de
+        x0, x1 = self.xlim
+        y0, y1 = self.ylim
+        if width is None:
+            l, b, width, height = _get_bounds(self._axes.bbox)
+        else:
+            height = width
+        self.pix = (width,height)
+        numPoints_x = int(width)
+        numPoints_y = int(width)
+        dx = numPoints_x / (x1-x0)
+        dy = numPoints_y / (y1-y0)
+        xlim = na.logical_and(self.data["px"]+2.0*self.data['pdx'] >= x0,
+                              self.data["px"]-2.0*self.data['pdx'] <= x1)
+        ylim = na.logical_and(self.data["py"]+2.0*self.data['pdy'] >= y0,
+                              self.data["py"]-2.0*self.data['pdy'] <= y1)
+        wI = na.where(na.logical_and(xlim,ylim))
+        xi, yi = na.mgrid[0:numPoints_x, 0:numPoints_y]
+        x = (self.data["px"][wI]-x0)*dx
+        y = (self.data["py"][wI]-y0)*dy
+        z = self.data[self.axis_names["Z"]][wI]
+        if self.log_field: z=na.log10(z)
+        buff = de.Triangulation(x,y).nn_interpolator(z)(xi,yi)
+        buff = buff.clip(z.min(), z.max())
+        if self.log_field: buff = 10**buff
+        return buff.transpose()
 
 class ProjectionPlot(VMPlot):
 
