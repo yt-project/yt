@@ -706,7 +706,7 @@ class EnzoCuttingPlaneBase(Enzo2DData):
         if use_child_mask: k = (k & grid.child_mask)
         return na.where(k)
 
-class EnzoProjBase(Enzo2DData):
+class EnzoProjBase(Enzo2DData, ParallelAnalysisInterface):
     _key_fields = ['px','py','pdx','pdy']
     def __init__(self, axis, field, weight_field = None,
                  max_level = None, center = None, pf = None,
@@ -718,22 +718,15 @@ class EnzoProjBase(Enzo2DData):
         of that weight.
         """
         Enzo2DData.__init__(self, axis, field, pf, **kwargs)
-        if not source:
-            self._check_region = False
-            source = EnzoGridCollection(center, self.hierarchy.grids)
-            self._okay_to_serialize = True
-        else:
-            self._okay_to_serialize = False
-            self._check_region = True
-        self.source = source
+        self.center = center
+        self._initialize_source()
         self._grids = self.source._grids
         if max_level == None:
             max_level = self.hierarchy.maxLevel
-        if source is not None:
-            max_level = min(max_level, source.gridLevels.max())
+        if self.source is not None:
+            max_level = min(max_level, self.source.gridLevels.max())
         self._max_level = max_level
         self._weight = weight_field
-        self.center = center
         self.func = na.sum # for the future
         self.__retval_coords = {}
         self.__retval_fields = {}
@@ -746,6 +739,16 @@ class EnzoProjBase(Enzo2DData):
                 self.__cache_data()
             self._refresh_data()
             if self._okay_to_serialize: self._serialize()
+
+    def _initialize_source(self, source = None):
+        if source is None:
+            check, source = self._partition_hierarchy_2d(self.axis)
+            self._check_region = check
+            self._okay_to_serialize = (not check)
+        else:
+            self._okay_to_serialize = False
+            self._check_region = True
+        self.source = source
 
     #@time_execution
     def __cache_data(self):
@@ -783,6 +786,7 @@ class EnzoProjBase(Enzo2DData):
         mylog.info("Finished calculating overlap.")
 
     def _serialize(self):
+        if not self._should_i_write(): return
         mylog.info("Serializing data...")
         node_name = "%s_%s_%s" % (self.fields[0], self._weight, self.axis)
         mylog.info("nodeName: %s", node_name)
@@ -830,6 +834,7 @@ class EnzoProjBase(Enzo2DData):
             for fi in range(len(fields)): g_fields[fi] *= dls[fi]
             if self._weight is not None: g_coords[3] *= dls[-1]
             pbar.update(pi)
+            grid.clear_data()
         pbar.finish()
         self.__combine_grids_on_level(level) # In-place
         if level > 0 and level <= self._max_level:
@@ -930,6 +935,11 @@ class EnzoProjBase(Enzo2DData):
         coord_data = []
         field_data = []
         dxs = []
+        # We do this here, but I am not convinced it should be done here
+        # It is probably faster, as it consolidates IO, but if we did it in
+        # _project_level, then it would be more memory conservative
+        self._preload(self.source._grids, self._get_dependencies(fields),
+                      self.hierarchy.queue)
         for level in range(0, self._max_level+1):
             my_coords, my_dx, my_fields = self.__project_level(level, fields)
             coord_data.append(my_coords)
@@ -948,14 +958,20 @@ class EnzoProjBase(Enzo2DData):
         field_data = na.concatenate(field_data, axis=1)
         dxs = na.concatenate(dxs, axis=1)
         # We now convert to half-widths and center-points
-        self.data['pdx'] = dxs
-        self.data['px'] = (coord_data[0,:]+0.5) * self['pdx']
-        self.data['py'] = (coord_data[1,:]+0.5) * self['pdx']
-        self.data['pdx'] *= 0.5
-        self.data['pdy'] = self.data['pdx'].copy()
+        data = {}
+        data['pdx'] = dxs
+        data['px'] = (coord_data[0,:]+0.5) * data['pdx']
+        data['py'] = (coord_data[1,:]+0.5) * data['pdx']
+        data['pdx'] *= 0.5
+        data['pdy'] = data['pdx'].copy()
+        data['fields'] = field_data
+        data['weight_field'] = coord_data[3,:]
+        # Now we run the finalizer, which is ignored if we don't need it
+        data = self._mpi_catdict(data)
+        field_data = data.pop('fields')
         for fi, field in enumerate(fields):
             self[field] = field_data[fi,:]
-        self.data['weight_field'] = coord_data[3,:]
+        for i in data.keys(): self[i] = data.pop(i)
 
     def add_fields(self, fields, weight = "CellMassMsun"):
         pass

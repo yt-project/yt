@@ -48,22 +48,33 @@ def preserve_source_parameters(func):
 
 # Note we do not inherit from EnzoData.
 # We could, but I think we instead want to deal with the root datasource.
-class BinnedProfile:
+class BinnedProfile(ParallelAnalysisInterface):
     def __init__(self, data_source, lazy_reader):
         self._data_source = data_source
         self._data = {}
+        self._pdata = {}
         self._lazy_reader = lazy_reader
 
+    def _get_dependencies(self, fields):
+        return ParallelAnalysisInterface._get_dependencies(
+                    self, fields + self._get_bin_fields())
+
+    def _initialize_parallel(self, fields):
+        self._preload(self._get_grid_objs(), self._get_dependencies(fields),
+                      self._data_source.hierarchy.queue)
+
     def _lazy_add_fields(self, fields, weight, accumulation):
-        data = {}         # final results will go here
-        weight_data = {}  # we need to track the weights as we go
+        self._ngrids = 0
+        self.__data = {}         # final results will go here
+        self.__weight_data = {}  # we need to track the weights as we go
         for field in fields:
-            data[field] = self._get_empty_field()
-            weight_data[field] = self._get_empty_field()
-        used = self._get_empty_field().astype('bool')
-        pbar = get_pbar('Binning grids', len(self._data_source._grids))
-        for gi,grid in enumerate(self._data_source._grids):
-            pbar.update(gi)
+            self.__data[field] = self._get_empty_field()
+            self.__weight_data[field] = self._get_empty_field()
+        self.__used = self._get_empty_field().astype('bool')
+        #pbar = get_pbar('Binning grids', len(self._data_source._grids))
+        for gi,grid in enumerate(self._get_grids(fields)):
+            self._ngrids += 1
+            #pbar.update(gi)
             args = self._get_bins(grid, check_cut=True)
             if not args: # No bins returned for this grid, so forget it!
                 continue
@@ -71,17 +82,26 @@ class BinnedProfile:
                 # We get back field values, weight values, used bins
                 f, w, u = self._bin_field(grid, field, weight, accumulation,
                                           args=args, check_cut=True)
-                data[field] += f        # running total
-                weight_data[field] += w # running total
-                used = (used | u)       # running 'or'
+                self.__data[field] += f        # running total
+                self.__weight_data[field] += w # running total
+                self.__used = (self.__used | u)       # running 'or'
             grid.clear_data()
-        pbar.finish()
-        ub = na.where(used)
+        # When the loop completes the parallel finalizer gets called
+        #pbar.finish()
+        ub = na.where(self.__used)
         for field in fields:
             if weight: # Now, at the end, we divide out.
-                data[field][ub] /= weight_data[field][ub]
-            self[field] = data[field]
-        self["UsedBins"] = used
+                self.__data[field][ub] /= self.__weight_data[field][ub]
+            self[field] = self.__data[field]
+        self["UsedBins"] = self.__used
+        del self.__data, self.__weight_data, self.__used
+
+    def _finalize_parallel(self):
+        for key in self.__data:
+            self.__data[key] = self._mpi_allsum(self.__data[key])
+        for key in self.__weight_data:
+            self.__weight_data[key] = self._mpi_allsum(self.__weight_data[key])
+        self.__used = self._mpi_allsum(self.__used)
 
     def _unlazy_add_fields(self, fields, weight, accumulation):
         for field in fields:
@@ -226,6 +246,9 @@ class BinnedProfile1D(BinnedProfile):
             fid.write("\n")
         fid.close()
 
+    def _get_bin_fields(self):
+        return [self.bin_field]
+
 class BinnedProfile2D(BinnedProfile):
     def __init__(self, data_source,
                  x_n_bins, x_bin_field, x_lower_bound, x_upper_bound, x_log,
@@ -338,6 +361,9 @@ class BinnedProfile2D(BinnedProfile):
             fid.write("\n")
         fid.close()
 
+    def _get_bin_fields(self):
+        return [self.x_bin_field, self.y_bin_field]
+
 class BinnedProfile3D(BinnedProfile):
     def __init__(self, data_source,
                  x_n_bins, x_bin_field, x_lower_bound, x_upper_bound, x_log,
@@ -438,6 +464,9 @@ class BinnedProfile3D(BinnedProfile):
 
     def write_out(self, filename, format="%0.16e"):
         pass # Will eventually dump HDF5
+
+    def _get_bin_fields(self):
+        return [self.x_bin_field, self.y_bin_field, self.z_bin_field]
 
     def store_profile(self, name, force=False):
         """

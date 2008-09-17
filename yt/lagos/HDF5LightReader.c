@@ -120,7 +120,7 @@ Py_ReadHDF5DataSet(PyObject *obj, PyObject *args)
 
     if (file_id < 0) {
         PyErr_Format(_hdf5ReadError,
-                 "ReadHDF5DataSet: Unable to open %s", nodename);
+                 "ReadHDF5DataSet: Unable to open %s", filename);
         goto _fail;
     }
 
@@ -456,11 +456,182 @@ herr_t iterate_dataset(hid_t loc_id, const char *name, void *nodelist)
     return 0;
 };
 
+PyArrayObject* get_array_from_nodename(char *nodename, hid_t rootnode);
+
+static PyObject *
+Py_ReadMultipleGrids(PyObject *obj, PyObject *args)
+{
+    // Process:
+    //      - Create dict to hold data
+    //      - Open each top-level node in order
+    //      - For each top-level node create a dictionary
+    //      - Insert new dict in top-level dict
+    //      - Read each dataset, insert into dict
+
+    // Format arguments
+
+    char *filename = NULL;
+    char *format_string = NULL;
+    PyObject *grid_ids = NULL;
+    PyObject *set_names = NULL;
+    Py_ssize_t num_sets = 0;
+    Py_ssize_t num_grids = 0;
+
+    if (!PyArg_ParseTuple(args, "sOO",
+            &filename, &grid_ids, &set_names))
+        return PyErr_Format(_hdf5ReadError,
+               "ReadMultipleGrids: Invalid parameters.");
+
+    num_grids = PyList_Size(grid_ids);
+    num_sets = PyList_Size(set_names);
+    PyObject *grids_dict = PyDict_New(); // New reference
+    PyObject *grid_key = NULL;
+    PyObject *grid_data = NULL;
+    PyObject *oset_name = NULL;
+    PyArrayObject *cur_data = NULL;
+    char *set_name;
+    hid_t file_id, grid_node;
+    file_id = grid_node = 0;
+    int i, n;
+    long id;
+    char grid_node_name[13]; // Grid + 8 + \0
+
+    file_id = H5Fopen (filename, H5F_ACC_RDONLY, H5P_DEFAULT); 
+
+    if (file_id < 0) {
+        PyErr_Format(_hdf5ReadError,
+                 "ReadMultipleGrids: Unable to open %s", filename);
+        goto _fail;
+    }
+
+    for(i = 0; i < num_grids; i++) {
+        grid_key = PyList_GetItem(grid_ids, i);
+        id = PyInt_AsLong(grid_key);
+        sprintf(grid_node_name, "Grid%08li", id);
+        grid_data = PyDict_New(); // New reference
+        PyDict_SetItem(grids_dict, grid_key, grid_data);
+        grid_node = H5Gopen(file_id, grid_node_name);
+        if (grid_node < 0) {
+              PyErr_Format(_hdf5ReadError,
+                  "ReadHDF5DataSet: Error opening (%s, %s)",
+                  filename, grid_node_name);
+              goto _fail;
+        }
+        for(n = 0; n < num_sets; n++) {
+            // This points to the in-place internal char*
+            oset_name = PyList_GetItem(set_names, n);
+            set_name = PyString_AsString(oset_name);
+            cur_data = get_array_from_nodename(set_name, grid_node);
+            if (cur_data == NULL) {
+              PyErr_Format(_hdf5ReadError,
+                  "ReadHDF5DataSet: Error reading (%s, %s, %s)",
+                  filename, grid_node_name, set_name);
+              goto _fail;
+            }
+            PyDict_SetItem(grid_data, oset_name, (PyObject *) cur_data);
+            Py_DECREF(cur_data); // still one left
+        }
+        // We just want the one reference from the grids_dict value set
+        Py_DECREF(grid_data); 
+        H5Gclose(grid_node);
+    }
+
+    H5Fclose(file_id);
+    PyObject *return_value = Py_BuildValue("N", grids_dict);
+    return return_value;
+
+    _fail:
+
+      if(!(file_id <= 0)&&(H5Iget_ref(file_id))) H5Fclose(file_id);
+      if(!(grid_node <= 0)&&(H5Iget_ref(grid_node))) H5Gclose(grid_node);
+      Py_XDECREF(grid_data);
+      PyDict_Clear(grids_dict); // Should catch the sub-dictionaries
+      return NULL;
+
+}
+
+PyArrayObject* get_array_from_nodename(char *nodename, hid_t rootnode)
+{
+    
+    H5E_auto_t err_func;
+    void *err_datastream;
+    herr_t my_error;
+    hsize_t *my_dims = NULL;
+    hsize_t *my_max_dims = NULL;
+    npy_intp *dims = NULL;
+    int my_typenum, my_rank, i;
+    size_t type_size;
+    PyArrayObject *my_array = NULL;
+    hid_t datatype_id, native_type_id, dataset, dataspace;
+    datatype_id = native_type_id = dataset = dataspace = 0;
+
+    H5Eget_auto(&err_func, &err_datastream);
+    H5Eset_auto(NULL, NULL);
+    dataset = H5Dopen(rootnode, nodename);
+    H5Eset_auto(err_func, err_datastream);
+
+    if(dataset < 0) goto _fail;
+
+    dataspace = H5Dget_space(dataset);
+    if(dataspace < 0) goto _fail;
+
+    my_rank = H5Sget_simple_extent_ndims( dataspace );
+    if(my_rank < 0) goto _fail;
+
+    my_dims = malloc(sizeof(hsize_t) * my_rank);
+    my_max_dims = malloc(sizeof(hsize_t) * my_rank);
+    my_error = H5Sget_simple_extent_dims( dataspace, my_dims, my_max_dims );
+    if(my_error < 0) goto _fail;
+
+    dims = malloc(my_rank * sizeof(npy_intp));
+    for (i = 0; i < my_rank; i++) dims[i] = (npy_intp) my_dims[i];
+
+    datatype_id = H5Dget_type(dataset);
+    native_type_id = H5Tget_native_type(datatype_id, H5T_DIR_ASCEND);
+    type_size = H5Tget_size(native_type_id);
+
+    /* Behavior here is intentionally undefined for non-native types */
+
+    int my_desc_type = get_my_desc_type(native_type_id);
+    if (my_desc_type == -1) {
+          PyErr_Format(_hdf5ReadError,
+                       "ReadHDF5DataSet: Unrecognized datatype.  Use a more advanced reader.");
+          goto _fail;
+    }
+
+    // Increments the refcount
+    my_array = (PyArrayObject *) PyArray_SimpleNewFromDescr(my_rank, dims,
+                PyArray_DescrFromType(my_desc_type));
+    if (!my_array) goto _fail;
+
+    H5Dread(dataset, native_type_id, H5S_ALL, H5S_ALL, H5P_DEFAULT, my_array->data);
+    H5Sclose(dataspace);
+    H5Dclose(dataset);
+    H5Tclose(native_type_id);
+    H5Tclose(datatype_id);
+    free(my_dims);
+    free(my_max_dims);
+    free(dims);
+
+    PyArray_UpdateFlags(my_array, NPY_OWNDATA | my_array->flags);
+    return my_array;
+
+    _fail:
+      if(!(dataset <= 0)&&(H5Iget_ref(dataset))) H5Dclose(dataset);
+      if(!(dataspace <= 0)&&(H5Iget_ref(dataspace))) H5Sclose(dataspace);
+      if(!(native_type_id <= 0)&&(H5Iget_ref(native_type_id))) H5Tclose(native_type_id);
+      if(!(datatype_id <= 0)&&(H5Iget_ref(datatype_id))) H5Tclose(datatype_id);
+      if(my_dims != NULL) free(my_dims);
+      if(my_max_dims != NULL) free(my_max_dims);
+      if(dims != NULL) free(dims);
+      return NULL;
+}
 
 static PyMethodDef _hdf5LightReaderMethods[] = {
     {"ReadData", Py_ReadHDF5DataSet, METH_VARARGS},
     {"ReadDataSlice", Py_ReadHDF5DataSetSlice, METH_VARARGS},
     {"ReadListOfDatasets", Py_ReadListOfDatasets, METH_VARARGS},
+    {"ReadMultipleGrids", Py_ReadMultipleGrids, METH_VARARGS},
     {NULL, NULL} 
 };
 

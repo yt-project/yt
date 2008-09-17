@@ -63,8 +63,10 @@ if ytcfg.getboolean("lagos","useswig"):
         pass
 
 if ytcfg.getboolean("lagos","usefortran"):
-    pass
-    #import EnzoFortranRoutines
+    try:
+        import EnzoFortranRoutines
+    except ImportError:
+        mylog.warning("Told to import fortan, but unable!")
 
 # Now we import all the subfiles
 
@@ -74,6 +76,7 @@ import HDF5LightReader
 from EnzoDefs import *
 from DerivedFields import *
 from DerivedQuantities import DerivedQuantityCollection, GridChildMaskWrapper
+from ParallelTools import *
 from DataReadingFuncs import *
 from ClusterFiles import *
 from ContourFinder import *

@@ -142,14 +142,17 @@ class EnzoHierarchy:
             a = SD.SD(testGrid)
             self.data_style = 4
             mylog.debug("Detected HDF4")
+            self.queue = DataQueueHDF4()
         except:
             list_of_sets = HDF5LightReader.ReadListOfDatasets(testGrid, "/")
             if len(list_of_sets) == 0:
                 mylog.debug("Detected packed HDF5")
                 self.data_style = 6
+                self.queue = DataQueuePackedHDF5()
             else:
                 mylog.debug("Detected unpacked HDF5")
                 self.data_style = 5
+                self.queue = DataQueueHDF5()
 
     def __setup_filemap(self, grid):
         if not self.data_style == 6:
@@ -178,6 +181,7 @@ class EnzoHierarchy:
         self.cutting = classobj("EnzoCuttingPlane",(EnzoCuttingPlaneBase,), dd)
         self.ray = classobj("EnzoOrthoRay",(EnzoOrthoRayBase,), dd)
         self.disk = classobj("EnzoCylinder",(EnzoCylinderBase,), dd)
+        self.grid_collection = classobj("EnzoGridCollection",(EnzoGridCollection,), dd)
 
     def __initialize_data_file(self):
         if not ytcfg.getboolean('lagos','serialize'): return
@@ -491,6 +495,7 @@ class EnzoHierarchy:
                 gf = grid.getFields()
                 mylog.debug("Grid %s has: %s", grid.id, gf)
                 field_list = field_list.union(sets.Set(gf))
+            self.save_data(list(field_list),"/","DataFields")
         self.field_list = list(field_list)
         for field in self.field_list:
             if field in fieldInfo: continue

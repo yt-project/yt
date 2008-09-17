@@ -55,51 +55,70 @@ reasonLogger = logging.getLogger("yt.reason")
 mb = 10*1024*1024
 bc = 10
 
+loggers = []
+file_handlers = []
+
 if ytcfg.getboolean("yt","logfile") and os.access(".", os.W_OK):
     if ytcfg.getboolean("yt","unifiedlogfile"):
         log_file_name = ytcfg.get("yt","LogFileName")
-        ytHandler = handlers.RotatingFileHandler(log_file_name,
+        ytFileHandler = handlers.RotatingFileHandler(log_file_name,
                                                  maxBytes=mb, backupCount=bc)
         k = logging.Formatter(fstring)
-        ytHandler.setFormatter(k)
-        ytLogger.addHandler(ytHandler)
+        ytFileHandler.setFormatter(k)
+        ytLogger.addHandler(ytFileHandler)
+        loggers.append(ytLogger)
+        file_handlers.append(ytFileHandler)
     else:
         # If we *don't* want a unified file handler (which is the default now!)
-        fidoHandler = handlers.RotatingFileHandler("fido.log",
+        fidoFileHandler = handlers.RotatingFileHandler("fido.log",
                                                    maxBytes=mb, backupCount=bc)
-        fidoHandler.setFormatter(f)
-        fidoLogger.addHandler(fidoHandler)
+        fidoFileHandler.setFormatter(f)
+        fidoLogger.addHandler(fidoFileHandler)
 
-        ravenHandler = handlers.RotatingFileHandler("raven.log",
+        ravenFileHandler = handlers.RotatingFileHandler("raven.log",
                                                     maxBytes=mb, backupCount=bc)
-        ravenHandler.setFormatter(f)
-        ravenLogger.addHandler(ravenHandler)
+        ravenFileHandler.setFormatter(f)
+        ravenLogger.addHandler(ravenFileHandler)
+        loggers.append(ravenLogger)
+        file_handlers.append(ravenFileHandler)
 
-        lagosHandler = handlers.RotatingFileHandler("lagos.log",
+        lagosFileHandler = handlers.RotatingFileHandler("lagos.log",
                                                     maxBytes=mb, backupCount=bc)
-        lagosHandler.setFormatter(f)
-        lagosLogger.addHandler(lagosHandler)
+        lagosFileHandler.setFormatter(f)
+        lagosLogger.addHandler(lagosFileHandler)
+        loggers.append(lagosLogger)
+        file_handlers.append(lagosFileHandler)
 
-        enkiHandler = handlers.RotatingFileHandler("enki.log",
+        enkiFileHandler = handlers.RotatingFileHandler("enki.log",
                                                    maxBytes=mb, backupCount=bc)
-        enkiHandler.setFormatter(f)
-        enkiLogger.addHandler(enkiHandler)
+        enkiFileHandler.setFormatter(f)
+        enkiLogger.addHandler(enkiFileHandler)
+        loggers.append(enkiLogger)
+        file_handlers.append(enkiFileHandler)
 
-        deliveratorHandler = handlers.RotatingFileHandler("deliverator.log",
+        deliveratorFileHandler = handlers.RotatingFileHandler("deliverator.log",
                                                 maxBytes=mb, backupCount=bc)
-        deliveratorHandler.setFormatter(f)
-        deliveratorLogger.addHandler(deliveratorHandler)
+        deliveratorFileHandler.setFormatter(f)
+        deliveratorLogger.addHandler(deliveratorFileHandler)
+        loggers.append(deliveratorLogger)
+        file_handlers.append(deliveratorFileHandler)
 
-        reasonHandler = handlers.RotatingFileHandler("reason.log",
+        reasonFileHandler = handlers.RotatingFileHandler("reason.log",
                                                     maxBytes=mb, backupCount=bc)
-        reasonHandler.setFormatter(f)
-        reasonLogger.addHandler(reasonHandler)
+        reasonFileHandler.setFormatter(f)
+        reasonLogger.addHandler(reasonFileHandler)
+        loggers.append(reasonLogger)
+        file_handlers.append(reasonFileHandler)
 
 def disable_stream_logging():
     # We just remove the root logger's handlers
     for handler in rootLogger.handlers:
         if isinstance(handler, logging.StreamHandler):
             rootLogger.removeHandler(handler)
+
+def disable_file_logging():
+    for logger, handler in zip(loggers, file_handlers):
+        logger.removeHandler(handler)
 
 if ytcfg.getboolean("yt","suppressStreamLogging"):
     disable_stream_logging()

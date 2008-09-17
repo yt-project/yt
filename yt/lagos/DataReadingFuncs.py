@@ -142,3 +142,64 @@ def getExceptionHDF4():
 
 def getExceptionHDF5():
     return (exceptions.KeyError, HDF5LightReader.ReadingError)
+
+class BaseDataQueue(object):
+
+    def __init__(self):
+        self.queue = defaultdict(lambda: {})
+
+    # We need a function for reading a list of sets
+    # and a function for *popping* from a queue all the appropriate sets
+
+    def preload(self, grids, sets):
+        pass
+
+    def pop(self, grid, field):
+        if grid.id in self.queue and field in self.queue[grid.id]:
+            return self.modify(self.queue[grid.id].pop(field))
+        else:
+            # We only read the one set and do not store it if it isn't pre-loaded
+            return self._read_set(grid, field)
+
+    def peek(self, grid, field):
+        return self.queue[grid.id].get(field, None)
+
+    def push(self, grid, field, data):
+        if grid.id in self.queue and field in self.queue[grid.id]:
+            raise ValueError
+        self.queue[grid][field] = data
+
+class DataQueueHDF4(BaseDataQueue):
+    def _read_set(self, grid, field):
+        return readDataHDF4(grid, field)
+
+    def modify(self, field):
+        return field.swapaxes(0,2)
+
+class DataQueueHDF5(BaseDataQueue):
+    def _read_set(self, grid, field):
+        return readDataHDF5(grid, field)
+
+    def modify(self, field):
+        return field.swapaxes(0,2)
+
+class DataQueuePackedHDF5(BaseDataQueue):
+    def _read_set(self, grid, field):
+        return readDataPacked(grid, field)
+
+    def modify(self, field):
+        return field.swapaxes(0,2)
+
+    def preload(self, grids, sets):
+        # We need to deal with files first
+        files_keys = defaultdict(lambda: [])
+        sets = list(sets)
+        for g in grids: files_keys[g.filename].append(g)
+        for file in files_keys:
+            mylog.debug("Starting read %s", file)
+            nodes = [g.id for g in files_keys[file]]
+            nodes.sort()
+            data = HDF5LightReader.ReadMultipleGrids(file, nodes, sets)
+            mylog.debug("Read %s items from %s", len(data), os.path.basename(file))
+            for gid in data: self.queue[gid].update(data[gid])
+        mylog.debug("Finished read of %s", sets)
