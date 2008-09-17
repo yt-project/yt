@@ -23,8 +23,6 @@ cd $MY_DIR/src
 [ ! -e wxPython-src-2.8.7.1.tar.bz2 ] && wget http://downloads.sourceforge.net/wxpython/wxPython-src-2.8.7.1.tar.bz2
 [ ! -e yt ] && svn co http://svn.enzotools.org/yt/trunk/ ./yt-trunk-svn
 
-
-
 if [ ! -e hdf5-1.6.7/done ]
 then
     [ ! -e hdf5-1.6.7 ] && tar xvfz hdf5-1.6.7.tar.gz
@@ -110,7 +108,6 @@ echo $MY_DIR > hdf5.cfg
 $MY_DIR/bin/python2.5 setup.py install || exit 1
 touch done
 cd ..
-
 
 echo "yt is now installed in $MY_DIR ."
 echo "To run from this new installation, the a few variables need to be"
