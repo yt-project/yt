@@ -15,13 +15,12 @@
 # And, feel free to drop me a line: matthewturk@gmail.com
 #
 
-DEST_DIR="$HOME/local/"
-DEST_DIR="/data/mturk/v2/yt-`uname -p`"
+#DEST_DIR="$HOME/local/"
 
 # Here's where you put the HDF5 path if you like
 #HDF5_DIR=
 # If you don't want to install wxPython, turn this to zero
-INST_WXPYTHON=0
+INST_WXPYTHON=1
 INST_IPYTHON=1
 # If you've got YT some other place, set this to point to it.
 #YT_DIR=
@@ -40,6 +39,8 @@ then
 fi
 
 echo "Installing into ${DEST_DIR}"
+echo "INST_WXPYTHON=${INST_WXPYTHON}"
+echo "INST_IPYTHON=${INST_IPYTHON}"
 
 mkdir -p ${DEST_DIR}/src
 cd ${DEST_DIR}/src
@@ -183,3 +184,11 @@ echo
 echo "You can get a fully-loaded yt prompt by running:"
 echo "$DEST_DIR/bin/yt"
 echo
+if [ $INST_IPYTHON -eq 1 ]
+then
+    echo "For interactive data analysis and visualization, we now recommend running"
+    echo "the IPython interface, which will become more fully featured with time!"
+    echo
+    echo "$DEST_DIR/bin/iyt"
+    echo
+fi
