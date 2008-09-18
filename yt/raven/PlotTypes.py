@@ -115,7 +115,7 @@ class RavenPlot:
             self._figure = matplotlib.figure.Figure(size)
         else:
             self._figure = figure
-        if not figure:
+        if not axes:
             self._axes = self._figure.add_subplot(1,1,1)
         else:
             self._axes = axes
