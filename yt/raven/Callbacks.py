@@ -82,7 +82,7 @@ class QuiverCallback(PlotCallback):
         plot._axes.hold(False)
 
 class ParticleCallback(PlotCallback):
-    def __init__(self, axis, width, p_size=1.0, col='k'):
+    def __init__(self, axis, width, p_size=1.0, col='k', stride=1.0):
         """
         Adds particle positions, based on a thick slab along *axis* with a
         *width* along the line of sight.  *p_size* controls the number of
@@ -93,31 +93,53 @@ class ParticleCallback(PlotCallback):
         self.width = width
         self.p_size = p_size
         self.color = col
+        if check_color(col):
+            self.color_field = False
+        else:
+            self.color_field = True
         self.field_x = "particle_position_%s" % lagos.axis_names[lagos.x_dict[axis]]
         self.field_y = "particle_position_%s" % lagos.axis_names[lagos.y_dict[axis]]
         self.field_z = "particle_position_%s" % lagos.axis_names[axis]
+        self.stride = stride
+        self.particles_x = self.particles_y = self.particles_z = None
+
+    def _setup_particles(self, data):
+        if self.particles_x is not None: return
+        grids = data._grids
+        particles_x = []; particles_y = []; particles_z = [];
+        for g in grids:
+            particles_x.append(g[self.field_x][::self.stride])
+            particles_y.append(g[self.field_y][::self.stride])
+            particles_z.append(g[self.field_z][::self.stride])
+        self.particles_x = na.concatenate(particles_x); del particles_x
+        self.particles_y = na.concatenate(particles_y); del particles_y
+        self.particles_z = na.concatenate(particles_z); del particles_z
+        if not self.color_field: return
+        particles_c = []
+        for g in grids:
+            particles_c.append(g[self.color][::self.stride])
+        self.particles_c = na.log10(na.concatenate(particles_c)); del particles_c
 
     def __call__(self, plot):
         z0 = plot.data.center[self.axis] - self.width/2.0
         z1 = plot.data.center[self.axis] + self.width/2.0
-        grids = plot.data._grids
-        particles_x = na.concatenate([g[self.field_x] for g in grids]).ravel()
-        particles_y = na.concatenate([g[self.field_y] for g in grids]).ravel()
-        particles_z = na.concatenate([g[self.field_z] for g in grids]).ravel()
-        if len(particles_x) == 0: return
+        self._setup_particles(plot.data)
+        if len(self.particles_x) == 0: return
         x0, x1 = plot.xlim
         y0, y1 = plot.ylim
         xx0, xx1 = plot._axes.get_xlim()
         yy0, yy1 = plot._axes.get_ylim()
         # Now we rescale because our axes limits != data limits
-        goodI = na.where( (particles_x < x1) & (particles_x > x0)
-                        & (particles_y < y1) & (particles_y > y0)
-                        & (particles_z < z1) & (particles_z > z0))
-        particles_x = (particles_x[goodI] - x0) * (xx1-xx0)/(x1-x0)
-        particles_y = (particles_y[goodI] - y0) * (yy1-yy0)/(y1-y0)
+        goodI = na.where( (self.particles_x < x1) & (self.particles_x > x0)
+                        & (self.particles_y < y1) & (self.particles_y > y0)
+                        & (self.particles_z < z1) & (self.particles_z > z0))
+        particles_x = (self.particles_x[goodI] - x0) * (xx1-xx0)/(x1-x0)
+        particles_y = (self.particles_y[goodI] - y0) * (yy1-yy0)/(y1-y0)
+        if not self.color_field: particles_c = self.color
+        else: particles_c = self.particles_c[goodI]
         plot._axes.hold(True)
         plot._axes.scatter(particles_x, particles_y, edgecolors='None',
-                          s=self.p_size, c=self.color)
+                           s=self.p_size, c=particles_c)
         plot._axes.set_xlim(xx0,xx1)
         plot._axes.set_ylim(yy0,yy1)
         plot._axes.hold(False)
@@ -369,6 +391,46 @@ class ClumpContourCallback(PlotCallback):
         self.rv = plot._axes.contour(buff, len(self.clumps)+1,
                                      **self.plot_args)
         plot._axes.hold(False)
+
+class PointAnnotateCallback(PlotCallback):
+    def __init__(self, pos, text, text_args = None):
+        self.pos = pos
+        self.text = text
+        self.text_args = text_args
+
+    def __call__(self, plot):
+        x,y = self.convert_to_pixels(plot, self.pos)
+        plot._axes.text(x, y, self.text, **self.text_args)
+
+class SphereCallback(PlotCallback):
+    def __init__(self, center, radius, circle_args = None,
+                 text = None, text_args = None):
+        self.center = center
+        self.radius = radius
+        self.circle_args = circle_args
+        self.text = text
+        self.text_args = text_args
+
+    def __call__(self, plot):
+        from matplotlib.patches import Circle
+        x0, x1 = plot.xlim
+        y0, y1 = plot.ylim
+        l, b, width, height = plot._axes.bbox.get_bounds()
+        xi = lagos.x_dict[plot.data.axis]
+        yi = lagos.y_dict[plot.data.axis]
+        dx = plot.image._A.shape[0] / (x1-x0)
+        dy = plot.image._A.shape[1] / (y1-y0)
+        radius = self.radius * dx
+        center_x = (self.center[xi] - x0)*dx
+        center_y = (self.center[yi] - y0)*dy
+        cir = Circle((center_x, center_y), radius, fill=False,
+                     **self.circle_args)
+        plot._axes.add_patch(cir)
+        if self.text is not None:
+            plot._axes.text(center_x, center_y, "%s" % halo.id,
+                            **self.text_args)
+
+        
 
 class HopCircleCallback(PlotCallback):
     def __init__(self, hop_output, axis, max_number=None,

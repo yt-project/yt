@@ -180,6 +180,14 @@ class PlotCollection:
         p["Axis"] = lagos.axis_names[axis]
         return p
 
+    def add_particles(self, axis, width, p_size=1.0, col='k', stride=1.0,
+                      data_source=None):
+        if data_source is None: data_source = self.pf.h.sphere([0.5]*3,1)
+        p = self._add_plot(PlotTypes.ParticlePlot(data_source, axis,
+                                        width, p_size, col, stride))
+        p["Axis"] = lagos.axis_names[axis]
+        return p
+
     def add_cutting_plane(self, field, normal,
                           center=None, use_colorbar=True,
                           figure = None, axes = None, fig_size=None, obj=None):

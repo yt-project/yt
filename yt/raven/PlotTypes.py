@@ -213,6 +213,24 @@ class RavenPlot:
         self.datalabel = label
         if self.colorbar != None: self.colorbar.set_label(str(label))
 
+    def setup_domain_edges(self, axis, periodic=False):
+        DLE = self.data.pf["DomainLeftEdge"]
+        DRE = self.data.pf["DomainRightEdge"]
+        DD = float(periodic)*(DRE - DLE)
+        if axis < 3:
+            xax = lagos.x_dict[axis]
+            yax = lagos.y_dict[axis]
+            self.xmin = DLE[xax] - DD[xax]
+            self.xmax = DRE[xax] + DD[xax]
+            self.ymin = DLE[yax] - DD[yax]
+            self.ymax = DRE[yax] + DD[yax]
+            self._period = (DD[xax], DD[yax])
+        else:
+            # Not quite sure how to deal with this, particularly
+            # in the Orion case.  Cutting planes are tricky.
+            self.xmin = self.ymin = 0.0
+            self.xmax = self.ymax = 1.0
+
 class VMPlot(RavenPlot):
     _antialias = True
     _period = (0.0, 0.0)
@@ -225,22 +243,7 @@ class VMPlot(RavenPlot):
         RavenPlot.__init__(self, data, fields, figure, axes, size=size)
         self._figure.subplots_adjust(hspace=0, wspace=0, bottom=0.0,
                                     top=1.0, left=0.0, right=1.0)
-        DLE = self.data.pf["DomainLeftEdge"]
-        DRE = self.data.pf["DomainRightEdge"]
-        DD = float(periodic)*(DRE - DLE)
-        if self.data.axis < 3:
-            xax = lagos.x_dict[self.data.axis]
-            yax = lagos.y_dict[self.data.axis]
-            self.xmin = DLE[xax] - DD[xax]
-            self.xmax = DRE[xax] + DD[xax]
-            self.ymin = DLE[yax] - DD[yax]
-            self.ymax = DRE[yax] + DD[yax]
-            self._period = (DD[xax], DD[yax])
-        else:
-            # Not quite sure how to deal with this, particularly
-            # in the Orion case.  Cutting planes are tricky.
-            self.xmin = self.ymin = 0.0
-            self.xmax = self.ymax = 1.0
+        self.setup_domain_edges(self.data.axis, periodic)
         self.cmap = None
         self.__setup_from_field(field)
         self.__init_temp_image(use_colorbar)
@@ -413,7 +416,8 @@ class SlicePlot(VMPlot):
         if self.colorbar != None: self.colorbar.set_label(str(data_label))
 
 class SlicePlotNaturalNeighbor(SlicePlot):
-    
+    _type_name = "NNSlice"
+
     def _get_buff(self, width=None):
         import delaunay as de
         x0, x1 = self.xlim
@@ -499,6 +503,70 @@ class CuttingPlanePlot(SlicePlot):
         self.set_xlim(l_edge_x, r_edge_x) # We have no real limits
         self.set_ylim(l_edge_y, r_edge_y) # At some point, perhaps calculate them?
         self._redraw_image()
+
+class ParticlePlot(RavenPlot):
+
+    _type_name = "ParticlePlot"
+    def __init__(self, data, axis, width, p_size=1.0, col='k', stride=1.0,
+                 figure = None, axes = None):
+        RavenPlot.__init__(self, data, [], figure, axes)
+        self._figure.subplots_adjust(hspace=0, wspace=0, bottom=0.0,
+                                    top=1.0, left=0.0, right=1.0)
+        self.axis = axis
+        self.setup_domain_edges(axis)
+        self.axis_names['Z'] = col
+        from Callbacks import ParticleCallback
+        self.add_callback(ParticleCallback(axis, width, p_size, col, stride))
+
+    def _redraw_image(self, *args):
+        self._axes.clear() # To help out the colorbar
+        self._reset_image_parameters()
+        self._run_callbacks()
+
+    def set_xlim(self, xmin, xmax):
+        self.xlim = (xmin,xmax)
+
+    def set_ylim(self, ymin, ymax):
+        self.ylim = (ymin,ymax)
+
+    def _generate_prefix(self, prefix):
+        self.prefix = "_".join([prefix, self._type_name, \
+            lagos.axis_names[self.axis], self.axis_names['Z']])
+        self["Field1"] = self.axis_names["Z"]
+        self["Field2"] = None
+        self["Field3"] = None
+
+    def set_width(self, width, unit):
+        self["Unit"] = str(unit)
+        self["Width"] = float(width)
+        if isinstance(unit, types.StringType):
+            unit = self.data.hierarchy[unit]
+        self.width = width / unit
+        self._refresh_display_width()
+
+    def _refresh_display_width(self, width=None):
+        if width:
+            self.width = width
+        else:
+            width = self.width
+        if iterable(width):
+            width_x, width_y = width
+        else:
+            width_x = width
+            width_y = width
+        l_edge_x = self.data.center[lagos.x_dict[self.axis]] - width_x/2.0
+        r_edge_x = self.data.center[lagos.x_dict[self.axis]] + width_x/2.0
+        l_edge_y = self.data.center[lagos.y_dict[self.axis]] - width_y/2.0
+        r_edge_y = self.data.center[lagos.y_dict[self.axis]] + width_y/2.0
+        self.set_xlim(max(l_edge_x,self.xmin), min(r_edge_x,self.xmax))
+        self.set_ylim(max(l_edge_y,self.ymin), min(r_edge_y,self.ymax))
+        self._redraw_image()
+
+    def _reset_image_parameters(self):
+        self._axes.set_xticks(())
+        self._axes.set_yticks(())
+        self._axes.set_ylabel("")
+        self._axes.set_xlabel("")
 
 class ProfilePlot(RavenPlot):
     def setup_bins(self, field, func=None):

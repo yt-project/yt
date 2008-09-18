@@ -55,7 +55,7 @@ axis_names = {0: 'x', 1: 'y', 2: 'z'}
 
 vm_axis_names = {0:'x', 1:'y', 2:'z', 3:'dx', 4:'dy'}
 
-from ColorMaps import raven_colormaps, add_cmap
+from ColorMaps import raven_colormaps, add_cmap, check_color
 
 import PlotTypes
 be = PlotTypes
