@@ -187,6 +187,7 @@ class EnzoGridBase(EnzoData):
             [self.LeftEdge[0], self.RightEdge[1], self.LeftEdge[2]],
             ], dtype='float64')
         self.__child_mask = None
+        self.__child_index_mask = None
         self.__child_indices = None
         self._setup_dx()
 
@@ -355,6 +356,18 @@ class EnzoGridBase(EnzoData):
             pass
         self.__child_mask = None
 
+    def _get_child_index_mask(self):
+        if self.__child_index_mask is None:
+            self.__generate_child_index_mask()
+        return self.__child_index_mask
+
+    def _del_child_index_mask(self):
+        try:
+            del self.__child_index_mask
+        except AttributeError:
+            pass
+        self.__child_index_mask = None
+
     #@time_execution
     def __generate_child_mask(self):
         """
@@ -370,6 +383,20 @@ class EnzoGridBase(EnzoData):
                               startIndex[1]:endIndex[1],
                               startIndex[2]:endIndex[2]] = 0
         self.__child_indices = (self.__child_mask==0) # bool, possibly redundant
+
+    def __generate_child_index_mask(self):
+        """
+        Generates self.child_index_mask, which is -1 where there is no child,
+        and otherwise has the ID of the grid that resides there.
+        """
+        self.__child_index_mask = na.zeros(self.ActiveDimensions, 'int32') - 1
+        for child in self.Children:
+            # Now let's get our overlap
+            startIndex = na.rint((child.LeftEdge - self.LeftEdge)/self.dx)
+            endIndex = na.rint((child.RightEdge - self.LeftEdge)/self.dx)
+            self.__child_index_mask[startIndex[0]:endIndex[0],
+                                    startIndex[1]:endIndex[1],
+                                    startIndex[2]:endIndex[2]] = child.id
 
     def _get_coords(self):
         if self.__coords == None: self._generate_coords()
@@ -395,8 +422,10 @@ class EnzoGridBase(EnzoData):
 
     __child_mask = None
     __child_indices = None
+    __child_index_mask = None
 
     child_mask = property(fget=_get_child_mask, fdel=_del_child_mask)
+    child_index_mask = property(fget=_get_child_index_mask, fdel=_del_child_index_mask)
     child_indices = property(fget=_get_child_indices, fdel = _del_child_indices)
 
     def retrieve_ghost_zones(self, n_zones, fields, all_levels=False,
