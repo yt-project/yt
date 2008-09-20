@@ -158,7 +158,7 @@ class PlotCollection:
 
     def __add_slice(self, ptype, field, axis, coord=None, center=None,
                  use_colorbar=True, figure = None, axes = None, fig_size=None,
-                 periodic = False):
+                 periodic = False, **kwargs):
         """
         Generate a slice through *field* along *axis*, optionally at
         [axis]=*coord*, with the *center* attribute given (some 
@@ -171,7 +171,7 @@ class PlotCollection:
             center = self.c
         if coord == None:
             coord = center[axis]
-        slice = self.pf.hierarchy.slice(axis, coord, field, center)
+        slice = self.pf.hierarchy.slice(axis, coord, field, center, **kwargs)
         p = self._add_plot(ptype(slice, field, use_colorbar=use_colorbar,
                          axes=axes, figure=figure,
                          size=fig_size, periodic=periodic))
@@ -190,7 +190,8 @@ class PlotCollection:
 
     def add_cutting_plane(self, field, normal,
                           center=None, use_colorbar=True,
-                          figure = None, axes = None, fig_size=None, obj=None):
+                          figure = None, axes = None, fig_size=None, obj=None,
+                           **kwargs):
         """
         Generate a cutting plane of *field* with *normal*, centered at *center*
         (defaults to PlotCollection center) with *use_colorbar*
@@ -202,7 +203,7 @@ class PlotCollection:
         if center == None:
             center = self.c
         if not obj:
-            cp = self.pf.hierarchy.cutting(normal, center, field)
+            cp = self.pf.hierarchy.cutting(normal, center, field, **kwargs)
         else:
             cp = obj
         p = self._add_plot(PlotTypes.CuttingPlanePlot(cp, field,
@@ -216,7 +217,7 @@ class PlotCollection:
     def add_projection(self, field, axis, weight_field=None,
                       center=None, use_colorbar=True,
                       figure = None, axes = None, fig_size=None,
-                      periodic = False):
+                      periodic = False, **kwargs):
         """
         Generate a projection of *field* along *axis*, optionally giving
         a *weight_field*-weighted average with *use_colorbar*
@@ -226,7 +227,8 @@ class PlotCollection:
         """
         if center == None:
             center = self.c
-        proj = self.pf.hierarchy.proj(axis, field, weight_field, center=center)
+        proj = self.pf.hierarchy.proj(axis, field, weight_field, center=center,
+                                      **kwargs)
         p = self._add_plot(PlotTypes.ProjectionPlot(proj, field,
                          use_colorbar=use_colorbar, axes=axes, figure=figure,
                          size=fig_size, periodic=periodic))

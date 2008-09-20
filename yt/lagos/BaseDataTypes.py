@@ -390,7 +390,7 @@ class EnzoOrthoRayBase(Enzo1DData):
         return gf[na.where(grid.child_mask[sl])]
 
 class Enzo2DData(EnzoData, GridPropertiesMixin):
-    _key_fields = ['x','y','z','dx','dy','dz']
+    _key_fields = ['px','py','pdx','pdy']
     """
     Class to represent a set of :class:`EnzoData` that's 2-D in nature, and
     thus does not have as many actions as the 3-D data types.
@@ -404,6 +404,7 @@ class Enzo2DData(EnzoData, GridPropertiesMixin):
         self.axis = axis
         EnzoData.__init__(self, pf, fields, **kwargs)
         self.set_field_parameter("axis",axis)
+        
 
     #@time_execution
     def get_data(self, fields = None):
@@ -472,6 +473,30 @@ class Enzo2DData(EnzoData, GridPropertiesMixin):
             zi = 10**(zi)
         return [xi,yi,zi]
 
+    _okay_to_serialize = True
+    def _should_i_write(self): return True
+
+    def _serialize(self, node_name = None):
+        if not self._should_i_write(): return
+        mylog.info("Serializing data...")
+        if node_name is None: node_name = self._gen_node_name()
+        mylog.info("nodeName: %s", node_name)
+        array2d = na.array([self[i] for i in self._key_fields + [self.fields[0]]])
+        self.hierarchy.save_data(array2d, self._top_node, node_name)
+        mylog.info("Done serializing...")
+
+    def _deserialize(self, node_name = None):
+        if not self._okay_to_serialize: return
+        if node_name is None: node_name = self._gen_node_name()
+        mylog.debug("Trying to get node %s", node_name)
+        array=self.hierarchy.get_data(self._top_node, node_name)
+        if array == None:
+            mylog.debug("Didn't find it!")
+            return
+        for i, f in enumerate(self._key_fields + [self.fields[0]]):
+            self[f] = array[i,:]
+        return True
+
 class EnzoSliceBase(Enzo2DData):
     """
     EnzoSlice is an orthogonal slice through the data, taking all the points
@@ -480,8 +505,10 @@ class EnzoSliceBase(Enzo2DData):
     however, as its field and coordinate can both change.
     """
 
+    _top_node = "/Slices"
     #@time_execution
-    def __init__(self, axis, coord, fields = None, center=None, pf=None, **kwargs):
+    def __init__(self, axis, coord, fields = None, center=None, pf=None,
+                 node_name = False, **kwargs):
         """
         Slice along *axis*:ref:`axis-specification`, at the coordinate *coord*.
         Optionally supply fields.
@@ -489,7 +516,11 @@ class EnzoSliceBase(Enzo2DData):
         Enzo2DData.__init__(self, axis, fields, pf, **kwargs)
         self.center = center
         self.coord = coord
-        self._refresh_data()
+        if node_name is False:
+            self._refresh_data()
+        else:
+            if node_name is True: self._deserialize()
+            else: self._deserialize(node_name)
 
     def reslice(self, coord):
         """
@@ -590,6 +621,9 @@ class EnzoSliceBase(Enzo2DData):
         dataVals = dv.ravel()[grid.child_mask[sl].ravel() == 1]
         return dataVals
 
+    def _gen_node_name(self):
+        return "%s_%s_%s" % (self.fields[0], self.axis, self.coord)
+
 class EnzoCuttingPlaneBase(Enzo2DData):
     """
     EnzoCuttingPlane is an oblique plane through the data,
@@ -598,7 +632,10 @@ class EnzoCuttingPlaneBase(Enzo2DData):
     the appropriate data onto the plane without interpolation.
     """
     _plane = None
-    def __init__(self, normal, center, fields = None, **kwargs):
+    _top_node = "/CuttingPlanes"
+    _key_fields = Enzo2DData._key_fields + ['pz','pdz']
+    def __init__(self, normal, center, fields = None, node_name = None,
+                 **kwargs):
         """
         The Cutting Plane slices at an oblique angle, where we use
         the *normal* vector and the *center* to define the viewing plane.
@@ -624,7 +661,11 @@ class EnzoCuttingPlaneBase(Enzo2DData):
         self.set_field_parameter('cp_x_vec',self._x_vec)
         self.set_field_parameter('cp_y_vec',self._y_vec)
         self.set_field_parameter('cp_z_vec',self._norm_vec)
-        self._refresh_data()
+        if node_name is False:
+            self._refresh_data()
+        else:
+            if node_name is True: self._deserialize()
+            else: self._deserialize(node_name)
 
     def _get_list_of_grids(self):
         # Recall that the projection of the distance vector from a point
@@ -706,18 +747,23 @@ class EnzoCuttingPlaneBase(Enzo2DData):
         if use_child_mask: k = (k & grid.child_mask)
         return na.where(k)
 
+    def _gen_node_name(self):
+        cen_name = ("%s" % self.center).replace(" ","_")[1:-1]
+        L_name = ("%s" % self._norm_vec).replace(" ","_")[1:-1]
+        return "%s_c%s_L%s" % (self.fields[0], cen_name, L_name)
+
 class EnzoProjBase(Enzo2DData, ParallelAnalysisInterface):
-    _key_fields = ['px','py','pdx','pdy']
+    _top_node = "/Projections"
     def __init__(self, axis, field, weight_field = None,
                  max_level = None, center = None, pf = None,
-                 source=None, **kwargs):
+                 source=None, node_name = None, **kwargs):
         """
         EnzoProj is a projection of a *field* along an *axis*.  The field
         can have an associated *weight_field*, in which case the values are
         multiplied by a weight before being summed, and then divided by the sum
         of that weight.
         """
-        Enzo2DData.__init__(self, axis, field, pf, **kwargs)
+        Enzo2DData.__init__(self, axis, field, pf, node_name = None, **kwargs)
         self.center = center
         self._initialize_source()
         self._grids = self.source._grids
@@ -733,7 +779,7 @@ class EnzoProjBase(Enzo2DData, ParallelAnalysisInterface):
         self.__retval_coarse = {}
         self.__overlap_masks = {}
         self._temp = {}
-        if not self._deserialize():
+        if not self._deserialize(node_name):
             self.__calculate_overlap()
             if self.hierarchy.data_style == 6 and False:
                 self.__cache_data()
@@ -784,31 +830,6 @@ class EnzoProjBase(Enzo2DData, ParallelAnalysisInterface):
                 i += 1
         pbar.finish()
         mylog.info("Finished calculating overlap.")
-
-    def _serialize(self):
-        if not self._should_i_write(): return
-        mylog.info("Serializing data...")
-        node_name = "%s_%s_%s" % (self.fields[0], self._weight, self.axis)
-        mylog.info("nodeName: %s", node_name)
-        projArray = na.array([self['px'], self['py'],
-                              self['pdx'], self['pdy'], self[self.fields[0]]])
-        self.hierarchy.save_data(projArray, "/Projections", node_name)
-        mylog.info("Done serializing...")
-
-    def _deserialize(self):
-        if not self._okay_to_serialize: return
-        node_name = "%s_%s_%s" % (self.fields[0], self._weight, self.axis)
-        mylog.debug("Trying to get node %s", node_name)
-        array=self.hierarchy.get_data("/Projections", node_name)
-        if array == None:
-            mylog.debug("Didn't find it!")
-            return
-        self['px'] = array[0,:]
-        self['py'] = array[1,:]
-        self['pdx'] = array[2,:]
-        self['pdy']= array[3,:]
-        self[self.fields[0]] = array[4,:]
-        return True
 
     def __get_dls(self, grid, fields):
         # Place holder for a time when maybe we will not be doing just
@@ -1024,6 +1045,9 @@ class EnzoProjBase(Enzo2DData, ParallelAnalysisInterface):
         d = grid[field] * bad_points
         if grid.id == 1: self._temp[grid.id] = d
         return d
+
+    def _gen_node_name(self):
+        return  "%s_%s_%s" % (self.fields[0], self._weight, self.axis)
 
 class Enzo3DData(EnzoData, GridPropertiesMixin):
     _key_fields = ['x','y','z','dx','dy','dz']
