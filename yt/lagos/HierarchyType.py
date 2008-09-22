@@ -752,6 +752,31 @@ class EnzoHierarchy:
         f.close()
         mylog.info("Wrote %s particles to %s", tot, filename)
 
+    def _generate_flat_octree(self, field):
+        """
+        Generates two arrays, one of the actual values in a depth-first flat
+        octree array, and the other of the values describing the refinement.
+        This allows for export to a code that understands this.  *field* is the
+        field used in the data array.
+        """
+        import DepthFirstOctree as dfo
+        o_length = r_length = 0
+        grids = []
+        for g in self.grids:
+            grids.append(dfo.OctreeGrid(
+                            g.child_index_mask,
+                            g[field].astype("float64"),
+                            g.LeftEdge.astype('float64'),
+                            g.ActiveDimensions.astype('int'),
+                            na.ones(1,dtype='float64') * g.dx))
+            o_length += g.child_mask.ravel().sum()
+            r_length += g.ActiveDimensions.prod()
+        output = na.zeros(o_length, dtype='float64')
+        refined = na.zeros(r_length, dtype='int')
+        ogl = dfo.OctreeGridList(grids)
+        dfo.WalkRootgrid(output, refined, ogl, 1, 0)
+        return output, refined
+
     @time_execution
     def export_boxes_pv(self, filename):
         """
