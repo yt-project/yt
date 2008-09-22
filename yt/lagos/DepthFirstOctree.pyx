@@ -31,15 +31,15 @@ cdef class position:
     cdef public int output_pos, refined_pos
 
 cdef class OctreeGrid:
-    cdef public object child_indices, field, left_edges, dimensions, dx
+    cdef public object child_indices, fields, left_edges, dimensions, dx
     def __cinit__(self,
                   np.ndarray[np.int_t, ndim=3] child_indices,
-                  np.ndarray[np.float64_t, ndim=3] field,
+                  np.ndarray[np.float64_t, ndim=4] fields,
                   np.ndarray[np.float64_t, ndim=1] left_edges,
                   np.ndarray[np.int_t, ndim=1] dimensions,
                   np.ndarray[np.float64_t, ndim=1] dx):
         self.child_indices = child_indices
-        self.field = field
+        self.fields = fields
         self.left_edges = left_edges
         self.dimensions = dimensions
         self.dx = dx
@@ -53,20 +53,20 @@ cdef class OctreeGridList:
         return self.grids[item]
 
 @cython.boundscheck(False)
-def WalkRootgrid(np.ndarray[np.float64_t, ndim=1] output,
+def WalkRootgrid(np.ndarray[np.float64_t, ndim=2] output,
                  np.ndarray[np.int_t, ndim=1] refined,
                  OctreeGridList grids, int pi, int s = 0, int r = 0):
     """
     This function only gets called on a 'root grid' -- a base grid
     of the simulation we are converting.  It will call a recursive walker.
     """
-    cdef int i, j, k, gi
+    cdef int i, j, k, gi, fi
     cdef int child_i, child_j, child_k
     cdef OctreeGrid child_grid
     cdef OctreeGrid grid = grids[pi-1]
     cdef np.ndarray[np.int_t, ndim=3] child_indices = grid.child_indices
     cdef np.ndarray[np.int_t, ndim=1] dimensions = grid.dimensions
-    cdef np.ndarray[np.float64_t, ndim=3] field = grid.field
+    cdef np.ndarray[np.float64_t, ndim=4] fields = grid.fields
     cdef np.ndarray[np.float64_t, ndim=1] leftedges = grid.left_edges
     cdef np.ndarray[np.float64_t, ndim=1] dx = grid.dx
     cdef np.ndarray[np.float64_t, ndim=1] child_dx
@@ -80,7 +80,8 @@ def WalkRootgrid(np.ndarray[np.float64_t, ndim=1] output,
             for i in range(dimensions[0]):
                 gi = child_indices[i,j,k]
                 if gi == -1:
-                    output[curpos.output_pos] = field[i,j,k]
+                    for fi in range(fields.shape[0]):
+                        output[curpos.output_pos,fi] = fields[fi,i,j,k]
                     refined[curpos.refined_pos] = 0
                     curpos.output_pos += 1
                     curpos.refined_pos += 1
@@ -98,16 +99,16 @@ def WalkRootgrid(np.ndarray[np.float64_t, ndim=1] output,
 @cython.boundscheck(False)
 def RecurseOctree(int i_i, int j_i, int k_i,
                   position curpos, int gi, int pi,
-                  np.ndarray[np.float64_t, ndim=1] output,
+                  np.ndarray[np.float64_t, ndim=2] output,
                   np.ndarray[np.int_t, ndim=1] refined,
                   OctreeGridList grids):
-    cdef int i, i_off, j, j_off, k, k_off, ci
+    cdef int i, i_off, j, j_off, k, k_off, ci, fi
     cdef child_i, child_j, child_k
     cdef OctreeGrid child_grid
     cdef OctreeGrid grid = grids[gi-1]
     cdef np.ndarray[np.int_t, ndim=3] child_indices = grid.child_indices
     cdef np.ndarray[np.int_t, ndim=1] dimensions = grid.dimensions
-    cdef np.ndarray[np.float64_t, ndim=3] field = grid.field
+    cdef np.ndarray[np.float64_t, ndim=4] fields = grid.fields
     cdef np.ndarray[np.float64_t, ndim=1] leftedges = grid.left_edges
     cdef np.ndarray[np.float64_t, ndim=1] dx = grid.dx
     cdef np.ndarray[np.float64_t, ndim=1] child_dx
@@ -121,7 +122,8 @@ def RecurseOctree(int i_i, int j_i, int k_i,
                 i = i_off + i_i
                 ci = grid.child_indices[i,j,k]
                 if ci == -1:
-                    output[curpos.output_pos] = grid.field[i,j,k]
+                    for fi in range(fields.shape[0]):
+                        output[curpos.output_pos,fi] = fields[fi,i,j,k]
                     refined[curpos.refined_pos] = 0
                     curpos.output_pos += 1
                     curpos.refined_pos += 1

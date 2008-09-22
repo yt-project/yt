@@ -179,7 +179,8 @@ class EnzoHierarchy:
         self.smoothed_covering_grid = classobj("EnzoSmoothedCoveringGrid",(EnzoSmoothedCoveringGrid,), dd)
         self.sphere = classobj("EnzoSphere",(EnzoSphereBase,), dd)
         self.cutting = classobj("EnzoCuttingPlane",(EnzoCuttingPlaneBase,), dd)
-        self.ray = classobj("EnzoOrthoRay",(EnzoOrthoRayBase,), dd)
+        self.ray = classobj("EnzoRay",(EnzoRayBase,), dd)
+        self.ortho_ray = classobj("EnzoOrthoRay",(EnzoOrthoRayBase,), dd)
         self.disk = classobj("EnzoCylinder",(EnzoCylinderBase,), dd)
         self.grid_collection = classobj("EnzoGridCollection",(EnzoGridCollection,), dd)
 
@@ -752,7 +753,7 @@ class EnzoHierarchy:
         f.close()
         mylog.info("Wrote %s particles to %s", tot, filename)
 
-    def _generate_flat_octree(self, field):
+    def _generate_flat_octree(self, fields):
         """
         Generates two arrays, one of the actual values in a depth-first flat
         octree array, and the other of the values describing the refinement.
@@ -760,18 +761,21 @@ class EnzoHierarchy:
         field used in the data array.
         """
         import DepthFirstOctree as dfo
+        fields = ensure_list(fields)
         o_length = r_length = 0
         grids = []
         for g in self.grids:
+            ff = na.array([g[f] for f in fields])
             grids.append(dfo.OctreeGrid(
                             g.child_index_mask,
-                            g[field].astype("float64"),
+                            ff.astype("float64"),
                             g.LeftEdge.astype('float64'),
                             g.ActiveDimensions.astype('int'),
                             na.ones(1,dtype='float64') * g.dx))
             o_length += g.child_mask.ravel().sum()
             r_length += g.ActiveDimensions.prod()
-        output = na.zeros(o_length, dtype='float64')
+            g.clear_data()
+        output = na.zeros((o_length,len(fields)), dtype='float64')
         refined = na.zeros(r_length, dtype='int')
         ogl = dfo.OctreeGridList(grids)
         dfo.WalkRootgrid(output, refined, ogl, 1, 0)

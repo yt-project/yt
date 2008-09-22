@@ -37,7 +37,7 @@ class SlowRayTracer(object):
         self.fill_buff()
 
     def _trace_single_ray(self, x, y):
-        ray = self.pf.h.ray(self.axis, (x, y))
+        ray = self.pf.h.ortho_ray(self.axis, (x, y))
         order = ray[axis_names[self.axis]].argsort()
         if self.reverse: order = order[::-1]
         return self.func(ray, order)

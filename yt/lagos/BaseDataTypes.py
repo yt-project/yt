@@ -366,28 +366,89 @@ class EnzoOrthoRayBase(Enzo1DData):
         self._refresh_data()
 
     def _get_list_of_grids(self):
-        y = na.where( (self.px > self.pf.hierarchy.gridLeftEdge[:,self.px_ax])
+        # This bugs me, but we will give the tie to the LeftEdge
+        y = na.where( (self.px >=  self.pf.hierarchy.gridLeftEdge[:,self.px_ax])
                     & (self.px < self.pf.hierarchy.gridRightEdge[:,self.px_ax])
-                    & (self.py > self.pf.hierarchy.gridLeftEdge[:,self.py_ax])
+                    & (self.py >=  self.pf.hierarchy.gridLeftEdge[:,self.py_ax])
                     & (self.py < self.pf.hierarchy.gridRightEdge[:,self.py_ax]))
         self._grids = self.hierarchy.grids[y]
 
     def _get_data_from_grid(self, grid, field):
         # We are orthogonal, so we can feel free to make assumptions
         # for the sake of speed.
-        gdx = just_one(grid[self.px_dx])
-        gdy = just_one(grid[self.py_dx])
-        x_coord = int((self.px - grid.LeftEdge[self.px_ax])/gdx)
-        y_coord = int((self.py - grid.LeftEdge[self.py_ax])/gdy)
-        sl = [None,None,None]
-        sl[self.px_ax] = slice(x_coord,x_coord+1,None)
-        sl[self.py_ax] = slice(y_coord,y_coord+1,None)
-        sl[self.axis] = slice(None)
+        if grid.id not in self._cut_masks:
+            gdx = just_one(grid[self.px_dx])
+            gdy = just_one(grid[self.py_dx])
+            x_coord = int((self.px - grid.LeftEdge[self.px_ax])/gdx)
+            y_coord = int((self.py - grid.LeftEdge[self.py_ax])/gdy)
+            sl = [None,None,None]
+            sl[self.px_ax] = slice(x_coord,x_coord+1,None)
+            sl[self.py_ax] = slice(y_coord,y_coord+1,None)
+            sl[self.axis] = slice(None)
+            self._cut_masks[grid.id] = sl
+        else:
+            sl = self._cut_masks[grid.id]
         if not iterable(grid[field]):
             gf = grid[field] * na.ones(grid.child_mask[sl].shape)
         else:
             gf = grid[field][sl]
         return gf[na.where(grid.child_mask[sl])]
+
+class EnzoRayBase(Enzo1DData):
+    def __init__(self, start_point, end_point, fields=None, pf=None, **kwargs):
+        """
+        We accept a start point and an end point and then get all the data
+        between those two.
+        """
+        mylog.warning("This code is poorly tested.  It may give bad data!")
+        Enzo1DData.__init__(self, pf, fields, **kwargs)
+        self.start_point = na.array(start_point)
+        self.end_point = na.array(end_point)
+        self.vec = self.end_point - self.start_point
+        self.center = self.start_point
+        self.set_field_parameter('center', self.start_point)
+        #self._refresh_data()
+
+    def _get_list_of_grids(self):
+        # Get the value of the line at each LeftEdge and RightEdge
+        LE = self.pf.h.gridLeftEdge
+        RE = self.pf.h.gridRightEdge
+        p = na.zeros(self.pf.h.num_grids, dtype='bool')
+        # Check left faces first
+        for i in range(3):
+            i1 = (i+1) % 3
+            i2 = (i+2) % 3
+            vs = self._get_line_at_coord(LE[:,i], i)
+            p = p | ( ( (LE[:,i1] < vs[:,i1]) & (RE[:,i1] > vs[:,i1]) ) \
+                    & ( (LE[:,i2] < vs[:,i2]) & (RE[:,i2] > vs[:,i2]) ) )
+            vs = self._get_line_at_coord(RE[:,i], i)
+            p = p | ( ( (LE[:,i1] < vs[:,i1]) & (RE[:,i1] > vs[:,i1]) ) \
+                    & ( (LE[:,i2] < vs[:,i2]) & (RE[:,i2] > vs[:,i2]) ) )
+        p = p | ( na.all( LE < self.start_point, axis=1 ) 
+                & na.all( RE > self.start_point, axis=1 ) )
+        p = p | ( na.all( LE < self.end_point,   axis=1 ) 
+                & na.all( RE > self.end_point,   axis=1 ) )
+        self._grids = self.hierarchy.grids.copy()#[p]
+
+    def _get_line_at_coord(self, v, index):
+        # t*self.vec + self.start_point = self.end_point
+        t = (v - self.start_point[index])/self.vec[index]
+        t = t.reshape((t.shape[0],1))
+        return self.start_point + t*self.vec
+
+    def _get_data_from_grid(self, grid, field):
+        mask = na.logical_and(self._get_cut_mask(grid),
+                              grid.child_mask)
+        return grid[field][mask]
+        
+    @cache_mask
+    def _get_cut_mask(self, grid):
+        mask = na.zeros(grid.ActiveDimensions, dtype='int')
+        import RTIntegrator as RT
+        RT.VoxelTraversal(mask, grid.LeftEdge, grid.RightEdge,
+                          na.array([grid.dx, grid.dy, grid.dz]),
+                          self.center, self.vec)
+        return mask
 
 class Enzo2DData(EnzoData, GridPropertiesMixin):
     _key_fields = ['px','py','pdx','pdy']
