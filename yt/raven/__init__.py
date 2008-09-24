@@ -61,6 +61,7 @@ import PlotTypes
 be = PlotTypes
 
 from Callbacks import *
+from FixedResolution import *
 
 color_maps = matplotlib.cm.cmapnames + raven_colormaps.keys()
 default_cmap = ytcfg.get("raven", "colormap")

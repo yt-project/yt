@@ -146,16 +146,18 @@ def _get_current_pf():
     for s in inspect.stack()[1:]:
         if 'pf' in s[0].f_locals:
             __pf = s[0].f_locals['pf']
+            if isinstance(__pf, types.StringTypes):
+                __pf = EnzoStaticOutput(__pf)
             mylog.info("Obtained parameter file %s", __pf)
             return __pf
     
-def hop_plot():
-    pf = _get_current_pf()
-    pc = PlotCollection(pf, center=[0.5,0.5,0.5])
-    center = (pf["DomainRightEdge"]-pf["DomainLeftEdge"])/2.0
-    hop_output = hop.HopList(pf.h.sphere(center, 1.0/pf["1"]))
-    hop_output.write_out("%s.hop" % pf)
+def hop_plot(my_pf = None):
+    if my_pf is None: my_pf = _get_current_pf()
+    pc = PlotCollection(my_pf, center=[0.5,0.5,0.5])
+    center = (my_pf["DomainRightEdge"]-my_pf["DomainLeftEdge"])/2.0
+    hop_output = hop.HopList(my_pf.h.sphere(center, 1.0/my_pf["1"]))
+    hop_output.write_out("%s.hop" % my_pf)
     for ax in range(3):
         pc.add_projection("Density", ax).add_callback(
                             HopCircleCallback(hop_output, ax))
-    pc.save("%s_hop" % pf)
+    pc.save("%s_hop" % my_pf)

@@ -72,6 +72,34 @@ class FixedResolutionBuffer(object):
         dpy = (self.bounds[3]-self.bounds[2])/self.buff_size[1]
         return distance/dpy
 
+    def export_fits(self, filename_prefix, fields = None):
+        """
+        This will export a set of FITS images of either the fields specified
+        or all the fields already in the object.  The output filenames are
+        *filename_prefix* plus an underscore plus the name of the field.
+
+        This requires the *pyfits* module, which is a standalone module
+        provided by STSci to interface with FITS-format files.
+        """
+        import pyfits
+        if filename_prefix.endswith('.fits'): filename_prefix=filename_prefix[:-5]
+        if fields is None: fields = self.data.keys()
+        for field in fields:
+            hdu = pyfits.PrimaryHDU(self[field])
+            hdu.writeto("%s_%s.fits" % (filename_prefix, field))
+
+    def open_in_ds9(self, field, take_log=True):
+        """
+        This will open a given field in DS9.  This requires the *numdisplay*
+        package, which is a simple download from STSci.  Furthermore, it
+        presupposed that it can connect to DS9 -- that is, that DS9 is already open.
+        """
+        import numdisplay
+        numdisplay.open()
+        if take_log: data=na.log10(self[field])
+        else: data=self[field]
+        numdisplay.display(data)
+
 class AnnuliProfiler(object):
     def __init__(self, fixed_buffer, center, num_bins, min_radius, max_radius):
         """
