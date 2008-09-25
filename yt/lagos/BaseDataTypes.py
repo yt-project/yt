@@ -1505,6 +1505,8 @@ class EnzoSphereBase(Enzo3DData):
         *center* and a *radius*.
         """
         Enzo3DData.__init__(self, center, fields, pf, **kwargs)
+        if radius < self.hierarchy.get_smallest_dx():
+            raise SyntaxError("Your radius is smaller than your finest cell!")
         self.set_field_parameter('radius',radius)
         self.radius = radius
         self._refresh_data()
