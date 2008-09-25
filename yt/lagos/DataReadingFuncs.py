@@ -203,3 +203,21 @@ class DataQueuePackedHDF5(BaseDataQueue):
             mylog.debug("Read %s items from %s", len(data), os.path.basename(file))
             for gid in data: self.queue[gid].update(data[gid])
         mylog.debug("Finished read of %s", sets)
+
+class DataQueueInMemory(BaseDataQueue):
+    def __init__(self, grids_in_memory, ghost_zones=2):
+        self.grids_in_memory = grids_in_memory
+        self.my_slice = (slice(ghost_zones,-ghost_zones),
+                      slice(ghost_zones,-ghost_zones),
+                      slice(ghost_zones,-ghost_zones))
+        BaseDataQueue.__init__(self)
+
+    def _read_set(self, grid, field):
+        if grid.id not in self.grids_in_memory: raise KeyError
+        return self.grids_in_memory[grid.id][field][self.my_slice]
+
+    def modify(self, field):
+        return field.swapaxes(0,2)
+
+    def preload(self, grids, sets):
+        pass
