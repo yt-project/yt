@@ -156,6 +156,8 @@ class ReasonMainWindow(wx.Frame):
         self.data_tree.Expand(self.data_root)
 
         self.data_tree.Bind(wx.EVT_RIGHT_DOWN, self.OnRightDown)
+        self.data_tree.Bind(wx.EVT_RIGHT_DOWN, self.OnRightDown)
+        self.data_tree.Bind(wx.EVT_LEFT_DCLICK, self.OnRightDown)
         self.Bind(wx.EVT_TREE_ITEM_EXPANDED, self.OnItemExpanded, self.data_tree)
 
         self.__setup_fido_tree()

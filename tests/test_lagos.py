@@ -231,13 +231,6 @@ class TestSmoothedCoveringGrid(LagosTestingBase, unittest.TestCase):
             self.assertFalse(na.any(na.isnan(cg["Density"])))
             self.assertFalse(na.any(cg["Density"]==-999))
 
-    def testWrongDims(self):
-        self.failUnlessRaises(ValueError,
-                self.hierarchy.smoothed_covering_grid,
-                level=2, left_edge=[0.25, 0.25, 0.25],
-                right_edge=[0.75, 0.75, 0.75],
-                dims=[123, 124, 125])
-
     def testAddField(self):
         DIMS = 64
         i = 5
@@ -342,7 +335,7 @@ class TestSliceDataType(DataTypeTestingBase, LagosTestingBase, unittest.TestCase
 class TestCuttingPlane(DataTypeTestingBase, LagosTestingBase, unittest.TestCase):
     def setUp(self):
         DataTypeTestingBase.setUp(self)
-        self.data = self.hierarchy.cutting([0.1,0.3,0.4], [0.5,0.5,0.5])
+        self.data = self.hierarchy.cutting([0.1,0.3,0.4], [0.5,0.5,0.5], ["Density"])
     def testAxisVectors(self):
         x_v = self.data._x_vec
         y_v = self.data._y_vec

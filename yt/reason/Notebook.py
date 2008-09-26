@@ -298,7 +298,10 @@ class PlotPage(wx.Panel):
             ccmap_name = self.plot.colorbar.cmap.name
         except AttributeError:
             ccmap_name = "jet"
-        self.cmapmenu.FindItemById(self.cmapmenu.FindItem(ccmap_name)).Check(True)
+        try:
+            self.cmapmenu.FindItemById(self.cmapmenu.FindItem(ccmap_name)).Check(True)
+        except AttributeError:
+            pass
 
     def makePlot(self):
         pass
@@ -502,7 +505,7 @@ class VMPlotPage(PlotPage):
         #xp, yp = self.figure.axes[0].transData.inverse_xy_tup((xp,yp))
         dx = (self.plot.xlim[1] - self.plot.xlim[0])/self.plot.pix[0]
         dy = (self.plot.ylim[1] - self.plot.ylim[0])/self.plot.pix[1]
-        l, b, width, height = self.figure.axes[0].bbox.get_bounds()
+        l, b, width, height = raven.PlotTypes._get_bounds(self.figure.axes[0].bbox)
         x = self.plot.xlim[0] + (dx * (xp-l))
         y = self.plot.ylim[1] - (dy * (yp-b))
         return x, y

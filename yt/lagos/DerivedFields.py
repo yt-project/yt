@@ -638,26 +638,6 @@ def _convertSZY(data):
     return conv
 add_field("SZY", convert_function=_convertSZY)
 
-def __gauss_kern(size):
-    """ Returns a normalized 2D gauss kernel array for convolutions """
-    size = int(size)
-    x, y, z = na.mgrid[-size:size+1, -size:size+1, -size:size+1]
-    g = na.exp(-(x**2/float(size)+y**2/float(size)+z**2/float(size)))
-    return g / g.sum()
-
-def __blur_image(im, n):
-    """ blurs the image by convolving with a gaussian kernel of typical
-        size n. The optional keyword argument ny allows for a different
-        size in the y direction.
-    """
-    g = __gauss_kern(n)
-    improc = scipy.signal.convolve(im,g, mode='same')
-    return(improc)
-
-def _SmoothedDensity(field, data):
-    return __blur_image(data["Density"], 1)
-add_field("SmoothedDensity", validators=[ValidateSpatial(2)])
-
 def _AveragedDensity(field, data):
     nx, ny, nz = data["Density"].shape
     new_field = na.zeros((nx-2,ny-2,nz-2), dtype='float64')
