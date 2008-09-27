@@ -143,6 +143,28 @@ def getExceptionHDF4():
 def getExceptionHDF5():
     return (exceptions.KeyError, HDF5LightReader.ReadingError)
 
+def readDataInMemory(self, field):
+    import enzo
+    return enzo.grid_data[self.id][field].swapaxes(0,2)
+
+def readAllDataInMemory(self):
+    pass
+
+def getFieldsInMemory(self):
+    import enzo
+    return enzo.grid_data[self.id].keys()
+
+def readDataSliceInMemory(self, grid, field, axis, coord):
+    import enzo
+    sl = [slice(None), slice(None), slice(None)]
+    sl[axis] = slice(coord, coord + 1)
+    sl = tuple(reversed(sl))
+    bsl = (slice(3,-3), slice(3,-3), slice(3,-3))
+    return enzo.grid_data[grid.id][field][bsl][sl].swapaxes(0,2)
+
+def getExceptionInMemory():
+    return KeyError
+
 class BaseDataQueue(object):
 
     def __init__(self):
@@ -205,8 +227,9 @@ class DataQueuePackedHDF5(BaseDataQueue):
         mylog.debug("Finished read of %s", sets)
 
 class DataQueueInMemory(BaseDataQueue):
-    def __init__(self, grids_in_memory, ghost_zones=2):
-        self.grids_in_memory = grids_in_memory
+    def __init__(self, ghost_zones=3):
+        import enzo
+        self.grids_in_memory = enzo.grid_data
         self.my_slice = (slice(ghost_zones,-ghost_zones),
                       slice(ghost_zones,-ghost_zones),
                       slice(ghost_zones,-ghost_zones))

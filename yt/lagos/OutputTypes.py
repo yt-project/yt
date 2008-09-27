@@ -207,6 +207,7 @@ class EnzoStaticOutput(StaticOutput):
             self._setup_nounits_units()
         self.time_units['1'] = 1
         self.units['1'] = 1
+        self.units['unitary'] = 1.0 / (self["DomainRightEdge"] - self["DomainLeftEdge"]).max()
         seconds = self["Time"]
         self.time_units['years'] = seconds / (365*3600*24.0)
         self.time_units['days']  = seconds / (3600*24.0)
@@ -272,3 +273,30 @@ class EnzoStaticOutput(StaticOutput):
         k["aye"]  = (1.0 + self.parameters["CosmologyInitialRedshift"]) / \
                (1.0 + self.parameters["CosmologyCurrentRedshift"])
         return k
+
+class EnzoStaticOutputInMemory(EnzoStaticOutput):
+    _hierarchy_class = EnzoHierarchyInMemory
+    def __init__(self, parameter_override=None, conversion_override=None):
+        if parameter_override is None: parameter_override = {}
+        self.__parameter_override = parameter_override
+        if conversion_override is None: conversion_override = {}
+        self.__conversion_override = conversion_override
+
+        StaticOutput.__init__(self, "InMemoryParameterFile", 8)
+
+    def _parse_parameter_file(self):
+        import enzo
+        self.parameters['CurrentTimeIdentifier'] = time.time()
+        self.parameters.update(enzo.yt_parameter_file)
+        self.conversion_factors.update(enzo.conversion_factors)
+        for i in self.parameters:
+            if isinstance(self.parameters[i], types.TupleType):
+                self.parameters[i] = na.array(self.parameters[i])
+        for i in self.conversion_factors:
+            if isinstance(self.conversion_factors[i], types.TupleType):
+                self.conversion_factors[i] = na.array(self.conversion_factors[i])
+        for p, v in self.__parameter_override.items():
+            self.parameters[p] = v
+        for p, v in self.__conversion_override.items():
+            self.conversion_factors[p] = v
+

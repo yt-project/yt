@@ -33,6 +33,7 @@ _data_style_funcs = \
    { 4: (readDataHDF4, readAllDataHDF4, getFieldsHDF4, readDataSliceHDF4, getExceptionHDF4),
      5: (readDataHDF5, readAllDataHDF5, getFieldsHDF5, readDataSliceHDF5, getExceptionHDF5),
      6: (readDataPacked, readAllDataPacked, getFieldsPacked, readDataSlicePacked, getExceptionHDF5),
+     8: (readDataInMemory, readAllDataInMemory, getFieldsInMemory, readDataSliceInMemory, getExceptionInMemory),
    }
 
 class AMRHierarchy:
@@ -175,7 +176,7 @@ class AMRHierarchy:
         self.disk = classobj("EnzoCylinder",(EnzoCylinderBase,), dd)
         self.grid_collection = classobj("EnzoGridCollection",(EnzoGridCollection,), dd)
 
-    def __deserialize_hierarchy(self, harray):
+    def _deserialize_hierarchy(self, harray):
         mylog.debug("Cached entry found.")
         self.gridDimensions[:] = harray[:,0:3]
         self.gridStartIndices[:] = harray[:,3:6]
@@ -754,7 +755,7 @@ class EnzoHierarchy(AMRHierarchy):
         if self.num_grids <= 1000:
             mylog.info("Skipping serialization!")
         if harray and self.num_grids > 1000:
-            self.__deserialize_hierarchy(harray)
+            self._deserialize_hierarchy(harray)
         else:
             self.__parse_hierarchy_file()
         self.__obtain_filenames()
@@ -783,9 +784,9 @@ class EnzoHierarchy(AMRHierarchy):
         for i, grid in enumerate(self.grids):
             if (i%1e4) == 0: mylog.debug("Prepared % 7i / % 7i grids", i, self.num_grids)
             grid._prepare_grid()
-        self.__setup_grid_dxs()
+        self._setup_grid_dxs()
         mylog.debug("Prepared")
-        self.__setup_field_lists()
+        self._setup_field_lists()
         self.levelIndices = {}
         self.levelNum = {}
         ad = self.gridEndIndices - self.gridStartIndices + 1
@@ -797,7 +798,7 @@ class EnzoHierarchy(AMRHierarchy):
             self.levelNum[level] = len(self.levelIndices[level])
         mylog.debug("Hierarchy fully populated.")
 
-    def __setup_grid_dxs(self):
+    def _setup_grid_dxs(self):
         mylog.debug("Setting up corners and dxs")
         self._setup_grid_corners()
         dx = (self.gridRightEdge[:,0] - self.gridLeftEdge[:,0]) / \
@@ -827,7 +828,7 @@ class EnzoHierarchy(AMRHierarchy):
                     if grid.Parent: grid._guess_properties_from_parent()
                 if pbar: pbar.finish()
 
-    def __setup_field_lists(self):
+    def _setup_field_lists(self):
         field_list = self.get_data("/", "DataFields")
         if field_list == None:
             mylog.info("Gathering a field list (this may take a moment.)")
@@ -862,6 +863,65 @@ class EnzoHierarchy(AMRHierarchy):
         for field in self.field_list:
             if field not in self.derived_field_list:
                 self.derived_field_list.append(field)
+
+class EnzoHierarchyInMemory(EnzoHierarchy):
+    def __init__(self, pf, data_style = 8):
+        import enzo
+        self.float_type = 'float64'
+        self.data_style = data_style # Mandated
+        self.directory = os.getcwd()
+        self.num_grids = na.max(enzo.grid_data.keys())
+        self.queue = DataQueueInMemory()
+        AMRHierarchy.__init__(self, pf)
+
+    def _initialize_data_file(self):
+        pass
+
+    def _populate_hierarchy(self):
+        self._copy_hierarchy_structure()
+        import enzo
+        mylog.debug("Copying reverse tree")
+        self.gridReverseTree = enzo.hierarchy_information["GridParentIDs"].ravel().tolist()
+        # Initial setup:
+        mylog.debug("Reconstructing parent-child relationships")
+        self.gridTree = [ [] for i in range(self.num_grids) ]
+        for id,pid in enumerate(self.gridReverseTree):
+            if pid > 0:
+                self.gridTree[pid-1].append(
+                    weakref.proxy(self.grids[id]))
+            else:
+                self.gridReverseTree[id] = None
+        self.max_level = self.gridLevels.max()
+        self.maxLevel = self.max_level
+        mylog.debug("Preparing grids")
+        for i, grid in enumerate(self.grids):
+            if (i%1e4) == 0: mylog.debug("Prepared % 7i / % 7i grids", i, self.num_grids)
+            grid._prepare_grid()
+        self._setup_grid_dxs()
+        mylog.debug("Prepared")
+        self._setup_field_lists()
+        self.levelIndices = {}
+        self.levelNum = {}
+        ad = self.gridEndIndices - self.gridStartIndices + 1
+        for level in xrange(self.maxLevel+1):
+            self.level_stats[level]['numgrids'] = na.where(self.gridLevels==level)[0].size
+            li = na.where(self.gridLevels[:,0] == level)
+            self.level_stats[level]['numcells'] = ad[li].prod(axis=1).sum()
+            self.levelIndices[level] = self._select_level(level)
+            self.levelNum[level] = len(self.levelIndices[level])
+        mylog.debug("Hierarchy fully populated.")
+
+    def _copy_hierarchy_structure(self):
+        import enzo
+        print dir(enzo)
+        self.gridDimensions[:] = enzo.hierarchy_information["GridDimensions"][:]
+        self.gridStartIndices[:] = enzo.hierarchy_information["GridStartIndices"][:]
+        self.gridEndIndices[:] = enzo.hierarchy_information["GridEndIndices"][:]
+        self.gridLeftEdge[:] = enzo.hierarchy_information["GridLeftEdge"][:]
+        self.gridRightEdge[:] = enzo.hierarchy_information["GridRightEdge"][:]
+        self.gridLevels[:] = enzo.hierarchy_information["GridLevels"][:]
+        self.gridTimes[:] = enzo.hierarchy_information["GridTimes"][:]
+        self.gridNumberOfParticles[:] = enzo.hierarchy_information["GridNumberOfParticles"][:]
 
 scanf_regex = {}
 scanf_regex['e'] = r"[-+]?\d+\.?\d*?|\.\d+[eE][-+]?\d+?"
