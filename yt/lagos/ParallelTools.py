@@ -53,7 +53,14 @@ class GridIterator(object):
             gs = pobj._grids
         else:
             gs = pobj._data_source._grids
-        self._grids = sorted(gs, key = lambda g: g.filename)
+        if hasattr(gs[0], 'proc_num'):
+            # This one sort of knows about MPI, but not quite
+            self._grids = [g for g in gs if g.proc_num ==
+                            ytcfg.getint('yt','__parallel_rank')]
+            self._use_all = True
+        else:
+            self._grids = sorted(gs, key = lambda g: g.filename)
+            self._use_all = False
         self.ng = len(self._grids)
         self.just_list = just_list
 
@@ -80,8 +87,11 @@ class ParallelGridIterator(GridIterator):
         self._skip = MPI.COMM_WORLD.size
         # Note that we're doing this in advance, and with a simple means
         # of choosing them; more advanced methods will be explored later.
-        upper, lower = na.mgrid[0:self.ng:(self._skip+1)*1j][self._offset:self._offset+2]
-        self.my_grid_ids = na.mgrid[upper:lower-1].astype("int64")
+        if self._use_all:
+            self.my_grid_ids = range(len(self._grids))
+        else:
+            upper, lower = na.mgrid[0:self.ng:(self._skip+1)*1j][self._offset:self._offset+2]
+            self.my_grid_ids = na.mgrid[upper:lower-1].astype("int64")
         
     def __iter__(self):
         self.pos = 0

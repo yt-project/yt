@@ -833,13 +833,8 @@ class EnzoHierarchy(AMRHierarchy):
         if field_list == None:
             mylog.info("Gathering a field list (this may take a moment.)")
             field_list = sets.Set()
-            if self.num_grids > 40:
-                starter = na.random.randint(0, 20)
-                random_sample = na.mgrid[starter:len(self.grids)-1:20j].astype("int32")
-                mylog.debug("Checking grids: %s", random_sample.tolist())
-            else:
-                random_sample = na.mgrid[0:max(len(self.grids)-1,1)].astype("int32")
-            for grid in self.grids[(random_sample,)]:
+            random_sample = self._generate_random_grids()
+            for grid in random_sample:
                 gf = grid.getFields()
                 mylog.debug("Grid %s has: %s", grid.id, gf)
                 field_list = field_list.union(sets.Set(gf))
@@ -864,13 +859,22 @@ class EnzoHierarchy(AMRHierarchy):
             if field not in self.derived_field_list:
                 self.derived_field_list.append(field)
 
+    def _generate_random_grids(self):
+        if self.num_grids > 40:
+            starter = na.random.randint(0, 20)
+            random_sample = na.mgrid[starter:len(self.grids)-1:20j].astype("int32")
+            mylog.debug("Checking grids: %s", random_sample.tolist())
+        else:
+            random_sample = na.mgrid[0:max(len(self.grids)-1,1)].astype("int32")
+        return self.grids[(random_sample,)]
+
 class EnzoHierarchyInMemory(EnzoHierarchy):
     def __init__(self, pf, data_style = 8):
         import enzo
         self.float_type = 'float64'
         self.data_style = data_style # Mandated
         self.directory = os.getcwd()
-        self.num_grids = na.max(enzo.grid_data.keys())
+        self.num_grids = enzo.hierarchy_information["GridDimensions"].shape[0]
         self.queue = DataQueueInMemory()
         AMRHierarchy.__init__(self, pf)
 
@@ -884,7 +888,7 @@ class EnzoHierarchyInMemory(EnzoHierarchy):
         self.gridReverseTree = enzo.hierarchy_information["GridParentIDs"].ravel().tolist()
         # Initial setup:
         mylog.debug("Reconstructing parent-child relationships")
-        self.gridTree = [ [] for i in range(self.num_grids) ]
+        #self.gridTree = [ [] for i in range(self.num_grids) ]
         for id,pid in enumerate(self.gridReverseTree):
             if pid > 0:
                 self.gridTree[pid-1].append(
@@ -897,6 +901,7 @@ class EnzoHierarchyInMemory(EnzoHierarchy):
         for i, grid in enumerate(self.grids):
             if (i%1e4) == 0: mylog.debug("Prepared % 7i / % 7i grids", i, self.num_grids)
             grid._prepare_grid()
+            grid.proc_num = self.gridProcs[i,0]
         self._setup_grid_dxs()
         mylog.debug("Prepared")
         self._setup_field_lists()
@@ -921,7 +926,19 @@ class EnzoHierarchyInMemory(EnzoHierarchy):
         self.gridRightEdge[:] = enzo.hierarchy_information["GridRightEdge"][:]
         self.gridLevels[:] = enzo.hierarchy_information["GridLevels"][:]
         self.gridTimes[:] = enzo.hierarchy_information["GridTimes"][:]
+        self.gridProcs = enzo.hierarchy_information["GridProcs"].copy()
         self.gridNumberOfParticles[:] = enzo.hierarchy_information["GridNumberOfParticles"][:]
+
+    def _generate_random_grids(self):
+        my_proc = ytcfg.getint("yt","__parallel_rank")
+        gg = self.grids[self.gridProcs[:,0] == my_proc]
+        if len(gg) > 40:
+            starter = na.random.randint(0, 20)
+            random_sample = na.mgrid[starter:len(gg)-1:20j].astype("int32")
+            mylog.debug("Checking grids: %s", random_sample.tolist())
+        else:
+            random_sample = na.mgrid[0:max(len(gg)-1,1)].astype("int32")
+        return gg[(random_sample,)]
 
 scanf_regex = {}
 scanf_regex['e'] = r"[-+]?\d+\.?\d*?|\.\d+[eE][-+]?\d+?"
