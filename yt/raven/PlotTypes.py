@@ -108,7 +108,6 @@ class RavenPlot:
         self.im = defaultdict(lambda: "")
         self["ParameterFile"] = "%s" % self.data.pf
         self.axis_names = {}
-        self._ax_max = self.data.pf["DomainRightEdge"]
         if not figure:
             self._figure = matplotlib.figure.Figure(size)
         else:
@@ -167,6 +166,8 @@ class RavenPlot:
         """
         Set the z boundaries of this plot.
         """
+        # This next call fixes some things, but is slower...
+        #self._redraw_image()
         self.norm.autoscale(na.array([zmin,zmax]))
         self.image.changed()
         if self.colorbar is not None:
@@ -213,6 +214,24 @@ class RavenPlot:
         self.datalabel = label
         if self.colorbar != None: self.colorbar.set_label(str(label))
 
+    def setup_domain_edges(self, axis):
+        DLE = self.data.pf["DomainLeftEdge"]
+        DRE = self.data.pf["DomainRightEdge"]
+        DD = DRE - DLE
+        if axis < 3:
+            xax = lagos.x_dict[axis]
+            yax = lagos.y_dict[axis]
+            self.xmin = DLE[xax] - DD[xax]
+            self.xmax = DRE[xax] + DD[xax]
+            self.ymin = DLE[yax] - DD[yax]
+            self.ymax = DRE[yax] + DD[yax]
+        else:
+            # Not quite sure how to deal with this, particularly
+            # in the Orion case.  Cutting planes are tricky.
+            self.xmin = self.ymin = 0.0
+            self.xmax = self.ymax = 1.0
+
+
 class VMPlot(RavenPlot):
     _antialias = True
     def __init__(self, data, field, figure = None, axes = None,
@@ -224,14 +243,8 @@ class VMPlot(RavenPlot):
         RavenPlot.__init__(self, data, fields, figure, axes, size=size)
         self._figure.subplots_adjust(hspace=0, wspace=0, bottom=0.0,
                                     top=1.0, left=0.0, right=1.0)
-        self.xmin = 0.0
-        self.ymin = 0.0
-        self.xmax = 1.0
-        self.ymax = 1.0
+        self.setup_domain_edges(self.data.axis)
         self.cmap = None
-        if self.data.axis < 3:
-            self._x_max = self._ax_max[lagos.x_dict[self.data.axis]]
-            self._y_max = self._ax_max[lagos.y_dict[self.data.axis]]
         self.__setup_from_field(field)
         self.__init_temp_image(use_colorbar)
 
@@ -269,7 +282,7 @@ class VMPlot(RavenPlot):
                                                   shrink=0.95)
         else:
             self.colorbar = None
-        self.set_width(1,'1')
+        self.set_width(1,'unitary')
 
     def _get_buff(self, width=None):
         x0, x1 = self.xlim
@@ -295,16 +308,16 @@ class VMPlot(RavenPlot):
         self._axes.clear() # To help out the colorbar
         buff = self._get_buff()
         mylog.debug("Received buffer of min %s and max %s (%s %s)",
-                    buff.min(), buff.max(),
+                    na.nanmin(buff), na.nanmax(buff),
                     self[self.axis_names["Z"]].min(),
                     self[self.axis_names["Z"]].max())
         if self.log_field:
             bI = na.where(buff > 0)
-            newmin = buff[bI].min()
-            newmax = buff[bI].max()
+            newmin = na.nanmin(buff[bI])
+            newmax = na.nanmax(buff[bI])
         else:
-            newmin = buff.min()
-            newmax = buff.max()
+            newmin = na.nanmin(buff)
+            newmax = na.nanmax(buff)
         if self.do_autoscale:
             self.norm.autoscale(na.array((newmin,newmax)))
         self.image = \
@@ -365,13 +378,13 @@ class VMPlot(RavenPlot):
         r_edge_x = self.data.center[lagos.x_dict[self.data.axis]] + width_x/2.0
         l_edge_y = self.data.center[lagos.y_dict[self.data.axis]] - width_y/2.0
         r_edge_y = self.data.center[lagos.y_dict[self.data.axis]] + width_y/2.0
-        self.set_xlim(max(l_edge_x,0.0), min(r_edge_x,self._x_max))
-        self.set_ylim(max(l_edge_y,0.0), min(r_edge_y,self._y_max))
+        self.set_xlim(max(l_edge_x,self.xmin), min(r_edge_x,self.xmax))
+        self.set_ylim(max(l_edge_y,self.ymin), min(r_edge_y,self.ymax))
         self._redraw_image()
 
     def autoscale(self):
-        zmin = self._axes.images[-1]._A.min()
-        zmax = self._axes.images[-1]._A.max()
+        zmin = na.nanmin(self._axes.images[-1]._A)
+        zmax = na.nanmax(self._axes.images[-1]._A)
         self.set_zlim(zmin, zmax)
 
     def switch_y(self, *args, **kwargs):

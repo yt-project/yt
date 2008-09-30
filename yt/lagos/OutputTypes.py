@@ -207,6 +207,7 @@ class EnzoStaticOutput(StaticOutput):
             self._setup_nounits_units()
         self.time_units['1'] = 1
         self.units['1'] = 1
+        self.units['unitary'] = 1.0 / (self["DomainRightEdge"] - self["DomainLeftEdge"]).max()
         seconds = self["Time"]
         self.time_units['years'] = seconds / (365*3600*24.0)
         self.time_units['days']  = seconds / (3600*24.0)
