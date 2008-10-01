@@ -22,6 +22,7 @@
 # If you don't want to install wxPython, turn this to zero
 INST_WXPYTHON=1
 INST_IPYTHON=1
+INST_ZLIB=0
 # If you've got YT some other place, set this to point to it.
 #YT_DIR=
 
@@ -51,6 +52,7 @@ then
     [ ! -e hdf5-1.6.7.tar.gz ] && wget ftp://ftp.hdfgroup.org/HDF5/current16/src/hdf5-1.6.7.tar.gz
 fi
 
+[ $INST_ZLIB -eq 1 ] && [ ! -e zlib-1.2.3.tar.bz2 ] && wget http://www.zlib.net/zlib-1.2.3.tar.bz2
 [ ! -e Python-2.5.2.tgz ] && wget http://python.org/ftp/python/2.5.2/Python-2.5.2.tgz
 [ ! -e pytables-2.0.4.tar.gz ] && wget http://www.pytables.org/download/stable/pytables-2.0.4.tar.gz
 [ ! -e matplotlib-0.91.4.tar.gz ] && wget "http://downloads.sourceforge.net/matplotlib/matplotlib-0.91.4.tar.gz"
@@ -74,16 +76,36 @@ then
     echo Setting YT_DIR=${YT_DIR}
 fi
 
-if [ -z "$HDF5_DIR" ] && [ ! -e hdf5-1.6.7/done ]
+if [ $INST_ZLIB -eq 1 ]
 then
-    [ ! -e hdf5-1.6.7 ] && tar xvfz hdf5-1.6.7.tar.gz
-    echo "Doing HDF5"
-    cd hdf5-1.6.7
-    ./configure --prefix=${DEST_DIR}/ || exit 1
-    make install || exit 1
-    touch done
+    if [ ! -e zlib-1.2.3/done ]
+    then
+        [ ! -e zlib-1.2.3 ] && tar xvfj zlib-1.2.3.tar.bz2
+        echo "Doing ZLIB"
+        cd zlib-1.2.3
+        ./configure --shared --prefix=${DEST_DIR}/ || exit 1
+        make install || exit 1
+        touch done
+        cd ..
+    fi
+    ZLIB_DIR=${DEST_DIR}
+    LDFLAGS="${LDFLAGS} -L${ZLIB_DIR}/lib/"
+    LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:${ZLIB_DIR}/lib/"
+fi
+
+if [ -z "$HDF5_DIR" ]
+then
+    if [ ! -e hdf5-1.6.7/done ]
+    then
+        [ ! -e hdf5-1.6.7 ] && tar xvfz hdf5-1.6.7.tar.gz
+        echo "Doing HDF5"
+        cd hdf5-1.6.7
+        ./configure --prefix=${DEST_DIR}/ || exit 1
+        make install || exit 1
+        touch done
+        cd ..
+    fi
     HDF5_DIR=${DEST_DIR}
-    cd ..
 fi
 
 if [ ! -e Python-2.5.2/done ]
@@ -167,6 +189,7 @@ MY_PWD=`pwd`
 cd $YT_DIR
 svn up
 echo $HDF5_DIR > hdf5.cfg
+${DEST_DIR}/bin/python2.5 ez_setup.py
 ${DEST_DIR}/bin/python2.5 setup.py install || exit 1
 touch done
 cd $MY_PWD
