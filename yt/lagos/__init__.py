@@ -74,9 +74,9 @@ from HelperFunctions import *
 import PointCombine
 import HDF5LightReader
 from EnzoDefs import *
+from ParallelTools import *
 from DerivedFields import *
 from DerivedQuantities import DerivedQuantityCollection, GridChildMaskWrapper
-from ParallelTools import *
 from DataReadingFuncs import *
 from ClusterFiles import *
 from ContourFinder import *

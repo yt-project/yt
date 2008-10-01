@@ -230,14 +230,23 @@ class DataQueueInMemory(BaseDataQueue):
     def __init__(self, ghost_zones=3):
         import enzo
         self.grids_in_memory = enzo.grid_data
+        self.old_grids_in_memory = enzo.old_grid_data
         self.my_slice = (slice(ghost_zones,-ghost_zones),
                       slice(ghost_zones,-ghost_zones),
                       slice(ghost_zones,-ghost_zones))
         BaseDataQueue.__init__(self)
 
     def _read_set(self, grid, field):
+        import enzo
         if grid.id not in self.grids_in_memory: raise KeyError
+        t1 = enzo.yt_parameter_file["InitialTime"]
+        t2 = enzo.hierarchy_information["GridOldTimes"][grid.id - 1]
+        coef1 = max((grid.Time - t1)/(grid.Time - t2), 0.0)
+        coef2 = 1.0 - coef1
         return self.grids_in_memory[grid.id][field][self.my_slice]
+        return (coef1*self.grids_in_memory[grid.id][field] + \
+                coef2*self.old_grids_in_memory[grid.id][field])\
+                [self.my_slice]
 
     def modify(self, field):
         return field.swapaxes(0,2)

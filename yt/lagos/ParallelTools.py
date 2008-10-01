@@ -88,10 +88,12 @@ class ParallelGridIterator(GridIterator):
         # Note that we're doing this in advance, and with a simple means
         # of choosing them; more advanced methods will be explored later.
         if self._use_all:
-            self.my_grid_ids = range(len(self._grids))
+            self.my_grid_ids = na.arange(len(self._grids))
         else:
-            upper, lower = na.mgrid[0:self.ng:(self._skip+1)*1j][self._offset:self._offset+2]
-            self.my_grid_ids = na.mgrid[upper:lower-1].astype("int64")
+            #upper, lower = na.mgrid[0:self.ng:(self._skip+1)*1j][self._offset:self._offset+2]
+            #self.my_grid_ids = na.mgrid[upper:lower-1].astype("int64")
+            self.my_grid_ids = na.array_split(
+                            na.arange(len(self._grids)), self._skip)[self._offset]
         
     def __iter__(self):
         self.pos = 0
@@ -162,6 +164,26 @@ class ParallelAnalysisInterface(object):
         for i in range(1,MPI.COMM_WORLD.size):
             buf = MPI.COMM_WORLD.Recv(source=i, tag=0)
             for j in buf: data[j] = na.concatenate([data[j],buf[j]], axis=-1)
+        return data
+
+    def __mpi_recvlist(self, data):
+        # First we receive, then we make a new list.
+        for i in range(1,MPI.COMM_WORLD.size):
+            buf = MPI.COMM_WORLD.Recv(source=i, tag=0)
+            data += buf
+        return na.array(data)
+
+    def _mpi_catlist(self, data):
+        if not parallel_capable: return data
+        mylog.debug("Opening MPI Barrier on %s", MPI.COMM_WORLD.rank)
+        MPI.COMM_WORLD.Barrier()
+        if MPI.COMM_WORLD.rank == 0:
+            data = self.__mpi_recvlist(data)
+        else:
+            MPI.COMM_WORLD.Send(data, dest=0, tag=0)
+        mylog.debug("Opening MPI Broadcast on %s", MPI.COMM_WORLD.rank)
+        data = MPI.COMM_WORLD.Bcast(data, root=0)
+        MPI.COMM_WORLD.Barrier()
         return data
 
     def _should_i_write(self):

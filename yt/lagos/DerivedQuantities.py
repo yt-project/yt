@@ -31,51 +31,50 @@ from yt.funcs import get_pbar, wraps
 quantity_info = {}
 
 class GridChildMaskWrapper:
-    def __init__(self, grid, data_object):
+    def __init__(self, grid, data_source):
         self.grid = grid
-        self.data_object = data_object
+        self.data_source = data_source
     def __getattr__(self, attr):
         return getattr(self.grid, attr)
     def __getitem__(self, item):
-        return self.data_object._get_data_from_grid(self.grid, item)
+        return self.data_source._get_data_from_grid(self.grid, item)
 
-def func_wrapper(quantities_collection, quantities_object):
-    func = quantities_object.function
-    c_func = quantities_object.combine_function
-    data_object = quantities_collection.data_object
-    def call_func_unlazy(args, kwargs):
-        retval = func(data_object, *args, **kwargs)
-        return c_func(data_object, *retval)
-    def call_func_lazy(args, kwargs):
-        n_ret = quantities_object.n_ret
-        retvals = [ [] for i in range(n_ret)]
-        pbar = get_pbar("Calculating ", len(data_object._grids))
-        for gi,g in enumerate(data_object._grids):
-            rv = func(GridChildMaskWrapper(g, data_object), *args, **kwargs)
-            for i in range(n_ret): retvals[i].append(rv[i])
-            g.clear_data()
-            pbar.update(gi)
-        pbar.finish()
-        retvals = [na.array(retvals[i]) for i in range(n_ret)]
-        return c_func(data_object, *retvals)
-    @wraps(func)
-    def call_func(*args, **kwargs):
-        lazy_reader = kwargs.pop('lazy_reader', False)
-        if lazy_reader and not quantities_object.force_unlazy:
-            return call_func_lazy(args, kwargs)
-        else:
-            return call_func_unlazy(args, kwargs)
-    return call_func
-
-class DerivedQuantity(object):
-    def __init__(self, name, function,
+class DerivedQuantity(ParallelAnalysisInterface):
+    def __init__(self, collection, name, function,
                  combine_function, units = "",
                  n_ret = 0, force_unlazy=False):
-        self.name = name
-        self.function = function
-        self.combine_function = combine_function
+        # We wrap the function with our object
+        self.__doc__ = function.__doc__
+        self.__name__ = name
+        self.collection = collection
+        self._data_source = collection.data_source
+        self.func = function
+        self.c_func = combine_function
         self.n_ret = n_ret
         self.force_unlazy = force_unlazy
+
+    def __call__(self, *args, **kwargs):
+        lazy_reader = kwargs.pop('lazy_reader', False)
+        if lazy_reader and not self.force_unlazy:
+            return self._call_func_lazy(args, kwargs)
+        else:
+            return self._call_func_unlazy(args, kwargs)
+
+    def _call_func_lazy(self, args, kwargs):
+        self.retvals = [ [] for i in range(self.n_ret)]
+        for gi,g in enumerate(self._get_grids()):
+            rv = self.func(GridChildMaskWrapper(g, self._data_source), *args, **kwargs)
+            for i in range(self.n_ret): self.retvals[i].append(rv[i])
+            g.clear_data()
+        self.retvals = [na.array(self.retvals[i]) for i in range(self.n_ret)]
+        return self.c_func(self._data_source, *self.retvals)
+
+    def _finalize_parallel(self):
+        self.retvals = [self._mpi_catlist(my_list) for my_list in self.retvals]
+        
+    def _call_func_unlazy(self, args, kwargs):
+        retval = self.func(self._data_source, *args, **kwargs)
+        return self.c_func(self._data_source, *retval)
 
 def add_quantity(name, **kwargs):
     if 'function' not in kwargs or 'combine_function' not in kwargs:
@@ -83,22 +82,27 @@ def add_quantity(name, **kwargs):
         return
     f = kwargs.pop('function')
     c = kwargs.pop('combine_function')
-    quantity_info[name] = DerivedQuantity(name, f, c, **kwargs)
+    quantity_info[name] = (name, f, c, kwargs)
 
 class DerivedQuantityCollection(object):
     functions = quantity_info
-    def __init__(self, data_object):
-        self.data_object = data_object
+    def __init__(self, data_source):
+        self.data_source = data_source
 
     def __getitem__(self, key):
         if key not in self.functions:
             raise KeyError(key)
-        return func_wrapper(self, self.functions[key])
+        args = self.functions[key][:3]
+        kwargs = self.functions[key][3]
+        # Instantiate here, so we can pass it the data object
+        # Note that this means we instantiate every time we run help, etc
+        # I have made my peace with this.
+        return DerivedQuantity(self, *args, **kwargs)
 
     def keys(self):
         return self.functions.keys()
 
-def _TotalMass(data):
+def _TotalMass(self, data):
     """
     This function takes no arguments and returns the sum of cell masses and
     particle masses in the object.
@@ -227,7 +231,7 @@ def _IsBound(data, truncate = True, include_thermal_energy = False):
                                   data['x'],data['y'],data['z'],
                                   truncate, kinetic/(2*G))
     return [(pot / kinetic)]
-def _combIsBound(data,bound):
+def _combIsBound(data, bound):
     return bound
 add_quantity("IsBound",function=_IsBound,combine_function=_combIsBound,n_ret=1,
              force_unlazy=True)
@@ -276,4 +280,3 @@ def _combTotalQuantity(data, n_fields, totals):
     return [na.sum(totals[:,i]) for i in range(n_fields)]
 add_quantity("TotalQuantity", function=_TotalQuantity,
                 combine_function=_combTotalQuantity, n_ret=2)
-        

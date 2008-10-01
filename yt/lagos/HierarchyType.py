@@ -243,9 +243,6 @@ class AMRHierarchy:
                 maxGrid = grid
         mc = na.array(maxCoord)
         pos=maxGrid.get_position(mc)
-        pos[0] += 0.5*maxGrid.dx
-        pos[1] += 0.5*maxGrid.dx
-        pos[2] += 0.5*maxGrid.dx
         mylog.info("Max Value is %0.5e at %0.16f %0.16f %0.16f in grid %s at level %s %s", \
               maxVal, pos[0], pos[1], pos[2], maxGrid, maxGrid.Level, mc)
         self.center = pos
@@ -275,9 +272,6 @@ class AMRHierarchy:
                 minGrid = grid
         mc = na.array(minCoord)
         pos=minGrid.get_position(mc)
-        pos[0] += 0.5*minGrid.dx
-        pos[1] += 0.5*minGrid.dx
-        pos[2] += 0.5*minGrid.dx
         mylog.info("Min Value is %0.5e at %0.16f %0.16f %0.16f in grid %s at level %s", \
               minVal, pos[0], pos[1], pos[2], minGrid, minGrid.Level)
         self.center = pos
@@ -394,39 +388,6 @@ class AMRHierarchy:
                     g, gi = self.get_box_grids(nle, nre)
                     mask[gi] = True
         return self.grids[mask], na.where(mask)
-
-    @time_execution
-    def find_max(self, field, finestLevels = True):
-        """
-        Returns (value, center) of location of maximum for a given field.
-        """
-        if finestLevels:
-            gI = na.where(self.gridLevels >= self.maxLevel - NUMTOCHECK)
-        else:
-            gI = na.where(self.gridLevels >= 0) # Slow but pedantic
-        maxVal = -1e100
-        for grid in self.grids[gI[0]]:
-            mylog.debug("Checking %s (level %s)", grid.id, grid.Level)
-            val, coord = grid.find_max(field)
-            if val > maxVal:
-                maxCoord = coord
-                maxVal = val
-                maxGrid = grid
-        mc = na.array(maxCoord)
-        pos=maxGrid.get_position(mc)
-        pos[0] += 0.5*maxGrid.dx
-        pos[1] += 0.5*maxGrid.dx
-        pos[2] += 0.5*maxGrid.dx
-        mylog.info("Max Value is %0.5e at %0.16f %0.16f %0.16f in grid %s at level %s %s", \
-              maxVal, pos[0], pos[1], pos[2], maxGrid, maxGrid.Level, mc)
-        self.center = pos
-        # This probably won't work for anyone else
-        self.bulkVelocity = (maxGrid["x-velocity"][maxCoord], \
-                             maxGrid["y-velocity"][maxCoord], \
-                             maxGrid["z-velocity"][maxCoord])
-        self.parameters["Max%sValue" % (field)] = maxVal
-        self.parameters["Max%sPos" % (field)] = "%s" % (pos)
-        return maxVal, pos
 
     @time_execution
     def export_particles_pb(self, filename, filter = 1, indexboundary = 0, fields = None, scale=1.0):
@@ -603,7 +564,10 @@ class EnzoHierarchy(AMRHierarchy):
     def __setup_filemap(self, grid):
         if not self.data_style == 6:
             return
-        self.cpu_map[grid.filename].append(grid)
+        try:
+            self.cpu_map[grid.filename].append(grid)
+        except AttributeError:
+            pass
 
     def __del__(self):
         self._close_data_file()
@@ -701,16 +665,13 @@ class EnzoHierarchy(AMRHierarchy):
         # This needs to go elsewhere:
         # Now get the baryon filenames
         mylog.debug("Getting baryon filenames")
-        re_BaryonFileName = constructRegularExpressions("BaryonFileName",('s'))
-        fn_results = re.findall(re_BaryonFileName, self.__hierarchy_string)
-        if len(fn_results):
-            self.__set_all_filenames(fn_results)
-            return
-        re_BaryonFileName = constructRegularExpressions("FileName",('s'))
-        fn_results = re.findall(re_BaryonFileName, self.__hierarchy_string)
-        self.__set_all_filenames(fn_results)
-        # This is pretty bad, but we do it to save a significant amount of time
-        # in larger runs.
+        for patt in ["BaryonFileName", "FileName", "ParticleFileName"]:
+            re_FileName = constructRegularExpressions(patt,('s'))
+            fn_results = re.findall(re_FileName, self.__hierarchy_string)
+            if len(fn_results):
+                print patt
+                self.__set_all_filenames(fn_results)
+                return
 
     def __setup_grid_tree(self):
         mylog.debug("No cached tree found, creating")
@@ -835,7 +796,12 @@ class EnzoHierarchy(AMRHierarchy):
             field_list = sets.Set()
             random_sample = self._generate_random_grids()
             for grid in random_sample:
-                gf = grid.getFields()
+                if not hasattr(grid, 'filename'): continue
+                try:
+                    gf = grid.getFields()
+                except grid._read_exception:
+                    mylog.debug("Grid %s is a bit funky?", grid.id)
+                    continue
                 mylog.debug("Grid %s has: %s", grid.id, gf)
                 field_list = field_list.union(sets.Set(gf))
             self.save_data(list(field_list),"/","DataFields")
