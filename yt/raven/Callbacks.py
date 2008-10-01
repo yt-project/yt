@@ -133,8 +133,8 @@ class ParticleCallback(PlotCallback):
         goodI = na.where( (self.particles_x < x1) & (self.particles_x > x0)
                         & (self.particles_y < y1) & (self.particles_y > y0)
                         & (self.particles_z < z1) & (self.particles_z > z0))
-        particles_x = (self.particles_x[goodI] - x0) * (xx1-xx0)/(x1-x0)
-        particles_y = (self.particles_y[goodI] - y0) * (yy1-yy0)/(y1-y0)
+        particles_x = (self.particles_x[goodI] - x0) * (xx1-xx0)/(x1-x0) + xx0
+        particles_y = (self.particles_y[goodI] - y0) * (yy1-yy0)/(y1-y0) + yy0
         if not self.color_field: particles_c = self.color
         else: particles_c = self.particles_c[goodI]
         plot._axes.hold(True)
