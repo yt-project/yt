@@ -130,15 +130,17 @@ static PyObject* Py_Pixelize(PyObject *obj, PyObject *args) {
       *(npy_float64*) PyArray_GETPTR2(my_array, j, i) = 0.0;
   for(p=0;p<nx;p++)
   {
+    // these are cell-centered
     xsp = *((npy_float64 *)PyArray_GETPTR1(x, p));
     ysp = *((npy_float64 *)PyArray_GETPTR1(y, p));
+    // half-width
     dxsp = *((npy_float64 *)PyArray_GETPTR1(dx, p));
     dysp = *((npy_float64 *)PyArray_GETPTR1(dy, p));
     dsp = *((npy_float64 *)PyArray_GETPTR1(d, p));
     if(xsp + dxsp < x_min) (xsp+=period_x);
-    else if (xsp+dxsp > x_max) (xsp-=period_x);
+    else if (xsp-dxsp > x_max) (xsp-=period_x);
     if(ysp + dysp < y_min) (ysp+=period_y);
-    else if (ysp+dysp > y_max) (ysp-=period_y);
+    else if (ysp-dysp > y_max) (ysp-=period_y);
     if(((xsp+dxsp<x_min) ||
         (xsp-dxsp>x_max)) ||
        ((ysp+dysp<y_min) ||
