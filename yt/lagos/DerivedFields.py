@@ -38,6 +38,11 @@ from math import pi
 
 from yt.funcs import *
 
+try:
+    import cic_deposit
+except ImportError:
+    pass
+
 mh = 1.67e-24 # g
 me = 9.11e-28 # g
 sigma_thompson = 6.65e-25 # cm^2
@@ -912,6 +917,18 @@ for ax in ['x','y','z']:
     f._units = r"\rm{cm}/\rm{s}"
     f._convert_function = _convertVelocity
     f.take_log = False
+
+def _pdensity(field, data):
+    blank = na.zeros(data.ActiveDimensions, dtype='float32', order="FORTRAN")
+    if data.NumberOfParticles == 0: return blank
+    cic_deposit.cic_deposit(data["particle_position_x"],
+                            data["particle_position_y"],
+                            data["particle_position_z"], 3,
+                            data["particle_mass"],
+                            blank, data.LeftEdge, data.dx)
+    return blank
+add_field("particle_density", function=_pdensity,
+          validators=[ValidateSpatial(0)])
 
 fieldInfo["Temperature"].units = r"K"
 

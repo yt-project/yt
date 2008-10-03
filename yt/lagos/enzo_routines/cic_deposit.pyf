@@ -1,0 +1,24 @@
+!    -*- f90 -*-
+! Note: the context of this file is case sensitive.
+
+python module cic_deposit ! in 
+    interface  ! in :cic_deposit
+        subroutine cic_deposit(posx,posy,posz,ndim,npositions,mass,field,leftedge,dim1,dim2,dim3,cellsize) ! in :cic_deposit:cic_deposit.f
+            real*8 dimension(npositions),intent(in) :: posx
+            real*8 dimension(npositions),intent(in),depend(npositions) :: posy
+            real*8 dimension(npositions),intent(in),depend(npositions) :: posz
+            integer intent(in) :: ndim
+            integer optional,check(len(posx)>=npositions),depend(posx) :: npositions=len(posx)
+            real dimension(npositions),intent(in),depend(npositions) :: mass
+            real dimension(dim1,dim2,dim3),intent(inout) :: field
+            real*8 dimension(3),intent(in) :: leftedge
+            integer optional,intent(hide),check(shape(field,0)==dim1),depend(field) :: dim1=shape(field,0)
+            integer optional,intent(hide),check(shape(field,1)==dim2),depend(field) :: dim2=shape(field,1)
+            integer optional,intent(hide),check(shape(field,2)==dim3),depend(field) :: dim3=shape(field,2)
+            real intent(in) :: cellsize
+        end subroutine cic_deposit
+    end interface 
+end python module cic_deposit
+
+! This file was auto-generated with f2py (version:2_4422).
+! See http://cens.ioc.ee/projects/f2py2e/

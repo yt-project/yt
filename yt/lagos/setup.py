@@ -30,6 +30,9 @@ def configuration(parent_package='',top_path=None):
         config.add_extension("HDF5LightReader", "yt/lagos/HDF5LightReader.c",
                              libraries=["m","hdf5"],
                              library_dirs=library_dirs, include_dirs=include_dirs)
+    # Uncomment the next two lines if you want particle_density support
+    #config.add_extension("cic_deposit", ["yt/lagos/enzo_routines/cic_deposit.pyf",
+    #                                     "yt/lagos/enzo_routines/cic_deposit.f"])
     if 0:
         sys.argv.extend(["config_fc","--f77flags",
                          "'-Dr16 -ffixed-line-length-132 -fno-second-underscore -DPYFORT -DNOMETALS -ggdb -O0'"])
