@@ -826,7 +826,7 @@ class EnzoProjBase(Enzo2DData, ParallelAnalysisInterface):
         """
         Enzo2DData.__init__(self, axis, field, pf, node_name = None, **kwargs)
         self.center = center
-        self._initialize_source()
+        self._initialize_source(source)
         self._grids = self.source._grids
         if max_level == None:
             max_level = self.hierarchy.maxLevel
