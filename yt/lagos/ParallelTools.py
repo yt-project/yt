@@ -24,6 +24,7 @@ License:
 """
 
 from yt.lagos import *
+from yt.funcs import *
 import yt.logger
 import itertools
 
