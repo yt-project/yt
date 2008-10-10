@@ -1507,15 +1507,14 @@ class EnzoPeriodicRegionBase(Enzo3DData):
         if self._is_fully_enclosed(grid):
             return True
         else:
-            cm = na.array(na.shape(grid['x'])[0],dtype=bool)
-            offsets = na.array([-1,0,1])
+            cm = na.zeros(grid.ActiveDimensions,dtype='bool')
             for off_x, off_y, off_z in self.offsets:
-                cm = cm | ( (grid['x'] < self.right_edge[0]+off_x)
-                          & (grid['x'] >= self.left_edge[0]+off_x)
-                          & (grid['y'] < self.right_edge[1]+off_y)
-                          & (grid['y'] >= self.left_edge[1]+off_y)
-                          & (grid['z'] < self.right_edge[2]+off_z)
-                          & (grid['z'] >= self.left_edge[2]+off_z) )
+                cm = cm | ( (grid['x'] + off_x < self.right_edge[0])
+                          & (grid['x'] + off_x >= self.left_edge[0])
+                          & (grid['y'] + off_y < self.right_edge[1])
+                          & (grid['y'] + off_y >= self.left_edge[1])
+                          & (grid['z'] + off_z < self.right_edge[2])
+                          & (grid['z'] + off_z >= self.left_edge[2]) )
             return cm
 
 class EnzoGridCollection(Enzo3DData):
