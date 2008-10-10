@@ -28,7 +28,7 @@ License:
 from enthought.tvtk.tools import ivtk
 from enthought.tvtk.api import tvtk 
 from enthought.traits.api import Float, HasTraits, Instance, Range, Any, \
-                                 Delegate, Tuple
+                                 Delegate, Tuple, File, Int, Str, CArray
 
 #from yt.reason import *
 import sys
@@ -36,31 +36,81 @@ import numpy as na
 import yt.lagos as lagos
 from yt.funcs import *
 
-#from enthought.pyface.tvtk.wxVTKRenderWindowInteractor \
-     #import wxVTKRenderWindowInteractor
+from enthought.tvtk.pyface.ui.wx.wxVTKRenderWindowInteractor \
+     import wxVTKRenderWindowInteractor
 
-#wxVTKRenderWindowInteractor.USE_STEREO = 1
+wxVTKRenderWindowInteractor.USE_STEREO = 1
 
 class IVTKScene(object):
     def __init__(self):
-        window = ivtk.IVTKWithCrustAndBrowser(size=(800,600))
+        window = ivtk.IVTKWithCrustAndBrowser(size=(800,600), stereo=True)
         window.open()
         self.window = window
         self.scene = window.scene
 
-class ExtractedVTKHierarchicalDataSet(IVTKScene):
+class TVTKMapperWidget(HasTraits):
+    lookup_table = Instance(tvtk.LookupTable)
+    alpha_range = Tuple(Float(1.0), Float(1.0))
+    post_call = Any
 
+    def _alpha_range_changed(self, old, new):
+        self.lookup_table.alpha_range = new
+        self.post_call()
+
+class MappingPlane(TVTKMapperWidget):
+    plane = Instance(tvtk.Plane)
+
+    def __init__(self, vmin, vmax, vdefault, **traits):
+        HasTraits.__init__(self, **traits)
+        trait = Range(float(vmin), float(vmax), value=vdefault)
+        self.add_trait("coord", trait)
+        self.coord = vdefault
+
+    def _coord_changed(self, old, new):
+        orig = self.plane.origin[:]
+        orig[self.axis] = new
+        self.plane.origin = orig
+        self.post_call()
+
+class MappingMarchingCubes(TVTKMapperWidget):
+    cubes = Instance(tvtk.MarchingCubes)
+
+    def __init__(self, vmin, vmax, vdefault, **traits):
+        HasTraits.__init__(self, **traits)
+        trait = Range(float(vmin), float(vmax), value=vdefault)
+        self.add_trait("value", trait)
+        self.value = vdefault
+
+    def _value_changed(self, old, new):
+        self.cubes.set_value(0, new)
+        self.post_call()
+
+
+class ExtractedVTKHierarchicalDataSet(HasTraits):
+
+    parameter_fn = File(filter=["*.hierarchy"])
+    base_grid_level = Int(22)
+    field = Str("Density")
+    scene_frame = Instance(IVTKScene)
+    center = CArray(shape = (3,), dtype = 'float64')
+    
+    
     _gid = 0 # AMRBoxes require unique ids
     _grid_boundaries_shown = False
     _grid_boundaries_actor = None
 
-    def __init__(self, base_grid, field = "Density", 
+    def _scene_frame_default(self):
+        return IVTKScene()
+
+    def _center_default(self):
+        return [0.5,0.5,0.5]
+
+    def _parameter_fn_changed(self, 
                  scene_frame = None, center = None):
-        base_gird = ensure_list(base_grid)
-        if scene_frame is None: scene_frame = IVTKScene()
-        self.scene_frame = scene_frame
+        pf = lagos.EnzoStaticOutput(self.parameter_fn[:-10])
+        base_grid = pf.h.select_grids(self.base_grid_level).tolist()
+        center = pf.h.find_max("Density")[1]
         self.scene = self.scene_frame.scene
-        self.field = field
         self._take_log = True
         self._grids = []
         self._vtk_objs = []
@@ -70,7 +120,7 @@ class ExtractedVTKHierarchicalDataSet(IVTKScene):
         self._zs = []
         self._vals = []
         self.operators = []
-        self._oleft_edge = na.min([grid.LeftEdge for grid in base_grid], axis=1)
+        self._oleft_edge = na.min([grid.LeftEdge for grid in base_grid], axis=0)
         self._base_level = base_grid[0].Level
         self._hdata_set = tvtk.HierarchicalBoxDataSet()
         self._mult_factor = 2**base_grid[0].Level
@@ -78,9 +128,10 @@ class ExtractedVTKHierarchicalDataSet(IVTKScene):
         self._max_val = -1e60
         self.left_edge = na.zeros(3, dtype='float64')
         #self.right_edge = (base_grid.RightEdge - base_grid.LeftEdge)*self._mult_factor
-        self.right_edge = (na.max([grid.RightEdge for grid in base_grid], axis=1) -
+        self.right_edge = (na.max([grid.RightEdge for grid in base_grid], axis=0) -
                                 self._oleft_edge) * self._mult_factor
         if center is None: center = (base_grid.RightEdge - base_grid.LeftEdge)/2.0
+        print center, self._oleft_edge, self._mult_factor
         self.center = (center - self._oleft_edge)*self._mult_factor
         for grid in base_grid:
             self._add_grid(grid)
@@ -120,11 +171,9 @@ class ExtractedVTKHierarchicalDataSet(IVTKScene):
         self._max_val = max(self._max_val, scalars.max())
         ug.point_data.scalars = scalars.ravel()
         ug.point_data.scalars.name = self.field
-        ab = tvtk.AMRBox()
-        ab.set_lo_corner(left_index)
-        ab.set_hi_corner(right_index)
         self._ugs.append(ug)
-        self._hdata_set.set_data_set(grid.Level-self._base_level, self._gid, ab, ug)
+        self._hdata_set.set_data_set(grid.Level-self._base_level, self._gid,
+                                     left_index, right_index, ug)
         self._gid +=1
         # This is cheap, so we can set it every time
         self._hdata_set.set_refinement_ratio(grid.Level-self._base_level, 2)
@@ -270,43 +319,6 @@ class ExtractedVTKHierarchicalDataSet(IVTKScene):
     def _convert_coords(self, val):
         return (self.val - self._oleft_edge)*self._mult_factor
 
-class TVTKMapperWidget(HasTraits):
-    lookup_table = Instance(tvtk.LookupTable)
-    alpha_range = Tuple(Float(1.0), Float(1.0))
-    post_call = Any
-
-    def _alpha_range_changed(self, old, new):
-        self.lookup_table.alpha_range = new
-        self.post_call()
-
-class MappingPlane(TVTKMapperWidget):
-    plane = Instance(tvtk.Plane)
-
-    def __init__(self, vmin, vmax, vdefault, **traits):
-        HasTraits.__init__(self, **traits)
-        trait = Range(float(vmin), float(vmax), value=vdefault)
-        self.add_trait("coord", trait)
-        self.coord = vdefault
-
-    def _coord_changed(self, old, new):
-        orig = self.plane.origin[:]
-        orig[self.axis] = new
-        self.plane.origin = orig
-        self.post_call()
-
-class MappingMarchingCubes(TVTKMapperWidget):
-    cubes = Instance(tvtk.MarchingCubes)
-
-    def __init__(self, vmin, vmax, vdefault, **traits):
-        HasTraits.__init__(self, **traits)
-        trait = Range(float(vmin), float(vmax), value=vdefault)
-        self.add_trait("value", trait)
-        self.value = vdefault
-
-    def _value_changed(self, old, new):
-        self.cubes.set_value(0, new)
-        self.post_call()
-
 def get_all_parents(grid):
     parents = []
     if len(grid.Parents) == 0: return grid
@@ -321,16 +333,9 @@ if __name__=="__main__":
     sys.exit()
     import yt.lagos as lagos
 
-    #pf = lagos.EnzoStaticOutput("/Users/matthewturk/Research/data/ivtk/DataDump0017")
-    pf = lagos.EnzoStaticOutput("/Users/matthewturk/Research/data/galaxy1200.dir/galaxy1200")
-    #pf = lagos.EnzoStaticOutput("/Volumes/LaCie/data/dcollins/DD0514/DD0514/data0514")
-    v, c = pf.h.find_max("Density")
-    #g = pf.h.grids[1883].Parent.Parent.Parent.Parent
-    g = pf.h.grids[0]
-
     from enthought.pyface.api import GUI
     gui = GUI()
-    #ehds = ExtractedVTKHierarchicalDataSet(pf.h.select_grids(0)[0], center=c)
-    ehds = ExtractedVTKHierarchicalDataSet([g], center=c)
+    ehds = ExtractedVTKHierarchicalDataSet()
+    ehds.configure_traits()
     ehds.toggle_grid_boundaries()
     gui.start_event_loop()
