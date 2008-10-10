@@ -3,6 +3,8 @@ Various non-grid data containers.
 
 Author: Matthew Turk <matthewturk@gmail.com>
 Affiliation: KIPAC/SLAC/Stanford
+Author: Britton Smith <Britton.Smith@colorado.edu>
+Affiliation: University of Colorado at Boulder
 Homepage: http://yt.enzotools.org/
 License:
   Copyright (C) 2007-2008 Matthew Turk.  All Rights Reserved.
@@ -1462,6 +1464,59 @@ class EnzoRegionBase(Enzo3DData):
                  & (grid['z'] < self.right_edge[2])
                  & (grid['z'] >= self.left_edge[2]) )
         return cm
+
+class EnzoPeriodicRegionBase(Enzo3DData):
+    """
+    EnzoRegions are rectangular prisms of data.
+    """
+    def __init__(self, center, left_edge, right_edge, fields = None,
+                 pf = None, **kwargs):
+        """
+        We create an object with a set of three *left_edge* coordinates,
+        three *right_edge* coordinates, and a *center* that need not be the
+        center.
+        """
+        Enzo3DData.__init__(self, center, fields, pf, **kwargs)
+        self.left_edge = na.array(left_edge)
+        self.right_edge = na.array(right_edge)
+        self._refresh_data()
+        self.offsets = (na.mgrid[-1:1:3j,-1:1:3j,-1:1:3j] * \
+                        (self.pf["DomainRightEdge"] -
+                         self.pf["DomainLeftEdge"])[:,None,None,None])\
+                       .transpose().reshape(27,3) # cached and in order
+
+    def _get_list_of_grids(self):
+        self._grids, ind = self.pf.hierarchy.get_periodic_box_grids(self.left_edge,
+                                                                    self.right_edge)
+
+    def _is_fully_enclosed(self, grid):
+        offsets = na.array([-1,0,1])
+
+        for off_x, off_y, off_z in self.offsets:
+            region_left = [self.left_edge[0]+off_x,
+                           self.left_edge[1]+off_y,self.left_edge[2]+off_z]
+            region_right = [self.right_edge[0]+off_x,
+                            self.right_edge[1]+off_y,self.right_edge[2]+off_z]
+            if (na.all((grid._corners <= region_right) &
+                       (grid._corners >= region_left))):
+                return True
+        return False
+
+    @cache_mask
+    def _get_cut_mask(self, grid):
+        if self._is_fully_enclosed(grid):
+            return True
+        else:
+            cm = na.array(na.shape(grid['x'])[0],dtype=bool)
+            offsets = na.array([-1,0,1])
+            for off_x, off_y, off_z in self.offsets:
+                cm = cm | ( (grid['x'] < self.right_edge[0]+off_x)
+                          & (grid['x'] >= self.left_edge[0]+off_x)
+                          & (grid['y'] < self.right_edge[1]+off_y)
+                          & (grid['y'] >= self.left_edge[1]+off_y)
+                          & (grid['z'] < self.right_edge[2]+off_z)
+                          & (grid['z'] >= self.left_edge[2]+off_z) )
+            return cm
 
 class EnzoGridCollection(Enzo3DData):
     """
