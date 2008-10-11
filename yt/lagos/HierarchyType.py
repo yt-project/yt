@@ -167,6 +167,7 @@ class AMRHierarchy:
         self.proj = classobj("EnzoProj",(EnzoProjBase,), dd)
         self.slice = classobj("EnzoSlice",(EnzoSliceBase,), dd)
         self.region = classobj("EnzoRegion",(EnzoRegionBase,), dd)
+        self.periodic_region = classobj("EnzoPeriodicRegion",(EnzoPeriodicRegionBase,), dd)
         self.covering_grid = classobj("EnzoCoveringGrid",(EnzoCoveringGrid,), dd)
         self.smoothed_covering_grid = classobj("EnzoSmoothedCoveringGrid",(EnzoSmoothedCoveringGrid,), dd)
         self.sphere = classobj("EnzoSphere",(EnzoSphereBase,), dd)
