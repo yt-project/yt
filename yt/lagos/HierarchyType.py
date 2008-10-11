@@ -670,7 +670,6 @@ class EnzoHierarchy(AMRHierarchy):
             re_FileName = constructRegularExpressions(patt,('s'))
             fn_results = re.findall(re_FileName, self.__hierarchy_string)
             if len(fn_results):
-                print patt
                 self.__set_all_filenames(fn_results)
                 return
 
@@ -885,7 +884,6 @@ class EnzoHierarchyInMemory(EnzoHierarchy):
 
     def _copy_hierarchy_structure(self):
         import enzo
-        print dir(enzo)
         self.gridDimensions[:] = enzo.hierarchy_information["GridDimensions"][:]
         self.gridStartIndices[:] = enzo.hierarchy_information["GridStartIndices"][:]
         self.gridEndIndices[:] = enzo.hierarchy_information["GridEndIndices"][:]
