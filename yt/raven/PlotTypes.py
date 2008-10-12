@@ -140,7 +140,7 @@ class RavenPlot:
         canvas = engineVals["canvas"](self._figure)
         only_on_root(canvas.print_figure, fn)
         self["Type"] = self._type_name
-        self["GeneratedAt"] = self.data.hierarchy["CurrentTimeIdentifier"]
+        self["GeneratedAt"] = self.data.pf["CurrentTimeIdentifier"]
         return fn
 
     def _redraw_image(self):
@@ -399,7 +399,40 @@ class VMPlot(RavenPlot):
     def selfSetup(self):
         pass
 
-    
+class FixedResolutionPlot(VMPlot):
+
+    # This is a great argument in favor of changing the name
+    # from VMPlot to something else
+
+    _type_name = "FixedResolution"
+    _projected = False
+
+    def _get_buff(self, width=None):
+        return self.data[self.axis_names["Z"]]
+
+    def autoset_label(self):
+        if self.datalabel != None:
+            self.colorbar.set_label(str(self.datalabel))
+            return
+        field_name = self.axis_names["Z"]
+        data_label = r"$\rm{%s}" % field_name.replace("_","\hspace{0.5}")
+        if lagos.fieldInfo.has_key(field_name):
+            if self._projected:
+                data_label += r"\/\/ (%s)" % (lagos.fieldInfo[field_name].get_projected_units())
+            else:
+                data_label += r"\/\/ (%s)" % (lagos.fieldInfo[field_name].get_units())
+        data_label += r"$"
+        if self.colorbar != None: self.colorbar.set_label(str(data_label))
+
+    def set_width(self, width, unit):
+        mylog.debug("Not changing FixedResolution width")
+        pass
+
+    def _refresh_display_width(self, width=None):
+        self._redraw_image()
+
+    def setup_domain_edges(self, *args, **kwargs):
+        return
 
 class SlicePlot(VMPlot):
     _type_name = "Slice"

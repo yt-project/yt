@@ -346,6 +346,14 @@ class PlotCollection:
         p["Axis"] = None
         return p
 
+    def add_fixed_resolution_plot(self, frb, field, center=None, use_colorbar=True,
+                      figure = None, axes = None, fig_size=None, **kwargs):
+        p = self._add_plot(PlotTypes.FixedResolutionPlot(frb, field,
+                         use_colorbar=use_colorbar, axes=axes, figure=figure,
+                         size=fig_size))
+        p["Axis"] = "na"
+        return p
+
     def _get_new_id(self):
         self.__id_counter += 1
         return self.__id_counter-1

@@ -37,10 +37,12 @@ class FixedResolutionBuffer(object):
         the buffer should have pixel boundary antialiasing.
         """
         self.data_source = data_source
+        self.pf = data_source.pf
         self.bounds = bounds
         self.buff_size = buff_size
         self.antialias = antialias
         self.data = {}
+        self.axis = data_source.axis
 
     def __getitem__(self, item):
         if item in self.data: return self.data[item]
