@@ -556,7 +556,13 @@ class Enzo2DData(EnzoData, GridPropertiesMixin):
         if array == None:
             mylog.debug("Didn't find it!")
             return
-        for i, f in enumerate(self._key_fields + [self.fields[0]]):
+        kf = self._key_fields[:]
+        if array.shape[0] != len(kf) + 1:
+            mylog.warning("There has been a change in the .yt file format.")
+            mylog.warning("It is recommended to remove %s",
+                          self.hierarchy._data_file.filename)
+            kf = kf[:-1] # Fix for weight_field add
+        for i, f in enumerate(kf + [self.fields[0]]):
             self[f] = array[i,:]
         return True
 
@@ -817,6 +823,7 @@ class EnzoCuttingPlaneBase(Enzo2DData):
 
 class EnzoProjBase(Enzo2DData, ParallelAnalysisInterface):
     _top_node = "/Projections"
+    _key_fields = Enzo2DData._key_fields + ['weight_field']
     def __init__(self, axis, field, weight_field = None,
                  max_level = None, center = None, pf = None,
                  source=None, node_name = None, **kwargs):
@@ -1055,7 +1062,6 @@ class EnzoProjBase(Enzo2DData, ParallelAnalysisInterface):
         field_data = data.pop('fields')
         for fi, field in enumerate(fields):
             self[field] = field_data[fi,:]
-        self['weight_field'] = data.pop('weight_field')
         for i in data.keys(): self[i] = data.pop(i)
 
     def add_fields(self, fields, weight = "CellMassMsun"):
