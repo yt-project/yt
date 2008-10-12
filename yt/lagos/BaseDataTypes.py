@@ -1055,6 +1055,7 @@ class EnzoProjBase(Enzo2DData, ParallelAnalysisInterface):
         field_data = data.pop('fields')
         for fi, field in enumerate(fields):
             self[field] = field_data[fi,:]
+        self['weight_field'] = data.pop('weight_field')
         for i in data.keys(): self[i] = data.pop(i)
 
     def add_fields(self, fields, weight = "CellMassMsun"):
