@@ -539,13 +539,13 @@ class Enzo2DData(EnzoData, GridPropertiesMixin):
     _okay_to_serialize = True
     def _should_i_write(self): return True
 
-    def _serialize(self, node_name = None):
+    def _serialize(self, node_name = None, force = False):
         if not self._should_i_write(): return
         mylog.info("Serializing data...")
         if node_name is None: node_name = self._gen_node_name()
         mylog.info("nodeName: %s", node_name)
         array2d = na.array([self[i] for i in self._key_fields + [self.fields[0]]])
-        self.hierarchy.save_data(array2d, self._top_node, node_name)
+        self.hierarchy.save_data(array2d, self._top_node, node_name, force = force)
         mylog.info("Done serializing...")
 
     def _deserialize(self, node_name = None):
