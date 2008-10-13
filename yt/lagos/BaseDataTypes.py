@@ -548,8 +548,8 @@ class Enzo2DData(EnzoData, GridPropertiesMixin):
         self.hierarchy.save_data(array2d, self._top_node, node_name, force = force)
         mylog.info("Done serializing...")
 
-    def _deserialize(self, node_name = None):
-        if not self._okay_to_serialize: return
+    def _deserialize(self, node_name = None, override = False):
+        if not override and not self._okay_to_serialize: return
         if node_name is None: node_name = self._gen_node_name()
         mylog.debug("Trying to get node %s", node_name)
         array=self.hierarchy.get_data(self._top_node, node_name)
@@ -849,7 +849,7 @@ class EnzoProjBase(Enzo2DData, ParallelAnalysisInterface):
         self.__retval_coarse = {}
         self.__overlap_masks = {}
         self._temp = {}
-        if not self._deserialize(node_name):
+        if not self._deserialize(node_name, override = (node_name is not None)):
             self.__calculate_overlap()
             if self.hierarchy.data_style == 6 and False:
                 self.__cache_data()
