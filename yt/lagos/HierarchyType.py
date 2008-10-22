@@ -230,6 +230,11 @@ class AMRHierarchy:
         """
         Returns (value, center) of location of maximum for a given field.
         """
+        mg, mc, mv, pos = self.find_max_cell_location(field, finestLevels)
+        return mv, pos
+    findMax = find_max
+
+    def find_max_cell_location(self, field, finestLevels = True):
         if finestLevels:
             gI = na.where(self.gridLevels >= self.maxLevel - NUMTOCHECK)
         else:
@@ -253,9 +258,7 @@ class AMRHierarchy:
                              maxGrid["z-velocity"][maxCoord])
         self.parameters["Max%sValue" % (field)] = maxVal
         self.parameters["Max%sPos" % (field)] = "%s" % (pos)
-        return maxVal, pos
-
-    findMax = find_max
+        return maxGrid, maxCoord, maxVal, pos
 
     @time_execution
     def find_min(self, field):
@@ -466,16 +469,16 @@ class AMRHierarchy:
         for g in self.grids:
             ff = na.array([g[f] for f in fields])
             grids.append(dfo.OctreeGrid(
-                            g.child_index_mask,
+                            g.child_index_mask.astype('int32'),
                             ff.astype("float64"),
                             g.LeftEdge.astype('float64'),
-                            g.ActiveDimensions.astype('int'),
+                            g.ActiveDimensions.astype('int32'),
                             na.ones(1,dtype='float64') * g.dx))
             o_length += g.child_mask.ravel().sum()
             r_length += g.ActiveDimensions.prod()
             g.clear_data()
         output = na.zeros((o_length,len(fields)), dtype='float64')
-        refined = na.zeros(r_length, dtype='int')
+        refined = na.zeros(r_length, dtype='int32')
         ogl = dfo.OctreeGridList(grids)
         dfo.WalkRootgrid(output, refined, ogl, 1, 0)
         return output, refined

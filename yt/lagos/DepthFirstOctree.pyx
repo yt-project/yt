@@ -33,10 +33,10 @@ cdef class position:
 cdef class OctreeGrid:
     cdef public object child_indices, fields, left_edges, dimensions, dx
     def __cinit__(self,
-                  np.ndarray[np.int_t, ndim=3] child_indices,
+                  np.ndarray[np.int32_t, ndim=3] child_indices,
                   np.ndarray[np.float64_t, ndim=4] fields,
                   np.ndarray[np.float64_t, ndim=1] left_edges,
-                  np.ndarray[np.int_t, ndim=1] dimensions,
+                  np.ndarray[np.int32_t, ndim=1] dimensions,
                   np.ndarray[np.float64_t, ndim=1] dx):
         self.child_indices = child_indices
         self.fields = fields
@@ -54,7 +54,7 @@ cdef class OctreeGridList:
 
 @cython.boundscheck(False)
 def WalkRootgrid(np.ndarray[np.float64_t, ndim=2] output,
-                 np.ndarray[np.int_t, ndim=1] refined,
+                 np.ndarray[np.int32_t, ndim=1] refined,
                  OctreeGridList grids, int pi, int s = 0, int r = 0):
     """
     This function only gets called on a 'root grid' -- a base grid
@@ -64,8 +64,8 @@ def WalkRootgrid(np.ndarray[np.float64_t, ndim=2] output,
     cdef int child_i, child_j, child_k
     cdef OctreeGrid child_grid
     cdef OctreeGrid grid = grids[pi-1]
-    cdef np.ndarray[np.int_t, ndim=3] child_indices = grid.child_indices
-    cdef np.ndarray[np.int_t, ndim=1] dimensions = grid.dimensions
+    cdef np.ndarray[np.int32_t, ndim=3] child_indices = grid.child_indices
+    cdef np.ndarray[np.int32_t, ndim=1] dimensions = grid.dimensions
     cdef np.ndarray[np.float64_t, ndim=4] fields = grid.fields
     cdef np.ndarray[np.float64_t, ndim=1] leftedges = grid.left_edges
     cdef np.ndarray[np.float64_t, ndim=1] dx = grid.dx
@@ -100,14 +100,14 @@ def WalkRootgrid(np.ndarray[np.float64_t, ndim=2] output,
 def RecurseOctree(int i_i, int j_i, int k_i,
                   position curpos, int gi, int pi,
                   np.ndarray[np.float64_t, ndim=2] output,
-                  np.ndarray[np.int_t, ndim=1] refined,
+                  np.ndarray[np.int32_t, ndim=1] refined,
                   OctreeGridList grids):
     cdef int i, i_off, j, j_off, k, k_off, ci, fi
     cdef child_i, child_j, child_k
     cdef OctreeGrid child_grid
     cdef OctreeGrid grid = grids[gi-1]
-    cdef np.ndarray[np.int_t, ndim=3] child_indices = grid.child_indices
-    cdef np.ndarray[np.int_t, ndim=1] dimensions = grid.dimensions
+    cdef np.ndarray[np.int32_t, ndim=3] child_indices = grid.child_indices
+    cdef np.ndarray[np.int32_t, ndim=1] dimensions = grid.dimensions
     cdef np.ndarray[np.float64_t, ndim=4] fields = grid.fields
     cdef np.ndarray[np.float64_t, ndim=1] leftedges = grid.left_edges
     cdef np.ndarray[np.float64_t, ndim=1] dx = grid.dx
