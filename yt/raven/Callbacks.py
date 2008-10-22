@@ -129,12 +129,16 @@ class ParticleCallback(PlotCallback):
         y0, y1 = plot.ylim
         xx0, xx1 = plot._axes.get_xlim()
         yy0, yy1 = plot._axes.get_ylim()
+        print "Particle bounding box:", x0, x1, y0, y1, z0, z1
         # Now we rescale because our axes limits != data limits
         goodI = na.where( (self.particles_x < x1) & (self.particles_x > x0)
                         & (self.particles_y < y1) & (self.particles_y > y0)
                         & (self.particles_z < z1) & (self.particles_z > z0))
         particles_x = (self.particles_x[goodI] - x0) * (xx1-xx0)/(x1-x0) + xx0
         particles_y = (self.particles_y[goodI] - y0) * (yy1-yy0)/(y1-y0) + yy0
+        print "Particle px extrema", particles_x.min(), particles_x.max(), \
+                                     particles_y.min(), particles_y.max()
+        print "Axial limits", xx0, xx1, yy0, yy1
         if not self.color_field: particles_c = self.color
         else: particles_c = self.particles_c[goodI]
         plot._axes.hold(True)
@@ -209,16 +213,21 @@ class GridBoundaryCallback(PlotCallback):
     def __call__(self, plot):
         x0, x1 = plot.xlim
         y0, y1 = plot.ylim
+        xx0, xx1 = plot._axes.get_xlim()
+        yy0, yy1 = plot._axes.get_ylim()
         dx = plot.image._A.shape[0] / (x1-x0)
         dy = plot.image._A.shape[1] / (y1-y0)
         GLE = plot.data.gridLeftEdge
         GRE = plot.data.gridRightEdge
         px_index = lagos.x_dict[plot.data.axis]
         py_index = lagos.y_dict[plot.data.axis]
-        left_edge_px = (GLE[:,px_index]-x0)*dx
-        left_edge_py = (GLE[:,py_index]-y0)*dy
-        right_edge_px = (GRE[:,px_index]-x0)*dx
-        right_edge_py = (GRE[:,py_index]-y0)*dy
+        left_edge_px = na.maximum((GLE[:,px_index]-x0)*dx, xx0)
+        left_edge_py = na.maximum((GLE[:,py_index]-y0)*dy, yy0)
+        right_edge_px = na.minimum((GRE[:,px_index]-x0)*dx, xx1)
+        right_edge_py = na.minimum((GRE[:,py_index]-y0)*dy, yy1)
+        print left_edge_px.min(), left_edge_px.max(), \
+              right_edge_px.min(), right_edge_px.max(), \
+              x0, x1, y0, y1
         verts = na.array(
                 [(left_edge_px, left_edge_px, right_edge_px, right_edge_px),
                  (left_edge_py, right_edge_py, right_edge_py, left_edge_py)])
@@ -459,3 +468,12 @@ class HopCircleCallback(PlotCallback):
             if self.annotate:
                 plot._axes.text(center_x, center_y, "%s" % halo.id)
 
+
+class FloorToValueInPlot(PlotCallback):
+    def __init__(self):
+        pass
+
+    def __call__(self, plot):
+        aa = plot.image._A
+        min_val = aa[aa>0].min()
+        aa[aa==0] = min_val

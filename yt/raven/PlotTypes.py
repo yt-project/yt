@@ -307,7 +307,7 @@ class VMPlot(RavenPlot):
     def _redraw_image(self, *args):
         self._axes.clear() # To help out the colorbar
         buff = self._get_buff()
-        mylog.debug("Received buffer of min %s and max %s (%s %s)",
+        mylog.debug("Received buffer of min %s and max %s (data: %s %s)",
                     na.nanmin(buff), na.nanmax(buff),
                     self[self.axis_names["Z"]].min(),
                     self[self.axis_names["Z"]].max())
@@ -448,9 +448,7 @@ class SlicePlot(VMPlot):
         data_label += r"$"
         if self.colorbar != None: self.colorbar.set_label(str(data_label))
 
-class SlicePlotNaturalNeighbor(SlicePlot):
-    _type_name = "NNSlice"
-
+class NNVMPlot:
     def _get_buff(self, width=None):
         import delaunay as de
         x0, x1 = self.xlim
@@ -479,6 +477,10 @@ class SlicePlotNaturalNeighbor(SlicePlot):
         if self.log_field: buff = 10**buff
         return buff.transpose()
 
+
+class SlicePlotNaturalNeighbor(NNVMPlot, SlicePlot):
+    _type_name = "NNSlice"
+
 class ProjectionPlot(VMPlot):
 
     _type_name = "Projection"
@@ -496,6 +498,8 @@ class ProjectionPlot(VMPlot):
     def switch_z(self, field):
         mylog.warning("Choosing not to change the field of a projection instance")
 
+class ProjectionPlotNaturalNeighbor(NNVMPlot, ProjectionPlot):
+    _type_name = "NNProj"
 
 class CuttingPlanePlot(SlicePlot):
 

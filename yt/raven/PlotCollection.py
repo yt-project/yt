@@ -151,14 +151,6 @@ class PlotCollection:
         return plot
 
     def add_slice(self, *args, **kwargs):
-        return self.__add_slice(PlotTypes.SlicePlot, *args, **kwargs)
-
-    def add_slice_interpolated(self, *args, **kwargs):
-        return self.__add_slice(PlotTypes.SlicePlotNaturalNeighbor, *args, **kwargs)
-
-    def __add_slice(self, ptype, field, axis, coord=None, center=None,
-                 use_colorbar=True, figure = None, axes = None, fig_size=None,
-                 periodic = False, **kwargs):
         """
         Generate a slice through *field* along *axis*, optionally at
         [axis]=*coord*, with the *center* attribute given (some 
@@ -167,12 +159,32 @@ class PlotCollection:
         providing pre-existing Matplotlib *figure* and *axes* objects.
         *fig_size* in (height_inches, width_inches)
         """
+        return self.__add_slice(PlotTypes.SlicePlot, *args, **kwargs)
+
+    def add_slice_interpolated(self, *args, **kwargs):
+        """
+        Generate a slice through *field* along *axis*, optionally at
+        [axis]=*coord*, with the *center* attribute given (some 
+        degeneracy with *coord*, but not complete), with *use_colorbar*
+        specifying whether the plot is naked or not and optionally
+        providing pre-existing Matplotlib *figure* and *axes* objects.
+        *fig_size* in (height_inches, width_inches)
+
+        The slice will be interpolated using the delaunay module, with natural
+        neighbor interpolation.
+        """
+        return self.__add_slice(PlotTypes.SlicePlotNaturalNeighbor, *args, **kwargs)
+
+    def __add_slice(self, ptype, field, axis, coord=None, center=None,
+                 use_colorbar=True, figure = None, axes = None, fig_size=None,
+                 periodic = False, data_source = None, **kwargs):
         if center == None:
             center = self.c
         if coord == None:
             coord = center[axis]
-        slice = self.pf.hierarchy.slice(axis, coord, field, center, **kwargs)
-        p = self._add_plot(ptype(slice, field, use_colorbar=use_colorbar,
+        if data_source is None:
+            data_source = self.pf.hierarchy.slice(axis, coord, field, center, **kwargs)
+        p = self._add_plot(ptype(data_source, field, use_colorbar=use_colorbar,
                          axes=axes, figure=figure,
                          size=fig_size, periodic=periodic))
         mylog.info("Added slice of %s at %s = %s with 'center' = %s", field,
@@ -218,10 +230,7 @@ class PlotCollection:
         p["Axis"] = "CuttingPlane"
         return p
 
-    def add_projection(self, field, axis, weight_field=None,
-                      center=None, use_colorbar=True,
-                      figure = None, axes = None, fig_size=None,
-                      periodic = False, **kwargs):
+    def add_projection(self, *args, **kwargs):
         """
         Generate a projection of *field* along *axis*, optionally giving
         a *weight_field*-weighted average with *use_colorbar*
@@ -229,11 +238,30 @@ class PlotCollection:
         providing pre-existing Matplotlib *figure* and *axes* objects.
         *fig_size* in (height_inches, width_inches)
         """
+        return self._add_projection(PlotTypes.ProjectionPlot, *args, **kwargs)
+
+    def add_projection_interpolated(self, *args, **kwargs):
+        """
+        Generate a projection of *field* along *axis*, optionally giving
+        a *weight_field*-weighted average with *use_colorbar*
+        specifying whether the plot is naked or not and optionally
+        providing pre-existing Matplotlib *figure* and *axes* objects.
+        *fig_size* in (height_inches, width_inches)
+
+        The projection will be interpolated using the delaunay module, with
+        natural neighbor interpolation.
+        """
+        return self._add_projection(PlotTypes.ProjectionPlotNaturalNeighbor, *args, **kwargs)
+
+    def _add_projection(self, ptype, field, axis, weight_field=None,
+                      center=None, use_colorbar=True,
+                      figure = None, axes = None, fig_size=None,
+                      periodic = False, **kwargs):
         if center == None:
             center = self.c
         proj = self.pf.hierarchy.proj(axis, field, weight_field, center=center,
                                       **kwargs)
-        p = self._add_plot(PlotTypes.ProjectionPlot(proj, field,
+        p = self._add_plot(ptype(proj, field,
                          use_colorbar=use_colorbar, axes=axes, figure=figure,
                          size=fig_size, periodic=periodic))
         p["Axis"] = lagos.axis_names[axis]
