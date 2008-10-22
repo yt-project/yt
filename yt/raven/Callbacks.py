@@ -443,11 +443,14 @@ class SphereCallback(PlotCallback):
 
 class HopCircleCallback(PlotCallback):
     def __init__(self, hop_output, axis, max_number=None,
-                 annotate=False):
+                 annotate=False, min_size=20, font_size=8, print_halo_size=False):
         self.axis = axis
         self.hop_output = hop_output
         self.max_number = max_number
         self.annotate = annotate
+        self.min_size = min_size
+        self.font_size = font_size
+        self.print_halo_size = print_halo_size
 
     def __call__(self, plot):
         from matplotlib.patches import Circle
@@ -466,8 +469,12 @@ class HopCircleCallback(PlotCallback):
             cir = Circle((center_x, center_y), radius, fill=False)
             plot._axes.add_patch(cir)
             if self.annotate:
-                plot._axes.text(center_x, center_y, "%s" % halo.id)
-
+                if self.print_halo_size:
+                    plot._axes.text(center_x, center_y, "%s" % len(halo.indices),
+                    fontsize=self.font_size)
+                else:
+                    plot._axes.text(center_x, center_y, "%s" % halo.id,
+                    fontsize=self.font_size)
 
 class FloorToValueInPlot(PlotCallback):
     def __init__(self):
@@ -477,3 +484,43 @@ class FloorToValueInPlot(PlotCallback):
         aa = plot.image._A
         min_val = aa[aa>0].min()
         aa[aa==0] = min_val
+
+
+class VobozCircleCallback(PlotCallback):
+    def __init__(self, voboz_output, axis, max_number=None,
+                 annotate=False, min_size=20, font_size=8, print_halo_size=False):
+        self.axis = axis
+        self.voboz_output = voboz_output
+        self.max_number = max_number
+        self.annotate = annotate
+        self.min_size = min_size
+        self.font_size = font_size
+        self.print_halo_size = print_halo_size
+
+    def __call__(self, plot):
+        from matplotlib.patches import Circle
+        x0, x1 = plot.xlim
+        y0, y1 = plot.ylim
+        l, b, width, height = plot._axes.bbox.get_bounds()
+        xi = lagos.x_dict[plot.data.axis]
+        yi = lagos.y_dict[plot.data.axis]
+        dx = plot.image._A.shape[0] / (x1-x0)
+        dy = plot.image._A.shape[1] / (y1-y0)
+        for i,halo in enumerate(self.voboz_output[:self.max_number]):
+            if (len(halo.particles) >= self.min_size):
+                radius = halo.maximum_radius * dx
+                center = halo.center_of_mass
+                center_x = (center[xi] - x0)*dx
+                center_y = (center[yi] - y0)*dy
+                #print "voboz center = (%f,%f)" % (center[xi],center[yi])
+                #print "voboz radius = %f" % halo.maximum_radius
+                cir = Circle((center_x, center_y), radius, fill=False)
+                plot._axes.add_patch(cir)
+                if self.annotate:
+                    if self.print_halo_size:
+                        plot._axes.text(center_x, center_y, "%s" % len(halo.particles),
+                        fontsize=self.font_size)
+                    else:
+                        plot._axes.text(center_x, center_y, "%s" % i,
+                        fontsize=self.font_size)
+
