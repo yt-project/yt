@@ -73,15 +73,19 @@ def RecurseOctreeDepthFirst(int i_i, int j_i, int k_i,
     cdef np.ndarray[np.int32_t, ndim=1] dimensions = grid.dimensions
     cdef np.ndarray[np.float64_t, ndim=4] fields = grid.fields
     cdef np.ndarray[np.float64_t, ndim=1] leftedges = grid.left_edges
-    cdef np.ndarray[np.float64_t, ndim=1] dx = grid.dx
-    cdef np.ndarray[np.float64_t, ndim=1] child_dx
+    cdef np.float64_t dx = grid.dx[0]
+    cdef np.float64_t child_dx
     cdef np.ndarray[np.float64_t, ndim=1] child_leftedges
-    for k_off in range(i_f):
+    cdef np.float64_t cx, cy, cz
+    for k_off in range(k_f):
         k = k_off + k_i
+        cz = (leftedges[2] + k*dx)
         for j_off in range(j_f):
             j = j_off + j_i
-            for i_off in range(k_f):
+            cy = (leftedges[1] + j*dx)
+            for i_off in range(i_f):
                 i = i_off + i_i
+                cx = (leftedges[0] + i*dx)
                 ci = grid.child_indices[i,j,k]
                 if ci == -1:
                     for fi in range(fields.shape[0]):
@@ -93,11 +97,11 @@ def RecurseOctreeDepthFirst(int i_i, int j_i, int k_i,
                     refined[curpos.refined_pos] = 1
                     curpos.refined_pos += 1
                     child_grid = grids[ci-1]
-                    child_dx = child_grid.dx
+                    child_dx = child_grid.dx[0]
                     child_leftedges = child_grid.left_edges
-                    child_i = ((leftedges[0] + i * dx) - child_leftedges[0])/child_dx
-                    child_j = ((leftedges[1] + j * dx) - child_leftedges[1])/child_dx
-                    child_k = ((leftedges[2] + k * dx) - child_leftedges[2])/child_dx
+                    child_i = int(cx - child_leftedges[0])/child_dx
+                    child_j = int(cy - child_leftedges[1])/child_dx
+                    child_k = int(cz - child_leftedges[2])/child_dx
                     s = RecurseOctreeDepthFirst(child_i, child_j, child_k, 2, 2, 2,
                                         curpos, ci, output, refined, grids)
     return s
@@ -109,8 +113,9 @@ def RecurseOctreeByLevels(int i_i, int j_i, int k_i,
                           int gi, 
                           np.ndarray[np.float64_t, ndim=2] output,
                           np.ndarray[np.int32_t, ndim=2] genealogy,
+                          np.ndarray[np.float64_t, ndim=2] corners,
                           OctreeGridList grids):
-    cdef int i, i_off, j, j_off, k, k_off, ci, fi
+    cdef np.int32_t i, i_off, j, j_off, k, k_off, ci, fi
     cdef int child_i, child_j, child_k
     cdef OctreeGrid child_grid
     cdef OctreeGrid grid = grids[gi-1]
@@ -119,34 +124,44 @@ def RecurseOctreeByLevels(int i_i, int j_i, int k_i,
     cdef np.ndarray[np.int32_t, ndim=1] dimensions = grid.dimensions
     cdef np.ndarray[np.float64_t, ndim=4] fields = grid.fields
     cdef np.ndarray[np.float64_t, ndim=1] leftedges = grid.left_edges
-    cdef np.ndarray[np.float64_t, ndim=1] dx = grid.dx
-    cdef np.ndarray[np.float64_t, ndim=1] child_dx
+    cdef np.float64_t dx = grid.dx[0]
+    cdef np.float64_t child_dx
     cdef np.ndarray[np.float64_t, ndim=1] child_leftedges
-    for k_off in range(i_f):
+    cdef np.float64_t cx, cy, cz
+    cdef int cp
+    for k_off in range(k_f):
         k = k_off + k_i
-        if i_f > 2: print k
+        cz = (leftedges[2] + k*dx)
+        if i_f > 2: print k, cz
         for j_off in range(j_f):
             j = j_off + j_i
-            for i_off in range(k_f):
-                genealogy[curpos[level], 2] = level
+            cy = (leftedges[1] + j*dx)
+            for i_off in range(i_f):
                 i = i_off + i_i
+                cp = curpos[level]
+                cx = (leftedges[0] + i*dx)
+                corners[cp, 0] = cx 
+                corners[cp, 1] = cy 
+                corners[cp, 2] = cz
+                genealogy[curpos[level], 2] = level
                 # always output data
                 for fi in range(fields.shape[0]):
-                    output[curpos[level],fi] = fields[fi,i,j,k]
-                ci = grid.child_indices[i,j,k]
+                    output[cp,fi] = fields[fi,i,j,k]
+                ci = child_indices[i,j,k]
                 if ci > -1:
                     child_grid = grids[ci-1]
-                    child_dx = child_grid.dx
+                    child_dx = child_grid.dx[0]
                     child_leftedges = child_grid.left_edges
-                    child_i = ((leftedges[0] + i * dx) - child_leftedges[0])/child_dx
-                    child_j = ((leftedges[1] + j * dx) - child_leftedges[1])/child_dx
-                    child_k = ((leftedges[2] + k * dx) - child_leftedges[2])/child_dx
+                    child_i = int((cx-child_leftedges[0])/child_dx)
+                    child_j = int((cy-child_leftedges[1])/child_dx)
+                    child_k = int((cz-child_leftedges[2])/child_dx)
                     # set current child id to id of next cell to examine
-                    genealogy[curpos[level],0] = curpos[level+1] 
+                    genealogy[cp, 0] = curpos[level+1] 
                     # set next parent id to id of current cell
-                    genealogy[curpos[level+1]:curpos[level+1]+8,1] = curpos[level]
+                    genealogy[curpos[level+1]:curpos[level+1]+8, 1] = cp
                     s = RecurseOctreeByLevels(child_i, child_j, child_k, 2, 2, 2,
-                                              curpos, ci, output, genealogy, grids)
+                                              curpos, ci, output, genealogy,
+                                              corners, grids)
                 curpos[level] += 1
     return s
 

@@ -499,12 +499,13 @@ class AMRHierarchy:
 
     def _generate_levels_octree(self, fields):
         import DepthFirstOctree as dfo
-        fields = ensure_list(fields)
+        fields = ensure_list(fields) + ["Ones", "Ones"]
         ogl, levels_finest, levels_all = self.__initialize_octree_list(fields)
         o_length = na.sum(levels_finest.values())
         r_length = na.sum(levels_all.values())
         output = na.zeros((r_length,len(fields)), dtype='float64')
         genealogy = na.zeros((r_length, 3), dtype='int32') - 1 # init to -1
+        corners = na.zeros((r_length, 3), dtype='float64')
         position = na.add.accumulate(
                     na.array([0] + [levels_all[v] for v in
                         sorted(levels_all)[:-1]], dtype='int32'))
@@ -514,8 +515,8 @@ class AMRHierarchy:
                 ogl[0].dimensions[1],
                 ogl[0].dimensions[2],
                 position, 1,
-                output, genealogy, ogl)
-        return output, genealogy, (o_length, r_length)
+                output, genealogy, corners, ogl)
+        return output, genealogy, levels_all, levels_finest, pp, corners
 
 class EnzoHierarchy(AMRHierarchy):
     eiTopGrid = None
