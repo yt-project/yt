@@ -455,6 +455,25 @@ class AMRHierarchy:
         indices = na.where(self.gridLevels[:,0] == level)[0]
         return indices
 
+    def __initialize_octree_list(self, fields):
+        import DepthFirstOctree as dfo
+        o_length = r_length = 0
+        grids = []
+        levels_finest, levels_all = defaultdict(lambda: 0), defaultdict(lambda: 0)
+        for g in self.grids:
+            ff = na.array([g[f] for f in fields])
+            grids.append(dfo.OctreeGrid(
+                            g.child_index_mask.astype('int32'),
+                            ff.astype("float64"),
+                            g.LeftEdge.astype('float64'),
+                            g.ActiveDimensions.astype('int32'),
+                            na.ones(1,dtype='float64') * g.dx, g.Level))
+            levels_all[g.Level] += g.ActiveDimensions.prod()
+            levels_finest[g.Level] += g.child_mask.ravel().sum()
+            g.clear_data()
+        ogl = dfo.OctreeGridList(grids)
+        return ogl, levels_finest, levels_all
+
     def _generate_flat_octree(self, fields):
         """
         Generates two arrays, one of the actual values in a depth-first flat
@@ -464,24 +483,39 @@ class AMRHierarchy:
         """
         import DepthFirstOctree as dfo
         fields = ensure_list(fields)
-        o_length = r_length = 0
-        grids = []
-        for g in self.grids:
-            ff = na.array([g[f] for f in fields])
-            grids.append(dfo.OctreeGrid(
-                            g.child_index_mask.astype('int32'),
-                            ff.astype("float64"),
-                            g.LeftEdge.astype('float64'),
-                            g.ActiveDimensions.astype('int32'),
-                            na.ones(1,dtype='float64') * g.dx))
-            o_length += g.child_mask.ravel().sum()
-            r_length += g.ActiveDimensions.prod()
-            g.clear_data()
+        ogl, levels_finest, levels_all = self.__initialize_octree_list(fields)
+        o_length = na.sum(levels_finest.values())
+        r_length = na.sum(levels_all.values())
         output = na.zeros((o_length,len(fields)), dtype='float64')
         refined = na.zeros(r_length, dtype='int32')
-        ogl = dfo.OctreeGridList(grids)
-        dfo.WalkRootgrid(output, refined, ogl, 1, 0)
+        position = dfo.position()
+        dfo.RecurseOctreeDepthFirst(0, 0, 0,
+                ogl[0].dimensions[0],
+                ogl[0].dimensions[1],
+                ogl[0].dimensions[2],
+                position, 1,
+                output, refined, ogl)
         return output, refined
+
+    def _generate_levels_octree(self, fields):
+        import DepthFirstOctree as dfo
+        fields = ensure_list(fields)
+        ogl, levels_finest, levels_all = self.__initialize_octree_list(fields)
+        o_length = na.sum(levels_finest.values())
+        r_length = na.sum(levels_all.values())
+        output = na.zeros((r_length,len(fields)), dtype='float64')
+        genealogy = na.zeros((r_length, 3), dtype='int32') - 1 # init to -1
+        position = na.add.accumulate(
+                    na.array([0] + [levels_all[v] for v in
+                        sorted(levels_all)[:-1]], dtype='int32'))
+        pp = position.copy()
+        dfo.RecurseOctreeByLevels(0, 0, 0,
+                ogl[0].dimensions[0],
+                ogl[0].dimensions[1],
+                ogl[0].dimensions[2],
+                position, 1,
+                output, genealogy, ogl)
+        return output, genealogy, (o_length, r_length)
 
 class EnzoHierarchy(AMRHierarchy):
     eiTopGrid = None
