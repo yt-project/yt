@@ -9,7 +9,8 @@ import setuptools
 
 APP = ['reason.py']
 DATA_FILES = []
-OPTIONS = {'argv_emulation': True}
+PY2APP_OPTIONS = {'argv_emulation': True}
+VERSION = "1.0dev"
 
 if os.path.exists('MANIFEST'): os.remove('MANIFEST')
 
@@ -34,17 +35,23 @@ def setup_package():
 
     setup(
         name = "yt",
-        version = "0.3",
-        description = "A set of classes for manipulating Enzo Adaptive Mesh Refinement data",
-        install_requires = ['matplotlib>=0.91.4',
-                            'numpy>=1.0.3',
-                            'wxPython>=2.8.7.1'],
-        url = "http://yt.enzotools.org/",
-        author="Matthew Turk",
+        version = VERSION,
+        description = "An analysis and visualization toolkit for Adaptive Mesh " \
+                    + "Refinement data, specifically for the Enzo and Orion codes.",
+        classifiers = [],
+        keywords='',
+        install_requires = ['matplotlib', 'numpy','ipython'],
+        extras_require = { 'GUI' : ['wxPython'],
+                           'storage' : ['tables'], },
+        author="Matthew J. Turk",
         author_email="matthewturk@gmail.com",
+        url = "http://yt.enzotools.org/",
         license="GPL-3",
         configuration=configuration,
-        #app=APP, data_files=DATA_FILES, options={'py2app':OPTIONS},
+        app=APP, # for py2app
+        data_files=DATA_FILES,
+        options={'py2app':PY2APP_OPTIONS},
+        zip_safe=False,
         )
     return
 
