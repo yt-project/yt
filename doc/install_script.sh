@@ -72,6 +72,9 @@ then
     then
         svn co http://svn.enzotools.org/yt/branches/yt-1.0/ ./yt-1.0-svn
         YT_DIR="$PWD/yt-1.0-svn/"
+    elif [ -e yt-1.0-svn ]
+    then
+        YT_DIR="$PWD/yt-1.0-svn/"
     fi
     echo Setting YT_DIR=${YT_DIR}
 fi
