@@ -7,9 +7,9 @@ History
 My name is Matthew Turk, and I am the primary author of yt.  I designed and
 implemented it during the course of my graduate studies working with Prof. Tom
 Abel at Stanford University, under the auspices of the Department of Energy
-through the Stanford Linear Accelerator Center and Los Alamos National Lab.  It
-has evolved from a simple data-reader and exporter into what I believe is a
-fully-featured toolkit.
+through the SLAC National Accelerator Center and, briefly, at Los Alamos
+National Lab.  It has evolved from a simple data-reader and exporter into what
+I believe is a fully-featured toolkit for analysis and visualization.
 
 yt was designed to be a completely Free (as in beer *and* as in freedom)
 user-extensible framework for analyzing and visualizing adaptive mesh
@@ -23,6 +23,10 @@ comprehensive plotting package built at SLAC by Paul Kunz.  Over time
 it has been generalized to rely on commodity Python packages (mostly), its
 dependencies have been reduced, and thus its installation made significantly easier.
 
+In 2008, yt was extended by Jeff Oishi to include support for the Orion code.
+Additionally, it was selected for inclusion in the next public release of the
+Enzo code.
+
 What yt is and is not
 ---------------------
 
@@ -30,8 +34,9 @@ In some sense, yt is also designed to be rather utilitarian.  By virtue of the
 fact that it has been written in an interpreted language, it can be somewhat
 slower than purely C-based analysis codes, although I believe that to be
 mitigated by a cleverness of algorithms and a substantially improved
-development time for the user in the case of a desire to expand the
-functionality.
+development time for the user.  Several of the most computatioanlly intensive
+problems have been written in C, or rely exclusively on C-based numerical
+libraries.
 
 The primary goal has been, and will continue to be, to present an interface to
 the user that enables selection and analysis of arbitrary subsets of data.

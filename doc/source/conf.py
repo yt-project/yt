@@ -16,14 +16,15 @@ import sys, os
 # If your extensions are in another directory, add it here. If the directory
 # is relative to the documentation root, use os.path.abspath to make it
 # absolute, like shown here.
-#sys.path.append(os.path.abspath('some/directory'))
+sys.path.append(os.path.abspath('../sphinxext'))
 
 # General configuration
 # ---------------------
 
 # Add any Sphinx extension module names here, as strings. They can be extensions
 # coming with Sphinx (named 'sphinx.ext.*') or your custom ones.
-extensions = ['sphinx.ext.autodoc']
+extensions = ['sphinx.ext.autodoc', 'only_directives',
+              'ipython_console_highlighting']
 autoclass_content = 'both'
 
 inherited_memers = 'true'
@@ -47,7 +48,7 @@ copyright = '2008, Matthew J. Turk'
 # The short X.Y version.
 version = '1.0'
 # The full version, including alpha/beta/rc tags.
-release = '1.0'
+release = '1.0-dev'
 
 # There are two options for replacing |today|: either, you set today to some
 # non-false value, then it is used:

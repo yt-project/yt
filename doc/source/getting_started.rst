@@ -49,64 +49,39 @@ Installing From Source
 Using the Installation Script
 -----------------------------
 
-In the ``doc/`` directory in the yt source distribution, there is a script,
-``install_script.sh``, that I have used in the past to set up a full
-installation of yt.  It may need tweaking or modification, but it gives a
-good idea of the roadmap to installation.
+.. note:: The installation script is now the preferred means of installing a
+   full set of packages -- but if you are comfortable with python, feel free to 
 
+In the ``doc/`` directory in the yt source distribution, there is a script,
+``install_script.sh``, designed to set up a full installation of yt, along with
+all the necessary dependencies.  You can run this script from within a checkout
+of yt or an expanded tarball.
+
+.. note:: For convenience, yt will be installed in 'develop' mode, which means
+   any changes in the source directory will be included the next time you
+   import yt!
 
 Prerequisites for yt
 --------------------
 
 A driving factor in the development of yt over the months leading to release
-0.3 has been the reduction of dependencies.  To that extent, only a few
+1.0 has been the reduction of dependencies.  To that extent, only a few
 packages are required for the base usage, and a GUI toolkit if you are going to use
 the graphical user interface, Reason.
 
- * `Python <http://python.org/>`_, at least version 2.4, but preferably 2.5.
+ * `Python <http://python.org/>`_, at least version 2.4, but preferably 2.5 or
+   2.6.
  * `HDF5 <http://www.hdfgroup.org/>`_, the data storage backend used by Enzo
    and yt (if you can run Enzo, this is already installed!)
  * `NumPy <http://numpy.scipy.org/>`_, the fast numerical backend for Python
  * `MatPlotLib <http://matplotlib.sf.net/>`_, the plotting package
- * `wxPython <http://www.wxpython.org/>`_, the GUI toolkit
+ * `wxPython <http://www.wxpython.org/>`_, the GUI toolkit (optional)
 
 (If you are only interested in manipulating data without any graphical plotting
 or interfaces, you only need to install HDF5, NumPy, and Python!)
 
-Installing the Necessary Packages
----------------------------------
-
-Installing Python itself is usually quite simple, and often very fast.  Because
-we're setting up a small system of packages, even if you have a system-wide
-install of python2.5 it can be easier in some cases to create a local directory
-structure:
-
-.. code-block:: bash
-
-   $ tar xvf Python-2.5.2.tar.gz
-   $ cd Python-2.5.2
-   $ ./configure --prefix=$HOME/local/
-   $ make install
-
-This will create (if necessary) a directory named local in your home directory,
-along with the necessary subdirectories.  When the executable
-``$HOME/lcoal/bin/python2.4`` is used to install a package, it will install it
-to the ``$HOME/local/`` directory structure.
-
-The python packages are fairly straightforward to install.  The process of
-installing packages in python has been greatly simplified over the last few
-years with the addition of setuptools, but for these particular packages I
-typically recommend installing from source, which for Python packages consists
-of changing to the source directory and issues the command:
-
-.. code-block:: bash
-
-   $ tar xvfz $PKGNAME.tar.gz
-   $ cd $PKGNAME
-   $ python2.5 setup.py install
-
-This method works for NumPy, Matplotlib and yt itself, but for wxPython, I
-**strongly** suggest you seek binaries for your platform.  If they are not
-available, I recommend you read the ``INSTALL`` file and follow its directions
-closely.
-
+Instructions for installing these packages is, unfortunately, beyond the scope
+of this document.  However, there are copious directions on how to do so
+elsewhere.  You may also consider installing the
+`Enthought Python Distribution <http://www.enthought.com/products/epd.php>`_,
+which includes all of the necessary packages.
