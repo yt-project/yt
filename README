@@ -2,20 +2,20 @@ Hi there!  You've just downloaded yt, an analysis tool for 3D Enzo adaptive
 mesh refinement datasets.  It's written in python and based on the NumPy and
 Matplotlib components.
 
-Full documentation is available at doc/build/html/index.html , as well as
-online at http://yt.spacepope.org/ .  For a quick start, assuming you have both
-matplotlib and numpy installed, just set your HDF5 install location:
+Full documentation is available inside doc/docs_html.zip as well as
+online at http://yt.enzotools.org/ .
 
- $ echo /path/to/your/hdf5/root > hdf5.cfg
+If you have used Python before, and are comfortable with installing packages,
+you should find the setup.py script fairly straightforward.
 
-and then install:
-
- $ python setup.py install
-
-You might have to use a --prefix= command, however.
+If you would rather a more automated installation, you can use the script
+doc/install_script.sh .  You will have to set the destination directory, and
+there are options available, but it should be straightforward.
 
 Please feel free to help out, and if you make any cool changes or enhancements,
-let me know!  The Trac site at http://yt.spacepope.org/ has mechanisms for
-ticket and problem submission, as well as an ever-growing Wiki.
+let me know!  The Trac site at http://yt.enzotools.org/ has mechanisms for
+ticket and problem submission, as well as an ever-growing Wiki.  I also
+encourage you to sign up for the yt-users mailing list, where there is a
+growing community of users ready to help out with problems and ideas!
 
-        -- Matthew Turk, mturk@stanford.edu
+        -- Matthew Turk, matthewturk@gmail.com
