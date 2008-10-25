@@ -23,6 +23,7 @@ def configuration(parent_package='',top_path=None):
     config.add_extension("Interpolators", "yt/lagos/Interpolators.c")
     #config.add_extension("DepthFirstOctree", "yt/lagos/DepthFirstOctree.c")
     config.add_subpackage("hop")
+    config.add_subpackage("lightcone")
     H5dir = check_for_hdf5()
     if H5dir is not None:
         include_dirs=[os.path.join(H5dir,"include")]

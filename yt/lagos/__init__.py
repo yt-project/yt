@@ -56,6 +56,9 @@ import sets
 
 import time
 
+from Cosmology import *
+from EnzoCosmology import *
+
 if ytcfg.getboolean("lagos","useswig"):
     try:
         from yt.enki import EnzoInterface
