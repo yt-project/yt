@@ -40,7 +40,6 @@ def LightConeProjection(lightConeSlice,field,pixels,weight_field=None,save_image
     node_name = "LightCone_%s_%s_%d_%f_%f" % (field,weight_field,lightConeSlice['ProjectionAxis'],
                                               lightConeSlice['ProjectionCenter'][lightConeSlice['ProjectionAxis']],
                                               lightConeSlice['DepthBoxFraction'])
-    print "Node name is %s" % node_name
 
     print "Making projection at z = %f from %s." % (lightConeSlice['redshift'],lightConeSlice['filename'])
 
