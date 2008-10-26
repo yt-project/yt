@@ -56,8 +56,8 @@ import sets
 
 import time
 
-#from Cosmology import *
-#from EnzoCosmology import *
+from Cosmology import *
+from EnzoCosmology import *
 
 if ytcfg.getboolean("lagos","useswig"):
     try:
