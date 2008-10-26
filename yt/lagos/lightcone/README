@@ -1,0 +1,12 @@
+Britton Smith
+Ocobter 2008
+
+This is a light cone generator for yt.  The inputs for creating a light cone 
+object are an original Enzo parameter file and a light cone parameter file.  
+See sample_lightcone.par for an example.  The light cone generator will use 
+all time and redshift data to create a solution that patches data outputs 
+together from InitialRedshift to FinalRedshift using either as little or as 
+many data outputs as possible.  When the solution is calculated, light cone 
+projections can be made of any field and weight field, just like ordinary 
+projections.  The final output is an image of the light cone projection 
+and an hdf5 file containing the unflattened projection stack.
