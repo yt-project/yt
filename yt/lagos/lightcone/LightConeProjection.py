@@ -24,15 +24,23 @@ License:
 """
 
 from yt.lagos.lightcone import *
-import random as rand
 
 def LightConeProjection(lightConeSlice,field,pixels,weight_field=None,save_image=False,name=""):
     "Create a single projection to be added into the light cone stack."
 
     # Use some projection parameters to seed random number generator to make unique node name.
-    rand.seed(lightConeSlice['ProjectionCenter'][0] + lightConeSlice['ProjectionCenter'][1] + lightConeSlice['ProjectionCenter'][2] + 
-              lightConeSlice['ProjectionAxis'] + lightConeSlice['DepthBoxFraction'] + lightConeSlice['WidthBoxFraction'])
-    node_name = "%s_%s_%09d" % (field,weight_field,rand.randint(1,999999999))
+    # We are just saving the projection object, so only the projection axis needs to be considered 
+    # since the lateral shifting and tiling occurs after the projection object is made.
+    # Likewise, only the DepthBoxFraction needs to be considered.
+
+    # ProjectionAxis
+    # ProjectionCenter[ProjectionAxis]
+    # DepthBoxFraction
+
+    node_name = "LightCone_%s_%s_%d_%f_%f" % (field,weight_field,lightConeSlice['ProjectionAxis'],
+                                              lightConeSlice['ProjectionCenter'][lightConeSlice['ProjectionAxis']],
+                                              lightConeSlice['DepthBoxFraction'])
+    print "Node name is %s" % node_name
 
     print "Making projection at z = %f from %s." % (lightConeSlice['redshift'],lightConeSlice['filename'])
 
