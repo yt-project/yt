@@ -82,14 +82,14 @@ class LightCone(object):
                     while (z > output['redshift']):
                         output = output['previous']
                         if (output is None):
-                            print "CalculateLightConeSolution: search for data output went off the end the stack."
-                            print "Could not calculate light cone solution."
+                            mylog.error("CalculateLightConeSolution: search for data output went off the end the stack.")
+                            mylog.error("Could not calculate light cone solution.")
                             return
                         if (output['redshift'] == self.lightConeSolution[-1]['redshift']):
-                            print "CalculateLightConeSolution: No data dump between z = %f and %f." % \
+                            mylog.error("CalculateLightConeSolution: No data dump between z = %f and %f." % \
                                 ((self.lightConeSolution[-1]['redshift'] - self.lightConeSolution[-1]['deltaz']),
-                                 self.lightConeSolution[-1]['redshift'])
-                            print "Could not calculate light cone solution."
+                                 self.lightConeSolution[-1]['redshift']))
+                            mylog.error("Could not calculate light cone solution.")
                             return
                     self.lightConeSolution.append(output)
                 z = self.lightConeSolution[-1]['redshift'] - self.lightConeSolution[-1]['deltaz']
@@ -111,9 +111,9 @@ class LightCone(object):
                     self.lightConeSolution.append(nextOutput)
                 nextOutput = nextOutput['next']
 
-        print "CalculateLightConeSolution: Used %d data dumps to get from z = %f to %f." % (len(self.lightConeSolution),
+        mylog.info("CalculateLightConeSolution: Used %d data dumps to get from z = %f to %f." % (len(self.lightConeSolution),
                                                                                             self.lightConeParameters['InitialRedshift'],
-                                                                                            self.lightConeParameters['FinalRedshift'])
+                                                                                            self.lightConeParameters['FinalRedshift']))
 
         # Calculate projection sizes, and get random projection axes and centers.
         rand.seed(self.lightConeParameters['RandomSeed'])
@@ -133,10 +133,10 @@ class LightCone(object):
                 self.enzoParameters['CosmologyHubbleConstantNow'] / self.enzoParameters['CosmologyComovingBoxSize']
             # Simple error check to make sure more than 100% of box depth is never required.
             if (self.lightConeSolution[q]['DepthBoxFraction'] > 1.0):
-                print "Warning: box fraction required to go from z = %f to %f is %f" % (self.lightConeSolution[q]['redshift'],z_next,
-                                                                self.lightConeSolution[q]['DepthBoxFraction'])
-                print "Full box delta z is %f, but it is %f to the next data dump." % (self.lightConeSolution[q]['deltaz'],
-                                                                                       self.lightConeSolution[q]['redshift']-z_next)
+                mylog.error("Warning: box fraction required to go from z = %f to %f is %f" % (self.lightConeSolution[q]['redshift'],z_next,
+                                                                self.lightConeSolution[q]['DepthBoxFraction']))
+                mylog.error("Full box delta z is %f, but it is %f to the next data dump." % (self.lightConeSolution[q]['deltaz'],
+                                                                                       self.lightConeSolution[q]['redshift']-z_next))
 
             # Calculate fraction of box required for width corresponding to requested image size.
             scale = co.AngularScale_1arcsec_kpc(self.lightConeParameters['FinalRedshift'],self.lightConeSolution[q]['redshift'])
@@ -206,7 +206,7 @@ class LightCone(object):
     def SaveLightConeSolution(self,file="light_cone.dat"):
         "Write out a text file with information on light cone solution."
 
-        print "Saving light cone solution to %s." % file
+        mylog.info("Saving light cone solution to %s." % file)
 
         f = open(file,'w')
         f.write("EnzoParameterFile = %s\n" % self.EnzoParameterFile)
@@ -228,10 +228,10 @@ class LightCone(object):
         filename += ".h5"
 
         if (len(self.projectionStack) == 0):
-            print "SaveLightConeStack: no projection data loaded."
+            mylog.error("SaveLightConeStack: no projection data loaded.")
             return
 
-        print "Writing light cone data to %s." % filename
+        mylog.info("Writing light cone data to %s." % filename)
 
         output = h5.openFile(filename, "a")
 
@@ -274,7 +274,7 @@ class LightCone(object):
                 distance2 = co.ComovingRadialDistance(z2,z) * self.enzoParameters['CosmologyHubbleConstantNow']
                 iteration += 1
                 if (iteration > max_Iterations):
-                    print "CalculateDeltaZMax: Warning - max iterations exceeded for z = %f (delta z = %f)." % (z,na.fabs(z2-z))
+                    mylog.error("CalculateDeltaZMax: Warning - max iterations exceeded for z = %f (delta z = %f)." % (z,na.fabs(z2-z)))
                     break
             output['deltaz'] = na.fabs(z2-z)
 
@@ -333,7 +333,7 @@ class LightCone(object):
                 param = param.strip()
                 vals = vals.strip()
             except ValueError:
-                print "Skipping line: %s" % line
+                mylog.error("Skipping line: %s" % line)
                 continue
             if EnzoParameterDict.has_key(param):
                 t = map(EnzoParameterDict[param], vals.split())
@@ -368,7 +368,7 @@ class LightCone(object):
                 param = param.strip()
                 vals = vals.strip()
             except ValueError:
-                print "Skipping line: %s" % line
+                mylog.error("Skipping line: %s" % line)
                 continue
             if LightConeParameterDict.has_key(param):
                 t = map(LightConeParameterDict[param], vals.split())

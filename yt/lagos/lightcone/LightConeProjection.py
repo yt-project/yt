@@ -41,7 +41,7 @@ def LightConeProjection(lightConeSlice,field,pixels,weight_field=None,save_image
                                               lightConeSlice['ProjectionCenter'][lightConeSlice['ProjectionAxis']],
                                               lightConeSlice['DepthBoxFraction'])
 
-    print "Making projection at z = %f from %s." % (lightConeSlice['redshift'],lightConeSlice['filename'])
+    mylog.info("Making projection at z = %f from %s." % (lightConeSlice['redshift'],lightConeSlice['filename']))
 
     # Make an Enzo data object.
     dataset_object = lightConeSlice['object']
