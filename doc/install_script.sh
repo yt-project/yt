@@ -92,7 +92,7 @@ then
         cd ..
     fi
     ZLIB_DIR=${DEST_DIR}
-    LDFLAGS="${LDFLAGS} -L${ZLIB_DIR}/lib/"
+    export LDFLAGS="${LDFLAGS} -L${ZLIB_DIR}/lib/ -L${ZLIB_DIR}/lib64/"
     LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:${ZLIB_DIR}/lib/"
 fi
 
@@ -144,6 +144,7 @@ then
 fi
 
 echo "Installing numpy, matplotlib, ipython"
+export LDFLAGS="${LDFLAGS} -L${DEST_DIR}/lib/ -L${DEST_DIR}/lib64/"
 ${DEST_DIR}/bin/python2.5 ${YT_DIR}/ez_setup.py
 ${DEST_DIR}/bin/easy_install numpy      || exit 1
 ${DEST_DIR}/bin/easy_install matplotlib || exit 1
