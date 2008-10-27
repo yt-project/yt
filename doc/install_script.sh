@@ -92,7 +92,7 @@ then
         cd ..
     fi
     ZLIB_DIR=${DEST_DIR}
-    LDFLAGS="${LDFLAGS} -L${ZLIB_DIR}/lib/"
+    export LDFLAGS="${LDFLAGS} -L${ZLIB_DIR}/lib/ -L${ZLIB_DIR}/lib64/"
     LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:${ZLIB_DIR}/lib/"
 fi
 
