@@ -1,0 +1,255 @@
+#!python
+
+from yt.mods import *
+namespace = locals().copy()
+
+doc = """\
+
+Welcome to yt!
+
+"""
+
+try:
+    import IPython.Shell
+except:
+    print 'ipython is not available. using default python interpreter.'
+    import code
+    import sys
+    code.interact(doc, None, namespace)
+    sys.exit()
+
+ip_shell = IPython.Shell.IPShellMatplotlib(user_ns=namespace)
+
+# The rest is a modified version of the IPython default profile code
+
+""" User configuration file for IPython
+
+This is a more flexible and safe way to configure ipython than *rc files
+(ipythonrc, ipythonrc-pysh etc.)
+
+This file is always imported on ipython startup. You can import the
+ipython extensions you need here (see IPython/Extensions directory).
+
+Feel free to edit this file to customize your ipython experience.
+
+Note that as such this file does nothing, for backwards compatibility.
+Consult e.g. file 'ipy_profile_sh.py' for an example of the things 
+you can do here.
+
+See http://ipython.scipy.org/moin/IpythonExtensionApi for detailed
+description on what you could do here.
+"""
+
+# Most of your config files and extensions will probably start with this import
+
+#import IPython.ipapi
+ip = ip_shell.IP.getapi()
+
+# You probably want to uncomment this if you did %upgrade -nolegacy
+# import ipy_defaults    
+
+import os   
+import glob
+import itertools
+
+def main():   
+
+    # uncomment if you want to get ipython -p sh behaviour
+    # without having to use command line switches  
+    # import ipy_profile_sh
+
+    # Configure your favourite editor?
+    # Good idea e.g. for %edit os.path.isfile
+
+    #import ipy_editors
+    
+    # Choose one of these:
+    
+    #ipy_editors.scite()
+    #ipy_editors.scite('c:/opt/scite/scite.exe')
+    #ipy_editors.komodo()
+    #ipy_editors.idle()
+    # ... or many others, try 'ipy_editors??' after import to see them
+    
+    # Or roll your own:
+    #ipy_editors.install_editor("c:/opt/jed +$line $file")
+    
+    
+    o = ip.options
+    # An example on how to set options
+    #o.autocall = 1
+    o.system_verbose = 0
+    
+    #import_all("os sys")
+    #execf('~/_ipython/ns.py')
+
+
+    # -- prompt
+    # A different, more compact set of prompts from the default ones, that
+    # always show your current location in the filesystem:
+
+    #o.prompt_in1 = r'\C_LightBlue[\C_LightCyan\Y2\C_LightBlue]\C_Normal\n\C_Green|\#>'
+    #o.prompt_in2 = r'.\D: '
+    #o.prompt_out = r'[\#] '
+    
+    # Try one of these color settings if you can't read the text easily
+    # autoexec is a list of IPython commands to execute on startup
+    #o.autoexec.append('%colors LightBG')
+    #o.autoexec.append('%colors NoColor')
+    #o.autoexec.append('%colors Linux')
+    
+    # for sane integer division that converts to float (1/2 == 0.5)
+    #o.autoexec.append('from __future__ import division')
+    
+    # For %tasks and %kill
+    #import jobctrl 
+    
+    # For autoreloading of modules (%autoreload, %aimport)    
+    #import ipy_autoreload
+    
+    # For winpdb support (%wdb)
+    #import ipy_winpdb
+    
+    # For bzr completer, requires bzrlib (the python installation of bzr)
+    #ip.load('ipy_bzr')
+    
+    # Tab completer that is not quite so picky (i.e. 
+    # "foo".<TAB> and str(2).<TAB> will work). Complete 
+    # at your own risk!
+    #import ipy_greedycompleter
+    
+from UserDict import UserDict
+class ParameterFileDict(UserDict):
+    def __init__(self):
+        # We accept no contributions
+        UserDict.__init__(self)
+        self._key_numbers = {}
+        self._nn = 0
+    def __setitem__(self, key, value):
+        if isinstance(key, int): raise KeyError
+        UserDict.__setitem__(self, key, value)
+        self._key_numbers[self._nn] = key
+        self._nn += 1
+    def __getitem__(self, key):
+        if isinstance(key, int):
+            return self[self._key_numbers[key]]
+        return UserDict.__getitem__(self, key)
+    def __iter__(self):
+        return itertools.chain(self.data.iterkeys(),
+                        self._key_numbers.iterkeys())
+    def __repr__(self):
+        s = "{" + ", \n ".join(
+                [" '(%s, %s)': %s" % (i, self._key_numbers[i], self[i])
+                    for i in sorted(self._key_numbers)]) + "}"
+        return s
+    def has_key(self, key):
+        return self.data.has_key(key) or self._key_numbers.has_key(key)
+    def keys(self):
+        return self.data.key(key) + self._key_numbers.key(key)
+
+pfs = ParameterFileDict()
+pcs = []
+ip.user_ns['pf'] = None
+ip.user_ns['pfs'] = pfs
+ip.user_ns['pc'] = None
+ip.user_ns['pcs'] = pcs
+ip.ex("from yt.mods import *")
+
+def do_pfall(self, arg):
+    if arg.strip() == "": arg = 0
+    for i in range(int(arg)+1):
+        for f in glob.glob("".join(["*/"]*i) + "*.hierarchy" ):
+            #print i, f
+            fn = f[:-10]
+            # Make this a bit smarter
+            ip.user_ns['pfs'][fn] = EnzoStaticOutput(fn)
+    ip.ex("print pfs")
+
+ip.expose_magic("pfall", do_pfall)
+
+def _parse_pf(arg):
+    if arg.strip() == "":
+        if ip.user_ns.get('pf', None) is not None:
+            return ip.user_ns['pf']
+        elif len(pfs) > 0:
+            return pfs[0]
+    else:
+        if pfs.has_key(arg):
+            return pfs[arg]
+        if pfs.has_key(int(arg)):
+            return pfs[int(arg)]
+        return EnzoStaticOutput(arg)
+    raise KeyError
+        
+def do_slice(self, arg):
+    pc = None
+    if len(arg.split()) == 3:
+        pfn, field, axis = arg.split()
+        pf = _parse_pf(arg.split()[0])
+    elif len(arg.split()) == 2:
+        field, axis = arg.split()
+        pf = _parse_pf("")
+        if ip.user_ns.get('pc', None) is not None and \
+           ip.user_ns['pc'].parameter_file is pf:
+            pf = ip.user_ns['pc']
+    else:
+        print "Need either two or three arguments."
+        return
+    axis = int(axis)
+    if pc is None: pc = PlotCollectionInteractive(pf)
+    pc.add_slice(field, axis)
+    print "Setting pcs[%s] = New PlotCollection" % len(pcs)
+    ip.user_ns['pcs'].append(pc)
+    if ip.user_ns.get('pc', None) is None: ip.user_ns['pc'] = pc
+    return pc
+
+ip.expose_magic("pcslicer", do_slice)
+
+def do_width(self, arg):
+    if ip.user_ns.get("pc", None) is None:
+        print "No 'pc' defined"
+        return
+    if len(arg.split()) == 2:
+        w, u = arg.split()
+    else:
+        w, u = arg, '1'
+    ip.user_ns['pc'].set_width(float(w), u)
+ip.expose_magic("width", do_width)
+
+def do_zoom(self, arg):
+    if ip.user_ns.get("pc", None) is None:
+        print "No 'pc' defined"
+        return
+    pc = ip.user_ns['pc']
+    w = None
+    for p in pc:
+        if hasattr(p, 'width'): w = p.width
+    if w is None: print "No zoomable plots defined"
+    w /= float(arg)
+    pc.set_width(w, '1')
+ip.expose_magic("zoom", do_zoom)
+    
+def do_setup_pf(self, arg):
+    if pfs.has_key(arg): ip.user_ns['pf'] = pfs[arg]
+    iarg = -1
+    try:
+        iarg = int(arg)
+    except ValueError: pass
+    if pfs.has_key(iarg): ip.user_ns['pf'] = pfs[iarg]
+    print ip.user_ns['pf']
+    
+ip.expose_magic("gpf", do_setup_pf)
+
+# some config helper functions you can use 
+def import_all(modules):
+    """ Usage: import_all("os sys") """ 
+    for m in modules.split():
+        ip.ex("from %s import *" % m)
+        
+def execf(fname):
+    """ Execute a file in user namespace """
+    ip.ex('execfile("%s")' % os.path.expanduser(fname))
+
+#main()
+
+ip_shell.mainloop(sys_exit=1,banner=doc)
