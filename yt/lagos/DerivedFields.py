@@ -928,7 +928,7 @@ def _pdensity(field, data):
                             blank, data.LeftEdge, data.dx)
     return blank
 add_field("particle_density", function=_pdensity,
-          validators=[ValidateSpatial(0)])
+          validators=[ValidateSpatial(0)], convert_function=_convertDensity)
 
 fieldInfo["Temperature"].units = r"K"
 
