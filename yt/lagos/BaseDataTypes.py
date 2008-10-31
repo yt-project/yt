@@ -548,7 +548,7 @@ class Enzo2DData(EnzoData, GridPropertiesMixin):
         self.hierarchy.save_data(array2d, self._top_node, node_name, force = force)
         mylog.info("Done serializing...")
 
-    def _deserialize(self, node_name = None, override = True):
+    def _deserialize(self, node_name = None, override = False):
         if not override and not self._okay_to_serialize: return
         if node_name is None: node_name = self._gen_node_name()
         mylog.debug("Trying to get node %s", node_name)
