@@ -548,7 +548,7 @@ class Enzo2DData(EnzoData, GridPropertiesMixin):
         self.hierarchy.save_data(array2d, self._top_node, node_name, force = force)
         mylog.info("Done serializing...")
 
-    def _deserialize(self, node_name = None, override = False):
+    def _deserialize(self, node_name = None, override = True):
         if not override and not self._okay_to_serialize: return
         if node_name is None: node_name = self._gen_node_name()
         mylog.debug("Trying to get node %s", node_name)
@@ -1368,7 +1368,7 @@ class ExtractedRegionBase(Enzo3DData):
         self._grids = self._base_region.pf.h.grids[self._indices.keys()]
 
     def _is_fully_enclosed(self, grid):
-        return (self._indices[grid.id[-1]][0].size == grid.ActiveDimensions.prod())
+        return (self._indices[grid.id-1][0].size == grid.ActiveDimensions.prod())
 
     def _get_point_indices(self, grid, use_child_mask=True):
         # Yeah, if it's not true, we don't care.
