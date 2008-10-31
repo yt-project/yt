@@ -51,7 +51,7 @@ kboltz = 1.38e-16 # erg K^-1
 G = 6.67e-8   # cm^3 g^-1 s^-2
 Msun2g = 1.989e33
 MJ_constant = (((5*kboltz)/(G*mh))**(1.5)) * (3/(4*pi))**(0.5) / Msun2g
-
+rho_crit_now = 1.8788e-29 # g cm^-3
 
 class FieldInfoContainer: # We are all Borg.
     _shared_state = {}
@@ -577,6 +577,11 @@ def _ConvertNumberDensity(data):
     return 1.0/mh
 add_field("NumberDensity", units=r"\rm{cm}^{-3}",
           convert_function=_ConvertNumberDensity)
+
+def Overdensity(field,data):
+    return (data['Density'] + data['particle_density']) / \
+        (rho_crit_now * ((1+data.pf['CosmologyCurrentRedshift'])**3))
+add_field("Overdensity",function=Overdensity,units=r"")
 
 def JeansMassMsun(field,data):
     return (MJ_constant * 
