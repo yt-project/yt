@@ -646,6 +646,11 @@ class EnzoHierarchy:
         """
         Returns (value, center) of location of maximum for a given field.
         """
+        mg, mc, mv, pos = self.find_max_cell_location(field, finestLevels)
+        return mv, pos
+    findMax = find_max
+
+    def find_max_cell_location(self, field, finestLevels = True):
         if finestLevels:
             gI = na.where(self.gridLevels >= self.maxLevel - NUMTOCHECK)
         else:
@@ -660,9 +665,6 @@ class EnzoHierarchy:
                 maxGrid = grid
         mc = na.array(maxCoord)
         pos=maxGrid.get_position(mc)
-        pos[0] += 0.5*maxGrid.dx
-        pos[1] += 0.5*maxGrid.dx
-        pos[2] += 0.5*maxGrid.dx
         mylog.info("Max Value is %0.5e at %0.16f %0.16f %0.16f in grid %s at level %s %s", \
               maxVal, pos[0], pos[1], pos[2], maxGrid, maxGrid.Level, mc)
         self.center = pos
@@ -672,7 +674,7 @@ class EnzoHierarchy:
                              maxGrid["z-velocity"][maxCoord])
         self.parameters["Max%sValue" % (field)] = maxVal
         self.parameters["Max%sPos" % (field)] = "%s" % (pos)
-        return maxVal, pos
+        return maxGrid, maxCoord, maxVal, pos
 
     findMax = find_max
 
