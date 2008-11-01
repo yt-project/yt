@@ -697,6 +697,7 @@ class PhasePlot(ProfilePlot):
         self.ticker = ticker
         self.image = None
         self.set_cmap(cmap)
+        self._zlim = None
 
         self.axis_names["X"] = fields[0]
         self.axis_names["Y"] = fields[1]
@@ -730,6 +731,12 @@ class PhasePlot(ProfilePlot):
         if field not in self.data.keys(): self.data.add_fields(field, weight, accumulation)
         self._log_z = self.setup_bins(self.fields[2])
 
+    def set_zlim(self, zmin, zmax):
+        """
+        Set the z boundaries of this plot.
+        """
+        self._zlim = (zmin, zmax)
+
     def set_log_field(self, val):
         if val:
             self._log_z = True
@@ -748,15 +755,17 @@ class PhasePlot(ProfilePlot):
         used_bin = self.data["UsedBins"].transpose()
         vmin = na.nanmin(vals[used_bin])
         vmax = na.nanmax(vals[used_bin])
+        if self._zlim is not None: vmin, vmax = self._zlim
         if self._log_z:
             # We want smallest non-zero vmin
             self.norm=matplotlib.colors.LogNorm(vmin=vmin, vmax=vmax,
                                                 clip=False)
             self.ticker = matplotlib.ticker.LogLocator()
-            vI = na.where(vals > 0)
-            newmin = vals[vI].min()
-            newmax = vals[vI].max()
-            self.norm.autoscale(na.array((newmin,newmax)))
+            if self._zlim is None:
+                vI = na.where(vals > 0)
+                vmin = vals[vI].min()
+                vmax = vals[vI].max()
+            self.norm.autoscale(na.array((vmin,vmax)))
         else:
             self.norm=matplotlib.colors.Normalize(vmin=vmin, vmax=vmax,
                                                   clip=False)
