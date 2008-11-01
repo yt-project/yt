@@ -39,6 +39,8 @@ def _fix_pf(pf):
     elif pf.endswith(".hierarchy"):
         return lagos.EnzoStaticOutput(pf[:-10])
     # JS will have to implement the Orion one
+    else:
+        raise IOError(pf)
 
 __pf_centers = {}
 def _fix_center(pf, center):

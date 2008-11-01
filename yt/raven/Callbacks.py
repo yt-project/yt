@@ -242,6 +242,18 @@ class GridBoundaryCallback(PlotCallback):
         plot._axes.add_collection(grid_collection)
         plot._axes.hold(False)
 
+class LabelCallback(PlotCallback):
+    def __init__(self, label):
+        PlotCallback.__init__(self)
+        self.label = label
+
+    def __call__(self, plot):
+        plot._figure.subplots_adjust(hspace=0, wspace=0,
+                                     bottom=0.1, top=0.9,
+                                     left=0.0, right=1.0)
+        plot._axes.set_xlabel(self.label)
+        plot._axes.set_ylabel(self.label)
+
 def get_smallest_appropriate_unit(v, pf):
     max_nu = 1e30
     good_u = None
