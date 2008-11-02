@@ -27,25 +27,33 @@ from yt.lagos import *
 from yt.funcs import *
 import yt.logger
 import itertools
+import os
 
 try:
-    from mpi4py import MPI
-    parallel_capable = (MPI.COMM_WORLD.size > 1)
-    if parallel_capable:
-        mylog.info("Parallel computation enabled: %s / %s",
-                   MPI.COMM_WORLD.rank, MPI.COMM_WORLD.size)
-        ytcfg["yt","__parallel_rank"] = str(MPI.COMM_WORLD.rank)
-        ytcfg["yt","__parallel_size"] = str(MPI.COMM_WORLD.size)
-        ytcfg["yt","__parallel"] = "True"
-        # Now let's make sure we have the right options set.
-        if MPI.COMM_WORLD.rank > 0:
-            if ytcfg.getboolean("lagos","serialize"):
-                ytcfg["lagos","onlydeserialize"] = "True"
-            if ytcfg.getboolean("yt","LogFile"):
-                ytcfg["yt","LogFile"] = "False"
-                yt.logger.disable_file_logging()
-except ImportError:
+    MPIRUN_RANK = os.environ['MPIRUN_RANK']
+except KeyError:
     parallel_capable = False
+    MPIRUN_RANK = 0
+
+if (MPIRUN_RANK):
+    try:
+        from mpi4py import MPI
+        parallel_capable = (MPI.COMM_WORLD.size > 1)
+        if parallel_capable:
+            mylog.info("Parallel computation enabled: %s / %s",
+                      MPI.COMM_WORLD.rank, MPI.COMM_WORLD.size)
+            ytcfg["yt","__parallel_rank"] = str(MPI.COMM_WORLD.rank)
+            ytcfg["yt","__parallel_size"] = str(MPI.COMM_WORLD.size)
+            ytcfg["yt","__parallel"] = "True"
+            # Now let's make sure we have the right options set.
+            if MPI.COMM_WORLD.rank > 0:
+                if ytcfg.getboolean("lagos","serialize"):
+                    ytcfg["lagos","onlydeserialize"] = "True"
+                if ytcfg.getboolean("yt","LogFile"):
+                    ytcfg["yt","LogFile"] = "False"
+                    yt.logger.disable_file_logging()
+    except ImportError:
+        parallel_capable = False
 
 class GridIterator(object):
     def __init__(self, pobj, just_list = False):
