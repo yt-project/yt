@@ -42,11 +42,8 @@ ytcfgDefaults = {
         'centeronmax':'False',
         'minpbar':'300',
         },
-    "SWIG":{
-        'EnzoInterfacePath':'/usr/work/mturk/local/lib/python2.5/site-packages',
-        },
     "lagos":{
-        'ReconstructHierarchy': 'False',
+        'ReconstructHierarchy': 'True',
         'serialize' : 'True',
         'onlydeserialize' : 'False',
         'usefortran' : 'False',
