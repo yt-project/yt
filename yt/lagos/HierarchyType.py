@@ -514,7 +514,7 @@ class AMRHierarchy:
                 ogl[0].dimensions[0],
                 ogl[0].dimensions[1],
                 ogl[0].dimensions[2],
-                position, 1,
+                position.astype('int32'), 1,
                 output, genealogy, corners, ogl)
         return output, genealogy, levels_all, levels_finest, pp, corners
 
