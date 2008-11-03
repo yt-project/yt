@@ -607,6 +607,12 @@ add_field("CellMassCode",
           function=_CellMassCode,
           convert_function=_convertCellMassCode)
 
+def _TotalMass(field,data):
+    return (data["Density"]+data["particle_density"]) * data["CellVolume"]
+add_field("TotalMassMsun", units=r"M_{\odot}",
+          function=_TotalMass,
+          convert_function=_convertCellMassMsun)
+
 def _CellVolume(field, data):
     if data['dx'].size == 1:
         try:
