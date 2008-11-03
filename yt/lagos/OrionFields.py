@@ -28,9 +28,13 @@ from UniversalFields import *
 
 add_field = add_orion_field
 
+# def _convertDensity(data):
+#     return data.convert("Density")
 add_field("density", function=lambda a,b: None, take_log=True,
           validators = [ValidateDataField("density")],
           units=r"\rm{g}/\rm{cm}^3")
+OrionFieldInfo["density"]._projected_units =r"\rm{g}/\rm{cm}^2"
+#OrionFieldInfo["density"]._convert_function=_convertDensity
 
 add_field("eden", function=lambda a,b: None, take_log=True,
           validators = [ValidateDataField("eden")],
