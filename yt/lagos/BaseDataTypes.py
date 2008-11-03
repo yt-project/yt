@@ -826,7 +826,7 @@ class EnzoProjBase(Enzo2DData, ParallelAnalysisInterface):
     _key_fields = Enzo2DData._key_fields + ['weight_field']
     def __init__(self, axis, field, weight_field = None,
                  max_level = None, center = None, pf = None,
-                 source=None, node_name = None, **kwargs):
+                 source=None, node_name = None, field_cuts = None, **kwargs):
         """
         EnzoProj is a projection of a *field* along an *axis*.  The field
         can have an associated *weight_field*, in which case the values are
@@ -834,6 +834,9 @@ class EnzoProjBase(Enzo2DData, ParallelAnalysisInterface):
         of that weight.
         """
         Enzo2DData.__init__(self, axis, field, pf, node_name = None, **kwargs)
+        if field_cuts is not None:
+            field_cuts = ['grid%s' % cut for cut in ensure_list(field_cuts)]
+        self._field_cuts = field_cuts
         self.center = center
         self._initialize_source(source)
         self._grids = self.source._grids
@@ -865,6 +868,8 @@ class EnzoProjBase(Enzo2DData, ParallelAnalysisInterface):
             self._okay_to_serialize = False
             self._check_region = True
         self.source = source
+        if self._field_cuts is not None:
+            self._check_region = True
 
     #@time_execution
     def __cache_data(self):
@@ -1078,7 +1083,7 @@ class EnzoProjBase(Enzo2DData, ParallelAnalysisInterface):
                        for field in fields]
         full_proj = [self.func(field,axis=self.axis) for field in masked_data]
         weight_proj = self.func(weight_data,axis=self.axis)
-        if self._check_region and not self.source._is_fully_enclosed(grid):
+        if (self._check_region and not self.source._is_fully_enclosed(grid)) or self._field_cuts is not None:
             used_data = self._get_points_in_region(grid).astype('bool')
             used_points = na.where(na.logical_or.reduce(used_data, self.axis))
         else:
@@ -1104,6 +1109,13 @@ class EnzoProjBase(Enzo2DData, ParallelAnalysisInterface):
         pointI = self.source._get_point_indices(grid, use_child_mask=False)
         point_mask = na.zeros(grid.ActiveDimensions)
         point_mask[pointI] = 1.0
+
+        if (self._field_cuts is not None):
+            #field_mask = na.ones(shape=na.shape(point_mask))
+            for cut in self._field_cuts:
+                point_mask *= (eval(cut)).astype(int)
+            #point_mask *= field_mask
+
         return point_mask
 
     @restore_grid_state
