@@ -748,6 +748,43 @@ def _AngularMomentumMSUNKMSMPC(field, data):
 add_field("AngularMomentumMSUNKMSMPC",
           units=r"M_{\odot}\rm{km}\rm{Mpc}/\rm{s}")
 
+def _ParticleSpecificAngularMomentum(field, data):
+    """
+    Calculate the angular of a particle velocity.  Returns a vector for each
+    particle.
+    """
+    if data.has_field_parameter("bulk_velocity"):
+        bv = data.get_field_parameter("bulk_velocity")
+    else: bv = na.zeros(3, dtype='float64')
+    xv = data["particle_velocity_x"] - bv[0]
+    yv = data["particle_velocity_y"] - bv[1]
+    zv = data["particle_velocity_z"] - bv[2]
+    center = data.get_field_parameter('center')
+    coords = na.array([data['particle_position_x'],
+                       data['particle_position_y'],
+                       data['particle_position_z']], dtype='float64')
+    new_shape = tuple([3] + [1]*(len(coords.shape)-1))
+    r_vec = coords - na.reshape(center,new_shape)
+    v_vec = na.array([xv,yv,zv], dtype='float64')
+    return na.cross(r_vec, v_vec, axis=0)
+add_field("ParticleSpecificAngularMomentum",
+          convert_function=_convertSpecificAngularMomentum, vector_field=True,
+          units=r"\rm{cm}^2/\rm{s}", validators=[ValidateParameter('center')])
+def _convertSpecificAngularMomentumKMSMPC(data):
+    return data.convert("mpc")/1e5
+add_field("ParticleSpecificAngularMomentumKMSMPC",
+          function=_ParticleSpecificAngularMomentum,
+          convert_function=_convertSpecificAngularMomentumKMSMPC, vector_field=True,
+          units=r"\rm{km}\rm{Mpc}/\rm{s}", validators=[ValidateParameter('center')])
+def _ParticleAngularMomentum(field, data):
+    return data["ParticleMass"] * data["ParticleSpecificAngularMomentum"]
+add_field("ParticleAngularMomentum", units=r"\rm{g}\/\rm{cm}^2/\rm{s}")
+def _ParticleAngularMomentumMSUNKMSMPC(field, data):
+    return data["ParticleMass"] * data["ParticleSpecificAngularMomentumKMSMPC"]
+add_field("ParticleAngularMomentumMSUNKMSMPC",
+          units=r"M_{\odot}\rm{km}\rm{Mpc}/\rm{s}")
+
+
 def _ParticleRadius(field, data):
     center = data.get_field_parameter("center")
     radius = na.sqrt((data["particle_position_x"] - center[0])**2.0 +
