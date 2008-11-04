@@ -182,7 +182,6 @@ class HopList(object):
                    self.threshold)
         self.particle_fields["densities"] = self.densities
         self.particle_fields["tags"] = self.tags
-        print 'tags %d' % (self.tags.size)
 
     def __get_dm_indices(self):
         if 'creation_time' in self.data_source.hierarchy.field_list:
