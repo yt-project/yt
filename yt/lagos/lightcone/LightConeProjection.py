@@ -25,7 +25,7 @@ License:
 
 from yt.lagos.lightcone import *
 
-def LightConeProjection(lightConeSlice,field,pixels,weight_field=None,save_image=False,name=""):
+def LightConeProjection(lightConeSlice,field,pixels,weight_field=None,save_image=False,name="",**kwargs):
     "Create a single projection to be added into the light cone stack."
 
     # Use some projection parameters to seed random number generator to make unique node name.
@@ -65,7 +65,7 @@ def LightConeProjection(lightConeSlice,field,pixels,weight_field=None,save_image
 
     # Make projection.
     pc.add_projection(field,lightConeSlice['ProjectionAxis'],weight_field=weight_field,source=periodic_region,use_colorbar=True,
-                      node_name=node_name)
+                      node_name=node_name,**kwargs)
 
     # Serialize projection data.
     pc.plots[0].data._serialize(node_name,force=True)

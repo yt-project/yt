@@ -155,7 +155,7 @@ class LightCone(object):
         del self.timeOutputs
         del co
 
-    def ProjectLightCone(self,field,weight_field=None):
+    def ProjectLightCone(self,field,weight_field=None,**kwargs):
         "Create projections for light cone, then add them together."
 
         if not(self.lightConeParameters['OutputDir'].endswith("/")):
@@ -169,7 +169,8 @@ class LightCone(object):
                                        q,len(self.lightConeSolution))
             output['object'] = EnzoStaticOutput(output['filename'])
             frb = LightConeProjection(output,field,pixels,weight_field=weight_field,
-                                      save_image=self.lightConeParameters['SaveLightConeSlices'],name=name)
+                                      save_image=self.lightConeParameters['SaveLightConeSlices'],
+                                      name=name,**kwargs)
             if (weight_field is not None):
                 # Data come back normalized by the weight field.
                 # Undo that so it can be added up for the light cone.
