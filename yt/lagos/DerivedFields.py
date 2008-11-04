@@ -740,6 +740,13 @@ add_field("SpecificAngularMomentumKMSMPC",
           function=_SpecificAngularMomentum,
           convert_function=_convertSpecificAngularMomentumKMSMPC, vector_field=True,
           units=r"\rm{km}\rm{Mpc}/\rm{s}", validators=[ValidateParameter('center')])
+def _AngularMomentum(field, data):
+    return data["CellMass"] * data["SpecificAngularMomentum"]
+add_field("AngularMomentum", units=r"\rm{g}\/\rm{cm}^2/\rm{s}")
+def _AngularMomentumMSUNKMSMPC(field, data):
+    return data["CellMassMsun"] * data["SpecificAngularMomentumKMSMPC"]
+add_field("AngularMomentumMSUNKMSMPC",
+          units=r"M_{\odot}\rm{km}\rm{Mpc}/\rm{s}")
 
 def _ParticleRadius(field, data):
     center = data.get_field_parameter("center")
