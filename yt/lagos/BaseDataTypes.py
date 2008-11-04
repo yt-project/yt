@@ -539,7 +539,7 @@ class Enzo2DData(EnzoData, GridPropertiesMixin):
     _okay_to_serialize = True
     def _should_i_write(self): return True
 
-    def _serialize(self, node_name = None, force = False):
+    def _serialize(self, node_name = None, force = True):
         if not self._should_i_write(): return
         mylog.info("Serializing data...")
         if node_name is None: node_name = self._gen_node_name()
@@ -1476,12 +1476,12 @@ class EnzoRegionBase(Enzo3DData):
         if self._is_fully_enclosed(grid):
             return True
         else:
-            cm = ( (grid['x'] < self.right_edge[0])
-                 & (grid['x'] >= self.left_edge[0])
-                 & (grid['y'] < self.right_edge[1])
-                 & (grid['y'] >= self.left_edge[1])
-                 & (grid['z'] < self.right_edge[2])
-                 & (grid['z'] >= self.left_edge[2]) )
+            cm = ( (grid['x'] - 0.5*grid['dx'] < self.right_edge[0])
+                 & (grid['x'] + 0.5*grid['dx'] >= self.left_edge[0])
+                 & (grid['y'] - 0.5*grid['dy'] < self.right_edge[1])
+                 & (grid['y'] + 0.5*grid['dy'] >= self.left_edge[1])
+                 & (grid['z'] - 0.5*grid['dz'] < self.right_edge[2])
+                 & (grid['z'] + 0.5*grid['dz'] >= self.left_edge[2]) )
         return cm
 
 class EnzoPeriodicRegionBase(Enzo3DData):
@@ -1528,12 +1528,12 @@ class EnzoPeriodicRegionBase(Enzo3DData):
         else:
             cm = na.zeros(grid.ActiveDimensions,dtype='bool')
             for off_x, off_y, off_z in self.offsets:
-                cm = cm | ( (grid['x'] + off_x < self.right_edge[0])
-                          & (grid['x'] + off_x >= self.left_edge[0])
-                          & (grid['y'] + off_y < self.right_edge[1])
-                          & (grid['y'] + off_y >= self.left_edge[1])
-                          & (grid['z'] + off_z < self.right_edge[2])
-                          & (grid['z'] + off_z >= self.left_edge[2]) )
+                cm = cm | ( (grid['x'] - grid['dx'] + off_x < self.right_edge[0])
+                          & (grid['x'] + grid['dx'] + off_x >= self.left_edge[0])
+                          & (grid['y'] - grid['dy'] + off_y < self.right_edge[1])
+                          & (grid['y'] + grid['dy'] + off_y >= self.left_edge[1])
+                          & (grid['z'] - grid['dz'] + off_z < self.right_edge[2])
+                          & (grid['z'] + grid['dz'] + off_z >= self.left_edge[2]) )
             return cm
 
 class EnzoGridCollection(Enzo3DData):
