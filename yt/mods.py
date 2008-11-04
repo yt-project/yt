@@ -24,7 +24,11 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
+#
+# ALL IMPORTS GO HERE
+#
 
+# First module imports
 import yt.lagos as lagos
 import yt.lagos.hop as hop
 import yt.raven as raven
@@ -33,23 +37,27 @@ import numpy as na
 import sys, types
 from logger import ytLogger as mylog
 
+# Now individual component imports from lagos
 from yt.lagos import EnzoStaticOutput, \
     BinnedProfile1D, BinnedProfile2D, BinnedProfile3D, \
     add_field, fieldInfo, \
     Clump, write_clump_hierarchy, find_clumps, write_clumps
 
+# Now individual component imports from raven
 from yt.raven import PlotCollection, PlotCollectionInteractive, \
     QuiverCallback, ParticleCallback, ContourCallback, \
     GridBoundaryCallback, UnitBoundaryCallback, \
     LinePlotCallback, CuttingQuiverCallback, ClumpContourCallback, \
     HopCircleCallback
 
+# Optional component imports from raven
 try:
     from yt.raven import VolumeRenderingDataCube, \
         VolumeRendering3DProfile, HaloMassesPositionPlot
 except ImportError:
     pass
 
+# Individual imports from Fido
 from yt.fido import GrabCollections, OutputCollection
 
 # Some convenience functions to ease our time running scripts
