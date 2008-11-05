@@ -1,0 +1,33 @@
+# Sample HaloProfiler parameter file.
+
+ProfileOutputDir = radial_profiles
+
+ProjectionOutputDir = projections
+
+# Name of hop output file
+HopOutputFile = HopAnalysis.out
+
+# Name of output file with virial quantities
+VirialQuantitiesOutputFile = VirialQuantities.out
+
+# Minimum virial mass in solar masses
+VirialMassCutoff = 1e14
+
+# Critical overdensity for virial cutoff.
+VirialOverdensity = 200
+
+n_bins = 64
+
+# 1D radial profiles
+# Syntax is Profile[Field] = Weight_Field,Accumulate (True or False)
+Profile[CellVolume] = None,True
+Profile[TotalMassMsun] = None,True
+
+# Projections of individual halos
+# Syntax is Projection[Field] = Weight_Field
+Projection[Density] = None
+Projection[Temperature] = Density
+
+ProjectionWidth = 8.0 # Mpc
+
+ProjectionResolution = 800
