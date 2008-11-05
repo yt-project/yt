@@ -26,7 +26,7 @@ License:
 from yt.lagos import *
 from yt.funcs import *
 import yt.logger
-import itertools
+import itertools, sys
 
 if os.path.basename(sys.argv[0]) == "mpi4py":
     from mpi4py import MPI
