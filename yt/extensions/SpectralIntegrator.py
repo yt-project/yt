@@ -24,7 +24,7 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-from yt.lagos import *
+from yt.mods import *
 
 class SpectralFrequencyIntegrator(object):
     def __init__(self, table, field_names,

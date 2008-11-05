@@ -28,7 +28,12 @@ License:
 #
 
 # First module imports
-import HaloProfiler
+import HaloProfiler as HP
+import SpectralIntegrator as SI
+import RayTracer as RT
 
 # Now individual component imports
 from HaloProfiler import HaloProfiler
+from SpectralIntegrator import create_table_from_textfiles, \
+                               SpectralFrequencyIntegrator
+from RayTracer import SlowRayTracer
