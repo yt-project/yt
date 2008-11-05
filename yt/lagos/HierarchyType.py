@@ -905,7 +905,7 @@ class OrionHierarchy(AMRHierarchy):
         counter += 1
         self.dx = na.zeros((self.n_levels,3))
         for i,line in enumerate(self.__global_header_lines[counter:counter+self.n_levels]):
-            self.dx[i] = na.array(map(int,line.split()))
+            self.dx[i] = na.array(map(float,line.split()))
         counter += self.n_levels
         self.geometry = int(self.__global_header_lines[counter])
         if self.geometry != 0:
