@@ -179,7 +179,7 @@ class HopList(object):
                    self.particle_fields["particle_position_y"],
                    self.particle_fields["particle_position_z"],
                    self.particle_fields["ParticleMassMsun"],
-                   self.threshold)
+                   self.threshold, 1.0)
         self.particle_fields["densities"] = self.densities
         self.particle_fields["tags"] = self.tags
 

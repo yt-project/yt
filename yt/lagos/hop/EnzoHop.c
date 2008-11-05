@@ -47,13 +47,14 @@ Py_EnzoHop(PyObject *obj, PyObject *args)
     PyArrayObject    *xpos, *ypos, *zpos,
                      *mass;
     xpos=ypos=zpos=mass=NULL;
-    npy_float64 totalmass = 0;
+    npy_float64 totalmass = 0.0;
+    float normalize_to = 1.0;
     float thresh = 160.0;
 
     int i;
 
-    if (!PyArg_ParseTuple(args, "OOOO|f",
-        &oxpos, &oypos, &ozpos, &omass, &thresh))
+    if (!PyArg_ParseTuple(args, "OOOO|ff",
+        &oxpos, &oypos, &ozpos, &omass, &thresh, &normalize_to))
     return PyErr_Format(_HOPerror,
             "EnzoHop: Invalid parameters.");
 
@@ -98,6 +99,7 @@ Py_EnzoHop(PyObject *obj, PyObject *args)
 
     for(i = 0; i < num_particles; i++)
         totalmass+=*(npy_float64*)PyArray_GETPTR1(mass,i);
+    totalmass /= normalize_to;
 
   /* initialize the kd hop structure */
 
