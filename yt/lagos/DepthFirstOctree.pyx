@@ -129,15 +129,15 @@ def RecurseOctreeByLevels(int i_i, int j_i, int k_i,
     cdef np.ndarray[np.float64_t, ndim=1] child_leftedges
     cdef np.float64_t cx, cy, cz
     cdef int cp
-    for k_off in range(k_f):
-        k = k_off + k_i
+    for i_off in range(i_f):
+        i = i_off + i_i
         cz = (leftedges[2] + k*dx)
         if i_f > 2: print k, cz
         for j_off in range(j_f):
             j = j_off + j_i
             cy = (leftedges[1] + j*dx)
-            for i_off in range(i_f):
-                i = i_off + i_i
+            for k_off in range(k_f):
+                k = k_off + k_i
                 cp = curpos[level]
                 cx = (leftedges[0] + i*dx)
                 corners[cp, 0] = cx 
