@@ -188,7 +188,7 @@ class HaloProfiler(object):
                     output = h5.openFile(dataFilename, "a")
                     # Create fixed resolution buffer for each projection and write them out.
                     for e,field in enumerate(self.projectionFields.keys()):
-                        frb = raven.FixedResolutionBuffer(pc.plots[e].data,(proj_left[0],proj_left[1],proj_right[0],proj_right[1]),
+                        frb = raven.FixedResolutionBuffer(pc.plots[e].data,(proj_left[0],proj_right[0],proj_left[1],proj_right[1]),
                                                           (projectionResolution,projectionResolution),
                                                           antialias=True)
                         output.createArray("/",field,frb[field])
