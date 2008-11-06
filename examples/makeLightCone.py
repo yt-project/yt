@@ -2,7 +2,7 @@
 Light cone example.
 """
 
-from yt.lagos.lightcone import *
+from yt.extensions.lightcone import *
 
 q = LightCone("128Mpc256grid_SFFB.param","lightcone.par")
 
