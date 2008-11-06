@@ -1,0 +1,13 @@
+InitialRedshift = 0.4
+FinalRedshift = 0.0
+
+FieldOfViewInArcMinutes = 450.0
+ImageResolutionInArcSeconds = 30.0
+
+RandomSeed = 123456789
+
+UseMinimumNumberOfProjections = 1
+SaveLightConeSlices = 1
+
+OutputDir = LC
+OutputPrefix = LightCone
