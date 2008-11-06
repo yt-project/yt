@@ -376,6 +376,8 @@ class AMRHierarchy:
         return self.grids[grid_i], grid_i
 
     def get_periodic_box_grids(self, left_edge, right_edge):
+        left_edge = na.array(left_edge)
+        right_edge = na.array(right_edge)
         mask = na.zeros(self.grids.shape, dtype='bool')
         dl = self.parameters["DomainLeftEdge"]
         dr = self.parameters["DomainRightEdge"]
