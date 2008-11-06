@@ -103,6 +103,16 @@ class HaloProfiler(object):
         # Get virial quantities.
         self._LoadVirialData()
 
+        # Set resolution for fixed resolution output.
+        if save_cube:
+            if (str(self.haloProfilerParameters['ProjectAtLevel']).find('max') >= 0):
+                proj_level = self.pf.h.maxLevel
+            else:
+                proj_level = int(self.haloProfilerParameters['ProjectAtLevel'])
+            proj_dx = self.pf.units['mpc'] / self.pf.parameters['TopGridDimensions'][0] / \
+                (self.pf.parameters['RefineBy']**proj_level)
+            projectionResolution = int(self.haloProfilerParameters['ProjectionWidth'] / proj_dx)
+
         outputDir = "%s/%s" % (self.pf.fullpath,self.haloProfilerParameters['ProjectionOutputDir'])
 
         if (os.path.exists(outputDir)):
@@ -179,8 +189,7 @@ class HaloProfiler(object):
                     # Create fixed resolution buffer for each projection and write them out.
                     for e,field in enumerate(self.projectionFields.keys()):
                         frb = raven.FixedResolutionBuffer(pc.plots[e].data,(proj_left[0],proj_left[1],proj_right[0],proj_right[1]),
-                                                          (self.haloProfilerParameters['ProjectionResolution'],
-                                                           self.haloProfilerParameters['ProjectionResolution']),
+                                                          (projectionResolution,projectionResolution),
                                                           antialias=True)
                         output.createArray("/",field,frb[field])
                     output.close()
@@ -401,7 +410,7 @@ class HaloProfiler(object):
         self.haloProfilerParameters['HopOutputFile'] = "HopAnalysis.out"
         self.haloProfilerParameters['VirialQuantitiesOutputFile'] = "VirialQuantities.out"
         self.haloProfilerParameters['ProjectionWidth'] = 4.0 # Mpc
-        self.haloProfilerParameters['ProjectionResolution'] = 800
+        self.haloProfilerParameters['ProjectAtLevel'] = 'max'
 
 haloProfilerParameterDict = {"ProfileOutputDir": str,
                              "VirialQuantitiesOutputFile": str,
@@ -413,7 +422,7 @@ haloProfilerParameterDict = {"ProfileOutputDir": str,
                              "ProjectionOutputDir": str,
                              "ProjectionWidth": float,
                              "Projection": str,
-                             "ProjectionResolution": int}
+                             "ProjectAtLevel": str}
 
 def ShiftProjections(pf,pc,oldCenter,newCenter,axis):
     """
