@@ -24,6 +24,7 @@ License:
 """
 
 import yt.lagos as lagos
+from yt.logger import lagosLogger as mylog
 import yt.raven as raven
 import numpy as na
 import os
