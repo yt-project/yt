@@ -28,6 +28,7 @@ from yt.logger import lagosLogger as mylog
 import yt.raven as raven
 import numpy as na
 import os
+import tables as h5
 
 class HaloProfiler(object):
     def __init__(self,dataset,HaloProfilerParameterFile):
@@ -96,7 +97,7 @@ class HaloProfiler(object):
         pbar.finish()
         self._WriteVirialQuantities()
 
-    def makeProjections(self,save_images=True,**kwargs):
+    def makeProjections(self,save_images=True,save_cube=True,**kwargs):
         "Make projections of all halos using specified fields."
 
         # Get virial quantities.
@@ -157,17 +158,35 @@ class HaloProfiler(object):
                 if need_per:
                     ShiftProjections(self.pf,pc,halo['center'],center,w)
                     # Projection has now been shifted to center of box.
-                    pc.set_xlim(center[x_axis]-0.5 * self.haloProfilerParameters['ProjectionWidth']/self.pf.units['mpc'],
-                                center[x_axis]+0.5 * self.haloProfilerParameters['ProjectionWidth']/self.pf.units['mpc'])
-                    pc.set_ylim(center[y_axis]-0.5 * self.haloProfilerParameters['ProjectionWidth']/self.pf.units['mpc'],
-                                center[y_axis]+0.5 * self.haloProfilerParameters['ProjectionWidth']/self.pf.units['mpc'])
-
+                    proj_left = [center[x_axis]-0.5 * self.haloProfilerParameters['ProjectionWidth']/self.pf.units['mpc'],
+                                 center[y_axis]-0.5 * self.haloProfilerParameters['ProjectionWidth']/self.pf.units['mpc']]
+                    proj_right = [center[x_axis]+0.5 * self.haloProfilerParameters['ProjectionWidth']/self.pf.units['mpc'],
+                                  center[y_axis]+0.5 * self.haloProfilerParameters['ProjectionWidth']/self.pf.units['mpc']]
                 else:
-                    pc.set_xlim(leftEdge[x_axis],rightEdge[x_axis])
-                    pc.set_ylim(leftEdge[y_axis],rightEdge[y_axis])
+                    proj_left = [leftEdge[x_axis],leftEdge[y_axis]]
+                    proj_right = [rightEdge[x_axis],rightEdge[y_axis]]
+
+                pc.set_xlim(proj_left[0],proj_right[0])
+                pc.set_ylim(proj_left[1],proj_right[1])
+
+                # Save projection data to hdf5 file.
+                if save_cube:
+                    axes = ['x','y','z']
+                    dataFilename = "%s/Halo_%04d_%s_data.h5" % (outputDir,q,axes[w])
+                    mylog.info("Saving projection data to %s." % dataFilename)
+
+                    output = h5.openFile(dataFilename, "a")
+                    # Create fixed resolution buffer for each projection and write them out.
+                    for e,field in enumerate(self.projectionFields.keys()):
+                        frb = raven.FixedResolutionBuffer(pc.plots[e].data,(proj_left[0],proj_left[1],proj_right[0],proj_right[1]),
+                                                          (self.haloProfilerParameters['ProjectionResolution'],
+                                                           self.haloProfilerParameters['ProjectionResolution']),
+                                                          antialias=True)
+                        output.createArray("/",field,frb[field])
+                    output.close()
 
                 if save_images:
-                    pc.save("%s/%04d" % (outputDir,q))
+                    pc.save("%s/Halo_%04d" % (outputDir,q))
 
                 pc.clear_plots()
 
