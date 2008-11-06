@@ -54,6 +54,10 @@ def setup_package():
         install_requires = ['matplotlib', 'numpy','ipython'],
         extras_require = { 'GUI' : ['wxPython'],
                            'storage' : ['tables'], },
+        entry_points = { 'console_scripts' : [
+                            'yt_timeseries = yt.commands:timeseries',
+                            'yt_zoomin = yt.commands:zoomin']
+                       },
         author="Matthew J. Turk",
         author_email="matthewturk@gmail.com",
         url = "http://yt.enzotools.org/",

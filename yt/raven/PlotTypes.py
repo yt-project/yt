@@ -30,71 +30,17 @@ from yt.funcs import *
 
 import _MPL
 
-# We only get imported if matplotlib was imported successfully
-
-def ClusterFilePlot(cls, x, y, xlog=None, ylog=None, fig=None, filename=None,
-                    format="png", xbounds = None, ybounds = None):
-    """
-
-    """
-    if not fig:
-        from matplotlib.backends.backend_agg import FigureCanvasAgg
-        fig = matplotlib.figure.Figure(figsize=(8,8))
-        canvas = FigureCanvasAgg(fig)
-    ax = fig.add_subplot(111)
-    if not iterable(cls):
-        cls = [cls]
-    if xlog == None:
-        if lagos.CFfieldInfo.has_key(x):
-            xlog = lagos.CFfieldInfo[x][2]
-    if ylog == None:
-        if lagos.CFfieldInfo.has_key(y):
-            ylog = lagos.CFfieldInfo[y][2]
-    if xlog and ylog:
-        pp=ax.loglog
-    elif xlog and not ylog:
-        pp=ax.semilogx
-    elif ylog and not xlog:
-        pp=ax.semilogy
-    else:
-        pp=ax.plot
-
-    fig.hold(True)
-    colors = 'krbgm' * 10
-    for cl, cc in zip(cls, colors):
-        #pp(cl[x],cl[y], lw=2.5)
-        pp(cl[x], cl[y], lw=2.5, color=cc)
-    if lagos.CFfieldInfo.has_key(x):
-        ax.set_xlabel(lagos.CFfieldInfo[x][1], fontsize=18)
-        print lagos.CFfieldInfo[x][1]
-    if lagos.CFfieldInfo.has_key(y):
-        ax.set_ylabel(lagos.CFfieldInfo[y][1], fontsize=18)
-        print lagos.CFfieldInfo[y][1]
-    if xbounds:
-        ax.set_xlim(xbounds)
-    if ybounds:
-        ax.set_ylim(ybounds)
-    ax.axesFrame.set_linewidth(2)
-    for tickLabel in ax.get_xticklabels() + ax.get_yticklabels():
-        tickLabel.set_fontsize(14)
-    if filename:
-        canvas.print_figure(filename, format=format)
-    return fig
-
 engineVals = {}
 
 def Initialize(*args, **kwargs):
     engineVals["initialized"] = True
-    if not kwargs.has_key("canvas"):
+    if 'canvas' in kwargs:
+        FigureCanvas = kwargs["canvas"]
+    else:
         from matplotlib.backends.backend_agg \
                 import FigureCanvasAgg as FigureCanvas
-    else:
-        FigureCanvas = kwargs["canvas"]
     engineVals["canvas"] = FigureCanvas
     return
-
-def CleanUp(*args, **kwargs):
-    pass
 
 class RavenPlot:
 
