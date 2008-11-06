@@ -43,15 +43,15 @@ class HopList(object):
         self._max_dens2 = {}
         mylog.info("Initializing HOP")
         self.__obtain_particles()
-        #self.__enlarge_data()
-        #self.__slice_data()
-        #self.__run_hops()
-        #self.__reduce_data()
-        self.__run_hop()
+        self.__enlarge_data()
+        self.__slice_data()
+        self.__run_hops()
+        self.__reduce_data()
+        #self.__run_hop()
         mylog.info("Parsing outputs")
-        #self.__parse_outputs()
-        self.__parse_output()
-        #self.__glue_outputs()
+        self.__parse_outputs()
+        #self.__parse_output()
+        self.__glue_outputs()
         mylog.debug("Finished. (%s)", len(self))
 
     def __obtain_particles(self):
@@ -93,7 +93,7 @@ class HopList(object):
             self.tempm[3*sizetemp -1 - part] = i
 
     def __slice_data(self):
-        cuts = 2
+        cuts = 3
         padding = 0.2
         self.temp2x = {}
         self.temp2y = {}
@@ -138,7 +138,7 @@ class HopList(object):
                     self.tracking2[((i*cuts) + j)*cuts + k] = t_t
 
     def __reduce_data(self):
-        cuts = 2
+        cuts = 3
         padding = 0.2
         # loop over the sub-boxes
         for i in range(cuts):
@@ -157,21 +157,24 @@ class HopList(object):
                     self.temp2z[((i*cuts) + j)*cuts + k] = self.temp2z[((i*cuts) + j)*cuts + k]*(zright-zleft)+zleft
 
     def __run_hops(self):
-        cuts = 2
+        cuts = 3
         padding = 0.2
-        dens_fix = 1 / (2*padding + 1./cuts)**3
+        nParts = self.particle_fields["particle_position_x"].size
+        dens_fix = 1. / (2*padding + 1./cuts)**3
         self.densities2 = {}
         self.tags2 = {}
         for i in range(cuts):
             for j in range(cuts):
                 for k in range(cuts):
                     print "run_hops %d" % (((i*cuts) + j)*cuts + k)
+                    size = float(self.temp2x[((i*cuts) + j)*cuts + k].size)
+                    print "size %d" % size
                     self.densities2[((i*cuts) + j)*cuts + k], self.tags2[((i*cuts) + j)*cuts + k] = \
                         RunHOP(self.temp2x[((i*cuts) + j)*cuts + k],
                                self.temp2y[((i*cuts) + j)*cuts + k],
                                self.temp2z[((i*cuts) + j)*cuts + k],
-                               self.temp2m[((i*cuts) + j)*cuts + k]*dens_fix,
-                               self.threshold)
+                               self.temp2m[((i*cuts) + j)*cuts + k],
+                               self.threshold,size/nParts*dens_fix)
 
     def __run_hop(self):
         self.densities, self.tags = \
@@ -195,7 +198,7 @@ class HopList(object):
             return slice(None)
 
     def __parse_outputs(self):
-        cuts = 2
+        cuts = 3
         for i in range(cuts):
             for j in range(cuts):
                 for k in range(cuts):
@@ -233,7 +236,7 @@ class HopList(object):
             print '%d groups2 %d' % (i,len(self._groups2[i]))
 
     def __glue_outputs(self):
-        cuts = 2
+        cuts = 3
         ii = 0
         iii = 0
         for i in range(cuts):

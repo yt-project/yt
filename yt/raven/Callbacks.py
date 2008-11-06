@@ -473,6 +473,7 @@ class HopCircleCallback(PlotCallback):
         yi = lagos.y_dict[plot.data.axis]
         dx = plot.image._A.shape[0] / (x1-x0)
         dy = plot.image._A.shape[1] / (y1-y0)
+        print "there are %d haloes" % len(self.hop_output) # skory
         for halo in self.hop_output[:self.max_number]:
             radius = halo.maximum_radius() * dx
             center = halo.center_of_mass()
