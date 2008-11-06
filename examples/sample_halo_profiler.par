@@ -30,4 +30,8 @@ Projection[Temperature] = Density
 
 ProjectionWidth = 8.0 # Mpc
 
-ProjectionResolution = 800
+# Max level at which halos will be projected.
+# This determines the size of the fixed resolution buffer.
+# Can be set to any level or use the word 'max' to do the 
+# max level in the simulation.
+ProjectAtLevel = max
