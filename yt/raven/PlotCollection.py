@@ -25,6 +25,15 @@ License:
 
 from yt.raven import *
 
+# No better place to put this
+def concatenate_pdfs(output_fn, input_fns):
+    from pyPdf import PdfFileWriter, PdfFileReader
+    outfile = PdfFileWriter()
+    for fn in input_fns:
+        infile = PdfFileReader(open(fn, 'rb'))
+        outfile.addPage(infile.getPage(0))
+    outfile.write(open(output_fn, "wb"))
+
 class PlotCollection:
     __id_counter = 0
     def __init__(self, pf, deliverator_id=-1, center=None):
@@ -394,6 +403,13 @@ class PlotCollection:
         for i in range(len(self.plots)):
             del self.plots[-1].data
             del self.plots[-1]
+
+    def save_book(self, filename):
+        from pyPdf import PdfFileWriter, PdfFileReader
+        outfile = PdfFileWriter()
+        fns = self.save("__temp", format="pdf")
+        concatenate_pdfs(filename, fns)
+        for fn in fns: os.unlink(fn)
 
 def wrap_pylab_newplot(func):
     @wraps(func)
