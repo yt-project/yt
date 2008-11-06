@@ -43,15 +43,15 @@ class HopList(object):
         self._max_dens2 = {}
         mylog.info("Initializing HOP")
         self.__obtain_particles()
-        self.__enlarge_data()
-        self.__slice_data()
-        self.__run_hops()
-        self.__reduce_data()
-        #self.__run_hop()
+        #self.__enlarge_data()
+        #self.__slice_data()
+        #self.__run_hops()
+        #self.__reduce_data()
+        self.__run_hop()
         mylog.info("Parsing outputs")
-        self.__parse_outputs()
-        #self.__parse_output()
-        self.__glue_outputs()
+        #self.__parse_outputs()
+        self.__parse_output()
+        #self.__glue_outputs()
         mylog.debug("Finished. (%s)", len(self))
 
     def __obtain_particles(self):
