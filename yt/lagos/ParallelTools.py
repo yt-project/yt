@@ -147,6 +147,27 @@ class ParallelAnalysisInterface(object):
 
         return True, self.hierarchy.region(self.center, LE, RE)
 
+    def _partition_hierarchy_3d(self, padding=0.0):
+        if not parallel_capable:
+           return False, self.hierarchy.grid_collection(self.center, self.hierarchy.grids)
+
+        cc = MPI.Compute_dims(MPI.COMM_WORLD.size, 3)
+        mi = MPI.COMM_WORLD.rank
+        cx, cy, cz = na.unravel_index(mi, cc)
+        x = na.mgrid[0:1:(cc[0]+1)*1j][cx:cx+2]
+        y = na.mgrid[0:1:(cc[1]+1)*1j][cy:cy+2]
+        z = na.mgrid[0:1:(cc[2]+1)*1j][cz:cz+2]
+
+        LE = na.array([x[0], y[0], z[0]], dtype='float64')
+        RE = na.array([x[1], y[1], z[1]], dtype='float64')
+
+        if padding > 0:
+            return True, \
+                self.hierarchy.periodic_region(self.center, LE-padding, RE+padding)
+
+        return True, self.hierarchy.region(self.center, LE, RE)
+        
+
     def _mpi_catdict(self, data):
         if not parallel_capable: return data
         mylog.debug("Opening MPI Barrier on %s", MPI.COMM_WORLD.rank)
