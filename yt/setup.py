@@ -9,6 +9,7 @@ def configuration(parent_package='', top_path=None):
     config.add_subpackage('enki')
     config.add_subpackage('fido')
     config.add_subpackage('reason')
+    config.add_subpackage('extensions')
     config.make_config_py()
     return config
 
