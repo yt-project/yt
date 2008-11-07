@@ -23,7 +23,8 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-from yt.lagos.lightcone import *
+from yt.extensions.lightcone import *
+from yt.logger import lagosLogger as mylog
 import numpy as na
 import random as rand
 import tables as h5
@@ -40,6 +41,10 @@ class LightCone(object):
         self.lightConeSolution = []
         self.projectionStack = []
         self.projectionWeightFieldStack = []
+
+        # Parameters for recycling light cone solutions.
+        self.recycleSolution = False
+        self.recycleRandomSeed = 0
 
         # Set some parameter defaults.
         self._SetParameterDefaults()
@@ -60,6 +65,9 @@ class LightCone(object):
 
     def CalculateLightConeSolution(self):
         "Create list of projections to be added together to make the light cone."
+
+        # Make sure recycling flag is off.
+        self.recycleSolution = False
 
         # Make light cone using minimum number of projections.
         if (self.lightConeParameters['UseMinimumNumberOfProjections']):
@@ -197,12 +205,50 @@ class LightCone(object):
         frb.data[field] = lightConeProjection
 
         # Make a plot collection for the light cone projection.
-        pc = raven.PlotCollection(self.lightConeSolution[-1]['object'],center=[0.5,0.5,0.5])
+        center = [0.5 * (self.pf.parameters['DomainLeftEdge'][w] + self.pf.parameters['DomainRightEdge'][w])
+                  for w in range(self.pf.parameters['TopGridRank'])]
+        pc = raven.PlotCollection(self.lightConeSolution[-1]['object'],center=center)
         pc.add_fixed_resolution_plot(frb,field)
         pc.save(filename)
 
         # Return the plot collection so the user can remake the plot if they want.
         return pc
+
+    def RecycleLightConeSolution(self,newSeed):
+        """
+        When making a projection for a light cone, only randomizations along the line of sight make any 
+        given projection unique, since the lateral shifting and tiling is done after the projection is made.
+        Therefore, multiple light cones can be made from a single set of projections by introducing different 
+        lateral random shifts and keeping all the original shifts along the line of sight.
+        This routine will take in a new random seed and rerandomize the parts of the light cone that do not contribute 
+        to creating a unique projection object.  Additionally, this routine is built such that if the same random 
+        seed is given for the rerandomizing, the solution will be identical to the original.
+        """
+
+        mylog.info("Recycling solution made with %s with new seed %s." % (str(self.lightConeParameters['RandomSeed']),
+                                                                          str(newSeed)))
+
+        self.recycleSolution = True
+        self.recycleRandomSeed = newSeed
+
+        # Seed random number generator with new seed.
+        rand.seed(self.recycleRandomSeed)
+
+        for q,output in enumerate(self.lightConeSolution):
+            # It is necessary to make the same number of calls to the random number generator
+            # so the original solution willbe produced if the same seed is given.
+
+            # Get random projection axis and center.
+            # Axis will get thrown away since it is used in creating a unique projection object.
+            newAxis = rand.randint(0,2)
+
+            newCenter = [rand.random(),rand.random(),rand.random()]
+
+            # Replaces centers for every axis except the line of sight axis.
+            for w in range(len(newCenter)):
+                if (w != self.lightConeSolution[q]['ProjectionAxis']):
+                    self.lightConeSolution[q]['ProjectionCenter'][w] = newCenter[w]
+
 
     def SaveLightConeSolution(self,file="light_cone.dat"):
         "Write out a text file with information on light cone solution."
@@ -210,6 +256,11 @@ class LightCone(object):
         mylog.info("Saving light cone solution to %s." % file)
 
         f = open(file,'w')
+        if self.recycleSolution:
+            f.write("Recycled Solution\n")
+            f.write("RecycleRandomSeed = %s\n" % self.recycleRandomSeed)
+        else:
+            f.write("Original Solution\n")
         f.write("EnzoParameterFile = %s\n" % self.EnzoParameterFile)
         f.write("LightConeParameterFile = %s\n" % self.LightConeParameterFile)
         f.write("\n")
