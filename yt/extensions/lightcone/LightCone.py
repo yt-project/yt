@@ -205,8 +205,9 @@ class LightCone(object):
         frb.data[field] = lightConeProjection
 
         # Make a plot collection for the light cone projection.
-        center = [0.5 * (self.pf.parameters['DomainLeftEdge'][w] + self.pf.parameters['DomainRightEdge'][w])
-                  for w in range(self.pf.parameters['TopGridRank'])]
+        center = [0.5 * (self.lightConeSolution[-1]['object'].parameters['DomainLeftEdge'][w] + 
+                         self.lightConeSolution[-1]['object'].parameters['DomainRightEdge'][w])
+                  for w in range(self.lightConeSolution[-1]['object'].parameters['TopGridRank'])]
         pc = raven.PlotCollection(self.lightConeSolution[-1]['object'],center=center)
         pc.add_fixed_resolution_plot(frb,field)
         pc.save(filename)
