@@ -1,0 +1,198 @@
+InitialCycleNumber  = 177
+InitialTime         = 0.03
+InitialCPUTime      = 256.541
+
+StopTime            = 0.03
+StopCycle           = 10000
+StopSteps           = 10000
+StopCPUTime         = 360000
+
+TimeLastRestartDump = 0
+dtRestartDump       = 18000
+TimeLastDataDump    = 0.0299999
+dtDataDump          = 0.01
+TimeLastHistoryDump = 0
+dtHistoryDump       = 0
+
+TimeLastMovieDump     = 0
+dtMovieDump           = 0
+TracerParticleOn           = 0
+TimeLastTracerParticleDump = 0
+dtTracerParticleDump       = 0
+MovieRegionLeftEdge   = 0 0 
+MovieRegionRightEdge  = 1 1 
+
+NewMovieLeftEdge   = 0 0 
+NewMovieRightEdge  = 1 1 
+MovieSkipTimestep = -99999
+NewMovieParticleOn = 0
+MovieDataField = -99999 
+NewMovieDumpNumber = 0
+NewMovieName = MoviePack
+
+CycleLastRestartDump = 0
+CycleSkipRestartDump = 0
+CycleLastDataDump    = 0
+CycleSkipDataDump    = 0
+CycleLastHistoryDump = 0
+CycleSkipHistoryDump = 0
+
+CycleSkipGlobalDataDump = 0
+
+OutputFirstTimeAtLevel = 0
+StopFirstTimeAtLevel = 0
+
+RestartDumpNumber   = 0
+DataDumpNumber      = 4
+HistoryDumpNumber   = 0
+MovieDumpNumber     = 0
+TracerParticleDumpNumber = 0
+RestartDumpName     = restart
+DataDumpName        = sb_L2x2_
+HistoryDumpName     = history
+MovieDumpName       = MovieOutput
+TracerParticleDumpName = TracerOutput
+RedshiftDumpName    = RedshiftOutput
+
+RestartDumpDir      = RS
+DataDumpDir         = DD
+HistoryDumpDir      = HD
+MovieDumpDir        = MD
+TracerParticleDumpDir = TD
+RedshiftDumpDir     = RD
+
+GlobalDir           = /Users/matthewturk/Development/yt/branches/yt-non-3d/data
+StaticHierarchy     = 0
+TopGridRank         = 2
+TopGridDimensions   = 100 100 
+
+TopGridGravityBoundary = 0
+ParticleBoundaryType   = 3
+NumberOfParticles      = 0 (do not modify)
+CourantSafetyNumber    = 0.800000
+PPMFlatteningParameter = 3
+PPMDiffusionParameter  = 1
+PPMSteepeningParameter = 1
+
+ProblemType            = 7
+HydroMethod            = 0
+huge_number            = 1.000000e+20
+tiny_number            = 1.000000e-06
+Gamma                  = 1.4
+PressureFree           = 0
+RefineBy               = 2
+MaximumRefinementLevel = 2
+MaximumGravityRefinementLevel = 2
+MaximumParticleRefinementLevel = -1
+CellFlaggingMethod     = 1 3 -99999 -99999 -99999 -99999 -99999 
+FluxCorrection         = 1
+InterpolationMethod    = 1
+ConservativeInterpolation = 1
+MinimumEfficiency      = 0.9
+MinimumSubgridEdge     = 4
+MaximumSubgridSize     = 2000
+NumberOfBufferZones    = 2
+
+DomainLeftEdge         = 0 0 
+DomainRightEdge        = 1 1 
+GridVelocity           = 0 0 
+RefineRegionLeftEdge   = 0 0 
+RefineRegionRightEdge  = 1 1 
+
+DataLabel[0]              = Density
+DataUnits[0]              = none
+#DataCGSConversionFactor[0] = 1
+DataLabel[1]              = TotalEnergy
+DataUnits[1]              = none
+DataLabel[2]              = x-velocity
+DataUnits[2]              = none
+#DataCGSConversionFactor[2] = 1
+DataLabel[3]              = y-velocity
+DataUnits[3]              = none
+#DataCGSConversionFactor[3] = 1
+DataLabel[4]              = z-velocity
+#DataCGSConversionFactor[4] = 1
+
+UniformGravity             = 0
+UniformGravityDirection    = 0
+UniformGravityConstant     = 1
+PointSourceGravity           = 0
+PointSourceGravityPosition   = 0 0 
+PointSourceGravityConstant   = 1
+PointSourceGravityCoreRadius = 0
+
+SelfGravity                    = 0
+GravitationalConstant          = 1.256636e+01
+S2ParticleSize                 = 3
+GravityResolution              = 1
+ComputePotential               = 0
+WritePotential                 = 0
+BaryonSelfGravityApproximation = 1
+
+GreensFunctionMaxNumber     = 1
+GreensFunctionMaxSize       = 1
+DualEnergyFormalism         = 0
+DualEnergyFormalismEta1     = 1.000000e-03
+DualEnergyFormalismEta2     = 1.000000e-01
+ParticleCourantSafetyNumber = 0.500000
+
+RandomForcing               = 0
+RandomForcingEdot           = -1
+RadiativeCooling               = 0
+MultiSpecies                   = 0
+RadiationFieldType             = 0
+AdjustUVBackground             = 1
+SetUVBAmplitude                = 1
+SetHeIIHeatingScale            = 1.8
+RadiationFieldLevelRecompute   = 0
+RadiationSpectrumNormalization = 1e-21
+RadiationSpectrumSlope         = 1.5
+ZEUSLinearArtificialViscosity    = 0
+ZEUSQuadraticArtificialViscosity = 2
+UseMinimumPressureSupport        = 0
+MinimumPressureSupportParameter  = 100.000000
+RefineByJeansLengthSafetyFactor  = 4.000000
+MustRefineParticlesRefineToLevel = 0
+ParticleTypeInFile               = 0
+ParallelRootGridIO              = 0
+ParallelParticleIO              = 0
+Unigrid                         = 0
+PartitionNestedGrids            = 0
+ExtractFieldsOnly               = 1
+CubeDumpEnabled                 = 0
+Debug1                          = 0
+Debug2                          = 0
+MemoryLimit                     = 4000000000
+MinimumOverDensityForRefinement =  1.5 1.5 1.5 1.5 1.5 1.5 1.5
+MinimumMassForRefinement =  0.00015 0.00015 0.00015 0.00015 0.00015 0.00015 0.00015
+MinimumMassForRefinementLevelExponent =  0.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000
+MinimumSlopeForRefinement             = 4.000000e-01
+MinimumShearForRefinement             = 1.000000e+00
+MinimumPressureJumpForRefinement      = 3.300000e-01
+MinimumEnergyRatioForRefinement       = 1.000000e-01
+ComovingCoordinates                   = 0
+StarParticleCreation                  = 0
+StarParticleFeedback                  = 0
+NumberOfParticleAttributes            = 0
+StarMakerOverDensityThreshold         = 100
+StarMakerMassEfficiency               = 1
+StarMakerMinimumMass                  = 1e+09
+StarMakerMinimumDynamicalTime         = 1e+06
+StarMassEjectionFraction              = 0.25
+StarMetalYield                        = 0.02
+StarEnergyToThermalFeedback           = 1e-05
+StarEnergyToStellarUV                 = 3e-06
+StarEnergyToQuasarUV                  = 5e-06
+
+MultiMetals                           = 0
+LeftFaceBoundaryCondition  = 0 0 
+RightFaceBoundaryCondition = 0 0 
+BoundaryConditionName      = /Users/matthewturk/Development/yt/branches/yt-non-3d/data/DD0004/sb_L2x2_0004.boundary
+
+MassUnits = 1
+DensityUnits    = 1
+TimeUnits    = 1
+LengthUnits  = 1
+CurrentTimeIdentifier = 1226384502
+VersionNumber              = 1.300000
+

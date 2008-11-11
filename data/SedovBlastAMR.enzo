@@ -1,0 +1,56 @@
+#
+# PROBLEM DEFINITION FILE: Sedov Blast (2D AMR version)
+#
+#  A 2D explosion test problem.
+#
+#  Since this is a 2D problem you may want to redefine
+#  the maximum size of subgrids defined in ProtoSubgrid_AcceptableGrid.C
+#  as "#define MAXIMUM_SIZE 2000" and recompile the code.
+#  2000^(2/3) would be a better value. Also note that this restriction would
+#  be in effect ONLY in multiprocessor runs.
+#
+#  problem setup
+#
+ProblemType               =  7       // Sedov blast wave
+Gamma                     =  1.4
+SedovBlastEnergy          =  1.0
+#
+#  grid setup
+#
+TopGridRank               = 2
+TopGridDimensions         = 100 100
+SedovBlastSubgridLeft     = 0.4
+SedovBlastSubgridRight    = 0.6
+#
+#  set I/O and stop/start parameters
+#
+StopTime                  = 0.03
+StopCycle                 = 10000
+dtDataDump                = 0.01
+DataDumpName              = sb_L2x2_
+#
+#  set hydro parameters
+#
+HydroMethod               = 0       // PPM - 0; ZEUS - 2
+PPMDiffusionParameter     = 1       
+PPMFlatteningParameter    = 3
+PPMSteepeningParameter    = 1
+CourantSafetyNumber       = 0.8     // ppm - 0.8; zeus - 0.5
+#
+#  set grid refinement parameters
+#
+StaticHierarchy           = 0       // dynamic hierarchy
+MaximumRefinementLevel    = 2
+CellFlaggingMethod        = 1 3     // shocks & slope (density, total energy)
+MinimumSlopeForRefinement = 0.4
+NumberOfBufferZones       = 2
+RefineBy                  = 2
+FluxCorrection            = 1
+MinimumEfficiency         = 0.9     // good value for 2D
+#
+#
+#
+#  set some global parameters
+#
+tiny_number               = 1.0e-6
+

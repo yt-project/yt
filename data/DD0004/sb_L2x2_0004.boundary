@@ -1,0 +1,7 @@
+BoundaryRank         = 2
+BoundaryDimension    = 106 106 
+NumberOfBaryonFields = 4
+ParticleBoundaryType = 3
+BoundaryFieldType    = 0 1 4 5 
+BaryonFileName       = /Users/matthewturk/Development/yt/branches/yt-non-3d/data/DD0004/sb_L2x2_0004.boundary.hdf
+BoundaryValuePresent = 0 0 0 0 

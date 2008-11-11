@@ -1,0 +1,60 @@
+========================================================================
+make show-version
+========================================================================
+
+SVN Branch   http://mngrid.ucsd.edu/svn/Enzo/public/trunk
+SVN Revision 2057
+
+========================================================================
+gmake show-config
+========================================================================
+
+   MACHINE: Darwin (OSX Leopard)
+
+   PARAMETER_MAX_SUBGRIDS:       100000
+   PARAMETER_MAX_BARYONS:        20
+   PARAMETER_MAX_TASKS_PER_NODE: 8
+
+   CONFIG_PRECISION:             64
+   CONFIG_PARTICLES:             64
+   CONFIG_INTEGERS:              64
+   CONFIG_INITS:                 64
+   CONFIG_IO:                    32
+   CONFIG_USE_MPI:               yes
+   CONFIG_OBJECT_MODE:           64
+   CONFIG_TASKMAP:               no
+   CONFIG_PACKED_AMR:            yes
+   CONFIG_PACKED_MEM:            no
+   CONFIG_JBPERF:                no
+   CONFIG_PAPI:                  no
+   CONFIG_UNIGRID_TRANSPOSE:     yes
+   CONFIG_OOC_BOUNDARY:          no
+   CONFIG_OPT:                   debug
+   CONFIG_TESTING:               no
+   CONFIG_ISOBCS:                no
+   CONFIG_TPVEL:                 no
+
+========================================================================
+gmake show-flags
+========================================================================
+
+CPP = /usr/bin/cpp
+CC  = /usr/bin/mpicc
+CXX = /usr/bin/mpic++
+FC  = /usr/local/bin/gfortran
+F90 = /usr/local/bin/gfortran
+LD  = /usr/bin/mpic++
+
+DEFINES = -DLINUX -DH5_USE_16_API  -D__max_subgrids=100000 -D__max_baryons=20 -D__max_cpu_per_node=8 -DINITS64 -DLARGE_INTS -DIO_32  -DUSE_MPI   -Dp8 -Dr8  -DUSE_HDF5_GROUPS -DSINGLE_HDF5_OPEN_ON_INPUT     -DUNIGRID_TRANSPOSE
+
+INCLUDES = -I/usr/local/include -I/usr/include     
+
+CPPFLAGS = -P -traditional 
+CFLAGS   =  -g
+CXXFLAGS =  -g
+FFLAGS   = -fno-second-underscore -fdefault-real-8 -fdefault-integer-8 -g
+F90FLAGS = -fno-second-underscore -fdefault-real-8 -fdefault-integer-8 -g
+LDFLAGS  =  -g
+
+LIBS     = -L/usr/local/lib -lhdf5  -L/usr/local/lib -lgfortran    
+
