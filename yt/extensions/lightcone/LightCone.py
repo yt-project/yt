@@ -28,6 +28,7 @@ from yt.logger import lagosLogger as mylog
 import numpy as na
 import random as rand
 import tables as h5
+from Common_nVolume import *
 
 class LightCone(object):
     def __init__(self,EnzoParameterFile,LightConeParameterFile):
@@ -232,6 +233,10 @@ class LightCone(object):
         self.recycleSolution = True
         self.recycleRandomSeed = newSeed
 
+        # Keep track of fraction of volume in common between the original and recycled solution.
+        commonVolume = 0.0
+        totalVolume = 0.0
+
         # Seed random number generator with new seed.
         rand.seed(self.recycleRandomSeed)
 
@@ -245,11 +250,29 @@ class LightCone(object):
 
             newCenter = [rand.random(),rand.random(),rand.random()]
 
+            # Make list of rectangle corners to calculate common volume.
+            newCube = na.zeros(shape=(len(newCenter),2))
+            oldCube = na.zeros(shape=(len(newCenter),2))
+            for w in range(len(newCenter)):
+                if (w == output['ProjectionAxis']):
+                    newCube[w] = [output['ProjectionCenter'][w] - 0.5 * output['DepthBoxFraction'],
+                                  output['ProjectionCenter'][w] + 0.5 * output['DepthBoxFraction']]
+                    oldCube[w] = newCube[w]
+                else:
+                    newCube[w] = [newCenter[w] - 0.5 * output['WidthBoxFraction'],
+                                  newCenter[w] + 0.5 * output['WidthBoxFraction']]
+                    oldCube[w] = [output['ProjectionCenter'][w] - 0.5 * output['WidthBoxFraction'],
+                                  output['ProjectionCenter'][w] + 0.5 * output['WidthBoxFraction']]
+
+            commonVolume += commonNVolume(oldCube,newCube,periodic=na.array([[0,1],[0,1],[0,1]]))
+            totalVolume += output['DepthBoxFraction'] * output['WidthBoxFraction']**2
+
             # Replaces centers for every axis except the line of sight axis.
             for w in range(len(newCenter)):
                 if (w != self.lightConeSolution[q]['ProjectionAxis']):
                     self.lightConeSolution[q]['ProjectionCenter'][w] = newCenter[w]
 
+        mylog.info("Recycled solution has %.2e of total volume in common with the original." % (commonVolume/totalVolume))
 
     def SaveLightConeSolution(self,file="light_cone.dat"):
         "Write out a text file with information on light cone solution."
