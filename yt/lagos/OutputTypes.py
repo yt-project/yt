@@ -115,6 +115,7 @@ class EnzoStaticOutput(StaticOutput):
     Enzo-specific output, set at a fixed time.
     """
     _hierarchy_class = EnzoHierarchy
+    _fieldinfo_class = EnzoFieldContainer
     def __init__(self, filename, data_style=None,
                  parameter_override = None,
                  conversion_override = None):
@@ -139,7 +140,7 @@ class EnzoStaticOutput(StaticOutput):
         cp = os.path.join(self.directory, "cool_rates.out")
         if os.path.exists(cp):
             self.cool = EnzoTable(cp, cool_out_key)
-        self.field_info = EnzoFieldContainer()
+        self.field_info = self._fieldinfo_class()
 
     def _parse_parameter_file(self):
         """
@@ -287,6 +288,7 @@ class OrionStaticOutput(StaticOutput):
     @type filename: String
     """
     _hierarchy_class = OrionHierarchy
+    _fieldinfo_class = OrionFieldContainer
 
     def __init__(self, plotname, paramFilename='inputs',fparamFilename='probin',data_style=7,paranoia=False):
         """need to override for Orion file structure.
@@ -300,7 +302,7 @@ class OrionStaticOutput(StaticOutput):
           ASCII
 
         """
-        self.field_info = OrionFieldContainer()
+        self.field_info = self._fieldinfo_class()
         self.data_style = data_style
         self.paranoid_read = paranoia
         plotname = plotname.rstrip('/')
