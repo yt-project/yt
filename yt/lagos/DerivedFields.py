@@ -52,6 +52,7 @@ G = 6.67e-8   # cm^3 g^-1 s^-2
 Msun2g = 1.989e33
 MJ_constant = (((5*kboltz)/(G*mh))**(1.5)) * (3/(4*pi))**(0.5) / Msun2g
 rho_crit_now = 1.8788e-29 # g cm^-3
+axis_names = 'xyz'
 
 class FieldInfoContainer: # We are all Borg.
     _shared_state = {}
@@ -449,9 +450,12 @@ def _VelocityMagnitude(field, data):
     bulk_velocity = data.get_field_parameter("bulk_velocity")
     if bulk_velocity == None:
         bulk_velocity = na.zeros(3)
-    return ( (data["x-velocity"]-bulk_velocity[0])**2.0 + \
-             (data["y-velocity"]-bulk_velocity[1])**2.0 + \
-             (data["z-velocity"]-bulk_velocity[2])**2.0 )**(1.0/2.0)
+    tr = (data["x-velocity"]-bulk_velocity[0])**2.0
+    if data.pf["TopGridRank"] > 1:
+        tr += (data["y-velocity"]-bulk_velocity[1])**2.0
+    if data.pf["TopGridRank"] > 2:
+        tr += (data["z-velocity"]-bulk_velocity[2])**2.0
+    return na.sqrt(tr)
 add_field("VelocityMagnitude", take_log=False, units=r"\rm{cm}/\rm{s}")
 
 def _TangentialOverVelocityMagnitude(field, data):

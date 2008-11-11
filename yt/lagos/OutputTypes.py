@@ -139,6 +139,16 @@ class EnzoStaticOutput(StaticOutput):
         if os.path.exists(cp):
             self.cool = EnzoTable(cp, cool_out_key)
 
+        # Now fixes for different types of Hierarchies
+        if self["TopGridRank"] == 2: self._setup_2d()
+
+    def _setup_2d(self):
+        self._hierarchy_class = EnzoHierarchy2D
+        self.parameters["DomainLeftEdge"] = \
+            na.concatenate([self["DomainLeftEdge"], [0.0]])
+        self.parameters["DomainRightEdge"] = \
+            na.concatenate([self["DomainRightEdge"], [1.0]])
+
     def _parse_parameter_file(self):
         """
         Parses the parameter file and establishes the various

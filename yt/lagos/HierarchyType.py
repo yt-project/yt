@@ -953,7 +953,14 @@ class EnzoHierarchyInMemory(EnzoHierarchy):
         return gg[(random_sample,)]
 
 class EnzoHierarchy2D(EnzoHierarchy):
-    pass
+    def __init__(self, *args, **kwargs):
+        EnzoHierarchy.__init__(self, *args, **kwargs)
+        self.gridRightEdge[:,2] = 1.0
+        self.gridDimensions[:,2] = 1.0
+        self.gridDzs[:,0] = 1.0
+        for g in self.grids:
+            g._prepare_grid()
+            g._setup_dx()
 
 class EnzoHierarchy1D(EnzoHierarchy):
     pass

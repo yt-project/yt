@@ -1,19 +1,18 @@
 from yt.mods import *
 
 pf = EnzoStaticOutput("DD0003/sb_L2x2_0003")
-pf.parameters["DomainLeftEdge"] = na.zeros(3, dtype='float64')
-pf.parameters["DomainRightEdge"] = na.ones(3, dtype='float64')
 
-pf.h.gridRightEdge[:,2] = 1.0
-pf.h.gridDimensions[:,2] = 1.0
+lagos.fieldInfo["VelocityMagnitude"].take_log = True
 
-for g in pf.h.grids:
-    g.dz = 1.0
-    g.LeftEdge[2] = 0.0
-    g.RightEdge[2] = 1.0
-    g.ActiveDimensions[2] = 1
+pc = PlotCollection(pf, center=[0.5,0.5,0.5])
 
-pc = PlotCollection(pf, center=[0.5,0.5,0.25])
+p = pc.add_slice("Density", 2)
+p.add_callback(ContourCallback("TotalEnergy", ncont=5, factor=1, take_log=True))
+p.add_callback(QuiverCallback("x-velocity", "y-velocity", 32))
+p.add_callback(GridBoundaryCallback())
 
-pc.add_slice("Density", 2)
+pc.set_width(0.9, '1')
+
+pc.add_phase_sphere(1.0, '1', ["Density", "TotalEnergy", "VelocityMagnitude"], weight=None)
+
 pc.save("hi")
