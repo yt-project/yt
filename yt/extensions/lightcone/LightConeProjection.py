@@ -23,7 +23,7 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-from yt.lagos.lightcone import *
+from yt.extensions.lightcone import *
 
 def LightConeProjection(lightConeSlice,field,pixels,weight_field=None,save_image=False,name="",**kwargs):
     "Create a single projection to be added into the light cone stack."
