@@ -34,6 +34,8 @@ _data_style_funcs = \
      5: (readDataHDF5, readAllDataHDF5, getFieldsHDF5, readDataSliceHDF5, getExceptionHDF5),
      6: (readDataPacked, readAllDataPacked, getFieldsPacked, readDataSlicePacked, getExceptionHDF5),
      8: (readDataInMemory, readAllDataInMemory, getFieldsInMemory, readDataSliceInMemory, getExceptionInMemory),
+     'enzo_packed_2d': (readDataPacked, readAllDataPacked, getFieldsPacked,
+readDataSlicePacked2D, getExceptionHDF5),
    }
 
 class AMRHierarchy:
@@ -47,7 +49,6 @@ class AMRHierarchy:
         # Although really, I think perhaps we should take a closer look
         # at how "center" is used.
         self.center = None
-        self.bulkVelocity = None
 
         self._initialize_level_stats()
 
@@ -252,10 +253,6 @@ class AMRHierarchy:
         mylog.info("Max Value is %0.5e at %0.16f %0.16f %0.16f in grid %s at level %s %s", \
               maxVal, pos[0], pos[1], pos[2], maxGrid, maxGrid.Level, mc)
         self.center = pos
-        # This probably won't work for anyone else
-        self.bulkVelocity = (maxGrid["x-velocity"][maxCoord], \
-                             maxGrid["y-velocity"][maxCoord], \
-                             maxGrid["z-velocity"][maxCoord])
         self.parameters["Max%sValue" % (field)] = maxVal
         self.parameters["Max%sPos" % (field)] = "%s" % (pos)
         return maxGrid, maxCoord, maxVal, pos
@@ -553,7 +550,7 @@ class EnzoHierarchy(AMRHierarchy):
             if line.startswith("Grid ="):
                 self.num_grids = int(line.split("=")[-1])
                 break
-        self.__guess_data_style()
+        self.__guess_data_style(pf["TopGridRank"])
         # For some reason, r8 seems to want Float64
         if pf.has_key("CompilerPrecision") \
             and pf["CompilerPrecision"] == "r4":
@@ -570,7 +567,7 @@ class EnzoHierarchy(AMRHierarchy):
         self.grid = classobj("EnzoGrid",(EnzoGridBase,), dd)
         AMRHierarchy._setup_classes(self, dd)
 
-    def __guess_data_style(self):
+    def __guess_data_style(self, rank):
         if self.data_style: return
         for line in reversed(self.__hierarchy_lines):
             if line.startswith("BaryonFileName") or \
@@ -593,14 +590,24 @@ class EnzoHierarchy(AMRHierarchy):
             self.queue = DataQueueHDF4()
         except:
             list_of_sets = HDF5LightReader.ReadListOfDatasets(testGrid, "/")
-            if len(list_of_sets) == 0:
+            if len(list_of_sets) == 0 and rank == 3:
                 mylog.debug("Detected packed HDF5")
                 self.data_style = 6
                 self.queue = DataQueuePackedHDF5()
-            else:
+            elif len(list_of_sets) > 0 and rank == 3:
                 mylog.debug("Detected unpacked HDF5")
                 self.data_style = 5
                 self.queue = DataQueueHDF5()
+            elif len(list_of_sets) == 0 and rank == 2:
+                mylog.debug("Detect packed 2D")
+                self.data_style = 'enzo_packed_2d'
+                self.queue = DataQueuePacked2D()
+            elif len(list_of_sets) == 0 and rank == 1:
+                mylog.debug("Detect packed 1D")
+                self.data_style = 'enzo_packed_1d'
+                self.queue = DataQueuePacked1D()
+            else:
+                raise TypeError
 
     def __setup_filemap(self, grid):
         if not self.data_style == 6:
@@ -944,6 +951,12 @@ class EnzoHierarchyInMemory(EnzoHierarchy):
         else:
             random_sample = na.mgrid[0:max(len(gg)-1,1)].astype("int32")
         return gg[(random_sample,)]
+
+class EnzoHierarchy2D(EnzoHierarchy):
+    pass
+
+class EnzoHierarchy1D(EnzoHierarchy):
+    pass
 
 scanf_regex = {}
 scanf_regex['e'] = r"[-+]?\d+\.?\d*?|\.\d+[eE][-+]?\d+?"

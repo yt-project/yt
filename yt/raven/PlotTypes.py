@@ -241,6 +241,11 @@ class VMPlot(RavenPlot):
         # 'px' == pixel x, or x in the plane of the slice
         # 'x' == actual x
         aa = int(self._antialias)
+        print self.data['px'].shape, \
+              self.data['py'].shape, \
+              self.data['pdx'].shape, \
+              self.data['pdy'].shape, \
+              self[self.axis_names["Z"]].shape
         buff = _MPL.Pixelize(self.data['px'],
                             self.data['py'],
                             self.data['pdx'],

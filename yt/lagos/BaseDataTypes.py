@@ -646,7 +646,7 @@ class EnzoSliceBase(Enzo2DData):
     def _generate_grid_coords(self, grid):
         xaxis = x_dict[self.axis]
         yaxis = y_dict[self.axis]
-        wantedIndex = int(((self.coord-grid.LeftEdge[self.axis])/grid.dx))
+        wantedIndex = int(((self.coord-grid.LeftEdge[self.axis])/grid.dz))
         sl = [slice(None), slice(None), slice(None)]
         sl[self.axis] = slice(wantedIndex, wantedIndex + 1)
         #sl.reverse()
@@ -670,7 +670,7 @@ class EnzoSliceBase(Enzo2DData):
     def _get_data_from_grid(self, grid, field):
         # So what's our index of slicing?  This is what we need to figure out
         # first, so we can deal with our data in the fastest way.
-        wantedIndex = int(((self.coord-grid.LeftEdge[self.axis])/grid.dx))
+        wantedIndex = int(((self.coord-grid.LeftEdge[self.axis])/grid.dz))
         sl = [slice(None), slice(None), slice(None)]
         sl[self.axis] = slice(wantedIndex, wantedIndex + 1)
         sl = tuple(sl)
