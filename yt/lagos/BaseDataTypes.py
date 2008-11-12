@@ -79,7 +79,10 @@ class FakeGridForParticles(object):
         self.field_parameters = {}
         self.data = {'x':grid['particle_position_x'],
                      'y':grid['particle_position_y'],
-                     'z':grid['particle_position_z']}
+                     'z':grid['particle_position_z'],
+                     'dx':grid['dx'],
+                     'dy':grid['dy'],
+                     'dz':grid['dz']}
         self.real_grid = grid
         self.child_mask = 1
     def __getitem__(self, field):
