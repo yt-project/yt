@@ -9,7 +9,7 @@ Author: Stephen Skory <sskory@physics.ucsd.edu>
 Affiliation: UC San Diego
 Homepage: http://yt.enzotools.org/
 License:
-  Copyright (C) 2008 Matthew Turk, JS Oishi.  All Rights Reserved.
+  Copyright (C) 2008 Matthew Turk, JS Oishi, Stephen Skory.  All Rights Reserved.
 
   This file is part of yt.
 

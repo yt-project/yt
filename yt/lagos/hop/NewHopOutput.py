@@ -9,7 +9,7 @@ Affiliation: UC San Diego
 
 Homepage: http://yt.enzotools.org/
 License:
-  Copyright (C) 2008 Matthew Turk.  All Rights Reserved.
+  Copyright (C) 2008 Matthew Turk, Stephen Skory.  All Rights Reserved.
 
   This file is part of yt.
 
