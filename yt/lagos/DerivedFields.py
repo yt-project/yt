@@ -742,10 +742,11 @@ add_field("SpecificAngularMomentumKMSMPC",
           units=r"\rm{km}\rm{Mpc}/\rm{s}", validators=[ValidateParameter('center')])
 def _AngularMomentum(field, data):
     return data["CellMass"] * data["SpecificAngularMomentum"]
-add_field("AngularMomentum", units=r"\rm{g}\/\rm{cm}^2/\rm{s}")
+add_field("AngularMomentum", units=r"\rm{g}\/\rm{cm}^2/\rm{s}",
+          vector_field=True)
 def _AngularMomentumMSUNKMSMPC(field, data):
     return data["CellMassMsun"] * data["SpecificAngularMomentumKMSMPC"]
-add_field("AngularMomentumMSUNKMSMPC",
+add_field("AngularMomentumMSUNKMSMPC", vector_field=True,
           units=r"M_{\odot}\rm{km}\rm{Mpc}/\rm{s}")
 
 def _ParticleSpecificAngularMomentum(field, data):
@@ -778,10 +779,11 @@ add_field("ParticleSpecificAngularMomentumKMSMPC",
           units=r"\rm{km}\rm{Mpc}/\rm{s}", validators=[ValidateParameter('center')])
 def _ParticleAngularMomentum(field, data):
     return data["ParticleMass"] * data["ParticleSpecificAngularMomentum"]
-add_field("ParticleAngularMomentum", units=r"\rm{g}\/\rm{cm}^2/\rm{s}")
+add_field("ParticleAngularMomentum", units=r"\rm{g}\/\rm{cm}^2/\rm{s}",
+          vector_field=True)
 def _ParticleAngularMomentumMSUNKMSMPC(field, data):
     return data["ParticleMass"] * data["ParticleSpecificAngularMomentumKMSMPC"]
-add_field("ParticleAngularMomentumMSUNKMSMPC",
+add_field("ParticleAngularMomentumMSUNKMSMPC", vector_field=True,
           units=r"M_{\odot}\rm{km}\rm{Mpc}/\rm{s}")
 
 
