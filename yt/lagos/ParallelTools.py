@@ -108,6 +108,17 @@ class ParallelGridIterator(GridIterator):
         if not self.just_list: self.pobj._finalize_parallel()
         raise StopIteration
 
+def parallel_simple_proxy(func):
+    if not parallel_capable: return func
+    @wraps(func)
+    def single_proc_results(self, *args, **kwargs):
+        retval = None
+        if self._owned:
+            retval = func(self, *args, **kwargs)
+        MPI.COMM_WORLD.Bcast(retval)
+        return retval
+    return single_proc_results
+
 def parallel_passthrough(func):
     @wraps(func)
     def passage(self, data):

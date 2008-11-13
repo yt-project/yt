@@ -3,9 +3,11 @@ Callbacks to add additional functionality on to plots.
 
 Author: Matthew Turk <matthewturk@gmail.com>
 Affiliation: KIPAC/SLAC/Stanford
+Author: J. S. Oishi <jsoishi@astro.berkeley.edu>
+Affiliation: UC Berkeley
 Homepage: http://yt.enzotools.org/
 License:
-  Copyright (C) 2008 Matthew Turk.  All Rights Reserved.
+  Copyright (C) 2008 Matthew Turk, JS Oishi.  All Rights Reserved.
 
   This file is part of yt.
 
@@ -536,4 +538,70 @@ class VobozCircleCallback(PlotCallback):
                     else:
                         plot._axes.text(center_x, center_y, "%s" % i,
                         fontsize=self.font_size)
+
+class CoordAxesCallback(PlotCallback):
+    """Creates x and y axes for a VMPlot. In the future, it will
+    attempt to guess the proper units to use.
+
+    """
+    def __init__(self,unit=None,coords=False):
+        PlotCallback.__init__(self)
+        self.unit = unit
+        self.coords = coords
+
+    def __call__(self,plot):
+        # 1. find out what the domain is
+        # 2. pick a unit for it
+        # 3. run self._axes.set_xlabel & self._axes.set_ylabel to actually lay shit down.
+        # 4. adjust extent information to make sure labels are visable.
+
+        # put the plot into data coordinates
+        nx,ny = plot.image._A.shape
+        dx = (plot.xlim[1] - plot.xlim[0])/nx
+        dy = (plot.ylim[1] - plot.ylim[0])/ny
+
+        unit_conversion = plot.data.hierarchy[plot.im["Unit"]]
+        aspect = (plot.xlim[1]-plot.xlim[0])/(plot.ylim[1]-plot.ylim[0])
+
+        print "aspect ratio = ", aspect
+
+        # if coords is False, label axes relative to the center of the
+        # display. if coords is True, label axes with the absolute
+        # coordinates of the region.
+        xcenter = 0.
+        ycenter = 0.
+        if not self.coords:
+            center = plot.data.center
+            if plot.data.axis == 0:
+                xcenter = center[1]
+                ycenter = center[2]
+            elif plot.data.axis == 1:
+                xcenter = center[0]
+                ycenter = center[2]
+            else:
+                xcenter = center[0]
+                ycenter = center[1]
+
+
+            xformat_function = lambda a,b: '%7.1e' %((a*dx + plot.xlim[0] - xcenter)*unit_conversion)
+            yformat_function = lambda a,b: '%7.1e' %((a*dy + plot.ylim[0] - ycenter)*unit_conversion)
+        else:
+            xformat_function = lambda a,b: '%7.1e' %((a*dx + plot.xlim[0])*unit_conversion)
+            yformat_function = lambda a,b: '%7.1e' %((a*dy + plot.ylim[0])*unit_conversion)
+            
+        xticker = matplotlib.ticker.FuncFormatter(xformat_function)
+        yticker = matplotlib.ticker.FuncFormatter(yformat_function)
+        plot._axes.xaxis.set_major_formatter(xticker)
+        plot._axes.yaxis.set_major_formatter(yticker)
+        
+        xlabel = '%s (%s)' % (lagos.axis_labels[plot.data.axis][0],plot.im["Unit"])
+        ylabel = '%s (%s)' % (lagos.axis_labels[plot.data.axis][1],plot.im["Unit"])
+        xticksize = nx/4.
+        yticksize = ny/4.
+        plot._axes.xaxis.set_major_locator(matplotlib.ticker.FixedLocator([i*xticksize for i in range(0,5)]))
+        plot._axes.yaxis.set_major_locator(matplotlib.ticker.FixedLocator([i*yticksize for i in range(0,5)]))
+        
+        plot._axes.set_xlabel(xlabel,visible=True)
+        plot._axes.set_ylabel(ylabel,visible=True)
+        plot._figure.subplots_adjust(left=0.1,right=0.8)
 

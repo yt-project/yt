@@ -164,18 +164,18 @@ class AMRHierarchy:
             self._data_file = None
 
     def _setup_classes(self, dd):
-        self.proj = classobj("EnzoProj",(EnzoProjBase,), dd)
-        self.slice = classobj("EnzoSlice",(EnzoSliceBase,), dd)
-        self.region = classobj("EnzoRegion",(EnzoRegionBase,), dd)
-        self.periodic_region = classobj("EnzoPeriodicRegion",(EnzoPeriodicRegionBase,), dd)
-        self.covering_grid = classobj("EnzoCoveringGrid",(EnzoCoveringGrid,), dd)
-        self.smoothed_covering_grid = classobj("EnzoSmoothedCoveringGrid",(EnzoSmoothedCoveringGrid,), dd)
-        self.sphere = classobj("EnzoSphere",(EnzoSphereBase,), dd)
-        self.cutting = classobj("EnzoCuttingPlane",(EnzoCuttingPlaneBase,), dd)
-        self.ray = classobj("EnzoRay",(EnzoRayBase,), dd)
-        self.ortho_ray = classobj("EnzoOrthoRay",(EnzoOrthoRayBase,), dd)
-        self.disk = classobj("EnzoCylinder",(EnzoCylinderBase,), dd)
-        self.grid_collection = classobj("EnzoGridCollection",(EnzoGridCollection,), dd)
+        self.proj = classobj("AMRProj",(AMRProjBase,), dd)
+        self.slice = classobj("AMRSlice",(AMRSliceBase,), dd)
+        self.region = classobj("AMRRegion",(AMRRegionBase,), dd)
+        self.periodic_region = classobj("AMRPeriodicRegion",(AMRPeriodicRegionBase,), dd)
+        self.covering_grid = classobj("AMRCoveringGrid",(AMRCoveringGrid,), dd)
+        self.smoothed_covering_grid = classobj("AMRSmoothedCoveringGrid",(AMRSmoothedCoveringGrid,), dd)
+        self.sphere = classobj("AMRSphere",(AMRSphereBase,), dd)
+        self.cutting = classobj("AMRCuttingPlane",(AMRCuttingPlaneBase,), dd)
+        self.ray = classobj("AMRRay",(AMRRayBase,), dd)
+        self.ortho_ray = classobj("AMROrthoRay",(AMROrthoRayBase,), dd)
+        self.disk = classobj("AMRCylinder",(AMRCylinderBase,), dd)
+        self.grid_collection = classobj("AMRGridCollection",(AMRGridCollection,), dd)
 
     def _deserialize_hierarchy(self, harray):
         mylog.debug("Cached entry found.")

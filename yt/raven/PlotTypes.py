@@ -228,7 +228,7 @@ class VMPlot(RavenPlot):
                                                   shrink=0.95)
         else:
             self.colorbar = None
-        self.set_width(1,'1')
+        self.set_width(1,'unitary')
 
     def _get_buff(self, width=None):
         x0, x1 = self.xlim
