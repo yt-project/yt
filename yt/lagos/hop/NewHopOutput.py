@@ -3,6 +3,10 @@ HOP-output data handling
 
 Author: Matthew Turk <matthewturk@gmail.com>
 Affiliation: KIPAC/SLAC/Stanford
+
+Author: Stephen Skory <sskory@physics.ucsd.edu>
+Affiliation: UC San Diego
+
 Homepage: http://yt.enzotools.org/
 License:
   Copyright (C) 2008 Matthew Turk.  All Rights Reserved.
@@ -70,6 +74,10 @@ class HopList(object):
         self._base_indices = na.arange(tot_part)[ii]
 
     def __enlarge_data(self):
+        """
+        Take the data fields and reflect them around the sides of the
+        box, using periodicity.
+        """
         sizetemp = self.particle_fields["particle_position_x"].size
         self.tempx = [i for i in range(3*sizetemp)]
         self.tempy = [i for i in range(3*sizetemp)]
@@ -98,6 +106,11 @@ class HopList(object):
             self.tempm[3*sizetemp -1 - part] = i
 
     def __slice_data(self):
+        """
+        Cut up the particle data into subboxes, depending on *cuts* and the over-sampling
+        parameter *padding*. This also enlarges the box such that the particles run
+        from 0 to 1, which may not be neccesary.
+        """
         cuts = 3
         padding = 0.2
         self.temp2x = {}
@@ -143,6 +156,9 @@ class HopList(object):
                     self.tracking2[((i*cuts) + j)*cuts + k] = t_t
 
     def __reduce_data(self):
+        """
+        Take the boxes after HOP has handled them and make them small, to their true size.
+        """
         cuts = 3
         padding = 0.2
         # loop over the sub-boxes
@@ -162,6 +178,9 @@ class HopList(object):
                     self.temp2z[((i*cuts) + j)*cuts + k] = self.temp2z[((i*cuts) + j)*cuts + k]*(zright-zleft)+zleft
 
     def __run_hops(self):
+        """
+        Run HOP on the different boxes.
+        """
         cuts = 3
         padding = 0.2
         nParts = self.particle_fields["particle_position_x"].size
