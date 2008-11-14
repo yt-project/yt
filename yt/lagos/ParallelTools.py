@@ -28,7 +28,7 @@ from yt.funcs import *
 import yt.logger
 import itertools, sys
 
-if os.path.basename(sys.argv[0]) in ["mpi4py", "aprun"]:
+if os.path.basename(sys.executable) in ["mpi4py"]:
     from mpi4py import MPI
     parallel_capable = (MPI.COMM_WORLD.size > 1)
     if parallel_capable:
