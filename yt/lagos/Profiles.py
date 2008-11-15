@@ -51,6 +51,7 @@ def preserve_source_parameters(func):
 class BinnedProfile(ParallelAnalysisInterface):
     def __init__(self, data_source, lazy_reader):
         self._data_source = data_source
+        self.pf = data_source.pf
         self._data = {}
         self._pdata = {}
         self._lazy_reader = lazy_reader
