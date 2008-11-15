@@ -643,21 +643,3 @@ def _JeansMassMsun(field,data):
             (data["Density"]**(-0.5)))
 add_field("JeansMassMsun",function=_JeansMassMsun,
           units=r"\rm{M_{\odot}}")
-
-#def _convertMomentum(data):
-#    return data.convert("x-velocity")*data.convert("Density")*1e5 # want this in cm/s not km/s
-#for ax in ['x','y','z']:
-#    f = fieldInfo["%s-momentum" % ax]
-#    f._units = r"\rm{erg\ s}/\rm{cm^3}"
-#    f._convert_function = _convertMomentum
-#    f.take_log = False
-#
-#fieldInfo["Temperature"].units = r"K"
-#
-#if __name__ == "__main__":
-#    k = fieldInfo.keys()
-#    k.sort()
-#    for f in k:
-#        e = FieldDetector()
-#        fieldInfo[f](e)
-#        print f + ":", ", ".join(e.requested)

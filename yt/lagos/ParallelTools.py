@@ -255,6 +255,7 @@ class ParallelAnalysisInterface(object):
 
     def _get_dependencies(self, fields):
         deps = []
+        fi = self.pf.field_info
         for field in fields:
-            deps += ensure_list(fieldInfo[field].get_dependencies().requested)
+            deps += ensure_list(fi[field].get_dependencies().requested)
         return list(set(deps))

@@ -144,7 +144,8 @@ class BinnedProfile(ParallelAnalysisInterface):
         data = []
         for field in _field_mapping.get(field, (field,)):
             if check_cut:
-                if field in fieldInfo and fieldInfo[field].particle_type:
+                if field in self.pf.field_info \
+                    and self.pf.field_info[field].particle_type:
                     pointI = self._data_source._get_particle_indices(source)
                 else:
                     pointI = self._data_source._get_point_indices(source)

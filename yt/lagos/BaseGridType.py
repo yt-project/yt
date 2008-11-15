@@ -58,20 +58,20 @@ class EnzoGridBase(EnzoData):
         return na.prod(self.ActiveDimensions)
 
     def _generate_field(self, field):
-        if fieldInfo.has_key(field):
+        if self.pf.field_info.has_key(field):
             # First we check the validator
             try:
-                fieldInfo[field].check_available(self)
+                self.pf.field_info[field].check_available(self)
             except NeedsGridType, ngt_exception:
                 # This is only going to be raised if n_gz > 0
                 n_gz = ngt_exception.ghost_zones
                 f_gz = ngt_exception.fields
                 gz_grid = self.retrieve_ghost_zones(n_gz, f_gz)
-                temp_array = fieldInfo[field](gz_grid)
+                temp_array = self.pf.field_info[field](gz_grid)
                 sl = [slice(n_gz,-n_gz)] * 3
                 self[field] = temp_array[sl]
             else:
-                self[field] = fieldInfo[field](self)
+                self[field] = self.pf.field_info[field](self)
         else: # Can't find the field, try as it might
             raise exceptions.KeyError, field
 
@@ -82,8 +82,8 @@ class EnzoGridBase(EnzoData):
         if not self.data.has_key(field):
             if field in self.hierarchy.field_list:
                 conv_factor = 1.0
-                if fieldInfo.has_key(field):
-                    conv_factor = fieldInfo[field]._convert_function(self)
+                if self.pf.field_info.has_key(field):
+                    conv_factor = self.pf.field_info[field]._convert_function(self)
                 try:
                     if hasattr(self.hierarchy, 'queue'):
                         temp = self.hierarchy.queue.pop(self, field)
@@ -91,10 +91,10 @@ class EnzoGridBase(EnzoData):
                         temp = self.readDataFast(field)
                     self[field] = temp * conv_factor
                 except self._read_exception, exc:
-                    if field in fieldInfo:
-                        if fieldInfo[field].particle_type:
+                    if field in self.pf.field_info:
+                        if self.pf.field_info[field].particle_type:
                             self[field] = na.array([],dtype='int64')
-                        if fieldInfo[field].not_in_all:
+                        if self.pf.field_info[field].not_in_all:
                             self[field] = na.zeros(self.ActiveDimensions, dtype='float64')
                     else: raise
             else:
