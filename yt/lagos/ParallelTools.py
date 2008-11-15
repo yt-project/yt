@@ -199,7 +199,7 @@ class ParallelAnalysisInterface(object):
             mylog.debug("Joining %s (%s) on %s", key, type(data[key]),
                         MPI.COMM_WORLD.rank)
             if MPI.COMM_WORLD.rank == 0:
-                data[key] = na.concatenate(
+                data[key] = na.concatenate([data[key]] +
                  [MPI.COMM_WORLD.Recv(source=i, tag=0) for i in range(1, np)],
                     axis=-1)
             else:
