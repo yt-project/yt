@@ -854,16 +854,16 @@ class EnzoHierarchy(AMRHierarchy):
             self.save_data(list(field_list),"/","DataFields")
         self.field_list = list(field_list)
         for field in self.field_list:
-            if field in self.pf.field_info: continue
+            if field in self.parameter_file.field_info: continue
             mylog.info("Adding %s to list of fields", field)
             cf = None
             if self.parameter_file.has_key(field):
                 cf = lambda d: d.convert(field)
             add_field(field, lambda a, b: None, convert_function=cf)
         self.derived_field_list = []
-        for field in self.pf.field_info:
+        for field in self.parameter_file.field_info:
             try:
-                fd = self.pf.field_info[field].get_dependencies(pf = self.parameter_file)
+                fd = self.parameter_file.field_info[field].get_dependencies(pf = self.parameter_file)
             except:
                 continue
             available = na.all([f in self.field_list for f in fd.requested])
