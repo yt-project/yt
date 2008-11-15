@@ -114,6 +114,7 @@ class EnzoStaticOutput(StaticOutput):
     Enzo-specific output, set at a fixed time.
     """
     _hierarchy_class = EnzoHierarchy
+    _fieldinfo_class = EnzoFieldContainer
     def __init__(self, filename, data_style=None,
                  parameter_override = None,
                  conversion_override = None):
@@ -138,6 +139,7 @@ class EnzoStaticOutput(StaticOutput):
         cp = os.path.join(self.directory, "cool_rates.out")
         if os.path.exists(cp):
             self.cool = EnzoTable(cp, cool_out_key)
+        self.field_info = self._fieldinfo_class()
 
         # Now fixes for different types of Hierarchies
         if self["TopGridRank"] == 2: self._setup_2d()

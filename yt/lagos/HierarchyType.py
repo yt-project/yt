@@ -838,7 +838,7 @@ class EnzoHierarchy(AMRHierarchy):
 
     def _setup_field_lists(self):
         field_list = self.get_data("/", "DataFields")
-        if field_list == None:
+        if field_list is None:
             mylog.info("Gathering a field list (this may take a moment.)")
             field_list = sets.Set()
             random_sample = self._generate_random_grids()
@@ -854,16 +854,16 @@ class EnzoHierarchy(AMRHierarchy):
             self.save_data(list(field_list),"/","DataFields")
         self.field_list = list(field_list)
         for field in self.field_list:
-            if field in fieldInfo: continue
+            if field in self.pf.field_info: continue
             mylog.info("Adding %s to list of fields", field)
             cf = None
             if self.parameter_file.has_key(field):
                 cf = lambda d: d.convert(field)
             add_field(field, lambda a, b: None, convert_function=cf)
         self.derived_field_list = []
-        for field in fieldInfo:
+        for field in self.pf.field_info:
             try:
-                fd = fieldInfo[field].get_dependencies(pf = self.parameter_file)
+                fd = self.pf.field_info[field].get_dependencies(pf = self.parameter_file)
             except:
                 continue
             available = na.all([f in self.field_list for f in fd.requested])

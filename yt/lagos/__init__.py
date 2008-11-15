@@ -77,8 +77,14 @@ from HelperFunctions import *
 import PointCombine
 import HDF5LightReader
 from EnzoDefs import *
-from DerivedFields import *
+
 from ParallelTools import *
+# Now our fields
+#from DerivedFields import *
+from FieldInfoContainer import *
+from UniversalFields import *
+from EnzoFields import *
+
 from DerivedQuantities import DerivedQuantityCollection, GridChildMaskWrapper
 from DataReadingFuncs import *
 from ClusterFiles import *

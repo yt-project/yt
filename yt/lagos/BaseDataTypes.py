@@ -315,16 +315,16 @@ class Enzo1DData(EnzoData, GridPropertiesMixin):
             temp = grid[field]
 
     def _generate_field(self, field):
-        if fieldInfo.has_key(field):
+        if self.pf.field_info.has_key(field):
             # First we check the validator
             try:
-                fieldInfo[field].check_available(self)
+                self.pf.field_info[field].check_available(self)
             except NeedsGridType, ngt_exception:
                 # We leave this to be implementation-specific
                 self._generate_field_in_grids(field, ngt_exception.ghost_zones)
                 return False
             else:
-                self[field] = fieldInfo[field](self)
+                self[field] = self.pf.field_info[field](self)
                 return True
         else: # Can't find the field, try as it might
             raise exceptions.KeyError(field)
@@ -497,16 +497,16 @@ class Enzo2DData(EnzoData, GridPropertiesMixin):
 
 
     def _generate_field(self, field):
-        if fieldInfo.has_key(field):
+        if self.pf.field_info.has_key(field):
             # First we check the validator
             try:
-                fieldInfo[field].check_available(self)
+                self.pf.field_info[field].check_available(self)
             except NeedsGridType, ngt_exception:
                 # We leave this to be implementation-specific
                 self._generate_field_in_grids(field, ngt_exception.ghost_zones)
                 return False
             else:
-                self[field] = fieldInfo[field](self)
+                self[field] = self.pf.field_info[field](self)
                 return True
         else: # Can't find the field, try as it might
             raise exceptions.KeyError(field)
@@ -674,14 +674,14 @@ class EnzoSliceBase(Enzo2DData):
         sl = [slice(None), slice(None), slice(None)]
         sl[self.axis] = slice(wantedIndex, wantedIndex + 1)
         sl = tuple(sl)
-        if fieldInfo.has_key(field) and fieldInfo[field].particle_type:
+        if self.pf.field_info.has_key(field) and self.pf.field_info[field].particle_type:
             return grid[field]
-        elif field in fieldInfo and fieldInfo[field].not_in_all:
+        elif field in self.pf.field_info and self.pf.field_info[field].not_in_all:
             dv = grid[field][sl]
         elif not grid.has_key(field):
             conv_factor = 1.0
-            if fieldInfo.has_key(field):
-                conv_factor = fieldInfo[field]._convert_function(self)
+            if self.pf.field_info.has_key(field):
+                conv_factor = self.pf.field_info[field]._convert_function(self)
             dv = self._read_data_slice(grid, field, self.axis, wantedIndex) * conv_factor
         else:
             dv = grid[field]
@@ -797,7 +797,7 @@ class EnzoCuttingPlaneBase(Enzo2DData):
         return na.array(coords).swapaxes(0,1)
 
     def _get_data_from_grid(self, grid, field):
-        if not fieldInfo[field].particle_type:
+        if not self.pf.field_info[field].particle_type:
             pointI = self._get_point_indices(grid)
             if grid[field].size == 1: # dx, dy, dz, cellvolume
                 t = grid[field] * na.ones(grid.ActiveDimensions)
@@ -914,7 +914,7 @@ class EnzoProjBase(Enzo2DData, ParallelAnalysisInterface):
         for field in fields + [self._weight]:
             if field is None: continue
             dls.append(just_one(grid['d%s' % axis_names[self.axis]]))
-            convs.append(self.pf.units[fieldInfo[field].projection_conversion])
+            convs.append(self.pf.units[self.pf.field_info[field].projection_conversion])
         return na.array(dls), na.array(convs)
 
     def __project_level(self, level, fields):
@@ -1026,7 +1026,7 @@ class EnzoProjBase(Enzo2DData, ParallelAnalysisInterface):
 
     #@time_execution
     def get_data(self, fields = None):
-        if fields is None: fields = self.fields
+        if fields is None: fields = ensure_list(self.fields)[:]
         fields = ensure_list(fields)
         coord_data = []
         field_data = []
@@ -1205,11 +1205,11 @@ class Enzo3DData(EnzoData, GridPropertiesMixin):
 
     @restore_grid_state
     def _get_data_from_grid(self, grid, field):
-        if field in fieldInfo and fieldInfo[field].particle_type:
+        if field in self.pf.field_info and self.pf.field_info[field].particle_type:
             if grid.NumberOfParticles == 0: return na.array([])
             pointI = self._get_particle_indices(grid)
             return grid[field][pointI].ravel()
-        if field in fieldInfo and fieldInfo[field].vector_field:
+        if field in self.pf.field_info and self.pf.field_info[field].vector_field:
             pointI = self._get_point_indices(grid)
             f = grid[field]
             return na.array([f[i,:][pointI] for i in range(3)])
@@ -1237,16 +1237,16 @@ class Enzo3DData(EnzoData, GridPropertiesMixin):
             i += np
 
     def _generate_field(self, field):
-        if fieldInfo.has_key(field):
+        if self.pf.field_info.has_key(field):
             # First we check the validator
             try:
-                fieldInfo[field].check_available(self)
+                self.pf.field_info[field].check_available(self)
             except NeedsGridType, ngt_exception:
                 # We leave this to be implementation-specific
                 self._generate_field_in_grids(field, ngt_exception.ghost_zones)
                 return False
             else:
-                self[field] = fieldInfo[field](self)
+                self[field] = self.pf.field_info[field](self)
                 return True
         else: # Can't find the field, try as it might
             raise exceptions.KeyError(field)
@@ -1772,7 +1772,7 @@ class EnzoSmoothedCoveringGrid(EnzoCoveringGrid):
         for ax in 'xyz': self['cd%s'%ax] = fake_grid['d%s'%ax]
         for field in fields:
             # Generate the new grid field
-            if field in fieldInfo and fieldInfo[field].take_log:
+            if field in self.pf.field_info and self.pf.field_info[field].take_log:
                 interpolator = TrilinearFieldInterpolator(
                                 na.log10(self[field]), bounds, ['x','y','z'],
                                 truncate = True)
