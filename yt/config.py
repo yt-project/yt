@@ -27,6 +27,7 @@ License:
 
 import ConfigParser, os, os.path, types
 
+
 ytcfgDefaults = {
     "fido":{
         'RunDir': os.path.join(os.getenv("HOME"),'.yt/EnzoRuns/'),
@@ -107,8 +108,12 @@ class YTConfigParser(ConfigParser.ConfigParser):
             raise KeyError
         self.set(item[0], item[1], val)
 
-ytcfg = YTConfigParser(['yt.cfg', os.path.expanduser('~/.yt/config')],
-                       ytcfgDefaults)
+if os.path.exists(os.path.expanduser("~/.yt/config")):
+    ytcfg = YTConfigParser(['yt.cfg', os.path.expanduser('~/.yt/config')],
+                           ytcfgDefaults)
+else:
+    ytcfg = YTConfigParser(['yt.cfg'],
+                        ytcfgDefaults)
 
 # Now we have parsed the config file.  Overrides come from the command line.
 

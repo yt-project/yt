@@ -218,7 +218,7 @@ class DataQueuePackedHDF5(BaseDataQueue):
         sets = list(sets)
         for g in grids: files_keys[g.filename].append(g)
         for file in files_keys:
-            mylog.debug("Starting read %s", file)
+            mylog.debug("Starting read %s (%s)", file, sets)
             nodes = [g.id for g in files_keys[file]]
             nodes.sort()
             data = HDF5LightReader.ReadMultipleGrids(file, nodes, sets)

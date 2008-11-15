@@ -39,6 +39,7 @@ class AMRGridPatch(AMRData):
         self.fields = []
         self.start_index = None
         self.id = id
+        if (id % 1e4) == 0: mylog.debug("Prepared grid %s", id)
         if hierarchy: self.hierarchy = weakref.proxy(hierarchy)
         if filename: self.set_filename(filename)
         self.overlap_masks = [None, None, None]
