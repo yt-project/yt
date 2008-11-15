@@ -63,6 +63,15 @@ def _fix_radius(pf, radius):
     # yt-generalization : needs to be changed to 'unitary'
     return 0.1 / pf["1"]
 
+def _fix_width(pf, width):
+    if width is not None:
+        if iterable(width):
+            return width[0] / pf[width[1]]
+        return width
+    mylog.info("Setting width to be the full box")
+    # yt-generalization : needs to be changed to 'unitary'
+    return 1.0 / pf["1"]
+
 def _fix_axis(pf, axis):
     if axis is None:
         raise ValueError("You need to specify an Axis!")
@@ -78,8 +87,14 @@ def _fix_axis(pf, axis):
 _arg_fixer = {
                 'center' : (True, _fix_center),
                 'radius' : (True, _fix_radius),
+                'width' : (True, _fix_width),
                 'axis' : (True, _fix_axis),
              }
+
+#
+# * Need to change filename to be an argument in the descriptor
+# * Need to add cmap to the descriptor
+#
 
 def fix_plot_args(plot_func):
     @wraps(plot_func)
@@ -126,4 +141,24 @@ class _RecipeBook(object):
         p.switch_x("CellMassMsun")
         return pc
 
+    @fix_plot_args
+    def slice_axis(self, pf, field="Density", center=None, width=None, filename=None, axis=None, coord=None):
+        pc = which_pc(pf, center=center)
+        p = pc.add_slice(field, axis, coord=coord)
+        pc.set_width(width, '1')
+        return pc
+
+    @fix_plot_args
+    def slice(self, pf, field="Density", center=None, width=None, coord=None, filename=None):
+        pc = which_pc(pf, center=center)
+        for axis in range(3): pc.add_slice(field, axis, coord=coord)
+        pc.set_width(width, '1')
+        return pc
+
+    def dispatch(self):
+        pass
+
 RecipeBook = _RecipeBook()
+
+if __name__ == "__main__":
+    RecipeBook.dispatch()

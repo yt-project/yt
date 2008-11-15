@@ -28,6 +28,7 @@ from yt.logger import lagosLogger as mylog
 import numpy as na
 import random as rand
 import tables as h5
+from Common_nVolume import *
 
 class LightCone(object):
     def __init__(self,EnzoParameterFile,LightConeParameterFile):
@@ -63,11 +64,14 @@ class LightCone(object):
         # Calculate maximum delta z for each data dump.
         self._CalculateDeltaZMax()
 
-    def CalculateLightConeSolution(self):
+    def CalculateLightConeSolution(self,seed=None):
         "Create list of projections to be added together to make the light cone."
 
         # Make sure recycling flag is off.
         self.recycleSolution = False
+
+        if seed is not None:
+            self.lightConeParameters['RandomSeed'] = seed
 
         # Make light cone using minimum number of projections.
         if (self.lightConeParameters['UseMinimumNumberOfProjections']):
@@ -215,7 +219,7 @@ class LightCone(object):
         # Return the plot collection so the user can remake the plot if they want.
         return pc
 
-    def RecycleLightConeSolution(self,newSeed):
+    def RerandomizeLightConeSolution(self,newSeed,recycle=True):
         """
         When making a projection for a light cone, only randomizations along the line of sight make any 
         given projection unique, since the lateral shifting and tiling is done after the projection is made.
@@ -224,32 +228,69 @@ class LightCone(object):
         This routine will take in a new random seed and rerandomize the parts of the light cone that do not contribute 
         to creating a unique projection object.  Additionally, this routine is built such that if the same random 
         seed is given for the rerandomizing, the solution will be identical to the original.
+
+        This routine has now been updated to be a general solution rescrambler.  If the keyword recycle is set to 
+        True, then it will recycle.  Otherwise, it will create a completely new solution.
         """
 
-        mylog.info("Recycling solution made with %s with new seed %s." % (str(self.lightConeParameters['RandomSeed']),
-                                                                          str(newSeed)))
+        if recycle:
+            mylog.info("Recycling solution made with %s with new seed %s." % (self.lightConeParameters['RandomSeed'],
+                                                                              newSeed))
+            self.recycleRandomSeed = newSeed
+        else:
+            mylog.info("Creating new solution with random seed %s." % newSeed)
+            self.lightConeParameters['RandomSeed'] = newSeed
+            self.recycleRandomSeed = 0
 
-        self.recycleSolution = True
-        self.recycleRandomSeed = newSeed
+        self.recycleSolution = recycle
+
+        # Keep track of fraction of volume in common between the original and recycled solution.
+        commonVolume = 0.0
+        totalVolume = 0.0
 
         # Seed random number generator with new seed.
-        rand.seed(self.recycleRandomSeed)
+        rand.seed(newSeed)
 
         for q,output in enumerate(self.lightConeSolution):
             # It is necessary to make the same number of calls to the random number generator
             # so the original solution willbe produced if the same seed is given.
 
             # Get random projection axis and center.
-            # Axis will get thrown away since it is used in creating a unique projection object.
+            # If recyclsing, axis will get thrown away since it is used in creating a unique projection object.
             newAxis = rand.randint(0,2)
+            if not recycle:
+                output['ProjectionAxis'] = newAxis
 
             newCenter = [rand.random(),rand.random(),rand.random()]
 
+            # Make list of rectangle corners to calculate common volume.
+            newCube = na.zeros(shape=(len(newCenter),2))
+            oldCube = na.zeros(shape=(len(newCenter),2))
+            for w in range(len(newCenter)):
+                if (w == output['ProjectionAxis']):
+                    oldCube[w] = [output['ProjectionCenter'][w] - 0.5 * output['DepthBoxFraction'],
+                                  output['ProjectionCenter'][w] + 0.5 * output['DepthBoxFraction']]
+                    # If recycling old solution, then keep center for axis in line of sight.
+                    if recycle:
+                        newCube[w] = oldCube[w]
+                    else:
+                        newCube[w] = [newCenter[w] - 0.5 * output['DepthBoxFraction'],
+                                      newCenter[w] + 0.5 * output['DepthBoxFraction']]
+                else:
+                    oldCube[w] = [output['ProjectionCenter'][w] - 0.5 * output['WidthBoxFraction'],
+                                  output['ProjectionCenter'][w] + 0.5 * output['WidthBoxFraction']]
+                    newCube[w] = [newCenter[w] - 0.5 * output['WidthBoxFraction'],
+                                  newCenter[w] + 0.5 * output['WidthBoxFraction']]
+
+            commonVolume += commonNVolume(oldCube,newCube,periodic=na.array([[0,1],[0,1],[0,1]]))
+            totalVolume += output['DepthBoxFraction'] * output['WidthBoxFraction']**2
+
             # Replaces centers for every axis except the line of sight axis.
             for w in range(len(newCenter)):
-                if (w != self.lightConeSolution[q]['ProjectionAxis']):
+                if not(recycle and (w == self.lightConeSolution[q]['ProjectionAxis'])):
                     self.lightConeSolution[q]['ProjectionCenter'][w] = newCenter[w]
 
+        mylog.info("Fraction of total volume in common with old solution is %.2e." % (commonVolume/totalVolume))
 
     def SaveLightConeSolution(self,file="light_cone.dat"):
         "Write out a text file with information on light cone solution."

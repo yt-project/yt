@@ -27,35 +27,25 @@ from yt.lagos import *
 #import yt.enki, gc
 from yt.funcs import *
 
-class EnzoGridBase(EnzoData):
+class AMRGridPatch(AMRData):
     _spatial = True
     _num_ghost_zones = 0
-    """
-    Class representing a single Enzo Grid instance.
-    """
     _grids = None
+    _id_offset = 1
 
     def __init__(self, id, filename=None, hierarchy = None):
-        """
-        Returns an instance of EnzoGrid with *id*, associated with
-        *filename* and *hierarchy*.
-        """
-        #EnzoData's init function is a time-burglar.
-        #All of the field parameters will be passed to us as needed.
-        #EnzoData.__init__(self, None, [])
         self.data = {}
         self.field_parameters = {}
         self.fields = []
         self.start_index = None
         self.id = id
+        if (id % 1e4) == 0: mylog.debug("Prepared grid %s", id)
         if hierarchy: self.hierarchy = weakref.proxy(hierarchy)
         if filename: self.set_filename(filename)
         self.overlap_masks = [None, None, None]
         self._overlap_grids = [None, None, None]
         self._file_access_pooling = False
-
-    def __len__(self):
-        return na.prod(self.ActiveDimensions)
+        self.pf = self.hierarchy.parameter_file # weakref already
 
     def _generate_field(self, field):
         if self.pf.field_info.has_key(field):
@@ -74,7 +64,7 @@ class EnzoGridBase(EnzoData):
                 self[field] = self.pf.field_info[field](self)
         else: # Can't find the field, try as it might
             raise exceptions.KeyError, field
-
+    
     def get_data(self, field):
         """
         Returns a field or set of fields for a key or set of keys
@@ -101,6 +91,38 @@ class EnzoGridBase(EnzoData):
                 self._generate_field(field)
         return self.data[field]
 
+    def _setup_dx(self):
+        # So first we figure out what the index is.  We don't assume
+        # that dx=dy=dz , at least here.  We probably do elsewhere.
+        id = self.id - self._id_offset
+        self.dx = self.hierarchy.gridDxs[id,0]
+        self.dy = self.hierarchy.gridDys[id,0]
+        self.dz = self.hierarchy.gridDzs[id,0]
+        self.data['dx'] = self.dx
+        self.data['dy'] = self.dy
+        self.data['dz'] = self.dz
+        self._corners = self.hierarchy.gridCorners[:,:,id]
+
+    def _generate_overlap_masks(self, axis, LE, RE):
+        """
+        Generate a mask that shows which cells overlap with arbitrary arrays
+        *LE* and *RE*) of edges, typically grids, along *axis*.
+        Use algorithm described at http://www.gamedev.net/reference/articles/article735.asp
+        """
+        x = x_dict[axis]
+        y = y_dict[axis]
+        cond = self.RightEdge[x] >= LE[:,x]
+        cond = na.logical_and(cond, self.LeftEdge[x] <= RE[:,x])
+        cond = na.logical_and(cond, self.RightEdge[y] >= LE[:,y])
+        cond = na.logical_and(cond, self.LeftEdge[y] <= RE[:,y])
+        return cond
+   
+    def __repr__(self):
+        return "Grid_%04i" % (self.id)
+
+    def __int__(self):
+        return self.id
+
     def clear_all_grid_references(self):
         """
         This clears out all references this grid has to any others, as
@@ -118,6 +140,20 @@ class EnzoGridBase(EnzoData):
                 if i != None:
                     del i
             del self.Children
+
+    def clear_data(self):
+        """
+        Clear out the following things: child_mask, child_indices,
+        all fields, all field parameters.
+        """
+        self._del_child_mask()
+        self._del_child_indices()
+        if hasattr(self, 'coarseData'):
+            del self.coarseData
+        if hasattr(self, 'retVal'):
+            del self.retVal
+        AMRData.clear_data(self)
+        self._setup_dx()
 
     def _prepare_grid(self):
         """
@@ -143,116 +179,8 @@ class EnzoGridBase(EnzoData):
         else:
             self.Parent = None
 
-    def _setup_dx(self):
-        # So first we figure out what the index is.  We don't assume
-        # that dx=dy=dz , at least here.  We probably do elsewhere.
-        self.dx = self.hierarchy.gridDxs[self.id-1,0]
-        self.dy = self.hierarchy.gridDys[self.id-1,0]
-        self.dz = self.hierarchy.gridDzs[self.id-1,0]
-        self.data['dx'] = self.dx
-        self.data['dy'] = self.dy
-        self.data['dz'] = self.dz
-        self._corners = self.hierarchy.gridCorners[:,:,self.id-1]
-
-    def _guess_properties_from_parent(self):
-        """
-        We know that our grid boundary occurs on the cell boundary of our
-        parent.  This can be a very expensive process, but it is necessary
-        in some hierarchys, where yt is unable to generate a completely
-        space-filling tiling of grids, possibly due to the finite accuracy in a
-        standard Enzo hierarchy file.
-        """
-        le = self.LeftEdge
-        self.dx = self.Parent.dx/2.0
-        self.dy = self.Parent.dy/2.0
-        self.dz = self.Parent.dz/2.0
-        ParentLeftIndex = na.rint((self.LeftEdge-self.Parent.LeftEdge)/self.Parent.dx)
-        self.start_index = 2*(ParentLeftIndex + self.Parent.get_global_startindex()).astype('int64')
-        self.LeftEdge = self.Parent.LeftEdge + self.Parent.dx * ParentLeftIndex
-        self.RightEdge = self.LeftEdge + \
-                         self.ActiveDimensions*na.array([self.dx,self.dy,self.dz])
-        self.hierarchy.gridDxs[self.id-1,0] = self.dx
-        self.hierarchy.gridDys[self.id-1,0] = self.dy
-        self.hierarchy.gridDzs[self.id-1,0] = self.dz
-        self.hierarchy.gridLeftEdge[self.id-1,:] = self.LeftEdge
-        self.hierarchy.gridRightEdge[self.id-1,:] = self.RightEdge
-        self.hierarchy.gridCorners[:,:,self.id-1] = na.array([ # Unroll!
-            [self.LeftEdge[0], self.LeftEdge[1], self.LeftEdge[2]],
-            [self.RightEdge[0], self.LeftEdge[1], self.LeftEdge[2]],
-            [self.RightEdge[0], self.RightEdge[1], self.LeftEdge[2]],
-            [self.RightEdge[0], self.RightEdge[1], self.RightEdge[2]],
-            [self.LeftEdge[0], self.RightEdge[1], self.RightEdge[2]],
-            [self.LeftEdge[0], self.LeftEdge[1], self.RightEdge[2]],
-            [self.RightEdge[0], self.LeftEdge[1], self.RightEdge[2]],
-            [self.LeftEdge[0], self.RightEdge[1], self.LeftEdge[2]],
-            ], dtype='float64')
-        self.__child_mask = None
-        self.__child_index_mask = None
-        self.__child_indices = None
-        self._setup_dx()
-
-    def get_global_startindex(self):
-        """
-        Return the integer starting index for each dimension at the current
-        level.
-        """
-        if self.start_index != None:
-            return self.start_index
-        if self.Parent == None:
-            start_index = self.LeftEdge / na.array([self.dx, self.dy, self.dz])
-            return na.rint(start_index).astype('int64').ravel()
-        pdx = na.array([self.Parent.dx, self.Parent.dy, self.Parent.dz]).ravel()
-        start_index = (self.Parent.get_global_startindex()) + \
-                       na.rint((self.LeftEdge - self.Parent.LeftEdge)/pdx)
-        self.start_index = (start_index*2).astype('int64').ravel()
-        return self.start_index
-
-    def _generate_overlap_masks(self, axis, LE, RE):
-        """
-        Generate a mask that shows which cells overlap with arbitrary arrays
-        *LE* and *RE*) of edges, typically grids, along *axis*.
-        Use algorithm described at http://www.gamedev.net/reference/articles/article735.asp
-        """
-        x = x_dict[axis]
-        y = y_dict[axis]
-        cond = self.RightEdge[x] >= LE[:,x]
-        cond = na.logical_and(cond, self.LeftEdge[x] <= RE[:,x])
-        cond = na.logical_and(cond, self.RightEdge[y] >= LE[:,y])
-        cond = na.logical_and(cond, self.LeftEdge[y] <= RE[:,y])
-        return cond
-   
-    def __repr__(self):
-        return "Grid_%04i" % (self.id)
-
-    def __int__(self):
-        return self.id
-
-    def clear_data(self):
-        """
-        Clear out the following things: child_mask, child_indices,
-        all fields, all field parameters.
-        """
-        self._del_child_mask()
-        self._del_child_indices()
-        if hasattr(self, 'coarseData'):
-            del self.coarseData
-        if hasattr(self, 'retVal'):
-            del self.retVal
-        EnzoData.clear_data(self)
-        self._setup_dx()
-
-    def set_filename(self, filename):
-        """
-        Intelligently set the filename.
-        """
-        if self.hierarchy._strip_path:
-            self.filename = os.path.join(self.hierarchy.directory,
-                                         os.path.basename(filename))
-        elif filename[0] == os.path.sep:
-            self.filename = filename
-        else:
-            self.filename = os.path.join(self.hierarchy.directory, filename)
-        return
+    def __len__(self):
+        return na.prod(self.ActiveDimensions)
 
     def find_max(self, field):
         """
@@ -299,28 +227,6 @@ class EnzoGridBase(EnzoData):
         # Access the property raw-values here
         del self.child_mask
         del self.child_ind
-
-    def __get_enzo_grid(self):
-        """
-        **DO NOT USE**
-
-        This attempts to get an instance of this particular grid from the SWIG
-        interface.  Note that it first checks to see if the ParameterFile has
-        been instantiated.
-        """
-        if self.hierarchy.eiTopGrid == None:
-            self.hierarchy.initializeEnzoInterface()
-        p=re.compile("Grid = %s\n" % (self.id))
-        h=open(self.hierarchyFilename,"r").read()
-        m=re.search(p,h)
-        h=open(self.hierarchyFilename,"r")
-        retVal = yt.enki.EnzoInterface.fseek(h, long(m.end()), 0)
-        self.eiGrid=yt.enki.EnzoInterface.grid()
-        cwd = os.getcwd() # Hate doing this, need to for relative pathnames
-        os.chdir(self.hierarchy.directory)
-        self.eiGrid.ReadGrid(h, 1)
-        os.chdir(cwd)
-        mylog.debug("Grid read with SWIG")
 
     def _set_child_mask(self, newCM):
         if self.__child_mask != None:
@@ -369,6 +275,16 @@ class EnzoGridBase(EnzoData):
         self.__child_index_mask = None
 
     #@time_execution
+    def __fill_child_mask(self, child, mask, tofill):
+        startIndex = na.maximum(0, na.rint((child.LeftEdge - self.LeftEdge)/self.dx))
+        endIndex = na.minimum(na.rint((child.RightEdge - self.LeftEdge)/self.dx),
+                              self.ActiveDimensions)
+                              #startIndex + self.ActiveDimensions)
+        startIndex = na.maximum(0, startIndex)
+        mask[startIndex[0]:endIndex[0],
+             startIndex[1]:endIndex[1],
+             startIndex[2]:endIndex[2]] = tofill
+
     def __generate_child_mask(self):
         """
         Generates self.child_mask, which is zero where child grids exist (and
@@ -376,12 +292,7 @@ class EnzoGridBase(EnzoData):
         """
         self.__child_mask = na.ones(self.ActiveDimensions, 'int32')
         for child in self.Children:
-            # Now let's get our overlap
-            startIndex = na.rint((child.LeftEdge - self.LeftEdge)/self.dx)
-            endIndex = na.rint((child.RightEdge - self.LeftEdge)/self.dx)
-            self.__child_mask[startIndex[0]:endIndex[0],
-                              startIndex[1]:endIndex[1],
-                              startIndex[2]:endIndex[2]] = 0
+            self.__fill_child_mask(child, self.__child_mask, 0)
         self.__child_indices = (self.__child_mask==0) # bool, possibly redundant
 
     def __generate_child_index_mask(self):
@@ -391,12 +302,7 @@ class EnzoGridBase(EnzoData):
         """
         self.__child_index_mask = na.zeros(self.ActiveDimensions, 'int32') - 1
         for child in self.Children:
-            # Now let's get our overlap
-            startIndex = na.rint((child.LeftEdge - self.LeftEdge)/self.dx)
-            endIndex = na.rint((child.RightEdge - self.LeftEdge)/self.dx)
-            self.__child_index_mask[startIndex[0]:endIndex[0],
-                                    startIndex[1]:endIndex[1],
-                                    startIndex[2]:endIndex[2]] = child.id
+            self.__fill_child_mask(child, self.__child_mask, child.id)
 
     def _get_coords(self):
         if self.__coords == None: self._generate_coords()
@@ -468,3 +374,83 @@ class EnzoGridBase(EnzoData):
         for key in data.keys():
             if key not in self.__current_data_keys:
                 del self.data[key]
+
+class EnzoGridBase(AMRGridPatch):
+    """
+    Class representing a single Enzo Grid instance.
+    """
+    def __init__(self, id, filename=None, hierarchy = None):
+        """
+        Returns an instance of EnzoGrid with *id*, associated with
+        *filename* and *hierarchy*.
+        """
+        #All of the field parameters will be passed to us as needed.
+        AMRGridPatch.__init__(self, id, filename, hierarchy)
+        self._file_access_pooling = False
+
+    def _guess_properties_from_parent(self):
+        """
+        We know that our grid boundary occurs on the cell boundary of our
+        parent.  This can be a very expensive process, but it is necessary
+        in some hierarchys, where yt is unable to generate a completely
+        space-filling tiling of grids, possibly due to the finite accuracy in a
+        standard Enzo hierarchy file.
+        """
+        le = self.LeftEdge
+        self.dx = self.Parent.dx/2.0
+        self.dy = self.Parent.dy/2.0
+        self.dz = self.Parent.dz/2.0
+        ParentLeftIndex = na.rint((self.LeftEdge-self.Parent.LeftEdge)/self.Parent.dx)
+        self.start_index = 2*(ParentLeftIndex + self.Parent.get_global_startindex()).astype('int64')
+        self.LeftEdge = self.Parent.LeftEdge + self.Parent.dx * ParentLeftIndex
+        self.RightEdge = self.LeftEdge + \
+                         self.ActiveDimensions*na.array([self.dx,self.dy,self.dz])
+        self.hierarchy.gridDxs[self.id-1,0] = self.dx
+        self.hierarchy.gridDys[self.id-1,0] = self.dy
+        self.hierarchy.gridDzs[self.id-1,0] = self.dz
+        self.hierarchy.gridLeftEdge[self.id-1,:] = self.LeftEdge
+        self.hierarchy.gridRightEdge[self.id-1,:] = self.RightEdge
+        self.hierarchy.gridCorners[:,:,self.id-1] = na.array([ # Unroll!
+            [self.LeftEdge[0], self.LeftEdge[1], self.LeftEdge[2]],
+            [self.RightEdge[0], self.LeftEdge[1], self.LeftEdge[2]],
+            [self.RightEdge[0], self.RightEdge[1], self.LeftEdge[2]],
+            [self.RightEdge[0], self.RightEdge[1], self.RightEdge[2]],
+            [self.LeftEdge[0], self.RightEdge[1], self.RightEdge[2]],
+            [self.LeftEdge[0], self.LeftEdge[1], self.RightEdge[2]],
+            [self.RightEdge[0], self.LeftEdge[1], self.RightEdge[2]],
+            [self.LeftEdge[0], self.RightEdge[1], self.LeftEdge[2]],
+            ], dtype='float64')
+        self.__child_mask = None
+        self.__child_index_mask = None
+        self.__child_indices = None
+        self._setup_dx()
+
+    def get_global_startindex(self):
+        """
+        Return the integer starting index for each dimension at the current
+        level.
+        """
+        if self.start_index != None:
+            return self.start_index
+        if self.Parent == None:
+            start_index = self.LeftEdge / na.array([self.dx, self.dy, self.dz])
+            return na.rint(start_index).astype('int64').ravel()
+        pdx = na.array([self.Parent.dx, self.Parent.dy, self.Parent.dz]).ravel()
+        start_index = (self.Parent.get_global_startindex()) + \
+                       na.rint((self.LeftEdge - self.Parent.LeftEdge)/pdx)
+        self.start_index = (start_index*2).astype('int64').ravel()
+        return self.start_index
+
+    def set_filename(self, filename):
+        """
+        Intelligently set the filename.
+        """
+        if self.hierarchy._strip_path:
+            self.filename = os.path.join(self.hierarchy.directory,
+                                         os.path.basename(filename))
+        elif filename[0] == os.path.sep:
+            self.filename = filename
+        else:
+            self.filename = os.path.join(self.hierarchy.directory, filename)
+        return
+

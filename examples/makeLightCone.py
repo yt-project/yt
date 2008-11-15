@@ -8,6 +8,10 @@ q = LightCone("128Mpc256grid_SFFB.param","lightcone.par")
 
 q.CalculateLightConeSolution()
 
+# If random seed was not provided in the parameter file, it can be given 
+# straight to the routine.
+q.CalculateLightConeSolution(seed=123456789)
+
 # Save a text file detailing the light cone solution.
 q.SaveLightConeSolution()
 
@@ -30,7 +34,7 @@ q.SaveLightConeStack(file='light_cone_temperature.h5')
 # This will allow the projection objects that have already been made 
 # to be re-used.
 # Just don't use the same random seed as the original.
-q.RecycleLightConeSolution(987654321)
+q.RerandomizeLightConeSolution(987654321,recycle=True)
 
 # Save the recycled solution.
 q.SaveLightConeSolution(file='light_cone_recycled.out')
@@ -40,3 +44,6 @@ pc = q.ProjectLightCone('Density')
 
 # Save the stack.
 q.SaveLightConeStack(file='light_cone_recycled.h5')
+
+# Rerandomize the light cone solution with an entirely new solution.
+q.RerandomizeLightConeSolution(8675309,recycle=False)

@@ -38,7 +38,7 @@ class UnilinearFieldInterpolator:
         orig_shape = data_object[self.x_name].shape
         x_vals = data_object[self.x_name].ravel().astype('float64')
 
-        x_i = na.digitize(x_vals, self.x_bins) - 1
+        x_i = (na.digitize(x_vals, self.x_bins) - 1).astype('int32')
         if na.any((x_i == -1) | (x_i == len(self.x_bins)-1)):
             mylog.error("Sorry, but your values are outside" + \
                         " the table!  Dunno what to do, so dying.")
@@ -63,8 +63,8 @@ class BilinearFieldInterpolator:
         x_vals = data_object[self.x_name].ravel().astype('float64')
         y_vals = data_object[self.y_name].ravel().astype('float64')
 
-        x_i = na.digitize(x_vals, self.x_bins) - 1
-        y_i = na.digitize(y_vals, self.y_bins) - 1
+        x_i = (na.digitize(x_vals, self.x_bins) - 1).astype('int32')
+        y_i = (na.digitize(y_vals, self.y_bins) - 1).astype('int32')
         if na.any((x_i == -1) | (x_i == len(self.x_bins)-1)) \
             or na.any((y_i == -1) | (y_i == len(self.y_bins)-1)):
             if not self.truncate:

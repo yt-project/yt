@@ -103,7 +103,8 @@ def identify_contours(data_source, field, min_val, max_val):
     my_queue.add(data_source._grids)
     for i,grid in enumerate(my_queue):
         max_before = grid["tempContours"].max()
-        if na.all(grid.LeftEdge == 0.0) and na.all(grid.RightEdge == 1.0):
+        if na.all(grid.LeftEdge == grid.pf["DomainLeftEdge"]) and \
+           na.all(grid.RightEdge == grid.pf["DomainRightEdge"]):
             cg = grid.retrieve_ghost_zones(0,["tempContours","GridIndices"])
         else:
             cg = grid.retrieve_ghost_zones(1,["tempContours","GridIndices"])

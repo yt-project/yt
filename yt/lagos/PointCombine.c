@@ -43,23 +43,29 @@ static PyObject *
 Py_CombineGrids(PyObject *obj, PyObject *args)
 {
     PyObject    *ogrid_src_x, *ogrid_src_y, *ogrid_src_vals,
-        *ogrid_src_mask, *ogrid_src_wgt;
+        *ogrid_src_mask, *ogrid_src_wgt, *ogrid_used_mask;
     PyObject    *ogrid_dst_x, *ogrid_dst_y, *ogrid_dst_vals,
         *ogrid_dst_mask, *ogrid_dst_wgt;
 
     PyArrayObject    *grid_src_x, *grid_src_y, **grid_src_vals,
-            *grid_src_mask, *grid_src_wgt;
+            *grid_src_mask, *grid_src_wgt, *grid_used_mask;
     PyArrayObject    *grid_dst_x, *grid_dst_y, **grid_dst_vals,
             *grid_dst_mask, *grid_dst_wgt;
 
-    int NumArrays, src_len, dst_len, refinement_factor;
+    grid_src_x = grid_src_y = //grid_src_vals =
+            grid_src_mask = grid_src_wgt = grid_used_mask =
+    grid_dst_x = grid_dst_y = //grid_dst_vals = 
+            grid_dst_mask = grid_dst_wgt = NULL;
 
-    if (!PyArg_ParseTuple(args, "OOOOOOOOOOi",
+    int NumArrays, src_len, dst_len, refinement_factor;
+    NumArrays = 0;
+
+    if (!PyArg_ParseTuple(args, "OOOOOOOOOOiO",
             &ogrid_src_x, &ogrid_src_y, 
         &ogrid_src_mask, &ogrid_src_wgt, &ogrid_src_vals,
             &ogrid_dst_x, &ogrid_dst_y,
         &ogrid_dst_mask, &ogrid_dst_wgt, &ogrid_dst_vals,
-        &refinement_factor))
+        &refinement_factor, &ogrid_used_mask))
     return PyErr_Format(_combineGridsError,
             "CombineGrids: Invalid parameters.");
 
@@ -94,6 +100,15 @@ Py_CombineGrids(PyObject *obj, PyObject *args)
     if((grid_src_wgt == NULL) || (PyArray_SIZE(grid_src_wgt) != src_len)) {
     PyErr_Format(_combineGridsError,
              "CombineGrids: src_x and src_wgt must be the same shape.");
+    goto _fail;
+    }
+
+    grid_used_mask  = (PyArrayObject *) PyArray_FromAny(ogrid_used_mask,
+                    PyArray_DescrFromType(NPY_INT64), 1, 1,
+                    NPY_INOUT_ARRAY | NPY_UPDATEIFCOPY, NULL);
+    if((grid_used_mask == NULL) || (PyArray_SIZE(grid_used_mask) != src_len)) {
+    PyErr_Format(_combineGridsError,
+             "CombineGrids: src_x and used_mask must be the same shape.");
     goto _fail;
     }
 
@@ -172,6 +187,7 @@ Py_CombineGrids(PyObject *obj, PyObject *args)
     npy_int64     *src_y    = (npy_int64 *) PyArray_GETPTR1(grid_src_y,0);
     npy_float64 *src_wgt  = (npy_float64 *) PyArray_GETPTR1(grid_src_wgt,0);
     npy_int64     *src_mask = (npy_int64 *) PyArray_GETPTR1(grid_src_mask,0);
+    npy_int64    *src_used_mask = (npy_int64 *) PyArray_GETPTR1(grid_used_mask,0);
 
     npy_int64     *dst_x    = (npy_int64 *) PyArray_GETPTR1(grid_dst_x,0);
     npy_int64     *dst_y    = (npy_int64 *) PyArray_GETPTR1(grid_dst_y,0);
@@ -183,7 +199,7 @@ Py_CombineGrids(PyObject *obj, PyObject *args)
     int num_found = 0;
 
     for (si = 0; si < src_len; si++) {
-      if (src_x[si] < 0) continue;
+      if (src_used_mask[si] == 0) continue;
       init_x = refinement_factor * src_x[si];
       init_y = refinement_factor * src_y[si];
       for (x_off = 0; x_off < refinement_factor; x_off++) {
@@ -191,7 +207,6 @@ Py_CombineGrids(PyObject *obj, PyObject *args)
           fine_x = init_x + x_off;
           fine_y = init_y + y_off;
           for (di = 0; di < dst_len; di++) {
-            if (dst_x[di] < 0) continue;
             if ((fine_x == dst_x[di]) &&
                 (fine_y == dst_y[di])) {
               num_found++;
@@ -200,7 +215,7 @@ Py_CombineGrids(PyObject *obj, PyObject *args)
                   ((refinement_factor != 1) && (dst_mask[di])));
               // So if they are on the same level, then take the logical and
               // otherwise, set it to the destination mask
-              src_x[si] = -2;
+              src_used_mask[si] = 0;
               for (i = 0; i < NumArrays; i++) {
                 dst_vals[i][di] += src_vals[i][si];
               }
@@ -215,6 +230,7 @@ Py_CombineGrids(PyObject *obj, PyObject *args)
     Py_DECREF(grid_src_y);
     Py_DECREF(grid_src_mask);
     Py_DECREF(grid_src_wgt);
+    Py_DECREF(grid_used_mask);
 
     Py_DECREF(grid_dst_x);
     Py_DECREF(grid_dst_y);
@@ -241,6 +257,7 @@ _fail:
     Py_XDECREF(grid_src_y);
     Py_XDECREF(grid_src_wgt);
     Py_XDECREF(grid_src_mask);
+    Py_XDECREF(grid_used_mask);
 
     Py_XDECREF(grid_dst_x);
     Py_XDECREF(grid_dst_y);
@@ -703,22 +720,14 @@ static PyObject *DataCubeGeneric(PyObject *obj, PyObject *args,
     for(i=0;i<3;i++) {
             itc = 1;
             if (ac_le[i] < adl_edge[i]) {
-                ac_le_p[i][itc  ] = adr_edge[i] + ac_le[i];
-                ac_re_p[i][itc++] = adr_edge[i] + ac_re[i];
-                //fprintf(stderr, "le axis: %d (%d) le: %0.5f re: %0.5f\n", 
-                //        i, itc-1, ac_le_p[i][itc-1], ac_re_p[i][itc-1]);
+                ac_le_p[i][itc  ] = adr_edge[i] - (adl_edge[i] - ac_le[i]);
+                ac_re_p[i][itc++] = adr_edge[i] + (ac_re[i] - adl_edge[i]);
             }
             if (ac_re[i] > adr_edge[i]) {
-                ac_le_p[i][itc  ] = adl_edge[i] - (adr_edge[i]-adl_edge[i])
-                                  + ac_le[i];
-                ac_re_p[i][itc++] = adl_edge[i] - (adr_edge[i]-adl_edge[i])
-                                  + ac_re[i];
-                //fprintf(stderr, "re axis: %d (%d) le: %0.5f re: %0.5f\n", 
-                //        i, itc-1, ac_le_p[i][itc-1], ac_re_p[i][itc-1]);
+                ac_le_p[i][itc  ] = ac_le[i] - (adr_edge[i] - adl_edge[i]);
+                ac_re_p[i][itc++] = adl_edge[i] + (ac_re[i] - adr_edge[i]);
             }
             p_niter[i] = itc;
-            //fprintf(stderr, "Iterating on %d %d (%d) times\n",
-            //        i, itc, p_niter[i]);
     }
 
     for (xg = 0; xg < g_data[0]->dimensions[0]; xg++) {

@@ -165,18 +165,18 @@ class AMRHierarchy:
             self._data_file = None
 
     def _setup_classes(self, dd):
-        self.proj = classobj("EnzoProj",(EnzoProjBase,), dd)
-        self.slice = classobj("EnzoSlice",(EnzoSliceBase,), dd)
-        self.region = classobj("EnzoRegion",(EnzoRegionBase,), dd)
-        self.periodic_region = classobj("EnzoPeriodicRegion",(EnzoPeriodicRegionBase,), dd)
-        self.covering_grid = classobj("EnzoCoveringGrid",(EnzoCoveringGrid,), dd)
-        self.smoothed_covering_grid = classobj("EnzoSmoothedCoveringGrid",(EnzoSmoothedCoveringGrid,), dd)
-        self.sphere = classobj("EnzoSphere",(EnzoSphereBase,), dd)
-        self.cutting = classobj("EnzoCuttingPlane",(EnzoCuttingPlaneBase,), dd)
-        self.ray = classobj("EnzoRay",(EnzoRayBase,), dd)
-        self.ortho_ray = classobj("EnzoOrthoRay",(EnzoOrthoRayBase,), dd)
-        self.disk = classobj("EnzoCylinder",(EnzoCylinderBase,), dd)
-        self.grid_collection = classobj("EnzoGridCollection",(EnzoGridCollection,), dd)
+        self.proj = classobj("AMRProj",(AMRProjBase,), dd)
+        self.slice = classobj("AMRSlice",(AMRSliceBase,), dd)
+        self.region = classobj("AMRRegion",(AMRRegionBase,), dd)
+        self.periodic_region = classobj("AMRPeriodicRegion",(AMRPeriodicRegionBase,), dd)
+        self.covering_grid = classobj("AMRCoveringGrid",(AMRCoveringGrid,), dd)
+        self.smoothed_covering_grid = classobj("AMRSmoothedCoveringGrid",(AMRSmoothedCoveringGrid,), dd)
+        self.sphere = classobj("AMRSphere",(AMRSphereBase,), dd)
+        self.cutting = classobj("AMRCuttingPlane",(AMRCuttingPlaneBase,), dd)
+        self.ray = classobj("AMRRay",(AMRRayBase,), dd)
+        self.ortho_ray = classobj("AMROrthoRay",(AMROrthoRayBase,), dd)
+        self.disk = classobj("AMRCylinder",(AMRCylinderBase,), dd)
+        self.grid_collection = classobj("AMRGridCollection",(AMRGridCollection,), dd)
 
     def _deserialize_hierarchy(self, harray):
         mylog.debug("Cached entry found.")
@@ -537,8 +537,7 @@ class EnzoHierarchy(AMRHierarchy):
         self.data_style = data_style
         self.hierarchy_filename = os.path.abspath(pf.parameter_filename) \
                                + ".hierarchy"
-        self.__hierarchy_lines = open(self.hierarchy_filename).readlines()
-        if len(self.__hierarchy_lines) == 0:
+        if os.path.getsize(self.hierarchy_filename) == 0:
             raise IOError(-1,"File empty", self.hierarchy_filename)
         self.boundary_filename = os.path.abspath(pf.parameter_filename) \
                                + ".boundary"
@@ -546,11 +545,14 @@ class EnzoHierarchy(AMRHierarchy):
         # Now we search backwards from the end of the file to find out how many
         # grids we have, which allows us to preallocate memory
         self.__hierarchy_string = open(self.hierarchy_filename).read()
-        for line in reversed(self.__hierarchy_lines):
-            if line.startswith("Grid ="):
-                self.num_grids = int(line.split("=")[-1])
+        for line in rlines(open(self.hierarchy_filename, "rb")):
+            if line.startswith("BaryonFileName") or \
+               line.startswith("FileName "):
+                testGrid = line.split("=")[-1].strip().rstrip()
+            if line.startswith("Grid "):
+                self.num_grids = testGridID = int(line.split("=")[-1])
                 break
-        self.__guess_data_style(pf["TopGridRank"])
+        self.__guess_data_style(pf["TopGridRank"], testGrid, testGridID)
         # For some reason, r8 seems to want Float64
         if pf.has_key("CompilerPrecision") \
             and pf["CompilerPrecision"] == "r4":
@@ -560,22 +562,15 @@ class EnzoHierarchy(AMRHierarchy):
 
         AMRHierarchy.__init__(self, pf)
 
-        del self.__hierarchy_string, self.__hierarchy_lines
+        del self.__hierarchy_string 
 
     def _setup_classes(self):
         dd = self._get_data_reader_dict()
         self.grid = classobj("EnzoGrid",(EnzoGridBase,), dd)
         AMRHierarchy._setup_classes(self, dd)
 
-    def __guess_data_style(self, rank):
+    def __guess_data_style(self, rank, testGrid, testGridID):
         if self.data_style: return
-        for line in reversed(self.__hierarchy_lines):
-            if line.startswith("BaryonFileName") or \
-               line.startswith("FileName "):
-                testGrid = line.split("=")[-1].strip().rstrip()
-            if line.startswith("Grid "):
-                testGridID = int(line.split("=")[-1])
-                break
         if testGrid[0] != os.path.sep:
             testGrid = os.path.join(self.directory, testGrid)
         if not os.path.exists(testGrid):
@@ -658,14 +653,13 @@ class EnzoHierarchy(AMRHierarchy):
             for v in vals.split():
                 toAdd[curGrid-1,j] = func(v)
                 j+=1
-        for line_index, line in enumerate(self.__hierarchy_lines):
+        for line_index, line in enumerate(open(self.hierarchy_filename)):
             # We can do this the slow, 'reliable' way by stripping
             # or we can manually pad all our strings, which speeds it up by a
             # factor of about ten
             #param, vals = map(strip,line.split("="))
             if (line_index % 1e5) == 0:
-                mylog.debug("Parsing line % 9i / % 9i",
-                            line_index, len(self.__hierarchy_lines))
+                mylog.debug("Parsing line % 9i", line_index)
             if len(line) < 2:
                 continue
             param, vals = line.split("=")
@@ -985,3 +979,47 @@ def constructRegularExpressions(param, toReadTypes):
         rs += "(%s)\s*" % (scanf_regex[t])
     rs +="$"
     return re.compile(rs,re.M)
+
+# These next two functions are taken from
+# http://www.reddit.com/r/Python/comments/6hj75/reverse_file_iterator/c03vms4
+# Credit goes to "Brian" on Reddit
+
+def rblocks(f, blocksize=4096*256):
+    """Read file as series of blocks from end of file to start.
+
+    The data itself is in normal order, only the order of the blocks is reversed.
+    ie. "hello world" -> ["ld","wor", "lo ", "hel"]
+    Note that the file must be opened in binary mode.
+    """
+    if 'b' not in f.mode.lower():
+        raise Exception("File must be opened using binary mode.")
+    size = os.stat(f.name).st_size
+    fullblocks, lastblock = divmod(size, blocksize)
+
+    # The first(end of file) block will be short, since this leaves 
+    # the rest aligned on a blocksize boundary.  This may be more 
+    # efficient than having the last (first in file) block be short
+    f.seek(-lastblock,2)
+    yield f.read(lastblock)
+
+    for i in range(fullblocks-1,-1, -1):
+        f.seek(i * blocksize)
+        yield f.read(blocksize)
+
+def rlines(f, keepends=False):
+    """Iterate through the lines of a file in reverse order.
+
+    If keepends is true, line endings are kept as part of the line.
+    """
+    buf = ''
+    for block in rblocks(f):
+        buf = block + buf
+        lines = buf.splitlines(keepends)
+        # Return all lines except the first (since may be partial)
+        if lines:
+            lines.reverse()
+            buf = lines.pop() # Last line becomes end of new first line.
+            for line in lines:
+                yield line
+    yield buf  # First line.
+

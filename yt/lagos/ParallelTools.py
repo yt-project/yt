@@ -28,7 +28,8 @@ from yt.funcs import *
 import yt.logger
 import itertools, sys
 
-if os.path.basename(sys.argv[0]) == "mpi4py":
+if os.path.basename(sys.executable) in ["mpi4py"] \
+    or "--parallel" in sys.argv:
     from mpi4py import MPI
     parallel_capable = (MPI.COMM_WORLD.size > 1)
     if parallel_capable:
@@ -108,6 +109,17 @@ class ParallelGridIterator(GridIterator):
         if not self.just_list: self.pobj._finalize_parallel()
         raise StopIteration
 
+def parallel_simple_proxy(func):
+    if not parallel_capable: return func
+    @wraps(func)
+    def single_proc_results(self, *args, **kwargs):
+        retval = None
+        if self._owned:
+            retval = func(self, *args, **kwargs)
+        MPI.COMM_WORLD.Bcast(retval)
+        return retval
+    return single_proc_results
+
 def parallel_passthrough(func):
     @wraps(func)
     def passage(self, data):
@@ -152,7 +164,8 @@ class ParallelAnalysisInterface(object):
         LE[y_dict[axis]] = y[0]
         RE[y_dict[axis]] = y[1]
 
-        return True, self.hierarchy.region(self.center, LE, RE)
+        reg = self.hierarchy.region(self.center, LE, RE)
+        return True, reg
 
     def _partition_hierarchy_3d(self, padding=0.0):
         if not parallel_capable:
@@ -179,12 +192,21 @@ class ParallelAnalysisInterface(object):
     def _mpi_catdict(self, data):
         mylog.debug("Opening MPI Barrier on %s", MPI.COMM_WORLD.rank)
         MPI.COMM_WORLD.Barrier()
-        if MPI.COMM_WORLD.rank == 0:
-            data = self.__mpi_recvdict(data)
-        else:
-            MPI.COMM_WORLD.Send(data, dest=0, tag=0)
-        mylog.debug("Opening MPI Broadcast on %s", MPI.COMM_WORLD.rank)
-        data = MPI.COMM_WORLD.Bcast(data, root=0)
+        field_keys = data.keys()
+        field_keys.sort()
+        np = MPI.COMM_WORLD.size
+        for key in field_keys:
+            mylog.debug("Joining %s (%s) on %s", key, type(data[key]),
+                        MPI.COMM_WORLD.rank)
+            if MPI.COMM_WORLD.rank == 0:
+                data[key] = na.concatenate([data[key]] +
+                 [MPI.COMM_WORLD.Recv(source=i, tag=0) for i in range(1, np)],
+                    axis=-1)
+            else:
+                MPI.COMM_WORLD.Send(data[key], dest=0, tag=0)
+            MPI.COMM_WORLD.Barrier()
+            data[key] = MPI.COMM_WORLD.Bcast(data[key], root=0)
+        mylog.debug("Done joining dictionary on %s", MPI.COMM_WORLD.rank)
         MPI.COMM_WORLD.Barrier()
         return data
 
