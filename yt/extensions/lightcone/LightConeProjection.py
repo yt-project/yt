@@ -24,6 +24,11 @@ License:
 """
 
 from yt.extensions.lightcone import *
+from yt.logger import lagosLogger as mylog
+import yt.lagos as lagos
+import yt.raven as raven
+import numpy as na
+import copy
 
 def LightConeProjection(lightConeSlice,field,pixels,weight_field=None,save_image=False,name="",**kwargs):
     "Create a single projection to be added into the light cone stack."
@@ -106,7 +111,7 @@ def LightConeProjection(lightConeSlice,field,pixels,weight_field=None,save_image
     # 3. The Shift Problem
     # Shift projection by random x and y offsets.
 
-    offset = lightConeSlice['ProjectionCenter']
+    offset = copy.deepcopy(lightConeSlice['ProjectionCenter'])
     # Delete depth coordinate.
     del offset[lightConeSlice['ProjectionAxis']]
 
