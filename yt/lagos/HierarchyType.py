@@ -34,8 +34,8 @@ _data_style_funcs = \
      5: (readDataHDF5, readAllDataHDF5, getFieldsHDF5, readDataSliceHDF5, getExceptionHDF5),
      6: (readDataPacked, readAllDataPacked, getFieldsPacked, readDataSlicePacked, getExceptionHDF5),
      8: (readDataInMemory, readAllDataInMemory, getFieldsInMemory, readDataSliceInMemory, getExceptionInMemory),
-     'enzo_packed_2d': (readDataPacked, readAllDataPacked, getFieldsPacked,
-readDataSlicePacked2D, getExceptionHDF5),
+     'enzo_packed_2d': (readDataPacked, readAllDataPacked, getFieldsPacked, readDataSlicePacked2D, getExceptionHDF5),
+     'enzo_packed_1d': (readDataPacked, readAllDataPacked, getFieldsPacked, readDataSlicePacked1D, getExceptionHDF5),
    }
 
 class AMRHierarchy:
@@ -945,6 +945,17 @@ class EnzoHierarchyInMemory(EnzoHierarchy):
         else:
             random_sample = na.mgrid[0:max(len(gg)-1,1)].astype("int32")
         return gg[(random_sample,)]
+
+class EnzoHierarchy1D(EnzoHierarchy):
+    def __init__(self, *args, **kwargs):
+        EnzoHierarchy.__init__(self, *args, **kwargs)
+        self.gridRightEdge[:,1:2] = 1.0
+        self.gridDimensions[:,1:2] = 1.0
+        self.gridDys[:,0] = 1.0
+        self.gridDzs[:,0] = 1.0
+        for g in self.grids:
+            g._prepare_grid()
+            g._setup_dx()
 
 class EnzoHierarchy2D(EnzoHierarchy):
     def __init__(self, *args, **kwargs):

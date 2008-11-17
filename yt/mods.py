@@ -40,7 +40,7 @@ from logger import ytLogger as mylog
 # Now individual component imports from lagos
 from yt.lagos import EnzoStaticOutput, \
     BinnedProfile1D, BinnedProfile2D, BinnedProfile3D, \
-    add_field, \
+    add_field, EnzoFieldInfo, Enzo2DFieldInfo, OrionFieldInfo, \
     Clump, write_clump_hierarchy, find_clumps, write_clumps
 
 # Now individual component imports from raven

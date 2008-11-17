@@ -163,19 +163,20 @@ class AMRGridPatch(AMRData):
         # Now we give it pointers to all of its attributes
         # Note that to keep in line with Enzo, we have broken PEP-8
         h = self.hierarchy # cache it
-        self.Dimensions = h.gridDimensions[self.id-1]
-        self.StartIndices = h.gridStartIndices[self.id-1]
-        self.EndIndices = h.gridEndIndices[self.id-1]
-        self.LeftEdge = h.gridLeftEdge[self.id-1]
-        self.RightEdge = h.gridRightEdge[self.id-1]
-        self.Level = h.gridLevels[self.id-1,0]
-        self.Time = h.gridTimes[self.id-1,0]
-        self.NumberOfParticles = h.gridNumberOfParticles[self.id-1,0]
+        my_ind = self.id - self._id_offset
+        self.Dimensions = h.gridDimensions[my_ind]
+        self.StartIndices = h.gridStartIndices[my_ind]
+        self.EndIndices = h.gridEndIndices[my_ind]
+        self.LeftEdge = h.gridLeftEdge[my_ind]
+        self.RightEdge = h.gridRightEdge[my_ind]
+        self.Level = h.gridLevels[my_ind,0]
+        self.Time = h.gridTimes[my_ind,0]
+        self.NumberOfParticles = h.gridNumberOfParticles[my_ind,0]
         self.ActiveDimensions = (self.EndIndices - self.StartIndices + 1)
-        self.Children = h.gridTree[self.id-1]
-        pID = h.gridReverseTree[self.id-1]
+        self.Children = h.gridTree[my_ind]
+        pID = h.gridReverseTree[my_ind]
         if pID != None and pID != -1:
-            self.Parent = weakref.proxy(h.grids[pID - 1])
+            self.Parent = weakref.proxy(h.grids[pID - self._id_offset])
         else:
             self.Parent = None
 
@@ -396,6 +397,7 @@ class EnzoGridBase(AMRGridPatch):
         space-filling tiling of grids, possibly due to the finite accuracy in a
         standard Enzo hierarchy file.
         """
+        my_ind = self.id - self._id_offset
         le = self.LeftEdge
         self.dx = self.Parent.dx/2.0
         self.dy = self.Parent.dy/2.0
@@ -405,12 +407,12 @@ class EnzoGridBase(AMRGridPatch):
         self.LeftEdge = self.Parent.LeftEdge + self.Parent.dx * ParentLeftIndex
         self.RightEdge = self.LeftEdge + \
                          self.ActiveDimensions*na.array([self.dx,self.dy,self.dz])
-        self.hierarchy.gridDxs[self.id-1,0] = self.dx
-        self.hierarchy.gridDys[self.id-1,0] = self.dy
-        self.hierarchy.gridDzs[self.id-1,0] = self.dz
-        self.hierarchy.gridLeftEdge[self.id-1,:] = self.LeftEdge
-        self.hierarchy.gridRightEdge[self.id-1,:] = self.RightEdge
-        self.hierarchy.gridCorners[:,:,self.id-1] = na.array([ # Unroll!
+        self.hierarchy.gridDxs[my_ind,0] = self.dx
+        self.hierarchy.gridDys[my_ind,0] = self.dy
+        self.hierarchy.gridDzs[my_ind,0] = self.dz
+        self.hierarchy.gridLeftEdge[my_ind,:] = self.LeftEdge
+        self.hierarchy.gridRightEdge[my_ind,:] = self.RightEdge
+        self.hierarchy.gridCorners[:,:,my_ind] = na.array([ # Unroll!
             [self.LeftEdge[0], self.LeftEdge[1], self.LeftEdge[2]],
             [self.RightEdge[0], self.LeftEdge[1], self.LeftEdge[2]],
             [self.RightEdge[0], self.RightEdge[1], self.LeftEdge[2]],

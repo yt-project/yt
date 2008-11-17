@@ -2,7 +2,7 @@ from yt.mods import *
 
 pf = EnzoStaticOutput("DD0003/sb_L2x2_0003")
 
-lagos.fieldInfo["VelocityMagnitude"].take_log = True
+EnzoFieldInfo["VelocityMagnitude"].take_log = True
 
 pc = PlotCollection(pf, center=[0.5,0.5,0.5])
 
@@ -13,6 +13,6 @@ p.add_callback(GridBoundaryCallback())
 
 pc.set_width(0.9, '1')
 
-pc.add_phase_sphere(1.0, '1', ["Density", "TotalEnergy", "VelocityMagnitude"], weight=None)
+pc.add_phase_sphere(1.0, '1', ["Density", "TotalEnergy", "VelocityMagnitude"])
 
 pc.save("hi")

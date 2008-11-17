@@ -139,13 +139,25 @@ class EnzoStaticOutput(StaticOutput):
         cp = os.path.join(self.directory, "cool_rates.out")
         if os.path.exists(cp):
             self.cool = EnzoTable(cp, cool_out_key)
-        self.field_info = self._fieldinfo_class()
 
         # Now fixes for different types of Hierarchies
-        if self["TopGridRank"] == 2: self._setup_2d()
+        # This includes changing the fieldinfo class!
+        if self["TopGridRank"] == 1: self._setup_1d()
+        elif self["TopGridRank"] == 2: self._setup_2d()
+
+        self.field_info = self._fieldinfo_class()
+
+    def _setup_1d(self):
+        self._hierarchy_class = EnzoHierarchy1D
+        self._fieldinfo_class = Enzo1DFieldContainer
+        self.parameters["DomainLeftEdge"] = \
+            na.concatenate([self["DomainLeftEdge"], [0.0, 0.0]])
+        self.parameters["DomainRightEdge"] = \
+            na.concatenate([self["DomainRightEdge"], [1.0, 1.0]])
 
     def _setup_2d(self):
         self._hierarchy_class = EnzoHierarchy2D
+        self._fieldinfo_class = Enzo2DFieldContainer
         self.parameters["DomainLeftEdge"] = \
             na.concatenate([self["DomainLeftEdge"], [0.0]])
         self.parameters["DomainRightEdge"] = \

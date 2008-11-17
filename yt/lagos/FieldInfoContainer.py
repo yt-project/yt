@@ -82,12 +82,6 @@ class CodeFieldInfoContainer(FieldInfoContainer):
             return self._universal_field_list[key]
         raise KeyError
 
-class EnzoFieldContainer(CodeFieldInfoContainer):
-    _shared_state = {}
-    _field_list = {}
-EnzoFieldInfo = EnzoFieldContainer()
-add_enzo_field = EnzoFieldInfo.add_field
-
 class OrionFieldContainer(CodeFieldInfoContainer):
     _shared_state = {}
     _field_list = {}
