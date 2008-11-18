@@ -949,8 +949,8 @@ class EnzoHierarchyInMemory(EnzoHierarchy):
 class EnzoHierarchy1D(EnzoHierarchy):
     def __init__(self, *args, **kwargs):
         EnzoHierarchy.__init__(self, *args, **kwargs)
-        self.gridRightEdge[:,1:2] = 1.0
-        self.gridDimensions[:,1:2] = 1.0
+        self.gridRightEdge[:,1:3] = 1.0
+        self.gridDimensions[:,1:3] = 1.0
         self.gridDys[:,0] = 1.0
         self.gridDzs[:,0] = 1.0
         for g in self.grids:
@@ -966,9 +966,6 @@ class EnzoHierarchy2D(EnzoHierarchy):
         for g in self.grids:
             g._prepare_grid()
             g._setup_dx()
-
-class EnzoHierarchy1D(EnzoHierarchy):
-    pass
 
 scanf_regex = {}
 scanf_regex['e'] = r"[-+]?\d+\.?\d*?|\.\d+[eE][-+]?\d+?"
@@ -995,7 +992,7 @@ def constructRegularExpressions(param, toReadTypes):
 # http://www.reddit.com/r/Python/comments/6hj75/reverse_file_iterator/c03vms4
 # Credit goes to "Brian" on Reddit
 
-def rblocks(f, blocksize=4096*256):
+def rblocks(f, blocksize=4096):
     """Read file as series of blocks from end of file to start.
 
     The data itself is in normal order, only the order of the blocks is reversed.

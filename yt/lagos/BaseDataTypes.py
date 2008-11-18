@@ -1014,7 +1014,7 @@ class AMRProjBase(AMR2DData, ParallelAnalysisInterface):
                     args = []
                     args += self.__retval_coords[grid2.id] + [self.__retval_fields[grid2.id]]
                     args += self.__retval_coords[grid1.id] + [self.__retval_fields[grid1.id]]
-                    args.append(int(grid2.dx / grid1.dx))
+                    args.append(int(grid2.dx / grid1.dx)) # Refinement factor
                     args.append(na.ones(args[0].shape, dtype='int64'))
                     kk = PointCombine.CombineGrids(*args)
                     goodI = args[-1].astype('bool')
@@ -1769,7 +1769,7 @@ class AMRSmoothedCoveringGrid(AMRCoveringGrid):
     def _get_level_array(self, level, fields):
         fields = ensure_list(fields)
         # We assume refinement by a factor of two
-        rf = float(2**(self.level - level))
+        rf = float(self.pf["RefineBy"]**(self.level - level))
         dims = na.maximum(1,self.ActiveDimensions/rf) + 2
         dx = (self.right_edge-self.left_edge)/(dims-2)
         x,y,z = (na.mgrid[0:dims[0],0:dims[1],0:dims[2]].astype('float64')+0.5)\

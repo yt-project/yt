@@ -766,6 +766,78 @@ class PhasePlot(ProfilePlot):
     def set_width(self, width, unit):
         mylog.warning("Choosing not to change the width of a phase plot instance")
 
+class LineQueryPlot(RavenPlot):
+    _type_name = "LineQueryPlot"
+
+    def __init__(self, data, fields, id, ticker=None,
+                 figure=None, axes=None, plot_options=None):
+        self._semi_unique_id = id
+        RavenPlot.__init__(self, data, fields, figure, axes)
+
+        self.axis_names["X"] = fields[0]
+        self.axis_names["Y"] = fields[1]
+
+        self._log_x = False
+        if fields[1] in self.pf.field_info and \
+            self.pf.field_info[fields[1]].take_log:
+            self._log_y = True
+        else:
+            self._log_y = False
+
+        if plot_options is None: plot_options = {}
+        self.plot_options = plot_options
+
+    def _generate_prefix(self, prefix):
+        self.prefix = "_".join([prefix, self._type_name,
+                       str(self._semi_unique_id),
+                       self.axis_names['X'], self.axis_names['Y']])
+        self["Field1"] = self.axis_names["X"]
+        self["Field2"] = self.axis_names["Y"]
+
+    def _redraw_image(self):
+        self._axes.clear()
+        if not self._log_x and not self._log_y:
+            func = self._axes.plot
+        elif self._log_x and not self._log_y:
+            func = self._axes.semilogx
+        elif not self._log_x and self._log_y:
+            func = self._axes.semilogy
+        elif self._log_x and self._log_y:
+            func = self._axes.loglog
+        indices = na.argsort(self.data[self.fields[0]])
+        func(self.data[self.fields[0]][indices],
+             self.data[self.fields[1]][indices],
+             **self.plot_options)
+        self.autoset_label(self.fields[0], self._axes.set_xlabel)
+        self.autoset_label(self.fields[1], self._axes.set_ylabel)
+        self._run_callbacks()
+
+    def set_log_field(self, val):
+        if val:
+            self._log_y = True
+        else:
+            self._log_y = False
+
+    def switch_x(self, field, weight="CellMassMsun", accumulation=False):
+        self.fields[0] = field
+        self.axis_names["X"] = field
+    
+    def switch_z(self, field, weight="CellMassMsun", accumulation=False):
+        self.fields[1] = field
+        self.axis_names["Y"] = field
+
+    def autoset_label(self, field_name, func):
+        if self.datalabel != None:
+            func(str(self.datalabel))
+            return
+        data_label = r"$\rm{%s}" % field_name.replace("_"," ")
+        if field_name in self.pf.field_info:
+            data_label += r"\/\/ (%s)" % (self.pf.field_info[field_name].get_units())
+        data_label += r"$"
+        func(str(data_label))
+
+
+    switch_y = switch_z # Compatibility...
 
 # Now we provide some convenience functions to get information about plots.
 # With Matplotlib 0.98.x, the 'transforms' branch broke backwards

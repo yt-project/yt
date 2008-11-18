@@ -391,6 +391,14 @@ class PlotCollection:
         p["Axis"] = "na"
         return p
 
+    def add_ortho_ray(self, axis, coords, field, axes = None,
+                      figure = None, **kwargs):
+        data_source = self.pf.h.ortho_ray(axis, coords, field)
+        p = self._add_plot(PlotTypes.LineQueryPlot(data_source,
+                [axis_names[axis], field], self._get_new_id(),
+                figure, axes, plot_options=kwargs))
+        return p
+
     def _get_new_id(self):
         self.__id_counter += 1
         return self.__id_counter-1

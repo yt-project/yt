@@ -397,13 +397,14 @@ class EnzoGridBase(AMRGridPatch):
         space-filling tiling of grids, possibly due to the finite accuracy in a
         standard Enzo hierarchy file.
         """
+        rf = self.pf["RefineBy"]
         my_ind = self.id - self._id_offset
         le = self.LeftEdge
-        self.dx = self.Parent.dx/2.0
-        self.dy = self.Parent.dy/2.0
-        self.dz = self.Parent.dz/2.0
+        self.dx = self.Parent.dx/rf
+        self.dy = self.Parent.dy/rf
+        self.dz = self.Parent.dz/rf
         ParentLeftIndex = na.rint((self.LeftEdge-self.Parent.LeftEdge)/self.Parent.dx)
-        self.start_index = 2*(ParentLeftIndex + self.Parent.get_global_startindex()).astype('int64')
+        self.start_index = rf*(ParentLeftIndex + self.Parent.get_global_startindex()).astype('int64')
         self.LeftEdge = self.Parent.LeftEdge + self.Parent.dx * ParentLeftIndex
         self.RightEdge = self.LeftEdge + \
                          self.ActiveDimensions*na.array([self.dx,self.dy,self.dz])
@@ -440,7 +441,7 @@ class EnzoGridBase(AMRGridPatch):
         pdx = na.array([self.Parent.dx, self.Parent.dy, self.Parent.dz]).ravel()
         start_index = (self.Parent.get_global_startindex()) + \
                        na.rint((self.LeftEdge - self.Parent.LeftEdge)/pdx)
-        self.start_index = (start_index*2).astype('int64').ravel()
+        self.start_index = (start_index*self.pf["RefineBy"]).astype('int64').ravel()
         return self.start_index
 
     def set_filename(self, filename):
