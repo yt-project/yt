@@ -28,8 +28,8 @@ from yt.funcs import *
 import yt.logger
 import itertools, sys
 
-if os.path.basename(sys.executable) in ["mpi4py"] \
-    or "--parallel" in sys.argv:
+if os.path.basename(sys.executable) in ["mpi4py", "embed_enzo"] \
+    or "--parallel" in sys.argv or '_parallel' in dir(sys):
     from mpi4py import MPI
     parallel_capable = (MPI.COMM_WORLD.size > 1)
     if parallel_capable:
@@ -258,6 +258,7 @@ class ParallelAnalysisInterface(object):
         mylog.debug("Opening MPI Broadcast on %s", MPI.COMM_WORLD.rank)
         data = MPI.COMM_WORLD.Bcast(data, root=0)
         MPI.COMM_WORLD.Barrier()
+        return data
 
     def _should_i_write(self):
         if not parallel_capable: return True
