@@ -823,6 +823,9 @@ class EnzoHierarchy(AMRHierarchy):
                     if grid.Parent: grid._guess_properties_from_parent()
                 if pbar: pbar.finish()
 
+    def _join_field_lists(self, field_list):
+        return field_list
+
     def _setup_field_lists(self):
         field_list = self.get_data("/", "DataFields")
         if field_list == None:
@@ -838,6 +841,7 @@ class EnzoHierarchy(AMRHierarchy):
                     continue
                 mylog.debug("Grid %s has: %s", grid.id, gf)
                 field_list = field_list.union(sets.Set(gf))
+            field_list = self._join_field_lists(field_list)
             self.save_data(list(field_list),"/","DataFields")
         self.field_list = list(field_list)
         for field in self.field_list:
@@ -881,6 +885,19 @@ class EnzoHierarchyInMemory(EnzoHierarchy):
     def _initialize_data_file(self):
         pass
 
+    def _join_field_lists(self, field_list):
+        from mpi4py import MPI
+        MPI.COMM_WORLD.Barrier()
+        data = list(field_list)
+        if MPI.COMM_WORLD.rank == 0:
+            for i in range(1, MPI.COMM_WORLD.size):
+                data += MPI.COMM_WORLD.Recv(source=i, tag=0)
+            data = list(set(data))
+        else:
+            MPI.COMM_WORLD.Send(data, dest=0, tag=0)
+        MPI.COMM_WORLD.Barrier()
+        return MPI.COMM_WORLD.Bcast(data, root=0)
+
     def _populate_hierarchy(self):
         self._copy_hierarchy_structure()
         import enzo
@@ -900,6 +917,7 @@ class EnzoHierarchyInMemory(EnzoHierarchy):
         mylog.debug("Preparing grids")
         for i, grid in enumerate(self.grids):
             if (i%1e4) == 0: mylog.debug("Prepared % 7i / % 7i grids", i, self.num_grids)
+            grid.filename = None
             grid._prepare_grid()
             grid.proc_num = self.gridProcs[i,0]
         self._setup_grid_dxs()
