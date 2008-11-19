@@ -953,7 +953,7 @@ class AMRProjBase(AMR2DData, ParallelAnalysisInterface):
             field_data *= convs[...,na.newaxis]
         mylog.info("Level %s done: %s final", \
                    level, coord_data.shape[1])
-        dx = grids_to_project[0].dx# * na.ones(coord_data.shape[0], dtype='float64')
+        dx = grids_to_project[0]['dds'][self.axis] # this is our dl
         return coord_data, dx, field_data
 
     def __combine_grids_on_level(self, level):
@@ -996,7 +996,8 @@ class AMRProjBase(AMR2DData, ParallelAnalysisInterface):
                     args = []
                     args += self.__retval_coords[grid2.id] + [self.__retval_fields[grid2.id]]
                     args += self.__retval_coords[grid1.id] + [self.__retval_fields[grid1.id]]
-                    args.append(int(grid2.dx / grid1.dx)) # Refinement factor
+                    # Refinement factor, which is same in all directions
+                    args.append(int(grid2.dx / grid1.dx)) 
                     args.append(na.ones(args[0].shape, dtype='int64'))
                     kk = PointCombine.CombineGrids(*args)
                     goodI = args[-1].astype('bool')
