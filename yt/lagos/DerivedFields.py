@@ -372,6 +372,7 @@ add_field("CellsPerBin", function=_Ones, validators=[ValidateSpatial(0)],
           display_field = False)
 
 def _SoundSpeed(field, data):
+    return na.sqrt((data.pf["Gamma"] * kboltz * data["Temperature"] / (1.22 * mh)))
     return ( data.pf["Gamma"]*data["Pressure"] / \
              data["Density"] )**(1.0/2.0)
 add_field("SoundSpeed", units=r"\rm{cm}/\rm{s}")
@@ -422,6 +423,11 @@ add_field("ParticleMass", validators=[ValidateSpatial(0)],
 add_field("ParticleMassMsun",
           function=_ParticleMass, validators=[ValidateSpatial(0)],
           particle_type=True, convert_function=_convertParticleMassMsun)
+
+def _RadialMachNumber(field, data):
+    """M{|v|/t_sound}"""
+    return data["RadialVelocity"] / data["SoundSpeed"]
+add_field("RadialMachNumber")
 
 def _MachNumber(field, data):
     """M{|v|/t_sound}"""
@@ -487,9 +493,9 @@ def _ThermalEnergy(field, data):
 add_field("ThermalEnergy", units=r"\rm{ergs}/\rm{g}")
 
 def _Entropy(field, data):
-    return data["Density"]**(-2./3.) * \
-           data["Temperature"]
-add_field("Entropy", units="WhoKnows")
+    return (kboltz/mh) * data["Temperature"] / \
+           (data["MeanMolecularWeight"] * data["Density"]**(2./3.))
+add_field("Entropy", units=r"\rm{ergs}\/\rm{cm}^{2}")
 
 def _Height(field, data):
     # We take the dot product of the radius vector with the height-vector
@@ -786,7 +792,7 @@ def _ParticleAngularMomentum(field, data):
 add_field("ParticleAngularMomentum", units=r"\rm{g}\/\rm{cm}^2/\rm{s}",
           vector_field=True)
 def _ParticleAngularMomentumMSUNKMSMPC(field, data):
-    return data["ParticleMass"] * data["ParticleSpecificAngularMomentumKMSMPC"]
+    return data["ParticleMassMsun"] * data["ParticleSpecificAngularMomentumKMSMPC"]
 add_field("ParticleAngularMomentumMSUNKMSMPC", vector_field=True,
           units=r"M_{\odot}\rm{km}\rm{Mpc}/\rm{s}")
 
@@ -878,6 +884,8 @@ def _RadialVelocity(field, data):
                 + (data['y']-center[1])*(data["y-velocity"]-bulk_velocity[1])
                 + (data['z']-center[2])*(data["z-velocity"]-bulk_velocity[2])
                 )/data["RadiusCode"]
+    if na.any(na.isnan(new_field)): # to fix center = point
+        new_field[na.isnan(new_field)] = 0.0
     return new_field
 def _RadialVelocityABS(field, data):
     return na.abs(_RadialVelocity(field, data))
@@ -885,16 +893,13 @@ def _ConvertRadialVelocityKMS(data):
     return 1e-5
 add_field("RadialVelocity", function=_RadialVelocity,
           units=r"\rm{cm}/\rm{s}",
-          validators=[ValidateParameter("center"),
-                      ValidateParameter("bulk_velocity")])
+          validators=[ValidateParameter("center")])
 add_field("RadialVelocityABS", function=_RadialVelocityABS,
           units=r"\rm{cm}/\rm{s}",
-          validators=[ValidateParameter("center"),
-                      ValidateParameter("bulk_velocity")])
+          validators=[ValidateParameter("center")])
 add_field("RadialVelocityKMS", function=_RadialVelocity,
           convert_function=_ConvertRadialVelocityKMS, units=r"\rm{km}/\rm{s}",
-          validators=[ValidateParameter("center"),
-                      ValidateParameter("bulk_velocity")])
+          validators=[ValidateParameter("center")])
 
 def _CuttingPlaneVelocityX(field, data):
     x_vec, y_vec, z_vec = [data.get_field_parameter("cp_%s_vec" % (ax))
@@ -974,10 +979,11 @@ fieldInfo["Temperature"]._units = r"\rm{K}"
 def _convertVelocity(data):
     return data.convert("x-velocity")
 for ax in ['x','y','z']:
-    f = fieldInfo["%s-velocity" % ax]
-    f._units = r"\rm{cm}/\rm{s}"
-    f._convert_function = _convertVelocity
-    f.take_log = False
+    for spec in ["%s-velocity", "particle_velocity_%s"]:
+        f = fieldInfo[spec % ax]
+        f._units = r"\rm{cm}/\rm{s}"
+        f._convert_function = _convertVelocity
+        f.take_log = False
 
 def _pdensity(field, data):
     blank = na.zeros(data.ActiveDimensions, dtype='float32', order="FORTRAN")
