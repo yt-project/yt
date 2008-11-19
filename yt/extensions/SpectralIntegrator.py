@@ -57,7 +57,7 @@ class SpectralFrequencyIntegrator(object):
 
     def add_frequency_bin_field(self, ev_min, ev_max):
         """
-        Add a new field to the global fieldInfo dictionary, which is an
+        Add a new field to the FieldInfoContainer, which is an
         integrated bin from *ev_min* to *ev_max*.
         
         Returns the name of the new field.

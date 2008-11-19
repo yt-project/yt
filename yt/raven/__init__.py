@@ -37,6 +37,9 @@ try:
 except:
     mylog.warning("Deliverator import failed; all deliverator actions will fail!")
 
+import matplotlib
+matplotlib.rc('contour', negative_linestyle='solid')
+
 import matplotlib.image
 import matplotlib.ticker
 import matplotlib.axes

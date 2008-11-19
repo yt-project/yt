@@ -40,8 +40,13 @@ from logger import ytLogger as mylog
 # Now individual component imports from lagos
 from yt.lagos import EnzoStaticOutput, \
     BinnedProfile1D, BinnedProfile2D, BinnedProfile3D, \
-    add_field, fieldInfo, \
+    add_field, FieldInfo, EnzoFieldInfo, Enzo2DFieldInfo, OrionFieldInfo, \
     Clump, write_clump_hierarchy, find_clumps, write_clumps
+
+# This is a temporary solution -- in the future, we will allow the user to
+# select this via ytcfg.
+
+fieldInfo = lagos.fieldInfo = EnzoFieldInfo
 
 # Now individual component imports from raven
 from yt.raven import PlotCollection, PlotCollectionInteractive, \

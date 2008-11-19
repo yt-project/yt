@@ -127,7 +127,7 @@ static PyObject* Py_Pixelize(PyObject *obj, PyObject *args) {
   //npy_float64 *gridded = (npy_float64 *) my_array->data;
 
   for(i=0;i<rows;i++)for(j=0;j<cols;j++)
-      *(npy_float64*) PyArray_GETPTR2(my_array, j, i) = 0.0;
+      *(npy_float64*) PyArray_GETPTR2(my_array, i, j) = 0.0;
   for(p=0;p<nx;p++)
   {
     // these are cell-centered

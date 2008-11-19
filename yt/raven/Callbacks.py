@@ -199,6 +199,8 @@ class ContourCallback(PlotCallback):
         z = plot.data[self.field][wI]
         if self.take_log: z=na.log10(z)
         zi = self.de.Triangulation(x,y).nn_interpolator(z)(xi,yi)
+        print z.min(), z.max(), na.nanmin(z), na.nanmax(z)
+        print zi.min(), zi.max(), na.nanmin(zi), na.nanmax(zi)
         plot._axes.contour(xi,yi,zi,self.ncont, **self.plot_args)
         plot._axes.set_xlim(xx0,xx1)
         plot._axes.set_ylim(yy0,yy1)

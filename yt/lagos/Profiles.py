@@ -51,6 +51,7 @@ def preserve_source_parameters(func):
 class BinnedProfile(ParallelAnalysisInterface):
     def __init__(self, data_source, lazy_reader):
         self._data_source = data_source
+        self.pf = data_source.pf
         self._data = {}
         self._pdata = {}
         self._lazy_reader = lazy_reader
@@ -144,7 +145,8 @@ class BinnedProfile(ParallelAnalysisInterface):
         data = []
         for field in _field_mapping.get(field, (field,)):
             if check_cut:
-                if field in fieldInfo and fieldInfo[field].particle_type:
+                if field in self.pf.field_info \
+                    and self.pf.field_info[field].particle_type:
                     pointI = self._data_source._get_particle_indices(source)
                 else:
                     pointI = self._data_source._get_point_indices(source)

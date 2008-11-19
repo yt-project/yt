@@ -318,16 +318,16 @@ class AMR1DData(AMRData, GridPropertiesMixin):
             temp = grid[field]
 
     def _generate_field(self, field):
-        if fieldInfo.has_key(field):
+        if self.pf.field_info.has_key(field):
             # First we check the validator
             try:
-                fieldInfo[field].check_available(self)
+                self.pf.field_info[field].check_available(self)
             except NeedsGridType, ngt_exception:
                 # We leave this to be implementation-specific
                 self._generate_field_in_grids(field, ngt_exception.ghost_zones)
                 return False
             else:
-                self[field] = fieldInfo[field](self)
+                self[field] = self.pf.field_info[field](self)
                 return True
         else: # Can't find the field, try as it might
             raise exceptions.KeyError(field)
@@ -508,16 +508,16 @@ class AMR2DData(AMRData, GridPropertiesMixin, ParallelAnalysisInterface):
 
 
     def _generate_field(self, field):
-        if fieldInfo.has_key(field):
+        if self.pf.field_info.has_key(field):
             # First we check the validator
             try:
-                fieldInfo[field].check_available(self)
+                self.pf.field_info[field].check_available(self)
             except NeedsGridType, ngt_exception:
                 # We leave this to be implementation-specific
                 self._generate_field_in_grids(field, ngt_exception.ghost_zones)
                 return False
             else:
-                self[field] = fieldInfo[field](self)
+                self[field] = self.pf.field_info[field](self)
                 return True
         else: # Can't find the field, try as it might
             raise exceptions.KeyError(field)
@@ -638,16 +638,13 @@ class AMRSliceBase(AMR2DData):
         self['py'] = t[:,1]
         self['pz'] = t[:,2]
         self['pdx'] = t[:,3]
-        self['pdy'] = t[:,3]
-        self['pdz'] = t[:,3]
+        self['pdy'] = t[:,4]
+        self['pdz'] = t[:,3] # Does not matter!
 
         # Now we set the *actual* coordinates
         self[axis_names[x_dict[self.axis]]] = t[:,0]
         self[axis_names[y_dict[self.axis]]] = t[:,1]
         self[axis_names[self.axis]] = t[:,2]
-        self['dx'] = t[:,3]
-        self['dy'] = t[:,3]
-        self['dz'] = t[:,3]
 
         self.ActiveDimensions = (t.shape[0], 1, 1)
 
@@ -657,7 +654,8 @@ class AMRSliceBase(AMR2DData):
     def _generate_grid_coords(self, grid):
         xaxis = x_dict[self.axis]
         yaxis = y_dict[self.axis]
-        wantedIndex = int(((self.coord-grid.LeftEdge[self.axis])/grid.dx))
+        ds, dx, dy = grid['dds'][self.axis], grid['dds'][xaxis], grid['dds'][yaxis]
+        wantedIndex = int(((self.coord-grid.LeftEdge[self.axis])/ds))
         sl = [slice(None), slice(None), slice(None)]
         sl[self.axis] = slice(wantedIndex, wantedIndex + 1)
         #sl.reverse()
@@ -668,31 +666,33 @@ class AMRSliceBase(AMR2DData):
         cmI = na.indices((nx,ny))
         xind = cmI[0,:].ravel()
         xpoints = na.ones(cm[0].shape, 'float64')
-        xpoints *= xind[cm]*grid.dx+(grid.LeftEdge[xaxis] + 0.5*grid.dx)
+        xpoints *= xind[cm]*dx+(grid.LeftEdge[xaxis] + 0.5*dx)
         yind = cmI[1,:].ravel()
         ypoints = na.ones(cm[0].shape, 'float64')
-        ypoints *= yind[cm]*grid.dx+(grid.LeftEdge[yaxis] + 0.5*grid.dx)
+        ypoints *= yind[cm]*dy+(grid.LeftEdge[yaxis] + 0.5*dy)
         zpoints = na.ones(xpoints.shape, 'float64') * self.coord
-        dx = na.ones(xpoints.shape, 'float64') * grid.dx/2.0
-        t = na.array([xpoints, ypoints, zpoints, dx]).swapaxes(0,1)
+        dx = na.ones(xpoints.shape, 'float64') * dx/2.0
+        dy = na.ones(xpoints.shape, 'float64') * dy/2.0
+        t = na.array([xpoints, ypoints, zpoints, dx, dy]).swapaxes(0,1)
         return t
 
     @restore_grid_state
     def _get_data_from_grid(self, grid, field):
         # So what's our index of slicing?  This is what we need to figure out
         # first, so we can deal with our data in the fastest way.
-        wantedIndex = int(((self.coord-grid.LeftEdge[self.axis])/grid.dx))
+        dx = grid['dds'][self.axis]
+        wantedIndex = int(((self.coord-grid.LeftEdge[self.axis])/dx))
         sl = [slice(None), slice(None), slice(None)]
         sl[self.axis] = slice(wantedIndex, wantedIndex + 1)
         sl = tuple(sl)
-        if fieldInfo.has_key(field) and fieldInfo[field].particle_type:
+        if self.pf.field_info.has_key(field) and self.pf.field_info[field].particle_type:
             return grid[field]
-        elif field in fieldInfo and fieldInfo[field].not_in_all:
+        elif field in self.pf.field_info and self.pf.field_info[field].not_in_all:
             dv = grid[field][sl]
         elif not grid.has_key(field):
             conv_factor = 1.0
-            if fieldInfo.has_key(field):
-                conv_factor = fieldInfo[field]._convert_function(self)
+            if self.pf.field_info.has_key(field):
+                conv_factor = self.pf.field_info[field]._convert_function(self)
             dv = self._read_data_slice(grid, field, self.axis, wantedIndex) * conv_factor
         else:
             dv = grid[field]
@@ -782,9 +782,7 @@ class AMRCuttingPlaneBase(AMR2DData):
         D += (x * self._norm_vec[0]).reshape(ss[0],1,1)
         D += (y * self._norm_vec[1]).reshape(1,ss[1],1)
         D += (z * self._norm_vec[2]).reshape(1,1,ss[2])
-        diag_dist = na.sqrt(grid.dx**2.0
-                          + grid.dy**2.0
-                          + grid.dz**2.0)
+        diag_dist = na.sqrt(na.sum(grid['dds']**2.0))
         cm = (na.abs(D) <= 0.5*diag_dist) # Boolean
         return cm
 
@@ -808,7 +806,7 @@ class AMRCuttingPlaneBase(AMR2DData):
         return na.array(coords).swapaxes(0,1)
 
     def _get_data_from_grid(self, grid, field):
-        if not fieldInfo[field].particle_type:
+        if not self.pf.field_info[field].particle_type:
             pointI = self._get_point_indices(grid)
             if grid[field].size == 1: # dx, dy, dz, cellvolume
                 t = grid[field] * na.ones(grid.ActiveDimensions)
@@ -925,7 +923,7 @@ class AMRProjBase(AMR2DData):
         for field in fields + [self._weight]:
             if field is None: continue
             dls.append(just_one(grid['d%s' % axis_names[self.axis]]))
-            convs.append(self.pf.units[fieldInfo[field].projection_conversion])
+            convs.append(self.pf.units[self.pf.field_info[field].projection_conversion])
         return na.array(dls), na.array(convs)
 
     def __project_level(self, level, fields):
@@ -963,24 +961,8 @@ class AMRProjBase(AMR2DData):
             field_data *= convs[...,na.newaxis]
         mylog.info("Level %s done: %s final", \
                    level, coord_data.shape[1])
-        dx = grids_to_project[0].dx# * na.ones(coord_data.shape[0], dtype='float64')
+        dx = grids_to_project[0]['dds'][self.axis] # this is our dl
         return coord_data, dx, field_data
-
-    def __cleanup_level(self, level):
-        pass
-        grids_to_project = self.source.select_grids(level)
-        coord_data = []
-        field_data = []
-        for grid in grids_to_project:
-            if self.__retval_coords[grid.id][0].size == 0: continue
-            if self._weight is not None:
-                weightedData = grid.coarseData[2] / grid.coarseData[4]
-            else:
-                weightedData = grid.coarseData[2]
-            all_data.append([grid.coarseData[0], grid.coarseData[1],
-                weightedData,
-                na.ones(grid.coarseData[0].shape,dtype='float64')*grid.dx])
-        return na.concatenate(all_data, axis=1)
 
     def __combine_grids_on_level(self, level):
         grids = self.source.select_grids(level)
@@ -1022,7 +1004,8 @@ class AMRProjBase(AMR2DData):
                     args = []
                     args += self.__retval_coords[grid2.id] + [self.__retval_fields[grid2.id]]
                     args += self.__retval_coords[grid1.id] + [self.__retval_fields[grid1.id]]
-                    args.append(int(grid2.dx / grid1.dx))
+                    # Refinement factor, which is same in all directions
+                    args.append(int(grid2.dx / grid1.dx)) 
                     args.append(na.ones(args[0].shape, dtype='int64'))
                     kk = PointCombine.CombineGrids(*args)
                     goodI = args[-1].astype('bool')
@@ -1040,7 +1023,7 @@ class AMRProjBase(AMR2DData):
 
     #@time_execution
     def get_data(self, fields = None):
-        if fields is None: fields = self.fields
+        if fields is None: fields = ensure_list(self.fields)[:]
         fields = ensure_list(fields)
         coord_data = []
         field_data = []
@@ -1219,11 +1202,11 @@ class AMR3DData(AMRData, GridPropertiesMixin):
 
     @restore_grid_state
     def _get_data_from_grid(self, grid, field):
-        if field in fieldInfo and fieldInfo[field].particle_type:
+        if field in self.pf.field_info and self.pf.field_info[field].particle_type:
             if grid.NumberOfParticles == 0: return na.array([])
             pointI = self._get_particle_indices(grid)
             return grid[field][pointI].ravel()
-        if field in fieldInfo and fieldInfo[field].vector_field:
+        if field in self.pf.field_info and self.pf.field_info[field].vector_field:
             pointI = self._get_point_indices(grid)
             f = grid[field]
             return na.array([f[i,:][pointI] for i in range(3)])
@@ -1251,16 +1234,16 @@ class AMR3DData(AMRData, GridPropertiesMixin):
             i += np
 
     def _generate_field(self, field):
-        if fieldInfo.has_key(field):
+        if self.pf.field_info.has_key(field):
             # First we check the validator
             try:
-                fieldInfo[field].check_available(self)
+                self.pf.field_info[field].check_available(self)
             except NeedsGridType, ngt_exception:
                 # We leave this to be implementation-specific
                 self._generate_field_in_grids(field, ngt_exception.ghost_zones)
                 return False
             else:
-                self[field] = fieldInfo[field](self)
+                self[field] = self.pf.field_info[field](self)
                 return True
         else: # Can't find the field, try as it might
             raise exceptions.KeyError(field)
@@ -1777,7 +1760,7 @@ class AMRSmoothedCoveringGrid(AMRCoveringGrid):
     def _get_level_array(self, level, fields):
         fields = ensure_list(fields)
         # We assume refinement by a factor of two
-        rf = float(2**(self.level - level))
+        rf = float(self.pf["RefineBy"]**(self.level - level))
         dims = na.maximum(1,self.ActiveDimensions/rf) + 2
         dx = (self.right_edge-self.left_edge)/(dims-2)
         x,y,z = (na.mgrid[0:dims[0],0:dims[1],0:dims[2]].astype('float64')+0.5)\
@@ -1793,7 +1776,7 @@ class AMRSmoothedCoveringGrid(AMRCoveringGrid):
         for ax in 'xyz': self['cd%s'%ax] = fake_grid['d%s'%ax]
         for field in fields:
             # Generate the new grid field
-            if field in fieldInfo and fieldInfo[field].take_log:
+            if field in self.pf.field_info and self.pf.field_info[field].take_log:
                 interpolator = TrilinearFieldInterpolator(
                                 na.log10(self[field]), bounds, ['x','y','z'],
                                 truncate = True)

@@ -166,6 +166,36 @@ def readDataSliceInMemory(self, grid, field, axis, coord):
 def getExceptionInMemory():
     return KeyError
 
+def readDataSlicePacked2D(self, grid, field, axis, coord):
+    """
+    Reads a slice through the HDF5 data
+
+    @param grid: Grid to slice
+    @type grid: L{EnzoGrid<EnzoGrid>}
+    @param field: field to get
+    @type field: string
+    @param sl: region to get
+    @type sl: SliceType
+    """
+    t = HDF5LightReader.ReadData(grid.filename, "/Grid%08i/%s" %
+                    (grid.id, field)).transpose()
+    return t
+
+def readDataSlicePacked1D(self, grid, field, axis, coord):
+    """
+    Reads a slice through the HDF5 data
+
+    @param grid: Grid to slice
+    @type grid: L{EnzoGrid<EnzoGrid>}
+    @param field: field to get
+    @type field: string
+    @param sl: region to get
+    @type sl: SliceType
+    """
+    t = HDF5LightReader.ReadData(grid.filename, "/Grid%08i/%s" %
+                    (grid.id, field))
+    return t
+
 class BaseDataQueue(object):
 
     def __init__(self):
@@ -253,4 +283,20 @@ class DataQueueInMemory(BaseDataQueue):
         return field.swapaxes(0,2)
 
     def preload(self, grids, sets):
+        pass
+
+class DataQueuePacked2D(BaseDataQueue):
+    def _read_set(self, grid, field):
+        return HDF5LightReader.ReadData(grid.filename,
+            "/Grid%08i/%s" % (grid.id, field)).transpose()[:,:,None]
+
+    def modify(self, field):
+        pass
+
+class DataQueuePacked1D(BaseDataQueue):
+    def _read_set(self, grid, field):
+        return HDF5LightReader.ReadData(grid.filename,
+            "/Grid%08i/%s" % (grid.id, field)).transpose()[:,None,None]
+
+    def modify(self, field):
         pass

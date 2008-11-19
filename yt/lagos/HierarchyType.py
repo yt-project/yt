@@ -34,6 +34,8 @@ _data_style_funcs = \
      5: (readDataHDF5, readAllDataHDF5, getFieldsHDF5, readDataSliceHDF5, getExceptionHDF5),
      6: (readDataPacked, readAllDataPacked, getFieldsPacked, readDataSlicePacked, getExceptionHDF5),
      8: (readDataInMemory, readAllDataInMemory, getFieldsInMemory, readDataSliceInMemory, getExceptionInMemory),
+     'enzo_packed_2d': (readDataPacked, readAllDataPacked, getFieldsPacked, readDataSlicePacked2D, getExceptionHDF5),
+     'enzo_packed_1d': (readDataPacked, readAllDataPacked, getFieldsPacked, readDataSlicePacked1D, getExceptionHDF5),
    }
 
 class AMRHierarchy:
@@ -47,7 +49,6 @@ class AMRHierarchy:
         # Although really, I think perhaps we should take a closer look
         # at how "center" is used.
         self.center = None
-        self.bulkVelocity = None
 
         self._initialize_level_stats()
 
@@ -252,10 +253,6 @@ class AMRHierarchy:
         mylog.info("Max Value is %0.5e at %0.16f %0.16f %0.16f in grid %s at level %s %s", \
               maxVal, pos[0], pos[1], pos[2], maxGrid, maxGrid.Level, mc)
         self.center = pos
-        # This probably won't work for anyone else
-        self.bulkVelocity = (maxGrid["x-velocity"][maxCoord], \
-                             maxGrid["y-velocity"][maxCoord], \
-                             maxGrid["z-velocity"][maxCoord])
         self.parameters["Max%sValue" % (field)] = maxVal
         self.parameters["Max%sPos" % (field)] = "%s" % (pos)
         return maxGrid, maxCoord, maxVal, pos
@@ -555,7 +552,7 @@ class EnzoHierarchy(AMRHierarchy):
             if line.startswith("Grid "):
                 self.num_grids = testGridID = int(line.split("=")[-1])
                 break
-        self.__guess_data_style(testGrid, testGridID)
+        self.__guess_data_style(pf["TopGridRank"], testGrid, testGridID)
         # For some reason, r8 seems to want Float64
         if pf.has_key("CompilerPrecision") \
             and pf["CompilerPrecision"] == "r4":
@@ -572,7 +569,7 @@ class EnzoHierarchy(AMRHierarchy):
         self.grid = classobj("EnzoGrid",(EnzoGridBase,), dd)
         AMRHierarchy._setup_classes(self, dd)
 
-    def __guess_data_style(self, testGrid, testGridID):
+    def __guess_data_style(self, rank, testGrid, testGridID):
         if self.data_style: return
         if testGrid[0] != os.path.sep:
             testGrid = os.path.join(self.directory, testGrid)
@@ -588,14 +585,24 @@ class EnzoHierarchy(AMRHierarchy):
             self.queue = DataQueueHDF4()
         except:
             list_of_sets = HDF5LightReader.ReadListOfDatasets(testGrid, "/")
-            if len(list_of_sets) == 0:
+            if len(list_of_sets) == 0 and rank == 3:
                 mylog.debug("Detected packed HDF5")
                 self.data_style = 6
                 self.queue = DataQueuePackedHDF5()
-            else:
+            elif len(list_of_sets) > 0 and rank == 3:
                 mylog.debug("Detected unpacked HDF5")
                 self.data_style = 5
                 self.queue = DataQueueHDF5()
+            elif len(list_of_sets) == 0 and rank == 2:
+                mylog.debug("Detect packed 2D")
+                self.data_style = 'enzo_packed_2d'
+                self.queue = DataQueuePacked2D()
+            elif len(list_of_sets) == 0 and rank == 1:
+                mylog.debug("Detect packed 1D")
+                self.data_style = 'enzo_packed_1d'
+                self.queue = DataQueuePacked1D()
+            else:
+                raise TypeError
 
     def __setup_filemap(self, grid):
         if not self.data_style == 6:
@@ -828,7 +835,7 @@ class EnzoHierarchy(AMRHierarchy):
 
     def _setup_field_lists(self):
         field_list = self.get_data("/", "DataFields")
-        if field_list == None:
+        if field_list is None:
             mylog.info("Gathering a field list (this may take a moment.)")
             field_list = sets.Set()
             random_sample = self._generate_random_grids()
@@ -845,16 +852,16 @@ class EnzoHierarchy(AMRHierarchy):
             self.save_data(list(field_list),"/","DataFields")
         self.field_list = list(field_list)
         for field in self.field_list:
-            if field in fieldInfo: continue
+            if field in self.parameter_file.field_info: continue
             mylog.info("Adding %s to list of fields", field)
             cf = None
             if self.parameter_file.has_key(field):
                 cf = lambda d: d.convert(field)
             add_field(field, lambda a, b: None, convert_function=cf)
         self.derived_field_list = []
-        for field in fieldInfo:
+        for field in self.parameter_file.field_info:
             try:
-                fd = fieldInfo[field].get_dependencies(pf = self.parameter_file)
+                fd = self.parameter_file.field_info[field].get_dependencies(pf = self.parameter_file)
             except:
                 continue
             available = na.all([f in self.field_list for f in fd.requested])
@@ -957,6 +964,27 @@ class EnzoHierarchyInMemory(EnzoHierarchy):
             random_sample = na.mgrid[0:max(len(gg)-1,1)].astype("int32")
         return gg[(random_sample,)]
 
+class EnzoHierarchy1D(EnzoHierarchy):
+    def __init__(self, *args, **kwargs):
+        EnzoHierarchy.__init__(self, *args, **kwargs)
+        self.gridRightEdge[:,1:3] = 1.0
+        self.gridDimensions[:,1:3] = 1.0
+        self.gridDys[:,0] = 1.0
+        self.gridDzs[:,0] = 1.0
+        for g in self.grids:
+            g._prepare_grid()
+            g._setup_dx()
+
+class EnzoHierarchy2D(EnzoHierarchy):
+    def __init__(self, *args, **kwargs):
+        EnzoHierarchy.__init__(self, *args, **kwargs)
+        self.gridRightEdge[:,2] = 1.0
+        self.gridDimensions[:,2] = 1.0
+        self.gridDzs[:,0] = 1.0
+        for g in self.grids:
+            g._prepare_grid()
+            g._setup_dx()
+
 scanf_regex = {}
 scanf_regex['e'] = r"[-+]?\d+\.?\d*?|\.\d+[eE][-+]?\d+?"
 scanf_regex['g'] = scanf_regex['e']
@@ -982,7 +1010,7 @@ def constructRegularExpressions(param, toReadTypes):
 # http://www.reddit.com/r/Python/comments/6hj75/reverse_file_iterator/c03vms4
 # Credit goes to "Brian" on Reddit
 
-def rblocks(f, blocksize=4096*256):
+def rblocks(f, blocksize=4096):
     """Read file as series of blocks from end of file to start.
 
     The data itself is in normal order, only the order of the blocks is reversed.
