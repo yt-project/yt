@@ -1,5 +1,6 @@
 from yt.mods import *
 
+
 pf = EnzoStaticOutput("DD0003/sb_L2x2_0003")
 
 EnzoFieldInfo["VelocityMagnitude"].take_log = True

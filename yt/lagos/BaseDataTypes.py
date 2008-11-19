@@ -455,7 +455,7 @@ class AMRRayBase(AMR1DData):
                           self.center, self.vec)
         return mask
 
-class AMR2DData(AMRData, GridPropertiesMixin):
+class AMR2DData(AMRData, GridPropertiesMixin, ParallelAnalysisInterface):
     _key_fields = ['px','py','pdx','pdy']
     """
     Class to represent a set of :class:`AMRData` that's 2-D in nature, and
@@ -487,16 +487,24 @@ class AMR2DData(AMRData, GridPropertiesMixin):
             fields_to_get = self.fields
         else:
             fields_to_get = ensure_list(fields)
+        temp_data = {}
         for field in fields_to_get:
-            if self.data.has_key(field):
-                continue
-            rvs=[]
+            if self.data.has_key(field): continue
             if field not in self.hierarchy.field_list:
                 if self._generate_field(field):
                     continue # A "True" return means we did it
-            self[field] = na.concatenate(
+            # To ensure that we use data from this object as much as possible,
+            # we're going to have to set the same thing several times
+            temp_data[field] = na.concatenate(
                 [self._get_data_from_grid(grid, field)
-                 for grid in self._grids])
+                 for grid in self._get_grids()])
+            # Now the next field can use this field
+            self[field] = temp_data[field] 
+        # We finalize
+        temp_data = self._mpi_catdict(temp_data)
+        # And set, for the next group
+        for field in temp_data.keys():
+            self[field] = temp_data[field]
 
 
     def _generate_field(self, field):
@@ -623,9 +631,9 @@ class AMRSliceBase(AMR2DData):
 
     def _generate_coords(self):
         points = []
-        for grid in self._grids:
+        for grid in self._get_grids():
             points.append(self._generate_grid_coords(grid))
-        t = na.concatenate(points)
+        t = self._mpi_catarray(na.concatenate(points))
         self['px'] = t[:,0]
         self['py'] = t[:,1]
         self['pz'] = t[:,2]
@@ -780,9 +788,9 @@ class AMRCuttingPlaneBase(AMR2DData):
 
     def _generate_coords(self):
         points = []
-        for grid in self._grids:
+        for grid in self._get_grids():
             points.append(self._generate_grid_coords(grid))
-        t = na.concatenate(points)
+        t = self._mpi_catarray(na.concatenate(points))
         pos = (t[:,0:3] - self.center)
         self['px'] = na.dot(pos, self._x_vec)
         self['py'] = na.dot(pos, self._y_vec)
@@ -822,7 +830,7 @@ class AMRCuttingPlaneBase(AMR2DData):
         L_name = ("%s" % self._norm_vec).replace(" ","_")[1:-1]
         return "%s_c%s_L%s" % (self.fields[0], cen_name, L_name)
 
-class AMRProjBase(AMR2DData, ParallelAnalysisInterface):
+class AMRProjBase(AMR2DData):
     _top_node = "/Projections"
     _key_fields = AMR2DData._key_fields + ['weight_field']
     def __init__(self, axis, field, weight_field = None,

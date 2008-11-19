@@ -25,13 +25,16 @@ License:
 
 from yt.extensions.lightcone import *
 from yt.logger import lagosLogger as mylog
+import copy
+import os
 import numpy as na
 import random as rand
 import tables as h5
 from Common_nVolume import *
 
 class LightCone(object):
-    def __init__(self,EnzoParameterFile,LightConeParameterFile):
+    def __init__(self,EnzoParameterFile,LightConeParameterFile,verbose=True):
+        self.verbose = verbose
         self.EnzoParameterFile = EnzoParameterFile
         self.LightConeParameterFile = LightConeParameterFile
         self.enzoParameters = {}
@@ -40,6 +43,7 @@ class LightCone(object):
         self.timeOutputs = []
         self.allOutputs = []
         self.lightConeSolution = []
+        self.masterSolution = [] # kept to compare with recycled solutions
         self.projectionStack = []
         self.projectionWeightFieldStack = []
 
@@ -53,6 +57,14 @@ class LightCone(object):
         # Read parameters.
         self._ReadLightConeParameterFile()
         self._ReadEnzoParameterFile()
+
+        # Create output directory.
+        if (os.path.exists(self.lightConeParameters['OutputDir'])):
+            if not(os.path.isdir(self.lightConeParameters['OutputDir'])):
+                mylog.error("Output directory exists, but is not a directory: %s." % self.lightConeParameters['OutputDir'])
+                self.lightConeParameters['OutputDir'] = './'
+        else:
+            os.mkdir(self.lightConeParameters['OutputDir'])
 
         # Calculate redshifts for dt data dumps.
         if (self.enzoParameters.has_key('dtDataDump')):
@@ -71,7 +83,7 @@ class LightCone(object):
         self.recycleSolution = False
 
         if seed is not None:
-            self.lightConeParameters['RandomSeed'] = seed
+            self.lightConeParameters['RandomSeed'] = int(seed)
 
         # Make light cone using minimum number of projections.
         if (self.lightConeParameters['UseMinimumNumberOfProjections']):
@@ -94,14 +106,14 @@ class LightCone(object):
                     while (z > output['redshift']):
                         output = output['previous']
                         if (output is None):
-                            mylog.error("CalculateLightConeSolution: search for data output went off the end the stack.")
-                            mylog.error("Could not calculate light cone solution.")
+                            if self.verbose: mylog.error("CalculateLightConeSolution: search for data output went off the end the stack.")
+                            if self.verbose: mylog.error("Could not calculate light cone solution.")
                             return
                         if (output['redshift'] == self.lightConeSolution[-1]['redshift']):
-                            mylog.error("CalculateLightConeSolution: No data dump between z = %f and %f." % \
+                            if self.verbose: mylog.error("CalculateLightConeSolution: No data dump between z = %f and %f." % \
                                 ((self.lightConeSolution[-1]['redshift'] - self.lightConeSolution[-1]['deltaz']),
                                  self.lightConeSolution[-1]['redshift']))
-                            mylog.error("Could not calculate light cone solution.")
+                            if self.verbose: mylog.error("Could not calculate light cone solution.")
                             return
                     self.lightConeSolution.append(output)
                 z = self.lightConeSolution[-1]['redshift'] - self.lightConeSolution[-1]['deltaz']
@@ -123,7 +135,7 @@ class LightCone(object):
                     self.lightConeSolution.append(nextOutput)
                 nextOutput = nextOutput['next']
 
-        mylog.info("CalculateLightConeSolution: Used %d data dumps to get from z = %f to %f." % (len(self.lightConeSolution),
+        if self.verbose: mylog.info("CalculateLightConeSolution: Used %d data dumps to get from z = %f to %f." % (len(self.lightConeSolution),
                                                                                             self.lightConeParameters['InitialRedshift'],
                                                                                             self.lightConeParameters['FinalRedshift']))
 
@@ -145,9 +157,9 @@ class LightCone(object):
                 self.enzoParameters['CosmologyHubbleConstantNow'] / self.enzoParameters['CosmologyComovingBoxSize']
             # Simple error check to make sure more than 100% of box depth is never required.
             if (self.lightConeSolution[q]['DepthBoxFraction'] > 1.0):
-                mylog.error("Warning: box fraction required to go from z = %f to %f is %f" % (self.lightConeSolution[q]['redshift'],z_next,
+                if self.verbose: mylog.error("Warning: box fraction required to go from z = %f to %f is %f" % (self.lightConeSolution[q]['redshift'],z_next,
                                                                 self.lightConeSolution[q]['DepthBoxFraction']))
-                mylog.error("Full box delta z is %f, but it is %f to the next data dump." % (self.lightConeSolution[q]['deltaz'],
+                if self.verbose: mylog.error("Full box delta z is %f, but it is %f to the next data dump." % (self.lightConeSolution[q]['deltaz'],
                                                                                        self.lightConeSolution[q]['redshift']-z_next))
 
             # Calculate fraction of box required for width corresponding to requested image size.
@@ -161,6 +173,9 @@ class LightCone(object):
             self.lightConeSolution[q]['ProjectionAxis'] = rand.randint(0,2)
             self.lightConeSolution[q]['ProjectionCenter'] = [rand.random(),rand.random(),rand.random()]
 
+        # Store this as the mast solution.
+        self.masterSolution = [copy.deepcopy(q) for q in self.lightConeSolution]
+
         # Clear out some stuff.
         del self.allOutputs
         del self.redshiftOutputs
@@ -169,6 +184,12 @@ class LightCone(object):
 
     def ProjectLightCone(self,field,weight_field=None,**kwargs):
         "Create projections for light cone, then add them together."
+
+        # Clear projection stack.
+        self.projectionStack = []
+        self.projectionWeightFieldStack = []
+        if (self.lightConeSolution[-1].has_key('object')):
+            del self.lightConeSolution[-1]['object']
 
         if not(self.lightConeParameters['OutputDir'].endswith("/")):
                  self.lightConeParameters['OutputDir'] += "/"
@@ -179,7 +200,7 @@ class LightCone(object):
         for q,output in enumerate(self.lightConeSolution):
             name = "%s%s_%04d_%04d" % (self.lightConeParameters['OutputDir'],self.lightConeParameters['OutputPrefix'],
                                        q,len(self.lightConeSolution))
-            output['object'] = EnzoStaticOutput(output['filename'])
+            output['object'] = lagos.EnzoStaticOutput(output['filename'])
             frb = LightConeProjection(output,field,pixels,weight_field=weight_field,
                                       save_image=self.lightConeParameters['SaveLightConeSlices'],
                                       name=name,**kwargs)
@@ -234,12 +255,12 @@ class LightCone(object):
         """
 
         if recycle:
-            mylog.info("Recycling solution made with %s with new seed %s." % (self.lightConeParameters['RandomSeed'],
+            if self.verbose: mylog.info("Recycling solution made with %s with new seed %s." % (self.lightConeParameters['RandomSeed'],
                                                                               newSeed))
-            self.recycleRandomSeed = newSeed
+            self.recycleRandomSeed = int(newSeed)
         else:
-            mylog.info("Creating new solution with random seed %s." % newSeed)
-            self.lightConeParameters['RandomSeed'] = newSeed
+            if self.verbose: mylog.info("Creating new solution with random seed %s." % newSeed)
+            self.lightConeParameters['RandomSeed'] = int(newSeed)
             self.recycleRandomSeed = 0
 
         self.recycleSolution = recycle
@@ -249,16 +270,18 @@ class LightCone(object):
         totalVolume = 0.0
 
         # Seed random number generator with new seed.
-        rand.seed(newSeed)
+        rand.seed(int(newSeed))
 
         for q,output in enumerate(self.lightConeSolution):
             # It is necessary to make the same number of calls to the random number generator
             # so the original solution willbe produced if the same seed is given.
 
             # Get random projection axis and center.
-            # If recyclsing, axis will get thrown away since it is used in creating a unique projection object.
+            # If recycling, axis will get thrown away since it is used in creating a unique projection object.
             newAxis = rand.randint(0,2)
-            if not recycle:
+            if recycle:
+                output['ProjectionAxis'] = self.masterSolution[q]['ProjectionAxis']
+            else:
                 output['ProjectionAxis'] = newAxis
 
             newCenter = [rand.random(),rand.random(),rand.random()]
@@ -267,20 +290,22 @@ class LightCone(object):
             newCube = na.zeros(shape=(len(newCenter),2))
             oldCube = na.zeros(shape=(len(newCenter),2))
             for w in range(len(newCenter)):
+                if (w == self.masterSolution[q]['ProjectionAxis']):
+                    oldCube[w] = [self.masterSolution[q]['ProjectionCenter'][w] - 0.5 * self.masterSolution[q]['DepthBoxFraction'],
+                                  self.masterSolution[q]['ProjectionCenter'][w] + 0.5 * self.masterSolution[q]['DepthBoxFraction']]
+                else:
+                    oldCube[w] = [self.masterSolution[q]['ProjectionCenter'][w] - 0.5 * self.masterSolution[q]['WidthBoxFraction'],
+                                  self.masterSolution[q]['ProjectionCenter'][w] + 0.5 * self.masterSolution[q]['WidthBoxFraction']]
+
                 if (w == output['ProjectionAxis']):
-                    oldCube[w] = [output['ProjectionCenter'][w] - 0.5 * output['DepthBoxFraction'],
-                                  output['ProjectionCenter'][w] + 0.5 * output['DepthBoxFraction']]
-                    # If recycling old solution, then keep center for axis in line of sight.
                     if recycle:
                         newCube[w] = oldCube[w]
                     else:
-                        newCube[w] = [newCenter[w] - 0.5 * output['DepthBoxFraction'],
-                                      newCenter[w] + 0.5 * output['DepthBoxFraction']]
+                        newCube[w] = [newCenter[w] - 0.5 * self.masterSolution[q]['DepthBoxFraction'],
+                                      newCenter[w] + 0.5 * self.masterSolution[q]['DepthBoxFraction']]
                 else:
-                    oldCube[w] = [output['ProjectionCenter'][w] - 0.5 * output['WidthBoxFraction'],
-                                  output['ProjectionCenter'][w] + 0.5 * output['WidthBoxFraction']]
-                    newCube[w] = [newCenter[w] - 0.5 * output['WidthBoxFraction'],
-                                  newCenter[w] + 0.5 * output['WidthBoxFraction']]
+                    newCube[w] = [newCenter[w] - 0.5 * self.masterSolution[q]['WidthBoxFraction'],
+                                  newCenter[w] + 0.5 * self.masterSolution[q]['WidthBoxFraction']]
 
             commonVolume += commonNVolume(oldCube,newCube,periodic=na.array([[0,1],[0,1],[0,1]]))
             totalVolume += output['DepthBoxFraction'] * output['WidthBoxFraction']**2
@@ -290,12 +315,20 @@ class LightCone(object):
                 if not(recycle and (w == self.lightConeSolution[q]['ProjectionAxis'])):
                     self.lightConeSolution[q]['ProjectionCenter'][w] = newCenter[w]
 
-        mylog.info("Fraction of total volume in common with old solution is %.2e." % (commonVolume/totalVolume))
+        if recycle:
+            if self.verbose: mylog.info("Fractional common volume between master and recycled solution is %.2e" % (commonVolume/totalVolume))
+        else:
+            if self.verbose: mylog.info("Fraction of total volume in common with old solution is %.2e." % (commonVolume/totalVolume))
+            self.masterSolution = [copy.deepcopy(q) for q in self.lightConeSolution]
+
+    def RestoreMasterSolution(self):
+        "Reset the active light cone solution to the master solution."
+        self.lightConeSolution = [copy.deepcopy(q) for q in self.masterSolution]
 
     def SaveLightConeSolution(self,file="light_cone.dat"):
         "Write out a text file with information on light cone solution."
 
-        mylog.info("Saving light cone solution to %s." % file)
+        if self.verbose: mylog.info("Saving light cone solution to %s." % file)
 
         f = open(file,'w')
         if self.recycleSolution:
@@ -318,14 +351,15 @@ class LightCone(object):
     def SaveLightConeStack(self,filename=None):
         "Save the light cone projection stack as a 3d array in and hdf5 file."
         if (filename is None):
-            filename = "%s%s_data" % (self.lightConeParameters['OutputDir'],self.lightConeParameters['OutputPrefix'])
-        filename += ".h5"
+            filename = "%s/%s_data" % (self.lightConeParameters['OutputDir'],self.lightConeParameters['OutputPrefix'])
+        if not(filename.endswith('.h5')):
+               filename += ".h5"
 
         if (len(self.projectionStack) == 0):
-            mylog.error("SaveLightConeStack: no projection data loaded.")
+            if self.verbose: mylog.error("SaveLightConeStack: no projection data loaded.")
             return
 
-        mylog.info("Writing light cone data to %s." % filename)
+        if self.verbose: mylog.info("Writing light cone data to %s." % filename)
 
         output = h5.openFile(filename, "a")
 
@@ -368,7 +402,7 @@ class LightCone(object):
                 distance2 = co.ComovingRadialDistance(z2,z) * self.enzoParameters['CosmologyHubbleConstantNow']
                 iteration += 1
                 if (iteration > max_Iterations):
-                    mylog.error("CalculateDeltaZMax: Warning - max iterations exceeded for z = %f (delta z = %f)." % (z,na.fabs(z2-z)))
+                    if self.verbose: mylog.error("CalculateDeltaZMax: Warning - max iterations exceeded for z = %f (delta z = %f)." % (z,na.fabs(z2-z)))
                     break
             output['deltaz'] = na.fabs(z2-z)
 
@@ -427,7 +461,7 @@ class LightCone(object):
                 param = param.strip()
                 vals = vals.strip()
             except ValueError:
-                mylog.error("Skipping line: %s" % line)
+                if self.verbose: mylog.error("Skipping line: %s" % line)
                 continue
             if EnzoParameterDict.has_key(param):
                 t = map(EnzoParameterDict[param], vals.split())
@@ -462,7 +496,7 @@ class LightCone(object):
                 param = param.strip()
                 vals = vals.strip()
             except ValueError:
-                mylog.error("Skipping line: %s" % line)
+                if self.verbose: mylog.error("Skipping line: %s" % line)
                 continue
             if LightConeParameterDict.has_key(param):
                 t = map(LightConeParameterDict[param], vals.split())
