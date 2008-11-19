@@ -46,7 +46,7 @@ from yt.lagos import EnzoStaticOutput, \
 # This is a temporary solution -- in the future, we will allow the user to
 # select this via ytcfg.
 
-fieldInfo = lagos.fieldInfo = EnzoFieldInfo
+fieldInfo = EnzoFieldInfo
 
 # Now individual component imports from raven
 from yt.raven import PlotCollection, PlotCollectionInteractive, \

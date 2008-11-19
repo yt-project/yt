@@ -85,6 +85,8 @@ from FieldInfoContainer import *
 from UniversalFields import *
 from EnzoFields import *
 
+fieldInfo = EnzoFieldInfo
+
 from DerivedQuantities import DerivedQuantityCollection, GridChildMaskWrapper
 from DataReadingFuncs import *
 from ClusterFiles import *

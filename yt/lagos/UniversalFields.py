@@ -175,6 +175,11 @@ add_field("ParticleMassMsun",
           function=_ParticleMass, validators=[ValidateSpatial(0)],
           particle_type=True, convert_function=_convertParticleMassMsun)
 
+def _RadialMachNumber(field, data):
+    """M{|v|/t_sound}"""
+    return data["RadialVelocity"] / data["SoundSpeed"]
+add_field("RadialMachNumber", function=_RadialMachNumber)
+
 def _MachNumber(field, data):
     """M{|v|/t_sound}"""
     return data["VelocityMagnitude"] / data["SoundSpeed"]
@@ -229,9 +234,10 @@ def _Pressure(field, data):
 add_field("Pressure", function=_Pressure, units=r"\rm{dyne}/\rm{cm}^{2}")
 
 def _Entropy(field, data):
-    return data["Density"]**(-2./3.) * \
-           data["Temperature"]
-add_field("Entropy", function=_Entropy, units="WhoKnows")
+    return (kboltz/mh) * data["Temperature"] / \
+           (data["MeanMolecularWeight"] * data["Density"]**(2./3.))
+add_field("Entropy", units=r"\rm{ergs}\/\rm{cm}^{2}",
+          function=_Entropy)
 
 def _Height(field, data):
     # We take the dot product of the radius vector with the height-vector
@@ -592,6 +598,8 @@ def _RadialVelocity(field, data):
                 + (data['y']-center[1])*(data["y-velocity"]-bulk_velocity[1])
                 + (data['z']-center[2])*(data["z-velocity"]-bulk_velocity[2])
                 )/data["RadiusCode"]
+    if na.any(na.isnan(new_field)): # to fix center = point
+        new_field[na.isnan(new_field)] = 0.0
     return new_field
 def _RadialVelocityABS(field, data):
     return na.abs(_RadialVelocity(field, data))
@@ -599,16 +607,13 @@ def _ConvertRadialVelocityKMS(data):
     return 1e-5
 add_field("RadialVelocity", function=_RadialVelocity,
           units=r"\rm{cm}/\rm{s}",
-          validators=[ValidateParameter("center"),
-                      ValidateParameter("bulk_velocity")])
+          validators=[ValidateParameter("center")])
 add_field("RadialVelocityABS", function=_RadialVelocityABS,
           units=r"\rm{cm}/\rm{s}",
-          validators=[ValidateParameter("center"),
-                      ValidateParameter("bulk_velocity")])
+          validators=[ValidateParameter("center")])
 add_field("RadialVelocityKMS", function=_RadialVelocity,
           convert_function=_ConvertRadialVelocityKMS, units=r"\rm{km}/\rm{s}",
-          validators=[ValidateParameter("center"),
-                      ValidateParameter("bulk_velocity")])
+          validators=[ValidateParameter("center")])
 
 def _CuttingPlaneVelocityX(field, data):
     x_vec, y_vec, z_vec = [data.get_field_parameter("cp_%s_vec" % (ax))
