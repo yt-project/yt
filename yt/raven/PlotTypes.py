@@ -242,17 +242,12 @@ class VMPlot(RavenPlot):
         # 'px' == pixel x, or x in the plane of the slice
         # 'x' == actual x
         aa = int(self._antialias)
-        print self.data['px'].shape, \
-              self.data['py'].shape, \
-              self.data['pdx'].shape, \
-              self.data['pdy'].shape, \
-              self[self.axis_names["Z"]].shape
         buff = _MPL.Pixelize(self.data['px'],
                             self.data['py'],
                             self.data['pdx'],
                             self.data['pdy'],
                             self[self.axis_names["Z"]],
-                            int(width), int(width),
+                            int(height), int(width),
                             (x0, x1, y0, y1),aa,self._period).transpose()
         return buff
 
@@ -272,9 +267,10 @@ class VMPlot(RavenPlot):
             newmax = na.nanmax(buff)
         if self.do_autoscale:
             self.norm.autoscale(na.array((newmin,newmax)))
+        aspect = (self.ylim[1]-self.ylim[0])/(self.xlim[1]-self.xlim[0])
         self.image = \
             self._axes.imshow(buff, interpolation='nearest', norm = self.norm,
-                            aspect=1.0, picker=True, origin='lower')
+                            aspect=aspect, picker=True, origin='lower')
         self._reset_image_parameters()
         self._run_callbacks()
 

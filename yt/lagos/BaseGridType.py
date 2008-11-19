@@ -101,6 +101,7 @@ class AMRGridPatch(AMRData):
         self.data['dx'] = self.dx
         self.data['dy'] = self.dy
         self.data['dz'] = self.dz
+        self.data['dds'] = na.array([self.dx, self.dy, self.dz])
         self._corners = self.hierarchy.gridCorners[:,:,id]
 
     def _generate_overlap_masks(self, axis, LE, RE):

@@ -630,16 +630,13 @@ class AMRSliceBase(AMR2DData):
         self['py'] = t[:,1]
         self['pz'] = t[:,2]
         self['pdx'] = t[:,3]
-        self['pdy'] = t[:,3]
-        self['pdz'] = t[:,3]
+        self['pdy'] = t[:,4]
+        self['pdz'] = t[:,3] # Does not matter!
 
         # Now we set the *actual* coordinates
         self[axis_names[x_dict[self.axis]]] = t[:,0]
         self[axis_names[y_dict[self.axis]]] = t[:,1]
         self[axis_names[self.axis]] = t[:,2]
-        self['dx'] = t[:,3]
-        self['dy'] = t[:,3]
-        self['dz'] = t[:,3]
 
         self.ActiveDimensions = (t.shape[0], 1, 1)
 
@@ -649,7 +646,8 @@ class AMRSliceBase(AMR2DData):
     def _generate_grid_coords(self, grid):
         xaxis = x_dict[self.axis]
         yaxis = y_dict[self.axis]
-        wantedIndex = int(((self.coord-grid.LeftEdge[self.axis])/grid.dz))
+        ds, dx, dy = grid['dds'][self.axis], grid['dds'][xaxis], grid['dds'][yaxis]
+        wantedIndex = int(((self.coord-grid.LeftEdge[self.axis])/ds))
         sl = [slice(None), slice(None), slice(None)]
         sl[self.axis] = slice(wantedIndex, wantedIndex + 1)
         #sl.reverse()
@@ -660,20 +658,22 @@ class AMRSliceBase(AMR2DData):
         cmI = na.indices((nx,ny))
         xind = cmI[0,:].ravel()
         xpoints = na.ones(cm[0].shape, 'float64')
-        xpoints *= xind[cm]*grid.dx+(grid.LeftEdge[xaxis] + 0.5*grid.dx)
+        xpoints *= xind[cm]*dx+(grid.LeftEdge[xaxis] + 0.5*dx)
         yind = cmI[1,:].ravel()
         ypoints = na.ones(cm[0].shape, 'float64')
-        ypoints *= yind[cm]*grid.dx+(grid.LeftEdge[yaxis] + 0.5*grid.dx)
+        ypoints *= yind[cm]*dy+(grid.LeftEdge[yaxis] + 0.5*dy)
         zpoints = na.ones(xpoints.shape, 'float64') * self.coord
-        dx = na.ones(xpoints.shape, 'float64') * grid.dx/2.0
-        t = na.array([xpoints, ypoints, zpoints, dx]).swapaxes(0,1)
+        dx = na.ones(xpoints.shape, 'float64') * dx/2.0
+        dy = na.ones(xpoints.shape, 'float64') * dy/2.0
+        t = na.array([xpoints, ypoints, zpoints, dx, dy]).swapaxes(0,1)
         return t
 
     @restore_grid_state
     def _get_data_from_grid(self, grid, field):
         # So what's our index of slicing?  This is what we need to figure out
         # first, so we can deal with our data in the fastest way.
-        wantedIndex = int(((self.coord-grid.LeftEdge[self.axis])/grid.dz))
+        dx = grid['dds'][self.axis]
+        wantedIndex = int(((self.coord-grid.LeftEdge[self.axis])/dx))
         sl = [slice(None), slice(None), slice(None)]
         sl[self.axis] = slice(wantedIndex, wantedIndex + 1)
         sl = tuple(sl)
@@ -774,9 +774,7 @@ class AMRCuttingPlaneBase(AMR2DData):
         D += (x * self._norm_vec[0]).reshape(ss[0],1,1)
         D += (y * self._norm_vec[1]).reshape(1,ss[1],1)
         D += (z * self._norm_vec[2]).reshape(1,1,ss[2])
-        diag_dist = na.sqrt(grid.dx**2.0
-                          + grid.dy**2.0
-                          + grid.dz**2.0)
+        diag_dist = na.sqrt(na.sum(grid['dds']**2.0))
         cm = (na.abs(D) <= 0.5*diag_dist) # Boolean
         return cm
 
@@ -957,22 +955,6 @@ class AMRProjBase(AMR2DData, ParallelAnalysisInterface):
                    level, coord_data.shape[1])
         dx = grids_to_project[0].dx# * na.ones(coord_data.shape[0], dtype='float64')
         return coord_data, dx, field_data
-
-    def __cleanup_level(self, level):
-        pass
-        grids_to_project = self.source.select_grids(level)
-        coord_data = []
-        field_data = []
-        for grid in grids_to_project:
-            if self.__retval_coords[grid.id][0].size == 0: continue
-            if self._weight is not None:
-                weightedData = grid.coarseData[2] / grid.coarseData[4]
-            else:
-                weightedData = grid.coarseData[2]
-            all_data.append([grid.coarseData[0], grid.coarseData[1],
-                weightedData,
-                na.ones(grid.coarseData[0].shape,dtype='float64')*grid.dx])
-        return na.concatenate(all_data, axis=1)
 
     def __combine_grids_on_level(self, level):
         grids = self.source.select_grids(level)
