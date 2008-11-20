@@ -30,12 +30,18 @@ import cPickle
 #import yt.enki
 
 _data_style_funcs = \
-   { 4: (readDataHDF4, readAllDataHDF4, getFieldsHDF4, readDataSliceHDF4, getExceptionHDF4),
-     5: (readDataHDF5, readAllDataHDF5, getFieldsHDF5, readDataSliceHDF5, getExceptionHDF5),
-     6: (readDataPacked, readAllDataPacked, getFieldsPacked, readDataSlicePacked, getExceptionHDF5),
-     8: (readDataInMemory, readAllDataInMemory, getFieldsInMemory, readDataSliceInMemory, getExceptionInMemory),
-     'enzo_packed_2d': (readDataPacked, readAllDataPacked, getFieldsPacked, readDataSlicePacked2D, getExceptionHDF5),
-     'enzo_packed_1d': (readDataPacked, readAllDataPacked, getFieldsPacked, readDataSlicePacked1D, getExceptionHDF5),
+   { 4: (readDataHDF4,readAllDataHDF4, getFieldsHDF4, readDataSliceHDF4,
+         getExceptionHDF4, DataQueueHDF4),
+     5: (readDataHDF5, readAllDataHDF5, getFieldsHDF5, readDataSliceHDF5,
+         getExceptionHDF5, DataQueueHDF5),
+     6: (readDataPacked, readAllDataPacked, getFieldsPacked, readDataSlicePacked,
+         getExceptionHDF5, DataQueuePackedHDF5),
+     8: (readDataInMemory, readAllDataInMemory, getFieldsInMemory, readDataSliceInMemory,
+         getExceptionInMemory, DataQueueInMemory),
+     'enzo_packed_2d': (readDataPacked, readAllDataPacked, getFieldsPacked, readDataSlicePacked2D,
+         getExceptionHDF5, DataQueuePacked2D),
+     'enzo_packed_1d': (readDataPacked, readAllDataPacked, getFieldsPacked, readDataSlicePacked1D,
+         getExceptionHDF5, DataQueuePacked1D),
    }
 
 class AMRHierarchy:
@@ -553,6 +559,7 @@ class EnzoHierarchy(AMRHierarchy):
                 self.num_grids = testGridID = int(line.split("=")[-1])
                 break
         self.__guess_data_style(pf["TopGridRank"], testGrid, testGridID)
+        self._setup_data_queue()
         # For some reason, r8 seems to want Float64
         if pf.has_key("CompilerPrecision") \
             and pf["CompilerPrecision"] == "r4":
@@ -582,27 +589,25 @@ class EnzoHierarchy(AMRHierarchy):
             a = SD.SD(testGrid)
             self.data_style = 4
             mylog.debug("Detected HDF4")
-            self.queue = DataQueueHDF4()
         except:
             list_of_sets = HDF5LightReader.ReadListOfDatasets(testGrid, "/")
             if len(list_of_sets) == 0 and rank == 3:
                 mylog.debug("Detected packed HDF5")
                 self.data_style = 6
-                self.queue = DataQueuePackedHDF5()
             elif len(list_of_sets) > 0 and rank == 3:
                 mylog.debug("Detected unpacked HDF5")
                 self.data_style = 5
-                self.queue = DataQueueHDF5()
             elif len(list_of_sets) == 0 and rank == 2:
                 mylog.debug("Detect packed 2D")
                 self.data_style = 'enzo_packed_2d'
-                self.queue = DataQueuePacked2D()
             elif len(list_of_sets) == 0 and rank == 1:
                 mylog.debug("Detect packed 1D")
                 self.data_style = 'enzo_packed_1d'
-                self.queue = DataQueuePacked1D()
             else:
                 raise TypeError
+
+    def _setup_data_queue(self):
+        self.queue = _data_style_funcs[self.data_style][5]()
 
     def __setup_filemap(self, grid):
         if not self.data_style == 6:
@@ -886,7 +891,7 @@ class EnzoHierarchyInMemory(EnzoHierarchy):
         self.data_style = data_style # Mandated
         self.directory = os.getcwd()
         self.num_grids = enzo.hierarchy_information["GridDimensions"].shape[0]
-        self.queue = DataQueueInMemory()
+        self._setup_data_queue()
         AMRHierarchy.__init__(self, pf)
 
     def _initialize_data_file(self):
