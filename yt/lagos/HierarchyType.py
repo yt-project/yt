@@ -551,6 +551,7 @@ class EnzoHierarchy(AMRHierarchy):
         # Now we search backwards from the end of the file to find out how many
         # grids we have, which allows us to preallocate memory
         self.__hierarchy_string = open(self.hierarchy_filename).read()
+        testGrid = testGridID = None
         for line in rlines(open(self.hierarchy_filename, "rb")):
             if line.startswith("BaryonFileName") or \
                line.startswith("FileName "):
