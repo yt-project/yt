@@ -37,7 +37,7 @@ subscription_pairs = [("width","ChangeWidthFromMessage"),
 def QueryFields(outputfile, only_display_fields = False):
     fields = []
     for f in outputfile.hierarchy.derived_field_list:
-        if f in outputfile.field_info and 
+        if f in outputfile.field_info and \
             outputfile.field_info[f].particle_type: continue
         if only_display_fields and \
             f in outputfile.field_info[f] and \
