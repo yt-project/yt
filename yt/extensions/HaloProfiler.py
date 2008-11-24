@@ -24,6 +24,7 @@ License:
 """
 
 import yt.lagos as lagos
+import yt.lagos.hop as hop
 from yt.logger import lagosLogger as mylog
 import yt.raven as raven
 import numpy as na
@@ -305,7 +306,7 @@ class HaloProfiler(object):
                                     self.pf.parameters['DomainLeftEdge'],
                                     self.pf.parameters['DomainRightEdge'])
 
-        hop_results = lagos.hop.HopList(full_box, 80.0)
+        hop_results = hop.HopList(full_box, 80.0)
         hop_results.write_out(hopFile)
 
         del full_box
