@@ -377,6 +377,8 @@ class FixedResolutionPlot(VMPlot):
         pass
 
     def _refresh_display_width(self, width=None):
+        self.set_xlim(self.data.bounds[0], self.data.bounds[1])
+        self.set_ylim(self.data.bounds[2], self.data.bounds[3])
         self._redraw_image()
 
     def setup_domain_edges(self, *args, **kwargs):
