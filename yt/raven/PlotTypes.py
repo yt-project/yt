@@ -373,8 +373,8 @@ class FixedResolutionPlot(VMPlot):
         if self.colorbar != None: self.colorbar.set_label(str(data_label))
 
     def set_width(self, width, unit):
-        mylog.debug("Not changing FixedResolution width")
-        pass
+        #mylog.debug("Not changing FixedResolution width")
+        self._refresh_display_width()
 
     def _refresh_display_width(self, width=None):
         self.set_xlim(self.data.bounds[0], self.data.bounds[1])
