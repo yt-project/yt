@@ -96,6 +96,12 @@ _arg_fixer = {
 # * Need to add cmap to the descriptor
 #
 
+class FakePlotCollection(object):
+    def __init__(self, fig):
+        self.fig = fig
+    def save(self, filename):
+        self.fig.savefig(filename)
+
 def fix_plot_args(plot_func):
     @wraps(plot_func)
     def call_func(self, pf, **kwargs):
@@ -149,11 +155,45 @@ class _RecipeBook(object):
         return pc
 
     @fix_plot_args
-    def slice(self, pf, field="Density", center=None, width=None, coord=None, filename=None):
+    def slice(self, pf, field="Density", center=None, width=None, filename=None):
         pc = which_pc(pf, center=center)
-        for axis in range(3): pc.add_slice(field, axis, coord=coord)
+        for axis in range(3): pc.add_slice(field, axis, coord=center[axis])
         pc.set_width(width, '1')
         return pc
+
+    def _multiplot(self, pc, func, pf, field="Density", center=None, width=None, filename=None):
+        import pylab
+        pylab.subplots_adjust(wspace=0.0, hspace=0.0,
+                              top=1.0, bottom=0.0,
+                              left=0.0, right=1.0)
+        pylab.gcf().set_size_inches((12,12))
+        pylab.clf()
+        mi, ma = 1e30, -1e30
+        for axis in range(3):
+            axes = pylab.subplot(2,2,axis+1)
+            func(field, axis, coord=center[axis], axes=axes)
+        pc.set_width(width, '1')
+        for axis in range(3):
+            mi = min(mi, pc.plots[axis].image._A.min())
+            ma = max(ma, pc.plots[axis].image._A.max())
+        pc.set_zlim(mi,ma)
+        cba = pylab.axes([0.55, 0.05, 0.02, 0.40])
+        cb = pylab.colorbar(cax=cba, mappable=pc.plots[-1].image)
+        pc.plots[-1].colorbar = cb
+        pc.plots[-1].autoset_label()
+        return FakePlotCollection(pylab.gcf())
+
+    @fix_plot_args
+    def multiplot_slice(self, pf, field="Density", center=None, width=None, filename=None):
+        pc = which_pc(pf, center=center)
+        func = pc.add_slice
+        return self._multiplot(pc, func, pf, field, center, width, filename)
+
+    @fix_plot_args
+    def multiplot_proj(self, pf, field="Density", center=None, width=None, filename=None):
+        pc = which_pc(pf, center=center)
+        func = pc.add_projection
+        return self._multiplot(pc, func, pf, field, center, width, filename)
 
     def dispatch(self):
         pass

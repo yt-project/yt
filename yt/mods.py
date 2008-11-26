@@ -65,6 +65,8 @@ except ImportError:
 # Individual imports from Fido
 from yt.fido import GrabCollections, OutputCollection
 
+import yt.funcs
+
 # Some convenience functions to ease our time running scripts
 # from the command line
 
