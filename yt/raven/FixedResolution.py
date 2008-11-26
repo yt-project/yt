@@ -39,6 +39,7 @@ class FixedResolutionBuffer(object):
         self.data_source = data_source
         self.pf = data_source.pf
         self.bounds = bounds
+        self.xlim, self.ylim = bounds[:2], bounds[2:]
         self.buff_size = buff_size
         self.antialias = antialias
         self.data = {}
