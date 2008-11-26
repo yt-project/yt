@@ -33,9 +33,12 @@ import lightcone as LC
 import SpectralIntegrator as SI
 import RayTracer as RT
 
+import HierarchySubset
+
 # Now individual component imports
 from HaloProfiler import HaloProfiler
 from lightcone import LightCone
 from SpectralIntegrator import create_table_from_textfiles, \
                                SpectralFrequencyIntegrator
 from RayTracer import SlowRayTracer
+from HierarchySubset import ExtractedHierarchy
