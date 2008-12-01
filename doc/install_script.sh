@@ -53,7 +53,7 @@ cd ${DEST_DIR}/src
 # Individual processes
 if [ -z "$HDF5_DIR" ]
 then
-    [ ! -e hdf5-1.6.7.tar.gz ] && wget ftp://ftp.hdfgroup.org/HDF5/current16/src/hdf5-1.6.7.tar.gz
+    [ ! -e hdf5-1.6.8.tar.gz ] && wget ftp://ftp.hdfgroup.org/HDF5/current16/src/hdf5-1.6.8.tar.gz
 fi
 
 [ $INST_ZLIB -eq 1 ] && [ ! -e zlib-1.2.3.tar.bz2 ] && wget http://www.zlib.net/zlib-1.2.3.tar.bz2
@@ -98,11 +98,11 @@ fi
 
 if [ -z "$HDF5_DIR" ]
 then
-    if [ ! -e hdf5-1.6.7/done ]
+    if [ ! -e hdf5-1.6.8/done ]
     then
-        [ ! -e hdf5-1.6.7 ] && tar xvfz hdf5-1.6.7.tar.gz
+        [ ! -e hdf5-1.6.8 ] && tar xvfz hdf5-1.6.8.tar.gz
         echo "Doing HDF5"
-        cd hdf5-1.6.7
+        cd hdf5-1.6.8
         ./configure --prefix=${DEST_DIR}/ || exit 1
         make install || exit 1
         touch done
