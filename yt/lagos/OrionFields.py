@@ -40,6 +40,18 @@ add_field("eden", function=lambda a,b: None, take_log=True,
           validators = [ValidateDataField("eden")],
           units=r"\rm{erg}/\rm{cm}^3")
 
+add_field("xmom", function=lambda a,b: None, take_log=False,
+          validators = [ValidateDataField("xmom")],
+          units=r"\rm{g}/\rm{cm^2\ s}")
+
+add_field("ymom", function=lambda a,b: None, take_log=False,
+          validators = [ValidateDataField("ymom")],
+          units=r"\rm{gm}/\rm{cm^2\ s}")
+
+add_field("zmom", function=lambda a,b: None, take_log=False,
+          validators = [ValidateDataField("zmom")],
+          units=r"\rm{g}/\rm{cm^2\ s}")
+
 translation_dict = {"x-velocity": "xvel",
                     "y-velocity": "yvel",
                     "z-velocity": "zvel",
@@ -56,7 +68,7 @@ def _generate_translation(mine, theirs):
 
 for f,v in translation_dict.items():
     if v not in OrionFieldInfo:
-        add_field(v, function=lambda a,b: None, take_log=True,
+        add_field(v, function=lambda a,b: None, take_log=False,
                   validators = [ValidateDataField(v)])
     #print "Setting up translator from %s to %s" % (v, f)
     _generate_translation(v, f)
