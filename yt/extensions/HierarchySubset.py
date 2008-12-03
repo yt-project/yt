@@ -127,11 +127,7 @@ class ExtractedHierarchy(object):
 
 def __get_pf(bn, n):
     bn_try = "%s%04i" % (bn, n)
-    try:
-        pf = commands._fix_pf(bn_try)
-    except IOError:
-        pf = commands._fix_pf("%s.dir/%s" % (bn_try, bn_try))
-    return pf
+    return commands._fix_pf(bn_try)
 
 
 def export_amira():

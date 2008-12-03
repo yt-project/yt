@@ -111,6 +111,10 @@ _common_options = dict(
                    dest="age_filter", default=None,
                    nargs=2,
                    help="Bounds for the field to select"),
+    uboxes  = dict(short="", long="--unit-boxes",
+                   action="store_true",
+                   dest="unit_boxes",
+                   help="Display helpful unit boxes"),
     )
 
 def _add_options(parser, *options):
@@ -128,7 +132,7 @@ def _get_parser(*options):
 
 def zoomin():
     parser = _get_parser("maxw", "minw", "proj", "axis", "field", "weight",
-                             "zlim", "nframes", "output", "cmap")
+                             "zlim", "nframes", "output", "cmap", "uboxes")
     opts, args = parser.parse_args()
 
     for arg in args:
@@ -143,8 +147,9 @@ def zoomin():
             if opts.projection: pc.add_projection(opts.field, ax,
                                     weight_field=opts.weight)
             else: pc.add_slice(opts.field, ax)
+            if opts.unit_boxes: pc.plots[-1].add_callback(
+                    UnitBoundaryCallback(factor=8))
         pc.set_width(opts.max_width,'1')
-        pc.set_cmap(opts.cmap)
         # Check the output directory
         if not os.path.isdir(opts.output):
             os.mkdir(opts.output)
@@ -161,6 +166,7 @@ def zoomin():
             mylog.info("Saving frame %06i",i)
             pc.set_width(w,"1")
             if opts.zlim: pc.set_zlim(*opts.zlim)
+            pc.set_cmap(opts.cmap)
             pc.save(os.path.join(opts.output,"%s_frame%06i" % (pf,i)))
             w *= factor
 
@@ -181,14 +187,14 @@ def timeseries():
         # Now we figure out where this file is
         bn_try = "%s%04i" % (opts.basename, n)
         try:
-            pf = _get_pf(bn_try)
+            pf = _fix_pf(bn_try)
         except IOError:
-            pf = _get_pf("%s.dir/%s" % (bn_try, bn_try))
+            pf = _fix_pf("%s.dir/%s" % (bn_try, bn_try))
         pc=raven.PlotCollection(pf)
         center = opts.center
         if center is None or opts.center == (-1,-1,-1):
             mylog.info("No center fed in; seeking.")
-            v, center = a.h.find_max("Density")
+            v, center = pf.h.find_max("Density")
         center = na.array(center)
         if opts.axis == 4:
             axes = range(3)
