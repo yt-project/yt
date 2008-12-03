@@ -111,7 +111,7 @@ class ExtractedHierarchy(object):
                                          - self.int_offset*2**(grid.Level-self.min_level)).astype('int64')
         grid_node._v_attrs.origin = (grid.LeftEdge - self.left_edge_offset)*self.mult_factor
         grid_node._v_attrs.ghostzoneFlags = na.zeros(6, dtype='int32')
-        grid_node._v_attrs.numGhostzones = na.zeros(3, dtype'int32')
+        grid_node._v_attrs.numGhostzones = na.zeros(3, dtype='int32')
         grid_node._v_attrs.dims = grid.ActiveDimensions[::-1].astype('int32')
         if grid.hierarchy.data_style == 6 and field in grid.hierarchy.field_list:
             tfn = os.path.abspath(afile.filename)
