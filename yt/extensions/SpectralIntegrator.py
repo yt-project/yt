@@ -51,7 +51,7 @@ class SpectralFrequencyIntegrator(object):
             (self.ev_vals[e_is:e_ie+1]-self.ev_vals[e_is-1:e_is]),
                              axis=-1)
         bin_table = na.log10(bin_table.clip(1e-80,bin_table.max()))
-        return BilinearFieldInterpolator(
+        return lagos.BilinearFieldInterpolator(
             bin_table, self.bounds, self.field_names[:],
             truncate=True)
 
