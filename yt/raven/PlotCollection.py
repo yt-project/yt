@@ -265,12 +265,13 @@ class PlotCollection:
     def _add_projection(self, ptype, field, axis, weight_field=None,
                       center=None, use_colorbar=True,
                       figure = None, axes = None, fig_size=None,
-                      periodic = False, **kwargs):
+                      periodic = False, data_source = None, **kwargs):
         if center == None:
             center = self.c
-        proj = self.pf.hierarchy.proj(axis, field, weight_field, center=center,
-                                      **kwargs)
-        p = self._add_plot(ptype(proj, field,
+        if data_source is None:
+            data_source = self.pf.hierarchy.proj(axis, field, weight_field,
+                                center=center, **kwargs)
+        p = self._add_plot(ptype(data_source, field,
                          use_colorbar=use_colorbar, axes=axes, figure=figure,
                          size=fig_size, periodic=periodic))
         p["Axis"] = lagos.axis_names[axis]
@@ -435,6 +436,7 @@ def wrap_pylab_newplot(func):
         retval._redraw_image()
         retval._fig_num = new_fig.number
         self.pylab.show()
+        self.pylab.draw()
         return retval
     return pylabify
 
@@ -442,7 +444,11 @@ def wrap_pylab_show(func):
     @wraps(func)
     def pylabify(self, *args, **kwargs):
         retval = func(self, *args, **kwargs)
-        self.pylab.show()
+        fig_num = self.pylab.gcf().number
+        for p in self.plots:
+            self.pylab.figure(p._fig_num)
+            self.pylab.draw()
+        self.pylab.figure(fig_num)
         return retval
     return pylabify
 
