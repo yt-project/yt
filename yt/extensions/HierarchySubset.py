@@ -143,6 +143,9 @@ def export_amira():
     parser.add_option("", "--maxlevel", action="store", type="int",
                       dest="max_level", default=-1,
                       help="The maximum level to extract (chooses first grid at that level)")
+    parser.add_option("-d","--subtract-time", action="store_true",
+                      dest="subtract_time", help="Subtract the physical time of " + \
+                        "the first timestep (useful for small delta t)")
     parser.add_option("-r","--recenter", action="store_true",
                       dest="recenter", help="Recenter on maximum density in final output")
     parser.usage = "%prog [options] FIRST_ID LAST_ID"
@@ -190,7 +193,7 @@ def export_amira():
     mda.numTimeSteps = len(timesteps)
 
     # I think we just want one value here
-    rel_times = na.array(times, dtype='float64') - times[0]
+    rel_times = na.array(times, dtype='float64') - int(opts.subtract_time)*times[0]
     afile.createArray(md, "sorted_times", na.array(rel_times))
     afile.createArray(md, "sorted_timesteps", timesteps)
 

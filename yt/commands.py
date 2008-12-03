@@ -74,6 +74,10 @@ _common_options = dict(
                    action="store", type="string",
                    dest="output", default="frames/",
                    help="Folder in which to place output images"),
+    outputfn= dict(short="-o", long="--output",
+                   action="store", type="string",
+                   dest="output", default=None,
+                   help="File in which to place output"),
     skip    = dict(short="-s", long="--skip",
                    action="store", type="int",
                    dest="skip", default=1,
@@ -115,6 +119,14 @@ _common_options = dict(
                    action="store_true",
                    dest="unit_boxes",
                    help="Display helpful unit boxes"),
+    thresh  = dict(short="", long="--threshold",
+                   action="store", type="float",
+                   dest="threshold", default=None,
+                   help="Density threshold"),
+    dm_only = dict(short="", long="--all-particles",
+                   action="store_false", 
+                   dest="dm_only", default=True,
+                   help="Use all particles"),
     )
 
 def _add_options(parser, *options):
@@ -209,3 +221,17 @@ def timeseries():
         pc.set_cmap(opts.cmap)
         if opts.zlim: pc.set_zlim(*opts.zlim)
         pc.save(os.path.join(opts.output,"%s" % (pf)))
+
+def hop_single():
+    parser = _get_parser("outputfn", "thresh", 'dm_only')
+    opts, args = parser.parse_args()
+
+    pf = _fix_pf(args[-1])
+    sp = pf.h.sphere((pf["DomainLeftEdge"] + pf["DomainRightEdge"])/2.0,
+                     pf['unitary'])
+    kwargs = {'dm_only' : opts.dm_only}
+    if opts.threshold is not None: kwargs['threshold'] = opts.threshold
+    hop_list = hop.HopList(sp, **kwargs)
+    if opts.output is None: fn = "%s.hop" % pf
+    else: fn = opts.output
+    hop_list.write_out(fn)
