@@ -74,8 +74,8 @@ class ExtractedHierarchy(object):
     def export_output(self, afile, n, field):
         # I prefer dict access, but tables doesn't.
         time_node = afile.createGroup("/", "time-%s" % n)
-        time_node._v_attrs.time = pf["InitialTime"]
-        time_node._v_attrs.numLevels = pf.h.max_level+1-self.min_level
+        time_node._v_attrs.time = self.pf["InitialTime"]
+        time_node._v_attrs.numLevels = self.pf.h.max_level+1-self.min_level
         # Can take a while, so let's get a progressbar
         if len(self.pf.h.select_grids(self.min_level)) > 0:
             grids = [ConstructedRootGrid(self.pf, self.min_level)]
@@ -125,6 +125,15 @@ class ExtractedHierarchy(object):
             # Export our array
             afile.createArray(grid_node, "grid-data", grid[field])
 
+def __get_pf(bn, n):
+    bn_try = "%s%04i" % (bn, n)
+    try:
+        pf = commands._fix_pf(bn_try)
+    except IOError:
+        pf = commands._fix_pf("%s.dir/%s" % (bn_try, bn_try))
+    return pf
+
+
 def export_amira():
     parser = commands._get_parser("bn", "field", "skip")
 
@@ -165,13 +174,13 @@ def export_amira():
 
     offset = None
     if opts.recenter:
-        tpf = commands._fix_pf(timesteps[-1])
+        tpf = __get_pf(opts.basename, timesteps[-1])
         offset = tpf.h.find_max("Density")[1]
         del tpf
 
     for n in timesteps:
         # Try super hard to get the right parameter file
-        pf = commands._fix_pf(n)
+        pf = __get_pf(opts.basename, n)
         hh = pf.h
         times.append(pf["InitialTime"] * pf["years"])
         eh = ExtractedHierarchy(pf, opts.min_level, max_level = opts.max_level, offset=offset)
