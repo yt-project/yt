@@ -458,3 +458,46 @@ class EnzoGridBase(AMRGridPatch):
             self.filename = os.path.join(self.hierarchy.directory, filename)
         return
 
+class OrionGridBase(AMRGridPatch):
+    _id_offset = 0
+    def __init__(self, LeftEdge, RightEdge, index, level, filename, offset, dimensions,start,stop,paranoia=False):
+        AMRGridPatch.__init__(self, index)
+        self._file_access_pooling = False
+        self.filename = filename
+        self._offset = offset
+        self._paranoid = paranoia
+        
+        # should error check this
+        self.ActiveDimensions = dimensions.copy()#.transpose()
+        self.start = start.copy()#.transpose()
+        self.stop = stop.copy()#.transpose()
+        self.LeftEdge  = LeftEdge.copy()
+        self.RightEdge = RightEdge.copy()
+        self.index = index
+        self.Level = level
+
+    def get_global_startindex(self):
+        return self.start + na.rint(self.pf["DomainLeftEdge"]/self.dx)
+
+    def _prepare_grid(self):
+        """
+        Copies all the appropriate attributes from the hierarchy
+        """
+        # This is definitely the slowest part of generating the hierarchy
+        # Now we give it pointers to all of its attributes
+        # Note that to keep in line with Enzo, we have broken PEP-8
+        h = self.hierarchy # cache it
+        self.StartIndices = h.gridStartIndices[self.id]
+        self.EndIndices = h.gridEndIndices[self.id]
+        h.gridLevels[self.id,0] = self.Level
+        h.gridLeftEdge[self.id,:] = self.LeftEdge[:]
+        h.gridRightEdge[self.id,:] = self.RightEdge[:]
+        self.Time = h.gridTimes[self.id,0]
+        self.NumberOfParticles = h.gridNumberOfParticles[self.id,0]
+        self.Children = h.gridTree[self.id]
+        pIDs = h.gridReverseTree[self.id]
+        if len(pIDs) > 0:
+            self.Parent = [weakref.proxy(h.grids[pID]) for pID in pIDs]
+        else:
+            self.Parent = []
+

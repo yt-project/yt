@@ -285,6 +285,13 @@ class DataQueueInMemory(BaseDataQueue):
     def preload(self, grids, sets):
         pass
 
+class DataQueueNative(BaseDataQueue):
+    def _read_set(self, grid, field):
+        return readDataNative(grid, field)
+
+    def modify(self, field):
+        return field.swapaxes(0,2)
+
 class DataQueuePacked2D(BaseDataQueue):
     def _read_set(self, grid, field):
         return HDF5LightReader.ReadData(grid.filename,
@@ -300,3 +307,94 @@ class DataQueuePacked1D(BaseDataQueue):
 
     def modify(self, field):
         pass
+
+#
+# BoxLib/Orion data readers follow
+#
+def readDataNative(self,field):
+    """
+    reads packed multiFABs output by BoxLib in "NATIVE" format.
+
+    """
+    inFile = open(os.path.expanduser(self.filename),'rb')
+    inFile.seek(self._offset)
+    header = inFile.readline()
+    header.strip()
+
+    if self._paranoid:
+        mylog.warn("Orion Native reader: Paranoid read mode.")
+        headerRe = re.compile(orion_FAB_header_pattern)
+        bytesPerReal,endian,start,stop,centerType,nComponents = headerRe.search(header).groups()
+
+        # we will build up a dtype string, starting with endian
+        # check endianness (this code is ugly. fix?)
+        bytesPerReal = int(bytesPerReal)
+        if bytesPerReal == int(endian[0]):
+            dtype = '<'
+        elif bytesPerReal == int(endian[-1]):
+            dtype = '>'
+        else:
+            raise ValueError("FAB header is neither big nor little endian. Perhaps the file is corrupt?")
+
+        dtype += ('f%i'% bytesPerReal) #always a floating point
+
+        # determine size of FAB
+        start = na.array(map(int,start.split(',')))
+        stop = na.array(map(int,stop.split(',')))
+
+        gridSize = stop - start + 1
+
+        error_count = 0
+        if (start != self.start).any():
+            print "Paranoia Error: Cell_H and %s do not agree on grid start." %self.filename
+            error_count += 1
+        if (stop != self.stop).any():
+            print "Paranoia Error: Cell_H and %s do not agree on grid stop." %self.filename
+            error_count += 1
+        if (gridSize != self.ActiveDimensions).any():
+            print "Paranoia Error: Cell_H and %s do not agree on grid dimensions." %self.filename
+            error_count += 1
+        if bytesPerReal != self.hierarchy._bytesPerReal:
+            print "Paranoia Error: Cell_H and %s do not agree on bytes per real number." %self.filename
+            error_count += 1
+        if (bytesPerReal == self.hierarchy._bytesPerReal and dtype != self.hierarchy._dtype):
+            print "Paranoia Error: Cell_H and %s do not agree on endianness." %self.filename
+            error_count += 1
+
+        if error_count > 0:
+            raise RunTimeError("Paranoia unveiled %i differences between Cell_H and %s." % (error_count, self.filename))
+
+    else:
+        start = self.start
+        stop = self.stop
+        dtype = self.hierarchy._dtype
+        bytesPerReal = self.hierarchy._bytesPerReal
+        
+    nElements = self.ActiveDimensions.prod()
+
+    # one field has nElements*bytesPerReal bytes and is located
+    # nElements*bytesPerReal*field_index from the offset location
+    if yt2orionFieldsDict.has_key(field):
+        fieldname = yt2orionFieldsDict[field]
+    else:
+        fieldname = field
+    field_index = self.field_indexes[fieldname]
+    inFile.seek(int(nElements*bytesPerReal*field_index),1)
+    field = na.fromfile(inFile,count=nElements,dtype=dtype)
+    field = field.reshape(self.ActiveDimensions[::-1]).swapaxes(0,2)
+
+    # we can/should also check against the max and min in the header file
+    
+    inFile.close()
+    return field
+    
+def readAllDataNative():
+    pass
+
+def readDataSliceNative(self, grid, field, axis, coord):
+    """wishful thinking?
+    """
+    sl = [slice(None), slice(None), slice(None)]
+    sl[axis] = slice(coord, coord + 1)
+    #sl = tuple(reversed(sl))
+    return grid.readDataFast(field)[sl]

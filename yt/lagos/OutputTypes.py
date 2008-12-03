@@ -6,7 +6,7 @@ Author: Matthew Turk <matthewturk@gmail.com>
 Affiliation: KIPAC/SLAC/Stanford
 Homepage: http://yt.enzotools.org/
 License:
-  Copyright (C) 2007-2008 Matthew Turk.  All Rights Reserved.
+  Copyright (C) 2007-2008 Matthew Turk, J. S. Oishi.  All Rights Reserved.
 
   This file is part of yt.
 
@@ -324,3 +324,137 @@ class EnzoStaticOutputInMemory(EnzoStaticOutput):
         for p, v in self.__conversion_override.items():
             self.conversion_factors[p] = v
 
+class OrionStaticOutput(StaticOutput):
+    """
+    This class is a stripped down class that simply reads and parses, without
+    looking at the Orion hierarchy.
+
+    @todo: 
+
+    @param filename: The filename of the parameterfile we want to load
+    @type filename: String
+    """
+    _hierarchy_class = OrionHierarchy
+    _fieldinfo_class = OrionFieldContainer
+
+    def __init__(self, plotname, paramFilename='inputs',fparamFilename='probin',data_style=7,paranoia=False):
+        """need to override for Orion file structure.
+
+        the paramfile is usually called "inputs"
+        and there may be a fortran inputs file usually called "probin"
+        plotname here will be a directory name
+        as per BoxLib, data_style will be one of
+          Native
+          IEEE
+          ASCII
+
+        """
+        self.field_info = self._fieldinfo_class()
+        self.data_style = data_style
+        self.paranoid_read = paranoia
+        plotname = plotname.rstrip('/')
+        self.basename = os.path.basename(plotname)
+        # this will be the directory ENCLOSING the pltNNNN directory
+        self.directory = os.path.dirname(plotname)
+        self.parameter_filename = os.path.join(self.directory,paramFilename)
+        # fortran parameters
+        self.fparameters = {}
+        self.fparameter_filename = os.path.join(self.directory,fparamFilename)
+        self.fullpath = os.path.abspath(self.directory)
+        self.fullplotdir = os.path.abspath(plotname)
+        if len(self.directory) == 0:
+            self.directory = "."
+        self.conversion_factors = {}
+        self.parameters = {}
+        self._parse_parameter_file()
+        if os.path.isfile(self.fparameter_filename):
+            self._parse_fparameter_file()
+        self._set_units()
+        
+        # These should maybe not be hardcoded?
+        self.parameters["HydroMethod"] = 'orion' # always PPM DE
+        self.parameters["InitialTime"] = 0. # FIX ME!!!
+        self.parameters["DualEnergyFormalism"] = 0 # always off.
+        if self.fparameters.has_key("mu"):
+            self.parameters["mu"] = self.fparameters["mu"]
+        
+    def _parse_parameter_file(self):
+        """
+        Parses the parameter file and establishes the various
+        dictionaries.
+        """
+        # Let's read the file
+        self.parameters["CurrentTimeIdentifier"] = \
+            int(os.stat(self.parameter_filename)[ST_CTIME])
+        lines = open(self.parameter_filename).readlines()
+        for lineI, line in enumerate(lines):
+            if line.find("#") >= 1: # Keep the commented lines...
+                line=line[:line.find("#")]
+            line=line.strip().rstrip()
+            if len(line) < 2 or line.find("#") == 0: # ...but skip comments
+                continue
+            try:
+                param, vals = map(strip,map(rstrip,line.split("=")))
+            except ValueError:
+                mylog.error("ValueError: '%s'", line)
+            if orion2enzoDict.has_key(param):
+                paramName = orion2enzoDict[param]
+                t = map(parameterDict[paramName], vals.split())
+                if len(t) == 1:
+                    self.parameters[paramName] = t[0]
+                else:
+                    self.parameters[paramName] = t
+            elif param.startswith("geometry.prob_hi"):
+                self.parameters["DomainRightEdge"] = \
+                    na.array([float(i) for i in vals.split()])
+            elif param.startswith("geometry.prob_lo"):
+                self.parameters["DomainLeftEdge"] = \
+                    na.array([float(i) for i in vals.split()])
+
+    def _parse_fparameter_file(self):
+        """
+        Parses the fortran parameter file for Orion. Most of this will
+        be useless, but this is where it keeps mu = mass per
+        particle/m_hydrogen.
+        """
+        lines = open(self.fparameter_filename).readlines()
+        for line in lines:
+            if line.count("=") == 1:
+                param, vals = map(strip,map(rstrip,line.split("=")))
+                if vals.count("'") == 0:
+                    t = map(float,[a.replace('D','e').replace('d','e') for a in vals.split()]) # all are floating point.
+                else:
+                    t = vals.split()
+                if len(t) == 1:
+                    self.fparameters[param] = t[0]
+                else:
+                    self.fparameters[param] = t
+                
+                
+    def _set_units(self):
+        """
+        Generates the conversion to various physical _units based on the parameter file
+        """
+        self.units = {}
+        self.time_units = {}
+        if len(self.parameters) == 0:
+            self._parse_parameter_file()
+        self._setup_nounits_units()
+        self.conversion_factors = defaultdict(lambda: 1.0)
+        self.time_units['1'] = 1
+        self.units['1'] = 1.0
+        self.units['unitary'] = 1.0 / (self["DomainRightEdge"] - self["DomainLeftEdge"]).max()
+        seconds = 1 #self["Time"]
+        self.time_units['years'] = seconds / (365*3600*24.0)
+        self.time_units['days']  = seconds / (3600*24.0)
+        for key in yt2orionFieldsDict:
+            self.conversion_factors[key] = 1.0
+
+    def _setup_nounits_units(self):
+        z = 0
+        mylog.warning("Setting 1.0 in code units to be 1.0 cm")
+        if not self.has_key("TimeUnits"):
+            mylog.warning("No time units.  Setting 1.0 = 1 second.")
+            self.conversion_factors["Time"] = 1.0
+        for unit in mpc_conversion.keys():
+            self.units[unit] = mpc_conversion[unit] / mpc_conversion["cm"]

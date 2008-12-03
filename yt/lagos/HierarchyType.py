@@ -36,6 +36,8 @@ _data_style_funcs = \
          getExceptionHDF5, DataQueueHDF5),
      6: (readDataPacked, readAllDataPacked, getFieldsPacked, readDataSlicePacked,
          getExceptionHDF5, DataQueuePackedHDF5),
+     7: (readDataNative, readAllDataNative, None, readDataSliceNative,
+         getExceptionHDF5, None), \
      8: (readDataInMemory, readAllDataInMemory, getFieldsInMemory, readDataSliceInMemory,
          getExceptionInMemory, DataQueueInMemory),
      'enzo_packed_2d': (readDataPacked, readAllDataPacked, getFieldsPacked, readDataSlicePacked2D,
@@ -1055,3 +1057,227 @@ def rlines(f, keepends=False):
                 yield line
     yield buf  # First line.
 
+class OrionHierarchy(AMRHierarchy):
+    def __init__(self,pf,data_style=7):
+        self.field_info = OrionFieldContainer()
+        self.field_indexes = {}
+        self.parameter_file = weakref.proxy(pf)
+        header_filename = os.path.join(pf.fullplotdir,'Header')
+        self.directory = pf.fullpath
+        self.data_style = data_style
+        self._setup_classes()
+        self.readGlobalHeader(header_filename,self.parameter_file.paranoid_read) # also sets up the grid objects
+        self.__cache_endianness(self.levels[-1].grids[-1])
+        AMRHierarchy.__init__(self,pf)
+        self._setup_field_list()
+
+    def readGlobalHeader(self,filename,paranoid_read):
+        """
+        read the global header file for an Orion plotfile output.
+        """
+        counter = 0
+        header_file = open(filename,'r')
+        self.__global_header_lines = header_file.readlines()
+
+        # parse the file
+        self.orion_version = self.__global_header_lines[0].rstrip()
+        self.n_fields      = int(self.__global_header_lines[1])
+
+        counter = self.n_fields+2
+        for i,line in enumerate(self.__global_header_lines[2:counter]):
+            self.field_indexes[line.rstrip()] =i
+        self.field_list = []
+        for f in self.field_indexes:
+            self.field_list.append(orion2ytFieldsDict.get(f,f))
+
+        self.dimension = int(self.__global_header_lines[counter])
+        if self.dimension != 3:
+            raise RunTimeError("Orion must be in 3D to use yt.")
+        counter += 1
+        self.Time = float(self.__global_header_lines[counter])
+        counter += 1
+        self.finest_grid_level = int(self.__global_header_lines[counter])
+        self.n_levels = self.finest_grid_level + 1
+        counter += 1
+        self.domainLeftEdge_unnecessary = na.array(map(float,self.__global_header_lines[counter].split()))
+        counter += 1
+        self.domainRightEdge_unnecessary = na.array(map(float,self.__global_header_lines[counter].split()))
+        counter += 1
+        self.refinementFactor_unnecessary = na.array(map(int,self.__global_header_lines[counter].split()))
+        counter += 1
+        self.globalIndexSpace_unnecessary = self.__global_header_lines[counter]
+        #domain_re.search(self.__global_header_lines[counter]).groups()
+        counter += 1
+        self.timestepsPerLevel_unnecessary = self.__global_header_lines[counter]
+        counter += 1
+        self.dx = na.zeros((self.n_levels,3))
+        for i,line in enumerate(self.__global_header_lines[counter:counter+self.n_levels]):
+            self.dx[i] = na.array(map(float,line.split()))
+        counter += self.n_levels
+        self.geometry = int(self.__global_header_lines[counter])
+        if self.geometry != 0:
+            raise RunTimeError("yt only supports cartesian coordinates.")
+        counter += 1
+
+        # this is just to debug. eventually it should go away.
+        linebreak = int(self.__global_header_lines[counter])
+        if linebreak != 0:
+            raise RunTimeError("INTERNAL ERROR! This should be a zero.")
+        counter += 1
+
+        # each level is one group with ngrids on it. each grid has 3 lines of 2 reals
+        self.levels = []
+        grid_counter = 0
+        file_finder_pattern = r"FabOnDisk: (Cell_D_[0-9]{4}) (\d+)\n"
+        re_file_finder = re.compile(file_finder_pattern)
+        dim_finder_pattern = r"\(\((\d+,\d+,\d+)\) \((\d+,\d+,\d+)\) \(\d+,\d+,\d+\)\)\n"
+        re_dim_finder = re.compile(dim_finder_pattern)
+        
+        for level in range(0,self.n_levels):
+            tmp = self.__global_header_lines[counter].split()
+            # should this be grid_time or level_time??
+            lev,ngrids,grid_time = int(tmp[0]),int(tmp[1]),float(tmp[2])
+            counter += 1
+            nsteps = int(self.__global_header_lines[counter])
+            counter += 1
+            self.levels.append(OrionLevel(lev,ngrids))
+            # open level header, extract file names and offsets for
+            # each grid
+            fn = os.path.join(self.parameter_file.fullplotdir,'Level_%i'%level)
+            level_header_file = open(os.path.join(fn,'Cell_H'),'r').read()
+            grid_file_offset = re_file_finder.findall(level_header_file)
+            start_stop_index = re_dim_finder.findall(level_header_file)
+            for grid in range(0,ngrids):
+                gfn = os.path.join(fn,grid_file_offset[grid][0]) # filename of file containing this grid
+                gfo = int(grid_file_offset[grid][1]) # offset within that file
+                xlo,xhi = map(float,self.__global_header_lines[counter].split())
+                counter+=1
+                ylo,yhi = map(float,self.__global_header_lines[counter].split())
+                counter+=1
+                zlo,zhi = map(float,self.__global_header_lines[counter].split())
+                counter+=1
+                lo = na.array([xlo,ylo,zlo])
+                hi = na.array([xhi,yhi,zhi])
+                dims,start,stop = self.__calculate_grid_dimensions(start_stop_index[grid])
+                self.levels[-1].grids.append(self.grid(lo,hi,grid_counter,level,gfn, gfo, dims,start,stop,paranoia=paranoid_read))
+                grid_counter += 1 # this is global, and shouldn't be reset
+                                  # for each level
+            self.levels[-1]._fileprefix = self.__global_header_lines[counter]
+            counter+=1
+            self.num_grids = grid_counter
+            self.float_type = 'float64'
+
+        self.maxLevel = self.n_levels - 1 
+        self.max_level = self.n_levels - 1
+        header_file.close()
+
+    def __cache_endianness(self,test_grid):
+        """
+        Cache the endianness and bytes perreal of the grids by using a
+        test grid and assuming that all grids have the same
+        endianness. This is a pretty safe assumption since Orion uses
+        one file per processor, and if you're running on a cluster
+        with different endian processors, then you're on your own!
+        """
+        # open the test file & grab the header
+        inFile = open(os.path.expanduser(test_grid.filename),'rb')
+        header = inFile.readline()
+        inFile.close()
+        header.strip()
+        
+        # parse it. the patter is in OrionDefs.py
+        headerRe = re.compile(orion_FAB_header_pattern)
+        bytesPerReal,endian,start,stop,centerType,nComponents = headerRe.search(header).groups()
+        self._bytesPerReal = int(bytesPerReal)
+        if self._bytesPerReal == int(endian[0]):
+            dtype = '<'
+        elif self._bytesPerReal == int(endian[-1]):
+            dtype = '>'
+        else:
+            raise ValueError("FAB header is neither big nor little endian. Perhaps the file is corrupt?")
+
+        dtype += ('f%i' % self._bytesPerReal) # always a floating point
+        self._dtype = dtype
+
+    def __calculate_grid_dimensions(self,start_stop):
+        start = na.array(map(int,start_stop[0].split(',')))
+        stop = na.array(map(int,start_stop[1].split(',')))
+        dimension = stop - start + 1
+        return dimension,start,stop
+        
+
+    def _initialize_grids(self):
+        mylog.debug("Allocating memory for %s grids", self.num_grids)
+        self.gridDimensions = na.zeros((self.num_grids,3), 'int32')
+        self.gridStartIndices = na.zeros((self.num_grids,3), 'int32')
+        self.gridEndIndices = na.zeros((self.num_grids,3), 'int32')
+        self.gridTimes = na.zeros((self.num_grids,1), 'float64')
+        self.gridNumberOfParticles = na.zeros((self.num_grids,1))
+        mylog.debug("Done allocating")
+        mylog.debug("Creating grid objects")
+        self.grids = na.concatenate([level.grids for level in self.levels])
+        self.gridLevels = na.concatenate([level.ngrids*[level.level] for level in self.levels])
+        self.gridLevels = self.gridLevels.reshape((self.num_grids,1))
+        gridDcs = na.concatenate([level.ngrids*[self.dx[level.level]] for level in self.levels],axis=0)
+        self.gridDxs = gridDcs[:,0].reshape((self.num_grids,1))
+        self.gridDys = gridDcs[:,1].reshape((self.num_grids,1))
+        self.gridDzs = gridDcs[:,2].reshape((self.num_grids,1))
+        left_edges = []
+        right_edges = []
+        for level in self.levels:
+            left_edges += [g.LeftEdge for g in level.grids]
+            right_edges += [g.RightEdge for g in level.grids]
+        self.gridLeftEdge = na.array(left_edges)
+        self.gridRightEdge = na.array(right_edges)
+        self.gridReverseTree = [] * self.num_grids
+        self.gridReverseTree = [ [] for i in range(self.num_grids)]
+        self.gridTree = [ [] for i in range(self.num_grids)]
+        mylog.debug("Done creating grid objects")
+
+    def _populate_hierarchy(self):
+        self.__setup_grid_tree()
+        self._setup_grid_corners()
+        for i, grid in enumerate(self.grids):
+            if (i%1e4) == 0: mylog.debug("Prepared % 7i / % 7i grids", i, self.num_grids)
+            grid._prepare_grid()
+            grid._setup_dx()
+
+    def __setup_grid_tree(self):
+        for i, grid in enumerate(self.grids):
+            children = self._get_grid_children(grid)
+            for child in children:
+                self.gridReverseTree[child.id].append(i)
+                self.gridTree[i].append(weakref.proxy(child))
+
+    def _setup_classes(self):
+        dd = self._get_data_reader_dict()
+        dd["field_indexes"] = self.field_indexes
+        self.grid = classobj("OrionGrid",(OrionGridBase,), dd)
+        AMRHierarchy._setup_classes(self, dd)
+
+    def _get_grid_children(self, grid):
+        mask = na.zeros(self.num_grids, dtype='bool')
+        grids, grid_ind = self.get_box_grids(grid.LeftEdge, grid.RightEdge)
+        mask[grid_ind] = True
+        mask = na.logical_and(mask, (self.gridLevels == (grid.Level+1)).flat)
+        return self.grids[mask]
+
+    def _setup_field_list(self):
+        self.derived_field_list = []
+        for field in self.field_info:
+            try:
+                fd = self.field_info[field].get_dependencies(pf = self.parameter_file)
+            except:
+                continue
+            available = na.all([f in self.field_list for f in fd.requested])
+            if available: self.derived_field_list.append(field)
+        for field in self.field_list:
+            if field not in self.derived_field_list:
+                self.derived_field_list.append(field)
+
+class OrionLevel:
+    def __init__(self,level,ngrids):
+        self.level = level
+        self.ngrids = ngrids
+        self.grids = []
+    

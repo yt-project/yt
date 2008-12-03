@@ -77,6 +77,7 @@ from HelperFunctions import *
 import PointCombine
 import HDF5LightReader
 from EnzoDefs import *
+from OrionDefs import *
 
 from ParallelTools import *
 # Now our fields
@@ -84,7 +85,7 @@ from ParallelTools import *
 from FieldInfoContainer import *
 from UniversalFields import *
 from EnzoFields import *
-
+from OrionFields import *
 fieldInfo = EnzoFieldInfo
 
 from DerivedQuantities import DerivedQuantityCollection, GridChildMaskWrapper
