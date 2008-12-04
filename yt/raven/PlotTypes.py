@@ -441,12 +441,20 @@ class ProjectionPlot(VMPlot):
         field_name = self.axis_names["Z"]
         data_label = r"$\rm{%s}" % field_name.replace("_","\hspace{0.5}")
         if self.pf.field_info.has_key(field_name):
-            data_label += r"\/\/ (%s)" % (self.pf.field_info[field_name].get_projected_units())
+            if self.data._weight is None:
+                data_label += r"\/\/ (%s)" % (self.pf.field_info[field_name].get_projected_units())
+            else:
+                data_label += r"\/\/ (%s)" % (self.pf.field_info[field_name].get_units())
         data_label += r"$"
         if self.colorbar != None: self.colorbar.set_label(str(data_label))
 
     def switch_z(self, field):
         mylog.warning("Choosing not to change the field of a projection instance")
+
+    def _generate_prefix(self, prefix):
+        VMPlot._generate_prefix(self, prefix)
+        if self.data._weight is not None:
+            self.prefix += "_%s" % (self.data._weight)
 
 class ProjectionPlotNaturalNeighbor(NNVMPlot, ProjectionPlot):
     _type_name = "NNProj"

@@ -135,20 +135,21 @@ class AMRHierarchy:
             [self.gridLeftEdge[:,0], self.gridRightEdge[:,1], self.gridLeftEdge[:,2]],
             ], dtype='float64')
 
-    def save_data(self, array, node, name, set_attr=None, force=False):
+    def save_data(self, array, node, name, set_attr=None, force=False, passthrough = False):
         """
         Arbitrary numpy data will be saved to the region in the datafile
         described by *node* and *name*.  If data file does not exist, it throws
         no error and simply does not save.
         """
         if self._data_file is None: return
-        if force:
-            try:
-                node_loc = self._data_file.getNode(node)
-                if name in node_loc:
-                    self._data_file.removeNode(node, name, recursive=True)
-            except tables.exceptions.NoSuchNodeError:
-                pass
+        try:
+            node_loc = self._data_file.getNode(node)
+            if name in node_loc and force:
+                self._data_file.removeNode(node, name, recursive=True)
+            if name in node_loc and passthrough:
+                return
+        except tables.exceptions.NoSuchNodeError:
+            pass
         arr = self._data_file.createArray(node, name, array, createparents=True)
         if set_attr is not None:
             for i, j in set_attr.items(): arr.setAttr(i,j)

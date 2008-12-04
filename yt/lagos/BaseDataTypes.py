@@ -471,6 +471,8 @@ class AMR2DData(AMRData, GridPropertiesMixin, ParallelAnalysisInterface):
         AMRData.__init__(self, pf, fields, **kwargs)
         self.set_field_parameter("axis",axis)
         
+    def _convert_field_name(self, field):
+        return field
 
     #@time_execution
     def get_data(self, fields = None):
@@ -548,34 +550,40 @@ class AMR2DData(AMRData, GridPropertiesMixin, ParallelAnalysisInterface):
         return [xi,yi,zi]
 
     _okay_to_serialize = True
-    def _should_i_write(self): return True
 
-    def _serialize(self, node_name = None, force = True):
-        if not self._should_i_write(): return
-        mylog.info("Serializing data...")
+    def _store_fields(self, fields, node_name = None, force = False):
+        fields = ensure_list(fields)
         if node_name is None: node_name = self._gen_node_name()
-        mylog.info("nodeName: %s", node_name)
-        array2d = na.array([self[i] for i in self._key_fields + [self.fields[0]]])
-        self.hierarchy.save_data(array2d, self._top_node, node_name, force = force)
-        mylog.info("Done serializing...")
+        for field in fields:
+            #mylog.debug("Storing %s in node %s",
+                #self._convert_field_name(field), node_name)
+            self.hierarchy.save_data(self[field], node_name,
+                self._convert_field_name(field), force = force,
+                passthrough = True)
 
-    def _deserialize(self, node_name = None, override = False):
-        if not override and not self._okay_to_serialize: return
+    def _obtain_fields(self, fields, node_name = None):
+        if not self._okay_to_serialize: return
+        fields = ensure_list(fields)
         if node_name is None: node_name = self._gen_node_name()
-        mylog.debug("Trying to get node %s", node_name)
-        array=self.hierarchy.get_data(self._top_node, node_name)
-        if array == None:
-            mylog.debug("Didn't find it!")
-            return
-        kf = self._key_fields[:]
-        if array.shape[0] != len(kf) + 1:
-            mylog.warning("There has been a change in the .yt file format.")
-            mylog.warning("It is recommended to remove %s",
-                          self.hierarchy._data_file.filename)
-            kf = kf[:-1] # Fix for weight_field add
-        for i, f in enumerate(kf + [self.fields[0]]):
-            self[f] = array[i,:]
+        for field in fields:
+            #mylog.debug("Trying to obtain %s from node %s",
+                #self._convert_field_name(field), node_name)
+            fdata=self.hierarchy.get_data(node_name, 
+                self._convert_field_name(field))
+            if fdata is not None:
+                #mylog.debug("Got %s from node %s", field, node_name)
+                self[field] = fdata[:]
         return True
+
+    def _deserialize(self, node_name = None):
+        if not self._okay_to_serialize: return
+        self._obtain_fields(self._key_fields, node_name)
+        self._obtain_fields(self.fields, node_name)
+
+    def _serialize(self, node_name = None):
+        if not self._okay_to_serialize: return
+        self._store_fields(self._key_fields, node_name)
+        self._store_fields(self.fields, node_name)
 
 class AMRSliceBase(AMR2DData):
     """
@@ -702,7 +710,8 @@ class AMRSliceBase(AMR2DData):
         return dataVals
 
     def _gen_node_name(self):
-        return "%s_%s_%s" % (self.fields[0], self.axis, self.coord)
+        return "%s/%s_%s" % \
+            (self._top_node, self.axis, self.coord)
 
 class AMRCuttingPlaneBase(AMR2DData):
     """
@@ -828,7 +837,8 @@ class AMRCuttingPlaneBase(AMR2DData):
     def _gen_node_name(self):
         cen_name = ("%s" % self.center).replace(" ","_")[1:-1]
         L_name = ("%s" % self._norm_vec).replace(" ","_")[1:-1]
-        return "%s_c%s_L%s" % (self.fields[0], cen_name, L_name)
+        return "%s/c%s_L%s" % \
+            (self._top_node, cen_name, L_name)
 
 class AMRProjBase(AMR2DData):
     _top_node = "/Projections"
@@ -861,12 +871,15 @@ class AMRProjBase(AMR2DData):
         self.__retval_coarse = {}
         self.__overlap_masks = {}
         self._temp = {}
-        if not self._deserialize(node_name, override = (node_name is not None)):
-            self.__calculate_overlap()
-            if self.hierarchy.data_style == 6 and False:
-                self.__cache_data()
-            self._refresh_data()
-            if self._okay_to_serialize: self._serialize()
+        self._node_name = node_name
+        self._deserialize(node_name)
+        self._refresh_data()
+        if self._okay_to_serialize: self._serialize()
+
+    def _convert_field_name(self, field):
+        if field == "weight_field": return "weight_field_%s" % self._weight
+        if field in self._key_fields: return field
+        return "%s_%s" % (field, self._weight)
 
     def _initialize_source(self, source = None):
         if source is None:
@@ -1024,7 +1037,11 @@ class AMRProjBase(AMR2DData):
     #@time_execution
     def get_data(self, fields = None):
         if fields is None: fields = ensure_list(self.fields)[:]
-        fields = ensure_list(fields)
+        else: fields = ensure_list(fields)
+        self._obtain_fields(fields, self._node_name)
+        fields = [f for f in fields if f not in self.data]
+        if len(fields) == 0: return
+        self.__calculate_overlap()
         coord_data = []
         field_data = []
         dxs = []
@@ -1064,6 +1081,7 @@ class AMRProjBase(AMR2DData):
         field_data = data.pop('fields')
         for fi, field in enumerate(fields):
             self[field] = field_data[fi,:]
+            self._store_fields(field, self._node_name)
         for i in data.keys(): self[i] = data.pop(i)
 
     def add_fields(self, fields, weight = "CellMassMsun"):
@@ -1126,7 +1144,8 @@ class AMRProjBase(AMR2DData):
         return d
 
     def _gen_node_name(self):
-        return  "%s_%s_%s" % (self.fields[0], self._weight, self.axis)
+        return  "%s/%s" % \
+            (self._top_node, self.axis)
 
 class AMR3DData(AMRData, GridPropertiesMixin):
     _key_fields = ['x','y','z','dx','dy','dz']
