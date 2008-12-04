@@ -88,6 +88,10 @@ from EnzoFields import *
 from OrionFields import *
 fieldInfo = EnzoFieldInfo
 
+# NOT the same as fieldInfo.add_field
+# We by-default add universal fields.
+add_field = FieldInfo.add_field
+
 from DerivedQuantities import DerivedQuantityCollection, GridChildMaskWrapper
 from DataReadingFuncs import *
 from ClusterFiles import *
