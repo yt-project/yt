@@ -1647,7 +1647,7 @@ class AMRCoveringGrid(AMR3DData):
                             self.left_edge, self.right_edge)
         level_ind = na.where(self.pf.hierarchy.gridLevels.ravel()[ind] <= self.level)
         sort_ind = na.argsort(self.pf.h.gridLevels.ravel()[ind][level_ind])
-        self._grids = self.pf.hierarchy.grids[ind][level_ind][(sort_ind,)]
+        self._grids = self.pf.hierarchy.grids[ind][level_ind][(sort_ind,)][::-1]
 
     def extract_region(self, indices):
         mylog.error("Sorry, dude, do it yourself, it's already in 3-D.")
@@ -1662,27 +1662,29 @@ class AMRCoveringGrid(AMR3DData):
         self._get_list_of_grids()
         # We don't generate coordinates here.
         if field == None:
-            fields_to_get = self.fields
+            _fields_to_get = self.fields
         else:
-            fields_to_get = ensure_list(field)
+            _fields_to_get = ensure_list(field)
+        fields_to_get = [f for f in _fields_to_get if f not in self.data]
+        if len(fields_to_get) == 0: return
         for field in fields_to_get:
-            if self.data.has_key(field):
-                continue
-            mylog.debug("Getting field %s from %s possible grids",
-                       field, len(self._grids))
             self[field] = na.zeros(self.ActiveDimensions, dtype='float64') -999
-            if self._use_pbar: pbar = \
-                    get_pbar('Searching grids for values ', len(self._grids))
-            for i,grid in enumerate(self._grids):
-                if self._use_pbar: pbar.update(i)
-                self._get_data_from_grid(grid, field)
-                if not na.any(self[field] == -999): break
-            if self._use_pbar: pbar.finish()
-            if na.any(self[field] == -999):# and self.dx < self.hierarchy.grids[0].dx:
-                print "COVERING PROBLEM", na.where(self[field]==-999)[0].size
-                print na.where(self[field]==-999)
-                return
-                raise KeyError
+        mylog.debug("Getting fields %s from %s possible grids",
+                   field, len(self._grids))
+        if self._use_pbar: pbar = \
+                get_pbar('Searching grids for values ', len(self._grids))
+        field = fields_to_get[-1]
+        for i,grid in enumerate(self._grids):
+            if self._use_pbar: pbar.update(i)
+            self._get_data_from_grid(grid, fields_to_get)
+            if not na.any(self[field] == -999): break
+        if self._use_pbar: pbar.finish()
+        if na.any(self[field] == -999):
+            # and self.dx < self.hierarchy.grids[0].dx:
+            print "COVERING PROBLEM", na.where(self[field]==-999)[0].size
+            print na.where(self[fields_to_get[0]]==-999)
+            return
+            raise KeyError
 
     def flush_data(self, field=None):
         """

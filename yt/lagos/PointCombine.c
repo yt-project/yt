@@ -671,7 +671,7 @@ static PyObject *DataCubeGeneric(PyObject *obj, PyObject *args,
       tc_data = (PyObject *) PyList_GetItem(oc_data, n);
       c_data[n]    = (PyArrayObject *) PyArray_FromAny(tc_data,
           PyArray_DescrFromType(NPY_FLOAT64), 3, 3,
-          NPY_INOUT_ARRAY | NPY_UPDATEIFCOPY, NULL);
+          NPY_UPDATEIFCOPY, NULL);
       if((c_data[n]==NULL) || (c_data[n]->nd != 3)) {
         PyErr_Format(_dataCubeError,
             "CombineGrids: Three dimensions required for c_data[%i].",n);
@@ -691,10 +691,13 @@ static PyObject *DataCubeGeneric(PyObject *obj, PyObject *args,
              malloc(sizeof(PyArrayObject*)*n_fields);
     for (n=0;n<n_fields;n++)g_data[n]=NULL;
     for (n=0;n<n_fields;n++){
+      /* Borrows a reference */
       tg_data = (PyObject *) PyList_GetItem(og_data, n);
+      /* We set up an array so we only have to do this once 
+         Note that this is an array in the C sense, not the NumPy sense */
       g_data[n]    = (PyArrayObject *) PyArray_FromAny(tg_data,
           PyArray_DescrFromType(NPY_FLOAT64), 3, 3,
-          NPY_INOUT_ARRAY | NPY_UPDATEIFCOPY, NULL);
+          NPY_UPDATEIFCOPY, NULL);
       if((g_data[n]==NULL) || (g_data[n]->nd != 3)) {
         PyErr_Format(_dataCubeError,
             "CombineGrids: Three dimensions required for g_data[%i].",n);
@@ -714,9 +717,11 @@ static PyObject *DataCubeGeneric(PyObject *obj, PyObject *args,
     npy_float64 ac_le_p[3][3];
     npy_float64 ac_re_p[3][3];
     npy_float64 ag_re[3];
-    for (i=0;i<3;i++){ag_re[i] = ag_le[i]+ag_dx[i]*(g_data[0]->dimensions[i]+1);}
+    /* This is for checking for periodic boundary conditions.
+       Manually set the right edge to be offset from the left. */
+    for(i=0;i<3;i++){ag_re[i] = ag_le[i]+ag_dx[i]*(g_data[0]->dimensions[i]+1);}
 
-    for (i=0;i<3;i++){ac_le_p[i][0] = ac_le[i]; ac_re_p[i][0] = ac_re[i];}
+    for(i=0;i<3;i++){ac_le_p[i][0] = ac_le[i]; ac_re_p[i][0] = ac_re[i];}
     for(i=0;i<3;i++) {
             itc = 1;
             if (ac_le[i] < adl_edge[i]) {
@@ -729,27 +734,49 @@ static PyObject *DataCubeGeneric(PyObject *obj, PyObject *args,
             }
             p_niter[i] = itc;
     }
+    npy_intp nx, ny, nz;
+    /* This is easier than doing a lookup every loop */
+    nx = PyArray_DIM(c_data[0], 0);
+    ny = PyArray_DIM(c_data[0], 1);
+    nz = PyArray_DIM(c_data[0], 2);
+    npy_int64 xg_min, yg_min, zg_min;
+    npy_int64 xg_max, yg_max, zg_max;
 
-    for (xg = 0; xg < g_data[0]->dimensions[0]; xg++) {
+    /* Periodic iterations, *if necessary* */
     for (pxl = 0; pxl < p_niter[0]; pxl++) {
+    xg_min = max(floor((ac_le_p[0][pxl]-ag_le[0])/ag_dx[0]) - 1, 0);
+    xg_max = min(ceil((ac_re_p[0][pxl]-ag_le[0])/ag_dx[0]) + 1, 
+                 g_data[0]->dimensions[0]);
+    for (xg = xg_min; xg < xg_max; xg++) {
+      /* If we're off the destination cell boundary, skip */
       if (ag_le[0]+ag_dx[0]*xg     > ac_re_p[0][pxl]) continue;
       if (ag_le[0]+ag_dx[0]*(xg+1) < ac_le_p[0][pxl]) continue;
+      /* Floor to the source edge */
       cmin_x = max(floorl((ag_le[0]+ag_dx[0]*xg     - ac_le_p[0][pxl])/ac_dx[0]),0);
-      cmax_x = min( ceill((ag_le[0]+ag_dx[0]*(xg+1) - ac_le_p[0][pxl])/ac_dx[0]),PyArray_DIM(c_data[0],0));
-      for (yg = 0; yg < g_data[0]->dimensions[1]; yg++) {
+      cmax_x = min( ceill((ag_le[0]+ag_dx[0]*(xg+1) - ac_le_p[0][pxl])/ac_dx[0]),nx);
+      if(cmin_x==cmax_x)continue;
       for (pyl = 0; pyl < p_niter[1]; pyl++) {
+      yg_min = max(floor((ac_le_p[1][pyl]-ag_le[1])/ag_dx[1]) - 1, 0);
+      yg_max = min(ceil((ac_re_p[1][pyl]-ag_le[1])/ag_dx[1]),
+                   g_data[0]->dimensions[1]);
+      for (yg = yg_min; yg < yg_max; yg++) {
         if (ag_le[1]+ag_dx[1]*yg     > ac_re_p[1][pyl]) continue;
         if (ag_le[1]+ag_dx[1]*(yg+1) < ac_le_p[1][pyl]) continue;
         cmin_y = max(floorl((ag_le[1]+ag_dx[1]*yg     - ac_le_p[1][pyl])/ac_dx[1]),0);
-        cmax_y = min( ceill((ag_le[1]+ag_dx[1]*(yg+1) - ac_le_p[1][pyl])/ac_dx[1]),PyArray_DIM(c_data[0],1));
-        for (zg = 0; zg < g_data[0]->dimensions[2]; zg++) {
+        cmax_y = min( ceill((ag_le[1]+ag_dx[1]*(yg+1) - ac_le_p[1][pyl])/ac_dx[1]),ny);
+        if(cmin_y==cmax_y)continue;
         for (pzl = 0; pzl < p_niter[2]; pzl++) {
-          cm = *(npy_int *)PyArray_GETPTR3(g_cm,xg,yg,zg);
-          if ((!ll) && (cm == 0)) continue;
+        zg_min = max(floor((ac_le_p[2][pzl]-ag_le[2])/ag_dx[2]) - 1, 0);
+        zg_max = min(ceil((ac_re_p[2][pzl]-ag_le[2])/ag_dx[2]), 
+                     g_data[0]->dimensions[2]);
+        for (zg = zg_min; zg < zg_max; zg++) {
+        cm = *(npy_int *)PyArray_GETPTR3(g_cm,xg,yg,zg);
+        if ((!ll) && (cm == 0)) continue;
           if (ag_le[2]+ag_dx[2]*zg     > ac_re_p[2][pzl]) continue;
           if (ag_le[2]+ag_dx[2]*(zg+1) < ac_le_p[2][pzl]) continue;
           cmin_z = max(floorl((ag_le[2]+ag_dx[2]*zg     - ac_le_p[2][pzl])/ac_dx[2]),0);
-          cmax_z = min( ceill((ag_le[2]+ag_dx[2]*(zg+1) - ac_le_p[2][pzl])/ac_dx[2]),PyArray_DIM(c_data[0],2));
+          cmax_z = min( ceill((ag_le[2]+ag_dx[2]*(zg+1) - ac_le_p[2][pzl])/ac_dx[2]),nz);
+          if(cmin_z==cmax_z)continue;
           for (xc = cmin_x; xc < cmax_x ; xc++) {
             for (yc = cmin_y; yc < cmax_y ; yc++) {
               for (zc = cmin_z; zc < cmax_z ; zc++) {

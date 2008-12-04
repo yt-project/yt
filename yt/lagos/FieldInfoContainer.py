@@ -281,4 +281,4 @@ class ValidateSpatial(FieldValidator):
             raise NeedsGridType(self.ghost_zones,self.fields)
         if self.ghost_zones == data._num_ghost_zones:
             return True
-        raise NeedsGridType(self.ghost_zones)
+        raise NeedsGridType(self.ghost_zones,self.fields)
