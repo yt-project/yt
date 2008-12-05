@@ -67,11 +67,11 @@ class SpectralFrequencyIntegrator(object):
         def frequency_bin_field(field, data):
             dd = {'NumberDensity' : na.log10(data["NumberDensity"]),
                   'Temperature'   : na.log10(data["Temperature"])}
-            return 10**interp(dd)*(data.dx**2.0)
-        def _conv(data):
-            return (data.convert("cm")**3.0)
-        add_field(name, convert_function=_conv, function=frequency_bin_field,
-                        projection_conversion="1")
+            return 10**interp(dd)
+        add_field(name, function=frequency_bin_field,
+                        projection_conversion="cm",
+                        units=r"\rm{ergs}\/\rm{cm}^{-3}\/\rm{s}^{-1}",
+                        projected_units=r"\rm{ergs}\/\rm{cm}^{-2}\/\rm{s}^{-1}")
         return name
 
 def create_table_from_textfiles(pattern, rho_spec, e_spec, T_spec):
