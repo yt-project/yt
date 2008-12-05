@@ -186,7 +186,7 @@ class PlotCollection:
 
     def __add_slice(self, ptype, field, axis, coord=None, center=None,
                  use_colorbar=True, figure = None, axes = None, fig_size=None,
-                 periodic = False, data_source = None, **kwargs):
+                 periodic = True, data_source = None, **kwargs):
         if center == None:
             center = self.c
         if coord == None:
@@ -265,7 +265,7 @@ class PlotCollection:
     def _add_projection(self, ptype, field, axis, weight_field=None,
                       center=None, use_colorbar=True,
                       figure = None, axes = None, fig_size=None,
-                      periodic = False, data_source = None, **kwargs):
+                      periodic = True, data_source = None, **kwargs):
         if center == None:
             center = self.c
         if data_source is None:
