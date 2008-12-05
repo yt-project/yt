@@ -40,7 +40,7 @@ def QueryFields(outputfile, only_display_fields = False):
         if f in outputfile.field_info and \
             outputfile.field_info[f].particle_type: continue
         if only_display_fields and \
-            f in outputfile.field_info[f] and \
+            f in outputfile.field_info and \
             not outputfile.field_info[f].display_field: continue
         fields.append(f)
     return sorted(fields)
