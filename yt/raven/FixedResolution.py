@@ -74,6 +74,14 @@ class FixedResolutionBuffer(object):
         dpy = (self.bounds[3]-self.bounds[2])/self.buff_size[1]
         return distance/dpy
 
+    def export_hdf5(self, filename, fields = None):
+        import tables
+        if fields is None: fields = self.data.keys()
+        output = tables.openFile(filename, "a")
+        for field in fields:
+            output.createArray("/",field,self[field])
+        output.close()
+
     def export_fits(self, filename_prefix, fields = None):
         """
         This will export a set of FITS images of either the fields specified
