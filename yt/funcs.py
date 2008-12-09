@@ -157,12 +157,12 @@ except ImportError:
     defaultdict = __defaultdict
 
 def rootonly(func):
+    @wraps(func)
     def donothing(*args, **kwargs):
         return
-    def dosomething(*args, **kwargs):
-        func(*args, **kwargs)
-    if ytcfg.getint("yt","__parallel_rank") > 0: dosomething
-    return dosomething
+    from yt.config import ytcfg
+    if ytcfg.getint("yt","__parallel_rank") > 0: return dosomething
+    return func
 
 def only_on_root(func, *args, **kwargs):
     from yt.config import ytcfg
