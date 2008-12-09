@@ -145,9 +145,10 @@ class __defaultdict(dict):
 
 import traceback
 def print_tb(func):
+    @wraps(func)
     def run_func(*args, **kwargs):
         traceback.print_stack()
-        func(*args, **kwargs)
+        return func(*args, **kwargs)
     return run_func
 
 try:
