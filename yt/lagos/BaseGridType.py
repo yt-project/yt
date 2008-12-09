@@ -84,8 +84,10 @@ class AMRGridPatch(AMRData):
                     if field in self.pf.field_info:
                         if self.pf.field_info[field].particle_type:
                             self[field] = na.array([],dtype='int64')
-                        if self.pf.field_info[field].not_in_all:
+                        elif self.pf.field_info[field].not_in_all:
                             self[field] = na.zeros(self.ActiveDimensions, dtype='float64')
+                        else:
+                            raise
                     else: raise
             else:
                 self._generate_field(field)
