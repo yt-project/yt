@@ -191,7 +191,7 @@ class HaloProfiler(object):
                     for e,field in enumerate(self.projectionFields.keys()):
                         frb = raven.FixedResolutionBuffer(pc.plots[e].data,(proj_left[0],proj_right[0],proj_left[1],proj_right[1]),
                                                           (projectionResolution,projectionResolution),
-                                                          antialias=True)
+                                                          antialias=False)
                         output.createArray("/",field,frb[field])
                     output.close()
 
