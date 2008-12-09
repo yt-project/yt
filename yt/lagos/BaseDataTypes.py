@@ -580,10 +580,10 @@ class AMR2DData(AMRData, GridPropertiesMixin, ParallelAnalysisInterface):
         self._obtain_fields(self._key_fields, node_name)
         self._obtain_fields(self.fields, node_name)
 
-    def _serialize(self, node_name = None):
+    def _serialize(self, node_name = None, force = False):
         if not self._okay_to_serialize: return
-        self._store_fields(self._key_fields, node_name)
-        self._store_fields(self.fields, node_name)
+        self._store_fields(self._key_fields, node_name, force)
+        self._store_fields(self.fields, node_name, force)
 
 class AMRSliceBase(AMR2DData):
     """
