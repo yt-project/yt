@@ -56,12 +56,13 @@ def LightConeProjection(lightConeSlice,field,pixels,weight_field=None,save_image
     # Make an Enzo data object.
     dataset_object = lightConeSlice['object']
 
-    # 1. The Depth Problem
-    # Excise a region from the box with the specified depth and make projection with that.
-    region_left = copy.deepcopy(dataset_object.parameters['DomainLeftEdge'])
-    region_right = copy.deepcopy(dataset_object.parameters['DomainRightEdge'])
-    region_center = [0.5 * (region_right[q] - region_left[q]) for q in range(len(region_left))]
+    # Make plot collection.
+    region_center = [0.5 * (dataset_object.parameters['DomainRightEdge'][q] +
+                            dataset_object.parameters['DomainLeftEdge'][q]) \
+                         for q in range(len(dataset_object.parameters['DomainLeftEdge']))]
+    pc = raven.PlotCollection(dataset_object,center=region_center)
 
+    # 1. The Depth Problem
     # Use coordinate field cut in line of sight to cut projection to proper depth.
     if (lightConeSlice['DepthBoxFraction'] < 1):
         axis = ('x','y','z')[lightConeSlice['ProjectionAxis']]
@@ -80,31 +81,12 @@ def LightConeProjection(lightConeSlice,field,pixels,weight_field=None,save_image
            field_cuts = []
         field_cuts.append(cut_mask)
 
-##### Periodic region.
-#     region_left[lightConeSlice['ProjectionAxis']] = lightConeSlice['ProjectionCenter'][lightConeSlice['ProjectionAxis']] - \
-#         0.5 * lightConeSlice['DepthBoxFraction']
-
-#     region_right[lightConeSlice['ProjectionAxis']] = lightConeSlice['ProjectionCenter'][lightConeSlice['ProjectionAxis']] + \
-#         0.5 * lightConeSlice['DepthBoxFraction']
-
-#     periodic_region = dataset_object.h.periodic_region(region_center,region_left,region_right)
-
-    # Make plot collection.
-    pc = raven.PlotCollection(dataset_object,center=region_center)
-
     # Make projection.
     pc.add_projection(field,lightConeSlice['ProjectionAxis'],weight_field=weight_field,field_cuts=field_cuts,use_colorbar=True,
                       node_name=node_name,**kwargs)
 
-##### Periodic region.
-#     pc.add_projection(field,lightConeSlice['ProjectionAxis'],weight_field=weight_field,source=periodic_region,use_colorbar=True,
-#                       node_name=node_name,**kwargs)
-
     # Serialize projection data.
     pc.plots[0].data._serialize(node_name,force=True)
-
-    # Delete region, maybe save some ram.
-    #del periodic_region
 
     # 2. The Tile Problem
     # Tile projection to specified width.
