@@ -889,7 +889,9 @@ class AMRProjBase(AMR2DData):
             self._check_region = True
         self.source = source
         if self._field_cuts is not None:
+            # Override if field cuts are around; we don't want to serialize!
             self._check_region = True
+            self._okay_to_serialize = False
 
     #@time_execution
     def __cache_data(self):
