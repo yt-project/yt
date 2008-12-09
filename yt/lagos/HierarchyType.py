@@ -1085,11 +1085,13 @@ class OrionHierarchy(AMRHierarchy):
         self.n_fields      = int(self.__global_header_lines[1])
 
         counter = self.n_fields+2
-        for i,line in enumerate(self.__global_header_lines[2:counter]):
-            self.field_indexes[line.rstrip()] =i
         self.field_list = []
-        for f in self.field_indexes:
-            self.field_list.append(orion2ytFieldsDict.get(f,f))
+        for i,line in enumerate(self.__global_header_lines[2:counter]):
+            self.field_list.append(line.rstrip())
+
+        # this is unused...eliminate it?
+        #for f in self.field_indexes:
+        #    self.field_list.append(orion2ytFieldsDict.get(f,f))
 
         self.dimension = int(self.__global_header_lines[counter])
         if self.dimension != 3:
@@ -1100,11 +1102,16 @@ class OrionHierarchy(AMRHierarchy):
         self.finest_grid_level = int(self.__global_header_lines[counter])
         self.n_levels = self.finest_grid_level + 1
         counter += 1
+        # quantities with _unnecessary are also stored in the inputs
+        # file and are not needed.  they are read in and stored in
+        # case in the future we want to enable a "backwards" way of
+        # taking the data out of the Header file and using it to fill
+        # in in the case of a missing inputs file
         self.domainLeftEdge_unnecessary = na.array(map(float,self.__global_header_lines[counter].split()))
         counter += 1
         self.domainRightEdge_unnecessary = na.array(map(float,self.__global_header_lines[counter].split()))
         counter += 1
-        self.refinementFactor_unnecessary = na.array(map(int,self.__global_header_lines[counter].split()))
+        self.refinementFactor_unnecessary = self.__global_header_lines[counter].split() #na.array(map(int,self.__global_header_lines[counter].split()))
         counter += 1
         self.globalIndexSpace_unnecessary = self.__global_header_lines[counter]
         #domain_re.search(self.__global_header_lines[counter]).groups()
@@ -1129,11 +1136,13 @@ class OrionHierarchy(AMRHierarchy):
         # each level is one group with ngrids on it. each grid has 3 lines of 2 reals
         self.levels = []
         grid_counter = 0
-        file_finder_pattern = r"FabOnDisk: (Cell_D_[0-9]{4}) (\d+)\n"
+        file_finder_pattern = r"FabOnDisk: (\w+_D_[0-9]{4}) (\d+)\n"
         re_file_finder = re.compile(file_finder_pattern)
         dim_finder_pattern = r"\(\((\d+,\d+,\d+)\) \((\d+,\d+,\d+)\) \(\d+,\d+,\d+\)\)\n"
         re_dim_finder = re.compile(dim_finder_pattern)
-        
+        data_files_pattern = r"Level_[\d]/"
+        data_files_finder = re.compile(data_files_pattern)
+
         for level in range(0,self.n_levels):
             tmp = self.__global_header_lines[counter].split()
             # should this be grid_time or level_time??
@@ -1144,13 +1153,45 @@ class OrionHierarchy(AMRHierarchy):
             self.levels.append(OrionLevel(lev,ngrids))
             # open level header, extract file names and offsets for
             # each grid
-            fn = os.path.join(self.parameter_file.fullplotdir,'Level_%i'%level)
-            level_header_file = open(os.path.join(fn,'Cell_H'),'r').read()
-            grid_file_offset = re_file_finder.findall(level_header_file)
-            start_stop_index = re_dim_finder.findall(level_header_file)
+            # read slightly out of order here: at the end of the lo,hi
+            # pairs for x,y,z is a *list* of files types in the Level
+            # directory. each type has Header and a number of data
+            # files (one per processor)
+            tmp_offset = counter + 3*ngrids
+            nfiles = 0
+            key_off = 0
+            files =   {} # dict(map(lambda a: (a,[]),self.field_list))
+            offsets = {} # dict(map(lambda a: (a,[]),self.field_list))
+            while nfiles+tmp_offset < len(self.__global_header_lines) and data_files_finder.match(self.__global_header_lines[nfiles+tmp_offset]):
+                filen = os.path.join(self.parameter_file.fullplotdir, \
+                                     self.__global_header_lines[nfiles+tmp_offset].strip())
+                # open each "_H" header file, and get the number of
+                # components within it
+                level_header_file = open(filen+'_H','r').read()
+                start_stop_index = re_dim_finder.findall(level_header_file) # just take the last one
+                grid_file_offset = re_file_finder.findall(level_header_file)
+                ncomp_this_file = int(level_header_file.split('\n')[2])
+                for i in range(ncomp_this_file):
+                    key = self.field_list[i+key_off]
+                    f,o = zip(*grid_file_offset)
+                    files[key] = f
+                    offsets[key] = o
+                    self.field_indexes[key] = i
+                key_off += ncomp_this_file
+                nfiles += 1
+            # convert dict of lists to list of dicts
+            fn = []
+            off = []
+            lead_path = os.path.join(self.parameter_file.fullplotdir,'Level_%i'%level)
+            for i in range(ngrids):
+                fi = [os.path.join(lead_path,files[key][i]) for key in self.field_list]
+                of = [int(offsets[key][i]) for key in self.field_list]
+                fn.append(dict(zip(self.field_list,fi)))
+                off.append(dict(zip(self.field_list,of)))
+
             for grid in range(0,ngrids):
-                gfn = os.path.join(fn,grid_file_offset[grid][0]) # filename of file containing this grid
-                gfo = int(grid_file_offset[grid][1]) # offset within that file
+                gfn = fn[grid]  # filename of file containing this grid
+                gfo = off[grid] # offset within that file
                 xlo,xhi = map(float,self.__global_header_lines[counter].split())
                 counter+=1
                 ylo,yhi = map(float,self.__global_header_lines[counter].split())
@@ -1163,8 +1204,9 @@ class OrionHierarchy(AMRHierarchy):
                 self.levels[-1].grids.append(self.grid(lo,hi,grid_counter,level,gfn, gfo, dims,start,stop,paranoia=paranoid_read))
                 grid_counter += 1 # this is global, and shouldn't be reset
                                   # for each level
-            self.levels[-1]._fileprefix = self.__global_header_lines[counter]
-            counter+=1
+
+            # already read the filenames above...
+            counter+=nfiles
             self.num_grids = grid_counter
             self.float_type = 'float64'
 
@@ -1181,7 +1223,7 @@ class OrionHierarchy(AMRHierarchy):
         with different endian processors, then you're on your own!
         """
         # open the test file & grab the header
-        inFile = open(os.path.expanduser(test_grid.filename),'rb')
+        inFile = open(os.path.expanduser(test_grid.filename[self.field_list[0]]),'rb')
         header = inFile.readline()
         inFile.close()
         header.strip()

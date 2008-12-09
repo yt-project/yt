@@ -316,8 +316,10 @@ def readDataNative(self,field):
     reads packed multiFABs output by BoxLib in "NATIVE" format.
 
     """
-    inFile = open(os.path.expanduser(self.filename),'rb')
-    inFile.seek(self._offset)
+    filen = os.path.expanduser(self.filename[field])
+    off = self._offset[field]
+    inFile = open(filen,'rb')
+    inFile.seek(off)
     header = inFile.readline()
     header.strip()
 

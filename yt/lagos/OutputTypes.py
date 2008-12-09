@@ -345,8 +345,8 @@ class OrionStaticOutput(StaticOutput):
         plotname here will be a directory name
         as per BoxLib, data_style will be one of
           Native
-          IEEE
-          ASCII
+          IEEE (not implemented in yt)
+          ASCII (not implemented in yt)
 
         """
         self.field_info = self._fieldinfo_class()
