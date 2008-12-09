@@ -161,7 +161,7 @@ def rootonly(func):
     def donothing(*args, **kwargs):
         return
     from yt.config import ytcfg
-    if ytcfg.getint("yt","__parallel_rank") > 0: return dosomething
+    if ytcfg.getint("yt","__parallel_rank") > 0: return donothing
     return func
 
 def only_on_root(func, *args, **kwargs):
