@@ -853,8 +853,6 @@ class AMRProjBase(AMR2DData):
         of that weight.
         """
         AMR2DData.__init__(self, axis, field, pf, node_name = None, **kwargs)
-        if field_cuts is not None:
-            field_cuts = ['grid%s' % cut for cut in ensure_list(field_cuts)]
         self._field_cuts = field_cuts
         self.center = center
         self._initialize_source(source)
