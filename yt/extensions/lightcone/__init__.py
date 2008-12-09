@@ -27,5 +27,5 @@ import yt.lagos as lagos
 
 from LightConeProjection import *
 from LightCone import *
+from HaloMask import *
 from UniqueSolution import *
-

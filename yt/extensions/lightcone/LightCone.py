@@ -25,12 +25,13 @@ License:
 
 from yt.extensions.lightcone import *
 from yt.logger import lagosLogger as mylog
+from Common_nVolume import *
+from HaloMask import *
 import copy
 import os
 import numpy as na
 import random as rand
 import tables as h5
-from Common_nVolume import *
 
 class LightCone(object):
     def __init__(self,EnzoParameterFile,LightConeParameterFile,verbose=True):
@@ -46,6 +47,7 @@ class LightCone(object):
         self.masterSolution = [] # kept to compare with recycled solutions
         self.projectionStack = []
         self.projectionWeightFieldStack = []
+        self.haloMask = []
 
         # Parameters for recycling light cone solutions.
         self.recycleSolution = False
@@ -57,6 +59,10 @@ class LightCone(object):
         # Read parameters.
         self._ReadLightConeParameterFile()
         self._ReadEnzoParameterFile()
+
+        # Calculate number of pixels.
+        self.pixels = int(self.lightConeParameters['FieldOfViewInArcMinutes'] * 60.0 / \
+                              self.lightConeParameters['ImageResolutionInArcSeconds'])
 
         # Create output directory.
         if (os.path.exists(self.lightConeParameters['OutputDir'])):
@@ -81,6 +87,9 @@ class LightCone(object):
 
         # Make sure recycling flag is off.
         self.recycleSolution = False
+
+        # Get rid of old halo mask, if one was there.
+        self.haloMask = []
 
         if seed is not None:
             self.lightConeParameters['RandomSeed'] = int(seed)
@@ -158,9 +167,9 @@ class LightCone(object):
             # Simple error check to make sure more than 100% of box depth is never required.
             if (self.lightConeSolution[q]['DepthBoxFraction'] > 1.0):
                 if self.verbose: mylog.error("Warning: box fraction required to go from z = %f to %f is %f" % (self.lightConeSolution[q]['redshift'],z_next,
-                                                                self.lightConeSolution[q]['DepthBoxFraction']))
+                                                                                                               self.lightConeSolution[q]['DepthBoxFraction']))
                 if self.verbose: mylog.error("Full box delta z is %f, but it is %f to the next data dump." % (self.lightConeSolution[q]['deltaz'],
-                                                                                       self.lightConeSolution[q]['redshift']-z_next))
+                                                                                                              self.lightConeSolution[q]['redshift']-z_next))
 
             # Calculate fraction of box required for width corresponding to requested image size.
             scale = co.AngularScale_1arcsec_kpc(self.lightConeParameters['FinalRedshift'],self.lightConeSolution[q]['redshift'])
@@ -182,7 +191,25 @@ class LightCone(object):
         del self.timeOutputs
         del co
 
-    def ProjectLightCone(self,field,weight_field=None,**kwargs):
+    def GetHaloMask(self,HaloMaskParameterFile,mask_file=None,**kwargs):
+        "Gets a halo mask from a file or makes a new one."
+
+        # Check if file already exists.
+        if (mask_file is not None) and os.path.exists(mask_file):
+            input = h5.openFile(mask_file,'r')
+            self.haloMask = input.root.haloMask.read()
+            input.close()
+
+        # Otherwise, make a halo mask.
+        else:
+            haloMaskCube = MakeLightConeHaloMask(self,HaloMaskParameterFile,mask_file=mask_file,**kwargs)
+            # Collapse cube into final mask.
+            self.haloMask = na.ones(shape=(self.pixels,self.pixels),dtype=bool)
+            for mask in haloMaskCube:
+                self.haloMask *= mask
+            del haloMaskCube
+
+    def ProjectLightCone(self,field,weight_field=None,apply_halo_mask=False,**kwargs):
         "Create projections for light cone, then add them together."
 
         # Clear projection stack.
@@ -194,14 +221,11 @@ class LightCone(object):
         if not(self.lightConeParameters['OutputDir'].endswith("/")):
                  self.lightConeParameters['OutputDir'] += "/"
 
-        pixels = int(self.lightConeParameters['FieldOfViewInArcMinutes'] * 60.0 / \
-            self.lightConeParameters['ImageResolutionInArcSeconds'])
-
         for q,output in enumerate(self.lightConeSolution):
             name = "%s%s_%04d_%04d" % (self.lightConeParameters['OutputDir'],self.lightConeParameters['OutputPrefix'],
                                        q,len(self.lightConeSolution))
             output['object'] = lagos.EnzoStaticOutput(output['filename'])
-            frb = LightConeProjection(output,field,pixels,weight_field=weight_field,
+            frb = LightConeProjection(output,field,self.pixels,weight_field=weight_field,
                                       save_image=self.lightConeParameters['SaveLightConeSlices'],
                                       name=name,**kwargs)
             if (weight_field is not None):
@@ -229,6 +253,14 @@ class LightCone(object):
         # but replace the data with the full light cone projection data.
         frb.data[field] = lightConeProjection
 
+        # Apply halo mask.
+        if apply_halo_mask:
+            if len(self.haloMask) > 0:
+                mylog.info("Applying halo mask.")
+                frb.data[field] *= self.haloMask
+            else:
+                mylog.error("No halo mask loaded, call GetHaloMask.")
+
         # Make a plot collection for the light cone projection.
         center = [0.5 * (self.lightConeSolution[-1]['object'].parameters['DomainLeftEdge'][w] + 
                          self.lightConeSolution[-1]['object'].parameters['DomainRightEdge'][w])
@@ -253,6 +285,9 @@ class LightCone(object):
         This routine has now been updated to be a general solution rescrambler.  If the keyword recycle is set to 
         True, then it will recycle.  Otherwise, it will create a completely new solution.
         """
+
+        # Get rid of old halo mask, if one was there.
+        self.haloMask = []
 
         if recycle:
             if self.verbose: mylog.info("Recycling solution made with %s with new seed %s." % (self.lightConeParameters['RandomSeed'],

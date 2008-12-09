@@ -30,7 +30,12 @@ import yt.raven as raven
 import numpy as na
 import copy
 
-def LightConeProjection(lightConeSlice,field,pixels,weight_field=None,save_image=False,name="",**kwargs):
+#### Note: There is an assumption that the box width is 1 in every direction.  This doesn't have to be, but 
+####       I don't have time to fix it now.  All that is required is a multiplication by the box width in 
+####       the direction in question wherever DepthBoxFraction or WidthBoxFraction appears.
+####       To be fixed before turning 30.  - Britton
+
+def LightConeProjection(lightConeSlice,field,pixels,weight_field=None,save_image=False,name="",field_cuts=None,**kwargs):
     "Create a single projection to be added into the light cone stack."
 
     # Use some projection parameters to seed random number generator to make unique node name.
@@ -53,41 +58,64 @@ def LightConeProjection(lightConeSlice,field,pixels,weight_field=None,save_image
 
     # 1. The Depth Problem
     # Excise a region from the box with the specified depth and make projection with that.
-    region_center = [0.5,0.5,0.5]
+    region_left = copy.deepcopy(dataset_object.parameters['DomainLeftEdge'])
+    region_right = copy.deepcopy(dataset_object.parameters['DomainRightEdge'])
+    region_center = [0.5 * (region_right[q] - region_left[q]) for q in range(len(region_left))]
 
-    region_left = [0.0,0.0,0.0]
-    region_left[lightConeSlice['ProjectionAxis']] = lightConeSlice['ProjectionCenter'][lightConeSlice['ProjectionAxis']] - \
-        0.5 * lightConeSlice['DepthBoxFraction']
+    # Use coordinate field cut in line of sight to cut projection to proper depth.
+    if (lightConeSlice['DepthBoxFraction'] < 1):
+        axis = ('x','y','z')[lightConeSlice['ProjectionAxis']]
+        depthLeft = lightConeSlice['ProjectionCenter'][lightConeSlice['ProjectionAxis']] - 0.5 * lightConeSlice['DepthBoxFraction']
+        depthRight = lightConeSlice['ProjectionCenter'][lightConeSlice['ProjectionAxis']] + 0.5 * lightConeSlice['DepthBoxFraction']
+        if (depthLeft < 0):
+            cut_mask = "((grid[\"%s\"] + 0.5*grid[\"d%s\"] >= 0) & (grid[\"%s\"] - 0.5*grid[\"d%s\"] <= %f)) | ((grid[\"%s\"] + 0.5*grid[\"d%s\"] >= %f) & (grid[\"%s\"] - 0.5*grid[\"d%s\"] <= 1))" % \
+                (axis,axis,axis,axis,depthRight,axis,axis,(depthLeft+1),axis,axis)
+        elif (depthRight > 1):
+            cut_mask = "((grid[\"%s\"] + 0.5*grid[\"d%s\"] >= 0) & (grid[\"%s\"] - 0.5*grid[\"d%s\"] <= %f)) | ((grid[\"%s\"] + 0.5*grid[\"d%s\"] >= %f) & (grid[\"%s\"] - 0.5*grid[\"d%s\"] <= 1))" % \
+                (axis,axis,axis,axis,(depthRight-1),axis,axis,depthLeft,axis,axis)
+        else:
+            cut_mask = "(grid[\"%s\"] + 0.5*grid[\"d%s\"] >= %f) & (grid[\"%s\"] - 0.5*grid[\"%s\"] <= %f)" % (axis,axis,depthLeft,axis,axis,depthRight)
 
-    region_right = [1.0,1.0,1.0]
-    region_right[lightConeSlice['ProjectionAxis']] = lightConeSlice['ProjectionCenter'][lightConeSlice['ProjectionAxis']] + \
-        0.5 * lightConeSlice['DepthBoxFraction']
+        if field_cuts is None:
+           field_cuts = []
+        field_cuts.append(cut_mask)
 
-    periodic_region = dataset_object.h.periodic_region(region_center,region_left,region_right)
+##### Periodic region.
+#     region_left[lightConeSlice['ProjectionAxis']] = lightConeSlice['ProjectionCenter'][lightConeSlice['ProjectionAxis']] - \
+#         0.5 * lightConeSlice['DepthBoxFraction']
+
+#     region_right[lightConeSlice['ProjectionAxis']] = lightConeSlice['ProjectionCenter'][lightConeSlice['ProjectionAxis']] + \
+#         0.5 * lightConeSlice['DepthBoxFraction']
+
+#     periodic_region = dataset_object.h.periodic_region(region_center,region_left,region_right)
 
     # Make plot collection.
     pc = raven.PlotCollection(dataset_object,center=region_center)
 
     # Make projection.
-    pc.add_projection(field,lightConeSlice['ProjectionAxis'],weight_field=weight_field,source=periodic_region,use_colorbar=True,
+    pc.add_projection(field,lightConeSlice['ProjectionAxis'],weight_field=weight_field,field_cuts=field_cuts,use_colorbar=True,
                       node_name=node_name,**kwargs)
+
+##### Periodic region.
+#     pc.add_projection(field,lightConeSlice['ProjectionAxis'],weight_field=weight_field,source=periodic_region,use_colorbar=True,
+#                       node_name=node_name,**kwargs)
 
     # Serialize projection data.
     pc.plots[0].data._serialize(node_name,force=True)
 
     # Delete region, maybe save some ram.
-    del periodic_region
+    #del periodic_region
 
     # 2. The Tile Problem
     # Tile projection to specified width.
 
     # Original projection data.
-    original_px = pc.plots[0].data['px']
-    original_py = pc.plots[0].data['py']
-    original_pdx = pc.plots[0].data['pdx']
-    original_pdy = pc.plots[0].data['pdy']
-    original_field = pc.plots[0].data[field]
-    original_weight_field = pc.plots[0].data['weight_field']
+    original_px = copy.deepcopy(pc.plots[0].data['px'])
+    original_py = copy.deepcopy(pc.plots[0].data['py'])
+    original_pdx = copy.deepcopy(pc.plots[0].data['pdx'])
+    original_pdy = copy.deepcopy(pc.plots[0].data['pdy'])
+    original_field = copy.deepcopy(pc.plots[0].data[field])
+    original_weight_field = copy.deepcopy(pc.plots[0].data['weight_field'])
 
     # Copy original into offset positions to make tiles.
     for x in range(int(na.ceil(lightConeSlice['WidthBoxFraction']))):
@@ -127,40 +155,48 @@ def LightConeProjection(lightConeSlice,field,pixels,weight_field=None,save_image
     # Find those cells and make copies to be placed on the other side.
 
     # Cells hanging off the right edge.
-    add_x_px = pc.plots[0]['px'][pc.plots[0]['px'] + 0.5 * pc.plots[0]['pdx'] > na.ceil(lightConeSlice['WidthBoxFraction'])]
+    add_x_right = pc.plots[0]['px'] + 0.5 * pc.plots[0]['pdx'] > na.ceil(lightConeSlice['WidthBoxFraction'])
+    add_x_px = pc.plots[0]['px'][add_x_right]
     add_x_px -= na.ceil(lightConeSlice['WidthBoxFraction'])
-    add_x_py = pc.plots[0]['py'][pc.plots[0]['px'] + 0.5 * pc.plots[0]['pdx'] > na.ceil(lightConeSlice['WidthBoxFraction'])]
-    add_x_pdx = pc.plots[0]['pdx'][pc.plots[0]['px'] + 0.5 * pc.plots[0]['pdx'] > na.ceil(lightConeSlice['WidthBoxFraction'])]
-    add_x_pdy = pc.plots[0]['pdy'][pc.plots[0]['px'] + 0.5 * pc.plots[0]['pdx'] > na.ceil(lightConeSlice['WidthBoxFraction'])]
-    add_x_field = pc.plots[0][field][pc.plots[0]['px'] + 0.5 * pc.plots[0]['pdx'] > na.ceil(lightConeSlice['WidthBoxFraction'])]
-    add_x_weight_field = pc.plots[0]['weight_field'][pc.plots[0]['px'] + 0.5 * pc.plots[0]['pdx'] > na.ceil(lightConeSlice['WidthBoxFraction'])]
+    add_x_py = pc.plots[0]['py'][add_x_right]
+    add_x_pdx = pc.plots[0]['pdx'][add_x_right]
+    add_x_pdy = pc.plots[0]['pdy'][add_x_right]
+    add_x_field = pc.plots[0][field][add_x_right]
+    add_x_weight_field = pc.plots[0]['weight_field'][add_x_right]
+    del add_x_right
 
     # Cells hanging off the left edge.
-    add2_x_px = pc.plots[0]['px'][pc.plots[0]['px'] - 0.5 * pc.plots[0]['pdx'] < 0]
+    add_x_left = pc.plots[0]['px'] - 0.5 * pc.plots[0]['pdx'] < 0
+    add2_x_px = pc.plots[0]['px'][add_x_left]
     add2_x_px += na.ceil(lightConeSlice['WidthBoxFraction'])
-    add2_x_py = pc.plots[0]['py'][pc.plots[0]['px'] - 0.5 * pc.plots[0]['pdx'] < 0]
-    add2_x_pdx = pc.plots[0]['pdx'][pc.plots[0]['px'] - 0.5 * pc.plots[0]['pdx'] < 0]
-    add2_x_pdy = pc.plots[0]['pdy'][pc.plots[0]['px'] - 0.5 * pc.plots[0]['pdx'] < 0]
-    add2_x_field = pc.plots[0][field][pc.plots[0]['px'] - 0.5 * pc.plots[0]['pdx'] < 0]
-    add2_x_weight_field = pc.plots[0]['weight_field'][pc.plots[0]['px'] - 0.5 * pc.plots[0]['pdx'] < 0]
+    add2_x_py = pc.plots[0]['py'][add_x_left]
+    add2_x_pdx = pc.plots[0]['pdx'][add_x_left]
+    add2_x_pdy = pc.plots[0]['pdy'][add_x_left]
+    add2_x_field = pc.plots[0][field][add_x_left]
+    add2_x_weight_field = pc.plots[0]['weight_field'][add_x_left]
+    del add_x_left
 
     # Cells hanging off the top edge.
-    add_y_px = pc.plots[0]['px'][pc.plots[0]['py'] + 0.5 * pc.plots[0]['pdy'] > na.ceil(lightConeSlice['WidthBoxFraction'])]
-    add_y_py = pc.plots[0]['py'][pc.plots[0]['py'] + 0.5 * pc.plots[0]['pdy'] > na.ceil(lightConeSlice['WidthBoxFraction'])]
+    add_y_right = pc.plots[0]['py'] + 0.5 * pc.plots[0]['pdy'] > na.ceil(lightConeSlice['WidthBoxFraction'])
+    add_y_px = pc.plots[0]['px'][add_y_right]
+    add_y_py = pc.plots[0]['py'][add_y_right]
     add_y_py -= na.ceil(lightConeSlice['WidthBoxFraction'])
-    add_y_pdx = pc.plots[0]['pdx'][pc.plots[0]['py'] + 0.5 * pc.plots[0]['pdy'] > na.ceil(lightConeSlice['WidthBoxFraction'])]
-    add_y_pdy = pc.plots[0]['pdy'][pc.plots[0]['py'] + 0.5 * pc.plots[0]['pdy'] > na.ceil(lightConeSlice['WidthBoxFraction'])]
-    add_y_field = pc.plots[0][field][pc.plots[0]['py'] + 0.5 * pc.plots[0]['pdy'] > na.ceil(lightConeSlice['WidthBoxFraction'])]
-    add_y_weight_field = pc.plots[0]['weight_field'][pc.plots[0]['py'] + 0.5 * pc.plots[0]['pdy'] > na.ceil(lightConeSlice['WidthBoxFraction'])]
+    add_y_pdx = pc.plots[0]['pdx'][add_y_right]
+    add_y_pdy = pc.plots[0]['pdy'][add_y_right]
+    add_y_field = pc.plots[0][field][add_y_right]
+    add_y_weight_field = pc.plots[0]['weight_field'][add_y_right]
+    del add_y_right
 
     # Cells hanging off the bottom edge.
-    add2_y_px = pc.plots[0]['px'][pc.plots[0]['py'] - 0.5 * pc.plots[0]['pdy'] < 0]
-    add2_y_py = pc.plots[0]['py'][pc.plots[0]['py'] - 0.5 * pc.plots[0]['pdy'] < 0]
+    add_y_left = pc.plots[0]['py'] - 0.5 * pc.plots[0]['pdy'] < 0
+    add2_y_px = pc.plots[0]['px'][add_y_left]
+    add2_y_py = pc.plots[0]['py'][add_y_left]
     add2_y_py += na.ceil(lightConeSlice['WidthBoxFraction'])
-    add2_y_pdx = pc.plots[0]['pdx'][pc.plots[0]['py'] - 0.5 * pc.plots[0]['pdy'] < 0]
-    add2_y_pdy = pc.plots[0]['pdy'][pc.plots[0]['py'] - 0.5 * pc.plots[0]['pdy'] < 0]
-    add2_y_field = pc.plots[0][field][pc.plots[0]['py'] - 0.5 * pc.plots[0]['pdy'] < 0]
-    add2_y_weight_field = pc.plots[0]['weight_field'][pc.plots[0]['py'] - 0.5 * pc.plots[0]['pdy'] < 0]
+    add2_y_pdx = pc.plots[0]['pdx'][add_y_left]
+    add2_y_pdy = pc.plots[0]['pdy'][add_y_left]
+    add2_y_field = pc.plots[0][field][add_y_left]
+    add2_y_weight_field = pc.plots[0]['weight_field'][add_y_left]
+    del add_y_left
 
     # Add the hanging cells back to the projection data.
     pc.plots[0].data['px'] = na.concatenate([pc.plots[0]['px'],add_x_px,add_y_px,add2_x_px,add2_y_px])
@@ -168,8 +204,8 @@ def LightConeProjection(lightConeSlice,field,pixels,weight_field=None,save_image
     pc.plots[0].data['pdx'] = na.concatenate([pc.plots[0]['pdx'],add_x_pdx,add_y_pdx,add2_x_pdx,add2_y_pdx])
     pc.plots[0].data['pdy'] = na.concatenate([pc.plots[0]['pdy'],add_x_pdy,add_y_pdy,add2_x_pdy,add2_y_pdy])
     pc.plots[0].data[field] = na.concatenate([pc.plots[0][field],add_x_field,add_y_field,add2_x_field,add2_y_field])
-    pc.plots[0].data['weight_field'] = na.concatenate([pc.plots[0]['weight_field'],
-                                                               add_x_weight_field,add_y_weight_field,add2_x_weight_field,add2_y_weight_field])
+    pc.plots[0].data['weight_field'] = na.concatenate([pc.plots[0]['weight_field'],add_x_weight_field,add_y_weight_field,
+                                                       add2_x_weight_field,add2_y_weight_field])
 
     # Delete original copies of hanging cells.
     del add_x_px,add_y_px,add2_x_px,add2_y_px
@@ -191,6 +227,6 @@ def LightConeProjection(lightConeSlice,field,pixels,weight_field=None,save_image
     # Create fixed resolution buffer to return back to the light cone object.
     # These buffers will be stacked together to make the light cone.
     frb = raven.FixedResolutionBuffer(pc.plots[0].data,(0,lightConeSlice['WidthBoxFraction'],0,lightConeSlice['WidthBoxFraction']),
-                                      (pixels,pixels),antialias=True)
+                                      (pixels,pixels),antialias=False)
 
     return frb
