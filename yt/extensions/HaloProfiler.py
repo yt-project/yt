@@ -337,8 +337,8 @@ class HaloProfiler(object):
         virialFile = "%s/%s" % (self.pf.fullpath,
                                 self.haloProfilerParameters['VirialQuantitiesOutputFile'])
         if not(os.path.exists(virialFile)):
-            mylog.error("Virial quantities not available.  Run makeProfiles to get them.")
-            return
+            mylog.info("Virial quantities file not found.  Making profiles to calculate virial quantities.")
+            self.makeProfiles()
 
         mylog.info("Reading virial quantities from %s." % virialFile)
         virialLines = file(virialFile)
