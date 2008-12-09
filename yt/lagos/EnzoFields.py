@@ -25,6 +25,8 @@ License:
 
 from UniversalFields import *
 
+rho_crit_now = 1.8788e-29
+
 class EnzoFieldContainer(CodeFieldInfoContainer):
     _shared_state = {}
     _field_list = {}
