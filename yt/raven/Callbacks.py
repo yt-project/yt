@@ -28,6 +28,7 @@ License:
 """
 
 from yt.raven import *
+from PlotTypes import _get_bounds
 
 import _MPL
 
@@ -35,15 +36,16 @@ class PlotCallback(object):
     def __init__(self, *args, **kwargs):
         pass
 
-    def convert_to_pixels(self, plot, coord):
+    def convert_to_pixels(self, plot, coord, offset = True):
         x0, x1 = plot.xlim
         y0, y1 = plot.ylim
-        l, b, width, height = plot._axes.bbox.get_bounds()
+        l, b, width, height = _get_bounds(plot._axes.bbox)
         xi = lagos.x_dict[plot.data.axis]
         yi = lagos.y_dict[plot.data.axis]
         dx = plot.image._A.shape[0] / (x1-x0)
         dy = plot.image._A.shape[1] / (y1-y0)
-        return ((coord[0] - x0)*dx, (coord[1] - y0)*dy)
+        return ((coord[0] - int(offset)*x0)*dx,
+                (coord[1] - int(offset)*y0)*dy)
 
 class QuiverCallback(PlotCallback):
     def __init__(self, field_x, field_y, factor):
@@ -54,6 +56,7 @@ class QuiverCallback(PlotCallback):
         PlotCallback.__init__(self)
         self.field_x = field_x
         self.field_y = field_y
+        self.bv_x = self.bv_y = 0
         self.factor = factor
 
     def __call__(self, plot):
@@ -68,14 +71,14 @@ class QuiverCallback(PlotCallback):
                              plot.data['py'],
                              plot.data['pdx'],
                              plot.data['pdy'],
-                             plot.data[self.field_x],
+                             plot.data[self.field_x] - self.bv_x,
                              int(nx), int(ny),
                            (x0, x1, y0, y1),).transpose()
         pixY = _MPL.Pixelize(plot.data['px'],
                              plot.data['py'],
                              plot.data['pdx'],
                              plot.data['pdy'],
-                             plot.data[self.field_y],
+                             plot.data[self.field_y] - self.bv_y,
                              int(nx), int(ny),
                            (x0, x1, y0, y1),).transpose()
         X = na.mgrid[0:plot.image._A.shape[0]-1:nx*1j]# + 0.5*factor
@@ -221,8 +224,8 @@ class GridBoundaryCallback(PlotCallback):
         y0, y1 = plot.ylim
         xx0, xx1 = plot._axes.get_xlim()
         yy0, yy1 = plot._axes.get_ylim()
-        dx = plot.image._A.shape[0] / (x1-x0)
-        dy = plot.image._A.shape[1] / (y1-y0)
+        dx = (xx1-xx0)/(x1-x0)
+        dy = (yy1-yy0)/(y1-y0)
         GLE = plot.data.gridLeftEdge
         GRE = plot.data.gridRightEdge
         px_index = lagos.x_dict[plot.data.axis]
@@ -285,7 +288,7 @@ class UnitBoundaryCallback(PlotCallback):
     def __call__(self, plot):
         x0, x1 = plot.xlim
         y0, y1 = plot.ylim
-        l, b, width, height = plot._axes.bbox.get_bounds()
+        l, b, width, height = _get_bounds(plot._axes.bbox)
         xi = lagos.x_dict[plot.data.axis]
         yi = lagos.y_dict[plot.data.axis]
         dx = plot.image._A.shape[0] / (x1-x0)
@@ -322,10 +325,11 @@ class UnitBoundaryCallback(PlotCallback):
         plot._axes.add_collection(grid_collection)
         if self.text_annotate:
             ti = max(self.text_which, -1*len(widths[visible]))
-            w = widths[visible][ti]
-            good_u = get_smallest_appropriate_unit(w, plot.data.pf)
-            w *= plot.data.pf[good_u]
-            plot._axes.annotate("%0.3e %s" % (w,good_u), verts[ti,1,:]+5)
+            if ti < len(widths[visible]): 
+                w = widths[visible][ti]
+                good_u = get_smallest_appropriate_unit(w, plot.data.pf)
+                w *= plot.data.pf[good_u]
+                plot._axes.annotate("%0.3e %s" % (w,good_u), verts[ti,1,:]+5)
         plot._axes.hold(False)
 
 class LinePlotCallback(PlotCallback):
@@ -409,8 +413,8 @@ class ClumpContourCallback(PlotCallback):
             mylog.debug("Pixelizing contour %s", i)
             temp = _MPL.Pixelize(clump[self.xf],
                                  clump[self.yf],
-                                 clump['dx'],
-                                 clump['dx'],
+                                 clump['dx']/2.0,
+                                 clump['dy']/2.0,
                                  clump['dx']*0.0+i+1, # inits inside Pixelize
                                  int(nx), int(ny),
                              (x0, x1, y0, y1), 0).transpose()
@@ -418,6 +422,21 @@ class ClumpContourCallback(PlotCallback):
         self.rv = plot._axes.contour(buff, len(self.clumps)+1,
                                      **self.plot_args)
         plot._axes.hold(False)
+
+class ArrowCallback(PlotCallback):
+    def __init__(self, pos, code_size, plot_args = None):
+        self.pos = pos
+        self.code_size = code_size
+        if plot_args is None: plot_args = {}
+        self.plot_args = plot_args
+
+    def __call__(self, plot):
+        from matplotlib.patches import Arrow
+        # Now convert the pixels to code information
+        x, y = self.convert_to_pixels(plot, self.pos)
+        dx, dy = self.convert_to_pixels(plot, self.code_size, False)
+        arrow = Arrow(x, y, dx, dy, **self.plot_args)
+        plot._axes.add_patch(arrow)
 
 class PointAnnotateCallback(PlotCallback):
     def __init__(self, pos, text, text_args = None):
