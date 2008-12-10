@@ -855,6 +855,7 @@ class AMRProjBase(AMR2DData):
         AMR2DData.__init__(self, axis, field, pf, node_name = None, **kwargs)
         self._field_cuts = field_cuts
         self.center = center
+        self._node_name = node_name
         self._initialize_source(source)
         self._grids = self.source._grids
         if max_level == None:
@@ -869,7 +870,6 @@ class AMRProjBase(AMR2DData):
         self.__retval_coarse = {}
         self.__overlap_masks = {}
         self._temp = {}
-        self._node_name = node_name
         self._deserialize(node_name)
         self._refresh_data()
         if self._okay_to_serialize: self._serialize()
