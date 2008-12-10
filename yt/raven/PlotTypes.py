@@ -387,6 +387,20 @@ class FixedResolutionPlot(VMPlot):
 class SlicePlot(VMPlot):
     _type_name = "Slice"
 
+    def show_velocity(self, factor = 16, bv_radius = None):
+        xax = lagos.x_dict[self.data.axis]
+        yax = lagos.y_dict[self.data.axis]
+        xf = "%s-velocity" % (lagos.axis_names[xax])
+        yf = "%s-velocity" % (lagos.axis_names[yax])
+        if bv_radius is not None:
+            sp = self.data.pf.h.sphere(self.data.center, bv_radius)
+            bv = sp.quantities["BulkVelocity"]()
+            self.data[xf + "_bv"] = self.data[xf] - bv[xax]
+            self.data[yf + "_bv"] = self.data[yf] - bv[yax]
+            xf += "_bv"; yf += "_bv"
+        from Callbacks import QuiverCallback
+        self.add_callback(QuiverCallback(xf, yf, factor))
+
     def autoset_label(self):
         if self.datalabel != None:
             self.colorbar.set_label(str(self.datalabel))
@@ -648,6 +662,8 @@ class Profile1DPlot(ProfilePlot):
 class PhasePlot(ProfilePlot):
 
     _type_name = "Profile2D"
+    _xlim = None
+    _ylim = None
     def __init__(self, data, fields, id, ticker=None, cmap=None,
                  figure=None, axes=None):
         self._semi_unique_id = id
@@ -688,6 +704,12 @@ class PhasePlot(ProfilePlot):
         self.axis_names["Z"] = field
         if field not in self.data.keys(): self.data.add_fields(field, weight, accumulation)
         self._log_z = self.setup_bins(self.fields[2])
+
+    def set_xlim(self, xmin, xmax):
+        self._xlim = (xmin,xmax)
+
+    def set_ylim(self, ymin, ymax):
+        self._ylim = (ymin,ymax)
 
     def set_zlim(self, zmin, zmax):
         """
@@ -742,6 +764,8 @@ class PhasePlot(ProfilePlot):
                                       norm=self.norm, cmap=self.cmap)
         self._axes.set_xscale({0:"linear",1:"log"}[int(self._log_x)])
         self._axes.set_yscale({0:"linear",1:"log"}[int(self._log_y)])
+        if self._xlim is not None: self._axes.set_xlim(*self._xlim)
+        if self._ylim is not None: self._axes.set_ylim(*self._ylim)
         self.vals = vals
 
         _notify(self.image, self.colorbar)
