@@ -57,7 +57,8 @@ def setup_package():
                            'pdf' : ['pypdf']},
         entry_points = { 'console_scripts' : [
                             'yt_timeseries = yt.commands:timeseries',
-                            'yt_zoomin = yt.commands:zoomin']
+                            'yt_zoomin = yt.commands:zoomin',
+                            'yt_hop = yt.commands:hop_single']
                        },
         author="Matthew J. Turk",
         author_email="matthewturk@gmail.com",
