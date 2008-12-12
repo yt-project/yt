@@ -147,7 +147,7 @@ echo "Installing numpy, matplotlib, ipython"
 export LDFLAGS="${LDFLAGS} -L${DEST_DIR}/lib/ -L${DEST_DIR}/lib64/"
 ${DEST_DIR}/bin/python2.5 ${YT_DIR}/ez_setup.py
 ${DEST_DIR}/bin/easy_install numpy      || exit 1
-${DEST_DIR}/bin/easy_install matplotlib || exit 1
+${DEST_DIR}/bin/easy_install "matplotlib==0.98.3" || exit 1
 ${DEST_DIR}/bin/easy_install ipython    || exit 1
 
 echo "Doing yt update"
