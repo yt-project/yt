@@ -461,7 +461,7 @@ class SphereCallback(PlotCallback):
         from matplotlib.patches import Circle
         x0, x1 = plot.xlim
         y0, y1 = plot.ylim
-        l, b, width, height = plot._axes.bbox.get_bounds()
+        l, b, width, height = _get_bounds(plot._axes.bbox)
         xi = lagos.x_dict[plot.data.axis]
         yi = lagos.y_dict[plot.data.axis]
         dx = plot.image._A.shape[0] / (x1-x0)
@@ -493,12 +493,11 @@ class HopCircleCallback(PlotCallback):
         from matplotlib.patches import Circle
         x0, x1 = plot.xlim
         y0, y1 = plot.ylim
-        l, b, width, height = plot._axes.bbox.get_bounds()
+        l, b, width, height = _get_bounds(plot._axes.bbox)
         xi = lagos.x_dict[plot.data.axis]
         yi = lagos.y_dict[plot.data.axis]
         dx = plot.image._A.shape[0] / (x1-x0)
         dy = plot.image._A.shape[1] / (y1-y0)
-        print "there are %d haloes" % len(self.hop_output) # skory
         for halo in self.hop_output[:self.max_number]:
             radius = halo.maximum_radius() * dx
             center = halo.center_of_mass()
@@ -539,7 +538,7 @@ class VobozCircleCallback(PlotCallback):
         from matplotlib.patches import Circle
         x0, x1 = plot.xlim
         y0, y1 = plot.ylim
-        l, b, width, height = plot._axes.bbox.get_bounds()
+        l, b, width, height = _get_bounds(plot._axes.bbox)
         xi = lagos.x_dict[plot.data.axis]
         yi = lagos.y_dict[plot.data.axis]
         dx = plot.image._A.shape[0] / (x1-x0)
