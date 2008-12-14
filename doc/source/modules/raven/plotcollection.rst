@@ -13,6 +13,8 @@ images and manipulating existing plots.
 .. autoclass:: yt.raven.PlotCollection
    :members:
 
+.. _callbacks:
+
 Plot Modification Callbacks
 ---------------------------
 

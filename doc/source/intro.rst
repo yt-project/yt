@@ -24,7 +24,7 @@ it has been generalized to rely on commodity Python packages (mostly), its
 dependencies have been reduced, and thus its installation made significantly easier.
 
 In 2008, yt was extended by Jeff Oishi to include support for the Orion code.
-Additionally, it was selected for inclusion in the next public release of the
+Additionally, it was selected for inclusion in the 1.5 release of the
 Enzo code.
 
 What yt is and is not
@@ -54,7 +54,7 @@ non-comprehensive list of features:
   * Identification of topologically-connected sets in arbitrary fields
   * Projections, orthogonal slices, oblique slices
   * Axially-aligned rays
-  * Memory-conserving 1-, 2- and 3-D profiles of arbitrary fields.
+  * Memory-conserving 1-, 2- and 3-D profiles of arbitrary fields and objects.
   * Halo-finding (HOP) algorithm with full particle information and sphere access
   * `PyTables <http://www.pytables.org/>`_, the data-storage backend for
     marshalling of data.
@@ -100,3 +100,21 @@ non-comprehensive list of features:
   * Source code availability: **FULL**.
   * Portability: **YES**.
 
+How do I cite yt?
+-----------------
+
+If you use some of the advanced features of yt and would like to cite it in
+a publication, you should feel free to cite the 
+`Proceedings Paper <http://conference.scipy.org/proceedings/SciPy2008/paper_11>`_ 
+with the following BibTeX entry: ::
+
+   @InProceedings{SciPyProceedings_46,
+     author =       {Matthew Turk},
+     title =        {Analysis and Visualization of Multi-Scale Astrophysical
+   Simulations Using Python and NumPy},
+     booktitle =   {Proceedings of the 7th Python in Science Conference},
+     pages =     {46 - 50},
+     address = {Pasadena, CA USA},
+     year =      {2008},
+     editor =    {Ga\"el Varoquaux and Travis Vaught and Jarrod Millman},
+   }

@@ -37,7 +37,7 @@ What's up with the names?
 
 In the book `Snow Crash <http://en.wikipedia.org/wiki/Snow_Crash>`_, yt is
 Uncle Enzo's messenger.  Lagos is the keeper of the data, Raven is a master
-slicer, and so on.
+slicer, and so on.  It's likely that this will get changed in the future.
 
 Are there any restrictions on my use of yt?
 -------------------------------------------
@@ -49,6 +49,9 @@ If you found it useful, and have extended it in some meaningful way, of course
 I'd love to see your contributions so they can be shared with the community.
 Additionally, if you use yt in a paper, I'd love it if you'd drop me a line to
 let me know.
+
+.. _units:
+.. _derived fields:
 
 How do I know what the units returned are?
 ------------------------------------------
@@ -70,6 +73,8 @@ for your simulation, it will notify you.  It knows how to parse output from
 all of the versions of Enzo I have used or encountered, and the newest public
 release is a target platform.
 
+.. _data_serialization:
+
 What are all these .yt files?
 -----------------------------
 
@@ -90,11 +95,15 @@ incorrect hierarchies, and thus incorrect behavior, inside your analysis.  In
 such cases, it is recommended that the parameter 'serialize' in the section
 'lagos' of your configuration file is set to 'False'.
 
+.. _contributing:
+
 How can I help?
 ---------------
 
 If you find a bug, report it.  If you do something cool, write it up.  If you
 find a place to improve the code, send in a patch. 
+
+.. _help:
 
 Something has gone wrong.  What do I do?
 ----------------------------------------

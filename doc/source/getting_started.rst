@@ -43,6 +43,9 @@ where my_script.py is the script you wish to run.
 Binary Packages
 ===============
 
+Currently binary packages are only supplied for OSX.  See the download page on
+the Wiki for up-to-date links.
+
 Installing From Source
 ======================
 
@@ -61,13 +64,37 @@ of yt or an expanded tarball.
    any changes in the source directory will be included the next time you
    import yt!
 
-Prerequisites for yt
---------------------
+There are several variabels you can set inside this script.
 
-A driving factor in the development of yt over the months leading to release
-1.0 has been the reduction of dependencies.  To that extent, only a few
-packages are required for the base usage, and a GUI toolkit if you are going to use
-the graphical user interface, Reason.
+   ``DEST_DIR``
+     This is the location to which all source code will be downloaded and
+     resulting built libraries installed.
+   ``HDF5_DIR``
+     If you wish to link against existing HDF5 (*shared*) libraries, put the
+     root path to the installation here.
+   ``INST_WXPYTHON``
+     This is a boolean, set to 0 or 1, that governs whether or not wxPython
+     should be installed.
+   ``INST_ZLIB``
+     This is a boolean, set to 0 or 1, that governs whether or not zlib
+     should be installed.
+   ``YT_DIR``
+     If you've got a source checkout of YT somewhere else, point to it with
+     this!
+
+.. warning:: If you run into problems, particularly anything involving
+   ``-fPIC``, it is likely that there's a problem with static libraries.
+   Try asking the installer script to install HDF5 and ZLIB.
+
+Installing by Hand
+------------------
+
+If you've ever installed a python package by hand before, YT should be easy to
+install.  You will need to install the prequisites first.  A driving factor in
+the development of yt over the months leading to release 1.0 has been the
+reduction of dependencies.  To that extent, only a few packages are required
+for the base usage, and a GUI toolkit if you are going to use the graphical
+user interface, Reason.
 
  * `Python <http://python.org/>`_, at least version 2.4, but preferably 2.5 or
    2.6.
@@ -85,3 +112,11 @@ of this document.  However, there are copious directions on how to do so
 elsewhere.  You may also consider installing the
 `Enthought Python Distribution <http://www.enthought.com/products/epd.php>`_,
 which includes all of the necessary packages.
+
+Once these dependencies have been met, YT can be installed in the standard
+manner:
+
+.. code-block:: bash
+
+   cd yt/
+   python2.5 setup.py install --prefix=/some/where/

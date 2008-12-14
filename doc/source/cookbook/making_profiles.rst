@@ -1,3 +1,5 @@
+.. _making_profiles:
+
 Making Profiles
 ===============
 

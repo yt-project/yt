@@ -12,4 +12,3 @@ yt has been designed to be flexible, with several entry points.
    creating_datatypes
    creating_derived_quantities
    creating_derived_fields
-   analyzing_in_parallel

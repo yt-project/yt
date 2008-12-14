@@ -19,8 +19,8 @@ And so on.  For more information, see the
 
 .. currentmodule:: yt.lagos
 
-Base Containers
----------------
+Base Classes
+------------
 
 .. autoclass:: yt.lagos.EnzoData
    :members:
@@ -42,6 +42,11 @@ Base Containers
 
 .. autoclass:: yt.lagos.FakeGridForParticles
    :members:
+
+.. _data_objects:
+
+Physical Objects
+================
 
 1D Data Containers
 ------------------
@@ -98,6 +103,8 @@ member functions defined there.
 .. autoclass:: yt.lagos.ExtractedRegionBase
    :members:
    :show-inheritance:
+
+.. _derived_quantities:
 
 Derived Quantities
 ------------------

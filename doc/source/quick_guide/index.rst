@@ -46,6 +46,8 @@ permissions.  So let's open it, and see what the maximum density is.
 And then in the variable ``v`` we have the value of the most dense cell, and in
 ``c`` we have the location of that point.
 
+.. _quick_making_plots:
+
 Making Plots
 ------------
 
