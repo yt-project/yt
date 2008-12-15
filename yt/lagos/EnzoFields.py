@@ -25,7 +25,7 @@ License:
 
 from UniversalFields import *
 
-rho_crit_now = 1.8788e-29
+rho_crit_now = 1.8788e-29 # times h^2
 
 class EnzoFieldContainer(CodeFieldInfoContainer):
     _shared_state = {}
@@ -104,7 +104,7 @@ add_field("NumberDensity", units=r"\rm{cm}^{-3}",
 
 def Overdensity(field,data):
     return (data['Density'] + data['particle_density']) / \
-        (rho_crit_now * ((1+data.pf['CosmologyCurrentRedshift'])**3))
+        (rho_crit_now * (data.pf['CosmologyHubbleConstant']**2) * ((1+data.pf['CosmologyCurrentRedshift'])**3))
 add_field("Overdensity",function=Overdensity,units=r"")
 
 # Now we add all the fields that we want to control, but we give a null function
