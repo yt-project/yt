@@ -34,7 +34,7 @@ def concatenate_pdfs(output_fn, input_fns):
         outfile.addPage(infile.getPage(0))
     outfile.write(open(output_fn, "wb"))
 
-class PlotCollection:
+class PlotCollection(object):
     __id_counter = 0
     def __init__(self, pf, deliverator_id=-1, center=None):
         """
@@ -452,27 +452,33 @@ def wrap_pylab_show(func):
         return retval
     return pylabify
 
+class _Interactify(type):
+    # All inherited methods get wrapped if they start with add_ or set_
+    # So anything inheriting this automatically gets set up; additional
+    # wrappings can be done manually.  Note that this does NOT modify
+    # methods that are only in the subclasses.
+    def __init__(cls, name, bases, d):
+        super(_Interactify, cls).__init__(name, bases, d)
+        for base in bases:
+            for attrname in dir(base):
+                if attrname in d: continue # If overridden, don't reset
+                attr = getattr(cls, attrname)
+                if type(attr) == types.MethodType:
+                    if attrname.startswith("add_"):
+                        setattr(cls, attrname, wrap_pylab_newplot(attr))
+                    elif attrname.startswith("set_"):
+                        setattr(cls, attrname, wrap_pylab_show(attr))
+
 class PlotCollectionInteractive(PlotCollection):
-    add_slice = wrap_pylab_newplot(PlotCollection.add_slice)
-    add_slice_interpolated = wrap_pylab_newplot(PlotCollection.add_slice_interpolated)
-    add_cutting_plane = wrap_pylab_newplot(PlotCollection.add_cutting_plane)
-    add_projection = wrap_pylab_newplot(PlotCollection.add_projection)
-    add_profile_object = wrap_pylab_newplot(PlotCollection.add_profile_object)
-    add_phase_object = wrap_pylab_newplot(PlotCollection.add_phase_object)
-    
-    set_xlim = wrap_pylab_show(PlotCollection.set_xlim)
-    set_ylim = wrap_pylab_show(PlotCollection.set_ylim)
-    set_zlim = wrap_pylab_show(PlotCollection.set_zlim)
-    set_lim = wrap_pylab_show(PlotCollection.set_lim)
+    __metaclass__ = _Interactify
+
     autoscale = wrap_pylab_show(PlotCollection.autoscale)
-    set_width = wrap_pylab_show(PlotCollection.set_width)
-    set_cmap = wrap_pylab_show(PlotCollection.set_cmap)
     switch_field = wrap_pylab_show(PlotCollection.switch_field)
 
     def __init__(self, *args, **kwargs):
         import pylab
         self.pylab = pylab
-        PlotCollection.__init__(self, *args, **kwargs)
+        super(PlotCollectionInteractive, self).__init__(*args, **kwargs)
 
     def redraw(self):
         for plot in self.plots:
