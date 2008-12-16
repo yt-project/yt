@@ -65,6 +65,8 @@ class AMRHierarchy:
         mylog.debug("Populating hierarchy")
         self._populate_hierarchy()
         mylog.debug("Done populating hierarchy")
+        self._add_detected_fields()
+        mylog.debug("Done adding auto-detected fields")
 
     def _initialize_grids(self):
         mylog.debug("Allocating memory for %s grids", self.num_grids)
@@ -526,6 +528,31 @@ class AMRHierarchy:
                 output, genealogy, corners, ogl)
         return output, genealogy, levels_all, levels_finest, pp, corners
 
+    def _add_detected_fields(self):
+        """add any extra fields in the 
+
+
+        """
+        for field in self.field_list:
+            if field in self.parameter_file.field_info: continue
+            mylog.info("Adding %s to list of fields", field)
+            cf = None
+            if self.parameter_file.has_key(field):
+                cf = lambda d: d.convert(field)
+            add_field(field, lambda a, b: None, convert_function=cf,take_log=False)
+        self.derived_field_list = []
+        for field in self.parameter_file.field_info:
+            try:
+                fd = self.parameter_file.field_info[field].get_dependencies(pf = self.parameter_file)
+            except:
+                continue
+            available = na.all([f in self.field_list for f in fd.requested])
+            if available: self.derived_field_list.append(field)
+        for field in self.field_list:
+            if field not in self.derived_field_list:
+                self.derived_field_list.append(field)
+
+
 class EnzoHierarchy(AMRHierarchy):
     eiTopGrid = None
     _strip_path = False
@@ -860,24 +887,6 @@ class EnzoHierarchy(AMRHierarchy):
             field_list = self._join_field_lists(field_list)
             self.save_data(list(field_list),"/","DataFields")
         self.field_list = list(field_list)
-        for field in self.field_list:
-            if field in self.parameter_file.field_info: continue
-            mylog.info("Adding %s to list of fields", field)
-            cf = None
-            if self.parameter_file.has_key(field):
-                cf = lambda d: d.convert(field)
-            add_field(field, lambda a, b: None, convert_function=cf)
-        self.derived_field_list = []
-        for field in self.parameter_file.field_info:
-            try:
-                fd = self.parameter_file.field_info[field].get_dependencies(pf = self.parameter_file)
-            except:
-                continue
-            available = na.all([f in self.field_list for f in fd.requested])
-            if available: self.derived_field_list.append(field)
-        for field in self.field_list:
-            if field not in self.derived_field_list:
-                self.derived_field_list.append(field)
 
     def _generate_random_grids(self):
         if self.num_grids > 40:
