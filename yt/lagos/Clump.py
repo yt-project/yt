@@ -124,3 +124,15 @@ def write_clump_info(clump,level,f_ptr):
     fmt_dict['min_density'] =  clump.data["NumberDensity"].min()
     fmt_dict['max_density'] =  clump.data["NumberDensity"].max()
     f_ptr.write(__clump_info_template % fmt_dict)
+
+class ClumpStorage(object):
+    def __init__(self, clump):
+        # This is to see if it's extracted
+        # We don't care about the base region,
+        # so we skip that.
+        if hasattr(clump.data, '_indices'):
+            self.indices = clump.data._indices
+            self.grids = [g.id-1 for g in clump.data._grids]
+        self.children = []
+        if clump.children is not None:
+            self.children = [ClumpStorage(child) for child in clump.children]

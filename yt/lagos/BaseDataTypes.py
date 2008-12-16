@@ -1234,7 +1234,7 @@ class AMR3DData(AMRData, GridPropertiesMixin):
         else:
             pointI = self._get_point_indices(grid)
             if grid[field].size == 1: # dx, dy, dz, cellvolume
-                t = grid[field] * na.ones(grid.ActiveDimensions)
+                t = grid[field] * na.ones(grid.ActiveDimensions, dtype='float64')
                 return t[pointI].ravel()
             return grid[field][pointI].ravel()
 
@@ -1355,7 +1355,7 @@ class ExtractedRegionBase(AMR3DData):
     ExtractedRegions are arbitrarily defined containers of data, useful
     for things like selection along a baryon field.
     """
-    def __init__(self, base_region, indices, **kwargs):
+    def __init__(self, base_region, indices, force_refresh=True, **kwargs):
         cen = base_region.get_field_parameter("center")
         AMR3DData.__init__(self, center=cen,
                             fields=None, pf=base_region.pf, **kwargs)
@@ -1363,7 +1363,7 @@ class ExtractedRegionBase(AMR3DData):
                                         # It is not cyclic
         self._base_indices = indices
         self._grids = None
-        self._refresh_data()
+        if force_refresh: self._refresh_data()
 
     def _get_cut_particle_mask(self, grid):
         # Override to provide a warning
@@ -1720,8 +1720,8 @@ class AMRCoveringGrid(AMR3DData):
         else:
             fields_to_get = ensure_list(field)
         for field in fields_to_get:
-            mylog.debug("Flushing field %s to %s possible grids",
-                       field, len(self._grids))
+            #mylog.debug("Flushing field %s to %s possible grids",
+                       #field, len(self._grids))
             for grid in self._grids:
                 self._flush_data_to_grid(grid, field)
 
