@@ -73,7 +73,7 @@ add_field('dz', function=_dz,
 def _coordX(field, data):
     dim = data.ActiveDimensions[0]
     return (na.ones(data.ActiveDimensions, dtype='float64')
-                   * na.arange(data.ActiveDimensions[0]).reshape(dim,1,1)
+                   * na.arange(data.ActiveDimensions[0])[:,None,None]
             +0.5) * data['dx'] + data.LeftEdge[0]
 add_field('x', function=_coordX, display_field=False,
           validators=[ValidateSpatial(0)])
@@ -81,7 +81,7 @@ add_field('x', function=_coordX, display_field=False,
 def _coordY(field, data):
     dim = data.ActiveDimensions[1]
     return (na.ones(data.ActiveDimensions, dtype='float64')
-                   * na.arange(data.ActiveDimensions[1]).reshape(1,dim,1)
+                   * na.arange(data.ActiveDimensions[1])[None,:,None]
             +0.5) * data['dy'] + data.LeftEdge[1]
 add_field('y', function=_coordY, display_field=False,
           validators=[ValidateSpatial(0)])
@@ -89,7 +89,7 @@ add_field('y', function=_coordY, display_field=False,
 def _coordZ(field, data):
     dim = data.ActiveDimensions[2]
     return (na.ones(data.ActiveDimensions, dtype='float64')
-                   * na.arange(data.ActiveDimensions[2]).reshape(1,1,dim)
+                   * na.arange(data.ActiveDimensions[2])[None,None,:]
             +0.5) * data['dz'] + data.LeftEdge[2]
 add_field('z', function=_coordZ, display_field=False,
           validators=[ValidateSpatial(0)])
@@ -432,20 +432,28 @@ add_field("Contours", validators=[ValidateSpatial(0)], take_log=False,
 add_field("tempContours", function=_Contours, validators=[ValidateSpatial(0)],
           take_log=False, display_field=False)
 
-def _SpecificAngularMomentum(field, data):
-    """
-    Calculate the angular velocity.  Returns a vector for each cell.
-    """
+def obtain_velocities(data):
     if data.has_field_parameter("bulk_velocity"):
         bv = data.get_field_parameter("bulk_velocity")
     else: bv = na.zeros(3, dtype='float64')
     xv = data["x-velocity"] - bv[0]
     yv = data["y-velocity"] - bv[1]
     zv = data["z-velocity"] - bv[2]
+    return xv, yv, zv
+
+def obtain_rvec(data):
     center = data.get_field_parameter('center')
     coords = na.array([data['x'],data['y'],data['z']], dtype='float64')
     new_shape = tuple([3] + [1]*(len(coords.shape)-1))
     r_vec = coords - na.reshape(center,new_shape)
+    return r_vec # axis 0 is the x,y,z
+
+def _SpecificAngularMomentum(field, data):
+    """
+    Calculate the angular velocity.  Returns a vector for each cell.
+    """
+    r_vec = obtain_rvec(data)
+    xv, yv, zv = obtain_velocities(data)
     v_vec = na.array([xv,yv,zv], dtype='float64')
     return na.cross(r_vec, v_vec, axis=0)
 def _convertSpecificAngularMomentum(data):
@@ -456,6 +464,25 @@ add_field("SpecificAngularMomentum",
           units=r"\rm{cm}^2/\rm{s}", validators=[ValidateParameter('center')])
 def _convertSpecificAngularMomentumKMSMPC(data):
     return data.convert("mpc")/1e5
+
+def _SpecificAngularMomentumX(field, data):
+    xv, yv, zv = obtain_velocities(data)
+    rv = obtain_rvec(data)
+    return yv*rv[2,:] - zv*rv[1,:]
+def _SpecificAngularMomentumY(field, data):
+    xv, yv, zv = obtain_velocities(data)
+    rv = obtain_rvec(data)
+    return -(xv*rv[2,:] - zv*rv[0,:])
+def _SpecificAngularMomentumZ(field, data):
+    xv, yv, zv = obtain_velocities(data)
+    rv = obtain_rvec(data)
+    return xv*rv[1,:] - yv*rv[0,:]
+for ax in 'XYZ':
+    n = "SpecificAngularMomentum%s" % ax
+    add_field(n, function=eval("_%s" % n),
+              convert_function=_convertSpecificAngularMomentum,
+              units=r"\rm{cm}^2/\rm{s}", validators=[ValidateParameter("center")])
+
 add_field("SpecificAngularMomentumKMSMPC",
           function=_SpecificAngularMomentum,
           convert_function=_convertSpecificAngularMomentumKMSMPC, vector_field=True,
