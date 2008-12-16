@@ -279,7 +279,7 @@ class HaloFinder(ParallelAnalysisInterface):
             px, py, pz = [self.particle_fields["particle_position_%s"%ax][group_indices] for ax in 'xyz']
             max_dens = (dens[cp:cp_c][md_i], px[md_i], py[md_i], pz[md_i])
             # if the most dense particle is in the box, keep it
-            if ((max_dens[1:3] >= LE+self.padding) && (max_dens[1:3] < RE-self.padding)):
+            if ((max_dens[1:3] >= LE+self.padding) and (max_dens[1:3] < RE-self.padding)):
                 self._groups.append(HopGroup(self, ii, group_indices)
                 self._max_dens[ii] = max_dens
             cp += counts[ii+1]
