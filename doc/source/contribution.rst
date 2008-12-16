@@ -1,7 +1,9 @@
 Contributing Code
 =================
 
-``yt`` is designed to be a contribu
+``yt`` is designed to be accessible to contributions, of both enhancements to
+the core packages and the library of recipes and scripts for performing common
+-- and not-so-common -- tasks.
 
 Bug Fixes
 ---------
