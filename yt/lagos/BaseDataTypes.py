@@ -872,7 +872,7 @@ class AMRProjBase(AMR2DData):
         self._temp = {}
         self._deserialize(node_name)
         self._refresh_data()
-        if self._okay_to_serialize: self._serialize()
+        if self._okay_to_serialize: self._serialize(node_name=self._node_name)
 
     def _convert_field_name(self, field):
         if field == "weight_field": return "weight_field_%s" % self._weight
@@ -893,6 +893,7 @@ class AMRProjBase(AMR2DData):
             self._check_region = True
             self._okay_to_serialize = False
         if self._node_name is not None:
+            self._node_name = "%s/%s" % (self._top_node,self._node_name)
             self._okay_to_serialize = True
 
     #@time_execution
