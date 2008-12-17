@@ -47,6 +47,7 @@ _data_style_funcs = \
    }
 
 class AMRHierarchy:
+    _data_mode = None # Default
     def __init__(self, pf):
         self.parameter_file = weakref.proxy(pf)
         self._data_file = None
@@ -109,13 +110,13 @@ class AMRHierarchy:
         if not ytcfg.getboolean('lagos','serialize'): return
         fn = os.path.join(self.directory,"%s.yt" % self["CurrentTimeIdentifier"])
         if ytcfg.getboolean('lagos','onlydeserialize'):
-            mode = 'r'
+            self._data_mode = mode = 'r'
         else:
-            mode = 'a'
+            self._data_mode = mode = 'a'
         try:
             self._data_file = tables.openFile(fn, mode)
             my_name = self.get_data("/","MyName")
-            if my_name is None:
+            if my_name is None and self._data_mode == 'a':
                 self.save_data(str(self.parameter_file), "/", "MyName")
             else:
                 if str(my_name.read())!=str(self.parameter_file):
@@ -143,7 +144,7 @@ class AMRHierarchy:
         described by *node* and *name*.  If data file does not exist, it throws
         no error and simply does not save.
         """
-        if self._data_file is None: return
+        if self._data_file is None or self._data_mode != 'a': return
         try:
             node_loc = self._data_file.getNode(node)
             if name in node_loc and force:
