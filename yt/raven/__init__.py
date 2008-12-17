@@ -35,7 +35,8 @@ import yt.lagos as lagos
 try:
     import deliveration
 except:
-    mylog.debug("Deliverator import failed; all deliverator actions will fail!")
+    #mylog.debug("Deliverator import failed; all deliverator actions will fail!")
+    pass
 
 import matplotlib.image
 import matplotlib.ticker
