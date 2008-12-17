@@ -86,7 +86,13 @@ Note that we have added a few parameters below the main function; we specify
 that we do not wish to display this field as logged, that we require both
 ``height_vector`` and ``center`` to be present in a given data object we wish
 to calculate this for, and we say that it should not be displayed in a
-drop-down box of fields to display.
+drop-down box of fields to display.  This is done through the parameter
+*validators*, which accepts a list of :class:`FieldValidator` objects.  These
+objects define the way in which the field is generated, and when it is able to
+be created.  In this case, we mandate that parameters *center* and
+*height_vector* are set before creating the field.  These are set via 
+:meth:`~yt.lagos.EnzoData.set_field_parameter`, which can be called on any
+object that has fields.
 
 We can also define vector fields.
 

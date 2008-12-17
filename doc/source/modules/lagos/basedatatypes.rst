@@ -14,9 +14,6 @@ access dictionary-style:
    >>> object["Density"]
    >>> object["Density"].max()
 
-And so on.  For more information, see the
-:ref:`the tutorial topic <basic_objects>` on basic objects.
-
 .. currentmodule:: yt.lagos
 
 Base Classes

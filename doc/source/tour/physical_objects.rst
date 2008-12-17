@@ -12,8 +12,8 @@ Creating Objects
 ----------------
 
 These objects are all created from the hierarchy object; for instance, to
-obtain a sphere centered at ``(0.3, 0.5, 0.8)`` with a radius of one
-megaparsec, you could do:
+obtain a sphere (:class:`~yt.lagos.EnzoSphereBase`) centered at
+``(0.3, 0.5, 0.8)`` with a radius of one megaparsec, you could do:
 
 .. code-block:: python
 

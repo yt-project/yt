@@ -43,7 +43,7 @@ average.  In this way, the spread in a quantity as well as its average value
 can be displayed simultaneously.
 
 You can generate these profiles yourself, but because their API is completely
-exposed by the :class:`PlotCollection` object, you rarely need to.  But, if you
+exposed by the :class:`~yt.raven.PlotCollection` object, you rarely need to.  But, if you
 are determined to, see :ref:`making_profiles`.  Otherwise, check out
 :ref:`profiles_and_phase_plots`.
 

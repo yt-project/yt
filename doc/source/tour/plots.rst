@@ -4,10 +4,10 @@ Plots
 Through the plotting interface, you can have ``yt`` automatically generate many
 of the analysis objects available to you!
 
-The primary plotting interface is through a :class:`PlotCollection`
+The primary plotting interface is through a :class:`~yt.raven.PlotCollection`
 instantiated with a given parameter file and (optionally) a center.  See
 :ref:`quick_making_plots` for a brief example of how to generate a
-:class:`PlotCollection`.
+:class:`~yt.raven.PlotCollection`.
 
 Two-Dimensional Images
 ----------------------
@@ -56,7 +56,7 @@ Interactive Plotting
 
 Thanks to the pylab interface in Matplotlib, we have an interactive plot
 collection available for usage within ``IPython``.  Instead of
-:class:`PlotCollection`, use :class:`PlotCollectionInteractive` -- this will
+:class:`~yt.raven.PlotCollection`, use :class:`~yt.raven.PlotCollectionInteractive` -- this will
 generate automatically updating GUI windows with the plots inside them.
 
 Callbacks
@@ -64,7 +64,7 @@ Callbacks
 
 Callbacks are means of adding things on top of existing plots -- like vectors,
 overplotted lines, and so on and so forth.  They have to be added to the plot
-objects themselves, rather than the :class:`PlotCollection`.  You can add them like so:
+objects themselves, rather than the :class:`~yt.raven.PlotCollection`.  You can add them like so:
 
 .. code-block:: python
 

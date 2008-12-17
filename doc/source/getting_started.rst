@@ -1,6 +1,6 @@
-===============
-Getting Started
-===============
+================
+Getting the Code
+================
 
 Maintained Installations
 ========================
@@ -40,14 +40,40 @@ you have to set your pythonpath appropriately.  I have created a script called
 
 where my_script.py is the script you wish to run.
 
+Kraken (NICS)
+-------------
+
+I do not currently have an installation on Kraken, but I have had success
+installing it with the :ref:`installation script <installation_script>`.
+However, if you are going to try to run ``yt`` on the compute nodes, be aware
+that -- while it does work -- it will take a bit of effort because the compute
+nodes run Compute Node Linux.  As a result, all the libraries have to be
+compiled statically -- including all of Python and ``yt``!
+
+There are some resources to help you with this:
+
+* `<https://wiki.fysik.dtu.dk/gpaw/install/platforms_and_architectures.html#louhi-csc-fi>`_
+* `<http://code.google.com/p/pyprop/wiki/Installation_CrayXT4>`_
+
+It's non-trivial, but it does work.  Be sure you have unloaded PrgEnv-pgi and
+loaded PrgEnv-gnu.  The only other "gotcha" I ran into was the compilation of
+Matplotlib, which relies on C++ libraries, so you must either modify the Python
+makefile to compile libpython2.5.a with ``CC`` rather than ``cc`` or compile by
+hand.  Additionally, ``MATPLOTLIBDIR`` has to be set to the local directory,
+because compute nodes do not have access to ``$HOME``.
+
 Binary Packages
 ===============
 
 Currently binary packages are only supplied for OSX.  See the download page on
-the Wiki for up-to-date links.
+the Wiki for up-to-date links.  Please note, these may be out of date.
+Building binary packages is non-trivial, and I often have trouble getting all
+of the included libraries to work properly.
 
 Installing From Source
 ======================
+
+.. _installation_script:
 
 Using the Installation Script
 -----------------------------

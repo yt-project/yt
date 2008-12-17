@@ -24,7 +24,7 @@ code, and it's also the jumping point for analyzing and plotting of any data
 from a simulation -- this is your entry point inside ``yt``.  These particular
 objects are meant to be very 'cheap' -- they're meant to be quick to
 instantiate, so that you can, for instance, very rapidly identify which output
-you want to examine in a script.  The class name is :class:`EnzoStaticOutput`.
+you want to examine in a script.  The class name is :class:`~yt.lagos.EnzoStaticOutput`.
 
 For example, here's a snippet from my own research.  It uses a python module
 called ``glob`` to do wildcard filename matching, and then it checks to see if
@@ -59,8 +59,8 @@ of the grid objects inside python.  Unfortunately, with a large number of
 grids, this can take some time.  (Efforts are under way to reduce this time,
 but it's an unfortunate tradeoff between flexibility and speed.  Typically it
 doesn't feel sluggish unless you are instantiating more than 50,000 grid
-patches.)  This class is :class:`EnzoHierarchyType`, but you will only need to
-access it as a property of an :class:`EnzoStaticOutput` called ``h``:
+patches.)  This class is :class:`~yt.lagos.EnzoHierarchyType`, but you will only need to
+access it as a property of an :class:`~yt.lagos.EnzoStaticOutput` called ``h``:
 
 .. code-block:: python
 
@@ -96,7 +96,7 @@ influenced by processor arrangement and topology.  As such, these are thought
 of a code objects rather than physical objects.  However, despite that
 categorization, the data returned to you when accessed through a grid is in cgs
 units, as to allow better and more meaningful analysis.  This class is the
-:class:`EnzoGridBase`.
+:class:`~yt.lagos.EnzoGridBase`.
 
 You should not have to instantiate grid objects yourself -- they are
 automatically created by the hierarchy, and stored in an array called
