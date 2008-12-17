@@ -25,6 +25,7 @@ License:
 
 from yt.extensions.lightcone import *
 from yt.logger import lagosLogger as mylog
+from yt.config import ytcfg
 import yt.lagos as lagos
 import yt.raven as raven
 import numpy as na
@@ -47,7 +48,7 @@ def LightConeProjection(lightConeSlice,field,pixels,weight_field=None,save_image
     # ProjectionCenter[ProjectionAxis]
     # DepthBoxFraction
 
-    node_name = "LightCone_%s_%s_%d_%f_%f" % (field,weight_field,lightConeSlice['ProjectionAxis'],
+    node_name = "LightCone_%d_%f_%f" % (lightConeSlice['ProjectionAxis'],
                                               lightConeSlice['ProjectionCenter'][lightConeSlice['ProjectionAxis']],
                                               lightConeSlice['DepthBoxFraction'])
 
@@ -59,7 +60,7 @@ def LightConeProjection(lightConeSlice,field,pixels,weight_field=None,save_image
     # Make plot collection.
     region_center = [0.5 * (dataset_object.parameters['DomainRightEdge'][q] +
                             dataset_object.parameters['DomainLeftEdge'][q]) \
-                         for q in range(len(dataset_object.parameters['DomainLeftEdge']))]
+                         for q in range(dataset_object.parameters['TopGridRank'])]
     pc = raven.PlotCollection(dataset_object,center=region_center)
 
     # 1. The Depth Problem
@@ -84,9 +85,6 @@ def LightConeProjection(lightConeSlice,field,pixels,weight_field=None,save_image
     # Make projection.
     pc.add_projection(field,lightConeSlice['ProjectionAxis'],weight_field=weight_field,field_cuts=field_cuts,use_colorbar=True,
                       node_name=node_name,**kwargs)
-
-    # Serialize projection data.
-    pc.plots[0].data._serialize(node_name,force=True)
 
     # 2. The Tile Problem
     # Tile projection to specified width.
@@ -203,12 +201,16 @@ def LightConeProjection(lightConeSlice,field,pixels,weight_field=None,save_image
     pc.set_ylim(0,lightConeSlice['WidthBoxFraction'])
 
     # Save an image if requested.
-    if (save_image):
+    if (save_image and (ytcfg.getint("yt","__parallel_rank") == 0)):
         pc.save(name)
 
-    # Create fixed resolution buffer to return back to the light cone object.
-    # These buffers will be stacked together to make the light cone.
-    frb = raven.FixedResolutionBuffer(pc.plots[0].data,(0,lightConeSlice['WidthBoxFraction'],0,lightConeSlice['WidthBoxFraction']),
-                                      (pixels,pixels),antialias=False)
+    if ytcfg.getint("yt","__parallel_rank") == 0:
+        # Create fixed resolution buffer to return back to the light cone object.
+        # These buffers will be stacked together to make the light cone.
+        frb = raven.FixedResolutionBuffer(pc.plots[0].data,(0,lightConeSlice['WidthBoxFraction'],0,lightConeSlice['WidthBoxFraction']),
+                                          (pixels,pixels),antialias=False)
 
-    return frb
+        return frb
+    else:
+        # If running in parallel and this is not the root process, return None.
+        return None
