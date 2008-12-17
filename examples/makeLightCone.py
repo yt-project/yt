@@ -18,13 +18,11 @@ q.SaveLightConeSolution()
 # Make a density light cone.
 # The plot collection is returned so the final image can be
 # customized and remade.
-pc = q.ProjectLightCone('Density')
+# Save the data to an hdf5 file and save images of the individual slices.
+pc = q.ProjectLightCone('Density',save_stack=True,save_slice_images=True)
 
-# Save the light cone stack to an hdf5 file.
-q.SaveLightConeStack()
-
-# Make a weighted light cone projection.
-pc = q.ProjectLightCone('Temperature',weight_field='Density')
+# Make a weighted light cone projection and save the stack to an hdf5 file.
+pc = q.ProjectLightCone('Temperature',weight_field='Density',save_stack=True)
 
 # Save the temperature stack to a different file.
 q.SaveLightConeStack(file='light_cone_temperature.h5')
@@ -39,11 +37,11 @@ q.RerandomizeLightConeSolution(987654321,recycle=True)
 # Save the recycled solution.
 q.SaveLightConeSolution(file='light_cone_recycled.out')
 
+# Change the file prefix so that new light cones will not over-write the old ones.
+q.lightConeParameters['OutputPrefix'] = "LightCone_NewSeed"
+
 # Make new projection with the recycled solution.
 pc = q.ProjectLightCone('Density')
-
-# Save the stack.
-q.SaveLightConeStack(file='light_cone_recycled.h5')
 
 # Rerandomize the light cone solution with an entirely new solution.
 q.RerandomizeLightConeSolution(8675309,recycle=False)
