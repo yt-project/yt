@@ -103,7 +103,7 @@ add_field("NumberDensity", units=r"\rm{cm}^{-3}",
           convert_function=_ConvertNumberDensity)
 
 def Overdensity(field,data):
-    return (data['Density'] + data['particle_density']) / \
+    return (data['Density'] + data['Dark_Matter_Density']) / \
         (rho_crit_now * (data.pf['CosmologyHubbleConstant']**2) * ((1+data.pf['CosmologyCurrentRedshift'])**3))
 add_field("Overdensity",function=Overdensity,units=r"")
 
