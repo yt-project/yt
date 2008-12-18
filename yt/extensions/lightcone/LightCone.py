@@ -64,13 +64,14 @@ class LightCone(object):
         self.pixels = int(self.lightConeParameters['FieldOfViewInArcMinutes'] * 60.0 / \
                               self.lightConeParameters['ImageResolutionInArcSeconds'])
 
-        # Create output directory.
-        if (os.path.exists(self.lightConeParameters['OutputDir'])):
-            if not(os.path.isdir(self.lightConeParameters['OutputDir'])):
-                mylog.error("Output directory exists, but is not a directory: %s." % self.lightConeParameters['OutputDir'])
-                self.lightConeParameters['OutputDir'] = './'
-        else:
-            os.mkdir(self.lightConeParameters['OutputDir'])
+        if ytcfg.getint("yt","__parallel_rank") == 0:
+            # Create output directory.
+            if (os.path.exists(self.lightConeParameters['OutputDir'])):
+                if not(os.path.isdir(self.lightConeParameters['OutputDir'])):
+                    mylog.error("Output directory exists, but is not a directory: %s." % self.lightConeParameters['OutputDir'])
+                    self.lightConeParameters['OutputDir'] = './'
+            else:
+                os.mkdir(self.lightConeParameters['OutputDir'])
 
         # Calculate redshifts for dt data dumps.
         if (self.enzoParameters.has_key('dtDataDump')):
