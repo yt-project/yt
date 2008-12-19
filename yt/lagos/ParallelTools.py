@@ -120,6 +120,18 @@ def parallel_simple_proxy(func):
         return retval
     return single_proc_results
 
+class ParallelDummy(type):
+    # All attributes that don't start with _ get replaced with
+    # parallel_simple_proxy attributes.
+    def __init__(cls, name, bases, d):
+        super(ParallelDummy, cls).__init__(name, bases, d)
+        skip = d.pop("dont_wrap", [])
+        for attrname in d:
+            if attrname.startswith("_") or attrname in skip: continue
+            attr = getattr(cls, attrname)
+            if type(attr) == types.MethodType:
+                setattr(cls, attrname, parallel_simple_proxy(attr))
+
 def parallel_passthrough(func):
     @wraps(func)
     def passage(self, data):
@@ -221,8 +233,9 @@ class ParallelAnalysisInterface(object):
     @parallel_passthrough
     def __mpi_recvlist(self, data):
         # First we receive, then we make a new list.
+        data = ensure_list(data)
         for i in range(1,MPI.COMM_WORLD.size):
-            buf = MPI.COMM_WORLD.Recv(source=i, tag=0)
+            buf = ensure_list(MPI.COMM_WORLD.Recv(source=i, tag=0))
             data += buf
         return na.array(data)
 
@@ -275,6 +288,21 @@ class ParallelAnalysisInterface(object):
         MPI.COMM_WORLD.Barrier()
         return MPI.COMM_WORLD.Allreduce(data, op=MPI.SUM)
 
+    def _mpi_info_dict(self, info):
+        if not parallel_capable: return 0, {0:info}
+        mylog.debug("Opening MPI Barrier on %s", MPI.COMM_WORLD.rank)
+        MPI.COMM_WORLD.Barrier()
+        data = None
+        if MPI.COMM_WORLD.rank == 0:
+            data = {0:info}
+            for i in range(1, MPI.COMM_WORLD.size):
+                data[i] = MPI.COMM_WORLD.Recv(source=i, tag=0)
+        else:
+            MPI.COMM_WORLD.Send(info, dest=0, tag=0)
+        mylog.debug("Opening MPI Broadcast on %s", MPI.COMM_WORLD.rank)
+        data = MPI.COMM_WORLD.Bcast(data, root=0)
+        MPI.COMM_WORLD.Barrier()
+        return MPI.COMM_WORLD.rank, data
 
     def _get_dependencies(self, fields):
         deps = []
