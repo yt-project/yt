@@ -85,6 +85,7 @@ class FakeGridForParticles(object):
                      'dz':grid['dz']}
         self.real_grid = grid
         self.child_mask = 1
+        self.ActiveDimensions = self.data['x'].shape
     def __getitem__(self, field):
         if field not in self.data.keys():
             if field == "RadiusCode":
@@ -1567,7 +1568,6 @@ class AMRGridCollection(AMR3DData):
         """
         AMR3DData.__init__(self, center, fields, pf, **kwargs)
         self._grids = na.array(grid_list)
-        self.fields = fields
         self.connection_pool = True
 
     def _get_list_of_grids(self):

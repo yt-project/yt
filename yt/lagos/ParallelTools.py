@@ -114,9 +114,11 @@ def parallel_simple_proxy(func):
     @wraps(func)
     def single_proc_results(self, *args, **kwargs):
         retval = None
+        if not self._distributed:
+            return func(self, *args, **kwargs)
         if self._owned:
             retval = func(self, *args, **kwargs)
-        MPI.COMM_WORLD.Bcast(retval)
+        retval = MPI.COMM_WORLD.Bcast(retval, root=MPI.COMM_WORLD.rank)
         return retval
     return single_proc_results
 
@@ -180,15 +182,16 @@ class ParallelAnalysisInterface(object):
         return True, reg
 
     def _partition_hierarchy_3d(self, padding=0.0):
+        LE, RE = self.pf["DomainLeftEdge"], self.pf["DomainRightEdge"]
         if not parallel_capable:
-           return False, self.hierarchy.grid_collection(self.center, self.hierarchy.grids)
+           return False, LE, RE, self.hierarchy.grid_collection(self.center, self.hierarchy.grids)
 
         cc = MPI.Compute_dims(MPI.COMM_WORLD.size, 3)
         mi = MPI.COMM_WORLD.rank
         cx, cy, cz = na.unravel_index(mi, cc)
-        x = na.mgrid[0:1:(cc[0]+1)*1j][cx:cx+2]
-        y = na.mgrid[0:1:(cc[1]+1)*1j][cy:cy+2]
-        z = na.mgrid[0:1:(cc[2]+1)*1j][cz:cz+2]
+        x = na.mgrid[LE[0]:RE[0]:(cc[0]+1)*1j][cx:cx+2]
+        y = na.mgrid[LE[1]:RE[1]:(cc[1]+1)*1j][cy:cy+2]
+        z = na.mgrid[LE[2]:RE[2]:(cc[2]+1)*1j][cz:cz+2]
 
         LE = na.array([x[0], y[0], z[0]], dtype='float64')
         RE = na.array([x[1], y[1], z[1]], dtype='float64')
@@ -197,13 +200,16 @@ class ParallelAnalysisInterface(object):
             return True, \
                 LE, RE, self.hierarchy.periodic_region(self.center, LE-padding, RE+padding)
 
-        return LE, RE, self.hierarchy.region(self.center, LE, RE)
+        return False, LE, RE, self.hierarchy.region(self.center, LE, RE)
         
+    def _barrier(self):
+        if not parallel_capable: return
+        mylog.debug("Opening MPI Barrier on %s", MPI.COMM_WORLD.rank)
+        MPI.COMM_WORLD.Barrier()
 
     @parallel_passthrough
     def _mpi_catdict(self, data):
-        mylog.debug("Opening MPI Barrier on %s", MPI.COMM_WORLD.rank)
-        MPI.COMM_WORLD.Barrier()
+        self._barrier()
         field_keys = data.keys()
         field_keys.sort()
         np = MPI.COMM_WORLD.size
@@ -216,10 +222,9 @@ class ParallelAnalysisInterface(object):
                     axis=-1)
             else:
                 MPI.COMM_WORLD.Send(data[key], dest=0, tag=0)
-            MPI.COMM_WORLD.Barrier()
+            self._barrier()
             data[key] = MPI.COMM_WORLD.Bcast(data[key], root=0)
-        mylog.debug("Done joining dictionary on %s", MPI.COMM_WORLD.rank)
-        MPI.COMM_WORLD.Barrier()
+        self._barrier()
         return data
 
     @parallel_passthrough
@@ -241,15 +246,14 @@ class ParallelAnalysisInterface(object):
 
     @parallel_passthrough
     def _mpi_catlist(self, data):
-        mylog.debug("Opening MPI Barrier on %s", MPI.COMM_WORLD.rank)
-        MPI.COMM_WORLD.Barrier()
+        self._barrier()
         if MPI.COMM_WORLD.rank == 0:
             data = self.__mpi_recvlist(data)
         else:
             MPI.COMM_WORLD.Send(data, dest=0, tag=0)
         mylog.debug("Opening MPI Broadcast on %s", MPI.COMM_WORLD.rank)
         data = MPI.COMM_WORLD.Bcast(data, root=0)
-        MPI.COMM_WORLD.Barrier()
+        self._barrier()
         return data
 
     @parallel_passthrough
@@ -262,15 +266,14 @@ class ParallelAnalysisInterface(object):
 
     @parallel_passthrough
     def _mpi_catarray(self, data):
-        mylog.debug("Opening MPI Barrier on %s", MPI.COMM_WORLD.rank)
-        MPI.COMM_WORLD.Barrier()
+        self._barrier()
         if MPI.COMM_WORLD.rank == 0:
             data = self.__mpi_recvarray(data)
         else:
             MPI.COMM_WORLD.Send(data, dest=0, tag=0)
         mylog.debug("Opening MPI Broadcast on %s", MPI.COMM_WORLD.rank)
         data = MPI.COMM_WORLD.Bcast(data, root=0)
-        MPI.COMM_WORLD.Barrier()
+        self._barrier()
         return data
 
     def _should_i_write(self):
@@ -285,13 +288,13 @@ class ParallelAnalysisInterface(object):
 
     @parallel_passthrough
     def _mpi_allsum(self, data):
-        MPI.COMM_WORLD.Barrier()
+        self._barrier()
         return MPI.COMM_WORLD.Allreduce(data, op=MPI.SUM)
 
     def _mpi_info_dict(self, info):
+        mylog.info("Parallel capable: %s", parallel_capable)
         if not parallel_capable: return 0, {0:info}
-        mylog.debug("Opening MPI Barrier on %s", MPI.COMM_WORLD.rank)
-        MPI.COMM_WORLD.Barrier()
+        self._barrier()
         data = None
         if MPI.COMM_WORLD.rank == 0:
             data = {0:info}
@@ -301,7 +304,7 @@ class ParallelAnalysisInterface(object):
             MPI.COMM_WORLD.Send(info, dest=0, tag=0)
         mylog.debug("Opening MPI Broadcast on %s", MPI.COMM_WORLD.rank)
         data = MPI.COMM_WORLD.Bcast(data, root=0)
-        MPI.COMM_WORLD.Barrier()
+        self._barrier()
         return MPI.COMM_WORLD.rank, data
 
     def _get_dependencies(self, fields):

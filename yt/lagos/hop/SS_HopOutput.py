@@ -148,14 +148,17 @@ class HopGroup(object):
     HOP-identified halo.
     """
     __metaclass__ = ParallelDummy # This will proxy up our methods
+    _distributed = False
+    _owned = True
     dont_wrap = ["get_sphere"]
 
-    def __init__(self, hop_output, id, indices):
+    def __init__(self, hop_output, id, indices = None):
         self.hop_output = hop_output
         self.id = id
         self.data = hop_output.data_source
-        self.indices = hop_output._base_indices[indices]
-        
+        if indices is not None: self.indices = hop_output._base_indices[indices]
+        # We assume that if indices = None, the instantiator has OTHER plans
+        # for us -- i.e., setting it somehow else
     def center_of_mass(self):
         """
         Calculate and return the center of mass.
@@ -234,9 +237,11 @@ class HopGroup(object):
 class HaloFinder(HopList, ParallelAnalysisInterface):
     def __init__(self, pf, threshold=160.0, dm_only=True):
         self.pf = pf
+        self.hierarchy = pf.h
+        self.center = (pf["DomainRightEdge"] + pf["DomainLeftEdge"])/2.0
         # do it once with no padding so the total_mass is correct (no duplicated particles)
         self.padding = 0.0
-        LE, RE, data_source = self._partition_hierarchy_3d(padding=self.padding)
+        padded, LE, RE, data_source = self._partition_hierarchy_3d(padding=self.padding)
         # For scaling the threshold, note that it's a passthrough
         total_mass = self._mpi_allsum(data_source["ParticleMassMsun"].sum())
         # MJT: Note that instead of this, if we are assuming that the particles
@@ -244,28 +249,30 @@ class HaloFinder(HopList, ParallelAnalysisInterface):
         # object representing the entire domain and sum it "lazily" with
         # Derived Quantities.
         self.padding = 0.2 #* pf["unitary"] # This should be clevererer
-        LE, RE, data_source = self._partition_hierarchy_3d(padding=self.padding)
+        padded, LE, RE, self.data_source = self._partition_hierarchy_3d(padding=self.padding)
         self.bounds = (LE, RE)
         # reflect particles around the periodic boundary
         self._reposition_particles((LE, RE))
         # MJT: This is the point where HOP is run, and we have halos for every
         # single sub-region
-        super(HopList, self).__init__(data_source, threshold, dm_only)
-        self._parse_hoplist(hop_list)
-        self._join_hoplists(hop_list)
+        super(HaloFinder, self).__init__(self.data_source, threshold, dm_only)
+        self._parse_hoplist()
+        self._join_hoplists()
 
     def _parse_hoplist(self):
-        groups, max_dens,hi  = [], {}, 0
+        groups, max_dens, hi  = [], {}, 0
+        LE, RE = self.bounds
+        print LE, RE
         for halo in self._groups:
-            max_dens = halo.maximum_density_location()
+            this_max_dens = halo.maximum_density_location()
             # if the most dense particle is in the box, keep it
-            if na.all((max_dens >= LE+self.padding) & (max_dens < RE-self.padding)):
+            if na.all((this_max_dens >= LE) & (this_max_dens <= RE)):
                 # Now we add the halo information to OURSELVES, taken from the
                 # self.hop_list
                 # We need to mock up the HopList thingie, so we need to set:
                 #     self._max_dens
                 #     
-                max_dens[self._max_dens[halo.id]]
+                max_dens[hi] = self._max_dens[halo.id]
                 groups.append(HopGroup(self, hi))
                 groups[-1].indices = halo.indices
                 groups[-1]._owned = True
@@ -274,7 +281,7 @@ class HaloFinder(HopList, ParallelAnalysisInterface):
         self._groups = groups
         self._max_dens = max_dens
 
-    def _join_hoplists(self, hop_list):
+    def _join_hoplists(self):
         # First we get the total number of halos the entire collection
         # has identified
         # Note I have added a new method here to help us get information
@@ -302,7 +309,8 @@ class HaloFinder(HopList, ParallelAnalysisInterface):
         # MJT: Sorting doesn't work yet.  They need to be sorted.
         #haloes.sort(lambda x, y: cmp(len(x.indices),len(y.indices)))
         # Unfortunately, we can't sort *just yet*.
-        for i,halo in self._groups:
+        for i, halo in enumerate(self._groups):
+            self._distributed = True
             halo.id = i
         
     def _reposition_particles(self, bounds):
