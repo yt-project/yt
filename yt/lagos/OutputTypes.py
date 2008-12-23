@@ -32,7 +32,22 @@ import string, re, gc, time, os, os.path
 # When such a thing comes to pass, I'll move all the stuff that is contant up
 # to here, and then have it instantiate EnzoStaticOutputs as appropriate.
 
+_cached_pfs = defaultdict(lambda: dict())
+
 class StaticOutput(object):
+    class __metaclass__(type):
+        def __call__(cls, *args, **kwargs):
+            return cls.__new__(cls, *args, **kwargs)
+
+    def __new__(cls, filename, *args, **kwargs):
+        apath = os.path.abspath(filename)
+        if not os.path.exists(apath): raise IOError
+        if apath not in _cached_pfs:
+            obj = object.__new__(cls)
+            _cached_pfs[apath] = obj
+            obj.__init__(filename, *args, **kwargs)
+        return _cached_pfs.pop(apath)
+
     def __init__(self, filename, data_style=None):
         """
         Base class for generating new output types.  Principally consists of
