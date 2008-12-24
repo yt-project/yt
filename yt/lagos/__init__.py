@@ -42,9 +42,6 @@ try:
 except ImportError:
     mylog.warning("No PyTables. Data serialization will fail.")
 
-
-
-
 from yt.arraytypes import *
 import weakref
 from new import classobj
@@ -92,6 +89,8 @@ fieldInfo = EnzoFieldInfo
 # We by-default add universal fields.
 add_field = FieldInfo.add_field
 
+from yt.fido import ParameterFileStore
+
 from DerivedQuantities import DerivedQuantityCollection, GridChildMaskWrapper
 from DataReadingFuncs import *
 from ClusterFiles import *
@@ -103,6 +102,7 @@ from EnzoRateData import *
 from HierarchyType import *
 from OutputTypes import *
 from Profiles import *
+
 
 # We load plugins.  Keep in mind, this can be fairly dangerous -
 # the primary purpose is to allow people to have a set of functions

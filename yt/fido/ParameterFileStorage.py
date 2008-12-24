@@ -40,7 +40,6 @@ License:
 
 from yt.fido import *
 import sqlite3
-import yt.lagos.OutputTypes
 import os.path
 
 #sqlite3.register_adapter(yt.lagos.OutputTypes.EnzoStaticOutput, _adapt_pf)
@@ -112,7 +111,8 @@ class ParameterFileStore(object):
         bn, fp, t1, ctid, hash = row
         fn = os.path.join(fp, bn)
         if os.path.exists(fn):
-            pf = yt.lagos.EnzoStaticOutput(
+            import yt.lagos.OutputTypes as ot
+            pf = ot.EnzoStaticOutput(
                 os.path.join(fp, bn))
         else:
             raise IOError
@@ -138,3 +138,7 @@ class ParameterFileStore(object):
                      (?,?,?,?,?)""", self._adapt_pf(pf))
         self._conn.commit()
         c.close()
+
+class ObjectStorage(object):
+    pass
+        

@@ -1628,6 +1628,10 @@ class AMRSphereBase(AMR3DData):
             self._cut_masks[grid.id] = cm
         return cm
 
+    def __reduce__(self):
+        return (_reconstruct_object, 
+            (self.pf._hash(), 'sphere', self.center, self.radius, self.field_parameters))
+
 class AMRCoveringGrid(AMR3DData):
     """
     Covering grids represent fixed-resolution data over a given region.
@@ -1874,3 +1878,15 @@ class EnzoSphereBase(AMRSphereBase): pass
 class EnzoCoveringGrid(AMRCoveringGrid): pass
 class EnzoSmoothedCoveringGrid(AMRSmoothedCoveringGrid): pass
 
+def _reconstruct_object(*args, **kwargs):
+    pfid = args[0]
+    dtype = args[1]
+    field_parameters = args[-1]
+    # will be much nicer when we can do pfid, *a, fp = args
+    args = args[2:-1] 
+    pfs = ParameterFileStore()
+    pf = pfs.get_pf_hash(pfid)
+    cls = getattr(pf.h, dtype)
+    obj = cls(*args)
+    obj.field_parameters.update(field_parameters)
+    return pf, obj
