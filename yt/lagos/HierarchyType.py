@@ -148,6 +148,7 @@ class AMRHierarchy:
         try:
             node_loc = self._data_file.getNode(node)
             if name in node_loc and force:
+                mylog.info("Overwriting node %s/%s", node, name)
                 self._data_file.removeNode(node, name, recursive=True)
             if name in node_loc and passthrough:
                 return
@@ -157,6 +158,16 @@ class AMRHierarchy:
         if set_attr is not None:
             for i, j in set_attr.items(): arr.setAttr(i,j)
         self._data_file.flush()
+
+    def save_object(self, obj, name):
+        s = cPickle.dumps(obj)
+        self.save_data(s, "/Objects", name, force = True)
+
+    def load_object(self, name):
+        obj = self.get_data("/Objects", name)
+        if obj is None:
+            return
+        return cPickle.loads(obj.read())[1] # Just the object, not the pf
 
     def get_data(self, node, name):
         """

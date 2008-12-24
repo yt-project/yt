@@ -229,6 +229,16 @@ class AMRData:
             fid.write("\n")
         fid.close()
 
+    def save_object(self, name, filename = None):
+        if filename is not None:
+            ds = shelve.open(filename)
+            if name in ds:
+                mylog.info("Overwriting %s in %s", name, filename)
+            ds[name] = self
+            ds.close()
+        else:
+            self.hierarchy.save_object(self, name)
+
     def __reduce__(self):
         args = tuple([self.pf._hash(), self._type_name] +
                      [getattr(self, n) for n in self._con_args] +
