@@ -149,7 +149,8 @@ class HopGroup(object):
     """
     __metaclass__ = ParallelDummy # This will proxy up our methods
     _distributed = False
-    _owned = True
+    _owner = 0
+    indices = None
     dont_wrap = ["get_sphere"]
 
     def __init__(self, hop_output, id, indices = None):
@@ -275,13 +276,14 @@ class HaloFinder(HopList, ParallelAnalysisInterface):
                 max_dens[hi] = self._max_dens[halo.id]
                 groups.append(HopGroup(self, hi))
                 groups[-1].indices = halo.indices
-                groups[-1]._owned = True
+                self._claim_object(groups[-1])
                 hi += 1
         del self._groups, self._max_dens # explicit >> implicit
         self._groups = groups
         self._max_dens = max_dens
 
     def _join_hoplists(self):
+        from mpi4py import MPI
         # First we get the total number of halos the entire collection
         # has identified
         # Note I have added a new method here to help us get information
@@ -299,18 +301,21 @@ class HaloFinder(HopList, ParallelAnalysisInterface):
         # sort the list by the size of the groups
         # Now we add ghost halos and reassign all the IDs
         # Note: we already know which halos we own!
-        after = nhalos - (my_first_id + len(self._groups))
+        after = my_first_id + len(self._groups)
         # One single fake halo, not owned, does the trick
-        fake_halo = HopGroup(self, 0)
-        fake_halo._owned = False
-        self._groups = [fake_halo] * my_first_id + \
+        self._groups = [HopGroup(self, i) for i in range(my_first_id)] + \
                        self._groups + \
-                       [fake_halo] * after
+                       [HopGroup(self, i) for i in range(after, nhalos)]
         # MJT: Sorting doesn't work yet.  They need to be sorted.
         #haloes.sort(lambda x, y: cmp(len(x.indices),len(y.indices)))
         # Unfortunately, we can't sort *just yet*.
+        proc = last = 0
         for i, halo in enumerate(self._groups):
-            self._distributed = True
+            if i - last >= halo_info[proc]:
+                proc += 1
+                last = i
+            halo._distributed = True
+            halo._owner = proc
             halo.id = i
         
     def _reposition_particles(self, bounds):

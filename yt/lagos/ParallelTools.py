@@ -116,9 +116,10 @@ def parallel_simple_proxy(func):
         retval = None
         if not self._distributed:
             return func(self, *args, **kwargs)
-        if self._owned:
+        if self._owner == MPI.COMM_WORLD.rank:
             retval = func(self, *args, **kwargs)
-        retval = MPI.COMM_WORLD.Bcast(retval, root=MPI.COMM_WORLD.rank)
+        retval = MPI.COMM_WORLD.Bcast(retval, root=self._owner)
+        MPI.COMM_WORLD.Barrier()
         return retval
     return single_proc_results
 
@@ -313,3 +314,8 @@ class ParallelAnalysisInterface(object):
         for field in fields:
             deps += ensure_list(fi[field].get_dependencies().requested)
         return list(set(deps))
+
+    def _claim_object(self, obj):
+        if not parallel_capable: return
+        obj._owner = MPI.COMM_WORLD.rank
+        obj._distributed = True
