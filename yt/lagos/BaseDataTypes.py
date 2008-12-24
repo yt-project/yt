@@ -106,6 +106,7 @@ class AMRData:
     """
     _grids = None
     _num_ghost_zones = 0
+    _con_args = []
 
     def __init__(self, pf, fields, **kwargs):
         """
@@ -227,6 +228,12 @@ class AMRData:
             field_data[:,line].tofile(fid, sep="\t", format=format)
             fid.write("\n")
         fid.close()
+
+    def __reduce__(self):
+        args = tuple([self.pf._hash(), self._type_name] +
+                     [getattr(self, n) for n in self._con_args] +
+                     [self.field_parameters])
+        return (_reconstruct_object, args)
 
 class GridPropertiesMixin(object):
 
@@ -357,6 +364,8 @@ class AMR1DData(AMRData, GridPropertiesMixin):
 
 class AMROrthoRayBase(AMR1DData):
     _key_fields = ['x','y','z','dx','dy','dz']
+    _type_name = "ortho_ray"
+    _con_args = ['axis', 'coords']
     def __init__(self, axis, coords, fields=None, pf=None, **kwargs):
         """
         Dimensionality is reduced to one, and an ordered list of points at an
@@ -401,6 +410,8 @@ class AMROrthoRayBase(AMR1DData):
         return gf[na.where(grid.child_mask[sl])]
 
 class AMRRayBase(AMR1DData):
+    _type_name = "ray"
+    _con_args = ['start_point', 'end_point']
     def __init__(self, start_point, end_point, fields=None, pf=None, **kwargs):
         """
         We accept a start point and an end point and then get all the data
@@ -595,6 +606,8 @@ class AMRSliceBase(AMR2DData):
     """
 
     _top_node = "/Slices"
+    _type_name = "slice"
+    _con_args = ['axis', 'coord']
     #@time_execution
     def __init__(self, axis, coord, fields = None, center=None, pf=None,
                  node_name = False, **kwargs):
@@ -724,6 +737,8 @@ class AMRCuttingPlaneBase(AMR2DData):
     _plane = None
     _top_node = "/CuttingPlanes"
     _key_fields = AMR2DData._key_fields + ['pz','pdz']
+    _type_name = "cutting"
+    _con_args = ['normal', 'center']
     def __init__(self, normal, center, fields = None, node_name = None,
                  **kwargs):
         """
@@ -844,6 +859,8 @@ class AMRCuttingPlaneBase(AMR2DData):
 class AMRProjBase(AMR2DData):
     _top_node = "/Projections"
     _key_fields = AMR2DData._key_fields + ['weight_field']
+    _type_name = "proj"
+    _con_args = ['axis', 'field', 'weight_field']
     def __init__(self, axis, field, weight_field = None,
                  max_level = None, center = None, pf = None,
                  source=None, node_name = None, field_cuts = None, **kwargs):
@@ -1357,6 +1374,8 @@ class ExtractedRegionBase(AMR3DData):
     ExtractedRegions are arbitrarily defined containers of data, useful
     for things like selection along a baryon field.
     """
+    _type_name = "extracted_region"
+    _con_args = ['_base_region', '_base_indices']
     def __init__(self, base_region, indices, force_refresh=True, **kwargs):
         cen = base_region.get_field_parameter("center")
         AMR3DData.__init__(self, center=cen,
@@ -1410,6 +1429,8 @@ class AMRCylinderBase(AMR3DData):
     """
     We can define a cylinder (or disk) to act as a data object.
     """
+    _type_name = "disk"
+    _con_args = ['center', '_norm_vec', '_radius', '_height']
     def __init__(self, center, normal, radius, height, fields=None,
                  pf=None, **kwargs):
         """
@@ -1471,6 +1492,8 @@ class AMRRegionBase(AMR3DData):
     """
     AMRRegions are rectangular prisms of data.
     """
+    _type_name = "region"
+    _con_args = ['center', 'left_edge', 'right_edge']
     def __init__(self, center, left_edge, right_edge, fields = None,
                  pf = None, **kwargs):
         """
@@ -1508,6 +1531,8 @@ class AMRPeriodicRegionBase(AMR3DData):
     """
     AMRRegions are rectangular prisms of data.
     """
+    _type_name = "periodic_region"
+    _con_args = ['center', 'left_edge', 'right_edge']
     def __init__(self, center, left_edge, right_edge, fields = None,
                  pf = None, **kwargs):
         """
@@ -1591,6 +1616,8 @@ class AMRSphereBase(AMR3DData):
     """
     A sphere of points
     """
+    _type_name = "sphere"
+    _con_args = ['center', 'radius']
     def __init__(self, center, radius, fields = None, pf = None, **kwargs):
         """
         The most famous of all the data objects, we define it via a
@@ -1628,10 +1655,6 @@ class AMRSphereBase(AMR3DData):
             self._cut_masks[grid.id] = cm
         return cm
 
-    def __reduce__(self):
-        return (_reconstruct_object, 
-            (self.pf._hash(), 'sphere', self.center, self.radius, self.field_parameters))
-
 class AMRCoveringGrid(AMR3DData):
     """
     Covering grids represent fixed-resolution data over a given region.
@@ -1641,6 +1664,8 @@ class AMRCoveringGrid(AMR3DData):
     scales) on the input data.
     """
     _spatial = True
+    _type_name = "covering_grid"
+    _con_args = ['level', 'left_edge', 'right_edge', 'ActiveDimensions']
     def __init__(self, level, left_edge, right_edge, dims, fields = None,
                  pf = None, num_ghost_zones = 0, use_pbar = True, **kwargs):
         """
@@ -1758,6 +1783,7 @@ class AMRCoveringGrid(AMR3DData):
             ll, self.pf["DomainLeftEdge"], self.pf["DomainRightEdge"])
 
 class AMRSmoothedCoveringGrid(AMRCoveringGrid):
+    _type_name = "smoothed_covering_grid"
     def __init__(self, *args, **kwargs):
         dlog2 = na.log10(kwargs['dims'])/na.log10(2)
         if not na.all(na.floor(dlog2) == na.ceil(dlog2)):
@@ -1883,10 +1909,15 @@ def _reconstruct_object(*args, **kwargs):
     dtype = args[1]
     field_parameters = args[-1]
     # will be much nicer when we can do pfid, *a, fp = args
-    args = args[2:-1] 
+    args, new_args = args[2:-1], []
+    for arg in args:
+        if iterable(arg) and len(arg) == 2 \
+           and isinstance(arg[1], AMRData):
+            new_args.append(arg[1])
+        else: new_args.append(arg)
     pfs = ParameterFileStore()
     pf = pfs.get_pf_hash(pfid)
     cls = getattr(pf.h, dtype)
-    obj = cls(*args)
+    obj = cls(*new_args)
     obj.field_parameters.update(field_parameters)
     return pf, obj

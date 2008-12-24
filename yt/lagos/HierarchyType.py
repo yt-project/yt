@@ -189,6 +189,7 @@ class AMRHierarchy:
         self.ortho_ray = classobj("AMROrthoRay",(AMROrthoRayBase,), dd)
         self.disk = classobj("AMRCylinder",(AMRCylinderBase,), dd)
         self.grid_collection = classobj("AMRGridCollection",(AMRGridCollection,), dd)
+        self.extracted_region = classobj("ExtractedRegion",(ExtractedRegionBase,), dd)
 
     def _deserialize_hierarchy(self, harray):
         mylog.debug("Cached entry found.")
