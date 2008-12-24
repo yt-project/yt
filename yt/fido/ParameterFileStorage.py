@@ -30,24 +30,72 @@ License:
 
 ## Non-functional right now.
 
+## Our table layout:
+##  ParameterFiles
+##      Filename        fn      text
+##      Last known path path    text
+##      Sim time        time    real    
+##      CurrentTimeID   ctid    real
+##      Hash            hash    text
+
 from yt.fido import *
-import sqlite
+import sqlite3
+import yt.lagos.OutputTypes
+import os.path
+
+#sqlite3.register_adapter(yt.lagos.OutputTypes.EnzoStaticOutput, _adapt_pf)
+#sqlite3.register_converter("pfile", _convert_pf)
 
 class ParameterFileStore(object):
-    _shared_state = {} # Do we need this?
 
-    def __new__(cls, *args, **kwargs):
-        pass
+    def __init__(self, in_memory = False):
+        self._conn = sqlite3.connect(self._get_db_name(),
+                detect_types=sqlite3.PARSE_DECLTYPES)
+        self._conn.row_factory = self._convert_pf
+        self._initialize_new()
         
     def _get_db_name(self):
         return os.path.expanduser("~/.yt/pfdb.sql")
 
     def _initialize_new(self, filename = None):
-        self._conn = sqlite.connect(self._get_db_name())
+        c = self._conn.cursor()
+        try:
+            c.execute("""create table parameter_files
+                            (pf text, path text, time real,
+                             ctid real, hash text)""")
+        except sqlite3.OperationalError:
+            pass
+        self._conn.commit()
+        c.close()
 
-    def get_pf(self, hash):
-        pass
+    def get_pf_hash(self, hash):
+        c = self._conn.cursor()
+        c.execute("""select * from parameter_files where hash=?""",
+                  (hash,))
+        return c.fetchall()
 
-    def check_pf(self, fn = None, ctid = None, basedir = None,
-                 initial_time = None, hash = None):
-        pass
+    def _adapt_pf(self, pf):
+        print "ADAPTING"
+        return (pf.basename, pf.fullpath,
+                pf["InitialTime"], pf["CurrentTimeIdentifier"],
+                pf._hash())
+
+    def _convert_pf(self, cursor, row):
+        print "CONVERTING"
+        bn, fp, t1, ctid, hash = row
+        fn = os.path.join(fp, bn)
+        print "Trying", fn
+        if os.path.exists(fn):
+            pf = yt.lagos.EnzoStaticOutput(
+                os.path.join(fp, bn))
+        else:
+            raise IOError
+        return pf
+
+
+    def insert_pf(self, pf):
+        c = self._conn.cursor()
+        c.execute("""insert into parameter_files values
+                     (?,?,?,?,?)""", self._adapt_pf(pf))
+        self._conn.commit()
+        c.close()

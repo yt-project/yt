@@ -69,6 +69,13 @@ class StaticOutput(object):
     def __repr__(self):
         return self.basename
 
+    def _hash(self):
+        import md5
+        s = "%s;%s;%s" % (self.basename,
+            self["InitialTime"], self["CurrentTimeIdentifier"])
+        return md5.md5(s).hexdigest()
+
+
     def __getitem__(self, key):
         """
         Returns _units, parameters, or _conversion_factors in that order
