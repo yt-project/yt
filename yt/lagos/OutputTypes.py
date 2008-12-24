@@ -25,6 +25,7 @@ License:
 """
 
 from yt.lagos import *
+from yt.fido import ParameterFileStore
 from yt.funcs import *
 import string, re, gc, time, os, os.path
 
@@ -32,7 +33,8 @@ import string, re, gc, time, os, os.path
 # When such a thing comes to pass, I'll move all the stuff that is contant up
 # to here, and then have it instantiate EnzoStaticOutputs as appropriate.
 
-_cached_pfs = defaultdict(lambda: dict())
+_cached_pfs = weakref.WeakValueDictionary()
+_pf_store = ParameterFileStore()
 
 class StaticOutput(object):
     class __metaclass__(type):
@@ -44,9 +46,10 @@ class StaticOutput(object):
         if not os.path.exists(apath): raise IOError
         if apath not in _cached_pfs:
             obj = object.__new__(cls)
-            _cached_pfs[apath] = obj
             obj.__init__(filename, *args, **kwargs)
-        return _cached_pfs.pop(apath)
+            _cached_pfs[apath] = obj
+            _pf_store.check_pf(obj)
+        return _cached_pfs[apath]
 
     def __init__(self, filename, data_style=None):
         """
