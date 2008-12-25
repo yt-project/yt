@@ -191,9 +191,9 @@ class AMRHierarchy:
         self._add_object_class('periodic_region', 
               classobj("AMRPeriodicRegion",(AMRPeriodicRegionBase,), dd))
         self._add_object_class('covering_grid', 
-              classobj("AMRCoveringGrid",(AMRCoveringGrid,), dd))
+              classobj("AMRCoveringGrid",(AMRCoveringGridBase,), dd))
         self._add_object_class('smoothed_covering_grid', 
-              classobj("AMRSmoothedCoveringGrid",(AMRSmoothedCoveringGrid,), dd))
+              classobj("AMRSmoothedCoveringGrid",(AMRSmoothedCoveringGridBase,), dd))
         self._add_object_class('sphere', 
               classobj("AMRSphere",(AMRSphereBase,), dd))
         self._add_object_class('cutting', 

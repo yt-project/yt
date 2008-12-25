@@ -597,7 +597,7 @@ class AMRSliceBase(AMR2DData):
     _top_node = "/Slices"
     #@time_execution
     def __init__(self, axis, coord, fields = None, center=None, pf=None,
-                 node_name = False, **kwargs):
+                 node_name = False, source = None, **kwargs):
         """
         Slice along *axis*:ref:`axis-specification`, at the coordinate *coord*.
         Optionally supply fields.
@@ -605,11 +605,20 @@ class AMRSliceBase(AMR2DData):
         AMR2DData.__init__(self, axis, fields, pf, **kwargs)
         self.center = center
         self.coord = coord
+        self._initialize_source(source)
         if node_name is False:
             self._refresh_data()
         else:
             if node_name is True: self._deserialize()
             else: self._deserialize(node_name)
+
+    def _initialize_source(self, source = None):
+        if source is None:
+            check, source = self._partition_hierarchy_2d(self.axis)
+            self._check_region = check
+        else:
+            self._check_region = True
+        self.source = source
 
     def reslice(self, coord):
         """
@@ -658,7 +667,18 @@ class AMRSliceBase(AMR2DData):
         self.ActiveDimensions = (t.shape[0], 1, 1)
 
     def _get_list_of_grids(self):
-        self._grids, ind = self.hierarchy.find_slice_grids(self.coord, self.axis)
+        goodI = ((self.source.gridRightEdge[:,self.axis] > self.coord)
+              &  (self.source.gridLeftEdge[:,self.axis] < self.coord ))
+        self._grids = self.source._grids[goodI] # Using sources not hierarchy
+
+    def __cut_mask_child_mask(self, grid):
+        mask = grid.child_mask.copy()
+        if self._check_region:
+            cut_mask = self.source._get_cut_mask(grid)
+            if mask is False: mask *= False
+            elif mask is True: pass
+            else: mask &= cut_mask
+        return mask
 
     def _generate_grid_coords(self, grid):
         xaxis = x_dict[self.axis]
@@ -671,7 +691,8 @@ class AMRSliceBase(AMR2DData):
         sl = tuple(sl)
         nx = grid.child_mask.shape[xaxis]
         ny = grid.child_mask.shape[yaxis]
-        cm = na.where(grid.child_mask[sl].ravel() == 1)
+        mask = self.__cut_mask_child_mask(grid)[sl]
+        cm = na.where(mask.ravel()== 1)
         cmI = na.indices((nx,ny))
         xind = cmI[0,:].ravel()
         xpoints = na.ones(cm[0].shape, 'float64')
@@ -707,7 +728,8 @@ class AMRSliceBase(AMR2DData):
             dv = grid[field]
             if dv.size == 1: dv = na.ones(grid.ActiveDimensions)*dv
             dv = dv[sl]
-        dataVals = dv.ravel()[grid.child_mask[sl].ravel() == 1]
+        mask = self.__cut_mask_child_mask(grid)[sl]
+        dataVals = dv.ravel()[mask.ravel() == 1]
         return dataVals
 
     def _gen_node_name(self):
@@ -1628,7 +1650,7 @@ class AMRSphereBase(AMR3DData):
             self._cut_masks[grid.id] = cm
         return cm
 
-class AMRCoveringGrid(AMR3DData):
+class AMRCoveringGridBase(AMR3DData):
     """
     Covering grids represent fixed-resolution data over a given region.
     In order to achieve this goal -- for instance in order to obtain ghost
@@ -1753,14 +1775,14 @@ class AMRCoveringGrid(AMR3DData):
             self.left_edge, self.right_edge, c_dx, c_fields,
             ll, self.pf["DomainLeftEdge"], self.pf["DomainRightEdge"])
 
-class AMRSmoothedCoveringGrid(AMRCoveringGrid):
+class AMRSmoothedCoveringGridBase(AMRCoveringGridBase):
     def __init__(self, *args, **kwargs):
         dlog2 = na.log10(kwargs['dims'])/na.log10(2)
         if not na.all(na.floor(dlog2) == na.ceil(dlog2)):
             mylog.warning("Must be power of two dimensions")
             #raise ValueError
         kwargs['num_ghost_zones'] = 0
-        AMRCoveringGrid.__init__(self, *args, **kwargs)
+        AMRCoveringGridBase.__init__(self, *args, **kwargs)
         if na.any(self.left_edge == self.pf["DomainLeftEdge"]):
             self.left_edge += self.dx
             self.ActiveDimensions -= 1
@@ -1871,6 +1893,6 @@ class EnzoRegionBase(AMRRegionBase): pass
 class EnzoPeriodicRegionBase(AMRPeriodicRegionBase): pass
 class EnzoGridCollection(AMRGridCollection): pass
 class EnzoSphereBase(AMRSphereBase): pass
-class EnzoCoveringGrid(AMRCoveringGrid): pass
-class EnzoSmoothedCoveringGrid(AMRSmoothedCoveringGrid): pass
+class EnzoCoveringGrid(AMRCoveringGridBase): pass
+class EnzoSmoothedCoveringGrid(AMRSmoothedCoveringGridBase): pass
 
