@@ -48,8 +48,26 @@ class Clump(object):
 
     def get_IsBound(self):
         if self.isBound is None:
-            self.isBound = self.data.quantities["IsBound"](truncate=True,include_thermal_energy=True)
+            self.isBound = self.data.quantities["IsBound"](
+                    truncate=True,include_thermal_energy=True)
         return self.isBound
+
+    def __reduce__(self):
+        return (_reconstruct_clump, 
+                (self.parent, self.field, self.min, self.max,
+                 self.isBound, self.children, self.data))
+
+def _reconstruct_clump(parent, field, mi, ma, isBound, children, data):
+    obj = object.__new__(Clump)
+    if iterable(parent): parent = parent[1]
+    obj.parent, obj.field, obj.min, obj.max, obj.isBound, \
+       obj.children = parent, field, mi, ma, isBound, children
+    # Now we override, because the parent/child relationship seems a bit
+    # unreliable in the unpickling
+    for child in children: child.parent = obj
+    obj.data = data[1] # Strip out the PF
+    if obj.parent is None: return (data[0], obj)
+    return obj
 
 def find_clumps(clump, min, max, d_clump):
     print "Finding clumps: min: %e, max: %e, step: %f" % (min, max, d_clump)
@@ -124,15 +142,3 @@ def write_clump_info(clump,level,f_ptr):
     fmt_dict['min_density'] =  clump.data["NumberDensity"].min()
     fmt_dict['max_density'] =  clump.data["NumberDensity"].max()
     f_ptr.write(__clump_info_template % fmt_dict)
-
-class ClumpStorage(object):
-    def __init__(self, clump):
-        # This is to see if it's extracted
-        # We don't care about the base region,
-        # so we skip that.
-        if hasattr(clump.data, '_indices'):
-            self.indices = clump.data._indices
-            self.grids = [g.id-1 for g in clump.data._grids]
-        self.children = []
-        if clump.children is not None:
-            self.children = [ClumpStorage(child) for child in clump.children]
