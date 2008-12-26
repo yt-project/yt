@@ -1409,23 +1409,29 @@ class ExtractedRegionBase(AMR3DData):
         grid_vals, xi, yi, zi = [], [], [], []
         for grid in self._base_region._grids:
             xit,yit,zit = self._base_region._get_point_indices(grid)
-            grid_vals.append(na.ones(xit.shape) * grid.id-1)
+            grid_vals.append(na.ones(xit.shape, dtype='int64') * grid.id-grid._id_offset)
             xi.append(xit)
             yi.append(yit)
             zi.append(zit)
-        grid_vals = na.concatenate(grid_vals)
-        xi = na.concatenate(xi)
-        yi = na.concatenate(yi)
-        zi = na.concatenate(zi)
-        # We now have an identical set of indices that the base_region would
-        # use to cut out the grids.  So what we want to do is take only
-        # the points we want from these.
+        grid_vals = na.concatenate(grid_vals)[self._base_indices]
+        grid_order = na.argsort(grid_vals)
+        # Note: grid_vals is still unordered
+        grid_ids = na.unique(grid_vals)
+        xi = na.concatenate(xi)[self._base_indices][grid_order]
+        yi = na.concatenate(yi)[self._base_indices][grid_order]
+        zi = na.concatenate(zi)[self._base_indices][grid_order]
+        bc = na.bincount(grid_vals)
+        splits = []
+        for i,v in enumerate(bc):
+            if v > 0: splits.append(v)
+        splits = na.add.accumulate(splits)
+        xis, yis, zis = [na.array_split(aa, splits) for aa in [xi,yi,zi]]
         self._indices = {}
-        for grid in self._base_region._grids:
-            ind_ind = na.where(grid_vals[self._base_indices] == grid.id-1)
-            self._indices[grid.id-1] = ([xi[self._base_indices][ind_ind],
-                                         yi[self._base_indices][ind_ind],
-                                         zi[self._base_indices][ind_ind]])
+        for grid_id, x, y, z in zip(grid_ids, xis, yis, zis):
+            # grid_id needs no offset
+            self._indices[grid_id] = (x.astype('int64'),
+                                      y.astype('int64'),
+                                      z.astype('int64'))
         self._grids = self._base_region.pf.h.grids[self._indices.keys()]
 
     def _is_fully_enclosed(self, grid):
@@ -1433,7 +1439,7 @@ class ExtractedRegionBase(AMR3DData):
 
     def _get_point_indices(self, grid, use_child_mask=True):
         # Yeah, if it's not true, we don't care.
-        return self._indices[grid.id-1]
+        return self._indices.get(grid.id-grid._id_offset, ())
 
 class AMRCylinderBase(AMR3DData):
     """
