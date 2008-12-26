@@ -108,10 +108,10 @@ class BinnedProfile(ParallelAnalysisInterface):
         for field in fields:
             f, w, u = self._bin_field(self._data_source, field, weight,
                                       accumulation, self._args, check_cut = False)
-            ub = na.where(u)
             if weight:
-                f[ub] /= w[ub]
+                f[u] /= w[u]
             self[field] = f
+        self["myweight"] = w
         self["UsedBins"] = u
 
     def add_fields(self, fields, weight = "CellMassMsun", accumulation = False):
@@ -138,20 +138,19 @@ class BinnedProfile(ParallelAnalysisInterface):
     def __setitem__(self, key, value):
         self._data[key] = value
 
-    def _get_field(self, source, field, check_cut):
+    def _get_field(self, source, this_field, check_cut):
         # This is where we will iterate to get all contributions to a field
         # which is how we will implement hybrid particle/cell fields
         # but...  we default to just the field.
         data = []
-        for field in _field_mapping.get(field, (field,)):
+        for field in _field_mapping.get(this_field, (this_field,)):
+            pointI = None
             if check_cut:
                 if field in self.pf.field_info \
                     and self.pf.field_info[field].particle_type:
                     pointI = self._data_source._get_particle_indices(source)
                 else:
                     pointI = self._data_source._get_point_indices(source)
-            else:
-                pointI = slice(None)
             data.append(source[field][pointI].ravel().astype('float64'))
         return na.concatenate(data, axis=0)
 
@@ -159,7 +158,8 @@ class BinnedProfile(ParallelAnalysisInterface):
 class BinnedProfile1D(BinnedProfile):
     def __init__(self, data_source, n_bins, bin_field,
                  lower_bound, upper_bound,
-                 log_space = True, lazy_reader=False):
+                 log_space = True, lazy_reader=False,
+                 left_collect = False):
         """
         A 'Profile' produces either a weighted (or unweighted) average or a
         straight sum of a field in a bin defined by another field.  In the case
@@ -174,6 +174,7 @@ class BinnedProfile1D(BinnedProfile):
         BinnedProfile.__init__(self, data_source, lazy_reader)
         self.bin_field = bin_field
         self._x_log = log_space
+        self.left_collect = left_collect
         # Get our bins
         if log_space:
             func = na.logspace
@@ -224,8 +225,11 @@ class BinnedProfile1D(BinnedProfile):
         if source_data.size == 0: # Nothing for us here.
             return
         # Truncate at boundaries.
-        mi = na.where( (source_data > self[self.bin_field].min())
-                     & (source_data < self[self.bin_field].max()))
+        if self.left_collect:
+            mi = na.where(source_data < self[self.bin_field].max())
+        else:
+            mi = na.where( (source_data > self[self.bin_field].min())
+                         & (source_data < self[self.bin_field].max()))
         sd = source_data[mi]
         if sd.size == 0:
             return
@@ -255,7 +259,7 @@ class BinnedProfile2D(BinnedProfile):
     def __init__(self, data_source,
                  x_n_bins, x_bin_field, x_lower_bound, x_upper_bound, x_log,
                  y_n_bins, y_bin_field, y_lower_bound, y_upper_bound, y_log,
-                 lazy_reader=False):
+                 lazy_reader=False, left_collect=False):
         """
         A 'Profile' produces either a weighted (or unweighted) average or a
         straight sum of a field in a bin defined by two other fields.  In the case
@@ -274,6 +278,7 @@ class BinnedProfile2D(BinnedProfile):
         self.y_bin_field = y_bin_field
         self._x_log = x_log
         self._y_log = y_log
+        self.left_collect = left_collect
         if x_log: self[x_bin_field] = na.logspace(na.log10(x_lower_bound*0.99),
                                                   na.log10(x_upper_bound*1.01),
                                                   x_n_bins)
@@ -330,10 +335,14 @@ class BinnedProfile2D(BinnedProfile):
         source_data_y = self._get_field(source, self.y_bin_field, check_cut)
         if source_data_x.size == 0:
             return
-        mi = na.where( (source_data_x > self[self.x_bin_field].min())
-                     & (source_data_x < self[self.x_bin_field].max())
-                     & (source_data_y > self[self.y_bin_field].min())
-                     & (source_data_y < self[self.y_bin_field].max()))
+        if self.left_collect:
+            mi = na.where( (source_data_x < self[self.x_bin_field].max())
+                         & (source_data_y < self[self.y_bin_field].max()))
+        else:
+            mi = na.where( (source_data_x > self[self.x_bin_field].min())
+                         & (source_data_x < self[self.x_bin_field].max())
+                         & (source_data_y > self[self.y_bin_field].min())
+                         & (source_data_y < self[self.y_bin_field].max()))
         sd_x = source_data_x[mi]
         sd_y = source_data_y[mi]
         if sd_x.size == 0 or sd_y.size == 0:
