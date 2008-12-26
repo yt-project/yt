@@ -108,7 +108,12 @@ class AMRHierarchy:
 
     def _initialize_data_file(self):
         if not ytcfg.getboolean('lagos','serialize'): return
-        fn = os.path.join(self.directory,"%s.yt" % self["CurrentTimeIdentifier"])
+        if os.path.isfile(os.path.join(self.directory,
+                            "%s.yt" % self["CurrentTimeIdentifier"])):
+            fn = os.path.join(self.directory,"%s.yt" % self["CurrentTimeIdentifier"])
+        else:
+            fn = os.path.join(self.directory,
+                    "%s.yt" % self.parameter_file.basename)
         if ytcfg.getboolean('lagos','onlydeserialize'):
             self._data_mode = mode = 'r'
         else:
