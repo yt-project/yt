@@ -32,7 +32,14 @@ from PlotTypes import _get_bounds
 
 import _MPL
 
+callback_registry = []
+
 class PlotCallback(object):
+    class __metaclass__(type):
+        def __init__(cls, name, b, d):
+            type.__init__(name, b, d)
+            callback_registry.append((name, cls))
+
     def __init__(self, *args, **kwargs):
         pass
 
