@@ -263,6 +263,9 @@ class HaloFinder(HopList, ParallelAnalysisInterface):
         self.bounds = (LE, RE)
         # reflect particles around the periodic boundary
         self._reposition_particles((LE, RE))
+        self.data_source.get_data(["ParticleMassMsun"] +
+                                  ["particle_velocity_%s" % ax for ax in 'xyz'] +    
+                                  ["particle_position_%s" % ax for ax in 'xyz'])
         # MJT: This is the point where HOP is run, and we have halos for every
         # single sub-region
         super(HaloFinder, self).__init__(self.data_source, threshold, dm_only)
