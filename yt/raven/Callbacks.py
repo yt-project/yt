@@ -514,7 +514,7 @@ class HopCircleCallback(PlotCallback):
             plot._axes.add_patch(cir)
             if self.annotate:
                 if self.print_halo_size:
-                    plot._axes.text(center_x, center_y, "%s" % len(halo.indices),
+                    plot._axes.text(center_x, center_y, "%s" % halo.get_size(),
                     fontsize=self.font_size)
                 else:
                     plot._axes.text(center_x, center_y, "%s" % halo.id,
