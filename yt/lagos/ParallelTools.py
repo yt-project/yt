@@ -26,7 +26,7 @@ License:
 from yt.lagos import *
 from yt.funcs import *
 import yt.logger
-import itertools, sys
+import itertools, sys, cStringIO
 
 if os.path.basename(sys.executable) in ["mpi4py", "embed_enzo"] \
     or "--parallel" in sys.argv or '_parallel' in dir(sys):
@@ -114,10 +114,12 @@ def parallel_simple_proxy(func):
     @wraps(func)
     def single_proc_results(self, *args, **kwargs):
         retval = None
-        if not self._distributed:
+        if self._processing or not self._distributed:
             return func(self, *args, **kwargs)
         if self._owner == MPI.COMM_WORLD.rank:
+            self._processing = True
             retval = func(self, *args, **kwargs)
+            self._processing = False
         retval = MPI.COMM_WORLD.Bcast(retval, root=self._owner)
         MPI.COMM_WORLD.Barrier()
         return retval
@@ -319,3 +321,10 @@ class ParallelAnalysisInterface(object):
         if not parallel_capable: return
         obj._owner = MPI.COMM_WORLD.rank
         obj._distributed = True
+
+    def _write_on_root(self, fn):
+        if not parallel_capable: return open(fn, "w")
+        if MPI.COMM_WORLD.rank == 0:
+            return open(fn, "w")
+        else:
+            return cStringIO.StringIO()

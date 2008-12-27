@@ -112,7 +112,10 @@ class HopList(object):
         """
         Write out standard HOP information to *filename*.
         """
-        f = open(filename,"w")
+        if hasattr(filename, 'write'):
+            f = filename
+        else:
+            f = open(filename,"w")
         f.write("\t".join(["# Group","Mass","# part","max dens"
                            "x","y","z", "center-of-mass",
                            "x","y","z",
@@ -120,7 +123,7 @@ class HopList(object):
         for group in self:
             f.write("%10i\t" % group.id)
             f.write("%0.9e\t" % group.total_mass())
-            f.write("%10i\t" % group.indices.size)
+            f.write("%10i\t" % group.get_size())
             f.write("%0.9e\t" % group.maximum_density())
             f.write("\t".join(["%0.9e" % v for v in group.maximum_density_location()]))
             f.write("\t")
@@ -130,6 +133,7 @@ class HopList(object):
             f.write("\t")
             f.write("%0.9e\t" % group.maximum_radius())
             f.write("\n")
+            f.flush()
         f.close()
 
 class HopIterator(object):
@@ -149,6 +153,7 @@ class HopGroup(object):
     """
     __metaclass__ = ParallelDummy # This will proxy up our methods
     _distributed = False
+    _processing = False
     _owner = 0
     indices = None
     dont_wrap = ["get_sphere"]
@@ -160,6 +165,7 @@ class HopGroup(object):
         if indices is not None: self.indices = hop_output._base_indices[indices]
         # We assume that if indices = None, the instantiator has OTHER plans
         # for us -- i.e., setting it somehow else
+
     def center_of_mass(self):
         """
         Calculate and return the center of mass.
@@ -235,6 +241,9 @@ class HopGroup(object):
                         center, radius=radius)
         return sphere
 
+    def get_size(self):
+        return self.indices.size
+
 class HaloFinder(HopList, ParallelAnalysisInterface):
     def __init__(self, pf, threshold=160.0, dm_only=True):
         self.pf = pf
@@ -263,7 +272,6 @@ class HaloFinder(HopList, ParallelAnalysisInterface):
     def _parse_hoplist(self):
         groups, max_dens, hi  = [], {}, 0
         LE, RE = self.bounds
-        print LE, RE
         for halo in self._groups:
             this_max_dens = halo.maximum_density_location()
             # if the most dense particle is in the box, keep it
@@ -283,7 +291,6 @@ class HaloFinder(HopList, ParallelAnalysisInterface):
         self._max_dens = max_dens
 
     def _join_hoplists(self):
-        from mpi4py import MPI
         # First we get the total number of halos the entire collection
         # has identified
         # Note I have added a new method here to help us get information
@@ -327,3 +334,7 @@ class HaloFinder(HopList, ParallelAnalysisInterface):
             arr = self.data_source["particle_position_%s" % ax]
             arr[arr < LE[i]-self.padding] += dw[i]
             arr[arr > RE[i]+self.padding] -= dw[i]
+
+    def write_out(self, filename):
+        f = self._write_on_root(filename)
+        HopList.write_out(self, f)
