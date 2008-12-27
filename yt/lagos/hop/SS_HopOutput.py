@@ -324,6 +324,13 @@ class HaloFinder(HopList, ParallelAnalysisInterface):
             halo._distributed = True
             halo._owner = proc
             halo.id = i
+        self._groups.sort(key = lambda h: -1 * h.get_size())
+        sorted_max_dens = {}
+        for i, halo in enumerate(self._groups):
+            if halo.id in self._max_dens:
+                sorted_max_dens[i] = self._max_dens[halo.id]
+            halo.id = i
+        self._max_dens = sorted_max_dens
         
     def _reposition_particles(self, bounds):
         # This only does periodicity.  We do NOT want to deal with anything
