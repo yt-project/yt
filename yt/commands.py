@@ -24,7 +24,9 @@ License:
 """
 
 from yt.mods import *
+from yt.funcs import *
 from yt.recipes import _fix_pf
+import yt.cmdln as cmdln
 import optparse, os, os.path, math
 
 _common_options = dict(
@@ -68,7 +70,7 @@ _common_options = dict(
                    help="Center (-1,-1,-1 for max)"),
     bn      = dict(short="-b", long="--basename",
                    action="store", type="string",
-                   dest="basename", default="galaxy",
+                   dest="basename", default=None,
                    help="Basename of parameter files"),
     output  = dict(short="-o", long="--output",
                    action="store", type="string",
@@ -139,16 +141,73 @@ def _get_parser(*options):
     _add_options(parser, *options)
     return parser
 
-# Now we define our functions, each of which will be an 'entry_point' when
-# passed to setuptools.
+def add_cmd_options(options):
+    opts = []
+    for option in options:
+        vals = _common_options[option].copy()
+        opts.append(([vals.pop("short"), vals.pop("long")],
+                      vals))
+    def apply_options(func):
+        for args, kwargs in opts:
+            func = cmdln.option(*args, **kwargs)(func)
+        return func
+    return apply_options
 
-def zoomin():
-    parser = _get_parser("maxw", "minw", "proj", "axis", "field", "weight",
-                             "zlim", "nframes", "output", "cmap", "uboxes")
-    opts, args = parser.parse_args()
+def check_args(func):
+    @wraps(func)
+    def arg_iterate(self, subcmd, opts, *args):
+        if len(args) == 1:
+            pfs = args
+        elif len(args) == 2 and opts.basename is not None:
+            pfs = ["%s%04i" % (opts.basename, r)
+                   for r in range(int(args[0]), int(args[1]), opts.skip) ]
+        else: pfs = args
+        for arg in args:
+            func(self, subcmd, opts, arg)
+    return arg_iterate
 
-    for arg in args:
+class YTCommands(cmdln.Cmdln):
+    name="yt"
+
+    def __init__(self, *args, **kwargs):
+        cmdln.Cmdln.__init__(self, *args, **kwargs)
+        cmdln.Cmdln.do_help.aliases.append("h")
+
+    def do_loop(self, subcmd, opts, *args):
+        """
+        Interactive loop
+
+        ${cmd_option_list}
+        """
+        self.cmdloop()
+
+    @add_cmd_options(['outputfn','bn','thresh','dm_only'])
+    @check_args
+    def do_hop(self, subcmd, opts, arg):
+        """
+        Run HOP on one or more datasets
+
+        ${cmd_option_list}
+        """
         pf = _fix_pf(arg)
+        sp = pf.h.sphere((pf["DomainLeftEdge"] + pf["DomainRightEdge"])/2.0,
+                         pf['unitary'])
+        kwargs = {'dm_only' : opts.dm_only}
+        if opts.threshold is not None: kwargs['threshold'] = opts.threshold
+        hop_list = hop.HopList(sp, **kwargs)
+        if opts.output is None: fn = "%s.hop" % pf
+        else: fn = opts.output
+        hop_list.write_out(fn)
+
+    @add_cmd_options(["maxw", "minw", "proj", "axis", "field", "weight",
+                      "zlim", "nframes", "output", "cmap", "uboxes"])
+    def do_zoomin(self, subcmd, opts, args):
+        """
+        Create a set of zoomin frames
+
+        ${cmd_option_list}
+        """
+        pf = _fix_pf(args[-1])
         min_width = opts.min_width * pf.h.get_smallest_dx()
         if opts.axis == 4:
             axes = range(3)
@@ -182,29 +241,21 @@ def zoomin():
             pc.save(os.path.join(opts.output,"%s_frame%06i" % (pf,i)))
             w *= factor
 
-def timeseries():
-    parser = _get_parser("width", "unit", "bn", "proj", "center",
-                         "zlim", "axis", "field", "weight", "skip",
-                         "cmap", "output")
-    opts, args = parser.parse_args()
+    @add_cmd_options(["width", "unit", "bn", "proj", "center",
+                      "zlim", "axis", "field", "weight", "skip",
+                      "cmap", "output"])
+    @check_args
+    def do_plot(self, subcmd, opts, arg):
+        """
+        Create a set of images
 
-    try:
-        first = int(args[0])
-        last = int(args[1])
-    except:
-        mylog.error("Hey, sorry, but you need to specify the indices of the first and last outputs you want to look at.")
-        sys.exit()
-
-    for n in range(first,last+1,opts.skip):
-        # Now we figure out where this file is
-        bn_try = "%s%04i" % (opts.basename, n)
-        try:
-            pf = _fix_pf(bn_try)
-        except IOError:
-            pf = _fix_pf("%s.dir/%s" % (bn_try, bn_try))
+        ${cmd_usage}
+        ${cmd_option_list}
+        """
+        pf = _fix_pf(arg)
         pc=raven.PlotCollection(pf)
         center = opts.center
-        if center is None or opts.center == (-1,-1,-1):
+        if opts.center == (-1,-1,-1):
             mylog.info("No center fed in; seeking.")
             v, center = pf.h.find_max("Density")
         center = na.array(center)
@@ -222,16 +273,8 @@ def timeseries():
         if opts.zlim: pc.set_zlim(*opts.zlim)
         pc.save(os.path.join(opts.output,"%s" % (pf)))
 
-def hop_single():
-    parser = _get_parser("outputfn", "thresh", 'dm_only')
-    opts, args = parser.parse_args()
+def run_main():
+    YT = YTCommands()
+    sys.exit(YT.main())
 
-    pf = _fix_pf(args[-1])
-    sp = pf.h.sphere((pf["DomainLeftEdge"] + pf["DomainRightEdge"])/2.0,
-                     pf['unitary'])
-    kwargs = {'dm_only' : opts.dm_only}
-    if opts.threshold is not None: kwargs['threshold'] = opts.threshold
-    hop_list = hop.HopList(sp, **kwargs)
-    if opts.output is None: fn = "%s.hop" % pf
-    else: fn = opts.output
-    hop_list.write_out(fn)
+if __name__ == "__main__": run_main()

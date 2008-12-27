@@ -56,10 +56,8 @@ def setup_package():
                            'storage' : ['tables'], 
                            'pdf' : ['pypdf']},
         entry_points = { 'console_scripts' : [
-                            'yt_timeseries = yt.commands:timeseries',
-                            'yt_zoomin = yt.commands:zoomin',
-                            'yt_hop = yt.commands:hop_single']
-                       },
+                            'yt = yt.commands:run_main',
+                       ]},
         author="Matthew J. Turk",
         author_email="matthewturk@gmail.com",
         url = "http://yt.enzotools.org/",
