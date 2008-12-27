@@ -1,6 +1,0 @@
-#!python
-
-import yt.mods, code
-
-interp = code.InteractiveConsole(yt.mods.__dict__)
-interp.interact("Welcome to yt")
