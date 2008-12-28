@@ -283,7 +283,6 @@ class HaloFinder(HopList, ParallelAnalysisInterface):
                 # self.hop_list
                 # We need to mock up the HopList thingie, so we need to set:
                 #     self._max_dens
-                #     
                 max_dens[hi] = self._max_dens[halo.id]
                 groups.append(HopGroup(self, hi))
                 groups[-1].indices = halo.indices
@@ -319,14 +318,13 @@ class HaloFinder(HopList, ParallelAnalysisInterface):
         # MJT: Sorting doesn't work yet.  They need to be sorted.
         #haloes.sort(lambda x, y: cmp(len(x.indices),len(y.indices)))
         # Unfortunately, we can't sort *just yet*.
-        proc = last = 0
-        for i, halo in enumerate(self._groups):
-            if i - last >= halo_info[proc]:
-                proc += 1
-                last = i
-            halo._distributed = True
-            halo._owner = proc
-            halo.id = i
+        id = 0
+        for proc in sorted(halo_info.keys()):
+            for halo in self._groups[id:id+halo_info[proc]]:
+                halo.id = id
+                halo._distributed = True
+                halo._owner = proc
+                id += 1
         self._groups.sort(key = lambda h: -1 * h.get_size())
         sorted_max_dens = {}
         for i, halo in enumerate(self._groups):
