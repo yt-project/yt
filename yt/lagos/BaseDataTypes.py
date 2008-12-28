@@ -1518,12 +1518,12 @@ class AMRRegionBase(AMR3DData):
         if self._is_fully_enclosed(grid):
             return True
         else:
-            cm = ( (grid['x'] - 0.5*grid['dx'] < self.right_edge[0])
-                 & (grid['x'] + 0.5*grid['dx'] >= self.left_edge[0])
-                 & (grid['y'] - 0.5*grid['dy'] < self.right_edge[1])
-                 & (grid['y'] + 0.5*grid['dy'] >= self.left_edge[1])
-                 & (grid['z'] - 0.5*grid['dz'] < self.right_edge[2])
-                 & (grid['z'] + 0.5*grid['dz'] >= self.left_edge[2]) )
+            cm = ( (grid['x'] < self.right_edge[0])
+                 & (grid['x'] > self.left_edge[0])
+                 & (grid['y'] < self.right_edge[1])
+                 & (grid['y'] > self.left_edge[1])
+                 & (grid['z'] < self.right_edge[2])
+                 & (grid['z'] > self.left_edge[2]) )
         return cm
 
 class AMRPeriodicRegionBase(AMR3DData):
