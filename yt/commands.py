@@ -274,8 +274,8 @@ class YTCommands(cmdln.Cmdln):
         pc.save(os.path.join(opts.output,"%s" % (pf)))
 
 def run_main():
-    if "--parallel" in sys.argv:
-        del sys.argv[sys.argv.index("--parallel")]
+    for co in ["--parallel", "--paste"]:
+        if co in sys.argv: del sys.argv[sys.argv.index(co)]
     YT = YTCommands()
     sys.exit(YT.main())
 

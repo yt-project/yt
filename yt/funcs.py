@@ -23,7 +23,7 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-import time, types, signal, traceback
+import time, types, signal, traceback, sys
 import progressbar as pb
 from math import floor, ceil
 
@@ -34,6 +34,23 @@ try:
     signal.signal(signal.SIGUSR1, signal_print_traceback)
 except ValueError:  # Not in main thread
     pass
+
+def paste_traceback(exc_type, exc, tb):
+    sys.__excepthook__(exc_type, exc, tb)
+    import xmlrpclib, cStringIO
+    p = xmlrpclib.ServerProxy(
+            "http://paste.enzotools.org/xmlrpc/",
+            allow_none=True)
+    s = cStringIO.StringIO()
+    traceback.print_exception(exc_type, exc, tb, file=s)
+    s = s.getvalue()
+    ret = p.pastes.newPaste('pytb', s, None, '', '', True)
+    print
+    print "Traceback pasted to http://paste.enzotools.org/show/%s" % (ret)
+    print
+
+if "--paste" in sys.argv:
+    sys.excepthook = paste_traceback
 
 def blank_wrapper(f):
     return lambda a: a
