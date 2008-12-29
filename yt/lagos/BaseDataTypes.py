@@ -1319,6 +1319,13 @@ class AMR3DData(AMRData, GridPropertiesMixin):
         k = (k | self._get_cut_particle_mask(grid))
         return na.where(k)
 
+    def cut_region(self, field_cuts):
+        """
+        Return an InLineExtractedRegion, where the grid cells are cut on the
+        fly with a set of field_cuts.
+        """
+        return InLineExtractedRegionBase(self, field_cuts)
+
     def extract_region(self, indices):
         """
         Return an ExtractedRegion where the points contained in it are defined
@@ -1427,6 +1434,33 @@ class ExtractedRegionBase(AMR3DData):
     def _get_point_indices(self, grid, use_child_mask=True):
         # Yeah, if it's not true, we don't care.
         return self._indices[grid.id-1]
+
+class InLineExtractedRegionBase(AMR3DData):
+    """
+    In-line extracted regions accept a base region and a set of field_cuts to
+    determine which points in a grid should be included.
+    """
+    def __init__(self, base_region, field_cuts, **kwargs):
+        cen = base_region.get_field_parameter("center")
+        AMR3DData.__init__(self, center=cen,
+                            fields=None, pf=base_region.pf, **kwargs)
+        self._base_region = base_region # We don't weakly reference because
+                                        # It is not cyclic
+        self._field_cuts = ensure_list(field_cuts)[:]
+        self._refresh_data()
+
+    def _get_list_of_grids(self):
+        self._grids = self._base_region._grids
+
+    def _is_fully_enclosed(self, grid):
+        return False
+
+    @cache_mask
+    def _get_cut_mask(self, grid):
+        point_mask = self._base_region._get_cut_mask(grid)
+        for cut in self._field_cuts:
+            point_mask *= eval(cut)
+        return point_mask
 
 class AMRCylinderBase(AMR3DData):
     """
