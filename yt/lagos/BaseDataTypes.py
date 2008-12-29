@@ -1552,12 +1552,12 @@ class AMRRegionBase(AMR3DData):
         if self._is_fully_enclosed(grid):
             return True
         else:
-            cm = ( (grid['x'] < self.right_edge[0])
-                 & (grid['x'] > self.left_edge[0])
-                 & (grid['y'] < self.right_edge[1])
-                 & (grid['y'] > self.left_edge[1])
-                 & (grid['z'] < self.right_edge[2])
-                 & (grid['z'] > self.left_edge[2]) )
+            cm = ( (grid['x'] - grid['dx'] < self.right_edge[0])
+                 & (grid['x'] + grid['dx'] > self.left_edge[0])
+                 & (grid['y'] - grid['dy'] < self.right_edge[1])
+                 & (grid['y'] + grid['dy'] > self.left_edge[1])
+                 & (grid['z'] - grid['dz'] < self.right_edge[2])
+                 & (grid['z'] + grid['dz'] > self.left_edge[2]) )
         return cm
 
 class AMRPeriodicRegionBase(AMR3DData):
@@ -1605,11 +1605,11 @@ class AMRPeriodicRegionBase(AMR3DData):
             cm = na.zeros(grid.ActiveDimensions,dtype='bool')
             for off_x, off_y, off_z in self.offsets:
                 cm = cm | ( (grid['x'] - grid['dx'] + off_x < self.right_edge[0])
-                          & (grid['x'] + grid['dx'] + off_x >= self.left_edge[0])
+                          & (grid['x'] + grid['dx'] + off_x > self.left_edge[0])
                           & (grid['y'] - grid['dy'] + off_y < self.right_edge[1])
-                          & (grid['y'] + grid['dy'] + off_y >= self.left_edge[1])
+                          & (grid['y'] + grid['dy'] + off_y > self.left_edge[1])
                           & (grid['z'] - grid['dz'] + off_z < self.right_edge[2])
-                          & (grid['z'] + grid['dz'] + off_z >= self.left_edge[2]) )
+                          & (grid['z'] + grid['dz'] + off_z > self.left_edge[2]) )
             return cm
 
 class AMRGridCollection(AMR3DData):
