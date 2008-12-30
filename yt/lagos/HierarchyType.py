@@ -108,7 +108,12 @@ class AMRHierarchy:
 
     def _initialize_data_file(self):
         if not ytcfg.getboolean('lagos','serialize'): return
-        fn = os.path.join(self.directory,"%s.yt" % self["CurrentTimeIdentifier"])
+        if os.path.isfile(os.path.join(self.directory,
+                            "%s.yt" % self["CurrentTimeIdentifier"])):
+            fn = os.path.join(self.directory,"%s.yt" % self["CurrentTimeIdentifier"])
+        else:
+            fn = os.path.join(self.directory,
+                    "%s.yt" % self.parameter_file.basename)
         if ytcfg.getboolean('lagos','onlydeserialize'):
             self._data_mode = mode = 'r'
         else:
@@ -150,7 +155,7 @@ class AMRHierarchy:
             if name in node_loc and force:
                 mylog.info("Overwriting node %s/%s", node, name)
                 self._data_file.removeNode(node, name, recursive=True)
-            if name in node_loc and passthrough:
+            elif name in node_loc and passthrough:
                 return
         except tables.exceptions.NoSuchNodeError:
             pass
@@ -187,20 +192,39 @@ class AMRHierarchy:
             del self._data_file
             self._data_file = None
 
+    def _add_object_class(self, name, obj):
+        self.object_types.append(name)
+        setattr(self, name, obj)
+
     def _setup_classes(self, dd):
-        self.proj = classobj("AMRProj",(AMRProjBase,), dd)
-        self.slice = classobj("AMRSlice",(AMRSliceBase,), dd)
-        self.region = classobj("AMRRegion",(AMRRegionBase,), dd)
-        self.periodic_region = classobj("AMRPeriodicRegion",(AMRPeriodicRegionBase,), dd)
-        self.covering_grid = classobj("AMRCoveringGrid",(AMRCoveringGrid,), dd)
-        self.smoothed_covering_grid = classobj("AMRSmoothedCoveringGrid",(AMRSmoothedCoveringGrid,), dd)
-        self.sphere = classobj("AMRSphere",(AMRSphereBase,), dd)
-        self.cutting = classobj("AMRCuttingPlane",(AMRCuttingPlaneBase,), dd)
-        self.ray = classobj("AMRRay",(AMRRayBase,), dd)
-        self.ortho_ray = classobj("AMROrthoRay",(AMROrthoRayBase,), dd)
-        self.disk = classobj("AMRCylinder",(AMRCylinderBase,), dd)
-        self.grid_collection = classobj("AMRGridCollection",(AMRGridCollection,), dd)
-        self.extracted_region = classobj("ExtractedRegion",(ExtractedRegionBase,), dd)
+        self.object_types = []
+        self._add_object_class('proj', 
+              classobj("AMRProj",(AMRProjBase,), dd))
+        self._add_object_class('slice', 
+              classobj("AMRSlice",(AMRSliceBase,), dd))
+        self._add_object_class('region', 
+              classobj("AMRRegion",(AMRRegionBase,), dd))
+        self._add_object_class('periodic_region', 
+              classobj("AMRPeriodicRegion",(AMRPeriodicRegionBase,), dd))
+        self._add_object_class('covering_grid', 
+              classobj("AMRCoveringGrid",(AMRCoveringGridBase,), dd))
+        self._add_object_class('smoothed_covering_grid', 
+              classobj("AMRSmoothedCoveringGrid",(AMRSmoothedCoveringGridBase,), dd))
+        self._add_object_class('sphere', 
+              classobj("AMRSphere",(AMRSphereBase,), dd))
+        self._add_object_class('cutting', 
+              classobj("AMRCuttingPlane",(AMRCuttingPlaneBase,), dd))
+        self._add_object_class('ray', 
+              classobj("AMRRay",(AMRRayBase,), dd))
+        self._add_object_class('ortho_ray', 
+              classobj("AMROrthoRay",(AMROrthoRayBase,), dd))
+        self._add_object_class('disk', 
+              classobj("AMRCylinder",(AMRCylinderBase,), dd))
+        self._add_object_class('grid_collection', 
+              classobj("AMRGridCollection",(AMRGridCollection,), dd))
+        self._add_object_class('extracted_region', 
+              classobj("ExtractedRegion",(ExtractedRegionBase,), dd))
+        self.object_types.sort()
 
     def _deserialize_hierarchy(self, harray):
         mylog.debug("Cached entry found.")
@@ -617,8 +641,10 @@ class EnzoHierarchy(AMRHierarchy):
 
     def _setup_classes(self):
         dd = self._get_data_reader_dict()
-        self.grid = classobj("EnzoGrid",(EnzoGridBase,), dd)
         AMRHierarchy._setup_classes(self, dd)
+        self._add_object_class('grid', 
+              classobj("EnzoGrid",(EnzoGridBase,), dd))
+        self.object_types.sort()
 
     def __guess_data_style(self, rank, testGrid, testGridID):
         if self.data_style: return
@@ -1317,8 +1343,10 @@ class OrionHierarchy(AMRHierarchy):
     def _setup_classes(self):
         dd = self._get_data_reader_dict()
         dd["field_indexes"] = self.field_indexes
-        self.grid = classobj("OrionGrid",(OrionGridBase,), dd)
         AMRHierarchy._setup_classes(self, dd)
+        self._add_object_class('grid', 
+              classobj("OrionGrid",(OrionGridBase,), dd))
+        self.object_types.sort()
 
     def _get_grid_children(self, grid):
         mask = na.zeros(self.num_grids, dtype='bool')

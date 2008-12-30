@@ -23,6 +23,7 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
+from yt.config import ytcfg
 from yt.fido import *
 from yt.funcs import *
 import shelve

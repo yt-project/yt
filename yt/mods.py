@@ -50,11 +50,10 @@ from yt.lagos import EnzoStaticOutput, \
 fieldInfo = EnzoFieldInfo
 
 # Now individual component imports from raven
-from yt.raven import PlotCollection, PlotCollectionInteractive, \
-    QuiverCallback, ParticleCallback, ContourCallback, \
-    GridBoundaryCallback, UnitBoundaryCallback, \
-    LinePlotCallback, CuttingQuiverCallback, ClumpContourCallback, \
-    HopCircleCallback
+from yt.raven import PlotCollection, PlotCollectionInteractive
+from yt.raven.Callbacks import callback_registry
+for name, cls in callback_registry:
+    exec("from yt.raven import %s" % name)
 
 # Optional component imports from raven
 try:

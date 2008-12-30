@@ -112,7 +112,10 @@ class HopList(object):
         """
         Write out standard HOP information to *filename*.
         """
-        f = open(filename,"w")
+        if hasattr(filename, 'write'):
+            f = filename
+        else:
+            f = open(filename,"w")
         f.write("\t".join(["# Group","Mass","# part","max dens"
                            "x","y","z", "center-of-mass",
                            "x","y","z",
@@ -120,7 +123,7 @@ class HopList(object):
         for group in self:
             f.write("%10i\t" % group.id)
             f.write("%0.9e\t" % group.total_mass())
-            f.write("%10i\t" % group.indices.size)
+            f.write("%10i\t" % group.get_size())
             f.write("%0.9e\t" % group.maximum_density())
             f.write("\t".join(["%0.9e" % v for v in group.maximum_density_location()]))
             f.write("\t")
@@ -130,6 +133,7 @@ class HopList(object):
             f.write("\t")
             f.write("%0.9e\t" % group.maximum_radius())
             f.write("\n")
+            f.flush()
         f.close()
 
 class HopIterator(object):
@@ -149,7 +153,9 @@ class HopGroup(object):
     """
     __metaclass__ = ParallelDummy # This will proxy up our methods
     _distributed = False
-    _owned = True
+    _processing = False
+    _owner = 0
+    indices = None
     dont_wrap = ["get_sphere"]
 
     def __init__(self, hop_output, id, indices = None):
@@ -159,6 +165,7 @@ class HopGroup(object):
         if indices is not None: self.indices = hop_output._base_indices[indices]
         # We assume that if indices = None, the instantiator has OTHER plans
         # for us -- i.e., setting it somehow else
+
     def center_of_mass(self):
         """
         Calculate and return the center of mass.
@@ -234,6 +241,9 @@ class HopGroup(object):
                         center, radius=radius)
         return sphere
 
+    def get_size(self):
+        return self.indices.size
+
 class HaloFinder(HopList, ParallelAnalysisInterface):
     def __init__(self, pf, threshold=160.0, dm_only=True):
         self.pf = pf
@@ -253,6 +263,9 @@ class HaloFinder(HopList, ParallelAnalysisInterface):
         self.bounds = (LE, RE)
         # reflect particles around the periodic boundary
         self._reposition_particles((LE, RE))
+        self.data_source.get_data(["ParticleMassMsun"] +
+                                  ["particle_velocity_%s" % ax for ax in 'xyz'] +    
+                                  ["particle_position_%s" % ax for ax in 'xyz'])
         # MJT: This is the point where HOP is run, and we have halos for every
         # single sub-region
         super(HaloFinder, self).__init__(self.data_source, threshold, dm_only)
@@ -262,7 +275,6 @@ class HaloFinder(HopList, ParallelAnalysisInterface):
     def _parse_hoplist(self):
         groups, max_dens, hi  = [], {}, 0
         LE, RE = self.bounds
-        print LE, RE
         for halo in self._groups:
             this_max_dens = halo.maximum_density_location()
             # if the most dense particle is in the box, keep it
@@ -271,11 +283,10 @@ class HaloFinder(HopList, ParallelAnalysisInterface):
                 # self.hop_list
                 # We need to mock up the HopList thingie, so we need to set:
                 #     self._max_dens
-                #     
                 max_dens[hi] = self._max_dens[halo.id]
                 groups.append(HopGroup(self, hi))
                 groups[-1].indices = halo.indices
-                groups[-1]._owned = True
+                self._claim_object(groups[-1])
                 hi += 1
         del self._groups, self._max_dens # explicit >> implicit
         self._groups = groups
@@ -299,19 +310,28 @@ class HaloFinder(HopList, ParallelAnalysisInterface):
         # sort the list by the size of the groups
         # Now we add ghost halos and reassign all the IDs
         # Note: we already know which halos we own!
-        after = nhalos - (my_first_id + len(self._groups))
+        after = my_first_id + len(self._groups)
         # One single fake halo, not owned, does the trick
-        fake_halo = HopGroup(self, 0)
-        fake_halo._owned = False
-        self._groups = [fake_halo] * my_first_id + \
+        self._groups = [HopGroup(self, i) for i in range(my_first_id)] + \
                        self._groups + \
-                       [fake_halo] * after
+                       [HopGroup(self, i) for i in range(after, nhalos)]
         # MJT: Sorting doesn't work yet.  They need to be sorted.
         #haloes.sort(lambda x, y: cmp(len(x.indices),len(y.indices)))
         # Unfortunately, we can't sort *just yet*.
+        id = 0
+        for proc in sorted(halo_info.keys()):
+            for halo in self._groups[id:id+halo_info[proc]]:
+                halo.id = id
+                halo._distributed = True
+                halo._owner = proc
+                id += 1
+        self._groups.sort(key = lambda h: -1 * h.get_size())
+        sorted_max_dens = {}
         for i, halo in enumerate(self._groups):
-            self._distributed = True
+            if halo.id in self._max_dens:
+                sorted_max_dens[i] = self._max_dens[halo.id]
             halo.id = i
+        self._max_dens = sorted_max_dens
         
     def _reposition_particles(self, bounds):
         # This only does periodicity.  We do NOT want to deal with anything
@@ -322,3 +342,7 @@ class HaloFinder(HopList, ParallelAnalysisInterface):
             arr = self.data_source["particle_position_%s" % ax]
             arr[arr < LE[i]-self.padding] += dw[i]
             arr[arr > RE[i]+self.padding] -= dw[i]
+
+    def write_out(self, filename):
+        f = self._write_on_root(filename)
+        HopList.write_out(self, f)

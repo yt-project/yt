@@ -102,7 +102,7 @@ class DerivedQuantityCollection(object):
     def keys(self):
         return self.functions.keys()
 
-def _TotalMass(self, data):
+def _TotalMass(data):
     """
     This function takes no arguments and returns the sum of cell masses and
     particle masses in the object.
@@ -227,15 +227,111 @@ def _IsBound(data, truncate = True, include_thermal_energy = False):
     # We only divide once here because we have velocity in cgs, but radius is
     # in code.
     G = 6.67e-8 / data.convert("cm") # cm^3 g^-1 s^-2
-    pot = 2*G*PointCombine.FindBindingEnergy(data["CellMass"],
-                                  data['x'],data['y'],data['z'],
-                                  truncate, kinetic/(2*G))
+    import time
+    t1 = time.time()
+    try:
+        pot = 2*G*_cudaIsBound(data, truncate, kinetic/(2*G))
+    except (ImportError, AssertionError):
+        pot = 2*G*PointCombine.FindBindingEnergy(data["CellMass"],
+                                      data['x'],data['y'],data['z'],
+                                      False, kinetic/(2*G))
+    mylog.info("Boundedness check took %0.3e seconds", time.time()-t1)
     return [(pot / kinetic)]
 def _combIsBound(data, bound):
     return bound
 add_quantity("IsBound",function=_IsBound,combine_function=_combIsBound,n_ret=1,
              force_unlazy=True)
 
+def _cudaIsBound(data, truncate, ratio):
+    import pycuda.driver as cuda
+    import pycuda.autoinit
+    import pycuda.gpuarray as gpuarray
+    my_stream = cuda.Stream()
+    cuda.init()
+    assert cuda.Device.count() >= 1
+
+    # Now the tedious process of rescaling our values...
+    length_scale_factor = data['dx'].max()/data['dx'].min()
+    mass_scale_factor = 1.0/(data['CellMass'].max())
+    x = ((data['x'] - data['x'].min()) * length_scale_factor).astype('float32')
+    y = ((data['y'] - data['y'].min()) * length_scale_factor).astype('float32')
+    z = ((data['z'] - data['z'].min()) * length_scale_factor).astype('float32')
+    m = (data['CellMass'] * mass_scale_factor).astype('float32')
+    p = na.zeros(z.shape, dtype='float32')
+    x_gpu = cuda.mem_alloc(x.size * x.dtype.itemsize)
+    y_gpu = cuda.mem_alloc(y.size * y.dtype.itemsize)
+    z_gpu = cuda.mem_alloc(z.size * z.dtype.itemsize)
+    m_gpu = cuda.mem_alloc(m.size * m.dtype.itemsize)
+    p_gpu = cuda.mem_alloc(p.size * p.dtype.itemsize)
+    for ag, a in [(x_gpu, x), (y_gpu, y), (z_gpu, z), (m_gpu, m), (p_gpu, p)]:
+        cuda.memcpy_htod(ag, a)
+    source = """
+
+      extern __shared__ float array[];
+
+      __global__ void isbound(float *x, float *y, float *z, float *m,
+                              float *p)
+      {
+
+        /* My index in the array */
+        int idx1 = blockIdx.x * blockDim.x + threadIdx.x;
+        /* Note we are setting a start index */
+        int idx2 = blockIdx.y * blockDim.x;
+        int offset = threadIdx.x;
+
+        float* x_data1 = (float*) array;
+        float* y_data1 = (float*) &x_data1[blockDim.x];
+        float* z_data1 = (float*) &y_data1[blockDim.x];
+        float* m_data1 = (float*) &z_data1[blockDim.x];
+
+        float* x_data2 = (float*) &m_data1[blockDim.x];
+        float* y_data2 = (float*) &x_data2[blockDim.x];
+        float* z_data2 = (float*) &y_data2[blockDim.x];
+        float* m_data2 = (float*) &z_data2[blockDim.x];
+
+        x_data1[offset] = x[idx1];
+        y_data1[offset] = y[idx1];
+        z_data1[offset] = z[idx1];
+        m_data1[offset] = m[idx1];
+
+        x_data2[offset] = x[idx2 + offset];
+        y_data2[offset] = y[idx2 + offset];
+        z_data2[offset] = z[idx2 + offset];
+        m_data2[offset] = m[idx2 + offset];
+
+        __syncthreads();
+
+        float tx, ty, tz;
+
+        float my_p = 0.0;
+
+        for (int i = 0; i < blockDim.x; i++){
+            if(i + idx2 < idx1 + 1) continue;
+            tx = (x_data1[offset]-x_data2[i]);
+            ty = (y_data1[offset]-y_data2[i]);
+            tz = (z_data1[offset]-z_data2[i]);
+            my_p += m_data1[offset]*m_data2[i] /
+                sqrt(tx*tx+ty*ty+tz*tz);
+        }
+        p[idx1] += my_p;
+        __syncthreads();
+      }
+    """
+    bsize = 256
+    mod = cuda.SourceModule(source % dict(p=m.size, b=bsize), keep=True)
+    func = mod.get_function('isbound')
+    import math
+    gsize=int(math.ceil(float(m.size)/bsize))
+    mylog.info("Running CUDA functions.  May take a while.  (%0.5e, %s)",
+               x.size, gsize)
+    import pycuda.tools as ct
+    t1 = time.time()
+    ret = func(x_gpu, y_gpu, z_gpu, m_gpu, p_gpu,
+               shared=8*bsize*m.dtype.itemsize,
+         block=(bsize,1,1), grid=(gsize, gsize), time_kernel=True)
+    cuda.memcpy_dtoh(p, p_gpu)
+    p1 = p.sum()
+    return p1 * (length_scale_factor / (mass_scale_factor**2.0))
     
 def _Extrema(data, fields):
     """

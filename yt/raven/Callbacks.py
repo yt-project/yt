@@ -32,7 +32,14 @@ from PlotTypes import _get_bounds
 
 import _MPL
 
+callback_registry = []
+
 class PlotCallback(object):
+    class __metaclass__(type):
+        def __init__(cls, name, b, d):
+            type.__init__(name, b, d)
+            callback_registry.append((name, cls))
+
     def __init__(self, *args, **kwargs):
         pass
 
@@ -226,30 +233,30 @@ class GridBoundaryCallback(PlotCallback):
         yy0, yy1 = plot._axes.get_ylim()
         dx = (xx1-xx0)/(x1-x0)
         dy = (yy1-yy0)/(y1-y0)
-        GLE = plot.data.gridLeftEdge
-        GRE = plot.data.gridRightEdge
         px_index = lagos.x_dict[plot.data.axis]
         py_index = lagos.y_dict[plot.data.axis]
-        left_edge_px = na.maximum((GLE[:,px_index]-x0)*dx, xx0)
-        left_edge_py = na.maximum((GLE[:,py_index]-y0)*dy, yy0)
-        right_edge_px = na.minimum((GRE[:,px_index]-x0)*dx, xx1)
-        right_edge_py = na.minimum((GRE[:,py_index]-y0)*dy, yy1)
-        print left_edge_px.min(), left_edge_px.max(), \
-              right_edge_px.min(), right_edge_px.max(), \
-              x0, x1, y0, y1
-        verts = na.array(
-                [(left_edge_px, left_edge_px, right_edge_px, right_edge_px),
-                 (left_edge_py, right_edge_py, right_edge_py, left_edge_py)])
-        visible =  ( right_edge_px - left_edge_px > self.min_pix ) & \
-                   ( right_edge_px - left_edge_px > self.min_pix )
-        verts=verts.transpose()[visible,:,:]
-        edgecolors = (0.0,0.0,0.0,self.alpha)
-        grid_collection = matplotlib.collections.PolyCollection(
-                verts, facecolors=(0.0,0.0,0.0,0.0),
-                       edgecolors=edgecolors)
-        plot._axes.hold(True)
-        plot._axes.add_collection(grid_collection)
-        plot._axes.hold(False)
+        dom = plot.data.pf["DomainRightEdge"] - plot.data.pf["DomainLeftEdge"]
+        for px_off, py_off in na.mgrid[-1:1:3j,-1:1:3j]:
+            GLE = plot.data.gridLeftEdge + px_off * dom[px_index]
+            GRE = plot.data.gridRightEdge + py_off * dom[py_index]
+            left_edge_px = na.maximum((GLE[:,px_index]-x0)*dx, xx0)
+            left_edge_py = na.maximum((GLE[:,py_index]-y0)*dy, yy0)
+            right_edge_px = na.minimum((GRE[:,px_index]-x0)*dx, xx1)
+            right_edge_py = na.minimum((GRE[:,py_index]-y0)*dy, yy1)
+            verts = na.array(
+                    [(left_edge_px, left_edge_px, right_edge_px, right_edge_px),
+                     (left_edge_py, right_edge_py, right_edge_py, left_edge_py)])
+            visible =  ( right_edge_px - left_edge_px > self.min_pix ) & \
+                       ( right_edge_px - left_edge_px > self.min_pix )
+            verts=verts.transpose()[visible,:,:]
+            if verts.size == 0: continue
+            edgecolors = (0.0,0.0,0.0,self.alpha)
+            grid_collection = matplotlib.collections.PolyCollection(
+                    verts, facecolors=(0.0,0.0,0.0,0.0),
+                           edgecolors=edgecolors)
+            plot._axes.hold(True)
+            plot._axes.add_collection(grid_collection)
+            plot._axes.hold(False)
 
 class LabelCallback(PlotCallback):
     def __init__(self, label):
@@ -507,7 +514,7 @@ class HopCircleCallback(PlotCallback):
             plot._axes.add_patch(cir)
             if self.annotate:
                 if self.print_halo_size:
-                    plot._axes.text(center_x, center_y, "%s" % len(halo.indices),
+                    plot._axes.text(center_x, center_y, "%s" % halo.get_size(),
                     fontsize=self.font_size)
                 else:
                     plot._axes.text(center_x, center_y, "%s" % halo.id,
