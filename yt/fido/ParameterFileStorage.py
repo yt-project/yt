@@ -23,28 +23,10 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-## This is going to be the means of interacting with an SQLite (no, I repeat,
-## ORM will be used here!) db in the ~/.yt/ directory where parameter files
-## will be stored.  It will be queried for a hash, which then gets instantiated
-## and returned to the user.
-
-## Non-functional right now.
-
-## Our table layout:
-##  ParameterFiles
-##      Filename        fn      text
-##      Last known path path    text
-##      Sim time        time    real    
-##      CurrentTimeID   ctid    real
-##      Hash            hash    text
-
 from yt.fido import *
 from yt.funcs import *
 import shelve
 import os.path
-
-#sqlite3.register_adapter(yt.lagos.OutputTypes.EnzoStaticOutput, _adapt_pf)
-#sqlite3.register_converter("pfile", _convert_pf)
 
 class ParameterFileStore(object):
 
@@ -57,7 +39,7 @@ class ParameterFileStore(object):
         return self
 
     def __init__(self, in_memory = False):
-        pass
+        only_on_root(self.__init_shelf)
 
     def _get_db_name(self):
         return os.path.expanduser("~/.yt/parameter_files.db")
@@ -109,13 +91,22 @@ class ParameterFileStore(object):
         my_shelf = shelve.open(self._get_db_name(), flag='r')
         return my_shelf[key]
 
-    def __setitem__(self, key, val):
+    def __store_item(self, key, val):
         my_shelf = shelve.open(self._get_db_name(), 'c')
         my_shelf[key] = val
 
-    def __delitem__(self, key):
+    def __delete_item(self, key):
         my_shelf = shelve.open(self._get_db_name(), 'c')
         del my_shelf[key]
+
+    def __init_shelf(self):
+        shelve.open(self._get_db_name(), 'c')
+
+    def __setitem__(self, key, val):
+        only_on_root(self.__store_item, key, val)
+
+    def __delitem__(self, key):
+        only_on_root(self.__delete_item, key)
 
     def keys(self):
         my_shelf = shelve.open(self._get_db_name(), flag='r')
