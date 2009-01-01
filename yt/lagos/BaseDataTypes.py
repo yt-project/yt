@@ -1545,19 +1545,19 @@ class AMRRegionBase(AMR3DData):
 
     def _is_fully_enclosed(self, grid):
         return na.all( (grid._corners < self.right_edge)
-                     & (grid._corners >= self.left_edge))
+                     & (grid._corners > self.left_edge))
 
     @cache_mask
     def _get_cut_mask(self, grid):
         if self._is_fully_enclosed(grid):
             return True
         else:
-            cm = ( (grid['x'] - grid['dx'] < self.right_edge[0])
-                 & (grid['x'] + grid['dx'] > self.left_edge[0])
-                 & (grid['y'] - grid['dy'] < self.right_edge[1])
-                 & (grid['y'] + grid['dy'] > self.left_edge[1])
-                 & (grid['z'] - grid['dz'] < self.right_edge[2])
-                 & (grid['z'] + grid['dz'] > self.left_edge[2]) )
+            cm = ( (grid['x'] - 0.5 * grid['dx'] < self.right_edge[0])
+                 & (grid['x'] + 0.5 * grid['dx'] > self.left_edge[0])
+                 & (grid['y'] - 0.5 * grid['dy'] < self.right_edge[1])
+                 & (grid['y'] + 0.5 * grid['dy'] > self.left_edge[1])
+                 & (grid['z'] - 0.5 * grid['dz'] < self.right_edge[2])
+                 & (grid['z'] + 0.5 * grid['dz'] > self.left_edge[2]) )
         return cm
 
 class AMRPeriodicRegionBase(AMR3DData):
