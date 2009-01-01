@@ -245,7 +245,7 @@ class HopGroup(object):
         return self.indices.size
 
 class HaloFinder(HopList, ParallelAnalysisInterface):
-    def __init__(self, pf, threshold=160.0, dm_only=True):
+    def __init__(self, pf, threshold=160.0, dm_only=True, padding=0.2):
         self.pf = pf
         self.hierarchy = pf.h
         self.center = (pf["DomainRightEdge"] + pf["DomainLeftEdge"])/2.0
@@ -258,7 +258,7 @@ class HaloFinder(HopList, ParallelAnalysisInterface):
         # are all on different processors, we should instead construct an
         # object representing the entire domain and sum it "lazily" with
         # Derived Quantities.
-        self.padding = 0.2 #* pf["unitary"] # This should be clevererer
+        self.padding = padding #* pf["unitary"] # This should be clevererer
         padded, LE, RE, self.data_source = self._partition_hierarchy_3d(padding=self.padding)
         self.bounds = (LE, RE)
         # reflect particles around the periodic boundary
