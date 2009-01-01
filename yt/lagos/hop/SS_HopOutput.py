@@ -268,7 +268,8 @@ class HaloFinder(HopList, ParallelAnalysisInterface):
                                   ["particle_position_%s" % ax for ax in 'xyz'])
         # MJT: This is the point where HOP is run, and we have halos for every
         # single sub-region
-        super(HaloFinder, self).__init__(self.data_source, threshold, dm_only)
+        sub_mass = self.data_source["ParticleMassMsun"].sum()
+        super(HaloFinder, self).__init__(self.data_source, threshold*total_mass/sub_mass, dm_only)
         self._parse_hoplist()
         self._join_hoplists()
 
