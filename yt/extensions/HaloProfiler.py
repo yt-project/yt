@@ -32,7 +32,7 @@ import os
 import tables as h5
 
 class HaloProfiler(object):
-    def __init__(self,dataset,HaloProfilerParameterFile):
+    def __init__(self,dataset,HaloProfilerParameterFile,halos='multiple',radius=0.1):
         self.dataset = dataset
         self.HaloProfilerParameterFile = HaloProfilerParameterFile
         self.haloProfilerParameters = {}
@@ -40,6 +40,17 @@ class HaloProfiler(object):
         self.projectionFields = {}
         self.hopHalos = []
         self.virialQuantities = []
+
+        # Set option to get halos from hop or single halo at density maximum.
+        # multiple: get halos from hop
+        # single: get single halo from density maximum
+        self.halos = halos
+        if not(self.halos is 'multiple' or self.halos is 'single'):
+            mylog.error("Keyword, halos, must be either 'single' or 'multiple'.")
+            return
+
+        if self.halos is 'single':
+            self.haloRadius = radius
 
         # Set some parameter defaults.
         self._SetParameterDefaults()
@@ -53,8 +64,19 @@ class HaloProfiler(object):
     def makeProfiles(self):
         "Make radial profiles for all halos on the list."
 
-        # Get hop data.
-        self._LoadHopData()
+        # Get halo(s).
+        if self.halos is 'single':
+            v, center = self.pf.h.find_max('Density')
+            singleHalo = {}
+            singleHalo['center'] = center
+            singleHalo['r_max'] = self.haloRadius
+            self.hopHalos.append(singleHalo)
+        elif self.halos is 'multiple':
+            # Get hop data.
+            self._LoadHopData()
+        else:
+            mylog.error("I don't know whether to get halos from hop or from density maximum.  This should not have happened.")
+            return
 
         # Add profile fields necessary for calculating virial quantities.
         self._CheckForNeededProfileFields()
