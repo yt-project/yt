@@ -226,6 +226,9 @@ class HopGroup(object):
                         center, radius=radius)
         return sphere
 
+    def get_size(self):
+        return self.indices.size
+
 class HaloFinder(ParallelAnalysisInterface):
     def __init__(self, pf, threshold=160.0, dm_only=True):
         self.pf = pf
