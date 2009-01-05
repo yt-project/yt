@@ -111,22 +111,25 @@ class HopList(object):
         Write out standard HOP information to *filename*.
         """
         f = open(filename,"w")
-        f.write("\t".join(["# Group","Mass","# part","max dens"
-                           "x","y","z", "center-of-mass",
-                           "x","y","z",
-                           "vx","vy","vz","max_r","\n"]))
+        f.write("#% 9s\t% 16s\t% 10s\t" % ("Group","Mass", "npart"))
+        f.write("\t".join(["% 16s" % i for i in 
+                            "max dens",
+                            "max_rho_x","max_rho_y","max_rho_z",
+                            "com_x","com_y","com_z",
+                            "vx","vy","vz","max_r"]))
+        f.write("\n")
         for group in self:
-            f.write("%10i\t" % group.id)
-            f.write("%0.9e\t" % group.total_mass())
-            f.write("%10i\t" % group.indices.size)
-            f.write("%0.9e\t" % group.maximum_density())
-            f.write("\t".join(["%0.9e" % v for v in group.maximum_density_location()]))
+            f.write("% 10i\t" % group.id)
+            f.write("% 0.9e\t" % group.total_mass())
+            f.write("% 10i\t" % group.indices.size)
+            f.write("% 0.9e\t" % group.maximum_density())
+            f.write("\t".join(["% 0.9e" % v for v in group.maximum_density_location()]))
             f.write("\t")
-            f.write("\t".join(["%0.9e" % v for v in group.center_of_mass()]))
+            f.write("\t".join(["% 0.9e" % v for v in group.center_of_mass()]))
             f.write("\t")
-            f.write("\t".join(["%0.9e" % v for v in group.bulk_velocity()]))
+            f.write("\t".join(["% 0.9e" % v for v in group.bulk_velocity()]))
             f.write("\t")
-            f.write("%0.9e\t" % group.maximum_radius())
+            f.write("% 0.9e\t" % group.maximum_radius())
             f.write("\n")
         f.close()
 
