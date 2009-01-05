@@ -209,7 +209,7 @@ class LightCone(object):
                 self.haloMask *= mask
             del haloMaskCube
 
-    def ProjectLightCone(self,field,weight_field=None,apply_halo_mask=False,save_stack=True,save_slice_images=False,**kwargs):
+    def ProjectLightCone(self,field,weight_field=None,apply_halo_mask=False,node=None,save_stack=True,save_slice_images=False,**kwargs):
         "Create projections for light cone, then add them together."
 
         # Clear projection stack.
@@ -227,7 +227,7 @@ class LightCone(object):
             output['object'] = lagos.EnzoStaticOutput(output['filename'])
             frb = LightConeProjection(output,field,self.pixels,weight_field=weight_field,
                                       save_image=save_slice_images,
-                                      name=name,**kwargs)
+                                      name=name,node=node,**kwargs)
             if ytcfg.getint("yt","__parallel_rank") == 0:
                 if (weight_field is not None):
                     # Data come back normalized by the weight field.
