@@ -37,7 +37,7 @@ callback_registry = []
 class PlotCallback(object):
     class __metaclass__(type):
         def __init__(cls, name, b, d):
-            type.__init__(name, b, d)
+            type.__init__(cls, name, b, d)
             callback_registry.append((name, cls))
 
     def __init__(self, *args, **kwargs):
@@ -397,13 +397,11 @@ class CuttingQuiverCallback(PlotCallback):
         plot._axes.hold(False)
 
 class ClumpContourCallback(PlotCallback):
-    def __init__(self, clumps, axis, plot_args = None):
+    def __init__(self, clumps, axis = None, plot_args = None):
         """
         Take a list of *clumps* and plot them as a set of contours.
         """
         self.clumps = clumps
-        self.xf = lagos.axis_names[lagos.x_dict[axis]]
-        self.yf = lagos.axis_names[lagos.y_dict[axis]]
         if plot_args is None: plot_args = {}
         self.plot_args = plot_args
 
@@ -413,13 +411,14 @@ class ClumpContourCallback(PlotCallback):
         xx0, xx1 = plot._axes.get_xlim()
         yy0, yy1 = plot._axes.get_ylim()
         plot._axes.hold(True)
-        
+        xf = lagos.axis_names[lagos.x_dict[plot.data.axis]]
+        yf = lagos.axis_names[lagos.y_dict[plot.data.axis]]
+
         nx, ny = plot.image._A.shape
         buff = na.zeros((nx,ny),dtype='float64')
         for i,clump in enumerate(reversed(self.clumps)):
             mylog.debug("Pixelizing contour %s", i)
-            temp = _MPL.Pixelize(clump[self.xf],
-                                 clump[self.yf],
+            temp = _MPL.Pixelize(clump[xf], clump[yf],
                                  clump['dx']/2.0,
                                  clump['dy']/2.0,
                                  clump['dx']*0.0+i+1, # inits inside Pixelize
@@ -476,7 +475,8 @@ class SphereCallback(PlotCallback):
         radius = self.radius * dx
         center_x = (self.center[xi] - x0)*dx
         center_y = (self.center[yi] - y0)*dy
-        cir = Circle((center_x, center_y), radius, fill=False,
+        # origin = lower?  not sure why center_y and center_x are reversed
+        cir = Circle((center_y, center_x), radius, fill=False,
                      **self.circle_args)
         plot._axes.add_patch(cir)
         if self.text is not None:
