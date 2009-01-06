@@ -231,7 +231,7 @@ class AMRData:
 
     def save_object(self, name, filename = None):
         if filename is not None:
-            ds = shelve.open(filename)
+            ds = shelve.open(filename, protocol=-1)
             if name in ds:
                 mylog.info("Overwriting %s in %s", name, filename)
             ds[name] = self

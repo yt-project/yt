@@ -89,19 +89,22 @@ class ParameterFileStore(object):
         self[pf._hash()] = self._adapt_pf(pf)
 
     def __getitem__(self, key):
-        my_shelf = shelve.open(self._get_db_name(), flag='r')
+        my_shelf = shelve.open(self._get_db_name(), flag='r', protocol=-1)
         return my_shelf[key]
 
     def __store_item(self, key, val):
-        my_shelf = shelve.open(self._get_db_name(), 'c')
+        my_shelf = shelve.open(self._get_db_name(), 'c', protocol=-1)
         my_shelf[key] = val
 
     def __delete_item(self, key):
-        my_shelf = shelve.open(self._get_db_name(), 'c')
+        my_shelf = shelve.open(self._get_db_name(), 'c', protocol=-1)
         del my_shelf[key]
 
     def __init_shelf(self):
-        shelve.open(self._get_db_name(), 'c')
+        dbn = self._get_db_name()
+        dbdir = os.path.dirname(dbn)
+        if not os.path.isdir(dbdir): os.mkdir(dbdir)
+        shelve.open(self._get_db_name(), 'c', protocol=-1)
 
     def __setitem__(self, key, val):
         only_on_root(self.__store_item, key, val)
@@ -110,7 +113,7 @@ class ParameterFileStore(object):
         only_on_root(self.__delete_item, key)
 
     def keys(self):
-        my_shelf = shelve.open(self._get_db_name(), flag='r')
+        my_shelf = shelve.open(self._get_db_name(), flag='r', protocol=-1)
         return my_shelf.keys()
 
 class ObjectStorage(object):

@@ -165,7 +165,7 @@ class AMRHierarchy:
         self._data_file.flush()
 
     def save_object(self, obj, name):
-        s = cPickle.dumps(obj)
+        s = cPickle.dumps(obj, protocol=-1)
         self.save_data(s, "/Objects", name, force = True)
 
     def load_object(self, name):
@@ -815,7 +815,7 @@ class EnzoHierarchy(AMRHierarchy):
                 self.gridLevels[secondGrid] = self.gridLevels[firstGrid]
         pTree = [ [ grid.id - 1 for grid in self.gridTree[i] ] for i in range(self.num_grids) ]
         self.gridReverseTree[0] = -1
-        self.save_data(cPickle.dumps(pTree), "/", "Tree")
+        self.save_data(cPickle.dumps(pTree, protocol=-1), "/", "Tree")
         self.save_data(na.array(self.gridReverseTree), "/", "ReverseTree")
         self.save_data(self.gridLevels, "/", "Levels")
 
