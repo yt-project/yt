@@ -47,7 +47,8 @@ class ConstructedRootGrid(object):
         self.dx = pf.h.select_grids(level)[0].dx
         dims = (self.RightEdge-self.LeftEdge)/self.dx
         self.ActiveDimensions = dims
-        self.cg = pf.h.covering_grid(level, self.LeftEdge, self.RightEdge, dims)
+        self.cg = pf.h.smoothed_covering_grid(level, self.LeftEdge,
+                        self.RightEdge, dims=dims)
 
     def __getitem__(self, field):
         return self.cg[field]
@@ -113,17 +114,23 @@ class ExtractedHierarchy(object):
         grid_node._v_attrs.ghostzoneFlags = na.zeros(6, dtype='int32')
         grid_node._v_attrs.numGhostzones = na.zeros(3, dtype='int32')
         grid_node._v_attrs.dims = grid.ActiveDimensions[::-1].astype('int32')
-        if grid.hierarchy.data_style == 6 and field in grid.hierarchy.field_list:
-            tfn = os.path.abspath(afile.filename)
-            gfn = os.path.abspath(grid.filename)
-            fpn = os.path.commonprefix([tfn, grid.filename])
-            fn = grid.filename[len(os.path.commonprefix([tfn, grid.filename])):]
-            grid_node._v_attrs.referenceFileName = fn
-            grid_node._v_attrs.referenceDataPath = \
-                "/Grid%08i/%s" % (grid.id, field)
+        if self.pf.h.data_style == 6 and field in grid.hierarchy.field_list:
+            if grid.hierarchy.data_style == -1: # constructed grid
+                # if we can get conversion in amira we won't need to do this
+                ff = grid[field]
+                ff /= self.pf.conversion_factors.get(field, 1.0)
+                afile.createArray(grid_node, "grid-data", ff.swapaxes(0,2))
+            else:
+                tfn = os.path.abspath(afile.filename)
+                gfn = os.path.abspath(grid.filename)
+                fpn = os.path.commonprefix([tfn, grid.filename])
+                fn = grid.filename[len(os.path.commonprefix([tfn, grid.filename])):]
+                grid_node._v_attrs.referenceFileName = fn
+                grid_node._v_attrs.referenceDataPath = \
+                    "/Grid%08i/%s" % (grid.id, field)
         else:
             # Export our array
-            afile.createArray(grid_node, "grid-data", grid[field])
+            afile.createArray(grid_node, "grid-data", grid[field].swapaxes(0,2))
 
 def __get_pf(bn, n):
     bn_try = "%s%04i" % (bn, n)
@@ -145,7 +152,7 @@ def export_amira():
                       help="The maximum level to extract (chooses first grid at that level)")
     parser.add_option("-d","--subtract-time", action="store_true",
                       dest="subtract_time", help="Subtract the physical time of " + \
-                        "the first timestep (useful for small delta t)")
+                      "the first timestep (useful for small delta t)", default=False)
     parser.add_option("-r","--recenter", action="store_true",
                       dest="recenter", help="Recenter on maximum density in final output")
     parser.usage = "%prog [options] FIRST_ID LAST_ID"
