@@ -85,3 +85,14 @@ cdict = {'red':zip(_vs,_kamae_red,_kamae_red),
          'green':zip(_vs,_kamae_grn,_kamae_grn),
          'blue':zip(_vs,_kamae_blu,_kamae_blu)}
 add_cmap('kamae', cdict)
+
+# This one is a simple black & green map
+
+cdict = {'red':   ((0.0, 0.0, 0.0),
+                   (1.0, 0.0, 0.0)),
+         'green': ((0.0, 0.0, 0.0),
+                   (1.0, 1.0, 1.0)),
+         'blue':  ((0.0, 0.0, 0.0),
+                   (1.0, 0.0, 0.0))}
+
+add_cmap('black_green', cdict)
