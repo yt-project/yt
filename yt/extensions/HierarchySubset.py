@@ -114,7 +114,7 @@ class ExtractedHierarchy(object):
         grid_node._v_attrs.ghostzoneFlags = na.zeros(6, dtype='int32')
         grid_node._v_attrs.numGhostzones = na.zeros(3, dtype='int32')
         grid_node._v_attrs.dims = grid.ActiveDimensions[::-1].astype('int32')
-        if self.pf.h.data_style == 6 and field in grid.hierarchy.field_list:
+        if self.pf.h.data_style == 6 and field in self.pf.h.field_list:
             if grid.hierarchy.data_style == -1: # constructed grid
                 # if we can get conversion in amira we won't need to do this
                 ff = grid[field]
