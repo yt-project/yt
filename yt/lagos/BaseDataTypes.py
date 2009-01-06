@@ -1414,15 +1414,19 @@ class ExtractedRegionBase(AMR3DData):
     for things like selection along a baryon field.
     """
     _type_name = "extracted_region"
-    _con_args = ['_base_region', '_base_indices']
+    _con_args = ['_base_region', '_indices']
     def __init__(self, base_region, indices, force_refresh=True, **kwargs):
         cen = base_region.get_field_parameter("center")
         AMR3DData.__init__(self, center=cen,
                             fields=None, pf=base_region.pf, **kwargs)
         self._base_region = base_region # We don't weakly reference because
                                         # It is not cyclic
-        self._base_indices = indices
-        self._grids = None
+        if isinstance(indices, types.DictType):
+            self._indices = indices
+            self._grids = self._base_region.pf.h.grids[self._indices.keys()]
+        else:
+            self._grids = None
+            self._base_indices = indices
         if force_refresh: self._refresh_data()
 
     def _get_cut_particle_mask(self, grid):
@@ -1793,7 +1797,7 @@ class AMRCoveringGridBase(AMR3DData):
         for field in fields_to_get:
             self[field] = na.zeros(self.ActiveDimensions, dtype='float64') -999
         mylog.debug("Getting fields %s from %s possible grids",
-                   field, len(self._grids))
+                   fields_to_get, len(self._grids))
         if self._use_pbar: pbar = \
                 get_pbar('Searching grids for values ', len(self._grids))
         field = fields_to_get[-1]
@@ -1984,6 +1988,7 @@ def _reconstruct_object(*args, **kwargs):
     args, new_args = args[2:-1], []
     for arg in args:
         if iterable(arg) and len(arg) == 2 \
+           and not isinstance(arg, types.DictType) \
            and isinstance(arg[1], AMRData):
             new_args.append(arg[1])
         else: new_args.append(arg)
