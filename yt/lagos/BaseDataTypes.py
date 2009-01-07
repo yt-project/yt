@@ -1368,7 +1368,7 @@ class AMR3DData(AMRData, GridPropertiesMixin):
     quantities = property(__get_quantities)
 
     def extract_connected_sets(self, field, num_levels, min_val, max_val,
-                                log_space=True, cumulative=True):
+                                log_space=True, cumulative=True, cache=False):
         """
         This function will create a set of contour objects, defined
         by having connected cell structures, which can then be
@@ -1381,13 +1381,16 @@ class AMR3DData(AMRData, GridPropertiesMixin):
         else:
             cons = na.linspace(min_val, max_val, num_levels+1)
         contours = {}
+        if cache: cached_fields = defaultdict(lambda: dict())
+        else: cached_fields = None
         for level in range(num_levels):
             contours[level] = {}
             if cumulative:
                 mv = max_val
             else:
                 mv = cons[level+1]
-            cids = identify_contours(self, field, cons[level], mv)
+            cids = identify_contours(self, field, cons[level], mv,
+                                     cached_fields)
             for cid, cid_ind in cids.items():
                 contours[level][cid] = self.extract_region(cid_ind)
         return cons, contours

@@ -77,15 +77,18 @@ class GridConsiderationQueue:
         self.n += 1
         return tr
 
+    def progress(self):
+        return self.n, len(self.to_consider)
+
 # We want an algorithm that deals with growing a given contour to *all* the
 # cells in a grid.
 
-def identify_contours(data_source, field, min_val, max_val):
+def identify_contours(data_source, field, min_val, max_val, cached_fields=None):
     """
     Given a *data_source*, we will search for topologically connected sets
     in *field* between *min_val* and *max_val*.
     """
-    maxn_cells = 0
+    if cached_fields is None: cached_fields = defaultdict(lambda: dict())
     maxn_cells = na.sum([g.ActiveDimensions.prod() for g in data_source._grids])
     contour_ind = na.where( (data_source[field] > min_val)
                           & (data_source[field] < max_val))[0]
@@ -102,12 +105,21 @@ def identify_contours(data_source, field, min_val, max_val):
                     priority_func = lambda g: -1*g["tempContours"].max())
     my_queue.add(data_source._grids)
     for i,grid in enumerate(my_queue):
+        mylog.info("Examining %s of %s", *my_queue.progress())
         max_before = grid["tempContours"].max()
-        if na.all(grid.LeftEdge == grid.pf["DomainLeftEdge"]) and \
-           na.all(grid.RightEdge == grid.pf["DomainRightEdge"]):
-            cg = grid.retrieve_ghost_zones(0,["tempContours","GridIndices"])
-        else:
-            cg = grid.retrieve_ghost_zones(1,["tempContours","GridIndices"])
+        to_get = ["tempContours"]
+        if field in cached_fields[grid.id] and \
+            not na.any( (cached_fields[grid.id][field] > min_val)
+                      & (cached_fields[grid.id][field] < max_val)):
+            continue
+        for f in [field, "GridIndices"]:
+            if f not in cached_fields[grid.id]: to_get.append(f)
+        cg = grid.retrieve_ghost_zones(1,to_get)
+        for f in [field, "GridIndices"]:
+            if f in cached_fields[grid.id]:
+                cg.data[f] = cached_fields[grid.id][f]
+            else:
+                cached_fields[grid.id][f] = cg[f] 
         local_ind = na.where( (cg[field] > min_val)
                             & (cg[field] < max_val)
                             & (cg["tempContours"] == -1) )
@@ -146,7 +158,7 @@ def identify_contours(data_source, field, min_val, max_val):
     mylog.info("Identified %s contours between %0.5e and %0.5e",
                len(contour_ind.keys()),min_val,max_val)
     for grid in data_source._grids:
-        if grid.data.has_key("tempContours"): del grid.data["tempContours"]
+        grid.data.pop("tempContours", None)
     del data_source.data["tempContours"]
     return contour_ind
 

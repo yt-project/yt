@@ -167,9 +167,32 @@ class Data3DBase:
         v2 = na.abs(1.0 - v2/v1)
         self.assertAlmostEqual(v2, 0.0, 7)
 
+    def testExtractConnectedSetsNoCache(self):
+        mi = self.data["Density"].min() * 2.0
+        ma = self.data["Density"].max() * 0.99
+        cons, contours = self.data.extract_connected_sets(
+            "Density", 2, mi, ma)
+        print cons
+        self.assertEqual(len(contours), 2) # number of contour levels
+        self.assertEqual(len(contours[0]), 2)
+        self.assertEqual(len(contours[1]), 1)
+
+    def testExtractConnectedSetsCache(self):
+        mi = self.data["Density"].min() * 2.0
+        ma = self.data["Density"].max() * 0.99
+        cons, contours = self.data.extract_connected_sets(
+            "Density", 2, mi, ma, cache=True)
+        self.assertEqual(len(contours), 2) # number of contour levels
+        self.assertEqual(len(contours[0]), 2)
+        self.assertEqual(len(contours[1]), 1)
+
+    def testContoursCache(self):
+        cid = yt.lagos.identify_contours(self.data, "Density",
+                self.data["Density"].min()*2.00,
+                self.data["Density"].max()*1.01)
+        self.assertEqual(len(cid), 2)
+
     def testContoursObtain(self):
-        # As a note, unfortunately this dataset only has one sphere.
-        # Frownie face.
         cid = yt.lagos.identify_contours(self.data, "Density",
                 self.data["Density"].min()*2.00, self.data["Density"].max()*1.01)
         self.assertEqual(len(cid), 2)
