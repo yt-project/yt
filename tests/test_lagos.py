@@ -15,6 +15,7 @@ ytcfg["yt","logFile"] = "False"
 ytcfg["yt","suppressStreamLogging"] = "True"
 ytcfg["lagos","serialize"] = "False"
 
+import cPickle
 import yt.lagos
 import numpy as na
 
@@ -189,6 +190,10 @@ class Data3DBase:
                     and na.all(v2 > self.data["Density"][cid[0]]))
         self.assertEqual(len(cid), 3)
 
+    def testPickle(self):
+        ps = cPickle.dumps(self.data)
+        pf, obj = cPickle.loads(ps)
+        self.assertEqual(obj["CellMassMsun"].sum(), self.data["CellMassMsun"].sum())
 
 for field_name in yt.lagos.FieldInfo:
     field = yt.lagos.FieldInfo[field_name]

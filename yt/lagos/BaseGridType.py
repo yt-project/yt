@@ -33,6 +33,9 @@ class AMRGridPatch(AMRData):
     _grids = None
     _id_offset = 1
 
+    _type_name = 'grid'
+    _con_args = ['id', 'filename']
+
     def __init__(self, id, filename=None, hierarchy = None):
         self.data = {}
         self.field_parameters = {}

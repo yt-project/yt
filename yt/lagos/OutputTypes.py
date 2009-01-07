@@ -25,6 +25,7 @@ License:
 """
 
 from yt.lagos import *
+from yt.fido import ParameterFileStore
 from yt.funcs import *
 import string, re, gc, time, os, os.path
 
@@ -32,7 +33,25 @@ import string, re, gc, time, os, os.path
 # When such a thing comes to pass, I'll move all the stuff that is contant up
 # to here, and then have it instantiate EnzoStaticOutputs as appropriate.
 
+_cached_pfs = weakref.WeakValueDictionary()
+_pf_store = ParameterFileStore()
+
 class StaticOutput(object):
+    class __metaclass__(type):
+        def __call__(cls, *args, **kwargs):
+            return cls.__new__(cls, *args, **kwargs)
+
+    def __new__(cls, filename, *args, **kwargs):
+        apath = os.path.abspath(filename)
+        if not os.path.exists(apath): raise IOError
+        if apath not in _cached_pfs:
+            obj = object.__new__(cls)
+            obj.__init__(filename, *args, **kwargs)
+            _cached_pfs[apath] = obj
+            if ytcfg.getboolean('lagos','serialize'):
+                _pf_store.check_pf(obj)
+        return _cached_pfs[apath]
+
     def __init__(self, filename, data_style=None):
         """
         Base class for generating new output types.  Principally consists of
@@ -53,6 +72,13 @@ class StaticOutput(object):
 
     def __repr__(self):
         return self.basename
+
+    def _hash(self):
+        import md5
+        s = "%s;%s;%s" % (self.basename,
+            self["InitialTime"], self["CurrentTimeIdentifier"])
+        return md5.md5(s).hexdigest()
+
 
     def __getitem__(self, key):
         """

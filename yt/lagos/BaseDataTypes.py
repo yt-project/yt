@@ -106,6 +106,7 @@ class AMRData:
     """
     _grids = None
     _num_ghost_zones = 0
+    _con_args = []
 
     def __init__(self, pf, fields, **kwargs):
         """
@@ -227,6 +228,22 @@ class AMRData:
             field_data[:,line].tofile(fid, sep="\t", format=format)
             fid.write("\n")
         fid.close()
+
+    def save_object(self, name, filename = None):
+        if filename is not None:
+            ds = shelve.open(filename, protocol=-1)
+            if name in ds:
+                mylog.info("Overwriting %s in %s", name, filename)
+            ds[name] = self
+            ds.close()
+        else:
+            self.hierarchy.save_object(self, name)
+
+    def __reduce__(self):
+        args = tuple([self.pf._hash(), self._type_name] +
+                     [getattr(self, n) for n in self._con_args] +
+                     [self.field_parameters])
+        return (_reconstruct_object, args)
 
 class GridPropertiesMixin(object):
 
@@ -357,6 +374,8 @@ class AMR1DData(AMRData, GridPropertiesMixin):
 
 class AMROrthoRayBase(AMR1DData):
     _key_fields = ['x','y','z','dx','dy','dz']
+    _type_name = "ortho_ray"
+    _con_args = ['axis', 'coords']
     def __init__(self, axis, coords, fields=None, pf=None, **kwargs):
         """
         Dimensionality is reduced to one, and an ordered list of points at an
@@ -401,6 +420,8 @@ class AMROrthoRayBase(AMR1DData):
         return gf[na.where(grid.child_mask[sl])]
 
 class AMRRayBase(AMR1DData):
+    _type_name = "ray"
+    _con_args = ['start_point', 'end_point']
     def __init__(self, start_point, end_point, fields=None, pf=None, **kwargs):
         """
         We accept a start point and an end point and then get all the data
@@ -595,6 +616,8 @@ class AMRSliceBase(AMR2DData):
     """
 
     _top_node = "/Slices"
+    _type_name = "slice"
+    _con_args = ['axis', 'coord']
     #@time_execution
     def __init__(self, axis, coord, fields = None, center=None, pf=None,
                  node_name = False, source = None, **kwargs):
@@ -746,6 +769,8 @@ class AMRCuttingPlaneBase(AMR2DData):
     _plane = None
     _top_node = "/CuttingPlanes"
     _key_fields = AMR2DData._key_fields + ['pz','pdz']
+    _type_name = "cutting"
+    _con_args = ['normal', 'center']
     def __init__(self, normal, center, fields = None, node_name = None,
                  **kwargs):
         """
@@ -866,6 +891,8 @@ class AMRCuttingPlaneBase(AMR2DData):
 class AMRProjBase(AMR2DData):
     _top_node = "/Projections"
     _key_fields = AMR2DData._key_fields + ['weight_field']
+    _type_name = "proj"
+    _con_args = ['axis', 'field', 'weight_field']
     def __init__(self, axis, field, weight_field = None,
                  max_level = None, center = None, pf = None,
                  source=None, node_name = None, field_cuts = None, **kwargs):
@@ -1386,14 +1413,20 @@ class ExtractedRegionBase(AMR3DData):
     ExtractedRegions are arbitrarily defined containers of data, useful
     for things like selection along a baryon field.
     """
+    _type_name = "extracted_region"
+    _con_args = ['_base_region', '_indices']
     def __init__(self, base_region, indices, force_refresh=True, **kwargs):
         cen = base_region.get_field_parameter("center")
         AMR3DData.__init__(self, center=cen,
                             fields=None, pf=base_region.pf, **kwargs)
         self._base_region = base_region # We don't weakly reference because
                                         # It is not cyclic
-        self._base_indices = indices
-        self._grids = None
+        if isinstance(indices, types.DictType):
+            self._indices = indices
+            self._grids = self._base_region.pf.h.grids[self._indices.keys()]
+        else:
+            self._grids = None
+            self._base_indices = indices
         if force_refresh: self._refresh_data()
 
     def _get_cut_particle_mask(self, grid):
@@ -1409,23 +1442,29 @@ class ExtractedRegionBase(AMR3DData):
         grid_vals, xi, yi, zi = [], [], [], []
         for grid in self._base_region._grids:
             xit,yit,zit = self._base_region._get_point_indices(grid)
-            grid_vals.append(na.ones(xit.shape) * grid.id-1)
+            grid_vals.append(na.ones(xit.shape, dtype='int64') * grid.id-grid._id_offset)
             xi.append(xit)
             yi.append(yit)
             zi.append(zit)
-        grid_vals = na.concatenate(grid_vals)
-        xi = na.concatenate(xi)
-        yi = na.concatenate(yi)
-        zi = na.concatenate(zi)
-        # We now have an identical set of indices that the base_region would
-        # use to cut out the grids.  So what we want to do is take only
-        # the points we want from these.
+        grid_vals = na.concatenate(grid_vals)[self._base_indices]
+        grid_order = na.argsort(grid_vals)
+        # Note: grid_vals is still unordered
+        grid_ids = na.unique(grid_vals)
+        xi = na.concatenate(xi)[self._base_indices][grid_order]
+        yi = na.concatenate(yi)[self._base_indices][grid_order]
+        zi = na.concatenate(zi)[self._base_indices][grid_order]
+        bc = na.bincount(grid_vals)
+        splits = []
+        for i,v in enumerate(bc):
+            if v > 0: splits.append(v)
+        splits = na.add.accumulate(splits)
+        xis, yis, zis = [na.array_split(aa, splits) for aa in [xi,yi,zi]]
         self._indices = {}
-        for grid in self._base_region._grids:
-            ind_ind = na.where(grid_vals[self._base_indices] == grid.id-1)
-            self._indices[grid.id-1] = ([xi[self._base_indices][ind_ind],
-                                         yi[self._base_indices][ind_ind],
-                                         zi[self._base_indices][ind_ind]])
+        for grid_id, x, y, z in zip(grid_ids, xis, yis, zis):
+            # grid_id needs no offset
+            self._indices[grid_id] = (x.astype('int64'),
+                                      y.astype('int64'),
+                                      z.astype('int64'))
         self._grids = self._base_region.pf.h.grids[self._indices.keys()]
 
     def _is_fully_enclosed(self, grid):
@@ -1433,7 +1472,7 @@ class ExtractedRegionBase(AMR3DData):
 
     def _get_point_indices(self, grid, use_child_mask=True):
         # Yeah, if it's not true, we don't care.
-        return self._indices[grid.id-1]
+        return self._indices.get(grid.id-grid._id_offset, ())
 
 class InLineExtractedRegionBase(AMR3DData):
     """
@@ -1466,6 +1505,8 @@ class AMRCylinderBase(AMR3DData):
     """
     We can define a cylinder (or disk) to act as a data object.
     """
+    _type_name = "disk"
+    _con_args = ['center', '_norm_vec', '_radius', '_height']
     def __init__(self, center, normal, radius, height, fields=None,
                  pf=None, **kwargs):
         """
@@ -1527,6 +1568,8 @@ class AMRRegionBase(AMR3DData):
     """
     AMRRegions are rectangular prisms of data.
     """
+    _type_name = "region"
+    _con_args = ['center', 'left_edge', 'right_edge']
     def __init__(self, center, left_edge, right_edge, fields = None,
                  pf = None, **kwargs):
         """
@@ -1564,6 +1607,8 @@ class AMRPeriodicRegionBase(AMR3DData):
     """
     AMRRegions are rectangular prisms of data.
     """
+    _type_name = "periodic_region"
+    _con_args = ['center', 'left_edge', 'right_edge']
     def __init__(self, center, left_edge, right_edge, fields = None,
                  pf = None, **kwargs):
         """
@@ -1647,6 +1692,8 @@ class AMRSphereBase(AMR3DData):
     """
     A sphere of points
     """
+    _type_name = "sphere"
+    _con_args = ['center', 'radius']
     def __init__(self, center, radius, fields = None, pf = None, **kwargs):
         """
         The most famous of all the data objects, we define it via a
@@ -1693,6 +1740,8 @@ class AMRCoveringGridBase(AMR3DData):
     scales) on the input data.
     """
     _spatial = True
+    _type_name = "covering_grid"
+    _con_args = ['level', 'left_edge', 'right_edge', 'ActiveDimensions']
     def __init__(self, level, left_edge, right_edge, dims, fields = None,
                  pf = None, num_ghost_zones = 0, use_pbar = True, **kwargs):
         """
@@ -1748,7 +1797,7 @@ class AMRCoveringGridBase(AMR3DData):
         for field in fields_to_get:
             self[field] = na.zeros(self.ActiveDimensions, dtype='float64') -999
         mylog.debug("Getting fields %s from %s possible grids",
-                   field, len(self._grids))
+                   fields_to_get, len(self._grids))
         if self._use_pbar: pbar = \
                 get_pbar('Searching grids for values ', len(self._grids))
         field = fields_to_get[-1]
@@ -1810,6 +1859,7 @@ class AMRCoveringGridBase(AMR3DData):
             ll, self.pf["DomainLeftEdge"], self.pf["DomainRightEdge"])
 
 class AMRSmoothedCoveringGridBase(AMRCoveringGridBase):
+    _type_name = "smoothed_covering_grid"
     def __init__(self, *args, **kwargs):
         dlog2 = na.log10(kwargs['dims'])/na.log10(2)
         if not na.all(na.floor(dlog2) == na.ceil(dlog2)):
@@ -1930,3 +1980,21 @@ class EnzoSphereBase(AMRSphereBase): pass
 class EnzoCoveringGrid(AMRCoveringGridBase): pass
 class EnzoSmoothedCoveringGrid(AMRSmoothedCoveringGridBase): pass
 
+def _reconstruct_object(*args, **kwargs):
+    pfid = args[0]
+    dtype = args[1]
+    field_parameters = args[-1]
+    # will be much nicer when we can do pfid, *a, fp = args
+    args, new_args = args[2:-1], []
+    for arg in args:
+        if iterable(arg) and len(arg) == 2 \
+           and not isinstance(arg, types.DictType) \
+           and isinstance(arg[1], AMRData):
+            new_args.append(arg[1])
+        else: new_args.append(arg)
+    pfs = ParameterFileStore()
+    pf = pfs.get_pf_hash(pfid)
+    cls = getattr(pf.h, dtype)
+    obj = cls(*new_args)
+    obj.field_parameters.update(field_parameters)
+    return pf, obj
