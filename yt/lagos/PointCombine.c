@@ -882,7 +882,7 @@ Py_FindContours(PyObject *obj, PyObject *args)
     
     con_ids   = (PyArrayObject *) PyArray_FromAny(ocon_ids,
                     PyArray_DescrFromType(NPY_INT64), 3, 3,
-                    NPY_INOUT_ARRAY | NPY_UPDATEIFCOPY, NULL);
+                    0 | NPY_UPDATEIFCOPY, NULL);
     if((con_ids==NULL) || (con_ids->nd != 3)) {
     PyErr_Format(_findContoursError,
              "FindContours: Three dimensions required for con_ids.");
@@ -891,7 +891,7 @@ Py_FindContours(PyObject *obj, PyObject *args)
 
     xi = (PyArrayObject *) PyArray_FromAny(oxi,
                     PyArray_DescrFromType(NPY_INT64), 1, 1,
-                    NPY_IN_ARRAY, NULL);
+                    0, NULL);
     if(xi==NULL) {
     PyErr_Format(_findContoursError,
              "Bin2DProfile: One dimension required for xi.");
@@ -900,7 +900,7 @@ Py_FindContours(PyObject *obj, PyObject *args)
     
     yi = (PyArrayObject *) PyArray_FromAny(oyi,
                     PyArray_DescrFromType(NPY_INT64), 1, 1,
-                    NPY_IN_ARRAY, NULL);
+                    0, NULL);
     if((yi==NULL) || (PyArray_SIZE(xi) != PyArray_SIZE(yi))) {
     PyErr_Format(_findContoursError,
              "Bin2DProfile: One dimension required for yi, same size as xi.");
@@ -909,7 +909,7 @@ Py_FindContours(PyObject *obj, PyObject *args)
     
     zi = (PyArrayObject *) PyArray_FromAny(ozi,
                     PyArray_DescrFromType(NPY_INT64), 1, 1,
-                    NPY_IN_ARRAY, NULL);
+                    0, NULL);
     if((zi==NULL) || (PyArray_SIZE(xi) != PyArray_SIZE(zi))) {
     PyErr_Format(_findContoursError,
              "Bin2DProfile: One dimension required for zi, same size as xi.");

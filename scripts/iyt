@@ -158,7 +158,7 @@ ip.ex("from yt.mods import *")
 def do_pfall(self, arg):
     if arg.strip() == "": arg = 0
     for i in range(int(arg)+1):
-        for f in glob.glob("".join(["*/"]*i) + "*.hierarchy" ):
+        for f in sorted(glob.glob("".join(["*/"]*i) + "*.hierarchy" )):
             #print i, f
             fn = f[:-10]
             # Make this a bit smarter

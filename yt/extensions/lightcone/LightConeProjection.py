@@ -36,7 +36,7 @@ import copy
 ####       the direction in question wherever DepthBoxFraction or WidthBoxFraction appears.
 ####       To be fixed before turning 30.  - Britton
 
-def LightConeProjection(lightConeSlice,field,pixels,weight_field=None,save_image=False,name="",field_cuts=None,**kwargs):
+def LightConeProjection(lightConeSlice,field,pixels,weight_field=None,save_image=False,name="",node=None,field_cuts=None,**kwargs):
     "Create a single projection to be added into the light cone stack."
 
     # Use some projection parameters to seed random number generator to make unique node name.
@@ -48,9 +48,10 @@ def LightConeProjection(lightConeSlice,field,pixels,weight_field=None,save_image
     # ProjectionCenter[ProjectionAxis]
     # DepthBoxFraction
 
-    node_name = "LightCone_%d_%f_%f" % (lightConeSlice['ProjectionAxis'],
-                                              lightConeSlice['ProjectionCenter'][lightConeSlice['ProjectionAxis']],
-                                              lightConeSlice['DepthBoxFraction'])
+    # Name node with user specified keyword if given with 'node' keyword.
+    node_name = "LightCone_%s_%d_%f_%f" % (node,lightConeSlice['ProjectionAxis'],
+                                           lightConeSlice['ProjectionCenter'][lightConeSlice['ProjectionAxis']],
+                                           lightConeSlice['DepthBoxFraction'])
 
     mylog.info("Making projection at z = %f from %s." % (lightConeSlice['redshift'],lightConeSlice['filename']))
 
@@ -79,11 +80,13 @@ def LightConeProjection(lightConeSlice,field,pixels,weight_field=None,save_image
             cut_mask = "(grid[\"%s\"] + 0.5*grid[\"d%s\"] >= %f) & (grid[\"%s\"] - 0.5*grid[\"%s\"] <= %f)" % (axis,axis,depthLeft,axis,axis,depthRight)
 
         if field_cuts is None:
-           field_cuts = []
-        field_cuts.append(cut_mask)
+            these_field_cuts = []
+        else:
+            these_field_cuts = copy.deepcopy(field_cuts)
+        these_field_cuts.append(cut_mask)
 
     # Make projection.
-    pc.add_projection(field,lightConeSlice['ProjectionAxis'],weight_field=weight_field,field_cuts=field_cuts,use_colorbar=True,
+    pc.add_projection(field,lightConeSlice['ProjectionAxis'],weight_field=weight_field,field_cuts=these_field_cuts,use_colorbar=True,
                       node_name=node_name,**kwargs)
 
     # 2. The Tile Problem
