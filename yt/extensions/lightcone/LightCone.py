@@ -209,7 +209,7 @@ class LightCone(object):
                 self.haloMask *= mask
             del haloMaskCube
 
-    def ProjectLightCone(self,field,weight_field=None,apply_halo_mask=False,node=None,save_stack=True,save_slice_images=False,**kwargs):
+    def ProjectLightCone(self,field,weight_field=None,apply_halo_mask=False,node=None,save_stack=True,save_slice_images=False,flatten_stack=False,**kwargs):
         "Create projections for light cone, then add them together."
 
         # Clear projection stack.
@@ -228,6 +228,7 @@ class LightCone(object):
             frb = LightConeProjection(output,field,self.pixels,weight_field=weight_field,
                                       save_image=save_slice_images,
                                       name=name,node=node,**kwargs)
+
             if ytcfg.getint("yt","__parallel_rank") == 0:
                 if (weight_field is not None):
                     # Data come back normalized by the weight field.
@@ -236,6 +237,12 @@ class LightCone(object):
                     self.projectionWeightFieldStack.append(frb['weight_field'])
                 else:
                     self.projectionStack.append(frb[field])
+
+                # Flatten stack to save memory.
+                if flatten_stack and (len(self.projectionStack) > 1):
+                    self.projectionStack = [sum(self.projectionStack)]
+                    if weight_field is not None:
+                        self.projectionWeightFieldStack = [sum(self.projectionWeightFieldStack)]
 
             # Unless this is the last slice, delete the dataset object.
             # The last one will be saved to make the plot collection.
