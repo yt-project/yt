@@ -60,6 +60,7 @@ class Clump(object):
 def _reconstruct_clump(parent, field, mi, ma, isBound, children, data):
     obj = object.__new__(Clump)
     if iterable(parent): parent = parent[1]
+    if children is None: children = []
     obj.parent, obj.field, obj.min, obj.max, obj.isBound, \
        obj.children = parent, field, mi, ma, isBound, children
     # Now we override, because the parent/child relationship seems a bit

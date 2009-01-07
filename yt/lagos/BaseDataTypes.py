@@ -1456,7 +1456,7 @@ class ExtractedRegionBase(AMR3DData):
         xi = na.concatenate(xi)[self._base_indices][grid_order]
         yi = na.concatenate(yi)[self._base_indices][grid_order]
         zi = na.concatenate(zi)[self._base_indices][grid_order]
-        bc = na.bincount(grid_vals)
+        bc = na.bincount(grid_vals.astype("int32"))
         splits = []
         for i,v in enumerate(bc):
             if v > 0: splits.append(v)
