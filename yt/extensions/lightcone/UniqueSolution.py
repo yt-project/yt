@@ -30,7 +30,7 @@ import numpy as na
 import random as rand
 import sys
 
-def ProjectUniqueLightCones(EnzoParameterFile,LightConeParameterFile,seedFile,field,save_stack=True,**kwargs):
+def ProjectUniqueLightCones(EnzoParameterFile,LightConeParameterFile,seedFile,field,**kwargs):
     "Make light cone projections using list of random seeds in a file."
 
     seedList = _ReadSeedFile(seedFile)
@@ -49,10 +49,6 @@ def ProjectUniqueLightCones(EnzoParameterFile,LightConeParameterFile,seedFile,fi
 
         lc.lightConeParameters['OutputPrefix'] = "%s_%s_%s" % (prefix,seed['master'],seed['recycle'])
         lc.ProjectLightCone(field,**kwargs)
-        if save_stack:
-            stackFilename = "%s/%s_%s.h5" % (lc.lightConeParameters['OutputDir'],
-                                             lc.lightConeParameters['OutputPrefix'],field)
-            lc.SaveLightConeStack(filename=stackFilename)
 
 def FindUniqueSolutions(EnzoParameterFile,LightConeParameterFile,solutions=100,seed=None,
                         max_overlap=0.25,failures=10,recycle=True,filename='unique.dat'):
@@ -66,9 +62,9 @@ def FindUniqueSolutions(EnzoParameterFile,LightConeParameterFile,solutions=100,s
     uniqueSeeds = []
     if recycle:
         master = None
-        recycleFails = 0
     newRecycleSeed = None
     fails = 0
+    recycleFails = 0
 
     maxCommon = 0.0
 
@@ -80,9 +76,9 @@ def FindUniqueSolutions(EnzoParameterFile,LightConeParameterFile,solutions=100,s
         rand.seed(seed)
         state = rand.getstate()
 
-    while (len(uniqueSeeds) < solutions):
-        sys.stderr.write("Created %d unique solutions.\r" % len(uniqueSeeds))
+    failDigits = str(int(na.log(failures)))
 
+    while (len(uniqueSeeds) < solutions):
         # Create new random seed.
         if (recycle and master is not None):
             newSeed = master
@@ -97,6 +93,8 @@ def FindUniqueSolutions(EnzoParameterFile,LightConeParameterFile,solutions=100,s
                 master = newSeed
                 recycleFails = 0
             newRecycleSeed = None
+
+        sys.stderr.write(("Unique solutions: %d, consecutive failures: %"+failDigits+"d, %"+failDigits+"d.\r") % (len(uniqueSeeds),fails,recycleFails))
 
         solution1.RerandomizeLightConeSolution(newSeed,recycle=False)
         if newRecycleSeed is not None:
@@ -121,20 +119,22 @@ def FindUniqueSolutions(EnzoParameterFile,LightConeParameterFile,solutions=100,s
             uniqueSeeds.append({'master':newSeed,'recycle':newRecycleSeed})
             fails = 0
             recycleFails = 0
+
         else:
-            if newRecycleSeed is None:
-                fails += 1
-            else:
+            if recycle:
                 recycleFails += 1
-                if (recycleFails >= failures):
-                    fails += 1
-                    print ""
-                    mylog.info("Max recycled failures reached with master seed %d." % newSeed)
-                    master = None
-                if (fails >= failures):
-                    print ""
-                    mylog.error("Max consecutive failures reached.")
-                    break
+            else:
+                fails += 1
+
+            if (recycleFails >= failures):
+                sys.stderr.write(("Unique solutions: %d, consecutive failures: %"+failDigits+"d, %"+failDigits+"d.\n") % (len(uniqueSeeds),fails,recycleFails))
+                fails += 1
+                mylog.info("Max recycled failures reached with master seed %d." % newSeed)
+                master = None
+            if (fails >= failures):
+                sys.stderr.write(("Unique solutions: %d, consecutive failures: %"+failDigits+"d, %"+failDigits+"d.\n") % (len(uniqueSeeds),fails,recycleFails))
+                mylog.error("Max consecutive failures reached.")
+                break
 
     mylog.info("Created %d unique solutions." % len(uniqueSeeds))
     mylog.info("Maximum common volume is %.2e." % maxCommon)
