@@ -360,7 +360,7 @@ class AMR1DData(AMRData, GridPropertiesMixin):
             fields_to_get = self.fields
         else:
             fields_to_get = ensure_list(fields)
-        mylog.debug("Going to obtain %s (%s)", fields_to_get, self.fields)
+        mylog.debug("Going to obtain %s", fields_to_get, self.fields)
         for field in fields_to_get:
             if self.data.has_key(field):
                 continue
@@ -1445,7 +1445,7 @@ class ExtractedRegionBase(AMR3DData):
         grid_vals, xi, yi, zi = [], [], [], []
         for grid in self._base_region._grids:
             xit,yit,zit = self._base_region._get_point_indices(grid)
-            grid_vals.append(na.ones(xit.shape, dtype='int64') * grid.id-grid._id_offset)
+            grid_vals.append(na.ones(xit.shape, dtype='int') * (grid.id-grid._id_offset))
             xi.append(xit)
             yi.append(yit)
             zi.append(zit)
@@ -1456,7 +1456,7 @@ class ExtractedRegionBase(AMR3DData):
         xi = na.concatenate(xi)[self._base_indices][grid_order]
         yi = na.concatenate(yi)[self._base_indices][grid_order]
         zi = na.concatenate(zi)[self._base_indices][grid_order]
-        bc = na.bincount(grid_vals.astype("int32"))
+        bc = na.bincount(grid_vals)
         splits = []
         for i,v in enumerate(bc):
             if v > 0: splits.append(v)
@@ -1465,17 +1465,16 @@ class ExtractedRegionBase(AMR3DData):
         self._indices = {}
         for grid_id, x, y, z in zip(grid_ids, xis, yis, zis):
             # grid_id needs no offset
-            self._indices[grid_id] = (x.astype('int64'),
-                                      y.astype('int64'),
-                                      z.astype('int64'))
+            self._indices[grid_id] = (x, y, z)
         self._grids = self._base_region.pf.h.grids[self._indices.keys()]
 
     def _is_fully_enclosed(self, grid):
-        return (self._indices[grid.id-1][0].size == grid.ActiveDimensions.prod())
+        return (self._indices[grid.id-grid._id_offset][0].size == grid.ActiveDimensions.prod())
 
+    __empty_array = na.array([], dtype='bool')
     def _get_point_indices(self, grid, use_child_mask=True):
         # Yeah, if it's not true, we don't care.
-        return self._indices.get(grid.id-grid._id_offset, ())
+        return self._indices.get(grid.id-grid._id_offset, self.__empty_array)
 
 class InLineExtractedRegionBase(AMR3DData):
     """
@@ -1767,6 +1766,7 @@ class AMRCoveringGridBase(AMR3DData):
         self._refresh_data()
 
     def _get_list_of_grids(self):
+        if self._grids is not None: return
         if na.any(self.left_edge < self.pf["DomainLeftEdge"]) or \
            na.any(self.right_edge > self.pf["DomainRightEdge"]):
             grids,ind = self.pf.hierarchy.get_periodic_box_grids(
@@ -1784,9 +1784,9 @@ class AMRCoveringGridBase(AMR3DData):
 
     def _refresh_data(self):
         AMR3DData._refresh_data(self)
-        self['dx'] = self.dx * na.ones(self.ActiveDimensions, dtype='float64')
-        self['dy'] = self.dy * na.ones(self.ActiveDimensions, dtype='float64')
-        self['dz'] = self.dz * na.ones(self.ActiveDimensions, dtype='float64')
+        #self['dx'] = self.dx * na.ones(self.ActiveDimensions, dtype='float64')
+        #self['dy'] = self.dy * na.ones(self.ActiveDimensions, dtype='float64')
+        #self['dz'] = self.dz * na.ones(self.ActiveDimensions, dtype='float64')
 
     def get_data(self, field=None):
         self._get_list_of_grids()
@@ -1828,11 +1828,8 @@ class AMRCoveringGridBase(AMR3DData):
             fields_to_get = self.fields
         else:
             fields_to_get = ensure_list(field)
-        for field in fields_to_get:
-            #mylog.debug("Flushing field %s to %s possible grids",
-                       #field, len(self._grids))
-            for grid in self._grids:
-                self._flush_data_to_grid(grid, field)
+        for grid in self._grids:
+            self._flush_data_to_grid(grid, fields_to_get)
 
     @restore_grid_state
     def _get_data_from_grid(self, grid, fields):

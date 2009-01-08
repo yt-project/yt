@@ -26,7 +26,7 @@ License:
 from yt.lagos import *
 
 class GridConsiderationQueue:
-    def __init__(self, white_list = None, priority_func=None):
+    def __init__(self, white_list, priority_func=None):
         """
         This class exists to serve the contour finder.  It ensures that
         we can create a cascading set of queue dependencies, and if
@@ -34,37 +34,25 @@ class GridConsiderationQueue:
         of the queue again.  It like has few uses.
         """
         self.to_consider = []
-        self.considered = []
+        self.considered = set()
         self.n = 0
-        if white_list != None:
-            self.white_list = white_list
-        else:
-            self.white_list = []
+        self.white_list = set(white_list)
         self.priority_func = priority_func
 
     def add(self, grids, force=False):
-        if hasattr(grids,'size'):
-            grids = grids.tolist()
-        else:
+        if not hasattr(grids,'size'):
             grids = ensure_list(grids)
-        if self.priority_func:
-            grids.sort(key=self.priority_func)
-        else:
-            grids.sort()
-        if force:
-            for g in grids:
-                for i in range(self.considered.count(g)):
-                    del self.considered[self.considered.index(g)]
         i = self.n
-        for g in grids:
-            if g not in self.white_list: continue
-            if g in self.considered: continue
-            if g in self.to_consider[i:]:
-                del self.to_consider[i+self.to_consider[i:].index(g)]
+        to_check = self.white_list.intersection(grids)
+        if not force: to_check.difference_update(self.considered)
+        for g in sorted(to_check, key=self.priority_func):
+            try:
+                # We only delete from subsequent checks
+                del self.to_consider[self.to_consider.index(g, i)]
                 self.to_consider.insert(i,g)
                 i += 1
-                continue
-            self.to_consider.append(g)
+            except ValueError:
+                self.to_consider.append(g)
 
     def __iter__(self):
         return self
@@ -73,7 +61,7 @@ class GridConsiderationQueue:
         if self.n >= len(self.to_consider):
             raise StopIteration
         tr = self.to_consider[self.n]
-        self.considered.append(tr)
+        self.considered.add(tr)
         self.n += 1
         return tr
 
@@ -101,7 +89,7 @@ def identify_contours(data_source, field, min_val, max_val, cached_fields=None):
     mylog.info("Contouring over %s cells with %s candidates", contour_ids[0],np)
     data_source["tempContours"][contour_ind] = contour_ids[:]
     data_source._flush_data_to_grids("tempContours", -1, dtype='int32')
-    my_queue = GridConsiderationQueue(data_source._grids,
+    my_queue = GridConsiderationQueue(white_list = data_source._grids,
                     priority_func = lambda g: -1*g["tempContours"].max())
     my_queue.add(data_source._grids)
     for i,grid in enumerate(my_queue):
@@ -129,18 +117,21 @@ def identify_contours(data_source, field, min_val, max_val, cached_fields=None):
             cur_max_id -= local_ind[0].size
         fd = cg["tempContours"].astype('int64')
         fd_original = fd.copy()
-        xi_u,yi_u,zi_u = na.where(fd > -1)
-        cor_order = na.argsort(-1*fd[(xi_u,yi_u,zi_u)])
-        xi = xi_u[cor_order]
-        yi = yi_u[cor_order]
-        zi = zi_u[cor_order]
-        PointCombine.FindContours(fd, xi, yi, zi)
+        if na.all(fd > -1):
+            fd[:] = fd.max()
+        else:
+            xi_u,yi_u,zi_u = na.where(fd > -1)
+            cor_order = na.argsort(-1*fd[(xi_u,yi_u,zi_u)])
+            xi = xi_u[cor_order]
+            yi = yi_u[cor_order]
+            zi = zi_u[cor_order]
+            PointCombine.FindContours(fd, xi, yi, zi)
         cg["tempContours"] = fd.copy().astype('float64')
         cg.flush_data("tempContours")
         my_queue.add(cg._grids)
         force_ind = na.unique(cg["GridIndices"][na.where(
             (cg["tempContours"] > fd_original)
-          & (cg["GridIndices"] != grid.id-1) )])
+          & (cg["GridIndices"] != grid.id-grid._id_offset) )])
         if len(force_ind) > 0:
             my_queue.add(data_source.hierarchy.grids[force_ind.astype('int32')], force=True)
         for ax in 'xyz':

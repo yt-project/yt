@@ -28,23 +28,26 @@ import numpy as na
 
 class Clump(object):
     children = None
-    def __init__(self, data, parent, field):
+    def __init__(self, data, parent, field, cached_fields = None):
         self.parent = parent
         self.data = data
         self.field = field
         self.min = self.data[field].min()
         self.max = self.data[field].max()
         self.isBound = None
+        self.cached_fields = cached_fields
 
     def find_children(self, min, max = None):
         if self.children is not None:
             print "Wiping out existing children clumps."
         self.children = []
         if max is None: max = self.max
-        contour_info = identify_contours(self.data, self.field, min, max)
+        contour_info = identify_contours(self.data, self.field, min, max,
+                                         self.cached_fields)
         for cid in contour_info:
             new_clump = self.data.extract_region(contour_info[cid])
-            self.children.append(Clump(new_clump, self, self.field))
+            self.children.append(Clump(new_clump, self, self.field,
+                                    self.cached_fields))
 
     def get_IsBound(self):
         if self.isBound is None:

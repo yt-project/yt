@@ -27,6 +27,9 @@ License:
 
 from yt.lagos import *
 from yt.funcs import get_pbar, wraps
+import math
+
+__CUDA_BLOCK_SIZE = 256
 
 quantity_info = {}
 
@@ -215,6 +218,8 @@ def _IsBound(data, truncate = True, include_thermal_energy = False):
     """
     # Kinetic energy
     bv_x,bv_y,bv_z = data.quantities["BulkVelocity"]()
+    # One-cell objects are NOT BOUND.
+    if data["CellMass"].size == 1: return [0.0]
     kinetic = 0.5 * (data["CellMass"] * (
                        (data["x-velocity"] - bv_x)**2
                      + (data["y-velocity"] - bv_y)**2
@@ -234,7 +239,7 @@ def _IsBound(data, truncate = True, include_thermal_energy = False):
     except (ImportError, AssertionError):
         pot = 2*G*PointCombine.FindBindingEnergy(data["CellMass"],
                                       data['x'],data['y'],data['z'],
-                                      False, kinetic/(2*G))
+                                      truncate, kinetic/(2*G))
     mylog.info("Boundedness check took %0.3e seconds", time.time()-t1)
     return [(pot / kinetic)]
 def _combIsBound(data, bound):
@@ -243,6 +248,7 @@ add_quantity("IsBound",function=_IsBound,combine_function=_combIsBound,n_ret=1,
              force_unlazy=True)
 
 def _cudaIsBound(data, truncate, ratio):
+    bsize = __CUDA_BLOCK_SIZE
     import pycuda.driver as cuda
     import pycuda.autoinit
     import pycuda.gpuarray as gpuarray
@@ -250,14 +256,20 @@ def _cudaIsBound(data, truncate, ratio):
     cuda.init()
     assert cuda.Device.count() >= 1
 
+    mass_scale_factor = 1.0/(data['CellMass'].max())
+    m = (data['CellMass'] * mass_scale_factor).astype('float32')
+    assert(m.size > bsize)
+
+    gsize=int(math.ceil(float(m.size)/bsize))
+    assert(gsize > 16)
+
     # Now the tedious process of rescaling our values...
     length_scale_factor = data['dx'].max()/data['dx'].min()
-    mass_scale_factor = 1.0/(data['CellMass'].max())
     x = ((data['x'] - data['x'].min()) * length_scale_factor).astype('float32')
     y = ((data['y'] - data['y'].min()) * length_scale_factor).astype('float32')
     z = ((data['z'] - data['z'].min()) * length_scale_factor).astype('float32')
-    m = (data['CellMass'] * mass_scale_factor).astype('float32')
     p = na.zeros(z.shape, dtype='float32')
+    
     x_gpu = cuda.mem_alloc(x.size * x.dtype.itemsize)
     y_gpu = cuda.mem_alloc(y.size * y.dtype.itemsize)
     z_gpu = cuda.mem_alloc(z.size * z.dtype.itemsize)
@@ -270,7 +282,7 @@ def _cudaIsBound(data, truncate, ratio):
       extern __shared__ float array[];
 
       __global__ void isbound(float *x, float *y, float *z, float *m,
-                              float *p)
+                              float *p, int *nelem)
       {
 
         /* My index in the array */
@@ -305,23 +317,22 @@ def _cudaIsBound(data, truncate, ratio):
 
         float my_p = 0.0;
 
-        for (int i = 0; i < blockDim.x; i++){
-            if(i + idx2 < idx1 + 1) continue;
-            tx = (x_data1[offset]-x_data2[i]);
-            ty = (y_data1[offset]-y_data2[i]);
-            tz = (z_data1[offset]-z_data2[i]);
-            my_p += m_data1[offset]*m_data2[i] /
-                sqrt(tx*tx+ty*ty+tz*tz);
+        if(idx1 < %(p)s) {
+            for (int i = 0; i < blockDim.x; i++){
+                if(i + idx2 < idx1 + 1) continue;
+                tx = (x_data1[offset]-x_data2[i]);
+                ty = (y_data1[offset]-y_data2[i]);
+                tz = (z_data1[offset]-z_data2[i]);
+                my_p += m_data1[offset]*m_data2[i] /
+                    sqrt(tx*tx+ty*ty+tz*tz);
+            }
         }
         p[idx1] += my_p;
         __syncthreads();
       }
     """
-    bsize = 256
-    mod = cuda.SourceModule(source % dict(p=m.size, b=bsize), keep=True)
+    mod = cuda.SourceModule(source % dict(p=m.size))
     func = mod.get_function('isbound')
-    import math
-    gsize=int(math.ceil(float(m.size)/bsize))
     mylog.info("Running CUDA functions.  May take a while.  (%0.5e, %s)",
                x.size, gsize)
     import pycuda.tools as ct
@@ -331,6 +342,7 @@ def _cudaIsBound(data, truncate, ratio):
          block=(bsize,1,1), grid=(gsize, gsize), time_kernel=True)
     cuda.memcpy_dtoh(p, p_gpu)
     p1 = p.sum()
+    if na.any(na.isnan(p)): raise ValueError
     return p1 * (length_scale_factor / (mass_scale_factor**2.0))
     
 def _Extrema(data, fields):
