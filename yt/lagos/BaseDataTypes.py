@@ -360,7 +360,7 @@ class AMR1DData(AMRData, GridPropertiesMixin):
             fields_to_get = self.fields
         else:
             fields_to_get = ensure_list(fields)
-        mylog.debug("Going to obtain %s", fields_to_get, self.fields)
+        mylog.debug("Going to obtain %s", fields_to_get)
         for field in fields_to_get:
             if self.data.has_key(field):
                 continue
@@ -1260,7 +1260,7 @@ class AMR3DData(AMRData, GridPropertiesMixin):
             fields_to_get = self.fields
         else:
             fields_to_get = ensure_list(fields)
-        mylog.debug("Going to obtain %s (%s)", fields_to_get, self.fields)
+        mylog.debug("Going to obtain %s", fields_to_get)
         for field in fields_to_get:
             if self.data.has_key(field):
                 continue
