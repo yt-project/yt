@@ -185,7 +185,7 @@ class LightCone(object):
             self.lightConeSolution[q]['ProjectionAxis'] = rand.randint(0,2)
             self.lightConeSolution[q]['ProjectionCenter'] = [rand.random(),rand.random(),rand.random()]
 
-        # Store this as the mast solution.
+        # Store this as the master solution.
         self.masterSolution = [copy.deepcopy(q) for q in self.lightConeSolution]
 
         # Clear out some stuff.
@@ -304,6 +304,11 @@ class LightCone(object):
         # Get rid of old halo mask, if one was there.
         self.haloMask = []
 
+        # Clean pf objects out of light cone solution.
+        for slice in self.lightConeSolution:
+            if slice.has_key('object'):
+                del slice['object']
+
         if recycle:
             if self.verbose: mylog.info("Recycling solution made with %s with new seed %s." % (self.lightConeParameters['RandomSeed'],
                                                                               newSeed))
@@ -360,7 +365,7 @@ class LightCone(object):
             commonVolume += commonNVolume(oldCube,newCube,periodic=na.array([[0,1],[0,1],[0,1]]))
             totalVolume += output['DepthBoxFraction'] * output['WidthBoxFraction']**2
 
-            # Replaces centers for every axis except the line of sight axis.
+            # Replace centers for every axis except the line of sight axis.
             for w in range(len(newCenter)):
                 if not(recycle and (w == self.lightConeSolution[q]['ProjectionAxis'])):
                     self.lightConeSolution[q]['ProjectionCenter'][w] = newCenter[w]
