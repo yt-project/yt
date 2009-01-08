@@ -1784,9 +1784,9 @@ class AMRCoveringGridBase(AMR3DData):
 
     def _refresh_data(self):
         AMR3DData._refresh_data(self)
-        #self['dx'] = self.dx * na.ones(self.ActiveDimensions, dtype='float64')
-        #self['dy'] = self.dy * na.ones(self.ActiveDimensions, dtype='float64')
-        #self['dz'] = self.dz * na.ones(self.ActiveDimensions, dtype='float64')
+        self['dx'] = self.dx * na.ones(self.ActiveDimensions, dtype='float64')
+        self['dy'] = self.dy * na.ones(self.ActiveDimensions, dtype='float64')
+        self['dz'] = self.dz * na.ones(self.ActiveDimensions, dtype='float64')
 
     def get_data(self, field=None):
         self._get_list_of_grids()
