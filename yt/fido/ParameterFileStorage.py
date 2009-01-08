@@ -29,6 +29,9 @@ from yt.funcs import *
 import shelve
 import os.path
 
+class NoParameterShelf(Exception):
+    pass
+
 class ParameterFileStore(object):
 
     _shared_state = {}
@@ -43,6 +46,8 @@ class ParameterFileStore(object):
         only_on_root(self.__init_shelf)
 
     def _get_db_name(self):
+        if not os.access(os.path.expanduser("~/"), os.W_OK):
+            return "parameter_files.db"
         return os.path.expanduser("~/.yt/parameter_files.db")
 
     def wipe_hash(self, hash):
@@ -103,7 +108,10 @@ class ParameterFileStore(object):
     def __init_shelf(self):
         dbn = self._get_db_name()
         dbdir = os.path.dirname(dbn)
-        if not os.path.isdir(dbdir): os.mkdir(dbdir)
+        try:
+            if not os.path.isdir(dbdir): os.mkdir(dbdir)
+        except OSError:
+            raise NoParameterShelf()
         shelve.open(self._get_db_name(), 'c', protocol=-1)
 
     def __setitem__(self, key, val):

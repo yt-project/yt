@@ -25,7 +25,7 @@ License:
 """
 
 from yt.lagos import *
-from yt.fido import ParameterFileStore
+from yt.fido import ParameterFileStore, NoParameterShelf
 from yt.funcs import *
 import string, re, gc, time, os, os.path
 
@@ -49,7 +49,10 @@ class StaticOutput(object):
             obj.__init__(filename, *args, **kwargs)
             _cached_pfs[apath] = obj
             if ytcfg.getboolean('lagos','serialize'):
-                _pf_store.check_pf(obj)
+                try:
+                    _pf_store.check_pf(obj)
+                except NoParameterShelf:
+                    pass
         return _cached_pfs[apath]
 
     def __init__(self, filename, data_style=None):
