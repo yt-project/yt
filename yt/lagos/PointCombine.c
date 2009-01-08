@@ -551,6 +551,7 @@ static PyObject *DataCubeGeneric(PyObject *obj, PyObject *args,
              *oc_le, *oc_re, *oc_dx, *oc_data, *odr_edge, *odl_edge;
     PyArrayObject *g_le, *g_dx, *g_cm,
                   *c_le, *c_re, *c_dx, *dr_edge, *dl_edge;
+    g_dx=g_cm=c_le=c_re=c_dx=NULL;
     PyArrayObject **g_data, **c_data;
     g_data = c_data = NULL;
     npy_int *ag_cm;
@@ -709,7 +710,6 @@ static PyObject *DataCubeGeneric(PyObject *obj, PyObject *args,
 
     npy_int64 xg, yg, zg, xc, yc, zc, cmax_x, cmax_y, cmax_z,
               cmin_x, cmin_y, cmin_z, cm, pxl, pyl, pzl;
-    npy_float64 *val1, *val2;
     long int total=0;
 
     int p_niter[3] = {1,1,1};
@@ -820,8 +820,8 @@ _fail:
     Py_XDECREF(c_re);
     Py_XDECREF(c_dx);
     for(n=0;n<n_fields;n++) {
-        if(g_data!=NULL)Py_XDECREF(g_data[n]);
-        if(c_data!=NULL)Py_XDECREF(c_data[n]);
+        if(g_data[n]!=NULL){Py_XDECREF(g_data[n]);}
+        if(c_data[n]!=NULL){Py_XDECREF(c_data[n]);}
     }
     if(g_data!=NULL)free(g_data);
     if(c_data!=NULL)free(c_data);
@@ -872,6 +872,7 @@ Py_FindContours(PyObject *obj, PyObject *args)
 {
     PyObject *ocon_ids, *oxi, *oyi, *ozi;
     PyArrayObject *con_ids, *xi, *yi, *zi;
+    xi=yi=zi=con_ids=NULL;
     npy_int64 i, j, k, n;
 
     i = 0;
@@ -1079,6 +1080,7 @@ Py_FindBindingEnergy(PyObject *obj, PyObject *args)
 {
     PyObject *omass, *ox, *oy, *oz;
     PyArrayObject *mass, *x, *y, *z;
+    x=y=z=mass=NULL;
     int truncate;
     double kinetic_energy;
 

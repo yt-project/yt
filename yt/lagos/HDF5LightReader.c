@@ -89,7 +89,7 @@ Py_ReadHDF5DataSet(PyObject *obj, PyObject *args)
     herr_t my_error;
     htri_t file_exists;
     size_t type_size;
-    int my_typenum, my_rank, i;
+    int my_rank, i;
     H5E_auto_t err_func;
     void *err_datastream;
     PyArrayObject *my_array = NULL;
@@ -230,9 +230,7 @@ Py_ReadHDF5DataSetSlice(PyObject *obj, PyObject *args)
     hid_t file_id, datatype_id, native_type_id, dataset, dataspace, memspace;
     herr_t my_error;
     htri_t file_exists;
-    H5T_class_t class_id;
-    size_t type_size;
-    int my_typenum, my_rank, i, axis, coord;
+    int my_rank, i, axis, coord;
     H5E_auto_t err_func;
     void *err_datastream;
     PyArrayObject *my_array = NULL;
@@ -392,8 +390,6 @@ Py_ReadListOfDatasets(PyObject *obj, PyObject *args)
     hid_t file_id;
     herr_t my_error;
     htri_t file_exists;
-    H5T_class_t class_id;
-    H5E_auto_t err_func;
     file_id = 0;
 
     if (!PyArg_ParseTuple(args, "ss",
@@ -445,7 +441,7 @@ Py_ReadListOfDatasets(PyObject *obj, PyObject *args)
 herr_t iterate_dataset(hid_t loc_id, const char *name, void *nodelist)
 {
     H5G_stat_t statbuf;
-    PyObject* node_name, node_list;
+    PyObject* node_name;
 
     H5Gget_objinfo(loc_id, name, 0, &statbuf);
     if (statbuf.type == H5G_DATASET) {
@@ -471,7 +467,6 @@ Py_ReadMultipleGrids(PyObject *obj, PyObject *args)
     // Format arguments
 
     char *filename = NULL;
-    char *format_string = NULL;
     PyObject *grid_ids = NULL;
     PyObject *set_names = NULL;
     Py_ssize_t num_sets = 0;
@@ -559,7 +554,7 @@ PyArrayObject* get_array_from_nodename(char *nodename, hid_t rootnode)
     hsize_t *my_dims = NULL;
     hsize_t *my_max_dims = NULL;
     npy_intp *dims = NULL;
-    int my_typenum, my_rank, i;
+    int my_rank, i;
     size_t type_size;
     PyArrayObject *my_array = NULL;
     hid_t datatype_id, native_type_id, dataset, dataspace;
