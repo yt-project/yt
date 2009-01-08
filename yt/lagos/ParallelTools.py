@@ -145,6 +145,20 @@ def parallel_passthrough(func):
         return func(self, data)
     return passage
 
+def parallel_blocking_call(func):
+    @wraps(func)
+    def barrierize(*args, **kwargs):
+        mylog.info("Entering barrier before %s", func.func_name)
+        MPI.COMM_WORLD.Barrier()
+        retval = func(*args, **kwargs)
+        mylog.info("Entering barrier after %s", func.func_name)
+        MPI.COMM_WORLD.Barrier()
+        return retval
+    if parallel_capable:
+        return barrierize
+    else:
+        return func
+
 class ParallelAnalysisInterface(object):
     _grids = None
 

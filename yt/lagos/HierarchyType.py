@@ -819,7 +819,7 @@ class EnzoHierarchy(AMRHierarchy):
         self.save_data(na.array(self.gridReverseTree), "/", "ReverseTree")
         self.save_data(self.gridLevels, "/", "Levels")
 
-    @time_execution
+    @parallel_blocking_call
     def _populate_hierarchy(self):
         """
         Instantiates all of the grid objects, with their appropriate
