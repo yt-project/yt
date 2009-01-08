@@ -933,7 +933,7 @@ class AMRProjBase(AMR2DData):
         if source is None:
             check, source = self._partition_hierarchy_2d(self.axis)
             self._check_region = check
-            self._okay_to_serialize = (not check)
+            #self._okay_to_serialize = (not check)
         else:
             self._okay_to_serialize = False
             self._check_region = True
