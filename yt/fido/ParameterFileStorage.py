@@ -43,8 +43,7 @@ class ParameterFileStore(object):
         return self
 
     def __init__(self, in_memory = False):
-        self._do_shelve = ytcfg.getboolean("yt", "StoreParameterFiles")
-        only_on_root(self.__init_shelf)
+        self.__init_shelf()
 
     def _get_db_name(self):
         if not os.access(os.path.expanduser("~/"), os.W_OK):
@@ -127,15 +126,14 @@ class ParameterFileStore(object):
         shelve.open(self._get_db_name(), 'c', protocol=-1)
 
     def __setitem__(self, key, val):
-        only_on_root(self.__store_item, key, val)
+        self.__store_item(key, val)
 
     def __delitem__(self, key):
-        only_on_root(self.__delete_item, key)
+        self.__delete_item(key)
 
     def keys(self):
-        my_shelf = shelve.open(self._get_db_name(), flag='r', protocol=-1)
+        my_shelf = self.__read_only()
         return my_shelf.keys()
 
 class ObjectStorage(object):
     pass
-        
