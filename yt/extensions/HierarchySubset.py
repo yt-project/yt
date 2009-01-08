@@ -58,8 +58,10 @@ class ConstructedRootGrid(object):
 
 class ExtractedHierarchy(object):
 
-    def __init__(self, pf, min_level, max_level = -1, offset = None):
+    def __init__(self, pf, min_level, max_level = -1, offset = None,
+                 always_copy=False):
         self.pf = pf
+        self.always_copy = always_copy
         self.min_level = min_level
         self.int_offset = na.min([grid.get_global_startindex() for grid in
                              pf.h.select_grids(min_level)], axis=0).astype('float64')
@@ -114,7 +116,8 @@ class ExtractedHierarchy(object):
         grid_node._v_attrs.ghostzoneFlags = na.zeros(6, dtype='int32')
         grid_node._v_attrs.numGhostzones = na.zeros(3, dtype='int32')
         grid_node._v_attrs.dims = grid.ActiveDimensions[::-1].astype('int32')
-        if self.pf.h.data_style == 6 and field in self.pf.h.field_list:
+        if not self.always_copy and self.pf.h.data_style == 6 \
+           and field in self.pf.h.field_list:
             if grid.hierarchy.data_style == -1: # constructed grid
                 # if we can get conversion in amira we won't need to do this
                 ff = grid[field]
@@ -144,6 +147,9 @@ def export_amira():
     parser.add_option("-o", "--output", action="store", type="string",
                       dest="output", default="movie.a5",
                       help="Name of our output file")
+    parser.add_option("", "--always-copy", action="store_true", 
+                      dest="always_copy", default=False,
+                      help="Should we always copy the data to the new file")
     parser.add_option("", "--minlevel", action="store", type="int",
                       dest="min_level", default=0,
                       help="The minimum level to extract (chooses first grid at that level)")
@@ -189,7 +195,8 @@ def export_amira():
         pf = __get_pf(opts.basename, n)
         hh = pf.h
         times.append(pf["InitialTime"] * pf["years"])
-        eh = ExtractedHierarchy(pf, opts.min_level, max_level = opts.max_level, offset=offset)
+        eh = ExtractedHierarchy(pf, opts.min_level, max_level = opts.max_level,
+                    offset=offset, always_copy=opts.always_copy)
         eh.export_output(afile, n, opts.field)
         t2.append(pf["InitialTime"])
 

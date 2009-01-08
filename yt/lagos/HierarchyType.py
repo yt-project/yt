@@ -902,7 +902,7 @@ class EnzoHierarchy(AMRHierarchy):
                                       len(grids_to_recon))
                 for i,grid in enumerate(grids_to_recon):
                     if pbar: pbar.update(i)
-                    if grid.Parent: grid._guess_properties_from_parent()
+                    if grid.Parent is not None: grid._guess_properties_from_parent()
                 if pbar: pbar.finish()
 
     def _join_field_lists(self, field_list):
