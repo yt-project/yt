@@ -76,7 +76,7 @@ def FindUniqueSolutions(EnzoParameterFile,LightConeParameterFile,solutions=100,s
         rand.seed(seed)
         state = rand.getstate()
 
-    failDigits = str(int(na.log(failures)))
+    failDigits = str(int(na.log10(failures))+1)
 
     while (len(uniqueSeeds) < solutions):
         # Create new random seed.
