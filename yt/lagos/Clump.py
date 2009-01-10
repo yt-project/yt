@@ -28,14 +28,32 @@ import numpy as na
 
 class Clump(object):
     children = None
-    def __init__(self, data, parent, field, cached_fields = None):
+    def __init__(self, data, parent, field, cached_fields = None, function=None):
         self.parent = parent
         self.data = data
         self.field = field
         self.min = self.data[field].min()
         self.max = self.data[field].max()
-        self.isBound = None
         self.cached_fields = cached_fields
+
+        # Function determining whether a clump is valid and should be kept.
+        self.default_function = 'self.data.quantities["IsBound"](truncate=True,include_thermal_energy=True) > 1.0'
+        if function is None:
+            self.function = self.default_function
+        else:
+            self.function = function
+
+        # Return value of validity function, saved so it does not have to be calculated again.
+        self.function_value = None
+
+    def _isValid(self):
+        "Perform user specified function to determine if child clumps should be kept."
+
+        # Only call function is it has not been already.
+        if self.function_value is None:
+            self.function_value = eval(self.function)
+
+        return self.function_value
 
     def find_children(self, min, max = None):
         if self.children is not None:
@@ -47,25 +65,19 @@ class Clump(object):
         for cid in contour_info:
             new_clump = self.data.extract_region(contour_info[cid])
             self.children.append(Clump(new_clump, self, self.field,
-                                    self.cached_fields))
-
-    def get_IsBound(self):
-        if self.isBound is None:
-            self.isBound = self.data.quantities["IsBound"](
-                    truncate=True,include_thermal_energy=True)
-        return self.isBound
+                                    self.cached_fields,function=self.function))
 
     def __reduce__(self):
         return (_reconstruct_clump, 
                 (self.parent, self.field, self.min, self.max,
-                 self.isBound, self.children, self.data))
+                 self.function_value, self.children, self.data, self.function))
 
-def _reconstruct_clump(parent, field, mi, ma, isBound, children, data):
+def _reconstruct_clump(parent, field, mi, ma, function_value, children, data, function):
     obj = object.__new__(Clump)
     if iterable(parent): parent = parent[1]
     if children is None: children = []
-    obj.parent, obj.field, obj.min, obj.max, obj.isBound, \
-       obj.children = parent, field, mi, ma, isBound, children
+    obj.parent, obj.field, obj.min, obj.max, obj.function_value, \
+       obj.children, obj.function = parent, field, mi, ma, function_value, children, function
     # Now we override, because the parent/child relationship seems a bit
     # unreliable in the unpickling
     for child in children: child.parent = obj
@@ -88,10 +100,10 @@ def find_clumps(clump, min, max, d_clump):
             find_clumps(child, min*d_clump, max, d_clump)
             if ((child.children is not None) and (len(child.children) > 0)):
                 these_children.append(child)
-            elif (child.get_IsBound() > 1.0):
+            elif (child._isValid()):
                 these_children.append(child)
             else:
-                print "Eliminating unbound, childless clump with %d cells." % len(child.data["CellMassMsun"])
+                print "Eliminating invalid, childless clump with %d cells." % len(child.data["CellMassMsun"])
         if (len(these_children) > 1):
             print "%d of %d children survived." % (len(these_children),len(clump.children))            
             clump.children = these_children
