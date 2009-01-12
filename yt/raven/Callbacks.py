@@ -31,7 +31,7 @@ from yt.raven import *
 from PlotTypes import _get_bounds
 
 import _MPL
-
+import copy
 callback_registry = []
 
 class PlotCallback(object):
@@ -197,15 +197,33 @@ class ContourCallback(PlotCallback):
         numPoints_y = plot.image._A.shape[1]
         dx = plot.image._A.shape[0] / (x1-x0)
         dy = plot.image._A.shape[1] / (y1-y0)
-        xlim = na.logical_and(plot.data["px"] >= x0*0.9,
-                              plot.data["px"] <= x1*1.1)
-        ylim = na.logical_and(plot.data["py"] >= y0*0.9,
-                              plot.data["py"] <= y1*1.1)
-        wI = na.where(na.logical_and(xlim,ylim))
+        #dcollins Jan 11 2009.  Improved to allow for periodic shifts in the plot.
+        #Now makes a copy of the position fields "px" and "py" and adds the
+        #appropriate shift to the coppied field.  
+        DomainWidth = plot.data.pf["DomainRightEdge"] - plot.data.pf["DomainLeftEdge"]
+        px_index = lagos.x_dict[plot.data.axis]
+        py_index = lagos.y_dict[plot.data.axis]
+
+        #set the cumulative arrays for the periodic shifting.
+        AllX = na.array([False]*plot.data["px"].size)
+        AllY = na.array([False]*plot.data["py"].size)
+        XShifted = copy.copy(plot.data["px"])
+        YShifted = copy.copy(plot.data["py"])
+        for shift in na.mgrid[-1:1:3j]*DomainWidth:
+            xlim = na.logical_and(plot.data["px"] + shift >= x0*0.9,
+                                  plot.data["px"] + shift <= x1*1.1)
+            ylim = na.logical_and(plot.data["py"] + shift >= y0*0.9,
+                                  plot.data["py"] + shift <= y1*1.1)
+
+            XShifted[na.where(xlim)] += shift
+            YShifted[na.where(ylim)] += shift
+            AllX = na.logical_or(AllX, xlim)
+            AllY = na.logical_or(AllY, ylim)
+        wI = na.where(na.logical_and(AllX,AllY))
         xi, yi = na.mgrid[0:numPoints_x:numPoints_x/(self.factor*1j),\
                           0:numPoints_y:numPoints_y/(self.factor*1j)]
-        x = (plot.data["px"][wI]-x0)*dx
-        y = (plot.data["py"][wI]-y0)*dy
+        x = (XShifted[wI]-x0)*dx 
+        y = (YShifted[wI]-y0)*dy
         z = plot.data[self.field][wI]
         if self.take_log: z=na.log10(z)
         zi = self.de.Triangulation(x,y).nn_interpolator(z)(xi,yi)
