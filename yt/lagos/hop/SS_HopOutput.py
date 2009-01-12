@@ -244,6 +244,12 @@ class HopGroup(object):
     def get_size(self):
         return self.indices.size
 
+    def get_indices(self):
+        return self.indices
+    
+    def get_positions(self):
+        return [self["particle_position_x"],self["particle_position_y"],self["particle_position_z"]]
+
 class HaloFinder(HopList, ParallelAnalysisInterface):
     def __init__(self, pf, threshold=160.0, dm_only=True, padding=0.2):
         self.pf = pf
