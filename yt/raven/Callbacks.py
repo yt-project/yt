@@ -156,8 +156,6 @@ class ParticleCallback(PlotCallback):
         if not self.color_field: particles_c = self.color
         else: particles_c = self.particles_c[goodI]
         plot._axes.hold(True)
-        print particles_x
-        print particles_y
         plot._axes.scatter(particles_x, particles_y, edgecolors='None',
                            s=self.p_size, c=particles_c)
         plot._axes.set_xlim(xx0,xx1)
