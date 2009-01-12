@@ -524,7 +524,8 @@ class HopCircleCallback(PlotCallback):
         dx = plot.image._A.shape[0] / (x1-x0)
         dy = plot.image._A.shape[1] / (y1-y0)
         for halo in self.hop_output[:self.max_number]:
-            if halo.get_size() < self.min_size: continue
+            size = halo.get_size()
+            if size < self.min_size: continue
             radius = halo.maximum_radius() * dx
             center = halo.center_of_mass()
             center_x = (center[xi] - x0)*dx
@@ -533,19 +534,24 @@ class HopCircleCallback(PlotCallback):
             plot._axes.add_patch(cir)
             if self.annotate:
                 if self.print_halo_size:
-                    plot._axes.text(center_x, center_y, "%s" % halo.get_size(),
+                    plot._axes.text(center_x, center_y, "%s" % size,
                     fontsize=self.font_size)
                 else:
                     plot._axes.text(center_x, center_y, "%s" % halo.id,
                     fontsize=self.font_size)
 
 class HopParticleCallback(PlotCallback):
-    def __init__(self, hop_output, axis, p_size=1.0, color=True,
+    """
+    Adds particle positions for the members of each halo as identified
+    by HOP. Along *axis* up to *max_number* groups in *hop_output* that are
+    larger than *min_size* are plotted with *p_size* pixels per particle; 
+    *alpha* determines the opacity of each particle.
+    """
+    def __init__(self, hop_output, axis, p_size=1.0,
                 max_number=None, min_size=20, alpha=0.2):
         self.axis = axis
         self.hop_output = hop_output
         self.p_size = p_size
-        self.color = color
         self.max_number = max_number
         self.min_size = min_size
         self.alpha = alpha
@@ -557,26 +563,19 @@ class HopParticleCallback(PlotCallback):
         y0, y1 = plot.ylim
         xx0, xx1 = plot._axes.get_xlim()
         yy0, yy1 = plot._axes.get_ylim()
-        l, b, width, height = _get_bounds(plot._axes.bbox)
-        xi = lagos.x_dict[plot.data.axis]
-        yi = lagos.y_dict[plot.data.axis]
+        xf = lagos.axis_names[lagos.x_dict[plot.data.axis]]
+        yf = lagos.axis_names[lagos.y_dict[plot.data.axis]]
         dx = plot.image._A.shape[0] / (x1-x0)
         dy = plot.image._A.shape[1] / (y1-y0)
         # now we loop over the haloes
         for halo in self.hop_output[:self.max_number]:
-            if halo.get_size() < self.min_size: continue
-            particles_x = []; particles_y = []; colors = [];
-            p = halo.get_positions()
-            colors_temp = ones_like(p[xi])
-            colors.append(colors_temp[::1])
-            colors = na.concatenate(colors)
-            particles_x.append(p[xi][::1])
-            particles_x = na.concatenate(particles_x)
-            particles_y.append(p[yi][::1])
-            particles_y = na.concatenate(particles_y)
+            size = halo.get_size()
+            if size < self.min_size: continue
+            colors = na.ones(size)
             plot._axes.hold(True)
-            plot._axes.scatter(particles_x*dx,particles_y*dy,edgecolors='None',
-                               s=self.p_size, color='black',alpha=self.alpha)
+            plot._axes.scatter(halo["particle_position_%s" % xf]*dx,
+                halo["particle_position_%s" % yf]*dx, edgecolors="None",
+                s=self.p_size, c='black', alpha=self.alpha)
             plot._axes.set_xlim(xx0,xx1)
             plot._axes.set_ylim(yy0,yy1)
             plot._axes.hold(False)
