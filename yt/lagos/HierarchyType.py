@@ -114,8 +114,11 @@ class AMRHierarchy:
         else:
             fn = os.path.join(self.directory,
                     "%s.yt" % self.parameter_file.basename)
-        if ytcfg.getboolean('lagos','onlydeserialize') or \
-           not os.access(fn, os.W_OK):
+        if os.path.isfile(fn):
+            writable = os.access(fn, os.W_OK)
+        else:
+            writable = os.access(self.directory, os.W_OK)
+        if ytcfg.getboolean('lagos','onlydeserialize') or not writable:
             self._data_mode = mode = 'r'
         else:
             self._data_mode = mode = 'a'
