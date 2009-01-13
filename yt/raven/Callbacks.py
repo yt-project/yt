@@ -558,7 +558,6 @@ class HopParticleCallback(PlotCallback):
     
     def __call__(self,plot):
         if self.max_number < 1: return
-        from numpy import *
         x0, x1 = plot.xlim
         y0, y1 = plot.ylim
         xx0, xx1 = plot._axes.get_xlim()
