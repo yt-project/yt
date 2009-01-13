@@ -23,8 +23,9 @@ DEST_DIR="`pwd`/yt-`uname -p`"   # Installation location
 
 
 INST_WXPYTHON=0 # If you 't want to install wxPython, set this to 1
-INST_ZLIB=0     # On some systems (Kraken) matplotlib has issues with 
-                # the system zlib, which is compiled statically
+INST_ZLIB=1     # On some systems (Kraken) matplotlib has issues with 
+                # the system zlib, which is compiled statically.
+                # If need be, you can turn this off.
 
 # If you've got YT some other place, set this to point to it.
 YT_DIR=""
@@ -145,7 +146,7 @@ fi
 
 if [ ! -e Python-2.6.1/done ]
 then
-    echo "Installing Python"
+    echo "Installing Python.  This may take a while, but don't worry.  YT loves you."
     [ ! -e Python-2.6.1 ] && tar xfz Python-2.6.1.tgz
     cd Python-2.6.1
     ( ./configure --prefix=${DEST_DIR}/ 2>&1 ) 1>> ${LOG_FILE} || do_exit
@@ -160,7 +161,7 @@ export PYTHONPATH=${DEST_DIR}/lib/python2.6/site-packages/
 
 if [ $INST_WXPYTHON -eq 1 ] && [ ! -e wxPython-src-2.8.7.1/done ]
 then
-    echo "Installing wxPython"
+    echo "Installing wxPython.  This may take a while, but don't worry.  YT loves you."
     [ ! -e wxPython-src-2.8.7.1 ] && tar xfj wxPython-src-2.8.7.1.tar.bz2
     cd wxPython-src-2.8.7.1
 
