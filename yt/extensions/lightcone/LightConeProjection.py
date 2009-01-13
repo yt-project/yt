@@ -36,6 +36,7 @@ import copy
 ####       the direction in question wherever DepthBoxFraction or WidthBoxFraction appears.
 ####       To be fixed before turning 30.  - Britton
 
+@lagos.parallel_blocking_call
 def LightConeProjection(lightConeSlice,field,pixels,weight_field=None,save_image=False,name="",node=None,field_cuts=None,**kwargs):
     "Create a single projection to be added into the light cone stack."
 
@@ -89,125 +90,127 @@ def LightConeProjection(lightConeSlice,field,pixels,weight_field=None,save_image
     pc.add_projection(field,lightConeSlice['ProjectionAxis'],weight_field=weight_field,field_cuts=these_field_cuts,use_colorbar=True,
                       node_name=node_name,**kwargs)
 
+    # If parallel: all the processes have the whole projection object, but we only need to do the tiling, shifting, and cutting once.
+
     # 2. The Tile Problem
     # Tile projection to specified width.
-
-    # Original projection data.
-    original_px = copy.deepcopy(pc.plots[0].data['px'])
-    original_py = copy.deepcopy(pc.plots[0].data['py'])
-    original_pdx = copy.deepcopy(pc.plots[0].data['pdx'])
-    original_pdy = copy.deepcopy(pc.plots[0].data['pdy'])
-    original_field = copy.deepcopy(pc.plots[0].data[field])
-    original_weight_field = copy.deepcopy(pc.plots[0].data['weight_field'])
-
-    # Copy original into offset positions to make tiles.
-    for x in range(int(na.ceil(lightConeSlice['WidthBoxFraction']))):
-        for y in range(int(na.ceil(lightConeSlice['WidthBoxFraction']))):
-            if ((x + y) > 0):
-                pc.plots[0].data['px'] = na.concatenate([pc.plots[0].data['px'],original_px+x])
-                pc.plots[0].data['py'] = na.concatenate([pc.plots[0].data['py'],original_py+y])
-                pc.plots[0].data['pdx'] = na.concatenate([pc.plots[0].data['pdx'],original_pdx])
-                pc.plots[0].data['pdy'] = na.concatenate([pc.plots[0].data['pdy'],original_pdy])
-                pc.plots[0].data[field] = na.concatenate([pc.plots[0].data[field],original_field])
-                pc.plots[0].data['weight_field'] = na.concatenate([pc.plots[0].data['weight_field'],original_weight_field])
-
-    # Delete originals.
-    del original_px
-    del original_py
-    del original_pdx
-    del original_pdy
-    del original_field
-    del original_weight_field
-
-    # 3. The Shift Problem
-    # Shift projection by random x and y offsets.
-
-    offset = copy.deepcopy(lightConeSlice['ProjectionCenter'])
-    # Delete depth coordinate.
-    del offset[lightConeSlice['ProjectionAxis']]
-
-    # Shift x and y positions.
-    pc.plots[0]['px'] -= offset[0]
-    pc.plots[0]['py'] -= offset[1]
-
-    # Wrap off-edge cells back around to other side (periodic boundary conditions).
-    pc.plots[0]['px'][pc.plots[0]['px'] < 0] += na.ceil(lightConeSlice['WidthBoxFraction'])
-    pc.plots[0]['py'][pc.plots[0]['py'] < 0] += na.ceil(lightConeSlice['WidthBoxFraction'])
-
-    # After shifting, some cells have fractional coverage on both sides of the box.
-    # Find those cells and make copies to be placed on the other side.
-
-    # Cells hanging off the right edge.
-    add_x_right = pc.plots[0]['px'] + 0.5 * pc.plots[0]['pdx'] > na.ceil(lightConeSlice['WidthBoxFraction'])
-    add_x_px = pc.plots[0]['px'][add_x_right]
-    add_x_px -= na.ceil(lightConeSlice['WidthBoxFraction'])
-    add_x_py = pc.plots[0]['py'][add_x_right]
-    add_x_pdx = pc.plots[0]['pdx'][add_x_right]
-    add_x_pdy = pc.plots[0]['pdy'][add_x_right]
-    add_x_field = pc.plots[0][field][add_x_right]
-    add_x_weight_field = pc.plots[0]['weight_field'][add_x_right]
-    del add_x_right
-
-    # Cells hanging off the left edge.
-    add_x_left = pc.plots[0]['px'] - 0.5 * pc.plots[0]['pdx'] < 0
-    add2_x_px = pc.plots[0]['px'][add_x_left]
-    add2_x_px += na.ceil(lightConeSlice['WidthBoxFraction'])
-    add2_x_py = pc.plots[0]['py'][add_x_left]
-    add2_x_pdx = pc.plots[0]['pdx'][add_x_left]
-    add2_x_pdy = pc.plots[0]['pdy'][add_x_left]
-    add2_x_field = pc.plots[0][field][add_x_left]
-    add2_x_weight_field = pc.plots[0]['weight_field'][add_x_left]
-    del add_x_left
-
-    # Cells hanging off the top edge.
-    add_y_right = pc.plots[0]['py'] + 0.5 * pc.plots[0]['pdy'] > na.ceil(lightConeSlice['WidthBoxFraction'])
-    add_y_px = pc.plots[0]['px'][add_y_right]
-    add_y_py = pc.plots[0]['py'][add_y_right]
-    add_y_py -= na.ceil(lightConeSlice['WidthBoxFraction'])
-    add_y_pdx = pc.plots[0]['pdx'][add_y_right]
-    add_y_pdy = pc.plots[0]['pdy'][add_y_right]
-    add_y_field = pc.plots[0][field][add_y_right]
-    add_y_weight_field = pc.plots[0]['weight_field'][add_y_right]
-    del add_y_right
-
-    # Cells hanging off the bottom edge.
-    add_y_left = pc.plots[0]['py'] - 0.5 * pc.plots[0]['pdy'] < 0
-    add2_y_px = pc.plots[0]['px'][add_y_left]
-    add2_y_py = pc.plots[0]['py'][add_y_left]
-    add2_y_py += na.ceil(lightConeSlice['WidthBoxFraction'])
-    add2_y_pdx = pc.plots[0]['pdx'][add_y_left]
-    add2_y_pdy = pc.plots[0]['pdy'][add_y_left]
-    add2_y_field = pc.plots[0][field][add_y_left]
-    add2_y_weight_field = pc.plots[0]['weight_field'][add_y_left]
-    del add_y_left
-
-    # Add the hanging cells back to the projection data.
-    pc.plots[0].data['px'] = na.concatenate([pc.plots[0]['px'],add_x_px,add_y_px,add2_x_px,add2_y_px])
-    pc.plots[0].data['py'] = na.concatenate([pc.plots[0]['py'],add_x_py,add_y_py,add2_x_py,add2_y_py])
-    pc.plots[0].data['pdx'] = na.concatenate([pc.plots[0]['pdx'],add_x_pdx,add_y_pdx,add2_x_pdx,add2_y_pdx])
-    pc.plots[0].data['pdy'] = na.concatenate([pc.plots[0]['pdy'],add_x_pdy,add_y_pdy,add2_x_pdy,add2_y_pdy])
-    pc.plots[0].data[field] = na.concatenate([pc.plots[0][field],add_x_field,add_y_field,add2_x_field,add2_y_field])
-    pc.plots[0].data['weight_field'] = na.concatenate([pc.plots[0]['weight_field'],add_x_weight_field,add_y_weight_field,
-                                                       add2_x_weight_field,add2_y_weight_field])
-
-    # Delete original copies of hanging cells.
-    del add_x_px,add_y_px,add2_x_px,add2_y_px
-    del add_x_py,add_y_py,add2_x_py,add2_y_py
-    del add_x_pdx,add_y_pdx,add2_x_pdx,add2_y_pdx
-    del add_x_pdy,add_y_pdy,add2_x_pdy,add2_y_pdy
-    del add_x_field,add_y_field,add2_x_field,add2_y_field
-    del add_x_weight_field,add_y_weight_field,add2_x_weight_field,add2_y_weight_field
-
-    # Tiles were made rounding up the width to the nearest integer.
-    # Cut off the edges to get the specified width.
-    pc.set_xlim(0,lightConeSlice['WidthBoxFraction'])
-    pc.set_ylim(0,lightConeSlice['WidthBoxFraction'])
-
-    # Save an image if requested.
-    if (save_image and (ytcfg.getint("yt","__parallel_rank") == 0)):
-        pc.save(name)
-
     if ytcfg.getint("yt","__parallel_rank") == 0:
+
+        # Original projection data.
+        original_px = copy.deepcopy(pc.plots[0].data['px'])
+        original_py = copy.deepcopy(pc.plots[0].data['py'])
+        original_pdx = copy.deepcopy(pc.plots[0].data['pdx'])
+        original_pdy = copy.deepcopy(pc.plots[0].data['pdy'])
+        original_field = copy.deepcopy(pc.plots[0].data[field])
+        original_weight_field = copy.deepcopy(pc.plots[0].data['weight_field'])
+
+        # Copy original into offset positions to make tiles.
+        for x in range(int(na.ceil(lightConeSlice['WidthBoxFraction']))):
+            for y in range(int(na.ceil(lightConeSlice['WidthBoxFraction']))):
+                if ((x + y) > 0):
+                    pc.plots[0].data['px'] = na.concatenate([pc.plots[0].data['px'],original_px+x])
+                    pc.plots[0].data['py'] = na.concatenate([pc.plots[0].data['py'],original_py+y])
+                    pc.plots[0].data['pdx'] = na.concatenate([pc.plots[0].data['pdx'],original_pdx])
+                    pc.plots[0].data['pdy'] = na.concatenate([pc.plots[0].data['pdy'],original_pdy])
+                    pc.plots[0].data[field] = na.concatenate([pc.plots[0].data[field],original_field])
+                    pc.plots[0].data['weight_field'] = na.concatenate([pc.plots[0].data['weight_field'],original_weight_field])
+
+        # Delete originals.
+        del original_px
+        del original_py
+        del original_pdx
+        del original_pdy
+        del original_field
+        del original_weight_field
+
+        # 3. The Shift Problem
+        # Shift projection by random x and y offsets.
+
+        offset = copy.deepcopy(lightConeSlice['ProjectionCenter'])
+        # Delete depth coordinate.
+        del offset[lightConeSlice['ProjectionAxis']]
+
+        # Shift x and y positions.
+        pc.plots[0]['px'] -= offset[0]
+        pc.plots[0]['py'] -= offset[1]
+
+        # Wrap off-edge cells back around to other side (periodic boundary conditions).
+        pc.plots[0]['px'][pc.plots[0]['px'] < 0] += na.ceil(lightConeSlice['WidthBoxFraction'])
+        pc.plots[0]['py'][pc.plots[0]['py'] < 0] += na.ceil(lightConeSlice['WidthBoxFraction'])
+
+        # After shifting, some cells have fractional coverage on both sides of the box.
+        # Find those cells and make copies to be placed on the other side.
+
+        # Cells hanging off the right edge.
+        add_x_right = pc.plots[0]['px'] + 0.5 * pc.plots[0]['pdx'] > na.ceil(lightConeSlice['WidthBoxFraction'])
+        add_x_px = pc.plots[0]['px'][add_x_right]
+        add_x_px -= na.ceil(lightConeSlice['WidthBoxFraction'])
+        add_x_py = pc.plots[0]['py'][add_x_right]
+        add_x_pdx = pc.plots[0]['pdx'][add_x_right]
+        add_x_pdy = pc.plots[0]['pdy'][add_x_right]
+        add_x_field = pc.plots[0][field][add_x_right]
+        add_x_weight_field = pc.plots[0]['weight_field'][add_x_right]
+        del add_x_right
+
+        # Cells hanging off the left edge.
+        add_x_left = pc.plots[0]['px'] - 0.5 * pc.plots[0]['pdx'] < 0
+        add2_x_px = pc.plots[0]['px'][add_x_left]
+        add2_x_px += na.ceil(lightConeSlice['WidthBoxFraction'])
+        add2_x_py = pc.plots[0]['py'][add_x_left]
+        add2_x_pdx = pc.plots[0]['pdx'][add_x_left]
+        add2_x_pdy = pc.plots[0]['pdy'][add_x_left]
+        add2_x_field = pc.plots[0][field][add_x_left]
+        add2_x_weight_field = pc.plots[0]['weight_field'][add_x_left]
+        del add_x_left
+
+        # Cells hanging off the top edge.
+        add_y_right = pc.plots[0]['py'] + 0.5 * pc.plots[0]['pdy'] > na.ceil(lightConeSlice['WidthBoxFraction'])
+        add_y_px = pc.plots[0]['px'][add_y_right]
+        add_y_py = pc.plots[0]['py'][add_y_right]
+        add_y_py -= na.ceil(lightConeSlice['WidthBoxFraction'])
+        add_y_pdx = pc.plots[0]['pdx'][add_y_right]
+        add_y_pdy = pc.plots[0]['pdy'][add_y_right]
+        add_y_field = pc.plots[0][field][add_y_right]
+        add_y_weight_field = pc.plots[0]['weight_field'][add_y_right]
+        del add_y_right
+
+        # Cells hanging off the bottom edge.
+        add_y_left = pc.plots[0]['py'] - 0.5 * pc.plots[0]['pdy'] < 0
+        add2_y_px = pc.plots[0]['px'][add_y_left]
+        add2_y_py = pc.plots[0]['py'][add_y_left]
+        add2_y_py += na.ceil(lightConeSlice['WidthBoxFraction'])
+        add2_y_pdx = pc.plots[0]['pdx'][add_y_left]
+        add2_y_pdy = pc.plots[0]['pdy'][add_y_left]
+        add2_y_field = pc.plots[0][field][add_y_left]
+        add2_y_weight_field = pc.plots[0]['weight_field'][add_y_left]
+        del add_y_left
+
+        # Add the hanging cells back to the projection data.
+        pc.plots[0].data['px'] = na.concatenate([pc.plots[0]['px'],add_x_px,add_y_px,add2_x_px,add2_y_px])
+        pc.plots[0].data['py'] = na.concatenate([pc.plots[0]['py'],add_x_py,add_y_py,add2_x_py,add2_y_py])
+        pc.plots[0].data['pdx'] = na.concatenate([pc.plots[0]['pdx'],add_x_pdx,add_y_pdx,add2_x_pdx,add2_y_pdx])
+        pc.plots[0].data['pdy'] = na.concatenate([pc.plots[0]['pdy'],add_x_pdy,add_y_pdy,add2_x_pdy,add2_y_pdy])
+        pc.plots[0].data[field] = na.concatenate([pc.plots[0][field],add_x_field,add_y_field,add2_x_field,add2_y_field])
+        pc.plots[0].data['weight_field'] = na.concatenate([pc.plots[0]['weight_field'],add_x_weight_field,add_y_weight_field,
+                                                           add2_x_weight_field,add2_y_weight_field])
+
+        # Delete original copies of hanging cells.
+        del add_x_px,add_y_px,add2_x_px,add2_y_px
+        del add_x_py,add_y_py,add2_x_py,add2_y_py
+        del add_x_pdx,add_y_pdx,add2_x_pdx,add2_y_pdx
+        del add_x_pdy,add_y_pdy,add2_x_pdy,add2_y_pdy
+        del add_x_field,add_y_field,add2_x_field,add2_y_field
+        del add_x_weight_field,add_y_weight_field,add2_x_weight_field,add2_y_weight_field
+
+        # Tiles were made rounding up the width to the nearest integer.
+        # Cut off the edges to get the specified width.
+        pc.set_xlim(0,lightConeSlice['WidthBoxFraction'])
+        pc.set_ylim(0,lightConeSlice['WidthBoxFraction'])
+
+        # Save an image if requested.
+        if save_image:
+            pc.save(name)
+
         # Create fixed resolution buffer to return back to the light cone object.
         # These buffers will be stacked together to make the light cone.
         frb = raven.FixedResolutionBuffer(pc.plots[0].data,(0,lightConeSlice['WidthBoxFraction'],0,lightConeSlice['WidthBoxFraction']),
