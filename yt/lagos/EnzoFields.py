@@ -163,7 +163,7 @@ def _pdensity(field, data):
                             data["particle_position_y"],
                             data["particle_position_z"], 3,
                             data["particle_mass"],
-                            blank, data.LeftEdge, data.dx)
+                            blank, data.LeftEdge, data['dx'])
     return blank
 add_field("particle_density", function=_pdensity,
           validators=[ValidateSpatial(0)], convert_function=_convertDensity)
