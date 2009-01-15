@@ -332,6 +332,10 @@ class TestDataCube(LagosTestingBase, unittest.TestCase):
         self.assertTrue(cg["Density"].min() \
                      == self.hierarchy.grids[0]["Density"].min())
 
+    def testCellVolume(self):
+        cg = self.hierarchy.covering_grid(2, [0.0]*3, [1.0]*3, [64,64,64])
+        self.assertEqual(na.unique(cg["CellVolume"]).size, 1)
+
 class TestDiskDataType(Data3DBase, DataTypeTestingBase, LagosTestingBase, unittest.TestCase):
     def setUp(self):
         DataTypeTestingBase.setUp(self)
