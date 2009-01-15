@@ -81,10 +81,10 @@ class LightCone(object):
         # Combine all data dumps.
         self._CombineDataOutputs()
 
-        if self.lightConeParameters['UseMinimumNumberOfProjections']:
-            # Calculate maximum delta z for each data dump.
-            self._CalculateDeltaZMax()
-        else:
+        # Calculate maximum delta z for each data dump.
+        self._CalculateDeltaZMax()
+
+        if not self.lightConeParameters['UseMinimumNumberOfProjections']:
             # Calculate minimum delta z for each data dump.
             self._CalculateDeltaZMin()
 
@@ -239,11 +239,18 @@ class LightCone(object):
                 else:
                     self.projectionStack.append(frb[field])
 
+                # Delete the frb.  This saves a decent amount of ram.
+                if (q < len(self.lightConeSolution) - 1):
+                    del frb
+
                 # Flatten stack to save memory.
                 if flatten_stack and (len(self.projectionStack) > 1):
                     self.projectionStack = [sum(self.projectionStack)]
                     if weight_field is not None:
                         self.projectionWeightFieldStack = [sum(self.projectionWeightFieldStack)]
+
+            # Delete the plot collection now that the frb is deleted.
+            del output['pc']
 
             # Unless this is the last slice, delete the dataset object.
             # The last one will be saved to make the plot collection.
