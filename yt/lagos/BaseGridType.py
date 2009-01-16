@@ -70,7 +70,6 @@ class AMRGridPatch(AMRData):
         Returns a field or set of fields for a key or set of keys
         """
         if not self.data.has_key(field):
-            #if field in ('dx','dy','dz','dds'): return self._dds[field]
             if field in self.hierarchy.field_list:
                 conv_factor = 1.0
                 if self.pf.field_info.has_key(field):
@@ -102,7 +101,10 @@ class AMRGridPatch(AMRData):
                                      self.hierarchy.gridDys[id,0],
                                      self.hierarchy.gridDzs[id,0]])
         self.data['dx'], self.data['dy'], self.data['dz'] = self.dds
-        self._corners = self.hierarchy.gridCorners[:,:,id]
+
+    @property
+    def _corners(self):
+        return self.hierarchy.gridCorners[:,:,self.id - self._id_offset]
 
     def _generate_overlap_masks(self, axis, LE, RE):
         """
