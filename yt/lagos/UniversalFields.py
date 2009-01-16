@@ -97,13 +97,13 @@ add_field('z', function=_coordZ, display_field=False,
 def _GridLevel(field, data):
     return na.ones(data["Density"].shape)*(data.Level)
 add_field("GridLevel", function=_GridLevel,
-          validators=[#ValidateProperty('Level'),
+          validators=[ValidateGridType(),
                       ValidateSpatial(0)])
 
 def _GridIndices(field, data):
     return na.ones(data["Density"].shape)*(data.id-data._id_offset)
 add_field("GridIndices", function=_GridIndices,
-          validators=[#ValidateProperty('id'),
+          validators=[ValidateGridType(),
                       ValidateSpatial(0)], take_log=False)
 
 def _OnesOverDx(field, data):

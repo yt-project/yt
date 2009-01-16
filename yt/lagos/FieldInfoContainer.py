@@ -95,18 +95,30 @@ class NeedsGridType(ValidationException):
     def __init__(self, ghost_zones = 0, fields=None):
         self.ghost_zones = ghost_zones
         self.fields = fields
+    def __str__(self):
+        return "(%s, %s)" % (self.ghost_zones, self.fields)
+
+class NeedsOriginalGrid(NeedsGridType):
+    def __init__(self):
+        self.ghost_zones = 0
 
 class NeedsDataField(ValidationException):
     def __init__(self, missing_fields):
         self.missing_fields = missing_fields
+    def __str__(self):
+        return "(%s)" % (self.missing_fields)
 
 class NeedsProperty(ValidationException):
     def __init__(self, missing_properties):
         self.missing_properties = missing_properties
+    def __str__(self):
+        return "(%s)" % (self.missing_properties)
 
 class NeedsParameter(ValidationException):
     def __init__(self, missing_parameters):
         self.missing_parameters = missing_parameters
+    def __str__(self):
+        return "(%s)" % (self.missing_parameters)
 
 class FieldDetector(defaultdict):
     Level = 1
@@ -279,6 +291,14 @@ class ValidateSpatial(FieldValidator):
         if isinstance(data, FieldDetector): return True
         if not data._spatial:
             raise NeedsGridType(self.ghost_zones,self.fields)
-        if self.ghost_zones == data._num_ghost_zones:
+        if self.ghost_zones <= data._num_ghost_zones:
             return True
         raise NeedsGridType(self.ghost_zones,self.fields)
+
+class ValidateGridType(FieldValidator):
+    def __init__(self):
+        FieldValidator.__init__(self)
+    def __call__(self, data):
+        # We need to make sure that it's an actual AMR grid
+        if data._type_name == 'grid': return True
+        raise NeedsOriginalGrid()

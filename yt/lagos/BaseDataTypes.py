@@ -1823,6 +1823,49 @@ class AMRCoveringGridBase(AMR3DData):
             return
             raise KeyError
 
+    def get_data(self, fields=None):
+        if self._grids is None:
+            self._get_list_of_grids()
+        if fields is None:
+            fields = self.fields[:]
+        else:
+            fields = ensure_list(fields)
+        obtain_fields = []
+        for field in fields:
+            if self.data.has_key(field): continue
+            if field not in self.hierarchy.field_list:
+                try:
+                    self._generate_field(field)
+                    continue
+                except NeedsOriginalGrid, ngt_exception:
+                    pass
+            obtain_fields.append(field)
+            self[field] = na.zeros(self.ActiveDimensions, dtype='float64') -999
+        if len(obtain_fields) == 0: return
+        mylog.debug("Getting fields %s from %s possible grids",
+                   obtain_fields, len(self._grids))
+        if self._use_pbar: pbar = \
+                get_pbar('Searching grids for values ', len(self._grids))
+        for i, grid in enumerate(self._grids):
+            if self._use_pbar: pbar.update(i)
+            self._get_data_from_grid(grid, obtain_fields)
+            if not na.any(self[obtain_fields[0]] == -999): break
+        if self._use_pbar: pbar.finish()
+        if na.any(self[obtain_fields[0]] == -999):
+            # and self.dx < self.hierarchy.grids[0].dx:
+            print "COVERING PROBLEM", na.where(self[obtain_fields[0]]==-999)[0].size
+            print na.where(self[obtain_fields[0]]==-999)
+            raise KeyError
+            
+    def _generate_field(self, field):
+        if self.pf.field_info.has_key(field):
+            # First we check the validator; this might even raise!
+            self.pf.field_info[field].check_available(self)
+            self[field] = self.pf.field_info[field](self)
+        else: # Can't find the field, try as it might
+            raise exceptions.KeyError(field)
+
+
     def flush_data(self, field=None):
         """
         Any modifications made to the data in this object are pushed back
@@ -1864,6 +1907,14 @@ class AMRCoveringGridBase(AMR3DData):
             grid.LeftEdge, g_dx, g_fields, grid.child_mask,
             self.left_edge, self.right_edge, c_dx, c_fields,
             ll, self.pf["DomainLeftEdge"], self.pf["DomainRightEdge"])
+
+    @property
+    def LeftEdge(self):
+        return self.left_edge
+
+    @property
+    def RightEdge(self):
+        return self.right_edge
 
 class AMRSmoothedCoveringGridBase(AMRCoveringGridBase):
     _type_name = "smoothed_covering_grid"
