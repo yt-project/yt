@@ -72,6 +72,8 @@ class Clump(object):
                 (self.parent, self.field, self.min, self.max,
                  self.function_value, self.children, self.data, self.function))
 
+    def __getitem__(self,request):
+        return self.data[request]
 def _reconstruct_clump(parent, field, mi, ma, function_value, children, data,
         function=None):
     obj = object.__new__(Clump)
