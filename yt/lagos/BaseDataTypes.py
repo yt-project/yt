@@ -1787,42 +1787,6 @@ class AMRCoveringGridBase(AMR3DData):
         self['dy'] = self.dds[1] * na.ones(self.ActiveDimensions, dtype='float64')
         self['dz'] = self.dds[2] * na.ones(self.ActiveDimensions, dtype='float64')
 
-    def get_data(self, field=None):
-        self._get_list_of_grids()
-        # We don't generate coordinates here.
-        if field == None:
-            _fields_to_get = self.fields
-        else:
-            _fields_to_get = ensure_list(field)
-        fields_to_get = [f for f in _fields_to_get if f not in self.data]
-        if len(fields_to_get) == 0: return
-        new_fields = []
-        for field in fields_to_get:
-            if not field in self.pf.hierarchy.field_list:
-                self._generate_field(field)
-                #self[field] = self.pf.field_info[field](self)
-            else:
-                self[field] = na.zeros(self.ActiveDimensions, dtype='float64') -999
-                new_fields.append(field)
-        fields_to_get = new_fields
-        if len(new_fields) == 0: return
-        mylog.debug("Getting fields %s from %s possible grids",
-                   fields_to_get, len(self._grids))
-        if self._use_pbar: pbar = \
-                get_pbar('Searching grids for values ', len(self._grids))
-        field = fields_to_get[-1]
-        for i,grid in enumerate(self._grids):
-            if self._use_pbar: pbar.update(i)
-            self._get_data_from_grid(grid, fields_to_get)
-            if not na.any(self[field] == -999): break
-        if self._use_pbar: pbar.finish()
-        if na.any(self[field] == -999):
-            # and self.dx < self.hierarchy.grids[0].dx:
-            print "COVERING PROBLEM", na.where(self[field]==-999)[0].size
-            print na.where(self[fields_to_get[0]]==-999)
-            return
-            raise KeyError
-
     def get_data(self, fields=None):
         if self._grids is None:
             self._get_list_of_grids()
@@ -1835,6 +1799,7 @@ class AMRCoveringGridBase(AMR3DData):
             if self.data.has_key(field): continue
             if field not in self.hierarchy.field_list:
                 try:
+                    #print "Generating", field
                     self._generate_field(field)
                     continue
                 except NeedsOriginalGrid, ngt_exception:
@@ -1864,7 +1829,6 @@ class AMRCoveringGridBase(AMR3DData):
             self[field] = self.pf.field_info[field](self)
         else: # Can't find the field, try as it might
             raise exceptions.KeyError(field)
-
 
     def flush_data(self, field=None):
         """

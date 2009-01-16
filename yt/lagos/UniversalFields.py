@@ -429,7 +429,8 @@ def _Contours(field, data):
     return na.ones(data["Density"].shape)*-1
 add_field("Contours", validators=[ValidateSpatial(0)], take_log=False,
           display_field=False, function=_Contours)
-add_field("tempContours", function=_Contours, validators=[ValidateSpatial(0)],
+add_field("tempContours", function=_Contours,
+          validators=[ValidateSpatial(0), ValidateGridType()],
           take_log=False, display_field=False)
 
 def obtain_velocities(data):
