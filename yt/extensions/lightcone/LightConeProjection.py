@@ -56,16 +56,13 @@ def LightConeProjection(lightConeSlice,field,pixels,weight_field=None,save_image
 
     mylog.info("Making projection at z = %f from %s." % (lightConeSlice['redshift'],lightConeSlice['filename']))
 
-    # Make an Enzo data object.
-    dataset_object = lightConeSlice['object']
-
-    region_center = [0.5 * (dataset_object.parameters['DomainRightEdge'][q] +
-                            dataset_object.parameters['DomainLeftEdge'][q]) \
-                         for q in range(dataset_object.parameters['TopGridRank'])]
+    region_center = [0.5 * (lightConeSlice['object'].parameters['DomainRightEdge'][q] +
+                            lightConeSlice['object'].parameters['DomainLeftEdge'][q]) \
+                         for q in range(lightConeSlice['object'].parameters['TopGridRank'])]
 
     # Make the plot collection and put it in the slice so we can delete it cleanly in the same scope 
     # as where the frb will be deleted.
-    lightConeSlice['pc'] = raven.PlotCollection(dataset_object,center=region_center)
+    lightConeSlice['pc'] = raven.PlotCollection(lightConeSlice['object'],center=region_center)
 
     # 1. The Depth Problem
     # Use coordinate field cut in line of sight to cut projection to proper depth.
@@ -90,8 +87,8 @@ def LightConeProjection(lightConeSlice,field,pixels,weight_field=None,save_image
         these_field_cuts.append(cut_mask)
 
     # Make projection.
-    lightConeSlice['pc'].add_projection(field,lightConeSlice['ProjectionAxis'],weight_field=weight_field,field_cuts=these_field_cuts,use_colorbar=True,
-                      node_name=node_name,**kwargs)
+    lightConeSlice['pc'].add_projection(field,lightConeSlice['ProjectionAxis'],weight_field=weight_field,field_cuts=these_field_cuts,
+                                        node_name=node_name,**kwargs)
 
     # If parallel: all the processes have the whole projection object, but we only need to do the tiling, shifting, and cutting once.
     if ytcfg.getint("yt","__parallel_rank") == 0:
