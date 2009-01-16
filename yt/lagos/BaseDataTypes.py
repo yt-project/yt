@@ -1125,15 +1125,16 @@ class AMRProjBase(AMR2DData):
         data['pdx'] = dxs
         data['px'] = (coord_data[0,:]+0.5) * data['pdx']
         data['py'] = (coord_data[1,:]+0.5) * data['pdx']
+        data['weight_field'] = coord_data[3,:].copy()
+        del coord_data
         data['pdx'] *= 0.5
-        data['pdy'] = data['pdx'].copy()
+        data['pdy'] = data['pdx'] # generalization is out the window!
         data['fields'] = field_data
-        data['weight_field'] = coord_data[3,:]
         # Now we run the finalizer, which is ignored if we don't need it
         data = self._mpi_catdict(data)
-        field_data = data.pop('fields')
+        field_data = na.vsplit(data.pop('fields'), len(fields))
         for fi, field in enumerate(fields):
-            self[field] = field_data[fi,:]
+            self[field] = field_data[fi].ravel()
             self._store_fields(field, self._node_name)
         for i in data.keys(): self[i] = data.pop(i)
 

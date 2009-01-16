@@ -80,7 +80,7 @@ class CodeFieldInfoContainer(FieldInfoContainer):
             return self._field_list[key]
         if key in self._universal_field_list:
             return self._universal_field_list[key]
-        raise KeyError
+        raise KeyError(key)
 
 class OrionFieldContainer(CodeFieldInfoContainer):
     _shared_state = {}

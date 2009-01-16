@@ -181,7 +181,11 @@ class BinnedProfile1D(BinnedProfile):
             lower_bound, upper_bound = na.log10(lower_bound), na.log10(upper_bound)
         else:
             func = na.linspace
-        self[bin_field] = func(lower_bound, upper_bound, n_bins)
+        # These are the bin *edges*
+        self._bins = func(lower_bound, upper_bound, n_bins + 1)
+
+        # These are the bin *left edges*
+        self[bin_field] = self._bins[:-1]
 
         # If we are not being memory-conservative, grab all the bins
         # and the inverse indices right now.
@@ -226,15 +230,16 @@ class BinnedProfile1D(BinnedProfile):
             return
         # Truncate at boundaries.
         if self.left_collect:
-            mi = na.where(source_data < self[self.bin_field].max())
+            mi = na.where(source_data < self._bins.max())
         else:
-            mi = na.where( (source_data > self[self.bin_field].min())
-                         & (source_data < self[self.bin_field].max()))
+            mi = na.where( (source_data > self._bins.min())
+                         & (source_data < self._bins.max()))
         sd = source_data[mi]
         if sd.size == 0:
             return
         # Stick the bins into our fixed bins, set at initialization
-        bin_indices = na.digitize(sd, self[self.bin_field])
+        bin_indices = na.digitize(sd, self._bins) - 1
+        if self.left_collect: bin_indices = na.maximum(0, bin_indices)
         # Now we set up our inverse bin indices
         inv_bin_indices = {}
         for bin in range(self[self.bin_field].size):
@@ -279,16 +284,18 @@ class BinnedProfile2D(BinnedProfile):
         self._x_log = x_log
         self._y_log = y_log
         self.left_collect = left_collect
-        if x_log: self[x_bin_field] = na.logspace(na.log10(x_lower_bound*0.99),
-                                                  na.log10(x_upper_bound*1.01),
-                                                  x_n_bins)
-        else: self[x_bin_field] = na.linspace(
-                x_lower_bound*0.99, x_upper_bound*1.01, x_n_bins)
-        if y_log: self[y_bin_field] = na.logspace(na.log10(y_lower_bound*0.99),
-                                                  na.log10(y_upper_bound*1.01),
-                                                  y_n_bins)
-        else: self[y_bin_field] = na.linspace(
-                y_lower_bound*0.99, y_upper_bound*1.01, y_n_bins)
+
+        func = {True:na.logspace, False:na.linspace}[x_log]
+        bounds = fix_bounds(x_upper_bound, x_lower_bound, x_log)
+        self._x_bins = func(bounds[0], bounds[1], x_n_bins + 1)
+        self[x_bin_field] = self._x_bins[:-1]
+
+        func = {True:na.logspace, False:na.linspace}[y_log]
+        bounds = fix_bounds(y_upper_bound, y_lower_bound, y_log)
+        self._y_bins = func(bounds[0], bounds[1], y_n_bins + 1)
+        self[y_bin_field] = self._y_bins[:-1]
+
+
         if na.any(na.isnan(self[x_bin_field])) \
             or na.any(na.isnan(self[y_bin_field])):
             mylog.error("Your min/max values for x, y have given me a nan.")
@@ -336,19 +343,22 @@ class BinnedProfile2D(BinnedProfile):
         if source_data_x.size == 0:
             return
         if self.left_collect:
-            mi = na.where( (source_data_x < self[self.x_bin_field].max())
-                         & (source_data_y < self[self.y_bin_field].max()))
+            mi = na.where( (source_data_x < self._x_bins.max())
+                         & (source_data_y < self._y_bins.max()))
         else:
-            mi = na.where( (source_data_x > self[self.x_bin_field].min())
-                         & (source_data_x < self[self.x_bin_field].max())
-                         & (source_data_y > self[self.y_bin_field].min())
-                         & (source_data_y < self[self.y_bin_field].max()))
+            mi = na.where( (source_data_x > self._x_bins.min())
+                         & (source_data_x < self._x_bins.max())
+                         & (source_data_y > self._y_bins.min())
+                         & (source_data_y < self._y_bins.max()))
         sd_x = source_data_x[mi]
         sd_y = source_data_y[mi]
         if sd_x.size == 0 or sd_y.size == 0:
             return
-        bin_indices_x = na.digitize(sd_x, self[self.x_bin_field])
-        bin_indices_y = na.digitize(sd_y, self[self.y_bin_field])
+        bin_indices_x = na.digitize(sd_x, self._x_bins) - 1
+        bin_indices_y = na.digitize(sd_y, self._y_bins) - 1
+        if self.left_collect:
+            bin_indices_x = na.maximum(bin_indices_x, 0)
+            bin_indices_y = na.maximum(bin_indices_y, 0)
         # Now we set up our inverse bin indices
         return (mi, bin_indices_x, bin_indices_y)
 
@@ -375,6 +385,10 @@ class BinnedProfile2D(BinnedProfile):
     def _get_bin_fields(self):
         return [self.x_bin_field, self.y_bin_field]
 
+def fix_bounds(upper, lower, logit):
+    if logit: return na.log10(upper), na.log10(lower)
+    return upper, lower
+
 class BinnedProfile3D(BinnedProfile):
     def __init__(self, data_source,
                  x_n_bins, x_bin_field, x_lower_bound, x_upper_bound, x_log,
@@ -388,21 +402,22 @@ class BinnedProfile3D(BinnedProfile):
         self._x_log = x_log
         self._y_log = y_log
         self._z_log = z_log
-        if x_log: self[x_bin_field] = na.logspace(na.log10(x_lower_bound*0.99),
-                                                  na.log10(x_upper_bound*1.01),
-                                                  x_n_bins)
-        else: self[x_bin_field] = na.linspace(
-                x_lower_bound*0.99, x_upper_bound*1.01, x_n_bins)
-        if y_log: self[y_bin_field] = na.logspace(na.log10(y_lower_bound*0.99),
-                                                  na.log10(y_upper_bound*1.01),
-                                                  y_n_bins)
-        else: self[y_bin_field] = na.linspace(
-                y_lower_bound*0.99, y_upper_bound*1.01, y_n_bins)
-        if z_log: self[z_bin_field] = na.logspace(na.log10(z_lower_bound*0.99),
-                                                  na.log10(z_upper_bound*1.01),
-                                                  z_n_bins)
-        else: self[z_bin_field] = na.linspace(
-                z_lower_bound*0.99, z_upper_bound*1.01, z_n_bins)
+
+        func = {True:na.logspace, False:na.linspace}[x_log]
+        bounds = fix_bounds(x_upper_bound, x_lower_bound, x_log)
+        self._x_bins = func(bounds[0], bounds[1], x_n_bins + 1)
+        self[x_bin_field] = self._x_bins[:-1]
+
+        func = {True:na.logspace, False:na.linspace}[y_log]
+        bounds = fix_bounds(y_upper_bound, y_lower_bound, y_log)
+        self._y_bins = func(bounds[0], bounds[1], y_n_bins + 1)
+        self[y_bin_field] = self._y_bins[:-1]
+
+        func = {True:na.logspace, False:na.linspace}[z_log]
+        bounds = fix_bounds(z_upper_bound, z_lower_bound, z_log)
+        self._z_bins = func(bounds[0], bounds[1], z_n_bins + 1)
+        self[z_bin_field] = self._z_bins[:-1]
+
         if na.any(na.isnan(self[x_bin_field])) \
             or na.any(na.isnan(self[y_bin_field])) \
             or na.any(na.isnan(self[z_bin_field])):
@@ -456,20 +471,20 @@ class BinnedProfile3D(BinnedProfile):
         source_data_y = self._get_field(source, self.z_bin_field, check_cut)
         if source_data_x.size == 0:
             return
-        mi = na.where( (source_data_x > self[self.x_bin_field].min())
-                     & (source_data_x < self[self.x_bin_field].max())
-                     & (source_data_y > self[self.y_bin_field].min())
-                     & (source_data_y < self[self.y_bin_field].max())
-                     & (source_data_z > self[self.z_bin_field].min())
-                     & (source_data_z < self[self.z_bin_field].max()))
+        mi = ( (source_data_x > self._x_bins.min())
+             & (source_data_x < self._x_bins.max())
+             & (source_data_y > self._y_bins.min())
+             & (source_data_y < self._y_bins.max())
+             & (source_data_z > self._z_bins.min())
+             & (source_data_z < self._z_bins.max()))
         sd_x = source_data_x[mi]
         sd_y = source_data_y[mi]
         sd_z = source_data_z[mi]
         if sd_x.size == 0 or sd_y.size == 0 or sd_z.size == 0:
             return
-        bin_indices_x = na.digitize(sd_x, self[self.x_bin_field])
-        bin_indices_y = na.digitize(sd_y, self[self.y_bin_field])
-        bin_indices_z = na.digitize(sd_z, self[self.z_bin_field])
+        bin_indices_x = na.digitize(sd_x, self._x_bins)
+        bin_indices_y = na.digitize(sd_y, self._y_bins)
+        bin_indices_z = na.digitize(sd_z, self._z_bins)
         # Now we set up our inverse bin indices
         return (mi, bin_indices_x, bin_indices_y, bin_indices_z)
 
