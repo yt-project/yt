@@ -22,19 +22,27 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-
 from yt.lagos import *
 import numpy as na
+import copy
 
 class Clump(object):
     children = None
-    def __init__(self, data, parent, field, cached_fields = None, function=None):
+    def __init__(self, data, parent, field, cached_fields = None, function=None, clump_info=None):
         self.parent = parent
         self.data = data
         self.field = field
         self.min = self.data[field].min()
         self.max = self.data[field].max()
         self.cached_fields = cached_fields
+
+        # List containing characteristics about clumps that are to be written 
+        # out by the write routines.
+        if clump_info is None:
+            self.set_default_clump_info()
+        else:
+            # Clump info will act the same if add_info_item is called before or after clump finding.
+            self.clump_info = copy.deepcopy(clump_info)
 
         # Function determining whether a clump is valid and should be kept.
         self.default_function = 'self.data.quantities["IsBound"](truncate=True,include_thermal_energy=True) > 1.0'
@@ -46,14 +54,53 @@ class Clump(object):
         # Return value of validity function, saved so it does not have to be calculated again.
         self.function_value = None
 
-    def _isValid(self):
-        "Perform user specified function to determine if child clumps should be kept."
+    def add_info_item(self,quantity,format):
+        "Adds an entry to clump_info list and tells children to do the same."
 
-        # Only call function is it has not been already.
-        if self.function_value is None:
-            self.function_value = eval(self.function)
+        self.clump_info.append({'quantity':quantity, 'format':format})
+        if self.children is None: return
+        for child in self.children:
+            child.add_info_item(quantity,format)
 
-        return self.function_value
+    def set_default_clump_info(self):
+        "Defines default entries in the clump_info array."
+
+        # add_info_item is recursive so this function does not need to be.
+        self.clump_info = []
+
+        # Number of cells.
+        self.add_info_item('self.data["CellMassMsun"].size','"Cells: %d" % value')
+        # Gas mass in solar masses.
+        self.add_info_item('self.data["CellMassMsun"].sum()','"Mass: %e Msolar" % value')
+        # Volume-weighted Jeans mass.
+        self.add_info_item('self.data.quantities["WeightedAverageQuantity"]("JeansMassMsun","CellVolume")',
+                           '"Jeans Mass (vol-weighted): %.6e Msolar" % value')
+        # Mass-weighted Jeans mass.
+        self.add_info_item('self.data.quantities["WeightedAverageQuantity"]("JeansMassMsun","CellMassMsun")',
+                           '"Jeans Mass (mass-weighted): %.6e Msolar" % value')
+        # Max level.
+        self.add_info_item('self.data["GridLevel"].max()','"Max grid level: %d" % value')
+        # Minimum number density.
+        self.add_info_item('self.data["NumberDensity"].min()','"Min number density: %.6e cm^-3" % value')
+        # Maximum number density.
+        self.add_info_item('self.data["NumberDensity"].max()','"Max number density: %.6e cm^-3" % value')
+
+    def clear_clump_info(self):
+        "Clears the clump_info array and passes the instruction to its children."
+
+        self.clump_info = []
+        if self.children is None: return
+        for child in self.children:
+            child.clear_clump_info()
+
+    def write_info(self,level,f_ptr):
+        "Writes information for clump using the list of items in clump_info."
+
+        for item in self.clump_info:
+            value = eval(item['quantity'])
+            output = eval(item['format'])
+            f_ptr.write("%s%s" % ('\t'*level,output))
+            f_ptr.write("\n")
 
     def find_children(self, min, max = None):
         if self.children is not None:
@@ -65,22 +112,41 @@ class Clump(object):
         for cid in contour_info:
             new_clump = self.data.extract_region(contour_info[cid])
             self.children.append(Clump(new_clump, self, self.field,
-                                    self.cached_fields,function=self.function))
+                                       self.cached_fields,function=self.function,
+                                       clump_info=self.clump_info))
+
+    def pass_down(self,operation):
+        "Performs an operation on a clump with an exec and passes the instruction down to clump children."
+
+        exec(operation)
+
+        for child in self.children:
+            child.pass_down(operation)
+
+    def _isValid(self):
+        "Perform user specified function to determine if child clumps should be kept."
+
+        # Only call function if it has not been already.
+        if self.function_value is None:
+            self.function_value = eval(self.function)
+
+        return self.function_value
 
     def __reduce__(self):
         return (_reconstruct_clump, 
                 (self.parent, self.field, self.min, self.max,
-                 self.function_value, self.children, self.data, self.function))
+                 self.function_value, self.children, self.data, self.clump_info, self.function))
 
     def __getitem__(self,request):
         return self.data[request]
-def _reconstruct_clump(parent, field, mi, ma, function_value, children, data,
+
+def _reconstruct_clump(parent, field, mi, ma, function_value, children, data, clump_info, 
         function=None):
     obj = object.__new__(Clump)
     if iterable(parent): parent = parent[1]
     if children is None: children = []
-    obj.parent, obj.field, obj.min, obj.max, obj.function_value, \
-       obj.children, obj.function = parent, field, mi, ma, function_value, children, function
+    obj.parent, obj.field, obj.min, obj.max, obj.function_value, obj.children, obj.clump_info, obj.function = \
+        parent, field, mi, ma, function_value, children, clump_info, function
     # Now we override, because the parent/child relationship seems a bit
     # unreliable in the unpickling
     for child in children: child.parent = obj
@@ -117,12 +183,11 @@ def find_clumps(clump, min, max, d_clump):
             print "%d of %d children survived, erasing children." % (len(these_children),len(clump.children))
             clump.children = []
 
-
 def write_clump_hierarchy(clump,level,f_ptr):
     for q in range(level):
         f_ptr.write("\t")
     f_ptr.write("Clump at level %d:\n" % level)
-    write_clump_info(clump,level,f_ptr)
+    clump.write_info(level,f_ptr)
     f_ptr.write("\n")
     f_ptr.flush()
     if ((clump.children is not None) and (len(clump.children) > 0)):
@@ -132,7 +197,30 @@ def write_clump_hierarchy(clump,level,f_ptr):
 def write_clumps(clump,level,f_ptr):
     if ((clump.children is None) or (len(clump.children) == 0)):
         f_ptr.write("%sClump:\n" % ("\t"*level))
-        write_clump_info(clump,level,f_ptr)
+        clump.write_info(level,f_ptr)
+        f_ptr.write("\n")
+        f_ptr.flush()
+    if ((clump.children is not None) and (len(clump.children) > 0)):
+        for child in clump.children:
+            write_clumps(child,0,f_ptr)
+
+# Old clump info writing routines.
+def write_old_clump_hierarchy(clump,level,f_ptr):
+    for q in range(level):
+        f_ptr.write("\t")
+    f_ptr.write("Clump at level %d:\n" % level)
+    clump.write_info(level,f_ptr)
+    write_old_clump_info(clump,level,f_ptr)
+    f_ptr.write("\n")
+    f_ptr.flush()
+    if ((clump.children is not None) and (len(clump.children) > 0)):
+        for child in clump.children:
+            write_clump_hierarchy(child,(level+1),f_ptr)
+
+def write_old_clumps(clump,level,f_ptr):
+    if ((clump.children is None) or (len(clump.children) == 0)):
+        f_ptr.write("%sClump:\n" % ("\t"*level))
+        write_old_clump_info(clump,level,f_ptr)
         f_ptr.write("\n")
         f_ptr.flush()
     if ((clump.children is not None) and (len(clump.children) > 0)):
@@ -151,7 +239,7 @@ __clump_info_template = \
 
 """
 
-def write_clump_info(clump,level,f_ptr):
+def write_old_clump_info(clump,level,f_ptr):
     fmt_dict = {'tl':  "\t" * level}
     fmt_dict['num_cells'] = clump.data["CellMassMsun"].size,
     fmt_dict['total_mass'] = clump.data["CellMassMsun"].sum()
