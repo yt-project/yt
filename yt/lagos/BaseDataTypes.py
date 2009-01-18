@@ -1299,8 +1299,8 @@ class AMR3DData(AMRData, GridPropertiesMixin):
         i = 0
         for grid in self._grids:
             pointI = self._get_point_indices(grid)
-            new_field = na.ones(grid.ActiveDimensions, dtype=dtype) * default_val
             np = pointI[0].ravel().size
+            new_field = na.ones(grid.ActiveDimensions, dtype=dtype) * default_val
             new_field[pointI] = self[field][i:i+np]
             if grid.data.has_key(field): del grid.data[field]
             grid[field] = new_field
@@ -1464,18 +1464,30 @@ class ExtractedRegionBase(AMR3DData):
         splits = na.add.accumulate(splits)
         xis, yis, zis = [na.array_split(aa, splits) for aa in [xi,yi,zi]]
         self._indices = {}
+        h = self._base_region.pf.h
         for grid_id, x, y, z in zip(grid_ids, xis, yis, zis):
             # grid_id needs no offset
-            self._indices[grid_id] = (x, y, z)
-        self._grids = self._base_region.pf.h.grids[self._indices.keys()]
+            ll = h.grids[grid_id].ActiveDimensions.prod() \
+               - (na.logical_not(h.grids[grid_id].child_mask)).sum()
+            # This means we're completely enclosed, except for child masks
+            if x.size == ll:
+                self._indices[grid_id] = None
+            else: self._indices[grid_id] = (x, y, z)
+        self._grids = h.grids[self._indices.keys()]
 
     def _is_fully_enclosed(self, grid):
-        return (self._indices[grid.id-grid._id_offset][0].size == grid.ActiveDimensions.prod())
+        if self._indices[grid.id-grid._id_offset] is None or \
+            (self._indices[grid.id-grid._id_offset][0].size ==
+             grid.ActiveDimensions.prod()):
+            return True
+        return False
 
     __empty_array = na.array([], dtype='bool')
     def _get_point_indices(self, grid, use_child_mask=True):
         # Yeah, if it's not true, we don't care.
-        return self._indices.get(grid.id-grid._id_offset, self.__empty_array)
+        tr = self._indices.get(grid.id-grid._id_offset, self.__empty_array)
+        if tr is None: tr = na.where(grid.child_mask)
+        return tr
 
 class InLineExtractedRegionBase(AMR3DData):
     """
