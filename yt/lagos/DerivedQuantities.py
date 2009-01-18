@@ -235,11 +235,11 @@ def _IsBound(data, truncate = True, include_thermal_energy = False):
     import time
     t1 = time.time()
     try:
-        pot = 2*G*_cudaIsBound(data, truncate, kinetic/(2*G))
+        pot = G*_cudaIsBound(data, truncate, kinetic/G)
     except (ImportError, AssertionError):
-        pot = 2*G*PointCombine.FindBindingEnergy(data["CellMass"],
-                                      data['x'],data['y'],data['z'],
-                                      truncate, kinetic/(2*G))
+        pot = G*PointCombine.FindBindingEnergy(data["CellMass"],
+                                               data['x'],data['y'],data['z'],
+                                               truncate, kinetic/G)
     mylog.info("Boundedness check took %0.3e seconds", time.time()-t1)
     return [(pot / kinetic)]
 def _combIsBound(data, bound):
