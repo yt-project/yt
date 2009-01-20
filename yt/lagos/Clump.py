@@ -97,7 +97,11 @@ class Clump(object):
         "Writes information for clump using the list of items in clump_info."
 
         for item in self.clump_info:
-            value = eval(item['quantity'])
+            # Call if callable, otherwise do an eval.
+            if callable(item['quantity']):
+                value = item['quantity']()
+            else:
+                value = eval(item['quantity'])
             output = eval(item['format'])
             f_ptr.write("%s%s" % ('\t'*level,output))
             f_ptr.write("\n")
@@ -118,7 +122,11 @@ class Clump(object):
     def pass_down(self,operation):
         "Performs an operation on a clump with an exec and passes the instruction down to clump children."
 
-        exec(operation)
+        # Call if callable, otherwise do an exec.
+        if callable(operation):
+            operation()
+        else:
+            exec(operation)
 
         for child in self.children:
             child.pass_down(operation)
@@ -249,3 +257,22 @@ def write_old_clump_info(clump,level,f_ptr):
     fmt_dict['min_density'] =  clump.data["NumberDensity"].min()
     fmt_dict['max_density'] =  clump.data["NumberDensity"].max()
     f_ptr.write(__clump_info_template % fmt_dict)
+
+# Recipes for various clump calculations.
+recipes = {}
+
+# Distance from clump center of mass to center of mass of top level object.
+def _DistanceToMainClump(master,units='pc'):
+    masterCOM = master.data.quantities['CenterOfMass']()
+    pass_command = "self.masterCOM = [%.10f, %.10f, %.10f]" % (masterCOM[0],
+                                                               masterCOM[1],
+                                                               masterCOM[2])
+    master.pass_down(pass_command)
+    master.pass_down("self.com = self.data.quantities['CenterOfMass']()")
+
+    quantity = "((self.com[0]-self.masterCOM[0])**2 + (self.com[1]-self.masterCOM[1])**2 + (self.com[2]-self.masterCOM[2])**2)**(0.5)*self.data.pf.units['%s']" % units
+    format = "%s%s%s" % ("'Distance from center: %.6e ",units,"' % value")
+
+    master.add_info_item(quantity,format)
+
+recipes['DistanceToMainClump'] = _DistanceToMainClump
