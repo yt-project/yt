@@ -1472,7 +1472,11 @@ class ExtractedRegionBase(AMR3DData):
             # This means we're completely enclosed, except for child masks
             if x.size == ll:
                 self._indices[grid_id] = None
-            else: self._indices[grid_id] = (x, y, z)
+            else:
+                # This will slow things down a bit, but conserve memory
+                self._indices[grid_id] = \
+                    na.zeros(h.grids[grid_id].ActiveDimensions, dtype='bool')
+                self._indices[grid_id][(x,y,z)] = True
         self._grids = h.grids[self._indices.keys()]
 
     def _is_fully_enclosed(self, grid):
@@ -1487,6 +1491,7 @@ class ExtractedRegionBase(AMR3DData):
         # Yeah, if it's not true, we don't care.
         tr = self._indices.get(grid.id-grid._id_offset, self.__empty_array)
         if tr is None: tr = na.where(grid.child_mask)
+        else: tr = na.where(tr)
         return tr
 
 class InLineExtractedRegionBase(AMR3DData):
