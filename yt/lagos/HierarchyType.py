@@ -176,7 +176,10 @@ class AMRHierarchy:
         obj = self.get_data("/Objects", name)
         if obj is None:
             return
-        return cPickle.loads(obj.read())[1] # Just the object, not the pf
+        obj = cPickle.loads(obj.read())
+        if iterable(obj) and len(obj) == 2:
+            return obj[1] # Just the object, not the pf
+        return obj
 
     def get_data(self, node, name):
         """

@@ -73,6 +73,10 @@ class StaticOutput(object):
         self._set_units()
         # These can be taken out if you so desire
 
+    def __reduce__(self):
+        args = (self._hash(),)
+        return (_reconstruct_pf, args)
+
     def __repr__(self):
         return self.basename
 
@@ -487,3 +491,7 @@ class OrionStaticOutput(StaticOutput):
             self.conversion_factors["Time"] = 1.0
         for unit in mpc_conversion.keys():
             self.units[unit] = mpc_conversion[unit] / mpc_conversion["cm"]
+
+def _reconstruct_pf(*args, **kwargs):
+    pfs = ParameterFileStore()
+    pf = pfs.get_pf_hash(*args)
