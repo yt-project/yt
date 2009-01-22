@@ -535,7 +535,8 @@ class SphereCallback(PlotCallback):
 
 class HopCircleCallback(PlotCallback):
     def __init__(self, hop_output, axis, max_number=None,
-                 annotate=False, min_size=20, font_size=8, print_halo_size=False):
+                 annotate=False, min_size=20, font_size=8, print_halo_size=False,
+                 print_halo_mass=False):
         self.axis = axis
         self.hop_output = hop_output
         self.max_number = max_number
@@ -543,6 +544,7 @@ class HopCircleCallback(PlotCallback):
         self.min_size = min_size
         self.font_size = font_size
         self.print_halo_size = print_halo_size
+        self.print_halo_mass = print_halo_mass
 
     def __call__(self, plot):
         from matplotlib.patches import Circle
@@ -565,6 +567,9 @@ class HopCircleCallback(PlotCallback):
             if self.annotate:
                 if self.print_halo_size:
                     plot._axes.text(center_x, center_y, "%s" % size,
+                    fontsize=self.font_size)
+                elif self.print_halo_mass:
+                    plot._axes_text(center_x, center_y, "%s" % halo.total_mass(),
                     fontsize=self.font_size)
                 else:
                     plot._axes.text(center_x, center_y, "%s" % halo.id,
