@@ -329,7 +329,7 @@ class ParallelAnalysisInterface(object):
         deps = []
         fi = self.pf.field_info
         for field in fields:
-            deps += ensure_list(fi[field].get_dependencies().requested)
+            deps += ensure_list(fi[field].get_dependencies(pf=self.pf).requested)
         return list(set(deps))
 
     def _claim_object(self, obj):
