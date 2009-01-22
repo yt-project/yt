@@ -172,7 +172,6 @@ class Data3DBase:
         ma = self.data["Density"].max() * 0.99
         cons, contours = self.data.extract_connected_sets(
             "Density", 2, mi, ma)
-        print cons
         self.assertEqual(len(contours), 2) # number of contour levels
         self.assertEqual(len(contours[0]), 2)
         self.assertEqual(len(contours[1]), 1)

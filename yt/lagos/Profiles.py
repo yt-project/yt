@@ -56,6 +56,10 @@ class BinnedProfile(ParallelAnalysisInterface):
         self._pdata = {}
         self._lazy_reader = lazy_reader
 
+    @property
+    def hierarchy(self):
+        return self.pf.hierarchy
+
     def _get_dependencies(self, fields):
         return ParallelAnalysisInterface._get_dependencies(
                     self, fields + self._get_bin_fields())

@@ -301,8 +301,6 @@ class PlotCollection(object):
         if len(fields) > 1:
             profile.add_fields(fields[1], weight=weight, accumulation=accumulation)
         # These next two lines are painful.
-        profile.pf = self.pf
-        profile.hierarchy = self.pf.hierarchy
         if id is None: id = self._get_new_id()
         p = self._add_plot(PlotTypes.Profile1DPlot(profile, fields, id,
                                                    axes=axes, figure=figure))
@@ -353,8 +351,6 @@ class PlotCollection(object):
                                      y_bins, fields[1], y_min, y_max, y_log,
                                      lazy_reader)
         # These next two lines are painful.
-        profile.pf = self.pf
-        profile.hierarchy = self.pf.hierarchy
         if id is None: id = self._get_new_id()
         p = self._add_plot(PlotTypes.PhasePlot(profile, fields, 
                                                id, cmap=cmap,
