@@ -569,7 +569,7 @@ class HopCircleCallback(PlotCallback):
                     plot._axes.text(center_x, center_y, "%s" % size,
                     fontsize=self.font_size)
                 elif self.print_halo_mass:
-                    plot._axes_text(center_x, center_y, "%s" % halo.total_mass(),
+                    plot._axes.text(center_x, center_y, "%s" % halo.total_mass(),
                     fontsize=self.font_size)
                 else:
                     plot._axes.text(center_x, center_y, "%s" % halo.id,
