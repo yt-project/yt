@@ -216,6 +216,7 @@ class Data3DBase:
         ps = cPickle.dumps(self.data)
         pf, obj = cPickle.loads(ps)
         self.assertEqual(obj["CellMassMsun"].sum(), self.data["CellMassMsun"].sum())
+        print "TEST PICKLE"
 
 for field_name in yt.lagos.FieldInfo:
     field = yt.lagos.FieldInfo[field_name]
@@ -299,7 +300,7 @@ class TestDataCube(LagosTestingBase, unittest.TestCase):
             self.assertTrue(na.all(cube1["Density"] == cube2a["Density"]))
             self.assertTrue(na.all(cube1["Temperature"] == cube2b["Temperature"]))
     
-    def testFlushBack(self):
+    def testFlushBackToGrids(self):
         ml = self.hierarchy.max_level
         cg = self.hierarchy.covering_grid(3, [0.0]*3, [1.0]*3, [64,64,64])
         cg["Ones"] *= 2.0
@@ -307,8 +308,14 @@ class TestDataCube(LagosTestingBase, unittest.TestCase):
         for g in na.concatenate([self.hierarchy.select_grids(i) for i in range(3)]):
             self.assertEqual(g["Ones"].max(), 2.0)
             self.assertEqual(g["Ones"][g["Ones"]*g.child_mask>0].min(), 2.0)
+
+    def testFlushBackToNewCover(self):
+        ml = self.hierarchy.max_level
+        cg = self.hierarchy.covering_grid(3, [0.0]*3, [1.0]*3, [64,64,64])
+        cg["tempContours"] = cg["Ones"] * 2.0
+        cg.flush_data(field="tempContours")
         cg2 = self.hierarchy.covering_grid(3, [0.0]*3, [1.0]*3, [64,64,64])
-        self.assertTrue(na.all(cg["Ones"] == cg2["Ones"]))
+        self.assertTrue(na.all(cg["tempContours"] == cg2["tempContours"]))
 
     def testRawFlushBack(self):
         ml = self.hierarchy.max_level
@@ -330,6 +337,10 @@ class TestDataCube(LagosTestingBase, unittest.TestCase):
                      == self.hierarchy.grids[0]["Density"].max())
         self.assertTrue(cg["Density"].min() \
                      == self.hierarchy.grids[0]["Density"].min())
+
+    def testCellVolume(self):
+        cg = self.hierarchy.covering_grid(2, [0.0]*3, [1.0]*3, [64,64,64])
+        self.assertEqual(na.unique(cg["CellVolume"]).size, 1)
 
 class TestDiskDataType(Data3DBase, DataTypeTestingBase, LagosTestingBase, unittest.TestCase):
     def setUp(self):

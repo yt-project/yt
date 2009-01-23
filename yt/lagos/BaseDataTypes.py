@@ -106,7 +106,7 @@ class AMRData:
     """
     _grids = None
     _num_ghost_zones = 0
-    _con_args = []
+    _con_args = ()
 
     def __init__(self, pf, fields, **kwargs):
         """
@@ -375,7 +375,7 @@ class AMR1DData(AMRData, GridPropertiesMixin):
 class AMROrthoRayBase(AMR1DData):
     _key_fields = ['x','y','z','dx','dy','dz']
     _type_name = "ortho_ray"
-    _con_args = ['axis', 'coords']
+    _con_args = ('axis', 'coords')
     def __init__(self, axis, coords, fields=None, pf=None, **kwargs):
         """
         Dimensionality is reduced to one, and an ordered list of points at an
@@ -421,7 +421,7 @@ class AMROrthoRayBase(AMR1DData):
 
 class AMRRayBase(AMR1DData):
     _type_name = "ray"
-    _con_args = ['start_point', 'end_point']
+    _con_args = ('start_point', 'end_point')
     def __init__(self, start_point, end_point, fields=None, pf=None, **kwargs):
         """
         We accept a start point and an end point and then get all the data
@@ -473,8 +473,7 @@ class AMRRayBase(AMR1DData):
         mask = na.zeros(grid.ActiveDimensions, dtype='int')
         import RTIntegrator as RT
         RT.VoxelTraversal(mask, grid.LeftEdge, grid.RightEdge,
-                          na.array([grid.dx, grid.dy, grid.dz]),
-                          self.center, self.vec)
+                          grid.dds, self.center, self.vec)
         return mask
 
 class AMR2DData(AMRData, GridPropertiesMixin, ParallelAnalysisInterface):
@@ -617,7 +616,7 @@ class AMRSliceBase(AMR2DData):
 
     _top_node = "/Slices"
     _type_name = "slice"
-    _con_args = ['axis', 'coord']
+    _con_args = ('axis', 'coord')
     #@time_execution
     def __init__(self, axis, coord, fields = None, center=None, pf=None,
                  node_name = False, source = None, **kwargs):
@@ -706,7 +705,7 @@ class AMRSliceBase(AMR2DData):
     def _generate_grid_coords(self, grid):
         xaxis = x_dict[self.axis]
         yaxis = y_dict[self.axis]
-        ds, dx, dy = grid['dds'][self.axis], grid['dds'][xaxis], grid['dds'][yaxis]
+        ds, dx, dy = grid.dds[self.axis], grid.dds[xaxis], grid.dds[yaxis]
         wantedIndex = int(((self.coord-grid.LeftEdge[self.axis])/ds))
         sl = [slice(None), slice(None), slice(None)]
         sl[self.axis] = slice(wantedIndex, wantedIndex + 1)
@@ -733,7 +732,7 @@ class AMRSliceBase(AMR2DData):
     def _get_data_from_grid(self, grid, field):
         # So what's our index of slicing?  This is what we need to figure out
         # first, so we can deal with our data in the fastest way.
-        dx = grid['dds'][self.axis]
+        dx = grid.dds[self.axis]
         wantedIndex = int(((self.coord-grid.LeftEdge[self.axis])/dx))
         sl = [slice(None), slice(None), slice(None)]
         sl[self.axis] = slice(wantedIndex, wantedIndex + 1)
@@ -770,7 +769,7 @@ class AMRCuttingPlaneBase(AMR2DData):
     _top_node = "/CuttingPlanes"
     _key_fields = AMR2DData._key_fields + ['pz','pdz']
     _type_name = "cutting"
-    _con_args = ['normal', 'center']
+    _con_args = ('normal', 'center')
     def __init__(self, normal, center, fields = None, node_name = None,
                  **kwargs):
         """
@@ -830,16 +829,16 @@ class AMRCuttingPlaneBase(AMR2DData):
         # This is slow.  Suggestions for improvement would be great...
         ss = grid.ActiveDimensions
         D = na.ones(ss) * self._d
-        x = grid.LeftEdge[0] + grid.dx * \
+        x = grid.LeftEdge[0] + grid.dds[0] * \
                 (na.arange(grid.ActiveDimensions[0], dtype='float64')+0.5)
-        y = grid.LeftEdge[1] + grid.dy * \
+        y = grid.LeftEdge[1] + grid.dds[1] * \
                 (na.arange(grid.ActiveDimensions[1], dtype='float64')+0.5)
-        z = grid.LeftEdge[2] + grid.dz * \
+        z = grid.LeftEdge[2] + grid.dds[2] * \
                 (na.arange(grid.ActiveDimensions[2], dtype='float64')+0.5)
         D += (x * self._norm_vec[0]).reshape(ss[0],1,1)
         D += (y * self._norm_vec[1]).reshape(1,ss[1],1)
         D += (z * self._norm_vec[2]).reshape(1,1,ss[2])
-        diag_dist = na.sqrt(na.sum(grid['dds']**2.0))
+        diag_dist = na.sqrt(na.sum(grid.dds**2.0))
         cm = (na.abs(D) <= 0.5*diag_dist) # Boolean
         return cm
 
@@ -892,7 +891,7 @@ class AMRProjBase(AMR2DData):
     _top_node = "/Projections"
     _key_fields = AMR2DData._key_fields + ['weight_field']
     _type_name = "proj"
-    _con_args = ['axis', 'field', 'weight_field']
+    _con_args = ('axis', 'field', 'weight_field')
     def __init__(self, axis, field, weight_field = None,
                  max_level = None, center = None, pf = None,
                  source=None, node_name = None, field_cuts = None, **kwargs):
@@ -1027,7 +1026,7 @@ class AMRProjBase(AMR2DData):
             field_data *= convs[...,na.newaxis]
         mylog.info("Level %s done: %s final", \
                    level, coord_data.shape[1])
-        dx = grids_to_project[0]['dds'][self.axis] # this is our dl
+        dx = grids_to_project[0].dds[self.axis] # this is our dl
         return coord_data, dx, field_data
 
     def __combine_grids_on_level(self, level):
@@ -1071,7 +1070,7 @@ class AMRProjBase(AMR2DData):
                     args += self.__retval_coords[grid2.id] + [self.__retval_fields[grid2.id]]
                     args += self.__retval_coords[grid1.id] + [self.__retval_fields[grid1.id]]
                     # Refinement factor, which is same in all directions
-                    args.append(int(grid2.dx / grid1.dx)) 
+                    args.append(int(grid2['dx'] / grid1['dx'])) 
                     args.append(na.ones(args[0].shape, dtype='int64'))
                     kk = PointCombine.CombineGrids(*args)
                     goodI = args[-1].astype('bool')
@@ -1219,7 +1218,6 @@ class AMR3DData(AMRData, GridPropertiesMixin):
         self.center = center
         self.set_field_parameter("center",center)
         self.coords = None
-        self.dx = None
         self._grids = None
 
     def _generate_coords(self):
@@ -1243,7 +1241,7 @@ class AMR3DData(AMRData, GridPropertiesMixin):
     @restore_grid_state
     def _generate_grid_coords(self, grid, field=None):
         pointI = self._get_point_indices(grid)
-        dx = na.ones(pointI[0].shape[0], 'float64') * grid.dx
+        dx = na.ones(pointI[0].shape[0], 'float64') * grid.dds[0]
         tr = na.array([grid['x'][pointI].ravel(), \
                 grid['y'][pointI].ravel(), \
                 grid['z'][pointI].ravel(), \
@@ -1418,7 +1416,7 @@ class ExtractedRegionBase(AMR3DData):
     for things like selection along a baryon field.
     """
     _type_name = "extracted_region"
-    _con_args = ['_base_region', '_indices']
+    _con_args = ('_base_region', '_indices')
     def __init__(self, base_region, indices, force_refresh=True, **kwargs):
         cen = base_region.get_field_parameter("center")
         AMR3DData.__init__(self, center=cen,
@@ -1526,7 +1524,7 @@ class AMRCylinderBase(AMR3DData):
     We can define a cylinder (or disk) to act as a data object.
     """
     _type_name = "disk"
-    _con_args = ['center', '_norm_vec', '_radius', '_height']
+    _con_args = ('center', '_norm_vec', '_radius', '_height')
     def __init__(self, center, normal, radius, height, fields=None,
                  pf=None, **kwargs):
         """
@@ -1589,7 +1587,7 @@ class AMRRegionBase(AMR3DData):
     AMRRegions are rectangular prisms of data.
     """
     _type_name = "region"
-    _con_args = ['center', 'left_edge', 'right_edge']
+    _con_args = ('center', 'left_edge', 'right_edge')
     def __init__(self, center, left_edge, right_edge, fields = None,
                  pf = None, **kwargs):
         """
@@ -1628,7 +1626,7 @@ class AMRPeriodicRegionBase(AMR3DData):
     AMRRegions are rectangular prisms of data.
     """
     _type_name = "periodic_region"
-    _con_args = ['center', 'left_edge', 'right_edge']
+    _con_args = ('center', 'left_edge', 'right_edge')
     def __init__(self, center, left_edge, right_edge, fields = None,
                  pf = None, **kwargs):
         """
@@ -1713,7 +1711,7 @@ class AMRSphereBase(AMR3DData):
     A sphere of points
     """
     _type_name = "sphere"
-    _con_args = ['center', 'radius']
+    _con_args = ('center', 'radius')
     def __init__(self, center, radius, fields = None, pf = None, **kwargs):
         """
         The most famous of all the data objects, we define it via a
@@ -1761,7 +1759,7 @@ class AMRCoveringGridBase(AMR3DData):
     """
     _spatial = True
     _type_name = "covering_grid"
-    _con_args = ['level', 'left_edge', 'right_edge', 'ActiveDimensions']
+    _con_args = ('level', 'left_edge', 'right_edge', 'ActiveDimensions')
     def __init__(self, level, left_edge, right_edge, dims, fields = None,
                  pf = None, num_ghost_zones = 0, use_pbar = True, **kwargs):
         """
@@ -1774,11 +1772,12 @@ class AMRCoveringGridBase(AMR3DData):
         self.right_edge = na.array(right_edge)
         self.level = level
         self.ActiveDimensions = na.array(dims)
-        self.dx, self.dy, self.dz = (self.right_edge-self.left_edge) \
-                                  / self.ActiveDimensions
-        self.data["dx"] = self.dx
-        self.data["dy"] = self.dy
-        self.data["dz"] = self.dz
+        dds = (self.right_edge-self.left_edge) \
+              / self.ActiveDimensions
+        self.dds = dds
+        self.data["dx"] = dds[0]
+        self.data["dy"] = dds[1]
+        self.data["dz"] = dds[2]
         self._num_ghost_zones = num_ghost_zones
         self._use_pbar = use_pbar
         self._refresh_data()
@@ -1802,37 +1801,52 @@ class AMRCoveringGridBase(AMR3DData):
 
     def _refresh_data(self):
         AMR3DData._refresh_data(self)
-        self['dx'] = self.dx * na.ones(self.ActiveDimensions, dtype='float64')
-        self['dy'] = self.dy * na.ones(self.ActiveDimensions, dtype='float64')
-        self['dz'] = self.dz * na.ones(self.ActiveDimensions, dtype='float64')
+        self['dx'] = self.dds[0] * na.ones(self.ActiveDimensions, dtype='float64')
+        self['dy'] = self.dds[1] * na.ones(self.ActiveDimensions, dtype='float64')
+        self['dz'] = self.dds[2] * na.ones(self.ActiveDimensions, dtype='float64')
 
-    def get_data(self, field=None):
-        self._get_list_of_grids()
-        # We don't generate coordinates here.
-        if field == None:
-            _fields_to_get = self.fields
+    def get_data(self, fields=None):
+        if self._grids is None:
+            self._get_list_of_grids()
+        if fields is None:
+            fields = self.fields[:]
         else:
-            _fields_to_get = ensure_list(field)
-        fields_to_get = [f for f in _fields_to_get if f not in self.data]
-        if len(fields_to_get) == 0: return
-        for field in fields_to_get:
+            fields = ensure_list(fields)
+        obtain_fields = []
+        for field in fields:
+            if self.data.has_key(field): continue
+            if field not in self.hierarchy.field_list:
+                try:
+                    #print "Generating", field
+                    self._generate_field(field)
+                    continue
+                except NeedsOriginalGrid, ngt_exception:
+                    pass
+            obtain_fields.append(field)
             self[field] = na.zeros(self.ActiveDimensions, dtype='float64') -999
+        if len(obtain_fields) == 0: return
         mylog.debug("Getting fields %s from %s possible grids",
-                   fields_to_get, len(self._grids))
+                   obtain_fields, len(self._grids))
         if self._use_pbar: pbar = \
                 get_pbar('Searching grids for values ', len(self._grids))
-        field = fields_to_get[-1]
-        for i,grid in enumerate(self._grids):
+        for i, grid in enumerate(self._grids):
             if self._use_pbar: pbar.update(i)
-            self._get_data_from_grid(grid, fields_to_get)
-            if not na.any(self[field] == -999): break
+            self._get_data_from_grid(grid, obtain_fields)
+            if not na.any(self[obtain_fields[0]] == -999): break
         if self._use_pbar: pbar.finish()
-        if na.any(self[field] == -999):
+        if na.any(self[obtain_fields[0]] == -999):
             # and self.dx < self.hierarchy.grids[0].dx:
-            print "COVERING PROBLEM", na.where(self[field]==-999)[0].size
-            print na.where(self[fields_to_get[0]]==-999)
-            return
+            print "COVERING PROBLEM", na.where(self[obtain_fields[0]]==-999)[0].size
+            print na.where(self[obtain_fields[0]]==-999)
             raise KeyError
+            
+    def _generate_field(self, field):
+        if self.pf.field_info.has_key(field):
+            # First we check the validator; this might even raise!
+            self.pf.field_info[field].check_available(self)
+            self[field] = self.pf.field_info[field](self)
+        else: # Can't find the field, try as it might
+            raise exceptions.KeyError(field)
 
     def flush_data(self, field=None):
         """
@@ -1852,8 +1866,8 @@ class AMRCoveringGridBase(AMR3DData):
     @restore_grid_state
     def _get_data_from_grid(self, grid, fields):
         ll = int(grid.Level == self.level)
-        g_dx = na.array([grid.dx, grid.dy, grid.dz])
-        c_dx = na.array([self.dx, self.dy, self.dz])
+        g_dx = grid.dds.ravel()
+        c_dx = self.dds.ravel()
         g_fields = [grid[field] for field in ensure_list(fields)]
         c_fields = [self[field] for field in ensure_list(fields)]
         PointCombine.DataCubeRefine(
@@ -1863,8 +1877,8 @@ class AMRCoveringGridBase(AMR3DData):
 
     def _flush_data_to_grid(self, grid, fields):
         ll = int(grid.Level == self.level)
-        g_dx = na.array([grid.dx, grid.dy, grid.dz])
-        c_dx = na.array([self.dx, self.dy, self.dz])
+        g_dx = grid.dds.ravel()
+        c_dx = self.dds.ravel()
         g_fields = []
         for field in ensure_list(fields):
             if not grid.has_key(field): grid[field] = \
@@ -1876,6 +1890,14 @@ class AMRCoveringGridBase(AMR3DData):
             self.left_edge, self.right_edge, c_dx, c_fields,
             ll, self.pf["DomainLeftEdge"], self.pf["DomainRightEdge"])
 
+    @property
+    def LeftEdge(self):
+        return self.left_edge
+
+    @property
+    def RightEdge(self):
+        return self.right_edge
+
 class AMRSmoothedCoveringGridBase(AMRCoveringGridBase):
     _type_name = "smoothed_covering_grid"
     def __init__(self, *args, **kwargs):
@@ -1886,21 +1908,23 @@ class AMRSmoothedCoveringGridBase(AMRCoveringGridBase):
         kwargs['num_ghost_zones'] = 0
         AMRCoveringGridBase.__init__(self, *args, **kwargs)
         if na.any(self.left_edge == self.pf["DomainLeftEdge"]):
-            self.left_edge += self.dx
+            self.left_edge += self.dds
             self.ActiveDimensions -= 1
         if na.any(self.right_edge == self.pf["DomainRightEdge"]):
-            self.right_edge -= self.dx
+            self.right_edge -= self.dds
             self.ActiveDimensions -= 1
 
     def _get_list_of_grids(self):
-        if na.any(self.left_edge - self.dx < self.pf["DomainLeftEdge"]) or \
-           na.any(self.right_edge + self.dx > self.pf["DomainRightEdge"]):
+        if na.any(self.left_edge - self.dds < self.pf["DomainLeftEdge"]) or \
+           na.any(self.right_edge + self.dds > self.pf["DomainRightEdge"]):
             grids,ind = self.pf.hierarchy.get_periodic_box_grids(
-                            self.left_edge - self.dx, self.right_edge + self.dx)
+                            self.left_edge - self.dds,
+                            self.right_edge + self.dds)
             ind = slice(None)
         else:
             grids,ind = self.pf.hierarchy.get_box_grids(
-                            self.left_edge - self.dx, self.right_edge + self.dx)
+                            self.left_edge - self.dds,
+                            self.right_edge + self.dds)
         level_ind = na.where(self.pf.hierarchy.gridLevels.ravel()[ind] <= self.level)
         sort_ind = na.argsort(self.pf.h.gridLevels.ravel()[ind][level_ind])
         self._grids = self.pf.hierarchy.grids[ind][level_ind][(sort_ind,)]
@@ -1955,7 +1979,7 @@ class AMRSmoothedCoveringGridBase(AMRCoveringGridBase):
             # How do we find out the root grid base dx?
             idims = na.array([3,3,3])
             dx = na.minimum((self.right_edge-self.left_edge)/(idims-2),
-                            self.pf.h.grids[0].dx)
+                            self.pf.h.grids[0]['dx'])
             idims = na.floor((self.right_edge-self.left_edge)/dx) + 2
             for ax in 'xyz': self['cd%s'%ax] = dx[0]
             self[field] = na.zeros(idims,dtype='float64')-999
@@ -1971,7 +1995,7 @@ class AMRSmoothedCoveringGridBase(AMRCoveringGridBase):
     @restore_grid_state
     def _get_data_from_grid(self, grid, fields):
         fields = ensure_list(fields)
-        g_dx = na.array([grid.dx, grid.dy, grid.dz])
+        g_dx = grid.dds
         c_dx = na.array([self['cdx'],self['cdy'],self['cdz']])
         g_fields = [grid[field] for field in fields]
         c_fields = [self[field] for field in fields]

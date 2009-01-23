@@ -97,13 +97,13 @@ add_field('z', function=_coordZ, display_field=False,
 def _GridLevel(field, data):
     return na.ones(data["Density"].shape)*(data.Level)
 add_field("GridLevel", function=_GridLevel,
-          validators=[#ValidateProperty('Level'),
+          validators=[ValidateGridType(),
                       ValidateSpatial(0)])
 
 def _GridIndices(field, data):
     return na.ones(data["Density"].shape)*(data.id-data._id_offset)
 add_field("GridIndices", function=_GridIndices,
-          validators=[#ValidateProperty('id'),
+          validators=[ValidateGridType(),
                       ValidateSpatial(0)], take_log=False)
 
 def _OnesOverDx(field, data):
@@ -429,7 +429,8 @@ def _Contours(field, data):
     return na.ones(data["Density"].shape)*-1
 add_field("Contours", validators=[ValidateSpatial(0)], take_log=False,
           display_field=False, function=_Contours)
-add_field("tempContours", function=_Contours, validators=[ValidateSpatial(0)],
+add_field("tempContours", function=_Contours,
+          validators=[ValidateSpatial(0), ValidateGridType()],
           take_log=False, display_field=False)
 
 def obtain_velocities(data):

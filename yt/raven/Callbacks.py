@@ -254,13 +254,16 @@ class GridBoundaryCallback(PlotCallback):
         px_index = lagos.x_dict[plot.data.axis]
         py_index = lagos.y_dict[plot.data.axis]
         dom = plot.data.pf["DomainRightEdge"] - plot.data.pf["DomainLeftEdge"]
-        for px_off, py_off in na.mgrid[-1:1:3j,-1:1:3j]:
-            GLE = plot.data.gridLeftEdge + px_off * dom[px_index]
-            GRE = plot.data.gridRightEdge + py_off * dom[py_index]
-            left_edge_px = na.maximum((GLE[:,px_index]-x0)*dx, xx0)
-            left_edge_py = na.maximum((GLE[:,py_index]-y0)*dy, yy0)
-            right_edge_px = na.minimum((GRE[:,px_index]-x0)*dx, xx1)
-            right_edge_py = na.minimum((GRE[:,py_index]-y0)*dy, yy1)
+        pxs, pys = na.mgrid[-1:1:3j,-1:1:3j]
+        GLE = plot.data.gridLeftEdge
+        GRE = plot.data.gridRightEdge
+        for px_off, py_off in zip(pxs.ravel(), pys.ravel()):
+            pxo = px_off * dom[px_index]
+            pyo = py_off * dom[py_index]
+            left_edge_px = (GLE[:,px_index]+pxo-x0)*dx
+            left_edge_py = (GLE[:,py_index]+pyo-y0)*dy
+            right_edge_px = (GRE[:,px_index]+pxo-x0)*dx
+            right_edge_py = (GRE[:,py_index]+pyo-y0)*dy
             verts = na.array(
                     [(left_edge_px, left_edge_px, right_edge_px, right_edge_px),
                      (left_edge_py, right_edge_py, right_edge_py, left_edge_py)])
