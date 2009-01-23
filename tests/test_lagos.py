@@ -216,7 +216,6 @@ class Data3DBase:
         ps = cPickle.dumps(self.data)
         pf, obj = cPickle.loads(ps)
         self.assertEqual(obj["CellMassMsun"].sum(), self.data["CellMassMsun"].sum())
-        print "TEST PICKLE"
 
 for field_name in yt.lagos.FieldInfo:
     field = yt.lagos.FieldInfo[field_name]
@@ -354,6 +353,37 @@ class TestRegionDataType(Data3DBase, DataTypeTestingBase, LagosTestingBase, unit
         self.data=self.hierarchy.region(
                      [0.5,0.5,0.5],[0.0, 0.0, 0.0],
                      [1.0, 1.0, 1.0])
+    def testVolume(self):
+        vol = self.data["CellVolume"].sum() / self.data.convert("cm")**3.0
+        self.assertAlmostEqual(vol,1.0,7)
+
+class TestRegionStrictDataType(Data3DBase, DataTypeTestingBase, LagosTestingBase, unittest.TestCase):
+    def setUp(self):
+        DataTypeTestingBase.setUp(self)
+        self.data=self.hierarchy.region_strict(
+                     [0.5,0.5,0.5],[0.0, 0.0, 0.0],
+                     [1.0, 1.0, 1.0])
+    def testVolume(self):
+        vol = self.data["CellVolume"].sum() / self.data.convert("cm")**3.0
+        self.assertAlmostEqual(vol,1.0,7)
+
+class TestPeriodicRegionDataType(Data3DBase, DataTypeTestingBase, LagosTestingBase, unittest.TestCase):
+    def setUp(self):
+        DataTypeTestingBase.setUp(self)
+        self.data=self.hierarchy.periodic_region(
+                     [0.5,0.5,0.5],[0.5, 0.5, 0.5],
+                     [1.5,1.5,1.5])
+    def testVolume(self):
+        vol = self.data["CellVolume"].sum() / self.data.convert("cm")**3.0
+        self.assertAlmostEqual(vol,1.0,7)
+
+class TestPeriodicRegionStrictDataType(Data3DBase,
+            DataTypeTestingBase, LagosTestingBase, unittest.TestCase):
+    def setUp(self):
+        DataTypeTestingBase.setUp(self)
+        self.data=self.hierarchy.periodic_region_strict(
+                     [0.5,0.5,0.5],[0.5, 0.5, 0.5],
+                     [1.5,1.5,1.5])
     def testVolume(self):
         vol = self.data["CellVolume"].sum() / self.data.convert("cm")**3.0
         self.assertAlmostEqual(vol,1.0,7)

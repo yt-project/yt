@@ -197,7 +197,7 @@ class ParallelAnalysisInterface(object):
         LE[y_dict[axis]] = y[0]
         RE[y_dict[axis]] = y[1]
 
-        reg = self.hierarchy.region(self.center, LE, RE)
+        reg = self.hierarchy.region_strict(self.center, LE, RE)
         return True, reg
 
     def _partition_hierarchy_3d(self, padding=0.0):
@@ -217,9 +217,9 @@ class ParallelAnalysisInterface(object):
 
         if padding > 0:
             return True, \
-                LE, RE, self.hierarchy.periodic_region(self.center, LE-padding, RE+padding)
+                LE, RE, self.hierarchy.periodic_region_strict(self.center, LE-padding, RE+padding)
 
-        return False, LE, RE, self.hierarchy.region(self.center, LE, RE)
+        return False, LE, RE, self.hierarchy.region_strict(self.center, LE, RE)
         
     def _barrier(self):
         if not parallel_capable: return

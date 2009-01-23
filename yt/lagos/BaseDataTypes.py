@@ -83,6 +83,7 @@ class FakeGridForParticles(object):
                      'dx':grid['dx'],
                      'dy':grid['dy'],
                      'dz':grid['dz']}
+        self.dds = grid.dds.copy()
         self.real_grid = grid
         self.child_mask = 1
         self.ActiveDimensions = self.data['x'].shape
@@ -1588,6 +1589,7 @@ class AMRRegionBase(AMR3DData):
     """
     _type_name = "region"
     _con_args = ('center', 'left_edge', 'right_edge')
+    _dx_pad = 0.5
     def __init__(self, center, left_edge, right_edge, fields = None,
                  pf = None, **kwargs):
         """
@@ -1613,13 +1615,20 @@ class AMRRegionBase(AMR3DData):
         if self._is_fully_enclosed(grid):
             return True
         else:
-            cm = ( (grid['x'] - 0.5 * grid['dx'] < self.right_edge[0])
-                 & (grid['x'] + 0.5 * grid['dx'] > self.left_edge[0])
-                 & (grid['y'] - 0.5 * grid['dy'] < self.right_edge[1])
-                 & (grid['y'] + 0.5 * grid['dy'] > self.left_edge[1])
-                 & (grid['z'] - 0.5 * grid['dz'] < self.right_edge[2])
-                 & (grid['z'] + 0.5 * grid['dz'] > self.left_edge[2]) )
+            dxp, dyp, dzp = self._dx_pad * grid.dds
+            cm = ( (grid['x'] - dxp < self.right_edge[0])
+                 & (grid['x'] + dxp > self.left_edge[0])
+                 & (grid['y'] - dyp < self.right_edge[1])
+                 & (grid['y'] + dyp > self.left_edge[1])
+                 & (grid['z'] - dzp < self.right_edge[2])
+                 & (grid['z'] + dzp > self.left_edge[2]) )
         return cm
+
+class AMRRegionStrictBase(AMRRegionBase):
+    """
+    AMRRegion without any dx padding for cell selection
+    """
+    _dx_pad = 0.0
 
 class AMRPeriodicRegionBase(AMR3DData):
     """
@@ -1627,6 +1636,7 @@ class AMRPeriodicRegionBase(AMR3DData):
     """
     _type_name = "periodic_region"
     _con_args = ('center', 'left_edge', 'right_edge')
+    _dx_pad = 0.5
     def __init__(self, center, left_edge, right_edge, fields = None,
                  pf = None, **kwargs):
         """
@@ -1666,14 +1676,22 @@ class AMRPeriodicRegionBase(AMR3DData):
             return True
         else:
             cm = na.zeros(grid.ActiveDimensions,dtype='bool')
+            dxp, dyp, dzp = self._dx_pad * grid.dds
             for off_x, off_y, off_z in self.offsets:
-                cm = cm | ( (grid['x'] - grid['dx'] + off_x < self.right_edge[0])
-                          & (grid['x'] + grid['dx'] + off_x > self.left_edge[0])
-                          & (grid['y'] - grid['dy'] + off_y < self.right_edge[1])
-                          & (grid['y'] + grid['dy'] + off_y > self.left_edge[1])
-                          & (grid['z'] - grid['dz'] + off_z < self.right_edge[2])
-                          & (grid['z'] + grid['dz'] + off_z > self.left_edge[2]) )
+                cm = cm | ( (grid['x'] - dxp + off_x < self.right_edge[0])
+                          & (grid['x'] + dxp + off_x > self.left_edge[0])
+                          & (grid['y'] - dyp + off_y < self.right_edge[1])
+                          & (grid['y'] + dyp + off_y > self.left_edge[1])
+                          & (grid['z'] - dzp + off_z < self.right_edge[2])
+                          & (grid['z'] + dzp + off_z > self.left_edge[2]) )
             return cm
+
+
+class AMRPeriodicRegionStrictBase(AMRPeriodicRegionBase):
+    """
+    AMRPeriodicRegion without any dx padding for cell selection
+    """
+    _dx_pad = 0.0
 
 class AMRGridCollection(AMR3DData):
     """

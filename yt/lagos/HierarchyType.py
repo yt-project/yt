@@ -200,38 +200,33 @@ class AMRHierarchy:
             del self._data_file
             self._data_file = None
 
-    def _add_object_class(self, name, obj):
+    def _add_object_class(self, name, class_name, base, dd):
         self.object_types.append(name)
+        obj = classobj(class_name, (base,), dd)
         setattr(self, name, obj)
 
     def _setup_classes(self, dd):
         self.object_types = []
-        self._add_object_class('proj', 
-              classobj("AMRProj",(AMRProjBase,), dd))
-        self._add_object_class('slice', 
-              classobj("AMRSlice",(AMRSliceBase,), dd))
-        self._add_object_class('region', 
-              classobj("AMRRegion",(AMRRegionBase,), dd))
-        self._add_object_class('periodic_region', 
-              classobj("AMRPeriodicRegion",(AMRPeriodicRegionBase,), dd))
-        self._add_object_class('covering_grid', 
-              classobj("AMRCoveringGrid",(AMRCoveringGridBase,), dd))
-        self._add_object_class('smoothed_covering_grid', 
-              classobj("AMRSmoothedCoveringGrid",(AMRSmoothedCoveringGridBase,), dd))
-        self._add_object_class('sphere', 
-              classobj("AMRSphere",(AMRSphereBase,), dd))
-        self._add_object_class('cutting', 
-              classobj("AMRCuttingPlane",(AMRCuttingPlaneBase,), dd))
-        self._add_object_class('ray', 
-              classobj("AMRRay",(AMRRayBase,), dd))
-        self._add_object_class('ortho_ray', 
-              classobj("AMROrthoRay",(AMROrthoRayBase,), dd))
-        self._add_object_class('disk', 
-              classobj("AMRCylinder",(AMRCylinderBase,), dd))
-        self._add_object_class('grid_collection', 
-              classobj("AMRGridCollection",(AMRGridCollection,), dd))
-        self._add_object_class('extracted_region', 
-              classobj("ExtractedRegion",(ExtractedRegionBase,), dd))
+        self._add_object_class('proj', "AMRProj", AMRProjBase, dd)
+        self._add_object_class('slice', "AMRSlice", AMRSliceBase, dd)
+        self._add_object_class('region', "AMRRegion", AMRRegionBase, dd)
+        self._add_object_class('region_strict', "AMRRegionStrict",
+                        AMRRegionStrictBase, dd)
+        self._add_object_class('periodic_region', "AMRPeriodicRegion",
+                        AMRPeriodicRegionBase, dd)
+        self._add_object_class('periodic_region_strict', "AMRPeriodicRegionStrict",
+                        AMRPeriodicRegionStrictBase, dd)
+        self._add_object_class('covering_grid', "AMRCoveringGrid",
+                        AMRCoveringGridBase, dd)
+        self._add_object_class('smoothed_covering_grid', "AMRSmoothedCoveringGrid",
+                        AMRSmoothedCoveringGridBase, dd)
+        self._add_object_class('sphere', "AMRSphere", AMRSphereBase, dd)
+        self._add_object_class('cutting', "AMRCuttingPlane", AMRCuttingPlaneBase, dd)
+        self._add_object_class('ray', "AMRRay", AMRRayBase, dd)
+        self._add_object_class('ortho_ray', "AMROrthoRay", AMROrthoRayBase, dd)
+        self._add_object_class('disk', "AMRCylinder", AMRCylinderBase, dd)
+        self._add_object_class('grid_collection', "AMRGridCollection", AMRGridCollection, dd)
+        self._add_object_class('extracted_region', "ExtractedRegion", ExtractedRegionBase, dd)
         self.object_types.sort()
 
     def _deserialize_hierarchy(self, harray):
@@ -650,8 +645,7 @@ class EnzoHierarchy(AMRHierarchy):
     def _setup_classes(self):
         dd = self._get_data_reader_dict()
         AMRHierarchy._setup_classes(self, dd)
-        self._add_object_class('grid', 
-              classobj("EnzoGrid",(EnzoGridBase,), dd))
+        self._add_object_class('grid', "EnzoGrid", EnzoGridBase, dd)
         self.object_types.sort()
 
     def __guess_data_style(self, rank, testGrid, testGridID):
@@ -1352,8 +1346,7 @@ class OrionHierarchy(AMRHierarchy):
         dd = self._get_data_reader_dict()
         dd["field_indexes"] = self.field_indexes
         AMRHierarchy._setup_classes(self, dd)
-        self._add_object_class('grid', 
-              classobj("OrionGrid",(OrionGridBase,), dd))
+        self._add_object_class('grid', "OrionGrid", OrionGridBase, dd)
         self.object_types.sort()
 
     def _get_grid_children(self, grid):
