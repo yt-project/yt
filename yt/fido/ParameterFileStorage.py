@@ -72,6 +72,7 @@ class ParameterFileStore(object):
         bn = pf_dict['bn']
         fp = pf_dict['fp']
         fn = os.path.join(fp, bn)
+        mylog.info("Checking %s", fn)
         if os.path.exists(fn):
             import yt.lagos.OutputTypes as ot
             pf = ot.EnzoStaticOutput(
@@ -114,22 +115,24 @@ class ParameterFileStore(object):
         del my_shelf[key]
 
     def __init_shelf(self):
-        if not ytcfg.getboolean("yt", "StoreParameterFiles"):
-            self._shelf = defaultdict(lambda: dict(bn='',fp='',tt='',ctid=''))
-            return
         dbn = self._get_db_name()
         dbdir = os.path.dirname(dbn)
+        if not ytcfg.getboolean("yt", "StoreParameterFiles"):
+            # This ensures that even if we're not storing them in the file
+            # system, we're at least keeping track of what we load
+            self._shelf = defaultdict(lambda: dict(bn='',fp='',tt='',ctid=''))
+            return
         try:
             if not os.path.isdir(dbdir): os.mkdir(dbdir)
         except OSError:
             raise NoParameterShelf()
-        shelve.open(self._get_db_name(), 'c', protocol=-1)
+        only_on_root(shelve.open, dbn, 'c', protocol=-1)
 
     def __setitem__(self, key, val):
-        self.__store_item(key, val)
+        only_on_root(self.__store_item, key, val)
 
     def __delitem__(self, key):
-        self.__delete_item(key)
+        only_on_root(self.__delete_item, key)
 
     def keys(self):
         my_shelf = self.__read_only()
