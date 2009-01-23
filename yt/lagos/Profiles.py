@@ -158,6 +158,10 @@ class BinnedProfile(ParallelAnalysisInterface):
             data.append(source[field][pointI].ravel().astype('float64'))
         return na.concatenate(data, axis=0)
 
+    def _fix_pickle(self):
+        if isinstance(self._data_source, tuple):
+            self._data_source = self._data_source[1]
+
 # @todo: Fix accumulation with overriding
 class BinnedProfile1D(BinnedProfile):
     def __init__(self, data_source, n_bins, bin_field,

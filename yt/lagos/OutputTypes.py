@@ -495,3 +495,4 @@ class OrionStaticOutput(StaticOutput):
 def _reconstruct_pf(*args, **kwargs):
     pfs = ParameterFileStore()
     pf = pfs.get_pf_hash(*args)
+    return pf

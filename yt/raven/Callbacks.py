@@ -507,6 +507,8 @@ class SphereCallback(PlotCallback):
                  text = None, text_args = None):
         self.center = center
         self.radius = radius
+        if circle_args is None: circle_args = {}
+        if 'fill' not in circle_args: circle_args['fill'] = False
         self.circle_args = circle_args
         self.text = text
         self.text_args = text_args
@@ -524,14 +526,11 @@ class SphereCallback(PlotCallback):
         center_x = (self.center[xi] - x0)*dx
         center_y = (self.center[yi] - y0)*dy
         # origin = lower?  not sure why center_y and center_x are reversed
-        cir = Circle((center_y, center_x), radius, fill=False,
-                     **self.circle_args)
+        cir = Circle((center_x, center_y), radius, **self.circle_args)
         plot._axes.add_patch(cir)
         if self.text is not None:
             plot._axes.text(center_x, center_y, "%s" % halo.id,
                             **self.text_args)
-
-        
 
 class HopCircleCallback(PlotCallback):
     def __init__(self, hop_output, axis, max_number=None,

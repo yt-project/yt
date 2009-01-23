@@ -178,7 +178,8 @@ class AMRHierarchy:
             return
         obj = cPickle.loads(obj.read())
         if iterable(obj) and len(obj) == 2:
-            return obj[1] # Just the object, not the pf
+            obj = obj[1] # Just the object, not the pf
+        if hasattr(obj, '_fix_pickle'): obj._fix_pickle()
         return obj
 
     def get_data(self, node, name):

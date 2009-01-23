@@ -496,6 +496,19 @@ def _AngularMomentumMSUNKMSMPC(field, data):
 add_field("AngularMomentumMSUNKMSMPC", function=_AngularMomentum,
           units=r"M_{\odot}\rm{km}\rm{Mpc}/\rm{s}", vector_field=True)
 
+def _AngularMomentumX(field, data):
+    return data["CellMass"] * data["SpecificAngularMomentumX"]
+add_field("AngularMomentumX", function=_AngularMomentumX,
+         units=r"\rm{g}\/\rm{cm}^2/\rm{s}", vector_field=True)
+def _AngularMomentumY(field, data):
+    return data["CellMass"] * data["SpecificAngularMomentumY"]
+add_field("AngularMomentumY", function=_AngularMomentumY,
+         units=r"\rm{g}\/\rm{cm}^2/\rm{s}", vector_field=True)
+def _AngularMomentumZ(field, data):
+    return data["CellMass"] * data["SpecificAngularMomentumZ"]
+add_field("AngularMomentumZ", function=_AngularMomentumZ,
+         units=r"\rm{g}\/\rm{cm}^2/\rm{s}", vector_field=True)
+
 def _ParticleSpecificAngularMomentum(field, data):
     """
     Calculate the angular of a particle velocity.  Returns a vector for each
