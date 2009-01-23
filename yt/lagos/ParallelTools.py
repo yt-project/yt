@@ -122,7 +122,7 @@ def parallel_simple_proxy(func):
             self._processing = True
             retval = func(self, *args, **kwargs)
             self._processing = False
-        retval = MPI.COMM_WORLD.Bcast(retval, root=self._owner)
+        retval = MPI.COMM_WORLD.bcast(retval, root=self._owner)
         MPI.COMM_WORLD.Barrier()
         return retval
     return single_proc_results
