@@ -5,7 +5,7 @@ Author: J. S. Oishi <jsoishi@gmail.com>
 Affiliation: UC Berkeley
 Homepage: http://yt.enzotools.org/
 License:
-  Copyright (C) 2008 J. S. Oishi, Matthew Turk.  All Rights Reserved.
+  Copyright (C) 2008-2009 J. S. Oishi, Matthew Turk.  All Rights Reserved.
 
   This file is part of yt.
 

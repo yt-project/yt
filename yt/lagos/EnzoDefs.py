@@ -7,7 +7,7 @@ Homepage: http://yt.enzotools.org/
 
 @todo: Move into yt.Defs, along with enki.EnkiDefs
 License:
-  Copyright (C) 2007-2008 Matthew Turk.  All Rights Reserved.
+  Copyright (C) 2007-2009 Matthew Turk.  All Rights Reserved.
 
   This file is part of yt.
 

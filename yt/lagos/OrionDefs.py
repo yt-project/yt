@@ -7,7 +7,7 @@ Various definitions for various other modules and routines
 
 @todo: Move into yt.Defs, along with enki.EnkiDefs
 @license:
-  Copyright (C) 2008 J.S. Oishi.  All Rights Reserved.
+  Copyright (C) 2008-2009 J.S. Oishi.  All Rights Reserved.
 
   This file is part of yt.
 

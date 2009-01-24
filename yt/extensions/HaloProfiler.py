@@ -5,7 +5,7 @@ Author: Britton Smith <brittons@origins.colorado.edu>
 Affiliation: CASA/University of CO, Boulder
 Homepage: http://yt.enzotools.org/
 License:
-  Copyright (C) 2008 Britton Smith.  All Rights Reserved.
+  Copyright (C) 2008-2009 Britton Smith.  All Rights Reserved.
 
   This file is part of yt.
 

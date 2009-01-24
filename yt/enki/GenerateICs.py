@@ -11,7 +11,7 @@ be handled here, and some in yt.enki.mes.
 
 @todo: Simple inits running
 License:
-  Copyright (C) 2007-2008 Matthew Turk.  All Rights Reserved.
+  Copyright (C) 2007-2009 Matthew Turk.  All Rights Reserved.
 
   This file is part of yt.
 

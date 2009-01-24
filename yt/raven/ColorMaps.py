@@ -4,7 +4,7 @@ Affiliation:  UC Boulder, KIPAC
 Author: Matthew Turk <matthewturk@gmail.com>
 Affiliation: KIPAC/SLAC/Stanford
 License:
-  Copyright (C) 2008 Britton Smith, Matthew Turk  All Rights Reserved.
+  Copyright (C) 2008-2009 Britton Smith, Matthew Turk  All Rights Reserved.
 
   This file is part of yt.
 

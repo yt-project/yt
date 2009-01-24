@@ -1,5 +1,5 @@
 /************************************************************************
-* Copyright (C) 2007 Matthew Turk.  All Rights Reserved.
+* Copyright (C) 2007-2009 Matthew Turk.  All Rights Reserved.
 *
 * This file is part of yt.
 *

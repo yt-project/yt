@@ -9,7 +9,7 @@ Homepage: http://yt.enzotools.org/
 hierarchy file.
 @todo: Run enzo_anyl and parse the resultant data.
 License:
-  Copyright (C) 2007-2008 Matthew Turk.  All Rights Reserved.
+  Copyright (C) 2007-2009 Matthew Turk.  All Rights Reserved.
 
   This file is part of yt.
 
