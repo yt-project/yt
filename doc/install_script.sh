@@ -21,7 +21,6 @@ DEST_DIR="`pwd`/yt-`uname -p`"   # Installation location
 # and install it on its own
 #HDF5_DIR=
 
-
 INST_WXPYTHON=0 # If you 't want to install wxPython, set this to 1
 INST_ZLIB=1     # On some systems (Kraken) matplotlib has issues with 
                 # the system zlib, which is compiled statically.
@@ -58,7 +57,11 @@ function do_setup_py
 function get_enzotools
 {
     echo "Downloading $1 from yt.enzotools.org"
-    [ ! -e $1 ] && ( wget -nv "http://yt.enzotools.org/dependencies/$1" || do_exit )
+    [ -e $1 ] && return
+    wget -nv "http://yt.enzotools.org/dependencies/$1" || do_exit
+    wget -nv "http://yt.enzotools.org/dependencies/$1.md5" || do_exit
+    ( which md5sum &> /dev/null ) || return # return if we don't have md5sum
+    ( md5sum -c $1.md5 2>&1 ) 1>> ${LOG_FILE} || do_exit
 }
 
 ORIG_PWD=`pwd`
@@ -84,10 +87,9 @@ then
     [ ! -e hdf5-1.6.8.tar.gz ] && wget -nv ftp://ftp.hdfgroup.org/HDF5/current16/src/hdf5-1.6.8.tar.gz
 fi
 
-[ $INST_ZLIB -eq 1 ] && [ ! -e zlib-1.2.3.tar.bz2 ] && wget -nv http://www.zlib.net/zlib-1.2.3.tar.bz2
-[ ! -e Python-2.6.1.tgz ] && wget -nv http://python.org/ftp/python/2.6.1/Python-2.6.1.tgz
-[ $INST_WXPYTHON -eq 1 ] && [ ! -e wxPython-src-2.8.7.1.tar.bz2 ] && wget -nv http://downloads.sourceforge.net/wxpython/wxPython-src-2.8.7.1.tar.bz2
-
+[ $INST_ZLIB -eq 1 ] && get_enzotools zlib-1.2.3.tar.bz2 
+[ $INST_WXPYTHON -eq 1 ] && get_enzotools wxPython-src-2.8.7.1.tar.bz2
+get_enzotools Python-2.6.1.tgz
 get_enzotools numpy-1.2.1.tar.gz
 get_enzotools matplotlib-0.98.5.2.tar.gz
 get_enzotools ipython-0.9.1.tar.gz
