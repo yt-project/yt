@@ -186,9 +186,9 @@ def _BaryonSpinParameter(data):
     This function returns the spin parameter for the baryons, but it uses
     the particles in calculating enclosed mass.
     """
+    m_enc = data["CellMassMsun"].sum() + data["ParticleMassMsun"].sum()
     am = data["SpecificAngularMomentum"]*data["CellMassMsun"]
     j_mag = am.sum(axis=1)
-    m_enc = data["CellMassMsun"].sum() + data["ParticleMassMsun"].sum()
     e_term_pre = na.sum(data["CellMassMsun"]*data["VelocityMagnitude"]**2.0)
     weight=data["CellMassMsun"].sum()
     return j_mag, m_enc, e_term_pre, weight
@@ -201,11 +201,26 @@ def _combBaryonSpinParameter(data, j_mag, m_enc, e_term_pre, weight):
     E = na.sqrt(e_term_pre.sum()/W)
     G = 6.67e-8 # cm^3 g^-1 s^-2
     spin = J * E / (M*1.989e33*G)
-    print "WEIGHT", W, M, J, E, G, spin
     return spin
 add_quantity("BaryonSpinParameter", function=_BaryonSpinParameter,
              combine_function=_combBaryonSpinParameter, n_ret=4)
 
+def _ParticleSpinParameter(data):
+    """
+    This function returns the spin parameter for the baryons, but it uses
+    the particles in calculating enclosed mass.
+    """
+    m_enc = data["CellMassMsun"].sum() + data["ParticleMassMsun"].sum()
+    am = data["ParticleSpecificAngularMomentum"]*data["ParticleMassMsun"]
+    if am.size == 0: return (na.zeros((3,), dtype='float64'), m_enc, 0, 0)
+    j_mag = am.sum(axis=1)
+    e_term_pre = na.sum(data["ParticleMassMsun"]
+                       *data["ParticleVelocityMagnitude"]**2.0)
+    weight=data["ParticleMassMsun"].sum()
+    return j_mag, m_enc, e_term_pre, weight
+add_quantity("ParticleSpinParameter", function=_ParticleSpinParameter,
+             combine_function=_combBaryonSpinParameter, n_ret=4)
+    
 def _IsBound(data, truncate = True, include_thermal_energy = False):
     """
     This returns whether or not the object is gravitationally bound

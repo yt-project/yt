@@ -1277,6 +1277,9 @@ class AMR3DData(AMRData, GridPropertiesMixin):
         if field in self.pf.field_info and self.pf.field_info[field].particle_type:
             if grid.NumberOfParticles == 0: return na.array([])
             pointI = self._get_particle_indices(grid)
+            if self.pf.field_info[field].vector_field:
+                f = grid[field]
+                return na.array([f[i,:][pointI] for i in range(3)])
             return grid[field][pointI].ravel()
         if field in self.pf.field_info and self.pf.field_info[field].vector_field:
             pointI = self._get_point_indices(grid)

@@ -139,12 +139,23 @@ def particle_func(p_field):
         return data._read_data(p_field.replace("_"," ")).astype('float64')
     return _Particles
 for pf in ["index", "type", "mass"] + \
-          ["velocity_%s" % ax for ax in 'xyz'] + \
           ["position_%s" % ax for ax in 'xyz']:
     pfunc = particle_func("particle_%s" % (pf))
     add_field("particle_%s" % pf, function=pfunc,
               validators = [ValidateSpatial(0)],
               particle_type=True)
+def _get_vel_convert(ax):
+    def _convert_p_vel(data):
+        return data.convert("%s-velocity" % ax)
+    return _convert_p_vel
+for ax in 'xyz':
+    pf = "particle_velocity_%s" % ax
+    pfunc = particle_func(pf)
+    cfunc = _get_vel_convert(ax)
+    add_field(pf, function=pfunc, convert_function=cfunc,
+              validators = [ValidateSpatial(0)],
+              particle_type=True)
+
 for pf in ["creation_time", "dynamical_time", "metallicity_fraction"]:
     pfunc = particle_func(pf)
     add_field(pf, function=pfunc,
@@ -202,6 +213,18 @@ def _convertCourantTimeStep(data):
 add_field("CourantTimeStep", function=_CourantTimeStep,
           convert_function=_convertCourantTimeStep,
           units=r"$\rm{s}$")
+
+def _ParticleVelocityMagnitude(field, data):
+    """M{|v|}"""
+    bulk_velocity = data.get_field_parameter("bulk_velocity")
+    if bulk_velocity == None:
+        bulk_velocity = na.zeros(3)
+    return ( (data["particle_velocity_x"]-bulk_velocity[0])**2.0 + \
+             (data["particle_velocity_y"]-bulk_velocity[1])**2.0 + \
+             (data["particle_velocity_z"]-bulk_velocity[2])**2.0 )**(1.0/2.0)
+add_field("ParticleVelocityMagnitude", function=_ParticleVelocityMagnitude,
+          particle_type=True, 
+          take_log=False, units=r"\rm{cm}/\rm{s}")
 
 def _VelocityMagnitude(field, data):
     """M{|v|}"""
@@ -530,18 +553,18 @@ def _ParticleSpecificAngularMomentum(field, data):
     v_vec = na.array([xv,yv,zv], dtype='float64')
     return na.cross(r_vec, v_vec, axis=0)
 add_field("ParticleSpecificAngularMomentum",
-          function=_ParticleSpecificAngularMomentum,
+          function=_ParticleSpecificAngularMomentum, particle_type=True,
           convert_function=_convertSpecificAngularMomentum, vector_field=True,
           units=r"\rm{cm}^2/\rm{s}", validators=[ValidateParameter('center')])
 def _convertSpecificAngularMomentumKMSMPC(data):
     return data.convert("mpc")/1e5
 add_field("ParticleSpecificAngularMomentumKMSMPC",
-          function=_ParticleSpecificAngularMomentum,
+          function=_ParticleSpecificAngularMomentum, particle_type=True,
           convert_function=_convertSpecificAngularMomentumKMSMPC, vector_field=True,
           units=r"\rm{km}\rm{Mpc}/\rm{s}", validators=[ValidateParameter('center')])
 def _ParticleAngularMomentum(field, data):
     return data["ParticleMass"] * data["ParticleSpecificAngularMomentum"]
-add_field("ParticleAngularMomentum", 
+add_field("ParticleAngularMomentum",
           function=_ParticleAngularMomentum, units=r"\rm{g}\/\rm{cm}^2/\rm{s}",
           particle_type=True)
 def _ParticleAngularMomentumMSUNKMSMPC(field, data):
