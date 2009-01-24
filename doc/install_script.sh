@@ -84,7 +84,7 @@ cd ${DEST_DIR}/src
 if [ -z "$HDF5_DIR" ]
 then
     echo "Downloading HDF5"
-    [ ! -e hdf5-1.6.8.tar.gz ] && wget -nv ftp://ftp.hdfgroup.org/HDF5/current16/src/hdf5-1.6.8.tar.gz
+    get_enzotools hdf5-1.6.8.tar.gz
 fi
 
 [ $INST_ZLIB -eq 1 ] && get_enzotools zlib-1.2.3.tar.bz2 
