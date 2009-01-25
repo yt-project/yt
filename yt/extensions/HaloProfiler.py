@@ -259,6 +259,12 @@ class HaloProfiler(object):
         for field in fields:
             temp_profile[field] = []
 
+        virial = {}
+        if (len(profile[overdensity_field]) < 2):
+            for field in fields:
+                virial[field] = 0.0
+            return virial
+
         for q in range(len(profile[overdensity_field])):
             good = True
             if (profile[overdensity_field][q] != profile[overdensity_field][q]):
@@ -283,7 +289,6 @@ class HaloProfiler(object):
                     index = q - 1
                     break
 
-        virial = {}
         for field in fields:
             slope = (temp_profile[field][index+1] - temp_profile[field][index]) / \
                 (overDensity[index+1] - overDensity[index])
