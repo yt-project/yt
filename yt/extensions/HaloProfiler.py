@@ -31,6 +31,8 @@ import numpy as na
 import os
 import tables as h5
 
+PROFILE_RADIUS_THRESHOLD = 2
+
 class HaloProfiler(object):
     def __init__(self,dataset,HaloProfilerParameterFile,halos='multiple',radius=0.1):
         self.dataset = dataset
@@ -94,9 +96,14 @@ class HaloProfiler(object):
         for q,halo in enumerate(self.hopHalos):
             filename = "%s/Halo_%04d_profile.dat" % (outputDir,q)
 
+            r_min = 2*self.pf.h.get_smallest_dx() * self.pf['mpc']
+            if (halo['r_max'] / r_min < PROFILE_RADIUS_THRESHOLD):
+                mylog.error("Skipping halo with r_max / r_min = %f." % (halo['r_max']/r_min))
+                continue
+
             sphere = self.pf.h.sphere(halo['center'],halo['r_max']/self.pf.units['mpc'])
             profile = lagos.BinnedProfile1D(sphere,self.haloProfilerParameters['n_bins'],"RadiusMpc",
-                                            (4*self.pf.h.get_smallest_dx() * self.pf['mpc']),halo['r_max'],
+                                            r_min,halo['r_max'],
                                             log_space=True, lazy_reader=True)
             for field in self.profileFields.keys():
                 profile.add_fields(field,weight=self.profileFields[field][0],
@@ -259,12 +266,6 @@ class HaloProfiler(object):
         for field in fields:
             temp_profile[field] = []
 
-        virial = {}
-        if (len(profile[overdensity_field]) < 2):
-            for field in fields:
-                virial[field] = 0.0
-            return virial
-
         for q in range(len(profile[overdensity_field])):
             good = True
             if (profile[overdensity_field][q] != profile[overdensity_field][q]):
@@ -278,6 +279,13 @@ class HaloProfiler(object):
                 overDensity.append(profile[overdensity_field][q])
                 for field in fields:
                     temp_profile[field].append(profile[field][q])
+
+        virial = {}
+        if (len(overDensity) < 2):
+            mylog.error("Skipping halo with no valid points in profile.")
+            for field in fields:
+                virial[field] = 0.0
+            return virial
 
         if (overDensity[1] <= self.haloProfilerParameters['VirialOverdensity']):
             index = 0
