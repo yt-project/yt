@@ -313,15 +313,9 @@ def _DynamicalTime(field, data):
     M{sqrt(3pi/(16*G*rho))} or M{sqrt(3pi/(16G))*rho^-(1/2)}
     Note that we return in our natural units already
     """
-    return data["Density"]**(-1./2.)
-def _ConvertDynamicalTime(data):
-    G = data.pf["GravitationalConstant"]
-    t_dyn_coeff = (3*pi/(16*G))**0.5 \
-                * data.convert("Time")
-    return t_dyn_coeff
+    return (3.0*pi/(16*G*data["Density"]))**(-1./2.)
 add_field("DynamicalTime", function=_DynamicalTime,
-           units=r"\rm{s}",
-          convert_function=_ConvertDynamicalTime)
+           units=r"\rm{s}")
 
 def JeansMassMsun(field,data):
     return (MJ_constant * 
