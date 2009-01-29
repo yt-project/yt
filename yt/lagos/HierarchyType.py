@@ -914,7 +914,7 @@ class EnzoHierarchy(AMRHierarchy):
         field_list = self.get_data("/", "DataFields")
         if field_list is None:
             mylog.info("Gathering a field list (this may take a moment.)")
-            field_list = sets.Set()
+            field_list = set()
             random_sample = self._generate_random_grids()
             for grid in random_sample:
                 if not hasattr(grid, 'filename'): continue
@@ -924,7 +924,7 @@ class EnzoHierarchy(AMRHierarchy):
                     mylog.debug("Grid %s is a bit funky?", grid.id)
                     continue
                 mylog.debug("Grid %s has: %s", grid.id, gf)
-                field_list = field_list.union(sets.Set(gf))
+                field_list = field_list.union(gf)
             field_list = self._join_field_lists(field_list)
             self.save_data(list(field_list),"/","DataFields")
         self.field_list = list(field_list)

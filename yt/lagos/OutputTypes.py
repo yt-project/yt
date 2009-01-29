@@ -81,10 +81,10 @@ class StaticOutput(object):
         return self.basename
 
     def _hash(self):
-        import md5
+        import hashlib
         s = "%s;%s;%s" % (self.basename,
             self["InitialTime"], self["CurrentTimeIdentifier"])
-        return md5.md5(s).hexdigest()
+        return hashlib.md5(s).hexdigest()
 
 
     def __getitem__(self, key):

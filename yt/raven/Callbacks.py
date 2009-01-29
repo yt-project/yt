@@ -505,6 +505,24 @@ class PointAnnotateCallback(PlotCallback):
         x,y = self.convert_to_pixels(plot, self.pos)
         plot._axes.text(x, y, self.text, **self.text_args)
 
+class MarkerAnnotateCallback(PlotCallback):
+    def __init__(self, pos, marker='x', plot_args=None):
+        self.pos = pos
+        self.marker = marker
+        if plot_args is None: plot_args = {}
+        self.plot_args = plot_args
+
+    def __call__(self, plot):
+        if len(self.pos) == 3:
+            pos = (self.pos[lagos.x_dict[plot.data.axis]],
+                   self.pos[lagos.y_dict[plot.data.axis]])
+        else: pos = self.pos
+        x,y = self.convert_to_pixels(plot, pos)
+        print x, y
+        plot._axes.hold(True)
+        plot._axes.plot((x,),(y,),self.marker, **self.plot_args)
+        plot._axes.hold(False)
+
 class SphereCallback(PlotCallback):
     def __init__(self, center, radius, circle_args = None,
                  text = None, text_args = None):

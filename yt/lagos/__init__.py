@@ -49,7 +49,7 @@ from string import strip, rstrip
 from math import ceil, floor, log10, pi
 import os, os.path, types, exceptions, re
 from stat import ST_CTIME
-import sets, shelve
+import shelve
 
 import time
 

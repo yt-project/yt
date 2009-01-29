@@ -162,7 +162,7 @@ def check_args(func):
             pfs = ["%s%04i" % (opts.basename, r)
                    for r in range(int(args[0]), int(args[1]), opts.skip) ]
         else: pfs = args
-        for arg in args:
+        for arg in pfs:
             func(self, subcmd, opts, arg)
     return arg_iterate
 
@@ -181,7 +181,7 @@ class YTCommands(cmdln.Cmdln):
         """
         self.cmdloop()
 
-    @add_cmd_options(['outputfn','bn','thresh','dm_only'])
+    @add_cmd_options(['outputfn','bn','thresh','dm_only','skip'])
     @check_args
     def do_hop(self, subcmd, opts, arg):
         """
