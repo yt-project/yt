@@ -313,7 +313,7 @@ def _DynamicalTime(field, data):
     M{sqrt(3pi/(16*G*rho))} or M{sqrt(3pi/(16G))*rho^-(1/2)}
     Note that we return in our natural units already
     """
-    return (3.0*pi/(16*G*data["Density"]))**(-1./2.)
+    return (3.0*pi/(16*G*data["Density"]))**(1./2.)
 add_field("DynamicalTime", function=_DynamicalTime,
            units=r"\rm{s}")
 
