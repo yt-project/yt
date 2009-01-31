@@ -486,3 +486,44 @@ class PlotCollectionInteractive(PlotCollection):
             self.pylab.figure(pylab._fig_num)
             self.pylab.clf()
         PlotCollection.clear_data(self)
+
+def get_multi_plot(nx, ny, colorbar = 'vertical', bw = 4):
+    """
+    This returns *nx* and *ny* axes on a single figure, set up so that the
+    *colorbar* can be placed either vertically or horizontally in a bonus
+    column or row, respectively.  The axes all have base width of *bw* inches.
+    """
+    hf, wf = 1.0/ny, 1.0/nx
+    if colorbar.lower() == 'vertical':
+        fudge_x = nx/(0.25+nx)
+        fudge_y = 1.0
+    elif colorbar.lower() == 'horizontal':
+        fudge_x = 1.0
+        fudge_y = ny/(0.40+ny)
+    fig = matplotlib.figure.Figure((bw*nx/fudge_x, bw*ny/fudge_y))
+    fig.set_canvas(be.engineVals["canvas"](fig))
+    fig.subplots_adjust(wspace=0.0, hspace=0.0,
+                        top=1.0, bottom=0.0,
+                        left=0.0, right=1.0)
+    tr = []
+    print fudge_x, fudge_y
+    for i in range(nx):
+        tr.append([])
+        for j in range(ny):
+            left = i*wf*fudge_x
+            bottom = fudge_y*(1.0-(j+1)*hf) + (1.0-fudge_y)
+            ax = fig.add_axes([left, bottom, wf*fudge_x, hf*fudge_y])
+            tr[-1].append(ax)
+    cbars = []
+    if colorbar.lower() == 'horizontal':
+        for i in range(nx):
+            ax = fig.add_axes([wf*(i+0.10)*fudge_x, hf*fudge_y*0.10,
+                               wf*(1-0.20)*fudge_x, hf*fudge_y*0.10])
+            cbars.append(ax)
+    elif colorbar.lower() == 'vertical':
+        for j in range(nx):
+            ax = fig.add_axes([wf*(nx+0.05)*fudge_x, hf*fudge_y*(ny-(j+0.95)),
+                               wf*fudge_x*0.05, hf*fudge_y*0.90])
+            ax.clear()
+            cbars.append(ax)
+    return fig, tr, cbars
