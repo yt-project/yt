@@ -94,6 +94,7 @@ class CameraPosition(HasTraits):
     view_up = CArray(shape=(3,), dtype='float64')
     clipping_range = CArray(shape=(2,), dtype='float64')
     distance = Float
+    orientation_wxyz = CArray(shape=(4,), dtype='float64')
 
 
 class CameraControl(HasTraits):
@@ -117,8 +118,7 @@ class CameraControl(HasTraits):
         columns = [ ObjectColumn(name='position'),
                     ObjectColumn(name='focal_point'),
                     ObjectColumn(name='view_up'),
-                    ObjectColumn(name='clipping_range'),
-                    ObjectColumn(name='distance'), ],
+                    ObjectColumn(name='clipping_range') ],
         reorderable=True, deletable=True,
         sortable=True, sort_model=True,
         show_toolbar=True,
@@ -153,7 +153,6 @@ class CameraControl(HasTraits):
         cam.position = new.position
         cam.focal_point = new.focal_point
         cam.view_up = new.view_up
-        cam.distance = new.distance
         cam.clipping_range = new.clipping_range
         self.scene.render()
 
@@ -166,8 +165,9 @@ class CameraControl(HasTraits):
                 position=cam.position,
                 focal_point=cam.focal_point,
                 view_up=cam.view_up,
+                clipping_range=cam.clipping_range,
                 distance=cam.distance,
-                clipping_range=cam.clipping_range))
+                orientation_wxyz=cam.orientation_wxyz))
 
     def _save_path_fired(self): 
         dlg = pyface.FileDialog(
@@ -191,13 +191,14 @@ class CameraControl(HasTraits):
         
         to_dump = dict(positions=[], focal_points=[],
                        view_ups=[], clipping_ranges=[],
-                       distances=[])
+                       distances=[], orientation_wxyzs=[])
         for p in self.positions:
             to_dump['positions'].append(p.position)
             to_dump['focal_points'].append(p.focal_point)
             to_dump['view_ups'].append(p.view_up)
             to_dump['clipping_ranges'].append(p.clipping_range)
             to_dump['distances'].append(p.distance)
+            to_dump['orientation_wxyzs'].append(p.orientation_wxyz)
         pickle.dump(to_dump, open(fn, "wb"))
 
     def load_camera_path(self, fn):
@@ -237,8 +238,6 @@ class CameraControl(HasTraits):
                                                pos2.focal_point, p, r)
                 cam.view_up = _interpolate(pos1.view_up,
                                            pos2.view_up, p, r)
-                cam.distance = _interpolate(pos1.distance,
-                                            pos2.distance, p, r)
                 cam.clipping_range = _interpolate(pos1.clipping_range, 
                                                   pos2.clipping_range, p, r)
                 self.scene.render()
@@ -450,7 +449,7 @@ if __name__=="__main__":
     print
     print "If you have 'em, give it a try!"
     print
-    #sys.exit()
+    sys.exit()
     import yt.lagos as lagos
 
     gui = pyface.GUI()
