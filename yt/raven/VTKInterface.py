@@ -28,11 +28,15 @@ License:
 from enthought.tvtk.tools import ivtk
 from enthought.tvtk.api import tvtk 
 from enthought.traits.api import Float, HasTraits, Instance, Range, Any, \
-                                 Delegate, Tuple, File, Int, Str, CArray
+                                 Delegate, Tuple, File, Int, Str, CArray, \
+                                 List, Button
+from enthought.traits.ui.api import View, Item
+from enthought.traits.ui.menu import Action
 
 #from yt.reason import *
 import sys
 import numpy as na
+import time
 import yt.lagos as lagos
 from yt.funcs import *
 from yt.logger import ravenLogger as mylog
@@ -81,15 +85,77 @@ class MappingMarchingCubes(TVTKMapperWidget):
         self.cubes.set_value(0, new)
         self.post_call()
 
-class YTVTKScene(object):
+class CameraPath(HasTraits):
+    positions = List(CArray(shape=(3,), dtype='float64'))
+    focal_points = List(CArray(shape=(3,), dtype='float64'))
+    view_ups = List(CArray(shape=(3,), dtype='float64'))
+    clippings = List(CArray(shape=(2,), dtype='float64'))
+    distances = List(Float)
+    scene = Any
+    snapshot = Button()
+    play = Button()
+    reset_path = Button()
+
+    default_view = View(Item('snapshot', show_label=False),
+                        Item('play', show_label=False),
+                        Item('reset_path', show_label=False))
+
+    def take_snapshot(self):
+        cam = self.scene.camera
+        self.positions.append(cam.position)
+        self.focal_points.append(cam.focal_point)
+        self.view_ups.append(cam.view_up)
+        self.distances.append(cam.distance)
+        self.clippings.append(cam.clipping_range)
+
+    def _snapshot_fired(self):
+        self.take_snapshot()
+
+    def _play_fired(self):
+        self.step_through()
+
+    def _reset_path_fired(self):
+        self.positions = []
+        self.focal_points = []
+        self.view_ups = []
+        self.clippings = []
+        self.distances = []
+
+    def step_through(self, interval=0.1, sub_steps=10):
+        cam = self.scene.camera
+        r = sub_steps
+        for i in range(len(self.positions)-1):
+            for p in range(sub_steps):
+                cam.position = _interpolate(self.positions, i, p, r)
+                cam.focal_point = _interpolate(self.focal_points, i, p, r)
+                cam.view_up = _interpolate(self.view_ups, i, p, r)
+                cam.distance = _interpolate(self.distances, i, p, r)
+                cam.clipping_range = \
+                    _interpolate(self.clippings, i, p, r)
+                self.scene.render()
+                time.sleep(interval)
+
+def _interpolate(q, i, p, r):
+    return q[i] + p*(q[i+1] - q[i])/float(r)
+        
+
+class YTVTKScene(HasTraits):
     _grid_boundaries_shown = False
     _grid_boundaries_actor = None
 
+    camera_path = Instance(CameraPath)
+
+    window = Instance(ivtk.IVTKWithCrustAndBrowser)
+
+    def _window_default(self):
+        return ivtk.IVTKWithCrustAndBrowser(size=(800,600), stereo=1)
+
+    def _camera_path_default(self):
+        return CameraPath(scene=self.scene)
+
     def __init__(self):
-        window = ivtk.IVTKWithCrustAndBrowser(size=(800,600), stereo=1)
-        window.open()
-        self.window = window
-        self.scene = window.scene
+        self.window.open()
+        self.scene = self.window.scene
 
 class YTScene(HasTraits):
 
