@@ -34,10 +34,12 @@ from enthought.traits.ui.api import View, Item, HGroup, VGroup, TableEditor
 from enthought.traits.ui.menu import Action
 from enthought.traits.ui.table_column import ObjectColumn
 
+import enthought.pyface.api as pyface
+
 #from yt.reason import *
 import sys
 import numpy as na
-import time
+import time, pickle, os, os.path
 import yt.lagos as lagos
 from yt.funcs import *
 from yt.logger import ravenLogger as mylog
@@ -90,19 +92,9 @@ class CameraPosition(HasTraits):
     position = CArray(shape=(3,), dtype='float64')
     focal_point = CArray(shape=(3,), dtype='float64')
     view_up = CArray(shape=(3,), dtype='float64')
-    clipping = CArray(shape=(2,), dtype='float64')
+    clipping_range = CArray(shape=(2,), dtype='float64')
     distance = Float
 
-table_def = TableEditor(
-    columns = [ ObjectColumn(name='position'),
-                ObjectColumn(name='focal_point'),
-                ObjectColumn(name='view_up'),
-                ObjectColumn(name='clipping'),
-                ObjectColumn(name='distance'), ],
-    reorderable=True, deletable=True,
-    sortable=True, sort_model=True,
-    show_toolbar=True,
-            )
 
 class CameraControl(HasTraits):
     # Traits
@@ -110,13 +102,29 @@ class CameraControl(HasTraits):
     yt_scene = Instance('YTScene')
     center = Delegate('yt_scene')
     scene = Delegate('yt_scene')
-    camera = Any
+    camera = Instance(tvtk.OpenGLCamera)
+    reset_position = Instance(CameraPosition)
 
     # UI elements
     snapshot = Button()
     play = Button()
     reset_path = Button()
     recenter = Button()
+    save_path = Button()
+    load_path = Button()
+
+    table_def = TableEditor(
+        columns = [ ObjectColumn(name='position'),
+                    ObjectColumn(name='focal_point'),
+                    ObjectColumn(name='view_up'),
+                    ObjectColumn(name='clipping_range'),
+                    ObjectColumn(name='distance'), ],
+        reorderable=True, deletable=True,
+        sortable=True, sort_model=True,
+        show_toolbar=True,
+        selection_mode='row',
+        selected = 'reset_position'
+                )
 
     default_view = View(
                 VGroup(
@@ -128,6 +136,8 @@ class CameraControl(HasTraits):
                     Item('snapshot', show_label=False),
                     Item('play', show_label=False),
                     Item('reset_path', show_label=False),
+                    Item('save_path', show_label=False),
+                    Item('load_path', show_label=False),
                     label='Playback'),
                   VGroup(
                     Item('positions', show_label=False,
@@ -137,6 +147,19 @@ class CameraControl(HasTraits):
                 resizable=True,
                        )
 
+    def _reset_position_changed(self, old, new):
+        if new is None: return
+        cam = self.scene.camera
+        cam.position = new.position
+        cam.focal_point = new.focal_point
+        cam.view_up = new.view_up
+        cam.distance = new.distance
+        cam.clipping_range = new.clipping_range
+        self.scene.render()
+
+    def __init__(self, **traits):
+        HasTraits.__init__(self, **traits)
+
     def take_snapshot(self):
         cam = self.scene.camera
         self.positions.append(CameraPosition(
@@ -144,7 +167,49 @@ class CameraControl(HasTraits):
                 focal_point=cam.focal_point,
                 view_up=cam.view_up,
                 distance=cam.distance,
-                clipping=cam.clipping_range))
+                clipping_range=cam.clipping_range))
+
+    def _save_path_fired(self): 
+        dlg = pyface.FileDialog(
+            action='save as',
+            wildcard="*.cpath",
+        )
+        if dlg.open() == pyface.OK:
+            print "Saving:", dlg.path
+            self.dump_camera_path(dlg.path)
+
+    def _load_path_fired(self):
+        dlg = pyface.FileDialog(
+            action='open',
+            wildcard="*.cpath",
+        )
+        if dlg.open() == pyface.OK:
+            print "Loading:", dlg.path
+            self.load_camera_path(dlg.path)
+
+    def dump_camera_path(self, fn):
+        
+        to_dump = dict(positions=[], focal_points=[],
+                       view_ups=[], clipping_ranges=[],
+                       distances=[])
+        for p in self.positions:
+            to_dump['positions'].append(p.position)
+            to_dump['focal_points'].append(p.focal_point)
+            to_dump['view_ups'].append(p.view_up)
+            to_dump['clipping_ranges'].append(p.clipping_range)
+            to_dump['distances'].append(p.distance)
+        pickle.dump(to_dump, open(fn, "wb"))
+
+    def load_camera_path(self, fn):
+        to_use = pickle.load(open(fn, "rb"))
+        self.positions = []
+        for i in range(len(to_use['positions'])):
+            dd = {}
+            for kw in to_use:
+                # Strip the s
+                dd[kw[:-1]] = to_use[kw][i]
+            self.positions.append(
+                CameraPosition(**dd))
 
     def _recenter_fired(self):
         self.camera.focal_point = self.center
@@ -174,8 +239,8 @@ class CameraControl(HasTraits):
                                            pos2.view_up, p, r)
                 cam.distance = _interpolate(pos1.distance,
                                             pos2.distance, p, r)
-                cam.clipping_range = _interpolate(pos1.clipping, 
-                                                  pos2.clipping, p, r)
+                cam.clipping_range = _interpolate(pos1.clipping_range, 
+                                                  pos2.clipping_range, p, r)
                 self.scene.render()
                 time.sleep(interval)
 
@@ -242,6 +307,7 @@ class YTScene(HasTraits):
         self.toggle_grid_boundaries()
         self.cubs = self.add_contour()
         self.cubs.edit_traits()
+        self.camera_path.edit_traits()
         self.scene.camera.focal_point = self.center
         self.scene.render()
 
@@ -387,8 +453,7 @@ if __name__=="__main__":
     #sys.exit()
     import yt.lagos as lagos
 
-    from enthought.pyface.api import GUI
-    gui = GUI()
+    gui = pyface.GUI()
     ehds = YTScene()
-    ehds.configure_traits()
+    ehds.edit_traits()
     gui.start_event_loop()
