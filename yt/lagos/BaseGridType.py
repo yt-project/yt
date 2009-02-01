@@ -358,6 +358,19 @@ class AMRGridPatch(AMRData):
             cube = self.hierarchy.covering_grid(*args, **kwargs)
         return cube
 
+    def get_vertex_centered_data(self, field):
+        cg = self.retrieve_ghost_zones(1, field, smoothed=True)
+        # Bounds should be cell-centered
+        bds = na.array(zip(cg.left_edge+cg.dds/2.0, cg.right_edge-cg.dds/2.0)).ravel()
+        interp = TrilinearFieldInterpolator(na.log10(cg[field]), bds, ['x','y','z'])
+        ad = self.ActiveDimensions + 1
+        x,y,z = na.mgrid[self.LeftEdge[0]:self.RightEdge[0]:ad[0]*1j,
+                         self.LeftEdge[1]:self.RightEdge[1]:ad[1]*1j,
+                         self.LeftEdge[2]:self.RightEdge[2]:ad[2]*1j]
+        dd = {'x':x,'y':y,'z':z}
+        scalars = 10**interp(dict(x=x,y=y,z=z))
+        return scalars
+
     def _save_data_state(self):
         self.__current_data_keys = self.data.keys()
         if self.__child_mask != None:

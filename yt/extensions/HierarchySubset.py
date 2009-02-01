@@ -33,19 +33,18 @@ class DummyHierarchy(object):
     pass
 
 class ConstructedRootGrid(object):
-    def __init__(self, pf, level):
+    id = -1
+    def __init__(self, pf, level, left_edge, right_edge):
         self.pf = pf
         self.hierarchy = DummyHierarchy()
         self.hierarchy.data_style = -1
         self.Level = level
-        self.LeftEdge = na.min([grid.LeftEdge for grid in
-                            pf.h.select_grids(level)], axis=0).astype('float64')
-        self.RightEdge = na.max([grid.RightEdge for grid in
-                             pf.h.select_grids(level)], axis=0).astype('float64')
+        self.LeftEdge = left_edge
+        self.RightEdge = right_edge
         self.index = na.min([grid.get_global_startindex() for grid in
                              pf.h.select_grids(level)], axis=0).astype('int64')
-        self.dx = pf.h.select_grids(level)[0].dx
-        dims = (self.RightEdge-self.LeftEdge)/self.dx
+        self.dds = pf.h.select_grids(level)[0].dds.copy()
+        dims = (self.RightEdge-self.LeftEdge)/self.dds
         self.ActiveDimensions = dims
         self.cg = pf.h.smoothed_covering_grid(level, self.LeftEdge,
                         self.RightEdge, dims=dims)
@@ -56,6 +55,22 @@ class ConstructedRootGrid(object):
     def get_global_startindex(self):
         return self.index
 
+    def get_vertex_centered_data(self, field):
+        cg = self.pf.h.smoothed_covering_grid(self.Level,
+                    self.LeftEdge - self.dds,
+                    self.RightEdge + self.dds,
+                    dims = self.ActiveDimensions + 2,
+                    num_ghost_zones = 1, fields=[field])
+        bds = na.array(zip(cg.left_edge+cg.dds/2.0, cg.right_edge-cg.dds/2.0)).ravel()
+        interp = lagos.TrilinearFieldInterpolator(cg[field], bds, ['x','y','z'])
+        ad = self.ActiveDimensions + 1
+        x,y,z = na.mgrid[self.LeftEdge[0]:self.RightEdge[0]:ad[0]*1j,
+                         self.LeftEdge[1]:self.RightEdge[1]:ad[1]*1j,
+                         self.LeftEdge[2]:self.RightEdge[2]:ad[2]*1j]
+        dd = {'x':x,'y':y,'z':z}
+        scalars = interp(dd)
+        return scalars
+        
 class ExtractedHierarchy(object):
 
     def __init__(self, pf, min_level, max_level = -1, offset = None,
@@ -65,14 +80,29 @@ class ExtractedHierarchy(object):
         self.min_level = min_level
         self.int_offset = na.min([grid.get_global_startindex() for grid in
                              pf.h.select_grids(min_level)], axis=0).astype('float64')
-        if offset is None:
-            self.left_edge_offset = na.min([grid.LeftEdge for grid in
-                                       pf.h.select_grids(min_level)], axis=0).astype('float64')
-        else:
-            self.left_edge_offset = offset
+        min_left = na.min([grid.LeftEdge for grid in
+                           pf.h.select_grids(min_level)], axis=0).astype('float64')
+        self.right_edge_offset = na.max([grid.RightEdge for grid in 
+                                   pf.h.select_grids(min_level)], axis=0).astype('float64')
+        if offset is None: offset = (self.right_edge_offset + min_left)/2.0
+        self.left_edge_offset = offset
         self.mult_factor = 2**min_level
         if max_level == -1: max_level = pf.h.max_level
         self.max_level = min(max_level, pf.h.max_level)
+        self.final_level = self.max_level - self.min_level
+        if len(self.pf.h.select_grids(self.min_level)) > 0:
+            self._base_grid = ConstructedRootGrid(self.pf, self.min_level,
+                               min_left, self.right_edge_offset)
+        else: self._base_grid = None
+        
+    def select_level(self, level):
+        if level == 0 and self._base_grid is not None:
+            return [self._base_grid]
+        return self.pf.h.select_grids(self.min_level + level)
+
+    def get_levels(self):
+        for level in range(self.final_level+1):
+            yield self.select_level(level)
 
     def export_output(self, afile, n, field):
         # I prefer dict access, but tables doesn't.
@@ -80,39 +110,38 @@ class ExtractedHierarchy(object):
         time_node._v_attrs.time = self.pf["InitialTime"]
         time_node._v_attrs.numLevels = self.pf.h.max_level+1-self.min_level
         # Can take a while, so let's get a progressbar
-        if len(self.pf.h.select_grids(self.min_level)) > 0:
-            grids = [ConstructedRootGrid(self.pf, self.min_level)]
-            self.export_level(afile, time_node, self.min_level, field, grids)
-            self._export_levels(afile, time_node, field, 
-                        self.min_level+1, self.max_level)
-        else:
-            self._export_levels(afile, time_node, field, 
-                        self.min_level, self.max_level)
+        self._export_all_levels(afile, time_node, field)
 
-    def _export_levels(self, afile, time_node, field, min_level, max_level):
-        pbar = yt.funcs.get_pbar("Exporting levels", max_level+1-min_level)
-        for level in range(min_level, max_level+1):
-            pbar.update(level-self.min_level)
-            self.export_level(afile, time_node, level, field)
+    def _export_all_levels(self, afile, time_node, field):
+        pbar = yt.funcs.get_pbar("Exporting levels", self.final_level+1)
+        for i,grid_set in enumerate(self.get_levels()):
+            pbar.update(i)
+            self.export_level(afile, time_node, i, field, grid_set)
         pbar.finish()
 
     def export_level(self, afile, time_node, level, field, grids = None):
-        level_node = afile.createGroup(time_node, "level-%s" % \
-                                       (level-self.min_level))
+        level_node = afile.createGroup(time_node, "level-%s" % level)
         # Grid objects on this level...
-        if grids is None: grids = self.pf.h.select_grids(level)
-        level_node._v_attrs.delta = na.array([grids[0].dx]*3,
-                                        dtype='float64')*self.mult_factor
+        if grids is None: grids = self.pf.h.select_grids(level+self.min_level)
+        level_node._v_attrs.delta = grids[0].dds*self.mult_factor
         level_node._v_attrs.relativeRefinementFactor = na.array([2]*3, dtype='int32')
         level_node._v_attrs.numGrids = len(grids)
         for i,g in enumerate(grids):
             self.export_grid(afile, level_node, g, i, field)
 
+    def _convert_grid(self, grid):
+        int_origin = (grid.get_global_startindex() \
+                    - self.int_offset*2**(grid.Level-self.min_level)).astype('int64')
+        level_int_origin = (grid.LeftEdge - self.left_edge_offset)/grid.dds
+        origin = self._convert_coords(grid.LeftEdge)
+        dds = grid.dds * self.mult_factor
+        return int_origin, level_int_origin, origin, dds
+
     def export_grid(self, afile, level_node, grid, i, field):
         grid_node = afile.createGroup(level_node, "grid-%s" % i)
-        grid_node._v_attrs.integerOrigin = (grid.get_global_startindex() \
-                                         - self.int_offset*2**(grid.Level-self.min_level)).astype('int64')
-        grid_node._v_attrs.origin = (grid.LeftEdge - self.left_edge_offset)*self.mult_factor
+        int_origin, lint, origin, dds = self._convert_grid(grid)
+        grid_node._v_attrs.integerOrigin = int_origin
+        grid_node._v_attrs.origin = origin
         grid_node._v_attrs.ghostzoneFlags = na.zeros(6, dtype='int32')
         grid_node._v_attrs.numGhostzones = na.zeros(3, dtype='int32')
         grid_node._v_attrs.dims = grid.ActiveDimensions[::-1].astype('int32')
@@ -120,7 +149,7 @@ class ExtractedHierarchy(object):
            and field in self.pf.h.field_list:
             if grid.hierarchy.data_style == -1: # constructed grid
                 # if we can get conversion in amira we won't need to do this
-                ff = grid[field]
+                ff = grid[field].astype('float32')
                 ff /= self.pf.conversion_factors.get(field, 1.0)
                 afile.createArray(grid_node, "grid-data", ff.swapaxes(0,2))
             else:
@@ -134,6 +163,9 @@ class ExtractedHierarchy(object):
         else:
             # Export our array
             afile.createArray(grid_node, "grid-data", grid[field].swapaxes(0,2))
+
+    def _convert_coords(self, val):
+        return (val - self.left_edge_offset)*self.mult_factor
 
 def __get_pf(bn, n):
     bn_try = "%s%04i" % (bn, n)

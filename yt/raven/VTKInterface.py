@@ -35,18 +35,13 @@ import sys
 import numpy as na
 import yt.lagos as lagos
 from yt.funcs import *
+from yt.logger import ravenLogger as mylog
+from yt.extensions.HierarchySubset import ExtractedHierarchy
 
 from enthought.tvtk.pyface.ui.wx.wxVTKRenderWindowInteractor \
      import wxVTKRenderWindowInteractor
 
-wxVTKRenderWindowInteractor.USE_STEREO = 1
-
-class IVTKScene(object):
-    def __init__(self):
-        window = ivtk.IVTKWithCrustAndBrowser(size=(800,600), stereo=True)
-        window.open()
-        self.window = window
-        self.scene = window.scene
+#wxVTKRenderWindowInteractor.USE_STEREO = 1
 
 class TVTKMapperWidget(HasTraits):
     lookup_table = Instance(tvtk.LookupTable)
@@ -74,6 +69,7 @@ class MappingPlane(TVTKMapperWidget):
 
 class MappingMarchingCubes(TVTKMapperWidget):
     cubes = Instance(tvtk.MarchingCubes)
+    mapper = Instance(tvtk.HierarchicalPolyDataMapper)
 
     def __init__(self, vmin, vmax, vdefault, **traits):
         HasTraits.__init__(self, **traits)
@@ -85,103 +81,89 @@ class MappingMarchingCubes(TVTKMapperWidget):
         self.cubes.set_value(0, new)
         self.post_call()
 
-
-class ExtractedVTKHierarchicalDataSet(HasTraits):
-
-    parameter_fn = File(filter=["*.hierarchy"])
-    base_grid_level = Int(22)
-    field = Str("Density")
-    scene_frame = Instance(IVTKScene)
-    center = CArray(shape = (3,), dtype = 'float64')
-    
-    
-    _gid = 0 # AMRBoxes require unique ids
+class YTVTKScene(object):
     _grid_boundaries_shown = False
     _grid_boundaries_actor = None
 
-    def _scene_frame_default(self):
-        return IVTKScene()
+    def __init__(self):
+        window = ivtk.IVTKWithCrustAndBrowser(size=(800,600), stereo=1)
+        window.open()
+        self.window = window
+        self.scene = window.scene
 
+class YTScene(HasTraits):
+
+    parameter_fn = File(filter=["*.hierarchy"])
+    min_grid_level = Int(0)
+    max_grid_level = Int(-1)
+    field = Str("Density")
+    scene_frame = Instance(YTVTKScene)
+    center = CArray(shape = (3,), dtype = 'float64')
+    _grid_boundaries_actor = None
+    
     def _center_default(self):
         return [0.5,0.5,0.5]
 
-    def _parameter_fn_changed(self, 
-                 scene_frame = None, center = None):
-        pf = lagos.EnzoStaticOutput(self.parameter_fn[:-10])
-        base_grid = pf.h.select_grids(self.base_grid_level).tolist()
-        center = pf.h.find_max("Density")[1]
+    def _scene_frame_default(self):
+        return YTVTKScene()
+
+    def _parameter_fn_changed(self, scene_frame = None, center = None):
+        self.pf = lagos.EnzoStaticOutput(self.parameter_fn[:-10])
         self.scene = self.scene_frame.scene
+        self.extracted_hierarchy = ExtractedHierarchy(
+                        self.pf, self.min_grid_level, self.max_grid_level,
+                        offset=None)
         self._take_log = True
         self._grids = []
-        self._vtk_objs = []
         self._ugs = []
-        self._xs = []
-        self._ys = []
-        self._zs = []
-        self._vals = []
+        self._vtk_objs = []
         self.operators = []
-        self._oleft_edge = na.min([grid.LeftEdge for grid in base_grid], axis=0)
-        self._base_level = base_grid[0].Level
         self._hdata_set = tvtk.HierarchicalBoxDataSet()
-        self._mult_factor = 2**base_grid[0].Level
         self._min_val = 1e60
         self._max_val = -1e60
-        self.left_edge = na.zeros(3, dtype='float64')
-        #self.right_edge = (base_grid.RightEdge - base_grid.LeftEdge)*self._mult_factor
-        self.right_edge = (na.max([grid.RightEdge for grid in base_grid], axis=0) -
-                                self._oleft_edge) * self._mult_factor
-        if center is None: center = (base_grid.RightEdge - base_grid.LeftEdge)/2.0
-        print center, self._oleft_edge, self._mult_factor
-        self.center = (center - self._oleft_edge)*self._mult_factor
-        for grid in base_grid:
-            self._add_grid(grid)
+        self.center = self.extracted_hierarchy._convert_coords(
+            self.pf.h.find_max("Density")[1])
+        gid = 0
+        for l, grid_set in enumerate(self.extracted_hierarchy.get_levels()):
+            gid = self._add_level(grid_set, l, gid)
         self._hdata_set.generate_visibility_arrays()
+        self.toggle_grid_boundaries()
+        self.cubs = self.add_contour()
+        self.cubs.configure_traits()
         self.scene.camera.focal_point = self.center
 
-    def _add_grid(self, grid):
-        # Some of this will get wrapped into a get-vertex-centered-data routine
-        # on the grid object
-        # We recalculate here; easier than munging get_global_startindex
+    def _add_level(self, grid_set, level, gid):
+        for grid in grid_set:
+            self._hdata_set.set_refinement_ratio(level, 2)
+            gid = self._add_grid(grid, gid, level)
+        return gid
+
+    def _add_grid(self, grid, gid, level=0):
+        mylog.debug("Adding grid %s on level %s (%s)",
+                    grid.id, level, grid.Level)
         if grid in self._grids: return
         self._grids.append(grid)
-        left_index = (grid.LeftEdge - self._oleft_edge)/grid.dx
-        right_index = left_index + grid.ActiveDimensions - 1
-        # We need vertex-centered, so we need smoothed ghost zones and then we
-        # interpolate them to the vertices
-        cg = grid.retrieve_ghost_zones(2, self.field, smoothed=True)
-        # Bounds should be cell-centered
-        bds = na.array(zip(cg.left_edge+cg.dx/2.0, cg.right_edge-cg.dx/2.0)).ravel()
-        interp = lagos.TrilinearFieldInterpolator(cg[self.field], bds, ['x','y','z'])
-        dx = grid.dx * self._mult_factor
-        origin=(grid.LeftEdge - self._oleft_edge)*self._mult_factor
-        ad = grid.ActiveDimensions + 1
-        ug = tvtk.UniformGrid(origin=origin, spacing=[dx]*3, dimensions=ad)
-        # LE and RE are vertex locations
-        x,y,z = na.mgrid[grid.LeftEdge[0]:grid.RightEdge[0]:ad[0]*1j,
-                         grid.LeftEdge[1]:grid.RightEdge[1]:ad[1]*1j,
-                         grid.LeftEdge[2]:grid.RightEdge[2]:ad[2]*1j]
-        dd = {'x':x,'y':y,'z':z}
-        if self._take_log: scalars = na.log10(interp(dd)).transpose().copy()
-        else: scalars = interp(dd).transpose().copy()
-        self._xs.append(x.ravel())
-        self._ys.append(y.ravel())
-        self._zs.append(z.ravel())
-        self._vals.append(scalars.ravel())
-        self._min_val = min(self._min_val, scalars.min())
-        self._max_val = max(self._max_val, scalars.max())
-        ug.point_data.scalars = scalars.ravel()
+
+        scalars = grid.get_vertex_centered_data(self.field)
+
+        io, left_index, origin, dds = \
+            self.extracted_hierarchy._convert_grid(grid)
+        right_index = left_index + scalars.shape - 2
+        ug = tvtk.UniformGrid(origin=origin, spacing=dds,
+                              dimensions=grid.ActiveDimensions+1)
+        if self.field not in self.pf.field_info or \
+            self.pf.field_info[self.field].take_log:
+            scalars = na.log10(scalars)
+        ug.point_data.scalars = scalars.transpose().ravel()
         ug.point_data.scalars.name = self.field
         self._ugs.append(ug)
-        self._hdata_set.set_data_set(grid.Level-self._base_level, self._gid,
-                                     left_index, right_index, ug)
-        self._gid +=1
-        # This is cheap, so we can set it every time
-        self._hdata_set.set_refinement_ratio(grid.Level-self._base_level, 2)
-        # Now we recurse
-        # We should have a set of masks for grids that have been added, to
-        # allow support for multiple children of a single parent
-        for child in grid.Children:
-            self._add_grid(child)
+        self._hdata_set.set_data_set(level, gid, left_index, right_index, ug)
+
+        self._min_val = min(self._min_val, scalars.min())
+        self._max_val = max(self._max_val, scalars.max())
+
+        gid += 1
+        return gid
 
     def zoom(self, dist, unit='1'):
         vec = self.scene.camera.focal_point - \
@@ -191,9 +173,6 @@ class ExtractedVTKHierarchicalDataSet(HasTraits):
         self.scene.render()
 
     def toggle_grid_boundaries(self):
-        if self._grid_boundaries_shown:
-            self._grid_boundaries_actor.visibility = False
-            return
         if self._grid_boundaries_actor is None:
             # We don't need to track this stuff right now.
             ocf = tvtk.OutlineCornerFilter(
@@ -205,7 +184,8 @@ class ExtractedVTKHierarchicalDataSet(HasTraits):
             self._grid_boundaries_actor = tvtk.Actor(mapper = ocm)
             self.scene.add_actor(self._grid_boundaries_actor)
         else:
-            self._grid_boundaries_actor.visibility = True
+            self._grid_boundaries_actor.visibility = \
+            (not self._grid_boundaries_actor.visibility)
 
     def _add_plane(self, origin=(0.0,0.0,0.0), normal=(0,1,0)):
         plane = tvtk.Plane(origin=origin, normal=normal)
@@ -226,98 +206,55 @@ class ExtractedVTKHierarchicalDataSet(HasTraits):
         self.operators.append(self._add_plane(origin, normal))
         return self.operators[-1]
 
-    def add_x_plane(self):
-        np, lookup_table = self._add_plane(self.center, normal=(1,0,0))
+    def _add_axis_plane(self, axis):
+        normal = [0,0,0]
+        normal[axis] = 1
+        np, lookup_table = self._add_plane(self.center, normal=normal)
+        LE = self.extracted_hierarchy._convert_coords(
+                self.extracted_hierarchy.left_edge_offset)
+        RE = self.extracted_hierarchy._convert_coords(
+                self.extracted_hierarchy.right_edge_offset)
         self.operators.append(MappingPlane(
-                vmin=self.left_edge[0], vmax=self.right_edge[0],
-                vdefault = self.center[0],
+                vmin=LE[axis], vmax=RE[axis],
+                vdefault = self.center[axis],
                 post_call = self.scene.render,
-                plane = np, axis=0, coord=0.0,
+                plane = np, axis=axis, coord=0.0,
                 lookup_table = lookup_table))
+
+    def add_x_plane(self):
+        self._add_axis_plane(0)
         return self.operators[-1]
 
     def add_y_plane(self):
-        np, lookup_table = self._add_plane(self.center, normal=(0,1,0))
-        self.operators.append(MappingPlane(
-                vmin=self.left_edge[1], vmax=self.right_edge[1],
-                vdefault = self.center[1],
-                post_call = self.scene.render,
-                plane = np, axis=1, coord=0.0,
-                lookup_table = lookup_table))
+        self._add_axis_plane(1)
         return self.operators[-1]
 
     def add_z_plane(self):
-        np, lookup_table = self._add_plane(self.center, normal=(0,0,1))
-        self.operators.append(MappingPlane(
-                vmin=self.left_edge[2], vmax=self.right_edge[2],
-                vdefault = self.center[2],
-                post_call = self.scene.render,
-                plane = np, axis=2, coord=0.0,
-                lookup_table = lookup_table))
+        self._add_axis_plane(2)
         return self.operators[-1]
 
-    def add_contour(self, val):
+    def add_contour(self, val=None):
+        if val is None: val = (self._max_val+self._min_val) * 0.5
         cubes = tvtk.MarchingCubes(
                     executive = tvtk.CompositeDataPipeline())
         cubes.input = self._hdata_set
         cubes.set_value(0, val)
-        cube_lut = tvtk.LookupTable(hue_range=(0.0,1.0),
-                                    range=(self._min_val,
-                                           self._max_val),
-                                    table_range=(self._min_val,
-                                                 self._max_val))
-        print cube_lut.table_range, cube_lut.range
+        cube_lut = tvtk.LookupTable(hue_range=(0.0,1.0))
         cube_lut.build()
         cube_mapper = tvtk.HierarchicalPolyDataMapper(
                                 input_connection = cubes.output_port,
                                 lookup_table=cube_lut)
-
+        cube_mapper.color_mode = 'map_scalars'
+        cube_mapper.scalar_range = (self._min_val, self._max_val)
         cube_actor = tvtk.Actor(mapper=cube_mapper)
         self.scene.add_actors(cube_actor)
         self.operators.append(MappingMarchingCubes(cubes=cubes,
                     vmin=self._min_val, vmax=self._max_val,
                     vdefault=val,
+                    mapper = cube_mapper,
                     post_call = self.scene.render,
                     lookup_table = cube_lut))
         return self.operators[-1]
-
-    def add_volren(self):
-        otf = tvtk.PiecewiseFunction()
-        otf.add_point(self._min_val,0.0)
-        otf.add_point(self._max_val,1.0)
-        ctf = tvtk.ColorTransferFunction()
-        vs = na.mgrid[self._min_val:self._max_val:5j]
-        ctf.add_rgb_point(vs[0], 0.0, 0.0, 0.0)
-        ctf.add_rgb_point(vs[1], 1.0, 0.0, 0.0)
-        ctf.add_rgb_point(vs[2], 0.0, 0.0, 1.0)
-        ctf.add_rgb_point(vs[3], 0.0, 1.0, 0.0)
-        ctf.add_rgb_point(vs[4], 0.0, 0.2, 0.0)
-        vp = tvtk.VolumeProperty()
-        vp.set_scalar_opacity(otf)
-        vp.set_color(ctf)
-        cf = tvtk.VolumeRayCastCompositeFunction()
-        self.cf = cf
-        self.ctf = ctf
-        self.otf = otf
-        vals = na.concatenate(self._vals)
-        xs = na.concatenate(self._xs)
-        ys = na.concatenate(self._ys)
-        zs = na.concatenate(self._zs)
-        uug = tvtk.UnstructuredGrid()
-        uug.point_data.t_coords = na.array([xs,ys,zs]).transpose()
-        uug.point_data.scalars = vals
-        #vmap = tvtk.FixedPointVolumeRayCastMapper(input=uug)
-        vmap = tvtk.UnstructuredGridVolumeRayCastMapper(input=uug)
-        #vmap.set_volume_raycastFunction
-        #vmap = tvtk.VolumeTextureMapper3D()
-        #vmap.sample_distance = self._grids[i].dx
-        #vmap.volume_ray_cast_function = cf
-        #vmap.input = uug
-        volume = tvtk.Volume(mapper=vmap, property=vp)
-        self.scene.add_actor(volume)
-
-    def _convert_coords(self, val):
-        return (self.val - self._oleft_edge)*self._mult_factor
 
 def get_all_parents(grid):
     parents = []
@@ -335,7 +272,7 @@ if __name__=="__main__":
 
     from enthought.pyface.api import GUI
     gui = GUI()
-    ehds = ExtractedVTKHierarchicalDataSet()
+    ehds = YTScene()
     ehds.configure_traits()
     ehds.toggle_grid_boundaries()
     gui.start_event_loop()
