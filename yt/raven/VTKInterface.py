@@ -30,8 +30,9 @@ from enthought.tvtk.api import tvtk
 from enthought.traits.api import Float, HasTraits, Instance, Range, Any, \
                                  Delegate, Tuple, File, Int, Str, CArray, \
                                  List, Button
-from enthought.traits.ui.api import View, Item
+from enthought.traits.ui.api import View, Item, HGroup, VGroup, TableEditor
 from enthought.traits.ui.menu import Action
+from enthought.traits.ui.table_column import ObjectColumn
 
 #from yt.reason import *
 import sys
@@ -85,28 +86,69 @@ class MappingMarchingCubes(TVTKMapperWidget):
         self.cubes.set_value(0, new)
         self.post_call()
 
-class CameraPath(HasTraits):
-    positions = List(CArray(shape=(3,), dtype='float64'))
-    focal_points = List(CArray(shape=(3,), dtype='float64'))
-    view_ups = List(CArray(shape=(3,), dtype='float64'))
-    clippings = List(CArray(shape=(2,), dtype='float64'))
-    distances = List(Float)
-    scene = Any
+class CameraPosition(HasTraits):
+    position = CArray(shape=(3,), dtype='float64')
+    focal_point = CArray(shape=(3,), dtype='float64')
+    view_up = CArray(shape=(3,), dtype='float64')
+    clipping = CArray(shape=(2,), dtype='float64')
+    distance = Float
+
+table_def = TableEditor(
+    columns = [ ObjectColumn(name='position'),
+                ObjectColumn(name='focal_point'),
+                ObjectColumn(name='view_up'),
+                ObjectColumn(name='clipping'),
+                ObjectColumn(name='distance'), ],
+    reorderable=True, deletable=True,
+    sortable=True, sort_model=True,
+    show_toolbar=True,
+            )
+
+class CameraControl(HasTraits):
+    # Traits
+    positions = List(CameraPosition)
+    yt_scene = Instance('YTScene')
+    center = Delegate('yt_scene')
+    scene = Delegate('yt_scene')
+    camera = Any
+
+    # UI elements
     snapshot = Button()
     play = Button()
     reset_path = Button()
+    recenter = Button()
 
-    default_view = View(Item('snapshot', show_label=False),
-                        Item('play', show_label=False),
-                        Item('reset_path', show_label=False))
+    default_view = View(
+                VGroup(
+                  HGroup(
+                    Item('camera', show_label=False),
+                    Item('recenter', show_label=False),
+                    label='Camera'),
+                  HGroup(
+                    Item('snapshot', show_label=False),
+                    Item('play', show_label=False),
+                    Item('reset_path', show_label=False),
+                    label='Playback'),
+                  VGroup(
+                    Item('positions', show_label=False,
+                        editor=table_def),
+                    label='Camera Path'),
+                 ),
+                resizable=True,
+                       )
 
     def take_snapshot(self):
         cam = self.scene.camera
-        self.positions.append(cam.position)
-        self.focal_points.append(cam.focal_point)
-        self.view_ups.append(cam.view_up)
-        self.distances.append(cam.distance)
-        self.clippings.append(cam.clipping_range)
+        self.positions.append(CameraPosition(
+                position=cam.position,
+                focal_point=cam.focal_point,
+                view_up=cam.view_up,
+                distance=cam.distance,
+                clipping=cam.clipping_range))
+
+    def _recenter_fired(self):
+        self.camera.focal_point = self.center
+        self.scene.render()
 
     def _snapshot_fired(self):
         self.take_snapshot()
@@ -116,75 +158,79 @@ class CameraPath(HasTraits):
 
     def _reset_path_fired(self):
         self.positions = []
-        self.focal_points = []
-        self.view_ups = []
-        self.clippings = []
-        self.distances = []
 
     def step_through(self, interval=0.1, sub_steps=10):
         cam = self.scene.camera
         r = sub_steps
         for i in range(len(self.positions)-1):
+            pos1 = self.positions[i]
+            pos2 = self.positions[i+1]
             for p in range(sub_steps):
-                cam.position = _interpolate(self.positions, i, p, r)
-                cam.focal_point = _interpolate(self.focal_points, i, p, r)
-                cam.view_up = _interpolate(self.view_ups, i, p, r)
-                cam.distance = _interpolate(self.distances, i, p, r)
-                cam.clipping_range = \
-                    _interpolate(self.clippings, i, p, r)
+                cam.position = _interpolate(pos1.position,
+                                            pos2.position, p, r)
+                cam.focal_point = _interpolate(pos1.focal_point,
+                                               pos2.focal_point, p, r)
+                cam.view_up = _interpolate(pos1.view_up,
+                                           pos2.view_up, p, r)
+                cam.distance = _interpolate(pos1.distance,
+                                            pos2.distance, p, r)
+                cam.clipping_range = _interpolate(pos1.clipping, 
+                                                  pos2.clipping, p, r)
                 self.scene.render()
                 time.sleep(interval)
 
-def _interpolate(q, i, p, r):
-    return q[i] + p*(q[i+1] - q[i])/float(r)
+def _interpolate(q1, q2, p, r):
+    return q1 + p*(q2 - q1)/float(r)
         
+class YTScene(HasTraits):
 
-class YTVTKScene(HasTraits):
-    _grid_boundaries_shown = False
+    # Traits
+    camera_path = Instance(CameraControl)
+    parameter_fn = File(filter=["*.hierarchy"])
+    min_grid_level = Int(0)
+    max_grid_level = Int(-1)
+    field = Str("Density")
+    center = CArray(shape = (3,), dtype = 'float64')
+    window = Instance(ivtk.IVTKWithCrustAndBrowser)
+    scene = Delegate('window')
+
+    # UI elements
+    recalculate = Button()
+
+    # State variables
     _grid_boundaries_actor = None
 
-    camera_path = Instance(CameraPath)
-
-    window = Instance(ivtk.IVTKWithCrustAndBrowser)
+    # Views
+    default_view = View(Item('min_grid_level'),
+                        Item('max_grid_level'),
+                        Item('parameter_fn'),
+                        Item('field'),
+                        Item('center'),
+                        Item('recalculate', show_label=False))
+    
+    def _center_default(self):
+        return [0.5,0.5,0.5]
 
     def _window_default(self):
         return ivtk.IVTKWithCrustAndBrowser(size=(800,600), stereo=1)
 
     def _camera_path_default(self):
-        return CameraPath(scene=self.scene)
+        return CameraControl(yt_scene=self, camera=self.scene.camera)
 
-    def __init__(self):
+    def __init__(self, **traits):
+        HasTraits.__init__(self, **traits)
         self.window.open()
         self.scene = self.window.scene
 
-class YTScene(HasTraits):
-
-    parameter_fn = File(filter=["*.hierarchy"])
-    min_grid_level = Int(0)
-    max_grid_level = Int(-1)
-    field = Str("Density")
-    scene_frame = Instance(YTVTKScene)
-    center = CArray(shape = (3,), dtype = 'float64')
-    _grid_boundaries_actor = None
-    
-    def _center_default(self):
-        return [0.5,0.5,0.5]
-
-    def _scene_frame_default(self):
-        return YTVTKScene()
-
-    def _parameter_fn_changed(self, scene_frame = None, center = None):
+    def _recalculate_fired(self):
         self.pf = lagos.EnzoStaticOutput(self.parameter_fn[:-10])
-        self.scene = self.scene_frame.scene
         self.extracted_hierarchy = ExtractedHierarchy(
                         self.pf, self.min_grid_level, self.max_grid_level,
                         offset=None)
-        self._take_log = True
-        self._grids = []
-        self._ugs = []
-        self._vtk_objs = []
         self.operators = []
         self._hdata_set = tvtk.HierarchicalBoxDataSet()
+        self._ugs = []
+        self._grids = []
         self._min_val = 1e60
         self._max_val = -1e60
         self.center = self.extracted_hierarchy._convert_coords(
@@ -195,8 +241,9 @@ class YTScene(HasTraits):
         self._hdata_set.generate_visibility_arrays()
         self.toggle_grid_boundaries()
         self.cubs = self.add_contour()
-        self.cubs.configure_traits()
+        self.cubs.edit_traits()
         self.scene.camera.focal_point = self.center
+        self.scene.render()
 
     def _add_level(self, grid_set, level, gid):
         for grid in grid_set:
@@ -329,16 +376,19 @@ def get_all_parents(grid):
     return list(set(parents))
 
 if __name__=="__main__":
-    print "This code probably won't work.  You need to install the patchset to VTK,"
-    print "the Enthought Tool Suite, and then run th TVTK test."
+    print "This code probably won't work.  But if you want to give it a try,"
+    print "you need:"
     print
-    print "If you've done all that, remove the 'sys.exit()' line and try again."
-    sys.exit()
+    print "VTK (CVS)"
+    print "Mayavi2 (from Enthought)"
+    print
+    print "If you have 'em, give it a try!"
+    print
+    #sys.exit()
     import yt.lagos as lagos
 
     from enthought.pyface.api import GUI
     gui = GUI()
     ehds = YTScene()
     ehds.configure_traits()
-    ehds.toggle_grid_boundaries()
     gui.start_event_loop()
