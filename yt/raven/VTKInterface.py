@@ -29,7 +29,7 @@ from enthought.tvtk.tools import ivtk
 from enthought.tvtk.api import tvtk 
 from enthought.traits.api import Float, HasTraits, Instance, Range, Any, \
                                  Delegate, Tuple, File, Int, Str, CArray, \
-                                 List, Button
+                                 List, Button, Bool
 from enthought.traits.ui.api import View, Item, HGroup, VGroup, TableEditor
 from enthought.traits.ui.menu import Action
 from enthought.traits.ui.table_column import ObjectColumn
@@ -94,8 +94,8 @@ class CameraPosition(HasTraits):
     view_up = CArray(shape=(3,), dtype='float64')
     clipping_range = CArray(shape=(2,), dtype='float64')
     distance = Float
+    num_steps = Int(10)
     orientation_wxyz = CArray(shape=(4,), dtype='float64')
-
 
 class CameraControl(HasTraits):
     # Traits
@@ -105,6 +105,8 @@ class CameraControl(HasTraits):
     scene = Delegate('yt_scene')
     camera = Instance(tvtk.OpenGLCamera)
     reset_position = Instance(CameraPosition)
+    fps = Float(25.0)
+    periodic = Bool
 
     # UI elements
     snapshot = Button()
@@ -113,12 +115,14 @@ class CameraControl(HasTraits):
     recenter = Button()
     save_path = Button()
     load_path = Button()
+    export_path = Button()
 
     table_def = TableEditor(
         columns = [ ObjectColumn(name='position'),
                     ObjectColumn(name='focal_point'),
                     ObjectColumn(name='view_up'),
-                    ObjectColumn(name='clipping_range') ],
+                    ObjectColumn(name='clipping_range'),
+                    ObjectColumn(name='num_steps') ],
         reorderable=True, deletable=True,
         sortable=True, sort_model=True,
         show_toolbar=True,
@@ -138,6 +142,9 @@ class CameraControl(HasTraits):
                     Item('reset_path', show_label=False),
                     Item('save_path', show_label=False),
                     Item('load_path', show_label=False),
+                    Item('export_path', show_label=False),
+                    Item('periodic'),
+                    Item('fps'),
                     label='Playback'),
                   VGroup(
                     Item('positions', show_label=False,
@@ -169,6 +176,29 @@ class CameraControl(HasTraits):
                 distance=cam.distance,
                 orientation_wxyz=cam.orientation_wxyz))
 
+    def _export_path_fired(self): 
+        dlg = pyface.FileDialog(
+            action='save as',
+            wildcard="*.cpath",
+        )
+        if dlg.open() == pyface.OK:
+            print "Saving:", dlg.path
+            self.export_camera_path(dlg.path)
+
+    def export_camera_path(self, fn):
+        to_dump = dict(positions=[], focal_points=[],
+                       view_ups=[], clipping_ranges=[],
+                       distances=[], orientation_wxyzs=[])
+        def _write(cam):
+            to_dump['positions'].append(cam.position)
+            to_dump['focal_points'].append(cam.focal_point)
+            to_dump['view_ups'].append(cam.view_up)
+            to_dump['clipping_ranges'].append(cam.clipping_range)
+            to_dump['distances'].append(cam.distance)
+            to_dump['orientation_wxyzs'].append(cam.orientation_wxyz)
+        self.step_through(0.0, callback=_write)
+        pickle.dump(to_dump, open(fn, "wb"))
+
     def _save_path_fired(self): 
         dlg = pyface.FileDialog(
             action='save as',
@@ -178,6 +208,21 @@ class CameraControl(HasTraits):
             print "Saving:", dlg.path
             self.dump_camera_path(dlg.path)
 
+    def dump_camera_path(self, fn):
+        to_dump = dict(positions=[], focal_points=[],
+                       view_ups=[], clipping_ranges=[],
+                       distances=[], orientation_wxyzs=[],
+                       num_stepss=[])
+        for p in self.positions:
+            to_dump['positions'].append(p.position)
+            to_dump['focal_points'].append(p.focal_point)
+            to_dump['view_ups'].append(p.view_up)
+            to_dump['clipping_ranges'].append(p.clipping_range)
+            to_dump['distances'].append(p.distance)
+            to_dump['num_stepss'].append(p.num_steps) # stupid s
+            to_dump['orientation_wxyzs'].append(p.orientation_wxyz)
+        pickle.dump(to_dump, open(fn, "wb"))
+
     def _load_path_fired(self):
         dlg = pyface.FileDialog(
             action='open',
@@ -186,20 +231,6 @@ class CameraControl(HasTraits):
         if dlg.open() == pyface.OK:
             print "Loading:", dlg.path
             self.load_camera_path(dlg.path)
-
-    def dump_camera_path(self, fn):
-        
-        to_dump = dict(positions=[], focal_points=[],
-                       view_ups=[], clipping_ranges=[],
-                       distances=[], orientation_wxyzs=[])
-        for p in self.positions:
-            to_dump['positions'].append(p.position)
-            to_dump['focal_points'].append(p.focal_point)
-            to_dump['view_ups'].append(p.view_up)
-            to_dump['clipping_ranges'].append(p.clipping_range)
-            to_dump['distances'].append(p.distance)
-            to_dump['orientation_wxyzs'].append(p.orientation_wxyz)
-        pickle.dump(to_dump, open(fn, "wb"))
 
     def load_camera_path(self, fn):
         to_use = pickle.load(open(fn, "rb"))
@@ -225,26 +256,34 @@ class CameraControl(HasTraits):
     def _reset_path_fired(self):
         self.positions = []
 
-    def step_through(self, interval=0.1, sub_steps=10):
+    def step_through(self, pause = 1.0, callback=None):
         cam = self.scene.camera
-        r = sub_steps
-        for i in range(len(self.positions)-1):
-            pos1 = self.positions[i]
-            pos2 = self.positions[i+1]
-            for p in range(sub_steps):
-                cam.position = _interpolate(pos1.position,
-                                            pos2.position, p, r)
-                cam.focal_point = _interpolate(pos1.focal_point,
-                                               pos2.focal_point, p, r)
-                cam.view_up = _interpolate(pos1.view_up,
-                                           pos2.view_up, p, r)
-                cam.clipping_range = _interpolate(pos1.clipping_range, 
-                                                  pos2.clipping_range, p, r)
+        if self.periodic:
+            cyclic_pos = self.positions + [self.positions[0]]
+        else:
+            cyclic_pos = self.positions
+        for i in range(len(cyclic_pos)-1):
+            pos1 = cyclic_pos[i]
+            pos2 = cyclic_pos[i+1]
+            r = pos1.num_steps
+            for p in range(pos1.num_steps):
+                po = _interpolate(pos1.position, pos2.position, p, r)
+                fp = _interpolate(pos1.focal_point, pos2.focal_point, p, r)
+                vu = _interpolate(pos1.view_up, pos2.view_up, p, r)
+                cr = _interpolate(pos1.clipping_range, pos2.clipping_range, p, r)
+                _set_cpos(cam, po, fp, vu, cr)
                 self.scene.render()
-                time.sleep(interval)
+                if callback is not None: callback(cam)
+                time.sleep(pause * 1.0/self.fps)
 
 def _interpolate(q1, q2, p, r):
     return q1 + p*(q2 - q1)/float(r)
+
+def _set_cpos(cam, po, fp, vu, cr):
+    cam.position = po
+    cam.focal_point = fp
+    cam.view_up = vu
+    cam.clipping_range = cr
         
 class YTScene(HasTraits):
 
@@ -304,8 +343,6 @@ class YTScene(HasTraits):
             gid = self._add_level(grid_set, l, gid)
         self._hdata_set.generate_visibility_arrays()
         self.toggle_grid_boundaries()
-        self.cubs = self.add_contour()
-        self.cubs.edit_traits()
         self.camera_path.edit_traits()
         self.scene.camera.focal_point = self.center
         self.scene.render()
@@ -449,7 +486,7 @@ if __name__=="__main__":
     print
     print "If you have 'em, give it a try!"
     print
-    sys.exit()
+    #sys.exit()
     import yt.lagos as lagos
 
     gui = pyface.GUI()
