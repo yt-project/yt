@@ -246,15 +246,23 @@ class DataQueuePackedHDF5(BaseDataQueue):
     def preload(self, grids, sets):
         # We need to deal with files first
         files_keys = defaultdict(lambda: [])
-        sets = list(sets)
+        pf_field_list = grids[0].pf.h.field_list
+        sets = [dset for dset in list(sets) if dset in pf_field_list]
         for g in grids: files_keys[g.filename].append(g)
+        exc = getExceptionHDF5()
         for file in files_keys:
             mylog.debug("Starting read %s (%s)", file, sets)
             nodes = [g.id for g in files_keys[file]]
             nodes.sort()
-            data = HDF5LightReader.ReadMultipleGrids(file, nodes, sets)
-            mylog.debug("Read %s items from %s", len(data), os.path.basename(file))
-            for gid in data: self.queue[gid].update(data[gid])
+            # We want to pass on any error we might expect -- the preload
+            # phase should be non-fatal in all cases, and instead dump back to
+            # the grids.
+            try:
+                data = HDF5LightReader.ReadMultipleGrids(file, nodes, sets)
+                mylog.debug("Read %s items from %s", len(data), os.path.basename(file))
+                for gid in data: self.queue[gid].update(data[gid])
+            except exc:
+                pass
         mylog.debug("Finished read of %s", sets)
 
 class DataQueueInMemory(BaseDataQueue):
