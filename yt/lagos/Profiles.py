@@ -65,7 +65,8 @@ class BinnedProfile(ParallelAnalysisInterface):
                     self, fields + self._get_bin_fields())
 
     def _initialize_parallel(self, fields):
-        self._preload(self._get_grid_objs(), self._get_dependencies(fields),
+        g_objs = [g for g in self._get_grid_objs()]
+        self._preload(g_objs, self._get_dependencies(fields),
                       self._data_source.hierarchy.queue)
 
     def _lazy_add_fields(self, fields, weight, accumulation):
