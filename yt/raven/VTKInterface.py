@@ -298,7 +298,7 @@ class YTScene(HasTraits):
     scene = Delegate('window')
 
     # UI elements
-    recalculate = Button()
+    import_hierarchy = Button()
 
     # State variables
     _grid_boundaries_actor = None
@@ -309,7 +309,7 @@ class YTScene(HasTraits):
                         Item('parameter_fn'),
                         Item('field'),
                         Item('center'),
-                        Item('recalculate', show_label=False))
+                        Item('import_hierarchy', show_label=False))
     
     def _center_default(self):
         return [0.5,0.5,0.5]
@@ -325,7 +325,7 @@ class YTScene(HasTraits):
         self.window.open()
         self.scene = self.window.scene
 
-    def _recalculate_fired(self):
+    def _import_hierarchy_fired(self):
         self.pf = lagos.EnzoStaticOutput(self.parameter_fn[:-10])
         self.extracted_hierarchy = ExtractedHierarchy(
                         self.pf, self.min_grid_level, self.max_grid_level,
@@ -341,7 +341,7 @@ class YTScene(HasTraits):
         gid = 0
         for l, grid_set in enumerate(self.extracted_hierarchy.get_levels()):
             gid = self._add_level(grid_set, l, gid)
-        self._hdata_set.generate_visibility_arrays()
+        #self._hdata_set.generate_visibility_arrays()
         self.toggle_grid_boundaries()
         self.camera_path.edit_traits()
         self.scene.camera.focal_point = self.center
@@ -371,6 +371,8 @@ class YTScene(HasTraits):
             scalars = na.log10(scalars)
         ug.point_data.scalars = scalars.transpose().ravel()
         ug.point_data.scalars.name = self.field
+        if grid.Level != self.max_grid_level:
+            ug.cell_visibility_array = grid.child_mask.transpose().ravel()
         self._ugs.append(ug)
         self._hdata_set.set_data_set(level, gid, left_index, right_index, ug)
 
@@ -425,10 +427,8 @@ class YTScene(HasTraits):
         normal = [0,0,0]
         normal[axis] = 1
         np, lookup_table = self._add_plane(self.center, normal=normal)
-        LE = self.extracted_hierarchy._convert_coords(
-                self.extracted_hierarchy.left_edge_offset)
-        RE = self.extracted_hierarchy._convert_coords(
-                self.extracted_hierarchy.right_edge_offset)
+        LE = self.extracted_hierarchy.min_left_edge
+        RE = self.extracted_hierarchy.max_right_edge
         self.operators.append(MappingPlane(
                 vmin=LE[axis], vmax=RE[axis],
                 vdefault = self.center[axis],
@@ -477,6 +477,15 @@ def get_all_parents(grid):
     for parent in grid.Parents: parents.append(get_all_parents(parent))
     return list(set(parents))
 
+def run_vtk():
+    import yt.lagos as lagos
+
+    global gui, ehds
+    gui = pyface.GUI()
+    ehds = YTScene()
+    ehds.edit_traits()
+    gui.start_event_loop()
+
 if __name__=="__main__":
     print "This code probably won't work.  But if you want to give it a try,"
     print "you need:"
@@ -486,10 +495,8 @@ if __name__=="__main__":
     print
     print "If you have 'em, give it a try!"
     print
-    #sys.exit()
-    import yt.lagos as lagos
-
     gui = pyface.GUI()
     ehds = YTScene()
     ehds.edit_traits()
     gui.start_event_loop()
+

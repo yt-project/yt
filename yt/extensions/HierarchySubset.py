@@ -46,8 +46,22 @@ class ConstructedRootGrid(object):
         self.dds = pf.h.select_grids(level)[0].dds.copy()
         dims = (self.RightEdge-self.LeftEdge)/self.dds
         self.ActiveDimensions = dims
+        print "Constructing base grid of size %s" % (self.ActiveDimensions)
         self.cg = pf.h.smoothed_covering_grid(level, self.LeftEdge,
                         self.RightEdge, dims=dims)
+        self._calculate_child_masks()
+
+    def _calculate_child_masks(self):
+        # This might be slow
+        grids, grid_ind = self.pf.hierarchy.get_box_grids(
+                    self.LeftEdge, self.RightEdge)
+        self.Children = [g for g in grids if g.Level == self.Level + 1]
+        self.child_mask = na.ones(self.ActiveDimensions, dtype='int32')
+        for c in self.Children:
+            si = na.maximum(0, na.rint((c.LeftEdge - self.LeftEdge)/self.dds))
+            ei = na.minimum(self.ActiveDimensions,
+                    na.rint((c.RightEdge - self.LeftEdge)/self.dds))
+            self.child_mask[si[0]:ei[0], si[1]:ei[1], si[2]:ei[2]] = 0
 
     def __getitem__(self, field):
         return self.cg[field]
@@ -82,17 +96,19 @@ class ExtractedHierarchy(object):
                              pf.h.select_grids(min_level)], axis=0).astype('float64')
         min_left = na.min([grid.LeftEdge for grid in
                            pf.h.select_grids(min_level)], axis=0).astype('float64')
-        self.right_edge_offset = na.max([grid.RightEdge for grid in 
+        max_right = na.max([grid.RightEdge for grid in 
                                    pf.h.select_grids(min_level)], axis=0).astype('float64')
-        if offset is None: offset = (self.right_edge_offset + min_left)/2.0
+        if offset is None: offset = (max_right + min_left)/2.0
         self.left_edge_offset = offset
         self.mult_factor = 2**min_level
+        self.min_left_edge = self._convert_coords(min_left)
+        self.max_right_edge = self._convert_coords(max_right)
         if max_level == -1: max_level = pf.h.max_level
         self.max_level = min(max_level, pf.h.max_level)
         self.final_level = self.max_level - self.min_level
         if len(self.pf.h.select_grids(self.min_level)) > 0:
             self._base_grid = ConstructedRootGrid(self.pf, self.min_level,
-                               min_left, self.right_edge_offset)
+                               min_left, max_right)
         else: self._base_grid = None
         
     def select_level(self, level):
@@ -162,7 +178,8 @@ class ExtractedHierarchy(object):
                     "/Grid%08i/%s" % (grid.id, field)
         else:
             # Export our array
-            afile.createArray(grid_node, "grid-data", grid[field].swapaxes(0,2))
+            afile.createArray(grid_node, "grid-data",
+                grid[field].astype('float32').swapaxes(0,2))
 
     def _convert_coords(self, val):
         return (val - self.left_edge_offset)*self.mult_factor
