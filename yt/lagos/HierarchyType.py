@@ -517,7 +517,7 @@ class AMRHierarchy:
                             ff.astype("float64"),
                             g.LeftEdge.astype('float64'),
                             g.ActiveDimensions.astype('int32'),
-                            na.ones(1,dtype='float64') * g.dx, g.Level))
+                            na.ones(1,dtype='float64') * g.dds[0], g.Level))
             levels_all[g.Level] += g.ActiveDimensions.prod()
             levels_finest[g.Level] += g.child_mask.ravel().sum()
             g.clear_data()

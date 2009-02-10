@@ -306,7 +306,8 @@ class AMRGridPatch(AMRData):
         """
         self.__child_index_mask = na.zeros(self.ActiveDimensions, 'int32') - 1
         for child in self.Children:
-            self.__fill_child_mask(child, self.__child_mask, child.id)
+            self.__fill_child_mask(child, self.__child_index_mask,
+                                   child.id)
 
     def _get_coords(self):
         if self.__coords == None: self._generate_coords()

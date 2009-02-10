@@ -131,15 +131,15 @@ def RecurseOctreeByLevels(int i_i, int j_i, int k_i,
     cdef int cp
     for i_off in range(i_f):
         i = i_off + i_i
-        cz = (leftedges[2] + k*dx)
+        cx = (leftedges[0] + i*dx)
         if i_f > 2: print k, cz
         for j_off in range(j_f):
             j = j_off + j_i
             cy = (leftedges[1] + j*dx)
             for k_off in range(k_f):
                 k = k_off + k_i
+                cz = (leftedges[2] + k*dx)
                 cp = curpos[level]
-                cx = (leftedges[0] + i*dx)
                 corners[cp, 0] = cx 
                 corners[cp, 1] = cy 
                 corners[cp, 2] = cz
