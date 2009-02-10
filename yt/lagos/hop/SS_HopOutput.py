@@ -245,7 +245,7 @@ class HopGroup(object):
         return self.indices.size
 
     def get_indices(self):
-        return self.indices
+        return self["particle_index"]
     
     def get_positions(self,f):
         return self["particle_position_%s" % f]
