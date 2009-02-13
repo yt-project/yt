@@ -157,6 +157,7 @@ class HopGroup(object):
     _owner = 0
     indices = None
     dont_wrap = ["get_sphere"]
+    extra_wrap = ["__getitem__"]
 
     def __init__(self, hop_output, id, indices = None):
         self.hop_output = hop_output
