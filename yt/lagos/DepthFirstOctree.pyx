@@ -99,9 +99,9 @@ def RecurseOctreeDepthFirst(int i_i, int j_i, int k_i,
                     child_grid = grids[ci-1]
                     child_dx = child_grid.dx[0]
                     child_leftedges = child_grid.left_edges
-                    child_i = int(cx - child_leftedges[0])/child_dx
-                    child_j = int(cy - child_leftedges[1])/child_dx
-                    child_k = int(cz - child_leftedges[2])/child_dx
+                    child_i = int((cx - child_leftedges[0])/child_dx)
+                    child_j = int((cy - child_leftedges[1])/child_dx)
+                    child_k = int((cz - child_leftedges[2])/child_dx)
                     s = RecurseOctreeDepthFirst(child_i, child_j, child_k, 2, 2, 2,
                                         curpos, ci, output, refined, grids)
     return s
