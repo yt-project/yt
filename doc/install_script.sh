@@ -25,6 +25,7 @@ INST_WXPYTHON=0 # If you 't want to install wxPython, set this to 1
 INST_ZLIB=1     # On some systems (Kraken) matplotlib has issues with 
                 # the system zlib, which is compiled statically.
                 # If need be, you can turn this off.
+INST_TRAITS=0   # Experimental TraitsUI installation
 
 # If you've got YT some other place, set this to point to it.
 YT_DIR=""
@@ -198,6 +199,12 @@ echo $HDF5_DIR > hdf5.cfg
 ( ${DEST_DIR}/bin/python2.6 setup.py develop 2>&1 ) 1>> ${LOG_FILE} || do_exit
 touch done
 cd $MY_PWD
+
+if [ $INST_WXPYTHON -eq 1 ] && [ $INST_TRAITS -eq 1 ]
+then
+    echo "Installing Traits"
+    ( ${DEST_DIR}/bin/easy_install-2.6 2>&1 TraitsGUI TraitsBackendWX ) 1>> ${LOG_FILE} || do_exit
+done
 
 echo
 echo
