@@ -133,8 +133,11 @@ class ParallelDummy(type):
     def __init__(cls, name, bases, d):
         super(ParallelDummy, cls).__init__(name, bases, d)
         skip = d.pop("dont_wrap", [])
+        extra = d.pop("extra_wrap", [])
         for attrname in d:
-            if attrname.startswith("_") or attrname in skip: continue
+            if attrname.startswith("_") or attrname in skip:
+                if attrname not in extra: continue
+            print "Wrapping", attrname
             attr = getattr(cls, attrname)
             if type(attr) == types.MethodType:
                 setattr(cls, attrname, parallel_simple_proxy(attr))
