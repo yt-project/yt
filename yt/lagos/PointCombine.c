@@ -864,6 +864,191 @@ Py_DataCubeReplace(PyObject *obj, PyObject *args)
     return to_return;
 }
 
+static PyObject *Py_FillRegion(PyObject *obj, PyObject *args)
+{
+    PyObject *oc_data, *og_data,
+             *oc_start, *og_start,
+             *oc_dims, *og_dims, *omask;
+    PyObject *tg_data, *tc_data;
+    oc_data = og_data = oc_start = og_start = oc_dims = og_dims = omask = NULL;
+    tg_data = tc_data = NULL;
+    PyArrayObject **g_data, **c_data, *mask,
+                  *g_start, *c_start, *c_dims, *g_dims;
+    mask = g_start = c_start = c_dims = g_dims = NULL;
+    int refratio, ll, direction, n;
+    npy_int64 gxs, gys, gzs, gxe, gye, gze;
+    npy_int64 cxs, cys, czs, cxe, cye, cze;
+    npy_int64 ixs, iys, izs, ixe, iye, ize;
+    npy_int64 gxi, gyi, gzi, cxi, cyi, czi;
+    npy_int64 cdx, cdy, cdz;
+    int ci, cj, ck, ri, rj, rk;
+    int total = 0;
+    void (*to_call)(PyArrayObject* c_data, npy_int64 xc,
+                         npy_int64 yc, npy_int64 zc,
+                    PyArrayObject* g_data, npy_int64 xg,
+                         npy_int64 yg, npy_int64 zg);
+    if (!PyArg_ParseTuple(args, "iOOOOOOOii",
+            &refratio, &og_start, &oc_start,
+            &oc_data, &og_data,
+            &oc_dims, &og_dims, &omask, &ll, &direction))
+    return PyErr_Format(_dataCubeError,
+            "DataCubeGeneric: Invalid parameters.");
+
+    if (direction == 0) to_call = dcRefine;
+    else if (direction == 1) to_call = dcReplace;
+
+    g_start = (PyArrayObject *) PyArray_FromAny(og_start,
+                PyArray_DescrFromType(NPY_INT64), 1, 1, 0, NULL);
+    if(g_start == NULL){
+      PyErr_Format(_dataCubeError, "FillRegion: g_start invalid.");
+      goto _fail;
+    }
+
+    c_start = (PyArrayObject *) PyArray_FromAny(oc_start,
+                PyArray_DescrFromType(NPY_INT64), 1, 1, 0, NULL);
+    if(c_start == NULL){
+      PyErr_Format(_dataCubeError, "FillRegion: c_start invalid.");
+      goto _fail;
+    }
+
+    g_dims  = (PyArrayObject *) PyArray_FromAny(og_dims,
+                PyArray_DescrFromType(NPY_INT32), 1, 1, 0, NULL);
+    if(g_dims == NULL){
+      PyErr_Format(_dataCubeError, "FillRegion: g_dims invalid.");
+      goto _fail;
+    }
+
+    c_dims  = (PyArrayObject *) PyArray_FromAny(oc_dims,
+                PyArray_DescrFromType(NPY_INT32), 1, 1, 0, NULL);
+    if(c_dims == NULL){
+      PyErr_Format(_dataCubeError, "FillRegion: c_dims invalid.");
+      goto _fail;
+    }
+
+    mask    = (PyArrayObject *) PyArray_FromAny(omask,
+                PyArray_DescrFromType(NPY_INT32), 3, 3, 0, NULL);
+    if(mask == NULL){
+      PyErr_Format(_dataCubeError, "FillRegion: mask invalid.");
+      goto _fail;
+    }
+
+    int n_fields = PyList_Size(oc_data);
+    if(n_fields == 0) {
+      PyErr_Format(_dataCubeError,
+          "CombineGrids: Length zero for c_data is invalid.");
+      goto _fail;
+    }
+    if (!PyList_Check(og_data) || (PyList_Size(og_data) != n_fields)){
+      PyErr_Format(_dataCubeError,
+          "CombineGrids: g_data must be a list of arrays same length as c_data!");
+      goto _fail;
+    }
+
+    c_data = (PyArrayObject**)
+             malloc(sizeof(PyArrayObject*)*n_fields);
+    g_data = (PyArrayObject**)
+             malloc(sizeof(PyArrayObject*)*n_fields);
+    for (n=0;n<n_fields;n++)c_data[n]=g_data[n]=NULL;
+    for (n=0;n<n_fields;n++){
+      tg_data = (PyObject *) PyList_GetItem(og_data, n);
+      /* We set up an array so we only have to do this once 
+         Note that this is an array in the C sense, not the NumPy sense */
+      g_data[n]    = (PyArrayObject *) PyArray_FromAny(tg_data,
+          PyArray_DescrFromType(NPY_FLOAT64), 3, 3,
+          NPY_UPDATEIFCOPY, NULL);
+      if((g_data[n]==NULL) || (g_data[n]->nd != 3)) {
+        PyErr_Format(_dataCubeError,
+            "CombineGrids: Three dimensions required for g_data[%i].",n);
+        goto _fail;
+      }
+      tc_data = (PyObject *) PyList_GetItem(oc_data, n);
+      c_data[n]    = (PyArrayObject *) PyArray_FromAny(tc_data,
+          PyArray_DescrFromType(NPY_FLOAT64), 3, 3,
+          NPY_UPDATEIFCOPY, NULL);
+      if((c_data[n]==NULL) || (c_data[n]->nd != 3)) {
+        PyErr_Format(_dataCubeError,
+            "CombineGrids: Three dimensions required for c_data[%i].",n);
+        goto _fail;
+      }
+    }
+
+    /* g[xyz][se] are the start and end index in integers 
+       of the grid, at its refinement level               */
+    gxs = *(npy_int64 *) PyArray_GETPTR1(og_start, 0);
+    gys = *(npy_int64 *) PyArray_GETPTR1(og_start, 1);
+    gzs = *(npy_int64 *) PyArray_GETPTR1(og_start, 2);
+    gxe = gxs + *(npy_int32 *) PyArray_GETPTR1(og_dims, 0);
+    gye = gys + *(npy_int32 *) PyArray_GETPTR1(og_dims, 1);
+    gze = gzs + *(npy_int32 *) PyArray_GETPTR1(og_dims, 2);
+
+    /* c[xyz][se] are the start and end index in integers
+       of the covering grid, at its refinement level      */
+    cxs = *(npy_int64 *) PyArray_GETPTR1(oc_start, 0);
+    cys = *(npy_int64 *) PyArray_GETPTR1(oc_start, 1);
+    czs = *(npy_int64 *) PyArray_GETPTR1(oc_start, 2);
+    cdx = (*(npy_int32 *) PyArray_GETPTR1(oc_dims, 0));
+    cdy = (*(npy_int32 *) PyArray_GETPTR1(oc_dims, 1));
+    cdz = (*(npy_int32 *) PyArray_GETPTR1(oc_dims, 2));
+    cxe = cxs + cdx;
+    cye = cys + cdy;
+    cze = czs + cdz;
+
+    //fprintf(stderr, "\nc1: %d %d %d %d %d %d\n", cxs, cxe, cys, cye, czs, cze);
+    //fprintf(stderr,   "c2: %d %d %d %d %d %d\n", gxs, gxe, gys, gye, gzs, gze);
+    for (gxi = gxs, cxi = gxs * refratio; (cxi<cxe)&&(gxi<gxe); gxi++,cxi+=refratio) {
+      for (gyi = gys, cyi = gys * refratio; (cyi<cye)&&(gyi<gye); gyi++,cyi+=refratio) {
+        for (gzi = gzs, czi = gzs * refratio; (czi<cze)&&(gzi<gze); gzi++,czi+=refratio) {
+                // if it's the last level, do it always
+                // else check the child mask
+                if ((ll) || (*(npy_int32*)PyArray_GETPTR3(mask, gxi-gxs,gyi-gys,gzi-gzs) > 0)) {
+                    ci = cxi - cxs;
+                    cj = cyi - cys;
+                    ck = czi - czs;
+                    for(ri=max(ci,0); ri < min(ci+refratio,cdx); ri++)
+                      for(rj=max(cj,0); rj < min(cj+refratio,cdy); rj++)
+                        for(rk=max(ck,0); rk < min(ck+refratio,cdz); rk++) {
+                          //fprintf(stderr, "(%d) Filling (%d %d %d) with (%d %d %d)\n",
+                          //  refratio, ri,rj,rk,gxi-gxs,gyi-gys,gzi-gzs);
+                          for(n=0;n<n_fields;n++){
+                            to_call(c_data[n], ri, rj, rk,
+                                g_data[n], gxi-gxs, gyi-gys, gzi-gzs);
+                          }
+                          total+=1;
+                        }
+                }
+            }
+        }
+    }
+
+    Py_DECREF(g_start);
+    Py_DECREF(c_start);
+    Py_DECREF(g_dims);
+    Py_DECREF(c_dims);
+    Py_DECREF(mask);
+    for(n=0;n<n_fields;n++) {
+        Py_DECREF(g_data[n]);
+        Py_DECREF(c_data[n]);
+    }
+    free(g_data);
+    free(c_data);
+    PyObject *status = PyInt_FromLong(total);
+    return status;
+
+_fail:
+    Py_XDECREF(g_start);
+    Py_XDECREF(c_start);
+    Py_XDECREF(g_dims);
+    Py_XDECREF(c_dims);
+    Py_XDECREF(mask);
+    for(n=0;n<n_fields;n++) {
+        if(g_data[n]!=NULL){Py_XDECREF(g_data[n]);}
+        if(c_data[n]!=NULL){Py_XDECREF(c_data[n]);}
+    }
+    if(g_data!=NULL)free(g_data);
+    if(c_data!=NULL)free(c_data);
+    return NULL;
+}
+
 static PyObject *_findContoursError;
 
 npy_int64 process_neighbors(PyArrayObject*, npy_int64, npy_int64, npy_int64);
@@ -1253,6 +1438,7 @@ static PyMethodDef _combineMethods[] = {
     {"FindContours", Py_FindContours, METH_VARARGS},
     {"FindBindingEnergy", Py_FindBindingEnergy, METH_VARARGS},
     {"OutputFloatsToFile", Py_OutputFloatsToFile, METH_VARARGS},
+    {"FillRegion", Py_FillRegion, METH_VARARGS},
     {NULL, NULL} /* Sentinel */
 };
 

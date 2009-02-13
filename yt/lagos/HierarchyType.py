@@ -220,6 +220,8 @@ class AMRHierarchy:
                         AMRCoveringGridBase, dd)
         self._add_object_class('smoothed_covering_grid', "AMRSmoothedCoveringGrid",
                         AMRSmoothedCoveringGridBase, dd)
+        self._add_object_class('new_covering_grid', "AMRNewCoveringGrid",
+                        AMRNewCoveringGridBase, dd)
         self._add_object_class('sphere', "AMRSphere", AMRSphereBase, dd)
         self._add_object_class('cutting', "AMRCuttingPlane", AMRCuttingPlaneBase, dd)
         self._add_object_class('ray', "AMRRay", AMRRayBase, dd)

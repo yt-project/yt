@@ -58,7 +58,7 @@ cdef class OctreeGridList:
     def __getitem__(self, int item):
         return self.grids[item]
 
-@cython.boundscheck(False)
+#@cython.boundscheck(False)
 def RecurseOctreeDepthFirst(int i_i, int j_i, int k_i,
                             int i_f, int j_f, int k_f,
                             position curpos, int gi, 
