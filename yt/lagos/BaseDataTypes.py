@@ -2046,20 +2046,21 @@ class AMRNewCoveringGridBase(AMR3DData):
         self.global_startindex = na.rint(self.left_edge/self.dds).astype('int64')
         self._refresh_data()
 
-    def _get_list_of_grids(self):
+    def _get_list_of_grids(self, buffer = 0.0):
         if self._grids is not None: return
-        if na.any(self.left_edge < self.pf["DomainLeftEdge"]) or \
-           na.any(self.right_edge > self.pf["DomainRightEdge"]):
+        if na.any(self.left_edge - buffer < self.pf["DomainLeftEdge"]) or \
+           na.any(self.right_edge + buffer > self.pf["DomainRightEdge"]):
             grids,ind = self.pf.hierarchy.get_periodic_box_grids(
-                            self.left_edge, self.right_edge)
+                            self.left_edge - buffer,
+                            self.right_edge + buffer)
             ind = slice(None)
         else:
             grids,ind = self.pf.hierarchy.get_box_grids(
-                            self.left_edge, self.right_edge)
+                            self.left_edge - buffer,
+                            self.right_edge + buffer)
         level_ind = (self.pf.hierarchy.gridLevels.ravel()[ind] <= self.level)
         sort_ind = na.argsort(self.pf.h.gridLevels.ravel()[ind][level_ind])
         self._grids = self.pf.hierarchy.grids[ind][level_ind][(sort_ind,)][::-1]
-
     def _refresh_data(self):
         AMR3DData._refresh_data(self)
         self['dx'] = self.dds[0] * na.ones(self.ActiveDimensions, dtype='float64')
@@ -2159,6 +2160,14 @@ class AMRNewCoveringGridBase(AMR3DData):
     def RightEdge(self):
         return self.right_edge
 
+class AMRNewSmoothedCoveringGridBase(AMRNewCoveringGridBase):
+    def _get_list_of_grids(self):
+        buffer = self.pf.h.select_grids(0)[0].dds
+        AMRNewCoveringGridBase._get_list_of_grids(buffer)
+        self._grids = self._grids[::-1]
+
+    def _get_data_from_grid(self, grid, fields):
+        pass
 
 class EnzoOrthoRayBase(AMROrthoRayBase): pass
 class EnzoRayBase(AMRRayBase): pass

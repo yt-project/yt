@@ -69,7 +69,7 @@ def BilinearlyInterpolate(np.ndarray[np.float64_t, ndim=2] table,
                    + table[x_i  , y_i+1] * (xm*yp) \
                    + table[x_i+1, y_i+1] * (xp*yp)
 
-@cython.boundscheck(False)
+cython.boundscheck(False)
 def TrilinearlyInterpolate(np.ndarray[np.float64_t, ndim=3] table,
                            np.ndarray[np.float64_t, ndim=1] x_vals,
                            np.ndarray[np.float64_t, ndim=1] y_vals,
