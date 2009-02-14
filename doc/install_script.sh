@@ -21,11 +21,17 @@ DEST_DIR="`pwd`/yt-`uname -p`"   # Installation location
 # and install it on its own
 #HDF5_DIR=
 
-INST_WXPYTHON=0 # If you 't want to install wxPython, set this to 1
+# If you need to supply arguments to the NumPy build, supply them here
+# This one turns on gfortran manually:
+#NUMPY_ARGS="--fcompiler=gnu95"
+# If you absolutely can't get the fortran to work, try this:
+#NUMPY_ARGS="--fcompiler=fake"
+
+INST_WXPYTHON=1 # If you 't want to install wxPython, set this to 1
 INST_ZLIB=1     # On some systems (Kraken) matplotlib has issues with 
                 # the system zlib, which is compiled statically.
                 # If need be, you can turn this off.
-INST_TRAITS=0   # Experimental TraitsUI installation
+INST_TRAITS=1   # Experimental TraitsUI installation
 
 # If you've got YT some other place, set this to point to it.
 YT_DIR=""
@@ -46,11 +52,12 @@ function do_exit
 function do_setup_py
 {
     [ -e $1/done ] && return
-    echo "Installing $1"
+    echo "Installing $1 (arguments: '$*')"
     [ ! -e $1 ] && tar xfz $1.tar.gz
     cd $1
     shift
-    ( ${DEST_DIR}/bin/python2.6 setup.py install $* 2>&1 ) 1>> ${LOG_FILE} || do_exit
+    ( ${DEST_DIR}/bin/python2.6 setup.py build   $* 2>&1 ) 1>> ${LOG_FILE} || do_exit
+    ( ${DEST_DIR}/bin/python2.6 setup.py install    2>&1 ) 1>> ${LOG_FILE} || do_exit
     touch done
     cd ..
 }
@@ -89,7 +96,7 @@ then
 fi
 
 [ $INST_ZLIB -eq 1 ] && get_enzotools zlib-1.2.3.tar.bz2 
-[ $INST_WXPYTHON -eq 1 ] && get_enzotools wxPython-src-2.8.7.1.tar.bz2
+[ $INST_WXPYTHON -eq 1 ] && get_enzotools wxPython-src-2.8.9.1.tar.bz2
 get_enzotools Python-2.6.1.tgz
 get_enzotools numpy-1.2.1.tar.gz
 get_enzotools matplotlib-0.98.5.2.tar.gz
@@ -144,7 +151,7 @@ then
         touch done
         cd ..
     fi
-    HDF5_DIR=${DEST_DIR}
+    export HDF5_DIR=${DEST_DIR}
 fi
 
 if [ ! -e Python-2.6.1/done ]
@@ -162,11 +169,11 @@ fi
 
 export PYTHONPATH=${DEST_DIR}/lib/python2.6/site-packages/
 
-if [ $INST_WXPYTHON -eq 1 ] && [ ! -e wxPython-src-2.8.7.1/done ]
+if [ $INST_WXPYTHON -eq 1 ] && [ ! -e wxPython-src-2.8.9.1/done ]
 then
     echo "Installing wxPython.  This may take a while, but don't worry.  YT loves you."
-    [ ! -e wxPython-src-2.8.7.1 ] && tar xfj wxPython-src-2.8.7.1.tar.bz2
-    cd wxPython-src-2.8.7.1
+    [ ! -e wxPython-src-2.8.9.1 ] && tar xfj wxPython-src-2.8.9.1.tar.bz2
+    cd wxPython-src-2.8.9.1
 
     ( ./configure --prefix=${DEST_DIR}/ --with-opengl 2>&1 ) 1>> ${LOG_FILE} || do_exit
     ( make install 2>&1 ) 1>> ${LOG_FILE} || do_exit
@@ -184,10 +191,10 @@ export LDFLAGS="${LDFLAGS} -L${DEST_DIR}/lib/ -L${DEST_DIR}/lib64/"
 echo "Installing setuptools"
 ( ${DEST_DIR}/bin/python2.6 ${YT_DIR}/ez_setup.py 2>&1 ) 1>> ${LOG_FILE} || do_exit
 
-do_setup_py numpy-1.2.1
+do_setup_py numpy-1.2.1 ${NUMPY_ARGS}
 do_setup_py matplotlib-0.98.5.2
 do_setup_py ipython-0.9.1
-do_setup_py tables-2.1 --hdf5=${HDF5_DIR}
+do_setup_py tables-2.1 
 
 echo "Doing yt update"
 MY_PWD=`pwd`
@@ -203,8 +210,8 @@ cd $MY_PWD
 if [ $INST_WXPYTHON -eq 1 ] && [ $INST_TRAITS -eq 1 ]
 then
     echo "Installing Traits"
-    ( ${DEST_DIR}/bin/easy_install-2.6 2>&1 TraitsGUI TraitsBackendWX ) 1>> ${LOG_FILE} || do_exit
-done
+    ( ${DEST_DIR}/bin/easy_install-2.6 -U TraitsGUI TraitsBackendWX 2>&1 ) 1>> ${LOG_FILE} || do_exit
+fi
 
 echo
 echo
