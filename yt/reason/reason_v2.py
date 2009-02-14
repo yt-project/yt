@@ -27,9 +27,7 @@ from enthought.traits.api import HasTraits, List, Instance, Str, Float, \
                     Any
 from enthought.traits.ui.api import Group, VGroup, HGroup, Tabbed, View, \
                     Item, ShellEditor, InstanceEditor, ListStrEditor, \
-                    ListEditor
-from enthought.pyface.dock.api import add_feature
-
+                    ListEditor, VSplit, VFlow, HSplit, VFold
 
 class DataObjectList(HasTraits):
     data_objects = List(Str)
@@ -56,25 +54,26 @@ class MainWindow(HasTraits):
     plot_spec = Instance(PlotSpec)
     shell = Any
 
-    view = View(VGroup(
-                    HGroup(
+    view = View(VSplit(
+                    HSplit(
                        Item('data_object_list', style='custom',
                             editor=InstanceEditor(editable=True),
-                            show_label=False, width=0.3, height=0.8),
+                            show_label=False, height=700.0),
                        Item('plot_frame_tabs', style='custom',
                             editor=ListEditor(editor=InstanceEditor(editable=True),
                                               use_notebook=True),
-                            show_label=False, width=0.3, height=0.8),
+                            show_label=False, height=700.0),
                        Item('plot_spec', style='custom',
                             editor=InstanceEditor(editable=True),
-                            show_label=False, width=0.3, height=0.8),
+                            show_label=False, height=700.0),
                     ),
                     HGroup(
                        Item('shell', editor=ShellEditor(),
-                            height=0.2, show_label=False)
-                    )
+                            show_label=False, height=100.0),
+                    ),
                 ),
-               resizable=True) 
+               resizable=True, width=0.9, height=0.9) 
+
 dol = DataObjectList()
 pft = [PlotFrameTab(), PlotFrameTab()]
 ps = PlotSpec()
