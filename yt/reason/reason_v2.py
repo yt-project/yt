@@ -26,37 +26,59 @@ License:
 from enthought.traits.api import HasTraits, List, Instance, Str, Float, \
                     Any
 from enthought.traits.ui.api import Group, VGroup, HGroup, Tabbed, View, \
-                    Item, ShellEditor
+                    Item, ShellEditor, InstanceEditor, ListStrEditor, \
+                    ListEditor
+from enthought.pyface.dock.api import add_feature
 
 
 class DataObjectList(HasTraits):
-    data_objects = List
+    data_objects = List(Str)
+
+    view = View(
+              Item('data_objects', show_label=False,
+                   editor=ListStrEditor())
+               )
 
     def _data_objects_default(self):
         return ['a','b','c']
 
 class PlotFrameTab(HasTraits):
     my_name = Str('hi')
+    view = View(Item('my_name', show_label=False))
 
 class PlotSpec(HasTraits):
     width = Float(1.0)
+    view = View(Item('width', show_label=False))
 
 class MainWindow(HasTraits):
     data_object_list = Instance(DataObjectList)
-    plot_frame_tabs = List(PlotFrameTab)
+    plot_frame_tabs = List(Instance(PlotFrameTab))
     plot_spec = Instance(PlotSpec)
     shell = Any
 
     view = View(VGroup(
-                    HGroup(Item('data_object_list'),
-                       Item('plot_frame_tabs'),
-                       Item('plot_spec')),
-                    HGroup(Item('shell', editor=ShellEditor()))))
-                
+                    HGroup(
+                       Item('data_object_list', style='custom',
+                            editor=InstanceEditor(editable=True),
+                            show_label=False, width=0.3, height=0.8),
+                       Item('plot_frame_tabs', style='custom',
+                            editor=ListEditor(editor=InstanceEditor(editable=True),
+                                              use_notebook=True),
+                            show_label=False, width=0.3, height=0.8),
+                       Item('plot_spec', style='custom',
+                            editor=InstanceEditor(editable=True),
+                            show_label=False, width=0.3, height=0.8),
+                    ),
+                    HGroup(
+                       Item('shell', editor=ShellEditor(),
+                            height=0.2, show_label=False)
+                    )
+                ),
+               resizable=True) 
 dol = DataObjectList()
-pft = PlotFrameTab()
+pft = [PlotFrameTab(), PlotFrameTab()]
 ps = PlotSpec()
 mw = MainWindow(data_object_list = dol,
-                plot_frame_tabs = [pft],
+                plot_frame_tabs = pft,
                 plot_spec=ps)
 mw.configure_traits()
