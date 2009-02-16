@@ -36,6 +36,8 @@ from enthought.traits.ui.menu import \
 from enthought.traits.ui.menu import \
     OKCancelButtons
 
+from enthought.traits.ui.wx.range_editor import SimpleSliderEditor
+
 from plot_editors import Figure, MPLFigureEditor, Axes
 
 from yt.raven.PlotTypes import VMPlot, ProjectionPlot, SlicePlot
@@ -89,28 +91,57 @@ class DataObjectList(HasTraits):
 class PlotFrameTab(DataObject):
     figure = Instance(Figure)
 
+class _LogFormat(str):
+    def _convert_floats(self, other):
+        args = []
+        if not isinstance(other, types.TupleType):
+            other = (other,)
+        for arg in other:
+            if isinstance(arg, types.FloatType):
+                args.append(10**arg)
+            else:
+                args.append(arg)
+        return tuple(args)
+
+    def __mod__(self, other):
+        args = self._convert_floats(other)
+        return str.__mod__(self, tuple(args))
+
+    def __rmod__(self, other):
+        args = self._convert_floats(other)
+        return str.__rmod__(self, tuple(args))
+
+lf = _LogFormat("%0.2e")
+
 class VMPlotTab(PlotFrameTab):
     
     pf = Instance(EnzoStaticOutput)
     figure = Instance(Figure, args=())
     plot = Instance(VMPlot)
     axes = Instance(Axes)
-    width = Float(1.0)
+    disp_width = Float(1.0)
     unit = Str('1')
     field = Str('Density')
+    min_width = Float(-5.0)
+    max_width = Float(0.0)
 
     view = View(VGroup(
             HGroup(Item('figure', editor=MPLFigureEditor(),
                      show_label=False)),
-            HGroup(Item('width', editor=RangeEditor(), show_label=False),
-                   Item('unit'), Item('field'))),
+            VGroup(
+            HGroup(Item('disp_width',
+                     editor=RangeEditor(format="%0.2e",
+                        low=1e-5, high=1e5),
+                     show_label=False),
+                   Item('unit'),),
+                   Item('field'))),
              resizable=True)
 
     def __init__(self, **traits):
         super(VMPlotTab, self).__init__(**traits)
         self.axes = self.figure.add_subplot(111, aspect='equal')
 
-    def _width_changed(self, old, new):
+    def _disp_width_changed(self, old, new):
         self.plot.set_width(new, self.unit)
         self.figure.canvas.draw()
 
