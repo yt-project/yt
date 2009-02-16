@@ -28,21 +28,38 @@ pf = EnzoStaticOutput("/Users/matthewturk/Research/data/galaxy1200.dir/galaxy120
 
 from enthought.traits.api import \
     HasTraits, List, Instance, Str, Float, Any, Code, PythonValue, Int, CArray, \
-    Property, Enum, cached_property
+    Property, Enum, cached_property, DelegatesTo, Callable
 from enthought.traits.ui.api import \
     Group, VGroup, HGroup, Tabbed, View, Item, ShellEditor, InstanceEditor, ListStrEditor, \
     ListEditor, VSplit, VFlow, HSplit, VFold, ValueEditor, TreeEditor, TreeNode, RangeEditor, \
-    EnumEditor
+    EnumEditor, Handler, Controller
 from enthought.traits.ui.menu import \
-    Menu, Action, Separator
-from enthought.traits.ui.menu import \
-    OKCancelButtons
+    Menu, Action, Separator, OKCancelButtons, OKButton
 
 from enthought.traits.ui.wx.range_editor import SimpleSliderEditor
 
 from plot_editors import Figure, MPLFigureEditor, Axes
 
 from yt.raven.PlotTypes import VMPlot, ProjectionPlot, SlicePlot
+
+class PlotCreationHandler(Controller):
+    main_window = Instance(HasTraits)
+    pnode = Instance(HasTraits)
+
+    format = Str
+    plot_type = Any
+    
+    def close(self, info, is_ok):
+        if not is_ok:
+            super(Controller, self).close(info, True)
+            return
+        print self.plot_type
+        spt = self.plot_type(plot_spec=self.model, pf=self.pnode.pf,
+                           name=self.format % (self.model.axis))
+        print spt
+        self.pnode.data_objects.append(spt)
+        self.main_window.plot_frame_tabs.append(spt)
+        spt.plot
 
 class DataObject(HasTraits):
     name = Str
@@ -56,10 +73,26 @@ class ParameterFile(HasTraits):
         return str(self.pf)
 
     def do_slice(self):
-        spt = SlicePlotTab(pf=self.pf, name="MySlice")
-        self.data_objects.append(spt)
-        mw.plot_frame_tabs.append(spt)
-        spt.plot
+        cons_view = View(
+                Item('axis'), 
+                Item('center'), 
+                Item('field', editor=EnumEditor(name='field_list')),
+                buttons=OKCancelButtons, title="Slicer: %s" % self.pf)
+        ps = SlicePlotSpec(pf=self.pf)
+        hand = PlotCreationHandler(main_window=mw, pnode=self, model=ps,
+                                   plot_type=SlicePlotTab, format="Slice: %s")
+        ps.edit_traits(cons_view, handler=hand)
+
+    def do_proj(self):
+        cons_view = View(
+                Item('axis'), 
+                Item('field', editor=EnumEditor(name='field_list')),
+                Item('weight_field', editor=EnumEditor(name='none_field_list')),
+                buttons=OKCancelButtons, title="Projector: %s" % self.pf)
+        ps = ProjPlotSpec(pf=self.pf)
+        hand = PlotCreationHandler(main_window=mw, pnode=self, model=ps,
+                                   plot_type=ProjPlotTab, format="Proj: %s")
+        ps.edit_traits(cons_view, handler=hand)
 
 class ParameterFileCollection(HasTraits):
     parameter_files = List(Instance(ParameterFile))
@@ -82,7 +115,7 @@ class ParameterFileCollection(HasTraits):
 class DataObjectList(HasTraits):
     data_objects = List(Str)
 
-    view = View(
+    traits_view = View(
               Item('data_objects', show_label=False,
                    editor=ListStrEditor())
                )
@@ -115,31 +148,60 @@ class _LogFormat(str):
 
 lf = _LogFormat("%0.2e")
 
+class VMPlotSpec(HasTraits):
+    pf = Instance(EnzoStaticOutput)
+    field = Str('Density')
+    field_list = Property(depends_on = 'pf')
+
+    center = CArray(shape=(3,), dtype='float64')
+    axis = Enum(0,1,2)
+
+    @cached_property
+    def _get_field_list(self):
+        fl = self.pf.h.field_list
+        df = self.pf.h.derived_field_list
+        fl.sort(); df.sort()
+        return fl + df
+
+    def _center_default(self):
+        return self.pf.h.find_max("Density")[1]
+
+class SlicePlotSpec(VMPlotSpec):
+    pass
+
+class ProjPlotSpec(VMPlotSpec):
+    weight_field = Str("None")
+    none_field_list = Property(depends_on = 'field_list')
+
+    @cached_property
+    def _get_none_field_list(self):
+        return ["None"] + self.field_list
+
 class VMPlotTab(PlotFrameTab):
-    
     pf = Instance(EnzoStaticOutput)
     figure = Instance(Figure, args=())
+    field = DelegatesTo('plot_spec')
+    field_list = DelegatesTo('plot_spec')
     plot = Instance(VMPlot)
     axes = Instance(Axes)
     disp_width = Float(1.0)
     unit = Str('unitary')
-    field = Str('Density')
     min_width = Property(Float, depends_on=['pf','unit'])
     max_width = Property(Float, depends_on=['pf','unit'])
     unit_list = Property(depends_on = 'pf')
-    field_list = Property(depends_on = 'pf')
     smallest_dx = Property(depends_on = 'pf')
 
-    view = View(VGroup(
+    traits_view = View(VGroup(
             HGroup(Item('figure', editor=MPLFigureEditor(),
                      show_label=False)),
             HGroup(Item('disp_width',
                      editor=RangeEditor(format="%0.2e",
-                        low_name='min_width', high_name='max_width'),
-                     show_label=False),
+                        low_name='min_width', high_name='max_width',
+                        mode='log', enter_set=True),
+                     show_label=False, width=400.0),
                    Item('unit',
-                      editor=EnumEditor(name='unit_list')),
-                   Item('field',
+                      editor=EnumEditor(name='unit_list')),),
+            HGroup(Item('field',
                       editor=EnumEditor(name='field_list')),
                 )),
              resizable=True)
@@ -154,29 +216,19 @@ class VMPlotTab(PlotFrameTab):
 
     @cached_property
     def _get_min_width(self):
-        print "HI!"
         return 50.0*self.smallest_dx*self.pf[self.unit]
 
     @cached_property
     def _get_max_width(self):
-        print "OH NO"
         return self.pf['unitary']*self.pf[self.unit]
 
     @cached_property
     def _get_smallest_dx(self):
-        print "SMALLEST"
         return self.pf.h.get_smallest_dx()
 
     @cached_property
     def _get_unit_list(self):
         return self.pf.units.keys()
-
-    @cached_property
-    def _get_field_list(self):
-        fl = self.pf.h.field_list
-        df = self.pf.h.derived_field_list
-        fl.sort(); df.sort()
-        return fl + df
 
     def _unit_changed(self, old, new):
         self.disp_width = self.disp_width * self.pf[new]/self.pf[old]
@@ -189,9 +241,12 @@ class VMPlotTab(PlotFrameTab):
         self.figure.canvas.draw()
 
 class SlicePlotTab(VMPlotTab):
+    plot_spec = Instance(SlicePlotSpec)
+
+    axis = DelegatesTo('plot_spec')
+    center = DelegatesTo('plot_spec')
+    
     plot = Instance(SlicePlot)
-    axis = Int(0)
-    center = CArray(shape=(3,), dtype='float64')
 
     def _plot_default(self):
         coord = self.center[self.axis]
@@ -200,8 +255,24 @@ class SlicePlotTab(VMPlotTab):
         self.figure.canvas.draw()
         return sp
 
-    def _center_default(self):
-        return self.pf.h.find_max("Density")[1]
+class ProjPlotTab(VMPlotTab):
+    plot_spec = Instance(ProjPlotSpec)
+
+    axis = DelegatesTo('plot_spec')
+    center = DelegatesTo('plot_spec')
+    weight_field = DelegatesTo('plot_spec')
+
+    plot = Instance(ProjectionPlot)
+
+    def _plot_default(self):
+        wf = self.weight_field
+        if str(wf) == "None": wf = None
+        proj = self.pf.h.proj(self.axis, self.field, wf,
+                        center=self.center)
+        pp = ProjectionPlot(proj, self.field, self.figure, self.axes)
+        self.figure.canvas.draw()
+        return pp
+
 
 class SphereWrapper(DataObject):
     radius = Float
@@ -215,7 +286,7 @@ class MainWindow(HasTraits):
     def _shell_default(self):
         return globals()
 
-    view = View(VSplit(
+    traits_view = View(VSplit(
                     HSplit(
                        Item('parameter_files', 
                             width=120.0, height=500.0,
@@ -232,8 +303,10 @@ class MainWindow(HasTraits):
                         TreeNode(node_for=[ParameterFile],
                                  children='data_objects',
                                  label="name",
-                                 menu = Menu(Action(name='slice',
-                                                    action='object.do_slice')),
+                                 menu = Menu(Action(name='Slice',
+                                                    action='object.do_slice'),
+                                             Action(name='Project',
+                                                    action='object.do_proj')),
                                  view=View()),
                         TreeNode(node_for=[DataObject],
                                  children='',
@@ -259,13 +332,14 @@ class MainWindow(HasTraits):
 
 class YTScript(HasTraits):
     code = Code
-    view = View(Item('code', show_label=False),
-                height=0.8, width=0.8, resizable=True,
-                buttons=OKCancelButtons)
+    traits_view = View(Item('code', show_label=False),
+                       height=0.8, width=0.8, resizable=True,
+                       buttons=OKCancelButtons)
 
 class ObjectViewer(HasTraits):
     to_view=Any
-    view = View(Item('to_view', editor=ValueEditor(), show_label=False),
+    traits_view = View(
+            Item('to_view', editor=ValueEditor(), show_label=False),
                      resizable=True, height=0.8, width=0.8)
 
 def view_object(obj):
@@ -277,7 +351,5 @@ def run_script():
     return my_script
 
 dol = DataObjectList()
-pft = [SlicePlotTab(pf=pf)]
-mw = MainWindow(data_object_list = dol,
-                plot_frame_tabs = [])
+mw = MainWindow(plot_frame_tabs = [])
 mw.configure_traits()
