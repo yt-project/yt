@@ -304,8 +304,8 @@ class VMPlot(RavenPlot):
     def set_width(self, width, unit):
         self["Unit"] = str(unit)
         self["Width"] = float(width)
-        if isinstance(unit, types.StringType):
-            unit = self.data.hierarchy[unit]
+        if isinstance(unit, types.StringTypes):
+            unit = self.data.hierarchy[str(unit)]
         self.width = width / unit
         self._refresh_display_width()
 
@@ -548,8 +548,8 @@ class ParticlePlot(RavenPlot):
     def set_width(self, width, unit):
         self["Unit"] = str(unit)
         self["Width"] = float(width)
-        if isinstance(unit, types.StringType):
-            unit = self.data.hierarchy[unit]
+        if isinstance(unit, types.StringTypes):
+            unit = self.data.hierarchy[str(unit)]
         self.width = width / unit
         self._refresh_display_width()
 

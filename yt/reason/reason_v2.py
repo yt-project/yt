@@ -26,13 +26,54 @@ License:
 from yt.mods import *
 pf = EnzoStaticOutput("/Users/matthewturk/Research/data/galaxy1200.dir/galaxy1200")
 
-from enthought.traits.api import HasTraits, List, Instance, Str, Float, \
-                    Any, Code, PythonValue
-from enthought.traits.ui.api import Group, VGroup, HGroup, Tabbed, View, \
-                    Item, ShellEditor, InstanceEditor, ListStrEditor, \
-                    ListEditor, VSplit, VFlow, HSplit, VFold, ValueEditor, \
-                    TreeEditor, TreeNode, RangeEditor
-from enthought.traits.ui.menu import OKCancelButtons
+from enthought.traits.api import \
+    HasTraits, List, Instance, Str, Float, Any, Code, PythonValue, Int, CArray
+from enthought.traits.ui.api import \
+    Group, VGroup, HGroup, Tabbed, View, Item, ShellEditor, InstanceEditor, ListStrEditor, \
+    ListEditor, VSplit, VFlow, HSplit, VFold, ValueEditor, TreeEditor, TreeNode, RangeEditor
+from enthought.traits.ui.menu import \
+    Menu, Action, Separator
+from enthought.traits.ui.menu import \
+    OKCancelButtons
+
+from plot_editors import Figure, MPLFigureEditor, Axes
+
+from yt.raven.PlotTypes import VMPlot, ProjectionPlot, SlicePlot
+
+class DataObject(HasTraits):
+    name = Str
+
+class ParameterFile(HasTraits):
+    pf = Instance(EnzoStaticOutput)
+    data_objects = List(Instance(DataObject))
+    name = Str
+
+    def _name_default(self):
+        return str(self.pf)
+
+    def do_slice(self):
+        spt = SlicePlotTab(pf=self.pf, name="MySlice")
+        self.data_objects.append(spt)
+        mw.plot_frame_tabs.append(spt)
+        spt.plot
+
+class ParameterFileCollection(HasTraits):
+    parameter_files = List(Instance(ParameterFile))
+    name = Str
+
+    def _parameter_files_default(self):
+        gc = fido.GrabCollections()
+        my_list = []
+        for f in gc[0]:
+            pf = EnzoStaticOutput(f)
+            my_list.append(
+                ParameterFile(pf=pf, 
+                        data_objects = []))
+        return my_list
+
+    def _name_default(self):
+        gc = fido.GrabCollections()
+        return str(gc[0])
 
 class DataObjectList(HasTraits):
     data_objects = List(Str)
@@ -45,47 +86,52 @@ class DataObjectList(HasTraits):
     def _data_objects_default(self):
         return ['a','b','c']
 
-class PlotSpec(HasTraits):
-    width = Float(1.0)
-    view = View(Item('width', editor=RangeEditor(),
-                     show_label=False))
+class PlotFrameTab(DataObject):
+    figure = Instance(Figure)
 
-class PlotFrameTab(HasTraits):
-    my_spec = Instance(PlotSpec)
-    view = View(Item('my_spec', show_label=False, style='custom',
-                     editor=InstanceEditor(editable=True)))
-
-    def _my_spec_default(self):
-        return PlotSpec()
-
-class DataObject(HasTraits):
-    name = Str
-
-class ParameterFileNode(HasTraits):
+class VMPlotTab(PlotFrameTab):
+    
     pf = Instance(EnzoStaticOutput)
-    data_objects = List(Instance(DataObject))
-    name = Str
+    figure = Instance(Figure, args=())
+    plot = Instance(VMPlot)
+    axes = Instance(Axes)
+    width = Float(1.0)
+    unit = Str('1')
+    field = Str('Density')
 
-    def _name_default(self):
-        return str(self.pf)
+    view = View(VGroup(
+            HGroup(Item('figure', editor=MPLFigureEditor(),
+                     show_label=False)),
+            HGroup(Item('width', editor=RangeEditor(), show_label=False),
+                   Item('unit'), Item('field'))),
+             resizable=True)
 
-class ParameterFileCollection(HasTraits):
-    parameter_files = List(Instance(ParameterFileNode))
-    name = Str
+    def __init__(self, **traits):
+        super(VMPlotTab, self).__init__(**traits)
+        self.axes = self.figure.add_subplot(111, aspect='equal')
 
-    def _parameter_files_default(self):
-        gc = fido.GrabCollections()
-        my_list = []
-        for f in gc[0]:
-            pf = EnzoStaticOutput(f)
-            my_list.append(
-                ParameterFileNode(pf=pf, 
-                        data_objects = [DataObject(name='yo')]))
-        return my_list
+    def _width_changed(self, old, new):
+        self.plot.set_width(new, self.unit)
+        self.figure.canvas.draw()
 
-    def _name_default(self):
-        gc = fido.GrabCollections()
-        return str(gc[0])
+class SlicePlotTab(VMPlotTab):
+    plot = Instance(SlicePlot)
+    axis = Int(0)
+    center = CArray(shape=(3,), dtype='float64')
+
+    def _plot_default(self):
+        coord = self.center[self.axis]
+        sl = self.pf.h.slice(self.axis, coord, center=self.center)
+        sp = SlicePlot(sl, self.field, self.figure, self.axes)
+        self.figure.canvas.draw()
+        return sp
+
+    def _center_default(self):
+        return self.pf.h.find_max("Density")[1]
+
+class SphereWrapper(DataObject):
+    radius = Float
+    unit = Str
 
 class MainWindow(HasTraits):
     parameter_files = Instance(ParameterFileCollection)
@@ -98,7 +144,7 @@ class MainWindow(HasTraits):
     view = View(VSplit(
                     HSplit(
                        Item('parameter_files', 
-                            height=700.0, width=100.0,
+                            width=120.0, height=500.0,
                             show_label=False,
                             editor = TreeEditor(editable=False,
                     nodes=[
@@ -109,9 +155,11 @@ class MainWindow(HasTraits):
                                  children='parameter_files',
                                  label="name",
                                  view=View()),
-                        TreeNode(node_for=[ParameterFileNode],
+                        TreeNode(node_for=[ParameterFile],
                                  children='data_objects',
                                  label="name",
+                                 menu = Menu(Action(name='slice',
+                                                    action='object.do_slice')),
                                  view=View()),
                         TreeNode(node_for=[DataObject],
                                  children='',
@@ -120,14 +168,14 @@ class MainWindow(HasTraits):
                        Item('plot_frame_tabs', style='custom',
                             editor=ListEditor(editor=InstanceEditor(editable=True),
                                               use_notebook=True),
-                            show_label=False, height=700.0, width=800.0),
+                            show_label=False, height=500.0, width=500.0),
                     ),
                     HGroup(
                        Item('shell', editor=ShellEditor(share=True),
-                            show_label=False, height=100.0),
+                            show_label=False, height=120.0),
                     ),
                 ),
-               resizable=True, width=0.9, height=0.9) 
+               resizable=True, width=800.0, height=660.0) 
 
     def my_select(self, ui):
         print "HI!"
@@ -155,9 +203,7 @@ def run_script():
     return my_script
 
 dol = DataObjectList()
-pft = [PlotFrameTab(), PlotFrameTab()]
-ps = PlotSpec()
+pft = [SlicePlotTab(pf=pf)]
 mw = MainWindow(data_object_list = dol,
-                plot_frame_tabs = pft,
-                plot_spec=ps)
+                plot_frame_tabs = [])
 mw.configure_traits()
