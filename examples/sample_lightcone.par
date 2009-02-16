@@ -4,9 +4,14 @@ FinalRedshift = 0.0
 FieldOfViewInArcMinutes = 450.0
 ImageResolutionInArcSeconds = 30.0
 
-RandomSeed = 123456789
-
+# Minimal light cones: use as few slices as possible.
 UseMinimumNumberOfProjections = 1
+MinimumCoherentBoxFraction = 0.0
+
+# Maximal light cones: use as many slices as possible.
+# UseMinimumNumberOfProjections = 0
+# Traverse half the box before rerandomizing shifts.
+# MinimumCoherentBoxFraction = 0.5 # (maximum: 1.0)
 
 OutputDir = LC
 OutputPrefix = LightCone
