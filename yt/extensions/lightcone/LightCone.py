@@ -50,6 +50,9 @@ class LightCone(object):
         self.projectionWeightFieldStack = []
         self.haloMask = []
 
+        # Original random seed of the first solution.
+        self.originalRandomSeed = 0
+
         # Parameters for recycling light cone solutions.
         self.recycleSolution = False
         self.recycleRandomSeed = 0
@@ -104,7 +107,7 @@ class LightCone(object):
         self.haloMask = []
 
         if seed is not None:
-            self.lightConeParameters['RandomSeed'] = int(seed)
+            self.originalRandomSeed = int(seed)
 
         # Make light cone using minimum number of projections.
         if (self.lightConeParameters['UseMinimumNumberOfProjections']):
@@ -160,7 +163,7 @@ class LightCone(object):
                                      self.lightConeParameters['FinalRedshift']))
 
         # Calculate projection sizes, and get random projection axes and centers.
-        rand.seed(self.lightConeParameters['RandomSeed'])
+        rand.seed(self.originalRandomSeed)
         co = lagos.Cosmology(HubbleConstantNow = (100.0 * self.enzoParameters['CosmologyHubbleConstantNow']),
                              OmegaMatterNow = self.enzoParameters['CosmologyOmegaMatterNow'],
                              OmegaLambdaNow = self.enzoParameters['CosmologyOmegaLambdaNow'])
@@ -356,12 +359,12 @@ class LightCone(object):
 
         if recycle:
             if self.verbose: mylog.info("Recycling solution made with %s with new seed %s." % 
-                                        (self.lightConeParameters['RandomSeed'],
+                                        (self.originalRandomSeed,
                                          newSeed))
             self.recycleRandomSeed = int(newSeed)
         else:
             if self.verbose: mylog.info("Creating new solution with random seed %s." % newSeed)
-            self.lightConeParameters['RandomSeed'] = int(newSeed)
+            self.originalRandomSeed = int(newSeed)
             self.recycleRandomSeed = 0
 
         self.recycleSolution = recycle
@@ -456,9 +459,11 @@ class LightCone(object):
         f = open(file,'w')
         if self.recycleSolution:
             f.write("Recycled Solution\n")
+            f.write("OriginalRandomSeed = %s\n" % self.originalRandomSeed)
             f.write("RecycleRandomSeed = %s\n" % self.recycleRandomSeed)
         else:
             f.write("Original Solution\n")
+            f.write("OriginalRandomSeed = %s\n" % self.originalRandomSeed)
         f.write("EnzoParameterFile = %s\n" % self.EnzoParameterFile)
         f.write("LightConeParameterFile = %s\n" % self.LightConeParameterFile)
         f.write("\n")
