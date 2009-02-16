@@ -27,10 +27,12 @@ from yt.mods import *
 pf = EnzoStaticOutput("/Users/matthewturk/Research/data/galaxy1200.dir/galaxy1200")
 
 from enthought.traits.api import \
-    HasTraits, List, Instance, Str, Float, Any, Code, PythonValue, Int, CArray
+    HasTraits, List, Instance, Str, Float, Any, Code, PythonValue, Int, CArray, \
+    Property, Enum, cached_property
 from enthought.traits.ui.api import \
     Group, VGroup, HGroup, Tabbed, View, Item, ShellEditor, InstanceEditor, ListStrEditor, \
-    ListEditor, VSplit, VFlow, HSplit, VFold, ValueEditor, TreeEditor, TreeNode, RangeEditor
+    ListEditor, VSplit, VFlow, HSplit, VFold, ValueEditor, TreeEditor, TreeNode, RangeEditor, \
+    EnumEditor
 from enthought.traits.ui.menu import \
     Menu, Action, Separator
 from enthought.traits.ui.menu import \
@@ -120,29 +122,70 @@ class VMPlotTab(PlotFrameTab):
     plot = Instance(VMPlot)
     axes = Instance(Axes)
     disp_width = Float(1.0)
-    unit = Str('1')
+    unit = Str('unitary')
     field = Str('Density')
-    min_width = Float(-5.0)
-    max_width = Float(0.0)
+    min_width = Property(Float, depends_on=['pf','unit'])
+    max_width = Property(Float, depends_on=['pf','unit'])
+    unit_list = Property(depends_on = 'pf')
+    field_list = Property(depends_on = 'pf')
+    smallest_dx = Property(depends_on = 'pf')
 
     view = View(VGroup(
             HGroup(Item('figure', editor=MPLFigureEditor(),
                      show_label=False)),
-            VGroup(
             HGroup(Item('disp_width',
                      editor=RangeEditor(format="%0.2e",
-                        low=1e-5, high=1e5),
+                        low_name='min_width', high_name='max_width'),
                      show_label=False),
-                   Item('unit'),),
-                   Item('field'))),
+                   Item('unit',
+                      editor=EnumEditor(name='unit_list')),
+                   Item('field',
+                      editor=EnumEditor(name='field_list')),
+                )),
              resizable=True)
 
     def __init__(self, **traits):
         super(VMPlotTab, self).__init__(**traits)
         self.axes = self.figure.add_subplot(111, aspect='equal')
 
+    def _field_changed(self, old, new):
+        self.plot.switch_z(new)
+        self._redraw()
+
+    @cached_property
+    def _get_min_width(self):
+        print "HI!"
+        return 50.0*self.smallest_dx*self.pf[self.unit]
+
+    @cached_property
+    def _get_max_width(self):
+        print "OH NO"
+        return self.pf['unitary']*self.pf[self.unit]
+
+    @cached_property
+    def _get_smallest_dx(self):
+        print "SMALLEST"
+        return self.pf.h.get_smallest_dx()
+
+    @cached_property
+    def _get_unit_list(self):
+        return self.pf.units.keys()
+
+    @cached_property
+    def _get_field_list(self):
+        fl = self.pf.h.field_list
+        df = self.pf.h.derived_field_list
+        fl.sort(); df.sort()
+        return fl + df
+
+    def _unit_changed(self, old, new):
+        self.disp_width = self.disp_width * self.pf[new]/self.pf[old]
+
     def _disp_width_changed(self, old, new):
         self.plot.set_width(new, self.unit)
+        self._redraw()
+
+    def _redraw(self):
         self.figure.canvas.draw()
 
 class SlicePlotTab(VMPlotTab):
