@@ -91,6 +91,12 @@ class LightCone(object):
     def CalculateLightConeSolution(self,seed=None):
         "Create list of projections to be added together to make the light cone."
 
+        # Don't use box coherence with maximum projection depths.
+        if self.lightConeParameters['UseMinimumNumberOfProjections'] and \
+                self.lightConeParameters['MinimumCoherentBoxFraction'] > 0:
+            mylog.info("Setting MinimumCoherentBoxFraction to 0 with minimal light cone.")
+            self.lightConeParameters['MinimumCoherentBoxFraction'] = 0
+
         # Make sure recycling flag is off.
         self.recycleSolution = False
 
@@ -148,15 +154,19 @@ class LightCone(object):
                     self.lightConeSolution.append(nextOutput)
                 nextOutput = nextOutput['next']
 
-        if self.verbose: mylog.info("CalculateLightConeSolution: Used %d data dumps to get from z = %f to %f." % (len(self.lightConeSolution),
-                                                                                            self.lightConeParameters['InitialRedshift'],
-                                                                                            self.lightConeParameters['FinalRedshift']))
+        if self.verbose: mylog.info("CalculateLightConeSolution: Used %d data dumps to get from z = %f to %f." % 
+                                    (len(self.lightConeSolution),
+                                     self.lightConeParameters['InitialRedshift'],
+                                     self.lightConeParameters['FinalRedshift']))
 
         # Calculate projection sizes, and get random projection axes and centers.
         rand.seed(self.lightConeParameters['RandomSeed'])
         co = lagos.Cosmology(HubbleConstantNow = (100.0 * self.enzoParameters['CosmologyHubbleConstantNow']),
-                       OmegaMatterNow = self.enzoParameters['CosmologyOmegaMatterNow'],
-                       OmegaLambdaNow = self.enzoParameters['CosmologyOmegaLambdaNow'])
+                             OmegaMatterNow = self.enzoParameters['CosmologyOmegaMatterNow'],
+                             OmegaLambdaNow = self.enzoParameters['CosmologyOmegaLambdaNow'])
+
+        # For box coherence, keep track of effective depth travelled.
+        boxFractionUsed = 0.0
 
         for q in range(len(self.lightConeSolution)):
             del self.lightConeSolution[q]['previous']
@@ -165,15 +175,19 @@ class LightCone(object):
                 z_next = self.lightConeParameters['FinalRedshift']
             else:
                 z_next = self.lightConeSolution[q+1]['redshift']
+
             # Calculate fraction of box required for a depth of delta z
             self.lightConeSolution[q]['DepthBoxFraction'] = co.ComovingRadialDistance(z_next,self.lightConeSolution[q]['redshift']) * \
                 self.enzoParameters['CosmologyHubbleConstantNow'] / self.enzoParameters['CosmologyComovingBoxSize']
+
             # Simple error check to make sure more than 100% of box depth is never required.
             if (self.lightConeSolution[q]['DepthBoxFraction'] > 1.0):
-                if self.verbose: mylog.error("Warning: box fraction required to go from z = %f to %f is %f" % (self.lightConeSolution[q]['redshift'],z_next,
-                                                                                                               self.lightConeSolution[q]['DepthBoxFraction']))
-                if self.verbose: mylog.error("Full box delta z is %f, but it is %f to the next data dump." % (self.lightConeSolution[q]['deltazMax'],
-                                                                                                              self.lightConeSolution[q]['redshift']-z_next))
+                if self.verbose: mylog.error("Warning: box fraction required to go from z = %f to %f is %f" % 
+                                             (self.lightConeSolution[q]['redshift'],z_next,
+                                              self.lightConeSolution[q]['DepthBoxFraction']))
+                if self.verbose: mylog.error("Full box delta z is %f, but it is %f to the next data dump." % 
+                                             (self.lightConeSolution[q]['deltazMax'],
+                                              self.lightConeSolution[q]['redshift']-z_next))
 
             # Calculate fraction of box required for width corresponding to requested image size.
             scale = co.AngularScale_1arcsec_kpc(self.lightConeParameters['FinalRedshift'],self.lightConeSolution[q]['redshift'])
@@ -182,9 +196,26 @@ class LightCone(object):
                                                                                (1.0 + self.lightConeSolution[q]['redshift']))
             self.lightConeSolution[q]['WidthBoxFraction'] = size / boxSizeProper
 
-            # Get random projection axis and center.
-            self.lightConeSolution[q]['ProjectionAxis'] = rand.randint(0,2)
-            self.lightConeSolution[q]['ProjectionCenter'] = [rand.random(),rand.random(),rand.random()]
+            # Get projection axis and center.
+            # If using box coherence, only get random axis and center if enough of the box has been used, 
+            # or if boxFractionUsed will be greater than 1 after this slice.
+            if (q == 0) or (self.lightConeParameters['MinimumCoherentBoxFraction'] == 0) or \
+                    (boxFractionUsed > self.lightConeParameters['MinimumCoherentBoxFraction']) or \
+                    (boxFractionUsed + self.lightConeSolution[q]['DepthBoxFraction'] > 1.0):
+                # Random axis and center.
+                self.lightConeSolution[q]['ProjectionAxis'] = rand.randint(0,2)
+                self.lightConeSolution[q]['ProjectionCenter'] = [rand.random(),rand.random(),rand.random()]
+                boxFractionUsed = 0.0
+            else:
+                # Same axis and center as previous slice, but with depth center shifted.
+                self.lightConeSolution[q]['ProjectionAxis'] = self.lightConeSolution[q-1]['ProjectionAxis']
+                self.lightConeSolution[q]['ProjectionCenter'] = copy.deepcopy(self.lightConeSolution[q-1]['ProjectionCenter'])
+                self.lightConeSolution[q]['ProjectionCenter'][self.lightConeSolution[q]['ProjectionAxis']] += \
+                    0.5 * (self.lightConeSolution[q]['DepthBoxFraction'] + self.lightConeSolution[q-1]['DepthBoxFraction'])
+                if self.lightConeSolution[q]['ProjectionCenter'][self.lightConeSolution[q]['ProjectionAxis']] >= 1.0:
+                    self.lightConeSolution[q]['ProjectionCenter'][self.lightConeSolution[q]['ProjectionAxis']] -= 1.0
+
+            boxFractionUsed += self.lightConeSolution[q]['DepthBoxFraction']
 
         # Store this as the master solution.
         self.masterSolution = [copy.deepcopy(q) for q in self.lightConeSolution]
@@ -210,7 +241,8 @@ class LightCone(object):
                 self.haloMask *= mask
             del haloMaskCube
 
-    def ProjectLightCone(self,field,weight_field=None,apply_halo_mask=False,node=None,save_stack=True,save_slice_images=False,flatten_stack=False,**kwargs):
+    def ProjectLightCone(self,field,weight_field=None,apply_halo_mask=False,node=None,
+                         save_stack=True,save_slice_images=False,flatten_stack=False,**kwargs):
         "Create projections for light cone, then add them together."
 
         # Clear projection stack.
@@ -323,8 +355,9 @@ class LightCone(object):
                 del slice['object']
 
         if recycle:
-            if self.verbose: mylog.info("Recycling solution made with %s with new seed %s." % (self.lightConeParameters['RandomSeed'],
-                                                                              newSeed))
+            if self.verbose: mylog.info("Recycling solution made with %s with new seed %s." % 
+                                        (self.lightConeParameters['RandomSeed'],
+                                         newSeed))
             self.recycleRandomSeed = int(newSeed)
         else:
             if self.verbose: mylog.info("Creating new solution with random seed %s." % newSeed)
@@ -337,6 +370,9 @@ class LightCone(object):
         commonVolume = 0.0
         totalVolume = 0.0
 
+        # For box coherence, keep track of effective depth travelled.
+        boxFractionUsed = 0.0
+
         # Seed random number generator with new seed.
         rand.seed(int(newSeed))
 
@@ -344,15 +380,33 @@ class LightCone(object):
             # It is necessary to make the same number of calls to the random number generator
             # so the original solution willbe produced if the same seed is given.
 
-            # Get random projection axis and center.
-            # If recycling, axis will get thrown away since it is used in creating a unique projection object.
-            newAxis = rand.randint(0,2)
+            # Get projection axis and center.
+            # If using box coherence, only get random axis and center if enough of the box has been used, 
+            # or if boxFractionUsed will be greater than 1 after this slice.
+            if (q == 0) or (self.lightConeParameters['MinimumCoherentBoxFraction'] == 0) or \
+                    (boxFractionUsed > self.lightConeParameters['MinimumCoherentBoxFraction']) or \
+                    (boxFractionUsed + self.lightConeSolution[q]['DepthBoxFraction'] > 1.0):
+                # Get random projection axis and center.
+                # If recycling, axis will get thrown away since it is used in creating a unique projection object.
+                newAxis = rand.randint(0,2)
+
+                newCenter = [rand.random(),rand.random(),rand.random()]
+                boxFractionUsed = 0.0
+            else:
+                # Same axis and center as previous slice, but with depth center shifted.
+                newAxis = self.lightConeSolution[q-1]['ProjectionAxis']
+                newCenter = copy.deepcopy(self.lightConeSolution[q-1]['ProjectionCenter'])
+                newCenter[newAxis] += \
+                    0.5 * (self.lightConeSolution[q]['DepthBoxFraction'] + self.lightConeSolution[q-1]['DepthBoxFraction'])
+                if newCenter[newAxis] >= 1.0:
+                    newCenter[newAxis] -= 1.0
+
             if recycle:
                 output['ProjectionAxis'] = self.masterSolution[q]['ProjectionAxis']
             else:
                 output['ProjectionAxis'] = newAxis
 
-            newCenter = [rand.random(),rand.random(),rand.random()]
+            boxFractionUsed += self.lightConeSolution[q]['DepthBoxFraction']
 
             # Make list of rectangle corners to calculate common volume.
             newCube = na.zeros(shape=(len(newCenter),2))
@@ -487,7 +541,8 @@ class LightCone(object):
                 distance2 = co.ComovingRadialDistance(z2,z) * self.enzoParameters['CosmologyHubbleConstantNow']
                 iteration += 1
                 if (iteration > max_Iterations):
-                    if self.verbose: mylog.error("CalculateDeltaZMax: Warning - max iterations exceeded for z = %f (delta z = %f)." % (z,na.fabs(z2-z)))
+                    if self.verbose: mylog.error("CalculateDeltaZMax: Warning - max iterations exceeded for z = %f (delta z = %f)." % 
+                                                 (z,na.fabs(z2-z)))
                     break
             output['deltazMin'] = na.fabs(z2-z)
 
@@ -647,6 +702,7 @@ class LightCone(object):
         self.enzoParameters['DataDumpName'] = "DD"
         self.enzoParameters['DataDumpDir'] = "DD"
         self.lightConeParameters['UseMinimumNumberOfProjections'] = 1
+        self.lightConeParameters['MinimumCoherentBoxFraction'] = 0.0
         self.lightConeParameters['OutputDir'] = "./"
         self.lightConeParameters['OutputPrefix'] = "LightCone"
 
@@ -669,7 +725,7 @@ LightConeParameterDict = {"InitialRedshift": float,
                           "FinalRedshift": float,
                           "FieldOfViewInArcMinutes": float,
                           "ImageResolutionInArcSeconds": float,
-                          "RandomSeed": int,
                           "UseMinimumNumberOfProjections": int,
+                          "MinimumCoherentBoxFraction": float,
                           "OutputDir": str,
                           "OutputPrefix": str}
