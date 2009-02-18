@@ -110,6 +110,20 @@ class FixedResolutionBuffer(object):
         else: data=self[field]
         numdisplay.display(data)
 
+class ObliqueFixedResolutionBuffer(FixedResolutionBuffer):
+    def __getitem__(self, item):
+        if item in self.data: return self.data[item]
+        indices = na.argsort(self.data_source['dx'])[::-1]
+        buff = _MPL.CPixelize( self.data_source['x'],   self.data_source['y'],   self.data_source['z'],
+                               self.data_source['px'],  self.data_source['py'],
+                               self.data_source['pdx'], self.data_source['pdy'], self.data_source['pdz'],
+                               self.data_source.center, self.data_source._inv_mat, indices,
+                               self.data_source[item],
+                               self.buff_size[0], self.buff_size[1],
+                               self.bounds).transpose()
+        self[item] = buff
+        return buff
+
 class AnnuliProfiler(object):
     def __init__(self, fixed_buffer, center, num_bins, min_radius, max_radius):
         """
