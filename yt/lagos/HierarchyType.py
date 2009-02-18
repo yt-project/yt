@@ -190,6 +190,7 @@ class AMRHierarchy:
         if self._data_file == None:
             return None
         try:
+            if node[0] != "/": node = "/%s" % node
             return self._data_file.getNode(node, name)
         except tables.exceptions.NoSuchNodeError:
             return None
