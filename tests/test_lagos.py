@@ -17,7 +17,9 @@ ytcfg["lagos","serialize"] = "False"
 
 import cPickle
 import yt.lagos
+import yt.lagos.OutputTypes
 import numpy as na
+from yt.fido import ParameterFileStore
 
 # The dataset used is located at:
 # http://yt.spacepope.org/DD0018.zip
@@ -41,6 +43,37 @@ class LagosTestingBase:
         if hasattr(self,'ind_to_get'): del self.ind_to_get
         del self.OutputFile, self.hierarchy
         
+class TestParameterFileStore(unittest.TestCase):
+    def setUp(self):
+        ytcfg['yt','ParameterFileStore'] = "testing.csv"
+        pfs = ParameterFileStore()
+        os.unlink(pfs._get_db_name())
+        self.pfs = ParameterFileStore() # __init__ gets called again
+        ytcfg['lagos', 'serialize'] = "True"
+
+    def testCacheFile(self):
+        pf1 = yt.lagos.EnzoStaticOutput(fn)
+        pf2 = self.pfs.get_pf_hash(pf1._hash())
+        self.assertTrue(pf1 is pf2)
+
+    def testGrabFile(self):
+        pf1 = yt.lagos.EnzoStaticOutput(fn)
+        hash = pf1._hash()
+        del pf1
+        pf2 = self.pfs.get_pf_hash(hash)
+        self.assertTrue(hash == pf2._hash())
+
+    def testGetCurrentTimeID(self):
+        pf1 = yt.lagos.EnzoStaticOutput(fn)
+        hash = pf1._hash()
+        ctid = pf1["CurrentTimeIdentifier"]
+        del pf1
+        pf2 = self.pfs.get_pf_ctid(ctid)
+        self.assertTrue(hash == pf2._hash())
+
+    def tearDown(self):
+        ytcfg['lagos', 'serialize'] = "False"
+        os.unlink(self.pfs._get_db_name())
 
 class TestHierarchy(LagosTestingBase, unittest.TestCase):
     def testGetHierarchy(self):

@@ -71,12 +71,13 @@ class ParameterFileStore(object):
 
 
     def _get_db_name(self):
+        base_file_name = ytcfg.get("yt","ParameterFileStore")
         if not os.access(os.path.expanduser("~/"), os.W_OK):
-            return os.path.abspath("parameter_files.csv")
-        return os.path.expanduser("~/.yt/parameter_files.csv")
+            return os.path.abspath(base_file_name)
+        return os.path.expanduser("~/.yt/%s" % base_file_name)
 
     def get_pf_hash(self, hash):
-        return self._convert_pf(self.records_[hash])
+        return self._convert_pf(self._records[hash])
 
     def get_pf_ctid(self, ctid):
         for h in self._records:
@@ -106,7 +107,7 @@ class ParameterFileStore(object):
         if pf._hash() not in self._records:
             self.insert_pf(pf)
             return
-        pf_dict = self[pf._hash()]
+        pf_dict = self._records[pf._hash()]
         if pf_dict['bn'] != pf.basename \
           or pf_dict['fp'] != pf.fullpath:
             self.wipe_hash(pf._hash())
@@ -142,7 +143,6 @@ class ParameterFileStore(object):
         vals = csv.DictReader(f, _field_names)
         db = {}
         for v in vals:
-            print v
             db[v.pop('hash')] = v
         return db
 
