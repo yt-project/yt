@@ -26,8 +26,11 @@ License:
 from yt.config import ytcfg
 from yt.fido import *
 from yt.funcs import *
-import shelve
+from yt.lagos.ParallelTools import parallel_simple_proxy
+import csv
 import os.path
+
+_field_names = ('hash','bn','fp','tt','ctid')
 
 class NoParameterShelf(Exception):
     pass
@@ -36,6 +39,9 @@ class ParameterFileStore(object):
 
     _shared_state = {}
     _shelf = None
+    _distributed = True
+    _processing = False
+    _owner = 0
 
     def __new__(cls, *p, **k):
         self = object.__new__(cls, *p, **k)
@@ -43,24 +49,39 @@ class ParameterFileStore(object):
         return self
 
     def __init__(self, in_memory = False):
-        self.__init_shelf()
+        self.init_db()
+        self._records = self.read_db()
+
+    @parallel_simple_proxy
+    def init_db(self):
+        dbn = self._get_db_name()
+        dbdir = os.path.dirname(dbn)
+        if not ytcfg.getboolean("yt", "StoreParameterFiles"):
+            # This ensures that even if we're not storing them in the file
+            # system, we're at least keeping track of what we load
+            self._shelf = defaultdict(lambda: dict(bn='',fp='',tt='',ctid=''))
+            return
+        try:
+            if not os.path.isdir(dbdir): os.mkdir(dbdir)
+        except OSError:
+            raise NoParameterShelf()
+        open(dbn, 'ab') # make sure it exists, allow to close
+        # Now we read in all our records and return them
+        # these will be broadcast
+
 
     def _get_db_name(self):
         if not os.access(os.path.expanduser("~/"), os.W_OK):
-            return os.path.abspath("parameter_files.db")
-        return os.path.expanduser("~/.yt/parameter_files.db")
-
-    def wipe_hash(self, hash):
-        if hash in self.keys():
-            del self[hash]
+            return os.path.abspath("parameter_files.csv")
+        return os.path.expanduser("~/.yt/parameter_files.csv")
 
     def get_pf_hash(self, hash):
-        return self._convert_pf(self[hash])
+        return self._convert_pf(self.records_[hash])
 
     def get_pf_ctid(self, ctid):
-        for h in self.keys():
-            if self[h]['ctid'] == ctid:
-                return self._convert_pf(self[h])
+        for h in self._records:
+            if self._records[h]['ctid'] == ctid:
+                return self._convert_pf(self._records[h])
 
     def _adapt_pf(self, pf):
         return dict(bn=pf.basename,
@@ -82,7 +103,7 @@ class ParameterFileStore(object):
         return pf
 
     def check_pf(self, pf):
-        if pf._hash() not in self.keys():
+        if pf._hash() not in self._records:
             self.insert_pf(pf)
             return
         pf_dict = self[pf._hash()]
@@ -91,52 +112,39 @@ class ParameterFileStore(object):
             self.wipe_hash(pf._hash())
             self.insert_pf(pf)
 
-    def __read_only(self):
-        if self._shelf is not None: return self._shelf
-        return shelve.open(self._get_db_name(), flag='r', protocol=-1)
-
-    def __read_write(self):
-        if self._shelf is not None: return self._shelf
-        return shelve.open(self._get_db_name(), flag='c', protocol=-1)
-
     def insert_pf(self, pf):
-        self[pf._hash()] = self._adapt_pf(pf)
+        self._records[pf._hash()] = self._adapt_pf(pf)
+        self.flush_db()
 
-    def __getitem__(self, key):
-        my_shelf = self.__read_only()
-        return my_shelf[key]
+    def wipe_hash(self, pf):
+        h = pf._hash()
+        if h not in self._records: return
+        del self._records[h]
+        self.flush_db()
 
-    def __store_item(self, key, val):
-        my_shelf = self.__read_write()
-        my_shelf[key] = val
+    def flush_db(self):
+        self._write_out()
+        self.read_db()
 
-    def __delete_item(self, key):
-        my_shelf = self.__read_write()
-        del my_shelf[key]
+    @parallel_simple_proxy
+    def _write_out(self):
+        f = open(self._get_db_name(), 'ab')
+        f.seek(0,2)
+        w = csv.DictWriter(f, _field_names)
+        for h,v in sorted(self._records.items()):
+            v['hash'] = h
+            w.writerow(v)
+        f.close()
 
-    def __init_shelf(self):
-        dbn = self._get_db_name()
-        dbdir = os.path.dirname(dbn)
-        if not ytcfg.getboolean("yt", "StoreParameterFiles"):
-            # This ensures that even if we're not storing them in the file
-            # system, we're at least keeping track of what we load
-            self._shelf = defaultdict(lambda: dict(bn='',fp='',tt='',ctid=''))
-            return
-        try:
-            if not os.path.isdir(dbdir): os.mkdir(dbdir)
-        except OSError:
-            raise NoParameterShelf()
-        only_on_root(shelve.open, dbn, 'c', protocol=-1)
-
-    def __setitem__(self, key, val):
-        only_on_root(self.__store_item, key, val)
-
-    def __delitem__(self, key):
-        only_on_root(self.__delete_item, key)
-
-    def keys(self):
-        my_shelf = self.__read_only()
-        return my_shelf.keys()
+    @parallel_simple_proxy
+    def read_db(self):
+        f=open(self._get_db_name(), 'rb')
+        vals = csv.DictReader(f, _field_names)
+        db = {}
+        for v in vals:
+            print v
+            db[v.pop('hash')] = v
+        return db
 
 class ObjectStorage(object):
     pass
