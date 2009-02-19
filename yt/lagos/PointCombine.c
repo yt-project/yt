@@ -1049,8 +1049,6 @@ _fail:
     return NULL;
 }
 
-static PyObject *Py_FillAndInterpolate(PyObject *
-
 static PyObject *_findContoursError;
 
 npy_int64 process_neighbors(PyArrayObject*, npy_int64, npy_int64, npy_int64);

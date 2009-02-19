@@ -240,6 +240,21 @@ class VMPlotTab(PlotFrameTab):
     def _redraw(self):
         self.figure.canvas.draw()
 
+    def on_click(self, event):
+        if event.inaxes:
+            xp, yp = event.xdata, event.ydata
+            dx = abs(self.plot.xlim[0] - self.plot.xlim[1])/self.plot.pix[0]
+            dy = abs(self.plot.ylim[0] - self.plot.ylim[1])/self.plot.pix[1]
+            x = (dx * xp) + self.plot.xlim[0]
+            y = (dy * yp) + self.plot.ylim[0]
+            xi = lagos.x_dict[self.axis]
+            yi = lagos.y_dict[self.axis]
+            cc = self.center[:]
+            cc[xi] = x; cc[yi] = y
+            self.plot.data.center = cc[:]
+            self.plot.data.set_field_parameter('center', cc.copy())
+            self.center = cc
+
 class SlicePlotTab(VMPlotTab):
     plot_spec = Instance(SlicePlotSpec)
 
@@ -250,10 +265,20 @@ class SlicePlotTab(VMPlotTab):
 
     def _plot_default(self):
         coord = self.center[self.axis]
-        sl = self.pf.h.slice(self.axis, coord, center=self.center)
+        sl = self.pf.h.slice(self.axis, coord, center=self.center[:])
         sp = SlicePlot(sl, self.field, self.figure, self.axes)
         self.figure.canvas.draw()
+        self.figure.canvas.mpl_connect("button_press_event", self.on_click)
         return sp
+
+    def _center_changed(self, old, new):
+        if na.all(na.abs(old - new) == 0.0): return
+        print na.abs(old-new)
+        print "Re-slicing", old, new
+        pp = self.center[:]
+        self.plot.data.reslice(pp[self.axis])
+        self.plot._refresh_display_width()
+        self.figure.canvas.draw()
 
 class ProjPlotTab(VMPlotTab):
     plot_spec = Instance(ProjPlotSpec)
@@ -268,11 +293,14 @@ class ProjPlotTab(VMPlotTab):
         wf = self.weight_field
         if str(wf) == "None": wf = None
         proj = self.pf.h.proj(self.axis, self.field, wf,
-                        center=self.center)
+                        center=self.center[:])
         pp = ProjectionPlot(proj, self.field, self.figure, self.axes)
         self.figure.canvas.draw()
+        self.figure.canvas.mpl_connect("button_release_event", self.on_click)
         return pp
 
+    def _center_changed(self, old, new):
+        self.plot._refresh_display_width()
 
 class SphereWrapper(DataObject):
     radius = Float
