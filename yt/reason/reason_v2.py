@@ -68,35 +68,6 @@ class PlotInspectionHandler(ActionController):
     def do_something(self, ui):
         print "I am doing something!"
 
-    def perform ( self, action ):
-        object            = self.plot_window
-        method_name       = action.action
-        info              = self.ui.info
-        handler           = self.ui.handler
-
-        if method_name.find( '.' ) >= 0:
-            if method_name.find( '(' ) < 0:
-                method_name += '()'
-            try:
-                eval( method_name, globals(),
-                      { 'object':  object,
-                        'editor':  self,
-                        'info':    info,
-                        'handler': handler } )
-            except:
-                # fixme: Should the exception be logged somewhere?
-                pass
-                
-            return
-
-        method = getattr( handler, method_name, None )
-        if method is not None:
-            method( info, object )
-            return
-
-        if action.on_perform is not None:
-            action.on_perform( object )
-
 class DataObject(HasTraits):
     name = Str
 
@@ -280,7 +251,8 @@ class VMPlotTab(PlotFrameTab):
     def _psh_default(self):
         return PlotInspectionHandler(plot_window=self, model=self)
 
-    def recenter(self, xp, yp):
+    def recenter(self, event):
+        xp, yp = event.xdata, event.ydata
         dx = abs(self.plot.xlim[0] - self.plot.xlim[1])/self.plot.pix[0]
         dy = abs(self.plot.ylim[0] - self.plot.ylim[1])/self.plot.pix[1]
         x = (dx * xp) + self.plot.xlim[0]
@@ -292,6 +264,10 @@ class VMPlotTab(PlotFrameTab):
         self.plot.data.center = cc[:]
         self.plot.data.set_field_parameter('center', cc.copy())
         self.center = cc
+
+    def do_something(self, event):
+        print "Hello there", event
+        print event.xdata, event.ydata
 
 class SlicePlotTab(VMPlotTab):
     plot_spec = Instance(SlicePlotSpec)

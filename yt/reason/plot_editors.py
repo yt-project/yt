@@ -23,8 +23,7 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-import wx
-import matplotlib
+import wx, sys, matplotlib
 # We want matplotlib to use a wxPython backend
 matplotlib.use('WXAgg')
 from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg as FigureCanvas
@@ -36,6 +35,11 @@ from enthought.traits.ui.wx.editor import Editor
 from enthought.traits.ui.wx.basic_editor_factory import BasicEditorFactory
 
 from enthought.pyface.action.api import ActionController
+
+from enthought.traits.ui.menu import \
+    Menu, Action, Separator, OKCancelButtons, OKButton
+
+from matplotlib.backend_bases import Event as MPLEvent
 
 class _MPLFigureEditor(Editor):
     """ Snagged from Gael's tutorial """
@@ -65,23 +69,61 @@ class _MPLFigureEditor(Editor):
 class MPLFigureEditor(BasicEditorFactory):
     klass = _MPLFigureEditor
 
+class MPLAction(Action):
+    event = Instance(MPLEvent)
+
 class _MPLVMPlotEditor(_MPLFigureEditor, ActionController):
 
     def _create_canvas(self, parent):
         panel = _MPLFigureEditor._create_canvas(self, parent)
-        self.mpl_control.mpl_connect("button_press_event", self.object.on_click)
+        self.mpl_control.mpl_connect("button_press_event", self.on_click)
         return panel
 
     def on_click(self, event):
         if not event.inaxes: return
-        if event.button == 1:
-            xp, yp = event.xdata, event.ydata
-            self.object.recenter(xp, yp)
-        elif event.button == 2:
-            my_menu = Menu(Action(name="Recenter", action="recenter"),
-                           Action(name="Yo!", action="do_something"))
-            wxmenu = my_menu.create_menu(self.figure.canvas, self.psh)
-            self.figure.canvas.PopupMenuXY(wxmenu)
+        if event.button == 3:
+            print "Clicky clicky"
+            print event.xdata, event.ydata
+            my_menu = Menu(MPLAction(name="Recenter", action="object.recenter",
+                                     event=event),
+                           MPLAction(name="Yo!", action="object.do_something",
+                                     event=event))
+            wxmenu = my_menu.create_menu(self.mpl_control, self)
+            self.mpl_control.PopupMenuXY(wxmenu)
+
+    def perform ( self, action ):
+        """
+        This is largely taken/modified from the TreeEditor _perform method.
+        """
+        object            = self.object
+        method_name       = action.action
+        info              = self.ui.info
+        handler           = self.ui.handler
+        event             = action.event
+
+        if method_name.find( '.' ) >= 0:
+            if method_name.find( '(' ) < 0:
+                method_name += '(event)'
+            try:
+                eval( method_name, globals(),
+                      { 'object':  object,
+                        'editor':  self,
+                        'info':    info,
+                        'event':   event,
+                        'handler': handler } )
+            except:
+                # fixme: Should the exception be logged somewhere?
+                print sys.exc_info()
+                
+            return
+
+        method = getattr( handler, method_name, None )
+        if method is not None:
+            method( info, object )
+            return
+
+        if action.on_perform is not None:
+            action.on_perform( object )
 
 class MPLVMPlotEditor(BasicEditorFactory):
     klass = _MPLVMPlotEditor
