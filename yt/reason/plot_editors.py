@@ -69,11 +69,19 @@ class _MPLVMPlotEditor(_MPLFigureEditor, ActionController):
 
     def _create_canvas(self, parent):
         panel = _MPLFigureEditor._create_canvas(self, parent)
-        self.mpl_control.mpl_connect("button_press_event", self.on_click)
+        self.mpl_control.mpl_connect("button_press_event", self.object.on_click)
         return panel
 
     def on_click(self, event):
-        print "HELLO!", event
+        if not event.inaxes: return
+        if event.button == 1:
+            xp, yp = event.xdata, event.ydata
+            self.object.recenter(xp, yp)
+        elif event.button == 2:
+            my_menu = Menu(Action(name="Recenter", action="recenter"),
+                           Action(name="Yo!", action="do_something"))
+            wxmenu = my_menu.create_menu(self.figure.canvas, self.psh)
+            self.figure.canvas.PopupMenuXY(wxmenu)
 
 class MPLVMPlotEditor(BasicEditorFactory):
     klass = _MPLVMPlotEditor

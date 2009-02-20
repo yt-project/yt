@@ -280,29 +280,18 @@ class VMPlotTab(PlotFrameTab):
     def _psh_default(self):
         return PlotInspectionHandler(plot_window=self, model=self)
 
-    def on_click(self, event):
-        if not event.inaxes: return
-        if event.button == 1:
-            xp, yp = event.xdata, event.ydata
-            dx = abs(self.plot.xlim[0] - self.plot.xlim[1])/self.plot.pix[0]
-            dy = abs(self.plot.ylim[0] - self.plot.ylim[1])/self.plot.pix[1]
-            x = (dx * xp) + self.plot.xlim[0]
-            y = (dy * yp) + self.plot.ylim[0]
-            xi = lagos.x_dict[self.axis]
-            yi = lagos.y_dict[self.axis]
-            cc = self.center[:]
-            cc[xi] = x; cc[yi] = y
-            self.plot.data.center = cc[:]
-            self.plot.data.set_field_parameter('center', cc.copy())
-            self.center = cc
-        elif event.button == 3:
-            my_menu = Menu(Action(name="Hi!"),
-                           Action(name="Yo!", action="handler.do_something"))
-            wxmenu = my_menu.create_menu(self.figure.canvas, self.psh)
-            self.figure.canvas.PopupMenuXY(wxmenu)
-
-    def do_something(self, ui):
-        print "HELLO!!!!!"
+    def recenter(self, xp, yp):
+        dx = abs(self.plot.xlim[0] - self.plot.xlim[1])/self.plot.pix[0]
+        dy = abs(self.plot.ylim[0] - self.plot.ylim[1])/self.plot.pix[1]
+        x = (dx * xp) + self.plot.xlim[0]
+        y = (dy * yp) + self.plot.ylim[0]
+        xi = lagos.x_dict[self.axis]
+        yi = lagos.y_dict[self.axis]
+        cc = self.center[:]
+        cc[xi] = x; cc[yi] = y
+        self.plot.data.center = cc[:]
+        self.plot.data.set_field_parameter('center', cc.copy())
+        self.center = cc
 
 class SlicePlotTab(VMPlotTab):
     plot_spec = Instance(SlicePlotSpec)
