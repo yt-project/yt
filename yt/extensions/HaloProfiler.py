@@ -34,7 +34,7 @@ import tables as h5
 PROFILE_RADIUS_THRESHOLD = 2
 
 class HaloProfiler(object):
-    def __init__(self,dataset,HaloProfilerParameterFile,halos='multiple',radius=0.1):
+    def __init__(self,dataset,HaloProfilerParameterFile,halos='multiple',radius=0.1,hop_style='new'):
         self.dataset = dataset
         self.HaloProfilerParameterFile = HaloProfilerParameterFile
         self.haloProfilerParameters = {}
@@ -51,7 +51,15 @@ class HaloProfiler(object):
             mylog.error("Keyword, halos, must be either 'single' or 'multiple'.")
             return
 
-        if self.halos is 'single':
+        # Set hop file style.
+        # old: enzo_hop output.
+        # new: yt hop output.
+        self.hop_style = hop_style
+        if not(self.hop_style is 'old' or self.hop_style is 'new'):
+            mylog.error("Keyword, hop_style, must be either 'old' or 'new'.")
+            return
+
+        if self.halos is 'single' or hop_style is 'old':
             self.haloRadius = radius
 
         # Set some parameter defaults.
@@ -71,7 +79,7 @@ class HaloProfiler(object):
             v, center = self.pf.h.find_max('Density')
             singleHalo = {}
             singleHalo['center'] = center
-            singleHalo['r_max'] = self.haloRadius
+            singleHalo['r_max'] = self.haloRadius * self.pf.units['mpc']
             self.hopHalos.append(singleHalo)
         elif self.halos is 'multiple':
             # Get hop data.
@@ -331,8 +339,22 @@ class HaloProfiler(object):
                     halo = {'center': center, 'r_max': r_max}
                     self.hopHalos.append(halo)
 
-        mylog.info("Loaded %d halos with total dark matter mass af at least %e Msolar." % (len(self.hopHalos),
-                                                                                           self.haloProfilerParameters['VirialMassCutoff'])) 
+        mylog.info("Loaded %d halos with total dark matter mass af at least %e Msolar." % 
+                   (len(self.hopHalos),self.haloProfilerParameters['VirialMassCutoff']))
+
+    def _ReadOldHopFile(self,hopFile):
+        "Read old style hop file made by enzo_hop."
+        mylog.info("Reading halo information from old style hop file %s." % hopFile)
+        hopLines = file(hopFile)
+
+        for line in hopLines:
+            line = line.strip()
+            if not(line.startswith('#')):
+                onLine = line.split()
+                center = [float(onLine[4]),float(onLine[5]),float(onLine[6])]
+                r_max = self.haloRadius * self.pf.units['mpc']
+                halo = {'center': center, 'r_max': r_max}
+                self.hopHalos.append(halo)
 
     def _RunHop(self,hopFile):
         "Run hop to get halos."
@@ -361,7 +383,10 @@ class HaloProfiler(object):
             mylog.info("Hop file not found, running hop to get halos.")
             self._RunHop(hopFile)
 
-        self._ReadHopFile(hopFile)
+        if self.hop_style is 'new':
+            self._ReadHopFile(hopFile)
+        else:
+            self._ReadOldHopFile(hopFile)
 
     def _LoadVirialData(self):
         "Read virial quantities data or ask for profiles to be run if it doesn't exist."
