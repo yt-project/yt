@@ -35,10 +35,11 @@ from enthought.traits.ui.api import \
     EnumEditor, Handler, Controller
 from enthought.traits.ui.menu import \
     Menu, Action, Separator, OKCancelButtons, OKButton
-
+from enthought.pyface.action.api import \
+    ActionController
 from enthought.traits.ui.wx.range_editor import SimpleSliderEditor
 
-from plot_editors import Figure, MPLFigureEditor, Axes
+from plot_editors import Figure, MPLFigureEditor, MPLVMPlotEditor, Axes
 
 from yt.raven.PlotTypes import VMPlot, ProjectionPlot, SlicePlot
 
@@ -60,6 +61,41 @@ class PlotCreationHandler(Controller):
         self.pnode.data_objects.append(spt)
         self.main_window.plot_frame_tabs.append(spt)
         spt.plot
+
+class PlotInspectionHandler(ActionController):
+    plot_window = Any
+
+    def do_something(self, ui):
+        print "I am doing something!"
+
+    def perform ( self, action ):
+        object            = self.plot_window
+        method_name       = action.action
+        info              = self.ui.info
+        handler           = self.ui.handler
+
+        if method_name.find( '.' ) >= 0:
+            if method_name.find( '(' ) < 0:
+                method_name += '()'
+            try:
+                eval( method_name, globals(),
+                      { 'object':  object,
+                        'editor':  self,
+                        'info':    info,
+                        'handler': handler } )
+            except:
+                # fixme: Should the exception be logged somewhere?
+                pass
+                
+            return
+
+        method = getattr( handler, method_name, None )
+        if method is not None:
+            method( info, object )
+            return
+
+        if action.on_perform is not None:
+            action.on_perform( object )
 
 class DataObject(HasTraits):
     name = Str
@@ -190,9 +226,10 @@ class VMPlotTab(PlotFrameTab):
     max_width = Property(Float, depends_on=['pf','unit'])
     unit_list = Property(depends_on = 'pf')
     smallest_dx = Property(depends_on = 'pf')
+    psh = Instance(PlotInspectionHandler)
 
     traits_view = View(VGroup(
-            HGroup(Item('figure', editor=MPLFigureEditor(),
+            HGroup(Item('figure', editor=MPLVMPlotEditor(),
                      show_label=False)),
             HGroup(Item('disp_width',
                      editor=RangeEditor(format="%0.2e",
@@ -240,8 +277,12 @@ class VMPlotTab(PlotFrameTab):
     def _redraw(self):
         self.figure.canvas.draw()
 
+    def _psh_default(self):
+        return PlotInspectionHandler(plot_window=self, model=self)
+
     def on_click(self, event):
-        if event.inaxes:
+        if not event.inaxes: return
+        if event.button == 1:
             xp, yp = event.xdata, event.ydata
             dx = abs(self.plot.xlim[0] - self.plot.xlim[1])/self.plot.pix[0]
             dy = abs(self.plot.ylim[0] - self.plot.ylim[1])/self.plot.pix[1]
@@ -254,6 +295,14 @@ class VMPlotTab(PlotFrameTab):
             self.plot.data.center = cc[:]
             self.plot.data.set_field_parameter('center', cc.copy())
             self.center = cc
+        elif event.button == 3:
+            my_menu = Menu(Action(name="Hi!"),
+                           Action(name="Yo!", action="handler.do_something"))
+            wxmenu = my_menu.create_menu(self.figure.canvas, self.psh)
+            self.figure.canvas.PopupMenuXY(wxmenu)
+
+    def do_something(self, ui):
+        print "HELLO!!!!!"
 
 class SlicePlotTab(VMPlotTab):
     plot_spec = Instance(SlicePlotSpec)
@@ -268,7 +317,7 @@ class SlicePlotTab(VMPlotTab):
         sl = self.pf.h.slice(self.axis, coord, center=self.center[:])
         sp = SlicePlot(sl, self.field, self.figure, self.axes)
         self.figure.canvas.draw()
-        self.figure.canvas.mpl_connect("button_press_event", self.on_click)
+        #self.figure.canvas.mpl_connect("button_press_event", self.on_click)
         return sp
 
     def _center_changed(self, old, new):
@@ -378,6 +427,11 @@ def run_script():
     my_script.edit_traits()
     return my_script
 
+class event_mock(object):
+    inaxes = True
+    button = 3
+
 dol = DataObjectList()
 mw = MainWindow(plot_frame_tabs = [])
 mw.configure_traits()
+

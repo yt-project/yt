@@ -117,10 +117,9 @@ class ParameterFileStore(object):
         self._records[pf._hash()] = self._adapt_pf(pf)
         self.flush_db()
 
-    def wipe_hash(self, pf):
-        h = pf._hash()
-        if h not in self._records: return
-        del self._records[h]
+    def wipe_hash(self, hash):
+        if hash not in self._records: return
+        del self._records[hash]
         self.flush_db()
 
     def flush_db(self):

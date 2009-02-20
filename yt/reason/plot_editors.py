@@ -35,11 +35,13 @@ from enthought.traits.api import Any, Instance
 from enthought.traits.ui.wx.editor import Editor
 from enthought.traits.ui.wx.basic_editor_factory import BasicEditorFactory
 
+from enthought.pyface.action.api import ActionController
 
 class _MPLFigureEditor(Editor):
     """ Snagged from Gael's tutorial """
 
     scrollable  = True
+    mpl_control = Instance(FigureCanvas)
 
     def init(self, parent):
         self.control = self._create_canvas(parent)
@@ -55,11 +57,24 @@ class _MPLFigureEditor(Editor):
         sizer = wx.BoxSizer(wx.VERTICAL)
         panel.SetSizer(sizer)
         # matplotlib commands to create a canvas
-        mpl_control = FigureCanvas(panel, -1, self.value)
-        sizer.Add(mpl_control, 1, wx.LEFT | wx.TOP | wx.GROW)
+        self.mpl_control = FigureCanvas(panel, -1, self.value)
+        sizer.Add(self.mpl_control, 1, wx.LEFT | wx.TOP | wx.GROW)
         self.value.canvas.SetMinSize((10,10))
         return panel
 
 class MPLFigureEditor(BasicEditorFactory):
     klass = _MPLFigureEditor
+
+class _MPLVMPlotEditor(_MPLFigureEditor, ActionController):
+
+    def _create_canvas(self, parent):
+        panel = _MPLFigureEditor._create_canvas(self, parent)
+        self.mpl_control.mpl_connect("button_press_event", self.on_click)
+        return panel
+
+    def on_click(self, event):
+        print "HELLO!", event
+
+class MPLVMPlotEditor(BasicEditorFactory):
+    klass = _MPLVMPlotEditor
 
