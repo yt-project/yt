@@ -24,6 +24,7 @@ License:
 """
 
 from yt.extensions.HaloProfiler import *
+from yt.logger import lagosLogger as mylog
 import yt.lagos as lagos
 import copy
 import numpy as na
@@ -48,6 +49,7 @@ def MakeLightConeHaloMask(lightCone,HaloMaskParameterFile,cube_file=None,mask_fi
 
     # Write out cube of masks from each slice.
     if cube_file is not None:
+        mylog.info("Saving halo mask cube to %s." % cube_file)
         output = h5.openFile(cube_file,'a')
         output.createArray("/",'haloMaskCube',na.array(lightConeMask))
         output.close()
@@ -55,6 +57,7 @@ def MakeLightConeHaloMask(lightCone,HaloMaskParameterFile,cube_file=None,mask_fi
     # Write out final mask.
     if mask_file is not None:
         # Final mask is simply the product of the mask from each slice.
+        mylog.info("Saving halo mask to %s." % mask_file)
         finalMask = na.ones(shape=(pixels,pixels))
         for mask in lightConeMask:
             finalMask *= mask
@@ -78,6 +81,7 @@ def MakeLightConeHaloMap(lightCone,HaloMaskParameterFile,map_file='halo_map.dat'
         haloMap.extend(_MakeSliceHaloMap(slice,hp.virialQuantities))
 
     # Write out file.
+    mylog.info("Saving halo map to %s." % map_file)
     f = open(map_file,'w')
     f.write("#z       x         y        M [Msun]  R [Mpc]   R [image]\n")
     for halo in haloMap:
