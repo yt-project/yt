@@ -35,7 +35,7 @@ def MakeLightConeHaloMask(lightCone,HaloMaskParameterFile,cube_file=None,mask_fi
     "Make a boolean mask to cut clusters out of light cone projections."
 
     pixels = int(lightCone.lightConeParameters['FieldOfViewInArcMinutes'] * 60.0 / \
-            lightCone.lightConeParameters['ImageResolutionInArcSeconds'])
+                     lightCone.lightConeParameters['ImageResolutionInArcSeconds'])
 
     lightConeMask = []
 
@@ -44,7 +44,7 @@ def MakeLightConeHaloMask(lightCone,HaloMaskParameterFile,cube_file=None,mask_fi
         hp = HaloProfiler(slice['filename'],HaloMaskParameterFile)
         hp._LoadVirialData()
 
-        lightConeMask.append(_MakeHaloMask(slice,hp.virialQuantities,pixels))
+        lightConeMask.append(_MakeSliceMask(slice,hp.virialQuantities,pixels))
 
     # Write out cube of masks from each slice.
     if cube_file is not None:
@@ -65,14 +65,88 @@ def MakeLightConeHaloMask(lightCone,HaloMaskParameterFile,cube_file=None,mask_fi
 
     return lightConeMask
 
-def _MakeHaloMask(slice,virialQuantities,pixels):
+def MakeLightConeHaloMap(lightCone,HaloMaskParameterFile,map_file='halo_map.dat'):
+    "Make a text list of location of halos in a light cone image with virial quantities."
+
+    haloMap = []
+
+    # Loop through files in light cone solution and get virial quantities.
+    for slice in lightCone.lightConeSolution:
+        hp = HaloProfiler(slice['filename'],HaloMaskParameterFile)
+        hp._LoadVirialData()
+
+        haloMap.extend(_MakeSliceHaloMap(slice,hp.virialQuantities))
+
+    # Write out file.
+    f = open(map_file,'w')
+    f.write("#z       x         y        M [Msun]  R [Mpc]   R [image]\n")
+    for halo in haloMap:
+        f.write("%7.4f %9.6f %9.6f %9.3e %9.3e %9.3e\n" % \
+                    (halo['redshift'],halo['x'],halo['y'],
+                     halo['mass'],halo['radiusMpc'],halo['radiusImage']))
+    f.close()
+
+def _MakeSliceMask(slice,virialQuantities,pixels):
     "Make halo mask for one slice in light cone solution."
 
-    # Make numpy arrays for halo centers and virial radii.
+    # Get shifted, tiled halo list.
+    all_halo_x,all_halo_y,all_halo_radius,all_halo_mass = _MakeSliceHaloList(slice,virialQuantities)
+ 
+    # Make boolean mask and cut out halos.
+    dx = slice['WidthBoxFraction'] / pixels
+    x = [(q + 0.5) * dx for q in range(pixels)]
+    haloMask = na.ones(shape=(pixels,pixels),dtype=bool)
+
+    # Cut out any pixel that has any part at all in the circle.
+    for q in range(len(all_halo_radius)):
+        dif_xIndex = na.array(int(all_halo_x[q]/dx) - na.array(range(pixels))) != 0
+        dif_yIndex = na.array(int(all_halo_y[q]/dx) - na.array(range(pixels))) != 0
+
+        xDistance = (na.abs(x - all_halo_x[q]) - (0.5 * dx)) * dif_xIndex
+        yDistance = (na.abs(x - all_halo_y[q]) - (0.5 * dx)) * dif_yIndex
+
+        distance = na.array([na.sqrt(w**2 + xDistance**2) for w in yDistance])
+        haloMask *= (distance >= all_halo_radius[q])
+
+    return haloMask
+
+def _MakeSliceHaloMap(slice,virialQuantities):
+    "Make list of halos for one slice in light cone solution."
+
+    # Get units to convert virial radii back to physical units.
+    dataset_object = lagos.EnzoStaticOutput(slice['filename'])
+    Mpc_units = dataset_object.units['mpc']
+    del dataset_object
+
+    # Get shifted, tiled halo list.
+    all_halo_x,all_halo_y,all_halo_radius,all_halo_mass = _MakeSliceHaloList(slice,virialQuantities)
+
+    # Construct list of halos
+    haloMap = []
+
+    for q in range(len(all_halo_x)):
+        # Give radius in both physics units and units of the image (0 to 1).
+        radiusMpc = all_halo_radius[q] * Mpc_units
+        radiusImage = all_halo_radius[q] / slice['WidthBoxFraction']
+
+        haloMap.append({'x':all_halo_x[q]/slice['WidthBoxFraction'],
+                        'y':all_halo_y[q]/slice['WidthBoxFraction'],
+                        'redshift':slice['redshift'],
+                        'radiusMpc':radiusMpc,
+                        'radiusImage':radiusImage,
+                        'mass':all_halo_mass[q]})
+
+    return haloMap
+
+def _MakeSliceHaloList(slice,virialQuantities):
+    "Make shifted, tiled list of halos for halo mask and halo map."
+
+   # Make numpy arrays for halo centers and virial radii.
     halo_x = []
     halo_y = []
     halo_depth = []
     halo_radius = []
+    halo_mass = []
 
     # Get units to convert virial radii to code units.
     dataset_object = lagos.EnzoStaticOutput(slice['filename'])
@@ -86,11 +160,13 @@ def _MakeHaloMask(slice,virialQuantities,pixels):
             halo_x.append(center[0])
             halo_y.append(center[1])
             halo_radius.append(halo['RadiusMpc']/Mpc_units)
+            halo_mass.append(halo['TotalMassMsun'])
 
     halo_x = na.array(halo_x)
     halo_y = na.array(halo_y)
     halo_depth = na.array(halo_depth)
     halo_radius = na.array(halo_radius)
+    halo_mass = na.array(halo_mass)
 
     # Adjust halo centers along line of sight.
     depthCenter = slice['ProjectionCenter'][slice['ProjectionAxis']]
@@ -106,6 +182,7 @@ def _MakeHaloMask(slice,virialQuantities,pixels):
     halo_x = na.concatenate([halo_x,halo_x[add_left],halo_x[add_right]])
     halo_y = na.concatenate([halo_y,halo_y[add_left],halo_y[add_right]])
     halo_radius = na.concatenate([halo_radius,halo_radius[add_left],halo_radius[add_right]])
+    halo_mass = na.concatenate([halo_mass,halo_mass[add_left],halo_mass[add_right]])
 
     del add_left,add_right
 
@@ -123,12 +200,14 @@ def _MakeHaloMask(slice,virialQuantities,pixels):
         halo_x = halo_x[mask]
         halo_y = halo_y[mask]
         halo_radius = halo_radius[mask]
+        halo_mass = halo_mass[mask]
         del mask
     del halo_depth
 
     all_halo_x = na.array([])
     all_halo_y = na.array([])
     all_halo_radius = na.array([])
+    all_halo_mass = na.array([])
 
     # Tile halos of width box fraction is greater than one.
     # Copy original into offset positions to make tiles.
@@ -137,8 +216,9 @@ def _MakeHaloMask(slice,virialQuantities,pixels):
             all_halo_x = na.concatenate([all_halo_x,halo_x+x])
             all_halo_y = na.concatenate([all_halo_y,halo_y+y])
             all_halo_radius = na.concatenate([all_halo_radius,halo_radius])
+            all_halo_mass = na.concatenate([all_halo_mass,halo_mass])
 
-    del halo_x,halo_y,halo_radius
+    del halo_x,halo_y,halo_radius,halo_mass
 
     # Shift centers laterally.
     offset = copy.deepcopy(slice['ProjectionCenter'])
@@ -161,6 +241,7 @@ def _MakeHaloMask(slice,virialQuantities,pixels):
     add_x_halo_x -= na.ceil(slice['WidthBoxFraction'])
     add_x_halo_y = all_halo_y[add_x_right]
     add_x_halo_radius = all_halo_radius[add_x_right]
+    add_x_halo_mass = all_halo_mass[add_x_right]
     del add_x_right
 
     # Centers hanging off the left edge.
@@ -169,6 +250,7 @@ def _MakeHaloMask(slice,virialQuantities,pixels):
     add2_x_halo_x += na.ceil(slice['WidthBoxFraction'])
     add2_x_halo_y = all_halo_y[add_x_left]
     add2_x_halo_radius = all_halo_radius[add_x_left]
+    add2_x_halo_mass = all_halo_mass[add_x_left]
     del add_x_left
 
     # Centers hanging off the top edge.
@@ -177,6 +259,7 @@ def _MakeHaloMask(slice,virialQuantities,pixels):
     add_y_halo_y = all_halo_y[add_y_right]
     add_y_halo_y -= na.ceil(slice['WidthBoxFraction'])
     add_y_halo_radius = all_halo_radius[add_y_right]
+    add_y_halo_mass = all_halo_mass[add_y_right]
     del add_y_right
 
     # Centers hanging off the bottom edge.
@@ -185,6 +268,7 @@ def _MakeHaloMask(slice,virialQuantities,pixels):
     add2_y_halo_y = all_halo_y[add_y_left]
     add2_y_halo_y += na.ceil(slice['WidthBoxFraction'])
     add2_y_halo_radius = all_halo_radius[add_y_left]
+    add2_y_halo_mass = all_halo_mass[add_y_left]
     del add_y_left
 
     # Add the hanging centers back to the projection data.
@@ -192,6 +276,8 @@ def _MakeHaloMask(slice,virialQuantities,pixels):
     all_halo_y = na.concatenate([all_halo_y,add_x_halo_y,add2_x_halo_y,add_y_halo_y,add2_y_halo_y])
     all_halo_radius = na.concatenate([all_halo_radius,add_x_halo_radius,add2_x_halo_radius,
                                       add_y_halo_radius,add2_y_halo_radius])
+    all_halo_mass = na.concatenate([all_halo_mass,add_x_halo_mass,add2_x_halo_mass,
+                                    add_y_halo_mass,add2_y_halo_mass])
 
     del add_x_halo_x,add_x_halo_y,add_x_halo_radius
     del add2_x_halo_x,add2_x_halo_y,add2_x_halo_radius
@@ -204,22 +290,7 @@ def _MakeHaloMask(slice,virialQuantities,pixels):
     all_halo_x = all_halo_x[cut_mask]
     all_halo_y = all_halo_y[cut_mask]
     all_halo_radius = all_halo_radius[cut_mask]
+    all_halo_mass = all_halo_mass[cut_mask]
     del cut_mask
 
-    # Make boolean mask and cut out halos.
-    dx = slice['WidthBoxFraction'] / pixels
-    x = [(q + 0.5) * dx for q in range(pixels)]
-    haloMask = na.ones(shape=(pixels,pixels),dtype=bool)
-
-    # Cut out any pixel that has any part at all in the circle.
-    for q in range(len(all_halo_radius)):
-        dif_xIndex = na.array(int(all_halo_x[q]/dx) - na.array(range(pixels))) != 0
-        dif_yIndex = na.array(int(all_halo_y[q]/dx) - na.array(range(pixels))) != 0
-
-        xDistance = (na.abs(x - all_halo_x[q]) - (0.5 * dx)) * dif_xIndex
-        yDistance = (na.abs(x - all_halo_y[q]) - (0.5 * dx)) * dif_yIndex
-
-        distance = na.array([na.sqrt(w**2 + xDistance**2) for w in yDistance])
-        haloMask *= (distance >= all_halo_radius[q])
-
-    return haloMask
+    return (all_halo_x,all_halo_y,all_halo_radius,all_halo_mass)

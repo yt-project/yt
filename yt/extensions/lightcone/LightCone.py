@@ -226,6 +226,7 @@ class LightCone(object):
         # Clear out some stuff.
         del co
 
+    @rootonly
     def GetHaloMask(self,HaloMaskParameterFile,mask_file=None,**kwargs):
         "Gets a halo mask from a file or makes a new one."
 
