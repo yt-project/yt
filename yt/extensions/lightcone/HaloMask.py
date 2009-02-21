@@ -31,7 +31,7 @@ import tables as h5
 
 #### Note: assumption of box width 1.  I'll fix it someday.
 
-def MakeLightConeHaloMask(lightCone,HaloMaskParameterFile,cube_file=None,mask_file=None):
+def MakeLightConeHaloMask(lightCone,HaloMaskParameterFile,cube_file=None,mask_file=None,**kwargs):
     "Make a boolean mask to cut clusters out of light cone projections."
 
     pixels = int(lightCone.lightConeParameters['FieldOfViewInArcMinutes'] * 60.0 / \
@@ -41,7 +41,7 @@ def MakeLightConeHaloMask(lightCone,HaloMaskParameterFile,cube_file=None,mask_fi
 
     # Loop through files in light cone solution and get virial quantities.
     for slice in lightCone.lightConeSolution:
-        hp = HaloProfiler(slice['filename'],HaloMaskParameterFile)
+        hp = HaloProfiler(slice['filename'],HaloMaskParameterFile,**kwargs)
         hp._LoadVirialData()
 
         lightConeMask.append(_MakeSliceMask(slice,hp.virialQuantities,pixels))
@@ -65,14 +65,14 @@ def MakeLightConeHaloMask(lightCone,HaloMaskParameterFile,cube_file=None,mask_fi
 
     return lightConeMask
 
-def MakeLightConeHaloMap(lightCone,HaloMaskParameterFile,map_file='halo_map.dat'):
+def MakeLightConeHaloMap(lightCone,HaloMaskParameterFile,map_file='halo_map.dat',**kwargs):
     "Make a text list of location of halos in a light cone image with virial quantities."
 
     haloMap = []
 
     # Loop through files in light cone solution and get virial quantities.
     for slice in lightCone.lightConeSolution:
-        hp = HaloProfiler(slice['filename'],HaloMaskParameterFile)
+        hp = HaloProfiler(slice['filename'],HaloMaskParameterFile,**kwargs)
         hp._LoadVirialData()
 
         haloMap.extend(_MakeSliceHaloMap(slice,hp.virialQuantities))
