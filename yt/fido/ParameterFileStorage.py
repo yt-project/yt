@@ -60,11 +60,11 @@ class ParameterFileStore(object):
 
     def __init__(self, in_memory = False):
         if ytcfg.getboolean("yt", "StoreParameterFiles"):
-            self._read_only = True
+            self._read_only = False
             self.init_db()
             self._records = self.read_db()
         else:
-            self._read_only = False
+            self._read_only = True
             self._records = {}
 
     @parallel_simple_proxy
