@@ -141,13 +141,15 @@ class ParameterFileStore(object):
     @parallel_simple_proxy
     def _write_out(self):
         if self._read_only: return
-        f = open(self._get_db_name(), 'ab')
+        fn = self._get_db_name()
+        f = open("%s.tmp" % fn, 'wb')
         f.seek(0,2)
         w = csv.DictWriter(f, _field_names)
         for h,v in sorted(self._records.items()):
             v['hash'] = h
             w.writerow(v)
         f.close()
+        os.rename("%s.tmp" % fn, fn)
 
     @parallel_simple_proxy
     def read_db(self):
