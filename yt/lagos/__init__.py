@@ -89,7 +89,7 @@ fieldInfo = EnzoFieldInfo
 # We by-default add universal fields.
 add_field = FieldInfo.add_field
 
-from yt.fido import ParameterFileStore
+from yt.fido import ParameterFileStore, output_type_registry
 
 from DerivedQuantities import DerivedQuantityCollection, GridChildMaskWrapper
 from DataReadingFuncs import *

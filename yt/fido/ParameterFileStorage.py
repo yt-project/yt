@@ -30,15 +30,25 @@ from yt.lagos.ParallelTools import parallel_simple_proxy
 import csv
 import os.path
 
-_field_names = ('hash','bn','fp','tt','ctid')
+output_type_registry = {}
+_field_names = ('hash','bn','fp','tt','ctid','class_name')
 
 class NoParameterShelf(Exception):
     pass
 
+class UnknownStaticOutputType(Exception):
+    def __init__(self, name):
+        self.name = name
+
+    def __str__(self):
+        return "%s" % self.name
+
+    def __repr__(self):
+        return "%s" % self.name
+
 class ParameterFileStore(object):
 
     _shared_state = {}
-    _shelf = None
     _distributed = True
     _processing = False
     _owner = 0
@@ -49,18 +59,18 @@ class ParameterFileStore(object):
         return self
 
     def __init__(self, in_memory = False):
-        self.init_db()
-        self._records = self.read_db()
+        if ytcfg.getboolean("yt", "StoreParameterFiles"):
+            self._read_only = True
+            self.init_db()
+            self._records = self.read_db()
+        else:
+            self._read_only = False
+            self._records = {}
 
     @parallel_simple_proxy
     def init_db(self):
         dbn = self._get_db_name()
         dbdir = os.path.dirname(dbn)
-        if not ytcfg.getboolean("yt", "StoreParameterFiles"):
-            # This ensures that even if we're not storing them in the file
-            # system, we're at least keeping track of what we load
-            self._shelf = defaultdict(lambda: dict(bn='',fp='',tt='',ctid=''))
-            return
         try:
             if not os.path.isdir(dbdir): os.mkdir(dbdir)
         except OSError:
@@ -68,7 +78,6 @@ class ParameterFileStore(object):
         open(dbn, 'ab') # make sure it exists, allow to close
         # Now we read in all our records and return them
         # these will be broadcast
-
 
     def _get_db_name(self):
         base_file_name = ytcfg.get("yt","ParameterFileStore")
@@ -88,17 +97,19 @@ class ParameterFileStore(object):
         return dict(bn=pf.basename,
                     fp=pf.fullpath,
                     tt=pf["InitialTime"],
-                    ctid=pf["CurrentTimeIdentifier"])
+                    ctid=pf["CurrentTimeIdentifier"],
+                    class_name=pf.__class__.__name__)
 
     def _convert_pf(self, pf_dict):
         bn = pf_dict['bn']
         fp = pf_dict['fp']
         fn = os.path.join(fp, bn)
+        class_name = pf_dict['class_name']
+        if class_name not in output_type_registry:
+            raise UnknownStaticOutputType(class_name)
         mylog.info("Checking %s", fn)
         if os.path.exists(fn):
-            import yt.lagos.OutputTypes as ot
-            pf = ot.EnzoStaticOutput(
-                os.path.join(fp, bn))
+            pf = output_type_registry[class_name](os.path.join(fp, bn))
         else:
             raise IOError
         return pf
@@ -123,11 +134,13 @@ class ParameterFileStore(object):
         self.flush_db()
 
     def flush_db(self):
+        if self._read_only: return
         self._write_out()
         self.read_db()
 
     @parallel_simple_proxy
     def _write_out(self):
+        if self._read_only: return
         f = open(self._get_db_name(), 'ab')
         f.seek(0,2)
         w = csv.DictWriter(f, _field_names)
@@ -143,6 +156,7 @@ class ParameterFileStore(object):
         db = {}
         for v in vals:
             db[v.pop('hash')] = v
+            
         return db
 
 class ObjectStorage(object):

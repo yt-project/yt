@@ -36,13 +36,11 @@ import string, re, gc, time, os, os.path
 _cached_pfs = weakref.WeakValueDictionary()
 _pf_store = ParameterFileStore()
 
-output_type_registry = {}
-
 class StaticOutput(object):
     class __metaclass__(type):
         def __init__(cls, name, b, d):
             type.__init__(cls, name, b, d)
-            output_type_registry[cls]=name
+            output_type_registry[name]=cls
             mylog.debug("Registering: %s as %s", name, cls)
 
     def __new__(cls, filename, *args, **kwargs):
@@ -371,6 +369,10 @@ class EnzoStaticOutput(StaticOutput):
         k["aye"]  = (1.0 + self.parameters["CosmologyInitialRedshift"]) / \
                (1.0 + self.parameters["CosmologyCurrentRedshift"])
         return k
+
+# We set our default output type to EnzoStaticOutput
+
+output_type_registry[None] = EnzoStaticOutput
 
 class EnzoStaticOutputInMemory(EnzoStaticOutput):
     _hierarchy_class = EnzoHierarchyInMemory
