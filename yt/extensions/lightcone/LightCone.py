@@ -226,8 +226,13 @@ class LightCone(object):
         # Clear out some stuff.
         del co
 
-    def GetHaloMask(self,HaloMaskParameterFile,mask_file=None,**kwargs):
+    @rootonly
+    def GetHaloMask(self,HaloMaskParameterFile,mask_file=None,map_file=None,**kwargs):
         "Gets a halo mask from a file or makes a new one."
+
+        # Get halo map if map_file given.
+        if (map_file is not None):
+            MakeLightConeHaloMap(self,HaloMaskParameterFile,map_file=map_file,**kwargs)
 
         # Check if file already exists.
         if (mask_file is not None) and os.path.exists(mask_file):
