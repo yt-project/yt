@@ -143,7 +143,6 @@ class ParameterFileStore(object):
         if self._read_only: return
         fn = self._get_db_name()
         f = open("%s.tmp" % fn, 'wb')
-        f.seek(0,2)
         w = csv.DictWriter(f, _field_names)
         for h,v in sorted(self._records.items()):
             v['hash'] = h

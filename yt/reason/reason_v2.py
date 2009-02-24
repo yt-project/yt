@@ -28,7 +28,7 @@ pf = EnzoStaticOutput("/Users/matthewturk/Research/data/galaxy1200.dir/galaxy120
 
 from enthought.traits.api import \
     HasTraits, List, Instance, Str, Float, Any, Code, PythonValue, Int, CArray, \
-    Property, Enum, cached_property, DelegatesTo, Callable
+    Property, Enum, cached_property, DelegatesTo, Callable, Array
 from enthought.traits.ui.api import \
     Group, VGroup, HGroup, Tabbed, View, Item, ShellEditor, InstanceEditor, ListStrEditor, \
     ListEditor, VSplit, VFlow, HSplit, VFold, ValueEditor, TreeEditor, TreeNode, RangeEditor, \
@@ -42,6 +42,8 @@ from enthought.traits.ui.wx.range_editor import SimpleSliderEditor
 from plot_editors import Figure, MPLFigureEditor, MPLVMPlotEditor, Axes
 
 from yt.raven.PlotTypes import VMPlot, ProjectionPlot, SlicePlot
+
+import traceback
 
 class PlotCreationHandler(Controller):
     main_window = Instance(HasTraits)
@@ -61,12 +63,6 @@ class PlotCreationHandler(Controller):
         self.pnode.data_objects.append(spt)
         self.main_window.plot_frame_tabs.append(spt)
         spt.plot
-
-class PlotInspectionHandler(ActionController):
-    plot_window = Any
-
-    def do_something(self, ui):
-        print "I am doing something!"
 
 class DataObject(HasTraits):
     name = Str
@@ -160,7 +156,7 @@ class VMPlotSpec(HasTraits):
     field = Str('Density')
     field_list = Property(depends_on = 'pf')
 
-    center = CArray(shape=(3,), dtype='float64')
+    center = Array(shape=(3,), dtype='float64')
     axis = Enum(0,1,2)
 
     @cached_property
@@ -197,7 +193,6 @@ class VMPlotTab(PlotFrameTab):
     max_width = Property(Float, depends_on=['pf','unit'])
     unit_list = Property(depends_on = 'pf')
     smallest_dx = Property(depends_on = 'pf')
-    psh = Instance(PlotInspectionHandler)
 
     traits_view = View(VGroup(
             HGroup(Item('figure', editor=MPLVMPlotEditor(),
@@ -248,9 +243,6 @@ class VMPlotTab(PlotFrameTab):
     def _redraw(self):
         self.figure.canvas.draw()
 
-    def _psh_default(self):
-        return PlotInspectionHandler(plot_window=self, model=self)
-
     def recenter(self, event):
         xp, yp = event.xdata, event.ydata
         dx = abs(self.plot.xlim[0] - self.plot.xlim[1])/self.plot.pix[0]
@@ -265,10 +257,6 @@ class VMPlotTab(PlotFrameTab):
         self.plot.data.set_field_parameter('center', cc.copy())
         self.center = cc
 
-    def do_something(self, event):
-        print "Hello there", event
-        print event.xdata, event.ydata
-
 class SlicePlotTab(VMPlotTab):
     plot_spec = Instance(SlicePlotSpec)
 
@@ -282,14 +270,14 @@ class SlicePlotTab(VMPlotTab):
         sl = self.pf.h.slice(self.axis, coord, center=self.center[:])
         sp = SlicePlot(sl, self.field, self.figure, self.axes)
         self.figure.canvas.draw()
-        #self.figure.canvas.mpl_connect("button_press_event", self.on_click)
         return sp
 
     def _center_changed(self, old, new):
+        #traceback.print_stack()
         if na.all(na.abs(old - new) == 0.0): return
         print na.abs(old-new)
         print "Re-slicing", old, new
-        pp = self.center[:]
+        pp = self.center
         self.plot.data.reslice(pp[self.axis])
         self.plot._refresh_display_width()
         self.figure.canvas.draw()
@@ -304,13 +292,14 @@ class ProjPlotTab(VMPlotTab):
     plot = Instance(ProjectionPlot)
 
     def _plot_default(self):
+        self.field = self.field[:]
+        self.weight_field = self.weight_field[:]
         wf = self.weight_field
         if str(wf) == "None": wf = None
         proj = self.pf.h.proj(self.axis, self.field, wf,
                         center=self.center[:])
         pp = ProjectionPlot(proj, self.field, self.figure, self.axes)
         self.figure.canvas.draw()
-        self.figure.canvas.mpl_connect("button_release_event", self.on_click)
         return pp
 
     def _center_changed(self, old, new):

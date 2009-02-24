@@ -82,8 +82,6 @@ class _MPLVMPlotEditor(_MPLFigureEditor, ActionController):
     def on_click(self, event):
         if not event.inaxes: return
         if event.button == 3:
-            print "Clicky clicky"
-            print event.xdata, event.ydata
             my_menu = Menu(MPLAction(name="Recenter", action="object.recenter",
                                      event=event),
                            MPLAction(name="Yo!", action="object.do_something",
