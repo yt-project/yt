@@ -11,17 +11,27 @@ HopOutputFile = HopAnalysis.out
 VirialQuantitiesOutputFile = VirialQuantities.out
 
 # Minimum virial mass in solar masses
-VirialMassCutoff = 1e14
+VirialMassCutoff = 1e3
 
 # Critical overdensity for virial cutoff.
 VirialOverdensity = 200
 
 n_bins = 64
 
+# Get velocity to zero out radial velocity from bulk velocity.
+# Choose bulk velocity from hop halo, or from sphere object.
+# VelocityCenter = bulk sphere
+# VelocityCenter = bulk halo
+
+# Choose velocity of cell that is maximum of some field.
+VelocityCenter = max Density
+
 # 1D radial profiles
 # Syntax is Profile[Field] = Weight_Field,Accumulate (True or False)
 Profile[CellVolume] = None,True
 Profile[TotalMassMsun] = None,True
+Profile[NumberDensity] = CellMass,False
+Profile[RadialVelocity] = CellMass,False
 
 # Projections of individual halos
 # Syntax is Projection[Field] = Weight_Field
