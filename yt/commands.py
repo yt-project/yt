@@ -201,13 +201,13 @@ class YTCommands(cmdln.Cmdln):
 
     @add_cmd_options(["maxw", "minw", "proj", "axis", "field", "weight",
                       "zlim", "nframes", "output", "cmap", "uboxes"])
-    def do_zoomin(self, subcmd, opts, args):
+    def do_zoomin(self, subcmd, opts, arg):
         """
         Create a set of zoomin frames
 
         ${cmd_option_list}
         """
-        pf = _fix_pf(args[-1])
+        pf = _fix_pf(arg)
         min_width = opts.min_width * pf.h.get_smallest_dx()
         if opts.axis == 4:
             axes = range(3)
