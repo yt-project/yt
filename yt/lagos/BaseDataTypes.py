@@ -1178,13 +1178,9 @@ class AMRProjBase(AMR2DData):
         pointI = self.source._get_point_indices(grid, use_child_mask=False)
         point_mask = na.zeros(grid.ActiveDimensions)
         point_mask[pointI] = 1.0
-
-        if (self._field_cuts is not None):
-            #field_mask = na.ones(shape=na.shape(point_mask))
+        if self._field_cuts is not None:
             for cut in self._field_cuts:
-                point_mask *= (eval(cut)).astype(int)
-            #point_mask *= field_mask
-
+                point_mask *= eval(cut)
         return point_mask
 
     @restore_grid_state
@@ -1518,7 +1514,8 @@ class InLineExtractedRegionBase(AMR3DData):
 
     @cache_mask
     def _get_cut_mask(self, grid):
-        point_mask = self._base_region._get_cut_mask(grid)
+        point_mask = na.ones(grid.ActiveDimensions, dtype='bool')
+        point_mask *= self._base_region._get_cut_mask(grid)
         for cut in self._field_cuts:
             point_mask *= eval(cut)
         return point_mask

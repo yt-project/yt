@@ -29,6 +29,7 @@ def configuration(parent_package='',top_path=None):
         include_dirs=[os.path.join(H5dir,"include")]
         library_dirs=[os.path.join(H5dir,"lib")]
         config.add_extension("HDF5LightReader", "yt/lagos/HDF5LightReader.c",
+                             define_macros=[("H5_USE_16_API",True)],
                              libraries=["m","hdf5"],
                              library_dirs=library_dirs, include_dirs=include_dirs)
     # Uncomment the next two lines if you want particle_density support
