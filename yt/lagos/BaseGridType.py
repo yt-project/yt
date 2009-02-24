@@ -343,8 +343,10 @@ class AMRGridPatch(AMRData):
                              smoothed=False):
         # We will attempt this by creating a datacube that is exactly bigger
         # than the grid by nZones*dx in each direction
-        new_left_edge = self.LeftEdge - n_zones * self.dds
-        new_right_edge = self.RightEdge + n_zones * self.dds
+        nl = self.get_global_startindex() - n_zones
+        nr = nl + self.ActiveDimensions + 2*n_zones
+        new_left_edge = nl * self.dds
+        new_right_edge = nr * self.dds
         # Something different needs to be done for the root grid, though
         level = self.Level
         if all_levels:
