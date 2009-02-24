@@ -49,7 +49,7 @@ class HaloProfiler(object):
         self.halos = halos
         if not(self.halos is 'multiple' or self.halos is 'single'):
             mylog.error("Keyword, halos, must be either 'single' or 'multiple'.")
-            return
+            return None
 
         # Set hop file style.
         # old: enzo_hop output.
@@ -57,7 +57,7 @@ class HaloProfiler(object):
         self.hop_style = hop_style
         if not(self.hop_style is 'old' or self.hop_style is 'new'):
             mylog.error("Keyword, hop_style, must be either 'old' or 'new'.")
-            return
+            return None
 
         if self.halos is 'single' or hop_style is 'old':
             self.haloRadius = radius
@@ -67,6 +67,29 @@ class HaloProfiler(object):
 
         # Read parameter file.
         self._ReadHaloProfilerParameterFile()
+
+        # Check validity for VelocityCenter parameter which toggles how the 
+        # velocity is zeroed out for radial velocity profiles.
+        if self.haloProfilerParameters['VelocityCenter'][0] == 'bulk':
+            if self.haloProfilerParameters['VelocityCenter'][1] == 'halo' and \
+                    self.halos is 'single':
+                mylog.error("Parameter, VelocityCenter, must be set to 'bulk sphere' or 'max <field>' with halos flag set to 'single'.")
+                return None
+            if self.haloProfilerParameters['VelocityCenter'][1] == 'halo' and \
+                    self.hop_style is 'old':
+                mylog.error("Parameter, VelocityCenter, must be 'bulk sphere' for old style hop output files.")
+                return None
+            if not(self.haloProfilerParameters['VelocityCenter'][1] == 'halo' or 
+                   self.haloProfilerParameters['VelocityCenter'][1] == 'sphere'):
+                mylog.error("Second value of VelocityCenter must be either 'halo' or 'sphere' if first value is 'bulk'.")
+                return None
+        elif self.haloProfilerParameters['VelocityCenter'][0] == 'max':
+            if self.halos is 'multiple':
+                mylog.error("Getting velocity center from a max field value only works with halos='single'.")
+                return None
+        else:
+            mylog.error("First value of parameter, VelocityCenter, must be either 'bulk' or 'max'.")
+            return None
 
         # Create dataset object.
         self.pf = lagos.EnzoStaticOutput(self.dataset)
@@ -110,6 +133,21 @@ class HaloProfiler(object):
                 continue
 
             sphere = self.pf.h.sphere(halo['center'],halo['r_max']/self.pf.units['mpc'])
+
+            # Set velocity to zero out radial velocity profiles.
+            if self.haloProfilerParameters['VelocityCenter'][0] == 'bulk':
+                if self.haloProfilerParameters['VelocityCenter'][1] == 'halo':
+                    sphere.set_field_parameter('bulk_velocity',halo['velocity'])
+                elif self.haloProfilerParameters['VelocityCenter'][1] == 'sphere':
+                    sphere.set_field_parameter('bulk_velocity',sphere.quantities['BulkVelocity']())
+                else:
+                    mylog.error("Invalid parameter: VelocityCenter.")
+            elif self.haloProfilerParameters['VelocityCenter'][0] == 'max':
+                max_grid,max_cell,max_value,max_location = self.pf.h.find_max_cell_location(self.haloProfilerParameters['VelocityCenter'][1])
+                sphere.set_field_parameter('bulk_velocity',[max_grid['x-velocity'][max_cell],
+                                                            max_grid['y-velocity'][max_cell],
+                                                            max_grid['z-velocity'][max_cell]])
+
             profile = lagos.BinnedProfile1D(sphere,self.haloProfilerParameters['n_bins'],"RadiusMpc",
                                             r_min,halo['r_max'],
                                             log_space=True, lazy_reader=True)
@@ -334,9 +372,10 @@ class HaloProfiler(object):
                 onLine = line.split()
                 mass = float(onLine[1])
                 if (mass >= self.haloProfilerParameters['VirialMassCutoff']):
-                    center = [float(onLine[4]),float(onLine[5]),float(onLine[6])]
+                    center = [float(onLine[7]),float(onLine[8]),float(onLine[9])]
+                    velocity = [float(onLine[10]),float(onLine[11]),float(onLine[12])]
                     r_max = float(onLine[13]) * self.pf.units['mpc']
-                    halo = {'center': center, 'r_max': r_max}
+                    halo = {'center': center, 'r_max': r_max, 'velocity': velocity}
                     self.hopHalos.append(halo)
 
         mylog.info("Loaded %d halos with total dark matter mass af at least %e Msolar." % 
@@ -465,6 +504,7 @@ class HaloProfiler(object):
         "Set some default parameters."
         self.haloProfilerParameters['VirialMassCutoff'] = 1e13 # M_solar
         self.haloProfilerParameters['VirialOverdensity'] = 200
+        self.haloProfilerParameters['VelocityCenter'] = ['bulk','halo']
         self.haloProfilerParameters['n_bins'] = 50
         self.haloProfilerParameters['ProfileOutputDir'] = 'radial_profiles'
         self.haloProfilerParameters['ProjectionOutputDir'] = 'projections'
@@ -478,11 +518,10 @@ haloProfilerParameterDict = {"ProfileOutputDir": str,
                              "HopOutputFile": str,
                              "VirialMassCutoff": float,
                              "VirialOverdensity": float,
+                             "VelocityCenter": str,
                              "n_bins": int,
-                             "Profile": str,
                              "ProjectionOutputDir": str,
                              "ProjectionWidth": float,
-                             "Projection": str,
                              "ProjectAtLevel": str}
 
 def ShiftProjections(pf,pc,oldCenter,newCenter,axis):
