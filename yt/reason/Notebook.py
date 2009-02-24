@@ -166,8 +166,8 @@ class PlotPage(wx.Panel):
         self.mw = mw
         self.parent_id = parent_id
 
-        self.figure = be.matplotlib.figure.Figure((1,1))
-        self.axes = self.figure.add_subplot(111)
+        self.figure = be.matplotlib.figure.Figure()
+        self.axes = self.figure.add_subplot(111, aspect='equal')
         self.status_bar = status_bar
 
         self.SetupControls()
@@ -354,7 +354,7 @@ class VMPlotPage(PlotPage):
         self.weight_field = weight_field
         self.axis = axis
         if center is None:
-            center = [0.5, 0.5, 0.5]
+            center = [0.501, 0.501, 0.501]
         self.center = center
         self.AmDrawingCircle = False
         self.circles = []
