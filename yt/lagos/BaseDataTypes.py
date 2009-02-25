@@ -1271,7 +1271,8 @@ class AMR3DData(AMRData, GridPropertiesMixin):
     @restore_grid_state
     def _get_data_from_grid(self, grid, field):
         if field in self.pf.field_info and self.pf.field_info[field].particle_type:
-            if grid.NumberOfParticles == 0: return na.array([])
+            # int64 -> float64 with the first real set of data
+            if grid.NumberOfParticles == 0: return na.array([], dtype='int64')
             pointI = self._get_particle_indices(grid)
             if self.pf.field_info[field].vector_field:
                 f = grid[field]

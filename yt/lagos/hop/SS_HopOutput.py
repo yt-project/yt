@@ -156,7 +156,7 @@ class HopGroup(object):
     _processing = False
     _owner = 0
     indices = None
-    dont_wrap = ["get_sphere"]
+    dont_wrap = ["get_sphere", "write_particle_list"]
     extra_wrap = ["__getitem__"]
 
     def __init__(self, hop_output, id, indices = None):
@@ -245,15 +245,19 @@ class HopGroup(object):
     def get_size(self):
         return self.indices.size
 
-    def get_particle_indices(self):
-        return self["particle_index"]
-    
-    def get_particle_positions(self,f):
-        return self["particle_position_%s" % f]
-    
-    def get_particle_velocities(self,f):
-        return self["particle_velocity_%s" % f]
-    
+    @parallel_blocking_call
+    def write_particle_list(self, handle):
+        self._processing = True
+        gn = "Halo%08i" % (self.id)
+        handle.createGroup("/", gn)
+        for field in ["particle_position_%s" % ax for ax in 'xyz'] \
+                   + ["particle_velocity_%s" % ax for ax in 'xyz'] \
+                   + ["particle_index"]:
+            handle.createArray("/%s" % gn, field, self[field])
+        n = handle.getNode("/", gn)
+        # set attributes on n
+        self._processing = False
+
 class HaloFinder(HopList, ParallelAnalysisInterface):
     def __init__(self, pf, threshold=160.0, dm_only=True, padding=0.2):
         self.pf = pf
@@ -326,14 +330,11 @@ class HaloFinder(HopList, ParallelAnalysisInterface):
         self._groups = [HopGroup(self, i) for i in range(my_first_id)] + \
                        self._groups + \
                        [HopGroup(self, i) for i in range(after, nhalos)]
-        # MJT: Sorting doesn't work yet.  They need to be sorted.
-        #haloes.sort(lambda x, y: cmp(len(x.indices),len(y.indices)))
-        # Unfortunately, we can't sort *just yet*.
         id = 0
         for proc in sorted(halo_info.keys()):
             for halo in self._groups[id:id+halo_info[proc]]:
                 halo.id = id
-                halo._distributed = True
+                halo._distributed = self._distributed
                 halo._owner = proc
                 id += 1
         self._groups.sort(key = lambda h: -1 * h.get_size())
@@ -357,3 +358,10 @@ class HaloFinder(HopList, ParallelAnalysisInterface):
     def write_out(self, filename):
         f = self._write_on_root(filename)
         HopList.write_out(self, f)
+
+    def write_particle_lists(self, prefix):
+        fn = "%s.h5" % self._get_filename(prefix)
+        f = tables.openFile(fn, "w")
+        for halo in self._groups:
+            if not self._is_mine(halo): continue
+            halo.write_particle_list(f)
