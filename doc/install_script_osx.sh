@@ -32,6 +32,8 @@ YT_DIR=""
 #                                                                              #
 #------------------------------------------------------------------------------#
 
+shopt -s extglob
+
 function do_exit
 {
     echo "Failure.  Check ${LOG_FILE}."
@@ -41,12 +43,13 @@ function do_exit
 function do_setup_py
 {
     [ -e $1/done ] && return
-    echo "Installing $1"
-    echo "Please type superuser password"
+    echo
+    echo "Installing $1 (may need sudo)"
+    echo
     [ ! -e $1 ] && tar xfz $1.tar.gz
     cd $1
     shift
-    ( ${PY_DIR}/bin/python2.5 setup.py install $* 2>&1 ) 1>> ${LOG_FILE} || do_exit
+    ( sudo ${PY_DIR}/bin/python2.5 setup.py install $* 2>&1 ) 1>> ${LOG_FILE} || do_exit
     touch done
     cd ..
 }
@@ -63,15 +66,37 @@ function get_enzotools
 
 function self_install
 {
+    echo 
+    echo "--------------------------------------------------------------------------------"
     echo "Installing ${1}.  You will need to handle this procedure."
     echo
     echo "Press enter to start, then return when finished."
     echo
+    echo "--------------------------------------------------------------------------------"
+    echo
     read LOKI
-    open ${1}
+    ext="${1##*.}"
+    if [ "${ext}" = "dmg" ] 
+    then
+        [ ! -d ${DEST_DIR}/src/mount_point/ ] && \
+            ( mkdir ${DEST_DIR}/src/mount_point/ 2>&1 ) >> ${LOG_FILE}
+        ( hdiutil unmount ${DEST_DIR}/src/mount_point 2>&1 ) >> ${LOG_FILE}
+        ( hdiutil mount ${1} -mountpoint ${DEST_DIR}/src/mount_point/ 2>&1 ) \
+            >> ${LOG_FILE}
+        open ${DEST_DIR}/src/mount_point/?(*.mpkg|*.pkg)
+    else
+        open ${1}
+    fi
+    echo
+    echo "--------------------------------------------------------------------------------"
     echo
     echo "Press enter when the installation is complete."
+    echo
+    echo "--------------------------------------------------------------------------------"
+    echo
     read LOKI
+    [ "${ext}" = "dmg" ] && \
+        ( hdiutil unmount ${DEST_DIR}/src/mount_point/ 2>&1 ) >> ${LOG_FILE}
 }
 
 ORIG_PWD=`pwd`
@@ -145,8 +170,9 @@ touch ${DEST_DIR}/src/py_done
     wxPython2.8-osx-unicode-2.8.9.2-universal-py2.5.dmg
 touch ${DEST_DIR}/src/wx_done
 
-echo "Installing setuptools"
-( ${PY_DIR}/bin/python2.5 ${YT_DIR}/ez_setup.py 2>&1 ) 1>> ${LOG_FILE} || do_exit
+echo "Installing setuptools (needs sudo)"
+echo
+( sudo ${PY_DIR}/bin/python2.5 ${YT_DIR}/ez_setup.py 2>&1 ) 1>> ${LOG_FILE} || do_exit
 
 [ ! -e ${DEST_DIR}/src/np_done ] && self_install \
     numpy-1.2.1-py2.5-macosx10.5.dmg
@@ -154,8 +180,8 @@ touch ${DEST_DIR}/src/np_done
 
 if [ ! -e ${DEST_DIR}/src/mp_done ]
 then
-    [ ! -e matplotlib-0.98.5.2-py2.5-mpkg ] && unzip matplotlib-0.98.5.2-py2.5-mpkg.zip
-    self_install matplotlib-0.98.5.2-py2.5
+    [ ! -e matplotlib-0.98.5.2-py2.5-macosx10.5.mpkg ] && unzip matplotlib-0.98.5.2-py2.5-mpkg.zip
+    self_install matplotlib-0.98.5.2-py2.5-macosx10.5.mpkg
     touch ${DEST_DIR}/src/mp_done
 fi
 
@@ -167,9 +193,10 @@ MY_PWD=`pwd`
 cd $YT_DIR
 ( svn up 2>&1 ) 1>> ${LOG_FILE}
 
-echo "Installing yt"
+echo "Installing yt (may need sudo)"
 echo $HDF5_DIR > hdf5.cfg
-( ${PY_DIR}/bin/python2.5 setup.py develop 2>&1 ) 1>> ${LOG_FILE} || do_exit
+( ${PY_DIR}/bin/python2.5 setup.py build_ext -i 2>&1 ) 1>> ${LOG_FILE} || do_exit
+( sudo ${PY_DIR}/bin/python2.5 setup.py develop 2>&1 ) 1>> ${LOG_FILE} || do_exit
 touch done
 cd $MY_PWD
 
@@ -181,7 +208,7 @@ echo "yt is now installed in $DEST_DIR ."
 echo "To run from this new installation, the a few variables need to be"
 echo "prepended with the following information:"
 echo
-echo "PATH            => $PY_DIR/bin/"
+echo "PATH => $PY_DIR/bin/"
 echo
 echo "For interactive data analysis and visualization, we recommend running"
 echo "the IPython interface, which will become more fully featured with time:"
