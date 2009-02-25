@@ -245,7 +245,6 @@ class HopGroup(object):
     def get_size(self):
         return self.indices.size
 
-    @parallel_blocking_call
     def write_particle_list(self, handle):
         self._processing = True
         gn = "Halo%08i" % (self.id)
@@ -359,6 +358,7 @@ class HaloFinder(HopList, ParallelAnalysisInterface):
         f = self._write_on_root(filename)
         HopList.write_out(self, f)
 
+    @parallel_blocking_call
     def write_particle_lists(self, prefix):
         fn = "%s.h5" % self._get_filename(prefix)
         f = tables.openFile(fn, "w")
