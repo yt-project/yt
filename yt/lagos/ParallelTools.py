@@ -137,7 +137,6 @@ class ParallelDummy(type):
         for attrname in d:
             if attrname.startswith("_") or attrname in skip:
                 if attrname not in extra: continue
-            print "Wrapping", attrname
             attr = getattr(cls, attrname)
             if type(attr) == types.MethodType:
                 setattr(cls, attrname, parallel_simple_proxy(attr))
@@ -165,6 +164,7 @@ def parallel_blocking_call(func):
 
 class ParallelAnalysisInterface(object):
     _grids = None
+    _distributed = parallel_capable
 
     def _get_grids(self, *args, **kwargs):
         if parallel_capable:
@@ -342,6 +342,14 @@ class ParallelAnalysisInterface(object):
             return open(fn, "w")
         else:
             return cStringIO.StringIO()
+
+    def _get_filename(self, prefix):
+        if not parallel_capable: return prefix
+        return "%s_%03i" % (prefix, MPI.COMM_WORLD.rank)
+
+    def _is_mine(self, obj):
+        if not obj._distributed: return True
+        return (obj._owner == MPI.COMM_WORLD.rank)
 
 __tocast = 'c'
 

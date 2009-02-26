@@ -170,10 +170,16 @@ class EnzoStaticOutput(StaticOutput):
         StaticOutput.__init__(self, filename, data_style)
         rp = os.path.join(self.directory, "rates.out")
         if os.path.exists(rp):
-            self.rates = EnzoTable(rp, rates_out_key)
+            try:
+                self.rates = EnzoTable(rp, rates_out_key)
+            except:
+                pass
         cp = os.path.join(self.directory, "cool_rates.out")
         if os.path.exists(cp):
-            self.cool = EnzoTable(cp, cool_out_key)
+            try:
+                self.cool = EnzoTable(cp, cool_out_key)
+            except:
+                pass
 
         # Now fixes for different types of Hierarchies
         # This includes changing the fieldinfo class!

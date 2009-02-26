@@ -292,7 +292,8 @@ class PlotCollection(object):
         memory-conservative status.
         """
         if x_bounds is None:
-            x_min, x_max = data_source[fields[0]].min(), data_source[fields[0]].max()
+            x_min, x_max = data_source.quantities["Extrema"](
+                            fields[0], lazy_reader=lazy_reader)[0]
         else:
             x_min, x_max = x_bounds
         profile = lagos.BinnedProfile1D(data_source,
@@ -339,11 +340,13 @@ class PlotCollection(object):
         arguments are identical to :meth:`add_profile_object`.
         """
         if x_bounds is None:
-            x_min, x_max = data_source[fields[0]].min(), data_source[fields[0]].max()
+            x_min, x_max = data_source.quantities["Extrema"](
+                                    fields[0], lazy_reader=lazy_reader)[0]
         else:
             x_min, x_max = x_bounds
         if y_bounds is None:
-            y_min, y_max = data_source[fields[1]].min(), data_source[fields[1]].max()
+            y_min, y_max = data_source.quantities["Extrema"](
+                                    fields[1], lazy_reader=lazy_reader)[0]
         else:
             y_min, y_max = y_bounds
         profile = lagos.BinnedProfile2D(data_source,
@@ -487,12 +490,13 @@ class PlotCollectionInteractive(PlotCollection):
             self.pylab.clf()
         PlotCollection.clear_data(self)
 
-def get_multi_plot(nx, ny, colorbar = 'vertical', bw = 4):
+def get_multi_plot(nx, ny, colorbar = 'vertical', bw = 4, dpi=300):
     """
     This returns *nx* and *ny* axes on a single figure, set up so that the
     *colorbar* can be placed either vertically or horizontally in a bonus
     column or row, respectively.  The axes all have base width of *bw* inches.
     """
+    PlotTypes.Initialize()
     hf, wf = 1.0/ny, 1.0/nx
     if colorbar.lower() == 'vertical':
         fudge_x = nx/(0.25+nx)
@@ -500,16 +504,16 @@ def get_multi_plot(nx, ny, colorbar = 'vertical', bw = 4):
     elif colorbar.lower() == 'horizontal':
         fudge_x = 1.0
         fudge_y = ny/(0.40+ny)
-    fig = matplotlib.figure.Figure((bw*nx/fudge_x, bw*ny/fudge_y))
+    fig = matplotlib.figure.Figure((bw*nx/fudge_x, bw*ny/fudge_y), dpi=dpi)
     fig.set_canvas(be.engineVals["canvas"](fig))
     fig.subplots_adjust(wspace=0.0, hspace=0.0,
                         top=1.0, bottom=0.0,
                         left=0.0, right=1.0)
     tr = []
     print fudge_x, fudge_y
-    for i in range(nx):
+    for j in range(ny):
         tr.append([])
-        for j in range(ny):
+        for i in range(nx):
             left = i*wf*fudge_x
             bottom = fudge_y*(1.0-(j+1)*hf) + (1.0-fudge_y)
             ax = fig.add_axes([left, bottom, wf*fudge_x, hf*fudge_y])
@@ -517,8 +521,12 @@ def get_multi_plot(nx, ny, colorbar = 'vertical', bw = 4):
     cbars = []
     if colorbar.lower() == 'horizontal':
         for i in range(nx):
-            ax = fig.add_axes([wf*(i+0.10)*fudge_x, hf*fudge_y*0.10,
-                               wf*(1-0.20)*fudge_x, hf*fudge_y*0.10])
+            # left, bottom, width, height
+            # Here we want 0.10 on each side of the colorbar
+            # We want it to be 0.05 tall
+            # And we want a buffer of 0.15
+            ax = fig.add_axes([wf*(i+0.10)*fudge_x, hf*fudge_y*0.20,
+                               wf*(1-0.20)*fudge_x, hf*fudge_y*0.05])
             cbars.append(ax)
     elif colorbar.lower() == 'vertical':
         for j in range(nx):
