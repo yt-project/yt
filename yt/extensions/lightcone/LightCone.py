@@ -660,6 +660,9 @@ class LightCone(object):
     def _SaveLightConeStack(self,field=None,weight_field=None,filename=None):
         "Save the light cone projection stack as a 3d array in and hdf5 file."
 
+        # Make list of redshifts to include as a dataset attribute.
+        redshiftList = [slice['redshift'] for slice in self.lightConeSolution]
+
         field_node = "%s_%s" % (field,weight_field)
         weight_field_node = "weight_field_%s" % weight_field
 
@@ -687,7 +690,8 @@ class LightCone(object):
         else:
             mylog.info("Saving %s to %s." % (field_node, filename))
             self.projectionStack = na.array(self.projectionStack)
-            output.createArray("/",field_node,self.projectionStack)
+            field_dataset = output.createArray("/",field_node,self.projectionStack)
+            field_dataset._v_attrs.redshifts = redshiftList
 
         if (len(self.projectionWeightFieldStack) > 0):
             try:
@@ -700,7 +704,8 @@ class LightCone(object):
             else:
                 mylog.info("Saving %s to %s." % (weight_field_node, filename))
                 self.projectionWeightFieldStack = na.array(self.projectionWeightFieldStack)
-                output.createArray("/",weight_field_node,self.projectionWeightFieldStack)
+                weight_field_dataset = output.createArray("/",weight_field_node,self.projectionWeightFieldStack)
+                weight_field_dataset._v_attrs.redshifts = redshiftList
 
         output.close()
 
