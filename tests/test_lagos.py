@@ -45,6 +45,8 @@ class LagosTestingBase:
         
 class TestParameterFileStore(unittest.TestCase):
     def setUp(self):
+        self.original = (yt.config.ytcfg.get("yt","ParameterFileStore"),
+                         yt.config.ytcfg.get("lagos","serialize"))
         ytcfg['yt','ParameterFileStore'] = "testing.csv"
         pfs = ParameterFileStore()
         os.unlink(pfs._get_db_name())
@@ -72,8 +74,10 @@ class TestParameterFileStore(unittest.TestCase):
         self.assertTrue(hash == pf2._hash())
 
     def tearDown(self):
-        ytcfg['lagos', 'serialize'] = "False"
         os.unlink(self.pfs._get_db_name())
+        ytcfg['yt', 'ParameterFileStore'] = self.original[0]
+        ytcfg['lagos', 'serialize'] = self.original[1]
+        self.pfs.__init__()
 
 class TestHierarchy(LagosTestingBase, unittest.TestCase):
     def testGetHierarchy(self):

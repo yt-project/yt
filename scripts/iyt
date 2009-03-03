@@ -18,7 +18,7 @@ except:
     code.interact(doc, None, namespace)
     sys.exit()
 
-ip_shell = IPython.Shell.IPShellMatplotlib(user_ns=namespace)
+ip_shell = IPython.Shell.IPShellMatplotlibWX(user_ns=namespace)
 
 # The rest is a modified version of the IPython default profile code
 
