@@ -35,9 +35,4 @@ def configuration(parent_package='',top_path=None):
     # Uncomment the next two lines if you want particle_density support
     #config.add_extension("cic_deposit", ["yt/lagos/enzo_routines/cic_deposit.pyf",
     #                                     "yt/lagos/enzo_routines/cic_deposit.f"])
-    if 0:
-        sys.argv.extend(["config_fc","--f77flags",
-                         "'-Dr16 -ffixed-line-length-132 -fno-second-underscore -DPYFORT -DNOMETALS -ggdb -O0'"])
-        config.add_extension("EnzoFortranRoutines", \
-                            ["yt/lagos/solve_rate_cool.pyf", "yt/lagos/f_src/*.F"])
     return config
