@@ -661,7 +661,7 @@ class LightCone(object):
         "Save the light cone projection stack as a 3d array in and hdf5 file."
 
         # Make list of redshifts to include as a dataset attribute.
-        redshiftList = [slice['redshift'] for slice in self.lightConeSolution]
+        redshiftList = na.array([slice['redshift'] for slice in self.lightConeSolution])
 
         field_node = "%s_%s" % (field,weight_field)
         weight_field_node = "weight_field_%s" % weight_field
