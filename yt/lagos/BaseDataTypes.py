@@ -691,7 +691,7 @@ class AMRSliceBase(AMR2DData):
 
     def _get_list_of_grids(self):
         goodI = ((self.source.gridRightEdge[:,self.axis] > self.coord)
-              &  (self.source.gridLeftEdge[:,self.axis] < self.coord ))
+              &  (self.source.gridLeftEdge[:,self.axis] <= self.coord ))
         self._grids = self.source._grids[goodI] # Using sources not hierarchy
 
     def __cut_mask_child_mask(self, grid):

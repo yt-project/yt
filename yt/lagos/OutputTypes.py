@@ -38,8 +38,10 @@ _pf_store = ParameterFileStore()
 
 class StaticOutput(object):
     class __metaclass__(type):
-        def __call__(cls, *args, **kwargs):
-            return cls.__new__(cls, *args, **kwargs)
+        def __init__(cls, name, b, d):
+            type.__init__(cls, name, b, d)
+            output_type_registry[name]=cls
+            mylog.debug("Registering: %s as %s", name, cls)
 
     def __new__(cls, filename, *args, **kwargs):
         apath = os.path.abspath(filename)
@@ -373,6 +375,10 @@ class EnzoStaticOutput(StaticOutput):
         k["aye"]  = (1.0 + self.parameters["CosmologyInitialRedshift"]) / \
                (1.0 + self.parameters["CosmologyCurrentRedshift"])
         return k
+
+# We set our default output type to EnzoStaticOutput
+
+output_type_registry[None] = EnzoStaticOutput
 
 class EnzoStaticOutputInMemory(EnzoStaticOutput):
     _hierarchy_class = EnzoHierarchyInMemory

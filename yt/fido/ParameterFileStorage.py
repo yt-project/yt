@@ -26,16 +26,32 @@ License:
 from yt.config import ytcfg
 from yt.fido import *
 from yt.funcs import *
-import shelve
+from yt.lagos.ParallelTools import parallel_simple_proxy
+import csv
 import os.path
+
+output_type_registry = {}
+_field_names = ('hash','bn','fp','tt','ctid','class_name')
 
 class NoParameterShelf(Exception):
     pass
 
+class UnknownStaticOutputType(Exception):
+    def __init__(self, name):
+        self.name = name
+
+    def __str__(self):
+        return "%s" % self.name
+
+    def __repr__(self):
+        return "%s" % self.name
+
 class ParameterFileStore(object):
 
     _shared_state = {}
-    _shelf = None
+    _distributed = True
+    _processing = False
+    _owner = 0
 
     def __new__(cls, *p, **k):
         self = object.__new__(cls, *p, **k)
@@ -43,100 +59,106 @@ class ParameterFileStore(object):
         return self
 
     def __init__(self, in_memory = False):
-        self.__init_shelf()
+        if ytcfg.getboolean("yt", "StoreParameterFiles"):
+            self._read_only = False
+            self.init_db()
+            self._records = self.read_db()
+        else:
+            self._read_only = True
+            self._records = {}
+
+    @parallel_simple_proxy
+    def init_db(self):
+        dbn = self._get_db_name()
+        dbdir = os.path.dirname(dbn)
+        try:
+            if not os.path.isdir(dbdir): os.mkdir(dbdir)
+        except OSError:
+            raise NoParameterShelf()
+        open(dbn, 'ab') # make sure it exists, allow to close
+        # Now we read in all our records and return them
+        # these will be broadcast
 
     def _get_db_name(self):
+        base_file_name = ytcfg.get("yt","ParameterFileStore")
         if not os.access(os.path.expanduser("~/"), os.W_OK):
-            return os.path.abspath("parameter_files.db")
-        return os.path.expanduser("~/.yt/parameter_files.db")
-
-    def wipe_hash(self, hash):
-        if hash in self.keys():
-            del self[hash]
+            return os.path.abspath(base_file_name)
+        return os.path.expanduser("~/.yt/%s" % base_file_name)
 
     def get_pf_hash(self, hash):
-        return self._convert_pf(self[hash])
+        return self._convert_pf(self._records[hash])
 
     def get_pf_ctid(self, ctid):
-        for h in self.keys():
-            if self[h]['ctid'] == ctid:
-                return self._convert_pf(self[h])
+        for h in self._records:
+            if self._records[h]['ctid'] == ctid:
+                return self._convert_pf(self._records[h])
 
     def _adapt_pf(self, pf):
         return dict(bn=pf.basename,
                     fp=pf.fullpath,
                     tt=pf["InitialTime"],
-                    ctid=pf["CurrentTimeIdentifier"])
+                    ctid=pf["CurrentTimeIdentifier"],
+                    class_name=pf.__class__.__name__)
 
     def _convert_pf(self, pf_dict):
         bn = pf_dict['bn']
         fp = pf_dict['fp']
         fn = os.path.join(fp, bn)
+        class_name = pf_dict['class_name']
+        if class_name not in output_type_registry:
+            raise UnknownStaticOutputType(class_name)
         mylog.info("Checking %s", fn)
         if os.path.exists(fn):
-            import yt.lagos.OutputTypes as ot
-            pf = ot.EnzoStaticOutput(
-                os.path.join(fp, bn))
+            pf = output_type_registry[class_name](os.path.join(fp, bn))
         else:
             raise IOError
         return pf
 
     def check_pf(self, pf):
-        if pf._hash() not in self.keys():
+        if pf._hash() not in self._records:
             self.insert_pf(pf)
             return
-        pf_dict = self[pf._hash()]
+        pf_dict = self._records[pf._hash()]
         if pf_dict['bn'] != pf.basename \
           or pf_dict['fp'] != pf.fullpath:
             self.wipe_hash(pf._hash())
             self.insert_pf(pf)
 
-    def __read_only(self):
-        if self._shelf is not None: return self._shelf
-        return shelve.open(self._get_db_name(), flag='r', protocol=-1)
-
-    def __read_write(self):
-        if self._shelf is not None: return self._shelf
-        return shelve.open(self._get_db_name(), flag='c', protocol=-1)
-
     def insert_pf(self, pf):
-        self[pf._hash()] = self._adapt_pf(pf)
+        self._records[pf._hash()] = self._adapt_pf(pf)
+        self.flush_db()
 
-    def __getitem__(self, key):
-        my_shelf = self.__read_only()
-        return my_shelf[key]
+    def wipe_hash(self, hash):
+        if hash not in self._records: return
+        del self._records[hash]
+        self.flush_db()
 
-    def __store_item(self, key, val):
-        my_shelf = self.__read_write()
-        my_shelf[key] = val
+    def flush_db(self):
+        if self._read_only: return
+        self._write_out()
+        self.read_db()
 
-    def __delete_item(self, key):
-        my_shelf = self.__read_write()
-        del my_shelf[key]
+    @parallel_simple_proxy
+    def _write_out(self):
+        if self._read_only: return
+        fn = self._get_db_name()
+        f = open("%s.tmp" % fn, 'wb')
+        w = csv.DictWriter(f, _field_names)
+        for h,v in sorted(self._records.items()):
+            v['hash'] = h
+            w.writerow(v)
+        f.close()
+        os.rename("%s.tmp" % fn, fn)
 
-    def __init_shelf(self):
-        dbn = self._get_db_name()
-        dbdir = os.path.dirname(dbn)
-        if not ytcfg.getboolean("yt", "StoreParameterFiles"):
-            # This ensures that even if we're not storing them in the file
-            # system, we're at least keeping track of what we load
-            self._shelf = defaultdict(lambda: dict(bn='',fp='',tt='',ctid=''))
-            return
-        try:
-            if not os.path.isdir(dbdir): os.mkdir(dbdir)
-        except OSError:
-            raise NoParameterShelf()
-        only_on_root(shelve.open, dbn, 'c', protocol=-1)
-
-    def __setitem__(self, key, val):
-        only_on_root(self.__store_item, key, val)
-
-    def __delitem__(self, key):
-        only_on_root(self.__delete_item, key)
-
-    def keys(self):
-        my_shelf = self.__read_only()
-        return my_shelf.keys()
+    @parallel_simple_proxy
+    def read_db(self):
+        f=open(self._get_db_name(), 'rb')
+        vals = csv.DictReader(f, _field_names)
+        db = {}
+        for v in vals:
+            db[v.pop('hash')] = v
+            
+        return db
 
 class ObjectStorage(object):
     pass
