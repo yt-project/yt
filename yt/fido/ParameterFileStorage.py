@@ -29,9 +29,10 @@ from yt.funcs import *
 from yt.lagos.ParallelTools import parallel_simple_proxy
 import csv
 import os.path
+from itertools import islice
 
 output_type_registry = {}
-_field_names = ('hash','bn','fp','tt','ctid','class_name')
+_field_names = ('hash','bn','fp','tt','ctid','class_name','last_seen')
 
 class NoParameterShelf(Exception):
     pass
@@ -94,13 +95,20 @@ class ParameterFileStore(object):
                 return self._convert_pf(self._records[h])
 
     def _adapt_pf(self, pf):
+        """
+        This turns a parameter file into a CSV entry
+        """
         return dict(bn=pf.basename,
                     fp=pf.fullpath,
                     tt=pf["InitialTime"],
                     ctid=pf["CurrentTimeIdentifier"],
-                    class_name=pf.__class__.__name__)
+                    class_name=pf.__class__.__name__,
+                    last_seen=pf._instantiated)
 
     def _convert_pf(self, pf_dict):
+        """
+        This turns a CSV entry into a parameter file 
+        """
         bn = pf_dict['bn']
         fp = pf_dict['fp']
         fn = os.path.join(fp, bn)
@@ -112,16 +120,21 @@ class ParameterFileStore(object):
             pf = output_type_registry[class_name](os.path.join(fp, bn))
         else:
             raise IOError
+        # This next one is to ensure that we manually update the last_seen
+        # record *now*, for during write_out.
+        self._records[pf._hash()]['last_seen'] = pf._instantiated
         return pf
 
     def check_pf(self, pf):
-        if pf._hash() not in self._records:
+        hash = pf._hash()
+        if hash not in self._records:
             self.insert_pf(pf)
             return
-        pf_dict = self._records[pf._hash()]
+        pf_dict = self._records[hash]
+        self._records[hash]['last_seen'] = pf._instantiated
         if pf_dict['bn'] != pf.basename \
           or pf_dict['fp'] != pf.fullpath:
-            self.wipe_hash(pf._hash())
+            self.wipe_hash(hash)
             self.insert_pf(pf)
 
     def insert_pf(self, pf):
@@ -144,7 +157,9 @@ class ParameterFileStore(object):
         fn = self._get_db_name()
         f = open("%s.tmp" % fn, 'wb')
         w = csv.DictWriter(f, _field_names)
-        for h,v in sorted(self._records.items()):
+        maxn = ytcfg.getint("yt","MaximumStoredPFs") # number written
+        for h,v in islice(sorted(self._records.items(),
+                          key=lambda a: -a[1]['last_seen']), 0, maxn):
             v['hash'] = h
             w.writerow(v)
         f.close()
@@ -157,7 +172,9 @@ class ParameterFileStore(object):
         db = {}
         for v in vals:
             db[v.pop('hash')] = v
-            
+            if v['last_seen'] is None:
+                v['last_seen'] = 0.0
+            else: v['last_seen'] = float(v['last_seen'])
         return db
 
 class ObjectStorage(object):
