@@ -25,7 +25,7 @@ License:
 
 from yt.lagos import *
 from yt.funcs import *
-import yt.logger
+import yt.logger, logging
 import itertools, sys, cStringIO
 
 if os.path.basename(sys.executable) in ["mpi4py", "embed_enzo"] \
@@ -47,6 +47,9 @@ if os.path.basename(sys.executable) in ["mpi4py", "embed_enzo"] \
             if ytcfg.getboolean("yt","LogFile"):
                 ytcfg["yt","LogFile"] = "False"
                 yt.logger.disable_file_logging()
+        f = logging.Formatter("P%03i %s" % (MPI.COMM_WORLD.rank,
+                                            yt.logger.fstring))
+        yt.logger.rootLogger.handlers[0].setFormatter(f)
 else:
     parallel_capable = False
 
