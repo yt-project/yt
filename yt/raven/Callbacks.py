@@ -555,13 +555,15 @@ class SphereCallback(PlotCallback):
 
 class HopCircleCallback(PlotCallback):
     def __init__(self, hop_output, axis, max_number=None,
-                 annotate=False, min_size=20, font_size=8, print_halo_size=False,
+                 annotate=False, min_size=20, max_size=10000000,
+                 font_size=8, print_halo_size=False,
                  print_halo_mass=False):
         self.axis = axis
         self.hop_output = hop_output
         self.max_number = max_number
         self.annotate = annotate
         self.min_size = min_size
+        self.max_size = max_size
         self.font_size = font_size
         self.print_halo_size = print_halo_size
         self.print_halo_mass = print_halo_mass
@@ -577,7 +579,7 @@ class HopCircleCallback(PlotCallback):
         dy = plot.image._A.shape[1] / (y1-y0)
         for halo in self.hop_output[:self.max_number]:
             size = halo.get_size()
-            if size < self.min_size: continue
+            if size < self.min_size or size > self.max_size: continue
             radius = halo.maximum_radius() * dx
             center = halo.center_of_mass()
             center_x = (center[xi] - x0)*dx
