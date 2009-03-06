@@ -67,6 +67,7 @@ class StaticOutput(object):
         self.basename = os.path.basename(filename)
         self.directory = os.path.expanduser(os.path.dirname(filename))
         self.fullpath = os.path.abspath(self.directory)
+        self._instantiated = time.time()
         if len(self.directory) == 0:
             self.directory = "."
         self.conversion_factors = {}

@@ -66,6 +66,7 @@ ytcfgDefaults = {
         '__parallel_size':'1',
         'StoreParameterFiles': 'True',
         'ParameterFileStore': 'parameter_files.csv',
+        'MaximumStoredPFs': '500',
          },
     "raven":{
         'ImagePath':".",
