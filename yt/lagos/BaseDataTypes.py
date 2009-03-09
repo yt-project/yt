@@ -1500,6 +1500,14 @@ class ExtractedRegionBase(AMR3DData):
         else: tr = na.where(tr)
         return tr
 
+    def __repr__(self):
+        # We'll do this the slow way to be clear what's going on
+        s = "%s (%s): " % (self.__class__.__name__, self.pf)
+        s += ", ".join(["%s=%s" % (i, getattr(self,i))
+                       for i in self._con_args if i != "_indices"])
+        return s
+
+
 class InLineExtractedRegionBase(AMR3DData):
     """
     In-line extracted regions accept a base region and a set of field_cuts to
