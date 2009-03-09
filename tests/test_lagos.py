@@ -193,6 +193,10 @@ class DataTypeTestingBase:
     def setUp(self):
         LagosTestingBase.setUp(self)
 
+    def testRepr(self):
+        self.assertTrue(
+            ("%s" % self.data).startswith(self.data.__class__.__name__))
+
 class Data3DBase:
     def testProfileAccumulateMass(self):
         self.data.set_field_parameter("center",[0.5]*3)
