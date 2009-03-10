@@ -230,6 +230,13 @@ class AMRHierarchy:
         self._add_object_class('extracted_region', "ExtractedRegion", ExtractedRegionBase, dd)
         self.object_types.sort()
 
+    def all_data(self, find_max=False):
+        pf = self.parameter_file
+        if find_max: c = self.find_max("Density")[1]
+        else: c = (pf["DomainRightEdge"] + pf["DomainLeftEdge"])/2.0
+        return self.region(c, 
+            pf["DomainLeftEdge"], pf["DomainRightEdge"])
+
     def _deserialize_hierarchy(self, harray):
         mylog.debug("Cached entry found.")
         self.gridDimensions[:] = harray[:,0:3]

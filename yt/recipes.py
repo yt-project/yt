@@ -32,6 +32,10 @@ import os.path, inspect, types
 from functools import wraps
 from yt.logger import ytLogger as mylog
 
+# These next couple functions are for 'fixing' arguments - accepting arguments
+# of a couple different types and styles, and trying to coerce them into what
+# we want.
+
 def _fix_pf(pf):
     if isinstance(pf, lagos.StaticOutput): return pf
     if os.path.exists("%s.hierarchy" % pf):
