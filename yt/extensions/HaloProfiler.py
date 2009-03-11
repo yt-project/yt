@@ -168,7 +168,7 @@ class HaloProfiler(object):
             del profile
 
             # Temporary solution to memory leak.
-            for g in pf.h.grids:
+            for g in self.pf.h.grids:
                 g.clear_data()
             sphere.clear_data()
 
