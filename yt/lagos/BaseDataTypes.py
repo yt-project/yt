@@ -811,6 +811,10 @@ class AMRCuttingPlaneBase(AMR2DData):
             if node_name is True: self._deserialize()
             else: self._deserialize(node_name)
 
+    @property
+    def normal(self):
+        return self._norm_vec
+
     def _get_list_of_grids(self):
         # Recall that the projection of the distance vector from a point
         # onto the normal vector of a plane is:
