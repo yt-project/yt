@@ -476,6 +476,13 @@ class TestExtractFromSphere(TestSphereDataType):
             / self.data.convert("cm")**3.0
         self.assertAlmostEqual(vol,1.0,7)
 
+    def testJoin(self):
+        new_region = self.region.extract_region(
+                self.region["Temperature"]<=500)
+        joined_region = self.data.join(new_region)
+        self.assertEqual(joined_region["CellMassMsun"].sum(),
+                         self.region["CellMassMsun"].sum())
+
 class TestExtractFromRegion(TestRegionDataType):
     def setUp(self):
         TestRegionDataType.setUp(self)
@@ -490,6 +497,14 @@ class TestExtractFromRegion(TestRegionDataType):
         vol = self.region.extract_region(ind_to_get)["CellVolume"].sum() \
             / self.data.convert("cm")**3.0
         self.assertAlmostEqual(vol,1.0,7)
+
+    def testJoin(self):
+        new_region = self.region.extract_region(
+                self.region["Temperature"]<=500)
+        joined_region = self.data.join(new_region)
+        self.assertEqual(joined_region["CellMassMsun"].sum(),
+                         self.region["CellMassMsun"].sum())
+
 
 class TestUnilinearInterpolator(unittest.TestCase):
     def setUp(self):

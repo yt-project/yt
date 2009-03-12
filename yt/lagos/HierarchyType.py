@@ -553,7 +553,9 @@ class AMRHierarchy:
                 ogl[0].dimensions[2],
                 position, 1,
                 output, refined, ogl)
-        return output, refined
+        dd = {}
+        for i,field in enumerate(fields): dd[field] = output[:,i]
+        return dd, refined
 
     def _generate_levels_octree(self, fields):
         import DepthFirstOctree as dfo
