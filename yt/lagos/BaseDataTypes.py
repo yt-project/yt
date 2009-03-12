@@ -1507,6 +1507,28 @@ class ExtractedRegionBase(AMR3DData):
                        for i in self._con_args if i != "_indices"])
         return s
 
+    def join(self, other):
+        ng = {}
+        gs = set(self._grids.keys() + other._grids.keys())
+        for g in gs:
+            grid = self.pf.h.grids[g]
+            if g in other._grids and g in self._grids:
+                # We now join the indices
+                ind = na.zeros(grid.ActiveDimensions, dtype='bool')
+                ind[self._indices[g]] = True
+                ind[other._indices[g]] = True
+                if ind.prod() == grid.ActiveDimensions.prod(): ind = None
+            elif g in self._grids:
+                ind = self._indices[g]
+            elif g in other._grids:
+                ind = self._indices[g]
+            # Okay we have indices
+            if ind is not None: ind = ind.copy()
+            ng[g] = ind
+        gl = self.pf.h.grids[gs]
+        gc = self.pf.h.grid_collection(
+            self._base_region.get_field_parameter("center"), gl)
+        return self.pf.extracted_region(gc, ng)
 
 class InLineExtractedRegionBase(AMR3DData):
     """
@@ -1713,7 +1735,9 @@ class AMRGridCollection(AMR3DData):
     """
     An arbitrary selection of grids, within which we accept all points.
     """
-    def __init__(self, center, grid_list, fields = None, connection_pool = True,
+    _type_name = "grid_collection"
+    _con_args = ("center", "grid_list")
+    def __init__(self, center, grid_list, fields = None,
                  pf = None, **kwargs):
         """
         By selecting an arbitrary *grid_list*, we can act on those grids.
@@ -1721,7 +1745,6 @@ class AMRGridCollection(AMR3DData):
         """
         AMR3DData.__init__(self, center, fields, pf, **kwargs)
         self._grids = na.array(grid_list)
-        self.connection_pool = True
 
     def _get_list_of_grids(self):
         pass
