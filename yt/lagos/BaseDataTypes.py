@@ -1509,26 +1509,26 @@ class ExtractedRegionBase(AMR3DData):
 
     def join(self, other):
         ng = {}
-        gs = set(self._grids.keys() + other._grids.keys())
+        gs = set(self._indices.keys() + other._indices.keys())
         for g in gs:
             grid = self.pf.h.grids[g]
-            if g in other._grids and g in self._grids:
+            if g in other._indices and g in self._indices:
                 # We now join the indices
                 ind = na.zeros(grid.ActiveDimensions, dtype='bool')
                 ind[self._indices[g]] = True
                 ind[other._indices[g]] = True
                 if ind.prod() == grid.ActiveDimensions.prod(): ind = None
-            elif g in self._grids:
+            elif g in self._indices:
                 ind = self._indices[g]
-            elif g in other._grids:
-                ind = self._indices[g]
+            elif g in other._indices:
+                ind = other._indices[g]
             # Okay we have indices
             if ind is not None: ind = ind.copy()
             ng[g] = ind
-        gl = self.pf.h.grids[gs]
+        gl = self.pf.h.grids[list(gs)]
         gc = self.pf.h.grid_collection(
             self._base_region.get_field_parameter("center"), gl)
-        return self.pf.extracted_region(gc, ng)
+        return self.pf.h.extracted_region(gc, ng)
 
 class InLineExtractedRegionBase(AMR3DData):
     """
