@@ -629,8 +629,8 @@ class HopParticleCallback(PlotCallback):
             if size < self.min_size: continue
             colors = na.ones(size)
             plot._axes.hold(True)
-            plot._axes.scatter(halo[xf]*dx,
-                halo[yf]*dx, edgecolors="None",
+            plot._axes.scatter(halo["particle_position_%s" % xf]*dx,
+                halo["particle_position_%s" % yf]*dx, edgecolors="None",
                 s=self.p_size, c='black', alpha=self.alpha)
             plot._axes.set_xlim(xx0,xx1)
             plot._axes.set_ylim(yy0,yy1)
