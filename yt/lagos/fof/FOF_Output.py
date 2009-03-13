@@ -58,13 +58,11 @@ class FOFList(object):
         self._base_indices = na.arange(tot_part)[ii]
 
     def __run_fof(self):
-        # this needs to be done in a better way!!!
-        adjust = len(self.particle_fields["particle_position_x"])**(1./3.)
         self.tags = \
             RunFOF(self.particle_fields["particle_position_x"],
                    self.particle_fields["particle_position_y"],
                    self.particle_fields["particle_position_z"],
-                   self.link/adjust)
+                   self.link)
         self.particle_fields["tags"] = self.tags
 
     def __get_dm_indices(self):
@@ -112,7 +110,7 @@ class FOFList(object):
             f = filename
         else:
             f = open(filename,"w")
-        f.write("\t".join(["# Group","Mass","# part",
+        f.write("\t".join(["   # Group","Mass","         # part",
                            "center-of-mass",
                            "x","y","z",
                            "vx","vy","vz","max_r","\n"]))
@@ -164,11 +162,22 @@ class FOFGroup(object):
         """
         Calculate and return the center of mass.
         """
+        c_vec = na.array([0.,0.,0.])
         pm = self["ParticleMassMsun"]
         cx = self["particle_position_x"]
         cy = self["particle_position_y"]
         cz = self["particle_position_z"]
-        com = (pm * na.array([cx,cy,cz])).sum(axis=1)/pm.sum()
+        dx = max(cx) - min(cx)
+        dy = max(cy) - min(cy)
+        dz = max(cz) - min(cz)
+        if dx>0.5: c_vec[0] = 0.5
+        if dy>0.5: c_vec[1] = 0.5
+        if dz>0.5: c_vec[2] = 0.5
+        cx = (cx - c_vec[0])
+        cy = (cy - c_vec[1])
+        cz = (cz - c_vec[2])
+        com = na.array([v-na.floor(v) for v in [cx,cy,cz]])
+        com = (pm * com).sum(axis=1)/pm.sum() + c_vec
         return com
 
     def total_mass(self):
@@ -243,8 +252,15 @@ class FOFHaloFinder(FOFList, ParallelAnalysisInterface):
         self._reposition_particles((LE, RE))
         self.data_source.get_data(["particle_velocity_%s" % ax for ax in 'xyz'] +    
                                   ["particle_position_%s" % ax for ax in 'xyz'])
+        # get the total number of particles across all procs
+        n_parts = self._mpi_allsum(self.data_source["particle_position_x"].size)
+        # get the average spacing between particles
+        l = pf["DomainRightEdge"] - pf["DomainLeftEdge"]
+        vol = l[0] * l[1] * l[2]
+        avg_spacing = (float(vol) / n_parts)**(1./3.)
+        print 'avg_spacing %f' % avg_spacing
         # here is where the FOF halo finder is run
-        super(FOFHaloFinder, self).__init__(self.data_source, link, dm_only)
+        super(FOFHaloFinder, self).__init__(self.data_source, link * avg_spacing, dm_only)
         self._parse_foflist()
         self._join_foflists()
 
@@ -291,6 +307,8 @@ class FOFHaloFinder(FOFList, ParallelAnalysisInterface):
                 halo._owner = proc
                 id += 1
         self._groups.sort(key = lambda h: -1 * h.get_size())
+        for j,halo in enumerate(self._groups):
+            halo.id = j
         
     def _reposition_particles(self, bounds):
         # This only does periodicity.  We do NOT want to deal with anything
