@@ -131,7 +131,6 @@ class ParallelDummy(type):
 def parallel_passthrough(func):
     @wraps(func)
     def passage(self, data):
-        if self._processing: return data
         if not parallel_capable: return data
         return func(self, data)
     return passage
