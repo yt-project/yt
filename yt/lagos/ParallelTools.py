@@ -88,14 +88,14 @@ class ParallelObjectIterator(ObjectIterator):
         # Note that we're doing this in advance, and with a simple means
         # of choosing them; more advanced methods will be explored later.
         if self._use_all:
-            self.my_grid_ids = na.arange(len(self._objs))
+            self.my_obj_ids = na.arange(len(self._objs))
         else:
-            self.my_grid_ids = na.array_split(
+            self.my_obj_ids = na.array_split(
                             na.arange(len(self._objs)), self._skip)[self._offset]
         
     def __iter__(self):
-        for gid in self.my_grid_ids:
-            yield self._grids[gid]
+        for gid in self.my_obj_ids:
+            yield self._objs[gid]
         if not self.just_list: self.pobj._finalize_parallel()
 
 def parallel_simple_proxy(func):
@@ -162,13 +162,13 @@ class ParallelAnalysisInterface(object):
     def _get_grids(self, *args, **kwargs):
         if parallel_capable:
             self._initialize_parallel(*args, **kwargs)
-            return ParallelObjectIterator(self, attr='grids')
-        return ObjectIterator(self, attr='grids')
+            return ParallelObjectIterator(self, attr='_grids')
+        return ObjectIterator(self, attr='_grids')
 
     def _get_grid_objs(self):
         if parallel_capable:
-            return ParallelObjectIterator(self, True, attr='grids')
-        return ObjectIterator(self, True, attr='grids')
+            return ParallelObjectIterator(self, True, attr='_grids')
+        return ObjectIterator(self, True, attr='_grids')
 
     def _initialize_parallel(self):
         pass
