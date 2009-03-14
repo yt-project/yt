@@ -82,7 +82,7 @@ class ParallelObjectIterator(ObjectIterator):
     and then does its thing.
     """
     def __init__(self, pobj, just_list = False, attr='_grids'):
-        GridIterator.__init__(self, pobj, just_list)
+        ObjectIterator.__init__(self, pobj, just_list)
         self._offset = MPI.COMM_WORLD.rank
         self._skip = MPI.COMM_WORLD.size
         # Note that we're doing this in advance, and with a simple means
