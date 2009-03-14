@@ -193,7 +193,7 @@ class LightCone(object):
                                               self.lightConeSolution[q]['redshift']-z_next))
 
             # Calculate fraction of box required for width corresponding to requested image size.
-            scale = co.AngularScale_1arcsec_kpc(self.lightConeParameters['FinalRedshift'],self.lightConeSolution[q]['redshift'])
+            scale = co.AngularScale_1arcsec_kpc(self.lightConeParameters['ObserverRedshift'],self.lightConeSolution[q]['redshift'])
             size = self.lightConeParameters['FieldOfViewInArcMinutes'] * 60.0 * scale / 1000.0
             boxSizeProper = self.enzoParameters['CosmologyComovingBoxSize'] / (self.enzoParameters['CosmologyHubbleConstantNow'] * 
                                                                                (1.0 + self.lightConeSolution[q]['redshift']))
@@ -706,6 +706,9 @@ class LightCone(object):
                 self.projectionWeightFieldStack = na.array(self.projectionWeightFieldStack)
                 weight_field_dataset = output.createArray("/",weight_field_node,self.projectionWeightFieldStack)
                 weight_field_dataset._v_attrs.redshifts = redshiftList
+                weight_field_dataset._v_attrs.ObserverRedshift = na.float(self.lightConeParameters['ObserverRedshift'])
+                weight_field_dataset._v_attrs.FieldOfViewInArcMinutes = na.float(self.lightConeParameters['FieldOfViewInArcMinutes'])
+                weight_field_dataset._v_attrs.ImageResolutionInArcSeconds = na.float(self.lightConeParameters['ImageResolutionInArcSeconds'])
 
         output.close()
 
@@ -718,6 +721,7 @@ class LightCone(object):
         self.enzoParameters['DataDumpDir'] = "DD"
         self.lightConeParameters['UseMinimumNumberOfProjections'] = 1
         self.lightConeParameters['MinimumCoherentBoxFraction'] = 0.0
+        self.lightConeParameters['ObserverRedshift'] = 0.0
         self.lightConeParameters['OutputDir'] = "./"
         self.lightConeParameters['OutputPrefix'] = "LightCone"
 
@@ -738,6 +742,7 @@ EnzoParameterDict = {"CosmologyCurrentRedshift": float,
 
 LightConeParameterDict = {"InitialRedshift": float,
                           "FinalRedshift": float,
+                          "ObserverRedshift": float,
                           "FieldOfViewInArcMinutes": float,
                           "ImageResolutionInArcSeconds": float,
                           "UseMinimumNumberOfProjections": int,
