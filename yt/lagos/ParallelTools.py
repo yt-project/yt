@@ -53,66 +53,50 @@ if os.path.basename(sys.executable) in ["mpi4py", "embed_enzo"] \
 else:
     parallel_capable = False
 
-class GridIterator(object):
-    def __init__(self, pobj, just_list = False):
+class ObjectIterator(object):
+    def __init__(self, pobj, just_list = False, attr='_grids'):
         self.pobj = pobj
-        if hasattr(pobj, '_grids') and pobj._grids is not None:
-            gs = pobj._grids
+        if hasattr(pobj, attr) and getattr(pobj, attr) is not None:
+            gs = getattr(pobj, attr)
         else:
-            gs = pobj._data_source._grids
+            gs = getattr(pobj._data_source, attr)
         if hasattr(gs[0], 'proc_num'):
             # This one sort of knows about MPI, but not quite
-            self._grids = [g for g in gs if g.proc_num ==
-                            ytcfg.getint('yt','__parallel_rank')]
+            self._objs = [g for g in gs if g.proc_num ==
+                          ytcfg.getint('yt','__parallel_rank')]
             self._use_all = True
         else:
-            self._grids = sorted(gs, key = lambda g: g.filename)
+            self._objs = gs
+            if hasattr(self._objs[0], 'filename'):
+                self._objs = sorted(self._objs, key = lambda g: g.filename)
             self._use_all = False
-        self.ng = len(self._grids)
+        self.ng = len(self._objs)
         self.just_list = just_list
 
     def __iter__(self):
-        self.pos = 0
-        return self
-
-    def next(self):
-        # We do this manually in case
-        # something else asks for us.pos
-        if self.pos < len(self._grids):
-            self.pos += 1
-            return self._grids[self.pos - 1]
-        raise StopIteration
-
-class ParallelGridIterator(GridIterator):
+        for obj in self._objs: yield obj
+        
+class ParallelObjectIterator(ObjectIterator):
     """
     This takes an object, pobj, that implements ParallelAnalysisInterface,
     and then does its thing.
     """
-    def __init__(self, pobj, just_list = False):
+    def __init__(self, pobj, just_list = False, attr='_grids'):
         GridIterator.__init__(self, pobj, just_list)
         self._offset = MPI.COMM_WORLD.rank
         self._skip = MPI.COMM_WORLD.size
         # Note that we're doing this in advance, and with a simple means
         # of choosing them; more advanced methods will be explored later.
         if self._use_all:
-            self.my_grid_ids = na.arange(len(self._grids))
+            self.my_grid_ids = na.arange(len(self._objs))
         else:
-            #upper, lower = na.mgrid[0:self.ng:(self._skip+1)*1j][self._offset:self._offset+2]
-            #self.my_grid_ids = na.mgrid[upper:lower-1].astype("int64")
             self.my_grid_ids = na.array_split(
-                            na.arange(len(self._grids)), self._skip)[self._offset]
+                            na.arange(len(self._objs)), self._skip)[self._offset]
         
     def __iter__(self):
-        self.pos = 0
-        return self
-
-    def next(self):
-        if self.pos < len(self.my_grid_ids):
-            gid = self.my_grid_ids[self.pos]
-            self.pos += 1
-            return self._grids[gid]
+        for gid in self.my_grid_ids:
+            yield self._grids[gid]
         if not self.just_list: self.pobj._finalize_parallel()
-        raise StopIteration
 
 def parallel_simple_proxy(func):
     if not parallel_capable: return func
@@ -172,13 +156,13 @@ class ParallelAnalysisInterface(object):
     def _get_grids(self, *args, **kwargs):
         if parallel_capable:
             self._initialize_parallel(*args, **kwargs)
-            return ParallelGridIterator(self)
-        return GridIterator(self)
+            return ParallelObjectIterator(self, 'grids')
+        return ObjectIterator(self, attr='grids')
 
     def _get_grid_objs(self):
         if parallel_capable:
-            return ParallelGridIterator(self, True)
-        return GridIterator(self, True)
+            return ParallelObjectIterator(self, True, attr='grids')
+        return ObjectIterator(self, True, attr='grids')
 
     def _initialize_parallel(self):
         pass
