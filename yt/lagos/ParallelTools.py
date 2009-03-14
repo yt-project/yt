@@ -131,6 +131,7 @@ class ParallelDummy(type):
 def parallel_passthrough(func):
     @wraps(func)
     def passage(self, data):
+        if self._processing: return data
         if not parallel_capable: return data
         return func(self, data)
     return passage
@@ -153,10 +154,16 @@ class ParallelAnalysisInterface(object):
     _grids = None
     _distributed = parallel_capable
 
+    def _get_objs(self, attr, *args, **kwargs):
+        if parallel_capable:
+            self._initialize_parallel(*args, **kwargs)
+            return ParallelObjectIterator(self, attr=attr)
+        return ObjectIterator(self, attr=attr)
+
     def _get_grids(self, *args, **kwargs):
         if parallel_capable:
             self._initialize_parallel(*args, **kwargs)
-            return ParallelObjectIterator(self, 'grids')
+            return ParallelObjectIterator(self, attr='grids')
         return ObjectIterator(self, attr='grids')
 
     def _get_grid_objs(self):
@@ -234,6 +241,18 @@ class ParallelAnalysisInterface(object):
                 _send_array(data[key], dest=0, tag=0)
             self._barrier()
             data[key] = _bcast_array(data[key])
+        self._barrier()
+        return data
+
+    @parallel_passthrough
+    def _mpi_joindict(self, data):
+        self._barrier()
+        if MPI.COMM_WORLD.rank == 0:
+            for i in range(1,MPI.COMM_WORLD.size):
+                data.update(MPI.COMM_WORLD.recv(source=i, tag=0))
+        else:
+            MPI.COMM_WORLD.send(data, dest=0, tag=0)
+        data = MPI.COMM_WORLD.bcast(data, root=0)
         self._barrier()
         return data
 
