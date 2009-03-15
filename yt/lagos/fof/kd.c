@@ -378,7 +378,7 @@ int kdTooSmall(KD kd,int nMembers)
 	for (i=1;i<kd->nGroup;++i) {
 		pMap[i] = nGroup;
 		if (pnMembers[i] == 0) {
-			pMap[i] = 0;
+			pMap[i] = -1; /* was 0 */
 			}
 		else {
 			++nGroup;

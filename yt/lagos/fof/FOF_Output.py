@@ -245,20 +245,22 @@ class FOFHaloFinder(FOFList, ParallelAnalysisInterface):
         self.pf = pf
         self.hierarchy = pf.h
         self.center = (pf["DomainRightEdge"] + pf["DomainLeftEdge"])/2.0
-        self.padding = padding #* pf["unitary"] # This should be clevererer
+        self.padding = 0.0 #* pf["unitary"] # This should be clevererer
+        # get the total number of particles across all procs, with no padding
         padded, LE, RE, self.data_source = self._partition_hierarchy_3d(padding=self.padding)
-        self.bounds = (LE, RE)
-        # reflect particles around the periodic boundary
-        self._reposition_particles((LE, RE))
-        self.data_source.get_data(["particle_velocity_%s" % ax for ax in 'xyz'] +    
-                                  ["particle_position_%s" % ax for ax in 'xyz'])
-        # get the total number of particles across all procs
         n_parts = self._mpi_allsum(self.data_source["particle_position_x"].size)
+        print 'n_parts %d' % n_parts
         # get the average spacing between particles
         l = pf["DomainRightEdge"] - pf["DomainLeftEdge"]
         vol = l[0] * l[1] * l[2]
         avg_spacing = (float(vol) / n_parts)**(1./3.)
         print 'avg_spacing %f' % avg_spacing
+        self.padding = padding
+        padded, LE, RE, self.data_source = self._partition_hierarchy_3d(padding=self.padding)
+        self.bounds = (LE, RE)
+        # reflect particles around the periodic boundary
+        self._reposition_particles((LE, RE))
+        self.data_source.get_data(["particle_position_%s" % ax for ax in 'xyz'])
         # here is where the FOF halo finder is run
         super(FOFHaloFinder, self).__init__(self.data_source, link * avg_spacing, dm_only)
         self._parse_foflist()
