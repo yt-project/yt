@@ -162,22 +162,15 @@ class FOFGroup(object):
         """
         Calculate and return the center of mass.
         """
-        c_vec = na.array([0.,0.,0.])
         pm = self["ParticleMassMsun"]
         cx = self["particle_position_x"]
         cy = self["particle_position_y"]
         cz = self["particle_position_z"]
-        dx = max(cx) - min(cx)
-        dy = max(cy) - min(cy)
-        dz = max(cz) - min(cz)
-        if dx>0.5: c_vec[0] = 0.5
-        if dy>0.5: c_vec[1] = 0.5
-        if dz>0.5: c_vec[2] = 0.5
-        cx = (cx - c_vec[0])
-        cy = (cy - c_vec[1])
-        cz = (cz - c_vec[2])
+        c_vec = na.array([cx[0],cy[0],cz[0]]) - na.array([0.5,0.5,0.5])
+        cx = cx - c_vec[0]
+        cy = cy - c_vec[1]
+        cz = cz - c_vec[2]
         com = na.array([v-na.floor(v) for v in [cx,cy,cz]])
-        com = (pm * com).sum(axis=1)/pm.sum() + c_vec
         return com
 
     def total_mass(self):
