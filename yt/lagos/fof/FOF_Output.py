@@ -171,6 +171,7 @@ class FOFGroup(object):
         cy = cy - c_vec[1]
         cz = cz - c_vec[2]
         com = na.array([v-na.floor(v) for v in [cx,cy,cz]])
+        com = (pm * com).sum(axis=1)/pm.sum() + c_vec
         return com
 
     def total_mass(self):
