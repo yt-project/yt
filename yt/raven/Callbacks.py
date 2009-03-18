@@ -750,3 +750,19 @@ class CoordAxesCallback(PlotCallback):
         plot._axes.set_ylabel(ylabel,visible=True)
         plot._figure.subplots_adjust(left=0.1,right=0.8)
 
+class TextLabelCallback(PlotCallback):
+    def __init__(self, pos, text, text_args = None):
+        """
+        Accepts a position in (0..1, 0..1) of the image,
+        some text and optionally some text arguments.
+        """
+        self.pos = pos
+        self.text = text
+        if text_args is None: text_args = {}
+        self.text_args = text_args
+
+    def __call__(self, plot):
+        x = plot.image._A.shape[0] * self.pos[0]
+        y = plot.image._A.shape[1] * self.pos[1]
+        plot._axes.text(x, y, self.text, **self.text_args)
+
