@@ -11,6 +11,8 @@ http://www.sns.ias.edu/~eisenste/hop/hop_doc.html */
 #include <stdio.h>
 #include <limits.h>
 #include <float.h>
+#include <time.h>
+#include <sys/types.h>
 //#include "macros_and_parameters.h"
 #include "hop.h"
 
@@ -404,13 +406,13 @@ the idmerge field. */
     Group *gr;
     float *densestbound, fdum[3], dens;
     int *densestboundgroup, changes;
-    char line[80], *tempfilename;
+    char line[80]; /*, *tempfilename; */
+    char tempfilename[256];
     FILE *fp;
     FILE *boundfp;
     float *gdensity = my_comm->gdensity;
     ngroups = my_comm->ngroups;
 
-    tempfilename = tmpnam(NULL);
     if (densthresh<MINDENS) densthresh=MINDENS;
 	/* Have a 2*MINDENS condition below... */
     densestbound = vector(0,ngroups-1);
@@ -440,6 +442,12 @@ the idmerge field. */
     for the lower density group, then record this information */
     /* If neither group is above peakdensthresh, skip the boundary */
  
+    time_t t1;
+    long rand_int;
+    (void) time(&t1);
+    srand48((long) t1); /* use time in seconds to set seed */
+    rand_int = lrand48();
+    sprintf(tempfilename,"%032d",rand_int);
     if ((boundfp=fopen(tempfilename,"w"))==NULL)
 	myerror("Error opening scratch file");
  

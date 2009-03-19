@@ -1,0 +1,34 @@
+
+
+						FOF v1.1 
+
+			A Group Finder for N-body Simulations
+
+					October 26, 1994
+
+Changes from v1.0:
+	o 	Fixed bug in tree building, this bug only affected cases where
+		a very small "bucket" size was chosen and the number of particles
+		was not a power of two.
+
+Included are:
+	README
+	Makefile
+	cat1/fof.1
+	kd.c
+	kd.h
+	main.c
+	man1/fof.1
+	tipsydefs.h
+
+For detailed information read the man page (either cat1/fof.1 or
+man1/fof.1).
+
+To build:
+
+	> make
+
+To get further information contact:
+
+	hpccsoft@astro.washington.edu
+

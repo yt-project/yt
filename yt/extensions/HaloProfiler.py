@@ -167,6 +167,11 @@ class HaloProfiler(object):
                 profile.write_out(filename, format='%0.6e')
             del profile
 
+            # Temporary solution to memory leak.
+            for g in self.pf.h.grids:
+                g.clear_data()
+            sphere.clear_data()
+
             del sphere
             pbar.update(q)
 

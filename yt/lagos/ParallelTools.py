@@ -28,7 +28,8 @@ from yt.funcs import *
 import yt.logger, logging
 import itertools, sys, cStringIO
 
-if os.path.basename(sys.executable) in ["mpi4py", "embed_enzo"] \
+if os.path.basename(sys.executable) in \
+        ["mpi4py", "embed_enzo", 'python'+sys.version[:3]+'-mpi'] \
     or "--parallel" in sys.argv or '_parallel' in dir(sys):
     from mpi4py import MPI
     parallel_capable = (MPI.COMM_WORLD.size > 1)
