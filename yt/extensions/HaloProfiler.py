@@ -34,7 +34,7 @@ import tables as h5
 PROFILE_RADIUS_THRESHOLD = 2
 
 class HaloProfiler(object):
-    def __init__(self,dataset,HaloProfilerParameterFile,halos='multiple',radius=0.1,hop_style='new'):
+    def __init__(self,dataset,HaloProfilerParameterFile,halos='multiple',radius=0.1,radius_units='1',hop_style='new'):
         self.dataset = dataset
         self.HaloProfilerParameterFile = HaloProfilerParameterFile
         self.haloProfilerParameters = {}
@@ -49,7 +49,7 @@ class HaloProfiler(object):
         self.halos = halos
         if not(self.halos is 'multiple' or self.halos is 'single'):
             mylog.error("Keyword, halos, must be either 'single' or 'multiple'.")
-            return None
+            exit(1)
 
         # Set hop file style.
         # old: enzo_hop output.
@@ -57,10 +57,10 @@ class HaloProfiler(object):
         self.hop_style = hop_style
         if not(self.hop_style is 'old' or self.hop_style is 'new'):
             mylog.error("Keyword, hop_style, must be either 'old' or 'new'.")
-            return None
+            exit(1)
 
         if self.halos is 'single' or hop_style is 'old':
-            self.haloRadius = radius
+            self.haloRadius = radius / radius_units
 
         # Set some parameter defaults.
         self._SetParameterDefaults()
@@ -74,22 +74,22 @@ class HaloProfiler(object):
             if self.haloProfilerParameters['VelocityCenter'][1] == 'halo' and \
                     self.halos is 'single':
                 mylog.error("Parameter, VelocityCenter, must be set to 'bulk sphere' or 'max <field>' with halos flag set to 'single'.")
-                return None
+                exit(1)
             if self.haloProfilerParameters['VelocityCenter'][1] == 'halo' and \
                     self.hop_style is 'old':
                 mylog.error("Parameter, VelocityCenter, must be 'bulk sphere' for old style hop output files.")
-                return None
+                exit(1)
             if not(self.haloProfilerParameters['VelocityCenter'][1] == 'halo' or 
                    self.haloProfilerParameters['VelocityCenter'][1] == 'sphere'):
                 mylog.error("Second value of VelocityCenter must be either 'halo' or 'sphere' if first value is 'bulk'.")
-                return None
+                exit(1)
         elif self.haloProfilerParameters['VelocityCenter'][0] == 'max':
             if self.halos is 'multiple':
                 mylog.error("Getting velocity center from a max field value only works with halos='single'.")
-                return None
+                exit(1)
         else:
             mylog.error("First value of parameter, VelocityCenter, must be either 'bulk' or 'max'.")
-            return None
+            exit(1)
 
         # Create dataset object.
         self.pf = lagos.EnzoStaticOutput(self.dataset)
@@ -127,33 +127,41 @@ class HaloProfiler(object):
         for q,halo in enumerate(self.hopHalos):
             filename = "%s/Halo_%04d_profile.dat" % (outputDir,q)
 
-            r_min = 2*self.pf.h.get_smallest_dx() * self.pf['mpc']
-            if (halo['r_max'] / r_min < PROFILE_RADIUS_THRESHOLD):
-                mylog.error("Skipping halo with r_max / r_min = %f." % (halo['r_max']/r_min))
-                continue
+            # Read profile from file if it already exists.
+            # If not, profile will be None.
+            profile = self._ReadProfile(filename)
 
-            sphere = self.pf.h.sphere(halo['center'],halo['r_max']/self.pf.units['mpc'])
+            # Make profile if necessary.
+            newProfile = profile is None
+            if profile is None:
 
-            # Set velocity to zero out radial velocity profiles.
-            if self.haloProfilerParameters['VelocityCenter'][0] == 'bulk':
-                if self.haloProfilerParameters['VelocityCenter'][1] == 'halo':
-                    sphere.set_field_parameter('bulk_velocity',halo['velocity'])
-                elif self.haloProfilerParameters['VelocityCenter'][1] == 'sphere':
-                    sphere.set_field_parameter('bulk_velocity',sphere.quantities['BulkVelocity']())
-                else:
-                    mylog.error("Invalid parameter: VelocityCenter.")
-            elif self.haloProfilerParameters['VelocityCenter'][0] == 'max':
-                max_grid,max_cell,max_value,max_location = self.pf.h.find_max_cell_location(self.haloProfilerParameters['VelocityCenter'][1])
-                sphere.set_field_parameter('bulk_velocity',[max_grid['x-velocity'][max_cell],
-                                                            max_grid['y-velocity'][max_cell],
-                                                            max_grid['z-velocity'][max_cell]])
+                r_min = 2*self.pf.h.get_smallest_dx() * self.pf['mpc']
+                if (halo['r_max'] / r_min < PROFILE_RADIUS_THRESHOLD):
+                    mylog.error("Skipping halo with r_max / r_min = %f." % (halo['r_max']/r_min))
+                    continue
 
-            profile = lagos.BinnedProfile1D(sphere,self.haloProfilerParameters['n_bins'],"RadiusMpc",
-                                            r_min,halo['r_max'],
-                                            log_space=True, lazy_reader=True)
-            for field in self.profileFields.keys():
-                profile.add_fields(field,weight=self.profileFields[field][0],
-                                   accumulation=self.profileFields[field][1])
+                sphere = self.pf.h.sphere(halo['center'],halo['r_max']/self.pf.units['mpc'])
+
+                # Set velocity to zero out radial velocity profiles.
+                if self.haloProfilerParameters['VelocityCenter'][0] == 'bulk':
+                    if self.haloProfilerParameters['VelocityCenter'][1] == 'halo':
+                        sphere.set_field_parameter('bulk_velocity',halo['velocity'])
+                    elif self.haloProfilerParameters['VelocityCenter'][1] == 'sphere':
+                        sphere.set_field_parameter('bulk_velocity',sphere.quantities['BulkVelocity']())
+                    else:
+                        mylog.error("Invalid parameter: VelocityCenter.")
+                elif self.haloProfilerParameters['VelocityCenter'][0] == 'max':
+                    max_grid,max_cell,max_value,max_location = self.pf.h.find_max_cell_location(self.haloProfilerParameters['VelocityCenter'][1])
+                    sphere.set_field_parameter('bulk_velocity',[max_grid['x-velocity'][max_cell],
+                                                                max_grid['y-velocity'][max_cell],
+                                                                max_grid['z-velocity'][max_cell]])
+
+                profile = lagos.BinnedProfile1D(sphere,self.haloProfilerParameters['n_bins'],"RadiusMpc",
+                                                r_min,halo['r_max'],
+                                                log_space=True, lazy_reader=True)
+                for field in self.profileFields.keys():
+                    profile.add_fields(field,weight=self.profileFields[field][0],
+                                       accumulation=self.profileFields[field][1])
 
             self._AddActualOverdensity(profile)
 
@@ -164,15 +172,17 @@ class HaloProfiler(object):
                 self.virialQuantities.append(None)
             else:
                 self.virialQuantities.append(virial)
+            if newProfile:
                 profile.write_out(filename, format='%0.6e')
             del profile
 
-            # Temporary solution to memory leak.
-            for g in self.pf.h.grids:
-                g.clear_data()
-            sphere.clear_data()
+            if newProfile:
+                # Temporary solution to memory leak.
+                for g in self.pf.h.grids:
+                    g.clear_data()
+                sphere.clear_data()
+                del sphere
 
-            del sphere
             pbar.update(q)
 
         pbar.finish()
@@ -301,7 +311,10 @@ class HaloProfiler(object):
     def _AddActualOverdensity(self,profile):
         "Calculate overdensity from TotalMassMsun and CellVolume fields."
 
-        rho_crit_now = 1.8788e-29 # g cm^-3
+        if profile.has_key('ActualOverdensity'):
+            return
+
+        rho_crit_now = 1.8788e-29 * pf['CosmologyHubbleConstantNow']**2.0 # g cm^-3
         Msun2g = 1.989e33
         rho_crit = rho_crit_now * ((1 + self.pf['CosmologyCurrentRedshift'])**3.0)
 
@@ -349,11 +362,14 @@ class HaloProfiler(object):
                     break
 
         for field in fields:
-            slope = (temp_profile[field][index+1] - temp_profile[field][index]) / \
-                (overDensity[index+1] - overDensity[index])
-            value = slope * (self.haloProfilerParameters['VirialOverdensity'] - overDensity[index]) + \
-                temp_profile[field][index]
-            virial[field] = value
+            if (overDensity[index+1] - overDensity[index]) == 0:
+                virial[field] = 0.0
+            else:
+                slope = (temp_profile[field][index+1] - temp_profile[field][index]) / \
+                    (overDensity[index+1] - overDensity[index])
+                value = slope * (self.haloProfilerParameters['VirialOverdensity'] - overDensity[index]) + \
+                    temp_profile[field][index]
+                virial[field] = value
 
         return virial
 
@@ -399,6 +415,51 @@ class HaloProfiler(object):
                 r_max = self.haloRadius * self.pf.units['mpc']
                 halo = {'center': center, 'r_max': r_max}
                 self.hopHalos.append(halo)
+
+    def _ReadProfile(self,profileFile):
+        "Read radial profile from file.  Return None if it doesn't have all the fields requested."
+
+        # Check to see if file exists.
+        if not os.path.exists(profileFile):
+            return None
+
+        f = open(profileFile,'r')
+        lines = f.readlines()
+        f.close()
+
+        # Get fields from header.
+        header = lines.pop(0)
+        header = header.strip()
+        fields = header.split()
+        # First string is '#'.
+        fields.pop(0)
+
+        profile = {}
+        for field in fields:
+            profile[field] = []
+
+        # Check if all fields needed are present.
+        for field in self.profileFields:
+            if not profile.has_key(field):
+                return None
+
+        # Fill profile fields, skip bad values.
+        for line in lines:
+            line = line.strip()
+            onLine = line.split()
+            lineOK = True
+            for value in onLine:
+                if value.isalpha():
+                    lineOK = False
+                    break
+            if lineOK:
+                for q,field in enumerate(fields):
+                    profile[field].append(float(onLine[q]))
+
+        if len(profile[fields[0]]) > 1:
+            return profile
+        else:
+            return None
 
     def _RunHop(self,hopFile):
         "Run hop to get halos."
