@@ -311,10 +311,10 @@ class HaloProfiler(object):
     def _AddActualOverdensity(self,profile):
         "Calculate overdensity from TotalMassMsun and CellVolume fields."
 
-        if profile.has_key('ActualOverdensity'):
+        if (profile.keys()).count('ActualOverdensity') > 0:
             return
 
-        rho_crit_now = 1.8788e-29 * pf['CosmologyHubbleConstantNow']**2.0 # g cm^-3
+        rho_crit_now = 1.8788e-29 * self.pf['CosmologyHubbleConstantNow']**2.0 # g cm^-3
         Msun2g = 1.989e33
         rho_crit = rho_crit_now * ((1 + self.pf['CosmologyCurrentRedshift'])**3.0)
 
