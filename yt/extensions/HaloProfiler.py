@@ -59,9 +59,6 @@ class HaloProfiler(object):
             mylog.error("Keyword, hop_style, must be either 'old' or 'new'.")
             exit(1)
 
-        if self.halos is 'single' or hop_style is 'old':
-            self.haloRadius = radius / radius_units
-
         # Set some parameter defaults.
         self._SetParameterDefaults()
 
@@ -93,6 +90,8 @@ class HaloProfiler(object):
 
         # Create dataset object.
         self.pf = lagos.EnzoStaticOutput(self.dataset)
+        if self.halos is 'single' or hop_style is 'old':
+            self.haloRadius = radius / self.pf[radius_units]
 
     def makeProfiles(self):
         "Make radial profiles for all halos on the list."
