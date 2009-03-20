@@ -34,7 +34,7 @@ import tables as h5
 PROFILE_RADIUS_THRESHOLD = 2
 
 class HaloProfiler(lagos.ParallelAnalysisInterface):
-    def __init__(self,dataset,HaloProfilerParameterFile,halos='multiple',radius=0.1,hop_style='new'):
+    def __init__(self,dataset,HaloProfilerParameterFile,halos='multiple',radius=0.1,radius_units='1',hop_style='new'):
         self.dataset = dataset
         self.HaloProfilerParameterFile = HaloProfilerParameterFile
         self.haloProfilerParameters = {}
@@ -58,9 +58,6 @@ class HaloProfiler(lagos.ParallelAnalysisInterface):
         if not(self.hop_style is 'old' or self.hop_style is 'new'):
             mylog.error("Keyword, hop_style, must be either 'old' or 'new'.")
             return None
-
-        if self.halos is 'single' or hop_style is 'old':
-            self.haloRadius = radius
 
         # Set some parameter defaults.
         self._SetParameterDefaults()
@@ -93,6 +90,8 @@ class HaloProfiler(lagos.ParallelAnalysisInterface):
 
         # Create dataset object.
         self.pf = lagos.EnzoStaticOutput(self.dataset)
+        if self.halos is 'single' or hop_style is 'old':
+            self.haloRadius = radius / self.pf[radius_units]
 
     def makeProfiles(self):
         "Make radial profiles for all halos on the list."
@@ -127,33 +126,41 @@ class HaloProfiler(lagos.ParallelAnalysisInterface):
         for q,halo in enumerate(self._get_objs('hopHalos')):
             filename = "%s/Halo_%04d_profile.dat" % (outputDir,q)
 
-            r_min = 2*self.pf.h.get_smallest_dx() * self.pf['mpc']
-            if (halo['r_max'] / r_min < PROFILE_RADIUS_THRESHOLD):
-                mylog.error("Skipping halo with r_max / r_min = %f." % (halo['r_max']/r_min))
-                continue
+            # Read profile from file if it already exists.
+            # If not, profile will be None.
+            profile = self._ReadProfile(filename)
 
-            sphere = self.pf.h.sphere(halo['center'],halo['r_max']/self.pf.units['mpc'])
+            # Make profile if necessary.
+            newProfile = profile is None
+            if profile is None:
 
-            # Set velocity to zero out radial velocity profiles.
-            if self.haloProfilerParameters['VelocityCenter'][0] == 'bulk':
-                if self.haloProfilerParameters['VelocityCenter'][1] == 'halo':
-                    sphere.set_field_parameter('bulk_velocity',halo['velocity'])
-                elif self.haloProfilerParameters['VelocityCenter'][1] == 'sphere':
-                    sphere.set_field_parameter('bulk_velocity',sphere.quantities['BulkVelocity']())
-                else:
-                    mylog.error("Invalid parameter: VelocityCenter.")
-            elif self.haloProfilerParameters['VelocityCenter'][0] == 'max':
-                max_grid,max_cell,max_value,max_location = self.pf.h.find_max_cell_location(self.haloProfilerParameters['VelocityCenter'][1])
-                sphere.set_field_parameter('bulk_velocity',[max_grid['x-velocity'][max_cell],
-                                                            max_grid['y-velocity'][max_cell],
-                                                            max_grid['z-velocity'][max_cell]])
+                r_min = 2*self.pf.h.get_smallest_dx() * self.pf['mpc']
+                if (halo['r_max'] / r_min < PROFILE_RADIUS_THRESHOLD):
+                    mylog.error("Skipping halo with r_max / r_min = %f." % (halo['r_max']/r_min))
+                    continue
 
-            profile = lagos.BinnedProfile1D(sphere,self.haloProfilerParameters['n_bins'],"RadiusMpc",
-                                            r_min,halo['r_max'],
-                                            log_space=True, lazy_reader=False)
-            for field in self.profileFields.keys():
-                profile.add_fields(field,weight=self.profileFields[field][0],
-                                   accumulation=self.profileFields[field][1])
+                sphere = self.pf.h.sphere(halo['center'],halo['r_max']/self.pf.units['mpc'])
+
+                # Set velocity to zero out radial velocity profiles.
+                if self.haloProfilerParameters['VelocityCenter'][0] == 'bulk':
+                    if self.haloProfilerParameters['VelocityCenter'][1] == 'halo':
+                        sphere.set_field_parameter('bulk_velocity',halo['velocity'])
+                    elif self.haloProfilerParameters['VelocityCenter'][1] == 'sphere':
+                        sphere.set_field_parameter('bulk_velocity',sphere.quantities['BulkVelocity']())
+                    else:
+                        mylog.error("Invalid parameter: VelocityCenter.")
+                elif self.haloProfilerParameters['VelocityCenter'][0] == 'max':
+                    max_grid,max_cell,max_value,max_location = self.pf.h.find_max_cell_location(self.haloProfilerParameters['VelocityCenter'][1])
+                    sphere.set_field_parameter('bulk_velocity',[max_grid['x-velocity'][max_cell],
+                                                                max_grid['y-velocity'][max_cell],
+                                                                max_grid['z-velocity'][max_cell]])
+
+                profile = lagos.BinnedProfile1D(sphere,self.haloProfilerParameters['n_bins'],"RadiusMpc",
+                                                r_min,halo['r_max'],
+                                                log_space=True, lazy_reader=True)
+                for field in self.profileFields.keys():
+                    profile.add_fields(field,weight=self.profileFields[field][0],
+                                       accumulation=self.profileFields[field][1])
 
             self._AddActualOverdensity(profile)
 
@@ -164,15 +171,17 @@ class HaloProfiler(lagos.ParallelAnalysisInterface):
                 self.virialQuantities.append(None)
             else:
                 self.virialQuantities.append(virial)
+            if newProfile:
                 profile.write_out(filename, format='%0.6e')
             del profile
 
-            # Temporary solution to memory leak.
-            for g in self.pf.h.grids:
-                g.clear_data()
-            sphere.clear_data()
+            if newProfile:
+                # Temporary solution to memory leak.
+                for g in self.pf.h.grids:
+                    g.clear_data()
+                sphere.clear_data()
+                del sphere
 
-            del sphere
             pbar.update(q)
 
         pbar.finish()
@@ -304,7 +313,10 @@ class HaloProfiler(lagos.ParallelAnalysisInterface):
     def _AddActualOverdensity(self,profile):
         "Calculate overdensity from TotalMassMsun and CellVolume fields."
 
-        rho_crit_now = 1.8788e-29 # g cm^-3
+        if (profile.keys()).count('ActualOverdensity') > 0:
+            return
+
+        rho_crit_now = 1.8788e-29 * self.pf['CosmologyHubbleConstantNow']**2.0 # g cm^-3
         Msun2g = 1.989e33
         rho_crit = rho_crit_now * ((1 + self.pf['CosmologyCurrentRedshift'])**3.0)
 
@@ -352,11 +364,14 @@ class HaloProfiler(lagos.ParallelAnalysisInterface):
                     break
 
         for field in fields:
-            slope = (temp_profile[field][index+1] - temp_profile[field][index]) / \
-                (overDensity[index+1] - overDensity[index])
-            value = slope * (self.haloProfilerParameters['VirialOverdensity'] - overDensity[index]) + \
-                temp_profile[field][index]
-            virial[field] = value
+            if (overDensity[index+1] - overDensity[index]) == 0:
+                virial[field] = 0.0
+            else:
+                slope = (temp_profile[field][index+1] - temp_profile[field][index]) / \
+                    (overDensity[index+1] - overDensity[index])
+                value = slope * (self.haloProfilerParameters['VirialOverdensity'] - overDensity[index]) + \
+                    temp_profile[field][index]
+                virial[field] = value
 
         return virial
 
@@ -402,6 +417,51 @@ class HaloProfiler(lagos.ParallelAnalysisInterface):
                 r_max = self.haloRadius * self.pf.units['mpc']
                 halo = {'center': center, 'r_max': r_max}
                 self.hopHalos.append(halo)
+
+    def _ReadProfile(self,profileFile):
+        "Read radial profile from file.  Return None if it doesn't have all the fields requested."
+
+        # Check to see if file exists.
+        if not os.path.exists(profileFile):
+            return None
+
+        f = open(profileFile,'r')
+        lines = f.readlines()
+        f.close()
+
+        # Get fields from header.
+        header = lines.pop(0)
+        header = header.strip()
+        fields = header.split()
+        # First string is '#'.
+        fields.pop(0)
+
+        profile = {}
+        for field in fields:
+            profile[field] = []
+
+        # Check if all fields needed are present.
+        for field in self.profileFields:
+            if not profile.has_key(field):
+                return None
+
+        # Fill profile fields, skip bad values.
+        for line in lines:
+            line = line.strip()
+            onLine = line.split()
+            lineOK = True
+            for value in onLine:
+                if value.isalpha():
+                    lineOK = False
+                    break
+            if lineOK:
+                for q,field in enumerate(fields):
+                    profile[field].append(float(onLine[q]))
+
+        if len(profile[fields[0]]) > 1:
+            return profile
+        else:
+            return None
 
     def _RunHop(self,hopFile):
         "Run hop to get halos."
