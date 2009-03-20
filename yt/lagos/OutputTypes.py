@@ -89,6 +89,9 @@ class StaticOutput(object):
             self["InitialTime"], self["CurrentTimeIdentifier"])
         return hashlib.md5(s).hexdigest()
 
+    @classmethod
+    def _is_valid(cls, fn):
+        return False
 
     def __getitem__(self, key):
         """
@@ -372,6 +375,10 @@ class EnzoStaticOutput(StaticOutput):
                (1.0 + self.parameters["CosmologyCurrentRedshift"])
         return k
 
+    @classmethod
+    def _is_valid(cls, fn):
+        return os.path.exists("%s.hierarchy" % fn)
+
 # We set our default output type to EnzoStaticOutput
 
 output_type_registry[None] = EnzoStaticOutput
@@ -401,6 +408,10 @@ class EnzoStaticOutputInMemory(EnzoStaticOutput):
             self.parameters[p] = v
         for p, v in self.__conversion_override.items():
             self.conversion_factors[p] = v
+
+    @classmethod
+    def _is_valid(cls, fn):
+        return False
 
 class OrionStaticOutput(StaticOutput):
     """
