@@ -426,7 +426,7 @@ class OrionStaticOutput(StaticOutput):
     _hierarchy_class = OrionHierarchy
     _fieldinfo_class = OrionFieldContainer
 
-    def __init__(self, plotname, paramFilename='inputs',fparamFilename='probin',data_style=7,paranoia=False):
+    def __init__(self, plotname, paramFilename=None,fparamFilename=None,data_style=7,paranoia=False):
         """need to override for Orion file structure.
 
         the paramfile is usually called "inputs"
@@ -442,13 +442,24 @@ class OrionStaticOutput(StaticOutput):
         self.data_style = data_style
         self.paranoid_read = paranoia
         plotname = plotname.rstrip('/')
-        self.basename = os.path.basename(plotname)
-        # this will be the directory ENCLOSING the pltNNNN directory
         self.directory = os.path.dirname(plotname)
-        self.parameter_filename = os.path.join(self.directory,paramFilename)
+        # this will be the directory ENCLOSING the pltNNNN directory
+        self.basename = os.path.basename(plotname)
+
+        if paramFilename is None:
+            # 'inputs' is default filename
+            self.parameter_filename = os.path.join(self.directory,'inputs')
+        else:
+            self.parameter_filename = paramFilename 
+
         # fortran parameters
         self.fparameters = {}
-        self.fparameter_filename = os.path.join(self.directory,fparamFilename)
+        if fparamFilename is None:
+            # 'probin' is default filename
+            self.fparameter_filename = os.path.join(self.directory,'probin')
+        else:
+            self.fparameter_filename = fparamFilename
+            
         self.fullpath = os.path.abspath(self.directory)
         self.fullplotdir = os.path.abspath(plotname)
         if len(self.directory) == 0:
