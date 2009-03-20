@@ -54,6 +54,28 @@ class PlotCallback(object):
         return ((coord[0] - int(offset)*x0)*dx,
                 (coord[1] - int(offset)*y0)*dy)
 
+class VelocityCallback(PlotCallback):
+    _type_name = "velocity"
+    def __init__(self, factor):
+        """
+        Adds a 'quiver' plot of velocity to the plot, skipping all but
+        every *factor* datapoint
+        """
+        PlotCallback.__init__(self)
+        self.factor = factor
+
+    def __call__(self, plot):
+        # Instantiation of these is cheap
+        if plot._type_name == "CuttingPlane":
+            qcb = CuttingQuiverCallback("CuttingPlaneVelocityX",
+                                        "CuttingPlaneVelocityY",
+                                        self.factor)
+        else:
+            xv = "%s-velocity" % (lagos.x_names[plot.data.axis])
+            yv = "%s-velocity" % (lagos.y_names[plot.data.axis])
+            qcb = QuiverCallback(xv, yv, self.factor)
+        return qcb(plot)
+
 class QuiverCallback(PlotCallback):
     _type_name = "quiver"
     def __init__(self, field_x, field_y, factor):
@@ -427,7 +449,7 @@ class CuttingQuiverCallback(PlotCallback):
 
 class ClumpContourCallback(PlotCallback):
     _type_name = "clumps"
-    def __init__(self, clumps, axis = None, plot_args = None):
+    def __init__(self, clumps, plot_args = None):
         """
         Take a list of *clumps* and plot them as a set of contours.
         """
@@ -568,11 +590,10 @@ class SphereCallback(PlotCallback):
 
 class HopCircleCallback(PlotCallback):
     _type_name = "hop_circles"
-    def __init__(self, hop_output, axis, max_number=None,
+    def __init__(self, hop_output, max_number=None,
                  annotate=False, min_size=20, max_size=10000000,
                  font_size=8, print_halo_size=False,
                  print_halo_mass=False):
-        self.axis = axis
         self.hop_output = hop_output
         self.max_number = max_number
         self.annotate = annotate
@@ -619,7 +640,7 @@ class HopParticleCallback(PlotCallback):
     *alpha* determines the opacity of each particle.
     """
     _type_name = "hop_particles"
-    def __init__(self, hop_output, axis, p_size=1.0,
+    def __init__(self, hop_output, p_size=1.0,
                 max_number=None, min_size=20, alpha=0.2):
         self.axis = axis
         self.hop_output = hop_output
@@ -664,7 +685,7 @@ class FloorToValueInPlot(PlotCallback):
 
 class VobozCircleCallback(PlotCallback):
     _type_name = "voboz_circle"
-    def __init__(self, voboz_output, axis, max_number=None,
+    def __init__(self, voboz_output, max_number=None,
                  annotate=False, min_size=20, font_size=8, print_halo_size=False):
         self.axis = axis
         self.voboz_output = voboz_output
