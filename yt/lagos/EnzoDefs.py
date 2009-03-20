@@ -41,6 +41,9 @@ vm_axis_names = {0:'x', 1:'y', 2:'z', 3:'dx', 4:'dy'}
 x_dict = [1,0,0]
 y_dict = [2,2,1]
 
+x_names = ['y','x','x']
+y_names = ['z','z','y']
+
 mh = 1.67e-24
 mu = 1.22
 

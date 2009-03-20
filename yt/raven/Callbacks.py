@@ -32,13 +32,13 @@ from PlotTypes import _get_bounds
 
 import _MPL
 import copy
-callback_registry = []
+callback_registry = {}
 
 class PlotCallback(object):
     class __metaclass__(type):
         def __init__(cls, name, b, d):
             type.__init__(cls, name, b, d)
-            callback_registry.append((name, cls))
+            callback_registry[name] = cls
 
     def __init__(self, *args, **kwargs):
         pass
@@ -54,7 +54,30 @@ class PlotCallback(object):
         return ((coord[0] - int(offset)*x0)*dx,
                 (coord[1] - int(offset)*y0)*dy)
 
+class VelocityCallback(PlotCallback):
+    _type_name = "velocity"
+    def __init__(self, factor):
+        """
+        Adds a 'quiver' plot of velocity to the plot, skipping all but
+        every *factor* datapoint
+        """
+        PlotCallback.__init__(self)
+        self.factor = factor
+
+    def __call__(self, plot):
+        # Instantiation of these is cheap
+        if plot._type_name == "CuttingPlane":
+            qcb = CuttingQuiverCallback("CuttingPlaneVelocityX",
+                                        "CuttingPlaneVelocityY",
+                                        self.factor)
+        else:
+            xv = "%s-velocity" % (lagos.x_names[plot.data.axis])
+            yv = "%s-velocity" % (lagos.y_names[plot.data.axis])
+            qcb = QuiverCallback(xv, yv, self.factor)
+        return qcb(plot)
+
 class QuiverCallback(PlotCallback):
+    _type_name = "quiver"
     def __init__(self, field_x, field_y, factor):
         """
         Adds a 'quiver' plot to any plot, using the *field_x* and *field_y*
@@ -96,6 +119,7 @@ class QuiverCallback(PlotCallback):
         plot._axes.hold(False)
 
 class ParticleCallback(PlotCallback):
+    _type_name = "particles"
     def __init__(self, axis, width, p_size=1.0, col='k', stride=1.0):
         """
         Adds particle positions, based on a thick slab along *axis* with a
@@ -163,6 +187,7 @@ class ParticleCallback(PlotCallback):
         plot._axes.hold(False)
 
 class ContourCallback(PlotCallback):
+    _type_name = "contour"
     def __init__(self, field, ncont=5, factor=4, take_log=False, clim=None,
                  plot_args = None):
         """
@@ -235,6 +260,7 @@ class ContourCallback(PlotCallback):
         plot._axes.hold(False)
 
 class GridBoundaryCallback(PlotCallback):
+    _type_name = "grids"
     def __init__(self, alpha=1.0, min_pix = 1):
         """
         Adds grid boundaries to a plot, optionally with *alpha*-blending.
@@ -280,6 +306,7 @@ class GridBoundaryCallback(PlotCallback):
             plot._axes.hold(False)
 
 class LabelCallback(PlotCallback):
+    _type_name = "axis_label"
     def __init__(self, label):
         PlotCallback.__init__(self)
         self.label = label
@@ -302,6 +329,7 @@ def get_smallest_appropriate_unit(v, pf):
     return good_u
 
 class UnitBoundaryCallback(PlotCallback):
+    _type_name = "units"
     def __init__(self, unit = "au", factor=4, text_annotate=True, text_which=-2):
         """
         Add on a plot indicating where *factor*s of *unit* are shown.
@@ -361,6 +389,7 @@ class UnitBoundaryCallback(PlotCallback):
         plot._axes.hold(False)
 
 class LinePlotCallback(PlotCallback):
+    _type_name = "line"
     def __init__(self, x, y, plot_args = None):
         """
         Over plot *x* and *y* with *plot_args* fed into the plot.
@@ -377,6 +406,7 @@ class LinePlotCallback(PlotCallback):
         plot._axes.hold(False)
 
 class CuttingQuiverCallback(PlotCallback):
+    _type_name = "quiver"
     def __init__(self, field_x, field_y, factor):
         """
         Get a quiver plot on top of a cutting plane, using *field_x* and
@@ -418,7 +448,8 @@ class CuttingQuiverCallback(PlotCallback):
         plot._axes.hold(False)
 
 class ClumpContourCallback(PlotCallback):
-    def __init__(self, clumps, axis = None, plot_args = None):
+    _type_name = "clumps"
+    def __init__(self, clumps, plot_args = None):
         """
         Take a list of *clumps* and plot them as a set of contours.
         """
@@ -481,6 +512,7 @@ class ClumpContourCallback(PlotCallback):
         plot._axes.hold(False)
 
 class ArrowCallback(PlotCallback):
+    _type_name = "arrow"
     def __init__(self, pos, code_size, plot_args = None):
         self.pos = pos
         self.code_size = code_size
@@ -496,6 +528,7 @@ class ArrowCallback(PlotCallback):
         plot._axes.add_patch(arrow)
 
 class PointAnnotateCallback(PlotCallback):
+    _type_name = "point"
     def __init__(self, pos, text, text_args = None):
         self.pos = pos
         self.text = text
@@ -506,6 +539,7 @@ class PointAnnotateCallback(PlotCallback):
         plot._axes.text(x, y, self.text, **self.text_args)
 
 class MarkerAnnotateCallback(PlotCallback):
+    _type_name = "marker"
     def __init__(self, pos, marker='x', plot_args=None):
         self.pos = pos
         self.marker = marker
@@ -524,6 +558,7 @@ class MarkerAnnotateCallback(PlotCallback):
         plot._axes.hold(False)
 
 class SphereCallback(PlotCallback):
+    _type_name = "sphere"
     def __init__(self, center, radius, circle_args = None,
                  text = None, text_args = None):
         self.center = center
@@ -554,11 +589,11 @@ class SphereCallback(PlotCallback):
                             **self.text_args)
 
 class HopCircleCallback(PlotCallback):
-    def __init__(self, hop_output, axis, max_number=None,
+    _type_name = "hop_circles"
+    def __init__(self, hop_output, max_number=None,
                  annotate=False, min_size=20, max_size=10000000,
                  font_size=8, print_halo_size=False,
                  print_halo_mass=False):
-        self.axis = axis
         self.hop_output = hop_output
         self.max_number = max_number
         self.annotate = annotate
@@ -604,7 +639,8 @@ class HopParticleCallback(PlotCallback):
     larger than *min_size* are plotted with *p_size* pixels per particle; 
     *alpha* determines the opacity of each particle.
     """
-    def __init__(self, hop_output, axis, p_size=1.0,
+    _type_name = "hop_particles"
+    def __init__(self, hop_output, p_size=1.0,
                 max_number=None, min_size=20, alpha=0.2):
         self.axis = axis
         self.hop_output = hop_output
@@ -637,6 +673,7 @@ class HopParticleCallback(PlotCallback):
             plot._axes.hold(False)
 
 class FloorToValueInPlot(PlotCallback):
+    _type_name = "floor"
     def __init__(self):
         pass
 
@@ -647,7 +684,8 @@ class FloorToValueInPlot(PlotCallback):
 
 
 class VobozCircleCallback(PlotCallback):
-    def __init__(self, voboz_output, axis, max_number=None,
+    _type_name = "voboz_circle"
+    def __init__(self, voboz_output, max_number=None,
                  annotate=False, min_size=20, font_size=8, print_halo_size=False):
         self.axis = axis
         self.voboz_output = voboz_output
@@ -689,6 +727,7 @@ class CoordAxesCallback(PlotCallback):
     attempt to guess the proper units to use.
 
     """
+    _type_name = "coord_axes"
     def __init__(self,unit=None,coords=False):
         PlotCallback.__init__(self)
         self.unit = unit

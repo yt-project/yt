@@ -33,7 +33,7 @@ import tables as h5
 
 PROFILE_RADIUS_THRESHOLD = 2
 
-class HaloProfiler(object):
+class HaloProfiler(lagos.ParallelAnalysisInterface):
     def __init__(self,dataset,HaloProfilerParameterFile,halos='multiple',radius=0.1,hop_style='new'):
         self.dataset = dataset
         self.HaloProfilerParameterFile = HaloProfilerParameterFile
@@ -124,7 +124,7 @@ class HaloProfiler(object):
             os.mkdir(outputDir)
 
         pbar = lagos.get_pbar("Profiling halos ", len(self.hopHalos))
-        for q,halo in enumerate(self.hopHalos):
+        for q,halo in enumerate(self._get_objs('hopHalos')):
             filename = "%s/Halo_%04d_profile.dat" % (outputDir,q)
 
             r_min = 2*self.pf.h.get_smallest_dx() * self.pf['mpc']
@@ -150,7 +150,7 @@ class HaloProfiler(object):
 
             profile = lagos.BinnedProfile1D(sphere,self.haloProfilerParameters['n_bins'],"RadiusMpc",
                                             r_min,halo['r_max'],
-                                            log_space=True, lazy_reader=True)
+                                            log_space=True, lazy_reader=False)
             for field in self.profileFields.keys():
                 profile.add_fields(field,weight=self.profileFields[field][0],
                                    accumulation=self.profileFields[field][1])
@@ -177,6 +177,9 @@ class HaloProfiler(object):
 
         pbar.finish()
         self._WriteVirialQuantities()
+
+    def _finalize_parallel(self):
+        self.virialQuantities = self._mpi_catdict(self.virialQuantities)
 
     def makeProjections(self,save_images=True,save_cube=True,**kwargs):
         "Make projections of all halos using specified fields."
