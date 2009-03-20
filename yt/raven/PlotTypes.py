@@ -42,7 +42,36 @@ def Initialize(*args, **kwargs):
     engineVals["canvas"] = FigureCanvas
     return
 
-class RavenPlot:
+class CallbackRegistryHandler(object):
+    def __init__(self, plot):
+        self.plot = plot
+        self._callbacks = {}
+
+    def __getitem__(self, item):
+        if item not in self._callbacks:
+            raise KeyError(item)
+        cb = self._callbacks[item]
+
+        @wraps(cb)
+        def get_wrapper(*args, **kwargs):
+            cbo = cb(*args, **kwargs)
+            return self.plot.add_callback(cbo)
+
+        return get_wrapper
+
+    def __setitem__(self, item, val):
+        self._callbacks[item] = val
+
+    def __delitem__(self, item):
+        del self._callbacks[item]
+
+    def __iter__(self):
+        for k in sorted(self._callbacks): yield k
+
+    def keys(self):
+        return self._callbacks.keys()
+
+class RavenPlot(object):
 
     datalabel = None
     colorbar = None
@@ -64,6 +93,7 @@ class RavenPlot:
         else:
             self._axes = axes
         self._callbacks = []
+        self._setup_callback_registry()
 
     def set_autoscale(self, val):
         self.do_autoscale = val
@@ -177,6 +207,13 @@ class RavenPlot:
             # in the Orion case.  Cutting planes are tricky.
             self.xmin = self.ymin = 0.0
             self.xmax = self.ymax = 1.0
+
+    def _setup_callback_registry(self):
+        from yt.raven.Callbacks import callback_registry
+        self.modify = CallbackRegistryHandler(self)
+        for c in callback_registry.values():
+            if not hasattr(c, '_type_name'): continue
+            self.modify[c._type_name] = c
 
 class VMPlot(RavenPlot):
     _antialias = True
