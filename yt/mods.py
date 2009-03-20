@@ -52,8 +52,8 @@ fieldInfo = EnzoFieldInfo
 # Now individual component imports from raven
 from yt.raven import PlotCollection, PlotCollectionInteractive, get_multi_plot
 from yt.raven.Callbacks import callback_registry
-for name, cls in callback_registry:
-    exec("from yt.raven import %s" % name)
+for name, cls in callback_registry.items():
+    exec("%s = cls" % name)
 
 # Optional component imports from raven
 try:
