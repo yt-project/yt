@@ -188,7 +188,8 @@ class HaloProfiler(lagos.ParallelAnalysisInterface):
         self._WriteVirialQuantities()
 
     def _finalize_parallel(self):
-        self.virialQuantities = self._mpi_catdict(self.virialQuantities)
+        self.virialQuantities = self._mpi_catlist(self.virialQuantities)
+        self.virialQuantities.sort(key = lambda a:a['id'])
 
     def makeProjections(self,save_images=True,save_cube=True,**kwargs):
         "Make projections of all halos using specified fields."
@@ -302,12 +303,11 @@ class HaloProfiler(lagos.ParallelAnalysisInterface):
         mylog.info("Writing virial quantities to %s." % filename)
         file = open(filename,'w')
         file.write("#Index\tx\ty\tz\tMass [Msolar]\tRadius [Mpc]\n")
-        for q in range(len(self.virialQuantities)):
+        for q, vq in enumerate(self.virialQuantities):
             if (self.virialQuantities[q] is not None):
                 file.write("%04d %.10f %.10f %.10f %.6e %.6e\n" % (q,self.hopHalos[q]['center'][0],self.hopHalos[q]['center'][1],
                                                                    self.hopHalos[q]['center'][2],
-                                                                   self.virialQuantities[q]['TotalMassMsun'],
-                                                                   self.virialQuantities[q]['RadiusMpc']))
+                                                                   vq['TotalMassMsun'], vq['RadiusMpc']))
         file.close()
 
     def _AddActualOverdensity(self,profile):
