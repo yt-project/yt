@@ -20,7 +20,7 @@ def configuration(parent_package='',top_path=None):
     config.make_config_py() # installs __config__.py
     config.make_svn_version_py()
     config.add_extension("PointCombine", "yt/lagos/PointCombine.c", libraries=["m"])
-    #config.add_extension("RTIntegrator", "yt/lagos/RTIntegrator.c")
+    config.add_extension("RTIntegrator", "yt/lagos/RTIntegrator.c")
     config.add_extension("Interpolators", "yt/lagos/Interpolators.c")
     config.add_extension("DepthFirstOctree", "yt/lagos/DepthFirstOctree.c")
     config.add_subpackage("hop")
@@ -33,6 +33,6 @@ def configuration(parent_package='',top_path=None):
                              libraries=["m","hdf5"],
                              library_dirs=library_dirs, include_dirs=include_dirs)
     # Uncomment the next two lines if you want particle_density support
-    #config.add_extension("cic_deposit", ["yt/lagos/enzo_routines/cic_deposit.pyf",
-    #                                     "yt/lagos/enzo_routines/cic_deposit.f"])
+    config.add_extension("cic_deposit", ["yt/lagos/enzo_routines/cic_deposit.pyf",
+                                         "yt/lagos/enzo_routines/cic_deposit.f"])
     return config
