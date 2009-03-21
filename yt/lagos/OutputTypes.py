@@ -90,7 +90,7 @@ class StaticOutput(object):
         return hashlib.md5(s).hexdigest()
 
     @classmethod
-    def _is_valid(cls, fn):
+    def _is_valid(cls, *args, **kwargs):
         return False
 
     def __getitem__(self, key):
@@ -376,8 +376,8 @@ class EnzoStaticOutput(StaticOutput):
         return k
 
     @classmethod
-    def _is_valid(cls, fn):
-        return os.path.exists("%s.hierarchy" % fn)
+    def _is_valid(cls, *args, **kwargs):
+        return os.path.exists("%s.hierarchy" % args[0])
 
 # We set our default output type to EnzoStaticOutput
 
@@ -410,7 +410,7 @@ class EnzoStaticOutputInMemory(EnzoStaticOutput):
             self.conversion_factors[p] = v
 
     @classmethod
-    def _is_valid(cls, fn):
+    def _is_valid(cls, *args, **kwargs):
         return False
 
 class OrionStaticOutput(StaticOutput):
@@ -438,6 +438,9 @@ class OrionStaticOutput(StaticOutput):
           ASCII (not implemented in yt)
 
         """
+        # TODO: work with superclass
+        #StaticOutput.__init__(self, plotname, data_style=7)
+        self._instantiated = time.time()
         self.field_info = self._fieldinfo_class()
         self.data_style = data_style
         self.paranoid_read = paranoia
@@ -467,8 +470,6 @@ class OrionStaticOutput(StaticOutput):
         self.conversion_factors = {}
         self.parameters = {}
         self._parse_parameter_file()
-        if os.path.isfile(self.fparameter_filename):
-            self._parse_fparameter_file()
         self._set_units()
         
         # These should maybe not be hardcoded?
@@ -477,12 +478,23 @@ class OrionStaticOutput(StaticOutput):
         self.parameters["DualEnergyFormalism"] = 0 # always off.
         if self.fparameters.has_key("mu"):
             self.parameters["mu"] = self.fparameters["mu"]
+
+    @classmethod
+    def _is_valid(self, *args, **kwargs):
+        # fill our args
+        pname = args[0].rstrip("/")
+        dn = os.path.dirname(pname)
+        if len(args) > 1: kwargs['paramFilename'] = args[1]
+        pfname = kwargs.get("paramFilename", os.path.join(dn, "inputs"))
+        return os.path.exists(os.path.join(pfname))
         
     def _parse_parameter_file(self):
         """
         Parses the parameter file and establishes the various
         dictionaries.
         """
+        if os.path.isfile(self.fparameter_filename):
+            self._parse_fparameter_file()
         # Let's read the file
         self.parameters["CurrentTimeIdentifier"] = \
             int(os.stat(self.parameter_filename)[ST_CTIME])

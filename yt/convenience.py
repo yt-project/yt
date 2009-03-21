@@ -49,17 +49,17 @@ def max_spheres(width, unit, **kwargs):
         v, c = pf.h.find_max("Density")
         yield pf.h.sphere(c, width/pf[unit])
 
-def load(fn):
+def load(*args ,**kwargs):
     candidates = []
     for n, c in output_type_registry.items():
         if n is None: continue
-        if c._is_valid(fn): candidates.append(n)
+        if c._is_valid(*args, **kwargs): candidates.append(n)
     if len(candidates) == 1:
-        return output_type_registry[candidates[0]](fn)
+        return output_type_registry[candidates[0]](*args, **kwargs)
     if len(candidates) == 0:
         mylog.error("Couldn't figure out output type for %s", fn)
         return None
     mylog.error("Multiple output type candidates for %s:", fn)
     for c in candidates:
-        mylog.error("Possible: %s", c)
+        mylog.error("    Possible: %s", c)
     return None

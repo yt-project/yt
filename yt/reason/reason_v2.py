@@ -200,7 +200,7 @@ class VMPlotTab(PlotFrameTab):
             HGroup(Item('disp_width',
                      editor=RangeEditor(format="%0.2e",
                         low_name='min_width', high_name='max_width',
-                        mode='log', enter_set=True),
+                        mode='logslider', enter_set=True),
                      show_label=False, width=400.0),
                    Item('unit',
                       editor=EnumEditor(name='unit_list')),),
