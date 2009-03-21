@@ -89,6 +89,9 @@ class StaticOutput(object):
             self["InitialTime"], self["CurrentTimeIdentifier"])
         return hashlib.md5(s).hexdigest()
 
+    @classmethod
+    def _is_valid(cls, *args, **kwargs):
+        return False
 
     def __getitem__(self, key):
         """
@@ -372,6 +375,10 @@ class EnzoStaticOutput(StaticOutput):
                (1.0 + self.parameters["CosmologyCurrentRedshift"])
         return k
 
+    @classmethod
+    def _is_valid(cls, *args, **kwargs):
+        return os.path.exists("%s.hierarchy" % args[0])
+
 # We set our default output type to EnzoStaticOutput
 
 output_type_registry[None] = EnzoStaticOutput
@@ -402,6 +409,10 @@ class EnzoStaticOutputInMemory(EnzoStaticOutput):
         for p, v in self.__conversion_override.items():
             self.conversion_factors[p] = v
 
+    @classmethod
+    def _is_valid(cls, *args, **kwargs):
+        return False
+
 class OrionStaticOutput(StaticOutput):
     """
     This class is a stripped down class that simply reads and parses, without
@@ -415,7 +426,7 @@ class OrionStaticOutput(StaticOutput):
     _hierarchy_class = OrionHierarchy
     _fieldinfo_class = OrionFieldContainer
 
-    def __init__(self, plotname, paramFilename='inputs',fparamFilename='probin',data_style=7,paranoia=False):
+    def __init__(self, plotname, paramFilename=None,fparamFilename=None,data_style=7,paranoia=False):
         """need to override for Orion file structure.
 
         the paramfile is usually called "inputs"
@@ -427,27 +438,18 @@ class OrionStaticOutput(StaticOutput):
           ASCII (not implemented in yt)
 
         """
-        self.field_info = self._fieldinfo_class()
-        self.data_style = data_style
+
         self.paranoid_read = paranoia
-        plotname = plotname.rstrip('/')
-        self.basename = os.path.basename(plotname)
-        # this will be the directory ENCLOSING the pltNNNN directory
-        self.directory = os.path.dirname(plotname)
-        self.parameter_filename = os.path.join(self.directory,paramFilename)
-        # fortran parameters
+        self.parameter_filename = paramFilename
+        self.fparameter_filename = fparamFilename
+        self.__ipfn = paramFilename
+
         self.fparameters = {}
-        self.fparameter_filename = os.path.join(self.directory,fparamFilename)
-        self.fullpath = os.path.abspath(self.directory)
-        self.fullplotdir = os.path.abspath(plotname)
-        if len(self.directory) == 0:
-            self.directory = "."
-        self.conversion_factors = {}
-        self.parameters = {}
-        self._parse_parameter_file()
-        if os.path.isfile(self.fparameter_filename):
-            self._parse_fparameter_file()
-        self._set_units()
+
+        StaticOutput.__init__(self, plotname.rstrip("/"), data_style=7)
+        self.field_info = self._fieldinfo_class()
+
+        # self.directory is the directory ENCLOSING the pltNNNN directory
         
         # These should maybe not be hardcoded?
         self.parameters["HydroMethod"] = 'orion' # always PPM DE
@@ -455,12 +457,33 @@ class OrionStaticOutput(StaticOutput):
         self.parameters["DualEnergyFormalism"] = 0 # always off.
         if self.fparameters.has_key("mu"):
             self.parameters["mu"] = self.fparameters["mu"]
+
+    def _localize(self, f, default):
+        if f is None:
+            return os.path.join(self.directory, default)
+        return f
+
+    @classmethod
+    def _is_valid(self, *args, **kwargs):
+        # fill our args
+        pname = args[0].rstrip("/")
+        dn = os.path.dirname(pname)
+        if len(args) > 1: kwargs['paramFilename'] = args[1]
+        pfname = kwargs.get("paramFilename", os.path.join(dn, "inputs"))
+        return os.path.exists(os.path.join(pfname))
         
     def _parse_parameter_file(self):
         """
         Parses the parameter file and establishes the various
         dictionaries.
         """
+        self.fullplotdir = os.path.abspath(self.parameter_filename)
+        self.parameter_filename = self._localize(
+                self.__ipfn, 'inputs')
+        self.fparameter_filename = self._localize(
+                self.fparameter_filename, 'probin')
+        if os.path.isfile(self.fparameter_filename):
+            self._parse_fparameter_file()
         # Let's read the file
         self.parameters["CurrentTimeIdentifier"] = \
             int(os.stat(self.parameter_filename)[ST_CTIME])

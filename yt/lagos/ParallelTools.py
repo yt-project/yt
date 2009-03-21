@@ -181,18 +181,21 @@ class ParallelAnalysisInterface(object):
         if not parallel_capable:
            return False, self.hierarchy.grid_collection(self.center, self.hierarchy.grids)
 
+        xax, yax = x_dict[axis], y_dict[axis]
         cc = MPI.Compute_dims(MPI.COMM_WORLD.size, 2)
         mi = MPI.COMM_WORLD.rank
         cx, cy = na.unravel_index(mi, cc)
         x = na.mgrid[0:1:(cc[0]+1)*1j][cx:cx+2]
         y = na.mgrid[0:1:(cc[1]+1)*1j][cy:cy+2]
 
-        LE = na.zeros(3, dtype='float64')
-        RE = na.ones(3, dtype='float64')
-        LE[x_dict[axis]] = x[0]  # It actually doesn't matter if this is x or y
-        RE[x_dict[axis]] = x[1]
-        LE[y_dict[axis]] = y[0]
-        RE[y_dict[axis]] = y[1]
+        DLE, DRE = self.pf["DomainLeftEdge"], self.pf["DomainRightEdge"]
+        LE = na.ones(3, dtype='float64') * DLE
+        RE = na.ones(3, dtype='float64') * DRE
+        LE[xax] = x[0] * (DRE[xax]-DLE[xax]) + DLE[xax]
+        RE[xax] = x[1] * (DRE[xax]-DLE[xax]) + DLE[xax]
+        LE[yax] = y[0] * (DRE[yax]-DLE[yax]) + DLE[yax]
+        RE[yax] = y[1] * (DRE[yax]-DLE[yax]) + DLE[yax]
+        mylog.debug("Dimensions: %s %s", LE, RE)
 
         reg = self.hierarchy.region_strict(self.center, LE, RE)
         return True, reg
