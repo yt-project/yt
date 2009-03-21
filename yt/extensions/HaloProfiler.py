@@ -157,7 +157,7 @@ class HaloProfiler(lagos.ParallelAnalysisInterface):
 
                 profile = lagos.BinnedProfile1D(sphere,self.haloProfilerParameters['n_bins'],"RadiusMpc",
                                                 r_min,halo['r_max'],
-                                                log_space=True, lazy_reader=True)
+                                                log_space=True, lazy_reader=False)
                 for field in self.profileFields.keys():
                     profile.add_fields(field,weight=self.profileFields[field][0],
                                        accumulation=self.profileFields[field][1])
