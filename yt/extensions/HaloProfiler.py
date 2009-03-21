@@ -123,7 +123,6 @@ class HaloProfiler(lagos.ParallelAnalysisInterface):
         else:
             os.mkdir(outputDir)
 
-#        pbar = lagos.get_pbar("Profiling halos ", len(self.hopHalos))
         for q,halo in enumerate(self._get_objs('hopHalos', round_robin=True)):
             filename = "%s/Halo_%04d_profile.dat" % (outputDir,halo['id'])
 
@@ -184,9 +183,6 @@ class HaloProfiler(lagos.ParallelAnalysisInterface):
                 sphere.clear_data()
                 del sphere
 
-            #pbar.update(q)
-
-        #pbar.finish()
         self._WriteVirialQuantities()
 
     def _finalize_parallel(self):
@@ -527,8 +523,6 @@ class HaloProfiler(lagos.ParallelAnalysisInterface):
                 virial['TotalMassMsun'] = float(onLine[4])
                 virial['RadiusMpc'] = float(onLine[5])
                 if (virial['TotalMassMsun'] >= self.haloProfilerParameters['VirialMassCutoff']):
-                    for q in range(index - len(self.virialQuantities)):
-                        self.virialQuantities.append(None)
                     self.virialQuantities.append(virial)
                     halos += 1
 
