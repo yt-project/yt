@@ -82,9 +82,14 @@ class ParallelObjectIterator(ObjectIterator):
     This takes an object, pobj, that implements ParallelAnalysisInterface,
     and then does its thing.
     """
+<<<<<<< local
+    def __init__(self, pobj, just_list = False, attr='_grids'):
+        ObjectIterator.__init__(self, pobj, just_list, attr=attr)
+=======
     def __init__(self, pobj, just_list = False, attr='_grids',
                  round_robin=False):
         ObjectIterator.__init__(self, pobj, just_list)
+>>>>>>> other
         self._offset = MPI.COMM_WORLD.rank
         self._skip = MPI.COMM_WORLD.size
         # Note that we're doing this in advance, and with a simple means
