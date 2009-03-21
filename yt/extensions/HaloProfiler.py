@@ -33,7 +33,7 @@ import tables as h5
 
 PROFILE_RADIUS_THRESHOLD = 2
 
-class HaloProfiler(object):
+class HaloProfiler(lagos.ParallelAnalysisInterface):
     def __init__(self,dataset,HaloProfilerParameterFile,halos='multiple',radius=0.1,radius_units='1',hop_style='new'):
         self.dataset = dataset
         self.HaloProfilerParameterFile = HaloProfilerParameterFile
@@ -49,7 +49,7 @@ class HaloProfiler(object):
         self.halos = halos
         if not(self.halos is 'multiple' or self.halos is 'single'):
             mylog.error("Keyword, halos, must be either 'single' or 'multiple'.")
-            exit(1)
+            return None
 
         # Set hop file style.
         # old: enzo_hop output.
@@ -57,7 +57,7 @@ class HaloProfiler(object):
         self.hop_style = hop_style
         if not(self.hop_style is 'old' or self.hop_style is 'new'):
             mylog.error("Keyword, hop_style, must be either 'old' or 'new'.")
-            exit(1)
+            return None
 
         # Set some parameter defaults.
         self._SetParameterDefaults()
@@ -71,25 +71,26 @@ class HaloProfiler(object):
             if self.haloProfilerParameters['VelocityCenter'][1] == 'halo' and \
                     self.halos is 'single':
                 mylog.error("Parameter, VelocityCenter, must be set to 'bulk sphere' or 'max <field>' with halos flag set to 'single'.")
-                exit(1)
+                return None
             if self.haloProfilerParameters['VelocityCenter'][1] == 'halo' and \
                     self.hop_style is 'old':
                 mylog.error("Parameter, VelocityCenter, must be 'bulk sphere' for old style hop output files.")
-                exit(1)
+                return None
             if not(self.haloProfilerParameters['VelocityCenter'][1] == 'halo' or 
                    self.haloProfilerParameters['VelocityCenter'][1] == 'sphere'):
                 mylog.error("Second value of VelocityCenter must be either 'halo' or 'sphere' if first value is 'bulk'.")
-                exit(1)
+                return None
         elif self.haloProfilerParameters['VelocityCenter'][0] == 'max':
             if self.halos is 'multiple':
                 mylog.error("Getting velocity center from a max field value only works with halos='single'.")
-                exit(1)
+                return None
         else:
             mylog.error("First value of parameter, VelocityCenter, must be either 'bulk' or 'max'.")
-            exit(1)
+            return None
 
         # Create dataset object.
         self.pf = lagos.EnzoStaticOutput(self.dataset)
+        self.pf.h
         if self.halos is 'single' or hop_style is 'old':
             self.haloRadius = radius / self.pf[radius_units]
 
@@ -122,9 +123,8 @@ class HaloProfiler(object):
         else:
             os.mkdir(outputDir)
 
-        pbar = lagos.get_pbar("Profiling halos ", len(self.hopHalos))
-        for q,halo in enumerate(self.hopHalos):
-            filename = "%s/Halo_%04d_profile.dat" % (outputDir,q)
+        for q,halo in enumerate(self._get_objs('hopHalos', round_robin=True)):
+            filename = "%s/Halo_%04d_profile.dat" % (outputDir,halo['id'])
 
             # Read profile from file if it already exists.
             # If not, profile will be None.
@@ -140,6 +140,7 @@ class HaloProfiler(object):
                     continue
 
                 sphere = self.pf.h.sphere(halo['center'],halo['r_max']/self.pf.units['mpc'])
+                if len(sphere._grids) == 0: continue
 
                 # Set velocity to zero out radial velocity profiles.
                 if self.haloProfilerParameters['VelocityCenter'][0] == 'bulk':
@@ -157,7 +158,7 @@ class HaloProfiler(object):
 
                 profile = lagos.BinnedProfile1D(sphere,self.haloProfilerParameters['n_bins'],"RadiusMpc",
                                                 r_min,halo['r_max'],
-                                                log_space=True, lazy_reader=True)
+                                                log_space=True, lazy_reader=False)
                 for field in self.profileFields.keys():
                     profile.add_fields(field,weight=self.profileFields[field][0],
                                        accumulation=self.profileFields[field][1])
@@ -165,13 +166,13 @@ class HaloProfiler(object):
             self._AddActualOverdensity(profile)
 
             virial = self._CalculateVirialQuantities(profile)
-            virial['center'] = self.hopHalos[q]['center']
+            virial['center'] = halo['center']
+            virial['id'] = halo['id']
 
-            if (virial['TotalMassMsun'] < self.haloProfilerParameters['VirialMassCutoff']):
-                self.virialQuantities.append(None)
-            else:
+            if (virial['TotalMassMsun'] >= self.haloProfilerParameters['VirialMassCutoff']):
                 self.virialQuantities.append(virial)
             if newProfile:
+                mylog.info("Writing halo %d" % virial['id'])
                 profile.write_out(filename, format='%0.6e')
             del profile
 
@@ -182,10 +183,20 @@ class HaloProfiler(object):
                 sphere.clear_data()
                 del sphere
 
-            pbar.update(q)
-
-        pbar.finish()
         self._WriteVirialQuantities()
+
+    def _finalize_parallel(self):
+        self.virialQuantities = self._mpi_catlist(self.virialQuantities)
+        self.virialQuantities.sort(key = lambda a:a['id'])
+
+    @lagos.parallel_root_only
+    def __check_directory(self, outputDir):
+        if (os.path.exists(outputDir)):
+            if not(os.path.isdir(outputDir)):
+                mylog.error("Output directory exists, but is not a directory: %s." % outputDir)
+                raise IOError(outputDir)
+        else:
+            os.mkdir(outputDir)
 
     def makeProjections(self,save_images=True,save_cube=True,**kwargs):
         "Make projections of all halos using specified fields."
@@ -204,13 +215,7 @@ class HaloProfiler(object):
             projectionResolution = int(self.haloProfilerParameters['ProjectionWidth'] / proj_dx)
 
         outputDir = "%s/%s" % (self.pf.fullpath,self.haloProfilerParameters['ProjectionOutputDir'])
-
-        if (os.path.exists(outputDir)):
-            if not(os.path.isdir(outputDir)):
-                mylog.error("Output directory exists, but is not a directory: %s." % outputDir)
-                return
-        else:
-            os.mkdir(outputDir)
+        self.__check_directory(outputDir)
 
         center = [0.5 * (self.pf.parameters['DomainLeftEdge'][w] + self.pf.parameters['DomainRightEdge'][w])
                   for w in range(self.pf.parameters['TopGridRank'])]
@@ -218,7 +223,7 @@ class HaloProfiler(object):
         # Create a plot collection.
         pc = raven.PlotCollection(self.pf,center=center)
 
-        for q,halo in enumerate(self.virialQuantities):
+        for halo in self._get_objs('hopHalos', round_robin=True):
             if halo is None:
                 continue
             # Check if region will overlap domain edge.
@@ -229,7 +234,7 @@ class HaloProfiler(object):
                          for w in range(len(halo['center']))]
 
             mylog.info("Projecting halo %04d in region: [%f, %f, %f] to [%f, %f, %f]." %
-                       (q,leftEdge[0],leftEdge[1],leftEdge[2],rightEdge[0],rightEdge[1],rightEdge[2]))
+                       (halo['id'],leftEdge[0],leftEdge[1],leftEdge[2],rightEdge[0],rightEdge[1],rightEdge[2]))
 
             need_per = False
             for w in range(len(halo['center'])):
@@ -256,12 +261,11 @@ class HaloProfiler(object):
 
                 # Set x and y limits, shift image if it overlaps domain boundary.
                 if need_per:
+                    pw = self.haloProfilerParameters['ProjectionWidth']/self.pf.units['mpc']
                     ShiftProjections(self.pf,pc,halo['center'],center,w)
                     # Projection has now been shifted to center of box.
-                    proj_left = [center[x_axis]-0.5 * self.haloProfilerParameters['ProjectionWidth']/self.pf.units['mpc'],
-                                 center[y_axis]-0.5 * self.haloProfilerParameters['ProjectionWidth']/self.pf.units['mpc']]
-                    proj_right = [center[x_axis]+0.5 * self.haloProfilerParameters['ProjectionWidth']/self.pf.units['mpc'],
-                                  center[y_axis]+0.5 * self.haloProfilerParameters['ProjectionWidth']/self.pf.units['mpc']]
+                    proj_left = [center[x_axis]-0.5*pw, center[y_axis]-0.5*pw]
+                    proj_right = [center[x_axis]+0.5*pw, center[y_axis]+0.5*pw]
                 else:
                     proj_left = [leftEdge[x_axis],leftEdge[y_axis]]
                     proj_right = [rightEdge[x_axis],rightEdge[y_axis]]
@@ -272,7 +276,8 @@ class HaloProfiler(object):
                 # Save projection data to hdf5 file.
                 if save_cube:
                     axes = ['x','y','z']
-                    dataFilename = "%s/Halo_%04d_%s_data.h5" % (outputDir,q,axes[w])
+                    dataFilename = "%s/Halo_%04d_%s_data.h5" % \
+                            (outputDir,halo['id'],axes[w])
                     mylog.info("Saving projection data to %s." % dataFilename)
 
                     output = h5.openFile(dataFilename, "a")
@@ -285,7 +290,7 @@ class HaloProfiler(object):
                     output.close()
 
                 if save_images:
-                    pc.save("%s/Halo_%04d" % (outputDir,q))
+                    pc.save("%s/Halo_%04d" % (outputDir,halo['id']))
 
                 pc.clear_plots()
 
@@ -293,18 +298,17 @@ class HaloProfiler(object):
 
         del pc
 
+    @lagos.parallel_root_only
     def _WriteVirialQuantities(self):
         "Write out file with halo centers and virial masses and radii."
         filename = "%s/%s" % (self.pf.fullpath,self.haloProfilerParameters['VirialQuantitiesOutputFile'])
         mylog.info("Writing virial quantities to %s." % filename)
         file = open(filename,'w')
         file.write("#Index\tx\ty\tz\tMass [Msolar]\tRadius [Mpc]\n")
-        for q in range(len(self.virialQuantities)):
-            if (self.virialQuantities[q] is not None):
-                file.write("%04d %.10f %.10f %.10f %.6e %.6e\n" % (q,self.hopHalos[q]['center'][0],self.hopHalos[q]['center'][1],
-                                                                   self.hopHalos[q]['center'][2],
-                                                                   self.virialQuantities[q]['TotalMassMsun'],
-                                                                   self.virialQuantities[q]['RadiusMpc']))
+        for vq in self.virialQuantities:
+            if vq is not None:
+                file.write("%04d %.10f %.10f %.10f %.6e %.6e\n" % (vq['id'],vq['center'][0],vq['center'][1],vq['center'][2],
+                                                                   vq['TotalMassMsun'], vq['RadiusMpc']))
         file.close()
 
     def _AddActualOverdensity(self,profile):
@@ -390,12 +394,13 @@ class HaloProfiler(object):
             line = line.strip()
             if not(line.startswith('#')):
                 onLine = line.split()
+                id = int(onLine[0])
                 mass = float(onLine[1])
                 if (mass >= self.haloProfilerParameters['VirialMassCutoff']):
                     center = [float(onLine[7]),float(onLine[8]),float(onLine[9])]
                     velocity = [float(onLine[10]),float(onLine[11]),float(onLine[12])]
                     r_max = float(onLine[13]) * self.pf.units['mpc']
-                    halo = {'center': center, 'r_max': r_max, 'velocity': velocity}
+                    halo = {'id': id, 'center': center, 'r_max': r_max, 'velocity': velocity}
                     self.hopHalos.append(halo)
 
         mylog.info("Loaded %d halos with total dark matter mass af at least %e Msolar." % 
@@ -518,8 +523,6 @@ class HaloProfiler(object):
                 virial['TotalMassMsun'] = float(onLine[4])
                 virial['RadiusMpc'] = float(onLine[5])
                 if (virial['TotalMassMsun'] >= self.haloProfilerParameters['VirialMassCutoff']):
-                    for q in range(index - len(self.virialQuantities)):
-                        self.virialQuantities.append(None)
                     self.virialQuantities.append(virial)
                     halos += 1
 
