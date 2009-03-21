@@ -166,6 +166,7 @@ class HaloProfiler(lagos.ParallelAnalysisInterface):
 
             virial = self._CalculateVirialQuantities(profile)
             virial['center'] = self.hopHalos[q]['center']
+            virial['id'] = q
 
             if (virial['TotalMassMsun'] < self.haloProfilerParameters['VirialMassCutoff']):
                 self.virialQuantities.append(None)
@@ -303,10 +304,9 @@ class HaloProfiler(lagos.ParallelAnalysisInterface):
         mylog.info("Writing virial quantities to %s." % filename)
         file = open(filename,'w')
         file.write("#Index\tx\ty\tz\tMass [Msolar]\tRadius [Mpc]\n")
-        for q, vq in enumerate(self.virialQuantities):
-            if (self.virialQuantities[q] is not None):
-                file.write("%04d %.10f %.10f %.10f %.6e %.6e\n" % (q,self.hopHalos[q]['center'][0],self.hopHalos[q]['center'][1],
-                                                                   self.hopHalos[q]['center'][2],
+        for vq in self.virialQuantities:
+            if vq is not None:
+                file.write("%04d %.10f %.10f %.10f %.6e %.6e\n" % (vq['id'],vq['center'][0],vq['center'][1],vq['center'][2],
                                                                    vq['TotalMassMsun'], vq['RadiusMpc']))
         file.close()
 
