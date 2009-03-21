@@ -946,6 +946,7 @@ class AMRProjBase(AMR2DData):
             self._check_region = check
             #self._okay_to_serialize = (not check)
         else:
+            self._distributed = False
             self._okay_to_serialize = False
             self._check_region = True
         self.source = source

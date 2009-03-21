@@ -125,7 +125,6 @@ class HaloProfiler(lagos.ParallelAnalysisInterface):
 
 #        pbar = lagos.get_pbar("Profiling halos ", len(self.hopHalos))
         for q,halo in enumerate(self._get_objs('hopHalos', round_robin=True)):
-            print q,halo['r_max']
             filename = "%s/Halo_%04d_profile.dat" % (outputDir,halo['id'])
 
             # Read profile from file if it already exists.
@@ -266,12 +265,11 @@ class HaloProfiler(lagos.ParallelAnalysisInterface):
 
                 # Set x and y limits, shift image if it overlaps domain boundary.
                 if need_per:
+                    pw = self.haloProfilerParameters['ProjectionWidth']/self.pf.units['mpc']
                     ShiftProjections(self.pf,pc,halo['center'],center,w)
                     # Projection has now been shifted to center of box.
-                    proj_left = [center[x_axis]-0.5 * self.haloProfilerParameters['ProjectionWidth']/self.pf.units['mpc'],
-                                 center[y_axis]-0.5 * self.haloProfilerParameters['ProjectionWidth']/self.pf.units['mpc']]
-                    proj_right = [center[x_axis]+0.5 * self.haloProfilerParameters['ProjectionWidth']/self.pf.units['mpc'],
-                                  center[y_axis]+0.5 * self.haloProfilerParameters['ProjectionWidth']/self.pf.units['mpc']]
+                    proj_left = [center[x_axis]-0.5*pw, center[y_axis]-0.5*pw]
+                    proj_right = [center[x_axis]+0.5*pw, center[y_axis]+0.5*pw]
                 else:
                     proj_left = [leftEdge[x_axis],leftEdge[y_axis]]
                     proj_right = [rightEdge[x_axis],rightEdge[y_axis]]
@@ -403,7 +401,6 @@ class HaloProfiler(lagos.ParallelAnalysisInterface):
                 id = int(onLine[0])
                 mass = float(onLine[1])
                 if (mass >= self.haloProfilerParameters['VirialMassCutoff']):
-                    print id, mass, self.haloProfilerParameters['VirialMassCutoff']
                     center = [float(onLine[7]),float(onLine[8]),float(onLine[9])]
                     velocity = [float(onLine[10]),float(onLine[11]),float(onLine[12])]
                     r_max = float(onLine[13]) * self.pf.units['mpc']
