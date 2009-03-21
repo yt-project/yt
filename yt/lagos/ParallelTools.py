@@ -158,8 +158,17 @@ def parallel_root_only(func):
     @wraps(func)
     def root_only(*args, **kwargs):
         if MPI.COMM_WORLD.rank == 0:
-            func(*args, **kwargs)
+            try:
+                func(*args, **kwargs)
+                all_clear = 1
+            except:
+                traceback.print_last()
+                all_clear = 0
+        else:
+            all_clear = None
         MPI.COMM_WORLD.Barrier()
+        all_clear = MPI.COMM_WORLD.bcast(all_clear, root=0)
+        if not all_clear: raise RuntimeError
     if parallel_capable: return root_only
     return func
 
@@ -281,7 +290,7 @@ class ParallelAnalysisInterface(object):
         for i in range(1,MPI.COMM_WORLD.size):
             buf = ensure_list(MPI.COMM_WORLD.recv(source=i, tag=0))
             data += buf
-        return na.array(data)
+        return data
 
     @parallel_passthrough
     def _mpi_catlist(self, data):

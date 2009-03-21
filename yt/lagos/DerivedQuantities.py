@@ -73,7 +73,7 @@ class DerivedQuantity(ParallelAnalysisInterface):
         return self.c_func(self._data_source, *self.retvals)
 
     def _finalize_parallel(self):
-        self.retvals = [self._mpi_catlist(my_list) for my_list in self.retvals]
+        self.retvals = [na.array(self._mpi_catlist(my_list)) for my_list in self.retvals]
         
     def _call_func_unlazy(self, args, kwargs):
         retval = self.func(self._data_source, *args, **kwargs)
