@@ -1076,6 +1076,7 @@ class AMRProjBase(AMR2DData):
         for pi, grid1 in enumerate(grids):
             pbar.update(pi)
             for parent in ensure_list(grid1.Parent):
+                if parent.id not in self.__overlap_masks: continue
                 for grid2 in self.source._grids[grids_up][self.__overlap_masks[parent.id]]:
                     if self.__retval_coords[grid2.id][0].shape[0] == 0: continue
                     args = []
