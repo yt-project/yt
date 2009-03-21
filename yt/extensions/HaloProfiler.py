@@ -122,9 +122,9 @@ class HaloProfiler(lagos.ParallelAnalysisInterface):
         else:
             os.mkdir(outputDir)
 
-        pbar = lagos.get_pbar("Profiling halos ", len(self.hopHalos))
+#        pbar = lagos.get_pbar("Profiling halos ", len(self.hopHalos))
         for q,halo in enumerate(self._get_objs('hopHalos')):
-            filename = "%s/Halo_%04d_profile.dat" % (outputDir,q)
+            filename = "%s/Halo_%04d_profile.dat" % (outputDir,halo['id'])
 
             # Read profile from file if it already exists.
             # If not, profile will be None.
@@ -165,14 +165,15 @@ class HaloProfiler(lagos.ParallelAnalysisInterface):
             self._AddActualOverdensity(profile)
 
             virial = self._CalculateVirialQuantities(profile)
-            virial['center'] = self.hopHalos[q]['center']
-            virial['id'] = q
+            virial['center'] = halo['center']
+            virial['id'] = halo['id']
 
             if (virial['TotalMassMsun'] < self.haloProfilerParameters['VirialMassCutoff']):
                 self.virialQuantities.append(None)
             else:
                 self.virialQuantities.append(virial)
             if newProfile:
+                mylog.info("Writing halo %d" % virial['id'])
                 profile.write_out(filename, format='%0.6e')
             del profile
 
@@ -183,9 +184,9 @@ class HaloProfiler(lagos.ParallelAnalysisInterface):
                 sphere.clear_data()
                 del sphere
 
-            pbar.update(q)
+            #pbar.update(q)
 
-        pbar.finish()
+        #pbar.finish()
         self._WriteVirialQuantities()
 
     def _finalize_parallel(self):
@@ -394,12 +395,13 @@ class HaloProfiler(lagos.ParallelAnalysisInterface):
             line = line.strip()
             if not(line.startswith('#')):
                 onLine = line.split()
+                id = int(onLine[0])
                 mass = float(onLine[1])
                 if (mass >= self.haloProfilerParameters['VirialMassCutoff']):
                     center = [float(onLine[7]),float(onLine[8]),float(onLine[9])]
                     velocity = [float(onLine[10]),float(onLine[11]),float(onLine[12])]
                     r_max = float(onLine[13]) * self.pf.units['mpc']
-                    halo = {'center': center, 'r_max': r_max, 'velocity': velocity}
+                    halo = {'id': id, 'center': center, 'r_max': r_max, 'velocity': velocity}
                     self.hopHalos.append(halo)
 
         mylog.info("Loaded %d halos with total dark matter mass af at least %e Msolar." % 
