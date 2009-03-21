@@ -438,39 +438,18 @@ class OrionStaticOutput(StaticOutput):
           ASCII (not implemented in yt)
 
         """
-        # TODO: work with superclass
-        #StaticOutput.__init__(self, plotname, data_style=7)
-        self._instantiated = time.time()
-        self.field_info = self._fieldinfo_class()
-        self.data_style = data_style
+
         self.paranoid_read = paranoia
-        plotname = plotname.rstrip('/')
-        self.directory = os.path.dirname(plotname)
-        # this will be the directory ENCLOSING the pltNNNN directory
-        self.basename = os.path.basename(plotname)
+        self.parameter_filename = paramFilename
+        self.fparameter_filename = fparamFilename
+        self.__ipfn = paramFilename
 
-        if paramFilename is None:
-            # 'inputs' is default filename
-            self.parameter_filename = os.path.join(self.directory,'inputs')
-        else:
-            self.parameter_filename = paramFilename 
-
-        # fortran parameters
         self.fparameters = {}
-        if fparamFilename is None:
-            # 'probin' is default filename
-            self.fparameter_filename = os.path.join(self.directory,'probin')
-        else:
-            self.fparameter_filename = fparamFilename
-            
-        self.fullpath = os.path.abspath(self.directory)
-        self.fullplotdir = os.path.abspath(plotname)
-        if len(self.directory) == 0:
-            self.directory = "."
-        self.conversion_factors = {}
-        self.parameters = {}
-        self._parse_parameter_file()
-        self._set_units()
+
+        StaticOutput.__init__(self, plotname.rstrip("/"), data_style=7)
+        self.field_info = self._fieldinfo_class()
+
+        # self.directory is the directory ENCLOSING the pltNNNN directory
         
         # These should maybe not be hardcoded?
         self.parameters["HydroMethod"] = 'orion' # always PPM DE
@@ -478,6 +457,11 @@ class OrionStaticOutput(StaticOutput):
         self.parameters["DualEnergyFormalism"] = 0 # always off.
         if self.fparameters.has_key("mu"):
             self.parameters["mu"] = self.fparameters["mu"]
+
+    def _localize(self, f, default):
+        if f is None:
+            return os.path.join(self.directory, default)
+        return f
 
     @classmethod
     def _is_valid(self, *args, **kwargs):
@@ -493,6 +477,11 @@ class OrionStaticOutput(StaticOutput):
         Parses the parameter file and establishes the various
         dictionaries.
         """
+        self.fullplotdir = os.path.abspath(self.parameter_filename)
+        self.parameter_filename = self._localize(
+                self.__ipfn, 'inputs')
+        self.fparameter_filename = self._localize(
+                self.fparameter_filename, 'probin')
         if os.path.isfile(self.fparameter_filename):
             self._parse_fparameter_file()
         # Let's read the file
