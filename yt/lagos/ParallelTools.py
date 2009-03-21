@@ -82,7 +82,8 @@ class ParallelObjectIterator(ObjectIterator):
     This takes an object, pobj, that implements ParallelAnalysisInterface,
     and then does its thing.
     """
-    def __init__(self, pobj, just_list = False, attr='_grids'):
+    def __init__(self, pobj, just_list = False, attr='_grids',
+                 round_robin=False):
         ObjectIterator.__init__(self, pobj, just_list)
         self._offset = MPI.COMM_WORLD.rank
         self._skip = MPI.COMM_WORLD.size
@@ -91,8 +92,11 @@ class ParallelObjectIterator(ObjectIterator):
         if self._use_all:
             self.my_obj_ids = na.arange(len(self._objs))
         else:
-            self.my_obj_ids = na.array_split(
-                            na.arange(len(self._objs)), self._skip)[self._offset]
+            if not round_robin:
+                self.my_obj_ids = na.array_split(
+                                na.arange(len(self._objs)), self._skip)[self._offset]
+            else:
+                self.my_obj_ids = na.arange(len(self._objs))[self._offset::self._skip]
         
     def __iter__(self):
         for gid in self.my_obj_ids:
@@ -165,8 +169,10 @@ class ParallelAnalysisInterface(object):
 
     def _get_objs(self, attr, *args, **kwargs):
         if parallel_capable:
+            rr = kwargs.pop("round_robin", False)
             self._initialize_parallel(*args, **kwargs)
-            return ParallelObjectIterator(self, attr=attr)
+            return ParallelObjectIterator(self, attr=attr,
+                    round_robin=rr)
         return ObjectIterator(self, attr=attr)
 
     def _get_grids(self, *args, **kwargs):

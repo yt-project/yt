@@ -123,7 +123,7 @@ class HaloProfiler(lagos.ParallelAnalysisInterface):
             os.mkdir(outputDir)
 
 #        pbar = lagos.get_pbar("Profiling halos ", len(self.hopHalos))
-        for q,halo in enumerate(self._get_objs('hopHalos')):
+        for q,halo in enumerate(self._get_objs('hopHalos', round_robin=True)):
             filename = "%s/Halo_%04d_profile.dat" % (outputDir,halo['id'])
 
             # Read profile from file if it already exists.
