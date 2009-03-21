@@ -150,6 +150,15 @@ def parallel_blocking_call(func):
     else:
         return func
 
+def parallel_root_only(func):
+    @wraps(func)
+    def root_only(*args, **kwargs):
+        if MPI.COMM_WORLD.rank == 0:
+            func(*args, **kwargs)
+        MPI.COMM_WORLD.Barrier()
+    if parallel_capable: return root_only
+    return func
+
 class ParallelAnalysisInterface(object):
     _grids = None
     _distributed = parallel_capable

@@ -298,6 +298,7 @@ class HaloProfiler(lagos.ParallelAnalysisInterface):
 
         del pc
 
+    @lagos.parallel_root_only
     def _WriteVirialQuantities(self):
         "Write out file with halo centers and virial masses and radii."
         filename = "%s/%s" % (self.pf.fullpath,self.haloProfilerParameters['VirialQuantitiesOutputFile'])
