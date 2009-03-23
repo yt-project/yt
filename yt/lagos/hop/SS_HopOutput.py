@@ -29,7 +29,7 @@ from yt.lagos.hop import *
 
 class HopList(object):
     def __init__(self, data_source, threshold=160.0,
-                 dm_only = True):
+                 dm_only = True, mingroupsize=-1, dsaddle=-1):
         """
         Run hop on *data_source* with a given density *threshold*.  If
         *dm_only* is set, only run it on the dark matter particles, otherwise
@@ -38,6 +38,8 @@ class HopList(object):
         self.data_source = data_source
         self.dm_only = dm_only
         self.threshold = threshold
+        self.mingroupsize = mingroupsize
+        self.dsaddle = dsaddle
         self._groups = []
         self._max_dens = {}
         mylog.info("Initializing HOP")
@@ -63,7 +65,7 @@ class HopList(object):
                    self.particle_fields["particle_position_y"],
                    self.particle_fields["particle_position_z"],
                    self.particle_fields["ParticleMassMsun"],
-                   self.threshold)
+                   self.threshold, self.mingroupsize, self.dsaddle)
         self.particle_fields["densities"] = self.densities
         self.particle_fields["tags"] = self.tags
 
@@ -258,7 +260,8 @@ class HopGroup(object):
         self._processing = False
 
 class HaloFinder(HopList, ParallelAnalysisInterface):
-    def __init__(self, pf, threshold=160.0, dm_only=True, padding=0.2):
+    def __init__(self, pf, threshold=160.0, dm_only=True, padding=0.2,
+                 mingroupsize=-1, dsaddle=-1):
         self.pf = pf
         self.hierarchy = pf.h
         self.center = (pf["DomainRightEdge"] + pf["DomainLeftEdge"])/2.0
@@ -282,7 +285,8 @@ class HaloFinder(HopList, ParallelAnalysisInterface):
         # MJT: This is the point where HOP is run, and we have halos for every
         # single sub-region
         sub_mass = self.data_source["ParticleMassMsun"].sum()
-        super(HaloFinder, self).__init__(self.data_source, threshold*total_mass/sub_mass, dm_only)
+        super(HaloFinder, self).__init__(self.data_source,
+            threshold*total_mass/sub_mass, dm_only, mingroupsize, dsaddle)
         self._parse_hoplist()
         self._join_hoplists()
 
