@@ -909,7 +909,7 @@ class EnzoHierarchy(AMRHierarchy):
                 grids_to_recon = self.select_grids(level)
                 pbar = None
                 if len(self.grids) > 3e5:
-                    pbar = get_pbar('Reconsructing  level % 2i / % 2i ' \
+                    pbar = get_pbar('Reconstructing  level % 2i / % 2i ' \
                                       % (level, self.maxLevel),
                                       len(grids_to_recon))
                 for i,grid in enumerate(grids_to_recon):
