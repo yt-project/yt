@@ -23,7 +23,7 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-import time, types, signal, traceback, sys
+import time, types, signal, traceback, sys, pdb
 import progressbar as pb
 from math import floor, ceil
 
@@ -93,6 +93,12 @@ def time_execution(func):
         return wrapper
     else:
         return func
+
+def pdb_run(func):
+    @wraps(func)
+    def wrapper(*args, **kw):
+        pdb.runcall(func, *args, **kw)
+    return wrapper
 
 class DummyProgressBar:
     def __init__(self, *args, **kwargs):
