@@ -115,13 +115,7 @@ class HaloProfiler(lagos.ParallelAnalysisInterface):
         self._CheckForNeededProfileFields()
 
         outputDir = "%s/%s" % (self.pf.fullpath,self.haloProfilerParameters['ProfileOutputDir'])
-
-        if (os.path.exists(outputDir)):
-            if not(os.path.isdir(outputDir)):
-                mylog.error("Output directory exists, but is not a directory: %s." % outputDir)
-                return
-        else:
-            os.mkdir(outputDir)
+        self.__check_directory(outputDir)
 
         for q,halo in enumerate(self._get_objs('hopHalos', round_robin=True)):
             filename = "%s/Halo_%04d_profile.dat" % (outputDir,halo['id'])
@@ -223,7 +217,7 @@ class HaloProfiler(lagos.ParallelAnalysisInterface):
         # Create a plot collection.
         pc = raven.PlotCollection(self.pf,center=center)
 
-        for halo in self._get_objs('hopHalos', round_robin=True):
+        for halo in self._get_objs('virialQuantities', round_robin=True):
             if halo is None:
                 continue
             # Check if region will overlap domain edge.
@@ -519,6 +513,7 @@ class HaloProfiler(lagos.ParallelAnalysisInterface):
                 onLine = line.split()
                 index = int(onLine[0])
                 virial = {}
+                virial['id'] = int(onLine[0])
                 virial['center'] =  [float(onLine[1]),float(onLine[2]),float(onLine[3])]
                 virial['TotalMassMsun'] = float(onLine[4])
                 virial['RadiusMpc'] = float(onLine[5])
