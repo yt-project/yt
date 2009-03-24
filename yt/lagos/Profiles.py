@@ -84,15 +84,15 @@ class BinnedProfile(ParallelAnalysisInterface):
         for gi,grid in enumerate(self._get_grids(fields)):
             self._ngrids += 1
             #pbar.update(gi)
-            args = self._get_bins(grid, check_cut=True)
+            try:
+                args = self._get_bins(grid, check_cut=True)
+            except EmptyProfileData:
+                # No bins returned for this grid, so forget it!
+                continue
             for field in fields:
                 # We get back field values, weight values, used bins
-                try:
-                    f, w, u = self._bin_field(grid, field, weight, accumulation,
-                                              args=args, check_cut=True)
-                except EmptySourceData: 
-                    # No bins returned for this grid, so forget it!
-                    break
+                f, w, u = self._bin_field(grid, field, weight, accumulation,
+                                          args=args, check_cut=True)
                 self.__data[field] += f        # running total
                 self.__weight_data[field] += w # running total
                 self.__used = (self.__used | u)       # running 'or'
