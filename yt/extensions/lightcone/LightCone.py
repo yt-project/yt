@@ -692,6 +692,9 @@ class LightCone(object):
             self.projectionStack = na.array(self.projectionStack)
             field_dataset = output.createArray("/",field_node,self.projectionStack)
             field_dataset._v_attrs.redshifts = redshiftList
+            field_dataset._v_attrs.ObserverRedshift = na.float(self.lightConeParameters['ObserverRedshift'])
+            field_dataset._v_attrs.FieldOfViewInArcMinutes = na.float(self.lightConeParameters['FieldOfViewInArcMinutes'])
+            field_dataset._v_attrs.ImageResolutionInArcSeconds = na.float(self.lightConeParameters['ImageResolutionInArcSeconds'])
 
         if (len(self.projectionWeightFieldStack) > 0):
             try:

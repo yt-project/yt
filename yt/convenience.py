@@ -57,9 +57,9 @@ def load(*args ,**kwargs):
     if len(candidates) == 1:
         return output_type_registry[candidates[0]](*args, **kwargs)
     if len(candidates) == 0:
-        mylog.error("Couldn't figure out output type for %s", fn)
+        mylog.error("Couldn't figure out output type for %s", args[0])
         return None
-    mylog.error("Multiple output type candidates for %s:", fn)
+    mylog.error("Multiple output type candidates for %s:", args[0])
     for c in candidates:
         mylog.error("    Possible: %s", c)
     return None

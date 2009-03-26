@@ -172,6 +172,8 @@ class EnzoStaticOutput(StaticOutput):
         self.__conversion_override = conversion_override
 
         StaticOutput.__init__(self, filename, data_style)
+        if "InitialTime" not in self.parameters:
+            self.parameters["InitialTime"] = 0.0
         rp = os.path.join(self.directory, "rates.out")
         if os.path.exists(rp):
             try:

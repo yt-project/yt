@@ -23,7 +23,7 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-import time, types, signal, traceback, sys
+import time, types, signal, inspect, traceback, sys, pdb
 import progressbar as pb
 from math import floor, ceil
 
@@ -93,6 +93,35 @@ def time_execution(func):
         return wrapper
     else:
         return func
+
+def pdb_run(func):
+    @wraps(func)
+    def wrapper(*args, **kw):
+        pdb.runcall(func, *args, **kw)
+    return wrapper
+
+__header = """
+== Welcome to the embedded IPython Shell ==
+
+   You are currently inside the function:
+     %(fname)s
+
+   Defined in:
+     %(filename)s:%(lineno)s
+"""
+
+def insert_ipython():
+    from IPython.Shell import IPShellEmbed
+    stack = inspect.stack()
+    frame = inspect.stack()[1]
+    loc = frame[0].f_locals.copy()
+    glo = frame[0].f_globals
+    dd = dict(fname = frame[3], filename = frame[1],
+              lineno = frame[2])
+    ipshell = IPShellEmbed()
+    ipshell(header = __header % dd,
+            local_ns = loc, global_ns = glo)
+    del ipshell
 
 class DummyProgressBar:
     def __init__(self, *args, **kwargs):

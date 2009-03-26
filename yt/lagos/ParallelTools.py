@@ -82,8 +82,9 @@ class ParallelObjectIterator(ObjectIterator):
     This takes an object, pobj, that implements ParallelAnalysisInterface,
     and then does its thing.
     """
-    def __init__(self, pobj, just_list = False, attr='_grids'):
-        ObjectIterator.__init__(self, pobj, just_list)
+    def __init__(self, pobj, just_list = False, attr='_grids',
+                 round_robin=False):
+        ObjectIterator.__init__(self, pobj, just_list, attr=attr)
         self._offset = MPI.COMM_WORLD.rank
         self._skip = MPI.COMM_WORLD.size
         # Note that we're doing this in advance, and with a simple means
@@ -91,8 +92,11 @@ class ParallelObjectIterator(ObjectIterator):
         if self._use_all:
             self.my_obj_ids = na.arange(len(self._objs))
         else:
-            self.my_obj_ids = na.array_split(
-                            na.arange(len(self._objs)), self._skip)[self._offset]
+            if not round_robin:
+                self.my_obj_ids = na.array_split(
+                                na.arange(len(self._objs)), self._skip)[self._offset]
+            else:
+                self.my_obj_ids = na.arange(len(self._objs))[self._offset::self._skip]
         
     def __iter__(self):
         for gid in self.my_obj_ids:
@@ -132,7 +136,7 @@ class ParallelDummy(type):
 def parallel_passthrough(func):
     @wraps(func)
     def passage(self, data):
-        if not parallel_capable: return data
+        if not self._distributed: return data
         return func(self, data)
     return passage
 
@@ -150,24 +154,44 @@ def parallel_blocking_call(func):
     else:
         return func
 
+def parallel_root_only(func):
+    @wraps(func)
+    def root_only(*args, **kwargs):
+        if MPI.COMM_WORLD.rank == 0:
+            try:
+                func(*args, **kwargs)
+                all_clear = 1
+            except:
+                traceback.print_last()
+                all_clear = 0
+        else:
+            all_clear = None
+        MPI.COMM_WORLD.Barrier()
+        all_clear = MPI.COMM_WORLD.bcast(all_clear, root=0)
+        if not all_clear: raise RuntimeError
+    if parallel_capable: return root_only
+    return func
+
 class ParallelAnalysisInterface(object):
     _grids = None
     _distributed = parallel_capable
 
     def _get_objs(self, attr, *args, **kwargs):
-        if parallel_capable:
+        if self._distributed:
+            rr = kwargs.pop("round_robin", False)
             self._initialize_parallel(*args, **kwargs)
-            return ParallelObjectIterator(self, attr=attr)
+            return ParallelObjectIterator(self, attr=attr,
+                    round_robin=rr)
         return ObjectIterator(self, attr=attr)
 
     def _get_grids(self, *args, **kwargs):
-        if parallel_capable:
+        if self._distributed:
             self._initialize_parallel(*args, **kwargs)
             return ParallelObjectIterator(self, attr='_grids')
         return ObjectIterator(self, attr='_grids')
 
     def _get_grid_objs(self):
-        if parallel_capable:
+        if self._distributed:
             return ParallelObjectIterator(self, True, attr='_grids')
         return ObjectIterator(self, True, attr='_grids')
 
@@ -178,7 +202,7 @@ class ParallelAnalysisInterface(object):
         pass
 
     def _partition_hierarchy_2d(self, axis):
-        if not parallel_capable:
+        if not self._distributed:
            return False, self.hierarchy.grid_collection(self.center, self.hierarchy.grids)
 
         xax, yax = x_dict[axis], y_dict[axis]
@@ -202,7 +226,7 @@ class ParallelAnalysisInterface(object):
 
     def _partition_hierarchy_3d(self, padding=0.0):
         LE, RE = self.pf["DomainLeftEdge"], self.pf["DomainRightEdge"]
-        if not parallel_capable:
+        if not self._distributed:
            return False, LE, RE, self.hierarchy.grid_collection(self.center, self.hierarchy.grids)
 
         cc = MPI.Compute_dims(MPI.COMM_WORLD.size, 3)
@@ -222,7 +246,7 @@ class ParallelAnalysisInterface(object):
         return False, LE, RE, self.hierarchy.region_strict(self.center, LE, RE)
         
     def _barrier(self):
-        if not parallel_capable: return
+        if not self._distributed: return
         mylog.debug("Opening MPI Barrier on %s", MPI.COMM_WORLD.rank)
         MPI.COMM_WORLD.Barrier()
 
@@ -266,7 +290,7 @@ class ParallelAnalysisInterface(object):
         for i in range(1,MPI.COMM_WORLD.size):
             buf = ensure_list(MPI.COMM_WORLD.recv(source=i, tag=0))
             data += buf
-        return na.array(data)
+        return data
 
     @parallel_passthrough
     def _mpi_catlist(self, data):
@@ -301,13 +325,13 @@ class ParallelAnalysisInterface(object):
         return data
 
     def _should_i_write(self):
-        if not parallel_capable: return True
+        if not self._distributed: return True
         return (MPI.COMM_WORLD == 0)
 
     def _preload(self, grids, fields, queue):
         # This will preload if it detects we are parallel capable and
         # if so, we load *everything* that we need.  Use with some care.
-        if not parallel_capable: return
+        if not self._distributed: return
         queue.preload(grids, fields)
 
     @parallel_passthrough
@@ -318,8 +342,7 @@ class ParallelAnalysisInterface(object):
         return MPI.COMM_WORLD.allreduce(data, op=MPI.SUM)
 
     def _mpi_info_dict(self, info):
-        mylog.info("Parallel capable: %s", parallel_capable)
-        if not parallel_capable: return 0, {0:info}
+        if not self._distributed: return 0, {0:info}
         self._barrier()
         data = None
         if MPI.COMM_WORLD.rank == 0:
@@ -341,19 +364,19 @@ class ParallelAnalysisInterface(object):
         return list(set(deps))
 
     def _claim_object(self, obj):
-        if not parallel_capable: return
+        if not self._distributed: return
         obj._owner = MPI.COMM_WORLD.rank
         obj._distributed = True
 
     def _write_on_root(self, fn):
-        if not parallel_capable: return open(fn, "w")
+        if not self._distributed: return open(fn, "w")
         if MPI.COMM_WORLD.rank == 0:
             return open(fn, "w")
         else:
             return cStringIO.StringIO()
 
     def _get_filename(self, prefix):
-        if not parallel_capable: return prefix
+        if not self._distributed: return prefix
         return "%s_%03i" % (prefix, MPI.COMM_WORLD.rank)
 
     def _is_mine(self, obj):

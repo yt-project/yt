@@ -642,7 +642,6 @@ class HopParticleCallback(PlotCallback):
     _type_name = "hop_particles"
     def __init__(self, hop_output, p_size=1.0,
                 max_number=None, min_size=20, alpha=0.2):
-        self.axis = axis
         self.hop_output = hop_output
         self.p_size = p_size
         self.max_number = max_number
@@ -790,6 +789,7 @@ class CoordAxesCallback(PlotCallback):
         plot._figure.subplots_adjust(left=0.1,right=0.8)
 
 class TextLabelCallback(PlotCallback):
+    _type_name = "text"
     def __init__(self, pos, text, text_args = None):
         """
         Accepts a position in (0..1, 0..1) of the image,

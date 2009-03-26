@@ -30,6 +30,9 @@ _field_mapping = {
     "hybrid_radius": ("RadiusCode", "ParticleRadiusCode"),
                  }
 
+class EmptyProfileData(Exception):
+    pass
+
 def preserve_source_parameters(func):
     def save_state(*args, **kwargs):
         # Temporarily replace the 'field_parameters' for a
@@ -81,8 +84,10 @@ class BinnedProfile(ParallelAnalysisInterface):
         for gi,grid in enumerate(self._get_grids(fields)):
             self._ngrids += 1
             #pbar.update(gi)
-            args = self._get_bins(grid, check_cut=True)
-            if not args: # No bins returned for this grid, so forget it!
+            try:
+                args = self._get_bins(grid, check_cut=True)
+            except EmptyProfileData:
+                # No bins returned for this grid, so forget it!
                 continue
             for field in fields:
                 # We get back field values, weight values, used bins
@@ -236,7 +241,7 @@ class BinnedProfile1D(BinnedProfile):
     def _get_bins(self, source, check_cut=False):
         source_data = self._get_field(source, self.bin_field, check_cut)
         if source_data.size == 0: # Nothing for us here.
-            return
+            raise EmptyProfileData()
         # Truncate at boundaries.
         if self.left_collect:
             mi = na.where(source_data < self._bins.max())
@@ -245,7 +250,7 @@ class BinnedProfile1D(BinnedProfile):
                          & (source_data < self._bins.max()))
         sd = source_data[mi]
         if sd.size == 0:
-            return
+            raise EmptyProfileData()
         # Stick the bins into our fixed bins, set at initialization
         bin_indices = na.digitize(sd, self._bins) - 1
         if self.left_collect: bin_indices = na.maximum(0, bin_indices)
@@ -350,7 +355,7 @@ class BinnedProfile2D(BinnedProfile):
         source_data_x = self._get_field(source, self.x_bin_field, check_cut)
         source_data_y = self._get_field(source, self.y_bin_field, check_cut)
         if source_data_x.size == 0:
-            return
+            raise EmptyProfileData()
         if self.left_collect:
             mi = na.where( (source_data_x < self._x_bins.max())
                          & (source_data_y < self._y_bins.max()))
@@ -362,7 +367,7 @@ class BinnedProfile2D(BinnedProfile):
         sd_x = source_data_x[mi]
         sd_y = source_data_y[mi]
         if sd_x.size == 0 or sd_y.size == 0:
-            return
+            raise EmptyProfileData()
         bin_indices_x = na.digitize(sd_x, self._x_bins) - 1
         bin_indices_y = na.digitize(sd_y, self._y_bins) - 1
         if self.left_collect:
@@ -479,7 +484,7 @@ class BinnedProfile3D(BinnedProfile):
         source_data_y = self._get_field(source, self.y_bin_field, check_cut)
         source_data_y = self._get_field(source, self.z_bin_field, check_cut)
         if source_data_x.size == 0:
-            return
+            raise EmptyProfileData()
         mi = ( (source_data_x > self._x_bins.min())
              & (source_data_x < self._x_bins.max())
              & (source_data_y > self._y_bins.min())
@@ -490,7 +495,7 @@ class BinnedProfile3D(BinnedProfile):
         sd_y = source_data_y[mi]
         sd_z = source_data_z[mi]
         if sd_x.size == 0 or sd_y.size == 0 or sd_z.size == 0:
-            return
+            raise EmptyProfileData()
         bin_indices_x = na.digitize(sd_x, self._x_bins)
         bin_indices_y = na.digitize(sd_y, self._y_bins)
         bin_indices_z = na.digitize(sd_z, self._z_bins)
