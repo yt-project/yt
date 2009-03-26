@@ -789,6 +789,7 @@ class CoordAxesCallback(PlotCallback):
         plot._figure.subplots_adjust(left=0.1,right=0.8)
 
 class TextLabelCallback(PlotCallback):
+    _type_name = "text"
     def __init__(self, pos, text, text_args = None):
         """
         Accepts a position in (0..1, 0..1) of the image,
