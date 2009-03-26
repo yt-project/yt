@@ -101,20 +101,18 @@ void parsecommandline(float dens_outer, Controls *c)
     c->qpipe = 0;
     c->qf77 = 0;
  
-    /*c->mingroupsize = -1; */ /* Set in EnzoHop.c */
+    c->mingroupsize = -1;
     if (2.0*MINDENS>=MINDENS || MINDENS>=0)
 	myerror("MINDENS seems to be illegal.");
 	/* Need MINDENS<0 and 2*MINDENS to be machine-representable */
-    /* These are the original parameters from HOP; Greg has overridden them.
     c->densthresh = 2.0*MINDENS;
     c->saddle_thresh = 2.0*MINDENS; 	
     c->peak_thresh = 2.0*MINDENS;
-    */
  
     /* GLB: hard-code some parameters. */
  
     c->peak_thresh   = 3.0*dens_outer;
-    /*c->saddle_thresh = 2.5*dens_outer; */ /* Set in EnzoHop.c */
+    c->saddle_thresh = 2.5*dens_outer;
     c->densthresh    = dens_outer;
     c->qdenscut      = 1;
     rootname = "output_hop";
@@ -211,14 +209,12 @@ void parsecommandline(float dens_outer, Controls *c)
 /* ====================================================================== */
  
 /* void main(int argc, char *argv[]) */
-void regroup_main(float dens_outer, HC *my_comm, int mingroupsize, float dsaddle)
+void regroup_main(float dens_outer, HC *my_comm)
 {
     Grouplist *gl = my_comm->gl;
     Slice *s = my_comm->s;
     FILE *f;
     Controls c;
-    c.mingroupsize = mingroupsize;
-    c.saddle_thresh = dsaddle;
  
     /*    parsecommandline(argc, argv, &c); */
     parsecommandline(dens_outer, &c);

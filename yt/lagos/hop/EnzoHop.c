@@ -35,8 +35,7 @@
 
 void initgrouplist(Grouplist *g);
 void hop_main(KD kd, HC *my_comm, float densthres);
-void regroup_main(float dens_outer, HC *my_comm,
-        int mingroupsize, float dsaddle);
+void regroup_main(float dens_outer, HC *my_comm);
 static PyObject *_HOPerror;
 
 static PyObject *
@@ -49,18 +48,15 @@ Py_EnzoHop(PyObject *obj, PyObject *args)
                      *mass;
     xpos=ypos=zpos=mass=NULL;
     npy_float64 totalmass = 0.0;
+    float normalize_to = 1.0;
     float thresh = 160.0;
-    int mingroupsize = -1;
-    float dsaddle  = -1;
 
     int i;
 
-    if (!PyArg_ParseTuple(args, "OOOO|fif",
-        &oxpos, &oypos, &ozpos, &omass, &thresh,
-        &mingroupsize, &dsaddle))
+    if (!PyArg_ParseTuple(args, "OOOO|ff",
+        &oxpos, &oypos, &ozpos, &omass, &thresh, &normalize_to))
     return PyErr_Format(_HOPerror,
             "EnzoHop: Invalid parameters.");
-    if (dsaddle == -1) dsaddle = 2.5 * thresh;
 
     /* First the regular source arrays */
 
@@ -103,6 +99,7 @@ Py_EnzoHop(PyObject *obj, PyObject *args)
 
     for(i = 0; i < num_particles; i++)
         totalmass+=*(npy_float64*)PyArray_GETPTR1(mass,i);
+    totalmass /= normalize_to;
 
   /* initialize the kd hop structure */
 
@@ -139,8 +136,7 @@ Py_EnzoHop(PyObject *obj, PyObject *args)
     hop_main(kd, &my_comm, thresh);
 
     fprintf(stderr, "Calling regroup...\n");
-
-    regroup_main(thresh, &my_comm, mingroupsize, dsaddle);
+    regroup_main(thresh, &my_comm);
 
     // Now we need to get the groupID, realID and the density.
     // This will give us the index into the original array.
