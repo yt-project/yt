@@ -23,7 +23,7 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-import time, types, signal, inspect, traceback, sys, pdb
+import time, types, signal, inspect, traceback, sys, pdb, rpdb
 import progressbar as pb
 from math import floor, ceil
 
@@ -51,6 +51,8 @@ def paste_traceback(exc_type, exc, tb):
 
 if "--paste" in sys.argv:
     sys.excepthook = paste_traceback
+if "--rpdb" in sys.argv:
+    sys.excepthook = rpdb.rpdb_excepthook
 
 def blank_wrapper(f):
     return lambda a: a
