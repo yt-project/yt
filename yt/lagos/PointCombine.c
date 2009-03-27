@@ -869,11 +869,11 @@ static PyObject *Py_FillRegion(PyObject *obj, PyObject *args)
     PyObject *oc_data, *og_data,
              *oc_start, *og_start,
              *oc_dims, *og_dims, *omask;
-    PyObject *tg_data, *tc_data;
+    PyObject *tg_data, *tc_data, *dw_data;
     oc_data = og_data = oc_start = og_start = oc_dims = og_dims = omask = NULL;
-    tg_data = tc_data = NULL;
+    tg_data = tc_data = dw_data = NULL;
     PyArrayObject **g_data, **c_data, *mask,
-                  *g_start, *c_start, *c_dims, *g_dims;
+                  *g_start, *c_start, *c_dims, *g_dims, *dwa;
     mask = g_start = c_start = c_dims = g_dims = NULL;
     int refratio, ll, direction, n;
     npy_int64 gxs, gys, gzs, gxe, gye, gze;
@@ -881,16 +881,18 @@ static PyObject *Py_FillRegion(PyObject *obj, PyObject *args)
     npy_int64 ixs, iys, izs, ixe, iye, ize;
     npy_int64 gxi, gyi, gzi, cxi, cyi, czi;
     npy_int64 cdx, cdy, cdz;
+    npy_int64 dw[3];
+    int i;
     int ci, cj, ck, ri, rj, rk;
     int total = 0;
     void (*to_call)(PyArrayObject* c_data, npy_int64 xc,
                          npy_int64 yc, npy_int64 zc,
                     PyArrayObject* g_data, npy_int64 xg,
                          npy_int64 yg, npy_int64 zg);
-    if (!PyArg_ParseTuple(args, "iOOOOOOOii",
+    if (!PyArg_ParseTuple(args, "iOOOOOOOOii",
             &refratio, &og_start, &oc_start,
             &oc_data, &og_data,
-            &oc_dims, &og_dims, &omask, &ll, &direction))
+            &oc_dims, &og_dims, &omask, &dw_data, &ll, &direction))
     return PyErr_Format(_dataCubeError,
             "DataCubeGeneric: Invalid parameters.");
 
@@ -931,6 +933,14 @@ static PyObject *Py_FillRegion(PyObject *obj, PyObject *args)
       PyErr_Format(_dataCubeError, "FillRegion: mask invalid.");
       goto _fail;
     }
+
+    dwa     = (PyArrayObject *) PyArray_FromAny(dw_data,
+                PyArray_DescrFromType(NPY_INT64), 1, 1, 0, NULL);
+    if(dwa == NULL){
+      PyErr_Format(_dataCubeError, "FillRegion: domain width invalid.");
+      goto _fail;
+    }
+    for (i=0;i<3;i++)dw[i] = *(npy_int64*) PyArray_GETPTR1(dwa, i);
 
     int n_fields = PyList_Size(oc_data);
     if(n_fields == 0) {
@@ -989,15 +999,18 @@ static PyObject *Py_FillRegion(PyObject *obj, PyObject *args)
     cdx = (*(npy_int32 *) PyArray_GETPTR1(oc_dims, 0));
     cdy = (*(npy_int32 *) PyArray_GETPTR1(oc_dims, 1));
     cdz = (*(npy_int32 *) PyArray_GETPTR1(oc_dims, 2));
-    cxe = cxs + cdx;
-    cye = cys + cdy;
-    cze = czs + cdz;
+    /* We take the mod here after subtracting to get
+       periodicity.  Subtraction here helps with the problem
+       of the edges of the grids hitting the edges of the domain */
+    cxe = (cxs + cdx - 1) % dw[0];
+    cye = (cys + cdy - 1) % dw[1];
+    cze = (czs + cdz - 1) % dw[2];
 
     //fprintf(stderr, "\nc1: %d %d %d %d %d %d\n", cxs, cxe, cys, cye, czs, cze);
     //fprintf(stderr,   "c2: %d %d %d %d %d %d\n", gxs, gxe, gys, gye, gzs, gze);
-    for (gxi = gxs, cxi = gxs * refratio; (cxi<cxe)&&(gxi<gxe); gxi++,cxi+=refratio) {
-      for (gyi = gys, cyi = gys * refratio; (cyi<cye)&&(gyi<gye); gyi++,cyi+=refratio) {
-        for (gzi = gzs, czi = gzs * refratio; (czi<cze)&&(gzi<gze); gzi++,czi+=refratio) {
+    for (gxi = gxs, cxi = gxs * refratio; (cxi<=cxe)&&(gxi<gxe); gxi++,cxi+=refratio) {
+      for (gyi = gys, cyi = gys * refratio; (cyi<=cye)&&(gyi<gye); gyi++,cyi+=refratio) {
+        for (gzi = gzs, czi = gzs * refratio; (czi<=cze)&&(gzi<gze); gzi++,czi+=refratio) {
                 // if it's the last level, do it always
                 // else check the child mask
                 if ((ll) || (*(npy_int32*)PyArray_GETPTR3(mask, gxi-gxs,gyi-gys,gzi-gzs) > 0)) {
