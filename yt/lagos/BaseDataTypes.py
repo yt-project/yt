@@ -1702,8 +1702,6 @@ class AMRPeriodicRegionBase(AMR3DData):
                                                                     self.right_edge)
 
     def _is_fully_enclosed(self, grid):
-        offsets = na.array([-1,0,1])
-
         for off_x, off_y, off_z in self.offsets:
             region_left = [self.left_edge[0]+off_x,
                            self.left_edge[1]+off_y,self.left_edge[2]+off_z]
@@ -2086,6 +2084,8 @@ class AMRNewCoveringGridBase(AMR3DData):
         self._num_ghost_zones = num_ghost_zones
         self._use_pbar = use_pbar
         self.global_startindex = na.rint(self.left_edge/self.dds).astype('int64')
+        self.domain_width = na.rint((self.pf["DomainRightEdge"] -
+                    self.pf["DomainLeftEdge"])/self.dds).astype('int64')
         self._refresh_data()
 
     def _get_list_of_grids(self, buffer = 0.0):
@@ -2103,6 +2103,7 @@ class AMRNewCoveringGridBase(AMR3DData):
         level_ind = (self.pf.hierarchy.gridLevels.ravel()[ind] <= self.level)
         sort_ind = na.argsort(self.pf.h.gridLevels.ravel()[ind][level_ind])
         self._grids = self.pf.hierarchy.grids[ind][level_ind][(sort_ind,)][::-1]
+
     def _refresh_data(self):
         AMR3DData._refresh_data(self)
         self['dx'] = self.dds[0] * na.ones(self.ActiveDimensions, dtype='float64')
@@ -2177,7 +2178,7 @@ class AMRNewCoveringGridBase(AMR3DData):
             grid.get_global_startindex(), self.global_startindex,
             c_fields, g_fields, 
             self.ActiveDimensions, grid.ActiveDimensions,
-            grid.child_mask, ll, 0)
+            grid.child_mask, self.domain_width, ll, 0)
 
     def _flush_data_to_grid(self, grid, fields):
         ll = int(grid.Level == self.level)
@@ -2192,7 +2193,7 @@ class AMRNewCoveringGridBase(AMR3DData):
             grid.get_global_startindex(), self.global_startindex,
             c_fields, g_fields, 
             self.ActiveDimensions, grid.ActiveDimensions,
-            grid.child_mask, ll, 1)
+            grid.child_mask, self.domain_width, ll, 1)
 
     @property
     def LeftEdge(self):
