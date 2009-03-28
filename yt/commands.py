@@ -273,6 +273,19 @@ class YTCommands(cmdln.Cmdln):
         if opts.zlim: pc.set_zlim(*opts.zlim)
         pc.save(os.path.join(opts.output,"%s" % (pf)))
 
+    def do_rpdb(self, subcmd, opts, arg):
+        """
+        Connect to a currently running (on localhost) rpd session.
+
+        Commands run with --rpdb will trigger an rpdb session with any
+        uncaught exceptions.
+
+        ${cmd_usage} [TASK_NUMER]
+        ${cmd_option_list}
+        """
+        import rpdb
+        rpdb.run_rpdb(int(arg))
+
 def run_main():
     for co in ["--parallel", "--paste"]:
         if co in sys.argv: del sys.argv[sys.argv.index(co)]
