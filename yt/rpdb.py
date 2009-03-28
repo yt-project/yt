@@ -117,11 +117,13 @@ You're in a remote PDB session with task %(task)s
 You can run PDB commands, and when you're done, type 'shutdown' to quit.
 """
 
-def run_rpdb():
+def run_rpdb(task = None):
     port = 8010
-    try:
-        port += int(sys.argv[-1])
-    except: pass
+    if task is None:
+        try:
+            task + int(sys.argv[-1])
+        except: pass
+    port += task
     sp = xmlrpclib.ServerProxy("http://localhost:%s/" % port)
     try:
         pp = rpdb_cmd(sp)

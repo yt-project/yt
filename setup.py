@@ -58,7 +58,6 @@ def setup_package():
                            'pdf' : ['pypdf']},
         entry_points = { 'console_scripts' : [
                             'yt = yt.commands:run_main',
-                            'yt_rpdb = yt.rpdb:run_rpdb',
                        ]},
         author="Matthew J. Turk",
         author_email="matthewturk@gmail.com",
