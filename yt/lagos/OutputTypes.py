@@ -152,7 +152,7 @@ class EnzoStaticOutput(StaticOutput):
     """
     Enzo-specific output, set at a fixed time.
     """
-    _hierarchy_class = EnzoHierarchy
+    _hierarchy_class = NewEnzoHierarchy
     _fieldinfo_class = EnzoFieldContainer
     def __init__(self, filename, data_style=None,
                  parameter_override = None,

@@ -409,6 +409,9 @@ class EnzoGridBase(AMRGridPatch):
         """
         #All of the field parameters will be passed to us as needed.
         AMRGridPatch.__init__(self, id, filename, hierarchy)
+        self.Parent = []
+        self.Children = []
+        self.Level = -1
 
     def _guess_properties_from_parent(self):
         """

@@ -1457,17 +1457,20 @@ class NewEnzoHierarchy(AMRHierarchy):
                 raise TypeError
 
     def _populate_hierarchy(self):
+        pattern = r"Pointer: Grid\[(\d*)\]->NextGrid(Next|This)Level = (\d*)$"
+        patt = re.compile(pattern)
         f = open(self.hierarchy_filename, "rb")
-        for grid_id in xrange(1, self.num_grids+1):
+        for grid_id in xrange(self.num_grids):
             np = 0
             children = []
-
-            for line in f:
-                if line.strip() == "": break
-                p, v = line.split("=")
-                if param.startswith("Grid "):
-                    curGrid = int(v)
-                elif param.startswith("GridStartIndex"):
+            
+            for li,line in enumerate(f):
+                if line.strip() == "":
+                    if li > 0: break
+                    continue
+                print "L", li, line
+                param, v = line.split("=")
+                if param.startswith("GridStartIndex"):
                     si = [int(i) for i in v.split()]
                 elif param.startswith("GridEndIndex"):
                     dims = [int(i)-si[j] for j, i in enumerate(v.split())]
@@ -1477,3 +1480,41 @@ class NewEnzoHierarchy(AMRHierarchy):
                     RE = [float(i) for i in v.split()]
                 elif param.startswith("NumberOfParticles"):
                     np = int(v)
+                elif param.startswith("Pointer:"):
+                    self.__pointer_handler(patt.findall(line)[0])
+
+            self.gridActiveDimensions[grid_id,:] = dims
+            self.gridLeftEdge[grid_id,:] = LE
+            self.gridRightEdge[grid_id,:] = RE
+            self.gridNumberOfParticles[grid_id,:] = np
+
+    def __pointer_handler(self, m):
+        secondGrid = self.grids[int(m[2])-1] # zero-index 
+        if secondGrid == -1: return
+        firstGrid = self.grids[int(m[0])-1]
+        if m[1] == "Next":
+            firstGrid.Children.append(weakref.proxy(secondGrid))
+            secondGrid.Parent.append(weakref.proxy(firstGrid))
+            secondGrid.Level = firstGrid.Level + 1
+        elif m[1] == "This":
+            if len(firstGrid.Parent) > 0:
+                firstGrid.Parent[0].Children.append(
+                    weakref.proxy(secondGrid))
+                secondGrid.Parent.append(
+                    firstGrid.Parent[0])
+            secondGrid.Level = firstGrid.Level
+
+    def _initialize_grids(self):
+        mylog.debug("Allocating memory for %s grids", self.num_grids)
+        self.gridActiveDimensions = na.zeros((self.num_grids,3), 'int32')
+        self.gridStartIndices = na.zeros((self.num_grids,3), 'int32')
+        self.gridEndIndices = na.zeros((self.num_grids,3), 'int32')
+        self.gridLeftEdge = na.zeros((self.num_grids,3), self.float_type)
+        self.gridRightEdge = na.zeros((self.num_grids,3), self.float_type)
+        self.gridLevels = na.zeros((self.num_grids,1), 'int32')
+        self.gridNumberOfParticles = na.zeros((self.num_grids,1))
+        mylog.debug("Done allocating")
+        mylog.debug("Creating grid objects")
+        self.grids = na.array([self.grid(i+1) for i in xrange(self.num_grids)])
+        mylog.debug("Done creating grid objects")
+
