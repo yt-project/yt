@@ -354,6 +354,7 @@ class AMRHierarchy:
 
     def __getitem__(self, item):
         return self.parameter_file[item]
+
     def select_grids(self, level):
         """
         Returns an array of grids at *level*.
@@ -1388,3 +1389,91 @@ class OrionLevel:
         self.ngrids = ngrids
         self.grids = []
     
+
+class NewEnzoHierarchy(AMRHierarchy):
+    def __init__(self, pf, data_style):
+        self.data_style = data_style
+        
+        self.hierarchy_filename = os.path.abspath(pf.parameter_filename) \
+                               + ".hierarchy"
+        if os.path.getsize(self.hierarchy_filename) == 0:
+            raise IOError(-1,"File empty", self.hierarchy_filename)
+        self.boundary_filename = os.path.abspath(pf.parameter_filename) \
+                               + ".boundary"
+        self.directory = os.path.dirname(self.hierarchy_filename)
+        testGrid = testGridID = None
+        for line in rlines(open(self.hierarchy_filename, "rb")):
+            if line.startswith("BaryonFileName") or \
+               line.startswith("FileName "):
+                testGrid = line.split("=")[-1].strip().rstrip()
+            if line.startswith("Grid "):
+                self.num_grids = testGridID = int(line.split("=")[-1])
+                break
+        self.__guess_data_style(pf["TopGridRank"], testGrid, testGridID)
+        self._setup_data_queue()
+        # For some reason, r8 seems to want Float64
+        if pf.has_key("CompilerPrecision") \
+            and pf["CompilerPrecision"] == "r4":
+            self.float_type = 'float32'
+        else:
+            self.float_type = 'float64'
+
+        AMRHierarchy.__init__(self, pf)
+
+    def _setup_classes(self):
+        dd = self._get_data_reader_dict()
+        AMRHierarchy._setup_classes(self, dd)
+        self._add_object_class('grid', "EnzoGrid", EnzoGridBase, dd)
+        self.object_types.sort()
+
+    def __guess_data_style(self, rank, testGrid, testGridID):
+        if self.data_style: return
+        if testGrid[0] != os.path.sep:
+            testGrid = os.path.join(self.directory, testGrid)
+        if not os.path.exists(testGrid):
+            testGrid = os.path.join(self.directory,
+                                    os.path.basename(testGrid))
+            mylog.debug("Your data uses the annoying hardcoded path.")
+            self._strip_path = True
+        try:
+            a = SD.SD(testGrid)
+            self.data_style = 4
+            mylog.debug("Detected HDF4")
+        except:
+            list_of_sets = HDF5LightReader.ReadListOfDatasets(testGrid, "/")
+            if len(list_of_sets) == 0 and rank == 3:
+                mylog.debug("Detected packed HDF5")
+                self.data_style = 6
+            elif len(list_of_sets) > 0 and rank == 3:
+                mylog.debug("Detected unpacked HDF5")
+                self.data_style = 5
+            elif len(list_of_sets) == 0 and rank == 2:
+                mylog.debug("Detect packed 2D")
+                self.data_style = 'enzo_packed_2d'
+            elif len(list_of_sets) == 0 and rank == 1:
+                mylog.debug("Detect packed 1D")
+                self.data_style = 'enzo_packed_1d'
+            else:
+                raise TypeError
+
+    def _populate_hierarchy(self):
+        f = open(self.hierarchy_filename, "rb")
+        for grid_id in xrange(1, self.num_grids+1):
+            np = 0
+            children = []
+
+            for line in f:
+                if line.strip() == "": break
+                p, v = line.split("=")
+                if param.startswith("Grid "):
+                    curGrid = int(v)
+                elif param.startswith("GridStartIndex"):
+                    si = [int(i) for i in v.split()]
+                elif param.startswith("GridEndIndex"):
+                    dims = [int(i)-si[j] for j, i in enumerate(v.split())]
+                elif param.startswith("GridLeftEdge"):
+                    LE = [float(i) for i in v.split()]
+                elif param.startswith("GridRightEdge"):
+                    RE = [float(i) for i in v.split()]
+                elif param.startswith("NumberOfParticles"):
+                    np = int(v)
