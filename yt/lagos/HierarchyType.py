@@ -27,6 +27,7 @@ from yt.lagos import *
 from yt.funcs import *
 import string, re, gc, time
 import cPickle
+from itertools import chain, izip
 #import yt.enki
 
 _data_style_funcs = \
@@ -1392,6 +1393,7 @@ class OrionLevel:
 
 class NewEnzoHierarchy(AMRHierarchy):
     def __init__(self, pf, data_style):
+        self.field_list = []
         self.data_style = data_style
         
         self.hierarchy_filename = os.path.abspath(pf.parameter_filename) \
@@ -1456,41 +1458,52 @@ class NewEnzoHierarchy(AMRHierarchy):
             else:
                 raise TypeError
 
+    __parse_tokens = ("GridStartIndex", "GridEndIndex",
+            "GridLeftEdge", "GridRightEdge")
+    def _line_yielder(self, f):
+        for token in self.__parse_tokens:
+            params = f.readline().split()
+            while token != params[0]:
+                params = f.readline().split()
+            yield params[2:]
+
     def _populate_hierarchy(self):
+        t1 = time.time()
         pattern = r"Pointer: Grid\[(\d*)\]->NextGrid(Next|This)Level = (\d*)$"
         patt = re.compile(pattern)
         f = open(self.hierarchy_filename, "rb")
+        self.grids = [self.grid(1)]
+        si, ei, LE, RE, np = [], [], [], [], []
+        all = [si, ei, LE, RE]
+        f.readline() # Blank at top
         for grid_id in xrange(self.num_grids):
-            np = 0
-            children = []
-            
-            for li,line in enumerate(f):
-                if line.strip() == "":
-                    if li > 0: break
-                    continue
-                print "L", li, line
-                param, v = line.split("=")
-                if param.startswith("GridStartIndex"):
-                    si = [int(i) for i in v.split()]
-                elif param.startswith("GridEndIndex"):
-                    dims = [int(i)-si[j] for j, i in enumerate(v.split())]
-                elif param.startswith("GridLeftEdge"):
-                    LE = [float(i) for i in v.split()]
-                elif param.startswith("GridRightEdge"):
-                    RE = [float(i) for i in v.split()]
-                elif param.startswith("NumberOfParticles"):
-                    np = int(v)
-                elif param.startswith("Pointer:"):
+            if (grid_id % 10000) == 0: print grid_id
+            for a, v in izip(all, self._line_yielder(f)):
+                a.append(v)
+            line = f.readline()
+            np.append("0")
+            while len(line) > 2:
+                if line.startswith("Pointer:"):
                     self.__pointer_handler(patt.findall(line)[0])
-
-            self.gridActiveDimensions[grid_id,:] = dims
-            self.gridLeftEdge[grid_id,:] = LE
-            self.gridRightEdge[grid_id,:] = RE
-            self.gridNumberOfParticles[grid_id,:] = np
+                    line = f.readline()
+                    continue
+                params = line.split()
+                if "NumberOfParticles" == params[0]:
+                    np[-1] = params[2]
+                line = f.readline()
+        si = na.fromiter(chain(*si), dtype='int', count=3*self.num_grids)
+        ei = na.fromiter(chain(*ei), dtype='int', count=3*self.num_grids)
+        LE = na.fromiter(chain(*LE), dtype='float64', count=3*self.num_grids)
+        RE = na.fromiter(chain(*RE), dtype='float64', count=3*self.num_grids)
+        np = na.fromiter(chain(*np), dtype='int', count=self.num_grids)
+        t2 = time.time()
+        print "Took %0.3e" % (t2-t1)
 
     def __pointer_handler(self, m):
-        secondGrid = self.grids[int(m[2])-1] # zero-index 
-        if secondGrid == -1: return
+        sgi = int(m[2])-1
+        if sgi == -1: return
+        self.grids.append(self.grid(len(self.grids)))
+        secondGrid = self.grids[sgi] # zero-index 
         firstGrid = self.grids[int(m[0])-1]
         if m[1] == "Next":
             firstGrid.Children.append(weakref.proxy(secondGrid))
@@ -1515,6 +1528,6 @@ class NewEnzoHierarchy(AMRHierarchy):
         self.gridNumberOfParticles = na.zeros((self.num_grids,1))
         mylog.debug("Done allocating")
         mylog.debug("Creating grid objects")
-        self.grids = na.array([self.grid(i+1) for i in xrange(self.num_grids)])
+        #self.grids = na.array([self.grid(i+1) for i in xrange(self.num_grids)])
         mylog.debug("Done creating grid objects")
 
