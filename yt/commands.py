@@ -296,6 +296,85 @@ class YTCommands(cmdln.Cmdln):
         import rpdb
         rpdb.run_rpdb(int(arg))
 
+
+    @cmdln.option("-o", "--output", action="store", type="string",
+                  dest="output", default="movie.a5",
+                  help="Name of our output file")
+    @cmdln.option("", "--always-copy", action="store_true", 
+                  dest="always_copy", default=False,
+                  help="Should we always copy the data to the new file")
+    @cmdln.option("", "--minlevel", action="store", type="int",
+                  dest="min_level", default=0,
+                  help="The minimum level to extract (chooses first grid at that level)")
+    @cmdln.option("", "--maxlevel", action="store", type="int",
+                  dest="max_level", default=-1,
+                  help="The maximum level to extract (chooses first grid at that level)")
+    @cmdln.option("-d","--subtract-time", action="store_true",
+                  dest="subtract_time", help="Subtract the physical time of " + \
+                  "the first timestep (useful for small delta t)", default=False)
+    @cmdln.option("-r","--recenter", action="store_true",
+                  dest="recenter", help="Recenter on maximum density in final output")
+    @add_cmd_options(["bn","field","skip"])
+    def do_amira(self, subcmd, opts, start, stop):
+        """
+        Export multiple data sets in amira format
+
+        ${cmd_usage} 
+        ${cmd_option_list}
+        """
+        from yt.extensions.HierarchySubset import ExtractedHierarchy
+        import tables
+
+        first = int(start)
+        last = int(stop)
+
+        # Set up our global metadata
+        afile = tables.openFile(opts.output, "w")
+        md = afile.createGroup("/", "globalMetaData")
+        mda = md._v_attrs
+        mda.datatype = 0
+        mda.staggering = 1
+        mda.fieldtype = 1
+
+        mda.minTimeStep = first
+        mda.maxTimeStep = last
+
+        times = []
+        # Get our staggering correct based on skip
+        timesteps = na.arange(first, last+1, opts.skip, dtype='int32')
+        time_offset = None
+        t2 = []
+
+        offset = None
+        if opts.recenter:
+            tpf = _fix_pf("%s%04i" % (opts.basename, timesteps[-1]))
+            offset = tpf.h.find_max("Density")[1]
+            del tpf
+
+        for n in timesteps:
+            # Try super hard to get the right parameter file
+            pf = _fix_pf("%s%04i" % (opts.basename, n))
+            hh = pf.h
+            times.append(pf["InitialTime"] * pf["years"])
+            eh = ExtractedHierarchy(pf, opts.min_level, max_level = opts.max_level,
+                        offset=offset, always_copy=opts.always_copy)
+            eh.export_output(afile, n, opts.field)
+            t2.append(pf["InitialTime"])
+
+        # This should be the same
+        mda.rootDelta = (pf["unitary"]/pf["TopGridDimensions"]).astype('float64')
+        mda.minTime = times[0]
+        mda.maxTime = times[-1]
+        mda.numTimeSteps = len(timesteps)
+
+        # I think we just want one value here
+        rel_times = na.array(times, dtype='float64') - int(opts.subtract_time)*times[0]
+        afile.createArray(md, "sorted_times", na.array(rel_times))
+        afile.createArray(md, "sorted_timesteps", timesteps)
+
+        afile.close()
+        
+
 def run_main():
     for co in ["--parallel", "--paste"]:
         if co in sys.argv: del sys.argv[sys.argv.index(co)]
