@@ -364,8 +364,8 @@ class AMRGridPatch(AMRData):
                 level, new_left_edge, new_right_edge, **kwargs)
         return cube
 
-    def get_vertex_centered_data(self, field):
-        cg = self.retrieve_ghost_zones(1, field, smoothed=True)
+    def get_vertex_centered_data(self, field, smoothed=True):
+        cg = self.retrieve_ghost_zones(1, field, smoothed=smoothed)
         # Bounds should be cell-centered
         bds = na.array(zip(cg.left_edge+cg.dds/2.0, cg.right_edge-cg.dds/2.0)).ravel()
         interp = TrilinearFieldInterpolator(na.log10(cg[field]), bds, ['x','y','z'])
