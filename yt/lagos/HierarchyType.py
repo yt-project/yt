@@ -1460,61 +1460,61 @@ class NewEnzoHierarchy(AMRHierarchy):
 
     __parse_tokens = ("GridStartIndex", "GridEndIndex",
             "GridLeftEdge", "GridRightEdge")
-    def _line_yielder(self, f):
-        for token in self.__parse_tokens:
-            params = f.readline().split()
-            while token != params[0]:
-                params = f.readline().split()
-            yield params[2:]
-
     def _populate_hierarchy(self):
+        def _line_yielder(f):
+            for token in self.__parse_tokens:
+                line = f.readline()
+                while token not in line: line = f.readline()
+                yield line.split()[2:]
         t1 = time.time()
         pattern = r"Pointer: Grid\[(\d*)\]->NextGrid(Next|This)Level = (\d*)$"
         patt = re.compile(pattern)
         f = open(self.hierarchy_filename, "rb")
         self.grids = [self.grid(1)]
+        self.wrefs = [weakref.proxy(self.grids[0])]
         si, ei, LE, RE, np = [], [], [], [], []
         all = [si, ei, LE, RE]
         f.readline() # Blank at top
         for grid_id in xrange(self.num_grids):
             if (grid_id % 10000) == 0: print grid_id
-            for a, v in izip(all, self._line_yielder(f)):
+            for a, v in izip(all, _line_yielder(f)):
                 a.append(v)
             line = f.readline()
             np.append("0")
             while len(line) > 2:
                 if line.startswith("Pointer:"):
-                    self.__pointer_handler(patt.findall(line)[0])
+                    vv = patt.findall(line)[0]
+                    self.__pointer_handler(vv)
                     line = f.readline()
                     continue
                 params = line.split()
                 if "NumberOfParticles" == params[0]:
                     np[-1] = params[2]
                 line = f.readline()
-        si = na.fromiter(chain(*si), dtype='int', count=3*self.num_grids)
-        ei = na.fromiter(chain(*ei), dtype='int', count=3*self.num_grids)
-        LE = na.fromiter(chain(*LE), dtype='float64', count=3*self.num_grids)
-        RE = na.fromiter(chain(*RE), dtype='float64', count=3*self.num_grids)
-        np = na.fromiter(chain(*np), dtype='int', count=self.num_grids)
+        self.si = na.fromiter(chain(*si), dtype='int', count=3*self.num_grids)
+        self.ei = na.fromiter(chain(*ei), dtype='int', count=3*self.num_grids)
+        self.LE = na.fromiter(chain(*LE), dtype='float64', count=3*self.num_grids)
+        self.RE = na.fromiter(chain(*RE), dtype='float64', count=3*self.num_grids)
+        self.np = na.fromiter(chain(*np), dtype='int', count=self.num_grids)
         t2 = time.time()
         print "Took %0.3e" % (t2-t1)
+        print len(self.wrefs), len(self.grids), self.num_grids
 
     def __pointer_handler(self, m):
         sgi = int(m[2])-1
         if sgi == -1: return
         self.grids.append(self.grid(len(self.grids)))
-        secondGrid = self.grids[sgi] # zero-index 
-        firstGrid = self.grids[int(m[0])-1]
+        self.wrefs.append(weakref.proxy(self.grids[-1]))
+        secondGrid = self.wrefs[sgi] # zero-index 
+        firstGrid = self.wrefs[int(m[0])-1]
         if m[1] == "Next":
-            firstGrid.Children.append(weakref.proxy(secondGrid))
-            secondGrid.Parent.append(weakref.proxy(firstGrid))
+            firstGrid.Children.append(secondGrid)
+            secondGrid.Parent.append(firstGrid)
             secondGrid.Level = firstGrid.Level + 1
         elif m[1] == "This":
             if len(firstGrid.Parent) > 0:
-                firstGrid.Parent[0].Children.append(
-                    weakref.proxy(secondGrid))
-                secondGrid.Parent.append(
-                    firstGrid.Parent[0])
+                firstGrid.Parent[0].Children.append(secondGrid)
+                secondGrid.Parent.append(firstGrid.Parent[0])
             secondGrid.Level = firstGrid.Level
 
     def _initialize_grids(self):
