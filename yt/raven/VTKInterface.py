@@ -295,6 +295,7 @@ class YTScene(HasTraits):
     field = Str("Density")
     center = CArray(shape = (3,), dtype = 'float64')
     window = Instance(ivtk.IVTKWithCrustAndBrowser)
+    python_shell = Delegate('window')
     scene = Delegate('window')
 
     # UI elements
@@ -324,9 +325,11 @@ class YTScene(HasTraits):
         HasTraits.__init__(self, **traits)
         self.window.open()
         self.scene = self.window.scene
+        self.python_shell.bind("ehds", self)
 
     def _import_hierarchy_fired(self):
         self.pf = lagos.EnzoStaticOutput(self.parameter_fn[:-10])
+        self.python_shell.bind("pf", self.pf)
         self.extracted_hierarchy = ExtractedHierarchy(
                         self.pf, self.min_grid_level, self.max_grid_level,
                         offset=None)

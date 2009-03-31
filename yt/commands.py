@@ -273,6 +273,16 @@ class YTCommands(cmdln.Cmdln):
         if opts.zlim: pc.set_zlim(*opts.zlim)
         pc.save(os.path.join(opts.output,"%s" % (pf)))
 
+    def do_vtk(self, subcmd, opts):
+        """
+        Start the VTK interface (if installed)
+
+        ${cmd_usage}
+        ${cmd_option_list}
+        """
+        import yt.raven.VTKInterface
+        yt.raven.VTKInterface.run_vtk()
+
     def do_rpdb(self, subcmd, opts, arg):
         """
         Connect to a currently running (on localhost) rpd session.
