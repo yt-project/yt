@@ -283,18 +283,18 @@ class YTCommands(cmdln.Cmdln):
         import yt.raven.VTKInterface
         yt.raven.VTKInterface.run_vtk()
 
-    def do_rpdb(self, subcmd, opts, arg):
+    def do_rpdb(self, subcmd, opts, task):
         """
         Connect to a currently running (on localhost) rpd session.
 
         Commands run with --rpdb will trigger an rpdb session with any
         uncaught exceptions.
 
-        ${cmd_usage} [TASK_NUMER]
+        ${cmd_usage} 
         ${cmd_option_list}
         """
         import rpdb
-        rpdb.run_rpdb(int(arg))
+        rpdb.run_rpdb(int(task))
 
 
     @cmdln.option("-o", "--output", action="store", type="string",
