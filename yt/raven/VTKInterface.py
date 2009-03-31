@@ -297,6 +297,8 @@ class YTScene(HasTraits):
     window = Instance(ivtk.IVTKWithCrustAndBrowser)
     python_shell = Delegate('window')
     scene = Delegate('window')
+    smoothed = Bool(True)
+    cache = Bool(True)
 
     # UI elements
     import_hierarchy = Button()
@@ -310,6 +312,8 @@ class YTScene(HasTraits):
                         Item('parameter_fn'),
                         Item('field'),
                         Item('center'),
+                        Item('smoothed'),
+                        Item('cache', label='Pre-load data'),
                         Item('import_hierarchy', show_label=False))
     
     def _center_default(self):
@@ -342,6 +346,10 @@ class YTScene(HasTraits):
         self.center = self.extracted_hierarchy._convert_coords(
             self.pf.h.find_max("Density")[1])
         gid = 0
+        if self.cache:
+            for grid_set in self.extracted_hierarchy.get_levels():
+                for grid in grid_set:
+                    grid[self.field]
         for l, grid_set in enumerate(self.extracted_hierarchy.get_levels()):
             gid = self._add_level(grid_set, l, gid)
         #self._hdata_set.generate_visibility_arrays()
@@ -362,7 +370,7 @@ class YTScene(HasTraits):
         if grid in self._grids: return
         self._grids.append(grid)
 
-        scalars = grid.get_vertex_centered_data(self.field)
+        scalars = grid.get_vertex_centered_data(self.field, smoothed=self.smoothed)
 
         io, left_index, origin, dds = \
             self.extracted_hierarchy._convert_grid(grid)

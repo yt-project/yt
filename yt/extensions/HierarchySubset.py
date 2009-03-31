@@ -69,7 +69,8 @@ class ConstructedRootGrid(object):
     def get_global_startindex(self):
         return self.index
 
-    def get_vertex_centered_data(self, field):
+    def get_vertex_centered_data(self, field, smoothed=True):
+        # We discard the 'smoothed' keyword argument here
         cg = self.pf.h.smoothed_covering_grid(self.Level,
                     self.LeftEdge - self.dds,
                     self.RightEdge + self.dds,
