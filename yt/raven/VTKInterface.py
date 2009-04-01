@@ -338,6 +338,7 @@ class YTScene(HasTraits):
     #python_shell = Delegate('window')
     #scene = Delegate('window')
     scene = Instance(HasTraits)
+    operators = List(HasTraits)
 
     # State variables
     _grid_boundaries_actor = None
@@ -359,7 +360,6 @@ class YTScene(HasTraits):
         self.extracted_hierarchy = ExtractedHierarchy(
                         self.pf, self.min_grid_level, self.max_grid_level,
                         offset=None)
-        self.operators = []
         self._hdata_set = tvtk.HierarchicalBoxDataSet()
         self._ugs = []
         self._grids = []

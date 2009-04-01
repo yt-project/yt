@@ -29,7 +29,7 @@ from yt.mods import *
 from enthought.traits.api import \
     HasTraits, List, Instance, Str, Float, Any, Code, PythonValue, Int, CArray, \
     Property, Enum, cached_property, DelegatesTo, Callable, Array, \
-    Delegate
+    Button
 from enthought.traits.ui.api import \
     Group, VGroup, HGroup, Tabbed, View, Item, ShellEditor, InstanceEditor, ListStrEditor, \
     ListEditor, VSplit, VFlow, HSplit, VFold, ValueEditor, TreeEditor, TreeNode, RangeEditor, \
@@ -83,8 +83,8 @@ class VTKSceneCreationHandler(PlotCreationHandler):
                     yt_scene=yt_scene)
             self.pnode.data_objects.append(spt)
             self.main_window.plot_frame_tabs.append(spt)
-        super(Controller, self).close(info, is_ok)
-        return
+        super(Controller, self).close(info, True)
+        return True
 
 
 class DataObject(HasTraits):
@@ -92,11 +92,58 @@ class DataObject(HasTraits):
 
 class VTKDataObject(DataObject):
     yt_scene = Instance(YTScene)
-    scene = Delegate("yt_scene")
+    scene = DelegatesTo("yt_scene")
+    add_contours = Button
+    add_x_plane = Button
+    add_y_plane = Button
+    add_z_plane = Button
+    edit_camera = Button
+    edit_operators = Button
+    operators = DelegatesTo("yt_scene")
     traits_view = View(
             Item("scene", editor = 
         SceneEditor(scene_class=DecoratedScene),
-                    resizable=True, show_label=False))
+                    resizable=True, show_label=False),
+            HGroup(Item("add_contours", show_label=False),
+                   Item("add_x_plane", show_label=False),
+                   Item("add_y_plane", show_label=False),
+                   Item("add_z_plane", show_label=False),
+                   Item("edit_camera", show_label=False),
+                   Item("edit_operators", show_label=False),
+                ),
+            )
+
+    operators_edit = View(
+        Item("operators", style='custom', show_label=False,
+             editor=ListEditor(editor=InstanceEditor(),
+                               use_notebook=True)),
+        height=500.0, width=500.0, resizable=True)
+    
+    def _edit_camera_fired(self):
+        self.yt_scene.camera_path.edit_traits()
+
+    def _edit_operators_fired(self):
+        self.edit_traits(view='operators_edit')
+
+    def _add_contours_fired(self):
+        cubs = self.yt_scene.add_contour()
+        t = len(self.operators)
+        #cubs.edit_traits()
+
+    def _add_x_plane_fired(self):
+        pl = self.yt_scene.add_x_plane()
+        t = len(self.operators)
+        #pl.edit_traits()
+
+    def _add_y_plane_fired(self):
+        pl = self.yt_scene.add_y_plane()
+        t = len(self.operators)
+        #pl.edit_traits()
+
+    def _add_z_plane_fired(self):
+        pl = self.yt_scene.add_z_plane()
+        t = len(self.operators)
+        #pl.edit_traits()
 
 class ParameterFile(HasTraits):
     pf = Instance(EnzoStaticOutput)
