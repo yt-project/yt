@@ -30,9 +30,12 @@ from enthought.tvtk.api import tvtk
 from enthought.traits.api import Float, HasTraits, Instance, Range, Any, \
                                  Delegate, Tuple, File, Int, Str, CArray, \
                                  List, Button, Bool
-from enthought.traits.ui.api import View, Item, HGroup, VGroup, TableEditor
-from enthought.traits.ui.menu import Action
+from enthought.traits.ui.api import View, Item, HGroup, VGroup, TableEditor, \
+    Handler, Controller
+from enthought.traits.ui.menu import \
+    Menu, Action, Separator, OKCancelButtons, OKButton
 from enthought.traits.ui.table_column import ObjectColumn
+from enthought.tvtk.pyface.api import DecoratedScene
 
 import enthought.pyface.api as pyface
 
@@ -284,29 +287,16 @@ def _set_cpos(cam, po, fp, vu, cr):
     cam.focal_point = fp
     cam.view_up = vu
     cam.clipping_range = cr
-        
-class YTScene(HasTraits):
 
-    # Traits
-    camera_path = Instance(CameraControl)
+class HierarchyImporter(HasTraits):
     parameter_fn = File(filter=["*.hierarchy"])
     min_grid_level = Int(0)
     max_grid_level = Int(-1)
     field = Str("Density")
     center = CArray(shape = (3,), dtype = 'float64')
-    window = Instance(ivtk.IVTKWithCrustAndBrowser)
-    python_shell = Delegate('window')
-    scene = Delegate('window')
-    smoothed = Bool(True)
     cache = Bool(True)
-
-    # UI elements
-    import_hierarchy = Button()
-
-    # State variables
-    _grid_boundaries_actor = None
-
-    # Views
+    smoothed = Bool(True)
+    
     default_view = View(Item('min_grid_level'),
                         Item('max_grid_level'),
                         Item('parameter_fn'),
@@ -314,11 +304,45 @@ class YTScene(HasTraits):
                         Item('center'),
                         Item('smoothed'),
                         Item('cache', label='Pre-load data'),
-                        Item('import_hierarchy', show_label=False))
+                        buttons=OKCancelButtons)
     
     def _center_default(self):
         return [0.5,0.5,0.5]
 
+class HierarchyImportHandler(Controller):
+    importer = Instance(HierarchyImporter)
+    
+
+    def close(self, info, is_ok):
+        if is_ok: 
+            yt_scene = YTScene(
+                importer=self.importer)
+        super(Controller, self).close(info, True)
+        return
+
+
+class YTScene(HasTraits):
+
+    # Traits
+    importer = Instance(HierarchyImporter)
+    parameter_fn = Delegate("importer")
+    min_grid_level = Delegate("importer")
+    max_grid_level = Delegate("importer")
+    field = Delegate("importer")
+    center = Delegate("importer")
+    smoothed = Delegate("importer")
+    cache = Delegate("importer")
+
+    camera_path = Instance(CameraControl)
+    #window = Instance(ivtk.IVTKWithCrustAndBrowser)
+    #python_shell = Delegate('window')
+    #scene = Delegate('window')
+    scene = Instance(HasTraits)
+
+    # State variables
+    _grid_boundaries_actor = None
+
+    # Views
     def _window_default(self):
         return ivtk.IVTKWithCrustAndBrowser(size=(800,600), stereo=1)
 
@@ -327,13 +351,11 @@ class YTScene(HasTraits):
 
     def __init__(self, **traits):
         HasTraits.__init__(self, **traits)
-        self.window.open()
-        self.scene = self.window.scene
-        self.python_shell.bind("ehds", self)
-
-    def _import_hierarchy_fired(self):
+        #self.window.open()
+        #self.scene = self.window.scene
+        #self.python_shell.bind("ehds", self)
         self.pf = lagos.EnzoStaticOutput(self.parameter_fn[:-10])
-        self.python_shell.bind("pf", self.pf)
+        #self.python_shell.bind("pf", self.pf)
         self.extracted_hierarchy = ExtractedHierarchy(
                         self.pf, self.min_grid_level, self.max_grid_level,
                         offset=None)
@@ -354,9 +376,9 @@ class YTScene(HasTraits):
             gid = self._add_level(grid_set, l, gid)
         #self._hdata_set.generate_visibility_arrays()
         self.toggle_grid_boundaries()
-        self.camera_path.edit_traits()
-        self.scene.camera.focal_point = self.center
-        self.scene.render()
+        #self.camera_path.edit_traits()
+        #self.scene.camera.focal_point = self.center
+        #self.scene.render()
 
     def _add_level(self, grid_set, level, gid):
         for grid in grid_set:
@@ -491,11 +513,13 @@ def get_all_parents(grid):
 def run_vtk():
     import yt.lagos as lagos
 
-    global gui, ehds
     gui = pyface.GUI()
-    ehds = YTScene()
-    ehds.edit_traits()
+    importer = HierarchyImporter()
+    importer.edit_traits(handler = HierarchyImportHandler(
+            importer = importer))
+    #ehds.edit_traits()
     gui.start_event_loop()
+
 
 if __name__=="__main__":
     print "This code probably won't work.  But if you want to give it a try,"
@@ -506,8 +530,4 @@ if __name__=="__main__":
     print
     print "If you have 'em, give it a try!"
     print
-    gui = pyface.GUI()
-    ehds = YTScene()
-    ehds.edit_traits()
-    gui.start_event_loop()
-
+    run_vtk()

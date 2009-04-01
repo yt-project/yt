@@ -28,7 +28,8 @@ from yt.mods import *
 
 from enthought.traits.api import \
     HasTraits, List, Instance, Str, Float, Any, Code, PythonValue, Int, CArray, \
-    Property, Enum, cached_property, DelegatesTo, Callable, Array
+    Property, Enum, cached_property, DelegatesTo, Callable, Array, \
+    Delegate
 from enthought.traits.ui.api import \
     Group, VGroup, HGroup, Tabbed, View, Item, ShellEditor, InstanceEditor, ListStrEditor, \
     ListEditor, VSplit, VFlow, HSplit, VFold, ValueEditor, TreeEditor, TreeNode, RangeEditor, \
@@ -37,6 +38,10 @@ from enthought.traits.ui.menu import \
     Menu, Action, Separator, OKCancelButtons, OKButton
 from enthought.pyface.action.api import \
     ActionController
+from enthought.tvtk.pyface.scene_editor import SceneEditor
+from enthought.tvtk.pyface.api import \
+    DecoratedScene
+from enthought.tvtk.pyface.scene_model import SceneModel
 from enthought.traits.ui.wx.range_editor import SimpleSliderEditor
 
 from plot_editors import Figure, MPLFigureEditor, MPLVMPlotEditor, Axes
@@ -44,6 +49,8 @@ from plot_editors import Figure, MPLFigureEditor, MPLVMPlotEditor, Axes
 from yt.raven.PlotTypes import VMPlot, ProjectionPlot, SlicePlot
 
 import traceback
+from yt.raven.VTKInterface import \
+    HierarchyImporter, YTScene
 
 class PlotCreationHandler(Controller):
     main_window = Instance(HasTraits)
@@ -64,8 +71,32 @@ class PlotCreationHandler(Controller):
         self.main_window.plot_frame_tabs.append(spt)
         spt.plot
 
+class VTKSceneCreationHandler(PlotCreationHandler):
+    importer = Instance(HierarchyImporter)
+
+    def close(self, info, is_ok):
+        if is_ok: 
+            yt_scene = YTScene(importer=self.importer,
+                scene=SceneModel())
+            spt = VTKDataObject(name = "VTK: %s" % self.pnode.pf,
+                    scene=yt_scene.scene,
+                    yt_scene=yt_scene)
+            self.pnode.data_objects.append(spt)
+            self.main_window.plot_frame_tabs.append(spt)
+        super(Controller, self).close(info, is_ok)
+        return
+
+
 class DataObject(HasTraits):
     name = Str
+
+class VTKDataObject(DataObject):
+    yt_scene = Instance(YTScene)
+    scene = Delegate("yt_scene")
+    traits_view = View(
+            Item("scene", editor = 
+        SceneEditor(scene_class=DecoratedScene),
+                    resizable=True, show_label=False))
 
 class ParameterFile(HasTraits):
     pf = Instance(EnzoStaticOutput)
@@ -96,6 +127,14 @@ class ParameterFile(HasTraits):
         hand = PlotCreationHandler(main_window=mw, pnode=self, model=ps,
                                    plot_type=ProjPlotTab, format="Proj: %s")
         ps.edit_traits(cons_view, handler=hand)
+
+    def do_vtk(self):
+        from yt.raven.VTKInterface import HierarchyImporter, \
+            HierarchyImportHandler
+        importer = HierarchyImporter(
+            parameter_fn=self.pf.parameter_filename + ".hierarchy")
+        importer.edit_traits(handler = VTKSceneCreationHandler(
+            main_window=mw, pnode=self, importer = importer))
 
 class ParameterFileCollection(HasTraits):
     parameter_files = List(Instance(ParameterFile))
@@ -311,11 +350,13 @@ class SphereWrapper(DataObject):
 
 class MainWindow(HasTraits):
     parameter_files = Instance(ParameterFileCollection)
-    plot_frame_tabs = List(Instance(PlotFrameTab))
+    plot_frame_tabs = List(Instance(DataObject))
     shell = PythonValue
 
     def _shell_default(self):
         return globals()
+    notebook_editor = ListEditor(editor=InstanceEditor(editable=True),
+                                 use_notebook=True)
 
     traits_view = View(VSplit(
                     HSplit(
@@ -337,15 +378,16 @@ class MainWindow(HasTraits):
                                  menu = Menu(Action(name='Slice',
                                                     action='object.do_slice'),
                                              Action(name='Project',
-                                                    action='object.do_proj')),
+                                                    action='object.do_proj'),
+                                             Action(name='VTK',
+                                                    action='object.do_vtk')),
                                  view=View()),
                         TreeNode(node_for=[DataObject],
                                  children='',
                                  label="name"),
                                 ], show_icons=False),),
                        Item('plot_frame_tabs', style='custom',
-                            editor=ListEditor(editor=InstanceEditor(editable=True),
-                                              use_notebook=True),
+                            editor = notebook_editor,
                             show_label=False, height=500.0, width=500.0),
                     ),
                     HGroup(
