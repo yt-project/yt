@@ -62,8 +62,8 @@ class _MPLFigureEditor(Editor):
         panel.SetSizer(sizer)
         # matplotlib commands to create a canvas
         self.mpl_control = FigureCanvas(panel, -1, self.value)
-        sizer.Add(self.mpl_control, 1, wx.LEFT | wx.TOP | wx.GROW)
-        self.value.canvas.SetMinSize((10,10))
+        sizer.Add(self.mpl_control, 1, wx.LEFT | wx.TOP | wx.GROW | wx.SHAPED)
+        self.value.canvas.SetMinSize((10,8))
         return panel
 
 class MPLFigureEditor(BasicEditorFactory):
