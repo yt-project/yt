@@ -63,10 +63,8 @@ class PlotCreationHandler(Controller):
         if not is_ok:
             super(Controller, self).close(info, True)
             return
-        print self.plot_type
         spt = self.plot_type(plot_spec=self.model, pf=self.pnode.pf,
                            name=self.format % (self.model.axis))
-        print spt
         self.pnode.data_objects.append(spt)
         self.main_window.plot_frame_tabs.append(spt)
         spt.plot
@@ -83,9 +81,7 @@ class VTKSceneCreationHandler(PlotCreationHandler):
                     yt_scene=yt_scene)
             self.pnode.data_objects.append(spt)
             self.main_window.plot_frame_tabs.append(spt)
-            print "STUPID"
         super(Controller, self).close(info, True)
-        print "RETURNED"
         return True
 
 

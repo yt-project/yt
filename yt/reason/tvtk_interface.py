@@ -369,9 +369,7 @@ class YTScene(HasTraits):
                     grid[self.field]
         for l, grid_set in enumerate(self.extracted_hierarchy.get_levels()):
             gid = self._add_level(grid_set, l, gid)
-        print "HEY"
         self.toggle_grid_boundaries()
-        print "RETURNED"
 
     def _center_on_max(self):
         self.center = self.extracted_hierarchy._convert_coords(
