@@ -193,12 +193,13 @@ def _ReadSeedFile(filename):
 
     lines = file(filename)
     for line in lines:
-        line = line.strip()
-        onLine = line.split(',')
-        if (len(onLine) == 1):
-            seedList.append({'master':onLine[0], 'recycle':None})
-        else:
-            seedList.append({'master':onLine[0], 'recycle':onLine[1]})
+        if line[0] != '#':
+            line = line.strip()
+            onLine = line.split(',')
+            if (len(onLine) == 1):
+                seedList.append({'master':onLine[0], 'recycle':None})
+            else:
+                seedList.append({'master':onLine[0], 'recycle':onLine[1]})
 
     return seedList
 
