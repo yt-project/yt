@@ -49,7 +49,7 @@ from plot_editors import Figure, MPLFigureEditor, MPLVMPlotEditor, Axes
 from yt.raven.PlotTypes import VMPlot, ProjectionPlot, SlicePlot
 
 import traceback
-from yt.raven.VTKInterface import \
+from tvtk_interface import \
     HierarchyImporter, YTScene
 
 class PlotCreationHandler(Controller):
@@ -176,10 +176,9 @@ class ParameterFile(HasTraits):
         ps.edit_traits(cons_view, handler=hand)
 
     def do_vtk(self):
-        from yt.raven.VTKInterface import HierarchyImporter, \
+        from tvtk_interface import HierarchyImporter, \
             HierarchyImportHandler
-        importer = HierarchyImporter(
-            parameter_fn=self.pf.parameter_filename + ".hierarchy")
+        importer = HierarchyImporter(pf=self.pf)
         importer.edit_traits(handler = VTKSceneCreationHandler(
             main_window=mw, pnode=self, importer = importer))
 
