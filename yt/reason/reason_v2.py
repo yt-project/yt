@@ -83,7 +83,9 @@ class VTKSceneCreationHandler(PlotCreationHandler):
                     yt_scene=yt_scene)
             self.pnode.data_objects.append(spt)
             self.main_window.plot_frame_tabs.append(spt)
+            print "STUPID"
         super(Controller, self).close(info, True)
+        print "RETURNED"
         return True
 
 
@@ -99,6 +101,7 @@ class VTKDataObject(DataObject):
     add_z_plane = Button
     edit_camera = Button
     edit_operators = Button
+    center_on_max = Button
     operators = DelegatesTo("yt_scene")
     traits_view = View(
             Item("scene", editor = 
@@ -110,6 +113,7 @@ class VTKDataObject(DataObject):
                    Item("add_z_plane", show_label=False),
                    Item("edit_camera", show_label=False),
                    Item("edit_operators", show_label=False),
+                   Item("center_on_max", show_label=False),
                 ),
             )
 
@@ -126,24 +130,19 @@ class VTKDataObject(DataObject):
         self.edit_traits(view='operators_edit')
 
     def _add_contours_fired(self):
-        cubs = self.yt_scene.add_contour()
-        t = len(self.operators)
-        #cubs.edit_traits()
+        self.yt_scene.add_contour()
 
     def _add_x_plane_fired(self):
-        pl = self.yt_scene.add_x_plane()
-        t = len(self.operators)
-        #pl.edit_traits()
+        self.yt_scene.add_x_plane()
 
     def _add_y_plane_fired(self):
-        pl = self.yt_scene.add_y_plane()
-        t = len(self.operators)
-        #pl.edit_traits()
+        self.yt_scene.add_y_plane()
 
     def _add_z_plane_fired(self):
-        pl = self.yt_scene.add_z_plane()
-        t = len(self.operators)
-        #pl.edit_traits()
+        self.yt_scene.add_z_plane()
+
+    def _center_on_max_fired(self):
+        self.yt_scene._center_on_max()
 
 class ParameterFile(HasTraits):
     pf = Instance(EnzoStaticOutput)
