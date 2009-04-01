@@ -185,20 +185,28 @@ class ParameterFile(HasTraits):
 class ParameterFileCollection(HasTraits):
     parameter_files = List(Instance(ParameterFile))
     name = Str
+    collection = Any
 
     def _parameter_files_default(self):
-        gc = fido.GrabCollections()
         my_list = []
-        for f in gc[0]:
-            pf = EnzoStaticOutput(f)
-            my_list.append(
-                ParameterFile(pf=pf, 
-                        data_objects = []))
+        for f in self.collection:
+            try:
+                pf = EnzoStaticOutput(f)
+                my_list.append(
+                    ParameterFile(pf=pf, 
+                            data_objects = []))
+            except IOError: pass
         return my_list
 
     def _name_default(self):
-        gc = fido.GrabCollections()
-        return str(gc[0])
+        return str(self.collection)
+
+class ParameterFileCollectionList(HasTraits):
+    parameter_file_collections = List(Instance(ParameterFileCollection))
+
+    def _parameter_file_collections_default(self):
+        return [ParameterFileCollection(collection=c)
+                for c in fido.GrabCollections()]
 
 class DataObjectList(HasTraits):
     data_objects = List(Str)
@@ -285,7 +293,7 @@ class VMPlotTab(PlotFrameTab):
             HGroup(Item('disp_width',
                      editor=RangeEditor(format="%0.2e",
                         low_name='min_width', high_name='max_width',
-                        mode='log', enter_set=True),
+                        mode='logslider', enter_set=True),
                      show_label=False, width=400.0),
                    Item('unit',
                       editor=EnumEditor(name='unit_list')),),
@@ -395,6 +403,7 @@ class SphereWrapper(DataObject):
     unit = Str
 
 class MainWindow(HasTraits):
+    parameter_file_collections = Instance(ParameterFileCollectionList)
     parameter_files = Instance(ParameterFileCollection)
     plot_frame_tabs = List(Instance(DataObject))
     shell = PythonValue
@@ -406,14 +415,14 @@ class MainWindow(HasTraits):
 
     traits_view = View(VSplit(
                     HSplit(
-                       Item('parameter_files', 
+                       Item('parameter_file_collections', 
                             width=120.0, height=500.0,
                             show_label=False,
                             editor = TreeEditor(editable=False,
                     nodes=[
-                        TreeNode(node_for=[ParameterFileCollection],
-                                 children='',
-                                 label="=ParameterFiles"),
+                        TreeNode(node_for=[ParameterFileCollectionList],
+                                 children='parameter_file_collections',
+                                 label="=Data Collections"),
                         TreeNode(node_for=[ParameterFileCollection],
                                  children='parameter_files',
                                  label="name",
@@ -443,11 +452,8 @@ class MainWindow(HasTraits):
                 ),
                resizable=True, width=800.0, height=660.0) 
 
-    def my_select(self, ui):
-        print "HI!"
-
-    def _parameter_files_default(self):
-        return ParameterFileCollection()
+    def _parameter_file_collections_default(self):
+        return ParameterFileCollectionList()
 
 class YTScript(HasTraits):
     code = Code
