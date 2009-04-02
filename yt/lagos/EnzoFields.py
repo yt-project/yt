@@ -68,6 +68,37 @@ def _ThermalEnergy(field, data):
 add_field("ThermalEnergy", function=_ThermalEnergy,
           units=r"\rm{ergs}/\rm{cm^3}")
 
+# This next section is the energy field section
+# Note that we have aliases that manually unconvert themselves.
+# This is because numerous code branches use Gas_Energy or GasEnergy
+# indiscriminately -- this is almost fixed with LCA1.5, but not everyone is
+# moving to that branch.  So, because the actual function doesn't get called
+# *unless* it's an alias, we simply de-convert -- since the input data is
+# already converted to cgs.
+
+def _convertEnergy(data):
+    return data.convert("x-velocity")**2.0
+
+def _GasEnergy(field, data):
+    return data["Gas_Energy"] / _convertEnergy(data)
+add_field("GasEnergy", function=_GasEnergy,
+          units=r"\rm{ergs}/\rm{g}", convert_function=_convertEnergy)
+
+def _Gas_Energy(field, data):
+    return data["GasEnergy"] / _convertEnergy(data)
+add_field("Gas_Energy", function=_Gas_Energy,
+          units=r"\rm{ergs}/\rm{g}", convert_function=_convertEnergy)
+
+def _TotalEnergy(field, data):
+    return data["Total_Energy"] / _convertEnergy(data)
+add_field("TotalEnergy", function=_TotalEnergy,
+          units=r"\rm{ergs}/\rm{g}", convert_function=_convertEnergy)
+
+def _Total_Energy(field, data):
+    return data["TotalEnergy"] / _convertEnergy(data)
+add_field("Total_Energy", function=_Total_Energy,
+          units=r"\rm{ergs}/\rm{g}", convert_function=_convertEnergy)
+
 def _NumberDensity(field, data):
     # We can assume that we at least have Density
     # We should actually be guaranteeing the presence of a .shape attribute,
@@ -109,8 +140,11 @@ add_field("Overdensity",function=Overdensity,units=r"")
 
 # Now we add all the fields that we want to control, but we give a null function
 # This is every Enzo field we can think of.  This will be installation-dependent,
-#if data.pf["HydroMethod"] == 'orion':
-_default_fields = ["Density","Temperature","Gas_Energy","Total_Energy",
+
+# removed: "Gas_Energy","Total_Energy",
+# these are now aliases for each other
+
+_default_fields = ["Density","Temperature",
                    "x-velocity","y-velocity","z-velocity",
                    "x-momentum","y-momentum","z-momentum"]
 # else:
@@ -140,12 +174,6 @@ add_field("Dark_Matter_Density", function=lambda a,b: None,
                       ValidateSpatial(0)],
           not_in_all = True)
 
-def _convertEnergy(data):
-    return data.convert("x-velocity")**2.0
-EnzoFieldInfo["Gas_Energy"]._units = r"\rm{ergs}/\rm{g}"
-EnzoFieldInfo["Gas_Energy"]._convert_function = _convertEnergy
-EnzoFieldInfo["Total_Energy"]._units = r"\rm{ergs}/\rm{g}"
-EnzoFieldInfo["Total_Energy"]._convert_function = _convertEnergy
 EnzoFieldInfo["Temperature"]._units = r"\rm{K}"
 
 def _convertVelocity(data):
