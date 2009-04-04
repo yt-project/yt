@@ -32,6 +32,8 @@ import cPickle
 _data_style_funcs = \
    { 4: (readDataHDF4,readAllDataHDF4, getFieldsHDF4, readDataSliceHDF4,
          getExceptionHDF4, DataQueueHDF4),
+     'enzo_hdf4_2d': (readDataHDF4, readAllDataHDF4, getFieldsHDF4, readDataSliceHDF4_2D,
+         getExceptionHDF4, DataQueueHDF4_2D),
      5: (readDataHDF5, readAllDataHDF5, getFieldsHDF5, readDataSliceHDF5,
          getExceptionHDF5, DataQueueHDF5),
      6: (readDataPacked, readAllDataPacked, getFieldsPacked, readDataSlicePacked,
