@@ -330,6 +330,7 @@ class YTScene(HasTraits):
     min_grid_level = Delegate("importer")
     number_of_levels = Delegate("importer")
     field = Delegate("importer")
+    center = CArray(shape = (3,), dtype = 'float64')
     center_on_max = Delegate("importer")
     smoothed = Delegate("importer")
     cache = Delegate("importer")
@@ -371,7 +372,11 @@ class YTScene(HasTraits):
             gid = self._add_level(grid_set, l, gid)
         self.toggle_grid_boundaries()
 
-    def _center_on_max(self):
+    def _center_default(self):
+        return self.extracted_hierarchy._convert_coords(
+                [0.5, 0.5, 0.5])
+
+    def do_center_on_max(self):
         self.center = self.extracted_hierarchy._convert_coords(
             self.pf.h.find_max("Density")[1])
         self.scene.camera.focal_point = self.center

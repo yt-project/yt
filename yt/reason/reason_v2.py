@@ -33,7 +33,7 @@ from enthought.traits.api import \
 from enthought.traits.ui.api import \
     Group, VGroup, HGroup, Tabbed, View, Item, ShellEditor, InstanceEditor, ListStrEditor, \
     ListEditor, VSplit, VFlow, HSplit, VFold, ValueEditor, TreeEditor, TreeNode, RangeEditor, \
-    EnumEditor, Handler, Controller
+    EnumEditor, Handler, Controller, DNDEditor
 from enthought.traits.ui.menu import \
     Menu, Action, Separator, OKCancelButtons, OKButton
 from enthought.pyface.action.api import \
@@ -138,7 +138,7 @@ class VTKDataObject(DataObject):
         self.yt_scene.add_z_plane()
 
     def _center_on_max_fired(self):
-        self.yt_scene._center_on_max()
+        self.yt_scene.do_center_on_max()
 
 class ParameterFile(HasTraits):
     pf = Instance(EnzoStaticOutput)
@@ -419,7 +419,7 @@ class MainWindow(HasTraits):
                                  children='parameter_file_collections',
                                  label="=Data Collections"),
                         TreeNode(node_for=[ParameterFileCollection],
-                                 children='parameter_files',
+                                 children='parameter_files', copy=True,
                                  label="name",
                                  view=View()),
                         TreeNode(node_for=[ParameterFile],
