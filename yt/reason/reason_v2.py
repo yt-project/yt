@@ -97,6 +97,7 @@ class VTKDataObject(DataObject):
     add_z_plane = Button
     edit_camera = Button
     edit_operators = Button
+    edit_pipeline = Button
     center_on_max = Button
     operators = DelegatesTo("yt_scene")
     traits_view = View(
@@ -109,6 +110,7 @@ class VTKDataObject(DataObject):
                    Item("add_z_plane", show_label=False),
                    Item("edit_camera", show_label=False),
                    Item("edit_operators", show_label=False),
+                   Item("edit_pipeline", show_label=False),
                    Item("center_on_max", show_label=False),
                 ),
             )
@@ -124,6 +126,11 @@ class VTKDataObject(DataObject):
 
     def _edit_operators_fired(self):
         self.edit_traits(view='operators_edit')
+
+    def _edit_pipeline_fired(self):
+        from enthought.tvtk.pipeline.browser import PipelineBrowser
+        pb = PipelineBrowser(self.scene)
+        pb.show()
 
     def _add_contours_fired(self):
         self.yt_scene.add_contour()
@@ -173,7 +180,7 @@ class ParameterFile(HasTraits):
     def do_vtk(self):
         from tvtk_interface import HierarchyImporter, \
             HierarchyImportHandler
-        importer = HierarchyImporter(pf=self.pf)
+        importer = HierarchyImporter(pf=self.pf, max_level=self.pf.h.max_level)
         importer.edit_traits(handler = VTKSceneCreationHandler(
             main_window=mw, pnode=self, importer = importer))
 
@@ -419,7 +426,7 @@ class MainWindow(HasTraits):
                                  children='parameter_file_collections',
                                  label="=Data Collections"),
                         TreeNode(node_for=[ParameterFileCollection],
-                                 children='parameter_files', copy=True,
+                                 children='parameter_files',
                                  label="name",
                                  view=View()),
                         TreeNode(node_for=[ParameterFile],
@@ -445,7 +452,8 @@ class MainWindow(HasTraits):
                             show_label=False, height=120.0),
                     ),
                 ),
-               resizable=True, width=800.0, height=660.0) 
+               resizable=True, width=800.0, height=660.0,
+               title="reason v2 [prototype]")
 
     def _parameter_file_collections_default(self):
         return ParameterFileCollectionList()

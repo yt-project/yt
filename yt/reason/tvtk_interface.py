@@ -27,11 +27,11 @@ License:
 
 from enthought.tvtk.tools import ivtk
 from enthought.tvtk.api import tvtk 
-from enthought.traits.api import Float, HasTraits, Instance, Range, Any, \
-                                 Delegate, Tuple, File, Int, Str, CArray, \
-                                 List, Button, Bool
+from enthought.traits.api import \
+    Float, HasTraits, Instance, Range, Any, Delegate, Tuple, File, Int, Str, \
+    CArray, List, Button, Bool, Property, cached_property
 from enthought.traits.ui.api import View, Item, HGroup, VGroup, TableEditor, \
-    Handler, Controller
+    Handler, Controller, RangeEditor, EnumEditor
 from enthought.traits.ui.menu import \
     Menu, Action, Separator, OKCancelButtons, OKButton
 from enthought.traits.ui.table_column import ObjectColumn
@@ -291,24 +291,41 @@ def _set_cpos(cam, po, fp, vu, cr):
 class HierarchyImporter(HasTraits):
     pf = Any
     min_grid_level = Int(0)
-    number_of_levels = Range(1,13)
+    max_level = Int(1)
+    number_of_levels = Range(0, 13)
+    max_import_levels = Property(depends_on='min_grid_level')
     field = Str("Density")
+    field_list = List
     center_on_max = Bool(True)
     center = CArray(shape = (3,), dtype = 'float64')
     cache = Bool(True)
     smoothed = Bool(True)
+
+    def _field_list_default(self):
+        fl = self.pf.h.field_list
+        df = self.pf.h.derived_field_list
+        fl.sort(); df.sort()
+        return fl + df
     
-    default_view = View(Item('min_grid_level'),
-                        Item('number_of_levels'),
-                        Item('field'),
+    default_view = View(Item('min_grid_level',
+                              editor=RangeEditor(low=0,
+                                                 high_name='max_level')),
+                        Item('number_of_levels', 
+                              editor=RangeEditor(low=1,
+                                                 high_name='max_import_levels')),
+                        Item('field', editor=EnumEditor(name='field_list')),
                         Item('center_on_max'),
                         Item('center', enabled_when='not object.center_on_max'),
                         Item('smoothed'),
                         Item('cache', label='Pre-load data'),
                         buttons=OKCancelButtons)
-    
+
     def _center_default(self):
         return [0.5,0.5,0.5]
+
+    @cached_property
+    def _get_max_import_levels(self):
+        return min(13, self.pf.h.max_level - self.min_grid_level + 1)
 
 class HierarchyImportHandler(Controller):
     importer = Instance(HierarchyImporter)
@@ -354,9 +371,10 @@ class YTScene(HasTraits):
 
     def __init__(self, **traits):
         HasTraits.__init__(self, **traits)
+        max_level = min(self.pf.h.max_level,
+                        self.min_grid_level + self.number_of_levels - 1)
         self.extracted_hierarchy = ExtractedHierarchy(
-                        self.pf, self.min_grid_level,
-                        self.min_grid_level + self.number_of_levels - 1,
+                        self.pf, self.min_grid_level, max_level,
                         offset=None)
         self._hdata_set = tvtk.HierarchicalBoxDataSet()
         self._ugs = []
@@ -407,6 +425,9 @@ class YTScene(HasTraits):
         ug.point_data.scalars.name = self.field
         if grid.Level != self.min_grid_level + self.number_of_levels - 1:
             ug.cell_visibility_array = grid.child_mask.transpose().ravel()
+        else:
+            ug.cell_visibility_array = na.ones(
+                    grid.ActiveDimensions, dtype='int').ravel()
         self._ugs.append(ug)
         self._hdata_set.set_data_set(level, gid, left_index, right_index, ug)
 
