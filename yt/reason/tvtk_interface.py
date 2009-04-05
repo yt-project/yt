@@ -64,6 +64,7 @@ class TVTKMapperWidget(HasTraits):
 
 class MappingPlane(TVTKMapperWidget):
     plane = Instance(tvtk.Plane)
+    traits_view = View(Item('coord'))
 
     def __init__(self, vmin, vmax, vdefault, **traits):
         HasTraits.__init__(self, **traits)
@@ -80,9 +81,16 @@ class MappingPlane(TVTKMapperWidget):
 class MappingMarchingCubes(TVTKMapperWidget):
     cubes = Instance(tvtk.MarchingCubes)
     mapper = Instance(tvtk.HierarchicalPolyDataMapper)
+    vmin = Float
+    vmax = Float
+    traits_view = View(Item('value',
+        editor=RangeEditor(low_name='vmin', high_name='vmax',
+        auto_set=False, enter_set=True)))
 
     def __init__(self, vmin, vmax, vdefault, **traits):
         HasTraits.__init__(self, **traits)
+        self.vmin = vmin
+        self.vmax = vmax
         trait = Range(float(vmin), float(vmax), value=vdefault)
         self.add_trait("value", trait)
         self.value = vdefault
@@ -412,6 +420,7 @@ class YTScene(HasTraits):
         self._grids.append(grid)
 
         scalars = grid.get_vertex_centered_data(self.field, smoothed=self.smoothed)
+        #scalars_temp = grid.get_vertex_centered_data("Temperature", smoothed=self.smoothed)
 
         io, left_index, origin, dds = \
             self.extracted_hierarchy._convert_grid(grid)
@@ -423,6 +432,8 @@ class YTScene(HasTraits):
             scalars = na.log10(scalars)
         ug.point_data.scalars = scalars.transpose().ravel()
         ug.point_data.scalars.name = self.field
+        #ii = ug.point_data.add_array(scalars_temp.transpose().ravel())
+        #ug.point_data.get_array(ii).name = "Temperature"
         if grid.Level != self.min_grid_level + self.number_of_levels - 1:
             ug.cell_visibility_array = grid.child_mask.transpose().ravel()
         else:
@@ -524,6 +535,29 @@ class YTScene(HasTraits):
                     mapper = cube_mapper,
                     post_call = self.scene.render,
                     lookup_table = cube_lut))
+        return self.operators[-1]
+
+    def add_isocontour(self, val=None):
+        if val is None: val = (self._max_val+self._min_val) * 0.5
+        cubes = tvtk.ContourFilter(
+                    executive = tvtk.CompositeDataPipeline())
+        cubes.input = self._hdata_set
+        cubes.generate_values(1, (val, val))
+        cube_lut = tvtk.LookupTable(hue_range=(0.0,1.0))
+        cube_lut.build()
+        cubes_normals = tvtk.PolyDataNormals(
+            executive=tvtk.CompositeDataPipeline())
+        cubes_normals.input_connection = cubes.output_port
+        cube_mapper = tvtk.HierarchicalPolyDataMapper(
+                                input_connection = cubes_normals.output_port,
+                                lookup_table=cube_lut,
+                                scalar_mode='use_point_field_data')
+        cube_mapper.select_color_array("Temperature")
+        cube_mapper.color_mode = 'map_scalars'
+        cube_mapper.scalar_range = (600, 6000)
+        cube_actor = tvtk.Actor(mapper=cube_mapper)
+        self.scene.add_actors(cube_actor)
+        return [cubes, cubes_normals, cube_lut, cube_mapper, cube_actor]
         return self.operators[-1]
 
 def get_all_parents(grid):
