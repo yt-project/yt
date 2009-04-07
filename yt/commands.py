@@ -374,6 +374,22 @@ class YTCommands(cmdln.Cmdln):
 
         afile.close()
         
+    @add_cmd_options(['outputfn','bn','skip'])
+    @check_args
+    def do_stats(self, subcmd, opts, arg):
+        """
+        Print stats and maximum density for one or more datasets
+
+        ${cmd_option_list}
+        """
+        pf = _fix_pf(arg)
+        pf.h.print_stats()
+        v, c = pf.h.find_max("Density")
+        print "Maximum density: %0.5e at %s" % (v, c)
+        if opts.output is not None:
+            t = pf["InitialTime"] * pf['years']
+            open(opts.output, "a").write(
+                "%s (%0.5e years): %0.5e at %s\n" % (pf, t, v, c))
 
 def run_main():
     for co in ["--parallel", "--paste"]:
