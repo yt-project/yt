@@ -103,6 +103,7 @@ class HaloProfiler(lagos.ParallelAnalysisInterface):
             singleHalo = {}
             singleHalo['center'] = center
             singleHalo['r_max'] = self.haloRadius * self.pf.units['mpc']
+            singleHalo['id'] = 0
             self.hopHalos.append(singleHalo)
         elif self.halos is 'multiple':
             # Get hop data.
