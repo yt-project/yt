@@ -420,7 +420,7 @@ class YTScene(HasTraits):
         self._grids.append(grid)
 
         scalars = grid.get_vertex_centered_data(self.field, smoothed=self.smoothed)
-        #scalars_temp = grid.get_vertex_centered_data("Temperature", smoothed=self.smoothed)
+        scalars_temp = grid.get_vertex_centered_data("Temperature", smoothed=self.smoothed)
 
         io, left_index, origin, dds = \
             self.extracted_hierarchy._convert_grid(grid)
@@ -432,14 +432,12 @@ class YTScene(HasTraits):
             scalars = na.log10(scalars)
         ug.point_data.scalars = scalars.transpose().ravel()
         ug.point_data.scalars.name = self.field
-        #ii = ug.point_data.add_array(scalars_temp.transpose().ravel())
-        #ug.point_data.get_array(ii).name = "Temperature"
         if grid.Level != self.min_grid_level + self.number_of_levels - 1:
             ug.cell_visibility_array = grid.child_mask.transpose().ravel()
         else:
             ug.cell_visibility_array = na.ones(
                     grid.ActiveDimensions, dtype='int').ravel()
-        self._ugs.append(ug)
+        self._ugs.append((grid,ug))
         self._hdata_set.set_data_set(level, gid, left_index, right_index, ug)
 
         self._min_val = min(self._min_val, scalars.min())
@@ -447,6 +445,12 @@ class YTScene(HasTraits):
 
         gid += 1
         return gid
+
+    def _add_data_to_ug(self, field):
+        for g, ug in self._ugs:
+            scalars_temp = grid.get_vertex_centered_data(field, smoothed=self.smoothed)
+            ii = ug.point_data.add_array(scalars_temp.transpose().ravel())
+            ug.point_data.get_array(ii).name = field
 
     def zoom(self, dist, unit='1'):
         vec = self.scene.camera.focal_point - \
@@ -469,6 +473,21 @@ class YTScene(HasTraits):
         else:
             self._grid_boundaries_actor.visibility = \
             (not self._grid_boundaries_actor.visibility)
+
+    def _add_sphere(self, origin=(0.0,0.0,0.0), normal=(0,1,0)):
+        sphere = tvtk.Sphere(center=origin, radius=0.25)
+        cutter = tvtk.Cutter(executive = tvtk.CompositeDataPipeline(),
+                             cut_function = sphere)
+        cutter.input = self._hdata_set
+        clut = tvtk.LookupTable(hue_range=(0.0,1.00))
+        clut.build()
+        smap = tvtk.HierarchicalPolyDataMapper(
+                        scalar_range=(self._min_val, self._max_val),
+                        lookup_table=clut,
+                        input_connection = cutter.output_port)
+        sactor = tvtk.Actor(mapper=smap)
+        self.scene.add_actors(sactor)
+        return sphere, clut
 
     def _add_plane(self, origin=(0.0,0.0,0.0), normal=(0,1,0)):
         plane = tvtk.Plane(origin=origin, normal=normal)
