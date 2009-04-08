@@ -56,7 +56,7 @@ class PlotCallback(object):
 
 class VelocityCallback(PlotCallback):
     _type_name = "velocity"
-    def __init__(self, factor):
+    def __init__(self, factor=16):
         """
         Adds a 'quiver' plot of velocity to the plot, skipping all but
         every *factor* datapoint
