@@ -805,3 +805,55 @@ class TextLabelCallback(PlotCallback):
         y = plot.image._A.shape[1] * self.pos[1]
         plot._axes.text(x, y, self.text, **self.text_args)
 
+class NewParticleCallback(PlotCallback):
+    _type_name = "nparticles"
+    region = None
+    _descriptor = None
+    def __init__(self, width, p_size=1.0, col='k', stride=1.0):
+        PlotCallback.__init__(self)
+        self.width = width
+        self.p_size = p_size
+        self.color = col
+        self.stride = stride
+
+    def __call__(self, plot):
+        data = plot.data
+        # we construct a recantangular prism
+        x0, x1 = plot.xlim
+        y0, y1 = plot.ylim
+        xx0, xx1 = plot._axes.get_xlim()
+        yy0, yy1 = plot._axes.get_ylim()
+        reg = self._get_region((x0,x1), (y0,y1), plot.data.axis, data)
+        print reg
+        field_x = "particle_position_%s" % lagos.axis_names[lagos.x_dict[data.axis]]
+        field_y = "particle_position_%s" % lagos.axis_names[lagos.y_dict[data.axis]]
+        gg = ( ( reg[field_x] >= x0 ) & ( reg[field_x] <= x1 )
+           &   ( reg[field_y] >= y0 ) & ( reg[field_y] <= y1 ) )
+        print gg, reg[field_x][gg].size
+        plot._axes.hold(True)
+        px, py = self.convert_to_pixels(plot,
+                    [reg[field_x][gg][::self.stride],
+                     reg[field_y][gg][::self.stride]])
+        plot._axes.scatter(px, py, edgecolors='None',
+                           s=self.p_size, c=self.color)
+        plot._axes.set_xlim(xx0,xx1)
+        plot._axes.set_ylim(yy0,yy1)
+        plot._axes.hold(False)
+
+
+    def _get_region(self, xlim, ylim, axis, data):
+        LE, RE = [None]*3, [None]*3
+        xax = lagos.x_dict[axis]
+        yax = lagos.y_dict[axis]
+        zax = axis
+        LE[xax], RE[xax] = xlim
+        LE[yax], RE[yax] = ylim
+        LE[zax] = data.center[zax] - self.width*0.5
+        RE[zax] = data.center[zax] + self.width*0.5
+        if self.region is not None \
+            and self.region.left_edge <= LE \
+            and self.region.right_edge >= RE:
+            return self.region
+        region = data.pf.h.periodic_region(
+            data.center, LE, RE)
+        return region
