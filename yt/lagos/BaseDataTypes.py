@@ -204,7 +204,7 @@ class AMRData:
 
     def __delitem__(self, key):
         """
-        Sets a field to be some other value.
+        Deletes a field
         """
         try:
             del self.fields[self.fields.index(key)]

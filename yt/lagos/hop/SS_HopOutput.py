@@ -55,6 +55,7 @@ class HopList(object):
                      ["ParticleMassMsun"]:
             tot_part = self.data_source[field].size
             self.particle_fields[field] = self.data_source[field][ii]
+            del self.data_source[field][ii]
         self._base_indices = na.arange(tot_part)[ii]
 
     def __run_hop(self):
