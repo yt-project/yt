@@ -22,6 +22,7 @@ http://www.sns.ias.edu/~eisenste/hop/hop_doc.html */
 #include "kd.h"
 #include "hop.h"
 #include "smooth.h"
+#include "hop_numpy.h"
 
 //#include "macros_and_parameters.h"
 #define ISYM "d"
@@ -169,13 +170,13 @@ void smDensityTH(SMX smx,int pi,int nSmooth,int *pList,float *fList)
     int j;
     float totalmass;
     for (j=0,totalmass=0.0; j<nSmooth; j++)
-	totalmass += smx->kd->p[pList[j]].fMass;
-    smx->kd->p[pi].fDensity = totalmass*0.75*M_1_PI/
+    totalmass += NP_MASS(smx->kd, pList[j]);
+    NP_DENS(smx->kd, pi) = totalmass*0.75*M_1_PI/
 	smx->pfBall2[pi]/sqrt(smx->pfBall2[pi]);
 #else
     /* This case is simple: the total mass is nSmooth times the mass
 	per particle */
-    smx->kd->p[pi].fDensity = (nSmooth)*smx->kd->fMass*0.75*M_1_PI/
+    NP_DENS(smx->kd, pi) = (nSmooth)*smx->kd->fMass*0.75*M_1_PI/
 	smx->pfBall2[pi]/sqrt(smx->pfBall2[pi]);
 #endif
     return;
@@ -198,7 +199,7 @@ sorting below */
     void ssort(float X[], int Y[], int N, int KFLAG);
  
     /* If the density is less than the threshold requirement, then assign 0 */
-    if (smx->kd->p[pi].fDensity<smx->fDensThresh) {
+    if (NP_DENS(smx->kd, pi)<smx->fDensThresh) {
 	smx->kd->p[pi].iHop = 0;
 	return;
     }
@@ -218,9 +219,9 @@ sorting below */
     max = 0;
     maxden = 0.0;
     for (i=0;i<search;++i) {
-	if (smx->kd->p[pList[i]].fDensity>maxden) {
+	if (NP_DENS(smx->kd, pList[i])>maxden) {
 	    max = i;
-	    maxden = smx->kd->p[pList[i]].fDensity;
+	    maxden = NP_DENS(smx->kd, pList[i]);
 	}
     }
     smx->kd->p[pi].iHop = -1-pList[max];
@@ -409,8 +410,8 @@ void smMergeHash(SMX smx,int pi,int nSmooth,int *pList,float *fList)
 	/* It's in a different group; we need to connect the two */
 	if (group<g2) g1=group;
 	    else {g1=g2; g2=group;}
-	averdensity = 0.5*(smx->kd->p[pi].fDensity +
-			smx->kd->p[pList[j]].fDensity);
+	averdensity = 0.5*(NP_DENS(smx->kd, pi) +
+            NP_DENS(smx->kd, pList[j]));
 	hashpoint = (g1+1)*g2;  /* Avoid multiplying by 0 */
 	hashpoint = hashpoint % smx->nHashLength;
 	hp = smx->hash+hashpoint;
@@ -492,15 +493,15 @@ routines */
      ** Calculate Bounds.
      */
     for (j=0;j<3;++j) {
-        bnd.fMin[j] = kd->p[0].r[j];
-        bnd.fMax[j] = kd->p[0].r[j];
+        bnd.fMin[j] = NP_POS(kd, 0, j);
+        bnd.fMax[j] = NP_POS(kd, 0, j);
         }
     for (i=1;i<kd->nActive;++i) {
         for (j=0;j<3;++j) {
-            if (bnd.fMin[j] > kd->p[i].r[j])
-                bnd.fMin[j] = kd->p[i].r[j];
-            else if (bnd.fMax[j] < kd->p[i].r[j])
-                bnd.fMax[j] = kd->p[i].r[j];
+            if (bnd.fMin[j] > NP_POS(kd, i, j))
+                bnd.fMin[j] = NP_POS(kd, i, j);
+            else if (bnd.fMax[j] < NP_POS(kd, i, j))
+                bnd.fMax[j] = NP_POS(kd, i, j);
             }
         }
     kd->bnd = bnd;
@@ -522,7 +523,7 @@ void binOutHop(SMX smx, HC *my_comm, float densthres)
     //s->ID = ivector(1,s->numlist);
     for (j=0;j<smx->kd->nActive;j++) {
       //s->ID[1+j] = smx->kd->p[j].iID; /* S Skory's addition */
-      if (smx->kd->p[j].fDensity < densthres) s->ntag[j+1] = -1;
+      if (NP_DENS(smx->kd,j) < densthres) s->ntag[j+1] = -1;
       else s->ntag[j+1] = smx->kd->p[j].iHop;
 
     }
@@ -545,7 +546,7 @@ void outGroupMerge(SMX smx, HC *my_comm)
     my_comm->gdensity = vector(0,smx->nGroups-1);
     for (j=0;j<smx->nGroups;j++) {
         den = smx->densestingroup[j];
-	    my_comm->gdensity[j]=smx->kd->p[den].fDensity;
+	    my_comm->gdensity[j]=NP_DENS(smx->kd, den);
     }
     int nb = 0;
     for (j=0, hp=smx->hash;j<smx->nHashLength; j++,hp++)
