@@ -56,7 +56,7 @@ int kdInit(KD *pkd,int nBucket)
  */
 int kdMedianJst(KD kd,int d,int l,int u)
 {
-	float fm;
+	npy_float64 fm;
     int i,k,m;
     PARTICLE *p,t;
  
