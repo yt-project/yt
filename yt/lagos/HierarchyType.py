@@ -297,7 +297,7 @@ class AMRHierarchy:
         """
         mg, mc, mv, pos = self.find_max_cell_location(field, finestLevels)
         return mv, pos
-    findMax = find_max
+    findMax = deprecate(find_max)
 
     def find_max_cell_location(self, field, finestLevels = True):
         if finestLevels:

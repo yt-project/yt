@@ -534,6 +534,7 @@ class ParticlePlot(RavenPlot):
         self.axis_names['Z'] = col
         from Callbacks import ParticleCallback
         self.add_callback(ParticleCallback(axis, width, p_size, col, stride))
+        self.set_width(1,'unitary')
 
     def _redraw_image(self, *args):
         self._axes.clear() # To help out the colorbar
