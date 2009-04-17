@@ -162,7 +162,7 @@ class CameraControl(HasTraits):
                         editor=table_def),
                     label='Camera Path'),
                  ),
-                resizable=True,
+                resizable=True, title="Camera Path Editor",
                        )
 
     def _reset_position_changed(self, old, new):
