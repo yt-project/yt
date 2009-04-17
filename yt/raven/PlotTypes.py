@@ -323,7 +323,7 @@ class VMPlot(RavenPlot):
             self.colorbar.set_norm(self.norm)
             if self.cmap: self.colorbar.set_cmap(self.cmap)
             if self.do_autoscale: _notify(self.image, self.colorbar)
-        self.autoset_label()
+        self._autoset_label()
 
     def set_xlim(self, xmin, xmax):
         self.xlim = (xmin,xmax)
@@ -384,7 +384,7 @@ class VMPlot(RavenPlot):
     def selfSetup(self):
         pass
 
-    def autoset_label(self):
+    def _autoset_label(self):
         if self.datalabel is None:
             field_name = self.axis_names["Z"]
             proj = "Proj" in self._type_name and \
@@ -586,6 +586,9 @@ class ParticlePlot(RavenPlot):
         self._axes.set_xlabel("")
 
 class ProfilePlot(RavenPlot):
+    _x_label = None
+    _y_label = None
+
     def setup_bins(self, field, func=None):
         if field in self.pf.field_info and self.pf.field_info[field].take_log:
             log_field = True
@@ -596,13 +599,18 @@ class ProfilePlot(RavenPlot):
         mylog.debug("Field: %s, log_field: %s", field, log_field)
         return log_field
 
-    def autoset_label(self, field, func):
-        dataLabel = r"$\rm{%s}" % (field.replace("_","\hspace{0.5}"))
-        if field in self.pf.field_info:
-            dataLabel += r" (%s)" % (self.pf.field_info[field].get_units())
-        dataLabel += r"$"
-        func(str(dataLabel))
+    def set_x_label(self, label):
+        self._axes.set_xlabel(label)
+        self._x_label = label
 
+    def set_y_label(self, label):
+        self._axes.set_ylabel(label)
+        self._y_label = label
+
+    def _autoset_label(self, field, function, axis):
+        label = getattr(self, '_%s_label' % axis)
+        if label is None: label = self.pf.field_info[field].get_label()
+        function(label)
 
 class Profile1DPlot(ProfilePlot):
 
@@ -642,8 +650,8 @@ class Profile1DPlot(ProfilePlot):
         func(self.data[self.fields[0]][indices],
              self.data[self.fields[1]][indices],
              **self.plot_options)
-        self.autoset_label(self.fields[0], self._axes.set_xlabel)
-        self.autoset_label(self.fields[1], self._axes.set_ylabel)
+        self._autoset_label(self.fields[0], self.set_x_label, 'x')
+        self._autoset_label(self.fields[1], self.set_y_label, 'y')
         self._run_callbacks()
 
     def set_log_field(self, val):
@@ -672,6 +680,8 @@ class PhasePlot(ProfilePlot):
     _type_name = "Profile2D"
     _xlim = None
     _ylim = None
+    _z_label = None
+
     def __init__(self, data, fields, id, ticker=None, cmap=None,
                  figure=None, axes=None):
         self._semi_unique_id = id
@@ -777,9 +787,9 @@ class PhasePlot(ProfilePlot):
         self.vals = vals
 
         _notify(self.image, self.colorbar)
-        self.autoset_label(self.fields[0], self._axes.set_xlabel)
-        self.autoset_label(self.fields[1], self._axes.set_ylabel)
-        self.autoset_label(self.fields[2], self.colorbar.set_label)
+        self._autoset_label(self.fields[0], self.set_x_label, 'x')
+        self._autoset_label(self.fields[1], self.set_y_label, 'y')
+        self._autoset_label(self.fields[2], self.set_z_label, 'z')
         self._run_callbacks()
 
     def _generate_prefix(self, prefix):
@@ -791,18 +801,12 @@ class PhasePlot(ProfilePlot):
         self["Field2"] = self.axis_names["Y"]
         self["Field3"] = self.axis_names["Z"]
 
-    def autoset_label(self, field_name, func):
-        if self.datalabel != None:
-            func(str(self.datalabel))
-            return
-        data_label = r"$\rm{%s}" % field_name.replace("_"," ")
-        if field_name in self.pf.field_info:
-            data_label += r"\/\/ (%s)" % (self.pf.field_info[field_name].get_units())
-        data_label += r"$"
-        func(str(data_label))
-
     def set_width(self, width, unit):
         mylog.warning("Choosing not to change the width of a phase plot instance")
+
+    def set_z_label(self, label):
+        self.colorbar.set_label(label)
+        self._z_label = label
 
 class LineQueryPlot(RavenPlot):
     _type_name = "LineQueryPlot"
@@ -846,8 +850,8 @@ class LineQueryPlot(RavenPlot):
         func(self.data[self.fields[0]][indices],
              self.data[self.fields[1]][indices],
              **self.plot_options)
-        self.autoset_label(self.fields[0], self._axes.set_xlabel)
-        self.autoset_label(self.fields[1], self._axes.set_ylabel)
+        self._autoset_label(self.fields[0], self._axes.set_xlabel)
+        self._autoset_label(self.fields[1], self._axes.set_ylabel)
         self._run_callbacks()
 
     def set_log_field(self, val):
@@ -864,7 +868,7 @@ class LineQueryPlot(RavenPlot):
         self.fields[1] = field
         self.axis_names["Y"] = field
 
-    def autoset_label(self, field_name, func):
+    def _autoset_label(self, field_name, func):
         if self.datalabel != None:
             func(str(self.datalabel))
             return
