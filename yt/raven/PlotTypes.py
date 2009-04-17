@@ -384,30 +384,25 @@ class VMPlot(RavenPlot):
     def selfSetup(self):
         pass
 
+    def autoset_label(self):
+        if self.datalabel is None:
+            field_name = self.axis_names["Z"]
+            proj = "Proj" in self._type_name and \
+                   self.data._weight is None
+            data_label = self.pf.field_info[field_name].get_label(proj)
+        else: data_label = self.datalabel
+        if self.colorbar != None:
+            self.colorbar.set_label(str(data_label))
+
 class FixedResolutionPlot(VMPlot):
 
     # This is a great argument in favor of changing the name
     # from VMPlot to something else
 
     _type_name = "FixedResolution"
-    _projected = False
 
     def _get_buff(self, width=None):
         return self.data[self.axis_names["Z"]]
-
-    def autoset_label(self):
-        if self.datalabel != None:
-            self.colorbar.set_label(str(self.datalabel))
-            return
-        field_name = self.axis_names["Z"]
-        data_label = r"$\rm{%s}" % field_name.replace("_","\hspace{0.5}")
-        if self.pf.field_info.has_key(field_name):
-            if self._projected:
-                data_label += r"\/\/ (%s)" % (self.pf.field_info[field_name].get_projected_units())
-            else:
-                data_label += r"\/\/ (%s)" % (self.pf.field_info[field_name].get_units())
-        data_label += r"$"
-        if self.colorbar != None: self.colorbar.set_label(str(data_label))
 
     def set_width(self, width, unit):
         #mylog.debug("Not changing FixedResolution width")
@@ -437,17 +432,6 @@ class SlicePlot(VMPlot):
             xf += "_bv"; yf += "_bv"
         from Callbacks import QuiverCallback
         self.add_callback(QuiverCallback(xf, yf, factor))
-
-    def autoset_label(self):
-        if self.datalabel != None:
-            self.colorbar.set_label(str(self.datalabel))
-            return
-        field_name = self.axis_names["Z"]
-        data_label = r"$\rm{%s}" % field_name.replace("_","\hspace{0.5}")
-        if self.pf.field_info.has_key(field_name):
-            data_label += r"\/\/ (%s)" % (self.pf.field_info[field_name].get_units())
-        data_label += r"$"
-        if self.colorbar != None: self.colorbar.set_label(str(data_label))
 
 class NNVMPlot:
     def _get_buff(self, width=None):
@@ -485,19 +469,6 @@ class SlicePlotNaturalNeighbor(NNVMPlot, SlicePlot):
 class ProjectionPlot(VMPlot):
 
     _type_name = "Projection"
-    def autoset_label(self):
-        if self.datalabel != None:
-            self.colorbar.set_label(str(self.datalabel))
-            return
-        field_name = self.axis_names["Z"]
-        data_label = r"$\rm{%s}" % field_name.replace("_","\hspace{0.5}")
-        if self.pf.field_info.has_key(field_name):
-            if self.data._weight is None:
-                data_label += r"\/\/ (%s)" % (self.pf.field_info[field_name].get_projected_units())
-            else:
-                data_label += r"\/\/ (%s)" % (self.pf.field_info[field_name].get_units())
-        data_label += r"$"
-        if self.colorbar != None: self.colorbar.set_label(str(data_label))
 
     def switch_z(self, field):
         mylog.warning("Choosing not to change the field of a projection instance")
