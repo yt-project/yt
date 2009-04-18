@@ -52,6 +52,7 @@ class AMRHierarchy:
     _data_mode = None # Default
     def __init__(self, pf):
         self.parameter_file = weakref.proxy(pf)
+        self._max_locations = {}
         self._data_file = None
         self._setup_classes()
         self._initialize_grids()
@@ -295,7 +296,10 @@ class AMRHierarchy:
         """
         Returns (value, center) of location of maximum for a given field.
         """
+        if (field, finestLevels) in self._max_locations:
+            return self._max_locations[(field, finestLevels)]
         mg, mc, mv, pos = self.find_max_cell_location(field, finestLevels)
+        self._max_locations[(field, finestLevels)] = (mv, pos)
         return mv, pos
     findMax = deprecate(find_max)
 
