@@ -62,6 +62,8 @@ try:
 except ImportError:
     pass
 
+import yt.raven.PlotInterface as plots
+
 # Individual imports from Fido
 from yt.fido import GrabCollections, OutputCollection
 
