@@ -170,7 +170,8 @@ class AMRData:
         for key in self.data.keys():
             del self.data[key]
         del self.data
-        for grid in self._grids: grid.clear_data()
+        if self._grids is not None:
+            for grid in self._grids: grid.clear_data()
         self.data = {}
 
     def has_key(self, key):
