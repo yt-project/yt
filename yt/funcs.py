@@ -24,6 +24,7 @@ License:
 """
 
 import time, types, signal, inspect, traceback, sys, pdb, rpdb
+import warnings
 import progressbar as pb
 from math import floor, ceil
 
@@ -218,3 +219,11 @@ def only_on_root(func, *args, **kwargs):
         return func(*args,**kwargs)
     if ytcfg.getint("yt","__parallel_rank") > 0: return
     return func(*args, **kwargs)
+
+def deprecate(func):
+    @wraps(func)
+    def run_func(*args, **kwargs):
+        warnings.warn("%s has been deprecated and may be removed without notice!" \
+                % func.func_name, DeprecationWarning, stacklevel=2)
+        func(*args, **kwargs)
+    return run_func
