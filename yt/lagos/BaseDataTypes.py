@@ -644,6 +644,9 @@ class AMRSliceBase(AMR2DData):
             if node_name is True: self._deserialize()
             else: self._deserialize(node_name)
 
+    def _get_grids(self):
+        return self.source._grids
+
     def _initialize_source(self, source = None):
         if source is None:
             check, source = self._partition_hierarchy_2d(self.axis)
@@ -681,7 +684,7 @@ class AMRSliceBase(AMR2DData):
 
     def _generate_coords(self):
         points = []
-        for grid in self._get_grids():
+        for grid in self.source._grids:
             points.append(self._generate_grid_coords(grid))
         t = self._mpi_catarray(na.concatenate(points))
         self['px'] = t[:,0]

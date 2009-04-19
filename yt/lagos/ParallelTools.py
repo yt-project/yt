@@ -315,12 +315,14 @@ class ParallelAnalysisInterface(object):
     @parallel_passthrough
     def _mpi_catarray(self, data):
         self._barrier()
+        print MPI.COMM_WORLD.rank, data.shape
         if MPI.COMM_WORLD.rank == 0:
             data = self.__mpi_recvarrays(data)
         else:
             _send_array(data, dest=0, tag=0)
         mylog.debug("Opening MPI Broadcast on %s", MPI.COMM_WORLD.rank)
-        data = MPI.COMM_WORLD.Bcast(data, root=0)
+        data = _bcast_array(data, root=0)
+        print MPI.COMM_WORLD.rank, data.shape
         self._barrier()
         return data
 
