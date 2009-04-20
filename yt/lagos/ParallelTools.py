@@ -320,7 +320,7 @@ class ParallelAnalysisInterface(object):
         else:
             _send_array(data, dest=0, tag=0)
         mylog.debug("Opening MPI Broadcast on %s", MPI.COMM_WORLD.rank)
-        data = MPI.COMM_WORLD.Bcast(data, root=0)
+        data = _bcast_array(data, root=0)
         self._barrier()
         return data
 
