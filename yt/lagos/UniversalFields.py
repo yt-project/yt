@@ -575,18 +575,21 @@ add_field("ParticleAngularMomentumMSUNKMSMPC",
           units=r"M_{\odot}\rm{km}\rm{Mpc}/\rm{s}",
           particle_type=True)
 
-
 def _ParticleRadius(field, data):
     center = data.get_field_parameter("center")
-    radius = na.sqrt((data["particle_position_x"] - center[0])**2.0 +
-                     (data["particle_position_y"] - center[1])**2.0 +
-                     (data["particle_position_z"] - center[2])**2.0)
+    DW = data.pf["DomainRightEdge"] - data.pf["DomainLeftEdge"]
+    for i, ax in enumerate('xyz'):
+        r = na.abs(data["particle_position_%s" % ax] - center[i])
+        radius += na.minimum(r, na.abs(DW[i]-r))**2.0
+    na.sqrt(radius, radius)
     return radius
 def _Radius(field, data):
     center = data.get_field_parameter("center")
-    radius = na.sqrt((data["x"] - center[0])**2.0 +
-                     (data["y"] - center[1])**2.0 +
-                     (data["z"] - center[2])**2.0)
+    DW = data.pf["DomainRightEdge"] - data.pf["DomainLeftEdge"]
+    for i, ax in enumerate('xyz'):
+        r = na.abs(data[ax] - center[i])
+        radius += na.minimum(r, na.abs(DW[i]-r))**2.0
+    na.sqrt(radius, radius)
     return radius
 def _ConvertRadiusCGS(data):
     return data.convert("cm")
