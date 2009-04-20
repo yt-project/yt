@@ -426,8 +426,11 @@ class AMRHierarchy:
         """
         centers = (self.gridRightEdge + self.gridLeftEdge)/2.0
         long_axis = na.maximum.reduce(self.gridRightEdge - self.gridLeftEdge, 1)
-        t = centers - center
-        dist = na.sqrt(t[:,0]**2+t[:,1]**2+t[:,2]**2)
+        t = na.abs(centers - center)
+        DW = self.parameter_file["DomainRightEdge"] \
+           - self.parameter_file["DomainLeftEdge"]
+        na.minimum(t, na.abs(DW-t), t)
+        dist = na.sqrt(na.sum((t**2.0), axis=1))
         gridI = na.where(na.logical_and((self.gridDxs<=radius)[:,0],(dist < (radius + long_axis))) == 1)
         return self.grids[gridI], gridI
 

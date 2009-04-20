@@ -1773,6 +1773,7 @@ class AMRSphereBase(AMR3DData):
             raise SyntaxError("Your radius is smaller than your finest cell!")
         self.set_field_parameter('radius',radius)
         self.radius = radius
+        self.DW = self.pf["DomainRightEdge"] - self.pf["DomainLeftEdge"]
         self._refresh_data()
 
     def _get_list_of_grids(self, field = None):
@@ -1783,7 +1784,9 @@ class AMRSphereBase(AMR3DData):
         self._grids = na.array(grids)
 
     def _is_fully_enclosed(self, grid):
-        corner_radius = na.sqrt(((grid._corners - self.center)**2.0).sum(axis=1))
+        r = na.abs(grid._corners - self.center)
+        r = na.minimum(r, na.abs(self.DW[None,:]-r))
+        corner_radius = na.sqrt((r**2.0).sum(axis=1))
         return na.all(corner_radius <= self.radius)
 
     @restore_grid_state # Pains me not to decorate with cache_mask here
