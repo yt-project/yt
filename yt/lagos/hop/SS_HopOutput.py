@@ -337,7 +337,13 @@ class HaloFinder(HopList, ParallelAnalysisInterface):
                 halo._distributed = self._distributed
                 halo._owner = proc
                 id += 1
-        self._groups.sort(key = lambda h: -1 * h.get_size())
+        def haloCmp(h1,h2):
+            c = cmp(h1.get_size(),h2.get_size())
+            if c != 0:
+                return -1 * c
+            if c == 0:
+                return cmp(h1.center_of_mass()[0],h2.center_of_mass()[0])
+        self._groups.sort(haloCmp)
         sorted_max_dens = {}
         for i, halo in enumerate(self._groups):
             if halo.id in self._max_dens:
