@@ -636,7 +636,7 @@ class AMRSliceBase(AMR2DData):
         """
         AMR2DData.__init__(self, axis, fields, pf, **kwargs)
         self.center = center
-        self.set_field_parameter('center',center)
+        if center is not None: self.set_field_parameter('center',center)
         self.coord = coord
         if node_name is False:
             self._refresh_data()
@@ -905,7 +905,7 @@ class AMRProjBase(AMR2DData):
         AMR2DData.__init__(self, axis, field, pf, node_name = None, **kwargs)
         self._field_cuts = field_cuts
         self.center = center
-        self.set_field_parameter('center',center)
+        if center is not None: self.set_field_parameter('center',center)
         self._node_name = node_name
         self._initialize_source(source)
         self._grids = self.source._grids
@@ -1773,6 +1773,7 @@ class AMRSphereBase(AMR3DData):
             raise SyntaxError("Your radius is smaller than your finest cell!")
         self.set_field_parameter('radius',radius)
         self.radius = radius
+        self.DW = self.pf["DomainRightEdge"] - self.pf["DomainLeftEdge"]
         self._refresh_data()
 
     def _get_list_of_grids(self, field = None):
@@ -1783,7 +1784,9 @@ class AMRSphereBase(AMR3DData):
         self._grids = na.array(grids)
 
     def _is_fully_enclosed(self, grid):
-        corner_radius = na.sqrt(((grid._corners - self.center)**2.0).sum(axis=1))
+        r = na.abs(grid._corners - self.center)
+        r = na.minimum(r, na.abs(self.DW[None,:]-r))
+        corner_radius = na.sqrt((r**2.0).sum(axis=1))
         return na.all(corner_radius <= self.radius)
 
     @restore_grid_state # Pains me not to decorate with cache_mask here
