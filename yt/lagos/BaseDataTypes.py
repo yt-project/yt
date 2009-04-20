@@ -1957,7 +1957,8 @@ class AMRSmoothedCoveringGridBase(AMRCoveringGridBase):
     def __init__(self, *args, **kwargs):
         dlog2 = na.log10(kwargs['dims'])/na.log10(2)
         if not na.all(na.floor(dlog2) == na.ceil(dlog2)):
-            mylog.warning("Must be power of two dimensions")
+            pass # used to warn but I think it is not accurate anymore
+            #mylog.warning("Must be power of two dimensions")
             #raise ValueError
         kwargs['num_ghost_zones'] = 0
         AMRCoveringGridBase.__init__(self, *args, **kwargs)
