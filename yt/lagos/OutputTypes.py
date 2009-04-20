@@ -45,7 +45,7 @@ class StaticOutput(object):
 
     def __new__(cls, filename, *args, **kwargs):
         apath = os.path.abspath(filename)
-        if not os.path.exists(apath): raise IOError
+        if not os.path.exists(apath): raise IOError(filename)
         if apath not in _cached_pfs:
             obj = object.__new__(cls)
             obj.__init__(filename, *args, **kwargs)

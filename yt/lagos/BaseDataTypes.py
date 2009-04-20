@@ -206,7 +206,7 @@ class AMRData:
 
     def __delitem__(self, key):
         """
-        Sets a field to be some other value.
+        Deletes a field
         """
         try:
             del self.fields[self.fields.index(key)]
@@ -629,7 +629,7 @@ class AMRSliceBase(AMR2DData):
     _con_args = ('axis', 'coord')
     #@time_execution
     def __init__(self, axis, coord, fields = None, center=None, pf=None,
-                 node_name = False, source = None, **kwargs):
+                 node_name = False, **kwargs):
         """
         Slice along *axis*:ref:`axis-specification`, at the coordinate *coord*.
         Optionally supply fields.
@@ -637,20 +637,11 @@ class AMRSliceBase(AMR2DData):
         AMR2DData.__init__(self, axis, fields, pf, **kwargs)
         self.center = center
         self.coord = coord
-        self._initialize_source(source)
         if node_name is False:
             self._refresh_data()
         else:
             if node_name is True: self._deserialize()
             else: self._deserialize(node_name)
-
-    def _initialize_source(self, source = None):
-        if source is None:
-            check, source = self._partition_hierarchy_2d(self.axis)
-            self._check_region = check
-        else:
-            self._check_region = True
-        self.source = source
 
     def reslice(self, coord):
         """
@@ -699,17 +690,12 @@ class AMRSliceBase(AMR2DData):
         self.ActiveDimensions = (t.shape[0], 1, 1)
 
     def _get_list_of_grids(self):
-        goodI = ((self.source.gridRightEdge[:,self.axis] > self.coord)
-              &  (self.source.gridLeftEdge[:,self.axis] <= self.coord ))
-        self._grids = self.source._grids[goodI] # Using sources not hierarchy
+        goodI = ((self.pf.h.gridRightEdge[:,self.axis] > self.coord)
+              &  (self.pf.h.gridLeftEdge[:,self.axis] <= self.coord ))
+        self._grids = self.pf.h.grids[goodI] # Using sources not hierarchy
 
     def __cut_mask_child_mask(self, grid):
         mask = grid.child_mask.copy()
-        if self._check_region:
-            cut_mask = self.source._get_cut_mask(grid)
-            if mask is False: mask *= False
-            elif mask is True: pass
-            else: mask &= cut_mask
         return mask
 
     def _generate_grid_coords(self, grid):
@@ -1704,8 +1690,6 @@ class AMRPeriodicRegionBase(AMR3DData):
                                                                     self.right_edge)
 
     def _is_fully_enclosed(self, grid):
-        offsets = na.array([-1,0,1])
-
         for off_x, off_y, off_z in self.offsets:
             region_left = [self.left_edge[0]+off_x,
                            self.left_edge[1]+off_y,self.left_edge[2]+off_z]
