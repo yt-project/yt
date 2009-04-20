@@ -312,6 +312,8 @@ class AMRHierarchy:
                 self.grids[gi])
         else:
             source = self.all_data()
+        mylog.debug("Searching %s grids for maximum value of %s",
+                    len(source._grids), field)
         max_val, maxi, mx, my, mz, mg = source.quantities["MaxLocation"](
                             field, lazy_reader=True)
         max_grid = self.grids[mg]
