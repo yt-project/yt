@@ -578,6 +578,7 @@ add_field("ParticleAngularMomentumMSUNKMSMPC",
 def _ParticleRadius(field, data):
     center = data.get_field_parameter("center")
     DW = data.pf["DomainRightEdge"] - data.pf["DomainLeftEdge"]
+    radius = na.zeros(data["particle_position_x"].shape, dtype='float64')
     for i, ax in enumerate('xyz'):
         r = na.abs(data["particle_position_%s" % ax] - center[i])
         radius += na.minimum(r, na.abs(DW[i]-r))**2.0
@@ -586,6 +587,7 @@ def _ParticleRadius(field, data):
 def _Radius(field, data):
     center = data.get_field_parameter("center")
     DW = data.pf["DomainRightEdge"] - data.pf["DomainLeftEdge"]
+    radius = na.zeros(data["x"].shape, dtype='float64')
     for i, ax in enumerate('xyz'):
         r = na.abs(data[ax] - center[i])
         radius += na.minimum(r, na.abs(DW[i]-r))**2.0
