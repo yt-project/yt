@@ -122,7 +122,7 @@ class AMRGridPatch(AMRData):
         return cond
    
     def __repr__(self):
-        return "Grid_%04i" % (self.id)
+        return "AMRGridPatch_%04i" % (self.id)
 
     def __int__(self):
         return self.id
@@ -475,6 +475,9 @@ class EnzoGridBase(AMRGridPatch):
             self.filename = os.path.join(self.hierarchy.directory, filename)
         return
 
+    def __repr__(self):
+        return "EnzoGrid_%04i" % (self.id)
+
 class OrionGridBase(AMRGridPatch):
     _id_offset = 0
     def __init__(self, LeftEdge, RightEdge, index, level, filename, offset, dimensions,start,stop,paranoia=False):
@@ -516,4 +519,7 @@ class OrionGridBase(AMRGridPatch):
             self.Parent = [weakref.proxy(h.grids[pID]) for pID in pIDs]
         else:
             self.Parent = []
+
+    def __repr__(self):
+        return "OrionGrid_%04i" % (self.id)
 

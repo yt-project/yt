@@ -122,6 +122,9 @@ add_field("CellsPerBin", function=_Ones, validators=[ValidateSpatial(0)],
           display_field = False)
 
 def _SoundSpeed(field, data):
+    if data.pf["EOSType"] == 1:
+        return na.ones(data["Density"].shape, dtype='float64') * \
+                data.pf["EOSSoundSpeed"]
     return ( data.pf["Gamma"]*data["Pressure"] / \
              data["Density"] )**(1.0/2.0)
 add_field("SoundSpeed", function=_SoundSpeed,

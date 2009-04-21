@@ -307,6 +307,7 @@ class EnzoStaticOutput(StaticOutput):
         self.time_units = {}
         if len(self.parameters) == 0:
             self._parse_parameter_file()
+        if "EOSType" not in self.parameters: self.parameters["EOSType"] = -1
         if self["ComovingCoordinates"]:
             self._setup_comoving_units()
         elif self.has_key("LengthUnit"):
@@ -457,6 +458,7 @@ class OrionStaticOutput(StaticOutput):
         self.parameters["HydroMethod"] = 'orion' # always PPM DE
         self.parameters["InitialTime"] = 0. # FIX ME!!!
         self.parameters["DualEnergyFormalism"] = 0 # always off.
+        self.parameters["EOSType"] = -1 # default
         if self.fparameters.has_key("mu"):
             self.parameters["mu"] = self.fparameters["mu"]
 
