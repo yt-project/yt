@@ -2,7 +2,7 @@ from yt.mods import *
 
 pf = get_pf() # last argument on the command line gets turned into an EnzoStaticOutput
 
-hop_results = HaloFinder.HOPHaloFinder(pf, threshold=80.0)
+hop_results = HaloFinder(pf, threshold=80.0)
 
 def get_mass_results(hop_group):
     sphere = hop_group.get_sphere()
