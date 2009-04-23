@@ -75,6 +75,8 @@ parameterDict = {"CosmologyCurrentRedshift": float,
                  "BoundaryConditionName": str,
                  "TopGridRank": int,
                  "TopGridDimensions": int,
+                 "EOSSoundSpeed": float,
+                 "EOSType": int,
                 }
 
 mpc_conversion = {'mpc'   : 1e0,

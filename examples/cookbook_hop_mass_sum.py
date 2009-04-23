@@ -1,10 +1,8 @@
 from yt.mods import *
-from yt.lagos import hop
 
 pf = get_pf() # last argument on the command line gets turned into an EnzoStaticOutput
 
-full_sphere = pf.h.sphere([0.5,0.5,0.5], 1.0) # Everything, no pre-loading of fields
-hop_results = hop.HopList(full_sphere, 80.0) # threshold = 80
+hop_results = HaloFinder(pf, threshold=80.0)
 
 def get_mass_results(hop_group):
     sphere = hop_group.get_sphere()

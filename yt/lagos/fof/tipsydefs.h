@@ -1,3 +1,5 @@
+#ifndef _TIPSYDEFS_H
+#define _TIPSYDEFS_H
 #define MAXDIM 3
 #define forever for(;;)
 
@@ -14,8 +16,6 @@ struct gas_particle {
     Real phi ;
 } ;
 
-struct gas_particle *gas_particles;
-
 struct dark_particle {
     Real mass;
     Real pos[MAXDIM];
@@ -23,8 +23,6 @@ struct dark_particle {
     Real eps;
     Real phi ;
 } ;
-
-struct dark_particle *dark_particles;
 
 struct star_particle {
     Real mass;
@@ -36,8 +34,6 @@ struct star_particle {
     Real phi ;
 } ;
 
-struct star_particle *star_particles;
-
 struct dump {
     double time ;
     int nbodies ;
@@ -47,12 +43,4 @@ struct dump {
     int nstar ;
 } ;
 
-struct dump header ;
-
-
-
-
-
-
-
-
+#endif

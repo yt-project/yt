@@ -190,11 +190,9 @@ class YTCommands(cmdln.Cmdln):
         ${cmd_option_list}
         """
         pf = _fix_pf(arg)
-        sp = pf.h.sphere((pf["DomainLeftEdge"] + pf["DomainRightEdge"])/2.0,
-                         pf['unitary'])
         kwargs = {'dm_only' : opts.dm_only}
         if opts.threshold is not None: kwargs['threshold'] = opts.threshold
-        hop_list = hop.HopList(sp, **kwargs)
+        hop_list = HaloFinder(sp, **kwargs)
         if opts.output is None: fn = "%s.hop" % pf
         else: fn = opts.output
         hop_list.write_out(fn)
