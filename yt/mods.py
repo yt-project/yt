@@ -41,7 +41,7 @@ from yt.lagos import EnzoStaticOutput, \
     BinnedProfile1D, BinnedProfile2D, BinnedProfile3D, \
     add_field, FieldInfo, EnzoFieldInfo, Enzo2DFieldInfo, OrionFieldInfo, \
     Clump, write_clump_hierarchy, find_clumps, write_clumps, \
-    OrionStaticOutput, HaloFinder
+    OrionStaticOutput, HaloFinder, HOPHaloFinder, FOFHaloFinder
 
 # This is a temporary solution -- in the future, we will allow the user to
 # select this via ytcfg.
