@@ -53,7 +53,7 @@ typedef struct kdContext {
 	int nNodes;
 	int nSplit;
 	PARTICLEFOF *p;
-	KDFOFNFOF *kdNodes;
+	KDNFOF *kdNodes;
 	int nGroup;
 	int uSecond;
 	int uMicro;

@@ -128,7 +128,7 @@ void kdSelectFoF(KDFOF kd,int d,int k,int l,int r)
 	}
 
 
-void kdCombineFoF(KDFOFNFOF *p1,KDFOFNFOF *p2,KDFOFNFOF *pOut)
+void kdCombineFoF(KDNFOF *p1,KDNFOF *p2,KDNFOF *pOut)
 {
 	int j;
 
@@ -150,7 +150,7 @@ void kdCombineFoF(KDFOFNFOF *p1,KDFOFNFOF *p2,KDFOFNFOF *pOut)
 
 void kdUpPassFoF(KDFOF kd,int iCell)
 {
-	KDFOFNFOF *c;
+	KDNFOF *c;
 	int l,u,pj,j;
 
 	c = kd->kdNodes;
@@ -182,7 +182,7 @@ void kdUpPassFoF(KDFOF kd,int iCell)
 void kdBuildTreeFoF(KDFOF kd)
 {
 	int l,n,i,d,m,j,diff;
-	KDFOFNFOF *c;
+	KDNFOF *c;
 	BNDFOF bnd;
 
 	n = kd->nActive;
@@ -196,7 +196,7 @@ void kdBuildTreeFoF(KDFOF kd)
 	kd->nSplit = l;
 	kd->nNodes = l<<1;
 	if (kd->kdNodes != NULL) free(kd->kdNodes);
-	kd->kdNodes = (KDFOFNFOF *)malloc(kd->nNodes*sizeof(KDFOFNFOF));
+	kd->kdNodes = (KDNFOF *)malloc(kd->nNodes*sizeof(KDNFOF));
 	assert(kd->kdNodes != NULL);
 	/*
 	 ** Calculate Bounds.
@@ -260,7 +260,7 @@ void kdBuildTreeFoF(KDFOF kd)
 int kdFoF(KDFOF kd,float fEps)
 {
 	PARTICLEFOF *p;
-	KDFOFNFOF *c;
+	KDNFOF *c;
 	int pi,pj,pn,cp;
 
 	int iGroup;
