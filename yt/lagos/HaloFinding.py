@@ -401,6 +401,7 @@ class GenericHaloFinder(ParallelAnalysisInterface):
             arr[arr > RE[i]+self.padding] -= dw[i]
 
     def write_out(self, filename):
+        self.data_source.get_data(["particle_velocity_%s" % ax for ax in 'xyz'])
         f = self._write_on_root(filename)
         HaloList.write_out(self, f)
 

@@ -84,7 +84,7 @@ Py_EnzoFOF(PyObject *obj, PyObject *args)
 
     /* let's get started with the FOF stuff */
 
-	KD kd;
+	KDFOF kd;
 	int nBucket,j;
 	float fPeriod[3],fEps;
 	int nMembers,nGroup,bVerbose=1;
@@ -101,15 +101,15 @@ Py_EnzoFOF(PyObject *obj, PyObject *args)
 
     /* initialize the kd FOF structure */
 
-	kdInit(&kd,nBucket,fPeriod);
+	kdInitFoF(&kd,nBucket,fPeriod);
 	
-	/* kdReadTipsy(kd,stdin,bDark,bGas,bStar); */
+	/* kdReadTipsyFoF(kd,stdin,bDark,bGas,bStar); */
 
  	/* Copy positions into kd structure. */
 
     fprintf(stdout, "Filling in %d particles\n", num_particles);
     kd->nActive = num_particles;
-	kd->p = (PARTICLE *)malloc(kd->nActive*sizeof(PARTICLE));
+	kd->p = (PARTICLEFOF *)malloc(kd->nActive*sizeof(PARTICLEFOF));
 	assert(kd->p != NULL);
 	for (i = 0; i < num_particles; i++) {
 	  kd->p[i].iOrder = i;
@@ -118,19 +118,19 @@ Py_EnzoFOF(PyObject *obj, PyObject *args)
 	  kd->p[i].r[2] = (float)(*(npy_float64*) PyArray_GETPTR1(zpos, i));
 	}
 	
-	kdBuildTree(kd);
-	kdTime(kd,&sec,&usec);
+	kdBuildTreeFoF(kd);
+	kdTimeFoF(kd,&sec,&usec);
 	nGroup = kdFoF(kd,fEps);
-	kdTime(kd,&sec,&usec);
+	kdTimeFoF(kd,&sec,&usec);
 	if (bVerbose) printf("Number of initial groups:%d\n",nGroup);
-	nGroup = kdTooSmall(kd,nMembers);
+	nGroup = kdTooSmallFoF(kd,nMembers);
 	if (bVerbose) {
 		printf("Number of groups:%d\n",nGroup);
 		printf("FOF CPU TIME: %d.%06d secs\n",sec,usec);
 		}
-	kdOrder(kd);
+	kdOrderFoF(kd);
 
-	/* kdOutGroup(kd,ach); */
+	/* kdOutGroupFoF(kd,ach); */
 	
     // Now we need to get the groupID, realID.
     // This will give us the index into the original array.
@@ -149,7 +149,7 @@ Py_EnzoFOF(PyObject *obj, PyObject *args)
             (npy_int32) kd->p[i].iGroup;
     }
 
-	kdFinish(kd);
+	kdFinishFoF(kd);
 
     PyArray_UpdateFlags(particle_group_id, NPY_OWNDATA | particle_group_id->flags);
     PyObject *return_value = Py_BuildValue("N", particle_group_id);
