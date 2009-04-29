@@ -498,6 +498,7 @@ def get_multi_plot(nx, ny, colorbar = 'vertical', bw = 4, dpi=300):
     """
     PlotTypes.Initialize()
     hf, wf = 1.0/ny, 1.0/nx
+    fudge_x = fudge_y = 1.0
     if colorbar.lower() == 'vertical':
         fudge_x = nx/(0.25+nx)
         fudge_y = 1.0

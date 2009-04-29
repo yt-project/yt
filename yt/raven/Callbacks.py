@@ -226,8 +226,6 @@ class ContourCallback(PlotCallback):
         #Now makes a copy of the position fields "px" and "py" and adds the
         #appropriate shift to the coppied field.  
         DomainWidth = plot.data.pf["DomainRightEdge"] - plot.data.pf["DomainLeftEdge"]
-        px_index = lagos.x_dict[plot.data.axis]
-        py_index = lagos.y_dict[plot.data.axis]
 
         #set the cumulative arrays for the periodic shifting.
         AllX = na.array([False]*plot.data["px"].size)

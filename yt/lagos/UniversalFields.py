@@ -198,7 +198,7 @@ add_field("ParticleMassMsun",
 
 def _RadialMachNumber(field, data):
     """M{|v|/t_sound}"""
-    return data["RadialVelocity"] / data["SoundSpeed"]
+    return na.abs(data["RadialVelocity"]) / data["SoundSpeed"]
 add_field("RadialMachNumber", function=_RadialMachNumber)
 
 def _MachNumber(field, data):
