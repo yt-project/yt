@@ -118,7 +118,8 @@ class VTKDataObject(DataObject):
     operators_edit = View(
         Item("operators", style='custom', show_label=False,
              editor=ListEditor(editor=InstanceEditor(),
-                               use_notebook=True)),
+                               use_notebook=True),
+              name="Edit Operators"),
         height=500.0, width=500.0, resizable=True)
     
     def _edit_camera_fired(self):
@@ -408,6 +409,7 @@ class MainWindow(HasTraits):
     parameter_file_collections = Instance(ParameterFileCollectionList)
     parameter_files = Instance(ParameterFileCollection)
     plot_frame_tabs = List(Instance(DataObject))
+    open_parameterfile = Button
     shell = PythonValue
 
     def _shell_default(self):
@@ -416,7 +418,7 @@ class MainWindow(HasTraits):
                                  use_notebook=True)
 
     traits_view = View(VSplit(
-                    HSplit(
+                    HSplit(VGroup(
                        Item('parameter_file_collections', 
                             width=120.0, height=500.0,
                             show_label=False,
@@ -443,6 +445,7 @@ class MainWindow(HasTraits):
                                  children='',
                                  label="name"),
                                 ], show_icons=False),),
+                        Item('open_parameterfile', show_label=False)),
                        Item('plot_frame_tabs', style='custom',
                             editor = notebook_editor,
                             show_label=False, height=500.0, width=500.0),
@@ -454,6 +457,9 @@ class MainWindow(HasTraits):
                 ),
                resizable=True, width=800.0, height=660.0,
                title="reason v2 [prototype]")
+
+    def _open_parameterfile_fired(self):
+        print "OPENING"
 
     def _parameter_file_collections_default(self):
         return ParameterFileCollectionList()
