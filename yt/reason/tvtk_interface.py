@@ -31,7 +31,7 @@ from enthought.traits.api import \
     Float, HasTraits, Instance, Range, Any, Delegate, Tuple, File, Int, Str, \
     CArray, List, Button, Bool, Property, cached_property
 from enthought.traits.ui.api import View, Item, HGroup, VGroup, TableEditor, \
-    Handler, Controller, RangeEditor, EnumEditor
+    Handler, Controller, RangeEditor, EnumEditor, InstanceEditor
 from enthought.traits.ui.menu import \
     Menu, Action, Separator, OKCancelButtons, OKButton
 from enthought.traits.ui.table_column import ObjectColumn
@@ -51,23 +51,35 @@ from yt.extensions.HierarchySubset import ExtractedHierarchy
 from enthought.tvtk.pyface.ui.wx.wxVTKRenderWindowInteractor \
      import wxVTKRenderWindowInteractor
 
+from enthought.mayavi.core.lut_manager import LUTManager
+
 #wxVTKRenderWindowInteractor.USE_STEREO = 1
 
 class TVTKMapperWidget(HasTraits):
-    lookup_table = Instance(tvtk.LookupTable)
-    alpha_range = Tuple(Float(1.0), Float(1.0))
+    alpha = Float(1.0)
     post_call = Any
+    lut_manager = Instance(LUTManager)
 
-    def _alpha_range_changed(self, old, new):
-        self.lookup_table.alpha_range = new
+    def _alpha_changed(self, old, new):
+        self.lut_manager.lut.alpha_range = (new, new)
         self.post_call()
 
 class MappingPlane(TVTKMapperWidget):
     plane = Instance(tvtk.Plane)
-    traits_view = View(Item('coord'))
+    traits_view = View(Item('coord', editor=RangeEditor(
+                              low_name='vmin', high_name='vmax',
+                              auto_set=False, enter_set=True)),
+                       Item('alpha', enter_set=True, auto_set=False,
+                            editor=RangeEditor(low=0.0, high=1.0)),
+                       Item('lut_manager', show_label=False,
+                            editor=InstanceEditor(), style='custom'))
+    vmin = Float
+    vmax = Float
 
     def __init__(self, vmin, vmax, vdefault, **traits):
         HasTraits.__init__(self, **traits)
+        self.vmin = vmin
+        self.vmax = vmax
         trait = Range(float(vmin), float(vmax), value=vdefault)
         self.add_trait("coord", trait)
         self.coord = vdefault
@@ -85,7 +97,11 @@ class MappingMarchingCubes(TVTKMapperWidget):
     vmax = Float
     traits_view = View(Item('value',
         editor=RangeEditor(low_name='vmin', high_name='vmax',
-        auto_set=False, enter_set=True)))
+        auto_set=False, enter_set=True)),
+                       Item('alpha', enter_set=True, auto_set=False,
+                            editor=RangeEditor(low=0.0, high=1.0)),
+                       Item('lut_manager', show_label=False,
+                            editor=InstanceEditor(), style='custom'))
 
     def __init__(self, vmin, vmax, vdefault, **traits):
         HasTraits.__init__(self, **traits)
@@ -423,7 +439,6 @@ class YTScene(HasTraits):
         self._grids.append(grid)
 
         scalars = grid.get_vertex_centered_data(self.field, smoothed=self.smoothed)
-        scalars_temp = grid.get_vertex_centered_data("Temperature", smoothed=self.smoothed)
 
         io, left_index, origin, dds = \
             self.extracted_hierarchy._convert_grid(grid)
@@ -482,30 +497,28 @@ class YTScene(HasTraits):
         cutter = tvtk.Cutter(executive = tvtk.CompositeDataPipeline(),
                              cut_function = sphere)
         cutter.input = self._hdata_set
-        clut = tvtk.LookupTable(hue_range=(0.0,1.00))
-        clut.build()
+        lut_manager = LUTManager(data_name=self.field, scene=self.scene)
         smap = tvtk.HierarchicalPolyDataMapper(
                         scalar_range=(self._min_val, self._max_val),
-                        lookup_table=clut,
+                        lookup_table=lut_manager.lut,
                         input_connection = cutter.output_port)
         sactor = tvtk.Actor(mapper=smap)
         self.scene.add_actors(sactor)
-        return sphere, clut
+        return sphere, lut_manager
 
     def _add_plane(self, origin=(0.0,0.0,0.0), normal=(0,1,0)):
         plane = tvtk.Plane(origin=origin, normal=normal)
         cutter = tvtk.Cutter(executive = tvtk.CompositeDataPipeline(),
                              cut_function = plane)
         cutter.input = self._hdata_set
-        clut = tvtk.LookupTable(hue_range=(0.0,1.00))
-        clut.build()
+        lut_manager = LUTManager(data_name=self.field, scene=self.scene)
         smap = tvtk.HierarchicalPolyDataMapper(
                         scalar_range=(self._min_val, self._max_val),
-                        lookup_table=clut,
+                        lookup_table=lut_manager.lut,
                         input_connection = cutter.output_port)
         sactor = tvtk.Actor(mapper=smap)
         self.scene.add_actors(sactor)
-        return plane, clut
+        return plane, lut_manager
 
     def add_plane(self, origin=(0.0,0.0,0.0), normal=(0,1,0)):
         self.operators.append(self._add_plane(origin, normal))
@@ -514,7 +527,7 @@ class YTScene(HasTraits):
     def _add_axis_plane(self, axis):
         normal = [0,0,0]
         normal[axis] = 1
-        np, lookup_table = self._add_plane(self.center, normal=normal)
+        np, lut_manager = self._add_plane(self.center, normal=normal)
         LE = self.extracted_hierarchy.min_left_edge
         RE = self.extracted_hierarchy.max_right_edge
         self.operators.append(MappingPlane(
@@ -522,7 +535,8 @@ class YTScene(HasTraits):
                 vdefault = self.center[axis],
                 post_call = self.scene.render,
                 plane = np, axis=axis, coord=0.0,
-                lookup_table = lookup_table))
+                lut_manager = lut_manager,
+                scene=self.scene))
 
     def add_x_plane(self):
         self._add_axis_plane(0)
@@ -542,11 +556,10 @@ class YTScene(HasTraits):
                     executive = tvtk.CompositeDataPipeline())
         cubes.input = self._hdata_set
         cubes.set_value(0, val)
-        cube_lut = tvtk.LookupTable(hue_range=(0.0,1.0))
-        cube_lut.build()
+        lut_manager = LUTManager(data_name=self.field, scene=self.scene)
         cube_mapper = tvtk.HierarchicalPolyDataMapper(
                                 input_connection = cubes.output_port,
-                                lookup_table=cube_lut)
+                                lookup_table=lut_manager.lut)
         cube_mapper.color_mode = 'map_scalars'
         cube_mapper.scalar_range = (self._min_val, self._max_val)
         cube_actor = tvtk.Actor(mapper=cube_mapper)
@@ -556,7 +569,8 @@ class YTScene(HasTraits):
                     vdefault=val,
                     mapper = cube_mapper,
                     post_call = self.scene.render,
-                    lookup_table = cube_lut))
+                    lut_manager = lut_manager,
+                    scene=self.scene))
         return self.operators[-1]
 
     def add_isocontour(self, val=None):
@@ -565,21 +579,20 @@ class YTScene(HasTraits):
                     executive = tvtk.CompositeDataPipeline())
         cubes.input = self._hdata_set
         cubes.generate_values(1, (val, val))
-        cube_lut = tvtk.LookupTable(hue_range=(0.0,1.0))
-        cube_lut.build()
+        lut_manager = LUTManager(data_name=self.field, scene=self.scene)
         cubes_normals = tvtk.PolyDataNormals(
             executive=tvtk.CompositeDataPipeline())
         cubes_normals.input_connection = cubes.output_port
         cube_mapper = tvtk.HierarchicalPolyDataMapper(
                                 input_connection = cubes_normals.output_port,
-                                lookup_table=cube_lut,
+                                lookup_table=lut_manager.lut,
                                 scalar_mode='use_point_field_data')
         cube_mapper.select_color_array("Temperature")
         cube_mapper.color_mode = 'map_scalars'
         cube_mapper.scalar_range = (600, 6000)
         cube_actor = tvtk.Actor(mapper=cube_mapper)
         self.scene.add_actors(cube_actor)
-        return [cubes, cubes_normals, cube_lut, cube_mapper, cube_actor]
+        return [cubes, cubes_normals, lut_manager, cube_mapper, cube_actor]
         return self.operators[-1]
 
 def get_all_parents(grid):
