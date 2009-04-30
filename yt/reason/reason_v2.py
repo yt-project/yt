@@ -225,28 +225,6 @@ class DataObjectList(HasTraits):
 class PlotFrameTab(DataObject):
     figure = Instance(Figure)
 
-class _LogFormat(str):
-    def _convert_floats(self, other):
-        args = []
-        if not isinstance(other, types.TupleType):
-            other = (other,)
-        for arg in other:
-            if isinstance(arg, types.FloatType):
-                args.append(10**arg)
-            else:
-                args.append(arg)
-        return tuple(args)
-
-    def __mod__(self, other):
-        args = self._convert_floats(other)
-        return str.__mod__(self, tuple(args))
-
-    def __rmod__(self, other):
-        args = self._convert_floats(other)
-        return str.__rmod__(self, tuple(args))
-
-lf = _LogFormat("%0.2e")
-
 class VMPlotSpec(HasTraits):
     pf = Instance(EnzoStaticOutput)
     field = Str('Density')
