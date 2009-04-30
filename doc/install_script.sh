@@ -21,6 +21,12 @@ DEST_DIR="`pwd`/yt-`uname -p`"   # Installation location
 # and install it on its own
 #HDF5_DIR=
 
+# If you need to supply arguments to the NumPy build, supply them here
+# This one turns on gfortran manually:
+#NUMPY_ARGS="--fcompiler=gnu95"
+# If you absolutely can't get the fortran to work, try this:
+#NUMPY_ARGS="--fcompiler=fake"
+
 INST_WXPYTHON=0 # If you 't want to install wxPython, set this to 1
 INST_ZLIB=1     # On some systems (Kraken) matplotlib has issues with 
                 # the system zlib, which is compiled statically.
@@ -45,11 +51,12 @@ function do_exit
 function do_setup_py
 {
     [ -e $1/done ] && return
-    echo "Installing $1"
+    echo "Installing $1 (arguments: '$*')"
     [ ! -e $1 ] && tar xfz $1.tar.gz
     cd $1
     shift
-    ( ${DEST_DIR}/bin/python2.6 setup.py install $* 2>&1 ) 1>> ${LOG_FILE} || do_exit
+    ( ${DEST_DIR}/bin/python2.6 setup.py build   $* 2>&1 ) 1>> ${LOG_FILE} || do_exit
+    ( ${DEST_DIR}/bin/python2.6 setup.py install    2>&1 ) 1>> ${LOG_FILE} || do_exit
     touch done
     cd ..
 }
@@ -143,7 +150,7 @@ then
         touch done
         cd ..
     fi
-    HDF5_DIR=${DEST_DIR}
+    export HDF5_DIR=${DEST_DIR}
 fi
 
 if [ ! -e Python-2.6.1/done ]
@@ -183,10 +190,10 @@ export LDFLAGS="${LDFLAGS} -L${DEST_DIR}/lib/ -L${DEST_DIR}/lib64/"
 echo "Installing setuptools"
 ( ${DEST_DIR}/bin/python2.6 ${YT_DIR}/ez_setup.py 2>&1 ) 1>> ${LOG_FILE} || do_exit
 
-do_setup_py numpy-1.2.1
+do_setup_py numpy-1.2.1 ${NUMPY_ARGS}
 do_setup_py matplotlib-0.98.5.2
 do_setup_py ipython-0.9.1
-do_setup_py tables-2.1 --hdf5=${HDF5_DIR}
+do_setup_py tables-2.1 
 
 echo "Doing yt update"
 MY_PWD=`pwd`
