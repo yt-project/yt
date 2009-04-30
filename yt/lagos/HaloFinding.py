@@ -337,7 +337,8 @@ class GenericHaloFinder(ParallelAnalysisInterface):
                 # self.hop_list
                 # We need to mock up the HOPHaloList thingie, so we need to set:
                 #     self._max_dens
-                max_dens[hi] = self._max_dens[halo.id] / threshold_adjustment
+                max_dens_temp = list(self._max_dens[halo.id])[0] / threshold_adjustment
+                max_dens[hi] = [max_dens_temp] + list(self._max_dens[halo.id])[1:4]
                 groups.append(self._halo_class(self, hi))
                 groups[-1].indices = halo.indices
                 self._claim_object(groups[-1])
@@ -401,6 +402,7 @@ class GenericHaloFinder(ParallelAnalysisInterface):
             arr[arr > RE[i]+self.padding] -= dw[i]
 
     def write_out(self, filename):
+        self.data_source.get_data(["particle_velocity_%s" % ax for ax in 'xyz'])
         f = self._write_on_root(filename)
         HaloList.write_out(self, f)
 

@@ -441,24 +441,27 @@ the idmerge field. */
     below, and if the boundary density is higher than any seen previously
     for the lower density group, then record this information */
     /* If neither group is above peakdensthresh, skip the boundary */
- 
-    time_t t1;
-    long rand_int;
-    (void) time(&t1);
-    srand48((long) t1); /* use time in seconds to set seed */
-    rand_int = lrand48();
-    sprintf(tempfilename,"%032d",rand_int);
-    if ((boundfp=fopen(tempfilename,"w"))==NULL)
-	myerror("Error opening scratch file");
- 
+
+    /* make few arrays to eliminate the need to write a file to disk. The entries in
+       the arrays should be no larger than my_comm->nb. 
+       Skory.
+    */
+    int g1temp[my_comm->nb], g2temp[my_comm->nb];
+    float denstemp[my_comm->nb];
+    
+    int temppos = 0;
     for(j=0;j<(my_comm->nb);j++) {
     g1 = my_comm->g1vec[j];
     g2 = my_comm->g2vec[j];
     dens = my_comm->fdensity[j];
 	if (gdensity[g1]<peakdensthresh && gdensity[g2]<peakdensthresh) {
 	    if (gdensity[g1]>densthresh && gdensity[g2]>densthresh &&
-		    dens>densthresh)
-		fprintf(boundfp,"%"ISYM" %"ISYM" %"FSYM"\n", g1, g2, dens);
+		    dens>densthresh) {
+		   g1temp[temppos] = g1;
+		   g2temp[temppos] = g2;
+		   denstemp[temppos] = dens;
+		   temppos += 1;
+		}
 	    continue;  	/* group isn't dense enough */
 	}
 	if (gdensity[g1]>=peakdensthresh && gdensity[g2]>=peakdensthresh)
@@ -485,7 +488,6 @@ the idmerge field. */
 	    densestboundgroup[g2] = g1;
 	}
     } /* Get the next boundary line */
-    fclose(boundfp);
 
  
     /* Now the fringe groups are connected to the proper group
@@ -495,12 +497,11 @@ the idmerge field. */
     /* Keep the density of the connection in densestbound, and the
     proper group it leads to in densestboundgroup */
     do {
-	if ((boundfp=fopen(tempfilename,"r"))==NULL)
-		myerror("Error opening scratch file for read");
 	changes = 0;
-	while (fgets(line,80,boundfp)!=NULL) {
-	    if (sscanf(line,"%"ISYM" %"ISYM" %"FSYM, &g1, &g2, &dens)!=3)
-		myerror("Error reading boundary.");
+	for (j=0;j<temppos;j++) {
+		g1 = g1temp[j];
+		g2 = g2temp[j];
+		dens = denstemp[j];
 	    /* If the density of this boundary and the densestbound of
 	    the other group is higher than a group's densestbound, then
 	    replace it. */
@@ -515,7 +516,6 @@ the idmerge field. */
 		densestboundgroup[g2] = densestboundgroup[g1];
 	    }
 	}
-	fclose(boundfp);
     } while (changes);
  
     /* Now connect the low-density groups to their densest boundaries */

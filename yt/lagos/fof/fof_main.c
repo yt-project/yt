@@ -21,7 +21,7 @@ void usage(void)
 
 void main(int argc,char **argv)
 {
-	KD kd;
+	KDFOF kd;
 	int nBucket,i,j;
 	char ach[80];
 	float fPeriod[3],fEps;
@@ -110,22 +110,22 @@ void main(int argc,char **argv)
 			}
 		else usage();
 		}
-	kdInit(&kd,nBucket,fPeriod);
-	kdReadTipsy(kd,stdin,bDark,bGas,bStar);
-	kdBuildTree(kd);
-	kdTime(kd,&sec,&usec);
+	kdInitFoF(&kd,nBucket,fPeriod);
+	kdReadTipsyFoF(kd,stdin,bDark,bGas,bStar);
+	kdBuildTreeFoF(kd);
+	kdTimeFoF(kd,&sec,&usec);
 	nGroup = kdFoF(kd,fEps);
-	kdTime(kd,&sec,&usec);
+	kdTimeFoF(kd,&sec,&usec);
 	if (bVerbose) printf("Number of initial groups:%d\n",nGroup);
-	nGroup = kdTooSmall(kd,nMembers);
+	nGroup = kdTooSmallFoF(kd,nMembers);
 	if (bVerbose) {
 		printf("Number of groups:%d\n",nGroup);
 		printf("FOF CPU TIME: %d.%06d secs\n",sec,usec);
 		}
-	kdOrder(kd);
+	kdOrderFoF(kd);
 	strcat(ach,".grp");
-	kdOutGroup(kd,ach);
-	kdFinish(kd);
+	kdOutGroupFoF(kd,ach);
+	kdFinishFoF(kd);
 	}
 
 

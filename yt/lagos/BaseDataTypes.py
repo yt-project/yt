@@ -1104,8 +1104,8 @@ class AMRProjBase(AMR2DData):
         # We do this here, but I am not convinced it should be done here
         # It is probably faster, as it consolidates IO, but if we did it in
         # _project_level, then it would be more memory conservative
-        self._preload(self.source._grids, self._get_dependencies(fields),
-                      self.hierarchy.queue)
+        #self._preload(self.source._grids, self._get_dependencies(fields),
+        #              self.hierarchy.queue)
         for level in range(0, self._max_level+1):
             my_coords, my_dx, my_fields = self.__project_level(level, fields)
             coord_data.append(my_coords)
@@ -1962,12 +1962,6 @@ class AMRSmoothedCoveringGridBase(AMRCoveringGridBase):
             #raise ValueError
         kwargs['num_ghost_zones'] = 0
         AMRCoveringGridBase.__init__(self, *args, **kwargs)
-        if na.any(self.left_edge == self.pf["DomainLeftEdge"]):
-            self.left_edge += self.dds
-            self.ActiveDimensions -= 1
-        if na.any(self.right_edge == self.pf["DomainRightEdge"]):
-            self.right_edge -= self.dds
-            self.ActiveDimensions -= 1
 
     def _get_list_of_grids(self):
         if na.any(self.left_edge - self.dds < self.pf["DomainLeftEdge"]) or \

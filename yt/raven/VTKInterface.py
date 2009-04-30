@@ -345,6 +345,9 @@ class YTScene(HasTraits):
 
     # Views
     def _window_default(self):
+        # Should experiment with passing in a pipeline browser
+        # that has two root objects -- one for TVTKBases, i.e. the render
+        # window, and one that accepts our objects
         return ivtk.IVTKWithCrustAndBrowser(size=(800,600), stereo=1)
 
     def _camera_path_default(self):

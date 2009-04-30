@@ -129,6 +129,10 @@ _common_options = dict(
                    action="store_false", 
                    dest="dm_only", default=True,
                    help="Use all particles"),
+    grids   = dict(short="", long="--show-grids",
+                   action="store_true",
+                   dest="grids", default=False,
+                   help="Show the grid boundaries"),
     )
 
 def _add_options(parser, *options):
@@ -241,7 +245,7 @@ class YTCommands(cmdln.Cmdln):
 
     @add_cmd_options(["width", "unit", "bn", "proj", "center",
                       "zlim", "axis", "field", "weight", "skip",
-                      "cmap", "output"])
+                      "cmap", "output", "grids"])
     @check_args
     def do_plot(self, subcmd, opts, arg):
         """
@@ -266,6 +270,7 @@ class YTCommands(cmdln.Cmdln):
             if opts.projection: pc.add_projection(opts.field, ax,
                                     weight_field=opts.weight, center=center)
             else: pc.add_slice(opts.field, ax, center=center)
+            if opts.grids: pc.plots[-1].modify["grids"]()
         pc.set_width(opts.width, opts.unit)
         pc.set_cmap(opts.cmap)
         if opts.zlim: pc.set_zlim(*opts.zlim)
