@@ -48,7 +48,7 @@ class Halo(object):
     def __init__(self, halo_list, id, indices = None):
         self.halo_list = halo_list
         self.id = id
-        self.data = halo_list.data_source
+        self.data = halo_list._data_source
         if indices is not None: self.indices = halo_list._base_indices[indices]
         # We assume that if indices = None, the instantiator has OTHER plans
         # for us -- i.e., setting it somehow else
@@ -124,7 +124,7 @@ class Halo(object):
         else: center = self.maximum_density_location()
         radius = self.maximum_radius()
         # A bit of a long-reach here...
-        sphere = self.halo_list.data_source.hierarchy.sphere(
+        sphere = self.halo_list._data_source.hierarchy.sphere(
                         center, radius=radius)
         return sphere
 
@@ -180,7 +180,7 @@ class HaloList(object):
         *dm_only* is set, only run it on the dark matter particles, otherwise
         on all particles.  Returns an iterable collection of *HopGroup* items.
         """
-        self.data_source = data_source
+        self._data_source = data_source
         self.dm_only = dm_only
         self._groups = []
         self._max_dens = {}
@@ -195,17 +195,17 @@ class HaloList(object):
         else: ii = slice(None)
         self.particle_fields = {}
         for field in self._fields:
-            tot_part = self.data_source[field].size
-            self.particle_fields[field] = self.data_source[field][ii]
+            tot_part = self._data_source[field].size
+            self.particle_fields[field] = self._data_source[field][ii]
         self._base_indices = na.arange(tot_part)[ii]
 
     def __get_dm_indices(self):
-        if 'creation_time' in self.data_source.hierarchy.field_list:
+        if 'creation_time' in self._data_source.hierarchy.field_list:
             mylog.debug("Differentiating based on creation time")
-            return (self.data_source["creation_time"] < 0)
-        elif 'particle_type' in self.data_source.hierarchy.field_list:
+            return (self._data_source["creation_time"] < 0)
+        elif 'particle_type' in self._data_source.hierarchy.field_list:
             mylog.debug("Differentiating based on particle type")
-            return (self.data_source["particle_type"] == 1)
+            return (self._data_source["particle_type"] == 1)
         else:
             mylog.warning("No particle_type, no creation_time, so not distinguishing.")
             return slice(None)
@@ -397,12 +397,12 @@ class GenericHaloFinder(ParallelAnalysisInterface):
         LE, RE = bounds
         dw = self.pf["DomainRightEdge"] - self.pf["DomainLeftEdge"]
         for i, ax in enumerate('xyz'):
-            arr = self.data_source["particle_position_%s" % ax]
+            arr = self._data_source["particle_position_%s" % ax]
             arr[arr < LE[i]-self.padding] += dw[i]
             arr[arr > RE[i]+self.padding] -= dw[i]
 
     def write_out(self, filename):
-        self.data_source.get_data(["particle_velocity_%s" % ax for ax in 'xyz'])
+        self._data_source.get_data(["particle_velocity_%s" % ax for ax in 'xyz'])
         f = self._write_on_root(filename)
         HaloList.write_out(self, f)
 
@@ -428,12 +428,12 @@ class HOPHaloFinder(GenericHaloFinder, HOPHaloList):
         # object representing the entire domain and sum it "lazily" with
         # Derived Quantities.
         self.padding = padding #* pf["unitary"] # This should be clevererer
-        padded, LE, RE, self.data_source = self._partition_hierarchy_3d(padding=self.padding)
+        padded, LE, RE, self._data_source = self._partition_hierarchy_3d(padding=self.padding)
         self.bounds = (LE, RE)
         # reflect particles around the periodic boundary
         self._reposition_particles((LE, RE))
-        sub_mass = self.data_source["ParticleMassMsun"].sum()
-        HOPHaloList.__init__(self, self.data_source, threshold*total_mass/sub_mass, dm_only)
+        sub_mass = self._data_source["ParticleMassMsun"].sum()
+        HOPHaloList.__init__(self, self._data_source, threshold*total_mass/sub_mass, dm_only)
         self._parse_halolist(total_mass/sub_mass)
         self._join_halolists()
 
@@ -444,19 +444,19 @@ class FOFHaloFinder(GenericHaloFinder, FOFHaloList):
         self.center = (pf["DomainRightEdge"] + pf["DomainLeftEdge"])/2.0
         self.padding = 0.0 #* pf["unitary"] # This should be clevererer
         # get the total number of particles across all procs, with no padding
-        padded, LE, RE, self.data_source = self._partition_hierarchy_3d(padding=self.padding)
-        n_parts = self._mpi_allsum(self.data_source["particle_position_x"].size)
+        padded, LE, RE, self._data_source = self._partition_hierarchy_3d(padding=self.padding)
+        n_parts = self._mpi_allsum(self._data_source["particle_position_x"].size)
         # get the average spacing between particles
         l = pf["DomainRightEdge"] - pf["DomainLeftEdge"]
         vol = l[0] * l[1] * l[2]
         avg_spacing = (float(vol) / n_parts)**(1./3.)
         self.padding = padding
-        padded, LE, RE, self.data_source = self._partition_hierarchy_3d(padding=self.padding)
+        padded, LE, RE, self._data_source = self._partition_hierarchy_3d(padding=self.padding)
         self.bounds = (LE, RE)
         # reflect particles around the periodic boundary
         self._reposition_particles((LE, RE))
         # here is where the FOF halo finder is run
-        FOFHaloList.__init__(self, self.data_source, link * avg_spacing, dm_only)
+        FOFHaloList.__init__(self, self._data_source, link * avg_spacing, dm_only)
         self._parse_halolist(1.)
         self._join_halolists()
 
