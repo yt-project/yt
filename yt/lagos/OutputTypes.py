@@ -112,6 +112,11 @@ class StaticOutput(object):
              + self.parameters.keys() \
              + self.conversion_factors.keys()
 
+    def __iter__(self):
+        for ll in [self.units, self.time_units,
+                   self.parameters, self.conversion_factors]:
+            for i in ll.keys(): yield i
+
     def get_smallest_appropriate_unit(self, v):
         max_nu = 1e30
         good_u = None
