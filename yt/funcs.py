@@ -31,8 +31,12 @@ from math import floor, ceil
 def signal_print_traceback(signo, frame):
     print traceback.print_stack(frame)
 
+def signal_problem(signo, frame):
+    raise RuntimeError()
+
 try:
     signal.signal(signal.SIGUSR1, signal_print_traceback)
+    signal.signal(signal.SIGUSR2, signal_problem)
 except ValueError:  # Not in main thread
     pass
 
