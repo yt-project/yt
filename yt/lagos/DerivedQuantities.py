@@ -58,6 +58,16 @@ class DerivedQuantity(ParallelAnalysisInterface):
 
     def __call__(self, *args, **kwargs):
         lazy_reader = kwargs.pop('lazy_reader', False)
+        preload = kwargs.pop('preload', False)
+        if preload:
+            if not lazy_reader: mylog.debug("Turning on lazy_reader because of preload")
+            lazy_reader = True
+            e = FieldDetector()
+            e.NumberOfParticles = 1
+            self.func(e, *args, **kwargs)
+            mylog.debug("Preloading %s", e.requested)
+            self._preload(self._get_grids(), e.requested,
+                          self._data_source.pf.h.queue)
         if lazy_reader and not self.force_unlazy:
             return self._call_func_lazy(args, kwargs)
         else:
