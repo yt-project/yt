@@ -36,7 +36,7 @@ def concatenate_pdfs(output_fn, input_fns):
 
 class PlotCollection(object):
     __id_counter = 0
-    def __init__(self, pf, deliverator_id=-1, center=None):
+    def __init__(self, pf, center=None, deliverator_id=-1):
         """
         Generate a collection of linked plots using *pf* as a source,
         optionally submitting to the deliverator with *deliverator_id*

@@ -123,6 +123,7 @@ class NeedsParameter(ValidationException):
 class FieldDetector(defaultdict):
     Level = 1
     NumberOfParticles = 0
+    _read_exception = None
     def __init__(self, nd = 16, pf = None):
         self.nd = nd
         self.ActiveDimensions = [nd,nd,nd]
@@ -154,6 +155,11 @@ class FieldDetector(defaultdict):
                 return self[item]
         self.requested.append(item)
         return defaultdict.__missing__(self, item)
+
+    def _read_data(self, field_name):
+        self.requested.append(field_name)
+        return defaultdict.__missing__(self, field_name)
+
     def get_field_parameter(self, param):
         self.requested_parameters.append(param)
         if param in ['bulk_velocity','center','height_vector']:
