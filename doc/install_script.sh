@@ -31,7 +31,7 @@ INST_WXPYTHON=0 # If you 't want to install wxPython, set this to 1
 INST_ZLIB=1     # On some systems (Kraken) matplotlib has issues with 
                 # the system zlib, which is compiled statically.
                 # If need be, you can turn this off.
-INST_HG=1       # Install Mercurial or not?
+INST_HG=0       # Install Mercurial or not?
 
 # If you've got YT some other place, set this to point to it.
 YT_DIR=""
@@ -42,6 +42,76 @@ YT_DIR=""
 # it'll work as is.                                                            #
 #                                                                              #
 #------------------------------------------------------------------------------#
+
+LOG_FILE="${DEST_DIR}/yt_install.log"
+
+function get_willwont
+{
+    if [ $1 -eq 1 ]
+    then
+        echo -n "will  "
+    else
+        echo -n "won't "
+    fi
+}
+
+echo
+echo
+echo "========================================================================"
+echo
+echo "Hi there!  This is the YT installation script.  We're going to download"
+echo "some stuff and install it to create a self-contained, isolated"
+echo "environment for YT to run within."
+echo
+echo "Inside the installation script you can set a few variables.  Here's what"
+echo "they're currently set to -- you can hit Ctrl-C and edit the values in "
+echo "the script if you aren't such a fan."
+echo
+printf "%-15s = %s so I " "INST_WXPYTHON" "${INST_WXPYTHON}"
+get_willwont $INST_WXPYTHON
+echo "be installing wxPython"
+
+printf "%-15s = %s so I " "INST_ZLIB" "${INST_ZLIB}"
+get_willwont ${INST_ZLIB}
+echo "be installing zlib"
+
+printf "%-15s = %s so I " "INST_HG" "${INST_HG}"
+get_willwont ${INST_HG}
+echo "be installing Mercurial"
+
+echo
+
+if [ -z "$HDF5_DIR" ]
+then
+    echo "HDF5_DIR is not set, so I will be installing HDF5"
+else
+    echo "HDF5_DIR=${HDF5_DIR} , so I will not be installing HDF5"
+fi
+
+if [ -z "$YT_DIR" ]
+then
+    echo "YT_DIR is not set, so I will be checking out a fresh copy"
+else
+    echo "YT_DIR=${YT_DIR} , so I will use that for YT"
+fi
+
+echo
+echo "Installation will be to"
+echo "  ${DEST_DIR}"
+echo
+echo "and I'll be logging the installation in"
+echo "  ${LOG_FILE}"
+echo
+echo "I think that about wraps it up.  If you want to continue, hit enter.  "
+echo "If you'd rather stop, maybe think things over, even grab a sandwich, "
+echo "hit Ctrl-C."
+echo
+echo "========================================================================"
+echo
+read -p "[hit enter] "
+echo
+echo "Awesome!  Here we go."
+echo
 
 function do_exit
 {
@@ -74,16 +144,11 @@ function get_enzotools
 
 ORIG_PWD=`pwd`
 
-LOG_FILE="${DEST_DIR}/yt_install.log"
-
 if [ -z "${DEST_DIR}" ]
 then
     echo "Edit this script, set the DEST_DIR parameter and re-run."
     exit 1
 fi
-
-echo "Installing into ${DEST_DIR}"
-echo "INST_WXPYTHON=${INST_WXPYTHON}"
 
 mkdir -p ${DEST_DIR}/src
 cd ${DEST_DIR}/src
@@ -152,8 +217,8 @@ then
         cd ..
     fi
     export HDF5_DIR=${DEST_DIR}
-    export HDF5_API=16
 fi
+export HDF5_API=16
 
 if [ ! -e Python-2.6.1/done ]
 then

@@ -22,7 +22,7 @@ PY_DIR="/Library/Frameworks/Python.framework/Versions/Current/"
 # and install it on its own
 #HDF5_DIR=
 
-INST_HG=1       # Install Mercurial or not?
+INST_HG=0       # Install Mercurial or not?
 # If you've got YT some other place, set this to point to it.
 YT_DIR=""
 
@@ -161,8 +161,8 @@ then
         cd ..
     fi
     export HDF5_DIR=${DEST_DIR}
-    export HDF5_API=16
 fi
+export HDF5_API=16
 
 [ ! -e ${DEST_DIR}/src/py_done ] && self_install \
     python-2.5.4-macosx.dmg
