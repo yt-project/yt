@@ -194,8 +194,8 @@ void parsecommandline(float dens_outer, Controls *c)
     if (c->mingroupsize >= 0 && !c->qsort)
 	myerror("Imposition of a certain group size occurs within the sort routine.");
     if (c->qsort && c->mingroupsize < 0) {
-	mywarn("No minimum group size specified.  Assuming 2 particles.");
-	c->mingroupsize = 2;
+	mywarn("No minimum group size specified.  Assuming 10 particles.");
+	c->mingroupsize = 10;
     }
  
     if (c->densthresh<MINDENS) c->densthresh=MINDENS;
