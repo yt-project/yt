@@ -64,7 +64,7 @@ void hop_main(KD kd, HC *my_comm, float densthres)
 	
    	nBucket = 16;
 	nSmooth = 64;
-	nDens = 64;
+	nDens = 32;
 	nHop = -1;
 /*    fDensThresh = 3.0; */
     fDensThresh = -1.0;
