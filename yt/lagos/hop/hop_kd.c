@@ -16,6 +16,7 @@ the input and output routines. */
 #include <sys/resource.h>
 #include <assert.h>
 #include "kd.h"
+#include "hop_numpy.h"
 //#include "macros_and_parameters.h"
 /* #include "tipsydefs.h" */ /* Don't need this, since I removed kdReadTipsy()*/
  
@@ -55,7 +56,7 @@ int kdInit(KD *pkd,int nBucket)
  */
 int kdMedianJst(KD kd,int d,int l,int u)
 {
-	float fm;
+	npy_float64 fm;
     int i,k,m;
     PARTICLE *p,t;
  
@@ -64,15 +65,15 @@ int kdMedianJst(KD kd,int d,int l,int u)
 	m = k;
     while (l < u) {
 		m = (l+u)/2;
-		fm = p[m].r[d];
+        fm = NP_POS(kd, m, d);
 		t = p[m];
 		p[m] = p[u];
 		p[u] = t;
 		i = u-1;
 		m = l;
-		while (p[m].r[d] < fm) ++m;
+        while (NP_POS(kd, m, d) < fm) ++m;
 		while (m < i) {
-			while (p[i].r[d] >= fm) if (--i == m) break;
+			while (NP_POS(kd, i, d) >= fm) if (--i == m) break;
 			/*
 			 ** Swap
 			 */
@@ -80,7 +81,7 @@ int kdMedianJst(KD kd,int d,int l,int u)
 			p[m] = p[i];
 			p[i] = t;
 			--i;
-			while (p[m].r[d] < fm) ++m;
+			while (NP_POS(kd, m, d) < fm) ++m;
 			}
 		t = p[m];
 		p[m] = p[u];
@@ -129,15 +130,15 @@ void kdUpPass(KD kd,int iCell)
 		l = c[iCell].pLower;
 		u = c[iCell].pUpper;
 		for (j=0;j<3;++j) {
-			c[iCell].bnd.fMin[j] = kd->p[u].r[j];
-			c[iCell].bnd.fMax[j] = kd->p[u].r[j];
+			c[iCell].bnd.fMin[j] = NP_POS(kd, u, j);
+			c[iCell].bnd.fMax[j] = NP_POS(kd, u, j);
 			}
 		for (pj=l;pj<u;++pj) {
 			for (j=0;j<3;++j) {
-				if (kd->p[pj].r[j] < c[iCell].bnd.fMin[j])
-					c[iCell].bnd.fMin[j] = kd->p[pj].r[j];
-				if (kd->p[pj].r[j] > c[iCell].bnd.fMax[j])
-					c[iCell].bnd.fMax[j] = kd->p[pj].r[j];
+				if (NP_POS(kd, pj, j) < c[iCell].bnd.fMin[j])
+					c[iCell].bnd.fMin[j] = NP_POS(kd, pj, j);
+				if (NP_POS(kd, pj, j) > c[iCell].bnd.fMax[j])
+					c[iCell].bnd.fMax[j] = NP_POS(kd, pj, j);
 				}
 			}
 		}
@@ -179,7 +180,7 @@ int kdBuildTree(KD kd)
 				}
 			c[i].iDim = d;
 			m = kdMedianJst(kd,d,c[i].pLower,c[i].pUpper);
-			c[i].fSplit = kd->p[m].r[d];
+			c[i].fSplit = NP_POS(kd, m, d);
 			c[LOWER(i)].bnd = c[i].bnd;
 			c[LOWER(i)].bnd.fMax[d] = c[i].fSplit;
 			c[LOWER(i)].pLower = c[i].pLower;
