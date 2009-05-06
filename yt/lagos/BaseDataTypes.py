@@ -955,7 +955,7 @@ class AMRProjBase(AMR2DData):
         for fn,g_list in self.hierarchy.cpu_map.items():
             to_read = na.intersect1d(g_list, self.source._grids)
             if len(to_read) == 0: continue
-            fh = tables.openFile(to_read[0].filename,'r')
+            fh = h5py.File(to_read[0].filename,'r')
             for g in to_read:
                 g.handle = fh
                 for field in ensure_list(self.fields):

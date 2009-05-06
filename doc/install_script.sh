@@ -31,6 +31,7 @@ INST_WXPYTHON=0 # If you 't want to install wxPython, set this to 1
 INST_ZLIB=1     # On some systems (Kraken) matplotlib has issues with 
                 # the system zlib, which is compiled statically.
                 # If need be, you can turn this off.
+INST_HG=1       # Install Mercurial or not?
 
 # If you've got YT some other place, set this to point to it.
 YT_DIR=""
@@ -100,7 +101,7 @@ get_enzotools Python-2.6.1.tgz
 get_enzotools numpy-1.2.1.tar.gz
 get_enzotools matplotlib-0.98.5.2.tar.gz
 get_enzotools ipython-0.9.1.tar.gz
-get_enzotools tables-2.1.tar.gz
+get_enzotools h5py-1.1.0.tar.gz
 
 if [ -z "$YT_DIR" ]
 then
@@ -151,6 +152,7 @@ then
         cd ..
     fi
     export HDF5_DIR=${DEST_DIR}
+    export HDF5_API=16
 fi
 
 if [ ! -e Python-2.6.1/done ]
@@ -193,7 +195,7 @@ echo "Installing setuptools"
 do_setup_py numpy-1.2.1 ${NUMPY_ARGS}
 do_setup_py matplotlib-0.98.5.2
 do_setup_py ipython-0.9.1
-do_setup_py tables-2.1 
+do_setup_py h5py-1.1.0
 
 echo "Doing yt update"
 MY_PWD=`pwd`
@@ -205,6 +207,12 @@ echo $HDF5_DIR > hdf5.cfg
 ( ${DEST_DIR}/bin/python2.6 setup.py develop 2>&1 ) 1>> ${LOG_FILE} || do_exit
 touch done
 cd $MY_PWD
+
+if [ $INST_HG -eq 1 ]
+then
+    echo "Installing Mercurial."
+    ( ${DEST_DIR}/bin/easy_install-2.6 mercurial 2>&1 ) 1>> ${LOG_FILE} || do_exit
+fi
 
 echo
 echo
@@ -232,6 +240,13 @@ echo "$YT_DIR"
 echo "as the source for all the YT code.  This means you probably shouldn't"
 echo "delete it, but on the plus side, any changes you make there are"
 echo "automatically propagated."
+if [ $INST_HG -eq 1 ]
+then
+  echo "Mercurial has also been installed:"
+  echo
+  echo "$DEST_DIR/bin/hg"
+  echo
+fi
 echo
 echo "For support, see one of the following websites:"
 echo

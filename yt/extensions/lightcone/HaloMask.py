@@ -28,7 +28,7 @@ from yt.logger import lagosLogger as mylog
 import yt.lagos as lagos
 import copy
 import numpy as na
-import tables as h5
+import h5py
 
 #### Note: assumption of box width 1.  I'll fix it someday.
 
@@ -50,8 +50,8 @@ def MakeLightConeHaloMask(lightCone,HaloMaskParameterFile,cube_file=None,mask_fi
     # Write out cube of masks from each slice.
     if cube_file is not None:
         mylog.info("Saving halo mask cube to %s." % cube_file)
-        output = h5.openFile(cube_file,'a')
-        output.createArray("/",'haloMaskCube',na.array(lightConeMask))
+        output = h5py.File(cube_file,'a')
+        output.create_dataset('haloMaskCube',data=na.array(lightConeMask))
         output.close()
 
     # Write out final mask.
@@ -62,8 +62,8 @@ def MakeLightConeHaloMask(lightCone,HaloMaskParameterFile,cube_file=None,mask_fi
         for mask in lightConeMask:
             finalMask *= mask
 
-        output = h5.openFile(mask_file,'a')
-        output.createArray("/",'haloMask',na.array(finalMask))
+        output = h5py.File(mask_file,'a')
+        output.create_dataset('haloMask',data=na.array(finalMask))
         output.close()
 
     return lightConeMask

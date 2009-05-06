@@ -658,7 +658,7 @@ class LightCone(object):
                 else:
                     self.lightConeParameters[param] = t
 
-    def _SaveLightConeStack(self,field=None,weight_field=None,filename=None):
+    def _SaveLightConeStack(self,field=None,weight_field=None,filename=None,over_write=True):
         "Save the light cone projection stack as a 3d array in and hdf5 file."
 
         # Make list of redshifts to include as a dataset attribute.
@@ -667,7 +667,7 @@ class LightCone(object):
         field_node = "%s_%s" % (field,weight_field)
         weight_field_node = "weight_field_%s" % weight_field
 
-        import tables
+        import h5py
         if (filename is None):
             filename = "%s/%s_data" % (self.lightConeParameters['OutputDir'],self.lightConeParameters['OutputPrefix'])
         if not(filename.endswith('.h5')):
@@ -679,40 +679,48 @@ class LightCone(object):
 
         if self.verbose: mylog.info("Writing light cone data to %s." % filename)
 
-        output = tables.openFile(filename, "a")
+        output = h5py.File(filename, "a")
 
-        try:
-            node_exists = output.isVisibleNode("/%s" % field_node)
-        except tables.exceptions.NoSuchNodeError:
-            node_exists = False
+        node_exists = field_node in output.listnames()
 
         if node_exists:
-            mylog.error("Dataset, %s, already exists in %s, not saving." % (field_node,filename))
+            if over_write:
+                mylog.info("Dataset, %s, already exists, overwriting." % field_node)
+                del output[field_node]
+            else:
+                mylog.info("Dataset, %s, already exists in %s, not saving." % (field_node,filename))
+                write_data = False
         else:
+            write_data = True
+
+        if write_data:
             mylog.info("Saving %s to %s." % (field_node, filename))
             self.projectionStack = na.array(self.projectionStack)
-            field_dataset = output.createArray("/",field_node,self.projectionStack)
-            field_dataset._v_attrs.redshifts = redshiftList
-            field_dataset._v_attrs.ObserverRedshift = na.float(self.lightConeParameters['ObserverRedshift'])
-            field_dataset._v_attrs.FieldOfViewInArcMinutes = na.float(self.lightConeParameters['FieldOfViewInArcMinutes'])
-            field_dataset._v_attrs.ImageResolutionInArcSeconds = na.float(self.lightConeParameters['ImageResolutionInArcSeconds'])
+            field_dataset = output.create_dataset(field_node,data=self.projectionStack)
+            field_dataset.attrs['redshifts'] = redshiftList
+            field_dataset.attrs['ObserverRedshift'] = na.float(self.lightConeParameters['ObserverRedshift'])
+            field_dataset.attrs['FieldOfViewInArcMinutes'] = na.float(self.lightConeParameters['FieldOfViewInArcMinutes'])
+            field_dataset.attrs['ImageResolutionInArcSeconds'] = na.float(self.lightConeParameters['ImageResolutionInArcSeconds'])
 
         if (len(self.projectionWeightFieldStack) > 0):
-            try:
-                node_exists = output.isVisibleNode("/%s" % weight_field_node)
-            except tables.exceptions.NoSuchNodeError:
-                node_exists = False
-
             if node_exists:
-                mylog.error("Dataset, %s, already exists in %s, not saving." % (weight_field_node,filename))
+                if over_write:
+                    mylog.info("Dataset, %s, already exists, overwriting." % weight_field_node)
+                    del output[field_node]
+                else:
+                    mylog.info("Dataset, %s, already exists in %s, not saving." % (weight_field_node,filename))
+                    write_data = False
             else:
+                write_data = True
+
+            if write_data:
                 mylog.info("Saving %s to %s." % (weight_field_node, filename))
                 self.projectionWeightFieldStack = na.array(self.projectionWeightFieldStack)
-                weight_field_dataset = output.createArray("/",weight_field_node,self.projectionWeightFieldStack)
-                weight_field_dataset._v_attrs.redshifts = redshiftList
-                weight_field_dataset._v_attrs.ObserverRedshift = na.float(self.lightConeParameters['ObserverRedshift'])
-                weight_field_dataset._v_attrs.FieldOfViewInArcMinutes = na.float(self.lightConeParameters['FieldOfViewInArcMinutes'])
-                weight_field_dataset._v_attrs.ImageResolutionInArcSeconds = na.float(self.lightConeParameters['ImageResolutionInArcSeconds'])
+                weight_field_dataset = output.create_dataset(weight_field_node,data=self.projectionWeightFieldStack)
+                weight_field_dataset.attrs['redshifts'] = redshiftList
+                weight_field_dataset.attrs['ObserverRedshift'] = na.float(self.lightConeParameters['ObserverRedshift'])
+                weight_field_dataset.attrs['FieldOfViewInArcMinutes'] = na.float(self.lightConeParameters['FieldOfViewInArcMinutes'])
+                weight_field_dataset.attrs['ImageResolutionInArcSeconds'] = na.float(self.lightConeParameters['ImageResolutionInArcSeconds'])
 
         output.close()
 
