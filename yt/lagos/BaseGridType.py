@@ -74,6 +74,11 @@ class AMRGridPatch(AMRData):
                 conv_factor = 1.0
                 if self.pf.field_info.has_key(field):
                     conv_factor = self.pf.field_info[field]._convert_function(self)
+                if self.pf.field_info[field].particle_type and \
+                   self.NumberOfParticles == 0:
+                    # because this gets upcast to float
+                    self[field] = na.array([],dtype='int64')
+                    return self.data[field]
                 try:
                     if hasattr(self.hierarchy, 'queue'):
                         temp = self.hierarchy.queue.pop(self, field)
@@ -82,10 +87,7 @@ class AMRGridPatch(AMRData):
                     self[field] = temp * conv_factor
                 except self._read_exception, exc:
                     if field in self.pf.field_info:
-                        if self.pf.field_info[field].particle_type:
-                            # because this gets upcast to float
-                            self[field] = na.array([],dtype='int64')
-                        elif self.pf.field_info[field].not_in_all:
+                        if self.pf.field_info[field].not_in_all:
                             self[field] = na.zeros(self.ActiveDimensions, dtype='float64')
                         else:
                             raise

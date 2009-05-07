@@ -1643,8 +1643,8 @@ class AMRRegionBase(AMR3DData):
                                                            self.right_edge)
 
     def _is_fully_enclosed(self, grid):
-        return na.all( (grid._corners < self.right_edge)
-                     & (grid._corners > self.left_edge))
+        return na.all( (grid._corners <= self.right_edge)
+                     & (grid._corners >= self.left_edge))
 
     @cache_mask
     def _get_cut_mask(self, grid):
