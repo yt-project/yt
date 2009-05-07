@@ -196,7 +196,7 @@ class YTCommands(cmdln.Cmdln):
         pf = _fix_pf(arg)
         kwargs = {'dm_only' : opts.dm_only}
         if opts.threshold is not None: kwargs['threshold'] = opts.threshold
-        hop_list = HaloFinder(sp, **kwargs)
+        hop_list = HaloFinder(pf, **kwargs)
         if opts.output is None: fn = "%s.hop" % pf
         else: fn = opts.output
         hop_list.write_out(fn)
