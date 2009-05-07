@@ -1341,6 +1341,8 @@ class AMR3DData(AMRData, GridPropertiesMixin):
         return na.where(k)
 
     def _get_cut_particle_mask(self, grid):
+        if self._is_fully_enclosed(grid):
+            return True
         fake_grid = FakeGridForParticles(grid)
         return self._get_cut_mask(fake_grid)
 
