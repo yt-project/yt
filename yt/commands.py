@@ -326,21 +326,20 @@ class YTCommands(cmdln.Cmdln):
         ${cmd_option_list}
         """
         from yt.extensions.HierarchySubset import ExtractedHierarchy
-        import tables
+        import h5py
 
         first = int(start)
         last = int(stop)
 
         # Set up our global metadata
-        afile = tables.openFile(opts.output, "w")
-        md = afile.createGroup("/", "globalMetaData")
-        mda = md._v_attrs
-        mda.datatype = 0
-        mda.staggering = 1
-        mda.fieldtype = 1
+        afile = h5py.File(opts.output, "w")
+        md = afile.create_group("/globalMetaData")
+        md.attrs['datatype'] = 0
+        md.attrs['staggering'] = 1
+        md.attrs['fieldtype'] = 1
 
-        mda.minTimeStep = first
-        mda.maxTimeStep = last
+        md.attrs['minTimeStep'] = first
+        md.attrs['maxTimeStep'] = last
 
         times = []
         # Get our staggering correct based on skip
@@ -365,15 +364,15 @@ class YTCommands(cmdln.Cmdln):
             t2.append(pf["InitialTime"])
 
         # This should be the same
-        mda.rootDelta = (pf["unitary"]/pf["TopGridDimensions"]).astype('float64')
-        mda.minTime = times[0]
-        mda.maxTime = times[-1]
-        mda.numTimeSteps = len(timesteps)
+        md.attrs['rootDelta'] = (pf["unitary"]/pf["TopGridDimensions"]).astype('float64')
+        md.attrs['minTime'] = times[0]
+        md.attrs['maxTime'] = times[-1]
+        md.attrs['numTimeSteps'] = len(timesteps)
 
         # I think we just want one value here
         rel_times = na.array(times, dtype='float64') - int(opts.subtract_time)*times[0]
-        afile.createArray(md, "sorted_times", na.array(rel_times))
-        afile.createArray(md, "sorted_timesteps", timesteps)
+        md.create_dataset("sorted_times", data=na.array(rel_times))
+        md.create_dataset("sorted_timesteps", data=timesteps)
 
         afile.close()
         

@@ -75,11 +75,11 @@ class FixedResolutionBuffer(object):
         return distance/dpy
 
     def export_hdf5(self, filename, fields = None):
-        import tables
+        import h5py
         if fields is None: fields = self.data.keys()
-        output = tables.openFile(filename, "a")
+        output = h5py.File(filename, "a")
         for field in fields:
-            output.createArray("/",field,self[field])
+            output.create_dataset(field,data=self[field])
         output.close()
 
     def export_fits(self, filename_prefix, fields = None):

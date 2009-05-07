@@ -32,6 +32,7 @@ INST_ZLIB=1     # On some systems (Kraken) matplotlib has issues with
                 # the system zlib, which is compiled statically.
                 # If need be, you can turn this off.
 INST_TRAITS=1   # Experimental TraitsUI installation
+INST_HG=0       # Install Mercurial or not?
 
 # If you've got YT some other place, set this to point to it.
 YT_DIR=""
@@ -42,6 +43,80 @@ YT_DIR=""
 # it'll work as is.                                                            #
 #                                                                              #
 #------------------------------------------------------------------------------#
+
+LOG_FILE="${DEST_DIR}/yt_install.log"
+
+function get_willwont
+{
+    if [ $1 -eq 1 ]
+    then
+        echo -n "will  "
+    else
+        echo -n "won't "
+    fi
+}
+
+echo
+echo
+echo "========================================================================"
+echo
+echo "Hi there!  This is the YT installation script.  We're going to download"
+echo "some stuff and install it to create a self-contained, isolated"
+echo "environment for YT to run within."
+echo
+echo "Inside the installation script you can set a few variables.  Here's what"
+echo "they're currently set to -- you can hit Ctrl-C and edit the values in "
+echo "the script if you aren't such a fan."
+echo
+printf "%-15s = %s so I " "INST_WXPYTHON" "${INST_WXPYTHON}"
+get_willwont $INST_WXPYTHON
+echo "be installing wxPython"
+
+printf "%-15s = %s so I " "INST_ZLIB" "${INST_ZLIB}"
+get_willwont ${INST_ZLIB}
+echo "be installing zlib"
+
+printf "%-15s = %s so I " "INST_HG" "${INST_HG}"
+get_willwont ${INST_HG}
+echo "be installing Mercurial"
+
+printf "%-15s = %s so I " "INST_TRAITS" "${INST_TRAITS}"
+get_willwont ${INST_TRAITS}
+echo "be installing Traits"
+
+echo
+
+if [ -z "$HDF5_DIR" ]
+then
+    echo "HDF5_DIR is not set, so I will be installing HDF5"
+else
+    echo "HDF5_DIR=${HDF5_DIR} , so I will not be installing HDF5"
+fi
+
+if [ -z "$YT_DIR" ]
+then
+    echo "YT_DIR is not set, so I will be checking out a fresh copy"
+else
+    echo "YT_DIR=${YT_DIR} , so I will use that for YT"
+fi
+
+echo
+echo "Installation will be to"
+echo "  ${DEST_DIR}"
+echo
+echo "and I'll be logging the installation in"
+echo "  ${LOG_FILE}"
+echo
+echo "I think that about wraps it up.  If you want to continue, hit enter.  "
+echo "If you'd rather stop, maybe think things over, even grab a sandwich, "
+echo "hit Ctrl-C."
+echo
+echo "========================================================================"
+echo
+read -p "[hit enter] "
+echo
+echo "Awesome!  Here we go."
+echo
 
 function do_exit
 {
@@ -74,16 +149,11 @@ function get_enzotools
 
 ORIG_PWD=`pwd`
 
-LOG_FILE="${DEST_DIR}/yt_install.log"
-
 if [ -z "${DEST_DIR}" ]
 then
     echo "Edit this script, set the DEST_DIR parameter and re-run."
     exit 1
 fi
-
-echo "Installing into ${DEST_DIR}"
-echo "INST_WXPYTHON=${INST_WXPYTHON}"
 
 mkdir -p ${DEST_DIR}/src
 cd ${DEST_DIR}/src
@@ -101,7 +171,7 @@ get_enzotools Python-2.6.1.tgz
 get_enzotools numpy-1.2.1.tar.gz
 get_enzotools matplotlib-0.98.5.2.tar.gz
 get_enzotools ipython-0.9.1.tar.gz
-get_enzotools tables-2.1.tar.gz
+get_enzotools h5py-1.1.0.tar.gz
 
 if [ -z "$YT_DIR" ]
 then
@@ -153,6 +223,7 @@ then
     fi
     export HDF5_DIR=${DEST_DIR}
 fi
+export HDF5_API=16
 
 if [ ! -e Python-2.6.1/done ]
 then
@@ -194,7 +265,7 @@ echo "Installing setuptools"
 do_setup_py numpy-1.2.1 ${NUMPY_ARGS}
 do_setup_py matplotlib-0.98.5.2
 do_setup_py ipython-0.9.1
-do_setup_py tables-2.1 
+do_setup_py h5py-1.1.0
 
 echo "Doing yt update"
 MY_PWD=`pwd`
@@ -206,6 +277,12 @@ echo $HDF5_DIR > hdf5.cfg
 ( ${DEST_DIR}/bin/python2.6 setup.py develop 2>&1 ) 1>> ${LOG_FILE} || do_exit
 touch done
 cd $MY_PWD
+
+if [ $INST_HG -eq 1 ]
+then
+    echo "Installing Mercurial."
+    ( ${DEST_DIR}/bin/easy_install-2.6 mercurial 2>&1 ) 1>> ${LOG_FILE} || do_exit
+fi
 
 if [ $INST_WXPYTHON -eq 1 ] && [ $INST_TRAITS -eq 1 ]
 then
@@ -239,6 +316,13 @@ echo "$YT_DIR"
 echo "as the source for all the YT code.  This means you probably shouldn't"
 echo "delete it, but on the plus side, any changes you make there are"
 echo "automatically propagated."
+if [ $INST_HG -eq 1 ]
+then
+  echo "Mercurial has also been installed:"
+  echo
+  echo "$DEST_DIR/bin/hg"
+  echo
+fi
 echo
 echo "For support, see one of the following websites:"
 echo

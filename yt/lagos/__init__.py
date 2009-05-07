@@ -37,10 +37,9 @@ except:
 
 import warnings
 try:
-     import tables
-     warnings.simplefilter("ignore", tables.NaturalNameWarning)
+     import h5py
 except ImportError:
-    mylog.warning("No PyTables. Data serialization will fail.")
+    mylog.warning("No h5py. Data serialization will fail.")
 
 from yt.arraytypes import *
 import weakref

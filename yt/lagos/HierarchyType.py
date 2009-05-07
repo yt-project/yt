@@ -125,18 +125,14 @@ class AMRHierarchy:
             self._data_mode = mode = 'r'
         else:
             self._data_mode = mode = 'a'
-        try:
-            self._data_file = tables.openFile(fn, mode)
-            my_name = self.get_data("/","MyName")
-            if my_name is None and self._data_mode == 'a':
-                self.save_data(str(self.parameter_file), "/", "MyName")
-            else:
-                if str(my_name.read())!=str(self.parameter_file):
-                    self._data_file.close()
-                    self._data_file = None
-        except:
-            self._data_file = None
-            pass
+        self.__create_data_file(fn)
+        self.__data_filename = fn
+        self._data_file = h5py.File(fn, self._data_mode)
+
+    @parallel_root_only
+    def __create_data_file(self, fn):
+        f = h5py.File(fn, 'a')
+        f.close()
 
     def _setup_data_queue(self):
         self.queue = _data_style_funcs[self.data_style][5]()
@@ -153,26 +149,37 @@ class AMRHierarchy:
             [self.gridLeftEdge[:,0], self.gridRightEdge[:,1], self.gridLeftEdge[:,2]],
             ], dtype='float64')
 
-    def save_data(self, array, node, name, set_attr=None, force=False, passthrough = False):
+    def _save_data(self, array, node, name, set_attr=None, force=False, passthrough = False):
         """
         Arbitrary numpy data will be saved to the region in the datafile
         described by *node* and *name*.  If data file does not exist, it throws
         no error and simply does not save.
         """
-        if self._data_file is None or self._data_mode != 'a': return
+
+        if self._data_mode != 'a': return
         try:
-            node_loc = self._data_file.getNode(node)
-            if name in node_loc and force:
+            node_loc = self._data_file[node]
+            if name in node_loc.listnames() and force:
                 mylog.info("Overwriting node %s/%s", node, name)
-                self._data_file.removeNode(node, name, recursive=True)
-            elif name in node_loc and passthrough:
-                return
-        except tables.exceptions.NoSuchNodeError:
+                del self._data_file[node][name]
+            elif name in node_loc.listnames() and passthrough:
+                return        
+        except h5py.h5.ArgsError:
             pass
-        arr = self._data_file.createArray(node, name, array, createparents=True)
+        myGroup = self._data_file['/']
+        for q in node.split('/'):
+            if q: myGroup = myGroup.require_group(q)
+        arr = myGroup.create_dataset(name,data=array)
         if set_attr is not None:
-            for i, j in set_attr.items(): arr.setAttr(i,j)
+            for i, j in set_attr.items(): arr.attrs[i] = j
         self._data_file.flush()
+
+    def _reload_data_file(self, *args, **kwargs):
+        self._data_file.close()
+        del self._data_file
+        self._data_file = h5py.File(self.__data_filename, self._data_mode)
+
+    save_data = parallel_splitter(_save_data, _reload_data_file)
 
     def save_object(self, obj, name):
         s = cPickle.dumps(obj, protocol=-1)
@@ -182,7 +189,7 @@ class AMRHierarchy:
         obj = self.get_data("/Objects", name)
         if obj is None:
             return
-        obj = cPickle.loads(obj.read())
+        obj = cPickle.loads(obj.value)
         if iterable(obj) and len(obj) == 2:
             obj = obj[1] # Just the object, not the pf
         if hasattr(obj, '_fix_pickle'): obj._fix_pickle()
@@ -195,11 +202,11 @@ class AMRHierarchy:
         """
         if self._data_file == None:
             return None
-        try:
-            if node[0] != "/": node = "/%s" % node
-            return self._data_file.getNode(node, name)
-        except tables.exceptions.NoSuchNodeError:
+        if node[0] != "/": node = "/%s" % node
+        full_name = "%s/%s" % (node, name)
+        if full_name not in self._data_file:
             return None
+        return self._data_file["%s/%s" % (node, name)]
 
     def _close_data_file(self):
         if self._data_file:
@@ -861,7 +868,7 @@ class EnzoHierarchy(AMRHierarchy):
             self.__setup_grid_tree()
         else:
             mylog.debug("Grabbing serialized tree data")
-            pTree = cPickle.loads(treeArray.read())
+            pTree = cPickle.loads(treeArray.value)
             self.gridReverseTree = list(self.get_data("/","ReverseTree"))
             self.gridTree = [ [ weakref.proxy(self.grids[i]) for i in pTree[j] ]
                 for j in range(self.num_grids) ]
