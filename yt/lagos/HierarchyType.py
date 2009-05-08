@@ -1472,7 +1472,7 @@ class NewEnzoHierarchy(AMRHierarchy):
                 raise TypeError
 
     __parse_tokens = ("GridStartIndex", "GridEndIndex",
-            "GridLeftEdge", "GridRightEdge")
+            "GridLeftEdge", "GridRightEdge", "FileName")
     def _populate_hierarchy(self):
         def _line_yielder(f):
             for token in self.__parse_tokens:
@@ -1485,8 +1485,8 @@ class NewEnzoHierarchy(AMRHierarchy):
         f = open(self.hierarchy_filename, "rb")
         self.grids = [self.grid(1)]
         self.wrefs = [weakref.proxy(self.grids[0])]
-        si, ei, LE, RE, np = [], [], [], [], []
-        all = [si, ei, LE, RE]
+        si, ei, LE, RE, fn, np = [], [], [], [], [], []
+        all = [si, ei, LE, RE, fn]
         f.readline() # Blank at top
         for grid_id in xrange(self.num_grids):
             if (grid_id % 10000) == 0: print grid_id
@@ -1516,9 +1516,12 @@ class NewEnzoHierarchy(AMRHierarchy):
         t2 = time.time()
         print "Took %0.3e" % (t2-t1)
         print len(self.wrefs), len(self.grids), self.num_grids
-        for g in self.grids:
+        for g,f in izip(self.grids, fn):
             g._prepare_grid()
             g._setup_dx()
+            g.set_filename(f[0])
+        #self._setup_grid_dxs()
+        self._setup_field_lists()
 
     def __pointer_handler(self, m):
         sgi = int(m[2])-1
@@ -1550,4 +1553,23 @@ class NewEnzoHierarchy(AMRHierarchy):
         mylog.debug("Creating grid objects")
         #self.grids = na.array([self.grid(i+1) for i in xrange(self.num_grids)])
         mylog.debug("Done creating grid objects")
+
+    def _setup_field_lists(self):
+        field_list = self.get_data("/", "DataFields")
+        if field_list is None:
+            mylog.info("Gathering a field list (this may take a moment.)")
+            field_list = set()
+            random_sample = self._generate_random_grids()
+            for grid in random_sample:
+                if not hasattr(grid, 'filename'): continue
+                try:
+                    gf = grid.getFields()
+                except grid._read_exception:
+                    mylog.debug("Grid %s is a bit funky?", grid.id)
+                    continue
+                mylog.debug("Grid %s has: %s", grid.id, gf)
+                field_list = field_list.union(gf)
+            field_list = self._join_field_lists(field_list)
+            self.save_data(list(field_list),"/","DataFields")
+        self.field_list = list(field_list)
 
