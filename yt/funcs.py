@@ -58,6 +58,7 @@ if "--paste" in sys.argv:
     sys.excepthook = paste_traceback
 if "--rpdb" in sys.argv:
     sys.excepthook = rpdb.rpdb_excepthook
+    del sys.argv[sys.argv.index("--rpdb")]
 
 def blank_wrapper(f):
     return lambda a: a

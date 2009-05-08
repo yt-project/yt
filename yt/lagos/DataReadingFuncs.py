@@ -204,7 +204,7 @@ def readDataSlicePacked1D(self, grid, field, axis, coord):
 class BaseDataQueue(object):
 
     def __init__(self):
-        self.queue = defaultdict(lambda: {})
+        self.queue = defaultdict(dict)
 
     # We need a function for reading a list of sets
     # and a function for *popping* from a queue all the appropriate sets
@@ -270,12 +270,9 @@ class DataQueuePackedHDF5(BaseDataQueue):
             # We want to pass on any error we might expect -- the preload
             # phase should be non-fatal in all cases, and instead dump back to
             # the grids.
-            try:
-                data = HDF5LightReader.ReadMultipleGrids(file, nodes, sets)
-                mylog.debug("Read %s items from %s", len(data), os.path.basename(file))
-                for gid in data: self.queue[gid].update(data[gid])
-            except exc:
-                pass
+            data = HDF5LightReader.ReadMultipleGrids(file, nodes, sets)
+            mylog.debug("Read %s items from %s", len(data), os.path.basename(file))
+            for gid in data: self.queue[gid].update(data[gid])
         mylog.debug("Finished read of %s", sets)
 
 class DataQueueInMemory(BaseDataQueue):
