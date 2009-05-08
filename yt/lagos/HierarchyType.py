@@ -1504,14 +1504,21 @@ class NewEnzoHierarchy(AMRHierarchy):
                 if "NumberOfParticles" == params[0]:
                     np[-1] = params[2]
                 line = f.readline()
-        self.si = na.fromiter(chain(*si), dtype='int', count=3*self.num_grids)
-        self.ei = na.fromiter(chain(*ei), dtype='int', count=3*self.num_grids)
-        self.LE = na.fromiter(chain(*LE), dtype='float64', count=3*self.num_grids)
-        self.RE = na.fromiter(chain(*RE), dtype='float64', count=3*self.num_grids)
-        self.np = na.fromiter(chain(*np), dtype='int', count=self.num_grids)
+        def fix_size(my_arr, iter, dt, size=3*self.num_grids):
+            my_arr[:] = na.fromiter(chain(*iter), dtype=dt,
+                            count=size).reshape(my_arr.shape)
+        fix_size(self.gridStartIndices, si, 'int')
+        fix_size(self.gridEndIndices, ei, 'int')
+        fix_size(self.gridLeftEdge, LE, 'float64')
+        fix_size(self.gridRightEdge, RE, 'float64')
+        fix_size(self.gridNumberOfParticles, np, 'int', self.num_grids)
+        self.grids = na.array(self.grids)
         t2 = time.time()
         print "Took %0.3e" % (t2-t1)
         print len(self.wrefs), len(self.grids), self.num_grids
+        for g in self.grids:
+            g._prepare_grid()
+            g._setup_dx()
 
     def __pointer_handler(self, m):
         sgi = int(m[2])-1
