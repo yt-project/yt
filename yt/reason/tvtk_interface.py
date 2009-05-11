@@ -48,8 +48,8 @@ from yt.funcs import *
 from yt.logger import ravenLogger as mylog
 from yt.extensions.HierarchySubset import ExtractedHierarchy
 
-from enthought.tvtk.pyface.ui.wx.wxVTKRenderWindowInteractor \
-     import wxVTKRenderWindowInteractor
+#from enthought.tvtk.pyface.ui.wx.wxVTKRenderWindowInteractor \
+     #import wxVTKRenderWindowInteractor
 
 from enthought.mayavi.core.lut_manager import LUTManager
 
@@ -66,15 +66,27 @@ class TVTKMapperWidget(HasTraits):
 
 class MappingPlane(TVTKMapperWidget):
     plane = Instance(tvtk.Plane)
-    traits_view = View(Item('coord', editor=RangeEditor(
+    _coord_redit = editor=RangeEditor(
                               low_name='vmin', high_name='vmax',
-                              auto_set=False, enter_set=True)),
-                       Item('alpha', enter_set=True, auto_set=False,
-                            editor=RangeEditor(low=0.0, high=1.0)),
+                              auto_set=False, enter_set=True)
+    auto_set = Bool(False)
+    traits_view = View(Item('coord', editor=_coord_redit),
+                       Item('auto_set'),
+                       Item('alpha', editor=RangeEditor(
+                              low=0.0, high=1.0,
+                              enter_set=True, auto_set=False)),
                        Item('lut_manager', show_label=False,
                             editor=InstanceEditor(), style='custom'))
     vmin = Float
     vmax = Float
+
+    def _auto_set_changed(self, old, new):
+        if new is True:
+            self._coord_redit.auto_set = True
+            self._coord_redit.enter_set = False
+        else:
+            self._coord_redit.auto_set = False
+            self._coord_redit.enter_set = True
 
     def __init__(self, vmin, vmax, vdefault, **traits):
         HasTraits.__init__(self, **traits)
@@ -95,11 +107,14 @@ class MappingMarchingCubes(TVTKMapperWidget):
     mapper = Instance(tvtk.HierarchicalPolyDataMapper)
     vmin = Float
     vmax = Float
-    traits_view = View(Item('value',
-        editor=RangeEditor(low_name='vmin', high_name='vmax',
-        auto_set=False, enter_set=True)),
-                       Item('alpha', enter_set=True, auto_set=False,
-                            editor=RangeEditor(low=0.0, high=1.0)),
+    auto_set = Bool(False)
+    _val_redit = RangeEditor(low_name='vmin', high_name='vmax',
+                             auto_set=False, enter_set=True)
+    traits_view = View(Item('value', editor=_val_redit),
+                       Item('auto_set'),
+                       Item('alpha', editor=RangeEditor(
+                            low=0.0, high=1.0,
+                            enter_set=True, auto_set=False,)),
                        Item('lut_manager', show_label=False,
                             editor=InstanceEditor(), style='custom'))
 
@@ -110,6 +125,14 @@ class MappingMarchingCubes(TVTKMapperWidget):
         trait = Range(float(vmin), float(vmax), value=vdefault)
         self.add_trait("value", trait)
         self.value = vdefault
+
+    def _auto_set_changed(self, old, new):
+        if new is True:
+            self._val_redit.auto_set = True
+            self._val_redit.enter_set = False
+        else:
+            self._val_redit.auto_set = False
+            self._val_redit.enter_set = True
 
     def _value_changed(self, old, new):
         self.cubes.set_value(0, new)
