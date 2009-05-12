@@ -92,6 +92,7 @@ class VTKDataObject(DataObject):
     yt_scene = Instance(YTScene)
     scene = DelegatesTo("yt_scene")
     add_contours = Button
+    add_isocontour = Button
     add_x_plane = Button
     add_y_plane = Button
     add_z_plane = Button
@@ -105,6 +106,7 @@ class VTKDataObject(DataObject):
         SceneEditor(scene_class=DecoratedScene),
                     resizable=True, show_label=False),
             HGroup(Item("add_contours", show_label=False),
+                   Item("add_isocontour", show_label=False),
                    Item("add_x_plane", show_label=False),
                    Item("add_y_plane", show_label=False),
                    Item("add_z_plane", show_label=False),
@@ -135,6 +137,9 @@ class VTKDataObject(DataObject):
 
     def _add_contours_fired(self):
         self.yt_scene.add_contour()
+
+    def _add_isocontour_fired(self):
+        self.yt_scene.add_isocontour()
 
     def _add_x_plane_fired(self):
         self.yt_scene.add_x_plane()
@@ -469,4 +474,4 @@ class event_mock(object):
 dol = DataObjectList()
 mw = MainWindow(plot_frame_tabs = [])
 mw.configure_traits()
-
+#mw.edit_traits()
