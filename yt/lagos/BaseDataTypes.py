@@ -1986,7 +1986,7 @@ class AMRSmoothedCoveringGridBase(AMRCoveringGridBase):
         rf = float(self.pf["RefineBy"]**(self.level - level))
         dims = na.maximum(1,self.ActiveDimensions/rf) + 2
         dx = (self.right_edge-self.left_edge)/(dims-2)
-        x,y,z = (na.mgrid[0:dims[0],0:dims[1],0:dims[2]].astype('float64')+0.5)\
+        x,y,z = (na.mgrid[0:dims[0],0:dims[1],0:dims[2]].astype('float64')-0.5)\
               * dx[0]
         x += self.left_edge[0] - dx[0]
         y += self.left_edge[1] - dx[1]
