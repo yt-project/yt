@@ -468,7 +468,7 @@ class YTScene(HasTraits):
 
         io, left_index, origin, dds = \
             self.extracted_hierarchy._convert_grid(grid)
-        right_index = left_index + scalars.shape - 2
+        right_index = left_index + scalars.shape - 1
         ug = tvtk.UniformGrid(origin=origin, spacing=dds,
                               dimensions=grid.ActiveDimensions+1)
         if self.field not in self.pf.field_info or \
@@ -611,8 +611,7 @@ class YTScene(HasTraits):
         isocontour_normals.input_connection = isocontour.output_port
         iso_mapper = tvtk.HierarchicalPolyDataMapper(
                                 input_connection = isocontour_normals.output_port,
-                                lookup_table=lut_manager.lut,
-                                scalar_mode='use_point_field_data')
+                                lookup_table=lut_manager.lut)
         iso_mapper.scalar_range = (self._min_val, self._max_val)
         iso_actor = tvtk.Actor(mapper=iso_mapper)
         self.scene.add_actors(iso_actor)
