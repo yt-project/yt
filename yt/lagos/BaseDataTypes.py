@@ -965,21 +965,20 @@ class AMRProjBase(AMR2DData):
         self.hierarchy.grid.readDataFast = readDataPackedHandle
 
     #@time_execution
-    def __calculate_overlap(self):
+    def __calculate_overlap(self, level):
         s = self.source
-        mylog.info("Generating overlap masks")
+        mylog.info("Generating overlap masks for level %s", level)
         i = 0
         pbar = get_pbar("Reading and masking grids ", len(s._grids))
-        for level in range(self._max_level+1):
-            mylog.debug("Examining level %s", level)
-            grids = s.levelIndices[level]
-            RE = s.gridRightEdge[grids]
-            LE = s.gridLeftEdge[grids]
-            for grid in s._grids[grids]:
-                pbar.update(i)
-                self.__overlap_masks[grid.id] = \
-                    grid._generate_overlap_masks(self.axis, LE, RE)
-                i += 1
+        mylog.debug("Examining level %s", level)
+        grids = s.levelIndices[level]
+        RE = s.gridRightEdge[grids]
+        LE = s.gridLeftEdge[grids]
+        for grid in s._grids[grids]:
+            pbar.update(i)
+            self.__overlap_masks[grid.id] = \
+                grid._generate_overlap_masks(self.axis, LE, RE)
+            i += 1
         pbar.finish()
         mylog.info("Finished calculating overlap.")
 
@@ -1097,16 +1096,16 @@ class AMRProjBase(AMR2DData):
         self._obtain_fields(fields, self._node_name)
         fields = [f for f in fields if f not in self.data]
         if len(fields) == 0: return
-        self.__calculate_overlap()
         coord_data = []
         field_data = []
         dxs = []
         # We do this here, but I am not convinced it should be done here
         # It is probably faster, as it consolidates IO, but if we did it in
         # _project_level, then it would be more memory conservative
-        #self._preload(self.source._grids, self._get_dependencies(fields),
-        #              self.hierarchy.queue)
         for level in range(0, self._max_level+1):
+            self._preload(self.source._grids[self.source.levelIndices[level]],
+                          self._get_dependencies(fields), self.hierarchy.queue)
+            self.__calculate_overlap(level)
             my_coords, my_dx, my_fields = self.__project_level(level, fields)
             coord_data.append(my_coords)
             field_data.append(my_fields)
