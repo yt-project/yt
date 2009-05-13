@@ -47,18 +47,14 @@ ytcfgDefaults = {
         'ReconstructHierarchy': 'True',
         'serialize' : 'True',
         'onlydeserialize' : 'False',
-        'usefortran' : 'False',
-        'useswig' : 'False',
         'loadfieldplugins':'False',
         'pluginfilename':'yt_plugins.py',
-        'nounitslength':'1.0',
         },
     "yt":{
         'LogFile': 'False',
         'LogFileName': 'yt.log',
         'suppressStreamLogging': 'False',
         'LogLevel': '20',
-        'unifiedlogfile': '1',
         'timefunctions':'False',
         'inGui':'False',
         '__parallel':'False',
@@ -71,7 +67,6 @@ ytcfgDefaults = {
     "raven":{
         'ImagePath':".",
         'ImageSkel': '%(bn)s_%(width)010i_%(unit)s',
-        'backend': 'MPL',
         'colormap': 'jet',
         }
     }
