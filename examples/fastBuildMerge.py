@@ -24,8 +24,6 @@
 # 'chmod u+x mergeScript.py'
 # './mergeScript.py'
 
-# the name of the python script
-name = "merger_yt"
 # the GraphViz file
 outfile = "157-120.dot"
 # the directory basename, no trailing slash needed
@@ -60,11 +58,12 @@ print "#!/usr/bin/env /Library/Frameworks/Python.framework/Versions/Current/bin/
 # -----------------------------------------------------------------
 # -----------------------------------------------------------------
 
-print "import %s" % name
-print "import yt.raven as raven"
+name = 'Merger'
+
 print "import yt.lagos as lagos"
 print "from yt.lagos import mylog"
 print "from yt.mods import *"
+print "import yt.lagos.hop.Merger as %s" % name
 
 print """
 def instantiateSnapshots(dirbasename,filebasename,start,end):

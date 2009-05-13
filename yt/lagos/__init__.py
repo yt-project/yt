@@ -55,18 +55,6 @@ import time
 from Cosmology import *
 from EnzoCosmology import *
 
-if ytcfg.getboolean("lagos","useswig"):
-    try:
-        from yt.enki import EnzoInterface
-    except ImportError:
-        pass
-
-if ytcfg.getboolean("lagos","usefortran"):
-    try:
-        import EnzoFortranRoutines
-    except ImportError:
-        mylog.warning("Told to import fortan, but unable!")
-
 # Now we import all the subfiles
 
 from HelperFunctions import *

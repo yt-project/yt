@@ -30,7 +30,6 @@ mylog = yt.logger.reasonLogger
 
 import yt.lagos as lagos
 import yt.raven as raven
-import yt.enki as enki
 import yt.fido as fido
 
 from yt.arraytypes import *
