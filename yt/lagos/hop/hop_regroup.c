@@ -450,7 +450,7 @@ the idmerge field. */
     float *denstemp;
     g1temp = (int *)malloc(sizeof(int) * my_comm->nb);
     g2temp = (int *)malloc(sizeof(int) * my_comm->nb);
-    denstemp = (int *)malloc(sizeof(int) * my_comm->nb);
+    denstemp = (float *)malloc(sizeof(float) * my_comm->nb);
     
     int temppos = 0;
     for(j=0;j<(my_comm->nb);j++) {
