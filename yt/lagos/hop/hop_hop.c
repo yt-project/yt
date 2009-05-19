@@ -225,6 +225,15 @@ sorting below */
 	}
     }
     smx->kd->p[pi].iHop = -1-pList[max];
+
+    /* check to see if the particle we link to doesn't link back
+       to ourselves, pi. If it does, connect this particle (pi) to itself.
+       This can only happen if pList[max] < pi*/    
+    if (pList[max] < pi) {
+        if (smx->kd->p[pList[max]].iHop == -1-pi) {
+            smx->kd->p[pi].iHop = -1-pi;
+        }
+    }
  
     /* If a sort was done, then we can save time in the Merge step by
     recording the new Ball radius. */
