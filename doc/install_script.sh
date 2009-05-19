@@ -60,7 +60,7 @@ function host_specific
     MYHOST=`hostname -s` # just give the short one, not FQDN
     if [ "${MYHOST##kraken}" != "${MYHOST}" ]
     then
-        echo "BE SURE TO EXECUTE"
+        echo "NOTE: YOU MUST BE IN THE GNU PROGRAMMING ENVIRONMENT"
         echo "   $ module swap PrgEnv-pgi PrgEnv-gnu"
         echo
         return
