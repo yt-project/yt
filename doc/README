@@ -1,4 +1,8 @@
-This directory contains the yt documentation, in ReSTructured Text format.
+This directory contains the compiled yt documentation.  Development of the
+documentation happens in a mercurial repository, yt-doc, available at:
+
+http://hg.enzotools.org/yt-doc/
+
 It's written to be used with Sphinx, a tool designed for writing Python
 documentation.  Sphinx is available at this URL:
 
