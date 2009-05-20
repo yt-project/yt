@@ -1,17 +1,12 @@
 from yt.mods import *
 
-pf = get_pf() # last argument on the command line gets turned into an EnzoStaticOutput
+pf = load("my_data") # load "my_data"
 
-hop_results = HaloFinder(pf, threshold=80.0)
+hop_results = HaloFinder(pf)
 
-def get_mass_results(hop_group):
+for hop_group in hop_results:
     sphere = hop_group.get_sphere()
-    baryon_mass = sphere["CellMassMsun"].sum()
-    dm = sphere["creation_time"] < 0
-    dm_mass = sphere["ParticleMassMsun"][dm].sum()
-    star_mass = sphere["ParticleMassMsun"][~dm].sum()
-    return "Total mass in HOP group %s is %0.5e (gas = %0.5e / dm = %0.5e / star = %0.5e)" % \
-           (hop_group.id, baryon_mass + dm_mass + star_mass, baryon_mass, dm_mass, star_mass)
-
-s = [get_mass_results(g) for g in hop_results]
-print "\n".join(s)
+    baryon_mass, particle_mass = sphere.quantities["TotalQuantity"](
+            ["CellMassMsun", "ParticleMassMsun"], lazy_reader=True)
+    print "Total mass in HOP group %s is %0.5e (gas = %0.5e / particles = %0.5e)" % \
+            (hop_group.id, baryon_mass + particle_mass, baryon_mass, particle_mass)
