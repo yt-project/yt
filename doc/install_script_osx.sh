@@ -137,13 +137,13 @@ then
     elif [ -e $ORIG_PWD/../yt/mods.py ]
     then
         YT_DIR=`dirname $ORIG_PWD`
-    elif [ ! -e yt-trunk-svn ] 
+    elif [ ! -e yt-1.5 ] 
     then
-        ( svn co http://svn.enzotools.org/yt/trunk/ ./yt-trunk-svn 2>&1 ) 1>> ${LOG_FILE}
-        YT_DIR="$PWD/yt-trunk-svn/"
-    elif [ -e yt-trunk-svn ] 
+        ( svn co http://svn.enzotools.org/yt/branches/yt-1.5 ./yt-1.5 2>&1 ) 1>> ${LOG_FILE}
+        YT_DIR="$PWD/yt-1.5/"
+    elif [ -e yt-1.5 ] 
     then
-        YT_DIR="$PWD/yt-trunk-svn/"
+        YT_DIR="$PWD/yt-1.5/"
     fi
     echo Setting YT_DIR=${YT_DIR}
 fi
