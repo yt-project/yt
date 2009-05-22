@@ -446,8 +446,11 @@ the idmerge field. */
        the arrays should be no larger than my_comm->nb. 
        Skory.
     */
-    int g1temp[my_comm->nb], g2temp[my_comm->nb];
-    float denstemp[my_comm->nb];
+    int *g1temp,*g2temp;
+    float *denstemp;
+    g1temp = (int *)malloc(sizeof(int) * my_comm->nb);
+    g2temp = (int *)malloc(sizeof(int) * my_comm->nb);
+    denstemp = (float *)malloc(sizeof(float) * my_comm->nb);
     
     int temppos = 0;
     for(j=0;j<(my_comm->nb);j++) {

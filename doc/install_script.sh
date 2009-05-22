@@ -56,6 +56,27 @@ function get_willwont
     fi
 }
 
+function host_specific
+{
+    MYHOST=`hostname -s` # just give the short one, not FQDN
+    if [ "${MYHOST##kraken}" != "${MYHOST}" ]
+    then
+        echo "NOTE: YOU MUST BE IN THE GNU PROGRAMMING ENVIRONMENT"
+        echo "   $ module swap PrgEnv-pgi PrgEnv-gnu"
+        echo
+        return
+    fi
+    if [ "${MYHOST##verne}" != "${MYHOST}" ]
+    then
+        echo "NOTE: YOU MUST BE IN THE GNU PROGRAMMING ENVIRONMENT"
+        echo "This command will take care of that for you:"
+        echo
+        echo "   $ module swap PE-pgi PE-gnu"
+        echo
+    fi
+}
+
+
 echo
 echo
 echo "========================================================================"
@@ -111,6 +132,7 @@ echo "I think that about wraps it up.  If you want to continue, hit enter.  "
 echo "If you'd rather stop, maybe think things over, even grab a sandwich, "
 echo "hit Ctrl-C."
 echo
+host_specific
 echo "========================================================================"
 echo
 read -p "[hit enter] "
@@ -257,7 +279,8 @@ then
     cd ../..
 fi
 
-export LDFLAGS="${LDFLAGS} -L${DEST_DIR}/lib/ -L${DEST_DIR}/lib64/"
+# This fixes problems with gfortran linking.
+unset LDFLAGS 
 
 echo "Installing setuptools"
 ( ${DEST_DIR}/bin/python2.6 ${YT_DIR}/ez_setup.py 2>&1 ) 1>> ${LOG_FILE} || do_exit

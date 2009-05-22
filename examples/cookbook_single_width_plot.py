@@ -1,7 +1,7 @@
 from yt.mods import *
-pf = get_pf()
+pf = load("my_data") # Open "my_data"
 
-pc = raven.PlotCollection(pf)
+pc = PlotCollection(pf)
 pc.add_slice("Density",0)
 pc.add_slice("Density",1)
 pc.add_slice("Density",2)

@@ -10,7 +10,7 @@ import setuptools
 APP = ['reason.py']
 DATA_FILES = []
 PY2APP_OPTIONS = {'argv_emulation': True}
-VERSION = "1.5dev"
+VERSION = "1.6dev"
 
 if os.path.exists('MANIFEST'): os.remove('MANIFEST')
 

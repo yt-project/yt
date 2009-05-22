@@ -1,6 +1,6 @@
 from yt.mods import *
 
-pf = get_pf() # Last argument on command line turned into an output file
+pf = load("my_data") # Open "my_data"
 
 v,c = pf.h.find_max("Density")
 
@@ -14,7 +14,7 @@ r_min = pf.h.get_smallest_dx() * 32 * pf["cm"]
 r_max = sphere["Radius"].max()
 x_bins_1d = 64
 
-prof1d = lagos.BinnedProfile1D(sphere, x_bins_1d, "Radius", r_min, r_max, lazy_reader=True)
+prof1d = BinnedProfile1D(sphere, x_bins_1d, "Radius", r_min, r_max, lazy_reader=True)
 prof1d.add_fields("CellMassMsun", accumulation=True, weight=None)
 prof1d.add_fields("NumberDensity")
 prof1d.add_fields("Temperature")

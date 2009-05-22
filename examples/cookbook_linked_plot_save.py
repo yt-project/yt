@@ -1,7 +1,7 @@
 from yt.mods import *
-pf = get_pf()
+pf = load("my_data") # Open "my_data"
 
-pc = raven.PlotCollection(pf)
+pc = PlotCollection(pf)
 
 fn = "%(bn)s_%(width)010i_%(unit)s" # template for image file names
 
