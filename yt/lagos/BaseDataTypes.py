@@ -1199,6 +1199,26 @@ class AMRProjBase(AMR2DData):
         return  "%s/%s" % \
             (self._top_node, self.axis)
 
+class AMRFixedResProjection(AMR2DData):
+    _top_node = "/Projections"
+    _type_name = "fixed_res_proj"
+    _con_args = ('axis', 'field', 'weight_field')
+    def __init__(self, axis, left_edge, right_edge, depth=None,
+                 fields = None, pf=None, **kwargs):
+        """
+        A projection that provides fixed resolution output,
+        operating in a grid-by-grid fashion.
+        """
+        AMR2DData.__init__(self, axis, fields, pf, **kwargs)
+        self.left_edge = na.array(left_edge)
+        self.right_edge = na.array(right_edge)
+        if depth is None:
+            depth = 0.5*(self.right_edge - self.left_edge).sum()
+        self.depth = depth
+
+    def _get_list_of_grids(self):
+        pass
+
 class AMR3DData(AMRData, GridPropertiesMixin):
     _key_fields = ['x','y','z','dx','dy','dz']
     """
