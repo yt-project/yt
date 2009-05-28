@@ -57,9 +57,12 @@ function get_willwont
 
 function host_specific
 {
-    MYHOST=`hostname -s` # just give the short one, not FQDN
+    MYHOST=`hostname -s`  # just give the short one, not FQDN
+    MYHOSTLONG=`hostname` # FQDN, for Ranger
     if [ "${MYHOST##kraken}" != "${MYHOST}" ]
     then
+        echo "Looks like you're on Kraken."
+        echo
         echo "NOTE: YOU MUST BE IN THE GNU PROGRAMMING ENVIRONMENT"
         echo "   $ module swap PrgEnv-pgi PrgEnv-gnu"
         echo
@@ -67,10 +70,24 @@ function host_specific
     fi
     if [ "${MYHOST##verne}" != "${MYHOST}" ]
     then
+        echo "Looks like you're on Verne."
+        echo
         echo "NOTE: YOU MUST BE IN THE GNU PROGRAMMING ENVIRONMENT"
         echo "This command will take care of that for you:"
         echo
         echo "   $ module swap PE-pgi PE-gnu"
+        echo
+    fi
+    if [ "${MYHOSTLONG%%ranger.tacc.utexas.edu}" != "${MYHOSTLONG}" ]
+    then
+        echo "Looks like you're on Ranger."
+        echo
+        echo "NOTE: YOU MUST BE IN THE GNU PROGRAMMING ENVIRONMENT"
+        echo "These commands should take care of that for you:"
+        echo
+        echo "   $ module unload mvapich-devel"
+        echo "   $ module swap pgi gcc"
+        echo "   $ module load mvapich-devel"
         echo
     fi
 }
