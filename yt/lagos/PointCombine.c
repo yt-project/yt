@@ -996,15 +996,14 @@ static PyObject *Py_FillRegion(PyObject *obj, PyObject *args)
     cxs = *(npy_int64 *) PyArray_GETPTR1(oc_start, 0);
     cys = *(npy_int64 *) PyArray_GETPTR1(oc_start, 1);
     czs = *(npy_int64 *) PyArray_GETPTR1(oc_start, 2);
+    cxe = (cxs + cdx - 1);
+    cye = (cys + cdy - 1);
+    cze = (czs + cdz - 1);
+
+    /* cd[xyz] are the dimensions of the covering grid */
     cdx = (*(npy_int32 *) PyArray_GETPTR1(oc_dims, 0));
     cdy = (*(npy_int32 *) PyArray_GETPTR1(oc_dims, 1));
     cdz = (*(npy_int32 *) PyArray_GETPTR1(oc_dims, 2));
-    /* We take the mod here after subtracting to get
-       periodicity.  Subtraction here helps with the problem
-       of the edges of the grids hitting the edges of the domain */
-    cxe = (cxs + cdx - 1) % dw[0];
-    cye = (cys + cdy - 1) % dw[1];
-    cze = (czs + cdz - 1) % dw[2];
 
     //fprintf(stderr, "\nc1: %d %d %d %d %d %d\n", cxs, cxe, cys, cye, czs, cze);
     //fprintf(stderr,   "c2: %d %d %d %d %d %d\n", gxs, gxe, gys, gye, gzs, gze);
@@ -1017,13 +1016,14 @@ static PyObject *Py_FillRegion(PyObject *obj, PyObject *args)
                     ci = cxi - cxs;
                     cj = cyi - cys;
                     ck = czi - czs;
-                    for(ri=max(ci,0); ri < min(ci+refratio,cdx); ri++)
-                      for(rj=max(cj,0); rj < min(cj+refratio,cdy); rj++)
-                        for(rk=max(ck,0); rk < min(ck+refratio,cdz); rk++) {
+                    for(ri=ci; ri < ci+refratio; ri++)
+                      for(rj=cj; rj < cj+refratio; rj++)
+                        for(rk=ck; rk < ck+refratio; rk++) {
                           //fprintf(stderr, "(%d) Filling (%d %d %d) with (%d %d %d)\n",
                           //  refratio, ri,rj,rk,gxi-gxs,gyi-gys,gzi-gzs);
                           for(n=0;n<n_fields;n++){
-                            to_call(c_data[n], ri, rj, rk,
+                            to_call(c_data[n],
+                                (ri % dw[0]), (rj % dw[1]), (rk % dw[2]),
                                 g_data[n], gxi-gxs, gyi-gys, gzi-gzs);
                           }
                           total+=1;
