@@ -996,38 +996,42 @@ static PyObject *Py_FillRegion(PyObject *obj, PyObject *args)
     cxs = *(npy_int64 *) PyArray_GETPTR1(oc_start, 0);
     cys = *(npy_int64 *) PyArray_GETPTR1(oc_start, 1);
     czs = *(npy_int64 *) PyArray_GETPTR1(oc_start, 2);
-    cxe = (cxs + cdx - 1);
-    cye = (cys + cdy - 1);
-    cze = (czs + cdz - 1);
 
     /* cd[xyz] are the dimensions of the covering grid */
     cdx = (*(npy_int32 *) PyArray_GETPTR1(oc_dims, 0));
     cdy = (*(npy_int32 *) PyArray_GETPTR1(oc_dims, 1));
     cdz = (*(npy_int32 *) PyArray_GETPTR1(oc_dims, 2));
+    cxe = (cxs + cdx - 1);
+    cye = (cys + cdy - 1);
+    cze = (czs + cdz - 1);
 
-    //fprintf(stderr, "\nc1: %d %d %d %d %d %d\n", cxs, cxe, cys, cye, czs, cze);
-    //fprintf(stderr,   "c2: %d %d %d %d %d %d\n", gxs, gxe, gys, gye, gzs, gze);
-    for (gxi = gxs, cxi = gxs * refratio; (cxi<=cxe)&&(gxi<gxe); gxi++,cxi+=refratio) {
-      for (gyi = gys, cyi = gys * refratio; (cyi<=cye)&&(gyi<gye); gyi++,cyi+=refratio) {
-        for (gzi = gzs, czi = gzs * refratio; (czi<=cze)&&(gzi<gze); gzi++,czi+=refratio) {
-                // if it's the last level, do it always
-                // else check the child mask
-                if ((ll) || (*(npy_int32*)PyArray_GETPTR3(mask, gxi-gxs,gyi-gys,gzi-gzs) > 0)) {
-                    ci = cxi - cxs;
-                    cj = cyi - cys;
-                    ck = czi - czs;
-                    for(ri=ci; ri < ci+refratio; ri++)
-                      for(rj=cj; rj < cj+refratio; rj++)
-                        for(rk=ck; rk < ck+refratio; rk++) {
-                          //fprintf(stderr, "(%d) Filling (%d %d %d) with (%d %d %d)\n",
-                          //  refratio, ri,rj,rk,gxi-gxs,gyi-gys,gzi-gzs);
-                          for(n=0;n<n_fields;n++){
-                            to_call(c_data[n],
-                                (ri % dw[0]), (rj % dw[1]), (rk % dw[2]),
-                                g_data[n], gxi-gxs, gyi-gys, gzi-gzs);
-                          }
-                          total+=1;
-                        }
+    /* It turns out that C89 doesn't define a mechanism for choosing the sign
+       of the remainder.
+    */
+        //fprintf(stderr, "ci == %d, cxi == %d, dw[0] == %d\n", (int) ci, (int) cxi, (int) dw[0]);
+    for(cxi=cxs;cxi<=cxe;cxi++) {
+        ci = (cxi % dw[0]);
+        ci = (ci < 0) ? ci + dw[0] : ci;
+        if ( ci < gxs*refratio || ci >= gxe*refratio) continue;
+        gxi = floor(ci / refratio) - gxs;
+        for(cyi=cys;cyi<=cye;cyi++) {
+            cj = cyi % dw[1];
+            cj = (cj < 0) ? cj + dw[1] : cj;
+            if ( cj < gys*refratio || cj >= gye*refratio) continue;
+            gyi = floor(cj / refratio) - gys;
+            for(czi=czs;czi<=cze;czi++) {
+                ck = czi % dw[2];
+                ck = (ck < 0) ? ck + dw[2] : ck;
+                if ( ck < gzs*refratio || ck >= gze*refratio) continue;
+                gzi = floor(ck / refratio) - gzs;
+                    if ((ll) || (*(npy_int32*)PyArray_GETPTR3(mask, gxi,gyi,gzi) > 0)) 
+                {
+                for(n=0;n<n_fields;n++){
+                    to_call(c_data[n],
+                        cxi - cxs, cyi - cys, czi - czs,
+                        g_data[n], gxi, gyi, gzi);
+                }
+                total += 1;
                 }
             }
         }
