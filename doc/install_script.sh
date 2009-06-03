@@ -91,6 +91,13 @@ function host_specific
         echo "   $ module load mvapich-devel"
         echo
     fi
+    if [ "${MYHOST##honest}" != "${MYHOST}" ]
+    then
+        echo "Looks like you're on Abe."
+        echo "We're going to have to set some supplemental environment"
+		echo "variables to get this to work..."
+		MPL_SUPP_LDFLAGS="-L${DEST_DIR}/lib -L${DEST_DIR}/lib64 -L/usr/local/lib64 -L/usr/local/lib"
+    fi
 }
 
 
@@ -299,7 +306,14 @@ echo "Installing setuptools"
 ( ${DEST_DIR}/bin/python2.6 ${YT_DIR}/ez_setup.py 2>&1 ) 1>> ${LOG_FILE} || do_exit
 
 do_setup_py numpy-1.2.1 ${NUMPY_ARGS}
+
+if [ -n "${MPL_SUPP_LDFLAGS}" ]
+then
+    export LDFLAGS="${MPL_SUPP_LDFLAGS}"
+    echo "Setting LDFLAGS ${LDFLAGS}"
+fi
 do_setup_py matplotlib-0.98.5.2
+unset LDFLAGS
 do_setup_py ipython-0.9.1
 do_setup_py h5py-1.1.0
 
