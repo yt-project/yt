@@ -15,7 +15,8 @@
 # And, feel free to drop me a line: matthewturk@gmail.com
 #
 
-DEST_DIR="`pwd`/yt-`uname -p`"   # Installation location
+DEST_SUFFIX="yt-`uname -p`"
+DEST_DIR="`pwd`/${DEST_SUFFIX/ /}"   # Installation location
 
 # Here's where you put the HDF5 path if you like; otherwise it'll download it
 # and install it on its own
