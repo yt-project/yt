@@ -43,7 +43,7 @@ class StaticOutput(object):
             output_type_registry[name]=cls
             mylog.debug("Registering: %s as %s", name, cls)
 
-    def __new__(cls, filename, *args, **kwargs):
+    def __new__(cls, filename=None, *args, **kwargs):
         apath = os.path.abspath(filename)
         if not os.path.exists(apath): raise IOError(filename)
         if apath not in _cached_pfs:
@@ -393,6 +393,12 @@ output_type_registry[None] = EnzoStaticOutput
 
 class EnzoStaticOutputInMemory(EnzoStaticOutput):
     _hierarchy_class = EnzoHierarchyInMemory
+
+    def __new__(cls, *args, **kwargs):
+        obj = object.__new__(cls)
+        obj.__init__(*args, **kwargs)
+        return obj
+
     def __init__(self, parameter_override=None, conversion_override=None):
         if parameter_override is None: parameter_override = {}
         self.__parameter_override = parameter_override
@@ -401,8 +407,12 @@ class EnzoStaticOutputInMemory(EnzoStaticOutput):
 
         StaticOutput.__init__(self, "InMemoryParameterFile", 8)
 
+        self.field_info = self._fieldinfo_class()
+
     def _parse_parameter_file(self):
         import enzo
+        self.basename = "cycle%08i" % (
+            enzo.yt_parameter_file["NumberOfPythonCalls"])
         self.parameters['CurrentTimeIdentifier'] = time.time()
         self.parameters.update(enzo.yt_parameter_file)
         self.conversion_factors.update(enzo.conversion_factors)

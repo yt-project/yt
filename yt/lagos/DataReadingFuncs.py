@@ -161,7 +161,7 @@ def readDataSliceInMemory(self, grid, field, axis, coord):
     #sl = tuple(reversed(sl))
     sl = tuple(sl)
     bsl = (slice(3,-3), slice(3,-3), slice(3,-3))
-    return enzo.grid_data[grid.id][field][bsl][sl]#.swapaxes(0,2)
+    return enzo.grid_data[grid.id][field][bsl][sl].swapaxes(0,2)
 
 def getExceptionInMemory():
     return KeyError
@@ -288,11 +288,11 @@ class DataQueueInMemory(BaseDataQueue):
     def _read_set(self, grid, field):
         import enzo
         if grid.id not in self.grids_in_memory: raise KeyError
-        t1 = enzo.yt_parameter_file["InitialTime"]
-        t2 = enzo.hierarchy_information["GridOldTimes"][grid.id - 1]
+        return self.grids_in_memory[grid.id][field][self.my_slice]
         coef1 = max((grid.Time - t1)/(grid.Time - t2), 0.0)
         coef2 = 1.0 - coef1
-        return self.grids_in_memory[grid.id][field][self.my_slice]
+        t1 = enzo.yt_parameter_file["InitialTime"]
+        t2 = enzo.hierarchy_information["GridOldTimes"][grid.id]
         return (coef1*self.grids_in_memory[grid.id][field] + \
                 coef2*self.old_grids_in_memory[grid.id][field])\
                 [self.my_slice]
