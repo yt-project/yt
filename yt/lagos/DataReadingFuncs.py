@@ -156,12 +156,10 @@ def getFieldsInMemory(self):
 
 def readDataSliceInMemory(self, grid, field, axis, coord):
     import enzo
-    sl = [slice(None), slice(None), slice(None)]
-    sl[axis] = slice(coord, coord + 1)
-    #sl = tuple(reversed(sl))
-    sl = tuple(sl)
-    bsl = (slice(3,-3), slice(3,-3), slice(3,-3))
-    return enzo.grid_data[grid.id][field][bsl][sl].swapaxes(0,2)
+    sl = [slice(3,-3), slice(3,-3), slice(3,-3)]
+    sl[axis] = slice(coord + 3, coord + 4)
+    sl = tuple(reversed(sl))
+    return enzo.grid_data[grid.id][field][sl].swapaxes(0,2)
 
 def getExceptionInMemory():
     return KeyError
