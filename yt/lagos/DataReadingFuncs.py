@@ -286,7 +286,7 @@ class DataQueueInMemory(BaseDataQueue):
     def _read_set(self, grid, field):
         import enzo
         if grid.id not in self.grids_in_memory: raise KeyError
-        return self.grids_in_memory[grid.id][field][self.my_slice]
+        return self.grids_in_memory[grid.id][field].swapaxes(0,2)[self.my_slice]
         coef1 = max((grid.Time - t1)/(grid.Time - t2), 0.0)
         coef2 = 1.0 - coef1
         t1 = enzo.yt_parameter_file["InitialTime"]

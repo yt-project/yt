@@ -883,7 +883,7 @@ class AMRCuttingPlaneBase(AMR2DData):
         return na.where(k)
 
     def _gen_node_name(self):
-        cen_name = ("%s" % self.center).replace(" ","_")[1:-1]
+        cen_name = ("%s" % (self.center,)).replace(" ","_")[1:-1]
         L_name = ("%s" % self._norm_vec).replace(" ","_")[1:-1]
         return "%s/c%s_L%s" % \
             (self._top_node, cen_name, L_name)
