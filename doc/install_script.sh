@@ -15,7 +15,8 @@
 # And, feel free to drop me a line: matthewturk@gmail.com
 #
 
-DEST_DIR="`pwd`/yt-`uname -p`"   # Installation location
+DEST_SUFFIX="yt-`uname -p`"
+DEST_DIR="`pwd`/${DEST_SUFFIX/ /}"   # Installation location
 
 # Here's where you put the HDF5 path if you like; otherwise it'll download it
 # and install it on its own
@@ -58,9 +59,12 @@ function get_willwont
 
 function host_specific
 {
-    MYHOST=`hostname -s` # just give the short one, not FQDN
+    MYHOST=`hostname -s`  # just give the short one, not FQDN
+    MYHOSTLONG=`hostname` # FQDN, for Ranger
     if [ "${MYHOST##kraken}" != "${MYHOST}" ]
     then
+        echo "Looks like you're on Kraken."
+        echo
         echo "NOTE: YOU MUST BE IN THE GNU PROGRAMMING ENVIRONMENT"
         echo "   $ module swap PrgEnv-pgi PrgEnv-gnu"
         echo
@@ -68,11 +72,32 @@ function host_specific
     fi
     if [ "${MYHOST##verne}" != "${MYHOST}" ]
     then
+        echo "Looks like you're on Verne."
+        echo
         echo "NOTE: YOU MUST BE IN THE GNU PROGRAMMING ENVIRONMENT"
         echo "This command will take care of that for you:"
         echo
         echo "   $ module swap PE-pgi PE-gnu"
         echo
+    fi
+    if [ "${MYHOSTLONG%%ranger.tacc.utexas.edu}" != "${MYHOSTLONG}" ]
+    then
+        echo "Looks like you're on Ranger."
+        echo
+        echo "NOTE: YOU MUST BE IN THE GNU PROGRAMMING ENVIRONMENT"
+        echo "These commands should take care of that for you:"
+        echo
+        echo "   $ module unload mvapich-devel"
+        echo "   $ module swap pgi gcc"
+        echo "   $ module load mvapich-devel"
+        echo
+    fi
+    if [ "${MYHOST##honest}" != "${MYHOST}" ]
+    then
+        echo "Looks like you're on Abe."
+        echo "We're going to have to set some supplemental environment"
+		echo "variables to get this to work..."
+		MPL_SUPP_LDFLAGS="-L${DEST_DIR}/lib -L${DEST_DIR}/lib64 -L/usr/local/lib64 -L/usr/local/lib"
     fi
 }
 
@@ -286,7 +311,14 @@ echo "Installing setuptools"
 ( ${DEST_DIR}/bin/python2.6 ${YT_DIR}/ez_setup.py 2>&1 ) 1>> ${LOG_FILE} || do_exit
 
 do_setup_py numpy-1.2.1 ${NUMPY_ARGS}
+
+if [ -n "${MPL_SUPP_LDFLAGS}" ]
+then
+    export LDFLAGS="${MPL_SUPP_LDFLAGS}"
+    echo "Setting LDFLAGS ${LDFLAGS}"
+fi
 do_setup_py matplotlib-0.98.5.2
+unset LDFLAGS
 do_setup_py ipython-0.9.1
 do_setup_py h5py-1.1.0
 

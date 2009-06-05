@@ -982,12 +982,12 @@ class EnzoHierarchyInMemory(EnzoHierarchy):
         data = list(field_list)
         if MPI.COMM_WORLD.rank == 0:
             for i in range(1, MPI.COMM_WORLD.size):
-                data += MPI.COMM_WORLD.Recv(source=i, tag=0)
+                data += MPI.COMM_WORLD.recv(source=i, tag=0)
             data = list(set(data))
         else:
-            MPI.COMM_WORLD.Send(data, dest=0, tag=0)
+            MPI.COMM_WORLD.send(data, dest=0, tag=0)
         MPI.COMM_WORLD.Barrier()
-        return MPI.COMM_WORLD.Bcast(data, root=0)
+        return MPI.COMM_WORLD.bcast(data, root=0)
 
     def _populate_hierarchy(self):
         self._copy_hierarchy_structure()
@@ -1047,6 +1047,9 @@ class EnzoHierarchyInMemory(EnzoHierarchy):
         else:
             random_sample = na.mgrid[0:max(len(gg)-1,1)].astype("int32")
         return gg[(random_sample,)]
+
+    def save_data(self, *args, **kwargs):
+        pass
 
 class EnzoHierarchy1D(EnzoHierarchy):
     def __init__(self, *args, **kwargs):
