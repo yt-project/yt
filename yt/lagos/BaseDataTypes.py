@@ -528,9 +528,11 @@ class AMR2DData(AMRData, GridPropertiesMixin, ParallelAnalysisInterface):
                     continue # A "True" return means we did it
             # To ensure that we use data from this object as much as possible,
             # we're going to have to set the same thing several times
-            temp_data[field] = na.concatenate(
-                [self._get_data_from_grid(grid, field)
-                 for grid in self._get_grids()])
+            data = [self._get_data_from_grid(grid, field)
+                    for grid in self._get_grids()]
+            if len(data) == 0: data = None
+            else: data = na.concatenate(data)
+            temp_data[field] = data
             # Now the next field can use this field
             self[field] = temp_data[field] 
         # We finalize
@@ -675,7 +677,9 @@ class AMRSliceBase(AMR2DData):
         points = []
         for grid in self._get_grids():
             points.append(self._generate_grid_coords(grid))
-        t = self._mpi_catarray(na.concatenate(points))
+        if len(points) == 0: points = None
+        else: points = na.concatenate(points)
+        t = self._mpi_catarray(points)
         self['px'] = t[:,0]
         self['py'] = t[:,1]
         self['pz'] = t[:,2]
@@ -847,7 +851,9 @@ class AMRCuttingPlaneBase(AMR2DData):
         points = []
         for grid in self._get_grids():
             points.append(self._generate_grid_coords(grid))
-        t = self._mpi_catarray(na.concatenate(points))
+        if len(points) == 0: points = None
+        else: points = na.concatenate(points)
+        t = self._mpi_catarray(points)
         pos = (t[:,0:3] - self.center)
         self['px'] = na.dot(pos, self._x_vec)
         self['py'] = na.dot(pos, self._y_vec)
