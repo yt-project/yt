@@ -276,11 +276,11 @@ class ParallelAnalysisInterface(object):
                         MPI.COMM_WORLD.rank)
             if MPI.COMM_WORLD.rank == 0:
                 temp_data = []
+                if data[key] is not None: temp_data.append(data[key])
                 for i in range(1,np):
                     buf = _recv_array(source=i, tag=0)
                     if buf is not None: temp_data.append(buf)
-                    del buf
-                data[key] = na.concatenate([data[key]] + temp_data, axis=-1)
+                data[key] = na.concatenate(temp_data, axis=-1)
             else:
                 _send_array(data[key], dest=0, tag=0)
             self._barrier()
