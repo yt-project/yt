@@ -1,0 +1,84 @@
+#!python
+
+from yt.mods import *
+import os
+namespace = locals().copy()
+
+doc = """\
+
+Welcome to Enzo-embedded yt!
+
+The different processors are accessible via the 'mec' variable.  To get grid
+data, try using the get_grid_field function.  When done, be sure to kill the
+processes with 'mec.kill()'!
+
+Information about the mec variable, an instance of MultiEngineClient, can be
+found in the IPython documentation:
+
+http://ipython.scipy.org/doc/manual/html/parallel/parallel_multiengine.html
+
+You can use the '%px' command to issue commands on all the engines
+simultaneously.
+
+"""
+
+import IPython.Shell
+
+if "DISPLAY" in os.environ:
+    try:
+        ip_shell = IPython.Shell.IPShellMatplotlibWX(user_ns=namespace)
+    except ImportError:
+        ip_shell = IPython.Shell.IPShellMatplotlib(user_ns=namespace)
+else:
+    ip_shell = IPython.Shell.IPShellMatplotlib(user_ns=namespace)
+
+ip = ip_shell.IP.getapi()
+
+import os   
+import glob
+import itertools
+
+ip = ip_shell.IP.getapi()
+ip.ex("from yt.mods import *")
+from IPython.kernel import client
+mec = client.MultiEngineClient()
+mec.activate()
+
+# there are some blocks in hierarchy instantiation, so
+# we pre-instantiate
+mec.execute("pf.h") 
+
+def mec_eval(varname, targets = None):
+    """
+    This function pulls anything from the remote host, but it will overwrite
+    any variable named __tmp.  This is to get around nested variables and
+    properties on the remote host.
+    """
+    mec.execute("__tmp = %s" % varname, targets=targets)
+    result = mec.pull("__tmp", targets=targets)
+    return result
+
+hierarchy_information = mec_eval("enzo.hierarchy_information", [0])[0]
+
+def get_grid_field(grid_index, field_name, raw=False):
+    """
+    Return the numpy array representing a piece of field information.
+    Note that *grid_index* is the actual index into the array, which is ID-1.
+
+    If *raw* is set to True, then only raw original fields from the hierarchy
+    are returned.  This will include ghost zones, and derived fields are
+    inaccessible.
+    """
+    proc = int(hierarchy_information["GridProcs"][grid_index])
+    if not raw: # go through yt
+        result = mec_eval("pf.h.grids[%s]['%s']" % (
+                    grid_index, field_name), [proc])[0]
+    else: # go through enzo module
+        result = mec_eval("enzo.grid_data[%s + 1]['%s']" % (
+                    grid_index, field_name), [proc])[0]
+    return result
+
+ip.to_user_ns(dict(mec=mec,
+                   get_grid_field = get_grid_field,
+                   mec_eval=mec_eval))
+ip_shell.mainloop(sys_exit=1,banner=doc)
