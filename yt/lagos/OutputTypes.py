@@ -393,6 +393,7 @@ output_type_registry[None] = EnzoStaticOutput
 
 class EnzoStaticOutputInMemory(EnzoStaticOutput):
     _hierarchy_class = EnzoHierarchyInMemory
+    _data_style = 8
 
     def __new__(cls, *args, **kwargs):
         obj = object.__new__(cls)
@@ -405,12 +406,12 @@ class EnzoStaticOutputInMemory(EnzoStaticOutput):
         if conversion_override is None: conversion_override = {}
         self.__conversion_override = conversion_override
 
-        StaticOutput.__init__(self, "InMemoryParameterFile", 8)
+        StaticOutput.__init__(self, "InMemoryParameterFile", self._data_style)
 
         self.field_info = self._fieldinfo_class()
 
     def _parse_parameter_file(self):
-        import enzo
+        enzo = self._obtain_enzo()
         self.basename = "cycle%08i" % (
             enzo.yt_parameter_file["NumberOfPythonCalls"])
         self.parameters['CurrentTimeIdentifier'] = time.time()
@@ -426,6 +427,9 @@ class EnzoStaticOutputInMemory(EnzoStaticOutput):
             self.parameters[p] = v
         for p, v in self.__conversion_override.items():
             self.conversion_factors[p] = v
+
+    def _obtain_enzo(self):
+        import enzo; return enzo
 
     @classmethod
     def _is_valid(cls, *args, **kwargs):

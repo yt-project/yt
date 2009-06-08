@@ -58,7 +58,13 @@ def mec_eval(varname, targets = None):
     result = mec.pull("__tmp", targets=targets)
     return result
 
-hierarchy_information = mec_eval("enzo.hierarchy_information", [0])[0]
+class enzo_module_proxy(object):
+    pass
+
+enzo = enzo_module_proxy()
+enzo.hierarchy_information = mec_eval("enzo.hierarchy_information", [0])[0]
+enzo.conversion_factors = mec_eval("enzo.conversion_factors", [0])[0]
+enzo.yt_parameter_file = mec_eval("enzo.yt_parameter_file", [0])[0]
 
 def get_grid_field(grid_index, field_name, raw=False):
     """
@@ -69,16 +75,63 @@ def get_grid_field(grid_index, field_name, raw=False):
     are returned.  This will include ghost zones, and derived fields are
     inaccessible.
     """
-    proc = int(hierarchy_information["GridProcs"][grid_index])
+    proc = int(enzo.hierarchy_information["GridProcs"][grid_index])
     if not raw: # go through yt
         result = mec_eval("pf.h.grids[%s]['%s']" % (
                     grid_index, field_name), [proc])[0]
     else: # go through enzo module
         result = mec_eval("enzo.grid_data[%s + 1]['%s']" % (
-                    grid_index, field_name), [proc])[0]
+                    grid_index, field_name), [proc])[0].swapaxes(0,2)
     return result
+
+from yt.lagos import EnzoStaticOutputInMemory, EnzoHierarchyInMemory
+from yt.lagos.HierarchyType import _data_style_funcs
+from yt.lagos.DataReadingFuncs import BaseDataQueue
+
+class EnzoHierarchyProxy(EnzoHierarchyInMemory):
+    _data_style = 'proxy'
+    def _setup_field_lists(self):
+        self.field_list = mec_eval("pf.h.field_list", [0])[0]
+
+    def _obtain_enzo(self):
+        return enzo
+
+class EnzoStaticOutputProxy(EnzoStaticOutputInMemory):
+    _data_style = 'proxy'
+    _hierarchy_class = EnzoHierarchyProxy
+    def _obtain_enzo(self):
+        return enzo
+
+def _read_proxy_slice(self, grid, field, axis, coord):
+    data = get_grid_field(grid.id - 1, field, raw=True)
+    sl = [slice(3,-3), slice(3,-3), slice(3,-3)]
+    sl[axis] = slice(coord + 3, coord + 4)
+    sl = tuple(reversed(sl))
+    return data[sl].swapaxes(0,2)
+
+class DataQueueProxy(BaseDataQueue):
+    def __init__(self, ghost_zones = 3):
+        self.my_slice = (slice(ghost_zones, -ghost_zones),
+                         slice(ghost_zones, -ghost_zones),
+                         slice(ghost_zones, -ghost_zones))
+        BaseDataQueue.__init__(self)
+
+    def _read_set(self, grid, field):
+        data = get_grid_field(grid.id - 1, field, raw=True)
+        return data[self.my_slice]
+
+    def modify(self, field):
+        return field.swapaxes(0,2)
+
+def proxy_exception(*args, **kwargs):
+    return KeyError
+
+_data_style_funcs['proxy'] = \
+    (None, None, None, _read_proxy_slice, proxy_exception, DataQueueProxy)
 
 ip.to_user_ns(dict(mec=mec,
                    get_grid_field = get_grid_field,
-                   mec_eval=mec_eval))
+                   mec_eval=mec_eval,
+                   pf = EnzoStaticOutputProxy(),
+                    ))
 ip_shell.mainloop(sys_exit=1,banner=doc)

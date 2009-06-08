@@ -175,6 +175,7 @@ class AMRHierarchy:
         self._data_file.flush()
 
     def _reload_data_file(self, *args, **kwargs):
+        if self._data_file is None: return
         self._data_file.close()
         del self._data_file
         self._data_file = h5py.File(self.__data_filename, self._data_mode)
@@ -962,8 +963,13 @@ class EnzoHierarchy(AMRHierarchy):
         return self.grids[(random_sample,)]
 
 class EnzoHierarchyInMemory(EnzoHierarchy):
-    def __init__(self, pf, data_style = 8):
-        import enzo
+    _data_style = 8
+    def _obtain_enzo(self):
+        import enzo; return enzo
+
+    def __init__(self, pf, data_style = None):
+        if data_style is None: data_style = self._data_style
+        enzo = self._obtain_enzo()
         self.float_type = 'float64'
         self.data_style = data_style # Mandated
         self.directory = os.getcwd()
@@ -989,7 +995,7 @@ class EnzoHierarchyInMemory(EnzoHierarchy):
 
     def _populate_hierarchy(self):
         self._copy_hierarchy_structure()
-        import enzo
+        enzo = self._obtain_enzo()
         mylog.debug("Copying reverse tree")
         self.gridReverseTree = enzo.hierarchy_information["GridParentIDs"].ravel().tolist()
         # Initial setup:
@@ -1024,7 +1030,7 @@ class EnzoHierarchyInMemory(EnzoHierarchy):
         mylog.debug("Hierarchy fully populated.")
 
     def _copy_hierarchy_structure(self):
-        import enzo
+        enzo = self._obtain_enzo()
         self.gridDimensions[:] = enzo.hierarchy_information["GridDimensions"][:]
         self.gridStartIndices[:] = enzo.hierarchy_information["GridStartIndices"][:]
         self.gridEndIndices[:] = enzo.hierarchy_information["GridEndIndices"][:]
