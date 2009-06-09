@@ -968,6 +968,7 @@ class EnzoHierarchyInMemory(EnzoHierarchy):
         import enzo; return enzo
 
     def __init__(self, pf, data_style = None):
+        self.parameter_file = weakref.proxy(pf) # for _obtain_enzo
         if data_style is None: data_style = self._data_style
         enzo = self._obtain_enzo()
         self.float_type = 'float64'
