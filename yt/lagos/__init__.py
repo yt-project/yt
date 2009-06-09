@@ -37,9 +37,10 @@ except:
 
 import warnings
 try:
-     import h5py
+    import h5py
 except ImportError:
-    mylog.warning("No h5py. Data serialization will fail.")
+    ytcfg["lagos", "serialization"] = "False"
+    mylog.warning("No h5py. Data serialization disabled.")
 
 from yt.arraytypes import *
 import weakref
