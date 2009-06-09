@@ -1,5 +1,5 @@
 #!python
-
+import os
 from yt.mods import *
 namespace = locals().copy()
 
