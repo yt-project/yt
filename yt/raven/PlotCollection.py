@@ -50,7 +50,7 @@ class PlotCollection(object):
         if center == None:
             v,self.c = pf.h.find_max("Density") # @todo: ensure no caching
         else:
-            self.c = center
+            self.c = na.array(center, dtype='float64')
         if deliverator_id > 0:
             self.submit = True
             self._run_id = deliverator_id
@@ -412,6 +412,7 @@ class PlotCollection(object):
             del self.plots[-1].data
             del self.plots[-1]
 
+    @rootonly
     def save_book(self, filename):
         from pyPdf import PdfFileWriter, PdfFileReader
         outfile = PdfFileWriter()
