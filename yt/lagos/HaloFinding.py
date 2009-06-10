@@ -321,7 +321,7 @@ class FOFHaloList(HaloList):
         HaloList.write_out(self, filename)
 
 class GenericHaloFinder(ParallelAnalysisInterface):
-    def __init__(self, pf, dm_only=True, padding=0.2):
+    def __init__(self, pf, dm_only=True, padding=0.02):
         self.pf = pf
         self.hierarchy = pf.h
         self.center = (pf["DomainRightEdge"] + pf["DomainLeftEdge"])/2.0
@@ -415,7 +415,7 @@ class GenericHaloFinder(ParallelAnalysisInterface):
             halo.write_particle_list(f)
 
 class HOPHaloFinder(GenericHaloFinder, HOPHaloList):
-    def __init__(self, pf, threshold=160, dm_only=True, padding=0.2):
+    def __init__(self, pf, threshold=160, dm_only=True, padding=0.02):
         GenericHaloFinder.__init__(self, pf, dm_only, padding)
         
         # do it once with no padding so the total_mass is correct (no duplicated particles)
@@ -438,7 +438,7 @@ class HOPHaloFinder(GenericHaloFinder, HOPHaloList):
         self._join_halolists()
 
 class FOFHaloFinder(GenericHaloFinder, FOFHaloList):
-    def __init__(self, pf, link=0.2, dm_only=True, padding=0.2):
+    def __init__(self, pf, link=0.2, dm_only=True, padding=0.02):
         self.pf = pf
         self.hierarchy = pf.h
         self.center = (pf["DomainRightEdge"] + pf["DomainLeftEdge"])/2.0
