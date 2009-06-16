@@ -153,7 +153,7 @@ class HaloProfiler(lagos.ParallelAnalysisInterface):
 
                 profile = lagos.BinnedProfile1D(sphere,self.haloProfilerParameters['n_bins'],"RadiusMpc",
                                                 r_min,halo['r_max'],
-                                                log_space=True, lazy_reader=False)
+                                                log_space=True, lazy_reader=True)
                 for field in self.profileFields.keys():
                     profile.add_fields(field,weight=self.profileFields[field][0],
                                        accumulation=self.profileFields[field][1])
@@ -281,7 +281,7 @@ class HaloProfiler(lagos.ParallelAnalysisInterface):
                         frb = raven.FixedResolutionBuffer(pc.plots[e].data,(proj_left[0],proj_right[0],proj_left[1],proj_right[1]),
                                                           (projectionResolution,projectionResolution),
                                                           antialias=False)
-                        output.create_dataset("/%s" % field,data=frb[field])
+                        output.create_dataset("/%s_%s" % (field,self.projectionFields[field]),data=frb[field])
                     output.close()
 
                 if save_images:
@@ -314,7 +314,7 @@ class HaloProfiler(lagos.ParallelAnalysisInterface):
 
         rho_crit_now = 1.8788e-29 * self.pf['CosmologyHubbleConstantNow']**2.0 # g cm^-3
         Msun2g = 1.989e33
-        rho_crit = rho_crit_now * ((1 + self.pf['CosmologyCurrentRedshift'])**3.0)
+        rho_crit = rho_crit_now * ((1.0 + self.pf['CosmologyCurrentRedshift'])**3.0)
 
         profile['ActualOverdensity'] = (Msun2g * profile['TotalMassMsun']) / \
             profile['CellVolume'] / rho_crit
