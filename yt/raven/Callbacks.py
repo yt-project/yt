@@ -862,3 +862,16 @@ class NewParticleCallback(PlotCallback):
         region = data.pf.h.periodic_region(
             data.center, LE, RE)
         return region
+
+class TitleCallback(PlotCallback):
+    _type_name = "title"
+    def __init__(self, title="Plot"):
+        """
+        Accepts a *title* and adds it to the plot
+        """
+        PlotCallback.__init__(self)
+        self.title = title
+
+    def __call__(self,plot):
+        plot._axes.set_title(self.title)
+
