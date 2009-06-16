@@ -1,5 +1,8 @@
 import yt.lagos as lagos
+from yt.logger import lagosLogger as mylog
 import numpy as na
+
+dt_Tolerance = 1e-3
 
 class EnzoSimulation(object):
     """
@@ -86,10 +89,9 @@ class EnzoSimulation(object):
                 final_time = ec.ComputeTimeFromRedshift(self.FinalRedshift) / ec.TimeUnits
 
         index = 0
-        t_Tolerance = 1e-3
         current_time = initial_time
-        while ((current_time <= final_time) and 
-               (na.fabs(current_time - final_time) > t_Tolerance)):
+        while (current_time <= final_time) or \
+                (abs(final_time - current_time) / final_time) < dt_Tolerance:
             filename = "%s/%s%04d/%s%04d" % (self.enzoParameters['GlobalDir'],
                                              self.enzoParameters['DataDumpDir'],index,
                                              self.enzoParameters['DataDumpName'],index)
@@ -105,7 +107,7 @@ class EnzoSimulation(object):
     def _CombineDataOutputs(self):
         "Combines redshift and time data into one sorted list."
         self.allOutputs = self.redshiftOutputs + self.timeOutputs
-        self.allOutputs.sort(reverse=True,key=lambda obj:obj['redshift'])
+        self.allOutputs.sort(key=lambda obj:obj['time'])
         start_index = None
         end_index = None
         for q in range(len(self.allOutputs)):
@@ -181,7 +183,7 @@ class EnzoSimulation(object):
 
     def _SetParameterDefaults(self):
         "Set some default parameters to avoid problems if they are not in the parameter file."
-        self.enzoParameters['GlobalDir'] = ""
+        self.enzoParameters['GlobalDir'] = "."
         self.enzoParameters['RedshiftDumpName'] = "RD"
         self.enzoParameters['RedshiftDumpDir'] = "RD"
         self.enzoParameters['DataDumpName'] = "DD"
