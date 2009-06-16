@@ -26,7 +26,7 @@ License:
 from yt.raven import *
 
 import _MPL
-
+import copy
 class FixedResolutionBuffer(object):
     def __init__(self, data_source, bounds, buff_size, antialias = True):
         """
@@ -92,10 +92,18 @@ class FixedResolutionBuffer(object):
         provided by STSci to interface with FITS-format files.
         """
         import pyfits
+        extra_fields = ['x','y','z','px','py','pz','pdx','pdy','pdz','weight_field']
         if filename_prefix.endswith('.fits'): filename_prefix=filename_prefix[:-5]
-        if fields is None: fields = self.data.keys()
+        if fields is None: 
+            fields = copy.deepcopy(self.data_source.fields)
+            for extra_field in extra_fields:
+                if self.data_source.has_key(extra_field):fields.remove(extra_field)
         for field in fields:
             hdu = pyfits.PrimaryHDU(self[field])
+            if self.data_source.has_key('weight_field'):
+                weightname = self.data_source._weight
+                if weightname is None: weightname = 'None'
+                field = field +'_'+weightname
             hdu.writeto("%s_%s.fits" % (filename_prefix, field))
 
     def open_in_ds9(self, field, take_log=True):
