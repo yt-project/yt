@@ -38,7 +38,7 @@ add_field = add_enzo_field
 _speciesList = ["HI","HII","Electron",
                "HeI","HeII","HeIII",
                "H2I","H2II","HM",
-               "DI","DII","HDI","Metal"]
+               "DI","DII","HDI","Metal","PreShock"]
 def _SpeciesFraction(field, data):
     sp = field.name.split("_")[0] + "_Density"
     return data[sp]/data["Density"]
