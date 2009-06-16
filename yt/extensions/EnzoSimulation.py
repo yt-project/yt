@@ -6,7 +6,8 @@ class EnzoSimulation(object):
     Super class for performing the same operation over all data dumps in 
     a simulation from one redshift to another.
     """
-    def __init__(self,EnzoParameterFile,initial_time=None,final_time=None,initial_redshift=None,final_redshift=None):
+    def __init__(self,EnzoParameterFile,initial_time=None,final_time=None,initial_redshift=None,final_redshift=None,
+                 links=False):
         self.EnzoParameterFile = EnzoParameterFile
         self.enzoParameters = {}
         self.redshiftOutputs = []
@@ -16,6 +17,7 @@ class EnzoSimulation(object):
         self.FinalTime = final_time
         self.InitialRedshift = initial_redshift
         self.FinalRedshift = final_redshift
+        self.links = links
 
         # Set some parameter defaults.
         self._SetParameterDefaults()
@@ -127,15 +129,16 @@ class EnzoSimulation(object):
                     elif self.allOutputs[q]['time'] == self.FinalTime:
                         end_index = q
 
-#             if (q == 0):
-#                 self.allOutputs[q]['previous'] = None
-#                 self.allOutputs[q]['next'] = self.allOutputs[q+1]
-#             elif (q == len(self.allOutputs) - 1):
-#                 self.allOutputs[q]['previous'] = self.allOutputs[q-1]                
-#                 self.allOutputs[q]['next'] = None
-#             else:
-#                 self.allOutputs[q]['previous'] = self.allOutputs[q-1]
-#                 self.allOutputs[q]['next'] = self.allOutputs[q+1]
+            if self.links and start_index is not None:
+                if q == start_index:
+                    self.allOutputs[q]['previous'] = None
+                    self.allOutputs[q]['next'] = self.allOutputs[q+1]
+                elif q == end_index:
+                    self.allOutputs[q]['previous'] = self.allOutputs[q-1]                
+                    self.allOutputs[q]['next'] = None
+                elif end_index is None:
+                    self.allOutputs[q]['previous'] = self.allOutputs[q-1]
+                    self.allOutputs[q]['next'] = self.allOutputs[q+1]
 
         del self.redshiftOutputs
         del self.timeOutputs
@@ -158,7 +161,6 @@ class EnzoSimulation(object):
                 param = param.strip()
                 vals = vals.strip()
             except ValueError:
-                if self.verbose: mylog.error("Skipping line: %s" % line)
                 continue
             if EnzoParameterDict.has_key(param):
                 t = map(EnzoParameterDict[param], vals.split())
