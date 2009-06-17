@@ -32,6 +32,9 @@ try:
 except ImportError:
     pass
 
+from kd import *
+import math
+
 class Halo(object):
     """
     A data source that returns particle information about the members of a
@@ -238,6 +241,76 @@ class HaloList(object):
 
     def __getitem__(self, key):
         return self._groups[key]
+
+    def nearest_neighbors_3D(self, haloID, num_neighbors=7, search_radius=.2):
+        """
+        for halo *haloID*, find up to *num_neighbors* nearest neighbors in 3D
+        using the kd tree. Search over *search_radius* in code units.
+        Returns a list of the neighbors distances and ID with format
+        [distance,haloID].
+        """
+        period = self.pf['DomainRightEdge'] - self.pf['DomainLeftEdge']
+        # Initialize the dataset of points from all the haloes
+        dataset = []
+        for group in self:
+            p = Point()
+            p.data = group.center_of_mass().tolist()
+            p.haloID = group.id
+            dataset.append(p)
+        mylog.info('Building kd tree...')
+        kd = buildKdHyperRectTree(dataset[:],2*num_neighbors)
+        # make the neighbors object
+        neighbors = Neighbors()
+        neighbors.k = num_neighbors
+        neighbors.points = []
+        neighbors.minDistanceSquared = search_radius * search_radius
+        mylog.info('Finding nearest neighbors...')
+        getKNN(self[haloID].center_of_mass().tolist(), kd, neighbors,0., period.tolist())
+        # convert the data in order to return something less perverse than a
+        # Neighbors object, also root the distances
+        n_points = []
+        for n in neighbors.points:
+            n_points.append([math.sqrt(n[0]),n[1].haloID])
+        return n_points
+
+    def nearest_neighbors_2D(self, haloID, num_neighbors=7, search_radius=.2,
+        proj_dim=0):
+        """
+        for halo *haloID*, find up to *num_neighbors* nearest neighbors in 2D
+        using the kd tree. Search over *search_radius* in code units.
+        The halo positions are projected along dimension *proj_dim*.
+        Returns a list of the neighbors distances and ID with format
+        [distance,haloID].
+        """
+        # Set up a vector to multiply other vectors by to project along proj_dim
+        vec = na.array([1.,1.,1.])
+        vec[proj_dim] = 0.
+        period = self.pf['DomainRightEdge'] - self.pf['DomainLeftEdge']
+        period = period * vec
+        # Initialize the dataset of points from all the haloes
+        dataset = []
+        for group in self:
+            p = Point()
+            cm = group.center_of_mass() * vec
+            p.data = cm.tolist()
+            p.haloID = group.id
+            dataset.append(p)
+        mylog.info('Building kd tree...')
+        kd = buildKdHyperRectTree(dataset[:],2*num_neighbors)
+        # make the neighbors object
+        neighbors = Neighbors()
+        neighbors.k = num_neighbors
+        neighbors.points = []
+        neighbors.minDistanceSquared = search_radius * search_radius
+        mylog.info('Finding nearest neighbors...')
+        cm = self[haloID].center_of_mass() * vec
+        getKNN(cm.tolist(), kd, neighbors,0., period.tolist())
+        # convert the data in order to return something less perverse than a
+        # Neighbors object, also root the distances
+        n_points = []
+        for n in neighbors.points:
+            n_points.append([math.sqrt(n[0]),n[1].haloID])
+        return n_points
 
     def write_out(self, filename):
         """
