@@ -759,6 +759,13 @@ class AMRSliceBase(AMR2DData):
         return "%s/%s_%s" % \
             (self._top_node, self.axis, self.coord)
 
+    def __get_quantities(self):
+        if self.__quantities is None:
+            self.__quantities = DerivedQuantityCollection(self)
+        return self.__quantities
+    __quantities = None
+    quantities = property(__get_quantities)
+
 class AMRCuttingPlaneBase(AMR2DData):
     """
     AMRCuttingPlane is an oblique plane through the data,
