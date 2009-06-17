@@ -48,6 +48,27 @@ class EnzoSimulation(object):
                 mylog.error("Couldn't find parameter for final time or redshift from parameter file.")
                 return None
 
+        # Convert initial/final redshifts to times.
+        if self.enzoParameters['ComovingCoordinates']:
+            self.cosmology = lagos.EnzoCosmology(HubbleConstantNow = 
+                                                 (100.0 * self.enzoParameters['CosmologyHubbleConstantNow']),
+                                                 OmegaMatterNow = self.enzoParameters['CosmologyOmegaMatterNow'],
+                                                 OmegaLambdaNow = self.enzoParameters['CosmologyOmegaLambdaNow'],
+                                                 InitialRedshift = self.enzoParameters['CosmologyInitialRedshift'])
+            if self.InitialRedshift is not None:
+                self.InitialTime = self.cosmology.ComputeTimeFromRedshift(self.InitialRedshift) / self.cosmology.TimeUnits
+            if self.FinalRedshift is not None:
+                self.FinalTime = self.cosmology.ComputeTimeFromRedshift(self.FinalRedshift) / self.cosmology.TimeUnits
+
+        # Get initial time of simulation.
+        if self.enzoParameters['ComovingCoordinates'] and \
+                self.enzoParameters.has_key('CosmologyInitialRedshift'):
+            self.SimulationInitialTime = self.cosmology.InitialTime / self.cosmology.TimeUnits
+        elif self.enzoParameters.has_key('InitialTime'):
+            self.SimulationInitialTime = self.enzoParameters['InitialTime']
+        else:
+            self.SimulationInitialTime = 0.0
+
         # Calculate redshifts for dt data dumps.
         if self.enzoParameters.has_key('dtDataDump'):
             self._CalculateTimeDumps()
@@ -62,44 +83,24 @@ class EnzoSimulation(object):
     def _CalculateRedshiftDumpTimes(self):
         "Calculates time from redshift of redshift dumps."
 
-        ec = lagos.EnzoCosmology(HubbleConstantNow = \
-                                     (100.0 * self.enzoParameters['CosmologyHubbleConstantNow']),
-                                 OmegaMatterNow = self.enzoParameters['CosmologyOmegaMatterNow'],
-                                 OmegaLambdaNow = self.enzoParameters['CosmologyOmegaLambdaNow'],
-                                 InitialRedshift = self.enzoParameters['CosmologyInitialRedshift'])
-
         for output in self.redshiftOutputs:
-            output['time'] = ec.ComputeTimeFromRedshift(output['redshift']) / ec.TimeUnits
+            output['time'] = self.cosmology.ComputeTimeFromRedshift(output['redshift']) / self.cosmology.TimeUnits
 
     def _CalculateTimeDumps(self):
         "Calculates time dumps and their redshifts if cosmological."
 
-        initial_time = self.InitialTime
-        final_time = self.FinalTime
-
-        if self.enzoParameters['ComovingCoordinates']:
-            ec = lagos.EnzoCosmology(HubbleConstantNow = \
-                                         (100.0 * self.enzoParameters['CosmologyHubbleConstantNow']),
-                                     OmegaMatterNow = self.enzoParameters['CosmologyOmegaMatterNow'],
-                                     OmegaLambdaNow = self.enzoParameters['CosmologyOmegaLambdaNow'],
-                                     InitialRedshift = self.enzoParameters['CosmologyInitialRedshift'])
-            if initial_time is None:
-                initial_time = ec.ComputeTimeFromRedshift(self.InitialRedshift) / ec.TimeUnits
-            if final_time is None:
-                final_time = ec.ComputeTimeFromRedshift(self.FinalRedshift) / ec.TimeUnits
-
         index = 0
-        current_time = initial_time
-        while (current_time <= final_time) or \
-                (abs(final_time - current_time) / final_time) < dt_Tolerance:
+        current_time = self.SimulationInitialTime
+        while (current_time <= self.FinalTime) or \
+                (abs(self.FinalTime - current_time) / self.FinalTime) < dt_Tolerance:
             filename = "%s/%s%04d/%s%04d" % (self.enzoParameters['GlobalDir'],
                                              self.enzoParameters['DataDumpDir'],index,
                                              self.enzoParameters['DataDumpName'],index)
                                              
             self.timeOutputs.append({'index':index,'filename':filename,'time':current_time})
             if self.enzoParameters['ComovingCoordinates']:
-                t = ec.InitialTime + (self.enzoParameters['dtDataDump'] * ec.TimeUnits * index)
-                self.timeOutputs[-1]['redshift'] = ec.ComputeRedshiftFromTime(t)
+                t = self.cosmology.InitialTime + (self.enzoParameters['dtDataDump'] * self.cosmology.TimeUnits * index)
+                self.timeOutputs[-1]['redshift'] = self.cosmology.ComputeRedshiftFromTime(t)
 
             current_time += self.enzoParameters['dtDataDump']
             index += 1
@@ -108,28 +109,24 @@ class EnzoSimulation(object):
         "Combines redshift and time data into one sorted list."
         self.allOutputs = self.redshiftOutputs + self.timeOutputs
         self.allOutputs.sort(key=lambda obj:obj['time'])
+
         start_index = None
         end_index = None
         for q in range(len(self.allOutputs)):
             del self.allOutputs[q]['index']
-            # set beginning and end indices from redshift limits
+
             if start_index is None:
-                if self.InitialRedshift is not None and \
-                        self.allOutputs[q]['redshift'] <= self.InitialRedshift:
+                if self.allOutputs[q]['time'] >= self.InitialTime or \
+                        abs(self.allOutputs[q]['time'] - self.InitialTime) < \
+                        self.allOutputs[q]['time'] * dt_Tolerance:
                     start_index = q
-                else:
-                    self.allOutputs[q]['time'] >= self.InitialTime
+
             if end_index is None:
-                if self.FinalRedshift is not None:
-                    if self.allOutputs[q]['redshift'] < self.FinalRedshift:
-                        end_index = q - 1
-                    elif self.allOutputs[q]['redshift'] == self.FinalRedshift:
-                        end_index = q
-                else:
-                    if self.allOutputs[q]['time'] > self.FinalTime:
-                        end_index = q - 1
-                    elif self.allOutputs[q]['time'] == self.FinalTime:
-                        end_index = q
+                if self.allOutputs[q]['time'] > self.FinalTime:
+                    end_index = q - 1
+                if abs(self.allOutputs[q]['time'] - self.FinalTime) < \
+                        self.allOutputs[q]['time'] * dt_Tolerance:
+                    end_index = q
 
             if self.links and start_index is not None:
                 if q == start_index:
@@ -144,6 +141,7 @@ class EnzoSimulation(object):
 
         del self.redshiftOutputs
         del self.timeOutputs
+
         if end_index is None:
             end_index = len(self.allOutputs)-1
 
@@ -190,9 +188,7 @@ class EnzoSimulation(object):
         self.enzoParameters['DataDumpDir'] = "DD"
         self.enzoParameters['ComovingCoordinates'] = 0
 
-EnzoParameterDict = {"CosmologyCurrentRedshift": float,
-                     "CosmologyComovingBoxSize": float,
-                     "CosmologyOmegaMatterNow": float,
+EnzoParameterDict = {"CosmologyOmegaMatterNow": float,
                      "CosmologyOmegaLambdaNow": float,
                      "CosmologyHubbleConstantNow": float,
                      "CosmologyInitialRedshift": float,
