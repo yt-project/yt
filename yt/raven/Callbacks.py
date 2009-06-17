@@ -814,12 +814,19 @@ class NewParticleCallback(PlotCallback):
     _type_name = "nparticles"
     region = None
     _descriptor = None
-    def __init__(self, width, p_size=1.0, col='k', stride=1.0):
+    def __init__(self, width, p_size=1.0, col='k', stride=1.0, ptype=None):
+        """
+        Adds particle positions, based on a thick slab along *axis* with a
+        *width* along the line of sight.  *p_size* controls the number of
+        pixels per particle, and *col* governs the color.  *ptype* will
+        restrict plotted particles to only those that are of a given type.
+        """
         PlotCallback.__init__(self)
         self.width = width
         self.p_size = p_size
         self.color = col
         self.stride = stride
+        self.ptype = ptype
 
     def __call__(self, plot):
         data = plot.data
@@ -835,6 +842,8 @@ class NewParticleCallback(PlotCallback):
         gg = ( ( reg[field_x] >= x0 ) & ( reg[field_x] <= x1 )
            &   ( reg[field_y] >= y0 ) & ( reg[field_y] <= y1 ) )
         print gg, reg[field_x][gg].size
+        if self.ptype is not None:
+            gg &= (reg["particle_type"] == self.ptype)
         plot._axes.hold(True)
         px, py = self.convert_to_pixels(plot,
                     [reg[field_x][gg][::self.stride],
