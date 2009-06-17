@@ -360,7 +360,7 @@ class VMPlotPage(PlotPage):
         self.circles = []
 
         if ytcfg.getboolean("reason","centeronmax"):
-            self.center = outputfile.hierarchy.findMax("Density")[1]
+            self.center = outputfile.hierarchy.find_max("Density")[1]
 
         PlotPage.__init__(self, parent, status_bar, mw, CreationID, parent_id)
         self.SetBackgroundColour(wx.NamedColor("WHITE"))
@@ -457,7 +457,7 @@ class VMPlotPage(PlotPage):
         self.UpdateWidth()
 
     def OnCenterOnMax(self, event):
-        v, c = self.outputfile.h.findMax("Density")
+        v, c = self.outputfile.h.find_max("Density")
         Publisher().sendMessage(('viewchange','center'), c)
         self.UpdateWidth()
 
