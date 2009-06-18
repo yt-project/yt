@@ -153,7 +153,7 @@ class HaloProfiler(lagos.ParallelAnalysisInterface):
 
                 profile = lagos.BinnedProfile1D(sphere,self.haloProfilerParameters['n_bins'],"RadiusMpc",
                                                 r_min,halo['r_max'],
-                                                log_space=True, lazy_reader=True)
+                                                log_space=True, lazy_reader=False)
                 for field in self.profileFields.keys():
                     profile.add_fields(field,weight=self.profileFields[field][0],
                                        accumulation=self.profileFields[field][1])
@@ -252,7 +252,7 @@ class HaloProfiler(lagos.ParallelAnalysisInterface):
                 y_axis = coords[1]
 
                 for field in self.projectionFields.keys():
-                    pc.add_projection(field,w,weight_field=self.projectionFields[field],source=region,**kwargs)
+                    pc.add_projection(field,w,weight_field=self.projectionFields[field],source=region,lazy_reader=False,**kwargs)
 
                 # Set x and y limits, shift image if it overlaps domain boundary.
                 if need_per:
