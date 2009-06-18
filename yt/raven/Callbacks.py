@@ -47,8 +47,6 @@ class PlotCallback(object):
         x0, x1 = plot.xlim
         y0, y1 = plot.ylim
         l, b, width, height = _get_bounds(plot._axes.bbox)
-        xi = lagos.x_dict[plot.data.axis]
-        yi = lagos.y_dict[plot.data.axis]
         dx = plot.image._A.shape[0] / (x1-x0)
         dy = plot.image._A.shape[1] / (y1-y0)
         return ((coord[0] - int(offset)*x0)*dx,
@@ -865,12 +863,12 @@ class NewParticleCallback(PlotCallback):
         LE[zax] = data.center[zax] - self.width*0.5
         RE[zax] = data.center[zax] + self.width*0.5
         if self.region is not None \
-            and self.region.left_edge <= LE \
-            and self.region.right_edge >= RE:
+            and na.all(self.region.left_edge <= LE) \
+            and na.all(self.region.right_edge >= RE):
             return self.region
-        region = data.pf.h.periodic_region(
+        self.region = data.pf.h.periodic_region(
             data.center, LE, RE)
-        return region
+        return self.region
 
 class TitleCallback(PlotCallback):
     _type_name = "title"
