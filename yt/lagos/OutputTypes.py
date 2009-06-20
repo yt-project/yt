@@ -338,8 +338,8 @@ class EnzoStaticOutput(StaticOutput):
         box_proper = boxcm_uncal/(1+z)
         self.units['aye']  = (1.0 + self["CosmologyInitialRedshift"])/(z + 1.0)
         if not self.has_key("Time"):
-            LengthUnit = 3.086e24 * box_proper
-            self.conversion_factors["Time"] = LengthUnit / self["x-velocity"]
+            cu = self.cosmology_get_units()
+            self.conversion_factors["Time"] = cu['utim']
         for unit in mpc_conversion:
             self.units[unit] = mpc_conversion[unit] * box_proper
             self.units[unit+'h'] = mpc_conversion[unit] * box_proper * h
