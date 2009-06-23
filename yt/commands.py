@@ -27,7 +27,7 @@ from yt.mods import *
 from yt.funcs import *
 from yt.recipes import _fix_pf
 import yt.cmdln as cmdln
-import optparse, os, os.path, math
+import optparse, os, os.path, math, sys
 
 _common_options = dict(
     axis    = dict(short="-a", long="--axis",
@@ -232,6 +232,7 @@ class YTCommands(cmdln.Cmdln):
     def do_halos(self, subcmd, opts, arg):
         """
         Run HaloProfiler on one dataset.
+
         ${cmd_option_list}
         """
         import yt.extensions.HaloProfiler as HP
@@ -245,7 +246,6 @@ class YTCommands(cmdln.Cmdln):
             hp.makeProfiles()
         if opts.make_projections:
             hp.makeProjections()
-        del hp
 
     @add_cmd_options(["maxw", "minw", "proj", "axis", "field", "weight",
                       "zlim", "nframes", "output", "cmap", "uboxes"])
@@ -438,6 +438,115 @@ class YTCommands(cmdln.Cmdln):
             t = pf["InitialTime"] * pf['years']
             open(opts.output, "a").write(
                 "%s (%0.5e years): %0.5e at %s\n" % (pf, t, v, c))
+    
+    # Normally the default comes from the .rc
+    @cmdln.option("-p", "--publish",
+                  dest="publish", action="store_true", default=False,
+                  help="publish the review request immediately after "
+                       "submitting")
+    @cmdln.option("-r", "--review-request-id",
+                  dest="rid", metavar="ID", default=None,
+                  help="existing review request ID to update")
+    # Normally the default comes from the .rc
+    @cmdln.option("-o", "--open",
+                  dest="open_browser", action="store_true",
+                  default=False,
+                  help="open a web browser to the review request page")
+    @cmdln.option("-n", "--output-diff",
+                  dest="output_diff_only", action="store_true",
+                  default=False,
+                  help="outputs a diff to the console and exits. "
+                       "Does not post")
+    # Normally the default comes from the .rc
+    @cmdln.option("", "--diff-only",
+                  dest="diff_only", action="store_true", default=False,
+                  help="uploads a new diff, but does not update "
+                       "info from changelist")
+    # Normally the default comes from the .rc
+    @cmdln.option("", "--target-groups",
+                  dest="target_groups", default="yt",
+                  help="names of the groups who will perform "
+                       "the review")
+    # Normally the default comes from the .rc
+    @cmdln.option("", "--target-people",
+                  dest="target_people", default="mturk",
+                  help="names of the people who will perform "
+                       "the review")
+    @cmdln.option("", "--summary",
+                  dest="summary", default=None,
+                  help="summary of the review ")
+    @cmdln.option("", "--description",
+                  dest="description", default=None,
+                  help="description of the review ")
+    @cmdln.option("", "--description-file",
+                  dest="description_file", default=None,
+                  help="text file containing a description of the review")
+    @cmdln.option("", "--testing-done",
+                  dest="testing_done", default=None,
+                  help="details of testing done ")
+    @cmdln.option("", "--testing-done-file",
+                  dest="testing_file", default=None,
+                  help="text file containing details of testing done ")
+    @cmdln.option("", "--branch",
+                  dest="branch", default=None,
+                  help="affected branch ")
+    @cmdln.option("", "--bugs-closed",
+                  dest="bugs_closed", default=None,
+                  help="list of bugs closed ")
+    @cmdln.option("", "--revision-range",
+                  dest="revision_range", default=None,
+                  help="generate the diff for review based on given "
+                       "revision range")
+    @cmdln.option("", "--label",
+                  dest="label", default=None,
+                  help="label (ClearCase Only) ")
+    # Normally the default comes from the .rc
+    @cmdln.option("", "--submit-as",
+                  dest="submit_as", default=None, metavar="USERNAME",
+                  help="user name to be recorded as the author of the "
+                       "review request, instead of the logged in user")
+    @cmdln.option("", "--username",
+                  dest="username", default=None, metavar="USERNAME",
+                  help="user name to be supplied to the reviewboard server")
+    @cmdln.option("", "--password",
+                  dest="password", default=None, metavar="PASSWORD",
+                  help="password to be supplied to the reviewboard server")
+    @cmdln.option("", "--change-only",
+                  dest="change_only", action="store_true",
+                  default=False,
+                  help="updates info from changelist, but does "
+                       "not upload a new diff (only available if your "
+                       "repository supports changesets)")
+    @cmdln.option("", "--parent",
+                  dest="parent_branch", default=None,
+                  metavar="PARENT_BRANCH",
+                  help="the parent branch this diff should be against "
+                       "(only available if your repository supports "
+                       "parent diffs)")
+    @cmdln.option("", "--repository-url",
+                  dest="repository_url", default=None,
+                  help="the url for a repository for creating a diff "
+                       "outside of a working copy (currently only supported "
+                       "by Subversion).  Requires --revision-range")
+    def do_review(self, subcmd, opts, *args):
+        """
+        Submit a patch for review to review.enzotools.org
+
+        ${cmd_option_list}
+        """
+        import yt.extensions.CodeReview as cr
+        if opts.summary is None:
+            summary = raw_input("Enter a summary of this patch: ")
+            if len(summary.strip()) == 0:
+                print "Refusing to upload patch without summary!"
+                sys.exit(1)
+            opts.summary = summary
+        cr.main(list(args), opts)
+        if opts.description is None and \
+           opts.description_file is None:
+            print "Your patch had an empty description."
+            print "It'd be awesome if you'd visit the review URL and add one."
+        
 
 def run_main():
     for co in ["--parallel", "--paste"]:
