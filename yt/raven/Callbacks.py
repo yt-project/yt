@@ -842,6 +842,7 @@ class NewParticleCallback(PlotCallback):
         print gg, reg[field_x][gg].size
         if self.ptype is not None:
             gg &= (reg["particle_type"] == self.ptype)
+            if gg.sum() == 0: return
         plot._axes.hold(True)
         px, py = self.convert_to_pixels(plot,
                     [reg[field_x][gg][::self.stride],
