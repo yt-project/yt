@@ -23,7 +23,7 @@ PY_DIR="/Library/Frameworks/Python.framework/Versions/Current/"
 # and install it on its own
 #HDF5_DIR=
 
-INST_HG=0       # Install Mercurial or not?
+INST_HG=1       # Install Mercurial or not?
 # If you've got YT some other place, set this to point to it.
 YT_DIR=""
 
