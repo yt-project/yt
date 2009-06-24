@@ -33,7 +33,7 @@ try:
     from pyhdf_np import SD # NumPy
     import pyhdf_np.error   # NumPy
 except:
-    mylog.warning("No HDF4 support")
+    mylog.info("No HDF4 support")
 
 import warnings
 try:
