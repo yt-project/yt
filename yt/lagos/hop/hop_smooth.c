@@ -19,6 +19,7 @@ the case of equal mass particles. */
 #include <assert.h>
 #include "smooth.h"
 #include "kd.h"
+#include "hop_numpy.h"
 
 #define ISYM "d"
 #define GSYM "g"
@@ -60,7 +61,7 @@ int smInit(SMX *psmx,KD kd,int nSmooth,float *fPeriod)
 	 ** Initialize arrays for calculated quantities.--DJE
 	 */
 	for (pi=0;pi<smx->kd->nActive;++pi) {
-		smx->kd->p[pi].fDensity = 0.0;
+        NP_DENS(smx->kd, pi) = 0.0;
 		smx->kd->p[pi].iHop = 0;
 		}
 	*psmx = smx;	
@@ -108,9 +109,9 @@ void smBallSearch(SMX smx,float fBall2,float *ri)
 	 ** Now start the search from the bucket given by cell!
 	 */
 	for (pj=c[cell].pLower;pj<=c[cell].pUpper;++pj) {
-		dx = x - p[pj].r[0];
-		dy = y - p[pj].r[1];
-		dz = z - p[pj].r[2];
+		dx = x - NP_POS(smx->kd, pj, 0);
+		dy = y - NP_POS(smx->kd, pj, 1);
+		dz = z - NP_POS(smx->kd, pj, 2);
 		fDist2 = dx*dx + dy*dy + dz*dz;
 		if (fDist2 < fBall2) {
 			if (smx->iMark[pj]) continue;
@@ -140,9 +141,9 @@ void smBallSearch(SMX smx,float fBall2,float *ri)
 				}
 			else {
 				for (pj=c[cp].pLower;pj<=c[cp].pUpper;++pj) {
-					dx = sx - p[pj].r[0];
-					dy = sy - p[pj].r[1];
-					dz = sz - p[pj].r[2];
+                    dx = sx - NP_POS(smx->kd, pj, 0);
+                    dy = sy - NP_POS(smx->kd, pj, 1);
+                    dz = sz - NP_POS(smx->kd, pj, 2);
 					fDist2 = dx*dx + dy*dy + dz*dz;
 					if (fDist2 < fBall2) {
 						if (smx->iMark[pj]) continue;
@@ -197,9 +198,9 @@ int smBallGather(SMX smx,float fBall2,float *ri)
 			}
 		else {
 			for (pj=c[cp].pLower;pj<=c[cp].pUpper;++pj) {
-				dx = sx - p[pj].r[0];
-				dy = sy - p[pj].r[1];
-				dz = sz - p[pj].r[2];
+                dx = sx - NP_POS(smx->kd, pj, 0);
+                dy = sy - NP_POS(smx->kd, pj, 1);
+                dz = sz - NP_POS(smx->kd, pj, 2);
 				fDist2 = dx*dx + dy*dy + dz*dz;
 				if (fDist2 < fBall2) {
 					smx->fList[nCnt] = fDist2;
@@ -229,6 +230,7 @@ void smSmooth(SMX smx,void (*fncSmooth)(SMX,int,int,int *,float *))
 	int cell;
 	int pi,pin,pj,pNext,nCnt,nSmooth;
 	float dx,dy,dz,x,y,z,h2,ax,ay,az;
+    float temp_ri[3];
  
  
 	for (pi=0;pi<smx->kd->nActive;++pi) {
@@ -271,9 +273,9 @@ void smSmooth(SMX smx,void (*fncSmooth)(SMX,int,int,int *,float *))
 			if (pNext == smx->kd->nActive) break;
 			pi = pNext;
 			++pNext;
-			x = p[pi].r[0];
-			y = p[pi].r[1];
-			z = p[pi].r[2];
+			x = NP_POS(smx->kd, pi, 0);
+			y = NP_POS(smx->kd, pi, 1);
+			z = NP_POS(smx->kd, pi, 2);
 			/* printf("%"ISYM": %"GSYM" %"GSYM" %"GSYM"\n", pi, x, y, z); */
 			/*
 			 ** First find the "local" Bucket.
@@ -281,7 +283,7 @@ void smSmooth(SMX smx,void (*fncSmooth)(SMX,int,int,int *,float *))
 			 */
 			cell = ROOT;
 			while (cell < smx->kd->nSplit) {
-				if (p[pi].r[c[cell].iDim] < c[cell].fSplit)
+                if (NP_POS(smx->kd, pi, c[cell].iDim) < c[cell].fSplit)
 					cell = LOWER(cell);
 				else
 					cell = UPPER(cell);
@@ -299,9 +301,9 @@ void smSmooth(SMX smx,void (*fncSmooth)(SMX,int,int,int *,float *))
 				pj = smx->kd->nActive - nSmooth;
 			for (pq=smx->pq;pq<=pqLast;++pq) {
 				smx->iMark[pj] = 1;
-				dx = x - p[pj].r[0];
-				dy = y - p[pj].r[1];
-				dz = z - p[pj].r[2];
+                dx = x - NP_POS(smx->kd, pj, 0);
+                dy = y - NP_POS(smx->kd, pj, 1);
+                dz = z - NP_POS(smx->kd, pj, 2);
 				pq->fKey = dx*dx + dy*dy + dz*dz;
 				pq->p = pj++;
 				pq->ax = 0.0;
@@ -315,17 +317,17 @@ void smSmooth(SMX smx,void (*fncSmooth)(SMX,int,int,int *,float *))
 			 ** Calculate the priority queue using the previous particles!
 			 */
 			pi = pin;
-			x = p[pi].r[0];
-			y = p[pi].r[1];
-			z = p[pi].r[2];
+			x = NP_POS(smx->kd, pi, 0);
+			y = NP_POS(smx->kd, pi, 1);
+			z = NP_POS(smx->kd, pi, 2);
 			smx->pqHead = NULL;
 			for (pq=smx->pq;pq<=pqLast;++pq) {
 				pq->ax -= ax;
 				pq->ay -= ay;
 				pq->az -= az;
-				dx = x + pq->ax - p[pq->p].r[0];
-				dy = y + pq->ay - p[pq->p].r[1];
-				dz = z + pq->az - p[pq->p].r[2];
+				dx = x + pq->ax - NP_POS(smx->kd, pq->p, 0);
+				dy = y + pq->ay - NP_POS(smx->kd, pq->p, 1);
+				dz = z + pq->az - NP_POS(smx->kd, pq->p, 2);
 				pq->fKey = dx*dx + dy*dy + dz*dz;
 				}
 			PQ_BUILD(smx->pq,nSmooth,smx->pqHead);
@@ -333,7 +335,10 @@ void smSmooth(SMX smx,void (*fncSmooth)(SMX,int,int,int *,float *))
 			ay = 0.0;
 			az = 0.0;
 			}
-		smBallSearch(smx,smx->pqHead->fKey,p[pi].r);
+        temp_ri[0] = NP_POS(smx->kd, pi, 0);
+        temp_ri[1] = NP_POS(smx->kd, pi, 1);
+        temp_ri[2] = NP_POS(smx->kd, pi, 2);
+		smBallSearch(smx,smx->pqHead->fKey,temp_ri);
 		smx->pfBall2[pi] = smx->pqHead->fKey;
 		/*
 		 ** Pick next particle, 'pin'.
@@ -364,6 +369,7 @@ void smReSmooth(SMX smx,void (*fncSmooth)(SMX,int,int,int *,float *))
 {
 	PARTICLE *p;
 	int pi,nSmooth;
+    float temp_ri[3];
  
 	p = smx->kd->p;
 	for (pi=0;pi<smx->kd->nActive;++pi) {
@@ -372,7 +378,10 @@ void smReSmooth(SMX smx,void (*fncSmooth)(SMX,int,int,int *,float *))
 		 ** Do a Ball Gather at the radius of the most distant particle
 		 ** which is smDensity sets in smx->pBall[pi].
 		 */
-		nSmooth = smBallGather(smx,smx->pfBall2[pi],p[pi].r);
+        temp_ri[0] = NP_POS(smx->kd, pi, 0);
+        temp_ri[1] = NP_POS(smx->kd, pi, 1);
+        temp_ri[2] = NP_POS(smx->kd, pi, 2);
+		nSmooth = smBallGather(smx,smx->pfBall2[pi],temp_ri);
 		(*fncSmooth)(smx,pi,nSmooth,smx->pList,smx->fList);
 		}
  	}
@@ -392,12 +401,12 @@ void smDensity(SMX smx,int pi,int nSmooth,int *pList,float *fList)
 		if (r2 < 1.0) rs = (1.0 - 0.75*rs*r2);
 		else rs = 0.25*rs*rs*rs;
 #ifdef DIFFERENT_MASSES
-		fDensity += rs*smx->kd->p[pj].fMass;
+        fDensity += rs*NP_MASS(smx->kd, pj);
 #else
 		fDensity += rs*smx->kd->fMass;
 #endif
 		}
-	smx->kd->p[pi].fDensity = M_1_PI*sqrt(ih2)*ih2*fDensity;
+    NP_DENS(smx->kd, pi) = M_1_PI*sqrt(ih2)*ih2*fDensity;
 	}
  
  
@@ -416,8 +425,8 @@ void smDensitySym(SMX smx,int pi,int nSmooth,int *pList,float *fList)
 		else rs = 0.25*rs*rs*rs;
 		rs *= fNorm;
 #ifdef DIFFERENT_MASSES
-		smx->kd->p[pi].fDensity += rs*smx->kd->p[pj].fMass;
-		smx->kd->p[pj].fDensity += rs*smx->kd->p[pi].fMass;
+        NP_DENS(smx->kd, pi) += rs*NP_MASS(smx->kd, pj);
+        NP_DENS(smx->kd, pj) += rs*NP_MASS(smx->kd, pi);
 #else
 		smx->kd->p[pi].fDensity += rs*smx->kd->fMass;
 		smx->kd->p[pj].fDensity += rs*smx->kd->fMass;
@@ -438,7 +447,7 @@ void smOutDensity(SMX smx,FILE *fp)
   for (i=0;i<smx->kd->nGas;++i) {
     if (smx->kd->bGas) {
       if (IMARK)
-        fprintf(fp,"%.8"GSYM"\n",smx->kd->p[iCnt].fDensity);
+        fprintf(fp,"%.8"GSYM"\n",NP_DENS(smx->kd, iCnt));
       else fprintf(fp,"0\n");
       ++iCnt;
     }
@@ -447,7 +456,7 @@ void smOutDensity(SMX smx,FILE *fp)
   for (i=0;i<smx->kd->nDark;++i) {
     if (smx->kd->bDark) {
       if (IMARK)
-        fprintf(fp,"%.8"GSYM"\n",smx->kd->p[iCnt].fDensity);
+        fprintf(fp,"%.8"GSYM"\n",NP_DENS(smx->kd, iCnt));
       else fprintf(fp,"0\n");
       ++iCnt;
     }
@@ -456,7 +465,7 @@ void smOutDensity(SMX smx,FILE *fp)
   for (i=0;i<smx->kd->nStar;++i) {
     if (smx->kd->bStar) {
       if (IMARK)
-        fprintf(fp,"%.8"GSYM"\n",smx->kd->p[iCnt].fDensity);
+        fprintf(fp,"%.8"GSYM"\n",NP_DENS(smx->kd, iCnt));
       else fprintf(fp,"0\n");
       ++iCnt;
     }

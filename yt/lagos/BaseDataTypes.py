@@ -955,7 +955,7 @@ class AMRProjBase(AMR2DData):
         for fn,g_list in self.hierarchy.cpu_map.items():
             to_read = na.intersect1d(g_list, self.source._grids)
             if len(to_read) == 0: continue
-            fh = tables.openFile(to_read[0].filename,'r')
+            fh = h5py.File(to_read[0].filename,'r')
             for g in to_read:
                 g.handle = fh
                 for field in ensure_list(self.fields):
@@ -1341,6 +1341,8 @@ class AMR3DData(AMRData, GridPropertiesMixin):
         return na.where(k)
 
     def _get_cut_particle_mask(self, grid):
+        if self._is_fully_enclosed(grid):
+            return True
         fake_grid = FakeGridForParticles(grid)
         return self._get_cut_mask(fake_grid)
 

@@ -134,12 +134,12 @@ class Halo(object):
     def write_particle_list(self, handle):
         self._processing = True
         gn = "Halo%08i" % (self.id)
-        handle.createGroup("/", gn)
+        handle.create_group("/%s" % gn)
         for field in ["particle_position_%s" % ax for ax in 'xyz'] \
                    + ["particle_velocity_%s" % ax for ax in 'xyz'] \
                    + ["particle_index"]:
-            handle.createArray("/%s" % gn, field, self[field])
-        n = handle.getNode("/", gn)
+            handle.create_dataset("/%s/%s" % (gn, field), data=self[field])
+        n = handle["/%s" % gn]
         # set attributes on n
         self._processing = False
 
@@ -409,7 +409,7 @@ class GenericHaloFinder(ParallelAnalysisInterface):
     @parallel_blocking_call
     def write_particle_lists(self, prefix):
         fn = "%s.h5" % self._get_filename(prefix)
-        f = tables.openFile(fn, "w")
+        f = h5py.File(fn, "w")
         for halo in self._groups:
             if not self._is_mine(halo): continue
             halo.write_particle_list(f)

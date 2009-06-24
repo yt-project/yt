@@ -22,6 +22,7 @@ PY_DIR="/Library/Frameworks/Python.framework/Versions/Current/"
 # and install it on its own
 #HDF5_DIR=
 
+INST_HG=0       # Install Mercurial or not?
 # If you've got YT some other place, set this to point to it.
 YT_DIR=""
 
@@ -126,7 +127,7 @@ get_enzotools wxPython2.8-osx-unicode-2.8.9.2-universal-py2.5.dmg
 get_enzotools numpy-1.2.1-py2.5-macosx10.5.dmg
 get_enzotools matplotlib-0.98.5.2-py2.5-mpkg.zip
 get_enzotools ipython-0.9.1.tar.gz
-get_enzotools tables-2.1.tar.gz
+get_enzotools h5py-1.1.0.tar.gz
 
 if [ -z "$YT_DIR" ]
 then
@@ -159,8 +160,9 @@ then
         touch done
         cd ..
     fi
-    HDF5_DIR=${DEST_DIR}
+    export HDF5_DIR=${DEST_DIR}
 fi
+export HDF5_API=16
 
 [ ! -e ${DEST_DIR}/src/py_done ] && self_install \
     python-2.5.4-macosx.dmg
@@ -186,7 +188,7 @@ then
 fi
 
 do_setup_py ipython-0.9.1
-do_setup_py tables-2.1 --hdf5=${HDF5_DIR}
+do_setup_py h5py-1.1.0
 
 echo "Doing yt update"
 MY_PWD=`pwd`
@@ -199,6 +201,12 @@ echo $HDF5_DIR > hdf5.cfg
 ( sudo ${PY_DIR}/bin/python2.5 setup.py develop 2>&1 ) 1>> ${LOG_FILE} || do_exit
 touch done
 cd $MY_PWD
+
+if [ $INST_HG -eq 1 ]
+then
+    echo "Installing Mercurial."
+    ( ${DEST_DIR}/bin/easy_install-2.6 mercurial 2>&1 ) 1>> ${LOG_FILE} || do_exit
+fi
 
 echo
 echo
@@ -224,6 +232,13 @@ echo "$YT_DIR"
 echo "as the source for all the YT code.  This means you probably shouldn't"
 echo "delete it, but on the plus side, any changes you make there are"
 echo "automatically propagated."
+if [ $INST_HG -eq 1 ]
+then
+  echo "Mercurial has also been installed:"
+  echo
+  echo "$DEST_DIR/bin/hg"
+  echo
+fi
 echo
 echo "For support, see one of the following websites:"
 echo

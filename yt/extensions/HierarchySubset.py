@@ -25,7 +25,7 @@ License:
 
 
 from yt.mods import *
-import tables, os.path
+import h5py, os.path
 
 import yt.commands as commands
 
@@ -123,9 +123,10 @@ class ExtractedHierarchy(object):
 
     def export_output(self, afile, n, field):
         # I prefer dict access, but tables doesn't.
-        time_node = afile.createGroup("/", "time-%s" % n)
-        time_node._v_attrs.time = self.pf["InitialTime"]
-        time_node._v_attrs.numLevels = self.pf.h.max_level+1-self.min_level
+        # But h5py does!
+        time_node = afile.create_group("/time-%s" % n)
+        time_node.attrs['time'] = self.pf["InitialTime"]
+        time_node.attrs['numLevels'] = self.pf.h.max_level+1-self.min_level
         # Can take a while, so let's get a progressbar
         self._export_all_levels(afile, time_node, field)
 
@@ -137,12 +138,12 @@ class ExtractedHierarchy(object):
         pbar.finish()
 
     def export_level(self, afile, time_node, level, field, grids = None):
-        level_node = afile.createGroup(time_node, "level-%s" % level)
+        level_node = afile.create_group("%s/level-%s" % (time_node,level))
         # Grid objects on this level...
         if grids is None: grids = self.pf.h.select_grids(level+self.min_level)
-        level_node._v_attrs.delta = grids[0].dds*self.mult_factor
-        level_node._v_attrs.relativeRefinementFactor = na.array([2]*3, dtype='int32')
-        level_node._v_attrs.numGrids = len(grids)
+        level_node.attrs['delta'] = grids[0].dds*self.mult_factor
+        level_node.attrs['relativeRefinementFactor'] = na.array([2]*3, dtype='int32')
+        level_node.attrs['numGrids'] = len(grids)
         for i,g in enumerate(grids):
             self.export_grid(afile, level_node, g, i, field)
 
@@ -155,32 +156,32 @@ class ExtractedHierarchy(object):
         return int_origin, level_int_origin, origin, dds
 
     def export_grid(self, afile, level_node, grid, i, field):
-        grid_node = afile.createGroup(level_node, "grid-%s" % i)
+        grid_node = afile.create_group("%s/grid-%s" % (level_node,i))
         int_origin, lint, origin, dds = self._convert_grid(grid)
-        grid_node._v_attrs.integerOrigin = int_origin
-        grid_node._v_attrs.origin = origin
-        grid_node._v_attrs.ghostzoneFlags = na.zeros(6, dtype='int32')
-        grid_node._v_attrs.numGhostzones = na.zeros(3, dtype='int32')
-        grid_node._v_attrs.dims = grid.ActiveDimensions[::-1].astype('int32')
+        grid_node.attrs['integerOrigin'] = int_origin
+        grid_node.attrs['origin'] = origin
+        grid_node.attrs['ghostzoneFlags'] = na.zeros(6, dtype='int32')
+        grid_node.attrs['numGhostzones'] = na.zeros(3, dtype='int32')
+        grid_node.attrs['dims'] = grid.ActiveDimensions[::-1].astype('int32')
         if not self.always_copy and self.pf.h.data_style == 6 \
            and field in self.pf.h.field_list:
             if grid.hierarchy.data_style == -1: # constructed grid
                 # if we can get conversion in amira we won't need to do this
                 ff = grid[field].astype('float32')
                 ff /= self.pf.conversion_factors.get(field, 1.0)
-                afile.createArray(grid_node, "grid-data", ff.swapaxes(0,2))
+                afile.create_dataset("%s/grid-data" % grid_node, data=ff.swapaxes(0,2))
             else:
                 tfn = os.path.abspath(afile.filename)
                 gfn = os.path.abspath(grid.filename)
                 fpn = os.path.commonprefix([tfn, grid.filename])
                 fn = grid.filename[len(os.path.commonprefix([tfn, grid.filename])):]
-                grid_node._v_attrs.referenceFileName = fn
-                grid_node._v_attrs.referenceDataPath = \
+                grid_node.attrs['referenceFileName'] = fn
+                grid_node.attrs['referenceDataPath'] = \
                     "/Grid%08i/%s" % (grid.id, field)
         else:
             # Export our array
-            afile.createArray(grid_node, "grid-data",
-                grid[field].astype('float32').swapaxes(0,2))
+            afile.create_dataset("%s/grid-data" % grid_node, 
+                                 data = grid[field].astype('float32').swapaxes(0,2))
 
     def _convert_coords(self, val):
         return (val - self.left_edge_offset)*self.mult_factor

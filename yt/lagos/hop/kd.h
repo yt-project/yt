@@ -18,6 +18,9 @@ in order to reduce memory consumption. */
 #ifndef KD_HINCLUDED
 #define KD_HINCLUDED
 
+#include "Python.h"
+#include "numpy/ndarrayobject.h"
+
 #define ROOT		1
 #define LOWER(i)	(i<<1)
 #define UPPER(i)	((i<<1)+1)
@@ -34,8 +37,11 @@ in order to reduce memory consumption. */
 #define STAR	4
 
 typedef struct Particle {
-	float r[3];
+    int np_index;
+    int iHop;
 	int iOrder;
+#if 0
+	float r[3];
 	float fDensity;
 	// int iID;  /* the real ID of the particle S. Skory */
 	int iHop;	/* DJE: The number of the highest-density neighbor;
@@ -49,6 +55,7 @@ typedef struct Particle {
 	/* int iMark; */
 	/* float vMean[3]; */
 	/* float fVelDisp2; */
+#endif
 	} PARTICLE;
 
 typedef struct bndBound {
@@ -84,6 +91,10 @@ typedef struct kdContext {
 	KDN *kdNodes;
 	int uSecond;
 	int uMicro;
+    PyArrayObject *np_densities;
+    PyArrayObject *np_pos[3];
+    PyArrayObject *np_masses;
+    float totalmass;
 	} * KD;
 
 

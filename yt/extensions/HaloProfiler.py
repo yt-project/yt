@@ -29,7 +29,7 @@ from yt.logger import lagosLogger as mylog
 import yt.raven as raven
 import numpy as na
 import os
-import tables as h5
+import h5py
 
 PROFILE_RADIUS_THRESHOLD = 2
 
@@ -275,13 +275,13 @@ class HaloProfiler(lagos.ParallelAnalysisInterface):
                             (outputDir,halo['id'],axes[w])
                     mylog.info("Saving projection data to %s." % dataFilename)
 
-                    output = h5.openFile(dataFilename, "a")
+                    output = h5py.File(dataFilename, "a")
                     # Create fixed resolution buffer for each projection and write them out.
                     for e,field in enumerate(self.projectionFields.keys()):
                         frb = raven.FixedResolutionBuffer(pc.plots[e].data,(proj_left[0],proj_right[0],proj_left[1],proj_right[1]),
                                                           (projectionResolution,projectionResolution),
                                                           antialias=False)
-                        output.createArray("/",field,frb[field])
+                        output.create_dataset("/%s" % field,data=frb[field])
                     output.close()
 
                 if save_images:

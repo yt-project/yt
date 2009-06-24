@@ -145,16 +145,29 @@ def parallel_passthrough(func):
 def parallel_blocking_call(func):
     @wraps(func)
     def barrierize(*args, **kwargs):
-        mylog.info("Entering barrier before %s", func.func_name)
+        mylog.debug("Entering barrier before %s", func.func_name)
         MPI.COMM_WORLD.Barrier()
         retval = func(*args, **kwargs)
-        mylog.info("Entering barrier after %s", func.func_name)
+        mylog.debug("Entering barrier after %s", func.func_name)
         MPI.COMM_WORLD.Barrier()
         return retval
     if parallel_capable:
         return barrierize
     else:
         return func
+
+def parallel_splitter(f1, f2):
+    @wraps(f1)
+    def in_order(*args, **kwargs):
+        MPI.COMM_WORLD.Barrier()
+        if MPI.COMM_WORLD.rank == 0:
+            f1(*args, **kwargs)
+        MPI.COMM_WORLD.Barrier()
+        if MPI.COMM_WORLD.rank != 0:
+            f2(*args, **kwargs)
+        MPI.COMM_WORLD.Barrier()
+    if not parallel_capable: return f1
+    return in_order
 
 def parallel_root_only(func):
     @wraps(func)
