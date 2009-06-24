@@ -355,6 +355,15 @@ class EnzoStaticOutput(StaticOutput):
         if not self.has_key("TimeUnits"):
             self.conversion_factors["Time"] = self["LengthUnits"] / self["x-velocity"]
 
+    def _setup_nounits_units(self):
+        z = 0
+        mylog.warning("Setting 1.0 in code units to be 1.0 cm")
+        if not self.has_key("TimeUnits"):
+            mylog.warning("No time units.  Setting 1.0 = 1 second.")
+            self.conversion_factors["Time"] = 1.0
+        for unit in mpc_conversion.keys():
+            self.units[unit] = mpc_conversion[unit] / mpc_conversion["cm"]
+
     def cosmology_get_units(self):
         """
         Return an Enzo-fortran style dictionary of units to feed into custom

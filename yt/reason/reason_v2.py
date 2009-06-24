@@ -28,15 +28,20 @@ from yt.mods import *
 
 from enthought.traits.api import \
     HasTraits, List, Instance, Str, Float, Any, Code, PythonValue, Int, CArray, \
-    Property, Enum, cached_property, DelegatesTo, Callable, Array
+    Property, Enum, cached_property, DelegatesTo, Callable, Array, \
+    Button
 from enthought.traits.ui.api import \
     Group, VGroup, HGroup, Tabbed, View, Item, ShellEditor, InstanceEditor, ListStrEditor, \
     ListEditor, VSplit, VFlow, HSplit, VFold, ValueEditor, TreeEditor, TreeNode, RangeEditor, \
-    EnumEditor, Handler, Controller
+    EnumEditor, Handler, Controller, DNDEditor
 from enthought.traits.ui.menu import \
     Menu, Action, Separator, OKCancelButtons, OKButton
 from enthought.pyface.action.api import \
     ActionController
+from enthought.tvtk.pyface.scene_editor import SceneEditor
+from enthought.tvtk.pyface.api import \
+    DecoratedScene
+from enthought.tvtk.pyface.scene_model import SceneModel
 from enthought.traits.ui.wx.range_editor import SimpleSliderEditor
 
 from plot_editors import Figure, MPLFigureEditor, MPLVMPlotEditor, Axes
@@ -44,6 +49,8 @@ from plot_editors import Figure, MPLFigureEditor, MPLVMPlotEditor, Axes
 from yt.raven.PlotTypes import VMPlot, ProjectionPlot, SlicePlot
 
 import traceback
+from tvtk_interface import \
+    HierarchyImporter, YTScene
 
 class PlotCreationHandler(Controller):
     main_window = Instance(HasTraits)
@@ -56,16 +63,90 @@ class PlotCreationHandler(Controller):
         if not is_ok:
             super(Controller, self).close(info, True)
             return
-        print self.plot_type
         spt = self.plot_type(plot_spec=self.model, pf=self.pnode.pf,
                            name=self.format % (self.model.axis))
-        print spt
         self.pnode.data_objects.append(spt)
         self.main_window.plot_frame_tabs.append(spt)
         spt.plot
 
+class VTKSceneCreationHandler(PlotCreationHandler):
+    importer = Instance(HierarchyImporter)
+
+    def close(self, info, is_ok):
+        if is_ok: 
+            yt_scene = YTScene(importer=self.importer,
+                scene=SceneModel())
+            spt = VTKDataObject(name = "VTK: %s" % self.pnode.pf,
+                    scene=yt_scene.scene,
+                    yt_scene=yt_scene)
+            self.pnode.data_objects.append(spt)
+            self.main_window.plot_frame_tabs.append(spt)
+        super(Controller, self).close(info, True)
+        return True
+
+
 class DataObject(HasTraits):
     name = Str
+
+class VTKDataObject(DataObject):
+    yt_scene = Instance(YTScene)
+    scene = DelegatesTo("yt_scene")
+    add_contours = Button
+    add_x_plane = Button
+    add_y_plane = Button
+    add_z_plane = Button
+    edit_camera = Button
+    edit_operators = Button
+    edit_pipeline = Button
+    center_on_max = Button
+    operators = DelegatesTo("yt_scene")
+    traits_view = View(
+            Item("scene", editor = 
+        SceneEditor(scene_class=DecoratedScene),
+                    resizable=True, show_label=False),
+            HGroup(Item("add_contours", show_label=False),
+                   Item("add_x_plane", show_label=False),
+                   Item("add_y_plane", show_label=False),
+                   Item("add_z_plane", show_label=False),
+                   Item("edit_camera", show_label=False),
+                   Item("edit_operators", show_label=False),
+                   Item("edit_pipeline", show_label=False),
+                   Item("center_on_max", show_label=False),
+                ),
+            )
+
+    operators_edit = View(
+        Item("operators", style='custom', show_label=False,
+             editor=ListEditor(editor=InstanceEditor(),
+                               use_notebook=True),
+              name="Edit Operators"),
+        height=500.0, width=500.0, resizable=True)
+    
+    def _edit_camera_fired(self):
+        self.yt_scene.camera_path.edit_traits()
+
+    def _edit_operators_fired(self):
+        self.edit_traits(view='operators_edit')
+
+    def _edit_pipeline_fired(self):
+        from enthought.tvtk.pipeline.browser import PipelineBrowser
+        pb = PipelineBrowser(self.scene)
+        pb.show()
+
+    def _add_contours_fired(self):
+        self.yt_scene.add_contour()
+
+    def _add_x_plane_fired(self):
+        self.yt_scene.add_x_plane()
+
+    def _add_y_plane_fired(self):
+        self.yt_scene.add_y_plane()
+
+    def _add_z_plane_fired(self):
+        self.yt_scene.add_z_plane()
+
+    def _center_on_max_fired(self):
+        self.yt_scene.do_center_on_max()
 
 class ParameterFile(HasTraits):
     pf = Instance(EnzoStaticOutput)
@@ -97,23 +178,38 @@ class ParameterFile(HasTraits):
                                    plot_type=ProjPlotTab, format="Proj: %s")
         ps.edit_traits(cons_view, handler=hand)
 
+    def do_vtk(self):
+        from tvtk_interface import HierarchyImporter, \
+            HierarchyImportHandler
+        importer = HierarchyImporter(pf=self.pf, max_level=self.pf.h.max_level)
+        importer.edit_traits(handler = VTKSceneCreationHandler(
+            main_window=mw, pnode=self, importer = importer))
+
 class ParameterFileCollection(HasTraits):
     parameter_files = List(Instance(ParameterFile))
     name = Str
+    collection = Any
 
     def _parameter_files_default(self):
-        gc = fido.GrabCollections()
         my_list = []
-        for f in gc[0]:
-            pf = EnzoStaticOutput(f)
-            my_list.append(
-                ParameterFile(pf=pf, 
-                        data_objects = []))
+        for f in self.collection:
+            try:
+                pf = EnzoStaticOutput(f)
+                my_list.append(
+                    ParameterFile(pf=pf, 
+                            data_objects = []))
+            except IOError: pass
         return my_list
 
     def _name_default(self):
-        gc = fido.GrabCollections()
-        return str(gc[0])
+        return str(self.collection)
+
+class ParameterFileCollectionList(HasTraits):
+    parameter_file_collections = List(Instance(ParameterFileCollection))
+
+    def _parameter_file_collections_default(self):
+        return [ParameterFileCollection(collection=c)
+                for c in fido.GrabCollections()]
 
 class DataObjectList(HasTraits):
     data_objects = List(Str)
@@ -128,28 +224,6 @@ class DataObjectList(HasTraits):
 
 class PlotFrameTab(DataObject):
     figure = Instance(Figure)
-
-class _LogFormat(str):
-    def _convert_floats(self, other):
-        args = []
-        if not isinstance(other, types.TupleType):
-            other = (other,)
-        for arg in other:
-            if isinstance(arg, types.FloatType):
-                args.append(10**arg)
-            else:
-                args.append(arg)
-        return tuple(args)
-
-    def __mod__(self, other):
-        args = self._convert_floats(other)
-        return str.__mod__(self, tuple(args))
-
-    def __rmod__(self, other):
-        args = self._convert_floats(other)
-        return str.__rmod__(self, tuple(args))
-
-lf = _LogFormat("%0.2e")
 
 class VMPlotSpec(HasTraits):
     pf = Instance(EnzoStaticOutput)
@@ -310,23 +384,27 @@ class SphereWrapper(DataObject):
     unit = Str
 
 class MainWindow(HasTraits):
+    parameter_file_collections = Instance(ParameterFileCollectionList)
     parameter_files = Instance(ParameterFileCollection)
-    plot_frame_tabs = List(Instance(PlotFrameTab))
+    plot_frame_tabs = List(Instance(DataObject))
+    open_parameterfile = Button
     shell = PythonValue
 
     def _shell_default(self):
         return globals()
+    notebook_editor = ListEditor(editor=InstanceEditor(editable=True),
+                                 use_notebook=True)
 
     traits_view = View(VSplit(
-                    HSplit(
-                       Item('parameter_files', 
+                    HSplit(VGroup(
+                       Item('parameter_file_collections', 
                             width=120.0, height=500.0,
                             show_label=False,
                             editor = TreeEditor(editable=False,
                     nodes=[
-                        TreeNode(node_for=[ParameterFileCollection],
-                                 children='',
-                                 label="=ParameterFiles"),
+                        TreeNode(node_for=[ParameterFileCollectionList],
+                                 children='parameter_file_collections',
+                                 label="=Data Collections"),
                         TreeNode(node_for=[ParameterFileCollection],
                                  children='parameter_files',
                                  label="name",
@@ -337,15 +415,17 @@ class MainWindow(HasTraits):
                                  menu = Menu(Action(name='Slice',
                                                     action='object.do_slice'),
                                              Action(name='Project',
-                                                    action='object.do_proj')),
+                                                    action='object.do_proj'),
+                                             Action(name='VTK',
+                                                    action='object.do_vtk')),
                                  view=View()),
                         TreeNode(node_for=[DataObject],
                                  children='',
                                  label="name"),
                                 ], show_icons=False),),
+                        Item('open_parameterfile', show_label=False)),
                        Item('plot_frame_tabs', style='custom',
-                            editor=ListEditor(editor=InstanceEditor(editable=True),
-                                              use_notebook=True),
+                            editor = notebook_editor,
                             show_label=False, height=500.0, width=500.0),
                     ),
                     HGroup(
@@ -353,13 +433,14 @@ class MainWindow(HasTraits):
                             show_label=False, height=120.0),
                     ),
                 ),
-               resizable=True, width=800.0, height=660.0) 
+               resizable=True, width=800.0, height=660.0,
+               title="reason v2 [prototype]")
 
-    def my_select(self, ui):
-        print "HI!"
+    def _open_parameterfile_fired(self):
+        print "OPENING"
 
-    def _parameter_files_default(self):
-        return ParameterFileCollection()
+    def _parameter_file_collections_default(self):
+        return ParameterFileCollectionList()
 
 class YTScript(HasTraits):
     code = Code
