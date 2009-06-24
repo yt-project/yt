@@ -48,8 +48,8 @@ from yt.funcs import *
 from yt.logger import ravenLogger as mylog
 from yt.extensions.HierarchySubset import ExtractedHierarchy
 
-from enthought.tvtk.pyface.ui.wx.wxVTKRenderWindowInteractor \
-     import wxVTKRenderWindowInteractor
+#from enthought.tvtk.pyface.ui.wx.wxVTKRenderWindowInteractor \
+     #import wxVTKRenderWindowInteractor
 
 from enthought.mayavi.core.lut_manager import LUTManager
 
@@ -66,15 +66,27 @@ class TVTKMapperWidget(HasTraits):
 
 class MappingPlane(TVTKMapperWidget):
     plane = Instance(tvtk.Plane)
-    traits_view = View(Item('coord', editor=RangeEditor(
+    _coord_redit = editor=RangeEditor(
                               low_name='vmin', high_name='vmax',
-                              auto_set=False, enter_set=True)),
-                       Item('alpha', enter_set=True, auto_set=False,
-                            editor=RangeEditor(low=0.0, high=1.0)),
+                              auto_set=False, enter_set=True)
+    auto_set = Bool(False)
+    traits_view = View(Item('coord', editor=_coord_redit),
+                       Item('auto_set'),
+                       Item('alpha', editor=RangeEditor(
+                              low=0.0, high=1.0,
+                              enter_set=True, auto_set=False)),
                        Item('lut_manager', show_label=False,
                             editor=InstanceEditor(), style='custom'))
     vmin = Float
     vmax = Float
+
+    def _auto_set_changed(self, old, new):
+        if new is True:
+            self._coord_redit.auto_set = True
+            self._coord_redit.enter_set = False
+        else:
+            self._coord_redit.auto_set = False
+            self._coord_redit.enter_set = True
 
     def __init__(self, vmin, vmax, vdefault, **traits):
         HasTraits.__init__(self, **traits)
@@ -91,15 +103,18 @@ class MappingPlane(TVTKMapperWidget):
         self.post_call()
 
 class MappingMarchingCubes(TVTKMapperWidget):
-    cubes = Instance(tvtk.MarchingCubes)
+    operator = Instance(tvtk.MarchingCubes)
     mapper = Instance(tvtk.HierarchicalPolyDataMapper)
     vmin = Float
     vmax = Float
-    traits_view = View(Item('value',
-        editor=RangeEditor(low_name='vmin', high_name='vmax',
-        auto_set=False, enter_set=True)),
-                       Item('alpha', enter_set=True, auto_set=False,
-                            editor=RangeEditor(low=0.0, high=1.0)),
+    auto_set = Bool(False)
+    _val_redit = RangeEditor(low_name='vmin', high_name='vmax',
+                             auto_set=False, enter_set=True)
+    traits_view = View(Item('value', editor=_val_redit),
+                       Item('auto_set'),
+                       Item('alpha', editor=RangeEditor(
+                            low=0.0, high=1.0,
+                            enter_set=True, auto_set=False,)),
                        Item('lut_manager', show_label=False,
                             editor=InstanceEditor(), style='custom'))
 
@@ -111,9 +126,20 @@ class MappingMarchingCubes(TVTKMapperWidget):
         self.add_trait("value", trait)
         self.value = vdefault
 
+    def _auto_set_changed(self, old, new):
+        if new is True:
+            self._val_redit.auto_set = True
+            self._val_redit.enter_set = False
+        else:
+            self._val_redit.auto_set = False
+            self._val_redit.enter_set = True
+
     def _value_changed(self, old, new):
-        self.cubes.set_value(0, new)
+        self.operator.set_value(0, new)
         self.post_call()
+
+class MappingIsoContour(MappingMarchingCubes):
+    operator = Instance(tvtk.ContourFilter)
 
 class CameraPosition(HasTraits):
     position = CArray(shape=(3,), dtype='float64')
@@ -442,7 +468,7 @@ class YTScene(HasTraits):
 
         io, left_index, origin, dds = \
             self.extracted_hierarchy._convert_grid(grid)
-        right_index = left_index + scalars.shape - 2
+        right_index = left_index + scalars.shape - 1
         ug = tvtk.UniformGrid(origin=origin, spacing=dds,
                               dimensions=grid.ActiveDimensions+1)
         if self.field not in self.pf.field_info or \
@@ -564,7 +590,7 @@ class YTScene(HasTraits):
         cube_mapper.scalar_range = (self._min_val, self._max_val)
         cube_actor = tvtk.Actor(mapper=cube_mapper)
         self.scene.add_actors(cube_actor)
-        self.operators.append(MappingMarchingCubes(cubes=cubes,
+        self.operators.append(MappingMarchingCubes(operator=cubes,
                     vmin=self._min_val, vmax=self._max_val,
                     vdefault=val,
                     mapper = cube_mapper,
@@ -575,24 +601,27 @@ class YTScene(HasTraits):
 
     def add_isocontour(self, val=None):
         if val is None: val = (self._max_val+self._min_val) * 0.5
-        cubes = tvtk.ContourFilter(
+        isocontour = tvtk.ContourFilter(
                     executive = tvtk.CompositeDataPipeline())
-        cubes.input = self._hdata_set
-        cubes.generate_values(1, (val, val))
+        isocontour.input = self._hdata_set
+        isocontour.generate_values(1, (val, val))
         lut_manager = LUTManager(data_name=self.field, scene=self.scene)
-        cubes_normals = tvtk.PolyDataNormals(
+        isocontour_normals = tvtk.PolyDataNormals(
             executive=tvtk.CompositeDataPipeline())
-        cubes_normals.input_connection = cubes.output_port
-        cube_mapper = tvtk.HierarchicalPolyDataMapper(
-                                input_connection = cubes_normals.output_port,
-                                lookup_table=lut_manager.lut,
-                                scalar_mode='use_point_field_data')
-        cube_mapper.select_color_array("Temperature")
-        cube_mapper.color_mode = 'map_scalars'
-        cube_mapper.scalar_range = (600, 6000)
-        cube_actor = tvtk.Actor(mapper=cube_mapper)
-        self.scene.add_actors(cube_actor)
-        return [cubes, cubes_normals, lut_manager, cube_mapper, cube_actor]
+        isocontour_normals.input_connection = isocontour.output_port
+        iso_mapper = tvtk.HierarchicalPolyDataMapper(
+                                input_connection = isocontour_normals.output_port,
+                                lookup_table=lut_manager.lut)
+        iso_mapper.scalar_range = (self._min_val, self._max_val)
+        iso_actor = tvtk.Actor(mapper=iso_mapper)
+        self.scene.add_actors(iso_actor)
+        self.operators.append(MappingIsoContour(operator=isocontour,
+                    vmin=self._min_val, vmax=self._max_val,
+                    vdefault=val,
+                    mapper = iso_mapper,
+                    post_call = self.scene.render,
+                    lut_manager = lut_manager,
+                    scene=self.scene))
         return self.operators[-1]
 
 def get_all_parents(grid):

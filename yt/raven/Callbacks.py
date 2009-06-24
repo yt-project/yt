@@ -47,8 +47,6 @@ class PlotCallback(object):
         x0, x1 = plot.xlim
         y0, y1 = plot.ylim
         l, b, width, height = _get_bounds(plot._axes.bbox)
-        xi = lagos.x_dict[plot.data.axis]
-        yi = lagos.y_dict[plot.data.axis]
         dx = plot.image._A.shape[0] / (x1-x0)
         dy = plot.image._A.shape[1] / (y1-y0)
         return ((coord[0] - int(offset)*x0)*dx,
@@ -814,12 +812,19 @@ class NewParticleCallback(PlotCallback):
     _type_name = "nparticles"
     region = None
     _descriptor = None
-    def __init__(self, width, p_size=1.0, col='k', stride=1.0):
+    def __init__(self, width, p_size=1.0, col='k', stride=1.0, ptype=None):
+        """
+        Adds particle positions, based on a thick slab along *axis* with a
+        *width* along the line of sight.  *p_size* controls the number of
+        pixels per particle, and *col* governs the color.  *ptype* will
+        restrict plotted particles to only those that are of a given type.
+        """
         PlotCallback.__init__(self)
         self.width = width
         self.p_size = p_size
         self.color = col
         self.stride = stride
+        self.ptype = ptype
 
     def __call__(self, plot):
         data = plot.data
@@ -835,6 +840,8 @@ class NewParticleCallback(PlotCallback):
         gg = ( ( reg[field_x] >= x0 ) & ( reg[field_x] <= x1 )
            &   ( reg[field_y] >= y0 ) & ( reg[field_y] <= y1 ) )
         print gg, reg[field_x][gg].size
+        if self.ptype is not None:
+            gg &= (reg["particle_type"] == self.ptype)
         plot._axes.hold(True)
         px, py = self.convert_to_pixels(plot,
                     [reg[field_x][gg][::self.stride],
@@ -856,9 +863,22 @@ class NewParticleCallback(PlotCallback):
         LE[zax] = data.center[zax] - self.width*0.5
         RE[zax] = data.center[zax] + self.width*0.5
         if self.region is not None \
-            and self.region.left_edge <= LE \
-            and self.region.right_edge >= RE:
+            and na.all(self.region.left_edge <= LE) \
+            and na.all(self.region.right_edge >= RE):
             return self.region
-        region = data.pf.h.periodic_region(
+        self.region = data.pf.h.periodic_region(
             data.center, LE, RE)
-        return region
+        return self.region
+
+class TitleCallback(PlotCallback):
+    _type_name = "title"
+    def __init__(self, title="Plot"):
+        """
+        Accepts a *title* and adds it to the plot
+        """
+        PlotCallback.__init__(self)
+        self.title = title
+
+    def __call__(self,plot):
+        plot._axes.set_title(self.title)
+

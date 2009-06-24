@@ -37,9 +37,10 @@ except:
 
 import warnings
 try:
-     import h5py
+    import h5py
 except ImportError:
-    mylog.warning("No h5py. Data serialization will fail.")
+    ytcfg["lagos", "serialization"] = "False"
+    mylog.warning("No h5py. Data serialization disabled.")
 
 from yt.arraytypes import *
 import weakref
@@ -54,18 +55,6 @@ import time
 
 from Cosmology import *
 from EnzoCosmology import *
-
-if ytcfg.getboolean("lagos","useswig"):
-    try:
-        from yt.enki import EnzoInterface
-    except ImportError:
-        pass
-
-if ytcfg.getboolean("lagos","usefortran"):
-    try:
-        import EnzoFortranRoutines
-    except ImportError:
-        mylog.warning("Told to import fortan, but unable!")
 
 # Now we import all the subfiles
 

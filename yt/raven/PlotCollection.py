@@ -50,7 +50,7 @@ class PlotCollection(object):
         if center == None:
             v,self.c = pf.h.find_max("Density") # @todo: ensure no caching
         else:
-            self.c = center
+            self.c = na.array(center, dtype='float64')
         if deliverator_id > 0:
             self.submit = True
             self._run_id = deliverator_id
@@ -102,13 +102,16 @@ class PlotCollection(object):
         for plot in self.plots:
             plot.set_ylim(ymin, ymax)
 
-    def set_zlim(self, zmin, zmax):
+    def set_zlim(self, zmin, zmax,dex=None):
         """
-        Set the limits of the colorbar.
+        Set the limits of the colorbar. 'min' or 'max' are possible inputs 
+        when combined with dex=value, where value gives the maximum number of 
+        dex to go above/below the min/max.  If value is larger than the true
+        range of values, min/max are limited to true range.
         """
         for plot in self.plots:
             plot.set_autoscale(False)
-            plot.set_zlim(zmin, zmax)
+            plot.set_zlim(zmin, zmax, dex=dex)
 
     def set_lim(self, lim):
         """
@@ -412,6 +415,7 @@ class PlotCollection(object):
             del self.plots[-1].data
             del self.plots[-1]
 
+    @rootonly
     def save_book(self, filename):
         from pyPdf import PdfFileWriter, PdfFileReader
         outfile = PdfFileWriter()
@@ -486,9 +490,9 @@ class PlotCollectionInteractive(PlotCollection):
 
     def clear_plots(self):
         for plot in self.plots:
-            self.pylab.figure(pylab._fig_num)
+            self.pylab.figure(plot._fig_num)
             self.pylab.clf()
-        PlotCollection.clear_data(self)
+        PlotCollection.clear_plots(self)
 
 def get_multi_plot(nx, ny, colorbar = 'vertical', bw = 4, dpi=300):
     """

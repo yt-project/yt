@@ -138,12 +138,21 @@ class RavenPlot(object):
         """
         self._axes.set_ylim(ymin, ymax)
 
-    def set_zlim(self, zmin, zmax):
+    def set_zlim(self, zmin, zmax, dex=None):
         """
         Set the z boundaries of this plot.
         """
         # This next call fixes some things, but is slower...
         #self._redraw_image()
+        if (zmin is None) or (zmax is None):    
+            if zmin == 'min':
+                zmin = na.nanmin(self._axes.images[-1]._A)
+                if dex is not None:
+                    zmax = min(zmin*10**(dex),na.nanmax(self._axes.images[-1]._A))
+            if zmax == 'max':
+                zmax = na.nanmax(self._axes.images[-1]._A)
+                if dex is not None:
+                    zmin = max(zmax/(10**(dex)),na.nanmin(self._axes.images[-1]._A))
         self.norm.autoscale(na.array([zmin,zmax]))
         self.image.changed()
         if self.colorbar is not None:
@@ -730,10 +739,21 @@ class PhasePlot(ProfilePlot):
     def set_ylim(self, ymin, ymax):
         self._ylim = (ymin,ymax)
 
-    def set_zlim(self, zmin, zmax):
+    def set_zlim(self, zmin, zmax, dex=None):
         """
         Set the z boundaries of this plot.
         """
+        # This next call fixes some things, but is slower...
+        #self._redraw_image()
+        if (zmin is None) or (zmax is None):    
+            if zmin == 'min':
+                zmin = na.nanmin(self._axes.images[-1]._A)
+                if dex is not None:
+                    zmax = min(zmin*10**(dex),na.nanmax(self._axes.images[-1]._A))
+            if zmax == 'max':
+                zmax = na.nanmax(self._axes.images[-1]._A)
+                if dex is not None:
+                    zmin = max(zmax/(10**(dex)),na.nanmin(self._axes.images[-1]._A))
         self._zlim = (zmin, zmax)
 
     def set_log_field(self, val):

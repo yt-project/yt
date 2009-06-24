@@ -133,6 +133,32 @@ _common_options = dict(
                    action="store_true",
                    dest="grids", default=False,
                    help="Show the grid boundaries"),
+    halos   = dict(short="", long="--halos",
+                   action="store", type="string",
+                   dest="halos",default="multiple",
+                   help="Run halo profiler on a 'single' halo or 'multiple' halos."),
+    halo_radius = dict(short="", long="--halo_radius",
+                       action="store", type="float",
+                       dest="halo_radius",default=0.1,
+                       help="Constant radius for profiling halos if using hop output files with no radius entry. Default: 0.1."),
+    halo_radius_units = dict(short="", long="--halo_radius_units",
+                             action="store", type="string",
+                             dest="halo_radius_units",default="1",
+                             help="Units for radius used with --halo_radius flag. Default: '1' (code units)."),
+    halo_hop_style = dict(short="", long="--halo_hop_style",
+                          action="store", type="string",
+                          dest="halo_hop_style",default="new",
+                          help="Style of hop output file.  'new' for yt_hop files and 'old' for enzo_hop files."),
+    halo_parameter_file = dict(short="", long="--halo_parameter_file",
+                               action="store", type="string",
+                               dest="halo_parameter_file",default=None,
+                               help="HaloProfiler parameter file."),
+    make_profiles = dict(short="", long="--make_profiles",
+                         action="store_true", default=False,
+                         help="Make profiles with halo profiler."),
+    make_projections = dict(short="", long="--make_projections",
+                            action="store_true", default=False,
+                            help="Make projections with halo profiler.")
     )
 
 def _add_options(parser, *options):
@@ -196,10 +222,30 @@ class YTCommands(cmdln.Cmdln):
         pf = _fix_pf(arg)
         kwargs = {'dm_only' : opts.dm_only}
         if opts.threshold is not None: kwargs['threshold'] = opts.threshold
-        hop_list = HaloFinder(sp, **kwargs)
+        hop_list = HaloFinder(pf, **kwargs)
         if opts.output is None: fn = "%s.hop" % pf
         else: fn = opts.output
         hop_list.write_out(fn)
+
+    @add_cmd_options(['make_profiles','make_projections','halo_parameter_file',
+                      'halos','halo_hop_style','halo_radius','halo_radius_units'])
+    def do_halos(self, subcmd, opts, arg):
+        """
+        Run HaloProfiler on one dataset.
+        ${cmd_option_list}
+        """
+        import yt.extensions.HaloProfiler as HP
+        kwargs = {'halos': opts.halos,
+                  'hop_style': opts.halo_hop_style,
+                  'radius': opts.halo_radius,
+                  'radius_units': opts.halo_radius_units}
+
+        hp = HP.HaloProfiler(arg,opts.halo_parameter_file,**kwargs)
+        if opts.make_profiles:
+            hp.makeProfiles()
+        if opts.make_projections:
+            hp.makeProjections()
+        del hp
 
     @add_cmd_options(["maxw", "minw", "proj", "axis", "field", "weight",
                       "zlim", "nframes", "output", "cmap", "uboxes"])

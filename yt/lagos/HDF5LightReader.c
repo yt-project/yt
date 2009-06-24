@@ -517,14 +517,10 @@ Py_ReadMultipleGrids(PyObject *obj, PyObject *args)
             oset_name = PyList_GetItem(set_names, n);
             set_name = PyString_AsString(oset_name);
             cur_data = get_array_from_nodename(set_name, grid_node);
-            if (cur_data == NULL) {
-              PyErr_Format(_hdf5ReadError,
-                  "ReadHDF5DataSet: Error reading (%s, %s, %s)",
-                  filename, grid_node_name, set_name);
-              goto _fail;
+            if (cur_data != NULL) {
+                PyDict_SetItem(grid_data, oset_name, (PyObject *) cur_data);
             }
-            PyDict_SetItem(grid_data, oset_name, (PyObject *) cur_data);
-            Py_DECREF(cur_data); // still one left
+            Py_XDECREF(cur_data); // still one left
         }
         // We just want the one reference from the grids_dict value set
         Py_DECREF(grid_data); 

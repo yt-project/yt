@@ -79,7 +79,6 @@ class ReasonMainWindow(wx.Frame):
         self.data_objects = []
         self.locals = {'lagos':lagos,
                        'raven':raven,
-                       'enki':enki,
                        'raven':raven,
                        'outputs':self.outputs,
                        'windows':self.windows,

@@ -27,6 +27,7 @@ import time, types, signal, inspect, traceback, sys, pdb, rpdb
 import warnings
 import progressbar as pb
 from math import floor, ceil
+from yt.logger import ytLogger as mylog
 
 def signal_print_traceback(signo, frame):
     print traceback.print_stack(frame)
@@ -36,7 +37,9 @@ def signal_problem(signo, frame):
 
 try:
     signal.signal(signal.SIGUSR1, signal_print_traceback)
+    mylog.debug("SIGUSR1 registered for traceback printing")
     signal.signal(signal.SIGUSR2, signal_problem)
+    mylog.debug("SIGUSR2 registered for RuntimeError")
 except ValueError:  # Not in main thread
     pass
 
@@ -58,6 +61,7 @@ if "--paste" in sys.argv:
     sys.excepthook = paste_traceback
 if "--rpdb" in sys.argv:
     sys.excepthook = rpdb.rpdb_excepthook
+    del sys.argv[sys.argv.index("--rpdb")]
 
 def blank_wrapper(f):
     return lambda a: a
@@ -95,7 +99,6 @@ def time_execution(func):
         mylog.debug('%s took %0.3f s', func.func_name, (t2-t1))
         return res
     from yt.config import ytcfg
-    from yt.logger import lagosLogger as mylog
     if ytcfg.getboolean("yt","timefunctions") == True:
         return wrapper
     else:
@@ -117,10 +120,10 @@ __header = """
      %(filename)s:%(lineno)s
 """
 
-def insert_ipython():
+def insert_ipython(num_up=1):
     from IPython.Shell import IPShellEmbed
     stack = inspect.stack()
-    frame = inspect.stack()[1]
+    frame = inspect.stack()[num_up]
     loc = frame[0].f_locals.copy()
     glo = frame[0].f_globals
     dd = dict(fname = frame[3], filename = frame[1],
@@ -164,7 +167,6 @@ def just_one(obj):
 
 def get_pbar(title, maxval):
     from yt.config import ytcfg
-    from yt.logger import lagosLogger as mylog
     if ytcfg.getboolean("yt","inGui"):
         if maxval > ytcfg.getint("reason","minpbar"): # Arbitrary number
             return GUIProgressBar(title, maxval)

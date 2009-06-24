@@ -528,9 +528,11 @@ class AMR2DData(AMRData, GridPropertiesMixin, ParallelAnalysisInterface):
                     continue # A "True" return means we did it
             # To ensure that we use data from this object as much as possible,
             # we're going to have to set the same thing several times
-            temp_data[field] = na.concatenate(
-                [self._get_data_from_grid(grid, field)
-                 for grid in self._get_grids()])
+            data = [self._get_data_from_grid(grid, field)
+                    for grid in self._get_grids()]
+            if len(data) == 0: data = None
+            else: data = na.concatenate(data)
+            temp_data[field] = data
             # Now the next field can use this field
             self[field] = temp_data[field] 
         # We finalize
@@ -675,7 +677,9 @@ class AMRSliceBase(AMR2DData):
         points = []
         for grid in self._get_grids():
             points.append(self._generate_grid_coords(grid))
-        t = self._mpi_catarray(na.concatenate(points))
+        if len(points) == 0: points = None
+        else: points = na.concatenate(points)
+        t = self._mpi_catarray(points)
         self['px'] = t[:,0]
         self['py'] = t[:,1]
         self['pz'] = t[:,2]
@@ -754,6 +758,13 @@ class AMRSliceBase(AMR2DData):
     def _gen_node_name(self):
         return "%s/%s_%s" % \
             (self._top_node, self.axis, self.coord)
+
+    def __get_quantities(self):
+        if self.__quantities is None:
+            self.__quantities = DerivedQuantityCollection(self)
+        return self.__quantities
+    __quantities = None
+    quantities = property(__get_quantities)
 
 class AMRCuttingPlaneBase(AMR2DData):
     """
@@ -847,7 +858,9 @@ class AMRCuttingPlaneBase(AMR2DData):
         points = []
         for grid in self._get_grids():
             points.append(self._generate_grid_coords(grid))
-        t = self._mpi_catarray(na.concatenate(points))
+        if len(points) == 0: points = None
+        else: points = na.concatenate(points)
+        t = self._mpi_catarray(points)
         pos = (t[:,0:3] - self.center)
         self['px'] = na.dot(pos, self._x_vec)
         self['py'] = na.dot(pos, self._y_vec)
@@ -883,7 +896,7 @@ class AMRCuttingPlaneBase(AMR2DData):
         return na.where(k)
 
     def _gen_node_name(self):
-        cen_name = ("%s" % self.center).replace(" ","_")[1:-1]
+        cen_name = ("%s" % (self.center,)).replace(" ","_")[1:-1]
         L_name = ("%s" % self._norm_vec).replace(" ","_")[1:-1]
         return "%s/c%s_L%s" % \
             (self._top_node, cen_name, L_name)
@@ -965,21 +978,20 @@ class AMRProjBase(AMR2DData):
         self.hierarchy.grid.readDataFast = readDataPackedHandle
 
     #@time_execution
-    def __calculate_overlap(self):
+    def __calculate_overlap(self, level):
         s = self.source
-        mylog.info("Generating overlap masks")
+        mylog.info("Generating overlap masks for level %s", level)
         i = 0
         pbar = get_pbar("Reading and masking grids ", len(s._grids))
-        for level in range(self._max_level+1):
-            mylog.debug("Examining level %s", level)
-            grids = s.levelIndices[level]
-            RE = s.gridRightEdge[grids]
-            LE = s.gridLeftEdge[grids]
-            for grid in s._grids[grids]:
-                pbar.update(i)
-                self.__overlap_masks[grid.id] = \
-                    grid._generate_overlap_masks(self.axis, LE, RE)
-                i += 1
+        mylog.debug("Examining level %s", level)
+        grids = s.levelIndices[level]
+        RE = s.gridRightEdge[grids]
+        LE = s.gridLeftEdge[grids]
+        for grid in s._grids[grids]:
+            pbar.update(i)
+            self.__overlap_masks[grid.id] = \
+                grid._generate_overlap_masks(self.axis, LE, RE)
+            i += 1
         pbar.finish()
         mylog.info("Finished calculating overlap.")
 
@@ -1097,16 +1109,16 @@ class AMRProjBase(AMR2DData):
         self._obtain_fields(fields, self._node_name)
         fields = [f for f in fields if f not in self.data]
         if len(fields) == 0: return
-        self.__calculate_overlap()
         coord_data = []
         field_data = []
         dxs = []
         # We do this here, but I am not convinced it should be done here
         # It is probably faster, as it consolidates IO, but if we did it in
         # _project_level, then it would be more memory conservative
-        #self._preload(self.source._grids, self._get_dependencies(fields),
-        #              self.hierarchy.queue)
         for level in range(0, self._max_level+1):
+            self._preload(self.source._grids[self.source.levelIndices[level]],
+                          self._get_dependencies(fields), self.hierarchy.queue)
+            self.__calculate_overlap(level)
             my_coords, my_dx, my_fields = self.__project_level(level, fields)
             coord_data.append(my_coords)
             field_data.append(my_fields)
@@ -1199,6 +1211,26 @@ class AMRProjBase(AMR2DData):
     def _gen_node_name(self):
         return  "%s/%s" % \
             (self._top_node, self.axis)
+
+class AMRFixedResProjection(AMR2DData):
+    _top_node = "/Projections"
+    _type_name = "fixed_res_proj"
+    _con_args = ('axis', 'field', 'weight_field')
+    def __init__(self, axis, left_edge, right_edge, depth=None,
+                 fields = None, pf=None, **kwargs):
+        """
+        A projection that provides fixed resolution output,
+        operating in a grid-by-grid fashion.
+        """
+        AMR2DData.__init__(self, axis, fields, pf, **kwargs)
+        self.left_edge = na.array(left_edge)
+        self.right_edge = na.array(right_edge)
+        if depth is None:
+            depth = 0.5*(self.right_edge - self.left_edge).sum()
+        self.depth = depth
+
+    def _get_list_of_grids(self):
+        pass
 
 class AMR3DData(AMRData, GridPropertiesMixin):
     _key_fields = ['x','y','z','dx','dy','dz']
@@ -1643,8 +1675,8 @@ class AMRRegionBase(AMR3DData):
                                                            self.right_edge)
 
     def _is_fully_enclosed(self, grid):
-        return na.all( (grid._corners < self.right_edge)
-                     & (grid._corners > self.left_edge))
+        return na.all( (grid._corners <= self.right_edge)
+                     & (grid._corners >= self.left_edge))
 
     @cache_mask
     def _get_cut_mask(self, grid):
@@ -1986,7 +2018,7 @@ class AMRSmoothedCoveringGridBase(AMRCoveringGridBase):
         rf = float(self.pf["RefineBy"]**(self.level - level))
         dims = na.maximum(1,self.ActiveDimensions/rf) + 2
         dx = (self.right_edge-self.left_edge)/(dims-2)
-        x,y,z = (na.mgrid[0:dims[0],0:dims[1],0:dims[2]].astype('float64')+0.5)\
+        x,y,z = (na.mgrid[0:dims[0],0:dims[1],0:dims[2]].astype('float64')-0.5)\
               * dx[0]
         x += self.left_edge[0] - dx[0]
         y += self.left_edge[1] - dx[1]

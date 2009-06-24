@@ -74,6 +74,11 @@ class AMRGridPatch(AMRData):
                 conv_factor = 1.0
                 if self.pf.field_info.has_key(field):
                     conv_factor = self.pf.field_info[field]._convert_function(self)
+                if self.pf.field_info[field].particle_type and \
+                   self.NumberOfParticles == 0:
+                    # because this gets upcast to float
+                    self[field] = na.array([],dtype='int64')
+                    return self.data[field]
                 try:
                     if hasattr(self.hierarchy, 'queue'):
                         temp = self.hierarchy.queue.pop(self, field)
@@ -82,10 +87,7 @@ class AMRGridPatch(AMRData):
                     self[field] = temp * conv_factor
                 except self._read_exception, exc:
                     if field in self.pf.field_info:
-                        if self.pf.field_info[field].particle_type:
-                            # because this gets upcast to float
-                            self[field] = na.array([],dtype='int64')
-                        elif self.pf.field_info[field].not_in_all:
+                        if self.pf.field_info[field].not_in_all:
                             self[field] = na.zeros(self.ActiveDimensions, dtype='float64')
                         else:
                             raise
@@ -335,7 +337,7 @@ class AMRGridPatch(AMRData):
     child_indices = property(fget=_get_child_indices, fdel = _del_child_indices)
 
     def retrieve_ghost_zones(self, n_zones, fields, all_levels=False,
-                             smoothed=False):
+                             smoothed=False, old=False):
         # We will attempt this by creating a datacube that is exactly bigger
         # than the grid by nZones*dx in each direction
         nl = self.get_global_startindex() - n_zones
@@ -354,8 +356,12 @@ class AMRGridPatch(AMRData):
             cube = self.hierarchy.smoothed_covering_grid(
                 level, new_left_edge, new_right_edge, **kwargs)
         else:
-            cube = self.hierarchy.covering_grid(
-                level, new_left_edge, new_right_edge, **kwargs)
+            if old:
+                cube = self.hierarchy.covering_grid(
+                    level, new_left_edge, new_right_edge, **kwargs)
+            else:
+                cube = self.hierarchy.new_covering_grid(
+                    level, new_left_edge, **kwargs)
         return cube
 
     def get_vertex_centered_data(self, field, smoothed=True):

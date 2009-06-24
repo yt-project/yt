@@ -1,13 +1,11 @@
 from yt.mods import *
 
-pf = get_pf() # last argument on the command line gets turned into an EnzoStaticOutput
+pf = load("my_data") # load this data file
 
-sp = pf.h.sphere([0.5,0.5,0.5], 1.0) # Everything, no pre-loading of fields
+sp = pf.h.all_data()
 baryon_mass = sp["CellMassMsun"].sum()
-dm = sphere["creation_time"] < 0
-dm_mass = sphere["ParticleMassMsun"][dm].sum()
-star_mass = sphere["ParticleMassMsun"][~dm].sum()
+particle_mass = sphere["ParticleMassMsun"].sum()
 
-print "Total mass in grids in %s is %0.5e (gas = %0.5e / dm = %0.5e / star = %0.5e)" % \
-            (pf, baryon_mass + dm_mass + star_mass, baryon_mass, dm_mass, star_mass)
+print "Total mass in grids in %s is %0.5e (gas = %0.5e / particles = %0.5e)" % \
+            (pf, baryon_mass + particle_mass, baryon_mass, particle_mass)
 

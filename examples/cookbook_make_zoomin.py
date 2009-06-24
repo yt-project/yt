@@ -10,7 +10,7 @@ pc = raven.PlotCollection(pf)
 
 for i in range(3):
     pl = pc.add_slice("Density",i)
-    pl.add_callback(raven.UnitBoundaryCallback('pc'))
+    pl.modify["units"]()
 
 for i,v in enumerate(na.logspace(0,
              na.log10(pf.h.get_smallest_dx()*min_dx), n_frames)):
