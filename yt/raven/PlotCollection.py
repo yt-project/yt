@@ -36,7 +36,7 @@ def concatenate_pdfs(output_fn, input_fns):
 
 class PlotCollection(object):
     __id_counter = 0
-    def __init__(self, pf, deliverator_id=-1, center=None):
+    def __init__(self, pf, center=None, deliverator_id=-1):
         """
         Generate a collection of linked plots using *pf* as a source,
         optionally submitting to the deliverator with *deliverator_id*
@@ -498,6 +498,7 @@ def get_multi_plot(nx, ny, colorbar = 'vertical', bw = 4, dpi=300):
     """
     PlotTypes.Initialize()
     hf, wf = 1.0/ny, 1.0/nx
+    fudge_x = fudge_y = 1.0
     if colorbar.lower() == 'vertical':
         fudge_x = nx/(0.25+nx)
         fudge_y = 1.0

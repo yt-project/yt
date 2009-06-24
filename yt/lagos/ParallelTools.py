@@ -29,8 +29,10 @@ import yt.logger, logging
 import itertools, sys, cStringIO
 
 if os.path.basename(sys.executable) in \
-        ["mpi4py", "embed_enzo", 'python'+sys.version[:3]+'-mpi'] \
-    or "--parallel" in sys.argv or '_parallel' in dir(sys):
+        ["mpi4py", "embed_enzo",
+         "python"+sys.version[:3]+"-mpi"] \
+    or "--parallel" in sys.argv or '_parallel' in dir(sys) \
+    or any(["ipengine" in arg for arg in sys.argv]):
     from mpi4py import MPI
     parallel_capable = (MPI.COMM_WORLD.size > 1)
     if parallel_capable:
@@ -320,7 +322,7 @@ class ParallelAnalysisInterface(object):
         else:
             _send_array(data, dest=0, tag=0)
         mylog.debug("Opening MPI Broadcast on %s", MPI.COMM_WORLD.rank)
-        data = MPI.COMM_WORLD.Bcast(data, root=0)
+        data = _bcast_array(data, root=0)
         self._barrier()
         return data
 

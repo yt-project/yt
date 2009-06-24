@@ -122,6 +122,9 @@ add_field("CellsPerBin", function=_Ones, validators=[ValidateSpatial(0)],
           display_field = False)
 
 def _SoundSpeed(field, data):
+    if data.pf["EOSType"] == 1:
+        return na.ones(data["Density"].shape, dtype='float64') * \
+                data.pf["EOSSoundSpeed"]
     return ( data.pf["Gamma"]*data["Pressure"] / \
              data["Density"] )**(1.0/2.0)
 add_field("SoundSpeed", function=_SoundSpeed,
@@ -195,7 +198,7 @@ add_field("ParticleMassMsun",
 
 def _RadialMachNumber(field, data):
     """M{|v|/t_sound}"""
-    return data["RadialVelocity"] / data["SoundSpeed"]
+    return na.abs(data["RadialVelocity"]) / data["SoundSpeed"]
 add_field("RadialMachNumber", function=_RadialMachNumber)
 
 def _MachNumber(field, data):
@@ -575,18 +578,23 @@ add_field("ParticleAngularMomentumMSUNKMSMPC",
           units=r"M_{\odot}\rm{km}\rm{Mpc}/\rm{s}",
           particle_type=True)
 
-
 def _ParticleRadius(field, data):
     center = data.get_field_parameter("center")
-    radius = na.sqrt((data["particle_position_x"] - center[0])**2.0 +
-                     (data["particle_position_y"] - center[1])**2.0 +
-                     (data["particle_position_z"] - center[2])**2.0)
+    DW = data.pf["DomainRightEdge"] - data.pf["DomainLeftEdge"]
+    radius = na.zeros(data["particle_position_x"].shape, dtype='float64')
+    for i, ax in enumerate('xyz'):
+        r = na.abs(data["particle_position_%s" % ax] - center[i])
+        radius += na.minimum(r, na.abs(DW[i]-r))**2.0
+    na.sqrt(radius, radius)
     return radius
 def _Radius(field, data):
     center = data.get_field_parameter("center")
-    radius = na.sqrt((data["x"] - center[0])**2.0 +
-                     (data["y"] - center[1])**2.0 +
-                     (data["z"] - center[2])**2.0)
+    DW = data.pf["DomainRightEdge"] - data.pf["DomainLeftEdge"]
+    radius = na.zeros(data["x"].shape, dtype='float64')
+    for i, ax in enumerate('xyz'):
+        r = na.abs(data[ax] - center[i])
+        radius += na.minimum(r, na.abs(DW[i]-r))**2.0
+    na.sqrt(radius, radius)
     return radius
 def _ConvertRadiusCGS(data):
     return data.convert("cm")

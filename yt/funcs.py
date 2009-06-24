@@ -24,14 +24,19 @@ License:
 """
 
 import time, types, signal, inspect, traceback, sys, pdb, rpdb
+import warnings
 import progressbar as pb
 from math import floor, ceil
 
 def signal_print_traceback(signo, frame):
     print traceback.print_stack(frame)
 
+def signal_problem(signo, frame):
+    raise RuntimeError()
+
 try:
     signal.signal(signal.SIGUSR1, signal_print_traceback)
+    signal.signal(signal.SIGUSR2, signal_problem)
 except ValueError:  # Not in main thread
     pass
 
@@ -218,3 +223,11 @@ def only_on_root(func, *args, **kwargs):
         return func(*args,**kwargs)
     if ytcfg.getint("yt","__parallel_rank") > 0: return
     return func(*args, **kwargs)
+
+def deprecate(func):
+    @wraps(func)
+    def run_func(*args, **kwargs):
+        warnings.warn("%s has been deprecated and may be removed without notice!" \
+                % func.func_name, DeprecationWarning, stacklevel=2)
+        func(*args, **kwargs)
+    return run_func

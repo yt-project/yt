@@ -166,6 +166,11 @@ def readDataSliceInMemory(self, grid, field, axis, coord):
 def getExceptionInMemory():
     return KeyError
 
+def readDataSliceHDF4_2D(self, grid, field, axis, coord):
+    t = SD.SD(grid.filename).select(field).get()
+    return t.transpose()
+
+
 def readDataSlicePacked2D(self, grid, field, axis, coord):
     """
     Reads a slice through the HDF5 data
@@ -228,6 +233,14 @@ class DataQueueHDF4(BaseDataQueue):
 
     def modify(self, field):
         return field.swapaxes(0,2)
+
+class DataQueueHDF4_2D(BaseDataQueue):
+    def _read_set(self, grid, field):
+        t = SD.SD(grid.filename).select(field).get()[:,:,None]
+        return t.swapaxes(0,1)
+
+    def modify(self, field):
+        pass
 
 class DataQueueHDF5(BaseDataQueue):
     def _read_set(self, grid, field):

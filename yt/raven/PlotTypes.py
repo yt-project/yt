@@ -101,7 +101,7 @@ class RavenPlot(object):
     def __getitem__(self, item):
         return self.data[item] # Should be returned in CGS
 
-    def save_image(self, prefix, format, submit=None, override=False):
+    def save_image(self, prefix, format="png", submit=None, override=True):
         """
         Save this plot image.  Will generate a filename based on the *prefix*,
         *format*.  *submit* will govern the submission to the Deliverator and
@@ -323,7 +323,7 @@ class VMPlot(RavenPlot):
             self.colorbar.set_norm(self.norm)
             if self.cmap: self.colorbar.set_cmap(self.cmap)
             if self.do_autoscale: _notify(self.image, self.colorbar)
-        self.autoset_label()
+        self._autoset_label()
 
     def set_xlim(self, xmin, xmax):
         self.xlim = (xmin,xmax)
@@ -384,30 +384,25 @@ class VMPlot(RavenPlot):
     def selfSetup(self):
         pass
 
+    def _autoset_label(self):
+        if self.datalabel is None:
+            field_name = self.axis_names["Z"]
+            proj = "Proj" in self._type_name and \
+                   self.data._weight is None
+            data_label = self.pf.field_info[field_name].get_label(proj)
+        else: data_label = self.datalabel
+        if self.colorbar != None:
+            self.colorbar.set_label(str(data_label))
+
 class FixedResolutionPlot(VMPlot):
 
     # This is a great argument in favor of changing the name
     # from VMPlot to something else
 
     _type_name = "FixedResolution"
-    _projected = False
 
     def _get_buff(self, width=None):
         return self.data[self.axis_names["Z"]]
-
-    def autoset_label(self):
-        if self.datalabel != None:
-            self.colorbar.set_label(str(self.datalabel))
-            return
-        field_name = self.axis_names["Z"]
-        data_label = r"$\rm{%s}" % field_name.replace("_","\hspace{0.5}")
-        if self.pf.field_info.has_key(field_name):
-            if self._projected:
-                data_label += r"\/\/ (%s)" % (self.pf.field_info[field_name].get_projected_units())
-            else:
-                data_label += r"\/\/ (%s)" % (self.pf.field_info[field_name].get_units())
-        data_label += r"$"
-        if self.colorbar != None: self.colorbar.set_label(str(data_label))
 
     def set_width(self, width, unit):
         #mylog.debug("Not changing FixedResolution width")
@@ -437,17 +432,6 @@ class SlicePlot(VMPlot):
             xf += "_bv"; yf += "_bv"
         from Callbacks import QuiverCallback
         self.add_callback(QuiverCallback(xf, yf, factor))
-
-    def autoset_label(self):
-        if self.datalabel != None:
-            self.colorbar.set_label(str(self.datalabel))
-            return
-        field_name = self.axis_names["Z"]
-        data_label = r"$\rm{%s}" % field_name.replace("_","\hspace{0.5}")
-        if self.pf.field_info.has_key(field_name):
-            data_label += r"\/\/ (%s)" % (self.pf.field_info[field_name].get_units())
-        data_label += r"$"
-        if self.colorbar != None: self.colorbar.set_label(str(data_label))
 
 class NNVMPlot:
     def _get_buff(self, width=None):
@@ -485,19 +469,6 @@ class SlicePlotNaturalNeighbor(NNVMPlot, SlicePlot):
 class ProjectionPlot(VMPlot):
 
     _type_name = "Projection"
-    def autoset_label(self):
-        if self.datalabel != None:
-            self.colorbar.set_label(str(self.datalabel))
-            return
-        field_name = self.axis_names["Z"]
-        data_label = r"$\rm{%s}" % field_name.replace("_","\hspace{0.5}")
-        if self.pf.field_info.has_key(field_name):
-            if self.data._weight is None:
-                data_label += r"\/\/ (%s)" % (self.pf.field_info[field_name].get_projected_units())
-            else:
-                data_label += r"\/\/ (%s)" % (self.pf.field_info[field_name].get_units())
-        data_label += r"$"
-        if self.colorbar != None: self.colorbar.set_label(str(data_label))
 
     def switch_z(self, field):
         mylog.warning("Choosing not to change the field of a projection instance")
@@ -563,6 +534,7 @@ class ParticlePlot(RavenPlot):
         self.axis_names['Z'] = col
         from Callbacks import ParticleCallback
         self.add_callback(ParticleCallback(axis, width, p_size, col, stride))
+        self.set_width(1,'unitary')
 
     def _redraw_image(self, *args):
         self._axes.clear() # To help out the colorbar
@@ -615,6 +587,9 @@ class ParticlePlot(RavenPlot):
         self._axes.set_xlabel("")
 
 class ProfilePlot(RavenPlot):
+    _x_label = None
+    _y_label = None
+
     def setup_bins(self, field, func=None):
         if field in self.pf.field_info and self.pf.field_info[field].take_log:
             log_field = True
@@ -625,13 +600,18 @@ class ProfilePlot(RavenPlot):
         mylog.debug("Field: %s, log_field: %s", field, log_field)
         return log_field
 
-    def autoset_label(self, field, func):
-        dataLabel = r"$\rm{%s}" % (field.replace("_","\hspace{0.5}"))
-        if field in self.pf.field_info:
-            dataLabel += r" (%s)" % (self.pf.field_info[field].get_units())
-        dataLabel += r"$"
-        func(str(dataLabel))
+    def set_x_label(self, label):
+        self._axes.set_xlabel(label)
+        self._x_label = label
 
+    def set_y_label(self, label):
+        self._axes.set_ylabel(label)
+        self._y_label = label
+
+    def _autoset_label(self, field, function, axis):
+        label = getattr(self, '_%s_label' % axis)
+        if label is None: label = self.pf.field_info[field].get_label()
+        function(label)
 
 class Profile1DPlot(ProfilePlot):
 
@@ -671,8 +651,8 @@ class Profile1DPlot(ProfilePlot):
         func(self.data[self.fields[0]][indices],
              self.data[self.fields[1]][indices],
              **self.plot_options)
-        self.autoset_label(self.fields[0], self._axes.set_xlabel)
-        self.autoset_label(self.fields[1], self._axes.set_ylabel)
+        self._autoset_label(self.fields[0], self.set_x_label, 'x')
+        self._autoset_label(self.fields[1], self.set_y_label, 'y')
         self._run_callbacks()
 
     def set_log_field(self, val):
@@ -701,6 +681,8 @@ class PhasePlot(ProfilePlot):
     _type_name = "Profile2D"
     _xlim = None
     _ylim = None
+    _z_label = None
+
     def __init__(self, data, fields, id, ticker=None, cmap=None,
                  figure=None, axes=None):
         self._semi_unique_id = id
@@ -806,9 +788,9 @@ class PhasePlot(ProfilePlot):
         self.vals = vals
 
         _notify(self.image, self.colorbar)
-        self.autoset_label(self.fields[0], self._axes.set_xlabel)
-        self.autoset_label(self.fields[1], self._axes.set_ylabel)
-        self.autoset_label(self.fields[2], self.colorbar.set_label)
+        self._autoset_label(self.fields[0], self.set_x_label, 'x')
+        self._autoset_label(self.fields[1], self.set_y_label, 'y')
+        self._autoset_label(self.fields[2], self.set_z_label, 'z')
         self._run_callbacks()
 
     def _generate_prefix(self, prefix):
@@ -820,18 +802,12 @@ class PhasePlot(ProfilePlot):
         self["Field2"] = self.axis_names["Y"]
         self["Field3"] = self.axis_names["Z"]
 
-    def autoset_label(self, field_name, func):
-        if self.datalabel != None:
-            func(str(self.datalabel))
-            return
-        data_label = r"$\rm{%s}" % field_name.replace("_"," ")
-        if field_name in self.pf.field_info:
-            data_label += r"\/\/ (%s)" % (self.pf.field_info[field_name].get_units())
-        data_label += r"$"
-        func(str(data_label))
-
     def set_width(self, width, unit):
         mylog.warning("Choosing not to change the width of a phase plot instance")
+
+    def set_z_label(self, label):
+        self.colorbar.set_label(label)
+        self._z_label = label
 
 class LineQueryPlot(RavenPlot):
     _type_name = "LineQueryPlot"
@@ -875,8 +851,8 @@ class LineQueryPlot(RavenPlot):
         func(self.data[self.fields[0]][indices],
              self.data[self.fields[1]][indices],
              **self.plot_options)
-        self.autoset_label(self.fields[0], self._axes.set_xlabel)
-        self.autoset_label(self.fields[1], self._axes.set_ylabel)
+        self._autoset_label(self.fields[0], self._axes.set_xlabel)
+        self._autoset_label(self.fields[1], self._axes.set_ylabel)
         self._run_callbacks()
 
     def set_log_field(self, val):
@@ -893,7 +869,7 @@ class LineQueryPlot(RavenPlot):
         self.fields[1] = field
         self.axis_names["Y"] = field
 
-    def autoset_label(self, field_name, func):
+    def _autoset_label(self, field_name, func):
         if self.datalabel != None:
             func(str(self.datalabel))
             return

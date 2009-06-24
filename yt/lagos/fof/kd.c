@@ -8,7 +8,7 @@
 #include "tipsydefs.h"
 
 
-void kdTime(KD kd,int *puSecond,int *puMicro)
+void kdTimeFoF(KDFOF kd,int *puSecond,int *puMicro)
 {
 	struct rusage ru;
 
@@ -24,12 +24,12 @@ void kdTime(KD kd,int *puSecond,int *puMicro)
 	}
 
 
-int kdInit(KD *pkd,int nBucket,float *fPeriod)
+int kdInitFoF(KDFOF *pkd,int nBucket,float *fPeriod)
 {
-	KD kd;
+	KDFOF kd;
 	int j;
 
-	kd = (KD)malloc(sizeof(struct kdContext));
+	kd = (KDFOF)malloc(sizeof(struct kdContext));
 	assert(kd != NULL);
 	kd->nBucket = nBucket;
 	for (j=0;j<3;++j) kd->fPeriod[j] = fPeriod[j];
@@ -40,7 +40,7 @@ int kdInit(KD *pkd,int nBucket,float *fPeriod)
 	}
 
 
-void kdReadTipsy(KD kd,FILE *fp,int bDark,int bGas,int bStar)
+void kdReadTipsyFoF(KDFOF kd,FILE *fp,int bDark,int bGas,int bStar)
 {
 	int i,j,nCnt;
 	struct dump h;
@@ -64,7 +64,7 @@ void kdReadTipsy(KD kd,FILE *fp,int bDark,int bGas,int bStar)
 	/*
 	 ** Allocate particles.
 	 */
-	kd->p = (PARTICLE *)malloc(kd->nActive*sizeof(PARTICLE));
+	kd->p = (PARTICLEFOF *)malloc(kd->nActive*sizeof(PARTICLEFOF));
 	assert(kd->p != NULL);
 	/*
 	 ** Read Stuff!
@@ -97,9 +97,9 @@ void kdReadTipsy(KD kd,FILE *fp,int bDark,int bGas,int bStar)
 	}
 
 
-void kdSelect(KD kd,int d,int k,int l,int r)
+void kdSelectFoF(KDFOF kd,int d,int k,int l,int r)
 {
-	PARTICLE *p,t;
+	PARTICLEFOF *p,t;
 	double v;
 	int i,j;
 
@@ -128,7 +128,7 @@ void kdSelect(KD kd,int d,int k,int l,int r)
 	}
 
 
-void kdCombine(KDN *p1,KDN *p2,KDN *pOut)
+void kdCombineFoF(KDNFOF *p1,KDNFOF *p2,KDNFOF *pOut)
 {
 	int j;
 
@@ -148,18 +148,18 @@ void kdCombine(KDN *p1,KDN *p2,KDN *pOut)
 	}
 
 
-void kdUpPass(KD kd,int iCell)
+void kdUpPassFoF(KDFOF kd,int iCell)
 {
-	KDN *c;
+	KDNFOF *c;
 	int l,u,pj,j;
 
 	c = kd->kdNodes;
 	if (c[iCell].iDim != -1) {
-		l = LOWER(iCell);
-		u = UPPER(iCell);
-		kdUpPass(kd,l);
-		kdUpPass(kd,u);
-		kdCombine(&c[l],&c[u],&c[iCell]);
+		l = LOWERFOF(iCell);
+		u = UPPERFOF(iCell);
+		kdUpPassFoF(kd,l);
+		kdUpPassFoF(kd,u);
+		kdCombineFoF(&c[l],&c[u],&c[iCell]);
 		}
 	else {
 		l = c[iCell].pLower;
@@ -179,11 +179,11 @@ void kdUpPass(KD kd,int iCell)
 		}
 	}
 
-void kdBuildTree(KD kd)
+void kdBuildTreeFoF(KDFOF kd)
 {
 	int l,n,i,d,m,j,diff;
-	KDN *c;
-	BND bnd;
+	KDNFOF *c;
+	BNDFOF bnd;
 
 	n = kd->nActive;
 	kd->nLevels = 1;
@@ -196,7 +196,7 @@ void kdBuildTree(KD kd)
 	kd->nSplit = l;
 	kd->nNodes = l<<1;
 	if (kd->kdNodes != NULL) free(kd->kdNodes);
-	kd->kdNodes = (KDN *)malloc(kd->nNodes*sizeof(KDN));
+	kd->kdNodes = (KDNFOF *)malloc(kd->nNodes*sizeof(KDNFOF));
 	assert(kd->kdNodes != NULL);
 	/*
 	 ** Calculate Bounds.
@@ -214,13 +214,13 @@ void kdBuildTree(KD kd)
 			}
 		}
 	/*
-	 ** Set up ROOT node
+	 ** Set up ROOTFOF node
 	 */
 	c = kd->kdNodes;
-	c[ROOT].pLower = 0;
-	c[ROOT].pUpper = kd->nActive-1;
-	c[ROOT].bnd = bnd;
-	i = ROOT;
+	c[ROOTFOF].pLower = 0;
+	c[ROOTFOF].pUpper = kd->nActive-1;
+	c[ROOTFOF].bnd = bnd;
+	i = ROOTFOF;
 	while (1) {
 		assert(c[i].pUpper - c[i].pLower + 1 > 0);
 		if (i < kd->nSplit && (c[i].pUpper - c[i].pLower) > 0) {
@@ -232,35 +232,35 @@ void kdBuildTree(KD kd)
 			c[i].iDim = d;
 
 			m = (c[i].pLower + c[i].pUpper)/2;
-			kdSelect(kd,d,m,c[i].pLower,c[i].pUpper);
+			kdSelectFoF(kd,d,m,c[i].pLower,c[i].pUpper);
 
 			c[i].fSplit = kd->p[m].r[d];
-			c[LOWER(i)].bnd = c[i].bnd;
-			c[LOWER(i)].bnd.fMax[d] = c[i].fSplit;
-			c[LOWER(i)].pLower = c[i].pLower;
-			c[LOWER(i)].pUpper = m;
-			c[UPPER(i)].bnd = c[i].bnd;
-			c[UPPER(i)].bnd.fMin[d] = c[i].fSplit;
-			c[UPPER(i)].pLower = m+1;
-			c[UPPER(i)].pUpper = c[i].pUpper;
+			c[LOWERFOF(i)].bnd = c[i].bnd;
+			c[LOWERFOF(i)].bnd.fMax[d] = c[i].fSplit;
+			c[LOWERFOF(i)].pLower = c[i].pLower;
+			c[LOWERFOF(i)].pUpper = m;
+			c[UPPERFOF(i)].bnd = c[i].bnd;
+			c[UPPERFOF(i)].bnd.fMin[d] = c[i].fSplit;
+			c[UPPERFOF(i)].pLower = m+1;
+			c[UPPERFOF(i)].pUpper = c[i].pUpper;
 			diff = (m-c[i].pLower+1)-(c[i].pUpper-m);
 			assert(diff == 0 || diff == 1);
-			i = LOWER(i);
+			i = LOWERFOF(i);
 			}
 		else {
 			c[i].iDim = -1;
-			SETNEXT(i);
-			if (i == ROOT) break;
+			SETNEXTFOF(i);
+			if (i == ROOTFOF) break;
 			}
 		}
-	kdUpPass(kd,ROOT);
+	kdUpPassFoF(kd,ROOTFOF);
 	}
 
 
-int kdFoF(KD kd,float fEps)
+int kdFoF(KDFOF kd,float fEps)
 {
-	PARTICLE *p;
-	KDN *c;
+	PARTICLEFOF *p;
+	KDNFOF *c;
 	int pi,pj,pn,cp;
 
 	int iGroup;
@@ -300,14 +300,14 @@ int kdFoF(KD kd,float fEps)
 			x = p[pi].r[0];
 			y = p[pi].r[1];
 			z = p[pi].r[2];
-			cp = ROOT;
+			cp = ROOTFOF;
 			while (1) {
-				INTERSECT(c,cp,fEps2,lx,ly,lz,x,y,z,sx,sy,sz);
+				INTERSECTFOF(c,cp,fEps2,lx,ly,lz,x,y,z,sx,sy,sz);
 				/*
 				 ** We have an intersection to test.
 				 */
 				if (c[cp].iDim >= 0) {
-					cp = LOWER(cp);
+					cp = LOWERFOF(cp);
 					continue;
 					}
 				else {
@@ -326,8 +326,8 @@ int kdFoF(KD kd,float fEps)
 							if (iTail == nFifo) iTail = 0;
 							}
 						}
-					SETNEXT(cp);
-					if (cp == ROOT) break;
+					SETNEXTFOF(cp);
+					if (cp == ROOTFOF) break;
 					continue;
 					}
 			ContainedCell:
@@ -341,8 +341,8 @@ int kdFoF(KD kd,float fEps)
 					if (iTail == nFifo) iTail = 0;
 					}
 			GetNextCell:
-				SETNEXT(cp);
-				if (cp == ROOT) break;
+				SETNEXTFOF(cp);
+				if (cp == ROOTFOF) break;
 				}
 			}
 		}
@@ -352,7 +352,7 @@ int kdFoF(KD kd,float fEps)
 	}
 
 
-int kdTooSmall(KD kd,int nMembers)
+int kdTooSmallFoF(KDFOF kd,int nMembers)
 {
 	int *pnMembers,*pMap;
 	int i,pi,nGroup;
@@ -397,20 +397,20 @@ int kdTooSmall(KD kd,int nMembers)
 	}
 
 
-int CmpParticles(const void *v1,const void *v2)
+int CmpParticlesFoF(const void *v1,const void *v2)
 {
-	PARTICLE *p1 = (PARTICLE *)v1;
-	PARTICLE *p2 = (PARTICLE *)v2;
+	PARTICLEFOF *p1 = (PARTICLEFOF *)v1;
+	PARTICLEFOF *p2 = (PARTICLEFOF *)v2;
 	return(p1->iOrder - p2->iOrder);
 	}
 
-void kdOrder(KD kd)
+void kdOrderFoF(KDFOF kd)
 {
-	qsort(kd->p,kd->nActive,sizeof(PARTICLE),CmpParticles);
+	qsort(kd->p,kd->nActive,sizeof(PARTICLEFOF),CmpParticlesFoF);
 	}
 
 
-void kdOutGroup(KD kd,char *pszFile)
+void kdOutGroupFoF(KDFOF kd,char *pszFile)
 {
 	FILE *fp;
 	int i,iCnt;
@@ -435,7 +435,7 @@ void kdOutGroup(KD kd,char *pszFile)
 	}
 
 
-void kdFinish(KD kd)
+void kdFinishFoF(KDFOF kd)
 {
 	free(kd->p);
 	free(kd->kdNodes);

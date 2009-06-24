@@ -1,41 +1,41 @@
-#ifndef KD_HINCLUDED
-#define KD_HINCLUDED
+#ifndef KDFOF_HINCLUDED
+#define KDFOF_HINCLUDED
 
-#define ROOT		1
-#define LOWER(i)	(i<<1)
-#define UPPER(i)	((i<<1)+1)
-#define PARENT(i)	(i>>1)
-#define SIBLING(i) 	((i&1)?i-1:i+1)
-#define SETNEXT(i)\
+#define ROOTFOF		1
+#define LOWERFOF(i)	(i<<1)
+#define UPPERFOF(i)	((i<<1)+1)
+#define PARENTFOF(i)	(i>>1)
+#define SIBLINGFOF(i) 	((i&1)?i-1:i+1)
+#define SETNEXTFOF(i)\
 {\
 	while (i&1) i=i>>1;\
 	++i;\
 	}
 
-#define DARK	1
-#define GAS		2
-#define STAR	4
+#define DARKFOF	1
+#define GASFOF		2
+#define STARFOF	4
 
-#define KD_ORDERTEMP	256
+#define KDFOF_ORDERTEMP	256
 
 typedef struct Particle {
 	float r[3];
 	int iGroup;
 	int iOrder;
-	} PARTICLE;
+	} PARTICLEFOF;
 
 typedef struct bndBound {
 	float fMin[3];
 	float fMax[3];
-	} BND;
+	} BNDFOF;
 
 typedef struct kdNode {
 	float fSplit;
-	BND bnd;
+	BNDFOF bnd;
 	int iDim;
 	int pLower;
 	int pUpper;
-	} KDN;
+	} KDNFOF;
 
 typedef struct kdContext {
 	int nBucket;
@@ -52,15 +52,15 @@ typedef struct kdContext {
 	int nLevels;
 	int nNodes;
 	int nSplit;
-	PARTICLE *p;
-	KDN *kdNodes;
+	PARTICLEFOF *p;
+	KDNFOF *kdNodes;
 	int nGroup;
 	int uSecond;
 	int uMicro;
-	} * KD;
+	} * KDFOF;
 
 
-#define INTERSECT(c,cp,fBall2,lx,ly,lz,x,y,z,sx,sy,sz)\
+#define INTERSECTFOF(c,cp,fBall2,lx,ly,lz,x,y,z,sx,sy,sz)\
 {\
 	float dx,dy,dz,dx1,dy1,dz1,fDist2,fMax2;\
 	dx = c[cp].bnd.fMin[0]-x;\
@@ -179,15 +179,15 @@ typedef struct kdContext {
 	}
 
 
-void kdTime(KD,int *,int *);
-int kdInit(KD *,int,float *);
-void kdReadTipsy(KD,FILE *,int,int,int);
-void kdBuildTree(KD);
-int kdFoF(KD,float);
-int kdTooSmall(KD,int);
-void kdOrder(KD);
-void kdOutGroup(KD,char *);
-void kdFinish(KD);
+void kdTimeFoF(KDFOF,int *,int *);
+int kdInitFoF(KDFOF *,int,float *);
+void kdReadTipsyFoF(KDFOF,FILE *,int,int,int);
+void kdBuildTreeFoF(KDFOF);
+int kdFoF(KDFOF,float);
+int kdTooSmallFoF(KDFOF,int);
+void kdOrderFoF(KDFOF);
+void kdOutGroupFoF(KDFOF,char *);
+void kdFinishFoF(KDFOF);
 
 #endif
 

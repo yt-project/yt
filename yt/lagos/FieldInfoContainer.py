@@ -123,6 +123,7 @@ class NeedsParameter(ValidationException):
 class FieldDetector(defaultdict):
     Level = 1
     NumberOfParticles = 0
+    _read_exception = None
     def __init__(self, nd = 16, pf = None):
         self.nd = nd
         self.ActiveDimensions = [nd,nd,nd]
@@ -154,6 +155,11 @@ class FieldDetector(defaultdict):
                 return self[item]
         self.requested.append(item)
         return defaultdict.__missing__(self, item)
+
+    def _read_data(self, field_name):
+        self.requested.append(field_name)
+        return defaultdict.__missing__(self, field_name)
+
     def get_field_parameter(self, param):
         self.requested_parameters.append(param)
         if param in ['bulk_velocity','center','height_vector']:
@@ -166,14 +172,14 @@ class FieldDetector(defaultdict):
     def has_field_parameter(self, param): return True
     def convert(self, item): return 1
 
-class DerivedField:
+class DerivedField(object):
     def __init__(self, name, function,
                  convert_function = None,
                  units = "", projected_units = "",
                  take_log = True, validators = None,
                  particle_type = False, vector_field=False,
                  display_field = True, not_in_all=False,
-                 projection_conversion = "cm"):
+                 display_name = None, projection_conversion = "cm"):
         """
         This is the base class used to describe a cell-by-cell derived field.
 
@@ -189,6 +195,7 @@ class DerivedField:
         :param display_field: governs its appearance in the dropdowns in reason
         :param not_in_all: is used for baryon fields from the data that are not in
                            all the grids
+        :param display_name: a name used in the plots
         :param projection_conversion: which unit should we multiply by in a
                                       projection?
         """
@@ -208,12 +215,15 @@ class DerivedField:
         self.vector_field = vector_field
         self.projection_conversion = projection_conversion
         self.display_field = display_field
+        self.display_name = display_name
         self.not_in_all = not_in_all
+
     def check_available(self, data):
         for validator in self.validators:
             validator(data)
         # If we don't get an exception, we're good to go
         return True
+
     def get_dependencies(self, *args, **kwargs):
         e = FieldDetector(*args, **kwargs)
         if self._function.func_name == '<lambda>':
@@ -221,10 +231,13 @@ class DerivedField:
         else:
             self(e)
         return e
+
     def get_units(self):
         return self._units
+
     def get_projected_units(self):
         return self._projected_units
+
     def __call__(self, data):
         ii = self.check_available(data)
         original_fields = data.fields[:] # Copy
@@ -234,8 +247,19 @@ class DerivedField:
             if field_name not in original_fields:
                 del data[field_name]
         return dd
+
     def get_source(self):
         return inspect.getsource(self._function)
+
+    def get_label(self, projected=False):
+        name = self.name
+        if self.display_name is not None: name = self.display_name
+        data_label = r"$\rm{%s}" % name
+        if projected: units = self.get_projected_units()
+        else: units = self.get_units()
+        if units != "": data_label += r"\/\/ (%s)" % (units)
+        data_label += r"$"
+        return data_label
 
 class FieldValidator(object):
     pass

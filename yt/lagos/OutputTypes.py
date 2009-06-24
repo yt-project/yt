@@ -45,7 +45,7 @@ class StaticOutput(object):
 
     def __new__(cls, filename, *args, **kwargs):
         apath = os.path.abspath(filename)
-        if not os.path.exists(apath): raise IOError
+        if not os.path.exists(apath): raise IOError(filename)
         if apath not in _cached_pfs:
             obj = object.__new__(cls)
             obj.__init__(filename, *args, **kwargs)
@@ -111,6 +111,11 @@ class StaticOutput(object):
              + self.time_units.keys() \
              + self.parameters.keys() \
              + self.conversion_factors.keys()
+
+    def __iter__(self):
+        for ll in [self.units, self.time_units,
+                   self.parameters, self.conversion_factors]:
+            for i in ll.keys(): yield i
 
     def get_smallest_appropriate_unit(self, v):
         max_nu = 1e30
@@ -307,6 +312,7 @@ class EnzoStaticOutput(StaticOutput):
         self.time_units = {}
         if len(self.parameters) == 0:
             self._parse_parameter_file()
+        if "EOSType" not in self.parameters: self.parameters["EOSType"] = -1
         if self["ComovingCoordinates"]:
             self._setup_comoving_units()
         elif self.has_key("LengthUnit"):
@@ -457,6 +463,7 @@ class OrionStaticOutput(StaticOutput):
         self.parameters["HydroMethod"] = 'orion' # always PPM DE
         self.parameters["InitialTime"] = 0. # FIX ME!!!
         self.parameters["DualEnergyFormalism"] = 0 # always off.
+        self.parameters["EOSType"] = -1 # default
         if self.fparameters.has_key("mu"):
             self.parameters["mu"] = self.fparameters["mu"]
 

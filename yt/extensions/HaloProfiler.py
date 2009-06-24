@@ -24,7 +24,7 @@ License:
 """
 
 import yt.lagos as lagos
-import yt.lagos.hop as hop
+from yt.lagos.HaloFinding import HaloFinder
 from yt.logger import lagosLogger as mylog
 import yt.raven as raven
 import numpy as na
@@ -103,6 +103,7 @@ class HaloProfiler(lagos.ParallelAnalysisInterface):
             singleHalo = {}
             singleHalo['center'] = center
             singleHalo['r_max'] = self.haloRadius * self.pf.units['mpc']
+            singleHalo['id'] = 0
             self.hopHalos.append(singleHalo)
         elif self.halos is 'multiple':
             # Get hop data.
@@ -461,15 +462,10 @@ class HaloProfiler(lagos.ParallelAnalysisInterface):
 
     def _RunHop(self,hopFile):
         "Run hop to get halos."
-        full_box = self.pf.h.region(0.5 *(self.pf.parameters['DomainRightEdge'] -
-                                          self.pf.parameters['DomainLeftEdge']),
-                                    self.pf.parameters['DomainLeftEdge'],
-                                    self.pf.parameters['DomainRightEdge'])
 
-        hop_results = hop.HopList(full_box, 80.0)
+        hop_results = HaloFinder(self.pf)
         hop_results.write_out(hopFile)
 
-        del full_box
         del hop_results
 
     def _LoadHopData(self):

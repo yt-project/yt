@@ -1,4 +1,4 @@
 #!python2.5
-import yt.fido
+from yt.mods import *
 
-yt.fido.runAction()
+fido.runAction()

@@ -554,7 +554,8 @@ class LightCone(object):
                     if self.verbose: mylog.error("CalculateDeltaZMax: Warning - max iterations exceeded for z = %f (delta z = %f)." % 
                                                  (z,na.fabs(z2-z)))
                     break
-            output['deltazMin'] = na.fabs(z2-z)
+            # Use this calculation or the absolute minimum specified by the user.
+            output['deltazMin'] = max(na.fabs(z2-z),self.lightConeParameters['MinimumSliceDeltaz'])
 
         del co
 
@@ -724,6 +725,7 @@ class LightCone(object):
         self.enzoParameters['DataDumpDir'] = "DD"
         self.lightConeParameters['UseMinimumNumberOfProjections'] = 1
         self.lightConeParameters['MinimumCoherentBoxFraction'] = 0.0
+        self.lightConeParameters['MinimumSliceDeltaz'] = 0.0
         self.lightConeParameters['ObserverRedshift'] = 0.0
         self.lightConeParameters['OutputDir'] = "./"
         self.lightConeParameters['OutputPrefix'] = "LightCone"
@@ -750,5 +752,6 @@ LightConeParameterDict = {"InitialRedshift": float,
                           "ImageResolutionInArcSeconds": float,
                           "UseMinimumNumberOfProjections": int,
                           "MinimumCoherentBoxFraction": float,
+                          "MinimumSliceDeltaz": float,
                           "OutputDir": str,
                           "OutputPrefix": str}

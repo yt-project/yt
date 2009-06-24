@@ -129,6 +129,10 @@ _common_options = dict(
                    action="store_false", 
                    dest="dm_only", default=True,
                    help="Use all particles"),
+    grids   = dict(short="", long="--show-grids",
+                   action="store_true",
+                   dest="grids", default=False,
+                   help="Show the grid boundaries"),
     )
 
 def _add_options(parser, *options):
@@ -190,11 +194,9 @@ class YTCommands(cmdln.Cmdln):
         ${cmd_option_list}
         """
         pf = _fix_pf(arg)
-        sp = pf.h.sphere((pf["DomainLeftEdge"] + pf["DomainRightEdge"])/2.0,
-                         pf['unitary'])
         kwargs = {'dm_only' : opts.dm_only}
         if opts.threshold is not None: kwargs['threshold'] = opts.threshold
-        hop_list = hop.HopList(sp, **kwargs)
+        hop_list = HaloFinder(sp, **kwargs)
         if opts.output is None: fn = "%s.hop" % pf
         else: fn = opts.output
         hop_list.write_out(fn)
@@ -243,7 +245,7 @@ class YTCommands(cmdln.Cmdln):
 
     @add_cmd_options(["width", "unit", "bn", "proj", "center",
                       "zlim", "axis", "field", "weight", "skip",
-                      "cmap", "output"])
+                      "cmap", "output", "grids"])
     @check_args
     def do_plot(self, subcmd, opts, arg):
         """
@@ -268,23 +270,129 @@ class YTCommands(cmdln.Cmdln):
             if opts.projection: pc.add_projection(opts.field, ax,
                                     weight_field=opts.weight, center=center)
             else: pc.add_slice(opts.field, ax, center=center)
+            if opts.grids: pc.plots[-1].modify["grids"]()
         pc.set_width(opts.width, opts.unit)
         pc.set_cmap(opts.cmap)
         if opts.zlim: pc.set_zlim(*opts.zlim)
         pc.save(os.path.join(opts.output,"%s" % (pf)))
 
-    def do_rpdb(self, subcmd, opts, arg):
+    def do_vtk(self, subcmd, opts):
+        """
+        Start the VTK interface (if installed)
+
+        ${cmd_usage}
+        ${cmd_option_list}
+        """
+        import yt.raven.VTKInterface
+        yt.raven.VTKInterface.run_vtk()
+
+    def do_rpdb(self, subcmd, opts, task):
         """
         Connect to a currently running (on localhost) rpd session.
 
         Commands run with --rpdb will trigger an rpdb session with any
         uncaught exceptions.
 
-        ${cmd_usage} [TASK_NUMER]
+        ${cmd_usage} 
         ${cmd_option_list}
         """
         import rpdb
-        rpdb.run_rpdb(int(arg))
+        rpdb.run_rpdb(int(task))
+
+
+    @cmdln.option("-o", "--output", action="store", type="string",
+                  dest="output", default="movie.a5",
+                  help="Name of our output file")
+    @cmdln.option("", "--always-copy", action="store_true", 
+                  dest="always_copy", default=False,
+                  help="Should we always copy the data to the new file")
+    @cmdln.option("", "--minlevel", action="store", type="int",
+                  dest="min_level", default=0,
+                  help="The minimum level to extract (chooses first grid at that level)")
+    @cmdln.option("", "--maxlevel", action="store", type="int",
+                  dest="max_level", default=-1,
+                  help="The maximum level to extract (chooses first grid at that level)")
+    @cmdln.option("-d","--subtract-time", action="store_true",
+                  dest="subtract_time", help="Subtract the physical time of " + \
+                  "the first timestep (useful for small delta t)", default=False)
+    @cmdln.option("-r","--recenter", action="store_true",
+                  dest="recenter", help="Recenter on maximum density in final output")
+    @add_cmd_options(["bn","field","skip"])
+    def do_amira(self, subcmd, opts, start, stop):
+        """
+        Export multiple data sets in amira format
+
+        ${cmd_usage} 
+        ${cmd_option_list}
+        """
+        from yt.extensions.HierarchySubset import ExtractedHierarchy
+        import tables
+
+        first = int(start)
+        last = int(stop)
+
+        # Set up our global metadata
+        afile = tables.openFile(opts.output, "w")
+        md = afile.createGroup("/", "globalMetaData")
+        mda = md._v_attrs
+        mda.datatype = 0
+        mda.staggering = 1
+        mda.fieldtype = 1
+
+        mda.minTimeStep = first
+        mda.maxTimeStep = last
+
+        times = []
+        # Get our staggering correct based on skip
+        timesteps = na.arange(first, last+1, opts.skip, dtype='int32')
+        time_offset = None
+        t2 = []
+
+        offset = None
+        if opts.recenter:
+            tpf = _fix_pf("%s%04i" % (opts.basename, timesteps[-1]))
+            offset = tpf.h.find_max("Density")[1]
+            del tpf
+
+        for n in timesteps:
+            # Try super hard to get the right parameter file
+            pf = _fix_pf("%s%04i" % (opts.basename, n))
+            hh = pf.h
+            times.append(pf["InitialTime"] * pf["years"])
+            eh = ExtractedHierarchy(pf, opts.min_level, max_level = opts.max_level,
+                        offset=offset, always_copy=opts.always_copy)
+            eh.export_output(afile, n, opts.field)
+            t2.append(pf["InitialTime"])
+
+        # This should be the same
+        mda.rootDelta = (pf["unitary"]/pf["TopGridDimensions"]).astype('float64')
+        mda.minTime = times[0]
+        mda.maxTime = times[-1]
+        mda.numTimeSteps = len(timesteps)
+
+        # I think we just want one value here
+        rel_times = na.array(times, dtype='float64') - int(opts.subtract_time)*times[0]
+        afile.createArray(md, "sorted_times", na.array(rel_times))
+        afile.createArray(md, "sorted_timesteps", timesteps)
+
+        afile.close()
+        
+    @add_cmd_options(['outputfn','bn','skip'])
+    @check_args
+    def do_stats(self, subcmd, opts, arg):
+        """
+        Print stats and maximum density for one or more datasets
+
+        ${cmd_option_list}
+        """
+        pf = _fix_pf(arg)
+        pf.h.print_stats()
+        v, c = pf.h.find_max("Density")
+        print "Maximum density: %0.5e at %s" % (v, c)
+        if opts.output is not None:
+            t = pf["InitialTime"] * pf['years']
+            open(opts.output, "a").write(
+                "%s (%0.5e years): %0.5e at %s\n" % (pf, t, v, c))
 
 def run_main():
     for co in ["--parallel", "--paste"]:

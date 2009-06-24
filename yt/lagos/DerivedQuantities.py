@@ -58,6 +58,16 @@ class DerivedQuantity(ParallelAnalysisInterface):
 
     def __call__(self, *args, **kwargs):
         lazy_reader = kwargs.pop('lazy_reader', False)
+        preload = kwargs.pop('preload', False)
+        if preload:
+            if not lazy_reader: mylog.debug("Turning on lazy_reader because of preload")
+            lazy_reader = True
+            e = FieldDetector()
+            e.NumberOfParticles = 1
+            self.func(e, *args, **kwargs)
+            mylog.debug("Preloading %s", e.requested)
+            self._preload([g for g in self._get_grid_objs()], e.requested,
+                          self._data_source.pf.h.queue)
         if lazy_reader and not self.force_unlazy:
             return self._call_func_lazy(args, kwargs)
         else:
@@ -382,7 +392,26 @@ def _combExtrema(data, n_fields, mins, maxs):
     return [(na.min(mins[:,i]), na.max(maxs[:,i])) for i in range(n_fields)]
 add_quantity("Extrema", function=_Extrema, combine_function=_combExtrema,
              n_ret=3)
-        
+
+def _MaxLocation(data, field):
+    """
+    This function returns the location of the maximum of a set
+    of fields.
+    """
+    ma, maxi, mx, my, mz, mg = -1e90, -1, -1, -1, -1, -1
+    if data[field].size > 0:
+        maxi = na.argmax(data[field])
+        ma = data[field][maxi]
+        mx, my, mz = [data[ax][maxi] for ax in 'xyz']
+        mg = data["GridIndices"][maxi]
+    return (ma, maxi, mx, my, mz, mg)
+def _combMaxLocation(data, *args):
+    args = [na.atleast_1d(arg) for arg in args]
+    i = na.argmax(args[0]) # ma is arg[0]
+    return [arg[i] for arg in args]
+add_quantity("MaxLocation", function=_MaxLocation,
+             combine_function=_combMaxLocation, n_ret = 6)
+
 def _TotalQuantity(data, fields):
     """
     This function sums up a given field over the entire region

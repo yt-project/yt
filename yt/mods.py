@@ -30,7 +30,6 @@ License:
 
 # First module imports
 import yt.lagos as lagos
-import yt.lagos.hop as hop
 import yt.raven as raven
 import yt.fido as fido
 import numpy as na
@@ -42,7 +41,7 @@ from yt.lagos import EnzoStaticOutput, \
     BinnedProfile1D, BinnedProfile2D, BinnedProfile3D, \
     add_field, FieldInfo, EnzoFieldInfo, Enzo2DFieldInfo, OrionFieldInfo, \
     Clump, write_clump_hierarchy, find_clumps, write_clumps, \
-    OrionStaticOutput
+    OrionStaticOutput, HaloFinder, HOPHaloFinder, FOFHaloFinder
 
 # This is a temporary solution -- in the future, we will allow the user to
 # select this via ytcfg.
@@ -61,6 +60,8 @@ try:
         VolumeRendering3DProfile, HaloMassesPositionPlot
 except ImportError:
     pass
+
+import yt.raven.PlotInterface as plots
 
 # Individual imports from Fido
 from yt.fido import GrabCollections, OutputCollection
@@ -167,14 +168,3 @@ def _get_current_pf():
                 __pf = EnzoStaticOutput(__pf)
             mylog.info("Obtained parameter file %s", __pf)
             return __pf
-    
-def hop_plot(my_pf = None):
-    if my_pf is None: my_pf = _get_current_pf()
-    pc = PlotCollection(my_pf, center=[0.5,0.5,0.5])
-    center = (my_pf["DomainRightEdge"]-my_pf["DomainLeftEdge"])/2.0
-    hop_output = hop.HopList(my_pf.h.sphere(center, 1.0/my_pf["1"]))
-    hop_output.write_out("%s.hop" % my_pf)
-    for ax in range(3):
-        pc.add_projection("Density", ax).add_callback(
-                            HopCircleCallback(hop_output, ax))
-    pc.save("%s_hop" % my_pf)

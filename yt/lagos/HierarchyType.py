@@ -33,6 +33,8 @@ from itertools import chain, izip
 _data_style_funcs = \
    { 4: (readDataHDF4,readAllDataHDF4, getFieldsHDF4, readDataSliceHDF4,
          getExceptionHDF4, DataQueueHDF4),
+     'enzo_hdf4_2d': (readDataHDF4, readAllDataHDF4, getFieldsHDF4, readDataSliceHDF4_2D,
+         getExceptionHDF4, DataQueueHDF4_2D),
      5: (readDataHDF5, readAllDataHDF5, getFieldsHDF5, readDataSliceHDF5,
          getExceptionHDF5, DataQueueHDF5),
      6: (readDataPacked, readAllDataPacked, getFieldsPacked, readDataSlicePacked,
@@ -51,6 +53,7 @@ class AMRHierarchy:
     _data_mode = None # Default
     def __init__(self, pf):
         self.parameter_file = weakref.proxy(pf)
+        self._max_locations = {}
         self._data_file = None
         self._setup_classes()
         self._initialize_grids()
@@ -296,31 +299,31 @@ class AMRHierarchy:
         """
         Returns (value, center) of location of maximum for a given field.
         """
+        if (field, finestLevels) in self._max_locations:
+            return self._max_locations[(field, finestLevels)]
         mg, mc, mv, pos = self.find_max_cell_location(field, finestLevels)
+        self._max_locations[(field, finestLevels)] = (mv, pos)
         return mv, pos
-    findMax = find_max
+    findMax = deprecate(find_max)
 
     def find_max_cell_location(self, field, finestLevels = True):
         if finestLevels:
-            gI = na.where(self.gridLevels >= self.maxLevel - NUMTOCHECK)
+            gi = (self.gridLevels >= self.max_level - NUMTOCHECK).ravel()
+            source = self.grid_collection([0.0]*3,
+                self.grids[gi])
         else:
-            gI = na.where(self.gridLevels >= 0) # Slow but pedantic
-        maxVal = -1e100
-        for grid in self.grids[gI[0]]:
-            mylog.debug("Checking %s (level %s)", grid.id, grid.Level)
-            val, coord = grid.find_max(field)
-            if val > maxVal:
-                maxCoord = coord
-                maxVal = val
-                maxGrid = grid
-        mc = na.array(maxCoord)
-        pos=maxGrid.get_position(mc)
+            source = self.all_data()
+        mylog.debug("Searching %s grids for maximum value of %s",
+                    len(source._grids), field)
+        max_val, maxi, mx, my, mz, mg = source.quantities["MaxLocation"](
+                            field, lazy_reader=True)
+        max_grid = self.grids[mg]
+        mc = na.unravel_index(maxi, max_grid.ActiveDimensions)
         mylog.info("Max Value is %0.5e at %0.16f %0.16f %0.16f in grid %s at level %s %s", \
-              maxVal, pos[0], pos[1], pos[2], maxGrid, maxGrid.Level, mc)
-        self.center = pos
-        self.parameters["Max%sValue" % (field)] = maxVal
-        self.parameters["Max%sPos" % (field)] = "%s" % (pos)
-        return maxGrid, maxCoord, maxVal, pos
+              max_val, mx, my, mz, max_grid, max_grid.Level, mc)
+        self.parameters["Max%sValue" % (field)] = max_val
+        self.parameters["Max%sPos" % (field)] = "%s" % ((mx,my,mz),)
+        return max_grid, mc, max_val, (mx,my,mz)
 
     @time_execution
     def find_min(self, field):
@@ -425,8 +428,11 @@ class AMRHierarchy:
         """
         centers = (self.gridRightEdge + self.gridLeftEdge)/2.0
         long_axis = na.maximum.reduce(self.gridRightEdge - self.gridLeftEdge, 1)
-        t = centers - center
-        dist = na.sqrt(t[:,0]**2+t[:,1]**2+t[:,2]**2)
+        t = na.abs(centers - center)
+        DW = self.parameter_file["DomainRightEdge"] \
+           - self.parameter_file["DomainLeftEdge"]
+        na.minimum(t, na.abs(DW-t), t)
+        dist = na.sqrt(na.sum((t**2.0), axis=1))
         gridI = na.where(na.logical_and((self.gridDxs<=radius)[:,0],(dist < (radius + long_axis))) == 1)
         return self.grids[gridI], gridI
 

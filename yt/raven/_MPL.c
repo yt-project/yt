@@ -193,6 +193,16 @@ static PyObject* Py_CPixelize(PyObject *obj, PyObject *args) {
   PyObject *xp, *yp, *zp, *pxp, *pyp,
            *dxp, *dyp, *dzp, *dp,
            *centerp, *inv_matp, *indicesp;
+
+  xp = yp = zp = pxp = pyp = dxp = dyp = dzp = dp = NULL;
+  centerp = inv_matp = indicesp = NULL;
+
+  PyArrayObject *x, *y, *z, *px, *py, *d,
+                *dx, *dy, *dz, *center, *inv_mat, *indices;
+
+  x = y = z = px = py = dx = dy = dz = d = NULL;
+  center = inv_mat = indices = NULL;
+
   unsigned int rows, cols;
   double px_min, px_max, py_min, py_max;
 
@@ -211,79 +221,79 @@ static PyObject* Py_CPixelize(PyObject *obj, PyObject *args) {
       PyErr_Format( _pixelizeError, "Cannot scale to zero size.");
 
   // Get numeric arrays
-  PyArrayObject *x = (PyArrayObject *) PyArray_FromAny(xp,
+  x = (PyArrayObject *) PyArray_FromAny(xp,
             PyArray_DescrFromType(NPY_FLOAT64), 1, 1, 0, NULL);
   if (x == NULL) {
       PyErr_Format( _pixelizeError, "x is of incorrect type (wanted 1D float)");
       goto _fail;
   }
 
-  PyArrayObject *y = (PyArrayObject *) PyArray_FromAny(yp,
+  y = (PyArrayObject *) PyArray_FromAny(yp,
             PyArray_DescrFromType(NPY_FLOAT64), 1, 1, 0, NULL);
   if ((y == NULL) || (PyArray_SIZE(y) != PyArray_SIZE(x))) {
       PyErr_Format( _pixelizeError, "y is of incorrect type (wanted 1D float)");
       goto _fail;
   }
 
-  PyArrayObject *z = (PyArrayObject *) PyArray_FromAny(zp,
+  z = (PyArrayObject *) PyArray_FromAny(zp,
             PyArray_DescrFromType(NPY_FLOAT64), 1, 1, 0, NULL);
   if ((z == NULL) || (PyArray_SIZE(y) != PyArray_SIZE(x))) {
       PyErr_Format( _pixelizeError, "z is of incorrect type (wanted 1D float)");
       goto _fail;
   }
 
-  PyArrayObject *px = (PyArrayObject *) PyArray_FromAny(pxp,
+  px = (PyArrayObject *) PyArray_FromAny(pxp,
             PyArray_DescrFromType(NPY_FLOAT64), 1, 1, 0, NULL);
   if ((px == NULL) || (PyArray_SIZE(y) != PyArray_SIZE(x))) {
       PyErr_Format( _pixelizeError, "px is of incorrect type (wanted 1D float)");
       goto _fail;
   }
 
-  PyArrayObject *py = (PyArrayObject *) PyArray_FromAny(pyp,
+  py = (PyArrayObject *) PyArray_FromAny(pyp,
             PyArray_DescrFromType(NPY_FLOAT64), 1, 1, 0, NULL);
   if ((py == NULL) || (PyArray_SIZE(y) != PyArray_SIZE(x))) {
       PyErr_Format( _pixelizeError, "py is of incorrect type (wanted 1D float)");
       goto _fail;
   }
 
-  PyArrayObject *d = (PyArrayObject *) PyArray_FromAny(dp,
+  d = (PyArrayObject *) PyArray_FromAny(dp,
             PyArray_DescrFromType(NPY_FLOAT64), 1, 1, 0, NULL);
   if ((d == NULL) || (PyArray_SIZE(d) != PyArray_SIZE(x))) {
       PyErr_Format( _pixelizeError, "data is of incorrect type (wanted 1D float)");
       goto _fail;
   }
 
-  PyArrayObject *dx = (PyArrayObject *) PyArray_FromAny(dxp,
+  dx = (PyArrayObject *) PyArray_FromAny(dxp,
             PyArray_DescrFromType(NPY_FLOAT64), 1, 1, 0, NULL);
   if ((dx == NULL) || (PyArray_SIZE(dx) != PyArray_SIZE(x))) {
       PyErr_Format( _pixelizeError, "dx is of incorrect type (wanted 1D float)");
       goto _fail;
   }
-  PyArrayObject *dy = (PyArrayObject *) PyArray_FromAny(dyp,
+  dy = (PyArrayObject *) PyArray_FromAny(dyp,
             PyArray_DescrFromType(NPY_FLOAT64), 1, 1, 0, NULL);
   if ((dy == NULL) || (PyArray_SIZE(dy) != PyArray_SIZE(x))) {
       PyErr_Format( _pixelizeError, "dy is of incorrect type (wanted 1D float)");
       goto _fail;
   }
-  PyArrayObject *dz = (PyArrayObject *) PyArray_FromAny(dzp,
+  dz = (PyArrayObject *) PyArray_FromAny(dzp,
             PyArray_DescrFromType(NPY_FLOAT64), 1, 1, 0, NULL);
   if ((dz == NULL) || (PyArray_SIZE(dz) != PyArray_SIZE(x))) {
       PyErr_Format( _pixelizeError, "dz is of incorrect type (wanted 1D float)");
       goto _fail;
   }
-  PyArrayObject *center = (PyArrayObject *) PyArray_FromAny(centerp,
+  center = (PyArrayObject *) PyArray_FromAny(centerp,
             PyArray_DescrFromType(NPY_FLOAT64), 1, 1, NPY_C_CONTIGUOUS, NULL);
   if ((dz == NULL) || (PyArray_SIZE(center) != 3)) {
       PyErr_Format( _pixelizeError, "Center must have three points");
       goto _fail;
   }
-  PyArrayObject *inv_mat = (PyArrayObject *) PyArray_FromAny(inv_matp,
+  inv_mat = (PyArrayObject *) PyArray_FromAny(inv_matp,
             PyArray_DescrFromType(NPY_FLOAT64), 2, 2, 0, NULL);
   if ((inv_mat == NULL) || (PyArray_SIZE(inv_mat) != 9)) {
       PyErr_Format( _pixelizeError, "inv_mat must be three by three");
       goto _fail;
   }
-  PyArrayObject *indices = (PyArrayObject *) PyArray_FromAny(indicesp,
+  indices = (PyArrayObject *) PyArray_FromAny(indicesp,
             PyArray_DescrFromType(NPY_INT64), 1, 1, 0, NULL);
   if ((indices == NULL) || (PyArray_SIZE(indices) != PyArray_SIZE(dx))) {
       PyErr_Format( _pixelizeError, "indices must be same length as dx");

@@ -34,6 +34,8 @@ import SpectralIntegrator as SI
 import RayTracer as RT
 
 import HierarchySubset
+import disk_analysis
+import coordinate_transforms
 
 # Now individual component imports
 from HaloProfiler import HaloProfiler
@@ -42,3 +44,6 @@ from SpectralIntegrator import create_table_from_textfiles, \
                                SpectralFrequencyIntegrator
 from RayTracer import SlowRayTracer
 from HierarchySubset import ExtractedHierarchy
+
+from disk_analysis import StackedDiskImage
+from coordinate_transforms import spherical_regrid, arbitrary_regrid
