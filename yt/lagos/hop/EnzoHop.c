@@ -240,16 +240,14 @@ kDTreeType_init(kDTreeType *self, PyObject *args, PyObject *kwds)
                 *omass;
     self->xpos=self->ypos=self->zpos=self->mass=NULL;
 
-    /* 16 buckets, I s'pose */
-    kdInit(&self->kd, 16);
 
-    fprintf(stderr, "1\n");
     if (! PyArg_ParseTupleAndKeywords(args, kwds, "OOOO|i", kwlist, 
                            &oxpos, &oypos, &ozpos, &omass,
                            &nBuckets))
         return -1;  /* Should this give an error? */
 
-    fprintf(stderr, "2\n");
+    kdInit(&self->kd, nBuckets);
+
     self->num_particles = convert_particle_arrays(
             oxpos, oypos, ozpos, omass,
             &self->xpos, &self->ypos, &self->zpos, &self->mass);
