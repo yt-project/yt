@@ -226,24 +226,25 @@ typedef struct {
     PyObject_HEAD
     KD kd;
     PyArrayObject *xpos, *ypos, *zpos;
-    PyArrayObject *mass;
+    PyArrayObject *mass, *densities;
     int num_particles;
 } kDTreeType;
 
 static int
 kDTreeType_init(kDTreeType *self, PyObject *args, PyObject *kwds)
 {
-    int nBuckets = 16;
+    int nBuckets = 16, i;
+    float normalize_to = 1.0;
     static char *kwlist[] = {"xpos", "ypos", "zpos", "mass",
-                             "nbuckets", NULL};
+                             "nbuckets", "norm", NULL};
     PyObject    *oxpos, *oypos, *ozpos,
                 *omass;
     self->xpos=self->ypos=self->zpos=self->mass=NULL;
 
 
-    if (! PyArg_ParseTupleAndKeywords(args, kwds, "OOOO|i", kwlist, 
+    if (! PyArg_ParseTupleAndKeywords(args, kwds, "OOOO|if", kwlist, 
                            &oxpos, &oypos, &ozpos, &omass,
-                           &nBuckets))
+                           &nBuckets, &normalize_to))
         return -1;  /* Should this give an error? */
 
     kdInit(&self->kd, nBuckets);
@@ -251,12 +252,37 @@ kDTreeType_init(kDTreeType *self, PyObject *args, PyObject *kwds)
     self->num_particles = convert_particle_arrays(
             oxpos, oypos, ozpos, omass,
             &self->xpos, &self->ypos, &self->zpos, &self->mass);
+
     self->kd->nActive = self->num_particles;
     self->kd->p = malloc(sizeof(PARTICLE)*self->num_particles);
     if (self->kd->p == NULL) {
       fprintf(stderr, "failed allocating particles.\n");
       goto _fail;
     }
+
+    /* Now we set up our Density array */
+    self->densities = (PyArrayObject *)
+            PyArray_SimpleNewFromDescr(1, PyArray_DIMS(self->xpos),
+                    PyArray_DescrFromType(NPY_FLOAT64));
+
+    npy_float64 totalmass = 0.0;
+    for(i= 0; i < self->num_particles; i++) {
+        self->kd->p[i].np_index = i;
+        *(npy_float64*)(PyArray_GETPTR1(self->densities, i)) = 0.0;
+        totalmass+=*(npy_float64*)PyArray_GETPTR1(self->mass,i);
+    }
+    totalmass /= normalize_to;
+
+
+    self->kd->np_masses = self->mass;
+    self->kd->np_pos[0] = self->xpos;
+    self->kd->np_pos[1] = self->ypos;
+    self->kd->np_pos[2] = self->zpos;
+    self->kd->np_densities = self->densities;
+    self->kd->totalmass = totalmass;
+
+    PrepareKD(self->kd);
+    kdBuildTree(self->kd);
 
     return 0;
 
@@ -283,6 +309,48 @@ kDTreeType_dealloc(kDTreeType *self)
    self->ob_type->tp_free((PyObject*)self);
 }
 
+static PyObject *
+kDTreeType_up_pass(kDTreeType *self, PyObject *args) {
+    int iCell;
+
+    if (!PyArg_ParseTuple(args, "i", &iCell))
+        return PyErr_Format(_HOPerror,
+            "kDTree.up_pass: invalid parameters.");
+
+    if(iCell >= self->num_particles)
+        return PyErr_Format(_HOPerror,
+            "kDTree.up_pass: iCell cannot be >= num_particles!");
+
+    kdUpPass(self->kd, iCell);
+    return Py_None;
+}
+
+static PyObject *
+kDTreeType_median_jst(kDTreeType *self, PyObject *args) {
+    int d, l, u;
+
+    if (!PyArg_ParseTuple(args, "iii", &d, &l, &u))
+        return PyErr_Format(_HOPerror,
+            "kDTree.median_jst: invalid parameters.");
+
+    if(d >= 3)
+        return PyErr_Format(_HOPerror,
+            "kDTree.median_jst: d cannot be >= 3!");
+
+    if(l >= self->num_particles)
+        return PyErr_Format(_HOPerror,
+            "kDTree.median_jst: l cannot be >= num_particles!");
+
+    if(u >= self->num_particles)
+        return PyErr_Format(_HOPerror,
+            "kDTree.median_jst: u cannot be >= num_particles!");
+
+    int median = kdMedianJst(self->kd, d, l, u);
+
+    PyObject *omedian = PyInt_FromLong((long)median);
+    return omedian;
+}
+
 static PyMemberDef kDTreeType_members[] = {
    { "xpos",  T_OBJECT,    offsetof(kDTreeType, xpos), 0,
                "The xposition array."},
@@ -292,15 +360,19 @@ static PyMemberDef kDTreeType_members[] = {
                "The zposition array."},
    { "mass",  T_OBJECT,    offsetof(kDTreeType, mass), 0,
                "The mass array."},
-   { "nparticles", T_INT,  offsetof(kDTreeType, num_particles), 0,
+   { "densities",  T_OBJECT,    offsetof(kDTreeType, densities), 0,
+               "The density array."},
+   { "num_particles", T_INT,  offsetof(kDTreeType, num_particles), 0,
                "The number of particles"},
    { NULL }
 };
 
 static PyMethodDef
 kDTreeType_methods[] = {
-   /*{ "set",    (PyCFunction) CountDict_set, METH_VARARGS,
-               "Set a key and increment the count." },*/
+   { "up_pass",    (PyCFunction) kDTreeType_up_pass, METH_VARARGS,
+               "Pass up something or another, I'm not really sure."},
+   { "median_jst",    (PyCFunction) kDTreeType_median_jst, METH_VARARGS,
+               "Use the JST Median algorithm on two points along a dimension."},
    // typically there would be more here...
    
    { NULL }
