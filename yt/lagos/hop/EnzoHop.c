@@ -24,6 +24,7 @@
 //
 
 #include "Python.h"
+#include "structmember.h"
 #include <stdio.h>
 #include <math.h>
 #include <signal.h>
@@ -223,32 +224,32 @@ __declspec(dllexport)
 
 typedef struct {
     PyObject_HEAD
-    PyObject * dict;
     KD kd;
     PyArrayObject *xpos, *ypos, *zpos;
     PyArrayObject *mass;
     int num_particles;
-} kDTree;
+} kDTreeType;
 
 static int
-kDTree_init(kDTree *self, PyObject *args, PyObject *kwds)
+kDTreeType_init(kDTreeType *self, PyObject *args, PyObject *kwds)
 {
     int nBuckets = 16;
-    static char *kwlist[] = {"nbuckets", NULL};
+    static char *kwlist[] = {"xpos", "ypos", "zpos", "mass",
+                             "nbuckets", NULL};
     PyObject    *oxpos, *oypos, *ozpos,
                 *omass;
-
-    /* Initialize instance dict */
-    self->dict = PyDict_New();
+    self->xpos=self->ypos=self->zpos=self->mass=NULL;
 
     /* 16 buckets, I s'pose */
     kdInit(&self->kd, 16);
 
+    fprintf(stderr, "1\n");
     if (! PyArg_ParseTupleAndKeywords(args, kwds, "OOOO|i", kwlist, 
-                                      &oxpos, &oypos, &ozpos, &omass,
-                                      &nBuckets));
+                           &oxpos, &oypos, &ozpos, &omass,
+                           &nBuckets))
         return -1;  /* Should this give an error? */
 
+    fprintf(stderr, "2\n");
     self->num_particles = convert_particle_arrays(
             oxpos, oypos, ozpos, omass,
             &self->xpos, &self->ypos, &self->zpos, &self->mass);
@@ -258,6 +259,8 @@ kDTree_init(kDTree *self, PyObject *args, PyObject *kwds)
       fprintf(stderr, "failed allocating particles.\n");
       goto _fail;
     }
+
+    return 0;
 
     _fail:
         Py_XDECREF(self->xpos);
@@ -270,6 +273,84 @@ kDTree_init(kDTree *self, PyObject *args, PyObject *kwds)
         return -1;
 }
 
+static void
+kDTreeType_dealloc(kDTreeType *self)
+{
+   kdFinish(self->kd);
+   Py_XDECREF(self->xpos);
+   Py_XDECREF(self->ypos);
+   Py_XDECREF(self->zpos);
+   Py_XDECREF(self->mass);
+
+   self->ob_type->tp_free((PyObject*)self);
+}
+
+static PyMemberDef kDTreeType_members[] = {
+   { "xpos",  T_OBJECT,    offsetof(kDTreeType, xpos), 0,
+               "The xposition array."},
+   { "ypos",  T_OBJECT,    offsetof(kDTreeType, ypos), 0,
+               "The yposition array."},
+   { "zpos",  T_OBJECT,    offsetof(kDTreeType, zpos), 0,
+               "The zposition array."},
+   { "mass",  T_OBJECT,    offsetof(kDTreeType, mass), 0,
+               "The mass array."},
+   { "nparticles", T_INT,  offsetof(kDTreeType, num_particles), 0,
+               "The number of particles"},
+   { NULL }
+};
+
+static PyMethodDef
+kDTreeType_methods[] = {
+   /*{ "set",    (PyCFunction) CountDict_set, METH_VARARGS,
+               "Set a key and increment the count." },*/
+   // typically there would be more here...
+   
+   { NULL }
+};
+
+static PyTypeObject
+kDTreeTypeDict = {
+   PyObject_HEAD_INIT(NULL)
+   0,                         /* ob_size */
+   "kDTree",               /* tp_name */
+   sizeof(kDTreeType),         /* tp_basicsize */
+   0,                         /* tp_itemsize */
+   (destructor)kDTreeType_dealloc, /* tp_dealloc */
+   0,                         /* tp_print */
+   0,                         /* tp_getattr */
+   0,                         /* tp_setattr */
+   0,                         /* tp_compare */
+   0,                         /* tp_repr */
+   0,                         /* tp_as_number */
+   0,                         /* tp_as_sequence */
+   0,                         /* tp_as_mapping */
+   0,                         /* tp_hash */
+   0,                         /* tp_call */
+   0,                         /* tp_str */
+   0,                         /* tp_getattro */
+   0,                         /* tp_setattro */
+   0,                         /* tp_as_buffer */
+   Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE, /* tp_flags*/
+   "kDTree object",           /* tp_doc */
+   0,                         /* tp_traverse */
+   0,                         /* tp_clear */
+   0,                         /* tp_richcompare */
+   0,                         /* tp_weaklistoffset */
+   0,                         /* tp_iter */
+   0,                         /* tp_iternext */
+   kDTreeType_methods,         /* tp_methods */
+   kDTreeType_members,         /* tp_members */
+   0,                         /* tp_getset */
+   0,                         /* tp_base */
+   0,                         /* tp_dict */
+   0,                         /* tp_descr_get */
+   0,                         /* tp_descr_set */
+   0,                         /* tp_dictoffset */
+   (initproc)kDTreeType_init,     /* tp_init */
+   0,                         /* tp_alloc */
+   0,                         /* tp_new */
+};
+
 void initEnzoHop(void)
 {
     PyObject *m, *d;
@@ -277,7 +358,16 @@ void initEnzoHop(void)
     d = PyModule_GetDict(m);
     _HOPerror = PyErr_NewException("EnzoHop.HOPerror", NULL, NULL);
     PyDict_SetItemString(d, "error", _HOPerror);
-    import_array();
+
+    kDTreeTypeDict.tp_new = PyType_GenericNew;
+    if (PyType_Ready(&kDTreeTypeDict) < 0) {
+       return;
+    }
+
+   Py_INCREF(&kDTreeTypeDict);
+   PyModule_AddObject(m, "kDTree", (PyObject*)&kDTreeTypeDict);
+
+   import_array();
 }
 
 /*
