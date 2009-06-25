@@ -39,6 +39,56 @@ void hop_main(KD kd, HC *my_comm, float densthres);
 void regroup_main(float dens_outer, HC *my_comm);
 static PyObject *_HOPerror;
 
+int convert_particle_arrays(
+    PyObject *oxpos, PyObject *oypos, PyObject *ozpos, PyObject *omass,
+    PyArrayObject **xpos, PyArrayObject **ypos, PyArrayObject **zpos,
+      PyArrayObject **mass)
+{
+
+    /* First the regular source arrays */
+
+    *xpos    = (PyArrayObject *) PyArray_FromAny(oxpos,
+                    PyArray_DescrFromType(NPY_FLOAT64), 1, 1,
+                    NPY_INOUT_ARRAY | NPY_UPDATEIFCOPY, NULL);
+    if(!*xpos){
+    PyErr_Format(_HOPerror,
+             "EnzoHop: xpos didn't work.");
+    return -1;
+    }
+    int num_particles = PyArray_SIZE(*xpos);
+
+    *ypos    = (PyArrayObject *) PyArray_FromAny(oypos,
+                    PyArray_DescrFromType(NPY_FLOAT64), 1, 1,
+                    NPY_INOUT_ARRAY | NPY_UPDATEIFCOPY, NULL);
+    if((!*ypos)||(PyArray_SIZE(*ypos) != num_particles)) {
+    PyErr_Format(_HOPerror,
+             "EnzoHop: xpos and ypos must be the same length.");
+    return -1;
+    }
+
+    *zpos    = (PyArrayObject *) PyArray_FromAny(ozpos,
+                    PyArray_DescrFromType(NPY_FLOAT64), 1, 1,
+                    NPY_INOUT_ARRAY | NPY_UPDATEIFCOPY, NULL);
+    if((!*zpos)||(PyArray_SIZE(*zpos) != num_particles)) {
+    PyErr_Format(_HOPerror,
+             "EnzoHop: xpos and zpos must be the same length.");
+    return -1;
+    }
+
+    *mass    = (PyArrayObject *) PyArray_FromAny(omass,
+                    PyArray_DescrFromType(NPY_FLOAT64), 1, 1,
+                    NPY_INOUT_ARRAY | NPY_UPDATEIFCOPY, NULL);
+    if((!*mass)||(PyArray_SIZE(*mass) != num_particles)) {
+    PyErr_Format(_HOPerror,
+             "EnzoHop: xpos and mass must be the same length.");
+    return -1;
+    }
+
+    return num_particles;
+
+}
+    
+
 static PyObject *
 Py_EnzoHop(PyObject *obj, PyObject *args)
 {
@@ -59,44 +109,10 @@ Py_EnzoHop(PyObject *obj, PyObject *args)
     return PyErr_Format(_HOPerror,
             "EnzoHop: Invalid parameters.");
 
-    /* First the regular source arrays */
-
-    xpos    = (PyArrayObject *) PyArray_FromAny(oxpos,
-                    PyArray_DescrFromType(NPY_FLOAT64), 1, 1,
-                    NPY_INOUT_ARRAY | NPY_UPDATEIFCOPY, NULL);
-    if(!xpos){
-    PyErr_Format(_HOPerror,
-             "EnzoHop: xpos didn't work.");
-    goto _fail;
-    }
-    int num_particles = PyArray_SIZE(xpos);
-
-    ypos    = (PyArrayObject *) PyArray_FromAny(oypos,
-                    PyArray_DescrFromType(NPY_FLOAT64), 1, 1,
-                    NPY_INOUT_ARRAY | NPY_UPDATEIFCOPY, NULL);
-    if((!ypos)||(PyArray_SIZE(ypos) != num_particles)) {
-    PyErr_Format(_HOPerror,
-             "EnzoHop: xpos and ypos must be the same length.");
-    goto _fail;
-    }
-
-    zpos    = (PyArrayObject *) PyArray_FromAny(ozpos,
-                    PyArray_DescrFromType(NPY_FLOAT64), 1, 1,
-                    NPY_INOUT_ARRAY | NPY_UPDATEIFCOPY, NULL);
-    if((!zpos)||(PyArray_SIZE(zpos) != num_particles)) {
-    PyErr_Format(_HOPerror,
-             "EnzoHop: xpos and zpos must be the same length.");
-    goto _fail;
-    }
-
-    mass    = (PyArrayObject *) PyArray_FromAny(omass,
-                    PyArray_DescrFromType(NPY_FLOAT64), 1, 1,
-                    NPY_INOUT_ARRAY | NPY_UPDATEIFCOPY, NULL);
-    if((!mass)||(PyArray_SIZE(mass) != num_particles)) {
-    PyErr_Format(_HOPerror,
-             "EnzoHop: xpos and mass must be the same length.");
-    goto _fail;
-    }
+    int num_particles = convert_particle_arrays(
+            oxpos, oypos, ozpos, omass,
+            &xpos, &ypos, &zpos, &mass);
+    if (num_particles < 0) goto _fail;
 
     for(i = 0; i < num_particles; i++)
         totalmass+=*(npy_float64*)PyArray_GETPTR1(mass,i);
@@ -200,6 +216,59 @@ static PyMethodDef _HOPMethods[] = {
 #ifdef MS_WIN32
 __declspec(dllexport)
 #endif
+
+//
+// Now a fun wrapper class for the kD-tree
+//
+
+typedef struct {
+    PyObject_HEAD
+    PyObject * dict;
+    KD kd;
+    PyArrayObject *xpos, *ypos, *zpos;
+    PyArrayObject *mass;
+    int num_particles;
+} kDTree;
+
+static int
+kDTree_init(kDTree *self, PyObject *args, PyObject *kwds)
+{
+    int nBuckets = 16;
+    static char *kwlist[] = {"nbuckets", NULL};
+    PyObject    *oxpos, *oypos, *ozpos,
+                *omass;
+
+    /* Initialize instance dict */
+    self->dict = PyDict_New();
+
+    /* 16 buckets, I s'pose */
+    kdInit(&self->kd, 16);
+
+    if (! PyArg_ParseTupleAndKeywords(args, kwds, "OOOO|i", kwlist, 
+                                      &oxpos, &oypos, &ozpos, &omass,
+                                      &nBuckets));
+        return -1;  /* Should this give an error? */
+
+    self->num_particles = convert_particle_arrays(
+            oxpos, oypos, ozpos, omass,
+            &self->xpos, &self->ypos, &self->zpos, &self->mass);
+    self->kd->nActive = self->num_particles;
+    self->kd->p = malloc(sizeof(PARTICLE)*self->num_particles);
+    if (self->kd->p == NULL) {
+      fprintf(stderr, "failed allocating particles.\n");
+      goto _fail;
+    }
+
+    _fail:
+        Py_XDECREF(self->xpos);
+        Py_XDECREF(self->ypos);
+        Py_XDECREF(self->zpos);
+        Py_XDECREF(self->mass);
+
+        if(self->kd->p!=NULL)free(self->kd->p);
+
+        return -1;
+}
 
 void initEnzoHop(void)
 {
