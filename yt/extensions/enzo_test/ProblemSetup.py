@@ -24,6 +24,7 @@ License:
 """
 
 from yt.mods import *
+from yt.funcs import *
 from yt.extensions.EnzoSimulation import *
 from ProblemVerification import verification_registry
 
@@ -35,14 +36,27 @@ class Problem(object):
         self.pfname = pfname
         self.simulation = EnzoSimulation(pfname)
         if repo_url is None: repo_url = "results_%s" % name
-        self.tests = []
+        self.tests, self.test_types = [], {}
         self.init_repo(repo_url)
+        self._initialize_tests()
+
+    def _add_test(self, test_type):
+        @wraps(test_type.__init__)
+        def test_wrapper(self, name, *args, **kwargs):
+            new_test = test(name, self, *args, **kwargs)
+            self.tests.append(new_test)
+        return test_wrapper
+
+    def _initialize_tests(self):
+        for name, test in verification_registry.iteritems():
+            setattr(self, 'add_%s' % name, self._add_test(test))
+            self.test_types[name] = self._add_test(test)
 
     def init_repo(self, url):
-        pass
-        
-    def add_test(self, ptype, name, *args, **kwargs):
-        pass
-        
+        return
+        self.repo = hg.repository(url)
+
+    def load_repo_file(self, fn, identifier='tip'):
+        return self.repo['tip'][fn].data()
 
 # repo['tip']['yt/lagos/__init__.py'].data()

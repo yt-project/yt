@@ -31,7 +31,8 @@ class VerificationMechanism(object):
     class __metaclass__(type):
         def __init__(cls, name, b, d):
             type.__init__(cls, name, b, d)
-            callback_registry[cls._vtype_name] = cls
+            if not hasattr(cls,'_vtype_name'): return
+            verification_registry[cls._vtype_name] = cls
 
     def verify_identical(self, identifier = 'reference'):
         other = self._load_reference_result(identifier)
@@ -43,12 +44,16 @@ class VerificationMechanism(object):
     def _store_result(self, identifier, repo=None):
         pass
 
-class ProfileVerificiation(VerificationMechanism):
-    _vtype_name = "profile"
-    def __init__(self, name, data, q1, q2,
-                 q1_limits = None, q2_limits = None,
-                 q1_nbins = None, q2_nbins = None):
+    def __init__(self, name, problem):
         self.name = name
+        self.problem = problem
+
+class ProfileVerification(VerificationMechanism):
+    _vtype_name = "profile"
+    def __init__(self, name, problem, data, q1, q2,
+                 q1_limits = None, q2_limits = None,
+                 q1_nbins = 64, q2_nbins = 64):
+        VerificationMechanism.__init__(self, name, problem)
         self.data = data
         self.q1 = q1
         self.q2 = q2
