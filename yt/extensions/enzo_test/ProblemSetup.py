@@ -42,8 +42,8 @@ class Problem(object):
 
     def _add_test(self, test_type):
         @wraps(test_type.__init__)
-        def test_wrapper(self, name, *args, **kwargs):
-            new_test = test(name, self, *args, **kwargs)
+        def test_wrapper(name, *args, **kwargs):
+            new_test = test_type(name, *args, **kwargs)
             self.tests.append(new_test)
         return test_wrapper
 
@@ -60,11 +60,13 @@ class Problem(object):
         return self.repo['tip'][fn].data()
 
     def run_tests(self):
-        results = {}
+        all_results = {}
         for pf in self.simulation:
+            results = {}
             for test in self.tests:
-                test.run()
+                test.run(pf)
                 results[test.name] = test.output
-        return results
+            all_results[str(pf)] = results
+        return all_results
 
 # repo['tip']['yt/lagos/__init__.py'].data()

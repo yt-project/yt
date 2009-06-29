@@ -182,11 +182,15 @@ class EnzoSimulation(object):
     def _SetParameterDefaults(self):
         "Set some default parameters to avoid problems if they are not in the parameter file."
         self.enzoParameters['GlobalDir'] = "."
-        self.enzoParameters['RedshiftDumpName'] = "RD"
+        self.enzoParameters['RedshiftDumpName'] = "RedshiftOutput"
         self.enzoParameters['RedshiftDumpDir'] = "RD"
         self.enzoParameters['DataDumpName'] = "DD"
         self.enzoParameters['DataDumpDir'] = "DD"
         self.enzoParameters['ComovingCoordinates'] = 0
+
+    def __iter__(self):
+        for output in self.allOutputs:
+            yield lagos.EnzoStaticOutput(output['filename'])
 
 EnzoParameterDict = {"CosmologyOmegaMatterNow": float,
                      "CosmologyOmegaLambdaNow": float,

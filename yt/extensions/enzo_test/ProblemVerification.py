@@ -34,28 +34,48 @@ class VerificationMechanism(object):
             if not hasattr(cls,'_vtype_name'): return
             verification_registry[cls._vtype_name] = cls
 
-    def __init__(self, name, pf):
+    def __init__(self, name):
         self.name = name
-        self.pf = pf
 
-class ProfileVerification(VerificationMechanism):
-    _vtype_name = "profile"
-    def __init__(self, name, pf, q1, q2,
-                 q1_limits = None, q2_limits = None,
-                 q1_nbins = 64, q2_nbins = 64):
-        VerificationMechanism.__init__(self, name, pf)
+class PDFVerification(VerificationMechanism):
+    _vtype_name = "pdf"
+    def __init__(self, name, q1, q2,
+                 q1_limits = None, q1_nbins = 64):
+        VerificationMechanism.__init__(self, name)
         self.q1 = q1
         self.q2 = q2
         self.q1_limits = q1_limits
-        self.q2_limits = q2_limits
         self.q1_nbins = q1_nbins
-        self.q2_nbins = q2_nbins
 
     def _setup_profile(self):
         pass
 
     def run(self, pf):
-        pass
+        data = pf.h.all_data()
+        limits = self.q1_limits
+        if limits is None:
+            print "Calculating limits"
+            limits = data.quantities["Extrema"](
+                self.q1, lazy_reader=True)[0]
+        prof = BinnedProfile1D(
+            data, self.q1_nbins, self.q1,
+            limits[0], limits[1], lazy_reader=True)
+        prof.add_fields(self.q2)
+        self.output = prof[self.q2].copy()
+
+class RadialProfileVerification(VerificationMechanism):
+    _vtype_name = "radprof"
+    def __init__(self, name, radius, unit, q2,
+                 r_limits = None, q2_limits = None,
+                 r_nbins = 64, q2_nbins = 64):
+        VerificationMechanism.__init__(self, name)
+        self.radius = radius
+        self.unit = unit
+        self.q2 = q2
+        self.q1_limits = q1_limits
+        self.q2_limits = q2_limits
+        self.q1_nbins = q1_nbins
+        self.q2_nbins = q2_nbins
 
 class PhaseVerification(VerificationMechanism):
     _name = "phase"
