@@ -59,4 +59,12 @@ class Problem(object):
     def load_repo_file(self, fn, identifier='tip'):
         return self.repo['tip'][fn].data()
 
+    def run_tests(self):
+        results = {}
+        for pf in self.simulation:
+            for test in self.tests:
+                test.run()
+                results[test.name] = test.output
+        return results
+
 # repo['tip']['yt/lagos/__init__.py'].data()

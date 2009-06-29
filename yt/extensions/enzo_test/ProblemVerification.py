@@ -34,27 +34,16 @@ class VerificationMechanism(object):
             if not hasattr(cls,'_vtype_name'): return
             verification_registry[cls._vtype_name] = cls
 
-    def verify_identical(self, identifier = 'reference'):
-        other = self._load_reference_result(identifier)
-        return na.all(self.output == other.output)
-
-    def _load_result(self, identifier, repo=None):
-        pass
-
-    def _store_result(self, identifier, repo=None):
-        pass
-
-    def __init__(self, name, problem):
+    def __init__(self, name, pf):
         self.name = name
-        self.problem = problem
+        self.pf = pf
 
 class ProfileVerification(VerificationMechanism):
     _vtype_name = "profile"
-    def __init__(self, name, problem, data, q1, q2,
+    def __init__(self, name, pf, q1, q2,
                  q1_limits = None, q2_limits = None,
                  q1_nbins = 64, q2_nbins = 64):
-        VerificationMechanism.__init__(self, name, problem)
-        self.data = data
+        VerificationMechanism.__init__(self, name, pf)
         self.q1 = q1
         self.q2 = q2
         self.q1_limits = q1_limits
@@ -65,7 +54,7 @@ class ProfileVerification(VerificationMechanism):
     def _setup_profile(self):
         pass
 
-    def run(self):
+    def run(self, pf):
         pass
 
 class PhaseVerification(VerificationMechanism):
