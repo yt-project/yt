@@ -24,4 +24,6 @@ License:
 """
 
 from ProblemVerification import *
+from DataProviders import *
+from SimulationTests import *
 from ProblemSetup import *

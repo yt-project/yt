@@ -26,7 +26,7 @@ License:
 from yt.mods import *
 from yt.funcs import *
 from yt.extensions.EnzoSimulation import *
-from ProblemVerification import verification_registry
+from SimulationTests import test_registry
 
 from mercurial import commands, hg, ui
 
@@ -40,7 +40,7 @@ class Problem(object):
         self.init_repo(repo_url)
         self._initialize_tests()
 
-    def _add_test(self, test_type):
+    def _add_existing_test(self, test_type):
         @wraps(test_type.__init__)
         def test_wrapper(name, *args, **kwargs):
             new_test = test_type(name, *args, **kwargs)
@@ -48,9 +48,10 @@ class Problem(object):
         return test_wrapper
 
     def _initialize_tests(self):
-        for name, test in verification_registry.iteritems():
-            setattr(self, 'add_%s' % name, self._add_test(test))
-            self.test_types[name] = self._add_test(test)
+        for name, test in test_registry.iteritems():
+            print "Adding %s" % name
+            setattr(self, 'add_%s' % name, self._add_existing_test(test))
+            self.test_types[name] = self._add_existing_test(test)
 
     def init_repo(self, url):
         return
@@ -61,12 +62,14 @@ class Problem(object):
 
     def run_tests(self):
         all_results = {}
-        for pf in self.simulation:
-            results = {}
-            for test in self.tests:
-                test.run(pf)
-                results[test.name] = test.output
-            all_results[str(pf)] = results
+        try:
+            for pf in self.simulation:
+                results = {}
+                for test in self.tests:
+                    results[test.name] = test(pf)
+                all_results[str(pf)] = results
+        except IOError:
+            pass
         return all_results
 
 # repo['tip']['yt/lagos/__init__.py'].data()

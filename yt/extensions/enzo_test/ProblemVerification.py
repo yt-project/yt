@@ -25,23 +25,18 @@ License:
 """
 
 from yt.mods import *
-verification_registry = {}
 
 class VerificationMechanism(object):
-    class __metaclass__(type):
-        def __init__(cls, name, b, d):
-            type.__init__(cls, name, b, d)
-            if not hasattr(cls,'_vtype_name'): return
-            verification_registry[cls._vtype_name] = cls
+    def __init__(self):
+        pass
 
-    def __init__(self, name):
-        self.name = name
+    def __call__(self, pf):
+        self.run(pf)
 
-class PDFVerification(VerificationMechanism):
-    _vtype_name = "pdf"
-    def __init__(self, name, q1, q2,
+class ProfileVerification(VerificationMechanism):
+    def __init__(self, q1, q2,
                  q1_limits = None, q1_nbins = 64):
-        VerificationMechanism.__init__(self, name)
+        VerificationMechanism.__init__(self)
         self.q1 = q1
         self.q2 = q2
         self.q1_limits = q1_limits
@@ -54,21 +49,19 @@ class PDFVerification(VerificationMechanism):
         data = pf.h.all_data()
         limits = self.q1_limits
         if limits is None:
-            print "Calculating limits"
             limits = data.quantities["Extrema"](
                 self.q1, lazy_reader=True)[0]
         prof = BinnedProfile1D(
             data, self.q1_nbins, self.q1,
             limits[0], limits[1], lazy_reader=True)
         prof.add_fields(self.q2)
-        self.output = prof[self.q2].copy()
+        return prof[self.q2].copy()
 
 class RadialProfileVerification(VerificationMechanism):
-    _vtype_name = "radprof"
-    def __init__(self, name, radius, unit, q2,
+    def __init__(self, radius, unit, q2,
                  r_limits = None, q2_limits = None,
                  r_nbins = 64, q2_nbins = 64):
-        VerificationMechanism.__init__(self, name)
+        VerificationMechanism.__init__(self)
         self.radius = radius
         self.unit = unit
         self.q2 = q2
@@ -77,5 +70,11 @@ class RadialProfileVerification(VerificationMechanism):
         self.q1_nbins = q1_nbins
         self.q2_nbins = q2_nbins
 
-class PhaseVerification(VerificationMechanism):
-    _name = "phase"
+class TotalMassVerification(VerificationMechanism):
+    def __init__(self):
+        pass
+
+    def run(self, pf):
+        data = pf.h.all_data()
+        return data.quantities["TotalQuantity"](
+                "CellMassMsun", lazy_reader=True)
