@@ -76,9 +76,10 @@ class Problem(object):
         return all_results
 
     def store_results(self, results):
-        fn = self.repo.pathto("results_%s.cpkl" % self.name)
+        base_fn = "results_%s.cpkl" % self.name
+        fn = self.repo.pathto(base_fn)
         cPickle.dump(results, open(fn, "w"))
-        if fn not in self.repo['tip'].manifest():
+        if base_fn not in self.repo['tip'].manifest():
             commands.add(self.ui, self.repo, fn)
         message = "Committing results from current run"
         commands.commit(self.ui, self.repo, fn, message=message)
