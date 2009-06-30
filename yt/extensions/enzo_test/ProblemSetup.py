@@ -29,15 +29,15 @@ from yt.extensions.EnzoSimulation import *
 from SimulationTests import test_registry
 
 from mercurial import commands, hg, ui
+import cPickle
 
 class Problem(object):
-    def __init__(self, name, pfname, repo_url=None):
+    def __init__(self, name, pfname, repo_path="."):
         self.name = name
         self.pfname = pfname
         self.simulation = EnzoSimulation(pfname)
-        if repo_url is None: repo_url = "results_%s" % name
         self.tests, self.test_types = [], {}
-        self.init_repo(repo_url)
+        self.init_repo(repo_path)
         self._initialize_tests()
 
     def _add_existing_test(self, test_type):
@@ -49,16 +49,19 @@ class Problem(object):
 
     def _initialize_tests(self):
         for name, test in test_registry.iteritems():
-            print "Adding %s" % name
             setattr(self, 'add_%s' % name, self._add_existing_test(test))
             self.test_types[name] = self._add_existing_test(test)
 
-    def init_repo(self, url):
-        return
-        self.repo = hg.repository(url)
+    def init_repo(self, path):
+        self.ui = ui.ui()
+        try:
+            self.repo = hg.repository(self.ui, path)
+        except:
+            print "CREATING:", path
+            self.repo = hg.repository(self.ui, path, create=True)
 
     def load_repo_file(self, fn, identifier='tip'):
-        return self.repo['tip'][fn].data()
+        return self.repo[identifier][fn].data()
 
     def run_tests(self):
         all_results = {}
@@ -71,5 +74,18 @@ class Problem(object):
         except IOError:
             pass
         return all_results
+
+    def store_results(self, results):
+        fn = self.repo.pathto("results_%s.cpkl" % self.name)
+        cPickle.dump(results, open(fn, "w"))
+        if fn not in self.repo['tip'].manifest():
+            commands.add(self.ui, self.repo, fn)
+        message = "Committing results from current run"
+        commands.commit(self.ui, self.repo, fn, message=message)
+        print "Committed"
+
+    def __call__(self):
+        results = self.run_tests()
+        self.store_results((self.tests, results))
 
 # repo['tip']['yt/lagos/__init__.py'].data()

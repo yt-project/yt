@@ -30,8 +30,8 @@ class VerificationMechanism(object):
     def __init__(self):
         pass
 
-    def __call__(self, pf):
-        self.run(pf)
+    def __call__(self, pf, plot):
+        return self.run(pf)
 
 class ProfileVerification(VerificationMechanism):
     def __init__(self, q1, q2,
@@ -45,8 +45,7 @@ class ProfileVerification(VerificationMechanism):
     def _setup_profile(self):
         pass
 
-    def run(self, pf):
-        data = pf.h.all_data()
+    def run(self, data):
         limits = self.q1_limits
         if limits is None:
             limits = data.quantities["Extrema"](
@@ -55,7 +54,7 @@ class ProfileVerification(VerificationMechanism):
             data, self.q1_nbins, self.q1,
             limits[0], limits[1], lazy_reader=True)
         prof.add_fields(self.q2)
-        return prof[self.q2].copy()
+        return na.array([prof[self.q1], prof[self.q2]])
 
 class RadialProfileVerification(VerificationMechanism):
     def __init__(self, radius, unit, q2,
@@ -74,7 +73,6 @@ class TotalMassVerification(VerificationMechanism):
     def __init__(self):
         pass
 
-    def run(self, pf):
-        data = pf.h.all_data()
+    def run(self, data):
         return data.quantities["TotalQuantity"](
                 "CellMassMsun", lazy_reader=True)

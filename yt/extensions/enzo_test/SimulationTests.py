@@ -40,8 +40,8 @@ class TestSimulation(object):
         self.source = source
         self.verifier = verifier
 
-    def __call__(self, pf):
-        results = [self.verifier(d)
+    def __call__(self, pf, plot=True):
+        results = [self.verifier(d, plot)
             for d in self.source(pf)]
         return results
 
@@ -59,3 +59,12 @@ class HaloBaryonMasses(TestSimulation):
         source = HaloSpheres(n_part=n_part)
         verifier = TotalMassVerification()
         TestSimulation.__init__(self, name, source, verifier)
+
+class RhoTempPDF(TestSimulation):
+    _ttype_name = "rho_temp_pdf"
+    def __init__(self, name):
+        source = EntireDataset()
+        verifier = ProfileVerification(
+            "Density", "Temperature", q1_nbins=32)
+        TestSimulation.__init__(self, name, source, verifier)
+
