@@ -204,10 +204,18 @@ class AMRHierarchy:
         if self._data_file == None:
             return None
         if node[0] != "/": node = "/%s" % node
-        full_name = "%s/%s" % (node, name)
-        if full_name not in self._data_file:
+
+        myGroup = self._data_file['/']
+        for group in node.split('/'):
+            if group:
+                if group not in myGroup.listnames():
+                    return None
+                myGroup = myGroup[group]
+        if name not in myGroup.listnames():
             return None
-        return self._data_file["%s/%s" % (node, name)]
+
+        full_name = "%s/%s" % (node, name)
+        return self._data_file[full_name]
 
     def _close_data_file(self):
         if self._data_file:

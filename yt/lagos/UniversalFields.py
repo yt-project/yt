@@ -356,6 +356,10 @@ add_field("TotalMassMsun", units=r"M_{\odot}",
           function=_TotalMass,
           convert_function=_convertCellMassMsun)
 
+def _Matter_Density(field,data):
+    return (data['Density'] + data['Dark_Matter_Density'])
+add_field("Matter_Density",function=_Matter_Density,units=r"\rm{g}/\rm{cm^3}")
+
 def _CellVolume(field, data):
     if data['dx'].size == 1:
         try:
