@@ -1952,6 +1952,186 @@ end module kdtree2_module
 
 !----------------------------------
 
+module dict_module
+    ! contains the derived type and methods to replicate the features of a
+    ! Python dict.
+    
+    use fchainHOPmodule
+    
+    public :: int_dict, real_dict
+    
+    type int_dict
+        ! Integer values
+        ! the start marker for each entries place in values
+        integer, pointer :: start(:) => null()
+        ! the end marker (end is a key word, unf.)
+        integer, pointer :: finish(:) => null()
+        ! an array with the integer values for entries in the dict
+        integer, pointer :: values(:) => null()
+        ! number of values in values
+        integer :: valuecount
+    end type int_dict
+    
+    type real_dict
+        ! Float values, but otherwise identical to above
+        integer, pointer :: start(:) => null()
+        integer, pointer :: finish(:) => null()
+        real, pointer :: values(:) => null()
+        integer :: valuecount
+    end type real_dict
+    
+contains
+
+    function init_int_dict(entries,length) result(dict)
+        ! instatiate a dict object, with 'entries' number of keys and
+        ! 'length' number of values
+        integer, intent (In) :: entries, length
+        type(int_dict), pointer :: dict
+        integer :: i
+        
+        ! create the ojbect
+        allocate(dict)
+        
+        ! create the parts
+        allocate(dict%start(entries))
+        allocate(dict%finish(entries))
+        
+        do i=1,entries
+            start(i) = -1
+            finish(i) = -1
+        end do
+        
+        allocate(dict%values(length))
+        
+        dict%valuecount = 0
+        
+        return
+    end function init_int_dict
+
+    function init_real_dict(entries,length) result(dict)
+        ! instatiate a dict object, with 'entries' number of keys and
+        ! 'length' number of values
+        integer, intent (In) :: entries, length
+        type(real_dict), pointer :: dict
+        integer :: i
+        
+        ! create the ojbect
+        allocate(dict)
+        
+        ! create the parts
+        allocate(dict%start(entries))
+        allocate(dict%finish(entries))
+        
+        do i=1,entries
+            start(i) = -1
+            finish(i) = -1
+        end do
+        
+        allocate(dict%values(length))
+        
+        dict%valuecount = 1
+        
+        return
+    end function init_int_dict
+
+    subroutine insert_int_dict(dict,index,values)
+        ! for a dict, insert new values for index
+        integer, intent (In) :: index
+        type(int_dict), pointer :: dict
+        integer, intent (In) :: values(:)
+        
+        integer :: st, fi, mark, len
+        
+        ! where the new values are to be recorded
+        mark = dict%valuecount
+        st = mark + 1
+        len = size(values, 1)
+        fi = mark + len ! if len=1, st=fi
+        
+        ! mark this
+        dict%start(index) = st
+        dict%finish(index) = fi
+        
+        ! save the values
+        dict%values(st:fi) = values(:)
+        
+        ! update valuecount
+        dict%valuecount = dict%valuecount + len
+        return
+    end subroutine insert_int_dict
+
+    subroutine insert_real_dict(dict,index,values)
+        ! for a dict, insert new values for index
+        integer, intent (In) :: index
+        type(real_dict), pointer :: dict
+        integer, intent (In) :: values(:)
+        
+        integer :: st, fi, mark, len
+        
+        ! where the new values are to be recorded
+        mark = dict%valuecount
+        st = mark + 1
+        len = size(values, 1)
+        fi = mark + len ! if len=1, st=fi
+        
+        ! mark this
+        dict%start(index) = st
+        dict%finish(index) = fi
+        
+        ! save the values
+        dict%values(st:fi) = values(:)
+        
+        ! update valuecount
+        dict%valuecount = dict%valuecount + len
+        return
+    end subroutine insert_int_dict
+
+    subroutine extend_int_dict(dict,index,values)
+        ! for an existing index in dict, add new values to it
+        integer, intent(In) :: index
+        type(int_dict), pointer :: dict
+        integer, intent (In) :: values(:)
+        
+        integer :: st, fi, mark, len, to_shuffle, i, ii, key_len
+        
+        ! find out where we want to start putting new values in
+        mark = finish(index)
+        st = mark + 1
+        len = size(values, 1)
+        fi = mark + values
+        ! the number of values to shuffle
+        to_shuffle = dict%valuecount - fi
+        
+        ! loop backwards over values, shuffling values to the right
+        do i=1, to_shuffle
+            ii = dict%valuecount - i - 1
+            dict%values(ii + len) = dict%values(ii)
+        end do
+        
+        ! add in the new values
+        dict%values(st:fi) = values(:)
+        
+        ! adjust the start and end for affected keys
+        key_len = size(dict%start, 1)
+        do i=1,key_len
+            if (dict%start(i) .GE. st) then
+                dict%start(i) = dict%start(i) + len
+            end if
+            if (dict%finish(i) .GE. st) then
+                dcit%finish(i) = dict%finish(i) + len
+            end if
+        end do
+        
+        ! adjust the end for this index
+        dict%finish(index) = dict%finish(index) + len
+        
+        return
+    end subroutine extend_int_dict
+
+end module dict_module
+
+!----------------------------------
+
 module NN_module
     ! contains the derived type for the typeNN, and a subroutine to
     ! instantiate the object.
@@ -2032,20 +2212,9 @@ module sub_module
     use fchainHOPmodule
     use NN_module
 
-    public :: init_kd_tree, smDensitySym, densestNN
+    public :: smDensitySym, densestNN
 
 contains
-
-    subroutine init_kd_tree()
-        ! create the kdtree object, kdtree2
-        
-        ! create the object pointer
-        type(kdtree2), pointer :: tree2
-        
-        ! this is how you create a tree. 
-        tree2 => kdtree2_create(pos,sort=sort,rearrange=rearrange)
-        return
-    end subroutine init_kd_tree
     
     subroutine smDensitySym(index,nn)
         ! for particle index find its density using a smoothing kernel

@@ -42,7 +42,10 @@ subroutine fchainHOP()
     
     integer :: i, a_count
     
-    real(kdkind), allocatable :: query_vec(:) ! query particle point
+    ! kd tree object
+    type(kdtree2), pointer :: tree2
+    ! query particle point
+    real(kdkind), allocatable :: query_vec(:)
     ! nearest neighbors object
     type(kdtree2_result),allocatable :: results(:)
     type(typeNN), pointer :: NN
@@ -51,8 +54,8 @@ subroutine fchainHOP()
     allocate(query_vec(3))    
     ! create the tree
     print *, "building the tree...."
-    call init_kd_tree()
-    
+    tree2 => kdtree2_create(pos,sort=sort,rearrange=rearrange)
+   
     ! fill the NN object
     NN => init_NN()
     
