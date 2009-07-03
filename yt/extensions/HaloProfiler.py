@@ -96,9 +96,6 @@ class HaloProfiler(lagos.ParallelAnalysisInterface):
 
     def makeProfiles(self):
         "Make radial profiles for all halos on the list."
-        def _finalize_parallel(self):
-            self.virialQuantities = self._mpi_catlist(self.virialQuantities)
-            self.virialQuantities.sort(key = lambda a:a['id'])
 
         # Get halo(s).
         if self.halos is 'single':
@@ -182,6 +179,10 @@ class HaloProfiler(lagos.ParallelAnalysisInterface):
                 del sphere
 
         self._WriteVirialQuantities()
+
+    def _finalize_parallel(self):
+        self.virialQuantities = self._mpi_catlist(self.virialQuantities)
+        self.virialQuantities.sort(key = lambda a:a['id'])
 
     @lagos.parallel_root_only
     def __check_directory(self, outputDir):
@@ -289,6 +290,7 @@ class HaloProfiler(lagos.ParallelAnalysisInterface):
                 pc.clear_plots()
             del region
         del pc
+        self.pf.hierarchy._reset_save_data(round_robin=False)
 
     @lagos.parallel_root_only
     def _WriteVirialQuantities(self):
