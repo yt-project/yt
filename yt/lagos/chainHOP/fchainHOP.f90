@@ -29,6 +29,10 @@ subroutine fchainHOP()
     ! sort - logical, whether the results of a nearest neighbor search should
     !   be returned sorted in ascending order of distance. On (.true.) is
     !   slower, of course.
+    ! group_count - integer, maximum number of initial groups of chains that 
+    !   goes into the 'dict' chain_connections
+    ! chain_count - integer, this number should be .GE. to the total number
+    !   of initial chains found.
     ! (?) period - real array(3), the period of the periodicity of the volume
     !
     ! ------ OUTPUTS -----
@@ -42,7 +46,7 @@ subroutine fchainHOP()
     
     ! ---------------- Let's go! --------
     
-    integer :: i, a_count
+    integer :: i, a_count, chainIDmax
     
     ! kd tree object
     type(kdtree2), pointer :: tree2
@@ -51,13 +55,18 @@ subroutine fchainHOP()
     ! nearest neighbors object
     type(kdtree2_result),allocatable :: results(:)
     type(typeNN), pointer :: NN
-    type(int_dict), pointer :: densest_in_chain
+    type(int_dict), pointer :: chain_connections
+    ! this can be allocated once the number of chains is known
+    integer, pointer :: reverse_map
+    ! this, however, cannot
+    integer, pointer :: densest_in_chain
 
     allocate(results(num_neighbors)) 
     allocate(query_vec(3))
+    allocate(densest_in_chain(chain_count))
     
     ! init the dict
-    densest_in_chain => init_real_dict(entries,length)
+    chain_connections => init_int_dict(group_count,chain_count)
     
     ! create the tree
     print *, "building the tree...."
@@ -102,7 +111,7 @@ subroutine fchainHOP()
     
     ! First round, build chains of links
     !print *, "Building initial chains..."
-    !call build_chains()
+    chainIDmax = build_chains(NN,densest_in_chain)
     
 end subroutine fchainHOP
 

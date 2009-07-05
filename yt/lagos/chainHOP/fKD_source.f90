@@ -1954,7 +1954,10 @@ end module kdtree2_module
 
 module dict_module
     ! contains the derived type and methods to replicate the features of a
-    ! Python dict.
+    ! Python dict with a single list that increases the number of entries,
+    ! per key.
+    ! I don't actually need the real_dict stuff, but it was easy to
+    ! copy-n-paste it, so I just did it anyway.
     
     use fchainHOPmodule
     
@@ -1989,7 +1992,7 @@ contains
         type(int_dict), pointer :: dict
         integer :: i
         
-        ! create the ojbect
+        ! create the pointer in memory
         allocate(dict)
         
         ! create the parts
@@ -2238,6 +2241,11 @@ contains
         end do
         
         allocate(nn%chainID(nparts))
+        
+        do i=1, nparts
+            nn%chainID(i) = 0 ! Fortran is 1-based, so 0 is no group.
+        end do
+        
         allocate(nn%densestNN(nparts))
         allocate(nn%density(nparts))
         allocate(nn%NNlist_ID(nparts, num_neighbors))
@@ -2306,14 +2314,23 @@ contains
         return
     end subroutine densestNN
 
-    subroutine build_chains(nn,densest_in_chain)
+    subroutine build_chains(nn,densest_in_chain,nparts)
         ! build the first round of particle chains. If the particle is too low in
         ! density, move on.
+        integer, intent (In) :: nparts
+        type(typeNN), pointer :: nn
+        integer, pointer :: densest_in_chain(:)
         
         integer :: chainIDmax, i
+        chainIDmax = 0
+        do i=1,nparts
+            ! if it's already in a group, move on, or if this particle is in the padding,
+            ! move on because chains can only terminate in the padding, not
+            ! begin, or if this particle is too low in density, move on
+            if ( (nn%chainID(i) > 0) .OR. (nn%is_inside(i) ! STEPHEN SKORY YOU'RE RIGHT HERE
         
         
-        
-        
+        return chainIDmax
+    end subroutine build_chains
 
 end module sub_module

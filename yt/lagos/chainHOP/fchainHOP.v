@@ -12,6 +12,8 @@ rearrange logical /.true./
 sort logical /.false./
 tags(:) _integer
 dens(:) _real
+group_count integer
+chain_count integer
 
 ***** Subroutines:
 fchainHOP() subroutine
