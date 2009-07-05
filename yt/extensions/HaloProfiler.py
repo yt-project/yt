@@ -281,11 +281,13 @@ class HaloProfiler(lagos.ParallelAnalysisInterface):
                         frb = raven.FixedResolutionBuffer(pc.plots[e].data,(proj_left[0],proj_right[0],proj_left[1],proj_right[1]),
                                                           (projectionResolution,projectionResolution),
                                                           antialias=False)
-                        output.create_dataset("/%s_%s" % (field,self.projectionFields[field]),data=frb[field])
+                        dataset_name = "%s_%s" % (field,self.projectionFields[field])
+                        if dataset_name in output.listnames(): del output[dataset_name]
+                        output.create_dataset(dataset_name,data=frb[field])
                     output.close()
 
                 if save_images:
-                    pc.save("%s/Halo_%04d" % (outputDir,halo['id']))
+                    pc.save("%s/Halo_%04d" % (outputDir,halo['id']),force_save=True)
 
                 pc.clear_plots()
             del region
