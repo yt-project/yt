@@ -2104,7 +2104,7 @@ contains
         
         ! loop backwards over values, shuffling values to the right
         do i=1, to_shuffle
-            ii = dict%valuecount - i - 1
+            ii = dict%valuecount - i + 1
             dict%values(ii + len) = dict%values(ii)
         end do
         
@@ -2112,7 +2112,7 @@ contains
         dict%values(st:fi) = values(:)
         
         ! adjust the start and end for affected keys
-        key_len = size(dict%start, 1)
+        key_len = size(dict%start, 1) ! number of keys
         do i=1,key_len
             if (dict%start(i) .GE. st) then
                 dict%start(i) = dict%start(i) + len
@@ -2128,6 +2128,49 @@ contains
         return
     end subroutine extend_int_dict
 
+    subroutine extend_real_dict(dict,index,values)
+        ! for an existing index in dict, add new values to it
+        integer, intent(In) :: index
+        type(real_dict), pointer :: dict
+        real, intent (In) :: values(:)
+        
+        integer :: st, fi, mark, len, to_shuffle, i, ii, key_len
+        
+        ! find out where we want to start putting new values in
+        mark = finish(index)
+        st = mark + 1
+        len = size(values, 1)
+        fi = mark + values
+        ! the number of values to shuffle
+        to_shuffle = dict%valuecount - fi
+        
+        ! loop backwards over values, shuffling values to the right
+        do i=1, to_shuffle
+            ii = dict%valuecount - i + 1
+            dict%values(ii + len) = dict%values(ii)
+        end do
+        
+        ! add in the new values
+        dict%values(st:fi) = values(:)
+        
+        ! adjust the start and end for affected keys
+        key_len = size(dict%start, 1) ! number of keys
+        do i=1,key_len
+            if (dict%start(i) .GE. st) then
+                dict%start(i) = dict%start(i) + len
+            end if
+            if (dict%finish(i) .GE. st) then
+                dcit%finish(i) = dict%finish(i) + len
+            end if
+        end do
+        
+        ! adjust the end for this index
+        dict%finish(index) = dict%finish(index) + len
+        
+        return
+    end subroutine extend_real_dict
+
+
 end module dict_module
 
 !----------------------------------
@@ -2136,6 +2179,7 @@ module NN_module
     ! contains the derived type for the typeNN, and a subroutine to
     ! instantiate the object.
     use fchainHOPmodule
+    use dict_module
     
     public :: typeNN ! the object type
     public :: init_NN ! subroutine to init the NN object
@@ -2262,14 +2306,14 @@ contains
         return
     end subroutine densestNN
 
-!    subroutine build_chains()
-!        ! build the first round of particle chains. If the particle is too low in
-!        ! density, move on.
-!        
-!        integer :: chainIDmax, i
-!        
-!        
-!        
-!        
+    subroutine build_chains(nn,densest_in_chain)
+        ! build the first round of particle chains. If the particle is too low in
+        ! density, move on.
+        
+        integer :: chainIDmax, i
+        
+        
+        
+        
 
 end module sub_module

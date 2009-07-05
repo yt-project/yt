@@ -99,7 +99,7 @@ class Run_chain_HOP:
         density, move on.
         """
         chainIDmax = 0
-        self.densest_in_chain = {}
+        self.densest_in_chain = {} # chainID->part ID, one to one
         for part in self.NN:
             # if it's already in a group, move on, or if this particle is in the padding,
             # move on because chains can only terminate in the padding, not

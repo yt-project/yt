@@ -7,6 +7,7 @@ subroutine fchainHOP()
     use fchainHOPmodule ! from the .v file
     use NN_module ! in this file
     use sub_module ! in this file
+    use dict_module ! in the kdtree source file
     
     ! ----- INPUTS ------
     ! (set in Python, kept in the fchainHOPmodule from the .v file)
@@ -21,12 +22,13 @@ subroutine fchainHOP()
     ! threshold - real, threshold for group creation (delta_outer).
     ! nparts - integer, number of particles
     ! npadded - integer, maximum number of padded particles that can go into
-    !   padded_particles
+    !   padded_particles (see OUTPUTS)
     ! rearrange - logical, whether the kdtree should rearrange the position
     !   array internally for greater speed at the cost of memory usage.
+    !   .true. is always the best choice unless memory is the limiting factor.
     ! sort - logical, whether the results of a nearest neighbor search should
-    !   be returned sorted in ascending order of distance. On is slower, of
-    !   course.
+    !   be returned sorted in ascending order of distance. On (.true.) is
+    !   slower, of course.
     ! (?) period - real array(3), the period of the periodicity of the volume
     !
     ! ------ OUTPUTS -----
@@ -49,9 +51,14 @@ subroutine fchainHOP()
     ! nearest neighbors object
     type(kdtree2_result),allocatable :: results(:)
     type(typeNN), pointer :: NN
+    type(int_dict), pointer :: densest_in_chain
 
     allocate(results(num_neighbors)) 
-    allocate(query_vec(3))    
+    allocate(query_vec(3))
+    
+    ! init the dict
+    densest_in_chain => init_real_dict(entries,length)
+    
     ! create the tree
     print *, "building the tree...."
     tree2 => kdtree2_create(pos,sort=sort,rearrange=rearrange)
