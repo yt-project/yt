@@ -196,7 +196,6 @@ class HaloProfiler(lagos.ParallelAnalysisInterface):
     def makeProjections(self,save_images=True,save_cube=True,**kwargs):
         "Make projections of all halos using specified fields."
         # Get virial quantities.
-        self.pf.hierarchy._reset_save_data(round_robin=True)
         self._LoadVirialData()
 
         # Set resolution for fixed resolution output.
@@ -252,7 +251,8 @@ class HaloProfiler(lagos.ParallelAnalysisInterface):
                 y_axis = coords[1]
 
                 for field in self.projectionFields.keys():
-                    pc.add_projection(field,w,weight_field=self.projectionFields[field],source=region,lazy_reader=False,**kwargs)
+                    pc.add_projection(field,w,weight_field=self.projectionFields[field],source=region,lazy_reader=False,
+                                      serialize=False,**kwargs)
                 
                 # Set x and y limits, shift image if it overlaps domain boundary.
                 if need_per:
@@ -290,7 +290,6 @@ class HaloProfiler(lagos.ParallelAnalysisInterface):
                 pc.clear_plots()
             del region
         del pc
-        self.pf.hierarchy._reset_save_data(round_robin=False)
 
     @lagos.parallel_root_only
     def _WriteVirialQuantities(self):

@@ -334,7 +334,7 @@ class LightCone(object):
                              self.lightConeSolution[-1]['object'].parameters['DomainRightEdge'][w])
                       for w in range(self.lightConeSolution[-1]['object'].parameters['TopGridRank'])]
             pc = raven.PlotCollection(self.lightConeSolution[-1]['object'],center=center)
-            pc.add_fixed_resolution_plot(frb,field)
+            pc.add_fixed_resolution_plot(frb,field,**kwargs)
             pc.save(filename)
 
             # Return the plot collection so the user can remake the plot if they want.
@@ -686,6 +686,7 @@ class LightCone(object):
         if node_exists:
             if over_write:
                 mylog.info("Dataset, %s, already exists, overwriting." % field_node)
+                write_data = True
                 del output[field_node]
             else:
                 mylog.info("Dataset, %s, already exists in %s, not saving." % (field_node,filename))

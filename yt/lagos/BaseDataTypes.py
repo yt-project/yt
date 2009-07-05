@@ -908,7 +908,8 @@ class AMRProjBase(AMR2DData):
     _con_args = ('axis', 'field', 'weight_field')
     def __init__(self, axis, field, weight_field = None,
                  max_level = None, center = None, pf = None,
-                 source=None, node_name = None, field_cuts = None, **kwargs):
+                 source=None, node_name = None, field_cuts = None,
+                 serialize=True,**kwargs):
         """
         AMRProj is a projection of a *field* along an *axis*.  The field
         can have an associated *weight_field*, in which case the values are
@@ -917,6 +918,7 @@ class AMRProjBase(AMR2DData):
         """
         AMR2DData.__init__(self, axis, field, pf, node_name = None, **kwargs)
         self._field_cuts = field_cuts
+        self.serialize = serialize
         self.center = center
         if center is not None: self.set_field_parameter('center',center)
         self._node_name = node_name
@@ -936,7 +938,7 @@ class AMRProjBase(AMR2DData):
         self._temp = {}
         self._deserialize(node_name)
         self._refresh_data()
-        if self._okay_to_serialize: self._serialize(node_name=self._node_name)
+        if self._okay_to_serialize and self.serialize: self._serialize(node_name=self._node_name)
 
     def _convert_field_name(self, field):
         if field == "weight_field": return "weight_field_%s" % self._weight
@@ -1150,7 +1152,7 @@ class AMRProjBase(AMR2DData):
         field_data = na.vsplit(data.pop('fields'), len(fields))
         for fi, field in enumerate(fields):
             self[field] = field_data[fi].ravel()
-            self._store_fields(field, self._node_name)
+            if self.serialize: self._store_fields(field, self._node_name)
         for i in data.keys(): self[i] = data.pop(i)
 
     def add_fields(self, fields, weight = "CellMassMsun"):
