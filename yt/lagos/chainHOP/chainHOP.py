@@ -1,14 +1,12 @@
 import math,sys #, cPickle
 from bisect import insort
 
-#from yt.lagos.kd import *
 from yt.extensions.kdtree import *
 
 from Forthon import *
 
 class partNN:
-    def __init__(self, NNdist, NNtags, density, densestNN, chainID, is_inside, order_index):
-        self.NNdist = NNdist # numpy array of the dist from the kdtree
+    def __init__(self, NNtags, density, densestNN, chainID, is_inside, order_index):
         self.NNtags = NNtags # numpy array of the tags from the kdtree
         self.density = density # this particles local density
         self.densestNN = densestNN # this particles densest nearest neighbor
@@ -37,10 +35,12 @@ class Run_chain_HOP:
     def __init_kd_tree(self,size):
         #fKD.tags = empty((self.num_neighbors),dtype='i')
         #fKD.dist = empty((self.num_neighbors),dtype='f')
-        fKD.nn_tags = empty((self.num_neighbors,size),dtype='i')
-        fKD.nn_dist = empty((self.num_neighbors,size),dtype='f')
-        fKD.pos = empty((3,size),dtype='f')
-        fKD.qv = empty(3,dtype='f')
+        fKD.nn_tags = empty((self.num_neighbors,size),dtype='l')
+        fKD.nn_dist = empty((self.num_neighbors,size),dtype='d')
+        fKD.dens = zeros(size,dtype='d')
+        fKD.mass = empty(size,dtype='d')
+        fKD.pos = empty((3,size),dtype='d')
+        fKD.qv = empty(3,dtype='d')
         fKD.nn = self.num_neighbors
         fKD.nparts = size
         fKD.sort = True
@@ -48,10 +48,7 @@ class Run_chain_HOP:
         fKD.pos[0,:] = self.xpos
         fKD.pos[1,:] = self.ypos
         fKD.pos[2,:] = self.zpos
-#         for i in range(size):
-#             fKD.pos[0][i] = self.xpos[i]
-#             fKD.pos[1][i] = self.ypos[i]
-#             fKD.pos[2][i] = self.zpos[i]
+        fKD.mass = self.mass
         # now call the fortran
         create_tree()
 
@@ -59,7 +56,7 @@ class Run_chain_HOP:
         size = len(self.xpos)
         self.NN = []
         for i in range(size):
-            NNtemp = partNN(na.empty([self.num_neighbors]),na.empty([self.num_neighbors]),0.0,-1,-1,False,-1)
+            NNtemp = partNN(na.empty([self.num_neighbors]),0.0,-1,-1,False,-1)
             self.NN.append(NNtemp)
 
     def _is_inside(self,point):
@@ -71,24 +68,24 @@ class Run_chain_HOP:
         else:
             return False
     
-    def _smDensitySym(self, pi, NNdist, NNtags):
-        # calculate the density for particle pi
-        # this is giving different values than HOP because the py-kd tree is
-        # giving slightly different distances between particles than the c-kd
-        # tree.
-        ih2 = 4.0/NNdist[self.num_neighbors-1]
-        fNorm = 0.5*math.sqrt(ih2)*ih2/math.pi
-        for i in range(self.num_neighbors):
-            pj = NNtags[i]
-            r2 = NNdist[i]*ih2
-            rs = 2.0 - math.sqrt(r2)
-            if (r2 < 1.0): rs = (1.0 - 0.75*rs*r2)
-            else: rs = 0.25*rs*rs*rs
-            rs *= fNorm
-            self.NN[pi].density += rs * self.mass[pj]
-            self.NN[pj].density += rs * self.mass[pi]
+#     def _smDensitySym(self, pi, NNdist, NNtags):
+#         # calculate the density for particle pi
+#         # this is giving different values than HOP because the py-kd tree is
+#         # giving slightly different distances between particles than the c-kd
+#         # tree.
+#         ih2 = 4.0/NNdist[self.num_neighbors-1]
+#         fNorm = 0.5*math.sqrt(ih2)*ih2/math.pi
+#         for i in range(self.num_neighbors):
+#             pj = NNtags[i]
+#             r2 = NNdist[i]*ih2
+#             rs = 2.0 - math.sqrt(r2)
+#             if (r2 < 1.0): rs = (1.0 - 0.75*rs*r2)
+#             else: rs = 0.25*rs*rs*rs
+#             rs *= fNorm
+#             self.NN[pi].density += rs * self.mass[pj]
+#             self.NN[pj].density += rs * self.mass[pi]
     
-    def _densestNN(self, pi, NNdist, NNtags):
+    def _densestNN(self, pi, NNtags):
         # find the densest nearest neighbor
         NNdens = 0.
         for i in range(self.num_neighbors):
@@ -301,24 +298,17 @@ class Run_chain_HOP:
             size)
         self.__init_kd_tree(size)
         # loop over the particles to find NN for each
-        mylog.info('Finding nearest neighbors...')
-        find_all_nn_nearest_neighbors()
+        mylog.info('Finding nearest neighbors/density...')
+        #find_all_nn_nearest_neighbors()
+        chainHOP_tags_dens()
         mylog.info('Copying results...')
         for i in range(size):
             self.NN[i].order_index = i
             self.NN[i].NNtags = fKD.nn_tags[:,i] - 1
-            self.NN[i].NNdist = fKD.nn_dist[:,i]
-            #n_points = []
-            #for n in range(self.num_neighbors):
-            #    n_points.append([dist[n],tags[n]])
-            #self.NN[i].NNlist = n_points
-            # find the density at this particle
-        mylog.info('Calculating densities...')
-        for i in range(size):
-            self._smDensitySym(i,self.NN[i].NNdist, self.NN[i].NNtags)
+            self.NN[i].density = fKD.dens[i]
         # when done with the tree free the memory
         # free_tree() # causing crashes???
-        del fKD.pos, fKD.nn_dist, fKD.nn_tags
+        del fKD.pos, fKD.dens, fKD.nn_dist, fKD.nn_tags
         count = 0
         for part in self.NN:
             if part.density >= (self.threshold): count += 1
@@ -327,7 +317,7 @@ class Run_chain_HOP:
         # let's find densest NN
         mylog.info('Finding densest nearest neighbors...')
         for i in range(size):
-            self._densestNN(i,self.NN[i].NNdist, self.NN[i].NNtags)
+            self._densestNN(i, self.NN[i].NNtags)
         # mark particles in self.NN as being in/out of the domain
         for i in range(size):
             self.NN[i].is_inside = self._is_inside([self.xpos[i], self.ypos[i],
@@ -360,89 +350,3 @@ class Run_chain_HOP:
         self.dens = na.array(dens)
 
 
-
-#     def _chainHOP(self):
-#         self.dataset = []
-#         size = len(self.xpos)
-#         for i in range(size):
-#             p = Point()
-#             p.data = [self.xpos[i],
-#                       self.ypos[i],
-#                       self.zpos[i]]
-#             p.order_index = i
-#             self.dataset.append(p)
-#         mylog.info('Building kd tree for %d particles...' % \
-#             size)
-#         kd = buildKdHyperRectTree(self.dataset[:],self.num_neighbors)
-#         # loop over the particles to find NN for each
-#         mylog.info('Finding nearest neighbors/density...')
-#         for i in self.dataset:
-#             pi = i.order_index
-#             self.NN[pi].order_index = pi
-#             if pi % 1000==0:
-#                 mylog.info('loop %d of %d' % (pi,size))
-#             # make the neighbors object
-#             neighbors = Neighbors()
-#             neighbors.k = self.num_neighbors # +1 for the central point
-#             # the search radius being larger than the padding doesn't help
-#             # padded particles very close to the real reigion, so making it only
-#             # slightly larger is all that is necessary, and that's set in
-#             # HaloFinding.py.
-#             neighbors.minDistanceSquared = self.search_radius * self.search_radius
-#             neighbors.points = []
-#             getKNN(i.data, kd, neighbors, 0., self.period.tolist())
-#             n_points = []
-#             for n in neighbors.points:
-#                 n_points.append([n[0],n[1].order_index])
-#                 if pi==0:
-#                     print n[0],n[1].order_index
-#             self.NN[pi].NNlist = n_points
-#             # find the density at this particle
-#             self._smDensitySym(pi,self.NN[pi].NNlist)
-#         count = 0
-#         for part in self.NN:
-#             if part.density >= (self.threshold): count += 1
-#         print 'count above thresh', count
-#         # now each particle has NNlist, and a local self density
-#         # let's find densest NN
-#         mylog.info('Finding densest nearest neighbors...')
-#         for i in self.dataset:
-#             pi = i.order_index
-#             self._densestNN(pi,self.NN[pi].NNlist)
-# #         fp = open('NN.txt','w')
-# #         for part in self.NN:
-# #             data = self.dataset[part.order_index].data
-# #             line = str(data) + ' ' + str(self.dataset[part.densestNN].data) + '\n'
-# #             fp.write(line)
-# #         fp.close()
-#         # mark particles in self.NN as being in/out of the domain
-#         for i in self.dataset:
-#             self.NN[i.order_index].is_inside = self._is_inside(i.data)
-#         chain_count = 0
-#         for i in self.dataset:
-#             pi = i.order_index
-#             if pi == self.NN[pi].densestNN:
-#                 chain_count += 1
-#         mylog.info('there are %d self-densest particles' % chain_count)
-#         # build the chain of links
-#         mylog.info('Building particle chains...')
-#         chain_count = self._build_chains()
-#         # connect the chains into groups
-#         mylog.info('Connecting %d chains into groups...' % chain_count)
-#         group_count = self._connect_chains(chain_count)
-#         mylog.info('Connecting %d groups...' % group_count)
-#         group_count = self._connect_groups()
-#         #mylog.info('Paring %d groups...' % group_count)
-#         # don't pare groups here, it has to happen later
-#         #self._pare_groups_by_max_dens()
-#         self._translate_groupIDs()
-#         mylog.info('Converting %d groups...' % group_count)
-#         # convert self.NN for returning
-#         gIDs = []
-#         dens = []
-#         for part in self.NN:
-#             gIDs.append(part.chainID)
-#             dens.append(part.density)
-#         self.gIDs = na.array(gIDs)
-#         self.dens = na.array(dens)
-# 

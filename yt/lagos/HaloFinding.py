@@ -27,7 +27,7 @@ License:
 
 from yt.lagos import *
 from yt.lagos.hop.EnzoHop import RunHOP
-from yt.lagos.chainHOP.c_chainHOP import *
+from yt.lagos.chainHOP.chainHOP import *
 try:
     from yt.lagos.fof.EnzoFOF import RunFOF
 except ImportError:
