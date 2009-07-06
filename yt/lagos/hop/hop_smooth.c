@@ -419,6 +419,8 @@ void smDensitySym(SMX smx,int pi,int nSmooth,int *pList,float *fList)
 	fNorm = 0.5*M_1_PI*sqrt(ih2)*ih2;
 	for (i=0;i<nSmooth;++i) {
 		pj = pList[i];
+	    //if (pi == 13693) fprintf(stdout,"13693 %1.10e %1.10e %1.10e %1.10e\n",fList[i],
+	    //    NP_POS(smx->kd,pj,0), NP_POS(smx->kd,pj,1), NP_POS(smx->kd,pj,2));
 		r2 = fList[i]*ih2;
 		rs = 2.0 - sqrt(r2);
 		if (r2 < 1.0) rs = (1.0 - 0.75*rs*r2);

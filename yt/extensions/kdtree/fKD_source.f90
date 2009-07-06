@@ -1415,8 +1415,8 @@ contains
           (1 - abs(node%box(cut_dim)%upper - qval))**2)
 
        
-       !if (qval < node%cut_val) then
-       if (dis_left <= dis_right) then
+       if (qval < node%cut_val) then
+       !if (dis_left <= dis_right) then
           ncloser => node%left
           nfarther => node%right
           dis_node = (node%cut_val_right - qval)**2

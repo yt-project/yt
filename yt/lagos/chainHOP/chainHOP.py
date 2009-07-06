@@ -139,7 +139,7 @@ class Run_chain_HOP:
                                    # each entry is a pair [ , ]
         for i in range(chain_count):
             self.reverse_map[i] = -1
-        
+        bust=False
         groupID = 0 # inreased with every newly linked chain pair
         for part in self.NN:
             # don't consider this particle if it's not part of a chain
@@ -148,57 +148,62 @@ class Run_chain_HOP:
             if part.is_inside is False: continue
             # loop over nearest neighbors
             for i in range(self.num_neighbors):
+                thisNN = part.NNtags[i]
+                # if our neighbor is in the same chain, move on
+                if part.chainID == self.NN[thisNN].chainID: continue
                 # no introspection, nor our connected NN
-                if part.NNtags[i]==part.order_index or part.NNtags[i]==part.densestNN: continue
+                if thisNN==part.order_index or thisNN==part.densestNN: continue
                 # if our neighbor is not part of a group, move on
-                if self.NN[part.NNtags[i]].chainID < 0: continue
+                if self.NN[thisNN].chainID < 0: continue
                 # if our neighbor is in the padding, move on
                 #inside = self.NN[NNtags[i]].is_inside
                 #if inside is False: continue # I think this might be OK
                 # if the average density is high enough, link the chains
-                if ((self.NN[part.NNtags[i]].density + part.density) / 2.) >= (self.threshold * 2.5):
+                if ((self.NN[thisNN].density + part.density) / 2.) >= (self.threshold * 2.5):
                     # find out if either particle chainID has already been mapped
-                    chain1 = self.reverse_map[part.chainID]
-                    chain2 = self.reverse_map[self.NN[part.NNtags[i]].chainID]
+                    group1 = self.reverse_map[part.chainID]
+                    group2 = self.reverse_map[self.NN[thisNN].chainID]
                     # if they're already connected, move on
-                    if chain1 == chain2 and chain1 != -1:
+                    if group1 == group2 and group1 != -1:
                         #print 'already connected'
                         continue
                     # if one chain has been connected into a group, assign
                     # the other
-                    if chain1 > -1 and chain2 == -1:
-                        self.chain_connections[chain1].append(self.NN[part.NNtags[i]].chainID)
-                        self.reverse_map[self.NN[part.NNtags[i]].chainID] = chain1
-                        #print 'chain1 already assigned'
+                    if group1 > -1 and group2 == -1:
+                        self.chain_connections[group1].append(self.NN[thisNN].chainID)
+                        self.reverse_map[self.NN[thisNN].chainID] = group1
+                        #print 'group1 already assigned'
                         continue
                     # visa-versa
-                    if chain2 > -1 and chain1 == -1:
-                        self.chain_connections[chain2].append(part.chainID)
-                        self.reverse_map[part.chainID] = chain2
-                        #print 'chain2 already assigned'
+                    if group2 > -1 and group1 == -1:
+                        self.chain_connections[group2].append(part.chainID)
+                        self.reverse_map[part.chainID] = group2
+                        #print 'group2 already assigned'
                         continue
                     # link the different groups
-                    if chain1 > -1 and chain2 > -1:
+                    if group1 > -1 and group2 > -1:
                         # max/min for unique representation
                         # this will eventually be reversed in _connect_chains()
-                        connection = [max(chain1,chain2),min(chain1,chain2)]
-                        #connection = [min(chain1,chain2),max(chain1,chain2)]
+                        connection = [max(group1,group2),min(group1,group2)]
+                        #connection = [min(group1,group2),max(group1,group2)]
                         if connection not in self.connected_groups:
                             self.connected_groups.append(connection)
                         #print 'both already assigned'
                         continue
                     # if neither chain has been linked into a group yet, we've
                     # come down this far
-                    self.chain_connections[groupID] = [part.chainID,self.NN[part.NNtags[i]].chainID]
+                    self.chain_connections[groupID] = [part.chainID,self.NN[thisNN].chainID]
                     self.reverse_map[part.chainID] = groupID
-                    self.reverse_map[self.NN[part.NNtags[i]].chainID] = groupID
+                    self.reverse_map[self.NN[thisNN].chainID] = groupID
                     #print 'neither already assigned'
                     groupID += 1
-        # chains that haven't been linked to another chain should just link back
-        # to themselves
+                    if bust: sys.exit()
+        # chains that haven't been linked to another chain increase the count
+        # by themselves and change label
         for i in range(chain_count):
             if self.reverse_map[i] == -1:
-                self.reverse_map[i] = i
+                self.reverse_map[i] = groupID
+                groupID += 1
         return groupID
     
     def _connect_groups(self):
@@ -261,10 +266,10 @@ class Run_chain_HOP:
         using the maps, convert the particle chainIDs into their locally-final
         groupIDs.
         """
-        for part in self.NN:
+        for i in range(len(self.NN)):
             # don't translate non-affiliated particles
-            if part.chainID == -1: continue
-            part.chainID = self.reverse_map[part.chainID]
+            if self.NN[i].chainID == -1: continue
+            self.NN[i].chainID = self.reverse_map[self.NN[i].chainID]
         # also translate self.densest_in_chain
         temp = {}
         for groupID in self.chain_connections:
@@ -322,7 +327,7 @@ class Run_chain_HOP:
         # don't pare groups here, it has to happen later
         #self._pare_groups_by_max_dens()
         self._translate_groupIDs()
-        mylog.info('Converting %d groups...' % group_count)
+        #mylog.info('Converting %d groups...' % group_count)
         # convert self.NN for returning
         gIDs = []
         dens = []
