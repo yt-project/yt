@@ -245,6 +245,8 @@ class AMRHierarchy:
                         AMRSmoothedCoveringGridBase, dd)
         self._add_object_class('new_covering_grid', "AMRNewCoveringGrid",
                         AMRNewCoveringGridBase, dd)
+        self._add_object_class('fixed_res_proj', "AMRFixedResProjection",
+                        AMRFixedResProjectionBase, dd)
         self._add_object_class('sphere', "AMRSphere", AMRSphereBase, dd)
         self._add_object_class('cutting', "AMRCuttingPlane", AMRCuttingPlaneBase, dd)
         self._add_object_class('ray', "AMRRay", AMRRayBase, dd)
