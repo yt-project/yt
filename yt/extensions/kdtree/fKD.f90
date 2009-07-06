@@ -123,8 +123,7 @@ subroutine free_tree()
     ! TO MAKE THE TREE.  
     call kdtree2_destroy(tree2)
     
-    ! Free up the particle memory
-    ! not sure this works, might need to del(fKD.pos) in python space?
-    deallocate(pos)
+    ! The data to make the tree has to be deleted in python BEFORE calling
+    ! this!
 end subroutine free_tree
 

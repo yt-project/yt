@@ -33,8 +33,8 @@ class Run_chain_HOP:
     
 
     def __init_kd_tree(self,size):
-        #fKD.tags = empty((self.num_neighbors),dtype='i')
-        #fKD.dist = empty((self.num_neighbors),dtype='f')
+        # Yes, we really do need to initialize this many arrays.
+        # They're deleted in _chainHOP.
         fKD.nn_tags = empty((self.num_neighbors,size),dtype='l')
         fKD.nn_dist = empty((self.num_neighbors,size),dtype='d')
         fKD.dens = zeros(size,dtype='d')
@@ -67,23 +67,6 @@ class Run_chain_HOP:
             return True
         else:
             return False
-    
-#     def _smDensitySym(self, pi, NNdist, NNtags):
-#         # calculate the density for particle pi
-#         # this is giving different values than HOP because the py-kd tree is
-#         # giving slightly different distances between particles than the c-kd
-#         # tree.
-#         ih2 = 4.0/NNdist[self.num_neighbors-1]
-#         fNorm = 0.5*math.sqrt(ih2)*ih2/math.pi
-#         for i in range(self.num_neighbors):
-#             pj = NNtags[i]
-#             r2 = NNdist[i]*ih2
-#             rs = 2.0 - math.sqrt(r2)
-#             if (r2 < 1.0): rs = (1.0 - 0.75*rs*r2)
-#             else: rs = 0.25*rs*rs*rs
-#             rs *= fNorm
-#             self.NN[pi].density += rs * self.mass[pj]
-#             self.NN[pj].density += rs * self.mass[pi]
     
     def _densestNN(self, pi, NNtags):
         # find the densest nearest neighbor
@@ -299,16 +282,15 @@ class Run_chain_HOP:
         self.__init_kd_tree(size)
         # loop over the particles to find NN for each
         mylog.info('Finding nearest neighbors/density...')
-        #find_all_nn_nearest_neighbors()
         chainHOP_tags_dens()
         mylog.info('Copying results...')
         for i in range(size):
             self.NN[i].order_index = i
             self.NN[i].NNtags = fKD.nn_tags[:,i] - 1
             self.NN[i].density = fKD.dens[i]
-        # when done with the tree free the memory
-        # free_tree() # causing crashes???
-        del fKD.pos, fKD.dens, fKD.nn_dist, fKD.nn_tags
+        # when done with the tree free the memory, del these first
+        del fKD.pos, fKD.dens, fKD.nn_dist, fKD.nn_tags, fKD.mass, fKD.dens
+        free_tree() # frees the kdtree object
         count = 0
         for part in self.NN:
             if part.density >= (self.threshold): count += 1
