@@ -1280,6 +1280,7 @@ class AMRFixedResProjectionBase(AMR2DData):
         for grid in self._get_grids():
             self._get_data_from_grid(grid, fields_to_get, dls)
         for field in fields_to_get:
+            self[field] = self._mpi_allsum(self[field])
             conv = self.pf.units[self.pf.field_info[field].projection_conversion]
             self[field] *= conv
 
