@@ -1301,8 +1301,8 @@ class AMRFixedResProjectionBase(AMR2DData):
             grid.get_global_startindex(), self.global_startindex,
             c_fields, g_fields, 
             self.ActiveDimensions, grid.ActiveDimensions,
-            grid.child_mask, self.domain_width, dls[grid.Level])
-        
+            grid.child_mask, self.domain_width, dls[grid.Level],
+            self.axis)
 
 class AMR3DData(AMRData, GridPropertiesMixin):
     _key_fields = ['x','y','z','dx','dy','dz']

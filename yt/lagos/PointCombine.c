@@ -1085,14 +1085,14 @@ static PyObject *Py_FillBuffer(PyObject *obj, PyObject *args)
     npy_int64 gxi, gyi, gzi, cxi, cyi, czi;
     npy_int64 cdx, cdy, cdz;
     npy_int64 dw[3];
-    int i;
+    int i, axis;
     int ci, cj, ck, ri, rj, rk;
     int total = 0;
 
-    if (!PyArg_ParseTuple(args, "iOOOOOOOOO",
+    if (!PyArg_ParseTuple(args, "iOOOOOOOOOi",
             &refratio, &og_start, &oc_start,
             &oc_data, &og_data,
-            &oc_dims, &og_dims, &omask, &dw_data, &odls))
+            &oc_dims, &og_dims, &omask, &dw_data, &odls, &axis))
     return PyErr_Format(_dataCubeError,
             "DataCubeGeneric: Invalid parameters.");
 
@@ -1216,6 +1216,7 @@ static PyObject *Py_FillBuffer(PyObject *obj, PyObject *args)
     /* It turns out that C89 doesn't define a mechanism for choosing the sign
        of the remainder.
     */
+    int x_loc, y_loc; // For access into the buffer
     for(cxi=cxs;cxi<=cxe;cxi++) {
         ci = (cxi % dw[0]);
         ci = (ci < 0) ? ci + dw[0] : ci;
@@ -1233,8 +1234,13 @@ static PyObject *Py_FillBuffer(PyObject *obj, PyObject *args)
                 gzi = floor(ck / refratio) - gzs;
                     if (*(npy_int32*)PyArray_GETPTR3(mask, gxi,gyi,gzi) > 0)
                 {
+                switch (axis) {
+                  case 0: x_loc = cyi-cys; y_loc = czi-czs; break;
+                  case 1: x_loc = cxi-cxs; y_loc = czi-czs; break;
+                  case 2: x_loc = cxi-cys; y_loc = cyi-cys; break;
+                }
                 for(n=0;n<n_fields;n++){
-                    *(npy_float64*) PyArray_GETPTR2(c_data[n], cxi-cxs, cyi-cys)
+                    *(npy_float64*) PyArray_GETPTR2(c_data[n], x_loc, y_loc)
                     +=  *(npy_float64*) PyArray_GETPTR3(g_data[n], gxi, gyi, gzi) 
                         * dls[n];
                 }
