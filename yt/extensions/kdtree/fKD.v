@@ -3,8 +3,8 @@ fKD
 ****** fKD_module vars:
 tags(:) _integer # particle ID tags
 dist(:) _real # interparticle spacings
-n_tags(:,:) _integer # for all particles at once
-n_dist(:,:) _real
+nn_tags(:,:) _integer # for all particles at once, [nth neighbor, index]
+nn_dist(:,:) _real 
 pos(3,:) _real
 qv(3) real
 nparts integer
@@ -89,4 +89,4 @@ root _tree_node
 find_nn_nearest_neighbors subroutine
 create_tree() subroutine
 free_tree() subroutine
-
+find_all_nn_nearest_neighbors subroutine

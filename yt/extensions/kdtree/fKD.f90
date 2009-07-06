@@ -44,7 +44,8 @@ subroutine find_nn_nearest_neighbors()
 end subroutine find_nn_nearest_neighbors
 
 subroutine find_all_nn_nearest_neighbors()
-    ! for 
+    ! for all particles in pos, find their nearest neighbors and return the
+    ! indexes and distances as big arrays
     use kdtree2_module
     use fKD_module
     use kdtree2module
@@ -57,7 +58,13 @@ subroutine find_all_nn_nearest_neighbors()
     
     do k=1,nparts
         qv(:) = pos(:,k)
-        
+        call kdtree2_n_nearest(tp=tree2,qv=qv,nn=nn,results=results)
+        nn_dist(:,k) = results%dis
+        nn_tags(:,k) = results%idx
+    end do
+    
+    deallocate(results)
+    return
 
 end subroutine find_all_nn_nearest_neighbors
 
