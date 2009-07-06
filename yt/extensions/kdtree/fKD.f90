@@ -43,6 +43,24 @@ subroutine find_nn_nearest_neighbors()
 
 end subroutine find_nn_nearest_neighbors
 
+subroutine find_all_nn_nearest_neighbors()
+    ! for 
+    use kdtree2_module
+    use fKD_module
+    use kdtree2module
+    use tree_nodemodule
+    use intervalmodule
+
+    integer :: k
+    type(kdtree2_result),allocatable :: results(:) ! nearest neighbors
+    allocate(results(nn))
+    
+    do k=1,nparts
+        qv(:) = pos(:,k)
+        
+
+end subroutine find_all_nn_nearest_neighbors
+
 subroutine free_tree()
     use kdtree2_module
     use fKD_module

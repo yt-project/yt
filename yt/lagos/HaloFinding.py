@@ -27,7 +27,7 @@ License:
 
 from yt.lagos import *
 from yt.lagos.hop.EnzoHop import RunHOP
-from yt.lagos.chainHOP.chainHOP import *
+from yt.lagos.chainHOP.c_chainHOP import *
 try:
     from yt.lagos.fof.EnzoFOF import RunFOF
 except ImportError:
@@ -403,7 +403,7 @@ class chainHOPHaloList(HaloList):
     _fields = ["particle_position_%s" % ax for ax in 'xyz'] + \
               ["ParticleMassMsun"]
     
-    def __init__(self, data_source, padding, search_radius, num_neighbors, bounds,
+    def __init__(self, data_source, padding, num_neighbors, bounds, total_mass,
         threshold=160.0, dm_only=True):
         """
         Run hop on *data_source* with a given density *threshold*.  If
@@ -411,9 +411,9 @@ class chainHOPHaloList(HaloList):
         on all particles.  Returns an iterable collection of *HopGroup* items.
         """
         self.threshold = threshold
-        self.search_radius = search_radius
         self.num_neighbors = num_neighbors
         self.bounds = bounds
+        self.total_mass = total_mass
         self.period = self._data_source.pf['DomainRightEdge'] - \
             self._data_source.pf['DomainLeftEdge']
         mylog.info("Initializing HOP")
@@ -442,11 +442,11 @@ class chainHOPHaloList(HaloList):
             if z < 0:
                 zt[i] = 1+z
         obj = Run_chain_HOP(self.period, self.padding,
-            self.search_radius, self.num_neighbors, self.bounds,
+            self.num_neighbors, self.bounds,
             xt,
             yt,
             zt,
-            self.particle_fields["ParticleMassMsun"],
+            self.particle_fields["ParticleMassMsun"]/self.total_mass,
             self.threshold)
         self.densities, self.tags = obj.dens, obj.gIDs
         self.particle_fields["densities"] = self.densities
@@ -614,8 +614,10 @@ class chainHF(GenericHaloFinder, chainHOPHaloList):
         # also get the total mass of particles
         if dm_only:
             select = self._data_source["creation_time"] < 0
+            total_mass = self._mpi_allsum((self._data_source["ParticleMassMsun"][select]).sum())
             n_parts = self._mpi_allsum((self._data_source["particle_position_x"][select]).size)
         else:
+            total_mass = self._mpi_allsum(self._data_source["ParticleMassMsun"].sum())
             n_parts = self._mpi_allsum(self._data_source["particle_position_x"].size)
         # get the average spacing between particles
         l = pf["DomainRightEdge"] - pf["DomainLeftEdge"]
@@ -625,14 +627,13 @@ class chainHF(GenericHaloFinder, chainHOPHaloList):
         # approximation, but it's OK with the safety factor
         safety = 4
         self.padding = (self.num_neighbors)**(1./3.) * safety * avg_spacing
-        search_radius = 4 * self.padding
         print 'padding',self.padding,'avg_spacing',avg_spacing,'vol',vol,'nparts',n_parts
         padded, LE, RE, self._data_source = self._partition_hierarchy_3d(padding=self.padding)
         if not padded:
             self.padding = 0.0
         self.bounds = (LE, RE)
-        chainHOPHaloList.__init__(self, self._data_source, self.padding, search_radius, \
-        self.num_neighbors, self.bounds, threshold=threshold, dm_only=dm_only)
+        chainHOPHaloList.__init__(self, self._data_source, self.padding, \
+        self.num_neighbors, self.bounds, total_mass, threshold=threshold, dm_only=dm_only)
         self._parse_halolist(1.)
         self._join_halolists()
 

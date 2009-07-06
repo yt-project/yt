@@ -8,6 +8,7 @@ max_bounds(3) real
 mass(:) _real
 threshold real
 nparts integer
+npadded integer
 rearrange logical /.true./
 sort logical /.false./
 tags(:) _integer

@@ -58,7 +58,7 @@ subroutine fchainHOP()
     type(int_dict), pointer :: chain_connections
     ! this can be allocated once the number of chains is known
     integer, pointer :: reverse_map
-    ! this, however, cannot
+    ! these, however, cannot
     integer, pointer :: densest_in_chain
 
     allocate(results(num_neighbors)) 
@@ -110,8 +110,13 @@ subroutine fchainHOP()
     print *, "There are ", a_count, " self-densest particles."
     
     ! First round, build chains of links
-    !print *, "Building initial chains..."
-    chainIDmax = build_chains(NN,densest_in_chain)
+    print *, "Building initial chains..."
+    chainIDmax = build_chains(NN,densest_in_chain,padded_particles,&
+    nparts,threshold, npadded)
+    
+    ! connecting chains into the first groups
+    print *, "Connecting ", chainIDmax, " chains into groups."
+    a_count = connect_chains(nn,chainIDmax)
     
 end subroutine fchainHOP
 

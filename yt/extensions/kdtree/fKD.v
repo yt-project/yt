@@ -1,8 +1,10 @@
 fKD
 
 ****** fKD_module vars:
-tags(:) _integer # group ID tags
-dist(:) _real
+tags(:) _integer # particle ID tags
+dist(:) _real # interparticle spacings
+n_tags(:,:) _integer # for all particles at once
+n_dist(:,:) _real
 pos(3,:) _real
 qv(3) real
 nparts integer

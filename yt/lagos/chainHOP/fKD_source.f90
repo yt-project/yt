@@ -2314,23 +2314,84 @@ contains
         return
     end subroutine densestNN
 
-    subroutine build_chains(nn,densest_in_chain,nparts)
-        ! build the first round of particle chains. If the particle is too low in
+    subroutine build_chains(nn,densest_in_chain,padded_particles, &
+    nparts, threshold, npadded)
+        ! build the first round of particle chains. If the
+        ! particle is too low in
         ! density, move on.
-        integer, intent (In) :: nparts
+        integer, intent (In) :: nparts, npadded
+        real, intent (In) :: threshold
         type(typeNN), pointer :: nn
         integer, pointer :: densest_in_chain(:)
+        integer, pointer :: padded_particles(:)
         
         integer :: chainIDmax, i
         chainIDmax = 0
         do i=1,nparts
-            ! if it's already in a group, move on, or if this particle is in the padding,
+            ! if it's already in a group, move on, or if this
+            ! particle is in the padding,
             ! move on because chains can only terminate in the padding, not
             ! begin, or if this particle is too low in density, move on
-            if ( (nn%chainID(i) > 0) .OR. (nn%is_inside(i) ! STEPHEN SKORY YOU'RE RIGHT HERE
-        
+            if ( (nn%chainID(i) > 0) .OR. (nn%is_inside(i) .eqv .false.) .OR. &
+                (nn%density(i) < threshold)) cycle
+            chainIDnew = recurse_links(nn, densest_in_chain, padded_particles, &
+            i, chainIDmax)
+            ! if the new chainID returned is the same as we entered, the chain
+            ! has been named chainIDmax, so we need to start a new chain
+            ! in the next loop
+            if (chainIDnew .eq. chainIDmax) chainIDmax = chainIDmax + 1        
         
         return chainIDmax
     end subroutine build_chains
+
+    recursive subroutine recurse_links(nn, densest_in_chain, padded_particles, &
+        pi, chainIDmax, npadded)
+        ! recurse up the chain to a) a self-highest density particle,
+        ! b) a particle that already has a chainID, then turn it back around
+        ! assigning that chainID to where we came from. If c) which is
+        ! a particle in the padding, terminate the chain right then
+        ! and there, because chains only go one particle deep into the padding.
+        integer, intent (In) :: pi, chainIDmax, npadded, chainIDnew
+        integer :: nearest_n, j
+        type(typeNN), pointer :: nn
+        integer, pointer :: densest_in_chain(:)
+        integer, pointer :: padded_particles(:)
+        
+        nearest_n = nn%densestNN(pi)
+        j = 1
+        ! linking to an already chainID-ed particle (don't make links from 
+        ! padded particles!)
+        if ( (nn%chainID(nearest_n) > 0) .AND. &
+        (nn%is_inside(pi) .eqv. .true.)) then
+            nn%chainID(pi) = nn%chainID(nearest_n)
+            return nn%chainID(nearest_n)
+        ! if pi is a self-most dense particle or inside the padding, end/create
+        ! a new chain
+        else if ( (nearest_n .eq. pi) .OR. &
+        (nn%is_inside(pi) .eqv. .false.)) then
+            nn%chainID(pi) = chainIDmax
+            densest_in_chain(chainIDmax) = nn%density(pi)
+            ! if this is a padded particle, record it
+            if (nn%is_inside(pi) .eqv. .false.) then
+                ! I'm getting lazy here. I should fix this.
+                while (padded_particles(j) .eq. -1) do
+                    j = j+1
+                    if (j .gt. npadded) then
+                        print *,'increase "npadded" - exiting.'
+                        stop
+                    end if
+                end do
+                padded_particles(j) = pi
+            end if
+            return chainIDmax
+        ! If we've come down this far, recurse to the nearest neighbor
+        else
+            chainIDnew = recurse_links(nn, densest_in_chain, padded_particles, &
+            nearest_n, chainIDmax, npadded)
+            return chainIDnew
+        end if
+    end subroutine recurse_links
+
+    subroutine connect_chains(nn, chainIDmax,
 
 end module sub_module

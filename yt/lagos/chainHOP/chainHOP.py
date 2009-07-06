@@ -16,12 +16,11 @@ class partNN:
         self.order_index = order_index # order_index for this particle
 
 class Run_chain_HOP:
-    def __init__(self,period, padding, search_radius, num_neighbors, bounds,
+    def __init__(self,period, padding, num_neighbors, bounds,
             xpos, ypos, zpos, mass, threshold=160.0):
         self.threshold = threshold
         self.period = period
         self.padding = padding
-        self.search_radius = search_radius
         self.num_neighbors = num_neighbors
         self.bounds = bounds
         self.xpos = xpos
@@ -163,7 +162,8 @@ class Run_chain_HOP:
             if part.is_inside is False: continue
             # loop over nearest neighbors
             for i,neighbor in enumerate(part.NNlist):
-                if i==0 or neighbor[1]==part.densestNN: continue # no introspection, nor our connected NN
+                # no introspection, nor our connected NN
+                if i==part.order_index or neighbor[1]==part.densestNN: continue
                 # if our neighbor is not part of a group, move on
                 if self.NN[neighbor[1]].chainID < 0: continue
                 # if our neighbor is in the padding, move on
