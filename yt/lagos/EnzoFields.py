@@ -59,7 +59,7 @@ def _ThermalEnergy(field, data):
         return data["Total_Energy"]
     else:
         if data.pf["DualEnergyFormalism"]:
-            return data["Gas_Energy"]
+            return data["GasEnergy"]
         else:
             return data["Total_Energy"] - 0.5*(
                    data["x-velocity"]**2.0

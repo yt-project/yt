@@ -1212,11 +1212,11 @@ class AMRProjBase(AMR2DData):
         return  "%s/%s" % \
             (self._top_node, self.axis)
 
-class AMRFixedResProjection(AMR2DData):
+class AMRFixedResProjectionBase(AMR2DData):
     _top_node = "/Projections"
     _type_name = "fixed_res_proj"
     _con_args = ('axis', 'field', 'weight_field')
-    def __init__(self, axis, left_edge, right_edge, depth=None,
+    def __init__(self, axis, level, left_edge, dims,
                  fields = None, pf=None, **kwargs):
         """
         A projection that provides fixed resolution output,
@@ -1224,13 +1224,85 @@ class AMRFixedResProjection(AMR2DData):
         """
         AMR2DData.__init__(self, axis, fields, pf, **kwargs)
         self.left_edge = na.array(left_edge)
-        self.right_edge = na.array(right_edge)
-        if depth is None:
-            depth = 0.5*(self.right_edge - self.left_edge).sum()
-        self.depth = depth
+        self.level = level
+        self.dds = self.pf.h.select_grids(self.level)[0].dds.copy()
+        self.dims = na.array([dims]*2)
+        self.ActiveDimensions = na.array([dims]*3, dtype='int32')
+        self.right_edge = self.left_edge + self.ActiveDimensions*self.dds
+        self.global_startindex = na.rint(self.left_edge/self.dds).astype('int64')
+        self._dls = {}
+        self.domain_width = na.rint((self.pf["DomainRightEdge"] -
+                    self.pf["DomainLeftEdge"])/self.dds).astype('int64')
 
     def _get_list_of_grids(self):
-        pass
+        if self._grids is not None: return
+        if na.any(self.left_edge < self.pf["DomainLeftEdge"]) or \
+           na.any(self.right_edge > self.pf["DomainRightEdge"]):
+            grids,ind = self.pf.hierarchy.get_periodic_box_grids(
+                            self.left_edge, self.right_edge)
+            ind = slice(None)
+        else:
+            grids,ind = self.pf.hierarchy.get_box_grids(
+                            self.left_edge, self.right_edge)
+        level_ind = (self.pf.hierarchy.gridLevels.ravel()[ind] <= self.level)
+        sort_ind = na.argsort(self.pf.h.gridLevels.ravel()[ind][level_ind])
+        self._grids = self.pf.hierarchy.grids[ind][level_ind][(sort_ind,)][::-1]
+
+    def _generate_coords(self):
+        xi, yi, zi = self.left_edge + self.dds*0.5
+        xf, yf, zf = self.left_edge + self.dds*(self.ActiveDimensions-0.5)
+        coords = na.mgrid[xi:xf:self.ActiveDimensions[0]*1j,
+                          yi:yf:self.ActiveDimensions[1]*1j,
+                          zi:zf:self.ActiveDimensions[2]*1j]
+        xax = x_dict[self.axis]
+        yax = y_dict[self.axis]
+        self['px'] = coords[xax]
+        self['py'] = coords[yax]
+        self['pdx'] = self.dds[xax]
+        self['pdy'] = self.dds[yax]
+
+    #@time_execution
+    def get_data(self, fields = None):
+        """
+        Iterates over the list of fields and generates/reads them all.
+        """
+        self._get_list_of_grids()
+        if not self.has_key('pdx'):
+            self._generate_coords()
+        if fields == None:
+            fields_to_get = self.fields[:]
+        else:
+            fields_to_get = ensure_list(fields)
+        temp_data = {}
+        for field in fields_to_get:
+            self[field] = na.zeros(self.dims, dtype='float64')
+        dls = self.__setup_dls(fields_to_get)
+        for grid in self._get_grids():
+            self._get_data_from_grid(grid, fields_to_get, dls)
+        for field in fields_to_get:
+            conv = self.pf.units[self.pf.field_info[field].projection_conversion]
+            self[field] *= conv
+
+    def __setup_dls(self, fields):
+        dls = {}
+        for level in range(self.level+1):
+            dls[level] = []
+            grid = self.select_grids(level)[0]
+            for field in fields:
+                if field is None: continue
+                dls[level].append(float(just_one(grid['d%s' % axis_names[self.axis]])))
+        return dls
+
+    def _get_data_from_grid(self, grid, fields, dls):
+        g_fields = [grid[field] for field in fields]
+        c_fields = [self[field] for field in fields]
+        ref_ratio = self.pf["RefineBy"]**(self.level - grid.Level)
+        PointCombine.FillBuffer(ref_ratio,
+            grid.get_global_startindex(), self.global_startindex,
+            c_fields, g_fields, 
+            self.ActiveDimensions, grid.ActiveDimensions,
+            grid.child_mask, self.domain_width, dls[grid.Level],
+            self.axis)
 
 class AMR3DData(AMRData, GridPropertiesMixin):
     _key_fields = ['x','y','z','dx','dy','dz']
