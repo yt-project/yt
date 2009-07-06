@@ -38,6 +38,8 @@ except:
 import warnings
 try:
     import h5py
+    if not hasattr(h5py.h5, "ArgsError"):
+        h5py.h5.ArgsError = h5py.h5.H5Error
 except ImportError:
     ytcfg["lagos", "serialization"] = "False"
     mylog.warning("No h5py. Data serialization disabled.")
