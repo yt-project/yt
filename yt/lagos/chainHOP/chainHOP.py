@@ -43,8 +43,9 @@ class Run_chain_HOP:
         fKD.qv = empty(3,dtype='d')
         fKD.nn = self.num_neighbors
         fKD.nparts = size
-        fKD.sort = True
-        fKD.rearrange = True
+        fKD.sort = False # faster, but unordered neighbors (OK for chainHOP)
+        fKD.rearrange = True # faster, more memory
+        # this actually copies the data into the fortran space
         fKD.pos[0,:] = self.xpos
         fKD.pos[1,:] = self.ypos
         fKD.pos[2,:] = self.zpos
@@ -148,7 +149,7 @@ class Run_chain_HOP:
             # loop over nearest neighbors
             for i in range(self.num_neighbors):
                 # no introspection, nor our connected NN
-                if i==part.order_index or part.NNtags[i]==part.densestNN: continue
+                if part.NNtags[i]==part.order_index or part.NNtags[i]==part.densestNN: continue
                 # if our neighbor is not part of a group, move on
                 if self.NN[part.NNtags[i]].chainID < 0: continue
                 # if our neighbor is in the padding, move on

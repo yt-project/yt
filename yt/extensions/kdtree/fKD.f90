@@ -89,7 +89,7 @@ subroutine chainHOP_tags_dens()
         nn_dist(:,k) = results%dis
         
         ! calculate the density for this particle
-        ih2 = 4.0/nn_dist(nn,k)
+        ih2 = 4.0/maxval(nn_dist(:,k))
         fNorm = 0.5*sqrt(ih2)*ih2/3.1415926535897931
         do i=1,nn
             pj = nn_tags(i,k)
