@@ -117,15 +117,7 @@ void hop_main(KD kd, HC *my_comm, float densthres)
 	    if (bTopHat) smSmooth(smx,smDensityTH);
 	    else if (bSym) smSmooth(smx,smDensitySym);
 	    else smSmooth(smx,smDensity);
-	}  /* Else, we've read them */
-	
-	for (i=0;i<smx->kd->nActive;i++) {
-	    //if (i==13693) {
-	    fprintf(stdout,"%1.10e %1.10e %1.10e %1.10e %05d\n",NP_POS(kd, i, 0),
-	    NP_POS(kd, i, 1),NP_POS(kd, i, 2),NP_DENS(smx->kd, i),i);
-	    //}
-	}
-	
+	}  /* Else, we've read them */	
 	if (bGroup) {
 	     INFORM("Finding Densest Neighbors...\n");
 	     if (bDensity && nHop<nSmooth) smReSmooth(smx,smHop);

@@ -1,4 +1,4 @@
-import math,sys #, cPickle
+import math #, cPickle
 from bisect import insort
 
 from yt.extensions.kdtree import *
@@ -139,7 +139,6 @@ class Run_chain_HOP:
                                    # each entry is a pair [ , ]
         for i in range(chain_count):
             self.reverse_map[i] = -1
-        bust=False
         groupID = 0 # inreased with every newly linked chain pair
         for part in self.NN:
             # don't consider this particle if it's not part of a chain
@@ -197,7 +196,6 @@ class Run_chain_HOP:
                     self.reverse_map[self.NN[thisNN].chainID] = groupID
                     #print 'neither already assigned'
                     groupID += 1
-                    if bust: sys.exit()
         # chains that haven't been linked to another chain increase the count
         # by themselves and change label
         for i in range(chain_count):
@@ -327,7 +325,7 @@ class Run_chain_HOP:
         # don't pare groups here, it has to happen later
         #self._pare_groups_by_max_dens()
         self._translate_groupIDs()
-        #mylog.info('Converting %d groups...' % group_count)
+        mylog.info('Converting %d groups...' % group_count)
         # convert self.NN for returning
         gIDs = []
         dens = []
