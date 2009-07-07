@@ -153,6 +153,8 @@ class Run_chain_HOP(object):
                 # if our neighbor is in the same chain, move on
                 if part.chainID == self.NN[thisNN].chainID: continue
                 # no introspection, nor our connected NN
+                # this is probably the same as above, but it's OK. Can be removed
+                # later.
                 if thisNN==part.order_index or thisNN==part.densestNN: continue
                 # if our neighbor is not part of a group, move on
                 if self.NN[thisNN].chainID < 0: continue
@@ -162,8 +164,9 @@ class Run_chain_HOP(object):
                 # themselves groups (dens>peakdens), link the chains. Chains
                 # with both dens > peakdens are *only* linked if their boundary
                 # dens > saddle. Otherwise they remain separate for all time.
-                if ((self.NN[thisNN].density + part.density) / 2.) >= (self.threshold * 2.5) and
-                    part_dens >= (3*self.threshold) and thisNN_dens >= (3*self.threshold):
+                if ((self.NN[thisNN].density + part.density) / 2.) >= (self.threshold * 2.5) and \
+                    part_dens >= (3*self.threshold) and \
+                    thisNN_dens >= (3*self.threshold):
                     # find out if either particle chainID has already been mapped
                     group1 = self.reverse_map[part.chainID]
                     group2 = self.reverse_map[self.NN[thisNN].chainID]
@@ -209,6 +212,7 @@ class Run_chain_HOP(object):
                 # need to find the densest nearest neighbors, but here we're
                 # finding the densest nearest neighbor chains.
                 
+                    
         # chains that haven't been linked to another chain increase the count
         # by themselves and change label. Also add to chain_connections
         for i in range(chain_count):
