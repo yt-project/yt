@@ -605,10 +605,10 @@ class GenericHaloFinder(ParallelAnalysisInterface):
             halo.write_particle_list(f)
 
 class chainHF(GenericHaloFinder, chainHOPHaloList):
-    def __init__(self, pf, threshold=160, dm_only=True, num_neighbors=64):
+    def __init__(self, pf, threshold=160, dm_only=True):
         GenericHaloFinder.__init__(self, pf, dm_only, padding=0.0)
         self.padding = 0.0 
-        self.num_neighbors = num_neighbors
+        self.num_neighbors = 65
         # get the total number of particles across all procs, with no padding
         padded, LE, RE, self._data_source = self._partition_hierarchy_3d(padding=self.padding)
         # also get the total mass of particles

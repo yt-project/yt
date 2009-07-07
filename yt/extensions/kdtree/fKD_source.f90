@@ -1115,7 +1115,7 @@ contains
   end subroutine kdtree2_n_nearest_around_point
 
   subroutine kdtree2_r_nearest(tp,qv,r2,nfound,nalloc,results) 
-    ! find the nearest neighbors to point 'idxin', within SQUARED
+    ! find the nearest neighbors to point 'qv', within SQUARED
     ! Euclidean distance 'r2'.   Upon ENTRY, nalloc must be the
     ! size of memory allocated for results(1:nalloc).  Upon
     ! EXIT, nfound is the number actually found within the ball. 

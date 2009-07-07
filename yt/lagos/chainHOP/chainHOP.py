@@ -43,7 +43,7 @@ class Run_chain_HOP:
         fKD.qv = empty(3,dtype='d')
         fKD.nn = self.num_neighbors
         fKD.nparts = size
-        fKD.sort = False # faster, but unordered neighbors (OK for chainHOP)
+        fKD.sort = True # slower, but needed in _connect_chains
         fKD.rearrange = True # faster, more memory
         # this actually copies the data into the fortran space
         fKD.pos[0,:] = self.xpos
@@ -146,7 +146,8 @@ class Run_chain_HOP:
             # if this particle is in the padding, don't make a connection
             if part.is_inside is False: continue
             # loop over nearest neighbors
-            for i in range(self.num_neighbors):
+            #for i in range(self.num_neighbors):
+            for i in range(self.nMerge+2):
                 thisNN = part.NNtags[i]
                 # if our neighbor is in the same chain, move on
                 if part.chainID == self.NN[thisNN].chainID: continue
@@ -197,7 +198,7 @@ class Run_chain_HOP:
                     #print 'neither already assigned'
                     groupID += 1
         # chains that haven't been linked to another chain increase the count
-        # by themselves and change label
+        # by themselves and change label. Also add to chain_connections
         for i in range(chain_count):
             if self.reverse_map[i] == -1:
                 self.reverse_map[i] = groupID
@@ -281,6 +282,7 @@ class Run_chain_HOP:
 
     def _chainHOP(self):
         size = len(self.xpos)
+        self.nMerge = 4
         mylog.info('Building kd tree for %d particles...' % \
             size)
         self.__init_kd_tree(size)
