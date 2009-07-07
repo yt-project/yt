@@ -5,7 +5,7 @@ from yt.extensions.kdtree import *
 
 from Forthon import *
 
-class partNN:
+class partNN(object):
     def __init__(self, NNtags, density, densestNN, chainID, is_inside, order_index):
         self.NNtags = NNtags # numpy array of the tags from the kdtree
         self.density = density # this particles local density
@@ -14,7 +14,7 @@ class partNN:
         self.is_inside = is_inside # True/False is inside the main volume
         self.order_index = order_index # order_index for this particle
 
-class Run_chain_HOP:
+class Run_chain_HOP(object):
     def __init__(self,period, padding, num_neighbors, bounds,
             xpos, ypos, zpos, mass, threshold=160.0):
         self.threshold = threshold
@@ -56,7 +56,7 @@ class Run_chain_HOP:
     def __initialize_NN(self):
         size = len(self.xpos)
         self.NN = []
-        for i in range(size):
+        for i in xrange(size):
             NNtemp = partNN(na.empty([self.num_neighbors]),0.0,-1,-1,False,-1)
             self.NN.append(NNtemp)
 
@@ -72,10 +72,10 @@ class Run_chain_HOP:
     def _densestNN(self, pi, NNtags):
         # find the densest nearest neighbor
         NNdens = 0.
-        for i in range(self.num_neighbors):
-            if self.NN[NNtags[i]].density > NNdens:
-                NNdens = self.NN[NNtags[i]].density
-                NNindex = NNtags[i]
+        for tags in NNtags:
+            if self.NN[tags].density > NNdens:
+                NNdens = self.NN[tags].density
+                NNindex = tags
         self.NN[pi].densestNN = NNindex
     
     def _build_chains(self):
@@ -145,8 +145,9 @@ class Run_chain_HOP:
             if part.chainID < 0: continue
             # if this particle is in the padding, don't make a connection
             if part.is_inside is False: continue
-            # loop over nearest neighbors
-            #for i in range(self.num_neighbors):
+            # find this particles chain max_dens
+            part_dens = self.densest_in_chain[part.chainID]
+            # loop over nMerge nearest neighbors
             for i in range(self.nMerge+2):
                 thisNN = part.NNtags[i]
                 # if our neighbor is in the same chain, move on
@@ -155,11 +156,14 @@ class Run_chain_HOP:
                 if thisNN==part.order_index or thisNN==part.densestNN: continue
                 # if our neighbor is not part of a group, move on
                 if self.NN[thisNN].chainID < 0: continue
-                # if our neighbor is in the padding, move on
-                #inside = self.NN[NNtags[i]].is_inside
-                #if inside is False: continue # I think this might be OK
-                # if the average density is high enough, link the chains
-                if ((self.NN[thisNN].density + part.density) / 2.) >= (self.threshold * 2.5):
+                # find thisNN's chain's max_dens
+                thisNN_dens = self.densest_in_chain[self.NN[thisNN].chainID]
+                # if the average density is high enough, and they're both
+                # themselves groups (dens>peakdens), link the chains. Chains
+                # with both dens > peakdens are *only* linked if their boundary
+                # dens > saddle. Otherwise they remain separate for all time.
+                if ((self.NN[thisNN].density + part.density) / 2.) >= (self.threshold * 2.5) and
+                    part_dens >= (3*self.threshold) and thisNN_dens >= (3*self.threshold):
                     # find out if either particle chainID has already been mapped
                     group1 = self.reverse_map[part.chainID]
                     group2 = self.reverse_map[self.NN[thisNN].chainID]
@@ -197,6 +201,14 @@ class Run_chain_HOP:
                     self.reverse_map[self.NN[thisNN].chainID] = groupID
                     #print 'neither already assigned'
                     groupID += 1
+                # end if avg dens & peak densities are high enough.
+                
+                # now we need to record *possible* connections, replacing old
+                # entries if the new one is higher in boundary threshold
+                # This is analagous to the particle chain hopping, where we
+                # need to find the densest nearest neighbors, but here we're
+                # finding the densest nearest neighbor chains.
+                
         # chains that haven't been linked to another chain increase the count
         # by themselves and change label. Also add to chain_connections
         for i in range(chain_count):
@@ -248,10 +260,8 @@ class Run_chain_HOP:
         dense enough.
         """
         for groupID in self.chain_connections:
-            max_dens = 0.0
-            for chainID in self.chain_connections[groupID]:
-                if max_dens < self.densest_in_chain[chainID]:
-                    max_dens = self.densest_in_chain[chainID]
+            max_dens = max( (self.densest_in_Chain[chainID] for chainID 
+                            in self.chain_connections[groupID] ) )
             # too low, elminate the group by emptying it
             if max_dens < 3 * self.threshold:
                 # at the same time elminate the associated chains
@@ -271,12 +281,9 @@ class Run_chain_HOP:
             self.NN[i].chainID = self.reverse_map[self.NN[i].chainID]
         # also translate self.densest_in_chain
         temp = {}
-        for groupID in self.chain_connections:
-            max_dens = 0.
-            for chainID in self.chain_connections[groupID]:
-                if max_dens < self.densest_in_chain[chainID]:
-                    max_dens = self.densest_in_chain[chainID]
-            temp[groupID] = max_dens
+        for groupID, connections in self.chain_connections.items():
+            temp[groupID] = max((self.densest_in_chain[chainID] for chainID
+                           in connections))
         # copy it back
         self.densest_in_chain = temp
 
@@ -290,10 +297,10 @@ class Run_chain_HOP:
         mylog.info('Finding nearest neighbors/density...')
         chainHOP_tags_dens()
         mylog.info('Copying results...')
-        for i in range(size):
-            self.NN[i].order_index = i
-            self.NN[i].NNtags = fKD.nn_tags[:,i] - 1
-            self.NN[i].density = fKD.dens[i]
+        for i, nn in enumerate(self.NN):
+            nn.order_index = i
+            nn.NNtags = fKD.nn_tags[:,i] - 1
+            nn.density = fKD.dens[i]
         # when done with the tree free the memory, del these first
         del fKD.pos, fKD.dens, fKD.nn_dist, fKD.nn_tags, fKD.mass, fKD.dens
         free_tree() # frees the kdtree object
@@ -311,9 +318,8 @@ class Run_chain_HOP:
             self.NN[i].is_inside = self._is_inside([self.xpos[i], self.ypos[i],
                 self.zpos[i]])
         chain_count = 0
-        for i in range(size):
-            if i == self.NN[i].densestNN:
-                chain_count += 1
+        for i, nn in enumerate(self.NN):
+            if i == nn.densestNN: chain_count += 1
         mylog.info('there are %d self-densest particles' % chain_count)
         # build the chain of links
         mylog.info('Building particle chains...')
