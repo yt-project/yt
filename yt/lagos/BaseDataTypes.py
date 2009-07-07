@@ -439,8 +439,8 @@ class AMRRayBase(AMR1DData):
         """
         mylog.warning("This code is poorly tested.  It may give bad data!")
         AMR1DData.__init__(self, pf, fields, **kwargs)
-        self.start_point = na.array(start_point)
-        self.end_point = na.array(end_point)
+        self.start_point = na.array(start_point, dtype='float64')
+        self.end_point = na.array(end_point, dtype='float64')
         self.vec = self.end_point - self.start_point
         self.center = self.start_point
         self.set_field_parameter('center', self.start_point)
