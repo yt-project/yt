@@ -1,4 +1,4 @@
-import math #, cPickle
+import math,sys #, cPickle
 from bisect import insort
 
 from yt.extensions.kdtree import *
@@ -127,136 +127,110 @@ class Run_chain_HOP(object):
             chainIDnew = self._recurse_links(nn, chainIDmax)
             self.NN[pi].chainID = chainIDnew
             return chainIDnew
-    
+
     def _connect_chains(self,chain_count):
         """
         with the set of particle chains, build a mapping of connected chainIDs
-        by linking particles that have high enough average combined density.
+        by finding the highest boundary density neighbor for each chain. Some
+        chains will have no neighbors!
         """
-        self.chain_connections = {} # groupID -> [chainIDs], one to many
-        self.reverse_map = {} # chainID -> groupID, one to one
-        self.connected_groups = [] # list of lists of groupIDs that are connected
-                                   # each entry is a pair [ , ]
+        self.chain_densest_n = {} # chainID -> [chainID, boundary dens]
         for i in range(chain_count):
-            self.reverse_map[i] = -1
-        groupID = 0 # inreased with every newly linked chain pair
+            self.chain_densest_n[i] = [-1,0.0]
+        
         for part in self.NN:
             # don't consider this particle if it's not part of a chain
             if part.chainID < 0: continue
             # if this particle is in the padding, don't make a connection
             if part.is_inside is False: continue
-            # find this particles chain max_dens
-            part_dens = self.densest_in_chain[part.chainID]
-            # loop over nMerge nearest neighbors
+            # find this particle's chain max_dens
+            part_max_dens = self.densest_in_chain[part.chainID]
+            # loop over nMerge closest nearest neighbors
             for i in range(self.nMerge+2):
                 thisNN = part.NNtags[i]
+                thisNN_chainID = self.NN[thisNN].chainID
                 # if our neighbor is in the same chain, move on
-                if part.chainID == self.NN[thisNN].chainID: continue
+                if part.chainID == thisNN_chainID: continue
                 # no introspection, nor our connected NN
                 # this is probably the same as above, but it's OK. Can be removed
                 # later.
                 if thisNN==part.order_index or thisNN==part.densestNN: continue
-                # if our neighbor is not part of a group, move on
-                if self.NN[thisNN].chainID < 0: continue
+                # if our neighbor is not part of a chain, move on
+                if thisNN_chainID < 0: continue
                 # find thisNN's chain's max_dens
-                thisNN_dens = self.densest_in_chain[self.NN[thisNN].chainID]
-                # if the average density is high enough, and they're both
-                # themselves groups (dens>peakdens), link the chains. Chains
-                # with both dens > peakdens are *only* linked if their boundary
-                # dens > saddle. Otherwise they remain separate for all time.
-                if ((self.NN[thisNN].density + part.density) / 2.) >= (self.threshold * 2.5) and \
-                    part_dens >= (3*self.threshold) and \
-                    thisNN_dens >= (3*self.threshold):
-                    # find out if either particle chainID has already been mapped
-                    group1 = self.reverse_map[part.chainID]
-                    group2 = self.reverse_map[self.NN[thisNN].chainID]
-                    # if they're already connected, move on
-                    if group1 == group2 and group1 != -1:
-                        #print 'already connected'
+                thisNN_max_dens = self.densest_in_chain[thisNN_chainID]
+                # calculate the two groups boundary density
+                boundary_density = (self.NN[thisNN].density + part.density) / 2.
+                # if both these chains have higher than peakdens max_dens, they
+                # can only be linked if the boundary_density is high enough.
+                if thisNN_max_dens >= (3 * self.threshold) and \
+                    part_max_dens >= (3 * self.threshold) and \
+                    boundary_density < (2.5 * self.threshold):
+                        # in this case, no link is made
                         continue
-                    # if one chain has been connected into a group, assign
-                    # the other
-                    if group1 > -1 and group2 == -1:
-                        self.chain_connections[group1].append(self.NN[thisNN].chainID)
-                        self.reverse_map[self.NN[thisNN].chainID] = group1
-                        #print 'group1 already assigned'
-                        continue
-                    # visa-versa
-                    if group2 > -1 and group1 == -1:
-                        self.chain_connections[group2].append(part.chainID)
-                        self.reverse_map[part.chainID] = group2
-                        #print 'group2 already assigned'
-                        continue
-                    # link the different groups
-                    if group1 > -1 and group2 > -1:
-                        # max/min for unique representation
-                        # this will eventually be reversed in _connect_chains()
-                        connection = [max(group1,group2),min(group1,group2)]
-                        #connection = [min(group1,group2),max(group1,group2)]
-                        if connection not in self.connected_groups:
-                            self.connected_groups.append(connection)
-                        #print 'both already assigned'
-                        continue
-                    # if neither chain has been linked into a group yet, we've
-                    # come down this far
-                    self.chain_connections[groupID] = [part.chainID,self.NN[thisNN].chainID]
-                    self.reverse_map[part.chainID] = groupID
-                    self.reverse_map[self.NN[thisNN].chainID] = groupID
-                    #print 'neither already assigned'
-                    groupID += 1
-                # end if avg dens & peak densities are high enough.
-                
-                # now we need to record *possible* connections, replacing old
-                # entries if the new one is higher in boundary threshold
-                # This is analagous to the particle chain hopping, where we
-                # need to find the densest nearest neighbors, but here we're
-                # finding the densest nearest neighbor chains.
-                
-                    
-        # chains that haven't been linked to another chain increase the count
-        # by themselves and change label. Also add to chain_connections
-        for i in range(chain_count):
-            if self.reverse_map[i] == -1:
-                self.reverse_map[i] = groupID
-                groupID += 1
-        return groupID
+                # find out who's denser
+                max_dens = max(thisNN_max_dens,part_max_dens)
+                if max_dens == thisNN_max_dens:
+                    higher_chain = thisNN_chainID
+                    lower_chain = part.chainID
+                else:
+                    higher_chain = part.chainID
+                    lower_chain = thisNN_chainID
+                # see if this boundary density is higher than previously recorded
+                # links only go 'uphill'
+                old = self.chain_densest_n[lower_chain]
+                if old[1] < boundary_density:
+                    self.chain_densest_n[lower_chain] = [higher_chain,boundary_density]
     
-    def _connect_groups(self):
-        # sort connected_groups decending by first group, which is always larger
-        # this is to prevent pathological situations of multiply linked groups
-        # unf., Cython doesn't support sorting by a key so we do it manually
-        index_map = []
-        for index, pair in enumerate(self.connected_groups):
-            datum = [pair[0], pair[1], index]
-            insort(index_map,datum)
-        connected_groups_temp = self.connected_groups[:]
-        for index, triplet in enumerate(index_map):
-            connected_groups_temp[index] = self.connected_groups[triplet[2]]
-        self.connected_groups = connected_groups_temp[:]
-        self.connected_groups.reverse()
-        # below is the way we would sort this if it worked in Cython.
-        # self.connected_groups.sort(key=lambda x: -1*x[0])
-        # now reverse the entries
-        for pair in self.connected_groups:
-            pair.reverse()
-        # now update the chain_connections, merging groups
-        chain_connections_temp = self.chain_connections.copy()
-        added = []
-        for groups in self.connected_groups:
-            # always add the larger indexed group of chains into the smaller indexed
-            chain_connections_temp[groups[0]].extend(self.chain_connections[groups[1]])
-            added.append(groups[1])
-        # copy the temp back, skipping over added groups of chains
-        fresh_count = 0
-        self.chain_connections = {}
-        for groupID in chain_connections_temp:
-            if groupID in added: continue
-            self.chain_connections[fresh_count] = chain_connections_temp[groupID]
-            # update reverse_map at the same time
-            for chainID in chain_connections_temp[groupID]:
-                self.reverse_map[chainID] = fresh_count
-            fresh_count += 1
-        return fresh_count
+    
+    def _build_groups(self,chain_count):
+        """
+        Using the links between chains by boundary density, recurse uphill
+        to the most dense chain. This is very similar to _build_chains.
+        """
+        groupIDmax = 0
+        self.reverse_map = {} # chainID -> groupID, one to one
+        for i in range(chain_count):
+            self.reverse_map[i] = -1
+        # this prevents key problems, is deleted below
+        self.reverse_map[-1] = -1
+        for chainID in self.chain_densest_n:
+            # if this chain is already in a group, skip it
+            if self.reverse_map[chainID] != -1: continue
+            groupIDnew = self._recurse_chain_links(chainID, groupIDmax)
+            # if the new groupID returned is the same as we entered, the group
+            # has been named groupIDmax, so we need to start a new group
+            # in the next loop
+            if groupIDnew == groupIDmax:
+                groupIDmax += 1
+        del self.reverse_map[-1]
+        return groupIDmax
+
+    def _recurse_chain_links(self, chainID, groupIDmax):
+        """
+        recurse up to a a) un-linked chain, b) a chain that already has a
+        groupID.
+        """
+        entry = self.chain_densest_n[chainID]
+        n_groupID = self.reverse_map[entry[0]]
+        # linking to an already groupID-ed chain
+        if n_groupID != -1:
+            self.reverse_map[chainID] = n_groupID
+            #print 'already IDed assigning ',n_groupID,' to chain ',chainID
+            return n_groupID
+        # if this chain itself has no neighbors, end the linking, and create
+        # a new group
+        elif entry[0] == -1:
+            self.reverse_map[chainID] = groupIDmax
+            #print 'no neigh assigning ',groupIDmax,' to chain ',chainID
+            return groupIDmax
+        # otherwise recurse to other chains
+        else:
+            groupIDnew = self._recurse_chain_links(entry[0],groupIDmax)
+            self.reverse_map[chainID] = groupIDnew
+            #print 'after recurse assigning ',groupIDnew,' to chain ',chainID
+            return groupIDnew
+
     
     def _pare_groups_by_max_dens(self):
         """
@@ -274,22 +248,24 @@ class Run_chain_HOP(object):
                 self.chain_connections[groupID] = []
                 print 'elminated a group'
     
-    def _translate_groupIDs(self):
+    def _translate_groupIDs(self,group_count):
         """
         using the maps, convert the particle chainIDs into their locally-final
         groupIDs.
         """
-        for i in range(len(self.NN)):
+        for nn in self.NN:
             # don't translate non-affiliated particles
-            if self.NN[i].chainID == -1: continue
-            self.NN[i].chainID = self.reverse_map[self.NN[i].chainID]
-        # also translate self.densest_in_chain
-        temp = {}
-        for groupID, connections in self.chain_connections.items():
-            temp[groupID] = max((self.densest_in_chain[chainID] for chainID
-                           in connections))
-        # copy it back
-        self.densest_in_chain = temp
+            if nn.chainID == -1: continue
+            nn.chainID = self.reverse_map[nn.chainID]
+        # create a densest_in_group, analogous to densest_in_chain
+        self.densest_in_group = {}
+        for i in range(group_count):
+            self.densest_in_group[i] = 0.0
+        for chainID in self.densest_in_chain:
+            groupID = self.reverse_map[chainID]
+            max_dens = self.densest_in_chain[chainID]
+            if self.densest_in_group[groupID] < max_dens:
+                self.densest_in_group[groupID] = max_dens
 
     def _chainHOP(self):
         size = len(self.xpos)
@@ -330,13 +306,12 @@ class Run_chain_HOP(object):
         chain_count = self._build_chains()
         # connect the chains into groups
         mylog.info('Connecting %d chains into groups...' % chain_count)
-        group_count = self._connect_chains(chain_count)
-        mylog.info('Connecting %d groups...' % group_count)
-        group_count = self._connect_groups()
+        self._connect_chains(chain_count)
+        group_count = self._build_groups(chain_count)
         #mylog.info('Paring %d groups...' % group_count)
         # don't pare groups here, it has to happen later
         #self._pare_groups_by_max_dens()
-        self._translate_groupIDs()
+        self._translate_groupIDs(group_count)
         mylog.info('Converting %d groups...' % group_count)
         # convert self.NN for returning
         gIDs = []
