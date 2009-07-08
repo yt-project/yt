@@ -88,7 +88,7 @@ def VoxelTraversal(np.ndarray[np.int_t, ndim=3] grid_mask,
     cdef np.ndarray tdelta = np.zeros(3, dtype=np.float64) 
     cdef np.ndarray tmax = np.zeros(3, dtype=np.float64) 
     cdef np.ndarray intersect = np.zeros(3, dtype=np.float64) 
-    intersect_t = 1e30
+    intersect_t = 1
     # recall p = v * t + u
     #  where p is position, v is our vector, u is the start point
     for i in range(3):
@@ -111,7 +111,7 @@ def VoxelTraversal(np.ndarray[np.int_t, ndim=3] grid_mask,
        (left_edge[1] <= u[1] <= right_edge[1]) and \
        (left_edge[2] <= u[2] <= right_edge[2]):
         intersect_t = 0
-    if intersect_t > 1e29: return
+    if intersect_t > 1: return
     # Now get the indices of the intersection
     intersect = u + intersect_t * v
     for i in range(3):
@@ -131,6 +131,9 @@ def VoxelTraversal(np.ndarray[np.int_t, ndim=3] grid_mask,
             grid_mask[cur_ind[0], cur_ind[1], cur_ind[2]] = 1
         # Note that we are calculating t on the fly, but we get *negative* t
         # values from what they should be.
+        # If we've reached t = 1, we are done.
+        if tmax[0] > 1 and tmax[1] > 1 and tmax[2] > 1:
+            break
         if tmax[0] < tmax[1]:
             if tmax[0] < tmax[2]:
                 grid_t[cur_ind[0], cur_ind[1], cur_ind[2]] = tmax[0] - enter_t
