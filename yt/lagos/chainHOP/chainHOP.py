@@ -31,17 +31,17 @@ class RunChainHOP(object):
         self.padded_particles = na.array(self.padded_particles)
     
 
-    def _init_kd_tree(self,size):
+    def _init_kd_tree(self):
         # Yes, we really do need to initialize this many arrays.
         # They're deleted in _chainHOP.
-        fKD.nn_tags = empty((self.num_neighbors,size), dtype='l')
-        fKD.nn_dist = empty((self.num_neighbors,size), dtype='d')
-        fKD.dens = zeros(size, dtype='d')
-        fKD.mass = empty(size, dtype='d')
-        fKD.pos = empty((3,size), dtype='d')
+        fKD.nn_tags = empty((self.num_neighbors,self.size), dtype='l')
+        fKD.nn_dist = empty((self.num_neighbors,self.size), dtype='d')
+        fKD.dens = zeros(self.size, dtype='d')
+        fKD.mass = empty(self.size, dtype='d')
+        fKD.pos = empty((3,self.size), dtype='d')
         fKD.qv = empty(3, dtype='d')
         fKD.nn = self.num_neighbors
-        fKD.nparts = size
+        fKD.nparts = self.size
         fKD.sort = True # slower, but needed in _connect_chains
         fKD.rearrange = True # faster, more memory
         # this actually copies the data into the fortran space
@@ -55,15 +55,13 @@ class RunChainHOP(object):
     def _initialize_NN(self):
         self.NN = []
         for i in xrange(self.size):
-            NNtemp = partNN(na.empty([self.num_neighbors]), 0.0, -1, -1, 
-                False, -1)
+            NNtemp = partNN(na.empty([self.num_neighbors]), 0.0, -1, -1, -1)
             self.NN.append(NNtemp)
 
     def _is_inside(self):
         # Test to see if the points are in the 'real' region
         (LE, RE) = self.bounds
-        points = na.array([self.xpos, self.ypos, self.zpos])
-        points = points.transpose()
+        points = fKD.pos.transpose()
         self.is_inside = ( (points >= LE).all(axis=1) * \
             (points < RE).all(axis=1) )
     
@@ -277,8 +275,10 @@ class RunChainHOP(object):
     def _chain_hop(self):
         self.nMerge = 4
         mylog.info('Building kd tree for %d particles...' % \
-            size)
-        self._init_kd_tree(size)
+            self.size)
+        self._init_kd_tree()
+        # Mark particles in as being in/out of the domain.
+        self._is_inside()
         # Loop over the particles to find NN for each.
         mylog.info('Finding nearest neighbors/density...')
         chainHOP_tags_dens()
@@ -297,10 +297,8 @@ class RunChainHOP(object):
         # Now each particle has NNtags, and a local self density.
         # Let's find densest NN
         mylog.info('Finding densest nearest neighbors...')
-        for i in range(size):
+        for i in range(self.size):
             self._densestNN(i, self.NN[i].NNtags)
-        # Mark particles in self.NN as being in/out of the domain.
-        self._is_inside()
         chain_count = 0
         for i, nn in enumerate(self.NN):
             if i == nn.densestNN: chain_count += 1
