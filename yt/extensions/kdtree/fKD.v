@@ -4,6 +4,7 @@ fKD
 tags(:) _integer # particle ID tags
 dist(:) _real # interparticle spacings
 nn_tags(:,:) _integer # for all particles at once, [nth neighbor, index]
+chunk_tags(:,:) _integer # for finding only a chunk of the nearest neighbors
 nn_dist(:,:) _real 
 pos(3,:) _real
 dens(:) _real
@@ -11,6 +12,9 @@ mass(:) _real
 qv(3) real
 nparts integer
 nn integer
+nMerge integer # number of nearest neighbors used in chain merging
+start integer
+finish integer
 tree2 _kdtree2
 sort logical /.false./
 rearrange logical /.true./
@@ -92,4 +96,5 @@ find_nn_nearest_neighbors subroutine
 create_tree() subroutine
 free_tree() subroutine
 find_all_nn_nearest_neighbors subroutine
+find_chunk_nearest_neighbors subroutine
 chainHOP_tags_dens subroutine

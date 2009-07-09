@@ -18,6 +18,7 @@ class RunChainHOP(object):
         self.mass = mass
         self.padded_particles = []
         self.size = len(self.xpos)
+        self.nMerge = 4
         self.chainID = na.ones(self.size,dtype='l') * -1
         self._chain_hop()
         self.padded_particles = na.array(self.padded_particles)
@@ -26,22 +27,22 @@ class RunChainHOP(object):
     def _init_kd_tree(self):
         # Yes, we really do need to initialize this many arrays.
         # They're deleted in _chainHOP.
-        fKD.nn_tags = empty((self.num_neighbors,self.size), dtype='l')
-        fKD.nn_dist = empty((self.num_neighbors,self.size), dtype='d')
+        fKD.nn_tags = empty((self.nMerge + 2,self.size), dtype='l')
         fKD.dens = zeros(self.size, dtype='d')
         fKD.mass = empty(self.size, dtype='d')
         fKD.pos = empty((3,self.size), dtype='d')
         fKD.qv = empty(3, dtype='d')
         fKD.nn = self.num_neighbors
+        fKD.nMerge = self.nMerge + 2
         fKD.nparts = self.size
-        fKD.sort = True # slower, but needed in _connect_chains
-        fKD.rearrange = True # faster, more memory
-        # this actually copies the data into the fortran space
+        fKD.sort = True # Slower, but needed in _connect_chains
+        fKD.rearrange = True # Faster, but uses more memory
+        # This actually copies the data into the fortran space
         fKD.pos[0, :] = self.xpos
         fKD.pos[1, :] = self.ypos
         fKD.pos[2, :] = self.zpos
         fKD.mass = self.mass
-        # now call the fortran
+        # Now call the fortran
         create_tree()
 
     def _is_inside(self):
@@ -52,13 +53,32 @@ class RunChainHOP(object):
             (points < RE).all(axis=1) )
 
     def _densestNN(self):
-        # Find the densest nearest neighbor for all particles.
-        n_dens = na.take(self.density,self.NNtags)
-        max_loc = na.argmax(n_dens,axis=1)
+        """
+        The first search of nearest neighbors did not return all 
+        num_neighbor neighbors, so we need to do it again, but we're not
+        keeping the all of this data, just using it.
+        """
         self.densestNN = na.ones(self.size,dtype='l')
-        # How do I do this better?
-        for i in xrange(self.size):
-            self.densestNN[i] = self.NNtags[i,max_loc[i]]
+        # We find nearest neighbors in chunks
+        chunksize = 10000
+        
+        start = 1 # fortran counting!
+        finish = 0
+        while finish < self.size:
+            finish = min(finish+chunksize,self.size)
+            fKD.chunk_tags = empty((self.num_neighbors,finish-start+1), dtype='l')
+            # call the fortran
+            fKD.start = start
+            fKD.finish = finish
+            find_chunk_nearest_neighbors()
+            chunk_NNtags = (fKD.chunk_tags - 1).transpose()
+            # find the densest nearest neighbors
+            n_dens = na.take(self.density,chunk_NNtags)
+            max_loc = na.argmax(n_dens,axis=1)
+            for i in xrange(finish - start + 1): # +1 for fortran counting
+                j = start + i - 1 # -1 for fortran counting
+                self.densestNN[j] = chunk_NNtags[i,max_loc[i]]
+            start = finish + 1
     
     def _build_chains(self):
         """
@@ -257,7 +277,6 @@ class RunChainHOP(object):
                 self.densest_in_group[groupID] = max_dens
 
     def _chain_hop(self):
-        self.nMerge = 4
         mylog.info('Building kd tree for %d particles...' % \
             self.size)
         self._init_kd_tree()
@@ -266,18 +285,19 @@ class RunChainHOP(object):
         # Loop over the particles to find NN for each.
         mylog.info('Finding nearest neighbors/density...')
         chainHOP_tags_dens()
-        mylog.info('Copying results...')
         self.density = fKD.dens
         self.NNtags = (fKD.nn_tags - 1).transpose()
-        # When done with the tree free the memory, del these first.
-        del fKD.pos, fKD.dens, fKD.nn_dist, fKD.nn_tags, fKD.mass, fKD.dens
-        free_tree() # Frees the kdtree object.
+        # We can free these right now, the rest later.
+        del fKD.dens, fKD.nn_tags, fKD.mass, fKD.dens
         count = len(na.where(self.density >= self.threshold)[0])
         print 'count above thresh', count
         # Now each particle has NNtags, and a local self density.
         # Let's find densest NN
         mylog.info('Finding densest nearest neighbors...')
         self._densestNN()
+        # Now we can free these
+        del fKD.pos, fKD.chunk_tags
+        free_tree() # Frees the kdtree object.
         chain_count = 0
         for i in xrange(self.size):
             if i == self.densestNN[i]: chain_count += 1
