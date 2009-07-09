@@ -441,7 +441,7 @@ class chainHOPHaloList(HaloList):
         for i,z in enumerate(zt):
             if z < 0:
                 zt[i] = 1+z
-        obj = Run_chain_HOP(self.period, self.padding,
+        obj = RunChainHOP(self.period, self.padding,
             self.num_neighbors, self.bounds,
             xt,
             yt,
