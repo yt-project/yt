@@ -57,7 +57,7 @@ class RunChainHOP(object):
         max_loc = na.argmax(n_dens,axis=1)
         self.densestNN = na.ones(self.size,dtype='l')
         # How do I do this better?
-        for i,den in enumerate(self.densestNN):
+        for i in xrange(self.size):
             self.densestNN[i] = self.NNtags[i,max_loc[i]]
     
     def _build_chains(self):
@@ -72,7 +72,7 @@ class RunChainHOP(object):
             # in the padding, move on because chains can only terminate in
             # the padding, not begin, or if this particle is too low in
             # density, move on
-            if self.chainID[i] > -1 or bool(self.is_inside[i]) is False or \
+            if self.chainID[i] > -1 or not self.is_inside[i] or \
                 self.density[i] < self.threshold: continue
             chainIDnew = self._recurse_links(i, chainIDmax)
             # if the new chainID returned is the same as we entered, the chain
@@ -91,25 +91,23 @@ class RunChainHOP(object):
         and there, because chains only go one particle deep into the padding.
         """
         nn = self.densestNN[pi]
-        inside = bool(self.is_inside[pi])
-        if inside is False:
-            print 'inside',inside
-            sys.exit()
+        inside = self.is_inside[pi]
+        nn_chainID = self.chainID[nn]
         # linking to an already chainID-ed particle (don't make links from 
         # padded particles!)
-        if self.chainID[nn] > -1 and inside is True:
-            self.chainID[pi] = self.chainID[nn]
-            return self.chainID[nn]
+        if nn_chainID > -1 and inside:
+            self.chainID[pi] = nn_chainID
+            return nn_chainID
         # if pi is a self-most dense particle or inside the padding, end/create
         # a new chain
-        elif nn == pi or inside is False:
+        elif nn == pi or not inside:
             self.chainID[pi] = chainIDmax
             self.densest_in_chain[chainIDmax] = self.density[pi]
-            # if this is a padded particle, record it
-            if inside is False:
+            # if this is a padded particle, record it for later
+            if not inside:
                 self.padded_particles.append(pi)
             return chainIDmax
-        # recursively link to nearest neighbors
+        # otherwise, recursively link to nearest neighbors
         else:
             chainIDnew = self._recurse_links(nn, chainIDmax)
             self.chainID[pi] = chainIDnew
@@ -122,18 +120,18 @@ class RunChainHOP(object):
         chains will have no neighbors!
         """
         self.chain_densest_n = {} # chainID -> [chainID, boundary dens]
-        for i in range(chain_count):
+        for i in xrange(chain_count):
             self.chain_densest_n[i] = [-1, 0.0]
         
         for i in xrange(self.size):
             # Don't consider this particle if it's not part of a chain.
             if self.chainID[i] < 0: continue
             # If this particle is in the padding, don't make a connection.
-            if bool(self.is_inside[i]) is False: continue
+            if not self.is_inside[i]: continue
             # Find this particle's chain max_dens.
             part_max_dens = self.densest_in_chain[self.chainID[i]]
             # Loop over nMerge closest nearest neighbors.
-            for j in range(self.nMerge+2):
+            for j in xrange(self.nMerge+2):
                 thisNN = self.NNtags[i,j]
                 thisNN_chainID = self.chainID[thisNN]
                 # If our neighbor is in the same chain, move on.
@@ -179,7 +177,7 @@ class RunChainHOP(object):
         """
         groupIDmax = 0
         self.reverse_map = {} # chainID -> groupID, one to one
-        for i in range(chain_count):
+        for i in xrange(chain_count):
             self.reverse_map[i] = -1
         # This prevents key problems, and is deleted below.
         self.reverse_map[-1] = -1
@@ -250,7 +248,7 @@ class RunChainHOP(object):
             self.chainID[i] = self.reverse_map[self.chainID[i]]
         # Create a densest_in_group, analogous to densest_in_chain.
         self.densest_in_group = {}
-        for i in range(group_count):
+        for i in xrange(group_count):
             self.densest_in_group[i] = 0.0
         for chainID in self.densest_in_chain:
             groupID = self.reverse_map[chainID]
@@ -295,14 +293,6 @@ class RunChainHOP(object):
         # Don't pare groups here, it has to happen later.
         #self._pare_groups_by_max_dens()
         self._translate_groupIDs(group_count)
-        mylog.info('Converting %d groups...' % group_count)
-        # Convert for returning.
-        gIDs = []
-        dens = []
-        for i in xrange(self.size):
-            gIDs.append(self.chainID[i])
-            dens.append(self.density[i])
-        self.gIDs = na.array(gIDs)
-        self.dens = na.array(dens)
+        mylog.info('Found %d groups...' % group_count)
 
 

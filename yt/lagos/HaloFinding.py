@@ -448,7 +448,7 @@ class chainHOPHaloList(HaloList):
             zt,
             self.particle_fields["ParticleMassMsun"]/self.total_mass,
             self.threshold)
-        self.densities, self.tags = obj.dens, obj.gIDs
+        self.densities, self.tags = obj.density, obj.chainID
         self.particle_fields["densities"] = self.densities
         self.particle_fields["tags"] = self.tags
         if self._distributed:
