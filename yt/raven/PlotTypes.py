@@ -101,7 +101,7 @@ class RavenPlot(object):
     def __getitem__(self, item):
         return self.data[item] # Should be returned in CGS
 
-    def save_image(self, prefix, format="png", submit=None, override=True):
+    def save_image(self, prefix, format="png", submit=None, override=True, force_save=False):
         """
         Save this plot image.  Will generate a filename based on the *prefix*,
         *format*.  *submit* will govern the submission to the Deliverator and
@@ -115,7 +115,10 @@ class RavenPlot(object):
             my_prefix = prefix
         fn = ".".join([my_prefix, format])
         canvas = engineVals["canvas"](self._figure)
-        only_on_root(canvas.print_figure, fn)
+        if force_save:
+            canvas.print_figure(fn)
+        else:
+            only_on_root(canvas.print_figure, fn)
         self["Type"] = self._type_name
         self["GeneratedAt"] = self.data.pf["CurrentTimeIdentifier"]
         return fn

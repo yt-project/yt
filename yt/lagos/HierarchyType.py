@@ -180,6 +180,12 @@ class AMRHierarchy:
         del self._data_file
         self._data_file = h5py.File(self.__data_filename, self._data_mode)
 
+    def _reset_save_data(self,round_robin=False):
+        if round_robin:
+            self.save_data = self._save_data
+        else:
+            self.save_data = parallel_splitter(self._save_data, self._reload_data_file)
+    
     save_data = parallel_splitter(_save_data, _reload_data_file)
 
     def save_object(self, obj, name):
