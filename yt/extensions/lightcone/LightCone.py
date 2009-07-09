@@ -277,7 +277,7 @@ class LightCone(object):
                                       save_image=save_slice_images,
                                       name=name,node=node,**kwargs)
             if ytcfg.getint("yt","__parallel_rank") == 0:
-                if photonfield:
+                if photon_field:
                 #need to decrement the flux by the luminosity distance. Assume field in frb is in erg/s/cm^2/Hz
                     co = lagos.Cosmology(HubbleConstantNow = (100.0 * self.enzoParameters['CosmologyHubbleConstantNow']),
                                          OmegaMatterNow = self.enzoParameters['CosmologyOmegaMatterNow'],
