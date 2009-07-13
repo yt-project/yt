@@ -8,6 +8,8 @@ class RunChainHOP(object):
     def __init__(self,period, padding, num_neighbors, bounds,
             xpos, ypos, zpos, mass, threshold=160.0):
         self.threshold = threshold
+        self.saddlethresh = 2.5 * threshold
+        self.peakthresh = 3 * threshold
         self.period = period
         self.padding = padding
         self.num_neighbors = num_neighbors
@@ -139,9 +141,16 @@ class RunChainHOP(object):
         by finding the highest boundary density neighbor for each chain. Some
         chains will have no neighbors!
         """
-        self.chain_densest_n = {} # chainID -> [chainID, boundary dens]
+        self.chain_densest_n = {} # chainID -> {chainIDs}->boundary dens
+        self.densest_boundary = {} # chainID -> boundary_density
         for i in xrange(chain_count):
-            self.chain_densest_n[i] = [-1, 0.0]
+            self.chain_densest_n[i] = {}
+            self.densest_boundary[i] = 0.0
+        self.reverse_map = {} # chainID -> groupID, one to one
+        for i in xrange(chain_count):
+            self.reverse_map[i] = -1
+        # This prevents key problems, and is deleted below.
+        self.reverse_map[-1] = -1
         
         for i in xrange(self.size):
             # Don't consider this particle if it's not part of a chain.
@@ -166,77 +175,135 @@ class RunChainHOP(object):
                 thisNN_max_dens = self.densest_in_chain[thisNN_chainID]
                 # Calculate the two groups boundary density.
                 boundary_density = (self.density[thisNN] + self.density[i]) / 2.
-                # If both these chains have higher than peakdens max_dens, they
-                # can only be linked if the boundary_density is high enough.
-                if thisNN_max_dens >= (3 * self.threshold) and \
-                    part_max_dens >= (3 * self.threshold) and \
-                    boundary_density < (2.5 * self.threshold):
-                        # In this case, no link is made.
-                        continue
                 # Find out who's denser.
-                max_dens = max(thisNN_max_dens, part_max_dens)
-                if max_dens == thisNN_max_dens:
+                if thisNN_max_dens >= part_max_dens:
                     higher_chain = thisNN_chainID
                     lower_chain = self.chainID[i]
                 else:
                     higher_chain = self.chainID[i]
                     lower_chain = thisNN_chainID
                 # See if this boundary density is higher than
-                # previously recorded.
-                # Links only go 'uphill'.
-                old = self.chain_densest_n[lower_chain]
-                if old[1] < boundary_density:
-                    self.chain_densest_n[lower_chain] = \
-                        [higher_chain,boundary_density]
-    
+                # previously recorded for this pair of chains.
+                # Links only go 'downhill'.
+                try:
+                    old = self.chain_densest_n[higher_chain][lower_chain]
+                    if old < boundary_density:
+                        # make this the new densest boundary between this pair
+                        self.chain_densest_n[higher_chain][lower_chain] = \
+                            boundary_density
+                except KeyError:
+                    # we haven't seen this pairing before, record this as the
+                    # new densest boundary between chains
+                    self.chain_densest_n[higher_chain][lower_chain] = \
+                        boundary_density
+        del self.reverse_map[-1]
     
     def _build_groups(self, chain_count):
         """
-        Using the links between chains by boundary density, recurse uphill
-        to the most dense chain. This is very similar to _build_chains.
+        With the collection of possible chain links, build groups.
         """
-        groupIDmax = 0
-        self.reverse_map = {} # chainID -> groupID, one to one
+        print 'here'
+        g_high = []
+        g_low = []
+        g_dens = []
+        densestbound = {} # chainID -> boundary density
+        densestboundgroup = {} # chainID -> groupID
         for i in xrange(chain_count):
-            self.reverse_map[i] = -1
-        # This prevents key problems, and is deleted below.
-        self.reverse_map[-1] = -1
-        for chainID in self.chain_densest_n:
-            # If this chain is already in a group, skip it.
-            if self.reverse_map[chainID] != -1: continue
-            groupIDnew = self._recurse_chain_links(chainID, groupIDmax)
-            # If the new groupID returned is the same as we entered, the group
-            # has been named groupIDmax, so we need to start a new group
-            # in the next loop.
-            if groupIDnew == groupIDmax:
-                groupIDmax += 1
-        del self.reverse_map[-1]
-        return groupIDmax
-
-    def _recurse_chain_links(self, chainID, groupIDmax):
+            densestbound[i] = 0.0
+        #    densestboundgroup[i] = i
+        groupID = 0
+        # loop over all of the chain linkages
+        for chain_high in self.chain_densest_n:
+            for chain_low in self.chain_densest_n[chain_high]:
+                dens = self.chain_densest_n[chain_high][chain_low]
+                max_dens_high = self.densest_in_chain[chain_high]
+                max_dens_low = self.densest_in_chain[chain_low]
+                # if neither are peak density groups, mark them for later
+                # consideration
+                if max_dens_high < self.peakthresh and \
+                    max_dens_low < self.peakthresh:
+                        g_high.append(chain_high)
+                        g_low.append(chain_low)
+                        g_dens.append(dens)
+                        continue
+                # if both are peak density groups, and have a boundary density
+                # that is high enough, make them into a group, otherwise
+                # move onto another linkage
+                if max_dens_high >= self.peakthresh and \
+                        max_dens_low >= self.peakthresh:
+                    if dens < self.saddlethresh:
+                        continue
+                    else:
+                        # check to see that one isn't already in a group,
+                        # and assign them / the other one accordingly
+                        group_high = self.reverse_map[chain_high]
+                        group_low = self.reverse_map[chain_low]
+                        if group_high == -1 and group_low == -1:
+                            self.reverse_map[chain_high] = groupID
+                            self.reverse_map[chain_low] = groupID
+                            groupID += 1
+                        elif group_high != -1 and group_low == -1:
+                            self.reverse_map[chain_low] = group_high
+                        elif group_high == -1 and group_low != -1:
+                            self.reverse_map[chain_high] = group_low
+                        else:
+                            # both are already identified as groups, so we need
+                            # to re-assign the less dense group to the denser
+                            # groupID
+                            for chID in self.reverse_map:
+                                if self.reverse_map[chID] == group_low:
+                                    self.reverse_map[chID] = group_high
+                        continue
+                # else, one is above peakthresh, the other below
+                # find out if this is the densest boundary seen so far for
+                # the lower chain
+                try:
+                    if dens > densestbound[chain_low]:
+                        densestbound[chain_low] = dens
+                except KeyError:
+                    densestbound[chain_low] = dens
+                    group_high = self.reverse_map[chain_high]
+                # find out if a new group needs to be created
+                group_high = self.reverse_map[chain_high]
+                if group_high == -1:
+                    self.reverse_map[chain_high] = groupID
+                    group_high = groupID
+                    groupID += 1
+                densestboundgroup[chain_low] = group_high
+                # done double loop over links
+        print 'there'
         """
-        Recurse up to a a) un-linked chain, b) a chain that already has a
-        groupID.
+        Now the fringe chains are connected to the proper group
+        (>peakthresh) with the largest boundary.  But we want to look
+        through the boundaries between fringe groups to propagate this
+        along.  Connections are only as good as their smallest boundary
+        Keep the density of the connection in densestbound, and the
+        proper group it leads to in densestboundgroup
         """
-        entry = self.chain_densest_n[chainID]
-        n_groupID = self.reverse_map[entry[0]]
-        # Linking to an already groupID-ed chain.
-        if n_groupID != -1:
-            self.reverse_map[chainID] = n_groupID
-            #print 'already IDed assigning ',n_groupID,' to chain ',chainID
-            return n_groupID
-        # If this chain itself has no neighbors, end the linking, and create
-        # a new group.
-        elif entry[0] == -1:
-            self.reverse_map[chainID] = groupIDmax
-            #print 'no neigh assigning ',groupIDmax,' to chain ',chainID
-            return groupIDmax
-        # Otherwise recurse to other chains.
-        else:
-            groupIDnew = self._recurse_chain_links(entry[0], groupIDmax)
-            self.reverse_map[chainID] = groupIDnew
-            #print 'after recurse assigning ',groupIDnew,' to chain ',chainID
-            return groupIDnew
+        changes = 1
+        while changes:
+            changes = 0
+            for j,dens in enumerate(g_dens):
+                chain_high = g_high[j]
+                chain_low = g_low[j]
+                # If the density of this boundary and the densestbound of
+                # the other group is higher than a group's densestbound, then
+                # replace it.
+                if dens > densestbound[chain_low] and \
+                        densestbound[chain_high] > densestbound[chain_low]:
+                    changes += 1
+                if dens < densestbound[chain_high]:
+                    densestbound[chain_low] = dens
+                else:
+                    densestbound[chain_low] = densestbound[chain_high]
+                    densestboundgroup[chain_low] = densestboundgroup[chain_high]
+        print 'nowhere'
+        # Now connect the low-density chains to their densest boundaries
+        for i in xrange(chain_count):
+            try:
+                self.reverse_map[i] = densestboundgroup[i]
+            except KeyError:
+                pass
 
     
     def _pare_groups_by_max_dens(self):
