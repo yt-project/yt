@@ -1,5 +1,6 @@
 import math,sys #, cPickle
 from bisect import insort
+from sets import Set
 
 from yt.extensions.kdtree import *
 from Forthon import *
@@ -202,16 +203,18 @@ class RunChainHOP(object):
         """
         With the collection of possible chain links, build groups.
         """
-        print 'here'
         g_high = []
         g_low = []
         g_dens = []
         densestbound = {} # chainID -> boundary density
-        densestboundgroup = {} # chainID -> groupID
         for i in xrange(chain_count):
-            densestbound[i] = 0.0
-        #    densestboundgroup[i] = i
+            densestbound[i] = -1.0
         groupID = 0
+        # first assign a group to all chains with max_dens above peakthresh
+        for chainID in self.densest_in_chain:
+            if self.densest_in_chain[chainID] >= self.peakthresh:
+                self.reverse_map[chainID] = groupID
+                groupID += 1
         # loop over all of the chain linkages
         for chain_high in self.chain_densest_n:
             for chain_low in self.chain_densest_n[chain_high]:
@@ -234,51 +237,29 @@ class RunChainHOP(object):
                     if dens < self.saddlethresh:
                         continue
                     else:
-                        # check to see that one isn't already in a group,
-                        # and assign them / the other one accordingly
                         group_high = self.reverse_map[chain_high]
                         group_low = self.reverse_map[chain_low]
-                        if group_high == -1 and group_low == -1:
-                            self.reverse_map[chain_high] = groupID
-                            self.reverse_map[chain_low] = groupID
-                            groupID += 1
-                        elif group_high != -1 and group_low == -1:
-                            self.reverse_map[chain_low] = group_high
-                        elif group_high == -1 and group_low != -1:
-                            self.reverse_map[chain_high] = group_low
-                        else:
-                            # both are already identified as groups, so we need
-                            # to re-assign the less dense group to the denser
-                            # groupID
-                            for chID in self.reverse_map:
-                                if self.reverse_map[chID] == group_low:
-                                    self.reverse_map[chID] = group_high
+                        # both are already identified as groups, so we need
+                        # to re-assign the less dense group to the denser
+                        # groupID
+                        for chID in self.reverse_map:
+                            if self.reverse_map[chID] == group_low:
+                                self.reverse_map[chID] = group_high
                         continue
                 # else, one is above peakthresh, the other below
                 # find out if this is the densest boundary seen so far for
                 # the lower chain
-                try:
-                    if dens > densestbound[chain_low]:
-                        densestbound[chain_low] = dens
-                except KeyError:
-                    densestbound[chain_low] = dens
-                    group_high = self.reverse_map[chain_high]
-                # find out if a new group needs to be created
                 group_high = self.reverse_map[chain_high]
-                if group_high == -1:
-                    self.reverse_map[chain_high] = groupID
-                    group_high = groupID
-                    groupID += 1
-                densestboundgroup[chain_low] = group_high
+                if dens > densestbound[chain_low]:
+                    densestbound[chain_low] = dens
+                    self.reverse_map[chain_low] = group_high
                 # done double loop over links
-        print 'there'
+        
         """
         Now the fringe chains are connected to the proper group
         (>peakthresh) with the largest boundary.  But we want to look
         through the boundaries between fringe groups to propagate this
         along.  Connections are only as good as their smallest boundary
-        Keep the density of the connection in densestbound, and the
-        proper group it leads to in densestboundgroup
         """
         changes = 1
         while changes:
@@ -287,23 +268,32 @@ class RunChainHOP(object):
                 chain_high = g_high[j]
                 chain_low = g_low[j]
                 # If the density of this boundary and the densestbound of
-                # the other group is higher than a group's densestbound, then
+                # the other chain is higher than a chain's densestbound, then
                 # replace it.
                 if dens > densestbound[chain_low] and \
                         densestbound[chain_high] > densestbound[chain_low]:
                     changes += 1
-                if dens < densestbound[chain_high]:
-                    densestbound[chain_low] = dens
-                else:
-                    densestbound[chain_low] = densestbound[chain_high]
-                    densestboundgroup[chain_low] = densestboundgroup[chain_high]
-        print 'nowhere'
-        # Now connect the low-density chains to their densest boundaries
-        for i in xrange(chain_count):
-            try:
-                self.reverse_map[i] = densestboundgroup[i]
-            except KeyError:
-                pass
+                    if dens < densestbound[chain_high]:
+                        densestbound[chain_low] = dens
+                    else:
+                        densestbound[chain_low] = densestbound[chain_high]
+                    self.reverse_map[chain_low] = self.reverse_map[chain_high]
+        # Now we have to find the unique groupIDs, since they may have been
+        # merged.
+        temp = []
+        for chain in self.reverse_map:
+            temp.append(self.reverse_map[chain])
+        temp = list(Set(temp)) # uniquify temp
+        temp.sort()
+        # Make the groupIDs run 0 to group_count-1
+        for t,gID in enumerate(temp[1:]): # -1 is always the first item, skip it
+            if gID != t:
+                for chain in self.reverse_map:
+                    if self.reverse_map[chain] == gID:
+                        self.reverse_map[chain] = t
+                
+        group_count = len(temp) - 1 # don't count the -1 groupID
+        return group_count
 
     
     def _pare_groups_by_max_dens(self):
@@ -339,6 +329,7 @@ class RunChainHOP(object):
             self.densest_in_group[i] = 0.0
         for chainID in self.densest_in_chain:
             groupID = self.reverse_map[chainID]
+            if groupID == -1: continue
             max_dens = self.densest_in_chain[chainID]
             if self.densest_in_group[groupID] < max_dens:
                 self.densest_in_group[groupID] = max_dens
