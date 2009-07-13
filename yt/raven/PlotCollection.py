@@ -67,7 +67,7 @@ class PlotCollection(object):
         for p in self.plots:
             yield p
 
-    def save(self, basename, format="png", override=False):
+    def save(self, basename, format="png", override=False, force_save=False):
         """
         Same plots with automatically generated names, prefixed with *basename*
         (including directory path) unless *override* is specified, and in
@@ -77,7 +77,7 @@ class PlotCollection(object):
         for plot in self.plots:
             fn.append(plot.save_image(basename, \
                       format=format, submit=self._run_id,
-                      override=override))
+                      override=override, force_save=force_save))
             if self.submit:
                 im = plot.im.copy()
                 im["Filename"] = self._http_prefix + "/" \
