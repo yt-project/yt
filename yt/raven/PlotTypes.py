@@ -141,21 +141,47 @@ class RavenPlot(object):
         """
         self._axes.set_ylim(ymin, ymax)
 
-    def set_zlim(self, zmin, zmax, dex=None):
+    def set_zlim(self, zmin, zmax, dex=None, nticks=None, ticks=None, minmaxtick=False):
         """
         Set the z boundaries of this plot.
+
+        Only ONE of the following options can be specified. If all 3 are
+        specified, they will be used in the following precedence order:
+            ticks - a list of floating point numbers at which to put ticks
+            minmaxtick - display DEFAULT ticks with min & max also displayed
+            nticks - if ticks not specified, can automatically determine a
+               number of ticks to be evenly spaced in log space
         """
         # This next call fixes some things, but is slower...
         #self._redraw_image()
-        if (zmin is None) or (zmax is None):    
+        if (zmin in (None,'min')) or (zmax in (None,'max')):    
+            imbuff = self._axes.images[-1]._A
             if zmin == 'min':
-                zmin = na.nanmin(self._axes.images[-1]._A)
+                zmin = na.nanmin(imbuff[na.nonzero(imbuff)])
                 if dex is not None:
-                    zmax = min(zmin*10**(dex),na.nanmax(self._axes.images[-1]._A))
+                    zmax = min(zmin*10**(dex),na.nanmax(imbuff))
             if zmax == 'max':
-                zmax = na.nanmax(self._axes.images[-1]._A)
+                zmax = na.nanmax(imbuff)
                 if dex is not None:
-                    zmin = max(zmax/(10**(dex)),na.nanmin(self._axes.images[-1]._A))
+                    zmin = max(zmax/(10**(dex)),na.nanmin(imbuff))
+        if ticks is not None:
+            ticks = na.sort(ticks)
+            self.colorbar.locator = matplotlib.ticker.FixedLocator(ticks)
+            self.colorbar.formatter = matplotlib.ticker.FixedFormatter(["%0.2e" % (x) for x in ticks])
+        elif minmaxtick:
+            ticks = na.array(self.colorbar._ticker()[1],dtype='float')
+            ticks = [zmin] + ticks.tolist() + [zmax]
+            self.colorbar.locator = matplotlib.ticker.FixedLocator(ticks)
+            self.colorbar.formatter = matplotlib.ticker.FixedFormatter(["%0.2e" % (x) for x in ticks])
+        elif nticks is not None:
+            lin = na.linspace(na.log10(zmin),na.log10(zmax),nticks)
+            self.colorbar.locator = matplotlib.ticker.FixedLocator(10**lin)
+            self.colorbar.formatter = matplotlib.ticker.FixedFormatter(["%0.2e" % (10**x) for x in lin])
+        else:
+            if hasattr(self,'_old_locator'):
+                self.colorbar.locator = self._old_locator
+            if hasattr(self,'_old_formatter'):
+                self.colorbar.formatter = self._old_formatter
         self.norm.autoscale(na.array([zmin,zmax]))
         self.image.changed()
         if self.colorbar is not None:
@@ -276,6 +302,8 @@ class VMPlot(RavenPlot):
             self.colorbar = self._figure.colorbar(self._axes.images[-1], \
                                                   extend='neither', \
                                                   shrink=0.95)
+            self._old_locator = self.colorbar.locator
+            self._old_formatter = self.colorbar.formatter
         else:
             self.colorbar = None
         self.set_width(1,'unitary')
