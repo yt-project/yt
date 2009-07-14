@@ -83,13 +83,14 @@ def VoxelTraversal(np.ndarray[np.int_t, ndim=3] grid_mask,
     # Find the first place the ray hits the grid on its path
     # Do left edge then right edge in each dim
     cdef int i, x, y
-    cdef np.float64_t tl, tr, intersect_t, enter_t, exit_t
+    cdef np.float64_t tl, tr, intersect_t, enter_t, exit_t, dt_tolerance
     cdef np.ndarray[np.int64_t,   ndim=1] step = np.empty((3,), dtype=np.int64)
     cdef np.ndarray[np.int64_t,   ndim=1] cur_ind = np.empty((3,), dtype=np.int64)
     cdef np.ndarray[np.float64_t, ndim=1] tdelta = np.empty((3,), dtype=np.float64)
     cdef np.ndarray[np.float64_t, ndim=1] tmax = np.empty((3,), dtype=np.float64)
     cdef np.ndarray[np.float64_t, ndim=1] intersect = np.empty((3,), dtype=np.float64)
     intersect_t = 1
+    dt_tolerance = 1e-6
     # recall p = v * t + u
     #  where p is position, v is our vector, u is the start point
     for i in range(3):
@@ -130,33 +131,41 @@ def VoxelTraversal(np.ndarray[np.int_t, ndim=3] grid_mask,
            not (0 <= cur_ind[1] < grid_mask.shape[1]) or \
            not (0 <= cur_ind[2] < grid_mask.shape[2]):
             break
-        else:
-            grid_mask[cur_ind[0], cur_ind[1], cur_ind[2]] = 1
         # Note that we are calculating t on the fly, but we get *negative* t
         # values from what they should be.
         # If we've reached t = 1, we are done.
         if (tmax[0] >= 1.0) and (tmax[1] >= 1.0) and (tmax[2] >= 1.0):
             grid_t[cur_ind[0], cur_ind[1], cur_ind[2]] = 1.0 - enter_t
+            if grid_t[cur_ind[0], cur_ind[1], cur_ind[2]] > dt_tolerance:
+                grid_mask[cur_ind[0], cur_ind[1], cur_ind[2]] = 1
             break
         if tmax[0] < tmax[1]:
             if tmax[0] < tmax[2]:
                 grid_t[cur_ind[0], cur_ind[1], cur_ind[2]] = tmax[0] - enter_t
+                if grid_t[cur_ind[0], cur_ind[1], cur_ind[2]] > dx[0] * dt_tolerance:
+                    grid_mask[cur_ind[0], cur_ind[1], cur_ind[2]] = 1
                 enter_t = tmax[0]
                 tmax[0] += tdelta[0]
                 cur_ind[0] += step[0]
             else:
                 grid_t[cur_ind[0], cur_ind[1], cur_ind[2]] = tmax[2] - enter_t
+                if grid_t[cur_ind[0], cur_ind[1], cur_ind[2]] > dx[2] * dt_tolerance:
+                    grid_mask[cur_ind[0], cur_ind[1], cur_ind[2]] = 1
                 enter_t = tmax[2]
                 tmax[2] += tdelta[2]
                 cur_ind[2] += step[2]
         else:
             if tmax[1] < tmax[2]:
                 grid_t[cur_ind[0], cur_ind[1], cur_ind[2]] = tmax[1] - enter_t
+                if grid_t[cur_ind[0], cur_ind[1], cur_ind[2]] > dx[1] * dt_tolerance:
+                    grid_mask[cur_ind[0], cur_ind[1], cur_ind[2]] = 1
                 enter_t = tmax[1]
                 tmax[1] += tdelta[1]
                 cur_ind[1] += step[1]
             else:
                 grid_t[cur_ind[0], cur_ind[1], cur_ind[2]] = tmax[2] - enter_t
+                if grid_t[cur_ind[0], cur_ind[1], cur_ind[2]] > dx[2] * dt_tolerance:
+                    grid_mask[cur_ind[0], cur_ind[1], cur_ind[2]] = 1
                 enter_t = tmax[2]
                 tmax[2] += tdelta[2]
                 cur_ind[2] += step[2]
