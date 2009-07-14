@@ -117,7 +117,8 @@ def VoxelTraversal(np.ndarray[np.int_t, ndim=3] grid_mask,
     for i in range(3):
         cur_ind[i] = np.floor((intersect[i] - left_edge[i])/dx[i])
         tmax[i] = (((cur_ind[i]+step[i])*dx[i])+left_edge[i]-u[i])/v[i]
-        if step[i] < 0: cur_ind[i] -= 1
+        if step[i] < 0:
+            cur_ind[i] -= 1
         tdelta[i] = abs(dx[i]/v[i])
     # The variable intersect contains the point we first pierce the grid
     enter_t = intersect_t
@@ -127,13 +128,13 @@ def VoxelTraversal(np.ndarray[np.int_t, ndim=3] grid_mask,
            not (0 <= cur_ind[1] < grid_mask.shape[1]) or \
            not (0 <= cur_ind[2] < grid_mask.shape[2]):
             break
-#        else:
-#            grid_mask[cur_ind[0], cur_ind[1], cur_ind[2]] = 1
         # Note that we are calculating t on the fly, but we get *negative* t
         # values from what they should be.
         # If we've reached t = 1, we are done.
         if tmax[0] >= 1 and tmax[1] >= 1 and tmax[2] >= 1:
             grid_t[cur_ind[0], cur_ind[1], cur_ind[2]] = 1.0 - enter_t
+            print "Ending index: ", cur_ind[0],cur_ind[1],cur_ind[2]
+            print "tmax: ",tmax[0],tmax[1],tmax[2]
             if grid_t[cur_ind[0], cur_ind[1], cur_ind[2]] > 0:
                 grid_mask[cur_ind[0], cur_ind[1], cur_ind[2]] = 1
             break
