@@ -2,6 +2,7 @@ import math,sys #, cPickle
 from bisect import insort
 from sets import Set
 
+from yt.lagos import *
 from yt.extensions.kdtree import *
 from Forthon import *
 
@@ -54,6 +55,8 @@ class RunChainHOP(object):
         points = fKD.pos.transpose()
         self.is_inside = ( (points >= LE).all(axis=1) * \
             (points < RE).all(axis=1) )
+        # also mark padded particles that are in a right side padding:
+        self.padded_right = (points >= RE).any(axis=1)
 
     def _densestNN(self):
         """
@@ -142,11 +145,10 @@ class RunChainHOP(object):
         by finding the highest boundary density neighbor for each chain. Some
         chains will have no neighbors!
         """
-        self.chain_densest_n = {} # chainID -> {chainIDs}->boundary dens
-        self.densest_boundary = {} # chainID -> boundary_density
+        self.chain_densest_n = {} # chainID -> {chainIDs->boundary dens}
+        self.chain_potential_n = {} # chainID -> [partIDs]
         for i in xrange(chain_count):
             self.chain_densest_n[i] = {}
-            self.densest_boundary[i] = 0.0
         self.reverse_map = {} # chainID -> groupID, one to one
         for i in xrange(chain_count):
             self.reverse_map[i] = -1
@@ -170,33 +172,51 @@ class RunChainHOP(object):
                 # This is probably the same as above, but it's OK.
                 # It can be removed later.
                 if thisNN==i or thisNN==self.densestNN[i]: continue
-                # If our neighbor is not part of a chain, move on.
-                if thisNN_chainID < 0: continue
-                # Find thisNN's chain's max_dens.
-                thisNN_max_dens = self.densest_in_chain[thisNN_chainID]
-                # Calculate the two groups boundary density.
-                boundary_density = (self.density[thisNN] + self.density[i]) / 2.
-                # Find out who's denser.
-                if thisNN_max_dens >= part_max_dens:
-                    higher_chain = thisNN_chainID
-                    lower_chain = self.chainID[i]
-                else:
-                    higher_chain = self.chainID[i]
-                    lower_chain = thisNN_chainID
-                # See if this boundary density is higher than
-                # previously recorded for this pair of chains.
-                # Links only go 'downhill'.
-                try:
-                    old = self.chain_densest_n[higher_chain][lower_chain]
-                    if old < boundary_density:
-                        # make this the new densest boundary between this pair
+                # The particles that will be added to chain_potential_n all
+                # have no chainID, and everything immediately below is for
+                # particles with a chainID. 
+                if thisNN_chainID >= 0:
+                    # If our neighbor is not part of a chain, move on
+                    #if thisNN_chainID < 0: continue
+                    # Find thisNN's chain's max_dens.
+                    thisNN_max_dens = self.densest_in_chain[thisNN_chainID]
+                    # Calculate the two groups boundary density.
+                    boundary_density = (self.density[thisNN] + self.density[i]) / 2.
+                    # Find out who's denser.
+                    if thisNN_max_dens >= part_max_dens:
+                        higher_chain = thisNN_chainID
+                        lower_chain = self.chainID[i]
+                    else:
+                        higher_chain = self.chainID[i]
+                        lower_chain = thisNN_chainID
+                    # See if this boundary density is higher than
+                    # previously recorded for this pair of chains.
+                    # Links only go 'downhill'.
+                    try:
+                        old = self.chain_densest_n[higher_chain][lower_chain]
+                        if old < boundary_density:
+                            # make this the new densest boundary between this pair
+                            self.chain_densest_n[higher_chain][lower_chain] = \
+                                boundary_density
+                    except KeyError:
+                        # we haven't seen this pairing before, record this as the
+                        # new densest boundary between chains
                         self.chain_densest_n[higher_chain][lower_chain] = \
                             boundary_density
-                except KeyError:
-                    # we haven't seen this pairing before, record this as the
-                    # new densest boundary between chains
-                    self.chain_densest_n[higher_chain][lower_chain] = \
-                        boundary_density
+                # now consider right padded, non-assigned particles
+                elif self.padded_right[thisNN] and thisNN_chainID < 0:
+                    # see if we need to create an entry
+                    try:
+                        potential_n = self.chain_potential_n[self.chainID[i]]
+                    except KeyError:
+                        self.chain_potential_n[self.chainID[i]] = []
+                        potential_n = []
+                    # don't add this particle if it's already there
+                    if thisNN not in potential_n:
+                        self.chain_potential_n[self.chainID[i]].append(thisNN)
+                # Skip non-assigned particles that aren't right padded
+                else:
+                    continue
         del self.reverse_map[-1]
     
     def _build_groups(self, chain_count):
@@ -366,11 +386,11 @@ class RunChainHOP(object):
         # Connect the chains into groups.
         mylog.info('Connecting %d chains into groups...' % chain_count)
         self._connect_chains(chain_count)
-        group_count = self._build_groups(chain_count)
+        #group_count = self._build_groups(chain_count)
         #mylog.info('Paring %d groups...' % group_count)
         # Don't pare groups here, it has to happen later.
         #self._pare_groups_by_max_dens()
-        self._translate_groupIDs(group_count)
-        mylog.info('Found %d groups...' % group_count)
+        #self._translate_groupIDs(group_count)
+        #mylog.info('Found %d groups...' % group_count)
 
 
