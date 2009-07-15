@@ -434,18 +434,16 @@ class chainHOPHaloList(HaloList):
         task to a different chain on another task.
         """
         self.particle_fields["particle_index"] = self._data_source["particle_index"][self._base_indices]
-        mine, halo_info = self._mpi_info_dict(max(self.tags) + 1)
-        nhalos = sum(halo_info.values())
         # Figure out our offset
-        my_first_id = sum([v for k,v in halo_info.items() if k < mine])
-        after = my_first_id + max(self.tags) + 1
+        #my_first_id = sum([v for k,v in halo_info.items() if k < mine])
+        #after = my_first_id + max(self.tags) + 1
         # build the list of [particle_index, taskID, grpID]
         if len(self.padded_particles):
             self.particle_index_map = self.particle_fields["particle_index"][self.padded_particles]
             tag_map = self.tags[self.padded_particles]
             temp_map = []
             for i,particle in enumerate(self.particle_index_map):
-                temp_map.append([particle,mine,tag_map[i]]) # real ID, task ID, chainID
+                temp_map.append([particle,self.mine,tag_map[i]]) # real ID, task ID, chainID
             self.particle_index_map = na.array(temp_map)
         else:
             self.particle_index_map = na.array([])
@@ -455,7 +453,7 @@ class chainHOPHaloList(HaloList):
         #mylog.info("%s" % str(self.particle_index_map))
         self.particle_index_map = self._mpi_catarray(self.particle_index_map)
         if len(self.particle_index_map) == 0:
-            # none of the groups cross the boundaries, so we're done here.
+            # none of the chains cross the boundaries, so we're done here.
             mylog.info("No groups need to be merged.")
             return
         # but if there are crossings, move forward.
@@ -474,17 +472,30 @@ class chainHOPHaloList(HaloList):
                     # find out which local group this particle lives in
                     local_groupID = self.particle_fields["tags"][index]
                     # add a mapping, if it isn't already there
-                    # remote->local, remote has priority!
-                    map = [self.particle_index_map[remote_index][1],\
-                    self.particle_index_map[remote_index][2], \
-                    mine, local_groupID]
+                    # put lower-indexed task ID first
+                    if self.particle_index_map[remote_index][1] < self.mine:
+                        map = [self.particle_index_map[remote_index][1],\
+                        self.particle_index_map[remote_index][2], \
+                        self.mine, local_groupID]
+                    else:
+                        map = [self.mine, local_groupID, \
+                        self.particle_index_map[remote_index][1],\
+                        self.particle_index_map[remote_index][2] ]
                     #mylog.info("map %s" % str(map))
                     if map not in self.task_group_map:
                         self.task_group_map.append(map)
         # concatenate the task_group_map on all tasks
         self.task_group_map = self._mpi_catlist(self.task_group_map)
-        mylog.info("end %s" % str(self.task_group_map))
-        sys.exit()
+        #mylog.info("end %s" % str(self.task_group_map))
+
+    def _build_task_densest_in_chain(self):
+        """
+        'Upgrade' self.densest_in_chain to include the task each chain is on.
+        """
+        temp = {}
+        temp[self.mine] = self.densest_in_chain
+        self._mpi_joindict(temp)
+        self.densest_in_chain = temp.copy()
 
     def _run_finder(self):
         xt = self.particle_fields["particle_position_x"] - 0.961
@@ -506,11 +517,14 @@ class chainHOPHaloList(HaloList):
         self.densities, self.tags = obj.density, obj.chainID
         self.padded_particles = obj.padded_particles
         self.is_inside = obj.is_inside
+        self.densest_in_chain = obj.densest_in_chain
         self.particle_fields["densities"] = self.densities
         self.particle_fields["tags"] = self.tags
         if self._distributed:
+            self.mine, halo_info = self._mpi_info_dict(max(self.tags) + 1)
+            #nhalos = sum(halo_info.values())
             self._build_task_chain_map()
-
+            self._build_task_densest_in_chain()
 
     def write_out(self, filename="chainHopAnalysis.out"):
         HaloList.write_out(self, filename)
