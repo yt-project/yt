@@ -102,16 +102,23 @@ class PlotCollection(object):
         for plot in self.plots:
             plot.set_ylim(ymin, ymax)
 
-    def set_zlim(self, zmin, zmax,dex=None):
+    def set_zlim(self, zmin, zmax, **kwargs):
         """
         Set the limits of the colorbar. 'min' or 'max' are possible inputs 
         when combined with dex=value, where value gives the maximum number of 
         dex to go above/below the min/max.  If value is larger than the true
         range of values, min/max are limited to true range.
+
+        Only ONE of the following options can be specified. If all 3 are
+        specified, they will be used in the following precedence order:
+            ticks - a list of floating point numbers at which to put ticks
+            minmaxtick - display DEFAULT ticks with min & max also displayed
+            nticks - if ticks not specified, can automatically determine a
+               number of ticks to be evenly spaced in log space
         """
         for plot in self.plots:
             plot.set_autoscale(False)
-            plot.set_zlim(zmin, zmax, dex=dex)
+            plot.set_zlim(zmin, zmax, **kwargs)
 
     def set_lim(self, lim):
         """
