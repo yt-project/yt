@@ -74,6 +74,7 @@ def Transfer1D(float i_s,
 @cython.boundscheck(False)
 def VoxelTraversal(np.ndarray[np.int_t, ndim=3] grid_mask,
                    np.ndarray[np.float64_t, ndim=3] grid_t,
+                   np.ndarray[np.float64_t, ndim=3] grid_dt,
                    np.ndarray[np.float64_t, ndim=1] left_edge,
                    np.ndarray[np.float64_t, ndim=1] right_edge,
                    np.ndarray[np.float64_t, ndim=1] dx,
@@ -138,28 +139,32 @@ def VoxelTraversal(np.ndarray[np.int_t, ndim=3] grid_mask,
         # If we've reached t = 1, we are done.
         grid_mask[cur_ind[0], cur_ind[1], cur_ind[2]] = 1
         if (tmax[0] > 1.0) and (tmax[1] > 1.0) and (tmax[2] > 1.0):
-            grid_t[cur_ind[0], cur_ind[1], cur_ind[2]] = 1.0 - enter_t
+            grid_dt[cur_ind[0], cur_ind[1], cur_ind[2]] = 1.0 - enter_t
             break
         ncells += 1
         if tmax[0] < tmax[1]:
             if tmax[0] < tmax[2]:
-                grid_t[cur_ind[0], cur_ind[1], cur_ind[2]] = tmax[0] - enter_t
+                grid_t[cur_ind[0], cur_ind[1], cur_ind[2]] = enter_t
+                grid_dt[cur_ind[0], cur_ind[1], cur_ind[2]] = tmax[0] - enter_t
                 enter_t = tmax[0]
                 tmax[0] += tdelta[0]
                 cur_ind[0] += step[0]
             else:
-                grid_t[cur_ind[0], cur_ind[1], cur_ind[2]] = tmax[2] - enter_t
+                grid_t[cur_ind[0], cur_ind[1], cur_ind[2]] = enter_t
+                grid_dt[cur_ind[0], cur_ind[1], cur_ind[2]] = tmax[2] - enter_t
                 enter_t = tmax[2]
                 tmax[2] += tdelta[2]
                 cur_ind[2] += step[2]
         else:
             if tmax[1] < tmax[2]:
-                grid_t[cur_ind[0], cur_ind[1], cur_ind[2]] = tmax[1] - enter_t
+                grid_t[cur_ind[0], cur_ind[1], cur_ind[2]] = enter_t
+                grid_dt[cur_ind[0], cur_ind[1], cur_ind[2]] = tmax[1] - enter_t
                 enter_t = tmax[1]
                 tmax[1] += tdelta[1]
                 cur_ind[1] += step[1]
             else:
-                grid_t[cur_ind[0], cur_ind[1], cur_ind[2]] = tmax[2] - enter_t
+                grid_t[cur_ind[0], cur_ind[1], cur_ind[2]] = enter_t
+                grid_dt[cur_ind[0], cur_ind[1], cur_ind[2]] = tmax[2] - enter_t
                 enter_t = tmax[2]
                 tmax[2] += tdelta[2]
                 cur_ind[2] += step[2]
