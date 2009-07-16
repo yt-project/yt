@@ -507,9 +507,9 @@ cdef class cKDTree:
 
                 # Periodicity added by S Skory
                 m_left = dmin( dabs(far.mins[inode.split_dim] - x[inode.split_dim]), \
-                    1 -  dabs(far.mins[inode.split_dim] - x[inode.split_dim]))
+                    period[inode.split_dim] -  dabs(far.mins[inode.split_dim] - x[inode.split_dim]))
                 m_right = dmin( dabs(far.maxes[inode.split_dim] - x[inode.split_dim]), \
-                    1 -  dabs(far.maxes[inode.split_dim] - x[inode.split_dim]))
+                    period[inode.split_dim] -  dabs(far.maxes[inode.split_dim] - x[inode.split_dim]))
                 m = dmin(m_left,m_right)
 
                 # most side distances unchanged
