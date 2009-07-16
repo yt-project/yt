@@ -537,9 +537,9 @@ class chainHOPHaloList(HaloList):
         
 
     def _run_finder(self):
-        xt = self.particle_fields["particle_position_x"] - 0.961
-        yt = self.particle_fields["particle_position_y"] - 0.369
-        zt = self.particle_fields["particle_position_z"] - 0.710
+        xt = self.particle_fields["particle_position_x"] #- 0.961
+        yt = self.particle_fields["particle_position_y"] #- 0.369
+        zt = self.particle_fields["particle_position_z"] #- 0.710
         for i,x in enumerate(xt):
             if x < 0:
                 xt[i] = 1+x

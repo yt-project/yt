@@ -617,7 +617,7 @@ cdef class cKDTree:
         xx = np.ascontiguousarray(xx)
         dd = np.empty((n,k),dtype=np.float)
         dd.fill(infinity)
-        ii = np.empty((n,k),dtype='i')
+        ii = np.empty((n,k),dtype='l')
         ii.fill(self.n)
         for c in range(n):
             self.__query(
@@ -676,27 +676,28 @@ cdef class cKDTree:
         cdef int i, pj, j
         cdef double ih2, fNorm, r2, rs
         
-        tags = np.empty((self.n,nMerge), dtype=np.float)
-        dens = np.empty(self.n, dtype='i')
+        tags = np.empty((self.n,nMerge), dtype='l')
+        dens = np.empty(self.n, dtype=np.float)
         query = np.empty(self.m, dtype=np.float)
-        tags_temp = np.empty(num_neighbors, dtype='i')
-        dist_temp = np.emtpy(num_neighbors, dtype=np.float)
+        tags_temp = np.empty(num_neighbors, dtype='l')
+        dist_temp = np.empty(num_neighbors, dtype=np.float)
         # Need to start out with zeros before we start adding to it.
         dens.fill(0.0)
         
         mass = np.array(mass).astype(np.float)
-        mass = np.ascontinguousarray(mass)
+        mass = np.ascontiguousarray(mass)
         
         for i in range(self.n):
             query = self.data[i]
             (dist_temp, tags_temp) = self.query(query, k=num_neighbors, period=[1.]*3)
+            dist_temp = dist_temp * dist_temp # we want distances squared below
             
             #calculate the density for this particle
             ih2 = 4.0/max(dist_temp)
             fNorm = 0.5*np.sqrt(ih2)*ih2/3.1415926535897931
             for j in range(num_neighbors):
-                pj = tags_temp[i]
-                r2 = dist_temp[i] * ih2
+                pj = tags_temp[j]
+                r2 = dist_temp[j] * ih2
                 rs = 2.0 - np.sqrt(r2)
                 if (r2 < 1.0):
                     rs = (1.0 - 0.75*rs*r2)
@@ -741,10 +742,10 @@ cdef class cKDTree:
         cdef np.ndarray[double, ndim=1] dist_temp
         cdef int i
         
-        chunk_tags = np.empty((finish-start, self.m), dtype='i')
+        chunk_tags = np.empty((finish-start, num_neighbors), dtype='l')
         query = np.empty(self.m, dtype=np.float)
-        tags_temp = np.empty(num_neighbors, dtype='i')
-        dist_temp = np.emtpy(num_neighbors, dtype=np.float)
+        tags_temp = np.empty(num_neighbors, dtype='l')
+        dist_temp = np.empty(num_neighbors, dtype=np.float)
         
         for i in range(finish-start):
             query = self.data[i+start]
