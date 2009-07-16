@@ -106,29 +106,39 @@ cdef inline double dabs(double x):
         return x
     else:
         return -x
-cdef inline double _distance_p(double*x,double*y,double p,int k,double upperbound):
+cdef inline double dmin(double x, double y):
+    if x<y:
+        return x
+    else:
+        return y
+cdef inline double _distance_p(double*x,double*y,double p,int k,double upperbound,double*period):
     """Compute the distance between x and y
 
     Computes the Minkowski p-distance to the power p between two points.
     If the distance**p is larger than upperbound, then any number larger
     than upperbound may be returned (the calculation is truncated).
+    
+    Periodicity added by S. Skory.
     """
     cdef int i
-    cdef double r
+    cdef double r, m
     r = 0
     if p==infinity:
         for i in range(k):
-            r = dmax(r,dabs(x[i]-y[i]))
+            m = dmin(dabs(x[i] - y[i]), period[i] - dabs(x[i] - y[i]))
+            r = dmax(r,m)
             if r>upperbound:
                 return r
     elif p==1:
         for i in range(k):
-            r += dabs(x[i]-y[i])
+            m = dmin(dabs(x[i] - y[i]), period[i] - dabs(x[i] - y[i]))
+            r += m
             if r>upperbound:
                 return r
     else:
         for i in range(k):
-            r += dabs(x[i]-y[i])**p
+            m = dmin(dabs(x[i] - y[i]), period[i] - dabs(x[i] - y[i]))
+            r += m**p
             if r>upperbound:
                 return r
     return r
@@ -140,6 +150,8 @@ cdef struct innernode:
     int split_dim
     int n_points
     double split
+    double* maxes
+    double* mins
     innernode* less
     innernode* greater
 cdef struct leafnode:
@@ -147,6 +159,8 @@ cdef struct leafnode:
     int n_points
     int start_idx
     int end_idx
+    double* maxes
+    double* mins
 
 # this is the standard trick for variable-size arrays:
 # malloc sizeof(nodeinfo)+self.m*sizeof(double) bytes.
@@ -239,6 +253,12 @@ cdef class cKDTree:
         cdef double*mids
         if end_idx-start_idx<=self.leafsize:
             n = <leafnode*>stdlib.malloc(sizeof(leafnode))
+            # Skory
+            n.maxes = <double*>stdlib.malloc(sizeof(double)*self.m)
+            n.mins = <double*>stdlib.malloc(sizeof(double)*self.m)
+            for i in range(self.m):
+                n.maxes[i] = maxes[i]
+                n.mins[i] = mins[i]
             n.split_dim = -1
             n.start_idx = start_idx
             n.end_idx = end_idx
@@ -322,6 +342,12 @@ cdef class cKDTree:
 
             ni.split_dim = d
             ni.split = split
+            # Skory
+            ni.maxes = <double*>stdlib.malloc(sizeof(double)*self.m)
+            ni.mins = <double*>stdlib.malloc(sizeof(double)*self.m)
+            for i in range(self.m):
+                ni.maxes[i] = maxes[i]
+                ni.mins[i] = mins[i]
 
             return ni
                     
@@ -329,6 +355,8 @@ cdef class cKDTree:
         if node.split_dim!=-1:
             self.__free_tree(node.less)
             self.__free_tree(node.greater)
+        stdlib.free(node.maxes) # Skory
+        stdlib.free(node.mins)
         stdlib.free(node)
 
     def __dealloc__(cKDTree self):
@@ -344,7 +372,8 @@ cdef class cKDTree:
             int k, 
             double eps, 
             double p, 
-            double distance_upper_bound):
+            double distance_upper_bound,
+            double*period):
         cdef heap q
         cdef heap neighbors
 
@@ -353,6 +382,7 @@ cdef class cKDTree:
         cdef nodeinfo* inf
         cdef nodeinfo* inf2
         cdef double d
+        cdef double m_left, m_right, m
         cdef double epsfac
         cdef double min_distance
         cdef double far_min_distance
@@ -384,6 +414,7 @@ cdef class cKDTree:
             if t>inf.side_distances[i]:
                 inf.side_distances[i] = t
             else:
+                #t = dmin( dabs(self.raw_mins[i]-x[i]), 1 - dabs(self.raw_mins[i]-x[i]))
                 t = self.raw_mins[i]-x[i]
                 if t>inf.side_distances[i]:
                     inf.side_distances[i] = t
@@ -418,7 +449,7 @@ cdef class cKDTree:
                 for i in range(node.start_idx,node.end_idx):
                     d = _distance_p(
                             self.raw_data+self.raw_indices[i]*self.m,
-                            x,p,self.m,distance_upper_bound)
+                            x,p,self.m,distance_upper_bound,period)
                         
                     if d<distance_upper_bound:
                         # replace furthest neighbor
@@ -473,6 +504,14 @@ cdef class cKDTree:
                 inf2 = <nodeinfo*>stdlib.malloc(sizeof(nodeinfo)+self.m*sizeof(double)) 
                 it2.contents.ptrdata = <char*> inf2
                 inf2.node = far
+
+                # Periodicity added by S Skory
+                m_left = dmin( dabs(far.mins[inode.split_dim] - x[inode.split_dim]), \
+                    1 -  dabs(far.mins[inode.split_dim] - x[inode.split_dim]))
+                m_right = dmin( dabs(far.maxes[inode.split_dim] - x[inode.split_dim]), \
+                    1 -  dabs(far.maxes[inode.split_dim] - x[inode.split_dim]))
+                m = dmin(m_left,m_right)
+
                 # most side distances unchanged
                 for i in range(self.m):
                     inf2.side_distances[i] = inf.side_distances[i]
@@ -482,13 +521,14 @@ cdef class cKDTree:
                 if p == infinity:
                     # we never use side_distances in the l_infinity case
                     # inf2.side_distances[inode.split_dim] = dabs(inode.split-x[inode.split_dim])
-                    far_min_distance = dmax(min_distance, dabs(inode.split-x[inode.split_dim]))
+                    far_min_distance = dmax(min_distance, m)
                 elif p == 1:
-                    inf2.side_distances[inode.split_dim] = dabs(inode.split-x[inode.split_dim])
-                    far_min_distance = min_distance - inf.side_distances[inode.split_dim] + inf2.side_distances[inode.split_dim]
+                    inf2.side_distances[inode.split_dim] = m
+                    far_min_distance = dmax(min_distance, m)
                 else:
-                    inf2.side_distances[inode.split_dim] = dabs(inode.split-x[inode.split_dim])**p
-                    far_min_distance = min_distance - inf.side_distances[inode.split_dim] + inf2.side_distances[inode.split_dim]
+                    inf2.side_distances[inode.split_dim] = m**p
+                    #far_min_distance = min_distance - inf.side_distances[inode.split_dim] + inf2.side_distances[inode.split_dim]
+                    far_min_distance = m**p
 
                 it2.priority = far_min_distance
 
@@ -514,7 +554,7 @@ cdef class cKDTree:
         heapdestroy(&neighbors)
 
     def query(cKDTree self, object x, int k=1, double eps=0, double p=2, 
-            double distance_upper_bound=infinity):
+            double distance_upper_bound=infinity, object period=None):
         """query the kd-tree for nearest neighbors
 
         Parameters:
@@ -554,8 +594,14 @@ cdef class cKDTree:
         cdef np.ndarray[int, ndim=2] ii
         cdef np.ndarray[double, ndim=2] dd
         cdef np.ndarray[double, ndim=2] xx
+        cdef np.ndarray[double, ndim=1] cperiod
         cdef int c
         x = np.asarray(x).astype(np.float)
+        if period is None:
+            period = np.array([np.inf]*self.m)
+        else:
+            period = np.asarray(period).astype(np.float)
+        cperiod = np.ascontiguousarray(period)
         if np.shape(x)[-1] != self.m:
             raise ValueError("x must consist of vectors of length %d but has shape %s" % (self.m, np.shape(x)))
         if p<1:
@@ -581,7 +627,8 @@ cdef class cKDTree:
                     k, 
                     eps,
                     p, 
-                    distance_upper_bound)
+                    distance_upper_bound,
+                    <double*>cperiod.data)
         if single:
             if k==1:
                 return dd[0,0], ii[0,0]

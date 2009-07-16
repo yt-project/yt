@@ -10,5 +10,5 @@ __all__ = filter(lambda s:not s.startswith('_'),dir())
 __all__ += ['distance']
 
 import distance
-from numpy.testing import Tester
-test = Tester().test
+#from numpy.testing import Tester
+#test = Tester().test
