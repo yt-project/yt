@@ -640,3 +640,116 @@ cdef class cKDTree:
             else:
                 return np.reshape(dd,retshape+(k,)), np.reshape(ii,retshape+(k,))
 
+    def chainHOP_get_dens(cKDTree self, object mass, int num_neighbors=65, \
+            int nMerge=6):
+        """ query the tree for the nearest neighbors, to get the density
+            of particles for chainHOP.
+        
+        Parameters:
+        ===========
+        
+        mass: A array-like list of the masses of the particles, in the same
+            order as the data that went into building the kd tree.
+        
+        num_neighbors: Optional, the number of neighbors to search for and to
+            use in the density calculation. Default is 65, and is probably what
+            one should stick with.
+        
+        nMerge: The number of nearest neighbor tags to return for each particle.
+        
+        Returns:
+        ========
+        
+        dens: An array of the densities for each particle, in the same order
+            as the input data.
+        
+        tags: A two-dimensional array of the indexes, nMerge nearest neighbors
+            for each particle.
+        
+        """
+        
+        cdef np.ndarray[int, ndim=2] tags
+        cdef np.ndarray[double, ndim=1] dens
+        cdef np.ndarray[double, ndim=1] query
+        cdef np.ndarray[int, ndim=1] tags_temp
+        cdef np.ndarray[double, ndim=1] dist_temp
+        cdef int i, pj, j
+        cdef double ih2, fNorm, r2, rs
+        
+        tags = np.empty((self.n,nMerge), dtype=np.float)
+        dens = np.empty(self.n, dtype='i')
+        query = np.empty(self.m, dtype=np.float)
+        tags_temp = np.empty(num_neighbors, dtype='i')
+        dist_temp = np.emtpy(num_neighbors, dtype=np.float)
+        # Need to start out with zeros before we start adding to it.
+        dens.fill(0.0)
+        
+        mass = np.array(mass).astype(np.float)
+        mass = np.ascontinguousarray(mass)
+        
+        for i in range(self.n):
+            query = self.data[i]
+            (dist_temp, tags_temp) = self.query(query, k=num_neighbors, period=[1.]*3)
+            
+            #calculate the density for this particle
+            ih2 = 4.0/max(dist_temp)
+            fNorm = 0.5*np.sqrt(ih2)*ih2/3.1415926535897931
+            for j in range(num_neighbors):
+                pj = tags_temp[i]
+                r2 = dist_temp[i] * ih2
+                rs = 2.0 - np.sqrt(r2)
+                if (r2 < 1.0):
+                    rs = (1.0 - 0.75*rs*r2)
+                else:
+                    rs = 0.25*rs*rs*rs
+                rs = rs * fNorm
+                dens[i] += rs * mass[pj]
+                dens[pj] += rs * mass[i]
+
+            # store nMerge nearest neighbors
+            tags[i,:] = tags_temp[:nMerge]
+        
+        return (dens, tags)
+        
+
+    def find_chunk_nearest_neighbors(cKDTree self, int start, int finish, \
+        int num_neighbors=65):
+        """ query the tree in chunks, between start and finish, recording the
+            nearest neighbors.
+        
+        Parameters:
+        ===========
+        
+        start: The starting point in the dataset for this search.
+        
+        finish: The ending point in the dataset for this search.
+        
+        num_neighbors: Optional, the number of neighbors to search for.
+            The default is 65.
+        
+        Returns:
+        ========
+        
+        chunk_tags: A two-dimensional array of the nearest neighbor tags for the
+            points in this search.
+        
+        """
+        
+        cdef np.ndarray[int, ndim=2] chunk_tags
+        cdef np.ndarray[double, ndim=1] query
+        cdef np.ndarray[int, ndim=1] tags_temp
+        cdef np.ndarray[double, ndim=1] dist_temp
+        cdef int i
+        
+        chunk_tags = np.empty((finish-start, self.m), dtype='i')
+        query = np.empty(self.m, dtype=np.float)
+        tags_temp = np.empty(num_neighbors, dtype='i')
+        dist_temp = np.emtpy(num_neighbors, dtype=np.float)
+        
+        for i in range(finish-start):
+            query = self.data[i+start]
+            (dist_temp, tags_temp) = self.query(query, k=num_neighbors, period=[1.]*3)
+            chunk_tags[i,:] = tags_temp[:]
+        
+        return chunk_tags
+
