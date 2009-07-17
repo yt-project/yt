@@ -458,16 +458,16 @@ class AMRRayBase(AMR1DData):
             i1 = (i+1) % 3
             i2 = (i+2) % 3
             vs = self._get_line_at_coord(LE[:,i], i)
-            p = p | ( ( (LE[:,i1] < vs[:,i1]) & (RE[:,i1] > vs[:,i1]) ) \
-                    & ( (LE[:,i2] < vs[:,i2]) & (RE[:,i2] > vs[:,i2]) ) )
+            p = p | ( ( (LE[:,i1] <= vs[:,i1]) & (RE[:,i1] >= vs[:,i1]) ) \
+                    & ( (LE[:,i2] <= vs[:,i2]) & (RE[:,i2] >= vs[:,i2]) ) )
             vs = self._get_line_at_coord(RE[:,i], i)
-            p = p | ( ( (LE[:,i1] < vs[:,i1]) & (RE[:,i1] > vs[:,i1]) ) \
-                    & ( (LE[:,i2] < vs[:,i2]) & (RE[:,i2] > vs[:,i2]) ) )
-        p = p | ( na.all( LE < self.start_point, axis=1 ) 
-                & na.all( RE > self.start_point, axis=1 ) )
-        p = p | ( na.all( LE < self.end_point,   axis=1 ) 
-                & na.all( RE > self.end_point,   axis=1 ) )
-        self._grids = self.hierarchy.grids.copy()#[p]
+            p = p | ( ( (LE[:,i1] <= vs[:,i1]) & (RE[:,i1] >= vs[:,i1]) ) \
+                    & ( (LE[:,i2] <= vs[:,i2]) & (RE[:,i2] >= vs[:,i2]) ) )
+        p = p | ( na.all( LE <= self.start_point, axis=1 ) 
+                & na.all( RE >= self.start_point, axis=1 ) )
+        p = p | ( na.all( LE <= self.end_point,   axis=1 ) 
+                & na.all( RE >= self.end_point,   axis=1 ) )
+        self._grids = self.hierarchy.grids[p]
 
     def _get_line_at_coord(self, v, index):
         # t*self.vec + self.start_point = self.end_point

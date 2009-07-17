@@ -84,10 +84,13 @@ class StaticOutput(object):
         return self.basename
 
     def _hash(self):
-        import hashlib
         s = "%s;%s;%s" % (self.basename,
             self["InitialTime"], self["CurrentTimeIdentifier"])
-        return hashlib.md5(s).hexdigest()
+        try:
+            import hashlib
+            return hashlib.md5(s).hexdigest()
+        except ImportError:
+            return s.replace(";", "*")
 
     @classmethod
     def _is_valid(cls, *args, **kwargs):

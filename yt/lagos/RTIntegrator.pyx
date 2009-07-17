@@ -70,6 +70,7 @@ def Transfer1D(float i_s,
         i_s = o_s[i]
     return i_s
 
+@cython.wraparound(False)
 @cython.boundscheck(False)
 def VoxelTraversal(np.ndarray[np.int_t, ndim=3] grid_mask,
                    np.ndarray[np.float64_t, ndim=3] grid_t,
@@ -82,58 +83,64 @@ def VoxelTraversal(np.ndarray[np.int_t, ndim=3] grid_mask,
     # Find the first place the ray hits the grid on its path
     # Do left edge then right edge in each dim
     cdef int i, x, y
-    cdef double tl, tr, intersect_t, enter_t, exit_t
-    cdef np.ndarray step = np.ones(3, dtype=np.float64) # maybe just ints?
-    cdef np.ndarray cur_ind = np.zeros(3, dtype=np.int64) # maybe just ints?
-    cdef np.ndarray tdelta = np.zeros(3, dtype=np.float64) 
-    cdef np.ndarray tmax = np.zeros(3, dtype=np.float64) 
-    cdef np.ndarray intersect = np.zeros(3, dtype=np.float64) 
+    cdef np.float64_t tl, tr, intersect_t, enter_t, exit_t, dt_tolerance
+    cdef np.ndarray[np.int64_t,   ndim=1] step = np.empty((3,), dtype=np.int64)
+    cdef np.ndarray[np.int64_t,   ndim=1] cur_ind = np.empty((3,), dtype=np.int64)
+    cdef np.ndarray[np.float64_t, ndim=1] tdelta = np.empty((3,), dtype=np.float64)
+    cdef np.ndarray[np.float64_t, ndim=1] tmax = np.empty((3,), dtype=np.float64)
+    cdef np.ndarray[np.float64_t, ndim=1] intersect = np.empty((3,), dtype=np.float64)
     intersect_t = 1
+    dt_tolerance = 1e-6
     # recall p = v * t + u
     #  where p is position, v is our vector, u is the start point
     for i in range(3):
         # As long as we're iterating, set some other stuff, too
-        if (v[i] < 0): step[i] = -1
+        if(v[i] < 0): step[i] = -1
+        else: step[i] = 1
         x = (i+1)%3
         y = (i+2)%3
         tl = (left_edge[i] - u[i])/v[i]
         tr = (right_edge[i] - u[i])/v[i]
         if (left_edge[x] <= (u[x] + tl*v[x]) <= right_edge[x]) and \
            (left_edge[y] <= (u[y] + tl*v[y]) <= right_edge[y]) and \
-           (0 <= tl < intersect_t):
+           (0.0 <= tl < intersect_t):
             intersect_t = tl
         if (left_edge[x] <= (u[x] + tr*v[x]) <= right_edge[x]) and \
            (left_edge[y] <= (u[y] + tr*v[y]) <= right_edge[y]) and \
-           (0 <= tr < intersect_t):
+           (0.0 <= tr < intersect_t):
             intersect_t = tr
     # if fully enclosed
     if (left_edge[0] <= u[0] <= right_edge[0]) and \
        (left_edge[1] <= u[1] <= right_edge[1]) and \
        (left_edge[2] <= u[2] <= right_edge[2]):
-        intersect_t = 0
-    if intersect_t > 1: return
+        intersect_t = 0.0
+    if not (0 <= intersect_t <= 1): return
     # Now get the indices of the intersection
     intersect = u + intersect_t * v
+    cdef int ncells = 0
     for i in range(3):
-        cur_ind[i] = np.floor((intersect[i] - left_edge[i])/dx[i])
+        cur_ind[i] = np.floor((intersect[i] + 1e-8*dx[i] - left_edge[i])/dx[i])
         tmax[i] = (((cur_ind[i]+step[i])*dx[i])+left_edge[i]-u[i])/v[i]
-        if step[i] < 0: cur_ind[i] -= 1
-        tdelta[i] = abs(dx[i]/v[i])
+        if cur_ind[i] == grid_mask.shape[i] and step[i] < 0:
+            cur_ind[i] = grid_mask.shape[i] - 1
+        if step[i] > 0: tmax[i] = (((cur_ind[i]+1)*dx[i])+left_edge[i]-u[i])/v[i]
+        if step[i] < 0: tmax[i] = (((cur_ind[i]+0)*dx[i])+left_edge[i]-u[i])/v[i]
+        tdelta[i] = np.abs((dx[i]/v[i]))
     # The variable intersect contains the point we first pierce the grid
     enter_t = intersect_t
-    cdef int in_cells = 1
     while 1:
-        if not (0 <= cur_ind[0] < grid_mask.shape[0]) or \
-           not (0 <= cur_ind[1] < grid_mask.shape[1]) or \
-           not (0 <= cur_ind[2] < grid_mask.shape[2]):
+        if (not (0 <= cur_ind[0] < grid_mask.shape[0])) or \
+           (not (0 <= cur_ind[1] < grid_mask.shape[1])) or \
+           (not (0 <= cur_ind[2] < grid_mask.shape[2])):
             break
-        else:
-            grid_mask[cur_ind[0], cur_ind[1], cur_ind[2]] = 1
         # Note that we are calculating t on the fly, but we get *negative* t
         # values from what they should be.
         # If we've reached t = 1, we are done.
-        if tmax[0] > 1 and tmax[1] > 1 and tmax[2] > 1:
+        grid_mask[cur_ind[0], cur_ind[1], cur_ind[2]] = 1
+        if (tmax[0] > 1.0) and (tmax[1] > 1.0) and (tmax[2] > 1.0):
+            grid_t[cur_ind[0], cur_ind[1], cur_ind[2]] = 1.0 - enter_t
             break
+        ncells += 1
         if tmax[0] < tmax[1]:
             if tmax[0] < tmax[2]:
                 grid_t[cur_ind[0], cur_ind[1], cur_ind[2]] = tmax[0] - enter_t
