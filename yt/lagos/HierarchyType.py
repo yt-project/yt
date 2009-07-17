@@ -157,14 +157,18 @@ class AMRHierarchy:
         """
 
         if self._data_mode != 'a': return
+        if "ArgsError" in dir(h5py.h5):
+            exception = h5py.h5.ArgsError
+        else:
+            exception = h5py.h5.H5Error
         try:
             node_loc = self._data_file[node]
             if name in node_loc.listnames() and force:
                 mylog.info("Overwriting node %s/%s", node, name)
                 del self._data_file[node][name]
             elif name in node_loc.listnames() and passthrough:
-                return        
-        except h5py.h5.ArgsError:
+                return
+        except exception:
             pass
         myGroup = self._data_file['/']
         for q in node.split('/'):
@@ -180,6 +184,12 @@ class AMRHierarchy:
         del self._data_file
         self._data_file = h5py.File(self.__data_filename, self._data_mode)
 
+    def _reset_save_data(self,round_robin=False):
+        if round_robin:
+            self.save_data = self._save_data
+        else:
+            self.save_data = parallel_splitter(self._save_data, self._reload_data_file)
+    
     save_data = parallel_splitter(_save_data, _reload_data_file)
 
     def save_object(self, obj, name):
@@ -853,9 +863,9 @@ class EnzoHierarchy(AMRHierarchy):
                 self.gridLevels[secondGrid] = self.gridLevels[firstGrid]
         pTree = [ [ grid.id - 1 for grid in self.gridTree[i] ] for i in range(self.num_grids) ]
         self.gridReverseTree[0] = -1
-        self.save_data(cPickle.dumps(pTree, protocol=-1), "/", "Tree")
-        self.save_data(na.array(self.gridReverseTree), "/", "ReverseTree")
-        self.save_data(self.gridLevels, "/", "Levels")
+        self.save_data(cPickle.dumps(pTree, protocol=-1), "/", "Tree", force=True)
+        self.save_data(na.array(self.gridReverseTree), "/", "ReverseTree", force=True)
+        self.save_data(self.gridLevels, "/", "Levels", force=True)
 
     @parallel_blocking_call
     def _populate_hierarchy(self):
@@ -879,12 +889,15 @@ class EnzoHierarchy(AMRHierarchy):
             self.__setup_grid_tree()
         else:
             mylog.debug("Grabbing serialized tree data")
-            pTree = cPickle.loads(treeArray.value)
-            self.gridReverseTree = list(self.get_data("/","ReverseTree"))
-            self.gridTree = [ [ weakref.proxy(self.grids[i]) for i in pTree[j] ]
-                for j in range(self.num_grids) ]
-            self.gridLevels = self.get_data("/","Levels")[:]
-            mylog.debug("Grabbed")
+            try:
+                pTree = cPickle.loads(treeArray.value)
+                self.gridReverseTree = list(self.get_data("/","ReverseTree"))
+                self.gridTree = [ [ weakref.proxy(self.grids[i]) for i in pTree[j] ]
+                    for j in range(self.num_grids) ]
+                self.gridLevels = self.get_data("/","Levels")[:]
+                mylog.debug("Grabbed")
+            except EOFError:
+                self.__setup_grid_tree()
         for i,v in enumerate(self.gridReverseTree):
             # For multiple grids on the root level
             if v == -1: self.gridReverseTree[i] = None
