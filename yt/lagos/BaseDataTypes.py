@@ -101,7 +101,7 @@ class FakeGridForParticles(object):
         else: tr = self.data[field]
         return tr
 
-class AMRData:
+class AMRData(object):
     """
     Generic AMRData container.  By itself, will attempt to
     generate field, read fields (method defined by derived classes)
@@ -1908,7 +1908,7 @@ class AMRSphereBase(AMR3DData):
         # Now we sort by level
         grids = grids.tolist()
         grids.sort(key=lambda x: (x.Level, x.LeftEdge[0], x.LeftEdge[1], x.LeftEdge[2]))
-        self._grids = na.array(grids)
+        self._grids = na.array(grids, dtype='object')
 
     def _is_fully_enclosed(self, grid):
         r = na.abs(grid._corners - self.center)
