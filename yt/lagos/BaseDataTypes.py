@@ -1930,7 +1930,7 @@ class AMRSphereBase(AMR3DData):
             self._cut_masks[grid.id] = cm
         return cm
 
-class AMRCoveringGridBase(AMR3DData):
+class AMRFloatCoveringGridBase(AMR3DData):
     """
     Covering grids represent fixed-resolution data over a given region.
     In order to achieve this goal -- for instance in order to obtain ghost
@@ -2079,7 +2079,7 @@ class AMRCoveringGridBase(AMR3DData):
     def RightEdge(self):
         return self.right_edge
 
-class AMRSmoothedCoveringGridBase(AMRCoveringGridBase):
+class AMRSmoothedCoveringGridBase(AMRFloatCoveringGridBase):
     _type_name = "smoothed_covering_grid"
     def __init__(self, *args, **kwargs):
         dlog2 = na.log10(kwargs['dims'])/na.log10(2)
@@ -2088,7 +2088,7 @@ class AMRSmoothedCoveringGridBase(AMRCoveringGridBase):
             #mylog.warning("Must be power of two dimensions")
             #raise ValueError
         kwargs['num_ghost_zones'] = 0
-        AMRCoveringGridBase.__init__(self, *args, **kwargs)
+        AMRFloatCoveringGridBase.__init__(self, *args, **kwargs)
 
     def _get_list_of_grids(self):
         if na.any(self.left_edge - self.dds < self.pf["DomainLeftEdge"]) or \
@@ -2184,7 +2184,7 @@ class AMRSmoothedCoveringGridBase(AMRCoveringGridBase):
     def flush_data(self, *args, **kwargs):
         raise KeyError("Can't do this")
 
-class AMRNewCoveringGridBase(AMR3DData):
+class AMRCoveringGridBase(AMR3DData):
     _spatial = True
     _type_name = "new_covering_grid"
     _con_args = ('level', 'left_edge', 'right_edge', 'ActiveDimensions')
