@@ -358,6 +358,15 @@ class EnzoStaticOutput(StaticOutput):
         if not self.has_key("TimeUnits"):
             self.conversion_factors["Time"] = self["LengthUnits"] / self["x-velocity"]
 
+    def _setup_nounits_units(self):
+        z = 0
+        mylog.warning("Setting 1.0 in code units to be 1.0 cm")
+        if not self.has_key("TimeUnits"):
+            mylog.warning("No time units.  Setting 1.0 = 1 second.")
+            self.conversion_factors["Time"] = 1.0
+        for unit in mpc_conversion.keys():
+            self.units[unit] = mpc_conversion[unit] / mpc_conversion["cm"]
+
     def cosmology_get_units(self):
         """
         Return an Enzo-fortran style dictionary of units to feed into custom
@@ -396,7 +405,7 @@ output_type_registry[None] = EnzoStaticOutput
 
 class EnzoStaticOutputInMemory(EnzoStaticOutput):
     _hierarchy_class = EnzoHierarchyInMemory
-    _data_style = 8
+    _data_style = 'inline'
 
     def __new__(cls, *args, **kwargs):
         obj = object.__new__(cls)
@@ -451,7 +460,8 @@ class OrionStaticOutput(StaticOutput):
     _hierarchy_class = OrionHierarchy
     _fieldinfo_class = OrionFieldContainer
 
-    def __init__(self, plotname, paramFilename=None,fparamFilename=None,data_style=7,paranoia=False):
+    def __init__(self, plotname, paramFilename=None, fparamFilename=None,
+                 data_style='orion_native', paranoia=False):
         """need to override for Orion file structure.
 
         the paramfile is usually called "inputs"
@@ -471,7 +481,8 @@ class OrionStaticOutput(StaticOutput):
 
         self.fparameters = {}
 
-        StaticOutput.__init__(self, plotname.rstrip("/"), data_style=7)
+        StaticOutput.__init__(self, plotname.rstrip("/"),
+                              data_style='orion_native')
         self.field_info = self._fieldinfo_class()
 
         # self.directory is the directory ENCLOSING the pltNNNN directory

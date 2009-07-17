@@ -28,11 +28,12 @@ DEST_DIR="`pwd`/${DEST_SUFFIX/ /}"   # Installation location
 # If you absolutely can't get the fortran to work, try this:
 #NUMPY_ARGS="--fcompiler=fake"
 
-INST_WXPYTHON=0 # If you 't want to install wxPython, set this to 1
+INST_WXPYTHON=1 # If you 't want to install wxPython, set this to 1
 INST_ZLIB=1     # On some systems (Kraken) matplotlib has issues with 
                 # the system zlib, which is compiled statically.
                 # If need be, you can turn this off.
-INST_HG=0       # Install Mercurial or not?
+INST_TRAITS=0   # Experimental TraitsUI installation
+INST_HG=1       # Install Mercurial or not?
 
 # If you've got YT some other place, set this to point to it.
 YT_DIR=""
@@ -125,6 +126,10 @@ printf "%-15s = %s so I " "INST_HG" "${INST_HG}"
 get_willwont ${INST_HG}
 echo "be installing Mercurial"
 
+printf "%-15s = %s so I " "INST_TRAITS" "${INST_TRAITS}"
+get_willwont ${INST_TRAITS}
+echo "be installing Traits"
+
 echo
 
 if [ -z "$HDF5_DIR" ]
@@ -208,7 +213,7 @@ then
 fi
 
 [ $INST_ZLIB -eq 1 ] && get_enzotools zlib-1.2.3.tar.bz2 
-[ $INST_WXPYTHON -eq 1 ] && get_enzotools wxPython-src-2.8.7.1.tar.bz2
+[ $INST_WXPYTHON -eq 1 ] && get_enzotools wxPython-src-2.8.9.1.tar.bz2
 get_enzotools Python-2.6.1.tgz
 get_enzotools numpy-1.2.1.tar.gz
 get_enzotools matplotlib-0.98.5.2.tar.gz
@@ -282,11 +287,11 @@ fi
 
 export PYTHONPATH=${DEST_DIR}/lib/python2.6/site-packages/
 
-if [ $INST_WXPYTHON -eq 1 ] && [ ! -e wxPython-src-2.8.7.1/done ]
+if [ $INST_WXPYTHON -eq 1 ] && [ ! -e wxPython-src-2.8.9.1/done ]
 then
     echo "Installing wxPython.  This may take a while, but don't worry.  YT loves you."
-    [ ! -e wxPython-src-2.8.7.1 ] && tar xfj wxPython-src-2.8.7.1.tar.bz2
-    cd wxPython-src-2.8.7.1
+    [ ! -e wxPython-src-2.8.9.1 ] && tar xfj wxPython-src-2.8.9.1.tar.bz2
+    cd wxPython-src-2.8.9.1
 
     ( ./configure --prefix=${DEST_DIR}/ --with-opengl 2>&1 ) 1>> ${LOG_FILE} || do_exit
     ( make install 2>&1 ) 1>> ${LOG_FILE} || do_exit
@@ -332,6 +337,12 @@ if [ $INST_HG -eq 1 ]
 then
     echo "Installing Mercurial."
     ( ${DEST_DIR}/bin/easy_install-2.6 mercurial 2>&1 ) 1>> ${LOG_FILE} || do_exit
+fi
+
+if [ $INST_WXPYTHON -eq 1 ] && [ $INST_TRAITS -eq 1 ]
+then
+    echo "Installing Traits"
+    ( ${DEST_DIR}/bin/easy_install-2.6 -U TraitsGUI TraitsBackendWX 2>&1 ) 1>> ${LOG_FILE} || do_exit
 fi
 
 echo

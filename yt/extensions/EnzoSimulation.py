@@ -159,7 +159,7 @@ class EnzoSimulation(object):
             try:
                 param, vals = map(str,line.split("="))
                 param = param.strip()
-                vals = vals.strip()
+                vals = vals.strip().split("#", 1)[0].split("//", 1)[0]
             except ValueError:
                 continue
             if EnzoParameterDict.has_key(param):

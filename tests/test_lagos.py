@@ -319,11 +319,21 @@ class TestDataCube(LagosTestingBase, unittest.TestCase):
         LagosTestingBase.setUp(self)
 
     def testNoGhost(self):
+        DW = self.OutputFile["DomainRightEdge"] \
+           - self.OutputFile["DomainLeftEdge"]
         for g in self.hierarchy.grids:
             cube = g.retrieve_ghost_zones(0, "Density")
             self.assertTrue(na.all(cube["Density"] == g["Density"]))
             cube["Density"] = na.arange(cube["Density"].size).reshape(cube["Density"].shape)
             cube.flush_data(field="Density")
+            self.assertTrue(na.all(g["Density"] == cube["Density"]))
+
+    def testOffsetDomain(self):
+        DW = self.OutputFile["DomainRightEdge"] \
+           - self.OutputFile["DomainLeftEdge"]
+        for g in self.hierarchy.grids:
+            cube = self.hierarchy.covering_grid(g.Level,
+                g.LeftEdge+DW, g.ActiveDimensions)
             self.assertTrue(na.all(g["Density"] == cube["Density"]))
 
     def testTwoGhost(self):
@@ -342,7 +352,7 @@ class TestDataCube(LagosTestingBase, unittest.TestCase):
     
     def testFlushBackToGrids(self):
         ml = self.hierarchy.max_level
-        cg = self.hierarchy.covering_grid(3, [0.0]*3, [1.0]*3, [64,64,64])
+        cg = self.hierarchy.covering_grid(2, [0.0]*3, [64,64,64])
         cg["Ones"] *= 2.0
         cg.flush_data(field="Ones")
         for g in na.concatenate([self.hierarchy.select_grids(i) for i in range(3)]):
@@ -351,15 +361,15 @@ class TestDataCube(LagosTestingBase, unittest.TestCase):
 
     def testFlushBackToNewCover(self):
         ml = self.hierarchy.max_level
-        cg = self.hierarchy.covering_grid(3, [0.0]*3, [1.0]*3, [64,64,64])
+        cg = self.hierarchy.covering_grid(2, [0.0]*3, [64,64,64])
         cg["tempContours"] = cg["Ones"] * 2.0
         cg.flush_data(field="tempContours")
-        cg2 = self.hierarchy.covering_grid(3, [0.0]*3, [1.0]*3, [64,64,64])
+        cg2 = self.hierarchy.covering_grid(2, [0.0]*3, [64,64,64])
         self.assertTrue(na.all(cg["tempContours"] == cg2["tempContours"]))
 
     def testRawFlushBack(self):
         ml = self.hierarchy.max_level
-        cg = self.hierarchy.covering_grid(3, [0.0]*3, [1.0]*3, [64,64,64])
+        cg = self.hierarchy.covering_grid(2, [0.0]*3, [64,64,64])
         cg["DensityNew"] = cg["Density"] * 2.111
         cg.flush_data(field="DensityNew")
         for g in na.concatenate([self.hierarchy.select_grids(i) for i in range(3)]):
@@ -372,14 +382,16 @@ class TestDataCube(LagosTestingBase, unittest.TestCase):
             self.assertAlmostEqual(max_diff, 2.111, 5)
 
     def testAllCover(self):
-        cg = self.hierarchy.covering_grid(0, [0.0]*3, [1.0]*3, [32,32,32])
-        self.assertTrue(cg["Density"].max() \
-                     == self.hierarchy.grids[0]["Density"].max())
-        self.assertTrue(cg["Density"].min() \
-                     == self.hierarchy.grids[0]["Density"].min())
+        cg = self.hierarchy.covering_grid(1, [0.0]*3, [32,32,32])
+        mi, ma = 1e30, -1e30
+        for g in na.concatenate([self.hierarchy.select_grids(i) for i in range(2)]):
+            ma = max(ma, g["Density"].max())
+            mi = min(mi, g["Density"].min())
+        self.assertEqual(cg["Density"].max(), ma)
+        self.assertEqual(cg["Density"].min(), mi)
 
     def testCellVolume(self):
-        cg = self.hierarchy.covering_grid(2, [0.0]*3, [1.0]*3, [64,64,64])
+        cg = self.hierarchy.covering_grid(2, [0.0]*3, [64,64,64])
         self.assertEqual(na.unique(cg["CellVolume"]).size, 1)
 
 class TestDiskDataType(Data3DBase, DataTypeTestingBase, LagosTestingBase, unittest.TestCase):
@@ -432,7 +444,7 @@ class TestPeriodicRegionStrictDataType(Data3DBase,
 class TestSphereDataType(Data3DBase, DataTypeTestingBase, LagosTestingBase, unittest.TestCase):
     def setUp(self):
         DataTypeTestingBase.setUp(self)
-        self.data=self.hierarchy.sphere([0.5,0.5,0.5],2.0)
+        self.data=self.hierarchy.sphere([0.5,0.5,0.5],1.0)
     def testVolume(self):
         vol = self.data["CellVolume"].sum() / self.data.convert("cm")**3.0
         self.assertAlmostEqual(vol,1.0,7)

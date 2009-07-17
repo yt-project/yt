@@ -34,6 +34,7 @@ class AMRGridPatch(AMRData):
     _id_offset = 1
 
     _type_name = 'grid'
+    _skip_add = True
     _con_args = ('id', 'filename')
 
     def __init__(self, id, filename=None, hierarchy = None):
@@ -359,9 +360,11 @@ class AMRGridPatch(AMRData):
                   'num_ghost_zones':n_zones,
                   'use_pbar':False, 'fields':fields}
         if smoothed:
-            cube = self.hierarchy.smoothed_covering_grid(*args, **kwargs)
+            cube = self.hierarchy.smoothed_covering_grid(
+                level, new_left_edge, new_right_edge, **kwargs)
         else:
-            cube = self.hierarchy.covering_grid(*args, **kwargs)
+            cube = self.hierarchy.covering_grid(
+                level, new_left_edge, **kwargs)
         return cube
 
     def get_vertex_centered_data(self, field, smoothed=True):
