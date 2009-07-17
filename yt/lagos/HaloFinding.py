@@ -401,7 +401,7 @@ class chainHOPHaloList(HaloList):
     _name = "chainHOP"
     _halo_class = chainHOPHalo
     _fields = ["particle_position_%s" % ax for ax in 'xyz'] + \
-              ["ParticleMassMsun"]
+              ["ParticleMassMsun", "particle_index"]
     
     def __init__(self, data_source, padding, num_neighbors, bounds, total_mass,
         threshold=160.0, dm_only=True):
@@ -419,127 +419,194 @@ class chainHOPHaloList(HaloList):
         mylog.info("Initializing HOP")
         HaloList.__init__(self, data_source, dm_only)
 
-    def _is_inside(self,point):
-        # test to see if this point is inside the 'real' region
-        (LE,RE) = self.bounds
-        point = na.array(point)
-        if (point >= LE).all() and (point < RE).all():
-            return True
-        else:
-            return False
-
-    def _build_task_chain_map(self):
-        """
-        From padded_particles build a mapping that identifies chains on each
-        task to a different chain on another task.
-        """
-        self.particle_fields["particle_index"] = self._data_source["particle_index"][self._base_indices]
-        # Figure out our offset
-        #my_first_id = sum([v for k,v in halo_info.items() if k < mine])
-        #after = my_first_id + max(self.tags) + 1
-        # build the list of [particle_index, taskID, grpID]
-        if len(self.padded_particles):
-            self.particle_index_map = self.particle_fields["particle_index"][self.padded_particles]
-            tag_map = self.tags[self.padded_particles]
-            temp_map = []
-            for i,particle in enumerate(self.particle_index_map):
-                temp_map.append([particle,self.mine,tag_map[i]]) # real ID, task ID, chainID
-            self.particle_index_map = na.array(temp_map)
-        else:
-            self.particle_index_map = na.array([])
-        # concatenate the map on all tasks, it would be faster to
-        # intelligently send this to only the processors that need each 
-        # part of the data, but that's harder. Maybe later.
-        #mylog.info("%s" % str(self.particle_index_map))
-        self.particle_index_map = self._mpi_catarray(self.particle_index_map)
-        if len(self.particle_index_map) == 0:
-            # none of the chains cross the boundaries, so we're done here.
-            mylog.info("No chains need to be merged.")
-            return
-        # but if there are crossings, move forward.
-        # On each processor, if one of the particles it owns (in the real
-        # region!) is in the map, add an entry to the task_chain_map
-        self.task_chain_map = []
-        particle_map_column = self.particle_index_map[:,0]
-        for index,ownPart in enumerate(self.particle_fields["particle_index"]):
-            if ownPart in particle_map_column:
-                remote_index = 0
-                while particle_map_column[remote_index] != ownPart:
-                    remote_index += 1
-                if self.is_inside[index]:
-                    #mylog.info('point %s bound %s ownPart %s' % \
-                    #(str(point),str(self.bounds),str(ownPart)))
-                    # find out which local chain this particle lives in
-                    local_chainID = self.particle_fields["tags"][index]
-                    # add a mapping, if it isn't already there
-                    # put lower-indexed task ID first
-                    if self.particle_index_map[remote_index][1] < self.mine:
-                        map = [self.particle_index_map[remote_index][1],\
-                        self.particle_index_map[remote_index][2], \
-                        self.mine, local_chainID]
-                    else:
-                        map = [self.mine, local_chainID, \
-                        self.particle_index_map[remote_index][1],\
-                        self.particle_index_map[remote_index][2] ]
-                    #mylog.info("map %s" % str(map))
-                    if map not in self.task_chain_map:
-                        self.task_chain_map.append(map)
-        # concatenate the task_chain_map on all tasks
-        self.task_chain_map = self._mpi_catlist(self.task_chain_map)
-        #mylog.info("end %s" % str(self.task_chain_map))
-
-    def _build_task_densest_in_chain(self):
-        """
-        'Upgrade' self.densest_in_chain to include the task each chain is on.
-        The result will be accessed: self.densest_in_chain[task][chainID].
-        """
-        temp = {}
-        temp[self.mine] = self.densest_in_chain
-        self._mpi_joindict(temp)
-        self.densest_in_chain = temp
-
-    def _build_task_chain_densest_n(self):
-        """
-        'Upgrade' self.chain_densest_n to include the task each chain is on.
-        For now we'll be cheap and make the keys into strings, with the form
-        'taskID,chainID'
-        """
-        temp = {}
-        for chain_high in self.chain_densest_n:
-            h = '%d,%d' % (self.mine, chain_high)
-            temp[h] = {}
-            for chain_low in self.chain_densest_n[chain_high]:
-                l = '%d,%d' % (self.mine, chain_low)
-                temp[h][l] = self.chain_densest_n[chain_high][chain_low]
-        self._mpi_joindict(temp)
-        self.chain_densest_n = temp
-    
-    def _update_chain_densest_n(self):
-        """
-        Update chain_densest_n to reflect the potential neighbors from
-        chain_potential_n. This involves figuring out the real
-        particle_index for each of the potential partcles, and communicating
-        this to the neighboring task. Then, if that task finds that particle
-        is in a chain on in its domain, adding that information to a list which
-        is then communicated back to the first. chain_densest_n is updated to
-        consider the neighboring chains, taking note of identified chains in
-        task_chain_map.
-        """
-    
-    def _update_chain_densest_n(self):
-        """
-        Using chain_potential_n as a source of potential mergings between
-        chains, update chain_densest_n while refering to self.task_chain_map
-        as to not merge chains that are already identified as being
-        connected.
-        """
-        
-        
+#     def _is_inside(self,point):
+#         # test to see if this point is inside the 'real' region
+#         (LE,RE) = self.bounds
+#         point = na.array(point)
+#         if (point >= LE).all() and (point < RE).all():
+#             return True
+#         else:
+#             return False
+# 
+#     def _build_task_chain_map(self):
+#         """
+#         From padded_particles build a mapping that identifies chains on each
+#         task to a different chain on another task.
+#         """
+#         self.particle_fields["particle_index"] = self._data_source["particle_index"][self._base_indices]
+#         # Figure out our offset
+#         #my_first_id = sum([v for k,v in halo_info.items() if k < mine])
+#         #after = my_first_id + max(self.tags) + 1
+#         # build the list of [particle_index, taskID, grpID]
+#         if len(self.padded_particles):
+#             self.particle_index_map = self.particle_fields["particle_index"][self.padded_particles]
+#             tag_map = self.tags[self.padded_particles]
+#             temp_map = []
+#             for i,particle in enumerate(self.particle_index_map):
+#                 temp_map.append([particle,self.mine,tag_map[i]]) # real ID, task ID, chainID
+#             self.particle_index_map = na.array(temp_map)
+#         else:
+#             self.particle_index_map = na.array([])
+#         # concatenate the map on all tasks, it would be faster to
+#         # intelligently send this to only the processors that need each 
+#         # part of the data, but that's harder. Maybe later.
+#         #mylog.info("%s" % str(self.particle_index_map))
+#         self.particle_index_map = self._mpi_catarray(self.particle_index_map)
+#         if len(self.particle_index_map) == 0:
+#             # none of the chains cross the boundaries, so we're done here.
+#             mylog.info("No chains need to be merged.")
+#             return
+#         # but if there are crossings, move forward.
+#         # On each processor, if one of the particles it owns (in the real
+#         # region!) is in the map, add an entry to the task_chain_map
+#         self.task_chain_map = []
+#         particle_map_column = self.particle_index_map[:,0]
+#         for index,ownPart in enumerate(self.particle_fields["particle_index"]):
+#             if ownPart in particle_map_column:
+#                 remote_index = 0
+#                 while particle_map_column[remote_index] != ownPart:
+#                     remote_index += 1
+#                 if self.is_inside[index]:
+#                     #mylog.info('point %s bound %s ownPart %s' % \
+#                     #(str(point),str(self.bounds),str(ownPart)))
+#                     # find out which local chain this particle lives in
+#                     local_chainID = self.particle_fields["tags"][index]
+#                     # add a mapping, if it isn't already there
+#                     # put lower-indexed task ID first
+#                     if self.particle_index_map[remote_index][1] < self.mine:
+#                         map = [self.particle_index_map[remote_index][1],\
+#                         self.particle_index_map[remote_index][2], \
+#                         self.mine, local_chainID]
+#                     else:
+#                         map = [self.mine, local_chainID, \
+#                         self.particle_index_map[remote_index][1],\
+#                         self.particle_index_map[remote_index][2] ]
+#                     #mylog.info("map %s" % str(map))
+#                     if map not in self.task_chain_map:
+#                         self.task_chain_map.append(map)
+#         # concatenate the task_chain_map on all tasks
+#         self.task_chain_map = self._mpi_catlist(self.task_chain_map)
+#         #mylog.info("end %s" % str(self.task_chain_map))
+# 
+#     def _build_task_densest_in_chain(self):
+#         """
+#         'Upgrade' self.densest_in_chain to include the task each chain is on.
+#         The result will be accessed: self.densest_in_chain[task][chainID].
+#         """
+#         temp = {}
+#         temp[self.mine] = self.densest_in_chain
+#         self._mpi_joindict(temp)
+#         self.densest_in_chain = temp
+# 
+#     def _build_task_chain_densest_n(self):
+#         """
+#         'Upgrade' self.chain_densest_n to include the task each chain is on.
+#         For now we'll be cheap and make the keys into strings, with the form
+#         'taskID,chainID'
+#         """
+#         temp = {}
+#         for chain_high in self.chain_densest_n:
+#             h = '%d,%d' % (self.mine, chain_high)
+#             temp[h] = {}
+#             for chain_low in self.chain_densest_n[chain_high]:
+#                 l = '%d,%d' % (self.mine, chain_low)
+#                 temp[h][l] = self.chain_densest_n[chain_high][chain_low]
+#         self._mpi_joindict(temp)
+#         self.chain_densest_n = temp
+#     
+#     def _build_task_chain_potential_n(self):
+#         """
+#         'Upgrade' self.chain_potential_n to include the task each of the
+#         particle is on, and replace local particle IDs with the global
+#         particle_index.
+#         """
+#         temp = {}
+#         temp[self.mine] = {}
+#         # replace the local IDs with the global particle_index
+#         for chainID in self.chain_potential_n:
+#             potential_n = self.chain_potential_n[chainID]
+#             potential_n = self.particle_fields["particle_index"][potential_n]
+#             temp[self.mine][chainID] = potential_n
+#         # now distribute this
+#         self._mpi_joindict(temp)
+#         self.chain_potential_n = temp
+#         #mylog.info("%s" % str(self.chain_potential_n[self.mine]))
+#         #sys.exit()
+#     
+#     def _update_chain_densest_n(self):
+#         """
+#         Update chain_densest_n to reflect the potential neighbors from
+#         chain_potential_n. If that task finds that particle
+#         is in a chain on in its domain, adding that information to a list which
+#         is then communicated back to the first. chain_densest_n is updated to
+#         consider the neighboring chains, taking note of identified chains in
+#         task_chain_map.
+#         """
+#         # This is gonna be sub-optimal, but I want it to work then I'll do it
+#         # right later.
+#         # loop over the potential_n
+#         for task in self.chain_potential_n:
+#             # skip particles found by myself, cause they're all necessarily
+#             # in our padding.
+#             if task == self.mine: continue
+#             for chainID in self.chain_potential_n[task]:
+#                 for part_index in self.chain_potential_n[task][chainID]:
+#                     # find out if this particle_index is in a chain on my
+#                     # task. This is really stupid. There has to be a better
+#                     # way to do this!
+#                     mark = -1
+#                     for i,part in self.particle_fields["particle_index"]:
+#                         if part == part_index:
+#                             mark = i
+#                             break
+#                     if mark == -1: continue
+#                     # if we've come this far, this particle is in our domain,
+#                     # not padded,
+#                     # so self.tags refers to our local info.
+#                     # get the local chainID
+#                     local_chainID = self.tags[mark]
+#                     if local_chaintID < 0: continue # not in chain, move on
+#                     # get the max dens for this chain, found by me
+#                     local_max_dens = self.densest_in_chain[self.mine][chID]
+#                     # remote density
+#                     max_dens = self.densest_in_chain[task][chainID]
+#                     # the boundary density to be compared to later.
+#                     local_dens = self.densities[mark]
+#                     boundary_dens = (local_max_dens + max_dens) / 2. WRONG
+#                     # chainID above is the remote chainID on task, so let's
+#                     # first make sure that these two chains aren't already 
+#                     # linked in self.task_chain_map
+#                     if task < self.mine:
+#                         larger = self.mine
+#                         smaller = task
+#                         larger_chID = local_chainID
+#                         smaller_chID = chainID
+#                         h = '%d,%d' % (self.mine, chain_high)
+#                     else:
+#                         larger = task
+#                         smaller = self.mine
+#                         larger_chID = chainID
+#                         smaller_chID = local_chainID
+#                     moveon = False
+#                     for entry in self.task_chain_map:
+#                         if entry[0] == smaller and entry[2] == larger and \
+#                                 entry[1] == smaller_chID and \
+#                                 entry[3] == larger_chID:
+#                             moveon = True
+#                             break
+#                     # if linked, we don't need to consider this as a possible
+#                     # chain merging
+#                     if moveon: continue
+#                     # now we need to see if this pair of chains are in 
+#                     # chain_densest_n, and if so, see if the densities is 
+#                     # higher than before.
+#                     
 
     def _run_finder(self):
-        xt = self.particle_fields["particle_position_x"] #- 0.961
-        yt = self.particle_fields["particle_position_y"] #- 0.369
-        zt = self.particle_fields["particle_position_z"] #- 0.710
+        xt = self.particle_fields["particle_position_x"] - 0.961
+        yt = self.particle_fields["particle_position_y"] - 0.369
+        zt = self.particle_fields["particle_position_z"] - 0.710
+        index = self.particle_fields["particle_index"]
         for i,x in enumerate(xt):
             if x < 0:
                 xt[i] = 1+x
@@ -550,7 +617,7 @@ class chainHOPHaloList(HaloList):
             if z < 0:
                 zt[i] = 1+z
         obj = RunChainHOP(self.period, self.padding,
-            self.num_neighbors, self.bounds,xt,yt,zt,
+            self.num_neighbors, self.bounds,xt,yt,zt, index,
             self.particle_fields["ParticleMassMsun"]/self.total_mass,
             self.threshold)
         self.densities, self.tags = obj.density, obj.chainID
@@ -558,6 +625,7 @@ class chainHOPHaloList(HaloList):
         self.is_inside = obj.is_inside
         self.densest_in_chain = obj.densest_in_chain
         self.chain_densest_n = obj.chain_densest_n
+        self.chain_potential_n = obj.chain_potential_n
         self.particle_fields["densities"] = self.densities
         self.particle_fields["tags"] = self.tags
         if self._distributed:
@@ -566,6 +634,7 @@ class chainHOPHaloList(HaloList):
             self._build_task_chain_map()
             self._build_task_densest_in_chain()
             self._build_task_chain_densest_n()
+            self._build_task_chain_potential_n()
 
     def write_out(self, filename="chainHopAnalysis.out"):
         HaloList.write_out(self, filename)
