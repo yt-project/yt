@@ -1939,7 +1939,7 @@ class AMRFloatCoveringGridBase(AMR3DData):
     scales) on the input data.
     """
     _spatial = True
-    _type_name = "covering_grid"
+    _type_name = "float_covering_grid"
     _con_args = ('level', 'left_edge', 'right_edge', 'ActiveDimensions')
     def __init__(self, level, left_edge, right_edge, dims, fields = None,
                  pf = None, num_ghost_zones = 0, use_pbar = True, **kwargs):
@@ -2186,7 +2186,7 @@ class AMRSmoothedCoveringGridBase(AMRFloatCoveringGridBase):
 
 class AMRCoveringGridBase(AMR3DData):
     _spatial = True
-    _type_name = "new_covering_grid"
+    _type_name = "covering_grid"
     _con_args = ('level', 'left_edge', 'right_edge', 'ActiveDimensions')
     def __init__(self, level, left_edge, dims, fields = None,
                  pf = None, num_ghost_zones = 0, use_pbar = True, **kwargs):
@@ -2318,10 +2318,11 @@ class AMRCoveringGridBase(AMR3DData):
     def RightEdge(self):
         return self.right_edge
 
-class AMRNewSmoothedCoveringGridBase(AMRNewCoveringGridBase):
+class AMRIntSmoothedCoveringGridBase(AMRCoveringGridBase):
+    _skip_add = True
     def _get_list_of_grids(self):
         buffer = self.pf.h.select_grids(0)[0].dds
-        AMRNewCoveringGridBase._get_list_of_grids(buffer)
+        AMRCoveringGridBase._get_list_of_grids(buffer)
         self._grids = self._grids[::-1]
 
     def _get_data_from_grid(self, grid, fields):

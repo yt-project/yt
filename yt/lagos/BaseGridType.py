@@ -363,12 +363,8 @@ class AMRGridPatch(AMRData):
             cube = self.hierarchy.smoothed_covering_grid(
                 level, new_left_edge, new_right_edge, **kwargs)
         else:
-            if old:
-                cube = self.hierarchy.covering_grid(
-                    level, new_left_edge, new_right_edge, **kwargs)
-            else:
-                cube = self.hierarchy.new_covering_grid(
-                    level, new_left_edge, **kwargs)
+            cube = self.hierarchy.covering_grid(
+                level, new_left_edge, **kwargs)
         return cube
 
     def get_vertex_centered_data(self, field, smoothed=True):
