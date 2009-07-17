@@ -120,20 +120,20 @@ class HaloProfiler(lagos.ParallelAnalysisInterface):
 
         for q,halo in enumerate(self._get_objs('hopHalos', round_robin=True)):
             filename = "%s/Halo_%04d_profile.dat" % (outputDir,halo['id'])
-
+            
             # Read profile from file if it already exists.
             # If not, profile will be None.
             profile = self._ReadProfile(filename)
-
+            
             # Make profile if necessary.
             newProfile = profile is None
             if profile is None:
-
+                
                 r_min = 2*self.pf.h.get_smallest_dx() * self.pf['mpc']
                 if (halo['r_max'] / r_min < PROFILE_RADIUS_THRESHOLD):
                     mylog.error("Skipping halo with r_max / r_min = %f." % (halo['r_max']/r_min))
                     continue
-
+                
                 sphere = self.pf.h.sphere(halo['center'],halo['r_max']/self.pf.units['mpc'])
                 if len(sphere._grids) == 0: continue
 
@@ -150,7 +150,7 @@ class HaloProfiler(lagos.ParallelAnalysisInterface):
                     sphere.set_field_parameter('bulk_velocity',[max_grid['x-velocity'][max_cell],
                                                                 max_grid['y-velocity'][max_cell],
                                                                 max_grid['z-velocity'][max_cell]])
-
+                    
                 profile = lagos.BinnedProfile1D(sphere,self.haloProfilerParameters['n_bins'],"RadiusMpc",
                                                 r_min,halo['r_max'],
                                                 log_space=True, lazy_reader=False)
@@ -163,7 +163,7 @@ class HaloProfiler(lagos.ParallelAnalysisInterface):
             virial = self._CalculateVirialQuantities(profile)
             virial['center'] = halo['center']
             virial['id'] = halo['id']
-
+            
             if (virial['TotalMassMsun'] >= self.haloProfilerParameters['VirialMassCutoff']):
                 self.virialQuantities.append(virial)
             if newProfile:
@@ -195,7 +195,6 @@ class HaloProfiler(lagos.ParallelAnalysisInterface):
 
     def makeProjections(self,save_images=True,save_cube=True,**kwargs):
         "Make projections of all halos using specified fields."
-
         # Get virial quantities.
         self._LoadVirialData()
 
@@ -252,8 +251,9 @@ class HaloProfiler(lagos.ParallelAnalysisInterface):
                 y_axis = coords[1]
 
                 for field in self.projectionFields.keys():
-                    pc.add_projection(field,w,weight_field=self.projectionFields[field],source=region,lazy_reader=False,**kwargs)
-
+                    pc.add_projection(field,w,weight_field=self.projectionFields[field],source=region,lazy_reader=False,
+                                      serialize=False,**kwargs)
+                
                 # Set x and y limits, shift image if it overlaps domain boundary.
                 if need_per:
                     pw = self.haloProfilerParameters['ProjectionWidth']/self.pf.units['mpc']
@@ -281,16 +281,16 @@ class HaloProfiler(lagos.ParallelAnalysisInterface):
                         frb = raven.FixedResolutionBuffer(pc.plots[e].data,(proj_left[0],proj_right[0],proj_left[1],proj_right[1]),
                                                           (projectionResolution,projectionResolution),
                                                           antialias=False)
-                        output.create_dataset("/%s_%s" % (field,self.projectionFields[field]),data=frb[field])
+                        dataset_name = "%s_%s" % (field,self.projectionFields[field])
+                        if dataset_name in output.listnames(): del output[dataset_name]
+                        output.create_dataset(dataset_name,data=frb[field])
                     output.close()
 
                 if save_images:
-                    pc.save("%s/Halo_%04d" % (outputDir,halo['id']))
+                    pc.save("%s/Halo_%04d" % (outputDir,halo['id']),force_save=True)
 
                 pc.clear_plots()
-
             del region
-
         del pc
 
     @lagos.parallel_root_only
