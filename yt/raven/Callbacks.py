@@ -116,74 +116,6 @@ class QuiverCallback(PlotCallback):
         plot._axes.set_ylim(yy0,yy1)
         plot._axes.hold(False)
 
-class ParticleCallback(PlotCallback):
-    _type_name = "particles"
-    def __init__(self, axis, width, p_size=1.0, col='k', stride=1.0):
-        """
-        Adds particle positions, based on a thick slab along *axis* with a
-        *width* along the line of sight.  *p_size* controls the number of
-        pixels per particle, and *col* governs the color.
-        """
-        PlotCallback.__init__(self)
-        self.axis = axis
-        self.width = width
-        self.p_size = p_size
-        self.color = col
-        if check_color(col):
-            self.color_field = False
-        else:
-            self.color_field = True
-        self.field_x = "particle_position_%s" % lagos.axis_names[lagos.x_dict[axis]]
-        self.field_y = "particle_position_%s" % lagos.axis_names[lagos.y_dict[axis]]
-        self.field_z = "particle_position_%s" % lagos.axis_names[axis]
-        self.stride = stride
-        self.particles_x = self.particles_y = self.particles_z = None
-
-    def _setup_particles(self, data):
-        if self.particles_x is not None: return
-        grids = data._grids
-        particles_x = []; particles_y = []; particles_z = [];
-        for g in grids:
-            particles_x.append(g[self.field_x][::self.stride])
-            particles_y.append(g[self.field_y][::self.stride])
-            particles_z.append(g[self.field_z][::self.stride])
-        self.particles_x = na.concatenate(particles_x); del particles_x
-        self.particles_y = na.concatenate(particles_y); del particles_y
-        self.particles_z = na.concatenate(particles_z); del particles_z
-        if not self.color_field: return
-        particles_c = []
-        for g in grids:
-            particles_c.append(g[self.color][::self.stride])
-        self.particles_c = na.log10(na.concatenate(particles_c)); del particles_c
-
-    def __call__(self, plot):
-        z0 = plot.data.center[self.axis] - self.width/2.0
-        z1 = plot.data.center[self.axis] + self.width/2.0
-        self._setup_particles(plot.data)
-        if len(self.particles_x) == 0: return
-        x0, x1 = plot.xlim
-        y0, y1 = plot.ylim
-        xx0, xx1 = plot._axes.get_xlim()
-        yy0, yy1 = plot._axes.get_ylim()
-        print "Particle bounding box:", x0, x1, y0, y1, z0, z1
-        # Now we rescale because our axes limits != data limits
-        goodI = na.where( (self.particles_x < x1) & (self.particles_x > x0)
-                        & (self.particles_y < y1) & (self.particles_y > y0)
-                        & (self.particles_z < z1) & (self.particles_z > z0))
-        particles_x = (self.particles_x[goodI] - x0) * (xx1-xx0)/(x1-x0) + xx0
-        particles_y = (self.particles_y[goodI] - y0) * (yy1-yy0)/(y1-y0) + yy0
-        print "Particle px extrema", particles_x.min(), particles_x.max(), \
-                                     particles_y.min(), particles_y.max()
-        print "Axial limits", xx0, xx1, yy0, yy1
-        if not self.color_field: particles_c = self.color
-        else: particles_c = self.particles_c[goodI]
-        plot._axes.hold(True)
-        plot._axes.scatter(particles_x, particles_y, edgecolors='None',
-                           s=self.p_size, c=particles_c)
-        plot._axes.set_xlim(xx0,xx1)
-        plot._axes.set_ylim(yy0,yy1)
-        plot._axes.hold(False)
-
 class ContourCallback(PlotCallback):
     _type_name = "contour"
     def __init__(self, field, ncont=5, factor=4, take_log=False, clim=None,
@@ -808,8 +740,8 @@ class TextLabelCallback(PlotCallback):
         y = plot.image._A.shape[1] * self.pos[1]
         plot._axes.text(x, y, self.text, **self.text_args)
 
-class NewParticleCallback(PlotCallback):
-    _type_name = "nparticles"
+class ParticleCallback(PlotCallback):
+    _type_name = "particles"
     region = None
     _descriptor = None
     def __init__(self, width, p_size=1.0, col='k', stride=1.0, ptype=None):
