@@ -195,7 +195,6 @@ class HaloProfiler(lagos.ParallelAnalysisInterface):
 
     def makeProjections(self,save_images=True,save_cube=True,**kwargs):
         "Make projections of all halos using specified fields."
-
         # Get virial quantities.
         self._LoadVirialData()
 
@@ -252,8 +251,9 @@ class HaloProfiler(lagos.ParallelAnalysisInterface):
                 y_axis = coords[1]
 
                 for field in self.projectionFields.keys():
-                    pc.add_projection(field,w,weight_field=self.projectionFields[field],source=region,**kwargs)
-
+                    pc.add_projection(field,w,weight_field=self.projectionFields[field],source=region,lazy_reader=False,
+                                      serialize=False,**kwargs)
+                
                 # Set x and y limits, shift image if it overlaps domain boundary.
                 if need_per:
                     pw = self.haloProfilerParameters['ProjectionWidth']/self.pf.units['mpc']
@@ -281,16 +281,16 @@ class HaloProfiler(lagos.ParallelAnalysisInterface):
                         frb = raven.FixedResolutionBuffer(pc.plots[e].data,(proj_left[0],proj_right[0],proj_left[1],proj_right[1]),
                                                           (projectionResolution,projectionResolution),
                                                           antialias=False)
-                        output.create_dataset("/%s" % field,data=frb[field])
+                        dataset_name = "%s_%s" % (field,self.projectionFields[field])
+                        if dataset_name in output.listnames(): del output[dataset_name]
+                        output.create_dataset(dataset_name,data=frb[field])
                     output.close()
 
                 if save_images:
-                    pc.save("%s/Halo_%04d" % (outputDir,halo['id']))
+                    pc.save("%s/Halo_%04d" % (outputDir,halo['id']),force_save=True)
 
                 pc.clear_plots()
-
             del region
-
         del pc
 
     @lagos.parallel_root_only
@@ -314,7 +314,7 @@ class HaloProfiler(lagos.ParallelAnalysisInterface):
 
         rho_crit_now = 1.8788e-29 * self.pf['CosmologyHubbleConstantNow']**2.0 # g cm^-3
         Msun2g = 1.989e33
-        rho_crit = rho_crit_now * ((1 + self.pf['CosmologyCurrentRedshift'])**3.0)
+        rho_crit = rho_crit_now * ((1.0 + self.pf['CosmologyCurrentRedshift'])**3.0)
 
         profile['ActualOverdensity'] = (Msun2g * profile['TotalMassMsun']) / \
             profile['CellVolume'] / rho_crit

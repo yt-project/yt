@@ -27,7 +27,7 @@ from yt.mods import *
 from yt.funcs import *
 from yt.recipes import _fix_pf
 import yt.cmdln as cmdln
-import optparse, os, os.path, math
+import optparse, os, os.path, math, sys
 
 _common_options = dict(
     axis    = dict(short="-a", long="--axis",
@@ -38,6 +38,10 @@ _common_options = dict(
                    action="store_true",
                    dest="takelog", default=True,
                    help="Take the log of the field?"),
+    text    = dict(short="-t", long="--text",
+                   action="store", type="string",
+                   dest="text", default=None,
+                   help="Textual annotation"),
     field   = dict(short="-f", long="--field",
                    action="store", type="string",
                    dest="field", default="Density",
@@ -55,6 +59,11 @@ _common_options = dict(
                    dest="zlim", default=None,
                    nargs=2,
                    help="Color limits (min, max)"),
+    dex     = dict(short="", long="--dex",
+                   action="store", type="float",
+                   dest="dex", default=None,
+                   nargs=1,
+                   help="Number of dex above min to display"),
     width   = dict(short="-w", long="--width",
                    action="store", type="float",
                    dest="width", default=1.0,
@@ -133,6 +142,32 @@ _common_options = dict(
                    action="store_true",
                    dest="grids", default=False,
                    help="Show the grid boundaries"),
+    halos   = dict(short="", long="--halos",
+                   action="store", type="string",
+                   dest="halos",default="multiple",
+                   help="Run halo profiler on a 'single' halo or 'multiple' halos."),
+    halo_radius = dict(short="", long="--halo_radius",
+                       action="store", type="float",
+                       dest="halo_radius",default=0.1,
+                       help="Constant radius for profiling halos if using hop output files with no radius entry. Default: 0.1."),
+    halo_radius_units = dict(short="", long="--halo_radius_units",
+                             action="store", type="string",
+                             dest="halo_radius_units",default="1",
+                             help="Units for radius used with --halo_radius flag. Default: '1' (code units)."),
+    halo_hop_style = dict(short="", long="--halo_hop_style",
+                          action="store", type="string",
+                          dest="halo_hop_style",default="new",
+                          help="Style of hop output file.  'new' for yt_hop files and 'old' for enzo_hop files."),
+    halo_parameter_file = dict(short="", long="--halo_parameter_file",
+                               action="store", type="string",
+                               dest="halo_parameter_file",default=None,
+                               help="HaloProfiler parameter file."),
+    make_profiles = dict(short="", long="--make_profiles",
+                         action="store_true", default=False,
+                         help="Make profiles with halo profiler."),
+    make_projections = dict(short="", long="--make_projections",
+                            action="store_true", default=False,
+                            help="Make projections with halo profiler.")
     )
 
 def _add_options(parser, *options):
@@ -201,8 +236,29 @@ class YTCommands(cmdln.Cmdln):
         else: fn = opts.output
         hop_list.write_out(fn)
 
+    @add_cmd_options(['make_profiles','make_projections','halo_parameter_file',
+                      'halos','halo_hop_style','halo_radius','halo_radius_units'])
+    def do_halos(self, subcmd, opts, arg):
+        """
+        Run HaloProfiler on one dataset.
+
+        ${cmd_option_list}
+        """
+        import yt.extensions.HaloProfiler as HP
+        kwargs = {'halos': opts.halos,
+                  'hop_style': opts.halo_hop_style,
+                  'radius': opts.halo_radius,
+                  'radius_units': opts.halo_radius_units}
+
+        hp = HP.HaloProfiler(arg,opts.halo_parameter_file,**kwargs)
+        if opts.make_profiles:
+            hp.makeProfiles()
+        if opts.make_projections:
+            hp.makeProjections()
+
     @add_cmd_options(["maxw", "minw", "proj", "axis", "field", "weight",
-                      "zlim", "nframes", "output", "cmap", "uboxes"])
+                      "zlim", "nframes", "output", "cmap", "uboxes", "dex",
+                      "text"])
     def do_zoomin(self, subcmd, opts, arg):
         """
         Create a set of zoomin frames
@@ -217,11 +273,14 @@ class YTCommands(cmdln.Cmdln):
             axes = [opts.axis]
         pc = PlotCollection(pf)
         for ax in axes: 
-            if opts.projection: pc.add_projection(opts.field, ax,
+            if opts.projection: p = pc.add_projection(opts.field, ax,
                                     weight_field=opts.weight)
-            else: pc.add_slice(opts.field, ax)
-            if opts.unit_boxes: pc.plots[-1].add_callback(
-                    UnitBoundaryCallback(factor=8))
+            else: p = pc.add_slice(opts.field, ax)
+            if opts.unit_boxes: p.modify["units"](factor=8)
+            if opts.text is not None:
+                p.modify["text"](
+                    (0.02, 0.05), opts.text.replace(r"\n", "\n"),
+                    text_args=dict(size="medium", color="w"))
         pc.set_width(opts.max_width,'1')
         # Check the output directory
         if not os.path.isdir(opts.output):
@@ -238,10 +297,13 @@ class YTCommands(cmdln.Cmdln):
             mylog.info("Setting width to %0.3e", w)
             mylog.info("Saving frame %06i",i)
             pc.set_width(w,"1")
-            if opts.zlim: pc.set_zlim(*opts.zlim)
+            if opts.zlim:
+                pc.set_zlim(*opts.zlim)
+            if opts.dex:
+                pc.set_zlim('min', None, opts.dex)
             pc.set_cmap(opts.cmap)
             pc.save(os.path.join(opts.output,"%s_frame%06i" % (pf,i)))
-            w *= factor
+            w = factor**i
 
     @add_cmd_options(["width", "unit", "bn", "proj", "center",
                       "zlim", "axis", "field", "weight", "skip",

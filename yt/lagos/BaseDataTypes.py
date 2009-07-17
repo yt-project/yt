@@ -376,7 +376,7 @@ class AMR1DData(AMRData, GridPropertiesMixin):
                 continue
             mylog.info("Getting field %s from %s", field, len(self._grids))
             if field not in self.hierarchy.field_list and not in_grids:
-                if self._generate_field(field):
+                if field != "dts" and self._generate_field(field):
                     continue # True means we already assigned it
             self[field] = na.concatenate(
                 [self._get_data_from_grid(grid, field)
@@ -439,11 +439,13 @@ class AMRRayBase(AMR1DData):
         """
         mylog.warning("This code is poorly tested.  It may give bad data!")
         AMR1DData.__init__(self, pf, fields, **kwargs)
-        self.start_point = na.array(start_point)
-        self.end_point = na.array(end_point)
+        self.start_point = na.array(start_point, dtype='float64')
+        self.end_point = na.array(end_point, dtype='float64')
         self.vec = self.end_point - self.start_point
+        #self.vec /= na.sqrt(na.dot(self.vec, self.vec))
         self.center = self.start_point
         self.set_field_parameter('center', self.start_point)
+        self._dts = {}
         #self._refresh_data()
 
     def _get_list_of_grids(self):
@@ -456,16 +458,16 @@ class AMRRayBase(AMR1DData):
             i1 = (i+1) % 3
             i2 = (i+2) % 3
             vs = self._get_line_at_coord(LE[:,i], i)
-            p = p | ( ( (LE[:,i1] < vs[:,i1]) & (RE[:,i1] > vs[:,i1]) ) \
-                    & ( (LE[:,i2] < vs[:,i2]) & (RE[:,i2] > vs[:,i2]) ) )
+            p = p | ( ( (LE[:,i1] <= vs[:,i1]) & (RE[:,i1] >= vs[:,i1]) ) \
+                    & ( (LE[:,i2] <= vs[:,i2]) & (RE[:,i2] >= vs[:,i2]) ) )
             vs = self._get_line_at_coord(RE[:,i], i)
-            p = p | ( ( (LE[:,i1] < vs[:,i1]) & (RE[:,i1] > vs[:,i1]) ) \
-                    & ( (LE[:,i2] < vs[:,i2]) & (RE[:,i2] > vs[:,i2]) ) )
-        p = p | ( na.all( LE < self.start_point, axis=1 ) 
-                & na.all( RE > self.start_point, axis=1 ) )
-        p = p | ( na.all( LE < self.end_point,   axis=1 ) 
-                & na.all( RE > self.end_point,   axis=1 ) )
-        self._grids = self.hierarchy.grids.copy()#[p]
+            p = p | ( ( (LE[:,i1] <= vs[:,i1]) & (RE[:,i1] >= vs[:,i1]) ) \
+                    & ( (LE[:,i2] <= vs[:,i2]) & (RE[:,i2] >= vs[:,i2]) ) )
+        p = p | ( na.all( LE <= self.start_point, axis=1 ) 
+                & na.all( RE >= self.start_point, axis=1 ) )
+        p = p | ( na.all( LE <= self.end_point,   axis=1 ) 
+                & na.all( RE >= self.end_point,   axis=1 ) )
+        self._grids = self.hierarchy.grids[p]
 
     def _get_line_at_coord(self, v, index):
         # t*self.vec + self.start_point = self.end_point
@@ -476,14 +478,17 @@ class AMRRayBase(AMR1DData):
     def _get_data_from_grid(self, grid, field):
         mask = na.logical_and(self._get_cut_mask(grid),
                               grid.child_mask)
+        if field == 'dts': return self._dts[grid.id][mask]
         return grid[field][mask]
         
     @cache_mask
     def _get_cut_mask(self, grid):
         mask = na.zeros(grid.ActiveDimensions, dtype='int')
+        dts = na.zeros(grid.ActiveDimensions, dtype='float64')
         import RTIntegrator as RT
-        RT.VoxelTraversal(mask, grid.LeftEdge, grid.RightEdge,
+        RT.VoxelTraversal(mask, dts, grid.LeftEdge, grid.RightEdge,
                           grid.dds, self.center, self.vec)
+        self._dts[grid.id] = na.abs(dts)
         return mask
 
 class AMR2DData(AMRData, GridPropertiesMixin, ParallelAnalysisInterface):
@@ -528,9 +533,11 @@ class AMR2DData(AMRData, GridPropertiesMixin, ParallelAnalysisInterface):
                     continue # A "True" return means we did it
             # To ensure that we use data from this object as much as possible,
             # we're going to have to set the same thing several times
-            temp_data[field] = na.concatenate(
-                [self._get_data_from_grid(grid, field)
-                 for grid in self._get_grids()])
+            data = [self._get_data_from_grid(grid, field)
+                    for grid in self._get_grids()]
+            if len(data) == 0: data = None
+            else: data = na.concatenate(data)
+            temp_data[field] = data
             # Now the next field can use this field
             self[field] = temp_data[field] 
         # We finalize
@@ -675,7 +682,9 @@ class AMRSliceBase(AMR2DData):
         points = []
         for grid in self._get_grids():
             points.append(self._generate_grid_coords(grid))
-        t = self._mpi_catarray(na.concatenate(points))
+        if len(points) == 0: points = None
+        else: points = na.concatenate(points)
+        t = self._mpi_catarray(points)
         self['px'] = t[:,0]
         self['py'] = t[:,1]
         self['pz'] = t[:,2]
@@ -754,6 +763,13 @@ class AMRSliceBase(AMR2DData):
     def _gen_node_name(self):
         return "%s/%s_%s" % \
             (self._top_node, self.axis, self.coord)
+
+    def __get_quantities(self):
+        if self.__quantities is None:
+            self.__quantities = DerivedQuantityCollection(self)
+        return self.__quantities
+    __quantities = None
+    quantities = property(__get_quantities)
 
 class AMRCuttingPlaneBase(AMR2DData):
     """
@@ -847,7 +863,9 @@ class AMRCuttingPlaneBase(AMR2DData):
         points = []
         for grid in self._get_grids():
             points.append(self._generate_grid_coords(grid))
-        t = self._mpi_catarray(na.concatenate(points))
+        if len(points) == 0: points = None
+        else: points = na.concatenate(points)
+        t = self._mpi_catarray(points)
         pos = (t[:,0:3] - self.center)
         self['px'] = na.dot(pos, self._x_vec)
         self['py'] = na.dot(pos, self._y_vec)
@@ -883,7 +901,7 @@ class AMRCuttingPlaneBase(AMR2DData):
         return na.where(k)
 
     def _gen_node_name(self):
-        cen_name = ("%s" % self.center).replace(" ","_")[1:-1]
+        cen_name = ("%s" % (self.center,)).replace(" ","_")[1:-1]
         L_name = ("%s" % self._norm_vec).replace(" ","_")[1:-1]
         return "%s/c%s_L%s" % \
             (self._top_node, cen_name, L_name)
@@ -895,7 +913,8 @@ class AMRProjBase(AMR2DData):
     _con_args = ('axis', 'field', 'weight_field')
     def __init__(self, axis, field, weight_field = None,
                  max_level = None, center = None, pf = None,
-                 source=None, node_name = None, field_cuts = None, **kwargs):
+                 source=None, node_name = None, field_cuts = None,
+                 serialize=True,**kwargs):
         """
         AMRProj is a projection of a *field* along an *axis*.  The field
         can have an associated *weight_field*, in which case the values are
@@ -904,6 +923,7 @@ class AMRProjBase(AMR2DData):
         """
         AMR2DData.__init__(self, axis, field, pf, node_name = None, **kwargs)
         self._field_cuts = field_cuts
+        self.serialize = serialize
         self.center = center
         if center is not None: self.set_field_parameter('center',center)
         self._node_name = node_name
@@ -923,7 +943,7 @@ class AMRProjBase(AMR2DData):
         self._temp = {}
         self._deserialize(node_name)
         self._refresh_data()
-        if self._okay_to_serialize: self._serialize(node_name=self._node_name)
+        if self._okay_to_serialize and self.serialize: self._serialize(node_name=self._node_name)
 
     def _convert_field_name(self, field):
         if field == "weight_field": return "weight_field_%s" % self._weight
@@ -1137,7 +1157,7 @@ class AMRProjBase(AMR2DData):
         field_data = na.vsplit(data.pop('fields'), len(fields))
         for fi, field in enumerate(fields):
             self[field] = field_data[fi].ravel()
-            self._store_fields(field, self._node_name)
+            if self.serialize: self._store_fields(field, self._node_name)
         for i in data.keys(): self[i] = data.pop(i)
 
     def add_fields(self, fields, weight = "CellMassMsun"):
