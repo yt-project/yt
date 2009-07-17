@@ -35,14 +35,14 @@ from functools import wraps
 from yt.logger import ytLogger as mylog
 from yt.fido import output_type_registry
 
-def all_pfs(max_depth=1, name_spec="*.hierarchy"):
+def all_pfs(max_depth=1, name_spec="*.hierarchy", **kwargs):
     list_of_names = []
     for i in range(max_depth):
         bb = list('*' * i) + [name_spec]
         list_of_names += glob.glob(os.path.join(*bb))
     list_of_names.sort(key=lambda b: os.path.basename(b))
     for fn in list_of_names:
-        yield lagos.EnzoStaticOutput(fn[:-10])
+        yield lagos.EnzoStaticOutput(fn[:-10], **kwargs)
 
 def max_spheres(width, unit, **kwargs):
     for pf in all_pfs(**kwargs):

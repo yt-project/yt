@@ -157,14 +157,18 @@ class AMRHierarchy:
         """
 
         if self._data_mode != 'a': return
+        if "ArgsError" in dir(h5py.h5):
+            exception = h5py.h5.ArgsError
+        else:
+            exception = h5py.h5.H5Error
         try:
             node_loc = self._data_file[node]
             if name in node_loc.listnames() and force:
                 mylog.info("Overwriting node %s/%s", node, name)
                 del self._data_file[node][name]
             elif name in node_loc.listnames() and passthrough:
-                return        
-        except h5py.h5.ArgsError:
+                return
+        except exception:
             pass
         myGroup = self._data_file['/']
         for q in node.split('/'):
@@ -175,10 +179,17 @@ class AMRHierarchy:
         self._data_file.flush()
 
     def _reload_data_file(self, *args, **kwargs):
+        if self._data_file is None: return
         self._data_file.close()
         del self._data_file
         self._data_file = h5py.File(self.__data_filename, self._data_mode)
 
+    def _reset_save_data(self,round_robin=False):
+        if round_robin:
+            self.save_data = self._save_data
+        else:
+            self.save_data = parallel_splitter(self._save_data, self._reload_data_file)
+    
     save_data = parallel_splitter(_save_data, _reload_data_file)
 
     def save_object(self, obj, name):
@@ -203,10 +214,18 @@ class AMRHierarchy:
         if self._data_file == None:
             return None
         if node[0] != "/": node = "/%s" % node
-        full_name = "%s/%s" % (node, name)
-        if full_name not in self._data_file:
+
+        myGroup = self._data_file['/']
+        for group in node.split('/'):
+            if group:
+                if group not in myGroup.listnames():
+                    return None
+                myGroup = myGroup[group]
+        if name not in myGroup.listnames():
             return None
-        return self._data_file["%s/%s" % (node, name)]
+
+        full_name = "%s/%s" % (node, name)
+        return self._data_file[full_name]
 
     def _close_data_file(self):
         if self._data_file:
@@ -840,9 +859,9 @@ class EnzoHierarchy(AMRHierarchy):
                 self.gridLevels[secondGrid] = self.gridLevels[firstGrid]
         pTree = [ [ grid.id - 1 for grid in self.gridTree[i] ] for i in range(self.num_grids) ]
         self.gridReverseTree[0] = -1
-        self.save_data(cPickle.dumps(pTree, protocol=-1), "/", "Tree")
-        self.save_data(na.array(self.gridReverseTree), "/", "ReverseTree")
-        self.save_data(self.gridLevels, "/", "Levels")
+        self.save_data(cPickle.dumps(pTree, protocol=-1), "/", "Tree", force=True)
+        self.save_data(na.array(self.gridReverseTree), "/", "ReverseTree", force=True)
+        self.save_data(self.gridLevels, "/", "Levels", force=True)
 
     @parallel_blocking_call
     def _populate_hierarchy(self):
@@ -866,12 +885,15 @@ class EnzoHierarchy(AMRHierarchy):
             self.__setup_grid_tree()
         else:
             mylog.debug("Grabbing serialized tree data")
-            pTree = cPickle.loads(treeArray.value)
-            self.gridReverseTree = list(self.get_data("/","ReverseTree"))
-            self.gridTree = [ [ weakref.proxy(self.grids[i]) for i in pTree[j] ]
-                for j in range(self.num_grids) ]
-            self.gridLevels = self.get_data("/","Levels")[:]
-            mylog.debug("Grabbed")
+            try:
+                pTree = cPickle.loads(treeArray.value)
+                self.gridReverseTree = list(self.get_data("/","ReverseTree"))
+                self.gridTree = [ [ weakref.proxy(self.grids[i]) for i in pTree[j] ]
+                    for j in range(self.num_grids) ]
+                self.gridLevels = self.get_data("/","Levels")[:]
+                mylog.debug("Grabbed")
+            except EOFError:
+                self.__setup_grid_tree()
         for i,v in enumerate(self.gridReverseTree):
             # For multiple grids on the root level
             if v == -1: self.gridReverseTree[i] = None
@@ -962,8 +984,14 @@ class EnzoHierarchy(AMRHierarchy):
         return self.grids[(random_sample,)]
 
 class EnzoHierarchyInMemory(EnzoHierarchy):
-    def __init__(self, pf, data_style = 8):
-        import enzo
+    _data_style = 8
+    def _obtain_enzo(self):
+        import enzo; return enzo
+
+    def __init__(self, pf, data_style = None):
+        self.parameter_file = weakref.proxy(pf) # for _obtain_enzo
+        if data_style is None: data_style = self._data_style
+        enzo = self._obtain_enzo()
         self.float_type = 'float64'
         self.data_style = data_style # Mandated
         self.directory = os.getcwd()
@@ -980,16 +1008,16 @@ class EnzoHierarchyInMemory(EnzoHierarchy):
         data = list(field_list)
         if MPI.COMM_WORLD.rank == 0:
             for i in range(1, MPI.COMM_WORLD.size):
-                data += MPI.COMM_WORLD.Recv(source=i, tag=0)
+                data += MPI.COMM_WORLD.recv(source=i, tag=0)
             data = list(set(data))
         else:
-            MPI.COMM_WORLD.Send(data, dest=0, tag=0)
+            MPI.COMM_WORLD.send(data, dest=0, tag=0)
         MPI.COMM_WORLD.Barrier()
-        return MPI.COMM_WORLD.Bcast(data, root=0)
+        return MPI.COMM_WORLD.bcast(data, root=0)
 
     def _populate_hierarchy(self):
         self._copy_hierarchy_structure()
-        import enzo
+        enzo = self._obtain_enzo()
         mylog.debug("Copying reverse tree")
         self.gridReverseTree = enzo.hierarchy_information["GridParentIDs"].ravel().tolist()
         # Initial setup:
@@ -1024,7 +1052,7 @@ class EnzoHierarchyInMemory(EnzoHierarchy):
         mylog.debug("Hierarchy fully populated.")
 
     def _copy_hierarchy_structure(self):
-        import enzo
+        enzo = self._obtain_enzo()
         self.gridDimensions[:] = enzo.hierarchy_information["GridDimensions"][:]
         self.gridStartIndices[:] = enzo.hierarchy_information["GridStartIndices"][:]
         self.gridEndIndices[:] = enzo.hierarchy_information["GridEndIndices"][:]
@@ -1045,6 +1073,9 @@ class EnzoHierarchyInMemory(EnzoHierarchy):
         else:
             random_sample = na.mgrid[0:max(len(gg)-1,1)].astype("int32")
         return gg[(random_sample,)]
+
+    def save_data(self, *args, **kwargs):
+        pass
 
 class EnzoHierarchy1D(EnzoHierarchy):
     def __init__(self, *args, **kwargs):

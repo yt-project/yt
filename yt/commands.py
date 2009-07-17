@@ -27,7 +27,7 @@ from yt.mods import *
 from yt.funcs import *
 from yt.recipes import _fix_pf
 import yt.cmdln as cmdln
-import optparse, os, os.path, math
+import optparse, os, os.path, math, sys
 
 _common_options = dict(
     axis    = dict(short="-a", long="--axis",
@@ -38,6 +38,10 @@ _common_options = dict(
                    action="store_true",
                    dest="takelog", default=True,
                    help="Take the log of the field?"),
+    text    = dict(short="-t", long="--text",
+                   action="store", type="string",
+                   dest="text", default=None,
+                   help="Textual annotation"),
     field   = dict(short="-f", long="--field",
                    action="store", type="string",
                    dest="field", default="Density",
@@ -55,6 +59,11 @@ _common_options = dict(
                    dest="zlim", default=None,
                    nargs=2,
                    help="Color limits (min, max)"),
+    dex     = dict(short="", long="--dex",
+                   action="store", type="float",
+                   dest="dex", default=None,
+                   nargs=1,
+                   help="Number of dex above min to display"),
     width   = dict(short="-w", long="--width",
                    action="store", type="float",
                    dest="width", default=1.0,
@@ -248,7 +257,8 @@ class YTCommands(cmdln.Cmdln):
         del hp
 
     @add_cmd_options(["maxw", "minw", "proj", "axis", "field", "weight",
-                      "zlim", "nframes", "output", "cmap", "uboxes"])
+                      "zlim", "nframes", "output", "cmap", "uboxes", "dex",
+                      "text"])
     def do_zoomin(self, subcmd, opts, arg):
         """
         Create a set of zoomin frames
@@ -263,11 +273,14 @@ class YTCommands(cmdln.Cmdln):
             axes = [opts.axis]
         pc = PlotCollection(pf)
         for ax in axes: 
-            if opts.projection: pc.add_projection(opts.field, ax,
+            if opts.projection: p = pc.add_projection(opts.field, ax,
                                     weight_field=opts.weight)
-            else: pc.add_slice(opts.field, ax)
-            if opts.unit_boxes: pc.plots[-1].add_callback(
-                    UnitBoundaryCallback(factor=8))
+            else: p = pc.add_slice(opts.field, ax)
+            if opts.unit_boxes: p.modify["units"](factor=8)
+            if opts.text is not None:
+                p.modify["text"](
+                    (0.02, 0.05), opts.text.replace(r"\n", "\n"),
+                    text_args=dict(size="medium", color="w"))
         pc.set_width(opts.max_width,'1')
         # Check the output directory
         if not os.path.isdir(opts.output):
@@ -284,10 +297,13 @@ class YTCommands(cmdln.Cmdln):
             mylog.info("Setting width to %0.3e", w)
             mylog.info("Saving frame %06i",i)
             pc.set_width(w,"1")
-            if opts.zlim: pc.set_zlim(*opts.zlim)
+            if opts.zlim:
+                pc.set_zlim(*opts.zlim)
+            if opts.dex:
+                pc.set_zlim('min', None, opts.dex)
             pc.set_cmap(opts.cmap)
             pc.save(os.path.join(opts.output,"%s_frame%06i" % (pf,i)))
-            w *= factor
+            w = factor**i
 
     @add_cmd_options(["width", "unit", "bn", "proj", "center",
                       "zlim", "axis", "field", "weight", "skip",

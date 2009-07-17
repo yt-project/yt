@@ -43,7 +43,7 @@ class StaticOutput(object):
             output_type_registry[name]=cls
             mylog.debug("Registering: %s as %s", name, cls)
 
-    def __new__(cls, filename, *args, **kwargs):
+    def __new__(cls, filename=None, *args, **kwargs):
         apath = os.path.abspath(filename)
         if not os.path.exists(apath): raise IOError(filename)
         if apath not in _cached_pfs:
@@ -84,10 +84,13 @@ class StaticOutput(object):
         return self.basename
 
     def _hash(self):
-        import hashlib
         s = "%s;%s;%s" % (self.basename,
             self["InitialTime"], self["CurrentTimeIdentifier"])
-        return hashlib.md5(s).hexdigest()
+        try:
+            import hashlib
+            return hashlib.md5(s).hexdigest()
+        except ImportError:
+            return s.replace(";", "*")
 
     @classmethod
     def _is_valid(cls, *args, **kwargs):
@@ -393,16 +396,27 @@ output_type_registry[None] = EnzoStaticOutput
 
 class EnzoStaticOutputInMemory(EnzoStaticOutput):
     _hierarchy_class = EnzoHierarchyInMemory
+    _data_style = 8
+
+    def __new__(cls, *args, **kwargs):
+        obj = object.__new__(cls)
+        obj.__init__(*args, **kwargs)
+        return obj
+
     def __init__(self, parameter_override=None, conversion_override=None):
         if parameter_override is None: parameter_override = {}
         self.__parameter_override = parameter_override
         if conversion_override is None: conversion_override = {}
         self.__conversion_override = conversion_override
 
-        StaticOutput.__init__(self, "InMemoryParameterFile", 8)
+        StaticOutput.__init__(self, "InMemoryParameterFile", self._data_style)
+
+        self.field_info = self._fieldinfo_class()
 
     def _parse_parameter_file(self):
-        import enzo
+        enzo = self._obtain_enzo()
+        self.basename = "cycle%08i" % (
+            enzo.yt_parameter_file["NumberOfPythonCalls"])
         self.parameters['CurrentTimeIdentifier'] = time.time()
         self.parameters.update(enzo.yt_parameter_file)
         self.conversion_factors.update(enzo.conversion_factors)
@@ -416,6 +430,9 @@ class EnzoStaticOutputInMemory(EnzoStaticOutput):
             self.parameters[p] = v
         for p, v in self.__conversion_override.items():
             self.conversion_factors[p] = v
+
+    def _obtain_enzo(self):
+        import enzo; return enzo
 
     @classmethod
     def _is_valid(cls, *args, **kwargs):

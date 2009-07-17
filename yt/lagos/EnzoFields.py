@@ -38,7 +38,7 @@ add_field = add_enzo_field
 _speciesList = ["HI","HII","Electron",
                "HeI","HeII","HeIII",
                "H2I","H2II","HM",
-               "DI","DII","HDI","Metal"]
+               "DI","DII","HDI","Metal","PreShock"]
 def _SpeciesFraction(field, data):
     sp = field.name.split("_")[0] + "_Density"
     return data[sp]/data["Density"]
@@ -59,7 +59,7 @@ def _ThermalEnergy(field, data):
         return data["Total_Energy"]
     else:
         if data.pf["DualEnergyFormalism"]:
-            return data["Gas_Energy"]
+            return data["GasEnergy"]
         else:
             return data["Total_Energy"] - 0.5*(
                    data["x-velocity"]**2.0
