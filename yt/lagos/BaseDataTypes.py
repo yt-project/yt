@@ -387,7 +387,7 @@ class AMR1DData(AMRData, GridPropertiesMixin):
                 continue
             mylog.info("Getting field %s from %s", field, len(self._grids))
             if field not in self.hierarchy.field_list and not in_grids:
-                if field != "dts" and self._generate_field(field):
+                if field not in ("dts", "t") and self._generate_field(field):
                     continue # True means we already assigned it
             self[field] = na.concatenate(
                 [self._get_data_from_grid(grid, field)
@@ -456,7 +456,7 @@ class AMRRayBase(AMR1DData):
         #self.vec /= na.sqrt(na.dot(self.vec, self.vec))
         self.center = self.start_point
         self.set_field_parameter('center', self.start_point)
-        self._dts = {}
+        self._dts, self._ts = {}, {}
         #self._refresh_data()
 
     def _get_list_of_grids(self):
@@ -490,16 +490,19 @@ class AMRRayBase(AMR1DData):
         mask = na.logical_and(self._get_cut_mask(grid),
                               grid.child_mask)
         if field == 'dts': return self._dts[grid.id][mask]
+        if field == 't': return self._ts[grid.id][mask]
         return grid[field][mask]
         
     @cache_mask
     def _get_cut_mask(self, grid):
         mask = na.zeros(grid.ActiveDimensions, dtype='int')
         dts = na.zeros(grid.ActiveDimensions, dtype='float64')
+        ts = na.zeros(grid.ActiveDimensions, dtype='float64')
         import RTIntegrator as RT
-        RT.VoxelTraversal(mask, dts, grid.LeftEdge, grid.RightEdge,
+        RT.VoxelTraversal(mask, ts, dts, grid.LeftEdge, grid.RightEdge,
                           grid.dds, self.center, self.vec)
         self._dts[grid.id] = na.abs(dts)
+        self._ts[grid.id] = na.abs(ts)
         return mask
 
 class AMR2DData(AMRData, GridPropertiesMixin, ParallelAnalysisInterface):
