@@ -467,8 +467,7 @@ class AMRRayBase(AMR1DData):
                 & na.all( RE >= self.start_point, axis=1 ) )
         p = p | ( na.all( LE <= self.end_point,   axis=1 ) 
                 & na.all( RE >= self.end_point,   axis=1 ) )
-        #self._grids = self.hierarchy.grids[p]
-        self._grids = self.hierarchy.grids.copy()
+        self._grids = self.hierarchy.grids[p]
 
     def _get_line_at_coord(self, v, index):
         # t*self.vec + self.start_point = self.end_point
