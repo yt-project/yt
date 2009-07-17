@@ -26,7 +26,6 @@ License:
 from yt.raven import *
 
 import _MPL
-import copy
 class FixedResolutionBuffer(object):
     def __init__(self, data_source, bounds, buff_size, antialias = True):
         """
@@ -95,9 +94,8 @@ class FixedResolutionBuffer(object):
         extra_fields = ['x','y','z','px','py','pz','pdx','pdy','pdz','weight_field']
         if filename_prefix.endswith('.fits'): filename_prefix=filename_prefix[:-5]
         if fields is None: 
-            fields = copy.deepcopy(self.data_source.fields)
-            for extra_field in extra_fields:
-                if self.data_source.has_key(extra_field):fields.remove(extra_field)
+            fields = [field for field in self.data_source.fields 
+                      if field not in extra_fields]
         for field in fields:
             hdu = pyfits.PrimaryHDU(self[field])
             if self.data_source.has_key('weight_field'):
