@@ -25,6 +25,8 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
+data_object_registry = {}
+
 from yt.lagos import *
 
 def restore_grid_state(func):
@@ -108,6 +110,13 @@ class AMRData:
     _grids = None
     _num_ghost_zones = 0
     _con_args = ()
+    _skip_add = False
+
+    class __metaclass__(type):
+        def __init__(cls, name, b, d):
+            type.__init__(cls, name, b, d)
+            if hasattr(cls, "_type_name") and not cls._skip_add:
+                data_object_registry[cls._type_name] = cls
 
     def __init__(self, pf, fields, **kwargs):
         """
@@ -119,6 +128,8 @@ class AMRData:
         if pf != None:
             self.pf = pf
             self.hierarchy = pf.hierarchy
+        self.hierarchy.objects.append(weakref.proxy(self))
+        mylog.debug("Appending object to %s", self.pf)
         if fields == None: fields = []
         self.fields = ensure_list(fields)[:]
         self.data = {}
@@ -1776,6 +1787,7 @@ class AMRRegionStrictBase(AMRRegionBase):
     """
     AMRRegion without any dx padding for cell selection
     """
+    _type_name = "region_strict"
     _dx_pad = 0.0
 
 class AMRPeriodicRegionBase(AMR3DData):
@@ -1837,9 +1849,10 @@ class AMRPeriodicRegionStrictBase(AMRPeriodicRegionBase):
     """
     AMRPeriodicRegion without any dx padding for cell selection
     """
+    _type_name = "periodic_region_strict"
     _dx_pad = 0.0
 
-class AMRGridCollection(AMR3DData):
+class AMRGridCollectionBase(AMR3DData):
     """
     An arbitrary selection of grids, within which we accept all points.
     """
@@ -2174,7 +2187,7 @@ class AMRSmoothedCoveringGridBase(AMRCoveringGridBase):
 class AMRNewCoveringGridBase(AMR3DData):
     _spatial = True
     _type_name = "new_covering_grid"
-    _con_argss = ('level', 'left_edge', 'right_edge', 'ActiveDimensions')
+    _con_args = ('level', 'left_edge', 'right_edge', 'ActiveDimensions')
     def __init__(self, level, left_edge, dims, fields = None,
                  pf = None, num_ghost_zones = 0, use_pbar = True, **kwargs):
         AMR3DData.__init__(self, center=None, fields=fields, pf=pf, **kwargs)
@@ -2313,19 +2326,6 @@ class AMRNewSmoothedCoveringGridBase(AMRNewCoveringGridBase):
 
     def _get_data_from_grid(self, grid, fields):
         pass
-
-class EnzoOrthoRayBase(AMROrthoRayBase): pass
-class EnzoRayBase(AMRRayBase): pass
-class EnzoSliceBase(AMRSliceBase): pass
-class EnzoCuttingPlaneBase(AMRCuttingPlaneBase): pass
-class EnzoProjBase(AMRProjBase): pass
-class EnzoCylinderBase(AMRCylinderBase): pass
-class EnzoRegionBase(AMRRegionBase): pass
-class EnzoPeriodicRegionBase(AMRPeriodicRegionBase): pass
-class EnzoGridCollection(AMRGridCollection): pass
-class EnzoSphereBase(AMRSphereBase): pass
-class EnzoCoveringGrid(AMRCoveringGridBase): pass
-class EnzoSmoothedCoveringGrid(AMRSmoothedCoveringGridBase): pass
 
 def _reconstruct_object(*args, **kwargs):
     pfid = args[0]

@@ -240,30 +240,11 @@ class AMRHierarchy:
 
     def _setup_classes(self, dd):
         self.object_types = []
-        self._add_object_class('proj', "AMRProj", AMRProjBase, dd)
-        self._add_object_class('slice', "AMRSlice", AMRSliceBase, dd)
-        self._add_object_class('region', "AMRRegion", AMRRegionBase, dd)
-        self._add_object_class('region_strict', "AMRRegionStrict",
-                        AMRRegionStrictBase, dd)
-        self._add_object_class('periodic_region', "AMRPeriodicRegion",
-                        AMRPeriodicRegionBase, dd)
-        self._add_object_class('periodic_region_strict', "AMRPeriodicRegionStrict",
-                        AMRPeriodicRegionStrictBase, dd)
-        self._add_object_class('covering_grid', "AMRCoveringGrid",
-                        AMRCoveringGridBase, dd)
-        self._add_object_class('smoothed_covering_grid', "AMRSmoothedCoveringGrid",
-                        AMRSmoothedCoveringGridBase, dd)
-        self._add_object_class('new_covering_grid', "AMRNewCoveringGrid",
-                        AMRNewCoveringGridBase, dd)
-        self._add_object_class('fixed_res_proj', "AMRFixedResProjection",
-                        AMRFixedResProjectionBase, dd)
-        self._add_object_class('sphere', "AMRSphere", AMRSphereBase, dd)
-        self._add_object_class('cutting', "AMRCuttingPlane", AMRCuttingPlaneBase, dd)
-        self._add_object_class('ray', "AMRRay", AMRRayBase, dd)
-        self._add_object_class('ortho_ray', "AMROrthoRay", AMROrthoRayBase, dd)
-        self._add_object_class('disk', "AMRCylinder", AMRCylinderBase, dd)
-        self._add_object_class('grid_collection', "AMRGridCollection", AMRGridCollection, dd)
-        self._add_object_class('extracted_region', "ExtractedRegion", ExtractedRegionBase, dd)
+        self.objects = []
+        for name, cls in sorted(data_object_registry.items()):
+            cname = cls.__name__
+            if cname.endswith("Base"): cname = cname[:-4]
+            self._add_object_class(name, cname, cls, dd)
         self.object_types.sort()
 
     def all_data(self, find_max=False):
