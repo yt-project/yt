@@ -188,14 +188,26 @@ class RunChainHOP(ParallelAnalysisInterface):
         Convert local chainIDs into globally unique chainIDs.
         """
         # First find out the number of chains on each processor.
-        mine, chain_info = self._mpi_info_dict(chain_count)
-        nchains = sum(chain_info.values())
+        self.mine, chain_info = self._mpi_info_dict(chain_count)
+        self.nchains = sum(chain_info.values())
         # Figure out our offset.
-        my_first_id = sum([v for k,v in chain_info.items() if k < mine])
+        self.my_first_id = sum([v for k,v in chain_info.items() if k < self.mine])
         # Change particle IDs, -1 still means no chain.
         for i in xrange(self.size):
             if self.chainID[i] != -1:
-                self.chainID[i] += my_first_id
+                self.chainID[i] += self.my_first_id
+
+    def _create_global_densest_in_chain(self):
+        """
+        With the globally unique chainIDs, update densest_in_chain.
+        """
+        # shift the values over
+        temp = self.densest_in_chain.copy()
+        self.densest_in_chain = {}
+        for dens in temp:
+            self.densest_in_chain[dens + self.my_first_id] = temp[dens]
+        # distribute this
+        self.densest_in_chain = self._mpi_joindict(self.densest_in_chain)
 
     def _build_uphill_info(self):
         """
@@ -215,7 +227,6 @@ class RunChainHOP(ParallelAnalysisInterface):
             self.uphill_info_count[shift_index] += 1
             chainID = self.chainID[part]
             self.uphill_info[shift_index].append(PaddedPart(part, real_index, chainID, shift))
-        sys.exit()
 
     def _communicate_uphill_info(self):
         """
@@ -229,14 +240,14 @@ class RunChainHOP(ParallelAnalysisInterface):
             if i==13: continue
             shift = self._translate_shift(i=i)
             neighbor = self._find_neighbor_3d(shift)
-            self._send_array(self.uphill_info_count[i], neighbor)
+            self.__send_array(self.uphill_info_count[i], neighbor)
         # now we receive them, the order doesn't matter because each of my 
         # neighbors is only sending me one thing.
         for i in range(27):
             if i==13: continue
             shift = self._translate_shift(i=i)
             neighbor = self._find_neighbor_3d(shift)
-            self.uphill_recv_count[i] = self._recv_array(neighbor)
+            self.uphill_recv_count[i] = self.__recv_array(neighbor)
         # now we send the information to neighbors who have non-zero information
         # to receive.
         for shift_index in self.uphill_info_count:
@@ -246,7 +257,7 @@ class RunChainHOP(ParallelAnalysisInterface):
             neighbor = self._find_neighbor_3d(shift)
             for info in self.uphill_info[shift_index]:
                 data = na.array([info.particle_index, chainID])
-                self._send_array(data, neighbor)
+                self.__send_array(data, neighbor)
         # now we receive the data from non-zero neighbors
         for shift_index in self.uphill_recv_count:
             if self.uphill_recv_count[shift_index] == 0:
@@ -254,7 +265,7 @@ class RunChainHOP(ParallelAnalysisInterface):
             shift = self._translate_shift(i=shift_index)
             neighbor = self._find_neighbor_3d(shift)
             for i in xrange(self.uphill_recv_count[shift_count]):
-                data = self._recv_array(neighbor)
+                data = self.__recv_array(neighbor)
                 self.uphill_recv.append(data)
 
     def _translate_global_to_local_particle_index(self,real_index):
@@ -265,7 +276,7 @@ class RunChainHOP(ParallelAnalysisInterface):
         for index,particle_index in enumerate(self.index):
             if particle_index == real_index:
                 return particle_index
-        # oops... how'd this happen?
+        # oopsie below... how'd this happen? If it does, big trouble!
         return -1
         
 
@@ -276,6 +287,8 @@ class RunChainHOP(ParallelAnalysisInterface):
         """
         changes = 1
         while changes:
+            mylog.info('loop')
+            chainID_translate_map_local = {} # local->received (new)
             changes = 0
             # rebuild this every time
             self._build_uphill_info()
@@ -285,7 +298,40 @@ class RunChainHOP(ParallelAnalysisInterface):
             for i,particle in enumerate(self.uphill_recv):
                 localID = self._translate_global_to_local_particle_index(particle[0])
                 self.uphill_recv[i] = na.array([localID, particle[1]])
-            
+            # Now update our chainIDs to the received chainIDs
+            for particle in self.uphill_recv:
+                # if the 'new' chainID is different that what we already have,
+                # we need to change it.
+                if particle[1] != self.chainID[particle[0]]:
+                    changes += 1
+                    chainID_translate_map_local[self.chainID[particle[0]]] = \
+                        particle[1]
+            # an allsum will do to make it positive everywhere if it is anywhere
+            changes = self._mpi_allsum(changes)
+            # We need to update densest_in_chain, putting our local value into
+            # the slot for the new, updated chainID, remembering that these 
+            # chain links are going uphill, so *our* peak density is
+            # necessarily higher than the other thread's. But the chainID of the
+            # least-densest part of the chain is what persists, so that's where
+            # we put it.
+            for local_chainID in chainID_translate_map_local:
+                remote_chainID = chainID_translate_map_local[local_chainID]
+                self.densest_in_chain[remote_chainID] = \
+                    self.densest_in_chain[local_chainID]
+            # now we update densest_in_chain, finding the max across all tasks
+            self.densest_in_chain = self._mpi_maxdict(self.densest_in_chain)
+            # I may eventually do this more efficently, but for now...
+            # Convert local particles to their new chainID
+            for i in xrange(self.size):
+                old_chainID = self.chainID[i]
+                try:
+                    new_chainID = chainID_translate_map_local[old_chainID]
+                except KeyError:
+                    continue
+                self.chainID[i] = new_chainID
+            # At this point, the while loop should continue until chains are no
+            # longer changing ID.
+        sys.exit()
 
     def _connect_chains(self,chain_count):
         """
@@ -533,7 +579,11 @@ class RunChainHOP(ParallelAnalysisInterface):
         chain_count = self._build_chains()
         mylog.info('Gobally assigning chainIDs...')
         self._globally_assign_chainIDs(chain_count)
-        self._build_uphill_info()
+        mylog.info('Global densest in chain...')
+        self._create_global_densest_in_chain()
+        #self._build_uphill_info()
+        mylog.info('Connecting chains across tasks...')
+        self._connect_chains_across_tasks()
         # Connect the chains into groups.
         #mylog.info('Connecting %d chains into groups...' % chain_count)
         #self._connect_chains(chain_count)

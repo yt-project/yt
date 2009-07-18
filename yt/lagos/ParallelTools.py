@@ -333,6 +333,29 @@ class ParallelAnalysisInterface(object):
         return data
 
     @parallel_passthrough
+    def _mpi_maxdict(self, data):
+        """
+        For each key in data, find the maximum value across all tasks, and
+        then broadcast it back.
+        """
+        self._barrier()
+        if MPI.COMM_WORLD.rank == 0:
+            for i in range(1,MPI.COMM_WORLD.size):
+                temp_data = MPI.COMM_WORLD.recv(source=i, tag=0)
+                for key in temp_data:
+                    try:
+                        max = data[key]
+                    except KeyError:
+                        max = 0.
+                    if max < temp_data[key]:
+                        data[key] = temp_data[key]
+        else:
+            MPI.COMM_WORLD.send(data, dest=0, tag=0)
+        data = MPI.COMM_WORLD.bcast(data, root=0)
+        self._barrier()
+        return data
+
+    @parallel_passthrough
     def __mpi_recvlist(self, data):
         # First we receive, then we make a new list.
         data = ensure_list(data)
@@ -431,6 +454,18 @@ class ParallelAnalysisInterface(object):
     def _is_mine(self, obj):
         if not obj._distributed: return True
         return (obj._owner == MPI.COMM_WORLD.rank)
+
+    @parallel_passthrough
+    def __send_array(self, arr, dest, tag=0):
+        _send_array(arr, dest, tag=0)
+    
+    @parallel_passthrough
+    def __recv_array(self, source, tag=0):
+        return _recv_array(source, tag=0)
+    
+    @parallel_passthrough
+    def __bcast_array(self, arr, root=0):
+        return _bcast_array(arr, root=0)
 
 __tocast = 'c'
 
