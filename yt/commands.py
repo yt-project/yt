@@ -74,7 +74,7 @@ _common_options = dict(
                    help="Desired units"),
     center  = dict(short="-c", long="--center",
                    action="store", type="float",
-                   dest="center", default=None,
+                   dest="center", default=[0.5, 0.5, 0.5],
                    nargs=3,
                    help="Center (-1,-1,-1 for max)"),
     bn      = dict(short="-b", long="--basename",
@@ -254,7 +254,6 @@ class YTCommands(cmdln.Cmdln):
             hp.makeProfiles()
         if opts.make_projections:
             hp.makeProjections()
-        del hp
 
     @add_cmd_options(["maxw", "minw", "proj", "axis", "field", "weight",
                       "zlim", "nframes", "output", "cmap", "uboxes", "dex",
@@ -336,6 +335,7 @@ class YTCommands(cmdln.Cmdln):
         pc.set_width(opts.width, opts.unit)
         pc.set_cmap(opts.cmap)
         if opts.zlim: pc.set_zlim(*opts.zlim)
+        if not os.path.isdir(opts.output): os.makedirs(opts.output)
         pc.save(os.path.join(opts.output,"%s" % (pf)))
 
     def do_vtk(self, subcmd, opts):
