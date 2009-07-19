@@ -74,7 +74,7 @@ _common_options = dict(
                    help="Desired units"),
     center  = dict(short="-c", long="--center",
                    action="store", type="float",
-                   dest="center", default=None,
+                   dest="center", default=[0.5, 0.5, 0.5],
                    nargs=3,
                    help="Center (-1,-1,-1 for max)"),
     bn      = dict(short="-b", long="--basename",
