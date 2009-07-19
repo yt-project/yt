@@ -4,6 +4,7 @@ from sets import Set
 
 from yt.lagos import *
 from yt.extensions.kdtree import *
+from yt.lagos.ParallelTools import _send_array, _recv_array
 from Forthon import *
 
 class PaddedPart(object):
@@ -240,14 +241,14 @@ class RunChainHOP(ParallelAnalysisInterface):
             if i==13: continue
             shift = self._translate_shift(i=i)
             neighbor = self._find_neighbor_3d(shift)
-            self.__send_array(self.uphill_info_count[i], neighbor)
+            _send_array(self.uphill_info_count[i], neighbor)
         # now we receive them, the order doesn't matter because each of my 
         # neighbors is only sending me one thing.
         for i in range(27):
             if i==13: continue
             shift = self._translate_shift(i=i)
             neighbor = self._find_neighbor_3d(shift)
-            self.uphill_recv_count[i] = self.__recv_array(neighbor)
+            self.uphill_recv_count[i] = _recv_array(neighbor)
         # now we send the information to neighbors who have non-zero information
         # to receive.
         for shift_index in self.uphill_info_count:
@@ -256,16 +257,16 @@ class RunChainHOP(ParallelAnalysisInterface):
             shift = self._translate_shift(i=shift_index)
             neighbor = self._find_neighbor_3d(shift)
             for info in self.uphill_info[shift_index]:
-                data = na.array([info.particle_index, chainID])
-                self.__send_array(data, neighbor)
+                data = na.array([info.particle_index, info.chainID])
+                _send_array(data, neighbor)
         # now we receive the data from non-zero neighbors
         for shift_index in self.uphill_recv_count:
             if self.uphill_recv_count[shift_index] == 0:
                 continue
             shift = self._translate_shift(i=shift_index)
             neighbor = self._find_neighbor_3d(shift)
-            for i in xrange(self.uphill_recv_count[shift_count]):
-                data = self.__recv_array(neighbor)
+            for i in xrange(self.uphill_recv_count[shift_index]):
+                data = _recv_array(neighbor)
                 self.uphill_recv.append(data)
 
     def _translate_global_to_local_particle_index(self,real_index):
@@ -315,6 +316,7 @@ class RunChainHOP(ParallelAnalysisInterface):
             # least-densest part of the chain is what persists, so that's where
             # we put it.
             for local_chainID in chainID_translate_map_local:
+                if local_chainID == -1: continue # Do we want this?
                 remote_chainID = chainID_translate_map_local[local_chainID]
                 self.densest_in_chain[remote_chainID] = \
                     self.densest_in_chain[local_chainID]

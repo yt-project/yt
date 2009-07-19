@@ -33,6 +33,7 @@ import copy
 import os
 import numpy as na
 import random as rand
+import yt.lagos.Cosmology as cosmo
 
 class LightCone(object):
     def __init__(self,EnzoParameterFile,LightConeParameterFile,verbose=True):
@@ -79,8 +80,10 @@ class LightCone(object):
 
         # Calculate redshifts for dt data dumps.
         if (self.enzoParameters.has_key('dtDataDump')):
-            self._CalculateTimeDumpRedshifts()
-
+            if self.lightConeParameters['dtSplit'] is None:
+                self._CalculateTimeDumpRedshifts()
+            else:
+                self._CalculateSplitTimeDumpRedshifts(self.lightConeParameters['dtSplit'],self.lightConeParameters['dt_new']) 
         # Combine all data dumps.
         self._CombineDataOutputs()
 
@@ -250,7 +253,7 @@ class LightCone(object):
             del haloMaskCube
 
     def ProjectLightCone(self,field,weight_field=None,apply_halo_mask=False,node=None,
-                         save_stack=True,save_slice_images=False,flatten_stack=False,**kwargs):
+                         save_stack=True,save_slice_images=False,flatten_stack=False,photon_field=False,**kwargs):
         "Create projections for light cone, then add them together."
 
         # Clear projection stack.
@@ -273,6 +276,19 @@ class LightCone(object):
             frb = LightConeProjection(output,field,self.pixels,weight_field=weight_field,
                                       save_image=save_slice_images,
                                       name=name,node=node,**kwargs)
+            if ytcfg.getint("yt","__parallel_rank") == 0:
+                if photon_field:
+                #need to decrement the flux by the luminosity distance. Assume field in frb is in erg/s/cm^2/Hz
+                    co = lagos.Cosmology(HubbleConstantNow = (100.0 * self.enzoParameters['CosmologyHubbleConstantNow']),
+                                         OmegaMatterNow = self.enzoParameters['CosmologyOmegaMatterNow'],
+                                         OmegaLambdaNow = self.enzoParameters['CosmologyOmegaLambdaNow'])
+                    dL = co.LuminosityDistance(self.lightConeParameters['ObserverRedshift'],output['redshift']) #in Mpc
+                    boxSizeProper = self.enzoParameters['CosmologyComovingBoxSize'] / (self.enzoParameters['CosmologyHubbleConstantNow'] * 
+                                                                                       (1.0 + output['redshift']))
+                    pixelarea = (boxSizeProper/self.pixels)**2 #in proper cm^2
+                    factor = pixelarea/(4.0*na.pi*dL**2)
+                    mylog.info("Distance to slice = %e" % dL)
+                    frb[field] *= factor #in erg/s/cm^2/Hz on observer's image plane.
 
             if ytcfg.getint("yt","__parallel_rank") == 0:
                 if (weight_field is not None):
@@ -334,7 +350,7 @@ class LightCone(object):
                              self.lightConeSolution[-1]['object'].parameters['DomainRightEdge'][w])
                       for w in range(self.lightConeSolution[-1]['object'].parameters['TopGridRank'])]
             pc = raven.PlotCollection(self.lightConeSolution[-1]['object'],center=center)
-            pc.add_fixed_resolution_plot(frb,field)
+            pc.add_fixed_resolution_plot(frb,field,**kwargs)
             pc.save(filename)
 
             # Return the plot collection so the user can remake the plot if they want.
@@ -582,6 +598,35 @@ class LightCone(object):
             self.timeOutputs.append({'index':index,'redshift':z,'filename':filename})
             index += 1
 
+    def _CalculateSplitTimeDumpRedshifts(self,break_index,new_dt):
+        "Calculates redshift values for the dt data dumps."
+        ec = lagos.EnzoCosmology(HubbleConstantNow = \
+                               (100.0 * self.enzoParameters['CosmologyHubbleConstantNow']),
+                           OmegaMatterNow = self.enzoParameters['CosmologyOmegaMatterNow'],
+                           OmegaLambdaNow = self.enzoParameters['CosmologyOmegaLambdaNow'],
+                           InitialRedshift = self.enzoParameters['CosmologyInitialRedshift'])
+
+        z_Tolerance = 1e-3
+        z = self.enzoParameters['CosmologyInitialRedshift']
+        index = 0
+        while ((z > self.enzoParameters['CosmologyFinalRedshift']) and 
+               (na.fabs(z-self.enzoParameters['CosmologyFinalRedshift']) > z_Tolerance)):
+            if index <= break_index:
+                t = ec.InitialTime + (self.enzoParameters['dtDataDump'] * ec.TimeUnits * index)
+                z = ec.ComputeRedshiftFromTime(t)
+            else:
+                t = ec.InitialTime + (self.enzoParameters['dtDataDump'] * ec.TimeUnits * (break_index))
+                t += (new_dt * ec.TimeUnits * (index-break_index))
+                z = ec.ComputeRedshiftFromTime(t)
+            filename = "%s/%s%04d/%s%04d" % (self.enzoParameters['GlobalDir'],
+                                             self.enzoParameters['DataDumpDir'],
+                                             index,
+                                             self.enzoParameters['DataDumpDir'],
+                                             index)
+            self.timeOutputs.append({'index':index,'redshift':z,'filename':filename})
+            index += 1
+
+
     def _CombineDataOutputs(self):
         "Combines redshift and time data into one sorted list."
         self.allOutputs = self.redshiftOutputs + self.timeOutputs
@@ -686,6 +731,7 @@ class LightCone(object):
         if node_exists:
             if over_write:
                 mylog.info("Dataset, %s, already exists, overwriting." % field_node)
+                write_data = True
                 del output[field_node]
             else:
                 mylog.info("Dataset, %s, already exists in %s, not saving." % (field_node,filename))
@@ -726,7 +772,7 @@ class LightCone(object):
 
     def _SetParameterDefaults(self):
         "Set some default parameters to avoid problems if they are not in the parameter file."
-        self.enzoParameters['GlobalDir'] = ""
+        self.enzoParameters['GlobalDir'] = "./"
         self.enzoParameters['RedshiftDumpName'] = "RD"
         self.enzoParameters['RedshiftDumpDir'] = "RD"
         self.enzoParameters['DataDumpName'] = "DD"
@@ -737,6 +783,8 @@ class LightCone(object):
         self.lightConeParameters['ObserverRedshift'] = 0.0
         self.lightConeParameters['OutputDir'] = "./"
         self.lightConeParameters['OutputPrefix'] = "LightCone"
+        self.lightConeParameters['dtSplit'] = None
+        self.lightConeParameters['dt_new'] = 0.0
 
 EnzoParameterDict = {"CosmologyCurrentRedshift": float,
                      "CosmologyComovingBoxSize": float,
@@ -762,4 +810,6 @@ LightConeParameterDict = {"InitialRedshift": float,
                           "MinimumCoherentBoxFraction": float,
                           "MinimumSliceDeltaz": float,
                           "OutputDir": str,
-                          "OutputPrefix": str}
+                          "OutputPrefix": str,
+                          "dtSplit": float,
+                          "dt_new": float}

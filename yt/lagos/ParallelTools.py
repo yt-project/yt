@@ -455,18 +455,6 @@ class ParallelAnalysisInterface(object):
         if not obj._distributed: return True
         return (obj._owner == MPI.COMM_WORLD.rank)
 
-    @parallel_passthrough
-    def __send_array(self, arr, dest, tag=0):
-        _send_array(arr, dest, tag=0)
-    
-    @parallel_passthrough
-    def __recv_array(self, source, tag=0):
-        return _recv_array(source, tag=0)
-    
-    @parallel_passthrough
-    def __bcast_array(self, arr, root=0):
-        return _bcast_array(arr, root=0)
-
 __tocast = 'c'
 
 def _send_array(arr, dest, tag = 0):
