@@ -101,8 +101,8 @@ class AMRGridPatch(AMRData):
         # So first we figure out what the index is.  We don't assume
         # that dx=dy=dz , at least here.  We probably do elsewhere.
         id = self.id - self._id_offset
-        LE, RE = self.hierarchy.gridRightEdge[id,:], \
-                 self.hierarchy.gridLeftEdge[id,:]
+        LE, RE = self.hierarchy.gridLeftEdge[id,:], \
+                 self.hierarchy.gridRightEdge[id,:]
         self.dds = na.array((RE-LE)/self.ActiveDimensions)
         self.data['dx'], self.data['dy'], self.data['dz'] = self.dds
 

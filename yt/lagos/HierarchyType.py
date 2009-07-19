@@ -1471,16 +1471,16 @@ class NewEnzoHierarchy(AMRHierarchy):
             self._strip_path = True
         try:
             a = SD.SD(testGrid)
-            self.data_style = 4
+            self.data_style = 'enzo_hdf4'
             mylog.debug("Detected HDF4")
         except:
             list_of_sets = HDF5LightReader.ReadListOfDatasets(testGrid, "/")
             if len(list_of_sets) == 0 and rank == 3:
                 mylog.debug("Detected packed HDF5")
-                self.data_style = 6
+                self.data_style = 'enzo_packed_3d'
             elif len(list_of_sets) > 0 and rank == 3:
                 mylog.debug("Detected unpacked HDF5")
-                self.data_style = 5
+                self.data_style = 'enzo_hdf5'
             elif len(list_of_sets) == 0 and rank == 2:
                 mylog.debug("Detect packed 2D")
                 self.data_style = 'enzo_packed_2d'
@@ -1545,7 +1545,7 @@ class NewEnzoHierarchy(AMRHierarchy):
     def __pointer_handler(self, m):
         sgi = int(m[2])-1
         if sgi == -1: return
-        self.grids.append(self.grid(len(self.grids)))
+        self.grids.append(self.grid(len(self.grids)+1))
         self.wrefs.append(weakref.proxy(self.grids[-1]))
         secondGrid = self.wrefs[sgi] # zero-index 
         firstGrid = self.wrefs[int(m[0])-1]
