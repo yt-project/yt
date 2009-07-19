@@ -336,6 +336,7 @@ class YTCommands(cmdln.Cmdln):
         pc.set_width(opts.width, opts.unit)
         pc.set_cmap(opts.cmap)
         if opts.zlim: pc.set_zlim(*opts.zlim)
+        if not os.path.isdir(opts.output): os.makedirs(opts.output)
         pc.save(os.path.join(opts.output,"%s" % (pf)))
 
     def do_vtk(self, subcmd, opts):
