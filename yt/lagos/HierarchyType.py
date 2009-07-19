@@ -1080,6 +1080,7 @@ class EnzoHierarchyInMemory(EnzoHierarchy):
 class EnzoHierarchy1D(EnzoHierarchy):
     def __init__(self, *args, **kwargs):
         EnzoHierarchy.__init__(self, *args, **kwargs)
+        self.gridLeftEdge[:,1:3] = 0.0
         self.gridRightEdge[:,1:3] = 1.0
         self.gridDimensions[:,1:3] = 1.0
         self.gridDys[:,0] = 1.0
@@ -1091,6 +1092,7 @@ class EnzoHierarchy1D(EnzoHierarchy):
 class EnzoHierarchy2D(EnzoHierarchy):
     def __init__(self, *args, **kwargs):
         EnzoHierarchy.__init__(self, *args, **kwargs)
+        self.gridLeftEdge[:,2] = 0.0
         self.gridRightEdge[:,2] = 1.0
         self.gridDimensions[:,2] = 1.0
         self.gridDzs[:,0] = 1.0
