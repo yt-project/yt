@@ -67,12 +67,13 @@ class PlotCollection(object):
         for p in self.plots:
             yield p
 
-    def save(self, basename, format="png", override=False, force_save=False):
+    def save(self, basename=None, format="png", override=False, force_save=False):
         """
         Same plots with automatically generated names, prefixed with *basename*
         (including directory path) unless *override* is specified, and in
         *format*.
         """
+        if basename is None: basename = str(self.pf)
         fn = []
         for plot in self.plots:
             fn.append(plot.save_image(basename, \
