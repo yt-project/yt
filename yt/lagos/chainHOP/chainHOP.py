@@ -65,26 +65,67 @@ class RunChainHOP(ParallelAnalysisInterface):
         self.is_inside = ( (points >= LE).all(axis=1) * \
             (points < RE).all(axis=1) )
 
-    def _find_shift(self, i):
+    def _find_shift_padded(self, i):
         # Find the shift vector for a padded particle
         # This shouldn't happen, but just in case, an internal particle
         # has no shift.
-        if self.is_inside[i]: return numpy.array([0,0,0])
+        if self.is_inside[i]: return na.array([0,0,0], dtype='int64')
         (LE, RE) = self.bounds
         xshift, yshift, zshift = 0, 0, 0
         if self.xpos[i] >= RE[0]: xshift = 1
-        if self.xpos[i] < LE[0]: xshift = -1
+        elif self.xpos[i] < LE[0]: xshift = -1
         if self.ypos[i] >= RE[1]: yshift = 1
-        if self.ypos[i] < LE[1]: yshift = -1
+        elif self.ypos[i] < LE[1]: yshift = -1
         if self.zpos[i] >= RE[2]: zshift = 1
-        if self.zpos[i] < LE[2]: zshift = -1
+        elif self.zpos[i] < LE[2]: zshift = -1
         shift = na.array([xshift,yshift,zshift],dtype='int64')
         return shift
+
+    def _find_shift_real(self, i):
+        """
+        Find shift vectors for a particle in the 'real' region. A particle
+        in the real region, close to the boundary, may be a padded particle
+        in several neighbors, so we need to return multiple shift vectors.
+        """
+        # skip padded particles
+        if not self.is_inside[i]: return na.array([0]*3, dtype='int64')
+        # Adjust the boundaries
+        (LE, RE) = self.bounds
+        LE += na.array([self.padding]*3)
+        RE -= na.array([self.padding]*3)
+        xshift, yshift, zshift = 0, 0, 0
+        if self.xpos[i] >= RE[0]: xshift = 1
+        elif self.xpos[i] < LE[0]: xshift = -1
+        if self.ypos[i] >= RE[1]: yshift = 1
+        elif self.ypos[i] < LE[1]: yshift = -1
+        if self.zpos[i] >= RE[2]: zshift = 1
+        elif self.zpos[i] < LE[2]: zshift = -1
+        count = abs(xshift) + abs(yshift) + abs(zshift)
+        vectors = []
+        base = na.array([xshift,yshift,zshift], dtype='int64')
+        diag = na.array([[1,0,0], [0,1,0], [0,0,1]], dtype='int64')
+        vectors.append(base)
+        if count == 2:
+            # find the zero element so we can skip it
+            zero_e = na.argmax(na.abs(base) < 1)
+            for i in xrange(3):
+                if i == zero_e: continue
+                vectors.append(diag[i] * base[i])
+        elif count == 3:
+            for i in xrange(3):
+                # the singletons
+                vectors.append(diag[i] * base[i])
+                for j in xrange(3):
+                    # the doubles, the triple is already added, it's 'base'
+                    if i == j: continue
+                    vectors.append( (diag[i] * base[i]) + (diag[j] * base[j]))
+        return vectors
+        
         
     def _translate_shift(self, i=None, shift=None):
         """
         Given an integer, return the corresponding shift, and given a shift
-        return the integer.
+        return the integer. There may be a better way to do this.
         """
         d = {0:[-1,-1,-1], 1:[-1,-1,0], 2:[-1,-1,1], 3:[-1,0,-1], 4:[-1,0,0],
             5:[-1,0,1], 6:[-1,1,-1], 7:[-1,1,0], 8:[-1,1,1,], 9:[0,-1,-1],
@@ -223,7 +264,7 @@ class RunChainHOP(ParallelAnalysisInterface):
         for part in self.padded_particles:
             # figure out the real particle_index
             real_index = self.index[part]
-            shift = self._find_shift(part)
+            shift = self._find_shift_padded(part)
             shift_index = self._translate_shift(shift=shift)
             self.uphill_info_count[shift_index] += 1
             chainID = self.chainID[part]
@@ -256,84 +297,166 @@ class RunChainHOP(ParallelAnalysisInterface):
                 continue
             shift = self._translate_shift(i=shift_index)
             neighbor = self._find_neighbor_3d(shift)
+            temp = []
             for info in self.uphill_info[shift_index]:
                 data = na.array([info.particle_index, info.chainID])
-                _send_array(data, neighbor)
+                temp.append(data)
+            _send_array(temp, neighbor)
         # now we receive the data from non-zero neighbors
         for shift_index in self.uphill_recv_count:
             if self.uphill_recv_count[shift_index] == 0:
                 continue
             shift = self._translate_shift(i=shift_index)
             neighbor = self._find_neighbor_3d(shift)
-            for i in xrange(self.uphill_recv_count[shift_index]):
-                data = _recv_array(neighbor)
-                self.uphill_recv.append(data)
+            self.uphill_recv.extend(_recv_array(neighbor))
 
     def _translate_global_to_local_particle_index(self,real_index):
         """
         Take a real_index and convert it to the local index for that particle.
-        I'm not sure there's a better way to do this.
+        There's probably a better way to do this.
         """
         for index,particle_index in enumerate(self.index):
             if particle_index == real_index:
-                return particle_index
+                return index
         # oopsie below... how'd this happen? If it does, big trouble!
         return -1
         
 
+    def _recurse_global_chain_links(self, chainID_translate_map_global, chainID):
+        new_chainID = chainID_translate_map_global[chainID]
+        if  new_chainID== chainID:
+            return int(chainID)
+        else:
+            return self._recurse_global_chain_links(chainID_translate_map_global, new_chainID)
+        
+
     def _connect_chains_across_tasks(self):
         """
-        Using communication, push chainIDs uphill iteratively until the act of
-        pushing changes no chainIDs.
+        Using the uphill links of chains, chains are linked across boundaries.
+        Chains that link to a remote chain are recorded, and a complete dict
+        of chain connections is created, globally. Then chainIDs are
+        reassigned recursively, assigning the ID of the most dense chainID
+        to every chain that links to it.
         """
-        changes = 1
-        while changes:
-            mylog.info('loop')
-            chainID_translate_map_local = {} # local->received (new)
-            changes = 0
-            # rebuild this every time
-            self._build_uphill_info()
-            # send 'em
-            self._communicate_uphill_info()
-            # fix the IDs
-            for i,particle in enumerate(self.uphill_recv):
-                localID = self._translate_global_to_local_particle_index(particle[0])
-                self.uphill_recv[i] = na.array([localID, particle[1]])
-            # Now update our chainIDs to the received chainIDs
-            for particle in self.uphill_recv:
-                # if the 'new' chainID is different that what we already have,
-                # we need to change it.
-                if particle[1] != self.chainID[particle[0]]:
-                    changes += 1
-                    chainID_translate_map_local[self.chainID[particle[0]]] = \
-                        particle[1]
-            # an allsum will do to make it positive everywhere if it is anywhere
-            changes = self._mpi_allsum(changes)
-            # We need to update densest_in_chain, putting our local value into
-            # the slot for the new, updated chainID, remembering that these 
-            # chain links are going uphill, so *our* peak density is
-            # necessarily higher than the other thread's. But the chainID of the
-            # least-densest part of the chain is what persists, so that's where
-            # we put it.
-            for local_chainID in chainID_translate_map_local:
-                if local_chainID == -1: continue # Do we want this?
-                remote_chainID = chainID_translate_map_local[local_chainID]
-                self.densest_in_chain[remote_chainID] = \
-                    self.densest_in_chain[local_chainID]
-            # now we update densest_in_chain, finding the max across all tasks
-            self.densest_in_chain = self._mpi_maxdict(self.densest_in_chain)
-            # I may eventually do this more efficently, but for now...
-            # Convert local particles to their new chainID
-            for i in xrange(self.size):
-                old_chainID = self.chainID[i]
-                try:
-                    new_chainID = chainID_translate_map_local[old_chainID]
-                except KeyError:
-                    continue
-                self.chainID[i] = new_chainID
-            # At this point, the while loop should continue until chains are no
-            # longer changing ID.
+        # remote (lower dens) chain -> local (higher) chain
+        chainID_translate_map_local = {}
+        # build the stuff to send
+        self._build_uphill_info()
+        # send/receive 'em
+        self._communicate_uphill_info()
+        # fix the IDs to localIDs
+        for i,particle in enumerate(self.uphill_recv):
+            localID = self._translate_global_to_local_particle_index(particle[0])
+            self.uphill_recv[i] = na.array([localID, particle[1]])
+        # Now relate the local chainIDs to the received chainIDs
+        for i,particle in enumerate(self.uphill_recv):
+            # if the 'new' chainID is different that what we already have,
+            # we need to record it
+            if particle[1] != self.chainID[particle[0]]:
+                chainID_translate_map_local[particle[1]] = \
+                    self.chainID[particle[0]]
+        # chainID_translate_map_local is now a 'sparse' dict. Chains may
+        # 'point' to only one chain, but a chain may have many that point to
+        # it. Therefore each key in this dict is unique, but the items
+        # the keys point to are not necessarily unique. Most chains do not
+        # have an entry in the sparse dict, and that is addressed.
+        chainID_translate_map_global = \
+            self._mpi_joindict(chainID_translate_map_local)
+        for i in xrange(self.nchains):
+            try:
+                target = chainID_translate_map_global[i]
+            except KeyError:
+                chainID_translate_map_global[i] = int(i)
+        # Build a list of chain densities, sorted smallest to largest
+        dens_temp = []
+        for key in self.densest_in_chain:
+            item = [self.densest_in_chain[key], key]
+            insort(dens_temp, item)
+        # Loop over chains, smallest to largest density, recursively until
+        # we reach a self-assigned chain. Then we assign that final chainID to
+        # the *current* one only.
+        for chain in dens_temp:
+            new_chainID = \
+                self._recurse_global_chain_links(chainID_translate_map_global, chain[1])
+            chainID_translate_map_global[chain[1]] = new_chainID
+        # I may eventually do this more efficently, but for now...
+        # Convert local particles to their new chainID
+        for i in xrange(self.size):
+            old_chainID = self.chainID[i]
+            if old_chainID == -1: continue
+            new_chainID = chainID_translate_map_global[old_chainID]
+            self.chainID[i] = new_chainID
+
+    def _communicate_padded_chainIDs(self):
+        """
+        In order to merge the chains into groups correctly, we must give all of
+        the padded particles the correct chainIDs. To do this, each task
+        communicates the chainIDs for the particles one paddding distance
+        of it's 'real' region to its neighbors.
+        -It is a slab for the face neighbors.
+        -A long thin pencil-like region for the side neighbors.
+        -A small cube for the corner neighbors.
+        """
+        to_send = {}
+        to_recv = []
+        for i in xrange(27):
+            to_send[i] = []
+        # Loop over the particles
+        for i in xrange(self.size):
+            if i%10000==0: mylog.info('%d' % i)
+            # Skip over padded particles
+            if not self.is_inside[i]: continue
+            # Find the direction(s) to communicate this particle
+            vectors = self._find_shift_real(i)
+            # Skip internal, non-border particles
+            if (vectors[0] == na.array([0]*3,dtype='int')).all(): continue
+            real_index = self.index[i]
+            chainID = self.chainID[i]
+            for shift in vectors:
+                shift_index = self._translate_shift(shift=shift)
+                to_send[shift_index].append(array([real_index, chainID],dtype='int64'))
+        # Now we have a dict of lists of the particle_index and global chainID
+        # of particles that are in the padding of our neighbors. Let's send the
+        # info.
+        mylog.info('here')
+        # Loop over the neighbors
+        for shift_index in xrange(27):
+            # Skip ourselves
+            if shift_index == 13: continue
+            # Let them know that we have stuff
+            count = len(to_send[shift_index])
+            shift = self._translate_shift(i=shift_index)
+            neighbor = self._find_neighbor_3d(shift)
+            _send_array(count, neighbor)
+            mylog.info('me %d' % shift_index)
+            # if it's non-zero, send the data, too
+            if count:
+                _send_array(to_send[shift_index], neighbor)
+        mylog.info('there')
+        # Now receive them.
+        for shift_index in xrange(27):
+            if shift_index == 13: continue
+            shift = self._translate_shift(i=shift_index)
+            neighbor = self._find_neighbor_3d(shift)
+            count = _recv_array(neighbor)
+            if count:
+                temp = _recv_array(neighbor)
+                to_recv.extend(temp)
+        return to_recv
+    
+    def _update_padded_chainIDs(self, to_recv):
+        """
+        Use to_recv, which is a list of pairs of data from neighboring tasks
+        to update the chainIDs of our padded particles. There will be repeats
+        in the list, but it's OK.
+        """
+        for particle in to_recv:
+            # find the localID
+            localID = self._translate_global_to_local_particle_index(particle[0])
+            # fix it's chainID
+            self.chainID[localID] = particle[1]
         sys.exit()
+        
 
     def _connect_chains(self,chain_count):
         """
@@ -342,7 +465,6 @@ class RunChainHOP(ParallelAnalysisInterface):
         chains will have no neighbors!
         """
         self.chain_densest_n = {} # chainID -> {chainIDs->boundary dens}
-        self.chain_potential_n = {} # chainID -> [partIDs]
         for i in xrange(chain_count):
             self.chain_densest_n[i] = {}
         self.reverse_map = {} # chainID -> groupID, one to one
@@ -350,7 +472,6 @@ class RunChainHOP(ParallelAnalysisInterface):
             self.reverse_map[i] = -1
         # This prevents key problems, and is deleted below.
         self.reverse_map[-1] = -1
-        
         for i in xrange(self.size):
             # Don't consider this particle if it's not part of a chain.
             if self.chainID[i] < 0: continue
@@ -368,8 +489,7 @@ class RunChainHOP(ParallelAnalysisInterface):
                 # This is probably the same as above, but it's OK.
                 # It can be removed later.
                 if thisNN==i or thisNN==self.densestNN[i]: continue
-                # The particles that will be added to chain_potential_n all
-                # have no chainID, and everything immediately below is for
+                # Everything immediately below is for
                 # particles with a chainID. 
                 if thisNN_chainID >= 0:
                     # If our neighbor is not part of a chain, move on
@@ -399,18 +519,6 @@ class RunChainHOP(ParallelAnalysisInterface):
                         # new densest boundary between chains
                         self.chain_densest_n[higher_chain][lower_chain] = \
                             boundary_density
-                # now consider right padded, non-assigned particles
-                elif self.padded_right[thisNN] and thisNN_chainID < 0:
-                    # see if we need to create an entry
-                    try:
-                        potential_n = self.chain_potential_n[self.chainID[i]]
-                    except KeyError:
-                        self.chain_potential_n[self.chainID[i]] = []
-                        potential_n = []
-                    # don't add this particle if it's already there
-                    if thisNN not in potential_n:
-                        self.chain_potential_n[self.chainID[i]].append(thisNN)
-                # Skip non-assigned particles that aren't right padded
                 else:
                     continue
         del self.reverse_map[-1]
@@ -586,6 +694,10 @@ class RunChainHOP(ParallelAnalysisInterface):
         #self._build_uphill_info()
         mylog.info('Connecting chains across tasks...')
         self._connect_chains_across_tasks()
+        mylog.info('Communicating padded particle chainIDs...')
+        to_recv = self._communicate_padded_chainIDs()
+        mylog.info('Updaing padded particle chainIDs...')
+        self._update_padded_chainIDs(to_recv)
         # Connect the chains into groups.
         #mylog.info('Connecting %d chains into groups...' % chain_count)
         #self._connect_chains(chain_count)
