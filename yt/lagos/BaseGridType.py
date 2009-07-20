@@ -57,7 +57,7 @@ class AMRGridPatch(AMRData):
                 # This is only going to be raised if n_gz > 0
                 n_gz = ngt_exception.ghost_zones
                 f_gz = ngt_exception.fields
-                gz_grid = self.retrieve_ghost_zones(n_gz, f_gz)
+                gz_grid = self.retrieve_ghost_zones(n_gz, f_gz, smoothed=True)
                 temp_array = self.pf.field_info[field](gz_grid)
                 sl = [slice(n_gz,-n_gz)] * 3
                 self[field] = temp_array[sl]
