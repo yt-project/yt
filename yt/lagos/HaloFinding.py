@@ -754,7 +754,7 @@ class chainHF(GenericHaloFinder, chainHOPHaloList):
         avg_spacing = (float(vol) / n_parts)**(1./3.)
         # padding is a function of inter-particle spacing, this is an
         # approximation, but it's OK with the safety factor
-        safety = 4
+        safety = 2
         self.padding = (self.num_neighbors)**(1./3.) * safety * avg_spacing
         print 'padding',self.padding,'avg_spacing',avg_spacing,'vol',vol,'nparts',n_parts
         padded, LE, RE, self._data_source = self._partition_hierarchy_3d(padding=self.padding)

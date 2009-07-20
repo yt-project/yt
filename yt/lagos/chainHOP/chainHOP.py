@@ -5,6 +5,7 @@ from sets import Set
 from yt.lagos import *
 from yt.extensions.kdtree import *
 from yt.lagos.ParallelTools import _send_array, _recv_array
+from mpi4py import MPI
 from Forthon import *
 
 class PaddedPart(object):
@@ -27,10 +28,21 @@ class RunChainHOP(ParallelAnalysisInterface):
         self.xpos = xpos
         self.ypos = ypos
         self.zpos = zpos
-        self.index = index
-        self.mass = mass
-        self.padded_particles = []
         self.size = len(self.xpos)
+        self.index = index
+        self.rev_index = {}
+        minx = 1.
+        maxx = 0.
+        miny = 1.
+        maxy = 0.
+        minz = 1.
+        maxz = 0.
+        for i in xrange(self.size):
+            self.rev_index[self.index[i]] = i
+        self.mass = mass
+        self.sends = 0
+        self.recvs = 0
+        self.padded_particles = []
         self.nMerge = 4
         self.chainID = na.ones(self.size,dtype='l') * -1
         self._chain_hop()
@@ -72,12 +84,32 @@ class RunChainHOP(ParallelAnalysisInterface):
         if self.is_inside[i]: return na.array([0,0,0], dtype='int64')
         (LE, RE) = self.bounds
         xshift, yshift, zshift = 0, 0, 0
-        if self.xpos[i] >= RE[0]: xshift = 1
-        elif self.xpos[i] < LE[0]: xshift = -1
-        if self.ypos[i] >= RE[1]: yshift = 1
-        elif self.ypos[i] < LE[1]: yshift = -1
-        if self.zpos[i] >= RE[2]: zshift = 1
-        elif self.zpos[i] < LE[2]: zshift = -1
+        if self.xpos[i] >= RE[0]:
+            xshift = 1
+            # this accounts for padded regions that haven't been repositioned
+            # around the periodic boundaries
+            if (self.xpos[i] - RE[0]) > self.padding:
+                xshift = -1
+        elif self.xpos[i] < LE[0]:
+            xshift = -1
+            if (self.xpos[i] - LE[0]) >= self.padding:
+                xshift = 1
+        if self.ypos[i] >= RE[1]:
+            yshift = 1
+            if (self.ypos[i] - RE[0]) > self.padding:
+                yshift = -1
+        elif self.ypos[i] < LE[1]:
+            yshift = -1
+            if (self.ypos[i] - LE[0]) >= self.padding:
+                yshift = 1
+        if self.zpos[i] >= RE[2]:
+            zshift = 1
+            if (self.zpos[i] - RE[0]) > self.padding:
+                zshift = -1
+        elif self.zpos[i] < LE[2]:
+            zshift = -1
+            if (self.zpos[i] - LE[0]) >= self.padding:
+                zshift = 1
         shift = na.array([xshift,yshift,zshift],dtype='int64')
         return shift
 
@@ -87,6 +119,7 @@ class RunChainHOP(ParallelAnalysisInterface):
         in the real region, close to the boundary, may be a padded particle
         in several neighbors, so we need to return multiple shift vectors.
         """
+        return [ na.array([1,0,0], dtype='int64') ]
         # skip padded particles
         if not self.is_inside[i]: return na.array([0]*3, dtype='int64')
         # Adjust the boundaries
@@ -94,12 +127,18 @@ class RunChainHOP(ParallelAnalysisInterface):
         LE += na.array([self.padding]*3)
         RE -= na.array([self.padding]*3)
         xshift, yshift, zshift = 0, 0, 0
-        if self.xpos[i] >= RE[0]: xshift = 1
-        elif self.xpos[i] < LE[0]: xshift = -1
-        if self.ypos[i] >= RE[1]: yshift = 1
-        elif self.ypos[i] < LE[1]: yshift = -1
-        if self.zpos[i] >= RE[2]: zshift = 1
-        elif self.zpos[i] < LE[2]: zshift = -1
+        if self.xpos[i] >= RE[0]:
+            xshift = 1
+        elif self.xpos[i] < LE[0]:
+            xshift = -1
+        if self.ypos[i] >= RE[1]:
+            yshift = 1
+        elif self.ypos[i] < LE[1]:
+            yshift = -1
+        if self.zpos[i] >= RE[2]:
+            zshift = 1
+        elif self.zpos[i] < LE[2]:
+            zshift = -1
         count = abs(xshift) + abs(yshift) + abs(zshift)
         vectors = []
         base = na.array([xshift,yshift,zshift], dtype='int64')
@@ -141,7 +180,7 @@ class RunChainHOP(ParallelAnalysisInterface):
         if shift!=None:
             shift = na.array(shift)
             for key in d:
-                if d[key].all() == shift.all():
+                if (d[key] == shift).all():
                     return key
 
     def _densestNN(self):
@@ -283,6 +322,7 @@ class RunChainHOP(ParallelAnalysisInterface):
             shift = self._translate_shift(i=i)
             neighbor = self._find_neighbor_3d(shift)
             _send_array(self.uphill_info_count[i], neighbor)
+            self.sends += 1
         # now we receive them, the order doesn't matter because each of my 
         # neighbors is only sending me one thing.
         for i in range(27):
@@ -290,6 +330,7 @@ class RunChainHOP(ParallelAnalysisInterface):
             shift = self._translate_shift(i=i)
             neighbor = self._find_neighbor_3d(shift)
             self.uphill_recv_count[i] = _recv_array(neighbor)
+            self.recvs += 1
         # now we send the information to neighbors who have non-zero information
         # to receive.
         for shift_index in self.uphill_info_count:
@@ -297,18 +338,19 @@ class RunChainHOP(ParallelAnalysisInterface):
                 continue
             shift = self._translate_shift(i=shift_index)
             neighbor = self._find_neighbor_3d(shift)
-            temp = []
             for info in self.uphill_info[shift_index]:
                 data = na.array([info.particle_index, info.chainID])
-                temp.append(data)
-            _send_array(temp, neighbor)
+                _send_array(data, neighbor)
+                self.sends += 1
         # now we receive the data from non-zero neighbors
         for shift_index in self.uphill_recv_count:
             if self.uphill_recv_count[shift_index] == 0:
                 continue
             shift = self._translate_shift(i=shift_index)
             neighbor = self._find_neighbor_3d(shift)
-            self.uphill_recv.extend(_recv_array(neighbor))
+            for i in xrange(self.uphill_recv_count[shift_index]):
+                self.uphill_recv.append(_recv_array(neighbor))
+                self.recvs += 1
 
     def _translate_global_to_local_particle_index(self,real_index):
         """
@@ -344,9 +386,11 @@ class RunChainHOP(ParallelAnalysisInterface):
         self._build_uphill_info()
         # send/receive 'em
         self._communicate_uphill_info()
+        mylog.info('aaaa')
         # fix the IDs to localIDs
         for i,particle in enumerate(self.uphill_recv):
-            localID = self._translate_global_to_local_particle_index(particle[0])
+            localID = self.rev_index[particle[0]]
+            #localID = self._translate_global_to_local_particle_index(particle[0])
             self.uphill_recv[i] = na.array([localID, particle[1]])
         # Now relate the local chainIDs to the received chainIDs
         for i,particle in enumerate(self.uphill_recv):
@@ -355,6 +399,7 @@ class RunChainHOP(ParallelAnalysisInterface):
             if particle[1] != self.chainID[particle[0]]:
                 chainID_translate_map_local[particle[1]] = \
                     self.chainID[particle[0]]
+        mylog.info('bbbbb')
         # chainID_translate_map_local is now a 'sparse' dict. Chains may
         # 'point' to only one chain, but a chain may have many that point to
         # it. Therefore each key in this dict is unique, but the items
@@ -367,6 +412,7 @@ class RunChainHOP(ParallelAnalysisInterface):
                 target = chainID_translate_map_global[i]
             except KeyError:
                 chainID_translate_map_global[i] = int(i)
+        mylog.info('cccc')
         # Build a list of chain densities, sorted smallest to largest
         dens_temp = []
         for key in self.densest_in_chain:
@@ -379,6 +425,7 @@ class RunChainHOP(ParallelAnalysisInterface):
             new_chainID = \
                 self._recurse_global_chain_links(chainID_translate_map_global, chain[1])
             chainID_translate_map_global[chain[1]] = new_chainID
+        mylog.info('ddd')
         # I may eventually do this more efficently, but for now...
         # Convert local particles to their new chainID
         for i in xrange(self.size):
@@ -386,6 +433,56 @@ class RunChainHOP(ParallelAnalysisInterface):
             if old_chainID == -1: continue
             new_chainID = chainID_translate_map_global[old_chainID]
             self.chainID[i] = new_chainID
+        mylog.info('eeee')
+
+    def _comm_2(self):
+        """
+        Fuck it. Let's try sending all our 'real' data to all our neighbors, see if
+        this works.
+        """
+        real_indices = []
+        chainIDs = []
+        for i in xrange(self.size):
+            if i%10000==0: mylog.info('%d' % i)
+            if not self.is_inside[i]: continue
+            chainID = self.chainID[i]
+            if chainID == -1: continue
+            real_index = self.index[i]
+            real_indices.append(real_index)
+            chainIDs.append(chainID)
+        real_indices = na.array(real_indices, dtype='int64')
+        chainIDs = na.array(chainIDs, dtype='int64')
+        send_count = len(real_indices)
+        part_count_dict = {self.mine:send_count}
+        part_count_dict = self._mpi_joindict(part_count_dict)
+        for shift_index in xrange(27):
+            if shift_index==13: continue
+            # send the data
+            shift = self._translate_shift(i=shift_index)
+            neighbor = self._find_neighbor_3d(shift)
+            send1 = MPI.COMM_WORLD.Isend([real_indices, MPI.LONG_INT], dest=neighbor, tag=0)
+            send2 = MPI.COMM_WORLD.Isend([chainIDs, MPI.LONG_INT], dest=neighbor, tag=0)
+
+        for shift_index in xrange(27):
+            if shift_index == 13: continue
+            # receive the data
+            shift = self._translate_shift(i=shift_index)
+            neighbor = self._find_neighbor_3d(shift)
+            to_recv_count = part_count_dict[neighbor]
+            recv_real_indices = na.empty(to_recv_count, dtype='int64')
+            recv_chainIDs = na.empty(to_recv_count, dtype='int64')
+            recv1 = MPI.COMM_WORLD.Irecv([recv_real_indices, MPI.LONG_INT], source=neighbor, tag=0)
+            recv2 = MPI.COMM_WORLD.Irecv([recv_chainIDs, MPI.LONG_INT], source=neighbor, tag=0)
+            MPI.Request.Wait(recv1)
+            MPI.Request.Wait(recv2)
+            # use the data
+            for i,real_index in enumerate(recv_real_indices):
+                try:
+                    localID = self.rev_index[real_index]
+                except KeyError:
+                    continue
+                self.chainID[localID] = recv_chainIDs[i]
+        sys.exit()
 
     def _communicate_padded_chainIDs(self):
         """
@@ -399,6 +496,7 @@ class RunChainHOP(ParallelAnalysisInterface):
         """
         to_send = {}
         to_recv = []
+        to_recv_count = {}
         for i in xrange(27):
             to_send[i] = []
         # Loop over the particles
@@ -406,19 +504,20 @@ class RunChainHOP(ParallelAnalysisInterface):
             if i%10000==0: mylog.info('%d' % i)
             # Skip over padded particles
             if not self.is_inside[i]: continue
+            chainID = self.chainID[i]
+            # un-assigned particles are not interesting
+            if chainID == -1: continue
             # Find the direction(s) to communicate this particle
             vectors = self._find_shift_real(i)
             # Skip internal, non-border particles
-            if (vectors[0] == na.array([0]*3,dtype='int')).all(): continue
+            if (vectors[0] == na.array([0]*3,dtype='int64')).all(): continue
             real_index = self.index[i]
-            chainID = self.chainID[i]
             for shift in vectors:
                 shift_index = self._translate_shift(shift=shift)
-                to_send[shift_index].append(array([real_index, chainID],dtype='int64'))
+                to_send[shift_index].append(array([real_index, chainID]))
         # Now we have a dict of lists of the particle_index and global chainID
         # of particles that are in the padding of our neighbors. Let's send the
         # info.
-        mylog.info('here')
         # Loop over the neighbors
         for shift_index in xrange(27):
             # Skip ourselves
@@ -428,20 +527,44 @@ class RunChainHOP(ParallelAnalysisInterface):
             shift = self._translate_shift(i=shift_index)
             neighbor = self._find_neighbor_3d(shift)
             _send_array(count, neighbor)
-            mylog.info('me %d' % shift_index)
-            # if it's non-zero, send the data, too
-            if count:
-                _send_array(to_send[shift_index], neighbor)
-        mylog.info('there')
+            self.sends += 1
         # Now receive them.
         for shift_index in xrange(27):
             if shift_index == 13: continue
             shift = self._translate_shift(i=shift_index)
             neighbor = self._find_neighbor_3d(shift)
             count = _recv_array(neighbor)
+            self.recvs += 1
+            to_recv_count[shift_index] = count
+        mylog.info('sends %d recvs %d' % (self.sends, self.recvs))
+        # sending the real data
+        for shift_index in xrange(27):
+            mylog.info('shift_index %d' % shift_index)
+            if shift_index == 13: continue
+            count = len(to_send[shift_index])
             if count:
-                temp = _recv_array(neighbor)
-                to_recv.extend(temp)
+                shift = self._translate_shift(i=shift_index)
+                neighbor = self._find_neighbor_3d(shift)
+                mylog.info('there count %d neighbor %d' % (count, neighbor))
+                for i,item in enumerate(to_send[shift_index]):
+                    #if self.mine == 1:
+                    #    mylog.info('i i i %d shift_index %d' % (i, shift_index))
+                    _send_array(item, neighbor)
+                    self.sends += 1
+        mylog.info('second sends %d recvs %d' % (self.sends, self.recvs))
+        # receive real data
+        for shift_index in xrange(27):
+            mylog.info('second shift_index %d' % shift_index)
+            if shift_index == 13: continue
+            if to_recv_count[shift_index] > 0:
+                shift = self._translate_shift(i=shift_index)
+                neighbor = self._find_neighbor_3d(shift)
+                for i in xrange(to_recv_count[shift_index]):
+                    mylog.info('blah blah i %d' % i)
+                    to_recv.append(_recv_array(neighbor))
+                    self.recvs += 1
+        mylog.info('%s' % to_recv)
+        sys.exit()
         return to_recv
     
     def _update_padded_chainIDs(self, to_recv):
@@ -452,7 +575,8 @@ class RunChainHOP(ParallelAnalysisInterface):
         """
         for particle in to_recv:
             # find the localID
-            localID = self._translate_global_to_local_particle_index(particle[0])
+            localID = self.rev_index[particle[0]]
+            #localID = self._translate_global_to_local_particle_index(particle[0])
             # fix it's chainID
             self.chainID[localID] = particle[1]
         sys.exit()
@@ -695,7 +819,8 @@ class RunChainHOP(ParallelAnalysisInterface):
         mylog.info('Connecting chains across tasks...')
         self._connect_chains_across_tasks()
         mylog.info('Communicating padded particle chainIDs...')
-        to_recv = self._communicate_padded_chainIDs()
+        self._comm_2()
+        #to_recv = self._communicate_padded_chainIDs()
         mylog.info('Updaing padded particle chainIDs...')
         self._update_padded_chainIDs(to_recv)
         # Connect the chains into groups.
