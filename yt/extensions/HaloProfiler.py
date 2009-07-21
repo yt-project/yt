@@ -410,9 +410,10 @@ class HaloProfiler(lagos.ParallelAnalysisInterface):
             line = line.strip()
             if not(line.startswith('#')):
                 onLine = line.split()
+                id = int(onLine[0])
                 center = [float(onLine[4]),float(onLine[5]),float(onLine[6])]
                 r_max = self.haloRadius * self.pf.units['mpc']
-                halo = {'center': center, 'r_max': r_max}
+                halo = {'id': id, 'center': center, 'r_max': r_max}
                 self.hopHalos.append(halo)
 
     def _ReadProfile(self,profileFile):
