@@ -344,10 +344,11 @@ class ParallelAnalysisInterface(object):
                 temp_data = MPI.COMM_WORLD.recv(source=i, tag=0)
                 for key in temp_data:
                     try:
-                        max = data[key]
+                        old_value = data[key]
                     except KeyError:
-                        max = 0.
-                    if max < temp_data[key]:
+                        # This guarantees the new value gets added.
+                        old_value = None
+                    if old_value < temp_data[key]:
                         data[key] = temp_data[key]
         else:
             MPI.COMM_WORLD.send(data, dest=0, tag=0)
