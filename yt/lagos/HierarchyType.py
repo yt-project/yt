@@ -42,6 +42,7 @@ _data_style_funcs = \
          getExceptionHDF5, DataQueueNative), \
      8: (readDataInMemory, readAllDataInMemory, getFieldsInMemory, readDataSliceInMemory,
          getExceptionInMemory, DataQueueInMemory),
+     'enzo_unpacked_2d': (readDataPacked, readAllDataPacked, getFieldsPacked, readDataSliceUnpacked2D),
      'enzo_packed_2d': (readDataPacked, readAllDataPacked, getFieldsPacked, readDataSlicePacked2D,
          getExceptionHDF5, DataQueuePacked2D),
      'enzo_packed_1d': (readDataPacked, readAllDataPacked, getFieldsPacked, readDataSlicePacked1D,
@@ -714,6 +715,9 @@ class EnzoHierarchy(AMRHierarchy):
             elif len(list_of_sets) > 0 and rank == 3:
                 mylog.debug("Detected unpacked HDF5")
                 self.data_style = 5
+            elif len(list_of_sets) > 0 and rank == 2:
+                mylog.debug("Detect unpacked 2D")
+                self.data_style = 'enzo_unpacked_2d'
             elif len(list_of_sets) == 0 and rank == 2:
                 mylog.debug("Detect packed 2D")
                 self.data_style = 'enzo_packed_2d'
