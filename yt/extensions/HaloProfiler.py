@@ -68,7 +68,7 @@ class HaloProfiler(lagos.ParallelAnalysisInterface):
         # Look for any field that might need to have the bulk velocity set.
         self.needBulkVelocity = False
         for field in self.profileFields:
-            if field.find('Velocity') >= 0 or field.find('Mach') >= 0:
+            if 'Velocity' in field or 'Mach' in field:
                 self.needBulkVelocity = True
                 break
 
@@ -201,7 +201,7 @@ class HaloProfiler(lagos.ParallelAnalysisInterface):
         else:
             os.mkdir(outputDir)
 
-    def makeProjections(self,save_images=True,save_cube=True,**kwargs):
+    def makeProjections(self,save_images=False,save_cube=True,**kwargs):
         "Make projections of all halos using specified fields."
         # Get virial quantities.
         self._LoadVirialData()
