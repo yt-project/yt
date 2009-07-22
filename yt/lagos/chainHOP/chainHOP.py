@@ -705,5 +705,4 @@ class RunChainHOP(ParallelAnalysisInterface):
         group_count = self._build_groups()
         self._translate_groupIDs(group_count)
         mylog.info('Found %d groups...' % group_count)
-        sys.exit()
 
