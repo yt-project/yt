@@ -4,7 +4,6 @@ from sets import Set
 
 from yt.lagos import *
 from yt.extensions.kdtree import *
-from yt.lagos.ParallelTools import _send_array, _recv_array
 from mpi4py import MPI
 from Forthon import *
 
@@ -305,11 +304,11 @@ class RunChainHOP(ParallelAnalysisInterface):
             # Skip ourselves, [0,0,0]
             if shift_index==13: continue
             shift = self._translate_shift(i=shift_index)
-            neighbor = self._find_neighbor_3d(shift)
+            neighbor = self._mpi_find_neighbor_3d(shift)
             # Skip ourselves
             if neighbor == self.mine: continue
             opp_shift = -1 * shift
-            opp_neighbor = self._find_neighbor_3d(opp_shift)
+            opp_neighbor = self._mpi_find_neighbor_3d(opp_shift)
             to_recv_count += self.global_padded_count[opp_neighbor]
         self.recv_real_indices = na.empty(to_recv_count, dtype='int64')
         self.recv_chainIDs = na.empty(to_recv_count, dtype='int64')
@@ -324,11 +323,11 @@ class RunChainHOP(ParallelAnalysisInterface):
             # Skip ourselves, [0,0,0]
             if shift_index==13: continue
             shift = self._translate_shift(i=shift_index)
-            neighbor = self._find_neighbor_3d(shift)
+            neighbor = self._mpi_find_neighbor_3d(shift)
             # Skip ourselves
             if neighbor == self.mine: continue
             opp_shift = -1 * shift
-            opp_neighbor = self._find_neighbor_3d(opp_shift)
+            opp_neighbor = self._mpi_find_neighbor_3d(opp_shift)
             opp_size = self.global_padded_count[opp_neighbor]
             MPI.COMM_WORLD.Sendrecv(
                 [self.uphill_real_indices, MPI.LONG_INT], neighbor, 0,
@@ -451,11 +450,11 @@ class RunChainHOP(ParallelAnalysisInterface):
             if shift_index==13: continue
             # send the data
             shift = self._translate_shift(i=shift_index)
-            neighbor = self._find_neighbor_3d(shift)
+            neighbor = self._mpi_find_neighbor_3d(shift)
             # there's no need to send to myself...
             if neighbor == self.mine: continue
             opp_shift = -1 * shift
-            opp_neighbor = self._find_neighbor_3d(opp_shift)
+            opp_neighbor = self._mpi_find_neighbor_3d(opp_shift)
             opp_size = global_annulus_count[opp_neighbor]
             status = MPI.COMM_WORLD.Sendrecv(
                 [real_indices, MPI.LONG_INT], neighbor, 0,
@@ -536,8 +535,9 @@ class RunChainHOP(ParallelAnalysisInterface):
         We want to record the maximum boundary density between all chains on
         all tasks.
         """
-        # Remember that every task has every chainID as a key in 
+        # Remember that every task has every active chainID as a key in 
         # chain_densest_n (see the beginning of _connect_chains())
+        # Uses barrier(), but that's needed.
         for higher_chain in self.chain_densest_n:
             self.chain_densest_n[higher_chain] = \
                 self._mpi_maxdict(self.chain_densest_n[higher_chain])

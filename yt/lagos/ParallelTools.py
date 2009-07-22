@@ -260,11 +260,14 @@ class ParallelAnalysisInterface(object):
 
         return False, LE, RE, self.hierarchy.region_strict(self.center, LE, RE)
 
-    def _find_neighbor_3d(self, shift):
+    def _mpi_find_neighbor_3d(self, shift):
         """ Given a shift array, 1x3 long, find the task ID
         of that neighbor. For example, shift=[1,0,0] finds the neighbor
-        immediately to the right, in the positive x direction.
+        immediately to the right in the positive x direction. Each task
+        has 26 neighbors, of which some may be itself depending on the number
+        and arrangement of tasks.
         """
+        if not self._distributed: return 0
         cc = na.array(MPI.Compute_dims(MPI.COMM_WORLD.size, 3))
         mi = MPI.COMM_WORLD.rank
         si = MPI.COMM_WORLD.size
