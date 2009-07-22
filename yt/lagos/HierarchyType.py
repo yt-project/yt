@@ -1541,6 +1541,7 @@ class NewEnzoHierarchy(AMRHierarchy):
             g.set_filename(f[0])
         #self._setup_grid_dxs()
         self._setup_field_lists()
+        self.max_level = self.gridLevels.max()
 
     def __pointer_handler(self, m):
         sgi = int(m[2])-1
@@ -1551,12 +1552,12 @@ class NewEnzoHierarchy(AMRHierarchy):
         firstGrid = self.wrefs[int(m[0])-1]
         if m[1] == "Next":
             firstGrid.Children.append(secondGrid)
-            secondGrid.Parent.append(firstGrid)
+            secondGrid.Parent = firstGrid
             secondGrid.Level = firstGrid.Level + 1
         elif m[1] == "This":
-            if len(firstGrid.Parent) > 0:
-                firstGrid.Parent[0].Children.append(secondGrid)
-                secondGrid.Parent.append(firstGrid.Parent[0])
+            if firstGrid.Parent is not None:
+                firstGrid.Parent.Children.append(secondGrid)
+                secondGrid.Parent = firstGrid.Parent
             secondGrid.Level = firstGrid.Level
 
     def _initialize_grids(self):
@@ -1591,4 +1592,16 @@ class NewEnzoHierarchy(AMRHierarchy):
             field_list = self._join_field_lists(field_list)
             self.save_data(list(field_list),"/","DataFields")
         self.field_list = list(field_list)
+
+    def _generate_random_grids(self):
+        if self.num_grids > 40:
+            starter = na.random.randint(0, 20)
+            random_sample = na.mgrid[starter:len(self.grids)-1:20j].astype("int32")
+            mylog.debug("Checking grids: %s", random_sample.tolist())
+        else:
+            random_sample = na.mgrid[0:max(len(self.grids)-1,1)].astype("int32")
+        return self.grids[(random_sample,)]
+
+    def _join_field_lists(self, field_list):
+        return field_list
 

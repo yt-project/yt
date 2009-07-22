@@ -406,7 +406,7 @@ class EnzoGridBase(AMRGridPatch):
         """
         #All of the field parameters will be passed to us as needed.
         AMRGridPatch.__init__(self, id, filename, hierarchy)
-        self.Parent = []
+        self.Parent = None
         self.Children = []
         self.Level = -1
 

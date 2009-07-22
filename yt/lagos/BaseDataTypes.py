@@ -944,7 +944,7 @@ class AMRProjBase(AMR2DData):
         self._initialize_source(source)
         self._grids = self.source._grids
         if max_level == None:
-            max_level = self.hierarchy.maxLevel
+            max_level = self.hierarchy.max_level
         if self.source is not None:
             max_level = min(max_level, self.source.gridLevels.max())
         self._max_level = max_level
