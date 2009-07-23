@@ -703,6 +703,7 @@ class RunChainHOP(ParallelAnalysisInterface):
         self._make_global_chain_densest_n()
         mylog.info('Building Groups...')
         group_count = self._build_groups()
+        self.group_count = group_count
         self._translate_groupIDs(group_count)
         mylog.info('Found %d groups...' % group_count)
 

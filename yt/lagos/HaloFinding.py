@@ -150,8 +150,119 @@ class Halo(object):
 class HOPHalo(Halo):
     pass
 
-class chainHOPHalo(Halo):
-    pass
+class chainHOPHalo(Halo,ParallelAnalysisInterface):
+    dont_wrap = ["maximum_density","maximum_density_location",
+        "center_of_mass","total_mass","bulk_velocity","maximum_radius",
+        "get_size","get_sphere", "write_particle_list","__getitem__"]
+
+    def __getitem__(self, key):
+        return self.data[key][self.indices]
+
+    def maximum_density(self):
+        """
+        Return the HOP-identified maximum density.
+        """
+        max = self._mpi_allmax(self.halo_list._max_dens[self.id][0])
+        return max
+
+    def maximum_density_location(self):
+        """
+        Return the location HOP identified as maximally dense.
+        """
+        # If I own the maximum density, my location is globally correct.
+        max_dens = self.maximum_density()
+        if self.halo_list._max_dens[self.id][0] == max_dens:
+            value = na.array([
+                self.halo_list._max_dens[self.id][1],
+                self.halo_list._max_dens[self.id][2],
+                self.halo_list._max_dens[self.id][3]])
+        else:
+            value = na.array([0,0,0])
+        # This works, and isn't appropriate but for now will be fine...
+        value = self._mpi_allsum(value)
+        return value
+
+    def center_of_mass(self):
+        """
+        Calculate and return the center of mass.
+        """
+        # This need to be called by all tasks, but not all will end up using
+        # it.
+        c_vec = self.maximum_density_location() - na.array([0.5,0.5,0.5])
+        if self.indices is not None:
+            pm = self["ParticleMassMsun"]
+            cx = (self["particle_position_x"] - c_vec[0])
+            cy = (self["particle_position_y"] - c_vec[1])
+            cz = (self["particle_position_z"] - c_vec[2])
+            com = na.array([v-na.floor(v) for v in [cx,cy,cz]])
+            my_mass = pm.sum()
+            my_com = ((com*pm).sum(axis=1)/my_mass + c_vec) * my_mass
+        else:
+            my_mass = 0.
+            my_com = na.array([0.,0.,0.])
+        global_mass = self._mpi_allsum(my_mass)
+        global_com = self._mpi_allsum(my_com)
+        return global_com / global_mass
+
+    def total_mass(self):
+        """
+        Returns the total mass in solar masses of the halo.
+        """
+        if self.indices is not None:
+            my_mass = self["ParticleMassMsun"].sum()
+        else:
+            my_mass = 0.
+        global_mass = self._mpi_allsum(mass)
+        return global_mass
+
+    def bulk_velocity(self):
+        """
+        Returns the mass-weighted average velocity.
+        """
+        if self.indices is not None:
+            pm = self["ParticleMassMsun"]
+            vx = (self["particle_velocity_x"] * pm).sum()
+            vy = (self["particle_velocity_y"] * pm).sum()
+            vz = (self["particle_velocity_z"] * pm).sum()
+        else:
+            pm = 0.
+            vx = 0.
+            vy = 0.
+            vz = 0.
+        global_vx = self._mpi_allsum(vx)
+        global_vy = self._mpi_allsum(vy)
+        global_vz = self._mpi.allsum(vz)
+        global_pm = self._mpi_allsum(pm)
+        return na.array([global_vx, global_vy, global_vz])/global_pm
+
+    def maximum_radius(self, center_of_mass=True):
+        """
+        Returns the maximum radius in the halo for all particles,
+        either from the point of maximum density or from the (default)
+        *center_of_mass*.
+        """
+        if self.indices is not None:
+            if center_of_mass: center = self.center_of_mass()
+            else: center = self.maximum_density_location()
+            rx = na.abs(self["particle_position_x"]-center[0])
+            ry = na.abs(self["particle_position_y"]-center[1])
+            rz = na.abs(self["particle_position_z"]-center[2])
+            r = na.sqrt(na.minimum(rx, 1.0-rx)**2.0
+                    +   na.minimum(ry, 1.0-ry)**2.0
+                    +   na.minimum(rz, 1.0-rz)**2.0)
+            my_max = r.max()
+        else:
+            my_max = 0
+        return self._mpi_allmax(my_max)
+
+    def get_size(self):
+        if self.indices is not None:
+            my_size = self.indices.size
+        else:
+            my_size = 0
+        global_size = self._mpi_allsum(my_size)
+        return global_size
+
 
 class FOFHalo(Halo):
 
@@ -438,16 +549,56 @@ class chainHOPHaloList(HaloList):
             self.particle_fields["ParticleMassMsun"]/self.total_mass,
             self.threshold)
         self.densities, self.tags = obj.density, obj.chainID
-        self.me = obj.mine
-        select = (self.tags != -1)
-        in_indices = index[select]
-        in_tags = self.tags[select]
-        fp = open('%02d.txt' % self.me, 'w')
-        for i, index in enumerate(in_indices):
-            line = '%d %d\n' % (index, in_tags[i])
-            fp.write(line)
-        fp.close()
-        sys.exit()
+        self.group_count = obj.group_count
+        self.densest_in_group = obj.densest_in_group
+
+    def _parse_output(self):
+        """
+        Each task will make an entry for all groups, but it may be empty.
+        """
+        unique_ids = na.unique(self.tags)
+        counts = na.bincount((self.tags+1).tolist())
+        sort_indices = na.argsort(self.tags)
+        grab_indices = na.indices(self.tags.shape).ravel()[sort_indices]
+        dens = self.densities[sort_indices]
+        cp = 0
+        index = 0
+        for i in unique_ids:
+            if i == -1:
+                cp += counts[i+1]
+                continue
+            # If there is a gap in the unique_ids, make empty groups to 
+            # fill it in.
+            while index < i:
+                self._groups.append(self._halo_class(self, index))
+                # I don't own this halo
+                self._do_not_claim_object(self._groups[-1])
+                # A max_dens of 0 will prevent this from being considered
+                # when that is found globally.
+                self._max_dens[index] = (0, 0, 0, 0)
+                index += 1
+            cp_c = cp + counts[i+1]
+            group_indices = grab_indices[cp:cp_c]
+            self._groups.append(self._halo_class(self, i, group_indices))
+            # This halo may be owned by many, including this task
+            self._claim_object(self._groups[-1])
+            md_i = na.argmax(dens[cp:cp_c])
+            px, py, pz = [self.particle_fields['particle_position_%s'%ax][group_indices]
+                                            for ax in 'xyz']
+            # This may not be the actual max_dens for this group, they are
+            # compared later.
+            self._max_dens[i] = (dens[cp:cp_c][md_i], px[md_i], py[md_i], pz[md_i])
+            cp += counts[i+1]
+            index += 1
+        # If there are missing groups at the end, add them.
+        while index < self.group_count:
+            self._groups.append(self._halo_class(self, index))
+            self._do_not_claim_object(self._groups[-1])
+            self._max_dens[index] = (0, 0, 0, 0)
+            index += 1
+
+    def __len__(self):
+        return self.group_count
 
     def write_out(self, filename="chainHopAnalysis.out"):
         HaloList.write_out(self, filename)
@@ -576,8 +727,22 @@ class chainHF(GenericHaloFinder, chainHOPHaloList):
         self.bounds = (LE, RE)
         chainHOPHaloList.__init__(self, self._data_source, self.padding, \
         self.num_neighbors, self.bounds, total_mass, threshold=threshold, dm_only=dm_only)
-        self._parse_halolist(1.)
         self._join_halolists()
+
+    def _join_halolists(self):
+        def haloCmp(h1,h2):
+            c = cmp(h1.get_size(),h2.get_size())
+            if c != 0:
+                return -1 * c
+            if c == 0:
+                return cmp(h1.center_of_mass()[0],h2.center_of_mass()[0])
+        self._groups.sort(haloCmp)
+        sorted_max_dens = {}
+        for i, halo in enumerate(self._groups):
+            if halo.id in self._max_dens:
+                sorted_max_dens[i] = self._max_dens[halo.id]
+            halo.id = i
+        self._max_dens = sorted_max_dens
 
 class HOPHaloFinder(GenericHaloFinder, HOPHaloList):
     def __init__(self, pf, threshold=160, dm_only=True, padding=0.02):

@@ -268,6 +268,7 @@ class ParallelAnalysisInterface(object):
         and arrangement of tasks.
         """
         if not self._distributed: return 0
+        shift = na.array(shift)
         cc = na.array(MPI.Compute_dims(MPI.COMM_WORLD.size, 3))
         mi = MPI.COMM_WORLD.rank
         si = MPI.COMM_WORLD.size
@@ -417,6 +418,11 @@ class ParallelAnalysisInterface(object):
         # relatively small ( < 1e7 elements )
         return MPI.COMM_WORLD.allreduce(data, op=MPI.SUM)
 
+    @parallel_passthrough
+    def _mpi_allmax(self, data):
+        self._barrier()
+        return MPI.COMM_WORLD.allreduce(data, op=MPI.MAX)
+
     def _mpi_info_dict(self, info):
         if not self._distributed: return 0, {0:info}
         self._barrier()
@@ -442,6 +448,11 @@ class ParallelAnalysisInterface(object):
     def _claim_object(self, obj):
         if not self._distributed: return
         obj._owner = MPI.COMM_WORLD.rank
+        obj._distributed = True
+
+    def _do_not_claim_object(self, obj):
+        if not self._distributed: return
+        obj._owner = -1
         obj._distributed = True
 
     def _write_on_root(self, fn):
