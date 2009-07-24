@@ -239,15 +239,6 @@ class AMRHierarchy:
         obj = classobj(class_name, (base,), dd)
         setattr(self, name, obj)
 
-    def _setup_classes(self, dd):
-        self.object_types = []
-        self.objects = []
-        for name, cls in sorted(data_object_registry.items()):
-            cname = cls.__name__
-            if cname.endswith("Base"): cname = cname[:-4]
-            self._add_object_class(name, cname, cls, dd)
-        self.object_types.sort()
-
     def all_data(self, find_max=False):
         pf = self.parameter_file
         if find_max: c = self.find_max("Density")[1]
@@ -1422,28 +1413,73 @@ class OrionLevel:
         self.ngrids = ngrids
         self.grids = []
     
-
-class NewEnzoHierarchy(AMRHierarchy):
+class NewAMRHierarchy(object):
+    _parallel_locking = False
     def __init__(self, pf, data_style):
+        self.parameter_file = weakref.proxy(pf)
+
+        mylog.debug("Initializing data storage.")
+        self._initialize_data_storage()
+
+        # Must be defined in subclass
+        mylog.debug("Setting up classes.")
+        self._setup_classes()
+
+        mylog.debug("Counting grids.")
+        self._count_grids()
+
+        mylog.debug("Counting grids.")
+        self._initialize_grid_arrays()
+
+        mylog.debug("Parsing hierarchy.")
+        self._parse_hierarchy()
+
+        mylog.debug("Constructing grid objects.")
+        self._populate_grid_objects()
+
+        mylog.debug("Detecting fields.")
         self.field_list = []
-        self.data_style = data_style
+        self._detect_fields()
+
+        mylog.debug("Adding unknown detected fields")
+        self._setup_unknown_fields()
+
+        mylog.debug("Setting up derived fields")
+        self._setup_derived_fields()
+
+    def _setup_classes(self, dd):
+        # Called by subclass
+        self.object_types = []
+        self.objects = []
+        for name, cls in sorted(data_object_registry.items()):
+            cname = cls.__name__
+            if cname.endswith("Base"): cname = cname[:-4]
+            self._add_object_class(name, cname, cls, dd)
+        self.object_types.sort()
+
+    # Now all the object related stuff
+
+    def all_data(self, find_max=False):
+        pf = self.parameter_file
+        if find_max: c = self.find_max("Density")[1]
+        else: c = (pf["DomainRightEdge"] + pf["DomainLeftEdge"])/2.0
+        return self.region(c, 
+            pf["DomainLeftEdge"], pf["DomainRightEdge"])
+
+class NewEnzoHierarchy(NewAMRHierarchy):
+
+    def _initialize_data_storage(self):
+        pass
+
+    def __init__(self, pf, data_style):
         
-        self.hierarchy_filename = os.path.abspath(pf.parameter_filename) \
-                               + ".hierarchy"
+        self.data_style = data_style
+        self.hierarchy_filename = os.path.abspath(
+            "%s.hierarchy" % (pf.parameter_filename))
         if os.path.getsize(self.hierarchy_filename) == 0:
             raise IOError(-1,"File empty", self.hierarchy_filename)
-        self.boundary_filename = os.path.abspath(pf.parameter_filename) \
-                               + ".boundary"
         self.directory = os.path.dirname(self.hierarchy_filename)
-        testGrid = testGridID = None
-        for line in rlines(open(self.hierarchy_filename, "rb")):
-            if line.startswith("BaryonFileName") or \
-               line.startswith("FileName "):
-                testGrid = line.split("=")[-1].strip().rstrip()
-            if line.startswith("Grid "):
-                self.num_grids = testGridID = int(line.split("=")[-1])
-                break
-        self.__guess_data_style(pf["TopGridRank"], testGrid, testGridID)
+
         self._setup_data_queue()
         # For some reason, r8 seems to want Float64
         if pf.has_key("CompilerPrecision") \
@@ -1460,21 +1496,40 @@ class NewEnzoHierarchy(AMRHierarchy):
         self._add_object_class('grid', "EnzoGrid", EnzoGridBase, dd)
         self.object_types.sort()
 
-    def __guess_data_style(self, rank, testGrid, testGridID):
+    def _count_grids(self):
+        test_grid = test_grid_id = None
+        for line in rlines(open(self.hierarchy_filename, "rb")):
+            if line.startswith("BaryonFileName") or \
+               line.startswith("FileName "):
+                test_grid = line.split("=")[-1].strip().rstrip()
+            if line.startswith("Grid "):
+                self.num_grids = test_grid_id = int(line.split("=")[-1])
+                break
+        self._guess_data_style(pf["TopGridRank"], test_grid, test_grid_id)
+
+    def _initialize_grid_arrays(self):
+        mylog.debug("Allocating arrays for %s grids", self.num_grids)
+        self.grid_dimensions = na.ones((self.num_grids,3), 'int32')
+        self.grid_left_edge = na.zeros((self.num_grids,3), self.float_type)
+        self.grid_right_edge = na.ones((self.num_grids,3), self.float_type)
+        self.grid_levels = na.zeros((self.num_grids,1), 'int32')
+        self.grid_particle_count = na.zeros((self.num_grids,1))
+
+    def _guess_data_style(self, rank, test_grid, test_grid_id):
         if self.data_style: return
-        if testGrid[0] != os.path.sep:
-            testGrid = os.path.join(self.directory, testGrid)
-        if not os.path.exists(testGrid):
-            testGrid = os.path.join(self.directory,
-                                    os.path.basename(testGrid))
+        if test_grid[0] != os.path.sep:
+            test_grid = os.path.join(self.directory, test_grid)
+        if not os.path.exists(test_grid):
+            test_grid = os.path.join(self.directory,
+                                    os.path.basename(test_grid))
             mylog.debug("Your data uses the annoying hardcoded path.")
             self._strip_path = True
         try:
-            a = SD.SD(testGrid)
+            a = SD.SD(test_grid)
             self.data_style = 'enzo_hdf4'
             mylog.debug("Detected HDF4")
         except:
-            list_of_sets = HDF5LightReader.ReadListOfDatasets(testGrid, "/")
+            list_of_sets = HDF5LightReader.ReadListOfDatasets(test_grid, "/")
             if len(list_of_sets) == 0 and rank == 3:
                 mylog.debug("Detected packed HDF5")
                 self.data_style = 'enzo_packed_3d'
@@ -1490,9 +1545,10 @@ class NewEnzoHierarchy(AMRHierarchy):
             else:
                 raise TypeError
 
+    # Sets are sorted, so that won't work!
     __parse_tokens = ("GridStartIndex", "GridEndIndex",
-            "GridLeftEdge", "GridRightEdge", "FileName")
-    def _populate_hierarchy(self):
+            "Grid_left_edge", "Grid_right_edge", "FileName")
+    def _parse_hierarchy(self):
         def _line_yielder(f):
             for token in self.__parse_tokens:
                 line = f.readline()
@@ -1523,25 +1579,17 @@ class NewEnzoHierarchy(AMRHierarchy):
                 if "NumberOfParticles" == params[0]:
                     np[-1] = params[2]
                 line = f.readline()
-        def fix_size(my_arr, iter, dt, size=3*self.num_grids):
-            my_arr[:] = na.fromiter(chain(*iter), dtype=dt,
-                            count=size).reshape(my_arr.shape)
-        fix_size(self.gridStartIndices, si, 'int')
-        fix_size(self.gridEndIndices, ei, 'int')
-        fix_size(self.gridLeftEdge, LE, 'float64')
-        fix_size(self.gridRightEdge, RE, 'float64')
-        fix_size(self.gridNumberOfParticles, np, 'int', self.num_grids)
-        self.grids = na.array(self.grids)
+        def fix_size(iter, dt, shape=(self.num_grids, 3)):
+            size = na.prod(shape)
+            return na.fromiter(chain(*iter), dtype=dt, count=size).reshape(shape)
+        self.grid_dimensions = fix_size(ei, 'int32') - fix_size(si, 'int32') + 1
+        self.grid_left_edge = fix_size(LE, self.float_type)
+        self.grid_right_edge = fix_size(RE, self.float_type)
+        self.grid_particle_count = fix_size(np, 'int32', (self.num_grids, 1))
+        self.grids = na.array(self.grids, dtype='object')
         t2 = time.time()
         print "Took %0.3e" % (t2-t1)
-        print len(self.wrefs), len(self.grids), self.num_grids
-        for g,f in izip(self.grids, fn):
-            g._prepare_grid()
-            g._setup_dx()
-            g.set_filename(f[0])
-        #self._setup_grid_dxs()
-        self._setup_field_lists()
-        self.max_level = self.gridLevels.max()
+        self.max_level = self.grid_levels.max()
 
     def __pointer_handler(self, m):
         sgi = int(m[2])-1
@@ -1560,19 +1608,11 @@ class NewEnzoHierarchy(AMRHierarchy):
                 secondGrid.Parent = firstGrid.Parent
             secondGrid.Level = firstGrid.Level
 
-    def _initialize_grids(self):
-        mylog.debug("Allocating memory for %s grids", self.num_grids)
-        self.gridActiveDimensions = na.zeros((self.num_grids,3), 'int32')
-        self.gridStartIndices = na.zeros((self.num_grids,3), 'int32')
-        self.gridEndIndices = na.zeros((self.num_grids,3), 'int32')
-        self.gridLeftEdge = na.zeros((self.num_grids,3), self.float_type)
-        self.gridRightEdge = na.zeros((self.num_grids,3), self.float_type)
-        self.gridLevels = na.zeros((self.num_grids,1), 'int32')
-        self.gridNumberOfParticles = na.zeros((self.num_grids,1))
-        mylog.debug("Done allocating")
-        mylog.debug("Creating grid objects")
-        #self.grids = na.array([self.grid(i+1) for i in xrange(self.num_grids)])
-        mylog.debug("Done creating grid objects")
+    def _populate_grid_objects(self):
+        for g,f in izip(self.grids, fn):
+            g._prepare_grid()
+            g._setup_dx()
+            g.set_filename(f[0])
 
     def _setup_field_lists(self):
         field_list = self.get_data("/", "DataFields")
