@@ -212,7 +212,7 @@ class chainHOPHalo(Halo,ParallelAnalysisInterface):
             my_mass = self["ParticleMassMsun"].sum()
         else:
             my_mass = 0.
-        global_mass = self._mpi_allsum(mass)
+        global_mass = self._mpi_allsum(float(my_mass))
         return global_mass
 
     def bulk_velocity(self):
@@ -224,6 +224,7 @@ class chainHOPHalo(Halo,ParallelAnalysisInterface):
             vx = (self["particle_velocity_x"] * pm).sum()
             vy = (self["particle_velocity_y"] * pm).sum()
             vz = (self["particle_velocity_z"] * pm).sum()
+            pm = pm.sum()
         else:
             pm = 0.
             vx = 0.
@@ -231,7 +232,7 @@ class chainHOPHalo(Halo,ParallelAnalysisInterface):
             vz = 0.
         global_vx = self._mpi_allsum(vx)
         global_vy = self._mpi_allsum(vy)
-        global_vz = self._mpi.allsum(vz)
+        global_vz = self._mpi_allsum(vz)
         global_pm = self._mpi_allsum(pm)
         return na.array([global_vx, global_vy, global_vz])/global_pm
 
@@ -508,7 +509,7 @@ class FOFHaloList(HaloList):
     def write_out(self, filename="FOFAnalysis.out"):
         HaloList.write_out(self, filename)
 
-class chainHOPHaloList(HaloList):
+class chainHOPHaloList(HaloList,ParallelAnalysisInterface):
     _name = "chainHOP"
     _halo_class = chainHOPHalo
     _fields = ["particle_position_%s" % ax for ax in 'xyz'] + \
