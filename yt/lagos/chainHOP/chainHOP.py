@@ -65,14 +65,15 @@ class RunChainHOP(ParallelAnalysisInterface):
         self.is_inside = ( (points >= LE).all(axis=1) * \
             (points < RE).all(axis=1) )
         # Below we find out which particles are in the `annulus', one padding
-        # distance inside the boundaries.
+        # distance inside the boundaries. First we find the particles outside
+        # this inner boundary.
         LE += self.padding
         RE -= self.padding
         inner = na.invert( (points >= LE).all(axis=1) * \
             (points < RE).all(axis=1) )
         # After inverting the logic above, we want points that are both
-        # inside the padding, but within one padding of the boundary, and this
-        # will do it.
+        # inside the real region, but within one padding of the boundary,
+        # and this will do it.
         self.is_inside_annulus = na.bitwise_and(self.is_inside, inner)
 
     # These next two functions aren't currently being used. They figure out
@@ -226,13 +227,15 @@ class RunChainHOP(ParallelAnalysisInterface):
             # the padding, not begin, or if this particle is too low in
             # density, move on
             if self.chainID[i] > -1 or not self.is_inside[i] or \
-                self.density[i] < self.threshold: continue
+                    self.density[i] < self.threshold:
+                continue
             chainIDnew = self._recurse_links(i, chainIDmax)
             # if the new chainID returned is the same as we entered, the chain
             # has been named chainIDmax, so we need to start a new chain
             # in the next loop
             if chainIDnew == chainIDmax:
                 chainIDmax += 1
+        self.padded_particles = na.array(self.padded_particles, dtype='int64')
         return chainIDmax
     
     def _recurse_links(self, pi, chainIDmax):
@@ -265,7 +268,6 @@ class RunChainHOP(ParallelAnalysisInterface):
             chainIDnew = self._recurse_links(nn, chainIDmax)
             self.chainID[pi] = chainIDnew
             return chainIDnew
-        self.padded_particles = na.array(self.padded_particles, dtype='int64')
 
     def _globally_assign_chainIDs(self, chain_count):
         """
@@ -330,11 +332,11 @@ class RunChainHOP(ParallelAnalysisInterface):
             opp_neighbor = self._mpi_find_neighbor_3d(opp_shift)
             opp_size = self.global_padded_count[opp_neighbor]
             MPI.COMM_WORLD.Sendrecv(
-                [self.uphill_real_indices, MPI.LONG_INT], neighbor, 0,
-                [temp_indices, MPI.LONG_INT], opp_neighbor, 0)
+                [self.uphill_real_indices, MPI.INT], neighbor, 0,
+                [temp_indices, MPI.INT], opp_neighbor, 0)
             MPI.COMM_WORLD.Sendrecv(
-                [self.uphill_chainIDs, MPI.LONG_INT], neighbor, 0,
-                [temp_chainIDs, MPI.LONG_INT], opp_neighbor, 0)
+                [self.uphill_chainIDs, MPI.INT], neighbor, 0,
+                [temp_chainIDs, MPI.INT], opp_neighbor, 0)
             # Only save the part of the buffer that we want
             self.recv_real_indices[so_far:(so_far + opp_size)] = \
                 temp_indices[0:opp_size]
@@ -373,16 +375,28 @@ class RunChainHOP(ParallelAnalysisInterface):
         for i,real_index in enumerate(self.recv_real_indices):
             try:
                 localID = self.rev_index[real_index]
+                # We don't want to update the chainIDs of my padded particles,
+                # remember we are supposed to be only considering particles
+                # in my *real* region that are padded in my neighbor.
+                if not self.is_inside[localID]:
+                    self.recv_real_indices[i] = -1
+                    continue
                 self.recv_real_indices[i] = localID
             except KeyError:
-                pass
+                # if this particle is not owned by me, make it negative so
+                # we can skip it below.
+                self.recv_real_indices[i] = -1
+                continue
         # Now relate the local chainIDs to the received chainIDs
         for i,localID in enumerate(self.recv_real_indices):
             # if the 'new' chainID is different that what we already have,
             # we need to record it
-            if self.recv_chainIDs[i] != self.chainID[localID]:
-                chainID_translate_map_local[self.recv_chainIDs[i]] = \
-                    self.chainID[localID]
+            if localID != -1:
+                if self.recv_chainIDs[i] != self.chainID[localID]:
+                    chainID_translate_map_local[self.recv_chainIDs[i]] = \
+                        self.chainID[localID]
+                    if self.chainID[localID] == -1 and self.mine==8:
+                        print self.mine, localID, self.density[localID]
         # chainID_translate_map_local is now a 'sparse' dict. Chains may
         # 'point' to only one chain, but a chain may have many that point to
         # it. Therefore each key in this dict is unique, but the items
@@ -457,17 +471,23 @@ class RunChainHOP(ParallelAnalysisInterface):
             opp_neighbor = self._mpi_find_neighbor_3d(opp_shift)
             opp_size = global_annulus_count[opp_neighbor]
             status = MPI.COMM_WORLD.Sendrecv(
-                [real_indices, MPI.LONG_INT], neighbor, 0,
-                [recv_real_indices, MPI.LONG_INT], opp_neighbor, 0)
+                [real_indices, MPI.INT], neighbor, 0,
+                [recv_real_indices, MPI.INT], opp_neighbor, 0)
             status = MPI.COMM_WORLD.Sendrecv(
-                [chainIDs, MPI.LONG_INT], neighbor, 0,
-                [recv_chainIDs, MPI.LONG_INT], opp_neighbor, 0)
+                [chainIDs, MPI.INT], neighbor, 0,
+                [recv_chainIDs, MPI.INT], opp_neighbor, 0)
             # use the data
             for i,real_index in enumerate(recv_real_indices[0:opp_size]):
                 try:
                     localID = self.rev_index[real_index]
+                    # We are only updating our particles that are in our
+                    # padding, so to be rigorous we will skip particles
+                    # that are in our real region.
+                    if self.is_inside[localID]:
+                        continue
                     self.chainID[localID] = recv_chainIDs[i]
                 except KeyError:
+                    # We ignore data that's not for us.
                     continue
         del recv_real_indices, recv_chainIDs
 

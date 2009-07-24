@@ -533,19 +533,19 @@ class chainHOPHaloList(HaloList,ParallelAnalysisInterface):
         HaloList.__init__(self, data_source, dm_only)
 
     def _run_finder(self):
-        xt = self.particle_fields["particle_position_x"] - 0.961
-        yt = self.particle_fields["particle_position_y"] - 0.369
-        zt = self.particle_fields["particle_position_z"] - 0.710
+        xt = self.particle_fields["particle_position_x"] # - 0.961
+        yt = self.particle_fields["particle_position_y"] # - 0.369
+        zt = self.particle_fields["particle_position_z"] # - 0.710
         index = self.particle_fields["particle_index"]
-        for i,x in enumerate(xt):
-            if x < 0:
-                xt[i] = 1+x
-        for i,y in enumerate(yt):
-            if y < 0:
-                yt[i] = 1+y
-        for i,z in enumerate(zt):
-            if z < 0:
-                zt[i] = 1+z
+#         for i,x in enumerate(xt):
+#             if x < 0:
+#                 xt[i] = 1+x
+#         for i,y in enumerate(yt):
+#             if y < 0:
+#                 yt[i] = 1+y
+#         for i,z in enumerate(zt):
+#             if z < 0:
+#                 zt[i] = 1+z
         obj = RunChainHOP(self.period, self.padding,
             self.num_neighbors, self.bounds,xt,yt,zt, index,
             self.particle_fields["ParticleMassMsun"]/self.total_mass,
