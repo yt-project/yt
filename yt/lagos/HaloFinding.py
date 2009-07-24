@@ -242,9 +242,9 @@ class chainHOPHalo(Halo,ParallelAnalysisInterface):
         either from the point of maximum density or from the (default)
         *center_of_mass*.
         """
+        if center_of_mass: center = self.center_of_mass()
+        else: center = self.maximum_density_location()
         if self.indices is not None:
-            if center_of_mass: center = self.center_of_mass()
-            else: center = self.maximum_density_location()
             rx = na.abs(self["particle_position_x"]-center[0])
             ry = na.abs(self["particle_position_y"]-center[1])
             rz = na.abs(self["particle_position_z"]-center[2])
@@ -252,8 +252,9 @@ class chainHOPHalo(Halo,ParallelAnalysisInterface):
                     +   na.minimum(ry, 1.0-ry)**2.0
                     +   na.minimum(rz, 1.0-rz)**2.0)
             my_max = r.max()
+            
         else:
-            my_max = 0
+            my_max = 0.
         return self._mpi_allmax(my_max)
 
     def get_size(self):
@@ -744,6 +745,7 @@ class chainHF(GenericHaloFinder, chainHOPHaloList):
                 sorted_max_dens[i] = self._max_dens[halo.id]
             halo.id = i
         self._max_dens = sorted_max_dens
+        print self._max_dens
 
 class HOPHaloFinder(GenericHaloFinder, HOPHaloList):
     def __init__(self, pf, threshold=160, dm_only=True, padding=0.02):
