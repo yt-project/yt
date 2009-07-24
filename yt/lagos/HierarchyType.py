@@ -110,34 +110,6 @@ class AMRHierarchy:
             return
         self.cpu_map[grid.filename].append(grid)
 
-    def _initialize_data_file(self):
-        if not ytcfg.getboolean('lagos','serialize'): return
-        if os.path.isfile(os.path.join(self.directory,
-                            "%s.yt" % self["CurrentTimeIdentifier"])):
-            fn = os.path.join(self.directory,"%s.yt" % self["CurrentTimeIdentifier"])
-        else:
-            fn = os.path.join(self.directory,
-                    "%s.yt" % self.parameter_file.basename)
-        if os.path.isfile(fn):
-            writable = os.access(fn, os.W_OK)
-        else:
-            writable = os.access(self.directory, os.W_OK)
-        if ytcfg.getboolean('lagos','onlydeserialize') or not writable:
-            self._data_mode = mode = 'r'
-        else:
-            self._data_mode = mode = 'a'
-        self.__create_data_file(fn)
-        self.__data_filename = fn
-        self._data_file = h5py.File(fn, self._data_mode)
-
-    @parallel_root_only
-    def __create_data_file(self, fn):
-        f = h5py.File(fn, 'a')
-        f.close()
-
-    def _setup_data_queue(self):
-        self.queue = _data_style_funcs[self.data_style][5]()
-
     def _setup_grid_corners(self):
         self.gridCorners = na.array([ # Unroll!
             [self.gridLeftEdge[:,0], self.gridLeftEdge[:,1], self.gridLeftEdge[:,2]],
@@ -150,101 +122,6 @@ class AMRHierarchy:
             [self.gridLeftEdge[:,0], self.gridRightEdge[:,1], self.gridLeftEdge[:,2]],
             ], dtype='float64')
 
-    def _save_data(self, array, node, name, set_attr=None, force=False, passthrough = False):
-        """
-        Arbitrary numpy data will be saved to the region in the datafile
-        described by *node* and *name*.  If data file does not exist, it throws
-        no error and simply does not save.
-        """
-
-        if self._data_mode != 'a': return
-        if "ArgsError" in dir(h5py.h5):
-            exception = h5py.h5.ArgsError
-        else:
-            exception = h5py.h5.H5Error
-        try:
-            node_loc = self._data_file[node]
-            if name in node_loc.listnames() and force:
-                mylog.info("Overwriting node %s/%s", node, name)
-                del self._data_file[node][name]
-            elif name in node_loc.listnames() and passthrough:
-                return
-        except exception:
-            pass
-        myGroup = self._data_file['/']
-        for q in node.split('/'):
-            if q: myGroup = myGroup.require_group(q)
-        arr = myGroup.create_dataset(name,data=array)
-        if set_attr is not None:
-            for i, j in set_attr.items(): arr.attrs[i] = j
-        self._data_file.flush()
-
-    def _reload_data_file(self, *args, **kwargs):
-        if self._data_file is None: return
-        self._data_file.close()
-        del self._data_file
-        self._data_file = h5py.File(self.__data_filename, self._data_mode)
-
-    def _reset_save_data(self,round_robin=False):
-        if round_robin:
-            self.save_data = self._save_data
-        else:
-            self.save_data = parallel_splitter(self._save_data, self._reload_data_file)
-    
-    save_data = parallel_splitter(_save_data, _reload_data_file)
-
-    def save_object(self, obj, name):
-        s = cPickle.dumps(obj, protocol=-1)
-        self.save_data(s, "/Objects", name, force = True)
-
-    def load_object(self, name):
-        obj = self.get_data("/Objects", name)
-        if obj is None:
-            return
-        obj = cPickle.loads(obj.value)
-        if iterable(obj) and len(obj) == 2:
-            obj = obj[1] # Just the object, not the pf
-        if hasattr(obj, '_fix_pickle'): obj._fix_pickle()
-        return obj
-
-    def get_data(self, node, name):
-        """
-        Return the dataset with a given *name* located at *node* in the
-        datafile.
-        """
-        if self._data_file == None:
-            return None
-        if node[0] != "/": node = "/%s" % node
-
-        myGroup = self._data_file['/']
-        for group in node.split('/'):
-            if group:
-                if group not in myGroup.listnames():
-                    return None
-                myGroup = myGroup[group]
-        if name not in myGroup.listnames():
-            return None
-
-        full_name = "%s/%s" % (node, name)
-        return self._data_file[full_name]
-
-    def _close_data_file(self):
-        if self._data_file:
-            self._data_file.close()
-            del self._data_file
-            self._data_file = None
-
-    def _add_object_class(self, name, class_name, base, dd):
-        self.object_types.append(name)
-        obj = classobj(class_name, (base,), dd)
-        setattr(self, name, obj)
-
-    def all_data(self, find_max=False):
-        pf = self.parameter_file
-        if find_max: c = self.find_max("Density")[1]
-        else: c = (pf["DomainRightEdge"] + pf["DomainLeftEdge"])/2.0
-        return self.region(c, 
-            pf["DomainLeftEdge"], pf["DomainRightEdge"])
 
     def _deserialize_hierarchy(self, harray):
         mylog.debug("Cached entry found.")
@@ -257,25 +134,6 @@ class AMRHierarchy:
         self.gridTimes[:] = harray[:,16:17]
         self.gridNumberOfParticles[:] = harray[:,17:18]
 
-    def _get_data_reader_dict(self):
-        dd = { 'readDataFast' : _data_style_funcs[self.data_style][0],
-               'readAllData' : _data_style_funcs[self.data_style][1],
-               'getFields' : _data_style_funcs[self.data_style][2],
-               'readDataSlice' : _data_style_funcs[self.data_style][3],
-               '_read_data' : _data_style_funcs[self.data_style][0],
-               '_read_all_data' : _data_style_funcs[self.data_style][1],
-               '_read_field_names' : _data_style_funcs[self.data_style][2],
-               '_read_data_slice' : _data_style_funcs[self.data_style][3],
-               '_read_exception' : _data_style_funcs[self.data_style][4](),
-               'pf' : self.parameter_file, # Already weak
-               'hierarchy': weakref.proxy(self) }
-        return dd
-
-    def get_smallest_dx(self):
-        """
-        Returns (in code units) the smallest cell size in the simulation.
-        """
-        return self.gridDxs.min()
 
     def find_ray_grids(self, coord, axis):
         """
@@ -592,10 +450,6 @@ class AMRHierarchy:
         return output, genealogy, levels_all, levels_finest, pp, corners
 
     def _add_detected_fields(self):
-        """add any extra fields in the 
-
-
-        """
         for field in self.field_list:
             if field in self.parameter_file.field_info: continue
             mylog.info("Adding %s to list of fields", field)
@@ -1415,18 +1269,21 @@ class OrionLevel:
     
 class NewAMRHierarchy(object):
     _parallel_locking = False
+    _data_file = None
+    _data_mode = None
     def __init__(self, pf, data_style):
         self.parameter_file = weakref.proxy(pf)
+        self.pf = self.parameter_file
 
         mylog.debug("Initializing data storage.")
         self._initialize_data_storage()
 
+        mylog.debug("Counting grids.")
+        self._count_grids()
+
         # Must be defined in subclass
         mylog.debug("Setting up classes.")
         self._setup_classes()
-
-        mylog.debug("Counting grids.")
-        self._count_grids()
 
         mylog.debug("Counting grids.")
         self._initialize_grid_arrays()
@@ -1447,6 +1304,9 @@ class NewAMRHierarchy(object):
         mylog.debug("Setting up derived fields")
         self._setup_derived_fields()
 
+        mylog.debug("Initializing data grid data IO")
+        self._setup_data_queue()
+
     def _setup_classes(self, dd):
         # Called by subclass
         self.object_types = []
@@ -1466,6 +1326,146 @@ class NewAMRHierarchy(object):
         return self.region(c, 
             pf["DomainLeftEdge"], pf["DomainRightEdge"])
 
+    def _join_field_lists(self, field_list):
+        return field_list
+
+    def _get_data_reader_dict(self):
+        dd = { 'readDataFast' : _data_style_funcs[self.data_style][0],
+               'readAllData' : _data_style_funcs[self.data_style][1],
+               'getFields' : _data_style_funcs[self.data_style][2],
+               'readDataSlice' : _data_style_funcs[self.data_style][3],
+               '_read_data' : _data_style_funcs[self.data_style][0],
+               '_read_all_data' : _data_style_funcs[self.data_style][1],
+               '_read_field_names' : _data_style_funcs[self.data_style][2],
+               '_read_data_slice' : _data_style_funcs[self.data_style][3],
+               '_read_exception' : _data_style_funcs[self.data_style][4](),
+               'pf' : self.parameter_file, # Already weak
+               'hierarchy': weakref.proxy(self) }
+        return dd
+
+    def _initialize_data_storage(self):
+        if not ytcfg.getboolean('lagos','serialize'): return
+        if os.path.isfile(os.path.join(self.directory,
+                            "%s.yt" % self["CurrentTimeIdentifier"])):
+            fn = os.path.join(self.directory,"%s.yt" % self["CurrentTimeIdentifier"])
+        else:
+            fn = os.path.join(self.directory,
+                    "%s.yt" % self.parameter_file.basename)
+        if os.path.isfile(fn):
+            writable = os.access(fn, os.W_OK)
+        else:
+            writable = os.access(self.directory, os.W_OK)
+        if ytcfg.getboolean('lagos','onlydeserialize') or not writable:
+            self._data_mode = mode = 'r'
+        else:
+            self._data_mode = mode = 'a'
+        self.__create_data_file(fn)
+        self.__data_filename = fn
+        self._data_file = h5py.File(fn, self._data_mode)
+
+    @parallel_root_only
+    def __create_data_file(self, fn):
+        f = h5py.File(fn, 'a')
+        f.close()
+
+    def _setup_data_queue(self):
+        self.queue = _data_style_funcs[self.data_style][5]()
+
+    def _save_data(self, array, node, name, set_attr=None, force=False, passthrough = False):
+        """
+        Arbitrary numpy data will be saved to the region in the datafile
+        described by *node* and *name*.  If data file does not exist, it throws
+        no error and simply does not save.
+        """
+
+        if self._data_mode != 'a': return
+        if "ArgsError" in dir(h5py.h5):
+            exception = h5py.h5.ArgsError
+        else:
+            exception = h5py.h5.H5Error
+        try:
+            node_loc = self._data_file[node]
+            if name in node_loc.listnames() and force:
+                mylog.info("Overwriting node %s/%s", node, name)
+                del self._data_file[node][name]
+            elif name in node_loc.listnames() and passthrough:
+                return
+        except exception:
+            pass
+        myGroup = self._data_file['/']
+        for q in node.split('/'):
+            if q: myGroup = myGroup.require_group(q)
+        arr = myGroup.create_dataset(name,data=array)
+        if set_attr is not None:
+            for i, j in set_attr.items(): arr.attrs[i] = j
+        self._data_file.flush()
+
+    def _reload_data_file(self, *args, **kwargs):
+        if self._data_file is None: return
+        self._data_file.close()
+        del self._data_file
+        self._data_file = h5py.File(self.__data_filename, self._data_mode)
+
+    def _reset_save_data(self,round_robin=False):
+        if round_robin:
+            self.save_data = self._save_data
+        else:
+            self.save_data = parallel_splitter(self._save_data, self._reload_data_file)
+    
+    save_data = parallel_splitter(_save_data, _reload_data_file)
+
+    def save_object(self, obj, name):
+        s = cPickle.dumps(obj, protocol=-1)
+        self.save_data(s, "/Objects", name, force = True)
+
+    def load_object(self, name):
+        obj = self.get_data("/Objects", name)
+        if obj is None:
+            return
+        obj = cPickle.loads(obj.value)
+        if iterable(obj) and len(obj) == 2:
+            obj = obj[1] # Just the object, not the pf
+        if hasattr(obj, '_fix_pickle'): obj._fix_pickle()
+        return obj
+
+    def get_data(self, node, name):
+        """
+        Return the dataset with a given *name* located at *node* in the
+        datafile.
+        """
+        if self._data_file == None:
+            return None
+        if node[0] != "/": node = "/%s" % node
+
+        myGroup = self._data_file['/']
+        for group in node.split('/'):
+            if group:
+                if group not in myGroup.listnames():
+                    return None
+                myGroup = myGroup[group]
+        if name not in myGroup.listnames():
+            return None
+
+        full_name = "%s/%s" % (node, name)
+        return self._data_file[full_name]
+
+    def _close_data_file(self):
+        if self._data_file:
+            self._data_file.close()
+            del self._data_file
+            self._data_file = None
+
+    def get_smallest_dx(self):
+        """
+        Returns (in code units) the smallest cell size in the simulation.
+        """
+        return self.gridDxs.min()
+
+    def _add_object_class(self, name, class_name, base, dd):
+        self.object_types.append(name)
+        obj = classobj(class_name, (base,), dd)
+        setattr(self, name, obj)
+
 class NewEnzoHierarchy(NewAMRHierarchy):
 
     def _initialize_data_storage(self):
@@ -1480,7 +1480,6 @@ class NewEnzoHierarchy(NewAMRHierarchy):
             raise IOError(-1,"File empty", self.hierarchy_filename)
         self.directory = os.path.dirname(self.hierarchy_filename)
 
-        self._setup_data_queue()
         # For some reason, r8 seems to want Float64
         if pf.has_key("CompilerPrecision") \
             and pf["CompilerPrecision"] == "r4":
@@ -1488,11 +1487,11 @@ class NewEnzoHierarchy(NewAMRHierarchy):
         else:
             self.float_type = 'float64'
 
-        AMRHierarchy.__init__(self, pf)
+        NewAMRHierarchy.__init__(self, pf, data_style)
 
     def _setup_classes(self):
         dd = self._get_data_reader_dict()
-        AMRHierarchy._setup_classes(self, dd)
+        NewAMRHierarchy._setup_classes(self, dd)
         self._add_object_class('grid', "EnzoGrid", EnzoGridBase, dd)
         self.object_types.sort()
 
@@ -1505,7 +1504,7 @@ class NewEnzoHierarchy(NewAMRHierarchy):
             if line.startswith("Grid "):
                 self.num_grids = test_grid_id = int(line.split("=")[-1])
                 break
-        self._guess_data_style(pf["TopGridRank"], test_grid, test_grid_id)
+        self._guess_data_style(self.pf["TopGridRank"], test_grid, test_grid_id)
 
     def _initialize_grid_arrays(self):
         mylog.debug("Allocating arrays for %s grids", self.num_grids)
@@ -1516,7 +1515,7 @@ class NewEnzoHierarchy(NewAMRHierarchy):
         self.grid_particle_count = na.zeros((self.num_grids,1))
 
     def _guess_data_style(self, rank, test_grid, test_grid_id):
-        if self.data_style: return
+        if self.data_style is not None: return
         if test_grid[0] != os.path.sep:
             test_grid = os.path.join(self.directory, test_grid)
         if not os.path.exists(test_grid):
@@ -1547,7 +1546,7 @@ class NewEnzoHierarchy(NewAMRHierarchy):
 
     # Sets are sorted, so that won't work!
     __parse_tokens = ("GridStartIndex", "GridEndIndex",
-            "Grid_left_edge", "Grid_right_edge", "FileName")
+            "GridLeftEdge", "GridRightEdge", "FileName")
     def _parse_hierarchy(self):
         def _line_yielder(f):
             for token in self.__parse_tokens:
@@ -1587,6 +1586,7 @@ class NewEnzoHierarchy(NewAMRHierarchy):
         self.grid_right_edge = fix_size(RE, self.float_type)
         self.grid_particle_count = fix_size(np, 'int32', (self.num_grids, 1))
         self.grids = na.array(self.grids, dtype='object')
+        self.filenames = fn
         t2 = time.time()
         print "Took %0.3e" % (t2-t1)
         self.max_level = self.grid_levels.max()
@@ -1609,12 +1609,13 @@ class NewEnzoHierarchy(NewAMRHierarchy):
             secondGrid.Level = firstGrid.Level
 
     def _populate_grid_objects(self):
-        for g,f in izip(self.grids, fn):
+        for g,f in izip(self.grids, self.filenames):
             g._prepare_grid()
             g._setup_dx()
             g.set_filename(f[0])
+        del self.filenames # No longer needed.
 
-    def _setup_field_lists(self):
+    def _detect_fields(self):
         field_list = self.get_data("/", "DataFields")
         if field_list is None:
             mylog.info("Gathering a field list (this may take a moment.)")
@@ -1633,6 +1634,30 @@ class NewEnzoHierarchy(NewAMRHierarchy):
             self.save_data(list(field_list),"/","DataFields")
         self.field_list = list(field_list)
 
+    def _setup_unknown_fields(self):
+        for field in self.field_list:
+            if field in self.parameter_file.field_info: continue
+            mylog.info("Adding %s to list of fields", field)
+            cf = None
+            if self.parameter_file.has_key(field):
+                cf = lambda d: d.convert(field)
+            add_field(field, lambda a, b: None,
+                      convert_function=cf, take_log=False)
+
+    def _setup_derived_fields(self):
+        self.derived_field_list = []
+        for field in self.parameter_file.field_info:
+            try:
+                fd = self.parameter_file.field_info[field].get_dependencies(
+                            pf = self.parameter_file)
+            except:
+                continue
+            available = na.all([f in self.field_list for f in fd.requested])
+            if available: self.derived_field_list.append(field)
+        for field in self.field_list:
+            if field not in self.derived_field_list:
+                self.derived_field_list.append(field)
+
     def _generate_random_grids(self):
         if self.num_grids > 40:
             starter = na.random.randint(0, 20)
@@ -1641,7 +1666,4 @@ class NewEnzoHierarchy(NewAMRHierarchy):
         else:
             random_sample = na.mgrid[0:max(len(self.grids)-1,1)].astype("int32")
         return self.grids[(random_sample,)]
-
-    def _join_field_lists(self, field_list):
-        return field_list
 

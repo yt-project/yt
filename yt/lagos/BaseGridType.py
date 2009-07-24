@@ -36,14 +36,13 @@ class AMRGridPatch(AMRData):
     _type_name = 'grid'
     _skip_add = True
     _con_args = ('id', 'filename')
+    start_index = None
 
     def __init__(self, id, filename=None, hierarchy = None):
         self.data = {}
         self.field_parameters = {}
         self.fields = []
-        self.start_index = None
         self.id = id
-        if (id % 1e4) == 0: mylog.debug("Prepared grid %s", id)
         if hierarchy: self.hierarchy = weakref.proxy(hierarchy)
         if filename: self.set_filename(filename)
         self.pf = self.hierarchy.parameter_file # weakref already
@@ -101,8 +100,8 @@ class AMRGridPatch(AMRData):
         # So first we figure out what the index is.  We don't assume
         # that dx=dy=dz , at least here.  We probably do elsewhere.
         id = self.id - self._id_offset
-        LE, RE = self.hierarchy.gridLeftEdge[id,:], \
-                 self.hierarchy.gridRightEdge[id,:]
+        LE, RE = self.hierarchy.grid_left_edge[id,:], \
+                 self.hierarchy.grid_right_edge[id,:]
         self.dds = na.array((RE-LE)/self.ActiveDimensions)
         self.data['dx'], self.data['dy'], self.data['dz'] = self.dds
 
@@ -171,14 +170,14 @@ class AMRGridPatch(AMRData):
         # Note that to keep in line with Enzo, we have broken PEP-8
         h = self.hierarchy # cache it
         my_ind = self.id - self._id_offset
-        self.ActiveDimensions = h.gridEndIndices[my_ind] \
-                              - h.gridStartIndices[my_ind] + 1
-        self.LeftEdge = h.gridLeftEdge[my_ind]
-        self.RightEdge = h.gridRightEdge[my_ind]
+        self.ActiveDimensions = h.grid_dimensions[my_ind]
+        self.LeftEdge = h.grid_left_edge[my_ind]
+        self.RightEdge = h.grid_right_edge[my_ind]
         self.Level = h.gridLevels[my_ind,0]
+        h.grid_levels[my_ind, 0] = self.Level
         # This might be needed for streaming formats
         #self.Time = h.gridTimes[my_ind,0]
-        self.NumberOfParticles = h.gridNumberOfParticles[my_ind,0]
+        self.NumberOfParticles = h.grid_particle_count[my_ind,0]
 
     def __len__(self):
         return na.prod(self.ActiveDimensions)
@@ -431,8 +430,8 @@ class EnzoGridBase(AMRGridPatch):
         self.hierarchy.gridDxs[my_ind,0] = self['dx']
         self.hierarchy.gridDys[my_ind,0] = self['dy']
         self.hierarchy.gridDzs[my_ind,0] = self['dz']
-        self.hierarchy.gridLeftEdge[my_ind,:] = self.LeftEdge
-        self.hierarchy.gridRightEdge[my_ind,:] = self.RightEdge
+        self.hierarchy.grid_left_edge[my_ind,:] = self.LeftEdge
+        self.hierarchy.grid_right_edge[my_ind,:] = self.RightEdge
         self.hierarchy.gridCorners[:,:,my_ind] = na.array([ # Unroll!
             [self.LeftEdge[0], self.LeftEdge[1], self.LeftEdge[2]],
             [self.RightEdge[0], self.LeftEdge[1], self.LeftEdge[2]],
@@ -511,8 +510,8 @@ class OrionGridBase(AMRGridPatch):
         self.StartIndices = h.gridStartIndices[self.id]
         self.EndIndices = h.gridEndIndices[self.id]
         h.gridLevels[self.id,0] = self.Level
-        h.gridLeftEdge[self.id,:] = self.LeftEdge[:]
-        h.gridRightEdge[self.id,:] = self.RightEdge[:]
+        h.grid_left_edge[self.id,:] = self.LeftEdge[:]
+        h.grid_right_edge[self.id,:] = self.RightEdge[:]
         self.Time = h.gridTimes[self.id,0]
         self.NumberOfParticles = h.gridNumberOfParticles[self.id,0]
         self.Children = h.gridTree[self.id]
