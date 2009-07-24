@@ -745,7 +745,6 @@ class chainHF(GenericHaloFinder, chainHOPHaloList):
                 sorted_max_dens[i] = self._max_dens[halo.id]
             halo.id = i
         self._max_dens = sorted_max_dens
-        print self._max_dens
 
 class HOPHaloFinder(GenericHaloFinder, HOPHaloList):
     def __init__(self, pf, threshold=160, dm_only=True, padding=0.02):
