@@ -49,7 +49,7 @@ _data_style_funcs = \
          getExceptionHDF5, DataQueuePacked1D),
    }
 
-class AMRHierarchy:
+class OldAMRHierarchy:
     _data_mode = None # Default
     def __init__(self, pf):
         self.parameter_file = weakref.proxy(pf)
@@ -134,81 +134,6 @@ class AMRHierarchy:
         self.gridTimes[:] = harray[:,16:17]
         self.gridNumberOfParticles[:] = harray[:,17:18]
 
-
-    def find_ray_grids(self, coord, axis):
-        """
-        Returns the (objects, indices) of grids that an (x,y) ray intersects
-        along *axis*
-        """
-        # Let's figure out which grids are on the slice
-        mask=na.ones(self.num_grids)
-        # So if gRE > coord, we get a mask, if not, we get a zero
-        #    if gLE > coord, we get a zero, if not, mask
-        # Thus, if the coordinate is between the two edges, we win!
-        na.choose(na.greater(self.gridRightEdge[:,x_dict[axis]],coord[0]),(0,mask),mask)
-        na.choose(na.greater(self.gridLeftEdge[:,x_dict[axis]],coord[0]),(mask,0),mask)
-        na.choose(na.greater(self.gridRightEdge[:,y_dict[axis]],coord[1]),(0,mask),mask)
-        na.choose(na.greater(self.gridLeftEdge[:,y_dict[axis]],coord[1]),(mask,0),mask)
-        ind = na.where(mask == 1)
-        return self.grids[ind], ind
-
-    @time_execution
-    def find_max(self, field, finestLevels = True):
-        """
-        Returns (value, center) of location of maximum for a given field.
-        """
-        if (field, finestLevels) in self._max_locations:
-            return self._max_locations[(field, finestLevels)]
-        mg, mc, mv, pos = self.find_max_cell_location(field, finestLevels)
-        self._max_locations[(field, finestLevels)] = (mv, pos)
-        return mv, pos
-    findMax = deprecate(find_max)
-
-    def find_max_cell_location(self, field, finestLevels = True):
-        if finestLevels:
-            gi = (self.gridLevels >= self.max_level - NUMTOCHECK).ravel()
-            source = self.grid_collection([0.0]*3,
-                self.grids[gi])
-        else:
-            source = self.all_data()
-        mylog.debug("Searching %s grids for maximum value of %s",
-                    len(source._grids), field)
-        max_val, maxi, mx, my, mz, mg = source.quantities["MaxLocation"](
-                            field, lazy_reader=True)
-        max_grid = self.grids[mg]
-        mc = na.unravel_index(maxi, max_grid.ActiveDimensions)
-        mylog.info("Max Value is %0.5e at %0.16f %0.16f %0.16f in grid %s at level %s %s", \
-              max_val, mx, my, mz, max_grid, max_grid.Level, mc)
-        self.parameters["Max%sValue" % (field)] = max_val
-        self.parameters["Max%sPos" % (field)] = "%s" % ((mx,my,mz),)
-        return max_grid, mc, max_val, (mx,my,mz)
-
-    @time_execution
-    def find_min(self, field):
-        """
-        Returns (value, center) of location of minimum for a given field
-        """
-        gI = na.where(self.gridLevels >= 0) # Slow but pedantic
-        minVal = 1e100
-        for grid in self.grids[gI[0]]:
-            mylog.debug("Checking %s (level %s)", grid.id, grid.Level)
-            val, coord = grid.find_min(field)
-            if val < minVal:
-                minCoord = coord
-                minVal = val
-                minGrid = grid
-        mc = na.array(minCoord)
-        pos=minGrid.get_position(mc)
-        mylog.info("Min Value is %0.5e at %0.16f %0.16f %0.16f in grid %s at level %s", \
-              minVal, pos[0], pos[1], pos[2], minGrid, minGrid.Level)
-        self.center = pos
-        # This probably won't work for anyone else
-        self.binkVelocity = (minGrid["x-velocity"][minCoord], \
-                             minGrid["y-velocity"][minCoord], \
-                             minGrid["z-velocity"][minCoord])
-        self.parameters["Min%sValue" % (field)] = minVal
-        self.parameters["Min%sPos" % (field)] = "%s" % (pos)
-        return minVal, pos
 
     def _get_parameters(self):
         return self.parameter_file.parameters
@@ -469,45 +394,222 @@ class AMRHierarchy:
             if field not in self.derived_field_list:
                 self.derived_field_list.append(field)
 
+class AMRHierarchy(ObjectFindingMixin):
+    def __init__(self, pf, data_style):
+        self.parameter_file = weakref.proxy(pf)
+        self.pf = self.parameter_file
+
+        self._initialize_state_variables()
+
+        mylog.debug("Initializing data storage.")
+        self._initialize_data_storage()
+
+        mylog.debug("Counting grids.")
+        self._count_grids()
+
+        # Must be defined in subclass
+        mylog.debug("Setting up classes.")
+        self._setup_classes()
+
+        mylog.debug("Counting grids.")
+        self._initialize_grid_arrays()
+
+        mylog.debug("Parsing hierarchy.")
+        self._parse_hierarchy()
+
+        mylog.debug("Constructing grid objects.")
+        self._populate_grid_objects()
+
+        mylog.debug("Detecting fields.")
+        self.field_list = []
+        self._detect_fields()
+
+        mylog.debug("Adding unknown detected fields")
+        self._setup_unknown_fields()
+
+        mylog.debug("Setting up derived fields")
+        self._setup_derived_fields()
+
+        mylog.debug("Initializing data grid data IO")
+        self._setup_data_queue()
+
+    def _initialize_state_variables(self):
+        self._parallel_locking = False
+        self._data_file = None
+        self._data_mode = None
+        self._max_locations = {}
+        self.parameters = {}
+
+    def _setup_classes(self, dd):
+        # Called by subclass
+        self.object_types = []
+        self.objects = []
+        for name, cls in sorted(data_object_registry.items()):
+            cname = cls.__name__
+            if cname.endswith("Base"): cname = cname[:-4]
+            self._add_object_class(name, cname, cls, dd)
+        self.object_types.sort()
+
+    # Now all the object related stuff
+
+    def all_data(self, find_max=False):
+        pf = self.parameter_file
+        if find_max: c = self.find_max("Density")[1]
+        else: c = (pf["DomainRightEdge"] + pf["DomainLeftEdge"])/2.0
+        return self.region(c, 
+            pf["DomainLeftEdge"], pf["DomainRightEdge"])
+
+    def _join_field_lists(self, field_list):
+        return field_list
+
+    def _get_data_reader_dict(self):
+        dd = { 'readDataFast' : _data_style_funcs[self.data_style][0],
+               'readAllData' : _data_style_funcs[self.data_style][1],
+               'getFields' : _data_style_funcs[self.data_style][2],
+               'readDataSlice' : _data_style_funcs[self.data_style][3],
+               '_read_data' : _data_style_funcs[self.data_style][0],
+               '_read_all_data' : _data_style_funcs[self.data_style][1],
+               '_read_field_names' : _data_style_funcs[self.data_style][2],
+               '_read_data_slice' : _data_style_funcs[self.data_style][3],
+               '_read_exception' : _data_style_funcs[self.data_style][4](),
+               'pf' : self.parameter_file, # Already weak
+               'hierarchy': weakref.proxy(self) }
+        return dd
+
+    def _initialize_data_storage(self):
+        if not ytcfg.getboolean('lagos','serialize'): return
+        if os.path.isfile(os.path.join(self.directory,
+                            "%s.yt" % self["CurrentTimeIdentifier"])):
+            fn = os.path.join(self.directory,"%s.yt" % self["CurrentTimeIdentifier"])
+        else:
+            fn = os.path.join(self.directory,
+                    "%s.yt" % self.parameter_file.basename)
+        if os.path.isfile(fn):
+            writable = os.access(fn, os.W_OK)
+        else:
+            writable = os.access(self.directory, os.W_OK)
+        if ytcfg.getboolean('lagos','onlydeserialize') or not writable:
+            self._data_mode = mode = 'r'
+        else:
+            self._data_mode = mode = 'a'
+        self.__create_data_file(fn)
+        self.__data_filename = fn
+        self._data_file = h5py.File(fn, self._data_mode)
+
+    @parallel_root_only
+    def __create_data_file(self, fn):
+        f = h5py.File(fn, 'a')
+        f.close()
+
+    def _setup_data_queue(self):
+        self.queue = _data_style_funcs[self.data_style][5]()
+
+    def _save_data(self, array, node, name, set_attr=None, force=False, passthrough = False):
+        """
+        Arbitrary numpy data will be saved to the region in the datafile
+        described by *node* and *name*.  If data file does not exist, it throws
+        no error and simply does not save.
+        """
+
+        if self._data_mode != 'a': return
+        if "ArgsError" in dir(h5py.h5):
+            exception = h5py.h5.ArgsError
+        else:
+            exception = h5py.h5.H5Error
+        try:
+            node_loc = self._data_file[node]
+            if name in node_loc.listnames() and force:
+                mylog.info("Overwriting node %s/%s", node, name)
+                del self._data_file[node][name]
+            elif name in node_loc.listnames() and passthrough:
+                return
+        except exception:
+            pass
+        myGroup = self._data_file['/']
+        for q in node.split('/'):
+            if q: myGroup = myGroup.require_group(q)
+        arr = myGroup.create_dataset(name,data=array)
+        if set_attr is not None:
+            for i, j in set_attr.items(): arr.attrs[i] = j
+        self._data_file.flush()
+
+    def _reload_data_file(self, *args, **kwargs):
+        if self._data_file is None: return
+        self._data_file.close()
+        del self._data_file
+        self._data_file = h5py.File(self.__data_filename, self._data_mode)
+
+    def _reset_save_data(self,round_robin=False):
+        if round_robin:
+            self.save_data = self._save_data
+        else:
+            self.save_data = parallel_splitter(self._save_data, self._reload_data_file)
+    
+    save_data = parallel_splitter(_save_data, _reload_data_file)
+
+    def save_object(self, obj, name):
+        s = cPickle.dumps(obj, protocol=-1)
+        self.save_data(s, "/Objects", name, force = True)
+
+    def load_object(self, name):
+        obj = self.get_data("/Objects", name)
+        if obj is None:
+            return
+        obj = cPickle.loads(obj.value)
+        if iterable(obj) and len(obj) == 2:
+            obj = obj[1] # Just the object, not the pf
+        if hasattr(obj, '_fix_pickle'): obj._fix_pickle()
+        return obj
+
+    def get_data(self, node, name):
+        """
+        Return the dataset with a given *name* located at *node* in the
+        datafile.
+        """
+        if self._data_file == None:
+            return None
+        if node[0] != "/": node = "/%s" % node
+
+        myGroup = self._data_file['/']
+        for group in node.split('/'):
+            if group:
+                if group not in myGroup.listnames():
+                    return None
+                myGroup = myGroup[group]
+        if name not in myGroup.listnames():
+            return None
+
+        full_name = "%s/%s" % (node, name)
+        return self._data_file[full_name]
+
+    def _close_data_file(self):
+        if self._data_file:
+            self._data_file.close()
+            del self._data_file
+            self._data_file = None
+
+    def get_smallest_dx(self):
+        """
+        Returns (in code units) the smallest cell size in the simulation.
+        """
+        return self.gridDxs.min()
+
+    def _add_object_class(self, name, class_name, base, dd):
+        self.object_types.append(name)
+        obj = classobj(class_name, (base,), dd)
+        setattr(self, name, obj)
 
 class EnzoHierarchy(AMRHierarchy):
-    eiTopGrid = None
-    _strip_path = False
-    @time_execution
-    def __init__(self, pf, data_style=None):
-        """
-        This is the grid structure as Enzo sees it, with some added bonuses.
-        It's primarily used as a class factory, to generate data objects and
-        access grids.
 
-        It should never be created directly -- you should always access it via
-        calls to an affiliated :class:`~yt.lagos.EnzoStaticOutput`.
-
-        On instantiation, it processes the hierarchy and generates the grids.
-        """
-        # Expect filename to be the name of the parameter file, not the
-        # hierarchy
+    def __init__(self, pf, data_style):
+        
         self.data_style = data_style
-        self.hierarchy_filename = os.path.abspath(pf.parameter_filename) \
-                               + ".hierarchy"
+        self.hierarchy_filename = os.path.abspath(
+            "%s.hierarchy" % (pf.parameter_filename))
         if os.path.getsize(self.hierarchy_filename) == 0:
             raise IOError(-1,"File empty", self.hierarchy_filename)
-        self.boundary_filename = os.path.abspath(pf.parameter_filename) \
-                               + ".boundary"
         self.directory = os.path.dirname(self.hierarchy_filename)
-        # Now we search backwards from the end of the file to find out how many
-        # grids we have, which allows us to preallocate memory
-        self.__hierarchy_string = open(self.hierarchy_filename).read()
-        testGrid = testGridID = None
-        for line in rlines(open(self.hierarchy_filename, "rb")):
-            if line.startswith("BaryonFileName") or \
-               line.startswith("FileName "):
-                testGrid = line.split("=")[-1].strip().rstrip()
-            if line.startswith("Grid "):
-                self.num_grids = testGridID = int(line.split("=")[-1])
-                break
-        self.__guess_data_style(pf["TopGridRank"], testGrid, testGridID)
-        self._setup_data_queue()
+
         # For some reason, r8 seems to want Float64
         if pf.has_key("CompilerPrecision") \
             and pf["CompilerPrecision"] == "r4":
@@ -515,12 +617,12 @@ class EnzoHierarchy(AMRHierarchy):
         else:
             self.float_type = 'float64'
 
-        AMRHierarchy.__init__(self, pf)
-
+        AMRHierarchy.__init__(self, pf, data_style)
         # sync it back
         self.parameter_file.data_style = self.data_style
 
-        del self.__hierarchy_string 
+    def _initialize_data_storage(self):
+        pass
 
     def _setup_classes(self):
         dd = self._get_data_reader_dict()
@@ -528,21 +630,40 @@ class EnzoHierarchy(AMRHierarchy):
         self._add_object_class('grid', "EnzoGrid", EnzoGridBase, dd)
         self.object_types.sort()
 
-    def __guess_data_style(self, rank, testGrid, testGridID):
-        if self.data_style: return
-        if testGrid[0] != os.path.sep:
-            testGrid = os.path.join(self.directory, testGrid)
-        if not os.path.exists(testGrid):
-            testGrid = os.path.join(self.directory,
-                                    os.path.basename(testGrid))
+    def _count_grids(self):
+        test_grid = test_grid_id = None
+        for line in rlines(open(self.hierarchy_filename, "rb")):
+            if line.startswith("BaryonFileName") or \
+               line.startswith("FileName "):
+                test_grid = line.split("=")[-1].strip().rstrip()
+            if line.startswith("Grid "):
+                self.num_grids = test_grid_id = int(line.split("=")[-1])
+                break
+        self._guess_data_style(self.pf["TopGridRank"], test_grid, test_grid_id)
+
+    def _initialize_grid_arrays(self):
+        mylog.debug("Allocating arrays for %s grids", self.num_grids)
+        self.grid_dimensions = na.ones((self.num_grids,3), 'int32')
+        self.grid_left_edge = na.zeros((self.num_grids,3), self.float_type)
+        self.grid_right_edge = na.ones((self.num_grids,3), self.float_type)
+        self.grid_levels = na.zeros((self.num_grids,1), 'int32')
+        self.grid_particle_count = na.zeros((self.num_grids,1))
+
+    def _guess_data_style(self, rank, test_grid, test_grid_id):
+        if self.data_style is not None: return
+        if test_grid[0] != os.path.sep:
+            test_grid = os.path.join(self.directory, test_grid)
+        if not os.path.exists(test_grid):
+            test_grid = os.path.join(self.directory,
+                                    os.path.basename(test_grid))
             mylog.debug("Your data uses the annoying hardcoded path.")
             self._strip_path = True
         try:
-            a = SD.SD(testGrid)
+            a = SD.SD(test_grid)
             self.data_style = 'enzo_hdf4'
             mylog.debug("Detected HDF4")
         except:
-            list_of_sets = HDF5LightReader.ReadListOfDatasets(testGrid, "/")
+            list_of_sets = HDF5LightReader.ReadListOfDatasets(test_grid, "/")
             if len(list_of_sets) == 0 and rank == 3:
                 mylog.debug("Detected packed HDF5")
                 self.data_style = 'enzo_packed_3d'
@@ -558,239 +679,82 @@ class EnzoHierarchy(AMRHierarchy):
             else:
                 raise TypeError
 
-    def __setup_filemap(self, grid):
-        if not self.data_style == 'enzo_packed_3d':
-            return
-        try:
-            self.cpu_map[grid.filename].append(grid)
-        except AttributeError:
-            pass
+    # Sets are sorted, so that won't work!
+    __parse_tokens = ("GridStartIndex", "GridEndIndex",
+            "GridLeftEdge", "GridRightEdge", "FileName")
+    def _parse_hierarchy(self):
+        def _line_yielder(f):
+            for token in self.__parse_tokens:
+                line = f.readline()
+                while token not in line: line = f.readline()
+                yield line.split()[2:]
+        t1 = time.time()
+        pattern = r"Pointer: Grid\[(\d*)\]->NextGrid(Next|This)Level = (\d*)$"
+        patt = re.compile(pattern)
+        f = open(self.hierarchy_filename, "rb")
+        self.grids = [self.grid(1)]
+        self.grids[0].Level = 0
+        self.wrefs = [weakref.proxy(self.grids[0])]
+        si, ei, LE, RE, fn, np = [], [], [], [], [], []
+        all = [si, ei, LE, RE, fn]
+        f.readline() # Blank at top
+        for grid_id in xrange(self.num_grids):
+            if (grid_id % 10000) == 0: print grid_id
+            for a, v in izip(all, _line_yielder(f)):
+                a.append(v)
+            line = f.readline()
+            np.append("0")
+            while len(line) > 2:
+                if line.startswith("Pointer:"):
+                    vv = patt.findall(line)[0]
+                    self.__pointer_handler(vv)
+                    line = f.readline()
+                    continue
+                params = line.split()
+                if "NumberOfParticles" == params[0]:
+                    np[-1] = params[2]
+                line = f.readline()
+        def fix_size(iter, dt, shape=(self.num_grids, 3)):
+            size = na.prod(shape)
+            return na.fromiter(chain(*iter), dtype=dt, count=size).reshape(shape)
+        self.grid_dimensions = fix_size(ei, 'int32') - fix_size(si, 'int32') + 1
+        self.grid_left_edge = fix_size(LE, self.float_type)
+        self.grid_right_edge = fix_size(RE, self.float_type)
+        self.grid_particle_count = fix_size(np, 'int32', (self.num_grids, 1))
+        self.grids = na.array(self.grids, dtype='object')
+        self.filenames = fn
+        t2 = time.time()
+        print "Took %0.3e" % (t2-t1)
 
-    def __del__(self):
-        self._close_data_file()
-        try:
-            del self.eiTopGrid
-        except:
-            pass
-        for gridI in xrange(self.num_grids):
-            for g in self.gridTree[gridI]:
-                del g
-        del self.gridReverseTree
-        del self.gridLeftEdge, self.gridRightEdge
-        del self.gridLevels, self.gridStartIndices, self.gridEndIndices
-        del self.gridTimes
-        del self.gridTree
+    def __pointer_handler(self, m):
+        sgi = int(m[2])-1
+        if sgi == -1: return # if it's 0, then we're done with that lineage
+        # Okay, so, we have a pointer.  We make a new grid, with an id of the length+1
+        # (recall, Enzo grids are 1-indexed)
+        self.grids.append(self.grid(len(self.grids)+1))
+        # We'll just go ahead and make a weakref to cache
+        self.wrefs.append(weakref.proxy(self.grids[-1]))
+        second_grid = self.wrefs[sgi] # zero-indexex already
+        first_grid = self.wrefs[int(m[0])-1]
+        if m[1] == "Next":
+            first_grid.Children.append(second_grid)
+            second_grid.Parent = first_grid
+            second_grid.Level = first_grid.Level + 1
+        elif m[1] == "This":
+            if first_grid.Parent is not None:
+                first_grid.Parent.Children.append(second_grid)
+                second_grid.Parent = first_grid.Parent
+            second_grid.Level = first_grid.Level
 
-    def __set_all_filenames(self, fns):
-        if self._strip_path:
-            for fnI, fn in enumerate(fns):
-                self.grids[fnI].filename = os.path.sep.join([self.directory,
-                                                     os.path.basename(fn)])
-        elif fns[0][0] == os.path.sep:
-            for fnI, fn in enumerate(fns):
-                self.grids[fnI].filename = fn
-        else:
-            for fnI, fn in enumerate(fns):
-                self.grids[fnI].filename = os.path.sep.join([self.directory,
-                                                             fn])
-        mylog.debug("Done with baryon filenames")
-        for g in self.grids:
-            self.__setup_filemap(g)
-        mylog.debug("Done with filemap")
+    def _populate_grid_objects(self):
+        for g,f in izip(self.grids, self.filenames):
+            g._prepare_grid()
+            g._setup_dx()
+            g.set_filename(f[0])
+        del self.filenames # No longer needed.
+        self.max_level = self.grid_levels.max()
 
-    def __parse_hierarchy_file(self):
-        def __split_convert(vals, func, toAdd, curGrid):
-            """
-            Quick function to split up a parameter and convert it and toss onto a grid
-            """
-            j = 0
-            for v in vals.split():
-                toAdd[curGrid-1,j] = func(v)
-                j+=1
-        for line_index, line in enumerate(open(self.hierarchy_filename)):
-            # We can do this the slow, 'reliable' way by stripping
-            # or we can manually pad all our strings, which speeds it up by a
-            # factor of about ten
-            #param, vals = map(strip,line.split("="))
-            if (line_index % 1e5) == 0:
-                mylog.debug("Parsing line % 9i", line_index)
-            if len(line) < 2:
-                continue
-            param, vals = line.split("=")
-            param = param.rstrip() # This slows things down considerably...
-                                   # or so I used to think...
-            if param == "Grid":
-                curGrid = int(vals)
-                self.grids[curGrid-1] = self.grid(curGrid)
-            elif param == "GridDimension":
-                __split_convert(vals, float, self.gridDimensions, curGrid)
-            elif param == "GridStartIndex":
-                __split_convert(vals, int, self.gridStartIndices, curGrid)
-            elif param == "GridEndIndex":
-                __split_convert(vals, int, self.gridEndIndices, curGrid)
-            elif param == "GridLeftEdge":
-                __split_convert(vals, float, self.gridLeftEdge, curGrid)
-            elif param == "GridRightEdge":
-                __split_convert(vals, float, self.gridRightEdge, curGrid)
-            elif param == "Level":
-                __split_convert(vals, int, self.gridLevels, curGrid)
-            elif param == "Time":
-                __split_convert(vals, float, self.gridTimes, curGrid)
-            elif param == "NumberOfParticles":
-                __split_convert(vals, int, self.gridNumberOfParticles, curGrid)
-            elif param == "FileName":
-                self.grids[curGrid-1].set_filename(vals[1:-1])
-            elif param == "BaryonFileName":
-                self.grids[curGrid-1].set_filename(vals[1:-1])
-        mylog.info("Caching hierarchy information")
-        allArrays = na.zeros((self.num_grids,18),'float64')
-        allArrays[:,0:3] = self.gridDimensions[:]
-        allArrays[:,3:6] = self.gridStartIndices[:]
-        allArrays[:,6:9] = self.gridEndIndices[:]
-        allArrays[:,9:12] = self.gridLeftEdge[:]
-        allArrays[:,12:15] = self.gridRightEdge[:]
-        allArrays[:,15:16] = self.gridLevels[:]
-        allArrays[:,16:17] = self.gridTimes[:]
-        allArrays[:,17:18] = self.gridNumberOfParticles[:]
-        if self.num_grids > 1000:
-            self.save_data(allArrays, "/","Hierarchy")
-        del allArrays
-
-    def __obtain_filenames(self):
-        mylog.debug("Copied to local array.")
-        # This needs to go elsewhere:
-        # Now get the baryon filenames
-        mylog.debug("Getting baryon filenames")
-        for patt in ["BaryonFileName", "FileName", "ParticleFileName"]:
-            re_FileName = constructRegularExpressions(patt,('s'))
-            fn_results = re.findall(re_FileName, self.__hierarchy_string)
-            if len(fn_results):
-                self.__set_all_filenames(fn_results)
-                return
-
-    def __setup_grid_tree(self):
-        mylog.debug("No cached tree found, creating")
-        self.grids[0].Level = 0  # Bootstrap
-        self.gridLevels[0] = 0   # Bootstrap
-        p = re.compile(r"Pointer: Grid\[(\d*)\]->NextGrid(Next|This)Level = (\d*)$", re.M)
-        # Now we assemble the grid tree
-        # This is where all the time is spent.
-        for m in p.finditer(self.__hierarchy_string):
-            secondGrid = int(m.group(3))-1 # zero-index versus one-index
-            if secondGrid == -1:
-                continue
-            firstGrid = int(m.group(1))-1
-            if m.group(2) == "Next":
-                self.gridTree[firstGrid].append(weakref.proxy(self.grids[secondGrid]))
-                self.gridReverseTree[secondGrid] = firstGrid + 1
-                self.grids[secondGrid].Level = self.grids[firstGrid].Level + 1
-                self.gridLevels[secondGrid] = self.gridLevels[firstGrid] + 1
-            elif m.group(2) == "This":
-                parent = self.gridReverseTree[firstGrid]
-                if parent and parent > -1:
-                    self.gridTree[parent-1].append(weakref.proxy(self.grids[secondGrid]))
-                    self.gridReverseTree[secondGrid] = parent
-                self.grids[secondGrid].Level = self.grids[firstGrid].Level
-                self.gridLevels[secondGrid] = self.gridLevels[firstGrid]
-        pTree = [ [ grid.id - 1 for grid in self.gridTree[i] ] for i in range(self.num_grids) ]
-        self.gridReverseTree[0] = -1
-        self.save_data(cPickle.dumps(pTree, protocol=-1), "/", "Tree", force=True)
-        self.save_data(na.array(self.gridReverseTree), "/", "ReverseTree", force=True)
-        self.save_data(self.gridLevels, "/", "Levels", force=True)
-
-    @parallel_blocking_call
-    def _populate_hierarchy(self):
-        """
-        Instantiates all of the grid objects, with their appropriate
-        parameters.  This is the work-horse.
-        """
-        if self.data_style == 'enzo_packed_3d':
-            self.cpu_map = defaultdict(lambda: [][:])
-            self.file_access = {}
-        harray = self.get_data("/", "Hierarchy")
-        if self.num_grids <= 1000:
-            mylog.info("Skipping serialization!")
-        if harray and self.num_grids > 1000:
-            self._deserialize_hierarchy(harray)
-        else:
-            self.__parse_hierarchy_file()
-        self.__obtain_filenames()
-        treeArray = self.get_data("/", "Tree")
-        if treeArray == None:
-            self.__setup_grid_tree()
-        else:
-            mylog.debug("Grabbing serialized tree data")
-            try:
-                pTree = cPickle.loads(treeArray.value)
-                self.gridReverseTree = list(self.get_data("/","ReverseTree"))
-                self.gridTree = [ [ weakref.proxy(self.grids[i]) for i in pTree[j] ]
-                    for j in range(self.num_grids) ]
-                self.gridLevels = self.get_data("/","Levels")[:]
-                mylog.debug("Grabbed")
-            except EOFError:
-                self.__setup_grid_tree()
-        for i,v in enumerate(self.gridReverseTree):
-            # For multiple grids on the root level
-            if v == -1: self.gridReverseTree[i] = None
-        mylog.debug("Tree created")
-        self.maxLevel = self.gridLevels.max()
-        self.max_level = self.maxLevel
-        # Now we do things that we need all the grids to do
-        #self.fieldList = self.grids[0].getFields()
-        # The rest of this can probably be done with list comprehensions, but
-        # I think this way is clearer.
-        mylog.debug("Preparing grids")
-        for i, grid in enumerate(self.grids):
-            if (i%1e4) == 0: mylog.debug("Prepared % 7i / % 7i grids", i, self.num_grids)
-            grid._prepare_grid()
-        self._setup_grid_dxs()
-        mylog.debug("Prepared")
-        self._setup_field_lists()
-        self.levelIndices = {}
-        self.levelNum = {}
-        ad = self.gridEndIndices - self.gridStartIndices + 1
-        for level in xrange(self.maxLevel+1):
-            self.level_stats[level]['numgrids'] = na.where(self.gridLevels==level)[0].size
-            li = na.where(self.gridLevels[:,0] == level)
-            self.level_stats[level]['numcells'] = ad[li].prod(axis=1).sum()
-            self.levelIndices[level] = self._select_level(level)
-            self.levelNum[level] = len(self.levelIndices[level])
-        mylog.debug("Hierarchy fully populated.")
-
-    def _setup_grid_dxs(self):
-        mylog.debug("Setting up corners and dxs")
-        self._setup_grid_corners()
-        dx = (self.gridRightEdge[:,0] - self.gridLeftEdge[:,0]) / \
-             (self.gridEndIndices[:,0]-self.gridStartIndices[:,0]+1)
-        dy = (self.gridRightEdge[:,1] - self.gridLeftEdge[:,1]) / \
-             (self.gridEndIndices[:,1]-self.gridStartIndices[:,1]+1)
-        dz = (self.gridRightEdge[:,2] - self.gridLeftEdge[:,2]) / \
-             (self.gridEndIndices[:,2]-self.gridStartIndices[:,2]+1)
-        self.gridDxs[:,0] = dx[:]
-        self.gridDys[:,0] = dy[:]
-        self.gridDzs[:,0] = dz[:]
-        mylog.debug("Flushing to grids")
-        for grid in self.grids:
-            grid._setup_dx()
-        mylog.debug("Done flushing to grids")
-        if ytcfg.getboolean("lagos","ReconstructHierarchy") == True:
-            mylog.debug("Reconstructing hierarchy")
-            for level in range(self.maxLevel+1):
-                grids_to_recon = self.select_grids(level)
-                pbar = None
-                if len(self.grids) > 3e5:
-                    pbar = get_pbar('Reconstructing  level % 2i / % 2i ' \
-                                      % (level, self.maxLevel),
-                                      len(grids_to_recon))
-                for i,grid in enumerate(grids_to_recon):
-                    if pbar: pbar.update(i)
-                    if grid.Parent is not None: grid._guess_properties_from_parent()
-                if pbar: pbar.finish()
-
-    def _join_field_lists(self, field_list):
-        return field_list
-
-    def _setup_field_lists(self):
+    def _detect_fields(self):
         field_list = self.get_data("/", "DataFields")
         if field_list is None:
             mylog.info("Gathering a field list (this may take a moment.)")
@@ -808,6 +772,30 @@ class EnzoHierarchy(AMRHierarchy):
             field_list = self._join_field_lists(field_list)
             self.save_data(list(field_list),"/","DataFields")
         self.field_list = list(field_list)
+
+    def _setup_unknown_fields(self):
+        for field in self.field_list:
+            if field in self.parameter_file.field_info: continue
+            mylog.info("Adding %s to list of fields", field)
+            cf = None
+            if self.parameter_file.has_key(field):
+                cf = lambda d: d.convert(field)
+            add_field(field, lambda a, b: None,
+                      convert_function=cf, take_log=False)
+
+    def _setup_derived_fields(self):
+        self.derived_field_list = []
+        for field in self.parameter_file.field_info:
+            try:
+                fd = self.parameter_file.field_info[field].get_dependencies(
+                            pf = self.parameter_file)
+            except:
+                continue
+            available = na.all([f in self.field_list for f in fd.requested])
+            if available: self.derived_field_list.append(field)
+        for field in self.field_list:
+            if field not in self.derived_field_list:
+                self.derived_field_list.append(field)
 
     def _generate_random_grids(self):
         if self.num_grids > 40:
@@ -1267,403 +1255,3 @@ class OrionLevel:
         self.ngrids = ngrids
         self.grids = []
     
-class NewAMRHierarchy(object):
-    _parallel_locking = False
-    _data_file = None
-    _data_mode = None
-    def __init__(self, pf, data_style):
-        self.parameter_file = weakref.proxy(pf)
-        self.pf = self.parameter_file
-
-        mylog.debug("Initializing data storage.")
-        self._initialize_data_storage()
-
-        mylog.debug("Counting grids.")
-        self._count_grids()
-
-        # Must be defined in subclass
-        mylog.debug("Setting up classes.")
-        self._setup_classes()
-
-        mylog.debug("Counting grids.")
-        self._initialize_grid_arrays()
-
-        mylog.debug("Parsing hierarchy.")
-        self._parse_hierarchy()
-
-        mylog.debug("Constructing grid objects.")
-        self._populate_grid_objects()
-
-        mylog.debug("Detecting fields.")
-        self.field_list = []
-        self._detect_fields()
-
-        mylog.debug("Adding unknown detected fields")
-        self._setup_unknown_fields()
-
-        mylog.debug("Setting up derived fields")
-        self._setup_derived_fields()
-
-        mylog.debug("Initializing data grid data IO")
-        self._setup_data_queue()
-
-    def _setup_classes(self, dd):
-        # Called by subclass
-        self.object_types = []
-        self.objects = []
-        for name, cls in sorted(data_object_registry.items()):
-            cname = cls.__name__
-            if cname.endswith("Base"): cname = cname[:-4]
-            self._add_object_class(name, cname, cls, dd)
-        self.object_types.sort()
-
-    # Now all the object related stuff
-
-    def all_data(self, find_max=False):
-        pf = self.parameter_file
-        if find_max: c = self.find_max("Density")[1]
-        else: c = (pf["DomainRightEdge"] + pf["DomainLeftEdge"])/2.0
-        return self.region(c, 
-            pf["DomainLeftEdge"], pf["DomainRightEdge"])
-
-    def _join_field_lists(self, field_list):
-        return field_list
-
-    def _get_data_reader_dict(self):
-        dd = { 'readDataFast' : _data_style_funcs[self.data_style][0],
-               'readAllData' : _data_style_funcs[self.data_style][1],
-               'getFields' : _data_style_funcs[self.data_style][2],
-               'readDataSlice' : _data_style_funcs[self.data_style][3],
-               '_read_data' : _data_style_funcs[self.data_style][0],
-               '_read_all_data' : _data_style_funcs[self.data_style][1],
-               '_read_field_names' : _data_style_funcs[self.data_style][2],
-               '_read_data_slice' : _data_style_funcs[self.data_style][3],
-               '_read_exception' : _data_style_funcs[self.data_style][4](),
-               'pf' : self.parameter_file, # Already weak
-               'hierarchy': weakref.proxy(self) }
-        return dd
-
-    def _initialize_data_storage(self):
-        if not ytcfg.getboolean('lagos','serialize'): return
-        if os.path.isfile(os.path.join(self.directory,
-                            "%s.yt" % self["CurrentTimeIdentifier"])):
-            fn = os.path.join(self.directory,"%s.yt" % self["CurrentTimeIdentifier"])
-        else:
-            fn = os.path.join(self.directory,
-                    "%s.yt" % self.parameter_file.basename)
-        if os.path.isfile(fn):
-            writable = os.access(fn, os.W_OK)
-        else:
-            writable = os.access(self.directory, os.W_OK)
-        if ytcfg.getboolean('lagos','onlydeserialize') or not writable:
-            self._data_mode = mode = 'r'
-        else:
-            self._data_mode = mode = 'a'
-        self.__create_data_file(fn)
-        self.__data_filename = fn
-        self._data_file = h5py.File(fn, self._data_mode)
-
-    @parallel_root_only
-    def __create_data_file(self, fn):
-        f = h5py.File(fn, 'a')
-        f.close()
-
-    def _setup_data_queue(self):
-        self.queue = _data_style_funcs[self.data_style][5]()
-
-    def _save_data(self, array, node, name, set_attr=None, force=False, passthrough = False):
-        """
-        Arbitrary numpy data will be saved to the region in the datafile
-        described by *node* and *name*.  If data file does not exist, it throws
-        no error and simply does not save.
-        """
-
-        if self._data_mode != 'a': return
-        if "ArgsError" in dir(h5py.h5):
-            exception = h5py.h5.ArgsError
-        else:
-            exception = h5py.h5.H5Error
-        try:
-            node_loc = self._data_file[node]
-            if name in node_loc.listnames() and force:
-                mylog.info("Overwriting node %s/%s", node, name)
-                del self._data_file[node][name]
-            elif name in node_loc.listnames() and passthrough:
-                return
-        except exception:
-            pass
-        myGroup = self._data_file['/']
-        for q in node.split('/'):
-            if q: myGroup = myGroup.require_group(q)
-        arr = myGroup.create_dataset(name,data=array)
-        if set_attr is not None:
-            for i, j in set_attr.items(): arr.attrs[i] = j
-        self._data_file.flush()
-
-    def _reload_data_file(self, *args, **kwargs):
-        if self._data_file is None: return
-        self._data_file.close()
-        del self._data_file
-        self._data_file = h5py.File(self.__data_filename, self._data_mode)
-
-    def _reset_save_data(self,round_robin=False):
-        if round_robin:
-            self.save_data = self._save_data
-        else:
-            self.save_data = parallel_splitter(self._save_data, self._reload_data_file)
-    
-    save_data = parallel_splitter(_save_data, _reload_data_file)
-
-    def save_object(self, obj, name):
-        s = cPickle.dumps(obj, protocol=-1)
-        self.save_data(s, "/Objects", name, force = True)
-
-    def load_object(self, name):
-        obj = self.get_data("/Objects", name)
-        if obj is None:
-            return
-        obj = cPickle.loads(obj.value)
-        if iterable(obj) and len(obj) == 2:
-            obj = obj[1] # Just the object, not the pf
-        if hasattr(obj, '_fix_pickle'): obj._fix_pickle()
-        return obj
-
-    def get_data(self, node, name):
-        """
-        Return the dataset with a given *name* located at *node* in the
-        datafile.
-        """
-        if self._data_file == None:
-            return None
-        if node[0] != "/": node = "/%s" % node
-
-        myGroup = self._data_file['/']
-        for group in node.split('/'):
-            if group:
-                if group not in myGroup.listnames():
-                    return None
-                myGroup = myGroup[group]
-        if name not in myGroup.listnames():
-            return None
-
-        full_name = "%s/%s" % (node, name)
-        return self._data_file[full_name]
-
-    def _close_data_file(self):
-        if self._data_file:
-            self._data_file.close()
-            del self._data_file
-            self._data_file = None
-
-    def get_smallest_dx(self):
-        """
-        Returns (in code units) the smallest cell size in the simulation.
-        """
-        return self.gridDxs.min()
-
-    def _add_object_class(self, name, class_name, base, dd):
-        self.object_types.append(name)
-        obj = classobj(class_name, (base,), dd)
-        setattr(self, name, obj)
-
-class NewEnzoHierarchy(NewAMRHierarchy):
-
-    def _initialize_data_storage(self):
-        pass
-
-    def __init__(self, pf, data_style):
-        
-        self.data_style = data_style
-        self.hierarchy_filename = os.path.abspath(
-            "%s.hierarchy" % (pf.parameter_filename))
-        if os.path.getsize(self.hierarchy_filename) == 0:
-            raise IOError(-1,"File empty", self.hierarchy_filename)
-        self.directory = os.path.dirname(self.hierarchy_filename)
-
-        # For some reason, r8 seems to want Float64
-        if pf.has_key("CompilerPrecision") \
-            and pf["CompilerPrecision"] == "r4":
-            self.float_type = 'float32'
-        else:
-            self.float_type = 'float64'
-
-        NewAMRHierarchy.__init__(self, pf, data_style)
-
-    def _setup_classes(self):
-        dd = self._get_data_reader_dict()
-        NewAMRHierarchy._setup_classes(self, dd)
-        self._add_object_class('grid', "EnzoGrid", EnzoGridBase, dd)
-        self.object_types.sort()
-
-    def _count_grids(self):
-        test_grid = test_grid_id = None
-        for line in rlines(open(self.hierarchy_filename, "rb")):
-            if line.startswith("BaryonFileName") or \
-               line.startswith("FileName "):
-                test_grid = line.split("=")[-1].strip().rstrip()
-            if line.startswith("Grid "):
-                self.num_grids = test_grid_id = int(line.split("=")[-1])
-                break
-        self._guess_data_style(self.pf["TopGridRank"], test_grid, test_grid_id)
-
-    def _initialize_grid_arrays(self):
-        mylog.debug("Allocating arrays for %s grids", self.num_grids)
-        self.grid_dimensions = na.ones((self.num_grids,3), 'int32')
-        self.grid_left_edge = na.zeros((self.num_grids,3), self.float_type)
-        self.grid_right_edge = na.ones((self.num_grids,3), self.float_type)
-        self.grid_levels = na.zeros((self.num_grids,1), 'int32')
-        self.grid_particle_count = na.zeros((self.num_grids,1))
-
-    def _guess_data_style(self, rank, test_grid, test_grid_id):
-        if self.data_style is not None: return
-        if test_grid[0] != os.path.sep:
-            test_grid = os.path.join(self.directory, test_grid)
-        if not os.path.exists(test_grid):
-            test_grid = os.path.join(self.directory,
-                                    os.path.basename(test_grid))
-            mylog.debug("Your data uses the annoying hardcoded path.")
-            self._strip_path = True
-        try:
-            a = SD.SD(test_grid)
-            self.data_style = 'enzo_hdf4'
-            mylog.debug("Detected HDF4")
-        except:
-            list_of_sets = HDF5LightReader.ReadListOfDatasets(test_grid, "/")
-            if len(list_of_sets) == 0 and rank == 3:
-                mylog.debug("Detected packed HDF5")
-                self.data_style = 'enzo_packed_3d'
-            elif len(list_of_sets) > 0 and rank == 3:
-                mylog.debug("Detected unpacked HDF5")
-                self.data_style = 'enzo_hdf5'
-            elif len(list_of_sets) == 0 and rank == 2:
-                mylog.debug("Detect packed 2D")
-                self.data_style = 'enzo_packed_2d'
-            elif len(list_of_sets) == 0 and rank == 1:
-                mylog.debug("Detect packed 1D")
-                self.data_style = 'enzo_packed_1d'
-            else:
-                raise TypeError
-
-    # Sets are sorted, so that won't work!
-    __parse_tokens = ("GridStartIndex", "GridEndIndex",
-            "GridLeftEdge", "GridRightEdge", "FileName")
-    def _parse_hierarchy(self):
-        def _line_yielder(f):
-            for token in self.__parse_tokens:
-                line = f.readline()
-                while token not in line: line = f.readline()
-                yield line.split()[2:]
-        t1 = time.time()
-        pattern = r"Pointer: Grid\[(\d*)\]->NextGrid(Next|This)Level = (\d*)$"
-        patt = re.compile(pattern)
-        f = open(self.hierarchy_filename, "rb")
-        self.grids = [self.grid(1)]
-        self.wrefs = [weakref.proxy(self.grids[0])]
-        si, ei, LE, RE, fn, np = [], [], [], [], [], []
-        all = [si, ei, LE, RE, fn]
-        f.readline() # Blank at top
-        for grid_id in xrange(self.num_grids):
-            if (grid_id % 10000) == 0: print grid_id
-            for a, v in izip(all, _line_yielder(f)):
-                a.append(v)
-            line = f.readline()
-            np.append("0")
-            while len(line) > 2:
-                if line.startswith("Pointer:"):
-                    vv = patt.findall(line)[0]
-                    self.__pointer_handler(vv)
-                    line = f.readline()
-                    continue
-                params = line.split()
-                if "NumberOfParticles" == params[0]:
-                    np[-1] = params[2]
-                line = f.readline()
-        def fix_size(iter, dt, shape=(self.num_grids, 3)):
-            size = na.prod(shape)
-            return na.fromiter(chain(*iter), dtype=dt, count=size).reshape(shape)
-        self.grid_dimensions = fix_size(ei, 'int32') - fix_size(si, 'int32') + 1
-        self.grid_left_edge = fix_size(LE, self.float_type)
-        self.grid_right_edge = fix_size(RE, self.float_type)
-        self.grid_particle_count = fix_size(np, 'int32', (self.num_grids, 1))
-        self.grids = na.array(self.grids, dtype='object')
-        self.filenames = fn
-        t2 = time.time()
-        print "Took %0.3e" % (t2-t1)
-        self.max_level = self.grid_levels.max()
-
-    def __pointer_handler(self, m):
-        sgi = int(m[2])-1
-        if sgi == -1: return
-        self.grids.append(self.grid(len(self.grids)+1))
-        self.wrefs.append(weakref.proxy(self.grids[-1]))
-        secondGrid = self.wrefs[sgi] # zero-index 
-        firstGrid = self.wrefs[int(m[0])-1]
-        if m[1] == "Next":
-            firstGrid.Children.append(secondGrid)
-            secondGrid.Parent = firstGrid
-            secondGrid.Level = firstGrid.Level + 1
-        elif m[1] == "This":
-            if firstGrid.Parent is not None:
-                firstGrid.Parent.Children.append(secondGrid)
-                secondGrid.Parent = firstGrid.Parent
-            secondGrid.Level = firstGrid.Level
-
-    def _populate_grid_objects(self):
-        for g,f in izip(self.grids, self.filenames):
-            g._prepare_grid()
-            g._setup_dx()
-            g.set_filename(f[0])
-        del self.filenames # No longer needed.
-
-    def _detect_fields(self):
-        field_list = self.get_data("/", "DataFields")
-        if field_list is None:
-            mylog.info("Gathering a field list (this may take a moment.)")
-            field_list = set()
-            random_sample = self._generate_random_grids()
-            for grid in random_sample:
-                if not hasattr(grid, 'filename'): continue
-                try:
-                    gf = grid.getFields()
-                except grid._read_exception:
-                    mylog.debug("Grid %s is a bit funky?", grid.id)
-                    continue
-                mylog.debug("Grid %s has: %s", grid.id, gf)
-                field_list = field_list.union(gf)
-            field_list = self._join_field_lists(field_list)
-            self.save_data(list(field_list),"/","DataFields")
-        self.field_list = list(field_list)
-
-    def _setup_unknown_fields(self):
-        for field in self.field_list:
-            if field in self.parameter_file.field_info: continue
-            mylog.info("Adding %s to list of fields", field)
-            cf = None
-            if self.parameter_file.has_key(field):
-                cf = lambda d: d.convert(field)
-            add_field(field, lambda a, b: None,
-                      convert_function=cf, take_log=False)
-
-    def _setup_derived_fields(self):
-        self.derived_field_list = []
-        for field in self.parameter_file.field_info:
-            try:
-                fd = self.parameter_file.field_info[field].get_dependencies(
-                            pf = self.parameter_file)
-            except:
-                continue
-            available = na.all([f in self.field_list for f in fd.requested])
-            if available: self.derived_field_list.append(field)
-        for field in self.field_list:
-            if field not in self.derived_field_list:
-                self.derived_field_list.append(field)
-
-    def _generate_random_grids(self):
-        if self.num_grids > 40:
-            starter = na.random.randint(0, 20)
-            random_sample = na.mgrid[starter:len(self.grids)-1:20j].astype("int32")
-            mylog.debug("Checking grids: %s", random_sample.tolist())
-        else:
-            random_sample = na.mgrid[0:max(len(self.grids)-1,1)].astype("int32")
-        return self.grids[(random_sample,)]
-

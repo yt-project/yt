@@ -173,7 +173,6 @@ class AMRGridPatch(AMRData):
         self.ActiveDimensions = h.grid_dimensions[my_ind]
         self.LeftEdge = h.grid_left_edge[my_ind]
         self.RightEdge = h.grid_right_edge[my_ind]
-        self.Level = h.gridLevels[my_ind,0]
         h.grid_levels[my_ind, 0] = self.Level
         # This might be needed for streaming formats
         #self.Time = h.gridTimes[my_ind,0]
