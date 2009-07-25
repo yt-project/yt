@@ -533,25 +533,18 @@ class chainHOPHaloList(HaloList,ParallelAnalysisInterface):
         HaloList.__init__(self, data_source, dm_only)
 
     def _run_finder(self):
-        xt = self.particle_fields["particle_position_x"] # - 0.961
-        yt = self.particle_fields["particle_position_y"] # - 0.369
-        zt = self.particle_fields["particle_position_z"] # - 0.710
+        xt = self.particle_fields["particle_position_x"]
+        yt = self.particle_fields["particle_position_y"]
+        zt = self.particle_fields["particle_position_z"]
         index = self.particle_fields["particle_index"]
-#         for i,x in enumerate(xt):
-#             if x < 0:
-#                 xt[i] = 1+x
-#         for i,y in enumerate(yt):
-#             if y < 0:
-#                 yt[i] = 1+y
-#         for i,z in enumerate(zt):
-#             if z < 0:
-#                 zt[i] = 1+z
         obj = RunChainHOP(self.period, self.padding,
             self.num_neighbors, self.bounds,xt,yt,zt, index,
             self.particle_fields["ParticleMassMsun"]/self.total_mass,
             self.threshold)
         self.densities, self.tags = obj.density, obj.chainID
         self.group_count = obj.group_count
+        # I'm not sure if I can actually use this below, but it's not hurting
+        # anything so I'll leave it for now.
         self.densest_in_group = obj.densest_in_group
         del obj
 
@@ -578,7 +571,7 @@ class chainHOPHaloList(HaloList,ParallelAnalysisInterface):
                 self._do_not_claim_object(self._groups[-1])
                 # A max_dens of 0 will prevent this from being considered
                 # when that is found globally.
-                self._max_dens[index] = (0, 0, 0, 0)
+                self._max_dens[index] = (0., 0, 0, 0)
                 index += 1
             cp_c = cp + counts[i+1]
             group_indices = grab_indices[cp:cp_c]
@@ -597,7 +590,7 @@ class chainHOPHaloList(HaloList,ParallelAnalysisInterface):
         while index < self.group_count:
             self._groups.append(self._halo_class(self, index))
             self._do_not_claim_object(self._groups[-1])
-            self._max_dens[index] = (0, 0, 0, 0)
+            self._max_dens[index] = (0., 0, 0, 0)
             index += 1
 
     def __len__(self):

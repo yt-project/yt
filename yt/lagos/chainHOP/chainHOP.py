@@ -723,13 +723,14 @@ class RunChainHOP(ParallelAnalysisInterface):
         self.NNtags = (fKD.nn_tags - 1).transpose()
         # We can free these right now, the rest later.
         del fKD.dens, fKD.nn_tags, fKD.mass, fKD.dens
+        del self.mass, self.xpos, self.ypos, self.zpos
         count = len(na.where(self.density >= self.threshold)[0])
         print 'count above thresh', count
         # Now each particle has NNtags, and a local self density.
         # Let's find densest NN
         mylog.info('Finding densest nearest neighbors...')
         self._densestNN()
-        # Now we can free these
+        # Now we can free these.
         del fKD.pos, fKD.chunk_tags
         free_tree() # Frees the kdtree object.
         # Build the chain of links.
