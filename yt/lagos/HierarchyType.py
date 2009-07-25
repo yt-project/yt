@@ -73,31 +73,6 @@ class OldAMRHierarchy:
         self._add_detected_fields()
         mylog.debug("Done adding auto-detected fields")
 
-    def _initialize_grids(self):
-        mylog.debug("Allocating memory for %s grids", self.num_grids)
-        self.gridDimensions = na.zeros((self.num_grids,3), 'int32')
-        self.gridStartIndices = na.zeros((self.num_grids,3), 'int32')
-        self.gridEndIndices = na.zeros((self.num_grids,3), 'int32')
-        self.gridLeftEdge = na.zeros((self.num_grids,3), self.float_type)
-        self.gridRightEdge = na.zeros((self.num_grids,3), self.float_type)
-        self.gridLevels = na.zeros((self.num_grids,1), 'int32')
-        self.gridDxs = na.zeros((self.num_grids,1), self.float_type)
-        self.gridDys = na.zeros((self.num_grids,1), self.float_type)
-        self.gridDzs = na.zeros((self.num_grids,1), self.float_type)
-        self.gridTimes = na.zeros((self.num_grids,1), 'float64')
-        self.gridNumberOfParticles = na.zeros((self.num_grids,1))
-        mylog.debug("Done allocating")
-        mylog.debug("Creating grid objects")
-        self.grids = na.array([self.grid(i+1) for i in xrange(self.num_grids)])
-        self.gridReverseTree = [-1] * self.num_grids
-        self.gridTree = [ [] for i in range(self.num_grids)]
-        mylog.debug("Done creating grid objects")
-
-    def __setup_filemap(self, grid):
-        if not self.data_style == 'enzo_packed_3d':
-            return
-        self.cpu_map[grid.filename].append(grid)
-
     def _setup_grid_corners(self):
         self.gridCorners = na.array([ # Unroll!
             [self.gridLeftEdge[:,0], self.gridLeftEdge[:,1], self.gridLeftEdge[:,2]],
@@ -110,23 +85,8 @@ class OldAMRHierarchy:
             [self.gridLeftEdge[:,0], self.gridRightEdge[:,1], self.gridLeftEdge[:,2]],
             ], dtype='float64')
 
-
-    def _deserialize_hierarchy(self, harray):
-        mylog.debug("Cached entry found.")
-        self.gridDimensions[:] = harray[:,0:3]
-        self.gridStartIndices[:] = harray[:,3:6]
-        self.gridEndIndices[:] = harray[:,6:9]
-        self.gridLeftEdge[:] = harray[:,9:12]
-        self.gridRightEdge[:] = harray[:,12:15]
-        self.gridLevels[:] = harray[:,15:16]
-        self.gridTimes[:] = harray[:,16:17]
-        self.gridNumberOfParticles[:] = harray[:,17:18]
-
-
-
     def __getitem__(self, item):
         return self.parameter_file[item]
-
 
     @time_execution
     def export_particles_pb(self, filename, filter = 1, indexboundary = 0, fields = None, scale=1.0):
@@ -184,11 +144,6 @@ class OldAMRHierarchy:
                      self.gridLeftEdge[i,0], self.gridRightEdge[i,0],
                      self.gridLeftEdge[i,1], self.gridRightEdge[i,1],
                      self.gridLeftEdge[i,2], self.gridRightEdge[i,2]))
-
-    def _select_level(self, level):
-        # We return a numarray of the indices of all the grids on a given level
-        indices = na.where(self.gridLevels[:,0] == level)[0]
-        return indices
 
     def __initialize_octree_list(self, fields):
         import DepthFirstOctree as dfo
