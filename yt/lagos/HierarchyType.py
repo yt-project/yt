@@ -647,7 +647,7 @@ class EnzoHierarchy(AMRHierarchy):
         self.grid_left_edge = na.zeros((self.num_grids,3), self.float_type)
         self.grid_right_edge = na.ones((self.num_grids,3), self.float_type)
         self.grid_levels = na.zeros((self.num_grids,1), 'int32')
-        self.grid_particle_count = na.zeros((self.num_grids,1))
+        self.grid_particle_count = na.zeros((self.num_grids,1), 'int32')
 
     def _guess_data_style(self, rank, test_grid, test_grid_id):
         if self.data_style is not None: return
@@ -703,7 +703,7 @@ class EnzoHierarchy(AMRHierarchy):
             for a, v in izip(all, _line_yielder(f)):
                 a.append(v)
             line = f.readline()
-            np.append("0")
+            np.append("0") # this gets replaced if it finds something...
             while len(line) > 2:
                 if line.startswith("Pointer:"):
                     vv = patt.findall(line)[0]
@@ -714,13 +714,12 @@ class EnzoHierarchy(AMRHierarchy):
                 if "NumberOfParticles" == params[0]:
                     np[-1] = params[2]
                 line = f.readline()
-        def fix_size(iter, dt, shape=(self.num_grids, 3)):
-            size = na.prod(shape)
-            return na.fromiter(chain(*iter), dtype=dt, count=size).reshape(shape)
-        self.grid_dimensions = fix_size(ei, 'int32') - fix_size(si, 'int32') + 1
-        self.grid_left_edge = fix_size(LE, self.float_type)
-        self.grid_right_edge = fix_size(RE, self.float_type)
-        self.grid_particle_count = fix_size(np, 'int32', (self.num_grids, 1))
+        self.grid_dimensions.flat[:] = ei
+        self.grid_dimensions -= na.array(si, self.float_type)
+        self.grid_dimensions += 1
+        self.grid_left_edge.flat[:] = LE
+        self.grid_right_edge.flat[:] = RE
+        self.grid_particle_count.flat[:] = np
         self.grids = na.array(self.grids, dtype='object')
         self.filenames = fn
         t2 = time.time()
