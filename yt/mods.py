@@ -35,6 +35,7 @@ import yt.fido as fido
 import numpy as na
 import sys, types
 from logger import ytLogger as mylog
+from performance_counters import yt_counters, time_function
 
 # Now individual component imports from lagos
 from yt.lagos import EnzoStaticOutput, \
