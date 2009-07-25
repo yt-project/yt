@@ -420,7 +420,7 @@ class AMRHierarchy(ObjectFindingMixin):
         """
         Returns (in code units) the smallest cell size in the simulation.
         """
-        return self.gridDxs.min()
+        return self.select_grids(self.grid_levels.max())[0].dds[0]
 
     def _add_object_class(self, name, class_name, base, dd):
         self.object_types.append(name)
@@ -574,7 +574,6 @@ class EnzoHierarchy(AMRHierarchy):
         all = [si, ei, LE, RE, fn]
         f.readline() # Blank at top
         for grid_id in xrange(self.num_grids):
-            if (grid_id % 10000) == 0: print grid_id
             for a, v in izip(all, _line_yielder(f)):
                 a.append(v)
             line = f.readline()
@@ -598,7 +597,6 @@ class EnzoHierarchy(AMRHierarchy):
         self.grids = na.array(self.grids, dtype='object')
         self.filenames = fn
         t2 = time.time()
-        print "Took %0.3e" % (t2-t1)
 
     def __pointer_handler(self, m):
         sgi = int(m[2])-1

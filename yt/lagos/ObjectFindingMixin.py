@@ -102,8 +102,8 @@ class ObjectFindingMixin(object):
         """
         mask=na.ones(self.num_grids)
         for i in xrange(len(coord)):
-            na.choose(na.greater(self.gridLeftEdge[:,i],coord[i]), (mask,0), mask)
-            na.choose(na.greater(self.gridRightEdge[:,i],coord[i]), (0,mask), mask)
+            na.choose(na.greater(self.grid_left_edge[:,i],coord[i]), (mask,0), mask)
+            na.choose(na.greater(self.grid_right_edge[:,i],coord[i]), (0,mask), mask)
         ind = na.where(mask == 1)
         return self.grids[ind], ind
 
@@ -117,10 +117,10 @@ class ObjectFindingMixin(object):
         # So if gRE > coord, we get a mask, if not, we get a zero
         #    if gLE > coord, we get a zero, if not, mask
         # Thus, if the coordinate is between the edges, we win!
-        #ind = na.where( na.logical_and(self.gridRightEdge[:,axis] > coord, \
-                                       #self.gridLeftEdge[:,axis] < coord))
-        na.choose(na.greater(self.gridRightEdge[:,axis],coord),(0,mask),mask)
-        na.choose(na.greater(self.gridLeftEdge[:,axis],coord),(mask,0),mask)
+        #ind = na.where( na.logical_and(self.grid_right_edge[:,axis] > coord, \
+                                       #self.grid_left_edge[:,axis] < coord))
+        na.choose(na.greater(self.grid_right_edge[:,axis],coord),(0,mask),mask)
+        na.choose(na.greater(self.grid_left_edge[:,axis],coord),(mask,0),mask)
         ind = na.where(mask == 1)
         return self.grids[ind], ind
 
@@ -128,22 +128,22 @@ class ObjectFindingMixin(object):
         """
         Returns objects, indices of grids within a sphere
         """
-        centers = (self.gridRightEdge + self.gridLeftEdge)/2.0
-        long_axis = na.maximum.reduce(self.gridRightEdge - self.gridLeftEdge, 1)
+        centers = (self.grid_right_edge + self.grid_left_edge)/2.0
+        long_axis = na.maximum.reduce(self.grid_right_edge - self.grid_left_edge, 1)
         t = na.abs(centers - center)
         DW = self.parameter_file["DomainRightEdge"] \
            - self.parameter_file["DomainLeftEdge"]
         na.minimum(t, na.abs(DW-t), t)
         dist = na.sqrt(na.sum((t**2.0), axis=1))
-        gridI = na.where(na.logical_and((self.gridDxs<=radius)[:,0],(dist < (radius + long_axis))) == 1)
+        gridI = na.where(dist < (radius + long_axis))
         return self.grids[gridI], gridI
 
     def get_box_grids(self, left_edge, right_edge):
         """
         Gets back all the grids between a left edge and right edge
         """
-        grid_i = na.where((na.all(self.gridRightEdge > left_edge, axis=1)
-                         & na.all(self.gridLeftEdge < right_edge, axis=1)) == True)
+        grid_i = na.where((na.all(self.grid_right_edge > left_edge, axis=1)
+                         & na.all(self.grid_left_edge < right_edge, axis=1)) == True)
         return self.grids[grid_i], grid_i
 
     def get_periodic_box_grids(self, left_edge, right_edge):
