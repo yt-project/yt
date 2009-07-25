@@ -2090,7 +2090,7 @@ class AMRSmoothedCoveringGridBase(AMRFloatCoveringGridBase):
             pass # used to warn but I think it is not accurate anymore
             #mylog.warning("Must be power of two dimensions")
             #raise ValueError
-        kwargs['num_ghost_zones'] = 0
+        #kwargs['num_ghost_zones'] = 0
         AMRFloatCoveringGridBase.__init__(self, *args, **kwargs)
 
     def _get_list_of_grids(self):

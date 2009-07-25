@@ -317,12 +317,12 @@ class YTCommands(cmdln.Cmdln):
         ${cmd_option_list}
         """
         pf = _fix_pf(arg)
-        pc=raven.PlotCollection(pf)
         center = opts.center
         if opts.center == (-1,-1,-1):
             mylog.info("No center fed in; seeking.")
             v, center = pf.h.find_max("Density")
         center = na.array(center)
+        pc=raven.PlotCollection(pf, center=center)
         if opts.axis == 4:
             axes = range(3)
         else:
