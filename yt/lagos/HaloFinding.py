@@ -553,6 +553,7 @@ class chainHOPHaloList(HaloList,ParallelAnalysisInterface):
         self.densities, self.tags = obj.density, obj.chainID
         self.group_count = obj.group_count
         self.densest_in_group = obj.densest_in_group
+        del obj
 
     def _parse_output(self):
         """

@@ -604,6 +604,7 @@ class RunChainHOP(ParallelAnalysisInterface):
                 self.reverse_map[chainID] = groupID
                 groupID += 1
         # Loop over all of the chain linkages.
+        mylog.info('Starting double loop')
         for chain_high in self.chain_densest_n:
             for chain_low in self.chain_densest_n[chain_high]:
                 dens = self.chain_densest_n[chain_high][chain_low]
@@ -642,7 +643,7 @@ class RunChainHOP(ParallelAnalysisInterface):
                     densestbound[chain_low] = dens
                     self.reverse_map[chain_low] = group_high
                 # Done double loop over links.
-        
+        mylog.info('Done double loop')
         """
         Now the fringe chains are connected to the proper group
         (>peakthresh) with the largest boundary.  But we want to look
@@ -666,6 +667,7 @@ class RunChainHOP(ParallelAnalysisInterface):
                     else:
                         densestbound[chain_low] = densestbound[chain_high]
                     self.reverse_map[chain_low] = self.reverse_map[chain_high]
+        mylog.info('Done while loop')
         # Now we have to find the unique groupIDs, since they may have been
         # merged.
         temp = []
@@ -749,6 +751,7 @@ class RunChainHOP(ParallelAnalysisInterface):
         mylog.info('Building Groups...')
         group_count = self._build_groups()
         self.group_count = group_count
+        mylog.info('Remapping particles to final groups...')
         self._translate_groupIDs(group_count)
         mylog.info('Found %d groups...' % group_count)
 
