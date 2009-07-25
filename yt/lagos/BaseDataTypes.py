@@ -276,8 +276,7 @@ class GridPropertiesMixin(object):
         return grids
 
     def select_grid_indices(self, level):
-        t = [i for i in xrange(len(self._grids)) if self._grids[i].Level == level]
-        return na.array(t)
+        return na.where(self.grid_levels == level)
 
     def __get_grid_left_edge(self):
         if self.__grid_left_edge == None:

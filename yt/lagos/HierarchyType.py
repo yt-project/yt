@@ -93,18 +93,6 @@ class OldAMRHierarchy:
         self.gridTree = [ [] for i in range(self.num_grids)]
         mylog.debug("Done creating grid objects")
 
-    def _initialize_level_stats(self):
-        # Now some statistics:
-        #   0 = number of grids
-        #   1 = number of cells
-        #   2 = blank
-        desc = {'names': ['numgrids','numcells','level'],
-                'formats':['Int32']*3}
-        self.level_stats = blankRecordArray(desc, MAXLEVEL)
-        self.level_stats['level'] = [i for i in range(MAXLEVEL)]
-        self.level_stats['numgrids'] = [0 for i in range(MAXLEVEL)]
-        self.level_stats['numcells'] = [0 for i in range(MAXLEVEL)]
-
     def __setup_filemap(self, grid):
         if not self.data_style == 'enzo_packed_3d':
             return
@@ -135,117 +123,10 @@ class OldAMRHierarchy:
         self.gridNumberOfParticles[:] = harray[:,17:18]
 
 
-    def _get_parameters(self):
-        return self.parameter_file.parameters
-    parameters=property(_get_parameters)
 
     def __getitem__(self, item):
         return self.parameter_file[item]
 
-    def select_grids(self, level):
-        """
-        Returns an array of grids at *level*.
-        """
-        return self.grids[self._select_level(level)]
-
-    def print_stats(self):
-        """
-        Prints out (stdout) relevant information about the simulation
-        """
-        for i in xrange(MAXLEVEL):
-            if (self.level_stats['numgrids'][i]) == 0:
-                break
-            print "% 3i\t% 6i\t% 11i" % \
-                  (i, self.level_stats['numgrids'][i], self.level_stats['numcells'][i])
-            dx = self.gridDxs[self.levelIndices[i][0]]
-        print "-" * 28
-        print "   \t% 6i\t% 11i" % (self.level_stats['numgrids'].sum(), self.level_stats['numcells'].sum())
-        print "\n"
-        try:
-            print "z = %0.8f" % (self["CosmologyCurrentRedshift"])
-        except:
-            pass
-        t_s = self["InitialTime"] * self["Time"]
-        print "t = %0.8e = %0.8e s = %0.8e years" % \
-            (self["InitialTime"], \
-             t_s, t_s / (365*24*3600.0) )
-        print "\nSmallest Cell:"
-        u=[]
-        for item in self.parameter_file.units.items():
-            u.append((item[1],item[0]))
-        u.sort()
-        for unit in u:
-            print "\tWidth: %0.3e %s" % (dx*unit[0], unit[1])
-
-    def find_point(self, coord):
-        """
-        Returns the (objects, indices) of grids containing an (x,y,z) point
-        """
-        mask=na.ones(self.num_grids)
-        for i in xrange(len(coord)):
-            na.choose(na.greater(self.gridLeftEdge[:,i],coord[i]), (mask,0), mask)
-            na.choose(na.greater(self.gridRightEdge[:,i],coord[i]), (0,mask), mask)
-        ind = na.where(mask == 1)
-        return self.grids[ind], ind
-
-    def find_slice_grids(self, coord, axis):
-        """
-        Returns the (objects, indices) of grids that a slice intersects along
-        *axis*
-        """
-        # Let's figure out which grids are on the slice
-        mask=na.ones(self.num_grids)
-        # So if gRE > coord, we get a mask, if not, we get a zero
-        #    if gLE > coord, we get a zero, if not, mask
-        # Thus, if the coordinate is between the edges, we win!
-        #ind = na.where( na.logical_and(self.gridRightEdge[:,axis] > coord, \
-                                       #self.gridLeftEdge[:,axis] < coord))
-        na.choose(na.greater(self.gridRightEdge[:,axis],coord),(0,mask),mask)
-        na.choose(na.greater(self.gridLeftEdge[:,axis],coord),(mask,0),mask)
-        ind = na.where(mask == 1)
-        return self.grids[ind], ind
-
-    def find_sphere_grids(self, center, radius):
-        """
-        Returns objects, indices of grids within a sphere
-        """
-        centers = (self.gridRightEdge + self.gridLeftEdge)/2.0
-        long_axis = na.maximum.reduce(self.gridRightEdge - self.gridLeftEdge, 1)
-        t = na.abs(centers - center)
-        DW = self.parameter_file["DomainRightEdge"] \
-           - self.parameter_file["DomainLeftEdge"]
-        na.minimum(t, na.abs(DW-t), t)
-        dist = na.sqrt(na.sum((t**2.0), axis=1))
-        gridI = na.where(na.logical_and((self.gridDxs<=radius)[:,0],(dist < (radius + long_axis))) == 1)
-        return self.grids[gridI], gridI
-
-    def get_box_grids(self, left_edge, right_edge):
-        """
-        Gets back all the grids between a left edge and right edge
-        """
-        grid_i = na.where((na.all(self.gridRightEdge > left_edge, axis=1)
-                         & na.all(self.gridLeftEdge < right_edge, axis=1)) == True)
-        return self.grids[grid_i], grid_i
-
-    def get_periodic_box_grids(self, left_edge, right_edge):
-        left_edge = na.array(left_edge)
-        right_edge = na.array(right_edge)
-        mask = na.zeros(self.grids.shape, dtype='bool')
-        dl = self.parameters["DomainLeftEdge"]
-        dr = self.parameters["DomainRightEdge"]
-        db = right_edge - left_edge
-        for off_x in [-1, 0, 1]:
-            nle = left_edge.copy()
-            nre = left_edge.copy()
-            nle[0] = dl[0] + (dr[0]-dl[0])*off_x + left_edge[0]
-            for off_y in [-1, 0, 1]:
-                nle[1] = dl[1] + (dr[1]-dl[1])*off_y + left_edge[1]
-                for off_z in [-1, 0, 1]:
-                    nle[2] = dl[2] + (dr[2]-dl[2])*off_z + left_edge[2]
-                    nre = nle + db
-                    g, gi = self.get_box_grids(nle, nre)
-                    mask[gi] = True
-        return self.grids[mask], na.where(mask)
 
     @time_execution
     def export_particles_pb(self, filename, filter = 1, indexboundary = 0, fields = None, scale=1.0):
@@ -374,26 +255,6 @@ class OldAMRHierarchy:
                 output, genealogy, corners, ogl)
         return output, genealogy, levels_all, levels_finest, pp, corners
 
-    def _add_detected_fields(self):
-        for field in self.field_list:
-            if field in self.parameter_file.field_info: continue
-            mylog.info("Adding %s to list of fields", field)
-            cf = None
-            if self.parameter_file.has_key(field):
-                cf = lambda d: d.convert(field)
-            add_field(field, lambda a, b: None, convert_function=cf,take_log=False)
-        self.derived_field_list = []
-        for field in self.parameter_file.field_info:
-            try:
-                fd = self.parameter_file.field_info[field].get_dependencies(pf = self.parameter_file)
-            except:
-                continue
-            available = na.all([f in self.field_list for f in fd.requested])
-            if available: self.derived_field_list.append(field)
-        for field in self.field_list:
-            if field not in self.derived_field_list:
-                self.derived_field_list.append(field)
-
 class AMRHierarchy(ObjectFindingMixin):
     def __init__(self, pf, data_style):
         self.parameter_file = weakref.proxy(pf)
@@ -433,12 +294,24 @@ class AMRHierarchy(ObjectFindingMixin):
         mylog.debug("Initializing data grid data IO")
         self._setup_data_queue()
 
+        mylog.debug("Re-examining hierarchy")
+        self._initialize_level_stats()
+
+    def _get_parameters(self):
+        return self.parameter_file.parameters
+    parameters=property(_get_parameters)
+
+    def select_grids(self, level):
+        """
+        Returns an array of grids at *level*.
+        """
+        return self.grids[self.grid_levels.flat == level]
+
     def _initialize_state_variables(self):
         self._parallel_locking = False
         self._data_file = None
         self._data_mode = None
         self._max_locations = {}
-        self.parameters = {}
 
     def _setup_classes(self, dd):
         # Called by subclass
@@ -598,6 +471,53 @@ class AMRHierarchy(ObjectFindingMixin):
         self.object_types.append(name)
         obj = classobj(class_name, (base,), dd)
         setattr(self, name, obj)
+
+    def _initialize_level_stats(self):
+        # Now some statistics:
+        #   0 = number of grids
+        #   1 = number of cells
+        #   2 = blank
+        desc = {'names': ['numgrids','numcells','level'],
+                'formats':['Int32']*3}
+        self.level_stats = blankRecordArray(desc, MAXLEVEL)
+        self.level_stats['level'] = [i for i in range(MAXLEVEL)]
+        self.level_stats['numgrids'] = [0 for i in range(MAXLEVEL)]
+        self.level_stats['numcells'] = [0 for i in range(MAXLEVEL)]
+        for level in xrange(self.max_level+1):
+            self.level_stats[level]['numgrids'] = na.sum(self.grid_levels == level)
+            li = (self.grid_levels[:,0] == level)
+            self.level_stats[level]['numcells'] = self.grid_dimensions[li,:].prod(axis=1).sum()
+
+    def print_stats(self):
+        """
+        Prints out (stdout) relevant information about the simulation
+        """
+        for level in xrange(MAXLEVEL):
+            if (self.level_stats['numgrids'][level]) == 0:
+                break
+            print "% 3i\t% 6i\t% 11i" % \
+                  (level, self.level_stats['numgrids'][level],
+                   self.level_stats['numcells'][level])
+            dx = self.select_grids(level)[0].dds[0]
+        print "-" * 28
+        print "   \t% 6i\t% 11i" % (self.level_stats['numgrids'].sum(), self.level_stats['numcells'].sum())
+        print "\n"
+        try:
+            print "z = %0.8f" % (self["CosmologyCurrentRedshift"])
+        except:
+            pass
+        t_s = self.pf["InitialTime"] * self.pf["Time"]
+        print "t = %0.8e = %0.8e s = %0.8e years" % \
+            (self.pf["InitialTime"], \
+             t_s, t_s / (365*24*3600.0) )
+        print "\nSmallest Cell:"
+        u=[]
+        for item in self.parameter_file.units.items():
+            u.append((item[1],item[0]))
+        u.sort()
+        for unit in u:
+            print "\tWidth: %0.3e %s" % (dx*unit[0], unit[1])
+
 
 class EnzoHierarchy(AMRHierarchy):
 
@@ -865,12 +785,6 @@ class EnzoHierarchyInMemory(EnzoHierarchy):
         self.levelIndices = {}
         self.levelNum = {}
         ad = self.gridEndIndices - self.gridStartIndices + 1
-        for level in xrange(self.maxLevel+1):
-            self.level_stats[level]['numgrids'] = na.where(self.gridLevels==level)[0].size
-            li = na.where(self.gridLevels[:,0] == level)
-            self.level_stats[level]['numcells'] = ad[li].prod(axis=1).sum()
-            self.levelIndices[level] = self._select_level(level)
-            self.levelNum[level] = len(self.levelIndices[level])
         mylog.debug("Hierarchy fully populated.")
 
     def _copy_hierarchy_structure(self):
