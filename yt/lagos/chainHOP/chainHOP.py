@@ -33,6 +33,7 @@ class RunChainHOP(ParallelAnalysisInterface):
         self.mass = mass
         self.padded_particles = []
         self.nMerge = 4
+        self.d = None
         self.chainID = na.ones(self.size,dtype='int64') * -1
         self._chain_hop()
     
@@ -183,50 +184,55 @@ class RunChainHOP(ParallelAnalysisInterface):
         Given an integer, return the corresponding shift, and given a shift
         return the integer. There may be a better way to do this.
         """
-        d = {0:[-1,-1,-1], 1:[-1,-1,0], 2:[-1,-1,1], 3:[-1,0,-1], 4:[-1,0,0],
-            5:[-1,0,1], 6:[-1,1,-1], 7:[-1,1,0], 8:[-1,1,1,], 9:[0,-1,-1],
-            10:[0,-1,0], 11:[0,-1,1], 12:[0,0,-1], 13:[0,0,0], 14:[0,0,1],
-            15:[0,1,-1], 16:[0,1,0], 17:[0,1,1], 18:[1,-1,-1], 19:[1,-1,0],
-            20:[1,-1,1], 21:[1,0,-1], 22:[1,0,0], 23:[1,0,1], 24:[1,1,-1],
-            25:[1,1,0], 26:[1,1,1]}
-        for key in d:
-            d[key] = na.array(d[key], dtype='int64')
+        if self.d is None:
+            d = {0:[-1,-1,-1], 1:[-1,-1,0], 2:[-1,-1,1], 3:[-1,0,-1], 4:[-1,0,0],
+                5:[-1,0,1], 6:[-1,1,-1], 7:[-1,1,0], 8:[-1,1,1,], 9:[0,-1,-1],
+                10:[0,-1,0], 11:[0,-1,1], 12:[0,0,-1], 13:[0,0,0], 14:[0,0,1],
+                15:[0,1,-1], 16:[0,1,0], 17:[0,1,1], 18:[1,-1,-1], 19:[1,-1,0],
+                20:[1,-1,1], 21:[1,0,-1], 22:[1,0,0], 23:[1,0,1], 24:[1,1,-1],
+                25:[1,1,0], 26:[1,1,1]}
+            for key in d:
+                d[key] = na.array(d[key], dtype='int64')
+            self.d = d
         if i==None and shift==None: return None
         if i!=None:
-            return d[i]
+            return self.d[i]
         if shift!=None:
             shift = na.array(shift)
-            for key in d:
-                if (d[key] == shift).all():
+            for key in self.d:
+                if (self.d[key] == shift).all():
                     return key
 
     def _densestNN(self):
         """
         For all particles, find their densest nearest neighbor. It is done in
         chunks to keep the memory usage down.
-        The first search of nearest neighbors did not return all 
+        The first search of nearest neighbors (done earlier) did not return all 
         num_neighbor neighbors, so we need to do it again, but we're not
         keeping the all of this data, just using it.
         """
         self.densestNN = na.ones(self.size,dtype='l')
-        # We find nearest neighbors in chunks
+        # We find nearest neighbors in chunks.
         chunksize = 10000
         
-        start = 1 # fortran counting!
+        start = 1 # Fortran counting!
         finish = 0
         while finish < self.size:
             finish = min(finish+chunksize,self.size)
             fKD.chunk_tags = empty((self.num_neighbors,finish-start+1), dtype='l')
-            # call the fortran
+            # Call the fortran. start and finish refer to the data locations
+            # in fKD.pos, and specify the range of particles to find nearest
+            # neighbors
             fKD.start = start
             fKD.finish = finish
             find_chunk_nearest_neighbors()
             chunk_NNtags = (fKD.chunk_tags - 1).transpose()
-            # find the densest nearest neighbors
+            # Find the densest nearest neighbors by referencing the already
+            # calculated density.
             n_dens = na.take(self.density,chunk_NNtags)
             max_loc = na.argmax(n_dens,axis=1)
-            for i in xrange(finish - start + 1): # +1 for fortran counting
-                j = start + i - 1 # -1 for fortran counting
+            for i in xrange(finish - start + 1): # +1 for fortran counting.
+                j = start + i - 1 # -1 for fortran counting.
                 self.densestNN[j] = chunk_NNtags[i,max_loc[i]]
             start = finish + 1
     
@@ -294,7 +300,7 @@ class RunChainHOP(ParallelAnalysisInterface):
         self.nchains = sum(chain_info.values())
         # Figure out our offset.
         self.my_first_id = sum([v for k,v in chain_info.items() if k < self.mine])
-        # Change particle IDs, -1 still means no chain.
+        # Change particle IDs, -1 always means no chain assignment.
         select = (self.chainID != -1)
         select = select * self.my_first_id
         self.chainID += select
@@ -335,8 +341,8 @@ class RunChainHOP(ParallelAnalysisInterface):
         self.recv_chainIDs = na.empty(to_recv_count, dtype='int64')
         # It appears that MPI doesn't like it when I slice the buffer, so I 
         # still need temporary arrays, but they don't need to be so large, but
-        # still as large as the largest single thing I might receive.
-        # size_max = max(self.global_padded_count.values())
+        # still as large as the largest single thing I might receive. This size
+        # was calculated above.
         temp_indices = na.empty(size_max, dtype='int64')
         temp_chainIDs = na.empty(size_max, dtype='int64')
         # Send/receive padded particles to our 26 neighbors.
@@ -357,7 +363,8 @@ class RunChainHOP(ParallelAnalysisInterface):
             MPI.COMM_WORLD.Sendrecv(
                 [self.uphill_chainIDs, MPI.INT], neighbor, 0,
                 [temp_chainIDs, MPI.INT], opp_neighbor, 0)
-            # Only save the part of the buffer that we want.
+            # Only save the part of the buffer that we want to the right places
+            # in the full listing.
             self.recv_real_indices[so_far:(so_far + opp_size)] = \
                 temp_indices[0:opp_size]
             self.recv_chainIDs[so_far:(so_far + opp_size)] = \
@@ -400,16 +407,17 @@ class RunChainHOP(ParallelAnalysisInterface):
         for i,real_index in enumerate(self.recv_real_indices):
             try:
                 localID = self.rev_index[real_index]
-                # We don't want to update the chainIDs of my padded particles,
-                # remember we are supposed to be only considering particles
-                # in my *real* region that are padded in my neighbor.
+                # We don't want to update the chainIDs of my padded particles.
+                # Remember we are supposed to be only considering particles
+                # in my *real* region, that are padded in my neighbor.
                 if not self.is_inside[localID]:
+                    # Make it negative so we can skip it below.
                     self.recv_real_indices[i] = -1
                     continue
                 self.recv_real_indices[i] = localID
             except KeyError:
-                # If this particle is not owned by me, make it negative so
-                # we can skip it below.
+                # This is probably a particle we don't even own, so we want
+                # to ignore it.
                 self.recv_real_indices[i] = -1
                 continue
         # Now relate the local chainIDs to the received chainIDs
@@ -421,13 +429,11 @@ class RunChainHOP(ParallelAnalysisInterface):
                 if self.recv_chainIDs[i] != self.chainID[localID]:
                     chainID_translate_map_local[self.recv_chainIDs[i]] = \
                         self.chainID[localID]
-                    if self.chainID[localID] == -1 and self.mine==8:
-                        print self.mine, localID, self.density[localID]
-        # chainID_translate_map_local is now a 'sparse' dict. Chains may
+        # In chainID_translate_map_local, chains may
         # 'point' to only one chain, but a chain may have many that point to
-        # it. Therefore each key in this dict is unique, but the items
+        # it. Therefore each key (a chain) in this dict is unique, but the items
         # the keys point to are not necessarily unique. Most chains do not
-        # have an entry in the sparse dict, and that is addressed after the 
+        # have an entry in the dict, and that is addressed after the 
         # communication step.
         chainID_translate_map_global = \
             self._mpi_joindict(chainID_translate_map_local)
@@ -435,6 +441,7 @@ class RunChainHOP(ParallelAnalysisInterface):
             try:
                 target = chainID_translate_map_global[i]
             except KeyError:
+                # The the chain is either self most-dense, or a singleton.
                 chainID_translate_map_global[i] = int(i)
         # Build a list of chain densities, sorted smallest to largest.
         dens_temp = []
@@ -673,15 +680,18 @@ class RunChainHOP(ParallelAnalysisInterface):
         temp = []
         for chain in self.reverse_map:
             temp.append(self.reverse_map[chain])
+        mylog.info('done with list')
         temp = list(Set(temp)) # uniquify temp
+        mylog.info('done uniquify')
         temp.sort()
+        mylog.info('done sort')
         # Make the groupIDs run 0 to group_count-1.
         for t,gID in enumerate(temp[1:]): # -1 is always the first item, skip it
             if gID != t:
                 for chain in self.reverse_map:
                     if self.reverse_map[chain] == gID:
                         self.reverse_map[chain] = t
-                
+        mylog.info('done renaming')
         group_count = len(temp) - 1 # Don't count the -1 groupID
         return group_count
 
