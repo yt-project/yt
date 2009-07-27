@@ -73,7 +73,7 @@ class PerformanceCounters(object):
             if not self.counting[i]:
                 insort(times, [self.endtime[i], i, 0]) # 0 for 'off'
         #print times
-        shift = 0
+        shift = -1
         multi = 5
         max = 20
         endline = ""
@@ -86,7 +86,7 @@ class PerformanceCounters(object):
                 # if shift > 1, this is a nested entry, so we want to record
                 # this line to be printed later when the top level finish entry
                 # is encountered.
-                if shift > 1:
+                if shift > 0:
                     if self.counting[i[1]]:
                         endline = "%s%i : %s : still running\n%s" % (" "*shift*multi,shift, i[1],endline)
                     else:
