@@ -22,14 +22,6 @@ class RunChainHOP(ParallelAnalysisInterface):
         self.zpos = zpos
         self.size = len(self.xpos)
         self.index = na.array(index, dtype='int64')
-        # Below we make a mapping of localID->real particle_index
-        # Unf. this has to be a dict, because any task can have
-        # particles of any particle_index, which means that if it were an
-        # array every task would probably end up having this array be as long
-        # as the full number of particles.
-        self.rev_index = {}
-        for i in xrange(self.size):
-            self.rev_index[self.index[i]] = i
         self.mass = mass
         self.padded_particles = []
         self.nMerge = 4
@@ -88,6 +80,17 @@ class RunChainHOP(ParallelAnalysisInterface):
         # inside the real region, but within one padding of the boundary,
         # and this will do it.
         self.is_inside_annulus = na.bitwise_and(self.is_inside, inner)
+        # Below we make a mapping of real particle index->local ID
+        # Unf. this has to be a dict, because any task can have
+        # particles of any particle_index, which means that if it were an
+        # array every task would probably end up having this array be as long
+        # as the full number of particles.
+        self.rev_index = {}
+        for i in xrange(self.size):
+            # Only padded and annulus particles are needed in the dict.
+            if not self.is_inside[i] or self.is_inside_annulus[i]:
+                self.rev_index[self.index[i]] = i
+        del points, inner
 
     # These next two functions aren't currently being used. They figure out
     # which direction to send particle data from each task. They may come 
@@ -214,19 +217,19 @@ class RunChainHOP(ParallelAnalysisInterface):
         self.densestNN = na.ones(self.size,dtype='l')
         # We find nearest neighbors in chunks.
         chunksize = 10000
-        
+        fKD.chunk_tags = empty((self.num_neighbors, chunksize), dtype='l')
         start = 1 # Fortran counting!
         finish = 0
         while finish < self.size:
             finish = min(finish+chunksize,self.size)
-            fKD.chunk_tags = empty((self.num_neighbors,finish-start+1), dtype='l')
+            #fKD.chunk_tags = empty((self.num_neighbors,finish-start+1), dtype='l')
             # Call the fortran. start and finish refer to the data locations
             # in fKD.pos, and specify the range of particles to find nearest
             # neighbors
             fKD.start = start
             fKD.finish = finish
             find_chunk_nearest_neighbors()
-            chunk_NNtags = (fKD.chunk_tags - 1).transpose()
+            chunk_NNtags = (fKD.chunk_tags[:,:finish-start+1] - 1).transpose()
             # Find the densest nearest neighbors by referencing the already
             # calculated density.
             n_dens = na.take(self.density,chunk_NNtags)
@@ -235,6 +238,7 @@ class RunChainHOP(ParallelAnalysisInterface):
                 j = start + i - 1 # -1 for fortran counting.
                 self.densestNN[j] = chunk_NNtags[i,max_loc[i]]
             start = finish + 1
+        del chunk_NNtags, max_loc, n_dens
     
     def _build_chains(self):
         """
@@ -304,6 +308,7 @@ class RunChainHOP(ParallelAnalysisInterface):
         select = (self.chainID != -1)
         select = select * self.my_first_id
         self.chainID += select
+        del select
 
     def _create_global_densest_in_chain(self):
         """
@@ -316,6 +321,7 @@ class RunChainHOP(ParallelAnalysisInterface):
             self.densest_in_chain[dens + self.my_first_id] = temp[dens]
         # Distribute this.
         self.densest_in_chain = self._mpi_joindict(self.densest_in_chain)
+        del temp
 
     def _communicate_uphill_info(self):
         """
@@ -370,6 +376,7 @@ class RunChainHOP(ParallelAnalysisInterface):
             self.recv_chainIDs[so_far:(so_far + opp_size)] = \
                 temp_chainIDs[0:opp_size]
             so_far += opp_size
+        del temp_indices, temp_chainIDs
 
     def _recurse_global_chain_links(self, chainID_translate_map_global, chainID):
         """
@@ -467,6 +474,8 @@ class RunChainHOP(ParallelAnalysisInterface):
             if old_chainID == -1: continue
             new_chainID = chainID_translate_map_global[old_chainID]
             self.chainID[i] = new_chainID
+        del chainID_translate_map_local, dens_temp, self.recv_chainIDs
+        del self.recv_real_indices, self.uphill_real_indices, self.uphill_chainIDs
 
     def _communicate_annulus_chainIDs(self):
         """
@@ -521,7 +530,7 @@ class RunChainHOP(ParallelAnalysisInterface):
                 except KeyError:
                     # We ignore data that's not for us.
                     continue
-        del recv_real_indices, recv_chainIDs
+        del recv_real_indices, recv_chainIDs, real_indices, chainIDs, select
 
     def _connect_chains(self):
         """
@@ -532,8 +541,8 @@ class RunChainHOP(ParallelAnalysisInterface):
         self.chain_densest_n = {} # chainID -> {chainIDs->boundary dens}
         self.reverse_map = {} # chainID -> groupID, one to one
         for chainID in self.densest_in_chain:
-            self.chain_densest_n[chainID] = {}
-            self.reverse_map[chainID] = -1
+            self.chain_densest_n[int(chainID)] = {}
+            self.reverse_map[int(chainID)] = -1
         for i in xrange(self.size):
             # Don't consider this particle if it's not part of a chain.
             if self.chainID[i] < 0: continue
@@ -611,7 +620,6 @@ class RunChainHOP(ParallelAnalysisInterface):
                 self.reverse_map[chainID] = groupID
                 groupID += 1
         # Loop over all of the chain linkages.
-        mylog.info('Starting double loop')
         for chain_high in self.chain_densest_n:
             for chain_low in self.chain_densest_n[chain_high]:
                 dens = self.chain_densest_n[chain_high][chain_low]
@@ -650,7 +658,6 @@ class RunChainHOP(ParallelAnalysisInterface):
                     densestbound[chain_low] = dens
                     self.reverse_map[chain_low] = group_high
                 # Done double loop over links.
-        mylog.info('Done double loop')
         """
         Now the fringe chains are connected to the proper group
         (>peakthresh) with the largest boundary.  But we want to look
@@ -674,25 +681,26 @@ class RunChainHOP(ParallelAnalysisInterface):
                     else:
                         densestbound[chain_low] = densestbound[chain_high]
                     self.reverse_map[chain_low] = self.reverse_map[chain_high]
-        mylog.info('Done while loop')
         # Now we have to find the unique groupIDs, since they may have been
         # merged.
         temp = []
         for chain in self.reverse_map:
             temp.append(self.reverse_map[chain])
-        mylog.info('done with list')
-        temp = list(Set(temp)) # uniquify temp
-        mylog.info('done uniquify')
-        temp.sort()
-        mylog.info('done sort')
-        # Make the groupIDs run 0 to group_count-1.
-        for t,gID in enumerate(temp[1:]): # -1 is always the first item, skip it
-            if gID != t:
-                for chain in self.reverse_map:
-                    if self.reverse_map[chain] == gID:
-                        self.reverse_map[chain] = t
-        mylog.info('done renaming')
-        group_count = len(temp) - 1 # Don't count the -1 groupID
+        # Uniquify the list.
+        temp = list(Set(temp))
+        # Remove -1 from the list.
+        temp.pop(temp.index(-1))
+        # Make a secondary map to make the IDs consecutive.
+        secondary_map = {}
+        for i,ID in enumerate(temp):
+            secondary_map[ID] = i
+        # Update reverse_map
+        for chain in self.reverse_map:
+            # Don't attempt to fix non-assigned chains.
+            if self.reverse_map[chain] == -1: continue
+            self.reverse_map[chain] = secondary_map[self.reverse_map[chain]]
+        group_count = len(temp)
+        del secondary_map, temp, g_high, g_low, g_dens, densestbound
         return group_count
 
     def _translate_groupIDs(self, group_count):
@@ -748,18 +756,17 @@ class RunChainHOP(ParallelAnalysisInterface):
         chain_count = self._build_chains()
         mylog.info('Gobally assigning chainIDs...')
         self._globally_assign_chainIDs(chain_count)
-        mylog.info('Global densest in chain...')
+        mylog.info('Globally finding densest in chains...')
         self._create_global_densest_in_chain()
-        #self._build_uphill_info()
-        mylog.info('Connecting chains across tasks...')
+        mylog.info('Building chain connections across tasks...')
         self._connect_chains_across_tasks()
-        mylog.info('Communicating padded particle chainIDs...')
+        mylog.info('Communicating connected chains...')
         self._communicate_annulus_chainIDs()
         mylog.info('Connecting %d chains into groups...' % self.nchains)
         self._connect_chains()
-        mylog.info('Communicating chain links globally...')
+        mylog.info('Communicating group links globally...')
         self._make_global_chain_densest_n()
-        mylog.info('Building Groups...')
+        mylog.info('Building final groups...')
         group_count = self._build_groups()
         self.group_count = group_count
         mylog.info('Remapping particles to final groups...')
