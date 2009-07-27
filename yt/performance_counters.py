@@ -26,6 +26,9 @@ License:
 from yt.config import ytcfg
 from yt.funcs import *
 import time
+from datetime import datetime as dt
+from bisect import insort
+import atexit
 
 class PerformanceCounters(object):
     _shared_state = {}
@@ -37,16 +40,21 @@ class PerformanceCounters(object):
     def __init__(self):
         self.counters = defaultdict(lambda: 0.0)
         self.counting = defaultdict(lambda: False)
+        self.starttime = defaultdict(lambda: 0)
+        self.endtime = defaultdict(lambda: 0)
         self._on = ytcfg.getboolean("yt", "time_functions")
+        self.exit()
 
     def __call__(self, name):
         if not self._on: return
         if self.counting[name]:
             self.counters[name] = time.time() - self.counters[name] 
             self.counting[name] = False
+            self.endtime[name] = dt.now()
         else:
             self.counters[name] = time.time()
             self.counting[name] = True
+            self.starttime[name] = dt.now()
 
     def call_func(self, func):
         if not self._on: return func
@@ -59,10 +67,44 @@ class PerformanceCounters(object):
 
     def print_stats(self):
         print "Current counter status:\n"
-        for i in sorted(self.counters):
-            print "% 30s:" % (i),
-            if self.counting[i]: print "still running"
-            else: print "%0.3e" % (self.counters[i])
+        times = []
+        for i in self.counters:
+            insort(times, [self.starttime[i], i, 1]) # 1 for 'on'
+            if not self.counting[i]:
+                insort(times, [self.endtime[i], i, 0]) # 0 for 'off'
+        #print times
+        shift = 0
+        multi = 5
+        max = 20
+        endline = ""
+        for i in times:
+            # A starting entry
+            if i[2] == 1:
+                shift += 1
+            # An ending entry
+            if i[2] == 0:
+                # if shift > 1, this is a nested entry, so we want to record
+                # this line to be printed later when the top level finish entry
+                # is encountered.
+                if shift > 1:
+                    if self.counting[i[1]]:
+                        endline = "%s%i : %s : still running\n%s" % (" "*shift*multi,shift, i[1],endline)
+                    else:
+                        endline = "%s%i : %s : %0.3e\n%s" % (" "*shift*multi,shift, i[1], self.counters[i[1]], endline)
+                    shift -= 1
+                # A top level entry.
+                else:
+                    if self.counting[i[1]]:
+                        line = "%i : %s : still running\n%s" % (shift, i[1],endline)
+                    else:
+                        line = "%i : %s : %0.3e\n%s" % (shift, i[1], self.counters[i[1]],endline)
+                    shift -= 1
+                    endline = ""
+                    print line
+
+    def exit(self):
+        if self._on:
+            atexit.register(self.print_stats)
 
 yt_counters = PerformanceCounters()
 time_function = yt_counters.call_func
