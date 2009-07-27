@@ -476,6 +476,7 @@ class AMRHierarchy(ObjectFindingMixin):
 
 class EnzoHierarchy(AMRHierarchy):
 
+    self._strip_path = False
     def __init__(self, pf, data_style):
         
         self.data_style = data_style
