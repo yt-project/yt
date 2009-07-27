@@ -537,7 +537,7 @@ class chainHOPHaloList(HaloList,ParallelAnalysisInterface):
             self.num_neighbors, self.bounds,
             self.particle_fields["particle_position_x"],
             self.particle_fields["particle_position_y"],
-            self.particle_fields["particle_position_z",
+            self.particle_fields["particle_position_z"],
             self.particle_fields["particle_index"],
             self.particle_fields["ParticleMassMsun"]/self.total_mass,
             self.threshold)
