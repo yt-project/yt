@@ -51,6 +51,7 @@ ytcfgDefaults = {
         'pluginfilename':'yt_plugins.py',
         },
     "yt":{
+        'time_functions': 'False',
         'LogFile': 'False',
         'LogFileName': 'yt.log',
         'suppressStreamLogging': 'False',
