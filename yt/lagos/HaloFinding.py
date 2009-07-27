@@ -533,12 +533,12 @@ class chainHOPHaloList(HaloList,ParallelAnalysisInterface):
         HaloList.__init__(self, data_source, dm_only)
 
     def _run_finder(self):
-        xt = self.particle_fields["particle_position_x"]
-        yt = self.particle_fields["particle_position_y"]
-        zt = self.particle_fields["particle_position_z"]
-        index = self.particle_fields["particle_index"]
         obj = RunChainHOP(self.period, self.padding,
-            self.num_neighbors, self.bounds,xt,yt,zt, index,
+            self.num_neighbors, self.bounds,
+            self.particle_fields["particle_position_x"],
+            self.particle_fields["particle_position_y"],
+            self.particle_fields["particle_position_z",
+            self.particle_fields["particle_index"],
             self.particle_fields["ParticleMassMsun"]/self.total_mass,
             self.threshold)
         self.densities, self.tags = obj.density, obj.chainID
