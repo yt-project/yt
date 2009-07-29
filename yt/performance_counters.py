@@ -88,9 +88,9 @@ class PerformanceCounters(object):
                 # is encountered.
                 if shift > 0:
                     if self.counting[i[1]]:
-                        endline = "%s%i : %s : still running\n%s" % (" "*shift*multi,shift, i[1],endline)
+                        endline = "%s%s%i : %s : still running\n" % (endline," "*shift*multi,shift, i[1])
                     else:
-                        endline = "%s%i : %s : %0.3e\n%s" % (" "*shift*multi,shift, i[1], self.counters[i[1]], endline)
+                        endline = "%s%s%i : %s : %0.3e\n" % (endline," "*shift*multi,shift, i[1], self.counters[i[1]])
                     shift -= 1
                 # A top level entry.
                 else:
