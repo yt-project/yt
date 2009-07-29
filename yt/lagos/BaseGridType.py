@@ -34,6 +34,7 @@ class AMRGridPatch(AMRData):
     _id_offset = 1
 
     _type_name = 'grid'
+    _skip_add = True
     _con_args = ('id', 'filename')
 
     def __init__(self, id, filename=None, hierarchy = None):
@@ -56,7 +57,7 @@ class AMRGridPatch(AMRData):
                 # This is only going to be raised if n_gz > 0
                 n_gz = ngt_exception.ghost_zones
                 f_gz = ngt_exception.fields
-                gz_grid = self.retrieve_ghost_zones(n_gz, f_gz)
+                gz_grid = self.retrieve_ghost_zones(n_gz, f_gz, smoothed=True)
                 temp_array = self.pf.field_info[field](gz_grid)
                 sl = [slice(n_gz,-n_gz)] * 3
                 self[field] = temp_array[sl]
@@ -343,7 +344,7 @@ class AMRGridPatch(AMRData):
     child_indices = property(fget=_get_child_indices, fdel = _del_child_indices)
 
     def retrieve_ghost_zones(self, n_zones, fields, all_levels=False,
-                             smoothed=False, old=False):
+                             smoothed=False):
         # We will attempt this by creating a datacube that is exactly bigger
         # than the grid by nZones*dx in each direction
         nl = self.get_global_startindex() - n_zones
@@ -362,12 +363,8 @@ class AMRGridPatch(AMRData):
             cube = self.hierarchy.smoothed_covering_grid(
                 level, new_left_edge, new_right_edge, **kwargs)
         else:
-            if old:
-                cube = self.hierarchy.covering_grid(
-                    level, new_left_edge, new_right_edge, **kwargs)
-            else:
-                cube = self.hierarchy.new_covering_grid(
-                    level, new_left_edge, **kwargs)
+            cube = self.hierarchy.covering_grid(
+                level, new_left_edge, **kwargs)
         return cube
 
     def get_vertex_centered_data(self, field, smoothed=True):

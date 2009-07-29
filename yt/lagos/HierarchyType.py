@@ -30,17 +30,17 @@ import cPickle
 #import yt.enki
 
 _data_style_funcs = \
-   { 4: (readDataHDF4,readAllDataHDF4, getFieldsHDF4, readDataSliceHDF4,
+   { 'enzo_hdf4': (readDataHDF4,readAllDataHDF4, getFieldsHDF4, readDataSliceHDF4,
          getExceptionHDF4, DataQueueHDF4),
      'enzo_hdf4_2d': (readDataHDF4, readAllDataHDF4, getFieldsHDF4, readDataSliceHDF4_2D,
          getExceptionHDF4, DataQueueHDF4_2D),
-     5: (readDataHDF5, readAllDataHDF5, getFieldsHDF5, readDataSliceHDF5,
+     'enzo_hdf5': (readDataHDF5, readAllDataHDF5, getFieldsHDF5, readDataSliceHDF5,
          getExceptionHDF5, DataQueueHDF5),
-     6: (readDataPacked, readAllDataPacked, getFieldsPacked, readDataSlicePacked,
+     'enzo_packed_3d': (readDataPacked, readAllDataPacked, getFieldsPacked, readDataSlicePacked,
          getExceptionHDF5, DataQueuePackedHDF5),
-     7: (readDataNative, readAllDataNative, None, readDataSliceNative,
+     'orion_native': (readDataNative, readAllDataNative, None, readDataSliceNative,
          getExceptionHDF5, DataQueueNative), \
-     8: (readDataInMemory, readAllDataInMemory, getFieldsInMemory, readDataSliceInMemory,
+     'enzo_inline': (readDataInMemory, readAllDataInMemory, getFieldsInMemory, readDataSliceInMemory,
          getExceptionInMemory, DataQueueInMemory),
      'enzo_packed_2d': (readDataPacked, readAllDataPacked, getFieldsPacked, readDataSlicePacked2D,
          getExceptionHDF5, DataQueuePacked2D),
@@ -105,7 +105,7 @@ class AMRHierarchy:
         self.level_stats['numcells'] = [0 for i in range(MAXLEVEL)]
 
     def __setup_filemap(self, grid):
-        if not self.data_style == 6:
+        if not self.data_style == 'enzo_packed_3d':
             return
         self.cpu_map[grid.filename].append(grid)
 
@@ -240,30 +240,11 @@ class AMRHierarchy:
 
     def _setup_classes(self, dd):
         self.object_types = []
-        self._add_object_class('proj', "AMRProj", AMRProjBase, dd)
-        self._add_object_class('slice', "AMRSlice", AMRSliceBase, dd)
-        self._add_object_class('region', "AMRRegion", AMRRegionBase, dd)
-        self._add_object_class('region_strict', "AMRRegionStrict",
-                        AMRRegionStrictBase, dd)
-        self._add_object_class('periodic_region', "AMRPeriodicRegion",
-                        AMRPeriodicRegionBase, dd)
-        self._add_object_class('periodic_region_strict', "AMRPeriodicRegionStrict",
-                        AMRPeriodicRegionStrictBase, dd)
-        self._add_object_class('covering_grid', "AMRCoveringGrid",
-                        AMRCoveringGridBase, dd)
-        self._add_object_class('smoothed_covering_grid', "AMRSmoothedCoveringGrid",
-                        AMRSmoothedCoveringGridBase, dd)
-        self._add_object_class('new_covering_grid', "AMRNewCoveringGrid",
-                        AMRNewCoveringGridBase, dd)
-        self._add_object_class('fixed_res_proj', "AMRFixedResProjection",
-                        AMRFixedResProjectionBase, dd)
-        self._add_object_class('sphere', "AMRSphere", AMRSphereBase, dd)
-        self._add_object_class('cutting', "AMRCuttingPlane", AMRCuttingPlaneBase, dd)
-        self._add_object_class('ray', "AMRRay", AMRRayBase, dd)
-        self._add_object_class('ortho_ray', "AMROrthoRay", AMROrthoRayBase, dd)
-        self._add_object_class('disk', "AMRCylinder", AMRCylinderBase, dd)
-        self._add_object_class('grid_collection', "AMRGridCollection", AMRGridCollection, dd)
-        self._add_object_class('extracted_region', "ExtractedRegion", ExtractedRegionBase, dd)
+        self.objects = []
+        for name, cls in sorted(data_object_registry.items()):
+            cname = cls.__name__
+            if cname.endswith("Base"): cname = cname[:-4]
+            self._add_object_class(name, cname, cls, dd)
         self.object_types.sort()
 
     def all_data(self, find_max=False):
@@ -689,6 +670,9 @@ class EnzoHierarchy(AMRHierarchy):
 
         AMRHierarchy.__init__(self, pf)
 
+        # sync it back
+        self.parameter_file.data_style = self.data_style
+
         del self.__hierarchy_string 
 
     def _setup_classes(self):
@@ -708,16 +692,16 @@ class EnzoHierarchy(AMRHierarchy):
             self._strip_path = True
         try:
             a = SD.SD(testGrid)
-            self.data_style = 4
+            self.data_style = 'enzo_hdf4'
             mylog.debug("Detected HDF4")
         except:
             list_of_sets = HDF5LightReader.ReadListOfDatasets(testGrid, "/")
             if len(list_of_sets) == 0 and rank == 3:
                 mylog.debug("Detected packed HDF5")
-                self.data_style = 6
+                self.data_style = 'enzo_packed_3d'
             elif len(list_of_sets) > 0 and rank == 3:
                 mylog.debug("Detected unpacked HDF5")
-                self.data_style = 5
+                self.data_style = 'enzo_hdf5'
             elif len(list_of_sets) == 0 and rank == 2:
                 mylog.debug("Detect packed 2D")
                 self.data_style = 'enzo_packed_2d'
@@ -728,7 +712,7 @@ class EnzoHierarchy(AMRHierarchy):
                 raise TypeError
 
     def __setup_filemap(self, grid):
-        if not self.data_style == 6:
+        if not self.data_style == 'enzo_packed_3d':
             return
         try:
             self.cpu_map[grid.filename].append(grid)
@@ -873,7 +857,7 @@ class EnzoHierarchy(AMRHierarchy):
         Instantiates all of the grid objects, with their appropriate
         parameters.  This is the work-horse.
         """
-        if self.data_style == 6:
+        if self.data_style == 'enzo_packed_3d':
             self.cpu_map = defaultdict(lambda: [][:])
             self.file_access = {}
         harray = self.get_data("/", "Hierarchy")
@@ -988,7 +972,7 @@ class EnzoHierarchy(AMRHierarchy):
         return self.grids[(random_sample,)]
 
 class EnzoHierarchyInMemory(EnzoHierarchy):
-    _data_style = 8
+    _data_style = 'inline'
     def _obtain_enzo(self):
         import enzo; return enzo
 
@@ -1084,6 +1068,7 @@ class EnzoHierarchyInMemory(EnzoHierarchy):
 class EnzoHierarchy1D(EnzoHierarchy):
     def __init__(self, *args, **kwargs):
         EnzoHierarchy.__init__(self, *args, **kwargs)
+        self.gridLeftEdge[:,1:3] = 0.0
         self.gridRightEdge[:,1:3] = 1.0
         self.gridDimensions[:,1:3] = 1.0
         self.gridDys[:,0] = 1.0
@@ -1095,6 +1080,7 @@ class EnzoHierarchy1D(EnzoHierarchy):
 class EnzoHierarchy2D(EnzoHierarchy):
     def __init__(self, *args, **kwargs):
         EnzoHierarchy.__init__(self, *args, **kwargs)
+        self.gridLeftEdge[:,2] = 0.0
         self.gridRightEdge[:,2] = 1.0
         self.gridDimensions[:,2] = 1.0
         self.gridDzs[:,0] = 1.0
@@ -1167,7 +1153,7 @@ def rlines(f, keepends=False):
     yield buf  # First line.
 
 class OrionHierarchy(AMRHierarchy):
-    def __init__(self,pf,data_style=7):
+    def __init__(self, pf, data_style='orion_native'):
         self.field_info = OrionFieldContainer()
         self.field_indexes = {}
         self.parameter_file = weakref.proxy(pf)

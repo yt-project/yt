@@ -20,7 +20,7 @@ def configuration(parent_package='',top_path=None):
     config.make_config_py() # installs __config__.py
     config.make_svn_version_py()
     config.add_extension("PointCombine", "yt/lagos/PointCombine.c", libraries=["m"])
-    #config.add_extension("RTIntegrator", "yt/lagos/RTIntegrator.c")
+    config.add_extension("RTIntegrator", "yt/lagos/RTIntegrator.c")
     config.add_extension("Interpolators", "yt/lagos/Interpolators.c")
     #config.add_extension("DepthFirstOctree", "yt/lagos/DepthFirstOctree.c")
     config.add_subpackage("hop")

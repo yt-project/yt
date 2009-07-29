@@ -110,7 +110,7 @@ def _NumberDensity(field, data):
             mu = data.get_field_parameter("mu")
         else:
             mu = 0.6
-        fieldData += data["Density"] * mu
+        fieldData += data["Density"] / mu
     if data.pf["MultiSpecies"] > 0:
         fieldData += data["HI_Density"] / 1.0
         fieldData += data["HII_Density"] / 1.0
