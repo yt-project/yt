@@ -81,7 +81,6 @@ class Neighbors:
         """
         for i in range(0,node.pointCount):
             dist = getFastDistance(node.points[i].data,query,period)
-            
             if (dist < self.minDistanceSquared):
                 item = [dist,node.points[i]]
                 insort(self.points,item)
