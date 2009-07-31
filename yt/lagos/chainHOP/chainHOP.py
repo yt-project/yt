@@ -728,6 +728,68 @@ class RunChainHOP(ParallelAnalysisInterface):
             if self.densest_in_group[groupID] < max_dens:
                 self.densest_in_group[groupID] = max_dens
 
+    def _precompute_group_info(self):
+        """
+        For all groups, compute the various global properties, except bulk
+        velocity, to save time in HaloFinding.py (fewer barriers!).
+        """
+        # First we need to find the maximum density point for all groups.
+        # I think this will be faster than several vector operations that need
+        # to pull the entire chainID array out of memory several times.
+        max_dens_point = na.zeros((self.group_count,4),dtype='d')
+        for part in xrange(self.size):
+            if self.chainID[part] == -1: continue
+            groupID = self.chainID[part]
+            if self.density[part] == self.densest_in_group[groupID]:
+                max_dens_point[groupID] = na.array([self.density[part], \
+                self.xpos[part], self.ypos[part], self.zpos[part]], dtype='d')
+        # Now we broadcast this, effectively, with an allsum. Even though
+        # some groups are on multiple tasks, there is only one densest_in_chain
+        # and only that task contributed above.
+        self.max_dens_point = self._mpi_allsum(max_dens_point)
+        # Now CoM.
+        c_vec = self.max_dens_point[:,1:4] - na.array([0.5,0.5,0.5])
+        size = na.zeros(self.group_count, dtype='int64')
+        CoM_M = na.zeros((self.group_count,3),dtype='d')
+        Tot_M = na.zeros(self.group_count, dtype='d')
+        # This keeps track of what we own so we don't divide by zero later...
+        I_own = []
+        for part in xrange(self.size):
+            if self.chainID[part] == -1: continue
+            groupID = self.chainID[part]
+            size[groupID] += 1
+            if groupID not in I_own:
+                I_own.append(groupID)
+            loc = na.array([self.xpos[part], self.ypos[part], \
+                self.zpos[part]], dtype='d') - c_vec[groupID]
+            loc = loc - na.floor(loc)
+            CoM_M[groupID] += (loc * self.mass[part])
+            Tot_M[groupID] += self.mass[part]
+        for groupID in xrange(self.group_count):
+            if groupID in I_own:
+                CoM_M[groupID] /= Tot_M[groupID]
+                CoM_M[groupID] += c_vec[groupID]
+                CoM_M[groupID] *= Tot_M[groupID]
+        # Now we find their global values
+        self.group_sizes = self._mpi_allsum(size)
+        CoM_M = self._mpi_allsum(CoM_M)
+        self.Tot_M = self._mpi_allsum(Tot_M)
+        self.CoM = na.empty((self.group_count,3), dtype='d')
+        for groupID in xrange(self.group_count):
+            self.CoM[groupID] = CoM_M[groupID] / self.Tot_M[groupID]
+        # Now we find the maximum radius for all groups.
+#         max_radius = na.zeros(self.group_count, dtype='d')
+#         for part in xrange(self.size):
+#             groupID = self.chainID[part]
+#             if groupID == -1: continue
+#             loc = na.array([self.xpos[part], self.ypos[part], self.zpos[part]])
+#             dist = na.sqrt(\
+#                 na.minimum(na.abs(self.CoM[groupID][0] - loc[0]), 1 - na.abs(self.CoM[groupID][0] - loc[0]))**2 \
+#                 + na.minimum(na.abs(self.CoM[groupID][1] - loc[1]), 1 - na.abs(self.CoM[groupID][1] - loc[1]))**2 \
+#                 + na.minimum(na.abs(self.CoM[groupID][2] - loc[2]), 1 - na.abs(self.CoM[groupID][2] - loc[2]))**2)
+#             if dist > max_radius[groupID]:
+#                 max_radius[groupID] = dist
+
     def _chain_hop(self):
         mylog.info("Running Python version.")
         mylog.info('Building kd tree for %d particles...' % \
@@ -742,7 +804,6 @@ class RunChainHOP(ParallelAnalysisInterface):
         self.NNtags = (fKD.nn_tags - 1).transpose()
         # We can free these right now, the rest later.
         del fKD.dens, fKD.nn_tags, fKD.mass, fKD.dens
-        del self.mass, self.xpos, self.ypos, self.zpos
         count = len(na.where(self.density >= self.threshold)[0])
         print 'count above thresh', count
         # Now each particle has NNtags, and a local self density.
@@ -772,5 +833,6 @@ class RunChainHOP(ParallelAnalysisInterface):
         self.group_count = group_count
         mylog.info('Remapping particles to final groups...')
         self._translate_groupIDs(group_count)
-        mylog.info('Found %d groups...' % group_count)
-
+        mylog.info('Precompuing info for %d groups...' % group_count)
+        self._precompute_group_info()
+        del self.mass, self.xpos, self.ypos, self.zpos
