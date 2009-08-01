@@ -833,6 +833,6 @@ class RunChainHOP(ParallelAnalysisInterface):
         self.group_count = group_count
         mylog.info('Remapping particles to final groups...')
         self._translate_groupIDs(group_count)
-        mylog.info('Precompuing info for %d groups...' % group_count)
+        mylog.info('Precomputing info for %d groups...' % group_count)
         self._precompute_group_info()
         del self.mass, self.xpos, self.ypos, self.zpos

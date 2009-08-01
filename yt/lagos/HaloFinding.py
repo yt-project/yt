@@ -733,10 +733,12 @@ class chainHF(GenericHaloFinder, chainHOPHaloList):
         if dm_only:
             select = self._data_source["creation_time"] < 0
             total_mass = self._mpi_allsum((self._data_source["ParticleMassMsun"][select]).sum())
-            n_parts = self._mpi_allsum((self._data_source["particle_position_x"][select]).size)
+            local_parts = (self._data_source["ParticleMassMsun"][select]).size
+            n_parts = self._mpi_allsum(local_parts)
         else:
             total_mass = self._mpi_allsum(self._data_source["ParticleMassMsun"].sum())
-            n_parts = self._mpi_allsum(self._data_source["particle_position_x"].size)
+            local_parts = self._data_source["ParticleMassMsun"].size
+            n_parts = self._mpi_allsum(local_parts)
         # get the average spacing between particles
         l = pf["DomainRightEdge"] - pf["DomainLeftEdge"]
         vol = l[0] * l[1] * l[2]
@@ -746,7 +748,11 @@ class chainHF(GenericHaloFinder, chainHOPHaloList):
         safety = 2
         self.padding = (self.num_neighbors)**(1./3.) * safety * avg_spacing
         print 'padding',self.padding,'avg_spacing',avg_spacing,'vol',vol,'nparts',n_parts
-        padded, LE, RE, self._data_source = self._partition_hierarchy_3d(padding=self.padding)
+        # Adaptive subregions where we weight by number of particles in order
+        # to get more evenly distributed particles.
+        padded, LE, RE, self._data_source = \
+            self._partition_hierarchy_3d_weighted(padding=self.padding, weight=local_parts)
+        #padded, LE, RE, self._data_source = self._partition_hierarchy_3d(padding=self.padding)
         if not padded:
             self.padding = 0.0
         self.bounds = (LE, RE)

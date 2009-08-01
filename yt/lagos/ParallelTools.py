@@ -260,6 +260,122 @@ class ParallelAnalysisInterface(object):
 
         return False, LE, RE, self.hierarchy.region_strict(self.center, LE, RE)
 
+    def _partition_hierarchy_3d_weighted(self, weight=None, padding=0.0):
+        LE, RE = self.pf["DomainLeftEdge"], self.pf["DomainRightEdge"]
+        if not self._distributed:
+           return False, LE, RE, self.hierarchy.grid_collection(self.center, self.hierarchy.grids)
+
+        cc = MPI.Compute_dims(MPI.COMM_WORLD.size, 3)
+        mi = MPI.COMM_WORLD.rank
+        cx, cy, cz = na.unravel_index(mi, cc)
+
+        gridx = na.mgrid[LE[0]:RE[0]:(cc[0]+1)*1j]
+        gridy = na.mgrid[LE[1]:RE[1]:(cc[1]+1)*1j]
+        gridz = na.mgrid[LE[2]:RE[2]:(cc[2]+1)*1j]
+
+        x = gridx[cx:cx+2]
+        y = gridy[cy:cy+2]
+        z = gridz[cz:cz+2]
+
+        LE = na.array([x[0], y[0], z[0]], dtype='float64')
+        RE = na.array([x[1], y[1], z[1]], dtype='float64')
+
+        # Default to normal if we don't have a weight, or our subdivisions are
+        # not enough to warrant this procedure.
+        if weight is None or cc[0] < 2 or cc[1] < 2 or cc[2] < 2:
+            if padding > 0:
+                return True, \
+                    LE, RE, self.hierarchy.periodic_region_strict(self.center, LE-padding, RE+padding)
+
+            return False, LE, RE, self.hierarchy.region_strict(self.center, LE, RE)
+
+        # Build the matrix of weights.
+        weights = na.zeros(cc, dtype='float64')
+        weights[cx,cy,cz] = weight
+        weights = self._mpi_allsum(weights)
+        weights = weights / weights.sum()
+
+        # Figure out the sums of weights along the axes
+        xface = weights.sum(axis=0)
+        yface = weights.sum(axis=1)
+        zface = weights.sum(axis=2)
+        
+        xedge = yface.sum(axis=1)
+        yedge = xface.sum(axis=1)
+        zedge = xface.sum(axis=0)
+
+        # Get a polynomial fit to each axis weight distribution
+        xcen = gridx[:-1]
+        xcen += xcen[1]/2.
+        ycen = gridy[:-1]
+        ycen += ycen[1]/2.
+        zcen = gridz[:-1]
+        zcen += zcen[1]/2.
+
+        xfit = na.polyfit(xcen, xedge, xedge.size-1)
+        yfit = na.polyfit(ycen, yedge, yedge.size-1)
+        zfit = na.polyfit(zcen, zedge, zedge.size-1)
+        
+        # Find the normalized weights with trapizoidal integration
+        div_count = int(1. / padding)
+        divs = na.arange(div_count+1, dtype='float64') / div_count
+        xvals = na.polyval(xfit, divs)
+        yvals = na.polyval(yfit, divs)
+        zvals = na.polyval(zfit, divs)
+        xnorm = na.trapz(xvals, x=divs)
+        ynorm = na.trapz(yvals, x=divs)
+        znorm = na.trapz(zvals, x=divs)
+        
+        # Find the boundaries. We are assured that none of the boundaries are
+        # too small because each step of div is big enough because it's set
+        # by the padding.
+        nextx = 1./xedge.size
+        nexty = 1./yedge.size
+        nextz = 1./zedge.size
+        boundx = [0.]
+        boundy = [0.]
+        boundz = [0.]
+        donex, doney, donez = False, False, False
+        for i in xrange(div_count):
+            if (na.trapz(xvals[:i], x=divs[:i])/xnorm) >= nextx and not donex:
+                boundx.append(divs[i])
+                if len(boundx) == cc[0]:
+                    donex = True
+                nextx += 1./xedge.size
+            if (na.trapz(yvals[:i], x=divs[:i])/ynorm) >= nexty and not doney:
+                boundy.append(divs[i])
+                if len(boundy) == cc[1]:
+                    doney = True
+                nexty += 1./yedge.size
+            if (na.trapz(zvals[:i], x=divs[:i])/znorm) >= nextz and not donez:
+                boundz.append(divs[i])
+                if len(boundz) == cc[2]:
+                    donez = True
+                nextz += 1./zedge.size
+        
+        # Check for problems, fatally for now because I'm the only one using this
+        # and I don't mind that, it will help me fix things.
+        if len(boundx) < cc[0] or len(boundy) < cc[1] or len(boundz) < cc[2]:
+            print 'weighted stuff broken.'
+            print 'cc'
+            print len(boundx), len(boundy), len(boundz)
+            sys.exit()
+        
+        boundx.append(1.)
+        boundy.append(1.)
+        boundz.append(1.)
+        
+        # Update the boundaries
+        new_LE = na.array([boundx[cx], boundy[cy], boundz[cz]], dtype='float64')
+        new_RE = na.array([boundx[cx+1], boundy[cy+1], boundz[cz+1]], dtype='float64')
+
+        if padding > 0:
+            return True, \
+                new_LE, new_RE, self.hierarchy.periodic_region_strict(self.center, new_LE-padding, new_RE+padding)
+
+        return False, new_LE, new_RE, self.hierarchy.region_strict(self.center, new_LE, new_RE)
+
+
     def _mpi_find_neighbor_3d(self, shift):
         """ Given a shift array, 1x3 long, find the task ID
         of that neighbor. For example, shift=[1,0,0] finds the neighbor
