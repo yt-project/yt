@@ -260,7 +260,7 @@ class ParallelAnalysisInterface(object):
 
         return False, LE, RE, self.hierarchy.region_strict(self.center, LE, RE)
 
-    def _partition_hierarchy_3d_weighted(self, weight=None, padding=0.0):
+    def _partition_hierarchy_3d_weighted(self, weight=None, padding=0.0, agg=8.):
         LE, RE = self.pf["DomainLeftEdge"], self.pf["DomainRightEdge"]
         if not self._distributed:
            return False, LE, RE, self.hierarchy.grid_collection(self.center, self.hierarchy.grids)
@@ -279,6 +279,8 @@ class ParallelAnalysisInterface(object):
 
         LE = na.array([x[0], y[0], z[0]], dtype='float64')
         RE = na.array([x[1], y[1], z[1]], dtype='float64')
+        
+        old_vol = ((RE - LE)**2).sum()
 
         # Default to normal if we don't have a weight, or our subdivisions are
         # not enough to warrant this procedure.
@@ -312,19 +314,42 @@ class ParallelAnalysisInterface(object):
         zcen = gridz[:-1]
         zcen += zcen[1]/2.
 
-        xfit = na.polyfit(xcen, xedge, xedge.size-1)
-        yfit = na.polyfit(ycen, yedge, yedge.size-1)
-        zfit = na.polyfit(zcen, zedge, zedge.size-1)
+        xfit = na.polyfit(xcen, xedge, 3)
+        yfit = na.polyfit(ycen, yedge, 3)
+        zfit = na.polyfit(zcen, zedge, 3)
         
         # Find the normalized weights with trapizoidal integration
+        # We also apply an aggression factor to the values to make the
+        # boundaries shift more.
         div_count = int(1. / padding)
         divs = na.arange(div_count+1, dtype='float64') / div_count
         xvals = na.polyval(xfit, divs)
+        for i,xv in enumerate(xvals):
+            if xv > xedge.mean(): xvals[i] *= agg
         yvals = na.polyval(yfit, divs)
+        for i,yv in enumerate(yvals):
+            if yv > yedge.mean(): yvals[i] *= agg
         zvals = na.polyval(zfit, divs)
+        for i,zv in enumerate(zvals):
+            if zv > zedge.mean(): zvals[i] *= agg
         xnorm = na.trapz(xvals, x=divs)
         ynorm = na.trapz(yvals, x=divs)
         znorm = na.trapz(zvals, x=divs)
+
+        # We want to start the integration from the side of the axis where
+        # the highest density is, so that it gets small regions.
+        xstart = float(na.argmax(xedge))/2.
+        if xstart > 0.5: xstart = div_count
+        else: xstart = 0
+        
+        ystart = float(na.argmax(yedge))/2.
+        if ystart > 0.5: ystart = div_count
+        else: ystart = 0
+        
+        zstart = float(na.argmax(zedge))/2.
+        if zstart > 0.5: zstart = div_count
+        else: zstart = 0
+
         
         # Find the boundaries. We are assured that none of the boundaries are
         # too small because each step of div is big enough because it's set
@@ -337,27 +362,55 @@ class ParallelAnalysisInterface(object):
         boundz = [0.]
         donex, doney, donez = False, False, False
         for i in xrange(div_count):
-            if (na.trapz(xvals[:i], x=divs[:i])/xnorm) >= nextx and not donex:
-                boundx.append(divs[i])
+            if xstart == 0:
+                xi = 0
+                xv = i
+                xa = i
+            else:
+                xi = div_count - i
+                xf = div_count
+                xa = xi
+            if (na.trapz(xvals[xi:xf], x=divs[xi:xf])/xnorm) >= nextx and not donex:
+                boundx.append(divs[xa])
                 if len(boundx) == cc[0]:
                     donex = True
                 nextx += 1./xedge.size
-            if (na.trapz(yvals[:i], x=divs[:i])/ynorm) >= nexty and not doney:
-                boundy.append(divs[i])
+            if ystart == 0:
+                yi = 0
+                yf = i
+                ya = i
+            else:
+                yi = div_count - i
+                yf = div_count
+                ya = yi
+            if (na.trapz(yvals[yi:yf], x=divs[yi:yf])/ynorm) >= nexty and not doney:
+                boundy.append(divs[ya])
                 if len(boundy) == cc[1]:
                     doney = True
                 nexty += 1./yedge.size
-            if (na.trapz(zvals[:i], x=divs[:i])/znorm) >= nextz and not donez:
-                boundz.append(divs[i])
+            if zstart == 0:
+                zi = 0
+                zf = i
+                za = i
+            else:
+                zi = div_count - i
+                zf = div_count
+                za = zi
+            if (na.trapz(zvals[zi:zf], x=divs[zi:zf])/znorm) >= nextz and not donez:
+                boundz.append(divs[za])
                 if len(boundz) == cc[2]:
                     donez = True
                 nextz += 1./zedge.size
+        
+        boundx.sort()
+        boundy.sort()
+        boundz.sort()
         
         # Check for problems, fatally for now because I'm the only one using this
         # and I don't mind that, it will help me fix things.
         if len(boundx) < cc[0] or len(boundy) < cc[1] or len(boundz) < cc[2]:
             print 'weighted stuff broken.'
-            print 'cc'
+            print 'cc', cc
             print len(boundx), len(boundy), len(boundz)
             sys.exit()
         
@@ -365,9 +418,20 @@ class ParallelAnalysisInterface(object):
         boundy.append(1.)
         boundz.append(1.)
         
+        if mi == 0:
+           print 'x',boundx
+           print 'y',boundy
+           print 'z',boundz
+        
         # Update the boundaries
         new_LE = na.array([boundx[cx], boundy[cy], boundz[cz]], dtype='float64')
         new_RE = na.array([boundx[cx+1], boundy[cy+1], boundz[cz+1]], dtype='float64')
+
+        new_vol = ((new_RE - new_LE) **2).sum()
+        print 'P%04d weight %f old_vol %f new_vol %f ratio %f' % \
+            (mi, weight, old_vol, new_vol, new_vol/old_vol)
+        
+        #sys.exit()
 
         if padding > 0:
             return True, \
@@ -538,6 +602,10 @@ class ParallelAnalysisInterface(object):
     def _mpi_allmax(self, data):
         self._barrier()
         return MPI.COMM_WORLD.allreduce(data, op=MPI.MAX)
+
+    def _mpi_allmin(self, data):
+        self._barrier()
+        return MPI.COMM_WORLD.allreduce(data, op=MPI.MIN)
 
     def _mpi_info_dict(self, info):
         if not self._distributed: return 0, {0:info}
