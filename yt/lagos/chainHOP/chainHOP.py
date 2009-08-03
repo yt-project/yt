@@ -4,6 +4,7 @@ from sets import Set
 
 from yt.lagos import *
 from yt.extensions.kdtree import *
+from yt.performance_counters import yt_counters, time_function
 from mpi4py import MPI
 from Forthon import *
 
@@ -27,8 +28,9 @@ class RunChainHOP(ParallelAnalysisInterface):
         self.nMerge = 4
         self.d = None
         self.chainID = na.ones(self.size,dtype='int64') * -1
+        yt_counters("chainHOP")
         self._chain_hop()
-    
+        yt_counters("chainHOP")
 
     def _init_kd_tree(self):
         """
@@ -214,6 +216,7 @@ class RunChainHOP(ParallelAnalysisInterface):
         num_neighbor neighbors, so we need to do it again, but we're not
         keeping the all of this data, just using it.
         """
+        yt_counters("densestNN")
         self.densestNN = na.ones(self.size,dtype='l')
         # We find nearest neighbors in chunks.
         chunksize = 10000
@@ -238,6 +241,7 @@ class RunChainHOP(ParallelAnalysisInterface):
                 j = start + i - 1 # -1 for fortran counting.
                 self.densestNN[j] = chunk_NNtags[i,max_loc[i]]
             start = finish + 1
+        yt_counters("densestNN")
         del chunk_NNtags, max_loc, n_dens
     
     def _build_chains(self):
@@ -245,6 +249,7 @@ class RunChainHOP(ParallelAnalysisInterface):
         Build the first round of particle chains. If the particle is too low in
         density, move on.
         """
+        yt_counters("build_chains")
         chainIDmax = 0
         self.densest_in_chain = {} # chainID->part ID, one to one
         for i in xrange(self.size):
@@ -262,6 +267,7 @@ class RunChainHOP(ParallelAnalysisInterface):
             if chainIDnew == chainIDmax:
                 chainIDmax += 1
         self.padded_particles = na.array(self.padded_particles, dtype='int64')
+        yt_counters("build_chains")
         return chainIDmax
     
     def _recurse_links(self, pi, chainIDmax):
@@ -299,6 +305,7 @@ class RunChainHOP(ParallelAnalysisInterface):
         """
         Convert local chainIDs into globally unique chainIDs.
         """
+        yt_counters("globally_assign_chainIDs")
         # First find out the number of chains on each processor.
         self.mine, chain_info = self._mpi_info_dict(chain_count)
         self.nchains = sum(chain_info.values())
@@ -309,11 +316,13 @@ class RunChainHOP(ParallelAnalysisInterface):
         select = select * self.my_first_id
         self.chainID += select
         del select
+        yt_counters("globally_assign_chainIDs")
 
     def _create_global_densest_in_chain(self):
         """
         With the globally unique chainIDs, update densest_in_chain.
         """
+        yt_counters("create_global_densest_in_chain")
         # Shift the values over.
         temp = self.densest_in_chain.copy()
         self.densest_in_chain = {}
@@ -322,11 +331,13 @@ class RunChainHOP(ParallelAnalysisInterface):
         # Distribute this.
         self.densest_in_chain = self._mpi_joindict(self.densest_in_chain)
         del temp
+        yt_counters("create_global_densest_in_chain")
 
     def _communicate_uphill_info(self):
         """
         Communicate the links to the correct neighbors from uphill_info.
         """
+        yt_counters("communicate_uphill_info")
         # Find out how many particles we're going to receive, and make arrays
         # of the right size and type to store them.
         to_recv_count = 0
@@ -377,6 +388,7 @@ class RunChainHOP(ParallelAnalysisInterface):
                 temp_chainIDs[0:opp_size]
             so_far += opp_size
         del temp_indices, temp_chainIDs
+        yt_counters("communicate_uphill_info")
 
     def _recurse_global_chain_links(self, chainID_translate_map_global, chainID):
         """
@@ -399,6 +411,7 @@ class RunChainHOP(ParallelAnalysisInterface):
         reassigned recursively, assigning the ID of the most dense chainID
         to every chain that links to it.
         """
+        yt_counters("connect_chains_across_tasks")
         # Remote (lower dens) chain -> local (higher) chain.
         chainID_translate_map_local = {}
         # Build the stuff to send.
@@ -476,6 +489,7 @@ class RunChainHOP(ParallelAnalysisInterface):
             self.chainID[i] = new_chainID
         del chainID_translate_map_local, dens_temp, self.recv_chainIDs
         del self.recv_real_indices, self.uphill_real_indices, self.uphill_chainIDs
+        yt_counters("connect_chains_across_tasks")
 
     def _communicate_annulus_chainIDs(self):
         """
@@ -484,6 +498,7 @@ class RunChainHOP(ParallelAnalysisInterface):
         faster than trying to figure out which of the neighbors to send the data
         to.
         """
+        yt_counters("communicate_annulus_chainIDs")
         # Pick the particles in the annulus.
         real_indices = self.index[self.is_inside_annulus]
         chainIDs = self.chainID[self.is_inside_annulus]
@@ -531,6 +546,7 @@ class RunChainHOP(ParallelAnalysisInterface):
                     # We ignore data that's not for us.
                     continue
         del recv_real_indices, recv_chainIDs, real_indices, chainIDs, select
+        yt_counters("communicate_annulus_chainIDs")
 
     def _connect_chains(self):
         """
@@ -538,6 +554,7 @@ class RunChainHOP(ParallelAnalysisInterface):
         by finding the highest boundary density neighbor for each chain. Some
         chains will have no neighbors!
         """
+        yt_counters("connect_chains")
         self.chain_densest_n = {} # chainID -> {chainIDs->boundary dens}
         self.reverse_map = {} # chainID -> groupID, one to one
         for chainID in self.densest_in_chain:
@@ -590,23 +607,27 @@ class RunChainHOP(ParallelAnalysisInterface):
                             boundary_density
                 else:
                     continue
+        yt_counters("connect_chains")
 
     def _make_global_chain_densest_n(self):
         """
         We want to record the maximum boundary density between all chains on
         all tasks.
         """
+        yt_counters("make_global_chain_densest_n")
         # Remember that every task has every active chainID as a key in 
         # chain_densest_n (see the beginning of _connect_chains())
         # Uses barrier(), but that's needed.
         for higher_chain in self.chain_densest_n:
             self.chain_densest_n[higher_chain] = \
                 self._mpi_maxdict(self.chain_densest_n[higher_chain])
+        yt_counters("make_global_chain_densest_n")
     
     def _build_groups(self):
         """
         With the collection of possible chain links, build groups.
         """
+        yt_counters("build_groups")
         g_high = []
         g_low = []
         g_dens = []
@@ -701,6 +722,7 @@ class RunChainHOP(ParallelAnalysisInterface):
             self.reverse_map[chain] = secondary_map[self.reverse_map[chain]]
         group_count = len(temp)
         del secondary_map, temp, g_high, g_low, g_dens, densestbound
+        yt_counters("build_groups")
         return group_count
 
     def _translate_groupIDs(self, group_count):
@@ -708,6 +730,7 @@ class RunChainHOP(ParallelAnalysisInterface):
         Using the maps, convert the particle chainIDs into their locally-final
         groupIDs.
         """
+        yt_counters("translate_groupIDs")
         for i in xrange(self.size):
             # Don't translate non-affiliated particles.
             if self.chainID[i] == -1: continue
@@ -727,6 +750,7 @@ class RunChainHOP(ParallelAnalysisInterface):
             max_dens = self.densest_in_chain[chainID]
             if self.densest_in_group[groupID] < max_dens:
                 self.densest_in_group[groupID] = max_dens
+        yt_counters("translate_groupIDs")
 
     def _precompute_group_info(self):
         """
@@ -799,7 +823,9 @@ class RunChainHOP(ParallelAnalysisInterface):
         self._is_inside()
         # Loop over the particles to find NN for each.
         mylog.info('Finding nearest neighbors/density...')
+        yt_counters("chainHOP_tags_dens")
         chainHOP_tags_dens()
+        yt_counters("chainHOP_tags_dens")
         self.density = fKD.dens
         self.NNtags = (fKD.nn_tags - 1).transpose()
         # We can free these right now, the rest later.

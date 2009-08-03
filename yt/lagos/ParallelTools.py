@@ -431,8 +431,6 @@ class ParallelAnalysisInterface(object):
         print 'P%04d weight %f old_vol %f new_vol %f ratio %f' % \
             (mi, weight, old_vol, new_vol, new_vol/old_vol)
         
-        #sys.exit()
-
         if padding > 0:
             return True, \
                 new_LE, new_RE, self.hierarchy.periodic_region_strict(self.center, new_LE-padding, new_RE+padding)

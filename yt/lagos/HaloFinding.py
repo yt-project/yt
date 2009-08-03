@@ -723,7 +723,7 @@ class GenericHaloFinder(ParallelAnalysisInterface):
             halo.write_particle_list(f)
 
 class chainHF(GenericHaloFinder, chainHOPHaloList):
-    def __init__(self, pf, threshold=160, dm_only=True):
+    def __init__(self, pf, threshold=160, dm_only=True, resize=False, agg=1.):
         GenericHaloFinder.__init__(self, pf, dm_only, padding=0.0)
         self.padding = 0.0 
         self.num_neighbors = 65
@@ -739,20 +739,30 @@ class chainHF(GenericHaloFinder, chainHOPHaloList):
             total_mass = self._mpi_allsum(self._data_source["ParticleMassMsun"].sum())
             local_parts = self._data_source["ParticleMassMsun"].size
             n_parts = self._mpi_allsum(local_parts)
-        # get the average spacing between particles
-        l = pf["DomainRightEdge"] - pf["DomainLeftEdge"]
+        min = self._mpi_allmin(local_parts)
+        max = self._mpi_allmax(local_parts)
+        print 'min,max', min, max
+        # get the average spacing between particles for this region
+        l = self._data_source.right_edge - self._data_source.left_edge
         vol = l[0] * l[1] * l[2]
-        avg_spacing = (float(vol) / n_parts)**(1./3.)
+        avg_spacing = (float(vol) / local_parts)**(1./3.)
         # padding is a function of inter-particle spacing, this is an
         # approximation, but it's OK with the safety factor
         safety = 2
         self.padding = (self.num_neighbors)**(1./3.) * safety * avg_spacing
-        print 'padding',self.padding,'avg_spacing',avg_spacing,'vol',vol,'nparts',n_parts
+        print 'padding',self.padding,'avg_spacing',avg_spacing,'vol',vol,'local_parts',local_parts
         # Adaptive subregions where we weight by number of particles in order
         # to get more evenly distributed particles.
-        padded, LE, RE, self._data_source = \
-            self._partition_hierarchy_3d_weighted(padding=self.padding, weight=local_parts)
+        if resize:
+            padded, LE, RE, self._data_source = \
+                self._partition_hierarchy_3d_weighted(padding=self.padding, weight=float(local_parts)/n_parts,
+                agg=agg)
         #padded, LE, RE, self._data_source = self._partition_hierarchy_3d(padding=self.padding)
+        local_parts = self._data_source["ParticleMassMsun"].size
+        min = self._mpi_allmin(local_parts)
+        max = self._mpi_allmax(local_parts)
+        print 'min,max', min, max
+        sys.exit()
         if not padded:
             self.padding = 0.0
         self.bounds = (LE, RE)

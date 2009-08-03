@@ -66,7 +66,7 @@ class PerformanceCounters(object):
         return func_wrapper
 
     def print_stats(self):
-        print "Current counter status:\n"
+        mylog.info("Current counter status:\n")
         times = []
         for i in self.counters:
             insort(times, [self.starttime[i], i, 1]) # 1 for 'on'
@@ -100,7 +100,7 @@ class PerformanceCounters(object):
                         line = "%i : %s : %0.3e\n%s" % (shift, i[1], self.counters[i[1]],endline)
                     shift -= 1
                     endline = ""
-                    print line
+                    mylog.info(line)
 
     def exit(self):
         if self._on:
