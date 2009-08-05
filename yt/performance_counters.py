@@ -100,7 +100,7 @@ class PerformanceCounters(object):
                         line = "%i : %s : %0.3e\n%s" % (shift, i[1], self.counters[i[1]],endline)
                     shift -= 1
                     endline = ""
-                    mylog.info(line)
+                    mylog.info("\n" + line)
 
     def exit(self):
         if self._on:

@@ -536,7 +536,7 @@ class chainHOPHaloList(HaloList,ParallelAnalysisInterface):
               ["ParticleMassMsun", "particle_index"]
     
     def __init__(self, data_source, padding, num_neighbors, bounds, total_mass,
-        threshold=160.0, dm_only=True):
+        threshold=160.0, dm_only=True, rearrange=True):
         """
         Run hop on *data_source* with a given density *threshold*.  If
         *dm_only* is set, only run it on the dark matter particles, otherwise
@@ -546,12 +546,14 @@ class chainHOPHaloList(HaloList,ParallelAnalysisInterface):
         self.num_neighbors = num_neighbors
         self.bounds = bounds
         self.total_mass = total_mass
+        self.rearrange = rearrange
         self.period = self._data_source.pf['DomainRightEdge'] - \
             self._data_source.pf['DomainLeftEdge']
         mylog.info("Initializing HOP")
         HaloList.__init__(self, data_source, dm_only)
 
     def _run_finder(self):
+        yt_counters("Reading Data")
         obj = RunChainHOP(self.period, self.padding,
             self.num_neighbors, self.bounds,
             self.particle_fields["particle_position_x"],
@@ -559,7 +561,7 @@ class chainHOPHaloList(HaloList,ParallelAnalysisInterface):
             self.particle_fields["particle_position_z"],
             self.particle_fields["particle_index"],
             self.particle_fields["ParticleMassMsun"]/self.total_mass,
-            self.threshold)
+            self.threshold, rearrange=self.rearrange)
         self.densities, self.tags = obj.density, obj.chainID
         self.group_count = obj.group_count
         self.group_sizes = obj.group_sizes
@@ -573,6 +575,7 @@ class chainHOPHaloList(HaloList,ParallelAnalysisInterface):
         del obj
 
     def _parse_output(self):
+        yt_counters("Final Grouping")
         """
         Each task will make an entry for all groups, but it may be empty.
         """
@@ -723,13 +726,14 @@ class GenericHaloFinder(ParallelAnalysisInterface):
             halo.write_particle_list(f)
 
 class chainHF(GenericHaloFinder, chainHOPHaloList):
-    def __init__(self, pf, threshold=160, dm_only=True, resize=False, agg=1.):
+    def __init__(self, pf, threshold=160, dm_only=True, resize=False, agg=1., rearrange=True):
         GenericHaloFinder.__init__(self, pf, dm_only, padding=0.0)
         self.padding = 0.0 
         self.num_neighbors = 65
         # get the total number of particles across all procs, with no padding
         padded, LE, RE, self._data_source = self._partition_hierarchy_3d(padding=self.padding)
         # also get the total mass of particles
+        yt_counters("Reading Data")
         if dm_only:
             select = self._data_source["creation_time"] < 0
             total_mass = self._mpi_allsum((self._data_source["ParticleMassMsun"][select]).sum())
@@ -743,7 +747,11 @@ class chainHF(GenericHaloFinder, chainHOPHaloList):
         max = self._mpi_allmax(local_parts)
         print 'min,max', min, max
         # get the average spacing between particles for this region
-        l = self._data_source.right_edge - self._data_source.left_edge
+        # The except is for the serial case, where the full box is what we want.
+        try:
+            l = self._data_source.right_edge - self._data_source.left_edge
+        except AttributeError:
+            l = l = pf["DomainRightEdge"] - pf["DomainLeftEdge"]
         vol = l[0] * l[1] * l[2]
         avg_spacing = (float(vol) / local_parts)**(1./3.)
         # padding is a function of inter-particle spacing, this is an
@@ -753,22 +761,23 @@ class chainHF(GenericHaloFinder, chainHOPHaloList):
         print 'padding',self.padding,'avg_spacing',avg_spacing,'vol',vol,'local_parts',local_parts
         # Adaptive subregions where we weight by number of particles in order
         # to get more evenly distributed particles.
-        if resize:
-            padded, LE, RE, self._data_source = \
-                self._partition_hierarchy_3d_weighted(padding=self.padding, weight=float(local_parts)/n_parts,
-                agg=agg)
-        #padded, LE, RE, self._data_source = self._partition_hierarchy_3d(padding=self.padding)
-        local_parts = self._data_source["ParticleMassMsun"].size
-        min = self._mpi_allmin(local_parts)
-        max = self._mpi_allmax(local_parts)
-        print 'min,max', min, max
-        sys.exit()
-        if not padded:
+        #if resize:
+        #    padded, LE, RE, self._data_source = \
+        #        self._partition_hierarchy_3d_weighted(padding=self.padding, weight=float(local_parts)/n_parts,
+        #        agg=agg)
+        #else:
+        #    padded, LE, RE, self._data_source = self._partition_hierarchy_3d(padding=self.padding)
+        #local_parts = self._data_source["ParticleMassMsun"].size
+        #min = self._mpi_allmin(local_parts)
+        #max = self._mpi_allmax(local_parts)
+        #print 'min,max', min, max
+        if self._mpi_size() == 0:
             self.padding = 0.0
         self.bounds = (LE, RE)
         chainHOPHaloList.__init__(self, self._data_source, self.padding, \
-        self.num_neighbors, self.bounds, total_mass, threshold=threshold, dm_only=dm_only)
+        self.num_neighbors, self.bounds, total_mass, threshold=threshold, dm_only=dm_only, rearrange=rearrange)
         self._join_halolists()
+        yt_counters("Final Grouping")
 
     def _join_halolists(self):
         def haloCmp(h1,h2):

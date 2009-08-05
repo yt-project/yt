@@ -601,9 +601,14 @@ class ParallelAnalysisInterface(object):
         self._barrier()
         return MPI.COMM_WORLD.allreduce(data, op=MPI.MAX)
 
+    @parallel_passthrough
     def _mpi_allmin(self, data):
         self._barrier()
         return MPI.COMM_WORLD.allreduce(data, op=MPI.MIN)
+
+    def _mpi_size(self):
+        if not self._distributed: return 0
+        return MPI.COMM_WORLD.size
 
     def _mpi_info_dict(self, info):
         if not self._distributed: return 0, {0:info}

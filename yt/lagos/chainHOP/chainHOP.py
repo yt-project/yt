@@ -10,8 +10,9 @@ from Forthon import *
 
 class RunChainHOP(ParallelAnalysisInterface):
     def __init__(self,period, padding, num_neighbors, bounds,
-            xpos, ypos, zpos, index, mass, threshold=160.0):
+            xpos, ypos, zpos, index, mass, threshold=160.0, rearrange=True):
         self.threshold = threshold
+        self.rearrange = rearrange
         self.saddlethresh = 2.5 * threshold
         self.peakthresh = 3 * threshold
         self.period = period
@@ -21,16 +22,163 @@ class RunChainHOP(ParallelAnalysisInterface):
         self.xpos = xpos
         self.ypos = ypos
         self.zpos = zpos
-        self.size = len(self.xpos)
+        self.real_size = len(self.xpos)
         self.index = na.array(index, dtype='int64')
         self.mass = mass
         self.padded_particles = []
         self.nMerge = 4
         self.d = None
-        self.chainID = na.ones(self.size,dtype='int64') * -1
         yt_counters("chainHOP")
         self._chain_hop()
         yt_counters("chainHOP")
+
+    def _resize_padding(self):
+        """
+        Resize our padding to be the maximum found among all our neighbors.
+        """
+        self.mine, global_padding = self._mpi_info_dict(self.padding)
+        for shift_index in xrange(27):
+            shift = self._translate_shift(i=shift_index)
+            neighbor = self._mpi_find_neighbor_3d(shift)
+            if global_padding[neighbor] > self.padding:
+                self.padding = global_padding[neighbor]
+        del global_padding
+
+    def _communicate_raw_padding_data(self):
+        """
+        Send the raw particle data (x,y,zpos, mass and index) from our
+        'annulus' to our neighbors. This is how each task builds up their
+        padded particles. On the receive end, we discriminate against the
+        data, only keeping data we want.
+        """
+        yt_counters("Communicate raw padding")
+        (LE, RE) = self.bounds
+        temp_LE = na.empty(3, dtype='float64')
+        temp_RE = na.empty(3, dtype='float64')
+        # Pick the particles in the annulus that will be sent.
+        send_count = len(na.where(self.is_inside_annulus == True)[0])
+        points = na.empty((send_count, 3), dtype='float64')
+        points[:,0] = self.xpos[self.is_inside_annulus]
+        points[:,1] = self.ypos[self.is_inside_annulus]
+        points[:,2] = self.zpos[self.is_inside_annulus]
+        real_indices = self.index[self.is_inside_annulus].astype('int64')
+        mass = self.mass[self.is_inside_annulus].astype('float64')
+        # Distribute the send sizes globally.
+        global_annulus_count = {self.mine:send_count}
+        global_annulus_count = self._mpi_joindict(global_annulus_count)
+        size_max = max(global_annulus_count.values())
+        # Initialize the arrays to receive data.
+        recv_real_indices = na.empty(size_max, dtype='int64')
+        recv_points = na.empty((size_max,3), dtype='float64')
+        recv_mass = na.empty(size_max, dtype='float64')
+        # The lists which will be added to our arrays at the end.
+        added_indices = []
+        added_xpos = []
+        added_ypos = []
+        added_zpos = []
+        added_mass = []
+        # Now we exchange data
+        done_LE = []
+        done_RE = []
+        done_neighbor = []
+        for shift_index in xrange(27):
+            if shift_index==13: continue
+            shift = self._translate_shift(i=shift_index)
+            neighbor = self._mpi_find_neighbor_3d(shift)
+            if neighbor == self.mine: continue
+            opp_shift = -1 * shift
+            opp_neighbor = self._mpi_find_neighbor_3d(opp_shift)
+            opp_size = global_annulus_count[opp_neighbor]
+            # Adjust the bounding box for this neighbor we're receiving from.
+            # The box will be either a slab for face neighbors, a pencil for
+            # edge neighbors, or a small cube-like for the corners.
+            for i in xrange(3):
+                # Right-side neighbor, they're coming at us from our right,
+                # so their shift is negative.
+                if opp_shift[i] < 0:
+                    temp_LE[i] = RE[i]
+                    temp_RE[i] = RE[i] + self.padding
+                    # Periodic boundaries
+                    if temp_RE[i] > self.period[i]:
+                        temp_LE[i] = 0.
+                        temp_RE[i] = temp_RE[i] - self.period[i]
+                # Left-side neighbor.
+                elif opp_shift[i] > 0:
+                    temp_LE[i] = LE[i] - self.padding
+                    temp_RE[i] = LE[i]
+                    if temp_LE[i] < 0:
+                        temp_LE[i] = temp_LE[i] + self.period[i]
+                        temp_RE[i] = self.period[i]
+                # No shift in this direction.
+                else:
+                    temp_LE[i] = LE[i]
+                    temp_RE[i] = RE[i]
+            MPI.COMM_WORLD.Sendrecv(
+                [real_indices, MPI.INT], neighbor, 0,
+                [recv_real_indices, MPI.INT], opp_neighbor, 0)
+            MPI.COMM_WORLD.Sendrecv(
+                [points, MPI.FLOAT], neighbor, 0,
+                [recv_points, MPI.FLOAT], opp_neighbor, 0)
+            MPI.COMM_WORLD.Sendrecv(
+                [mass, MPI.FLOAT], neighbor, 0,
+                [recv_mass, MPI.FLOAT], opp_neighbor, 0)
+            # We need to pick out only the particles we want.
+            is_inside = ( (recv_points[:opp_size] >= temp_LE).all(axis=1) * \
+                (recv_points[:opp_size] < temp_RE).all(axis=1) )
+            # Now we check against previous processed regions, which is only
+            # a problem at low task counts. We want points that are NOT in
+            # an old region. We only need to check if we've talked to this
+            # neighbor before. This is not the most efficient way to do things,
+            # but again, this is only a problem at low task counts, and therefore
+            # it's not a big deal.
+            if neighbor in done_neighbor:
+                for i,old_LE in enumerate(done_LE):
+                    old = na.invert( (recv_points[:opp_size] >= old_LE).all(axis=1) * \
+                        (recv_points[:opp_size] < done_RE[i]).all(axis=1) )
+                    is_inside = na.bitwise_and(is_inside, old)
+            added_indices.extend(recv_real_indices[:opp_size][is_inside].tolist())
+            added_xpos.extend(recv_points[:opp_size,0][is_inside].tolist())
+            added_ypos.extend(recv_points[:opp_size,1][is_inside].tolist())
+            added_zpos.extend(recv_points[:opp_size,2][is_inside].tolist())
+            added_mass.extend(recv_mass[:opp_size][is_inside].tolist())
+            done_LE.append(temp_LE.copy())
+            done_RE.append(temp_RE.copy())
+            done_neighbor.append(neighbor)
+        # Let's add this to the full arrays.
+        self.size = self.real_size + len(added_indices)
+        new_index = na.empty(self.size, dtype='int64')
+        new_xpos = na.empty(self.size, dtype='float64')
+        new_ypos = na.empty(self.size, dtype='float64')
+        new_zpos = na.empty(self.size, dtype='float64')
+        new_mass = na.empty(self.size, dtype='float64')
+        new_index[:self.real_size] = self.index
+        new_index[self.real_size:self.size] = na.array(added_indices, dtype='int64')
+        del self.index
+        self.index = new_index
+        new_xpos[:self.real_size] = self.xpos
+        new_xpos[self.real_size:self.size] = na.array(added_xpos, dtype='float64')
+        del self.xpos
+        self.xpos = new_xpos
+        new_ypos[:self.real_size] = self.ypos
+        new_ypos[self.real_size:self.size] = na.array(added_ypos, dtype='float64')
+        del self.ypos
+        self.ypos = new_ypos
+        new_zpos[:self.real_size] = self.zpos
+        new_zpos[self.real_size:self.size] = na.array(added_zpos, dtype='float64')
+        del self.zpos
+        self.zpos = new_zpos
+        new_mass[:self.real_size] = self.mass
+        new_mass[self.real_size:self.size] = na.array(added_mass, dtype='float64')
+        del self.mass
+        self.mass = new_mass
+        # Now that we have the full size, initialize the chainID array
+        self.chainID = na.ones(self.size,dtype='int64') * -1
+        # Clean up explicitly.
+        del new_index, new_xpos, new_ypos, new_zpos, new_mass, recv_real_indices
+        del recv_points, recv_mass, added_indices, added_xpos, added_ypos
+        del added_zpos, points, mass, real_indices, done_LE, done_RE, done_neighbor
+        yt_counters("Communicate raw padding")
+        
 
     def _init_kd_tree(self):
         """
@@ -47,7 +195,7 @@ class RunChainHOP(ParallelAnalysisInterface):
         fKD.nMerge = self.nMerge + 2
         fKD.nparts = self.size
         fKD.sort = True # Slower, but needed in _connect_chains
-        fKD.rearrange = True # Faster, but uses more memory
+        fKD.rearrange = self.rearrange # True is faster, but uses more memory
         # This actually copies the data into the fortran space.
         fKD.pos[0, :] = self.xpos
         fKD.pos[1, :] = self.ypos
@@ -56,7 +204,7 @@ class RunChainHOP(ParallelAnalysisInterface):
         # Now call the fortran.
         create_tree()
 
-    def _is_inside(self):
+    def _is_inside(self, round):
         """
         There are three classes of particles.
         1. Particles inside the 'real' region of each subvolume.
@@ -65,19 +213,27 @@ class RunChainHOP(ParallelAnalysisInterface):
         3. Particles that are one padding distance inside the edges of the
            real region. The chainIDs of these particles are communicated
            to the neighboring tasks so chains can be merged into groups.
+        The input *round* is either 'first' or 'second.' First is before the
+        padded particles have been communicated, and second after.
         """
         # Test to see if the points are in the 'real' region
         (LE, RE) = self.bounds
-        points = fKD.pos.transpose()
+        if round == 'first':
+            points = na.empty((self.real_size, 3), dtype='float64')
+        elif round == 'second':
+            points = na.empty((self.size, 3), dtype='float64')
+        points[:,0] = self.xpos
+        points[:,1] = self.ypos
+        points[:,2] = self.zpos
         self.is_inside = ( (points >= LE).all(axis=1) * \
             (points < RE).all(axis=1) )
         # Below we find out which particles are in the `annulus', one padding
         # distance inside the boundaries. First we find the particles outside
         # this inner boundary.
-        LE += self.padding
-        RE -= self.padding
-        inner = na.invert( (points >= LE).all(axis=1) * \
-            (points < RE).all(axis=1) )
+        temp_LE = LE + self.padding
+        temp_RE = RE - self.padding
+        inner = na.invert( (points >= temp_LE).all(axis=1) * \
+            (points < temp_RE).all(axis=1) )
         # After inverting the logic above, we want points that are both
         # inside the real region, but within one padding of the boundary,
         # and this will do it.
@@ -87,11 +243,13 @@ class RunChainHOP(ParallelAnalysisInterface):
         # particles of any particle_index, which means that if it were an
         # array every task would probably end up having this array be as long
         # as the full number of particles.
-        self.rev_index = {}
-        for i in xrange(self.size):
-            # Only padded and annulus particles are needed in the dict.
-            if not self.is_inside[i] or self.is_inside_annulus[i]:
-                self.rev_index[self.index[i]] = i
+        # We can skip this the first time around.
+        if round == 'second':
+            self.rev_index = {}
+            for i in xrange(self.size):
+                # Only padded and annulus particles are needed in the dict.
+                if not self.is_inside[i] or self.is_inside_annulus[i]:
+                    self.rev_index[self.index[i]] = i
         del points, inner
 
     # These next two functions aren't currently being used. They figure out
@@ -526,10 +684,10 @@ class RunChainHOP(ParallelAnalysisInterface):
             opp_neighbor = self._mpi_find_neighbor_3d(opp_shift)
             opp_size = global_annulus_count[opp_neighbor]
             # Send/receive the data.
-            status = MPI.COMM_WORLD.Sendrecv(
+            MPI.COMM_WORLD.Sendrecv(
                 [real_indices, MPI.INT], neighbor, 0,
                 [recv_real_indices, MPI.INT], opp_neighbor, 0)
-            status = MPI.COMM_WORLD.Sendrecv(
+            MPI.COMM_WORLD.Sendrecv(
                 [chainIDs, MPI.INT], neighbor, 0,
                 [recv_chainIDs, MPI.INT], opp_neighbor, 0)
             # Use the data immediately.
@@ -816,11 +974,15 @@ class RunChainHOP(ParallelAnalysisInterface):
 
     def _chain_hop(self):
         mylog.info("Running Python version.")
+        mylog.info("Distributing padded particles...")
+        self._resize_padding()
+        self._is_inside('first')
+        self._communicate_raw_padding_data()
         mylog.info('Building kd tree for %d particles...' % \
             self.size)
         self._init_kd_tree()
         # Mark particles in as being in/out of the domain.
-        self._is_inside()
+        self._is_inside('second')
         # Loop over the particles to find NN for each.
         mylog.info('Finding nearest neighbors/density...')
         yt_counters("chainHOP_tags_dens")
@@ -861,4 +1023,8 @@ class RunChainHOP(ParallelAnalysisInterface):
         self._translate_groupIDs(group_count)
         mylog.info('Precomputing info for %d groups...' % group_count)
         self._precompute_group_info()
+        # We need to fix chainID and density because HaloFinding is expecting
+        # an array only as long as the real data.
+        self.chainID = self.chainID[:self.real_size]
+        self.density = self.density[:self.real_size]
         del self.mass, self.xpos, self.ypos, self.zpos

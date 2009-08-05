@@ -591,7 +591,7 @@ cdef class cKDTree:
             If x has shape tuple+(self.m,), then i has shape tuple+(k,).
             Missing neighbors are indicated with self.n.
         """
-        cdef np.ndarray[int, ndim=2] ii
+        cdef np.ndarray[long, ndim=2] ii
         cdef np.ndarray[double, ndim=2] dd
         cdef np.ndarray[double, ndim=2] xx
         cdef np.ndarray[double, ndim=1] cperiod
