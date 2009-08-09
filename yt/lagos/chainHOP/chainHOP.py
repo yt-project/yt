@@ -68,121 +68,6 @@ class RunChainHOP(ParallelAnalysisInterface):
         # Distribute the send sizes globally.
         global_annulus_count = {self.mine:send_count}
         global_annulus_count = self._mpi_joindict(global_annulus_count)
-        size_max = max(global_annulus_count.values())
-        # Initialize the arrays to receive data.
-        recv_real_indices = na.empty(size_max, dtype='int64')
-        recv_points = na.empty((size_max,3), dtype='float64')
-        recv_mass = na.empty(size_max, dtype='float64')
-        # Now we exchange data
-        done_LE = []
-        done_RE = []
-        done_neighbor = []
-        requests = []
-#         for shift_index in xrange(27):
-#             if shift_index==13: continue
-#             shift = self._translate_shift(i=shift_index)
-#             neighbor = self._mpi_find_neighbor_3d(shift)
-#             if neighbor == self.mine: continue
-#             requests.append(MPI.COMM_WORLD.Isend([real_indices, MPI.INT], neighbor, 0))
-        for shift_index in xrange(27):
-            if shift_index==13: continue
-            shift = self._translate_shift(i=shift_index)
-            neighbor = self._mpi_find_neighbor_3d(shift)
-            if neighbor == self.mine: continue
-            opp_shift = -1 * shift
-            opp_neighbor = self._mpi_find_neighbor_3d(opp_shift)
-            opp_size = global_annulus_count[opp_neighbor]
-            # Adjust the bounding box for this neighbor we're receiving from.
-            # The box will be either a slab for face neighbors, a pencil for
-            # edge neighbors, or a small box for the corners.
-            for i in xrange(3):
-                # Right-side neighbor, they're coming at us from our right,
-                # so their shift is negative.
-                if opp_shift[i] < 0:
-                    temp_LE[i] = RE[i]
-                    temp_RE[i] = RE[i] + self.padding
-                    # Periodic boundaries
-                    if temp_RE[i] > self.period[i]:
-                        temp_LE[i] = 0.
-                        temp_RE[i] = temp_RE[i] - self.period[i]
-                # Left-side neighbor.
-                elif opp_shift[i] > 0:
-                    temp_LE[i] = LE[i] - self.padding
-                    temp_RE[i] = LE[i]
-                    if temp_LE[i] < 0:
-                        temp_LE[i] = temp_LE[i] + self.period[i]
-                        temp_RE[i] = self.period[i]
-                # No shift in this direction.
-                else:
-                    temp_LE[i] = LE[i]
-                    temp_RE[i] = RE[i]
-            MPI.COMM_WORLD.Sendrecv(
-                [real_indices, MPI.INT], neighbor, 0,
-                [recv_real_indices, MPI.INT], opp_neighbor, 0)
-            #send_status = MPI.COMM_WORLD.Isend([real_indices, MPI.INT], neighbor, 0)
-            #requests.append(MPI.COMM_WORLD.Irecv([recv_real_indices, MPI.INT], opp_neighbor, 0))
-            MPI.Request.Waitall(requests)
-            MPI.COMM_WORLD.Sendrecv(
-                [points, MPI.FLOAT], neighbor, 0,
-                [recv_points, MPI.FLOAT], opp_neighbor, 0)
-            MPI.COMM_WORLD.Sendrecv(
-                [mass, MPI.FLOAT], neighbor, 0,
-                [recv_mass, MPI.FLOAT], opp_neighbor, 0)
-            # We need to pick out only the particles we want.
-            is_inside = ( (recv_points[:opp_size] >= temp_LE).all(axis=1) * \
-                (recv_points[:opp_size] < temp_RE).all(axis=1) )
-            # Now we check against previous processed regions, which is only
-            # a problem at low task counts. We want points that are NOT in
-            # an old region. We only need to check if we've talked to this
-            # neighbor before. This is not the most efficient way to do things,
-            # but again, this is only a problem at low task counts, and therefore
-            # it's not a big deal.
-            if neighbor in done_neighbor:
-                for i,old_LE in enumerate(done_LE):
-                    old = na.invert( (recv_points[:opp_size] >= old_LE).all(axis=1) * \
-                        (recv_points[:opp_size] < done_RE[i]).all(axis=1) )
-                    is_inside = na.bitwise_and(is_inside, old)
-            self.index = na.concatenate((self.index, recv_real_indices[:opp_size][is_inside]))
-            self.xpos = na.concatenate((self.xpos, recv_points[:opp_size,0][is_inside]))
-            self.ypos = na.concatenate((self.ypos, recv_points[:opp_size,1][is_inside]))
-            self.zpos = na.concatenate((self.zpos, recv_points[:opp_size,2][is_inside]))
-            self.mass = na.concatenate((self.mass, recv_mass[:opp_size][is_inside]))
-            done_LE.append(temp_LE.copy())
-            done_RE.append(temp_RE.copy())
-            done_neighbor.append(neighbor)
-        self.size = self.index.size
-        # Now that we have the full size, initialize the chainID array
-        self.chainID = na.ones(self.size,dtype='int64') * -1
-        # Clean up explicitly.
-        del recv_real_indices
-        del recv_points, recv_mass
-        del points, mass, real_indices, done_LE, done_RE, done_neighbor
-        yt_counters("Communicate raw padding")
-        
-
-    def _communicate_raw_padding_data_non(self):
-        """
-        Send the raw particle data (x,y,zpos, mass and index) from our
-        'annulus' to our neighbors. This is how each task builds up their
-        padded particles. On the receive end, we discriminate against the
-        data, only keeping data we want.
-        """
-        yt_counters("Communicate raw padding")
-        (LE, RE) = self.bounds
-        temp_LE = na.empty(3, dtype='float64')
-        temp_RE = na.empty(3, dtype='float64')
-        # Pick the particles in the annulus that will be sent.
-        send_count = len(na.where(self.is_inside_annulus == True)[0])
-        points = na.empty((send_count, 3), dtype='float64')
-        points[:,0] = self.xpos[self.is_inside_annulus]
-        points[:,1] = self.ypos[self.is_inside_annulus]
-        points[:,2] = self.zpos[self.is_inside_annulus]
-        real_indices = self.index[self.is_inside_annulus].astype('int64')
-        mass = self.mass[self.is_inside_annulus].astype('float64')
-        # Distribute the send sizes globally.
-        global_annulus_count = {self.mine:send_count}
-        global_annulus_count = self._mpi_joindict(global_annulus_count)
-        size_max = max(global_annulus_count.values())
         # Initialize the arrays to receive data.
         recv_real_indices = {}
         recv_points = {}
@@ -195,20 +80,36 @@ class RunChainHOP(ParallelAnalysisInterface):
             opp_shift = -1 * shift
             opp_neighbor = self._mpi_find_neighbor_3d(opp_shift)
             opp_size = global_annulus_count[opp_neighbor]
-        recv_real_indices = na.empty(size_max, dtype='int64')
-        recv_points = na.empty((size_max,3), dtype='float64')
-        recv_mass = na.empty(size_max, dtype='float64')
-        # Now we exchange data
+            recv_real_indices[opp_neighbor] = na.empty(opp_size, dtype='int64')
+            recv_points[opp_neighbor] = na.empty((opp_size,3), dtype='float64')
+            recv_mass[opp_neighbor] = na.empty(opp_size, dtype='float64')
+        # Now we receive the data, but we don't actually use it.
+        requests = []
+        for shift_index in xrange(27):
+            if shift_index==13: continue
+            shift = self._translate_shift(i=shift_index)
+            neighbor = self._mpi_find_neighbor_3d(shift)
+            if neighbor == self.mine: continue
+            opp_shift = -1 * shift
+            opp_neighbor = self._mpi_find_neighbor_3d(opp_shift)
+            opp_size = global_annulus_count[opp_neighbor]
+            requests.append(MPI.COMM_WORLD.Irecv([recv_real_indices[opp_neighbor], MPI.INT], opp_neighbor, 0))
+            requests.append(MPI.COMM_WORLD.Irecv([recv_points[opp_neighbor], MPI.FLOAT], opp_neighbor, 0))
+            requests.append(MPI.COMM_WORLD.Irecv([recv_mass[opp_neighbor], MPI.FLOAT], opp_neighbor, 0))
+        # Now we send the data.
+        for shift_index in xrange(27):
+            if shift_index==13: continue
+            shift = self._translate_shift(i=shift_index)
+            neighbor = self._mpi_find_neighbor_3d(shift)
+            if neighbor == self.mine: continue
+            requests.append(MPI.COMM_WORLD.Isend([real_indices, MPI.INT], neighbor, 0))
+            requests.append(MPI.COMM_WORLD.Isend([points, MPI.FLOAT], neighbor, 0))
+            requests.append(MPI.COMM_WORLD.Isend([mass, MPI.FLOAT], neighbor, 0))
+        # Now we use the data, after all the comm is done.
+        MPI.Request.Waitall(requests)
         done_LE = []
         done_RE = []
         done_neighbor = []
-        requests = []
-#         for shift_index in xrange(27):
-#             if shift_index==13: continue
-#             shift = self._translate_shift(i=shift_index)
-#             neighbor = self._mpi_find_neighbor_3d(shift)
-#             if neighbor == self.mine: continue
-#             requests.append(MPI.COMM_WORLD.Isend([real_indices, MPI.INT], neighbor, 0))
         for shift_index in xrange(27):
             if shift_index==13: continue
             shift = self._translate_shift(i=shift_index)
@@ -241,21 +142,9 @@ class RunChainHOP(ParallelAnalysisInterface):
                 else:
                     temp_LE[i] = LE[i]
                     temp_RE[i] = RE[i]
-            MPI.COMM_WORLD.Sendrecv(
-                [real_indices, MPI.INT], neighbor, 0,
-                [recv_real_indices, MPI.INT], opp_neighbor, 0)
-            #send_status = MPI.COMM_WORLD.Isend([real_indices, MPI.INT], neighbor, 0)
-            #requests.append(MPI.COMM_WORLD.Irecv([recv_real_indices, MPI.INT], opp_neighbor, 0))
-            MPI.Request.Waitall(requests)
-            MPI.COMM_WORLD.Sendrecv(
-                [points, MPI.FLOAT], neighbor, 0,
-                [recv_points, MPI.FLOAT], opp_neighbor, 0)
-            MPI.COMM_WORLD.Sendrecv(
-                [mass, MPI.FLOAT], neighbor, 0,
-                [recv_mass, MPI.FLOAT], opp_neighbor, 0)
             # We need to pick out only the particles we want.
-            is_inside = ( (recv_points[:opp_size] >= temp_LE).all(axis=1) * \
-                (recv_points[:opp_size] < temp_RE).all(axis=1) )
+            is_inside = ( (recv_points[opp_neighbor][:opp_size] >= temp_LE).all(axis=1) * \
+                (recv_points[opp_neighbor][:opp_size] < temp_RE).all(axis=1) )
             # Now we check against previous processed regions, which is only
             # a problem at low task counts. We want points that are NOT in
             # an old region. We only need to check if we've talked to this
@@ -264,14 +153,14 @@ class RunChainHOP(ParallelAnalysisInterface):
             # it's not a big deal.
             if neighbor in done_neighbor:
                 for i,old_LE in enumerate(done_LE):
-                    old = na.invert( (recv_points[:opp_size] >= old_LE).all(axis=1) * \
-                        (recv_points[:opp_size] < done_RE[i]).all(axis=1) )
+                    old = na.invert( (recv_points[opp_neighbor][:opp_size] >= old_LE).all(axis=1) * \
+                        (recv_points[opp_neighbor][:opp_size] < done_RE[i]).all(axis=1) )
                     is_inside = na.bitwise_and(is_inside, old)
-            self.index = na.concatenate((self.index, recv_real_indices[:opp_size][is_inside]))
-            self.xpos = na.concatenate((self.xpos, recv_points[:opp_size,0][is_inside]))
-            self.ypos = na.concatenate((self.ypos, recv_points[:opp_size,1][is_inside]))
-            self.zpos = na.concatenate((self.zpos, recv_points[:opp_size,2][is_inside]))
-            self.mass = na.concatenate((self.mass, recv_mass[:opp_size][is_inside]))
+            self.index = na.concatenate((self.index, recv_real_indices[opp_neighbor][:opp_size][is_inside]))
+            self.xpos = na.concatenate((self.xpos, recv_points[opp_neighbor][:opp_size,0][is_inside]))
+            self.ypos = na.concatenate((self.ypos, recv_points[opp_neighbor][:opp_size,1][is_inside]))
+            self.zpos = na.concatenate((self.zpos, recv_points[opp_neighbor][:opp_size,2][is_inside]))
+            self.mass = na.concatenate((self.mass, recv_mass[opp_neighbor][:opp_size][is_inside]))
             done_LE.append(temp_LE.copy())
             done_RE.append(temp_RE.copy())
             done_neighbor.append(neighbor)
