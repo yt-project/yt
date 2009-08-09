@@ -1,5 +1,5 @@
-import math,sys #, cPickle
-from bisect import insort
+import math,sys
+from collections import defaultdict
 from sets import Set
 
 from yt.lagos import *
@@ -32,16 +32,18 @@ class RunChainHOP(ParallelAnalysisInterface):
         self._chain_hop()
         yt_counters("chainHOP")
 
-    def _resize_padding(self):
+    def _global_padding(self):
         """
-        Resize our padding to be the maximum found among all our neighbors.
+        Find the maximum padding of all our neighbors, used to send our
+        annulus data.
         """
         self.mine, global_padding = self._mpi_info_dict(self.padding)
+        self.max_padding = 0.
         for shift_index in xrange(27):
             shift = self._translate_shift(i=shift_index)
             neighbor = self._mpi_find_neighbor_3d(shift)
-            if global_padding[neighbor] > self.padding:
-                self.padding = global_padding[neighbor]
+            if global_padding[neighbor] > self.max_padding:
+                self.max_padding = global_padding[neighbor]
         del global_padding
 
     def _communicate_raw_padding_data(self):
@@ -71,16 +73,17 @@ class RunChainHOP(ParallelAnalysisInterface):
         recv_real_indices = na.empty(size_max, dtype='int64')
         recv_points = na.empty((size_max,3), dtype='float64')
         recv_mass = na.empty(size_max, dtype='float64')
-        # The lists which will be added to our arrays at the end.
-        added_indices = []
-        added_xpos = []
-        added_ypos = []
-        added_zpos = []
-        added_mass = []
         # Now we exchange data
         done_LE = []
         done_RE = []
         done_neighbor = []
+        requests = []
+#         for shift_index in xrange(27):
+#             if shift_index==13: continue
+#             shift = self._translate_shift(i=shift_index)
+#             neighbor = self._mpi_find_neighbor_3d(shift)
+#             if neighbor == self.mine: continue
+#             requests.append(MPI.COMM_WORLD.Isend([real_indices, MPI.INT], neighbor, 0))
         for shift_index in xrange(27):
             if shift_index==13: continue
             shift = self._translate_shift(i=shift_index)
@@ -91,7 +94,7 @@ class RunChainHOP(ParallelAnalysisInterface):
             opp_size = global_annulus_count[opp_neighbor]
             # Adjust the bounding box for this neighbor we're receiving from.
             # The box will be either a slab for face neighbors, a pencil for
-            # edge neighbors, or a small cube-like for the corners.
+            # edge neighbors, or a small box for the corners.
             for i in xrange(3):
                 # Right-side neighbor, they're coming at us from our right,
                 # so their shift is negative.
@@ -116,6 +119,9 @@ class RunChainHOP(ParallelAnalysisInterface):
             MPI.COMM_WORLD.Sendrecv(
                 [real_indices, MPI.INT], neighbor, 0,
                 [recv_real_indices, MPI.INT], opp_neighbor, 0)
+            #send_status = MPI.COMM_WORLD.Isend([real_indices, MPI.INT], neighbor, 0)
+            #requests.append(MPI.COMM_WORLD.Irecv([recv_real_indices, MPI.INT], opp_neighbor, 0))
+            MPI.Request.Waitall(requests)
             MPI.COMM_WORLD.Sendrecv(
                 [points, MPI.FLOAT], neighbor, 0,
                 [recv_points, MPI.FLOAT], opp_neighbor, 0)
@@ -136,47 +142,146 @@ class RunChainHOP(ParallelAnalysisInterface):
                     old = na.invert( (recv_points[:opp_size] >= old_LE).all(axis=1) * \
                         (recv_points[:opp_size] < done_RE[i]).all(axis=1) )
                     is_inside = na.bitwise_and(is_inside, old)
-            added_indices.extend(recv_real_indices[:opp_size][is_inside].tolist())
-            added_xpos.extend(recv_points[:opp_size,0][is_inside].tolist())
-            added_ypos.extend(recv_points[:opp_size,1][is_inside].tolist())
-            added_zpos.extend(recv_points[:opp_size,2][is_inside].tolist())
-            added_mass.extend(recv_mass[:opp_size][is_inside].tolist())
+            self.index = na.concatenate((self.index, recv_real_indices[:opp_size][is_inside]))
+            self.xpos = na.concatenate((self.xpos, recv_points[:opp_size,0][is_inside]))
+            self.ypos = na.concatenate((self.ypos, recv_points[:opp_size,1][is_inside]))
+            self.zpos = na.concatenate((self.zpos, recv_points[:opp_size,2][is_inside]))
+            self.mass = na.concatenate((self.mass, recv_mass[:opp_size][is_inside]))
             done_LE.append(temp_LE.copy())
             done_RE.append(temp_RE.copy())
             done_neighbor.append(neighbor)
-        # Let's add this to the full arrays.
-        self.size = self.real_size + len(added_indices)
-        new_index = na.empty(self.size, dtype='int64')
-        new_xpos = na.empty(self.size, dtype='float64')
-        new_ypos = na.empty(self.size, dtype='float64')
-        new_zpos = na.empty(self.size, dtype='float64')
-        new_mass = na.empty(self.size, dtype='float64')
-        new_index[:self.real_size] = self.index
-        new_index[self.real_size:self.size] = na.array(added_indices, dtype='int64')
-        del self.index
-        self.index = new_index
-        new_xpos[:self.real_size] = self.xpos
-        new_xpos[self.real_size:self.size] = na.array(added_xpos, dtype='float64')
-        del self.xpos
-        self.xpos = new_xpos
-        new_ypos[:self.real_size] = self.ypos
-        new_ypos[self.real_size:self.size] = na.array(added_ypos, dtype='float64')
-        del self.ypos
-        self.ypos = new_ypos
-        new_zpos[:self.real_size] = self.zpos
-        new_zpos[self.real_size:self.size] = na.array(added_zpos, dtype='float64')
-        del self.zpos
-        self.zpos = new_zpos
-        new_mass[:self.real_size] = self.mass
-        new_mass[self.real_size:self.size] = na.array(added_mass, dtype='float64')
-        del self.mass
-        self.mass = new_mass
+        self.size = self.index.size
         # Now that we have the full size, initialize the chainID array
         self.chainID = na.ones(self.size,dtype='int64') * -1
         # Clean up explicitly.
-        del new_index, new_xpos, new_ypos, new_zpos, new_mass, recv_real_indices
-        del recv_points, recv_mass, added_indices, added_xpos, added_ypos
-        del added_zpos, points, mass, real_indices, done_LE, done_RE, done_neighbor
+        del recv_real_indices
+        del recv_points, recv_mass
+        del points, mass, real_indices, done_LE, done_RE, done_neighbor
+        yt_counters("Communicate raw padding")
+        
+
+    def _communicate_raw_padding_data_non(self):
+        """
+        Send the raw particle data (x,y,zpos, mass and index) from our
+        'annulus' to our neighbors. This is how each task builds up their
+        padded particles. On the receive end, we discriminate against the
+        data, only keeping data we want.
+        """
+        yt_counters("Communicate raw padding")
+        (LE, RE) = self.bounds
+        temp_LE = na.empty(3, dtype='float64')
+        temp_RE = na.empty(3, dtype='float64')
+        # Pick the particles in the annulus that will be sent.
+        send_count = len(na.where(self.is_inside_annulus == True)[0])
+        points = na.empty((send_count, 3), dtype='float64')
+        points[:,0] = self.xpos[self.is_inside_annulus]
+        points[:,1] = self.ypos[self.is_inside_annulus]
+        points[:,2] = self.zpos[self.is_inside_annulus]
+        real_indices = self.index[self.is_inside_annulus].astype('int64')
+        mass = self.mass[self.is_inside_annulus].astype('float64')
+        # Distribute the send sizes globally.
+        global_annulus_count = {self.mine:send_count}
+        global_annulus_count = self._mpi_joindict(global_annulus_count)
+        size_max = max(global_annulus_count.values())
+        # Initialize the arrays to receive data.
+        recv_real_indices = {}
+        recv_points = {}
+        recv_mass = {}
+        for shift_index in xrange(27):
+            if shift_index==13: continue
+            shift = self._translate_shift(i=shift_index)
+            neighbor = self._mpi_find_neighbor_3d(shift)
+            if neighbor == self.mine: continue
+            opp_shift = -1 * shift
+            opp_neighbor = self._mpi_find_neighbor_3d(opp_shift)
+            opp_size = global_annulus_count[opp_neighbor]
+        recv_real_indices = na.empty(size_max, dtype='int64')
+        recv_points = na.empty((size_max,3), dtype='float64')
+        recv_mass = na.empty(size_max, dtype='float64')
+        # Now we exchange data
+        done_LE = []
+        done_RE = []
+        done_neighbor = []
+        requests = []
+#         for shift_index in xrange(27):
+#             if shift_index==13: continue
+#             shift = self._translate_shift(i=shift_index)
+#             neighbor = self._mpi_find_neighbor_3d(shift)
+#             if neighbor == self.mine: continue
+#             requests.append(MPI.COMM_WORLD.Isend([real_indices, MPI.INT], neighbor, 0))
+        for shift_index in xrange(27):
+            if shift_index==13: continue
+            shift = self._translate_shift(i=shift_index)
+            neighbor = self._mpi_find_neighbor_3d(shift)
+            if neighbor == self.mine: continue
+            opp_shift = -1 * shift
+            opp_neighbor = self._mpi_find_neighbor_3d(opp_shift)
+            opp_size = global_annulus_count[opp_neighbor]
+            # Adjust the bounding box for this neighbor we're receiving from.
+            # The box will be either a slab for face neighbors, a pencil for
+            # edge neighbors, or a small box for the corners.
+            for i in xrange(3):
+                # Right-side neighbor, they're coming at us from our right,
+                # so their shift is negative.
+                if opp_shift[i] < 0:
+                    temp_LE[i] = RE[i]
+                    temp_RE[i] = RE[i] + self.padding
+                    # Periodic boundaries
+                    if temp_RE[i] > self.period[i]:
+                        temp_LE[i] = 0.
+                        temp_RE[i] = temp_RE[i] - self.period[i]
+                # Left-side neighbor.
+                elif opp_shift[i] > 0:
+                    temp_LE[i] = LE[i] - self.padding
+                    temp_RE[i] = LE[i]
+                    if temp_LE[i] < 0:
+                        temp_LE[i] = temp_LE[i] + self.period[i]
+                        temp_RE[i] = self.period[i]
+                # No shift in this direction.
+                else:
+                    temp_LE[i] = LE[i]
+                    temp_RE[i] = RE[i]
+            MPI.COMM_WORLD.Sendrecv(
+                [real_indices, MPI.INT], neighbor, 0,
+                [recv_real_indices, MPI.INT], opp_neighbor, 0)
+            #send_status = MPI.COMM_WORLD.Isend([real_indices, MPI.INT], neighbor, 0)
+            #requests.append(MPI.COMM_WORLD.Irecv([recv_real_indices, MPI.INT], opp_neighbor, 0))
+            MPI.Request.Waitall(requests)
+            MPI.COMM_WORLD.Sendrecv(
+                [points, MPI.FLOAT], neighbor, 0,
+                [recv_points, MPI.FLOAT], opp_neighbor, 0)
+            MPI.COMM_WORLD.Sendrecv(
+                [mass, MPI.FLOAT], neighbor, 0,
+                [recv_mass, MPI.FLOAT], opp_neighbor, 0)
+            # We need to pick out only the particles we want.
+            is_inside = ( (recv_points[:opp_size] >= temp_LE).all(axis=1) * \
+                (recv_points[:opp_size] < temp_RE).all(axis=1) )
+            # Now we check against previous processed regions, which is only
+            # a problem at low task counts. We want points that are NOT in
+            # an old region. We only need to check if we've talked to this
+            # neighbor before. This is not the most efficient way to do things,
+            # but again, this is only a problem at low task counts, and therefore
+            # it's not a big deal.
+            if neighbor in done_neighbor:
+                for i,old_LE in enumerate(done_LE):
+                    old = na.invert( (recv_points[:opp_size] >= old_LE).all(axis=1) * \
+                        (recv_points[:opp_size] < done_RE[i]).all(axis=1) )
+                    is_inside = na.bitwise_and(is_inside, old)
+            self.index = na.concatenate((self.index, recv_real_indices[:opp_size][is_inside]))
+            self.xpos = na.concatenate((self.xpos, recv_points[:opp_size,0][is_inside]))
+            self.ypos = na.concatenate((self.ypos, recv_points[:opp_size,1][is_inside]))
+            self.zpos = na.concatenate((self.zpos, recv_points[:opp_size,2][is_inside]))
+            self.mass = na.concatenate((self.mass, recv_mass[:opp_size][is_inside]))
+            done_LE.append(temp_LE.copy())
+            done_RE.append(temp_RE.copy())
+            done_neighbor.append(neighbor)
+        self.size = self.index.size
+        # Now that we have the full size, initialize the chainID array
+        self.chainID = na.ones(self.size,dtype='int64') * -1
+        # Clean up explicitly.
+        del recv_real_indices
+        del recv_points, recv_mass
+        del points, mass, real_indices, done_LE, done_RE, done_neighbor
         yt_counters("Communicate raw padding")
         
 
@@ -230,8 +335,12 @@ class RunChainHOP(ParallelAnalysisInterface):
         # Below we find out which particles are in the `annulus', one padding
         # distance inside the boundaries. First we find the particles outside
         # this inner boundary.
-        temp_LE = LE + self.padding
-        temp_RE = RE - self.padding
+        if round == 'first':
+            temp_LE = LE + self.max_padding
+            temp_RE = RE - self.max_padding
+        if round == 'second':
+            temp_LE = LE + self.padding
+            temp_RE = RE - self.padding
         inner = na.invert( (points >= temp_LE).all(axis=1) * \
             (points < temp_RE).all(axis=1) )
         # After inverting the logic above, we want points that are both
@@ -625,7 +734,8 @@ class RunChainHOP(ParallelAnalysisInterface):
         dens_temp = []
         for key in self.densest_in_chain:
             item = [self.densest_in_chain[key], key]
-            insort(dens_temp, item)
+            dens_temp.append(item)
+        dens_temp.sort()
         # Loop over chains, smallest to largest density, recursively until
         # we reach a self-assigned chain. Then we assign that final chainID to
         # the *current* one only.
@@ -716,7 +826,7 @@ class RunChainHOP(ParallelAnalysisInterface):
         self.chain_densest_n = {} # chainID -> {chainIDs->boundary dens}
         self.reverse_map = {} # chainID -> groupID, one to one
         for chainID in self.densest_in_chain:
-            self.chain_densest_n[int(chainID)] = {}
+            #self.chain_densest_n[int(chainID)] = {}
             self.reverse_map[int(chainID)] = -1
         for i in xrange(self.size):
             # Don't consider this particle if it's not part of a chain.
@@ -749,9 +859,14 @@ class RunChainHOP(ParallelAnalysisInterface):
                     else:
                         higher_chain = self.chainID[i]
                         lower_chain = thisNN_chainID
+                    # Make sure that the higher density chain has an entry.
+                    try:
+                        test = self.chain_densest_n[higher_chain]
+                    except KeyError:
+                        self.chain_densest_n[higher_chain] = {}
                     # See if this boundary density is higher than
                     # previously recorded for this pair of chains.
-                    # Links only go 'downhill'.
+                    # Links only go one direction.
                     try:
                         old = self.chain_densest_n[higher_chain][lower_chain]
                         if old < boundary_density:
@@ -773,12 +888,8 @@ class RunChainHOP(ParallelAnalysisInterface):
         all tasks.
         """
         yt_counters("make_global_chain_densest_n")
-        # Remember that every task has every active chainID as a key in 
-        # chain_densest_n (see the beginning of _connect_chains())
-        # Uses barrier(), but that's needed.
-        for higher_chain in self.chain_densest_n:
-            self.chain_densest_n[higher_chain] = \
-                self._mpi_maxdict(self.chain_densest_n[higher_chain])
+        self.chain_densest_n = \
+                self._mpi_maxdict_dict(self.chain_densest_n)
         yt_counters("make_global_chain_densest_n")
     
     def _build_groups(self):
@@ -786,100 +897,177 @@ class RunChainHOP(ParallelAnalysisInterface):
         With the collection of possible chain links, build groups.
         """
         yt_counters("build_groups")
-        g_high = []
-        g_low = []
-        g_dens = []
-        densestbound = {} # chainID -> boundary density
-        for chainID in self.densest_in_chain:
-            densestbound[chainID] = -1.0
-        groupID = 0
-        # First assign a group to all chains with max_dens above peakthresh.
-        for chainID in self.densest_in_chain:
-            if self.densest_in_chain[chainID] >= self.peakthresh:
-                self.reverse_map[chainID] = groupID
-                groupID += 1
-        # Loop over all of the chain linkages.
-        for chain_high in self.chain_densest_n:
-            for chain_low in self.chain_densest_n[chain_high]:
-                dens = self.chain_densest_n[chain_high][chain_low]
-                max_dens_high = self.densest_in_chain[chain_high]
-                max_dens_low = self.densest_in_chain[chain_low]
-                # If neither are peak density groups, mark them for later
-                # consideration.
-                if max_dens_high < self.peakthresh and \
-                    max_dens_low < self.peakthresh:
-                        g_high.append(chain_high)
-                        g_low.append(chain_low)
-                        g_dens.append(dens)
-                        continue
-                # If both are peak density groups, and have a boundary density
-                # that is high enough, make them into a group, otherwise
-                # move onto another linkage.
-                if max_dens_high >= self.peakthresh and \
-                        max_dens_low >= self.peakthresh:
-                    if dens < self.saddlethresh:
-                        continue
-                    else:
-                        group_high = self.reverse_map[chain_high]
-                        group_low = self.reverse_map[chain_low]
-                        # Both are already identified as groups, so we need
-                        # to re-assign the less dense group to the denser
-                        # groupID.
-                        for chID in self.reverse_map:
-                            if self.reverse_map[chID] == group_low:
-                                self.reverse_map[chID] = group_high
-                        continue
-                # Else, one is above peakthresh, the other below
-                # find out if this is the densest boundary seen so far for
-                # the lower chain.
-                group_high = self.reverse_map[chain_high]
-                if dens > densestbound[chain_low]:
-                    densestbound[chain_low] = dens
-                    self.reverse_map[chain_low] = group_high
-                # Done double loop over links.
-        """
-        Now the fringe chains are connected to the proper group
-        (>peakthresh) with the largest boundary.  But we want to look
-        through the boundaries between fringe groups to propagate this
-        along.  Connections are only as good as their smallest boundary
-        """
-        changes = 1
-        while changes:
-            changes = 0
-            for j,dens in enumerate(g_dens):
-                chain_high = g_high[j]
-                chain_low = g_low[j]
-                # If the density of this boundary and the densestbound of
-                # the other chain is higher than a chain's densestbound, then
-                # replace it.
-                if dens > densestbound[chain_low] and \
-                        densestbound[chain_high] > densestbound[chain_low]:
-                    changes += 1
-                    if dens < densestbound[chain_high]:
+        if self.mine == 0:
+            g_high = []
+            g_low = []
+            g_dens = []
+            densestbound = {} # chainID -> boundary density
+            mylog.info("here 1")
+            for chainID in self.densest_in_chain:
+                densestbound[chainID] = -1.0
+            groupID = 0
+            mylog.info("here 2")
+            # First assign a group to all chains with max_dens above peakthresh.
+            # The initial groupIDs will be assigned with decending peak density.
+            # This guarantees that the group with the smaller groupID is the
+            # higher chain, as in chain_high below.
+            def ksort(d):
+                temp = []
+                for key in d:
+                    item = [key, d[key]]
+                    temp.append(item)
+                temp.sort(lambda x,y: -cmp(x[1],y[1]))
+                temp = na.array(temp)
+                # return the first column, which are the dict keys sorted by
+                # the second column, the densities.
+                return temp[:,0]
+            group_equivalancy_map = defaultdict(Set)
+            for chainID in ksort(self.densest_in_chain):
+                if self.densest_in_chain[chainID] >= self.peakthresh:
+                    self.reverse_map[chainID] = groupID
+                    groupID += 1
+            big_count = 0
+            for chain_high in self.chain_densest_n:
+                for chain_low in self.chain_densest_n[chain_high]:
+                    big_count += 1
+            mylog.info("here 3 big_count %d small_loop %d groupcount %d" % (big_count, len(self.reverse_map), groupID))
+            boobs = 0
+            # Loop over all of the chain linkages.
+            for chain_high in self.chain_densest_n:
+                for chain_low in self.chain_densest_n[chain_high]:
+                    dens = self.chain_densest_n[chain_high][chain_low]
+                    max_dens_high = self.densest_in_chain[chain_high]
+                    max_dens_low = self.densest_in_chain[chain_low]
+                    # If neither are peak density groups, mark them for later
+                    # consideration.
+                    if max_dens_high < self.peakthresh and \
+                        max_dens_low < self.peakthresh:
+                            g_high.append(chain_high)
+                            g_low.append(chain_low)
+                            g_dens.append(dens)
+                            continue
+                    # If both are peak density groups, and have a boundary density
+                    # that is high enough, make them into a group, otherwise
+                    # move onto another linkage.
+                    if max_dens_high >= self.peakthresh and \
+                            max_dens_low >= self.peakthresh:
+                        if dens < self.saddlethresh:
+                            continue
+                        else:
+                            group_high = self.reverse_map[chain_high]
+                            group_low = self.reverse_map[chain_low]
+                            # Both are already identified as groups, so we need
+                            # to re-assign the less dense group to the denser
+                            # groupID.
+                            #for chID in self.reverse_map:
+                            #    if self.reverse_map[chID] == group_low:
+                            #        self.reverse_map[chID] = group_high
+                            if group_low != group_high:
+                                group_equivalancy_map[group_low].add(group_high)
+                                group_equivalancy_map[group_high].add(group_low)
+                            continue
+                    # Else, one is above peakthresh, the other below
+                    # find out if this is the densest boundary seen so far for
+                    # the lower chain.
+                    group_high = self.reverse_map[chain_high]
+                    if dens > densestbound[chain_low]:
                         densestbound[chain_low] = dens
-                    else:
-                        densestbound[chain_low] = densestbound[chain_high]
-                    self.reverse_map[chain_low] = self.reverse_map[chain_high]
-        # Now we have to find the unique groupIDs, since they may have been
-        # merged.
-        temp = []
-        for chain in self.reverse_map:
-            temp.append(self.reverse_map[chain])
-        # Uniquify the list.
-        temp = list(Set(temp))
-        # Remove -1 from the list.
-        temp.pop(temp.index(-1))
-        # Make a secondary map to make the IDs consecutive.
-        secondary_map = {}
-        for i,ID in enumerate(temp):
-            secondary_map[ID] = i
-        # Update reverse_map
-        for chain in self.reverse_map:
-            # Don't attempt to fix non-assigned chains.
-            if self.reverse_map[chain] == -1: continue
-            self.reverse_map[chain] = secondary_map[self.reverse_map[chain]]
-        group_count = len(temp)
-        del secondary_map, temp, g_high, g_low, g_dens, densestbound
+                        self.reverse_map[chain_low] = group_high
+                    # Done double loop over links.
+            mylog.info("here 3.1")
+            # Now refactor group_equivalancy_map back into reverse_map. The group
+            # mapping may be more than one link long, so we need to do it
+            # recursively.
+            Set_list = []
+            bigwhilecount = 0
+            mylog.info('start len(group_equivalancy_map) %d' % len(group_equivalancy_map))
+            while len(group_equivalancy_map) > 0:
+                mylog.info('inside len(group_equivalancy_map) %d' % len(group_equivalancy_map))
+                keys = group_equivalancy_map.keys()
+                groupID = keys[0]
+                current_set = Set([])
+                new_set = group_equivalancy_map[groupID]
+                del group_equivalancy_map[groupID]
+                while (len(new_set) - len(current_set)) > 0:
+                    build_set = new_set - current_set
+                    current_set = new_set.copy()
+                    for link_gID in build_set:
+                        new_set = new_set | group_equivalancy_map[link_gID]
+                        del group_equivalancy_map[link_gID]
+                # Make sure it's not empty
+                new_set.add(groupID)
+                Set_list.append(new_set)
+            mylog.info("here 3.1.1")
+                    
+            # Convert this list of sets into a look-up table
+            lookup = {}
+            for i,item in enumerate(Set_list):
+                item_min = min(item)
+                for groupID in item:
+                    lookup[groupID] = item_min
+            # Now apply this to reverse_map
+            for chainID in self.reverse_map:
+                groupID = self.reverse_map[chainID]
+                if groupID == -1:
+                    continue
+                try:
+                    self.reverse_map[chainID] = lookup[groupID]
+                except KeyError:
+                    continue
+            mylog.info("here 3.2")
+            """
+            Now the fringe chains are connected to the proper group
+            (>peakthresh) with the largest boundary.  But we want to look
+            through the boundaries between fringe groups to propagate this
+            along.  Connections are only as good as their smallest boundary
+            """
+            mylog.info("here 4")
+            changes = 1
+            while changes:
+                changes = 0
+                for j,dens in enumerate(g_dens):
+                    chain_high = g_high[j]
+                    chain_low = g_low[j]
+                    # If the density of this boundary and the densestbound of
+                    # the other chain is higher than a chain's densestbound, then
+                    # replace it.
+                    if dens > densestbound[chain_low] and \
+                            densestbound[chain_high] > densestbound[chain_low]:
+                        changes += 1
+                        if dens < densestbound[chain_high]:
+                            densestbound[chain_low] = dens
+                        else:
+                            densestbound[chain_low] = densestbound[chain_high]
+                        self.reverse_map[chain_low] = self.reverse_map[chain_high]
+            # Now we have to find the unique groupIDs, since they may have been
+            # merged.
+            mylog.info("here 5")
+            temp = []
+            for chain in self.reverse_map:
+                temp.append(self.reverse_map[chain])
+            mylog.info("here 6")
+            # Uniquify the list.
+            temp = list(Set(temp))
+            mylog.info("here 7")
+            # Remove -1 from the list.
+            temp.pop(temp.index(-1))
+            # Make a secondary map to make the IDs consecutive.
+            secondary_map = {}
+            for i,ID in enumerate(temp):
+                secondary_map[ID] = i
+            mylog.info("here 8")
+            # Update reverse_map
+            for chain in self.reverse_map:
+                # Don't attempt to fix non-assigned chains.
+                if self.reverse_map[chain] == -1: continue
+                self.reverse_map[chain] = secondary_map[self.reverse_map[chain]]
+            mylog.info("here 9")
+            group_count = len(temp)
+            del secondary_map, temp, g_high, g_low, g_dens, densestbound
+        else:
+            group_count = 0
+        group_count = MPI.COMM_WORLD.bcast(group_count, root=0)
+        self.reverse_map = MPI.COMM_WORLD.bcast(self.reverse_map, root=0)
         yt_counters("build_groups")
         return group_count
 
@@ -918,7 +1106,7 @@ class RunChainHOP(ParallelAnalysisInterface):
         # First we need to find the maximum density point for all groups.
         # I think this will be faster than several vector operations that need
         # to pull the entire chainID array out of memory several times.
-        max_dens_point = na.zeros((self.group_count,4),dtype='d')
+        max_dens_point = na.zeros((self.group_count,4),dtype='float64')
         for part in xrange(self.size):
             if self.chainID[part] == -1: continue
             groupID = self.chainID[part]
@@ -928,12 +1116,14 @@ class RunChainHOP(ParallelAnalysisInterface):
         # Now we broadcast this, effectively, with an allsum. Even though
         # some groups are on multiple tasks, there is only one densest_in_chain
         # and only that task contributed above.
-        self.max_dens_point = self._mpi_allsum(max_dens_point)
+        #self.max_dens_point = self._mpi_allsum(max_dens_point)
+        self.max_dens_point = max_dens_point
+        MPI.COMM_WORLD.Allreduce([self.max_dens_point, MPI.FLOAT], [self.max_dens_point, MPI.FLOAT], op=MPI.SUM)
         # Now CoM.
         c_vec = self.max_dens_point[:,1:4] - na.array([0.5,0.5,0.5])
         size = na.zeros(self.group_count, dtype='int64')
-        CoM_M = na.zeros((self.group_count,3),dtype='d')
-        Tot_M = na.zeros(self.group_count, dtype='d')
+        CoM_M = na.zeros((self.group_count,3),dtype='float64')
+        Tot_M = na.zeros(self.group_count, dtype='float64')
         # This keeps track of what we own so we don't divide by zero later...
         I_own = []
         for part in xrange(self.size):
@@ -943,7 +1133,7 @@ class RunChainHOP(ParallelAnalysisInterface):
             if groupID not in I_own:
                 I_own.append(groupID)
             loc = na.array([self.xpos[part], self.ypos[part], \
-                self.zpos[part]], dtype='d') - c_vec[groupID]
+                self.zpos[part]], dtype='float64') - c_vec[groupID]
             loc = loc - na.floor(loc)
             CoM_M[groupID] += (loc * self.mass[part])
             Tot_M[groupID] += self.mass[part]
@@ -953,10 +1143,15 @@ class RunChainHOP(ParallelAnalysisInterface):
                 CoM_M[groupID] += c_vec[groupID]
                 CoM_M[groupID] *= Tot_M[groupID]
         # Now we find their global values
-        self.group_sizes = self._mpi_allsum(size)
-        CoM_M = self._mpi_allsum(CoM_M)
-        self.Tot_M = self._mpi_allsum(Tot_M)
-        self.CoM = na.empty((self.group_count,3), dtype='d')
+        #self.group_sizes = self._mpi_allsum(size)
+        self.group_sizes = size
+        MPI.COMM_WORLD.Allreduce([self.group_sizes, MPI.INT], [self.group_sizes, MPI.INT],op=MPI.SUM)
+        #CoM_M = self._mpi_allsum(CoM_M)
+        MPI.COMM_WORLD.Allreduce([CoM_M, MPI.FLOAT], [CoM_M, MPI.FLOAT], op=MPI.SUM)
+        #self.Tot_M = self._mpi_allsum(Tot_M)
+        self.Tot_M = Tot_M
+        MPI.COMM_WORLD.Allreduce([self.Tot_M, MPI.FLOAT], [self.Tot_M, MPI.FLOAT], op=MPI.SUM)
+        self.CoM = na.empty((self.group_count,3), dtype='float64')
         for groupID in xrange(self.group_count):
             self.CoM[groupID] = CoM_M[groupID] / self.Tot_M[groupID]
         # Now we find the maximum radius for all groups.
@@ -975,7 +1170,7 @@ class RunChainHOP(ParallelAnalysisInterface):
     def _chain_hop(self):
         mylog.info("Running Python version.")
         mylog.info("Distributing padded particles...")
-        self._resize_padding()
+        self._global_padding()
         self._is_inside('first')
         self._communicate_raw_padding_data()
         mylog.info('Building kd tree for %d particles...' % \

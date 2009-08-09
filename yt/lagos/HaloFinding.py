@@ -738,10 +738,12 @@ class chainHF(GenericHaloFinder, chainHOPHaloList):
             select = self._data_source["creation_time"] < 0
             total_mass = self._mpi_allsum((self._data_source["ParticleMassMsun"][select]).sum())
             local_parts = (self._data_source["ParticleMassMsun"][select]).size
+            tempx = self._data_source["particle_position_x"][select]
             n_parts = self._mpi_allsum(local_parts)
         else:
             total_mass = self._mpi_allsum(self._data_source["ParticleMassMsun"].sum())
             local_parts = self._data_source["ParticleMassMsun"].size
+            tempx = self._data_source["particle_position_x"]
             n_parts = self._mpi_allsum(local_parts)
         min = self._mpi_allmin(local_parts)
         max = self._mpi_allmax(local_parts)
@@ -761,16 +763,21 @@ class chainHF(GenericHaloFinder, chainHOPHaloList):
         print 'padding',self.padding,'avg_spacing',avg_spacing,'vol',vol,'local_parts',local_parts
         # Adaptive subregions where we weight by number of particles in order
         # to get more evenly distributed particles.
-        #if resize:
-        #    padded, LE, RE, self._data_source = \
-        #        self._partition_hierarchy_3d_weighted(padding=self.padding, weight=float(local_parts)/n_parts,
-        #        agg=agg)
-        #else:
-        #    padded, LE, RE, self._data_source = self._partition_hierarchy_3d(padding=self.padding)
-        #local_parts = self._data_source["ParticleMassMsun"].size
-        #min = self._mpi_allmin(local_parts)
-        #max = self._mpi_allmax(local_parts)
-        #print 'min,max', min, max
+#         if resize:
+#             multi=10
+#             xwidth = pf["DomainRightEdge"][0] - pf["DomainLeftEdge"][0]
+#             min_padding = self._mpi_allmin(self.padding)
+#             num_bins = int(xwidth/min_padding) * multi
+#             print 'num_bins',num_bins
+#             bins = na.arange(num_bins+1, dtype='float64') * min_padding / multi
+#             N, bins = na.histogram(tempx, bins, new=True)
+#             padded, LE, RE, self._data_source = \
+#                 self._partition_hierarchy_3d_weighted_1d(padding=0., weight=N, bins=bins, min_sep=self.padding)
+#         local_parts = self._data_source["ParticleMassMsun"].size
+#         min = self._mpi_allmin(local_parts)
+#         max = self._mpi_allmax(local_parts)
+#         print 'min,max', min, max
+#         sys.exit()
         if self._mpi_size() == 0:
             self.padding = 0.0
         self.bounds = (LE, RE)

@@ -260,6 +260,183 @@ class ParallelAnalysisInterface(object):
 
         return False, LE, RE, self.hierarchy.region_strict(self.center, LE, RE)
 
+    def _partition_hierarchy_3d_bisection(self, axis, bins, counts, LE = None, RE = None,\
+        old_group = None, old_comm = None):
+        """
+        Partition the volume into evenly weighted subvolumes using the distribution
+        in counts. The bisection happens in the MPI communicator group old_group.
+        """
+        if not self._distributed:
+           LE, RE = self.pf["DomainLeftEdge"], self.pf["DomainRightEdge"]
+           return False, LE, RE, self.hierarchy.grid_collection(self.center, self.hierarchy.grids)
+        
+        # First time through the world is the current group.
+        if old_group == None or old_comm == None:
+            old_group = MPI.COMM_WORLD.Get_group()
+            old_comm = MPI.COMM_WORLD
+
+        ra = old_group.Get_rank() # In this group, not WORLD, unless it's the first time.
+        
+        # First find the total number of particles in my group.
+        parts = old_group.allreduce(int(counts.sum()), op=MPI.SUM)
+        # Now the full sum in the bins along this axis in this group.
+        full_counts = na.empty(counts.size, dtype='int64')
+        old_group.Allreduce([counts, MPI.INT], [full_counts, MPI.INT], op=MPI.SUM)
+        # Find the bin that passes the midpoint.
+        sum = 0
+        bin = 0
+        while sum < (parts/2):
+            lastsum = sum
+            sum += full_counts[bin]
+            bin += 1
+        # Bin edges
+        left_edge = bins[bin-1]
+        right_edge = bins[bin]
+        # Find a better approx of the midpoint cut line using y = ax + b, then
+        # solve for x in 0.5 = ax + b
+        a = float(sum - lastsum) / (right_edge - left_edge)
+        b = float(lastsum) - left_edge * a
+        midpoint = (0.5 - b) / a
+        # I have some worries I've missed something.
+        if midpoint < left_edge or midpoint > right_edge:
+            print 'stupid, fix midpoint!'
+            sys.exit()
+        
+        # Now we need to split the members of this group into a top and bottom
+        # half. The values that go into the _ranks are the ranks of the tasks
+        # in *this* communicator group, which go zero to size - 1. They are not
+        # the same as the global ranks!
+        old_group_size = old_group.Get_size()
+        top = na.arange(old_group_size/2)
+        top_ranks = [ (top[0], top[-1], 1), ] # [ (start, stop, step), ]
+        bot = na.arange(old_group_size/2, old_group_size)
+        bot_ranks = [ (bot[0], bot[-1], 1), ]
+        
+        # Based on where we are, adjust our LE or RE, depending on axis. At the
+        # same time assign the new MPI group membership.
+        if ra in top:
+            # Adjust our LE.
+            LE[axis] = midpoint
+            new_group = old_group.Range_incl(top_ranks)
+            new_comm = old_comm.Create(new_group)
+        else:
+            # Adjust our RE.
+            RE[axis] = midpoint
+            new_group = old_group.Range_incl(bot_ranks)
+            new_comm = old_comm.Create(new_group)
+        
+        # Return a new subvolume and associated stuff.
+        return new_group, new_comm, LE, RE, self.hierarchy.region_strict(self.center, LE, RE)
+
+    def _partition_hierarchy_3d_weighted_1d(self, weight=None, bins=None, padding=0.0, axis=0, min_sep=.1):
+        LE, RE = self.pf["DomainLeftEdge"], self.pf["DomainRightEdge"]
+        if not self._distributed:
+           return False, LE, RE, self.hierarchy.grid_collection(self.center, self.hierarchy.grids)
+
+        cc = MPI.Compute_dims(MPI.COMM_WORLD.size, 3)
+        mi = MPI.COMM_WORLD.rank
+        si = MPI.COMM_WORLD.size
+        cx, cy, cz = na.unravel_index(mi, cc)
+
+        gridx = na.mgrid[LE[0]:RE[0]:(cc[0]+1)*1j]
+        gridy = na.mgrid[LE[1]:RE[1]:(cc[1]+1)*1j]
+        gridz = na.mgrid[LE[2]:RE[2]:(cc[2]+1)*1j]
+
+        x = gridx[cx:cx+2]
+        y = gridy[cy:cy+2]
+        z = gridz[cz:cz+2]
+
+        LE = na.array([x[0], y[0], z[0]], dtype='float64')
+        RE = na.array([x[1], y[1], z[1]], dtype='float64')
+
+        # Default to normal if we don't have a weight, or our subdivisions are
+        # not enough to warrant this procedure.
+        if weight is None or cc[axis] < 1:
+            if padding > 0:
+                return True, \
+                    LE, RE, self.hierarchy.periodic_region_strict(self.center, LE-padding, RE+padding)
+
+            return False, LE, RE, self.hierarchy.region_strict(self.center, LE, RE)
+
+        # Find the densest subvolumes globally
+        local_weight = na.zeros((si, weight.size),dtype='float64')
+        local_weight[mi,:] = weight
+        weights = self._mpi_allsum(local_weight)
+        avg_weight = weights.mean()
+        weights = weights.max(axis=0)
+        
+        moved_count = 0
+        moved = {}
+        w_copy = weights.copy()
+        
+        if mi == 0:
+            print 'w_copy',w_copy,'gridx',gridx
+        
+        while moved_count < (cc[axis]-1):
+            con = False
+            # Find the current peak
+            hi_mark = na.argmax(w_copy)
+            # If this peak isn't high enough, we're done
+            height = w_copy[hi_mark]
+            if height < 10.*avg_weight:
+                if mi == 0:
+                    print 'breaking',moved_count, height, avg_weight
+                break
+            # If this mark is too close to a previous one, avg this one out
+            # and restart a search.
+            new_cen = (bins[hi_mark] + bins[hi_mark+1])/2.
+            if mi==0:
+                print 'moved',moved
+            for source in moved:
+                if mi == 0:
+                    print 'boobies',abs(moved[source] - new_cen)
+                if abs(moved[source] - new_cen) < min_sep:
+                    w_copy[hi_mark] = avg_weight
+                    if mi == 0:
+                        print 'continued'
+                    con = True
+            if con:
+                continue
+            # Find the lowest value entry
+            lo_mark = na.argmin(w_copy)
+            # Record this as a new mapping.
+            moved[(bins[lo_mark] + bins[lo_mark+1])/2.] = (bins[hi_mark] + bins[hi_mark+1])/2.
+            # Fix the values so they're not pulled again.
+            w_copy[hi_mark] = avg_weight
+            w_copy[lo_mark] = avg_weight
+            moved_count += 1
+        
+        # Now for each key in moved, we move the axis closest to that value to
+        # the value in the dict.
+        temp_gridx = []
+        for source in moved:
+            tomove = na.argmin(abs(gridx - source))
+            temp_gridx.append(moved[source])
+            gridx[tomove] = -1.
+        
+        for g in gridx:
+            if g >= 0.:
+                temp_gridx.append(g)
+        
+        temp_gridx.sort()
+        gridx = na.array(temp_gridx)
+        if mi == 0:
+            print 'gridx',gridx,'len=',len(gridx)
+        x = gridx[cx:cx+2]
+        y = gridy[cy:cy+2]
+        z = gridz[cz:cz+2]
+
+        LE = na.array([x[0], y[0], z[0]], dtype='float64')
+        RE = na.array([x[1], y[1], z[1]], dtype='float64')
+
+        if padding > 0:
+            return True, \
+                LE, RE, self.hierarchy.periodic_region_strict(self.center, LE-padding, RE+padding)
+
+        return False, LE, RE, self.hierarchy.region_strict(self.center, LE, RE)
+
+
+
     def _partition_hierarchy_3d_weighted(self, weight=None, padding=0.0, agg=8.):
         LE, RE = self.pf["DomainLeftEdge"], self.pf["DomainRightEdge"]
         if not self._distributed:
@@ -535,6 +712,74 @@ class ParallelAnalysisInterface(object):
         else:
             MPI.COMM_WORLD.send(data, dest=0, tag=0)
         data = MPI.COMM_WORLD.bcast(data, root=0)
+        self._barrier()
+        return data
+
+    @parallel_passthrough
+    def _mpi_maxdict_dict(self, data):
+        """
+        Similar to above, but finds maximums for dicts of dicts. This is
+        specificaly for a part of chainHOP.
+        """
+        self._barrier()
+        if MPI.COMM_WORLD.rank == 0:
+            for i in range(1,MPI.COMM_WORLD.size):
+                temp_data = MPI.COMM_WORLD.recv(source=i, tag=0)
+                for top_key in temp_data:
+                    # Make sure there's an entry for top_key in data
+                    try:
+                        test = data[top_key]
+                    except KeyError:
+                        data[top_key] = {}
+                    for bot_key in temp_data[top_key]:
+                        try:
+                            old_value = data[top_key][bot_key]
+                        except KeyError:
+                            # This guarantees the new value gets added.
+                            old_value = None
+                        if old_value < temp_data[top_key][bot_key]:
+                            data[top_key][bot_key] = temp_data[top_key][bot_key]
+        else:
+            MPI.COMM_WORLD.send(data, dest=0, tag=0)
+        # Getting ghetto here, we're going to decompose the dict into arrays,
+        # send that, and then reconstruct it. When data is too big the pickling
+        # of the dict fails.
+        size = 0
+        if MPI.COMM_WORLD.rank == 0:
+            top_keys = []
+            bot_keys = []
+            vals = []
+            del temp_data
+            count = 0
+            for top_key in data:
+                for bot_key in data[top_key]:
+                    top_keys.append(top_key)
+                    bot_keys.append(bot_key)
+                    vals.append(data[top_key][bot_key])
+            top_keys = na.array(top_keys, dtype='int64')
+            bot_keys = na.array(bot_keys, dtype='int64')
+            vals = na.array(vals, dtype='int64')
+            size = top_keys.size
+        # Broadcast them using array methods
+        size = MPI.COMM_WORLD.bcast(size, root=0)
+        if MPI.COMM_WORLD.rank != 0:
+            top_keys = na.empty(size, dtype='int64')
+            bot_keys = na.empty(size, dtype='int64')
+            vals = na.empty(size, dtype='int64')
+        MPI.COMM_WORLD.Bcast([top_keys,MPI.INT], root=0)
+        MPI.COMM_WORLD.Bcast([bot_keys,MPI.INT], root=0)
+        MPI.COMM_WORLD.Bcast([vals, MPI.FLOAT], root=0)
+        # Convert it back into a dict where needed
+        if MPI.COMM_WORLD.rank != 0:
+            del data
+            data = {}
+            for i,top_key in enumerate(top_keys):
+                try:
+                    test = data[top_key]
+                except KeyError:
+                    data[top_key] = {}
+                data[top_key][bot_keys[i]] = vals[i]
+        del top_keys, bot_keys, vals
         self._barrier()
         return data
 
