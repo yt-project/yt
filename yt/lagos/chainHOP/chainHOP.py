@@ -168,7 +168,7 @@ class RunChainHOP(ParallelAnalysisInterface):
         # Now that we have the full size, initialize the chainID array
         self.chainID = na.ones(self.size,dtype='int64') * -1
         # Clean up explicitly.
-        del recv_real_indices
+        del recv_real_indices, requests
         del recv_points, recv_mass
         del points, mass, real_indices, done_LE, done_RE, done_neighbor
         yt_counters("Communicate raw padding")
@@ -497,7 +497,8 @@ class RunChainHOP(ParallelAnalysisInterface):
         # Find out how many particles we're going to receive, and make arrays
         # of the right size and type to store them.
         to_recv_count = 0
-        size_max = 0
+        temp_indices = {}
+        temp_chainIDs = {}
         for shift_index in xrange(27):
             # Skip ourselves, [0,0,0]
             if shift_index==13: continue
@@ -507,18 +508,27 @@ class RunChainHOP(ParallelAnalysisInterface):
             if neighbor == self.mine: continue
             opp_shift = -1 * shift
             opp_neighbor = self._mpi_find_neighbor_3d(opp_shift)
-            to_recv_count += self.global_padded_count[opp_neighbor]
-            if size_max < self.global_padded_count[opp_neighbor]:
-                size_max = self.global_padded_count[opp_neighbor]
+            opp_size = self.global_padded_count[opp_neighbor]
+            to_recv_count += opp_size
+            temp_indices[opp_neighbor] = na.empty(opp_size, dtype='int64')
+            temp_chainIDs[opp_neighbor] = na.empty(opp_size, dtype='int64')
+        # The arrays we'll actually keep around...
         self.recv_real_indices = na.empty(to_recv_count, dtype='int64')
         self.recv_chainIDs = na.empty(to_recv_count, dtype='int64')
-        # It appears that MPI doesn't like it when I slice the buffer, so I 
-        # still need temporary arrays, but they don't need to be so large, but
-        # still as large as the largest single thing I might receive. This size
-        # was calculated above.
-        temp_indices = na.empty(size_max, dtype='int64')
-        temp_chainIDs = na.empty(size_max, dtype='int64')
-        # Send/receive padded particles to our 26 neighbors.
+        # Set up the receives, but don't actually use them.
+        requests = []
+        for shift_index in xrange(27):
+            # Skip ourselves, [0,0,0]
+            if shift_index==13: continue
+            shift = self._translate_shift(i=shift_index)
+            neighbor = self._mpi_find_neighbor_3d(shift)
+            # Skip ourselves
+            if neighbor == self.mine: continue
+            opp_shift = -1 * shift
+            opp_neighbor = self._mpi_find_neighbor_3d(opp_shift)
+            requests.append(MPI.COMM_WORLD.Irecv([temp_indices[opp_neighbor], MPI.INT], opp_neighbor, 0))
+            requests.append(MPI.COMM_WORLD.Irecv([temp_chainIDs[opp_neighbor], MPI.INT], opp_neighbor, 0))
+        # Send padded particles to our 26 neighbors.
         so_far = 0
         for shift_index in xrange(27):
             # Skip ourselves, [0,0,0]
@@ -530,20 +540,28 @@ class RunChainHOP(ParallelAnalysisInterface):
             opp_shift = -1 * shift
             opp_neighbor = self._mpi_find_neighbor_3d(opp_shift)
             opp_size = self.global_padded_count[opp_neighbor]
-            MPI.COMM_WORLD.Sendrecv(
-                [self.uphill_real_indices, MPI.INT], neighbor, 0,
-                [temp_indices, MPI.INT], opp_neighbor, 0)
-            MPI.COMM_WORLD.Sendrecv(
-                [self.uphill_chainIDs, MPI.INT], neighbor, 0,
-                [temp_chainIDs, MPI.INT], opp_neighbor, 0)
+            requests.append(MPI.COMM_WORLD.Isend([self.uphill_real_indices, MPI.INT], neighbor, 0))
+            requests.append(MPI.COMM_WORLD.Isend([self.uphill_chainIDs, MPI.INT], neighbor, 0))
+        # Now actually use the data once it's good to go.
+        MPI.Request.Waitall(requests)
+        for shift_index in xrange(27):
+            # Skip ourselves, [0,0,0]
+            if shift_index==13: continue
+            shift = self._translate_shift(i=shift_index)
+            neighbor = self._mpi_find_neighbor_3d(shift)
+            # Skip ourselves
+            if neighbor == self.mine: continue
+            opp_shift = -1 * shift
+            opp_neighbor = self._mpi_find_neighbor_3d(opp_shift)
+            opp_size = self.global_padded_count[opp_neighbor]
             # Only save the part of the buffer that we want to the right places
             # in the full listing.
             self.recv_real_indices[so_far:(so_far + opp_size)] = \
-                temp_indices[0:opp_size]
+                temp_indices[opp_neighbor][0:opp_size]
             self.recv_chainIDs[so_far:(so_far + opp_size)] = \
-                temp_chainIDs[0:opp_size]
+                temp_chainIDs[opp_neighbor][0:opp_size]
             so_far += opp_size
-        del temp_indices, temp_chainIDs
+        del temp_indices, temp_chainIDs, requests
         yt_counters("communicate_uphill_info")
 
     def _recurse_global_chain_links(self, chainID_translate_map_global, chainID):
@@ -578,7 +596,7 @@ class RunChainHOP(ParallelAnalysisInterface):
         self.global_padded_count = {self.mine:self.uphill_chainIDs.size}
         self.global_padded_count = self._mpi_joindict(self.global_padded_count)
         # Send/receive 'em.
-        self._communicate_uphill_info()
+        self._communicate_uphill_info_non()
         # Fix the IDs to localIDs.
         for i,real_index in enumerate(self.recv_real_indices):
             try:
