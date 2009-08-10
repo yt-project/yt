@@ -32,6 +32,19 @@ class RunChainHOP(ParallelAnalysisInterface):
         self._chain_hop()
         yt_counters("chainHOP")
 
+    def _global_bounds_neighbors(self):
+        """
+        Build a dict of the boundaries of all the tasks, and figure out which
+        tasks are our neighbors.
+        """
+        self.mine, global_bounds = self._mpi_info_dict(self.bounds)
+        # A task is a neighbor if one of it's boundaries is equal to mine,
+        # taking periodicity into account.
+        my_LE, my_RE = self.bounds
+        for task in global_bounds:
+            task_LE, task_RE = global_bounds[task]
+            
+
     def _global_padding(self):
         """
         Find the maximum padding of all our neighbors, used to send our
@@ -914,18 +927,24 @@ class RunChainHOP(ParallelAnalysisInterface):
                 mylog.info('inside len(group_equivalancy_map) %d' % len(group_equivalancy_map))
                 keys = group_equivalancy_map.keys()
                 groupID = keys[0]
-                current_set = Set([])
+                current_sets = []
                 new_set = group_equivalancy_map[groupID]
+                current_sets.append(new_set)
                 del group_equivalancy_map[groupID]
-                while (len(new_set) - len(current_set)) > 0:
-                    build_set = new_set - current_set
-                    current_set = new_set.copy()
-                    for link_gID in build_set:
-                        new_set = new_set | group_equivalancy_map[link_gID]
+                while len(new_set) > 0:
+                    to_add_set = Set([])
+                    for link_gID in new_set:
+                        to_add_set = to_add_set | group_equivalancy_map[link_gID]
                         del group_equivalancy_map[link_gID]
+                    current_sets.append(to_add_set)
+                    new_set = to_add_set.copy()
+                # Add them together
+                final_set = Set([])
+                for small in current_sets:
+                    final_set = final_set | small
                 # Make sure it's not empty
-                new_set.add(groupID)
-                Set_list.append(new_set)
+                final_set.add(groupID)
+                Set_list.append(final_set)
             mylog.info("here 3.1.1")
                     
             # Convert this list of sets into a look-up table
@@ -1135,7 +1154,7 @@ class RunChainHOP(ParallelAnalysisInterface):
         mylog.info('Building chain connections across tasks...')
         self._connect_chains_across_tasks()
         mylog.info('Communicating connected chains...')
-        self._communicate_annulus_chainIDs_non()
+        self._communicate_annulus_chainIDs()
         mylog.info('Connecting %d chains into groups...' % self.nchains)
         self._connect_chains()
         mylog.info('Communicating group links globally...')
