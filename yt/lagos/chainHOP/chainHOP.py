@@ -596,7 +596,7 @@ class RunChainHOP(ParallelAnalysisInterface):
         self.global_padded_count = {self.mine:self.uphill_chainIDs.size}
         self.global_padded_count = self._mpi_joindict(self.global_padded_count)
         # Send/receive 'em.
-        self._communicate_uphill_info_non()
+        self._communicate_uphill_info()
         # Fix the IDs to localIDs.
         for i,real_index in enumerate(self.recv_real_indices):
             try:
@@ -687,11 +687,9 @@ class RunChainHOP(ParallelAnalysisInterface):
         # that it's not worth the effort right now to make this one spot better.
         global_annulus_count = {self.mine:send_count}
         global_annulus_count = self._mpi_joindict(global_annulus_count)
-
-        size_max = max(global_annulus_count.values())
-        recv_real_indices = na.empty(size_max, dtype='int64')
-        recv_chainIDs = na.empty(size_max, dtype='int64')
-
+        # Set up the receiving arrays.
+        recv_real_indices = {}
+        recv_chainIDs = {}
         for shift_index in xrange(27):
             if shift_index==13: continue
             shift = self._translate_shift(i=shift_index)
@@ -700,15 +698,39 @@ class RunChainHOP(ParallelAnalysisInterface):
             opp_shift = -1 * shift
             opp_neighbor = self._mpi_find_neighbor_3d(opp_shift)
             opp_size = global_annulus_count[opp_neighbor]
-            # Send/receive the data.
-            MPI.COMM_WORLD.Sendrecv(
-                [real_indices, MPI.INT], neighbor, 0,
-                [recv_real_indices, MPI.INT], opp_neighbor, 0)
-            MPI.COMM_WORLD.Sendrecv(
-                [chainIDs, MPI.INT], neighbor, 0,
-                [recv_chainIDs, MPI.INT], opp_neighbor, 0)
-            # Use the data immediately.
-            for i,real_index in enumerate(recv_real_indices[0:opp_size]):
+            recv_real_indices[opp_neighbor] = na.empty(opp_size, dtype='int64')
+            recv_chainIDs[opp_neighbor] = na.empty(opp_size, dtype='int64')
+        # Set up the receving hooks.
+        requests = []
+        for shift_index in xrange(27):
+            if shift_index==13: continue
+            shift = self._translate_shift(i=shift_index)
+            neighbor = self._mpi_find_neighbor_3d(shift)
+            if neighbor == self.mine: continue
+            opp_shift = -1 * shift
+            opp_neighbor = self._mpi_find_neighbor_3d(opp_shift)
+            requests.append(MPI.COMM_WORLD.Irecv([recv_real_indices[opp_neighbor], MPI.INT], opp_neighbor, 0))
+            requests.append(MPI.COMM_WORLD.Irecv([recv_chainIDs[opp_neighbor], MPI.INT], opp_neighbor, 0))
+        # Now we send them.
+        for shift_index in xrange(27):
+            if shift_index==13: continue
+            shift = self._translate_shift(i=shift_index)
+            neighbor = self._mpi_find_neighbor_3d(shift)
+            if neighbor == self.mine: continue
+            requests.append(MPI.COMM_WORLD.Isend([real_indices, MPI.INT], neighbor, 0))
+            requests.append(MPI.COMM_WORLD.Isend([chainIDs, MPI.INT], neighbor, 0))
+        # Now we use them when they're nice and ripe.
+        MPI.Request.Waitall(requests)
+        for shift_index in xrange(27):
+            if shift_index==13: continue
+            shift = self._translate_shift(i=shift_index)
+            neighbor = self._mpi_find_neighbor_3d(shift)
+            if neighbor == self.mine: continue
+            opp_shift = -1 * shift
+            opp_neighbor = self._mpi_find_neighbor_3d(opp_shift)
+            opp_size = global_annulus_count[opp_neighbor]
+            # Update our local data.
+            for i,real_index in enumerate(recv_real_indices[opp_neighbor][0:opp_size]):
                 try:
                     localID = self.rev_index[real_index]
                     # We are only updating our particles that are in our
@@ -716,11 +738,11 @@ class RunChainHOP(ParallelAnalysisInterface):
                     # that are in our real region.
                     if self.is_inside[localID]:
                         continue
-                    self.chainID[localID] = recv_chainIDs[i]
+                    self.chainID[localID] = recv_chainIDs[opp_neighbor][i]
                 except KeyError:
                     # We ignore data that's not for us.
                     continue
-        del recv_real_indices, recv_chainIDs, real_indices, chainIDs, select
+        del recv_real_indices, recv_chainIDs, real_indices, chainIDs, select, requests
         yt_counters("communicate_annulus_chainIDs")
 
     def _connect_chains(self):
@@ -1113,7 +1135,7 @@ class RunChainHOP(ParallelAnalysisInterface):
         mylog.info('Building chain connections across tasks...')
         self._connect_chains_across_tasks()
         mylog.info('Communicating connected chains...')
-        self._communicate_annulus_chainIDs()
+        self._communicate_annulus_chainIDs_non()
         mylog.info('Connecting %d chains into groups...' % self.nchains)
         self._connect_chains()
         mylog.info('Communicating group links globally...')
