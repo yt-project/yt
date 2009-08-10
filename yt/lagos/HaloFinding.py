@@ -778,7 +778,7 @@ class chainHF(GenericHaloFinder, chainHOPHaloList):
 #         max = self._mpi_allmax(local_parts)
 #         print 'min,max', min, max
 #         sys.exit()
-        if self._mpi_size() == 0:
+        if self._mpi_get_size() == 0:
             self.padding = 0.0
         self.bounds = (LE, RE)
         chainHOPHaloList.__init__(self, self._data_source, self.padding, \

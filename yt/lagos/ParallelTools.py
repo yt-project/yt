@@ -851,7 +851,7 @@ class ParallelAnalysisInterface(object):
         self._barrier()
         return MPI.COMM_WORLD.allreduce(data, op=MPI.MIN)
 
-    def _mpi_size(self):
+    def _mpi_get_size(self):
         if not self._distributed: return 0
         return MPI.COMM_WORLD.size
 

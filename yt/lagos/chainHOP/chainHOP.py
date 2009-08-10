@@ -38,13 +38,52 @@ class RunChainHOP(ParallelAnalysisInterface):
         tasks are our neighbors.
         """
         self.mine, global_bounds = self._mpi_info_dict(self.bounds)
-        # A task is a neighbor if one of it's boundaries is equal to mine,
-        # taking periodicity into account.
+        # A task is a neighbor if it has a corner (vertex) inside a sphere
+        # centered at my center with radius equal to my volume radius 
+        # (center to a corner) plus our padding. Due to various geometrical
+        # arrangements that can happen, the list of neighbors is made
+        # symmetric using communication. This is not the most efficient way,
+        # but it's simple and communication is not the performance bottle-
+        # neck.
         my_LE, my_RE = self.bounds
-        for task in global_bounds:
-            task_LE, task_RE = global_bounds[task]
-            
-
+        my_center = (my_LE + my_RE) / 2.
+        radius = na.sqrt( (my_RE[0] - my_LE[0])**2. + \
+            (my_RE[1] - my_LE[1])**2. + (my_RE[2] - my_LE[2])**2) / 2. + \
+            self.padding
+        # Put the vertices into a big list, each row is
+        # array[x,y,z, taskID]
+        vertices = []
+        for taskID in global_bounds:
+            thisLE, thisRE = global_bounds[taskID]
+            vertices.append(na.array([thisLE[0], thisLE[1], thisLE[2], taskID]))
+            vertices.append(na.array([thisLE[0], thisLE[1], thisRE[2], taskID]))
+            vertices.append(na.array([thisLE[0], thisRE[1], thisLE[2], taskID]))
+            vertices.append(na.array([thisRE[0], thisLE[1], thisLE[2], taskID]))
+            vertices.append(na.array([thisLE[0], thisRE[1], thisRE[2], taskID]))
+            vertices.append(na.array([thisRE[0], thisLE[1], thisRE[2], taskID]))
+            vertices.append(na.array([thisRE[0], thisRE[1], thisLE[2], taskID]))
+            vertices.append(na.array([thisRE[0], thisRE[1], thisRE[2], taskID]))
+        # Look for vertices within one radius (periodic) of our center, and
+        # add them as neighbors
+        neighbors = Set([])
+        for vertex in vertices:
+            dist = na.sqrt( (vertex[0] - my_center[0])**2. + \
+                (vertex[1] - my_center[1])**2. + (vertex[2] - my_center[2])**2.)
+            if dist <= radius:
+                neighbors.add(int(vertex[3]))
+        # Now we build a global dict of neighbor sets, and if a remote task
+        # lists us as their neighbor, we add them as our neighbor.
+        self.mine, global_neighbors = self._mpi_info_dict(neighbors)
+        self.neighbors = neighbors.copy()
+        for taskID in global_neighbors:
+            if taskID == self.mine: continue
+            if self.mine in global_neighbors[taskID]:
+                self.neighbors.add(taskID)
+        # We can remove ourselves from the set.
+        self.neighbors.discard(self.mine)
+        # Clean up.
+        del global_neighbors, global_bounds, vertices, neighbors
+        
     def _global_padding(self):
         """
         Find the maximum padding of all our neighbors, used to send our
@@ -1064,7 +1103,6 @@ class RunChainHOP(ParallelAnalysisInterface):
         # Now we broadcast this, effectively, with an allsum. Even though
         # some groups are on multiple tasks, there is only one densest_in_chain
         # and only that task contributed above.
-        #self.max_dens_point = self._mpi_allsum(max_dens_point)
         self.max_dens_point = max_dens_point
         MPI.COMM_WORLD.Allreduce([self.max_dens_point, MPI.FLOAT], [self.max_dens_point, MPI.FLOAT], op=MPI.SUM)
         # Now CoM.
@@ -1091,12 +1129,9 @@ class RunChainHOP(ParallelAnalysisInterface):
                 CoM_M[groupID] += c_vec[groupID]
                 CoM_M[groupID] *= Tot_M[groupID]
         # Now we find their global values
-        #self.group_sizes = self._mpi_allsum(size)
         self.group_sizes = size
         MPI.COMM_WORLD.Allreduce([self.group_sizes, MPI.INT], [self.group_sizes, MPI.INT],op=MPI.SUM)
-        #CoM_M = self._mpi_allsum(CoM_M)
         MPI.COMM_WORLD.Allreduce([CoM_M, MPI.FLOAT], [CoM_M, MPI.FLOAT], op=MPI.SUM)
-        #self.Tot_M = self._mpi_allsum(Tot_M)
         self.Tot_M = Tot_M
         MPI.COMM_WORLD.Allreduce([self.Tot_M, MPI.FLOAT], [self.Tot_M, MPI.FLOAT], op=MPI.SUM)
         self.CoM = na.empty((self.group_count,3), dtype='float64')
@@ -1117,6 +1152,7 @@ class RunChainHOP(ParallelAnalysisInterface):
 
     def _chain_hop(self):
         mylog.info("Running Python version.")
+        self._global_bounds_neighbors()
         mylog.info("Distributing padded particles...")
         self._global_padding()
         self._is_inside('first')
