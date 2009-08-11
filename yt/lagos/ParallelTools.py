@@ -260,8 +260,8 @@ class ParallelAnalysisInterface(object):
 
         return False, LE, RE, self.hierarchy.region_strict(self.center, LE, RE)
 
-    def _partition_hierarchy_3d_bisection(self, axis, bins, counts, LE = None, RE = None,\
-        old_group = None, old_comm = None):
+    def _partition_hierarchy_3d_bisection(self, axis, bins, counts, top_bounds = None,\
+        old_group = None, old_comm = None, cuts=None):
         """
         Partition the volume into evenly weighted subvolumes using the distribution
         in counts. The bisection happens in the MPI communicator group old_group.
@@ -274,14 +274,28 @@ class ParallelAnalysisInterface(object):
         if old_group == None or old_comm == None:
             old_group = MPI.COMM_WORLD.Get_group()
             old_comm = MPI.COMM_WORLD
+        
+        # Figure out the gridding.
+        cc = MPI.Compute_dims(MPI.COMM_WORLD.size, 3)
+        if cuts is not None:
+            xdiv = (na.array([2,1,1])**na.ceil(cuts/3.)).astype('int64')
+            ydiv = (na.array([1,2,1])**na.ceil((cuts-1)/3.)).astype('int64')
+            zdiv = (na.array([1,1,2])**na.ceil((cuts-2)/3.)).astype('int64')
+            cc = cc / xdiv / ydiv / zdiv
+        
+        # Set the boundaries of the full bounding box for this group.
+        if top_bounds == None:
+            LE, RE = self.pf["DomainLeftEdge"], self.pf["DomainRightEdge"]
+        else:
+            LE, RE = top_bounds
 
         ra = old_group.Get_rank() # In this group, not WORLD, unless it's the first time.
         
         # First find the total number of particles in my group.
-        parts = old_group.allreduce(int(counts.sum()), op=MPI.SUM)
+        parts = old_comm.allreduce(int(counts.sum()), op=MPI.SUM)
         # Now the full sum in the bins along this axis in this group.
         full_counts = na.empty(counts.size, dtype='int64')
-        old_group.Allreduce([counts, MPI.INT], [full_counts, MPI.INT], op=MPI.SUM)
+        old_comm.Allreduce([counts, MPI.INT], [full_counts, MPI.INT], op=MPI.SUM)
         # Find the bin that passes the midpoint.
         sum = 0
         bin = 0
@@ -296,9 +310,11 @@ class ParallelAnalysisInterface(object):
         # solve for x in 0.5 = ax + b
         a = float(sum - lastsum) / (right_edge - left_edge)
         b = float(lastsum) - left_edge * a
-        midpoint = (0.5 - b) / a
+        #midpoint = (0.5 - b) / a
+        midpoint = (left_edge + right_edge)/2.
         # I have some worries I've missed something.
         if midpoint < left_edge or midpoint > right_edge:
+            print midpoint, left_edge, right_edge, sum, lastsum
             print 'stupid, fix midpoint!'
             sys.exit()
         
@@ -325,8 +341,21 @@ class ParallelAnalysisInterface(object):
             new_group = old_group.Range_incl(bot_ranks)
             new_comm = old_comm.Create(new_group)
         
+        new_top_bounds = (LE,RE)
+        
+        # Using the new boundaries, regrid.
+        mi = new_comm.rank
+        cx, cy, cz = na.unravel_index(mi, cc)
+        x = na.mgrid[LE[0]:RE[0]:(cc[0]+1)*1j][cx:cx+2]
+        y = na.mgrid[LE[1]:RE[1]:(cc[1]+1)*1j][cy:cy+2]
+        z = na.mgrid[LE[2]:RE[2]:(cc[2]+1)*1j][cz:cz+2]
+
+        my_LE = na.array([x[0], y[0], z[0]], dtype='float64')
+        my_RE = na.array([x[1], y[1], z[1]], dtype='float64')
+        
         # Return a new subvolume and associated stuff.
-        return new_group, new_comm, LE, RE, self.hierarchy.region_strict(self.center, LE, RE)
+        return new_group, new_comm, my_LE, my_RE, new_top_bounds, \
+            self.hierarchy.region_strict(self.center, my_LE, my_RE)
 
     def _partition_hierarchy_3d_weighted_1d(self, weight=None, bins=None, padding=0.0, axis=0, min_sep=.1):
         LE, RE = self.pf["DomainLeftEdge"], self.pf["DomainRightEdge"]

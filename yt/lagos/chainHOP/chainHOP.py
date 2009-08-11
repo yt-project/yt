@@ -87,7 +87,6 @@ class RunChainHOP(ParallelAnalysisInterface):
         # We can remove ourselves from the set.
         self.neighbors.discard(self.mine)
         # Clean up.
-        self.global_bounds = global_bounds.copy()
         del global_neighbors, global_bounds, vertices, neighbors
         
     def _global_padding(self):
@@ -547,7 +546,7 @@ class RunChainHOP(ParallelAnalysisInterface):
         neighbors.
         """
         new_chainID = chainID_translate_map_global[chainID]
-        if  new_chainID== chainID:
+        if  new_chainID == chainID:
             return int(chainID)
         else:
             return self._recurse_global_chain_links(chainID_translate_map_global, new_chainID)
@@ -624,7 +623,7 @@ class RunChainHOP(ParallelAnalysisInterface):
         # the *current* one only.
         for chain in dens_temp:
             new_chainID = \
-                self._recurse_global_chain_links(chainID_translate_map_global, chain[1])
+                self._recurse_global_chain_links(chainID_translate_map_global, int(chain[1]))
             chainID_translate_map_global[chain[1]] = new_chainID
             # At the same time, remove chains from densest_in_chain that have
             # been reassigned.

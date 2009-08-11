@@ -726,7 +726,7 @@ class GenericHaloFinder(ParallelAnalysisInterface):
             halo.write_particle_list(f)
 
 class chainHF(GenericHaloFinder, chainHOPHaloList):
-    def __init__(self, pf, threshold=160, dm_only=True, resize=False, agg=1., rearrange=True):
+    def __init__(self, pf, threshold=160, dm_only=True, resize=False, rearrange=True):
         GenericHaloFinder.__init__(self, pf, dm_only, padding=0.0)
         self.padding = 0.0 
         self.num_neighbors = 65
@@ -748,39 +748,50 @@ class chainHF(GenericHaloFinder, chainHOPHaloList):
         min = self._mpi_allmin(local_parts)
         max = self._mpi_allmax(local_parts)
         print 'min,max', min, max
+        # Adaptive subregions by bisection.
+        if resize and self._mpi_get_size()!=0:
+            Ncuts = int(na.log(self._mpi_get_size()) / na.log(2))
+            ds_names = ["particle_position_x","particle_position_y","particle_position_z"]
+            for cut in xrange(Ncuts):
+                dim = cut % 3
+                if cut == 0:
+                    width = pf["DomainRightEdge"][dim] - pf["DomainLeftEdge"][dim]
+                else:
+                    new_LE, new_RE = new_top_bounds
+                    width = new_RE[dim] - new_LE[dim]
+                data = self._data_source[ds_names[dim]]
+                num_bins = 1000
+                bin_width = float(width)/float(num_bins)
+                bins = na.arange(num_bins+1, dtype='float64') * bin_width
+                counts, bins = na.histogram(data, bins, new=True)
+                if cut == 0:
+                    new_group, new_comm, my_LE, my_RE, new_top_bounds, self._data_source = \
+                        self._partition_hierarchy_3d_bisection(dim, bins, counts, top_bounds = None,\
+                        old_group = None, old_comm = None, cuts=cut+1)
+                else:
+                    new_group, new_comm, my_LE, my_RE, new_top_bounds, self._data_source = \
+                        self._partition_hierarchy_3d_bisection(dim, bins, counts, top_bounds = new_top_bounds,\
+                        old_group = new_group, old_comm = new_comm, cuts=cut+1)
+        data = self._data_source["particle_position_x"]
         # get the average spacing between particles for this region
         # The except is for the serial case, where the full box is what we want.
         try:
             l = self._data_source.right_edge - self._data_source.left_edge
         except AttributeError:
-            l = l = pf["DomainRightEdge"] - pf["DomainLeftEdge"]
+            l = pf["DomainRightEdge"] - pf["DomainLeftEdge"]
         vol = l[0] * l[1] * l[2]
-        avg_spacing = (float(vol) / local_parts)**(1./3.)
+        avg_spacing = (float(vol) / data.size)**(1./3.)
         # padding is a function of inter-particle spacing, this is an
         # approximation, but it's OK with the safety factor
         safety = 2
         self.padding = (self.num_neighbors)**(1./3.) * safety * avg_spacing
-        print 'padding',self.padding,'avg_spacing',avg_spacing,'vol',vol,'local_parts',local_parts
-        # Adaptive subregions where we weight by number of particles in order
-        # to get more evenly distributed particles.
-#         if resize:
-#             multi=10
-#             xwidth = pf["DomainRightEdge"][0] - pf["DomainLeftEdge"][0]
-#             min_padding = self._mpi_allmin(self.padding)
-#             num_bins = int(xwidth/min_padding) * multi
-#             print 'num_bins',num_bins
-#             bins = na.arange(num_bins+1, dtype='float64') * min_padding / multi
-#             N, bins = na.histogram(tempx, bins, new=True)
-#             padded, LE, RE, self._data_source = \
-#                 self._partition_hierarchy_3d_weighted_1d(padding=0., weight=N, bins=bins, min_sep=self.padding)
-#         local_parts = self._data_source["ParticleMassMsun"].size
-#         min = self._mpi_allmin(local_parts)
-#         max = self._mpi_allmax(local_parts)
-#         print 'min,max', min, max
-#         sys.exit()
+        print 'padding',self.padding,'avg_spacing',avg_spacing,'vol',vol,'local_parts',data.size
         if self._mpi_get_size() == 0:
             self.padding = 0.0
-        self.bounds = (LE, RE)
+        if my_LE is not None and my_RE is not None:
+            self.bounds = (my_LE, my_RE)
+        else:
+            self.bounds = (LE, RE)
         chainHOPHaloList.__init__(self, self._data_source, self.padding, \
         self.num_neighbors, self.bounds, total_mass, threshold=threshold, dm_only=dm_only, rearrange=rearrange)
         self._join_halolists()
