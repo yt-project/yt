@@ -275,7 +275,7 @@ class ParallelAnalysisInterface(object):
             old_group = MPI.COMM_WORLD.Get_group()
             old_comm = MPI.COMM_WORLD
         
-        # Figure out the gridding.
+        # Figure out the gridding based on the deepness of cuts.
         cc = MPI.Compute_dims(MPI.COMM_WORLD.size, 3)
         if cuts is not None:
             xdiv = (na.array([2,1,1])**na.ceil(cuts/3.)).astype('int64')
@@ -306,18 +306,11 @@ class ParallelAnalysisInterface(object):
         # Bin edges
         left_edge = bins[bin-1]
         right_edge = bins[bin]
-        # Find a better approx of the midpoint cut line using y = ax + b, then
-        # solve for x in 0.5 = ax + b
+        # Find a better approx of the midpoint cut line using a linear approx.
         a = float(sum - lastsum) / (right_edge - left_edge)
-        b = float(lastsum) - left_edge * a
-        #midpoint = (0.5 - b) / a
-        midpoint = (left_edge + right_edge)/2.
-        # I have some worries I've missed something.
-        if midpoint < left_edge or midpoint > right_edge:
-            print midpoint, left_edge, right_edge, sum, lastsum
-            print 'stupid, fix midpoint!'
-            sys.exit()
-        
+        midpoint = left_edge + (0.5 - (float(lastsum) / parts / 2)) / a
+        #midpoint = (left_edge + right_edge) / 2.
+        #midpoint = 0.5
         # Now we need to split the members of this group into a top and bottom
         # half. The values that go into the _ranks are the ranks of the tasks
         # in *this* communicator group, which go zero to size - 1. They are not
@@ -883,6 +876,10 @@ class ParallelAnalysisInterface(object):
     def _mpi_get_size(self):
         if not self._distributed: return 0
         return MPI.COMM_WORLD.size
+
+    def _mpi_get_rank(self):
+        if not self._distributed: return None
+        return MPI.COMM_WORLD.rank
 
     def _mpi_info_dict(self, info):
         if not self._distributed: return 0, {0:info}

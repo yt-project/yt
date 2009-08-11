@@ -40,7 +40,7 @@ class RunChainHOP(ParallelAnalysisInterface):
         self.mine, global_bounds = self._mpi_info_dict(self.bounds)
         # A task is a neighbor if it has a corner (vertex) inside a sphere
         # centered at my center with radius equal to my volume radius 
-        # (center to a corner) plus our padding. Due to various geometrical
+        # (center to a corner) plus max padding. Due to various geometrical
         # arrangements that can happen, the list of neighbors is made
         # symmetric using communication. This is not the most efficient way,
         # but it's simple and communication is not the performance bottle-
@@ -49,7 +49,7 @@ class RunChainHOP(ParallelAnalysisInterface):
         my_center = (my_LE + my_RE) / 2.
         radius = na.sqrt( (my_RE[0] - my_LE[0])**2. + \
             (my_RE[1] - my_LE[1])**2. + (my_RE[2] - my_LE[2])**2) / 2. + \
-            self.padding
+            self.max_padding
         # Put the vertices into a big list, each row is
         # array[x,y,z, taskID]
         vertices = []
@@ -95,10 +95,7 @@ class RunChainHOP(ParallelAnalysisInterface):
         annulus data.
         """
         self.mine, global_padding = self._mpi_info_dict(self.padding)
-        self.max_padding = 0.
-        for neighbor in self.neighbors:
-            if global_padding[neighbor] > self.max_padding:
-                self.max_padding = global_padding[neighbor]
+        self.max_padding = max(global_padding.values())
         del global_padding
 
     def _communicate_raw_padding_data(self):
@@ -150,21 +147,28 @@ class RunChainHOP(ParallelAnalysisInterface):
         # Now we use the data, after all the comm is done.
         MPI.Request.Waitall(requests)
         for opp_neighbor in self.neighbors:
+            adjusts = 0
             opp_size = global_annulus_count[opp_neighbor]
             # Adjust the values of the positions if needed.
             for i,point in enumerate(recv_points[opp_neighbor][:opp_size]):
                 if point[0] < temp_LE[0] and point[0] < temp_RE[0]:
                     recv_points[opp_neighbor][i][0] += self.period[0]
+                    adjusts += 1
                 if point[0] > temp_LE[0] and point[0] > temp_RE[0]:
                     recv_points[opp_neighbor][i][0] -= self.period[0]
+                    adjusts += 1
                 if point[1] < temp_LE[1] and point[1] < temp_RE[1]:
                     recv_points[opp_neighbor][i][1] += self.period[1]
+                    adjusts += 1
                 if point[1] > temp_LE[1] and point[1] > temp_RE[1]:
                     recv_points[opp_neighbor][i][1] -= self.period[1]
+                    adjusts += 1
                 if point[2] < temp_LE[2] and point[2] < temp_RE[2]:
                     recv_points[opp_neighbor][i][2] += self.period[2]
+                    adjusts += 1
                 if point[2] > temp_LE[2] and point[2] > temp_RE[2]:
                     recv_points[opp_neighbor][i][2] -= self.period[2]
+                    adjusts += 1
             is_inside = ( (recv_points[opp_neighbor][:opp_size] >= temp_LE).all(axis=1) * \
                 (recv_points[opp_neighbor][:opp_size] < temp_RE).all(axis=1) )
             self.index = na.concatenate((self.index, recv_real_indices[opp_neighbor][:opp_size][is_inside]))
@@ -1053,9 +1057,9 @@ class RunChainHOP(ParallelAnalysisInterface):
 
     def _chain_hop(self):
         mylog.info("Running Python version.")
+        self._global_padding()
         self._global_bounds_neighbors()
         mylog.info("Distributing padded particles...")
-        self._global_padding()
         self._is_inside('first')
         self._communicate_raw_padding_data()
         mylog.info('Building kd tree for %d particles...' % \
