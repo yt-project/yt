@@ -747,7 +747,7 @@ class chainHF(GenericHaloFinder, chainHOPHaloList):
         max = self._mpi_allmax(local_parts)
         print 'min,max,tot', min, max, n_parts
         # Adaptive subregions by bisection.
-        if resize and self._mpi_get_size()!=0:
+        if resize and self._mpi_get_size()!=None:
             Ncuts = int(na.log(self._mpi_get_size()) / na.log(2))
             ds_names = ["particle_position_x","particle_position_y","particle_position_z"]
             for cut in xrange(Ncuts):
@@ -784,7 +784,7 @@ class chainHF(GenericHaloFinder, chainHOPHaloList):
         safety = 2
         self.padding = (self.num_neighbors)**(1./3.) * safety * avg_spacing
         print 'padding',self.padding,'avg_spacing',avg_spacing,'vol',vol,'local_parts',data.size
-        if self._mpi_get_size() == 0:
+        if self._mpi_get_size() == None:
             self.padding = 0.0
         self.bounds = (LE, RE)
         chainHOPHaloList.__init__(self, self._data_source, self.padding, \
