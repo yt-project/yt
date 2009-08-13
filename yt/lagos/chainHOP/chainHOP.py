@@ -882,31 +882,35 @@ class RunChainHOP(ParallelAnalysisInterface):
         # the other tunnels have been closed at the old nexus. In this fashion your search 
         # spreads out like the water shooting out of the ground in 'Caddy
         # Shack.'
+        mylog.info("here 1")
         Set_list = []
-        bigwhilecount = 0
-        mylog.info('start len(group_equivalancy_map) %d' % len(group_equivalancy_map))
-        while len(group_equivalancy_map) > 0:
-            mylog.info('inside len(group_equivalancy_map) %d' % len(group_equivalancy_map))
-            keys = group_equivalancy_map.keys()
-            groupID = keys[0]
-            if self._mpi_get_size() == None:
-                size = 1
-            else:
-                size = self._mpi_get_size()
-            # In order to parallelize this, we simply skip entering most of the
-            # holes. We may end up coming through this hole, anyway,
-            if groupID % size != self.mine:
-                del group_equivalancy_map[groupID]
+        # We only want the holes that are modulo mine.
+        keys = na.array(group_equivalancy_map.keys(), dtype='int64')
+        if self._mpi_get_size() == None:
+            size = 1
+        else:
+            size = self._mpi_get_size()
+        select = (keys % size == self.mine)
+        groupIDs = keys[select]
+        mine_groupIDs = Set([]) # Records only ones modulo mine.
+        not_mine_groupIDs = Set([]) # All the others.
+        for groupID in groupIDs:
+            if groupID in mine_groupIDs:
                 continue
+            mine_groupIDs.add(groupID)
             current_sets = []
             new_set = group_equivalancy_map[groupID]
             current_sets.append(new_set)
-            del group_equivalancy_map[groupID]
             while len(new_set) > 0:
                 to_add_set = Set([])
                 for link_gID in new_set:
+                    if link_gID in mine_groupIDs or link_gID in not_mine_groupIDs:
+                        continue
                     to_add_set = to_add_set | group_equivalancy_map[link_gID]
-                    del group_equivalancy_map[link_gID]
+                    if link_gID % size == self.mine:
+                        mine_groupIDs.add(link_gID)
+                    else:
+                        not_mine_groupIDs.add(link_gID)
                 current_sets.append(to_add_set)
                 new_set = to_add_set.copy()
             # Add them together
@@ -916,13 +920,16 @@ class RunChainHOP(ParallelAnalysisInterface):
             # Make sure it's not empty
             final_set.add(groupID)
             Set_list.append(final_set)
-                
         # Convert this list of sets into a look-up table
         lookup = {}
         for i,item in enumerate(Set_list):
             item_min = min(item)
             for groupID in item:
                 lookup[groupID] = item_min
+        mylog.info("here 2")
+        # To bring it all together, join the dicts.
+        lookup = self._mpi_joindict_unpickled_int(lookup)
+        mylog.info("here 3")
         # Now apply this to reverse_map
         for chainID in self.reverse_map:
             groupID = self.reverse_map[chainID]
@@ -980,6 +987,7 @@ class RunChainHOP(ParallelAnalysisInterface):
         #group_count = MPI.COMM_WORLD.bcast(group_count, root=0)
         #self.reverse_map = MPI.COMM_WORLD.bcast(self.reverse_map, root=0)
         #self.reverse_map = self._mpi_bcast_int_dict_unpickled(self.reverse_map)
+        mylog.info("here 4")
         yt_counters("build_groups")
         return group_count
 
@@ -1096,8 +1104,8 @@ class RunChainHOP(ParallelAnalysisInterface):
         self.NNtags = (fKD.nn_tags - 1).transpose()
         # We can free these right now, the rest later.
         del fKD.dens, fKD.nn_tags, fKD.mass, fKD.dens
-        count = len(na.where(self.density >= self.threshold)[0])
-        print 'count above thresh', count
+        #count = len(na.where(self.density >= self.threshold)[0])
+        #print 'count above thresh', count
         # Now each particle has NNtags, and a local self density.
         # Let's find densest NN
         mylog.info('Finding densest nearest neighbors...')

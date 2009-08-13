@@ -32,6 +32,7 @@ try:
     from yt.lagos.fof.EnzoFOF import RunFOF
 except ImportError:
     pass
+from yt.performance_counters import yt_counters, time_function
 
 from kd import *
 import math,sys
@@ -773,6 +774,7 @@ class chainHF(GenericHaloFinder, chainHOPHaloList):
                         old_group = new_group, old_comm = new_comm, cuts=cut+1)
         # get the average spacing between particles for this region
         # The except is for the serial case, where the full box is what we want.
+        data = self._data_source["particle_position_x"]
         try:
             l = self._data_source.right_edge - self._data_source.left_edge
         except AttributeError:
