@@ -1031,8 +1031,8 @@ class RunChainHOP(ParallelAnalysisInterface):
         # Now we broadcast this, effectively, with an allsum. Even though
         # some groups are on multiple tasks, there is only one densest_in_chain
         # and only that task contributed above.
-        self.max_dens_point = max_dens_point
-        MPI.COMM_WORLD.Allreduce([self.max_dens_point, MPI.FLOAT], [self.max_dens_point, MPI.FLOAT], op=MPI.SUM)
+        self.max_dens_point = max_dens_point.copy()
+        MPI.COMM_WORLD.Allreduce([max_dens_point, MPI.FLOAT], [self.max_dens_point, MPI.FLOAT], op=MPI.SUM)
         # Now CoM.
         c_vec = self.max_dens_point[:,1:4] - na.array([0.5,0.5,0.5])
         size = na.zeros(self.group_count, dtype='int64')
@@ -1057,11 +1057,13 @@ class RunChainHOP(ParallelAnalysisInterface):
                 CoM_M[groupID] += c_vec[groupID]
                 CoM_M[groupID] *= Tot_M[groupID]
         # Now we find their global values
-        self.group_sizes = size
-        MPI.COMM_WORLD.Allreduce([self.group_sizes, MPI.INT], [self.group_sizes, MPI.INT],op=MPI.SUM)
-        MPI.COMM_WORLD.Allreduce([CoM_M, MPI.FLOAT], [CoM_M, MPI.FLOAT], op=MPI.SUM)
-        self.Tot_M = Tot_M
-        MPI.COMM_WORLD.Allreduce([self.Tot_M, MPI.FLOAT], [self.Tot_M, MPI.FLOAT], op=MPI.SUM)
+        self.group_sizes = size.copy()
+        MPI.COMM_WORLD.Allreduce([size, MPI.INT], [self.group_sizes, MPI.INT],op=MPI.SUM)
+        CoM_M_tosend = CoM_M.copy()
+        MPI.COMM_WORLD.Allreduce([CoM_M_tosend, MPI.FLOAT], [CoM_M, MPI.FLOAT], op=MPI.SUM)
+        del CoM_M_tosend
+        self.Tot_M = Tot_M.copy()
+        MPI.COMM_WORLD.Allreduce([Tot_M, MPI.FLOAT], [self.Tot_M, MPI.FLOAT], op=MPI.SUM)
         self.CoM = na.empty((self.group_count,3), dtype='float64')
         for groupID in xrange(self.group_count):
             self.CoM[groupID] = CoM_M[groupID] / self.Tot_M[groupID]
