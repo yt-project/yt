@@ -1001,6 +1001,23 @@ class ParallelAnalysisInterface(object):
         queue.preload(grids, fields)
 
     @parallel_passthrough
+    def _mpi_float_array_max(self,data):
+        """
+        Finds the na.maximum of a distributed array and returns the result
+        back to all. The array should be the same length on all tasks!
+        """
+        self._barrier()
+        if MPI.COMM_WORLD.rank == 0:
+            recv_data = na.empty(data.size, dtype='float64')
+            for i in xrange(1, MPI.COMM_WORLD.size):
+                MPI.COMM_WORLD.Recv([recv_data, MPI.FLOAT], source=i, tag=0)
+                data = na.maximum(data, recv_data)
+        else:
+            MPI.COMM_WORLD.Send([data, MPI.FLOAT], dest=0, tag=0)
+        MPI.COMM_WORLD.Bcast([data, MPI.FLOAT], root=0)
+        return data
+
+    @parallel_passthrough
     def _mpi_allsum(self, data):
         self._barrier()
         # We use old-school pickling here on the assumption the arrays are

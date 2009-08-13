@@ -51,7 +51,7 @@ class Halo(object):
     extra_wrap = ["__getitem__"]
 
     def __init__(self, halo_list, id, indices = None, size=None, CoM=None,
-        max_dens_point=None, group_total_mass=None):
+        max_dens_point=None, group_total_mass=None, max_radius=None):
         self.halo_list = halo_list
         self.id = id
         self.data = halo_list._data_source
@@ -62,6 +62,7 @@ class Halo(object):
         self.CoM = CoM
         self.max_dens_point = max_dens_point
         self.group_total_mass = group_total_mass
+        self.max_radius = max_radius
 
     def center_of_mass(self):
         """
@@ -248,11 +249,9 @@ class chainHOPHalo(Halo,ParallelAnalysisInterface):
             vx = 0.
             vy = 0.
             vz = 0.
-        global_vx = self._mpi_allsum(vx)
-        global_vy = self._mpi_allsum(vy)
-        global_vz = self._mpi_allsum(vz)
-        global_pm = self._mpi_allsum(pm)
-        return na.array([global_vx, global_vy, global_vz])/global_pm
+        bv = na.array([vx,vy,vz,pm])
+        global_bv = self._mpi_allsum(bv)
+        return global_bv[:3]/global_bv[3]
 
     def maximum_radius(self, center_of_mass=True):
         """
@@ -260,6 +259,8 @@ class chainHOPHalo(Halo,ParallelAnalysisInterface):
         either from the point of maximum density or from the (default)
         *center_of_mass*.
         """
+        if self.max_radius is not None:
+            return self.max_radius
         if center_of_mass: center = self.center_of_mass()
         else: center = self.maximum_density_location()
         if self.indices is not None:
@@ -568,6 +569,7 @@ class chainHOPHaloList(HaloList,ParallelAnalysisInterface):
         self.CoM = obj.CoM
         self.Tot_M = obj.Tot_M * self.total_mass
         self.max_dens_point = obj.max_dens_point
+        self.max_radius = obj.max_radius
         # I'm not sure if I can actually use this below, but it's not hurting
         # anything so I'll leave it for now.
         self.densest_in_group = obj.densest_in_group
@@ -596,7 +598,7 @@ class chainHOPHaloList(HaloList,ParallelAnalysisInterface):
                 self._groups.append(self._halo_class(self, index, \
                     size=self.group_sizes[index], CoM=self.CoM[index], \
                     max_dens_point=self.max_dens_point[index], \
-                    group_total_mass=self.Tot_M[index]))
+                    group_total_mass=self.Tot_M[index], max_radius=self.max_radius[index]))
                 # I don't own this halo
                 self._do_not_claim_object(self._groups[-1])
                 self._max_dens[index] = (self.max_dens_point[index][0], self.max_dens_point[index][1], \
@@ -607,7 +609,7 @@ class chainHOPHaloList(HaloList,ParallelAnalysisInterface):
             self._groups.append(self._halo_class(self, i, group_indices, \
                 size=self.group_sizes[i], CoM=self.CoM[i], \
                 max_dens_point=self.max_dens_point[i], \
-                group_total_mass=self.Tot_M[i]))
+                group_total_mass=self.Tot_M[i], max_radius=self.max_radius[i]))
             # This halo may be owned by many, including this task
             self._claim_object(self._groups[-1])
             self._max_dens[i] = (self.max_dens_point[i][0], self.max_dens_point[i][1], \
@@ -619,7 +621,7 @@ class chainHOPHaloList(HaloList,ParallelAnalysisInterface):
             self._groups.append(self._halo_class(self, index, \
             size=self.group_sizes[index], CoM=self.CoM[index], \
             max_dens_point=self.max_dens_point[i], \
-            group_total_mass=self.Tot_M[index]))
+            group_total_mass=self.Tot_M[index], max_radius=self.max_radius[index]))
             self._do_not_claim_object(self._groups[-1])
             self._max_dens[index] = (self.max_dens_point[index][0], self.max_dens_point[index][1], \
                 self.max_dens_point[index][2], self.max_dens_point[index][3])
@@ -783,7 +785,7 @@ class chainHF(GenericHaloFinder, chainHOPHaloList):
         avg_spacing = (float(vol) / data.size)**(1./3.)
         # padding is a function of inter-particle spacing, this is an
         # approximation, but it's OK with the safety factor
-        safety = 2
+        safety = 5
         self.padding = (self.num_neighbors)**(1./3.) * safety * avg_spacing
         print 'padding',self.padding,'avg_spacing',avg_spacing,'vol',vol,'local_parts',data.size
         if self._mpi_get_size() == None:

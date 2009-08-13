@@ -603,8 +603,8 @@ class RunChainHOP(ParallelAnalysisInterface):
             # -1 above. Also, since links are supposed to go only uphill,
             # ensure that they are being recorded that way below.
             if localID != -1:
-                if self.recv_chainIDs[i] != self.chainID[localID] and \
-                    self.densest_in_chain[self.chainID[localID]] > self.densest_in_chain[self.recv_chainIDs[i]]:
+                if self.recv_chainIDs[i] != self.chainID[localID]:# and \
+                    #self.densest_in_chain[self.chainID[localID]] > self.densest_in_chain[self.recv_chainIDs[i]]:
                     chainID_translate_map_local[self.recv_chainIDs[i]] = \
                         self.chainID[localID]
         # In chainID_translate_map_local, chains may
@@ -621,11 +621,6 @@ class RunChainHOP(ParallelAnalysisInterface):
             except KeyError:
                 # The the chain is either self most-dense, or a singleton.
                 chainID_translate_map_global[i] = int(i)
-#         if self.mine == 0:
-#             print '2108435',chainID_translate_map_global[2108435], self.densest_in_chain[2108435]
-#             print '2251533',chainID_translate_map_global[2251533], self.densest_in_chain[2251533]
-#         self._barrier()
-#         sys.exit()
         # Build a list of chain densities, sorted smallest to largest.
         dens_temp = []
         for key in self.densest_in_chain:
@@ -1071,17 +1066,19 @@ class RunChainHOP(ParallelAnalysisInterface):
         for groupID in xrange(self.group_count):
             self.CoM[groupID] = CoM_M[groupID] / self.Tot_M[groupID]
         # Now we find the maximum radius for all groups.
-#         max_radius = na.zeros(self.group_count, dtype='d')
-#         for part in xrange(self.size):
-#             groupID = self.chainID[part]
-#             if groupID == -1: continue
-#             loc = na.array([self.xpos[part], self.ypos[part], self.zpos[part]])
-#             dist = na.sqrt(\
-#                 na.minimum(na.abs(self.CoM[groupID][0] - loc[0]), 1 - na.abs(self.CoM[groupID][0] - loc[0]))**2 \
-#                 + na.minimum(na.abs(self.CoM[groupID][1] - loc[1]), 1 - na.abs(self.CoM[groupID][1] - loc[1]))**2 \
-#                 + na.minimum(na.abs(self.CoM[groupID][2] - loc[2]), 1 - na.abs(self.CoM[groupID][2] - loc[2]))**2)
-#             if dist > max_radius[groupID]:
-#                 max_radius[groupID] = dist
+        max_radius = na.zeros(self.group_count, dtype='float64')
+        for part in xrange(self.size):
+            groupID = self.chainID[part]
+            if groupID == -1: continue
+            loc = na.array([self.xpos[part], self.ypos[part], self.zpos[part]])
+            dist = na.sqrt(\
+                na.minimum(na.abs(self.CoM[groupID][0] - loc[0]), self.period[0] - na.abs(self.CoM[groupID][0] - loc[0]))**2 \
+                + na.minimum(na.abs(self.CoM[groupID][1] - loc[1]), self.period[1] - na.abs(self.CoM[groupID][1] - loc[1]))**2 \
+                + na.minimum(na.abs(self.CoM[groupID][2] - loc[2]), self.period[2] - na.abs(self.CoM[groupID][2] - loc[2]))**2)
+            if dist > max_radius[groupID]:
+                max_radius[groupID] = dist
+        # Find the maximum across all tasks.
+        self.max_radius = self._mpi_float_array_max(max_radius)
 
     def _chain_hop(self):
         mylog.info("Running Python version.")
