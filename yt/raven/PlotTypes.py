@@ -217,6 +217,9 @@ class RavenPlot(object):
         self._callbacks[id] = lambda a: None
 
     def _run_callbacks(self):
+        self._axes.patches = []
+        self._axes.collections = []
+        self._axes.texts = []
         for cb in self._callbacks:
             cb(self)
 
@@ -329,7 +332,6 @@ class VMPlot(RavenPlot):
         return buff
 
     def _redraw_image(self, *args):
-        self._axes.clear() # To help out the colorbar
         buff = self._get_buff()
         mylog.debug("Received buffer of min %s and max %s (data: %s %s)",
                     na.nanmin(buff), na.nanmax(buff),
@@ -342,12 +344,16 @@ class VMPlot(RavenPlot):
         else:
             newmin = na.nanmin(buff)
             newmax = na.nanmax(buff)
+        aspect = (self.ylim[1]-self.ylim[0])/(self.xlim[1]-self.xlim[0])
+        if self.image._A.size != buff.size:
+            self._axes.clear()
+            self.image = \
+                self._axes.imshow(buff, interpolation='nearest', norm = self.norm,
+                                aspect=aspect, picker=True, origin='lower')
+        else:
+            self.image.set_data(buff)
         if self.do_autoscale:
             self.norm.autoscale(na.array((newmin,newmax)))
-        aspect = (self.ylim[1]-self.ylim[0])/(self.xlim[1]-self.xlim[0])
-        self.image = \
-            self._axes.imshow(buff, interpolation='nearest', norm = self.norm,
-                            aspect=aspect, picker=True, origin='lower')
         self._reset_image_parameters()
         self._run_callbacks()
 
