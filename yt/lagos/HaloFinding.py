@@ -51,7 +51,7 @@ class Halo(object):
     extra_wrap = ["__getitem__"]
 
     def __init__(self, halo_list, id, indices = None, size=None, CoM=None,
-        max_dens_point=None, group_total_mass=None, max_radius=None):
+        max_dens_point=None, group_total_mass=None, max_radius=None, bulk_vel=None):
         self.halo_list = halo_list
         self.id = id
         self.data = halo_list._data_source
@@ -63,6 +63,7 @@ class Halo(object):
         self.max_dens_point = max_dens_point
         self.group_total_mass = group_total_mass
         self.max_radius = max_radius
+        self.bulk_vel = bulk_vel
 
     def center_of_mass(self):
         """
@@ -236,6 +237,8 @@ class chainHOPHalo(Halo,ParallelAnalysisInterface):
         """
         Returns the mass-weighted average velocity.
         """
+        if self.bulk_vel is not None:
+            return self.bulk_vel
         # Unf. this cannot be reasonably computed inside of chainHOP because
         # we don't pass velocities in.
         if self.indices is not None:
@@ -570,6 +573,21 @@ class chainHOPHaloList(HaloList,ParallelAnalysisInterface):
         self.Tot_M = obj.Tot_M * self.total_mass
         self.max_dens_point = obj.max_dens_point
         self.max_radius = obj.max_radius
+        # Precompute the bulk velocity in parallel.
+        self.bulk_vel = na.zeros((self.group_count, 3), dtype='float64')
+        pm = self._data_source["ParticleMassMsun"][self._base_indices]
+        xv = self._data_source["particle_velocity_x"][self._base_indices]
+        yv = self._data_source["particle_velocity_y"][self._base_indices]
+        zv = self._data_source["particle_velocity_z"][self._base_indices]
+        for i, pmass in enumerate(pm):
+            groupID = self.tags[i]
+            if groupID == -1: continue
+            self.bulk_vel[groupID] += na.array([xv[i]*pmass, yv[i]*pmass, zv[i]*pmass])
+        # Bring it together, and divide by the previously computed total mass
+        # of each halo.
+        self.bulk_vel = self._mpi_Allsum_float(self.bulk_vel)
+        for groupID in xrange(self.group_count):
+            self.bulk_vel[groupID] = self.bulk_vel[groupID] / self.Tot_M[groupID]
         # I'm not sure if I can actually use this below, but it's not hurting
         # anything so I'll leave it for now.
         self.densest_in_group = obj.densest_in_group
@@ -598,7 +616,8 @@ class chainHOPHaloList(HaloList,ParallelAnalysisInterface):
                 self._groups.append(self._halo_class(self, index, \
                     size=self.group_sizes[index], CoM=self.CoM[index], \
                     max_dens_point=self.max_dens_point[index], \
-                    group_total_mass=self.Tot_M[index], max_radius=self.max_radius[index]))
+                    group_total_mass=self.Tot_M[index], max_radius=self.max_radius[index],
+                    bulk_vel=self.bulk_vel[index]))
                 # I don't own this halo
                 self._do_not_claim_object(self._groups[-1])
                 self._max_dens[index] = (self.max_dens_point[index][0], self.max_dens_point[index][1], \
@@ -609,7 +628,8 @@ class chainHOPHaloList(HaloList,ParallelAnalysisInterface):
             self._groups.append(self._halo_class(self, i, group_indices, \
                 size=self.group_sizes[i], CoM=self.CoM[i], \
                 max_dens_point=self.max_dens_point[i], \
-                group_total_mass=self.Tot_M[i], max_radius=self.max_radius[i]))
+                group_total_mass=self.Tot_M[i], max_radius=self.max_radius[i],
+                bulk_vel=self.bulk_vel[i]))
             # This halo may be owned by many, including this task
             self._claim_object(self._groups[-1])
             self._max_dens[i] = (self.max_dens_point[i][0], self.max_dens_point[i][1], \
@@ -621,7 +641,8 @@ class chainHOPHaloList(HaloList,ParallelAnalysisInterface):
             self._groups.append(self._halo_class(self, index, \
             size=self.group_sizes[index], CoM=self.CoM[index], \
             max_dens_point=self.max_dens_point[i], \
-            group_total_mass=self.Tot_M[index], max_radius=self.max_radius[index]))
+            group_total_mass=self.Tot_M[index], max_radius=self.max_radius[index],
+            bulk_vel=self._bulk_vel[index]))
             self._do_not_claim_object(self._groups[-1])
             self._max_dens[index] = (self.max_dens_point[index][0], self.max_dens_point[index][1], \
                 self.max_dens_point[index][2], self.max_dens_point[index][3])

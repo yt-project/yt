@@ -133,14 +133,14 @@ class RunChainHOP(ParallelAnalysisInterface):
         hooks = []
         for opp_neighbor in self.neighbors:
             opp_size = global_annulus_count[opp_neighbor]
-            hooks.append(MPI.COMM_WORLD.Irecv([recv_real_indices[opp_neighbor], MPI.INT], opp_neighbor, 0))
-            hooks.append(MPI.COMM_WORLD.Irecv([recv_points[opp_neighbor], MPI.FLOAT], opp_neighbor, 0))
-            hooks.append(MPI.COMM_WORLD.Irecv([recv_mass[opp_neighbor], MPI.FLOAT], opp_neighbor, 0))
+            hooks.append(MPI.COMM_WORLD.Irecv([recv_real_indices[opp_neighbor], MPI.LONG], opp_neighbor, 0))
+            hooks.append(MPI.COMM_WORLD.Irecv([recv_points[opp_neighbor], MPI.DOUBLE], opp_neighbor, 0))
+            hooks.append(MPI.COMM_WORLD.Irecv([recv_mass[opp_neighbor], MPI.DOUBLE], opp_neighbor, 0))
         # Now we send the data.
         for neighbor in self.neighbors:
-            hooks.append(MPI.COMM_WORLD.Isend([real_indices, MPI.INT], neighbor, 0))
-            hooks.append(MPI.COMM_WORLD.Isend([points, MPI.FLOAT], neighbor, 0))
-            hooks.append(MPI.COMM_WORLD.Isend([mass, MPI.FLOAT], neighbor, 0))
+            hooks.append(MPI.COMM_WORLD.Isend([real_indices, MPI.LONG], neighbor, 0))
+            hooks.append(MPI.COMM_WORLD.Isend([points, MPI.DOUBLE], neighbor, 0))
+            hooks.append(MPI.COMM_WORLD.Isend([mass, MPI.DOUBLE], neighbor, 0))
         # We need to define our expanded boundaries.
         temp_LE = LE - self.padding
         temp_RE = RE + self.padding
@@ -149,6 +149,8 @@ class RunChainHOP(ParallelAnalysisInterface):
         # data has been received and processed. The processing order doesn't
         # matter.
         MPI.Request.Waitall(hooks)
+        # We can now delete our sent data.
+        del points, mass, real_indices
         for opp_neighbor in self.neighbors:
             opp_size = global_annulus_count[opp_neighbor]
             # Adjust the values of the positions if needed. I think there's
@@ -169,17 +171,20 @@ class RunChainHOP(ParallelAnalysisInterface):
             is_inside = ( (recv_points[opp_neighbor][:opp_size] >= temp_LE).all(axis=1) * \
                 (recv_points[opp_neighbor][:opp_size] < temp_RE).all(axis=1) )
             self.index = na.concatenate((self.index, recv_real_indices[opp_neighbor][:opp_size][is_inside]))
+            # Clean up immediately to reduce peak memory usage.
+            del recv_real_indices[opp_neighbor]
             self.xpos = na.concatenate((self.xpos, recv_points[opp_neighbor][:opp_size,0][is_inside]))
             self.ypos = na.concatenate((self.ypos, recv_points[opp_neighbor][:opp_size,1][is_inside]))
             self.zpos = na.concatenate((self.zpos, recv_points[opp_neighbor][:opp_size,2][is_inside]))
+            del recv_points[opp_neighbor]
             self.mass = na.concatenate((self.mass, recv_mass[opp_neighbor][:opp_size][is_inside]))
+            del recv_mass[opp_neighbor]
         self.size = self.index.size
         # Now that we have the full size, initialize the chainID array
         self.chainID = na.ones(self.size,dtype='int64') * -1
-        # Clean up explicitly.
+        # Clean up explicitly, but these should be empty dicts by now.
         del recv_real_indices, hooks
         del recv_points, recv_mass
-        del points, mass, real_indices
         yt_counters("Communicate raw padding")
         
 
@@ -519,12 +524,12 @@ class RunChainHOP(ParallelAnalysisInterface):
         # Set up the receives, but don't actually use them.
         hooks = []
         for opp_neighbor in self.neighbors:
-            hooks.append(MPI.COMM_WORLD.Irecv([temp_indices[opp_neighbor], MPI.INT], opp_neighbor, 0))
-            hooks.append(MPI.COMM_WORLD.Irecv([temp_chainIDs[opp_neighbor], MPI.INT], opp_neighbor, 0))
+            hooks.append(MPI.COMM_WORLD.Irecv([temp_indices[opp_neighbor], MPI.LONG], opp_neighbor, 0))
+            hooks.append(MPI.COMM_WORLD.Irecv([temp_chainIDs[opp_neighbor], MPI.LONG], opp_neighbor, 0))
         # Send padded particles to our neighbors.
         for neighbor in self.neighbors:
-            hooks.append(MPI.COMM_WORLD.Isend([self.uphill_real_indices, MPI.INT], neighbor, 0))
-            hooks.append(MPI.COMM_WORLD.Isend([self.uphill_chainIDs, MPI.INT], neighbor, 0))
+            hooks.append(MPI.COMM_WORLD.Isend([self.uphill_real_indices, MPI.LONG], neighbor, 0))
+            hooks.append(MPI.COMM_WORLD.Isend([self.uphill_chainIDs, MPI.LONG], neighbor, 0))
         # Now actually use the data once it's good to go.
         MPI.Request.Waitall(hooks)
         so_far = 0
@@ -683,12 +688,12 @@ class RunChainHOP(ParallelAnalysisInterface):
         # Set up the receving hooks.
         hooks = []
         for opp_neighbor in self.neighbors:
-            hooks.append(MPI.COMM_WORLD.Irecv([recv_real_indices[opp_neighbor], MPI.INT], opp_neighbor, 0))
-            hooks.append(MPI.COMM_WORLD.Irecv([recv_chainIDs[opp_neighbor], MPI.INT], opp_neighbor, 0))
+            hooks.append(MPI.COMM_WORLD.Irecv([recv_real_indices[opp_neighbor], MPI.LONG], opp_neighbor, 0))
+            hooks.append(MPI.COMM_WORLD.Irecv([recv_chainIDs[opp_neighbor], MPI.LONG], opp_neighbor, 0))
         # Now we send them.
         for neighbor in self.neighbors:
-            hooks.append(MPI.COMM_WORLD.Isend([real_indices, MPI.INT], neighbor, 0))
-            hooks.append(MPI.COMM_WORLD.Isend([chainIDs, MPI.INT], neighbor, 0))
+            hooks.append(MPI.COMM_WORLD.Isend([real_indices, MPI.LONG], neighbor, 0))
+            hooks.append(MPI.COMM_WORLD.Isend([chainIDs, MPI.LONG], neighbor, 0))
         # Now we use them when they're nice and ripe.
         MPI.Request.Waitall(hooks)
         for opp_neighbor in self.neighbors:
@@ -1027,12 +1032,11 @@ class RunChainHOP(ParallelAnalysisInterface):
             groupID = self.chainID[part]
             if self.density[part] == self.densest_in_group[groupID]:
                 max_dens_point[groupID] = na.array([self.density[part], \
-                self.xpos[part], self.ypos[part], self.zpos[part]], dtype='d')
+                self.xpos[part], self.ypos[part], self.zpos[part]], dtype='float64')
         # Now we broadcast this, effectively, with an allsum. Even though
         # some groups are on multiple tasks, there is only one densest_in_chain
         # and only that task contributed above.
-        self.max_dens_point = max_dens_point.copy()
-        MPI.COMM_WORLD.Allreduce([max_dens_point, MPI.FLOAT], [self.max_dens_point, MPI.FLOAT], op=MPI.SUM)
+        self.max_dens_point = self._mpi_Allsum_float(max_dens_point)
         # Now CoM.
         c_vec = self.max_dens_point[:,1:4] - na.array([0.5,0.5,0.5])
         size = na.zeros(self.group_count, dtype='int64')
@@ -1057,13 +1061,9 @@ class RunChainHOP(ParallelAnalysisInterface):
                 CoM_M[groupID] += c_vec[groupID]
                 CoM_M[groupID] *= Tot_M[groupID]
         # Now we find their global values
-        self.group_sizes = size.copy()
-        MPI.COMM_WORLD.Allreduce([size, MPI.INT], [self.group_sizes, MPI.INT],op=MPI.SUM)
-        CoM_M_tosend = CoM_M.copy()
-        MPI.COMM_WORLD.Allreduce([CoM_M_tosend, MPI.FLOAT], [CoM_M, MPI.FLOAT], op=MPI.SUM)
-        del CoM_M_tosend
-        self.Tot_M = Tot_M.copy()
-        MPI.COMM_WORLD.Allreduce([Tot_M, MPI.FLOAT], [self.Tot_M, MPI.FLOAT], op=MPI.SUM)
+        self.group_sizes = self._mpi_Allsum_int(size)
+        CoM_M = self._mpi_Allsum_float(CoM_M)
+        self.Tot_M = self._mpi_Allsum_float(Tot_M)
         self.CoM = na.empty((self.group_count,3), dtype='float64')
         for groupID in xrange(self.group_count):
             self.CoM[groupID] = CoM_M[groupID] / self.Tot_M[groupID]

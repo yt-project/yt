@@ -295,7 +295,7 @@ class ParallelAnalysisInterface(object):
         parts = old_comm.allreduce(int(counts.sum()), op=MPI.SUM)
         # Now the full sum in the bins along this axis in this group.
         full_counts = na.empty(counts.size, dtype='int64')
-        old_comm.Allreduce([counts, MPI.INT], [full_counts, MPI.INT], op=MPI.SUM)
+        old_comm.Allreduce([counts, MPI.LONG], [full_counts, MPI.LONG], op=MPI.SUM)
         # Find the bin that passes the midpoint.
         sum = 0
         bin = 0
@@ -729,8 +729,8 @@ class ParallelAnalysisInterface(object):
                 size = MPI.COMM_WORLD.recv(source=i, tag=0)
                 keys = na.empty(size, dtype='int64')
                 values = na.empty(size, dtype='float64')
-                MPI.COMM_WORLD.Recv([keys, MPI.INT], i, 0)
-                MPI.COMM_WORLD.Recv([values, MPI.FLOAT], i, 0)
+                MPI.COMM_WORLD.Recv([keys, MPI.LONG], i, 0)
+                MPI.COMM_WORLD.Recv([values, MPI.DOUBLE], i, 0)
                 root_keys = na.concatenate((root_keys, keys))
                 root_values = na.concatenate((root_values, values))
             size = root_keys.size
@@ -743,16 +743,16 @@ class ParallelAnalysisInterface(object):
                 keys[count] = key
                 values[count] = data[key]
                 count += 1
-            MPI.COMM_WORLD.Send([keys, MPI.INT], 0, 0)
-            MPI.COMM_WORLD.Send([values, MPI.FLOAT], 0, 0)
+            MPI.COMM_WORLD.Send([keys, MPI.LONG], 0, 0)
+            MPI.COMM_WORLD.Send([values, MPI.DOUBLE], 0, 0)
         # Now send it back as arrays.
         size = MPI.COMM_WORLD.bcast(size, root=0)
         if MPI.COMM_WORLD.rank != 0:
             del keys, values
             root_keys = na.empty(size, dtype='int64')
             root_values = na.empty(size, dtype='float64')
-        MPI.COMM_WORLD.Bcast([root_keys, MPI.INT], root=0)
-        MPI.COMM_WORLD.Bcast([root_values, MPI.FLOAT], root=0)
+        MPI.COMM_WORLD.Bcast([root_keys, MPI.LONG], root=0)
+        MPI.COMM_WORLD.Bcast([root_values, MPI.DOUBLE], root=0)
         # Convert back to a dict.
         data = {}
         for i,key in enumerate(root_keys):
@@ -775,8 +775,8 @@ class ParallelAnalysisInterface(object):
                 size = MPI.COMM_WORLD.recv(source=i, tag=0)
                 keys = na.empty(size, dtype='int64')
                 values = na.empty(size, dtype='int64')
-                MPI.COMM_WORLD.Recv([keys, MPI.INT], i, 0)
-                MPI.COMM_WORLD.Recv([values, MPI.INT], i, 0)
+                MPI.COMM_WORLD.Recv([keys, MPI.LONG], i, 0)
+                MPI.COMM_WORLD.Recv([values, MPI.LONG], i, 0)
                 root_keys = na.concatenate((root_keys, keys))
                 root_values = na.concatenate((root_values, values))
             size = root_keys.size
@@ -789,16 +789,16 @@ class ParallelAnalysisInterface(object):
                 keys[count] = key
                 values[count] = data[key]
                 count += 1
-            MPI.COMM_WORLD.Send([keys, MPI.INT], 0, 0)
-            MPI.COMM_WORLD.Send([values, MPI.INT], 0, 0)
+            MPI.COMM_WORLD.Send([keys, MPI.LONG], 0, 0)
+            MPI.COMM_WORLD.Send([values, MPI.LONG], 0, 0)
         # Now send it back as arrays.
         size = MPI.COMM_WORLD.bcast(size, root=0)
         if MPI.COMM_WORLD.rank != 0:
             del keys, values
             root_keys = na.empty(size, dtype='int64')
             root_values = na.empty(size, dtype='int64')
-        MPI.COMM_WORLD.Bcast([root_keys, MPI.INT], root=0)
-        MPI.COMM_WORLD.Bcast([root_values, MPI.INT], root=0)
+        MPI.COMM_WORLD.Bcast([root_keys, MPI.LONG], root=0)
+        MPI.COMM_WORLD.Bcast([root_values, MPI.LONG], root=0)
         # Convert back to a dict.
         data = {}
         for i,key in enumerate(root_keys):
@@ -820,8 +820,8 @@ class ParallelAnalysisInterface(object):
                 root_keys[count] = key
                 root_values[count] = data[key]
                 count += 1
-        MPI.COMM_WORLD.Bcast([root_keys, MPI.INT], root=0)
-        MPI.COMM_WORLD.Bcast([root_values, MPI.INT], root=0)
+        MPI.COMM_WORLD.Bcast([root_keys, MPI.LONG], root=0)
+        MPI.COMM_WORLD.Bcast([root_values, MPI.LONG], root=0)
         if MPI.COMM_WORLD.rank != 0:
             data = {}
             for i,key in enumerate(root_keys):
@@ -866,9 +866,9 @@ class ParallelAnalysisInterface(object):
                 top_keys = na.empty(size, dtype='int64')
                 bot_keys = na.empty(size, dtype='int64')
                 vals = na.empty(size, dtype='float64')
-                MPI.COMM_WORLD.Recv([top_keys, MPI.INT], source=i, tag=0)
-                MPI.COMM_WORLD.Recv([bot_keys, MPI.INT], source=i, tag=0)
-                MPI.COMM_WORLD.Recv([vals, MPI.FLOAT], source=i, tag=0)
+                MPI.COMM_WORLD.Recv([top_keys, MPI.LONG], source=i, tag=0)
+                MPI.COMM_WORLD.Recv([bot_keys, MPI.LONG], source=i, tag=0)
+                MPI.COMM_WORLD.Recv([vals, MPI.DOUBLE], source=i, tag=0)
                 # convert back into a dict
                 temp_data = {}
                 for i,top_key in enumerate(top_keys):
@@ -905,9 +905,9 @@ class ParallelAnalysisInterface(object):
             vals = na.array(vals, dtype='float64')
             size = top_keys.size
             MPI.COMM_WORLD.send(size, dest=0, tag=0)
-            MPI.COMM_WORLD.Send([top_keys, MPI.INT], dest=0, tag=0)
-            MPI.COMM_WORLD.Send([bot_keys, MPI.INT], dest=0, tag=0)
-            MPI.COMM_WORLD.Send([vals, MPI.FLOAT], dest=0, tag=0)
+            MPI.COMM_WORLD.Send([top_keys, MPI.LONG], dest=0, tag=0)
+            MPI.COMM_WORLD.Send([bot_keys, MPI.LONG], dest=0, tag=0)
+            MPI.COMM_WORLD.Send([vals, MPI.DOUBLE], dest=0, tag=0)
         # Getting ghetto here, we're going to decompose the dict into arrays,
         # send that, and then reconstruct it. When data is too big the pickling
         # of the dict fails.
@@ -932,9 +932,9 @@ class ParallelAnalysisInterface(object):
             top_keys = na.empty(size, dtype='int64')
             bot_keys = na.empty(size, dtype='int64')
             vals = na.empty(size, dtype='float64')
-        MPI.COMM_WORLD.Bcast([top_keys,MPI.INT], root=0)
-        MPI.COMM_WORLD.Bcast([bot_keys,MPI.INT], root=0)
-        MPI.COMM_WORLD.Bcast([vals, MPI.FLOAT], root=0)
+        MPI.COMM_WORLD.Bcast([top_keys,MPI.LONG], root=0)
+        MPI.COMM_WORLD.Bcast([bot_keys,MPI.LONG], root=0)
+        MPI.COMM_WORLD.Bcast([vals, MPI.DOUBLE], root=0)
         # Convert it back into a dict where needed
         if MPI.COMM_WORLD.rank != 0:
             del data
@@ -1010,11 +1010,11 @@ class ParallelAnalysisInterface(object):
         if MPI.COMM_WORLD.rank == 0:
             recv_data = na.empty(data.size, dtype='float64')
             for i in xrange(1, MPI.COMM_WORLD.size):
-                MPI.COMM_WORLD.Recv([recv_data, MPI.FLOAT], source=i, tag=0)
+                MPI.COMM_WORLD.Recv([recv_data, MPI.DOUBLE], source=i, tag=0)
                 data = na.maximum(data, recv_data)
         else:
-            MPI.COMM_WORLD.Send([data, MPI.FLOAT], dest=0, tag=0)
-        MPI.COMM_WORLD.Bcast([data, MPI.FLOAT], root=0)
+            MPI.COMM_WORLD.Send([data, MPI.DOUBLE], dest=0, tag=0)
+        MPI.COMM_WORLD.Bcast([data, MPI.DOUBLE], root=0)
         return data
 
     @parallel_passthrough
@@ -1023,6 +1023,24 @@ class ParallelAnalysisInterface(object):
         # We use old-school pickling here on the assumption the arrays are
         # relatively small ( < 1e7 elements )
         return MPI.COMM_WORLD.allreduce(data, op=MPI.SUM)
+
+    @parallel_passthrough
+    def _mpi_Allsum_float(self, data):
+        self._barrier()
+        # Non-pickling float allsum of a float array, data.
+        temp = data.copy()
+        MPI.COMM_WORLD.Allreduce([temp, MPI.DOUBLE], [data, MPI.DOUBLE], op=MPI.SUM)
+        del temp
+        return data
+
+    @parallel_passthrough
+    def _mpi_Allsum_int(self, data):
+        self._barrier()
+        # Non-pickling float allsum of an int array, data.
+        temp = data.copy()
+        MPI.COMM_WORLD.Allreduce([temp, MPI.LONG], [data, MPI.LONG], op=MPI.SUM)
+        del temp
+        return data
 
     @parallel_passthrough
     def _mpi_allmax(self, data):
