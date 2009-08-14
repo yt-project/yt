@@ -1,6 +1,5 @@
 import math,sys
 from collections import defaultdict
-from sets import Set
 
 from yt.lagos import *
 from yt.extensions.kdtree import *
@@ -65,7 +64,7 @@ class RunChainHOP(ParallelAnalysisInterface):
             vertices.append(na.array([thisRE[0], thisRE[1], thisRE[2], taskID]))
         # Look for vertices within one radius (periodic) of our center, and
         # add them as neighbors
-        neighbors = Set([])
+        neighbors = set([])
         for vertex in vertices:
             distx = na.abs(vertex[0] - my_center[0])
             disty = na.abs(vertex[1] - my_center[1])
@@ -819,7 +818,7 @@ class RunChainHOP(ParallelAnalysisInterface):
             # return the first column, which are the dict keys sorted by
             # the second column, the densities.
             return temp[:,0]
-        group_equivalancy_map = defaultdict(Set)
+        group_equivalancy_map = defaultdict(set)
         for chainID in ksort(self.densest_in_chain):
             if self.densest_in_chain[chainID] >= self.peakthresh:
                 self.reverse_map[chainID] = groupID
@@ -892,31 +891,29 @@ class RunChainHOP(ParallelAnalysisInterface):
             size = self._mpi_get_size()
         select = (keys % size == self.mine)
         groupIDs = keys[select]
-        mine_groupIDs = Set([]) # Records only ones modulo mine.
-        not_mine_groupIDs = Set([]) # All the others.
+        mine_groupIDs = set([]) # Records only ones modulo mine.
+        not_mine_groupIDs = set([]) # All the others.
         for groupID in groupIDs:
             if groupID in mine_groupIDs:
                 continue
             mine_groupIDs.add(groupID)
             current_sets = []
             new_set = group_equivalancy_map[groupID]
-            current_sets.append(new_set)
+            final_set = new_set.copy()
             while len(new_set) > 0:
-                to_add_set = Set([])
-                for link_gID in new_set:
-                    if link_gID in mine_groupIDs or link_gID in not_mine_groupIDs:
-                        continue
-                    to_add_set = to_add_set | group_equivalancy_map[link_gID]
+                to_add_set = set([])
+                liter = new_set.difference(mine_groupIDs).difference(not_mine_groupIDs)
+                new_mine, new_other = [], []
+                for link_gID in liter:
+                    to_add_set.update(group_equivalancy_map[link_gID])
                     if link_gID % size == self.mine:
-                        mine_groupIDs.add(link_gID)
+                        new_mine.append(link_gID)
                     else:
-                        not_mine_groupIDs.add(link_gID)
-                current_sets.append(to_add_set)
-                new_set = to_add_set.copy()
-            # Add them together
-            final_set = Set([])
-            for small in current_sets:
-                final_set = final_set | small
+                        new_other.append(link_gID)
+                mine_groupIDs.update(new_mine)
+                not_mine_groupIDs.update(new_other)
+                final_set.update(to_add_set)
+                new_set = to_add_set
             # Make sure it's not empty
             final_set.add(groupID)
             Set_list.append(final_set)
@@ -968,7 +965,7 @@ class RunChainHOP(ParallelAnalysisInterface):
         for chain in self.reverse_map:
             temp.append(self.reverse_map[chain])
         # Uniquify the list.
-        temp = list(Set(temp))
+        temp = list(set(temp))
         # Remove -1 from the list.
         temp.pop(temp.index(-1))
         # Make a secondary map to make the IDs consecutive.

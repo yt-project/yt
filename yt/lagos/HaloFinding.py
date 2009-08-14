@@ -642,7 +642,7 @@ class chainHOPHaloList(HaloList,ParallelAnalysisInterface):
             size=self.group_sizes[index], CoM=self.CoM[index], \
             max_dens_point=self.max_dens_point[i], \
             group_total_mass=self.Tot_M[index], max_radius=self.max_radius[index],
-            bulk_vel=self._bulk_vel[index]))
+            bulk_vel=self.bulk_vel[index]))
             self._do_not_claim_object(self._groups[-1])
             self._max_dens[index] = (self.max_dens_point[index][0], self.max_dens_point[index][1], \
                 self.max_dens_point[index][2], self.max_dens_point[index][3])
