@@ -265,7 +265,7 @@ class RunChainHOP(ParallelAnalysisInterface):
         # We can skip this the first time around.
         if round == 'second':
             self.rev_index = {}
-            for i in xrange(self.size):
+            for i in xrange(int(self.size)):
                 # Only padded and annulus particles are needed in the dict.
                 if not self.is_inside[i] or self.is_inside_annulus[i]:
                     self.rev_index[self.index[i]] = i
@@ -429,7 +429,7 @@ class RunChainHOP(ParallelAnalysisInterface):
         yt_counters("build_chains")
         chainIDmax = 0
         self.densest_in_chain = {} # chainID->part ID, one to one
-        for i in xrange(self.size):
+        for i in xrange(int(self.size)):
             # If it's already in a group, move on, or if this particle is
             # in the padding, move on because chains can only terminate in
             # the padding, not begin, or if this particle is too low in
@@ -627,7 +627,7 @@ class RunChainHOP(ParallelAnalysisInterface):
         # communication step.
         chainID_translate_map_global = \
             self._mpi_joindict_unpickled_int(chainID_translate_map_local)
-        for i in xrange(self.nchains):
+        for i in xrange(int(self.nchains)):
             try:
                 target = chainID_translate_map_global[i]
             except KeyError:
@@ -655,7 +655,7 @@ class RunChainHOP(ParallelAnalysisInterface):
                 # Also fix nchains to keep up.
                 self.nchains -= 1
         # Convert local particles to their new chainID
-        for i in xrange(self.size):
+        for i in xrange(int(self.size)):
             old_chainID = self.chainID[i]
             if old_chainID == -1: continue
             new_chainID = chainID_translate_map_global[old_chainID]
@@ -735,7 +735,7 @@ class RunChainHOP(ParallelAnalysisInterface):
         for chainID in self.densest_in_chain:
             #self.chain_densest_n[int(chainID)] = {}
             self.reverse_map[int(chainID)] = -1
-        for i in xrange(self.size):
+        for i in xrange(int(self.size)):
             # Don't consider this particle if it's not part of a chain.
             if self.chainID[i] < 0: continue
             # If this particle is in the padding, don't make a connection.
@@ -743,7 +743,7 @@ class RunChainHOP(ParallelAnalysisInterface):
             # Find this particle's chain max_dens.
             part_max_dens = self.densest_in_chain[self.chainID[i]]
             # Loop over nMerge closest nearest neighbors.
-            for j in xrange(self.nMerge+2):
+            for j in xrange(int(self.nMerge+2)):
                 thisNN = self.NNtags[i,j]
                 thisNN_chainID = self.chainID[thisNN]
                 # If our neighbor is in the same chain, move on.
@@ -1002,7 +1002,7 @@ class RunChainHOP(ParallelAnalysisInterface):
         groupIDs.
         """
         yt_counters("translate_groupIDs")
-        for i in xrange(self.size):
+        for i in xrange(int(self.size)):
             # Don't translate non-affiliated particles.
             if self.chainID[i] == -1: continue
             # We want to remove the group tag from padded particles,
@@ -1013,7 +1013,7 @@ class RunChainHOP(ParallelAnalysisInterface):
                 self.chainID[i] = -1
         # Create a densest_in_group, analogous to densest_in_chain.
         self.densest_in_group = {}
-        for i in xrange(group_count):
+        for i in xrange(int(group_count)):
             self.densest_in_group[i] = 0.0
         for chainID in self.densest_in_chain:
             groupID = self.reverse_map[chainID]
@@ -1033,7 +1033,7 @@ class RunChainHOP(ParallelAnalysisInterface):
         # I think this will be faster than several vector operations that need
         # to pull the entire chainID array out of memory several times.
         max_dens_point = na.zeros((self.group_count,4),dtype='float64')
-        for part in xrange(self.size):
+        for part in xrange(int(self.size)):
             if self.chainID[part] == -1: continue
             groupID = self.chainID[part]
             if self.density[part] == self.densest_in_group[groupID]:
@@ -1050,7 +1050,7 @@ class RunChainHOP(ParallelAnalysisInterface):
         Tot_M = na.zeros(self.group_count, dtype='float64')
         # This keeps track of what we own so we don't divide by zero later...
         I_own = []
-        for part in xrange(self.size):
+        for part in xrange(int(self.size)):
             if self.chainID[part] == -1: continue
             groupID = self.chainID[part]
             size[groupID] += 1
@@ -1061,7 +1061,7 @@ class RunChainHOP(ParallelAnalysisInterface):
             loc = loc - na.floor(loc)
             CoM_M[groupID] += (loc * self.mass[part])
             Tot_M[groupID] += self.mass[part]
-        for groupID in xrange(self.group_count):
+        for groupID in xrange(int(self.group_count)):
             if groupID in I_own:
                 CoM_M[groupID] /= Tot_M[groupID]
                 CoM_M[groupID] += c_vec[groupID]
@@ -1071,11 +1071,11 @@ class RunChainHOP(ParallelAnalysisInterface):
         CoM_M = self._mpi_Allsum_float(CoM_M)
         self.Tot_M = self._mpi_Allsum_float(Tot_M)
         self.CoM = na.empty((self.group_count,3), dtype='float64')
-        for groupID in xrange(self.group_count):
+        for groupID in xrange(int(self.group_count)):
             self.CoM[groupID] = CoM_M[groupID] / self.Tot_M[groupID]
         # Now we find the maximum radius for all groups.
         max_radius = na.zeros(self.group_count, dtype='float64')
-        for part in xrange(self.size):
+        for part in xrange(int(self.size)):
             groupID = self.chainID[part]
             if groupID == -1: continue
             loc = na.array([self.xpos[part], self.ypos[part], self.zpos[part]])
