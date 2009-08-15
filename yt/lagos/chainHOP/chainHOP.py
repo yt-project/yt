@@ -485,7 +485,7 @@ class RunChainHOP(ParallelAnalysisInterface):
         yt_counters("globally_assign_chainIDs")
         # First find out the number of chains on each processor.
         self.mine, chain_info = self._mpi_info_dict(chain_count)
-        self.nchains = sum(chain_info.itervalues())
+        self.nchains = sum(chain_info.values())
         # Figure out our offset.
         self.my_first_id = sum([v for k,v in chain_info.iteritems() if k < self.mine])
         # Change particle IDs, -1 always means no chain assignment.
