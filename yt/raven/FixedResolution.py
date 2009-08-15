@@ -81,11 +81,12 @@ class FixedResolutionBuffer(object):
             output.create_dataset(field,data=self[field])
         output.close()
 
-    def export_fits(self, filename_prefix, fields = None):
+    def export_fits(self, filename_prefix, fields = None, clobber=False):
         """
         This will export a set of FITS images of either the fields specified
         or all the fields already in the object.  The output filenames are
-        *filename_prefix* plus an underscore plus the name of the field.
+        *filename_prefix* plus an underscore plus the name of the field. If 
+        clobber is set to True, this will overwrite any existing FITS file.
 
         This requires the *pyfits* module, which is a standalone module
         provided by STSci to interface with FITS-format files.
@@ -102,7 +103,7 @@ class FixedResolutionBuffer(object):
                 weightname = self.data_source._weight
                 if weightname is None: weightname = 'None'
                 field = field +'_'+weightname
-            hdu.writeto("%s_%s.fits" % (filename_prefix, field))
+            hdu.writeto("%s_%s.fits" % (filename_prefix, field),clobber=clobber)
 
     def open_in_ds9(self, field, take_log=True):
         """
