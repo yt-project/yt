@@ -766,12 +766,10 @@ class ParticleCallback(PlotCallback):
         xx0, xx1 = plot._axes.get_xlim()
         yy0, yy1 = plot._axes.get_ylim()
         reg = self._get_region((x0,x1), (y0,y1), plot.data.axis, data)
-        print reg
         field_x = "particle_position_%s" % lagos.axis_names[lagos.x_dict[data.axis]]
         field_y = "particle_position_%s" % lagos.axis_names[lagos.y_dict[data.axis]]
         gg = ( ( reg[field_x] >= x0 ) & ( reg[field_x] <= x1 )
            &   ( reg[field_y] >= y0 ) & ( reg[field_y] <= y1 ) )
-        print gg, reg[field_x][gg].size
         if self.ptype is not None:
             gg &= (reg["particle_type"] == self.ptype)
             if gg.sum() == 0: return

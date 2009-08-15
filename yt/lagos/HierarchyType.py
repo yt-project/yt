@@ -680,7 +680,7 @@ class EnzoHierarchy(AMRHierarchy):
         return self.grids[(random_sample,)]
 
 class EnzoHierarchyInMemory(EnzoHierarchy):
-    _data_style = 'inline'
+    _data_style = 'enzo_inline'
     def _obtain_enzo(self):
         import enzo; return enzo
 

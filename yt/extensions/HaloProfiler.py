@@ -65,6 +65,13 @@ class HaloProfiler(lagos.ParallelAnalysisInterface):
         # Read parameter file.
         self._ReadHaloProfilerParameterFile()
 
+        # Look for any field that might need to have the bulk velocity set.
+        self.needBulkVelocity = False
+        for field in self.profileFields:
+            if 'Velocity' in field or 'Mach' in field:
+                self.needBulkVelocity = True
+                break
+
         # Check validity for VelocityCenter parameter which toggles how the 
         # velocity is zeroed out for radial velocity profiles.
         if self.haloProfilerParameters['VelocityCenter'][0] == 'bulk':
@@ -137,19 +144,20 @@ class HaloProfiler(lagos.ParallelAnalysisInterface):
                 sphere = self.pf.h.sphere(halo['center'],halo['r_max']/self.pf.units['mpc'])
                 if len(sphere._grids) == 0: continue
 
-                # Set velocity to zero out radial velocity profiles.
-                if self.haloProfilerParameters['VelocityCenter'][0] == 'bulk':
-                    if self.haloProfilerParameters['VelocityCenter'][1] == 'halo':
-                        sphere.set_field_parameter('bulk_velocity',halo['velocity'])
-                    elif self.haloProfilerParameters['VelocityCenter'][1] == 'sphere':
-                        sphere.set_field_parameter('bulk_velocity',sphere.quantities['BulkVelocity']())
-                    else:
-                        mylog.error("Invalid parameter: VelocityCenter.")
-                elif self.haloProfilerParameters['VelocityCenter'][0] == 'max':
-                    max_grid,max_cell,max_value,max_location = self.pf.h.find_max_cell_location(self.haloProfilerParameters['VelocityCenter'][1])
-                    sphere.set_field_parameter('bulk_velocity',[max_grid['x-velocity'][max_cell],
-                                                                max_grid['y-velocity'][max_cell],
-                                                                max_grid['z-velocity'][max_cell]])
+                if self.needBulkVelocity:
+                    # Set bulk velocity to zero out radial velocity profiles.
+                    if self.haloProfilerParameters['VelocityCenter'][0] == 'bulk':
+                        if self.haloProfilerParameters['VelocityCenter'][1] == 'halo':
+                            sphere.set_field_parameter('bulk_velocity',halo['velocity'])
+                        elif self.haloProfilerParameters['VelocityCenter'][1] == 'sphere':
+                            sphere.set_field_parameter('bulk_velocity',sphere.quantities['BulkVelocity']())
+                        else:
+                            mylog.error("Invalid parameter: VelocityCenter.")
+                    elif self.haloProfilerParameters['VelocityCenter'][0] == 'max':
+                        max_grid,max_cell,max_value,max_location = self.pf.h.find_max_cell_location(self.haloProfilerParameters['VelocityCenter'][1])
+                        sphere.set_field_parameter('bulk_velocity',[max_grid['x-velocity'][max_cell],
+                                                                    max_grid['y-velocity'][max_cell],
+                                                                    max_grid['z-velocity'][max_cell]])
                     
                 profile = lagos.BinnedProfile1D(sphere,self.haloProfilerParameters['n_bins'],"RadiusMpc",
                                                 r_min,halo['r_max'],
@@ -193,7 +201,7 @@ class HaloProfiler(lagos.ParallelAnalysisInterface):
         else:
             os.mkdir(outputDir)
 
-    def makeProjections(self,save_images=True,save_cube=True,**kwargs):
+    def makeProjections(self,save_images=False,save_cube=True,**kwargs):
         "Make projections of all halos using specified fields."
         # Get virial quantities.
         self._LoadVirialData()
@@ -410,9 +418,10 @@ class HaloProfiler(lagos.ParallelAnalysisInterface):
             line = line.strip()
             if not(line.startswith('#')):
                 onLine = line.split()
+                id = int(onLine[0])
                 center = [float(onLine[4]),float(onLine[5]),float(onLine[6])]
                 r_max = self.haloRadius * self.pf.units['mpc']
-                halo = {'center': center, 'r_max': r_max}
+                halo = {'id': id, 'center': center, 'r_max': r_max}
                 self.hopHalos.append(halo)
 
     def _ReadProfile(self,profileFile):

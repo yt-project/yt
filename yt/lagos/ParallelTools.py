@@ -326,7 +326,9 @@ class ParallelAnalysisInterface(object):
         # First we receive, then we make a new list.
         for i in range(1,MPI.COMM_WORLD.size):
             buf = _recv_array(source=i, tag=0)
-            if buf is not None: data = na.concatenate([data, buf])
+            if buf is not None:
+                if data is None: data = buf
+                else: data = na.concatenate([data, buf])
         return data
 
     @parallel_passthrough

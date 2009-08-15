@@ -10,7 +10,7 @@ class EnzoSimulation(object):
     a simulation from one redshift to another.
     """
     def __init__(self,EnzoParameterFile,initial_time=None,final_time=None,initial_redshift=None,final_redshift=None,
-                 links=False):
+                 links=False,enzo_parameters={}):
         self.EnzoParameterFile = EnzoParameterFile
         self.enzoParameters = {}
         self.redshiftOutputs = []
@@ -21,6 +21,9 @@ class EnzoSimulation(object):
         self.InitialRedshift = initial_redshift
         self.FinalRedshift = final_redshift
         self.links = links
+
+        # Add any extra parameters to parameter dict.
+        EnzoParameterDict.update(enzo_parameters)
 
         # Set some parameter defaults.
         self._SetParameterDefaults()

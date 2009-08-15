@@ -54,6 +54,20 @@ add_field("Metallicity", units=r"Z_{\rm{Solar}}",
           validators=ValidateDataField("Metal_Density"),
           projection_conversion="1")
 
+def _Metallicity3(field, data):
+    return data["SN_Colour"] / 0.0204
+add_field("Metallicity", units=r"Z_{\rm{Solar}}",
+          function=_Metallicity3,
+          validators=ValidateDataField("SN_Colour"),
+          projection_conversion="1")
+
+def _Cooling_Time(field, data):
+    return data["Cooling_Time"]
+add_field("Cooling_Time", units=r"\rm{s}",
+          function=_Cooling_Time,
+          validators=ValidateDataField("Cooling_Time"),
+          projection_conversion="1")
+
 def _ThermalEnergy(field, data):
     if data.pf["HydroMethod"] == 2:
         return data["Total_Energy"]
@@ -110,7 +124,7 @@ def _NumberDensity(field, data):
             mu = data.get_field_parameter("mu")
         else:
             mu = 0.6
-        fieldData += data["Density"] * mu
+        fieldData += data["Density"] / mu
     if data.pf["MultiSpecies"] > 0:
         fieldData += data["HI_Density"] / 1.0
         fieldData += data["HII_Density"] / 1.0
