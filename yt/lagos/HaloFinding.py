@@ -574,6 +574,7 @@ class chainHOPHaloList(HaloList,ParallelAnalysisInterface):
         self.max_dens_point = obj.max_dens_point
         self.max_radius = obj.max_radius
         # Precompute the bulk velocity in parallel.
+        yt_counters("Precomp bulk vel.")
         self.bulk_vel = na.zeros((self.group_count, 3), dtype='float64')
         pm = self._data_source["ParticleMassMsun"][self._base_indices]
         xv = self._data_source["particle_velocity_x"][self._base_indices]
@@ -588,6 +589,7 @@ class chainHOPHaloList(HaloList,ParallelAnalysisInterface):
         self.bulk_vel = self._mpi_Allsum_float(self.bulk_vel)
         for groupID in xrange(self.group_count):
             self.bulk_vel[groupID] = self.bulk_vel[groupID] / self.Tot_M[groupID]
+        yt_counters("Precomp bulk vel.")
         # I'm not sure if I can actually use this below, but it's not hurting
         # anything so I'll leave it for now.
         self.densest_in_group = obj.densest_in_group

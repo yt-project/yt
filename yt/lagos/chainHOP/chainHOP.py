@@ -94,7 +94,7 @@ class RunChainHOP(ParallelAnalysisInterface):
         annulus data.
         """
         self.mine, global_padding = self._mpi_info_dict(self.padding)
-        self.max_padding = max(global_padding.values())
+        self.max_padding = max(global_padding.itervalues())
         del global_padding
 
     def _communicate_raw_padding_data(self):
@@ -109,6 +109,7 @@ class RunChainHOP(ParallelAnalysisInterface):
         temp_LE = na.empty(3, dtype='float64')
         temp_RE = na.empty(3, dtype='float64')
         # Pick the particles in the annulus that will be sent.
+        yt_counters("Picking padding data to send.")
         send_count = len(na.where(self.is_inside_annulus == True)[0])
         points = na.empty((send_count, 3), dtype='float64')
         points[:,0] = self.xpos[self.is_inside_annulus]
@@ -119,15 +120,19 @@ class RunChainHOP(ParallelAnalysisInterface):
         # Distribute the send sizes globally.
         global_annulus_count = {self.mine:send_count}
         global_annulus_count = self._mpi_joindict(global_annulus_count)
+        yt_counters("Picking padding data to send.")
         # Initialize the arrays to receive data.
         recv_real_indices = {}
         recv_points = {}
         recv_mass = {}
+        yt_counters("Initializing recv arrays.")
         for opp_neighbor in self.neighbors:
             opp_size = global_annulus_count[opp_neighbor]
             recv_real_indices[opp_neighbor] = na.empty(opp_size, dtype='int64')
             recv_points[opp_neighbor] = na.empty((opp_size,3), dtype='float64')
             recv_mass[opp_neighbor] = na.empty(opp_size, dtype='float64')
+        yt_counters("Initializing recv arrays.")
+        yt_counters("MPI stuff.")
         # Now we receive the data, but we don't actually use it.
         hooks = []
         for opp_neighbor in self.neighbors:
@@ -148,6 +153,8 @@ class RunChainHOP(ParallelAnalysisInterface):
         # data has been received and processed. The processing order doesn't
         # matter.
         MPI.Request.Waitall(hooks)
+        yt_counters("MPI stuff.")
+        yt_counters("Discrimination.")
         # We can now delete our sent data.
         del points, mass, real_indices
         for opp_neighbor in self.neighbors:
@@ -178,6 +185,7 @@ class RunChainHOP(ParallelAnalysisInterface):
             del recv_points[opp_neighbor]
             self.mass = na.concatenate((self.mass, recv_mass[opp_neighbor][:opp_size][is_inside]))
             del recv_mass[opp_neighbor]
+        yt_counters("Discrimination.")
         self.size = self.index.size
         # Now that we have the full size, initialize the chainID array
         self.chainID = na.ones(self.size,dtype='int64') * -1
@@ -477,9 +485,9 @@ class RunChainHOP(ParallelAnalysisInterface):
         yt_counters("globally_assign_chainIDs")
         # First find out the number of chains on each processor.
         self.mine, chain_info = self._mpi_info_dict(chain_count)
-        self.nchains = sum(chain_info.values())
+        self.nchains = sum(chain_info.itervalues())
         # Figure out our offset.
-        self.my_first_id = sum([v for k,v in chain_info.items() if k < self.mine])
+        self.my_first_id = sum([v for k,v in chain_info.iteritems() if k < self.mine])
         # Change particle IDs, -1 always means no chain assignment.
         select = (self.chainID != -1)
         select = select * self.my_first_id
@@ -1016,6 +1024,7 @@ class RunChainHOP(ParallelAnalysisInterface):
         yt_counters("translate_groupIDs")
 
     def _precompute_group_info(self):
+        yt_counters("Precomp.")
         """
         For all groups, compute the various global properties, except bulk
         velocity, to save time in HaloFinding.py (fewer barriers!).
@@ -1078,6 +1087,7 @@ class RunChainHOP(ParallelAnalysisInterface):
                 max_radius[groupID] = dist
         # Find the maximum across all tasks.
         self.max_radius = self._mpi_float_array_max(max_radius)
+        yt_counters("Precomp.")
 
     def _chain_hop(self):
         mylog.info("Running Python version.")
