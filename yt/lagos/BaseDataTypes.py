@@ -1685,9 +1685,9 @@ class AMRCylinderBase(AMR3DData):
         self._refresh_data()
 
     def _get_list_of_grids(self):
-        H = na.sum(self._norm_vec.reshape((1,3,1)) * self.pf.h.gridCorners,
+        H = na.sum(self._norm_vec.reshape((1,3,1)) * self.pf.h.grid_corners,
                    axis=1) + self._d
-        D = na.sqrt(na.sum((self.pf.h.gridCorners -
+        D = na.sqrt(na.sum((self.pf.h.grid_corners -
                            self.center.reshape((1,3,1)))**2.0,axis=1))
         R = na.sqrt(D**2.0-H**2.0)
         self._grids = self.hierarchy.grids[
@@ -2139,7 +2139,7 @@ class AMRSmoothedCoveringGridBase(AMRFloatCoveringGridBase):
             # How do we find out the root grid base dx?
             idims = na.array([3,3,3])
             dx = na.minimum((self.right_edge-self.left_edge)/(idims-2),
-                            self.pf.h.grids[0]['dx'])
+                            self.pf.h.grids[0].dds[0])
             idims = na.floor((self.right_edge-self.left_edge)/dx) + 2
             for ax in 'xyz': self['cd%s'%ax] = dx[0]
             self[field] = na.zeros(idims,dtype='float64')-999

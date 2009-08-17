@@ -73,18 +73,6 @@ class OldAMRHierarchy:
         self._add_detected_fields()
         mylog.debug("Done adding auto-detected fields")
 
-    def _setup_grid_corners(self):
-        self.gridCorners = na.array([ # Unroll!
-            [self.gridLeftEdge[:,0], self.gridLeftEdge[:,1], self.gridLeftEdge[:,2]],
-            [self.gridRightEdge[:,0], self.gridLeftEdge[:,1], self.gridLeftEdge[:,2]],
-            [self.gridRightEdge[:,0], self.gridRightEdge[:,1], self.gridLeftEdge[:,2]],
-            [self.gridRightEdge[:,0], self.gridRightEdge[:,1], self.gridRightEdge[:,2]],
-            [self.gridLeftEdge[:,0], self.gridRightEdge[:,1], self.gridRightEdge[:,2]],
-            [self.gridLeftEdge[:,0], self.gridLeftEdge[:,1], self.gridRightEdge[:,2]],
-            [self.gridRightEdge[:,0], self.gridLeftEdge[:,1], self.gridRightEdge[:,2]],
-            [self.gridLeftEdge[:,0], self.gridRightEdge[:,1], self.gridLeftEdge[:,2]],
-            ], dtype='float64')
-
     def __getitem__(self, item):
         return self.parameter_file[item]
 
@@ -442,6 +430,19 @@ class AMRHierarchy(ObjectFindingMixin):
             self.level_stats[level]['numgrids'] = na.sum(self.grid_levels == level)
             li = (self.grid_levels[:,0] == level)
             self.level_stats[level]['numcells'] = self.grid_dimensions[li,:].prod(axis=1).sum()
+
+    @property
+    def grid_corners(self):
+        return na.array([
+          [self.grid_left_edge[:,0], self.grid_left_edge[:,1], self.grid_left_edge[:,2]],
+          [self.grid_right_edge[:,0], self.grid_left_edge[:,1], self.grid_left_edge[:,2]],
+          [self.grid_right_edge[:,0], self.grid_right_edge[:,1], self.grid_left_edge[:,2]],
+          [self.grid_right_edge[:,0], self.grid_right_edge[:,1], self.grid_right_edge[:,2]],
+          [self.grid_left_edge[:,0], self.grid_right_edge[:,1], self.grid_right_edge[:,2]],
+          [self.grid_left_edge[:,0], self.grid_left_edge[:,1], self.grid_right_edge[:,2]],
+          [self.grid_right_edge[:,0], self.grid_left_edge[:,1], self.grid_right_edge[:,2]],
+          [self.grid_left_edge[:,0], self.grid_right_edge[:,1], self.grid_left_edge[:,2]],
+        ], dtype='float64')
 
     def print_stats(self):
         """
@@ -1115,6 +1116,7 @@ class OrionHierarchy(AMRHierarchy):
         for field in self.field_list:
             if field not in self.derived_field_list:
                 self.derived_field_list.append(field)
+
 
 class OrionLevel:
     def __init__(self,level,ngrids):

@@ -182,7 +182,7 @@ def _returnProfile2DFunction(field, weight, accumulation, lazy):
     def add_field_function(self):
         self.data.set_field_parameter("center",[.5,.5,.5])
         cv_min = self.hierarchy.get_smallest_dx()**3.0
-        cv_max = (1.0 / self.OutputFile["TopGridDimensions"]).max()
+        cv_max = 1.0 / max(self.OutputFile["TopGridDimensions"])
         profile = yt.lagos.BinnedProfile2D(self.data,
                     8, "RadiusCode", 1e-3, 1.0, True,
                     8, "CellVolumeCode", cv_min, cv_max, True, lazy)

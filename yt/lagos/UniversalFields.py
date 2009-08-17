@@ -53,20 +53,20 @@ G = 6.67e-8   # cm^3 g^-1 s^-2
 # I violate it here in order to keep the name/func_name relationship
 
 def _dx(field, data):
-    return data.dx
-    return na.ones(data.ActiveDimensions, dtype='float64') * data.dx
+    return data.dds[0]
+    return na.ones(data.ActiveDimensions, dtype='float64') * data.dds[0]
 add_field('dx', function=_dx, display_field=False,
           validators=[ValidateSpatial(0)])
 
 def _dy(field, data):
-    return data.dy
-    return na.ones(data.ActiveDimensions, dtype='float64') * data.dy
+    return data.dds[1]
+    return na.ones(data.ActiveDimensions, dtype='float64') * data.dds[1]
 add_field('dy', function=_dy, display_field=False,
           validators=[ValidateSpatial(0)])
 
 def _dz(field, data):
-    return data.dz
-    return na.ones(data.ActiveDimensions, dtype='float64') * data.dz
+    return data.dds[2]
+    return na.ones(data.ActiveDimensions, dtype='float64') * data.dds[2]
 add_field('dz', function=_dz,
           display_field=False, validators=[ValidateSpatial(0)])
 
