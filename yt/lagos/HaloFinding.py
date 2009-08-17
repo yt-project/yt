@@ -751,7 +751,8 @@ class GenericHaloFinder(ParallelAnalysisInterface):
             halo.write_particle_list(f)
 
 class chainHF(GenericHaloFinder, chainHOPHaloList):
-    def __init__(self, pf, threshold=160, dm_only=True, resize=False, rearrange=True):
+    def __init__(self, pf, threshold=160, dm_only=True, resize=False, rearrange=True,\
+        fancy_padding=True):
         GenericHaloFinder.__init__(self, pf, dm_only, padding=0.0)
         self.padding = 0.0 
         self.num_neighbors = 65
@@ -773,9 +774,9 @@ class chainHF(GenericHaloFinder, chainHOPHaloList):
         max = self._mpi_allmax(local_parts)
         print 'min,max,tot', min, max, n_parts
         # Adaptive subregions by bisection.
+        ds_names = ["particle_position_x","particle_position_y","particle_position_z"]
         if resize and self._mpi_get_size()!=None:
             Ncuts = int(na.log(self._mpi_get_size()) / na.log(2))
-            ds_names = ["particle_position_x","particle_position_y","particle_position_z"]
             for cut in xrange(Ncuts):
                 dim = cut % 3
                 if cut == 0:
@@ -805,14 +806,53 @@ class chainHF(GenericHaloFinder, chainHOPHaloList):
         except AttributeError:
             l = pf["DomainRightEdge"] - pf["DomainLeftEdge"]
         vol = l[0] * l[1] * l[2]
-        avg_spacing = (float(vol) / data.size)**(1./3.)
-        # padding is a function of inter-particle spacing, this is an
-        # approximation, but it's OK with the safety factor
-        safety = 5
-        self.padding = (self.num_neighbors)**(1./3.) * safety * avg_spacing
-        print 'padding',self.padding,'avg_spacing',avg_spacing,'vol',vol,'local_parts',data.size
+        full_vol = vol
+        if not fancy_padding:
+            avg_spacing = (float(vol) / data.size)**(1./3.)
+            # padding is a function of inter-particle spacing, this is an
+            # approximation, but it's OK with the safety factor
+            safety = 5
+            padding = (self.num_neighbors)**(1./3.) * safety * avg_spacing
+            self.padding = (na.ones(3,dtype='float64')*padding, na.ones(3,dtype='float64')*padding)
+            mylog.info('padding %s avg_spacing %f vol %f local_parts %d' % \
+                (str(self.padding), avg_spacing, vol, data.size))
+        # Another approach to padding, perhaps more accurate.
+        elif fancy_padding:
+            LE_padding, RE_padding = na.empty(3,dtype='float64'), na.empty(3,dtype='float64')
+            for dim in xrange(3):
+                data = self._data_source[ds_names[dim]]
+                num_bins = 1000
+                width = self._data_source.right_edge[dim] - self._data_source.left_edge[dim]
+                area = (self._data_source.right_edge[(dim+1)%3] - self._data_source.left_edge[(dim+1)%3]) * \
+                    (self._data_source.right_edge[(dim+2)%3] - self._data_source.left_edge[(dim+2)%3])
+                bin_width = float(width)/float(num_bins)
+                bins = na.arange(num_bins+1, dtype='float64') * bin_width + self._data_source.left_edge[dim]
+                counts, bins = na.histogram(data, bins, new=True)
+                # left side.
+                start = 0
+                count = counts[0]
+                while count < self.num_neighbors:
+                    start += 1
+                    count += counts[start]
+                # Get the avg spacing in just this boundary.
+                vol = area * (bins[start+1] - bins[0])
+                avg_spacing = (float(vol) / count)**(1./3.)
+                safety = 2.
+                LE_padding[dim] = (self.num_neighbors)**(1./3.) * safety * avg_spacing
+                # right side.
+                start = -1
+                count = counts[-1]
+                while count < self.num_neighbors:
+                    start -= 1
+                    count += counts[start]
+                vol = area * (bins[-1] - bins[start-1])
+                avg_spacing = (float(vol) / count)**(1./3.)
+                RE_padding[dim] = (self.num_neighbors)**(1./3.) * safety * avg_spacing
+            self.padding = (LE_padding, RE_padding)
+            mylog.info('fancy_padding %s avg_spacing %f full_vol %f local_parts %d' % \
+                (str(self.padding), avg_spacing, full_vol, data.size))
         if self._mpi_get_size() == None:
-            self.padding = 0.0
+            self.padding = (na.zeros(3,dtype='float64'), na.zeros(3,dtype='float64'))
         self.bounds = (LE, RE)
         chainHOPHaloList.__init__(self, self._data_source, self.padding, \
         self.num_neighbors, self.bounds, total_mass, period, threshold=threshold, dm_only=dm_only, rearrange=rearrange)

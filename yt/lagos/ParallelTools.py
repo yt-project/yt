@@ -277,12 +277,13 @@ class ParallelAnalysisInterface(object):
         
         # Figure out the gridding based on the deepness of cuts.
         cc = MPI.Compute_dims(MPI.COMM_WORLD.size, 3)
+        mylog.info('cc %s' % str(cc))
         if cuts is not None:
             xdiv = (na.array([2,1,1])**na.ceil(cuts/3.)).astype('int64')
             ydiv = (na.array([1,2,1])**na.ceil((cuts-1)/3.)).astype('int64')
             zdiv = (na.array([1,1,2])**na.ceil((cuts-2)/3.)).astype('int64')
             cc = cc / xdiv / ydiv / zdiv
-        
+        mylog.info('post cc %s' % str(cc))
         # Set the boundaries of the full bounding box for this group.
         if top_bounds == None:
             LE, RE = self.pf["DomainLeftEdge"], self.pf["DomainRightEdge"]

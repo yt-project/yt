@@ -93,7 +93,8 @@ class RunChainHOP(ParallelAnalysisInterface):
         Find the maximum padding of all our neighbors, used to send our
         annulus data.
         """
-        self.mine, global_padding = self._mpi_info_dict(self.padding)
+        max_pad = na.max(self.padding)
+        self.mine, global_padding = self._mpi_info_dict(max_pad)
         self.max_padding = max(global_padding.itervalues())
         del global_padding
 
@@ -146,8 +147,9 @@ class RunChainHOP(ParallelAnalysisInterface):
             hooks.append(MPI.COMM_WORLD.Isend([points, MPI.DOUBLE], neighbor, 0))
             hooks.append(MPI.COMM_WORLD.Isend([mass, MPI.DOUBLE], neighbor, 0))
         # We need to define our expanded boundaries.
-        temp_LE = LE - self.padding
-        temp_RE = RE + self.padding
+        (LE_padding, RE_padding) = self.padding
+        temp_LE = LE - LE_padding
+        temp_RE = RE + RE_padding
         # Now we use the data, after all the recvs are done. This can probably,
         # and stuff below, be turned into a while loop, that exits once all the
         # data has been received and processed. The processing order doesn't
@@ -249,8 +251,9 @@ class RunChainHOP(ParallelAnalysisInterface):
             temp_LE = LE + self.max_padding
             temp_RE = RE - self.max_padding
         if round == 'second':
-            temp_LE = LE + self.padding
-            temp_RE = RE - self.padding
+            (LE_padding, RE_padding) = self.padding
+            temp_LE = LE + LE_padding
+            temp_RE = RE - RE_padding
         inner = na.invert( (points >= temp_LE).all(axis=1) * \
             (points < temp_RE).all(axis=1) )
         # After inverting the logic above, we want points that are both
