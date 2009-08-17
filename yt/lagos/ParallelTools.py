@@ -277,13 +277,13 @@ class ParallelAnalysisInterface(object):
         
         # Figure out the gridding based on the deepness of cuts.
         cc = MPI.Compute_dims(MPI.COMM_WORLD.size, 3)
-        mylog.info('cc %s' % str(cc))
+        #mylog.info('cc %s' % str(cc))
         if cuts is not None:
             xdiv = (na.array([2,1,1])**na.ceil(cuts/3.)).astype('int64')
             ydiv = (na.array([1,2,1])**na.ceil((cuts-1)/3.)).astype('int64')
             zdiv = (na.array([1,1,2])**na.ceil((cuts-2)/3.)).astype('int64')
             cc = cc / xdiv / ydiv / zdiv
-        mylog.info('post cc %s' % str(cc))
+        #mylog.info('post cc %s' % str(cc))
         # Set the boundaries of the full bounding box for this group.
         if top_bounds == None:
             LE, RE = self.pf["DomainLeftEdge"], self.pf["DomainRightEdge"]
@@ -861,54 +861,93 @@ class ParallelAnalysisInterface(object):
         """
         self._barrier()
         size = 0
-        if MPI.COMM_WORLD.rank == 0:
-            for i in range(1,MPI.COMM_WORLD.size):
-                size = MPI.COMM_WORLD.recv(source=i, tag=0)
-                top_keys = na.empty(size, dtype='int64')
-                bot_keys = na.empty(size, dtype='int64')
-                vals = na.empty(size, dtype='float64')
-                MPI.COMM_WORLD.Recv([top_keys, MPI.LONG], source=i, tag=0)
-                MPI.COMM_WORLD.Recv([bot_keys, MPI.LONG], source=i, tag=0)
-                MPI.COMM_WORLD.Recv([vals, MPI.DOUBLE], source=i, tag=0)
-                # convert back into a dict
-                temp_data = {}
-                for i,top_key in enumerate(top_keys):
-                    try:
-                        test = temp_data[top_key]
-                    except KeyError:
-                        temp_data[top_key] = {}
-                    temp_data[top_key][bot_keys[i]] = vals[i]
-                for top_key in temp_data:
-                    # Make sure there's an entry for top_key in data
-                    try:
-                        test = data[top_key]
-                    except KeyError:
-                        data[top_key] = {}
-                    for bot_key in temp_data[top_key]:
+        # This big confusing loop reduces the number of comparison steps
+        # it takes to compare this dict of dicts on all tasks.
+        si = MPI.COMM_WORLD.size
+        ra = MPI.COMM_WORLD.rank
+        ra1 = ra + 1
+        steps = int(na.log(si) / na.log(2))
+        for step in xrange(steps):
+            hooks = []
+            # The maximum ra1 value that sends in this loop.
+            maxra1_tosend = 2**(steps - step)
+            # The maximum ra1 value that receives in this loop.
+            minra1_torecv = maxra1_tosend / 2
+            # first make a info_dict so we know how big to make the
+            # recv buffers. Unf. this has to happen every time.
+            if ra1 > maxra1_tosend:
+                size = 0
+            else:
+                top_keys = []
+                bot_keys = []
+                vals = []
+                for top_key in data:
+                    for bot_key in data[top_key]:
+                        top_keys.append(top_key)
+                        bot_keys.append(bot_key)
+                        vals.append(data[top_key][bot_key])
+                top_keys = na.array(top_keys, dtype='int64')
+                bot_keys = na.array(bot_keys, dtype='int64')
+                vals = na.array(vals, dtype='float64')
+                size = top_keys.size
+            self.mine, global_sizes = self._mpi_info_dict(size)
+            if ra1 > maxra1_tosend:
+                # This task is done, skip the stuff below.
+                continue
+            if ra1 <= minra1_torecv:
+                top_dict = {}
+                bot_dict = {}
+                vals_dict = {}
+                # I receive from two neighbors.
+                for i in xrange(2):
+                    if i==0: neighbor = ra1 * 2 - 1 # these are real taskIDs
+                    if i==1: neighbor = ra1 * 2 - 2 
+                    if neighbor == 0: continue # task 0 doesn't self-communicate
+                    size = global_sizes[neighbor]
+                    top_dict[neighbor] = na.empty(size, dtype='int64')
+                    bot_dict[neighbor] = na.empty(size, dtype='int64')
+                    vals_dict[neighbor] = na.empty(size, dtype='float64')
+                    hooks.append(MPI.COMM_WORLD.Irecv([top_dict[neighbor], MPI.LONG], source=neighbor, tag=0))
+                    hooks.append(MPI.COMM_WORLD.Irecv([bot_dict[neighbor], MPI.LONG], source=neighbor, tag=0))
+                    hooks.append(MPI.COMM_WORLD.Irecv([vals_dict[neighbor], MPI.DOUBLE], source=neighbor, tag=0))
+            if ra1 > 1:
+                # I only send to one neighbor, except task 1 (real 0) that never
+                # sends to anyone.
+                if ra1 % 2 == 0: neighbor = ra1 / 2 - 1 # real taskID
+                if ra1 % 2 == 1: neighbor = (ra1 + 1) / 2 - 1
+                hooks.append(MPI.COMM_WORLD.Isend([top_keys, MPI.LONG], dest=neighbor, tag=0))
+                hooks.append(MPI.COMM_WORLD.Isend([bot_keys, MPI.LONG], dest=neighbor, tag=0))
+                hooks.append(MPI.COMM_WORLD.Isend([vals, MPI.DOUBLE], dest=neighbor, tag=0))
+            # wait on the comm.
+            MPI.Request.Waitall(hooks)
+            if ra1 <= minra1_torecv:
+                for i in xrange(2):
+                    if i==0: neighbor = ra1 * 2 - 1 # these are real taskIDs
+                    if i==1: neighbor = ra1 * 2 - 2 
+                    if neighbor == 0: continue # task 0 doesn't self-communicate
+                    # convert back into a dict
+                    temp_data = {}
+                    for i,top_key in enumerate(top_dict[neighbor]):
                         try:
-                            old_value = data[top_key][bot_key]
+                            test = temp_data[top_key]
                         except KeyError:
-                            # This guarantees the new value gets added.
-                            old_value = None
-                        if old_value < temp_data[top_key][bot_key]:
-                            data[top_key][bot_key] = temp_data[top_key][bot_key]
-        else:
-            top_keys = []
-            bot_keys = []
-            vals = []
-            for top_key in data:
-                for bot_key in data[top_key]:
-                    top_keys.append(top_key)
-                    bot_keys.append(bot_key)
-                    vals.append(data[top_key][bot_key])
-            top_keys = na.array(top_keys, dtype='int64')
-            bot_keys = na.array(bot_keys, dtype='int64')
-            vals = na.array(vals, dtype='float64')
-            size = top_keys.size
-            MPI.COMM_WORLD.send(size, dest=0, tag=0)
-            MPI.COMM_WORLD.Send([top_keys, MPI.LONG], dest=0, tag=0)
-            MPI.COMM_WORLD.Send([bot_keys, MPI.LONG], dest=0, tag=0)
-            MPI.COMM_WORLD.Send([vals, MPI.DOUBLE], dest=0, tag=0)
+                            temp_data[top_key] = {}
+                        temp_data[top_key][bot_dict[neighbor][i]] = vals_dict[neighbor][i]
+                    for top_key in temp_data:
+                        # Make sure there's an entry for top_key in data
+                        try:
+                            test = data[top_key]
+                        except KeyError:
+                            data[top_key] = {}
+                        for bot_key in temp_data[top_key]:
+                            try:
+                                old_value = data[top_key][bot_key]
+                            except KeyError:
+                                # This guarantees the new value gets added.
+                                old_value = None
+                            if old_value < temp_data[top_key][bot_key]:
+                                data[top_key][bot_key] = temp_data[top_key][bot_key]
+        self._barrier()
         # Getting ghetto here, we're going to decompose the dict into arrays,
         # send that, and then reconstruct it. When data is too big the pickling
         # of the dict fails.
