@@ -213,14 +213,15 @@ class PlotCollection(object):
         return p
 
     def add_particles(self, axis, width, p_size=1.0, col='k', stride=1.0,
-                      data_source=None):
+                      data_source=None, figure=None, axes=None):
         LE = self.pf["DomainLeftEdge"].copy()
         RE = self.pf["DomainRightEdge"].copy()
         LE[axis] = self.c[axis] - width/2.0
         RE[axis] = self.c[axis] + width/2.0
         if data_source is None: data_source = self.pf.h.region(self.c, LE, RE)
         p = self._add_plot(PlotTypes.ParticlePlot(data_source, axis,
-                                        width, p_size, col, stride))
+                                        width, p_size, col, stride, figure,
+                                        axes))
         p["Axis"] = lagos.axis_names[axis]
         return p
 
