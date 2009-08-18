@@ -1356,6 +1356,7 @@ class AMR3DData(AMRData, GridPropertiesMixin):
         self.set_field_parameter("center",center)
         self.coords = None
         self._grids = None
+        self._sortkey = None
 
     def _generate_coords(self):
         mylog.info("Generating coords for %s grids", len(self._grids))
@@ -1396,6 +1397,8 @@ class AMR3DData(AMRData, GridPropertiesMixin):
             fields_to_get = self.fields
         else:
             fields_to_get = ensure_list(fields)
+        if not self.sort_by in fields_to_get:
+            fields_to_get.append(self.sort_by)
         mylog.debug("Going to obtain %s", fields_to_get)
         for field in fields_to_get:
             if self.data.has_key(field):
@@ -1407,6 +1410,12 @@ class AMR3DData(AMRData, GridPropertiesMixin):
             self[field] = na.concatenate(
                 [self._get_data_from_grid(grid, field)
                  for grid in self._grids])
+        for field in fields_to_get:
+            if not self.data.has_key(field):
+                continue
+            if self._sortkey is None:
+                self._sortkey = na.argsort(self[self.sort_by])
+            self[field] = self[field][self._sortkey]
 
     @restore_grid_state
     def _get_data_from_grid(self, grid, field):
