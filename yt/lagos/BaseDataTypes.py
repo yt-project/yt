@@ -1434,7 +1434,7 @@ class AMR3DData(AMRData, GridPropertiesMixin):
         for grid in self._grids:
             if default_value != None:
                 grid[field] = na.ones(grid.ActiveDimensions)*value
-            grid[field][self._get_point_indices()] = value
+            grid[field][self._get_point_indices(grid)] = value
 
 
 class ExtractedRegionBase(AMR3DData):
