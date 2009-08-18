@@ -130,23 +130,29 @@ def _SoundSpeed(field, data):
 add_field("SoundSpeed", function=_SoundSpeed,
           units=r"\rm{cm}/\rm{s}")
 
-def particle_func(p_field, dtype='float64'):
+def particle_func(p_field, dtype='float64', ptype=None):
+    dspace = None
+    if ptype is not None:
+        dspace = "AddressParticleType%02i" % ptype
     def _Particles(field, data):
         if not data.NumberOfParticles > 0:
             return na.array([], dtype=dtype)
         try:
-            return data._read_data(p_field).astype(dtype)
+            return data._read_data(p_field, dspace=dspace).astype(dtype)
         except data._read_exception:
             pass
         # This is bad.  But it's the best idea I have right now.
-        return data._read_data(p_field.replace("_"," ")).astype(dtype)
+        return data._read_data(p_field.replace("_"," "), dspace=dspace).astype(dtype)
     return _Particles
-for pf in ["type", "mass"] + \
-          ["position_%s" % ax for ax in 'xyz']:
-    pfunc = particle_func("particle_%s" % (pf))
-    add_field("particle_%s" % pf, function=pfunc,
-              validators = [ValidateSpatial(0)],
-              particle_type=True)
+for ptype in [None] + range(10):
+    for pf in ["type", "mass"] + \
+              ["position_%s" % ax for ax in 'xyz']:
+        pname = "particle_%s" % pf
+        if ptype is not None: pname = "PT%02i_%s" % (ptype, pname)
+        pfunc = particle_func("particle_%s" % (pf), ptype=ptype)
+        add_field(pname, function=pfunc,
+                  validators = [ValidateSpatial(0)],
+                  particle_type=True)
 
 def _convRetainInt(data):
     return 1

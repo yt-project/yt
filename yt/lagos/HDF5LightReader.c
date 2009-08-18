@@ -82,10 +82,12 @@ Py_ReadHDF5DataSet(PyObject *obj, PyObject *args)
 {
     char *filename, *nodename;
 
+    char *dspacename = NULL;
     hsize_t *my_dims = NULL;
     hsize_t *my_max_dims = NULL;
     npy_intp *dims = NULL;
-    hid_t file_id, datatype_id, native_type_id, dataset, dataspace;
+    hid_t file_id, datatype_id, native_type_id, dataset, dataspace, dsetr,
+          memspace;
     herr_t my_error;
     htri_t file_exists;
     size_t type_size;
@@ -96,8 +98,8 @@ Py_ReadHDF5DataSet(PyObject *obj, PyObject *args)
     file_id = datatype_id = native_type_id = dataset = 0;
     dataspace = 0;
 
-    if (!PyArg_ParseTuple(args, "ss",
-            &filename, &nodename))
+    if (!PyArg_ParseTuple(args, "ss|s",
+            &filename, &nodename, &dspacename))
         return PyErr_Format(_hdf5ReadError,
                "ReadHDF5DataSet: Invalid parameters.");
 
@@ -123,6 +125,12 @@ Py_ReadHDF5DataSet(PyObject *obj, PyObject *args)
                  "ReadHDF5DataSet: Unable to open %s", filename);
         goto _fail;
     }
+    
+    dsetr = -1;
+    if(dspacename != NULL){
+      /*fprintf(stderr, "Getting dspace %s\n", dspacename);*/
+      dsetr = H5Dopen(file_id, dspacename);
+    }
 
     /* We turn off error reporting briefly, because it turns out that
        reading datasets with group names is more forgiving than finding
@@ -140,32 +148,56 @@ Py_ReadHDF5DataSet(PyObject *obj, PyObject *args)
         goto _fail;
     }
 
-    dataspace = H5Dget_space(dataset);
-    if(dataspace < 0) {
+    if(dsetr >= 0) {
+      hdset_reg_ref_t reference[1];
+      my_error = H5Dread(dsetr, H5T_STD_REF_DSETREG, H5S_ALL, H5S_ALL, 
+          H5P_DEFAULT, reference);
+      if(my_error < 0) {
         PyErr_Format(_hdf5ReadError,
-                 "ReadHDF5DataSet: Unable to open dataspace (%s, %s).",
-                                    filename, nodename);
+            "ReadHDF5DataSet: Unable to read particle reference (%s, %s, %s).",
+            filename, nodename, dspacename);
         goto _fail;
-    }
-    my_rank = H5Sget_simple_extent_ndims( dataspace );
-    if(my_rank < 0) {
+      }
+      H5Dclose(dsetr);
+      dataspace = H5Rget_region(file_id, H5R_DATASET_REGION, reference);
+      if(dataspace < 0) {
         PyErr_Format(_hdf5ReadError,
-                 "ReadHDF5DataSet: Problem getting dataset rank (%s, %s).",
-                                    filename, nodename);
+            "ReadHDF5DataSet: Unable to dereference particle dataspace (%s, %s).",
+            filename, nodename);
         goto _fail;
-    }
+      }
+      my_rank = 1;
+      /* How do we keep this from leaking in failures? */
+      my_dims = malloc(sizeof(hsize_t) * my_rank);
+      my_max_dims = malloc(sizeof(hsize_t) * my_rank);
+      my_dims[0] = my_max_dims[0] = H5Sget_select_npoints(dataspace);
+    } else {
+      dataspace = H5Dget_space(dataset);
+      if(dataspace < 0) {
+        PyErr_Format(_hdf5ReadError,
+            "ReadHDF5DataSet: Unable to open dataspace (%s, %s).",
+            filename, nodename);
+        goto _fail;
+      }
+      my_rank = H5Sget_simple_extent_ndims( dataspace );
+      if(my_rank < 0) {
+        PyErr_Format(_hdf5ReadError,
+            "ReadHDF5DataSet: Problem getting dataset rank (%s, %s).",
+            filename, nodename);
+        goto _fail;
+      }
 
-    /* How do we keep this from leaking in failures? */
-    my_dims = malloc(sizeof(hsize_t) * my_rank);
-    my_max_dims = malloc(sizeof(hsize_t) * my_rank);
-    my_error = H5Sget_simple_extent_dims( dataspace, my_dims, my_max_dims );
-    if(my_error < 0) {
+      /* How do we keep this from leaking in failures? */
+      my_dims = malloc(sizeof(hsize_t) * my_rank);
+      my_max_dims = malloc(sizeof(hsize_t) * my_rank);
+      my_error = H5Sget_simple_extent_dims( dataspace, my_dims, my_max_dims );
+      if(my_error < 0) {
         PyErr_Format(_hdf5ReadError,
-                 "ReadHDF5DataSet: Problem getting dataset dimensions (%s, %s).",
-                                    filename, nodename);
+            "ReadHDF5DataSet: Problem getting dataset dimensions (%s, %s).",
+            filename, nodename);
         goto _fail;
+      }
     }
-
     dims = malloc(my_rank * sizeof(npy_intp));
     for (i = 0; i < my_rank; i++) dims[i] = (npy_intp) my_dims[i];
 
@@ -187,15 +219,23 @@ Py_ReadHDF5DataSet(PyObject *obj, PyObject *args)
     if (!my_array) {
         PyErr_Format(_hdf5ReadError,
                  "ReadHDF5DataSet: Unable to create NumPy array.");
+      
         goto _fail;
     }
+    memspace = H5Screate_simple(my_rank, my_dims, NULL); 
+    /*fprintf(stderr, "Total Selected: %s %d %d %d\n",
+            dspacename,
+            (int) H5Sget_select_npoints(memspace),
+            (int) H5Sget_select_npoints(dataspace),
+            (int) my_rank);*/
 
-    H5Dread(dataset, native_type_id, H5S_ALL, H5S_ALL, H5P_DEFAULT, my_array->data);
+    H5Dread(dataset, native_type_id, memspace, dataspace, H5P_DEFAULT, my_array->data);
 
     PyArray_UpdateFlags(my_array, NPY_OWNDATA | my_array->flags);
     PyObject *return_value = Py_BuildValue("N", my_array);
 
     H5Sclose(dataspace);
+    H5Sclose(memspace);
     H5Dclose(dataset);
     H5Tclose(native_type_id);
     H5Tclose(datatype_id);

@@ -111,8 +111,13 @@ def readDataPackedHandle(self, field):
     t = t.swapaxes(0,2)
     return t
 
-def readDataPacked(self, field):
-    return HDF5LightReader.ReadData(self.filename, "/Grid%08i/%s" % (self.id, field)).swapaxes(0,2)
+def readDataPacked(self, field, dspace=None):
+    if dspace is not None:
+        dspace="/Grid%08i/%s" % (self.id, dspace)
+        return HDF5LightReader.ReadData(self.filename,
+                "/Grid%08i/%s" % (self.id, field), dspace).swapaxes(0,2)
+    return HDF5LightReader.ReadData(self.filename,
+            "/Grid%08i/%s" % (self.id, field)).swapaxes(0,2)
 
 def readDataSlicePacked(self, grid, field, axis, coord):
     """
