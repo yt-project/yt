@@ -213,14 +213,15 @@ class PlotCollection(object):
         return p
 
     def add_particles(self, axis, width, p_size=1.0, col='k', stride=1.0,
-                      data_source=None):
+                      data_source=None, figure=None, axes=None):
         LE = self.pf["DomainLeftEdge"].copy()
         RE = self.pf["DomainRightEdge"].copy()
         LE[axis] = self.c[axis] - width/2.0
         RE[axis] = self.c[axis] + width/2.0
         if data_source is None: data_source = self.pf.h.region(self.c, LE, RE)
         p = self._add_plot(PlotTypes.ParticlePlot(data_source, axis,
-                                        width, p_size, col, stride))
+                                        width, p_size, col, stride, figure,
+                                        axes))
         p["Axis"] = lagos.axis_names[axis]
         return p
 
@@ -511,7 +512,9 @@ def get_multi_plot(nx, ny, colorbar = 'vertical', bw = 4, dpi=300):
     PlotTypes.Initialize()
     hf, wf = 1.0/ny, 1.0/nx
     fudge_x = fudge_y = 1.0
-    if colorbar.lower() == 'vertical':
+    if colorbar is None:
+        fudge_x = fudge_y = 1.0
+    elif colorbar.lower() == 'vertical':
         fudge_x = nx/(0.25+nx)
         fudge_y = 1.0
     elif colorbar.lower() == 'horizontal':
@@ -532,7 +535,9 @@ def get_multi_plot(nx, ny, colorbar = 'vertical', bw = 4, dpi=300):
             ax = fig.add_axes([left, bottom, wf*fudge_x, hf*fudge_y])
             tr[-1].append(ax)
     cbars = []
-    if colorbar.lower() == 'horizontal':
+    if colorbar is None:
+        pass
+    elif colorbar.lower() == 'horizontal':
         for i in range(nx):
             # left, bottom, width, height
             # Here we want 0.10 on each side of the colorbar

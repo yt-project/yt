@@ -1137,7 +1137,9 @@ class AMRProjBase(AMR2DData):
         # It is probably faster, as it consolidates IO, but if we did it in
         # _project_level, then it would be more memory conservative
         for level in range(0, self._max_level+1):
-            self._preload(self.source._grids[self.source.levelIndices[level]],
+            level_ind = self.source.levelIndices[level]
+            if len(level_ind) == 0: continue
+            self._preload(self.source._grids[level_ind],
                           self._get_dependencies(fields), self.hierarchy.queue)
             self.__calculate_overlap(level)
             my_coords, my_dx, my_fields = self.__project_level(level, fields)
@@ -1538,8 +1540,8 @@ class AMR3DData(AMRData, GridPropertiesMixin):
         """
         for grid in self._grids:
             if default_value != None:
-                grid[field] = na.ones(grid.ActiveDimensions)*value
-            grid[field][self._get_point_indices()] = value
+                grid[field] = na.ones(grid.ActiveDimensions)*default_value
+            grid[field][self._get_point_indices(grid)] = value
 
 
 class ExtractedRegionBase(AMR3DData):
