@@ -88,16 +88,109 @@ class RunChainHOP(ParallelAnalysisInterface):
         # Clean up.
         del global_neighbors, global_bounds, vertices, neighbors
         
-    def _global_padding(self):
+    def _global_padding(self, round):
         """
         Find the maximum padding of all our neighbors, used to send our
         annulus data.
         """
-        max_pad = na.max(self.padding)
-        self.mine, global_padding = self._mpi_info_dict(max_pad)
-        self.max_padding = max(global_padding.itervalues())
-        del global_padding
+        if round == 'first':
+            max_pad = na.max(self.padding)
+            self.mine, self.global_padding = self._mpi_info_dict(max_pad)
+            self.max_padding = max(self.global_padding.itervalues())
+        elif round == 'second':
+            self.max_padding = 0.
+            for neighbor in self.neighbors:
+                self.max_padding = na.maximum(self.global_padding[neighbor], \
+                    self.max_padding)
 
+    def _communicate_padding_data(self):
+        """
+        Send the particles each of my neighbors need to build up their padding.
+        """
+        # First build a global dict of the padded boundaries of all the tasks.
+        (LE, RE) = self.bounds
+        (LE_padding, RE_padding) = self.padding
+        temp_LE = LE - LE_padding
+        temp_RE = RE + RE_padding
+        expanded_bounds = (temp_LE, temp_RE)
+        self.mine, global_exp_bounds = self._mpi_info_dict(expanded_bounds)
+        send_real_indices = {}
+        send_points = {}
+        send_mass = {}
+        send_size = {}
+        # This will reduce the size of the loop over particles.
+        send_count = len(na.where(self.is_inside_annulus == True)[0])
+        points = na.empty((send_count, 3), dtype='float64')
+        points[:,0] = self.xpos[self.is_inside_annulus]
+        points[:,1] = self.ypos[self.is_inside_annulus]
+        points[:,2] = self.zpos[self.is_inside_annulus]
+        real_indices = self.index[self.is_inside_annulus].astype('int64')
+        mass = self.mass[self.is_inside_annulus].astype('float64')
+        # Make the arrays to send.
+        for neighbor in self.neighbors:
+            temp_LE, temp_RE = global_exp_bounds[neighbor]
+            for i,point in enumerate(points):
+                if point[0] < temp_LE[0] and point[0] < temp_RE[0]:
+                    points[i][0] += self.period[0]
+                if point[0] > temp_LE[0] and point[0] > temp_RE[0]:
+                    points[i][0] -= self.period[0]
+                if point[1] < temp_LE[1] and point[1] < temp_RE[1]:
+                    points[i][1] += self.period[1]
+                if point[1] > temp_LE[1] and point[1] > temp_RE[1]:
+                    points[i][1] -= self.period[1]
+                if point[2] < temp_LE[2] and point[2] < temp_RE[2]:
+                    points[i][2] += self.period[2]
+                if point[2] > temp_LE[2] and point[2] > temp_RE[2]:
+                    points[i][2] -= self.period[2]
+            is_inside = ( (points >= temp_LE).all(axis=1) * \
+                (points < temp_RE).all(axis=1) )
+            send_real_indices[neighbor] = real_indices[is_inside].copy()
+            send_points[neighbor] = points[is_inside].copy()
+            send_mass[neighbor] = mass[is_inside].copy()
+            send_size[neighbor] = len(na.where(is_inside == True)[0])
+        # Communicate the sizes to send.
+        self.mine, global_send_count = self._mpi_info_dict(send_size)
+        # Initialize the arrays to receive data.
+        recv_real_indices = {}
+        recv_points = {}
+        recv_mass = {}
+        for opp_neighbor in self.neighbors:
+            opp_size = global_send_count[opp_neighbor][self.mine]
+            recv_real_indices[opp_neighbor] = na.empty(opp_size, dtype='int64')
+            recv_points[opp_neighbor] = na.empty((opp_size, 3), dtype='float64')
+            recv_mass[opp_neighbor] = na.empty(opp_size, dtype='float64')
+        # Setup the receiving slots.
+        hooks = []
+        for opp_neighbor in self.neighbors:
+            hooks.append(MPI.COMM_WORLD.Irecv([recv_real_indices[opp_neighbor], MPI.LONG], opp_neighbor, 0))
+            hooks.append(MPI.COMM_WORLD.Irecv([recv_points[opp_neighbor], MPI.DOUBLE], opp_neighbor, 0))
+            hooks.append(MPI.COMM_WORLD.Irecv([recv_mass[opp_neighbor], MPI.DOUBLE], opp_neighbor, 0))
+        # Now we send the data.
+        for neighbor in self.neighbors:
+            hooks.append(MPI.COMM_WORLD.Isend([send_real_indices[neighbor], MPI.LONG], neighbor, 0))
+            hooks.append(MPI.COMM_WORLD.Isend([send_points[neighbor], MPI.DOUBLE], neighbor, 0))
+            hooks.append(MPI.COMM_WORLD.Isend([send_mass[neighbor], MPI.DOUBLE], neighbor, 0))
+        # Now we use the data, after all the comms are done.
+        MPI.Request.Waitall(hooks)
+        del send_real_indices, send_points, send_mass
+        # Now we add the data to ourselves.
+        for opp_neighbor in self.neighbors:
+            self.index = na.concatenate((self.index, recv_real_indices[opp_neighbor]))
+            # Clean up immediately to reduce peak memory usage.
+            del recv_real_indices[opp_neighbor]
+            self.xpos = na.concatenate((self.xpos, recv_points[opp_neighbor][:,0]))
+            self.ypos = na.concatenate((self.ypos, recv_points[opp_neighbor][:,1]))
+            self.zpos = na.concatenate((self.zpos, recv_points[opp_neighbor][:,2]))
+            del recv_points[opp_neighbor]
+            self.mass = na.concatenate((self.mass, recv_mass[opp_neighbor]))
+            del recv_mass[opp_neighbor]
+        self.size = self.index.size
+        # Now that we have the full size, initialize the chainID array
+        self.chainID = na.ones(self.size,dtype='int64') * -1
+        # Clean up explicitly, but these should be empty dicts by now.
+        del recv_real_indices, hooks
+        del recv_points, recv_mass
+        
     def _communicate_raw_padding_data(self):
         """
         Send the raw particle data (x,y,zpos, mass and index) from our
@@ -247,13 +340,13 @@ class RunChainHOP(ParallelAnalysisInterface):
         # Below we find out which particles are in the `annulus', one padding
         # distance inside the boundaries. First we find the particles outside
         # this inner boundary.
-        if round == 'first':
-            temp_LE = LE + self.max_padding
-            temp_RE = RE - self.max_padding
-        if round == 'second':
-            (LE_padding, RE_padding) = self.padding
-            temp_LE = LE + LE_padding
-            temp_RE = RE - RE_padding
+        #if round == 'first':
+        temp_LE = LE + self.max_padding
+        temp_RE = RE - self.max_padding
+        #if round == 'second':
+        #    (LE_padding, RE_padding) = self.padding
+        #    temp_LE = LE + LE_padding
+        #    temp_RE = RE - RE_padding
         inner = na.invert( (points >= temp_LE).all(axis=1) * \
             (points < temp_RE).all(axis=1) )
         # After inverting the logic above, we want points that are both
@@ -1094,11 +1187,12 @@ class RunChainHOP(ParallelAnalysisInterface):
 
     def _chain_hop(self):
         mylog.info("Running Python version.")
-        self._global_padding()
+        self._global_padding('first')
         self._global_bounds_neighbors()
         mylog.info("Distributing padded particles...")
+        self._global_padding('second')
         self._is_inside('first')
-        self._communicate_raw_padding_data()
+        self._communicate_padding_data()
         mylog.info('Building kd tree for %d particles...' % \
             self.size)
         self._init_kd_tree()

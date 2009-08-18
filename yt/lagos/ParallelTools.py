@@ -868,6 +868,7 @@ class ParallelAnalysisInterface(object):
         ra1 = ra + 1
         steps = int(na.log(si) / na.log(2))
         for step in xrange(steps):
+            mylog.info('step %d' % step)
             hooks = []
             # The maximum ra1 value that sends in this loop.
             maxra1_tosend = 2**(steps - step)

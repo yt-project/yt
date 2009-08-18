@@ -837,7 +837,7 @@ class chainHF(GenericHaloFinder, chainHOPHaloList):
                 # Get the avg spacing in just this boundary.
                 vol = area * (bins[start+1] - bins[0])
                 avg_spacing = (float(vol) / count)**(1./3.)
-                safety = 2.
+                safety = 2.5
                 LE_padding[dim] = (self.num_neighbors)**(1./3.) * safety * avg_spacing
                 # right side.
                 start = -1
