@@ -1540,7 +1540,7 @@ class AMR3DData(AMRData, GridPropertiesMixin):
         """
         for grid in self._grids:
             if default_value != None:
-                grid[field] = na.ones(grid.ActiveDimensions)*value
+                grid[field] = na.ones(grid.ActiveDimensions)*default_value
             grid[field][self._get_point_indices(grid)] = value
 
 
