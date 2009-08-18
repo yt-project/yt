@@ -392,6 +392,7 @@ class AMR1DData(AMRData, GridPropertiesMixin):
             self[field] = na.concatenate(
                 [self._get_data_from_grid(grid, field)
                  for grid in self._grids])
+            self[field] = self[field][na.argsort(self[self.sort_by])]
 
 class AMROrthoRayBase(AMR1DData):
     _key_fields = ['x','y','z','dx','dy','dz']
@@ -409,6 +410,7 @@ class AMROrthoRayBase(AMR1DData):
         self.px_dx = 'd%s'%(axis_names[self.px_ax])
         self.py_dx = 'd%s'%(axis_names[self.py_ax])
         self.px, self.py = coords
+        self.sort_by = axis_names[self.axis]
         self._refresh_data()
 
     def _get_list_of_grids(self):
@@ -443,6 +445,7 @@ class AMROrthoRayBase(AMR1DData):
 class AMRRayBase(AMR1DData):
     _type_name = "ray"
     _con_args = ('start_point', 'end_point')
+    sort_by = 't'
     def __init__(self, start_point, end_point, fields=None, pf=None, **kwargs):
         """
         We accept a start point and an end point and then get all the data
