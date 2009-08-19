@@ -155,6 +155,7 @@ class RunChainHOP(ParallelAnalysisInterface):
         # Communicate the sizes to send.
         self.mine, global_send_count = self._mpi_info_dict(send_size)
         # Initialize the arrays to receive data.
+        yt_counters("Initalizing recv arrays.")
         recv_real_indices = {}
         recv_points = {}
         recv_mass = {}
@@ -163,6 +164,7 @@ class RunChainHOP(ParallelAnalysisInterface):
             recv_real_indices[opp_neighbor] = na.empty(opp_size, dtype='int64')
             recv_points[opp_neighbor] = na.empty((opp_size, 3), dtype='float64')
             recv_mass[opp_neighbor] = na.empty(opp_size, dtype='float64')
+        yt_counters("Initalizing recv arrays.")
         # Setup the receiving slots.
         yt_counters("MPI stuff.")
         hooks = []
@@ -900,8 +902,6 @@ class RunChainHOP(ParallelAnalysisInterface):
         all tasks.
         """
         yt_counters("make_global_chain_densest_n")
-        #self.chain_densest_n = \
-        #        self._mpi_maxdict_dict(self.chain_densest_n)
         (self.top_keys, self.bot_keys, self.vals) = \
             self._mpi_maxdict_dict(self.chain_densest_n)
         del self.chain_densest_n
@@ -940,12 +940,9 @@ class RunChainHOP(ParallelAnalysisInterface):
                 self.reverse_map[chainID] = groupID
                 groupID += 1
         # Loop over all of the chain linkages.
-        #for chain_high in self.chain_densest_n:
-        #    for chain_low in self.chain_densest_n[chain_high]:
         for i,chain_high in enumerate(self.top_keys):
             chain_low = self.bot_keys[i]
             dens = self.vals[i]
-            #dens = self.chain_densest_n[chain_high][chain_low]
             max_dens_high = self.densest_in_chain[chain_high]
             max_dens_low = self.densest_in_chain[chain_low]
             # If neither are peak density groups, mark them for later
@@ -983,7 +980,6 @@ class RunChainHOP(ParallelAnalysisInterface):
             if dens > densestbound[chain_low]:
                 densestbound[chain_low] = dens
                 self.reverse_map[chain_low] = group_high
-            # Done double loop over links.
         # Now refactor group_equivalancy_map back into reverse_map. The group
         # mapping may be more than one link long, so we need to do it
         # recursively. The best way to think about this is a field full of 
@@ -996,7 +992,6 @@ class RunChainHOP(ParallelAnalysisInterface):
         # the other tunnels have been closed at the old nexus. In this fashion your search 
         # spreads out like the water shooting out of the ground in 'Caddy
         # Shack.'
-        mylog.info("here 1")
         Set_list = []
         # We only want the holes that are modulo mine.
         keys = na.array(group_equivalancy_map.keys(), dtype='int64')
@@ -1038,10 +1033,8 @@ class RunChainHOP(ParallelAnalysisInterface):
             item_min = min(item)
             for groupID in item:
                 lookup[groupID] = item_min
-        mylog.info("here 2")
         # To bring it all together, join the dicts.
         lookup = self._mpi_joindict_unpickled_int(lookup)
-        mylog.info("here 3")
         # Now apply this to reverse_map
         for chainID in self.reverse_map:
             groupID = self.reverse_map[chainID]
@@ -1094,12 +1087,6 @@ class RunChainHOP(ParallelAnalysisInterface):
             self.reverse_map[chain] = secondary_map[self.reverse_map[chain]]
         group_count = len(temp)
         del secondary_map, temp, g_high, g_low, g_dens, densestbound
-        #else:
-        #    group_count = 0
-        #group_count = MPI.COMM_WORLD.bcast(group_count, root=0)
-        #self.reverse_map = MPI.COMM_WORLD.bcast(self.reverse_map, root=0)
-        #self.reverse_map = self._mpi_bcast_int_dict_unpickled(self.reverse_map)
-        mylog.info("here 4")
         yt_counters("build_groups")
         return group_count
 
@@ -1139,6 +1126,7 @@ class RunChainHOP(ParallelAnalysisInterface):
         # First we need to find the maximum density point for all groups.
         # I think this will be faster than several vector operations that need
         # to pull the entire chainID array out of memory several times.
+        yt_counters("max dens point")
         max_dens_point = na.zeros((self.group_count,4),dtype='float64')
         for part in xrange(int(self.size)):
             if self.chainID[part] == -1: continue
@@ -1150,7 +1138,9 @@ class RunChainHOP(ParallelAnalysisInterface):
         # some groups are on multiple tasks, there is only one densest_in_chain
         # and only that task contributed above.
         self.max_dens_point = self._mpi_Allsum_float(max_dens_point)
+        yt_counters("max dens point")
         # Now CoM.
+        yt_counters("CoM")
         c_vec = self.max_dens_point[:,1:4] - na.array([0.5,0.5,0.5])
         size = na.zeros(self.group_count, dtype='int64')
         CoM_M = na.zeros((self.group_count,3),dtype='float64')
@@ -1180,7 +1170,9 @@ class RunChainHOP(ParallelAnalysisInterface):
         self.CoM = na.empty((self.group_count,3), dtype='float64')
         for groupID in xrange(int(self.group_count)):
             self.CoM[groupID] = CoM_M[groupID] / self.Tot_M[groupID]
+        yt_counters("CoM")
         # Now we find the maximum radius for all groups.
+        yt_counters("max radius")
         max_radius = na.zeros(self.group_count, dtype='float64')
         for part in xrange(int(self.size)):
             groupID = self.chainID[part]
@@ -1194,18 +1186,17 @@ class RunChainHOP(ParallelAnalysisInterface):
                 max_radius[groupID] = dist
         # Find the maximum across all tasks.
         self.max_radius = self._mpi_float_array_max(max_radius)
+        yt_counters("max radius")
         yt_counters("Precomp.")
 
     def _chain_hop(self):
         mylog.info("Running Python version.")
         self._global_padding('first')
         self._global_bounds_neighbors()
-        #mylog.info("Distributing padded particles...")
+        mylog.info("Distributing padded particles...")
         self._global_padding('second')
         self._is_inside('first')
-        #self._communicate_padding_data()
-        self.size = self.xpos.size
-        self.chainID = na.ones(self.size,dtype='int64') * -1
+        self._communicate_padding_data()
         mylog.info('Building kd tree for %d particles...' % \
             self.size)
         self._init_kd_tree()

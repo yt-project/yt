@@ -772,7 +772,6 @@ class ParallelAnalysisInterface(object):
         if MPI.COMM_WORLD.rank == 0:
             for i in range(1,MPI.COMM_WORLD.size):
                 size = MPI.COMM_WORLD.recv(source=i, tag=0)
-                mylog.info('joindict_int %d size %d' % (i,size))
                 keys = na.empty(size, dtype='int64')
                 values = na.empty(size, dtype='int64')
                 MPI.COMM_WORLD.Recv([keys, MPI.LONG], i, 0)

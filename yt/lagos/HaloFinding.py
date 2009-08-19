@@ -589,12 +589,9 @@ class chainHOPHaloList(HaloList,ParallelAnalysisInterface):
         self.bulk_vel = self._mpi_Allsum_float(self.bulk_vel)
         for groupID in xrange(self.group_count):
             self.bulk_vel[groupID] = self.bulk_vel[groupID] / self.Tot_M[groupID]
-        yt_counters("Precomp bulk vel.")
-        # I'm not sure if I can actually use this below, but it's not hurting
-        # anything so I'll leave it for now.
-        self.densest_in_group = obj.densest_in_group
         self.taskID = obj.mine
         del obj
+        yt_counters("Precomp bulk vel.")
 
     def _parse_output(self):
         yt_counters("Final Grouping")
@@ -855,8 +852,8 @@ class chainHF(GenericHaloFinder, chainHOPHaloList):
             self.padding = (na.zeros(3,dtype='float64'), na.zeros(3,dtype='float64'))
         self.bounds = (LE, RE)
         (LE_padding, RE_padding) = self.padding
-        if (LE_padding > 0).any() or (RE_padding > 0).any():
-            self._data_source = self._return_defined_periodic_data_source((LE+RE)/2., LE-LE_padding, RE+RE_padding)
+        #if (LE_padding > 0).any() or (RE_padding > 0).any():
+        #    self._data_source = self._return_defined_periodic_data_source((LE+RE)/2., LE-LE_padding, RE+RE_padding)
         chainHOPHaloList.__init__(self, self._data_source, self.padding, \
         self.num_neighbors, self.bounds, total_mass, period, threshold=threshold, dm_only=dm_only, rearrange=rearrange)
         self._join_halolists()
