@@ -281,13 +281,13 @@ class ParallelAnalysisInterface(object):
         
         # Figure out the gridding based on the deepness of cuts.
         cc = MPI.Compute_dims(MPI.COMM_WORLD.size, 3)
-        #mylog.info('cc %s' % str(cc))
+        mylog.info('cc %s cuts %d' % (str(cc),cuts))
         if cuts is not None:
             xdiv = (na.array([2,1,1])**na.ceil(cuts/3.)).astype('int64')
             ydiv = (na.array([1,2,1])**na.ceil((cuts-1)/3.)).astype('int64')
             zdiv = (na.array([1,1,2])**na.ceil((cuts-2)/3.)).astype('int64')
             cc = cc / xdiv / ydiv / zdiv
-        #mylog.info('post cc %s' % str(cc))
+        mylog.info('post cc %s cuts %d' % (str(cc), cuts))
         # Set the boundaries of the full bounding box for this group.
         if top_bounds == None:
             LE, RE = self.pf["DomainLeftEdge"].copy(), self.pf["DomainRightEdge"].copy()
@@ -339,10 +339,15 @@ class ParallelAnalysisInterface(object):
             new_group = old_group.Range_incl(bot_ranks)
             new_comm = old_comm.Create(new_group)
         
+        if cuts > 1:
+            old_group.Free()
+            old_comm.Free()
+        
         new_top_bounds = (LE,RE)
         
         # Using the new boundaries, regrid.
         mi = new_comm.rank
+        mylog.info('mi %d cuts %d' % (mi, cuts))
         cx, cy, cz = na.unravel_index(mi, cc)
         x = na.mgrid[LE[0]:RE[0]:(cc[0]+1)*1j][cx:cx+2]
         y = na.mgrid[LE[1]:RE[1]:(cc[1]+1)*1j][cy:cy+2]
