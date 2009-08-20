@@ -106,4 +106,3 @@ if ytcfg.getboolean("lagos","loadfieldplugins"):
     # We assume that it is with respect to the $HOME/.yt directory
     execfile(os.path.expanduser("~/.yt/%s" % my_plugin_name))
 
-log_fields = [] # @todo: GET RID OF THIS
