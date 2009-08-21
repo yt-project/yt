@@ -1,5 +1,5 @@
 from yt.lagos import *
-import inspect
+import inspect, functools
 
 class TimeSeriesData(object):
     def __init__(self, name):
@@ -18,6 +18,10 @@ class EnzoTimeSeries(TimeSeriesData):
             if not line.startswith(_enzo_header): continue
             fn = line[len(_enzo_header):].strip()
             self._insert(EnzoStaticOutput(fn))
+
+        for type_name in data_object_registry:
+            setattr(self, type_name, functools.partial(
+                TimeSeriesDataObject, self, type_name))
 
     def __getitem__(self, key):
         return self.outputs[key]
@@ -52,7 +56,7 @@ class TimeSeriesDataObject(object):
         self._kwargs = kwargs
 
     def eval(self, tasks):
-        self.time_series.eval(tasks, self)
+        return self.time_series.eval(tasks, self)
 
     def get(self, pf):
         # We get the type name, which corresponds to an attribute of the
