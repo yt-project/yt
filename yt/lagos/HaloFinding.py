@@ -798,8 +798,6 @@ class chainHF(GenericHaloFinder, chainHOPHaloList):
         # get the average spacing between particles for this region
         # The except is for the serial case, where the full box is what we want.
         data = self._data_source["particle_position_x"]
-        mylog.info('size %d' % data.size)
-        sys.exit()
         try:
             l = self._data_source.right_edge - self._data_source.left_edge
         except AttributeError:
