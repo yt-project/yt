@@ -1,4 +1,5 @@
 from yt.lagos import *
+import inspect
 
 class TimeSeriesData(object):
     def __init__(self, name):
@@ -36,8 +37,9 @@ class EnzoTimeSeries(TimeSeriesData):
         for pf in self:
             return_values.append([])
             for task in tasks:
-                return_values[-1].append(
-                    task.eval(pf.h.all_data()))
+                style = inspect.getargspec(task.eval)[0][1]
+                arg = {'pf':pf, 'data_object':pf.h.all_data()}
+                return_values[-1].append(task.eval(arg[style]))
         return return_values
 
 class TimeSeriesDataObject(object):

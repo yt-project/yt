@@ -58,4 +58,4 @@ class SlicePlotDataset(AnalysisTask):
     def eval(self, pf):
         pc = self.raven.PlotCollection(pf, center = self.center)
         pc.add_slice(self.field, self.axis)
-        pc.save()
+        return pc.save()[0]
