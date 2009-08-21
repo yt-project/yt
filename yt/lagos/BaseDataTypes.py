@@ -144,6 +144,16 @@ class AMRData(object):
         self.set_field_parameter("center",na.zeros(3,dtype='float64'))
         self.set_field_parameter("bulk_velocity",na.zeros(3,dtype='float64'))
 
+    def _set_center(self, center):
+        if center == ("max"): # is this dangerous for race conditions?
+            center = pf.h.find_max("Density")
+        elif center.startswith("max_"):
+            center = pf.h.find_max(center[4:])
+        else:
+            center = na.array(center, dtype='float64')
+        self.center = center
+        self.set_field_parameter('center', center)
+
     def get_field_parameter(self, name, default=None):
         """
         This is typically only used by derived field functions, but
@@ -454,7 +464,7 @@ class AMRRayBase(AMR1DData):
         self.end_point = na.array(end_point, dtype='float64')
         self.vec = self.end_point - self.start_point
         #self.vec /= na.sqrt(na.dot(self.vec, self.vec))
-        self.center = self.start_point
+        self._set_center(self.start_point)
         self.set_field_parameter('center', self.start_point)
         self._dts, self._ts = {}, {}
         #self._refresh_data()
@@ -656,8 +666,7 @@ class AMRSliceBase(AMR2DData):
         Optionally supply fields.
         """
         AMR2DData.__init__(self, axis, fields, pf, **kwargs)
-        self.center = center
-        if center is not None: self.set_field_parameter('center',center)
+        self._set_center(center)
         self.coord = coord
         if node_name is False:
             self._refresh_data()
@@ -805,7 +814,7 @@ class AMRCuttingPlaneBase(AMR2DData):
         The 'up' direction is guessed at automatically.
         """
         AMR2DData.__init__(self, 4, fields, **kwargs)
-        self.center = center
+        self._set_center(center)
         self.set_field_parameter('center',center)
         # Let's set up our plane equation
         # ax + by + cz + d = 0
@@ -938,7 +947,7 @@ class AMRProjBase(AMR2DData):
         AMR2DData.__init__(self, axis, field, pf, node_name = None, **kwargs)
         self._field_cuts = field_cuts
         self.serialize = serialize
-        self.center = center
+        self._set_center(center)
         if center is not None: self.set_field_parameter('center',center)
         self._node_name = node_name
         self._initialize_source(source)
@@ -1343,7 +1352,7 @@ class AMR3DData(AMRData, GridPropertiesMixin):
         for fields and quantities that require it.
         """
         AMRData.__init__(self, pf, fields, **kwargs)
-        self.center = center
+        self._set_center(center)
         self.set_field_parameter("center",center)
         self.coords = None
         self._grids = None
