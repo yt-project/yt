@@ -145,7 +145,9 @@ class AMRData(object):
         self.set_field_parameter("bulk_velocity",na.zeros(3,dtype='float64'))
 
     def _set_center(self, center):
-        if center == ("max"): # is this dangerous for race conditions?
+        if isinstance(center, (types.ListType, na.ndarray)):
+            center = na.array(center)
+        elif center == ("max"): # is this dangerous for race conditions?
             center = pf.h.find_max("Density")
         elif center.startswith("max_"):
             center = pf.h.find_max(center[4:])
