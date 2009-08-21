@@ -31,17 +31,31 @@ class EnzoTimeSeries(TimeSeriesData):
         # inside our list.
         self.outputs.append(pf)
         
-    def eval(self, tasks):
+    def eval(self, tasks, obj=None):
+        if obj == None: obj = TimeSeriesDataObject(self, "all_data")
         tasks = ensure_list(tasks)
         return_values = []
         for pf in self:
             return_values.append([])
             for task in tasks:
                 style = inspect.getargspec(task.eval)[0][1]
-                arg = {'pf':pf, 'data_object':pf.h.all_data()}
-                return_values[-1].append(task.eval(arg[style]))
+                if style == 'pf': arg = pf
+                elif style == 'data_object': arg = obj.get(pf)
+                return_values[-1].append(task.eval(arg))
         return return_values
 
 class TimeSeriesDataObject(object):
-    def __init__(self, data_object_cls, *args, **kwargs):
-        pass
+    def __init__(self, time_series, data_object_name, *args, **kwargs):
+        self.time_series = weakref.proxy(time_series)
+        self.data_object_name = data_object_name
+        self._args = args
+        self._kwargs = kwargs
+
+    def eval(self, tasks):
+        self.time_series.eval(tasks, self)
+
+    def get(self, pf):
+        # We get the type name, which corresponds to an attribute of the
+        # hierarchy
+        cls = getattr(pf.h, self.data_object_name)
+        return cls(*self._args, **self._kwargs)
