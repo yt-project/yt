@@ -260,14 +260,57 @@ class ParallelAnalysisInterface(object):
 
         return False, LE, RE, self.hierarchy.region_strict(self.center, LE, RE)
 
-    def _return_defined_periodic_data_source(self, center, LE, RE):
-        return self.hierarchy.periodic_region_strict(center, LE, RE)
+    def _partition_hierarchy_3d_bisection_list(self):
+        """
+        Returns an array that is used to drive _partition_hierarchy_3d_bisection,
+        below.
+        """
+
+        def factor(n):
+                if n == 1: return [1]
+                i = 2
+                limit = n**0.5
+                while i <= limit:
+                        if n % i == 0:
+                                ret = factor(n/i)
+                                ret.append(i)
+                                return ret
+                        i += 1
+                return [n]
+
+        cc = MPI.Compute_dims(MPI.COMM_WORLD.size, 3)
+        si = MPI.COMM_WORLD.size
+        
+        factors = factor(si)
+        xyzfactors = [factor(cc[0]), factor(cc[1]), factor(cc[2])]
+        
+        # Each entry of cuts is a two element list, that is:
+        # [cut dim, number of cuts]
+        cuts = []
+        # The higher cuts are in the beginning.
+        # We're going to do our best to make the cuts cyclic, i.e. x, then y,
+        # then z, etc...
+        lastdim = 0
+        for f in factors:
+            nextdim = (lastdim + 1) % 3
+            while True:
+                if f in xyzfactors[nextdim]:
+                    cuts.append([nextdim, f])
+                    topop = xyzfactors[nextdim].index(f)
+                    temp = xyzfactors[nextdim].pop(topop)
+                    lastdim = nextdim
+                    break
+                nextdim = (nextdim + 1) % 3
+        return cuts
+        
 
     def _partition_hierarchy_3d_bisection(self, axis, bins, counts, top_bounds = None,\
-        old_group = None, old_comm = None, cuts=None):
+        old_group = None, old_comm = None, cut=None, old_cc=None):
         """
         Partition the volume into evenly weighted subvolumes using the distribution
         in counts. The bisection happens in the MPI communicator group old_group.
+        You may need to set "MPI_COMM_MAX" and "MPI_GROUP_MAX" environment 
+        variables.
         """
         counts = counts.astype('int64')
         if not self._distributed:
@@ -280,14 +323,13 @@ class ParallelAnalysisInterface(object):
             old_comm = MPI.COMM_WORLD
         
         # Figure out the gridding based on the deepness of cuts.
-        cc = MPI.Compute_dims(MPI.COMM_WORLD.size, 3)
-        mylog.info('cc %s cuts %d' % (str(cc),cuts))
-        if cuts is not None:
-            xdiv = (na.array([2,1,1])**na.ceil(cuts/3.)).astype('int64')
-            ydiv = (na.array([1,2,1])**na.ceil((cuts-1)/3.)).astype('int64')
-            zdiv = (na.array([1,1,2])**na.ceil((cuts-2)/3.)).astype('int64')
-            cc = cc / xdiv / ydiv / zdiv
-        mylog.info('post cc %s cuts %d' % (str(cc), cuts))
+        if old_cc is None:
+            cc = MPI.Compute_dims(MPI.COMM_WORLD.size, 3)
+        else:
+            cc = old_cc
+        mylog.info('cc %s cut %s' % (str(cc),str(cut)))
+        cc[cut[0]] /= cut[1]
+        mylog.info('post cc %s cut %s' % (str(cc), str(cut)))
         # Set the boundaries of the full bounding box for this group.
         if top_bounds == None:
             LE, RE = self.pf["DomainLeftEdge"].copy(), self.pf["DomainRightEdge"].copy()
@@ -301,45 +343,45 @@ class ParallelAnalysisInterface(object):
         # Now the full sum in the bins along this axis in this group.
         full_counts = na.empty(counts.size, dtype='int64')
         old_comm.Allreduce([counts, MPI.LONG], [full_counts, MPI.LONG], op=MPI.SUM)
-        # Find the bin that passes the midpoint.
+        # Find the bin that passes the cut points.
+        midpoints = [LE[axis]]
         sum = 0
         bin = 0
-        while sum < (parts/2):
-            lastsum = sum
-            sum += full_counts[bin]
-            bin += 1
-        # Bin edges
-        left_edge = bins[bin-1]
-        right_edge = bins[bin]
-        # Find a better approx of the midpoint cut line using a linear approx.
-        a = float(sum - lastsum) / (right_edge - left_edge)
-        midpoint = left_edge + (0.5 - (float(lastsum) / parts / 2)) / a
-        #midpoint = (left_edge + right_edge) / 2.
-        #midpoint = 0.5
-        # Now we need to split the members of this group into a top and bottom
-        # half. The values that go into the _ranks are the ranks of the tasks
+        for step in xrange(1,cut[1]):
+            while sum < ((parts*step)/cut[1]):
+                lastsum = sum
+                sum += full_counts[bin]
+                bin += 1
+            # Bin edges
+            left_edge = bins[bin-1]
+            right_edge = bins[bin]
+            # Find a better approx of the midpoint cut line using a linear approx.
+            a = float(sum - lastsum) / (right_edge - left_edge)
+            midpoints.append(left_edge + (0.5 - (float(lastsum) / parts / 2)) / a)
+            #midpoint = (left_edge + right_edge) / 2.
+        midpoints.append(RE[axis])
+        # Now we need to split the members of this group into chunks. 
+        # The values that go into the _ranks are the ranks of the tasks
         # in *this* communicator group, which go zero to size - 1. They are not
         # the same as the global ranks!
+        groups = {}
+        ranks = {}
         old_group_size = old_group.Get_size()
-        top = na.arange(old_group_size/2)
-        top_ranks = [ (top[0], top[-1], 1), ] # [ (start, stop, step), ]
-        bot = na.arange(old_group_size/2, old_group_size)
-        bot_ranks = [ (bot[0], bot[-1], 1), ]
+        for step in xrange(cut[1]):
+            groups[step] = na.arange(step*old_group_size/cut[1], (step+1)*old_group_size/cut[1])
+            # [ (start, stop, step), ]
+            ranks[step] = [ (groups[step][0], groups[step][-1], 1), ] 
         
         # Based on where we are, adjust our LE or RE, depending on axis. At the
         # same time assign the new MPI group membership.
-        if ra in top:
-            # Adjust our LE.
-            LE[axis] = midpoint
-            new_group = old_group.Range_incl(top_ranks)
-            new_comm = old_comm.Create(new_group)
-        else:
-            # Adjust our RE.
-            RE[axis] = midpoint
-            new_group = old_group.Range_incl(bot_ranks)
-            new_comm = old_comm.Create(new_group)
+        for step in xrange(cut[1]):
+            if ra in groups[step]:
+                LE[axis] = midpoints[step]
+                RE[axis] = midpoints[step+1]
+                new_group = old_group.Range_incl(ranks[step])
+                new_comm = old_comm.Create(new_group)
         
-        if cuts > 1:
+        if old_cc is not None:
             old_group.Free()
             old_comm.Free()
         
@@ -347,7 +389,7 @@ class ParallelAnalysisInterface(object):
         
         # Using the new boundaries, regrid.
         mi = new_comm.rank
-        mylog.info('mi %d cuts %d' % (mi, cuts))
+        mylog.info('mi %d cut %s' % (mi, str(cut)))
         cx, cy, cz = na.unravel_index(mi, cc)
         x = na.mgrid[LE[0]:RE[0]:(cc[0]+1)*1j][cx:cx+2]
         y = na.mgrid[LE[1]:RE[1]:(cc[1]+1)*1j][cy:cy+2]
@@ -357,7 +399,7 @@ class ParallelAnalysisInterface(object):
         my_RE = na.array([x[1], y[1], z[1]], dtype='float64')
         
         # Return a new subvolume and associated stuff.
-        return new_group, new_comm, my_LE, my_RE, new_top_bounds, \
+        return new_group, new_comm, my_LE, my_RE, new_top_bounds, cc,\
             self.hierarchy.region_strict(self.center, my_LE, my_RE)
 
     def _partition_hierarchy_3d_weighted_1d(self, weight=None, bins=None, padding=0.0, axis=0, min_sep=.1):

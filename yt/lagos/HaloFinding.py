@@ -773,10 +773,10 @@ class chainHF(GenericHaloFinder, chainHOPHaloList):
         # Adaptive subregions by bisection.
         ds_names = ["particle_position_x","particle_position_y","particle_position_z"]
         if resize and self._mpi_get_size()!=None:
-            Ncuts = int(na.log(self._mpi_get_size()) / na.log(2))
-            for cut in xrange(Ncuts):
-                dim = cut % 3
-                if cut == 0:
+            cut_list = self._partition_hierarchy_3d_bisection_list()
+            for i,cut in enumerate(cut_list):
+                dim = cut[0]
+                if i == 0:
                     width = pf["DomainRightEdge"][dim] - pf["DomainLeftEdge"][dim]
                     new_LE = pf["DomainLeftEdge"]
                 else:
@@ -787,17 +787,19 @@ class chainHF(GenericHaloFinder, chainHOPHaloList):
                 bin_width = float(width)/float(num_bins)
                 bins = na.arange(num_bins+1, dtype='float64') * bin_width + new_LE[dim]
                 counts, bins = na.histogram(data, bins, new=True)
-                if cut == 0:
-                    new_group, new_comm, LE, RE, new_top_bounds, self._data_source = \
+                if i == 0:
+                    new_group, new_comm, LE, RE, new_top_bounds, new_cc, self._data_source= \
                         self._partition_hierarchy_3d_bisection(dim, bins, counts, top_bounds = None,\
-                        old_group = None, old_comm = None, cuts=cut+1)
+                        old_group = None, old_comm = None, cut=cut)
                 else:
-                    new_group, new_comm, LE, RE, new_top_bounds, self._data_source = \
+                    new_group, new_comm, LE, RE, new_top_bounds, new_cc, self._data_source = \
                         self._partition_hierarchy_3d_bisection(dim, bins, counts, top_bounds = new_top_bounds,\
-                        old_group = new_group, old_comm = new_comm, cuts=cut+1)
+                        old_group = new_group, old_comm = new_comm, cut=cut, old_cc=new_cc)
         # get the average spacing between particles for this region
         # The except is for the serial case, where the full box is what we want.
         data = self._data_source["particle_position_x"]
+        mylog.info('size %d' % data.size)
+        sys.exit()
         try:
             l = self._data_source.right_edge - self._data_source.left_edge
         except AttributeError:
@@ -852,8 +854,6 @@ class chainHF(GenericHaloFinder, chainHOPHaloList):
             self.padding = (na.zeros(3,dtype='float64'), na.zeros(3,dtype='float64'))
         self.bounds = (LE, RE)
         (LE_padding, RE_padding) = self.padding
-        #if (LE_padding > 0).any() or (RE_padding > 0).any():
-        #    self._data_source = self._return_defined_periodic_data_source((LE+RE)/2., LE-LE_padding, RE+RE_padding)
         chainHOPHaloList.__init__(self, self._data_source, self.padding, \
         self.num_neighbors, self.bounds, total_mass, period, threshold=threshold, dm_only=dm_only, rearrange=rearrange)
         self._join_halolists()
