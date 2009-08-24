@@ -271,6 +271,31 @@ class BinnedProfile1D(BinnedProfile):
             fid.write("\n")
         fid.close()
 
+    def write_out_h5(self, filename, group_prefix=None):
+        """
+        Write out data in an hdf5 file.  Each profile is put into a
+        group, named by the axis fields.  Optionally a group_prefix
+        can be prepended to the group name.  If the group already
+        exists, it will delete and replace.  However, due to hdf5
+        functionality, in only unlinks the data, so an h5repack may be
+        necessary to conserve space.
+        """
+        fid = h5py.File(filename)
+        fields = [field for field in sorted(self._data.keys()) if (field != "UsedBins" and field != self.bin_field)]
+        if group_prefix is None:
+            name = "%s-1d" % (self.bin_field)
+        else:
+            name = "%s-%s-1d" % (group_prefix, self.bin_field)
+            
+        if name in fid: 
+            mylog.info("Profile file is getting larger since you are attempting to overwrite a profile. You may want to repack")
+            del fid[name] 
+        group = fid.create_group(name)
+        group.attrs["x-axis-%s" % self.bin_field] = self._data[self.bin_field]
+        for field in fields:
+            dset = group.create_dataset("%s" % field, data=self._data[field])
+        fid.close()
+
     def _get_bin_fields(self):
         return [self.bin_field]
 
@@ -396,6 +421,31 @@ class BinnedProfile2D(BinnedProfile):
             fid.write("\n")
         fid.close()
 
+    def write_out_h5(self, filename, group_prefix=None):
+        """
+        Write out data in an hdf5 file.  Each profile is put into a
+        group, named by the axis fields.  Optionally a group_prefix
+        can be prepended to the group name.  If the group already
+        exists, it will delete and replace.  However, due to hdf5
+        functionality, in only unlinks the data, so an h5repack may be
+        necessary to conserve space.
+        """
+        fid = h5py.File(filename)
+        fields = [field for field in sorted(self._data.keys()) if (field != "UsedBins" and field != self.x_bin_field and field != self.y_bin_field)]
+        if group_prefix is None:
+            name = "%s-%s-2d" % (self.y_bin_field, self.x_bin_field)
+        else:
+            name = "%s-%s-%s-2d" % (group_prefix, self.y_bin_field, self.x_bin_field)
+        if name in fid: 
+            mylog.info("Profile file is getting larger since you are attempting to overwrite a profile. You may want to repack")
+            del fid[name] 
+        group = fid.create_group(name)
+        group.attrs["x-axis-%s" % self.x_bin_field] = self._data[self.x_bin_field]
+        group.attrs["y-axis-%s" % self.y_bin_field] = self._data[self.y_bin_field]
+        for field in fields:
+            dset = group.create_dataset("%s" % field, data=self._data[field])
+        fid.close()
+
     def _get_bin_fields(self):
         return [self.x_bin_field, self.y_bin_field]
 
@@ -482,7 +532,7 @@ class BinnedProfile3D(BinnedProfile):
     def _get_bins(self, source, check_cut=False):
         source_data_x = self._get_field(source, self.x_bin_field, check_cut)
         source_data_y = self._get_field(source, self.y_bin_field, check_cut)
-        source_data_y = self._get_field(source, self.z_bin_field, check_cut)
+        source_data_z = self._get_field(source, self.z_bin_field, check_cut)
         if source_data_x.size == 0:
             raise EmptyProfileData()
         mi = ( (source_data_x > self._x_bins.min())
@@ -504,6 +554,36 @@ class BinnedProfile3D(BinnedProfile):
 
     def write_out(self, filename, format="%0.16e"):
         pass # Will eventually dump HDF5
+
+    def write_out_h5(self, filename, group_prefix=None):
+        """
+        Write out data in an hdf5 file.  Each profile is put into a
+        group, named by the axis fields.  Optionally a group_prefix
+        can be prepended to the group name.  If the group already
+        exists, it will delete and replace.  However, due to hdf5
+        functionality, in only unlinks the data, so an h5repack may be
+        necessary to conserve space.
+        """
+        fid = h5py.File(filename)
+        fields = [field for field in sorted(self._data.keys()) 
+                  if (field != "UsedBins" and field != self.x_bin_field and field != self.y_bin_field and field != self.z_bin_field)]
+        if group_prefix is None:
+            name = "%s-%s-%s-3d" % (self.z_bin_field, self.y_bin_field, self.x_bin_field)
+        else:
+            name = "%s-%s-%s-%s-3d" % (group_prefix,self.z_bin_field, self.y_bin_field, self.x_bin_field)
+
+        if name in fid: 
+            mylog.info("Profile file is getting larger since you are attempting to overwrite a profile. You may want to repack")
+            del fid[name]
+        group = fid.create_group(name)
+        group.attrs["x-axis-%s" % self.x_bin_field] = self._data[self.x_bin_field]
+        group.attrs["y-axis-%s" % self.y_bin_field] = self._data[self.y_bin_field]
+        group.attrs["z-axis-%s" % self.z_bin_field] = self._data[self.z_bin_field]
+        
+        for field in fields:
+            dset = group.create_dataset("%s" % field, data=self._data[field])
+        fid.close()
+
 
     def _get_bin_fields(self):
         return [self.x_bin_field, self.y_bin_field, self.z_bin_field]
