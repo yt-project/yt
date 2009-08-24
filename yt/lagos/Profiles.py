@@ -278,7 +278,8 @@ class BinnedProfile1D(BinnedProfile):
         can be prepended to the group name.  If the group already
         exists, it will delete and replace.  However, due to hdf5
         functionality, in only unlinks the data, so an h5repack may be
-        necessary to conserve space.
+        necessary to conserve space.  Axes values are saved in group
+        attributes.
         """
         fid = h5py.File(filename)
         fields = [field for field in sorted(self._data.keys()) if (field != "UsedBins" and field != self.bin_field)]
@@ -428,7 +429,8 @@ class BinnedProfile2D(BinnedProfile):
         can be prepended to the group name.  If the group already
         exists, it will delete and replace.  However, due to hdf5
         functionality, in only unlinks the data, so an h5repack may be
-        necessary to conserve space.
+        necessary to conserve space.  Axes values are saved in group
+        attributes.
         """
         fid = h5py.File(filename)
         fields = [field for field in sorted(self._data.keys()) if (field != "UsedBins" and field != self.x_bin_field and field != self.y_bin_field)]
@@ -562,7 +564,8 @@ class BinnedProfile3D(BinnedProfile):
         can be prepended to the group name.  If the group already
         exists, it will delete and replace.  However, due to hdf5
         functionality, in only unlinks the data, so an h5repack may be
-        necessary to conserve space.
+        necessary to conserve space.  Axes values are saved in group
+        attributes.
         """
         fid = h5py.File(filename)
         fields = [field for field in sorted(self._data.keys()) 
