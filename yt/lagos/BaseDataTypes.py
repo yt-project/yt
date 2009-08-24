@@ -376,12 +376,13 @@ class AMR1DData(AMRData, GridPropertiesMixin):
         if self._grids == None:
             self._get_list_of_grids()
         points = []
-        #if not self.has_key('dx'):
-            #self._generate_coords()
         if not fields:
             fields_to_get = self.fields
         else:
             fields_to_get = ensure_list(fields)
+        if not self.sort_by in fields_to_get and \
+            self.sort_by not in self.data:
+            fields_to_get.append(self.sort_by)
         mylog.debug("Going to obtain %s", fields_to_get)
         for field in fields_to_get:
             if self.data.has_key(field):
@@ -1391,14 +1392,10 @@ class AMR3DData(AMRData, GridPropertiesMixin):
         if self._grids == None:
             self._get_list_of_grids()
         points = []
-        #if not self.has_key('dx'):
-            #self._generate_coords()
         if not fields:
             fields_to_get = self.fields
         else:
             fields_to_get = ensure_list(fields)
-        if not self.sort_by in fields_to_get:
-            fields_to_get.append(self.sort_by)
         mylog.debug("Going to obtain %s", fields_to_get)
         for field in fields_to_get:
             if self.data.has_key(field):
@@ -1413,9 +1410,7 @@ class AMR3DData(AMRData, GridPropertiesMixin):
         for field in fields_to_get:
             if not self.data.has_key(field):
                 continue
-            if self._sortkey is None:
-                self._sortkey = na.argsort(self[self.sort_by])
-            self[field] = self[field][self._sortkey]
+            self[field] = self[field]
 
     @restore_grid_state
     def _get_data_from_grid(self, grid, field):
