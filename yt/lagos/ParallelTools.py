@@ -386,6 +386,7 @@ class ParallelAnalysisInterface(object):
             old_comm.Free()
         
         new_top_bounds = (LE,RE)
+        mylog.info('ntb %s' % str(new_top_bounds))
         
         # Using the new boundaries, regrid.
         mi = new_comm.rank
@@ -860,6 +861,52 @@ class ParallelAnalysisInterface(object):
         return data
 
     @parallel_passthrough
+    def _mpi_concatenate_array_long(self, data):
+        self._barrier()
+        size = 0
+        if MPI.COMM_WORLD.rank == 0:
+            for i in range(1, MPI.COMM_WORLD.size):
+                size = MPI.COMM_WORLD.recv(source=i, tag=0)
+                new_data = na.empty(size, dtype='int64')
+                MPI.COMM_WORLD.Recv([new_data, MPI.LONG], i, 0)
+                data = na.concatenate((data, new_data))
+            size = data.size
+            del new_data
+        else:
+            MPI.COMM_WORLD.send(data.size, 0, 0)
+            MPI.COMM_WORLD.Send([data, MPI.LONG], 0, 0)
+        # Now we distribute the full array.
+        size = MPI.COMM_WORLD.bcast(size, root=0)
+        if MPI.COMM_WORLD.rank != 0:
+            del data
+            data = na.empty(size, dtype='int64')
+        MPI.COMM_WORLD.Bcast([data, MPI.LONG], root=0)
+        return data
+
+    @parallel_passthrough
+    def _mpi_concatenate_array_double(self, data):
+        self._barrier()
+        size = 0
+        if MPI.COMM_WORLD.rank == 0:
+            for i in range(1, MPI.COMM_WORLD.size):
+                size = MPI.COMM_WORLD.recv(source=i, tag=0)
+                new_data = na.empty(size, dtype='float64')
+                MPI.COMM_WORLD.Recv([new_data, MPI.DOUBLE], i, 0)
+                data = na.concatenate((data, new_data))
+            size = data.size
+            del new_data
+        else:
+            MPI.COMM_WORLD.send(data.size, 0, 0)
+            MPI.COMM_WORLD.Send([data, MPI.DOUBLE], 0, 0)
+        # Now we distribute the full array.
+        size = MPI.COMM_WORLD.bcast(size, root=0)
+        if MPI.COMM_WORLD.rank != 0:
+            del data
+            data = na.empty(size, dtype='float64')
+        MPI.COMM_WORLD.Bcast([data, MPI.DOUBLE], root=0)
+        return data
+
+    @parallel_passthrough
     def _mpi_bcast_int_dict_unpickled(self, data):
         self._barrier()
         size = 0
@@ -973,7 +1020,6 @@ class ParallelAnalysisInterface(object):
             top_keys = []
             bot_keys = []
             vals = []
-            #del temp_data
             count = 0
             for top_key in data:
                 for bot_key in data[top_key]:
@@ -993,17 +1039,6 @@ class ParallelAnalysisInterface(object):
         MPI.COMM_WORLD.Bcast([top_keys,MPI.LONG], root=0)
         MPI.COMM_WORLD.Bcast([bot_keys,MPI.LONG], root=0)
         MPI.COMM_WORLD.Bcast([vals, MPI.DOUBLE], root=0)
-        # Convert it back into a dict where needed
-#         if MPI.COMM_WORLD.rank != 0:
-#             del data
-#             data = {}
-#             for i,top_key in enumerate(top_keys):
-#                 try:
-#                     test = data[top_key]
-#                 except KeyError:
-#                     data[top_key] = {}
-#                 data[top_key][bot_keys[i]] = vals[i]
-#         del top_keys, bot_keys, vals
         return (top_keys, bot_keys, vals)
 
     @parallel_passthrough

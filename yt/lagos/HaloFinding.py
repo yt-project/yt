@@ -846,8 +846,8 @@ class chainHF(GenericHaloFinder, chainHOPHaloList):
                 avg_spacing = (float(vol) / count)**(1./3.)
                 RE_padding[dim] = (self.num_neighbors)**(1./3.) * safety * avg_spacing
             self.padding = (LE_padding, RE_padding)
-            mylog.info('fancy_padding %s avg_spacing %f full_vol %f local_parts %d' % \
-                (str(self.padding), avg_spacing, full_vol, data.size))
+            mylog.info('fancy_padding %s avg_spacing %f full_vol %f local_parts %d ds %s' % \
+                (str(self.padding), avg_spacing, full_vol, data.size, str(self._data_source)))
         if self._mpi_get_size() == None:
             self.padding = (na.zeros(3,dtype='float64'), na.zeros(3,dtype='float64'))
         self.bounds = (LE, RE)

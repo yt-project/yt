@@ -1,4 +1,4 @@
-import math,sys
+import math,sys,gc
 from collections import defaultdict
 
 from yt.lagos import *
@@ -10,6 +10,7 @@ from Forthon import *
 class RunChainHOP(ParallelAnalysisInterface):
     def __init__(self,period, padding, num_neighbors, bounds,
             xpos, ypos, zpos, index, mass, threshold=160.0, rearrange=True):
+        gc.enable()
         self.threshold = threshold
         self.rearrange = rearrange
         self.saddlethresh = 2.5 * threshold
@@ -34,59 +35,92 @@ class RunChainHOP(ParallelAnalysisInterface):
     def _global_bounds_neighbors(self):
         """
         Build a dict of the boundaries of all the tasks, and figure out which
-        tasks are our neighbors.
+        tasks are our geometric neighbors.
         """
+        self.neighbors = set([])
         self.mine, global_bounds = self._mpi_info_dict(self.bounds)
-        # A task is a neighbor if it has a corner (vertex) inside a sphere
-        # centered at my center with radius equal to my volume radius 
-        # (center to a corner) plus max padding. Due to various geometrical
-        # arrangements that can happen, the list of neighbors is made
-        # symmetric using communication. This is not the most efficient way,
-        # but it's simple and communication is not the performance bottle-
-        # neck.
         my_LE, my_RE = self.bounds
-        my_center = (my_LE + my_RE) / 2.
-        radius = na.sqrt( (my_RE[0] - my_LE[0])**2. + \
-            (my_RE[1] - my_LE[1])**2. + (my_RE[2] - my_LE[2])**2) / 2. + \
-            self.max_padding
         # Put the vertices into a big list, each row is
         # array[x,y,z, taskID]
         vertices = []
+        my_vertices = []
         for taskID in global_bounds:
             thisLE, thisRE = global_bounds[taskID]
-            vertices.append(na.array([thisLE[0], thisLE[1], thisLE[2], taskID]))
-            vertices.append(na.array([thisLE[0], thisLE[1], thisRE[2], taskID]))
-            vertices.append(na.array([thisLE[0], thisRE[1], thisLE[2], taskID]))
-            vertices.append(na.array([thisRE[0], thisLE[1], thisLE[2], taskID]))
-            vertices.append(na.array([thisLE[0], thisRE[1], thisRE[2], taskID]))
-            vertices.append(na.array([thisRE[0], thisLE[1], thisRE[2], taskID]))
-            vertices.append(na.array([thisRE[0], thisRE[1], thisLE[2], taskID]))
-            vertices.append(na.array([thisRE[0], thisRE[1], thisRE[2], taskID]))
-        # Look for vertices within one radius (periodic) of our center, and
-        # add them as neighbors
-        neighbors = set([])
-        for vertex in vertices:
-            distx = na.abs(vertex[0] - my_center[0])
-            disty = na.abs(vertex[1] - my_center[1])
-            distz = na.abs(vertex[2] - my_center[2])
-            distx = na.minimum(distx, 1 - distx)**2.
-            disty = na.minimum(disty, 1 - disty)**2.
-            distz = na.minimum(distz, 1 - distz)**2.
-            dist = na.sqrt(distx + disty + distz)
-            if dist <= radius:
-                neighbors.add(int(vertex[3]))
+            if self.mine != taskID:
+                vertices.append(na.array([thisLE[0], thisLE[1], thisLE[2], taskID]))
+                vertices.append(na.array([thisLE[0], thisLE[1], thisRE[2], taskID]))
+                vertices.append(na.array([thisLE[0], thisRE[1], thisLE[2], taskID]))
+                vertices.append(na.array([thisRE[0], thisLE[1], thisLE[2], taskID]))
+                vertices.append(na.array([thisLE[0], thisRE[1], thisRE[2], taskID]))
+                vertices.append(na.array([thisRE[0], thisLE[1], thisRE[2], taskID]))
+                vertices.append(na.array([thisRE[0], thisRE[1], thisLE[2], taskID]))
+                vertices.append(na.array([thisRE[0], thisRE[1], thisRE[2], taskID]))
+            if self.mine == taskID:
+                my_vertices.append(na.array([thisLE[0], thisLE[1], thisLE[2]]))
+                my_vertices.append(na.array([thisLE[0], thisLE[1], thisRE[2]]))
+                my_vertices.append(na.array([thisLE[0], thisRE[1], thisLE[2]]))
+                my_vertices.append(na.array([thisRE[0], thisLE[1], thisLE[2]]))
+                my_vertices.append(na.array([thisLE[0], thisRE[1], thisRE[2]]))
+                my_vertices.append(na.array([thisRE[0], thisLE[1], thisRE[2]]))
+                my_vertices.append(na.array([thisRE[0], thisRE[1], thisLE[2]]))
+                my_vertices.append(na.array([thisRE[0], thisRE[1], thisRE[2]]))
+        # Find the neighbors we share corners with. Yes, this is lazy with
+        # a double loop, but it works.
+        for my_vertex in my_vertices:
+            for vertex in vertices:
+                if vertex[3] in self.neighbors: continue
+                if (my_vertex % self.period == vertex[0:3] % self.period).all():
+                    self.neighbors.add(int(vertex[3]))
+        # Faces and edges.
+        for dim in range(3):
+            dim1 = (dim + 1) % 3
+            dim2 = (dim + 2) % 3
+            left_face = my_LE[dim]
+            right_face = my_RE[dim]
+            for taskID in global_bounds:
+                if taskID == self.mine or taskID in self.neighbors: continue
+                thisLE, thisRE = global_bounds[taskID]
+                max1 = max(my_LE[dim1], thisLE[dim1])
+                max2 = max(my_LE[dim2], thisLE[dim2])
+                min1 = min(my_RE[dim1], thisRE[dim1])
+                min2 = min(my_RE[dim2], thisRE[dim2])
+                # Faces.
+                if (thisRE[dim] == left_face or thisRE[dim]%self.period[dim] == left_face) and \
+                        max1 <= min1 and max2 <= min2:
+                    self.neighbors.add(taskID)
+                elif (thisLE[dim] == right_face or thisLE[dim] == right_face%self.period[dim]) and \
+                        max1 <= min1 and max2 <= min2:
+                    self.neighbors.add(taskID)
+                # Edges.
+                elif (my_LE[dim] == (thisRE[dim]%self.period[dim]) and \
+                        my_LE[dim1] == (thisRE[dim1]%self.period[dim1]) and \
+                        max2 <= min2) or \
+                        (my_LE[dim] == (thisRE[dim]%self.period[dim]) and \
+                        my_LE[dim2] == (thisRE[dim2]%self.period[dim2]) and \
+                        max1 <= min1):
+                    self.neighbors.add(taskID)
+                elif ((my_RE[dim]%self.period[dim]) == thisLE[dim] and \
+                        (my_RE[dim1]%self.period[dim1]) == thisLE[dim1] and \
+                        max2 <= min2) or \
+                        ((my_RE[dim]%self.period[dim]) == thisLE[dim] and \
+                        (my_RE[dim2]%self.period[dim2]) == thisLE[dim2] and \
+                        max1 <= min1):
+                    self.neighbors.add(taskID)
         # Now we build a global dict of neighbor sets, and if a remote task
-        # lists us as their neighbor, we add them as our neighbor.
-        self.mine, global_neighbors = self._mpi_info_dict(neighbors)
-        self.neighbors = neighbors.copy()
+        # lists us as their neighbor, we add them as our neighbor. This is 
+        # probably not needed, but it isn't a big issue.
+        self.mine, global_neighbors = self._mpi_info_dict(self.neighbors)
         for taskID in global_neighbors:
             if taskID == self.mine: continue
             if self.mine in global_neighbors[taskID]:
                 self.neighbors.add(taskID)
-        # We can remove ourselves from the set.
+        # We can remove ourselves from the set if it got added somehow.
         self.neighbors.discard(self.mine)
+        mylog.info('I have %d neighbors' % len(self.neighbors))
         # Clean up.
-        del global_neighbors, global_bounds, vertices, neighbors
+        mylog.info('Done global bounds neighbors')
+        del global_neighbors, global_bounds, vertices, my_vertices
+        gc.collect()
         
     def _global_padding(self, round):
         """
@@ -102,12 +136,14 @@ class RunChainHOP(ParallelAnalysisInterface):
             for neighbor in self.neighbors:
                 self.max_padding = na.maximum(self.global_padding[neighbor], \
                     self.max_padding)
+        gc.collect()
 
     def _communicate_padding_data(self):
         """
         Send the particles each of my neighbors need to build up their padding.
         """
         yt_counters("Communicate discriminated padding")
+        mylog.info('Starting communicate_padding_dat')
         # First build a global dict of the padded boundaries of all the tasks.
         (LE, RE) = self.bounds
         (LE_padding, RE_padding) = self.padding
@@ -121,6 +157,7 @@ class RunChainHOP(ParallelAnalysisInterface):
         send_size = {}
         # This will reduce the size of the loop over particles.
         yt_counters("Picking padding data to send.")
+        mylog.info('picking padding data to send')
         send_count = len(na.where(self.is_inside_annulus == True)[0])
         points = na.empty((send_count, 3), dtype='float64')
         points[:,0] = self.xpos[self.is_inside_annulus]
@@ -129,21 +166,21 @@ class RunChainHOP(ParallelAnalysisInterface):
         real_indices = self.index[self.is_inside_annulus].astype('int64')
         mass = self.mass[self.is_inside_annulus].astype('float64')
         # Make the arrays to send.
+        shift_points = points
         for neighbor in self.neighbors:
             temp_LE, temp_RE = global_exp_bounds[neighbor]
-            shift_points = points.copy()
             for i,point in enumerate(shift_points):
                 if point[0] < temp_LE[0] and point[0] < temp_RE[0]:
                     shift_points[i][0] += self.period[0]
-                if point[0] > temp_LE[0] and point[0] > temp_RE[0]:
+                elif point[0] > temp_LE[0] and point[0] > temp_RE[0]:
                     shift_points[i][0] -= self.period[0]
                 if point[1] < temp_LE[1] and point[1] < temp_RE[1]:
                     shift_points[i][1] += self.period[1]
-                if point[1] > temp_LE[1] and point[1] > temp_RE[1]:
+                elif point[1] > temp_LE[1] and point[1] > temp_RE[1]:
                     shift_points[i][1] -= self.period[1]
                 if point[2] < temp_LE[2] and point[2] < temp_RE[2]:
                     shift_points[i][2] += self.period[2]
-                if point[2] > temp_LE[2] and point[2] > temp_RE[2]:
+                elif point[2] > temp_LE[2] and point[2] > temp_RE[2]:
                     shift_points[i][2] -= self.period[2]
             is_inside = ( (shift_points >= temp_LE).all(axis=1) * \
                 (shift_points < temp_RE).all(axis=1) )
@@ -153,9 +190,17 @@ class RunChainHOP(ParallelAnalysisInterface):
             send_size[neighbor] = len(na.where(is_inside == True)[0])
         yt_counters("Picking padding data to send.")
         # Communicate the sizes to send.
+        mylog.info('padding info_dict')
         self.mine, global_send_count = self._mpi_info_dict(send_size)
+        if self.mine == 0:
+            fp = open('neighbors.txt','w')
+            for task in global_send_count:
+                line = '%d %s\n' % (task, str(global_send_count[task]))
+                fp.write(line)
+            fp.close()
         # Initialize the arrays to receive data.
         yt_counters("Initalizing recv arrays.")
+        mylog.info('setting up recv arrays')
         recv_real_indices = {}
         recv_points = {}
         recv_mass = {}
@@ -167,20 +212,24 @@ class RunChainHOP(ParallelAnalysisInterface):
         yt_counters("Initalizing recv arrays.")
         # Setup the receiving slots.
         yt_counters("MPI stuff.")
+        mylog.info('mpi Irecv')
         hooks = []
         for opp_neighbor in self.neighbors:
             hooks.append(MPI.COMM_WORLD.Irecv([recv_real_indices[opp_neighbor], MPI.LONG], opp_neighbor, 0))
             hooks.append(MPI.COMM_WORLD.Irecv([recv_points[opp_neighbor], MPI.DOUBLE], opp_neighbor, 0))
             hooks.append(MPI.COMM_WORLD.Irecv([recv_mass[opp_neighbor], MPI.DOUBLE], opp_neighbor, 0))
         # Now we send the data.
+        mylog.info('mpi Isend')
         for neighbor in self.neighbors:
             hooks.append(MPI.COMM_WORLD.Isend([send_real_indices[neighbor], MPI.LONG], neighbor, 0))
             hooks.append(MPI.COMM_WORLD.Isend([send_points[neighbor], MPI.DOUBLE], neighbor, 0))
             hooks.append(MPI.COMM_WORLD.Isend([send_mass[neighbor], MPI.DOUBLE], neighbor, 0))
         # Now we use the data, after all the comms are done.
+        mylog.info('mpi wait')
         MPI.Request.Waitall(hooks)
         yt_counters("MPI stuff.")
         yt_counters("Processing padded data.")
+        mylog.info('processing padding data')
         del send_real_indices, send_points, send_mass
         # Now we add the data to ourselves.
         for opp_neighbor in self.neighbors:
@@ -198,9 +247,10 @@ class RunChainHOP(ParallelAnalysisInterface):
         # Now that we have the full size, initialize the chainID array
         self.chainID = na.ones(self.size,dtype='int64') * -1
         # Clean up explicitly, but these should be empty dicts by now.
-        del recv_real_indices, hooks
+        del recv_real_indices, hooks, shift_points, points
         del recv_points, recv_mass
         yt_counters("Communicate discriminated padding")
+        gc.collect()
         
     def _communicate_raw_padding_data(self):
         """
@@ -299,6 +349,7 @@ class RunChainHOP(ParallelAnalysisInterface):
         del recv_real_indices, hooks
         del recv_points, recv_mass
         yt_counters("Communicate raw padding")
+        gc.collect()
         
 
     def _init_kd_tree(self):
@@ -324,6 +375,7 @@ class RunChainHOP(ParallelAnalysisInterface):
         fKD.mass = self.mass
         # Now call the fortran.
         create_tree()
+        gc.collect()
 
     def _is_inside(self, round):
         """
@@ -377,6 +429,7 @@ class RunChainHOP(ParallelAnalysisInterface):
                 if not self.is_inside[i] or self.is_inside_annulus[i]:
                     self.rev_index[self.index[i]] = i
         del points, inner
+        gc.collect()
 
     # These next two functions aren't currently being used. They figure out
     # which direction to send particle data from each task. They may come 
@@ -527,6 +580,7 @@ class RunChainHOP(ParallelAnalysisInterface):
             start = finish + 1
         yt_counters("densestNN")
         del chunk_NNtags, max_loc, n_dens
+        gc.collect()
     
     def _build_chains(self):
         """
@@ -553,6 +607,7 @@ class RunChainHOP(ParallelAnalysisInterface):
         self.padded_particles = na.array(self.padded_particles, dtype='int64')
         yt_counters("build_chains")
         return chainIDmax
+        gc.collect()
     
     def _recurse_links(self, pi, chainIDmax):
         """
@@ -584,6 +639,7 @@ class RunChainHOP(ParallelAnalysisInterface):
             chainIDnew = self._recurse_links(nn, chainIDmax)
             self.chainID[pi] = chainIDnew
             return chainIDnew
+        gc.collect()
 
     def _globally_assign_chainIDs(self, chain_count):
         """
@@ -601,6 +657,7 @@ class RunChainHOP(ParallelAnalysisInterface):
         self.chainID += select
         del select
         yt_counters("globally_assign_chainIDs")
+        gc.collect()
 
     def _create_global_densest_in_chain(self):
         """
@@ -616,6 +673,7 @@ class RunChainHOP(ParallelAnalysisInterface):
         self.densest_in_chain = self._mpi_joindict_unpickled_float(self.densest_in_chain)
         del temp
         yt_counters("create_global_densest_in_chain")
+        gc.collect()
 
     def _communicate_uphill_info(self):
         """
@@ -659,6 +717,7 @@ class RunChainHOP(ParallelAnalysisInterface):
         # Clean up.
         del temp_indices, temp_chainIDs, hooks
         yt_counters("communicate_uphill_info")
+        gc.collect()
 
     def _recurse_global_chain_links(self, chainID_translate_map_global, chainID, seen):
         """
@@ -676,7 +735,7 @@ class RunChainHOP(ParallelAnalysisInterface):
         else:
             seen.append(new_chainID)
             return self._recurse_global_chain_links(chainID_translate_map_global, new_chainID, seen)
-        
+        gc.collect()
 
     def _connect_chains_across_tasks(self):
         """
@@ -770,6 +829,7 @@ class RunChainHOP(ParallelAnalysisInterface):
         del chainID_translate_map_local, dens_temp, self.recv_chainIDs
         del self.recv_real_indices, self.uphill_real_indices, self.uphill_chainIDs
         yt_counters("connect_chains_across_tasks")
+        gc.collect()
 
     def _communicate_annulus_chainIDs(self):
         """
@@ -829,6 +889,7 @@ class RunChainHOP(ParallelAnalysisInterface):
         del recv_real_indices, recv_chainIDs, real_indices, chainIDs, select
         del hooks
         yt_counters("communicate_annulus_chainIDs")
+        gc.collect()
 
     def _connect_chains(self):
         """
@@ -895,6 +956,7 @@ class RunChainHOP(ParallelAnalysisInterface):
                 else:
                     continue
         yt_counters("connect_chains")
+        gc.collect()
 
     def _make_global_chain_densest_n(self):
         """
@@ -906,6 +968,7 @@ class RunChainHOP(ParallelAnalysisInterface):
             self._mpi_maxdict_dict(self.chain_densest_n)
         del self.chain_densest_n
         yt_counters("make_global_chain_densest_n")
+        gc.collect()
     
     def _build_groups(self):
         """
@@ -935,11 +998,13 @@ class RunChainHOP(ParallelAnalysisInterface):
             # the second column, the densities.
             return temp[:,0]
         group_equivalancy_map = defaultdict(set)
+        mylog.info('here 1')
         for chainID in ksort(self.densest_in_chain):
             if self.densest_in_chain[chainID] >= self.peakthresh:
                 self.reverse_map[chainID] = groupID
                 groupID += 1
         # Loop over all of the chain linkages.
+        mylog.info('here 2')
         for i,chain_high in enumerate(self.top_keys):
             chain_low = self.bot_keys[i]
             dens = self.vals[i]
@@ -966,9 +1031,6 @@ class RunChainHOP(ParallelAnalysisInterface):
                     # Both are already identified as groups, so we need
                     # to re-assign the less dense group to the denser
                     # groupID.
-                    #for chID in self.reverse_map:
-                    #    if self.reverse_map[chID] == group_low:
-                    #        self.reverse_map[chID] = group_high
                     if group_low != group_high:
                         group_equivalancy_map[group_low].add(group_high)
                         group_equivalancy_map[group_high].add(group_low)
@@ -992,6 +1054,7 @@ class RunChainHOP(ParallelAnalysisInterface):
         # the other tunnels have been closed at the old nexus. In this fashion your search 
         # spreads out like the water shooting out of the ground in 'Caddy
         # Shack.'
+        mylog.info('here 3')
         Set_list = []
         # We only want the holes that are modulo mine.
         keys = na.array(group_equivalancy_map.keys(), dtype='int64')
@@ -1034,6 +1097,7 @@ class RunChainHOP(ParallelAnalysisInterface):
             for groupID in item:
                 lookup[groupID] = item_min
         # To bring it all together, join the dicts.
+        mylog.info('here 4')
         lookup = self._mpi_joindict_unpickled_int(lookup)
         # Now apply this to reverse_map
         for chainID in self.reverse_map:
@@ -1044,6 +1108,7 @@ class RunChainHOP(ParallelAnalysisInterface):
                 self.reverse_map[chainID] = lookup[groupID]
             except KeyError:
                 continue
+        mylog.info('here 5')
         """
         Now the fringe chains are connected to the proper group
         (>peakthresh) with the largest boundary.  But we want to look
@@ -1067,6 +1132,7 @@ class RunChainHOP(ParallelAnalysisInterface):
                     else:
                         densestbound[chain_low] = densestbound[chain_high]
                     self.reverse_map[chain_low] = self.reverse_map[chain_high]
+        mylog.info('here 6')
         # Now we have to find the unique groupIDs, since they may have been
         # merged.
         temp = []
@@ -1088,6 +1154,7 @@ class RunChainHOP(ParallelAnalysisInterface):
         group_count = len(temp)
         del secondary_map, temp, g_high, g_low, g_dens, densestbound
         yt_counters("build_groups")
+        gc.collect()
         return group_count
 
     def _translate_groupIDs(self, group_count):
@@ -1116,6 +1183,7 @@ class RunChainHOP(ParallelAnalysisInterface):
             if self.densest_in_group[groupID] < max_dens:
                 self.densest_in_group[groupID] = max_dens
         yt_counters("translate_groupIDs")
+        gc.collect()
 
     def _precompute_group_info(self):
         yt_counters("Precomp.")
@@ -1127,6 +1195,7 @@ class RunChainHOP(ParallelAnalysisInterface):
         # I think this will be faster than several vector operations that need
         # to pull the entire chainID array out of memory several times.
         yt_counters("max dens point")
+        mylog.info('max dens point')
         max_dens_point = na.zeros((self.group_count,4),dtype='float64')
         for part in xrange(int(self.size)):
             if self.chainID[part] == -1: continue
@@ -1137,8 +1206,10 @@ class RunChainHOP(ParallelAnalysisInterface):
         # Now we broadcast this, effectively, with an allsum. Even though
         # some groups are on multiple tasks, there is only one densest_in_chain
         # and only that task contributed above.
+        mylog.info('max dens point allsum')
         self.max_dens_point = self._mpi_Allsum_float(max_dens_point)
         yt_counters("max dens point")
+        mylog.info('CoM')
         # Now CoM.
         yt_counters("CoM")
         c_vec = self.max_dens_point[:,1:4] - na.array([0.5,0.5,0.5])
@@ -1164,6 +1235,7 @@ class RunChainHOP(ParallelAnalysisInterface):
                 CoM_M[groupID] += c_vec[groupID]
                 CoM_M[groupID] *= Tot_M[groupID]
         # Now we find their global values
+        mylog.info('CoM allsum')
         self.group_sizes = self._mpi_Allsum_int(size)
         CoM_M = self._mpi_Allsum_float(CoM_M)
         self.Tot_M = self._mpi_Allsum_float(Tot_M)
@@ -1173,6 +1245,7 @@ class RunChainHOP(ParallelAnalysisInterface):
         yt_counters("CoM")
         # Now we find the maximum radius for all groups.
         yt_counters("max radius")
+        mylog.info('max radius')
         max_radius = na.zeros(self.group_count, dtype='float64')
         for part in xrange(int(self.size)):
             groupID = self.chainID[part]
@@ -1185,9 +1258,11 @@ class RunChainHOP(ParallelAnalysisInterface):
             if dist > max_radius[groupID]:
                 max_radius[groupID] = dist
         # Find the maximum across all tasks.
+        mylog.info('max radius allmax')
         self.max_radius = self._mpi_float_array_max(max_radius)
         yt_counters("max radius")
         yt_counters("Precomp.")
+        gc.collect()
 
     def _chain_hop(self):
         mylog.info("Running Python version.")
@@ -1247,3 +1322,4 @@ class RunChainHOP(ParallelAnalysisInterface):
         self.chainID = self.chainID[:self.real_size]
         self.density = self.density[:self.real_size]
         del self.mass, self.xpos, self.ypos, self.zpos
+        gc.collect()
