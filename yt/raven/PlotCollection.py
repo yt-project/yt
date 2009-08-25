@@ -251,6 +251,34 @@ class PlotCollection(object):
         p["Axis"] = "CuttingPlane"
         return p
 
+    def add_fixed_res_cutting_plane \
+            (self, field, normal, width, res=512, center=None, use_colorbar=True,
+             figure = None, axes = None, fig_size=None, obj=None, **kwargs):
+        """
+        Generate a fixed resolution, interpolated cutting plane of
+        *field* with *normal*, centered at *center* (defaults to
+        PlotCollection center) with *use_colorbar* specifying whether
+        the plot is naked or not and optionally providing pre-existing
+        Matplotlib *figure* and *axes* objects.  *fig_size* in
+        (height_inches, width_inches).  If so desired, *obj* is a
+        pre-existing cutting plane object.
+        """
+        if center == None:
+            center = self.c
+        if not obj:
+            data = self.pf.hierarchy.fixed_res_cutting \
+                 (normal, center, width, res, **kwargs)
+            #data = frc[field]
+        else:
+            data = obj
+        p = self._add_plot(PlotTypes.FixedResolutionPlot(data, field,
+                         use_colorbar=use_colorbar, axes=axes, figure=figure,
+                         size=fig_size))
+        mylog.info("Added fixed-res plane of %s with 'center' = %s and "
+                   "normal = %s", field, list(center), list(normal))
+        p["Axis"] = "CuttingPlane"
+        return p
+
     def add_projection(self, *args, **kwargs):
         """
         Generate a projection of *field* along *axis*, optionally giving

@@ -973,6 +973,7 @@ class AMRFixedResCuttingPlaneBase(AMR2DData):
         self.width = width
         self.dims = dims
         self.dds = self.width / self.dims
+        self.bounds = na.array([0.0,1.0,0.0,1.0])
         
         self.set_field_parameter('center', center)
         # Let's set up our plane equation
@@ -1091,7 +1092,7 @@ class AMRFixedResCuttingPlaneBase(AMR2DData):
             self[field] = na.zeros(_size, dtype='float64')
             for grid in self._get_grids():
                 self._get_data_from_grid(grid, field)
-            self[field] = self._mpi_allsum(self[field]).reshape([self.dims]*2)#.transpose()
+            self[field] = self._mpi_allsum(self[field]).reshape([self.dims]*2).transpose()
 
     def interpolate_discretize(self, *args, **kwargs):
         pass
