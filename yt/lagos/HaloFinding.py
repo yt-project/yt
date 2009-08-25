@@ -586,8 +586,7 @@ class chainHOPHaloList(HaloList,ParallelAnalysisInterface):
             self.bulk_vel[groupID] += na.array([xv[i]*pmass, yv[i]*pmass, zv[i]*pmass])
         # Bring it together, and divide by the previously computed total mass
         # of each halo.
-        mylog.info('bulk vel allsum')
-        self.bulk_vel = self._mpi_Allsum_float(self.bulk_vel)
+        self.bulk_vel = self._mpi_Allsum_double(self.bulk_vel)
         for groupID in xrange(self.group_count):
             self.bulk_vel[groupID] = self.bulk_vel[groupID] / self.Tot_M[groupID]
         self.taskID = obj.mine
@@ -847,7 +846,7 @@ class chainHF(GenericHaloFinder, chainHOPHaloList):
                 avg_spacing = (float(vol) / count)**(1./3.)
                 RE_padding[dim] = (self.num_neighbors)**(1./3.) * safety * avg_spacing
             self.padding = (LE_padding, RE_padding)
-            mylog.info('fancy_padding %s avg_spacing %f full_vol %f local_parts %d ds %s' % \
+            mylog.info('fancy_padding %s avg_spacing %f full_vol %f local_parts %d %s' % \
                 (str(self.padding), avg_spacing, full_vol, data.size, str(self._data_source)))
         if self._mpi_get_size() == None:
             self.padding = (na.zeros(3,dtype='float64'), na.zeros(3,dtype='float64'))

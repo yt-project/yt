@@ -327,9 +327,7 @@ class ParallelAnalysisInterface(object):
             cc = MPI.Compute_dims(MPI.COMM_WORLD.size, 3)
         else:
             cc = old_cc
-        mylog.info('cc %s cut %s' % (str(cc),str(cut)))
         cc[cut[0]] /= cut[1]
-        mylog.info('post cc %s cut %s' % (str(cc), str(cut)))
         # Set the boundaries of the full bounding box for this group.
         if top_bounds == None:
             LE, RE = self.pf["DomainLeftEdge"].copy(), self.pf["DomainRightEdge"].copy()
@@ -386,11 +384,9 @@ class ParallelAnalysisInterface(object):
             old_comm.Free()
         
         new_top_bounds = (LE,RE)
-        mylog.info('ntb %s' % str(new_top_bounds))
         
         # Using the new boundaries, regrid.
         mi = new_comm.rank
-        mylog.info('mi %d cut %s' % (mi, str(cut)))
         cx, cy, cz = na.unravel_index(mi, cc)
         x = na.mgrid[LE[0]:RE[0]:(cc[0]+1)*1j][cx:cx+2]
         y = na.mgrid[LE[1]:RE[1]:(cc[1]+1)*1j][cy:cy+2]
@@ -767,7 +763,7 @@ class ParallelAnalysisInterface(object):
         return data
 
     @parallel_passthrough
-    def _mpi_joindict_unpickled_float(self, data):
+    def _mpi_joindict_unpickled_double(self, data):
         self._barrier()
         size = 0
         if MPI.COMM_WORLD.rank == 0:
@@ -814,7 +810,7 @@ class ParallelAnalysisInterface(object):
         return data
 
     @parallel_passthrough
-    def _mpi_joindict_unpickled_int(self, data):
+    def _mpi_joindict_unpickled_long(self, data):
         self._barrier()
         size = 0
         if MPI.COMM_WORLD.rank == 0:
@@ -907,7 +903,7 @@ class ParallelAnalysisInterface(object):
         return data
 
     @parallel_passthrough
-    def _mpi_bcast_int_dict_unpickled(self, data):
+    def _mpi_bcast_long_dict_unpickled(self, data):
         self._barrier()
         size = 0
         if MPI.COMM_WORLD.rank == 0:
@@ -976,7 +972,6 @@ class ParallelAnalysisInterface(object):
         if MPI.COMM_WORLD.rank == 0:
             for i in range(1,MPI.COMM_WORLD.size):
                 size = MPI.COMM_WORLD.recv(source=i, tag=0)
-                mylog.info('maxdict_dict task %d size %d' % (i, size))
                 top_keys = na.empty(size, dtype='int64')
                 bot_keys = na.empty(size, dtype='int64')
                 vals = na.empty(size, dtype='float64')
@@ -1093,7 +1088,7 @@ class ParallelAnalysisInterface(object):
         queue.preload(grids, fields)
 
     @parallel_passthrough
-    def _mpi_float_array_max(self,data):
+    def _mpi_double_array_max(self,data):
         """
         Finds the na.maximum of a distributed array and returns the result
         back to all. The array should be the same length on all tasks!
@@ -1117,7 +1112,7 @@ class ParallelAnalysisInterface(object):
         return MPI.COMM_WORLD.allreduce(data, op=MPI.SUM)
 
     @parallel_passthrough
-    def _mpi_Allsum_float(self, data):
+    def _mpi_Allsum_double(self, data):
         self._barrier()
         # Non-pickling float allsum of a float array, data.
         temp = data.copy()
@@ -1126,7 +1121,7 @@ class ParallelAnalysisInterface(object):
         return data
 
     @parallel_passthrough
-    def _mpi_Allsum_int(self, data):
+    def _mpi_Allsum_long(self, data):
         self._barrier()
         # Non-pickling float allsum of an int array, data.
         temp = data.copy()
@@ -1143,6 +1138,34 @@ class ParallelAnalysisInterface(object):
     def _mpi_allmin(self, data):
         self._barrier()
         return MPI.COMM_WORLD.allreduce(data, op=MPI.MIN)
+
+    ###
+    # Non-blocking stuff.
+    ###
+
+    def _mpi_Irecv_long(self, data, source):
+        if not self._distributed: return -1
+        return MPI.COMM_WORLD.Irecv([data, MPI.LONG], source, 0)
+
+    def _mpi_Irecv_double(self, data, source):
+        if not self._distributed: return -1
+        return MPI.COMM_WORLD.Irecv([data, MPI.DOUBLE], source, 0)
+
+    def _mpi_Isend_long(self, data, dest):
+        if not self._distributed: return -1
+        return MPI.COMM_WORLD.Isend([data, MPI.LONG], dest, 0)
+
+    def _mpi_Isend_double(self, data, dest):
+        if not self._distributed: return -1
+        return MPI.COMM_WORLD.Isend([data, MPI.DOUBLE], dest, 0)
+
+    def _mpi_Request_Waitall(self, hooks):
+        if not self._distributed: pass
+        MPI.Request.Waitall(hooks)
+
+    ###
+    # End non-blocking stuff.
+    ###
 
     def _mpi_get_size(self):
         if not self._distributed: return None
