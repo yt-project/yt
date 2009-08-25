@@ -200,7 +200,6 @@ class RunChainHOP(ParallelAnalysisInterface):
             fp.close()
         # Initialize the arrays to receive data.
         yt_counters("Initalizing recv arrays.")
-        mylog.info('setting up recv arrays')
         recv_real_indices = {}
         recv_points = {}
         recv_mass = {}
@@ -212,14 +211,12 @@ class RunChainHOP(ParallelAnalysisInterface):
         yt_counters("Initalizing recv arrays.")
         # Setup the receiving slots.
         yt_counters("MPI stuff.")
-        mylog.info('mpi Irecv')
         hooks = []
         for opp_neighbor in self.neighbors:
             hooks.append(MPI.COMM_WORLD.Irecv([recv_real_indices[opp_neighbor], MPI.LONG], opp_neighbor, 0))
             hooks.append(MPI.COMM_WORLD.Irecv([recv_points[opp_neighbor], MPI.DOUBLE], opp_neighbor, 0))
             hooks.append(MPI.COMM_WORLD.Irecv([recv_mass[opp_neighbor], MPI.DOUBLE], opp_neighbor, 0))
         # Now we send the data.
-        mylog.info('mpi Isend')
         for neighbor in self.neighbors:
             hooks.append(MPI.COMM_WORLD.Isend([send_real_indices[neighbor], MPI.LONG], neighbor, 0))
             hooks.append(MPI.COMM_WORLD.Isend([send_points[neighbor], MPI.DOUBLE], neighbor, 0))
@@ -1247,19 +1244,20 @@ class RunChainHOP(ParallelAnalysisInterface):
         yt_counters("max radius")
         mylog.info('max radius')
         max_radius = na.zeros(self.group_count, dtype='float64')
+        calc = 0
         for part in xrange(int(self.size)):
             groupID = self.chainID[part]
             if groupID == -1: continue
             loc = na.array([self.xpos[part], self.ypos[part], self.zpos[part]])
-            dist = na.sqrt(\
-                na.minimum(na.abs(self.CoM[groupID][0] - loc[0]), self.period[0] - na.abs(self.CoM[groupID][0] - loc[0]))**2 \
-                + na.minimum(na.abs(self.CoM[groupID][1] - loc[1]), self.period[1] - na.abs(self.CoM[groupID][1] - loc[1]))**2 \
-                + na.minimum(na.abs(self.CoM[groupID][2] - loc[2]), self.period[2] - na.abs(self.CoM[groupID][2] - loc[2]))**2)
+            loc = na.abs(self.CoM[groupID] - loc)
+            dist = (na.minimum(loc, self.period - loc)**2.).sum()
+            calc += 1
             if dist > max_radius[groupID]:
                 max_radius[groupID] = dist
         # Find the maximum across all tasks.
-        mylog.info('max radius allmax')
+        mylog.info('max radius allmax : %f' % (float(calc)/self.size))
         self.max_radius = self._mpi_float_array_max(max_radius)
+        self.max_radius = na.sqrt(self.max_radius)
         yt_counters("max radius")
         yt_counters("Precomp.")
         gc.collect()

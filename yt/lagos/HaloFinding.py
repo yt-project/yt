@@ -586,6 +586,7 @@ class chainHOPHaloList(HaloList,ParallelAnalysisInterface):
             self.bulk_vel[groupID] += na.array([xv[i]*pmass, yv[i]*pmass, zv[i]*pmass])
         # Bring it together, and divide by the previously computed total mass
         # of each halo.
+        mylog.info('bulk vel allsum')
         self.bulk_vel = self._mpi_Allsum_float(self.bulk_vel)
         for groupID in xrange(self.group_count):
             self.bulk_vel[groupID] = self.bulk_vel[groupID] / self.Tot_M[groupID]
