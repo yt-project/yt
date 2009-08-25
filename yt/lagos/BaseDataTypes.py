@@ -1021,10 +1021,10 @@ class AMRFixedResCuttingPlaneBase(AMR2DData):
                                               na.all(D>0,axis=0) ))[0]
         # Now restrict these grids to a rect. prism that bounds the slice
         sliceCorners = na.array([ \
-            self.center + self.width * (+self._x_vec + self._y_vec),
-            self.center + self.width * (+self._x_vec - self._y_vec),
-            self.center + self.width * (-self._x_vec - self._y_vec),
-            self.center + self.width * (-self._x_vec + self._y_vec) ])
+            self.center + 0.5*self.width * (+self._x_vec + self._y_vec),
+            self.center + 0.5*self.width * (+self._x_vec - self._y_vec),
+            self.center + 0.5*self.width * (-self._x_vec - self._y_vec),
+            self.center + 0.5*self.width * (-self._x_vec + self._y_vec) ])
         sliceLeftEdge = sliceCorners.min(axis=0)
         sliceRightEdge = sliceCorners.max(axis=0)
         # Check for bounding box and grid overlap
