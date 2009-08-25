@@ -23,7 +23,6 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-import math,sys
 from collections import defaultdict
 
 from yt.lagos import *
@@ -1301,4 +1300,12 @@ class RunChainHOP(ParallelAnalysisInterface):
         # an array only as long as the real data.
         self.chainID = self.chainID[:self.real_size]
         self.density = self.density[:self.real_size]
+        # We'll make this a global object, which can be used to write a text
+        # file giving the names of hdf5 files the particles for each halo.
+        self.mine, self.I_own = self._mpi_info_dict(self.I_own)
+        self.halo_taskmap = defaultdict(set)
+        for taskID in self.I_own:
+            for groupID in self.I_own[taskID]:
+                self.halo_taskmap[groupID].add(taskID)
+        del self.I_own
         del self.mass, self.xpos, self.ypos, self.zpos

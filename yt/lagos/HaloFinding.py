@@ -35,7 +35,8 @@ except ImportError:
 from yt.performance_counters import yt_counters, time_function
 
 from kd import *
-import math,sys
+import math
+from collections import defaultdict
 
 class Halo(object):
     """
@@ -51,7 +52,8 @@ class Halo(object):
     extra_wrap = ["__getitem__"]
 
     def __init__(self, halo_list, id, indices = None, size=None, CoM=None,
-        max_dens_point=None, group_total_mass=None, max_radius=None, bulk_vel=None):
+        max_dens_point=None, group_total_mass=None, max_radius=None, bulk_vel=None,
+        tasks=None):
         self.halo_list = halo_list
         self.id = id
         self.data = halo_list._data_source
@@ -64,6 +66,7 @@ class Halo(object):
         self.group_total_mass = group_total_mass
         self.max_radius = max_radius
         self.bulk_vel = bulk_vel
+        self.tasks = tasks
 
     def center_of_mass(self):
         """
@@ -482,6 +485,28 @@ class HaloList(object):
             f.flush()
         f.close()
 
+    def write_particle_lists_txt(self, prefix, fp=None):
+        """
+        Write out the location of halo data in hdf5 files to *filename*.
+        """
+        if hasattr(fp, 'write'):
+            f = fp
+        else:
+            f = open("%s.txt" % prefix,"w")
+        for group in self:
+            if group.tasks is not None:
+                fn = ""
+                for task in group.tasks:
+                    fn += "%s.h5 " % self._get_filename(prefix, rank=task)
+            elif self._distributed:
+                fn = "%s.h5" % self._get_filename(prefix, rank=group._owner)
+            else:
+                fn = "%s.h5" % self._get_filename(prefix)
+            gn = "Halo%08i" % (group.id)
+            f.write("%s %s\n" % (gn, fn))
+            f.flush()
+        f.close()
+
 class HOPHaloList(HaloList):
 
     _name = "HOP"
@@ -590,6 +615,7 @@ class chainHOPHaloList(HaloList,ParallelAnalysisInterface):
         for groupID in xrange(self.group_count):
             self.bulk_vel[groupID] = self.bulk_vel[groupID] / self.Tot_M[groupID]
         self.taskID = obj.mine
+        self.halo_taskmap = obj.halo_taskmap # A defaultdict.
         del obj
         yt_counters("Precomp bulk vel.")
 
@@ -616,7 +642,7 @@ class chainHOPHaloList(HaloList,ParallelAnalysisInterface):
                     size=self.group_sizes[index], CoM=self.CoM[index], \
                     max_dens_point=self.max_dens_point[index], \
                     group_total_mass=self.Tot_M[index], max_radius=self.max_radius[index],
-                    bulk_vel=self.bulk_vel[index]))
+                    bulk_vel=self.bulk_vel[index], tasks=self.halo_taskmap[index]))
                 # I don't own this halo
                 self._do_not_claim_object(self._groups[-1])
                 self._max_dens[index] = (self.max_dens_point[index][0], self.max_dens_point[index][1], \
@@ -628,7 +654,7 @@ class chainHOPHaloList(HaloList,ParallelAnalysisInterface):
                 size=self.group_sizes[i], CoM=self.CoM[i], \
                 max_dens_point=self.max_dens_point[i], \
                 group_total_mass=self.Tot_M[i], max_radius=self.max_radius[i],
-                bulk_vel=self.bulk_vel[i]))
+                bulk_vel=self.bulk_vel[i], tasks=self.halo_taskmap[index]))
             # This halo may be owned by many, including this task
             self._claim_object(self._groups[-1])
             self._max_dens[i] = (self.max_dens_point[i][0], self.max_dens_point[i][1], \
@@ -641,7 +667,7 @@ class chainHOPHaloList(HaloList,ParallelAnalysisInterface):
             size=self.group_sizes[index], CoM=self.CoM[index], \
             max_dens_point=self.max_dens_point[i], \
             group_total_mass=self.Tot_M[index], max_radius=self.max_radius[index],
-            bulk_vel=self.bulk_vel[index]))
+            bulk_vel=self.bulk_vel[index], tasks=self.halo_taskmap[index]))
             self._do_not_claim_object(self._groups[-1])
             self._max_dens[index] = (self.max_dens_point[index][0], self.max_dens_point[index][1], \
                 self.max_dens_point[index][2], self.max_dens_point[index][3])
@@ -738,6 +764,10 @@ class GenericHaloFinder(ParallelAnalysisInterface):
         self._data_source.get_data(["particle_velocity_%s" % ax for ax in 'xyz'])
         f = self._write_on_root(filename)
         HaloList.write_out(self, f)
+
+    def write_particle_lists_txt(self, prefix):
+        f = self._write_on_root("%s.txt" % prefix)
+        HaloList.write_particle_lists_txt(self, prefix, fp=f)
 
     @parallel_blocking_call
     def write_particle_lists(self, prefix):

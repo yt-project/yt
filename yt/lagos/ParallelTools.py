@@ -1214,9 +1214,12 @@ class ParallelAnalysisInterface(object):
         else:
             return cStringIO.StringIO()
 
-    def _get_filename(self, prefix):
+    def _get_filename(self, prefix, rank=None):
         if not self._distributed: return prefix
-        return "%s_%03i" % (prefix, MPI.COMM_WORLD.rank)
+        if rank == None:
+            return "%s_%04i" % (prefix, MPI.COMM_WORLD.rank)
+        else:
+            return "%s_%04i" % (prefix, rank)
 
     def _is_mine(self, obj):
         if not obj._distributed: return True
