@@ -487,7 +487,7 @@ class HaloList(object):
 
     def write_particle_lists_txt(self, prefix, fp=None):
         """
-        Write out the location of halo data in hdf5 files to *filename*.
+        Write out the location of halo data in hdf5 files to *prefix*.
         """
         if hasattr(fp, 'write'):
             f = fp
