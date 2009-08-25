@@ -779,10 +779,11 @@ class GenericHaloFinder(ParallelAnalysisInterface):
 
 class chainHF(GenericHaloFinder, chainHOPHaloList):
     def __init__(self, pf, threshold=160, dm_only=True, resize=False, rearrange=True,\
-        fancy_padding=True):
+        fancy_padding=True, safety=2.5):
         GenericHaloFinder.__init__(self, pf, dm_only, padding=0.0)
         self.padding = 0.0 
         self.num_neighbors = 65
+        self.safety = safety
         period = pf["DomainRightEdge"] - pf["DomainLeftEdge"]
         # get the total number of particles across all procs, with no padding
         padded, LE, RE, self._data_source = self._partition_hierarchy_3d(padding=self.padding)
@@ -838,13 +839,12 @@ class chainHF(GenericHaloFinder, chainHOPHaloList):
             avg_spacing = (float(vol) / data.size)**(1./3.)
             # padding is a function of inter-particle spacing, this is an
             # approximation, but it's OK with the safety factor
-            safety = 5
-            padding = (self.num_neighbors)**(1./3.) * safety * avg_spacing
+            padding = (self.num_neighbors)**(1./3.) * self.safety * avg_spacing
             self.padding = (na.ones(3,dtype='float64')*padding, na.ones(3,dtype='float64')*padding)
             mylog.info('padding %s avg_spacing %f vol %f local_parts %d' % \
                 (str(self.padding), avg_spacing, vol, data.size))
         # Another approach to padding, perhaps more accurate.
-        elif fancy_padding:
+        elif fancy_padding and self._distributed:
             LE_padding, RE_padding = na.empty(3,dtype='float64'), na.empty(3,dtype='float64')
             for dim in xrange(3):
                 data = self._data_source[ds_names[dim]]
@@ -864,8 +864,7 @@ class chainHF(GenericHaloFinder, chainHOPHaloList):
                 # Get the avg spacing in just this boundary.
                 vol = area * (bins[start+1] - bins[0])
                 avg_spacing = (float(vol) / count)**(1./3.)
-                safety = 2.5
-                LE_padding[dim] = (self.num_neighbors)**(1./3.) * safety * avg_spacing
+                LE_padding[dim] = (self.num_neighbors)**(1./3.) * self.safety * avg_spacing
                 # right side.
                 start = -1
                 count = counts[-1]
@@ -874,11 +873,11 @@ class chainHF(GenericHaloFinder, chainHOPHaloList):
                     count += counts[start]
                 vol = area * (bins[-1] - bins[start-1])
                 avg_spacing = (float(vol) / count)**(1./3.)
-                RE_padding[dim] = (self.num_neighbors)**(1./3.) * safety * avg_spacing
+                RE_padding[dim] = (self.num_neighbors)**(1./3.) * self.safety * avg_spacing
             self.padding = (LE_padding, RE_padding)
             mylog.info('fancy_padding %s avg_spacing %f full_vol %f local_parts %d %s' % \
                 (str(self.padding), avg_spacing, full_vol, data.size, str(self._data_source)))
-        if self._mpi_get_size() == None:
+        if not self._distributed:
             self.padding = (na.zeros(3,dtype='float64'), na.zeros(3,dtype='float64'))
         self.bounds = (LE, RE)
         (LE_padding, RE_padding) = self.padding

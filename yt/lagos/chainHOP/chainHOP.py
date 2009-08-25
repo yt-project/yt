@@ -779,7 +779,7 @@ class RunChainHOP(ParallelAnalysisInterface):
             # we need to record it, but we skip particles that were assigned
             # -1 above. Also, since links are supposed to go only uphill,
             # ensure that they are being recorded that way below.
-            if localID != -1:
+            if localID != -1 and self.chainID[localID] != -1:
                 if self.recv_chainIDs[i] != self.chainID[localID]:# and \
                     #self.densest_in_chain[self.chainID[localID]] > self.densest_in_chain[self.recv_chainIDs[i]]:
                     chainID_translate_map_local[self.recv_chainIDs[i]] = \
@@ -1246,10 +1246,9 @@ class RunChainHOP(ParallelAnalysisInterface):
     def _chain_hop(self):
         self._global_padding('first')
         self._global_bounds_neighbors()
-        mylog.info("Distributing padded particles...")
         self._global_padding('second')
         self._is_inside('first')
-        mylog.info('Communicating data to make padding regions...')
+        mylog.info('Distributing padded particles...')
         self._communicate_padding_data()
         mylog.info('Building kd tree for %d particles...' % \
             self.size)

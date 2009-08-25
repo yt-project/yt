@@ -1160,7 +1160,7 @@ class ParallelAnalysisInterface(object):
         return MPI.COMM_WORLD.Isend([data, MPI.DOUBLE], dest, 0)
 
     def _mpi_Request_Waitall(self, hooks):
-        if not self._distributed: pass
+        if not self._distributed: return
         MPI.Request.Waitall(hooks)
 
     ###
