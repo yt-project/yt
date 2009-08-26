@@ -1141,6 +1141,7 @@ class RunChainHOP(ParallelAnalysisInterface):
             self.reverse_map[chain] = secondary_map[self.reverse_map[chain]]
         group_count = len(temp)
         del secondary_map, temp, g_high, g_low, g_dens, densestbound
+        yt_counters("build_groups")
         return group_count
 
     def _translate_groupIDs(self, group_count):
@@ -1178,6 +1179,13 @@ class RunChainHOP(ParallelAnalysisInterface):
         For all groups, compute the various global properties, except bulk
         velocity, to save time in HaloFinding.py (fewer barriers!).
         """
+        select = (self.chainID != -1)
+        calc = len(na.where(select == True)[0])
+        loc = na.empty((calc, 3), dtype='float64')
+        loc[:,0] = self.xpos[select]
+        loc[:,1] = self.ypos[select]
+        loc[:,2] = self.zpos[select]
+        subchain = self.chainID[select]
         # First we need to find the maximum density point for all groups.
         # I think this will be faster than several vector operations that need
         # to pull the entire chainID array out of memory several times.
@@ -1196,24 +1204,39 @@ class RunChainHOP(ParallelAnalysisInterface):
         yt_counters("max dens point")
         # Now CoM.
         yt_counters("CoM")
-        c_vec = self.max_dens_point[:,1:4] - na.array([0.5,0.5,0.5])
-        size = na.zeros(self.group_count, dtype='int64')
+        c_vec = na.empty((calc, 3), dtype='float64')
         CoM_M = na.zeros((self.group_count,3),dtype='float64')
         Tot_M = na.zeros(self.group_count, dtype='float64')
-        for part in xrange(int(self.size)):
-            if self.chainID[part] == -1: continue
-            groupID = self.chainID[part]
-            size[groupID] += 1
-            loc = na.array([self.xpos[part], self.ypos[part], \
-                self.zpos[part]], dtype='float64') - c_vec[groupID]
-            loc = loc - na.floor(loc)
-            CoM_M[groupID] += (loc * self.mass[part])
-            Tot_M[groupID] += self.mass[part]
+        for i,groupID in enumerate(subchain):
+            c_vec[i] = self.max_dens_point[groupID,1:4] - na.array([0.5,0.5,0.5])
+        size = na.bincount(self.chainID[select]).astype('int64')
+        if size.size != self.group_count:
+            size = na.concatenate((size, na.zeros(self.group_count - size.size, dtype='int64')))
+        cc = loc - c_vec
+        cc = cc - na.floor(cc)
+        ms = self.mass[select]
+        # Most of the time, the masses will be all the same, and we can try
+        # to save some effort.
+        ms_u = na.unique(ms)
+        if ms_u.size == 1:
+            single = True
+            Tot_M = size.astype('float64') * ms_u
+        else:
+            single = False
+            del ms_u
+        cc[:,0] = cc[:,0] * ms
+        cc[:,1] = cc[:,1] * ms
+        cc[:,2] = cc[:,2] * ms
+        for i,groupID in enumerate(subchain):
+            CoM_M[groupID] += cc[i]
+            if not single:
+                Tot_M[groupID] += ms[i]
+        del cc, ms
         for groupID in xrange(int(self.group_count)):
             # Don't divide by zero.
             if groupID in self.I_own:
                 CoM_M[groupID] /= Tot_M[groupID]
-                CoM_M[groupID] += c_vec[groupID]
+                CoM_M[groupID] += self.max_dens_point[groupID,1:4] - na.array([0.5,0.5,0.5])# c_vec[groupID]
                 CoM_M[groupID] *= Tot_M[groupID]
         # Now we find their global values
         self.group_sizes = self._mpi_Allsum_long(size)
@@ -1226,22 +1249,21 @@ class RunChainHOP(ParallelAnalysisInterface):
         # Now we find the maximum radius for all groups.
         yt_counters("max radius")
         max_radius = na.zeros(self.group_count, dtype='float64')
-        calc = 0
-        for part in xrange(int(self.size)):
-            groupID = self.chainID[part]
-            if groupID == -1: continue
-            loc = na.array([self.xpos[part], self.ypos[part], self.zpos[part]])
-            loc = na.abs(self.CoM[groupID] - loc)
-            dist = (na.minimum(loc, self.period - loc)**2.).sum()
-            calc += 1
-            if dist > max_radius[groupID]:
-                max_radius[groupID] = dist
+        com = na.empty((calc, 3), dtype='float64')
+        for i,groupID in enumerate(subchain):
+            com[i] = self.CoM[groupID]
+        rad = na.abs(com - loc)
+        dist = (na.minimum(rad, self.period - rad)**2.).sum(axis=1)
+        for i,groupID in enumerate(subchain):
+            if dist[i] > max_radius[groupID]:
+                max_radius[groupID] = dist[i]
         # Find the maximum across all tasks.
         mylog.info('Fraction of particles in this region in groups: %f' % (float(calc)/self.size))
         self.max_radius = self._mpi_double_array_max(max_radius)
         self.max_radius = na.sqrt(self.max_radius)
         yt_counters("max radius")
         yt_counters("Precomp.")
+        del loc, subchain, CoM_M, Tot_M, c_vec, max_radius, select
 
     def _chain_hop(self):
         self._global_padding('first')

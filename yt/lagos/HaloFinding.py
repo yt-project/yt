@@ -608,7 +608,7 @@ class chainHOPHaloList(HaloList,ParallelAnalysisInterface):
         for i, pmass in enumerate(pm):
             groupID = self.tags[i]
             if groupID == -1: continue
-            self.bulk_vel[groupID] += na.array([xv[i]*pmass, yv[i]*pmass, zv[i]*pmass])
+            self.bulk_vel[groupID] += (na.array([xv[i], yv[i], zv[i]])*pmass)
         # Bring it together, and divide by the previously computed total mass
         # of each halo.
         self.bulk_vel = self._mpi_Allsum_double(self.bulk_vel)
