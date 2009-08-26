@@ -800,7 +800,8 @@ class chainHF(GenericHaloFinder, chainHOPHaloList):
             n_parts = self._mpi_allsum(local_parts)
         min = self._mpi_allmin(local_parts)
         max = self._mpi_allmax(local_parts)
-        print 'min,max,tot', min, max, n_parts
+        mylog.info("Initial distribution: (min,max,tot) (%d,%d,%d)" \
+            % (min, max, n_parts))
         # Adaptive subregions by bisection.
         ds_names = ["particle_position_x","particle_position_y","particle_position_z"]
         if resize and self._mpi_get_size()!=None:

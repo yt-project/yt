@@ -671,6 +671,17 @@ class RunChainHOP(ParallelAnalysisInterface):
             self.densest_in_chain[dens + self.my_first_id] = temp[dens]
         # Distribute this.
         self.densest_in_chain = self._mpi_joindict_unpickled_double(self.densest_in_chain)
+        chain_convert_map = {}
+        count = 0
+        for old_chain in self.__ksort(self.densest_in_chain):
+            chain_convert_map[old_chain] = count
+            count += 1
+        temp = self.densest_in_chain.copy()
+        for old_chain in temp:
+            self.densest_in_chain[chain_convert_map[old_chain]] = temp[old_chain]
+        for i,old_chain in enumerate(self.chainID):
+            if old_chain == -1: continue
+            self.chainID[i] = chain_convert_map[old_chain]
         del temp
         yt_counters("create_global_densest_in_chain")
 
@@ -964,6 +975,17 @@ class RunChainHOP(ParallelAnalysisInterface):
             self._mpi_maxdict_dict(self.chain_densest_n)
         del self.chain_densest_n
         yt_counters("make_global_chain_densest_n")
+
+    def __ksort(self, d):
+        temp = []
+        for key in d:
+            item = [key, d[key]]
+            temp.append(item)
+        temp.sort(lambda x,y: -cmp(x[1],y[1]))
+        temp = na.array(temp)
+        # return the first column, which are the dict keys sorted by
+        # the second column, the densities.
+        return temp[:,0]
     
     def _build_groups(self):
         """
@@ -981,18 +1003,8 @@ class RunChainHOP(ParallelAnalysisInterface):
         # The initial groupIDs will be assigned with decending peak density.
         # This guarantees that the group with the smaller groupID is the
         # higher chain, as in chain_high below.
-        def ksort(d):
-            temp = []
-            for key in d:
-                item = [key, d[key]]
-                temp.append(item)
-            temp.sort(lambda x,y: -cmp(x[1],y[1]))
-            temp = na.array(temp)
-            # return the first column, which are the dict keys sorted by
-            # the second column, the densities.
-            return temp[:,0]
         group_equivalancy_map = defaultdict(set)
-        for chainID in ksort(self.densest_in_chain):
+        for chainID in self.__ksort(self.densest_in_chain):
             if self.densest_in_chain[chainID] >= self.peakthresh:
                 self.reverse_map[chainID] = groupID
                 groupID += 1
@@ -1105,6 +1117,18 @@ class RunChainHOP(ParallelAnalysisInterface):
         along.  Connections are only as good as their smallest boundary
         """
         changes = 1
+        tosort = []
+        for j,dens in enumerate(g_dens):
+            tosort.append([dens, g_high[j], g_low[j]])
+        tosort.sort(lambda x,y: -cmp(x[0],y[0]))
+        g_dens = []
+        g_high = []
+        g_low = []
+        for item in tosort:
+            g_dens.append(item[0])
+            g_high.append(item[1])
+            g_low.append(item[2])
+        del tosort
         while changes:
             changes = 0
             for j,dens in enumerate(g_dens):
