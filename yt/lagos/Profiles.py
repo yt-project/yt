@@ -207,7 +207,7 @@ class BinnedProfile1D(BinnedProfile):
 
         # These are the bin *left edges*.  These are the x-axis values
         # we plot in the PlotCollection
-        self[bin_field] = self._bins[:-1]
+        self[bin_field] = self._bins
 
         # If we are not being memory-conservative, grab all the bins
         # and the inverse indices right now.
