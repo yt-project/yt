@@ -962,6 +962,7 @@ class ParallelAnalysisInterface(object):
             for top_key in data:
                 for bot_key in data[top_key]:
                     tosort.append([data[top_key][bot_key], top_key, bot_key])
+            mylog.info('Sorting global group links...')
             tosort.sort(lambda x,y: -cmp(x[0],y[0]))
             for item in tosort:
                 top_keys.append(item[1])
@@ -1002,12 +1003,9 @@ class ParallelAnalysisInterface(object):
             tosort = []
             for top_key in data:
                 for bot_key in data[top_key]:
-                    tosort.append([data[top_key][bot_key], top_key, bot_key])
-            tosort.sort(lambda x,y: -cmp(x[0],y[0]))
-            for item in tosort:
-                top_keys.append(item[1])
-                bot_keys.append(item[2])
-                vals.append(item[0])
+                    top_keys.append(top_key)
+                    bot_keys.append(bot_key)
+                    vals.append(data[top_key][bot_key])
             top_keys = na.array(top_keys, dtype='int64')
             bot_keys = na.array(bot_keys, dtype='int64')
             vals = na.array(vals, dtype='float64')
@@ -1023,12 +1021,17 @@ class ParallelAnalysisInterface(object):
             top_keys = []
             bot_keys = []
             vals = []
+            tosort = []
             count = 0
             for top_key in data:
                 for bot_key in data[top_key]:
-                    top_keys.append(top_key)
-                    bot_keys.append(bot_key)
-                    vals.append(data[top_key][bot_key])
+                    tosort.append([data[top_key][bot_key], top_key, bot_key])
+            mylog.info('Sorting global group links...')
+            tosort.sort(lambda x,y: -cmp(x[0],y[0]))
+            for item in tosort:
+                top_keys.append(item[1])
+                bot_keys.append(item[2])
+                vals.append(item[0])
             top_keys = na.array(top_keys, dtype='int64')
             bot_keys = na.array(bot_keys, dtype='int64')
             vals = na.array(vals, dtype='float64')
