@@ -26,15 +26,16 @@ License:
 import numpy as np
 cimport numpy as np
 cimport cython
+from stdlib cimport malloc, free
 
-@cython.boundscheck(False)
-def Transfer3D(np.ndarray[np.float_t, ndim=2] i_s,
-               np.ndarray[np.float_t, ndim=3] o_s,
-               np.ndarray[np.float_t, ndim=3] e,
-               np.ndarray[np.float_t, ndim=3] a,
+#@cython.boundscheck(False)
+def Transfer3D(np.ndarray[np.float64_t, ndim=3] i_s,
+               np.ndarray[np.float64_t, ndim=4] o_s,
+               np.ndarray[np.float64_t, ndim=4] e,
+               np.ndarray[np.float64_t, ndim=4] a,
                int imin, int imax, int jmin, int jmax,
                int kmin, int kmax, int istride, int jstride,
-               float dx):
+               np.float64_t dx):
     """
     This function accepts an incoming slab (*i_s*), a buffer
     for an outgoing set of values at every point in the grid (*o_s*),
@@ -46,16 +47,24 @@ def Transfer3D(np.ndarray[np.float_t, ndim=2] i_s,
     cdef int i, ii
     cdef int j, jj
     cdef int k, kk
-    cdef float temp
+    cdef int n, nn
+    nn = o_s.shape[3] # This might be slow
+    cdef np.float64_t *temp = <np.float64_t *>malloc(sizeof(np.float64_t) * nn)
     for i in range((imax-imin)*istride):
         ii = i + imin*istride
         for j in range((jmax-jmin)*jstride):
             jj = j + jmin*jstride
-            temp = i_s[ii,jj]
+            # Not sure about the ordering of the loops here
+            for n in range(nn):
+                temp[n] = i_s[ii,jj,n] 
             for k in range(kmax-kmin):
-                o_s[i,j,k] = temp + dx*(e[i,j,k] - temp*a[i,j,k])
-                temp = o_s[i,j,k]
-            i_s[ii,jj] = temp
+                kk = k + kmin#*kstride, which doesn't make any sense
+                for n in range(nn):
+                    o_s[i,j,k,n] = temp[n] + dx*(e[i,j,k,n] - temp[n]*a[i,j,k,n])
+                    temp[n] = o_s[i,j,k,n]
+            for n in range(nn):
+                i_s[ii,jj,n] = temp[n]
+    free(temp)
 
 @cython.boundscheck(False)
 def Transfer1D(float i_s,
