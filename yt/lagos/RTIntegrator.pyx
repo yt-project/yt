@@ -26,9 +26,9 @@ License:
 import numpy as np
 cimport numpy as np
 cimport cython
-from stdlib cimport malloc, free
+from stdlib cimport malloc, free, abs
 
-#@cython.boundscheck(False)
+@cython.boundscheck(False)
 def Transfer3D(np.ndarray[np.float64_t, ndim=3] i_s,
                np.ndarray[np.float64_t, ndim=4] o_s,
                np.ndarray[np.float64_t, ndim=4] e,
@@ -65,6 +65,37 @@ def Transfer3D(np.ndarray[np.float64_t, ndim=3] i_s,
             for n in range(nn):
                 i_s[ii,jj,n] = temp[n]
     free(temp)
+
+@cython.boundscheck(False)
+def TransferShells(np.ndarray[np.float64_t, ndim=3] i_s,
+                   np.ndarray[np.float64_t, ndim=3] data,
+                   np.ndarray[np.float64_t, ndim=2] shells):
+    """
+    This function accepts an incoming slab (*i_s*), a buffer of *data*,
+    and a list of shells specified as [ (value, tolerance, r, g, b), ... ].
+    """
+    cdef int i, ii
+    cdef int j, jj
+    cdef int k, kk
+    cdef int n, nn
+    cdef np.float64_t dist
+    ii = data.shape[0]
+    jj = data.shape[1]
+    kk = data.shape[2]
+    nn = shells.shape[0]
+    for i in range(ii):
+        for j in range(jj):
+            # Not sure about the ordering of the loops here
+            for k in range(kk):
+                for n in range(nn):
+                    dist = shells[n, 0] - data[i,j,k]
+                    if dist < 0: dist *= -1.0
+                    if dist < shells[n,1]:
+                        #dist *= dist # This might improve appearance
+                        i_s[i,j,0] += shells[n,2]*dist
+                        i_s[i,j,1] += shells[n,3]*dist
+                        i_s[i,j,2] += shells[n,4]*dist
+                        break
 
 @cython.boundscheck(False)
 def Transfer1D(float i_s,
