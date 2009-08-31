@@ -254,6 +254,21 @@ class RunChainHOP(ParallelAnalysisInterface):
             self.mass = na.concatenate((self.mass, recv_mass[opp_neighbor]))
             del recv_mass[opp_neighbor]
         yt_counters("Processing padded data.")
+        # For some reason that I haven't looked into yet, I get incorrect
+        # densities for the particles if their nearest neighbors have
+        # coordinates flipped around the periodic boundaries (as is done above).
+        # So, here I flip them back.
+        yt_counters("Flipping coordinates around the periodic boundary.")
+        xlo = (self.xpos < 0.) * self.period[0]
+        xhi = (self.xpos >= self.period[0]) * self.period[0]
+        self.xpos = self.xpos + xlo - xhi
+        ylo = (self.ypos < 0.) * self.period[1]
+        yhi = (self.ypos >= self.period[1]) * self.period[1]
+        self.ypos = self.ypos + ylo - yhi
+        zlo = (self.zpos < 0.) * self.period[2]
+        zhi = (self.zpos >= self.period[2]) * self.period[2]
+        self.zpos = self.zpos + zlo - zhi
+        yt_counters("Flipping coordinates around the periodic boundary.")
         self.size = self.index.size
         # Now that we have the full size, initialize the chainID array
         self.chainID = na.ones(self.size,dtype='int64') * -1
@@ -671,18 +686,6 @@ class RunChainHOP(ParallelAnalysisInterface):
             self.densest_in_chain[dens + self.my_first_id] = temp[dens]
         # Distribute this.
         self.densest_in_chain = self._mpi_joindict_unpickled_double(self.densest_in_chain)
-        chain_convert_map = {}
-        count = 0
-        for old_chain in self.__ksort(self.densest_in_chain):
-            chain_convert_map[old_chain] = count
-            count += 1
-        temp = self.densest_in_chain.copy()
-        for old_chain in temp:
-            self.densest_in_chain[chain_convert_map[old_chain]] = temp[old_chain]
-        for i,old_chain in enumerate(self.chainID):
-            if old_chain == -1: continue
-            self.chainID[i] = chain_convert_map[old_chain]
-        del temp
         yt_counters("create_global_densest_in_chain")
 
     def _communicate_uphill_info(self):
@@ -1117,18 +1120,6 @@ class RunChainHOP(ParallelAnalysisInterface):
         along.  Connections are only as good as their smallest boundary
         """
         changes = 1
-        tosort = []
-        for j,dens in enumerate(g_dens):
-            tosort.append([dens, g_high[j], g_low[j]])
-        tosort.sort(lambda x,y: -cmp(x[0],y[0]))
-        g_dens = []
-        g_high = []
-        g_low = []
-        for item in tosort:
-            g_dens.append(item[0])
-            g_high.append(item[1])
-            g_low.append(item[2])
-        del tosort
         while changes:
             changes = 0
             for j,dens in enumerate(g_dens):
@@ -1136,9 +1127,12 @@ class RunChainHOP(ParallelAnalysisInterface):
                 chain_low = g_low[j]
                 # If the density of this boundary and the densestbound of
                 # the other chain is higher than a chain's densestbound, then
-                # replace it.
-                if dens > densestbound[chain_low] and \
-                        densestbound[chain_high] > densestbound[chain_low]:
+                # replace it. We also don't want to link to un-assigned 
+                # neighbors, and we can skip neighbors we're already assigned to.
+                if dens >= densestbound[chain_low] and \
+                        densestbound[chain_high] > densestbound[chain_low] and \
+                        self.reverse_map[chain_high] != 1 and \
+                        self.reverse_map[chain_low] != self.reverse_map[chain_high]:
                     changes += 1
                     if dens < densestbound[chain_high]:
                         densestbound[chain_low] = dens

@@ -958,16 +958,11 @@ class ParallelAnalysisInterface(object):
             top_keys = []
             bot_keys = []
             vals = []
-            tosort = []
             for top_key in data:
                 for bot_key in data[top_key]:
-                    tosort.append([data[top_key][bot_key], top_key, bot_key])
-            mylog.info('Sorting global group links...')
-            tosort.sort(lambda x,y: -cmp(x[0],y[0]))
-            for item in tosort:
-                top_keys.append(item[1])
-                bot_keys.append(item[2])
-                vals.append(item[0])
+                    top_keys.append(top_key)
+                    bot_keys.append(bot_key)
+                    vals.append(data[top_key][bot_key])
             top_keys = na.array(top_keys, dtype='int64')
             bot_keys = na.array(bot_keys, dtype='int64')
             vals = na.array(vals, dtype='float64')
@@ -976,6 +971,7 @@ class ParallelAnalysisInterface(object):
         size = 0
         if MPI.COMM_WORLD.rank == 0:
             for i in range(1,MPI.COMM_WORLD.size):
+                mylog.info('maxdict_dict %d of %d' % (i,MPI.COMM_WORLD.size))
                 size = MPI.COMM_WORLD.recv(source=i, tag=0)
                 top_keys = na.empty(size, dtype='int64')
                 bot_keys = na.empty(size, dtype='int64')
@@ -1000,7 +996,6 @@ class ParallelAnalysisInterface(object):
             top_keys = []
             bot_keys = []
             vals = []
-            tosort = []
             for top_key in data:
                 for bot_key in data[top_key]:
                     top_keys.append(top_key)
@@ -1021,17 +1016,11 @@ class ParallelAnalysisInterface(object):
             top_keys = []
             bot_keys = []
             vals = []
-            tosort = []
-            count = 0
             for top_key in data:
                 for bot_key in data[top_key]:
-                    tosort.append([data[top_key][bot_key], top_key, bot_key])
-            mylog.info('Sorting global group links...')
-            tosort.sort(lambda x,y: -cmp(x[0],y[0]))
-            for item in tosort:
-                top_keys.append(item[1])
-                bot_keys.append(item[2])
-                vals.append(item[0])
+                    top_keys.append(top_key)
+                    bot_keys.append(bot_key)
+                    vals.append(data[top_key][bot_key])
             top_keys = na.array(top_keys, dtype='int64')
             bot_keys = na.array(bot_keys, dtype='int64')
             vals = na.array(vals, dtype='float64')
