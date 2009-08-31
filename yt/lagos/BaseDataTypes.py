@@ -1011,6 +1011,12 @@ class AMRFixedResCuttingPlaneBase(AMR2DData):
                       na.outer(_co[1,:,:], self._y_vec)
         self._pixelmask = na.ones(self.dims*self.dims, dtype='int8')
 
+        try:
+            import PointsInVolumeCUDA as pvc
+            self._pv = pvc.VolumeFinder(self._coord, self.dims)
+        except NoCUDAException:
+            self._pv = None
+
         if node_name is False:
             self._refresh_data()
         else:
@@ -1148,9 +1154,12 @@ class AMRFixedResCuttingPlaneBase(AMR2DData):
 
     def _get_point_indices(self, grid):
         if self._pixelmask.max() == 0: return []
-        k = PV.PointsInVolume(self._coord, self._pixelmask,
-                              grid.LeftEdge, grid.RightEdge,
-                              grid.child_mask, just_one(grid['dx']))
+        if self._pv is not None:
+            k = self._pv(grid)
+        else:
+            k = PV.PointsInVolume(self._coord, self._pixelmask,
+                                  grid.LeftEdge, grid.RightEdge,
+                                  grid.child_mask, just_one(grid['dx']))
         return k
 
     def _gen_node_name(self):

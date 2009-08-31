@@ -233,3 +233,6 @@ def deprecate(func):
                 % func.func_name, DeprecationWarning, stacklevel=2)
         func(*args, **kwargs)
     return run_func
+
+class NoCUDAException(Exception):
+    pass

@@ -91,7 +91,7 @@ def TransferShells(np.ndarray[np.float64_t, ndim=3] i_s,
                     dist = shells[n, 0] - data[i,j,k]
                     if dist < 0: dist *= -1.0
                     if dist < shells[n,1]:
-                        #dist *= dist # This might improve appearance
+                        dist *= dist # This might improve appearance
                         i_s[i,j,0] += shells[n,2]*dist
                         i_s[i,j,1] += shells[n,3]*dist
                         i_s[i,j,2] += shells[n,4]*dist
