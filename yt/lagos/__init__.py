@@ -39,7 +39,7 @@ import warnings
 try:
     import h5py
 except ImportError:
-    ytcfg["lagos", "serialization"] = "False"
+    ytcfg["lagos", "serialize"] = "False"
     mylog.warning("No h5py. Data serialization disabled.")
 
 from yt.arraytypes import *
