@@ -411,16 +411,13 @@ class AMR1DData(AMRData, GridPropertiesMixin):
             self[field] = na.concatenate(
                 [self._get_data_from_grid(grid, field)
                  for grid in self._grids])
-        for field in fields_to_get:
             if not self.data.has_key(field):
                 continue
             if self._sortkey is None:
                 self._sortkey = na.argsort(self[self.sort_by])
-            if (field in self.hierarchy.field_list or field == self.sort_by) and \
-                    not self._sorted.has_key(field):
+            if (field in self.hierarchy.field_list or field == self.sort_by):
                 self[field] = self[field][self._sortkey]
-                self._sorted[field] = True
-
+       
 class AMROrthoRayBase(AMR1DData):
     _key_fields = ['x','y','z','dx','dy','dz']
     _type_name = "ortho_ray"
