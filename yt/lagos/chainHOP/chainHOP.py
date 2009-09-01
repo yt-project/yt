@@ -183,22 +183,13 @@ class RunChainHOP(ParallelAnalysisInterface):
         real_indices = self.index[self.is_inside_annulus].astype('int64')
         mass = self.mass[self.is_inside_annulus].astype('float64')
         # Make the arrays to send.
-        shift_points = points
+        shift_points = points.copy()
         for neighbor in self.neighbors:
             temp_LE, temp_RE = global_exp_bounds[neighbor]
-            for i,point in enumerate(shift_points):
-                if point[0] < temp_LE[0] and point[0] < temp_RE[0]:
-                    shift_points[i][0] += self.period[0]
-                elif point[0] > temp_LE[0] and point[0] > temp_RE[0]:
-                    shift_points[i][0] -= self.period[0]
-                if point[1] < temp_LE[1] and point[1] < temp_RE[1]:
-                    shift_points[i][1] += self.period[1]
-                elif point[1] > temp_LE[1] and point[1] > temp_RE[1]:
-                    shift_points[i][1] -= self.period[1]
-                if point[2] < temp_LE[2] and point[2] < temp_RE[2]:
-                    shift_points[i][2] += self.period[2]
-                elif point[2] > temp_LE[2] and point[2] > temp_RE[2]:
-                    shift_points[i][2] -= self.period[2]
+            for i in xrange(3):
+                left = ((points[:,i] < temp_LE[i]) * (points[:,i] < temp_RE[i])) * self.period[i]
+                right = ((points[:,i] > temp_LE[i]) * (points[:,i] > temp_RE[i])) * self.period[i]
+                shift_points[:,i] = points[:,i] + left - right
             is_inside = ( (shift_points >= temp_LE).all(axis=1) * \
                 (shift_points < temp_RE).all(axis=1) )
             send_real_indices[neighbor] = real_indices[is_inside].copy()
@@ -254,10 +245,9 @@ class RunChainHOP(ParallelAnalysisInterface):
             self.mass = na.concatenate((self.mass, recv_mass[opp_neighbor]))
             del recv_mass[opp_neighbor]
         yt_counters("Processing padded data.")
-        # For some reason that I haven't looked into yet, I get incorrect
-        # densities for the particles if their nearest neighbors have
-        # coordinates flipped around the periodic boundaries (as is done above).
-        # So, here I flip them back.
+        # The KDtree node search wants the particles to be in the full box,
+        # not the expanded dimensions of shifted (<0 or >1 generally) volume,
+        # so we fix the positions of particles here.
         yt_counters("Flipping coordinates around the periodic boundary.")
         self.xpos = self.xpos % self.period[0]
         self.ypos = self.ypos % self.period[1]
@@ -1222,6 +1212,7 @@ class RunChainHOP(ParallelAnalysisInterface):
         for i,groupID in enumerate(subchain):
             c_vec[i] = self.max_dens_point[groupID,1:4] - na.array([0.5,0.5,0.5])
         size = na.bincount(self.chainID[select]).astype('int64')
+        # In case this task doesn't have all the groups, add trailing zeros.
         if size.size != self.group_count:
             size = na.concatenate((size, na.zeros(self.group_count - size.size, dtype='int64')))
         cc = loc - c_vec
