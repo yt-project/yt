@@ -601,10 +601,13 @@ class chainHOPHaloList(HaloList,ParallelAnalysisInterface):
         # Precompute the bulk velocity in parallel.
         yt_counters("Precomp bulk vel.")
         self.bulk_vel = na.zeros((self.group_count, 3), dtype='float64')
+        yt_counters("bulk vel. reading data")
         pm = self._data_source["ParticleMassMsun"][self._base_indices]
         xv = self._data_source["particle_velocity_x"][self._base_indices]
         yv = self._data_source["particle_velocity_y"][self._base_indices]
         zv = self._data_source["particle_velocity_z"][self._base_indices]
+        yt_counters("bulk vel. reading data")
+        yt_counters("bulk vel. computing")
         for i, pmass in enumerate(pm):
             groupID = self.tags[i]
             if groupID == -1: continue
@@ -614,6 +617,7 @@ class chainHOPHaloList(HaloList,ParallelAnalysisInterface):
         self.bulk_vel = self._mpi_Allsum_double(self.bulk_vel)
         for groupID in xrange(self.group_count):
             self.bulk_vel[groupID] = self.bulk_vel[groupID] / self.Tot_M[groupID]
+        yt_counters("bulk vel. computing")
         self.taskID = obj.mine
         self.halo_taskmap = obj.halo_taskmap # A defaultdict.
         del obj

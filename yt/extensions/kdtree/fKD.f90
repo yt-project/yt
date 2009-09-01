@@ -111,6 +111,7 @@ subroutine chainHOP_tags_dens()
     
     do k=1,nparts
         qv(:) = pos(:,k)
+        
         call kdtree2_n_nearest(tp=tree2,qv=qv,nn=nn,results=results)
         temp_tags(:) = results%idx
         temp_dist(:) = results%dis
@@ -134,7 +135,6 @@ subroutine chainHOP_tags_dens()
 
         ! record only nMerge nearest neighbors
         nn_tags(:,k) = temp_tags(1:nMerge)
-    
     end do
     
     deallocate(results)

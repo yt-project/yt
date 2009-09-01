@@ -259,15 +259,9 @@ class RunChainHOP(ParallelAnalysisInterface):
         # coordinates flipped around the periodic boundaries (as is done above).
         # So, here I flip them back.
         yt_counters("Flipping coordinates around the periodic boundary.")
-        xlo = (self.xpos < 0.) * self.period[0]
-        xhi = (self.xpos >= self.period[0]) * self.period[0]
-        self.xpos = self.xpos + xlo - xhi
-        ylo = (self.ypos < 0.) * self.period[1]
-        yhi = (self.ypos >= self.period[1]) * self.period[1]
-        self.ypos = self.ypos + ylo - yhi
-        zlo = (self.zpos < 0.) * self.period[2]
-        zhi = (self.zpos >= self.period[2]) * self.period[2]
-        self.zpos = self.zpos + zlo - zhi
+        self.xpos = self.xpos % self.period[0]
+        self.ypos = self.ypos % self.period[1]
+        self.zpos = self.zpos % self.period[2]
         yt_counters("Flipping coordinates around the periodic boundary.")
         self.size = self.index.size
         # Now that we have the full size, initialize the chainID array
