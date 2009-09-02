@@ -377,6 +377,7 @@ class AMR1DData(AMRData, GridPropertiesMixin):
         AMRData.__init__(self, pf, fields, **kwargs)
         self._grids = None
         self._sortkey = None
+        self._sorted = {}
 
     def _generate_field_in_grids(self, field, num_ghost_zones=0):
         for grid in self._grids:
@@ -419,13 +420,13 @@ class AMR1DData(AMRData, GridPropertiesMixin):
             self[field] = na.concatenate(
                 [self._get_data_from_grid(grid, field)
                  for grid in self._grids])
-        for field in fields_to_get:
             if not self.data.has_key(field):
                 continue
             if self._sortkey is None:
                 self._sortkey = na.argsort(self[self.sort_by])
-            self[field] = self[field][self._sortkey]
-
+            if (field in self.hierarchy.field_list or field == self.sort_by):
+                self[field] = self[field][self._sortkey]
+       
 class AMROrthoRayBase(AMR1DData):
     _key_fields = ['x','y','z','dx','dy','dz']
     _type_name = "ortho_ray"
@@ -483,7 +484,6 @@ class AMRRayBase(AMR1DData):
         We accept a start point and an end point and then get all the data
         between those two.
         """
-        mylog.warning("This code is poorly tested.  It may give bad data!")
         AMR1DData.__init__(self, pf, fields, **kwargs)
         self.start_point = na.array(start_point, dtype='float64')
         self.end_point = na.array(end_point, dtype='float64')
@@ -1596,7 +1596,6 @@ class AMR3DData(AMRData, GridPropertiesMixin):
         self.set_field_parameter("center",center)
         self.coords = None
         self._grids = None
-        self._sortkey = None
 
     def _generate_coords(self):
         mylog.info("Generating coords for %s grids", len(self._grids))
