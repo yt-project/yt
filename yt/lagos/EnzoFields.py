@@ -56,7 +56,7 @@ add_field("Metallicity", units=r"Z_{\rm{Solar}}",
 
 def _Metallicity3(field, data):
     return data["SN_Colour"] / 0.0204
-add_field("Metallicity", units=r"Z_{\rm{Solar}}",
+add_field("Metallicity3", units=r"Z_{\rm{Solar}}",
           function=_Metallicity3,
           validators=ValidateDataField("SN_Colour"),
           projection_conversion="1")
