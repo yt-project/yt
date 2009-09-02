@@ -298,8 +298,8 @@ class BinnedProfile1D(BinnedProfile):
         '''
         fid = open(filename,"w")
         fields = [field for field in sorted(self._data.keys()) if field != "UsedBins"]
-        fid.write("\t".join(["#"] + fields + ["\n"]))
         fields.remove(self.bin_field)
+        fid.write("\t".join(["#"] + [self.bin_field] + fields + ["\n"]))
 
         field_data = na.array(self.choose_bins(bin_style)) 
         if bin_style is 'both':
