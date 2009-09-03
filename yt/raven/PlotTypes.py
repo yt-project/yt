@@ -749,6 +749,14 @@ class PhasePlot(ProfilePlot):
         self._log_z = self.setup_bins(self.fields[2])
         self.__init_colorbar()
 
+    def _run_callbacks(self):
+        # We sublcass to avoid the problem of replacing self.image,
+        # which is a collection
+        self._axes.patches = []
+        self._axes.texts = []
+        for cb in self._callbacks:
+            cb(self)
+
     def __init_colorbar(self):
         temparray = na.ones((self.x_bins.size, self.y_bins.size))
         self.norm = matplotlib.colors.Normalize()
