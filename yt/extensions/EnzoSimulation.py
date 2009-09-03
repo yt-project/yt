@@ -9,8 +9,8 @@ class EnzoSimulation(object):
     Super class for performing the same operation over all data dumps in 
     a simulation from one redshift to another.
     """
-    def __init__(self,EnzoParameterFile,initial_time=None,final_time=None,initial_redshift=None,final_redshift=None,
-                 links=False,enzo_parameters={}):
+    def __init__(self, EnzoParameterFile, initial_time=None, final_time=None, initial_redshift=None, final_redshift=None,
+                 links=False, enzo_parameters={}, get_time_outputs=True, get_redshift_outputs=False):
         self.EnzoParameterFile = EnzoParameterFile
         self.enzoParameters = {}
         self.redshiftOutputs = []
@@ -82,11 +82,11 @@ class EnzoSimulation(object):
             self.SimulationInitialTime = 0.0
 
         # Calculate redshifts for dt data dumps.
-        if self.enzoParameters.has_key('dtDataDump'):
+        if get_time_outputs and self.enzoParameters.has_key('dtDataDump'):
             self._CalculateTimeDumps()
 
         # Calculate times for redshift dumps.
-        if self.enzoParameters['ComovingCoordinates']:
+        if get_redshift_outputs and self.enzoParameters['ComovingCoordinates']:
             self._CalculateRedshiftDumpTimes()
 
         # Combine all data dumps.
