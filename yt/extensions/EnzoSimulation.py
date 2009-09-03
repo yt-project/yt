@@ -21,6 +21,8 @@ class EnzoSimulation(object):
         self.InitialRedshift = initial_redshift
         self.FinalRedshift = final_redshift
         self.links = links
+        self.get_time_outputs = get_time_outputs
+        self.get_redshift_outputs = get_redshift_outputs
 
         # Add any extra parameters to parameter dict.
         EnzoParameterDict.update(enzo_parameters)
@@ -82,11 +84,11 @@ class EnzoSimulation(object):
             self.SimulationInitialTime = 0.0
 
         # Calculate redshifts for dt data dumps.
-        if get_time_outputs and self.enzoParameters.has_key('dtDataDump'):
+        if self.enzoParameters.has_key('dtDataDump'):
             self._CalculateTimeDumps()
 
         # Calculate times for redshift dumps.
-        if get_redshift_outputs and self.enzoParameters['ComovingCoordinates']:
+        if self.enzoParameters['ComovingCoordinates']:
             self._CalculateRedshiftDumpTimes()
 
         # Combine all data dumps.
@@ -120,6 +122,9 @@ class EnzoSimulation(object):
 
     def _CombineDataOutputs(self):
         "Combines redshift and time data into one sorted list."
+
+        if not self.get_time_outputs: self.timeOutputs = []
+        if not self.get_redshift_outputs: self.redshiftOutputs = []
         self.allOutputs = self.redshiftOutputs + self.timeOutputs
         self.allOutputs.sort(key=lambda obj:obj['time'])
 
