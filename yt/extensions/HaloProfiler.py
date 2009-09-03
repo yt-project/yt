@@ -303,8 +303,8 @@ class HaloProfiler(lagos.ParallelAnalysisInterface):
                 elif self.velocity_center[0] == 'max':
                     max_grid, max_cell, max_value, max_location = self.pf.h.find_max_cell_location(self.velocity_center[1])
                     sphere.set_field_parameter('bulk_velocity', [max_grid['x-velocity'][max_cell],
-                                                                max_grid['y-velocity'][max_cell],
-                                                                max_grid['z-velocity'][max_cell]])
+                                                                 max_grid['y-velocity'][max_cell],
+                                                                 max_grid['z-velocity'][max_cell]])
 
             profile = lagos.BinnedProfile1D(sphere, self.n_profile_bins, "RadiusMpc",
                                             r_min, halo['r_max'],
