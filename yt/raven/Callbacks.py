@@ -744,7 +744,7 @@ class ParticleCallback(PlotCallback):
     _type_name = "particles"
     region = None
     _descriptor = None
-    def __init__(self, width, p_size=1.0, col='k', stride=1.0, ptype=None):
+    def __init__(self, width, p_size=1.0, col='k', stride=1.0, ptype=None, stars_only=False):
         """
         Adds particle positions, based on a thick slab along *axis* with a
         *width* along the line of sight.  *p_size* controls the number of
@@ -757,6 +757,7 @@ class ParticleCallback(PlotCallback):
         self.color = col
         self.stride = stride
         self.ptype = ptype
+        self.stars_only = stars_only
 
     def __call__(self, plot):
         data = plot.data
@@ -772,6 +773,9 @@ class ParticleCallback(PlotCallback):
            &   ( reg[field_y] >= y0 ) & ( reg[field_y] <= y1 ) )
         if self.ptype is not None:
             gg &= (reg["particle_type"] == self.ptype)
+            if gg.sum() == 0: return
+        if self.stars_only:
+            gg &= (reg["creation_time"] > 0.0)
             if gg.sum() == 0: return
         plot._axes.hold(True)
         px, py = self.convert_to_pixels(plot,
