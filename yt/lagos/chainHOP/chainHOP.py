@@ -367,21 +367,28 @@ class RunChainHOP(ParallelAnalysisInterface):
         """
         # Yes, we really do need to initialize this many arrays.
         # They're deleted in _chainHOP.
-        fKD.nn_tags = na.asfortranarray(na.empty((self.nMerge + 2, self.size), dtype='int64'))
+        fKD.nn_tags = na.asfortranarray(na.empty((self.nMerge + 1, self.size), dtype='int64'))
         fKD.dens = na.asfortranarray(na.zeros(self.size, dtype='float64'))
         fKD.mass = na.asfortranarray(na.empty(self.size, dtype='float64'))
+        fKD.mass[:] = self.mass[:]
+        del self.mass
         fKD.pos = na.asfortranarray(na.empty((3, self.size), dtype='float64'))
+        # This actually copies the data into the fortran space.
+        fKD.pos[0, :] = self.xpos[:]
+        del self.xpos
+        fKD.pos[1, :] = self.ypos[:]
+        del self.ypos
+        fKD.pos[2, :] = self.zpos[:]
+        del self.zpos
         fKD.qv = na.asfortranarray(na.empty(3, dtype='float64'))
         fKD.nn = self.num_neighbors
+        # Plus 2 because we're looking for that neighbor, but only keeping 
+        # nMerge + 1 neighbor tags, skipping ourselves.
         fKD.nMerge = self.nMerge + 2
         fKD.nparts = self.size
         fKD.sort = True # Slower, but needed in _connect_chains
         fKD.rearrange = self.rearrange # True is faster, but uses more memory
-        # This actually copies the data into the fortran space.
-        fKD.pos[0, :] = self.xpos[:]
-        fKD.pos[1, :] = self.ypos[:]
-        fKD.pos[2, :] = self.zpos[:]
-        fKD.mass = self.mass[:]
+        #fKD.mass = self.mass[:]
         # Now call the fortran.
         create_tree()
 
@@ -401,20 +408,25 @@ class RunChainHOP(ParallelAnalysisInterface):
         (LE, RE) = self.bounds
         if round == 'first':
             points = na.empty((self.real_size, 3), dtype='float64')
+            points[:,0] = self.xpos
+            points[:,1] = self.ypos
+            points[:,2] = self.zpos
+            self.is_inside = ( (points >= LE).all(axis=1) * \
+                (points < RE).all(axis=1) )
         elif round == 'second':
-            points = na.empty((self.size, 3), dtype='float64')
-        points[:,0] = self.xpos
-        points[:,1] = self.ypos
-        points[:,2] = self.zpos
-        self.is_inside = ( (points >= LE).all(axis=1) * \
-            (points < RE).all(axis=1) )
+            self.is_inside = ( (fKD.pos.T >= LE).all(axis=1) * \
+                (fKD.pos.T < RE).all(axis=1) )
         # Below we find out which particles are in the `annulus', one padding
         # distance inside the boundaries. First we find the particles outside
         # this inner boundary.
         temp_LE = LE + self.max_padding
         temp_RE = RE - self.max_padding
-        inner = na.invert( (points >= temp_LE).all(axis=1) * \
-            (points < temp_RE).all(axis=1) )
+        if round == 'first':
+            inner = na.invert( (points >= temp_LE).all(axis=1) * \
+                (points < temp_RE).all(axis=1) )
+        elif round == 'second':
+            inner = na.invert( (fKD.pos.T >= temp_LE).all(axis=1) * \
+                (fKD.pos.T < temp_RE).all(axis=1) )
         # After inverting the logic above, we want points that are both
         # inside the real region, but within one padding of the boundary,
         # and this will do it.
@@ -431,7 +443,9 @@ class RunChainHOP(ParallelAnalysisInterface):
                 # Only padded and annulus particles are needed in the dict.
                 if not self.is_inside[i] or self.is_inside_annulus[i]:
                     self.rev_index[self.index[i]] = i
-        del points, inner
+        if round == 'first':
+            del points
+        del inner
 
     # These next two functions aren't currently being used. They figure out
     # which direction to send particle data from each task. They may come 
@@ -906,7 +920,7 @@ class RunChainHOP(ParallelAnalysisInterface):
             # Find this particle's chain max_dens.
             part_max_dens = self.densest_in_chain[self.chainID[i]]
             # Loop over nMerge closest nearest neighbors.
-            for j in xrange(int(self.nMerge+2)):
+            for j in xrange(int(self.nMerge+1)):
                 thisNN = self.NNtags[i,j]
                 thisNN_chainID = self.chainID[thisNN]
                 # If our neighbor is in the same chain, move on.
@@ -1288,6 +1302,8 @@ class RunChainHOP(ParallelAnalysisInterface):
         self.density = fKD.dens
         self.NNtags = (fKD.nn_tags - 1).transpose()
         # We can free these right now, the rest later.
+        self.mass = na.empty(self.size, dtype='float64')
+        self.mass[:] = fKD.mass[:]
         del fKD.dens, fKD.nn_tags, fKD.mass, fKD.dens
         #count = len(na.where(self.density >= self.threshold)[0])
         #print 'count above thresh', count
@@ -1296,6 +1312,12 @@ class RunChainHOP(ParallelAnalysisInterface):
         mylog.info('Finding densest nearest neighbors...')
         self._densestNN()
         # Now we can free these.
+        self.xpos = na.empty(self.size, dtype='float64')
+        self.ypos = na.empty(self.size, dtype='float64')
+        self.zpos = na.empty(self.size, dtype='float64')
+        self.xpos[:] = fKD.pos[0, :]
+        self.ypos[:] = fKD.pos[1, :]
+        self.zpos[:] = fKD.pos[2, :]
         del fKD.pos, fKD.chunk_tags
         free_tree() # Frees the kdtree object.
         # Build the chain of links.

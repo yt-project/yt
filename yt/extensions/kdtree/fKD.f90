@@ -133,8 +133,9 @@ subroutine chainHOP_tags_dens()
             dens(pj) = dens(pj) + rs * mass(k)
         end do
 
-        ! record only nMerge nearest neighbors
-        nn_tags(:,k) = temp_tags(1:nMerge)
+        ! record only nMerge nearest neighbors, but skip the first one which
+        ! is always the self-same particle
+        nn_tags(:,k) = temp_tags(2:nMerge)
     end do
     
     deallocate(results)

@@ -793,19 +793,6 @@ class chainHF(GenericHaloFinder, chainHOPHaloList):
         padded, LE, RE, self._data_source = self._partition_hierarchy_3d(padding=self.padding)
         # also get the total mass of particles
         yt_counters("Reading Data")
-        if dm_only:
-            select = self._data_source["creation_time"] < 0
-            total_mass = self._mpi_allsum((self._data_source["ParticleMassMsun"][select]).sum())
-            local_parts = (self._data_source["ParticleMassMsun"][select]).size
-            n_parts = self._mpi_allsum(local_parts)
-        else:
-            total_mass = self._mpi_allsum(self._data_source["ParticleMassMsun"].sum())
-            local_parts = self._data_source["ParticleMassMsun"].size
-            n_parts = self._mpi_allsum(local_parts)
-        min = self._mpi_allmin(local_parts)
-        max = self._mpi_allmax(local_parts)
-        mylog.info("Initial distribution: (min,max,tot) (%d,%d,%d)" \
-            % (min, max, n_parts))
         # Adaptive subregions by bisection.
         ds_names = ["particle_position_x","particle_position_y","particle_position_z"]
         if resize and self._mpi_get_size()!=None:
@@ -819,6 +806,13 @@ class chainHF(GenericHaloFinder, chainHOPHaloList):
                     new_LE, new_RE = new_top_bounds
                     width = new_RE[dim] - new_LE[dim]
                 data = self._data_source[ds_names[dim]]
+                if i == 0:
+                    local_parts = data.size
+                    n_parts = self._mpi_allsum(local_parts)
+                    min = self._mpi_allmin(local_parts)
+                    max = self._mpi_allmax(local_parts)
+                    mylog.info("Initial distribution: (min,max,tot) (%d,%d,%d)" \
+                        % (min, max, n_parts))
                 num_bins = 1000
                 bin_width = float(width)/float(num_bins)
                 bins = na.arange(num_bins+1, dtype='float64') * bin_width + new_LE[dim]
@@ -882,6 +876,9 @@ class chainHF(GenericHaloFinder, chainHOPHaloList):
             self.padding = (LE_padding, RE_padding)
             mylog.info('fancy_padding %s avg_spacing %f full_vol %f local_parts %d %s' % \
                 (str(self.padding), avg_spacing, full_vol, data.size, str(self._data_source)))
+        # Now we get the full box mass after we have the final composition of
+        # subvolumes.
+        total_mass = self._mpi_allsum(self._data_source["ParticleMassMsun"].sum())
         if not self._distributed:
             self.padding = (na.zeros(3,dtype='float64'), na.zeros(3,dtype='float64'))
         self.bounds = (LE, RE)
