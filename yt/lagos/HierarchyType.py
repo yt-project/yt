@@ -649,10 +649,14 @@ class EnzoHierarchy(AMRHierarchy):
                                + ".boundary"
         self.directory = os.path.dirname(self.hierarchy_filename)
         # Now we search backwards from the end of the file to find out how many
-        # grids we have, which allows us to preallocate memory
+        # grids we have, which allows us to preallocate memory.  Since the
+        # number of stars is also at the end, we read it now.
+        self.num_stars = 0
         self.__hierarchy_string = open(self.hierarchy_filename).read()
         testGrid = testGridID = None
         for line in rlines(open(self.hierarchy_filename, "rb")):
+            if line.startswith("NumberOfStarParticles"):
+                self.num_stars = int(line.split("=")[-1])
             if line.startswith("BaryonFileName") or \
                line.startswith("FileName "):
                 testGrid = line.split("=")[-1].strip().rstrip()
