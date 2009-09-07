@@ -372,7 +372,8 @@ class PlotCollection(object):
                                x_bins=64, x_log=True, x_bounds=None,
                                y_bins=64, y_log=True, y_bounds=None,
                                lazy_reader=False, id=None,
-                               axes = None, figure = None):
+                               axes = None, figure = None,
+                               fractional=False):
         """
         Given a *data_source*, and *fields*, automatically generate a 2D
         profile and plot it.  *id* is used internally to add onto the prefix,
@@ -400,7 +401,7 @@ class PlotCollection(object):
                                                figure=figure, axes=axes))
         if len(fields) > 2:
             # This will add it to the profile object
-            p.switch_z(fields[2], weight=weight, accumulation=accumulation)
+            p.switch_z(fields[2], weight=weight, accumulation=accumulation, fractional=fractional)
         return p
 
     def add_phase_sphere(self, radius, unit, fields, **kwargs):

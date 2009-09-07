@@ -126,7 +126,7 @@ class BinnedProfile(ParallelAnalysisInterface):
         self["myweight"] = w
         self["UsedBins"] = u
 
-    def add_fields(self, fields, weight = "CellMassMsun", accumulation = False):
+    def add_fields(self, fields, weight = "CellMassMsun", accumulation = False, fractional=False):
         """
         We accept a list of *fields* which will be binned if *weight* is not
         None and otherwise summed.  *accumulation* determines whether or not
@@ -138,6 +138,9 @@ class BinnedProfile(ParallelAnalysisInterface):
             self._lazy_add_fields(fields, weight, accumulation)
         else:
             self._unlazy_add_fields(fields, weight, accumulation)
+        if fractional:
+            for field in fields:
+                self._data[field] /= self._data[field].sum()
 
     def keys(self):
         return self._data.keys()
@@ -298,8 +301,8 @@ class BinnedProfile1D(BinnedProfile):
         '''
         fid = open(filename,"w")
         fields = [field for field in sorted(self._data.keys()) if field != "UsedBins"]
-        fid.write("\t".join(["#"] + fields + ["\n"]))
         fields.remove(self.bin_field)
+        fid.write("\t".join(["#"] + [self.bin_field] + fields + ["\n"]))
 
         field_data = na.array(self.choose_bins(bin_style)) 
         if bin_style is 'both':
