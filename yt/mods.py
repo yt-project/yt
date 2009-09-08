@@ -70,6 +70,11 @@ import yt.funcs
 
 from yt.convenience import all_pfs, max_spheres, load
 
+try:
+    from yt.sage import *
+except ImportError:
+    pass
+
 # Some convenience functions to ease our time running scripts
 # from the command line
 
@@ -79,3 +84,4 @@ def get_pf():
 def get_pc():
     return PlotCollection(EnzoStaticOutput(sys.argv[-1]))
 
+mylog.info("Welcome to YT.")

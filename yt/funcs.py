@@ -174,12 +174,8 @@ def get_pbar(title, maxval):
             return DummyProgressBar()
     elif ytcfg.getboolean("yt","suppressStreamLogging"):
         return DummyProgressBar()
-    elif "SAGE_ROOT" in os.environ:
-        try:
-            from sage.server.support import EMBEDDED_MODE
-            if EMBEDDED_MODE: return DummyProgressBar()
-        except:
-            pass
+    elif ytcfg.getboolean("yt","__insagenotebook"):
+        return DummyProgressBar()
     widgets = [ title,
             pb.Percentage(), ' ',
             pb.Bar(marker=pb.RotatingMarker()),

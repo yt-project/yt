@@ -63,6 +63,7 @@ ytcfgDefaults = {
         'StoreParameterFiles': 'True',
         'ParameterFileStore': 'parameter_files.csv',
         'MaximumStoredPFs': '500',
+        '__insagenotebook': 'False',
          },
     "raven":{
         'ImagePath':".",
