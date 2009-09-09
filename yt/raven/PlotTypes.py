@@ -270,6 +270,7 @@ class VMPlot(RavenPlot):
                                     top=1.0, left=0.0, right=1.0)
         self.setup_domain_edges(self.data.axis, periodic)
         self.cmap = None
+        self.label_kws = {}
         self.__setup_from_field(field)
         self.__init_temp_image(use_colorbar)
 
@@ -438,7 +439,7 @@ class VMPlot(RavenPlot):
             data_label = self.pf.field_info[field_name].get_label(proj)
         else: data_label = self.datalabel
         if self.colorbar != None:
-            self.colorbar.set_label(str(data_label))
+            self.colorbar.set_label(str(data_label), **self.label_kws)
 
 class FixedResolutionPlot(VMPlot):
 

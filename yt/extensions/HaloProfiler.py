@@ -42,7 +42,7 @@ class HaloProfiler(lagos.ParallelAnalysisInterface):
                  halo_radius=0.1, radius_units='1', n_profile_bins=50,
                  profile_output_dir='radial_profiles', projection_output_dir='projections',
                  projection_width=8.0, projection_width_units='mpc', project_at_level='max',
-                 velocity_center=['bulk', 'halo']):
+                 velocity_center=['bulk', 'halo'], filter_quantities=['id','center']):
 
         self.dataset = dataset
 
@@ -52,6 +52,8 @@ class HaloProfiler(lagos.ParallelAnalysisInterface):
         self.projection_width = projection_width
         self.projection_width_units = projection_width_units
         self.project_at_level = project_at_level
+        self.filter_quantities = filter_quantities
+        if self.filter_quantities is None: self.filter_quantities = []
 
         self.profile_fields = []
         self.projection_fields = []
@@ -181,13 +183,16 @@ class HaloProfiler(lagos.ParallelAnalysisInterface):
     def make_profiles(self, filename=None, prefilters=None, **kwargs):
         "Make radial profiles for all halos on the list."
 
+        # Reset filtered halo list.
+        self.filtered_halos = []
+
         # Check to see if the VirialFilter has been added to the filter list.
         # If a lower mass cutoff is being used, use it to make a pre-filter.
         if prefilters is None: prefilters = []
-        virial_filter = True
         virial_prefilter = None
         virial_prefilter_safety_factor = 0.1
         all_filter_functions = [hf['function'] for hf in self._halo_filters]
+        virial_filter = VirialFilter in all_filter_functions
         if 'mass' in self.halo_list_format and VirialFilter in all_filter_functions:
             vFilter = self._halo_filters[all_filter_functions.index(VirialFilter)]
             if vFilter['kwargs'].has_key('virial_filters') and \
@@ -210,27 +215,38 @@ class HaloProfiler(lagos.ParallelAnalysisInterface):
 
         # Profile all halos.
         for halo in self._get_objs('all_halos', round_robin=True):
-            profile_filename = "%s/Halo_%04d_profile.dat" % (outputDir, halo['id'])
 
-            profiledHalo = self._get_halo_profile(halo, profile_filename, virial_filter=virial_filter, prefilters=prefilters)
-
-            if profiledHalo is None:
-                continue
-
-            # Apply filter and keep track of the quantities that are returned.
+            # Apply prefilters to avoid profiling unwanted halos.
+            filter_result = True
             haloQuantities = {}
-            filterResult = True
-            for hFilter in self._halo_filters:
-                filterResult, filterQuantities = hFilter['function'](profiledHalo, *hFilter['args'], **hFilter['kwargs'])
+            if prefilters is not None:
+                for prefilter in prefilters:
+                    if not eval(prefilter):
+                        filter_result = False
+                        break
 
-                if not filterResult: break
+            if filter_result and len(self.profile_fields) > 0:
 
-                if filterQuantities is not None:
-                    haloQuantities.update(filterQuantities)
+                profile_filename = "%s/Halo_%04d_profile.dat" % (outputDir, halo['id'])
 
-            if filterResult:
-                haloQuantities['id'] = halo['id']
-                if halo.has_key('center'): haloQuantities['center'] = halo['center']
+                profiledHalo = self._get_halo_profile(halo, profile_filename, virial_filter=virial_filter)
+
+                if profiledHalo is None:
+                    continue
+
+                # Apply filter and keep track of the quantities that are returned.
+                for hFilter in self._halo_filters:
+                    filter_result, filterQuantities = hFilter['function'](profiledHalo, *hFilter['args'], **hFilter['kwargs'])
+
+                    if not filter_result: break
+
+                    if filterQuantities is not None:
+                        haloQuantities.update(filterQuantities)
+
+            if filter_result:
+                for quantity in self.filter_quantities:
+                    if halo.has_key(quantity): haloQuantities[quantity] = halo[quantity]
+
                 self.filtered_halos.append(haloQuantities)
 
         self.filtered_halos = self._mpi_catlist(self.filtered_halos)
@@ -239,18 +255,12 @@ class HaloProfiler(lagos.ParallelAnalysisInterface):
         if filename is not None:
             self._write_filtered_halo_list(filename, **kwargs)
 
-    def _get_halo_profile(self, halo, filename, virial_filter=True, prefilters=None, force_write=False):
+    def _get_halo_profile(self, halo, filename, virial_filter=True, force_write=False):
         """
         Profile a single halo and write profile data to a file.
         If file already exists, read profile data from file.
         Return a dictionary of id, center, and virial quantities if virial_filter is True.
         """
-
-        # Apply prefilters to avoid profiling unwanted halos.
-        if prefilters is not None:
-            for prefilter in prefilters:
-                if not eval(prefilter):
-                    return None
 
         # Read profile from file if it already exists.
         # If not, profile will be None.
@@ -312,18 +322,18 @@ class HaloProfiler(lagos.ParallelAnalysisInterface):
             for hp in self.profile_fields:
                 profile.add_fields(hp['field'], weight=hp['weight_field'], accumulation=hp['accumulation'])
 
-        profiledHalo = {}
+#         profiledHalo = {}
         if virial_filter:
             self._add_actual_overdensity(profile)
 
-        profiledHalo['center'] = halo['center']
-        profiledHalo['id'] = halo['id']
+#         profiledHalo['center'] = halo['center']
+#         profiledHalo['id'] = halo['id']
 
         if newProfile:
-            mylog.info("Writing halo %d" % profiledHalo['id'])
+            mylog.info("Writing halo %d" % halo['id'])
             profile.write_out(filename, format='%0.6e')
         elif force_write:
-            mylog.info("Re-writing halo %d" % profiledHalo['id'])
+            mylog.info("Re-writing halo %d" % halo['id'])
             self._write_profile(profile, filename, format='%0.6e')
 
         if newProfile:
@@ -468,6 +478,7 @@ class HaloProfiler(lagos.ParallelAnalysisInterface):
     def _check_for_needed_profile_fields(self):
         "Make sure CellVolume and TotalMass fields are added so virial quantities can be calculated."
         all_profile_fields = [hp['field'] for hp in self.profile_fields]
+        print "Checking fields."
         if not 'CellVolume' in all_profile_fields:
             mylog.info("Adding CellVolume field to so virial quantities can be calculated")
             self.add_profile('CellVolume', weight_field=None, accumulation=True)
@@ -611,13 +622,24 @@ class HaloProfiler(lagos.ParallelAnalysisInterface):
         mylog.info("Writing filtered halo list to %s." % filename)
         file = open(filename, "w")
         fields = [field for field in sorted(self.filtered_halos[0])]
-        fields.pop(fields.index('id'))
-        fields.pop(fields.index('center'))
-        file.write("\t".join(["#Index", 'x', 'y', 'z'] + fields + ["\n"]))
+        halo_fields = []
+        for halo_field in self.filter_quantities:
+            if halo_field in fields:
+                fields.remove(halo_field)
+                halo_fields.append(halo_field)
+        file.write("\t".join(halo_fields + fields + ["\n"]))
 
         for halo in self.filtered_halos:
-            file.write("%04d\t" % halo['id'])
-            file.write("%.12f\t%.12f\t%.12f\t" % (halo['center'][0], halo['center'][1], halo['center'][2]))
+            for halo_field in halo_fields:
+                if isinstance(halo[halo_field],types.ListType):
+                    field_data = na.array(halo[halo_field])
+                    field_data.tofile(file, sep="\t", format=format)
+                else:
+                    if halo_field == 'id':
+                        file.write("%04d" % halo[halo_field])
+                    else:
+                        file.write("%s" % halo[halo_field])
+                file.write("\t")
             field_data = na.array([halo[field] for field in fields])
             field_data.tofile(file, sep="\t", format=format)
             file.write("\n")
