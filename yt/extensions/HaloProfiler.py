@@ -226,7 +226,7 @@ class HaloProfiler(lagos.ParallelAnalysisInterface):
 
                 profile_filename = "%s/Halo_%04d_profile.dat" % (outputDir, halo['id'])
 
-                profiledHalo = self._get_halo_profile(halo, profile_filename, virial_filter=virial_filter, prefilters=prefilters)
+                profiledHalo = self._get_halo_profile(halo, profile_filename, virial_filter=virial_filter)
 
                 if profiledHalo is None:
                     continue
