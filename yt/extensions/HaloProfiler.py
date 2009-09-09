@@ -183,6 +183,9 @@ class HaloProfiler(lagos.ParallelAnalysisInterface):
     def make_profiles(self, filename=None, prefilters=None, **kwargs):
         "Make radial profiles for all halos on the list."
 
+        # Reset filtered halo list.
+        self.filtered_halos = []
+
         # Check to see if the VirialFilter has been added to the filter list.
         # If a lower mass cutoff is being used, use it to make a pre-filter.
         if prefilters is None: prefilters = []
