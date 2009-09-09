@@ -1014,7 +1014,7 @@ class AMRFixedResCuttingPlaneBase(AMR2DData):
         try:
             import PointsInVolumeCUDA as pvc
             self._pv = pvc.VolumeFinder(self._coord, self.dims)
-        except NoCUDAException:
+        except (ImportError, NoCUDAException):
             self._pv = None
 
         if node_name is False:
