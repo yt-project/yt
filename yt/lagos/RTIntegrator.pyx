@@ -28,6 +28,10 @@ cimport numpy as np
 cimport cython
 from stdlib cimport malloc, free, abs
 
+cdef extern from "math.h":
+    double exp(double x)
+    float expf(float x)
+
 @cython.boundscheck(False)
 def Transfer3D(np.ndarray[np.float64_t, ndim=3] i_s,
                np.ndarray[np.float64_t, ndim=4] o_s,
@@ -83,6 +87,8 @@ def TransferShells(np.ndarray[np.float64_t, ndim=3] i_s,
     jj = data.shape[1]
     kk = data.shape[2]
     nn = shells.shape[0]
+    cdef float rgba[4]
+    cdef float alpha
     for i in range(ii):
         for j in range(jj):
             # Not sure about the ordering of the loops here
@@ -91,10 +97,17 @@ def TransferShells(np.ndarray[np.float64_t, ndim=3] i_s,
                     dist = shells[n, 0] - data[i,j,k]
                     if dist < 0: dist *= -1.0
                     if dist < shells[n,1]:
+                        dist = exp(-dist/8.0)
+                        rgba[0] = shells[n,2]
+                        rgba[1] = shells[n,3]
+                        rgba[2] = shells[n,4]
+                        rgba[3] = shells[n,5]
+                        alpha = i_s[i,j,3]
                         dist *= dist # This might improve appearance
-                        i_s[i,j,0] += shells[n,2]*dist
-                        i_s[i,j,1] += shells[n,3]*dist
-                        i_s[i,j,2] += shells[n,4]*dist
+                        i_s[i,j,0] += (1.0 - alpha)*rgba[0]*dist*rgba[3]
+                        i_s[i,j,1] += (1.0 - alpha)*rgba[1]*dist*rgba[3]
+                        i_s[i,j,2] += (1.0 - alpha)*rgba[2]*dist*rgba[3]
+                        i_s[i,j,3] += (1.0 - alpha)*rgba[3]*dist*rgba[3]
                         break
 
 @cython.boundscheck(False)
