@@ -875,6 +875,7 @@ static PyObject *Py_FillRegion(PyObject *obj, PyObject *args)
     PyArrayObject **g_data, **c_data, *mask,
                   *g_start, *c_start, *c_dims, *g_dims, *dwa;
     mask = g_start = c_start = c_dims = g_dims = NULL;
+    g_data = c_data = NULL;
     int refratio, ll, direction, n;
     npy_int64 gxs, gys, gzs, gxe, gye, gze;
     npy_int64 cxs, cys, czs, cxe, cye, cze;
@@ -1057,10 +1058,10 @@ _fail:
     Py_XDECREF(g_dims);
     Py_XDECREF(c_dims);
     Py_XDECREF(mask);
-    for(n=0;n<n_fields;n++) {
-        if(g_data[n]!=NULL){Py_XDECREF(g_data[n]);}
-        if(c_data[n]!=NULL){Py_XDECREF(c_data[n]);}
-    }
+    if(g_data != NULL)
+      for(n=0;n<n_fields;n++)if(g_data[n]!=NULL){Py_XDECREF(g_data[n]);}
+    if(c_data != NULL)
+      for(n=0;n<n_fields;n++)if(c_data[n]!=NULL){Py_XDECREF(c_data[n]);}
     if(g_data!=NULL)free(g_data);
     if(c_data!=NULL)free(c_data);
     return NULL;

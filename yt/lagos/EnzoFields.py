@@ -210,6 +210,20 @@ def _pdensity(field, data):
 add_field("particle_density", function=_pdensity,
           validators=[ValidateSpatial(0)], convert_function=_convertDensity)
 
+def _spdensity(field, data):
+    blank = na.zeros(data.ActiveDimensions, dtype='float32', order="FORTRAN")
+    if data.NumberOfParticles == 0: return blank
+    filter = data['creation_time'] > 0.0
+    if not filter.any(): return blank
+    cic_deposit.cic_deposit(data["particle_position_x"][filter],
+                            data["particle_position_y"][filter],
+                            data["particle_position_z"][filter], 3,
+                            data["particle_mass"][filter],
+                            blank, data.LeftEdge, data['dx'])
+    return blank
+add_field("star_density", function=_spdensity,
+          validators=[ValidateSpatial(0)], convert_function=_convertDensity)
+
 EnzoFieldInfo["Temperature"].units = r"K"
 
 #
