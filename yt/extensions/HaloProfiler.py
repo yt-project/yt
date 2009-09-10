@@ -478,7 +478,6 @@ class HaloProfiler(lagos.ParallelAnalysisInterface):
     def _check_for_needed_profile_fields(self):
         "Make sure CellVolume and TotalMass fields are added so virial quantities can be calculated."
         all_profile_fields = [hp['field'] for hp in self.profile_fields]
-        print "Checking fields."
         if not 'CellVolume' in all_profile_fields:
             mylog.info("Adding CellVolume field to so virial quantities can be calculated")
             self.add_profile('CellVolume', weight_field=None, accumulation=True)
