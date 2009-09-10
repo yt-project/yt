@@ -213,14 +213,15 @@ class PlotCollection(object):
         return p
 
     def add_particles(self, axis, width, p_size=1.0, col='k', stride=1.0,
-                      data_source=None):
+                      data_source=None, figure=None, axes=None):
         LE = self.pf["DomainLeftEdge"].copy()
         RE = self.pf["DomainRightEdge"].copy()
         LE[axis] = self.c[axis] - width/2.0
         RE[axis] = self.c[axis] + width/2.0
         if data_source is None: data_source = self.pf.h.region(self.c, LE, RE)
         p = self._add_plot(PlotTypes.ParticlePlot(data_source, axis,
-                                        width, p_size, col, stride))
+                                        width, p_size, col, stride, figure,
+                                        axes))
         p["Axis"] = lagos.axis_names[axis]
         return p
 
@@ -247,6 +248,34 @@ class PlotCollection(object):
                          size=fig_size))
         mylog.info("Added plane of %s with 'center' = %s and normal = %s", field,
                     list(center), list(normal))
+        p["Axis"] = "CuttingPlane"
+        return p
+
+    def add_fixed_res_cutting_plane \
+            (self, field, normal, width, res=512, center=None, use_colorbar=True,
+             figure = None, axes = None, fig_size=None, obj=None, **kwargs):
+        """
+        Generate a fixed resolution, interpolated cutting plane of
+        *field* with *normal*, centered at *center* (defaults to
+        PlotCollection center) with *use_colorbar* specifying whether
+        the plot is naked or not and optionally providing pre-existing
+        Matplotlib *figure* and *axes* objects.  *fig_size* in
+        (height_inches, width_inches).  If so desired, *obj* is a
+        pre-existing cutting plane object.
+        """
+        if center == None:
+            center = self.c
+        if not obj:
+            data = self.pf.hierarchy.fixed_res_cutting \
+                 (normal, center, width, res, **kwargs)
+            #data = frc[field]
+        else:
+            data = obj
+        p = self._add_plot(PlotTypes.FixedResolutionPlot(data, field,
+                         use_colorbar=use_colorbar, axes=axes, figure=figure,
+                         size=fig_size))
+        mylog.info("Added fixed-res plane of %s with 'center' = %s and "
+                   "normal = %s", field, list(center), list(normal))
         p["Axis"] = "CuttingPlane"
         return p
 
@@ -343,7 +372,8 @@ class PlotCollection(object):
                                x_bins=64, x_log=True, x_bounds=None,
                                y_bins=64, y_log=True, y_bounds=None,
                                lazy_reader=False, id=None,
-                               axes = None, figure = None):
+                               axes = None, figure = None,
+                               fractional=False):
         """
         Given a *data_source*, and *fields*, automatically generate a 2D
         profile and plot it.  *id* is used internally to add onto the prefix,
@@ -371,7 +401,7 @@ class PlotCollection(object):
                                                figure=figure, axes=axes))
         if len(fields) > 2:
             # This will add it to the profile object
-            p.switch_z(fields[2], weight=weight, accumulation=accumulation)
+            p.switch_z(fields[2], weight=weight, accumulation=accumulation, fractional=fractional)
         return p
 
     def add_phase_sphere(self, radius, unit, fields, **kwargs):
@@ -511,7 +541,9 @@ def get_multi_plot(nx, ny, colorbar = 'vertical', bw = 4, dpi=300):
     PlotTypes.Initialize()
     hf, wf = 1.0/ny, 1.0/nx
     fudge_x = fudge_y = 1.0
-    if colorbar.lower() == 'vertical':
+    if colorbar is None:
+        fudge_x = fudge_y = 1.0
+    elif colorbar.lower() == 'vertical':
         fudge_x = nx/(0.25+nx)
         fudge_y = 1.0
     elif colorbar.lower() == 'horizontal':
@@ -532,7 +564,9 @@ def get_multi_plot(nx, ny, colorbar = 'vertical', bw = 4, dpi=300):
             ax = fig.add_axes([left, bottom, wf*fudge_x, hf*fudge_y])
             tr[-1].append(ax)
     cbars = []
-    if colorbar.lower() == 'horizontal':
+    if colorbar is None:
+        pass
+    elif colorbar.lower() == 'horizontal':
         for i in range(nx):
             # left, bottom, width, height
             # Here we want 0.10 on each side of the colorbar

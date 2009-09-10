@@ -133,7 +133,7 @@ class LightCone(object):
                     while (z > output['redshift']):
                         output = output['previous']
                         if (output is None):
-                            if self.verbose: mylog.error("CalculateLightConeSolution: search for data output went off the end the stack.")
+                            if self.verbose: mylog.error("CalculateLightConeSolution: search for data output went off the end of the stack.")
                             if self.verbose: mylog.error("Could not calculate light cone solution.")
                             return
                         if (output['redshift'] == self.lightConeSolution[-1]['redshift']):

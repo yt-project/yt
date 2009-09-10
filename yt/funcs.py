@@ -23,7 +23,7 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-import time, types, signal, inspect, traceback, sys, pdb, rpdb
+import time, types, signal, inspect, traceback, sys, pdb, rpdb, os
 import warnings
 import progressbar as pb
 from math import floor, ceil
@@ -174,6 +174,12 @@ def get_pbar(title, maxval):
             return DummyProgressBar()
     elif ytcfg.getboolean("yt","suppressStreamLogging"):
         return DummyProgressBar()
+    elif "SAGE_ROOT" in os.environ:
+        try:
+            from sage.server.support import EMBEDDED_MODE
+            if EMBEDDED_MODE: return DummyProgressBar()
+        except:
+            pass
     widgets = [ title,
             pb.Percentage(), ' ',
             pb.Bar(marker=pb.RotatingMarker()),
@@ -233,3 +239,6 @@ def deprecate(func):
                 % func.func_name, DeprecationWarning, stacklevel=2)
         func(*args, **kwargs)
     return run_func
+
+class NoCUDAException(Exception):
+    pass

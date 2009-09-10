@@ -744,7 +744,7 @@ class ParticleCallback(PlotCallback):
     _type_name = "particles"
     region = None
     _descriptor = None
-    def __init__(self, width, p_size=1.0, col='k', stride=1.0, ptype=None):
+    def __init__(self, width, p_size=1.0, col='k', stride=1.0, ptype=None, stars_only=False, dm_only=False):
         """
         Adds particle positions, based on a thick slab along *axis* with a
         *width* along the line of sight.  *p_size* controls the number of
@@ -757,6 +757,8 @@ class ParticleCallback(PlotCallback):
         self.color = col
         self.stride = stride
         self.ptype = ptype
+        self.stars_only = stars_only
+        self.dm_only = dm_only
 
     def __call__(self, plot):
         data = plot.data
@@ -766,14 +768,18 @@ class ParticleCallback(PlotCallback):
         xx0, xx1 = plot._axes.get_xlim()
         yy0, yy1 = plot._axes.get_ylim()
         reg = self._get_region((x0,x1), (y0,y1), plot.data.axis, data)
-        print reg
         field_x = "particle_position_%s" % lagos.axis_names[lagos.x_dict[data.axis]]
         field_y = "particle_position_%s" % lagos.axis_names[lagos.y_dict[data.axis]]
         gg = ( ( reg[field_x] >= x0 ) & ( reg[field_x] <= x1 )
            &   ( reg[field_y] >= y0 ) & ( reg[field_y] <= y1 ) )
-        print gg, reg[field_x][gg].size
         if self.ptype is not None:
             gg &= (reg["particle_type"] == self.ptype)
+            if gg.sum() == 0: return
+        if self.stars_only:
+            gg &= (reg["creation_time"] > 0.0)
+            if gg.sum() == 0: return
+        if self.dm_only:
+            gg &= (reg["creation_time"] <= 0.0)
             if gg.sum() == 0: return
         plot._axes.hold(True)
         px, py = self.convert_to_pixels(plot,

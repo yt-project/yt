@@ -346,6 +346,7 @@ class EnzoStaticOutput(StaticOutput):
         for unit in mpc_conversion:
             self.units[unit] = mpc_conversion[unit] * box_proper
             self.units[unit+'h'] = mpc_conversion[unit] * box_proper * h
+            self.units[unit+'cm'] = mpc_conversion[unit] * boxcm_uncal
             self.units[unit+'hcm'] = mpc_conversion[unit] * boxcm_cal
 
     def _setup_getunits_units(self):
@@ -405,7 +406,7 @@ output_type_registry[None] = EnzoStaticOutput
 
 class EnzoStaticOutputInMemory(EnzoStaticOutput):
     _hierarchy_class = EnzoHierarchyInMemory
-    _data_style = 'inline'
+    _data_style = 'enzo_inline'
 
     def __new__(cls, *args, **kwargs):
         obj = object.__new__(cls)

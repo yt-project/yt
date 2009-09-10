@@ -64,6 +64,15 @@ class FieldInfoContainer(object): # We are all Borg.
 FieldInfo = FieldInfoContainer()
 add_field = FieldInfo.add_field
 
+def derived_field(**kwargs):
+    def inner_decorator(function):
+        if 'name' not in kwargs:
+            kwargs['name'] = function.func_name
+        kwargs['function'] = function
+        add_field(**kwargs)
+        return function
+    return inner_decorator
+
 class CodeFieldInfoContainer(FieldInfoContainer):
     def __setitem__(self, key, val):
         self._field_list[key] = val

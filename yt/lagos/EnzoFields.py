@@ -54,6 +54,20 @@ add_field("Metallicity", units=r"Z_{\rm{Solar}}",
           validators=ValidateDataField("Metal_Density"),
           projection_conversion="1")
 
+def _Metallicity3(field, data):
+    return data["SN_Colour"] / 0.0204
+add_field("Metallicity3", units=r"Z_{\rm{Solar}}",
+          function=_Metallicity3,
+          validators=ValidateDataField("SN_Colour"),
+          projection_conversion="1")
+
+def _Cooling_Time(field, data):
+    return data["Cooling_Time"]
+add_field("Cooling_Time", units=r"\rm{s}",
+          function=_Cooling_Time,
+          validators=ValidateDataField("Cooling_Time"),
+          projection_conversion="1")
+
 def _ThermalEnergy(field, data):
     if data.pf["HydroMethod"] == 2:
         return data["Total_Energy"]
@@ -194,6 +208,20 @@ def _pdensity(field, data):
                             blank, data.LeftEdge, data['dx'])
     return blank
 add_field("particle_density", function=_pdensity,
+          validators=[ValidateSpatial(0)], convert_function=_convertDensity)
+
+def _spdensity(field, data):
+    blank = na.zeros(data.ActiveDimensions, dtype='float32', order="FORTRAN")
+    if data.NumberOfParticles == 0: return blank
+    filter = data['creation_time'] > 0.0
+    if not filter.any(): return blank
+    cic_deposit.cic_deposit(data["particle_position_x"][filter],
+                            data["particle_position_y"][filter],
+                            data["particle_position_z"][filter], 3,
+                            data["particle_mass"][filter],
+                            blank, data.LeftEdge, data['dx'])
+    return blank
+add_field("star_density", function=_spdensity,
           validators=[ValidateSpatial(0)], convert_function=_convertDensity)
 
 EnzoFieldInfo["Temperature"].units = r"K"
