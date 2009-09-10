@@ -356,6 +356,12 @@ add_field("TotalMassMsun", units=r"M_{\odot}",
           function=_TotalMass,
           convert_function=_convertCellMassMsun)
 
+def _StarMass(field,data):
+    return data["star_density"] * data["CellVolume"]
+add_field("StarMassMsun", units=r"M_{\odot}",
+          function=_StarMass,
+          convert_function=_convertCellMassMsun)
+
 def _Matter_Density(field,data):
     return (data['Density'] + data['Dark_Matter_Density'])
 add_field("Matter_Density",function=_Matter_Density,units=r"\rm{g}/\rm{cm^3}")
