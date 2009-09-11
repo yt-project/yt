@@ -274,11 +274,7 @@ class AMRHierarchy:
         self.gridNumberOfParticles[:] = harray[:,17:18]
 
     def _get_data_reader_dict(self):
-        dd = { 'readDataFast' : _data_style_funcs[self.data_style][0],
-               'readAllData' : _data_style_funcs[self.data_style][1],
-               'getFields' : _data_style_funcs[self.data_style][2],
-               'readDataSlice' : _data_style_funcs[self.data_style][3],
-               '_read_data' : _data_style_funcs[self.data_style][0],
+        dd = { '_read_data' : _data_style_funcs[self.data_style][0],
                '_read_all_data' : _data_style_funcs[self.data_style][1],
                '_read_field_names' : _data_style_funcs[self.data_style][2],
                '_read_data_slice' : _data_style_funcs[self.data_style][3],
@@ -901,7 +897,7 @@ class EnzoHierarchy(AMRHierarchy):
         self.maxLevel = self.gridLevels.max()
         self.max_level = self.maxLevel
         # Now we do things that we need all the grids to do
-        #self.fieldList = self.grids[0].getFields()
+        #self.fieldList = self.grids[0].get_fields()
         # The rest of this can probably be done with list comprehensions, but
         # I think this way is clearer.
         mylog.debug("Preparing grids")
@@ -964,7 +960,7 @@ class EnzoHierarchy(AMRHierarchy):
             for grid in random_sample:
                 if not hasattr(grid, 'filename'): continue
                 try:
-                    gf = grid.getFields()
+                    gf = grid._read_field_names()
                 except grid._read_exception:
                     mylog.debug("Grid %s is a bit funky?", grid.id)
                     continue

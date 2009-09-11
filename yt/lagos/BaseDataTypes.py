@@ -1229,22 +1229,6 @@ class AMRProjBase(AMR2DData):
             self._okay_to_serialize = True
 
     #@time_execution
-    def __cache_data(self):
-        rdf = self.hierarchy.grid.readDataFast
-        self.hierarchy.grid.readDataFast = readDataPackedHandle
-        for fn,g_list in self.hierarchy.cpu_map.items():
-            to_read = na.intersect1d(g_list, self.source._grids)
-            if len(to_read) == 0: continue
-            fh = h5py.File(to_read[0].filename,'r')
-            for g in to_read:
-                g.handle = fh
-                for field in ensure_list(self.fields):
-                    g[field]
-                del g.handle
-            fh.close()
-        self.hierarchy.grid.readDataFast = readDataPackedHandle
-
-    #@time_execution
     def __calculate_overlap(self, level):
         s = self.source
         mylog.info("Generating overlap masks for level %s", level)
