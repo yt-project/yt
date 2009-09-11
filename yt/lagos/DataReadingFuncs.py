@@ -190,7 +190,7 @@ class IOHandlerPackedHDF5(BaseIOHandler):
         pf_field_list = grids[0].pf.h.field_list
         sets = [dset for dset in list(sets) if dset in pf_field_list]
         for g in grids: files_keys[g.filename].append(g)
-        exc = getExceptionHDF5()
+        exc = self._read_exception
         for file in files_keys:
             mylog.debug("Starting read %s (%s)", file, sets)
             nodes = [g.id for g in files_keys[file]]
