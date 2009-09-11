@@ -89,6 +89,7 @@ from Clump import *
 from BaseDataTypes import *
 from BaseGridType import *
 from EnzoRateData import *
+from ObjectFindingMixin import *
 from HierarchyType import *
 from OutputTypes import *
 from Profiles import *
