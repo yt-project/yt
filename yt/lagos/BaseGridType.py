@@ -38,13 +38,12 @@ class AMRGridPatch(AMRData):
     _con_args = ('id', 'filename')
     start_index = None
 
-    def __init__(self, id, filename=None, hierarchy = None):
+    def __init__(self, id, hierarchy = None):
         self.data = {}
         self.field_parameters = {}
         self.fields = []
         self.id = id
         if hierarchy: self.hierarchy = weakref.proxy(hierarchy)
-        if filename: self.set_filename(filename)
         self.pf = self.hierarchy.parameter_file # weakref already
 
     def _generate_field(self, field):
@@ -82,7 +81,7 @@ class AMRGridPatch(AMRData):
                 try:
                     temp = self.hierarchy.queue.pop(self, field)
                     self[field] = na.multiply(temp, conv_factor, temp)
-                except self._read_exception, exc:
+                except self.hierarchy.queue._read_exception, exc:
                     if field in self.pf.field_info:
                         if self.pf.field_info[field].not_in_all:
                             self[field] = na.zeros(self.ActiveDimensions, dtype='float64')
@@ -402,17 +401,17 @@ class AMRGridPatch(AMRData):
             if key not in self.__current_data_keys:
                 del self.data[key]
 
-class EnzoGridBase(AMRGridPatch):
+class EnzoGrid(AMRGridPatch):
     """
     Class representing a single Enzo Grid instance.
     """
-    def __init__(self, id, filename=None, hierarchy = None):
+    def __init__(self, id, hierarchy):
         """
         Returns an instance of EnzoGrid with *id*, associated with
         *filename* and *hierarchy*.
         """
         #All of the field parameters will be passed to us as needed.
-        AMRGridPatch.__init__(self, id, filename, hierarchy)
+        AMRGridPatch.__init__(self, id, hierarchy)
         self.Parent = None
         self.Children = []
         self.Level = -1
@@ -487,7 +486,7 @@ class EnzoGridBase(AMRGridPatch):
     def __repr__(self):
         return "EnzoGrid_%04i" % (self.id)
 
-class OrionGridBase(AMRGridPatch):
+class OrionGrid(AMRGridPatch):
     _id_offset = 0
     def __init__(self, LeftEdge, RightEdge, index, level, filename, offset, dimensions,start,stop,paranoia=False):
         AMRGridPatch.__init__(self, index)

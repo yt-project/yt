@@ -778,7 +778,7 @@ class AMRSliceBase(AMR2DData):
             conv_factor = 1.0
             if self.pf.field_info.has_key(field):
                 conv_factor = self.pf.field_info[field]._convert_function(self)
-            dv = self._read_data_slice(grid, field, self.axis, wantedIndex) * conv_factor
+            dv = self.hierarchy.queue._read_data_slice(grid, field, self.axis, wantedIndex) * conv_factor
         else:
             dv = grid[field]
             if dv.size == 1: dv = na.ones(grid.ActiveDimensions)*dv

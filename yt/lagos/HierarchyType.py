@@ -28,175 +28,6 @@ from yt.funcs import *
 import string, re, gc, time
 import cPickle
 from itertools import chain, izip
-#import yt.enki
-
-_data_style_funcs = \
-   { 'enzo_hdf4': (readDataHDF4,readAllDataHDF4, getFieldsHDF4, readDataSliceHDF4,
-         getExceptionHDF4, DataQueueHDF4),
-     'enzo_hdf4_2d': (readDataHDF4, readAllDataHDF4, getFieldsHDF4, readDataSliceHDF4_2D,
-         getExceptionHDF4, DataQueueHDF4_2D),
-     'enzo_hdf5': (readDataHDF5, readAllDataHDF5, getFieldsHDF5, readDataSliceHDF5,
-         getExceptionHDF5, DataQueueHDF5),
-     'enzo_packed_3d': (readDataPacked, readAllDataPacked, getFieldsPacked, readDataSlicePacked,
-         getExceptionHDF5, DataQueuePackedHDF5),
-     'orion_native': (readDataNative, readAllDataNative, None, readDataSliceNative,
-         getExceptionHDF5, DataQueueNative), \
-     'enzo_inline': (readDataInMemory, readAllDataInMemory, getFieldsInMemory, readDataSliceInMemory,
-         getExceptionInMemory, DataQueueInMemory),
-     'enzo_packed_2d': (readDataPacked, readAllDataPacked, getFieldsPacked, readDataSlicePacked2D,
-         getExceptionHDF5, DataQueuePacked2D),
-     'enzo_packed_1d': (readDataPacked, readAllDataPacked, getFieldsPacked, readDataSlicePacked1D,
-         getExceptionHDF5, DataQueuePacked1D),
-   }
-
-class OldAMRHierarchy:
-    _data_mode = None # Default
-    def __init__(self, pf):
-        self.parameter_file = weakref.proxy(pf)
-        self._max_locations = {}
-        self._data_file = None
-        self._setup_classes()
-        self._initialize_grids()
-
-        # For use with derived quantities depending on centers
-        # Although really, I think perhaps we should take a closer look
-        # at how "center" is used.
-        self.center = None
-
-        self._initialize_level_stats()
-
-        mylog.debug("Initializing data file")
-        self._initialize_data_file()
-        mylog.debug("Populating hierarchy")
-        self._populate_hierarchy()
-        mylog.debug("Done populating hierarchy")
-        self._add_detected_fields()
-        mylog.debug("Done adding auto-detected fields")
-
-    def __getitem__(self, item):
-        return self.parameter_file[item]
-
-    @time_execution
-    def export_particles_pb(self, filename, filter = 1, indexboundary = 0, fields = None, scale=1.0):
-        """
-        Exports all the star particles, or a subset, to pb-format *filename*
-        for viewing in partiview.  Filters based on particle_type=*filter*,
-        particle_index>=*indexboundary*, and exports *fields*, if supplied.
-        Otherwise, index, position(x,y,z).  Optionally *scale* by a given
-        factor before outputting.
-        """
-        import struct
-        pbf_magic = 0xffffff98
-        header_fmt = 'Iii'
-        fmt = 'ifff'
-        f = open(filename,"w")
-        if fields:
-            fmt += len(fields)*'f'
-            padded_fields = string.join(fields,"\0") + "\0"
-            header_fmt += "%ss" % len(padded_fields)
-            args = [pbf_magic, struct.calcsize(header_fmt), len(fields), padded_fields]
-            fields = ["particle_index","particle_position_x","particle_position_y","particle_position_z"] \
-                   + fields
-            format = 'Int32,Float32,Float32,Float32' + ',Float32'*(len(fields)-4)
-        else:
-            args = [pbf_magic, struct.calcsize(header_fmt), 0]
-            fields = ["particle_index","particle_position_x","particle_position_y","particle_position_z"]
-            format = 'Int32,Float32,Float32,Float32'
-        f.write(struct.pack(header_fmt, *args))
-        tot = 0
-        sc = na.array([1.0] + [scale] * 3 + [1.0]*(len(fields)-4))
-        gI = na.where(self.gridNumberOfParticles.ravel() > 0)
-        for g in self.grids[gI]:
-            pI = na.where(na.logical_and((g["particle_type"] == filter),(g["particle_index"] >= indexboundary)) == 1)
-            tot += pI[0].shape[0]
-            toRec = []
-            for field, scale in zip(fields, sc):
-                toRec.append(scale*g[field][pI])
-            particle_info = rec.array(toRec,formats=format)
-            particle_info.tofile(f)
-        f.close()
-        mylog.info("Wrote %s particles to %s", tot, filename)
-
-    @time_execution
-    def export_boxes_pv(self, filename):
-        """
-        Exports the grid structure in partiview text format.
-        """
-        f=open(filename,"w")
-        for l in xrange(self.maxLevel):
-            f.write("add object g%s = l%s\n" % (l,l))
-            ind = self._select_level(l)
-            for i in ind:
-                f.write("add box -n %s -l %s %s,%s %s,%s %s,%s\n" % \
-                    (i+1, self.gridLevels.ravel()[i],
-                     self.gridLeftEdge[i,0], self.gridRightEdge[i,0],
-                     self.gridLeftEdge[i,1], self.gridRightEdge[i,1],
-                     self.gridLeftEdge[i,2], self.gridRightEdge[i,2]))
-
-    def __initialize_octree_list(self, fields):
-        import DepthFirstOctree as dfo
-        o_length = r_length = 0
-        grids = []
-        levels_finest, levels_all = defaultdict(lambda: 0), defaultdict(lambda: 0)
-        for g in self.grids:
-            ff = na.array([g[f] for f in fields])
-            grids.append(dfo.OctreeGrid(
-                            g.child_index_mask.astype('int32'),
-                            ff.astype("float64"),
-                            g.LeftEdge.astype('float64'),
-                            g.ActiveDimensions.astype('int32'),
-                            na.ones(1,dtype='float64') * g.dds[0], g.Level))
-            levels_all[g.Level] += g.ActiveDimensions.prod()
-            levels_finest[g.Level] += g.child_mask.ravel().sum()
-            g.clear_data()
-        ogl = dfo.OctreeGridList(grids)
-        return ogl, levels_finest, levels_all
-
-    def _generate_flat_octree(self, fields):
-        """
-        Generates two arrays, one of the actual values in a depth-first flat
-        octree array, and the other of the values describing the refinement.
-        This allows for export to a code that understands this.  *field* is the
-        field used in the data array.
-        """
-        import DepthFirstOctree as dfo
-        fields = ensure_list(fields)
-        ogl, levels_finest, levels_all = self.__initialize_octree_list(fields)
-        o_length = na.sum(levels_finest.values())
-        r_length = na.sum(levels_all.values())
-        output = na.zeros((o_length,len(fields)), dtype='float64')
-        refined = na.zeros(r_length, dtype='int32')
-        position = dfo.position()
-        dfo.RecurseOctreeDepthFirst(0, 0, 0,
-                ogl[0].dimensions[0],
-                ogl[0].dimensions[1],
-                ogl[0].dimensions[2],
-                position, 1,
-                output, refined, ogl)
-        dd = {}
-        for i,field in enumerate(fields): dd[field] = output[:,i]
-        return dd, refined
-
-    def _generate_levels_octree(self, fields):
-        import DepthFirstOctree as dfo
-        fields = ensure_list(fields) + ["Ones", "Ones"]
-        ogl, levels_finest, levels_all = self.__initialize_octree_list(fields)
-        o_length = na.sum(levels_finest.values())
-        r_length = na.sum(levels_all.values())
-        output = na.zeros((r_length,len(fields)), dtype='float64')
-        genealogy = na.zeros((r_length, 3), dtype='int32') - 1 # init to -1
-        corners = na.zeros((r_length, 3), dtype='float64')
-        position = na.add.accumulate(
-                    na.array([0] + [levels_all[v] for v in
-                        sorted(levels_all)[:-1]], dtype='int32'))
-        pp = position.copy()
-        dfo.RecurseOctreeByLevels(0, 0, 0,
-                ogl[0].dimensions[0],
-                ogl[0].dimensions[1],
-                ogl[0].dimensions[2],
-                position.astype('int32'), 1,
-                output, genealogy, corners, ogl)
-        return output, genealogy, levels_all, levels_finest, pp, corners
 
 class AMRHierarchy(ObjectFindingMixin):
     def __init__(self, pf, data_style):
@@ -224,6 +55,9 @@ class AMRHierarchy(ObjectFindingMixin):
         mylog.debug("Constructing grid objects.")
         self._populate_grid_objects()
 
+        mylog.debug("Initializing data grid data IO")
+        self._setup_data_queue()
+
         mylog.debug("Detecting fields.")
         self.field_list = []
         self._detect_fields()
@@ -233,9 +67,6 @@ class AMRHierarchy(ObjectFindingMixin):
 
         mylog.debug("Setting up derived fields")
         self._setup_derived_fields()
-
-        mylog.debug("Initializing data grid data IO")
-        self._setup_data_queue()
 
         mylog.debug("Re-examining hierarchy")
         self._initialize_level_stats()
@@ -289,12 +120,7 @@ class AMRHierarchy(ObjectFindingMixin):
         return field_list
 
     def _get_data_reader_dict(self):
-        dd = { '_read_data' : _data_style_funcs[self.data_style][0],
-               '_read_all_data' : _data_style_funcs[self.data_style][1],
-               '_read_field_names' : _data_style_funcs[self.data_style][2],
-               '_read_data_slice' : _data_style_funcs[self.data_style][3],
-               '_read_exception' : _data_style_funcs[self.data_style][4](),
-               'pf' : self.parameter_file, # Already weak
+        dd = { 'pf' : self.parameter_file, # Already weak
                'hierarchy': weakref.proxy(self) }
         return dd
 
@@ -324,7 +150,7 @@ class AMRHierarchy(ObjectFindingMixin):
         f.close()
 
     def _setup_data_queue(self):
-        self.queue = _data_style_funcs[self.data_style][5]()
+        self.queue = data_queue_registry[self.data_style]()
 
     def _save_data(self, array, node, name, set_attr=None, force=False, passthrough = False):
         """
@@ -564,7 +390,8 @@ class EnzoHierarchy(AMRHierarchy):
     def _setup_classes(self):
         dd = self._get_data_reader_dict()
         AMRHierarchy._setup_classes(self, dd)
-        self._add_object_class('grid', "EnzoGrid", EnzoGridBase, dd)
+        #self._add_object_class('grid', "EnzoGrid", EnzoGridBase, dd)
+        self.grid = EnzoGrid
         self.object_types.sort()
 
     def _count_grids(self):
@@ -632,7 +459,7 @@ class EnzoHierarchy(AMRHierarchy):
         pattern = r"Pointer: Grid\[(\d*)\]->NextGrid(Next|This)Level = (\d*)$"
         patt = re.compile(pattern)
         f = open(self.hierarchy_filename, "rb")
-        self.grids = [self.grid(1)]
+        self.grids = [self.grid(1, self)]
         self.grids[0].Level = 0
         self.wrefs = [weakref.proxy(self.grids[0])]
         si, ei, LE, RE, fn, np = [], [], [], [], [], []
@@ -668,7 +495,7 @@ class EnzoHierarchy(AMRHierarchy):
         if sgi == -1: return # if it's 0, then we're done with that lineage
         # Okay, so, we have a pointer.  We make a new grid, with an id of the length+1
         # (recall, Enzo grids are 1-indexed)
-        self.grids.append(self.grid(len(self.grids)+1))
+        self.grids.append(self.grid(len(self.grids)+1, self))
         # We'll just go ahead and make a weakref to cache
         self.wrefs.append(weakref.proxy(self.grids[-1]))
         second_grid = self.wrefs[sgi] # zero-indexex already
@@ -700,8 +527,8 @@ class EnzoHierarchy(AMRHierarchy):
             for grid in random_sample:
                 if not hasattr(grid, 'filename'): continue
                 try:
-                    gf = grid._read_field_names()
-                except grid._read_exception:
+                    gf = self.queue._read_field_names(grid)
+                except self.queue._read_exception:
                     mylog.debug("Grid %s is a bit funky?", grid.id)
                     continue
                 mylog.debug("Grid %s has: %s", grid.id, gf)

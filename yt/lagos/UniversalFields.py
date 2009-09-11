@@ -132,11 +132,12 @@ add_field("SoundSpeed", function=_SoundSpeed,
 
 def particle_func(p_field, dtype='float64'):
     def _Particles(field, data):
+        queue = data.hierarchy.queue
         if not data.NumberOfParticles > 0:
             return na.array([], dtype=dtype)
         try:
-            return data._read_data(p_field).astype(dtype)
-        except data._read_exception:
+            return queue._read_data_set(data, p_field).astype(dtype)
+        except queue._read_exception:
             pass
         # This is bad.  But it's the best idea I have right now.
         return data._read_data(p_field.replace("_"," ")).astype(dtype)

@@ -25,186 +25,19 @@ License:
 from yt.lagos import *
 import exceptions
 
-def getFieldsHDF4(self):
-    """
-    Returns a list of fields associated with the filename
-    Should *only* be called as EnzoGridInstance.getFields, never as getFields(object)
-    """
-    return SD.SD(self.filename).datasets().keys()
+_axis_ids = {0:2,1:1,2:0}
 
-def getFieldsHDF5(self):
-    """
-    Returns a list of fields associated with the filename
-    Should *only* be called as EnzoGridInstance.getFields, never as getFields(object)
-    """
-    return HDF5LightReader.ReadListOfDatasets(self.filename, "/")
-
-def readDataHDF4(self, field):
-    """
-    Returns after having obtained or generated a field.  Should throw an
-    exception.  Should only be called as EnzoGridInstance.readData()
-
-    @param field: field to read
-    @type field: string
-    """
-    t = SD.SD(self.filename).select(field).get()
-    return t.swapaxes(0,2)
-
-def readAllDataHDF4(self):
-    """
-    Reads all fields inside an HDF4 file.  Should only be called as
-    EnzoGridInstance.readAllData() .
-    """
-    sets = SD.SD(self.filename).datasets()
-    for set in sets:
-        self[set] = self.readDataFast(set)
-
-def readDataHDF5(self, field):
-    return HDF5LightReader.ReadData(self.filename, "/%s" % field).swapaxes(0,2)
-
-def readAllDataHDF5(self):
-    """
-    Not implemented.  Fix me!
-    """
-    pass
-
-def readAllDataPacked(self):
-    """
-    Not implemented.  Fix me!
-    """
-    pass
-
-def readDataSliceHDF5(self, grid, field, axis, coord):
-    """
-    Reads a slice through the HDF5 data
-
-    @param grid: Grid to slice
-    @type grid: L{EnzoGrid<EnzoGrid>}
-    @param field: field to get
-    @type field: string
-    @param axis: axis to slice along
-    @param coord: coord to slice at
-    """
-    axis = {0:2,1:1,2:0}[axis]
-    t = HDF5LightReader.ReadDataSlice(grid.filename, "/%s" %
-                    (field), axis, coord).transpose()
-    return t
-
-def readDataSliceHDF4(self, grid, field, axis, coord):
-    """
-    Reads a slice through the HDF4 data
-
-    @param grid: Grid to slice
-    @type grid: L{EnzoGrid<EnzoGrid>}
-    @param field: field to get
-    @type field: string
-    @param sl: region to get
-    @type sl: SliceType
-    """
-    sl = [slice(None), slice(None), slice(None)]
-    sl[axis] = slice(coord, coord + 1)
-    sl = tuple(reversed(sl))
-    return SD.SD(grid.filename).select(field)[sl].swapaxes(0,2)
-
-def readDataPackedHandle(self, field):
-    t = self.handle.getNode("/Grid%08i" % (self.id), field).read().astype('float64')
-    t = t.swapaxes(0,2)
-    return t
-
-def readDataPacked(self, field, dspace=None):
-    if dspace is not None:
-        dspace="/Grid%08i/%s" % (self.id, dspace)
-        return HDF5LightReader.ReadData(self.filename,
-                "/Grid%08i/%s" % (self.id, field), dspace).swapaxes(0,2)
-    return HDF5LightReader.ReadData(self.filename,
-            "/Grid%08i/%s" % (self.id, field)).swapaxes(0,2)
-
-def readDataSlicePacked(self, grid, field, axis, coord):
-    """
-    Reads a slice through the HDF5 data
-
-    @param grid: Grid to slice
-    @type grid: L{EnzoGrid<EnzoGrid>}
-    @param field: field to get
-    @type field: string
-    @param sl: region to get
-    @type sl: SliceType
-    """
-    axis = {0:2,1:1,2:0}[axis]
-    t = HDF5LightReader.ReadDataSlice(grid.filename, "/Grid%08i/%s" %
-                    (grid.id, field), axis, coord).transpose()
-    return t
-
-def getFieldsPacked(self):
-    """
-    Returns a list of fields associated with the filename
-    Should *only* be called as EnzoGridInstance.getFields, never as getFields(object)
-    """
-    return HDF5LightReader.ReadListOfDatasets(self.filename, "/Grid%08i" % self.id)
-
-def getExceptionHDF4():
-    return SD.HDF4Error
-
-def getExceptionHDF5():
-    return (exceptions.KeyError, HDF5LightReader.ReadingError)
-
-def readDataInMemory(self, field):
-    import enzo
-    return enzo.grid_data[self.id][field].swapaxes(0,2)
-
-def readAllDataInMemory(self):
-    pass
-
-def getFieldsInMemory(self):
-    import enzo
-    return enzo.grid_data[self.id].keys()
-
-def readDataSliceInMemory(self, grid, field, axis, coord):
-    import enzo
-    sl = [slice(3,-3), slice(3,-3), slice(3,-3)]
-    sl[axis] = slice(coord + 3, coord + 4)
-    sl = tuple(reversed(sl))
-    return enzo.grid_data[grid.id][field][sl].swapaxes(0,2)
-
-def getExceptionInMemory():
-    return KeyError
-
-def readDataSliceHDF4_2D(self, grid, field, axis, coord):
-    t = SD.SD(grid.filename).select(field).get()
-    return t.transpose()
-
-
-def readDataSlicePacked2D(self, grid, field, axis, coord):
-    """
-    Reads a slice through the HDF5 data
-
-    @param grid: Grid to slice
-    @type grid: L{EnzoGrid<EnzoGrid>}
-    @param field: field to get
-    @type field: string
-    @param sl: region to get
-    @type sl: SliceType
-    """
-    t = HDF5LightReader.ReadData(grid.filename, "/Grid%08i/%s" %
-                    (grid.id, field)).transpose()
-    return t
-
-def readDataSlicePacked1D(self, grid, field, axis, coord):
-    """
-    Reads a slice through the HDF5 data
-
-    @param grid: Grid to slice
-    @type grid: L{EnzoGrid<EnzoGrid>}
-    @param field: field to get
-    @type field: string
-    @param sl: region to get
-    @type sl: SliceType
-    """
-    t = HDF5LightReader.ReadData(grid.filename, "/Grid%08i/%s" %
-                    (grid.id, field))
-    return t
+data_queue_registry = {}
 
 class BaseDataQueue(object):
+
+    _data_style = None
+
+    class __metaclass__(type):
+        def __init__(cls, name, b, d):
+            type.__init__(cls, name, b, d)
+            if hasattr(cls, "_data_style"):
+                data_queue_registry[cls._data_style] = cls
 
     def __init__(self):
         self.queue = defaultdict(dict)
@@ -220,7 +53,7 @@ class BaseDataQueue(object):
             return self.modify(self.queue[grid.id].pop(field))
         else:
             # We only read the one set and do not store it if it isn't pre-loaded
-            return self._read_set(grid, field)
+            return self._read_data_set(grid, field)
 
     def peek(self, grid, field):
         return self.queue[grid.id].get(field, None)
@@ -230,30 +63,122 @@ class BaseDataQueue(object):
             raise ValueError
         self.queue[grid][field] = data
 
+    # Now we define our interface
+    def _read_data_set(self, grid, field):
+        pass
+
+    def _read_data_slice(self, grid, field, axis, coord):
+        pass
+
+    def _read_field_names(self, grid):
+        pass
+
+    @property
+    def _read_exception(self):
+        return None
+
 class DataQueueHDF4(BaseDataQueue):
-    def _read_set(self, grid, field):
-        return readDataHDF4(grid, field)
+
+    _data_style = "enzo_hdf4"
 
     def modify(self, field):
         return field.swapaxes(0,2)
 
-class DataQueueHDF4_2D(BaseDataQueue):
-    def _read_set(self, grid, field):
+    def _read_field_names(self, grid):
+        """
+        Returns a list of fields associated with the filename
+        Should *only* be called as EnzoGridInstance.getFields, never as getFields(object)
+        """
+        return SD.SD(grid.filename).datasets().keys()
+
+    def _read_data_set(self, grid, field):
+        """
+        Returns after having obtained or generated a field.  Should throw an
+        exception.  Should only be called as EnzoGridInstance.readData()
+
+        @param field: field to read
+        @type field: string
+        """
+        return SD.SD(grid.filename).select(field).get()
+
+    def _read_data_slice(self, grid, field, axis, coord):
+        """
+        Reads a slice through the HDF4 data
+
+        @param grid: Grid to slice
+        @type grid: L{EnzoGrid<EnzoGrid>}
+        @param field: field to get
+        @type field: string
+        @param sl: region to get
+        @type sl: SliceType
+        """
+        sl = [slice(None), slice(None), slice(None)]
+        sl[axis] = slice(coord, coord + 1)
+        sl = tuple(reversed(sl))
+        return SD.SD(grid.filename).select(field)[sl].swapaxes(0,2)
+
+    @property
+    def _read_exception(self):
+        return SD.HDF4Error
+
+class DataQueueHDF4_2D(DataQueueHDF4):
+
+    _data_style = "enzo_hdf4_2d"
+
+    def _read_data_set(self, grid, field):
         t = SD.SD(grid.filename).select(field).get()[:,:,None]
         return t.swapaxes(0,1)
 
+    def _read_data_slice(self, grid, field, axis, coord):
+        t = SD.SD(grid.filename).select(field).get()
+        return t.transpose()
+
     def modify(self, field):
-        pass
+        return field
 
 class DataQueueHDF5(BaseDataQueue):
-    def _read_set(self, grid, field):
-        return readDataHDF5(grid, field)
+
+    _data_style = "enzo_hdf5"
+
+    def _read_field_names(self, grid):
+        """
+        Returns a list of fields associated with the filename
+        Should *only* be called as EnzoGridInstance.getFields, never as getFields(object)
+        """
+        return HDF5LightReader.ReadListOfDatasets(grid.filename, "/")
+
+    def _read_data_set(self, grid, field):
+        return HDF5LightReader.ReadData(grid.filename, "/%s" % field).swapaxes(0,2)
+
+    def _read_data_slice(self, grid, field, axis, coord):
+        """
+        Reads a slice through the HDF5 data
+
+        @param grid: Grid to slice
+        @type grid: L{EnzoGrid<EnzoGrid>}
+        @param field: field to get
+        @type field: string
+        @param axis: axis to slice along
+        @param coord: coord to slice at
+        """
+        axis = {0:2,1:1,2:0}[axis]
+        t = HDF5LightReader.ReadDataSlice(grid.filename, "/%s" %
+                        (field), axis, coord).transpose()
+        return t
 
     def modify(self, field):
         return field.swapaxes(0,2)
 
+    @property
+    def _read_exception(self):
+        return (exceptions.KeyError, HDF5LightReader.ReadingError)
+
+
 class DataQueuePackedHDF5(BaseDataQueue):
-    def _read_set(self, grid, field):
+
+    _data_style = "enzo_packed_3d"
+
+    def _read_data_set(self, grid, field):
         return readDataPacked(grid, field)
 
     def modify(self, field):
@@ -278,9 +203,27 @@ class DataQueuePackedHDF5(BaseDataQueue):
             for gid in data: self.queue[gid].update(data[gid])
         mylog.debug("Finished read of %s", sets)
 
+    def _read_data_set(self, grid, field):
+        return HDF5LightReader.ReadData(grid.filename,
+                "/Grid%08i/%s" % (grid.id, field)).swapaxes(0,2)
+
+    def _read_data_slice(self, grid, field, axis, coord):
+        axis = _axis_ids[axis]
+        return HDF5LightReader.ReadDataSlice(grid.filename, "/Grid%08i/%s" %
+                        (grid.id, field), axis, coord).transpose()
+
+    def _read_field_names(self, grid):
+        return HDF5LightReader.ReadListOfDatasets(
+                    grid.filename, "/Grid%08i" % grid.id)
+
+
 class DataQueueInMemory(BaseDataQueue):
+
+    _data_style = "enzo_inline"
+
     def __init__(self, ghost_zones=3):
         import enzo
+        self.enzo = enzo
         self.grids_in_memory = enzo.grid_data
         self.old_grids_in_memory = enzo.old_grid_data
         self.my_slice = (slice(ghost_zones,-ghost_zones),
@@ -288,10 +231,10 @@ class DataQueueInMemory(BaseDataQueue):
                       slice(ghost_zones,-ghost_zones))
         BaseDataQueue.__init__(self)
 
-    def _read_set(self, grid, field):
-        import enzo
+    def _read_data_set(self, grid, field):
         if grid.id not in self.grids_in_memory: raise KeyError
         return self.grids_in_memory[grid.id][field].swapaxes(0,2)[self.my_slice]
+        # We don't do this, because we currently do not interpolate
         coef1 = max((grid.Time - t1)/(grid.Time - t2), 0.0)
         coef2 = 1.0 - coef1
         t1 = enzo.yt_parameter_file["InitialTime"]
@@ -303,31 +246,61 @@ class DataQueueInMemory(BaseDataQueue):
     def modify(self, field):
         return field.swapaxes(0,2)
 
-    def preload(self, grids, sets):
-        pass
+    def _read_field_names(self, grid):
+        return self.grids_in_memory[grid.id].keys()
+
+    def _read_data_slice(self, grid, field, axis, coord):
+        sl = [slice(3,-3), slice(3,-3), slice(3,-3)]
+        sl[axis] = slice(coord + 3, coord + 4)
+        sl = tuple(reversed(sl))
+        return self.grids_in_memory[grid.id][field][sl].swapaxes(0,2)
+
+    @property
+    def _read_exception(self):
+        return KeyError
 
 class DataQueueNative(BaseDataQueue):
-    def _read_set(self, grid, field):
+
+    _data_style = "orion_native"
+
+    def _read_data_set(self, grid, field):
         return readDataNative(grid, field)
 
     def modify(self, field):
         return field.swapaxes(0,2)
 
-class DataQueuePacked2D(BaseDataQueue):
-    def _read_set(self, grid, field):
+class DataQueuePacked2D(DataQueuePackedHDF5):
+
+    _data_style = "enzo_packed_2d"
+
+    def _read_data_set(self, grid, field):
         return HDF5LightReader.ReadData(grid.filename,
             "/Grid%08i/%s" % (grid.id, field)).transpose()[:,:,None]
 
     def modify(self, field):
         pass
 
-class DataQueuePacked1D(BaseDataQueue):
-    def _read_set(self, grid, field):
+    def _read_data_slice(self, grid, field, axis, coord):
+        t = HDF5LightReader.ReadData(grid.filename, "/Grid%08i/%s" %
+                        (grid.id, field)).transpose()
+        return t
+
+
+class DataQueuePacked1D(DataQueuePackedHDF5):
+
+    _data_style = "enzo_packed_1d"
+
+    def _read_data_set(self, grid, field):
         return HDF5LightReader.ReadData(grid.filename,
             "/Grid%08i/%s" % (grid.id, field)).transpose()[:,None,None]
 
     def modify(self, field):
         pass
+
+    def _read_data_slice(self, grid, field, axis, coord):
+        t = HDF5LightReader.ReadData(grid.filename, "/Grid%08i/%s" %
+                        (grid.id, field))
+        return t
 
 #
 # BoxLib/Orion data readers follow
