@@ -778,7 +778,7 @@ class AMRSliceBase(AMR2DData):
             conv_factor = 1.0
             if self.pf.field_info.has_key(field):
                 conv_factor = self.pf.field_info[field]._convert_function(self)
-            dv = self.hierarchy.queue._read_data_slice(grid, field, self.axis, wantedIndex) * conv_factor
+            dv = self.hierarchy.io._read_data_slice(grid, field, self.axis, wantedIndex) * conv_factor
         else:
             dv = grid[field]
             if dv.size == 1: dv = na.ones(grid.ActiveDimensions)*dv
@@ -1349,7 +1349,7 @@ class AMRProjBase(AMR2DData):
         # _project_level, then it would be more memory conservative
         for level in range(0, self._max_level+1):
             self._preload(self.source.select_grids(level),
-                          self._get_dependencies(fields), self.hierarchy.queue)
+                          self._get_dependencies(fields), self.hierarchy.io)
             self.__calculate_overlap(level)
             my_coords, my_dx, my_fields = self.__project_level(level, fields)
             coord_data.append(my_coords)

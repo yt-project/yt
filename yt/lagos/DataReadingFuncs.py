@@ -27,9 +27,9 @@ import exceptions
 
 _axis_ids = {0:2,1:1,2:0}
 
-data_queue_registry = {}
+io_registry = {}
 
-class BaseDataQueue(object):
+class BaseIOHandler(object):
 
     _data_style = None
 
@@ -37,7 +37,7 @@ class BaseDataQueue(object):
         def __init__(cls, name, b, d):
             type.__init__(cls, name, b, d)
             if hasattr(cls, "_data_style"):
-                data_queue_registry[cls._data_style] = cls
+                io_registry[cls._data_style] = cls
 
     def __init__(self):
         self.queue = defaultdict(dict)
@@ -77,7 +77,7 @@ class BaseDataQueue(object):
     def _read_exception(self):
         return None
 
-class DataQueueHDF4(BaseDataQueue):
+class IOHandlerHDF4(BaseIOHandler):
 
     _data_style = "enzo_hdf4"
 
@@ -121,7 +121,7 @@ class DataQueueHDF4(BaseDataQueue):
     def _read_exception(self):
         return SD.HDF4Error
 
-class DataQueueHDF4_2D(DataQueueHDF4):
+class IOHandlerHDF4_2D(IOHandlerHDF4):
 
     _data_style = "enzo_hdf4_2d"
 
@@ -136,7 +136,7 @@ class DataQueueHDF4_2D(DataQueueHDF4):
     def modify(self, field):
         return field
 
-class DataQueueHDF5(BaseDataQueue):
+class IOHandlerHDF5(BaseIOHandler):
 
     _data_style = "enzo_hdf5"
 
@@ -174,7 +174,7 @@ class DataQueueHDF5(BaseDataQueue):
         return (exceptions.KeyError, HDF5LightReader.ReadingError)
 
 
-class DataQueuePackedHDF5(BaseDataQueue):
+class IOHandlerPackedHDF5(BaseIOHandler):
 
     _data_style = "enzo_packed_3d"
 
@@ -217,7 +217,7 @@ class DataQueuePackedHDF5(BaseDataQueue):
                     grid.filename, "/Grid%08i" % grid.id)
 
 
-class DataQueueInMemory(BaseDataQueue):
+class IOHandlerInMemory(BaseIOHandler):
 
     _data_style = "enzo_inline"
 
@@ -229,7 +229,7 @@ class DataQueueInMemory(BaseDataQueue):
         self.my_slice = (slice(ghost_zones,-ghost_zones),
                       slice(ghost_zones,-ghost_zones),
                       slice(ghost_zones,-ghost_zones))
-        BaseDataQueue.__init__(self)
+        BaseIOHandler.__init__(self)
 
     def _read_data_set(self, grid, field):
         if grid.id not in self.grids_in_memory: raise KeyError
@@ -259,7 +259,7 @@ class DataQueueInMemory(BaseDataQueue):
     def _read_exception(self):
         return KeyError
 
-class DataQueueNative(BaseDataQueue):
+class IOHandlerNative(BaseIOHandler):
 
     _data_style = "orion_native"
 
@@ -269,7 +269,7 @@ class DataQueueNative(BaseDataQueue):
     def modify(self, field):
         return field.swapaxes(0,2)
 
-class DataQueuePacked2D(DataQueuePackedHDF5):
+class IOHandlerPacked2D(IOHandlerPackedHDF5):
 
     _data_style = "enzo_packed_2d"
 
@@ -286,7 +286,7 @@ class DataQueuePacked2D(DataQueuePackedHDF5):
         return t
 
 
-class DataQueuePacked1D(DataQueuePackedHDF5):
+class IOHandlerPacked1D(IOHandlerPackedHDF5):
 
     _data_style = "enzo_packed_1d"
 

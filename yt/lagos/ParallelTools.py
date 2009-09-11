@@ -1083,11 +1083,11 @@ class ParallelAnalysisInterface(object):
         if not self._distributed: return True
         return (MPI.COMM_WORLD == 0)
 
-    def _preload(self, grids, fields, queue):
+    def _preload(self, grids, fields, io_handler):
         # This will preload if it detects we are parallel capable and
         # if so, we load *everything* that we need.  Use with some care.
         if not self._distributed: return
-        queue.preload(grids, fields)
+        io_handler.preload(grids, fields)
 
     @parallel_passthrough
     def _mpi_double_array_max(self,data):

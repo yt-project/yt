@@ -56,7 +56,7 @@ class AMRHierarchy(ObjectFindingMixin):
         self._populate_grid_objects()
 
         mylog.debug("Initializing data grid data IO")
-        self._setup_data_queue()
+        self._setup_data_io()
 
         mylog.debug("Detecting fields.")
         self.field_list = []
@@ -109,10 +109,10 @@ class AMRHierarchy(ObjectFindingMixin):
     def clear_all_data(self):
         """
         This routine clears all the data currently being held onto by the grids
-        and the data queue.
+        and the data io handler.
         """
         for g in self.grids: g.clear_data()
-        self.queue.queue.clear()
+        self.io.queue.clear()
 
     @parallel_root_only
 
@@ -149,8 +149,8 @@ class AMRHierarchy(ObjectFindingMixin):
         f = h5py.File(fn, 'a')
         f.close()
 
-    def _setup_data_queue(self):
-        self.queue = data_queue_registry[self.data_style]()
+    def _setup_data_io(self):
+        self.io = io_registry[self.data_style]()
 
     def _save_data(self, array, node, name, set_attr=None, force=False, passthrough = False):
         """
@@ -364,6 +364,8 @@ class AMRHierarchy(ObjectFindingMixin):
 class EnzoHierarchy(AMRHierarchy):
 
     _strip_path = False
+    grid = EnzoGrid
+
     def __init__(self, pf, data_style):
         
         self.data_style = data_style
@@ -390,8 +392,6 @@ class EnzoHierarchy(AMRHierarchy):
     def _setup_classes(self):
         dd = self._get_data_reader_dict()
         AMRHierarchy._setup_classes(self, dd)
-        #self._add_object_class('grid', "EnzoGrid", EnzoGridBase, dd)
-        self.grid = EnzoGrid
         self.object_types.sort()
 
     def _count_grids(self):
@@ -527,8 +527,8 @@ class EnzoHierarchy(AMRHierarchy):
             for grid in random_sample:
                 if not hasattr(grid, 'filename'): continue
                 try:
-                    gf = self.queue._read_field_names(grid)
-                except self.queue._read_exception:
+                    gf = self.io._read_field_names(grid)
+                except self.io._read_exception:
                     mylog.debug("Grid %s is a bit funky?", grid.id)
                     continue
                 mylog.debug("Grid %s has: %s", grid.id, gf)
@@ -583,7 +583,7 @@ class EnzoHierarchyInMemory(EnzoHierarchy):
         self.data_style = data_style # Mandated
         self.directory = os.getcwd()
         self.num_grids = enzo.hierarchy_information["GridDimensions"].shape[0]
-        self._setup_data_queue()
+        self._setup_data_io()
         AMRHierarchy.__init__(self, pf)
 
     def _initialize_data_file(self):
@@ -757,7 +757,7 @@ class OrionHierarchy(AMRHierarchy):
         self.readGlobalHeader(header_filename,self.parameter_file.paranoid_read) # also sets up the grid objects
         self.__cache_endianness(self.levels[-1].grids[-1])
         AMRHierarchy.__init__(self,pf)
-        self._setup_data_queue()
+        self._setup_data_io()
         self._setup_field_list()
 
     def readGlobalHeader(self,filename,paranoid_read):
