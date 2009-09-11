@@ -99,7 +99,7 @@ class TestHierarchy(LagosTestingBase, unittest.TestCase):
             self.assert_(child.Parent.id == self.hierarchy.grids[0].id)
 
     def testGetSelectLevels(self):
-        for level in range(self.hierarchy.maxLevel+1):
+        for level in range(self.hierarchy.max_level+1):
             for grid in self.hierarchy.select_grids(level):
                 self.assert_(grid.Level == level)
 
