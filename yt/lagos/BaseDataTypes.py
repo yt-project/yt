@@ -194,12 +194,9 @@ class AMRData(object):
         """
         Clears out all data from the AMRData instance, freeing memory.
         """
-        for key in self.data.keys():
-            del self.data[key]
-        del self.data
+        self.data.clear()
         if self._grids is not None:
             for grid in self._grids: grid.clear_data()
-        self.data = {}
 
     def clear_cache(self):
         """

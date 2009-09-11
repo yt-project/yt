@@ -81,11 +81,8 @@ class AMRGridPatch(AMRData):
                     self[field] = na.array([],dtype='int64')
                     return self.data[field]
                 try:
-                    if hasattr(self.hierarchy, 'queue'):
-                        temp = self.hierarchy.queue.pop(self, field)
-                    else:
-                        temp = self.readDataFast(field)
-                    self[field] = temp * conv_factor
+                    temp = self.hierarchy.queue.pop(self, field)
+                    self[field] = na.multiply(temp, conv_factor, temp)
                 except self._read_exception, exc:
                     if field in self.pf.field_info:
                         if self.pf.field_info[field].not_in_all:
@@ -161,6 +158,9 @@ class AMRGridPatch(AMRData):
             del self.retVal
         AMRData.clear_data(self)
         self._setup_dx()
+
+    def check_child_masks(self):
+        return self.__child_mask, self.__child_indices
 
     def _prepare_grid(self):
         """
