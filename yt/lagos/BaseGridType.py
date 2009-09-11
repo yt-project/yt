@@ -27,7 +27,7 @@ from yt.lagos import *
 #import yt.enki, gc
 from yt.funcs import *
 
-class AMRGridPatch(AMRData):
+class AMRGridPatch(object):
     _spatial = True
     _num_ghost_zones = 0
     _grids = None
@@ -36,15 +36,59 @@ class AMRGridPatch(AMRData):
     _type_name = 'grid'
     _skip_add = True
     _con_args = ('id', 'filename')
-    start_index = None
 
-    def __init__(self, id, hierarchy = None):
+    __slots__ = ['data', 'field_parameters', 'fields', 'id', 'hierarchy', 'pf',
+                 'ActiveDimensions', 'LeftEdge', 'RightEdge', 'Level',
+                 'NumberOfParticles', 'Children', 'Parent',
+                 'start_index', 'filename', '__weakref__', 'dds',
+                 '_child_mask', '_child_indices', '_child_index_mask']
+
+    def __init__(self, id, filename = None, hierarchy = None):
         self.data = {}
         self.field_parameters = {}
         self.fields = []
         self.id = id
         if hierarchy: self.hierarchy = weakref.proxy(hierarchy)
         self.pf = self.hierarchy.parameter_file # weakref already
+        self._child_mask = self._child_indices = self._child_index_mask = None
+        self.start_index = None
+
+    def get_field_parameter(self, name, default=None):
+        """
+        This is typically only used by derived field functions, but
+        it returns parameters used to generate fields.
+        """
+        if self.field_parameters.has_key(name):
+            return self.field_parameters[name]
+        else:
+            return default
+
+    def set_field_parameter(self, name, val):
+        """
+        Here we set up dictionaries that get passed up and down and ultimately
+        to derived fields.
+        """
+        self.field_parameters[name] = val
+
+    def has_field_parameter(self, name):
+        """
+        Checks if a field parameter is set.
+        """
+        return self.field_parameters.has_key(name)
+
+    def convert(self, datatype):
+        """
+        This will attempt to convert a given unit to cgs from code units.
+        It either returns the multiplicative factor or throws a KeyError.
+        """
+        return self.pf[datatype]
+
+    def __repr__(self):
+        # We'll do this the slow way to be clear what's going on
+        s = "%s (%s): " % (self.__class__.__name__, self.pf)
+        s += ", ".join(["%s=%s" % (i, getattr(self,i))
+                       for i in self._con_args])
+        return s
 
     def _generate_field(self, field):
         if self.pf.field_info.has_key(field):
@@ -63,6 +107,37 @@ class AMRGridPatch(AMRData):
                 self[field] = self.pf.field_info[field](self)
         else: # Can't find the field, try as it might
             raise exceptions.KeyError, field
+
+    def has_key(self, key):
+        return (key in self.data)
+
+    def __getitem__(self, key):
+        """
+        Returns a single field.  Will add if necessary.
+        """
+        if not self.data.has_key(key):
+            if key not in self.fields:
+                self.fields.append(key)
+            self.get_data(key)
+        return self.data[key]
+
+    def __setitem__(self, key, val):
+        """
+        Sets a field to be some other value.
+        """
+        if key not in self.fields: self.fields.append(key)
+        self.data[key] = val
+
+    def __delitem__(self, key):
+        """
+        Deletes a field
+        """
+        try:
+            del self.fields[self.fields.index(key)]
+        except ValueError:
+            pass
+        del self.data[key]
+
     
     def get_data(self, field):
         """
@@ -134,24 +209,6 @@ class AMRGridPatch(AMRData):
     def __int__(self):
         return self.id
 
-    def clear_all_grid_references(self):
-        """
-        This clears out all references this grid has to any others, as
-        well as the hierarchy.  It's like extra-cleaning after clear_data.
-        """
-        self.clear_all_derived_quantities()
-        if hasattr(self, 'hierarchy'):
-            del self.hierarchy
-        if hasattr(self, 'Parent'):
-            if self.Parent != None:
-                self.Parent.clear_all_grid_references()
-            del self.Parent
-        if hasattr(self, 'Children'):
-            for i in self.Children:
-                if i != None:
-                    del i
-            del self.Children
-
     def clear_data(self):
         """
         Clear out the following things: child_mask, child_indices,
@@ -163,11 +220,11 @@ class AMRGridPatch(AMRData):
             del self.coarseData
         if hasattr(self, 'retVal'):
             del self.retVal
-        AMRData.clear_data(self)
+        self.data.clear()
         self._setup_dx()
 
     def check_child_masks(self):
-        return self.__child_mask, self.__child_indices
+        return self._child_mask, self._child_indices
 
     def _prepare_grid(self):
         """
@@ -236,50 +293,50 @@ class AMRGridPatch(AMRData):
         del self.child_ind
 
     def _set_child_mask(self, newCM):
-        if self.__child_mask != None:
+        if self._child_mask != None:
             mylog.warning("Overriding child_mask attribute!  This is probably unwise!")
-        self.__child_mask = newCM
+        self._child_mask = newCM
 
     def _set_child_indices(self, newCI):
-        if self.__child_indices != None:
+        if self._child_indices != None:
             mylog.warning("Overriding child_indices attribute!  This is probably unwise!")
-        self.__child_indices = newCI
+        self._child_indices = newCI
 
     def _get_child_mask(self):
-        if self.__child_mask == None:
+        if self._child_mask == None:
             self.__generate_child_mask()
-        return self.__child_mask
+        return self._child_mask
 
     def _get_child_indices(self):
-        if self.__child_indices == None:
+        if self._child_indices == None:
             self.__generate_child_mask()
-        return self.__child_indices
+        return self._child_indices
 
     def _del_child_indices(self):
         try:
-            del self.__child_indices
+            del self._child_indices
         except AttributeError:
             pass
-        self.__child_indices = None
+        self._child_indices = None
 
     def _del_child_mask(self):
         try:
-            del self.__child_mask
+            del self._child_mask
         except AttributeError:
             pass
-        self.__child_mask = None
+        self._child_mask = None
 
     def _get_child_index_mask(self):
-        if self.__child_index_mask is None:
+        if self._child_index_mask is None:
             self.__generate_child_index_mask()
-        return self.__child_index_mask
+        return self._child_index_mask
 
     def _del_child_index_mask(self):
         try:
-            del self.__child_index_mask
+            del self._child_index_mask
         except AttributeError:
             pass
-        self.__child_index_mask = None
+        self._child_index_mask = None
 
     #@time_execution
     def __fill_child_mask(self, child, mask, tofill):
@@ -298,19 +355,19 @@ class AMRGridPatch(AMRData):
         Generates self.child_mask, which is zero where child grids exist (and
         thus, where higher resolution data is available.)
         """
-        self.__child_mask = na.ones(self.ActiveDimensions, 'int32')
+        self._child_mask = na.ones(self.ActiveDimensions, 'int32')
         for child in self.Children:
-            self.__fill_child_mask(child, self.__child_mask, 0)
-        self.__child_indices = (self.__child_mask==0) # bool, possibly redundant
+            self.__fill_child_mask(child, self._child_mask, 0)
+        self._child_indices = (self._child_mask==0) # bool, possibly redundant
 
     def __generate_child_index_mask(self):
         """
         Generates self.child_index_mask, which is -1 where there is no child,
         and otherwise has the ID of the grid that resides there.
         """
-        self.__child_index_mask = na.zeros(self.ActiveDimensions, 'int32') - 1
+        self._child_index_mask = na.zeros(self.ActiveDimensions, 'int32') - 1
         for child in self.Children:
-            self.__fill_child_mask(child, self.__child_index_mask,
+            self.__fill_child_mask(child, self._child_index_mask,
                                    child.id)
 
     def _get_coords(self):
@@ -334,10 +391,6 @@ class AMRGridPatch(AMRData):
         ind = na.indices(self.ActiveDimensions)
         LE = na.reshape(self.LeftEdge,(3,1,1,1))
         self['x'], self['y'], self['z'] = (ind+0.5)*self.dds+LE
-
-    __child_mask = None
-    __child_indices = None
-    __child_index_mask = None
 
     child_mask = property(fget=_get_child_mask, fdel=_del_child_mask)
     child_index_mask = property(fget=_get_child_index_mask, fdel=_del_child_index_mask)
@@ -380,38 +433,19 @@ class AMRGridPatch(AMRData):
         scalars = 10**interp(dict(x=x,y=y,z=z))
         return scalars
 
-    def _save_data_state(self):
-        self.__current_data_keys = self.data.keys()
-        if self.__child_mask != None:
-            self.__current_child_mask == True
-        else:
-            self.__current_child_mask = False
-
-        if self.__child_indices != None:
-            self.__current_child_indices == True
-        else:
-            self.__current_child_indices = False
-
-    def _restore_data_state(self):
-        if not self.__current_child_mask:
-            self._del_child_mask()
-        if not self.__current_child_indices:
-            self._del_child_indices()
-        for key in data.keys():
-            if key not in self.__current_data_keys:
-                del self.data[key]
-
 class EnzoGrid(AMRGridPatch):
     """
     Class representing a single Enzo Grid instance.
     """
+
+    __slots__ = []
     def __init__(self, id, hierarchy):
         """
         Returns an instance of EnzoGrid with *id*, associated with
         *filename* and *hierarchy*.
         """
         #All of the field parameters will be passed to us as needed.
-        AMRGridPatch.__init__(self, id, hierarchy)
+        AMRGridPatch.__init__(self, id, filename = None, hierarchy = hierarchy)
         self.Parent = None
         self.Children = []
         self.Level = -1
@@ -449,9 +483,9 @@ class EnzoGrid(AMRGridPatch):
             [self.RightEdge[0], self.LeftEdge[1], self.RightEdge[2]],
             [self.LeftEdge[0], self.RightEdge[1], self.LeftEdge[2]],
             ], dtype='float64')
-        self.__child_mask = None
-        self.__child_index_mask = None
-        self.__child_indices = None
+        self._child_mask = None
+        self._child_index_mask = None
+        self._child_indices = None
         self._setup_dx()
 
     def get_global_startindex(self):

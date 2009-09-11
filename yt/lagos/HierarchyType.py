@@ -115,7 +115,6 @@ class AMRHierarchy(ObjectFindingMixin):
         self.io.queue.clear()
 
     @parallel_root_only
-
     def _join_field_lists(self, field_list):
         return field_list
 
