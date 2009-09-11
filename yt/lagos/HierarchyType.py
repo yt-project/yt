@@ -700,7 +700,7 @@ class EnzoHierarchy(AMRHierarchy):
             for grid in random_sample:
                 if not hasattr(grid, 'filename'): continue
                 try:
-                    gf = grid.getFields()
+                    gf = grid._read_field_names()
                 except grid._read_exception:
                     mylog.debug("Grid %s is a bit funky?", grid.id)
                     continue
