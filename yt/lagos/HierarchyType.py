@@ -29,7 +29,7 @@ import string, re, gc, time
 import cPickle
 from itertools import chain, izip
 
-class AMRHierarchy(ObjectFindingMixin):
+class AMRHierarchy(ObjectFindingMixin, ParallelAnalysisInterface):
     def __init__(self, pf, data_style):
         self.parameter_file = weakref.proxy(pf)
         self.pf = self.parameter_file
@@ -113,10 +113,6 @@ class AMRHierarchy(ObjectFindingMixin):
         """
         for g in self.grids: g.clear_data()
         self.io.queue.clear()
-
-    @parallel_root_only
-    def _join_field_lists(self, field_list):
-        return field_list
 
     def _get_data_reader_dict(self):
         dd = { 'pf' : self.parameter_file, # Already weak
@@ -518,22 +514,26 @@ class EnzoHierarchy(AMRHierarchy):
         self.max_level = self.grid_levels.max()
 
     def _detect_fields(self):
-        field_list = self.get_data("/", "DataFields")
-        if field_list is None:
-            mylog.info("Gathering a field list (this may take a moment.)")
-            field_list = set()
-            random_sample = self._generate_random_grids()
-            for grid in random_sample:
-                if not hasattr(grid, 'filename'): continue
-                try:
-                    gf = self.io._read_field_names(grid)
-                except self.io._read_exception:
-                    mylog.debug("Grid %s is a bit funky?", grid.id)
-                    continue
-                mylog.debug("Grid %s has: %s", grid.id, gf)
-                field_list = field_list.union(gf)
-            field_list = self._join_field_lists(field_list)
-            self.save_data(list(field_list),"/","DataFields")
+        # Do this only on the root processor to save disk work.
+        if self._mpi_get_rank() == 0 or self._mpi_get_rank() == None:
+            field_list = self.get_data("/", "DataFields")
+            if field_list is None:
+                mylog.info("Gathering a field list (this may take a moment.)")
+                field_list = set()
+                random_sample = self._generate_random_grids()
+                for grid in random_sample:
+                    if not hasattr(grid, 'filename'): continue
+                    try:
+                        gf = self.io._read_field_names(grid)
+                    except self.io._read_exception:
+                        mylog.debug("Grid %s is a bit funky?", grid.id)
+                        continue
+                    mylog.debug("Grid %s has: %s", grid.id, gf)
+                    field_list = field_list.union(gf)
+        else:
+            field_list = None
+        field_list = self._mpi_bcast_pickled(field_list)
+        self.save_data(list(field_list),"/","DataFields")
         self.field_list = list(field_list)
 
     def _setup_unknown_fields(self):
@@ -587,19 +587,6 @@ class EnzoHierarchyInMemory(EnzoHierarchy):
 
     def _initialize_data_file(self):
         pass
-
-    def _join_field_lists(self, field_list):
-        from mpi4py import MPI
-        MPI.COMM_WORLD.Barrier()
-        data = list(field_list)
-        if MPI.COMM_WORLD.rank == 0:
-            for i in range(1, MPI.COMM_WORLD.size):
-                data += MPI.COMM_WORLD.recv(source=i, tag=0)
-            data = list(set(data))
-        else:
-            MPI.COMM_WORLD.send(data, dest=0, tag=0)
-        MPI.COMM_WORLD.Barrier()
-        return MPI.COMM_WORLD.bcast(data, root=0)
 
     def _populate_hierarchy(self):
         self._copy_hierarchy_structure()

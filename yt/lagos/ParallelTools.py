@@ -1079,6 +1079,12 @@ class ParallelAnalysisInterface(object):
         self._barrier()
         return data
 
+    @parallel_passthrough
+    def _mpi_bcast_pickled(self, data):
+        self._barrier()
+        data = MPI.COMM_WORLD.bcast(data, root=0)
+        return data
+
     def _should_i_write(self):
         if not self._distributed: return True
         return (MPI.COMM_WORLD == 0)
