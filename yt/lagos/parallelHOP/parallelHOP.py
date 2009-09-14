@@ -1,5 +1,5 @@
 """
-Parallel data mapping techniques for yt
+A implementation of the HOP algorithm that runs in parallel.
 
 Author: Stephen Skory <sskory@physics.ucsd.edu>
 Affiliation: UCSD/CASS
@@ -29,7 +29,7 @@ from yt.lagos import *
 from yt.extensions.kdtree import *
 from yt.performance_counters import yt_counters, time_function
 
-class RunChainHOP(ParallelAnalysisInterface):
+class RunParallelHOP(ParallelAnalysisInterface):
     def __init__(self,period, padding, num_neighbors, bounds,
             xpos, ypos, zpos, index, mass, threshold=160.0, rearrange=True):
         gc.enable()
@@ -366,7 +366,7 @@ class RunChainHOP(ParallelAnalysisInterface):
         Set up the data objects that get passed to the kD-tree code.
         """
         # Yes, we really do need to initialize this many arrays.
-        # They're deleted in _chainHOP.
+        # They're deleted in _parallelHOP.
         fKD.nn_tags = na.asfortranarray(na.empty((self.nMerge + 1, self.size), dtype='int64'))
         fKD.dens = na.asfortranarray(na.zeros(self.size, dtype='float64'))
         fKD.mass = na.asfortranarray(na.empty(self.size, dtype='float64'))
@@ -811,24 +811,30 @@ class RunChainHOP(ParallelAnalysisInterface):
                 # The the chain is either self most-dense, or a singleton.
                 chainID_translate_map_global[i] = int(i)
         # Build a list of chain densities, sorted smallest to largest.
-        dens_temp = []
+        temp_dens = na.empty(len(self.densest_in_chain), dtype='float64')
+        temp_keys = na.empty(len(self.densest_in_chain), dtype='int64')
+        temp_count = 0
         for key in self.densest_in_chain:
-            item = [self.densest_in_chain[key], key]
-            dens_temp.append(item)
-        dens_temp.sort()
+            temp_dens[temp_count] = self.densest_in_chain[key]
+            temp_keys[temp_count] = key
+            temp_count += 1
+        t_d_sorted = temp_dens.argsort()
+        temp_keys = temp_keys[t_d_sorted]
+        del temp_dens, t_d_sorted
         # Loop over chains, smallest to largest density, recursively until
         # we reach a self-assigned chain. Then we assign that final chainID to
         # the *current* one only.
-        for chain in dens_temp:
+        #for chain in dens_temp:
+        for key in temp_keys:
             seen = []
-            seen.append(int(chain[1]))
+            seen.append(key)
             new_chainID = \
-                self._recurse_global_chain_links(chainID_translate_map_global, int(chain[1]), seen)
-            chainID_translate_map_global[int(chain[1])] = new_chainID
+                self._recurse_global_chain_links(chainID_translate_map_global, key, seen)
+            chainID_translate_map_global[key] = new_chainID
             # At the same time, remove chains from densest_in_chain that have
             # been reassigned.
-            if chain[1] != new_chainID:
-                del self.densest_in_chain[chain[1]]
+            if key != new_chainID:
+                del self.densest_in_chain[key]
                 # Also fix nchains to keep up.
                 self.nchains -= 1
         # Convert local particles to their new chainID
@@ -837,7 +843,7 @@ class RunChainHOP(ParallelAnalysisInterface):
             if old_chainID == -1: continue
             new_chainID = chainID_translate_map_global[old_chainID]
             self.chainID[i] = new_chainID
-        del chainID_translate_map_local, dens_temp, self.recv_chainIDs
+        del chainID_translate_map_local, temp_keys, self.recv_chainIDs
         del self.recv_real_indices, self.uphill_real_indices, self.uphill_chainIDs
         del seen
         yt_counters("connect_chains_across_tasks")
@@ -978,15 +984,19 @@ class RunChainHOP(ParallelAnalysisInterface):
         yt_counters("make_global_chain_densest_n")
 
     def __ksort(self, d):
-        temp = []
+        temp_d = na.empty(len(d), dtype='float64')
+        temp_keys = na.empty(len(d), dtype='int64')
+        temp_count = 0
         for key in d:
-            item = [key, d[key]]
-            temp.append(item)
-        temp.sort(lambda x,y: -cmp(x[1],y[1]))
-        temp = na.array(temp)
-        # return the first column, which are the dict keys sorted by
-        # the second column, the densities.
-        return temp[:,0]
+            temp_d[temp_count] = d[key]
+            temp_keys[temp_count] = key
+            temp_count += 1
+        t_d_sorted = temp_d.argsort()
+        temp_keys = temp_keys[t_d_sorted]
+        # reverse the order
+        temp_keys = na.flipud(temp_keys)
+        del t_d_sorted, temp_d
+        return temp_keys
     
     def _build_groups(self):
         """

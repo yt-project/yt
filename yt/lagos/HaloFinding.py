@@ -28,9 +28,9 @@ License:
 from yt.lagos import *
 from yt.lagos.hop.EnzoHop import RunHOP
 try:
-    from yt.lagos.chainHOP.chainHOP import *
+    from yt.lagos.parallelHOP.parallelHOP import *
 except ImportError:
-    mylog.error("ChainHOP not imported.")
+    mylog.error("ParallelHOP not imported.")
 
 try:
     from yt.lagos.fof.EnzoFOF import RunFOF
@@ -165,7 +165,7 @@ class Halo(object):
 class HOPHalo(Halo):
     pass
 
-class chainHOPHalo(Halo,ParallelAnalysisInterface):
+class parallelHOPHalo(Halo,ParallelAnalysisInterface):
     dont_wrap = ["maximum_density","maximum_density_location",
         "center_of_mass","total_mass","bulk_velocity","maximum_radius",
         "get_size","get_sphere", "write_particle_list","__getitem__"]
@@ -246,7 +246,7 @@ class chainHOPHalo(Halo,ParallelAnalysisInterface):
         """
         if self.bulk_vel is not None:
             return self.bulk_vel
-        # Unf. this cannot be reasonably computed inside of chainHOP because
+        # Unf. this cannot be reasonably computed inside of parallelHOP because
         # we don't pass velocities in.
         if self.indices is not None:
             pm = self["ParticleMassMsun"]
@@ -563,9 +563,9 @@ class FOFHaloList(HaloList):
     def write_out(self, filename="FOFAnalysis.out"):
         HaloList.write_out(self, filename)
 
-class chainHOPHaloList(HaloList,ParallelAnalysisInterface):
-    _name = "chainHOP"
-    _halo_class = chainHOPHalo
+class parallelHOPHaloList(HaloList,ParallelAnalysisInterface):
+    _name = "parallelHOP"
+    _halo_class = parallelHOPHalo
     _fields = ["particle_position_%s" % ax for ax in 'xyz'] + \
               ["ParticleMassMsun", "particle_index"]
     
@@ -587,7 +587,7 @@ class chainHOPHaloList(HaloList,ParallelAnalysisInterface):
 
     def _run_finder(self):
         yt_counters("Reading Data")
-        obj = RunChainHOP(self.period, self.padding,
+        obj = RunParallelHOP(self.period, self.padding,
             self.num_neighbors, self.bounds,
             self.particle_fields["particle_position_x"],
             self.particle_fields["particle_position_y"],
@@ -684,7 +684,7 @@ class chainHOPHaloList(HaloList,ParallelAnalysisInterface):
     def __len__(self):
         return self.group_count
 
-    def write_out(self, filename="chainHopAnalysis.out"):
+    def write_out(self, filename="parallelHopAnalysis.out"):
         HaloList.write_out(self, filename)
 
 class GenericHaloFinder(ParallelAnalysisInterface):
@@ -785,7 +785,7 @@ class GenericHaloFinder(ParallelAnalysisInterface):
             if not self._is_mine(halo): continue
             halo.write_particle_list(f)
 
-class chainHF(GenericHaloFinder, chainHOPHaloList):
+class parallelHF(GenericHaloFinder, parallelHOPHaloList):
     def __init__(self, pf, threshold=160, dm_only=True, resize=False, rearrange=True,\
         fancy_padding=True, safety=2.5):
         GenericHaloFinder.__init__(self, pf, dm_only, padding=0.0)
@@ -887,7 +887,7 @@ class chainHF(GenericHaloFinder, chainHOPHaloList):
             self.padding = (na.zeros(3,dtype='float64'), na.zeros(3,dtype='float64'))
         self.bounds = (LE, RE)
         (LE_padding, RE_padding) = self.padding
-        chainHOPHaloList.__init__(self, self._data_source, self.padding, \
+        parallelHOPHaloList.__init__(self, self._data_source, self.padding, \
         self.num_neighbors, self.bounds, total_mass, period, threshold=threshold, dm_only=dm_only, rearrange=rearrange)
         self._join_halolists()
         yt_counters("Final Grouping")
