@@ -353,6 +353,7 @@ class VMPlot(RavenPlot):
                                 aspect=aspect, picker=True, origin='lower')
         else:
             self.image.set_data(buff)
+        if self._axes.get_aspect() != aspect: self._axes.set_aspect(aspect)
         if self.do_autoscale:
             self.norm.autoscale(na.array((newmin,newmax)))
         self._reset_image_parameters()
