@@ -32,7 +32,6 @@ from yt.performance_counters import yt_counters, time_function
 class RunParallelHOP(ParallelAnalysisInterface):
     def __init__(self,period, padding, num_neighbors, bounds,
             xpos, ypos, zpos, index, mass, threshold=160.0, rearrange=True):
-        gc.enable()
         self.threshold = threshold
         self.rearrange = rearrange
         self.saddlethresh = 2.5 * threshold
