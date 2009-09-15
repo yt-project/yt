@@ -176,7 +176,7 @@ class RavenPlot(object):
                 self.colorbar.formatter = matplotlib.ticker.FixedFormatter(["%0.2e" % (x) for x in ticks])
             else:
                 mylog.error('Sorry, we do not support minmaxtick for linear fields.  It likely comes close by default')
-       elif nticks is not None:
+        elif nticks is not None:
             if self.log_field:
                 lin = na.linspace(na.log10(zmin),na.log10(zmax),nticks)
                 self.colorbar.locator = matplotlib.ticker.FixedLocator(10**lin)
