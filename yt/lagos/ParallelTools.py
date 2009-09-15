@@ -971,7 +971,7 @@ class ParallelAnalysisInterface(object):
         size = 0
         if MPI.COMM_WORLD.rank == 0:
             for i in range(1,MPI.COMM_WORLD.size):
-                mylog.info('maxdict_dict %d of %d' % (i,MPI.COMM_WORLD.size))
+                mylog.info('Global Hash Table Compare %d of %d' % (i,MPI.COMM_WORLD.size))
                 size = MPI.COMM_WORLD.recv(source=i, tag=0)
                 top_keys = na.empty(size, dtype='int64')
                 bot_keys = na.empty(size, dtype='int64')
