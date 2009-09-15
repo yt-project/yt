@@ -364,6 +364,7 @@ class RunParallelHOP(ParallelAnalysisInterface):
         """
         Set up the data objects that get passed to the kD-tree code.
         """
+        yt_counters("init kd tree")
         # Yes, we really do need to initialize this many arrays.
         # They're deleted in _parallelHOP.
         fKD.nn_tags = na.asfortranarray(na.empty((self.nMerge + 1, self.size), dtype='int64'))
@@ -390,6 +391,7 @@ class RunParallelHOP(ParallelAnalysisInterface):
         #fKD.mass = self.mass[:]
         # Now call the fortran.
         create_tree()
+        yt_counters("init kd tree")
 
     def _is_inside(self, round):
         """
@@ -791,8 +793,8 @@ class RunParallelHOP(ParallelAnalysisInterface):
             # -1 above. Also, since links are supposed to go only uphill,
             # ensure that they are being recorded that way below.
             if localID != -1 and self.chainID[localID] != -1:
-                if self.recv_chainIDs[i] != self.chainID[localID]:# and \
-                    #self.densest_in_chain[self.chainID[localID]] > self.densest_in_chain[self.recv_chainIDs[i]]:
+                if self.recv_chainIDs[i] != self.chainID[localID] and \
+                    self.densest_in_chain[self.chainID[localID]] > self.densest_in_chain[self.recv_chainIDs[i]]:
                     chainID_translate_map_local[self.recv_chainIDs[i]] = \
                         self.chainID[localID]
         # In chainID_translate_map_local, chains may
@@ -1234,7 +1236,10 @@ class RunParallelHOP(ParallelAnalysisInterface):
         Tot_M = na.zeros(self.group_count, dtype='float64')
         for i,groupID in enumerate(subchain):
             c_vec[i] = self.max_dens_point[groupID,1:4] - na.array([0.5,0.5,0.5])
-        size = na.bincount(self.chainID[select]).astype('int64')
+        try:
+            size = na.bincount(self.chainID[select]).astype('int64')
+        except:
+            size = na.zeros(self.group_count, dtype='int64')
         # In case this task doesn't have all the groups, add trailing zeros.
         if size.size != self.group_count:
             size = na.concatenate((size, na.zeros(self.group_count - size.size, dtype='int64')))
@@ -1291,6 +1296,73 @@ class RunParallelHOP(ParallelAnalysisInterface):
         yt_counters("Precomp.")
         del loc, subchain, CoM_M, Tot_M, c_vec, max_radius, select
 
+    def _resize_dataset(self):
+        multi = 2
+        newsize = self.size * multi
+        new_mass = na.empty(newsize, dtype='float64')
+        new_xpos = na.empty(newsize, dtype='float64')
+        new_ypos = na.empty(newsize, dtype='float64')
+        new_zpos = na.empty(newsize, dtype='float64')
+        new_index = na.empty(newsize, dtype='int64')
+        new_dens = na.empty(newsize, dtype='float64')
+        new_densestNN = na.empty(newsize, dtype='int64')
+        new_NNtags = na.empty((newsize, self.nMerge + 1), dtype='int64')
+        for i in xrange(multi):
+            new_mass[i*self.size:(i+1)*self.size] = self.mass[:]
+            new_xpos[i*self.size:(i+1)*self.size] = self.xpos[:]
+            new_ypos[i*self.size:(i+1)*self.size] = self.ypos[:]
+            new_zpos[i*self.size:(i+1)*self.size] = self.zpos[:]
+            new_index[i*self.size:(i+1)*self.size] = (self.index[:] + self.size * i)
+            new_dens[i*self.size:(i+1)*self.size] = self.density[:]
+            new_densestNN[i*self.size:(i+1)*self.size] = self.densestNN[:]
+            new_NNtags[i*self.size:(i+1)*self.size] = self.NNtags[:]
+        for i in xrange(self.size, newsize):
+            new_dens[i] += na.random.uniform(-1,1) * 1e-8
+        self.mass = new_mass.copy() / multi / 30
+        self.xpos = new_xpos.copy()
+        self.ypos = new_ypos.copy()
+        self.zpos = new_zpos.copy()
+        self.index = new_index.copy()
+        self.density = new_dens.copy()
+        self.densestNN = new_densestNN.copy()
+        self.NNtags = new_NNtags.copy()
+        del new_mass, new_xpos, new_ypos, new_zpos, new_index
+        del new_dens, new_densestNN, new_NNtags
+        self.size = newsize
+        self.chainID = na.ones(self.size,dtype='int64') * -1
+        # Test to see if the points are in the 'real' region
+        (LE, RE) = self.bounds
+        points = na.empty((self.size, 3), dtype='float64')
+        points[:,0] = self.xpos
+        points[:,1] = self.ypos
+        points[:,2] = self.zpos
+        self.is_inside = ( (points >= LE).all(axis=1) * \
+            (points < RE).all(axis=1) )
+        # Below we find out which particles are in the `annulus', one padding
+        # distance inside the boundaries. First we find the particles outside
+        # this inner boundary.
+        temp_LE = LE + self.max_padding
+        temp_RE = RE - self.max_padding
+        inner = na.invert( (points >= temp_LE).all(axis=1) * \
+            (points < temp_RE).all(axis=1) )
+        # After inverting the logic above, we want points that are both
+        # inside the real region, but within one padding of the boundary,
+        # and this will do it.
+        self.is_inside_annulus = na.bitwise_and(self.is_inside, inner)
+        # Below we make a mapping of real particle index->local ID
+        # Unf. this has to be a dict, because any task can have
+        # particles of any particle_index, which means that if it were an
+        # array every task would probably end up having this array be as long
+        # as the full number of particles.
+        # We can skip this the first time around.
+        self.rev_index = {}
+        for i in xrange(int(self.size)):
+            # Only padded and annulus particles are needed in the dict.
+            if not self.is_inside[i] or self.is_inside_annulus[i]:
+                self.rev_index[self.index[i]] = i
+        del inner
+
+
     def _chain_hop(self):
         self._global_padding('first')
         self._global_bounds_neighbors()
@@ -1329,6 +1401,7 @@ class RunParallelHOP(ParallelAnalysisInterface):
         self.zpos[:] = fKD.pos[2, :]
         del fKD.pos, fKD.chunk_tags
         free_tree() # Frees the kdtree object.
+        #self._resize_dataset()
         # Build the chain of links.
         mylog.info('Building particle chains...')
         chain_count = self._build_chains()
