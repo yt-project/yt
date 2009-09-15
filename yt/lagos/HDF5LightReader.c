@@ -34,16 +34,23 @@
 
 #include "numpy/ndarrayobject.h"
 
-
 static PyObject *_hdf5ReadError;
 herr_t iterate_dataset(hid_t loc_id, const char *name, void *nodelist);
+
+/* Structures for particle reading */
 
 typedef struct particle_validation_ {
     int count;
     int npart;
+    int stride_size;
     int *mask;
+    char **field_names;
+    int (*count_func)(struct particle_validation_ *data);
+    int (*count_func_float)(struct particle_validation_ *data);
+    int (*count_func_double)(struct particle_validation_ *data);
+    int (*count_func_longdouble)(struct particle_validation_ *data);
     void *validation_reqs;
-    void **particle_data;
+    void *particle_position[3];
 } particle_validation;
 
 typedef struct region_validation_ {
@@ -51,6 +58,16 @@ typedef struct region_validation_ {
     npy_float64 right_edge[3];
     int periodic;
 } region_validation;
+
+/* Forward declarations */
+int setup_validator_region(particle_validation *data, PyObject *InputData);
+int run_validators(particle_validation *pv, char *filename, 
+                   int grid_id);
+
+/* Different data type validators */
+
+int count_particles_region_FLOAT(particle_validation *data);
+int count_particles_region_DOUBLE(particle_validation *data);
 
 int get_my_desc_type(hid_t native_type_id){
 
@@ -672,10 +689,256 @@ PyArrayObject* get_array_from_nodename(char *nodename, hid_t rootnode)
       return NULL;
 }
 
+static PyObject *
+Py_ReadParticles(PyObject *obj, PyObject *args)
+{
+    // Process:
+    //      - Interpret arguments:
+    //          - List of filenames
+    //          - List of grid ids (this is Enzo HDF5-specific)
+    //          - Validation arguments
+    //          - List of true/false for validation
+    //      - Set up validation scheme
+    //      - Iterate over grids, counting
+    //      - Allocate array
+    //      - Iterate over grids, turning on and off dataspace
+
+    int source_type, ig, id, i;
+    Py_ssize_t ngrids;
+
+    PyObject *field_list, *filename_list, *grid_ids, *fully_enclosed, *vargs;
+    vargs = field_list = filename_list = grid_ids = fully_enclosed = NULL;
+    int stride_size = 100000;
+
+    if (!PyArg_ParseTuple(args, "iOOOOO",
+            &source_type, /* This is a non-public API, so we just take ints */
+            &filename_list, &grid_ids, &vargs, &fully_enclosed))
+        return PyErr_Format(_hdf5ReadError,
+               "ReadParticles: Invalid parameters.");
+
+    if (!PyList_Check(filename_list)) {
+        PyErr_Format(_hdf5ReadError,
+                 "ReadParticles: filename_list is not a list!\n");
+        goto _fail;
+    }
+    ngrids = PyList_Size(filename_list);
+
+    if (!PyList_Check(grid_ids)
+        || (PyList_Size(grid_ids) != ngrids)) {
+        PyErr_Format(_hdf5ReadError,
+                 "ReadParticles: grid_ids is not a list of correct length!\n");
+        goto _fail;
+    }
+
+    if (!PyTuple_Check(vargs)) {
+        PyErr_Format(_hdf5ReadError,
+                 "ReadParticles: vargs is not a tuple!\n");
+        goto _fail;
+    }
+
+    if (!PyList_Check(fully_enclosed)
+        || (PyList_Size(fully_enclosed) != ngrids)) {
+        PyErr_Format(_hdf5ReadError,
+                 "ReadParticles: fully_enclosed is not a list of correct length!\n");
+        goto _fail;
+    }
+
+    /* We've now parsed all our arguments and it is time to set up the
+       validator */
+
+    /* First initialize our particle_validation structure */
+    particle_validation pv;
+    pv.mask = (int*) malloc(sizeof(int) * stride_size);
+    pv.stride_size = stride_size;
+
+    switch(source_type) {
+        case 0:
+            /* Region type */
+            setup_validator_region(&pv, vargs);
+            break;
+        default:
+            PyErr_Format(_hdf5ReadError,
+                    "Unrecognized data source.\n");
+            goto _fail;
+            break;
+    }
+
+    /* Okay, now we open our files and stride over each grid in the files. */
+
+    PyObject *temp = NULL;
+    char *filename = NULL;
+    int num_cells = 0;
+
+    for (ig = 0; ig < ngrids ; ig++) {
+        /* Read the data into our buffer here */
+        /* Borrowed reference to the fully-enclosed calculation */
+        temp = PyList_GetItem(fully_enclosed, ig);
+        num_cells = PyInt_AsLong(temp);
+        if (num_cells == 0){
+            /* We need a filename and a grid id */
+            temp = PyList_GetItem(filename_list, ig);
+            filename = PyString_AsString(temp);
+            temp = PyList_GetItem(grid_ids, ig);
+            id = PyInt_AsLong(temp);
+            if(run_validators(&pv, filename, id) < 0) {
+                goto _fail;
+            }
+        } else {
+            pv.count += num_cells;
+        }
+    }
+
+    /* Now we know how many particles we want. */
+
+    for (ig = 0; ig < ngrids ; ig++) {
+
+    }
+
+    /* Now we do some finalization */
+    for (i = 0; i<3; i++) {
+        free(pv.particle_position[i]);
+    }
+
+    free(pv.validation_reqs);
+    /* We don't need to free pv */
+
+    _fail:
+#warning "_fail needs to be implemented"
+
+        return NULL;
+}
+
 int setup_validator_region(particle_validation *data, PyObject *InputData)
 {
-    /* */
+    int i;
+    /* These are borrowed references */
+    PyArrayObject *left_edge = (PyArrayObject *) PyTuple_GetItem(InputData, 0);
+    PyArrayObject *right_edge = (PyArrayObject *) PyTuple_GetItem(InputData, 1);
+    PyObject *operiodic = PyTuple_GetItem(InputData, 2);
+    
+    region_validation *rv = (region_validation *)
+                malloc(sizeof(region_validation));
+    data->validation_reqs = (void *) rv;
+
+    for (i = 0; i < 3; i++){
+        rv->left_edge[i] = *(npy_float64*) PyArray_GETPTR1(left_edge, i);
+        rv->right_edge[i] = *(npy_float64*) PyArray_GETPTR1(right_edge, i);
+    }
+
+    rv->periodic = PyInt_AsLong(operiodic);
+
+    data->count_func = NULL;
+    data->count_func_float = count_particles_region_FLOAT;
+    data->count_func_double = count_particles_region_DOUBLE;
+
+    /* We need to insert more periodic logic here */
+
     return 1;
+}
+
+int run_validators(particle_validation *pv, char *filename, 
+                   int grid_id)
+{
+    int i;
+    hid_t file_id;
+    hid_t dataset_x, dataset_y, dataset_z;
+    hid_t dataspace, memspace;
+    hid_t datatype_id, native_type_id;
+    hid_t my_error;
+    char name_x[255], name_y[255], name_z[255];
+    hsize_t num_part;
+    hsize_t current_pos = 0;
+    hsize_t count = 0;
+
+    snprintf(name_x, 255, "/Grid%08i/particle_position_x", grid_id);
+    snprintf(name_y, 255, "/Grid%08i/particle_position_y", grid_id);
+    snprintf(name_z, 255, "/Grid%08i/particle_position_z", grid_id);
+
+    /* First we open the file */
+
+    file_id = H5Fopen(filename, H5F_ACC_RDONLY, H5P_DEFAULT);
+    if (file_id < 0) {
+        PyErr_Format(_hdf5ReadError,
+                 "ReadHDF5DataSet: Unable to open %s", filename);
+        goto _fail;
+    }
+
+    /* Figure out the size of our array */
+
+    /* Note that we are using one dimension, not multiple.  If you're using
+       Enzo data with multiple particle dimensions, well, I'm afraid I can't help you.
+       Just now, at least.  */
+
+    dataset_x = H5Dopen(file_id, name_x);
+    dataset_y = H5Dopen(file_id, name_y);
+    dataset_z = H5Dopen(file_id, name_z);
+
+    dataspace = H5Dget_space(dataset_x);
+    my_error = H5Sget_simple_extent_dims( dataspace, &num_part, NULL );
+
+    /* Let's get the information about the datatype now */
+    datatype_id = H5Dget_type(dataset_x);
+    native_type_id = H5Tget_native_type(datatype_id, H5T_DIR_ASCEND);
+
+    /* If the count function is not set, set it and allocate arrays */
+    if(pv->count_func == NULL){
+      int typesize = 0;
+      if(H5Tequal(native_type_id, H5T_NATIVE_FLOAT) > 0) {
+        pv->count_func = pv->count_func_float;
+        typesize = sizeof(float);
+      } else if (H5Tequal(native_type_id, H5T_NATIVE_DOUBLE) > 0 ) {
+        pv->count_func = pv->count_func_double;
+        typesize = sizeof(double);
+      } else if (H5Tequal(native_type_id, H5T_NATIVE_LDOUBLE) > 0 ) {
+        pv->count_func = pv->count_func_longdouble;
+        typesize = sizeof(long double);
+      } else {
+        H5Tclose(datatype_id); H5Tclose(native_type_id);
+        PyErr_Format(_hdf5ReadError,
+            "ReadHDF5DataSet: Unrecognized particle position array type");
+        goto _fail;
+      }
+      /* We allocate arrays here */
+      for(i = 0; i < 3; i++)
+        pv->particle_position[i] = malloc(pv->stride_size * typesize);
+    }
+    
+    /* Now we create an in-memory dataspace */
+
+    memspace = H5Screate(H5S_SIMPLE);
+
+    /* We begin our iteration over the strides here */
+
+    while(current_pos < num_part) {
+        count = ((current_pos + count > num_part) ? 
+                    num_part-current_pos : pv->stride_size );
+
+        H5Sselect_hyperslab(dataspace, H5S_SELECT_SET, &current_pos, NULL,
+                            &count, NULL);
+        H5Dread(dataset_x, native_type_id, memspace, dataspace, H5P_DEFAULT,
+                pv->particle_position[0]);
+        H5Dread(dataset_y, native_type_id, memspace, dataspace, H5P_DEFAULT,
+                pv->particle_position[1]);
+        H5Dread(dataset_z, native_type_id, memspace, dataspace, H5P_DEFAULT,
+                pv->particle_position[2]);
+
+        pv->count_func(pv);
+
+        current_pos += pv->stride_size;
+    }
+
+    H5Dclose(dataset_x);
+    H5Dclose(dataset_y);
+    H5Dclose(dataset_z);
+    H5Sclose(dataspace);
+    H5Sclose(memspace);
+    H5Tclose(datatype_id);
+    H5Tclose(native_type_id);
+
+    _fail:
+#warning "_fail needs to be implemented"
+
+        return -1;
 }
 
 /* Hate to do copy-pasta here, but I think it is necessary */
@@ -691,11 +954,48 @@ int count_particles_region_FLOAT(particle_validation *data)
 
     vdata = (region_validation*) data->validation_reqs;
     
-    float **particle_data = (float **) data->particle_data;
+    float **particle_data = (float **) data->particle_position;
 
     float *particle_position_x = particle_data[0];
     float *particle_position_y = particle_data[1];
     float *particle_position_z = particle_data[2];
+
+    if (vdata->periodic == 0) {
+      for (ind = 0; ind < data->npart; ind++) {
+        if ((particle_position_x[ind] > vdata->left_edge[0])
+            && (particle_position_x[ind] < vdata->right_edge[0])
+            && (particle_position_y[ind] > vdata->left_edge[1])
+            && (particle_position_y[ind] < vdata->right_edge[1])
+            && (particle_position_z[ind] > vdata->left_edge[2])
+            && (particle_position_z[ind] < vdata->right_edge[2])) {
+          data->count++;
+          data->mask[ind] = 1;
+        } else {
+          data->mask[ind] = 0;
+        }
+      }
+    } else {
+        /* We need periodic logic here */
+    }
+    return 1;
+}
+
+int count_particles_region_DOUBLE(particle_validation *data)
+{
+    /* Our data comes packed in a struct, off which our pointers all hang */
+
+    /* First is our validation requirements, which are a set of three items: */
+
+    int ind;
+    region_validation *vdata;
+
+    vdata = (region_validation*) data->validation_reqs;
+    
+    double **particle_data = (double **) data->particle_position;
+
+    double *particle_position_x = particle_data[0];
+    double *particle_position_y = particle_data[1];
+    double *particle_position_z = particle_data[2];
 
     if (vdata->periodic == 0) {
       for (ind = 0; ind < data->npart; ind++) {

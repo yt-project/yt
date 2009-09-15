@@ -49,11 +49,16 @@ class ParticleIOHandlerRegion(ParticleIOHandler):
         self.periodic = periodic
         ParticleIOHandler.__init__(self, pf, source)
 
-    def dispatch(self, grid):
+    def dispatch(self):
         """
-        The purpose of this function is to determine whether or not
-        we should read the entire grid.
+        The purpose of this function is to set up arguments to the
+        C-implementation of the reader.
         """
-        if self.source._is_fully_enclosed(grid):
-            return True
-        return False
+        grid_list = []
+        for grid in self.source._grids:
+            if self.source._is_fully_enclosed(grid):
+                grid_list.append(grid.ActiveDimensions.prod())
+            else:
+                grid_list.append(0)
+        # left_edge, right_edge, periodic, grid_list
+        return (self.left_edge, self.right_edge, 0, grid_list)
