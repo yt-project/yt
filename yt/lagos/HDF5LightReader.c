@@ -38,6 +38,20 @@
 static PyObject *_hdf5ReadError;
 herr_t iterate_dataset(hid_t loc_id, const char *name, void *nodelist);
 
+typedef struct particle_validation_ {
+    int count;
+    int npart;
+    int *mask;
+    void *validation_reqs;
+    void **particle_data;
+} particle_validation;
+
+typedef struct region_validation_ {
+    npy_float64 left_edge[3];
+    npy_float64 right_edge[3];
+    int periodic;
+} region_validation;
+
 int get_my_desc_type(hid_t native_type_id){
 
    /*
@@ -656,6 +670,51 @@ PyArrayObject* get_array_from_nodename(char *nodename, hid_t rootnode)
       if(my_max_dims != NULL) free(my_max_dims);
       if(dims != NULL) free(dims);
       return NULL;
+}
+
+int setup_validator_region(particle_validation *data, PyObject *InputData)
+{
+    /* */
+    return 1;
+}
+
+/* Hate to do copy-pasta here, but I think it is necessary */
+
+int count_particles_region_FLOAT(particle_validation *data)
+{
+    /* Our data comes packed in a struct, off which our pointers all hang */
+
+    /* First is our validation requirements, which are a set of three items: */
+
+    int ind;
+    region_validation *vdata;
+
+    vdata = (region_validation*) data->validation_reqs;
+    
+    float **particle_data = (float **) data->particle_data;
+
+    float *particle_position_x = particle_data[0];
+    float *particle_position_y = particle_data[1];
+    float *particle_position_z = particle_data[2];
+
+    if (vdata->periodic == 0) {
+      for (ind = 0; ind < data->npart; ind++) {
+        if ((particle_position_x[ind] > vdata->left_edge[0])
+            && (particle_position_x[ind] < vdata->right_edge[0])
+            && (particle_position_y[ind] > vdata->left_edge[1])
+            && (particle_position_y[ind] < vdata->right_edge[1])
+            && (particle_position_z[ind] > vdata->left_edge[2])
+            && (particle_position_z[ind] < vdata->right_edge[2])) {
+          data->count++;
+          data->mask[ind] = 1;
+        } else {
+          data->mask[ind] = 0;
+        }
+      }
+    } else {
+        /* We need periodic logic here */
+    }
+    return 1;
 }
 
 static PyMethodDef _hdf5LightReaderMethods[] = {
