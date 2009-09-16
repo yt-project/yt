@@ -181,6 +181,13 @@ class IOHandlerPackedHDF5(BaseIOHandler):
     def _read_data_set(self, grid, field):
         return readDataPacked(grid, field)
 
+    def _read_particles(self, source, fields, dispatcher):
+        stype, vargs, grid_list, enclosed = dispatcher()
+        filenames = [g.filename for g in grid_list]
+        ids = [g.id for g in grid_list]
+        return HDF5LightReader.ReadParticles(
+            stype, fields, filenames, ids, vargs, enclosed)
+
     def modify(self, field):
         return field.swapaxes(0,2)
 

@@ -54,11 +54,13 @@ class ParticleIOHandlerRegion(ParticleIOHandler):
         The purpose of this function is to set up arguments to the
         C-implementation of the reader.
         """
-        grid_list = []
+        count_list, grid_list = [], []
         for grid in self.source._grids:
+            if grid.NumberOfParticles == 0: continue
+            grid_list.append(grid)
             if self.source._is_fully_enclosed(grid):
-                grid_list.append(grid.ActiveDimensions.prod())
+                count_list.append(grid.ActiveDimensions.prod())
             else:
-                grid_list.append(0)
-        # left_edge, right_edge, periodic, grid_list
-        return (self.left_edge, self.right_edge, 0, grid_list)
+                count_list.append(0)
+        # region type, left_edge, right_edge, periodic, grid_list
+        return (0, (self.left_edge, self.right_edge, 0), grid_list, count_list)

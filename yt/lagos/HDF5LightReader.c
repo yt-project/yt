@@ -48,7 +48,6 @@ typedef struct particle_validation_ {
     int nfields;
     char **field_names;
     PyArrayObject **return_values;
-    int npy_type;
     int (*count_func)(struct particle_validation_ *data);
     int (*count_func_float)(struct particle_validation_ *data);
     int (*count_func_double)(struct particle_validation_ *data);
@@ -58,6 +57,7 @@ typedef struct particle_validation_ {
 } particle_validation;
 
 typedef struct region_validation_ {
+    /* These cannot contain any pointers */
     npy_float64 left_edge[3];
     npy_float64 right_edge[3];
     int periodic;
@@ -711,8 +711,21 @@ Py_ReadParticles(PyObject *obj, PyObject *args)
     Py_ssize_t ngrids, nfields;
 
     PyObject *field_list, *filename_list, *grid_ids, *fully_enclosed, *vargs;
+    int stride_size = 10000000;
+    particle_validation pv;
+
+    /* We explicitly initialize pointers to NULL to aid with failure handling */
+
     vargs = field_list = filename_list = grid_ids = fully_enclosed = NULL;
-    int stride_size = 100000;
+    pv.mask = NULL;
+    pv.field_names = NULL;
+    pv.validation_reqs = NULL;
+    pv.particle_position[0] = pv.particle_position[1] = pv.particle_position[2] = NULL;
+    pv.return_values = NULL;
+
+    /* Set initial values for pv */
+    pv.stride_size = stride_size;
+    pv.count = pv.npart = pv.nread = pv.nfields = 0;
 
     if (!PyArg_ParseTuple(args, "iOOOOO",
             &source_type, /* This is a non-public API, so we just take ints */
@@ -726,6 +739,7 @@ Py_ReadParticles(PyObject *obj, PyObject *args)
         goto _fail;
     }
     nfields = PyList_Size(field_list);
+    pv.nfields = nfields;
 
     if (!PyList_Check(filename_list)) {
         PyErr_Format(_hdf5ReadError,
@@ -758,10 +772,8 @@ Py_ReadParticles(PyObject *obj, PyObject *args)
        validator */
 
     /* First initialize our particle_validation structure */
-    particle_validation pv;
+    
     pv.mask = (int*) malloc(sizeof(int) * stride_size);
-    pv.stride_size = stride_size;
-    pv.nfields = nfields;
 
     switch(source_type) {
         case 0:
@@ -798,33 +810,77 @@ Py_ReadParticles(PyObject *obj, PyObject *args)
         } else {
             pv.count += num_cells;
         }
+        fprintf(stderr, "Done with grid %d with %d particles\n", ig, pv.count);
     }
     /* Now we know how big to make our array, hooray. */
     
     pv.return_values = (PyArrayObject**) malloc(
                         sizeof(PyArrayObject*) * nfields);
+    pv.field_names = (char **) malloc(
+                        sizeof(char *) * nfields);
     for (ifield = 0; ifield < nfields; ifield++) {
         pv.return_values[ifield] = NULL;
+        pv.field_names[ifield] = (char *)malloc(sizeof(char) * 255);
+        PyObject *temp = PyList_GetItem(field_list, ifield);
+        strcpy(pv.field_names[ifield], PyString_AsString(temp));
+        fprintf(stderr, "Field Name: %s\n", pv.field_names[ifield]);
     }
 
     /* Now we know how many particles we want. */
 
     for (ig = 0; ig < ngrids ; ig++) {
-
+      /* We should have some logic here to read the entire thing
+         in a stride, without checking particle positions,
+         if it's fully-enclosed. */
+      if(run_validators(&pv, filename, id, 1) < 0) {
+        goto _fail;
+      }
     }
 
+    /* Let's pack up our return values */
+    PyObject *my_list = PyList_New(0);
+    for (i = 0; i < pv.nfields ; i++){
+        PyList_Append(my_list, (PyObject *) pv.return_values[i]);
+        Py_DECREF(pv.return_values[i]);
+    }
+    PyObject *return_value = Py_BuildValue("N", my_list);
+
     /* Now we do some finalization */
+    free(pv.mask);
+    for (i = 0; i<pv.nfields; i++) {
+        free(pv.field_names[i]);
+    }
+    free(pv.field_names);
+    free(pv.return_values); /* Has to happen after packing our return value */
     for (i = 0; i<3; i++) {
         free(pv.particle_position[i]);
     }
-
     free(pv.validation_reqs);
     /* We don't need to free pv */
 
-    _fail:
-#warning "_fail needs to be implemented"
+    return return_value;
 
-        return NULL;
+    _fail:
+
+    if(pv.mask != NULL) free(pv.mask);
+    if(pv.field_names != NULL) {
+      for (i = 0; i<pv.nfields; i++) {
+        free(pv.field_names[i]);
+      }
+      free(pv.field_names);
+    }
+    if(pv.return_values != NULL){
+      for (i = 0; i < pv.nfields; i++) {
+        if(pv.return_values[i] != NULL) Py_DECREF(pv.return_values[i]);
+      }
+      free(pv.return_values);
+    }
+    for(i = 0; i < 3; i++) {
+        if(pv.particle_position[i] != NULL) free(pv.particle_position[i]);
+    }
+    if(pv.validation_reqs != NULL) free(pv.validation_reqs);
+
+    return NULL;
 }
 
 int setup_validator_region(particle_validation *data, PyObject *InputData)
@@ -835,6 +891,7 @@ int setup_validator_region(particle_validation *data, PyObject *InputData)
     PyArrayObject *right_edge = (PyArrayObject *) PyTuple_GetItem(InputData, 1);
     PyObject *operiodic = PyTuple_GetItem(InputData, 2);
     
+    /* This will get freed in the finalization of particle validation */
     region_validation *rv = (region_validation *)
                 malloc(sizeof(region_validation));
     data->validation_reqs = (void *) rv;
@@ -870,12 +927,18 @@ int run_validators(particle_validation *pv, char *filename,
     hsize_t current_pos = 0;
     hsize_t count = 0;
     hid_t *dataset_read;
+    dataset_read = NULL;
+
+    /* We set these to -1 to identify which haven't been used */
+    file_id = dataset_x = dataset_y = dataset_z = -1;
+    dataspace = memspace = datatype_id = native_type_id = -1;
+    rdatatype_id = rnative_type_id = -1;
 
     int npy_type;
 
-    snprintf(name_x, 255, "/Grid%08d/particle_position_x", grid_id);
-    snprintf(name_y, 255, "/Grid%08d/particle_position_y", grid_id);
-    snprintf(name_z, 255, "/Grid%08d/particle_position_z", grid_id);
+    snprintf(name_x, 254, "/Grid%08d/particle_position_x", grid_id);
+    snprintf(name_y, 254, "/Grid%08d/particle_position_y", grid_id);
+    snprintf(name_z, 254, "/Grid%08d/particle_position_z", grid_id);
 
     /* First we open the file */
 
@@ -897,7 +960,8 @@ int run_validators(particle_validation *pv, char *filename,
     dataset_z = H5Dopen(file_id, name_z);
 
     dataspace = H5Dget_space(dataset_x);
-    my_error = H5Sget_simple_extent_dims( dataspace, &num_part, NULL );
+    num_part = H5Sget_simple_extent_npoints(dataspace);
+    //fprintf(stderr, "Number of particles: %d\n", (int) num_part);
 
     /* Let's get the information about the datatype now */
     datatype_id = H5Dget_type(dataset_x);
@@ -936,6 +1000,7 @@ int run_validators(particle_validation *pv, char *filename,
             npy_intp dims = pv->count;
             if(pv->return_values[i] == NULL){
                 /* Get the data type */
+                fprintf(stderr, "Allocating new array for %d\n", i);
                 rdatatype_id = H5Dget_type(dataset_read[i]);
                 rnative_type_id = H5Tget_native_type(rdatatype_id, H5T_DIR_ASCEND);
                 npy_type = get_my_desc_type(rnative_type_id);
@@ -953,50 +1018,52 @@ int run_validators(particle_validation *pv, char *filename,
     memspace = H5Screate(H5S_SIMPLE);
 
     /* We begin our iteration over the strides here */
-
     while(current_pos < num_part) {
-        count = ((current_pos + count >= num_part) ? 
-                    num_part-current_pos : pv->stride_size );
+      count = ((current_pos + pv->stride_size >= num_part) ? 
+          num_part-current_pos : pv->stride_size );
+      pv->npart = count;
 
-        H5Sselect_hyperslab(dataspace, H5S_SELECT_SET, &current_pos, NULL,
-                            &count, NULL);
-        H5Dread(dataset_x, native_type_id, memspace, dataspace, H5P_DEFAULT,
-                pv->particle_position[0]);
-        H5Dread(dataset_y, native_type_id, memspace, dataspace, H5P_DEFAULT,
-                pv->particle_position[1]);
-        H5Dread(dataset_z, native_type_id, memspace, dataspace, H5P_DEFAULT,
-                pv->particle_position[2]);
+      H5Sselect_hyperslab(dataspace, H5S_SELECT_SET, &current_pos, NULL,
+          &count, NULL);
+      H5Dread(dataset_x, native_type_id, memspace, dataspace, H5P_DEFAULT,
+          pv->particle_position[0]);
+      H5Dread(dataset_y, native_type_id, memspace, dataspace, H5P_DEFAULT,
+          pv->particle_position[1]);
+      H5Dread(dataset_z, native_type_id, memspace, dataspace, H5P_DEFAULT,
+          pv->particle_position[2]);
 
-        pv->count_func(pv);
+      pv->count_func(pv);
 
-        if(read == 1) {
-            /* First we select the dataspace */
-            H5Sselect_none(dataspace);
-            hsize_t offset;
-            hsize_t one = 1;
-            int read_here = 0;
-            for(i = 0 ; i < count ; i++) {
-                offset = i + current_pos;
-                /* This might be quite slow */
-                if(pv->mask[i] = 0){
-                    H5Sselect_hyperslab(dataspace, H5S_SELECT_OR,
-                        &offset, NULL, &one, NULL);
-                    read_here++;
-                }
-            }
-            for (ifield = 0; ifield < pv->nfields; ifield++){
-                rdatatype_id = H5Dget_type(dataset_read[i]);
-                rnative_type_id = H5Tget_native_type(rdatatype_id, H5T_DIR_ASCEND);
-                H5Dread(dataset_read[ifield], native_type_id,
-                    memspace, dataspace, H5P_DEFAULT,
-                    (void*) PyArray_GETPTR1(pv->return_values[ifield], pv->nread));
-                H5Tclose(rnative_type_id);
-                H5Tclose(rdatatype_id);
-            }
-            pv->nread += read_here;
+      if(read == 1) {
+        /* First we select the dataspace */
+        H5Sselect_none(dataspace);
+        hsize_t offset;
+        hsize_t one = 1;
+        int read_here = 0;
+        for(i = 0 ; i < count ; i++) {
+          offset = i + current_pos;
+          /* This might be quite slow */
+          if(pv->mask[i] = 1){
+            H5Sselect_hyperslab(dataspace, H5S_SELECT_OR,
+                &offset, NULL, &one, NULL);
+            read_here++;
+          }
         }
+        for (ifield = 0; ifield < pv->nfields; ifield++){
+          rdatatype_id = H5Dget_type(dataset_read[i]);
+          rnative_type_id = H5Tget_native_type(rdatatype_id, H5T_DIR_ASCEND);
+          fprintf(stderr, "Reading %d starting at %d\n",
+                  (int) read_here, (int) pv->nread);
+          H5Dread(dataset_read[ifield], native_type_id,
+              memspace, dataspace, H5P_DEFAULT,
+              (void*) PyArray_GETPTR1(pv->return_values[ifield], pv->nread));
+          H5Tclose(rnative_type_id);
+          H5Tclose(rdatatype_id);
+        }
+        pv->nread += read_here;
+      }
 
-        current_pos += pv->stride_size;
+      current_pos += pv->stride_size;
     }
 
     H5Dclose(dataset_x);
@@ -1008,18 +1075,35 @@ int run_validators(particle_validation *pv, char *filename,
     H5Tclose(native_type_id);
 
     if (read == 1) {
-        for (i = 0; i < pv->nfields; i++) {
-            H5Dclose(dataset_read[i]);
-        }
-        free(dataset_read);
+      for (i = 0; i < pv->nfields; i++) {
+        H5Dclose(dataset_read[i]);
+      }
+      free(dataset_read);
     }
 
     H5Fclose(file_id);
 
-    _fail:
-#warning "_fail needs to be implemented"
+    return 1;
 
-        return -1;
+    _fail:
+    /* Now the nasty business of closing our HDF5 references */
+    if(!(dataset_x <= 0)&&(H5Iget_ref(dataset_x))) H5Dclose(dataset_x);
+    if(!(dataset_y <= 0)&&(H5Iget_ref(dataset_y))) H5Dclose(dataset_y);
+    if(!(dataset_z <= 0)&&(H5Iget_ref(dataset_z))) H5Dclose(dataset_z);
+    if(!(dataspace <= 0)&&(H5Iget_ref(dataspace))) H5Sclose(dataspace);
+    if(!(memspace <= 0)&&(H5Iget_ref(memspace))) H5Sclose(memspace);
+    if(!(native_type_id <= 0)&&(H5Iget_ref(native_type_id))) H5Tclose(native_type_id);
+    if(!(datatype_id <= 0)&&(H5Iget_ref(datatype_id))) H5Tclose(datatype_id);
+    if ((read == 1) && (dataset_read != NULL)) {
+      for (i = 0; i < pv->nfields; i++) {
+        if(!(dataset_read[i] <= 0)&&(H5Iget_ref(dataset_read[i])))
+            H5Dclose(dataset_read[i]);
+      }
+      free(dataset_read);
+    }
+    if(!(file_id <= 0)&&(H5Iget_ref(file_id))) H5Fclose(file_id);
+    
+    return 0;
 }
 
 /* Hate to do copy-pasta here, but I think it is necessary */
@@ -1103,6 +1187,7 @@ static PyMethodDef _hdf5LightReaderMethods[] = {
     {"ReadDataSlice", Py_ReadHDF5DataSetSlice, METH_VARARGS},
     {"ReadListOfDatasets", Py_ReadListOfDatasets, METH_VARARGS},
     {"ReadMultipleGrids", Py_ReadMultipleGrids, METH_VARARGS},
+    {"ReadParticles", Py_ReadParticles, METH_VARARGS},
     {NULL, NULL} 
 };
 
