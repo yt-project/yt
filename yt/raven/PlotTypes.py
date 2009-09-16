@@ -164,33 +164,34 @@ class RavenPlot(object):
                 zmax = na.nanmax(imbuff)
                 if dex is not None:
                     zmin = max(zmax/(10**(dex)),na.nanmin(imbuff))
-        if ticks is not None:
-            ticks = na.sort(ticks)
-            self.colorbar.locator = matplotlib.ticker.FixedLocator(ticks)
-            self.colorbar.formatter = matplotlib.ticker.FixedFormatter(["%0.2e" % (x) for x in ticks])
-        elif minmaxtick:
-            if not self.log_field: 
-                ticks = na.array(self.colorbar._ticker()[0],dtype='float')
-                ticks = [zmin] + ticks.tolist() + [zmax]
+        if self.colorbar is not None:
+            if ticks is not None:
+                ticks = na.sort(ticks)
                 self.colorbar.locator = matplotlib.ticker.FixedLocator(ticks)
                 self.colorbar.formatter = matplotlib.ticker.FixedFormatter(["%0.2e" % (x) for x in ticks])
-            else:
-                mylog.error('Sorry, we do not support minmaxtick for linear fields.  It likely comes close by default')
-        elif nticks is not None:
-            if self.log_field:
-                lin = na.linspace(na.log10(zmin),na.log10(zmax),nticks)
-                self.colorbar.locator = matplotlib.ticker.FixedLocator(10**lin)
-                self.colorbar.formatter = matplotlib.ticker.FixedFormatter(["%0.2e" % (10**x) for x in lin])
-            else: 
-                lin = na.linspace(zmin,zmax,nticks)
-                self.colorbar.locator = matplotlib.ticker.FixedLocator(lin)
-                self.colorbar.formatter = matplotlib.ticker.FixedFormatter(["%0.2e" % x for x in lin])
+            elif minmaxtick:
+                if not self.log_field: 
+                    ticks = na.array(self.colorbar._ticker()[0],dtype='float')
+                    ticks = [zmin] + ticks.tolist() + [zmax]
+                    self.colorbar.locator = matplotlib.ticker.FixedLocator(ticks)
+                    self.colorbar.formatter = matplotlib.ticker.FixedFormatter(["%0.2e" % (x) for x in ticks])
+                else:
+                    mylog.error('Sorry, we do not support minmaxtick for linear fields.  It likely comes close by default')
+            elif nticks is not None:
+                if self.log_field:
+                    lin = na.linspace(na.log10(zmin),na.log10(zmax),nticks)
+                    self.colorbar.locator = matplotlib.ticker.FixedLocator(10**lin)
+                    self.colorbar.formatter = matplotlib.ticker.FixedFormatter(["%0.2e" % (10**x) for x in lin])
+                else: 
+                    lin = na.linspace(zmin,zmax,nticks)
+                    self.colorbar.locator = matplotlib.ticker.FixedLocator(lin)
+                    self.colorbar.formatter = matplotlib.ticker.FixedFormatter(["%0.2e" % x for x in lin])
 
-        else:
-            if hasattr(self,'_old_locator'):
-                self.colorbar.locator = self._old_locator
-            if hasattr(self,'_old_formatter'):
-                self.colorbar.formatter = self._old_formatter
+            else:
+                if hasattr(self,'_old_locator'):
+                    self.colorbar.locator = self._old_locator
+                if hasattr(self,'_old_formatter'):
+                    self.colorbar.formatter = self._old_formatter
         self.norm.autoscale(na.array([zmin,zmax]))
         self.image.changed()
         if self.colorbar is not None:
