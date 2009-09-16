@@ -1012,7 +1012,7 @@ class AMRFixedResCuttingPlaneBase(AMR2DData):
         self._pixelmask = na.ones(self.dims*self.dims, dtype='int8')
 
         try:
-            import PointsInVolumeCUDA as pvc
+            import IIIPointsInVolumeCUDA as pvc
             self._pv = pvc.VolumeFinder(self._coord, self.dims)
         except (ImportError, NoCUDAException):
             self._pv = None
@@ -1051,7 +1051,6 @@ class AMRFixedResCuttingPlaneBase(AMR2DData):
         self._grids = self.hierarchy.grids[valid_grids[
             na.where(leftOverlap & rightOverlap)]]
         self._grids = self._grids[::-1]
-
 
     def _generate_coords(self):
         self['px'] = self._coord[:,0].ravel()
