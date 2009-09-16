@@ -792,6 +792,7 @@ Py_ReadParticles(PyObject *obj, PyObject *args)
       filename = PyString_AsString(temp);
       temp = PyList_GetItem(grid_ids, ig);
       id = PyInt_AsLong(temp);
+      //fprintf(stderr, "Counting from grid %d\n", id);
       if(run_validators(&pv, filename, id, 0) < 0) {
         goto _fail;
       }
@@ -818,6 +819,7 @@ Py_ReadParticles(PyObject *obj, PyObject *args)
       filename = PyString_AsString(temp);
       temp = PyList_GetItem(grid_ids, ig);
       id = PyInt_AsLong(temp);
+      //fprintf(stderr, "Reading from grid %d\n", id);
       if(run_validators(&pv, filename, id, 1) < 0) {
         goto _fail;
       }
@@ -854,7 +856,7 @@ Py_ReadParticles(PyObject *obj, PyObject *args)
     }
     if(pv.return_values != NULL){
       for (i = 0; i < pv.nfields; i++) {
-        if(pv.return_values[i] != NULL) Py_DECREF(pv.return_values[i]);
+        if(pv.return_values[i] != NULL) { Py_DECREF(pv.return_values[i]); }
       }
       free(pv.return_values);
     }
@@ -904,7 +906,6 @@ int run_validators(particle_validation *pv, char *filename,
     hid_t dataspace, memspace;
     hid_t datatype_id, native_type_id;
     hid_t rdatatype_id, rnative_type_id;
-    hid_t my_error;
     char name_x[255], name_y[255], name_z[255];
     hsize_t num_part_this_grid;
     hsize_t current_pos = 0;
@@ -987,6 +988,7 @@ int run_validators(particle_validation *pv, char *filename,
                 rdatatype_id = H5Dget_type(dataset_read[i]);
                 rnative_type_id = H5Tget_native_type(rdatatype_id, H5T_DIR_ASCEND);
                 npy_type = get_my_desc_type(rnative_type_id);
+                //fprintf(stderr, "Allocating array of size %d\n", (int) dims);
                 pv->return_values[i] = (PyArrayObject *) 
                     PyArray_SimpleNewFromDescr(
                         1, &dims, PyArray_DescrFromType(npy_type));
@@ -1016,36 +1018,32 @@ int run_validators(particle_validation *pv, char *filename,
       H5Dread(dataset_z, native_type_id, memspace, dataspace, H5P_DEFAULT,
           pv->particle_position[2]);
 
-      pv->count_func(pv);
+      hsize_t read_here = pv->count_func(pv);
 
-      if(read == 1) {
-        /* First we select the dataspace */
-        H5Sselect_none(dataspace);
-        hsize_t offset;
-        hsize_t one = 1;
-        hsize_t read_here = 0;
-        for(i = 0 ; i < num_particles_to_read ; i++) {
-          /* This might be quite slow */
-          offset = current_pos + i;
-          if(pv->mask[i] == 1){
-            H5Sselect_hyperslab(dataspace, H5S_SELECT_OR,
-                &offset, NULL, &one, NULL);
-            read_here++;
+      if((read == 1) && (read_here > 0)) {
+          /* First we select the dataspace */
+          H5Sselect_none(dataspace);
+          int num_copied = 0;
+          hsize_t *coords = malloc(sizeof(hsize_t) * read_here);
+          for(i = 0 ; i < num_particles_to_read ; i++) {
+              /* This might be quite slow */
+              if(pv->mask[i] == 1){
+                  coords[num_copied++] = current_pos + i;
+              }
           }
-        }
-        if(read_here > 0) {
+          H5Sselect_elements(dataspace, H5S_SELECT_SET, read_here, coords);
           H5Sset_extent_simple(memspace, 1, &read_here, &read_here);
+          free(coords);
           for (ifield = 0; ifield < pv->nfields; ifield++){
-            rdatatype_id = H5Dget_type(dataset_read[ifield]);
-            rnative_type_id = H5Tget_native_type(rdatatype_id, H5T_DIR_ASCEND);
-            H5Dread(dataset_read[ifield], rnative_type_id,
-                memspace, dataspace, H5P_DEFAULT,
-                (void*) PyArray_GETPTR1(pv->return_values[ifield], pv->nread));
-            H5Tclose(rnative_type_id);
-            H5Tclose(rdatatype_id);
+              rdatatype_id = H5Dget_type(dataset_read[ifield]);
+              rnative_type_id = H5Tget_native_type(rdatatype_id, H5T_DIR_ASCEND);
+              H5Dread(dataset_read[ifield], rnative_type_id,
+                      memspace, dataspace, H5P_DEFAULT,
+                      (void*) PyArray_GETPTR1(pv->return_values[ifield], pv->nread));
+              H5Tclose(rnative_type_id);
+              H5Tclose(rdatatype_id);
           }
           pv->nread += read_here;
-        }
       }
 
       current_pos += num_particles_to_read;
