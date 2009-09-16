@@ -86,11 +86,27 @@ class RunParallelHOP(ParallelAnalysisInterface):
                 my_vertices.append(na.array([thisRE[0], thisRE[1], thisLE[2]]))
                 my_vertices.append(na.array([thisRE[0], thisRE[1], thisRE[2]]))
         # Find the neighbors we share corners with. Yes, this is lazy with
-        # a double loop, but it works.
+        # a double loop, but it works and this is definitely not a performance
+        # bottleneck.
         for my_vertex in my_vertices:
             for vertex in vertices:
                 if vertex[3] in self.neighbors: continue
+                # If the corners touch, it's easy. This is the case if resizing
+                # (load-balancing) is turned off.
                 if (my_vertex % self.period == vertex[0:3] % self.period).all():
+                    self.neighbors.add(int(vertex[3]))
+                    continue
+                # Also test to see if the distance to this corner is within
+                # max_padding, which is more likely the case with load-balancing
+                # turned on.
+                dx = na.min( na.abs(my_vertex[0] - vertex[0]), \
+                    self.period[0] - na.abs(my_vertex[0] - vertex[0]))
+                dy = na.min( na.abs(my_vertex[1] - vertex[1]), \
+                    self.period[1] - na.abs(my_vertex[1] - vertex[1]))
+                dz = na.min( na.abs(my_vertex[2] - vertex[2]), \
+                    self.period[2] - na.abs(my_vertex[2] - vertex[2]))
+                d = na.sqrt(dx*dx + dy*dy + dz*dz)
+                if d <= self.max_padding:
                     self.neighbors.add(int(vertex[3]))
         # Faces and edges.
         for dim in range(3):
@@ -106,13 +122,30 @@ class RunParallelHOP(ParallelAnalysisInterface):
                 min1 = min(my_RE[dim1], thisRE[dim1])
                 min2 = min(my_RE[dim2], thisRE[dim2])
                 # Faces.
+                # First, faces that touch directly.
                 if (thisRE[dim] == left_face or thisRE[dim]%self.period[dim] == left_face) and \
                         max1 <= min1 and max2 <= min2:
                     self.neighbors.add(taskID)
+                    continue
                 elif (thisLE[dim] == right_face or thisLE[dim] == right_face%self.period[dim]) and \
                         max1 <= min1 and max2 <= min2:
                     self.neighbors.add(taskID)
+                    continue
+                # If an intervening subvolume has a width less than the padding
+                # (rare, but possible), a neighbor may not actually touch, so
+                # we need to account for that.
+                if (abs(thisRE[dim] - left_face) <= self.max_padding or \
+                        abs(thisRE[dim]%self.period[dim] - left_face) <= self.max_padding) and \
+                        max1 <= min1 and max2 <= min2:
+                    self.neighbors.add(taskID)
+                    continue
+                elif (abs(thisLE[dim] - right_face) <= self.max_padding or \
+                        abs(thisLE[dim] - right_face%self.period[dim]) <= self.max_padding) and \
+                        max1 <= min1 and max2 <= min2:
+                    self.neighbors.add(taskID)
+                    continue
                 # Edges.
+                # First, edges that touch.
                 elif (my_LE[dim] == (thisRE[dim]%self.period[dim]) and \
                         my_LE[dim1] == (thisRE[dim1]%self.period[dim1]) and \
                         max2 <= min2) or \
@@ -120,6 +153,7 @@ class RunParallelHOP(ParallelAnalysisInterface):
                         my_LE[dim2] == (thisRE[dim2]%self.period[dim2]) and \
                         max1 <= min1):
                     self.neighbors.add(taskID)
+                    continue
                 elif ((my_RE[dim]%self.period[dim]) == thisLE[dim] and \
                         (my_RE[dim1]%self.period[dim1]) == thisLE[dim1] and \
                         max2 <= min2) or \
@@ -127,6 +161,24 @@ class RunParallelHOP(ParallelAnalysisInterface):
                         (my_RE[dim2]%self.period[dim2]) == thisLE[dim2] and \
                         max1 <= min1):
                     self.neighbors.add(taskID)
+                    continue
+                # Now edges that don't touch, but are close.
+                if (abs(my_LE[dim] - thisRE[dim]%self.period[dim]) <= self.max_padding and \
+                        abs(my_LE[dim1] - thisRE[dim1]%self.period[dim1]) <= self.max_padding and \
+                        max2 <= min2) or \
+                        (abs(my_LE[dim] - thisRE[dim]%self.period[dim]) <= self.max_padding and \
+                        abs(my_LE[dim2] - thisRE[dim2]%self.period[dim2]) <= self.max_padding and \
+                        max1 <= min1):
+                    self.neighbors.add(taskID)
+                    continue
+                elif (abs(my_RE[dim]%self.period[dim] - thisLE[dim]) <= self.max_padding and \
+                        abs(my_RE[dim1]%self.period[dim1] - thisLE[dim1]) <= self.max_padding and \
+                        max2 <= min2) or \
+                        (abs(my_RE[dim]%self.period[dim] - thisLE[dim]) <= self.max_padding and \
+                        abs(my_RE[dim2]%self.period[dim2] - thisLE[dim2]) <= self.max_padding and \
+                        max1 <= min1):
+                    self.neighbors.add(taskID)
+                    continue
         # Now we build a global dict of neighbor sets, and if a remote task
         # lists us as their neighbor, we add them as our neighbor. This is 
         # probably not needed because the stuff above should be symmetric,
@@ -606,7 +658,8 @@ class RunParallelHOP(ParallelAnalysisInterface):
         """
         yt_counters("build_chains")
         chainIDmax = 0
-        self.densest_in_chain = {} # chainID->part ID, one to one
+        self.densest_in_chain = {} # chainID->density, one to one
+        self.densest_in_chain_real_index = {} # chainID->real_index, one to one
         for i in xrange(int(self.size)):
             # If it's already in a group, move on, or if this particle is
             # in the padding, move on because chains can only terminate in
@@ -646,6 +699,7 @@ class RunParallelHOP(ParallelAnalysisInterface):
         elif nn == pi or not inside:
             self.chainID[pi] = chainIDmax
             self.densest_in_chain[chainIDmax] = self.density[pi]
+            self.densest_in_chain_real_index[chainIDmax] = self.index[pi]
             # if this is a padded particle, record it for later
             if not inside:
                 self.padded_particles.append(pi)
@@ -680,11 +734,63 @@ class RunParallelHOP(ParallelAnalysisInterface):
         yt_counters("create_global_densest_in_chain")
         # Shift the values over.
         temp = self.densest_in_chain.copy()
+        temp_index = self.densest_in_chain_real_index.copy()
         self.densest_in_chain = {}
-        for dens in temp:
-            self.densest_in_chain[dens + self.my_first_id] = temp[dens]
+        self.densest_in_chain_real_index = {}
+        for chainID in temp:
+            self.densest_in_chain[chainID + self.my_first_id] = temp[chainID]
+            self.densest_in_chain_real_index[chainID + self.my_first_id] = temp_index[chainID]
         # Distribute this.
         self.densest_in_chain = self._mpi_joindict_unpickled_double(self.densest_in_chain)
+        self.densest_in_chain_real_index = self._mpi_joindict_unpickled_long(self.densest_in_chain_real_index)
+        # Sort the chains by density here. This is an attempt to make it such
+        # that the merging stuff in a few steps happens in the same order
+        # all the time.
+        vals = na.array(self.densest_in_chain.values())
+        reals = na.array(self.densest_in_chain_real_index.values())
+        sort = vals.argsort()
+        sort = na.flipud(sort)
+        map = {}
+        for i,s in enumerate(sort):
+            map[s] = i
+        vals = vals[sort]
+        reals = reals[sort]
+        del self.densest_in_chain, self.densest_in_chain_real_index
+        self.densest_in_chain = {}
+        self.densest_in_chain_real_index = {}
+        for i,val in enumerate(vals):
+            self.densest_in_chain[i] = val
+            self.densest_in_chain_real_index[i] = reals[i]
+        for i,chID in enumerate(self.chainID):
+            if chID == -1: continue
+            self.chainID[i] = map[chID]
+        # For some reason chains that share the most-dense particle are not
+        # being linked, so we link them 'by hand' here.
+        reverse = defaultdict(set)
+        # Here we find a reverse mapping of real particle ID to chainID
+        for chainID in self.densest_in_chain_real_index:
+            reverse[self.densest_in_chain_real_index[chainID]].add(chainID)
+        # If the real index has len(set)>1, there are multiple chains that need
+        # to be linked
+        tolink = defaultdict(set)
+        for real in reverse:
+            if len(reverse[real]) > 1:
+                # Unf. can't slice a set, so this will have to do.
+                tolink[min(reverse[real])] = reverse[real]
+                tolink[min(reverse[real])].discard(min(reverse[real]))
+        # Now we will remove the other chains from the dicts and re-assign
+        # particles to their new chainID.
+        fix_map = {}
+        for tokeep in tolink:
+            for remove in tolink[tokeep]:
+                fix_map[remove] = tokeep
+                del self.densest_in_chain[remove]
+        for i, chainID in enumerate(self.chainID):
+            try:
+                new = fix_map[chainID]
+            except KeyError:
+                continue
+            self.chainID[i] = new
         yt_counters("create_global_densest_in_chain")
 
     def _communicate_uphill_info(self):
@@ -794,7 +900,7 @@ class RunParallelHOP(ParallelAnalysisInterface):
             # ensure that they are being recorded that way below.
             if localID != -1 and self.chainID[localID] != -1:
                 if self.recv_chainIDs[i] != self.chainID[localID] and \
-                    self.densest_in_chain[self.chainID[localID]] > self.densest_in_chain[self.recv_chainIDs[i]]:
+                        self.densest_in_chain[self.chainID[localID]] >= self.densest_in_chain[self.recv_chainIDs[i]]:
                     chainID_translate_map_local[self.recv_chainIDs[i]] = \
                         self.chainID[localID]
         # In chainID_translate_map_local, chains may
