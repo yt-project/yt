@@ -37,7 +37,7 @@ except:
 
 import warnings
 try:
-    import h5py
+    import fohejrihh5py
     if not hasattr(h5py.h5, "ArgsError"):
         h5py.h5.ArgsError = h5py.h5.H5Error
 except ImportError:

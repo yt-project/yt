@@ -59,8 +59,8 @@ class ParticleIOHandlerRegion(ParticleIOHandler):
             if grid.NumberOfParticles == 0: continue
             grid_list.append(grid)
             if self.source._is_fully_enclosed(grid):
-                count_list.append(grid.ActiveDimensions.prod())
+                count_list.append(grid.NumberOfParticles)
             else:
-                count_list.append(0)
+                count_list.append(-1)
         # region type, left_edge, right_edge, periodic, grid_list
         return (0, (self.left_edge, self.right_edge, 0), grid_list, count_list)
