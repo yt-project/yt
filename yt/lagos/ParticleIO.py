@@ -26,7 +26,16 @@ License:
 from yt.funcs import *
 from yt.lagos import *
 
-class ParticleIOHandler(AMR3DData):
+particle_handler_registry = defaultdict()
+
+class ParticleIOHandler(object):
+    class __metaclass__(type):
+        def __init__(cls, name, b, d):
+            type.__init__(cls, name, b, d)
+            if hasattr(cls, "_source_type"):
+                particle_handler_registry[cls._source_type] = cls
+
+    _source_type = None
     def __init__(self, pf, source):
         self.pf = pf
         self.data = {}
@@ -37,23 +46,40 @@ class ParticleIOHandler(AMR3DData):
             self.get_data(key)
         return self.data[key]
 
+    def __setitem__(self, key, val):
+        self.data[key] = val
+
+    def __delitem__(self, key):
+        del self.data[key]
+
+    def iter(self):
+        for val in self.data.keys(): yield val
+
     def get_data(self, fields):
         fields = ensure_list(fields)
-        self.pf.h.io._read_particles(self.source._grids,
-                fields, self._dispatch)
+        self.source.get_data(fields)
+        for field in fields:
+            self[field] = self.source[field]
+
+particle_handler_registry.default_factory = lambda: ParticleIOHandler
 
 class ParticleIOHandlerRegion(ParticleIOHandler):
-    def __init__(self, pf, source, left_edge, right_edge, periodic = False):
-        self.left_edge = left_edge
-        self.right_edge = right_edge
-        self.periodic = periodic
+    periodic = False
+    _source_type = "region"
+    def __init__(self, pf, source):
+        self.left_edge = source.left_edge
+        self.right_edge = source.right_edge
         ParticleIOHandler.__init__(self, pf, source)
 
-    def dispatch(self):
-        """
-        The purpose of this function is to set up arguments to the
-        C-implementation of the reader.
-        """
+    def get_data(self, fields):
+        fields = ensure_list(fields)
+        if not self.pf.h.io._particle_reader:
+            return self.source.get_data(fields)
+        rtype = 0
+        DLE = na.array(self.pf["DomainLeftEdge"], dtype='float64') 
+        DRE = na.array(self.pf["DomainRightEdge"], dtype='float64') 
+        args = (self.left_edge, self.right_edge, 
+                int(self.periodic), DLE, DRE)
         count_list, grid_list = [], []
         for grid in self.source._grids:
             if grid.NumberOfParticles == 0: continue
@@ -63,4 +89,16 @@ class ParticleIOHandlerRegion(ParticleIOHandler):
             else:
                 count_list.append(-1)
         # region type, left_edge, right_edge, periodic, grid_list
-        return (0, (self.left_edge, self.right_edge, 0), grid_list, count_list)
+        rv = self.pf.h.io._read_particles(
+            fields, rtype, args, grid_list, count_list)
+        for field, v in zip(fields, rv): self[field] = v
+
+class ParticleIOHandlerRegionStrict(ParticleIOHandlerRegion):
+    _source_type = "region_strict"
+
+class ParticleIOHandlerPeriodicRegion(ParticleIOHandlerRegion):
+    periodic = True
+    _source_type = "periodic_region"
+
+class ParticleIOHandlerPeriodicRegionStrict(ParticleIOHandlerPeriodicRegion):
+    _source_type = "periodic_region_strict"

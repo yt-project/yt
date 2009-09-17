@@ -1754,6 +1754,14 @@ class AMR3DData(AMRData, GridPropertiesMixin):
                 grid[field] = na.ones(grid.ActiveDimensions)*default_value
             grid[field][self._get_point_indices(grid)] = value
 
+    _particle_handler = None
+
+    @property
+    def particles(self):
+        if self._particle_handler is None:
+            self._particle_handler = \
+                particle_handler_registry[self._type_name](self.pf, self)
+        return self._particle_handler
 
 class ExtractedRegionBase(AMR3DData):
     """

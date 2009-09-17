@@ -32,6 +32,7 @@ io_registry = {}
 class BaseIOHandler(object):
 
     _data_style = None
+    _particle_reader = False
 
     class __metaclass__(type):
         def __init__(cls, name, b, d):
@@ -177,16 +178,16 @@ class IOHandlerHDF5(BaseIOHandler):
 class IOHandlerPackedHDF5(BaseIOHandler):
 
     _data_style = "enzo_packed_3d"
+    _particle_reader = True
 
     def _read_data_set(self, grid, field):
         return readDataPacked(grid, field)
 
-    def _read_particles(self, source, fields, dispatcher):
-        stype, vargs, grid_list, enclosed = dispatcher()
+    def _read_particles(self, fields, rtype, args, grid_list, enclosed):
         filenames = [g.filename for g in grid_list]
         ids = [g.id for g in grid_list]
         return HDF5LightReader.ReadParticles(
-            stype, fields, filenames, ids, vargs)
+            rtype, fields, filenames, ids, args)
 
     def modify(self, field):
         return field.swapaxes(0,2)

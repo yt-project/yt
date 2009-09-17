@@ -61,6 +61,7 @@ typedef struct region_validation_ {
     /* These cannot contain any pointers */
     npy_float64 left_edge[3];
     npy_float64 right_edge[3];
+    npy_float64 period[3];
     int periodic;
 } region_validation;
 
@@ -875,6 +876,7 @@ int setup_validator_region(particle_validation *data, PyObject *InputData)
     PyArrayObject *left_edge = (PyArrayObject *) PyTuple_GetItem(InputData, 0);
     PyArrayObject *right_edge = (PyArrayObject *) PyTuple_GetItem(InputData, 1);
     PyObject *operiodic = PyTuple_GetItem(InputData, 2);
+    npy_float64 DW;
     
     /* This will get freed in the finalization of particle validation */
     region_validation *rv = (region_validation *)
@@ -887,6 +889,16 @@ int setup_validator_region(particle_validation *data, PyObject *InputData)
     }
 
     rv->periodic = PyInt_AsLong(operiodic);
+    if(rv->periodic == 1) {
+      PyArrayObject *domain_left_edge = (PyArrayObject *) PyTuple_GetItem(InputData, 3);
+      PyArrayObject *domain_right_edge = (PyArrayObject *) PyTuple_GetItem(InputData, 4);
+      for (i = 0; i < 3; i++){
+        DW = (*(npy_float64*) PyArray_GETPTR1(domain_right_edge, i))
+           - (*(npy_float64*) PyArray_GETPTR1(domain_left_edge, i));
+        rv->period[i] = DW;
+        fprintf(stderr, "Setting period equal to %lf\n", rv->period[i]);
+      }
+    }
 
     data->count_func = NULL;
     data->count_func_float = count_particles_region_FLOAT;
@@ -1097,7 +1109,7 @@ int count_particles_region_FLOAT(particle_validation *data)
 
     /* First is our validation requirements, which are a set of three items: */
 
-    int ind;
+    int ind, n;
     region_validation *vdata;
 
     vdata = (region_validation*) data->validation_reqs;
@@ -1107,6 +1119,7 @@ int count_particles_region_FLOAT(particle_validation *data)
     float *particle_position_x = particle_data[0];
     float *particle_position_y = particle_data[1];
     float *particle_position_z = particle_data[2];
+    float tempx, tempy, tempz;
 
     if (vdata->periodic == 0) {
       for (ind = 0; ind < data->particles_to_check; ind++) {
@@ -1118,14 +1131,46 @@ int count_particles_region_FLOAT(particle_validation *data)
             && (particle_position_z[ind] <= vdata->right_edge[2])) {
           if(data->update_count == 1) data->total_valid_particles++;
           data->mask[ind] = 1;
+          n++;
         } else {
           data->mask[ind] = 0;
         }
       }
     } else {
-        /* We need periodic logic here */
+      for (ind = 0; ind < data->particles_to_check; ind++) {
+        tempx = particle_position_x[ind];
+        tempy = particle_position_y[ind];
+        tempz = particle_position_z[ind];
+        if ( (tempx < vdata->left_edge[0]) && (tempx < vdata->right_edge[0]) ) {
+          tempx += vdata->period[0];
+        } else if ( (tempx > vdata->left_edge[0]) && (tempx > vdata->right_edge[0]) ) {
+          tempx -= vdata->period[0];
+        }
+        if ( (tempy < vdata->left_edge[1]) && (tempx < vdata->right_edge[1]) ) {
+          tempy += vdata->period[1];
+        } else if ( (tempy > vdata->left_edge[1]) && (tempx > vdata->right_edge[1]) ) {
+          tempy -= vdata->period[1];
+        }
+        if ( (tempz < vdata->left_edge[2]) && (tempx < vdata->right_edge[2]) ) {
+          tempz += vdata->period[2];
+        } else if ( (tempz > vdata->left_edge[2]) && (tempx > vdata->right_edge[2]) ) {
+          tempz -= vdata->period[2];
+        }
+        if (   (tempx >= vdata->left_edge[0])
+            && (tempx <= vdata->right_edge[0])
+            && (tempy >= vdata->left_edge[1])
+            && (tempy <= vdata->right_edge[1])
+            && (tempz >= vdata->left_edge[2])
+            && (tempz <= vdata->right_edge[2])) {
+          if(data->update_count == 1) data->total_valid_particles++;
+          data->mask[ind] = 1;
+          n++;
+        } else {
+          data->mask[ind] = 0;
+        }
+      }
     }
-    return 1;
+    return n;
 }
 
 int count_particles_region_DOUBLE(particle_validation *data)
@@ -1144,6 +1189,7 @@ int count_particles_region_DOUBLE(particle_validation *data)
     double *particle_position_x = particle_data[0];
     double *particle_position_y = particle_data[1];
     double *particle_position_z = particle_data[2];
+    double tempx, tempy, tempz;
 
     if (vdata->periodic == 0) {
       for (ind = 0; ind < data->particles_to_check; ind++) {
@@ -1161,7 +1207,38 @@ int count_particles_region_DOUBLE(particle_validation *data)
         }
       }
     } else {
-        /* We need periodic logic here */
+      for (ind = 0; ind < data->particles_to_check; ind++) {
+        tempx = particle_position_x[ind];
+        tempy = particle_position_y[ind];
+        tempz = particle_position_z[ind];
+        if ( (tempx < vdata->left_edge[0]) && (tempx < vdata->right_edge[0]) ) {
+          tempx += vdata->period[0];
+        } else if ( (tempx > vdata->left_edge[0]) && (tempx > vdata->right_edge[0]) ) {
+          tempx -= vdata->period[0];
+        }
+        if ( (tempy < vdata->left_edge[1]) && (tempx < vdata->right_edge[1]) ) {
+          tempy += vdata->period[1];
+        } else if ( (tempy > vdata->left_edge[1]) && (tempx > vdata->right_edge[1]) ) {
+          tempy -= vdata->period[1];
+        }
+        if ( (tempz < vdata->left_edge[2]) && (tempx < vdata->right_edge[2]) ) {
+          tempz += vdata->period[2];
+        } else if ( (tempz > vdata->left_edge[2]) && (tempx > vdata->right_edge[2]) ) {
+          tempz -= vdata->period[2];
+        }
+        if (   (tempx >= vdata->left_edge[0])
+            && (tempx <= vdata->right_edge[0])
+            && (tempy >= vdata->left_edge[1])
+            && (tempy <= vdata->right_edge[1])
+            && (tempz >= vdata->left_edge[2])
+            && (tempz <= vdata->right_edge[2])) {
+          if(data->update_count == 1) data->total_valid_particles++;
+          data->mask[ind] = 1;
+          n++;
+        } else {
+          data->mask[ind] = 0;
+        }
+      }
     }
     return n;
 }
