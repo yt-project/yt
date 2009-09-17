@@ -542,7 +542,11 @@ class EnzoHierarchy(AMRHierarchy):
             mylog.info("Adding %s to list of fields", field)
             cf = None
             if self.parameter_file.has_key(field):
-                cf = lambda d: d.convert(field)
+                def external_wrapper(f):
+                    def _convert_function(data):
+                        return data.convert(f)
+                    return _convert_function
+                cf = external_wrapper(field)
             add_field(field, lambda a, b: None,
                       convert_function=cf, take_log=False)
 
