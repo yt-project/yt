@@ -478,7 +478,6 @@ class HaloProfiler(lagos.ParallelAnalysisInterface):
     def _check_for_needed_profile_fields(self):
         "Make sure CellVolume and TotalMass fields are added so virial quantities can be calculated."
         all_profile_fields = [hp['field'] for hp in self.profile_fields]
-        print "Checking fields."
         if not 'CellVolume' in all_profile_fields:
             mylog.info("Adding CellVolume field to so virial quantities can be calculated")
             self.add_profile('CellVolume', weight_field=None, accumulation=True)
@@ -627,11 +626,20 @@ class HaloProfiler(lagos.ParallelAnalysisInterface):
             if halo_field in fields:
                 fields.remove(halo_field)
                 halo_fields.append(halo_field)
-        file.write("\t".join(halo_fields + fields + ["\n"]))
+        # Make it so number of fields in header is same as number of data columns.
+        header_fields = []
+        for halo_field in halo_fields:
+            if isinstance(self.filtered_halos[0][halo_field], types.ListType):
+                header_fields.extend(["%s[%d]" % (halo_field, q) 
+                                      for q in range(len(self.filtered_halos[0][halo_field]))])
+            else:
+                header_fields.append(halo_field)
+        file.write("# ")
+        file.write("\t".join(header_fields + fields + ["\n"]))
 
         for halo in self.filtered_halos:
             for halo_field in halo_fields:
-                if isinstance(halo[halo_field],types.ListType):
+                if isinstance(halo[halo_field], types.ListType):
                     field_data = na.array(halo[halo_field])
                     field_data.tofile(file, sep="\t", format=format)
                 else:

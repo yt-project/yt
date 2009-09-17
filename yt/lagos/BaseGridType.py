@@ -492,7 +492,7 @@ class OrionGridBase(AMRGridPatch):
         self._paranoid = paranoia
         
         # should error check this
-        self.ActiveDimensions = dimensions.copy()#.transpose()
+        self.ActiveDimensions = (dimensions.copy()).astype('int32')#.transpose()
         self.start = start.copy()#.transpose()
         self.stop = stop.copy()#.transpose()
         self.LeftEdge  = LeftEdge.copy()
@@ -501,7 +501,7 @@ class OrionGridBase(AMRGridPatch):
         self.Level = level
 
     def get_global_startindex(self):
-        return self.start + na.rint(self.pf["DomainLeftEdge"]/self.dds)
+        return self.start
 
     def _prepare_grid(self):
         """

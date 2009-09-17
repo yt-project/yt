@@ -2449,11 +2449,11 @@ class AMRCoveringGridBase(AMR3DData):
         self.left_edge = na.array(left_edge)
         self.level = level
         self.dds = self.pf.h.select_grids(self.level)[0].dds.copy()
-        self.ActiveDimensions = na.array(dims)
+        self.ActiveDimensions = na.array(dims,dtype='int32')
         self.right_edge = self.left_edge + self.ActiveDimensions*self.dds
         self._num_ghost_zones = num_ghost_zones
         self._use_pbar = use_pbar
-        self.global_startindex = na.rint(self.left_edge/self.dds).astype('int64')
+        self.global_startindex = na.rint((self.left_edge-self.pf["DomainLeftEdge"])/self.dds).astype('int64')
         self.domain_width = na.rint((self.pf["DomainRightEdge"] -
                     self.pf["DomainLeftEdge"])/self.dds).astype('int64')
         self._refresh_data()

@@ -129,6 +129,14 @@ class AMRHierarchy:
         self.__data_filename = fn
         self._data_file = h5py.File(fn, self._data_mode)
 
+    def clear_all_data(self):
+        """
+        This routine clears all the data currently being held onto by the grids
+        and the data queue.
+        """
+        for g in self.grids: g.clear_data()
+        self.queue.queue.clear()
+
     @parallel_root_only
     def __create_data_file(self, fn):
         f = h5py.File(fn, 'a')
