@@ -159,11 +159,13 @@ class CameraControl(HasTraits):
     camera = Instance(tvtk.OpenGLCamera)
     reset_position = Instance(CameraPosition)
     fps = Float(25.0)
+    export_filename = 'frames'
     periodic = Bool
 
     # UI elements
     snapshot = Button()
     play = Button()
+    export_frames = Button()
     reset_path = Button()
     recenter = Button()
     save_path = Button()
@@ -192,10 +194,12 @@ class CameraControl(HasTraits):
                   HGroup(
                     Item('snapshot', show_label=False),
                     Item('play', show_label=False),
+                    Item('export_frames',show_label=False),
                     Item('reset_path', show_label=False),
                     Item('save_path', show_label=False),
                     Item('load_path', show_label=False),
                     Item('export_path', show_label=False),
+                    Item('export_filename'),
                     Item('periodic'),
                     Item('fps'),
                     label='Playback'),
@@ -306,11 +310,15 @@ class CameraControl(HasTraits):
     def _play_fired(self):
         self.step_through()
 
+    def _export_frames_fired(self):
+        self.step_through(save_frames=True)
+
     def _reset_path_fired(self):
         self.positions = []
 
-    def step_through(self, pause = 1.0, callback=None):
+    def step_through(self, pause = 1.0, callback=None, save_frames=False):
         cam = self.scene.camera
+        frame_counter=0
         if self.periodic:
             cyclic_pos = self.positions + [self.positions[0]]
         else:
@@ -327,7 +335,11 @@ class CameraControl(HasTraits):
                 _set_cpos(cam, po, fp, vu, cr)
                 self.scene.render()
                 if callback is not None: callback(cam)
-                time.sleep(pause * 1.0/self.fps)
+                if save_frames:
+                    self.scene.save("%s_%0.5d.png" % (self.export_filename,frame_counter))
+                else:
+                    time.sleep(pause * 1.0/self.fps)
+                frame_counter += 1
 
 def _interpolate(q1, q2, p, r):
     return q1 + p*(q2 - q1)/float(r)
@@ -350,6 +362,7 @@ class HierarchyImporter(HasTraits):
     center = CArray(shape = (3,), dtype = 'float64')
     cache = Bool(True)
     smoothed = Bool(True)
+    show_grids = Bool(True)
 
     def _field_list_default(self):
         fl = self.pf.h.field_list
@@ -368,6 +381,7 @@ class HierarchyImporter(HasTraits):
                         Item('center', enabled_when='not object.center_on_max'),
                         Item('smoothed'),
                         Item('cache', label='Pre-load data'),
+                        Item('show_grids'),
                         buttons=OKCancelButtons)
 
     def _center_default(self):
@@ -401,6 +415,7 @@ class YTScene(HasTraits):
     center_on_max = Delegate("importer")
     smoothed = Delegate("importer")
     cache = Delegate("importer")
+    show_grids = Delegate("importer")
 
     camera_path = Instance(CameraControl)
     #window = Instance(ivtk.IVTKWithCrustAndBrowser)
@@ -441,8 +456,9 @@ class YTScene(HasTraits):
                     grid[self.field]
         for l, grid_set in enumerate(self.extracted_hierarchy.get_levels()):
             gid = self._add_level(grid_set, l, gid)
-        self.toggle_grid_boundaries()
-
+        if self.show_grids:
+            self.toggle_grid_boundaries()
+            
     def _center_default(self):
         return self.extracted_hierarchy._convert_coords(
                 [0.5, 0.5, 0.5])
@@ -511,7 +527,7 @@ class YTScene(HasTraits):
                     corner_factor = 0.5)
             ocf.input = self._hdata_set
             ocm = tvtk.HierarchicalPolyDataMapper(
-                    input_connection = ocf.output_port)
+                input_connection = ocf.output_port)
             self._grid_boundaries_actor = tvtk.Actor(mapper = ocm)
             self.scene.add_actor(self._grid_boundaries_actor)
         else:
@@ -577,7 +593,10 @@ class YTScene(HasTraits):
         return self.operators[-1]
 
     def add_contour(self, val=None):
-        if val is None: val = (self._max_val+self._min_val) * 0.5
+        if val is None: 
+            if self._min_val != self._min_val:
+                self._min_val = 1.0
+            val = (self._max_val+self._min_val) * 0.5
         cubes = tvtk.MarchingCubes(
                     executive = tvtk.CompositeDataPipeline())
         cubes.input = self._hdata_set
