@@ -112,45 +112,45 @@ class EnzoSimulation(object):
         rd_dir_name = self.enzoParameters['RedshiftDumpDir']
         rd_data_name = self.enzoParameters['RedshiftDumpName']
         
-        for root, dirs, files in os.walk(self.enzoParameters['GlobalDir']):
-            for file in dirs:
-                dd_dir = string.find(file,dd_dir_name)
-                if dd_dir != -1:
-                    prefix = dd_dir_name
-                    dir_name_length = len(dd_dir_name)
-                    num = int(file[dir_name_length:dir_name_length+4])
-                    filename = "%s/%s%04d/%s%04d" % (self.enzoParameters['GlobalDir'],
-                                                         dd_dir_name, num, dd_data_name, num)
+        dirs = os.listdir(self.enzoParameters['GlobalDir'])
+        for file in dirs:
+            dd_dir = string.find(file,dd_dir_name)
+            if dd_dir != -1:
+                prefix = dd_dir_name
+                dir_name_length = len(dd_dir_name)
+                num = int(file[dir_name_length:dir_name_length+4])
+                filename = "%s/%s%04d/%s%04d" % (self.enzoParameters['GlobalDir'],
+                                                     dd_dir_name, num, dd_data_name, num)
 
-                    if not os.path.exists(filename):
-                        continue
-                    dd_file = open(filename, 'r')
-                    lines = dd_file.readlines()
-                    for line in lines: 
-                        if(line.find("InitialTime")!=-1): 
-                            current_time = float(line.split()[2]) 
-                    self.timeOutputs.append({'index':num,'filename':filename,'time':current_time})
-                    if self.enzoParameters['ComovingCoordinates']:
-                        self.timeOutputs[-1]['redshift'] = self.enzo_cosmology.ComputeRedshiftFromTime(current_time)
-                            
-                rd_dir = string.find(file,rd_dir_name)
-                if rd_dir != -1:
-                    prefix = rd_dir_name
-                    dir_name_length = len(rd_dir_name)
-                    num = int(file[dir_name_length:dir_name_length+4])
-                    filename = "%s/%s%04d/%s%04d" % (self.enzoParameters['GlobalDir'],
-                                                         rd_dir_name, num, rd_data_name, num)
+                if not os.path.exists(filename):
+                    continue
+                dd_file = open(filename, 'r')
+                lines = dd_file.readlines()
+                for line in lines: 
+                    if(line.find("InitialTime")!=-1): 
+                        current_time = float(line.split()[2]) 
+                self.timeOutputs.append({'index':num,'filename':filename,'time':current_time})
+                if self.enzoParameters['ComovingCoordinates']:
+                    self.timeOutputs[-1]['redshift'] = self.enzo_cosmology.ComputeRedshiftFromTime(current_time)
 
-                    if not os.path.exists(filename):
-                        continue
-                    rd_file = open(filename, 'r')
-                    lines = rd_file.readlines()
-                    for line in lines: 
-                        if(line.find("InitialTime")!=-1): 
-                            current_time = float(line.split()[2]) 
-                    self.redshiftOutputs.append({'index':num,'filename':filename,'time':current_time})
-                    if self.enzoParameters['ComovingCoordinates']:
-                        self.redshiftOutputs[-1]['redshift'] = self.enzo_cosmology.ComputeRedshiftFromTime(current_time)
+            rd_dir = string.find(file,rd_dir_name)
+            if rd_dir != -1:
+                prefix = rd_dir_name
+                dir_name_length = len(rd_dir_name)
+                num = int(file[dir_name_length:dir_name_length+4])
+                filename = "%s/%s%04d/%s%04d" % (self.enzoParameters['GlobalDir'],
+                                                     rd_dir_name, num, rd_data_name, num)
+
+                if not os.path.exists(filename):
+                    continue
+                rd_file = open(filename, 'r')
+                lines = rd_file.readlines()
+                for line in lines: 
+                    if(line.find("InitialTime")!=-1): 
+                        current_time = float(line.split()[2]) 
+                self.redshiftOutputs.append({'index':num,'filename':filename,'time':current_time})
+                if self.enzoParameters['ComovingCoordinates']:
+                    self.redshiftOutputs[-1]['redshift'] = self.enzo_cosmology.ComputeRedshiftFromTime(current_time)
 
 
     def _CalculateRedshiftDumpTimes(self):
