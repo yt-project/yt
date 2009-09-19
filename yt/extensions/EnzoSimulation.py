@@ -1,6 +1,7 @@
 import yt.lagos as lagos
 from yt.logger import lagosLogger as mylog
 import numpy as na
+import os, string
 
 dt_Tolerance = 1e-3
 
@@ -10,7 +11,7 @@ class EnzoSimulation(object):
     a simulation from one redshift to another.
     """
     def __init__(self, EnzoParameterFile, initial_time=None, final_time=None, initial_redshift=None, final_redshift=None,
-                 links=False, enzo_parameters={}, get_time_outputs=True, get_redshift_outputs=True):
+                 links=False, enzo_parameters={}, get_time_outputs=True, get_redshift_outputs=True, get_all_outputs=False):
         self.EnzoParameterFile = EnzoParameterFile
         self.enzoParameters = {}
         self.redshiftOutputs = []
@@ -23,6 +24,10 @@ class EnzoSimulation(object):
         self.links = links
         self.get_time_outputs = get_time_outputs
         self.get_redshift_outputs = get_redshift_outputs
+        self.get_all_outputs = get_all_outputs
+        if self.get_all_outputs:
+            self.get_time_outputs = False
+            self.get_redshift_outputs = False
 
         # Add any extra parameters to parameter dict.
         EnzoParameterDict.update(enzo_parameters)
@@ -83,16 +88,70 @@ class EnzoSimulation(object):
         else:
             self.SimulationInitialTime = 0.0
 
-        # Calculate redshifts for dt data dumps.
-        if self.enzoParameters.has_key('dtDataDump'):
-            self._CalculateTimeDumps()
-
-        # Calculate times for redshift dumps.
-        if self.enzoParameters['ComovingCoordinates']:
-            self._CalculateRedshiftDumpTimes()
-
+        
+        if self.get_all_outputs:
+            # Find all the outputs and get everything we need.
+            self._CalculateAllDumpTimes()
+        else:
+            # Calculate redshifts for dt data dumps.
+            if self.enzoParameters.has_key('dtDataDump'):
+                self._CalculateTimeDumps()
+                
+            # Calculate times for redshift dumps.
+            if self.enzoParameters['ComovingCoordinates']:
+                self._CalculateRedshiftDumpTimes()
+            
         # Combine all data dumps.
         self._CombineDataOutputs()
+
+    def _CalculateAllDumpTimes(self):
+        "Finds all time and redshift dumps, then calculates time"
+        
+        dd_dir_name = self.enzoParameters['DataDumpDir']
+        dd_data_name = self.enzoParameters['DataDumpName']
+        rd_dir_name = self.enzoParameters['RedshiftDumpDir']
+        rd_data_name = self.enzoParameters['RedshiftDumpName']
+        
+        for root, dirs, files in os.walk(self.enzoParameters['GlobalDir']):
+            for file in dirs:
+                dd_dir = string.find(file,dd_dir_name)
+                if dd_dir != -1:
+                    prefix = dd_dir_name
+                    dir_name_length = len(dd_dir_name)
+                    num = int(file[dir_name_length:dir_name_length+4])
+                    filename = "%s/%s%04d/%s%04d" % (self.enzoParameters['GlobalDir'],
+                                                         dd_dir_name, num, dd_data_name, num)
+
+                    if not os.path.exists(filename):
+                        continue
+                    dd_file = open(filename, 'r')
+                    lines = dd_file.readlines()
+                    for line in lines: 
+                        if(line.find("InitialTime")!=-1): 
+                            current_time = float(line.split()[2]) 
+                    self.timeOutputs.append({'index':num,'filename':filename,'time':current_time})
+                    if self.enzoParameters['ComovingCoordinates']:
+                        self.timeOutputs[-1]['redshift'] = self.enzo_cosmology.ComputeRedshiftFromTime(current_time)
+                            
+                rd_dir = string.find(file,rd_dir_name)
+                if rd_dir != -1:
+                    prefix = rd_dir_name
+                    dir_name_length = len(rd_dir_name)
+                    num = int(file[dir_name_length:dir_name_length+4])
+                    filename = "%s/%s%04d/%s%04d" % (self.enzoParameters['GlobalDir'],
+                                                         rd_dir_name, num, rd_data_name, num)
+
+                    if not os.path.exists(filename):
+                        continue
+                    rd_file = open(filename, 'r')
+                    lines = rd_file.readlines()
+                    for line in lines: 
+                        if(line.find("InitialTime")!=-1): 
+                            current_time = float(line.split()[2]) 
+                    self.redshiftOutputs.append({'index':num,'filename':filename,'time':current_time})
+                    if self.enzoParameters['ComovingCoordinates']:
+                        self.redshiftOutputs[-1]['redshift'] = self.enzo_cosmology.ComputeRedshiftFromTime(current_time)
+
 
     def _CalculateRedshiftDumpTimes(self):
         "Calculates time from redshift of redshift dumps."
@@ -123,8 +182,9 @@ class EnzoSimulation(object):
     def _CombineDataOutputs(self):
         "Combines redshift and time data into one sorted list."
 
-        if not self.get_time_outputs: self.timeOutputs = []
-        if not self.get_redshift_outputs: self.redshiftOutputs = []
+        if not self.get_all_outputs:
+            if not self.get_time_outputs: self.timeOutputs = []
+            if not self.get_redshift_outputs: self.redshiftOutputs = []
         self.allOutputs = self.redshiftOutputs + self.timeOutputs
         self.allOutputs.sort(key=lambda obj:obj['time'])
 
@@ -188,22 +248,23 @@ class EnzoSimulation(object):
                     self.enzoParameters[param] = t
             elif param.startswith("CosmologyOutputRedshift["):
                 index = param[param.find("[")+1:param.find("]")]
-                self.redshiftOutputs.append({'index':int(index),
-                                             'redshift':float(vals)})
+                if not self.get_all_outputs:
+                    self.redshiftOutputs.append({'index':int(index),
+                                                 'redshift':float(vals)})
 
-        # Add filenames to redshift outputs.
-        for output in self.redshiftOutputs:
-            output["filename"] = "%s/%s%04d/%s%04d" % (self.enzoParameters['GlobalDir'],
-                                                       self.enzoParameters['RedshiftDumpDir'],output['index'],
-                                                       self.enzoParameters['RedshiftDumpName'],output['index'])
+                    # Add filenames to redshift outputs.
+                    for output in self.redshiftOutputs:
+                        output["filename"] = "%s/%s%04d/%s%04d" % (self.enzoParameters['GlobalDir'],
+                                                                   self.enzoParameters['RedshiftDumpDir'],output['index'],
+                                                                   self.enzoParameters['RedshiftDumpName'],output['index'])
 
     def _SetParameterDefaults(self):
         "Set some default parameters to avoid problems if they are not in the parameter file."
         self.enzoParameters['GlobalDir'] = "."
         self.enzoParameters['RedshiftDumpName'] = "RD"
-        self.enzoParameters['RedshiftDumpDir'] = "RD"
+        self.enzoParameters['RedshiftDumpDir'] = self.enzoParameters['RedshiftDumpName']
         self.enzoParameters['DataDumpName'] = "DD"
-        self.enzoParameters['DataDumpDir'] = "DD"
+        self.enzoParameters['DataDumpDir'] = self.enzoParameters['DataDumpName']
         self.enzoParameters['ComovingCoordinates'] = 0
 
     def _create_cosmology_splice(self, minimal=True, deltaz_min=0.0):
