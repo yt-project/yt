@@ -24,6 +24,7 @@ License:
 """
 
 from collections import defaultdict
+import sys
 
 from yt.lagos import *
 from yt.extensions.kdtree import *
@@ -250,12 +251,6 @@ class RunParallelHOP(ParallelAnalysisInterface):
         yt_counters("Picking padding data to send.")
         # Communicate the sizes to send.
         self.mine, global_send_count = self._mpi_info_dict(send_size)
-#         if self.mine == 0:
-#             fp = open('neighbors.txt','w')
-#             for task in global_send_count:
-#                 line = '%d %s\n' % (task, str(global_send_count[task]))
-#                 fp.write(line)
-#             fp.close()
         # Initialize the arrays to receive data.
         yt_counters("Initalizing recv arrays.")
         recv_real_indices = {}
@@ -274,6 +269,9 @@ class RunParallelHOP(ParallelAnalysisInterface):
             hooks.append(self._mpi_Irecv_long(recv_real_indices[opp_neighbor], opp_neighbor))
             hooks.append(self._mpi_Irecv_double(recv_points[opp_neighbor], opp_neighbor))
             hooks.append(self._mpi_Irecv_double(recv_mass[opp_neighbor], opp_neighbor))
+        # Let's wait here to be absolutely sure that all the receive buffers
+        # have been created before any sending happens!
+        self._barrier()
         # Now we send the data.
         for neighbor in self.neighbors:
             hooks.append(self._mpi_Isend_long(send_real_indices[neighbor], neighbor))
@@ -718,6 +716,7 @@ class RunParallelHOP(ParallelAnalysisInterface):
         # First find out the number of chains on each processor.
         self.mine, chain_info = self._mpi_info_dict(chain_count)
         self.nchains = sum(chain_info.values())
+        mylog.info('nchains %d' % self.nchains)
         # Figure out our offset.
         self.my_first_id = sum([v for k,v in chain_info.iteritems() if k < self.mine])
         # Change particle IDs, -1 always means no chain assignment.
@@ -741,11 +740,15 @@ class RunParallelHOP(ParallelAnalysisInterface):
             self.densest_in_chain[chainID + self.my_first_id] = temp[chainID]
             self.densest_in_chain_real_index[chainID + self.my_first_id] = temp_index[chainID]
         # Distribute this.
+        yt_counters("global chain MPI stuff.")
         self.densest_in_chain = self._mpi_joindict_unpickled_double(self.densest_in_chain)
         self.densest_in_chain_real_index = self._mpi_joindict_unpickled_long(self.densest_in_chain_real_index)
+        yt_counters("global chain MPI stuff.")
         # Sort the chains by density here. This is an attempt to make it such
         # that the merging stuff in a few steps happens in the same order
         # all the time.
+        mylog.info("Sorting chains...")
+        yt_counters("global chain sorting.")
         vals = na.array(self.densest_in_chain.values())
         reals = na.array(self.densest_in_chain_real_index.values())
         sort = vals.argsort()
@@ -764,8 +767,11 @@ class RunParallelHOP(ParallelAnalysisInterface):
         for i,chID in enumerate(self.chainID):
             if chID == -1: continue
             self.chainID[i] = map[chID]
+        yt_counters("global chain sorting.")
         # For some reason chains that share the most-dense particle are not
         # being linked, so we link them 'by hand' here.
+        mylog.info("Pre-linking chains 'by hand'...")
+        yt_counters("global chain hand-linking.")
         reverse = defaultdict(set)
         # Here we find a reverse mapping of real particle ID to chainID
         for chainID in self.densest_in_chain_real_index:
@@ -791,6 +797,7 @@ class RunParallelHOP(ParallelAnalysisInterface):
             except KeyError:
                 continue
             self.chainID[i] = new
+        yt_counters("global chain hand-linking.")
         yt_counters("create_global_densest_in_chain")
 
     def _communicate_uphill_info(self):
@@ -816,6 +823,8 @@ class RunParallelHOP(ParallelAnalysisInterface):
         for opp_neighbor in self.neighbors:
             hooks.append(self._mpi_Irecv_long(temp_indices[opp_neighbor], opp_neighbor))
             hooks.append(self._mpi_Irecv_long(temp_chainIDs[opp_neighbor], opp_neighbor))
+        # Make sure all the receive buffers are set before continuing.
+        self._barrier()
         # Send padded particles to our neighbors.
         for neighbor in self.neighbors:
             hooks.append(self._mpi_Isend_long(self.uphill_real_indices, neighbor))
@@ -988,6 +997,8 @@ class RunParallelHOP(ParallelAnalysisInterface):
         for opp_neighbor in self.neighbors:
             hooks.append(self._mpi_Irecv_long(recv_real_indices[opp_neighbor], opp_neighbor))
             hooks.append(self._mpi_Irecv_long(recv_chainIDs[opp_neighbor], opp_neighbor))
+        # Make sure the recv buffers are set before continuing.
+        self._barrier()
         # Now we send them.
         for neighbor in self.neighbors:
             hooks.append(self._mpi_Isend_long(real_indices, neighbor))

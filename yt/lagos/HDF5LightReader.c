@@ -68,7 +68,7 @@ typedef struct region_validation_ {
 /* Forward declarations */
 int setup_validator_region(particle_validation *data, PyObject *InputData);
 int run_validators(particle_validation *pv, char *filename, 
-                   int grid_id, const int read);
+                   int grid_id, const int read, const int packed);
 
 /* Different data type validators */
 
@@ -709,7 +709,7 @@ Py_ReadParticles(PyObject *obj, PyObject *args)
     //      - Allocate array
     //      - Iterate over grids, turning on and off dataspace
 
-    int source_type, ig, id, i, ifield;
+    int source_type, ig, id, i, ifield, packed;
     Py_ssize_t ngrids, nfields;
 
     PyObject *field_list, *filename_list, *grid_ids, *vargs;
@@ -729,9 +729,10 @@ Py_ReadParticles(PyObject *obj, PyObject *args)
     pv.stride_size = stride_size;
     pv.total_valid_particles = pv.particles_to_check = pv.nread = pv.nfields = 0;
 
-    if (!PyArg_ParseTuple(args, "iOOOO",
+    if (!PyArg_ParseTuple(args, "iOOOOi",
             &source_type, /* This is a non-public API, so we just take ints */
-            &field_list, &filename_list, &grid_ids, &vargs))
+            &field_list, &filename_list, &grid_ids, &vargs,
+            &packed))
         return PyErr_Format(_hdf5ReadError,
                "ReadParticles: Invalid parameters.");
 
@@ -794,7 +795,7 @@ Py_ReadParticles(PyObject *obj, PyObject *args)
       temp = PyList_GetItem(grid_ids, ig);
       id = PyInt_AsLong(temp);
       //fprintf(stderr, "Counting from grid %d\n", id);
-      if(run_validators(&pv, filename, id, 0) < 0) {
+      if(run_validators(&pv, filename, id, 0, packed) < 0) {
         goto _fail;
       }
     }
@@ -821,7 +822,7 @@ Py_ReadParticles(PyObject *obj, PyObject *args)
       temp = PyList_GetItem(grid_ids, ig);
       id = PyInt_AsLong(temp);
       //fprintf(stderr, "Reading from grid %d\n", id);
-      if(run_validators(&pv, filename, id, 1) < 0) {
+      if(run_validators(&pv, filename, id, 1, packed) < 0) {
         goto _fail;
       }
     }
@@ -877,7 +878,7 @@ int setup_validator_region(particle_validation *data, PyObject *InputData)
     PyArrayObject *right_edge = (PyArrayObject *) PyTuple_GetItem(InputData, 1);
     PyObject *operiodic = PyTuple_GetItem(InputData, 2);
     npy_float64 DW;
-    
+
     /* This will get freed in the finalization of particle validation */
     region_validation *rv = (region_validation *)
                 malloc(sizeof(region_validation));
@@ -910,7 +911,7 @@ int setup_validator_region(particle_validation *data, PyObject *InputData)
 }
 
 int run_validators(particle_validation *pv, char *filename, 
-                   int grid_id, const int read)
+                   int grid_id, const int read, const int packed)
 {
     int i, ifield;
     hid_t file_id;
@@ -932,9 +933,15 @@ int run_validators(particle_validation *pv, char *filename,
 
     int npy_type;
 
-    snprintf(name_x, 254, "/Grid%08d/particle_position_x", grid_id);
-    snprintf(name_y, 254, "/Grid%08d/particle_position_y", grid_id);
-    snprintf(name_z, 254, "/Grid%08d/particle_position_z", grid_id);
+    if (packed == 1) {
+        snprintf(name_x, 254, "/Grid%08d/particle_position_x", grid_id);
+        snprintf(name_y, 254, "/Grid%08d/particle_position_y", grid_id);
+        snprintf(name_z, 254, "/Grid%08d/particle_position_z", grid_id);
+    } else {
+        snprintf(name_x, 254, "/particle_position_x");
+        snprintf(name_y, 254, "/particle_position_y");
+        snprintf(name_z, 254, "/particle_position_z");
+    }
 
     /* First we open the file */
 
@@ -990,7 +997,12 @@ int run_validators(particle_validation *pv, char *filename,
         dataset_read = (hid_t*) malloc(pv->nfields * sizeof(hid_t));
         for (i = 0; i < pv->nfields; i++) {
             char toread[255];
-            snprintf(toread, 255, "/Grid%08d/%s", grid_id, pv->field_names[i]);
+            if (packed == 1) {
+                snprintf(toread, 255, "/Grid%08d/%s", grid_id, pv->field_names[i]);
+            } else {
+                snprintf(toread, 255, "/%s", pv->field_names[i]);
+            }
+            
             dataset_read[i] = H5Dopen(file_id, toread);
             /* We know how many particles we will want, so we allocate our
                output arrays */

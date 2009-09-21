@@ -72,13 +72,15 @@ class ParticleIOHandlerRegion(ParticleIOHandler):
         ParticleIOHandler.__init__(self, pf, source)
 
     def get_data(self, fields):
+        mylog.info("Getting %s using ParticleIO" % str(fields))
         fields = ensure_list(fields)
         if not self.pf.h.io._particle_reader:
+            mylog.info("not self.pf.h.io._particle_reader")
             return self.source.get_data(fields)
         rtype = 0
         DLE = na.array(self.pf["DomainLeftEdge"], dtype='float64') 
         DRE = na.array(self.pf["DomainRightEdge"], dtype='float64') 
-        args = (self.left_edge, self.right_edge, 
+        args = (na.array(self.left_edge), na.array(self.right_edge), 
                 int(self.periodic), DLE, DRE)
         count_list, grid_list = [], []
         for grid in self.source._grids:

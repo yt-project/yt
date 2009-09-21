@@ -39,7 +39,7 @@ except ImportError:
 from yt.performance_counters import yt_counters, time_function
 
 from kd import *
-import math
+import math, sys
 from collections import defaultdict
 
 class Halo(object):
@@ -132,7 +132,12 @@ class Halo(object):
         return r.max()
 
     def __getitem__(self, key):
-        return self.data[key][self.indices]
+        if key == "ParticleMassMsun":
+            mass_conv = self.data._grids[0].convert("Density") * \
+                self.data._grids[0].convert("cm")**3.0 / 1.989e33 * \
+                just_one(self.data._grids[0]["CellVolumeCode"].ravel())
+            return (self.data.particles['particle_mass'][self.indices].astype('float64') * mass_conv)
+        return self.data.particles[key][self.indices]
 
     def get_sphere(self, center_of_mass=True):
         """
@@ -156,7 +161,7 @@ class Halo(object):
         handle.create_group("/%s" % gn)
         for field in ["particle_position_%s" % ax for ax in 'xyz'] \
                    + ["particle_velocity_%s" % ax for ax in 'xyz'] \
-                   + ["particle_index"]:
+                   + ["particle_index"] + ["ParticleMassMsun"]:
             handle.create_dataset("/%s/%s" % (gn, field), data=self[field])
         n = handle["/%s" % gn]
         # set attributes on n
@@ -169,9 +174,6 @@ class parallelHOPHalo(Halo,ParallelAnalysisInterface):
     dont_wrap = ["maximum_density","maximum_density_location",
         "center_of_mass","total_mass","bulk_velocity","maximum_radius",
         "get_size","get_sphere", "write_particle_list","__getitem__"]
-
-    def __getitem__(self, key):
-        return self.data[key][self.indices]
 
     def maximum_density(self):
         """
@@ -346,20 +348,24 @@ class HaloList(object):
         else: ii = slice(None)
         self.particle_fields = {}
         for field in self._fields:
-            tot_part = self._data_source[field].size
-            self.particle_fields[field] = self._data_source[field][ii]
+            real_field = field
+            if field == "ParticleMassMsun":
+                real_field = "particle_mass"
+            tot_part = self._data_source.particles[real_field].size
+            self.particle_fields[field] = self._data_source.particles[real_field][ii].astype('float64')
         self._base_indices = na.arange(tot_part)[ii]
 
     def __get_dm_indices(self):
         if 'creation_time' in self._data_source.hierarchy.field_list:
             mylog.debug("Differentiating based on creation time")
-            return (self._data_source["creation_time"] < 0)
+            return (self._data_source.particles["creation_time"] < 0)
         elif 'particle_type' in self._data_source.hierarchy.field_list:
             mylog.debug("Differentiating based on particle type")
-            return (self._data_source["particle_type"] == 1)
+            return (self._data_source.particles["particle_type"] == 1)
         else:
             mylog.warning("No particle_type, no creation_time, so not distinguishing.")
             return slice(None)
+    
 
     def _parse_output(self):
         unique_ids = na.unique(self.tags)
@@ -568,9 +574,9 @@ class parallelHOPHaloList(HaloList,ParallelAnalysisInterface):
     _halo_class = parallelHOPHalo
     _fields = ["particle_position_%s" % ax for ax in 'xyz'] + \
               ["ParticleMassMsun", "particle_index"]
-    
+
     def __init__(self, data_source, padding, num_neighbors, bounds, total_mass,
-        period, threshold=160.0, dm_only=True, rearrange=True):
+        period, mass_conv, threshold=160.0, dm_only=True, rearrange=True):
         """
         Run hop on *data_source* with a given density *threshold*.  If
         *dm_only* is set, only run it on the dark matter particles, otherwise
@@ -582,6 +588,8 @@ class parallelHOPHaloList(HaloList,ParallelAnalysisInterface):
         self.total_mass = total_mass
         self.rearrange = rearrange
         self.period = period
+        self.mass_conv = mass_conv
+        self._data_source = data_source
         mylog.info("Initializing HOP")
         HaloList.__init__(self, data_source, dm_only)
 
@@ -593,7 +601,7 @@ class parallelHOPHaloList(HaloList,ParallelAnalysisInterface):
             self.particle_fields["particle_position_y"],
             self.particle_fields["particle_position_z"],
             self.particle_fields["particle_index"],
-            self.particle_fields["ParticleMassMsun"]/self.total_mass,
+            self.particle_fields["ParticleMassMsun"]/self.total_mass * self.mass_conv,
             self.threshold, rearrange=self.rearrange)
         self.densities, self.tags = obj.density, obj.chainID
         self.group_count = obj.group_count
@@ -606,10 +614,13 @@ class parallelHOPHaloList(HaloList,ParallelAnalysisInterface):
         yt_counters("Precomp bulk vel.")
         self.bulk_vel = na.zeros((self.group_count, 3), dtype='float64')
         yt_counters("bulk vel. reading data")
-        pm = self._data_source["ParticleMassMsun"][self._base_indices]
-        xv = self._data_source["particle_velocity_x"][self._base_indices]
-        yv = self._data_source["particle_velocity_y"][self._base_indices]
-        zv = self._data_source["particle_velocity_z"][self._base_indices]
+        pm = self.particle_fields["ParticleMassMsun"] * self.mass_conv
+        xv = self._data_source.particles["particle_velocity_x"][self._base_indices] * \
+            self._data_source.convert("x-velocity")
+        yv = self._data_source.particles["particle_velocity_y"][self._base_indices] * \
+            self._data_source.convert("y-velocity")
+        zv = self._data_source.particles["particle_velocity_z"][self._base_indices] * \
+            self._data_source.convert("z-velocity")
         yt_counters("bulk vel. reading data")
         yt_counters("bulk vel. computing")
         for i, pmass in enumerate(pm):
@@ -687,7 +698,7 @@ class parallelHOPHaloList(HaloList,ParallelAnalysisInterface):
     def write_out(self, filename="parallelHopAnalysis.out"):
         HaloList.write_out(self, filename)
 
-class GenericHaloFinder(ParallelAnalysisInterface):
+class GenericHaloFinder(HaloList, ParallelAnalysisInterface):
     def __init__(self, pf, dm_only=True, padding=0.0):
         self.pf = pf
         self.hierarchy = pf.h
@@ -769,7 +780,7 @@ class GenericHaloFinder(ParallelAnalysisInterface):
             arr[arr > RE[i]+self.padding] -= dw[i]
 
     def write_out(self, filename):
-        self._data_source.get_data(["particle_velocity_%s" % ax for ax in 'xyz'])
+        #self._data_source.get_data(["particle_velocity_%s" % ax for ax in 'xyz'])
         f = self._write_on_root(filename)
         HaloList.write_out(self, f)
 
@@ -809,7 +820,8 @@ class parallelHF(GenericHaloFinder, parallelHOPHaloList):
                 else:
                     new_LE, new_RE = new_top_bounds
                     width = new_RE[dim] - new_LE[dim]
-                data = self._data_source[ds_names[dim]]
+                #data = self._data_source[ds_names[dim]]
+                data = self._data_source.particles[ds_names[dim]]
                 if i == 0:
                     local_parts = data.size
                     n_parts = self._mpi_allsum(local_parts)
@@ -831,7 +843,7 @@ class parallelHF(GenericHaloFinder, parallelHOPHaloList):
                         old_group = new_group, old_comm = new_comm, cut=cut, old_cc=new_cc)
         # get the average spacing between particles for this region
         # The except is for the serial case, where the full box is what we want.
-        data = self._data_source["particle_position_x"]
+        data = self._data_source.particles["particle_position_x"]
         try:
             l = self._data_source.right_edge - self._data_source.left_edge
         except AttributeError:
@@ -850,7 +862,8 @@ class parallelHF(GenericHaloFinder, parallelHOPHaloList):
         elif fancy_padding and self._distributed:
             LE_padding, RE_padding = na.empty(3,dtype='float64'), na.empty(3,dtype='float64')
             for dim in xrange(3):
-                data = self._data_source[ds_names[dim]]
+                #data = self._data_source[ds_names[dim]]
+                data = self._data_source.particles[ds_names[dim]]
                 num_bins = 1000
                 width = self._data_source.right_edge[dim] - self._data_source.left_edge[dim]
                 area = (self._data_source.right_edge[(dim+1)%3] - self._data_source.left_edge[(dim+1)%3]) * \
@@ -882,13 +895,18 @@ class parallelHF(GenericHaloFinder, parallelHOPHaloList):
                 (str(self.padding), avg_spacing, full_vol, data.size, str(self._data_source)))
         # Now we get the full box mass after we have the final composition of
         # subvolumes.
-        total_mass = self._mpi_allsum(self._data_source["ParticleMassMsun"].sum())
+        mass_conv = self._data_source._grids[0].convert("Density") * \
+            self._data_source._grids[0].convert("cm")**3.0 / 1.989e33 * \
+            just_one(self._data_source._grids[0]["CellVolumeCode"].ravel())
+        #total_mass = self._mpi_allsum(self._data_source["ParticleMassMsun"].sum())
+        total_mass = self._mpi_allsum((self._data_source.particles["particle_mass"].astype('float64') * mass_conv).sum())
         if not self._distributed:
             self.padding = (na.zeros(3,dtype='float64'), na.zeros(3,dtype='float64'))
         self.bounds = (LE, RE)
         (LE_padding, RE_padding) = self.padding
         parallelHOPHaloList.__init__(self, self._data_source, self.padding, \
-        self.num_neighbors, self.bounds, total_mass, period, threshold=threshold, dm_only=dm_only, rearrange=rearrange)
+        self.num_neighbors, self.bounds, total_mass, period, mass_conv, \
+        threshold=threshold, dm_only=dm_only, rearrange=rearrange)
         self._join_halolists()
         yt_counters("Final Grouping")
 
@@ -916,7 +934,7 @@ class HOPHaloFinder(GenericHaloFinder, HOPHaloList):
         padded, LE, RE, self._data_source = self._partition_hierarchy_3d(padding=self.padding)
         # For scaling the threshold, note that it's a passthrough
         if dm_only:
-            select = self._data_source["creation_time"] > 0
+            select = self._data_source.particles["creation_time"] > 0
             total_mass = self._mpi_allsum((self._data_source["ParticleMassMsun"][select]).sum())
             sub_mass = (self._data_source["ParticleMassMsun"][select]).sum()
         else:

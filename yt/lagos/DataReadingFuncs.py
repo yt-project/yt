@@ -32,7 +32,7 @@ io_registry = {}
 class BaseIOHandler(object):
 
     _data_style = None
-    _particle_reader = False
+    _particle_reader = True
 
     class __metaclass__(type):
         def __init__(cls, name, b, d):
@@ -55,6 +55,12 @@ class BaseIOHandler(object):
         else:
             # We only read the one set and do not store it if it isn't pre-loaded
             return self._read_data_set(grid, field)
+
+    def _read_particles(self, fields, rtype, args, grid_list, enclosed):
+        filenames = [g.filename for g in grid_list]
+        ids = [g.id for g in grid_list]
+        return HDF5LightReader.ReadParticles(
+            rtype, fields, filenames, ids, args, 0)
 
     def peek(self, grid, field):
         return self.queue[grid.id].get(field, None)
@@ -187,7 +193,7 @@ class IOHandlerPackedHDF5(BaseIOHandler):
         filenames = [g.filename for g in grid_list]
         ids = [g.id for g in grid_list]
         return HDF5LightReader.ReadParticles(
-            rtype, fields, filenames, ids, args)
+            rtype, fields, filenames, ids, args, 1)
 
     def modify(self, field):
         return field.swapaxes(0,2)
