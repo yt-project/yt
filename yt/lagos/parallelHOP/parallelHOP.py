@@ -1175,6 +1175,7 @@ class RunParallelHOP(ParallelAnalysisInterface):
             if dens > densestbound[chain_low]:
                 densestbound[chain_low] = dens
                 self.reverse_map[chain_low] = group_high
+        del self.top_keys, self.bot_keys, self.vals
         # Now refactor group_equivalancy_map back into reverse_map. The group
         # mapping may be more than one link long, so we need to do it
         # recursively. The best way to think about this is a field full of 
@@ -1222,6 +1223,8 @@ class RunParallelHOP(ParallelAnalysisInterface):
             # Make sure it's not empty
             final_set.add(groupID)
             Set_list.append(final_set)
+        del group_equivalancy_map, final_set, keys, select, groupIDs
+        del mine_groupIDs, not_mine_groupIDs, new_set, to_add_set, liter
         # Convert this list of sets into a look-up table
         lookup = {}
         for i,item in enumerate(Set_list):
@@ -1239,6 +1242,7 @@ class RunParallelHOP(ParallelAnalysisInterface):
                 self.reverse_map[chainID] = lookup[groupID]
             except KeyError:
                 continue
+        del lookup
         """
         Now the fringe chains are connected to the proper group
         (>peakthresh) with the largest boundary.  But we want to look
