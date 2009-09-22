@@ -34,6 +34,13 @@ cdef extern from "math.h":
     double floor(double x)
     double ceil(double x)
 
+cdef extern from "FixedInterpolator.h":
+    np.float64_t fast_interpolate(
+                    np.float64_t left_edge[3], np.float64_t dds[3],
+                    int *ds, int ci[3], np.float64_t cp[3], np.float64_t *data)
+    inline void eval_shells(int nshells, np.float64_t dv,
+                    np.float64_t *shells, np.float64_t rgba[4])
+
 cdef class PartitionedGrid:
     cdef public object my_data
     cdef public object LeftEdge
@@ -95,13 +102,6 @@ cdef class PartitionedGrid:
                                          <np.float64_t *> shells.data)
             for i in range(4): image_plane[vi,i] = rgba[i] 
         return hit
-
-    #def sample_ray(self, np.ndarray[np.float64_t, ndim=2] vp_pos,
-    #                     np.ndarray[np.float64_t, ndim=1] vp_dir,
-    #                     np.ndarray[np.float64_t, ndim=2] shells,
-    #                     np.ndarray[np.float64_t, ndim=2] image_plane,
-    #                     np.float64_t dt):
-        
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -209,31 +209,28 @@ cdef class PartitionedGrid:
                               np.float64_t rgba[4],
                               np.float64_t *shells,
                               np.float64_t dt):
-        cdef int cur_ind[3], step[3], x, y, i, n, flat_ind, hit
-        cdef np.float64_t intersect_t = 1.0
-        cdef np.float64_t intersect[3], tmax[3], tdelta[3], cur_pos[3]
+        cdef int cur_ind[3], x, y, i, n, flat_ind, hit
+        cdef np.float64_t cur_pos[3], intersect_t = 1.0
         cdef np.float64_t dist, alpha, t
         cdef np.float64_t tr, tl, temp_x, temp_y, dv
         for i in range(3):
-            if (v_dir[i] < 0):
-                step[i] = -1
-            else:
-                step[i] = 1
             x = (i+1) % 3
             y = (i+2) % 3
             tl = (self.left_edge[i] - v_pos[i])/v_dir[i]
             tr = (self.right_edge[i] - v_pos[i])/v_dir[i]
+            if tl < 0.0 and tr < 0.0: return 0
+            if tl > 1.0 and tr > 1.0: return 0
             temp_x = (v_pos[x] + tl*v_dir[x])
             temp_y = (v_pos[y] + tl*v_dir[y])
-            if self.left_edge[x] <= temp_x and temp_x <= self.right_edge[x] and \
-               self.left_edge[y] <= temp_y and temp_y <= self.right_edge[y] and \
-               0.0 <= tl and tl < intersect_t:
+            if (self.left_edge[x] <= temp_x <= self.right_edge[x]) and \
+               (self.left_edge[y] <= temp_y <= self.right_edge[y]) and \
+               (0.0 <= tl < intersect_t):
                 intersect_t = tl
             temp_x = (v_pos[x] + tr*v_dir[x])
             temp_y = (v_pos[y] + tr*v_dir[y])
-            if self.left_edge[x] <= temp_x and temp_x <= self.right_edge[x] and \
-               self.left_edge[y] <= temp_y and temp_y <= self.right_edge[y] and \
-               0.0 <= tr and tr < intersect_t:
+            if (self.left_edge[x] <= temp_x <= self.right_edge[x]) and \
+               (self.left_edge[y] <= temp_y <= self.right_edge[y]) and \
+               (0.0 <= tr < intersect_t):
                 intersect_t = tr
         if self.left_edge[0] <= v_pos[0] and v_pos[0] <= self.right_edge[0] and \
            self.left_edge[1] <= v_pos[1] and v_pos[1] <= self.right_edge[1] and \
@@ -242,25 +239,13 @@ cdef class PartitionedGrid:
         if not ((0.0 <= intersect_t) and (intersect_t < 1.0)):
             return 0
         for i in range(3):
-            intersect[i] = v_pos[i] + intersect_t * v_dir[i]
-            cur_pos[i] = intersect[i]
-            cur_ind[i] = <int> floor((intersect[i] + 1e-8*self.dds[i] -
+            cur_pos[i] =  v_pos[i] + intersect_t * v_dir[i]
+            cur_ind[i] = <int> floor((cur_pos[i] + 1e-8*self.dds[i] -
                                       self.left_edge[i])/self.dds[i])
-            tmax[i] = (((cur_ind[i]+step[i])*self.dds[i])+
-                        self.left_edge[i]-v_pos[i])/v_dir[i]
-            if cur_ind[i] == self.dims[i] and step[i] < 0:
+            if cur_ind[i] == self.dims[i] and v_dir[i] < 0:
                 cur_ind[i] = self.dims[i] - 1
             if cur_ind[i] < 0 or cur_ind[i] >= self.dims[i]:
                 return 0
-            if step[i] > 0:
-                tmax[i] = (((cur_ind[i]+1)*self.dds[i])
-                            +self.left_edge[i]-v_pos[i])/v_dir[i]
-            if step[i] < 0:
-                tmax[i] = (((cur_ind[i]+0)*self.dds[i])
-                            +self.left_edge[i]-v_pos[i])/v_dir[i]
-            tdelta[i] = (self.dds[i]/v_dir[i])
-            if tdelta[i] < 0:
-                tdelta[i] *= -1
         t = ceil(intersect_t / dt) * dt
         while 1:
             for i in range(3):
@@ -271,48 +256,9 @@ cdef class PartitionedGrid:
                (not (0 <= cur_ind[2] < self.dims[2])):
                 break
             hit += 1
-            dv = self.interpolate(cur_ind, cur_pos)
-            #print dv
+            dv = fast_interpolate(self.left_edge, self.dds, self.dims,
+                                  cur_ind, cur_pos, self.data)
             # Do our transfer here
             eval_shells(nshells, dv, shells, rgba)
             t += dt
-            #print t, dv, cur_ind[0], cur_ind[1], cur_ind[2], self.dims[0], self.dims[1], self.dims[2]
         return hit
-
-    cdef np.float64_t interpolate(self, int ci[3], np.float64_t cp[3]):
-        cdef np.float64_t xm, xp, ym, yp, zm, zp, dv
-        cdef int i
-        cdef int *ds = self.dims
-        # First figure out how far "into" the cell we are
-        xp = ((cp[0] - (ci[0]*self.dds[0] + self.left_edge[0]))/self.dds[0])
-        yp = ((cp[1] - (ci[1]*self.dds[1] + self.left_edge[1]))/self.dds[1])
-        zp = ((cp[2] - (ci[2]*self.dds[2] + self.left_edge[2]))/self.dds[2])
-        xm = (((ci[0]+1)*self.dds[0] + self.left_edge[0]) - cp[0])/self.dds[0]
-        ym = (((ci[1]+1)*self.dds[1] + self.left_edge[1]) - cp[0])/self.dds[1]
-        zm = (((ci[2]+1)*self.dds[2] + self.left_edge[2]) - cp[0])/self.dds[2]
-        #print self.data[(((ci[2]+0)*(ds[1]+1)+(ci[1]+0))*(ds[0]+1)+ci[0]+0)]
-        dv = self.data[(((ci[2]+0)*(ds[1]+1)+(ci[1]+0))*(ds[0]+1)+ci[0]+0)]*(xm*ym*zm) \
-           + self.data[(((ci[2]+1)*(ds[1]+1)+(ci[1]+0))*(ds[0]+1)+ci[0]+0)]*(xp*ym*zm) \
-           + self.data[(((ci[2]+0)*(ds[1]+1)+(ci[1]+1))*(ds[0]+1)+ci[0]+0)]*(xm*yp*zm) \
-           + self.data[(((ci[2]+0)*(ds[1]+1)+(ci[1]+0))*(ds[0]+1)+ci[0]+1)]*(xm*ym*zp) \
-           + self.data[(((ci[2]+1)*(ds[1]+1)+(ci[1]+0))*(ds[0]+1)+ci[0]+1)]*(xp*ym*zp) \
-           + self.data[(((ci[2]+0)*(ds[1]+1)+(ci[1]+1))*(ds[0]+1)+ci[0]+1)]*(xm*yp*zp) \
-           + self.data[(((ci[2]+1)*(ds[1]+1)+(ci[1]+1))*(ds[0]+1)+ci[0]+0)]*(xp*yp*zm) \
-           + self.data[(((ci[2]+1)*(ds[1]+1)+(ci[1]+1))*(ds[0]+1)+ci[0]+1)]*(xp*yp*zp)
-        #print dv, xm, xp, ym, yp, zm, zp
-        return dv
-
-cdef inline void eval_shells(int nshells, np.float64_t dv,
-                    np.float64_t *shells, np.float64_t rgba[4]):
-    cdef np.float64_t dist, alpha
-    for n in range(nshells):
-        dist = shells[n*6+0] - dv
-        if dist < 0: dist *= -1.0
-        if dist < shells[n*6+1]:
-            alpha = rgba[3]
-            dist = exp(-dist/8.0) * shells[n*6+5]
-            rgba[0] += (1.0 - alpha)*shells[n*6+2]*dist
-            rgba[1] += (1.0 - alpha)*shells[n*6+3]*dist
-            rgba[2] += (1.0 - alpha)*shells[n*6+4]*dist
-            rgba[3] += (1.0 - alpha)*shells[n*6+5]*dist
-            break
