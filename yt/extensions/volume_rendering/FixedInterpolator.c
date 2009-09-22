@@ -49,20 +49,21 @@ npy_float64 fast_interpolate(npy_float64 left_edge[3], npy_float64 dds[3],
 }
 
 inline void eval_shells(int nshells, npy_float64 dv,
-                    npy_float64 *shells, npy_float64 rgba[4])
+                    npy_float64 *shells, npy_float64 rgba[4],
+                    npy_float64 dt)
 {
-    npy_float64 dist, alpha;
+    npy_float64 dist, alpha, blend;
     int n;
     for (n = 0; n < nshells; n++) {
         dist = shells[n*6+0] - dv;
         if (dist < 0.0) dist *= -1.0;
         if (dist < shells[n*6+1]) {
+            blend = shells[n*6+5]*exp(-dist/8.0)*rgba[3];
             alpha = shells[n*6+5];
-            dist = exp(-dist/8.0) * shells[n*6+5];
-            rgba[0] += (1.0 - alpha)*shells[n*6+2]*dist;
-            rgba[1] += (1.0 - alpha)*shells[n*6+3]*dist;
-            rgba[2] += (1.0 - alpha)*shells[n*6+4]*dist;
-            rgba[3] += (1.0 - alpha)*shells[n*6+5]*dist;
+            rgba[0] += blend*shells[n*6+2];
+            rgba[1] += blend*shells[n*6+3];
+            rgba[2] += blend*shells[n*6+4];
+            rgba[3] *= (1.0 - alpha);
             break;
         }
     }

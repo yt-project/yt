@@ -39,7 +39,7 @@ cdef extern from "FixedInterpolator.h":
                     np.float64_t left_edge[3], np.float64_t dds[3],
                     int *ds, int ci[3], np.float64_t cp[3], np.float64_t *data)
     inline void eval_shells(int nshells, np.float64_t dv,
-                    np.float64_t *shells, np.float64_t rgba[4])
+                    np.float64_t *shells, np.float64_t rgba[4], np.float64_t dt)
 
 cdef class PartitionedGrid:
     cdef public object my_data
@@ -171,7 +171,7 @@ cdef class PartitionedGrid:
             flat_ind = (((cur_ind[2])*self.dims[1]+(cur_ind[1]))*self.dims[0]+cur_ind[0])
             dv = self.data[flat_ind]
             # Do our transfer here
-            eval_shells(nshells, dv, shells, rgba)
+            eval_shells(nshells, dv, shells, rgba, dt)
             if (tmax[0] > 1.0) and (tmax[1] > 1.0) and (tmax[2] > 1.0):
                 dt = 1.0 - enter_t
                 rgba[2] += dt
@@ -248,6 +248,7 @@ cdef class PartitionedGrid:
                 return 0
         t = ceil(intersect_t / dt) * dt
         while 1:
+            if rgba[3] < 1e-6: break
             for i in range(3):
                 cur_pos[i] = v_pos[i] + t*v_dir[i]
                 cur_ind[i] = <int> floor((cur_pos[i] - self.left_edge[i])/self.dds[i])
@@ -259,6 +260,6 @@ cdef class PartitionedGrid:
             dv = fast_interpolate(self.left_edge, self.dds, self.dims,
                                   cur_ind, cur_pos, self.data)
             # Do our transfer here
-            eval_shells(nshells, dv, shells, rgba)
+            eval_shells(nshells, dv, shells, rgba, dt)
             t += dt
         return hit
