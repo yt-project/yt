@@ -153,7 +153,7 @@ class RavenPlot(object):
                number of ticks to be evenly spaced in log space
         """
         # This next call fixes some things, but is slower...
-        #self._redraw_image()
+        self._redraw_image()
         if (zmin in (None,'min')) or (zmax in (None,'max')):    
             imbuff = self._axes.images[-1]._A
             if zmin == 'min':
