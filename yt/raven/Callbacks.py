@@ -189,15 +189,16 @@ class ContourCallback(PlotCallback):
 
 class GridBoundaryCallback(PlotCallback):
     _type_name = "grids"
-    def __init__(self, alpha=1.0, min_pix = 1):
+    def __init__(self, alpha=1.0, min_pix = 1,annotate=False):
         """
         Adds grid boundaries to a plot, optionally with *alpha*-blending.
         Cuttoff for display is at *min_pix* wide.
+        *annotate* puts the grid id in the corner of the grid.  (Not so great in projections...)
         """
         PlotCallback.__init__(self)
         self.alpha = alpha
         self.min_pix = min_pix
-
+        self.annotate=annotate # put grid numbers in the corner.        
     def __call__(self, plot):
         x0, x1 = plot.xlim
         y0, y1 = plot.ylim
@@ -231,6 +232,10 @@ class GridBoundaryCallback(PlotCallback):
                            edgecolors=edgecolors)
             plot._axes.hold(True)
             plot._axes.add_collection(grid_collection)
+            if self.annotate:
+                ids = [g.id for g in plot.data._grids]
+                for n in range(len(left_edge_px)):
+                    plot._axes.text(left_edge_px[n]+2,left_edge_py[n]+2,ids[n])
             plot._axes.hold(False)
 
 class LabelCallback(PlotCallback):
