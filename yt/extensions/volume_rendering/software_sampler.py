@@ -44,8 +44,8 @@ def direct_ray_cast(pf, L, center, W, Nvec, Nsamples, shells):
     dist = na.minimum(DL, DR)
     ind = na.argsort(dist)
     
-    image = na.zeros((Nvec*Nvec,4), dtype='float64')
-    image[:,3] = 1.0
+    image = na.zeros((Nvec,Nvec,4), dtype='float64')
+    image[:,:,3] = 1.0
 
     # Now we need to generate regular x,y,z values in regular space for our vector
     # starting places.
@@ -54,7 +54,9 @@ def direct_ray_cast(pf, L, center, W, Nvec, Nsamples, shells):
     xv = cp._inv_mat[0,0]*px + cp._inv_mat[0,1]*py + cp.center[0]
     yv = cp._inv_mat[1,0]*px + cp._inv_mat[1,1]*py + cp.center[1]
     zv = cp._inv_mat[2,0]*px + cp._inv_mat[2,1]*py + cp.center[2]
-    vectors = na.array([xv.ravel(), yv.ravel(), zv.ravel()], dtype='float64').transpose()
+    vectors = na.array([xv, yv, zv], dtype='float64').transpose()
+    xp0, xp1 = px.min(), px.max()
+    yp0, yp1 = py.min(), py.max()
 
     ng = partitioned_grids.size
     norm_vec = cp._norm_vec / W
@@ -65,7 +67,8 @@ def direct_ray_cast(pf, L, center, W, Nvec, Nsamples, shells):
     for i,g in enumerate(partitioned_grids[ind]):
         if (i % every) == 0: 
             pbar.update(i)
-        hit += g.cast_plane(vectors, norm_vec, shells, image, 1.0/Nsamples)
+        hit += g.cast_plane(vectors, norm_vec, shells, image, 1.0/Nsamples,
+                            xp0, xp1, yp0, yp1, cp._x_vec, cp._y_vec, cp.center)
     pbar.finish()
 
-    return image.reshape((Nvec,Nvec,4)), vectors
+    return image, vectors

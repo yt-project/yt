@@ -34,9 +34,7 @@ npy_float64 fast_interpolate(npy_float64 left_edge[3], npy_float64 dds[3],
     xm = (((ci[0]+1)*dds[0] + left_edge[0]) - cp[0])/dds[0];
     ym = (((ci[1]+1)*dds[1] + left_edge[1]) - cp[1])/dds[1];
     zm = (((ci[2]+1)*dds[2] + left_edge[2]) - cp[2])/dds[2];
-    xp = ((cp[0] - (ci[0]*dds[0] + left_edge[0]))/dds[0]);
-    yp = ((cp[1] - (ci[1]*dds[1] + left_edge[1]))/dds[1]);
-    zp = ((cp[2] - (ci[2]*dds[2] + left_edge[2]))/dds[2]);
+    xp = (1.0 - xm); yp = (1.0 - ym); zp = (1.0 - zm);
     dv = data[(((ci[0]+0)*(ds[1]+1)+(ci[1]+0))*(ds[2]+1)+ci[2]+0)]*(xm*ym*zm)
        + data[(((ci[0]+1)*(ds[1]+1)+(ci[1]+0))*(ds[2]+1)+ci[2]+0)]*(xp*ym*zm)
        + data[(((ci[0]+0)*(ds[1]+1)+(ci[1]+1))*(ds[2]+1)+ci[2]+0)]*(xm*yp*zm)

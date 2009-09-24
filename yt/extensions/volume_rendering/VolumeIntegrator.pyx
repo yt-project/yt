@@ -74,34 +74,88 @@ cdef class PartitionedGrid:
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
-    def cast_plane(self, np.ndarray[np.float64_t, ndim=2] vp_pos,
+    def cast_plane(self, np.ndarray[np.float64_t, ndim=3] vp_pos,
                          np.ndarray[np.float64_t, ndim=1] vp_dir,
                          np.ndarray[np.float64_t, ndim=2] shells,
-                         np.ndarray[np.float64_t, ndim=2] image_plane,
-                         np.float64_t dt = -1.0):
+                         np.ndarray[np.float64_t, ndim=3] image_plane,
+                         np.float64_t dt,
+                         np.float64_t xp0, np.float64_t xp1,
+                         np.float64_t yp0, np.float64_t yp1,
+                         np.ndarray[np.float64_t, ndim=1] xa_vec,
+                         np.ndarray[np.float64_t, ndim=1] ya_vec,
+                         np.ndarray[np.float64_t, ndim=1] centera):
         # This routine will iterate over all of the vectors and cast each in
         # turn.  Might benefit from a more sophisticated intersection check,
         # like http://courses.csusm.edu/cs697exz/ray_box.htm
-        cdef int vi, hit, i
+        cdef int vi, vj, hit, i, i0, j0, ni, nj, nn
         cdef int nv = vp_pos.shape[0]
         cdef int nshells = shells.shape[0]
-        cdef np.float64_t v_pos[3]
-        cdef np.float64_t v_dir[3]
-        cdef np.float64_t rgba[4]
-        for i in range(3): v_dir[i] = vp_dir[i]
+        cdef np.float64_t v_pos[3], v_dir[3], rgba[4], extrema[4]
+        cdef np.float64_t x_vec[3], y_vec[3], center[3]
+        cdef np.float64_t pdx = (xp1-xp0)/nv, pdy = (yp1-yp0)/nv
+        for i in range(3):
+            v_dir[i] = vp_dir[i]
+            x_vec[i] = xa_vec[i]
+            y_vec[i] = ya_vec[i]
+            center[i] = centera[i]
+        extrema[0] = extrema[2] = 1e300
+        extrema[1] = extrema[3] = -1e300
+        self.calculate_extent(x_vec, y_vec, center, extrema)
+        i0 = <int> floor((extrema[0] - xp0)/pdx)
+        j0 = <int> floor((extrema[2] - yp0)/pdy)
+        i1 = i0 + <int> ceil((extrema[1] - extrema[0])/pdx)
+        j1 = j0 + <int> ceil((extrema[3] - extrema[2])/pdy)
+        if i0 < 0: i0 = 0
+        elif i0 > nv: i0 = nv
+        if j0 < 0: j0 = 0
+        elif j0 > nv: j0 = nv
+        if i1 < 0: i1 = 0
+        elif i1 > nv: i1 = nv
+        if j1 < 0: j1 = 0
+        elif j1 > nv: j1 = nv
         hit = 0
-        for vi in range(nv):
+        i0 = j0 = 0
+        i1 = j1 = nv
+        for vi in range(i0,i1):
+            for vj in range(j0,j1):
             # Copy into temporary space
-            for i in range(3): v_pos[i] = vp_pos[vi,i]
-            for i in range(4): rgba[i] = image_plane[vi,i]
-            if dt > 0:
-                hit += self.sample_ray(v_pos, v_dir, nshells, rgba,
-                                         <np.float64_t *> shells.data, dt)
-            else:
-                hit += self.integrate_ray(v_pos, v_dir, nshells, rgba,
-                                         <np.float64_t *> shells.data)
-            for i in range(4): image_plane[vi,i] = rgba[i] 
+                for i in range(3): v_pos[i] = vp_pos[vi,vj,i]
+                for i in range(4): rgba[i] = image_plane[vi,vj,i]
+                if dt > 0:
+                    hit += self.sample_ray(v_pos, v_dir, nshells, rgba,
+                                             <np.float64_t *> shells.data, dt)
+                else:
+                    hit += self.integrate_ray(v_pos, v_dir, nshells, rgba,
+                                             <np.float64_t *> shells.data)
+                for i in range(4): image_plane[vi,vj,i] = rgba[i] 
         return hit
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    cdef void calculate_extent(self,
+                               np.float64_t x_vec[3],
+                               np.float64_t y_vec[3],
+                               np.float64_t center[3],
+                               np.float64_t extrema[4]):
+        # We do this for all eight corners
+        cdef np.float64_t *edges[2], temp
+        edges[0] = self.left_edge
+        edges[1] = self.right_edge
+        cdef int i, j, k
+        for i in range(2):
+            for j in range(2):
+                for k in range(2):
+                    temp  = edges[i][0] * x_vec[0]
+                    temp += edges[j][1] * x_vec[1]
+                    temp += edges[k][2] * x_vec[2]
+                    if temp < extrema[0]: extrema[0] = temp
+                    if temp > extrema[1]: extrema[1] = temp
+                    temp  = edges[i][0] * y_vec[0]
+                    temp += edges[j][1] * y_vec[1]
+                    temp += edges[k][2] * y_vec[2]
+                    if temp < extrema[2]: extrema[2] = temp
+                    if temp > extrema[3]: extrema[3] = temp
+        #print extrema[0], extrema[1], extrema[2], extrema[3]
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
