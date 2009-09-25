@@ -65,6 +65,7 @@ def partition_grid(start_grid, field, log_field = True, threshold = None):
 
     grids = []
 
+    covered = na.zeros(start_grid.ActiveDimensions)
     for xs, xe in zip(x_vert[:-1], x_vert[1:]):
         for ys, ye in zip(y_vert[:-1], y_vert[1:]):
             for zs, ze in zip(z_vert[:-1], z_vert[1:]):
@@ -78,9 +79,12 @@ def partition_grid(start_grid, field, log_field = True, threshold = None):
                 dims = na.array(dd.shape, dtype='int64')
                 start_index = na.array([xs,ys,zs], dtype='int64')
                 left_edge = start_grid.LeftEdge + start_index * start_grid.dds
-                right_edge = left_edge + (dims + 1) * start_grid.dds
+                right_edge = left_edge + dims * start_grid.dds
                 grids.append(PartitionedGrid(
                     data, left_edge, right_edge, dims))
+                covered[xs:xe,ys:ye,zs:ze] += 1
+    assert(na.all(covered == start_grid.child_mask))
+    assert(covered.max() <= 1)
 
     return grids
 

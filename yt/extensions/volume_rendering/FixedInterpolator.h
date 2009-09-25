@@ -33,5 +33,5 @@
 
 #include "numpy/ndarrayobject.h"
 
-npy_float64 fast_interpolate(npy_float64 left_edge[3], npy_float64 dds[3],
-               int *ds, int ci[3], npy_float64 cp[3], npy_float64 *data);
+npy_float64 fast_interpolate(int ds[3], int ci[3], npy_float64 dp[3],
+                             npy_float64 *data);

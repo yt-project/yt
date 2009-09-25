@@ -26,10 +26,11 @@ License:
 import numpy as na
 
 class TransferFunction(object):
-    def __init__(self, x_bounds, n_bins=256):
+    def __init__(self, x_bounds, nbins=256):
+        self.nbins = nbins
         self.x_bounds = x_bounds
-        self.x = na.linspace(x_bounds[0], x_bounds[1], n_bins).astype('float32')
-        self.y = na.zeros(n_bins, dtype='float32')
+        self.x = na.linspace(x_bounds[0], x_bounds[1], nbins).astype('float64')
+        self.y = na.zeros(nbins, dtype='float64')
 
     def add_gaussian(self, location, width, height):
         vals = height * na.exp(-(self.x - location)**2.0/(2*width**2.0))
@@ -44,11 +45,12 @@ class TransferFunction(object):
         pylab.savefig(filename)
 
 class ColorTransferFunction(object):
-    def __init__(self, x_bounds, n_bins=256):
+    def __init__(self, x_bounds, nbins=256):
         self.x_bounds = x_bounds
-        self.red = TransferFunction(x_bounds, n_bins)
-        self.green = TransferFunction(x_bounds, n_bins)
-        self.blue = TransferFunction(x_bounds, n_bins)
+        self.nbins = nbins
+        self.red = TransferFunction(x_bounds, nbins)
+        self.green = TransferFunction(x_bounds, nbins)
+        self.blue = TransferFunction(x_bounds, nbins)
         self.funcs = (self.red, self.green, self.blue)
 
     def add_gaussian(self, location, width, height):

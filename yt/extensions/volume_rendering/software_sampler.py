@@ -27,7 +27,7 @@ import numpy as na
 from yt.extensions.volume_rendering import *
 from yt.funcs import *
 
-def direct_ray_cast(pf, L, center, W, Nvec, Nsamples, shells):
+def direct_ray_cast(pf, L, center, W, Nvec, Nsamples, tf):
     center = na.array(center, dtype='float64')
 
     # This just helps us keep track of stuff, and it's cheap
@@ -35,9 +35,9 @@ def direct_ray_cast(pf, L, center, W, Nvec, Nsamples, shells):
     back_center = center - cp._norm_vec * W
     front_center = center + cp._norm_vec * W
     cylinder = pf.h.disk(back_center, L, na.sqrt(2)*W, 2*W)
-    mi, ma = 10**shells[:,0].min(), 10**shells[:,0].max()
 
-    partitioned_grids = partition_all_grids(cylinder._grids, threshold = (mi,ma))
+    #partitioned_grids = partition_all_grids(cylinder._grids)
+    partitioned_grids = partition_all_grids(pf.h.grids)
 
     LE = (na.array([grid.LeftEdge for grid in partitioned_grids]) - back_center) * cp._norm_vec
     RE = (na.array([grid.RightEdge for grid in partitioned_grids]) - back_center) * cp._norm_vec
@@ -61,16 +61,22 @@ def direct_ray_cast(pf, L, center, W, Nvec, Nsamples, shells):
     yp0, yp1 = py.min(), py.max()
 
     ng = partitioned_grids.size
+    norm_vec = cp._norm_vec
     norm_vec = cp._norm_vec * (2.0*W)
     hit = 0
     tnow = time.time()
     every = na.ceil(len(partitioned_grids) / 100.0)
+
+    vp = VectorPlane(vectors, norm_vec, back_center,
+                     (xp0, xp1, yp0, yp1), image, cp._x_vec, cp._y_vec)
+
+    tfp = TransferFunctionProxy(tf)
+
     pbar = get_pbar("Ray casting", len(partitioned_grids))
-    for i,g in enumerate(partitioned_grids[ind][::-1]):
+    for i,g in enumerate(partitioned_grids[ind]):
         if (i % every) == 0: 
             pbar.update(i)
-        hit += g.cast_plane(vectors, norm_vec, shells, image, 1.0/Nsamples,
-                            xp0, xp1, yp0, yp1, cp._x_vec, cp._y_vec, cp.center)
+        pos = g.cast_plane(tfp, vp)
     pbar.finish()
 
-    return image, vectors
+    return partitioned_grids, image, vectors, norm_vec, pos

@@ -25,6 +25,8 @@ License:
 
 import numpy as na
 
-from VolumeIntegrator import PartitionedGrid
+from TransferFunction import TransferFunction, ColorTransferFunction
+from VolumeIntegrator import PartitionedGrid, VectorPlane, \
+                             TransferFunctionProxy
 from grid_partitioner import partition_all_grids, partition_grid
 from software_sampler import direct_ray_cast
