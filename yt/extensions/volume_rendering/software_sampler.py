@@ -28,14 +28,16 @@ from yt.extensions.volume_rendering import *
 from yt.funcs import *
 
 def direct_ray_cast(pf, L, center, W, Nvec, Nsamples, shells):
+    center = na.array(center, dtype='float64')
 
     # This just helps us keep track of stuff, and it's cheap
     cp = pf.h.cutting(L, center)
     back_center = center - cp._norm_vec * W
     front_center = center + cp._norm_vec * W
     cylinder = pf.h.disk(back_center, L, na.sqrt(2)*W, 2*W)
+    mi, ma = 10**shells[:,0].min(), 10**shells[:,0].max()
 
-    partitioned_grids = partition_all_grids(cylinder._grids)
+    partitioned_grids = partition_all_grids(cylinder._grids, threshold = (mi,ma))
 
     LE = (na.array([grid.LeftEdge for grid in partitioned_grids]) - back_center) * cp._norm_vec
     RE = (na.array([grid.RightEdge for grid in partitioned_grids]) - back_center) * cp._norm_vec
@@ -59,7 +61,7 @@ def direct_ray_cast(pf, L, center, W, Nvec, Nsamples, shells):
     yp0, yp1 = py.min(), py.max()
 
     ng = partitioned_grids.size
-    norm_vec = cp._norm_vec / W
+    norm_vec = cp._norm_vec / (2.0*W)
     hit = 0
     tnow = time.time()
     every = na.ceil(len(partitioned_grids) / 100.0)

@@ -28,8 +28,12 @@ from yt.funcs import *
 
 from VolumeIntegrator import PartitionedGrid
 
-def partition_grid(start_grid, field, log_field = True):
+def partition_grid(start_grid, field, log_field = True, threshold = None):
+    if threshold is not None:
+        if start_grid[field].max() < threshold[0] or \
+           start_grid[field].min() > threshold[1]: return None
     to_cut_up = start_grid.get_vertex_centered_data(field).astype('float64')
+
     if log_field: to_cut_up = na.log10(to_cut_up)
     if len(start_grid.Children) == 0:
         pg = PartitionedGrid(
@@ -85,6 +89,7 @@ def partition_all_grids(grid_list, field = "Density", threshold = (-1e300, 1e300
     pbar = get_pbar("Partitioning", len(grid_list))
     for i, g in enumerate(grid_list):
         pbar.update(i)
-        new_grids += partition_grid(g, field, threshold)
+        to_add = partition_grid(g, field, True, threshold)
+        if to_add is not None: new_grids += to_add
     pbar.finish()
     return na.array(new_grids, dtype='object')
