@@ -1,5 +1,5 @@
 """
-Simle integrators for the radiative transfer equation
+Simple integrators for the radiative transfer equation
 
 Author: Matthew Turk <matthewturk@gmail.com>
 Affiliation: KIPAC/SLAC/Stanford
@@ -272,8 +272,8 @@ cdef class PartitionedGrid:
             y = (i+2) % 3
             tl = (self.left_edge[i] - v_pos[i])/v_dir[i]
             tr = (self.right_edge[i] - v_pos[i])/v_dir[i]
-            if tl < 0.0 and tr < 0.0: return 0
-            if tl > 1.0 and tr > 1.0: return 0
+            #if tl < 0.0 and tr < 0.0: return 0
+            #if tl > 1.0 and tr > 1.0: return 0
             temp_x = (v_pos[x] + tl*v_dir[x])
             temp_y = (v_pos[y] + tl*v_dir[y])
             if (self.left_edge[x] <= temp_x <= self.right_edge[x]) and \
@@ -286,30 +286,31 @@ cdef class PartitionedGrid:
                (self.left_edge[y] <= temp_y <= self.right_edge[y]) and \
                (0.0 <= tr < intersect_t):
                 intersect_t = tr
-        if self.left_edge[0] <= v_pos[0] and v_pos[0] <= self.right_edge[0] and \
-           self.left_edge[1] <= v_pos[1] and v_pos[1] <= self.right_edge[1] and \
-           self.left_edge[2] <= v_pos[2] and v_pos[2] <= self.right_edge[2]:
+        if self.left_edge[0] <= v_pos[0] <= self.right_edge[0] and \
+           self.left_edge[1] <= v_pos[1] <= self.right_edge[1] and \
+           self.left_edge[2] <= v_pos[2] <= self.right_edge[2]:
             intersect_t = 0.0
-        if not ((0.0 <= intersect_t) and (intersect_t < 1.0)):
-            return 0
+        if not (0.0 <= intersect_t < 1.0): return 0
         for i in range(3):
-            cur_pos[i] =  v_pos[i] + intersect_t * v_dir[i]
+            cur_pos[i] = v_pos[i] + intersect_t * v_dir[i]
             cur_ind[i] = <int> floor((cur_pos[i] + 1e-8*self.dds[i] -
                                       self.left_edge[i])/self.dds[i])
-            if cur_ind[i] == self.dims[i] and v_dir[i] < 0:
-                cur_ind[i] = self.dims[i] - 1
             if cur_ind[i] < 0 or cur_ind[i] >= self.dims[i]:
                 return 0
-        t = ceil(intersect_t / dt) * dt
+        t = intersect_t
         while 1:
-            if rgba[3] < 1e-6: break
             for i in range(3):
                 cur_pos[i] = v_pos[i] + t*v_dir[i]
-                cur_ind[i] = <int> floor((cur_pos[i] - self.left_edge[i])/self.dds[i])
+                cur_ind[i] = <int> floor((cur_pos[i] + 1e-8*self.dds[i] -
+                                          self.left_edge[i])/self.dds[i])
+                if cur_ind[i] == self.dims[i] and v_dir[i] < 0:
+                    cur_ind[i] = self.dims[i] - 1
             if (not (0 <= cur_ind[0] < self.dims[0])) or \
                (not (0 <= cur_ind[1] < self.dims[1])) or \
                (not (0 <= cur_ind[2] < self.dims[2])):
                 break
+            if t >= 1.0: break
+            if rgba[3] < 1e-10: break
             hit += 1
             dv = fast_interpolate(self.left_edge, self.dds, self.dims,
                                   cur_ind, cur_pos, self.data)

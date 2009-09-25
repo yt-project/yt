@@ -61,12 +61,12 @@ def direct_ray_cast(pf, L, center, W, Nvec, Nsamples, shells):
     yp0, yp1 = py.min(), py.max()
 
     ng = partitioned_grids.size
-    norm_vec = cp._norm_vec / (2.0*W)
+    norm_vec = cp._norm_vec * (2.0*W)
     hit = 0
     tnow = time.time()
     every = na.ceil(len(partitioned_grids) / 100.0)
     pbar = get_pbar("Ray casting", len(partitioned_grids))
-    for i,g in enumerate(partitioned_grids[ind]):
+    for i,g in enumerate(partitioned_grids[ind][::-1]):
         if (i % every) == 0: 
             pbar.update(i)
         hit += g.cast_plane(vectors, norm_vec, shells, image, 1.0/Nsamples,
