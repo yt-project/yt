@@ -2363,7 +2363,7 @@ class AMRSmoothedCoveringGridBase(AMRFloatCoveringGridBase):
     def _get_level_array(self, level, fields):
         fields = ensure_list(fields)
         # We assume refinement by a factor of two
-        rf = float(self.pf["RefineBy"]**(self.level - level))
+        rf = self.pf["RefineBy"]**(self.level - level)
         dims = na.maximum(1,self.ActiveDimensions/rf) + 2
         dx = (self.right_edge-self.left_edge)/(dims-2)
         x,y,z = (na.mgrid[0:dims[0],0:dims[1],0:dims[2]].astype('float64')-0.5)\

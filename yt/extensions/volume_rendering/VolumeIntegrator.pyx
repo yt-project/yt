@@ -40,6 +40,11 @@ cdef extern from "FixedInterpolator.h":
                     int *ds, int ci[3], np.float64_t cp[3], np.float64_t *data)
     inline void eval_shells(int nshells, np.float64_t dv,
                     np.float64_t *shells, np.float64_t rgba[4], np.float64_t dt)
+    inline void eval_transfer(int nbins, np.float64_t *tf, np.float64_t extrema[2],
+                    np.float64_t t0, np.float64_t t1,
+                    np.float64_t v_pos[3], np.float64_t v_dir[3],
+                    np.float64_t *data, int *ds, np.float64_t rgba[4], 
+                    int ci[3], np.float64_t left_edge[3], np.float64_t dds[3])
 
 cdef class PartitionedGrid:
     cdef public object my_data
@@ -83,7 +88,8 @@ cdef class PartitionedGrid:
                          np.float64_t yp0, np.float64_t yp1,
                          np.ndarray[np.float64_t, ndim=1] xa_vec,
                          np.ndarray[np.float64_t, ndim=1] ya_vec,
-                         np.ndarray[np.float64_t, ndim=1] centera):
+                         np.ndarray[np.float64_t, ndim=1] centera,
+                         np.float64_t ex0, np.float64_t ex1):
         # This routine will iterate over all of the vectors and cast each in
         # turn.  Might benefit from a more sophisticated intersection check,
         # like http://courses.csusm.edu/cs697exz/ray_box.htm
@@ -126,6 +132,7 @@ cdef class PartitionedGrid:
                                              <np.float64_t *> shells.data, dt)
                 else:
                     hit += self.integrate_ray(v_pos, v_dir, nshells, rgba,
+                                             
                                              <np.float64_t *> shells.data)
                 for i in range(4): image_plane[vi,vj,i] = rgba[i] 
         return hit
@@ -161,9 +168,9 @@ cdef class PartitionedGrid:
     @cython.wraparound(False)
     cdef int integrate_ray(self, np.float64_t v_pos[3],
                                  np.float64_t v_dir[3],
-                                 int nshells,
+                                 int nbins, np.float64_t extrema[2],
                                  np.float64_t rgba[4],
-                                 np.float64_t *shells):
+                                 np.float64_t *tf):
         cdef int cur_ind[3], step[3], x, y, i, n, flat_ind, hit
         cdef np.float64_t intersect_t = 1.0
         cdef np.float64_t intersect[3], tmax[3], tdelta[3]
@@ -194,8 +201,7 @@ cdef class PartitionedGrid:
            self.left_edge[1] <= v_pos[1] and v_pos[1] <= self.right_edge[1] and \
            self.left_edge[2] <= v_pos[2] and v_pos[2] <= self.right_edge[2]:
             intersect_t = 0.0
-        if not ((0.0 <= intersect_t) and (intersect_t < 1.0)):
-            return 0
+        if not ((0.0 <= intersect_t) and (intersect_t < 1.0)): return 0
         for i in range(3):
             intersect[i] = v_pos[i] + intersect_t * v_dir[i]
             cur_ind[i] = <int> floor((intersect[i] + 1e-8*self.dds[i] -
@@ -204,8 +210,7 @@ cdef class PartitionedGrid:
                         self.left_edge[i]-v_pos[i])/v_dir[i]
             if cur_ind[i] == self.dims[i] and step[i] < 0:
                 cur_ind[i] = self.dims[i] - 1
-            if cur_ind[i] < 0 or cur_ind[i] >= self.dims[i]:
-                return 0
+            if cur_ind[i] < 0 or cur_ind[i] >= self.dims[i]: return 0
             if step[i] > 0:
                 tmax[i] = (((cur_ind[i]+1)*self.dds[i])
                             +self.left_edge[i]-v_pos[i])/v_dir[i]
@@ -213,8 +218,7 @@ cdef class PartitionedGrid:
                 tmax[i] = (((cur_ind[i]+0)*self.dds[i])
                             +self.left_edge[i]-v_pos[i])/v_dir[i]
             tdelta[i] = (self.dds[i]/v_dir[i])
-            if tdelta[i] < 0:
-                tdelta[i] *= -1
+            if tdelta[i] < 0: tdelta[i] *= -1
         enter_t = intersect_t
         while 1:
             if (not (0 <= cur_ind[0] < self.dims[0])) or \
@@ -222,37 +226,43 @@ cdef class PartitionedGrid:
                (not (0 <= cur_ind[2] < self.dims[2])):
                 break
             hit += 1
-            flat_ind = (((cur_ind[2])*self.dims[1]+(cur_ind[1]))*self.dims[0]+cur_ind[0])
-            dv = self.data[flat_ind]
             # Do our transfer here
-            eval_shells(nshells, dv, shells, rgba, dt)
-            if (tmax[0] > 1.0) and (tmax[1] > 1.0) and (tmax[2] > 1.0):
-                dt = 1.0 - enter_t
-                rgba[2] += dt
-                break
             if tmax[0] < tmax[1]:
                 if tmax[0] < tmax[2]:
-                    dt = tmax[0] - enter_t
+                    eval_transfer(nbins, tf, extrema, enter_t, tmax[0],
+                                  v_pos, v_dir,
+                                  self.data, self.dims, rgba, cur_ind,
+                                  self.left_edge, self.dds)
                     enter_t = tmax[0]
                     tmax[0] += tdelta[0]
                     cur_ind[0] += step[0]
                 else:
-                    dt = tmax[2] - enter_t
+                    eval_transfer(nbins, tf, extrema, enter_t, tmax[2],
+                                  v_pos, v_dir,
+                                  self.data, self.dims, rgba, cur_ind,
+                                  self.left_edge, self.dds)
                     enter_t = tmax[2]
                     tmax[2] += tdelta[2]
                     cur_ind[2] += step[2]
             else:
                 if tmax[1] < tmax[2]:
-                    dt = tmax[1] - enter_t
+                    eval_transfer(nbins, tf, extrema, enter_t, tmax[1],
+                                  v_pos, v_dir,
+                                  self.data, self.dims, rgba, cur_ind,
+                                  self.left_edge, self.dds)
                     enter_t = tmax[1]
                     tmax[1] += tdelta[1]
                     cur_ind[1] += step[1]
                 else:
-                    dt = tmax[2] - enter_t
+                    eval_transfer(nbins, tf, extrema, enter_t, tmax[2],
+                                  v_pos, v_dir,
+                                  self.data, self.dims, rgba, cur_ind,
+                                  self.left_edge, self.dds)
                     enter_t = tmax[2]
                     tmax[2] += tdelta[2]
                     cur_ind[2] += step[2]
-            rgba[2] += dt
+            if (tmax[0] > 1.0) and (tmax[1] > 1.0) and (tmax[2] > 1.0):
+                break
         return hit
 
     @cython.boundscheck(False)

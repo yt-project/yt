@@ -77,3 +77,34 @@ inline void eval_shells(int nshells, npy_float64 dv,
         }
     }
 }
+
+inline void eval_transfer(int nbins, npy_float64 *tf, npy_float64 extrema[2],
+                npy_float64 t0, npy_float64 t1,
+                npy_float64 v_pos[3], npy_float64 v_dir[3],
+                npy_float64 *data, int *ds, npy_float64 rgba[4], 
+                int ci[3], npy_float64 left_edge[3], npy_float64 dds[3]) {
+    npy_float64 pos0[3], pos1[3];
+    npy_float64 dt = t1 - t0, accum, tf0, tf1;
+    npy_float64 db = (extrema[1]-extrema[0])/nbins;
+    int i, b0, b1;
+    for (i=0;i<3;i++){
+        pos0[i] = v_pos[i] + v_dir[i] * t0;
+        pos1[i] = v_pos[i] + v_dir[i] * t1;
+    }
+    dv0 = fast_interpolate(left_edge, dds, ds, ci, pos0, data);
+    dv1 = fast_interpolate(left_edge, dds, ds, ci, pos1, data);
+    /* Now we interpolate (linearly) into the bin we find our value in 
+       for dv0, then dv1 */
+    for (i=0;i<3;i++){ /* For r, g, b */
+      b0 = (int) floor((dv0 - extrema[0]) / db);
+      b1 = b0 + 1;
+      tf0 = (dv0 - extrema[0] - db*b0) * tf[nbins*i+db0] +
+        (extrema[0] + db*b1 - dv0) * tf[nbins*i+db1];
+
+      b1 = (int) floor((dv1 - extrema[0]) / db);
+      b1 = b0 + 1;
+      tf1 = (dv1 - extrema[0] - db*b0) * tf[nbins*i+db0] +
+        (extrema[0] + db*b1 - dv1) * tf[nbins*i+db1];
+      rgba[i] += dt * 0.5*(tf0 + tf1);
+    }
+}
