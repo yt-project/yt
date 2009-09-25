@@ -24,7 +24,6 @@ License:
 """
 
 from collections import defaultdict
-import sys
 
 from yt.lagos import *
 from yt.extensions.kdtree import *
@@ -248,6 +247,7 @@ class RunParallelHOP(ParallelAnalysisInterface):
             send_points[neighbor] = shift_points[is_inside].copy()
             send_mass[neighbor] = mass[is_inside].copy()
             send_size[neighbor] = len(na.where(is_inside == True)[0])
+        del points, shift_points, mass, real_indices
         yt_counters("Picking padding data to send.")
         # Communicate the sizes to send.
         self.mine, global_send_count = self._mpi_info_dict(send_size)
@@ -306,109 +306,9 @@ class RunParallelHOP(ParallelAnalysisInterface):
         # Now that we have the full size, initialize the chainID array
         self.chainID = na.ones(self.size,dtype='int64') * -1
         # Clean up explicitly, but these should be empty dicts by now.
-        del recv_real_indices, hooks, shift_points, points
+        del recv_real_indices, hooks #, shift_points, points
         del recv_points, recv_mass
         yt_counters("Communicate discriminated padding")
-    
-    # This is not being used, in favor of the version above.
-    def _communicate_raw_padding_data(self):
-        """
-        Send the raw particle data (x,y,zpos, mass and index) from our
-        'annulus' to our neighbors. This is how each task builds up their
-        padded particles. On the receive end, we discriminate against the
-        data, only keeping data we want.
-        """
-        yt_counters("Communicate raw padding")
-        (LE, RE) = self.bounds
-        temp_LE = na.empty(3, dtype='float64')
-        temp_RE = na.empty(3, dtype='float64')
-        # Pick the particles in the annulus that will be sent.
-        yt_counters("Picking padding data to send.")
-        send_count = len(na.where(self.is_inside_annulus == True)[0])
-        points = na.empty((send_count, 3), dtype='float64')
-        points[:,0] = self.xpos[self.is_inside_annulus]
-        points[:,1] = self.ypos[self.is_inside_annulus]
-        points[:,2] = self.zpos[self.is_inside_annulus]
-        real_indices = self.index[self.is_inside_annulus].astype('int64')
-        mass = self.mass[self.is_inside_annulus].astype('float64')
-        # Distribute the send sizes globally.
-        global_annulus_count = {self.mine:send_count}
-        global_annulus_count = self._mpi_joindict(global_annulus_count)
-        yt_counters("Picking padding data to send.")
-        # Initialize the arrays to receive data.
-        recv_real_indices = {}
-        recv_points = {}
-        recv_mass = {}
-        yt_counters("Initializing recv arrays.")
-        for opp_neighbor in self.neighbors:
-            opp_size = global_annulus_count[opp_neighbor]
-            recv_real_indices[opp_neighbor] = na.empty(opp_size, dtype='int64')
-            recv_points[opp_neighbor] = na.empty((opp_size,3), dtype='float64')
-            recv_mass[opp_neighbor] = na.empty(opp_size, dtype='float64')
-        yt_counters("Initializing recv arrays.")
-        yt_counters("MPI stuff.")
-        # Now we receive the data, but we don't actually use it.
-        hooks = []
-        for opp_neighbor in self.neighbors:
-            opp_size = global_annulus_count[opp_neighbor]
-            hooks.append(self._mpi_Irecv_long(recv_real_indices[opp_neighbor], opp_neighbor))
-            hooks.append(self._mpi_Irecv_double(recv_points[opp_neighbor], opp_neighbor))
-            hooks.append(self._mpi_Irecv_double(recv_mass[opp_neighbor], opp_neighbor))
-        # Now we send the data.
-        for neighbor in self.neighbors:
-            hooks.append(self._mpi_Isend_long(real_indices, neighbor))
-            hooks.append(self._mpi_Isend_double(points, neighbor))
-            hooks.append(self._mpi_Isend_double(mass, neighbor))
-        # We need to define our expanded boundaries.
-        (LE_padding, RE_padding) = self.padding
-        temp_LE = LE - LE_padding
-        temp_RE = RE + RE_padding
-        # Now we use the data, after all the recvs are done. This can probably,
-        # and stuff below, be turned into a while loop, that exits once all the
-        # data has been received and processed. The processing order doesn't
-        # matter.
-        self._mpi_Request_Waitall(hooks)
-        yt_counters("MPI stuff.")
-        yt_counters("Discrimination.")
-        # We can now delete our sent data.
-        del points, mass, real_indices
-        for opp_neighbor in self.neighbors:
-            opp_size = global_annulus_count[opp_neighbor]
-            # Adjust the values of the positions if needed. I think there's
-            # a better way to do this!
-            for i,point in enumerate(recv_points[opp_neighbor][:opp_size]):
-                if point[0] < temp_LE[0] and point[0] < temp_RE[0]:
-                    recv_points[opp_neighbor][i][0] += self.period[0]
-                if point[0] > temp_LE[0] and point[0] > temp_RE[0]:
-                    recv_points[opp_neighbor][i][0] -= self.period[0]
-                if point[1] < temp_LE[1] and point[1] < temp_RE[1]:
-                    recv_points[opp_neighbor][i][1] += self.period[1]
-                if point[1] > temp_LE[1] and point[1] > temp_RE[1]:
-                    recv_points[opp_neighbor][i][1] -= self.period[1]
-                if point[2] < temp_LE[2] and point[2] < temp_RE[2]:
-                    recv_points[opp_neighbor][i][2] += self.period[2]
-                if point[2] > temp_LE[2] and point[2] > temp_RE[2]:
-                    recv_points[opp_neighbor][i][2] -= self.period[2]
-            is_inside = ( (recv_points[opp_neighbor][:opp_size] >= temp_LE).all(axis=1) * \
-                (recv_points[opp_neighbor][:opp_size] < temp_RE).all(axis=1) )
-            self.index = na.concatenate((self.index, recv_real_indices[opp_neighbor][:opp_size][is_inside]))
-            # Clean up immediately to reduce peak memory usage.
-            del recv_real_indices[opp_neighbor]
-            self.xpos = na.concatenate((self.xpos, recv_points[opp_neighbor][:opp_size,0][is_inside]))
-            self.ypos = na.concatenate((self.ypos, recv_points[opp_neighbor][:opp_size,1][is_inside]))
-            self.zpos = na.concatenate((self.zpos, recv_points[opp_neighbor][:opp_size,2][is_inside]))
-            del recv_points[opp_neighbor]
-            self.mass = na.concatenate((self.mass, recv_mass[opp_neighbor][:opp_size][is_inside]))
-            del recv_mass[opp_neighbor]
-        yt_counters("Discrimination.")
-        self.size = self.index.size
-        # Now that we have the full size, initialize the chainID array
-        self.chainID = na.ones(self.size,dtype='int64') * -1
-        # Clean up explicitly, but these should be empty dicts by now.
-        del recv_real_indices, hooks
-        del recv_points, recv_mass
-        yt_counters("Communicate raw padding")
-        
 
     def _init_kd_tree(self):
         """
@@ -478,6 +378,8 @@ class RunParallelHOP(ParallelAnalysisInterface):
         elif round == 'second':
             inner = na.invert( (fKD.pos.T >= temp_LE).all(axis=1) * \
                 (fKD.pos.T < temp_RE).all(axis=1) )
+        if round == 'first':
+            del points
         # After inverting the logic above, we want points that are both
         # inside the real region, but within one padding of the boundary,
         # and this will do it.
@@ -494,125 +396,6 @@ class RunParallelHOP(ParallelAnalysisInterface):
                 # Only padded and annulus particles are needed in the dict.
                 if not self.is_inside[i] or self.is_inside_annulus[i]:
                     self.rev_index[self.index[i]] = i
-        if round == 'first':
-            del points
-        del inner
-
-    # These next two functions aren't currently being used. They figure out
-    # which direction to send particle data from each task. They may come 
-    # in handy in the future, if needed.
-
-    def _find_shift_padded(self, i):
-        """
-        Find the shift vector for a padded particle.
-        """
-        # This shouldn't happen, but just in case, an internal particle
-        # has no shift.
-        if self.is_inside[i]: return na.array([0,0,0], dtype='int64')
-        (LE, RE) = self.bounds
-        xshift, yshift, zshift = 0, 0, 0
-        if self.xpos[i] >= RE[0]:
-            xshift = 1
-            # this accounts for padded regions that haven't been repositioned
-            # around the periodic boundaries
-            if (self.xpos[i] - RE[0]) > self.padding:
-                xshift = -1
-        elif self.xpos[i] < LE[0]:
-            xshift = -1
-            if (self.xpos[i] - LE[0]) >= self.padding:
-                xshift = 1
-        if self.ypos[i] >= RE[1]:
-            yshift = 1
-            if (self.ypos[i] - RE[0]) > self.padding:
-                yshift = -1
-        elif self.ypos[i] < LE[1]:
-            yshift = -1
-            if (self.ypos[i] - LE[0]) >= self.padding:
-                yshift = 1
-        if self.zpos[i] >= RE[2]:
-            zshift = 1
-            if (self.zpos[i] - RE[0]) > self.padding:
-                zshift = -1
-        elif self.zpos[i] < LE[2]:
-            zshift = -1
-            if (self.zpos[i] - LE[0]) >= self.padding:
-                zshift = 1
-        shift = na.array([xshift,yshift,zshift],dtype='int64')
-        return shift
-
-    def _find_shift_real(self, i):
-        """
-        Find shift vectors for a particle in the 'real' region. A particle
-        in the real region, close to the boundary, may be a padded particle
-        in several neighbors, so we need to return multiple shift vectors.
-        """
-        return [ na.array([1,0,0], dtype='int64') ]
-        # skip padded particles
-        if not self.is_inside[i]: return na.array([0]*3, dtype='int64')
-        # Adjust the boundaries
-        (LE, RE) = self.bounds
-        LE += na.array([self.padding]*3)
-        RE -= na.array([self.padding]*3)
-        xshift, yshift, zshift = 0, 0, 0
-        if self.xpos[i] >= RE[0]:
-            xshift = 1
-        elif self.xpos[i] < LE[0]:
-            xshift = -1
-        if self.ypos[i] >= RE[1]:
-            yshift = 1
-        elif self.ypos[i] < LE[1]:
-            yshift = -1
-        if self.zpos[i] >= RE[2]:
-            zshift = 1
-        elif self.zpos[i] < LE[2]:
-            zshift = -1
-        count = abs(xshift) + abs(yshift) + abs(zshift)
-        vectors = []
-        base = na.array([xshift,yshift,zshift], dtype='int64')
-        diag = na.array([[1,0,0], [0,1,0], [0,0,1]], dtype='int64')
-        vectors.append(base)
-        if count == 2:
-            # find the zero element so we can skip it
-            zero_e = na.argmax(na.abs(base) < 1)
-            for i in xrange(3):
-                if i == zero_e: continue
-                vectors.append(diag[i] * base[i])
-        elif count == 3:
-            for i in xrange(3):
-                # the singletons
-                vectors.append(diag[i] * base[i])
-                for j in xrange(3):
-                    # the doubles, the triple is already added, it's 'base'
-                    if i == j: continue
-                    vectors.append( (diag[i] * base[i]) + (diag[j] * base[j]))
-        return vectors
-        
-    # This function isn't being used. It was used when this procedure was
-    # limited to subdomains on an even mesh, rather than load-leveled
-    # subregions as now.
-    def _translate_shift(self, i=None, shift=None):
-        """
-        Given an integer, return the corresponding shift, and given a shift
-        return the integer. There may be a better way to do this.
-        """
-        if self.d is None:
-            d = {0:[-1,-1,-1], 1:[-1,-1,0], 2:[-1,-1,1], 3:[-1,0,-1], 4:[-1,0,0],
-                5:[-1,0,1], 6:[-1,1,-1], 7:[-1,1,0], 8:[-1,1,1,], 9:[0,-1,-1],
-                10:[0,-1,0], 11:[0,-1,1], 12:[0,0,-1], 13:[0,0,0], 14:[0,0,1],
-                15:[0,1,-1], 16:[0,1,0], 17:[0,1,1], 18:[1,-1,-1], 19:[1,-1,0],
-                20:[1,-1,1], 21:[1,0,-1], 22:[1,0,0], 23:[1,0,1], 24:[1,1,-1],
-                25:[1,1,0], 26:[1,1,1]}
-            for key in d:
-                d[key] = na.array(d[key], dtype='int64')
-            self.d = d
-        if i==None and shift==None: return None
-        if i!=None:
-            return self.d[i]
-        if shift!=None:
-            shift = na.array(shift)
-            for key in self.d:
-                if (self.d[key] == shift).all():
-                    return key
 
     def _densestNN(self):
         """
@@ -975,6 +758,8 @@ class RunParallelHOP(ParallelAnalysisInterface):
         # Pick the particles in the annulus.
         real_indices = self.index[self.is_inside_annulus]
         chainIDs = self.chainID[self.is_inside_annulus]
+        # We're actually done with this here.
+        del self.index, self.is_inside_annulus
         # Eliminate un-assigned particles.
         select = (chainIDs != -1)
         real_indices = real_indices[select]
@@ -1023,6 +808,8 @@ class RunParallelHOP(ParallelAnalysisInterface):
         # Clean up.
         del recv_real_indices, recv_chainIDs, real_indices, chainIDs, select
         del hooks
+        # We're done with this here.
+        del self.rev_index
         yt_counters("communicate_annulus_chainIDs")
 
     def _connect_chains(self):
@@ -1069,22 +856,22 @@ class RunParallelHOP(ParallelAnalysisInterface):
                         lower_chain = thisNN_chainID
                     # Make sure that the higher density chain has an entry.
                     try:
-                        test = self.chain_densest_n[higher_chain]
+                        test = self.chain_densest_n[int(higher_chain)]
                     except KeyError:
-                        self.chain_densest_n[higher_chain] = {}
+                        self.chain_densest_n[int(higher_chain)] = {}
                     # See if this boundary density is higher than
                     # previously recorded for this pair of chains.
                     # Links only go one direction.
                     try:
-                        old = self.chain_densest_n[higher_chain][lower_chain]
+                        old = self.chain_densest_n[int(higher_chain)][int(lower_chain)]
                         if old < boundary_density:
                             # make this the new densest boundary between this pair
-                            self.chain_densest_n[higher_chain][lower_chain] = \
+                            self.chain_densest_n[int(higher_chain)][int(lower_chain)] = \
                                 boundary_density
                     except KeyError:
                         # we haven't seen this pairing before, record this as the
                         # new densest boundary between chains
-                        self.chain_densest_n[higher_chain][lower_chain] = \
+                        self.chain_densest_n[int(higher_chain)][int(lower_chain)] = \
                             boundary_density
                 else:
                     continue
@@ -1417,73 +1204,6 @@ class RunParallelHOP(ParallelAnalysisInterface):
         yt_counters("Precomp.")
         del loc, subchain, CoM_M, Tot_M, c_vec, max_radius, select
 
-    def _resize_dataset(self):
-        multi = 2
-        newsize = self.size * multi
-        new_mass = na.empty(newsize, dtype='float64')
-        new_xpos = na.empty(newsize, dtype='float64')
-        new_ypos = na.empty(newsize, dtype='float64')
-        new_zpos = na.empty(newsize, dtype='float64')
-        new_index = na.empty(newsize, dtype='int64')
-        new_dens = na.empty(newsize, dtype='float64')
-        new_densestNN = na.empty(newsize, dtype='int64')
-        new_NNtags = na.empty((newsize, self.nMerge + 1), dtype='int64')
-        for i in xrange(multi):
-            new_mass[i*self.size:(i+1)*self.size] = self.mass[:]
-            new_xpos[i*self.size:(i+1)*self.size] = self.xpos[:]
-            new_ypos[i*self.size:(i+1)*self.size] = self.ypos[:]
-            new_zpos[i*self.size:(i+1)*self.size] = self.zpos[:]
-            new_index[i*self.size:(i+1)*self.size] = (self.index[:] + self.size * i)
-            new_dens[i*self.size:(i+1)*self.size] = self.density[:]
-            new_densestNN[i*self.size:(i+1)*self.size] = self.densestNN[:]
-            new_NNtags[i*self.size:(i+1)*self.size] = self.NNtags[:]
-        for i in xrange(self.size, newsize):
-            new_dens[i] += na.random.uniform(-1,1) * 1e-8
-        self.mass = new_mass.copy() / multi / 30
-        self.xpos = new_xpos.copy()
-        self.ypos = new_ypos.copy()
-        self.zpos = new_zpos.copy()
-        self.index = new_index.copy()
-        self.density = new_dens.copy()
-        self.densestNN = new_densestNN.copy()
-        self.NNtags = new_NNtags.copy()
-        del new_mass, new_xpos, new_ypos, new_zpos, new_index
-        del new_dens, new_densestNN, new_NNtags
-        self.size = newsize
-        self.chainID = na.ones(self.size,dtype='int64') * -1
-        # Test to see if the points are in the 'real' region
-        (LE, RE) = self.bounds
-        points = na.empty((self.size, 3), dtype='float64')
-        points[:,0] = self.xpos
-        points[:,1] = self.ypos
-        points[:,2] = self.zpos
-        self.is_inside = ( (points >= LE).all(axis=1) * \
-            (points < RE).all(axis=1) )
-        # Below we find out which particles are in the `annulus', one padding
-        # distance inside the boundaries. First we find the particles outside
-        # this inner boundary.
-        temp_LE = LE + self.max_padding
-        temp_RE = RE - self.max_padding
-        inner = na.invert( (points >= temp_LE).all(axis=1) * \
-            (points < temp_RE).all(axis=1) )
-        # After inverting the logic above, we want points that are both
-        # inside the real region, but within one padding of the boundary,
-        # and this will do it.
-        self.is_inside_annulus = na.bitwise_and(self.is_inside, inner)
-        # Below we make a mapping of real particle index->local ID
-        # Unf. this has to be a dict, because any task can have
-        # particles of any particle_index, which means that if it were an
-        # array every task would probably end up having this array be as long
-        # as the full number of particles.
-        # We can skip this the first time around.
-        self.rev_index = {}
-        for i in xrange(int(self.size)):
-            # Only padded and annulus particles are needed in the dict.
-            if not self.is_inside[i] or self.is_inside_annulus[i]:
-                self.rev_index[self.index[i]] = i
-        del inner
-
-
     def _chain_hop(self):
         self._global_padding('first')
         self._global_bounds_neighbors()
@@ -1513,7 +1233,7 @@ class RunParallelHOP(ParallelAnalysisInterface):
         # Let's find densest NN
         mylog.info('Finding densest nearest neighbors...')
         self._densestNN()
-        # Now we can free these.
+        # Now we can free these and copy data back.
         self.xpos = na.empty(self.size, dtype='float64')
         self.ypos = na.empty(self.size, dtype='float64')
         self.zpos = na.empty(self.size, dtype='float64')
@@ -1522,7 +1242,6 @@ class RunParallelHOP(ParallelAnalysisInterface):
         self.zpos[:] = fKD.pos[2, :]
         del fKD.pos, fKD.chunk_tags
         free_tree() # Frees the kdtree object.
-        #self._resize_dataset()
         # Build the chain of links.
         mylog.info('Building particle chains...')
         chain_count = self._build_chains()
@@ -1536,6 +1255,7 @@ class RunParallelHOP(ParallelAnalysisInterface):
         self._communicate_annulus_chainIDs()
         mylog.info('Connecting %d chains into groups...' % self.nchains)
         self._connect_chains()
+        del self.densestNN, self.NNtags
         mylog.info('Communicating group links globally...')
         self._make_global_chain_densest_n()
         mylog.info('Building final groups...')

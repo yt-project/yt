@@ -26,7 +26,7 @@ License:
 from yt.lagos import *
 from yt.funcs import *
 import yt.logger, logging
-import itertools, sys, cStringIO
+import itertools, sys, cStringIO, cPickle
 
 if os.path.basename(sys.executable) in \
         ["mpi4py", "embed_enzo",
@@ -969,41 +969,57 @@ class ParallelAnalysisInterface(object):
             return (top_keys, bot_keys, vals)
         self._barrier()
         size = 0
+        top_keys = []
+        bot_keys = []
+        vals = []
+        for top_key in data:
+            for bot_key in data[top_key]:
+                top_keys.append(top_key)
+                bot_keys.append(bot_key)
+                vals.append(data[top_key][bot_key])
+        top_keys = na.array(top_keys, dtype='int64')
+        bot_keys = na.array(bot_keys, dtype='int64')
+        vals = na.array(vals, dtype='float64')
         if MPI.COMM_WORLD.rank == 0:
             for i in range(1,MPI.COMM_WORLD.size):
-                mylog.info('Global Hash Table Compare %d of %d' % (i,MPI.COMM_WORLD.size))
                 size = MPI.COMM_WORLD.recv(source=i, tag=0)
-                top_keys = na.empty(size, dtype='int64')
-                bot_keys = na.empty(size, dtype='int64')
-                vals = na.empty(size, dtype='float64')
-                MPI.COMM_WORLD.Recv([top_keys, MPI.LONG], source=i, tag=0)
-                MPI.COMM_WORLD.Recv([bot_keys, MPI.LONG], source=i, tag=0)
-                MPI.COMM_WORLD.Recv([vals, MPI.DOUBLE], source=i, tag=0)
-                for i,top_key in enumerate(top_keys):
-                    # Make sure there's an entry for top_key in data
-                    try:
-                        test = data[top_key]
-                    except KeyError:
-                        data[top_key] = {}
-                    try:
-                        old_value = data[top_key][bot_keys[i]]
-                    except KeyError:
-                        # This guarantees the new value gets added.
-                        old_value = None
-                    if old_value < vals[i]:
-                        data[top_key][bot_keys[i]] = vals[i]
+                mylog.info('Global Hash Table Compare %d of %d size %d' % \
+                    (i,MPI.COMM_WORLD.size, size))
+                recv_top_keys = na.empty(size, dtype='int64')
+                recv_bot_keys = na.empty(size, dtype='int64')
+                recv_vals = na.empty(size, dtype='float64')
+                MPI.COMM_WORLD.Recv([recv_top_keys, MPI.LONG], source=i, tag=0)
+                MPI.COMM_WORLD.Recv([recv_bot_keys, MPI.LONG], source=i, tag=0)
+                MPI.COMM_WORLD.Recv([recv_vals, MPI.DOUBLE], source=i, tag=0)
+                top_keys = na.concatenate([top_keys, recv_top_keys])
+                bot_keys = na.concatenate([bot_keys, recv_bot_keys])
+                vals = na.concatenate([vals, recv_vals])
+#                 for j, top_key in enumerate(top_keys):
+#                     if j%1000 == 0: mylog.info(j)
+#                     # Make sure there's an entry for top_key in data
+#                     try:
+#                         test = data[top_key]
+#                     except KeyError:
+#                         data[top_key] = {}
+#                     try:
+#                         old_value = data[top_key][bot_keys[j]]
+#                     except KeyError:
+#                         # This guarantees the new value gets added.
+#                         old_value = None
+#                     if old_value < vals[j]:
+#                         data[top_key][bot_keys[j]] = vals[j]
         else:
-            top_keys = []
-            bot_keys = []
-            vals = []
-            for top_key in data:
-                for bot_key in data[top_key]:
-                    top_keys.append(top_key)
-                    bot_keys.append(bot_key)
-                    vals.append(data[top_key][bot_key])
-            top_keys = na.array(top_keys, dtype='int64')
-            bot_keys = na.array(bot_keys, dtype='int64')
-            vals = na.array(vals, dtype='float64')
+#             top_keys = []
+#             bot_keys = []
+#             vals = []
+#             for top_key in data:
+#                 for bot_key in data[top_key]:
+#                     top_keys.append(top_key)
+#                     bot_keys.append(bot_key)
+#                     vals.append(data[top_key][bot_key])
+#             top_keys = na.array(top_keys, dtype='int64')
+#             bot_keys = na.array(bot_keys, dtype='int64')
+#             vals = na.array(vals, dtype='float64')
             size = top_keys.size
             MPI.COMM_WORLD.send(size, dest=0, tag=0)
             MPI.COMM_WORLD.Send([top_keys, MPI.LONG], dest=0, tag=0)
@@ -1013,17 +1029,17 @@ class ParallelAnalysisInterface(object):
         # send that, and then reconstruct it. When data is too big the pickling
         # of the dict fails.
         if MPI.COMM_WORLD.rank == 0:
-            top_keys = []
-            bot_keys = []
-            vals = []
-            for top_key in data:
-                for bot_key in data[top_key]:
-                    top_keys.append(top_key)
-                    bot_keys.append(bot_key)
-                    vals.append(data[top_key][bot_key])
-            top_keys = na.array(top_keys, dtype='int64')
-            bot_keys = na.array(bot_keys, dtype='int64')
-            vals = na.array(vals, dtype='float64')
+#             top_keys = []
+#             bot_keys = []
+#             vals = []
+#             for top_key in data:
+#                 for bot_key in data[top_key]:
+#                     top_keys.append(top_key)
+#                     bot_keys.append(bot_key)
+#                     vals.append(data[top_key][bot_key])
+#             top_keys = na.array(top_keys, dtype='int64')
+#             bot_keys = na.array(bot_keys, dtype='int64')
+#             vals = na.array(vals, dtype='float64')
             size = top_keys.size
         # Broadcast them using array methods
         size = MPI.COMM_WORLD.bcast(size, root=0)
