@@ -48,7 +48,6 @@ class RunParallelHOP(ParallelAnalysisInterface):
         self.mass = mass
         self.padded_particles = []
         self.nMerge = 4
-        self.d = None
         yt_counters("chainHOP")
         self._chain_hop()
         yt_counters("chainHOP")
@@ -306,8 +305,7 @@ class RunParallelHOP(ParallelAnalysisInterface):
         # Now that we have the full size, initialize the chainID array
         self.chainID = na.ones(self.size,dtype='int64') * -1
         # Clean up explicitly, but these should be empty dicts by now.
-        del recv_real_indices, hooks #, shift_points, points
-        del recv_points, recv_mass
+        del recv_real_indices, hooks, recv_points, recv_mass
         yt_counters("Communicate discriminated padding")
 
     def _init_kd_tree(self):
@@ -406,7 +404,7 @@ class RunParallelHOP(ParallelAnalysisInterface):
         keeping the all of this data, just using it.
         """
         yt_counters("densestNN")
-        self.densestNN = na.ones(self.size,dtype='int64')
+        self.densestNN = na.empty(self.size,dtype='int64')
         # We find nearest neighbors in chunks.
         chunksize = 10000
         fKD.chunk_tags = na.asfortranarray(na.empty((self.num_neighbors, chunksize), dtype='int64'))
@@ -522,6 +520,7 @@ class RunParallelHOP(ParallelAnalysisInterface):
         for chainID in temp:
             self.densest_in_chain[chainID + self.my_first_id] = temp[chainID]
             self.densest_in_chain_real_index[chainID + self.my_first_id] = temp_index[chainID]
+        del temp, temp_index
         # Distribute this.
         yt_counters("global chain MPI stuff.")
         self.densest_in_chain = self._mpi_joindict_unpickled_double(self.densest_in_chain)
@@ -541,15 +540,18 @@ class RunParallelHOP(ParallelAnalysisInterface):
             map[s] = i
         vals = vals[sort]
         reals = reals[sort]
+        # Re-initialize the dicts with the new order.
         del self.densest_in_chain, self.densest_in_chain_real_index
         self.densest_in_chain = {}
         self.densest_in_chain_real_index = {}
         for i,val in enumerate(vals):
             self.densest_in_chain[i] = val
             self.densest_in_chain_real_index[i] = reals[i]
+        del vals, reals, sort
         for i,chID in enumerate(self.chainID):
             if chID == -1: continue
             self.chainID[i] = map[chID]
+        del map
         yt_counters("global chain sorting.")
         # For some reason chains that share the most-dense particle are not
         # being linked, so we link them 'by hand' here.
@@ -559,6 +561,10 @@ class RunParallelHOP(ParallelAnalysisInterface):
         # Here we find a reverse mapping of real particle ID to chainID
         for chainID in self.densest_in_chain_real_index:
             reverse[self.densest_in_chain_real_index[chainID]].add(chainID)
+        # We may want to use this in _precompute_group_info(), at the top, but
+        # what is there works and is not slow at all, so for now we'll just
+        # get rid of this and save a few chunks of memory.
+        del self.densest_in_chain_real_index
         # If the real index has len(set)>1, there are multiple chains that need
         # to be linked
         tolink = defaultdict(set)
@@ -567,6 +573,7 @@ class RunParallelHOP(ParallelAnalysisInterface):
                 # Unf. can't slice a set, so this will have to do.
                 tolink[min(reverse[real])] = reverse[real]
                 tolink[min(reverse[real])].discard(min(reverse[real]))
+        del reverse
         # Now we will remove the other chains from the dicts and re-assign
         # particles to their new chainID.
         fix_map = {}
@@ -580,6 +587,7 @@ class RunParallelHOP(ParallelAnalysisInterface):
             except KeyError:
                 continue
             self.chainID[i] = new
+        del tolink, fix_map
         yt_counters("global chain hand-linking.")
         yt_counters("create_global_densest_in_chain")
 
@@ -661,6 +669,7 @@ class RunParallelHOP(ParallelAnalysisInterface):
         # Build the stuff to send.
         self.uphill_real_indices = self.index[self.padded_particles]
         self.uphill_chainIDs = self.chainID[self.padded_particles]
+        del self.padded_particles
         # Now we make a global dict of how many particles each task is
         # sending.
         self.global_padded_count = {self.mine:self.uphill_chainIDs.size}
@@ -1056,6 +1065,7 @@ class RunParallelHOP(ParallelAnalysisInterface):
                     else:
                         densestbound[chain_low] = densestbound[chain_high]
                     self.reverse_map[chain_low] = self.reverse_map[chain_high]
+        del g_high, g_low, g_dens
         # Now we have to find the unique groupIDs, since they may have been
         # merged.
         temp = []
@@ -1075,7 +1085,7 @@ class RunParallelHOP(ParallelAnalysisInterface):
             if self.reverse_map[chain] == -1: continue
             self.reverse_map[chain] = secondary_map[self.reverse_map[chain]]
         group_count = len(temp)
-        del secondary_map, temp, g_high, g_low, g_dens, densestbound
+        del secondary_map, temp, densestbound
         yt_counters("build_groups")
         return group_count
 
@@ -1096,6 +1106,7 @@ class RunParallelHOP(ParallelAnalysisInterface):
                 self.I_own.add(self.chainID[i])
             else:
                 self.chainID[i] = -1
+        del self.is_inside
         # Create a densest_in_group, analogous to densest_in_chain.
         self.densest_in_group = {}
         for i in xrange(int(group_count)):
@@ -1106,6 +1117,7 @@ class RunParallelHOP(ParallelAnalysisInterface):
             max_dens = self.densest_in_chain[chainID]
             if self.densest_in_group[groupID] < max_dens:
                 self.densest_in_group[groupID] = max_dens
+        del self.densest_in_chain
         yt_counters("translate_groupIDs")
 
     def _precompute_group_info(self):

@@ -797,8 +797,8 @@ class GenericHaloFinder(HaloList, ParallelAnalysisInterface):
             halo.write_particle_list(f)
 
 class parallelHF(GenericHaloFinder, parallelHOPHaloList):
-    def __init__(self, pf, threshold=160, dm_only=True, resize=False, rearrange=True,\
-        fancy_padding=True, safety=2.5):
+    def __init__(self, pf, threshold=160, dm_only=True, resize=True, rearrange=True,\
+        fancy_padding=True, safety=1.3):
         GenericHaloFinder.__init__(self, pf, dm_only, padding=0.0)
         self.padding = 0.0 
         self.num_neighbors = 65
