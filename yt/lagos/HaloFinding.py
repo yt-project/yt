@@ -804,7 +804,7 @@ class parallelHF(GenericHaloFinder, parallelHOPHaloList):
         self.num_neighbors = 65
         self.safety = safety
         period = pf["DomainRightEdge"] - pf["DomainLeftEdge"]
-        # get the total number of particles across all procs, with no padding
+        # Cut up the volume evenly initially, with no padding.
         padded, LE, RE, self._data_source = self._partition_hierarchy_3d(padding=self.padding)
         # also get the total mass of particles
         yt_counters("Reading Data")
@@ -841,6 +841,10 @@ class parallelHF(GenericHaloFinder, parallelHOPHaloList):
                     new_group, new_comm, LE, RE, new_top_bounds, new_cc, self._data_source = \
                         self._partition_hierarchy_3d_bisection(dim, bins, counts, top_bounds = new_top_bounds,\
                         old_group = new_group, old_comm = new_comm, cut=cut, old_cc=new_cc)
+        # If this isn't parallel, define the region as an AMRRegionStrict so
+        # particle IO works.
+        if self._mpi_get_size() == None or self._mpi_get_size() == 1:
+            self._data_source = self.hierarchy.periodic_region_strict([0.5]*3, LE, RE)
         # get the average spacing between particles for this region
         # The except is for the serial case, where the full box is what we want.
         data = self._data_source.particles["particle_position_x"]
