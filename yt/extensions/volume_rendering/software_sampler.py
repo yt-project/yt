@@ -36,8 +36,8 @@ def direct_ray_cast(pf, L, center, W, Nvec, Nsamples, tf):
     front_center = center + cp._norm_vec * W
     cylinder = pf.h.disk(back_center, L, na.sqrt(2)*W, 2*W)
 
-    #partitioned_grids = partition_all_grids(cylinder._grids)
-    partitioned_grids = partition_all_grids(pf.h.grids)
+    partitioned_grids = partition_all_grids(cylinder._grids)
+    #partitioned_grids = partition_all_grids(pf.h.grids)
 
     LE = (na.array([grid.LeftEdge for grid in partitioned_grids]) - back_center) * cp._norm_vec
     RE = (na.array([grid.RightEdge for grid in partitioned_grids]) - back_center) * cp._norm_vec
@@ -46,7 +46,7 @@ def direct_ray_cast(pf, L, center, W, Nvec, Nsamples, tf):
     dist = na.minimum(DL, DR)
     ind = na.argsort(dist)
     
-    image = na.zeros((Nvec,Nvec,4), dtype='float64')
+    image = na.zeros((Nvec,Nvec,4), dtype='float64', order='F')
     image[:,:,3] = 1.0
 
     # Now we need to generate regular x,y,z values in regular space for our vector
@@ -57,6 +57,8 @@ def direct_ray_cast(pf, L, center, W, Nvec, Nsamples, tf):
     yv = cp._inv_mat[1,0]*px + cp._inv_mat[1,1]*py + cp.center[1]
     zv = cp._inv_mat[2,0]*px + cp._inv_mat[2,1]*py + cp.center[2]
     vectors = na.array([xv, yv, zv], dtype='float64').transpose()
+    print vectors.shape
+    vectors = vectors.copy('F')
     xp0, xp1 = px.min(), px.max()
     yp0, yp1 = py.min(), py.max()
 

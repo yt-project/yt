@@ -26,9 +26,10 @@
 
 #include "FixedInterpolator.h"
 
-#define VINDEX(C,B,A) data[(((ci[0]+A)*(ds[1]+1)+(ci[1]+B))*(ds[2]+1)+ci[2]+C)]
+#define VINDEX(A,B,C) data[((((C)+ci[2])*(ds[1]+1)+((B)+ci[1]))*(ds[0]+1)+ci[0]+(A))]
+//  (((C*ds[1])+B)*ds[0]+A)
 
-npy_float64 fast_interpolate(int ds[3], int ci[3], npy_float64 dp[3],
+npy_float64 fast_interpolate(int *ds, int *ci, npy_float64 *dp,
                              npy_float64 *data)
 {
     int i;
@@ -43,7 +44,7 @@ npy_float64 fast_interpolate(int ds[3], int ci[3], npy_float64 dp[3],
     dv += VINDEX(1,0,1) * (dp[0]*dm[1]*dp[2]);
     dv += VINDEX(1,1,0) * (dp[0]*dp[1]*dm[2]);
     dv += VINDEX(1,1,1) * (dp[0]*dp[1]*dp[2]);
-
+    /*assert(dv < -20);*/
     return dv;
 }
 

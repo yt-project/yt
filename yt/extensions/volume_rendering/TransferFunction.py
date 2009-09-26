@@ -33,7 +33,7 @@ class TransferFunction(object):
         self.y = na.zeros(nbins, dtype='float64')
 
     def add_gaussian(self, location, width, height):
-        vals = height * na.exp(-(self.x - location)**2.0/(2*width**2.0))
+        vals = height * na.exp(-(self.x - location)**2.0/width)
         self.y = na.clip(na.maximum(vals, self.y), 0.0, 1.0)
 
     def plot(self, filename):

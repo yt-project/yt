@@ -59,7 +59,7 @@ cdef extern from "math.h":
     double fmod(double x, double y)
 
 cdef extern from "FixedInterpolator.h":
-    np.float64_t fast_interpolate(int ds[3], int ci[3], np.float64_t dp[3],
+    np.float64_t fast_interpolate(int *ds, int *ci, np.float64_t *dp,
                                   np.float64_t *data)
 cdef class VectorPlane
 
@@ -69,8 +69,6 @@ cdef class TransferFunctionProxy:
     cdef int nbins
     cdef np.float64_t dbin
     cdef public object tf_obj
-    cdef public object ci
-    cdef VectorPlane vp
     def __cinit__(self, tf_obj):
         self.tf_obj = tf_obj
         cdef np.ndarray[np.float64_t, ndim=1] temp
@@ -89,26 +87,26 @@ cdef class TransferFunctionProxy:
                        np.float64_t dv0,
                        np.float64_t dv1,
                        np.float64_t dt,
-                       np.float64_t rgba[4]):
+                       np.float64_t *rgba):
         cdef int i
         cdef int b0, b1
         cdef np.float64_t tf0, tf1
-        rgba[0] += dt
-        return
+        #rgba[3] -= dt; return
         for i in range(3):
             # First locate our points
             b0 = iclip(<int> floor((dv0 - self.x_bounds[0]) / self.dbin),
-                       0, self.nbins-1)
+                       0, self.nbins-2)
             b1 = b0 + 1
             tf0 = (dv0 - self.x_bounds[0] - self.dbin * b0) * self.vs[i][b0] + \
                   (self.x_bounds[0] + self.dbin * b1 - dv0) * self.vs[i][b1]
 
             b0 = iclip(<int> floor((dv1 - self.x_bounds[0]) / self.dbin),
-                       0, self.nbins-1)
+                       0, self.nbins-2)
             b1 = b0 + 1
             tf1 = (dv1 - self.x_bounds[0] - self.dbin * b0) * self.vs[i][b0] + \
                   (self.x_bounds[0] + self.dbin * b1 - dv1) * self.vs[i][b1]
             # alpha blending goes here
+            #print dt, dv0, dv1, tf0, tf1, b0, b1
             rgba[i] += dt*0.5*(tf0+tf1)
         # We should update alpha here
 
@@ -119,7 +117,6 @@ cdef class VectorPlane:
     cdef int nv
     cdef public object ax_vec, ay_vec
     cdef np.float64_t *x_vec, *y_vec
-    cdef public object xpos, ypos, zpos
 
     def __cinit__(self, 
                   np.ndarray[np.float64_t, ndim=3] vp_pos,
@@ -146,17 +143,6 @@ cdef class VectorPlane:
         for i in range(4): self.bounds[i] = bounds[i]
         self.pdx = (self.bounds[1] - self.bounds[0])/self.nv
         self.pdy = (self.bounds[3] - self.bounds[2])/self.nv
-        self.xpos = []
-        self.ypos = []
-        self.zpos = []
-        for i in range(self.nv):
-            self.xpos.append([])
-            self.ypos.append([])
-            self.zpos.append([])
-            for j in range(self.nv):
-                self.xpos[-1].append([])
-                self.ypos[-1].append([])
-                self.zpos[-1].append([])
 
     cdef void get_start_stop(self, np.float64_t *ex, int *rv):
         rv[0] = iclip(<int> floor((ex[0] - self.bounds[0])/self.pdx), 0, self.nv)
@@ -164,19 +150,19 @@ cdef class VectorPlane:
         rv[2] = iclip(rv[0] + <int> ceil((ex[1] - ex[0])/self.pdx), 0, self.nv)
         rv[3] = iclip(rv[1] + <int> ceil((ex[3] - ex[2])/self.pdy), 0, self.nv)
 
-    cdef void copy(self, np.float64_t *fv, np.float64_t *tv,
-                   int nk, int i, int j):
+    cdef void copy_into(self, np.float64_t *fv, np.float64_t *tv,
+                        int i, int j, int nk):
         # We know the first two dimensions of our from-vector, and our
         # to-vector is flat and 'ni' long
         cdef int k
         for k in range(nk):
-            tv[k] = fv[(i*self.nv+j)*self.nv+k]
+            tv[k] = fv[(((k*self.nv)+j)*self.nv+i)]
 
     cdef void copy_back(self, np.float64_t *fv, np.float64_t *tv,
-                       int nk, int i, int j):
+                        int i, int j, int nk):
         cdef int k
         for k in range(nk):
-            tv[(i*self.nv+j)*self.nv+k] = fv[k] 
+            tv[(((k*self.nv)+j)*self.nv+i)] = fv[k]
 
 cdef class PartitionedGrid:
     cdef public object my_data
@@ -196,19 +182,17 @@ cdef class PartitionedGrid:
                   np.ndarray[np.float64_t, ndim=1] right_edge,
                   np.ndarray[np.int64_t, ndim=1] dims):
         # The data is likely brought in via a slice, so we copy it
-        cdef int i
+        cdef int i, j, k, size
         self.LeftEdge = left_edge
         self.RightEdge = right_edge
-        cdef np.ndarray[np.float64_t, ndim=3] tdata = data.copy()
-        self.my_data = tdata
-        self.data = <np.float64_t *> (tdata.data)
-        
         for i in range(3):
             self.left_edge[i] = left_edge[i]
             self.right_edge[i] = right_edge[i]
             self.dims[i] = dims[i]
             self.dds[i] = (self.right_edge[i] - self.left_edge[i])/dims[i]
-
+        self.my_data = data
+        self.data = <np.float64_t*> data.data
+        
     @cython.boundscheck(False)
     @cython.wraparound(False)
     def cast_plane(self, TransferFunctionProxy tf, VectorPlane vp):
@@ -218,21 +202,16 @@ cdef class PartitionedGrid:
         cdef int vi, vj, hit, i, ni, nj, nn
         cdef int iter[4]
         cdef np.float64_t v_pos[3], v_dir[3], rgba[4], extrema[4]
-        tf.vp = vp
         self.calculate_extent(vp, extrema)
         vp.get_start_stop(extrema, iter)
         hit = 0
         for vi in range(vp.nv):#iter[0], iter[2]):
             for vj in range(vp.nv):#iter[1], iter[3]):
-                #vp.copy(vp.vp_pos, v_pos, vi, vj, 3)
-                #vp.copy(vp.image, rgba, vi, vj, 4)
-                for i in range(3): v_pos[i] = vp.avp_pos[vi, vj, i]
-                for i in range(4): rgba[i] = vp.aimage[vi, vj, i]
-                tf.ci = (vi, vj)
+                vp.copy_into(vp.vp_pos, v_pos, vi, vj, 3)
+                vp.copy_into(vp.image, rgba, vi, vj, 4)
                 hit += self.integrate_ray(v_pos, vp.vp_dir, rgba, tf)
-                #vp.copy_back(rgba, vp.image, vi, vj, 4)
-                for i in range(4): vp.aimage[vi,vj,i] = rgba[i]
-        return (tf.vp.xpos, tf.vp.ypos, tf.vp.zpos)
+                vp.copy_back(rgba, vp.image, vi, vj, 4)
+        return hit
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -269,7 +248,7 @@ cdef class PartitionedGrid:
         cdef np.float64_t intersect_t = 1.0
         cdef np.float64_t intersect[3], tmax[3], tdelta[3]
         cdef np.float64_t enter_t, dist, alpha, dt
-        cdef np.float64_t tr, tl, temp_x, temp_y, dv
+        cdef np.float64_t tr, tl, temp_x, temp_y, dv0, dv1
         for i in range(3):
             if (v_dir[i] < 0):
                 step[i] = -1
@@ -315,44 +294,42 @@ cdef class PartitionedGrid:
             if tdelta[i] < 0: tdelta[i] *= -1
         # We have to jumpstart our calculation
         enter_t = intersect_t
-        dv0 = self.get_val(v_pos, v_dir, enter_t, tf)
+        dv1 = self.get_val(v_pos, v_dir, enter_t)
         while 1:
             if (not (0 <= cur_ind[0] < self.dims[0])) or \
                (not (0 <= cur_ind[1] < self.dims[1])) or \
                (not (0 <= cur_ind[2] < self.dims[2])):
                 break
             hit += 1
-            # Do our transfer here
+            dv0 = dv1
             if tmax[0] < tmax[1]:
                 if tmax[0] < tmax[2]:
                     cur_ind[0] += step[0]
-                    dv1 = self.get_val(v_pos, v_dir, tmax[0], tf)
+                    dv1 = self.get_val(v_pos, v_dir, tmax[0])
                     dt = fmin(tmax[0], 1.0) - enter_t
-                    dv0 = dv1
                     enter_t = tmax[0]
                     tmax[0] += tdelta[0]
                 else:
                     cur_ind[2] += step[2]
-                    dv1 = self.get_val(v_pos, v_dir, tmax[2], tf)
+                    dv1 = self.get_val(v_pos, v_dir, tmax[2])
                     dt = fmin(tmax[2], 1.0) - enter_t
-                    dv0 = dv1
                     enter_t = tmax[2]
                     tmax[2] += tdelta[2]
             else:
                 if tmax[1] < tmax[2]:
                     cur_ind[1] += step[1]
-                    dv1 = self.get_val(v_pos, v_dir, tmax[1], tf)
+                    dv1 = self.get_val(v_pos, v_dir, tmax[1])
                     dt = fmin(tmax[1], 1.0) - enter_t
-                    dv0 = dv1
                     enter_t = tmax[1]
                     tmax[1] += tdelta[1]
                 else:
                     cur_ind[2] += step[2]
-                    dv1 = self.get_val(v_pos, v_dir, tmax[2], tf)
+                    dv1 = self.get_val(v_pos, v_dir, tmax[2])
                     dt = fmin(tmax[2], 1.0) - enter_t
-                    dv0 = dv1
                     enter_t = tmax[2]
                     tmax[2] += tdelta[2]
+            #print 'dv', dv0, dv1
+            #print dv0-dv1
             tf.eval_transfer(dv0, dv1, dt, rgba)
             if enter_t > 1.0: break
         return hit
@@ -360,17 +337,15 @@ cdef class PartitionedGrid:
     cdef np.float64_t get_val(self,
                               np.float64_t v_pos[3],
                               np.float64_t v_dir[3],
-                              np.float64_t t,
-                              TransferFunctionProxy tf):
+                              np.float64_t t):
         cdef np.float64_t cp[3], dv, dp[3], temp
         cdef int i, ci[3]
         t = fclip(t, 0.0, 1.0)
         for i in range(3):
             cp[i] = v_pos[i] + t * v_dir[i]
-            temp = v_pos[i] - self.left_edge[i] + 1e-8*self.dds[i]
+            temp = cp[i] - self.left_edge[i] + 1e-8*self.dds[i]
             ci[i] = <int> floor( temp / self.dds[i] )
-            dp[i] = fmod(temp, self.dds[i])/self.dds[i]
-        tf.vp.xpos[tf.ci[0]][tf.ci[1]].append(cp[0])
-        tf.vp.ypos[tf.ci[0]][tf.ci[1]].append(cp[1])
-        tf.vp.zpos[tf.ci[0]][tf.ci[1]].append(cp[2])
-        fast_interpolate(self.dims, ci, dp, self.data)
+            # The extra /self.dds[i] is to scale it between 0 .. 1
+            dp[i] = fmod(cp[i], self.dds[i])/self.dds[i]
+        dv = fast_interpolate(self.dims, ci, dp, self.data)
+        return dv
