@@ -24,7 +24,7 @@ License:
 """
 
 import time, types, signal, inspect, traceback, sys, pdb, rpdb
-import warnings
+import warnings, os
 import progressbar as pb
 from math import floor, ceil
 from yt.logger import ytLogger as mylog

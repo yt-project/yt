@@ -153,7 +153,7 @@ class RavenPlot(object):
                number of ticks to be evenly spaced in log space
         """
         # This next call fixes some things, but is slower...
-        #self._redraw_image()
+        self._redraw_image()
         if (zmin in (None,'min')) or (zmax in (None,'max')):    
             imbuff = self._axes.images[-1]._A
             if zmin == 'min':
@@ -169,14 +169,22 @@ class RavenPlot(object):
             self.colorbar.locator = matplotlib.ticker.FixedLocator(ticks)
             self.colorbar.formatter = matplotlib.ticker.FixedFormatter(["%0.2e" % (x) for x in ticks])
         elif minmaxtick:
-            ticks = na.array(self.colorbar._ticker()[1],dtype='float')
-            ticks = [zmin] + ticks.tolist() + [zmax]
-            self.colorbar.locator = matplotlib.ticker.FixedLocator(ticks)
-            self.colorbar.formatter = matplotlib.ticker.FixedFormatter(["%0.2e" % (x) for x in ticks])
+            if not self.log_field: 
+                ticks = na.array(self.colorbar._ticker()[0],dtype='float')
+                ticks = [zmin] + ticks.tolist() + [zmax]
+                self.colorbar.locator = matplotlib.ticker.FixedLocator(ticks)
+                self.colorbar.formatter = matplotlib.ticker.FixedFormatter(["%0.2e" % (x) for x in ticks])
+            else:
+                mylog.error('Sorry, we do not support minmaxtick for linear fields.  It likely comes close by default')
         elif nticks is not None:
-            lin = na.linspace(na.log10(zmin),na.log10(zmax),nticks)
-            self.colorbar.locator = matplotlib.ticker.FixedLocator(10**lin)
-            self.colorbar.formatter = matplotlib.ticker.FixedFormatter(["%0.2e" % (10**x) for x in lin])
+            if self.log_field:
+                lin = na.linspace(na.log10(zmin),na.log10(zmax),nticks)
+                self.colorbar.locator = matplotlib.ticker.FixedLocator(10**lin)
+                self.colorbar.formatter = matplotlib.ticker.FixedFormatter(["%0.2e" % (10**x) for x in lin])
+            else: 
+                lin = na.linspace(zmin,zmax,nticks)
+                self.colorbar.locator = matplotlib.ticker.FixedLocator(lin)
+                self.colorbar.formatter = matplotlib.ticker.FixedFormatter(["%0.2e" % x for x in lin])
         else:
             if hasattr(self,'_old_locator'):
                 self.colorbar.locator = self._old_locator
