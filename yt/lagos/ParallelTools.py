@@ -53,6 +53,9 @@ if os.path.basename(sys.executable) in \
         f = logging.Formatter("P%03i %s" % (MPI.COMM_WORLD.rank,
                                             yt.logger.fstring))
         yt.logger.rootLogger.handlers[0].setFormatter(f)
+    if ytcfg.getint("yt","LogLevel") < 20:
+        yt.logger.ytLogger.warning(
+          "Log Level is set low -- this could affect parallel performance!")
 else:
     parallel_capable = False
 

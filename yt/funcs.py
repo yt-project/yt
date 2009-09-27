@@ -133,15 +133,24 @@ def insert_ipython(num_up=1):
             local_ns = loc, global_ns = glo)
     del ipshell
 
-class DummyProgressBar:
+class DummyProgressBar(object):
     def __init__(self, *args, **kwargs):
         return
     def update(self, *args, **kwargs):
         return
-    def finish(sefl, *args, **kwargs):
+    def finish(self, *args, **kwargs):
         return
 
-class GUIProgressBar:
+class ParallelProgressBar(object):
+    def __init__(self, title, maxval):
+        self.title = title
+        mylog.info("Starting '%s'", title)
+    def update(self, *args, **kwargs):
+        return
+    def finish(self):
+        mylog.info("Finishing '%s'", self.title)
+
+class GUIProgressBar(object):
     def __init__(self, title, maxval):
         import wx
         self.maxval = maxval
@@ -174,6 +183,8 @@ def get_pbar(title, maxval):
             return DummyProgressBar()
     elif ytcfg.getboolean("yt","suppressStreamLogging"):
         return DummyProgressBar()
+    elif ytcfg.getboolean("yt", "__parallel"):
+        return ParallelProgressBar(title, maxval)
     elif "SAGE_ROOT" in os.environ:
         try:
             from sage.server.support import EMBEDDED_MODE
