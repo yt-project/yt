@@ -520,6 +520,11 @@ class EnzoGrid(AMRGridPatch):
     def __repr__(self):
         return "EnzoGrid_%04i" % (self.id)
 
+class EnzoGridInMemory(EnzoGrid):
+    __slots__ = ['proc_num']
+    def set_filename(self, filename):
+        pass
+
 class OrionGrid(AMRGridPatch):
     _id_offset = 0
     def __init__(self, LeftEdge, RightEdge, index, level, filename, offset, dimensions,start,stop,paranoia=False):
