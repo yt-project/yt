@@ -47,8 +47,8 @@ ytcfgDefaults = {
         'ReconstructHierarchy': 'True',
         'serialize' : 'True',
         'onlydeserialize' : 'False',
-        'loadfieldplugins':'False',
-        'pluginfilename':'yt_plugins.py',
+        'loadfieldplugins':'True',
+        'pluginfilename':'my_plugins.py',
         },
     "yt":{
         'time_functions': 'False',
