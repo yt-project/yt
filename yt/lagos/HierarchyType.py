@@ -586,8 +586,6 @@ class EnzoHierarchyInMemory(EnzoHierarchy):
         return self._enzo
 
     def __init__(self, pf, data_style):
-        print "This data type currently changes in-memory data structures, which is unacceptable."
-        raise RuntimeError
         self.data_style = data_style
         self.float_type = 'float64'
         self.directory = os.getcwd()

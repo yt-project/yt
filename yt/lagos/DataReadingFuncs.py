@@ -247,7 +247,8 @@ class IOHandlerInMemory(BaseIOHandler):
 
     def _read_data_set(self, grid, field):
         if grid.id not in self.grids_in_memory: raise KeyError
-        return self.grids_in_memory[grid.id][field].swapaxes(0,2)[self.my_slice]
+        tr = self.grids_in_memory[grid.id][field].swapaxes(0,2)[self.my_slice]
+        return tr.copy()
         # We don't do this, because we currently do not interpolate
         coef1 = max((grid.Time - t1)/(grid.Time - t2), 0.0)
         coef2 = 1.0 - coef1
@@ -267,7 +268,8 @@ class IOHandlerInMemory(BaseIOHandler):
         sl = [slice(3,-3), slice(3,-3), slice(3,-3)]
         sl[axis] = slice(coord + 3, coord + 4)
         sl = tuple(reversed(sl))
-        return self.grids_in_memory[grid.id][field][sl].swapaxes(0,2)
+        tr = self.grids_in_memory[grid.id][field][sl].swapaxes(0,2)
+        return tr.copy()
 
     @property
     def _read_exception(self):
