@@ -165,16 +165,12 @@ class ParticleCallback(PlotCallback):
         y0, y1 = plot.ylim
         xx0, xx1 = plot._axes.get_xlim()
         yy0, yy1 = plot._axes.get_ylim()
-        print "Particle bounding box:", x0, x1, y0, y1, z0, z1
         # Now we rescale because our axes limits != data limits
         goodI = na.where( (self.particles_x < x1) & (self.particles_x > x0)
                         & (self.particles_y < y1) & (self.particles_y > y0)
                         & (self.particles_z < z1) & (self.particles_z > z0))
         particles_x = (self.particles_x[goodI] - x0) * (xx1-xx0)/(x1-x0) + xx0
         particles_y = (self.particles_y[goodI] - y0) * (yy1-yy0)/(y1-y0) + yy0
-        print "Particle px extrema", particles_x.min(), particles_x.max(), \
-                                     particles_y.min(), particles_y.max()
-        print "Axial limits", xx0, xx1, yy0, yy1
         if not self.color_field: particles_c = self.color
         else: particles_c = self.particles_c[goodI]
         plot._axes.hold(True)
@@ -248,8 +244,6 @@ class ContourCallback(PlotCallback):
         z = plot.data[self.field][wI]
         if self.take_log: z=na.log10(z)
         zi = self.de.Triangulation(x,y).nn_interpolator(z)(xi,yi)
-        print z.min(), z.max(), na.nanmin(z), na.nanmax(z)
-        print zi.min(), zi.max(), na.nanmin(zi), na.nanmax(zi)
         plot._axes.contour(xi,yi,zi,self.ncont, **self.plot_args)
         plot._axes.set_xlim(xx0,xx1)
         plot._axes.set_ylim(yy0,yy1)
@@ -548,7 +542,6 @@ class MarkerAnnotateCallback(PlotCallback):
                    self.pos[lagos.y_dict[plot.data.axis]])
         else: pos = self.pos
         x,y = self.convert_to_pixels(plot, pos)
-        print x, y
         plot._axes.hold(True)
         plot._axes.plot((x,),(y,),self.marker, **self.plot_args)
         plot._axes.hold(False)
@@ -749,7 +742,6 @@ class CoordAxesCallback(PlotCallback):
         unit_conversion = plot.data.hierarchy[plot.im["Unit"]]
         aspect = (plot.xlim[1]-plot.xlim[0])/(plot.ylim[1]-plot.ylim[0])
 
-        print "aspect ratio = ", aspect
 
         # if coords is False, label axes relative to the center of the
         # display. if coords is True, label axes with the absolute
@@ -834,12 +826,10 @@ class NewParticleCallback(PlotCallback):
         xx0, xx1 = plot._axes.get_xlim()
         yy0, yy1 = plot._axes.get_ylim()
         reg = self._get_region((x0,x1), (y0,y1), plot.data.axis, data)
-        print reg
         field_x = "particle_position_%s" % lagos.axis_names[lagos.x_dict[data.axis]]
         field_y = "particle_position_%s" % lagos.axis_names[lagos.y_dict[data.axis]]
         gg = ( ( reg[field_x] >= x0 ) & ( reg[field_x] <= x1 )
            &   ( reg[field_y] >= y0 ) & ( reg[field_y] <= y1 ) )
-        print gg, reg[field_x][gg].size
         if self.ptype is not None:
             gg &= (reg["particle_type"] == self.ptype)
             if gg.sum() == 0: return
