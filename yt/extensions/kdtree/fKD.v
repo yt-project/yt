@@ -1,6 +1,8 @@
 fKD
 
 ****** fKD_module vars:
+# Not all of these are being used, but they only take memory
+# if they're initialized in python.
 tags(:) _integer # particle ID tags
 dist(:) _real # interparticle spacings
 nn_tags(:,:) _integer # for all particles at once, [nth neighbor, index]

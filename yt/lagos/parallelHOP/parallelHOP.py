@@ -316,10 +316,8 @@ class RunParallelHOP(ParallelAnalysisInterface):
         yt_counters("init kd tree")
         # Yes, we really do need to initialize this many arrays.
         # They're deleted in _parallelHOP.
-        fKD.nn_tags = na.asfortranarray(na.empty((self.nMerge + 1, self.size), dtype='int64'))
         fKD.dens = na.asfortranarray(na.zeros(self.size, dtype='float64'))
-        fKD.mass = na.asfortranarray(na.empty(self.size, dtype='float64'))
-        fKD.mass[:] = self.mass[:]
+        fKD.mass = self.mass
         fKD.pos = na.asfortranarray(na.empty((3, self.size), dtype='float64'))
         # This actually copies the data into the fortran space.
         fKD.pos[0, :] = self.xpos[:]
@@ -827,6 +825,10 @@ class RunParallelHOP(ParallelAnalysisInterface):
         self.reverse_map = dict(itertools.izip(self.densest_in_chain.keys(),
             values))
         del values
+        fKD.dist = na.empty(self.nMerge+2, dtype='float64')
+        fKD.tags = na.empty(self.nMerge+2, dtype='int64')
+        # We can change this here to make the searches faster.
+        fKD.nn = self.nMerge+2
         for i in xrange(int(self.size)):
             # Don't consider this particle if it's not part of a chain.
             if self.chainID[i] < 0: continue
@@ -835,8 +837,11 @@ class RunParallelHOP(ParallelAnalysisInterface):
             # Find this particle's chain max_dens.
             part_max_dens = self.densest_in_chain[self.chainID[i]]
             # Loop over nMerge closest nearest neighbors.
+            fKD.qv = na.array([self.xpos[i], self.ypos[i], self.zpos[i]])
+            find_nn_nearest_neighbors()
+            NNtags = fKD.tags[:] - 1
             for j in xrange(int(self.nMerge+1)):
-                thisNN = self.NNtags[i,j]
+                thisNN = NNtags[j+1] # Don't consider ourselves at NNtags[0]
                 thisNN_chainID = self.chainID[thisNN]
                 # If our neighbor is in the same chain, move on.
                 if self.chainID[i] == thisNN_chainID: continue
@@ -1236,26 +1241,12 @@ class RunParallelHOP(ParallelAnalysisInterface):
         chainHOP_tags_dens()
         yt_counters("chainHOP_tags_dens")
         self.density = fKD.dens
-        self.NNtags = (fKD.nn_tags - 1).transpose()
-        # We can free these right now, the rest later.
-        #self.mass = na.empty(self.size, dtype='float64')
-        #self.mass[:] = fKD.mass[:]
-        del fKD.dens, fKD.nn_tags, fKD.mass, fKD.dens
-        #count = len(na.where(self.density >= self.threshold)[0])
-        #print 'count above thresh', count
         # Now each particle has NNtags, and a local self density.
         # Let's find densest NN
         mylog.info('Finding densest nearest neighbors...')
         self._densestNN()
-        # Now we can free these and copy data back.
-        #self.xpos = na.empty(self.size, dtype='float64')
-        #self.ypos = na.empty(self.size, dtype='float64')
-        #self.zpos = na.empty(self.size, dtype='float64')
-        #self.xpos[:] = fKD.pos[0, :]
-        #self.ypos[:] = fKD.pos[1, :]
-        #self.zpos[:] = fKD.pos[2, :]
-        del fKD.pos, fKD.chunk_tags
-        free_tree() # Frees the kdtree object.
+        #del fKD.pos, fKD.chunk_tags
+        #free_tree() # Frees the kdtree object.
         # Build the chain of links.
         mylog.info('Building particle chains...')
         chain_count = self._build_chains()
@@ -1269,7 +1260,10 @@ class RunParallelHOP(ParallelAnalysisInterface):
         self._communicate_annulus_chainIDs()
         mylog.info('Connecting %d chains into groups...' % self.nchains)
         self._connect_chains()
-        del self.densestNN, self.NNtags
+        del fKD.dens, fKD.mass, fKD.dens
+        del fKD.pos, fKD.chunk_tags
+        free_tree() # Frees the kdtree object.
+        del self.densestNN
         mylog.info('Communicating group links globally...')
         self._make_global_chain_densest_n()
         mylog.info('Building final groups...')
