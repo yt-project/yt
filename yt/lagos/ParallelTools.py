@@ -804,9 +804,8 @@ class ParallelAnalysisInterface(object):
         MPI.COMM_WORLD.Bcast([root_keys, MPI.LONG], root=0)
         MPI.COMM_WORLD.Bcast([root_values, MPI.DOUBLE], root=0)
         # Convert back to a dict.
-        data = {}
-        for i,key in enumerate(root_keys):
-            data[key] = root_values[i]
+        del data
+        data = dict(itertools.izip(root_keys, root_values))
         return data
 
     @parallel_passthrough
@@ -851,9 +850,8 @@ class ParallelAnalysisInterface(object):
         MPI.COMM_WORLD.Bcast([root_keys, MPI.LONG], root=0)
         MPI.COMM_WORLD.Bcast([root_values, MPI.LONG], root=0)
         # Convert back to a dict.
-        data = {}
-        for i,key in enumerate(root_keys):
-            data[key] = root_values[i]
+        del data
+        data = dict(itertools.izip(root_keys,root_values))
         return data
 
     @parallel_passthrough

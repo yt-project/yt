@@ -623,10 +623,26 @@ class parallelHOPHaloList(HaloList,ParallelAnalysisInterface):
             self._data_source.convert("z-velocity")
         yt_counters("bulk vel. reading data")
         yt_counters("bulk vel. computing")
-        for i, pmass in enumerate(pm):
-            groupID = self.tags[i]
-            if groupID == -1: continue
-            self.bulk_vel[groupID] += (na.array([xv[i], yv[i], zv[i]])*pmass)
+        select = (self.tags >= 0)
+        calc = len(na.where(select == True)[0])
+        vel = na.empty((calc, 3), dtype='float64')
+        ms = pm[select]
+        vel[:,0] = xv[select] * ms
+        vel[:,1] = yv[select] * ms
+        vel[:,2] = zv[select] * ms
+        subchain = self.tags[select]
+        sort = subchain.argsort()
+        vel = vel[sort]
+        sort_subchain = subchain[sort]
+        uniq_subchain = na.unique(sort_subchain)
+        diff_subchain = na.ediff1d(sort_subchain)
+        marks = (diff_subchain > 0)
+        marks = na.arange(calc)[marks] + 1
+        marks = na.concatenate(([0], marks, [calc]))
+        for i, u in enumerate(uniq_subchain):
+            self.bulk_vel[u] = na.sum(vel[marks[i]:marks[i+1]], axis=0)
+        del select, vel, ms, subchain, sort, sort_subchain, uniq_subchain
+        del diff_subchain, marks
         # Bring it together, and divide by the previously computed total mass
         # of each halo.
         self.bulk_vel = self._mpi_Allsum_double(self.bulk_vel)
