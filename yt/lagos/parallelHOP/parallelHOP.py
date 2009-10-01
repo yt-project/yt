@@ -320,9 +320,9 @@ class RunParallelHOP(ParallelAnalysisInterface):
         fKD.mass = self.mass
         fKD.pos = na.asfortranarray(na.empty((3, self.size), dtype='float64'))
         # This actually copies the data into the fortran space.
-        fKD.pos[0, :] = self.xpos[:]
-        fKD.pos[1, :] = self.ypos[:]
-        fKD.pos[2, :] = self.zpos[:]
+        fKD.pos[0, :] = self.xpos
+        fKD.pos[1, :] = self.ypos
+        fKD.pos[2, :] = self.zpos
         fKD.qv = na.asfortranarray(na.empty(3, dtype='float64'))
         fKD.nn = self.num_neighbors
         # Plus 2 because we're looking for that neighbor, but only keeping 
@@ -825,6 +825,8 @@ class RunParallelHOP(ParallelAnalysisInterface):
         self.reverse_map = dict(itertools.izip(self.densest_in_chain.keys(),
             values))
         del values
+        # Plus 2 because we're looking for that neighbor, but only keeping 
+        # nMerge + 1 neighbor tags, skipping ourselves.
         fKD.dist = na.empty(self.nMerge+2, dtype='float64')
         fKD.tags = na.empty(self.nMerge+2, dtype='int64')
         # We can change this here to make the searches faster.
