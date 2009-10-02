@@ -429,8 +429,8 @@ class RunParallelHOP(ParallelAnalysisInterface):
         density, move on.
         """
         yt_counters("build_chains")
-        chainIDmax = 0
-        self.densest_in_chain = {} # chainID->density, one to one
+        chainIDmax = 0 
+        self.densest_in_chain = na.ones(1000) * -1 # chainID->density, one to one
         self.densest_in_chain_real_index = {} # chainID->real_index, one to one
         for i in xrange(int(self.size)):
             # If it's already in a group, move on, or if this particle is
@@ -447,6 +447,7 @@ class RunParallelHOP(ParallelAnalysisInterface):
             if chainIDnew == chainIDmax:
                 chainIDmax += 1
         self.padded_particles = na.array(self.padded_particles, dtype='int64')
+        self.densest_in_chain = self.__clean_up_array(self.densest_in_chain)
         yt_counters("build_chains")
         return chainIDmax
     
@@ -470,7 +471,8 @@ class RunParallelHOP(ParallelAnalysisInterface):
         # a new chain.
         elif nn == pi or not inside:
             self.chainID[pi] = chainIDmax
-            self.densest_in_chain[chainIDmax] = self.density[pi]
+            self.densest_in_chain = self.__add_to_array(self.densest_in_chain,
+                chainIDmax, self.density[pi])
             self.densest_in_chain_real_index[chainIDmax] = self.index[pi]
             # if this is a padded particle, record it for later
             if not inside:
@@ -505,17 +507,14 @@ class RunParallelHOP(ParallelAnalysisInterface):
         """
         yt_counters("create_global_densest_in_chain")
         # Shift the values over.
-        temp = self.densest_in_chain.copy()
         temp_index = self.densest_in_chain_real_index.copy()
-        self.densest_in_chain = {}
         self.densest_in_chain_real_index = {}
-        for chainID in temp:
-            self.densest_in_chain[chainID + self.my_first_id] = temp[chainID]
+        for chainID in temp_index:
             self.densest_in_chain_real_index[chainID + self.my_first_id] = temp_index[chainID]
-        del temp, temp_index
+        del temp_index
         # Distribute this.
         yt_counters("global chain MPI stuff.")
-        self.densest_in_chain = self._mpi_joindict_unpickled_double(self.densest_in_chain)
+        self.densest_in_chain = self._mpi_concatenate_array_double(self.densest_in_chain)
         self.densest_in_chain_real_index = self._mpi_joindict_unpickled_long(self.densest_in_chain_real_index)
         yt_counters("global chain MPI stuff.")
         # Sort the chains by density here. This is an attempt to make it such
@@ -523,19 +522,16 @@ class RunParallelHOP(ParallelAnalysisInterface):
         # all the time.
         mylog.info("Sorting chains...")
         yt_counters("global chain sorting.")
-        vals = na.array(self.densest_in_chain.values())
         reals = na.array(self.densest_in_chain_real_index.values())
-        sort = vals.argsort()
+        sort = self.densest_in_chain.argsort()
         sort = na.flipud(sort)
         ordinals = na.arange(len(sort))
         map = dict(itertools.izip(sort, ordinals))
-        vals = vals[sort]
         reals = reals[sort]
         # Re-initialize the dicts with the new order.
-        del self.densest_in_chain, self.densest_in_chain_real_index
-        self.densest_in_chain = dict(itertools.izip(ordinals, vals))
+        self.densest_in_chain = self.densest_in_chain[sort]
         self.densest_in_chain_real_index = dict(itertools.izip(ordinals, reals))
-        del vals, reals, sort, ordinals
+        del reals, sort, ordinals
         for i,chID in enumerate(self.chainID):
             if chID == -1: continue
             self.chainID[i] = map[chID]
@@ -568,7 +564,7 @@ class RunParallelHOP(ParallelAnalysisInterface):
         for tokeep in tolink:
             for remove in tolink[tokeep]:
                 fix_map[remove] = tokeep
-                del self.densest_in_chain[remove]
+                self.densest_in_chain[remove] = -1.0
         for i, chainID in enumerate(self.chainID):
             try:
                 new = fix_map[chainID]
@@ -689,7 +685,9 @@ class RunParallelHOP(ParallelAnalysisInterface):
             # ensure that they are being recorded that way below.
             if localID != -1 and self.chainID[localID] != -1:
                 if self.recv_chainIDs[i] != self.chainID[localID] and \
-                        self.densest_in_chain[self.chainID[localID]] >= self.densest_in_chain[self.recv_chainIDs[i]]:
+                        self.densest_in_chain[self.chainID[localID]] >= self.densest_in_chain[self.recv_chainIDs[i]] and \
+                        self.densest_in_chain[self.chainID[localID]] != -1.0 and \
+                        self.densest_in_chain[self.recv_chainIDs[i]] != -1.0:
                     chainID_translate_map_local[self.recv_chainIDs[i]] = \
                         self.chainID[localID]
         # In chainID_translate_map_local, chains may
@@ -700,7 +698,9 @@ class RunParallelHOP(ParallelAnalysisInterface):
         # communication step.
         chainID_translate_map_global = \
             self._mpi_joindict_unpickled_long(chainID_translate_map_local)
-        for i in xrange(int(self.nchains)):
+        #for i in xrange(int(self.nchains)):
+        for i,dens in enumerate(self.densest_in_chain):
+            if dens == -1.0: continue
             try:
                 target = chainID_translate_map_global[i]
             except KeyError:
@@ -709,8 +709,8 @@ class RunParallelHOP(ParallelAnalysisInterface):
         # Loop over chains, smallest to largest density, recursively until
         # we reach a self-assigned chain. Then we assign that final chainID to
         # the *current* one only.
-        keys = self.densest_in_chain.keys()
-        for key in keys:
+        for key, density in enumerate(self.densest_in_chain):
+            if density == -1: continue # Skip 'deleted' chains
             seen = []
             seen.append(key)
             new_chainID = \
@@ -719,7 +719,7 @@ class RunParallelHOP(ParallelAnalysisInterface):
             # At the same time, remove chains from densest_in_chain that have
             # been reassigned.
             if key != new_chainID:
-                del self.densest_in_chain[key]
+                self.densest_in_chain[key] = -1.0
                 # Also fix nchains to keep up.
                 self.nchains -= 1
         # Convert local particles to their new chainID
@@ -808,9 +808,10 @@ class RunParallelHOP(ParallelAnalysisInterface):
         yt_counters("connect_chains")
         self.chain_densest_n = {} # chainID -> {chainIDs->boundary dens}
         values = na.ones(len(self.densest_in_chain)) * -1
-        self.reverse_map = dict(itertools.izip(self.densest_in_chain.keys(),
+        keys = na.arange(len(self.densest_in_chain))
+        self.reverse_map = dict(itertools.izip(keys,
             values))
-        del values
+        del values, keys
         # Plus 2 because we're looking for that neighbor, but only keeping 
         # nMerge + 1 neighbor tags, skipping ourselves.
         fKD.dist = na.empty(self.nMerge+2, dtype='float64')
@@ -824,6 +825,8 @@ class RunParallelHOP(ParallelAnalysisInterface):
             if not self.is_inside[i]: continue
             # Find this particle's chain max_dens.
             part_max_dens = self.densest_in_chain[self.chainID[i]]
+            # Make sure we're skipping deleted chains.
+            if part_max_dens == -1.0: continue
             # Loop over nMerge closest nearest neighbors.
             fKD.qv = na.array([self.xpos[i], self.ypos[i], self.zpos[i]])
             find_nn_nearest_neighbors()
@@ -842,6 +845,7 @@ class RunParallelHOP(ParallelAnalysisInterface):
                 if thisNN_chainID >= 0:
                     # Find thisNN's chain's max_dens.
                     thisNN_max_dens = self.densest_in_chain[thisNN_chainID]
+                    if thisNN_max_dens == -1.0: continue
                     # Calculate the two groups boundary density.
                     boundary_density = (self.density[thisNN] + self.density[i]) / 2.
                     # Find out who's denser.
@@ -894,16 +898,18 @@ class RunParallelHOP(ParallelAnalysisInterface):
         g_low = []
         g_dens = []
         values = na.ones(len(self.densest_in_chain)) * -1
-        densestbound = dict(itertools.izip(self.densest_in_chain.keys(),
+        keys = na.arange(self.densest_in_chain.size)
+        densestbound = dict(itertools.izip(keys,
             values))
-        del values
+        del values, keys
         groupID = 0
         # First assign a group to all chains with max_dens above peakthresh.
         # The initial groupIDs will be assigned with decending peak density.
         # This guarantees that the group with the smaller groupID is the
         # higher chain, as in chain_high below.
         group_equivalancy_map = defaultdict(set)
-        for chainID in self.densest_in_chain:
+        for chainID,density in enumerate(self.densest_in_chain):
+            if density == -1.0: continue
             if self.densest_in_chain[chainID] >= self.peakthresh:
                 self.reverse_map[chainID] = groupID
                 groupID += 1
@@ -913,6 +919,7 @@ class RunParallelHOP(ParallelAnalysisInterface):
             dens = self.vals[i]
             max_dens_high = self.densest_in_chain[chain_high]
             max_dens_low = self.densest_in_chain[chain_low]
+            if max_dens_high == -1.0 or max_dens_low == -1.0: continue
             # If neither are peak density groups, mark them for later
             # consideration.
             if max_dens_high < self.peakthresh and \
@@ -1084,10 +1091,10 @@ class RunParallelHOP(ParallelAnalysisInterface):
         vals = na.zeros(group_count)
         self.densest_in_group = dict(itertools.izip(keys,vals))
         del keys, vals
-        for chainID in self.densest_in_chain:
+        for chainID,max_dens in enumerate(self.densest_in_chain):
+            if max_dens == -1.0: continue
             groupID = self.reverse_map[chainID]
             if groupID == -1: continue
-            max_dens = self.densest_in_chain[chainID]
             if self.densest_in_group[groupID] < max_dens:
                 self.densest_in_group[groupID] = max_dens
         del self.densest_in_chain
@@ -1259,3 +1266,20 @@ class RunParallelHOP(ParallelAnalysisInterface):
                 self.halo_taskmap[groupID].add(taskID)
         del self.I_own
         del self.mass, self.xpos, self.ypos, self.zpos
+
+    def __add_to_array(self, arr, key, value):
+        """
+        In an effort to replace the functionality of a dict with an array, in
+        order to save memory, this function adds items to an array. If the
+        array is not long enough, it is resized and filled with 'bad' values."""
+        
+        try:
+            arr[key] = value
+        except IndexError:
+            arr = na.concatenate((arr, na.ones(1000)*-1))
+            arr[key] = value
+        return arr
+    
+    def __clean_up_array(self, arr):
+        good = (arr != -1)
+        return arr[good]
