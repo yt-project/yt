@@ -518,7 +518,7 @@ module kdtree2_module
   !----------------------------------------------------------------
 
 
-  integer, parameter :: bucket_size = 12
+  integer, parameter :: bucket_size = 65
   ! The maximum number of points to keep in a terminal node.
 
 !  type interval
