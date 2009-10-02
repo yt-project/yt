@@ -6,7 +6,6 @@ def configuration(parent_package='', top_path=None):
     config = Configuration('yt', parent_package, top_path)
     config.add_subpackage('lagos')
     config.add_subpackage('raven')
-    config.add_subpackage('enki')
     config.add_subpackage('fido')
     config.add_subpackage('reason')
     config.add_subpackage('extensions')
