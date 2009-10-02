@@ -431,7 +431,7 @@ class RunParallelHOP(ParallelAnalysisInterface):
         yt_counters("build_chains")
         chainIDmax = 0 
         self.densest_in_chain = na.ones(1000) * -1 # chainID->density, one to one
-        self.densest_in_chain_real_index = {} # chainID->real_index, one to one
+        self.densest_in_chain_real_index = na.ones(1000) * -1 # chainID->real_index, one to one
         for i in xrange(int(self.size)):
             # If it's already in a group, move on, or if this particle is
             # in the padding, move on because chains can only terminate in
@@ -448,6 +448,7 @@ class RunParallelHOP(ParallelAnalysisInterface):
                 chainIDmax += 1
         self.padded_particles = na.array(self.padded_particles, dtype='int64')
         self.densest_in_chain = self.__clean_up_array(self.densest_in_chain)
+        self.densest_in_chain_real_index = self.__clean_up_array(self.densest_in_chain_real_index)
         yt_counters("build_chains")
         return chainIDmax
     
@@ -473,7 +474,8 @@ class RunParallelHOP(ParallelAnalysisInterface):
             self.chainID[pi] = chainIDmax
             self.densest_in_chain = self.__add_to_array(self.densest_in_chain,
                 chainIDmax, self.density[pi])
-            self.densest_in_chain_real_index[chainIDmax] = self.index[pi]
+            self.densest_in_chain_real_index = self.__add_to_array(self.densest_in_chain_real_index,
+                chainIDmax, self.index[pi])
             # if this is a padded particle, record it for later
             if not inside:
                 self.padded_particles.append(pi)
@@ -506,32 +508,24 @@ class RunParallelHOP(ParallelAnalysisInterface):
         With the globally unique chainIDs, update densest_in_chain.
         """
         yt_counters("create_global_densest_in_chain")
-        # Shift the values over.
-        temp_index = self.densest_in_chain_real_index.copy()
-        self.densest_in_chain_real_index = {}
-        for chainID in temp_index:
-            self.densest_in_chain_real_index[chainID + self.my_first_id] = temp_index[chainID]
-        del temp_index
-        # Distribute this.
+        # Shift the values over effectively by concatenating them in the same
+        # order as the values have been shifted in _globally_assign_chainIDs()
         yt_counters("global chain MPI stuff.")
         self.densest_in_chain = self._mpi_concatenate_array_double(self.densest_in_chain)
-        self.densest_in_chain_real_index = self._mpi_joindict_unpickled_long(self.densest_in_chain_real_index)
+        self.densest_in_chain_real_index = self._mpi_concatenate_array_long(self.densest_in_chain_real_index)
         yt_counters("global chain MPI stuff.")
         # Sort the chains by density here. This is an attempt to make it such
         # that the merging stuff in a few steps happens in the same order
         # all the time.
         mylog.info("Sorting chains...")
         yt_counters("global chain sorting.")
-        reals = na.array(self.densest_in_chain_real_index.values())
         sort = self.densest_in_chain.argsort()
         sort = na.flipud(sort)
         ordinals = na.arange(len(sort))
         map = dict(itertools.izip(sort, ordinals))
-        reals = reals[sort]
-        # Re-initialize the dicts with the new order.
         self.densest_in_chain = self.densest_in_chain[sort]
-        self.densest_in_chain_real_index = dict(itertools.izip(ordinals, reals))
-        del reals, sort, ordinals
+        self.densest_in_chain_real_index = self.densest_in_chain_real_index[sort]
+        del sort, ordinals
         for i,chID in enumerate(self.chainID):
             if chID == -1: continue
             self.chainID[i] = map[chID]
@@ -543,8 +537,8 @@ class RunParallelHOP(ParallelAnalysisInterface):
         yt_counters("global chain hand-linking.")
         reverse = defaultdict(set)
         # Here we find a reverse mapping of real particle ID to chainID
-        for chainID in self.densest_in_chain_real_index:
-            reverse[self.densest_in_chain_real_index[chainID]].add(chainID)
+        for chainID, real_index in enumerate(self.densest_in_chain_real_index):
+            reverse[real_index].add(chainID)
         # We may want to use this in _precompute_group_info(), at the top, but
         # what is there works and is not slow at all, so for now we'll just
         # get rid of this and save a few chunks of memory.
