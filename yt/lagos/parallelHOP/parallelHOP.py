@@ -367,7 +367,7 @@ class RunParallelHOP(ParallelAnalysisInterface):
         if round == 'first':
             inner = na.invert( (points >= temp_LE).all(axis=1) * \
                 (points < temp_RE).all(axis=1) )
-        elif round == 'second':
+        elif round == 'second' or round == 'third':
             inner = na.invert( (fKD.pos.T >= temp_LE).all(axis=1) * \
                 (fKD.pos.T < temp_RE).all(axis=1) )
         if round == 'first':
@@ -382,9 +382,10 @@ class RunParallelHOP(ParallelAnalysisInterface):
         # array every task would probably end up having this array be as long
         # as the full number of particles.
         # We can skip this the first time around.
-        if round == 'second':
+        if round == 'third':
             temp = na.arange(self.index.size)
             my_part = na.bitwise_or(na.invert(self.is_inside), self.is_inside_annulus)
+            my_part = na.bitwise_and(my_part, (self.chainID != -1))
             self.rev_index = dict.fromkeys(self.index[my_part])
             self.rev_index.update(itertools.izip(self.index[my_part], temp[my_part]))
 
@@ -1229,6 +1230,7 @@ class RunParallelHOP(ParallelAnalysisInterface):
         mylog.info('Globally finding densest in chains...')
         self._create_global_densest_in_chain()
         mylog.info('Building chain connections across tasks...')
+        self._is_inside('third')
         self._connect_chains_across_tasks()
         mylog.info('Communicating connected chains...')
         self._communicate_annulus_chainIDs()
