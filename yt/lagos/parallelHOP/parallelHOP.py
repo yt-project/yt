@@ -529,9 +529,6 @@ class RunParallelHOP(ParallelAnalysisInterface):
         sort = na.flipud(sort)
         ordinals = na.arange(len(sort))
         map = dict(itertools.izip(sort, ordinals))
-        #map = {}
-        #for i,s in enumerate(sort):
-        #    map[s] = i
         vals = vals[sort]
         reals = reals[sort]
         # Re-initialize the dicts with the new order.
@@ -709,22 +706,11 @@ class RunParallelHOP(ParallelAnalysisInterface):
             except KeyError:
                 # The the chain is either self most-dense, or a singleton.
                 chainID_translate_map_global[i] = int(i)
-        # Build a list of chain densities, sorted smallest to largest.
-        temp_dens = na.empty(len(self.densest_in_chain), dtype='float64')
-        temp_keys = na.empty(len(self.densest_in_chain), dtype='int64')
-        temp_count = 0
-        for key in self.densest_in_chain:
-            temp_dens[temp_count] = self.densest_in_chain[key]
-            temp_keys[temp_count] = key
-            temp_count += 1
-        t_d_sorted = temp_dens.argsort()
-        temp_keys = temp_keys[t_d_sorted]
-        del temp_dens, t_d_sorted
         # Loop over chains, smallest to largest density, recursively until
         # we reach a self-assigned chain. Then we assign that final chainID to
         # the *current* one only.
-        #for chain in dens_temp:
-        for key in temp_keys:
+        keys = self.densest_in_chain.keys()
+        for key in keys:
             seen = []
             seen.append(key)
             new_chainID = \
@@ -742,7 +728,7 @@ class RunParallelHOP(ParallelAnalysisInterface):
             if old_chainID == -1: continue
             new_chainID = chainID_translate_map_global[old_chainID]
             self.chainID[i] = new_chainID
-        del chainID_translate_map_local, temp_keys, self.recv_chainIDs
+        del chainID_translate_map_local, self.recv_chainIDs
         del self.recv_real_indices, self.uphill_real_indices, self.uphill_chainIDs
         del seen
         yt_counters("connect_chains_across_tasks")
@@ -898,21 +884,6 @@ class RunParallelHOP(ParallelAnalysisInterface):
             self._mpi_maxdict_dict(self.chain_densest_n)
         del self.chain_densest_n
         yt_counters("make_global_chain_densest_n")
-
-    def __ksort(self, d):
-        temp_d = na.empty(len(d), dtype='float64')
-        temp_keys = na.empty(len(d), dtype='int64')
-        temp_count = 0
-        for key in d:
-            temp_d[temp_count] = d[key]
-            temp_keys[temp_count] = key
-            temp_count += 1
-        t_d_sorted = temp_d.argsort()
-        temp_keys = temp_keys[t_d_sorted]
-        # reverse the order
-        temp_keys = na.flipud(temp_keys)
-        del t_d_sorted, temp_d
-        return temp_keys
     
     def _build_groups(self):
         """
@@ -932,7 +903,7 @@ class RunParallelHOP(ParallelAnalysisInterface):
         # This guarantees that the group with the smaller groupID is the
         # higher chain, as in chain_high below.
         group_equivalancy_map = defaultdict(set)
-        for chainID in self.__ksort(self.densest_in_chain):
+        for chainID in self.densest_in_chain:
             if self.densest_in_chain[chainID] >= self.peakthresh:
                 self.reverse_map[chainID] = groupID
                 groupID += 1
