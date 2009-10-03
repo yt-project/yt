@@ -522,11 +522,11 @@ class RunParallelHOP(ParallelAnalysisInterface):
         yt_counters("global chain sorting.")
         sort = self.densest_in_chain.argsort()
         sort = na.flipud(sort)
-        ordinals = na.arange(len(sort))
-        map = dict(itertools.izip(sort, ordinals))
+        map = na.empty(sort.size,dtype='int64')
+        map[sort] =na.arange(sort.size)
         self.densest_in_chain = self.densest_in_chain[sort]
         self.densest_in_chain_real_index = self.densest_in_chain_real_index[sort]
-        del sort, ordinals
+        del sort
         for i,chID in enumerate(self.chainID):
             if chID == -1: continue
             self.chainID[i] = map[chID]
