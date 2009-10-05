@@ -897,12 +897,14 @@ class RunParallelHOP(ParallelAnalysisInterface):
         # The initial groupIDs will be assigned with decending peak density.
         # This guarantees that the group with the smaller groupID is the
         # higher chain, as in chain_high below.
-        group_equivalancy_map = defaultdict(set)
         for chainID,density in enumerate(self.densest_in_chain):
             if density == -1.0: continue
             if self.densest_in_chain[chainID] >= self.peakthresh:
                 self.reverse_map[chainID] = groupID
                 groupID += 1
+        group_equivalancy_map = na.empty(groupID, dtype='object')
+        for i in xrange(groupID):
+            group_equivalancy_map[i] = set([])
         # Loop over all of the chain linkages.
         for i,chain_high in enumerate(self.top_keys):
             chain_low = self.bot_keys[i]
@@ -959,7 +961,7 @@ class RunParallelHOP(ParallelAnalysisInterface):
         # Shack.'
         Set_list = []
         # We only want the holes that are modulo mine.
-        keys = na.array(group_equivalancy_map.keys(), dtype='int64')
+        keys = na.arange(groupID, dtype='int64')
         if self._mpi_get_size() == None:
             size = 1
         else:
