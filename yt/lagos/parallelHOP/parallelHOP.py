@@ -545,8 +545,9 @@ class RunParallelHOP(ParallelAnalysisInterface):
             diff = na.ediff1d(dicri)
             diff = (diff == 0) # Picks out the places where the ids are equal
             diff = na.concatenate((diff, [False])) # Makes it the same length
-            # This has only the repeated IDs.
-            dicri = na.unique(dicri[diff])
+            # This has only the repeated IDs. Sets are faster at searches than
+            # arrays.
+            dicri = set(dicri[diff])
             reverse = defaultdict(set)
             # Here we find a reverse mapping of real particle ID to chainID
             for chainID, real_index in enumerate(self.densest_in_chain_real_index):
