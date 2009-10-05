@@ -536,37 +536,49 @@ class RunParallelHOP(ParallelAnalysisInterface):
         # being linked, so we link them 'by hand' here.
         mylog.info("Pre-linking chains 'by hand'...")
         yt_counters("global chain hand-linking.")
-        reverse = defaultdict(set)
-        # Here we find a reverse mapping of real particle ID to chainID
-        for chainID, real_index in enumerate(self.densest_in_chain_real_index):
-            reverse[real_index].add(chainID)
-        # We may want to use this in _precompute_group_info(), at the top, but
-        # what is there works and is not slow at all, so for now we'll just
-        # get rid of this and save a few chunks of memory.
-        del self.densest_in_chain_real_index
-        # If the real index has len(set)>1, there are multiple chains that need
-        # to be linked
-        tolink = defaultdict(set)
-        for real in reverse:
-            if len(reverse[real]) > 1:
-                # Unf. can't slice a set, so this will have to do.
-                tolink[min(reverse[real])] = reverse[real]
-                tolink[min(reverse[real])].discard(min(reverse[real]))
-        del reverse
-        # Now we will remove the other chains from the dicts and re-assign
-        # particles to their new chainID.
-        fix_map = {}
-        for tokeep in tolink:
-            for remove in tolink[tokeep]:
-                fix_map[remove] = tokeep
-                self.densest_in_chain[remove] = -1.0
-        for i, chainID in enumerate(self.chainID):
-            try:
-                new = fix_map[chainID]
-            except KeyError:
-                continue
-            self.chainID[i] = new
-        del tolink, fix_map
+        # If there are no repeats, we can skip this mess entirely.
+        uniq = na.unique(self.densest_in_chain_real_index)
+        if uniq.size != self.densest_in_chain_real_index.size:
+            # Find only the real particle indices that are repeated to reduce
+            # the dict workload below.
+            dicri = self.densest_in_chain_real_index[self.densest_in_chain_real_index.argsort()]
+            diff = na.ediff1d(dicri)
+            diff = (diff == 0) # Picks out the places where the ids are equal
+            diff = na.concatenate((diff, [False])) # Makes it the same length
+            # This has only the repeated IDs.
+            dicri = na.unique(dicri[diff])
+            reverse = defaultdict(set)
+            # Here we find a reverse mapping of real particle ID to chainID
+            for chainID, real_index in enumerate(self.densest_in_chain_real_index):
+                if real_index in dicri:
+                    reverse[real_index].add(chainID)
+            # We may want to use this in _precompute_group_info(), at the top, but
+            # what is there works and is not slow at all, so for now we'll just
+            # get rid of this and save a few chunks of memory.
+            del self.densest_in_chain_real_index, dicri, diff
+            # If the real index has len(set)>1, there are multiple chains that need
+            # to be linked
+            tolink = defaultdict(set)
+            for real in reverse:
+                if len(reverse[real]) > 1:
+                    # Unf. can't slice a set, so this will have to do.
+                    tolink[min(reverse[real])] = reverse[real]
+                    tolink[min(reverse[real])].discard(min(reverse[real]))
+            del reverse
+            # Now we will remove the other chains from the dicts and re-assign
+            # particles to their new chainID.
+            fix_map = {}
+            for tokeep in tolink:
+                for remove in tolink[tokeep]:
+                    fix_map[remove] = tokeep
+                    self.densest_in_chain[remove] = -1.0
+            for i, chainID in enumerate(self.chainID):
+                try:
+                    new = fix_map[chainID]
+                except KeyError:
+                    continue
+                self.chainID[i] = new
+            del tolink, fix_map
         yt_counters("global chain hand-linking.")
         yt_counters("create_global_densest_in_chain")
 
