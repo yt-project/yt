@@ -895,6 +895,7 @@ class RunParallelHOP(ParallelAnalysisInterface):
         g_high = self.top_keys[both]
         g_low = self.bot_keys[both]
         g_dens = self.vals[both]
+        del both
         self.reverse_map = na.ones(self.densest_in_chain.size) * -1
         densestbound = na.ones(self.densest_in_chain.size) * -1.0
         groupID = 0
