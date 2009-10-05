@@ -305,6 +305,9 @@ class FieldValidator(object):
 
 class ValidateParameter(FieldValidator):
     def __init__(self, parameters):
+        """
+        This validator ensures that the parameter file has a given parameter.
+        """
         FieldValidator.__init__(self)
         self.parameters = ensure_list(parameters)
     def __call__(self, data):
@@ -318,6 +321,10 @@ class ValidateParameter(FieldValidator):
 
 class ValidateDataField(FieldValidator):
     def __init__(self, field):
+        """
+        This validator ensures that the output file has a given data field stored
+        in it.
+        """
         FieldValidator.__init__(self)
         self.fields = ensure_list(field)
     def __call__(self, data):
@@ -332,6 +339,9 @@ class ValidateDataField(FieldValidator):
 
 class ValidateProperty(FieldValidator):
     def __init__(self, prop):
+        """
+        This validator ensures that the data object has a given python attribute.
+        """
         FieldValidator.__init__(self)
         self.prop = ensure_list(prop)
     def __call__(self, data):
@@ -345,6 +355,10 @@ class ValidateProperty(FieldValidator):
 
 class ValidateSpatial(FieldValidator):
     def __init__(self, ghost_zones = 0, fields=None):
+        """
+        This validator ensures that the data handed to the field is of spatial
+        nature -- that is to say, 3-D.
+        """
         FieldValidator.__init__(self)
         self.ghost_zones = ghost_zones
         self.fields = fields
@@ -360,6 +374,10 @@ class ValidateSpatial(FieldValidator):
 
 class ValidateGridType(FieldValidator):
     def __init__(self):
+        """
+        This validator ensures that the data handed to the field is an actual
+        grid patch, not a covering grid of any kind.
+        """
         FieldValidator.__init__(self)
     def __call__(self, data):
         # We need to make sure that it's an actual AMR grid
