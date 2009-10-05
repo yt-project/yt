@@ -892,8 +892,7 @@ class RunParallelHOP(ParallelAnalysisInterface):
         g_dens = []
         values = na.ones(self.densest_in_chain.size) * -1
         keys = na.arange(self.densest_in_chain.size)
-        self.reverse_map = dict(itertools.izip(keys,
-            values))
+        self.reverse_map = na.ones(self.densest_in_chain.size) * -1
         densestbound = dict(itertools.izip(keys,
             values))
         del values, keys
@@ -933,6 +932,7 @@ class RunParallelHOP(ParallelAnalysisInterface):
                 else:
                     group_high = self.reverse_map[chain_high]
                     group_low = self.reverse_map[chain_low]
+                    if group_high == -1 or group_low == -1: continue
                     # Both are already identified as groups, so we need
                     # to re-assign the less dense group to the denser
                     # groupID.
@@ -944,6 +944,7 @@ class RunParallelHOP(ParallelAnalysisInterface):
             # find out if this is the densest boundary seen so far for
             # the lower chain.
             group_high = self.reverse_map[chain_high]
+            if group_high == -1: continue
             if dens > densestbound[chain_low]:
                 densestbound[chain_low] = dens
                 self.reverse_map[chain_low] = group_high
@@ -1008,8 +1009,7 @@ class RunParallelHOP(ParallelAnalysisInterface):
         # globally.
         lookup = self._mpi_minimum_array_long(lookup)
         # Now apply this to reverse_map
-        for chainID in self.reverse_map:
-            groupID = self.reverse_map[chainID]
+        for chainID,groupID in enumerate(self.reverse_map):
             if groupID == -1:
                 continue
             if lookup[groupID] != (self.densest_in_chain.size + 2):
@@ -1044,9 +1044,7 @@ class RunParallelHOP(ParallelAnalysisInterface):
         del g_high, g_low, g_dens
         # Now we have to find the unique groupIDs, since they may have been
         # merged.
-        temp = self.reverse_map.values()
-        # Uniquify the list.
-        temp = list(set(temp))
+        temp = list(set(self.reverse_map))
         # Remove -1 from the list.
         temp.pop(temp.index(-1))
         # Make a secondary map to make the IDs consecutive.
@@ -1054,10 +1052,10 @@ class RunParallelHOP(ParallelAnalysisInterface):
         secondary_map = dict(itertools.izip(temp, values))
         del values
         # Update reverse_map
-        for chain in self.reverse_map:
+        for chain, map in enumerate(self.reverse_map):
             # Don't attempt to fix non-assigned chains.
-            if self.reverse_map[chain] == -1: continue
-            self.reverse_map[chain] = secondary_map[self.reverse_map[chain]]
+            if map == -1: continue
+            self.reverse_map[chain] = secondary_map[map]
         group_count = len(temp)
         del secondary_map, temp, densestbound
         yt_counters("build_groups")

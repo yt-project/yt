@@ -1001,7 +1001,7 @@ class ParallelAnalysisInterface(object):
         if MPI.COMM_WORLD.rank == 0:
             for i in range(1,MPI.COMM_WORLD.size):
                 size = MPI.COMM_WORLD.recv(source=i, tag=0)
-                mylog.info('Global Hash Table Compare %d of %d size %d' % \
+                mylog.info('Global Hash Table Merge %d of %d size %d' % \
                     (i,MPI.COMM_WORLD.size, size))
                 recv_top_keys = na.empty(size, dtype='int64')
                 recv_bot_keys = na.empty(size, dtype='int64')
