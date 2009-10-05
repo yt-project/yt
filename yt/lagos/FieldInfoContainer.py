@@ -34,6 +34,12 @@ import itertools
 from yt.funcs import *
 
 class FieldInfoContainer(object): # We are all Borg.
+    """
+    This is a generic field container.  It contains a list of potential derived
+    fields, all of which know how to act on a data object and return a value.  This
+    object handles converting units as well as validating the availability of a
+    given field.
+    """
     _shared_state = {}
     _universal_field_list = {}
     def __new__(cls, *args, **kwargs):
@@ -45,6 +51,9 @@ class FieldInfoContainer(object): # We are all Borg.
             return self._universal_field_list[key]
         raise KeyError
     def keys(self):
+        """
+        Return all the field names this object knows about.
+        """
         return self._universal_field_list.keys()
     def __iter__(self):
         return self._universal_field_list.iterkeys()
@@ -53,6 +62,11 @@ class FieldInfoContainer(object): # We are all Borg.
     def has_key(self, key):
         return key in self._universal_field_list
     def add_field(self, name, function = None, **kwargs):
+        """
+        Add a new field, along with supplemental metadata, to the list of
+        available fields.  This respects a number of arguments, all of which
+        are passed on to the constructor for :class:`~yt.lagos.DerivedField`.
+        """
         if function == None:
             if kwargs.has_key("function"):
                 function = kwargs.pop("function")
@@ -92,6 +106,9 @@ class CodeFieldInfoContainer(FieldInfoContainer):
         raise KeyError(key)
 
 class OrionFieldContainer(CodeFieldInfoContainer):
+    """
+    All Orion-specific fields are stored in here.
+    """
     _shared_state = {}
     _field_list = {}
 OrionFieldInfo = OrionFieldContainer()
@@ -228,12 +245,19 @@ class DerivedField(object):
         self.not_in_all = not_in_all
 
     def check_available(self, data):
+        """
+        This raises an exception of the appropriate type if the set of
+        validation mechanisms are not met, and otherwise returns True.
+        """
         for validator in self.validators:
             validator(data)
         # If we don't get an exception, we're good to go
         return True
 
     def get_dependencies(self, *args, **kwargs):
+        """
+        This returns a list of names of fields that this field depends on.
+        """
         e = FieldDetector(*args, **kwargs)
         if self._function.func_name == '<lambda>':
             e.requested.append(self.name)
@@ -242,12 +266,21 @@ class DerivedField(object):
         return e
 
     def get_units(self):
+        """
+        Return a string describing the units.
+        """
         return self._units
 
     def get_projected_units(self):
+        """
+        Return a string describing the units if the field has been projected.
+        """
         return self._projected_units
 
     def __call__(self, data):
+        """
+        Return the value of the field in a given *data* object.
+        """
         ii = self.check_available(data)
         original_fields = data.fields[:] # Copy
         dd = self._function(self, data)
@@ -258,9 +291,15 @@ class DerivedField(object):
         return dd
 
     def get_source(self):
+        """
+        Return a string containing the source of the function (if possible.)
+        """
         return inspect.getsource(self._function)
 
     def get_label(self, projected=False):
+        """
+        Return a data label for the given field, inluding units.
+        """
         name = self.name
         if self.display_name is not None: name = self.display_name
         data_label = r"$\rm{%s}" % name
