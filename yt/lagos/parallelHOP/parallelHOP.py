@@ -890,12 +890,8 @@ class RunParallelHOP(ParallelAnalysisInterface):
         g_high = []
         g_low = []
         g_dens = []
-        values = na.ones(self.densest_in_chain.size) * -1
-        keys = na.arange(self.densest_in_chain.size)
         self.reverse_map = na.ones(self.densest_in_chain.size) * -1
-        densestbound = dict(itertools.izip(keys,
-            values))
-        del values, keys
+        densestbound = na.ones(self.densest_in_chain.size) * -1.0
         groupID = 0
         # First assign a group to all chains with max_dens above peakthresh.
         # The initial groupIDs will be assigned with decending peak density.
