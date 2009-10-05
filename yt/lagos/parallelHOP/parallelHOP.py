@@ -805,11 +805,6 @@ class RunParallelHOP(ParallelAnalysisInterface):
         """
         yt_counters("connect_chains")
         self.chain_densest_n = {} # chainID -> {chainIDs->boundary dens}
-        values = na.ones(len(self.densest_in_chain)) * -1
-        keys = na.arange(len(self.densest_in_chain))
-        self.reverse_map = dict(itertools.izip(keys,
-            values))
-        del values, keys
         # Plus 2 because we're looking for that neighbor, but only keeping 
         # nMerge + 1 neighbor tags, skipping ourselves.
         fKD.dist = na.empty(self.nMerge+2, dtype='float64')
@@ -895,8 +890,10 @@ class RunParallelHOP(ParallelAnalysisInterface):
         g_high = []
         g_low = []
         g_dens = []
-        values = na.ones(len(self.densest_in_chain)) * -1
+        values = na.ones(self.densest_in_chain.size) * -1
         keys = na.arange(self.densest_in_chain.size)
+        self.reverse_map = dict(itertools.izip(keys,
+            values))
         densestbound = dict(itertools.izip(keys,
             values))
         del values, keys
@@ -1001,22 +998,22 @@ class RunParallelHOP(ParallelAnalysisInterface):
         del group_equivalancy_map, final_set, keys, select, groupIDs
         del mine_groupIDs, not_mine_groupIDs, new_set, to_add_set, liter
         # Convert this list of sets into a look-up table
-        lookup = {}
+        lookup = na.ones(self.densest_in_chain.size, dtype='int64') * (self.densest_in_chain.size + 2)
         for i,item in enumerate(Set_list):
             item_min = min(item)
             for groupID in item:
                 lookup[groupID] = item_min
-        # To bring it all together, join the dicts.
-        lookup = self._mpi_joindict_unpickled_long(lookup)
+        del Set_list
+        # To bring it all together, find the minimum values at each entry
+        # globally.
+        lookup = self._mpi_minimum_array_long(lookup)
         # Now apply this to reverse_map
         for chainID in self.reverse_map:
             groupID = self.reverse_map[chainID]
             if groupID == -1:
                 continue
-            try:
+            if lookup[groupID] != (self.densest_in_chain.size + 2):
                 self.reverse_map[chainID] = lookup[groupID]
-            except KeyError:
-                continue
         del lookup
         """
         Now the fringe chains are connected to the proper group
