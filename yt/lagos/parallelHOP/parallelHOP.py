@@ -1043,7 +1043,7 @@ class RunParallelHOP(ParallelAnalysisInterface):
                     else:
                         densestbound[chain_low] = densestbound[chain_high]
                     self.reverse_map[chain_low] = self.reverse_map[chain_high]
-        del g_high, g_low, g_dens
+        del g_high, g_low, g_dens, densestbound
         # Now we have to find the unique groupIDs, since they may have been
         # merged.
         temp = list(set(self.reverse_map))
@@ -1059,7 +1059,7 @@ class RunParallelHOP(ParallelAnalysisInterface):
             if map == -1: continue
             self.reverse_map[chain] = secondary_map[map]
         group_count = len(temp)
-        del secondary_map, temp, densestbound
+        del secondary_map, temp
         yt_counters("build_groups")
         return group_count
 
