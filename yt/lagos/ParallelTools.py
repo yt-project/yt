@@ -901,6 +901,26 @@ class ParallelAnalysisInterface(object):
         return data
 
     @parallel_passthrough
+    def _mpi_minimum_array_long(self, data):
+        """
+        Specifically for parallelHOP. For the identical array on each task,
+        it merges the arrays together, taking the lower value at each index.
+        """
+        self._barrier()
+        size = data.size # They're all the same size, of course
+        if MPI.COMM_WORLD.rank == 0:
+            new_data = na.empty(size, dtype='int64')
+            for i in range(1, MPI.COMM_WORLD.size):
+                MPI.COMM_WORLD.Recv([new_data, MPI.LONG], i, 0)
+                data = na.minimum(data, new_data)
+            del new_data
+        else:
+            MPI.COMM_WORLD.Send([data, MPI.LONG], 0, 0)
+        # Redistribute from root
+        MPI.COMM_WORLD.Bcast([data, MPI.LONG], root=0)
+        return data
+
+    @parallel_passthrough
     def _mpi_bcast_long_dict_unpickled(self, data):
         self._barrier()
         size = 0

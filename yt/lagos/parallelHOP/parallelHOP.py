@@ -656,7 +656,7 @@ class RunParallelHOP(ParallelAnalysisInterface):
         """
         yt_counters("connect_chains_across_tasks")
         # Remote (lower dens) chain -> local (higher) chain.
-        chainID_translate_map_local = {}
+        chainID_translate_map_local = na.arange(self.nchains)
         # Build the stuff to send.
         self.uphill_real_indices = self.index[self.padded_particles]
         self.uphill_chainIDs = self.chainID[self.padded_particles]
@@ -700,19 +700,9 @@ class RunParallelHOP(ParallelAnalysisInterface):
         # In chainID_translate_map_local, chains may
         # 'point' to only one chain, but a chain may have many that point to
         # it. Therefore each key (a chain) in this dict is unique, but the items
-        # the keys point to are not necessarily unique. Most chains do not
-        # have an entry in the dict, and that is addressed after the 
-        # communication step.
+        # the keys point to are not necessarily unique.
         chainID_translate_map_global = \
-            self._mpi_joindict_unpickled_long(chainID_translate_map_local)
-        #for i in xrange(int(self.nchains)):
-        for i,dens in enumerate(self.densest_in_chain):
-            if dens == -1.0: continue
-            try:
-                target = chainID_translate_map_global[i]
-            except KeyError:
-                # The the chain is either self most-dense, or a singleton.
-                chainID_translate_map_global[i] = int(i)
+            self._mpi_minimum_array_long(chainID_translate_map_local)
         # Loop over chains, smallest to largest density, recursively until
         # we reach a self-assigned chain. Then we assign that final chainID to
         # the *current* one only.
@@ -737,7 +727,7 @@ class RunParallelHOP(ParallelAnalysisInterface):
             self.chainID[i] = new_chainID
         del chainID_translate_map_local, self.recv_chainIDs
         del self.recv_real_indices, self.uphill_real_indices, self.uphill_chainIDs
-        del seen
+        del seen, chainID_translate_map_global
         yt_counters("connect_chains_across_tasks")
 
     def _communicate_annulus_chainIDs(self):
