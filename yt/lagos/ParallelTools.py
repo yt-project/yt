@@ -28,6 +28,7 @@ from yt.funcs import *
 import yt.logger, logging
 import itertools, sys, cStringIO
 
+# At import time, we determined whether or not we're being run in parallel.
 if os.path.basename(sys.executable) in \
         ["mpi4py", "embed_enzo",
          "python"+sys.version[:3]+"-mpi"] \
@@ -60,6 +61,10 @@ else:
     parallel_capable = False
 
 class ObjectIterator(object):
+    """
+    This is a generalized class that accepts a list of objects and then
+    attempts to intelligently iterate over them.
+    """
     def __init__(self, pobj, just_list = False, attr='_grids'):
         self.pobj = pobj
         if hasattr(pobj, attr) and getattr(pobj, attr) is not None:
@@ -84,8 +89,8 @@ class ObjectIterator(object):
         
 class ParallelObjectIterator(ObjectIterator):
     """
-    This takes an object, pobj, that implements ParallelAnalysisInterface,
-    and then does its thing.
+    This takes an object, *pobj*, that implements ParallelAnalysisInterface,
+    and then does its thing, calling initliaze and finalize on the object.
     """
     def __init__(self, pobj, just_list = False, attr='_grids',
                  round_robin=False):
@@ -109,6 +114,12 @@ class ParallelObjectIterator(ObjectIterator):
         if not self.just_list: self.pobj._finalize_parallel()
 
 def parallel_simple_proxy(func):
+    """
+    This is a decorator that broadcasts the result of computation on a single
+    processor to all other processors.  To do so, it uses the _processing and
+    _distributed flags in the object to check for blocks.  Meant only to be
+    used on objects that subclass :class:`~yt.lagos.ParallelAnalysisInterface`.
+    """
     if not parallel_capable: return func
     @wraps(func)
     def single_proc_results(self, *args, **kwargs):
@@ -125,8 +136,11 @@ def parallel_simple_proxy(func):
     return single_proc_results
 
 class ParallelDummy(type):
-    # All attributes that don't start with _ get replaced with
-    # parallel_simple_proxy attributes.
+    """
+    This is a base class that, on instantiation, replaces all attributes that
+    don't start with ``_`` with :func:`~yt.lagos.parallel_simple_proxy`-wrapped
+    attributes.  Used as a metaclass.
+    """
     def __init__(cls, name, bases, d):
         super(ParallelDummy, cls).__init__(name, bases, d)
         skip = d.pop("dont_wrap", [])
@@ -139,6 +153,10 @@ class ParallelDummy(type):
                 setattr(cls, attrname, parallel_simple_proxy(attr))
 
 def parallel_passthrough(func):
+    """
+    If we are not run in parallel, this function passes the input back as
+    output; otherwise, the function gets called.  Used as a decorator.
+    """
     @wraps(func)
     def passage(self, data):
         if not self._distributed: return data
@@ -146,6 +164,9 @@ def parallel_passthrough(func):
     return passage
 
 def parallel_blocking_call(func):
+    """
+    This decorator blocks on entry and exit of a function.
+    """
     @wraps(func)
     def barrierize(*args, **kwargs):
         mylog.debug("Entering barrier before %s", func.func_name)
@@ -160,6 +181,10 @@ def parallel_blocking_call(func):
         return func
 
 def parallel_splitter(f1, f2):
+    """
+    This function returns either the function *f1* or *f2* depending on whether
+    or not we're the root processor.  Mainly used in class definitions.
+    """
     @wraps(f1)
     def in_order(*args, **kwargs):
         MPI.COMM_WORLD.Barrier()
@@ -173,6 +198,10 @@ def parallel_splitter(f1, f2):
     return in_order
 
 def parallel_root_only(func):
+    """
+    This decorator blocks and calls the function on the root processor,
+    but does not broadcast results to the other processors.
+    """
     @wraps(func)
     def root_only(*args, **kwargs):
         if MPI.COMM_WORLD.rank == 0:
@@ -191,6 +220,10 @@ def parallel_root_only(func):
     return func
 
 class ParallelAnalysisInterface(object):
+    """
+    This is an interface specification providing several useful utility
+    functions for analyzing something in parallel.
+    """
     _grids = None
     _distributed = parallel_capable
 

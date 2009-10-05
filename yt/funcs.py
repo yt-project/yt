@@ -62,14 +62,19 @@ except ImportError:
 
 def iterable(obj):
     """
-    Grabbed from Python Cookbook / matploblib.cbook
+    Grabbed from Python Cookbook / matploblib.cbook.  Returns true/false for
+    *obj* iterable.
     """
     try: len(obj)
     except: return False
     return True
 
 def ensure_list(obj):
-    # This makes sure that we have a list of items
+    """
+    This function ensures that *obj* is a list.  Typically used to convert a
+    string to a list, for instance ensuring the *fields* as an argument is a
+    list.
+    """
     if obj == None:
         return [obj]
     if not isinstance(obj, types.ListType):
@@ -105,7 +110,9 @@ def time_execution(func):
 
     This can be used like so:
 
-    @time_execution
+    .. code-block:: python
+
+       @time_execution
     def some_longrunning_function(...):
 
     """
@@ -123,6 +130,18 @@ def time_execution(func):
         return func
 
 def print_tb(func):
+    """
+    This function is used as a decorate on a function to have the calling stack
+    printed whenever that function is entered.
+
+    This can be used like so:
+
+    .. code-block:: python
+
+       @print_tb
+       def some_deeply_nested_function(...):
+
+    """
     @wraps(func)
     def run_func(*args, **kwargs):
         traceback.print_stack()
@@ -130,6 +149,19 @@ def print_tb(func):
     return run_func
 
 def rootonly(func):
+    """
+    This is a decorator that, when used, will only call the function on the
+    root processor and then broadcast the results of the function to all other
+    processors.
+
+    This can be used like so:
+
+    .. code-block:: python
+
+       @rootonly
+       def some_root_only_function(...):
+
+    """
     @wraps(func)
     def donothing(*args, **kwargs):
         return
@@ -138,6 +170,17 @@ def rootonly(func):
     return func
 
 def deprecate(func):
+    """
+    This decorator issues a deprecation warning.
+
+    This can be used like so:
+
+    .. code-block:: python
+
+       @rootonly
+       def some_really_old_function(...):
+
+    """
     @wraps(func)
     def run_func(*args, **kwargs):
         warnings.warn("%s has been deprecated and may be removed without notice!" \
@@ -146,6 +189,18 @@ def deprecate(func):
     return run_func
 
 def pdb_run(func):
+    """
+    This decorator inserts a pdb session on top of the call-stack into a
+    function.
+
+    This can be used like so:
+
+    .. code-block:: python
+
+       @rootonly
+       def some_function_to_debug(...):
+
+    """
     @wraps(func)
     def wrapper(*args, **kw):
         pdb.runcall(func, *args, **kw)
@@ -225,6 +280,10 @@ class GUIProgressBar(object):
         self._pbar.Destroy()
 
 def get_pbar(title, maxval):
+    """
+    This returns a progressbar of the most appropriate type, given a *title*
+    and a *maxval*.
+    """
     from yt.config import ytcfg
     if ytcfg.getboolean("yt","inGui"):
         if maxval > ytcfg.getint("reason","minpbar"): # Arbitrary number
@@ -283,8 +342,11 @@ try:
 except ValueError:  # Not in main thread
     pass
 
-# This is a traceback handler that knows how to paste to the pastebin.
 def paste_traceback(exc_type, exc, tb):
+    """
+    This is a traceback handler that knows how to paste to the pastebin.
+    Should only be used in sys.excepthook.
+    """
     sys.__excepthook__(exc_type, exc, tb)
     import xmlrpclib, cStringIO
     p = xmlrpclib.ServerProxy(

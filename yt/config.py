@@ -89,6 +89,10 @@ class YTConfigParser(ConfigParser.ConfigParser):
                 if not self.has_option(section, opt):
                     self.set(section, opt, val)
     def set(self, section, opt, val):
+        """
+        This sets an option named *opt* to *val* inside *section*, creating
+        *section* if necessary.
+        """
         if not self.has_section(section):
             self.add_section(section)
         ConfigParser.ConfigParser.set(self, section, opt, val)
