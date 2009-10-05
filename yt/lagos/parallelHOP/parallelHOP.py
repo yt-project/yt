@@ -887,9 +887,14 @@ class RunParallelHOP(ParallelAnalysisInterface):
         With the collection of possible chain links, build groups.
         """
         yt_counters("build_groups")
-        g_high = []
-        g_low = []
-        g_dens = []
+        # We need to find out which pairs of self.top_keys, self.bot_keys are
+        # both < self.peakthresh, and create arrays that will store this
+        # relationship.
+        both = na.bitwise_and((self.densest_in_chain[self.top_keys] < self.peakthresh),
+            (self.densest_in_chain[self.bot_keys] < self.peakthresh))
+        g_high = self.top_keys[both]
+        g_low = self.bot_keys[both]
+        g_dens = self.vals[both]
         self.reverse_map = na.ones(self.densest_in_chain.size) * -1
         densestbound = na.ones(self.densest_in_chain.size) * -1.0
         groupID = 0
@@ -916,9 +921,8 @@ class RunParallelHOP(ParallelAnalysisInterface):
             # consideration.
             if max_dens_high < self.peakthresh and \
                 max_dens_low < self.peakthresh:
-                    g_high.append(chain_high)
-                    g_low.append(chain_low)
-                    g_dens.append(dens)
+                    # This step is now done vectorized above, with the g_dens
+                    # stuff.
                     continue
             # If both are peak density groups, and have a boundary density
             # that is high enough, make them into a group, otherwise
