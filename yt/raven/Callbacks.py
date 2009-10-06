@@ -241,6 +241,9 @@ class GridBoundaryCallback(PlotCallback):
 class LabelCallback(PlotCallback):
     _type_name = "axis_label"
     def __init__(self, label):
+        """
+        This adds a label to the plot.
+        """
         PlotCallback.__init__(self)
         self.label = label
 
@@ -447,6 +450,10 @@ class ClumpContourCallback(PlotCallback):
 class ArrowCallback(PlotCallback):
     _type_name = "arrow"
     def __init__(self, pos, code_size, plot_args = None):
+        """
+        This adds an arrow pointing at *pos* with size *code_size* in code
+        units.  *plot_args* is a dict fed to matplotlib with arrow properties.
+        """
         self.pos = pos
         self.code_size = code_size
         if plot_args is None: plot_args = {}
@@ -463,6 +470,10 @@ class ArrowCallback(PlotCallback):
 class PointAnnotateCallback(PlotCallback):
     _type_name = "point"
     def __init__(self, pos, text, text_args = None):
+        """
+        This adds *text* at position *pos*, where *pos* is in code-space.
+        *text_args* is a dict fed to the text placement code.
+        """
         self.pos = pos
         self.text = text
         self.text_args = text_args
@@ -474,6 +485,10 @@ class PointAnnotateCallback(PlotCallback):
 class MarkerAnnotateCallback(PlotCallback):
     _type_name = "marker"
     def __init__(self, pos, marker='x', plot_args=None):
+        """
+        Adds text *marker* at *pos* in code-arguments.  *plot_args* is a dict
+        that will be forwarded to the plot command.
+        """
         self.pos = pos
         self.marker = marker
         if plot_args is None: plot_args = {}
@@ -494,6 +509,11 @@ class SphereCallback(PlotCallback):
     _type_name = "sphere"
     def __init__(self, center, radius, circle_args = None,
                  text = None, text_args = None):
+        """
+        A sphere centered at *center* in code units with radius *radius* in
+        code units will be created, with optional *circle_args*, *text*, and
+        *text_args*.
+        """
         self.center = center
         self.radius = radius
         if circle_args is None: circle_args = {}
@@ -527,6 +547,10 @@ class HopCircleCallback(PlotCallback):
                  annotate=False, min_size=20, max_size=10000000,
                  font_size=8, print_halo_size=False,
                  print_halo_mass=False, width=None):
+        """
+        Accepts a :class:`yt.lagos.HopList` *hop_output* and plots up to
+        *max_number* (None for unlimited) halos as circles.
+        """
         self.hop_output = hop_output
         self.max_number = max_number
         self.annotate = annotate
@@ -573,15 +597,15 @@ class HopCircleCallback(PlotCallback):
                     fontsize=self.font_size)
 
 class HopParticleCallback(PlotCallback):
-    """
-    Adds particle positions for the members of each halo as identified
-    by HOP. Along *axis* up to *max_number* groups in *hop_output* that are
-    larger than *min_size* are plotted with *p_size* pixels per particle; 
-    *alpha* determines the opacity of each particle.
-    """
     _type_name = "hop_particles"
     def __init__(self, hop_output, p_size=1.0,
                 max_number=None, min_size=20, alpha=0.2):
+        """
+        Adds particle positions for the members of each halo as identified
+        by HOP. Along *axis* up to *max_number* groups in *hop_output* that are
+        larger than *min_size* are plotted with *p_size* pixels per particle; 
+        *alpha* determines the opacity of each particle.
+        """
         self.hop_output = hop_output
         self.p_size = p_size
         self.max_number = max_number
@@ -610,17 +634,6 @@ class HopParticleCallback(PlotCallback):
             plot._axes.set_xlim(xx0,xx1)
             plot._axes.set_ylim(yy0,yy1)
             plot._axes.hold(False)
-
-class FloorToValueInPlot(PlotCallback):
-    _type_name = "floor"
-    def __init__(self):
-        pass
-
-    def __call__(self, plot):
-        aa = plot.image._A
-        min_val = aa[aa>0].min()
-        aa[aa==0] = min_val
-
 
 class VobozCircleCallback(PlotCallback):
     _type_name = "voboz_circle"
@@ -662,12 +675,12 @@ class VobozCircleCallback(PlotCallback):
                         fontsize=self.font_size)
 
 class CoordAxesCallback(PlotCallback):
-    """Creates x and y axes for a VMPlot. In the future, it will
-    attempt to guess the proper units to use.
-
-    """
     _type_name = "coord_axes"
     def __init__(self,unit=None,coords=False):
+        """
+        Creates x and y axes for a VMPlot. In the future, it will
+        attempt to guess the proper units to use.
+        """
         PlotCallback.__init__(self)
         self.unit = unit
         self.coords = coords

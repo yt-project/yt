@@ -28,6 +28,10 @@ from yt.mods import *
 class StackedDiskImage(object):
     def __init__(self, pf, center, norm_vec, thickness, width,
                  nslices = 100, buff_size=(800,800)):
+        """
+        This class implements an AMR data object that will stack up
+        oblique-slices to generate an image along an arbitrary axis.
+        """
         self.data = {}
         self.pf = pf
         self.center = na.array(center)
