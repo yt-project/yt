@@ -60,6 +60,13 @@ class ParameterFileStore(object):
         return self
 
     def __init__(self, in_memory = False):
+        """
+        This class is designed to be a semi-persistent storage for parameter
+        files.  By identifying each parameter file with a unique hash, objects
+        can be stored independently of parameter files -- when an object is
+        loaded, the parameter file is as well, based on the hash.  For
+        storage concerns, only a few hundred will be retained in cache.
+        """
         if ytcfg.getboolean("yt", "StoreParameterFiles"):
             self._read_only = False
             self.init_db()
@@ -70,6 +77,9 @@ class ParameterFileStore(object):
 
     @parallel_simple_proxy
     def init_db(self):
+        """
+        This function ensures that the storage database exists and can be used.
+        """
         dbn = self._get_db_name()
         dbdir = os.path.dirname(dbn)
         try:
@@ -87,9 +97,15 @@ class ParameterFileStore(object):
         return os.path.expanduser("~/.yt/%s" % base_file_name)
 
     def get_pf_hash(self, hash):
+        """
+        This returns a parameter file based on a hash.
+        """
         return self._convert_pf(self._records[hash])
 
     def get_pf_ctid(self, ctid):
+        """
+        This returns a parameter file based on a CurrentTimeIdentifier.
+        """
         for h in self._records:
             if self._records[h]['ctid'] == ctid:
                 return self._convert_pf(self._records[h])
@@ -126,6 +142,11 @@ class ParameterFileStore(object):
         return pf
 
     def check_pf(self, pf):
+        """
+        This will ensure that the parameter file (*pf*) handed to it is
+        recorded in the storage unit.  In doing so, it will update path 
+        and "last_seen" information.
+        """
         hash = pf._hash()
         if hash not in self._records:
             self.insert_pf(pf)
@@ -138,15 +159,25 @@ class ParameterFileStore(object):
             self.insert_pf(pf)
 
     def insert_pf(self, pf):
+        """
+        This will insert a new *pf* and flush the database to disk.
+        """
         self._records[pf._hash()] = self._adapt_pf(pf)
         self.flush_db()
 
     def wipe_hash(self, hash):
+        """
+        This removes a *hash* corresponding to a parameter file from the
+        storage.
+        """
         if hash not in self._records: return
         del self._records[hash]
         self.flush_db()
 
     def flush_db(self):
+        """
+        This flushes the storage to disk.
+        """
         if self._read_only: return
         self._write_out()
         self.read_db()
@@ -167,6 +198,9 @@ class ParameterFileStore(object):
 
     @parallel_simple_proxy
     def read_db(self):
+        """
+        This will read the storage device from disk.
+        """
         f=open(self._get_db_name(), 'rb')
         vals = csv.DictReader(f, _field_names)
         db = {}
