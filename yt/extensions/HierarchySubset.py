@@ -35,6 +35,11 @@ class DummyHierarchy(object):
 class ConstructedRootGrid(object):
     id = -1
     def __init__(self, pf, level, left_edge, right_edge):
+        """
+        This is a fake root grid, constructed by creating a
+        :class:`yt.lagos.CoveringGridBase` at a given *level* between
+        *left_edge* and *right_edge*.
+        """
         self.pf = pf
         self.hierarchy = DummyHierarchy()
         self.hierarchy.data_style = -1
@@ -90,6 +95,12 @@ class ExtractedHierarchy(object):
 
     def __init__(self, pf, min_level, max_level = -1, offset = None,
                  always_copy=False):
+        """
+        This is a class that extracts a hierarchy from another hierarchy,
+        filling in regions as necessary.  It accepts a parameter file (*pf*), a
+        *min_level*, a *max_level*, and alternately an *offset*.  This class is
+        typically or exclusively used to extract for the purposes of visualization.
+        """
         self.pf = pf
         self.always_copy = always_copy
         self.min_level = min_level
