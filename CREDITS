@@ -1,12 +1,16 @@
 YT is a group effort.
 
-Lead Developer:                     Matthew Turk (matthewturk@gmail.com)
-Orion Support:                      Jeff Oishi (jsoishi@gmail.com)
-Cosmology & Fragmentation Analysis: Britton Smith (brittonsmith@gmail.com)
-Galaxy Merger Trees:                Stephen Skory (sskory@physics.ucsd.edu)
+Developers:                     Matthew Turk (matthewturk@gmail.com)
+                                Britton Smith (brittonsmith@gmail.com)
+                                Jeff Oishi (jsoishi@gmail.com)
+                                Stephen Skory (sskory@physics.ucsd.edu)
+                                Sam Skillman (samskillman@gmail.com)
+                                Devin Silvia (devin.silvia@gmail.com)
+                                John Wise (jwise@astro.princeton.edu)
 
 We also include the Delaunay Triangulation module written by Robert Kern of
 Enthought, the cmdln.py module by Trent Mick, and the progressbar module by
-Nilton Volpato.
+Nilton Volpato.  The PasteBin interface code (as well as the PasteBin itself)
+was written by the Pocoo collective (pocoo.org).
 
 Thanks to everyone for all your contributions!

@@ -194,10 +194,18 @@ class AMRHierarchy:
     save_data = parallel_splitter(_save_data, _reload_data_file)
 
     def save_object(self, obj, name):
+        """
+        Save an object (*obj*) to the data_file using the Pickle protocol,
+        under the name *name* on the node /Objects.
+        """
         s = cPickle.dumps(obj, protocol=-1)
         self.save_data(s, "/Objects", name, force = True)
 
     def load_object(self, name):
+        """
+        Load and return and object from the data_file using the Pickle protocol,
+        under the name *name* on the node /Objects.
+        """
         obj = self.get_data("/Objects", name)
         if obj is None:
             return

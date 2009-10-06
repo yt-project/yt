@@ -64,9 +64,8 @@ def setup_package():
         url = "http://yt.enzotools.org/",
         license="GPL-3",
         configuration=configuration,
-        app=APP, # for py2app
         data_files=DATA_FILES,
-        options={'py2app':PY2APP_OPTIONS},
+        options={},
         zip_safe=False,
         )
     return

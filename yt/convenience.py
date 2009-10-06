@@ -36,6 +36,12 @@ from yt.logger import ytLogger as mylog
 from yt.fido import output_type_registry
 
 def all_pfs(max_depth=1, name_spec="*.hierarchy", **kwargs):
+    """
+    This function searchs a directory and its sub-directories, up to a depth of
+    *max_depth*, for parameter files.  It looks for the *name_spec* and then
+    instantiates an EnzoStaticOutput from each.  All subsequent *kwargs* are
+    passed on to the EnzoStaticOutput constructor.
+    """
     list_of_names = []
     for i in range(max_depth):
         bb = list('*' * i) + [name_spec]
@@ -45,11 +51,24 @@ def all_pfs(max_depth=1, name_spec="*.hierarchy", **kwargs):
         yield lagos.EnzoStaticOutput(fn[:-10], **kwargs)
 
 def max_spheres(width, unit, **kwargs):
+    """
+    This calls :func:`~yt.convenience.all_pfs` and then for each parameter file
+    creates a :class:`~yt.lagos.AMRSphereBase` for each one,
+    centered on the point of highest density, with radius *width* in units of
+    *unit*.
+    """
     for pf in all_pfs(**kwargs):
         v, c = pf.h.find_max("Density")
         yield pf.h.sphere(c, width/pf[unit])
 
 def load(*args ,**kwargs):
+    """
+    This function attempts to determine the base data type of a filename or
+    other set of arguments by calling
+    :meth:`yt.lagos.StaticOutput._is_valid` until it finds a
+    match, at which point it returns an instance of the appropriate
+    :class:`yt.lagos.StaticOutput` subclass.
+    """
     candidates = []
     for n, c in output_type_registry.items():
         if n is None: continue

@@ -28,6 +28,9 @@ from UniversalFields import *
 rho_crit_now = 1.8788e-29 # times h^2
 
 class EnzoFieldContainer(CodeFieldInfoContainer):
+    """
+    This is a container for Enzo-specific fields.
+    """
     _shared_state = {}
     _field_list = {}
 EnzoFieldInfo = EnzoFieldContainer()
