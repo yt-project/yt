@@ -260,6 +260,11 @@ class AMRData(object):
         fid.close()
 
     def save_object(self, name, filename = None):
+        """
+        Save an object.  If *filename* is supplied, it will be stored in
+        a :module:`shelve` file of that name.  Otherwise, it will be stored via
+        :meth:`yt.lagos.AMRHierarchy.save_object`.
+        """
         if filename is not None:
             ds = shelve.open(filename, protocol=-1)
             if name in ds:
