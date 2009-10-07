@@ -431,8 +431,8 @@ class RunParallelHOP(ParallelAnalysisInterface):
         """
         yt_counters("build_chains")
         chainIDmax = 0 
-        self.densest_in_chain = na.ones(1000) * -1 # chainID->density, one to one
-        self.densest_in_chain_real_index = na.ones(1000) * -1 # chainID->real_index, one to one
+        self.densest_in_chain = na.ones(1000, dtype='float64') * -1 # chainID->density, one to one
+        self.densest_in_chain_real_index = na.ones(1000, dtype='int64') * -1 # chainID->real_index, one to one
         for i in xrange(int(self.size)):
             # If it's already in a group, move on, or if this particle is
             # in the padding, move on because chains can only terminate in
@@ -474,9 +474,9 @@ class RunParallelHOP(ParallelAnalysisInterface):
         elif nn == pi or not inside:
             self.chainID[pi] = chainIDmax
             self.densest_in_chain = self.__add_to_array(self.densest_in_chain,
-                chainIDmax, self.density[pi])
+                chainIDmax, self.density[pi], 'float64')
             self.densest_in_chain_real_index = self.__add_to_array(self.densest_in_chain_real_index,
-                chainIDmax, self.index[pi])
+                chainIDmax, self.index[pi], 'int64')
             # if this is a padded particle, record it for later
             if not inside:
                 self.padded_particles.append(pi)
@@ -553,10 +553,7 @@ class RunParallelHOP(ParallelAnalysisInterface):
             for chainID, real_index in enumerate(self.densest_in_chain_real_index):
                 if real_index in dicri:
                     reverse[real_index].add(chainID)
-            # We may want to use this in _precompute_group_info(), at the top, but
-            # what is there works and is not slow at all, so for now we'll just
-            # get rid of this and save a few chunks of memory.
-            del self.densest_in_chain_real_index, dicri, diff
+            del dicri, diff
             # If the real index has len(set)>1, there are multiple chains that need
             # to be linked
             tolink = defaultdict(set)
@@ -573,6 +570,7 @@ class RunParallelHOP(ParallelAnalysisInterface):
                 for remove in tolink[tokeep]:
                     fix_map[remove] = tokeep
                     self.densest_in_chain[remove] = -1.0
+                    self.densest_in_chain_real_index[remove] = -1
             for i, chainID in enumerate(self.chainID):
                 try:
                     new = fix_map[chainID]
@@ -718,6 +716,7 @@ class RunParallelHOP(ParallelAnalysisInterface):
             # been reassigned.
             if key != new_chainID:
                 self.densest_in_chain[key] = -1.0
+                self.densest_in_chain_real_index[key] = -1
                 # Also fix nchains to keep up.
                 self.nchains -= 1
         # Convert local particles to their new chainID
@@ -742,8 +741,8 @@ class RunParallelHOP(ParallelAnalysisInterface):
         # Pick the particles in the annulus.
         real_indices = self.index[self.is_inside_annulus]
         chainIDs = self.chainID[self.is_inside_annulus]
-        # We're actually done with this here.
-        del self.index, self.is_inside_annulus
+        # We're done with this here.
+        del self.is_inside_annulus
         # Eliminate un-assigned particles.
         select = (chainIDs != -1)
         real_indices = real_indices[select]
@@ -1086,6 +1085,7 @@ class RunParallelHOP(ParallelAnalysisInterface):
         keys = na.arange(group_count)
         vals = na.zeros(group_count)
         self.densest_in_group = dict(itertools.izip(keys,vals))
+        self.densest_in_group_real_index = self.densest_in_group.copy()
         del keys, vals
         for chainID,max_dens in enumerate(self.densest_in_chain):
             if max_dens == -1.0: continue
@@ -1093,7 +1093,9 @@ class RunParallelHOP(ParallelAnalysisInterface):
             if groupID == -1: continue
             if self.densest_in_group[groupID] < max_dens:
                 self.densest_in_group[groupID] = max_dens
-        del self.densest_in_chain
+                self.densest_in_group_real_index[groupID] = self.densest_in_chain_real_index[chainID]
+        if self.mine == 0: print self.densest_in_group_real_index
+        del self.densest_in_chain, self.densest_in_chain_real_index
         yt_counters("translate_groupIDs")
 
     def _precompute_group_info(self):
@@ -1117,9 +1119,11 @@ class RunParallelHOP(ParallelAnalysisInterface):
         for part in xrange(int(self.size)):
             if self.chainID[part] == -1: continue
             groupID = self.chainID[part]
-            if self.density[part] == self.densest_in_group[groupID]:
+            real_index = self.index[part]
+            if real_index == self.densest_in_group_real_index[groupID]:
                 max_dens_point[groupID] = na.array([self.density[part], \
                 self.xpos[part], self.ypos[part], self.zpos[part]], dtype='float64')
+        del self.index, self.densest_in_group_real_index
         # Now we broadcast this, effectively, with an allsum. Even though
         # some groups are on multiple tasks, there is only one densest_in_chain
         # and only that task contributed above.
@@ -1264,7 +1268,7 @@ class RunParallelHOP(ParallelAnalysisInterface):
         del self.I_own
         del self.mass, self.xpos, self.ypos, self.zpos
 
-    def __add_to_array(self, arr, key, value):
+    def __add_to_array(self, arr, key, value, type):
         """
         In an effort to replace the functionality of a dict with an array, in
         order to save memory, this function adds items to an array. If the
@@ -1273,7 +1277,7 @@ class RunParallelHOP(ParallelAnalysisInterface):
         try:
             arr[key] = value
         except IndexError:
-            arr = na.concatenate((arr, na.ones(1000)*-1))
+            arr = na.concatenate((arr, na.ones(1000, dtype=type)*-1))
             arr[key] = value
         return arr
     
