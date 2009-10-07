@@ -1094,7 +1094,6 @@ class RunParallelHOP(ParallelAnalysisInterface):
             if self.densest_in_group[groupID] < max_dens:
                 self.densest_in_group[groupID] = max_dens
                 self.densest_in_group_real_index[groupID] = self.densest_in_chain_real_index[chainID]
-        if self.mine == 0: print self.densest_in_group_real_index
         del self.densest_in_chain, self.densest_in_chain_real_index
         yt_counters("translate_groupIDs")
 
