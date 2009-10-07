@@ -156,7 +156,7 @@ class AMRGridPatch(object):
                 try:
                     temp = self.hierarchy.io.pop(self, field)
                     self[field] = na.multiply(temp, conv_factor, temp)
-                except self._read_exception, exc:
+                except self.hierarchy.io._read_exception, exc:
                     if field in self.pf.field_info:
                         if self.pf.field_info[field].not_in_all:
                             self[field] = na.zeros(self.ActiveDimensions, dtype='float64')

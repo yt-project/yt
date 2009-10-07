@@ -247,8 +247,11 @@ class IOHandlerInMemory(BaseIOHandler):
 
     def _read_data_set(self, grid, field):
         if grid.id not in self.grids_in_memory: raise KeyError
-        tr = self.grids_in_memory[grid.id][field].swapaxes(0,2)[self.my_slice]
-        return tr.copy()
+        tr = self.grids_in_memory[grid.id][field]
+        # If it's particles, we copy.
+        if len(tr.shape) == 1: return tr.copy()
+        # New in-place unit conversion breaks if we don't copy first
+        return tr.swapaxes(0,2)[self.my_slice].copy()
         # We don't do this, because we currently do not interpolate
         coef1 = max((grid.Time - t1)/(grid.Time - t2), 0.0)
         coef2 = 1.0 - coef1
@@ -269,6 +272,7 @@ class IOHandlerInMemory(BaseIOHandler):
         sl[axis] = slice(coord + 3, coord + 4)
         sl = tuple(reversed(sl))
         tr = self.grids_in_memory[grid.id][field][sl].swapaxes(0,2)
+        # In-place unit conversion requires we return a copy
         return tr.copy()
 
     @property
