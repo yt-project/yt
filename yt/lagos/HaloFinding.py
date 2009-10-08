@@ -814,7 +814,7 @@ class GenericHaloFinder(HaloList, ParallelAnalysisInterface):
 
 class parallelHF(GenericHaloFinder, parallelHOPHaloList):
     def __init__(self, pf, threshold=160, dm_only=True, resize=True, rearrange=True,\
-        fancy_padding=True, safety=1.3):
+        fancy_padding=True, safety=1.5):
         GenericHaloFinder.__init__(self, pf, dm_only, padding=0.0)
         self.padding = 0.0 
         self.num_neighbors = 65

@@ -998,6 +998,7 @@ class ParallelAnalysisInterface(object):
         top_keys = na.array(top_keys, dtype='int64')
         bot_keys = na.array(bot_keys, dtype='int64')
         vals = na.array(vals, dtype='float64')
+        del data
         if MPI.COMM_WORLD.rank == 0:
             for i in range(1,MPI.COMM_WORLD.size):
                 size = MPI.COMM_WORLD.recv(source=i, tag=0)
@@ -1047,6 +1048,14 @@ class ParallelAnalysisInterface(object):
         # send that, and then reconstruct it. When data is too big the pickling
         # of the dict fails.
         if MPI.COMM_WORLD.rank == 0:
+#             data = defaultdict(dict)
+#             for i,top_key in enumerate(top_keys):
+#                 try:
+#                     old = data[top_key][bot_keys[i]]
+#                 except KeyError:
+#                     old = None
+#                 if old < vals[i]:
+#                     data[top_key][bot_keys[i]] = vals[i]
 #             top_keys = []
 #             bot_keys = []
 #             vals = []
@@ -1055,6 +1064,7 @@ class ParallelAnalysisInterface(object):
 #                     top_keys.append(top_key)
 #                     bot_keys.append(bot_key)
 #                     vals.append(data[top_key][bot_key])
+#             del data
 #             top_keys = na.array(top_keys, dtype='int64')
 #             bot_keys = na.array(bot_keys, dtype='int64')
 #             vals = na.array(vals, dtype='float64')
