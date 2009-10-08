@@ -7,6 +7,7 @@ Developers:                     Matthew Turk (matthewturk@gmail.com)
                                 Sam Skillman (samskillman@gmail.com)
                                 Devin Silvia (devin.silvia@gmail.com)
                                 John Wise (jwise@astro.princeton.edu)
+                                David Collins (dcollins@physics.ucsd.edu)
 
 We also include the Delaunay Triangulation module written by Robert Kern of
 Enthought, the cmdln.py module by Trent Mick, and the progressbar module by
