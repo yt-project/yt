@@ -974,6 +974,11 @@ class RunParallelHOP(ParallelAnalysisInterface):
         groupIDs = keys[select]
         mine_groupIDs = set([]) # Records only ones modulo mine.
         not_mine_groupIDs = set([]) # All the others.
+        # Declare these to prevent Errors when they're del-ed below, in case
+        # this task doesn't create them in the loop, for whatever reason.
+        current_sets, new_mine, new_other = [], [], []
+        new_set, final_set, to_add_set, liter = set([]), set([]), set([]), set([])
+        to_add_set = set([])
         for groupID in groupIDs:
             if groupID in mine_groupIDs:
                 continue
@@ -998,7 +1003,7 @@ class RunParallelHOP(ParallelAnalysisInterface):
             # Make sure it's not empty
             final_set.add(groupID)
             Set_list.append(final_set)
-        del group_equivalancy_map, final_set, keys, select, groupIDs
+        del group_equivalancy_map, final_set, keys, select, groupIDs, current_sets
         del mine_groupIDs, not_mine_groupIDs, new_set, to_add_set, liter
         # Convert this list of sets into a look-up table
         lookup = na.ones(self.densest_in_chain.size, dtype='int64') * (self.densest_in_chain.size + 2)
@@ -1133,48 +1138,50 @@ class RunParallelHOP(ParallelAnalysisInterface):
         CoM_M = na.zeros((self.group_count,3),dtype='float64')
         Tot_M = na.zeros(self.group_count, dtype='float64')
         c_vec = self.max_dens_point[:,1:4][subchain] - na.array([0.5,0.5,0.5])
-        try:
+        if calc:
             size = na.bincount(self.chainID[select]).astype('int64')
-        except:
+        else:
+            # This task has no particles in groups!
             size = na.zeros(self.group_count, dtype='int64')
         # In case this task doesn't have all the groups, add trailing zeros.
         if size.size != self.group_count:
             size = na.concatenate((size, na.zeros(self.group_count - size.size, dtype='int64')))
-        cc = loc - c_vec
-        cc = cc - na.floor(cc)
-        ms = self.mass[select]
-        # Most of the time, the masses will be all the same, and we can try
-        # to save some effort.
-        ms_u = na.unique(ms)
-        if ms_u.size == 1:
-            single = True
-            Tot_M = size.astype('float64') * ms_u
-        else:
-            single = False
-            del ms_u
-        cc[:,0] = cc[:,0] * ms
-        cc[:,1] = cc[:,1] * ms
-        cc[:,2] = cc[:,2] * ms
-        sort = subchain.argsort()
-        cc = cc[sort]
-        sort_subchain = subchain[sort]
-        uniq_subchain = na.unique(sort_subchain)
-        diff_subchain = na.ediff1d(sort_subchain)
-        marks = (diff_subchain > 0)
-        marks = na.arange(calc)[marks] + 1
-        marks = na.concatenate(([0], marks, [calc]))
-        for i, u in enumerate(uniq_subchain):
-            CoM_M[u] = na.sum(cc[marks[i]:marks[i+1]], axis=0)
-        if not single:
-            for i,groupID in enumerate(subchain):
-                Tot_M[groupID] += ms[i]
-        del cc, ms
-        for groupID in xrange(int(self.group_count)):
-            # Don't divide by zero.
-            if groupID in self.I_own:
-                CoM_M[groupID] /= Tot_M[groupID]
-                CoM_M[groupID] += self.max_dens_point[groupID,1:4] - na.array([0.5,0.5,0.5])
-                CoM_M[groupID] *= Tot_M[groupID]
+        if calc:
+            cc = loc - c_vec
+            cc = cc - na.floor(cc)
+            ms = self.mass[select]
+            # Most of the time, the masses will be all the same, and we can try
+            # to save some effort.
+            ms_u = na.unique(ms)
+            if ms_u.size == 1:
+                single = True
+                Tot_M = size.astype('float64') * ms_u
+            else:
+                single = False
+                del ms_u
+            cc[:,0] = cc[:,0] * ms
+            cc[:,1] = cc[:,1] * ms
+            cc[:,2] = cc[:,2] * ms
+            sort = subchain.argsort()
+            cc = cc[sort]
+            sort_subchain = subchain[sort]
+            uniq_subchain = na.unique(sort_subchain)
+            diff_subchain = na.ediff1d(sort_subchain)
+            marks = (diff_subchain > 0)
+            marks = na.arange(calc)[marks] + 1
+            marks = na.concatenate(([0], marks, [calc]))
+            for i, u in enumerate(uniq_subchain):
+                CoM_M[u] = na.sum(cc[marks[i]:marks[i+1]], axis=0)
+            if not single:
+                for i,groupID in enumerate(subchain):
+                    Tot_M[groupID] += ms[i]
+            del cc, ms
+            for groupID in xrange(int(self.group_count)):
+                # Don't divide by zero.
+                if groupID in self.I_own:
+                    CoM_M[groupID] /= Tot_M[groupID]
+                    CoM_M[groupID] += self.max_dens_point[groupID,1:4] - na.array([0.5,0.5,0.5])
+                    CoM_M[groupID] *= Tot_M[groupID]
         # Now we find their global values
         self.group_sizes = self._mpi_Allsum_long(size)
         CoM_M = self._mpi_Allsum_double(CoM_M)
@@ -1186,21 +1193,23 @@ class RunParallelHOP(ParallelAnalysisInterface):
         # Now we find the maximum radius for all groups.
         yt_counters("max radius")
         max_radius = na.zeros(self.group_count, dtype='float64')
-        com = self.CoM[subchain]
-        rad = na.abs(com - loc)
-        dist = (na.minimum(rad, self.period - rad)**2.).sum(axis=1)
-        dist = dist[sort]
-        for i, u in enumerate(uniq_subchain):
-            max_radius[u] = na.max(dist[marks[i]:marks[i+1]])
+        if calc:
+            com = self.CoM[subchain]
+            rad = na.abs(com - loc)
+            dist = (na.minimum(rad, self.period - rad)**2.).sum(axis=1)
+            dist = dist[sort]
+            for i, u in enumerate(uniq_subchain):
+                max_radius[u] = na.max(dist[marks[i]:marks[i+1]])
         # Find the maximum across all tasks.
         mylog.info('Fraction of particles in this region in groups: %f' % (float(calc)/self.size))
         self.max_radius = self._mpi_double_array_max(max_radius)
         self.max_radius = na.sqrt(self.max_radius)
         yt_counters("max radius")
         yt_counters("Precomp.")
-        del loc, subchain, CoM_M, Tot_M, c_vec, max_radius, select
-        del sort_subchain, uniq_subchain, diff_subchain, marks, dist, sort
-        del rad, com
+        if calc:
+            del loc, subchain, CoM_M, Tot_M, c_vec, max_radius, select
+            del sort_subchain, uniq_subchain, diff_subchain, marks, dist, sort
+            del rad, com
 
     def _chain_hop(self):
         self._global_padding('first')
