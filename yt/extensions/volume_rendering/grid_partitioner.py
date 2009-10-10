@@ -35,10 +35,11 @@ def partition_grid(start_grid, field, log_field = True, threshold = None):
     to_cut_up = start_grid.get_vertex_centered_data(field).astype('float64')
 
     if log_field: to_cut_up = na.log10(to_cut_up)
+    assert(na.any(na.isnan(to_cut_up)) == False)
 
     if len(start_grid.Children) == 0:
         pg = PartitionedGrid(
-                to_cut_up.copy('F'),
+                to_cut_up.copy(),
                 na.array(start_grid.LeftEdge, dtype='float64'),
                 na.array(start_grid.RightEdge, dtype='float64'),
                 na.array(start_grid.ActiveDimensions, dtype='int64'))
@@ -76,7 +77,7 @@ def partition_grid(start_grid, field, log_field = True, threshold = None):
                 uniq = na.unique(dd)
                 if uniq.size > 1: continue
                 if uniq[0] > -1: continue
-                data = to_cut_up[xs:xe+1,ys:ye+1,zs:ze+1].copy('F')
+                data = to_cut_up[xs:xe+1,ys:ye+1,zs:ze+1].copy()
                 dims = na.array(dd.shape, dtype='int64')
                 start_index = na.array([xs,ys,zs], dtype='int64')
                 left_edge = start_grid.LeftEdge + start_index * start_grid.dds

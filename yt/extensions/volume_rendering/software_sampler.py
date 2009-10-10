@@ -27,7 +27,7 @@ import numpy as na
 from yt.extensions.volume_rendering import *
 from yt.funcs import *
 
-def direct_ray_cast(pf, L, center, W, Nvec, Nsamples, tf):
+def direct_ray_cast(pf, L, center, W, Nvec, tf):
     center = na.array(center, dtype='float64')
 
     # This just helps us keep track of stuff, and it's cheap
@@ -51,13 +51,11 @@ def direct_ray_cast(pf, L, center, W, Nvec, Nsamples, tf):
 
     # Now we need to generate regular x,y,z values in regular space for our vector
     # starting places.
-
     px, py = na.mgrid[-W:W:Nvec*1j,-W:W:Nvec*1j]
     xv = cp._inv_mat[0,0]*px + cp._inv_mat[0,1]*py + cp.center[0]
     yv = cp._inv_mat[1,0]*px + cp._inv_mat[1,1]*py + cp.center[1]
     zv = cp._inv_mat[2,0]*px + cp._inv_mat[2,1]*py + cp.center[2]
     vectors = na.array([xv, yv, zv], dtype='float64').transpose()
-    print vectors.shape
     vectors = vectors.copy('F')
     xp0, xp1 = px.min(), px.max()
     yp0, yp1 = py.min(), py.max()

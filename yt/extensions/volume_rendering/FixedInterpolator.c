@@ -26,7 +26,7 @@
 
 #include "FixedInterpolator.h"
 
-#define VINDEX(A,B,C) data[((((C)+ci[2])*(ds[1]+1)+((B)+ci[1]))*(ds[0]+1)+ci[0]+(A))]
+#define VINDEX(A,B,C) data[((((A)+ci[0])*(ds[1]+1)+((B)+ci[1]))*(ds[2]+1)+ci[2]+(C))]
 //  (((C*ds[1])+B)*ds[0]+A)
 
 npy_float64 fast_interpolate(int *ds, int *ci, npy_float64 *dp,
