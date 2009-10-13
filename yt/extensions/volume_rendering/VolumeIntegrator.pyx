@@ -61,6 +61,10 @@ cdef extern from "math.h":
 cdef extern from "FixedInterpolator.h":
     np.float64_t fast_interpolate(int *ds, int *ci, np.float64_t *dp,
                                   np.float64_t *data)
+cdef extern from "FixedInterpolator.h":
+    np.float64_t trilinear_interpolate(int *ds, int *ci, np.float64_t *dp,
+                                       np.float64_t *data)
+
 cdef class VectorPlane
 
 cdef class TransferFunctionProxy:
@@ -365,5 +369,7 @@ cdef class PartitionedGrid:
             ci[i] = iclip(<int> floor( temp / self.dds[i] ), 0, self.dims[i]-1)
             # The extra /self.dds[i] is to scale it between 0 .. 1
             dp[i] = fmod(cp[i], self.dds[i])/self.dds[i]
-        dv = fast_interpolate(self.dims, ci, dp, self.data)
+#        dv = fast_interpolate(self.dims, ci, dp, self.data)
+        dv = trilinear_interpolate(self.dims, ci, dp, self.data)
+
         return dv
