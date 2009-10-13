@@ -256,11 +256,13 @@ class RunParallelHOP(ParallelAnalysisInterface):
         recv_real_indices = {}
         recv_points = {}
         recv_mass = {}
+        recv_size = 0
         for opp_neighbor in self.neighbors:
             opp_size = global_send_count[opp_neighbor][self.mine]
             recv_real_indices[opp_neighbor] = na.empty(opp_size, dtype='int64')
             recv_points[opp_neighbor] = na.empty((opp_size, 3), dtype='float64')
             recv_mass[opp_neighbor] = na.empty(opp_size, dtype='float64')
+            recv_size += opp_size
         yt_counters("Initalizing recv arrays.")
         # Setup the receiving slots.
         yt_counters("MPI stuff.")
@@ -283,26 +285,34 @@ class RunParallelHOP(ParallelAnalysisInterface):
         yt_counters("Processing padded data.")
         del send_real_indices, send_points, send_mass
         # Now we add the data to ourselves.
+        self.index_pad = na.empty(recv_size, dtype='int64')
+        self.xpos_pad = na.empty(recv_size, dtype='float64')
+        self.ypos_pad = na.empty(recv_size, dtype='float64')
+        self.zpos_pad = na.empty(recv_size, dtype='float64')
+        self.mass_pad = na.empty(recv_size, dtype='float64')
+        so_far = 0
         for opp_neighbor in self.neighbors:
-            self.index = na.concatenate((self.index, recv_real_indices[opp_neighbor]))
+            opp_size = global_send_count[opp_neighbor][self.mine]
+            self.index_pad[so_far:so_far+opp_size] = recv_real_indices[opp_neighbor]
             # Clean up immediately to reduce peak memory usage.
             del recv_real_indices[opp_neighbor]
-            self.xpos = na.concatenate((self.xpos, recv_points[opp_neighbor][:,0]))
-            self.ypos = na.concatenate((self.ypos, recv_points[opp_neighbor][:,1]))
-            self.zpos = na.concatenate((self.zpos, recv_points[opp_neighbor][:,2]))
+            self.xpos_pad[so_far:so_far+opp_size] = recv_points[opp_neighbor][:,0]
+            self.ypos_pad[so_far:so_far+opp_size] = recv_points[opp_neighbor][:,1]
+            self.zpos_pad[so_far:so_far+opp_size] = recv_points[opp_neighbor][:,2]
             del recv_points[opp_neighbor]
-            self.mass = na.concatenate((self.mass, recv_mass[opp_neighbor]))
+            self.mass_pad[so_far:so_far+opp_size] = recv_mass[opp_neighbor]
             del recv_mass[opp_neighbor]
+            so_far += opp_size
         yt_counters("Processing padded data.")
         # The KDtree node search wants the particles to be in the full box,
         # not the expanded dimensions of shifted (<0 or >1 generally) volume,
         # so we fix the positions of particles here.
         yt_counters("Flipping coordinates around the periodic boundary.")
-        self.xpos = self.xpos % self.period[0]
-        self.ypos = self.ypos % self.period[1]
-        self.zpos = self.zpos % self.period[2]
+        self.xpos_pad = self.xpos_pad % self.period[0]
+        self.ypos_pad = self.ypos_pad % self.period[1]
+        self.zpos_pad = self.zpos_pad % self.period[2]
         yt_counters("Flipping coordinates around the periodic boundary.")
-        self.size = self.index.size
+        self.size = self.index.size + self.index_pad.size
         # Now that we have the full size, initialize the chainID array
         self.chainID = na.ones(self.size,dtype='int64') * -1
         # Clean up explicitly, but these should be empty dicts by now.
@@ -317,12 +327,12 @@ class RunParallelHOP(ParallelAnalysisInterface):
         # Yes, we really do need to initialize this many arrays.
         # They're deleted in _parallelHOP.
         fKD.dens = na.asfortranarray(na.zeros(self.size, dtype='float64'))
-        fKD.mass = self.mass
+        fKD.mass = na.concatenate((self.mass, self.mass_pad))
         fKD.pos = na.asfortranarray(na.empty((3, self.size), dtype='float64'))
         # This actually copies the data into the fortran space.
-        fKD.pos[0, :] = self.xpos
-        fKD.pos[1, :] = self.ypos
-        fKD.pos[2, :] = self.zpos
+        fKD.pos[0, :] = na.concatenate((self.xpos, self.xpos_pad))
+        fKD.pos[1, :] = na.concatenate((self.ypos, self.ypos_pad))
+        fKD.pos[2, :] = na.concatenate((self.zpos, self.zpos_pad))
         fKD.qv = na.asfortranarray(na.empty(3, dtype='float64'))
         fKD.nn = self.num_neighbors
         # Plus 2 because we're looking for that neighbor, but only keeping 
@@ -381,13 +391,16 @@ class RunParallelHOP(ParallelAnalysisInterface):
         # particles of any particle_index, which means that if it were an
         # array every task would probably end up having this array be as long
         # as the full number of particles.
-        # We can skip this the first time around.
+        # We can skip this the first two times around.
         if round == 'third':
-            temp = na.arange(self.index.size)
+            temp = na.arange(self.size)
             my_part = na.bitwise_or(na.invert(self.is_inside), self.is_inside_annulus)
             my_part = na.bitwise_and(my_part, (self.chainID != -1))
-            self.rev_index = dict.fromkeys(self.index[my_part])
-            self.rev_index.update(itertools.izip(self.index[my_part], temp[my_part]))
+            catted_indices = na.concatenate(
+                (self.index, self.index_pad))[my_part]
+            self.rev_index = dict.fromkeys(catted_indices)
+            self.rev_index.update(itertools.izip(catted_indices, temp[my_part]))
+            del my_part, temp, catted_indices
 
     def _densestNN(self):
         """
@@ -430,9 +443,9 @@ class RunParallelHOP(ParallelAnalysisInterface):
         density, move on.
         """
         yt_counters("build_chains")
-        chainIDmax = 0 
-        self.densest_in_chain = na.ones(1000, dtype='float64') * -1 # chainID->density, one to one
-        self.densest_in_chain_real_index = na.ones(1000, dtype='int64') * -1 # chainID->real_index, one to one
+        chainIDmax = 0
+        self.densest_in_chain = na.ones(10000, dtype='float64') * -1 # chainID->density, one to one
+        self.densest_in_chain_real_index = na.ones(10000, dtype='int64') * -1 # chainID->real_index, one to one
         for i in xrange(int(self.size)):
             # If it's already in a group, move on, or if this particle is
             # in the padding, move on because chains can only terminate in
@@ -475,8 +488,12 @@ class RunParallelHOP(ParallelAnalysisInterface):
             self.chainID[pi] = chainIDmax
             self.densest_in_chain = self.__add_to_array(self.densest_in_chain,
                 chainIDmax, self.density[pi], 'float64')
-            self.densest_in_chain_real_index = self.__add_to_array(self.densest_in_chain_real_index,
+            if pi < self.real_size:
+                self.densest_in_chain_real_index = self.__add_to_array(self.densest_in_chain_real_index,
                 chainIDmax, self.index[pi], 'int64')
+            else:
+                self.densest_in_chain_real_index = self.__add_to_array(self.densest_in_chain_real_index,
+                chainIDmax, self.index_pad[pi-self.real_size], 'int64')
             # if this is a padded particle, record it for later
             if not inside:
                 self.padded_particles.append(pi)
@@ -657,7 +674,8 @@ class RunParallelHOP(ParallelAnalysisInterface):
         # Remote (lower dens) chain -> local (higher) chain.
         chainID_translate_map_local = na.arange(self.nchains)
         # Build the stuff to send.
-        self.uphill_real_indices = self.index[self.padded_particles]
+        self.uphill_real_indices = na.concatenate((
+            self.index, self.index_pad))[self.padded_particles]
         self.uphill_chainIDs = self.chainID[self.padded_particles]
         del self.padded_particles
         # Now we make a global dict of how many particles each task is
@@ -739,7 +757,8 @@ class RunParallelHOP(ParallelAnalysisInterface):
         """
         yt_counters("communicate_annulus_chainIDs")
         # Pick the particles in the annulus.
-        real_indices = self.index[self.is_inside_annulus]
+        real_indices = na.concatenate(
+            (self.index, self.index_pad))[self.is_inside_annulus]
         chainIDs = self.chainID[self.is_inside_annulus]
         # We're done with this here.
         del self.is_inside_annulus
@@ -820,7 +839,7 @@ class RunParallelHOP(ParallelAnalysisInterface):
             # Make sure we're skipping deleted chains.
             if part_max_dens == -1.0: continue
             # Loop over nMerge closest nearest neighbors.
-            fKD.qv = na.array([self.xpos[i], self.ypos[i], self.zpos[i]])
+            fKD.qv = fKD.pos[:, i]
             find_nn_nearest_neighbors()
             NNtags = fKD.tags[:] - 1
             for j in xrange(int(self.nMerge+1)):
@@ -1111,23 +1130,26 @@ class RunParallelHOP(ParallelAnalysisInterface):
         select = (self.chainID != -1)
         calc = len(na.where(select == True)[0])
         loc = na.empty((calc, 3), dtype='float64')
-        loc[:,0] = self.xpos[select]
-        loc[:,1] = self.ypos[select]
-        loc[:,2] = self.zpos[select]
+        loc[:, 0] = na.concatenate((self.xpos, self.xpos_pad))[select]
+        loc[:, 1] = na.concatenate((self.ypos, self.ypos_pad))[select]
+        loc[:, 2] = na.concatenate((self.zpos, self.zpos_pad))[select]
+        del self.xpos_pad, self.ypos_pad, self.zpos_pad
         subchain = self.chainID[select]
         # First we need to find the maximum density point for all groups.
         # I think this will be faster than several vector operations that need
         # to pull the entire chainID array out of memory several times.
         yt_counters("max dens point")
         max_dens_point = na.zeros((self.group_count,4),dtype='float64')
-        for part in xrange(int(self.size)):
-            if self.chainID[part] == -1: continue
+        for i,part in enumerate(na.arange(self.size)[select]):
             groupID = self.chainID[part]
-            real_index = self.index[part]
+            if part < self.real_size:
+                real_index = self.index[part]
+            else:
+                real_index = self.index_pad[part - self.real_size]
             if real_index == self.densest_in_group_real_index[groupID]:
                 max_dens_point[groupID] = na.array([self.density[part], \
-                self.xpos[part], self.ypos[part], self.zpos[part]], dtype='float64')
-        del self.index, self.densest_in_group_real_index
+                loc[i, 0], loc[i, 1], loc[i, 2]])
+        del self.index, self.index_pad, self.densest_in_group_real_index
         # Now we broadcast this, effectively, with an allsum. Even though
         # some groups are on multiple tasks, there is only one densest_in_chain
         # and only that task contributed above.
@@ -1149,7 +1171,7 @@ class RunParallelHOP(ParallelAnalysisInterface):
         if calc:
             cc = loc - c_vec
             cc = cc - na.floor(cc)
-            ms = self.mass[select]
+            ms = na.concatenate((self.mass, self.mass_pad))[select]
             # Most of the time, the masses will be all the same, and we can try
             # to save some effort.
             ms_u = na.unique(ms)
@@ -1285,7 +1307,7 @@ class RunParallelHOP(ParallelAnalysisInterface):
         try:
             arr[key] = value
         except IndexError:
-            arr = na.concatenate((arr, na.ones(1000, dtype=type)*-1))
+            arr = na.concatenate((arr, na.ones(10000, dtype=type)*-1))
             arr[key] = value
         return arr
     
