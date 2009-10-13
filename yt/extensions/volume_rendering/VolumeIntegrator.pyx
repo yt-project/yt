@@ -91,24 +91,24 @@ cdef class TransferFunctionProxy:
                        np.float64_t *rgba):
         cdef int i
         cdef int b0, b1
-        cdef np.float64_t tf0, tf1
+        cdef np.float64_t tf0, tf1, alpha
         #rgba[3] -= dt; return
+        rgba[3] = 0.01
         for i in range(3):
             # First locate our points
             b0 = iclip(<int> floor((dv0 - self.x_bounds[0]) / self.dbin),
                        0, self.nbins-2)
             b1 = b0 + 1
-            tf0 = (dv0 - self.x_bounds[0] - self.dbin * b0) * self.vs[i][b0] + \
-                  (self.x_bounds[0] + self.dbin * b1 - dv0) * self.vs[i][b1]
-
+            tf0 = self.vs[i][b0] + (dv0 - self.x_bounds[0] - self.dbin * b0) * \
+                  (self.vs[i][b1] - self.vs[i][b0])/self.dbin
             b0 = iclip(<int> floor((dv1 - self.x_bounds[0]) / self.dbin),
                        0, self.nbins-2)
             b1 = b0 + 1
-            tf1 = (dv1 - self.x_bounds[0] - self.dbin * b0) * self.vs[i][b0] + \
-                  (self.x_bounds[0] + self.dbin * b1 - dv1) * self.vs[i][b1]
+            tf1 = self.vs[i][b0] + (dv1 - self.x_bounds[0] - self.dbin * b0) * \
+                  (self.vs[i][b1] - self.vs[i][b0])/self.dbin
             # alpha blending goes here
             #print dt, dv0, dv1, tf0, tf1, b0, b1
-            rgba[i] += dt*0.5*(tf0+tf1)
+            rgba[i] += dt*0.5*(tf0+tf1) #+ (1.0 - rgba[3])*rgba[i]
         # We should update alpha here
 
 cdef class VectorPlane:

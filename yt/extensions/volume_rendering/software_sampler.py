@@ -27,7 +27,8 @@ import numpy as na
 from yt.extensions.volume_rendering import *
 from yt.funcs import *
 
-def direct_ray_cast(pf, L, center, W, Nvec, tf):
+def direct_ray_cast(pf, L, center, W, Nvec, tf, 
+                    partitioned_grids = None):
     center = na.array(center, dtype='float64')
 
     # This just helps us keep track of stuff, and it's cheap
@@ -36,7 +37,12 @@ def direct_ray_cast(pf, L, center, W, Nvec, tf):
     front_center = center + cp._norm_vec * W
     cylinder = pf.h.disk(back_center, L, na.sqrt(2)*W, 2*W)
 
-    partitioned_grids = partition_all_grids(cylinder._grids)
+    if partitioned_grids == None:
+        to_partition = [grid for grid in cylinder._grids
+                        if na.any(cylinder._get_point_indices(grid))]
+        print "Partitioning %s / %s candidates" % (len(to_partition),
+                                                   len(cylinder._grids))
+        partitioned_grids = partition_all_grids(to_partition)
     #partitioned_grids = partition_all_grids(pf.h.grids)
 
     LE = (na.array([grid.LeftEdge for grid in partitioned_grids]) - back_center) * cp._norm_vec
