@@ -27,6 +27,7 @@ from collections import defaultdict
 import itertools, sys
 
 from yt.lagos import *
+from yt.funcs import *
 from yt.extensions.kdtree import *
 from yt.performance_counters import yt_counters, time_function
 
@@ -50,6 +51,8 @@ class RunParallelHOP(ParallelAnalysisInterface):
         self.padded_particles = []
         self.nMerge = 4
         yt_counters("chainHOP")
+        self.max_mem = 0
+        self.__max_memory()
         self._chain_hop()
         yt_counters("chainHOP")
 
@@ -343,6 +346,7 @@ class RunParallelHOP(ParallelAnalysisInterface):
         fKD.rearrange = self.rearrange # True is faster, but uses more memory
         # Now call the fortran.
         create_tree()
+        self.__max_memory()
         yt_counters("init kd tree")
 
     def _is_inside(self, round):
@@ -401,6 +405,7 @@ class RunParallelHOP(ParallelAnalysisInterface):
             self.rev_index = dict.fromkeys(catted_indices)
             self.rev_index.update(itertools.izip(catted_indices, temp[my_part]))
             del my_part, temp, catted_indices
+        self.__max_memory()
 
     def _densestNN(self):
         """
@@ -435,6 +440,7 @@ class RunParallelHOP(ParallelAnalysisInterface):
                 self.densestNN[j] = chunk_NNtags[i,max_loc[i]]
             start = finish + 1
         yt_counters("densestNN")
+        self.__max_memory()
         del chunk_NNtags, max_loc, n_dens
     
     def _build_chains(self):
@@ -464,6 +470,7 @@ class RunParallelHOP(ParallelAnalysisInterface):
         self.densest_in_chain = self.__clean_up_array(self.densest_in_chain)
         self.densest_in_chain_real_index = self.__clean_up_array(self.densest_in_chain_real_index)
         yt_counters("build_chains")
+        self.__max_memory()
         return chainIDmax
     
     def _recurse_links(self, pi, chainIDmax):
@@ -629,6 +636,7 @@ class RunParallelHOP(ParallelAnalysisInterface):
             hooks.append(self._mpi_Isend_long(self.uphill_chainIDs, neighbor))
         # Now actually use the data once it's good to go.
         self._mpi_Request_Waitall(hooks)
+        self.__max_memory()
         so_far = 0
         for opp_neighbor in self.neighbors:
             opp_size = self.global_padded_count[opp_neighbor]
@@ -684,6 +692,7 @@ class RunParallelHOP(ParallelAnalysisInterface):
         self.global_padded_count = self._mpi_joindict(self.global_padded_count)
         # Send/receive 'em.
         self._communicate_uphill_info()
+        self.__max_memory()
         # Fix the IDs to localIDs.
         for i,real_index in enumerate(self.recv_real_indices):
             try:
@@ -714,6 +723,7 @@ class RunParallelHOP(ParallelAnalysisInterface):
                         self.densest_in_chain[self.recv_chainIDs[i]] != -1.0:
                     chainID_translate_map_local[self.recv_chainIDs[i]] = \
                         self.chainID[localID]
+        self.__max_memory()
         # In chainID_translate_map_local, chains may
         # 'point' to only one chain, but a chain may have many that point to
         # it. Therefore each key (a chain) in this dict is unique, but the items
@@ -737,6 +747,7 @@ class RunParallelHOP(ParallelAnalysisInterface):
                 self.densest_in_chain_real_index[key] = -1
                 # Also fix nchains to keep up.
                 self.nchains -= 1
+        self.__max_memory()
         # Convert local particles to their new chainID
         for i in xrange(int(self.size)):
             old_chainID = self.chainID[i]
@@ -792,6 +803,7 @@ class RunParallelHOP(ParallelAnalysisInterface):
             hooks.append(self._mpi_Isend_long(chainIDs, neighbor))
         # Now we use them when they're nice and ripe.
         self._mpi_Request_Waitall(hooks)
+        self.__max_memory()
         for opp_neighbor in self.neighbors:
             opp_size = global_annulus_count[opp_neighbor]
             # Update our local data.
@@ -887,6 +899,7 @@ class RunParallelHOP(ParallelAnalysisInterface):
                             boundary_density
                 else:
                     continue
+        self.__max_memory()
         yt_counters("connect_chains")
 
     def _make_global_chain_densest_n(self):
@@ -897,6 +910,7 @@ class RunParallelHOP(ParallelAnalysisInterface):
         yt_counters("make_global_chain_densest_n")
         (self.top_keys, self.bot_keys, self.vals) = \
             self._mpi_maxdict_dict(self.chain_densest_n)
+        self.__max_memory()
         del self.chain_densest_n
         yt_counters("make_global_chain_densest_n")
     
@@ -969,6 +983,7 @@ class RunParallelHOP(ParallelAnalysisInterface):
             if dens > densestbound[chain_low]:
                 densestbound[chain_low] = dens
                 self.reverse_map[chain_low] = group_high
+        self.__max_memory()
         del self.top_keys, self.bot_keys, self.vals
         # Now refactor group_equivalancy_map back into reverse_map. The group
         # mapping may be more than one link long, so we need to do it
@@ -1022,6 +1037,7 @@ class RunParallelHOP(ParallelAnalysisInterface):
             # Make sure it's not empty
             final_set.add(groupID)
             Set_list.append(final_set)
+        self.__max_memory()
         del group_equivalancy_map, final_set, keys, select, groupIDs, current_sets
         del mine_groupIDs, not_mine_groupIDs, new_set, to_add_set, liter
         # Convert this list of sets into a look-up table
@@ -1030,6 +1046,7 @@ class RunParallelHOP(ParallelAnalysisInterface):
             item_min = min(item)
             for groupID in item:
                 lookup[groupID] = item_min
+        self.__max_memory()
         del Set_list
         # To bring it all together, find the minimum values at each entry
         # globally.
@@ -1067,6 +1084,7 @@ class RunParallelHOP(ParallelAnalysisInterface):
                     else:
                         densestbound[chain_low] = densestbound[chain_high]
                     self.reverse_map[chain_low] = self.reverse_map[chain_high]
+        self.__max_memory()
         del g_high, g_low, g_dens, densestbound
         # Now we have to find the unique groupIDs, since they may have been
         # merged.
@@ -1085,6 +1103,7 @@ class RunParallelHOP(ParallelAnalysisInterface):
         group_count = len(temp)
         del secondary_map, temp
         yt_counters("build_groups")
+        self.__max_memory()
         return group_count
 
     def _translate_groupIDs(self, group_count):
@@ -1133,6 +1152,7 @@ class RunParallelHOP(ParallelAnalysisInterface):
         loc[:, 0] = na.concatenate((self.xpos, self.xpos_pad))[select]
         loc[:, 1] = na.concatenate((self.ypos, self.ypos_pad))[select]
         loc[:, 2] = na.concatenate((self.zpos, self.zpos_pad))[select]
+        self.__max_memory()
         del self.xpos_pad, self.ypos_pad, self.zpos_pad
         subchain = self.chainID[select]
         # First we need to find the maximum density point for all groups.
@@ -1212,6 +1232,7 @@ class RunParallelHOP(ParallelAnalysisInterface):
         for groupID in xrange(int(self.group_count)):
             self.CoM[groupID] = CoM_M[groupID] / self.Tot_M[groupID]
         yt_counters("CoM")
+        self.__max_memory()
         # Now we find the maximum radius for all groups.
         yt_counters("max radius")
         max_radius = na.zeros(self.group_count, dtype='float64')
@@ -1228,6 +1249,7 @@ class RunParallelHOP(ParallelAnalysisInterface):
         self.max_radius = na.sqrt(self.max_radius)
         yt_counters("max radius")
         yt_counters("Precomp.")
+        self.__max_memory()
         if calc:
             del loc, subchain, CoM_M, Tot_M, c_vec, max_radius, select
             del sort_subchain, uniq_subchain, diff_subchain, marks, dist, sort
@@ -1255,8 +1277,6 @@ class RunParallelHOP(ParallelAnalysisInterface):
         # Let's find densest NN
         mylog.info('Finding densest nearest neighbors...')
         self._densestNN()
-        #del fKD.pos, fKD.chunk_tags
-        #free_tree() # Frees the kdtree object.
         # Build the chain of links.
         mylog.info('Building particle chains...')
         chain_count = self._build_chains()
@@ -1284,6 +1304,7 @@ class RunParallelHOP(ParallelAnalysisInterface):
         self._translate_groupIDs(group_count)
         mylog.info('Precomputing info for %d groups...' % group_count)
         self._precompute_group_info()
+        mylog.info("All done! Max Memory = %d MB" % self.max_mem)
         # We need to fix chainID and density because HaloFinding is expecting
         # an array only as long as the real data.
         self.chainID = self.chainID[:self.real_size]
@@ -1314,3 +1335,7 @@ class RunParallelHOP(ParallelAnalysisInterface):
     def __clean_up_array(self, arr):
         good = (arr != -1)
         return arr[good]
+    
+    def __max_memory(self):
+        my_mem = get_memory_usage()
+        self.max_mem = max(my_mem, self.max_mem)
