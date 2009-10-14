@@ -91,25 +91,34 @@ cdef class TransferFunctionProxy:
     cdef void eval_transfer(self, np.float64_t dv0, np.float64_t dv1,
                                   np.float64_t dt, np.float64_t *rgba):
         cdef int i
-        cdef int b0, b1
-        cdef np.float64_t tf0, tf1, alpha, dd
-        #rgba[3] -= dt; return
-        rgba[3] = 0.01
+        cdef int bin_id
+        cdef np.float64_t tf0, tf1, alpha, bv, dx, dy, dd
+        #rgba[3] -= dt#; return
+        #rgba[3] = 0.01
+        dx = self.dbin
         for i in range(3):
             # First locate our points
-            b0 = iclip(<int> floor((dv0 - self.x_bounds[0]) / self.dbin),
-                       0, self.nbins-2)
-            b1 = b0 + 1
-            tf0 = self.vs[i][b0] + (dv0 - self.x_bounds[0] - self.dbin * b0) * \
-                  (self.vs[i][b1] - self.vs[i][b0])/self.dbin
+            bin_id = iclip(<int> floor((dv0 - self.x_bounds[0]) / dx),
+                           0, self.nbins-2)
+            # Recall that linear interpolation is y0 + (x-x0) * dx/dy
+            bv = self.vs[i][bin_id] # This is x0
+            dy = self.vs[i][bin_id+1]-bv # dy
+            dd = dv0-(self.x_bounds[0] + bin_id * dx) # x - x0
+            # This is our final value for transfer function on the entering face
+            tf0 = bv+dd*(dy/dx) 
 
-            b0 = iclip(<int> floor((dv1 - self.x_bounds[0]) / self.dbin),
-                       0, self.nbins-2)
-            b1 = b0 + 1
-            tf1 = self.vs[i][b0] + (dv1 - self.x_bounds[0] - self.dbin * b0) * \
-                  (self.vs[i][b1] - self.vs[i][b0])/self.dbin
-            dd = dv1 - dv0
-            rgba[i] += dt*0.5*(tf0+tf1) #+ (1.0 - rgba[3])*rgba[i]
+            # We repeat the process for the exiting face
+            bin_id = iclip(<int> floor((dv1 - self.x_bounds[0]) / dx),
+                           0, self.nbins-2)
+            bv = self.vs[i][bin_id]
+            dy = self.vs[i][bin_id+1]-bv
+            dd = dv1-(self.x_bounds[0] + bin_id * dx)
+            tf1 = bv+dd*(dy/dx)
+
+            # This is our image -- for each of the three channels (alpha
+            # currently ignored) we update by adding to it the trapezoidal
+            # integration across the transfer function
+            rgba[i] += dt*0.5*(tf0+tf1) #+ (1.0 - 0*rgba[3])*rgba[i]
         # We should update alpha here
 
 cdef class VectorPlane:
@@ -294,7 +303,7 @@ cdef class PartitionedGrid:
         for i in range(3):
             intersect[i] = v_pos[i] + intersect_t * v_dir[i]
             cur_ind[i] = <int> floor((intersect[i] +
-                                      1e-8*self.dds[i] -
+                                      step[i]*1e-8*self.dds[i] -
                                       self.left_edge[i])/self.dds[i])
             tmax[i] = (((cur_ind[i]+step[i])*self.dds[i])+
                         self.left_edge[i]-v_pos[i])/v_dir[i]
@@ -345,8 +354,6 @@ cdef class PartitionedGrid:
                     dt = fmin(tmax[2], 1.0) - enter_t
                     enter_t = tmax[2]
                     tmax[2] += tdelta[2]
-            #print 'dv', dv0, dv1
-            #print dv0-dv1
             tf.eval_transfer(dv0, dv1, dt, rgba)
             if enter_t > 1.0: break
         return hit
@@ -360,10 +367,10 @@ cdef class PartitionedGrid:
                               int ci[3]):
         cdef np.float64_t cp[3], dv, dp[3], temp
         cdef int i
-        t = fclip(t, 0.0, 1.0)
+        #t = fclip(t, 0.0, 1.0)
         for i in range(3):
             cp[i] = v_pos[i] + t * v_dir[i]
-            dp[i] = fclip(fmod(cp[i], self.dds[i])/self.dds[i], 1e-8, 1.0-1e-8)
+            dp[i] = fclip(fmod(cp[i], self.dds[i])/self.dds[i], 0, 1.0)
         #dv = fast_interpolate(self.dims, ci, dp, self.data)
         dv = trilinear_interpolate(self.dims, ci, dp, self.data)
         return dv
