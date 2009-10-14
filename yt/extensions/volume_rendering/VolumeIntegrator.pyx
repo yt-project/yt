@@ -88,38 +88,32 @@ cdef class TransferFunctionProxy:
         self.dbin = (self.x_bounds[1] - self.x_bounds[0])/self.nbins
 
     @cython.profile(True)
-    cdef void eval_transfer(self, np.float64_t dv0, np.float64_t dv1,
-                                  np.float64_t dt, np.float64_t *rgba):
+    cdef void eval_transfer(self, np.float64_t dv[5], np.float64_t dt,
+                            np.float64_t *rgba):
         cdef int i
-        cdef int bin_id
-        cdef np.float64_t tf0, tf1, alpha, bv, dx, dy, dd
+        cdef int bin_id, dti
+        cdef np.float64_t tf[5], bv, dx, dy, dd
         #rgba[3] -= dt#; return
         #rgba[3] = 0.01
         dx = self.dbin
         for i in range(3):
-            # First locate our points
-            bin_id = iclip(<int> floor((dv0 - self.x_bounds[0]) / dx),
-                           0, self.nbins-2)
-            # Recall that linear interpolation is y0 + (x-x0) * dx/dy
-            bv = self.vs[i][bin_id] # This is x0
-            dy = self.vs[i][bin_id+1]-bv # dy
-            dd = dv0-(self.x_bounds[0] + bin_id * dx) # x - x0
-            # This is our final value for transfer function on the entering face
-            tf0 = bv+dd*(dy/dx) 
-
-            # We repeat the process for the exiting face
-            bin_id = iclip(<int> floor((dv1 - self.x_bounds[0]) / dx),
-                           0, self.nbins-2)
-            bv = self.vs[i][bin_id]
-            dy = self.vs[i][bin_id+1]-bv
-            dd = dv1-(self.x_bounds[0] + bin_id * dx)
-            tf1 = bv+dd*(dy/dx)
+            for dti in range(5):
+                # First locate our points
+                bin_id = iclip(<int> floor((dv[dti] - self.x_bounds[0]) / dx),
+                               0, self.nbins-2)
+                # Recall that linear interpolation is y0 + (x-x0) * dx/dy
+                bv = self.vs[i][bin_id] # This is x0
+                dy = self.vs[i][bin_id+1]-bv # dy
+                dd = dv[dti]-(self.x_bounds[0] + bin_id * dx) # x - x0
+                # This is our final value for transfer function on the entering face
+                tf[dti] = bv+dd*(dy/dx) 
 
             # This is our image -- for each of the three channels (alpha
             # currently ignored) we update by adding to it the trapezoidal
             # integration across the transfer function
-            rgba[i] += dt*0.5*(tf0+tf1) #+ (1.0 - 0*rgba[3])*rgba[i]
-        # We should update alpha here
+            rgba[i] += 0.2 * dt * ( 0.5 * (tf[0] + tf[4]) + tf[1] + tf[2] + tf[3])
+            #rgba[i] += dt*0.5*(tf0+tf1) #+ (1.0 - 0*rgba[3])*rgba[i]
+            # We should update alpha here
 
 cdef class VectorPlane:
     cdef public object avp_pos, avp_dir, acenter, aimage
@@ -271,7 +265,7 @@ cdef class PartitionedGrid:
         cdef np.float64_t intersect_t = 1.0
         cdef np.float64_t intersect[3], tmax[3], tdelta[3]
         cdef np.float64_t enter_t, dist, alpha, dt
-        cdef np.float64_t tr, tl, temp_x, temp_y, dv0, dv1
+        cdef np.float64_t tr, tl, temp_x, temp_y, dv[5]
         for i in range(3):
             if (v_dir[i] < 0):
                 step[i] = -1
@@ -320,57 +314,57 @@ cdef class PartitionedGrid:
             if tdelta[i] < 0: tdelta[i] *= -1
         # We have to jumpstart our calculation
         enter_t = intersect_t
-        dv1 = self.get_face_val(v_pos, v_dir, enter_t, step, direction, cur_ind)
         while 1:
             if (not (0 <= cur_ind[0] < self.dims[0])) or \
                (not (0 <= cur_ind[1] < self.dims[1])) or \
                (not (0 <= cur_ind[2] < self.dims[2])):
                 break
             hit += 1
-            dv0 = dv1
             if tmax[0] < tmax[1]:
                 if tmax[0] < tmax[2]:
-                    dv1 = self.get_face_val(v_pos, v_dir, tmax[0], step, 0, cur_ind)
+                    self.sample_values(v_pos, v_dir, enter_t, tmax[0], dv, cur_ind)
                     cur_ind[0] += step[0]
                     dt = fmin(tmax[0], 1.0) - enter_t
                     enter_t = tmax[0]
                     tmax[0] += tdelta[0]
                 else:
-                    dv1 = self.get_face_val(v_pos, v_dir, tmax[2], step, 2, cur_ind)
+                    self.sample_values(v_pos, v_dir, enter_t, tmax[2], dv, cur_ind)
                     cur_ind[2] += step[2]
                     dt = fmin(tmax[2], 1.0) - enter_t
                     enter_t = tmax[2]
                     tmax[2] += tdelta[2]
             else:
                 if tmax[1] < tmax[2]:
-                    dv1 = self.get_face_val(v_pos, v_dir, tmax[1], step, 1, cur_ind)
+                    self.sample_values(v_pos, v_dir, enter_t, tmax[1], dv, cur_ind)
                     cur_ind[1] += step[1]
                     dt = fmin(tmax[1], 1.0) - enter_t
                     enter_t = tmax[1]
                     tmax[1] += tdelta[1]
                 else:
-                    dv1 = self.get_face_val(v_pos, v_dir, tmax[2], step, 2, cur_ind)
+                    self.sample_values(v_pos, v_dir, enter_t, tmax[2], dv, cur_ind)
                     cur_ind[2] += step[2]
                     dt = fmin(tmax[2], 1.0) - enter_t
                     enter_t = tmax[2]
                     tmax[2] += tdelta[2]
-            tf.eval_transfer(dv0, dv1, dt, rgba)
+            tf.eval_transfer(dv, dt, rgba)
             if enter_t > 1.0: break
         return hit
 
     @cython.profile(True)
-    cdef np.float64_t get_face_val(self,
-                              np.float64_t v_pos[3],
-                              np.float64_t v_dir[3],
-                              np.float64_t t,
-                              int step[3], int direction,
-                              int ci[3]):
-        cdef np.float64_t cp[3], dv, dp[3], temp
-        cdef int i
+    cdef void sample_values(self,
+                            np.float64_t v_pos[3],
+                            np.float64_t v_dir[3],
+                            np.float64_t enter_t,
+                            np.float64_t exit_t,
+                            np.float64_t dv[5],
+                            int ci[3]):
+        cdef np.float64_t cp[3], dp[3], temp, t, dt
+        cdef int dti, i
+        dt = (exit_t - enter_t) / 4.0 # five samples, so divide by four
         #t = fclip(t, 0.0, 1.0)
-        for i in range(3):
-            cp[i] = v_pos[i] + t * v_dir[i]
-            dp[i] = fclip(fmod(cp[i], self.dds[i])/self.dds[i], 0, 1.0)
-        #dv = fast_interpolate(self.dims, ci, dp, self.data)
-        dv = trilinear_interpolate(self.dims, ci, dp, self.data)
-        return dv
+        for dti in range(5):
+            t = enter_t + dt * dti
+            for i in range(3):
+                cp[i] = v_pos[i] + t * v_dir[i]
+                dp[i] = fclip(fmod(cp[i], self.dds[i])/self.dds[i], 0, 1.0)
+            dv[dti] = trilinear_interpolate(self.dims, ci, dp, self.data)
