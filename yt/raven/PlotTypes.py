@@ -75,6 +75,8 @@ class RavenPlot(object):
 
     datalabel = None
     colorbar = None
+    xlim = None
+    ylim = None
     def __init__(self, data, fields, figure = None, axes=None, size=(10,8)):
         self.data = data
         self.fields = fields
@@ -133,13 +135,14 @@ class RavenPlot(object):
         """
         Set the x boundaries of this plot.
         """
-        self._axes.set_xlim(xmin, xmax)
+        self.xlim = (xmin,xmax)
 
     def set_ylim(self, ymin, ymax):
         """
         Set the y boundaries of this plot.
         """
-        self._axes.set_ylim(ymin, ymax)
+        self.ylim = (ymin,ymax)
+
 
     def set_zlim(self, zmin, zmax, dex=None, nticks=None, ticks=None, minmaxtick=False):
         """
@@ -701,6 +704,8 @@ class Profile1DPlot(ProfilePlot):
              **self.plot_options)
         self._autoset_label(self.fields[0], self.set_x_label, 'x')
         self._autoset_label(self.fields[1], self.set_y_label, 'y')
+        if self.xlim is not None: self._axes.set_xlim(*self.xlim)
+        if self.ylim is not None: self._axes.set_ylim(*self.ylim)
         self._run_callbacks()
 
     def set_log_field(self, val):
