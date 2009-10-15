@@ -94,22 +94,33 @@ cdef class TransferFunctionProxy:
                             np.float64_t *rgba):
         cdef int i
         cdef int bin_id, dti
-        cdef np.float64_t tf, trgba[4], bv, dx, dy, dd
+        cdef np.float64_t tf, trgba[4], bv, dx, dy, dd,ta
         dx = self.dbin
-        if rgba[3] < 1e-8: return
-        for i in range(4):
-            for dti in range(0,4):
-                # First locate our points
-                bin_id = iclip(<int> floor((dv[dti] - self.x_bounds[0]) / dx),
-                               0, self.nbins-2)
+
+        for dti in range(0,4):
+            # get source alpha first
+            # First locate our points
+            bin_id = iclip(<int> floor((dv[dti] - self.x_bounds[0]) / dx),
+                            0, self.nbins-2)
+                # Recall that linear interpolation is y0 + (x-x0) * dx/dy
+            bv = self.vs[3][bin_id] # This is x0
+            dy = self.vs[3][bin_id+1]-bv # dy
+            dd = dv[dti]-(self.x_bounds[0] + bin_id * dx) # x - x0
+                # This is our final value for transfer function on the entering face
+            tf = bv+dd*(dy/dx) 
+            ta = tf  # Store the source alpha
+            for i in range(3):
                 # Recall that linear interpolation is y0 + (x-x0) * dx/dy
                 bv = self.vs[i][bin_id] # This is x0
                 dy = self.vs[i][bin_id+1]-bv # dy
                 dd = dv[dti]-(self.x_bounds[0] + bin_id * dx) # x - x0
                 # This is our final value for transfer function on the entering face
                 tf = bv+dd*(dy/dx) 
-                rgba[i] += tf * dt
-
+                # alpha blending
+                rgba[i] += (1. - rgba[3])*ta*tf*dt
+            #update alpha
+            rgba[3] += (1. - rgba[3])*ta*dt
+            
         # We should really do some alpha blending.
         # Front to back blending is defined as:
         #  dst.rgb = dst.rgb + (1 - dst.a) * src.a * src.rgb

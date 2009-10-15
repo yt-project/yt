@@ -50,7 +50,7 @@ def direct_ray_cast(pf, L, center, W, Nvec, tf,
     ind = na.argsort(dist)
     
     image = na.zeros((Nvec,Nvec,4), dtype='float64', order='F')
-    image[:,:,3] = 1.0
+    image[:,:,3] = 0.0
 
     # Now we need to generate regular x,y,z values in regular space for our vector
     # starting places.
