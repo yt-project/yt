@@ -733,6 +733,7 @@ class RunParallelHOP(ParallelAnalysisInterface):
         # Loop over chains, smallest to largest density, recursively until
         # we reach a self-assigned chain. Then we assign that final chainID to
         # the *current* one only.
+        seen = []
         for key, density in enumerate(self.densest_in_chain):
             if density == -1: continue # Skip 'deleted' chains
             seen = []
@@ -1090,7 +1091,11 @@ class RunParallelHOP(ParallelAnalysisInterface):
         # merged.
         temp = list(set(self.reverse_map))
         # Remove -1 from the list.
-        temp.pop(temp.index(-1))
+        try:
+            temp.pop(temp.index(-1))
+        except ValueError:
+            # There are no groups, probably.
+            pass
         # Make a secondary map to make the IDs consecutive.
         values = na.arange(len(temp))
         secondary_map = dict(itertools.izip(temp, values))
@@ -1179,8 +1184,9 @@ class RunParallelHOP(ParallelAnalysisInterface):
         yt_counters("CoM")
         CoM_M = na.zeros((self.group_count,3),dtype='float64')
         Tot_M = na.zeros(self.group_count, dtype='float64')
-        c_vec = self.max_dens_point[:,1:4][subchain] - na.array([0.5,0.5,0.5])
+        #c_vec = self.max_dens_point[:,1:4][subchain] - na.array([0.5,0.5,0.5])
         if calc:
+            c_vec = self.max_dens_point[:,1:4][subchain] - na.array([0.5,0.5,0.5])
             size = na.bincount(self.chainID[select]).astype('int64')
         else:
             # This task has no particles in groups!
