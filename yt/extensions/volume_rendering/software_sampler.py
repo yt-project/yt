@@ -38,11 +38,8 @@ def direct_ray_cast(pf, L, center, W, Nvec, tf,
     cylinder = pf.h.disk(back_center, L, na.sqrt(2)*W, 2*W)
 
     if partitioned_grids == None:
-        to_partition = [grid for grid in cylinder._grids
-                        if na.any(cylinder._get_point_indices(grid))]
-        print "Partitioning %s / %s candidates" % (len(to_partition),
-                                                   len(cylinder._grids))
-        partitioned_grids = partition_all_grids(to_partition)
+        partitioned_grids = partition_all_grids(cylinder._grids,
+                                    eval_func = lambda g: na.any(cylinder._get_point_indices(g)))
     #partitioned_grids = partition_all_grids(pf.h.grids)
 
     LE = (na.array([grid.LeftEdge for grid in partitioned_grids]) - back_center) * cp._norm_vec
@@ -78,7 +75,7 @@ def direct_ray_cast(pf, L, center, W, Nvec, tf,
 
     tfp = TransferFunctionProxy(tf)
 
-    pbar = get_pbar("Ray casting", len(partitioned_grids))
+    pbar = get_pbar("Ray casting ", len(partitioned_grids))
     for i,g in enumerate(partitioned_grids[ind]):
         if (i % every) == 0: 
             pbar.update(i)

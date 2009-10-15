@@ -90,10 +90,13 @@ def partition_grid(start_grid, field, log_field = True, threshold = None):
 
     return grids
 
-def partition_all_grids(grid_list, field = "Density", threshold = (-1e300, 1e300)):
+def partition_all_grids(grid_list, field = "Density",
+                        threshold = (-1e300, 1e300), eval_func = None):
     new_grids = []
-    pbar = get_pbar("Partitioning", len(grid_list))
+    pbar = get_pbar("Partitioning ", len(grid_list))
+    if eval_func is None: eval_func = lambda a: True
     for i, g in enumerate(grid_list):
+        if not eval_func(g): continue
         pbar.update(i)
         to_add = partition_grid(g, field, True, threshold)
         if to_add is not None: new_grids += to_add

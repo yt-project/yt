@@ -51,6 +51,7 @@ npy_float64 fast_interpolate(int *ds, int *ci, npy_float64 *dp,
 npy_float64 trilinear_interpolate(int *ds, int *ci, npy_float64 *dp,
 				  npy_float64 *data)
 {
+    /* dims is one less than the dimensions of the array */
     int i;
     npy_float64 dm[3], vz[4];
   //dp is the distance to the plane.  dm is val, dp = 1-val

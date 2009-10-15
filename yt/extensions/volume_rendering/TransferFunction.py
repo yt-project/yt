@@ -36,6 +36,15 @@ class TransferFunction(object):
         vals = height * na.exp(-(self.x - location)**2.0/width)
         self.y = na.clip(na.maximum(vals, self.y), 0.0, 1.0)
 
+    def add_line(self, start, stop):
+        x0, y0 = start
+        x1, y1 = stop
+        slope = (y1-y0)/(x1-x0)
+        vals = na.zeros(self.x.shape, 'float64')
+        vals[(self.x >= x0) & (self.x <= x1)] = \
+            slope * (self.x - x0) + y0
+        self.y = na.clip(na.maximum(vals, self.y), 0.0, 1.0)
+
     def plot(self, filename):
         import matplotlib;matplotlib.use("Agg");import pylab
         pylab.clf()
@@ -51,7 +60,8 @@ class ColorTransferFunction(object):
         self.red = TransferFunction(x_bounds, nbins)
         self.green = TransferFunction(x_bounds, nbins)
         self.blue = TransferFunction(x_bounds, nbins)
-        self.funcs = (self.red, self.green, self.blue)
+        self.alpha = TransferFunction(x_bounds, nbins)
+        self.funcs = (self.red, self.green, self.blue, self.alpha)
 
     def add_gaussian(self, location, width, height):
         for tf, v in zip(self.funcs, height):
@@ -63,6 +73,8 @@ class ColorTransferFunction(object):
         for c,tf in zip(['r','g','b'], self.funcs):
             pylab.plot(tf.x, tf.y, '-' + c)
             pylab.fill(tf.x, tf.y, c, alpha=0.2)
+        pylab.plot(self.alpha.x, self.alpha.y, '-k')
+        pylab.fill(self.alpha.x, self.alpha.y, 'k', alpha=0.1)
         pylab.xlim(*self.x_bounds)
         pylab.ylim(0.0, 1.0)
         pylab.xlabel("Value")

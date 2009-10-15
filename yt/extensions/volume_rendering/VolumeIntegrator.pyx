@@ -69,7 +69,7 @@ cdef class VectorPlane
 
 cdef class TransferFunctionProxy:
     cdef np.float64_t x_bounds[2]
-    cdef np.float64_t *vs[3]
+    cdef np.float64_t *vs[4]
     cdef int nbins
     cdef np.float64_t dbin
     cdef public object tf_obj
@@ -82,6 +82,8 @@ cdef class TransferFunctionProxy:
         self.vs[1] = <np.float64_t *> temp.data
         temp = tf_obj.blue.y
         self.vs[2] = <np.float64_t *> temp.data
+        temp = tf_obj.alpha.y
+        self.vs[3] = <np.float64_t *> temp.data
         self.x_bounds[0] = tf_obj.x_bounds[0]
         self.x_bounds[1] = tf_obj.x_bounds[1]
         self.nbins = tf_obj.nbins
@@ -92,12 +94,11 @@ cdef class TransferFunctionProxy:
                             np.float64_t *rgba):
         cdef int i
         cdef int bin_id, dti
-        cdef np.float64_t tf[5], bv, dx, dy, dd
-        #rgba[3] -= dt#; return
-        #rgba[3] = 0.01
+        cdef np.float64_t tf, trgba[4], bv, dx, dy, dd
         dx = self.dbin
-        for i in range(3):
-            for dti in range(5):
+        if rgba[3] < 1e-8: return
+        for i in range(4):
+            for dti in range(0,4):
                 # First locate our points
                 bin_id = iclip(<int> floor((dv[dti] - self.x_bounds[0]) / dx),
                                0, self.nbins-2)
@@ -106,14 +107,13 @@ cdef class TransferFunctionProxy:
                 dy = self.vs[i][bin_id+1]-bv # dy
                 dd = dv[dti]-(self.x_bounds[0] + bin_id * dx) # x - x0
                 # This is our final value for transfer function on the entering face
-                tf[dti] = bv+dd*(dy/dx) 
+                tf = bv+dd*(dy/dx) 
+                rgba[i] += tf * dt
 
-            # This is our image -- for each of the three channels (alpha
-            # currently ignored) we update by adding to it the trapezoidal
-            # integration across the transfer function
-            rgba[i] += 0.2 * dt * ( 0.5 * (tf[0] + tf[4]) + tf[1] + tf[2] + tf[3])
-            #rgba[i] += dt*0.5*(tf0+tf1) #+ (1.0 - 0*rgba[3])*rgba[i]
-            # We should update alpha here
+        # We should really do some alpha blending.
+        # Front to back blending is defined as:
+        #  dst.rgb = dst.rgb + (1 - dst.a) * src.a * src.rgb
+        #  dst.a   = dst.a   + (1 - dst.a) * src.a     
 
 cdef class VectorPlane:
     cdef public object avp_pos, avp_dir, acenter, aimage
@@ -315,6 +315,8 @@ cdef class PartitionedGrid:
         # We have to jumpstart our calculation
         enter_t = intersect_t
         while 1:
+            # dims here is one less than the dimensions of the data,
+            # but we are tracing on the grid, not on the data...
             if (not (0 <= cur_ind[0] < self.dims[0])) or \
                (not (0 <= cur_ind[1] < self.dims[1])) or \
                (not (0 <= cur_ind[2] < self.dims[2])):
