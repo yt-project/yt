@@ -133,3 +133,4 @@ def import_partitioned_grids(fn):
         pbar.update(i)
     pbar.finish()
     f.close()
+    return grid_list
