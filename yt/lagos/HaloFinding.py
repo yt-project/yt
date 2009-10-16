@@ -827,7 +827,8 @@ class parallelHF(GenericHaloFinder, parallelHOPHaloList):
         yt_counters("Reading Data")
         # Adaptive subregions by bisection.
         ds_names = ["particle_position_x","particle_position_y","particle_position_z"]
-        if resize and self._mpi_get_size()!=None:
+        if ytcfg.getboolean("yt","inline") == False and \
+           resize and self._mpi_get_size() is not None:
             cut_list = self._partition_hierarchy_3d_bisection_list()
             for i,cut in enumerate(cut_list):
                 dim = cut[0]

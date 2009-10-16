@@ -28,7 +28,8 @@ from yt.funcs import *
 import yt.logger, logging
 import itertools, sys, cStringIO, cPickle
 
-if os.path.basename(sys.executable) in \
+exe_name = os.path.basename(sys.executable)
+if exe_name in \
         ["mpi4py", "embed_enzo",
          "python"+sys.version[:3]+"-mpi"] \
     or "--parallel" in sys.argv or '_parallel' in dir(sys) \
@@ -41,6 +42,7 @@ if os.path.basename(sys.executable) in \
         ytcfg["yt","__parallel_rank"] = str(MPI.COMM_WORLD.rank)
         ytcfg["yt","__parallel_size"] = str(MPI.COMM_WORLD.size)
         ytcfg["yt","__parallel"] = "True"
+        if exe_name == "embed_enzo": ytcfg["yt","inline"] = "True"
         # I believe we do not need to turn this off manually
         #ytcfg["yt","StoreParameterFiles"] = "False"
         # Now let's make sure we have the right options set.
@@ -243,6 +245,19 @@ class ParallelAnalysisInterface(object):
         LE, RE = self.pf["DomainLeftEdge"].copy(), self.pf["DomainRightEdge"].copy()
         if not self._distributed:
            return False, LE, RE, self.hierarchy.grid_collection(self.center, self.hierarchy.grids)
+        elif ytcfg.getboolean("yt", "inline"):
+            # At this point, we want to identify the root grid tile to which
+            # this processor is assigned.
+            # The only way I really know how to do this is to get the level-0
+            # grid that belongs to this processor.
+            grids = self.pf.h.select_grids(0)
+            root_grids = [g for g in grids
+                          if g.proc_num == MPI.COMM_WORLD.rank]
+            if len(root_grids) != 1: raise RuntimeError
+            #raise KeyError
+            LE = root_grids[0].LeftEdge
+            RE = root_grids[0].RightEdge
+            return True, LE, RE, self.hierarchy.region(self.center, LE, RE)
 
         cc = MPI.Compute_dims(MPI.COMM_WORLD.size, 3)
         mi = MPI.COMM_WORLD.rank
@@ -267,16 +282,16 @@ class ParallelAnalysisInterface(object):
         """
 
         def factor(n):
-                if n == 1: return [1]
-                i = 2
-                limit = n**0.5
-                while i <= limit:
-                        if n % i == 0:
-                                ret = factor(n/i)
-                                ret.append(i)
-                                return ret
-                        i += 1
-                return [n]
+            if n == 1: return [1]
+            i = 2
+            limit = n**0.5
+            while i <= limit:
+                if n % i == 0:
+                    ret = factor(n/i)
+                    ret.append(i)
+                    return ret
+                i += 1
+            return [n]
 
         cc = MPI.Compute_dims(MPI.COMM_WORLD.size, 3)
         si = MPI.COMM_WORLD.size
@@ -314,8 +329,8 @@ class ParallelAnalysisInterface(object):
         """
         counts = counts.astype('int64')
         if not self._distributed:
-           LE, RE = self.pf["DomainLeftEdge"].copy(), self.pf["DomainRightEdge"].copy()
-           return False, LE, RE, self.hierarchy.grid_collection(self.center, self.hierarchy.grids)
+            LE, RE = self.pf["DomainLeftEdge"].copy(), self.pf["DomainRightEdge"].copy()
+            return False, LE, RE, self.hierarchy.grid_collection(self.center, self.hierarchy.grids)
         
         # First time through the world is the current group.
         if old_group == None or old_comm == None:

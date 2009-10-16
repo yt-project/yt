@@ -58,6 +58,7 @@ ytcfgDefaults = {
         'LogLevel': '20',
         'timefunctions':'False',
         'inGui':'False',
+        'inline':'False',
         '__parallel':'False',
         '__parallel_rank':'0',
         '__parallel_size':'1',
