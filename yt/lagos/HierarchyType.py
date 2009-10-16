@@ -997,3 +997,6 @@ class OrionLevel:
         self.ngrids = ngrids
         self.grids = []
     
+class ChomboHierarchy(AMRHierarchy):
+    def __init__(self,pf,data_style='chombo_hdf5):
+        pass
