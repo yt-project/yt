@@ -568,6 +568,7 @@ class HaloProfiler(lagos.ParallelAnalysisInterface):
         fields.pop(0)
 
         profile = {}
+        profile_obj = FakeProfile(self.pf)
         for field in fields:
             profile[field] = []
 
@@ -593,8 +594,10 @@ class HaloProfiler(lagos.ParallelAnalysisInterface):
         for field in fields:
             profile[field] = na.array(profile[field])
 
+        profile_obj._data = profile
+
         if len(profile[fields[0]]) > 1:
-            return profile
+            return profile_obj
         else:
             return None
 
@@ -756,3 +759,17 @@ def shift_projections(pf, pc, oldCenter, newCenter, axis):
         del add_x_pdy, add_y_pdy, add2_x_pdy, add2_y_pdy
         del add_x_field, add_y_field, add2_x_field, add2_y_field
         del add_x_weight_field, add_y_weight_field, add2_x_weight_field, add2_y_weight_field
+
+class FakeProfile(lagos.ParallelAnalysisInterface):
+    """
+    This is used to mimic a profile object when reading profile data from disk.
+    """
+    def __init__(self, pf):
+        self.pf = pf
+        self._data = {}
+
+    def __getitem__(self, key):
+        return self._data[key]
+
+    def keys(self):
+        return self._data.keys()

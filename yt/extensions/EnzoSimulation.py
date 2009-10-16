@@ -11,7 +11,7 @@ class EnzoSimulation(object):
     a simulation from one redshift to another.
     """
     def __init__(self, EnzoParameterFile, initial_time=None, final_time=None, initial_redshift=None, final_redshift=None,
-                 links=False, enzo_parameters={}, get_time_outputs=True, get_redshift_outputs=True, get_all_outputs=False):
+                 links=False, enzo_parameters=None, get_time_outputs=True, get_redshift_outputs=True):
         self.EnzoParameterFile = EnzoParameterFile
         self.enzoParameters = {}
         self.redshiftOutputs = []
@@ -30,6 +30,7 @@ class EnzoSimulation(object):
             self.get_redshift_outputs = False
 
         # Add any extra parameters to parameter dict.
+        if enzo_parameters is None: enzo_parameters = {}
         EnzoParameterDict.update(enzo_parameters)
 
         # Set some parameter defaults.
@@ -267,8 +268,11 @@ class EnzoSimulation(object):
         self.enzoParameters['DataDumpDir'] = self.enzoParameters['DataDumpName']
         self.enzoParameters['ComovingCoordinates'] = 0
 
-    def _create_cosmology_splice(self, minimal=True, deltaz_min=0.0):
+    def _create_cosmology_splice(self, minimal=True, deltaz_min=0.0, initial_redshift=None, final_redshift=None):
         "Create list of datasets to be used for LightCones or LightRays."
+
+        if initial_redshift is None: initial_redshift = self.InitialRedshift
+        if final_redshift is None: final_redshift = self.FinalRedshift
 
         # Calculate maximum delta z for each data dump.
         self._calculate_deltaz_max()
@@ -282,11 +286,11 @@ class EnzoSimulation(object):
         if minimal:
 
             z_Tolerance = 1e-4
-            z = self.InitialRedshift
+            z = initial_redshift
 
             # fill redshift space with datasets
-            while ((z > self.FinalRedshift) and 
-                   (na.fabs(z - self.FinalRedshift) > z_Tolerance)):
+            while ((z > final_redshift) and 
+                   (na.fabs(z - final_redshift) > z_Tolerance)):
                 # Sort data outputs by proximity to current redsfhit.
                 self.allOutputs.sort(key=lambda obj:na.fabs(z - obj['redshift']))
                 # For first data dump, choose closest to desired redshift.
@@ -314,20 +318,20 @@ class EnzoSimulation(object):
         # Make light ray using maximum number of datasets (minimum spacing).
         else:
             # Sort data outputs by proximity to current redsfhit.
-            self.allOutputs.sort(key=lambda obj:na.fabs(self.InitialRedshift - obj['redshift']))
+            self.allOutputs.sort(key=lambda obj:na.fabs(initial_redshift - obj['redshift']))
             # For first data dump, choose closest to desired redshift.
             cosmology_splice.append(self.allOutputs[0])
 
             nextOutput = cosmology_splice[-1]['next']
             while (nextOutput is not None):
-                if (nextOutput['redshift'] <= self.FinalRedshift):
+                if (nextOutput['redshift'] <= final_redshift):
                     break
                 if ((cosmology_splice[-1]['redshift'] - nextOutput['redshift']) > cosmology_splice[-1]['deltazMin']):
                     cosmology_splice.append(nextOutput)
                 nextOutput = nextOutput['next']
 
         mylog.info("create_cosmology_splice: Used %d data dumps to get from z = %f to %f." % 
-                   (len(cosmology_splice),self.InitialRedshift,self.FinalRedshift))
+                   (len(cosmology_splice),initial_redshift,final_redshift))
 
         return cosmology_splice
 
