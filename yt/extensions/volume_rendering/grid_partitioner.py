@@ -25,6 +25,7 @@ License:
 
 import numpy as na
 from yt.funcs import *
+import h5py
 
 from VolumeIntegrator import PartitionedGrid
 
@@ -102,3 +103,33 @@ def partition_all_grids(grid_list, field = "Density",
         if to_add is not None: new_grids += to_add
     pbar.finish()
     return na.array(new_grids, dtype='object')
+
+def export_partitioned_grids(grid_list, fn):
+    f = h5py.File(fn, "w")
+    pbar = get_pbar("Writing Grids", len(grid_list))
+    for i, grid in enumerate(grid_list):
+        # We have access to the following properties of the PartitionedGrid
+        # objects: my_data, LeftEdge, RightEdge
+        ds = f.create_dataset("/PGrid%010i" % i, data=grid.my_data)
+        ds.attrs["left_edge"] = grid.LeftEdge
+        ds.attrs["right_edge"] = grid.RightEdge
+        pbar.update(i)
+    pbar.finish()
+    f.close()
+
+def import_partitioned_grids(fn):
+    f = h5py.File(fn, "r")
+    n_groups = len(f.listnames())
+    pbar = get_pbar("Reading Grids", n_groups)
+    grid_list = []
+    for i,name in enumerate(sorted(f.listnames())):
+        if not name.startswith("PGrid"): continue
+        node = f["/%s" % name]
+        gdata = node[:]
+        left_edge = node.attrs["left_edge"][:]
+        right_edge = node.attrs["right_edge"][:]
+        dims = na.array(gdata.shape, dtype='int64') - 1
+        grid_list.append(PartitionedGrid(gdata, left_edge, right_edge, dims))
+        pbar.update(i)
+    pbar.finish()
+    f.close()

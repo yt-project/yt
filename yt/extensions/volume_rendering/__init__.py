@@ -28,5 +28,7 @@ import numpy as na
 from TransferFunction import TransferFunction, ColorTransferFunction
 from VolumeIntegrator import PartitionedGrid, VectorPlane, \
                              TransferFunctionProxy
-from grid_partitioner import partition_all_grids, partition_grid
+from grid_partitioner import partition_all_grids, partition_grid, \
+                             export_partitioned_grids, \
+                             import_partitioned_grids
 from software_sampler import direct_ray_cast
