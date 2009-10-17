@@ -92,19 +92,20 @@ class ParticleIOHandlerRegion(ParticleIOHandler):
                 count_list.append(-1)
         # region type, left_edge, right_edge, periodic, grid_list
         fields_to_read = []
+        conv_factors = []
         for field in fields:
             f = self.pf.field_info[field]
             if f._particle_convert_function is None:
                 fields_to_read.append(field)
                 conv_factors.append(na.ones(len(grid_list), dtype='float64'))
             else:
-                to_add = f.get_dependencies()
+                to_add = f.get_dependencies(pf = self.pf).requested
                 if len(to_add) != 1: raise KeyError
                 fields_to_read += to_add
                 conv_factors.append(
-                  na.fromiter((f._particle_convert(g) for g in grid_list),
+                  na.fromiter((f.particle_convert(g) for g in grid_list),
                               count=len(grid_list), dtype='float64'))
-        conv_factors = na.array(conv_factors)
+        conv_factors = na.array(conv_factors).transpose()
         rv = self.pf.h.io._read_particles(
             fields_to_read, rtype, args, grid_list, count_list,
             conv_factors)

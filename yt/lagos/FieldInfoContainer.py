@@ -131,7 +131,7 @@ class NeedsParameter(ValidationException):
 
 class FieldDetector(defaultdict):
     Level = 1
-    NumberOfParticles = 0
+    NumberOfParticles = 1
     _read_exception = None
     def __init__(self, nd = 16, pf = None):
         self.nd = nd
@@ -143,6 +143,13 @@ class FieldDetector(defaultdict):
         if pf is None:
             pf = defaultdict(lambda: 1)
         self.pf = pf
+        class fake_hierarchy(object):
+            class fake_io(object):
+                def _read_data_set(io_self, data, field):
+                    return self._read_data(field)
+                _read_exception = RuntimeError
+            io = fake_io()
+        self.hierarchy = fake_hierarchy()
         self.requested = []
         self.requested_parameters = []
         defaultdict.__init__(self, lambda: na.ones((nd,nd,nd)))

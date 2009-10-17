@@ -173,7 +173,7 @@ for pf in ["creation_time", "dynamical_time", "metallicity_fraction"]:
               validators = [ValidateSpatial(0),
                             ValidateDataField(pf)],
               particle_type=True)
-add_field("particle mass", function=particle_func("particle_mass"),
+add_field("particle_mass", function=particle_func("particle_mass"),
           validators=[ValidateSpatial(0)], particle_type=True)
 
 add_field("Dark matter density", function=lambda a,b: None,
