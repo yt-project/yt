@@ -570,3 +570,6 @@ class OrionGrid(AMRGridPatch):
     def __repr__(self):
         return "OrionGrid_%04i" % (self.id)
 
+
+class ChomboGrid(AMRGridPatch):
+    pass

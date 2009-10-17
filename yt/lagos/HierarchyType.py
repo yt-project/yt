@@ -998,31 +998,79 @@ class OrionLevel:
         self.grids = []
     
 class ChomboHierarchy(AMRHierarchy):
+
+    grid = ChomboGrid
+    
     def __init__(self,pf,data_style='chombo_hdf5'):
         self.field_info = ChomboFieldContainer()
         self.field_indexes = {}
         self.parameter_file = weakref.proxy(pf)
-        self._fhandle = h5py.File(self.parameter_file)
-        self._levels = self.fhandle.listnames()[1:]
+        # for now, the hierarchy file is the parameter file!
+        self.hierarchy_filename = self.parameter_file.parameter_filename
+        self.directory = os.path.dirname(self.hierarchy_filename)
+        self._fhandle = h5py.File(self.hierarchy_filename)
+
+        self.float_type = self._fhandle['/level_0']['data:datatype=0'].dtype.name
+        self._levels = self._fhandle.listnames()[1:]
         AMRHierarchy.__init__(self,pf,data_style)
+
+        self._fhandle.close()
+
+    def _initialize_data_storage(self):
+        pass
+
+    def _initialize_grid_arrays(self):
+        mylog.debug("Allocating arrays for %s grids", self.num_grids)
+        self.grid_dimensions = na.ones((self.num_grids,3), 'int32')
+        self.grid_left_edge = na.zeros((self.num_grids,3), self.float_type)
+        self.grid_right_edge = na.ones((self.num_grids,3), self.float_type)
+        self.grid_levels = na.zeros((self.num_grids,1), 'int32')
+        self.grid_particle_count = na.zeros((self.num_grids,1), 'int32')
+
+    def _detect_fields(self):
+        self.field_list = []
+        
+
+    def _setup_classes(self):
+        dd = self._get_data_reader_dict()
+        AMRHierarchy._setup_classes(self, dd)
+        self.object_types.sort()
 
     def _count_grids(self):
         self.num_grids = 0
         for lev in self._levels:
             self.num_grids += self._fhandle[lev]['Processors'].len()
         
-    def _setup_classes(self):
-        pass
-
     def _parse_hierarchy(self):
+        f = self._fhandle # shortcut
+        # this relies on the first Group in the H5 file being
+        # 'Chombo_global'
         levels = f.listnames()[1:]
 
         for lev in levels:
             boxes = f[lev]['boxes'].value
             dx = f[lev].attrs['dx']
             for i,box in enumerate(boxes):
-                self.grid_left_edge[i] = box['lo_i','lo_j','lo_k']*dx
-                self.grid_right_edge[i]= box['hi_i','hi_j','hi_k']*dx
-                self.grid
+                self.grid_left_edge[i] = dx*na.array([box['lo_i'],
+                                                      box['lo_j'],
+                                                      box['lo_k']],
+                                                     dtype=self.float_type)
+                self.grid_right_edge[i]= dx*na.array([box['hi_i'],
+                                                      box['hi_j'],
+                                                      box['hi_k']],
+                                                     dtype=self.float_type)
+                self.grid_particle_count[i] = 0
+                self.grid_dimensions[i] = na.array([box['hi_i']-box['lo_i'],
+                                                    box['hi_j']-box['lo_j'],
+                                                    box['hi_k']-box['lo_k']])
+                                                  
 
-        
+
+    def _populate_grid_objects(self):
+        for g,f in izip(self.grids, self.filenames):
+            g._prepare_grid()
+            g._setup_dx()
+            g.set_filename(f[0])
+        del self.filenames # No longer needed.
+        self.max_level = self.grid_levels.max()
+
