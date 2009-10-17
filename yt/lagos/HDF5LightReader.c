@@ -48,6 +48,7 @@ typedef struct particle_validation_ {
     int update_count;
     int nfields;
     char **field_names;
+    PyArrayObject *conv_factors;
     PyArrayObject **return_values;
     int (*count_func)(struct particle_validation_ *data);
     int (*count_func_float)(struct particle_validation_ *data);
@@ -68,7 +69,8 @@ typedef struct region_validation_ {
 /* Forward declarations */
 int setup_validator_region(particle_validation *data, PyObject *InputData);
 int run_validators(particle_validation *pv, char *filename, 
-                   int grid_id, const int read, const int packed);
+                   int grid_id, const int read, const int packed,
+                   int grid_index);
 
 /* Different data type validators */
 
@@ -702,6 +704,7 @@ Py_ReadParticles(PyObject *obj, PyObject *args)
     //      - Interpret arguments:
     //          - List of filenames
     //          - List of grid ids (this is Enzo HDF5-specific)
+    //          - List of conversion factors for particles
     //          - Validation arguments
     //          - List of true/false for validation
     //      - Set up validation scheme
@@ -712,7 +715,8 @@ Py_ReadParticles(PyObject *obj, PyObject *args)
     int source_type, ig, id, i, ifield, packed;
     Py_ssize_t ngrids, nfields;
 
-    PyObject *field_list, *filename_list, *grid_ids, *vargs;
+    PyObject *field_list, *filename_list, *grid_ids, *oconv_factors, *vargs;
+    PyArrayObject *conv_factors = NULL;
     int stride_size = 10000000;
     particle_validation pv;
 
@@ -729,9 +733,9 @@ Py_ReadParticles(PyObject *obj, PyObject *args)
     pv.stride_size = stride_size;
     pv.total_valid_particles = pv.particles_to_check = pv.nread = pv.nfields = 0;
 
-    if (!PyArg_ParseTuple(args, "iOOOOi",
+    if (!PyArg_ParseTuple(args, "iOOOOOi",
             &source_type, /* This is a non-public API, so we just take ints */
-            &field_list, &filename_list, &grid_ids, &vargs,
+            &field_list, &filename_list, &grid_ids, &oconv_factors, &vargs,
             &packed))
         return PyErr_Format(_hdf5ReadError,
                "ReadParticles: Invalid parameters.");
@@ -756,6 +760,17 @@ Py_ReadParticles(PyObject *obj, PyObject *args)
         PyErr_Format(_hdf5ReadError,
                  "ReadParticles: grid_ids is not a list of correct length!\n");
         goto _fail;
+    }
+
+    conv_factors  = (PyArrayObject *) PyArray_FromAny(oconv_factors,
+                     PyArray_DescrFromType(NPY_FLOAT64), 2, 2,
+                     0, NULL);
+    if(  (conv_factors == NULL) ||
+        !(PyArray_DIM(conv_factors, 0) == ngrids) ||
+        !(PyArray_DIM(conv_factors, 1) == nfields) ) {
+      PyErr_Format(_hdf5ReadError,
+          "ReadParticles: conv_factors is not an array of (ngrids, nfields)");
+      goto _fail;
     }
 
     if (!PyTuple_Check(vargs)) {
@@ -788,6 +803,7 @@ Py_ReadParticles(PyObject *obj, PyObject *args)
     PyObject *temp = NULL;
     char *filename = NULL;
     pv.update_count = 1;
+    pv.conv_factors = conv_factors;
 
     for (ig = 0; ig < ngrids ; ig++) {
       temp = PyList_GetItem(filename_list, ig);
@@ -795,7 +811,7 @@ Py_ReadParticles(PyObject *obj, PyObject *args)
       temp = PyList_GetItem(grid_ids, ig);
       id = PyInt_AsLong(temp);
       //fprintf(stderr, "Counting from grid %d\n", id);
-      if(run_validators(&pv, filename, id, 0, packed) < 0) {
+      if(run_validators(&pv, filename, id, 0, packed, ig) < 0) {
         goto _fail;
       }
     }
@@ -822,7 +838,7 @@ Py_ReadParticles(PyObject *obj, PyObject *args)
       temp = PyList_GetItem(grid_ids, ig);
       id = PyInt_AsLong(temp);
       //fprintf(stderr, "Reading from grid %d\n", id);
-      if(run_validators(&pv, filename, id, 1, packed) < 0) {
+      if(run_validators(&pv, filename, id, 1, packed, ig) < 0) {
         goto _fail;
       }
     }
@@ -842,6 +858,7 @@ Py_ReadParticles(PyObject *obj, PyObject *args)
     for (i = 0; i<3; i++) {
         free(pv.particle_position[i]);
     }
+    Py_DECREF(conv_factors);
     free(pv.validation_reqs);
     /* We don't need to free pv */
 
@@ -856,6 +873,7 @@ Py_ReadParticles(PyObject *obj, PyObject *args)
       }
       free(pv.field_names);
     }
+    if(conv_factors != NULL) { Py_DECREF(conv_factors); }
     if(pv.return_values != NULL){
       for (i = 0; i < pv.nfields; i++) {
         if(pv.return_values[i] != NULL) { Py_DECREF(pv.return_values[i]); }
@@ -911,9 +929,10 @@ int setup_validator_region(particle_validation *data, PyObject *InputData)
 }
 
 int run_validators(particle_validation *pv, char *filename, 
-                   int grid_id, const int read, const int packed)
+                   int grid_id, const int read, const int packed,
+                   int grid_index)
 {
-    int i, ifield;
+    int i, ifield, p_ind;
     hid_t file_id;
     hid_t dataset_x, dataset_y, dataset_z;
     hid_t dataspace, memspace;
@@ -925,6 +944,14 @@ int run_validators(particle_validation *pv, char *filename,
     hsize_t num_particles_to_read = 0;
     hid_t *dataset_read;
     dataset_read = NULL;
+    npy_float64 *cfactors = NULL;
+
+    cfactors = (npy_float64*) malloc(pv->nfields * sizeof(npy_float64));
+
+    for (ifield = 0; ifield < pv->nfields; ifield++){
+        cfactors[ifield] = *(npy_float64 *) PyArray_GETPTR2(
+                pv->conv_factors, grid_id, ifield);
+    }
 
     /* We set these to -1 to identify which haven't been used */
     file_id = dataset_x = dataset_y = dataset_z = -1;
@@ -1066,6 +1093,12 @@ int run_validators(particle_validation *pv, char *filename,
                       (void*) PyArray_GETPTR1(pv->return_values[ifield], pv->nread));
               H5Tclose(rnative_type_id);
               H5Tclose(rdatatype_id);
+              /* Now we multiply our fields by the appropriate conversion factor */
+              if (cfactors[ifield] != 1.0) {
+                for(p_ind = pv->nread; p_ind < read_here; p_ind++)
+                  *(npy_float64 *) PyArray_GETPTR1(pv->return_values[ifield], p_ind)
+                    *= cfactors[ifield];
+              }
           }
           pv->nread += read_here;
       }
@@ -1080,6 +1113,7 @@ int run_validators(particle_validation *pv, char *filename,
     H5Sclose(memspace);
     H5Tclose(datatype_id);
     H5Tclose(native_type_id);
+    free(cfactors);
 
     if (read == 1) {
       for (i = 0; i < pv->nfields; i++) {
@@ -1094,6 +1128,7 @@ int run_validators(particle_validation *pv, char *filename,
 
     _fail:
     /* Now the nasty business of closing our HDF5 references */
+    if(cfactors!=NULL)free(cfactors);
     if(!(dataset_x <= 0)&&(H5Iget_ref(dataset_x))) H5Dclose(dataset_x);
     if(!(dataset_y <= 0)&&(H5Iget_ref(dataset_y))) H5Dclose(dataset_y);
     if(!(dataset_z <= 0)&&(H5Iget_ref(dataset_z))) H5Dclose(dataset_z);

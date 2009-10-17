@@ -195,7 +195,8 @@ add_field("ParticleMass",
           particle_type=True, convert_function=_convertParticleMass)
 add_field("ParticleMassMsun",
           function=_ParticleMass, validators=[ValidateSpatial(0)],
-          particle_type=True, convert_function=_convertParticleMassMsun)
+          particle_type=True, convert_function=_convertParticleMassMsun,
+          particle_convert_function=_convertParticleMassMsun)
 
 def _RadialMachNumber(field, data):
     """M{|v|/t_sound}"""

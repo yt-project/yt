@@ -57,10 +57,7 @@ class BaseIOHandler(object):
             return self._read_data_set(grid, field)
 
     def _read_particles(self, fields, rtype, args, grid_list, enclosed):
-        filenames = [g.filename for g in grid_list]
-        ids = [g.id for g in grid_list]
-        return HDF5LightReader.ReadParticles(
-            rtype, fields, filenames, ids, args, 0)
+        pass
 
     def peek(self, grid, field):
         return self.queue[grid.id].get(field, None)
@@ -189,11 +186,12 @@ class IOHandlerPackedHDF5(BaseIOHandler):
     def _read_data_set(self, grid, field):
         return readDataPacked(grid, field)
 
-    def _read_particles(self, fields, rtype, args, grid_list, enclosed):
+    def _read_particles(self, fields, rtype, args, grid_list, enclosed,
+                        conv_factors):
         filenames = [g.filename for g in grid_list]
         ids = [g.id for g in grid_list]
         return HDF5LightReader.ReadParticles(
-            rtype, fields, filenames, ids, args, 1)
+            rtype, fields, filenames, ids, conv_factors, args, 1)
 
     def modify(self, field):
         return field.swapaxes(0,2)
