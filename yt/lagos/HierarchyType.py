@@ -998,5 +998,31 @@ class OrionLevel:
         self.grids = []
     
 class ChomboHierarchy(AMRHierarchy):
-    def __init__(self,pf,data_style='chombo_hdf5):
+    def __init__(self,pf,data_style='chombo_hdf5'):
+        self.field_info = ChomboFieldContainer()
+        self.field_indexes = {}
+        self.parameter_file = weakref.proxy(pf)
+        self._fhandle = h5py.File(self.parameter_file)
+        self._levels = self.fhandle.listnames()[1:]
+        AMRHierarchy.__init__(self,pf,data_style)
+
+    def _count_grids(self):
+        self.num_grids = 0
+        for lev in self._levels:
+            self.num_grids += self._fhandle[lev]['Processors'].len()
+        
+    def _setup_classes(self):
         pass
+
+    def _parse_hierarchy(self):
+        levels = f.listnames()[1:]
+
+        for lev in levels:
+            boxes = f[lev]['boxes'].value
+            dx = f[lev].attrs['dx']
+            for i,box in enumerate(boxes):
+                self.grid_left_edge[i] = box['lo_i','lo_j','lo_k']*dx
+                self.grid_right_edge[i]= box['hi_i','hi_j','hi_k']*dx
+                self.grid
+
+        

@@ -415,5 +415,9 @@ def readDataSliceNative(self, grid, field, axis, coord):
     #sl = tuple(reversed(sl))
     return grid.readDataFast(field)[sl]
 
-class IOHandlerChomboHDF5(IOHandlerBase):
+#
+# Chombo readers
+#
+
+class IOHandlerChomboHDF5(BaseIOHandler):
     pass

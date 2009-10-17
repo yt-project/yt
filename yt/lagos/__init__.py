@@ -73,6 +73,7 @@ from FieldInfoContainer import *
 from UniversalFields import *
 from EnzoFields import *
 from OrionFields import *
+from ChomboFields import *
 fieldInfo = EnzoFieldInfo
 
 # NOT the same as fieldInfo.add_field
