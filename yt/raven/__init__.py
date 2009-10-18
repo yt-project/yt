@@ -67,10 +67,7 @@ be = PlotTypes
 from Callbacks import *
 from FixedResolution import *
 
-if matplotlib.__version__ > '0.98':
-    color_maps = matplotlib.cm._cmapnames + raven_colormaps.keys()
-else:
-    color_maps = matplotlib.cm.cmapnames + raven_colormaps.keys()
+color_maps = matplotlib.cm.cmapnames + raven_colormaps.keys()
 default_cmap = ytcfg.get("raven", "colormap")
 if default_cmap != "jet":
     mylog.info("Setting default colormap to %s", default_cmap)
