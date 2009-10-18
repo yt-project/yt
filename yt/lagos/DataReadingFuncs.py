@@ -418,4 +418,5 @@ def readDataSliceNative(self, grid, field, axis, coord):
 #
 
 class IOHandlerChomboHDF5(BaseIOHandler):
-    pass
+    _data_style = "chombo_hdf5"
+    

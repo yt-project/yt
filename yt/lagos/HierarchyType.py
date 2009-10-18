@@ -1002,6 +1002,7 @@ class ChomboHierarchy(AMRHierarchy):
     grid = ChomboGrid
     
     def __init__(self,pf,data_style='chombo_hdf5'):
+        self.data_style = data_style
         self.field_info = ChomboFieldContainer()
         self.field_indexes = {}
         self.parameter_file = weakref.proxy(pf)
@@ -1029,7 +1030,6 @@ class ChomboHierarchy(AMRHierarchy):
 
     def _detect_fields(self):
         self.field_list = []
-        
 
     def _setup_classes(self):
         dd = self._get_data_reader_dict()
@@ -1043,14 +1043,17 @@ class ChomboHierarchy(AMRHierarchy):
         
     def _parse_hierarchy(self):
         f = self._fhandle # shortcut
+        
         # this relies on the first Group in the H5 file being
         # 'Chombo_global'
         levels = f.listnames()[1:]
-
+        self.grids = []
         for lev in levels:
+            level_number = int(re.match('level_(\d+)',lev).groups()[0])
             boxes = f[lev]['boxes'].value
             dx = f[lev].attrs['dx']
             for i,box in enumerate(boxes):
+                self.grids.append(self.grid(len(self.grids)+1,self,level=level_number))
                 self.grid_left_edge[i] = dx*na.array([box['lo_i'],
                                                       box['lo_j'],
                                                       box['lo_k']],
@@ -1063,14 +1066,15 @@ class ChomboHierarchy(AMRHierarchy):
                 self.grid_dimensions[i] = na.array([box['hi_i']-box['lo_i'],
                                                     box['hi_j']-box['lo_j'],
                                                     box['hi_k']-box['lo_k']])
-                                                  
-
 
     def _populate_grid_objects(self):
-        for g,f in izip(self.grids, self.filenames):
+        for g in self.grids:
             g._prepare_grid()
             g._setup_dx()
-            g.set_filename(f[0])
-        del self.filenames # No longer needed.
         self.max_level = self.grid_levels.max()
 
+    def _setup_unknown_fields(self):
+        pass
+
+    def _setup_derived_fields(self):
+        self.derived_field_list = []
