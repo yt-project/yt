@@ -460,7 +460,7 @@ class ParallelAnalysisInterface(object):
                 print 'moved',moved
             for source in moved:
                 if mi == 0:
-                    print 'boobies',abs(moved[source] - new_cen)
+                    print 'moved',abs(moved[source] - new_cen)
                 if abs(moved[source] - new_cen) < min_sep:
                     w_copy[hi_mark] = avg_weight
                     if mi == 0:
