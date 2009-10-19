@@ -353,10 +353,10 @@ class HaloList(object):
     def __get_dm_indices(self):
         if 'creation_time' in self._data_source.hierarchy.field_list:
             mylog.debug("Differentiating based on creation time")
-            return (self._data_source.particles["creation_time"] < 0)
+            return (self._data_source["creation_time"] < 0)
         elif 'particle_type' in self._data_source.hierarchy.field_list:
             mylog.debug("Differentiating based on particle type")
-            return (self._data_source.particles["particle_type"] == 1)
+            return (self._data_source["particle_type"] == 1)
         else:
             mylog.warning("No particle_type, no creation_time, so not distinguishing.")
             return slice(None)
@@ -611,9 +611,9 @@ class parallelHOPHaloList(HaloList,ParallelAnalysisInterface):
         pm = self.particle_fields["ParticleMassMsun"]
         xv = self._data_source.particles["particle_velocity_x"][self._base_indices] * \
             self._data_source.convert("x-velocity")
-        yv = self._data_source.particles["particle_velocity_y"][self._base_indices] * \
+        yv = self._data_source["particle_velocity_y"][self._base_indices] * \
             self._data_source.convert("y-velocity")
-        zv = self._data_source.particles["particle_velocity_z"][self._base_indices] * \
+        zv = self._data_source["particle_velocity_z"][self._base_indices] * \
             self._data_source.convert("z-velocity")
         yt_counters("bulk vel. reading data")
         yt_counters("bulk vel. computing")
@@ -821,7 +821,8 @@ class parallelHF(GenericHaloFinder, parallelHOPHaloList):
         yt_counters("Reading Data")
         # Adaptive subregions by bisection.
         ds_names = ["particle_position_x","particle_position_y","particle_position_z"]
-        if resize and self._mpi_get_size()!=None:
+        if ytcfg.getboolean("yt","inline") == False and \
+           resize and self._mpi_get_size() is not None:
             cut_list = self._partition_hierarchy_3d_bisection_list()
             for i,cut in enumerate(cut_list):
                 dim = cut[0]
@@ -832,7 +833,7 @@ class parallelHF(GenericHaloFinder, parallelHOPHaloList):
                     new_LE, new_RE = new_top_bounds
                     width = new_RE[dim] - new_LE[dim]
                 #data = self._data_source[ds_names[dim]]
-                data = self._data_source.particles[ds_names[dim]]
+                data = self._data_source[ds_names[dim]]
                 if i == 0:
                     local_parts = data.size
                     n_parts = self._mpi_allsum(local_parts)
@@ -858,7 +859,7 @@ class parallelHF(GenericHaloFinder, parallelHOPHaloList):
             self._data_source = self.hierarchy.periodic_region_strict([0.5]*3, LE, RE)
         # get the average spacing between particles for this region
         # The except is for the serial case, where the full box is what we want.
-        data = self._data_source.particles["particle_position_x"]
+        data = self._data_source["particle_position_x"]
         try:
             l = self._data_source.right_edge - self._data_source.left_edge
         except AttributeError:
@@ -878,7 +879,7 @@ class parallelHF(GenericHaloFinder, parallelHOPHaloList):
             LE_padding, RE_padding = na.empty(3,dtype='float64'), na.empty(3,dtype='float64')
             for dim in xrange(3):
                 #data = self._data_source[ds_names[dim]]
-                data = self._data_source.particles[ds_names[dim]]
+                data = self._data_source[ds_names[dim]]
                 num_bins = 1000
                 width = self._data_source.right_edge[dim] - self._data_source.left_edge[dim]
                 area = (self._data_source.right_edge[(dim+1)%3] - self._data_source.left_edge[(dim+1)%3]) * \
