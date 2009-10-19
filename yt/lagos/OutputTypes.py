@@ -610,7 +610,7 @@ class ChomboStaticOutput(StaticOutput):
     def __init__(self,filename,data_style='chombo_hdf5'):
         StaticOutput.__init__(self,filename,data_style)
 
-        self.field_info = self._fieldinfo_class
+        self.field_info = self._fieldinfo_class()
         # hardcoded for now
         self.parameters["InitialTime"] = 0.0
         
@@ -644,7 +644,6 @@ class ChomboStaticOutput(StaticOutput):
 
 
     def _parse_parameter_file(self):
-        
         self.parameters["CurrentTimeIdentifier"] = \
             int(os.stat(self.parameter_filename)[ST_CTIME])
         self.parameters["DomainLeftEdge"] = na.array([0.,0.,0.])
@@ -654,7 +653,7 @@ class ChomboStaticOutput(StaticOutput):
     def __calc_right_edge(self):
         fileh = h5py.File(self.parameter_filename,'r')
         dx0 = fileh['/level_0'].attrs['dx']
-        RE = dx0*(na.array(fileh['/level_0'].attrs['prob_domain']))[3:]
+        RE = dx0*((na.array(fileh['/level_0'].attrs['prob_domain']))[3:] + 1)
         fileh.close()
         return RE
                     

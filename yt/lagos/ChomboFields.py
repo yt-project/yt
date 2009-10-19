@@ -29,3 +29,5 @@ class ChomboFieldContainer(CodeFieldInfoContainer):
     _field_list = {}
 ChomboFieldInfo = ChomboFieldContainer()
 add_chombo_field = ChomboFieldInfo.add_field
+
+add_field = add_chombo_field
