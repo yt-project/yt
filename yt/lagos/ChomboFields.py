@@ -31,3 +31,9 @@ ChomboFieldInfo = ChomboFieldContainer()
 add_chombo_field = ChomboFieldInfo.add_field
 
 add_field = add_chombo_field
+
+add_field("density", function=lambda a,b: None, take_log=True,
+          validators = [ValidateDataField("density")],
+          units=r"\rm{g}/\rm{cm}^3")
+
+ChomboFieldInfo["density"]._projected_units =r"\rm{g}/\rm{cm}^2"

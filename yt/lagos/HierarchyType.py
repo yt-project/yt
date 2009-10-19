@@ -1029,8 +1029,9 @@ class ChomboHierarchy(AMRHierarchy):
         self.grid_particle_count = na.zeros((self.num_grids,1), 'int32')
 
     def _detect_fields(self):
-        self.field_list = []
-
+        ncomp = int(self._fhandle['/'].attrs['num_components'])
+        self.field_list = [c[1] for c in self._fhandle['/'].attrs.listitems()[-ncomp:]]
+    
     def _setup_classes(self):
         dd = self._get_data_reader_dict()
         AMRHierarchy._setup_classes(self, dd)
@@ -1059,14 +1060,14 @@ class ChomboHierarchy(AMRHierarchy):
                                                       box['lo_j'],
                                                       box['lo_k']],
                                                      dtype=self.float_type)
-                self.grid_right_edge[i]= dx*(na.array([box['hi_i'],
-                                                      box['hi_j'],
-                                                      box['hi_k']],
-                                                     dtype=self.float_type) + 1)
+                self.grid_right_edge[i] = dx*(na.array([box['hi_i'],
+                                                        box['hi_j'],
+                                                        box['hi_k']],
+                                                       dtype=self.float_type) + 1)
                 self.grid_particle_count[i] = 0
                 self.grid_dimensions[i] = na.array([box['hi_i']-box['lo_i'],
                                                     box['hi_j']-box['lo_j'],
-                                                    box['hi_k']-box['lo_k']])
+                                                    box['hi_k']-box['lo_k']]) + 1
                 i += 1
         self.grids = na.array(self.grids, dtype='object')
 

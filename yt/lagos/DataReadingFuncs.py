@@ -419,4 +419,42 @@ def readDataSliceNative(self, grid, field, axis, coord):
 
 class IOHandlerChomboHDF5(BaseIOHandler):
     _data_style = "chombo_hdf5"
+    _offset_string = 'data:offsets=0'
+    _data_string = 'data:datatype=0'
+
+    def _field_dict(self,fhandle):
+        ncomp = int(fhandle['/'].attrs['num_components'])
+        temp =  fhandle['/'].attrs.listitems()[-ncomp:]
+        val, keys = zip(*temp)
+        val = [int(re.match('component_(\d+)',v).groups()[0]) for v in val]
+        return dict(zip(keys,val))
+        
+    def _read_field_names(self,grid):
+        fhandle = h5py.File(grid.filename,'r')
+        ncomp = int(fhandle['/'].attrs['num_components'])
+
+        return [c[1] for c in f['/'].attrs.listitems()[-ncomp:]]
+    
+    def _read_data_set(self,grid,field):
+        fhandle = h5py.File(grid.hierarchy.hierarchy_filename,'r')
+
+        field_dict = self._field_dict(fhandle)
+        lstring = 'level_%i' % grid.Level
+        lev = fhandle[lstring]
+        dims = grid.hierarchy.grid_dimensions[grid.id]
+        boxsize = dims[0]*dims[1]*dims[2]
+        
+        grid_offset = lev[self._offset_string][grid.id]
+        start = grid_offset+field_dict[field]*boxsize
+        stop = start + boxsize
+        data = lev[self._data_string][start:stop]
+
+        return data.reshape(dims)
+                                          
+
+    def _read_data_slice(self, grid, field, axis, coord):
+        sl = [slice(None), slice(None), slice(None)]
+        sl[axis] = slice(coord, coord + 1)
+        return self._read_data_set(grid,field)[sl]
+
     
