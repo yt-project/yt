@@ -132,11 +132,6 @@ class Halo(object):
         return r.max()
 
     def __getitem__(self, key):
-        if key == "ParticleMassMsun":
-            mass_conv = self.data._grids[0].convert("Density") * \
-                self.data._grids[0].convert("cm")**3.0 / 1.989e33 * \
-                just_one(self.data._grids[0]["CellVolumeCode"].ravel())
-            return (self.data.particles['particle_mass'][self.indices].astype('float64') * mass_conv)
         return self.data.particles[key][self.indices]
 
     def get_sphere(self, center_of_mass=True):
@@ -348,11 +343,11 @@ class HaloList(object):
         else: ii = slice(None)
         self.particle_fields = {}
         for field in self._fields:
-            real_field = field
-            if field == "ParticleMassMsun":
-                real_field = "particle_mass"
-            tot_part = self._data_source.particles[real_field].size
-            self.particle_fields[field] = self._data_source.particles[real_field][ii].astype('float64')
+            tot_part = self._data_source.particles[field].size
+            if field == "particle_index":
+                self.particle_fields[field] = self._data_source.particles[field][ii].astype('int64')
+            else:
+                self.particle_fields[field] = self._data_source.particles[field][ii].astype('float64')
         self._base_indices = na.arange(tot_part)[ii]
 
     def __get_dm_indices(self):
@@ -576,7 +571,7 @@ class parallelHOPHaloList(HaloList,ParallelAnalysisInterface):
               ["ParticleMassMsun", "particle_index"]
 
     def __init__(self, data_source, padding, num_neighbors, bounds, total_mass,
-        period, mass_conv, threshold=160.0, dm_only=True, rearrange=True):
+        period, threshold=160.0, dm_only=True, rearrange=True):
         """
         Run hop on *data_source* with a given density *threshold*.  If
         *dm_only* is set, only run it on the dark matter particles, otherwise
@@ -588,7 +583,6 @@ class parallelHOPHaloList(HaloList,ParallelAnalysisInterface):
         self.total_mass = total_mass
         self.rearrange = rearrange
         self.period = period
-        self.mass_conv = mass_conv
         self._data_source = data_source
         mylog.info("Initializing HOP")
         HaloList.__init__(self, data_source, dm_only)
@@ -601,7 +595,7 @@ class parallelHOPHaloList(HaloList,ParallelAnalysisInterface):
             self.particle_fields["particle_position_y"],
             self.particle_fields["particle_position_z"],
             self.particle_fields["particle_index"],
-            self.particle_fields["ParticleMassMsun"]/self.total_mass * self.mass_conv,
+            self.particle_fields["ParticleMassMsun"]/self.total_mass,
             self.threshold, rearrange=self.rearrange)
         self.densities, self.tags = obj.density, obj.chainID
         self.group_count = obj.group_count
@@ -614,7 +608,7 @@ class parallelHOPHaloList(HaloList,ParallelAnalysisInterface):
         yt_counters("Precomp bulk vel.")
         self.bulk_vel = na.zeros((self.group_count, 3), dtype='float64')
         yt_counters("bulk vel. reading data")
-        pm = self.particle_fields["ParticleMassMsun"] * self.mass_conv
+        pm = self.particle_fields["ParticleMassMsun"]
         xv = self._data_source.particles["particle_velocity_x"][self._base_indices] * \
             self._data_source.convert("x-velocity")
         yv = self._data_source.particles["particle_velocity_y"][self._base_indices] * \
@@ -895,6 +889,9 @@ class parallelHF(GenericHaloFinder, parallelHOPHaloList):
                 # left side.
                 start = 0
                 count = counts[0]
+                self.mine, blah = self._mpi_info_dict(10)
+                if self.mine == 0:
+                    print self._data_source
                 while count < self.num_neighbors:
                     start += 1
                     count += counts[start]
@@ -916,17 +913,13 @@ class parallelHF(GenericHaloFinder, parallelHOPHaloList):
                 (str(self.padding), avg_spacing, full_vol, data.size, str(self._data_source)))
         # Now we get the full box mass after we have the final composition of
         # subvolumes.
-        mass_conv = self._data_source._grids[0].convert("Density") * \
-            self._data_source._grids[0].convert("cm")**3.0 / 1.989e33 * \
-            just_one(self._data_source._grids[0]["CellVolumeCode"].ravel())
-        #total_mass = self._mpi_allsum(self._data_source["ParticleMassMsun"].sum())
-        total_mass = self._mpi_allsum((self._data_source.particles["particle_mass"].astype('float64') * mass_conv).sum())
+        total_mass = self._mpi_allsum((self._data_source.particles["ParticleMassMsun"].astype('float64')).sum())
         if not self._distributed:
             self.padding = (na.zeros(3,dtype='float64'), na.zeros(3,dtype='float64'))
         self.bounds = (LE, RE)
         (LE_padding, RE_padding) = self.padding
         parallelHOPHaloList.__init__(self, self._data_source, self.padding, \
-        self.num_neighbors, self.bounds, total_mass, period, mass_conv, \
+        self.num_neighbors, self.bounds, total_mass, period, \
         threshold=threshold, dm_only=dm_only, rearrange=rearrange)
         self._join_halolists()
         yt_counters("Final Grouping")
