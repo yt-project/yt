@@ -148,7 +148,7 @@ class NeedsParameter(ValidationException):
 
 class FieldDetector(defaultdict):
     Level = 1
-    NumberOfParticles = 0
+    NumberOfParticles = 1
     _read_exception = None
     def __init__(self, nd = 16, pf = None):
         self.nd = nd
@@ -160,6 +160,13 @@ class FieldDetector(defaultdict):
         if pf is None:
             pf = defaultdict(lambda: 1)
         self.pf = pf
+        class fake_hierarchy(object):
+            class fake_io(object):
+                def _read_data_set(io_self, data, field):
+                    return self._read_data(field)
+                _read_exception = RuntimeError
+            io = fake_io()
+        self.hierarchy = fake_hierarchy()
         self.requested = []
         self.requested_parameters = []
         defaultdict.__init__(self, lambda: na.ones((nd,nd,nd)))
@@ -201,6 +208,7 @@ class FieldDetector(defaultdict):
 class DerivedField(object):
     def __init__(self, name, function,
                  convert_function = None,
+                 particle_convert_function = None,
                  units = "", projected_units = "",
                  take_log = True, validators = None,
                  particle_type = False, vector_field=False,
@@ -237,6 +245,7 @@ class DerivedField(object):
         if not convert_function:
             convert_function = lambda a: 1.0
         self._convert_function = convert_function
+        self._particle_convert_function = particle_convert_function
         self.particle_type = particle_type
         self.vector_field = vector_field
         self.projection_conversion = projection_conversion
@@ -308,6 +317,11 @@ class DerivedField(object):
         if units != "": data_label += r"\/\/ (%s)" % (units)
         data_label += r"$"
         return data_label
+
+    def particle_convert(self, data):
+        if self._particle_convert_function is not None:
+            return self._particle_convert_function(data)
+        return None
 
 class FieldValidator(object):
     pass

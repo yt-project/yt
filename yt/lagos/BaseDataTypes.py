@@ -202,18 +202,15 @@ class AMRData(object):
         This will attempt to convert a given unit to cgs from code units.
         It either returns the multiplicative factor or throws a KeyError.
         """
-        return self.hierarchy[datatype]
+        return self.pf[datatype]
 
     def clear_data(self):
         """
         Clears out all data from the AMRData instance, freeing memory.
         """
-        for key in self.data.keys():
-            del self.data[key]
-        del self.data
+        self.data.clear()
         if self._grids is not None:
             for grid in self._grids: grid.clear_data()
-        self.data = {}
 
     def clear_cache(self):
         """
@@ -319,75 +316,56 @@ class GridPropertiesMixin(object):
         grids = [g for g in self._grids if g.Level == level]
         return grids
 
-    def __get_levelIndices(self):
-        if self.__levelIndices: return self.__levelIndices
-        # Otherwise, generate
-        # We only have to do this once, so it's not terribly expensive:
-        ll = {}
-        for level in range(MAXLEVEL):
-            t = [i for i in range(len(self._grids)) if self._grids[i].Level == level]
-            ll[level] = na.array(t)
-        self.__levelIndices = ll
-        return self.__levelIndices
+    def select_grid_indices(self, level):
+        return na.where(self.grid_levels == level)
 
-    def __set_levelIndices(self, val):
-        self.__levelIndices = val
+    def __get_grid_left_edge(self):
+        if self.__grid_left_edge == None:
+            self.__grid_left_edge = na.array([g.LeftEdge for g in self._grids])
+        return self.__grid_left_edge
 
-    def __del_levelIndices(self):
-        del self.__levelIndices
-        self.__levelIndices = None
+    def __del_grid_left_edge(self):
+        del self.__grid_left_edge
+        self.__grid_left_edge = None
 
-    __levelIndices = None
-    levelIndices = property(__get_levelIndices, __set_levelIndices,
-                            __del_levelIndices)
+    def __set_grid_left_edge(self, val):
+        self.__grid_left_edge = val
 
-    def __get_gridLeftEdge(self):
-        if self.__gridLeftEdge == None:
-            self.__gridLeftEdge = na.array([g.LeftEdge for g in self._grids])
-        return self.__gridLeftEdge
+    __grid_left_edge = None
+    grid_left_edge = property(__get_grid_left_edge, __set_grid_left_edge,
+                              __del_grid_left_edge)
 
-    def __del_gridLeftEdge(self):
-        del self.__gridLeftEdge
-        self.__gridLeftEdge = None
+    def __get_grid_right_edge(self):
+        if self.__grid_right_edge == None:
+            self.__grid_right_edge = na.array([g.RightEdge for g in self._grids])
+        return self.__grid_right_edge
 
-    def __set_gridLeftEdge(self, val):
-        self.__gridLeftEdge = val
+    def __del_grid_right_edge(self):
+        del self.__grid_right_edge
+        self.__grid_right_edge = None
 
-    __gridLeftEdge = None
-    gridLeftEdge = property(__get_gridLeftEdge, __set_gridLeftEdge,
-                              __del_gridLeftEdge)
+    def __set_grid_right_edge(self, val):
+        self.__grid_right_edge = val
 
-    def __get_gridRightEdge(self):
-        if self.__gridRightEdge == None:
-            self.__gridRightEdge = na.array([g.RightEdge for g in self._grids])
-        return self.__gridRightEdge
+    __grid_right_edge = None
+    grid_right_edge = property(__get_grid_right_edge, __set_grid_right_edge,
+                             __del_grid_right_edge)
 
-    def __del_gridRightEdge(self):
-        del self.__gridRightEdge
-        self.__gridRightEdge = None
+    def __get_grid_levels(self):
+        if self.__grid_levels == None:
+            self.__grid_levels = na.array([g.Level for g in self._grids])
+        return self.__grid_levels
 
-    def __set_gridRightEdge(self, val):
-        self.__gridRightEdge = val
+    def __del_grid_levels(self):
+        del self.__grid_levels
+        self.__grid_levels = None
 
-    __gridRightEdge = None
-    gridRightEdge = property(__get_gridRightEdge, __set_gridRightEdge,
-                             __del_gridRightEdge)
+    def __set_grid_levels(self, val):
+        self.__grid_levels = val
 
-    def __get_gridLevels(self):
-        if self.__gridLevels == None:
-            self.__gridLevels = na.array([g.Level for g in self._grids])
-        return self.__gridLevels
-
-    def __del_gridLevels(self):
-        del self.__gridLevels
-        self.__gridLevels = None
-
-    def __set_gridLevels(self, val):
-        self.__gridLevels = val
-
-    __gridLevels = None
-    gridLevels = property(__get_gridLevels, __set_gridLevels,
-                             __del_gridLevels)
+    __grid_levels = None
+    grid_levels = property(__get_grid_levels, __set_grid_levels,
+                             __del_grid_levels)
 
 
 class AMR1DData(AMRData, GridPropertiesMixin):
@@ -467,10 +445,10 @@ class AMROrthoRayBase(AMR1DData):
 
     def _get_list_of_grids(self):
         # This bugs me, but we will give the tie to the LeftEdge
-        y = na.where( (self.px >=  self.pf.hierarchy.gridLeftEdge[:,self.px_ax])
-                    & (self.px < self.pf.hierarchy.gridRightEdge[:,self.px_ax])
-                    & (self.py >=  self.pf.hierarchy.gridLeftEdge[:,self.py_ax])
-                    & (self.py < self.pf.hierarchy.gridRightEdge[:,self.py_ax]))
+        y = na.where( (self.px >=  self.pf.hierarchy.grid_left_edge[:,self.px_ax])
+                    & (self.px < self.pf.hierarchy.grid_right_edge[:,self.px_ax])
+                    & (self.py >=  self.pf.hierarchy.grid_left_edge[:,self.py_ax])
+                    & (self.py < self.pf.hierarchy.grid_right_edge[:,self.py_ax]))
         self._grids = self.hierarchy.grids[y]
 
     def _get_data_from_grid(self, grid, field):
@@ -515,8 +493,8 @@ class AMRRayBase(AMR1DData):
 
     def _get_list_of_grids(self):
         # Get the value of the line at each LeftEdge and RightEdge
-        LE = self.pf.h.gridLeftEdge
-        RE = self.pf.h.gridRightEdge
+        LE = self.pf.h.grid_left_edge
+        RE = self.pf.h.grid_right_edge
         p = na.zeros(self.pf.h.num_grids, dtype='bool')
         # Check left faces first
         for i in range(3):
@@ -739,7 +717,7 @@ class AMRSliceBase(AMR2DData):
             # Here we assume that the grid is the max level
             level = self.hierarchy.max_level
             self.coord
-            dx = self.hierarchy.gridDxs[self.hierarchy.levelIndices[level][0]]
+            dx = self.hierarchy.select_grids(level)[0].dds[self.axis]
             self.coord += dx * val
         else:
             raise ValueError(val)
@@ -767,8 +745,8 @@ class AMRSliceBase(AMR2DData):
         self.ActiveDimensions = (t.shape[0], 1, 1)
 
     def _get_list_of_grids(self):
-        goodI = ((self.pf.h.gridRightEdge[:,self.axis] > self.coord)
-              &  (self.pf.h.gridLeftEdge[:,self.axis] <= self.coord ))
+        goodI = ((self.pf.h.grid_right_edge[:,self.axis] > self.coord)
+              &  (self.pf.h.grid_left_edge[:,self.axis] <= self.coord ))
         self._grids = self.pf.h.grids[goodI] # Using sources not hierarchy
 
     def __cut_mask_child_mask(self, grid):
@@ -818,7 +796,7 @@ class AMRSliceBase(AMR2DData):
             conv_factor = 1.0
             if self.pf.field_info.has_key(field):
                 conv_factor = self.pf.field_info[field]._convert_function(self)
-            dv = self._read_data_slice(grid, field, self.axis, wantedIndex) * conv_factor
+            dv = self.hierarchy.io._read_data_slice(grid, field, self.axis, wantedIndex) * conv_factor
         else:
             dv = grid[field]
             if dv.size == 1: dv = na.ones(grid.ActiveDimensions)*dv
@@ -892,8 +870,8 @@ class AMRCuttingPlaneBase(AMR2DData):
         # onto the normal vector of a plane is:
         # D = (a x_0 + b y_0 + c z_0 + d)/sqrt(a^2+b^2+c^2)
         # @todo: Convert to using corners
-        LE = self.pf.h.gridLeftEdge
-        RE = self.pf.h.gridRightEdge
+        LE = self.pf.h.grid_left_edge
+        RE = self.pf.h.grid_right_edge
         vertices = na.array([[LE[:,0],LE[:,1],LE[:,2]],
                              [RE[:,0],RE[:,1],RE[:,2]],
                              [LE[:,0],LE[:,1],RE[:,2]],
@@ -1201,9 +1179,9 @@ class AMRProjBase(AMR2DData):
         self._initialize_source(source)
         self._grids = self.source._grids
         if max_level == None:
-            max_level = self.hierarchy.maxLevel
+            max_level = self.hierarchy.max_level
         if self.source is not None:
-            max_level = min(max_level, self.source.gridLevels.max())
+            max_level = min(max_level, self.source.grid_levels.max())
         self._max_level = max_level
         self._weight = weight_field
         self.func = na.sum # for the future
@@ -1240,31 +1218,15 @@ class AMRProjBase(AMR2DData):
             self._okay_to_serialize = True
 
     #@time_execution
-    def __cache_data(self):
-        rdf = self.hierarchy.grid.readDataFast
-        self.hierarchy.grid.readDataFast = readDataPackedHandle
-        for fn,g_list in self.hierarchy.cpu_map.items():
-            to_read = na.intersect1d(g_list, self.source._grids)
-            if len(to_read) == 0: continue
-            fh = h5py.File(to_read[0].filename,'r')
-            for g in to_read:
-                g.handle = fh
-                for field in ensure_list(self.fields):
-                    g[field]
-                del g.handle
-            fh.close()
-        self.hierarchy.grid.readDataFast = readDataPackedHandle
-
-    #@time_execution
     def __calculate_overlap(self, level):
         s = self.source
         mylog.info("Generating overlap masks for level %s", level)
         i = 0
         pbar = get_pbar("Reading and masking grids ", len(s._grids))
         mylog.debug("Examining level %s", level)
-        grids = s.levelIndices[level]
-        RE = s.gridRightEdge[grids]
-        LE = s.gridLeftEdge[grids]
+        grids = s.select_grid_indices(level)
+        RE = s.grid_right_edge[grids]
+        LE = s.grid_left_edge[grids]
         for grid in s._grids[grids]:
             pbar.update(i)
             self.__overlap_masks[grid.id] = \
@@ -1324,7 +1286,7 @@ class AMRProjBase(AMR2DData):
 
     def __combine_grids_on_level(self, level):
         grids = self.source.select_grids(level)
-        grids_i = self.source.levelIndices[level]
+        grids_i = self.source.select_grid_indices(level)
         pbar = get_pbar('Combining   level % 2i / % 2i ' \
                           % (level, self._max_level), len(grids))
         # We have an N^2 check, so we try to be as quick as possible
@@ -1351,7 +1313,7 @@ class AMRProjBase(AMR2DData):
 
     def __refine_to_level(self, level):
         grids = self.source.select_grids(level)
-        grids_up = self.source.levelIndices[level-1]
+        grids_up = self.source.select_grid_indices(level - 1)
         pbar = get_pbar('Refining to level % 2i / % 2i ' \
                           % (level, self._max_level), len(grids))
         for pi, grid1 in enumerate(grids):
@@ -1394,10 +1356,8 @@ class AMRProjBase(AMR2DData):
         # It is probably faster, as it consolidates IO, but if we did it in
         # _project_level, then it would be more memory conservative
         for level in range(0, self._max_level+1):
-            level_ind = self.source.levelIndices[level]
-            if len(level_ind) == 0: continue
-            self._preload(self.source._grids[level_ind],
-                          self._get_dependencies(fields), self.hierarchy.queue)
+            self._preload(self.source.select_grids(level),
+                          self._get_dependencies(fields), self.hierarchy.io)
             self.__calculate_overlap(level)
             my_coords, my_dx, my_fields = self.__project_level(level, fields)
             coord_data.append(my_coords)
@@ -1524,8 +1484,8 @@ class AMRFixedResProjectionBase(AMR2DData):
         else:
             grids,ind = self.pf.hierarchy.get_box_grids(
                             self.left_edge, self.right_edge)
-        level_ind = (self.pf.hierarchy.gridLevels.ravel()[ind] <= self.level)
-        sort_ind = na.argsort(self.pf.h.gridLevels.ravel()[ind][level_ind])
+        level_ind = (self.pf.hierarchy.grid_levels.ravel()[ind] <= self.level)
+        sort_ind = na.argsort(self.pf.h.grid_levels.ravel()[ind][level_ind])
         self._grids = self.pf.hierarchy.grids[ind][level_ind][(sort_ind,)][::-1]
 
     def _generate_coords(self):
@@ -1802,6 +1762,14 @@ class AMR3DData(AMRData, GridPropertiesMixin):
                 grid[field] = na.ones(grid.ActiveDimensions)*default_value
             grid[field][self._get_point_indices(grid)] = value
 
+    _particle_handler = None
+
+    @property
+    def particles(self):
+        if self._particle_handler is None:
+            self._particle_handler = \
+                particle_handler_registry[self._type_name](self.pf, self)
+        return self._particle_handler
 
 class ExtractedRegionBase(AMR3DData):
     """
@@ -1965,9 +1933,9 @@ class AMRCylinderBase(AMR3DData):
         self._refresh_data()
 
     def _get_list_of_grids(self):
-        H = na.sum(self._norm_vec.reshape((1,3,1)) * self.pf.h.gridCorners,
+        H = na.sum(self._norm_vec.reshape((1,3,1)) * self.pf.h.grid_corners,
                    axis=1) + self._d
-        D = na.sqrt(na.sum((self.pf.h.gridCorners -
+        D = na.sqrt(na.sum((self.pf.h.grid_corners -
                            self.center.reshape((1,3,1)))**2.0,axis=1))
         R = na.sqrt(D**2.0-H**2.0)
         self._grids = self.hierarchy.grids[
@@ -2237,8 +2205,8 @@ class AMRFloatCoveringGridBase(AMR3DData):
         else:
             grids,ind = self.pf.hierarchy.get_box_grids(
                             self.left_edge, self.right_edge)
-        level_ind = na.where(self.pf.hierarchy.gridLevels.ravel()[ind] <= self.level)
-        sort_ind = na.argsort(self.pf.h.gridLevels.ravel()[ind][level_ind])
+        level_ind = na.where(self.pf.hierarchy.grid_levels.ravel()[ind] <= self.level)
+        sort_ind = na.argsort(self.pf.h.grid_levels.ravel()[ind][level_ind])
         self._grids = self.pf.hierarchy.grids[ind][level_ind][(sort_ind,)][::-1]
 
     def extract_region(self, indices):
@@ -2365,8 +2333,8 @@ class AMRSmoothedCoveringGridBase(AMRFloatCoveringGridBase):
             grids,ind = self.pf.hierarchy.get_box_grids(
                             self.left_edge - self.dds,
                             self.right_edge + self.dds)
-        level_ind = na.where(self.pf.hierarchy.gridLevels.ravel()[ind] <= self.level)
-        sort_ind = na.argsort(self.pf.h.gridLevels.ravel()[ind][level_ind])
+        level_ind = na.where(self.pf.hierarchy.grid_levels.ravel()[ind] <= self.level)
+        sort_ind = na.argsort(self.pf.h.grid_levels.ravel()[ind][level_ind])
         self._grids = self.pf.hierarchy.grids[ind][level_ind][(sort_ind,)]
 
     def _get_level_array(self, level, fields):
@@ -2419,7 +2387,7 @@ class AMRSmoothedCoveringGridBase(AMRFloatCoveringGridBase):
             # How do we find out the root grid base dx?
             idims = na.array([3,3,3])
             dx = na.minimum((self.right_edge-self.left_edge)/(idims-2),
-                            self.pf.h.grids[0]['dx'])
+                            self.pf.h.grids[0].dds[0])
             idims = na.floor((self.right_edge-self.left_edge)/dx) + 2
             for ax in 'xyz': self['cd%s'%ax] = dx[0]
             self[field] = na.zeros(idims,dtype='float64')-999
@@ -2479,8 +2447,8 @@ class AMRCoveringGridBase(AMR3DData):
             grids,ind = self.pf.hierarchy.get_box_grids(
                             self.left_edge - buffer,
                             self.right_edge + buffer)
-        level_ind = (self.pf.hierarchy.gridLevels.ravel()[ind] <= self.level)
-        sort_ind = na.argsort(self.pf.h.gridLevels.ravel()[ind][level_ind])
+        level_ind = (self.pf.hierarchy.grid_levels.ravel()[ind] <= self.level)
+        sort_ind = na.argsort(self.pf.h.grid_levels.ravel()[ind][level_ind])
         self._grids = self.pf.hierarchy.grids[ind][level_ind][(sort_ind,)][::-1]
 
     def _refresh_data(self):

@@ -1,0 +1,12 @@
+# Last Change: Mon Nov 03 06:00 PM 2008 J
+# vim:syntax=python
+from os.path import join
+from numscons import GetNumpyEnvironment
+
+env = GetNumpyEnvironment(ARGUMENTS)
+
+env.NumpyPythonExtension('ckdtree', source = ['ckdtree.c'])
+
+env.NumpyPythonExtension('_distance_wrap', 
+                         source = [join('src', 'distance_wrap.c'),
+                                   join('src', 'distance.c')])

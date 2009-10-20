@@ -67,7 +67,7 @@ class DerivedQuantity(ParallelAnalysisInterface):
             self.func(e, *args, **kwargs)
             mylog.debug("Preloading %s", e.requested)
             self._preload([g for g in self._get_grid_objs()], e.requested,
-                          self._data_source.pf.h.queue)
+                          self._data_source.pf.h.io)
         if lazy_reader and not self.force_unlazy:
             return self._call_func_lazy(args, kwargs)
         else:
