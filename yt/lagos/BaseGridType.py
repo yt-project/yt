@@ -42,7 +42,6 @@ class AMRGridPatch(object):
                  'NumberOfParticles', 'Children', 'Parent',
                  'start_index', 'filename', '__weakref__', 'dds',
                  '_child_mask', '_child_indices', '_child_index_mask']
-
     def __init__(self, id, filename = None, hierarchy = None):
         self.data = {}
         self.field_parameters = {}

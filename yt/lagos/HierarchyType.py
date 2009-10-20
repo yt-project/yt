@@ -191,10 +191,18 @@ class AMRHierarchy(ObjectFindingMixin, ParallelAnalysisInterface):
     save_data = parallel_splitter(_save_data, _reload_data_file)
 
     def save_object(self, obj, name):
+        """
+        Save an object (*obj*) to the data_file using the Pickle protocol,
+        under the name *name* on the node /Objects.
+        """
         s = cPickle.dumps(obj, protocol=-1)
         self.save_data(s, "/Objects", name, force = True)
 
     def load_object(self, name):
+        """
+        Load and return and object from the data_file using the Pickle protocol,
+        under the name *name* on the node /Objects.
+        """
         obj = self.get_data("/Objects", name)
         if obj is None:
             return
@@ -231,59 +239,17 @@ class AMRHierarchy(ObjectFindingMixin, ParallelAnalysisInterface):
             del self._data_file
             self._data_file = None
 
-    def find_particles_by_type(self, ptype, max_num=None, additional_fields=None):
-        """
-        Returns a structure of arrays with all of the particles'
-        positions, velocities, masses, types, IDs, and attributes for
-        a particle type **ptype** for a maximum of **max_num**
-        particles.  If non-default particle fields are used, provide
-        them in **additional_fields**.
-        """
-        # Not sure whether this routine should be in the general HierarchyType.
-        if self.gridNumberOfParticles.sum() == 0:
-            mylog.info("Data contains no particles.");
-            return None
-        if additional_fields is None:
-            additional_fields = ['metallicity_fraction', 'creation_time',
-                                 'dynamical_time']
-        pfields = [f for f in self.field_list if f.startswith('particle_')]
-        nattr = self.parameter_file['NumberOfParticleAttributes']
-        if nattr > 0:
-            pfields += additional_fields[:nattr]
-        # Find where the particles reside and count them
-        if max_num is None: max_num = 1e100
-        total = 0
-        pstore = []
-        for level in range(self.max_level, -1, -1):
-            for grid in self.select_grids(level):
-                index = na.where(grid['particle_type'] == ptype)[0]
-                total += len(index)
-                pstore.append(index)
-                if total >= max_num: break
-            if total >= max_num: break
-        result = None
-        if total > 0:
-            result = {}
-            for p in pfields:
-                result[p] = na.zeros(total, 'float64')
-            # Now we retrieve data for each field
-            ig = count = 0
-            for level in range(self.max_level, -1, -1):
-                for grid in self.select_grids(level):
-                    nidx = len(pstore[ig])
-                    if nidx > 0:
-                        for p in pfields:
-                            result[p][count:count+nidx] = grid[p][pstore[ig]]
-                        count += nidx
-                    ig += 1
-                    if count >= total: break
-                if count >= total: break
-            # Crop data if retrieved more than max_num
-            if count > max_num:
-                for p in pfields:
-                    result[p] = result[p][0:max_num]
-        return result
-
+    def _deserialize_hierarchy(self, harray):
+        # THIS IS BROKEN AND NEEDS TO BE FIXED
+        mylog.debug("Cached entry found.")
+        self.gridDimensions[:] = harray[:,0:3]
+        self.gridStartIndices[:] = harray[:,3:6]
+        self.gridEndIndices[:] = harray[:,6:9]
+        self.gridLeftEdge[:] = harray[:,9:12]
+        self.gridRightEdge[:] = harray[:,12:15]
+        self.gridLevels[:] = harray[:,15:16]
+        self.gridTimes[:] = harray[:,16:17]
+        self.gridNumberOfParticles[:] = harray[:,17:18]
 
     def get_smallest_dx(self):
         """
@@ -572,6 +538,60 @@ class EnzoHierarchy(AMRHierarchy):
         else:
             random_sample = na.mgrid[0:max(len(self.grids)-1,1)].astype("int32")
         return self.grids[(random_sample,)]
+
+    def find_particles_by_type(self, ptype, max_num=None, additional_fields=None):
+        """
+        Returns a structure of arrays with all of the particles'
+        positions, velocities, masses, types, IDs, and attributes for
+        a particle type **ptype** for a maximum of **max_num**
+        particles.  If non-default particle fields are used, provide
+        them in **additional_fields**.
+        """
+        # Not sure whether this routine should be in the general HierarchyType.
+        if self.gridNumberOfParticles.sum() == 0:
+            mylog.info("Data contains no particles.");
+            return None
+        if additional_fields is None:
+            additional_fields = ['metallicity_fraction', 'creation_time',
+                                 'dynamical_time']
+        pfields = [f for f in self.field_list if f.startswith('particle_')]
+        nattr = self.parameter_file['NumberOfParticleAttributes']
+        if nattr > 0:
+            pfields += additional_fields[:nattr]
+        # Find where the particles reside and count them
+        if max_num is None: max_num = 1e100
+        total = 0
+        pstore = []
+        for level in range(self.max_level, -1, -1):
+            for grid in self.select_grids(level):
+                index = na.where(grid['particle_type'] == ptype)[0]
+                total += len(index)
+                pstore.append(index)
+                if total >= max_num: break
+            if total >= max_num: break
+        result = None
+        if total > 0:
+            result = {}
+            for p in pfields:
+                result[p] = na.zeros(total, 'float64')
+            # Now we retrieve data for each field
+            ig = count = 0
+            for level in range(self.max_level, -1, -1):
+                for grid in self.select_grids(level):
+                    nidx = len(pstore[ig])
+                    if nidx > 0:
+                        for p in pfields:
+                            result[p][count:count+nidx] = grid[p][pstore[ig]]
+                        count += nidx
+                    ig += 1
+                    if count >= total: break
+                if count >= total: break
+            # Crop data if retrieved more than max_num
+            if count > max_num:
+                for p in pfields:
+                    result[p] = result[p][0:max_num]
+        return result
+
 
 class EnzoHierarchyInMemory(EnzoHierarchy):
 

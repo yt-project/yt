@@ -32,11 +32,6 @@ from yt.logger import ravenLogger as mylog
 from yt.arraytypes import *
 from yt.funcs import *
 import yt.lagos as lagos
-try:
-    import deliveration
-except:
-    #mylog.warning("Deliverator import failed; all deliverator actions will fail!")
-    pass
 
 import matplotlib
 matplotlib.rc('contour', negative_linestyle='solid')

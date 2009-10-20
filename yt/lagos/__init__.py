@@ -106,6 +106,9 @@ from HaloFinding import *
 if ytcfg.getboolean("lagos","loadfieldplugins"):
     my_plugin_name = ytcfg.get("lagos","pluginfilename")
     # We assume that it is with respect to the $HOME/.yt directory
-    execfile(os.path.expanduser("~/.yt/%s" % my_plugin_name))
+    fn = os.path.expanduser("~/.yt/%s" % my_plugin_name)
+    if os.path.isfile(fn):
+        mylog.info("Loading plugins from %s", fn)
+        execfile(fn)
 
 log_fields = [] # @todo: GET RID OF THIS

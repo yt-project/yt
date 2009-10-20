@@ -181,6 +181,15 @@ add_field("Dark matter density", function=lambda a,b: None,
                       ValidateSpatial(0)],
           not_in_all = True)
 
+def _ParticleAge(field, data):
+    current_time = data.pf["InitialTime"]
+    return (current_time - data["creation_time"])
+def _convertParticleAge(data):
+    return data.convert("years")
+add_field("ParticleAge",
+          function=_ParticleAge, validators=[ValidateSpatial(0)],
+          particle_type=True, convert_function=_convertParticleAge)
+
 def _ParticleMass(field, data):
     particles = data["particle_mass"].astype('float64') * \
                 just_one(data["CellVolumeCode"].ravel())

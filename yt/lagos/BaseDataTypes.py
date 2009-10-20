@@ -160,6 +160,20 @@ class AMRData(object):
         self.set_field_parameter("center",na.zeros(3,dtype='float64'))
         self.set_field_parameter("bulk_velocity",na.zeros(3,dtype='float64'))
 
+    def _set_center(self, center):
+        if center is None:
+            pass
+        elif isinstance(center, (types.ListType, na.ndarray)):
+            center = na.array(center)
+        elif center == ("max"): # is this dangerous for race conditions?
+            center = pf.h.find_max("Density")
+        elif center.startswith("max_"):
+            center = pf.h.find_max(center[4:])
+        else:
+            center = na.array(center, dtype='float64')
+        self.center = center
+        self.set_field_parameter('center', center)
+
     def get_field_parameter(self, name, default=None):
         """
         This is typically only used by derived field functions, but
@@ -266,6 +280,11 @@ class AMRData(object):
         fid.close()
 
     def save_object(self, name, filename = None):
+        """
+        Save an object.  If *filename* is supplied, it will be stored in
+        a :module:`shelve` file of that name.  Otherwise, it will be stored via
+        :meth:`yt.lagos.AMRHierarchy.save_object`.
+        """
         if filename is not None:
             ds = shelve.open(filename, protocol=-1)
             if name in ds:
@@ -467,7 +486,7 @@ class AMRRayBase(AMR1DData):
         self.end_point = na.array(end_point, dtype='float64')
         self.vec = self.end_point - self.start_point
         #self.vec /= na.sqrt(na.dot(self.vec, self.vec))
-        self.center = self.start_point
+        self._set_center(self.start_point)
         self.set_field_parameter('center', self.start_point)
         self._dts, self._ts = {}, {}
         #self._refresh_data()
@@ -669,8 +688,7 @@ class AMRSliceBase(AMR2DData):
         Optionally supply fields.
         """
         AMR2DData.__init__(self, axis, fields, pf, **kwargs)
-        self.center = center
-        if center is not None: self.set_field_parameter('center',center)
+        self._set_center(center)
         self.coord = coord
         if node_name is False:
             self._refresh_data()
@@ -818,7 +836,7 @@ class AMRCuttingPlaneBase(AMR2DData):
         The 'up' direction is guessed at automatically.
         """
         AMR2DData.__init__(self, 4, fields, **kwargs)
-        self.center = center
+        self._set_center(center)
         self.set_field_parameter('center',center)
         # Let's set up our plane equation
         # ax + by + cz + d = 0
@@ -989,12 +1007,6 @@ class AMRFixedResCuttingPlaneBase(AMR2DData):
                       na.outer(_co[1,:,:], self._y_vec)
         self._pixelmask = na.ones(self.dims*self.dims, dtype='int8')
 
-        try:
-            import PointsInVolumeCUDA as pvc
-            self._pv = pvc.VolumeFinder(self._coord, self.dims)
-        except (ImportError, NoCUDAException):
-            self._pv = None
-
         if node_name is False:
             self._refresh_data()
         else:
@@ -1029,7 +1041,6 @@ class AMRFixedResCuttingPlaneBase(AMR2DData):
         self._grids = self.hierarchy.grids[valid_grids[
             na.where(leftOverlap & rightOverlap)]]
         self._grids = self._grids[::-1]
-
 
     def _generate_coords(self):
         self['px'] = self._coord[:,0].ravel()
@@ -1132,12 +1143,9 @@ class AMRFixedResCuttingPlaneBase(AMR2DData):
 
     def _get_point_indices(self, grid):
         if self._pixelmask.max() == 0: return []
-        if self._pv is not None:
-            k = self._pv(grid)
-        else:
-            k = PV.PointsInVolume(self._coord, self._pixelmask,
-                                  grid.LeftEdge, grid.RightEdge,
-                                  grid.child_mask, just_one(grid['dx']))
+        k = PV.PointsInVolume(self._coord, self._pixelmask,
+                              grid.LeftEdge, grid.RightEdge,
+                              grid.child_mask, just_one(grid['dx']))
         return k
 
     def _gen_node_name(self):
@@ -1165,7 +1173,7 @@ class AMRProjBase(AMR2DData):
         AMR2DData.__init__(self, axis, field, pf, node_name = None, **kwargs)
         self._field_cuts = field_cuts
         self.serialize = serialize
-        self.center = center
+        self._set_center(center)
         if center is not None: self.set_field_parameter('center',center)
         self._node_name = node_name
         self._initialize_source(source)
@@ -1552,7 +1560,7 @@ class AMR3DData(AMRData, GridPropertiesMixin):
         for fields and quantities that require it.
         """
         AMRData.__init__(self, pf, fields, **kwargs)
-        self.center = center
+        self._set_center(center)
         self.set_field_parameter("center",center)
         self.coords = None
         self._grids = None
@@ -2332,7 +2340,7 @@ class AMRSmoothedCoveringGridBase(AMRFloatCoveringGridBase):
     def _get_level_array(self, level, fields):
         fields = ensure_list(fields)
         # We assume refinement by a factor of two
-        rf = float(self.pf["RefineBy"]**(self.level - level))
+        rf = self.pf["RefineBy"]**(self.level - level)
         dims = na.maximum(1,self.ActiveDimensions/rf) + 2
         dx = (self.right_edge-self.left_edge)/(dims-2)
         x,y,z = (na.mgrid[0:dims[0],0:dims[1],0:dims[2]].astype('float64')-0.5)\

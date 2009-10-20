@@ -52,6 +52,7 @@ char _pixelizeDocstring[] =
 static PyObject* Py_Pixelize(PyObject *obj, PyObject *args) {
 
   PyObject *xp, *yp, *dxp, *dyp, *dp;
+  xp = yp = dxp = dyp = dp = NULL;
   unsigned int rows, cols;
   int antialias = 1;
   double x_min, x_max, y_min, y_max;
@@ -115,10 +116,11 @@ static PyObject* Py_Pixelize(PyObject *obj, PyObject *args) {
   int ndy = dy->dimensions[0];
 
   // Calculate the pointer arrays to map input x to output x
-  int i, j, p;
+  int i, j, p, xi, yi;
   double lc, lr, rc, rr;
   double lypx, rypx, lxpx, rxpx, overlap1, overlap2;
-  npy_float64 xsp, ysp, dxsp, dysp, dsp;
+  npy_float64 oxsp, oysp, xsp, ysp, dxsp, dysp, dsp;
+  int xiter[2], yiter[2];
 
   npy_intp dims[] = {rows, cols};
   PyArrayObject *my_array =
@@ -126,41 +128,50 @@ static PyObject* Py_Pixelize(PyObject *obj, PyObject *args) {
               PyArray_DescrFromType(NPY_FLOAT64));
   //npy_float64 *gridded = (npy_float64 *) my_array->data;
 
+  xiter[0] = yiter[0] = 0;
+
   for(i=0;i<rows;i++)for(j=0;j<cols;j++)
       *(npy_float64*) PyArray_GETPTR2(my_array, i, j) = 0.0;
   for(p=0;p<nx;p++)
   {
     // these are cell-centered
-    xsp = *((npy_float64 *)PyArray_GETPTR1(x, p));
-    ysp = *((npy_float64 *)PyArray_GETPTR1(y, p));
+    oxsp = *((npy_float64 *)PyArray_GETPTR1(x, p));
+    oysp = *((npy_float64 *)PyArray_GETPTR1(y, p));
     // half-width
     dxsp = *((npy_float64 *)PyArray_GETPTR1(dx, p));
     dysp = *((npy_float64 *)PyArray_GETPTR1(dy, p));
     dsp = *((npy_float64 *)PyArray_GETPTR1(d, p));
-    if(xsp + dxsp < x_min) (xsp+=period_x);
-    else if (xsp-dxsp > x_max) (xsp-=period_x);
-    if(ysp + dysp < y_min) (ysp+=period_y);
-    else if (ysp-dysp > y_max) (ysp-=period_y);
-    if(((xsp+dxsp<x_min) ||
-        (xsp-dxsp>x_max)) ||
-       ((ysp+dysp<y_min) ||
-        (ysp-dysp>y_max))) continue;
-    lc = max(((xsp-dxsp-x_min)/px_dx),0);
-    lr = max(((ysp-dysp-y_min)/px_dy),0);
-    rc = min(((xsp+dxsp-x_min)/px_dx), rows);
-    rr = min(((ysp+dysp-y_min)/px_dy), cols);
-    for (i=lr;i<rr;i++) {
-      lypx = px_dy * i + y_min;
-      rypx = px_dy * (i+1) + y_min;
-      overlap2 = ((min(rypx, ysp+dysp) - max(lypx, (ysp-dysp)))/px_dy);
-      for (j=lc;j<rc;j++) {
-        lxpx = px_dx * j + x_min;
-        rxpx = px_dx * (j+1) + x_min;
-        overlap1 = ((min(rxpx, xsp+dxsp) - max(lxpx, (xsp-dxsp)))/px_dx);
-        if (overlap1 < 0.0 || overlap2 < 0.0) continue;
-        if (antialias == 1)
-             *(npy_float64*) PyArray_GETPTR2(my_array, j, i) += (dsp*overlap1)*overlap2;
-        else *(npy_float64*) PyArray_GETPTR2(my_array, j, i) = dsp;
+    xiter[1] = yiter[1] = 999;
+    if (oxsp < x_min) {xiter[1] = +1;}
+    else if (oxsp > x_max) {xiter[1] = -1;}
+    if (oysp < y_min) {yiter[1] = +1;}
+    else if (oysp > y_max) {yiter[1] = -1;}
+    for(xi = 0; xi < 2; xi++) {
+      if(xiter[xi] == 999)continue;
+      xsp = oxsp + xiter[xi]*period_x;
+      for(yi = 0; yi < 2; yi++) {
+        if(yiter[yi] == 999)continue;
+        ysp = oysp + yiter[yi]*period_y;
+        if(((xsp+dxsp<x_min) || (xsp-dxsp>x_max)) ||
+            ((ysp+dysp<y_min) || (ysp-dysp>y_max))) continue;
+        lc = max(((xsp-dxsp-x_min)/px_dx),0);
+        lr = max(((ysp-dysp-y_min)/px_dy),0);
+        rc = min(((xsp+dxsp-x_min)/px_dx), rows);
+        rr = min(((ysp+dysp-y_min)/px_dy), cols);
+        for (i=lr;i<rr;i++) {
+          lypx = px_dy * i + y_min;
+          rypx = px_dy * (i+1) + y_min;
+          overlap2 = ((min(rypx, ysp+dysp) - max(lypx, (ysp-dysp)))/px_dy);
+          for (j=lc;j<rc;j++) {
+            lxpx = px_dx * j + x_min;
+            rxpx = px_dx * (j+1) + x_min;
+            overlap1 = ((min(rxpx, xsp+dxsp) - max(lxpx, (xsp-dxsp)))/px_dx);
+            if (overlap1 < 0.0 || overlap2 < 0.0) continue;
+            if (antialias == 1)
+              *(npy_float64*) PyArray_GETPTR2(my_array, j, i) += (dsp*overlap1)*overlap2;
+            else *(npy_float64*) PyArray_GETPTR2(my_array, j, i) = dsp;
+          }
+        }
       }
     }
   }
@@ -179,11 +190,11 @@ static PyObject* Py_Pixelize(PyObject *obj, PyObject *args) {
 
   _fail:
 
-    Py_XDECREF(x);
-    Py_XDECREF(y);
-    Py_XDECREF(d);
-    Py_XDECREF(dx);
-    Py_XDECREF(dy);
+    if(x!=NULL)Py_XDECREF(x);
+    if(y!=NULL)Py_XDECREF(y);
+    if(d!=NULL)Py_XDECREF(d);
+    if(dx!=NULL)Py_XDECREF(dx);
+    if(dy!=NULL)Py_XDECREF(dy);
     return NULL;
 
 }
