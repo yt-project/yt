@@ -132,7 +132,10 @@ class Halo(object):
         return r.max()
 
     def __getitem__(self, key):
-        return self.data.particles[key][self.indices]
+        if ytcfg.getboolean("yt","inline") == False:
+            return self.data.particles[key][self.indices]
+        else:
+            return self.data[key][self.indices]
 
     def get_sphere(self, center_of_mass=True):
         """
@@ -343,11 +346,18 @@ class HaloList(object):
         else: ii = slice(None)
         self.particle_fields = {}
         for field in self._fields:
-            tot_part = self._data_source.particles[field].size
-            if field == "particle_index":
-                self.particle_fields[field] = self._data_source.particles[field][ii].astype('int64')
+            if ytcfg.getboolean("yt","inline") == False:
+                tot_part = self._data_source.particles[field].size
+                if field == "particle_index":
+                    self.particle_fields[field] = self._data_source.particles[field][ii].astype('int64')
+                else:
+                    self.particle_fields[field] = self._data_source.particles[field][ii].astype('float64')
             else:
-                self.particle_fields[field] = self._data_source.particles[field][ii].astype('float64')
+                tot_part = self._data_source[field].size
+                if field == "particle_index":
+                    self.particle_fields[field] = self._data_source[field][ii].astype('int64')
+                else:
+                    self.particle_fields[field] = self._data_source[field][ii].astype('float64')
         self._base_indices = na.arange(tot_part)[ii]
 
     def __get_dm_indices(self):
@@ -609,12 +619,17 @@ class parallelHOPHaloList(HaloList,ParallelAnalysisInterface):
         self.bulk_vel = na.zeros((self.group_count, 3), dtype='float64')
         yt_counters("bulk vel. reading data")
         pm = self.particle_fields["ParticleMassMsun"]
-        xv = self._data_source.particles["particle_velocity_x"][self._base_indices] * \
-            self._data_source.convert("x-velocity")
-        yv = self._data_source["particle_velocity_y"][self._base_indices] * \
-            self._data_source.convert("y-velocity")
-        zv = self._data_source["particle_velocity_z"][self._base_indices] * \
-            self._data_source.convert("z-velocity")
+        if ytcfg.getboolean("yt","inline") == False:
+            xv = self._data_source.particles["particle_velocity_x"][self._base_indices] * \
+                self._data_source.convert("x-velocity")
+            yv = self._data_source.particles["particle_velocity_y"][self._base_indices] * \
+                self._data_source.convert("y-velocity")
+            zv = self._data_source.particles["particle_velocity_z"][self._base_indices] * \
+                self._data_source.convert("z-velocity")
+        else:
+            xv = self._data_source["particle_velocity_x"][self._base_indices]
+            yv = self._data_source["particle_velocity_y"][self._base_indices]
+            zv = self._data_source["particle_velocity_z"][self._base_indices]
         yt_counters("bulk vel. reading data")
         yt_counters("bulk vel. computing")
         select = (self.tags >= 0)
@@ -832,8 +847,10 @@ class parallelHF(GenericHaloFinder, parallelHOPHaloList):
                 else:
                     new_LE, new_RE = new_top_bounds
                     width = new_RE[dim] - new_LE[dim]
-                #data = self._data_source[ds_names[dim]]
-                data = self._data_source[ds_names[dim]]
+                if ytcfg.getboolean("yt","inline") == False:
+                    data = self._data_source.particles[ds_names[dim]]
+                else:
+                    data = self._data_source[ds_names[dim]]
                 if i == 0:
                     local_parts = data.size
                     n_parts = self._mpi_allsum(local_parts)
@@ -859,7 +876,10 @@ class parallelHF(GenericHaloFinder, parallelHOPHaloList):
             self._data_source = self.hierarchy.periodic_region_strict([0.5]*3, LE, RE)
         # get the average spacing between particles for this region
         # The except is for the serial case, where the full box is what we want.
-        data = self._data_source["particle_position_x"]
+        if ytcfg.getboolean("yt","inline") == False:
+            data = self._data_source.particles["particle_position_x"]
+        else:
+            data = self._data_source["particle_position_x"]
         try:
             l = self._data_source.right_edge - self._data_source.left_edge
         except AttributeError:
@@ -878,8 +898,10 @@ class parallelHF(GenericHaloFinder, parallelHOPHaloList):
         elif fancy_padding and self._distributed:
             LE_padding, RE_padding = na.empty(3,dtype='float64'), na.empty(3,dtype='float64')
             for dim in xrange(3):
-                #data = self._data_source[ds_names[dim]]
-                data = self._data_source[ds_names[dim]]
+                if ytcfg.getboolean("yt","inline") == False:
+                    data = self._data_source.particles[ds_names[dim]]
+                else:
+                    data = self._data_source[ds_names[dim]]
                 num_bins = 1000
                 width = self._data_source.right_edge[dim] - self._data_source.left_edge[dim]
                 area = (self._data_source.right_edge[(dim+1)%3] - self._data_source.left_edge[(dim+1)%3]) * \
@@ -890,9 +912,6 @@ class parallelHF(GenericHaloFinder, parallelHOPHaloList):
                 # left side.
                 start = 0
                 count = counts[0]
-                self.mine, blah = self._mpi_info_dict(10)
-                if self.mine == 0:
-                    print self._data_source
                 while count < self.num_neighbors:
                     start += 1
                     count += counts[start]
@@ -914,7 +933,10 @@ class parallelHF(GenericHaloFinder, parallelHOPHaloList):
                 (str(self.padding), avg_spacing, full_vol, data.size, str(self._data_source)))
         # Now we get the full box mass after we have the final composition of
         # subvolumes.
-        total_mass = self._mpi_allsum((self._data_source.particles["ParticleMassMsun"].astype('float64')).sum())
+        if ytcfg.getboolean("yt","inline") == False:
+            total_mass = self._mpi_allsum((self._data_source.particles["ParticleMassMsun"].astype('float64')).sum())
+        else:
+            total_mass = self._mpi_allsum((self._data_source["ParticleMassMsun"].astype('float64')).sum())
         if not self._distributed:
             self.padding = (na.zeros(3,dtype='float64'), na.zeros(3,dtype='float64'))
         self.bounds = (LE, RE)
@@ -949,7 +971,7 @@ class HOPHaloFinder(GenericHaloFinder, HOPHaloList):
         padded, LE, RE, self._data_source = self._partition_hierarchy_3d(padding=self.padding)
         # For scaling the threshold, note that it's a passthrough
         if dm_only:
-            select = self._data_source.particles["creation_time"] > 0
+            select = self._data_source["creation_time"] > 0
             total_mass = self._mpi_allsum((self._data_source["ParticleMassMsun"][select]).sum())
             sub_mass = (self._data_source["ParticleMassMsun"][select]).sum()
         else:
