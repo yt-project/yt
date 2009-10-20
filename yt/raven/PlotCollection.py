@@ -203,7 +203,7 @@ class PlotCollection(object):
         if coord == None:
             coord = center[axis]
         if data_source is None:
-            data_source = self.pf.hierarchy.slice(axis, coord, field, center, **kwargs)
+            data_source = self.pf.hierarchy.slice(axis, coord, field, center=center, **kwargs)
         p = self._add_plot(ptype(data_source, field, use_colorbar=use_colorbar,
                          axes=axes, figure=figure,
                          size=fig_size, periodic=periodic))
