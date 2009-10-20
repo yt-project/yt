@@ -42,7 +42,6 @@ from enthought.tvtk.pyface.scene_editor import SceneEditor
 from enthought.tvtk.pyface.api import \
     DecoratedScene
 from enthought.tvtk.pyface.scene_model import SceneModel
-from enthought.traits.ui.wx.range_editor import SimpleSliderEditor
 
 from plot_editors import Figure, MPLFigureEditor, MPLVMPlotEditor, Axes
 
@@ -434,8 +433,8 @@ class MainWindow(HasTraits):
                             show_label=False, height=500.0, width=500.0),
                     ),
                     HGroup(
-                       Item('shell', editor=ShellEditor(share=True),
-                            show_label=False, height=120.0),
+                       #Item('shell', editor=ShellEditor(share=True),
+                            #show_label=False, height=120.0),
                     ),
                 ),
                resizable=True, width=800.0, height=660.0,
