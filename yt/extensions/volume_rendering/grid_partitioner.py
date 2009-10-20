@@ -91,12 +91,15 @@ def partition_all_grids(grid_list, field = "Density",
     new_grids = []
     pbar = get_pbar("Partitioning ", len(grid_list))
     if eval_func is None: eval_func = lambda a: True
+    dx = 1e300
     for i, g in enumerate(grid_list):
         if not eval_func(g): continue
         pbar.update(i)
+        if g.dds[0] < dx: dx = g.dds[0]
         to_add = partition_grid(g, field, True, threshold)
         if to_add is not None: new_grids += to_add
     pbar.finish()
+    for g in new_grids: g.min_dds = dx
     return na.array(new_grids, dtype='object')
 
 def export_partitioned_grids(grid_list, fn):
@@ -105,6 +108,7 @@ def export_partitioned_grids(grid_list, fn):
     nelem = sum((grid.my_data.size for grid in grid_list))
     ngrids = len(grid_list)
     group = f.create_group("/PGrids")
+    group.attrs["min_dds"] = grid_list[0].min_dds
     left_edge = na.concatenate([[grid.LeftEdge,] for grid in grid_list])
     f.create_dataset("/PGrids/LeftEdges", data=left_edge); del left_edge
     right_edge = na.concatenate([[grid.RightEdge,] for grid in grid_list])
@@ -126,12 +130,14 @@ def import_partitioned_grids(fn):
     data = f["/PGrids/Data"][:]
     pbar = get_pbar("Reading Grids", dims.shape[0])
     curpos = 0
+    dx = f["/PGrids"].attrs["min_dds"]
     for i in xrange(dims.shape[0]):
         gd = dims[i,:]
         gle, gre = left_edges[i,:], right_edges[i,:]
         gdata = data[curpos:curpos+gd.prod()].reshape(gd)
         # Vertex -> Grid, so we -1 from dims in this
         grid_list.append(PartitionedGrid(gdata, gle, gre, gd - 1))
+        grid_list[-1].min_dds = dx
         curpos += gd.prod()
         pbar.update(i)
     pbar.finish()
