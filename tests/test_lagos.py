@@ -394,6 +394,7 @@ class TestDataCube(LagosTestingBase, unittest.TestCase):
         cg = self.hierarchy.covering_grid(2, [0.0]*3, [64,64,64])
         self.assertEqual(na.unique(cg["CellVolume"]).size, 1)
 
+
 class TestDiskDataType(Data3DBase, DataTypeTestingBase, LagosTestingBase, unittest.TestCase):
     def setUp(self):
         DataTypeTestingBase.setUp(self)
@@ -479,6 +480,7 @@ class TestExtractFromSphere(TestSphereDataType):
         self.region = self.data
         self.ind_to_get = na.where(self.region["Temperature"]>500)
         self.data = self.region.extract_region(self.ind_to_get)
+
     def testNumberOfEntries(self):
         self.assertEqual(self.ind_to_get[0].shape,
                         self.data["Density"].shape)

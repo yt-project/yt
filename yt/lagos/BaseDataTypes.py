@@ -160,6 +160,20 @@ class AMRData(object):
         self.set_field_parameter("center",na.zeros(3,dtype='float64'))
         self.set_field_parameter("bulk_velocity",na.zeros(3,dtype='float64'))
 
+    def _set_center(self, center):
+        if center is None:
+            pass
+        elif isinstance(center, (types.ListType, na.ndarray)):
+            center = na.array(center)
+        elif center == ("max"): # is this dangerous for race conditions?
+            center = pf.h.find_max("Density")
+        elif center.startswith("max_"):
+            center = pf.h.find_max(center[4:])
+        else:
+            center = na.array(center, dtype='float64')
+        self.center = center
+        self.set_field_parameter('center', center)
+
     def get_field_parameter(self, name, default=None):
         """
         This is typically only used by derived field functions, but
@@ -200,6 +214,15 @@ class AMRData(object):
         if self._grids is not None:
             for grid in self._grids: grid.clear_data()
         self.data = {}
+
+    def clear_cache(self):
+        """
+        Clears out all cache, freeing memory.
+        """
+        for _cm in self._cut_masks: del _cm
+        for _pi in self._point_indices: del _pi
+        for _field in self._vc_data:
+            for _vc in _field: del _vc
 
     def has_key(self, key):
         """
@@ -485,7 +508,7 @@ class AMRRayBase(AMR1DData):
         self.end_point = na.array(end_point, dtype='float64')
         self.vec = self.end_point - self.start_point
         #self.vec /= na.sqrt(na.dot(self.vec, self.vec))
-        self.center = self.start_point
+        self._set_center(self.start_point)
         self.set_field_parameter('center', self.start_point)
         self._dts, self._ts = {}, {}
         #self._refresh_data()
@@ -687,8 +710,7 @@ class AMRSliceBase(AMR2DData):
         Optionally supply fields.
         """
         AMR2DData.__init__(self, axis, fields, pf, **kwargs)
-        self.center = center
-        if center is not None: self.set_field_parameter('center',center)
+        self._set_center(center)
         self.coord = coord
         if node_name is False:
             self._refresh_data()
@@ -836,7 +858,7 @@ class AMRCuttingPlaneBase(AMR2DData):
         The 'up' direction is guessed at automatically.
         """
         AMR2DData.__init__(self, 4, fields, **kwargs)
-        self.center = center
+        self._set_center(center)
         self.set_field_parameter('center',center)
         # Let's set up our plane equation
         # ax + by + cz + d = 0
@@ -1007,6 +1029,12 @@ class AMRFixedResCuttingPlaneBase(AMR2DData):
                       na.outer(_co[1,:,:], self._y_vec)
         self._pixelmask = na.ones(self.dims*self.dims, dtype='int8')
 
+        try:
+            import IIIPointsInVolumeCUDA as pvc
+            self._pv = pvc.VolumeFinder(self._coord, self.dims)
+        except (ImportError, NoCUDAException):
+            self._pv = None
+
         if node_name is False:
             self._refresh_data()
         else:
@@ -1073,7 +1101,42 @@ class AMRFixedResCuttingPlaneBase(AMR2DData):
             raise SyntaxError("Making a fixed resolution slice with "
                               "particles isn't supported yet.")
 
-    @time_execution
+    def reslice(self, normal, center, width):
+
+        # Cleanup
+        del self._coord
+        del self._pixelmask
+
+        self.center = center
+        self.width = width
+        self.dds = self.width / self.dims
+        self.set_field_parameter('center', center)
+        self._norm_vec = normal/na.sqrt(na.dot(normal,normal))
+        self._d = -1.0 * na.dot(self._norm_vec, self.center)
+        # First we try all three, see which has the best result:
+        vecs = na.identity(3)
+        _t = na.cross(self._norm_vec, vecs).sum(axis=1)
+        ax = _t.argmax()
+        self._x_vec = na.cross(vecs[ax,:], self._norm_vec).ravel()
+        self._x_vec /= na.sqrt(na.dot(self._x_vec, self._x_vec))
+        self._y_vec = na.cross(self._norm_vec, self._x_vec).ravel()
+        self._y_vec /= na.sqrt(na.dot(self._y_vec, self._y_vec))
+        self.set_field_parameter('cp_x_vec',self._x_vec)
+        self.set_field_parameter('cp_y_vec',self._y_vec)
+        self.set_field_parameter('cp_z_vec',self._norm_vec)
+        # Calculate coordinates of each pixel
+        _co = self.dds * \
+              (na.mgrid[-self.dims/2 : self.dims/2,
+                        -self.dims/2 : self.dims/2] + 0.5)
+
+        self._coord = self.center + na.outer(_co[0,:,:], self._x_vec) + \
+                      na.outer(_co[1,:,:], self._y_vec)
+        self._pixelmask = na.ones(self.dims*self.dims, dtype='int8')
+
+        self._refresh_data()
+        return
+
+    #@time_execution
     def get_data(self, fields = None):
         """
         Iterates over the list of fields and generates/reads them all.
@@ -1109,9 +1172,12 @@ class AMRFixedResCuttingPlaneBase(AMR2DData):
 
     def _get_point_indices(self, grid):
         if self._pixelmask.max() == 0: return []
-        k = PV.PointsInVolume(self._coord, self._pixelmask,
-                              grid.LeftEdge, grid.RightEdge,
-                              grid.child_mask, just_one(grid['dx']))
+        if self._pv is not None:
+            k = self._pv(grid)
+        else:
+            k = PV.PointsInVolume(self._coord, self._pixelmask,
+                                  grid.LeftEdge, grid.RightEdge,
+                                  grid.child_mask, just_one(grid['dx']))
         return k
 
     def _gen_node_name(self):
@@ -1139,7 +1205,7 @@ class AMRProjBase(AMR2DData):
         AMR2DData.__init__(self, axis, field, pf, node_name = None, **kwargs)
         self._field_cuts = field_cuts
         self.serialize = serialize
-        self.center = center
+        self._set_center(center)
         if center is not None: self.set_field_parameter('center',center)
         self._node_name = node_name
         self._initialize_source(source)
@@ -1544,7 +1610,7 @@ class AMR3DData(AMRData, GridPropertiesMixin):
         for fields and quantities that require it.
         """
         AMRData.__init__(self, pf, fields, **kwargs)
-        self.center = center
+        self._set_center(center)
         self.set_field_parameter("center",center)
         self.coords = None
         self._grids = None
@@ -2316,7 +2382,7 @@ class AMRSmoothedCoveringGridBase(AMRFloatCoveringGridBase):
     def _get_level_array(self, level, fields):
         fields = ensure_list(fields)
         # We assume refinement by a factor of two
-        rf = float(self.pf["RefineBy"]**(self.level - level))
+        rf = self.pf["RefineBy"]**(self.level - level)
         dims = na.maximum(1,self.ActiveDimensions/rf) + 2
         dx = (self.right_edge-self.left_edge)/(dims-2)
         x,y,z = (na.mgrid[0:dims[0],0:dims[1],0:dims[2]].astype('float64')-0.5)\
