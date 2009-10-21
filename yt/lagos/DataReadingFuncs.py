@@ -182,13 +182,12 @@ class IOHandlerExtracted(BaseIOHandler):
     _data_style = 'extracted'
 
     def _read_data_set(self, grid, field):
-        return grid.base_grid[field]
+        return (grid.base_grid[field] / grid.base_grid.convert(field))
 
     def _read_data_slice(self, grid, field, axis, coord):
         sl = [slice(None), slice(None), slice(None)]
         sl[axis] = slice(coord, coord + 1)
-        sl = tuple(reversed(sl))
-        return grid.base_grid[field][sl]
+        return grid.base_grid[field][tuple(sl)] / grid.base_grid.convert(field)
 
 class IOHandlerPackedHDF5(BaseIOHandler):
 

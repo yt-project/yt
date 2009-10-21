@@ -35,6 +35,7 @@ class DummyHierarchy(object):
 
 class ConstructedRootGrid(AMRGridPatch):
     __slots__ = ['base_grid', 'id', 'base_pf']
+    _id_offset = 0
     def __init__(self, base_pf, pf, hierarchy, level, left_edge, right_edge):
         """
         This is a fake root grid, constructed by creating a
@@ -60,8 +61,9 @@ class ConstructedRootGrid(AMRGridPatch):
         self.base_grid = base_pf.h.smoothed_covering_grid(level, self.LeftEdge,
                         self.RightEdge, dims=dims)
         self.base_grid.Level = self.base_grid.level
-        self.data = self.base_grid
+        self.data = {}
         self._calculate_child_masks()
+        self.Parent = None
 
     def _calculate_child_masks(self):
         # This might be slow
@@ -224,6 +226,15 @@ class ExtractedHierarchy(AMRHierarchy):
         self.base_pf = pf.base_pf
         AMRHierarchy.__init__(self, pf, data_style)
 
+        # Now a few cleanups
+        self.pf.override["DomainRightEdge"] = self.max_right_edge
+        self.pf.override["DomainLeftEdge"] = self.min_left_edge
+        for u,v in self.base_pf.units.items():
+            print "Setting %s to %s from %s" % (u, v, v/self.mult_factor)
+            self.pf.override[u] = v / self.mult_factor
+        self.pf.override['unitary'] = 1.0 / (self.pf["DomainRightEdge"] -
+                                             self.pf["DomainLeftEdge"]).max()
+
     def _count_grids(self):
         self.num_grids = 1 + sum( ( # 1 is the base grid
             len(self.base_pf.h.select_grids(level)) 
@@ -291,6 +302,7 @@ class ExtractedHierarchy(AMRHierarchy):
             grid.Level = grid.base_grid.Level - self.pf.min_level
             grid._prepare_grid()
             grid._setup_dx()
+            grid.start_index = None
         self.max_level -= self.pf.min_level
         print "New max level:", self.max_level
 
@@ -323,6 +335,7 @@ class ExtractedParameterFile(StaticOutput):
         self.min_level = min_level
         self.max_level = max_level
         self.offset = offset
+        self.override = {}
 
     def __repr__(self):
         return "extracted_%s" % self.base_pf
@@ -335,5 +348,7 @@ class ExtractedParameterFile(StaticOutput):
         return getattr(self.base_pf, name)
 
     def __getitem__(self, key):
-        return self.base_pf[key]
+        if key not in self.override:
+            return self.base_pf[key]
+        return self.override[key]
 
