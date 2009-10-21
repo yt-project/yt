@@ -30,6 +30,8 @@ import cPickle
 from itertools import chain, izip
 
 class AMRHierarchy(ObjectFindingMixin, ParallelAnalysisInterface):
+    float_type = 'float64'
+
     def __init__(self, pf, data_style):
         self.parameter_file = weakref.proxy(pf)
         self.pf = self.parameter_file
@@ -86,6 +88,14 @@ class AMRHierarchy(ObjectFindingMixin, ParallelAnalysisInterface):
         self._data_file = None
         self._data_mode = None
         self._max_locations = {}
+
+    def _initialize_grid_arrays(self):
+        mylog.debug("Allocating arrays for %s grids", self.num_grids)
+        self.grid_dimensions = na.ones((self.num_grids,3), 'int32')
+        self.grid_left_edge = na.zeros((self.num_grids,3), self.float_type)
+        self.grid_right_edge = na.ones((self.num_grids,3), self.float_type)
+        self.grid_levels = na.zeros((self.num_grids,1), 'int32')
+        self.grid_particle_count = na.zeros((self.num_grids,1), 'int32')
 
     def _setup_classes(self, dd):
         # Called by subclass
@@ -368,14 +378,6 @@ class EnzoHierarchy(AMRHierarchy):
                 self.num_grids = test_grid_id = int(line.split("=")[-1])
                 break
         self._guess_data_style(self.pf["TopGridRank"], test_grid, test_grid_id)
-
-    def _initialize_grid_arrays(self):
-        mylog.debug("Allocating arrays for %s grids", self.num_grids)
-        self.grid_dimensions = na.ones((self.num_grids,3), 'int32')
-        self.grid_left_edge = na.zeros((self.num_grids,3), self.float_type)
-        self.grid_right_edge = na.ones((self.num_grids,3), self.float_type)
-        self.grid_levels = na.zeros((self.num_grids,1), 'int32')
-        self.grid_particle_count = na.zeros((self.num_grids,1), 'int32')
 
     def _guess_data_style(self, rank, test_grid, test_grid_id):
         if self.data_style is not None: return

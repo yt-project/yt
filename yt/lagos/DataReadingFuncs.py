@@ -177,6 +177,18 @@ class IOHandlerHDF5(BaseIOHandler):
     def _read_exception(self):
         return (exceptions.KeyError, HDF5LightReader.ReadingError)
 
+class IOHandlerExtracted(BaseIOHandler):
+
+    _data_style = 'extracted'
+
+    def _read_data_set(self, grid, field):
+        return grid.base_grid[field]
+
+    def _read_data_slice(self, grid, field, axis, coord):
+        sl = [slice(None), slice(None), slice(None)]
+        sl[axis] = slice(coord, coord + 1)
+        sl = tuple(reversed(sl))
+        return grid.base_grid[field][sl]
 
 class IOHandlerPackedHDF5(BaseIOHandler):
 
