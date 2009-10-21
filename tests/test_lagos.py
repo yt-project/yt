@@ -259,6 +259,7 @@ class Data3DBase:
         self.assertEqual(obj["CellMassMsun"].sum(), self.data["CellMassMsun"].sum())
 
 for field_name in yt.lagos.FieldInfo:
+    if field_name.startswith("PT"): continue
     field = yt.lagos.FieldInfo[field_name]
     setattr(DataTypeTestingBase, "test%s" % field.name, _returnFieldFunction(field))
 

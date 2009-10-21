@@ -228,9 +228,36 @@ class EnzoStaticOutput(StaticOutput):
         """
         if self.parameters.has_key(parameter):
             return self.parameters[parameter]
-        for line in open(self.parameter_filename):
-            if line.startswith(parameter):
-                return line.split("=", 1)[1]
+
+        # Let's read the file
+        self.parameters["CurrentTimeIdentifier"] = \
+            int(os.stat(self.parameter_filename)[ST_CTIME])
+        lines = open(self.parameter_filename).readlines()
+        for lineI, line in enumerate(lines):
+            if line.find("#") >= 1: # Keep the commented lines
+                line=line[:line.find("#")]
+            line=line.strip().rstrip()
+            if len(line) < 2:
+                continue
+            try:
+                param, vals = map(strip,map(rstrip,line.split("=")))
+            except ValueError:
+                mylog.error("ValueError: '%s'", line)
+            if parameter == param:
+                if type is None:
+                    t = vals.split()
+                else:
+                    t = map(type, vals.split())
+                if len(t) == 1:
+                    self.parameters[param] = t[0]
+                else:
+                    self.parameters[param] = t
+                if param.endswith("Units") and not param.startswith("Temperature"):
+                    dataType = param[:-5]
+                    self.conversion_factors[dataType] = self.parameters[param]
+                return self.parameters[parameter]
+
+        return ""
 
     def _parse_parameter_file(self):
         """
