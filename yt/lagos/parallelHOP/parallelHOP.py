@@ -523,9 +523,9 @@ class RunParallelHOP(ParallelAnalysisInterface):
         enough peak densities are prelinked in order to reduce the size of the
         global chain objects. This is very similar to _connect_chains().
         """
-        yt_counters("preconnect_chains")
         # First we'll sort them, which will be used below.
         mylog.info("Locally sorting chains...")
+        yt_counters("preconnect_chains")
         yt_counters("local chain sorting.")
         sort = self.densest_in_chain.argsort()
         sort = na.flipud(sort)
@@ -540,6 +540,7 @@ class RunParallelHOP(ParallelAnalysisInterface):
         del map
         yt_counters("local chain sorting.")
         mylog.info("Preconnecting %d chains..." % chain_count)
+        self.search_again = na.empty(self.size, dtype='bool')
         chain_map = defaultdict(set)
         for i in xrange(max(self.chainID)+1):
             chain_map[i].add(i)
@@ -549,31 +550,33 @@ class RunParallelHOP(ParallelAnalysisInterface):
         fKD.tags = na.empty(self.nMerge+2, dtype='int64')
         # We can change this here to make the searches faster.
         fKD.nn = self.nMerge+2
+        yt_counters("preconnect kd tree search.")
         for i in xrange(self.size):
             # Don't consider this particle if it's not part of a chain.
             if self.chainID[i] < 0: continue
             chainID_i = self.chainID[i]
             # If this particle is in the padding, don't make a connection.
             if not self.is_inside[i]: continue
-            # Find this particle's chain max_dens and only go forth if this
-            # is a sufficiently dense chain.
+            # If we've made it this far mark it to be searched again.
+            self.search_again[i] = True
+            # Find this particle's chain max_dens.
             part_max_dens = self.densest_in_chain[chainID_i]
+            # We're only connecting >= peakthresh chains now.
             if part_max_dens < self.peakthresh: continue
             # Loop over nMerge closest nearest neighbors.
             fKD.qv = fKD.pos[:, i]
             find_nn_nearest_neighbors()
             NNtags = fKD.tags[:] - 1
+            same_count = 0
             for j in xrange(int(self.nMerge+1)):
                 thisNN = NNtags[j+1] # Don't consider ourselves at NNtags[0]
                 thisNN_chainID = self.chainID[thisNN]
                 # If our neighbor is in the same chain, move on.
-                if chainID_i == thisNN_chainID: continue
                 # Move on if these chains are already connected:
-                if thisNN_chainID in chain_map[chainID_i]: continue
-                # No introspection, nor our connected NN.
-                # This is probably the same as above, but it's OK.
-                # It can be removed later.
-                if thisNN==i or thisNN==self.densestNN[i]: continue
+                if chainID_i == thisNN_chainID or \
+                        thisNN_chainID in chain_map[chainID_i]:
+                    same_count += 1
+                    continue
                 # Everything immediately below is for
                 # neighboring particles with a chainID. 
                 if thisNN_chainID >= 0:
@@ -588,9 +591,15 @@ class RunParallelHOP(ParallelAnalysisInterface):
                     # Mark these chains as related.
                     chain_map[thisNN_chainID].add(chainID_i)
                     chain_map[chainID_i].add(thisNN_chainID)
+            if same_count == self.nMerge + 1:
+                # All our neighbors are in the same chain already, so 
+                # we don't need to search again.
+                self.search_again[i] = False
+        yt_counters("preconnect kd tree search.")
         # Recursively jump links until we get to a chain whose densest
         # link is to itself. At that point we've found the densest chain
         # in this set of sets and we keep a record of that.
+        yt_counters("preconnect pregrouping.")
         final_chain_map = na.empty(max(self.chainID)+1, dtype='int64')
         removed = 0
         for i in xrange(max(self.chainID)+1):
@@ -626,6 +635,7 @@ class RunParallelHOP(ParallelAnalysisInterface):
         self.densest_in_chain = dic_new.copy()
         self.densest_in_chain_real_index = dicri_new.copy()
         self.__max_memory()
+        yt_counters("preconnect pregrouping.")
         mylog.info("Preconnected %d chains." % removed)
         yt_counters("preconnect_chains")
 
@@ -967,6 +977,8 @@ class RunParallelHOP(ParallelAnalysisInterface):
             if self.chainID[i] < 0: continue
             # If this particle is in the padding, don't make a connection.
             if not self.is_inside[i]: continue
+            # Make sure that we should search this particle again.
+            if not self.search_again[i]: continue
             # Find this particle's chain max_dens.
             part_max_dens = self.densest_in_chain[self.chainID[i]]
             # Make sure we're skipping deleted chains.
@@ -980,10 +992,6 @@ class RunParallelHOP(ParallelAnalysisInterface):
                 thisNN_chainID = self.chainID[thisNN]
                 # If our neighbor is in the same chain, move on.
                 if self.chainID[i] == thisNN_chainID: continue
-                # No introspection, nor our connected NN.
-                # This is probably the same as above, but it's OK.
-                # It can be removed later.
-                if thisNN==i or thisNN==self.densestNN[i]: continue
                 # Everything immediately below is for
                 # neighboring particles with a chainID. 
                 if thisNN_chainID >= 0:

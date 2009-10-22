@@ -56,8 +56,12 @@ class BaseIOHandler(object):
             # We only read the one set and do not store it if it isn't pre-loaded
             return self._read_data_set(grid, field)
 
-    def _read_particles(self, fields, rtype, args, grid_list, enclosed):
-        pass
+    def _read_particles(self, fields, rtype, args, grid_list, enclosed,
+                        conv_factors):
+        filenames = [g.filename for g in grid_list]
+        ids = [g.id for g in grid_list]
+        return HDF5LightReader.ReadParticles(
+            rtype, fields, filenames, ids, conv_factors, args, 0)
 
     def peek(self, grid, field):
         return self.queue[grid.id].get(field, None)

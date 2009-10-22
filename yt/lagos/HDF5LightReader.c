@@ -1096,9 +1096,15 @@ int run_validators(particle_validation *pv, char *filename,
               /* Now we multiply our fields by the appropriate conversion factor */
               if (cfactors[ifield] != 1.0) {
                 for(p_ind = 0; p_ind < read_here; p_ind++)
-                  *(npy_float64 *) PyArray_GETPTR1(
+                    if (npy_type == 11) { // floats
+                       *(npy_float32 *) PyArray_GETPTR1(
                                    pv->return_values[ifield], p_ind + pv->nread)
-                    *= cfactors[ifield];
+                       *= cfactors[ifield];
+                    } else { // doubles
+                       *(npy_float64 *) PyArray_GETPTR1(
+                                   pv->return_values[ifield], p_ind + pv->nread)
+                       *= cfactors[ifield];
+                    }
               }
           }
           pv->nread += read_here;
