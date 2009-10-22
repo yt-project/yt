@@ -316,6 +316,9 @@ def _cudaIsBound(data, truncate, ratio):
         int idx2 = blockIdx.y * blockDim.x;
         int offset = threadIdx.x;
 
+        /* Here we're just setting up convenience pointers to our
+           shared array */
+
         float* x_data1 = (float*) array;
         float* y_data1 = (float*) &x_data1[blockDim.x];
         float* z_data1 = (float*) &y_data1[blockDim.x];
