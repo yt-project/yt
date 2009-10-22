@@ -189,7 +189,7 @@ class ContourCallback(PlotCallback):
 
 class GridBoundaryCallback(PlotCallback):
     _type_name = "grids"
-    def __init__(self, alpha=1.0, min_pix = 1,annotate=False):
+    def __init__(self, alpha=1.0, min_pix=1, annotate=False, periodic=True):
         """
         Adds grid boundaries to a plot, optionally with *alpha*-blending.
         Cuttoff for display is at *min_pix* wide.
@@ -198,7 +198,9 @@ class GridBoundaryCallback(PlotCallback):
         PlotCallback.__init__(self)
         self.alpha = alpha
         self.min_pix = min_pix
-        self.annotate=annotate # put grid numbers in the corner.        
+        self.annotate = annotate # put grid numbers in the corner.
+        self.periodic = periodic
+
     def __call__(self, plot):
         x0, x1 = plot.xlim
         y0, y1 = plot.ylim
@@ -209,7 +211,8 @@ class GridBoundaryCallback(PlotCallback):
         px_index = lagos.x_dict[plot.data.axis]
         py_index = lagos.y_dict[plot.data.axis]
         dom = plot.data.pf["DomainRightEdge"] - plot.data.pf["DomainLeftEdge"]
-        pxs, pys = na.mgrid[-1:1:3j,-1:1:3j]
+        pxs, pys = {True:na.mgrid[-1:1:3j,-1:1:3j],
+                    False: na.mgrid[0:0:1j,0:0:1j]}[self.periodic]
         GLE = plot.data.gridLeftEdge
         GRE = plot.data.gridRightEdge
         for px_off, py_off in zip(pxs.ravel(), pys.ravel()):
