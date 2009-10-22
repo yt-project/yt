@@ -211,8 +211,10 @@ class GridBoundaryCallback(PlotCallback):
         px_index = lagos.x_dict[plot.data.axis]
         py_index = lagos.y_dict[plot.data.axis]
         dom = plot.data.pf["DomainRightEdge"] - plot.data.pf["DomainLeftEdge"]
-        pxs, pys = {True:na.mgrid[-1:1:3j,-1:1:3j],
-                    False: na.mgrid[0:0:1j,0:0:1j]}[self.periodic]
+        if self.periodic:
+            pxs, pys = na.mgrid[-1:1:3j,-1:1:3j]
+        else:
+            pxs, pys = na.mgrid[0:0:1j,0:0:1j]
         GLE = plot.data.gridLeftEdge
         GRE = plot.data.gridRightEdge
         for px_off, py_off in zip(pxs.ravel(), pys.ravel()):
