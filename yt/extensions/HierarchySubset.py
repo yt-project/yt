@@ -35,7 +35,7 @@ class DummyHierarchy(object):
 
 class ConstructedRootGrid(AMRGridPatch):
     __slots__ = ['base_grid', 'id', 'base_pf']
-    _id_offset = 0
+    _id_offset = 1
     def __init__(self, base_pf, pf, hierarchy, level, left_edge, right_edge):
         """
         This is a fake root grid, constructed by creating a
@@ -47,8 +47,9 @@ class ConstructedRootGrid(AMRGridPatch):
         self.field_parameters = {}
         self.fields = []
         self.NumberOfParticles = 0
-        self.id = 0
+        self.id = 1
         self.hierarchy = hierarchy
+        self._child_mask = self._child_indices = self._child_index_mask = None
         self.Level = level
         self.LeftEdge = left_edge
         self.RightEdge = right_edge
@@ -62,24 +63,21 @@ class ConstructedRootGrid(AMRGridPatch):
                         self.RightEdge, dims=dims)
         self.base_grid.Level = self.base_grid.level
         self.data = {}
-        self._calculate_child_masks()
+        #self._calculate_child_masks()
         self.Parent = None
+        self.Children = []
 
-    def _calculate_child_masks(self):
-        # This might be slow
-        grids, grid_ind = self.base_pf.hierarchy.get_box_grids(
-                    self.LeftEdge, self.RightEdge)
-        self.Children = [g for g in grids if g.Level == self.Level + 1]
-        self._child_mask = na.ones(self.ActiveDimensions, dtype='int32')
-        for c in self.Children:
-            si = na.maximum(0, na.rint((c.LeftEdge - self.LeftEdge)/self.dds))
-            ei = na.minimum(self.ActiveDimensions,
-                    na.rint((c.RightEdge - self.LeftEdge)/self.dds))
-            self._child_mask[si[0]:ei[0], si[1]:ei[1], si[2]:ei[2]] = 0
+    def get_vertex_centered_data(self, field, smoothed=True):
+        LE = self.LeftEdge - self.dds*0.5
+        RE = self.RightEdge + self.dds*0.5
+        dims = self.dims + 1
+        vc = self.base_pf.h.smoothed_covering_grid(self.base_grid.Level,
+            LE, RE, dims)
+        return vc[field]
 
 class AMRExtractedGridProxy(AMRGridPatch):
     __slots__ = ['base_grid']
-    _id_offset = 0
+    _id_offset = 1
     def __init__(self, grid_id, base_grid, hierarchy):
         # We make a little birdhouse in our soul for the base_grid
         # (they're the only bee in our bonnet!)
@@ -88,6 +86,9 @@ class AMRExtractedGridProxy(AMRGridPatch):
         self.Parent = None
         self.Children = []
         self.Level = -1
+
+    def get_vertex_centered_data(self, *args, **kwargs):
+        return self.base_grid.get_vertex_centered_data(*args, **kwargs)
 
 class OldExtractedHierarchy(object):
 
@@ -209,8 +210,11 @@ class ExtractedHierarchy(AMRHierarchy):
                            pf.base_pf.h.select_grids(pf.min_level)], axis=0).astype('float64')
         max_right = na.max([grid.RightEdge for grid in 
                            pf.base_pf.h.select_grids(pf.min_level)], axis=0).astype('float64')
+        level_dx = pf.base_pf.h.select_grids(pf.min_level)[0].dds[0]
+        dims = ((max_right-min_left)/level_dx)
+        max_right += (dims.max() - dims) * level_dx
         offset = pf.offset
-        if offset is None: offset = (max_right + min_left)/2.0
+        if offset is None: offset = min_left
         self.left_edge_offset = offset
         pf.offset = offset
         self.mult_factor = 2**pf.min_level
@@ -230,7 +234,6 @@ class ExtractedHierarchy(AMRHierarchy):
         self.pf.override["DomainRightEdge"] = self.max_right_edge
         self.pf.override["DomainLeftEdge"] = self.min_left_edge
         for u,v in self.base_pf.units.items():
-            print "Setting %s to %s from %s" % (u, v, v/self.mult_factor)
             self.pf.override[u] = v / self.mult_factor
         self.pf.override['unitary'] = 1.0 / (self.pf["DomainRightEdge"] -
                                              self.pf["DomainLeftEdge"]).max()
@@ -255,18 +258,15 @@ class ExtractedHierarchy(AMRHierarchy):
         # strictly nested and we are not doing any cuts.  However, we do
         # construct a root grid!
         root_level_grids = self.base_pf.h.select_grids(self.min_level)
-        if len(root_level_grids) > 0:
-            base_grid = ConstructedRootGrid(self.base_pf, self.pf, self,
-                            self.min_level, self.min_left, self.max_right)
-        else:
-            base_grid = self.grid(0, root_level_grids[0], self)
+        base_grid = ConstructedRootGrid(self.base_pf, self.pf, self,
+                        self.min_level, self.min_left, self.max_right)
+        self._fill_grid_arrays(base_grid, 0)
         grids = [base_grid]
         # We need to ensure we have the correct parentage relationships
         # However, we want the parent/child to be to the new proxy grids
         # so we need to map between the old ids and the new ids
         self.id_map = {}
-        self._fill_grid_arrays(base_grid, 0)
-        grid_id = 1 # id 0 is the base grid
+        grid_id = 2 # id 0 is the base grid
         for level in range(self.min_level+1, self.max_level):
             for grid in self.base_pf.h.select_grids(level):
                 # This next little bit will have to be changed if we ever move to
@@ -280,7 +280,7 @@ class ExtractedHierarchy(AMRHierarchy):
                 # are filling in values from the base grids, not the newly
                 # extracted grids.  We will perform bulk changes after we
                 # finish.
-                self._fill_grid_arrays(grid, grid_id)
+                self._fill_grid_arrays(grid, grid_id-1)
                 grid_id += 1
 
         self.grid_left_edge = self._convert_coords(self.grid_left_edge)

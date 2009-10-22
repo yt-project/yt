@@ -90,7 +90,6 @@ cdef class TransferFunctionProxy:
         self.nbins = tf_obj.nbins
         self.dbin = (self.x_bounds[1] - self.x_bounds[0])/self.nbins
 
-    @cython.profile(True)
     cdef void eval_transfer(self, np.float64_t dt, np.float64_t dv,
                                     np.float64_t *rgba):
         cdef int i
@@ -160,7 +159,6 @@ cdef class VectorPlane:
         self.pdx = (self.bounds[1] - self.bounds[0])/self.nv
         self.pdy = (self.bounds[3] - self.bounds[2])/self.nv
 
-    @cython.profile(True)
     cdef void get_start_stop(self, np.float64_t *ex, int *rv):
         # Extrema need to be re-centered
         cdef np.float64_t cx, cy
@@ -220,7 +218,6 @@ cdef class PartitionedGrid:
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
-    @cython.profile(True)
     def cast_plane(self, TransferFunctionProxy tf, VectorPlane vp):
         # This routine will iterate over all of the vectors and cast each in
         # turn.  Might benefit from a more sophisticated intersection check,
@@ -243,7 +240,6 @@ cdef class PartitionedGrid:
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
-    @cython.profile(True)
     cdef void calculate_extent(self, VectorPlane vp,
                                np.float64_t extrema[4]):
         # We do this for all eight corners
@@ -270,7 +266,6 @@ cdef class PartitionedGrid:
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
-    @cython.profile(True)
     cdef int integrate_ray(self, np.float64_t v_pos[3],
                                  np.float64_t v_dir[3],
                                  np.float64_t rgba[4],
@@ -369,7 +364,6 @@ cdef class PartitionedGrid:
             if enter_t > 1.0: break
         return hit
 
-    @cython.profile(True)
     cdef void sample_values(self,
                             np.float64_t v_pos[3],
                             np.float64_t v_dir[3],
