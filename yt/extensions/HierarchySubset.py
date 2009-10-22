@@ -68,11 +68,10 @@ class ConstructedRootGrid(AMRGridPatch):
         self.Children = []
 
     def get_vertex_centered_data(self, field, smoothed=True):
-        LE = self.LeftEdge - self.dds*0.5
-        RE = self.RightEdge + self.dds*0.5
-        dims = self.dims + 1
         vc = self.base_pf.h.smoothed_covering_grid(self.base_grid.Level,
-            LE, RE, dims)
+                self.base_grid.LeftEdge - self.base_grid.dds*0.5,
+                self.base_grid.RightEdge + self.base_grid.dds*0.5,
+                dims = self.ActiveDimensions + 1)
         return vc[field]
 
 class AMRExtractedGridProxy(AMRGridPatch):
