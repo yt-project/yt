@@ -608,6 +608,10 @@ class parallelHOPHaloList(HaloList,ParallelAnalysisInterface):
             self.particle_fields["ParticleMassMsun"]/self.total_mass,
             self.threshold, rearrange=self.rearrange)
         self.densities, self.tags = obj.density, obj.chainID
+        # I'm going to go ahead and delete self.densities because it's not
+        # actually being used. I'm not going to remove it altogether because
+        # it may be useful to someone someday.
+        del self.densities
         self.group_count = obj.group_count
         self.group_sizes = obj.group_sizes
         self.CoM = obj.CoM
@@ -722,7 +726,7 @@ class parallelHOPHaloList(HaloList,ParallelAnalysisInterface):
             index += 1
         # Clean up
         del self.max_dens_point, self.Tot_M, self.max_radius, self.bulk_vel
-        del self.halo_taskmap
+        del self.halo_taskmap, self.tags
 
     def __len__(self):
         return self.group_count
