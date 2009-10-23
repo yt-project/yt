@@ -967,6 +967,8 @@ class parallelHF(GenericHaloFinder, parallelHOPHaloList):
         del indexes, Cx, gs
         self._groups = self._groups[sorted]
         self._max_dens = self._max_dens[sorted]
+        for i in xrange(self.group_count):
+            self._groups[i].id = i
         del sorted, self.group_sizes, self.CoM
 
 
