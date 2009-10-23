@@ -673,7 +673,7 @@ class parallelHOPHaloList(HaloList,ParallelAnalysisInterface):
         counts = na.bincount((self.tags+1).tolist())
         sort_indices = na.argsort(self.tags)
         grab_indices = na.indices(self.tags.shape).ravel()[sort_indices]
-        dens = self.densities[sort_indices]
+        del sort_indices
         cp = 0
         index = 0
         # We want arrays for parallel HOP
@@ -720,6 +720,9 @@ class parallelHOPHaloList(HaloList,ParallelAnalysisInterface):
             self._max_dens[index] = [self.max_dens_point[index][0], self.max_dens_point[index][1], \
                 self.max_dens_point[index][2], self.max_dens_point[index][3]]
             index += 1
+        # Clean up
+        del self.max_dens_point, self.Tot_M, self.max_radius, self.bulk_vel
+        del self.halo_taskmap
 
     def __len__(self):
         return self.group_count
@@ -873,6 +876,7 @@ class parallelHF(GenericHaloFinder, parallelHOPHaloList):
                     new_group, new_comm, LE, RE, new_top_bounds, new_cc, self._data_source = \
                         self._partition_hierarchy_3d_bisection(dim, bins, counts, top_bounds = new_top_bounds,\
                         old_group = new_group, old_comm = new_comm, cut=cut, old_cc=new_cc)
+        del bins, counts
         # If this isn't parallel, define the region as an AMRRegionStrict so
         # particle IO works.
         if self._mpi_get_size() == None or self._mpi_get_size() == 1:
@@ -932,6 +936,7 @@ class parallelHF(GenericHaloFinder, parallelHOPHaloList):
                 avg_spacing = (float(vol) / count)**(1./3.)
                 RE_padding[dim] = (self.num_neighbors)**(1./3.) * self.safety * avg_spacing
             self.padding = (LE_padding, RE_padding)
+            del bins, counts
             mylog.info('fancy_padding %s avg_spacing %f full_vol %f local_parts %d %s' % \
                 (str(self.padding), avg_spacing, full_vol, data.size, str(self._data_source)))
         # Now we get the full box mass after we have the final composition of
@@ -958,7 +963,7 @@ class parallelHF(GenericHaloFinder, parallelHOPHaloList):
         del indexes, Cx, gs
         self._groups = self._groups[sorted]
         self._max_dens = self._max_dens[sorted]
-        del sorted
+        del sorted, self.group_sizes, self.CoM
 
 
 class HOPHaloFinder(GenericHaloFinder, HOPHaloList):
