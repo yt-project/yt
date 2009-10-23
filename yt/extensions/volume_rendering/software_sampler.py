@@ -82,4 +82,4 @@ def direct_ray_cast(pf, L, center, W, Nvec, tf,
         pos = g.cast_plane(tfp, vp)
     pbar.finish()
 
-    return partitioned_grids, image, vectors, norm_vec, pos
+    return partitioned_grids[ind], image, vectors, norm_vec, pos
