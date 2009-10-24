@@ -1042,14 +1042,6 @@ class ChomboHierarchy(AMRHierarchy):
     def _initialize_data_storage(self):
         pass
 
-    def _initialize_grid_arrays(self):
-        mylog.debug("Allocating arrays for %s grids", self.num_grids)
-        self.grid_dimensions = na.ones((self.num_grids,3), 'int32')
-        self.grid_left_edge = na.zeros((self.num_grids,3), self.float_type)
-        self.grid_right_edge = na.ones((self.num_grids,3), self.float_type)
-        self.grid_levels = na.zeros((self.num_grids,1), 'int32')
-        self.grid_particle_count = na.zeros((self.num_grids,1), 'int32')
-
     def _detect_fields(self):
         ncomp = int(self._fhandle['/'].attrs['num_components'])
         self.field_list = [c[1] for c in self._fhandle['/'].attrs.listitems()[-ncomp:]]
