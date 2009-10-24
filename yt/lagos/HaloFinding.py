@@ -880,7 +880,7 @@ class parallelHF(GenericHaloFinder, parallelHOPHaloList):
                     new_group, new_comm, LE, RE, new_top_bounds, new_cc, self._data_source = \
                         self._partition_hierarchy_3d_bisection(dim, bins, counts, top_bounds = new_top_bounds,\
                         old_group = new_group, old_comm = new_comm, cut=cut, old_cc=new_cc)
-        del bins, counts
+            del bins, counts
         # If this isn't parallel, define the region as an AMRRegionStrict so
         # particle IO works.
         if self._mpi_get_size() == None or self._mpi_get_size() == 1:
