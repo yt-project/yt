@@ -28,7 +28,9 @@ from yt.funcs import *
 import yt.logger, logging
 import itertools, sys, cStringIO, cPickle
 
-if os.path.basename(sys.executable) in \
+exe_name = os.path.basename(sys.executable)
+# At import time, we determined whether or not we're being run in parallel.
+if exe_name in \
         ["mpi4py", "embed_enzo",
          "python"+sys.version[:3]+"-mpi"] \
     or "--parallel" in sys.argv or '_parallel' in dir(sys) \
@@ -41,6 +43,7 @@ if os.path.basename(sys.executable) in \
         ytcfg["yt","__parallel_rank"] = str(MPI.COMM_WORLD.rank)
         ytcfg["yt","__parallel_size"] = str(MPI.COMM_WORLD.size)
         ytcfg["yt","__parallel"] = "True"
+        if exe_name == "embed_enzo": ytcfg["yt","inline"] = "True"
         # I believe we do not need to turn this off manually
         #ytcfg["yt","StoreParameterFiles"] = "False"
         # Now let's make sure we have the right options set.
@@ -53,10 +56,17 @@ if os.path.basename(sys.executable) in \
         f = logging.Formatter("P%03i %s" % (MPI.COMM_WORLD.rank,
                                             yt.logger.fstring))
         yt.logger.rootLogger.handlers[0].setFormatter(f)
+    if ytcfg.getint("yt","LogLevel") < 20:
+        yt.logger.ytLogger.warning(
+          "Log Level is set low -- this could affect parallel performance!")
 else:
     parallel_capable = False
 
 class ObjectIterator(object):
+    """
+    This is a generalized class that accepts a list of objects and then
+    attempts to intelligently iterate over them.
+    """
     def __init__(self, pobj, just_list = False, attr='_grids'):
         self.pobj = pobj
         if hasattr(pobj, attr) and getattr(pobj, attr) is not None:
@@ -81,8 +91,8 @@ class ObjectIterator(object):
         
 class ParallelObjectIterator(ObjectIterator):
     """
-    This takes an object, pobj, that implements ParallelAnalysisInterface,
-    and then does its thing.
+    This takes an object, *pobj*, that implements ParallelAnalysisInterface,
+    and then does its thing, calling initliaze and finalize on the object.
     """
     def __init__(self, pobj, just_list = False, attr='_grids',
                  round_robin=False):
@@ -106,6 +116,12 @@ class ParallelObjectIterator(ObjectIterator):
         if not self.just_list: self.pobj._finalize_parallel()
 
 def parallel_simple_proxy(func):
+    """
+    This is a decorator that broadcasts the result of computation on a single
+    processor to all other processors.  To do so, it uses the _processing and
+    _distributed flags in the object to check for blocks.  Meant only to be
+    used on objects that subclass :class:`~yt.lagos.ParallelAnalysisInterface`.
+    """
     if not parallel_capable: return func
     @wraps(func)
     def single_proc_results(self, *args, **kwargs):
@@ -122,8 +138,11 @@ def parallel_simple_proxy(func):
     return single_proc_results
 
 class ParallelDummy(type):
-    # All attributes that don't start with _ get replaced with
-    # parallel_simple_proxy attributes.
+    """
+    This is a base class that, on instantiation, replaces all attributes that
+    don't start with ``_`` with :func:`~yt.lagos.parallel_simple_proxy`-wrapped
+    attributes.  Used as a metaclass.
+    """
     def __init__(cls, name, bases, d):
         super(ParallelDummy, cls).__init__(name, bases, d)
         skip = d.pop("dont_wrap", [])
@@ -136,6 +155,10 @@ class ParallelDummy(type):
                 setattr(cls, attrname, parallel_simple_proxy(attr))
 
 def parallel_passthrough(func):
+    """
+    If we are not run in parallel, this function passes the input back as
+    output; otherwise, the function gets called.  Used as a decorator.
+    """
     @wraps(func)
     def passage(self, data):
         if not self._distributed: return data
@@ -143,6 +166,9 @@ def parallel_passthrough(func):
     return passage
 
 def parallel_blocking_call(func):
+    """
+    This decorator blocks on entry and exit of a function.
+    """
     @wraps(func)
     def barrierize(*args, **kwargs):
         mylog.debug("Entering barrier before %s", func.func_name)
@@ -157,6 +183,10 @@ def parallel_blocking_call(func):
         return func
 
 def parallel_splitter(f1, f2):
+    """
+    This function returns either the function *f1* or *f2* depending on whether
+    or not we're the root processor.  Mainly used in class definitions.
+    """
     @wraps(f1)
     def in_order(*args, **kwargs):
         MPI.COMM_WORLD.Barrier()
@@ -170,6 +200,10 @@ def parallel_splitter(f1, f2):
     return in_order
 
 def parallel_root_only(func):
+    """
+    This decorator blocks and calls the function on the root processor,
+    but does not broadcast results to the other processors.
+    """
     @wraps(func)
     def root_only(*args, **kwargs):
         if MPI.COMM_WORLD.rank == 0:
@@ -188,6 +222,10 @@ def parallel_root_only(func):
     return func
 
 class ParallelAnalysisInterface(object):
+    """
+    This is an interface specification providing several useful utility
+    functions for analyzing something in parallel.
+    """
     _grids = None
     _distributed = parallel_capable
 
@@ -243,6 +281,19 @@ class ParallelAnalysisInterface(object):
         LE, RE = self.pf["DomainLeftEdge"].copy(), self.pf["DomainRightEdge"].copy()
         if not self._distributed:
            return False, LE, RE, self.hierarchy.grid_collection(self.center, self.hierarchy.grids)
+        elif ytcfg.getboolean("yt", "inline"):
+            # At this point, we want to identify the root grid tile to which
+            # this processor is assigned.
+            # The only way I really know how to do this is to get the level-0
+            # grid that belongs to this processor.
+            grids = self.pf.h.select_grids(0)
+            root_grids = [g for g in grids
+                          if g.proc_num == MPI.COMM_WORLD.rank]
+            if len(root_grids) != 1: raise RuntimeError
+            #raise KeyError
+            LE = root_grids[0].LeftEdge
+            RE = root_grids[0].RightEdge
+            return True, LE, RE, self.hierarchy.region(self.center, LE, RE)
 
         cc = MPI.Compute_dims(MPI.COMM_WORLD.size, 3)
         mi = MPI.COMM_WORLD.rank
@@ -267,16 +318,16 @@ class ParallelAnalysisInterface(object):
         """
 
         def factor(n):
-                if n == 1: return [1]
-                i = 2
-                limit = n**0.5
-                while i <= limit:
-                        if n % i == 0:
-                                ret = factor(n/i)
-                                ret.append(i)
-                                return ret
-                        i += 1
-                return [n]
+            if n == 1: return [1]
+            i = 2
+            limit = n**0.5
+            while i <= limit:
+                if n % i == 0:
+                    ret = factor(n/i)
+                    ret.append(i)
+                    return ret
+                i += 1
+            return [n]
 
         cc = MPI.Compute_dims(MPI.COMM_WORLD.size, 3)
         si = MPI.COMM_WORLD.size
@@ -314,8 +365,8 @@ class ParallelAnalysisInterface(object):
         """
         counts = counts.astype('int64')
         if not self._distributed:
-           LE, RE = self.pf["DomainLeftEdge"].copy(), self.pf["DomainRightEdge"].copy()
-           return False, LE, RE, self.hierarchy.grid_collection(self.center, self.hierarchy.grids)
+            LE, RE = self.pf["DomainLeftEdge"].copy(), self.pf["DomainRightEdge"].copy()
+            return False, LE, RE, self.hierarchy.grid_collection(self.center, self.hierarchy.grids)
         
         # First time through the world is the current group.
         if old_group == None or old_comm == None:

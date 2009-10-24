@@ -42,7 +42,6 @@ class AMRGridPatch(object):
                  'NumberOfParticles', 'Children', 'Parent',
                  'start_index', 'filename', '__weakref__', 'dds',
                  '_child_mask', '_child_indices', '_child_index_mask']
-
     def __init__(self, id, filename = None, hierarchy = None):
         self.data = {}
         self.field_parameters = {}
@@ -52,6 +51,23 @@ class AMRGridPatch(object):
         self.pf = self.hierarchy.parameter_file # weakref already
         self._child_mask = self._child_indices = self._child_index_mask = None
         self.start_index = None
+
+    def get_global_startindex(self):
+        """
+        Return the integer starting index for each dimension at the current
+        level.
+        """
+        if self.start_index != None:
+            return self.start_index
+        if self.Parent == None:
+            start_index = self.LeftEdge / self.dds
+            return na.rint(start_index).astype('int64').ravel()
+        pdx = self.Parent.dds
+        start_index = (self.Parent.get_global_startindex()) + \
+                       na.rint((self.LeftEdge - self.Parent.LeftEdge)/pdx)
+        self.start_index = (start_index*self.pf["RefineBy"]).astype('int64').ravel()
+        return self.start_index
+
 
     def get_field_parameter(self, name, default=None):
         """
@@ -487,22 +503,6 @@ class EnzoGrid(AMRGridPatch):
         self._child_index_mask = None
         self._child_indices = None
         self._setup_dx()
-
-    def get_global_startindex(self):
-        """
-        Return the integer starting index for each dimension at the current
-        level.
-        """
-        if self.start_index != None:
-            return self.start_index
-        if self.Parent == None:
-            start_index = self.LeftEdge / self.dds
-            return na.rint(start_index).astype('int64').ravel()
-        pdx = self.Parent.dds
-        start_index = (self.Parent.get_global_startindex()) + \
-                       na.rint((self.LeftEdge - self.Parent.LeftEdge)/pdx)
-        self.start_index = (start_index*self.pf["RefineBy"]).astype('int64').ravel()
-        return self.start_index
 
     def set_filename(self, filename):
         """

@@ -171,7 +171,6 @@ def VoxelTraversal(np.ndarray[np.int_t, ndim=3] grid_mask,
     if not (0 <= intersect_t <= 1): return
     # Now get the indices of the intersection
     intersect = u + intersect_t * v
-    cdef int ncells = 0
     for i in range(3):
         cur_ind[i] = np.floor((intersect[i] + 1e-8*dx[i] - left_edge[i])/dx[i])
         tmax[i] = (((cur_ind[i]+step[i])*dx[i])+left_edge[i]-u[i])/v[i]
@@ -179,7 +178,8 @@ def VoxelTraversal(np.ndarray[np.int_t, ndim=3] grid_mask,
             cur_ind[i] = grid_mask.shape[i] - 1
         if step[i] > 0: tmax[i] = (((cur_ind[i]+1)*dx[i])+left_edge[i]-u[i])/v[i]
         if step[i] < 0: tmax[i] = (((cur_ind[i]+0)*dx[i])+left_edge[i]-u[i])/v[i]
-        tdelta[i] = np.abs((dx[i]/v[i]))
+        tdelta[i] = (dx[i]/v[i])
+        if tdelta[i] < 0: tdelta[i] *= -1
     # The variable intersect contains the point we first pierce the grid
     enter_t = intersect_t
     while 1:
@@ -194,7 +194,6 @@ def VoxelTraversal(np.ndarray[np.int_t, ndim=3] grid_mask,
         if (tmax[0] > 1.0) and (tmax[1] > 1.0) and (tmax[2] > 1.0):
             grid_dt[cur_ind[0], cur_ind[1], cur_ind[2]] = 1.0 - enter_t
             break
-        ncells += 1
         if tmax[0] < tmax[1]:
             if tmax[0] < tmax[2]:
                 grid_t[cur_ind[0], cur_ind[1], cur_ind[2]] = enter_t
@@ -222,3 +221,154 @@ def VoxelTraversal(np.ndarray[np.int_t, ndim=3] grid_mask,
                 tmax[2] += tdelta[2]
                 cur_ind[2] += step[2]
     return
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def PlaneVoxelIntegration(np.ndarray[np.float64_t, ndim=1] left_edge,
+                          np.ndarray[np.float64_t, ndim=1] right_edge,
+                          np.ndarray[np.float64_t, ndim=1] dx,
+                          np.ndarray[np.float64_t, ndim=2] ug,
+                          np.ndarray[np.float64_t, ndim=1] v,
+                          np.ndarray[np.float64_t, ndim=2] image,
+                          np.ndarray[np.float64_t, ndim=3] data,
+                          np.ndarray[np.float64_t, ndim=2] shells):
+    # We're roughly following Amanatides & Woo on a ray-by-ray basis
+    # Note that for now it's just shells, but this can and should be
+    # generalized to transfer functions
+    cdef int i, x, y, vi
+    intersect_t = 1
+    dt_tolerance = 1e-6
+    cdef int nv = ug.shape[0]
+    cdef int nshells = shells.shape[0]
+    cdef np.ndarray[np.float64_t, ndim=1] u = np.empty((3,), dtype=np.float64)
+    # Copy things into temporary location for passing between functions
+    for vi in range(nv):
+        for i in range(3): u[i] = ug[vi, i]
+        integrate_ray(u, v, left_edge, right_edge, dx, 
+                      nshells, vi, data, shells, image)
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def integrate_ray(np.ndarray[np.float64_t, ndim=1] u,
+                  np.ndarray[np.float64_t, ndim=1] v,
+                  np.ndarray[np.float64_t, ndim=1] left_edge,
+                  np.ndarray[np.float64_t, ndim=1] right_edge,
+                  np.ndarray[np.float64_t, ndim=1] dx,
+                  int nshells, int ind,
+                  np.ndarray[np.float64_t, ndim=3] data,
+                  np.ndarray[np.float64_t, ndim=2] shells,
+                  np.ndarray[np.float64_t, ndim=2] image):
+    cdef int step[3], x, y, i, n
+    cdef np.float64_t intersect_t = 1
+    cdef np.float64_t dt_tolerance = 1e-6
+    cdef np.float64_t tl, tr, enter_t, exit_t
+    cdef np.int64_t cur_ind[3]
+    cdef np.float64_t tdelta[3]
+    cdef np.float64_t tmax[3]
+    cdef np.float64_t intersect[3]
+    cdef np.float64_t dt, dv
+    cdef np.float64_t dist, alpha
+    cdef np.float64_t one = 1.0
+    cdef int dims[3]
+    cdef np.float64_t rgba[4], temp_x, temp_y
+    for i in range(3):
+        # As long as we're iterating, set some other stuff, too
+        dims[i] = data.shape[i]
+        if(v[i] < 0): step[i] = -1
+        else: step[i] = 1
+        x = (i+1)%3
+        y = (i+2)%3
+        tl = (left_edge[i] - u[i])/v[i]
+        tr = (right_edge[i] - u[i])/v[i]
+        temp_x = (u[x] + tl*v[x])
+        temp_y = (u[y] + tl*v[y])
+        if (left_edge[x] <= temp_x) and (temp_x <= right_edge[x]) and \
+           (left_edge[y] <= temp_y) and (temp_y <= right_edge[y]) and \
+           (0.0 <= tl) and (tl < intersect_t):
+            intersect_t = tl
+        temp_x = (u[x] + tr*v[x])
+        temp_y = (u[y] + tr*v[y])
+        if (left_edge[x] <= temp_x) and (temp_x <= right_edge[x]) and \
+           (left_edge[y] <= temp_y) and (temp_y <= right_edge[y]) and \
+           (0.0 <= tr) and (tr < intersect_t):
+            intersect_t = tr
+    # if fully enclosed
+    if (left_edge[0] <= u[0] <= right_edge[0]) and \
+       (left_edge[1] <= u[1] <= right_edge[1]) and \
+       (left_edge[2] <= u[2] <= right_edge[2]):
+        intersect_t = 0.0
+    if not (0 <= intersect_t <= 1):
+        #print "Returning: intersect_t ==", intersect_t
+        return
+    # Now get the indices of the intersection
+    for i in range(3): intersect[i] = u[i] + intersect_t * v[i]
+    cdef int ncells = 0
+    for i in range(3):
+        cur_ind[i] = np.floor((intersect[i] + 1e-8*dx[i] - left_edge[i])/dx[i])
+        tmax[i] = (((cur_ind[i]+step[i])*dx[i])+left_edge[i]-u[i])/v[i]
+        if cur_ind[i] == dims[i] and step[i] < 0:
+            cur_ind[i] = dims[i] - 1
+        if step[i] > 0: tmax[i] = (((cur_ind[i]+1)*dx[i])+left_edge[i]-u[i])/v[i]
+        if step[i] < 0: tmax[i] = (((cur_ind[i]+0)*dx[i])+left_edge[i]-u[i])/v[i]
+        tdelta[i] = (dx[i]/v[i])
+        if tdelta[i] < 0: tdelta[i] *= -1
+    # The variable intersect contains the point we first pierce the grid
+    enter_t = intersect_t
+    if (not (0 <= cur_ind[0] < dims[0])) or \
+       (not (0 <= cur_ind[1] < dims[1])) or \
+       (not (0 <= cur_ind[2] < dims[2])):
+        #print "Returning: cur_ind", cur_ind[0], cur_ind[1], cur_ind[2]
+        #print "  dims:     ", dims[0], dims[1], dims[2]
+        #print "  intersect:",  intersect[0], intersect[1], intersect[2]
+        #print "  intersect:", intersect_t
+        #print "  u        :", u[0], u[1], u[2]
+        #
+        return
+    #print cur_ind[0], dims[0], cur_ind[1], dims[1], cur_ind[2], dims[2]
+    dv = data[cur_ind[0], cur_ind[1], cur_ind[2]]
+    #dt = 1e300
+    while 1:
+        if image[ind,3] >= 1.0: break
+        if (not (0 <= cur_ind[0] < dims[0])) or \
+           (not (0 <= cur_ind[1] < dims[1])) or \
+           (not (0 <= cur_ind[2] < dims[2])):
+            break
+        # Do our transfer here
+        for n in range(nshells):
+            dist = shells[n, 0] - dv
+            if dist < shells[n,1]:
+                dist = exp(-dist/8.0)
+                alpha = (1.0 - shells[n,5])*shells[n,5]#*dt
+                image[ind,0] += alpha*shells[n,2]*dist
+                image[ind,1] += alpha*shells[n,3]*dist
+                image[ind,2] += alpha*shells[n,4]*dist
+                image[ind,3] += alpha*shells[n,5]*dist
+                #image[ind,i] += rgba[i]*dist*rgba[3]/dt
+                #print rgba[i], image[ind,i], dist, dt
+                break
+        if (tmax[0] > 1.0) and (tmax[1] > 1.0) and (tmax[2] > 1.0):
+            dt = 1.0 - enter_t
+            break
+        if tmax[0] < tmax[1]:
+            if tmax[0] < tmax[2]:
+                dt = tmax[0] - enter_t
+                enter_t = tmax[0]
+                tmax[0] += tdelta[0]
+                cur_ind[0] += step[0]
+            else:
+                dt = tmax[2] - enter_t
+                enter_t = tmax[2]
+                tmax[2] += tdelta[2]
+                cur_ind[2] += step[2]
+        else:
+            if tmax[1] < tmax[2]:
+                dt = tmax[1] - enter_t
+                enter_t = tmax[1]
+                tmax[1] += tdelta[1]
+                cur_ind[1] += step[1]
+            else:
+                dt = tmax[2] - enter_t
+                enter_t = tmax[2]
+                tmax[2] += tdelta[2]
+                cur_ind[2] += step[2]
+        dv = data[cur_ind[0], cur_ind[1], cur_ind[2]]

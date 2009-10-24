@@ -56,8 +56,12 @@ class BaseIOHandler(object):
             # We only read the one set and do not store it if it isn't pre-loaded
             return self._read_data_set(grid, field)
 
-    def _read_particles(self, fields, rtype, args, grid_list, enclosed):
-        pass
+    def _read_particles(self, fields, rtype, args, grid_list, enclosed,
+                        conv_factors):
+        filenames = [g.filename for g in grid_list]
+        ids = [g.id for g in grid_list]
+        return HDF5LightReader.ReadParticles(
+            rtype, fields, filenames, ids, conv_factors, args, 0)
 
     def peek(self, grid, field):
         return self.queue[grid.id].get(field, None)
@@ -177,6 +181,17 @@ class IOHandlerEnzoHDF5(BaseIOHandler):
     def _read_exception(self):
         return (exceptions.KeyError, HDF5LightReader.ReadingError)
 
+class IOHandlerExtracted(BaseIOHandler):
+
+    _data_style = 'extracted'
+
+    def _read_data_set(self, grid, field):
+        return (grid.base_grid[field] / grid.base_grid.convert(field))
+
+    def _read_data_slice(self, grid, field, axis, coord):
+        sl = [slice(None), slice(None), slice(None)]
+        sl[axis] = slice(coord, coord + 1)
+        return grid.base_grid[field][tuple(sl)] / grid.base_grid.convert(field)
 
 class IOHandlerPackedHDF5(BaseIOHandler):
 

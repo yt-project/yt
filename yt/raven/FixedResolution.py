@@ -59,6 +59,9 @@ class FixedResolutionBuffer(object):
         self.data[item] = val
 
     def convert_to_pixel(self, coords):
+        """
+        This converts a code-location to an image-location
+        """
         dpx = (self.bounds[1]-self.bounds[0])/self.buff_size[0]
         dpy = (self.bounds[3]-self.bounds[2])/self.buff_size[1]
         px = (coords[0] - self.bounds[0])/dpx
@@ -66,14 +69,24 @@ class FixedResolutionBuffer(object):
         return (px, py)
 
     def convert_distance_x(self, distance):
+        """
+        This converts a real distance to a pixel distance in x.
+        """
         dpx = (self.bounds[1]-self.bounds[0])/self.buff_size[0]
         return distance/dpx
         
     def convert_distance_y(self, distance):
+        """
+        This converts a real distance to a pixel distance in y.
+        """
         dpy = (self.bounds[3]-self.bounds[2])/self.buff_size[1]
         return distance/dpy
 
     def export_hdf5(self, filename, fields = None):
+        """
+        This function opens (append-mode) an HDF5 file and adds all of the
+        requested *fields* (default: All) to the top level of the data file.
+        """
         import h5py
         if fields is None: fields = self.data.keys()
         output = h5py.File(filename, "a")
@@ -118,6 +131,10 @@ class FixedResolutionBuffer(object):
         numdisplay.display(data)
 
 class ObliqueFixedResolutionBuffer(FixedResolutionBuffer):
+    """
+    This object is a subclass of :class:`yt.raven.FixedResolution.FixedResolutionBuffer`
+    that supports non-aligned input data objects, primarily cutting planes.
+    """
     def __getitem__(self, item):
         if item in self.data: return self.data[item]
         indices = na.argsort(self.data_source['dx'])[::-1]
@@ -169,4 +186,7 @@ class AnnuliProfiler(object):
         self.data[item] = val
 
     def sum(self, item):
+        """
+        Returns the sum of a given field.
+        """
         return self[item].sum()

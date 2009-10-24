@@ -75,6 +75,8 @@ class RavenPlot(object):
 
     datalabel = None
     colorbar = None
+    xlim = None
+    ylim = None
     def __init__(self, data, fields, figure = None, axes=None, size=(10,8)):
         self.data = data
         self.fields = fields
@@ -133,13 +135,14 @@ class RavenPlot(object):
         """
         Set the x boundaries of this plot.
         """
-        self._axes.set_xlim(xmin, xmax)
+        self.xlim = (xmin,xmax)
 
     def set_ylim(self, ymin, ymax):
         """
         Set the y boundaries of this plot.
         """
-        self._axes.set_ylim(ymin, ymax)
+        self.ylim = (ymin,ymax)
+
 
     def set_zlim(self, zmin, zmax, dex=None, nticks=None, ticks=None, minmaxtick=False):
         """
@@ -153,7 +156,7 @@ class RavenPlot(object):
                number of ticks to be evenly spaced in log space
         """
         # This next call fixes some things, but is slower...
-        #self._redraw_image()
+        self._redraw_image()
         if (zmin in (None,'min')) or (zmax in (None,'max')):    
             imbuff = self._axes.images[-1]._A
             if zmin == 'min':
@@ -164,24 +167,34 @@ class RavenPlot(object):
                 zmax = na.nanmax(imbuff)
                 if dex is not None:
                     zmin = max(zmax/(10**(dex)),na.nanmin(imbuff))
-        if ticks is not None:
-            ticks = na.sort(ticks)
-            self.colorbar.locator = matplotlib.ticker.FixedLocator(ticks)
-            self.colorbar.formatter = matplotlib.ticker.FixedFormatter(["%0.2e" % (x) for x in ticks])
-        elif minmaxtick:
-            ticks = na.array(self.colorbar._ticker()[1],dtype='float')
-            ticks = [zmin] + ticks.tolist() + [zmax]
-            self.colorbar.locator = matplotlib.ticker.FixedLocator(ticks)
-            self.colorbar.formatter = matplotlib.ticker.FixedFormatter(["%0.2e" % (x) for x in ticks])
-        elif nticks is not None:
-            lin = na.linspace(na.log10(zmin),na.log10(zmax),nticks)
-            self.colorbar.locator = matplotlib.ticker.FixedLocator(10**lin)
-            self.colorbar.formatter = matplotlib.ticker.FixedFormatter(["%0.2e" % (10**x) for x in lin])
-        else:
-            if hasattr(self,'_old_locator'):
-                self.colorbar.locator = self._old_locator
-            if hasattr(self,'_old_formatter'):
-                self.colorbar.formatter = self._old_formatter
+        if self.colorbar is not None:
+            if ticks is not None:
+                ticks = na.sort(ticks)
+                self.colorbar.locator = matplotlib.ticker.FixedLocator(ticks)
+                self.colorbar.formatter = matplotlib.ticker.FixedFormatter(["%0.2e" % (x) for x in ticks])
+            elif minmaxtick:
+                if not self.log_field: 
+                    ticks = na.array(self.colorbar._ticker()[0],dtype='float')
+                    ticks = [zmin] + ticks.tolist() + [zmax]
+                    self.colorbar.locator = matplotlib.ticker.FixedLocator(ticks)
+                    self.colorbar.formatter = matplotlib.ticker.FixedFormatter(["%0.2e" % (x) for x in ticks])
+                else:
+                    mylog.error('Sorry, we do not support minmaxtick for linear fields.  It likely comes close by default')
+            elif nticks is not None:
+                if self.log_field:
+                    lin = na.linspace(na.log10(zmin),na.log10(zmax),nticks)
+                    self.colorbar.locator = matplotlib.ticker.FixedLocator(10**lin)
+                    self.colorbar.formatter = matplotlib.ticker.FixedFormatter(["%0.2e" % (10**x) for x in lin])
+                else: 
+                    lin = na.linspace(zmin,zmax,nticks)
+                    self.colorbar.locator = matplotlib.ticker.FixedLocator(lin)
+                    self.colorbar.formatter = matplotlib.ticker.FixedFormatter(["%0.2e" % x for x in lin])
+
+            else:
+                if hasattr(self,'_old_locator'):
+                    self.colorbar.locator = self._old_locator
+                if hasattr(self,'_old_formatter'):
+                    self.colorbar.formatter = self._old_formatter
         self.norm.autoscale(na.array([zmin,zmax]))
         self.image.changed()
         if self.colorbar is not None:
@@ -353,6 +366,7 @@ class VMPlot(RavenPlot):
                                 aspect=aspect, picker=True, origin='lower')
         else:
             self.image.set_data(buff)
+        if self._axes.get_aspect() != aspect: self._axes.set_aspect(aspect)
         if self.do_autoscale:
             self.norm.autoscale(na.array((newmin,newmax)))
         self._reset_image_parameters()
@@ -700,6 +714,8 @@ class Profile1DPlot(ProfilePlot):
              **self.plot_options)
         self._autoset_label(self.fields[0], self.set_x_label, 'x')
         self._autoset_label(self.fields[1], self.set_y_label, 'y')
+        if self.xlim is not None: self._axes.set_xlim(*self.xlim)
+        if self.ylim is not None: self._axes.set_ylim(*self.ylim)
         self._run_callbacks()
 
     def set_log_field(self, val):

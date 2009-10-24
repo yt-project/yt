@@ -950,7 +950,7 @@ int run_validators(particle_validation *pv, char *filename,
 
     for (ifield = 0; ifield < pv->nfields; ifield++){
         cfactors[ifield] = *(npy_float64 *) PyArray_GETPTR2(
-                pv->conv_factors, grid_id, ifield);
+                pv->conv_factors, grid_index, ifield);
     }
 
     /* We set these to -1 to identify which haven't been used */
@@ -1095,9 +1095,16 @@ int run_validators(particle_validation *pv, char *filename,
               H5Tclose(rdatatype_id);
               /* Now we multiply our fields by the appropriate conversion factor */
               if (cfactors[ifield] != 1.0) {
-                for(p_ind = pv->nread; p_ind < read_here; p_ind++)
-                  *(npy_float64 *) PyArray_GETPTR1(pv->return_values[ifield], p_ind)
-                    *= cfactors[ifield];
+                for(p_ind = 0; p_ind < read_here; p_ind++)
+                    if (npy_type == 11) { // floats
+                       *(npy_float32 *) PyArray_GETPTR1(
+                                   pv->return_values[ifield], p_ind + pv->nread)
+                       *= cfactors[ifield];
+                    } else { // doubles
+                       *(npy_float64 *) PyArray_GETPTR1(
+                                   pv->return_values[ifield], p_ind + pv->nread)
+                       *= cfactors[ifield];
+                    }
               }
           }
           pv->nread += read_here;

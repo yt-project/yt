@@ -55,7 +55,7 @@ def rpdb_excepthook(exc_type, exc, tb):
     traceback.print_exception(exc_type, exc, tb)
     task = ytcfg.getint("yt", "__parallel_rank")
     size = ytcfg.getint("yt", "__parallel_size")
-    print "Starting RPDB server on task %s ; connect with yt_rpdb %s" \
+    print "Starting RPDB server on task %s ; connect with 'yt rpdb %s'" \
             % (task,task)
     handler = pdb_handler(tb)
     server = PdbXMLRPCServer(("localhost", 8010+task))

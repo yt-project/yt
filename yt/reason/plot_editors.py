@@ -23,16 +23,16 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-import wx, sys, matplotlib
+import sys, matplotlib
 # We want matplotlib to use a wxPython backend
-matplotlib.use('WXAgg')
-from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg as FigureCanvas
+matplotlib.use('QT4Agg')
+from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 from matplotlib.axes import Axes
 
 from enthought.traits.api import Any, Instance
-from enthought.traits.ui.wx.editor import Editor
-from enthought.traits.ui.wx.basic_editor_factory import BasicEditorFactory
+from enthought.traits.ui.qt4.editor import Editor
+from enthought.traits.ui.qt4.basic_editor_factory import BasicEditorFactory
 
 from enthought.pyface.action.api import ActionController
 

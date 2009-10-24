@@ -47,8 +47,8 @@ ytcfgDefaults = {
         'ReconstructHierarchy': 'True',
         'serialize' : 'True',
         'onlydeserialize' : 'False',
-        'loadfieldplugins':'False',
-        'pluginfilename':'yt_plugins.py',
+        'loadfieldplugins':'True',
+        'pluginfilename':'my_plugins.py',
         },
     "yt":{
         'time_functions': 'False',
@@ -58,6 +58,7 @@ ytcfgDefaults = {
         'LogLevel': '20',
         'timefunctions':'False',
         'inGui':'False',
+        'inline':'False',
         '__parallel':'False',
         '__parallel_rank':'0',
         '__parallel_size':'1',
@@ -89,6 +90,10 @@ class YTConfigParser(ConfigParser.ConfigParser):
                 if not self.has_option(section, opt):
                     self.set(section, opt, val)
     def set(self, section, opt, val):
+        """
+        This sets an option named *opt* to *val* inside *section*, creating
+        *section* if necessary.
+        """
         if not self.has_section(section):
             self.add_section(section)
         ConfigParser.ConfigParser.set(self, section, opt, val)

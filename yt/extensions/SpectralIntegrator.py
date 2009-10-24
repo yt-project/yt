@@ -32,7 +32,7 @@ class SpectralFrequencyIntegrator(object):
         """
         From a table, interpolate over field_names to get resultant luminosity.
         Table must be of the style such that it is ordered by
-         [field_names[0], field_names[1], ev]
+        ``[field_names[0], field_names[1], ev]``
         """
         self.table = table
         self.field_names = field_names
@@ -75,6 +75,10 @@ class SpectralFrequencyIntegrator(object):
         return name
 
 def create_table_from_textfiles(pattern, rho_spec, e_spec, T_spec):
+    """
+    This accepts a CLOUDY text file of emissivities and constructs an
+    interpolation table for spectral integration.
+    """
     rho_n_bins, rho_min, rho_max = rho_spec
     e_n_bins, e_min, e_max = e_spec
     T_n_bins, T_min, T_max = T_spec

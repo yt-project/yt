@@ -72,7 +72,7 @@ class ObjectFindingMixin(object):
               max_val, mx, my, mz, max_grid, max_grid.Level, mc)
         self.parameters["Max%sValue" % (field)] = max_val
         self.parameters["Max%sPos" % (field)] = "%s" % ((mx,my,mz),)
-        return max_grid, mc, max_val, (mx,my,mz)
+        return max_grid, mc, max_val, na.array((mx,my,mz), dtype='float64')
 
     def find_min(self, field):
         """

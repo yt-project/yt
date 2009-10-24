@@ -1,20 +1,21 @@
 from yt.funcs import *
 from yt.arraytypes import *
-import math
+import math, time
 
 import pycuda.driver as cuda
 import pycuda.autoinit
 import pycuda.gpuarray as gpuarray
 cuda.init()
 
-CUDA_BLOCK_SIZE = 256
+CUDA_BLOCK_SIZE = 22
 
 class VolumeFinder(object):
     def __init__(self, points, res):
-        print cuda.mem_get_info()
+        #print cuda.mem_get_info()
         self.res = res
         if not cuda.Device.count() >= 1:
             raise NoCUDAException
+        #raise NoCUDAException
 
         npoints = points.shape[0]
 
@@ -25,16 +26,17 @@ class VolumeFinder(object):
 
         self.valid = gpuarray.zeros((npoints,), 'float32')
 
-        self._mod = cuda.SourceModule(routine, keep=True)
+        self._mod = cuda.SourceModule(routine)#, keep=True)
         self._func = self._mod.get_function("InVolume")
 
     # We don't need a delete function, becaue refcounting on the arrays
     # should handle deallocation on the GPU
 
     def __call__(self, grid):
-        print cuda.mem_get_info()
+        t1 = time.time()
+        #print cuda.mem_get_info()
         mask = grid.child_mask.astype('float32').copy().ravel()
-        dims = gpuarray.to_gpu(grid.ActiveDimensions.astype("int32"))
+        ni, nj, nk = grid.ActiveDimensions.astype("int32")
         
         # Now we copy over our new grid mask
         #import pdb;pdb.set_trace()
@@ -43,34 +45,32 @@ class VolumeFinder(object):
 
         # We need to do left and right, too
         LE, RE = grid.LeftEdge.astype("float32"), grid.RightEdge.astype("float32")
-        left_edge = gpuarray.to_gpu(LE)
-        right_edge = gpuarray.to_gpu(RE)
 
-        #v1 = self.valid.get()
+        v1 = self.valid.get()
 
         gsize = int(math.ceil(float(self.res)/CUDA_BLOCK_SIZE))
-        tt = gpuarray.to_gpu(just_one(grid['x'].astype('float32')))
 
         #import pdb; pdb.set_trace()
         self._func( self.points[0].gpudata, self.points[1].gpudata,
                         self.points[2].gpudata,
                     self.valid.gpudata, mask_gpu,
-                    left_edge.gpudata, right_edge.gpudata,
-                        tt.gpudata, dims.gpudata,
+                    LE[0], LE[1], LE[2],
+                    RE[0], RE[1], RE[2],
+                        just_one(grid['x'].astype('float32')), ni, nj, nk,
                     block=(CUDA_BLOCK_SIZE,CUDA_BLOCK_SIZE,1),
                     grid=(gsize, gsize), time_kernel=True)
-
         v2 = self.valid.get()
 
-        return na.logical_xor(v1, v2)
+        return na.where(na.logical_xor(v1, v2))[0]
+
+
 
 routine = """
-extern __shared__ float array[];
-
 __global__ void InVolume(float *points_x, float *points_y, float *points_z,
                          float *valid, float *grid_mask,
-                         float* left, float *right,
-                         float *dxs, int *dims)
+                         float left_x, float left_y, float left_z,
+                         float right_x, float right_y, float right_z,
+                         float dx, int ni, int nj, int nk)
 {
 
     /* Our methodology should be to iterate over every *point* and then mark
@@ -79,29 +79,25 @@ __global__ void InVolume(float *points_x, float *points_y, float *points_z,
 
   /* My index in the array */
   int pindex = blockIdx.x * blockDim.x + threadIdx.x;
-  float dx = dxs[0];
-  int ni = dims[0];
-  int nj = dims[1];
-  int nk = dims[2];
 
   float point_x = points_x[pindex];
   float point_y = points_y[pindex];
   float point_z = points_z[pindex];
 
   int addition = (valid[pindex] == 0);
-  addition *= (int) ((point_x > left[0]) && (point_x < right[0]));
-  addition *= (int) ((point_y > left[1]) && (point_y < right[1]));
-  addition *= (int) ((point_z > left[2]) && (point_z < right[2]));
+  addition *= (int) ((point_x > left_x) && (point_x < right_x));
+  addition *= (int) ((point_y > left_y) && (point_y < right_y));
+  addition *= (int) ((point_z > left_z) && (point_z < right_z));
   
   int i, j, k;
 
-  i = (int) ((point_x - left[0]) / dx);
+  i = (int) ((point_x - left_x) / dx);
   i = min(max(i, 0), ni - 1);
 
-  j = (int) ((point_y - left[1]) / dx);
+  j = (int) ((point_y - left_y) / dx);
   j = min(max(j, 0), nj - 1);
 
-  k = (int) ((point_z - left[2]) / dx);
+  k = (int) ((point_z - left_z) / dx);
   k = min(max(k, 0), nk - 1);
 
   int index = ( ( ( k * nj ) + j ) * ni + i );
