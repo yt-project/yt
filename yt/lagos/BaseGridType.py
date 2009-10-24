@@ -572,6 +572,8 @@ class OrionGrid(AMRGridPatch):
 
 
 class ChomboGrid(AMRGridPatch):
+    _id_offset = 0
+    __slots__ = ["_level_id"]
     def __init__(self, id, hierarchy, level = -1):
         AMRGridPatch.__init__(self, id, filename = hierarchy.hierarchy_filename,
                               hierarchy = hierarchy)

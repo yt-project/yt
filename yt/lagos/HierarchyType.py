@@ -1068,8 +1068,9 @@ class ChomboHierarchy(AMRHierarchy):
             level_number = int(re.match('level_(\d+)',lev).groups()[0])
             boxes = f[lev]['boxes'].value
             dx = f[lev].attrs['dx']
-            for box in boxes:
-                self.grids.append(self.grid(len(self.grids)+1,self,level=level_number))
+            for level_id, box in enumerate(boxes):
+                self.grids.append(self.grid(len(self.grids),self,level=level_number))
+                self.grids[-1]._level_id = level_id
                 self.grid_left_edge[i] = dx*na.array([box['lo_i'],
                                                       box['lo_j'],
                                                       box['lo_k']],

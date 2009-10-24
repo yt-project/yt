@@ -456,15 +456,15 @@ class IOHandlerChomboHDF5(BaseIOHandler):
         field_dict = self._field_dict(fhandle)
         lstring = 'level_%i' % grid.Level
         lev = fhandle[lstring]
-        dims = grid.hierarchy.grid_dimensions[grid.id]
-        boxsize = dims[0]*dims[1]*dims[2]
+        dims = grid.ActiveDimensions
+        boxsize = dims.prod()
         
-        grid_offset = lev[self._offset_string][grid.id]
+        grid_offset = lev[self._offset_string][grid._level_id]
         start = grid_offset+field_dict[field]*boxsize
         stop = start + boxsize
         data = lev[self._data_string][start:stop]
 
-        return data.reshape(dims)
+        return data.reshape(dims, order='F')
                                           
 
     def _read_data_slice(self, grid, field, axis, coord):
