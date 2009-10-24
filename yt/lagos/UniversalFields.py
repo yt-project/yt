@@ -95,19 +95,19 @@ add_field('z', function=_coordZ, display_field=False,
           validators=[ValidateSpatial(0)])
 
 def _GridLevel(field, data):
-    return na.ones(data["Density"].shape)*(data.Level)
+    return na.ones(data["Ones"].shape)*(data.Level)
 add_field("GridLevel", function=_GridLevel,
           validators=[ValidateGridType(),
                       ValidateSpatial(0)])
 
 def _GridIndices(field, data):
-    return na.ones(data["Density"].shape)*(data.id-data._id_offset)
+    return na.ones(data["Ones"].shape)*(data.id-data._id_offset)
 add_field("GridIndices", function=_GridIndices,
           validators=[ValidateGridType(),
                       ValidateSpatial(0)], take_log=False)
 
 def _OnesOverDx(field, data):
-    return na.ones(data["Density"].shape,
+    return na.ones(data["Ones"].shape,
                    dtype=data["Density"].dtype)/data['dx']
 add_field("OnesOverDx", function=_OnesOverDx,
           display_field=False)

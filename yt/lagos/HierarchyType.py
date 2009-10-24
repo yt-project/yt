@@ -1097,6 +1097,11 @@ class ChomboHierarchy(AMRHierarchy):
         for g in self.grids:
             g._prepare_grid()
             g._setup_dx()
+
+        for g in self.grids:
+            g.Children = self._get_grid_children(g)
+            for g1 in g.Children:
+                g1.Parent.append(g)
         self.max_level = self.grid_levels.max()
 
     def _setup_unknown_fields(self):
@@ -1104,3 +1109,10 @@ class ChomboHierarchy(AMRHierarchy):
 
     def _setup_derived_fields(self):
         self.derived_field_list = []
+
+    def _get_grid_children(self, grid):
+        mask = na.zeros(self.num_grids, dtype='bool')
+        grids, grid_ind = self.get_box_grids(grid.LeftEdge, grid.RightEdge)
+        mask[grid_ind] = True
+        return [g for g in self.grids[mask] if g.Level == grid.Level + 1]
+

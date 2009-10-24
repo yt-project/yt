@@ -575,6 +575,6 @@ class ChomboGrid(AMRGridPatch):
     def __init__(self, id, hierarchy, level = -1):
         AMRGridPatch.__init__(self, id, filename = hierarchy.hierarchy_filename,
                               hierarchy = hierarchy)
-        self.Parent = None
+        self.Parent = []
         self.Children = []
         self.Level = level
