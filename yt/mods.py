@@ -40,9 +40,11 @@ from performance_counters import yt_counters, time_function
 # Now individual component imports from lagos
 from yt.lagos import EnzoStaticOutput, \
     BinnedProfile1D, BinnedProfile2D, BinnedProfile3D, \
+    derived_field, \
     add_field, FieldInfo, EnzoFieldInfo, Enzo2DFieldInfo, OrionFieldInfo, \
     Clump, write_clump_hierarchy, find_clumps, write_clumps, \
-    OrionStaticOutput, HaloFinder, HOPHaloFinder, FOFHaloFinder
+    OrionStaticOutput, HaloFinder, HOPHaloFinder, FOFHaloFinder, \
+    axis_names, x_dict, y_dict
 
 # This is a temporary solution -- in the future, we will allow the user to
 # select this via ytcfg.

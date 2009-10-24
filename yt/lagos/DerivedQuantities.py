@@ -67,7 +67,7 @@ class DerivedQuantity(ParallelAnalysisInterface):
             self.func(e, *args, **kwargs)
             mylog.debug("Preloading %s", e.requested)
             self._preload([g for g in self._get_grid_objs()], e.requested,
-                          self._data_source.pf.h.queue)
+                          self._data_source.pf.h.io)
         if lazy_reader and not self.force_unlazy:
             return self._call_func_lazy(args, kwargs)
         else:
@@ -315,6 +315,9 @@ def _cudaIsBound(data, truncate, ratio):
         /* Note we are setting a start index */
         int idx2 = blockIdx.y * blockDim.x;
         int offset = threadIdx.x;
+
+        /* Here we're just setting up convenience pointers to our
+           shared array */
 
         float* x_data1 = (float*) array;
         float* y_data1 = (float*) &x_data1[blockDim.x];

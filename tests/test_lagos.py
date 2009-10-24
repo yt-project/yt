@@ -99,7 +99,7 @@ class TestHierarchy(LagosTestingBase, unittest.TestCase):
             self.assert_(child.Parent.id == self.hierarchy.grids[0].id)
 
     def testGetSelectLevels(self):
-        for level in range(self.hierarchy.maxLevel+1):
+        for level in range(self.hierarchy.max_level+1):
             for grid in self.hierarchy.select_grids(level):
                 self.assert_(grid.Level == level)
 
@@ -181,8 +181,8 @@ def _returnProfile1DFunction(field, weight, accumulation, lazy):
 def _returnProfile2DFunction(field, weight, accumulation, lazy):
     def add_field_function(self):
         self.data.set_field_parameter("center",[.5,.5,.5])
-        cv_min = self.hierarchy.gridDxs.min()**3.0
-        cv_max = self.hierarchy.gridDxs.max()**3.0
+        cv_min = self.hierarchy.get_smallest_dx()**3.0
+        cv_max = 1.0 / max(self.OutputFile["TopGridDimensions"])
         profile = yt.lagos.BinnedProfile2D(self.data,
                     8, "RadiusCode", 1e-3, 1.0, True,
                     8, "CellVolumeCode", cv_min, cv_max, True, lazy)
@@ -259,6 +259,7 @@ class Data3DBase:
         self.assertEqual(obj["CellMassMsun"].sum(), self.data["CellMassMsun"].sum())
 
 for field_name in yt.lagos.FieldInfo:
+    if field_name.startswith("PT"): continue
     field = yt.lagos.FieldInfo[field_name]
     setattr(DataTypeTestingBase, "test%s" % field.name, _returnFieldFunction(field))
 
@@ -394,6 +395,7 @@ class TestDataCube(LagosTestingBase, unittest.TestCase):
         cg = self.hierarchy.covering_grid(2, [0.0]*3, [64,64,64])
         self.assertEqual(na.unique(cg["CellVolume"]).size, 1)
 
+
 class TestDiskDataType(Data3DBase, DataTypeTestingBase, LagosTestingBase, unittest.TestCase):
     def setUp(self):
         DataTypeTestingBase.setUp(self)
@@ -479,6 +481,7 @@ class TestExtractFromSphere(TestSphereDataType):
         self.region = self.data
         self.ind_to_get = na.where(self.region["Temperature"]>500)
         self.data = self.region.extract_region(self.ind_to_get)
+
     def testNumberOfEntries(self):
         self.assertEqual(self.ind_to_get[0].shape,
                         self.data["Density"].shape)

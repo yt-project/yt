@@ -32,7 +32,7 @@ INST_WXPYTHON=1 # If you 't want to install wxPython, set this to 1
 INST_ZLIB=1     # On some systems (Kraken) matplotlib has issues with 
                 # the system zlib, which is compiled statically.
                 # If need be, you can turn this off.
-INST_TRAITS=0   # Experimental TraitsUI installation
+INST_TRAITS=1   # Experimental TraitsUI installation
 INST_HG=1       # Install Mercurial or not?
 
 # If you've got YT some other place, set this to point to it.

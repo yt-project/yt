@@ -41,7 +41,7 @@ try:
     if not hasattr(h5py.h5, "ArgsError"):
         h5py.h5.ArgsError = h5py.h5.H5Error
 except ImportError:
-    ytcfg["lagos", "serialization"] = "False"
+    ytcfg["lagos", "serialize"] = "False"
     mylog.warning("No h5py. Data serialization disabled.")
 
 from yt.arraytypes import *
@@ -86,9 +86,11 @@ from DataReadingFuncs import *
 from ClusterFiles import *
 from ContourFinder import *
 from Clump import *
+from ParticleIO import *
 from BaseDataTypes import *
 from BaseGridType import *
 from EnzoRateData import *
+from ObjectFindingMixin import *
 from HierarchyType import *
 from OutputTypes import *
 from Profiles import *
@@ -104,5 +106,8 @@ from HaloFinding import *
 if ytcfg.getboolean("lagos","loadfieldplugins"):
     my_plugin_name = ytcfg.get("lagos","pluginfilename")
     # We assume that it is with respect to the $HOME/.yt directory
-    execfile(os.path.expanduser("~/.yt/%s" % my_plugin_name))
+    fn = os.path.expanduser("~/.yt/%s" % my_plugin_name)
+    if os.path.isfile(fn):
+        mylog.info("Loading plugins from %s", fn)
+        execfile(fn)
 

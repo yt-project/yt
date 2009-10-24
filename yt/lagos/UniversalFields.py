@@ -53,20 +53,20 @@ G = 6.67e-8   # cm^3 g^-1 s^-2
 # I violate it here in order to keep the name/func_name relationship
 
 def _dx(field, data):
-    return data.dx
-    return na.ones(data.ActiveDimensions, dtype='float64') * data.dx
+    return data.dds[0]
+    return na.ones(data.ActiveDimensions, dtype='float64') * data.dds[0]
 add_field('dx', function=_dx, display_field=False,
           validators=[ValidateSpatial(0)])
 
 def _dy(field, data):
-    return data.dy
-    return na.ones(data.ActiveDimensions, dtype='float64') * data.dy
+    return data.dds[1]
+    return na.ones(data.ActiveDimensions, dtype='float64') * data.dds[1]
 add_field('dy', function=_dy, display_field=False,
           validators=[ValidateSpatial(0)])
 
 def _dz(field, data):
-    return data.dz
-    return na.ones(data.ActiveDimensions, dtype='float64') * data.dz
+    return data.dds[2]
+    return na.ones(data.ActiveDimensions, dtype='float64') * data.dds[2]
 add_field('dz', function=_dz,
           display_field=False, validators=[ValidateSpatial(0)])
 
@@ -132,11 +132,12 @@ add_field("SoundSpeed", function=_SoundSpeed,
 
 def particle_func(p_field, dtype='float64'):
     def _Particles(field, data):
+        io = data.hierarchy.io
         if not data.NumberOfParticles > 0:
             return na.array([], dtype=dtype)
         try:
-            return data._read_data(p_field).astype(dtype)
-        except data._read_exception:
+            return io._read_data_set(data, p_field).astype(dtype)
+        except io._read_exception:
             pass
         # This is bad.  But it's the best idea I have right now.
         return data._read_data(p_field.replace("_"," ")).astype(dtype)
@@ -172,13 +173,22 @@ for pf in ["creation_time", "dynamical_time", "metallicity_fraction"]:
               validators = [ValidateSpatial(0),
                             ValidateDataField(pf)],
               particle_type=True)
-add_field("particle mass", function=particle_func("particle_mass"),
+add_field("particle_mass", function=particle_func("particle_mass"),
           validators=[ValidateSpatial(0)], particle_type=True)
 
 add_field("Dark matter density", function=lambda a,b: None,
           validators=[ValidateDataField("Dark matter density"),
                       ValidateSpatial(0)],
           not_in_all = True)
+
+def _ParticleAge(field, data):
+    current_time = data.pf["InitialTime"]
+    return (current_time - data["creation_time"])
+def _convertParticleAge(data):
+    return data.convert("years")
+add_field("ParticleAge",
+          function=_ParticleAge, validators=[ValidateSpatial(0)],
+          particle_type=True, convert_function=_convertParticleAge)
 
 def _ParticleMass(field, data):
     particles = data["particle_mass"].astype('float64') * \
@@ -189,12 +199,17 @@ def _convertParticleMass(data):
     return data.convert("Density")*(data.convert("cm")**3.0)
 def _convertParticleMassMsun(data):
     return data.convert("Density")*((data.convert("cm")**3.0)/1.989e33)
+def _IOLevelParticleMassMsun(grid):
+    dd = dict(particle_mass = na.ones(1), CellVolumeCode=grid["CellVolumeCode"])
+    cf = (_ParticleMass(None, dd) * _convertParticleMassMsun(grid))[0]
+    return cf
 add_field("ParticleMass",
           function=_ParticleMass, validators=[ValidateSpatial(0)],
           particle_type=True, convert_function=_convertParticleMass)
 add_field("ParticleMassMsun",
           function=_ParticleMass, validators=[ValidateSpatial(0)],
-          particle_type=True, convert_function=_convertParticleMassMsun)
+          particle_type=True, convert_function=_convertParticleMassMsun,
+          particle_convert_function=_IOLevelParticleMassMsun)
 
 def _RadialMachNumber(field, data):
     """M{|v|/t_sound}"""
@@ -354,6 +369,12 @@ def _TotalMass(field,data):
     return (data["Density"]+data["Dark_Matter_Density"]) * data["CellVolume"]
 add_field("TotalMassMsun", units=r"M_{\odot}",
           function=_TotalMass,
+          convert_function=_convertCellMassMsun)
+
+def _StarMass(field,data):
+    return data["star_density"] * data["CellVolume"]
+add_field("StarMassMsun", units=r"M_{\odot}",
+          function=_StarMass,
           convert_function=_convertCellMassMsun)
 
 def _Matter_Density(field,data):
@@ -522,24 +543,29 @@ add_field("SpecificAngularMomentumKMSMPC",
 def _AngularMomentum(field, data):
     return data["CellMass"] * data["SpecificAngularMomentum"]
 add_field("AngularMomentum", function=_AngularMomentum,
-         units=r"\rm{g}\/\rm{cm}^2/\rm{s}", vector_field=True)
+         units=r"\rm{g}\/\rm{cm}^2/\rm{s}", vector_field=True,
+         validators=[ValidateParameter('center')])
 def _AngularMomentumMSUNKMSMPC(field, data):
     return data["CellMassMsun"] * data["SpecificAngularMomentumKMSMPC"]
 add_field("AngularMomentumMSUNKMSMPC", function=_AngularMomentum,
-          units=r"M_{\odot}\rm{km}\rm{Mpc}/\rm{s}", vector_field=True)
+          units=r"M_{\odot}\rm{km}\rm{Mpc}/\rm{s}", vector_field=True,
+         validators=[ValidateParameter('center')])
 
 def _AngularMomentumX(field, data):
     return data["CellMass"] * data["SpecificAngularMomentumX"]
 add_field("AngularMomentumX", function=_AngularMomentumX,
-         units=r"\rm{g}\/\rm{cm}^2/\rm{s}", vector_field=True)
+         units=r"\rm{g}\/\rm{cm}^2/\rm{s}", vector_field=True,
+         validators=[ValidateParameter('center')])
 def _AngularMomentumY(field, data):
     return data["CellMass"] * data["SpecificAngularMomentumY"]
 add_field("AngularMomentumY", function=_AngularMomentumY,
-         units=r"\rm{g}\/\rm{cm}^2/\rm{s}", vector_field=True)
+         units=r"\rm{g}\/\rm{cm}^2/\rm{s}", vector_field=True,
+         validators=[ValidateParameter('center')])
 def _AngularMomentumZ(field, data):
     return data["CellMass"] * data["SpecificAngularMomentumZ"]
 add_field("AngularMomentumZ", function=_AngularMomentumZ,
-         units=r"\rm{g}\/\rm{cm}^2/\rm{s}", vector_field=True)
+         units=r"\rm{g}\/\rm{cm}^2/\rm{s}", vector_field=True,
+         validators=[ValidateParameter('center')])
 
 def _ParticleSpecificAngularMomentum(field, data):
     """
@@ -574,13 +600,13 @@ def _ParticleAngularMomentum(field, data):
     return data["ParticleMass"] * data["ParticleSpecificAngularMomentum"]
 add_field("ParticleAngularMomentum",
           function=_ParticleAngularMomentum, units=r"\rm{g}\/\rm{cm}^2/\rm{s}",
-          particle_type=True)
+          particle_type=True, validators=[ValidateParameter('center')])
 def _ParticleAngularMomentumMSUNKMSMPC(field, data):
     return data["ParticleMass"] * data["ParticleSpecificAngularMomentumKMSMPC"]
 add_field("ParticleAngularMomentumMSUNKMSMPC",
           function=_ParticleAngularMomentumMSUNKMSMPC,
           units=r"M_{\odot}\rm{km}\rm{Mpc}/\rm{s}",
-          particle_type=True)
+          particle_type=True, validators=[ValidateParameter('center')])
 
 def _ParticleRadius(field, data):
     center = data.get_field_parameter("center")

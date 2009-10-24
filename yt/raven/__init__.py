@@ -32,11 +32,6 @@ from yt.logger import ravenLogger as mylog
 from yt.arraytypes import *
 from yt.funcs import *
 import yt.lagos as lagos
-try:
-    import deliveration
-except:
-    #mylog.warning("Deliverator import failed; all deliverator actions will fail!")
-    pass
 
 import matplotlib
 matplotlib.rc('contour', negative_linestyle='solid')
@@ -67,7 +62,10 @@ be = PlotTypes
 from Callbacks import *
 from FixedResolution import *
 
-color_maps = matplotlib.cm.cmapnames + raven_colormaps.keys()
+if 'cmapnames' in dir(matplotlib.cm):
+    color_maps = matplotlib.cm.cmapnames + raven_colormaps.keys()
+else:
+    color_maps = matplotlib.cm._cmapnames + raven_colormaps.keys()
 default_cmap = ytcfg.get("raven", "colormap")
 if default_cmap != "jet":
     mylog.info("Setting default colormap to %s", default_cmap)

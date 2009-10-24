@@ -180,24 +180,34 @@ class YTPlot(object):
                 zmax = na.nanmax(imbuff)
                 if dex is not None:
                     zmin = max(zmax/(10**(dex)),na.nanmin(imbuff))
-        if ticks is not None:
-            ticks = na.sort(ticks)
-            self.colorbar.locator = matplotlib.ticker.FixedLocator(ticks)
-            self.colorbar.formatter = matplotlib.ticker.FixedFormatter(["%0.2e" % (x) for x in ticks])
-        elif minmaxtick:
-            ticks = na.array(self.colorbar._ticker()[1],dtype='float')
-            ticks = [zmin] + ticks.tolist() + [zmax]
-            self.colorbar.locator = matplotlib.ticker.FixedLocator(ticks)
-            self.colorbar.formatter = matplotlib.ticker.FixedFormatter(["%0.2e" % (x) for x in ticks])
-        elif nticks is not None:
-            lin = na.linspace(na.log10(zmin),na.log10(zmax),nticks)
-            self.colorbar.locator = matplotlib.ticker.FixedLocator(10**lin)
-            self.colorbar.formatter = matplotlib.ticker.FixedFormatter(["%0.2e" % (10**x) for x in lin])
-        else:
-            if hasattr(self,'_orig_locator'):
-                self.colorbar.locator = self._orig_locator
-            if hasattr(self,'_orig_formatter'):
-                self.colorbar.formatter = self._orig_formatter
+        if self.colorbar is not None:
+            if ticks is not None:
+                ticks = na.sort(ticks)
+                self.colorbar.locator = matplotlib.ticker.FixedLocator(ticks)
+                self.colorbar.formatter = matplotlib.ticker.FixedFormatter(["%0.2e" % (x) for x in ticks])
+            elif minmaxtick:
+                if not self.log_field: 
+                    ticks = na.array(self.colorbar._ticker()[0],dtype='float')
+                    ticks = [zmin] + ticks.tolist() + [zmax]
+                    self.colorbar.locator = matplotlib.ticker.FixedLocator(ticks)
+                    self.colorbar.formatter = matplotlib.ticker.FixedFormatter(["%0.2e" % (x) for x in ticks])
+                else:
+                    mylog.error('Sorry, we do not support minmaxtick for linear fields.  It likely comes close by default')
+            elif nticks is not None:
+                if self.log_field:
+                    lin = na.linspace(na.log10(zmin),na.log10(zmax),nticks)
+                    self.colorbar.locator = matplotlib.ticker.FixedLocator(10**lin)
+                    self.colorbar.formatter = matplotlib.ticker.FixedFormatter(["%0.2e" % (10**x) for x in lin])
+                else: 
+                    lin = na.linspace(zmin,zmax,nticks)
+                    self.colorbar.locator = matplotlib.ticker.FixedLocator(lin)
+                    self.colorbar.formatter = matplotlib.ticker.FixedFormatter(["%0.2e" % x for x in lin])
+
+            else:
+                if hasattr(self,'_old_locator'):
+                    self.colorbar.locator = self._old_locator
+                if hasattr(self,'_old_formatter'):
+                    self.colorbar.formatter = self._old_formatter
         self.norm.autoscale(na.array([zmin,zmax]))
         self.image.changed()
 
@@ -379,6 +389,7 @@ class VMPlot(YTPlot):
                                 aspect=aspect, picker=True, origin='lower')
         else:
             self.image.set_data(buff)
+        if self._axes.get_aspect() != aspect: self._axes.set_aspect(aspect)
         if self.do_autoscale:
             self.norm.autoscale(na.array((newmin,newmax)))
         self._reset_image_parameters()
@@ -406,7 +417,7 @@ class VMPlot(YTPlot):
         self["Unit"] = str(unit)
         self["Width"] = float(width)
         if isinstance(unit, types.StringTypes):
-            unit = self.data.hierarchy[str(unit)]
+            unit = self.data.pf[str(unit)]
         self.width = width / unit
         self._refresh_display_width()
 
@@ -451,8 +462,8 @@ class VMPlot(YTPlot):
                    self.data._weight is None
             data_label = self.pf.field_info[field_name].get_label(proj)
         else: data_label = self.datalabel
-        if self.colorbar is not None:
-            self.colorbar.set_label(str(data_label))
+        if self.colorbar != None:
+            self.colorbar.set_label(str(data_label), **self.label_kws)
 
 class FixedResolutionPlot(VMPlot):
 
@@ -710,6 +721,8 @@ class Profile1DPlot(ProfilePlot):
              **self.plot_options)
         self._autoset_label(self.fields[0], self.set_x_label, 'x')
         self._autoset_label(self.fields[1], self.set_y_label, 'y')
+        if self.xlim is not None: self._axes.set_xlim(*self.xlim)
+        if self.ylim is not None: self._axes.set_ylim(*self.ylim)
         self._run_callbacks()
 
     def set_log_field(self, val):
@@ -748,7 +761,7 @@ class PhasePlot(ProfilePlot):
         self.image = None
         self.set_cmap(cmap)
         self._zlim = None
-
+     
         self.axis_names["X"] = fields[0]
         self.axis_names["Y"] = fields[1]
         self.axis_names["Z"] = fields[2]
@@ -759,6 +772,14 @@ class PhasePlot(ProfilePlot):
         self._log_y = self.data._y_log
         self._log_z = self.setup_bins(self.fields[2])
         self.__init_colorbar()
+
+    def _run_callbacks(self):
+        # We sublcass to avoid the problem of replacing self.image,
+        # which is a collection
+        self._axes.patches = []
+        self._axes.texts = []
+        for cb in self._callbacks:
+            cb(self)
 
     def __init_colorbar(self):
         temparray = na.ones((self.x_bins.size, self.y_bins.size))
@@ -775,10 +796,10 @@ class PhasePlot(ProfilePlot):
         if self.image != None and self.cmap != None:
             self.image.set_cmap(self.cmap)
 
-    def switch_z(self, field, weight="CellMassMsun", accumulation=False):
+    def switch_z(self, field, weight="CellMassMsun", accumulation=False, fractional=False):
         self.fields[2] = field
         self.axis_names["Z"] = field
-        if field not in self.data.keys(): self.data.add_fields(field, weight, accumulation)
+        if field not in self.data.keys(): self.data.add_fields(field, weight, accumulation, fractional=fractional)
         self._log_z = self.setup_bins(self.fields[2])
 
     def set_xlim(self, xmin, xmax):

@@ -66,41 +66,33 @@ class PerformanceCounters(object):
         return func_wrapper
 
     def print_stats(self):
-        print "Current counter status:\n"
+        mylog.info("Current counter status:\n")
         times = []
         for i in self.counters:
             insort(times, [self.starttime[i], i, 1]) # 1 for 'on'
             if not self.counting[i]:
                 insort(times, [self.endtime[i], i, 0]) # 0 for 'off'
-        #print times
-        shift = -1
+        shifts = {}
+        order = []
+        endtimes = {}
+        shift = 0
         multi = 5
-        max = 20
-        endline = ""
         for i in times:
-            # A starting entry
+            # a starting entry
             if i[2] == 1:
+                shifts[i[1]] = shift
+                order.append(i[1])
                 shift += 1
-            # An ending entry
             if i[2] == 0:
-                # if shift > 1, this is a nested entry, so we want to record
-                # this line to be printed later when the top level finish entry
-                # is encountered.
-                if shift > 0:
-                    if self.counting[i[1]]:
-                        endline = "%s%i : %s : still running\n%s" % (" "*shift*multi,shift, i[1],endline)
-                    else:
-                        endline = "%s%i : %s : %0.3e\n%s" % (" "*shift*multi,shift, i[1], self.counters[i[1]], endline)
-                    shift -= 1
-                # A top level entry.
-                else:
-                    if self.counting[i[1]]:
-                        line = "%i : %s : still running\n%s" % (shift, i[1],endline)
-                    else:
-                        line = "%i : %s : %0.3e\n%s" % (shift, i[1], self.counters[i[1]],endline)
-                    shift -= 1
-                    endline = ""
-                    print line
+                shift -= 1
+                endtimes[i[1]] = self.counters[i[1]]
+        line = ''
+        for i in order:
+            if self.counting[i]:
+                line = "%s%s%i : %s : still running\n" % (line, " "*shifts[i]*multi, shifts[i], i)
+            else:
+                line = "%s%s%i : %s : %0.3e\n" % (line, " "*shifts[i]*multi, shifts[i], i, self.counters[i])
+        mylog.info("\n" + line)
 
     def exit(self):
         if self._on:
