@@ -26,19 +26,22 @@ License:
 
 //extern __shared__ float array[];
 
-#define NUM_SAMPLES 5
-#define VINDEX(A,B,C) data[((((A)+ci[0])*(ds[1]+1)+((B)+ci[1]))*(ds[2]+1)+ci[2]+(C))]
 
-#define fmin(A, B) ( (A < B) ? A : B )
-#define fmax(A, B) ( (A > B) ? A : B )
+#define NUM_SAMPLES 25
+#define VINDEX(A,B,C) tg.data[((((A)+ci[0])*(tg.dims[1]+1)+((B)+ci[1]))*(tg.dims[2]+1)+ci[2]+(C))]
+
+#define fmin(A, B) ( A * (A < B) + B * (B < A) )
+#define fmax(A, B) ( A * (A > B) + B * (B > A) )
 #define fclip(A, B, C) ( fmax( fmin(A, C), B) )
 
 struct transfer_function
 {
-    float *vs[4];
+    float vs[4][256];
     float dbin;
     float bounds[2];
 };
+
+__shared__ struct transfer_function tf;
 
 struct grid
 {
@@ -49,20 +52,22 @@ struct grid
     float *data;
 };
 
-__device__ float interpolate(float *data, int ds[3], int *ci, float *dp)
+__shared__ struct grid tg;
+
+__device__ float interpolate(float *cache, int *ds, int *ci, float *dp)
 {
     int i;
     float dv, dm[3];
     for(i=0;i<3;i++)dm[i] = (1.0 - dp[i]);
     dv  = 0.0;
-    dv += VINDEX(0,0,0) * (dm[0]*dm[1]*dm[2]);
-    dv += VINDEX(0,0,1) * (dm[0]*dm[1]*dp[2]);
-    dv += VINDEX(0,1,0) * (dm[0]*dp[1]*dm[2]);
-    dv += VINDEX(0,1,1) * (dm[0]*dp[1]*dp[2]);
-    dv += VINDEX(1,0,0) * (dp[0]*dm[1]*dm[2]);
-    dv += VINDEX(1,0,1) * (dp[0]*dm[1]*dp[2]);
-    dv += VINDEX(1,1,0) * (dp[0]*dp[1]*dm[2]);
-    dv += VINDEX(1,1,1) * (dp[0]*dp[1]*dp[2]);
+    dv += cache[0] * (dm[0]*dm[1]*dm[2]);
+    dv += cache[1] * (dm[0]*dm[1]*dp[2]);
+    dv += cache[2] * (dm[0]*dp[1]*dm[2]);
+    dv += cache[3] * (dm[0]*dp[1]*dp[2]);
+    dv += cache[4] * (dp[0]*dm[1]*dm[2]);
+    dv += cache[5] * (dp[0]*dm[1]*dp[2]);
+    dv += cache[6] * (dp[0]*dp[1]*dm[2]);
+    dv += cache[7] * (dp[0]*dp[1]*dp[2]);
     return dv;
 }
 
@@ -95,6 +100,17 @@ __device__ void sample_values(float v_pos[3], float v_dir[3],
 {
     float cp[3], dp[3], dt, t, dv;
     int dti, i;
+    float cache[8];
+
+    cache[0] = VINDEX(0,0,0);
+    cache[1] = VINDEX(0,0,1);
+    cache[2] = VINDEX(0,1,0);
+    cache[3] = VINDEX(0,1,1);
+    cache[4] = VINDEX(1,0,0);
+    cache[5] = VINDEX(1,0,1);
+    cache[6] = VINDEX(1,1,0);
+    cache[7] = VINDEX(1,1,1);
+
     dt = (exit_t - enter_t) / (NUM_SAMPLES-1);
     for (dti = 0; dti < NUM_SAMPLES - 1; dti++)
     {
@@ -104,10 +120,9 @@ __device__ void sample_values(float v_pos[3], float v_dir[3],
             cp[i] = v_pos[i] + t * v_dir[i];
             dp[i] = fclip(fmod(cp[i], tg.dds[i])/tg.dds[i], 0.0, 1.0);
         }
-        dv = interpolate(tg.data, tg.dims, ci, dp);
+        dv = interpolate(cache, tg.dims, ci, dp);
         eval_transfer(dt, dv, rgba, tf);
     }
-    rgba[3] += dt;
 }
                    
 
@@ -134,22 +149,27 @@ __global__ void ray_cast(int ngrids,
 {
 
     int cur_ind[3], step[3], x, y, i, direction;
-    float intersect_t = 1.0;
+    float intersect_t = 1.0, intersect_ts[3];
     float tmax[3];
-    float ti, temp_x, temp_y;
+    float tl, tr, temp_xl, temp_yl, temp_xr, temp_yr;
 
     int offset;
 
-    transfer_function tf;
-    tf.vs[0] = tf_r;
-    tf.vs[1] = tf_g;
-    tf.vs[2] = tf_b;
-    tf.vs[3] = tf_a;
+    //transfer_function tf;
+    for (i = 0; i < 4; i++)
+    {
+        x = 4 * (8 * threadIdx.x + threadIdx.y) + i;
+        tf.vs[0][x] = tf_r[x];
+        tf.vs[1][x] = tf_g[x];
+        tf.vs[2][x] = tf_b[x];
+        tf.vs[3][x] = tf_a[x];
+    }
+
     tf.bounds[0] = tf_bounds[0]; tf.bounds[1] = tf_bounds[1];
     tf.dbin = (tf.bounds[1] - tf.bounds[0])/255.0;
 
     /* Set up the grid, just for convenience */
-    grid tg;
+    //grid tg;
     int grid_i;
 
     int tidx = (blockDim.x * gridDim.x) * (
@@ -157,10 +177,10 @@ __global__ void ray_cast(int ngrids,
              + (blockDim.x * blockIdx.x + threadIdx.x);
 
     float rgba[4];
-    rgba[0] = image_r[tidx];
-    rgba[1] = image_g[tidx];
-    rgba[2] = image_b[tidx];
-    rgba[3] = image_a[tidx];
+    //rgba[0] = image_r[tidx];
+    //rgba[1] = image_g[tidx];
+    //rgba[2] = image_b[tidx];
+    //rgba[3] = image_a[tidx];
 
     float v_pos[3];
     v_pos[0] = av_pos[tidx + 0];
@@ -168,65 +188,86 @@ __global__ void ray_cast(int ngrids,
     v_pos[2] = av_pos[tidx + 2];
 
     tg.data = grid_data;
+    int skip;
+    for (i = 0; i < 3; i++)
+    {
+        step[i] = 0;
+        step[i] +=      (v_dir[i] > 0);
+        step[i] += -1 * (v_dir[i] < 0);
+    }
 
-    for(grid_i = 0; grid_i < 500; grid_i++) {
+    for(grid_i = 0; grid_i < ngrids; grid_i++) {
+        skip = 0;
 
-        tg.dims[0] = dims[grid_i + 0];
-        tg.dims[1] = dims[grid_i + 1];
-        tg.dims[2] = dims[grid_i + 2];
+        if (threadIdx.x == 0)
+        {
+            if (threadIdx.y == 0) tg.dims[0] = dims[3*grid_i + 0];
+            if (threadIdx.y == 1) tg.dims[1] = dims[3*grid_i + 1];
+            if (threadIdx.y == 2) tg.dims[2] = dims[3*grid_i + 2];
+        }
 
-        tg.left_edge[0] = left_edge[grid_i + 0];
-        tg.left_edge[1] = left_edge[grid_i + 1];
-        tg.left_edge[2] = left_edge[grid_i + 2];
+        if (threadIdx.x == 1)
+        {
+            if (threadIdx.y == 0) tg.left_edge[0] = left_edge[3*grid_i + 0];
+            if (threadIdx.y == 1) tg.left_edge[1] = left_edge[3*grid_i + 1];
+            if (threadIdx.y == 2) tg.left_edge[2] = left_edge[3*grid_i + 2];
+        }
 
-        tg.right_edge[0] = right_edge[grid_i + 0];
-        tg.right_edge[1] = right_edge[grid_i + 1];
-        tg.right_edge[2] = right_edge[grid_i + 2];
+        if (threadIdx.x == 2) {
+            if (threadIdx.y == 0) tg.right_edge[0] = right_edge[3*grid_i + 0];
+            if (threadIdx.y == 1) tg.right_edge[1] = right_edge[3*grid_i + 1];
+            if (threadIdx.y == 2) tg.right_edge[2] = right_edge[3*grid_i + 2];
+        }
 
-        tg.dds[0] = (tg.right_edge[0] - tg.left_edge[0])/tg.dims[0];
-        tg.dds[1] = (tg.right_edge[1] - tg.left_edge[1])/tg.dims[1];
-        tg.dds[2] = (tg.right_edge[2] - tg.left_edge[2])/tg.dims[2];
+        if (threadIdx.x == 3) {
+            if (threadIdx.y == 0) tg.dds[0] = (tg.right_edge[0] - tg.left_edge[0])/tg.dims[0];
+            if (threadIdx.y == 1) tg.dds[1] = (tg.right_edge[1] - tg.left_edge[1])/tg.dims[1];
+            if (threadIdx.y == 2) tg.dds[2] = (tg.right_edge[2] - tg.left_edge[2])/tg.dims[2];
+        }
 
         /* We integrate our ray */
 
         for (i = 0; i < 3; i++)
         {
-            step[i] = ((v_dir[i] < 0) ? -1 : 1);
             x = (i + 1) % 3;
             y = (i + 2) % 3;
 
-            ti = (tg.left_edge[i] - v_pos[i])/v_dir[i];
-            temp_x = (v_pos[i] + ti*v_dir[x]);
-            temp_y = (v_pos[i] + ti*v_dir[y]);
+            tl = (tg.left_edge[i] - v_pos[i])/v_dir[i];
+            temp_xl = (v_pos[i] + tl*v_dir[x]);
+            temp_yr = (v_pos[i] + tl*v_dir[y]);
 
-            if( (tg.left_edge[x] <= temp_x) &&
-                (temp_x <= tg.right_edge[x]) &&
-                (tg.left_edge[y] <= temp_y) &&
-                (temp_y <= tg.right_edge[y]) &&
-                (0.0 <= ti) && (ti < intersect_t) ) intersect_t = ti;
+            tr = (tg.right_edge[i] - v_pos[i])/v_dir[i];
+            temp_xr = (v_pos[x] + tr*v_dir[x]);
+            temp_yr = (v_pos[y] + tr*v_dir[y]);
 
-            ti = (tg.right_edge[i] - v_pos[i])/v_dir[i];
-            temp_x = (v_pos[x] + ti*v_dir[x]);
-            temp_y = (v_pos[y] + ti*v_dir[y]);
+            intersect_ts[i] = 1.0;
 
-            if( (tg.left_edge[x] <= temp_x) &&
-                (temp_x <= tg.right_edge[x]) &&
-                (tg.left_edge[y] <= temp_y) &&
-                (temp_y <= tg.right_edge[y]) &&
-                (0.0 <= ti) && (ti < intersect_t) ) intersect_t = ti;
+            intersect_ts[i] += 
+              ( (tg.left_edge[x] <= temp_xl) &&
+                (temp_xl <= tg.right_edge[x]) &&
+                (tg.left_edge[y] <= temp_yl) &&
+                (temp_yl <= tg.right_edge[y]) &&
+                (0.0 <= tl) && (tl < intersect_ts[i]) && (tl < tr) ) * tl;
+
+            intersect_ts[i] += 
+              ( (tg.left_edge[x] <= temp_xr) &&
+                (temp_xr <= tg.right_edge[x]) &&
+                (tg.left_edge[y] <= temp_yr) &&
+                (temp_yr <= tg.right_edge[y]) &&
+                (0.0 <= tr) && (tr < intersect_ts[i]) && (tr < tl) ) * tr;
+
+            intersect_t = ( intersect_ts[i] < intersect_t) * intersect_ts[i];
 
         }
 
-        if ( (tg.left_edge[0] <= v_pos[0]) &&
-             (v_pos[0] <= tg.right_edge[0]) &&
-             (tg.left_edge[0] <= v_pos[0]) &&
-             (v_pos[0] <= tg.right_edge[0]) &&
-             (tg.left_edge[0] <= v_pos[0]) &&
-             (v_pos[0] <= tg.right_edge[0]))
-                intersect_t = 0.0;
+        intersect_t *= (!( (tg.left_edge[0] <= v_pos[0]) &&
+                           (v_pos[0] <= tg.right_edge[0]) &&
+                           (tg.left_edge[0] <= v_pos[0]) &&
+                           (v_pos[0] <= tg.right_edge[0]) &&
+                           (tg.left_edge[0] <= v_pos[0]) &&
+                           (v_pos[0] <= tg.right_edge[0])));
 
-        int skip = 0;
-        if((intersect_t < 0) || (intersect_t > 1.0)) skip=1;
+        skip = ((intersect_t < 0) || (intersect_t > 1.0));
 
         for (i = 0; i < 3;  i++)
         {
@@ -235,32 +276,22 @@ __global__ void ray_cast(int ngrids,
                         tg.left_edge[i])/tg.dds[i]);
             tmax[i] = (((cur_ind[i]+step[i])*tg.dds[i])+
                     tg.left_edge[i]-v_pos[i])/v_dir[i];
-            if((cur_ind[i] == tg.dims[i]) && (step[i] < 0)) cur_ind[i] -= 1;
-            if((cur_ind[i] < 0) || (cur_ind[i] >= tg.dims[i])) skip=1;
-            if(step[i] > 0) offset = 1;
-            if(step[i] < 0) offset = 0;
+            cur_ind[i] -= ((cur_ind[i] == tg.dims[i]) && (step[i] < 0));
+            skip = ((cur_ind[i] < 0) || (cur_ind[i] >= tg.dims[i]));
+            offset = (step[i] > 0);
             tmax[i] = (((cur_ind[i]+offset)*tg.dds[i])+tg.left_edge[i]-v_pos[i])/v_dir[i];
         }
 
         /* This is the primary grid walking loop */
-        while(!(skip) &&
-              !( (cur_ind[0] < 0) || (cur_ind[0] >= tg.dims[0])
+        while(!( (skip) 
+              ||((cur_ind[0] < 0) || (cur_ind[0] >= tg.dims[0])
               || (cur_ind[1] < 0) || (cur_ind[1] >= tg.dims[1])
-              || (cur_ind[2] < 0) || (cur_ind[2] >= tg.dims[2])))
+              || (cur_ind[2] < 0) || (cur_ind[2] >= tg.dims[2]))))
         {
-            if (tmax[0] < tmax[1]) {
-                if (tmax[0] < tmax[2]) {
-                    direction = 0;
-                } else {
-                    direction = 2;
-                }
-            } else {
-                if (tmax[1] < tmax[2]) {
-                    direction = 1;
-                } else {
-                    direction = 2;
-                }
-            }
+            direction = 0;
+            direction += 2 * (tmax[0] <  tmax[1]) * (tmax[0] >= tmax[2]);
+            direction += 1 * (tmax[0] >= tmax[1]) * (tmax[1] <  tmax[2]);
+            direction += 2 * (tmax[0] >= tmax[1]) * (tmax[1] >= tmax[2]);
             sample_values(v_pos, v_dir, intersect_t, tmax[direction],
                     cur_ind, rgba, tf, tg);
             cur_ind[direction] += step[direction];
@@ -268,11 +299,14 @@ __global__ void ray_cast(int ngrids,
             tmax[direction] += abs(tg.dds[direction]/v_dir[direction]);
         }
 
-        tg.data += (tg.dims[0] * tg.dims[1] * tg.dims[2]);
+        tg.data += (tg.dims[0]+1) * (tg.dims[1]+1) * (tg.dims[2]+1);
 
     }
 
+    int iy = threadIdx.y + blockDim.y * blockIdx.y;
+    int ix = threadIdx.x + blockDim.x * blockIdx.x;
     __syncthreads();
+    
     image_r[tidx] = rgba[0];
     image_g[tidx] = rgba[1];
     image_b[tidx] = rgba[2];

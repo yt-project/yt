@@ -52,20 +52,30 @@ if __name__ == "__main__":
     gpu = {}
 
     print "Reading data."
-    f = h5py.File("/u/ki/mturk/ki05/DataDump0081_partitioned.h5")
+    #fn = "DataDump0081_partitioned.h5"
+    fn = "RedshiftOutput0005_partitioned.h5"
+    f = h5py.File("/u/ki/mturk/ki05/%s" % fn)
     cpu['grid_data'] = f["/PGrids/Data"][:].astype("float32")
-    cpu['dims'] = f["/PGrids/Dims"][:].astype("int32").transpose()
-    cpu['left_edge'] = f["/PGrids/LeftEdges"][:].astype("float32").transpose()
-    cpu['right_edge'] = f["/PGrids/RightEdges"][:].astype("float32").transpose()
+    cpu['dims'] = f["/PGrids/Dims"][:].astype("int32") - 1
+    cpu['left_edge'] = f["/PGrids/LeftEdges"][:].astype("float32")
+    cpu['right_edge'] = f["/PGrids/RightEdges"][:].astype("float32")
 
     print "Constructing transfer function."
-    mh = na.log10(1.67e-24)
-    tf = ColorTransferFunction((7.5+mh, 14.0+mh))
-    tf.add_gaussian( 8.25+mh, 0.002, [0.2, 0.2, 0.4, 0.1])
-    tf.add_gaussian( 9.75+mh, 0.002, [0.0, 0.0, 0.3, 0.1])
-    tf.add_gaussian(10.25+mh, 0.004, [0.0, 0.3, 0.0, 0.1])
-    tf.add_gaussian(11.50+mh, 0.005, [1.0, 0.0, 0.0, 0.7])
-    tf.add_gaussian(12.75+mh, 0.010, [1.0, 1.0, 1.0, 1.0])
+    if "Data" in fn:
+        mh = na.log10(1.67e-24)
+        tf = ColorTransferFunction((7.5+mh, 14.0+mh))
+        tf.add_gaussian( 8.25+mh, 0.002, [0.2, 0.2, 0.4, 0.1])
+        tf.add_gaussian( 9.75+mh, 0.002, [0.0, 0.0, 0.3, 0.1])
+        tf.add_gaussian(10.25+mh, 0.004, [0.0, 0.3, 0.0, 0.1])
+        tf.add_gaussian(11.50+mh, 0.005, [1.0, 0.0, 0.0, 0.7])
+        tf.add_gaussian(12.75+mh, 0.010, [1.0, 1.0, 1.0, 1.0])
+    elif "Red" in fn:
+        tf = ColorTransferFunction((-31, -27))
+        tf.add_gaussian(-30.0, 0.05, [1.0, 0.0, 0.0, 0.1])
+        tf.add_gaussian(-29.5, 0.03, [0.0, 1.0, 0.0, 0.3])
+        tf.add_gaussian(-29.0, 0.05, [0.0, 0.0, 1.0, 0.5])
+        tf.add_gaussian(-28.5, 0.05, [1.0, 1.0, 1.0, 1.0])
+    else: raise RuntimeError
 
     cpu['ngrids'] = na.array([cpu['dims'].shape[0]], dtype='int32')
     cpu['tf_r'] = tf.red.y.astype("float32")
@@ -83,7 +93,8 @@ if __name__ == "__main__":
     cp = pf.h.cutting(cpu['v_dir'], c)
 
     W = 2000.0/pf['au']
-    Nvec = 512
+    W = 0.25
+    Nvec = 128
     back_c = c - cp._norm_vec * W
     front_c = c + cp._norm_vec * W
 
@@ -93,10 +104,10 @@ if __name__ == "__main__":
     zv = cp._inv_mat[2,0]*px + cp._inv_mat[2,1]*py + cp.center[2]
     cpu['v_pos'] = na.array([xv, yv, zv], dtype='float32').transpose()
 
-    cpu['image_r'] = na.zeros((Nvec, Nvec), dtype='float32')
-    cpu['image_g'] = na.zeros((Nvec, Nvec), dtype='float32')
-    cpu['image_b'] = na.zeros((Nvec, Nvec), dtype='float32')
-    cpu['image_a'] = na.zeros((Nvec, Nvec), dtype='float32')
+    cpu['image_r'] = na.zeros((Nvec, Nvec), dtype='float32').ravel()
+    cpu['image_g'] = na.zeros((Nvec, Nvec), dtype='float32').ravel()
+    cpu['image_b'] = na.zeros((Nvec, Nvec), dtype='float32').ravel()
+    cpu['image_a'] = na.zeros((Nvec, Nvec), dtype='float32').ravel()
 
     print "Generating module"
     source = open("yt/extensions/volume_rendering/_cuda_caster.cu").read()
@@ -106,7 +117,7 @@ if __name__ == "__main__":
     for n, a in cpu.items():
         ss = a.size * a.dtype.itemsize
         print "Allocating %0.3e megabytes for %s" % (ss/(1024*1024.), n)
-        gpu[n] = cuda.to_device(a)
+        gpu[n] = cuda.to_device(a.ravel('F'))
         #pycuda.autoinit.context.synchronize()
 
     BLOCK_SIZE = 8
@@ -141,7 +152,7 @@ if __name__ == "__main__":
         ii = 'image_%s' % im
         sh, dtype = cpu[ii].shape, cpu[ii].dtype
         del cpu[ii]
-        cpu[ii] = cuda.from_device(gpu[ii], sh, dtype)
+        cpu[ii] = cuda.from_device(gpu[ii], sh, dtype).reshape((Nvec,Nvec))
         mi, ma = min(cpu[ii].min(),mi), max(cpu[ii].max(), ma)
         image.append(cpu[ii])
         print "Min/max of %s %0.3e %0.3e" % (

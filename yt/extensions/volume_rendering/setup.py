@@ -4,7 +4,7 @@ import os, sys, os.path
 
 import os.path
 
-#os.system("cython -a yt/extensions/volume_rendering/VolumeIntegrator.pyx")
+os.system("cython -a yt/extensions/volume_rendering/VolumeIntegrator.pyx")
 
 def configuration(parent_package='',top_path=None):
     from numpy.distutils.misc_util import Configuration
