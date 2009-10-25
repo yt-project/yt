@@ -608,6 +608,10 @@ class parallelHOPHaloList(HaloList,ParallelAnalysisInterface):
             self.particle_fields["ParticleMassMsun"]/self.total_mass,
             self.threshold, rearrange=self.rearrange)
         self.densities, self.tags = obj.density, obj.chainID
+        # I'm going to go ahead and delete self.densities because it's not
+        # actually being used. I'm not going to remove it altogether because
+        # it may be useful to someone someday.
+        del self.densities
         self.group_count = obj.group_count
         self.group_sizes = obj.group_sizes
         self.CoM = obj.CoM
@@ -673,9 +677,12 @@ class parallelHOPHaloList(HaloList,ParallelAnalysisInterface):
         counts = na.bincount((self.tags+1).tolist())
         sort_indices = na.argsort(self.tags)
         grab_indices = na.indices(self.tags.shape).ravel()[sort_indices]
-        dens = self.densities[sort_indices]
+        del sort_indices
         cp = 0
         index = 0
+        # We want arrays for parallel HOP
+        self._groups = na.empty(self.group_count, dtype='object')
+        self._max_dens = na.empty((self.group_count, 4), dtype='float64')
         for i in unique_ids:
             if i == -1:
                 cp += counts[i+1]
@@ -683,40 +690,43 @@ class parallelHOPHaloList(HaloList,ParallelAnalysisInterface):
             # If there is a gap in the unique_ids, make empty groups to 
             # fill it in.
             while index < i:
-                self._groups.append(self._halo_class(self, index, \
+                self._groups[index] = self._halo_class(self, index, \
                     size=self.group_sizes[index], CoM=self.CoM[index], \
                     max_dens_point=self.max_dens_point[index], \
                     group_total_mass=self.Tot_M[index], max_radius=self.max_radius[index],
-                    bulk_vel=self.bulk_vel[index], tasks=self.halo_taskmap[index]))
+                    bulk_vel=self.bulk_vel[index], tasks=self.halo_taskmap[index])
                 # I don't own this halo
-                self._do_not_claim_object(self._groups[-1])
-                self._max_dens[index] = (self.max_dens_point[index][0], self.max_dens_point[index][1], \
-                    self.max_dens_point[index][2], self.max_dens_point[index][3])
+                self._do_not_claim_object(self._groups[index])
+                self._max_dens[index] = [self.max_dens_point[index][0], self.max_dens_point[index][1], \
+                    self.max_dens_point[index][2], self.max_dens_point[index][3]]
                 index += 1
             cp_c = cp + counts[i+1]
             group_indices = grab_indices[cp:cp_c]
-            self._groups.append(self._halo_class(self, i, group_indices, \
+            self._groups[index] = self._halo_class(self, i, group_indices, \
                 size=self.group_sizes[i], CoM=self.CoM[i], \
                 max_dens_point=self.max_dens_point[i], \
                 group_total_mass=self.Tot_M[i], max_radius=self.max_radius[i],
-                bulk_vel=self.bulk_vel[i], tasks=self.halo_taskmap[index]))
+                bulk_vel=self.bulk_vel[i], tasks=self.halo_taskmap[index])
             # This halo may be owned by many, including this task
-            self._claim_object(self._groups[-1])
-            self._max_dens[i] = (self.max_dens_point[i][0], self.max_dens_point[i][1], \
-                self.max_dens_point[i][2], self.max_dens_point[i][3])
+            self._claim_object(self._groups[index])
+            self._max_dens[index] = [self.max_dens_point[i][0], self.max_dens_point[i][1], \
+                self.max_dens_point[i][2], self.max_dens_point[i][3]]
             cp += counts[i+1]
             index += 1
         # If there are missing groups at the end, add them.
         while index < self.group_count:
-            self._groups.append(self._halo_class(self, index, \
-            size=self.group_sizes[index], CoM=self.CoM[index], \
-            max_dens_point=self.max_dens_point[i], \
-            group_total_mass=self.Tot_M[index], max_radius=self.max_radius[index],
-            bulk_vel=self.bulk_vel[index], tasks=self.halo_taskmap[index]))
-            self._do_not_claim_object(self._groups[-1])
-            self._max_dens[index] = (self.max_dens_point[index][0], self.max_dens_point[index][1], \
-                self.max_dens_point[index][2], self.max_dens_point[index][3])
+            self._groups[index] = self._halo_class(self, index, \
+                size=self.group_sizes[index], CoM=self.CoM[index], \
+                max_dens_point=self.max_dens_point[i], \
+                group_total_mass=self.Tot_M[index], max_radius=self.max_radius[index],
+                bulk_vel=self.bulk_vel[index], tasks=self.halo_taskmap[index])
+            self._do_not_claim_object(self._groups[index])
+            self._max_dens[index] = [self.max_dens_point[index][0], self.max_dens_point[index][1], \
+                self.max_dens_point[index][2], self.max_dens_point[index][3]]
             index += 1
+        # Clean up
+        del self.max_dens_point, self.Tot_M, self.max_radius, self.bulk_vel
+        del self.halo_taskmap, self.tags
 
     def __len__(self):
         return self.group_count
@@ -870,6 +880,7 @@ class parallelHF(GenericHaloFinder, parallelHOPHaloList):
                     new_group, new_comm, LE, RE, new_top_bounds, new_cc, self._data_source = \
                         self._partition_hierarchy_3d_bisection(dim, bins, counts, top_bounds = new_top_bounds,\
                         old_group = new_group, old_comm = new_comm, cut=cut, old_cc=new_cc)
+            del bins, counts
         # If this isn't parallel, define the region as an AMRRegionStrict so
         # particle IO works.
         if self._mpi_get_size() == None or self._mpi_get_size() == 1:
@@ -929,6 +940,7 @@ class parallelHF(GenericHaloFinder, parallelHOPHaloList):
                 avg_spacing = (float(vol) / count)**(1./3.)
                 RE_padding[dim] = (self.num_neighbors)**(1./3.) * self.safety * avg_spacing
             self.padding = (LE_padding, RE_padding)
+            del bins, counts
             mylog.info('fancy_padding %s avg_spacing %f full_vol %f local_parts %d %s' % \
                 (str(self.padding), avg_spacing, full_vol, data.size, str(self._data_source)))
         # Now we get the full box mass after we have the final composition of
@@ -948,19 +960,17 @@ class parallelHF(GenericHaloFinder, parallelHOPHaloList):
         yt_counters("Final Grouping")
 
     def _join_halolists(self):
-        def haloCmp(h1,h2):
-            c = cmp(h1.get_size(),h2.get_size())
-            if c != 0:
-                return -1 * c
-            if c == 0:
-                return cmp(h1.center_of_mass()[0],h2.center_of_mass()[0])
-        self._groups.sort(haloCmp)
-        sorted_max_dens = {}
-        for i, halo in enumerate(self._groups):
-            if halo.id in self._max_dens:
-                sorted_max_dens[i] = self._max_dens[halo.id]
-            halo.id = i
-        self._max_dens = sorted_max_dens
+        gs = -self.group_sizes.copy()
+        Cx = self.CoM[:,0].copy()
+        indexes = na.arange(self.group_count)
+        sorted = na.asarray([indexes[i] for i in na.lexsort([indexes, Cx, gs])])
+        del indexes, Cx, gs
+        self._groups = self._groups[sorted]
+        self._max_dens = self._max_dens[sorted]
+        for i in xrange(self.group_count):
+            self._groups[i].id = i
+        del sorted, self.group_sizes, self.CoM
+
 
 class HOPHaloFinder(GenericHaloFinder, HOPHaloList):
     def __init__(self, pf, threshold=160, dm_only=True, padding=0.02):
