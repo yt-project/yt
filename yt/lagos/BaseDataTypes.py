@@ -2481,12 +2481,13 @@ class AMRCoveringGridBase(AMR3DData):
                    obtain_fields, len(self._grids))
         if self._use_pbar: pbar = \
                 get_pbar('Searching grids for values ', len(self._grids))
+        count = self.ActiveDimensions.prod()
         for i, grid in enumerate(self._grids):
             if self._use_pbar: pbar.update(i)
-            self._get_data_from_grid(grid, obtain_fields)
-            if not na.any(self[obtain_fields[0]] == -999): break
+            count -= self._get_data_from_grid(grid, obtain_fields)
+            if count <= 0: break
         if self._use_pbar: pbar.finish()
-        if na.any(self[obtain_fields[0]] == -999):
+        if count > 0 or na.any(self[obtain_fields[0]] == -999):
             # and self.dx < self.hierarchy.grids[0].dx:
             n_bad = na.where(self[obtain_fields[0]]==-999)[0].size
             mylog.error("Covering problem: %s cells are uncovered", n_bad)
@@ -2521,11 +2522,12 @@ class AMRCoveringGridBase(AMR3DData):
         ref_ratio = self.pf["RefineBy"]**(self.level - grid.Level)
         g_fields = [grid[field] for field in fields]
         c_fields = [self[field] for field in fields]
-        PointCombine.FillRegion(ref_ratio,
+        count = PointCombine.FillRegion(ref_ratio,
             grid.get_global_startindex(), self.global_startindex,
             c_fields, g_fields, 
             self.ActiveDimensions, grid.ActiveDimensions,
             grid.child_mask, self.domain_width, ll, 0)
+        return count
 
     def _flush_data_to_grid(self, grid, fields):
         ll = int(grid.Level == self.level)
