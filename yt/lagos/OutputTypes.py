@@ -660,4 +660,15 @@ class ChomboStaticOutput(StaticOutput):
         RE = dx0*((na.array(fileh['/level_0'].attrs['prob_domain']))[3:] + 1)
         fileh.close()
         return RE
-                    
+                   
+    @classmethod
+    def _is_valid(self, *args, **kwargs):
+        try:
+            fileh = h5py.File(args[0],'r')
+            if (fileh.listnames())[0] == 'Chombo_global':
+                return True
+        except:
+            pass
+        return False
+
+    
