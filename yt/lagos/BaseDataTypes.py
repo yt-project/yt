@@ -1668,6 +1668,7 @@ class AMR3DData(AMRData, GridPropertiesMixin):
             if self.pf.field_info[field].vector_field:
                 f = grid[field]
                 return na.array([f[i,:][pointI] for i in range(3)])
+            if self._is_fully_enclosed(grid): return grid[field].ravel()
             return grid[field][pointI].ravel()
         if field in self.pf.field_info and self.pf.field_info[field].vector_field:
             pointI = self._get_point_indices(grid)
