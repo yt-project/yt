@@ -84,14 +84,6 @@ class EnzoSimulation(object):
         else:
             self.SimulationInitialTime = 0.0
 
-        # Calculate redshifts for dt data dumps.
-        if self.enzoParameters.has_key('dtDataDump'):
-            self._CalculateTimeDumps()
-
-        # Calculate times for redshift dumps.
-        if self.enzoParameters['ComovingCoordinates']:
-            self._CalculateRedshiftDumpTimes()
-
         # Combine all data dumps.
         self._CombineDataOutputs()
 
@@ -104,6 +96,8 @@ class EnzoSimulation(object):
 
     def _CalculateTimeDumps(self):
         "Calculates time dumps and their redshifts if cosmological."
+
+        if self.enzoParameters['dtDataDump'] <= 0.0: return
 
         index = 0
         current_time = self.SimulationInitialTime
@@ -124,13 +118,20 @@ class EnzoSimulation(object):
     def _CombineDataOutputs(self):
         "Combines redshift and time data into one sorted list."
 
-        if not self.get_time_outputs: self.timeOutputs = []
-        if not self.get_redshift_outputs: self.redshiftOutputs = []
+        # Calculate redshifts for dt data dumps.
+        if self.enzoParameters.has_key('dtDataDump') and self.get_time_outputs:
+            self._CalculateTimeDumps()
+
+        # Calculate times for redshift dumps.
+        if self.enzoParameters['ComovingCoordinates'] and self.get_redshift_outputs:
+            self._CalculateRedshiftDumpTimes()
+
         self.allOutputs = self.redshiftOutputs + self.timeOutputs
         self.allOutputs.sort(key=lambda obj:obj['time'])
 
         start_index = None
         end_index = None
+
         for q in range(len(self.allOutputs)):
             del self.allOutputs[q]['index']
 
@@ -146,16 +147,18 @@ class EnzoSimulation(object):
                 if abs(self.allOutputs[q]['time'] - self.FinalTime) < \
                         self.allOutputs[q]['time'] * dt_Tolerance:
                     end_index = q
+                if q == len(self.allOutputs) - 1:
+                    end_index = q
 
             if self.links and start_index is not None:
                 if q == start_index:
                     self.allOutputs[q]['previous'] = None
-                    self.allOutputs[q]['next'] = self.allOutputs[q+1]
-                elif q == end_index:
-                    self.allOutputs[q]['previous'] = self.allOutputs[q-1]                
-                    self.allOutputs[q]['next'] = None
-                elif end_index is None:
+                else:
                     self.allOutputs[q]['previous'] = self.allOutputs[q-1]
+
+                if q == end_index:
+                    self.allOutputs[q]['next'] = None
+                else:
                     self.allOutputs[q]['next'] = self.allOutputs[q+1]
 
         del self.redshiftOutputs
@@ -227,31 +230,34 @@ class EnzoSimulation(object):
             z_Tolerance = 1e-4
             z = initial_redshift
 
+            b = 0
+
             # fill redshift space with datasets
             while ((z > final_redshift) and 
                    (na.fabs(z - final_redshift) > z_Tolerance)):
-                # Sort data outputs by proximity to current redsfhit.
-                self.allOutputs.sort(key=lambda obj:na.fabs(z - obj['redshift']))
+
+                b += 1
+
                 # For first data dump, choose closest to desired redshift.
                 if (len(cosmology_splice) == 0):
+                    # Sort data outputs by proximity to current redsfhit.
+                    self.allOutputs.sort(key=lambda obj:na.fabs(z - obj['redshift']))
                     cosmology_splice.append(self.allOutputs[0])
-                # Start with data dump closest to desired redshift and move backward 
-                # until one is within max delta z of last output in solution list.
+
+                # Move forward from last slice in stack until z > z_max.
                 else:
-                    output = self.allOutputs[0]
-                    while (z > output['redshift']):
-                        output = output['previous']
-                        if (output is None):
-                            mylog.error("CalculateLightRaySolution: search for data output went off the end of the stack.")
-                            mylog.error("Could not calculate light ray solution.")
-                            return
-                        if (output['redshift'] == cosmology_splice[-1]['redshift']):
-                            mylog.error("CalculateLightRaySolution: No data dump between z = %f and %f." % \
-                                ((cosmology_splice[-1]['redshift'] - cosmology_splice[-1]['deltazMax']),
-                                 cosmology_splice[-1]['redshift']))
-                            mylog.error("Could not calculate light ray solution.")
-                            return
-                    cosmology_splice.append(output)
+                    current_slice = cosmology_splice[-1]
+                    while (current_slice['next'] is not None and
+                           z <= current_slice['next']['redshift']):
+                        current_slice = current_slice['next']
+
+                    if current_slice is cosmology_splice[-1]:
+                        final_redshift = cosmology_splice[-1]['redshift'] - cosmology_splice[-1]['deltazMax']
+                        mylog.error("Cosmology splice incomplete due to insufficient data outputs.")
+                        break
+                    else:
+                        cosmology_splice.append(current_slice)
+
                 z = cosmology_splice[-1]['redshift'] - cosmology_splice[-1]['deltazMax']
 
         # Make light ray using maximum number of datasets (minimum spacing).
@@ -268,6 +274,9 @@ class EnzoSimulation(object):
                 if ((cosmology_splice[-1]['redshift'] - nextOutput['redshift']) > cosmology_splice[-1]['deltazMin']):
                     cosmology_splice.append(nextOutput)
                 nextOutput = nextOutput['next']
+            if (cosmology_splice[-1]['redshift'] - cosmology_splice[-1]['deltazMax']) > final_redshift:
+                mylog.error("Cosmology splice incomplete due to insufficient data outputs.")
+                final_redshift = cosmology_splice[-1]['redshift'] - cosmology_splice[-1]['deltazMax']
 
         mylog.info("create_cosmology_splice: Used %d data dumps to get from z = %f to %f." % 
                    (len(cosmology_splice),initial_redshift,final_redshift))
