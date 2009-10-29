@@ -1911,12 +1911,13 @@ class AMRCoveringGridBase(AMR3DData):
                    obtain_fields, len(self._grids))
         if self._use_pbar: pbar = \
                 get_pbar('Searching grids for values ', len(self._grids))
+        count = self.ActiveDimensions.prod()
         for i, grid in enumerate(self._grids):
             if self._use_pbar: pbar.update(i)
-            self._get_data_from_grid(grid, obtain_fields)
-            if not na.any(self[obtain_fields[0]] == -999): break
+            count -= self._get_data_from_grid(grid, obtain_fields)
+            if count <= 0: break
         if self._use_pbar: pbar.finish()
-        if na.any(self[obtain_fields[0]] == -999):
+        if count > 0 or na.any(self[obtain_fields[0]] == -999):
             # and self.dx < self.hierarchy.grids[0].dx:
             print "COVERING PROBLEM", na.where(self[obtain_fields[0]]==-999)[0].size
             print na.where(self[obtain_fields[0]]==-999)
@@ -1952,10 +1953,11 @@ class AMRCoveringGridBase(AMR3DData):
         c_dx = self.dds.ravel()
         g_fields = [grid[field] for field in ensure_list(fields)]
         c_fields = [self[field] for field in ensure_list(fields)]
-        PointCombine.DataCubeRefine(
+        count = PointCombine.DataCubeRefine(
             grid.LeftEdge, g_dx, g_fields, grid.child_mask,
             self.left_edge, self.right_edge, c_dx, c_fields,
             ll, self.pf["DomainLeftEdge"], self.pf["DomainRightEdge"])
+        return count
 
     def _flush_data_to_grid(self, grid, fields):
         ll = int(grid.Level == self.level)
