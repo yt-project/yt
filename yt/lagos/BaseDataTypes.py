@@ -28,7 +28,6 @@ License:
 data_object_registry = {}
 
 from yt.lagos import *
-import PointsInVolume as PV
 
 def restore_grid_state(func):
     """
@@ -1143,7 +1142,7 @@ class AMRFixedResCuttingPlaneBase(AMR2DData):
 
     def _get_point_indices(self, grid):
         if self._pixelmask.max() == 0: return []
-        k = PV.PointsInVolume(self._coord, self._pixelmask,
+        k = utils.PointsInVolume(self._coord, self._pixelmask,
                               grid.LeftEdge, grid.RightEdge,
                               grid.child_mask, just_one(grid['dx']))
         return k

@@ -55,6 +55,8 @@ import shelve
 
 import time
 
+import yt.utils as utils
+
 from Cosmology import *
 from EnzoCosmology import *
 

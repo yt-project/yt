@@ -25,7 +25,6 @@ License:
 """
 
 from yt.lagos import *
-import Interpolators as IT
 
 class UnilinearFieldInterpolator:
     def __init__(self, table, boundaries, field_names):
@@ -46,7 +45,7 @@ class UnilinearFieldInterpolator:
             raise ValueError
 
         my_vals = na.zeros(x_vals.shape, dtype='float64')
-        IT.UnilinearlyInterpolate(self.table, x_vals, self.x_bins, x_i, my_vals)
+        utils.UnilinearlyInterpolate(self.table, x_vals, self.x_bins, x_i, my_vals)
         return my_vals
 
 class BilinearFieldInterpolator:
@@ -77,7 +76,7 @@ class BilinearFieldInterpolator:
                 y_i = na.minimum(na.maximum(y_i,0), len(self.y_bins)-2)
 
         my_vals = na.zeros(x_vals.shape, dtype='float64')
-        IT.BilinearlyInterpolate(self.table,
+        utils.BilinearlyInterpolate(self.table,
                                  x_vals, y_vals, self.x_bins, self.y_bins,
                                  x_i, y_i, my_vals)
         return my_vals.reshape(orig_shape)
@@ -115,7 +114,7 @@ class TrilinearFieldInterpolator:
                 z_i = na.minimum(na.maximum(z_i,0), len(self.z_bins)-2)
 
         my_vals = na.zeros(x_vals.shape, dtype='float64')
-        IT.TrilinearlyInterpolate(self.table,
+        utils.TrilinearlyInterpolate(self.table,
                                  x_vals, y_vals, z_vals,
                                  self.x_bins, self.y_bins, self.z_bins,
                                  x_i, y_i, z_i, my_vals)

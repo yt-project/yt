@@ -27,7 +27,7 @@ import numpy as na
 from yt.funcs import *
 import h5py
 
-from VolumeIntegrator import PartitionedGrid
+from yt.utils import PartitionedGrid
 
 def partition_grid(start_grid, field, log_field = True, threshold = None):
     if threshold is not None:

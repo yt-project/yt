@@ -1,11 +1,12 @@
 """
-Import the components of the volume rendering extension
+Container file to hold all our Cython routines.  This is to avoid problems with
+static linking.
 
 Author: Matthew Turk <matthewturk@gmail.com>
 Affiliation: KIPAC/SLAC/Stanford
 Homepage: http://yt.enzotools.org/
 License:
-  Copyright (C) 2009 Matthew Turk.  All Rights Reserved.
+  Copyright (C) 2008 Matthew Turk.  All Rights Reserved.
 
   This file is part of yt.
 
@@ -23,12 +24,20 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-import numpy as na
+#cython embedsignature=True
+#cython cdivision=True
+#cython always_allow_keywords=True
 
-from TransferFunction import TransferFunction, ColorTransferFunction
-from yt.utils import PartitionedGrid, VectorPlane, \
-                     TransferFunctionProxy
-from grid_partitioner import partition_all_grids, partition_grid, \
-                             export_partitioned_grids, \
-                             import_partitioned_grids
-from software_sampler import direct_ray_cast
+# Set up some imports
+import numpy as np
+cimport numpy as np
+cimport cython
+
+# We include all of our files
+
+include "_utils/DepthFirstOctree.pyx"
+include "_utils/Interpolators.pyx"
+include "_utils/PointsInVolume.pyx"
+include "_utils/RayIntegrators.pyx"
+include "_utils/VolumeIntegrator.pyx"
+
