@@ -1000,7 +1000,7 @@ class EnzoHierarchyInMemory(EnzoHierarchy):
         self.parameter_file = weakref.proxy(pf) # for _obtain_enzo
         if data_style is None: data_style = self._data_style
         enzo = self._obtain_enzo()
-        self.float_type = 'float64'
+        self.float_type = enzo.hierarchy_information["GridLeftEdge"].dtype
         self.data_style = data_style # Mandated
         self.directory = os.getcwd()
         self.num_grids = enzo.hierarchy_information["GridDimensions"].shape[0]
