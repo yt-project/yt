@@ -103,6 +103,26 @@ def humanize_time(secs):
 # Some function wrappers that come in handy once in a while
 #
 
+# we use the resource module to get the memory page size
+
+try:
+    import resource
+except ImportError:
+    pass
+
+def get_memory_usage():
+    """
+    Returning resident size in megabytes
+    """
+    pagesize = resource.getpagesize()
+    pid = os.getpid()
+    status_file = "/proc/%s/statm" % (pid)
+    if not os.path.isfile(status_file):
+        return None
+    line = open(status_file).read()
+    size, resident, share, text, library, data, dt = [int(i) for i in line.split()]
+    return resident * pagesize / (1024 * 1024) # return in megs
+
 def time_execution(func):
     """
     Decorator for seeing how long a given function takes, depending on whether
