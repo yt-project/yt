@@ -41,7 +41,8 @@ class AMRGridPatch(object):
                  'ActiveDimensions', 'LeftEdge', 'RightEdge', 'Level',
                  'NumberOfParticles', 'Children', 'Parent',
                  'start_index', 'filename', '__weakref__', 'dds',
-                 '_child_mask', '_child_indices', '_child_index_mask']
+                 '_child_mask', '_child_indices', '_child_index_mask',
+                 '_parent_id', '_children_ids']
     def __init__(self, id, filename = None, hierarchy = None):
         self.data = {}
         self.field_parameters = {}
@@ -462,8 +463,8 @@ class EnzoGrid(AMRGridPatch):
         """
         #All of the field parameters will be passed to us as needed.
         AMRGridPatch.__init__(self, id, filename = None, hierarchy = hierarchy)
-        self.Parent = None
-        self.Children = []
+        self._children_ids = []
+        self._parent_id = -1
         self.Level = -1
 
     def _guess_properties_from_parent(self):
@@ -519,6 +520,16 @@ class EnzoGrid(AMRGridPatch):
 
     def __repr__(self):
         return "EnzoGrid_%04i" % (self.id)
+
+    @property
+    def Parent(self):
+        if self._parent_id == -1: return None
+        return self.hierarchy.grids[self._parent_id - self._id_offset]
+
+    @property
+    def Children(self):
+        return [self.hierarchy.grids[cid - self._id_offset]
+                for cid in self._children_ids]
 
 class EnzoGridInMemory(EnzoGrid):
     __slots__ = ['proc_num']

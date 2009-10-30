@@ -424,7 +424,6 @@ class EnzoHierarchy(AMRHierarchy):
         f = open(self.hierarchy_filename, "rb")
         self.grids = [self.grid(1, self)]
         self.grids[0].Level = 0
-        self.wrefs = [weakref.proxy(self.grids[0])]
         si, ei, LE, RE, fn, np = [], [], [], [], [], []
         all = [si, ei, LE, RE, fn]
         f.readline() # Blank at top
@@ -460,17 +459,16 @@ class EnzoHierarchy(AMRHierarchy):
         # (recall, Enzo grids are 1-indexed)
         self.grids.append(self.grid(len(self.grids)+1, self))
         # We'll just go ahead and make a weakref to cache
-        self.wrefs.append(weakref.proxy(self.grids[-1]))
-        second_grid = self.wrefs[sgi] # zero-indexex already
-        first_grid = self.wrefs[int(m[0])-1]
+        second_grid = self.grids[sgi] # zero-indexed already
+        first_grid = self.grids[int(m[0])-1]
         if m[1] == "Next":
             first_grid.Children.append(second_grid)
-            second_grid.Parent = first_grid
+            second_grid._parent_id = first_grid.id
             second_grid.Level = first_grid.Level + 1
         elif m[1] == "This":
             if first_grid.Parent is not None:
-                first_grid.Parent.Children.append(second_grid)
-                second_grid.Parent = first_grid.Parent
+                first_grid.Parent._children_ids.append(second_grid.id)
+                second_grid._parent_id = first_grid._parent_id
             second_grid.Level = first_grid.Level
 
     def _populate_grid_objects(self):
@@ -625,16 +623,15 @@ class EnzoHierarchyInMemory(EnzoHierarchy):
         reverse_tree = self.enzo.hierarchy_information["GridParentIDs"].ravel().tolist()
         # Initial setup:
         mylog.debug("Reconstructing parent-child relationships")
-        self.grids, self.wrefs = [], []
+        self.grids = []
         # We enumerate, so it's 0-indexed id and 1-indexed pid
         self.filenames = [[None]] * self.num_grids
         for id,pid in enumerate(reverse_tree):
             self.grids.append(self.grid(id+1, self))
             self.grids[-1].Level = self.grid_levels[id]
-            self.wrefs.append(weakref.proxy(self.grids[-1]))
             if pid > 0:
-                self.grids[-1].Parent = self.wrefs[pid-1]
-                self.grids[pid-1].Children.append(self.wrefs[-1])
+                self.grids[-1]._parent_id = self.grids[pid-1].id
+                self.grids[pid-1]._children_ids.append(self.grids[-1].id)
         self.max_level = self.grid_levels.max()
         mylog.debug("Preparing grids")
         for i, grid in enumerate(self.grids):
