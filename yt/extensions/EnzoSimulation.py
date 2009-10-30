@@ -210,6 +210,34 @@ class EnzoSimulation(object):
         self.enzoParameters['DataDumpDir'] = "DD"
         self.enzoParameters['ComovingCoordinates'] = 0
 
+    def imagine_maximal_splice(self, initial_redshift, final_redshift, decimals=3, filename=None, 
+                                redshift_output_string='CosmologyOutputRedshift', start_index=0):
+        "Create imaginary list of redshift outputs to maximally span a redshift interval."
+
+        z = initial_redshift
+        outputs = []
+
+        while z > final_redshift:
+            rounded = na.round(z, decimals=decimals)
+            if rounded - z < 0:
+                rounded += na.power(10.0,(-1.0*decimals))
+            deltaz_max = deltaz_forward(self.cosmology, z, self.enzoParameters['CosmologyComovingBoxSize'])
+            outputs.append({'redshift': z, 'deltazMax': deltaz_max})
+            z -= deltaz_max
+
+        mylog.info("imagine_maximal_splice: Needed %d data dumps to get from z = %f to %f." %
+                   (len(outputs), initial_redshift, final_redshift))
+
+        if filename is not None:
+            mylog.info("Writing redshift dump list to %s." % filename)
+            f = open(filename,'w')
+            for q, output in enumerate(outputs):
+                z_string = "%%s[%%d] = %%.%df" % decimals
+                f.write(("%s[%d] = %." + str(decimals) + "f\n") % (redshift_output_string, (q+start_index), output['redshift']))
+            f.close()
+
+        return outputs
+
     def _create_cosmology_splice(self, minimal=True, deltaz_min=0.0, initial_redshift=None, final_redshift=None):
         "Create list of datasets to be used for LightCones or LightRays."
 
@@ -312,8 +340,8 @@ class EnzoSimulation(object):
                 distance2 = self.cosmology.ComovingRadialDistance(z2,z) * self.enzoParameters['CosmologyHubbleConstantNow']
                 iteration += 1
                 if (iteration > max_Iterations):
-                    if self.verbose: mylog.error("calculate_deltaz_max: Warning - max iterations exceeded for z = %f (delta z = %f)." % 
-                                                 (z,na.fabs(z2-z)))
+                    mylog.error("calculate_deltaz_max: Warning - max iterations exceeded for z = %f (delta z = %f)." % 
+                                (z,na.fabs(z2-z)))
                     break
             output['deltazMax'] = na.fabs(z2-z)
 
@@ -346,8 +374,8 @@ class EnzoSimulation(object):
                 distance2 = self.cosmology.ComovingRadialDistance(z2,z) * self.enzoParameters['CosmologyHubbleConstantNow']
                 iteration += 1
                 if (iteration > max_Iterations):
-                    if self.verbose: mylog.error("calculate_deltaz_max: Warning - max iterations exceeded for z = %f (delta z = %f)." % 
-                                                 (z,na.fabs(z2-z)))
+                    mylog.error("calculate_deltaz_max: Warning - max iterations exceeded for z = %f (delta z = %f)." % 
+                                (z,na.fabs(z2-z)))
                     break
             # Use this calculation or the absolute minimum specified by the user.
             output['deltazMin'] = max(na.fabs(z2-z),deltaz_min)
@@ -368,3 +396,31 @@ EnzoParameterDict = {"CosmologyOmegaMatterNow": float,
                      "DataDumpDir": str,
                      "GlobalDir" : str}
 
+def deltaz_forward(cosmology, z, target_distance):
+    "Calculate deltaz corresponding to moving a comoving distance starting from some redshift."
+
+    d_Tolerance = 1e-4
+    max_Iterations = 100
+
+    # Calculate delta z that corresponds to the length of the box at a given redshift.
+    # Use Newton's method to calculate solution.
+    z1 = z
+    z2 = z1 - 0.1 # just an initial guess
+    distance1 = 0.0
+    iteration = 1
+
+    # Convert comoving radial distance into Mpc / h, since that's how box size is stored.
+    distance2 = cosmology.ComovingRadialDistance(z2,z) * cosmology.HubbleConstantNow / 100.0
+
+    while ((na.fabs(distance2-target_distance)/distance2) > d_Tolerance):
+        m = (distance2 - distance1) / (z2 - z1)
+        z1 = z2
+        distance1 = distance2
+        z2 = ((target_distance - distance2) / m) + z2
+        distance2 = cosmology.ComovingRadialDistance(z2,z) * cosmology.HubbleConstantNow / 100.0
+        iteration += 1
+        if (iteration > max_Iterations):
+            mylog.error("deltaz_forward: Warning - max iterations exceeded for z = %f (delta z = %f)." % 
+                        (z,na.fabs(z2-z)))
+            break
+    return na.fabs(z2-z)
