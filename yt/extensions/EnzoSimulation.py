@@ -210,8 +210,8 @@ class EnzoSimulation(object):
         self.enzoParameters['DataDumpDir'] = "DD"
         self.enzoParameters['ComovingCoordinates'] = 0
 
-    def imagine_maximal_splice(self, initial_redshift, final_redshift, decimals=3, filename=None, 
-                                redshift_output_string='CosmologyOutputRedshift', start_index=0):
+    def imagine_minimal_splice(self, initial_redshift, final_redshift, decimals=3, filename=None, 
+                               redshift_output_string='CosmologyOutputRedshift', start_index=0):
         "Create imaginary list of redshift outputs to maximally span a redshift interval."
 
         z = initial_redshift
@@ -221,6 +221,7 @@ class EnzoSimulation(object):
             rounded = na.round(z, decimals=decimals)
             if rounded - z < 0:
                 rounded += na.power(10.0,(-1.0*decimals))
+            z = rounded
             deltaz_max = deltaz_forward(self.cosmology, z, self.enzoParameters['CosmologyComovingBoxSize'])
             outputs.append({'redshift': z, 'deltazMax': deltaz_max})
             z -= deltaz_max
