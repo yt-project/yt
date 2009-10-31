@@ -258,25 +258,22 @@ class EnzoSimulation(object):
             z_Tolerance = 1e-4
             z = initial_redshift
 
-            b = 0
-
             # fill redshift space with datasets
             while ((z > final_redshift) and 
                    (na.fabs(z - final_redshift) > z_Tolerance)):
-
-                b += 1
 
                 # For first data dump, choose closest to desired redshift.
                 if (len(cosmology_splice) == 0):
                     # Sort data outputs by proximity to current redsfhit.
                     self.allOutputs.sort(key=lambda obj:na.fabs(z - obj['redshift']))
                     cosmology_splice.append(self.allOutputs[0])
+                    print "Adding slice at z = %f." % cosmology_splice[-1]['redshift']
 
                 # Move forward from last slice in stack until z > z_max.
                 else:
                     current_slice = cosmology_splice[-1]
-                    while (current_slice['next'] is not None and
-                           z <= current_slice['next']['redshift']):
+                    while current_slice['next'] is not None and \
+                            z < current_slice['redshift']:
                         current_slice = current_slice['next']
 
                     if current_slice is cosmology_splice[-1]:
