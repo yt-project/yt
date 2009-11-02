@@ -413,6 +413,8 @@ class EnzoHierarchy(AMRHierarchy):
     __parse_tokens = ("GridStartIndex", "GridEndIndex",
             "GridLeftEdge", "GridRightEdge", "FileName")
     def _parse_hierarchy(self):
+        if os.path.exists(self.hierarchy_filename[:-9] + "harrays"):
+            if self._parse_binary_hierarchy(): return
         def _line_yielder(f):
             for token in self.__parse_tokens:
                 line = f.readline()
@@ -470,6 +472,32 @@ class EnzoHierarchy(AMRHierarchy):
                 first_grid.Parent._children_ids.append(second_grid.id)
                 second_grid._parent_id = first_grid._parent_id
             second_grid.Level = first_grid.Level
+
+    def _parse_binary_hierarchy(self):
+        mylog.info("Getting the binary hierarchy")
+        f = h5py.File(self.hierarchy_filename[:-9] + "harrays")
+        self.grid_dimensions.flat[:] = f["/ActiveDimensions"][:]
+        self.grid_left_edge.flat[:] = f["/LeftEdges"][:]
+        self.grid_right_edge.flat[:] = f["/RightEdges"][:]
+        levels = f["/Level"][:]
+        parents = f["/ParentIDs"][:]
+        procs = f["/Processor"][:]
+        grids = []
+        self.filenames = []
+        grids = [self.grid(gi+1, self) for gi in xrange(self.num_grids)]
+        giter = izip(grids, levels, procs, parents)
+        bn = "%s.cpu%%04i" % (self.pf)
+        pmap = [(bn % P,) for P in xrange(procs.max()+1)]
+        for grid,L,P,Pid in giter:
+            grid.Level = L
+            if parents[gi] > -1:
+                grid._parent_id = Pid
+                grids[Pid-1]._children_ids.append(grid.id)
+            self.filenames.append(pmap[P])
+        self.grids = na.array(grids, dtype='object')
+        f.close()
+        mylog.info("Finished with binary hierarchy reading")
+        return True
 
     def _populate_grid_objects(self):
         for g,f in izip(self.grids, self.filenames):
