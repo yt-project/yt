@@ -37,7 +37,7 @@ class AMRGridPatch(object):
     _skip_add = True
     _con_args = ('id', 'filename')
 
-    __slots__ = ['data', 'field_parameters', 'fields', 'id', 'hierarchy', 'pf',
+    __slots__ = ['data', 'field_parameters', 'id', 'hierarchy', 'pf',
                  'ActiveDimensions', 'LeftEdge', 'RightEdge', 'Level',
                  'NumberOfParticles', 'Children', 'Parent',
                  'start_index', 'filename', '__weakref__', 'dds',
@@ -46,7 +46,6 @@ class AMRGridPatch(object):
     def __init__(self, id, filename = None, hierarchy = None):
         self.data = {}
         self.field_parameters = {}
-        self.fields = []
         self.id = id
         if hierarchy: self.hierarchy = weakref.proxy(hierarchy)
         self.pf = self.hierarchy.parameter_file # weakref already
@@ -133,8 +132,6 @@ class AMRGridPatch(object):
         Returns a single field.  Will add if necessary.
         """
         if not self.data.has_key(key):
-            if key not in self.fields:
-                self.fields.append(key)
             self.get_data(key)
         return self.data[key]
 
@@ -142,17 +139,12 @@ class AMRGridPatch(object):
         """
         Sets a field to be some other value.
         """
-        if key not in self.fields: self.fields.append(key)
         self.data[key] = val
 
     def __delitem__(self, key):
         """
         Deletes a field
         """
-        try:
-            del self.fields[self.fields.index(key)]
-        except ValueError:
-            pass
         del self.data[key]
 
     
