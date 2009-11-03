@@ -147,6 +147,8 @@ class AMRGridPatch(object):
         """
         del self.data[key]
 
+    def keys(self):
+        return self.data.keys()
     
     def get_data(self, field):
         """
