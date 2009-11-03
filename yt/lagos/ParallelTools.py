@@ -792,7 +792,6 @@ class ParallelAnalysisInterface(object):
             dd = data[key]
             rv = _alltoallv_array(dd, arr_size, offsets, sizes)
             data[key] = rv
-        print MPI.COMM_WORLD.rank, "Leaving"
         return data
 
     @parallel_passthrough

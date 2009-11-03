@@ -132,8 +132,8 @@ class AMRHierarchy(ObjectFindingMixin, ParallelAnalysisInterface):
     def _initialize_data_storage(self):
         if not ytcfg.getboolean('lagos','serialize'): return
         if os.path.isfile(os.path.join(self.directory,
-                            "%s.yt" % self["CurrentTimeIdentifier"])):
-            fn = os.path.join(self.directory,"%s.yt" % self["CurrentTimeIdentifier"])
+                            "%s.yt" % self.pf["CurrentTimeIdentifier"])):
+            fn = os.path.join(self.directory,"%s.yt" % self.pf["CurrentTimeIdentifier"])
         else:
             fn = os.path.join(self.directory,
                     "%s.yt" % self.parameter_file.basename)
@@ -241,7 +241,7 @@ class AMRHierarchy(ObjectFindingMixin, ParallelAnalysisInterface):
             return None
 
         full_name = "%s/%s" % (node, name)
-        return self._data_file[full_name]
+        return self._data_file[full_name][:]
 
     def _close_data_file(self):
         if self._data_file:
@@ -342,7 +342,10 @@ class EnzoHierarchy(AMRHierarchy):
         self.data_style = data_style
         self.hierarchy_filename = os.path.abspath(
             "%s.hierarchy" % (pf.parameter_filename))
-        if os.path.getsize(self.hierarchy_filename) == 0:
+        harray_fn = self.hierarchy_filename[:-9] + "harrays"
+        if os.path.exists(harray_fn):
+            self.num_grids = h5py.File(harray_fn)["/Level"].len()
+        elif os.path.getsize(self.hierarchy_filename) == 0:
             raise IOError(-1,"File empty", self.hierarchy_filename)
         self.directory = os.path.dirname(self.hierarchy_filename)
 
@@ -357,15 +360,13 @@ class EnzoHierarchy(AMRHierarchy):
         # sync it back
         self.parameter_file.data_style = self.data_style
 
-    def _initialize_data_storage(self):
-        pass
-
     def _setup_classes(self):
         dd = self._get_data_reader_dict()
         AMRHierarchy._setup_classes(self, dd)
         self.object_types.sort()
 
     def _count_grids(self):
+        if self.num_grids is not None: return
         test_grid = test_grid_id = None
         self.num_stars = 0
         for line in rlines(open(self.hierarchy_filename, "rb")):
@@ -452,6 +453,7 @@ class EnzoHierarchy(AMRHierarchy):
         self.grid_particle_count.flat[:] = np
         self.grids = na.array(self.grids, dtype='object')
         self.filenames = fn
+        self._store_binary_hierarchy()
         t2 = time.time()
 
     def __pointer_handler(self, m):
@@ -499,6 +501,36 @@ class EnzoHierarchy(AMRHierarchy):
         mylog.info("Finished with binary hierarchy reading")
         return True
 
+    def _store_binary_hierarchy(self):
+        # We don't do any of the logic here, we just check if the data file
+        # is open...
+        if self._data_file is None: return
+        if self.data_style != "enzo_packed_3d": return
+        mylog.info("Storing the binary hierarchy")
+        f = h5py.File(self.hierarchy_filename[:-9] + "harrays", "w")
+        f.create_dataset("/LeftEdges", data=self.grid_left_edge)
+        f.create_dataset("/RightEdges", data=self.grid_right_edge)
+        parents, procs, levels = [], [], []
+        for i,g in enumerate(self.grids):
+            if g.Parent is not None:
+                parents.append(g.Parent.id)
+            else:
+                parents.append(-1)
+            procs.append(int(self.filenames[i][0][-4:]))
+            levels.append(g.Level)
+
+        parents = na.array(parents, dtype='int64')
+        procs = na.array(procs, dtype='int64')
+        levels = na.array(levels, dtype='int64')
+        f.create_dataset("/ParentIDs", data=parents)
+        f.create_dataset("/Processor", data=procs)
+        f.create_dataset("/Level", data=levels)
+
+        f.create_dataset("/ActiveDimensions", data=self.grid_dimensions)
+        f.create_dataset("/NumberOfParticles", data=self.grid_particle_count)
+
+        f.close()
+
     def _populate_grid_objects(self):
         for g,f in izip(self.grids, self.filenames):
             g._prepare_grid()
@@ -527,7 +559,7 @@ class EnzoHierarchy(AMRHierarchy):
         else:
             field_list = None
         field_list = self._mpi_bcast_pickled(field_list)
-        self.save_data(list(field_list),"/","DataFields")
+        self.save_data(list(field_list),"/","DataFields",passthrough=True)
         self.field_list = list(field_list)
 
     def _setup_unknown_fields(self):
