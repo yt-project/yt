@@ -35,9 +35,11 @@ def restore_grid_state(func):
     """
     def save_state(self, grid, field=None):
         old_params = grid.field_parameters
+        old_keys = grid.data.keys()
         grid.field_parameters = self.field_parameters
         tr = func(self, grid, field)
         grid.field_parameters = old_params
+        grid.data = dict( [(k, grid.data[k]) for k in old_keys] )
         return tr
     return save_state
 
