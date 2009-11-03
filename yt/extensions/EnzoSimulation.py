@@ -11,6 +11,24 @@ class EnzoSimulation(object):
     """
     def __init__(self, EnzoParameterFile, initial_time=None, final_time=None, initial_redshift=None, final_redshift=None,
                  links=False, enzo_parameters=None, get_time_outputs=True, get_redshift_outputs=True):
+        """
+        Initialize an EnzoSimulation object.
+        :param initial_time (float): the initial time in code units for the dataset list.  Default: None.
+        :param final_time (float): the final time in code units for the dataset list.  Default: None.
+        :param initial_redshift (float): the initial (highest) redshift for the dataset list.  Only for 
+               cosmological simulations.  Default: None.
+        :param final_redshift (float): the final (lowest) redshift for the dataset list.  Only for cosmological 
+               simulations.  Default: None.
+        :param links (bool): if True, each entry in the dataset list will contain entries, previous and next, that 
+               point to the previous and next entries on the dataset list.  Default: False.
+        :param enzo_parameters (dict): a dictionary specify additional parameters to be retrieved from the 
+               parameter file.  The format should be the name of the parameter as the key and the variable type as 
+               the value.  For example, {'CosmologyComovingBoxSize':float}.  All parameter values will be stored in 
+               the dictionary attribute, enzoParameters.  Default: None.
+        :param get_time_outputs (bool): if False, the time datasets, specified in Enzo with the dtDataDump, will not 
+               be added to the dataset list.  Default: True.
+        :param get_redshift_outputs (bool): if False, the redshift datasets will not be added to the dataset list.  Default: True.
+        """
         self.EnzoParameterFile = EnzoParameterFile
         self.enzoParameters = {}
         self.redshiftOutputs = []
@@ -212,7 +230,17 @@ class EnzoSimulation(object):
 
     def imagine_minimal_splice(self, initial_redshift, final_redshift, decimals=3, filename=None, 
                                redshift_output_string='CosmologyOutputRedshift', start_index=0):
-        "Create imaginary list of redshift outputs to maximally span a redshift interval."
+        """
+        Create imaginary list of redshift outputs to maximally span a redshift interval.
+        :param decimals (int): The decimal place to which the output redshift will be rounded.  
+               If the decimal place in question is nonzero, the redshift will be rounded up to 
+               ensure continuity of the splice.  Default: 3.
+        :param filename (str): If provided, a file will be written with the redshift outputs in 
+               the form in which they should be given in the enzo parameter file.  Default: None.
+        :param redshift_output_string (str): The parameter accompanying the redshift outputs in the 
+               enzo parameter file.  Default: "CosmologyOutputRedshift".
+        :param start_index (int): The index of the first redshift output.  Default: 0.
+        """
 
         z = initial_redshift
         outputs = []
@@ -239,8 +267,19 @@ class EnzoSimulation(object):
 
         return outputs
 
-    def _create_cosmology_splice(self, minimal=True, deltaz_min=0.0, initial_redshift=None, final_redshift=None):
-        "Create list of datasets to be used for LightCones or LightRays."
+    def create_cosmology_splice(self, minimal=True, deltaz_min=0.0, initial_redshift=None, final_redshift=None):
+        """
+        Create list of datasets to be used for LightCones or LightRays.
+        :param minimal (bool): if True, the minimum number of datasets is used to connect the initial and final 
+               redshift.  If false, the list will contain as many entries as possible within the redshift 
+               interval.  Default: True.
+        :param deltaz_min (float): specifies the minimum delta z between consecutive datasets in the returned 
+               list.  Default: 0.0.
+        :param initial_redshift (float): the initial (highest) redshift in the cosmology splice list.  If none 
+               given, the highest redshift dataset present will be used.  Default: None.
+        :param final_redshift (float): the final (lowest) redshift in the cosmology splice list.  If none given, 
+               the lowest redshift dataset present will be used.  Default: None.
+        """
 
         if initial_redshift is None: initial_redshift = self.InitialRedshift
         if final_redshift is None: final_redshift = self.FinalRedshift
