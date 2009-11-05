@@ -88,6 +88,7 @@ class AMRHierarchy(ObjectFindingMixin, ParallelAnalysisInterface):
         self._data_file = None
         self._data_mode = None
         self._max_locations = {}
+        self.num_grids = None
 
     def _initialize_grid_arrays(self):
         mylog.debug("Allocating arrays for %s grids", self.num_grids)
@@ -453,6 +454,9 @@ class EnzoHierarchy(AMRHierarchy):
         self.grid_particle_count.flat[:] = np
         self.grids = na.array(self.grids, dtype='object')
         self.filenames = fn
+        for level in range(self.grid_levels.max()):
+            self._rebuild_top_grids(level)
+            break
         self._store_binary_hierarchy()
         t2 = time.time()
 
@@ -466,7 +470,7 @@ class EnzoHierarchy(AMRHierarchy):
         second_grid = self.grids[sgi] # zero-indexed already
         first_grid = self.grids[int(m[0])-1]
         if m[1] == "Next":
-            first_grid.Children.append(second_grid)
+            first_grid._children_ids.append(second_grid.id)
             second_grid._parent_id = first_grid.id
             second_grid.Level = first_grid.Level + 1
         elif m[1] == "This":
@@ -474,6 +478,7 @@ class EnzoHierarchy(AMRHierarchy):
                 first_grid.Parent._children_ids.append(second_grid.id)
                 second_grid._parent_id = first_grid._parent_id
             second_grid.Level = first_grid.Level
+        self.grid_levels[sgi] = second_grid.Level
 
     def _parse_binary_hierarchy(self):
         mylog.info("Getting the binary hierarchy")
@@ -492,8 +497,8 @@ class EnzoHierarchy(AMRHierarchy):
         pmap = [(bn % P,) for P in xrange(procs.max()+1)]
         for grid,L,P,Pid in giter:
             grid.Level = L
-            if parents[gi] > -1:
-                grid._parent_id = Pid
+            grid._parent_id = Pid
+            if Pid > -1:
                 grids[Pid-1]._children_ids.append(grid.id)
             self.filenames.append(pmap[P])
         self.grids = na.array(grids, dtype='object')
@@ -530,6 +535,26 @@ class EnzoHierarchy(AMRHierarchy):
         f.create_dataset("/NumberOfParticles", data=self.grid_particle_count)
 
         f.close()
+
+    def _rebuild_top_grids(self, level = 0):
+        #for level in xrange(self.max_level+1):
+        mylog.info("Rebuilding grids on level %s", level)
+        cmask = (self.grid_levels.flat == (level + 1))
+        cmsum = cmask.sum()
+        mask = na.zeros(self.num_grids, dtype='bool')
+        for grid in self.select_grids(level):
+            mask[:] = 0
+            LE = self.grid_left_edge[grid.id - grid._id_offset]
+            RE = self.grid_right_edge[grid.id - grid._id_offset]
+            grids, grid_i = self.get_box_grids(LE, RE)
+            mask[grid_i] = 1
+            grid._children_ids = []
+            cgrids = self.grids[ ( mask * cmask).astype('bool') ]
+            mylog.info("%s: %s / %s", grid, len(cgrids), cmsum)
+            for cgrid in cgrids:
+                grid._children_ids.append(cgrid.id)
+                cgrid._parent_id = grid.id
+        mylog.info("Finished rebuilding")
 
     def _populate_grid_objects(self):
         for g,f in izip(self.grids, self.filenames):

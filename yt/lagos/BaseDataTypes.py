@@ -1371,6 +1371,8 @@ class AMRProjBase(AMR2DData):
                 del self.__retval_coords[grid.id]
                 del self.__retval_fields[grid.id]
                 del self.__overlap_masks[grid.id]
+            print "End of projecting level level %s, memory usage %0.3e" % (
+                        level, get_memory_usage()/1024.)
         coord_data = na.concatenate(coord_data, axis=1)
         field_data = na.concatenate(field_data, axis=1)
         dxs = na.concatenate(dxs, axis=1)
