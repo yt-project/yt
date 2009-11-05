@@ -182,9 +182,12 @@ class AMRGridPatch(object):
         # So first we figure out what the index is.  We don't assume
         # that dx=dy=dz , at least here.  We probably do elsewhere.
         id = self.id - self._id_offset
-        LE, RE = self.hierarchy.grid_left_edge[id,:], \
-                 self.hierarchy.grid_right_edge[id,:]
-        self.dds = na.array((RE-LE)/self.ActiveDimensions)
+        if self.Parent is not None:
+            self.dds = self.Parent.dds / self.pf["RefineBy"]
+        else:
+            LE, RE = self.hierarchy.grid_left_edge[id,:], \
+                     self.hierarchy.grid_right_edge[id,:]
+            self.dds = na.array((RE-LE)/self.ActiveDimensions)
         self.data['dx'], self.data['dy'], self.data['dz'] = self.dds
 
     @property
@@ -351,12 +354,11 @@ class AMRGridPatch(object):
 
     #@time_execution
     def __fill_child_mask(self, child, mask, tofill):
-        startIndex = na.maximum(0, na.rint(
-                    (child.LeftEdge - self.LeftEdge)/self.dds))
-        endIndex = na.minimum(na.rint(
-                    (child.RightEdge - self.LeftEdge)/self.dds),
+        rf = self.pf["RefineBy"]
+        gi, cgi = self.get_global_startindex(), child.get_global_startindex()
+        startIndex = na.maximum(0, cgi/rf - gi)
+        endIndex = na.minimum( (cgi+child.ActiveDimensions)/rf - gi,
                               self.ActiveDimensions)
-        startIndex = na.maximum(0, startIndex)
         mask[startIndex[0]:endIndex[0],
              startIndex[1]:endIndex[1],
              startIndex[2]:endIndex[2]] = tofill
@@ -479,21 +481,8 @@ class EnzoGrid(AMRGridPatch):
         self.start_index = rf*(ParentLeftIndex + self.Parent.get_global_startindex()).astype('int64')
         self.LeftEdge = self.Parent.LeftEdge + self.Parent.dds * ParentLeftIndex
         self.RightEdge = self.LeftEdge + self.ActiveDimensions*self.dds
-        self.hierarchy.gridDxs[my_ind,0] = self['dx']
-        self.hierarchy.gridDys[my_ind,0] = self['dy']
-        self.hierarchy.gridDzs[my_ind,0] = self['dz']
         self.hierarchy.grid_left_edge[my_ind,:] = self.LeftEdge
         self.hierarchy.grid_right_edge[my_ind,:] = self.RightEdge
-        self.hierarchy.gridCorners[:,:,my_ind] = na.array([ # Unroll!
-            [self.LeftEdge[0], self.LeftEdge[1], self.LeftEdge[2]],
-            [self.RightEdge[0], self.LeftEdge[1], self.LeftEdge[2]],
-            [self.RightEdge[0], self.RightEdge[1], self.LeftEdge[2]],
-            [self.RightEdge[0], self.RightEdge[1], self.RightEdge[2]],
-            [self.LeftEdge[0], self.RightEdge[1], self.RightEdge[2]],
-            [self.LeftEdge[0], self.LeftEdge[1], self.RightEdge[2]],
-            [self.RightEdge[0], self.LeftEdge[1], self.RightEdge[2]],
-            [self.LeftEdge[0], self.RightEdge[1], self.LeftEdge[2]],
-            ], dtype='float64')
         self._child_mask = None
         self._child_index_mask = None
         self._child_indices = None
