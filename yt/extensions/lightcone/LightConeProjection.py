@@ -31,13 +31,9 @@ import yt.raven as raven
 import numpy as na
 import copy
 
-#### Note: There is an assumption that the box width is 1 in every direction.  This doesn't have to be, but 
-####       I don't have time to fix it now.  All that is required is a multiplication by the box width in 
-####       the direction in question wherever DepthBoxFraction or WidthBoxFraction appears.
-####       To be fixed before turning 30.  - Britton
-
 @lagos.parallel_blocking_call
-def LightConeProjection(lightConeSlice,field,pixels,weight_field=None,save_image=False,name="",node=None,field_cuts=None,**kwargs):
+def LightConeProjection(lightConeSlice, field, pixels, weight_field=None, save_image=False, name="", node=None, field_cuts=None,
+                        add_redshift_label=False, **kwargs):
     "Create a single projection to be added into the light cone stack."
 
     # Use some projection parameters to seed random number generator to make unique node name.
@@ -50,11 +46,11 @@ def LightConeProjection(lightConeSlice,field,pixels,weight_field=None,save_image
     # DepthBoxFraction
 
     # Name node with user specified keyword if given with 'node' keyword.
-    node_name = "LightCone_%s_%d_%f_%f" % (node,lightConeSlice['ProjectionAxis'],
+    node_name = "LightCone_%s_%d_%f_%f" % (node, lightConeSlice['ProjectionAxis'],
                                            lightConeSlice['ProjectionCenter'][lightConeSlice['ProjectionAxis']],
                                            lightConeSlice['DepthBoxFraction'])
 
-    mylog.info("Making projection at z = %f from %s." % (lightConeSlice['redshift'],lightConeSlice['filename']))
+    mylog.info("Making projection at z = %f from %s." % (lightConeSlice['redshift'], lightConeSlice['filename']))
 
     region_center = [0.5 * (lightConeSlice['object'].parameters['DomainRightEdge'][q] +
                             lightConeSlice['object'].parameters['DomainLeftEdge'][q]) \
@@ -62,7 +58,7 @@ def LightConeProjection(lightConeSlice,field,pixels,weight_field=None,save_image
 
     # Make the plot collection and put it in the slice so we can delete it cleanly in the same scope 
     # as where the frb will be deleted.
-    lightConeSlice['pc'] = raven.PlotCollection(lightConeSlice['object'],center=region_center)
+    lightConeSlice['pc'] = raven.PlotCollection(lightConeSlice['object'], center=region_center)
 
     # 1. The Depth Problem
     # Use coordinate field cut in line of sight to cut projection to proper depth.
@@ -72,26 +68,26 @@ def LightConeProjection(lightConeSlice,field,pixels,weight_field=None,save_image
         these_field_cuts = copy.deepcopy(field_cuts)
 
     if (lightConeSlice['DepthBoxFraction'] < 1):
-        axis = ('x','y','z')[lightConeSlice['ProjectionAxis']]
+        axis = ('x', 'y', 'z')[lightConeSlice['ProjectionAxis']]
         depthLeft = lightConeSlice['ProjectionCenter'][lightConeSlice['ProjectionAxis']] - 0.5 * lightConeSlice['DepthBoxFraction']
         depthRight = lightConeSlice['ProjectionCenter'][lightConeSlice['ProjectionAxis']] + 0.5 * lightConeSlice['DepthBoxFraction']
         if (depthLeft < 0):
             cut_mask = "((grid[\"%s\"] + 0.5*grid[\"d%s\"] >= 0) & (grid[\"%s\"] - 0.5*grid[\"d%s\"] <= %f)) | ((grid[\"%s\"] + 0.5*grid[\"d%s\"] >= %f) & (grid[\"%s\"] - 0.5*grid[\"d%s\"] <= 1))" % \
-                (axis,axis,axis,axis,depthRight,axis,axis,(depthLeft+1),axis,axis)
+                (axis, axis, axis, axis, depthRight, axis, axis, (depthLeft+1), axis, axis)
         elif (depthRight > 1):
             cut_mask = "((grid[\"%s\"] + 0.5*grid[\"d%s\"] >= 0) & (grid[\"%s\"] - 0.5*grid[\"d%s\"] <= %f)) | ((grid[\"%s\"] + 0.5*grid[\"d%s\"] >= %f) & (grid[\"%s\"] - 0.5*grid[\"d%s\"] <= 1))" % \
-                (axis,axis,axis,axis,(depthRight-1),axis,axis,depthLeft,axis,axis)
+                (axis, axis, axis, axis, (depthRight-1), axis, axis, depthLeft, axis, axis)
         else:
-            cut_mask = "(grid[\"%s\"] + 0.5*grid[\"d%s\"] >= %f) & (grid[\"%s\"] - 0.5*grid[\"%s\"] <= %f)" % (axis,axis,depthLeft,axis,axis,depthRight)
+            cut_mask = "(grid[\"%s\"] + 0.5*grid[\"d%s\"] >= %f) & (grid[\"%s\"] - 0.5*grid[\"%s\"] <= %f)" % (axis, axis, depthLeft, axis, axis, depthRight)
 
         these_field_cuts.append(cut_mask)
 
     # Make projection.
-    lightConeSlice['pc'].add_projection(field,lightConeSlice['ProjectionAxis'],weight_field=weight_field,field_cuts=these_field_cuts,
-                                        node_name=node_name,**kwargs)
+    lightConeSlice['pc'].add_projection(field, lightConeSlice['ProjectionAxis'], weight_field=weight_field, field_cuts=these_field_cuts,
+                                        node_name=node_name, **kwargs)
 
     # If parallel: all the processes have the whole projection object, but we only need to do the tiling, shifting, and cutting once.
-    if ytcfg.getint("yt","__parallel_rank") == 0:
+    if ytcfg.getint("yt", "__parallel_rank") == 0:
 
         # 2. The Tile Problem
         # Tile projection to specified width.
@@ -108,12 +104,12 @@ def LightConeProjection(lightConeSlice,field,pixels,weight_field=None,save_image
         for x in range(int(na.ceil(lightConeSlice['WidthBoxFraction']))):
             for y in range(int(na.ceil(lightConeSlice['WidthBoxFraction']))):
                 if ((x + y) > 0):
-                    lightConeSlice['pc'].plots[0].data['px'] = na.concatenate([lightConeSlice['pc'].plots[0].data['px'],original_px+x])
-                    lightConeSlice['pc'].plots[0].data['py'] = na.concatenate([lightConeSlice['pc'].plots[0].data['py'],original_py+y])
-                    lightConeSlice['pc'].plots[0].data['pdx'] = na.concatenate([lightConeSlice['pc'].plots[0].data['pdx'],original_pdx])
-                    lightConeSlice['pc'].plots[0].data['pdy'] = na.concatenate([lightConeSlice['pc'].plots[0].data['pdy'],original_pdy])
-                    lightConeSlice['pc'].plots[0].data[field] = na.concatenate([lightConeSlice['pc'].plots[0].data[field],original_field])
-                    lightConeSlice['pc'].plots[0].data['weight_field'] = na.concatenate([lightConeSlice['pc'].plots[0].data['weight_field'],original_weight_field])
+                    lightConeSlice['pc'].plots[0].data['px'] = na.concatenate([lightConeSlice['pc'].plots[0].data['px'], original_px+x])
+                    lightConeSlice['pc'].plots[0].data['py'] = na.concatenate([lightConeSlice['pc'].plots[0].data['py'], original_py+y])
+                    lightConeSlice['pc'].plots[0].data['pdx'] = na.concatenate([lightConeSlice['pc'].plots[0].data['pdx'], original_pdx])
+                    lightConeSlice['pc'].plots[0].data['pdy'] = na.concatenate([lightConeSlice['pc'].plots[0].data['pdy'], original_pdy])
+                    lightConeSlice['pc'].plots[0].data[field] = na.concatenate([lightConeSlice['pc'].plots[0].data[field], original_field])
+                    lightConeSlice['pc'].plots[0].data['weight_field'] = na.concatenate([lightConeSlice['pc'].plots[0].data['weight_field'], original_weight_field])
 
         # Delete originals.
         del original_px
@@ -186,21 +182,21 @@ def LightConeProjection(lightConeSlice,field,pixels,weight_field=None,save_image
         del add_y_left
 
         # Add the hanging cells back to the projection data.
-        lightConeSlice['pc'].plots[0].data['px'] = na.concatenate([lightConeSlice['pc'].plots[0]['px'],add_x_px,add_y_px,add2_x_px,add2_y_px])
-        lightConeSlice['pc'].plots[0].data['py'] = na.concatenate([lightConeSlice['pc'].plots[0]['py'],add_x_py,add_y_py,add2_x_py,add2_y_py])
-        lightConeSlice['pc'].plots[0].data['pdx'] = na.concatenate([lightConeSlice['pc'].plots[0]['pdx'],add_x_pdx,add_y_pdx,add2_x_pdx,add2_y_pdx])
-        lightConeSlice['pc'].plots[0].data['pdy'] = na.concatenate([lightConeSlice['pc'].plots[0]['pdy'],add_x_pdy,add_y_pdy,add2_x_pdy,add2_y_pdy])
-        lightConeSlice['pc'].plots[0].data[field] = na.concatenate([lightConeSlice['pc'].plots[0][field],add_x_field,add_y_field,add2_x_field,add2_y_field])
-        lightConeSlice['pc'].plots[0].data['weight_field'] = na.concatenate([lightConeSlice['pc'].plots[0]['weight_field'],add_x_weight_field,add_y_weight_field,
-                                                           add2_x_weight_field,add2_y_weight_field])
+        lightConeSlice['pc'].plots[0].data['px'] = na.concatenate([lightConeSlice['pc'].plots[0]['px'], add_x_px, add_y_px, add2_x_px, add2_y_px])
+        lightConeSlice['pc'].plots[0].data['py'] = na.concatenate([lightConeSlice['pc'].plots[0]['py'], add_x_py, add_y_py, add2_x_py, add2_y_py])
+        lightConeSlice['pc'].plots[0].data['pdx'] = na.concatenate([lightConeSlice['pc'].plots[0]['pdx'], add_x_pdx, add_y_pdx, add2_x_pdx, add2_y_pdx])
+        lightConeSlice['pc'].plots[0].data['pdy'] = na.concatenate([lightConeSlice['pc'].plots[0]['pdy'], add_x_pdy, add_y_pdy, add2_x_pdy, add2_y_pdy])
+        lightConeSlice['pc'].plots[0].data[field] = na.concatenate([lightConeSlice['pc'].plots[0][field], add_x_field, add_y_field, add2_x_field, add2_y_field])
+        lightConeSlice['pc'].plots[0].data['weight_field'] = na.concatenate([lightConeSlice['pc'].plots[0]['weight_field'], add_x_weight_field, add_y_weight_field,
+                                                                             add2_x_weight_field, add2_y_weight_field])
 
         # Delete original copies of hanging cells.
-        del add_x_px,add_y_px,add2_x_px,add2_y_px
-        del add_x_py,add_y_py,add2_x_py,add2_y_py
-        del add_x_pdx,add_y_pdx,add2_x_pdx,add2_y_pdx
-        del add_x_pdy,add_y_pdy,add2_x_pdy,add2_y_pdy
-        del add_x_field,add_y_field,add2_x_field,add2_y_field
-        del add_x_weight_field,add_y_weight_field,add2_x_weight_field,add2_y_weight_field
+        del add_x_px, add_y_px, add2_x_px, add2_y_px
+        del add_x_py, add_y_py, add2_x_py, add2_y_py
+        del add_x_pdx, add_y_pdx, add2_x_pdx, add2_y_pdx
+        del add_x_pdy, add_y_pdy, add2_x_pdy, add2_y_pdy
+        del add_x_field, add_y_field, add2_x_field, add2_y_field
+        del add_x_weight_field, add_y_weight_field, add2_x_weight_field, add2_y_weight_field
 
         # Tiles were made rounding up the width to the nearest integer.
         # Cut off the edges to get the specified width.
@@ -226,14 +222,16 @@ def LightConeProjection(lightConeSlice,field,pixels,weight_field=None,save_image
 
         # Save an image if requested.
         if save_image:
-            lightConeSlice['pc'].set_xlim(0,lightConeSlice['WidthBoxFraction'])
-            lightConeSlice['pc'].set_ylim(0,lightConeSlice['WidthBoxFraction'])
+            lightConeSlice['pc'].set_xlim(0, lightConeSlice['WidthBoxFraction'])
+            lightConeSlice['pc'].set_ylim(0, lightConeSlice['WidthBoxFraction'])
+            if add_redshift_label:
+                lightConeSlice['pc'].plots[-1].modify['text']((0.5, 0.03), "z = %.3f" % lightConeSlice['redshift'], dict(color='black',size=50))
             lightConeSlice['pc'].save(name)
 
         # Create fixed resolution buffer to return back to the light cone object.
         # These buffers will be stacked together to make the light cone.
-        frb = raven.FixedResolutionBuffer(lightConeSlice['pc'].plots[0].data,(0,lightConeSlice['WidthBoxFraction'],0,lightConeSlice['WidthBoxFraction']),
-                                          (pixels,pixels),antialias=False)
+        frb = raven.FixedResolutionBuffer(lightConeSlice['pc'].plots[0].data, (0, lightConeSlice['WidthBoxFraction'], 0, lightConeSlice['WidthBoxFraction']),
+                                          (pixels, pixels), antialias=False)
 
         return frb
     else:

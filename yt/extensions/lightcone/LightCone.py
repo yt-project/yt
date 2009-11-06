@@ -24,6 +24,7 @@ License:
 """
 
 from yt.extensions.lightcone import *
+from yt.extensions.EnzoSimulation import *
 from yt.logger import lagosLogger as mylog
 from yt.config import ytcfg
 from yt.funcs import *
@@ -32,24 +33,50 @@ from HaloMask import *
 import copy
 import os
 import numpy as na
-import random as rand
-import yt.lagos.Cosmology as cosmo
 
-class LightCone(object):
-    def __init__(self,EnzoParameterFile,LightConeParameterFile,verbose=True):
-        self.verbose = verbose
-        self.EnzoParameterFile = EnzoParameterFile
-        self.LightConeParameterFile = LightConeParameterFile
-        self.enzoParameters = {}
-        self.lightConeParameters = {}
-        self.redshiftOutputs = []
-        self.timeOutputs = []
-        self.allOutputs = []
-        self.lightConeSolution = []
-        self.masterSolution = [] # kept to compare with recycled solutions
-        self.projectionStack = []
-        self.projectionWeightFieldStack = []
-        self.haloMask = []
+class LightCone(EnzoSimulation):
+    def __init__(self, EnzoParameterFile, initial_redshift=1.0, final_redshift=0.0, observer_redshift=0.0,
+                 field_of_view_in_arcminutes=600.0, image_resolution_in_arcseconds=60.0, 
+                 use_minimum_datasets=True, deltaz_min=0.0, minimum_coherent_box_fraction=0.0,
+                 output_dir='LC', output_prefix='LightCone'):
+        """
+        Initialize a LightCone object.
+        :param initial_redshift (float): the initial (highest) redshift for the light cone.  Default: 1.0.
+        :param final_redshift (float): the final (lowest) redshift for the light cone.  Default: 0.0.
+        :param observer_redshift (float): the redshift of the observer.  Default: 0.0.
+        :param field_of_view_in_arcminutes (float): the field of view of the image in units of arcminutes.  
+               Default: 600.0.
+        :param image_resolution_in_arcseconds (float): the size of each image pixel in units of arcseconds.  
+               Default: 60.0.
+        :param use_minimum_datasets (bool): if True, the minimum number of datasets is used to connect the 
+               initial and final redshift.  If false, the light cone solution will contain as many entries 
+               as possible within the redshift interval.  Default: True.
+        :param deltaz_min (float): specifies the minimum :math:`\Delta z` between consecutive datasets in 
+               the returned list.  Default: 0.0.
+        :param minimum_coherent_box_fraction (float): used with use_minimum_datasets set to False, this 
+               parameter specifies the fraction of the total box size to be traversed before rerandomizing 
+               the projection axis and center.  This was invented to allow light cones with thin slices to 
+               sample coherent large scale structure, but in practice does not work so well.  Try setting 
+               this parameter to 1 and see what happens.  Default: 0.0.
+        :param output_dir (str): the directory in which images and data files will be written.  Default: 'LC'.
+        :param output_prefix (str): the prefix of all images and data files.  Default: 'LightCone'.
+        """
+
+        self.initial_redshift = initial_redshift
+        self.final_redshift = final_redshift
+        self.observer_redshift = observer_redshift
+        self.field_of_view_in_arcminutes = field_of_view_in_arcminutes
+        self.image_resolution_in_arcseconds = image_resolution_in_arcseconds
+        self.use_minimum_datasets = use_minimum_datasets
+        self.deltaz_min = deltaz_min
+        self.minimum_coherent_box_fraction = minimum_coherent_box_fraction
+        self.output_dir = output_dir
+        self.output_prefix = output_prefix
+
+        self.master_solution = [] # kept to compare with recycled solutions
+        self.projection_stack = []
+        self.projection_weight_field_stack = []
+        self.halo_mask = []
 
         # Original random seed of the first solution.
         self.originalRandomSeed = 0
@@ -58,231 +85,189 @@ class LightCone(object):
         self.recycleSolution = False
         self.recycleRandomSeed = 0
 
-        # Set some parameter defaults.
-        self._SetParameterDefaults()
-
-        # Read parameters.
-        self._ReadLightConeParameterFile()
-        self._ReadEnzoParameterFile()
+        # Initialize EnzoSimulation machinery for getting dataset list.
+        EnzoSimulation.__init__(self, EnzoParameterFile, initial_redshift=self.initial_redshift,
+                                final_redshift=self.final_redshift, links=True,
+                                enzo_parameters={'CosmologyComovingBoxSize':float})
 
         # Calculate number of pixels.
-        self.pixels = int(self.lightConeParameters['FieldOfViewInArcMinutes'] * 60.0 / \
-                              self.lightConeParameters['ImageResolutionInArcSeconds'])
+        self.pixels = int(self.field_of_view_in_arcminutes * 60.0 / \
+                          self.image_resolution_in_arcseconds)
 
-        if ytcfg.getint("yt","__parallel_rank") == 0:
+        if ytcfg.getint("yt", "__parallel_rank") == 0:
             # Create output directory.
-            if (os.path.exists(self.lightConeParameters['OutputDir'])):
-                if not(os.path.isdir(self.lightConeParameters['OutputDir'])):
-                    mylog.error("Output directory exists, but is not a directory: %s." % self.lightConeParameters['OutputDir'])
-                    self.lightConeParameters['OutputDir'] = './'
+            if (os.path.exists(self.output_dir)):
+                if not(os.path.isdir(self.output_dir)):
+                    mylog.error("Output directory exists, but is not a directory: %s." % self.output_dir)
+                    self.output_dir = './'
             else:
-                os.mkdir(self.lightConeParameters['OutputDir'])
+                os.mkdir(self.output_dir)
 
-        # Calculate redshifts for dt data dumps.
-        if (self.enzoParameters.has_key('dtDataDump')):
-            if self.lightConeParameters['dtSplit'] is None:
-                self._CalculateTimeDumpRedshifts()
-            else:
-                self._CalculateSplitTimeDumpRedshifts(self.lightConeParameters['dtSplit'],self.lightConeParameters['dt_new']) 
-        # Combine all data dumps.
-        self._CombineDataOutputs()
+        # Get list of datasets for light cone solution.
+        self.light_cone_solution = self.create_cosmology_splice(minimal=self.use_minimum_datasets,
+                                                                deltaz_min=self.deltaz_min)
 
-        # Calculate maximum delta z for each data dump.
-        self._CalculateDeltaZMax()
-
-        if not self.lightConeParameters['UseMinimumNumberOfProjections']:
-            # Calculate minimum delta z for each data dump.
-            self._CalculateDeltaZMin()
-
-    def CalculateLightConeSolution(self,seed=None):
-        "Create list of projections to be added together to make the light cone."
+    def calculate_light_cone_solution(self, seed=None, filename=None):
+        """
+        Create list of projections to be added together to make the light cone.
+        :param seed (int): the seed for the random number generator.  Any light cone solution 
+               can be reproduced by giving the same random seed.  Default: None (each solution 
+               will be distinct).
+        :param filename (str): if given, a text file detailing the solution will be written out.  Default: None.
+        """
 
         # Don't use box coherence with maximum projection depths.
-        if self.lightConeParameters['UseMinimumNumberOfProjections'] and \
-                self.lightConeParameters['MinimumCoherentBoxFraction'] > 0:
-            mylog.info("Setting MinimumCoherentBoxFraction to 0 with minimal light cone.")
-            self.lightConeParameters['MinimumCoherentBoxFraction'] = 0
+        if self.use_minimum_datasets and \
+                self.minimum_coherent_box_fraction > 0:
+            mylog.info("Setting minimum_coherent_box_fraction to 0 with minimal light cone.")
+            self.minimum_coherent_box_fraction = 0
 
         # Make sure recycling flag is off.
         self.recycleSolution = False
 
         # Get rid of old halo mask, if one was there.
-        self.haloMask = []
+        self.halo_mask = []
 
         if seed is not None:
             self.originalRandomSeed = int(seed)
 
-        # Make light cone using minimum number of projections.
-        if (self.lightConeParameters['UseMinimumNumberOfProjections']):
-
-            z_Tolerance = 1e-4
-            z = self.lightConeParameters['InitialRedshift']
-
-            # fill redshift space with projections
-            while ((z > self.lightConeParameters['FinalRedshift']) and 
-                   (na.fabs(z - self.lightConeParameters['FinalRedshift']) > z_Tolerance)):
-                # Sort data outputs by proximity to current redsfhit.
-                self.allOutputs.sort(key=lambda obj:na.fabs(z - obj['redshift']))
-                # For first data dump, choose closest to desired redshift.
-                if (len(self.lightConeSolution) == 0):
-                    self.lightConeSolution.append(self.allOutputs[0])
-                # Start with data dump closest to desired redshift and move backward 
-                # until one is within max delta z of last output in solution list.
-                else:
-                    output = self.allOutputs[0]
-                    while (z > output['redshift']):
-                        output = output['previous']
-                        if (output is None):
-                            if self.verbose: mylog.error("CalculateLightConeSolution: search for data output went off the end of the stack.")
-                            if self.verbose: mylog.error("Could not calculate light cone solution.")
-                            return
-                        if (output['redshift'] == self.lightConeSolution[-1]['redshift']):
-                            if self.verbose: mylog.error("CalculateLightConeSolution: No data dump between z = %f and %f." % \
-                                ((self.lightConeSolution[-1]['redshift'] - self.lightConeSolution[-1]['deltazMax']),
-                                 self.lightConeSolution[-1]['redshift']))
-                            if self.verbose: mylog.error("Could not calculate light cone solution.")
-                            return
-                    self.lightConeSolution.append(output)
-                z = self.lightConeSolution[-1]['redshift'] - self.lightConeSolution[-1]['deltazMax']
-
-        # Make light cone using maximum number of projections (minimum spacing).
-        else:
-            # Sort data outputs by proximity to current redsfhit.
-            self.allOutputs.sort(key=lambda obj:na.fabs(self.lightConeParameters['InitialRedshift'] - obj['redshift']))
-            # For first data dump, choose closest to desired redshift.
-            self.lightConeSolution.append(self.allOutputs[0])
-
-            nextOutput = self.lightConeSolution[-1]['next']
-            while (nextOutput is not None):
-                if (nextOutput['redshift'] <= self.lightConeParameters['FinalRedshift']):
-                    break
-                if ((self.lightConeSolution[-1]['redshift'] - nextOutput['redshift']) > self.lightConeSolution[-1]['deltazMin']):
-                    self.lightConeSolution.append(nextOutput)
-                nextOutput = nextOutput['next']
-
-        if self.verbose: mylog.info("CalculateLightConeSolution: Used %d data dumps to get from z = %f to %f." % 
-                                    (len(self.lightConeSolution),
-                                     self.lightConeParameters['InitialRedshift'],
-                                     self.lightConeParameters['FinalRedshift']))
-
         # Calculate projection sizes, and get random projection axes and centers.
-        rand.seed(self.originalRandomSeed)
-        co = lagos.Cosmology(HubbleConstantNow = (100.0 * self.enzoParameters['CosmologyHubbleConstantNow']),
-                             OmegaMatterNow = self.enzoParameters['CosmologyOmegaMatterNow'],
-                             OmegaLambdaNow = self.enzoParameters['CosmologyOmegaLambdaNow'])
+        na.random.seed(self.originalRandomSeed)
 
         # For box coherence, keep track of effective depth travelled.
         boxFractionUsed = 0.0
 
-        for q in range(len(self.lightConeSolution)):
-            del self.lightConeSolution[q]['previous']
-            del self.lightConeSolution[q]['next']
-            if (q == len(self.lightConeSolution) - 1):
-                z_next = self.lightConeParameters['FinalRedshift']
+        for q in range(len(self.light_cone_solution)):
+            del self.light_cone_solution[q]['previous']
+            del self.light_cone_solution[q]['next']
+            if (q == len(self.light_cone_solution) - 1):
+                z_next = self.final_redshift
             else:
-                z_next = self.lightConeSolution[q+1]['redshift']
+                z_next = self.light_cone_solution[q+1]['redshift']
 
             # Calculate fraction of box required for a depth of delta z
-            self.lightConeSolution[q]['DepthBoxFraction'] = co.ComovingRadialDistance(z_next,self.lightConeSolution[q]['redshift']) * \
+            self.light_cone_solution[q]['DepthBoxFraction'] = self.cosmology.ComovingRadialDistance(z_next, self.light_cone_solution[q]['redshift']) * \
                 self.enzoParameters['CosmologyHubbleConstantNow'] / self.enzoParameters['CosmologyComovingBoxSize']
 
             # Simple error check to make sure more than 100% of box depth is never required.
-            if (self.lightConeSolution[q]['DepthBoxFraction'] > 1.0):
-                if self.verbose: mylog.error("Warning: box fraction required to go from z = %f to %f is %f" % 
-                                             (self.lightConeSolution[q]['redshift'],z_next,
-                                              self.lightConeSolution[q]['DepthBoxFraction']))
-                if self.verbose: mylog.error("Full box delta z is %f, but it is %f to the next data dump." % 
-                                             (self.lightConeSolution[q]['deltazMax'],
-                                              self.lightConeSolution[q]['redshift']-z_next))
+            if (self.light_cone_solution[q]['DepthBoxFraction'] > 1.0):
+                mylog.debug("Warning: box fraction required to go from z = %f to %f is %f" % 
+                            (self.light_cone_solution[q]['redshift'], z_next,
+                             self.light_cone_solution[q]['DepthBoxFraction']))
+                mylog.debug("Full box delta z is %f, but it is %f to the next data dump." % 
+                            (self.light_cone_solution[q]['deltazMax'],
+                             self.light_cone_solution[q]['redshift']-z_next))
 
             # Calculate fraction of box required for width corresponding to requested image size.
-            scale = co.AngularScale_1arcsec_kpc(self.lightConeParameters['ObserverRedshift'],self.lightConeSolution[q]['redshift'])
-            size = self.lightConeParameters['FieldOfViewInArcMinutes'] * 60.0 * scale / 1000.0
+            scale = self.cosmology.AngularScale_1arcsec_kpc(self.observer_redshift, self.light_cone_solution[q]['redshift'])
+            size = self.field_of_view_in_arcminutes * 60.0 * scale / 1000.0
             boxSizeProper = self.enzoParameters['CosmologyComovingBoxSize'] / (self.enzoParameters['CosmologyHubbleConstantNow'] * 
-                                                                               (1.0 + self.lightConeSolution[q]['redshift']))
-            self.lightConeSolution[q]['WidthBoxFraction'] = size / boxSizeProper
+                                                                               (1.0 + self.light_cone_solution[q]['redshift']))
+            self.light_cone_solution[q]['WidthBoxFraction'] = size / boxSizeProper
 
             # Get projection axis and center.
             # If using box coherence, only get random axis and center if enough of the box has been used, 
             # or if boxFractionUsed will be greater than 1 after this slice.
-            if (q == 0) or (self.lightConeParameters['MinimumCoherentBoxFraction'] == 0) or \
-                    (boxFractionUsed > self.lightConeParameters['MinimumCoherentBoxFraction']) or \
-                    (boxFractionUsed + self.lightConeSolution[q]['DepthBoxFraction'] > 1.0):
+            if (q == 0) or (self.minimum_coherent_box_fraction == 0) or \
+                    (boxFractionUsed > self.minimum_coherent_box_fraction) or \
+                    (boxFractionUsed + self.light_cone_solution[q]['DepthBoxFraction'] > 1.0):
                 # Random axis and center.
-                self.lightConeSolution[q]['ProjectionAxis'] = rand.randint(0,2)
-                self.lightConeSolution[q]['ProjectionCenter'] = [rand.random(),rand.random(),rand.random()]
+                self.light_cone_solution[q]['ProjectionAxis'] = na.random.randint(0, 3)
+                self.light_cone_solution[q]['ProjectionCenter'] = [na.random.random(), na.random.random(), na.random.random()]
                 boxFractionUsed = 0.0
             else:
                 # Same axis and center as previous slice, but with depth center shifted.
-                self.lightConeSolution[q]['ProjectionAxis'] = self.lightConeSolution[q-1]['ProjectionAxis']
-                self.lightConeSolution[q]['ProjectionCenter'] = copy.deepcopy(self.lightConeSolution[q-1]['ProjectionCenter'])
-                self.lightConeSolution[q]['ProjectionCenter'][self.lightConeSolution[q]['ProjectionAxis']] += \
-                    0.5 * (self.lightConeSolution[q]['DepthBoxFraction'] + self.lightConeSolution[q-1]['DepthBoxFraction'])
-                if self.lightConeSolution[q]['ProjectionCenter'][self.lightConeSolution[q]['ProjectionAxis']] >= 1.0:
-                    self.lightConeSolution[q]['ProjectionCenter'][self.lightConeSolution[q]['ProjectionAxis']] -= 1.0
+                self.light_cone_solution[q]['ProjectionAxis'] = self.light_cone_solution[q-1]['ProjectionAxis']
+                self.light_cone_solution[q]['ProjectionCenter'] = copy.deepcopy(self.light_cone_solution[q-1]['ProjectionCenter'])
+                self.light_cone_solution[q]['ProjectionCenter'][self.light_cone_solution[q]['ProjectionAxis']] += \
+                    0.5 * (self.light_cone_solution[q]['DepthBoxFraction'] + self.light_cone_solution[q-1]['DepthBoxFraction'])
+                if self.light_cone_solution[q]['ProjectionCenter'][self.light_cone_solution[q]['ProjectionAxis']] >= 1.0:
+                    self.light_cone_solution[q]['ProjectionCenter'][self.light_cone_solution[q]['ProjectionAxis']] -= 1.0
 
-            boxFractionUsed += self.lightConeSolution[q]['DepthBoxFraction']
+            boxFractionUsed += self.light_cone_solution[q]['DepthBoxFraction']
 
         # Store this as the master solution.
-        self.masterSolution = [copy.deepcopy(q) for q in self.lightConeSolution]
+        self.master_solution = [copy.deepcopy(q) for q in self.light_cone_solution]
 
-        # Clear out some stuff.
-        del co
+        # Write solution to a file.
+        if filename is not None:
+            self._save_light_cone_solution(filename=filename)
 
-    @rootonly
-    def GetHaloMask(self,HaloMaskParameterFile,mask_file=None,map_file=None,**kwargs):
-        "Gets a halo mask from a file or makes a new one."
+    def get_halo_mask(self, mask_file=None, map_file=None, **kwargs):
+        """
+        Gets a halo mask from a file or makes a new one.
+        :param mask_file (str): specify an hdf5 file to output the halo mask.
+        :param map_file (str): specify a text file to output the halo map 
+               (locations in image of halos).
+        """
 
         # Get halo map if map_file given.
-        if (map_file is not None):
-            MakeLightConeHaloMap(self,HaloMaskParameterFile,map_file=map_file,**kwargs)
+        if map_file is not None and not os.path.exists(map_file):
+            light_cone_halo_map(self, map_file=map_file, **kwargs)
 
         # Check if file already exists.
-        if (mask_file is not None) and os.path.exists(mask_file):
-            input = h5.openFile(mask_file,'r')
-            self.haloMask = input.root.haloMask.read()
+        if mask_file is not None and os.path.exists(mask_file):
+            mylog.info('Reading halo mask from %s.' % mask_file)
+            input = h5py.File(mask_file, 'r')
+            self.halo_mask = input['HaloMask'].value
             input.close()
 
         # Otherwise, make a halo mask.
         else:
-            haloMaskCube = MakeLightConeHaloMask(self,HaloMaskParameterFile,mask_file=mask_file,**kwargs)
+            halo_mask_cube = light_cone_halo_mask(self, mask_file=mask_file, **kwargs)
             # Collapse cube into final mask.
-            self.haloMask = na.ones(shape=(self.pixels,self.pixels),dtype=bool)
-            for mask in haloMaskCube:
-                self.haloMask *= mask
-            del haloMaskCube
+            if ytcfg.getint("yt", "__parallel_rank") == 0:
+                self.halo_mask = na.ones(shape=(self.pixels, self.pixels), dtype=bool)
+                for mask in halo_mask_cube:
+                    self.halo_mask *= mask
+            del halo_mask_cube
 
-    def ProjectLightCone(self,field,weight_field=None,apply_halo_mask=False,node=None,
-                         save_stack=True,save_slice_images=False,flatten_stack=False,photon_field=False,**kwargs):
-        "Create projections for light cone, then add them together."
+    def project_light_cone(self, field, weight_field=None, apply_halo_mask=False, node=None,
+                           save_stack=True, save_slice_images=False, flatten_stack=False, photon_field=False, **kwargs):
+        """
+        Create projections for light cone, then add them together.
+        :param weight_field (str): the weight field of the projection.  This has the same meaning as in standard 
+               projections.  Default: None.
+        :param apply_halo_mask (bool): if True, a boolean mask is apply to the light cone projection.  See below for a 
+               description of halo masks.  Default: False.
+        :param node (str): a prefix to be prepended to the node name under which the projection data is serialized.  
+               Default: None.
+        :param save_stack (bool): if True, the unflatted light cone data including each individual slice is written to 
+               an hdf5 file.  Default: True.
+        :param save_slice_images (bool): save images for each individual projection slice.  Default: False.
+        :param flatten_stack (bool): if True, the light cone stack is continually flattened each time a slice is added 
+               in order to save memory.  This is generally not necessary.  Default: False.
+        :param photon_field (bool): if True, the projection data for each slice is decremented by 4 Pi R^2`, where R 
+               is the luminosity distance between the observer and the slice redshift.  Default: False.
+        """
 
         # Clear projection stack.
-        self.projectionStack = []
-        self.projectionWeightFieldStack = []
-        if (self.lightConeSolution[-1].has_key('object')):
-            del self.lightConeSolution[-1]['object']
+        self.projection_stack = []
+        self.projection_weight_field_stack = []
+        if (self.light_cone_solution[-1].has_key('object')):
+            del self.light_cone_solution[-1]['object']
 
-        if not(self.lightConeParameters['OutputDir'].endswith("/")):
-                 self.lightConeParameters['OutputDir'] += "/"
+        if not(self.output_dir.endswith("/")):
+                 self.output_dir += "/"
 
-        for q,output in enumerate(self.lightConeSolution):
+        for q, output in enumerate(self.light_cone_solution):
             if node is None:
-                name = "%s%s_%04d_%04d" % (self.lightConeParameters['OutputDir'],self.lightConeParameters['OutputPrefix'],
-                                           q,len(self.lightConeSolution))
+                name = "%s%s_%04d_%04d" % (self.output_dir, self.output_prefix,
+                                           q, len(self.light_cone_solution))
             else:
-                name = "%s%s_%s_%04d_%04d" % (self.lightConeParameters['OutputDir'],self.lightConeParameters['OutputPrefix'],
-                                              node,q,len(self.lightConeSolution))
+                name = "%s%s_%s_%04d_%04d" % (self.output_dir, self.output_prefix,
+                                              node, q, len(self.light_cone_solution))
             output['object'] = lagos.EnzoStaticOutput(output['filename'])
-            frb = LightConeProjection(output,field,self.pixels,weight_field=weight_field,
+            frb = LightConeProjection(output, field, self.pixels, weight_field=weight_field,
                                       save_image=save_slice_images,
-                                      name=name,node=node,**kwargs)
-            if ytcfg.getint("yt","__parallel_rank") == 0:
+                                      name=name, node=node, **kwargs)
+            if ytcfg.getint("yt", "__parallel_rank") == 0:
                 if photon_field:
-                #need to decrement the flux by the luminosity distance. Assume field in frb is in erg/s/cm^2/Hz
+                    # Decrement the flux by the luminosity distance. Assume field in frb is in erg/s/cm^2/Hz
                     co = lagos.Cosmology(HubbleConstantNow = (100.0 * self.enzoParameters['CosmologyHubbleConstantNow']),
                                          OmegaMatterNow = self.enzoParameters['CosmologyOmegaMatterNow'],
                                          OmegaLambdaNow = self.enzoParameters['CosmologyOmegaLambdaNow'])
-                    dL = co.LuminosityDistance(self.lightConeParameters['ObserverRedshift'],output['redshift']) #in Mpc
+                    dL = self.cosmology.LuminosityDistance(self.observer_redshift, output['redshift']) #in Mpc
                     boxSizeProper = self.enzoParameters['CosmologyComovingBoxSize'] / (self.enzoParameters['CosmologyHubbleConstantNow'] * 
                                                                                        (1.0 + output['redshift']))
                     pixelarea = (boxSizeProper/self.pixels)**2 #in proper cm^2
@@ -290,44 +275,44 @@ class LightCone(object):
                     mylog.info("Distance to slice = %e" % dL)
                     frb[field] *= factor #in erg/s/cm^2/Hz on observer's image plane.
 
-            if ytcfg.getint("yt","__parallel_rank") == 0:
-                if (weight_field is not None):
+            if ytcfg.getint("yt", "__parallel_rank") == 0:
+                if weight_field is not None:
                     # Data come back normalized by the weight field.
                     # Undo that so it can be added up for the light cone.
-                    self.projectionStack.append(frb[field]*frb['weight_field'])
-                    self.projectionWeightFieldStack.append(frb['weight_field'])
+                    self.projection_stack.append(frb[field]*frb['weight_field'])
+                    self.projection_weight_field_stack.append(frb['weight_field'])
                 else:
-                    self.projectionStack.append(frb[field])
+                    self.projection_stack.append(frb[field])
 
                 # Delete the frb.  This saves a decent amount of ram.
-                if (q < len(self.lightConeSolution) - 1):
+                if (q < len(self.light_cone_solution) - 1):
                     del frb
 
                 # Flatten stack to save memory.
-                if flatten_stack and (len(self.projectionStack) > 1):
-                    self.projectionStack = [sum(self.projectionStack)]
+                if flatten_stack and (len(self.projection_stack) > 1):
+                    self.projection_stack = [sum(self.projection_stack)]
                     if weight_field is not None:
-                        self.projectionWeightFieldStack = [sum(self.projectionWeightFieldStack)]
+                        self.projection_weight_field_stack = [sum(self.projection_weight_field_stack)]
 
             # Delete the plot collection now that the frb is deleted.
             del output['pc']
 
             # Unless this is the last slice, delete the dataset object.
             # The last one will be saved to make the plot collection.
-            if (q < len(self.lightConeSolution) - 1):
+            if (q < len(self.light_cone_solution) - 1):
                 del output['object']
 
-        if ytcfg.getint("yt","__parallel_rank") == 0:
+        if ytcfg.getint("yt", "__parallel_rank") == 0:
             # Add up slices to make light cone projection.
             if (weight_field is None):
-                lightConeProjection = sum(self.projectionStack)
+                lightConeProjection = sum(self.projection_stack)
             else:
-                lightConeProjection = sum(self.projectionStack) / sum(self.projectionWeightFieldStack)
+                lightConeProjection = sum(self.projection_stack) / sum(self.projection_weight_field_stack)
 
             if node is None:
-                filename = "%s%s" % (self.lightConeParameters['OutputDir'],self.lightConeParameters['OutputPrefix'])
+                filename = "%s%s" % (self.output_dir, self.output_prefix)
             else:
-                filename = "%s%s_%s" % (self.lightConeParameters['OutputDir'],self.lightConeParameters['OutputPrefix'],node)
+                filename = "%s%s_%s" % (self.output_dir, self.output_prefix, node)
 
             # Save the last fixed resolution buffer for the plot collection, 
             # but replace the data with the full light cone projection data.
@@ -335,28 +320,28 @@ class LightCone(object):
 
             # Write stack to hdf5 file.
             if save_stack:
-                self._SaveLightConeStack(field=field,weight_field=weight_field,filename=filename)
+                self._save_light_cone_stack(field=field, weight_field=weight_field, filename=filename)
 
             # Apply halo mask.
             if apply_halo_mask:
-                if len(self.haloMask) > 0:
+                if len(self.halo_mask) > 0:
                     mylog.info("Applying halo mask.")
-                    frb.data[field] *= self.haloMask
+                    frb.data[field] *= self.halo_mask
                 else:
-                    mylog.error("No halo mask loaded, call GetHaloMask.")
+                    mylog.error("No halo mask loaded, call get_halo_mask.")
 
             # Make a plot collection for the light cone projection.
-            center = [0.5 * (self.lightConeSolution[-1]['object'].parameters['DomainLeftEdge'][w] + 
-                             self.lightConeSolution[-1]['object'].parameters['DomainRightEdge'][w])
-                      for w in range(self.lightConeSolution[-1]['object'].parameters['TopGridRank'])]
-            pc = raven.PlotCollection(self.lightConeSolution[-1]['object'],center=center)
-            pc.add_fixed_resolution_plot(frb,field,**kwargs)
+            center = [0.5 * (self.light_cone_solution[-1]['object'].parameters['DomainLeftEdge'][w] + 
+                             self.light_cone_solution[-1]['object'].parameters['DomainRightEdge'][w])
+                      for w in range(self.light_cone_solution[-1]['object'].parameters['TopGridRank'])]
+            pc = raven.PlotCollection(self.light_cone_solution[-1]['object'], center=center)
+            pc.add_fixed_resolution_plot(frb, field, **kwargs)
             pc.save(filename)
 
             # Return the plot collection so the user can remake the plot if they want.
             return pc
 
-    def RerandomizeLightConeSolution(self,newSeed,recycle=True):
+    def rerandomize_light_cone_solution(self, newSeed, recycle=True, filename=None):
         """
         When making a projection for a light cone, only randomizations along the line of sight make any 
         given projection unique, since the lateral shifting and tiling is done after the projection is made.
@@ -368,23 +353,29 @@ class LightCone(object):
 
         This routine has now been updated to be a general solution rescrambler.  If the keyword recycle is set to 
         True, then it will recycle.  Otherwise, it will create a completely new solution.
+
+        :param recycle (bool): if True, the new solution will have the same shift in the line of sight as the original 
+               solution.  Since the projections of each slice are serialized and stored for the entire width of the 
+               box (even if the width used is left than the total box), the projection data can be deserialized 
+               instead of being remade from scratch.  This can greatly speed up the creation of a large number of light 
+               cone projections.  Default: True.
+        :param filename (str): if given, a text file detailing the solution will be written out.  Default: None.
         """
 
         # Get rid of old halo mask, if one was there.
-        self.haloMask = []
+        self.halo_mask = []
 
         # Clean pf objects out of light cone solution.
-        for slice in self.lightConeSolution:
+        for slice in self.light_cone_solution:
             if slice.has_key('object'):
                 del slice['object']
 
         if recycle:
-            if self.verbose: mylog.info("Recycling solution made with %s with new seed %s." % 
-                                        (self.originalRandomSeed,
-                                         newSeed))
+            mylog.debug("Recycling solution made with %s with new seed %s." % 
+                        (self.originalRandomSeed, newSeed))
             self.recycleRandomSeed = int(newSeed)
         else:
-            if self.verbose: mylog.info("Creating new solution with random seed %s." % newSeed)
+            mylog.debug("Creating new solution with random seed %s." % newSeed)
             self.originalRandomSeed = int(newSeed)
             self.recycleRandomSeed = 0
 
@@ -398,86 +389,90 @@ class LightCone(object):
         boxFractionUsed = 0.0
 
         # Seed random number generator with new seed.
-        rand.seed(int(newSeed))
+        na.random.seed(int(newSeed))
 
-        for q,output in enumerate(self.lightConeSolution):
+        for q, output in enumerate(self.light_cone_solution):
             # It is necessary to make the same number of calls to the random number generator
             # so the original solution willbe produced if the same seed is given.
 
             # Get projection axis and center.
             # If using box coherence, only get random axis and center if enough of the box has been used, 
             # or if boxFractionUsed will be greater than 1 after this slice.
-            if (q == 0) or (self.lightConeParameters['MinimumCoherentBoxFraction'] == 0) or \
-                    (boxFractionUsed > self.lightConeParameters['MinimumCoherentBoxFraction']) or \
-                    (boxFractionUsed + self.lightConeSolution[q]['DepthBoxFraction'] > 1.0):
+            if (q == 0) or (self.minimum_coherent_box_fraction == 0) or \
+                    (boxFractionUsed > self.minimum_coherent_box_fraction) or \
+                    (boxFractionUsed + self.light_cone_solution[q]['DepthBoxFraction'] > 1.0):
                 # Get random projection axis and center.
                 # If recycling, axis will get thrown away since it is used in creating a unique projection object.
-                newAxis = rand.randint(0,2)
+                newAxis = na.random.randint(0, 3)
 
-                newCenter = [rand.random(),rand.random(),rand.random()]
+                newCenter = [na.random.random(), na.random.random(), na.random.random()]
                 boxFractionUsed = 0.0
             else:
                 # Same axis and center as previous slice, but with depth center shifted.
-                newAxis = self.lightConeSolution[q-1]['ProjectionAxis']
-                newCenter = copy.deepcopy(self.lightConeSolution[q-1]['ProjectionCenter'])
+                newAxis = self.light_cone_solution[q-1]['ProjectionAxis']
+                newCenter = copy.deepcopy(self.light_cone_solution[q-1]['ProjectionCenter'])
                 newCenter[newAxis] += \
-                    0.5 * (self.lightConeSolution[q]['DepthBoxFraction'] + self.lightConeSolution[q-1]['DepthBoxFraction'])
+                    0.5 * (self.light_cone_solution[q]['DepthBoxFraction'] + self.light_cone_solution[q-1]['DepthBoxFraction'])
                 if newCenter[newAxis] >= 1.0:
                     newCenter[newAxis] -= 1.0
 
             if recycle:
-                output['ProjectionAxis'] = self.masterSolution[q]['ProjectionAxis']
+                output['ProjectionAxis'] = self.master_solution[q]['ProjectionAxis']
             else:
                 output['ProjectionAxis'] = newAxis
 
-            boxFractionUsed += self.lightConeSolution[q]['DepthBoxFraction']
+            boxFractionUsed += self.light_cone_solution[q]['DepthBoxFraction']
 
             # Make list of rectangle corners to calculate common volume.
-            newCube = na.zeros(shape=(len(newCenter),2))
-            oldCube = na.zeros(shape=(len(newCenter),2))
+            newCube = na.zeros(shape=(len(newCenter), 2))
+            oldCube = na.zeros(shape=(len(newCenter), 2))
             for w in range(len(newCenter)):
-                if (w == self.masterSolution[q]['ProjectionAxis']):
-                    oldCube[w] = [self.masterSolution[q]['ProjectionCenter'][w] - 0.5 * self.masterSolution[q]['DepthBoxFraction'],
-                                  self.masterSolution[q]['ProjectionCenter'][w] + 0.5 * self.masterSolution[q]['DepthBoxFraction']]
+                if (w == self.master_solution[q]['ProjectionAxis']):
+                    oldCube[w] = [self.master_solution[q]['ProjectionCenter'][w] - 0.5 * self.master_solution[q]['DepthBoxFraction'],
+                                  self.master_solution[q]['ProjectionCenter'][w] + 0.5 * self.master_solution[q]['DepthBoxFraction']]
                 else:
-                    oldCube[w] = [self.masterSolution[q]['ProjectionCenter'][w] - 0.5 * self.masterSolution[q]['WidthBoxFraction'],
-                                  self.masterSolution[q]['ProjectionCenter'][w] + 0.5 * self.masterSolution[q]['WidthBoxFraction']]
+                    oldCube[w] = [self.master_solution[q]['ProjectionCenter'][w] - 0.5 * self.master_solution[q]['WidthBoxFraction'],
+                                  self.master_solution[q]['ProjectionCenter'][w] + 0.5 * self.master_solution[q]['WidthBoxFraction']]
 
                 if (w == output['ProjectionAxis']):
                     if recycle:
                         newCube[w] = oldCube[w]
                     else:
-                        newCube[w] = [newCenter[w] - 0.5 * self.masterSolution[q]['DepthBoxFraction'],
-                                      newCenter[w] + 0.5 * self.masterSolution[q]['DepthBoxFraction']]
+                        newCube[w] = [newCenter[w] - 0.5 * self.master_solution[q]['DepthBoxFraction'],
+                                      newCenter[w] + 0.5 * self.master_solution[q]['DepthBoxFraction']]
                 else:
-                    newCube[w] = [newCenter[w] - 0.5 * self.masterSolution[q]['WidthBoxFraction'],
-                                  newCenter[w] + 0.5 * self.masterSolution[q]['WidthBoxFraction']]
+                    newCube[w] = [newCenter[w] - 0.5 * self.master_solution[q]['WidthBoxFraction'],
+                                  newCenter[w] + 0.5 * self.master_solution[q]['WidthBoxFraction']]
 
-            commonVolume += commonNVolume(oldCube,newCube,periodic=na.array([[0,1],[0,1],[0,1]]))
+            commonVolume += commonNVolume(oldCube, newCube, periodic=na.array([[0, 1], [0, 1], [0, 1]]))
             totalVolume += output['DepthBoxFraction'] * output['WidthBoxFraction']**2
 
             # Replace centers for every axis except the line of sight axis.
             for w in range(len(newCenter)):
-                if not(recycle and (w == self.lightConeSolution[q]['ProjectionAxis'])):
-                    self.lightConeSolution[q]['ProjectionCenter'][w] = newCenter[w]
+                if not(recycle and (w == self.light_cone_solution[q]['ProjectionAxis'])):
+                    self.light_cone_solution[q]['ProjectionCenter'][w] = newCenter[w]
 
         if recycle:
-            if self.verbose: mylog.info("Fractional common volume between master and recycled solution is %.2e" % (commonVolume/totalVolume))
+            mylog.debug("Fractional common volume between master and recycled solution is %.2e" % (commonVolume/totalVolume))
         else:
-            if self.verbose: mylog.info("Fraction of total volume in common with old solution is %.2e." % (commonVolume/totalVolume))
-            self.masterSolution = [copy.deepcopy(q) for q in self.lightConeSolution]
+            mylog.debug("Fraction of total volume in common with old solution is %.2e." % (commonVolume/totalVolume))
+            self.master_solution = [copy.deepcopy(q) for q in self.light_cone_solution]
 
-    def RestoreMasterSolution(self):
+        # Write solution to a file.
+        if filename is not None:
+            self._save_light_cone_solution(filename=filename)
+
+    def restore_master_solution(self):
         "Reset the active light cone solution to the master solution."
-        self.lightConeSolution = [copy.deepcopy(q) for q in self.masterSolution]
+        self.light_cone_solution = [copy.deepcopy(q) for q in self.master_solution]
 
     @rootonly
-    def SaveLightConeSolution(self,file="light_cone.dat"):
+    def _save_light_cone_solution(self, filename="light_cone.dat"):
         "Write out a text file with information on light cone solution."
 
-        if self.verbose: mylog.info("Saving light cone solution to %s." % file)
+        mylog.info("Saving light cone solution to %s." % filename)
 
-        f = open(file,'w')
+        f = open(filename, 'w')
         if self.recycleSolution:
             f.write("Recycled Solution\n")
             f.write("OriginalRandomSeed = %s\n" % self.originalRandomSeed)
@@ -486,243 +481,33 @@ class LightCone(object):
             f.write("Original Solution\n")
             f.write("OriginalRandomSeed = %s\n" % self.originalRandomSeed)
         f.write("EnzoParameterFile = %s\n" % self.EnzoParameterFile)
-        f.write("LightConeParameterFile = %s\n" % self.LightConeParameterFile)
         f.write("\n")
-        for parameter in self.lightConeParameters:
-            f.write("%s = %s\n" % (parameter,str(self.lightConeParameters[parameter])))
-        f.write("\n")
-        for q,output in enumerate(self.lightConeSolution):
+        for q, output in enumerate(self.light_cone_solution):
             f.write("Proj %04d, %s, z = %f, depth/box = %f, width/box = %f, axis = %d, center = %f, %f, %f\n" %
-                    (q,output['filename'],output['redshift'],output['DepthBoxFraction'],output['WidthBoxFraction'],
-                    output['ProjectionAxis'],output['ProjectionCenter'][0],output['ProjectionCenter'][1],output['ProjectionCenter'][2]))
+                    (q, output['filename'], output['redshift'], output['DepthBoxFraction'], output['WidthBoxFraction'],
+                    output['ProjectionAxis'], output['ProjectionCenter'][0], output['ProjectionCenter'][1], output['ProjectionCenter'][2]))
         f.close()
 
-    def _CalculateDeltaZMax(self):
-        "Calculate delta z that corresponds to full box length going from z to (z - delta z)."
-        co = lagos.Cosmology(HubbleConstantNow = (100.0 * self.enzoParameters['CosmologyHubbleConstantNow']),
-                       OmegaMatterNow = self.enzoParameters['CosmologyOmegaMatterNow'],
-                       OmegaLambdaNow = self.enzoParameters['CosmologyOmegaLambdaNow'])
-
-        d_Tolerance = 1e-4
-        max_Iterations = 100
-
-        targetDistance = self.enzoParameters['CosmologyComovingBoxSize']
-
-        for output in self.allOutputs:
-            z = output['redshift']
-
-            # Calculate delta z that corresponds to the length of the box at a given redshift.
-            # Use Newton's method to calculate solution.
-            z1 = z
-            z2 = z1 - 0.1 # just an initial guess
-            distance1 = 0.0
-            iteration = 1
-
-            # Convert comoving radial distance into Mpc / h, since that's how box size is stored.
-            distance2 = co.ComovingRadialDistance(z2,z) * self.enzoParameters['CosmologyHubbleConstantNow']
-
-            while ((na.fabs(distance2-targetDistance)/distance2) > d_Tolerance):
-                m = (distance2 - distance1) / (z2 - z1)
-                z1 = z2
-                distance1 = distance2
-                z2 = ((targetDistance - distance2) / m) + z2
-                distance2 = co.ComovingRadialDistance(z2,z) * self.enzoParameters['CosmologyHubbleConstantNow']
-                iteration += 1
-                if (iteration > max_Iterations):
-                    if self.verbose: mylog.error("CalculateDeltaZMax: Warning - max iterations exceeded for z = %f (delta z = %f)." % (z,na.fabs(z2-z)))
-                    break
-            output['deltazMax'] = na.fabs(z2-z)
-
-        del co
-
-    def _CalculateDeltaZMin(self):
-        "Calculate delta z that corresponds to a single top grid pixel going from z to (z - delta z)."
-        co = lagos.Cosmology(HubbleConstantNow = (100.0 * self.enzoParameters['CosmologyHubbleConstantNow']),
-                       OmegaMatterNow = self.enzoParameters['CosmologyOmegaMatterNow'],
-                       OmegaLambdaNow = self.enzoParameters['CosmologyOmegaLambdaNow'])
-
-        d_Tolerance = 1e-4
-        max_Iterations = 100
-
-        targetDistance = self.enzoParameters['CosmologyComovingBoxSize'] / self.enzoParameters['TopGridDimensions'][0]
-
-        for output in self.allOutputs:
-            z = output['redshift']
-
-            # Calculate delta z that corresponds to the length of a top grid pixel at a given redshift.
-            # Use Newton's method to calculate solution.
-            z1 = z
-            z2 = z1 - 0.01 # just an initial guess
-            distance1 = 0.0
-            iteration = 1
-
-            # Convert comoving radial distance into Mpc / h, since that's how box size is stored.
-            distance2 = co.ComovingRadialDistance(z2,z) * self.enzoParameters['CosmologyHubbleConstantNow']
-
-            while ((na.fabs(distance2 - targetDistance) / distance2) > d_Tolerance):
-                m = (distance2 - distance1) / (z2 - z1)
-                z1 = z2
-                distance1 = distance2
-                z2 = ((targetDistance - distance2) / m) + z2
-                distance2 = co.ComovingRadialDistance(z2,z) * self.enzoParameters['CosmologyHubbleConstantNow']
-                iteration += 1
-                if (iteration > max_Iterations):
-                    if self.verbose: mylog.error("CalculateDeltaZMax: Warning - max iterations exceeded for z = %f (delta z = %f)." % 
-                                                 (z,na.fabs(z2-z)))
-                    break
-            # Use this calculation or the absolute minimum specified by the user.
-            output['deltazMin'] = max(na.fabs(z2-z),self.lightConeParameters['MinimumSliceDeltaz'])
-
-        del co
-
-    def _CalculateTimeDumpRedshifts(self):
-        "Calculates redshift values for the dt data dumps."
-        ec = lagos.EnzoCosmology(HubbleConstantNow = \
-                               (100.0 * self.enzoParameters['CosmologyHubbleConstantNow']),
-                           OmegaMatterNow = self.enzoParameters['CosmologyOmegaMatterNow'],
-                           OmegaLambdaNow = self.enzoParameters['CosmologyOmegaLambdaNow'],
-                           InitialRedshift = self.enzoParameters['CosmologyInitialRedshift'])
-
-        z_Tolerance = 1e-3
-        z = self.enzoParameters['CosmologyInitialRedshift']
-        index = 0
-        while ((z > self.enzoParameters['CosmologyFinalRedshift']) and 
-               (na.fabs(z-self.enzoParameters['CosmologyFinalRedshift']) > z_Tolerance)):
-            t = ec.InitialTime + (self.enzoParameters['dtDataDump'] * ec.TimeUnits * index)
-            z = ec.ComputeRedshiftFromTime(t)
-            filename = "%s/%s%04d/%s%04d" % (self.enzoParameters['GlobalDir'],
-                                             self.enzoParameters['DataDumpDir'],
-                                             index,
-                                             self.enzoParameters['DataDumpDir'],
-                                             index)
-            self.timeOutputs.append({'index':index,'redshift':z,'filename':filename})
-            index += 1
-
-    def _CalculateSplitTimeDumpRedshifts(self,break_index,new_dt):
-        "Calculates redshift values for the dt data dumps."
-        ec = lagos.EnzoCosmology(HubbleConstantNow = \
-                               (100.0 * self.enzoParameters['CosmologyHubbleConstantNow']),
-                           OmegaMatterNow = self.enzoParameters['CosmologyOmegaMatterNow'],
-                           OmegaLambdaNow = self.enzoParameters['CosmologyOmegaLambdaNow'],
-                           InitialRedshift = self.enzoParameters['CosmologyInitialRedshift'])
-
-        z_Tolerance = 1e-3
-        z = self.enzoParameters['CosmologyInitialRedshift']
-        index = 0
-        while ((z > self.enzoParameters['CosmologyFinalRedshift']) and 
-               (na.fabs(z-self.enzoParameters['CosmologyFinalRedshift']) > z_Tolerance)):
-            if index <= break_index:
-                t = ec.InitialTime + (self.enzoParameters['dtDataDump'] * ec.TimeUnits * index)
-                z = ec.ComputeRedshiftFromTime(t)
-            else:
-                t = ec.InitialTime + (self.enzoParameters['dtDataDump'] * ec.TimeUnits * (break_index))
-                t += (new_dt * ec.TimeUnits * (index-break_index))
-                z = ec.ComputeRedshiftFromTime(t)
-            filename = "%s/%s%04d/%s%04d" % (self.enzoParameters['GlobalDir'],
-                                             self.enzoParameters['DataDumpDir'],
-                                             index,
-                                             self.enzoParameters['DataDumpDir'],
-                                             index)
-            self.timeOutputs.append({'index':index,'redshift':z,'filename':filename})
-            index += 1
-
-
-    def _CombineDataOutputs(self):
-        "Combines redshift and time data into one sorted list."
-        self.allOutputs = self.redshiftOutputs + self.timeOutputs
-        self.allOutputs.sort(reverse=True,key=lambda obj:obj['redshift'])
-        for q in range(len(self.allOutputs)):
-            del self.allOutputs[q]['index']
-            if (q == 0):
-                self.allOutputs[q]['previous'] = None
-                self.allOutputs[q]['next'] = self.allOutputs[q+1]
-            elif (q == len(self.allOutputs) - 1):
-                self.allOutputs[q]['previous'] = self.allOutputs[q-1]                
-                self.allOutputs[q]['next'] = None
-            else:
-                self.allOutputs[q]['previous'] = self.allOutputs[q-1]
-                self.allOutputs[q]['next'] = self.allOutputs[q+1]
-        del self.redshiftOutputs
-        del self.timeOutputs
-
-    def _ReadEnzoParameterFile(self):
-        "Reads an Enzo parameter file looking for cosmology and output parameters."
-        lines = open(self.EnzoParameterFile).readlines()
-        for line in lines:
-            if line.find("#") >= 0: # Keep the commented lines
-                line=line[:line.find("#")]
-            line=line.strip()
-            if len(line) < 2:
-                continue
-            try:
-                param, vals = map(str,line.split("="))
-                param = param.strip()
-                vals = vals.strip()
-            except ValueError:
-                if self.verbose: mylog.error("Skipping line: %s" % line)
-                continue
-            if EnzoParameterDict.has_key(param):
-                t = map(EnzoParameterDict[param], vals.split())
-                if len(t) == 1:
-                    self.enzoParameters[param] = t[0]
-                else:
-                    self.enzoParameters[param] = t
-            elif param.startswith("CosmologyOutputRedshift["):
-                index = param[param.find("[")+1:param.find("]")]
-                self.redshiftOutputs.append({'index':int(index),
-                                             'redshift':float(vals)})
-
-        # Add filenames to redshift outputs.
-        for output in self.redshiftOutputs:
-            output["filename"] = "%s/%s%04d/%s%04d" % (self.enzoParameters['GlobalDir'],
-                                                       self.enzoParameters['RedshiftDumpDir'],
-                                                       output['index'],
-                                                       self.enzoParameters['RedshiftDumpDir'],
-                                                       output['index'])
-
-    def _ReadLightConeParameterFile(self):
-        "Reads a light cone parameter file."
-        lines = open(self.LightConeParameterFile).readlines()
-        for line in lines:
-            if line.find("#") >= 0: # Keep the commented lines
-                line=line[:line.find("#")]
-            line=line.strip()
-            if len(line) < 2:
-                continue
-            try:
-                param, vals = map(str,line.split("="))
-                param = param.strip()
-                vals = vals.strip()
-            except ValueError:
-                if self.verbose: mylog.error("Skipping line: %s" % line)
-                continue
-            if LightConeParameterDict.has_key(param):
-                t = map(LightConeParameterDict[param], vals.split())
-                if len(t) == 1:
-                    self.lightConeParameters[param] = t[0]
-                else:
-                    self.lightConeParameters[param] = t
-
-    def _SaveLightConeStack(self,field=None,weight_field=None,filename=None,over_write=True):
+    def _save_light_cone_stack(self, field=None, weight_field=None, filename=None, over_write=True):
         "Save the light cone projection stack as a 3d array in and hdf5 file."
 
         # Make list of redshifts to include as a dataset attribute.
-        redshiftList = na.array([slice['redshift'] for slice in self.lightConeSolution])
+        redshiftList = na.array([slice['redshift'] for slice in self.light_cone_solution])
 
-        field_node = "%s_%s" % (field,weight_field)
+        field_node = "%s_%s" % (field, weight_field)
         weight_field_node = "weight_field_%s" % weight_field
 
         import h5py
         if (filename is None):
-            filename = "%s/%s_data" % (self.lightConeParameters['OutputDir'],self.lightConeParameters['OutputPrefix'])
+            filename = "%s/%s_data" % (self.output_dir, self.output_prefix)
         if not(filename.endswith('.h5')):
                filename += ".h5"
 
-        if (len(self.projectionStack) == 0):
-            if self.verbose: mylog.error("SaveLightConeStack: no projection data loaded.")
+        if (len(self.projection_stack) == 0):
+            mylog.debug("save_light_cone_stack: no projection data loaded.")
             return
 
-        if self.verbose: mylog.info("Writing light cone data to %s." % filename)
+        mylog.info("Writing light cone data to %s." % filename)
 
         output = h5py.File(filename, "a")
 
@@ -734,82 +519,38 @@ class LightCone(object):
                 write_data = True
                 del output[field_node]
             else:
-                mylog.info("Dataset, %s, already exists in %s, not saving." % (field_node,filename))
+                mylog.info("Dataset, %s, already exists in %s, not saving." % (field_node, filename))
                 write_data = False
         else:
             write_data = True
 
         if write_data:
             mylog.info("Saving %s to %s." % (field_node, filename))
-            self.projectionStack = na.array(self.projectionStack)
-            field_dataset = output.create_dataset(field_node,data=self.projectionStack)
+            self.projection_stack = na.array(self.projection_stack)
+            field_dataset = output.create_dataset(field_node, data=self.projection_stack)
             field_dataset.attrs['redshifts'] = redshiftList
-            field_dataset.attrs['ObserverRedshift'] = na.float(self.lightConeParameters['ObserverRedshift'])
-            field_dataset.attrs['FieldOfViewInArcMinutes'] = na.float(self.lightConeParameters['FieldOfViewInArcMinutes'])
-            field_dataset.attrs['ImageResolutionInArcSeconds'] = na.float(self.lightConeParameters['ImageResolutionInArcSeconds'])
+            field_dataset.attrs['observer_redshift'] = na.float(self.observer_redshift)
+            field_dataset.attrs['field_of_view_in_arcminutes'] = na.float(self.field_of_view_in_arcminutes)
+            field_dataset.attrs['image_resolution_in_arcseconds'] = na.float(self.image_resolution_in_arcseconds)
 
-        if (len(self.projectionWeightFieldStack) > 0):
+        if (len(self.projection_weight_field_stack) > 0):
             if node_exists:
                 if over_write:
                     mylog.info("Dataset, %s, already exists, overwriting." % weight_field_node)
                     del output[field_node]
                 else:
-                    mylog.info("Dataset, %s, already exists in %s, not saving." % (weight_field_node,filename))
+                    mylog.info("Dataset, %s, already exists in %s, not saving." % (weight_field_node, filename))
                     write_data = False
             else:
                 write_data = True
 
             if write_data:
                 mylog.info("Saving %s to %s." % (weight_field_node, filename))
-                self.projectionWeightFieldStack = na.array(self.projectionWeightFieldStack)
-                weight_field_dataset = output.create_dataset(weight_field_node,data=self.projectionWeightFieldStack)
+                self.projection_weight_field_stack = na.array(self.projection_weight_field_stack)
+                weight_field_dataset = output.create_dataset(weight_field_node, data=self.projection_weight_field_stack)
                 weight_field_dataset.attrs['redshifts'] = redshiftList
-                weight_field_dataset.attrs['ObserverRedshift'] = na.float(self.lightConeParameters['ObserverRedshift'])
-                weight_field_dataset.attrs['FieldOfViewInArcMinutes'] = na.float(self.lightConeParameters['FieldOfViewInArcMinutes'])
-                weight_field_dataset.attrs['ImageResolutionInArcSeconds'] = na.float(self.lightConeParameters['ImageResolutionInArcSeconds'])
+                weight_field_dataset.attrs['observer_redshift'] = na.float(self.observer_redshift)
+                weight_field_dataset.attrs['field_of_view_in_arcminutes'] = na.float(self.field_of_view_in_arcminutes)
+                weight_field_dataset.attrs['image_resolution_in_arcseconds'] = na.float(self.image_resolution_in_arcseconds)
 
         output.close()
-
-    def _SetParameterDefaults(self):
-        "Set some default parameters to avoid problems if they are not in the parameter file."
-        self.enzoParameters['GlobalDir'] = "./"
-        self.enzoParameters['RedshiftDumpName'] = "RD"
-        self.enzoParameters['RedshiftDumpDir'] = "RD"
-        self.enzoParameters['DataDumpName'] = "DD"
-        self.enzoParameters['DataDumpDir'] = "DD"
-        self.lightConeParameters['UseMinimumNumberOfProjections'] = 1
-        self.lightConeParameters['MinimumCoherentBoxFraction'] = 0.0
-        self.lightConeParameters['MinimumSliceDeltaz'] = 0.0
-        self.lightConeParameters['ObserverRedshift'] = 0.0
-        self.lightConeParameters['OutputDir'] = "./"
-        self.lightConeParameters['OutputPrefix'] = "LightCone"
-        self.lightConeParameters['dtSplit'] = None
-        self.lightConeParameters['dt_new'] = 0.0
-
-EnzoParameterDict = {"CosmologyCurrentRedshift": float,
-                     "CosmologyComovingBoxSize": float,
-                     "CosmologyOmegaMatterNow": float,
-                     "CosmologyOmegaLambdaNow": float,
-                     "CosmologyHubbleConstantNow": float,
-                     "CosmologyInitialRedshift": float,
-                     "CosmologyFinalRedshift": float,
-                     "TopGridDimensions": float,
-                     "dtDataDump": float,
-                     "RedshiftDumpName": str,
-                     "RedshiftDumpDir":  str,
-                     "DataDumpName": str,
-                     "DataDumpDir": str,
-                     "GlobalDir" : str}
-
-LightConeParameterDict = {"InitialRedshift": float,
-                          "FinalRedshift": float,
-                          "ObserverRedshift": float,
-                          "FieldOfViewInArcMinutes": float,
-                          "ImageResolutionInArcSeconds": float,
-                          "UseMinimumNumberOfProjections": int,
-                          "MinimumCoherentBoxFraction": float,
-                          "MinimumSliceDeltaz": float,
-                          "OutputDir": str,
-                          "OutputPrefix": str,
-                          "dtSplit": float,
-                          "dt_new": float}

@@ -160,7 +160,7 @@ class BinnedProfile(ParallelAnalysisInterface):
         data = []
         for field in _field_mapping.get(this_field, (this_field,)):
             pointI = None
-            if check_cut:
+            if check_cut and not self._data_source._is_fully_enclosed(source):
                 if field in self.pf.field_info \
                     and self.pf.field_info[field].particle_type:
                     pointI = self._data_source._get_particle_indices(source)

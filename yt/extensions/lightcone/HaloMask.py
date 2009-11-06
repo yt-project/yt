@@ -25,81 +25,100 @@ License:
 
 from yt.extensions.HaloProfiler import *
 from yt.logger import lagosLogger as mylog
+from yt.config import ytcfg
 import yt.lagos as lagos
 import copy
 import numpy as na
 import h5py
 
-#### Note: assumption of box width 1.  I'll fix it someday.
-
-def MakeLightConeHaloMask(lightCone,HaloMaskParameterFile,cube_file=None,mask_file=None,**kwargs):
+def light_cone_halo_mask(lightCone, cube_file=None, mask_file=None, **kwargs):
     "Make a boolean mask to cut clusters out of light cone projections."
 
-    pixels = int(lightCone.lightConeParameters['FieldOfViewInArcMinutes'] * 60.0 / \
-                     lightCone.lightConeParameters['ImageResolutionInArcSeconds'])
+    pixels = int(lightCone.field_of_view_in_arcminutes * 60.0 /
+                 lightCone.image_resolution_in_arcseconds)
 
-    lightConeMask = []
+    light_cone_mask = []
 
     # Loop through files in light cone solution and get virial quantities.
-    for slice in lightCone.lightConeSolution:
-        hp = HaloProfiler(slice['filename'],HaloMaskParameterFile,**kwargs)
-        hp._LoadVirialData()
-
-        lightConeMask.append(_MakeSliceMask(slice,hp.virialQuantities,pixels))
+    for slice in lightCone.light_cone_solution:
+        halo_list = _get_halo_list(slice['filename'], **kwargs)
+        light_cone_mask.append(_make_slice_mask(slice, halo_list, pixels))
 
     # Write out cube of masks from each slice.
-    if cube_file is not None:
+    if cube_file is not None and ytcfg.getint("yt", "__parallel_rank") == 0:
         mylog.info("Saving halo mask cube to %s." % cube_file)
-        output = h5py.File(cube_file,'a')
-        output.create_dataset('haloMaskCube',data=na.array(lightConeMask))
+        output = h5py.File(cube_file, 'a')
+        output.create_dataset('haloMaskCube', data=na.array(light_cone_mask))
         output.close()
 
     # Write out final mask.
-    if mask_file is not None:
+    if mask_file is not None and ytcfg.getint("yt", "__parallel_rank") == 0:
         # Final mask is simply the product of the mask from each slice.
         mylog.info("Saving halo mask to %s." % mask_file)
-        finalMask = na.ones(shape=(pixels,pixels))
-        for mask in lightConeMask:
+        finalMask = na.ones(shape=(pixels, pixels))
+        for mask in light_cone_mask:
             finalMask *= mask
 
-        output = h5py.File(mask_file,'a')
-        output.create_dataset('haloMask',data=na.array(finalMask))
+        output = h5py.File(mask_file, 'a')
+        output.create_dataset('HaloMask', data=na.array(finalMask))
         output.close()
 
-    return lightConeMask
+    return light_cone_mask
 
-def MakeLightConeHaloMap(lightCone,HaloMaskParameterFile,map_file='halo_map.dat',**kwargs):
+def light_cone_halo_map(lightCone, map_file='halo_map.out', **kwargs):
     "Make a text list of location of halos in a light cone image with virial quantities."
 
     haloMap = []
 
     # Loop through files in light cone solution and get virial quantities.
-    for slice in lightCone.lightConeSolution:
-        hp = HaloProfiler(slice['filename'],HaloMaskParameterFile,**kwargs)
-        hp._LoadVirialData()
-
-        haloMap.extend(_MakeSliceHaloMap(slice,hp.virialQuantities))
+    for slice in lightCone.light_cone_solution:
+        halo_list = _get_halo_list(slice['filename'], **kwargs)
+        haloMap.extend(_make_slice_halo_map(slice, halo_list))
 
     # Write out file.
-    mylog.info("Saving halo map to %s." % map_file)
-    f = open(map_file,'w')
-    f.write("#z       x         y        M [Msun]  R [Mpc]   R [image]\n")
-    for halo in haloMap:
-        f.write("%7.4f %9.6f %9.6f %9.3e %9.3e %9.3e\n" % \
-                    (halo['redshift'],halo['x'],halo['y'],
-                     halo['mass'],halo['radiusMpc'],halo['radiusImage']))
-    f.close()
+    if ytcfg.getint("yt", "__parallel_rank") == 0:
+        mylog.info("Saving halo map to %s." % map_file)
+        f = open(map_file, 'w')
+        f.write("#z       x         y        M [Msun]  R [Mpc]   R [image]\n")
+        for halo in haloMap:
+            f.write("%7.4f %9.6f %9.6f %9.3e %9.3e %9.3e\n" % \
+                        (halo['redshift'], halo['x'], halo['y'],
+                         halo['mass'], halo['radiusMpc'], halo['radiusImage']))
+        f.close()
 
-def _MakeSliceMask(slice,virialQuantities,pixels):
+def _get_halo_list(dataset, halo_profiler_kwargs=None, halo_profiler_actions=None, halo_list='all'):
+    "Load a list of halos for the dataset."
+
+    if halo_profiler_kwargs is None: halo_profiler_kwargs = {}
+    if halo_profiler_actions is None: halo_profiler_actions = []
+
+    hp = HaloProfiler(dataset, **halo_profiler_kwargs)
+    for action in halo_profiler_actions:
+        if not action.has_key('args'): action['args'] = ()
+        if not action.has_key('kwargs'): action['kwargs'] = {}
+        action['function'](hp, *action['args'], **action['kwargs'])
+
+    if halo_list == 'all':
+        return_list = copy.deepcopy(hp.all_halos)
+    elif halo_list == 'filtered':
+        return_list = copy.deepcopy(hp.filtered_halos)
+    else:
+        mylog.error("Keyword, halo_list, must be either 'all' or 'filtered'.")
+        return_list = None
+
+    del hp
+    return return_list
+
+def _make_slice_mask(slice, halo_list, pixels):
     "Make halo mask for one slice in light cone solution."
 
     # Get shifted, tiled halo list.
-    all_halo_x,all_halo_y,all_halo_radius,all_halo_mass = _MakeSliceHaloList(slice,virialQuantities)
+    all_halo_x, all_halo_y, all_halo_radius, all_halo_mass = _make_slice_halo_list(slice, halo_list)
  
     # Make boolean mask and cut out halos.
     dx = slice['WidthBoxFraction'] / pixels
     x = [(q + 0.5) * dx for q in range(pixels)]
-    haloMask = na.ones(shape=(pixels,pixels),dtype=bool)
+    haloMask = na.ones(shape=(pixels, pixels), dtype=bool)
 
     # Cut out any pixel that has any part at all in the circle.
     for q in range(len(all_halo_radius)):
@@ -114,7 +133,7 @@ def _MakeSliceMask(slice,virialQuantities,pixels):
 
     return haloMask
 
-def _MakeSliceHaloMap(slice,virialQuantities):
+def _make_slice_halo_map(slice, halo_list):
     "Make list of halos for one slice in light cone solution."
 
     # Get units to convert virial radii back to physical units.
@@ -123,7 +142,7 @@ def _MakeSliceHaloMap(slice,virialQuantities):
     del dataset_object
 
     # Get shifted, tiled halo list.
-    all_halo_x,all_halo_y,all_halo_radius,all_halo_mass = _MakeSliceHaloList(slice,virialQuantities)
+    all_halo_x, all_halo_y, all_halo_radius, all_halo_mass = _make_slice_halo_list(slice, halo_list)
 
     # Construct list of halos
     haloMap = []
@@ -142,7 +161,7 @@ def _MakeSliceHaloMap(slice,virialQuantities):
 
     return haloMap
 
-def _MakeSliceHaloList(slice,virialQuantities):
+def _make_slice_halo_list(slice, halo_list):
     "Make shifted, tiled list of halos for halo mask and halo map."
 
    # Make numpy arrays for halo centers and virial radii.
@@ -157,7 +176,7 @@ def _MakeSliceHaloList(slice,virialQuantities):
     Mpc_units = dataset_object.units['mpc']
     del dataset_object
 
-    for halo in virialQuantities:
+    for halo in halo_list:
         if halo is not None:
             center = copy.deepcopy(halo['center'])
             halo_depth.append(center.pop(slice['ProjectionAxis']))
@@ -182,13 +201,13 @@ def _MakeSliceHaloList(slice,virialQuantities):
     add_left = (halo_depth + halo_radius) > 1 # should be box width
     add_right = (halo_depth - halo_radius) < 0
 
-    halo_depth = na.concatenate([halo_depth,(halo_depth[add_left]-1),(halo_depth[add_right]+1)])
-    halo_x = na.concatenate([halo_x,halo_x[add_left],halo_x[add_right]])
-    halo_y = na.concatenate([halo_y,halo_y[add_left],halo_y[add_right]])
-    halo_radius = na.concatenate([halo_radius,halo_radius[add_left],halo_radius[add_right]])
-    halo_mass = na.concatenate([halo_mass,halo_mass[add_left],halo_mass[add_right]])
+    halo_depth = na.concatenate([halo_depth, (halo_depth[add_left]-1), (halo_depth[add_right]+1)])
+    halo_x = na.concatenate([halo_x, halo_x[add_left], halo_x[add_right]])
+    halo_y = na.concatenate([halo_y, halo_y[add_left], halo_y[add_right]])
+    halo_radius = na.concatenate([halo_radius, halo_radius[add_left], halo_radius[add_right]])
+    halo_mass = na.concatenate([halo_mass, halo_mass[add_left], halo_mass[add_right]])
 
-    del add_left,add_right
+    del add_left, add_right
 
     # Cut out the halos outside the region of interest.
     if (slice['DepthBoxFraction'] < 1):
@@ -217,12 +236,12 @@ def _MakeSliceHaloList(slice,virialQuantities):
     # Copy original into offset positions to make tiles.
     for x in range(int(na.ceil(slice['WidthBoxFraction']))):
         for y in range(int(na.ceil(slice['WidthBoxFraction']))):
-            all_halo_x = na.concatenate([all_halo_x,halo_x+x])
-            all_halo_y = na.concatenate([all_halo_y,halo_y+y])
-            all_halo_radius = na.concatenate([all_halo_radius,halo_radius])
-            all_halo_mass = na.concatenate([all_halo_mass,halo_mass])
+            all_halo_x = na.concatenate([all_halo_x, halo_x+x])
+            all_halo_y = na.concatenate([all_halo_y, halo_y+y])
+            all_halo_radius = na.concatenate([all_halo_radius, halo_radius])
+            all_halo_mass = na.concatenate([all_halo_mass, halo_mass])
 
-    del halo_x,halo_y,halo_radius,halo_mass
+    del halo_x, halo_y, halo_radius, halo_mass
 
     # Shift centers laterally.
     offset = copy.deepcopy(slice['ProjectionCenter'])
@@ -276,17 +295,17 @@ def _MakeSliceHaloList(slice,virialQuantities):
     del add_y_left
 
     # Add the hanging centers back to the projection data.
-    all_halo_x = na.concatenate([all_halo_x,add_x_halo_x,add2_x_halo_x,add_y_halo_x,add2_y_halo_x])
-    all_halo_y = na.concatenate([all_halo_y,add_x_halo_y,add2_x_halo_y,add_y_halo_y,add2_y_halo_y])
-    all_halo_radius = na.concatenate([all_halo_radius,add_x_halo_radius,add2_x_halo_radius,
-                                      add_y_halo_radius,add2_y_halo_radius])
-    all_halo_mass = na.concatenate([all_halo_mass,add_x_halo_mass,add2_x_halo_mass,
-                                    add_y_halo_mass,add2_y_halo_mass])
+    all_halo_x = na.concatenate([all_halo_x, add_x_halo_x, add2_x_halo_x, add_y_halo_x, add2_y_halo_x])
+    all_halo_y = na.concatenate([all_halo_y, add_x_halo_y, add2_x_halo_y, add_y_halo_y, add2_y_halo_y])
+    all_halo_radius = na.concatenate([all_halo_radius, add_x_halo_radius, add2_x_halo_radius,
+                                      add_y_halo_radius, add2_y_halo_radius])
+    all_halo_mass = na.concatenate([all_halo_mass, add_x_halo_mass, add2_x_halo_mass,
+                                    add_y_halo_mass, add2_y_halo_mass])
 
-    del add_x_halo_x,add_x_halo_y,add_x_halo_radius
-    del add2_x_halo_x,add2_x_halo_y,add2_x_halo_radius
-    del add_y_halo_x,add_y_halo_y,add_y_halo_radius
-    del add2_y_halo_x,add2_y_halo_y,add2_y_halo_radius
+    del add_x_halo_x, add_x_halo_y, add_x_halo_radius
+    del add2_x_halo_x, add2_x_halo_y, add2_x_halo_radius
+    del add_y_halo_x, add_y_halo_y, add_y_halo_radius
+    del add2_y_halo_x, add2_y_halo_y, add2_y_halo_radius
 
     # Cut edges to proper width.
     cut_mask = (all_halo_x - all_halo_radius < slice['WidthBoxFraction']) & \
@@ -297,4 +316,4 @@ def _MakeSliceHaloList(slice,virialQuantities):
     all_halo_mass = all_halo_mass[cut_mask]
     del cut_mask
 
-    return (all_halo_x,all_halo_y,all_halo_radius,all_halo_mass)
+    return (all_halo_x, all_halo_y, all_halo_radius, all_halo_mass)
