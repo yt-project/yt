@@ -24,6 +24,7 @@ License:
 """
 
 from yt.lagos import *
+from itertools import chain
 
 class GridConsiderationQueue:
     def __init__(self, white_list, priority_func=None):
@@ -148,7 +149,7 @@ def identify_contours(data_source, field, min_val, max_val, cached_fields=None):
         i += 1
     mylog.info("Identified %s contours between %0.5e and %0.5e",
                len(contour_ind.keys()),min_val,max_val)
-    for grid in data_source._grids:
+    for grid in chain(data_source._grids, cg._grids):
         grid.data.pop("tempContours", None)
     del data_source.data["tempContours"]
     return contour_ind
