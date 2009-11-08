@@ -37,9 +37,11 @@ def restore_grid_state(func):
     """
     def save_state(self, grid, field=None):
         old_params = grid.field_parameters
+        old_keys = grid.data.keys()
         grid.field_parameters = self.field_parameters
         tr = func(self, grid, field)
         grid.field_parameters = old_params
+        grid.data = dict( [(k, grid.data[k]) for k in old_keys] )
         return tr
     return save_state
 
@@ -1628,6 +1630,7 @@ class AMR3DData(AMRData, GridPropertiesMixin):
             if self.pf.field_info[field].vector_field:
                 f = grid[field]
                 return na.array([f[i,:][pointI] for i in range(3)])
+            if self._is_fully_enclosed(grid): return grid[field].ravel()
             return grid[field][pointI].ravel()
         if field in self.pf.field_info and self.pf.field_info[field].vector_field:
             pointI = self._get_point_indices(grid)
