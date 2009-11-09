@@ -320,7 +320,7 @@ class PlotCollection(object):
     def add_profile_object(self, data_source, fields, 
                            weight="CellMassMsun", accumulation=False,
                            x_bins=64, x_log=True, x_bounds=None,
-                           lazy_reader=False, id=None,
+                           lazy_reader=True, id=None,
                            axes=None, figure=None):
         """
         Use an existing data object, *data_source*, to be the source of a
@@ -371,7 +371,7 @@ class PlotCollection(object):
                                weight="CellMassMsun", accumulation=False,
                                x_bins=64, x_log=True, x_bounds=None,
                                y_bins=64, y_log=True, y_bounds=None,
-                               lazy_reader=False, id=None,
+                               lazy_reader=True, id=None,
                                axes = None, figure = None,
                                fractional=False):
         """

@@ -1284,7 +1284,8 @@ _fail:
 
 static PyObject *_findContoursError;
 
-npy_int64 process_neighbors(PyArrayObject*, npy_int64, npy_int64, npy_int64);
+int process_neighbors(PyArrayObject*, npy_int64, npy_int64, npy_int64,
+                            int first);
 static PyObject *
 Py_FindContours(PyObject *obj, PyObject *args)
 {
@@ -1292,6 +1293,7 @@ Py_FindContours(PyObject *obj, PyObject *args)
     PyArrayObject *con_ids, *xi, *yi, *zi;
     xi=yi=zi=con_ids=NULL;
     npy_int64 i, j, k, n;
+    int status;
 
     i = 0;
     if (!PyArg_ParseTuple(args, "OOOO",
@@ -1339,7 +1341,8 @@ Py_FindContours(PyObject *obj, PyObject *args)
       i=*(npy_int64 *)PyArray_GETPTR1(xi,n);
       j=*(npy_int64 *)PyArray_GETPTR1(yi,n);
       k=*(npy_int64 *)PyArray_GETPTR1(zi,n);
-      process_neighbors(con_ids, i, j, k);
+      status = process_neighbors(con_ids, i, j, k, 1);
+      if(status < 0) break;
     }
 
     Py_DECREF(con_ids);
@@ -1347,8 +1350,8 @@ Py_FindContours(PyObject *obj, PyObject *args)
     Py_DECREF(yi);
     Py_DECREF(zi);
 
-    PyObject *status = PyInt_FromLong(1);
-    return status;
+    PyObject *retval = PyInt_FromLong(status);
+    return retval;
 
     _fail:
         Py_XDECREF(con_ids);
@@ -1358,13 +1361,17 @@ Py_FindContours(PyObject *obj, PyObject *args)
         return NULL;
 }
 
-npy_int64 process_neighbors(PyArrayObject *con_ids, npy_int64 i, npy_int64 j, npy_int64 k)
+int process_neighbors(PyArrayObject *con_ids, npy_int64 i, npy_int64 j,
+                            npy_int64 k, int first)
 {
   npy_int64 off_i, off_j, off_k;
-  int spawn_check;
+  int spawn_check, status;
   int mi, mj, mk;
+  static int stack_depth;
+  if (first == 1) stack_depth = 0;
+  else stack_depth++;
+  if (stack_depth > 10000) return -1;
   npy_int64 *fd_off, *fd_ijk;
-  npy_int64 new_cid;
   mi = con_ids->dimensions[0];
   mj = con_ids->dimensions[1];
   mk = con_ids->dimensions[2];
@@ -1384,13 +1391,15 @@ npy_int64 process_neighbors(PyArrayObject *con_ids, npy_int64 i, npy_int64 j, np
           }
           if(*fd_off < *fd_ijk){
             *fd_off = *fd_ijk;
-            new_cid = process_neighbors(con_ids, off_i, off_j, off_k);
-            if (new_cid != *fd_ijk) spawn_check += 1;
-            *fd_ijk = new_cid;
+            status = process_neighbors(con_ids, off_i, off_j, off_k, 0);
+            if (*fd_off != *fd_ijk) spawn_check += 1;
+            *fd_ijk = *fd_off;
+            if (status < 0) return -1;
           }
         }
   } while (spawn_check > 0);
-  return (npy_int64) *fd_ijk;
+  stack_depth -= 1;
+  return 1;
 }
 
 static PyObject *_interpolateError;

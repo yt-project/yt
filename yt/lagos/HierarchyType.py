@@ -146,7 +146,7 @@ class AMRHierarchy(ObjectFindingMixin, ParallelAnalysisInterface):
             self._data_mode = mode = 'r'
         else:
             self._data_mode = mode = 'a'
-        self.__create_data_file(fn)
+            self.__create_data_file(fn)
         self.__data_filename = fn
         self._data_file = h5py.File(fn, self._data_mode)
 
@@ -691,9 +691,11 @@ class EnzoHierarchyInMemory(EnzoHierarchy):
             self._enzo = enzo
         return self._enzo
 
-    def __init__(self, pf, data_style):
+    def __init__(self, pf, data_style = None):
         self.data_style = data_style
         self.float_type = 'float64'
+        self.parameter_file = weakref.proxy(pf) # for _obtain_enzo
+        self.float_type = self.enzo.hierarchy_information["GridLeftEdge"].dtype
         self.directory = os.getcwd()
         AMRHierarchy.__init__(self, pf, data_style)
 
