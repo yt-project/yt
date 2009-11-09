@@ -126,7 +126,7 @@ def identify_contours(data_source, field, min_val, max_val, cached_fields=None):
             xi = xi_u[cor_order]
             yi = yi_u[cor_order]
             zi = zi_u[cor_order]
-            PointCombine.FindContours(fd, xi, yi, zi)
+            while PointCombine.FindContours(fd, xi, yi, zi) < 0: pass
         cg["tempContours"] = fd.copy().astype('float64')
         cg.flush_data("tempContours")
         my_queue.add(cg._grids)
