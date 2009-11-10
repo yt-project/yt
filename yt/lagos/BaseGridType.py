@@ -230,10 +230,6 @@ class AMRGridPatch(object):
         """
         self._del_child_mask()
         self._del_child_indices()
-        if hasattr(self, 'coarseData'):
-            del self.coarseData
-        if hasattr(self, 'retVal'):
-            del self.retVal
         self.data.clear()
         self._setup_dx()
 

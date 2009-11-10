@@ -1191,7 +1191,6 @@ class AMRProjBase(AMR2DData):
         self.__retval_fields = {}
         self.__retval_coarse = {}
         self.__overlap_masks = {}
-        self._temp = {}
         self._deserialize(node_name)
         self._refresh_data()
         if self._okay_to_serialize and self.serialize: self._serialize(node_name=self._node_name)
@@ -1328,7 +1327,7 @@ class AMRProjBase(AMR2DData):
                     args += self.__retval_coords[grid2.id] + [self.__retval_fields[grid2.id]]
                     args += self.__retval_coords[grid1.id] + [self.__retval_fields[grid1.id]]
                     # Refinement factor, which is same in all directions
-                    args.append(int(grid2['dx'] / grid1['dx'])) 
+                    args.append(int(grid2.dds[0] / grid1.dds[0])) 
                     args.append(na.ones(args[0].shape, dtype='int64'))
                     kk = PointCombine.CombineGrids(*args)
                     goodI = args[-1].astype('bool')
@@ -1358,6 +1357,8 @@ class AMRProjBase(AMR2DData):
         # It is probably faster, as it consolidates IO, but if we did it in
         # _project_level, then it would be more memory conservative
         if self.preload_style == 'all':
+            print "Preloading %s grids and getting %s" % (
+                    len(self.source._grids), self._get_dependencies(fields))
             self._preload(self.source._grids,
                           self._get_dependencies(fields), self.hierarchy.io)
         for level in range(0, self._max_level+1):
@@ -1374,7 +1375,6 @@ class AMRProjBase(AMR2DData):
                 if len(check) > 0: all_data.append(check)
             # Now, we should clean up after ourselves...
             for grid in self.source.select_grids(level - 1):
-                grid.clear_data()
                 del self.__retval_coords[grid.id]
                 del self.__retval_fields[grid.id]
                 del self.__overlap_masks[grid.id]
@@ -1400,6 +1400,7 @@ class AMRProjBase(AMR2DData):
             self[field] = field_data[fi].ravel()
             if self.serialize: self._store_fields(field, self._node_name)
         for i in data.keys(): self[i] = data.pop(i)
+        mylog.info("Projection completed")
 
     def add_fields(self, fields, weight = "CellMassMsun"):
         pass
@@ -1452,9 +1453,7 @@ class AMRProjBase(AMR2DData):
             bad_points = self._get_points_in_region(grid)
         else:
             bad_points = 1.0
-        d = grid[field] * bad_points
-        if grid.id == 1: self._temp[grid.id] = d
-        return d
+        return grid[field][:] * bad_points
 
     def _gen_node_name(self):
         return  "%s/%s" % \
