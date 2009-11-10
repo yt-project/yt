@@ -788,7 +788,6 @@ class ParallelAnalysisInterface(object):
         offsets = na.add.accumulate([0] + sizes)[:-1]
         arr_size = MPI.COMM_WORLD.allreduce(size, op=MPI.SUM)
         for key in field_keys:
-            self._barrier()
             dd = data[key]
             rv = _alltoallv_array(dd, arr_size, offsets, sizes)
             data[key] = rv

@@ -576,21 +576,7 @@ Py_ReadMultipleGrids(PyObject *obj, PyObject *args)
     int memory_increment = 1024*1024; /* in bytes */
     int dump_flag = 0;
 
-    hid_t file_acc_template = H5Pcreate(H5P_FILE_ACCESS);
-    if (file_acc_template < 0) {
-        PyErr_Format(_hdf5ReadError,
-                 "ReadMultipleGrids: Unable to create HDF5 property");
-        goto _fail;
-    }
-    /* Re-use this variable */
-    file_id = H5Pset_fapl_core(file_acc_template, memory_increment, dump_flag);
-    if (file_acc_template < 0) {
-        PyErr_Format(_hdf5ReadError,
-                 "ReadMultipleGrids: Unable to set HDF5 striding");
-        goto _fail;
-    }
-
-    file_id = H5Fopen (filename, H5F_ACC_RDONLY, file_acc_template); 
+    file_id = H5Fopen (filename, H5F_ACC_RDONLY, H5P_DEFAULT); 
 
     if (file_id < 0) {
         PyErr_Format(_hdf5ReadError,
@@ -627,7 +613,6 @@ Py_ReadMultipleGrids(PyObject *obj, PyObject *args)
     }
 
     H5Fclose(file_id);
-    H5Pclose(file_acc_template);
     PyObject *return_value = Py_BuildValue("N", grids_dict);
     return return_value;
 
