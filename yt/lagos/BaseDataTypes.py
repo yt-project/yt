@@ -1214,7 +1214,6 @@ class AMRProjBase(AMR2DData):
         self.__retval_fields = {}
         self.__retval_coarse = {}
         self.__overlap_masks = {}
-        self._temp = {}
         self._deserialize(node_name)
         self._refresh_data()
         if self._okay_to_serialize and self.serialize: self._serialize(node_name=self._node_name)
@@ -1487,9 +1486,7 @@ class AMRProjBase(AMR2DData):
             bad_points = self._get_points_in_region(grid)
         else:
             bad_points = 1.0
-        d = grid[field] * bad_points
-        if grid.id == 1: self._temp[grid.id] = d
-        return d
+        return grid[field] * bad_points
 
     def _gen_node_name(self):
         return  "%s/%s" % \
