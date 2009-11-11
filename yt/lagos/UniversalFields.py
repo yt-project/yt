@@ -372,7 +372,7 @@ add_field("TotalMassMsun", units=r"M_{\odot}",
           convert_function=_convertCellMassMsun)
 
 def _StarMass(field,data):
-    return data["star_density"] * data["CellVolume"]
+    return data["star_density_pyx"] * data["CellVolume"]
 add_field("StarMassMsun", units=r"M_{\odot}",
           function=_StarMass,
           convert_function=_convertCellMassMsun)
