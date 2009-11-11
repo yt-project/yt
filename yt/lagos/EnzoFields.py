@@ -24,6 +24,7 @@ License:
 """
 
 from UniversalFields import *
+from yt.utils import CICDeposit_3
 
 rho_crit_now = 1.8788e-29 # times h^2
 
@@ -211,6 +212,20 @@ def _pdensity(field, data):
                             blank, data.LeftEdge, data['dx'])
     return blank
 add_field("particle_density", function=_pdensity,
+          validators=[ValidateSpatial(0)], convert_function=_convertDensity)
+
+def _pdensity_pyx(field, data):
+    blank = na.zeros(data.ActiveDimensions, dtype='float32')
+    if data.NumberOfParticles == 0: return blank
+    CICDeposit_3(data["particle_position_x"],
+                 data["particle_position_y"],
+                 data["particle_position_z"],
+                 data["particle_mass"],
+                 data.NumberOfParticles,
+                 blank, data.LeftEdge, 
+                 data.ActiveDimensions, data['dx'])
+    return blank
+add_field("particle_density_pyx", function=_pdensity_pyx,
           validators=[ValidateSpatial(0)], convert_function=_convertDensity)
 
 def _spdensity(field, data):

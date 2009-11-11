@@ -40,4 +40,4 @@ include "_utils/Interpolators.pyx"
 include "_utils/PointsInVolume.pyx"
 include "_utils/RayIntegrators.pyx"
 include "_utils/VolumeIntegrator.pyx"
-
+include "_utils/CICDeposit.pyx"
