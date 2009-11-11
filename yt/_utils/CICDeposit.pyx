@@ -23,10 +23,6 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-import numpy as np
-cimport numpy as np
-cimport cython
-
 def CICDeposit_3(np.ndarray[np.float64_t, ndim=1] posx,
                  np.ndarray[np.float64_t, ndim=1] posy,
                  np.ndarray[np.float64_t, ndim=1] posz,
@@ -38,30 +34,35 @@ def CICDeposit_3(np.ndarray[np.float64_t, ndim=1] posx,
                  np.float32_t cellSize):
 
     cdef int i1, j1, k1, n
-    cdef np.float64_t xpos, ypos, zpos
-    cdef np.float64_t fact, edge0, edge1, edge2
-    cdef np.float32_t dx, dy, dz, dx2, dy2, dz2
+    cdef double xpos, ypos, zpos
+    cdef double fact, edge0, edge1, edge2
+    cdef double le0, le1, le2
+    cdef float dx, dy, dz, dx2, dy2, dz2
 
-    edge0 = np.float64(gridDimension[0]) - 0.5001
-    edge1 = np.float64(gridDimension[1]) - 0.5001
-    edge2 = np.float64(gridDimension[2]) - 0.5001
+    edge0 = float(gridDimension[0]) - 0.5001
+    edge1 = float(gridDimension[1]) - 0.5001
+    edge2 = float(gridDimension[2]) - 0.5001
     fact = 1.0 / cellSize
 
-    for n in xrange(npositions):
+    le0 = leftEdge[0]
+    le1 = leftEdge[1]
+    le2 = leftEdge[2]
+
+    for n in range(npositions):
 
         # Compute the position of the central cell
-        xpos = min([max([(posx[n] - leftEdge[0])*fact, 0.5001]), edge0])
-        ypos = min([max([(posy[n] - leftEdge[1])*fact, 0.5001]), edge1])
-        zpos = min([max([(posz[n] - leftEdge[2])*fact, 0.5001]), edge2])
+        xpos = fmin(fmax((posx[n] - le0)*fact, 0.5001), edge0)
+        ypos = fmin(fmax((posy[n] - le1)*fact, 0.5001), edge1)
+        zpos = fmin(fmax((posz[n] - le2)*fact, 0.5001), edge2)
 
-        i1  = np.int32(xpos + 0.5)
-        j1  = np.int32(ypos + 0.5)
-        k1  = np.int32(zpos + 0.5)
+        i1  = int(xpos + 0.5)
+        j1  = int(ypos + 0.5)
+        k1  = int(zpos + 0.5)
 
         # Compute the weights
-        dx = np.float(i1) + 0.5 - xpos
-        dy = np.float(j1) + 0.5 - ypos
-        dz = np.float(k1) + 0.5 - zpos
+        dx = float(i1) + 0.5 - xpos
+        dy = float(j1) + 0.5 - ypos
+        dz = float(k1) + 0.5 - zpos
         dx2 =  1.0 - dx
         dy2 =  1.0 - dy
         dz2 =  1.0 - dz
