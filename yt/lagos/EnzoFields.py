@@ -24,7 +24,7 @@ License:
 """
 
 from UniversalFields import *
-from yt.utils import CICDeposit_3
+from yt.amr_utils import CICDeposit_3
 
 rho_crit_now = 1.8788e-29 # times h^2
 
@@ -244,7 +244,7 @@ add_field("star_density", function=_spdensity,
           validators=[ValidateSpatial(0)], convert_function=_convertDensity)
 
 def _spdensity_pyx(field, data):
-    blank = na.zeros(data.ActiveDimensions, dtype='float32', order="FORTRAN")
+    blank = na.zeros(data.ActiveDimensions, dtype='float32')
     if data.NumberOfParticles == 0: return blank
     filter = data['creation_time'] > 0.0
     if not filter.any(): return blank

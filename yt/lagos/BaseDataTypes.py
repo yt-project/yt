@@ -1144,9 +1144,9 @@ class AMRFixedResCuttingPlaneBase(AMR2DData):
 
     def _get_point_indices(self, grid):
         if self._pixelmask.max() == 0: return []
-        k = utils.PointsInVolume(self._coord, self._pixelmask,
-                              grid.LeftEdge, grid.RightEdge,
-                              grid.child_mask, just_one(grid['dx']))
+        k = amr_utils.PointsInVolume(self._coord, self._pixelmask,
+                                     grid.LeftEdge, grid.RightEdge,
+                                     grid.child_mask, just_one(grid['dx']))
         return k
 
     def _gen_node_name(self):

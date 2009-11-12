@@ -55,7 +55,7 @@ import shelve
 
 import time
 
-import yt.utils as utils
+import yt.amr_utils as amr_utils
 
 from Cosmology import *
 from EnzoCosmology import *

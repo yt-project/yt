@@ -35,9 +35,9 @@ cimport cython
 
 # We include all of our files
 
-include "_utils/DepthFirstOctree.pyx"
-include "_utils/Interpolators.pyx"
-include "_utils/PointsInVolume.pyx"
-include "_utils/RayIntegrators.pyx"
-include "_utils/VolumeIntegrator.pyx"
-include "_utils/CICDeposit.pyx"
+include "_amr_utils/DepthFirstOctree.pyx"
+include "_amr_utils/Interpolators.pyx"
+include "_amr_utils/PointsInVolume.pyx"
+include "_amr_utils/RayIntegrators.pyx"
+include "_amr_utils/VolumeIntegrator.pyx"
+include "_amr_utils/CICDeposit.pyx"
