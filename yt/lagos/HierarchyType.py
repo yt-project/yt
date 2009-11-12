@@ -413,13 +413,13 @@ class EnzoHierarchy(AMRHierarchy):
 
     # Sets are sorted, so that won't work!
     def _parse_hierarchy(self):
-        if os.path.exists(self.hierarchy_filename[:-9] + "harrays"):
-            if self._parse_binary_hierarchy(): return
         def _next_token_line(token, f):
             line = f.readline()
             while token not in line:
                 line = f.readline()
             return line.split()[2:]
+        if os.path.exists(self.hierarchy_filename[:-9] + "harrays"):
+            if self._parse_binary_hierarchy(): return
         t1 = time.time()
         pattern = r"Pointer: Grid\[(\d*)\]->NextGrid(Next|This)Level = (\d*)$"
         patt = re.compile(pattern)
@@ -457,9 +457,6 @@ class EnzoHierarchy(AMRHierarchy):
         self.grid_particle_count.flat[:] = np
         self.grids = na.array(self.grids, dtype='object')
         self.filenames = fn
-        for level in range(self.grid_levels.max()):
-            self._rebuild_top_grids(level)
-            break
         self._store_binary_hierarchy()
         t2 = time.time()
 
