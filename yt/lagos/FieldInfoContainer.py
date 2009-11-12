@@ -191,6 +191,10 @@ class FieldDetector(defaultdict):
 
     def _read_data(self, field_name):
         self.requested.append(field_name)
+        if FieldInfo.has_key(field_name) and \
+           FieldInfo[field_name].particle_type:
+            self.requested.append(field_name)
+            return na.ones(self.NumberOfParticles)
         return defaultdict.__missing__(self, field_name)
 
     def get_field_parameter(self, param):
