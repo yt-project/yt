@@ -412,16 +412,14 @@ class EnzoHierarchy(AMRHierarchy):
                 raise TypeError
 
     # Sets are sorted, so that won't work!
-    __parse_tokens = ("GridStartIndex", "GridEndIndex",
-            "GridLeftEdge", "GridRightEdge", "FileName")
     def _parse_hierarchy(self):
         if os.path.exists(self.hierarchy_filename[:-9] + "harrays"):
             if self._parse_binary_hierarchy(): return
-        def _line_yielder(f):
-            for token in self.__parse_tokens:
+        def _next_token_line(token, f):
+            line = f.readline()
+            while token not in line:
                 line = f.readline()
-                while token not in line: line = f.readline()
-                yield line.split()[2:]
+            return line.split()[2:]
         t1 = time.time()
         pattern = r"Pointer: Grid\[(\d*)\]->NextGrid(Next|This)Level = (\d*)$"
         patt = re.compile(pattern)
@@ -432,10 +430,17 @@ class EnzoHierarchy(AMRHierarchy):
         all = [si, ei, LE, RE, fn]
         f.readline() # Blank at top
         for grid_id in xrange(self.num_grids):
-            for a, v in izip(all, _line_yielder(f)):
-                a.append(v)
+            # We will unroll this list
+            si.append(_next_token_line("GridStartIndex", f))
+            ei.append(_next_token_line("GridEndIndex", f))
+            LE.append(_next_token_line("GridLeftEdge", f))
+            RE.append(_next_token_line("GridRightEdge", f))
+            nb = int(_next_token_line("NumberOfBaryonFields", f)[0])
+            fn.append(())
+            if nb > 0: fn[-1] = _next_token_line("BaryonFileName", f)
+            np.append(int(_next_token_line("NumberOfParticles", f)[0]))
+            if nb == 0 and np[-1] > 0: fn[-1] = _next_token_line("FileName", f)
             line = f.readline()
-            np.append("0") # this gets replaced if it finds something...
             while len(line) > 2:
                 if line.startswith("Pointer:"):
                     vv = patt.findall(line)[0]
@@ -443,8 +448,6 @@ class EnzoHierarchy(AMRHierarchy):
                     line = f.readline()
                     continue
                 params = line.split()
-                if "NumberOfParticles" == params[0]:
-                    np[-1] = params[2]
                 line = f.readline()
         self.grid_dimensions.flat[:] = ei
         self.grid_dimensions -= na.array(si, self.float_type)
