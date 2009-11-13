@@ -48,6 +48,7 @@ def return_all_clumps(clump):
     level        = depth of hierarchy
     number       = index of clump in the final array
     parentnumber = index of this clumps parent
+
     """
     global counter
     counter = 0
@@ -58,6 +59,29 @@ def return_all_clumps(clump):
     recursive_all_clumps(clump,list,level,parentnumber)
     return list
 
+def return_bottom_clumps(clump,dbg=0):
+    """Recursively return clumps at the bottom of the hierarchy.
+    This gives a list of clumps similar to what one would get from a CLUMPFIND routine"""
+    global counter
+    counter = 0
+    list = []
+    level = 0
+    recursive_bottom_clumps(clump,list,dbg,level)
+    return list
+def recursive_bottom_clumps(clump,clump_list, dbg = 0,level=0):
+    """Loops over a list of clumps (clumps) and fills clump_list with the bottom most.
+    Recursive. Prints the level and the number of cores to the screen."""
+
+    global counter
+    if dbg > 0:
+        print tabs(level), "l =",level, "n_core",counter
+
+    if ((clump.children is None) or (len(clump.children) == 0)):
+        counter += 1
+        clump_list.append( clump )
+    else:
+        for child in clump.children:
+            recursive_bottom_clumps(child,clump_list,dbg=dbg,level=level+1)
 
 def clump_list_sort(clump_list):
     """Returns a copy of clump_list, sorted by ascending minimum density.
