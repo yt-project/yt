@@ -43,13 +43,30 @@ _speciesList = ["HI","HII","Electron",
                "HeI","HeII","HeIII",
                "H2I","H2II","HM",
                "DI","DII","HDI","Metal","PreShock"]
+_speciesMass = {"HI":1.0,"HII":1.0,"Electron":1.0,
+                "HeI":4.0,"HeII":4.0,"HeIII":4.0,
+                "H2I":2.0,"H2II":2.0,"HM":1.0,
+                "DI":2.0,"DII":2.0,"HDI":3.0}
+
 def _SpeciesFraction(field, data):
     sp = field.name.split("_")[0] + "_Density"
     return data[sp]/data["Density"]
+def _SpeciesNumberDensity(field, data):
+    species = field.name.split("_")[0]
+    sp = field.name.split("_")[0] + "_Density"
+    return data[sp]/_speciesMass[species]
+def _ConvertNumberDensity(data):
+    return 1.0/mh
+
 for species in _speciesList:
     add_field("%s_Fraction" % species,
              function=_SpeciesFraction,
              validators=ValidateDataField("%s_Density" % species))
+    if _speciesMass.has_key(species):
+        add_field("%s_NumberDensity" % species,
+                  function=_SpeciesNumberDensity,
+                  convert_function=_ConvertNumberDensity,
+                  validators=ValidateDataField("%s_Density" % species))
 
 def _Metallicity(field, data):
     return data["Metal_Fraction"] / 0.0204
