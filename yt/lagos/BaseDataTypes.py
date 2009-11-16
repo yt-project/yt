@@ -1456,7 +1456,7 @@ class AMRProjBase(AMR2DData):
             bad_points = self._get_points_in_region(grid)
         else:
             bad_points = 1.0
-        return grid[field][:] * bad_points
+        return grid[field] * bad_points
 
     def _gen_node_name(self):
         return  "%s/%s" % \
