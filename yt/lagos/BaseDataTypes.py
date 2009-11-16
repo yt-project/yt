@@ -235,6 +235,9 @@ class AMRData(object):
         self.clear_data()
         self.get_data()
 
+    def keys(self):
+        return self.data.keys()
+
     def __getitem__(self, key):
         """
         Returns a single field.  Will add if necessary.
