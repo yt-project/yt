@@ -32,6 +32,6 @@ def configuration(parent_package='',top_path=None):
                              libraries=["m","hdf5"],
                              library_dirs=library_dirs, include_dirs=include_dirs)
     # Uncomment the next two lines if you want particle_density support
-    #config.add_extension("cic_deposit", ["yt/lagos/enzo_routines/cic_deposit.pyf",
-    #                                     "yt/lagos/enzo_routines/cic_deposit.f"])
+    config.add_extension("cic_deposit", ["yt/lagos/enzo_routines/cic_deposit.pyf",
+                                         "yt/lagos/enzo_routines/cic_deposit.f"])
     return config
