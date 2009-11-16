@@ -209,16 +209,16 @@ cd ${DEST_DIR}/src
 if [ -z "$HDF5_DIR" ]
 then
     echo "Downloading HDF5"
-    get_enzotools hdf5-1.6.8.tar.gz
+    get_enzotools hdf5-1.6.9.tar.gz
 fi
 
 [ $INST_ZLIB -eq 1 ] && get_enzotools zlib-1.2.3.tar.bz2 
 [ $INST_WXPYTHON -eq 1 ] && get_enzotools wxPython-src-2.8.9.1.tar.bz2
 get_enzotools Python-2.6.1.tgz
-get_enzotools numpy-1.2.1.tar.gz
+get_enzotools numpy-1.3.0.tar.gz
 get_enzotools matplotlib-0.98.5.2.tar.gz
-get_enzotools ipython-0.9.1.tar.gz
-get_enzotools h5py-1.1.0.tar.gz
+get_enzotools ipython-0.10.tar.gz
+get_enzotools h5py-1.2.0.tar.gz
 
 if [ -z "$YT_DIR" ]
 then
@@ -258,11 +258,11 @@ fi
 
 if [ -z "$HDF5_DIR" ]
 then
-    if [ ! -e hdf5-1.6.8/done ]
+    if [ ! -e hdf5-1.6.9/done ]
     then
-        [ ! -e hdf5-1.6.8 ] && tar xfz hdf5-1.6.8.tar.gz
+        [ ! -e hdf5-1.6.9 ] && tar xfz hdf5-1.6.9.tar.gz
         echo "Installing HDF5"
-        cd hdf5-1.6.8
+        cd hdf5-1.6.9
         ( ./configure --prefix=${DEST_DIR}/ --enable-shared 2>&1 ) 1>> ${LOG_FILE} || do_exit
         ( make install 2>&1 ) 1>> ${LOG_FILE} || do_exit
         touch done
@@ -310,7 +310,7 @@ unset LDFLAGS
 echo "Installing setuptools"
 ( ${DEST_DIR}/bin/python2.6 ${YT_DIR}/ez_setup.py 2>&1 ) 1>> ${LOG_FILE} || do_exit
 
-do_setup_py numpy-1.2.1 ${NUMPY_ARGS}
+do_setup_py numpy-1.3.0 ${NUMPY_ARGS}
 
 if [ -n "${MPL_SUPP_LDFLAGS}" ]
 then
@@ -319,8 +319,8 @@ then
 fi
 do_setup_py matplotlib-0.98.5.2
 unset LDFLAGS
-do_setup_py ipython-0.9.1
-do_setup_py h5py-1.1.0
+do_setup_py ipython-0.10
+do_setup_py h5py-1.2.0
 
 echo "Doing yt update"
 MY_PWD=`pwd`
