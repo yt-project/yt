@@ -142,3 +142,92 @@ def import_partitioned_grids(fn):
     pbar.finish()
     f.close()
     return na.array(grid_list, dtype='object')
+
+class PartitionRegion(object):
+    def __init__(self, dims, source_offset, source_vertices, cim_base):
+        self.source_offset = source_offset
+        self.dims = dims
+        cv = []
+        self._cim = cim_base
+        for vertex in source_vertices:
+            if na.all(vertex  - source_offset >= 0) and \
+               na.all(vertex  - source_offset < dims):
+                cv.append(vertex)
+        self.child_vertices = na.array(cv)
+
+    @property
+    def cim(self):
+        sls = self.source_offset
+        sle = self.source_offset + self.dims
+        return self._cim[ (slice(sls[0], sle[0]),
+                           slice(sls[1], sle[1]),
+                           slice(sls[2], sle[2])) ]
+
+    def split(self, axis, coord):
+        dims_left = self.dims.copy()
+        dims_left[axis] = coord - self.source_offset[axis]
+        off_left = self.source_offset.copy()
+        left_region = PartitionRegion(dims_left, off_left,
+                        self.child_vertices, self._cim)
+        dims_right = self.dims.copy()
+        dims_right[axis] = self.dims[axis] - coord + self.source_offset[axis]
+        off_right = self.source_offset.copy()
+        off_right[axis] = coord
+        right_region = PartitionRegion(dims_right, off_right,
+                        self.child_vertices, self._cim)
+        return left_region, right_region
+        
+    def find_hyperplane(self, axis):
+        # Our axis is the normal to the hyperplane
+        # Region boundaries is [2][3]
+        # child_vertices is flat 3D array
+        min_balance = 1e30
+        considered = set([self.source_offset[axis]])
+        considered.add(self.source_offset[axis] + self.dims[axis])
+        print considered, self.child_vertices
+        best_coord = self.source_offset[axis] + self.dims[axis]
+        for v in self.child_vertices:
+            coord = v[axis]
+            if coord in considered: continue
+            print v
+            eff = self.evaluate_hyperplane(axis, coord)
+            if eff < min_balance:
+                min_balance = eff
+                best_coord = coord
+            considered.add(coord)
+        return best_coord
+
+    def evaluate_hyperplane(self, axis, coord):
+        # We check that we're roughly evenly balanced on either side of the grid
+        # Calculate how well balanced it is...
+        n_left = (self.child_vertices[:,axis] <= coord).sum()
+        n_right = (self.child_vertices[:,axis] > coord).sum()
+        eff = abs(0.5 - (n_left / float(self.child_vertices.shape[0])))
+        return eff
+
+def partition_region(region, axis=0):
+    # region_boundaries is in ints
+    split_coord = region.find_hyperplane(axis)
+    print "SPLIT", na.unique(region.cim),
+    print split_coord == 0 or split_coord == region.dims[axis]
+    sc = split_coord - region.source_offset[axis]
+    if sc == 0 or sc == region.dims[axis]: return [region]
+    left_region, right_region = region.split(axis, split_coord)
+    lrc = na.unique(left_region.cim)
+    rrc = na.unique(right_region.cim)
+    #print "SPLIT", split_coord, region.dims, 
+    #print left_region.dims, right_region.dims,
+    #print left_region.dims.prod() + right_region.dims.prod() - \
+    #      region.dims.prod(), lrc, rrc
+    #loki = raw_input()
+    if lrc.size > 1:
+        left_region = partition_region(left_region, (axis + 1) % 3)
+    else:
+        left_region = [left_region]
+
+    if rrc.size > 1:
+        right_region = partition_region(right_region, (axis + 1) % 3)
+    else:
+        right_region = [right_region]
+
+    return left_region + right_region
