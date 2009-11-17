@@ -235,6 +235,9 @@ class AMRData(object):
         self.clear_data()
         self.get_data()
 
+    def keys(self):
+        return self.data.keys()
+
     def __getitem__(self, key):
         """
         Returns a single field.  Will add if necessary.
@@ -1164,7 +1167,7 @@ class AMRProjBase(AMR2DData):
     def __init__(self, axis, field, weight_field = None,
                  max_level = None, center = None, pf = None,
                  source=None, node_name = None, field_cuts = None,
-                 serialize=True,**kwargs):
+                 preload_style='level', serialize=True,**kwargs):
         """
         AMRProj is a projection of a *field* along an *axis*.  The field
         can have an associated *weight_field*, in which case the values are
@@ -1185,6 +1188,7 @@ class AMRProjBase(AMR2DData):
             max_level = min(max_level, self.source.grid_levels.max())
         self._max_level = max_level
         self._weight = weight_field
+        self.preload_style = preload_style
         self.func = na.sum # for the future
         self.__retval_coords = {}
         self.__retval_fields = {}
@@ -1326,7 +1330,7 @@ class AMRProjBase(AMR2DData):
                     args += self.__retval_coords[grid2.id] + [self.__retval_fields[grid2.id]]
                     args += self.__retval_coords[grid1.id] + [self.__retval_fields[grid1.id]]
                     # Refinement factor, which is same in all directions
-                    args.append(int(grid2['dx'] / grid1['dx'])) 
+                    args.append(int(grid2.dds[0] / grid1.dds[0])) 
                     args.append(na.ones(args[0].shape, dtype='int64'))
                     kk = PointCombine.CombineGrids(*args)
                     goodI = args[-1].astype('bool')
@@ -1355,9 +1359,15 @@ class AMRProjBase(AMR2DData):
         # We do this here, but I am not convinced it should be done here
         # It is probably faster, as it consolidates IO, but if we did it in
         # _project_level, then it would be more memory conservative
-        for level in range(0, self._max_level+1):
-            self._preload(self.source.select_grids(level),
+        if self.preload_style == 'all':
+            print "Preloading %s grids and getting %s" % (
+                    len(self.source._grids), self._get_dependencies(fields))
+            self._preload(self.source._grids,
                           self._get_dependencies(fields), self.hierarchy.io)
+        for level in range(0, self._max_level+1):
+            if self.preload_style == 'level':
+                self._preload(self.source.select_grids(level),
+                              self._get_dependencies(fields), self.hierarchy.io)
             self.__calculate_overlap(level)
             my_coords, my_dx, my_fields = self.__project_level(level, fields)
             coord_data.append(my_coords)
@@ -1368,10 +1378,11 @@ class AMRProjBase(AMR2DData):
                 if len(check) > 0: all_data.append(check)
             # Now, we should clean up after ourselves...
             for grid in self.source.select_grids(level - 1):
-                grid.clear_data()
                 del self.__retval_coords[grid.id]
                 del self.__retval_fields[grid.id]
                 del self.__overlap_masks[grid.id]
+            mylog.debug("End of projecting level level %s, memory usage %0.3e", 
+                        level, get_memory_usage()/1024.)
         coord_data = na.concatenate(coord_data, axis=1)
         field_data = na.concatenate(field_data, axis=1)
         dxs = na.concatenate(dxs, axis=1)
@@ -1392,6 +1403,7 @@ class AMRProjBase(AMR2DData):
             self[field] = field_data[fi].ravel()
             if self.serialize: self._store_fields(field, self._node_name)
         for i in data.keys(): self[i] = data.pop(i)
+        mylog.info("Projection completed")
 
     def add_fields(self, fields, weight = "CellMassMsun"):
         pass

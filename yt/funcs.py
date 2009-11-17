@@ -118,7 +118,7 @@ def get_memory_usage():
     pid = os.getpid()
     status_file = "/proc/%s/statm" % (pid)
     if not os.path.isfile(status_file):
-        return None
+        return 0.0
     line = open(status_file).read()
     size, resident, share, text, library, data, dt = [int(i) for i in line.split()]
     return resident * pagesize / (1024 * 1024) # return in megs

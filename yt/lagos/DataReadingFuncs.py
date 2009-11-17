@@ -198,9 +198,6 @@ class IOHandlerPackedHDF5(BaseIOHandler):
     _data_style = "enzo_packed_3d"
     _particle_reader = True
 
-    def _read_data_set(self, grid, field):
-        return readDataPacked(grid, field)
-
     def _read_particles(self, fields, rtype, args, grid_list, enclosed,
                         conv_factors):
         filenames = [g.filename for g in grid_list]

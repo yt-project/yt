@@ -570,6 +570,12 @@ Py_ReadMultipleGrids(PyObject *obj, PyObject *args)
     long id;
     char grid_node_name[13]; // Grid + 8 + \0
 
+    /* Similar to the way Enzo does it, we're going to set the file access
+       property to store bigger bits in RAM. */
+
+    int memory_increment = 1024*1024; /* in bytes */
+    int dump_flag = 0;
+
     file_id = H5Fopen (filename, H5F_ACC_RDONLY, H5P_DEFAULT); 
 
     if (file_id < 0) {

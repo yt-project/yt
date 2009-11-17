@@ -782,19 +782,15 @@ class ParallelAnalysisInterface(object):
     def _mpi_catdict(self, data):
         field_keys = data.keys()
         field_keys.sort()
-        size = data[field_keys[0]].size
+        size = data[field_keys[0]].shape[-1]
         # MPI_Scan is an inclusive scan
         sizes = MPI.COMM_WORLD.alltoall( [size]*MPI.COMM_WORLD.size )
         offsets = na.add.accumulate([0] + sizes)[:-1]
         arr_size = MPI.COMM_WORLD.allreduce(size, op=MPI.SUM)
         for key in field_keys:
-            self._barrier()
             dd = data[key]
             rv = _alltoallv_array(dd, arr_size, offsets, sizes)
-            if len(dd.shape) > 1:
-                rv = rv.reshape( (dd.shape[0], rv.size / dd.shape[0]) )
             data[key] = rv
-        print MPI.COMM_WORLD.rank, "Leaving"
         return data
 
     @parallel_passthrough
@@ -1359,6 +1355,12 @@ def _bcast_array(arr, root = 0):
     return arr
 
 def _alltoallv_array(send, total_size, offsets, sizes):
+    if len(send.shape) > 1:
+        recv = []
+        for i in range(send.shape[0]):
+            recv.append(_alltoallv_array(send[i,:].copy(), total_size, offsets, sizes))
+        recv = na.array(recv)
+        return recv
     offset = offsets[MPI.COMM_WORLD.rank]
     tmp_send = send.view(__tocast)
     recv = na.empty(total_size, dtype=send.dtype)
