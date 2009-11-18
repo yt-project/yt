@@ -718,7 +718,7 @@ class EnzoHierarchyInMemory(EnzoHierarchy):
             self.grids.append(self.grid(id+1, self))
             self.grids[-1].Level = self.grid_levels[id]
             if pid > 0:
-                self.grids[-1]._parent_id = self.grids[pid-1].id
+                self.grids[-1]._parent_id = pid
                 self.grids[pid-1]._children_ids.append(self.grids[-1].id)
         self.max_level = self.grid_levels.max()
         mylog.debug("Preparing grids")
