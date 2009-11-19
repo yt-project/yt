@@ -1,6 +1,7 @@
 import yt.lagos as lagos
 from yt.logger import lagosLogger as mylog
 import numpy as na
+import os
 
 dt_Tolerance = 1e-3
 
@@ -10,7 +11,7 @@ class EnzoSimulation(object):
     a simulation from one redshift to another.
     """
     def __init__(self, EnzoParameterFile, initial_time=None, final_time=None, initial_redshift=None, final_redshift=None,
-                 links=False, enzo_parameters=None, get_time_outputs=True, get_redshift_outputs=True):
+                 links=False, enzo_parameters=None, get_time_outputs=True, get_redshift_outputs=True, get_available_data=False):
         """
         Initialize an EnzoSimulation object.
         :param initial_time (float): the initial time in code units for the dataset list.  Default: None.
@@ -28,6 +29,8 @@ class EnzoSimulation(object):
         :param get_time_outputs (bool): if False, the time datasets, specified in Enzo with the dtDataDump, will not 
                be added to the dataset list.  Default: True.
         :param get_redshift_outputs (bool): if False, the redshift datasets will not be added to the dataset list.  Default: True.
+        :param get_available_data (bool): if True, only datasets that are found to exist at the file path are added 
+               to the list.  Devault: False.
         """
         self.EnzoParameterFile = EnzoParameterFile
         self.enzoParameters = {}
@@ -41,6 +44,7 @@ class EnzoSimulation(object):
         self.links = links
         self.get_time_outputs = get_time_outputs
         self.get_redshift_outputs = get_redshift_outputs
+        self.get_available_data = get_available_data
 
         # Add any extra parameters to parameter dict.
         if enzo_parameters is None: enzo_parameters = {}
@@ -124,11 +128,14 @@ class EnzoSimulation(object):
             filename = "%s/%s%04d/%s%04d" % (self.enzoParameters['GlobalDir'],
                                              self.enzoParameters['DataDumpDir'],index,
                                              self.enzoParameters['DataDumpName'],index)
-                                             
-            self.timeOutputs.append({'index':index,'filename':filename,'time':current_time})
+
+            output = {'index':index,'filename':filename,'time':current_time}
             if self.enzoParameters['ComovingCoordinates']:
                 t = self.enzo_cosmology.InitialTime + (self.enzoParameters['dtDataDump'] * self.enzo_cosmology.TimeUnits * index)
-                self.timeOutputs[-1]['redshift'] = self.enzo_cosmology.ComputeRedshiftFromTime(t)
+                output['redshift'] = self.enzo_cosmology.ComputeRedshiftFromTime(t)
+
+            if not self.get_available_data or os.path.exists(filename):
+                self.timeOutputs.append(output)
 
             current_time += self.enzoParameters['dtDataDump']
             index += 1
@@ -210,14 +217,18 @@ class EnzoSimulation(object):
                     self.enzoParameters[param] = t
             elif param.startswith("CosmologyOutputRedshift["):
                 index = param[param.find("[")+1:param.find("]")]
-                self.redshiftOutputs.append({'index':int(index),
-                                             'redshift':float(vals)})
+                self.redshiftOutputs.append({'index':int(index), 'redshift':float(vals)})
 
         # Add filenames to redshift outputs.
+        tempRedshiftList = []
         for output in self.redshiftOutputs:
             output["filename"] = "%s/%s%04d/%s%04d" % (self.enzoParameters['GlobalDir'],
                                                        self.enzoParameters['RedshiftDumpDir'],output['index'],
                                                        self.enzoParameters['RedshiftDumpName'],output['index'])
+            if not self.get_available_data or os.path.exists(output["filename"]):
+                tempRedshiftList.append(output)
+        self.redshiftOutputs = tempRedshiftList
+        del tempRedshiftList
 
     def _SetParameterDefaults(self):
         "Set some default parameters to avoid problems if they are not in the parameter file."
