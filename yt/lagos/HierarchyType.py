@@ -345,7 +345,8 @@ class EnzoHierarchy(AMRHierarchy):
             "%s.hierarchy" % (pf.parameter_filename))
         harray_fn = self.hierarchy_filename[:-9] + "harrays"
         if os.path.exists(harray_fn):
-            self.num_grids = h5py.File(harray_fn)["/Level"].len()
+            harray_fp = h5py.File(harray_fn)
+            self.num_grids = harray_fp["/Level"].len()
         elif os.path.getsize(self.hierarchy_filename) == 0:
             raise IOError(-1,"File empty", self.hierarchy_filename)
         self.directory = os.path.dirname(self.hierarchy_filename)
@@ -483,9 +484,9 @@ class EnzoHierarchy(AMRHierarchy):
     def _parse_binary_hierarchy(self):
         mylog.info("Getting the binary hierarchy")
         f = h5py.File(self.hierarchy_filename[:-9] + "harrays")
-        self.grid_dimensions.flat[:] = f["/ActiveDimensions"][:]
-        self.grid_left_edge.flat[:] = f["/LeftEdges"][:]
-        self.grid_right_edge.flat[:] = f["/RightEdges"][:]
+        self.grid_dimensions[:] = f["/ActiveDimensions"][:]
+        self.grid_left_edge[:] = f["/LeftEdges"][:]
+        self.grid_right_edge[:] = f["/RightEdges"][:]
         levels = f["/Level"][:]
         parents = f["/ParentIDs"][:]
         procs = f["/Processor"][:]
