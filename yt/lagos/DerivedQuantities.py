@@ -57,7 +57,7 @@ class DerivedQuantity(ParallelAnalysisInterface):
         self.force_unlazy = force_unlazy
 
     def __call__(self, *args, **kwargs):
-        lazy_reader = kwargs.pop('lazy_reader', False)
+        lazy_reader = kwargs.pop('lazy_reader', True)
         preload = kwargs.pop('preload', False)
         if preload:
             if not lazy_reader: mylog.debug("Turning on lazy_reader because of preload")

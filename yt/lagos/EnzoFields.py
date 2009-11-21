@@ -24,6 +24,7 @@ License:
 """
 
 from UniversalFields import *
+from yt.amr_utils import CICDeposit_3
 
 rho_crit_now = 1.8788e-29 # times h^2
 
@@ -42,13 +43,30 @@ _speciesList = ["HI","HII","Electron",
                "HeI","HeII","HeIII",
                "H2I","H2II","HM",
                "DI","DII","HDI","Metal","PreShock"]
+_speciesMass = {"HI":1.0,"HII":1.0,"Electron":1.0,
+                "HeI":4.0,"HeII":4.0,"HeIII":4.0,
+                "H2I":2.0,"H2II":2.0,"HM":1.0,
+                "DI":2.0,"DII":2.0,"HDI":3.0}
+
 def _SpeciesFraction(field, data):
     sp = field.name.split("_")[0] + "_Density"
     return data[sp]/data["Density"]
+def _SpeciesNumberDensity(field, data):
+    species = field.name.split("_")[0]
+    sp = field.name.split("_")[0] + "_Density"
+    return data[sp]/_speciesMass[species]
+def _ConvertNumberDensity(data):
+    return 1.0/mh
+
 for species in _speciesList:
     add_field("%s_Fraction" % species,
              function=_SpeciesFraction,
              validators=ValidateDataField("%s_Density" % species))
+    if _speciesMass.has_key(species):
+        add_field("%s_NumberDensity" % species,
+                  function=_SpeciesNumberDensity,
+                  convert_function=_ConvertNumberDensity,
+                  validators=ValidateDataField("%s_Density" % species))
 
 def _Metallicity(field, data):
     return data["Metal_Fraction"] / 0.0204
@@ -144,8 +162,6 @@ def _NumberDensity(field, data):
         fieldData += data["DII_Density"] / 2.0
         fieldData += data["HDI_Density"] / 3.0
     return fieldData
-def _ConvertNumberDensity(data):
-    return 1.0/mh
 add_field("NumberDensity", units=r"\rm{cm}^{-3}",
           function=_NumberDensity,
           convert_function=_ConvertNumberDensity)
@@ -213,6 +229,21 @@ def _pdensity(field, data):
 add_field("particle_density", function=_pdensity,
           validators=[ValidateSpatial(0)], convert_function=_convertDensity)
 
+def _pdensity_pyx(field, data):
+    blank = na.zeros(data.ActiveDimensions, dtype='float32')
+    if data.NumberOfParticles == 0: return blank
+    CICDeposit_3(data["particle_position_x"].astype(na.float64),
+                 data["particle_position_y"].astype(na.float64),
+                 data["particle_position_z"].astype(na.float64),
+                 data["particle_mass"].astype(na.float32),
+                 na.int64(data.NumberOfParticles),
+                 blank, na.array(data.LeftEdge).astype(na.float64),
+                 na.array(data.ActiveDimensions).astype(na.int32),
+                 na.float64(data['dx']))
+    return blank
+add_field("particle_density_pyx", function=_pdensity_pyx,
+          validators=[ValidateSpatial(0)], convert_function=_convertDensity)
+
 def _spdensity(field, data):
     blank = na.zeros(data.ActiveDimensions, dtype='float32', order="FORTRAN")
     if data.NumberOfParticles == 0: return blank
@@ -225,6 +256,23 @@ def _spdensity(field, data):
                             blank, data.LeftEdge, data['dx'])
     return blank
 add_field("star_density", function=_spdensity,
+          validators=[ValidateSpatial(0)], convert_function=_convertDensity)
+
+def _spdensity_pyx(field, data):
+    blank = na.zeros(data.ActiveDimensions, dtype='float32')
+    if data.NumberOfParticles == 0: return blank
+    filter = data['creation_time'] > 0.0
+    if not filter.any(): return blank
+    CICDeposit_3(data["particle_position_x"][filter].astype(na.float64),
+                 data["particle_position_y"][filter].astype(na.float64),
+                 data["particle_position_z"][filter].astype(na.float64),
+                 data["particle_mass"][filter].astype(na.float32),
+                 na.int64(na.where(filter)[0].size),
+                 blank, na.array(data.LeftEdge).astype(na.float64),
+                 na.array(data.ActiveDimensions).astype(na.int32), 
+                 na.float64(data['dx']))
+    return blank
+add_field("star_density_pyx", function=_spdensity_pyx,
           validators=[ValidateSpatial(0)], convert_function=_convertDensity)
 
 EnzoFieldInfo["Temperature"].units = r"K"

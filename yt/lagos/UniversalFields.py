@@ -95,7 +95,7 @@ add_field('z', function=_coordZ, display_field=False,
           validators=[ValidateSpatial(0)])
 
 def _GridLevel(field, data):
-    return na.ones(data["Density"].shape)*(data.Level)
+    return na.ones(data.ActiveDimensions)*(data.Level)
 add_field("GridLevel", function=_GridLevel,
           validators=[ValidateGridType(),
                       ValidateSpatial(0)])
@@ -372,7 +372,7 @@ add_field("TotalMassMsun", units=r"M_{\odot}",
           convert_function=_convertCellMassMsun)
 
 def _StarMass(field,data):
-    return data["star_density"] * data["CellVolume"]
+    return data["star_density_pyx"] * data["CellVolume"]
 add_field("StarMassMsun", units=r"M_{\odot}",
           function=_StarMass,
           convert_function=_convertCellMassMsun)

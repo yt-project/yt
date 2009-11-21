@@ -156,7 +156,6 @@ class FieldDetector(defaultdict):
         self.LeftEdge = [0.0,0.0,0.0]
         self.RightEdge = [1.0,1.0,1.0]
         self['dx'] = self['dy'] = self['dz'] = na.array([1.0])
-        self.fields = []
         if pf is None:
             pf = defaultdict(lambda: 1)
         self.pf = pf
@@ -191,6 +190,10 @@ class FieldDetector(defaultdict):
 
     def _read_data(self, field_name):
         self.requested.append(field_name)
+        if FieldInfo.has_key(field_name) and \
+           FieldInfo[field_name].particle_type:
+            self.requested.append(field_name)
+            return na.ones(self.NumberOfParticles)
         return defaultdict.__missing__(self, field_name)
 
     def get_field_parameter(self, param):
@@ -291,10 +294,10 @@ class DerivedField(object):
         Return the value of the field in a given *data* object.
         """
         ii = self.check_available(data)
-        original_fields = data.fields[:] # Copy
+        original_fields = data.keys() # Copy
         dd = self._function(self, data)
         dd *= self._convert_function(data)
-        for field_name in data.fields:
+        for field_name in data.keys():
             if field_name not in original_fields:
                 del data[field_name]
         return dd

@@ -780,25 +780,17 @@ class ParallelAnalysisInterface(object):
 
     @parallel_passthrough
     def _mpi_catdict(self, data):
-        self._barrier()
         field_keys = data.keys()
         field_keys.sort()
-        np = MPI.COMM_WORLD.size
+        size = data[field_keys[0]].shape[-1]
+        # MPI_Scan is an inclusive scan
+        sizes = MPI.COMM_WORLD.alltoall( [size]*MPI.COMM_WORLD.size )
+        offsets = na.add.accumulate([0] + sizes)[:-1]
+        arr_size = MPI.COMM_WORLD.allreduce(size, op=MPI.SUM)
         for key in field_keys:
-            mylog.debug("Joining %s (%s) on %s", key, type(data[key]),
-                        MPI.COMM_WORLD.rank)
-            if MPI.COMM_WORLD.rank == 0:
-                temp_data = []
-                if data[key] is not None: temp_data.append(data[key])
-                for i in range(1,np):
-                    buf = _recv_array(source=i, tag=0)
-                    if buf is not None: temp_data.append(buf)
-                data[key] = na.concatenate(temp_data, axis=-1)
-            else:
-                _send_array(data[key], dest=0, tag=0)
-            self._barrier()
-            data[key] = _bcast_array(data[key])
-        self._barrier()
+            dd = data[key]
+            rv = _alltoallv_array(dd, arr_size, offsets, sizes)
+            data[key] = rv
         return data
 
     @parallel_passthrough
@@ -1187,6 +1179,7 @@ class ParallelAnalysisInterface(object):
     def _preload(self, grids, fields, io_handler):
         # This will preload if it detects we are parallel capable and
         # if so, we load *everything* that we need.  Use with some care.
+        mylog.debug("Preloading %s from %s grids", fields, len(grids))
         if not self._distributed: return
         io_handler.preload(grids, fields)
 
@@ -1360,3 +1353,25 @@ def _bcast_array(arr, root = 0):
         tmp = arr.view(__tocast)
     MPI.COMM_WORLD.Bcast([tmp, MPI.CHAR], root=root)
     return arr
+
+def _alltoallv_array(send, total_size, offsets, sizes):
+    if len(send.shape) > 1:
+        recv = []
+        for i in range(send.shape[0]):
+            recv.append(_alltoallv_array(send[i,:].copy(), total_size, offsets, sizes))
+        recv = na.array(recv)
+        return recv
+    offset = offsets[MPI.COMM_WORLD.rank]
+    tmp_send = send.view(__tocast)
+    recv = na.empty(total_size, dtype=send.dtype)
+    recv[offset:offset+send.size] = send[:]
+    dtr = send.dtype.itemsize / tmp_send.dtype.itemsize # > 1
+    soff = [0] * MPI.COMM_WORLD.size
+    ssize = [tmp_send.size] * MPI.COMM_WORLD.size
+    roff = [off * dtr for off in offsets]
+    rsize = [siz * dtr for siz in sizes]
+    tmp_recv = recv.view(__tocast)
+    MPI.COMM_WORLD.Alltoallv((tmp_send, (ssize, soff), MPI.CHAR),
+                             (tmp_recv, (rsize, roff), MPI.CHAR))
+    return recv
+    

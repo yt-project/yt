@@ -27,7 +27,7 @@ import numpy as na
 from yt.funcs import *
 import h5py
 
-from VolumeIntegrator import PartitionedGrid
+from yt.utils import PartitionedGrid
 
 def partition_grid(start_grid, field, log_field = True, threshold = None):
     if threshold is not None:
@@ -49,8 +49,8 @@ def partition_grid(start_grid, field, log_field = True, threshold = None):
     y_vert = [0, start_grid.ActiveDimensions[1]]
     z_vert = [0, start_grid.ActiveDimensions[2]]
 
+    gi = start_grid.get_global_startindex()
     for grid in start_grid.Children:
-        gi = start_grid.get_global_startindex()
         si = grid.get_global_startindex()/2 - gi
         ei = si + grid.ActiveDimensions/2 
         x_vert += [si[0], ei[0]]
@@ -69,7 +69,7 @@ def _partition(grid, grid_data, x_vert, y_vert, z_vert):
     grids = []
     cim = grid.child_index_mask
     for xs, xe in zip(x_vert[:-1], x_vert[1:]):
-        for ys, ye in zip(y_vert[:-1], y_vert[1:]):
+        for ys, ye in zip(y_vert[:-1:-1], y_vert[1::-1]):
             for zs, ze in zip(z_vert[:-1], z_vert[1:]):
                 sl = (slice(xs, xe), slice(ys, ye), slice(zs, ze))
                 dd = cim[sl]
@@ -142,3 +142,105 @@ def import_partitioned_grids(fn):
     pbar.finish()
     f.close()
     return na.array(grid_list, dtype='object')
+
+class PartitionRegion(object):
+    _count = 0
+    def __init__(self, dims, source_offset, source_vertices, cim_base):
+        self.source_offset = source_offset
+        self.dims = dims
+        cv = []
+        self._cim = cim_base
+        self.child_vertices = source_vertices
+
+    @property
+    def cim(self):
+        sls = self.source_offset
+        sle = self.source_offset + self.dims
+        return self._cim[sls[0]:sle[0],
+                         sls[1]:sle[1],
+                         sls[2]:sle[2]]
+
+    def split(self, axis, coord):
+        dims_left = self.dims.copy()
+        dims_left[axis] = coord - self.source_offset[axis]
+        off_left = self.source_offset.copy()
+        left_region = PartitionRegion(dims_left, off_left,
+                        self.child_vertices, self._cim)
+        dims_right = self.dims.copy()
+        dims_right[axis] = self.dims[axis] - coord + self.source_offset[axis]
+        off_right = self.source_offset.copy()
+        off_right[axis] = coord
+        right_region = PartitionRegion(dims_right, off_right,
+                        self.child_vertices, self._cim)
+        return left_region, right_region
+        
+    def find_hyperplane(self, axis):
+        # Our axis is the normal to the hyperplane
+        # Region boundaries is [2][3]
+        # child_vertices is flat 3D array
+        min_balance = 1e30
+        considered = set([self.source_offset[axis]])
+        considered.add(self.source_offset[axis] + self.dims[axis])
+        best_coord = self.source_offset[axis] + self.dims[axis]
+        for v in self.child_vertices:
+            coord = v[axis]
+            sc = coord - self.source_offset[axis]
+            if coord in considered: continue
+            if sc >= self.dims[axis]: continue
+            if sc < 0: continue
+            eff = self.evaluate_hyperplane(axis, coord)
+            if eff < min_balance:
+                min_balance = eff
+                best_coord = coord
+            considered.add(coord)
+        return best_coord
+
+    def evaluate_hyperplane(self, axis, coord):
+        # We check that we're roughly evenly balanced on either side of the grid
+        # Calculate how well balanced it is...
+        vert = self.child_vertices[:,axis]
+        n_left = (vert <= coord).sum()
+        n_right = (vert > coord).sum()
+        eff = abs(0.5 - (n_left / float(vert.shape[0])))
+        return eff
+
+def partition_region(region, axis=0):
+    # region_boundaries is in ints
+    split_coord = region.find_hyperplane(axis)
+    sc = split_coord - region.source_offset[axis]
+    if sc == 0 or sc == region.dims[axis]:
+        rc = na.unique(region.cim)
+        if rc.size > 1 and rc[0] == -1:
+            region._count += 1
+            if region._count > 3:
+                import pdb;pdb.set_trace()
+            return partition_region(region, (axis+1)%3)
+        elif rc.size > 1 and rc[0] > -1:
+            return []
+    left_region, right_region = region.split(axis, split_coord)
+    lrc = na.unique(left_region.cim)
+    rrc = na.unique(right_region.cim)
+    if lrc.size > 1:
+        if lrc[0] == -1:
+            left_region = partition_region(left_region, (axis + 1) % 3)
+        if lrc[0] > -1:
+            left_region = []
+        #print axis, split_coord, "Not splitting left region", lrc
+    else:
+        if lrc[0] == -1:
+            left_region = [left_region]
+        else:
+            left_region = []
+
+    if rrc.size > 1:
+        if rrc[0] == -1:
+            right_region = partition_region(right_region, (axis + 1) % 3)
+        if rrc[0] > -1:
+            right_region = []
+    else:
+        if rrc[0] == -1:
+            right_region = [right_region]
+        else:
+            right_region = []
+
+    return left_region + right_region

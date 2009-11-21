@@ -88,6 +88,7 @@ class AMRHierarchy(ObjectFindingMixin, ParallelAnalysisInterface):
         self._data_file = None
         self._data_mode = None
         self._max_locations = {}
+        self.num_grids = None
 
     def _initialize_grid_arrays(self):
         mylog.debug("Allocating arrays for %s grids", self.num_grids)
@@ -132,8 +133,8 @@ class AMRHierarchy(ObjectFindingMixin, ParallelAnalysisInterface):
     def _initialize_data_storage(self):
         if not ytcfg.getboolean('lagos','serialize'): return
         if os.path.isfile(os.path.join(self.directory,
-                            "%s.yt" % self["CurrentTimeIdentifier"])):
-            fn = os.path.join(self.directory,"%s.yt" % self["CurrentTimeIdentifier"])
+                            "%s.yt" % self.pf["CurrentTimeIdentifier"])):
+            fn = os.path.join(self.directory,"%s.yt" % self.pf["CurrentTimeIdentifier"])
         else:
             fn = os.path.join(self.directory,
                     "%s.yt" % self.parameter_file.basename)
@@ -145,6 +146,7 @@ class AMRHierarchy(ObjectFindingMixin, ParallelAnalysisInterface):
             self._data_mode = mode = 'r'
         else:
             self._data_mode = mode = 'a'
+
         self.__create_data_file(fn)
         self.__data_filename = fn
         self._data_file = h5py.File(fn, self._data_mode)
@@ -241,7 +243,7 @@ class AMRHierarchy(ObjectFindingMixin, ParallelAnalysisInterface):
             return None
 
         full_name = "%s/%s" % (node, name)
-        return self._data_file[full_name]
+        return self._data_file[full_name][:]
 
     def _close_data_file(self):
         if self._data_file:
@@ -342,7 +344,11 @@ class EnzoHierarchy(AMRHierarchy):
         self.data_style = data_style
         self.hierarchy_filename = os.path.abspath(
             "%s.hierarchy" % (pf.parameter_filename))
-        if os.path.getsize(self.hierarchy_filename) == 0:
+        harray_fn = self.hierarchy_filename[:-9] + "harrays"
+        if os.path.exists(harray_fn):
+            harray_fp = h5py.File(harray_fn)
+            self.num_grids = harray_fp["/Level"].len()
+        elif os.path.getsize(self.hierarchy_filename) == 0:
             raise IOError(-1,"File empty", self.hierarchy_filename)
         self.directory = os.path.dirname(self.hierarchy_filename)
 
@@ -356,9 +362,6 @@ class EnzoHierarchy(AMRHierarchy):
         AMRHierarchy.__init__(self, pf, data_style)
         # sync it back
         self.parameter_file.data_style = self.data_style
-
-    def _initialize_data_storage(self):
-        pass
 
     def _setup_classes(self):
         dd = self._get_data_reader_dict()
@@ -410,29 +413,35 @@ class EnzoHierarchy(AMRHierarchy):
                 raise TypeError
 
     # Sets are sorted, so that won't work!
-    __parse_tokens = ("GridStartIndex", "GridEndIndex",
-            "GridLeftEdge", "GridRightEdge", "FileName")
     def _parse_hierarchy(self):
-        def _line_yielder(f):
-            for token in self.__parse_tokens:
+        def _next_token_line(token, f):
+            line = f.readline()
+            while token not in line:
                 line = f.readline()
-                while token not in line: line = f.readline()
-                yield line.split()[2:]
+            return line.split()[2:]
+        if os.path.exists(self.hierarchy_filename[:-9] + "harrays"):
+            if self._parse_binary_hierarchy(): return
         t1 = time.time()
         pattern = r"Pointer: Grid\[(\d*)\]->NextGrid(Next|This)Level = (\d*)$"
         patt = re.compile(pattern)
         f = open(self.hierarchy_filename, "rb")
         self.grids = [self.grid(1, self)]
         self.grids[0].Level = 0
-        self.wrefs = [weakref.proxy(self.grids[0])]
         si, ei, LE, RE, fn, np = [], [], [], [], [], []
         all = [si, ei, LE, RE, fn]
         f.readline() # Blank at top
         for grid_id in xrange(self.num_grids):
-            for a, v in izip(all, _line_yielder(f)):
-                a.append(v)
+            # We will unroll this list
+            si.append(_next_token_line("GridStartIndex", f))
+            ei.append(_next_token_line("GridEndIndex", f))
+            LE.append(_next_token_line("GridLeftEdge", f))
+            RE.append(_next_token_line("GridRightEdge", f))
+            nb = int(_next_token_line("NumberOfBaryonFields", f)[0])
+            fn.append(["-1"])
+            if nb > 0: fn[-1] = _next_token_line("BaryonFileName", f)
+            np.append(int(_next_token_line("NumberOfParticles", f)[0]))
+            if nb == 0 and np[-1] > 0: fn[-1] = _next_token_line("FileName", f)
             line = f.readline()
-            np.append("0") # this gets replaced if it finds something...
             while len(line) > 2:
                 if line.startswith("Pointer:"):
                     vv = patt.findall(line)[0]
@@ -440,18 +449,20 @@ class EnzoHierarchy(AMRHierarchy):
                     line = f.readline()
                     continue
                 params = line.split()
-                if "NumberOfParticles" == params[0]:
-                    np[-1] = params[2]
                 line = f.readline()
+        self._fill_arrays(ei, si, LE, RE, np)
+        self.grids = na.array(self.grids, dtype='object')
+        self.filenames = fn
+        self._store_binary_hierarchy()
+        t2 = time.time()
+
+    def _fill_arrays(self, ei, si, LE, RE, np):
         self.grid_dimensions.flat[:] = ei
         self.grid_dimensions -= na.array(si, self.float_type)
         self.grid_dimensions += 1
         self.grid_left_edge.flat[:] = LE
         self.grid_right_edge.flat[:] = RE
         self.grid_particle_count.flat[:] = np
-        self.grids = na.array(self.grids, dtype='object')
-        self.filenames = fn
-        t2 = time.time()
 
     def __pointer_handler(self, m):
         sgi = int(m[2])-1
@@ -460,24 +471,102 @@ class EnzoHierarchy(AMRHierarchy):
         # (recall, Enzo grids are 1-indexed)
         self.grids.append(self.grid(len(self.grids)+1, self))
         # We'll just go ahead and make a weakref to cache
-        self.wrefs.append(weakref.proxy(self.grids[-1]))
-        second_grid = self.wrefs[sgi] # zero-indexex already
-        first_grid = self.wrefs[int(m[0])-1]
+        second_grid = self.grids[sgi] # zero-indexed already
+        first_grid = self.grids[int(m[0])-1]
         if m[1] == "Next":
-            first_grid.Children.append(second_grid)
-            second_grid.Parent = first_grid
+            first_grid._children_ids.append(second_grid.id)
+            second_grid._parent_id = first_grid.id
             second_grid.Level = first_grid.Level + 1
         elif m[1] == "This":
             if first_grid.Parent is not None:
-                first_grid.Parent.Children.append(second_grid)
-                second_grid.Parent = first_grid.Parent
+                first_grid.Parent._children_ids.append(second_grid.id)
+                second_grid._parent_id = first_grid._parent_id
             second_grid.Level = first_grid.Level
+        self.grid_levels[sgi] = second_grid.Level
+
+    def _parse_binary_hierarchy(self):
+        mylog.info("Getting the binary hierarchy")
+        f = h5py.File(self.hierarchy_filename[:-9] + "harrays")
+        self.grid_dimensions[:] = f["/ActiveDimensions"][:]
+        self.grid_left_edge[:] = f["/LeftEdges"][:]
+        self.grid_right_edge[:] = f["/RightEdges"][:]
+        self.grid_particle_count[:,0] = f["/NumberOfParticles"][:]
+        levels = f["/Level"][:]
+        parents = f["/ParentIDs"][:]
+        procs = f["/Processor"][:]
+        grids = []
+        self.filenames = []
+        grids = [self.grid(gi+1, self) for gi in xrange(self.num_grids)]
+        giter = izip(grids, levels, procs, parents)
+        bn = "%s.cpu%%04i" % (self.pf)
+        pmap = [(bn % P,) for P in xrange(procs.max()+1)]
+        for grid,L,P,Pid in giter:
+            grid.Level = L
+            grid._parent_id = Pid
+            if Pid > -1:
+                grids[Pid-1]._children_ids.append(grid.id)
+            self.filenames.append(pmap[P])
+        self.grids = na.array(grids, dtype='object')
+        f.close()
+        mylog.info("Finished with binary hierarchy reading")
+        return True
+
+    def _store_binary_hierarchy(self):
+        # We don't do any of the logic here, we just check if the data file
+        # is open...
+        if self._data_file is None: return
+        if self.data_style != "enzo_packed_3d": return
+        mylog.info("Storing the binary hierarchy")
+        f = h5py.File(self.hierarchy_filename[:-9] + "harrays", "w")
+        f.create_dataset("/LeftEdges", data=self.grid_left_edge)
+        f.create_dataset("/RightEdges", data=self.grid_right_edge)
+        parents, procs, levels = [], [], []
+        for i,g in enumerate(self.grids):
+            if g.Parent is not None:
+                parents.append(g.Parent.id)
+            else:
+                parents.append(-1)
+            procs.append(int(self.filenames[i][0][-4:]))
+            levels.append(g.Level)
+
+        parents = na.array(parents, dtype='int64')
+        procs = na.array(procs, dtype='int64')
+        levels = na.array(levels, dtype='int64')
+        f.create_dataset("/ParentIDs", data=parents)
+        f.create_dataset("/Processor", data=procs)
+        f.create_dataset("/Level", data=levels)
+
+        f.create_dataset("/ActiveDimensions", data=self.grid_dimensions)
+        f.create_dataset("/NumberOfParticles", data=self.grid_particle_count[:,0])
+
+        f.close()
+
+    def _rebuild_top_grids(self, level = 0):
+        #for level in xrange(self.max_level+1):
+        mylog.info("Rebuilding grids on level %s", level)
+        cmask = (self.grid_levels.flat == (level + 1))
+        cmsum = cmask.sum()
+        mask = na.zeros(self.num_grids, dtype='bool')
+        for grid in self.select_grids(level):
+            mask[:] = 0
+            LE = self.grid_left_edge[grid.id - grid._id_offset]
+            RE = self.grid_right_edge[grid.id - grid._id_offset]
+            grids, grid_i = self.get_box_grids(LE, RE)
+            mask[grid_i] = 1
+            grid._children_ids = []
+            cgrids = self.grids[ ( mask * cmask).astype('bool') ]
+            mylog.info("%s: %s / %s", grid, len(cgrids), cmsum)
+            for cgrid in cgrids:
+                grid._children_ids.append(cgrid.id)
+                cgrid._parent_id = grid.id
+        mylog.info("Finished rebuilding")
 
     def _populate_grid_objects(self):
         for g,f in izip(self.grids, self.filenames):
             g._prepare_grid()
             g._setup_dx()
             g.set_filename(f[0])
+            #if g.Parent is not None: g._guess_properties_from_parent()
         del self.filenames # No longer needed.
         self.max_level = self.grid_levels.max()
 
@@ -501,7 +590,7 @@ class EnzoHierarchy(AMRHierarchy):
         else:
             field_list = None
         field_list = self._mpi_bcast_pickled(field_list)
-        self.save_data(list(field_list),"/","DataFields")
+        self.save_data(list(field_list),"/","DataFields",passthrough=True)
         self.field_list = list(field_list)
 
     def _setup_unknown_fields(self):
@@ -607,9 +696,11 @@ class EnzoHierarchyInMemory(EnzoHierarchy):
             self._enzo = enzo
         return self._enzo
 
-    def __init__(self, pf, data_style):
+    def __init__(self, pf, data_style = None):
         self.data_style = data_style
         self.float_type = 'float64'
+        self.parameter_file = weakref.proxy(pf) # for _obtain_enzo
+        self.float_type = self.enzo.hierarchy_information["GridLeftEdge"].dtype
         self.directory = os.getcwd()
         AMRHierarchy.__init__(self, pf, data_style)
 
@@ -625,16 +716,15 @@ class EnzoHierarchyInMemory(EnzoHierarchy):
         reverse_tree = self.enzo.hierarchy_information["GridParentIDs"].ravel().tolist()
         # Initial setup:
         mylog.debug("Reconstructing parent-child relationships")
-        self.grids, self.wrefs = [], []
+        self.grids = []
         # We enumerate, so it's 0-indexed id and 1-indexed pid
-        self.filenames = [[None]] * self.num_grids
+        self.filenames = ["-1"] * self.num_grids
         for id,pid in enumerate(reverse_tree):
             self.grids.append(self.grid(id+1, self))
             self.grids[-1].Level = self.grid_levels[id]
-            self.wrefs.append(weakref.proxy(self.grids[-1]))
             if pid > 0:
-                self.grids[-1].Parent = self.wrefs[pid-1]
-                self.grids[pid-1].Children.append(self.wrefs[-1])
+                self.grids[-1]._parent_id = pid
+                self.grids[pid-1]._children_ids.append(self.grids[-1].id)
         self.max_level = self.grid_levels.max()
         mylog.debug("Preparing grids")
         for i, grid in enumerate(self.grids):
@@ -664,27 +754,30 @@ class EnzoHierarchyInMemory(EnzoHierarchy):
         pass
 
 class EnzoHierarchy1D(EnzoHierarchy):
-    def __init__(self, *args, **kwargs):
-        EnzoHierarchy.__init__(self, *args, **kwargs)
-        self.gridLeftEdge[:,1:3] = 0.0
-        self.gridRightEdge[:,1:3] = 1.0
-        self.gridDimensions[:,1:3] = 1.0
-        self.gridDys[:,0] = 1.0
-        self.gridDzs[:,0] = 1.0
-        for g in self.grids:
-            g._prepare_grid()
-            g._setup_dx()
+
+    def _fill_arrays(self, ei, si, LE, RE, np):
+        self.grid_dimensions[:,:1] = ei
+        self.grid_dimensions[:,:1] -= na.array(si, self.float_type)
+        self.grid_dimensions += 1
+        self.grid_left_edge[:,:2] = LE
+        self.grid_right_edge[:,:2] = RE
+        self.grid_particle_count.flat[:] = np
+        self.grid_left_edge[:,1:2] = 0.0
+        self.grid_right_edge[:,1:2] = 1.0
+        self.grid_dimensions[:,1:2] = 1
 
 class EnzoHierarchy2D(EnzoHierarchy):
-    def __init__(self, *args, **kwargs):
-        EnzoHierarchy.__init__(self, *args, **kwargs)
-        self.gridLeftEdge[:,2] = 0.0
-        self.gridRightEdge[:,2] = 1.0
-        self.gridDimensions[:,2] = 1.0
-        self.gridDzs[:,0] = 1.0
-        for g in self.grids:
-            g._prepare_grid()
-            g._setup_dx()
+
+    def _fill_arrays(self, ei, si, LE, RE, np):
+        self.grid_dimensions[:,:2] = ei
+        self.grid_dimensions[:,:2] -= na.array(si, self.float_type)
+        self.grid_dimensions += 1
+        self.grid_left_edge[:,:2] = LE
+        self.grid_right_edge[:,:2] = RE
+        self.grid_particle_count.flat[:] = np
+        self.grid_left_edge[:,2] = 0.0
+        self.grid_right_edge[:,2] = 1.0
+        self.grid_dimensions[:,2] = 1
 
 scanf_regex = {}
 scanf_regex['e'] = r"[-+]?\d+\.?\d*?|\.\d+[eE][-+]?\d+?"

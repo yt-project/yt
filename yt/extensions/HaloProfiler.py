@@ -36,6 +36,7 @@ import types
 PROFILE_RADIUS_THRESHOLD = 2
 
 class HaloProfiler(lagos.ParallelAnalysisInterface):
+    "Radial profiling, filtering, and projections for halos in cosmological simulations."
     def __init__(self, dataset, halos='multiple', halo_list_file='HopAnalysis.out', halo_list_format='yt_hop',
                  halo_finder_function=HaloFinder, halo_finder_args=None, halo_finder_kwargs=None,
                  use_density_center=False, density_center_exponent=1.0, use_field_max_center=None,
@@ -43,6 +44,56 @@ class HaloProfiler(lagos.ParallelAnalysisInterface):
                  profile_output_dir='radial_profiles', projection_output_dir='projections',
                  projection_width=8.0, projection_width_units='mpc', project_at_level='max',
                  velocity_center=['bulk', 'halo'], filter_quantities=['id','center']):
+        """
+        Initialize a HaloProfiler object.
+        :param halos (str): "multiple" for profiling more than one halo.  In this mode halos are read in 
+               from a list or identified with a halo finder.  In "single" mode, the one and only halo 
+               center is identified automatically as the location of the peak in the density field.  
+               Default: "multiple".
+        :param halo_list_file (str): name of file containing the list of halos.  The HaloProfiler will 
+               look for this file in the data directory.  Default: "HopAnalysis.out".
+        :param halo_list_format (str or dict): the format of the halo list file.  "yt_hop" for the format 
+               given by yt's halo finders.  "enzo_hop" for the format written by enzo_hop.  This keyword 
+               can also be given in the form of a dictionary specifying the column in which various 
+               properties can be found.  For example, {"id": 0, "center": [1, 2, 3], "mass": 4, "radius": 5}.  
+               Default: "yt_hop".
+        :param halo_finder_function (function): If halos is set to multiple and the file given by 
+               halo_list_file does not exit, the halo finding function specified here will be called.  
+               Default: HaloFinder (yt_hop).
+        :param halo_finder_args (tuple): args given with call to halo finder function.  Default: None.
+        :param halo_finder_kwargs (dict): kwargs given with call to halo finder function. Default: None.
+        :param use_density_center (bool): re-center halos before performing profiles with an center of mass 
+               weighted by overdensity.  This is generally not needed.  Default: False.
+        :param density_center_exponent (float): when use_density_center set to True, this specifies the 
+               exponent, alpha, such that the halo center calculation is weighted by overdensity^alpha.  
+               Default: 1.0.
+        :param use_field_max_center (str): another alternative for halo re-centering by selecting the 
+               location of the maximum of the field given by this keyword.  This is generally not needed.  
+               Default: None.
+        :param halo_radius (float): if no halo radii are provided in the halo list file, this parameter is 
+               used to specify the radius out to which radial profiles will be made.  This keyword is also 
+               used when halos is set to single.  Default: 0.1.
+        :param radius_units (str): the units of halo_radius.  Default: "1" (code units).
+        :param n_profile_bins (int): the number of bins in the radial profiles.  Default: 50.
+        :param profile_output_dir (str): the subdirectory, inside the data directory, in which radial profile 
+               output files will be created.  The directory will be created if it does not exist.  
+               Default: "radial_profiles".
+        :param projection_output_dir (str): the subdirectory, inside the data directory, in which projection 
+               output files will be created.  The directory will be created if it does not exist.  
+               Default: "projections".
+        :param projection_width (float): the width of halo projections.  Default: 8.0.
+        :param projection_width_units (str): the units of projection_width. Default: "mpc".
+        :param project_at_level (int or "max"): the maximum refinement level to be included in projections.  
+               Default: "max" (maximum level within the dataset).
+        :param velocity_center (list): the method in which the halo bulk velocity is calculated (used for 
+               calculation of radial and tangential velocities.  Valid options are:
+     	          - ["bulk", "halo"] (Default): the velocity provided in the halo list
+                  - ["bulk", "sphere"]: the bulk velocity of the sphere centered on the halo center.
+    	          - ["max", field]: the velocity of the cell that is the location of the maximum of the field 
+                                    specified (used only when halos set to single).
+        :param filter_quantities (list): quantities from the original halo list file to be written out in the 
+               filtered list file.  Default: ['id','center'].
+        """
 
         self.dataset = dataset
 
@@ -190,7 +241,7 @@ class HaloProfiler(lagos.ParallelAnalysisInterface):
         # If a lower mass cutoff is being used, use it to make a pre-filter.
         if prefilters is None: prefilters = []
         virial_prefilter = None
-        virial_prefilter_safety_factor = 0.1
+        virial_prefilter_safety_factor = 0.5
         all_filter_functions = [hf['function'] for hf in self._halo_filters]
         virial_filter = VirialFilter in all_filter_functions
         if 'mass' in self.halo_list_format and VirialFilter in all_filter_functions:

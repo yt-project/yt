@@ -28,7 +28,6 @@ License:
 data_object_registry = {}
 
 from yt.lagos import *
-import PointsInVolume as PV
 
 def restore_grid_state(func):
     """
@@ -38,9 +37,11 @@ def restore_grid_state(func):
     """
     def save_state(self, grid, field=None):
         old_params = grid.field_parameters
+        old_keys = grid.data.keys()
         grid.field_parameters = self.field_parameters
         tr = func(self, grid, field)
         grid.field_parameters = old_params
+        grid.data = dict( [(k, grid.data[k]) for k in old_keys] )
         return tr
     return save_state
 
@@ -233,6 +234,9 @@ class AMRData(object):
         """
         self.clear_data()
         self.get_data()
+
+    def keys(self):
+        return self.data.keys()
 
     def __getitem__(self, key):
         """
@@ -1143,9 +1147,9 @@ class AMRFixedResCuttingPlaneBase(AMR2DData):
 
     def _get_point_indices(self, grid):
         if self._pixelmask.max() == 0: return []
-        k = PV.PointsInVolume(self._coord, self._pixelmask,
-                              grid.LeftEdge, grid.RightEdge,
-                              grid.child_mask, just_one(grid['dx']))
+        k = amr_utils.PointsInVolume(self._coord, self._pixelmask,
+                                     grid.LeftEdge, grid.RightEdge,
+                                     grid.child_mask, just_one(grid['dx']))
         return k
 
     def _gen_node_name(self):
@@ -1163,7 +1167,7 @@ class AMRProjBase(AMR2DData):
     def __init__(self, axis, field, weight_field = None,
                  max_level = None, center = None, pf = None,
                  source=None, node_name = None, field_cuts = None,
-                 serialize=True,**kwargs):
+                 preload_style='level', serialize=True,**kwargs):
         """
         AMRProj is a projection of a *field* along an *axis*.  The field
         can have an associated *weight_field*, in which case the values are
@@ -1184,12 +1188,12 @@ class AMRProjBase(AMR2DData):
             max_level = min(max_level, self.source.grid_levels.max())
         self._max_level = max_level
         self._weight = weight_field
+        self.preload_style = preload_style
         self.func = na.sum # for the future
         self.__retval_coords = {}
         self.__retval_fields = {}
         self.__retval_coarse = {}
         self.__overlap_masks = {}
-        self._temp = {}
         self._deserialize(node_name)
         self._refresh_data()
         if self._okay_to_serialize and self.serialize: self._serialize(node_name=self._node_name)
@@ -1326,7 +1330,7 @@ class AMRProjBase(AMR2DData):
                     args += self.__retval_coords[grid2.id] + [self.__retval_fields[grid2.id]]
                     args += self.__retval_coords[grid1.id] + [self.__retval_fields[grid1.id]]
                     # Refinement factor, which is same in all directions
-                    args.append(int(grid2['dx'] / grid1['dx'])) 
+                    args.append(int(grid2.dds[0] / grid1.dds[0])) 
                     args.append(na.ones(args[0].shape, dtype='int64'))
                     kk = PointCombine.CombineGrids(*args)
                     goodI = args[-1].astype('bool')
@@ -1355,9 +1359,15 @@ class AMRProjBase(AMR2DData):
         # We do this here, but I am not convinced it should be done here
         # It is probably faster, as it consolidates IO, but if we did it in
         # _project_level, then it would be more memory conservative
-        for level in range(0, self._max_level+1):
-            self._preload(self.source.select_grids(level),
+        if self.preload_style == 'all':
+            print "Preloading %s grids and getting %s" % (
+                    len(self.source._grids), self._get_dependencies(fields))
+            self._preload(self.source._grids,
                           self._get_dependencies(fields), self.hierarchy.io)
+        for level in range(0, self._max_level+1):
+            if self.preload_style == 'level':
+                self._preload(self.source.select_grids(level),
+                              self._get_dependencies(fields), self.hierarchy.io)
             self.__calculate_overlap(level)
             my_coords, my_dx, my_fields = self.__project_level(level, fields)
             coord_data.append(my_coords)
@@ -1368,10 +1378,11 @@ class AMRProjBase(AMR2DData):
                 if len(check) > 0: all_data.append(check)
             # Now, we should clean up after ourselves...
             for grid in self.source.select_grids(level - 1):
-                grid.clear_data()
                 del self.__retval_coords[grid.id]
                 del self.__retval_fields[grid.id]
                 del self.__overlap_masks[grid.id]
+            mylog.debug("End of projecting level level %s, memory usage %0.3e", 
+                        level, get_memory_usage()/1024.)
         coord_data = na.concatenate(coord_data, axis=1)
         field_data = na.concatenate(field_data, axis=1)
         dxs = na.concatenate(dxs, axis=1)
@@ -1392,6 +1403,7 @@ class AMRProjBase(AMR2DData):
             self[field] = field_data[fi].ravel()
             if self.serialize: self._store_fields(field, self._node_name)
         for i in data.keys(): self[i] = data.pop(i)
+        mylog.info("Projection completed")
 
     def add_fields(self, fields, weight = "CellMassMsun"):
         pass
@@ -1444,9 +1456,7 @@ class AMRProjBase(AMR2DData):
             bad_points = self._get_points_in_region(grid)
         else:
             bad_points = 1.0
-        d = grid[field] * bad_points
-        if grid.id == 1: self._temp[grid.id] = d
-        return d
+        return grid[field] * bad_points
 
     def _gen_node_name(self):
         return  "%s/%s" % \
@@ -1627,6 +1637,7 @@ class AMR3DData(AMRData, GridPropertiesMixin):
             if self.pf.field_info[field].vector_field:
                 f = grid[field]
                 return na.array([f[i,:][pointI] for i in range(3)])
+            if self._is_fully_enclosed(grid): return grid[field].ravel()
             return grid[field][pointI].ravel()
         if field in self.pf.field_info and self.pf.field_info[field].vector_field:
             pointI = self._get_point_indices(grid)
@@ -2481,12 +2492,13 @@ class AMRCoveringGridBase(AMR3DData):
                    obtain_fields, len(self._grids))
         if self._use_pbar: pbar = \
                 get_pbar('Searching grids for values ', len(self._grids))
+        count = self.ActiveDimensions.prod()
         for i, grid in enumerate(self._grids):
             if self._use_pbar: pbar.update(i)
-            self._get_data_from_grid(grid, obtain_fields)
-            if not na.any(self[obtain_fields[0]] == -999): break
+            count -= self._get_data_from_grid(grid, obtain_fields)
+            if count <= 0: break
         if self._use_pbar: pbar.finish()
-        if na.any(self[obtain_fields[0]] == -999):
+        if count > 0 or na.any(self[obtain_fields[0]] == -999):
             # and self.dx < self.hierarchy.grids[0].dx:
             n_bad = na.where(self[obtain_fields[0]]==-999)[0].size
             mylog.error("Covering problem: %s cells are uncovered", n_bad)
@@ -2521,11 +2533,12 @@ class AMRCoveringGridBase(AMR3DData):
         ref_ratio = self.pf["RefineBy"]**(self.level - grid.Level)
         g_fields = [grid[field] for field in fields]
         c_fields = [self[field] for field in fields]
-        PointCombine.FillRegion(ref_ratio,
+        count = PointCombine.FillRegion(ref_ratio,
             grid.get_global_startindex(), self.global_startindex,
             c_fields, g_fields, 
             self.ActiveDimensions, grid.ActiveDimensions,
             grid.child_mask, self.domain_width, ll, 0)
+        return count
 
     def _flush_data_to_grid(self, grid, fields):
         ll = int(grid.Level == self.level)

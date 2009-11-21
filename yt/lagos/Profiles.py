@@ -161,8 +161,13 @@ class BinnedProfile(ParallelAnalysisInterface):
         for field in _field_mapping.get(this_field, (this_field,)):
             pointI = None
             if check_cut:
+                # This conditional is so that we can have variable-length
+                # particle fields.  Note that we can't apply the
+                # is_fully_enclosed to baryon fields, because child cells get
+                # in the way.
                 if field in self.pf.field_info \
-                    and self.pf.field_info[field].particle_type:
+                    and self.pf.field_info[field].particle_type \
+                    and not self._data_source._is_fully_enclosed(source):
                     pointI = self._data_source._get_particle_indices(source)
                 else:
                     pointI = self._data_source._get_point_indices(source)

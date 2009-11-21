@@ -1,6 +1,7 @@
 import yt.lagos as lagos
 from yt.logger import lagosLogger as mylog
 import numpy as na
+import os
 
 dt_Tolerance = 1e-3
 
@@ -10,7 +11,27 @@ class EnzoSimulation(object):
     a simulation from one redshift to another.
     """
     def __init__(self, EnzoParameterFile, initial_time=None, final_time=None, initial_redshift=None, final_redshift=None,
-                 links=False, enzo_parameters=None, get_time_outputs=True, get_redshift_outputs=True):
+                 links=False, enzo_parameters=None, get_time_outputs=True, get_redshift_outputs=True, get_available_data=False):
+        """
+        Initialize an EnzoSimulation object.
+        :param initial_time (float): the initial time in code units for the dataset list.  Default: None.
+        :param final_time (float): the final time in code units for the dataset list.  Default: None.
+        :param initial_redshift (float): the initial (highest) redshift for the dataset list.  Only for 
+               cosmological simulations.  Default: None.
+        :param final_redshift (float): the final (lowest) redshift for the dataset list.  Only for cosmological 
+               simulations.  Default: None.
+        :param links (bool): if True, each entry in the dataset list will contain entries, previous and next, that 
+               point to the previous and next entries on the dataset list.  Default: False.
+        :param enzo_parameters (dict): a dictionary specify additional parameters to be retrieved from the 
+               parameter file.  The format should be the name of the parameter as the key and the variable type as 
+               the value.  For example, {'CosmologyComovingBoxSize':float}.  All parameter values will be stored in 
+               the dictionary attribute, enzoParameters.  Default: None.
+        :param get_time_outputs (bool): if False, the time datasets, specified in Enzo with the dtDataDump, will not 
+               be added to the dataset list.  Default: True.
+        :param get_redshift_outputs (bool): if False, the redshift datasets will not be added to the dataset list.  Default: True.
+        :param get_available_data (bool): if True, only datasets that are found to exist at the file path are added 
+               to the list.  Devault: False.
+        """
         self.EnzoParameterFile = EnzoParameterFile
         self.enzoParameters = {}
         self.redshiftOutputs = []
@@ -23,6 +44,7 @@ class EnzoSimulation(object):
         self.links = links
         self.get_time_outputs = get_time_outputs
         self.get_redshift_outputs = get_redshift_outputs
+        self.get_available_data = get_available_data
 
         # Add any extra parameters to parameter dict.
         if enzo_parameters is None: enzo_parameters = {}
@@ -84,14 +106,6 @@ class EnzoSimulation(object):
         else:
             self.SimulationInitialTime = 0.0
 
-        # Calculate redshifts for dt data dumps.
-        if self.enzoParameters.has_key('dtDataDump'):
-            self._CalculateTimeDumps()
-
-        # Calculate times for redshift dumps.
-        if self.enzoParameters['ComovingCoordinates']:
-            self._CalculateRedshiftDumpTimes()
-
         # Combine all data dumps.
         self._CombineDataOutputs()
 
@@ -105,6 +119,8 @@ class EnzoSimulation(object):
     def _CalculateTimeDumps(self):
         "Calculates time dumps and their redshifts if cosmological."
 
+        if self.enzoParameters['dtDataDump'] <= 0.0: return
+
         index = 0
         current_time = self.SimulationInitialTime
         while (current_time <= self.FinalTime) or \
@@ -112,11 +128,14 @@ class EnzoSimulation(object):
             filename = "%s/%s%04d/%s%04d" % (self.enzoParameters['GlobalDir'],
                                              self.enzoParameters['DataDumpDir'],index,
                                              self.enzoParameters['DataDumpName'],index)
-                                             
-            self.timeOutputs.append({'index':index,'filename':filename,'time':current_time})
+
+            output = {'index':index,'filename':filename,'time':current_time}
             if self.enzoParameters['ComovingCoordinates']:
                 t = self.enzo_cosmology.InitialTime + (self.enzoParameters['dtDataDump'] * self.enzo_cosmology.TimeUnits * index)
-                self.timeOutputs[-1]['redshift'] = self.enzo_cosmology.ComputeRedshiftFromTime(t)
+                output['redshift'] = self.enzo_cosmology.ComputeRedshiftFromTime(t)
+
+            if not self.get_available_data or os.path.exists(filename):
+                self.timeOutputs.append(output)
 
             current_time += self.enzoParameters['dtDataDump']
             index += 1
@@ -124,13 +143,20 @@ class EnzoSimulation(object):
     def _CombineDataOutputs(self):
         "Combines redshift and time data into one sorted list."
 
-        if not self.get_time_outputs: self.timeOutputs = []
-        if not self.get_redshift_outputs: self.redshiftOutputs = []
+        # Calculate redshifts for dt data dumps.
+        if self.enzoParameters.has_key('dtDataDump') and self.get_time_outputs:
+            self._CalculateTimeDumps()
+
+        # Calculate times for redshift dumps.
+        if self.enzoParameters['ComovingCoordinates'] and self.get_redshift_outputs:
+            self._CalculateRedshiftDumpTimes()
+
         self.allOutputs = self.redshiftOutputs + self.timeOutputs
         self.allOutputs.sort(key=lambda obj:obj['time'])
 
         start_index = None
         end_index = None
+
         for q in range(len(self.allOutputs)):
             del self.allOutputs[q]['index']
 
@@ -146,16 +172,18 @@ class EnzoSimulation(object):
                 if abs(self.allOutputs[q]['time'] - self.FinalTime) < \
                         self.allOutputs[q]['time'] * dt_Tolerance:
                     end_index = q
+                if q == len(self.allOutputs) - 1:
+                    end_index = q
 
             if self.links and start_index is not None:
                 if q == start_index:
                     self.allOutputs[q]['previous'] = None
-                    self.allOutputs[q]['next'] = self.allOutputs[q+1]
-                elif q == end_index:
-                    self.allOutputs[q]['previous'] = self.allOutputs[q-1]                
-                    self.allOutputs[q]['next'] = None
-                elif end_index is None:
+                else:
                     self.allOutputs[q]['previous'] = self.allOutputs[q-1]
+
+                if q == end_index:
+                    self.allOutputs[q]['next'] = None
+                else:
                     self.allOutputs[q]['next'] = self.allOutputs[q+1]
 
         del self.redshiftOutputs
@@ -189,14 +217,18 @@ class EnzoSimulation(object):
                     self.enzoParameters[param] = t
             elif param.startswith("CosmologyOutputRedshift["):
                 index = param[param.find("[")+1:param.find("]")]
-                self.redshiftOutputs.append({'index':int(index),
-                                             'redshift':float(vals)})
+                self.redshiftOutputs.append({'index':int(index), 'redshift':float(vals)})
 
         # Add filenames to redshift outputs.
+        tempRedshiftList = []
         for output in self.redshiftOutputs:
             output["filename"] = "%s/%s%04d/%s%04d" % (self.enzoParameters['GlobalDir'],
                                                        self.enzoParameters['RedshiftDumpDir'],output['index'],
                                                        self.enzoParameters['RedshiftDumpName'],output['index'])
+            if not self.get_available_data or os.path.exists(output["filename"]):
+                tempRedshiftList.append(output)
+        self.redshiftOutputs = tempRedshiftList
+        del tempRedshiftList
 
     def _SetParameterDefaults(self):
         "Set some default parameters to avoid problems if they are not in the parameter file."
@@ -207,8 +239,58 @@ class EnzoSimulation(object):
         self.enzoParameters['DataDumpDir'] = "DD"
         self.enzoParameters['ComovingCoordinates'] = 0
 
-    def _create_cosmology_splice(self, minimal=True, deltaz_min=0.0, initial_redshift=None, final_redshift=None):
-        "Create list of datasets to be used for LightCones or LightRays."
+    def imagine_minimal_splice(self, initial_redshift, final_redshift, decimals=3, filename=None, 
+                               redshift_output_string='CosmologyOutputRedshift', start_index=0):
+        """
+        Create imaginary list of redshift outputs to maximally span a redshift interval.
+        :param decimals (int): The decimal place to which the output redshift will be rounded.  
+               If the decimal place in question is nonzero, the redshift will be rounded up to 
+               ensure continuity of the splice.  Default: 3.
+        :param filename (str): If provided, a file will be written with the redshift outputs in 
+               the form in which they should be given in the enzo parameter file.  Default: None.
+        :param redshift_output_string (str): The parameter accompanying the redshift outputs in the 
+               enzo parameter file.  Default: "CosmologyOutputRedshift".
+        :param start_index (int): The index of the first redshift output.  Default: 0.
+        """
+
+        z = initial_redshift
+        outputs = []
+
+        while z > final_redshift:
+            rounded = na.round(z, decimals=decimals)
+            if rounded - z < 0:
+                rounded += na.power(10.0,(-1.0*decimals))
+            z = rounded
+            deltaz_max = deltaz_forward(self.cosmology, z, self.enzoParameters['CosmologyComovingBoxSize'])
+            outputs.append({'redshift': z, 'deltazMax': deltaz_max})
+            z -= deltaz_max
+
+        mylog.info("imagine_maximal_splice: Needed %d data dumps to get from z = %f to %f." %
+                   (len(outputs), initial_redshift, final_redshift))
+
+        if filename is not None:
+            mylog.info("Writing redshift dump list to %s." % filename)
+            f = open(filename,'w')
+            for q, output in enumerate(outputs):
+                z_string = "%%s[%%d] = %%.%df" % decimals
+                f.write(("%s[%d] = %." + str(decimals) + "f\n") % (redshift_output_string, (q+start_index), output['redshift']))
+            f.close()
+
+        return outputs
+
+    def create_cosmology_splice(self, minimal=True, deltaz_min=0.0, initial_redshift=None, final_redshift=None):
+        """
+        Create list of datasets to be used for LightCones or LightRays.
+        :param minimal (bool): if True, the minimum number of datasets is used to connect the initial and final 
+               redshift.  If false, the list will contain as many entries as possible within the redshift 
+               interval.  Default: True.
+        :param deltaz_min (float): specifies the minimum delta z between consecutive datasets in the returned 
+               list.  Default: 0.0.
+        :param initial_redshift (float): the initial (highest) redshift in the cosmology splice list.  If none 
+               given, the highest redshift dataset present will be used.  Default: None.
+        :param final_redshift (float): the final (lowest) redshift in the cosmology splice list.  If none given, 
+               the lowest redshift dataset present will be used.  Default: None.
+        """
 
         if initial_redshift is None: initial_redshift = self.InitialRedshift
         if final_redshift is None: final_redshift = self.FinalRedshift
@@ -224,34 +306,34 @@ class EnzoSimulation(object):
         # Use minimum number of datasets to go from z_i to z_f.
         if minimal:
 
-            z_Tolerance = 1e-4
+            z_Tolerance = 1e-3
             z = initial_redshift
 
             # fill redshift space with datasets
             while ((z > final_redshift) and 
                    (na.fabs(z - final_redshift) > z_Tolerance)):
-                # Sort data outputs by proximity to current redsfhit.
-                self.allOutputs.sort(key=lambda obj:na.fabs(z - obj['redshift']))
+
                 # For first data dump, choose closest to desired redshift.
                 if (len(cosmology_splice) == 0):
+                    # Sort data outputs by proximity to current redsfhit.
+                    self.allOutputs.sort(key=lambda obj:na.fabs(z - obj['redshift']))
                     cosmology_splice.append(self.allOutputs[0])
-                # Start with data dump closest to desired redshift and move backward 
-                # until one is within max delta z of last output in solution list.
+
+                # Move forward from last slice in stack until z > z_max.
                 else:
-                    output = self.allOutputs[0]
-                    while (z > output['redshift']):
-                        output = output['previous']
-                        if (output is None):
-                            mylog.error("CalculateLightRaySolution: search for data output went off the end of the stack.")
-                            mylog.error("Could not calculate light ray solution.")
-                            return
-                        if (output['redshift'] == cosmology_splice[-1]['redshift']):
-                            mylog.error("CalculateLightRaySolution: No data dump between z = %f and %f." % \
-                                ((cosmology_splice[-1]['redshift'] - cosmology_splice[-1]['deltazMax']),
-                                 cosmology_splice[-1]['redshift']))
-                            mylog.error("Could not calculate light ray solution.")
-                            return
-                    cosmology_splice.append(output)
+                    current_slice = cosmology_splice[-1]
+                    while current_slice['next'] is not None and \
+                            (z < current_slice['next']['redshift'] or \
+                                 na.abs(z - current_slice['next']['redshift']) < z_Tolerance):
+                        current_slice = current_slice['next']
+
+                    if current_slice is cosmology_splice[-1]:
+                        final_redshift = cosmology_splice[-1]['redshift'] - cosmology_splice[-1]['deltazMax']
+                        mylog.error("Cosmology splice incomplete due to insufficient data outputs.")
+                        break
+                    else:
+                        cosmology_splice.append(current_slice)
+
                 z = cosmology_splice[-1]['redshift'] - cosmology_splice[-1]['deltazMax']
 
         # Make light ray using maximum number of datasets (minimum spacing).
@@ -268,6 +350,9 @@ class EnzoSimulation(object):
                 if ((cosmology_splice[-1]['redshift'] - nextOutput['redshift']) > cosmology_splice[-1]['deltazMin']):
                     cosmology_splice.append(nextOutput)
                 nextOutput = nextOutput['next']
+            if (cosmology_splice[-1]['redshift'] - cosmology_splice[-1]['deltazMax']) > final_redshift:
+                mylog.error("Cosmology splice incomplete due to insufficient data outputs.")
+                final_redshift = cosmology_splice[-1]['redshift'] - cosmology_splice[-1]['deltazMax']
 
         mylog.info("create_cosmology_splice: Used %d data dumps to get from z = %f to %f." % 
                    (len(cosmology_splice),initial_redshift,final_redshift))
@@ -303,8 +388,8 @@ class EnzoSimulation(object):
                 distance2 = self.cosmology.ComovingRadialDistance(z2,z) * self.enzoParameters['CosmologyHubbleConstantNow']
                 iteration += 1
                 if (iteration > max_Iterations):
-                    if self.verbose: mylog.error("calculate_deltaz_max: Warning - max iterations exceeded for z = %f (delta z = %f)." % 
-                                                 (z,na.fabs(z2-z)))
+                    mylog.error("calculate_deltaz_max: Warning - max iterations exceeded for z = %f (delta z = %f)." % 
+                                (z,na.fabs(z2-z)))
                     break
             output['deltazMax'] = na.fabs(z2-z)
 
@@ -337,8 +422,8 @@ class EnzoSimulation(object):
                 distance2 = self.cosmology.ComovingRadialDistance(z2,z) * self.enzoParameters['CosmologyHubbleConstantNow']
                 iteration += 1
                 if (iteration > max_Iterations):
-                    if self.verbose: mylog.error("calculate_deltaz_max: Warning - max iterations exceeded for z = %f (delta z = %f)." % 
-                                                 (z,na.fabs(z2-z)))
+                    mylog.error("calculate_deltaz_max: Warning - max iterations exceeded for z = %f (delta z = %f)." % 
+                                (z,na.fabs(z2-z)))
                     break
             # Use this calculation or the absolute minimum specified by the user.
             output['deltazMin'] = max(na.fabs(z2-z),deltaz_min)
@@ -359,3 +444,31 @@ EnzoParameterDict = {"CosmologyOmegaMatterNow": float,
                      "DataDumpDir": str,
                      "GlobalDir" : str}
 
+def deltaz_forward(cosmology, z, target_distance):
+    "Calculate deltaz corresponding to moving a comoving distance starting from some redshift."
+
+    d_Tolerance = 1e-4
+    max_Iterations = 100
+
+    # Calculate delta z that corresponds to the length of the box at a given redshift.
+    # Use Newton's method to calculate solution.
+    z1 = z
+    z2 = z1 - 0.1 # just an initial guess
+    distance1 = 0.0
+    iteration = 1
+
+    # Convert comoving radial distance into Mpc / h, since that's how box size is stored.
+    distance2 = cosmology.ComovingRadialDistance(z2,z) * cosmology.HubbleConstantNow / 100.0
+
+    while ((na.fabs(distance2-target_distance)/distance2) > d_Tolerance):
+        m = (distance2 - distance1) / (z2 - z1)
+        z1 = z2
+        distance1 = distance2
+        z2 = ((target_distance - distance2) / m) + z2
+        distance2 = cosmology.ComovingRadialDistance(z2,z) * cosmology.HubbleConstantNow / 100.0
+        iteration += 1
+        if (iteration > max_Iterations):
+            mylog.error("deltaz_forward: Warning - max iterations exceeded for z = %f (delta z = %f)." % 
+                        (z,na.fabs(z2-z)))
+            break
+    return na.fabs(z2-z)
