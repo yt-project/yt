@@ -30,7 +30,7 @@ from yt.lagos.hop.EnzoHop import RunHOP
 try:
     from yt.lagos.parallelHOP.parallelHOP import *
 except ImportError:
-    mylog.error("ParallelHOP not imported.")
+    mylog.debug("ParallelHOP not imported.")
 
 try:
     from yt.lagos.fof.EnzoFOF import RunFOF
