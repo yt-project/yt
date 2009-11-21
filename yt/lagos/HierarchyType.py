@@ -345,7 +345,8 @@ class EnzoHierarchy(AMRHierarchy):
             "%s.hierarchy" % (pf.parameter_filename))
         harray_fn = self.hierarchy_filename[:-9] + "harrays"
         if os.path.exists(harray_fn):
-            self.num_grids = h5py.File(harray_fn)["/Level"].len()
+            harray_fp = h5py.File(harray_fn)
+            self.num_grids = harray_fp["/Level"].len()
         elif os.path.getsize(self.hierarchy_filename) == 0:
             raise IOError(-1,"File empty", self.hierarchy_filename)
         self.directory = os.path.dirname(self.hierarchy_filename)
@@ -436,7 +437,7 @@ class EnzoHierarchy(AMRHierarchy):
             LE.append(_next_token_line("GridLeftEdge", f))
             RE.append(_next_token_line("GridRightEdge", f))
             nb = int(_next_token_line("NumberOfBaryonFields", f)[0])
-            fn.append(())
+            fn.append(["-1"])
             if nb > 0: fn[-1] = _next_token_line("BaryonFileName", f)
             np.append(int(_next_token_line("NumberOfParticles", f)[0]))
             if nb == 0 and np[-1] > 0: fn[-1] = _next_token_line("FileName", f)
@@ -483,9 +484,10 @@ class EnzoHierarchy(AMRHierarchy):
     def _parse_binary_hierarchy(self):
         mylog.info("Getting the binary hierarchy")
         f = h5py.File(self.hierarchy_filename[:-9] + "harrays")
-        self.grid_dimensions.flat[:] = f["/ActiveDimensions"][:]
-        self.grid_left_edge.flat[:] = f["/LeftEdges"][:]
-        self.grid_right_edge.flat[:] = f["/RightEdges"][:]
+        self.grid_dimensions[:] = f["/ActiveDimensions"][:]
+        self.grid_left_edge[:] = f["/LeftEdges"][:]
+        self.grid_right_edge[:] = f["/RightEdges"][:]
+        self.grid_particle_count[:,0] = f["/NumberOfParticles"][:]
         levels = f["/Level"][:]
         parents = f["/ParentIDs"][:]
         procs = f["/Processor"][:]
@@ -532,7 +534,7 @@ class EnzoHierarchy(AMRHierarchy):
         f.create_dataset("/Level", data=levels)
 
         f.create_dataset("/ActiveDimensions", data=self.grid_dimensions)
-        f.create_dataset("/NumberOfParticles", data=self.grid_particle_count)
+        f.create_dataset("/NumberOfParticles", data=self.grid_particle_count[:,0])
 
         f.close()
 
@@ -713,12 +715,12 @@ class EnzoHierarchyInMemory(EnzoHierarchy):
         mylog.debug("Reconstructing parent-child relationships")
         self.grids = []
         # We enumerate, so it's 0-indexed id and 1-indexed pid
-        self.filenames = [[None]] * self.num_grids
+        self.filenames = ["-1"] * self.num_grids
         for id,pid in enumerate(reverse_tree):
             self.grids.append(self.grid(id+1, self))
             self.grids[-1].Level = self.grid_levels[id]
             if pid > 0:
-                self.grids[-1]._parent_id = self.grids[pid-1].id
+                self.grids[-1]._parent_id = pid
                 self.grids[pid-1]._children_ids.append(self.grids[-1].id)
         self.max_level = self.grid_levels.max()
         mylog.debug("Preparing grids")
