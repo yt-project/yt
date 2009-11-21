@@ -463,6 +463,7 @@ class EnzoHierarchy(AMRHierarchy):
         self.grid_left_edge.flat[:] = LE
         self.grid_right_edge.flat[:] = RE
         self.grid_particle_count.flat[:] = np
+
     def __pointer_handler(self, m):
         sgi = int(m[2])-1
         if sgi == -1: return # if it's 0, then we're done with that lineage
