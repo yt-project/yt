@@ -49,8 +49,8 @@ def partition_grid(start_grid, field, log_field = True, threshold = None):
     y_vert = [0, start_grid.ActiveDimensions[1]]
     z_vert = [0, start_grid.ActiveDimensions[2]]
 
+    gi = start_grid.get_global_startindex()
     for grid in start_grid.Children:
-        gi = start_grid.get_global_startindex()
         si = grid.get_global_startindex()/2 - gi
         ei = si + grid.ActiveDimensions/2 
         x_vert += [si[0], ei[0]]
@@ -144,14 +144,15 @@ def import_partitioned_grids(fn):
     return na.array(grid_list, dtype='object')
 
 class PartitionRegion(object):
+    _count = 0
     def __init__(self, dims, source_offset, source_vertices, cim_base):
         self.source_offset = source_offset
         self.dims = dims
         cv = []
         self._cim = cim_base
         for vertex in source_vertices:
-            if na.all(vertex  - source_offset >= 0) and \
-               na.all(vertex  - source_offset < dims):
+            if na.any(vertex  - source_offset >= 0) or \
+               na.any(vertex  - source_offset < dims):
                 cv.append(vertex)
         self.child_vertices = na.array(cv)
 
@@ -159,9 +160,9 @@ class PartitionRegion(object):
     def cim(self):
         sls = self.source_offset
         sle = self.source_offset + self.dims
-        return self._cim[ (slice(sls[0], sle[0]),
-                           slice(sls[1], sle[1]),
-                           slice(sls[2], sle[2])) ]
+        return self._cim[sls[0]:sle[0],
+                         sls[1]:sle[1],
+                         sls[2]:sle[2]]
 
     def split(self, axis, coord):
         dims_left = self.dims.copy()
@@ -184,12 +185,13 @@ class PartitionRegion(object):
         min_balance = 1e30
         considered = set([self.source_offset[axis]])
         considered.add(self.source_offset[axis] + self.dims[axis])
-        print considered, self.child_vertices
         best_coord = self.source_offset[axis] + self.dims[axis]
         for v in self.child_vertices:
             coord = v[axis]
+            sc = coord - self.source_offset[axis]
             if coord in considered: continue
-            print v
+            if sc >= self.dims[axis]: continue
+            if sc < 0: continue
             eff = self.evaluate_hyperplane(axis, coord)
             if eff < min_balance:
                 min_balance = eff
@@ -200,33 +202,43 @@ class PartitionRegion(object):
     def evaluate_hyperplane(self, axis, coord):
         # We check that we're roughly evenly balanced on either side of the grid
         # Calculate how well balanced it is...
-        n_left = (self.child_vertices[:,axis] <= coord).sum()
-        n_right = (self.child_vertices[:,axis] > coord).sum()
-        eff = abs(0.5 - (n_left / float(self.child_vertices.shape[0])))
+        vert = self.child_vertices[:,axis]
+        n_left = (vert <= coord).sum()
+        n_right = (vert > coord).sum()
+        eff = abs(0.5 - (n_left / float(vert.shape[0])))
         return eff
 
 def partition_region(region, axis=0):
     # region_boundaries is in ints
     split_coord = region.find_hyperplane(axis)
-    print "SPLIT", na.unique(region.cim),
-    print split_coord == 0 or split_coord == region.dims[axis]
     sc = split_coord - region.source_offset[axis]
-    if sc == 0 or sc == region.dims[axis]: return [region]
+    if sc == 0 or sc == region.dims[axis]:
+        rc = na.unique(region.cim)
+        if rc.size > 1 and rc[0] == -1:
+            region._count += 1
+            if region._count > 3:
+                import pdb;pdb.set_trace()
+            return partition_region(region, (axis+1)%3)
+        elif rc.size > 1 and rc[0] > -1:
+            return []
     left_region, right_region = region.split(axis, split_coord)
     lrc = na.unique(left_region.cim)
     rrc = na.unique(right_region.cim)
-    #print "SPLIT", split_coord, region.dims, 
-    #print left_region.dims, right_region.dims,
-    #print left_region.dims.prod() + right_region.dims.prod() - \
-    #      region.dims.prod(), lrc, rrc
-    #loki = raw_input()
-    if lrc.size > 1:
+    if lrc.size > 1 and lrc[0] == -1:
+        #print axis, split_coord, "Splitting left region", lrc
         left_region = partition_region(left_region, (axis + 1) % 3)
+    elif lrc.size > 1 and lrc[0] > -1:
+        left_region = []
+        #print axis, split_coord, "Not splitting left region", lrc
     else:
         left_region = [left_region]
 
-    if rrc.size > 1:
+    if rrc.size > 1 and rrc[0] == -1:
+        #print axis, split_coord, "Splitting right region", rrc
         right_region = partition_region(right_region, (axis + 1) % 3)
+    elif rrc.size > 1 and rrc[0] > -1:
+        right_region = []
+        #print axis, split_coord, "Not splitting right region", rrc
     else:
         right_region = [right_region]
 
