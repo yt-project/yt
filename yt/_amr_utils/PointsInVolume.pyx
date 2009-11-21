@@ -39,6 +39,7 @@ def PointsInVolume(np.ndarray[np.float64_t, ndim=2] points,
     cdef np.ndarray[np.int8_t, ndim=1] \
          valid = np.zeros(points.shape[0], dtype='int8')
     cdef int i, dim, count
+    cdef int ex
     cdef double dx_inv
     cdef unsigned int idx[3]
     count = 0
@@ -46,11 +47,12 @@ def PointsInVolume(np.ndarray[np.float64_t, ndim=2] points,
     for i in xrange(points.shape[0]):
         if pmask[i] == 0:
             continue
+        ex = 1
         for dim in xrange(3):
             if points[i,dim] < left_edge[dim] or points[i,dim] > right_edge[dim]:
-                valid[i] = 0
+                valid[i] = ex = 0
                 break
-        if valid[i] == 1:
+        if ex == 1:
             for dim in xrange(3):
                 idx[dim] = <unsigned int> \
                            ((points[i,dim] - left_edge[dim]) * dx_inv)

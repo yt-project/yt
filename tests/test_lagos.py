@@ -454,7 +454,7 @@ class TestSphereDataType(Data3DBase, DataTypeTestingBase, LagosTestingBase, unit
 class TestSliceDataType(DataTypeTestingBase, LagosTestingBase, unittest.TestCase):
     def setUp(self):
         DataTypeTestingBase.setUp(self)
-        self.data = self.hierarchy.slice(0,0.5)
+        self.data = self.hierarchy.slice(0,0.5, center=[0.5, 0.5, 0.5])
 
 class TestCuttingPlane(DataTypeTestingBase, LagosTestingBase, unittest.TestCase):
     def setUp(self):
