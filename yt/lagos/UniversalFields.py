@@ -53,20 +53,20 @@ G = 6.67e-8   # cm^3 g^-1 s^-2
 # I violate it here in order to keep the name/func_name relationship
 
 def _dx(field, data):
-    return data.dx
-    return na.ones(data.ActiveDimensions, dtype='float64') * data.dx
+    return data.dds[0]
+    return na.ones(data.ActiveDimensions, dtype='float64') * data.dds[0]
 add_field('dx', function=_dx, display_field=False,
           validators=[ValidateSpatial(0)])
 
 def _dy(field, data):
-    return data.dy
-    return na.ones(data.ActiveDimensions, dtype='float64') * data.dy
+    return data.dds[1]
+    return na.ones(data.ActiveDimensions, dtype='float64') * data.dds[1]
 add_field('dy', function=_dy, display_field=False,
           validators=[ValidateSpatial(0)])
 
 def _dz(field, data):
-    return data.dz
-    return na.ones(data.ActiveDimensions, dtype='float64') * data.dz
+    return data.dds[2]
+    return na.ones(data.ActiveDimensions, dtype='float64') * data.dds[2]
 add_field('dz', function=_dz,
           display_field=False, validators=[ValidateSpatial(0)])
 
@@ -130,29 +130,24 @@ def _SoundSpeed(field, data):
 add_field("SoundSpeed", function=_SoundSpeed,
           units=r"\rm{cm}/\rm{s}")
 
-def particle_func(p_field, dtype='float64', ptype=None):
-    dspace = None
-    if ptype is not None:
-        dspace = "AddressParticleType%02i" % ptype
+def particle_func(p_field, dtype='float64'):
     def _Particles(field, data):
+        io = data.hierarchy.io
         if not data.NumberOfParticles > 0:
             return na.array([], dtype=dtype)
         try:
-            return data._read_data(p_field, dspace=dspace).astype(dtype)
-        except data._read_exception:
+            return io._read_data_set(data, p_field).astype(dtype)
+        except io._read_exception:
             pass
         # This is bad.  But it's the best idea I have right now.
-        return data._read_data(p_field.replace("_"," "), dspace=dspace).astype(dtype)
+        return data._read_data(p_field.replace("_"," ")).astype(dtype)
     return _Particles
-for ptype in [None] + range(10):
-    for pf in ["type", "mass"] + \
-              ["position_%s" % ax for ax in 'xyz']:
-        pname = "particle_%s" % pf
-        if ptype is not None: pname = "PT%02i_%s" % (ptype, pname)
-        pfunc = particle_func("particle_%s" % (pf), ptype=ptype)
-        add_field(pname, function=pfunc,
-                  validators = [ValidateSpatial(0)],
-                  particle_type=True)
+for pf in ["type", "mass"] + \
+          ["position_%s" % ax for ax in 'xyz']:
+    pfunc = particle_func("particle_%s" % (pf))
+    add_field("particle_%s" % pf, function=pfunc,
+              validators = [ValidateSpatial(0)],
+              particle_type=True)
 
 def _convRetainInt(data):
     return 1
@@ -178,7 +173,7 @@ for pf in ["creation_time", "dynamical_time", "metallicity_fraction"]:
               validators = [ValidateSpatial(0),
                             ValidateDataField(pf)],
               particle_type=True)
-add_field("particle mass", function=particle_func("particle_mass"),
+add_field("particle_mass", function=particle_func("particle_mass"),
           validators=[ValidateSpatial(0)], particle_type=True)
 
 add_field("Dark matter density", function=lambda a,b: None,
@@ -204,12 +199,17 @@ def _convertParticleMass(data):
     return data.convert("Density")*(data.convert("cm")**3.0)
 def _convertParticleMassMsun(data):
     return data.convert("Density")*((data.convert("cm")**3.0)/1.989e33)
+def _IOLevelParticleMassMsun(grid):
+    dd = dict(particle_mass = na.ones(1), CellVolumeCode=grid["CellVolumeCode"])
+    cf = (_ParticleMass(None, dd) * _convertParticleMassMsun(grid))[0]
+    return cf
 add_field("ParticleMass",
           function=_ParticleMass, validators=[ValidateSpatial(0)],
           particle_type=True, convert_function=_convertParticleMass)
 add_field("ParticleMassMsun",
           function=_ParticleMass, validators=[ValidateSpatial(0)],
-          particle_type=True, convert_function=_convertParticleMassMsun)
+          particle_type=True, convert_function=_convertParticleMassMsun,
+          particle_convert_function=_IOLevelParticleMassMsun)
 
 def _RadialMachNumber(field, data):
     """M{|v|/t_sound}"""
@@ -372,7 +372,7 @@ add_field("TotalMassMsun", units=r"M_{\odot}",
           convert_function=_convertCellMassMsun)
 
 def _StarMass(field,data):
-    return data["star_density"] * data["CellVolume"]
+    return data["star_density_pyx"] * data["CellVolume"]
 add_field("StarMassMsun", units=r"M_{\odot}",
           function=_StarMass,
           convert_function=_convertCellMassMsun)

@@ -62,7 +62,7 @@ void hop_main(KD kd, HC *my_comm, float densthres)
 	int bDensity,bGroup,bSym,bMerge,nDens,nHop,nMerge,bTopHat;
 	float fDensThresh;
 	
-   	nBucket = 16;
+	nBucket = 16;
 	nSmooth = 64;
 	nDens = 64;
 	nHop = -1;
@@ -117,7 +117,7 @@ void hop_main(KD kd, HC *my_comm, float densthres)
 	    if (bTopHat) smSmooth(smx,smDensityTH);
 	    else if (bSym) smSmooth(smx,smDensitySym);
 	    else smSmooth(smx,smDensity);
-	}  /* Else, we've read them */
+	}  /* Else, we've read them */	
 	if (bGroup) {
 	     INFORM("Finding Densest Neighbors...\n");
 	     if (bDensity && nHop<nSmooth) smReSmooth(smx,smHop);

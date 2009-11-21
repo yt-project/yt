@@ -148,7 +148,7 @@ class NeedsParameter(ValidationException):
 
 class FieldDetector(defaultdict):
     Level = 1
-    NumberOfParticles = 0
+    NumberOfParticles = 1
     _read_exception = None
     def __init__(self, nd = 16, pf = None):
         self.nd = nd
@@ -156,10 +156,16 @@ class FieldDetector(defaultdict):
         self.LeftEdge = [0.0,0.0,0.0]
         self.RightEdge = [1.0,1.0,1.0]
         self['dx'] = self['dy'] = self['dz'] = na.array([1.0])
-        self.fields = []
         if pf is None:
             pf = defaultdict(lambda: 1)
         self.pf = pf
+        class fake_hierarchy(object):
+            class fake_io(object):
+                def _read_data_set(io_self, data, field):
+                    return self._read_data(field)
+                _read_exception = RuntimeError
+            io = fake_io()
+        self.hierarchy = fake_hierarchy()
         self.requested = []
         self.requested_parameters = []
         defaultdict.__init__(self, lambda: na.ones((nd,nd,nd)))
@@ -184,6 +190,10 @@ class FieldDetector(defaultdict):
 
     def _read_data(self, field_name):
         self.requested.append(field_name)
+        if FieldInfo.has_key(field_name) and \
+           FieldInfo[field_name].particle_type:
+            self.requested.append(field_name)
+            return na.ones(self.NumberOfParticles)
         return defaultdict.__missing__(self, field_name)
 
     def get_field_parameter(self, param):
@@ -201,6 +211,7 @@ class FieldDetector(defaultdict):
 class DerivedField(object):
     def __init__(self, name, function,
                  convert_function = None,
+                 particle_convert_function = None,
                  units = "", projected_units = "",
                  take_log = True, validators = None,
                  particle_type = False, vector_field=False,
@@ -237,6 +248,7 @@ class DerivedField(object):
         if not convert_function:
             convert_function = lambda a: 1.0
         self._convert_function = convert_function
+        self._particle_convert_function = particle_convert_function
         self.particle_type = particle_type
         self.vector_field = vector_field
         self.projection_conversion = projection_conversion
@@ -282,10 +294,10 @@ class DerivedField(object):
         Return the value of the field in a given *data* object.
         """
         ii = self.check_available(data)
-        original_fields = data.fields[:] # Copy
+        original_fields = data.keys() # Copy
         dd = self._function(self, data)
         dd *= self._convert_function(data)
-        for field_name in data.fields:
+        for field_name in data.keys():
             if field_name not in original_fields:
                 del data[field_name]
         return dd
@@ -308,6 +320,11 @@ class DerivedField(object):
         if units != "": data_label += r"\/\/ (%s)" % (units)
         data_label += r"$"
         return data_label
+
+    def particle_convert(self, data):
+        if self._particle_convert_function is not None:
+            return self._particle_convert_function(data)
+        return None
 
 class FieldValidator(object):
     pass
