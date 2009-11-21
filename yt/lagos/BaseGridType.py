@@ -188,6 +188,8 @@ class AMRGridPatch(object):
             LE, RE = self.hierarchy.grid_left_edge[id,:], \
                      self.hierarchy.grid_right_edge[id,:]
             self.dds = na.array((RE-LE)/self.ActiveDimensions)
+        if self.pf["TopGridRank"] < 2: self.dds[1] = 1.0
+        if self.pf["TopGridRank"] < 3: self.dds[2] = 1.0
         self.data['dx'], self.data['dy'], self.data['dz'] = self.dds
 
     @property
@@ -355,6 +357,7 @@ class AMRGridPatch(object):
         startIndex = na.maximum(0, cgi/rf - gi)
         endIndex = na.minimum( (cgi+child.ActiveDimensions)/rf - gi,
                               self.ActiveDimensions)
+        endIndex += (startIndex == endIndex)
         mask[startIndex[0]:endIndex[0],
              startIndex[1]:endIndex[1],
              startIndex[2]:endIndex[2]] = tofill
