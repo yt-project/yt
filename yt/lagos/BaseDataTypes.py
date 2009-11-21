@@ -555,6 +555,7 @@ class AMR2DData(AMRData, GridPropertiesMixin, ParallelAnalysisInterface):
         """
         self.axis = axis
         AMRData.__init__(self, pf, fields, **kwargs)
+        self.field = field
         self.set_field_parameter("axis",axis)
         
     def _convert_field_name(self, field):
@@ -1176,6 +1177,7 @@ class AMRProjBase(AMR2DData):
         of that weight.
         """
         AMR2DData.__init__(self, axis, field, pf, node_name = None, **kwargs)
+        self.weight_field = weight_field
         self._field_cuts = field_cuts
         self.serialize = serialize
         self._set_center(center)
