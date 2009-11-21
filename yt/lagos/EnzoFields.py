@@ -162,8 +162,6 @@ def _NumberDensity(field, data):
         fieldData += data["DII_Density"] / 2.0
         fieldData += data["HDI_Density"] / 3.0
     return fieldData
-def _ConvertNumberDensity(data):
-    return 1.0/mh
 add_field("NumberDensity", units=r"\rm{cm}^{-3}",
           function=_NumberDensity,
           convert_function=_ConvertNumberDensity)

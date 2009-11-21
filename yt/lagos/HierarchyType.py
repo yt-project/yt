@@ -146,7 +146,8 @@ class AMRHierarchy(ObjectFindingMixin, ParallelAnalysisInterface):
             self._data_mode = mode = 'r'
         else:
             self._data_mode = mode = 'a'
-            self.__create_data_file(fn)
+
+        self.__create_data_file(fn)
         self.__data_filename = fn
         self._data_file = h5py.File(fn, self._data_mode)
 
