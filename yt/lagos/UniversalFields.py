@@ -95,7 +95,7 @@ add_field('z', function=_coordZ, display_field=False,
           validators=[ValidateSpatial(0)])
 
 def _GridLevel(field, data):
-    return na.ones(data["Density"].shape)*(data.Level)
+    return na.ones(data.ActiveDimensions)*(data.Level)
 add_field("GridLevel", function=_GridLevel,
           validators=[ValidateGridType(),
                       ValidateSpatial(0)])

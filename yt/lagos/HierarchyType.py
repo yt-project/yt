@@ -368,7 +368,6 @@ class EnzoHierarchy(AMRHierarchy):
         self.object_types.sort()
 
     def _count_grids(self):
-        if self.num_grids is not None: return
         test_grid = test_grid_id = None
         self.num_stars = 0
         for line in rlines(open(self.hierarchy_filename, "rb")):
@@ -450,16 +449,19 @@ class EnzoHierarchy(AMRHierarchy):
                     continue
                 params = line.split()
                 line = f.readline()
+        self._fill_arrays(ei, si, LE, RE, np)
+        self.grids = na.array(self.grids, dtype='object')
+        self.filenames = fn
+        self._store_binary_hierarchy()
+        t2 = time.time()
+
+    def _fill_arrays(self, ei, si, LE, RE, np):
         self.grid_dimensions.flat[:] = ei
         self.grid_dimensions -= na.array(si, self.float_type)
         self.grid_dimensions += 1
         self.grid_left_edge.flat[:] = LE
         self.grid_right_edge.flat[:] = RE
         self.grid_particle_count.flat[:] = np
-        self.grids = na.array(self.grids, dtype='object')
-        self.filenames = fn
-        self._store_binary_hierarchy()
-        t2 = time.time()
 
     def __pointer_handler(self, m):
         sgi = int(m[2])-1
@@ -751,27 +753,30 @@ class EnzoHierarchyInMemory(EnzoHierarchy):
         pass
 
 class EnzoHierarchy1D(EnzoHierarchy):
-    def __init__(self, *args, **kwargs):
-        EnzoHierarchy.__init__(self, *args, **kwargs)
-        self.gridLeftEdge[:,1:3] = 0.0
-        self.gridRightEdge[:,1:3] = 1.0
-        self.gridDimensions[:,1:3] = 1.0
-        self.gridDys[:,0] = 1.0
-        self.gridDzs[:,0] = 1.0
-        for g in self.grids:
-            g._prepare_grid()
-            g._setup_dx()
+
+    def _fill_arrays(self, ei, si, LE, RE, np):
+        self.grid_dimensions[:,:1] = ei
+        self.grid_dimensions[:,:1] -= na.array(si, self.float_type)
+        self.grid_dimensions += 1
+        self.grid_left_edge[:,:2] = LE
+        self.grid_right_edge[:,:2] = RE
+        self.grid_particle_count.flat[:] = np
+        self.grid_left_edge[:,1:2] = 0.0
+        self.grid_right_edge[:,1:2] = 1.0
+        self.grid_dimensions[:,1:2] = 1
 
 class EnzoHierarchy2D(EnzoHierarchy):
-    def __init__(self, *args, **kwargs):
-        EnzoHierarchy.__init__(self, *args, **kwargs)
-        self.gridLeftEdge[:,2] = 0.0
-        self.gridRightEdge[:,2] = 1.0
-        self.gridDimensions[:,2] = 1.0
-        self.gridDzs[:,0] = 1.0
-        for g in self.grids:
-            g._prepare_grid()
-            g._setup_dx()
+
+    def _fill_arrays(self, ei, si, LE, RE, np):
+        self.grid_dimensions[:,:2] = ei
+        self.grid_dimensions[:,:2] -= na.array(si, self.float_type)
+        self.grid_dimensions += 1
+        self.grid_left_edge[:,:2] = LE
+        self.grid_right_edge[:,:2] = RE
+        self.grid_particle_count.flat[:] = np
+        self.grid_left_edge[:,2] = 0.0
+        self.grid_right_edge[:,2] = 1.0
+        self.grid_dimensions[:,2] = 1
 
 scanf_regex = {}
 scanf_regex['e'] = r"[-+]?\d+\.?\d*?|\.\d+[eE][-+]?\d+?"
