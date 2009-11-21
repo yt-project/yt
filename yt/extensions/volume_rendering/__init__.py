@@ -26,8 +26,8 @@ License:
 import numpy as na
 
 from TransferFunction import TransferFunction, ColorTransferFunction
-from yt.utils import PartitionedGrid, VectorPlane, \
-                     TransferFunctionProxy
+from yt.amr_utils import PartitionedGrid, VectorPlane, \
+                             TransferFunctionProxy
 from grid_partitioner import partition_all_grids, partition_grid, \
                              export_partitioned_grids, \
                              import_partitioned_grids
