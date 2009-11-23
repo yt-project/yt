@@ -477,8 +477,7 @@ class YTCommands(cmdln.Cmdln):
         # Also, return the virial mass and radius to be written out to a file.
         hp.add_halo_filter(HP.VirialFilter,must_be_virialized=True,
                            overdensity_field='ActualOverdensity',
-                           virial_overdensity=200,
-                           virial_filters=[['TotalMassMsun','>=','1e14']],
+                           virial_overdensity=200, virial_filters=[],
                            virial_quantities=['TotalMassMsun','RadiusMpc'])
 
         # Add profile fields.
