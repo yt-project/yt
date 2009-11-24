@@ -163,10 +163,10 @@ class ContourCallback(PlotCallback):
         XShifted = copy.copy(plot.data["px"])
         YShifted = copy.copy(plot.data["py"])
         for shift in na.mgrid[-1:1:3j]*DomainWidth:
-            xlim = na.logical_and(plot.data["px"] + shift >= x0*0.9,
-                                  plot.data["px"] + shift <= x1*1.1)
-            ylim = na.logical_and(plot.data["py"] + shift >= y0*0.9,
-                                  plot.data["py"] + shift <= y1*1.1)
+            xlim = na.logical_and(plot.data["px"] + shift >= x0,
+                                  plot.data["px"] + shift <= x1)
+            ylim = na.logical_and(plot.data["py"] + shift >= y0,
+                                  plot.data["py"] + shift <= y1)
 
             XShifted[na.where(xlim)] += shift
             YShifted[na.where(ylim)] += shift
