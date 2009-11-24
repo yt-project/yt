@@ -289,7 +289,7 @@ class GridBoundaryCallback(PlotCallback):
             if verts.size == 0: continue
             edgecolors = (0.0,0.0,0.0,self.alpha)
             grid_collection = matplotlib.collections.PolyCollection(
-                    verts, facecolors=(0.0,0.0,0.0,0.0),
+                    verts, facecolors="none",
                            edgecolors=edgecolors)
             plot._axes.hold(True)
             plot._axes.add_collection(grid_collection)
