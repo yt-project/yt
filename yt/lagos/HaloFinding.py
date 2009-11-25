@@ -981,7 +981,7 @@ class HOPHaloFinder(GenericHaloFinder, HOPHaloList):
         padded, LE, RE, self._data_source = self._partition_hierarchy_3d(padding=self.padding)
         # For scaling the threshold, note that it's a passthrough
         if dm_only:
-            select = self._data_source["creation_time"] > 0
+            select = self.__get_dm_indices()
             total_mass = self._mpi_allsum((self._data_source["ParticleMassMsun"][select]).sum())
             sub_mass = (self._data_source["ParticleMassMsun"][select]).sum()
         else:
