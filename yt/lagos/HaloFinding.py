@@ -342,7 +342,7 @@ class HaloList(object):
         mylog.debug("Finished. (%s)", len(self))
 
     def __obtain_particles(self):
-        if self.dm_only: ii = self.__get_dm_indices()
+        if self.dm_only: ii = self._get_dm_indices()
         else: ii = slice(None)
         self.particle_fields = {}
         for field in self._fields:
@@ -360,7 +360,7 @@ class HaloList(object):
                     self.particle_fields[field] = self._data_source[field][ii].astype('float64')
         self._base_indices = na.arange(tot_part)[ii]
 
-    def __get_dm_indices(self):
+    def _get_dm_indices(self):
         if 'creation_time' in self._data_source.hierarchy.field_list:
             mylog.debug("Differentiating based on creation time")
             return (self._data_source["creation_time"] < 0)
@@ -981,7 +981,7 @@ class HOPHaloFinder(GenericHaloFinder, HOPHaloList):
         padded, LE, RE, self._data_source = self._partition_hierarchy_3d(padding=self.padding)
         # For scaling the threshold, note that it's a passthrough
         if dm_only:
-            select = self.__get_dm_indices()
+            select = self._get_dm_indices()
             total_mass = self._mpi_allsum((self._data_source["ParticleMassMsun"][select]).sum())
             sub_mass = (self._data_source["ParticleMassMsun"][select]).sum()
         else:
