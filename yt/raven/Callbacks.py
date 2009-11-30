@@ -347,7 +347,7 @@ class LinePlotCallback(PlotCallback):
         plot._axes.hold(False)
 
 class CuttingQuiverCallback(PlotCallback):
-    _type_name = "quiver"
+    _type_name = "cquiver"
     def __init__(self, field_x, field_y, factor):
         """
         Get a quiver plot on top of a cutting plane, using *field_x* and
