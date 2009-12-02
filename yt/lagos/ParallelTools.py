@@ -778,6 +778,13 @@ class ParallelAnalysisInterface(object):
         mylog.debug("Opening MPI Barrier on %s", MPI.COMM_WORLD.rank)
         MPI.COMM_WORLD.Barrier()
 
+    def _mpi_exit_test(self, data=False):
+        # data==True -> exit. data==False -> no exit
+        statuses = self._mpi_info_dict(data)
+        if True in statuses.values():
+            raise RunTimeError("Fatal error. Exiting.")
+        return None
+
     @parallel_passthrough
     def _mpi_catdict(self, data):
         field_keys = data.keys()
