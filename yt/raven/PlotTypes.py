@@ -157,6 +157,7 @@ class RavenPlot(object):
         """
         # This next call fixes some things, but is slower...
         self._redraw_image()
+        self.set_autoscale(False)
         if (zmin in (None,'min')) or (zmax in (None,'max')):    
             imbuff = self._axes.images[-1]._A
             if zmin == 'min':

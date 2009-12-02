@@ -227,11 +227,10 @@ class ContourCallback(PlotCallback):
         XShifted = copy.copy(plot.data["px"])
         YShifted = copy.copy(plot.data["py"])
         for shift in na.mgrid[-1:1:3j]*DomainWidth:
-            xlim = na.logical_and(plot.data["px"] + shift >= x0*0.9,
-                                  plot.data["px"] + shift <= x1*1.1)
-            ylim = na.logical_and(plot.data["py"] + shift >= y0*0.9,
-                                  plot.data["py"] + shift <= y1*1.1)
-
+            xlim = na.logical_and(plot.data["px"] + shift >= x0,
+                                  plot.data["px"] + shift <= x1)
+            ylim = na.logical_and(plot.data["py"] + shift >= y0,
+                                  plot.data["py"] + shift <= y1)
             XShifted[na.where(xlim)] += shift
             YShifted[na.where(ylim)] += shift
             AllX = na.logical_or(AllX, xlim)
@@ -289,7 +288,7 @@ class GridBoundaryCallback(PlotCallback):
             if verts.size == 0: continue
             edgecolors = (0.0,0.0,0.0,self.alpha)
             grid_collection = matplotlib.collections.PolyCollection(
-                    verts, facecolors=(0.0,0.0,0.0,0.0),
+                    verts, facecolors="none",
                            edgecolors=edgecolors)
             plot._axes.hold(True)
             plot._axes.add_collection(grid_collection)
@@ -399,7 +398,7 @@ class LinePlotCallback(PlotCallback):
         plot._axes.hold(False)
 
 class CuttingQuiverCallback(PlotCallback):
-    _type_name = "quiver"
+    _type_name = "cquiver"
     def __init__(self, field_x, field_y, factor):
         """
         Get a quiver plot on top of a cutting plane, using *field_x* and
