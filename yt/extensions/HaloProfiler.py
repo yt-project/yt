@@ -419,7 +419,7 @@ class HaloProfiler(lagos.ParallelAnalysisInterface):
         # Set resolution for fixed resolution output.
         if save_cube:
             if self.project_at_level == 'max':
-                proj_level = self.pf.h.maxLevel
+                proj_level = self.pf.h.max_level
             else:
                 proj_level = int(self.project_at_level)
             proj_dx = self.pf.units[self.projection_width_units] / self.pf.parameters['TopGridDimensions'][0] / \

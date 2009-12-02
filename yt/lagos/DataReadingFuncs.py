@@ -240,6 +240,9 @@ class IOHandlerPackedHDF5(BaseIOHandler):
         return HDF5LightReader.ReadListOfDatasets(
                     grid.filename, "/Grid%08i" % grid.id)
 
+    @property
+    def _read_exception(self):
+        return (exceptions.KeyError, HDF5LightReader.ReadingError)
 
 class IOHandlerInMemory(BaseIOHandler):
 

@@ -511,6 +511,7 @@ class EnzoHierarchy(AMRHierarchy):
         mylog.info("Finished with binary hierarchy reading")
         return True
 
+    @parallel_blocking_call
     def _store_binary_hierarchy(self):
         # We don't do any of the logic here, we just check if the data file
         # is open...
