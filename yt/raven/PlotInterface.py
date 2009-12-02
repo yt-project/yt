@@ -43,7 +43,7 @@ def check_plot_args(func):
 
 @check_plot_args
 def get_slice(pf, field, axis, center=None, axes=None, figure=None,
-              use_colorbar=True, **kwargs):
+              use_colorbar=True, periodic=True, **kwargs):
     """
     Get a single slice plot, with standard *field*, *axis* and *center*
     arguments.
@@ -51,21 +51,23 @@ def get_slice(pf, field, axis, center=None, axes=None, figure=None,
     coord = center[axis]
     data_source = pf.hierarchy.slice(axis, coord, field, center, **kwargs)
     plot = PlotTypes.SlicePlot(data_source, field,
-            use_colorbar=use_colorbar, axes=axes, figure=figure)
+            use_colorbar=use_colorbar, axes=axes, figure=figure,
+            periodic=periodic)
     plot["Axis"] = lagos.axis_names[axis]
     return plot
 
 @check_plot_args
 def get_projection(pf, field, axis, weight_field=None, center=None,
                    axes=None, figure=None,
-              use_colorbar=True, **kwargs):
+              use_colorbar=True, periodic=True, **kwargs):
     """
     Get a single projection plot, with standard *field*, *axis* and *center*
     arguments.
     """
     data_source = pf.hierarchy.proj(axis, field, weight_field, center=center, **kwargs)
     plot = PlotTypes.ProjectionPlot(data_source, field,
-            use_colorbar=use_colorbar, axes=axes, figure=figure)
+            use_colorbar=use_colorbar, axes=axes, figure=figure,
+            periodic=periodic)
     plot["Axis"] = lagos.axis_names[axis]
     return plot
 
