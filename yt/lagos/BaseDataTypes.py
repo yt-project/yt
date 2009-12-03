@@ -2613,6 +2613,8 @@ class AMRIntSmoothedCoveringGridBase(AMRCoveringGridBase):
         for ax, v in zip('xyz', dx): self['cd%s'%ax] = v
         self._old_global_startindex = self.global_startindex
         self.global_startindex = na.array(na.floor(self.left_edge / dx) - 1, dtype='int64')
+        self.domain_width = na.rint((self.pf["DomainRightEdge"] -
+                    self.pf["DomainLeftEdge"])/dx).astype('int64')
         if level == 0:
             # We use one grid cell at LEAST, plus one buffer on all sides
             idims = na.ceil((self.right_edge-self.left_edge)/dx) + 2
