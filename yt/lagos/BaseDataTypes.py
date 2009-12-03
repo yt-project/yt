@@ -2617,38 +2617,32 @@ class AMRIntSmoothedCoveringGridBase(AMRCoveringGridBase):
             # We use one grid cell at LEAST, plus one buffer on all sides
             idims = na.ceil((self.right_edge-self.left_edge)/dx) + 2
             self[field] = na.zeros(idims,dtype='float64')-999
-            self._old_global_startindex = self.global_startindex
 
     def _refine(self, dlevel, field, level):
-        # This takes the current 
         rf = float(self.pf["RefineBy"]**dlevel)
-        # Strip off our buffer cells
-        old_dims = na.array([s - 2 for s in self[field].shape])
-        # Add buffer on to the new dims
-        dx = na.array([self['cd%s' % ax] for ax in 'xyz'], dtype='float64')
-        new_dims = na.ceil((self.right_edge-self.left_edge)/dx) + 2
-        # We don't care about physical bounds, we're only looking at current
-        # bounds.  Physical bounds come in during the value deposition.  Note
-        # also that we have cell-centered data.
+
+        old_dims = na.array(self[field].shape) - 1
         old_left = (self._old_global_startindex + 0.5) * rf 
         old_right = rf*old_dims + old_left
         old_bounds = [old_left[0], old_right[0],
                       old_left[1], old_right[1],
                       old_left[2], old_right[2]]
+
+        dx = na.array([self['cd%s' % ax] for ax in 'xyz'], dtype='float64')
+        new_dims = na.ceil((self.right_edge-self.left_edge)/dx) + 2
+
         # x, y, z are the new bounds
         x,y,z = (na.mgrid[0:new_dims[0], 0:new_dims[1], 0:new_dims[2]]
                     ).astype('float64') + 0.5
         x += self.global_startindex[0]
         y += self.global_startindex[1]
         z += self.global_startindex[2]
-        print old_bounds, x.min(), x.max(), y.min(), y.max(), z.min(), z.max()
         fake_grid = {'x':x,'y':y,'z':z}
+
         interpolator = TrilinearFieldInterpolator(
                         self[field], old_bounds, ['x','y','z'],
                         truncate = True)
-        print 1, self[field].min(), self[field].max()
         self[field] = interpolator(fake_grid)
-        print 2, self[field].min(), self[field].max()
 
     def _get_data_from_grid(self, grid, fields, level):
         fields = ensure_list(fields)
@@ -2660,8 +2654,6 @@ class AMRIntSmoothedCoveringGridBase(AMRCoveringGridBase):
             na.array(self[field].shape, dtype='int32'),
             grid.ActiveDimensions,
             grid.child_mask, self.domain_width, 1, 0)
-        print count
-        #import pdb; pdb.set_trace()
         return count
 
     def flush_data(self, *args, **kwargs):
