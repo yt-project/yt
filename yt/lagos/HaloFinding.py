@@ -342,7 +342,7 @@ class HaloList(object):
         mylog.debug("Finished. (%s)", len(self))
 
     def __obtain_particles(self):
-        if self.dm_only: ii = self.__get_dm_indices()
+        if self.dm_only: ii = self._get_dm_indices()
         else: ii = slice(None)
         self.particle_fields = {}
         for field in self._fields:
@@ -360,7 +360,7 @@ class HaloList(object):
                     self.particle_fields[field] = self._data_source[field][ii].astype('float64')
         self._base_indices = na.arange(tot_part)[ii]
 
-    def __get_dm_indices(self):
+    def _get_dm_indices(self):
         if 'creation_time' in self._data_source.hierarchy.field_list:
             mylog.debug("Differentiating based on creation time")
             return (self._data_source["creation_time"] < 0)
@@ -599,6 +599,16 @@ class parallelHOPHaloList(HaloList,ParallelAnalysisInterface):
 
     def _run_finder(self):
         yt_counters("Reading Data")
+        # Test to make sure the particle IDs aren't suspicious.
+        exit = False
+        if (self.particle_fields["particle_index"] < 0).any():
+            mylog.error("Negative values in particle_index field. Parallel HOP will fail.")
+            exit = True
+        if na.unique(self.particle_fields["particle_index"]).size != \
+                self.particle_fields["particle_index"].size:
+            mylog.error("Non-unique values in particle_index field. Parallel HOP will fail.")
+            exit = True
+        self._mpi_exit_test(exit)
         obj = RunParallelHOP(self.period, self.padding,
             self.num_neighbors, self.bounds,
             self.particle_fields["particle_position_x"],
@@ -981,7 +991,7 @@ class HOPHaloFinder(GenericHaloFinder, HOPHaloList):
         padded, LE, RE, self._data_source = self._partition_hierarchy_3d(padding=self.padding)
         # For scaling the threshold, note that it's a passthrough
         if dm_only:
-            select = self._data_source["creation_time"] > 0
+            select = self._get_dm_indices()
             total_mass = self._mpi_allsum((self._data_source["ParticleMassMsun"][select]).sum())
             sub_mass = (self._data_source["ParticleMassMsun"][select]).sum()
         else:

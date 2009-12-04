@@ -457,17 +457,17 @@ def _DivV(field, data):
         sl_left = slice(None,-2,None)
         sl_right = slice(2,None,None)
         div_fac = 2.0
-    div_x = (data["x-velocity"][sl_right,1:-1,1:-1] -
-             data["x-velocity"][sl_left,1:-1,1:-1]) \
-          / (div_fac*data["dx"].flat[0])
-    div_y = (data["y-velocity"][1:-1,sl_right,1:-1] -
-             data["y-velocity"][1:-1,sl_left,1:-1]) \
-          / (div_fac*data["dy"].flat[0])
-    div_z = (data["z-velocity"][1:-1,1:-1,sl_right] -
-             data["z-velocity"][1:-1,1:-1,sl_left]) \
-          / (div_fac*data["dz"].flat[0])
-    new_field = na.zeros(data["x-velocity"].shape)
-    new_field[1:-1,1:-1,1:-1] = div_x+div_y+div_z
+    ds = div_fac * data['dx'].flat[0]
+    f  = data["x-velocity"][sl_right,1:-1,1:-1]/ds
+    f -= data["x-velocity"][sl_left ,1:-1,1:-1]/ds
+    ds = div_fac * data['dy'].flat[0]
+    f += data["y-velocity"][1:-1,sl_right,1:-1]/ds
+    f -= data["y-velocity"][1:-1,sl_left ,1:-1]/ds
+    ds = div_fac * data['dz'].flat[0]
+    f += data["z-velocity"][1:-1,1:-1,sl_right]/ds
+    f -= data["z-velocity"][1:-1,1:-1,sl_left ]/ds
+    new_field = na.zeros(data["x-velocity"].shape, dtype='float64')
+    new_field[1:-1,1:-1,1:-1] = f
     return na.abs(new_field)
 def _convertDivV(data):
     return data.convert("cm")**-1.0

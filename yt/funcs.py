@@ -320,6 +320,8 @@ def get_pbar(title, maxval):
             if EMBEDDED_MODE: return DummyProgressBar()
         except:
             pass
+    elif "CODENODE" in os.environ:
+        return DummyProgressBar()
     widgets = [ title,
             pb.Percentage(), ' ',
             pb.Bar(marker=pb.RotatingMarker()),

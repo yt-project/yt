@@ -2394,7 +2394,6 @@ class AMRSmoothedCoveringGridBase(AMRFloatCoveringGridBase):
                 continue
             mylog.debug("Getting field %s from %s possible grids",
                        field, len(self._grids))
-            self[field] = na.zeros(self.ActiveDimensions, dtype='float64') -999
             if self._use_pbar: pbar = \
                     get_pbar('Searching grids for values ', len(self._grids))
             # How do we find out the root grid base dx?
@@ -2566,14 +2565,102 @@ class AMRCoveringGridBase(AMR3DData):
         return self.right_edge
 
 class AMRIntSmoothedCoveringGridBase(AMRCoveringGridBase):
-    _skip_add = True
+    _type_name = "si_covering_grid"
+    @wraps(AMRCoveringGridBase.__init__)
+    def __init__(self, *args, **kwargs):
+        AMRCoveringGridBase.__init__(self, *args, **kwargs)
+        self._final_start_index = self.global_startindex
+
     def _get_list_of_grids(self):
         buffer = self.pf.h.select_grids(0)[0].dds
-        AMRCoveringGridBase._get_list_of_grids(buffer)
+        AMRCoveringGridBase._get_list_of_grids(self, buffer)
         self._grids = self._grids[::-1]
 
-    def _get_data_from_grid(self, grid, fields):
-        pass
+    def get_data(self, field=None):
+        dx = [self.pf.h.select_grids(l)[0].dds for l in range(self.level+1)]
+        self._get_list_of_grids()
+        # We don't generate coordinates here.
+        if field == None:
+            fields_to_get = self.fields
+        else:
+            fields_to_get = ensure_list(field)
+        for field in fields_to_get:
+            grid_count = 0
+            if self.data.has_key(field):
+                continue
+            mylog.debug("Getting field %s from %s possible grids",
+                       field, len(self._grids))
+            if self._use_pbar: pbar = \
+                    get_pbar('Searching grids for values ', len(self._grids))
+            # Note that, thanks to some trickery, we have different dimensions
+            # on the field than one might think from looking at the dx and the
+            # L/R edges.
+            # We jump-start our task here
+            self._update_level_state(0, field)
+            for level in range(self.level+1):
+                for grid in self.select_grids(level):
+                    if self._use_pbar: pbar.update(grid_count)
+                    self._get_data_from_grid(grid, field, level)
+                    grid_count += 1
+                if level < self.level:
+                    self._update_level_state(level + 1)
+                    self._refine(1, field, level)
+            self[field] = self[field][1:-1,1:-1,1:-1]
+            if self._use_pbar: pbar.finish()
+
+    def _update_level_state(self, level, field = None):
+        dx = self.pf.h.select_grids(level)[0].dds
+        for ax, v in zip('xyz', dx): self['cd%s'%ax] = v
+        self._old_global_startindex = self.global_startindex
+        self.global_startindex = na.array(na.floor(self.left_edge / dx) - 1, dtype='int64')
+        self.domain_width = na.rint((self.pf["DomainRightEdge"] -
+                    self.pf["DomainLeftEdge"])/dx).astype('int64')
+        if level == 0:
+            # We use one grid cell at LEAST, plus one buffer on all sides
+            idims = na.ceil((self.right_edge-self.left_edge)/dx) + 2
+            self[field] = na.zeros(idims,dtype='float64')-999
+
+    def _refine(self, dlevel, field, level):
+        rf = float(self.pf["RefineBy"]**dlevel)
+
+        old_dims = na.array(self[field].shape) - 1
+        old_left = (self._old_global_startindex + 0.5) * rf 
+        old_right = rf*old_dims + old_left
+        old_bounds = [old_left[0], old_right[0],
+                      old_left[1], old_right[1],
+                      old_left[2], old_right[2]]
+
+        dx = na.array([self['cd%s' % ax] for ax in 'xyz'], dtype='float64')
+        new_dims = na.ceil((self.right_edge-self.left_edge)/dx) + 2
+
+        # x, y, z are the new bounds
+        x,y,z = (na.mgrid[0:new_dims[0], 0:new_dims[1], 0:new_dims[2]]
+                    ).astype('float64') + 0.5
+        x += self.global_startindex[0]
+        y += self.global_startindex[1]
+        z += self.global_startindex[2]
+        fake_grid = {'x':x,'y':y,'z':z}
+
+        interpolator = TrilinearFieldInterpolator(
+                        self[field], old_bounds, ['x','y','z'],
+                        truncate = True)
+        self[field] = interpolator(fake_grid)
+
+    def _get_data_from_grid(self, grid, fields, level):
+        fields = ensure_list(fields)
+        g_fields = [grid[field] for field in fields]
+        c_fields = [self[field] for field in fields]
+        count = PointCombine.FillRegion(1,
+            grid.get_global_startindex(), self.global_startindex,
+            c_fields, g_fields, 
+            na.array(self[field].shape, dtype='int32'),
+            grid.ActiveDimensions,
+            grid.child_mask, self.domain_width, 1, 0)
+        return count
+
+    def flush_data(self, *args, **kwargs):
+        raise KeyError("Can't do this")
+
 
 def _reconstruct_object(*args, **kwargs):
     pfid = args[0]

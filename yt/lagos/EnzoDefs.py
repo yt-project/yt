@@ -52,6 +52,7 @@ mu = 1.22
 parameterDict = {"CosmologyCurrentRedshift": float,
                  "CosmologyComovingBoxSize": float,
                  "CosmologyOmegaMatterNow": float,
+                 "CosmologyOmegaLambdaNow": float,
                  "CosmologyHubbleConstantNow": float,
                  "CosmologyInitialRedshift": float,
                  "DualEnergyFormalismEta1": float,
