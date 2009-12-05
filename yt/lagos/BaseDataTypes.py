@@ -2604,23 +2604,28 @@ class AMRIntSmoothedCoveringGridBase(AMRCoveringGridBase):
                     grid_count += 1
                 if level < self.level:
                     self._update_level_state(level + 1)
-                    self._refine(1, field, level)
-            self[field] = self[field][1:-1,1:-1,1:-1]
+                    self._refine(1, field)
+            if self.level > 0:
+                self[field] = self[field][1:-1,1:-1,1:-1]
             if self._use_pbar: pbar.finish()
 
     def _update_level_state(self, level, field = None):
         dx = self.pf.h.select_grids(level)[0].dds
         for ax, v in zip('xyz', dx): self['cd%s'%ax] = v
         self._old_global_startindex = self.global_startindex
-        self.global_startindex = na.array(na.floor(self.left_edge / dx) - 1, dtype='int64')
+        self.global_startindex = na.array(na.floor(1.000001*self.left_edge / dx) - 1, dtype='int64')
         self.domain_width = na.rint((self.pf["DomainRightEdge"] -
                     self.pf["DomainLeftEdge"])/dx).astype('int64')
-        if level == 0:
+        if level == 0 and self.level > 0:
             # We use one grid cell at LEAST, plus one buffer on all sides
             idims = na.ceil((self.right_edge-self.left_edge)/dx) + 2
             self[field] = na.zeros(idims,dtype='float64')-999
+        elif level == 0 and self.level == 0:
+            self.global_startindex = na.array(na.floor(self.left_edge / dx), dtype='int64')
+            idims = na.ceil((self.right_edge-self.left_edge)/dx)
+            self[field] = na.zeros(idims,dtype='float64')-999
 
-    def _refine(self, dlevel, field, level):
+    def _refine(self, dlevel, field):
         rf = float(self.pf["RefineBy"]**dlevel)
 
         old_dims = na.array(self[field].shape) - 1
@@ -2631,7 +2636,7 @@ class AMRIntSmoothedCoveringGridBase(AMRCoveringGridBase):
                       old_left[2], old_right[2]]
 
         dx = na.array([self['cd%s' % ax] for ax in 'xyz'], dtype='float64')
-        new_dims = na.ceil((self.right_edge-self.left_edge)/dx) + 2
+        new_dims = na.ceil(0.999999999 * (self.right_edge-self.left_edge)/dx) + 2
 
         # x, y, z are the new bounds
         x,y,z = (na.mgrid[0:new_dims[0], 0:new_dims[1], 0:new_dims[2]]
