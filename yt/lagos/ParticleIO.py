@@ -100,6 +100,7 @@ class ParticleIOHandlerRegion(ParticleIOHandler):
                 conv_factors.append(na.ones(len(grid_list), dtype='float64'))
             else:
                 to_add = f.get_dependencies(pf = self.pf).requested
+                to_add = list(na.unique(to_add))
                 if len(to_add) != 1: raise KeyError
                 fields_to_read += to_add
                 conv_factors.append(

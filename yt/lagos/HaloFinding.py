@@ -599,6 +599,16 @@ class parallelHOPHaloList(HaloList,ParallelAnalysisInterface):
 
     def _run_finder(self):
         yt_counters("Reading Data")
+        # Test to make sure the particle IDs aren't suspicious.
+        exit = False
+        if (self.particle_fields["particle_index"] < 0).any():
+            mylog.error("Negative values in particle_index field. Parallel HOP will fail.")
+            exit = True
+        if na.unique(self.particle_fields["particle_index"]).size != \
+                self.particle_fields["particle_index"].size:
+            mylog.error("Non-unique values in particle_index field. Parallel HOP will fail.")
+            exit = True
+        self._mpi_exit_test(exit)
         obj = RunParallelHOP(self.period, self.padding,
             self.num_neighbors, self.bounds,
             self.particle_fields["particle_position_x"],
