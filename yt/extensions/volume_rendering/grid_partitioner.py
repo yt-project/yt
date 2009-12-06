@@ -154,11 +154,13 @@ class PartitionRegion(object):
 
     @property
     def cim(self):
+        return self._cim[self.sl]
+
+    @property
+    def sl(self):
         sls = self.source_offset
         sle = self.source_offset + self.dims
-        return self._cim[sls[0]:sle[0],
-                         sls[1]:sle[1],
-                         sls[2]:sle[2]]
+        return tuple([slice(sls[i], sle[i]) for i in range(3)])
 
     def split(self, axis, coord):
         dims_left = self.dims.copy()
