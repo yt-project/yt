@@ -652,11 +652,6 @@ class ParallelAnalysisInterface(object):
         return ne
         
         
-    def _barrier(self):
-        if not self._distributed: return
-        mylog.debug("Opening MPI Barrier on %s", MPI.COMM_WORLD.rank)
-        MPI.COMM_WORLD.Barrier()
-
     def _mpi_exit_test(self, data=False):
         # data==True -> exit. data==False -> no exit
         statuses = self._mpi_info_dict(data)
@@ -664,20 +659,6 @@ class ParallelAnalysisInterface(object):
             raise RunTimeError("Fatal error. Exiting.")
         return None
 
-    @parallel_passthrough
-    def _mpi_catdict(self, data):
-        field_keys = data.keys()
-        field_keys.sort()
-        size = data[field_keys[0]].shape[-1]
-        # MPI_Scan is an inclusive scan
-        sizes = MPI.COMM_WORLD.alltoall( [size]*MPI.COMM_WORLD.size )
-        offsets = na.add.accumulate([0] + sizes)[:-1]
-        arr_size = MPI.COMM_WORLD.allreduce(size, op=MPI.SUM)
-        for key in field_keys:
-            dd = data[key]
-            rv = _alltoallv_array(dd, arr_size, offsets, sizes)
-            data[key] = rv
-        return data
 
     @parallel_passthrough
     def _mpi_joindict(self, data):
@@ -1010,49 +991,6 @@ class ParallelAnalysisInterface(object):
         return (top_keys, bot_keys, vals)
 
     @parallel_passthrough
-    def __mpi_recvlist(self, data):
-        # First we receive, then we make a new list.
-        data = ensure_list(data)
-        for i in range(1,MPI.COMM_WORLD.size):
-            buf = ensure_list(MPI.COMM_WORLD.recv(source=i, tag=0))
-            data += buf
-        return data
-
-    @parallel_passthrough
-    def _mpi_catlist(self, data):
-        self._barrier()
-        if MPI.COMM_WORLD.rank == 0:
-            data = self.__mpi_recvlist(data)
-        else:
-            MPI.COMM_WORLD.send(data, dest=0, tag=0)
-        mylog.debug("Opening MPI Broadcast on %s", MPI.COMM_WORLD.rank)
-        data = MPI.COMM_WORLD.bcast(data, root=0)
-        self._barrier()
-        return data
-
-    @parallel_passthrough
-    def __mpi_recvarrays(self, data):
-        # First we receive, then we make a new list.
-        for i in range(1,MPI.COMM_WORLD.size):
-            buf = _recv_array(source=i, tag=0)
-            if buf is not None:
-                if data is None: data = buf
-                else: data = na.concatenate([data, buf])
-        return data
-
-    @parallel_passthrough
-    def _mpi_catarray(self, data):
-        self._barrier()
-        if MPI.COMM_WORLD.rank == 0:
-            data = self.__mpi_recvarrays(data)
-        else:
-            _send_array(data, dest=0, tag=0)
-        mylog.debug("Opening MPI Broadcast on %s", MPI.COMM_WORLD.rank)
-        data = _bcast_array(data, root=0)
-        self._barrier()
-        return data
-
-    @parallel_passthrough
     def _mpi_bcast_pickled(self, data):
         self._barrier()
         data = MPI.COMM_WORLD.bcast(data, root=0)
@@ -1060,7 +998,7 @@ class ParallelAnalysisInterface(object):
 
     def _should_i_write(self):
         if not self._distributed: return True
-        return (MPI.COMM_WORLD == 0)
+        return (self._comm.rank == 0)
 
     def _preload(self, grids, fields, io_handler):
         # This will preload if it detects we are parallel capable and
@@ -1111,16 +1049,6 @@ class ParallelAnalysisInterface(object):
         del temp
         return data
 
-    @parallel_passthrough
-    def _mpi_allmax(self, data):
-        self._barrier()
-        return MPI.COMM_WORLD.allreduce(data, op=MPI.MAX)
-
-    @parallel_passthrough
-    def _mpi_allmin(self, data):
-        self._barrier()
-        return MPI.COMM_WORLD.allreduce(data, op=MPI.MIN)
-
     ###
     # Non-blocking stuff.
     ###
@@ -1149,14 +1077,6 @@ class ParallelAnalysisInterface(object):
     # End non-blocking stuff.
     ###
 
-    def _mpi_get_size(self):
-        if not self._distributed: return None
-        return MPI.COMM_WORLD.size
-
-    def _mpi_get_rank(self):
-        if not self._distributed: return None
-        return MPI.COMM_WORLD.rank
-
     def _mpi_info_dict(self, info):
         if not self._distributed: return 0, {0:info}
         self._barrier()
@@ -1181,7 +1101,7 @@ class ParallelAnalysisInterface(object):
 
     def _claim_object(self, obj):
         if not self._distributed: return
-        obj._owner = MPI.COMM_WORLD.rank
+        obj._owner = self._comm.rank
         obj._distributed = True
 
     def _do_not_claim_object(self, obj):
@@ -1190,8 +1110,7 @@ class ParallelAnalysisInterface(object):
         obj._distributed = True
 
     def _write_on_root(self, fn):
-        if not self._distributed: return open(fn, "w")
-        if MPI.COMM_WORLD.rank == 0:
+        if self._should_i_write():
             return open(fn, "w")
         else:
             return cStringIO.StringIO()
@@ -1205,5 +1124,5 @@ class ParallelAnalysisInterface(object):
 
     def _is_mine(self, obj):
         if not obj._distributed: return True
-        return (obj._owner == MPI.COMM_WORLD.rank)
+        return (obj._owner == self._comm.rank)
 
