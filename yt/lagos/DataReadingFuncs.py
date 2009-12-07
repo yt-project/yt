@@ -411,4 +411,4 @@ def readDataSliceNative(self, grid, field, axis, coord):
     sl = [slice(None), slice(None), slice(None)]
     sl[axis] = slice(coord, coord + 1)
     #sl = tuple(reversed(sl))
-    return grid.readDataFast(field)[sl]
+    return grid.readDataNative(field)[sl]

@@ -59,7 +59,6 @@ class AMRHierarchy(ObjectFindingMixin, ParallelAnalysisInterface):
         self._setup_data_io()
 
         mylog.debug("Detecting fields.")
-        self.field_list = []
         self._detect_fields()
 
         mylog.debug("Adding unknown detected fields")
@@ -480,6 +479,7 @@ class EnzoHierarchy(AMRHierarchy):
         self.max_level = self.grid_levels.max()
 
     def _detect_fields(self):
+        self.field_list = []
         # Do this only on the root processor to save disk work.
         if self._mpi_get_rank() == 0 or self._mpi_get_rank() == None:
             field_list = self.get_data("/", "DataFields")
@@ -749,6 +749,7 @@ def rlines(f, keepends=False):
     yield buf  # First line.
 
 class OrionHierarchy(AMRHierarchy):
+    grid = OrionGrid
     def __init__(self, pf, data_style='orion_native'):
         self.field_info = OrionFieldContainer()
         self.field_indexes = {}
@@ -756,13 +757,15 @@ class OrionHierarchy(AMRHierarchy):
         header_filename = os.path.join(pf.fullplotdir,'Header')
         self.directory = pf.fullpath
         self.data_style = data_style
-        self._setup_classes()
+        #self._setup_classes()
+
         self.readGlobalHeader(header_filename,self.parameter_file.paranoid_read) # also sets up the grid objects
         self.__cache_endianness(self.levels[-1].grids[-1])
-        AMRHierarchy.__init__(self,pf)
+        AMRHierarchy.__init__(self,pf, self.data_style)
         self._setup_data_io()
         self._setup_field_list()
-
+        self._populate_hierarchy()
+        
     def readGlobalHeader(self,filename,paranoid_read):
         """
         read the global header file for an Orion plotfile output.
@@ -892,7 +895,7 @@ class OrionHierarchy(AMRHierarchy):
                 lo = na.array([xlo,ylo,zlo])
                 hi = na.array([xhi,yhi,zhi])
                 dims,start,stop = self.__calculate_grid_dimensions(start_stop_index[grid])
-                self.levels[-1].grids.append(self.grid(lo,hi,grid_counter,level,gfn, gfo, dims,start,stop,paranoia=paranoid_read))
+                self.levels[-1].grids.append(self.grid(lo,hi,grid_counter,level,gfn, gfo, dims,start,stop,paranoia=paranoid_read,hierarchy=self))
                 grid_counter += 1 # this is global, and shouldn't be reset
                                   # for each level
 
@@ -940,29 +943,29 @@ class OrionHierarchy(AMRHierarchy):
         return dimension,start,stop
         
 
-    def _initialize_grids(self):
+    def _populate_grid_objects(self):
         mylog.debug("Allocating memory for %s grids", self.num_grids)
-        self.gridDimensions = na.zeros((self.num_grids,3), 'int32')
-        self.gridStartIndices = na.zeros((self.num_grids,3), 'int32')
-        self.gridEndIndices = na.zeros((self.num_grids,3), 'int32')
-        self.gridTimes = na.zeros((self.num_grids,1), 'float64')
-        self.gridNumberOfParticles = na.zeros((self.num_grids,1))
-        mylog.debug("Done allocating")
+    #self.grid_dimensons = na.zeros((self.num_grids,3), 'int32')
+    #self.gridStartIndices = na.zeros((self.num_grids,3), 'int32')
+    #self.gridEndIndices = na.zeros((self.num_grids,3), 'int32')
+    #self.gridTimes = na.zeros((self.num_grids,1), 'float64')
+    #self.gridNumberOfParticles = na.zeros((self.num_grids,1))
+    
         mylog.debug("Creating grid objects")
         self.grids = na.concatenate([level.grids for level in self.levels])
-        self.gridLevels = na.concatenate([level.ngrids*[level.level] for level in self.levels])
-        self.gridLevels = self.gridLevels.reshape((self.num_grids,1))
-        gridDcs = na.concatenate([level.ngrids*[self.dx[level.level]] for level in self.levels],axis=0)
-        self.gridDxs = gridDcs[:,0].reshape((self.num_grids,1))
-        self.gridDys = gridDcs[:,1].reshape((self.num_grids,1))
-        self.gridDzs = gridDcs[:,2].reshape((self.num_grids,1))
+        self.grid_levels = na.concatenate([level.ngrids*[level.level] for level in self.levels])
+        self.grid_levels = self.grid_levels.reshape((self.num_grids,1))
+        grid_dcs = na.concatenate([level.ngrids*[self.dx[level.level]] for level in self.levels],axis=0)
+        self.grid_dxs = grid_dcs[:,0].reshape((self.num_grids,1))
+        self.grid_dys = grid_dcs[:,1].reshape((self.num_grids,1))
+        self.grid_dzs = grid_dcs[:,2].reshape((self.num_grids,1))
         left_edges = []
         right_edges = []
         for level in self.levels:
             left_edges += [g.LeftEdge for g in level.grids]
             right_edges += [g.RightEdge for g in level.grids]
-        self.gridLeftEdge = na.array(left_edges)
-        self.gridRightEdge = na.array(right_edges)
+        self.grid_left_edge = na.array(left_edges)
+        self.grid_right_edge = na.array(right_edges)
         self.gridReverseTree = [] * self.num_grids
         self.gridReverseTree = [ [] for i in range(self.num_grids)]
         self.gridTree = [ [] for i in range(self.num_grids)]
@@ -970,7 +973,7 @@ class OrionHierarchy(AMRHierarchy):
 
     def _populate_hierarchy(self):
         self.__setup_grid_tree()
-        self._setup_grid_corners()
+        #self._setup_grid_corners()
         for i, grid in enumerate(self.grids):
             if (i%1e4) == 0: mylog.debug("Prepared % 7i / % 7i grids", i, self.num_grids)
             grid._prepare_grid()
@@ -987,14 +990,14 @@ class OrionHierarchy(AMRHierarchy):
         dd = self._get_data_reader_dict()
         dd["field_indexes"] = self.field_indexes
         AMRHierarchy._setup_classes(self, dd)
-        self._add_object_class('grid', "OrionGrid", OrionGridBase, dd)
+        #self._add_object_class('grid', "OrionGrid", OrionGridBase, dd)
         self.object_types.sort()
 
     def _get_grid_children(self, grid):
         mask = na.zeros(self.num_grids, dtype='bool')
         grids, grid_ind = self.get_box_grids(grid.LeftEdge, grid.RightEdge)
         mask[grid_ind] = True
-        mask = na.logical_and(mask, (self.gridLevels == (grid.Level+1)).flat)
+        mask = na.logical_and(mask, (self.grid_levels == (grid.Level+1)).flat)
         return self.grids[mask]
 
     def _setup_field_list(self):
@@ -1010,7 +1013,32 @@ class OrionHierarchy(AMRHierarchy):
             if field not in self.derived_field_list:
                 self.derived_field_list.append(field)
 
+    def _count_grids(self):
+        """this is already provided in 
 
+        """
+        pass
+
+    def _initialize_grid_arrays(self):
+        mylog.debug("Allocating arrays for %s grids", self.num_grids)
+        self.grid_dimensions = na.ones((self.num_grids,3), 'int32')
+        self.grid_left_edge = na.zeros((self.num_grids,3), self.float_type)
+        self.grid_right_edge = na.ones((self.num_grids,3), self.float_type)
+        self.grid_levels = na.zeros((self.num_grids,1), 'int32')
+        self.grid_particle_count = na.zeros((self.num_grids,1), 'int32')
+
+    def _parse_hierarchy(self):
+        pass
+    
+    def _detect_fields(self):
+        pass
+
+    def _setup_unknown_fields(self):
+        pass
+
+    def _setup_derived_fields(self):
+        pass
+    
 class OrionLevel:
     def __init__(self,level,ngrids):
         self.level = level

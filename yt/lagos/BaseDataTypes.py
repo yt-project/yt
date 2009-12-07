@@ -1974,6 +1974,31 @@ class AMRCylinderBase(AMR3DData):
                  & (r < self._radius))
         return cm
 
+class AMRInclinedBox(AMR3DData):
+    """
+    A rectangular prism with arbitrary alignment to the computational domain
+    """
+    _type_name="inclined_box"
+    _con_args = ()
+
+    def __init__(self, left_edge, right_edge, normal, fields=None,
+                 pf=None, **kwargs):
+        self.left_edge = na.array(left_edge)
+        self.right_edge = na.array(right_edge)
+        center = (self.right_edge - self.left_edge)
+        AMR3DData.__init__(self, center, fields, pf, **kwargs)
+        self._norm_vec = na.array(normal)/na.sqrt(na.dot(normal,normal))
+        self.refresh_data()
+
+    def _get_list_of_grids(self):
+        pass
+
+    def _is_fully_enclosed(self, grid):
+        pass
+
+    def _get_cut_mask(self, grid):
+        pass
+
 class AMRRegionBase(AMR3DData):
     """
     AMRRegions are rectangular prisms of data.

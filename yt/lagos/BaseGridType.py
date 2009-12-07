@@ -526,8 +526,8 @@ class EnzoGridInMemory(EnzoGrid):
 
 class OrionGrid(AMRGridPatch):
     _id_offset = 0
-    def __init__(self, LeftEdge, RightEdge, index, level, filename, offset, dimensions,start,stop,paranoia=False):
-        AMRGridPatch.__init__(self, index)
+    def __init__(self, LeftEdge, RightEdge, index, level, filename, offset, dimensions,start,stop,paranoia=False,**kwargs):
+        AMRGridPatch.__init__(self, index,**kwargs)
         self.filename = filename
         self._offset = offset
         self._paranoid = paranoia
@@ -552,13 +552,14 @@ class OrionGrid(AMRGridPatch):
         # Now we give it pointers to all of its attributes
         # Note that to keep in line with Enzo, we have broken PEP-8
         h = self.hierarchy # cache it
-        self.StartIndices = h.gridStartIndices[self.id]
-        self.EndIndices = h.gridEndIndices[self.id]
-        h.gridLevels[self.id,0] = self.Level
+        #self.StartIndices = h.gridStartIndices[self.id]
+        #self.EndIndices = h.gridEndIndices[self.id]
+        h.grid_levels[self.id,0] = self.Level
         h.grid_left_edge[self.id,:] = self.LeftEdge[:]
         h.grid_right_edge[self.id,:] = self.RightEdge[:]
-        self.Time = h.gridTimes[self.id,0]
-        self.NumberOfParticles = h.gridNumberOfParticles[self.id,0]
+        #self.Time = h.gridTimes[self.id,0]
+        #self.NumberOfParticles = h.gridNumberOfParticles[self.id,0]
+        self.field_indexes = h.field_indexes
         self.Children = h.gridTree[self.id]
         pIDs = h.gridReverseTree[self.id]
         if len(pIDs) > 0:
