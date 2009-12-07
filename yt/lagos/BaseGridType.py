@@ -530,15 +530,15 @@ class OrionGrid(AMRGridPatch):
         
         # should error check this
         self.ActiveDimensions = (dimensions.copy()).astype('int32')#.transpose()
-        self.start = start.copy()#.transpose()
-        self.stop = stop.copy()#.transpose()
+        self.start_index = start.copy()#.transpose()
+        self.stop_index = stop.copy()#.transpose()
         self.LeftEdge  = LeftEdge.copy()
         self.RightEdge = RightEdge.copy()
         self.index = index
         self.Level = level
 
     def get_global_startindex(self):
-        return self.start
+        return self.start_index
 
     def _prepare_grid(self):
         """
@@ -561,7 +561,21 @@ class OrionGrid(AMRGridPatch):
         if len(pIDs) > 0:
             self.Parent = [weakref.proxy(h.grids[pID]) for pID in pIDs]
         else:
-            self.Parent = []
+            self.Parent = None
+
+    def _setup_dx(self):
+        # So first we figure out what the index is.  We don't assume
+        # that dx=dy=dz , at least here.  We probably do elsewhere.
+        id = self.id - self._id_offset
+        if self.Parent is not None:
+            self.dds = self.Parent[0].dds / self.pf["RefineBy"]
+        else:
+            LE, RE = self.hierarchy.grid_left_edge[id,:], \
+                     self.hierarchy.grid_right_edge[id,:]
+            self.dds = na.array((RE-LE)/self.ActiveDimensions)
+        if self.pf["TopGridRank"] < 2: self.dds[1] = 1.0
+        if self.pf["TopGridRank"] < 3: self.dds[2] = 1.0
+        self.data['dx'], self.data['dy'], self.data['dz'] = self.dds
 
     def __repr__(self):
         return "OrionGrid_%04i" % (self.id)

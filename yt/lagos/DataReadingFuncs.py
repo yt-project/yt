@@ -394,8 +394,8 @@ def readDataNative(self,field):
             raise RunTimeError("Paranoia unveiled %i differences between Cell_H and %s." % (error_count, self.filename))
 
     else:
-        start = self.start
-        stop = self.stop
+        start = self.start_index
+        stop = self.stop_index
         dtype = self.hierarchy._dtype
         bytesPerReal = self.hierarchy._bytesPerReal
         

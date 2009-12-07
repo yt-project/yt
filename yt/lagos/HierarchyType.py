@@ -1038,15 +1038,7 @@ class OrionHierarchy(AMRHierarchy):
         dimension = stop - start + 1
         return dimension,start,stop
         
-
     def _populate_grid_objects(self):
-        mylog.debug("Allocating memory for %s grids", self.num_grids)
-    #self.grid_dimensons = na.zeros((self.num_grids,3), 'int32')
-    #self.gridStartIndices = na.zeros((self.num_grids,3), 'int32')
-    #self.gridEndIndices = na.zeros((self.num_grids,3), 'int32')
-    #self.gridTimes = na.zeros((self.num_grids,1), 'float64')
-    #self.gridNumberOfParticles = na.zeros((self.num_grids,1))
-    
         mylog.debug("Creating grid objects")
         self.grids = na.concatenate([level.grids for level in self.levels])
         self.grid_levels = na.concatenate([level.ngrids*[level.level] for level in self.levels])
@@ -1134,6 +1126,15 @@ class OrionHierarchy(AMRHierarchy):
 
     def _setup_derived_fields(self):
         pass
+
+    def _initialize_state_variables(self):
+        """override to not re-initialize num_grids in AMRHierarchy.__init__
+
+        """
+        self._parallel_locking = False
+        self._data_file = None
+        self._data_mode = None
+        self._max_locations = {}
     
 class OrionLevel:
     def __init__(self,level,ngrids):
