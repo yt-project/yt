@@ -659,6 +659,7 @@ class HaloProfiler(lagos.ParallelAnalysisInterface):
         hop_results.write_out(hopFile)
 
         del hop_results
+        self.pf.h.clear_all_data()
 
     @lagos.parallel_root_only
     def _write_filtered_halo_list(self, filename, format="%s"):
