@@ -36,6 +36,8 @@ __tocast = 'c'
 def get_mpi_type(self, arr):
     # A dictionary won't do this, because
     # the dtypes won't hash to the same thing.
+    if not isinstance(arr, na.ndarray):
+        return None
     dd = ((na.float, MPI.FLOAT),
           (na.int, MPI.INT),
           (na.double, MPI.DOUBLE),
