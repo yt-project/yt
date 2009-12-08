@@ -327,7 +327,7 @@ class TestIntSmoothedCoveringGrid(LagosTestingBase, unittest.TestCase):
             g2 = g.retrieve_ghost_zones(1, ["x","y","z"], smoothed=False)
             for field in 'xyz':
                 diff = na.abs((g1[field] - g2[field])/(g1[field] + g2[field]))
-                self.assertAlmostEqual(diff.max(), 0.0, 1e-7)
+                self.assertAlmostEqual(diff.max(), 0.0, 1e-14)
 
 class TestDataCube(LagosTestingBase, unittest.TestCase):
     def setUp(self):

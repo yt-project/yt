@@ -27,7 +27,7 @@ import numpy as na
 from yt.funcs import *
 import h5py
 
-from yt.utils import PartitionedGrid
+from yt.amr_utils import PartitionedGrid
 
 def partition_grid(start_grid, field, log_field = True, threshold = None):
     if threshold is not None:
@@ -69,7 +69,7 @@ def _partition(grid, grid_data, x_vert, y_vert, z_vert):
     grids = []
     cim = grid.child_index_mask
     for xs, xe in zip(x_vert[:-1], x_vert[1:]):
-        for ys, ye in zip(y_vert[:-1:-1], y_vert[1::-1]):
+        for ys, ye in zip(y_vert[:-1], y_vert[1:]):
             for zs, ze in zip(z_vert[:-1], z_vert[1:]):
                 sl = (slice(xs, xe), slice(ys, ye), slice(zs, ze))
                 dd = cim[sl]
@@ -154,11 +154,13 @@ class PartitionRegion(object):
 
     @property
     def cim(self):
+        return self._cim[self.sl]
+
+    @property
+    def sl(self):
         sls = self.source_offset
         sle = self.source_offset + self.dims
-        return self._cim[sls[0]:sle[0],
-                         sls[1]:sle[1],
-                         sls[2]:sle[2]]
+        return tuple([slice(sls[i], sle[i]) for i in range(3)])
 
     def split(self, axis, coord):
         dims_left = self.dims.copy()
