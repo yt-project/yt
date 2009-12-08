@@ -414,8 +414,8 @@ class AMRGridPatch(object):
         # than the grid by nZones*dx in each direction
         nl = self.get_global_startindex() - n_zones
         nr = nl + self.ActiveDimensions + 2*n_zones
-        new_left_edge = nl * self.dds
-        new_right_edge = nr * self.dds
+        new_left_edge = nl * self.dds + self.pf["DomainLeftEdge"]
+        new_right_edge = nr * self.dds + self.pf["DomainLeftEdge"]
         # Something different needs to be done for the root grid, though
         level = self.Level
         if all_levels:
