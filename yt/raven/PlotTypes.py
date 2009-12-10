@@ -620,7 +620,7 @@ class ParticlePlot(RavenPlot):
         self["Unit"] = str(unit)
         self["Width"] = float(width)
         if isinstance(unit, types.StringTypes):
-            unit = self.data.hierarchy[str(unit)]
+            unit = self.data.pf[str(unit)]
         self.width = width / unit
         self._refresh_display_width()
 
