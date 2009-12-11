@@ -23,7 +23,7 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-from yt.lagos import *
+import yt.lagos as lagos
 from yt.logger import lagosLogger as mylog
 import numpy as na
 import math, time
@@ -693,7 +693,7 @@ def integrate_inf(fcn, error=1e-7, initial_guess=10):
     area0 = na.sum(areas)
     # Next guess.
     next_guess = 10 * initial_guess
-    xvals = na.logspace(0,na.log10(next_guess), next_guess+1)-.99
+    xvals = na.logspace(0,na.log10(next_guess), 2*initial_guess**2+1)-.99
     yvals = fcn(xvals)
     xdiffs = xvals[1:] - xvals[:-1]
     # Trapezoid rule.
@@ -706,7 +706,7 @@ def integrate_inf(fcn, error=1e-7, initial_guess=10):
     one_pow = 3
     while diff > error:
         next_guess *= 10
-        xvals = na.logspace(0,na.log10(next_guess), next_guess+1) - (1 - 0.1**one_pow)
+        xvals = na.logspace(0,na.log10(next_guess), one_pow*initial_guess**one_pow+1) - (1 - 0.1**one_pow)
         yvals = fcn(xvals)
         xdiffs = xvals[1:] - xvals[:-1]
         # Trapezoid rule.

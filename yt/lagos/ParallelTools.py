@@ -780,7 +780,7 @@ class ParallelAnalysisInterface(object):
 
     def _mpi_exit_test(self, data=False):
         # data==True -> exit. data==False -> no exit
-        statuses = self._mpi_info_dict(data)
+        mine, statuses = self._mpi_info_dict(data)
         if True in statuses.values():
             raise RunTimeError("Fatal error. Exiting.")
         return None
