@@ -62,7 +62,10 @@ class Halo(object):
         self.halo_list = halo_list
         self.id = id
         self.data = halo_list._data_source
-        if indices is not None: self.indices = halo_list._base_indices[indices]
+        if indices is not None:
+            self.indices = halo_list._base_indices[indices]
+        else:
+            self.indices = None
         # We assume that if indices = None, the instantiator has OTHER plans
         # for us -- i.e., setting it somehow else
         self.size = size
@@ -217,6 +220,7 @@ class Halo(object):
         in the halo (no baryonic information used).
         Calculate using *bins* number of bins.
         """
+        # Skip if we've already calculated for this number of bins.
         if self.bin_count == bins and self.overdensity is not None:
             return None
         self.bin_count = bins
@@ -266,7 +270,8 @@ class HOPHalo(Halo):
 class parallelHOPHalo(Halo,ParallelAnalysisInterface):
     dont_wrap = ["maximum_density","maximum_density_location",
         "center_of_mass","total_mass","bulk_velocity","maximum_radius",
-        "get_size","get_sphere", "write_particle_list","__getitem__"]
+        "get_size","get_sphere", "write_particle_list","__getitem__", 
+        "virial_info", "virial_bin", "virial_mass", "virial_radius"]
 
     def maximum_density(self):
         """
@@ -390,6 +395,118 @@ class parallelHOPHalo(Halo,ParallelAnalysisInterface):
             my_size = 0
         global_size = self._mpi_allsum(my_size)
         return global_size
+
+    def __getitem__(self, key):
+        if ytcfg.getboolean("yt","inline") == False:
+            return self.data.particles[key][self.indices]
+        else:
+            return self.data[key][self.indices]
+
+    def virial_mass(self, virial_overdensity=200., bins=300):
+        """
+        Return the virial mass of the halo in Msun, using only the particles
+        in the halo (no baryonic information used).
+        Calculate using *bins* number of bins and *virial_overdensity* density
+        threshold. Returns -1 if the halo is not virialized.
+        """
+        self.virial_info(bins=bins)
+        vir_bin = self.virial_bin(virial_overdensity=virial_overdensity, bins=bins)
+        if vir_bin != -1:
+            return self.mass_bins[vir_bin]
+        else:
+            return -1
+        
+    
+    def virial_radius(self, virial_overdensity=200., bins=300):
+        """
+        Return the virial radius of the halo in code units, using only the
+        particles in the halo (no baryonic information used).
+        Calculate using *bins* number of bins and *virial_overdensity* density
+        threshold. Returns -1 if the halo is not virialized.
+        """
+        self.virial_info(bins=bins)
+        vir_bin = self.virial_bin(virial_overdensity=virial_overdensity, bins=bins)
+        if vir_bin != -1:
+            return self.radial_bins[vir_bin]
+        else:
+            return -1
+
+    def virial_bin(self, virial_overdensity=200., bins=300):
+        """
+        Return the bin index for the virial radius for the given halo.
+        Returns -1 if the halo is not virialized to the set
+        *virial_overdensity*. 
+        """
+        self.virial_info(bins=bins)
+        over = (self.overdensity > virial_overdensity)
+        if (over == True).any():
+            vir_bin = max(na.arange(bins+1)[over])
+            return vir_bin
+        else:
+            return -1
+
+    def virial_info(self, bins=300):
+        """
+        Calculate the virial profile bins for this halo, using only the particles
+        in the halo (no baryonic information used).
+        Calculate using *bins* number of bins.
+        """
+        # Skip if we've already calculated for this number of bins.
+        if self.bin_count == bins and self.overdensity is not None:
+            return None
+        # Do this for all because all will use it.
+        self.bin_count = bins
+        period = self.halo_list._data_source.pf["DomainRightEdge"] - \
+            self.halo_list._data_source.pf["DomainLeftEdge"]
+        self.mass_bins = na.zeros(self.bin_count+1, dtype='float64')
+        cen = self.center_of_mass()
+        # Cosmology
+        h = self.halo_list._data_source.pf['CosmologyHubbleConstantNow']
+        Om_matter = self.halo_list._data_source.pf['CosmologyOmegaMatterNow']
+        z = self.halo_list._data_source.pf['CosmologyCurrentRedshift']
+        rho_crit_now = 1.8788e-29 * h**2.0 * Om_matter # g cm^-3
+        Msun2g = 1.989e33
+        rho_crit = rho_crit_now * ((1.0 + z)**3.0)
+        # If I own some of this halo operate on the particles.
+        if self.indices is not None:
+            # Get some pertinent information about the halo.
+            dist = na.empty(self.indices.size, dtype='float64')
+            mark = 0
+            # Find the distances to the particles. I don't like this much, but I
+            # can't see a way to eliminate a loop like this, either here or in
+            # yt.math.
+            for pos in izip(self["particle_position_x"], self["particle_position_y"],
+                    self["particle_position_z"]):
+                dist[mark] = periodic_dist(cen, pos, period)
+                mark += 1
+            dist_min, dist_max = min(dist), max(dist)
+        # If I don't have this halo, make some dummy values.
+        else:
+            dist_min = max(period)
+            dist_max = 0.0
+        # In this parallel case, we're going to find the global dist extrema
+        # and built identical bins on all tasks.
+        dist_min = self._mpi_allmin(dist_min)
+        dist_max = self._mpi_allmax(dist_max)
+        # Set up the radial bins.
+        # Multiply min and max to prevent issues with digitize below.
+        self.radial_bins = na.logspace(math.log10(dist_min*.99), 
+            math.log10(dist_max*1.01), num=self.bin_count+1)
+        if self.indices is not None:
+            # Find out which bin each particle goes into, and add the particle
+            # mass to that bin.
+            inds = na.digitize(dist, self.radial_bins) - 1
+            for index in na.unique(inds):
+                self.mass_bins[index] += sum(self["ParticleMassMsun"][inds==index])
+            # Now forward sum the masses in the bins.
+            for i in xrange(self.bin_count):
+                self.mass_bins[i+1] += self.mass_bins[i]
+        # Sum up the mass_bins globally
+        self.mass_bins = self._mpi_Allsum_double(self.mass_bins)
+        # Calculate the over densities in the bins.
+        self.overdensity = self.mass_bins * Msun2g / \
+        (4./3. * math.pi * rho_crit * \
+        (self.radial_bins * self.halo_list._data_source.pf["cm"])**3.0)
 
 
 class FOFHalo(Halo):
