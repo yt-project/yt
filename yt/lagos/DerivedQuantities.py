@@ -378,6 +378,7 @@ def _Extrema(data, fields, filter=None):
     This function returns the extrema of a set of fields
     
     :param fields: A field name, or a list of field names
+    :param filter: a string to be evaled to serve as a data filter.
     """
     fields = ensure_list(fields)
     if filter is not None: this_filter = eval(filter)
@@ -411,6 +412,9 @@ def _Action(data, action, combine_action, filter=None):
     the function thrown with the combine_action to combine the values.  
     A filter can be thrown to be evaled to short-circuit the calculation 
     if some criterion is not met.
+    :param action: a string containing the desired action to be evaled.
+    :param combine_action: the function used to combine the answers when done lazily.
+    :param filter: a string to be evaled to serve as a data filter.
     """
     if filter is not None:
         if not eval(filter).any(): return 0, False, combine_action
