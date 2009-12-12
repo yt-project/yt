@@ -515,6 +515,7 @@ class EnzoHierarchy(AMRHierarchy):
         # We don't do any of the logic here, we just check if the data file
         # is open...
         if self._data_file is None: return
+        if self._data_mode == 'r': return
         if self.data_style != "enzo_packed_3d": return
         mylog.info("Storing the binary hierarchy")
         f = h5py.File(self.hierarchy_filename[:-9] + "harrays", "w")
