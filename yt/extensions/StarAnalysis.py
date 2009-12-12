@@ -31,10 +31,29 @@ import math
 YEAR = 3.155693e7
 
 class StarFormationRate(object):
-    def __init__(self, pf, data_source, bins=300):
+    def __init__(self, pf, data_source=None, star_mass=None,
+            star_creation_time=None, volume=None, bins=300):
         self._pf = pf
         self._data_source = data_source
+        self.star_mass = star_mass
+        self.star_creation_time = star_creation_time
+        self.volume = volume
         self.bin_count = bins
+        # Check to make sure we have the right set of informations.
+        if data_source is None:
+            if self.star_mass is None or self.star_creation_time is None or \
+            self.volume is None:
+                mylog.error(
+                """
+                If data_source is not provided, all of these paramters need to be set:
+                star_mass (array, Msun),
+                star_creation_time (array, code units),
+                volume (float, Mpc**3).
+                """)
+                return None
+            self.mode = 'provided'
+        else:
+            self.mode = 'data_source'
         # Set up for time conversion.
         self.cosm = lagos.EnzoCosmology(HubbleConstantNow = 
              (100.0 * self._pf['CosmologyHubbleConstantNow']),
@@ -52,9 +71,13 @@ class StarFormationRate(object):
         Build the data for plotting.
         """
         # Pick out the stars.
-        ct = self._data_source["creation_time"]
-        ct_stars = ct[ct > 0]
-        mass_stars = self._data_source["ParticleMassMsun"][ct > 0]
+        if self.mode == 'data_source':
+            ct = self._data_source["creation_time"]
+            ct_stars = ct[ct > 0]
+            mass_stars = self._data_source["ParticleMassMsun"][ct > 0]
+        elif self.mode == 'provided':
+            ct_stars = self.star_creation_time
+            mass_stars = self.star_mass
         # Find the oldest stars in units of code time.
         tmin= min(ct_stars)
         # Multiply the end to prevent numerical issues.
@@ -86,11 +109,14 @@ class StarFormationRate(object):
         7) Cumulative stars formed up to this time bin (Msol)
         """
         fp = open(name, "w")
-        vol = self._data_source.volume('mpc')
+        if self.mode == 'data_source':
+            vol = self._data_source.volume('mpc')
+        elif self.mode == 'provided':
+            vol = self.volume
         tc = self._pf["Time"]
         # Use the center of the time_bin, not the left edge.
         for i, time in enumerate((self.time_bins[1:] + self.time_bins[:-1])/2.):
-            line = "%1.5e %1.5e %1.5e %1.5e %1.5e %1.5e %1.5e\n" % \
+            line = "%1.5e\t%1.5e\t%1.5e\t%1.5e\t%1.5e\t%1.5e\t%1.5e\n" % \
             (time * tc / YEAR, # Time
             (self.time_now - time * tc)/YEAR, # Lookback time
             self.cosm.ComputeRedshiftFromTime(time * tc), # Redshift
