@@ -535,9 +535,9 @@ class AMRRayBase(AMR1DData):
         mask = na.zeros(grid.ActiveDimensions, dtype='int')
         dts = na.zeros(grid.ActiveDimensions, dtype='float64')
         ts = na.zeros(grid.ActiveDimensions, dtype='float64')
-        import RTIntegrator as RT
-        RT.VoxelTraversal(mask, ts, dts, grid.LeftEdge, grid.RightEdge,
-                          grid.dds, self.center, self.vec)
+        from yt.amr_utils import VoxelTraversal
+        VoxelTraversal(mask, ts, dts, grid.LeftEdge, grid.RightEdge,
+                       grid.dds, self.center, self.vec)
         self._dts[grid.id] = na.abs(dts)
         self._ts[grid.id] = na.abs(ts)
         return mask
