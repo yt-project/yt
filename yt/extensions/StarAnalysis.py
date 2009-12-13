@@ -25,8 +25,11 @@ License:
 
 import yt.lagos as lagos
 from yt.logger import lagosLogger as mylog
+
 import numpy as na
-import math
+import h5py
+
+import math, itertools
 
 YEAR = 3.155693e7
 
@@ -126,5 +129,118 @@ class StarFormationRate(object):
             self.cum_mass_bins[i]) # cumulative
             fp.write(line)
         fp.close()
+
+CHABRIER = {
+"Z0001" : "bc2003_hr_m22_chab_ssp.ised.h5", #/* 0.5% */
+"Z0004" : "bc2003_hr_m32_chab_ssp.ised.h5", #/* 2% */
+"Z004" : "bc2003_hr_m42_chab_ssp.ised.h5", #/* 20% */
+"Z008" : "bc2003_hr_m52_chab_ssp.ised.h5", #/* 40% */
+"Z02" : "bc2003_hr_m62_chab_ssp.ised.h5", #/* solar; 0.02 */
+"Z05" : "bc2003_hr_m72_chab_ssp.ised.h5" #/* 250% */
+}
+
+SALPETER = {
+"Z0001" : "bc2003_hr_m22_salp_ssp.ised.h5", #/* 0.5% */
+"Z0004" : "bc2003_hr_m32_salp_ssp.ised.h5", #/* 2% */
+"Z004" : "bc2003_hr_m42_salp_ssp.ised.h5", #/* 20% */
+"Z008" : "bc2003_hr_m52_salp_ssp.ised.h5", #/* 40% */
+"Z02" : "bc2003_hr_m62_salp_ssp.ised.h5", #/* solar; 0.02 */
+"Z05" : "bc2003_hr_m72_salp_ssp.ised.h5" #/* 250% */
+}
+
+Zsun = 0.02
+
+#/* dividing line of metallicity; linear in log(Z/Zsun) */
+METAL1 = 0.01  # /* in units of Z/Zsun */
+METAL2 = 0.0632
+METAL3 = 0.2828
+METAL4 = 0.6325
+METAL5 = 1.5811
+METALS = na.array([METAL1, METAL2, METAL3, METAL4, METAL5])
+
+# Translate METALS array digitize to the table dicts
+MtoD = na.array(["Z0001", "Z0004", "Z004", "Z008", "Z02",  "Z05"])
+
+class BuildSED(object):
+    def __init__(self, pf, data_source=None, star_mass=None,
+            star_creation_time=None, star_metalicity_fraction=None, bins=300,
+            bcdir="", model="chabrier"):
+        self._pf = pf
+        self._data_source = data_source
+        self.star_mass = star_mass
+        self.star_creation_time = star_creation_time
+        self.star_metal = star_metalicity_fraction
+        self.bin_count = bins
+        self.bcdir = bcdir
         
-            
+        if model == "chabrier":
+            self.model = CHABRIER
+        elif model == "salpeter":
+            self.model = SALPETER
+        
+        # Find the time right now.
+        self.time_now = self.cosm.ComputeTimeFromRedshift(
+            self._pf["CosmologyCurrentRedshift"]) # seconds
+
+    def read_bclib(self):
+        """
+        Read in the age and wavelength bins, and the flux bins for each
+        metalicity.
+        """
+        self.flux = {}
+        for file in self.model:
+            fname = self.bcdir + self.model[file]
+            fp = h5py.File(fname, 'r')
+            self.age = fp["agebins"][:] # 1D floats
+            self.wavelength = fp["wavebins"][:] # 1D floats
+            self.flux[file] = fp["flam"][:,:] # 2D floats
+            fp.close()
+    
+    def calculate_spectrum(self):
+        """
+        For the set of stars, calculate the collective SED.
+        """
+        # Initialize values
+        self.final_spec = na.zeros(self.wavelength.size, dtype='float64')
+        self.outflux = na.zeros(self.wavelength.size, dtype='float64')
+    
+        count = 0
+        totmass = 0.
+        tot_tform = 0.
+        tot_metal = 0.
+        zform_ave = 0.
+        
+        # Age of star in years.
+        dt = (self.time_now - self.star_creation_time * self._pf['Time']) / YEAR
+        # Figure out which METALS bin the star goes into.
+        Mindex = na.digitize(dt, METALS)
+        # Replace the indices with strings.
+        Mname = na.choose(Mindex, MtoD)
+        # Figure out which age bin this star goes into.
+        Aindex = na.digitize(dt, self.age)
+        # Ratios used for the interpolation.
+        ratio1 = (dt - self.age[Aindex-1]) / (self.age[Aindex] - self.age[Aindex-1])
+        ratio2 = (self.age[Aindex] - dt) / (self.age[Aindex] - self.age[Aindex-1])
+        for star in iterools.izip(dt, Mname, Aindex, ratio1, ratio2):
+            flux = self.flux[star[1]][:,star[2]]
+    
+    def interpolate(self, dt, flux):
+        #/* first, find out the neighboring age steps */
+        while(age[i]<dt) i++;
+        
+        if(i==0)
+        {  
+          for(j=0;j<WAVEBIN;j++) outflux[j]=flux[j][0]*dt/age[0];
+          printf("negative dt?\n");
+        }
+        else
+        {
+          for(j=0;j<WAVEBIN;j++)
+        {
+          ratio1=(dt-age[i-1])/(age[i]-age[i-1]);
+          ratio2=(age[i]-dt)/(age[i]-age[i-1]);
+         
+          /* interpolate in log(flux), linear in time */
+          outlog = ratio2*log10(flux[j][i-1]) + ratio1*log10(flux[j][i]); 
+          
+          outflux[j]=pow(10,outlog);
