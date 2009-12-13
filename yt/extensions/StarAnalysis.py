@@ -162,15 +162,17 @@ METALS = na.array([METAL1, METAL2, METAL3, METAL4, METAL5])
 MtoD = na.array(["Z0001", "Z0004", "Z004", "Z008", "Z02",  "Z05"])
 
 class BuildSED(object):
-    def __init__(self, pf, data_source=None, star_mass=None,
-            star_creation_time=None, star_metalicity_fraction=None, bins=300,
-            bcdir="", model="chabrier"):
+    def __init__(self, pf, bcdir="", model="chabrier"):
+        """
+        Initialize the data to build Spectral Energy Distributions for a
+        collection of stars.
+        :param pf (object): Yt pf object.
+        :param bcdir (string): Path to directory containing Bruzual &
+        Charlot h5 fit files.
+        :param model (string): Choice of Initial Metalicity Function model,
+        'chabrier' or 'salpeter'.
+        """
         self._pf = pf
-        self._data_source = data_source
-        self.star_mass = star_mass
-        self.star_creation_time = star_creation_time
-        self.star_metal = star_metalicity_fraction
-        self.bin_count = bins
         self.bcdir = bcdir
         
         if model == "chabrier":
@@ -181,6 +183,9 @@ class BuildSED(object):
         # Find the time right now.
         self.time_now = self.cosm.ComputeTimeFromRedshift(
             self._pf["CosmologyCurrentRedshift"]) # seconds
+        
+        # Read the tables.
+        self.read_bclib()
 
     def read_bclib(self):
         """
@@ -196,20 +201,49 @@ class BuildSED(object):
             self.flux[file] = fp["flam"][:,:] # 2D floats
             fp.close()
     
-    def calculate_spectrum(self):
+    def calculate_spectrum(self, data_source=None, star_mass=None,
+            star_creation_time=None, star_metalicity_fraction=None):
         """
         For the set of stars, calculate the collective SED.
+        Attached to the output are several useful objects:
+        final_spec: The collective SED.
+        total_mass: Total mass of all the stars.
+        avg_mass: Average mass of all the stars.
+        avg_metal: Average metalicity of all the stars.
+        :param data_source (object): A yt data_source that defines a portion
+        of the volume from which to extract stars.
+        :param star_mass (array, float): An array of star masses in Msun units.
+        :param star_creation_time (array, float): An array of star creation
+        times in code units.
+        :param star_metalicity_fraction (array, float): An array of star
+        metalicity fractions, in code units (which is not Z/Zsun).
         """
         # Initialize values
         self.final_spec = na.zeros(self.wavelength.size, dtype='float64')
-        self.outflux = na.zeros(self.wavelength.size, dtype='float64')
-    
-        count = 0
-        totmass = 0.
-        tot_tform = 0.
-        tot_metal = 0.
-        zform_ave = 0.
+        self._data_source = data_source
+        self.star_mass = star_mass
+        self.star_creation_time = star_creation_time
+        self.star_metal = star_metalicity_fraction
         
+        # Check to make sure we have the right set of data.
+        if data_source is None:
+            if self.star_mass is None or self.star_creation_time is None or \
+            self.volume is None:
+                mylog.error(
+                """
+                If data_source is not provided, all of these paramters need to be set:
+                star_mass (array, Msun),
+                star_creation_time (array, code units),
+                volume (float, Mpc**3).
+                """)
+                return None
+        else:
+            # Get the data we need.
+            ct = self._data_source["creation_time"]
+            self.star_creation_time = ct[ct > 0]
+            self.star_mass = self._data_source["ParticleMassMsun"][ct > 0]
+        # Fix metalicity to units of Zsun.
+        self.star_metal /= Zsun
         # Age of star in years.
         dt = (self.time_now - self.star_creation_time * self._pf['Time']) / YEAR
         # Figure out which METALS bin the star goes into.
@@ -221,26 +255,31 @@ class BuildSED(object):
         # Ratios used for the interpolation.
         ratio1 = (dt - self.age[Aindex-1]) / (self.age[Aindex] - self.age[Aindex-1])
         ratio2 = (self.age[Aindex] - dt) / (self.age[Aindex] - self.age[Aindex-1])
-        for star in iterools.izip(dt, Mname, Aindex, ratio1, ratio2):
-            flux = self.flux[star[1]][:,star[2]]
+        # Interpolate the flux for each star, adding to the total by weight.
+        for star in iterools.izip(Mname, Aindex, ratio1, ratio2, self.star_mass):
+            # Pick the right age bin for the right flux array.
+            flux = self.flux[star[0]][:,star[1]]
+            # Get the one just before the one above.
+            flux_1 = self.flux[star[0]][:,star[1]-1]
+            # interpolate in log(flux), linear in time.
+            int_flux = star[3] * na.log10(flux_1) + star[2] * na.log10(flux)
+            # Add this flux to the total, weighted by mass.
+            self.final_spec += na.power(10., int_flux) * star[4]
+        # Normalize.
+        self.total_mass = sum(self.star_mass)
+        self.avg_mass = na.mean(self.star_mass)
+        tot_metal = sum(self.star_metal * self.star_mass)
+        self.avg_metal = math.log10(tot_metal / self.star_mass.size / Zsun)
     
-    def interpolate(self, dt, flux):
-        #/* first, find out the neighboring age steps */
-        while(age[i]<dt) i++;
-        
-        if(i==0)
-        {  
-          for(j=0;j<WAVEBIN;j++) outflux[j]=flux[j][0]*dt/age[0];
-          printf("negative dt?\n");
-        }
-        else
-        {
-          for(j=0;j<WAVEBIN;j++)
-        {
-          ratio1=(dt-age[i-1])/(age[i]-age[i-1]);
-          ratio2=(age[i]-dt)/(age[i]-age[i-1]);
-         
-          /* interpolate in log(flux), linear in time */
-          outlog = ratio2*log10(flux[j][i-1]) + ratio1*log10(flux[j][i]); 
-          
-          outflux[j]=pow(10,outlog);
+    def write_out(self, name="SED.out"):
+        """
+        Write out the SED to a file. The file has two columns:
+        1) Wavelength (Angstrom)
+        2) Flux (Luminosity per unit wavelength, L_sun Ang^-1,
+        L_sun = 3.826 * 10^33 ergs s^-1.)
+        :param name (string): Name of file to write to.
+        """
+        fp = open(name, 'w')
+        for i, wave in enumerate(self.wavebin):
+            fp.write("%e\t%e\n" % (wave, self.final_spec[i]))
+        fp.close()
