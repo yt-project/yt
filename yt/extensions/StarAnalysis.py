@@ -31,7 +31,8 @@ import h5py
 
 import math, itertools
 
-YEAR = 3.155693e7
+YEAR = 3.155693e7 # sec / year
+LIGHT = 2.997925e10 # cm / s
 
 class StarFormationRate(object):
     def __init__(self, pf, data_source=None, star_mass=None,
@@ -161,11 +162,17 @@ METALS = na.array([METAL1, METAL2, METAL3, METAL4, METAL5])
 # Translate METALS array digitize to the table dicts
 MtoD = na.array(["Z0001", "Z0004", "Z004", "Z008", "Z02",  "Z05"])
 
-class BuildSED(object):
+"""
+This spectrum code is based on code from Ken Nagamine, converted from C to Python.
+I've also reversed the order of elements in the flux arrays to be in C-ordering,
+for faster memory access.
+"""
+
+class BuildSpectrum(object):
     def __init__(self, pf, bcdir="", model="chabrier"):
         """
-        Initialize the data to build Spectral Energy Distributions for a
-        collection of stars.
+        Initialize the data to build a summed flux spectrum for a
+        collection of stars using the models of Bruzual & Charlot (2003).
         :param pf (object): Yt pf object.
         :param bcdir (string): Path to directory containing Bruzual &
         Charlot h5 fit files.
@@ -207,11 +214,13 @@ class BuildSED(object):
             fp.close()
     
     def calculate_spectrum(self, data_source=None, star_mass=None,
-            star_creation_time=None, star_metallicity_fraction=None):
+            star_creation_time=None, star_metallicity_fraction=None,
+            star_metallicity_constant=None):
         """
-        For the set of stars, calculate the collective SED.
+        For the set of stars, calculate the collective spectrum.
         Attached to the output are several useful objects:
-        final_spec: The collective SED.
+        final_spec: The collective spectrum in units of flux binned in wavelength.
+        wavelength: The wavelength for the spectrum bins, in Angstroms.
         total_mass: Total mass of all the stars.
         avg_mass: Average mass of all the stars.
         avg_metal: Average metallicity of all the stars.
@@ -222,6 +231,8 @@ class BuildSED(object):
         times in code units.
         :param star_metallicity_fraction (array, float): An array of star
         metallicity fractions, in code units (which is not Z/Zsun).
+        :param star_metallicity_constant (float): If desired, override the star
+        metallicity fraction of all the stars to the given value.
         """
         # Initialize values
         self.final_spec = na.zeros(self.wavelength.size, dtype='float64')
@@ -233,21 +244,31 @@ class BuildSED(object):
         # Check to make sure we have the right set of data.
         if data_source is None:
             if self.star_mass is None or self.star_creation_time is None or \
-            self.volume is None:
+            (star_metallicity_fraction is None and star_metallicity_constant is None):
                 mylog.error(
                 """
                 If data_source is not provided, all of these paramters need to be set:
                 star_mass (array, Msun),
                 star_creation_time (array, code units),
-                volume (float, Mpc**3).
+                And one of:
+                star_metallicity_fraction (array, code units).
+                --OR--
+                star_metallicity_constant (float, code units).
                 """)
                 return None
+            if star_metallicity_constant is not None:
+                self.star_metal = na.ones(self.star_mass.size, dtype='float64') * \
+                    star_metallicity_constant
         else:
             # Get the data we need.
             ct = self._data_source["creation_time"]
             self.star_creation_time = ct[ct > 0]
             self.star_mass = self._data_source["ParticleMassMsun"][ct > 0]
-            self.star_metal = self._data_source["metallicity_fraction"][ct > 0]
+            if star_metallicity_constant is not None:
+                self.star_metal = na.ones(self.star_mass.size, dtype='float64') * \
+                    star_metallicity_constant
+            else:
+                self.star_metal = self._data_source["metallicity_fraction"][ct > 0]
         # Fix metallicity to units of Zsun.
         self.star_metal /= Zsun
         # Age of star in years.
@@ -261,11 +282,44 @@ class BuildSED(object):
         # Ratios used for the interpolation.
         ratio1 = (dt - self.age[Aindex-1]) / (self.age[Aindex] - self.age[Aindex-1])
         ratio2 = (self.age[Aindex] - dt) / (self.age[Aindex] - self.age[Aindex-1])
+        # Sort the stars by metallicity and then by age, which should reduce
+        # memory access time by a little bit in the loop.
+        sort = na.lexsort((Aindex, Mname))
+        Mname = Mname[sort]
+        Aindex = Aindex[sort]
+        ratio1 = ratio1[sort]
+        ratio2 = ratio2[sort]
+        self.star_mass = self.star_mass[sort]
+        self.star_creation_time = self.star_creation_time[sort]
+        self.star_metal = self.star_metal[sort]
         
-#         for metal_name in METALS:
+        # Interpolate the flux for each star, adding to the total by weight.
+        for star in itertools.izip(Mname, Aindex, ratio1, ratio2, self.star_mass):
+            # Pick the right age bin for the right flux array.
+            flux = self.flux[star[0]][star[1],:]
+            # Get the one just before the one above.
+            flux_1 = self.flux[star[0]][star[1]-1,:]
+            # interpolate in log(flux), linear in time.
+            int_flux = star[3] * na.log10(flux_1) + star[2] * na.log10(flux)
+            # Add this flux to the total, weighted by mass.
+            self.final_spec += na.power(10., int_flux) * star[4]
+        # Normalize.
+        self.total_mass = sum(self.star_mass)
+        self.avg_mass = na.mean(self.star_mass)
+        tot_metal = sum(self.star_metal * self.star_mass)
+        self.avg_metal = math.log10(tot_metal / self.total_mass / Zsun)
+
+        # Below is an attempt to do the loop using vectors and matrices,
+        # however it doesn't appear to be much faster, probably due to all
+        # the gymnastics that have to be done to do element-by-element
+        # multiplication for matricies.
+        # I'm keeping it in here in case I come up with a more
+        # elegant way that actually is faster.
+#         for metal_name in MtoD:
 #             # Pick out our stars in this metallicity bin.
 #             select = (Mname == metal_name)
 #             A = Aindex[select]
+#             if A.size == 0: continue
 #             r1 = ratio1[select]
 #             r2 = ratio2[select]
 #             sm = self.star_mass[select]
@@ -279,46 +333,52 @@ class BuildSED(object):
 #             # This is kind of messy, but we're going to multiply this_fluxes
 #             # by the appropriate ratios and add it together to do the 
 #             # interpolation in log(flux) and linear in time.
-#             r1 = na.matrix(r1.tolist()*r1.size).reshape(r1.size,r1,size).T
-#             r2 = na.matrix(r2.tolist()*r2.size).reshape(r2.size,r2,size).T
+#             print r1.size
+#             r1 = na.matrix(r1.tolist()*self.wavelength.size).reshape(self.wavelength.size,r1.size).T
+#             r2 = na.matrix(r2.tolist()*self.wavelength.size).reshape(self.wavelength.size,r2.size).T
+#             print this_flux_1.shape, r1.shape
 #             int_flux = na.multiply(na.log10(this_flux_1),r1) \
 #                 + na.multiply(na.log10(this_flux),r2)
 #             # Weight the fluxes by mass.
-#             sm = na.matrix(sm.tolist()*sm.size).reshape(sm.size,sm.size).T
+#             sm = na.matrix(sm.tolist()*self.wavelength.size).reshape(self.wavelength.size,sm.size).T
 #             int_flux = na.multiply(na.power(10., int_flux), sm)
 #             # Sum along the columns, converting back to an array, adding
 #             # to the full spectrum.
 #             self.final_spec += na.array(int_flux.sum(axis=0))[0,:]
-        
-        # Interpolate the flux for each star, adding to the total by weight.
-        blah = 0
-        for star in itertools.izip(Mname, Aindex, ratio1, ratio2, self.star_mass):
-            if blah % 100 == 0: print blah
-            blah += 1
-            # Pick the right age bin for the right flux array.
-            flux = self.flux[star[0]][star[1],:]
-            # Get the one just before the one above.
-            flux_1 = self.flux[star[0]][star[1]-1,:]
-            # interpolate in log(flux), linear in time.
-            int_flux = star[3] * na.log10(flux_1) + star[2] * na.log10(flux)
-            # Add this flux to the total, weighted by mass.
-            self.final_spec += na.power(10., int_flux) * star[4]
-        # Normalize.
-        self.total_mass = sum(self.star_mass)
-        self.avg_mass = na.mean(self.star_mass)
-        tot_metal = sum(self.star_metal * self.star_mass)
-        print self.star_metal
-        self.avg_metal = math.log10(tot_metal / self.star_mass.size / Zsun)
+
     
-    def write_out(self, name="SED.out"):
+    def write_out(self, name="sum_flux.out"):
         """
-        Write out the SED to a file. The file has two columns:
+        Write out the summed flux to a file. The file has two columns:
         1) Wavelength (Angstrom)
         2) Flux (Luminosity per unit wavelength, L_sun Ang^-1,
         L_sun = 3.826 * 10^33 ergs s^-1.)
         :param name (string): Name of file to write to.
         """
         fp = open(name, 'w')
-        for i, wave in enumerate(self.wavebin):
-            fp.write("%e\t%e\n" % (wave, self.final_spec[i]))
+        for i, wave in enumerate(self.wavelength):
+            fp.write("%1.5e\t%1.5e\n" % (wave, self.final_spec[i]))
         fp.close()
+
+    def write_out_SED(self, name="sum_SED.out", flux_norm=5200.):
+        """
+        Write out the summed SED to a file. The file has two columns:
+        1) Wavelength (Angstrom)
+        2) Relative flux normalized to the flux at *flux_norm*.
+        It also will attach an array *f_nu* which is the normalized flux,
+        identical to the disk output.
+        :param name (string): Name of file to write to.
+        :param flux_norm (float): Wavelength of the flux to normalize the
+        distribution against.
+        """
+        # find the f_nu closest to flux_norm
+        fn_wavelength = na.argmin(abs(self.wavelength - flux_norm))
+        f_nu = self.final_spec * na.power(self.wavelength, 2.) / LIGHT
+        # Normalize f_nu
+        self.f_nu = f_nu / f_nu[fn_wavelength]
+        # Write out.
+        fp = open(name, 'w')
+        for i, wave in enumerate(self.wavelength):
+            fp.write("%1.5e\t%1.5e\n" % (wave, self.f_nu[i]))
+        fp.close()
+
