@@ -34,7 +34,8 @@ class HaloMassFcn(object):
     this_redshift=None, log_mass_min=None, log_mass_max=None, num_sigma_bins=360,
     fitting_function=4):
         """
-        Initalize a HaloMassFcn object.
+        Initalize a HaloMassFcn object to analyze the distribution of haloes
+        as a function of mass.
         :param halo_file (str): The filename of the output of the Halo Profiler.
         Default=None.
         :param omega_matter0 (float): The fraction of the universe made up of
