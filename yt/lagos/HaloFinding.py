@@ -1014,7 +1014,7 @@ class GenericHaloFinder(HaloList, ParallelAnalysisInterface):
                 halo._owner = proc
                 id += 1
         def haloCmp(h1,h2):
-            c = cmp(h1.get_size(),h2.get_size())
+            c = cmp(h1.total_mass(),h2.total_mass())
             if c != 0:
                 return -1 * c
             if c == 0:
@@ -1182,11 +1182,11 @@ class parallelHF(GenericHaloFinder, parallelHOPHaloList):
         yt_counters("Final Grouping")
 
     def _join_halolists(self):
-        gs = -self.group_sizes.copy()
+        ms = -self.Tot_M.copy()
         Cx = self.CoM[:,0].copy()
         indexes = na.arange(self.group_count)
-        sorted = na.asarray([indexes[i] for i in na.lexsort([indexes, Cx, gs])])
-        del indexes, Cx, gs
+        sorted = na.asarray([indexes[i] for i in na.lexsort([indexes, Cx, ms])])
+        del indexes, Cx, ms
         self._groups = self._groups[sorted]
         self._max_dens = self._max_dens[sorted]
         for i in xrange(self.group_count):
