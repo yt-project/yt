@@ -195,6 +195,7 @@ def _ParticleMass(field, data):
                 just_one(data["CellVolumeCode"].ravel())
     # Note that we mandate grid-type here, so this is okay
     return particles
+
 def _convertParticleMass(data):
     return data.convert("Density")*(data.convert("cm")**3.0)
 def _convertParticleMassMsun(data):
