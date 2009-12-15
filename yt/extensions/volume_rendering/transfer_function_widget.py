@@ -24,16 +24,18 @@ License:
 """
 
 import numpy as na
+import cPickle
 from TransferFunction import ColorTransferFunction
 
 from enthought.traits.api import \
         HasTraits, Float, List, Instance, Button, Array, CArray, Range, \
-        DelegatesTo, Property, Any, Code
+        DelegatesTo, Property, Any, Code, Callable
 from enthought.traits.ui.api import \
     View, Item, HSplit, VSplit, ListEditor, InstanceEditor, ValueEditor, \
     HGroup, VGroup, CodeEditor, TextEditor
 from enthought.chaco.api import Plot, ArrayPlotData
 from enthought.enable.component_editor import ComponentEditor
+import enthought.pyface.api as pyface
 
 class TFGaussian(HasTraits):
     center = Range(low = 'left_edge',
@@ -43,7 +45,8 @@ class TFGaussian(HasTraits):
 
     tf = Any
     
-    width = Float(0.0)
+    width = Property
+    rwidth = Range(0.0, 2.0, 0.05)
 
     red = Range(0.0, 1.0, 0.2)
     green = Range(0.0, 1.0, 0.2)
@@ -53,7 +56,7 @@ class TFGaussian(HasTraits):
     traits_view = View(VGroup(
                          HGroup(
                     Item('center'),
-                    Item('width')
+                    Item('rwidth', label='Width')
                                ),
                          HGroup(
                     Item('red'),
@@ -63,6 +66,10 @@ class TFGaussian(HasTraits):
                                ),
                              ),
                        )
+
+    def _get_width(self):
+        width = self.rwidth * (self.tf.right_edge - self.tf.left_edge)
+        return width
 
     def _center_default(self):
         return (self.left_edge + self.right_edge)/2.0
@@ -88,6 +95,9 @@ class TFGaussian(HasTraits):
     def _height_changed(self):
         self.tf._redraw()
 
+    def _rwidth_changed(self):
+        self.tf._redraw()
+
 class TFColors(HasTraits):
     gaussians = List(Instance(TFGaussian))
     transfer_function = Instance(ColorTransferFunction)
@@ -96,29 +106,41 @@ class TFColors(HasTraits):
     right_edge = Float(10.0)
 
     add_gaussian = Button
-    generate_code = Button
+    run_routine = Button
+    save_function = Button
+
+    routine = Callable
 
     plot_data = Instance(ArrayPlotData)
     image_data = Instance(ArrayPlotData)
+    vr_image_data = Instance(ArrayPlotData)
 
     plot = Instance(Plot)
     image_plot = Instance(Plot)
+    vr_image_plot = Instance(Plot)
 
     traits_view = View(VGroup(
+                         HGroup(
+                       VGroup(
                          Item('image_plot', editor=ComponentEditor(),
                                       show_label=False, resizable=True),
                          Item('plot', editor=ComponentEditor(),
                                       show_label=False, resizable=True),
+                             ),
+                         Item('vr_image_plot', editor=ComponentEditor(),
+                                      show_label=False, resizable=True,
+                                      width=512, height=512)),
                          Item("gaussians", style='custom',
                               editor=ListEditor(style='custom'),
                               show_label=False,
                              ),
                          HGroup(Item("left_edge"), Item("right_edge")),
                          HGroup(Item("add_gaussian", show_label = False),
-                                Item("generate_code", show_label = False),
+                                Item("run_routine", show_label = False),
+                                Item("save_function", show_label = False),
                                 ),
                         ),
-                       width=500, height=500,
+                       width=960, height=800,
                        resizable=True)
 
     def _plot_data_default(self):
@@ -131,6 +153,9 @@ class TFColors(HasTraits):
 
     def _image_data_default(self):
         return ArrayPlotData(image_data = na.zeros((40,256,4), dtype='uint8'))
+
+    def _vr_image_data_default(self):
+        return ArrayPlotData(vr_image_data = na.zeros((512,512,3), dtype='uint8'))
 
     def _plot_default(self):
         p = Plot(self.plot_data)
@@ -146,6 +171,14 @@ class TFColors(HasTraits):
         plot = Plot(self.image_data, default_origin="top left")
         #plot.x_axis.orientation = "top"
         img_plot = plot.img_plot("image_data")[0]
+
+        plot.bgcolor = "black"
+        return plot
+
+    def _vr_image_plot_default(self):
+        plot = Plot(self.vr_image_data, default_origin="top left")
+        #plot.x_axis.orientation = "top"
+        img_plot = plot.img_plot("vr_image_data")[0]
 
         plot.bgcolor = "black"
         return plot
@@ -170,24 +203,21 @@ class TFColors(HasTraits):
             image[:,:,i] = (f.y[None,:] * 255).astype('uint8')
         self.image_data["image_data"] = image
 
-    def _generate_code_fired(self):
-        val = ""
-        val += "from yt.extensions.volume_rendering import ColorTransferFunction\n"
-        val += "\n"
-        val += "tf = ColorTransferFunction((%s, %s))\n" % (self.left_edge, self.right_edge)
-        for g in self.gaussians:
-            val += "tf.add_gaussian(%s, %s, (%s, %s, %s, %s))\n" % (
-                    g.center, g.width, g.red, g.green, g.blue, g.alpha)
-        val += "\n"
-        snipped = CodeSnippet(snippet=val)
-        snipped.edit_traits()
+    def _run_routine_fired(self):
+        img_data = self.routine(self.transfer_function)
+        self.vr_image_data['vr_image_data'] = img_data
 
-class CodeSnippet(HasTraits):
-    snippet = Code
-
-    # Not using code editor, because it doesn't work for me with Qt4
-    traits_view = View(Item("snippet", editor=TextEditor(multi_line=True)),
-                       width=800, height=600, resizable=True)
+    def _save_function_fired(self):
+        self._redraw()
+        dlg = pyface.FileDialog(
+            action='save as',
+            wildcard="*.ctf",
+        )
+        if dlg.open() == pyface.OK:
+            print "Saving:", dlg.path
+            tf = self.transfer_function
+            f = open(dlg.path, "wb")
+            cPickle.dump(tf, f)
 
 if __name__ == "__main__":
     tfc = TFColors()
