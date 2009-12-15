@@ -23,6 +23,7 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
+import numpy as na
 from TransferFunction import ColorTransferFunction
 
 from enthought.traits.api import \
@@ -91,16 +92,21 @@ class TFColors(HasTraits):
     gaussians = List(Instance(TFGaussian))
     transfer_function = Instance(ColorTransferFunction)
 
-    left_edge = Float
-    right_edge = Float
+    left_edge = Float(0.0)
+    right_edge = Float(10.0)
 
     add_gaussian = Button
     generate_code = Button
 
     plot_data = Instance(ArrayPlotData)
+    image_data = Instance(ArrayPlotData)
+
     plot = Instance(Plot)
+    image_plot = Instance(Plot)
 
     traits_view = View(VGroup(
+                         Item('image_plot', editor=ComponentEditor(),
+                                      show_label=False, resizable=True),
                          Item('plot', editor=ComponentEditor(),
                                       show_label=False, resizable=True),
                          Item("gaussians", style='custom',
@@ -123,6 +129,9 @@ class TFColors(HasTraits):
                              lx = (0.0, 1.0), ly = (0.0, 0.0),
                              ux = (0.0, 1.0), uy = (1.0, 1.0))
 
+    def _image_data_default(self):
+        return ArrayPlotData(image_data = na.zeros((40,256,4), dtype='uint8'))
+
     def _plot_default(self):
         p = Plot(self.plot_data)
         p.plot( ("rx", "ry"), type='line', color='red')
@@ -132,6 +141,14 @@ class TFColors(HasTraits):
         p.plot( ("lx", "ly"), type='line', color='black')
         p.plot( ("ux", "uy"), type='line', color='black')
         return p
+
+    def _image_plot_default(self):
+        plot = Plot(self.image_data, default_origin="top left")
+        #plot.x_axis.orientation = "top"
+        img_plot = plot.img_plot("image_data")[0]
+
+        plot.bgcolor = "black"
+        return plot
 
     def _add_gaussian_fired(self):
         self.gaussians.append(TFGaussian(tf = self))
@@ -145,6 +162,13 @@ class TFColors(HasTraits):
         for f, c in zip(self.transfer_function.funcs, "rgba"):
             self.plot_data["%sx" % c] = f.x
             self.plot_data["%sy" % c] = f.y
+
+        # Now we update the image describing the colors
+        # This makes the assumption that all the x values are the same
+        image = na.zeros((40, self.transfer_function.nbins, 4), dtype='uint8')
+        for i,f in enumerate(self.transfer_function.funcs):
+            image[:,:,i] = (f.y[None,:] * 255).astype('uint8')
+        self.image_data["image_data"] = image
 
     def _generate_code_fired(self):
         val = ""
