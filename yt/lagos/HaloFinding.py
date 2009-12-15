@@ -947,7 +947,7 @@ class parallelHOPHaloList(HaloList,ParallelAnalysisInterface):
                 self.max_dens_point[index][2], self.max_dens_point[index][3]]
             index += 1
         # Clean up
-        del self.max_dens_point, self.Tot_M, self.max_radius, self.bulk_vel
+        del self.max_dens_point, self.max_radius, self.bulk_vel
         del self.halo_taskmap, self.tags
 
     def __len__(self):
@@ -1183,6 +1183,7 @@ class parallelHF(GenericHaloFinder, parallelHOPHaloList):
 
     def _join_halolists(self):
         ms = -self.Tot_M.copy()
+        del self.Tot_M
         Cx = self.CoM[:,0].copy()
         indexes = na.arange(self.group_count)
         sorted = na.asarray([indexes[i] for i in na.lexsort([indexes, Cx, ms])])
