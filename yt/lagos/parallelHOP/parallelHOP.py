@@ -1208,7 +1208,7 @@ class RunParallelHOP(ParallelAnalysisInterface):
                 # neighbors, and we can skip neighbors we're already assigned to.
                 if dens >= densestbound[chain_low] and \
                         densestbound[chain_high] > densestbound[chain_low] and \
-                        self.reverse_map[chain_high] != 1 and \
+                        self.reverse_map[chain_high] != -1 and \
                         self.reverse_map[chain_low] != self.reverse_map[chain_high]:
                     changes += 1
                     if dens < densestbound[chain_high]:
