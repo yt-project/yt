@@ -100,7 +100,7 @@ class StarFormationRate(object):
         # We will want the time taken between bins.
         self.time_bins_dt = self.time_bins[1:] - self.time_bins[:-1]
     
-    def write_out(self, name="StarAnalysis.out"):
+    def write_out(self, name="StarFormationRate.out"):
         """
         Write out the star analysis to a text file *name*. The columns are in
         order:
@@ -168,7 +168,7 @@ I've also reversed the order of elements in the flux arrays to be in C-ordering,
 for faster memory access.
 """
 
-class BuildSpectrum(object):
+class SpectrumBuilder(object):
     def __init__(self, pf, bcdir="", model="chabrier"):
         """
         Initialize the data to build a summed flux spectrum for a

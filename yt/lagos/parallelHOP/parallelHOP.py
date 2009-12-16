@@ -540,7 +540,6 @@ class RunParallelHOP(ParallelAnalysisInterface):
         del map
         yt_counters("local chain sorting.")
         mylog.info("Preconnecting %d chains..." % chain_count)
-        self.search_again = na.empty(self.size, dtype='bool')
         chain_map = defaultdict(set)
         for i in xrange(max(self.chainID)+1):
             chain_map[i].add(i)
@@ -557,8 +556,6 @@ class RunParallelHOP(ParallelAnalysisInterface):
             chainID_i = self.chainID[i]
             # If this particle is in the padding, don't make a connection.
             if not self.is_inside[i]: continue
-            # If we've made it this far mark it to be searched again.
-            self.search_again[i] = True
             # Find this particle's chain max_dens.
             part_max_dens = self.densest_in_chain[chainID_i]
             # We're only connecting >= peakthresh chains now.
@@ -1417,6 +1414,9 @@ class RunParallelHOP(ParallelAnalysisInterface):
         # Build the chain of links.
         mylog.info('Building particle chains...')
         chain_count = self._build_chains()
+        # This array tracks whether or not relationships for this particle
+        # need to be examined twice, in preconnect_chains and in connect_chains
+        self.search_again = na.ones(self.size, dtype='bool')
         chain_count = self._preconnect_chains(chain_count)
         mylog.info('Gobally assigning chainIDs...')
         self._globally_assign_chainIDs(chain_count)
