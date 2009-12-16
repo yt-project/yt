@@ -83,6 +83,10 @@ class AMRHierarchy(ObjectFindingMixin, ParallelAnalysisInterface):
         """
         return self.grids[self.grid_levels.flat == level]
 
+    def get_levels(self):
+        for level in range(self.max_level+1):
+            yield self.select_grids(level)
+
     def _initialize_state_variables(self):
         self._parallel_locking = False
         self._data_file = None
