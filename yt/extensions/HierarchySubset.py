@@ -45,7 +45,6 @@ class ConstructedRootGrid(AMRGridPatch):
         self.pf = pf
         self.base_pf = base_pf
         self.field_parameters = {}
-        self.fields = []
         self.NumberOfParticles = 0
         self.id = 1
         self.hierarchy = hierarchy
@@ -125,10 +124,6 @@ class OldExtractedHierarchy(object):
         if level == 0 and self._base_grid is not None:
             return [self._base_grid]
         return self.pf.h.select_grids(self.min_level + level)
-
-    def get_levels(self):
-        for level in range(self.final_level+1):
-            yield self.select_level(level)
 
     def export_output(self, afile, n, field):
         # I prefer dict access, but tables doesn't.
@@ -220,7 +215,8 @@ class ExtractedHierarchy(AMRHierarchy):
         self.min_left_edge = self._convert_coords(min_left)
         self.max_right_edge = self._convert_coords(max_right)
         self.min_left, self.max_right = min_left, max_right
-        if pf.max_level == -1: max_level = pf.base_pf.h.max_level
+        max_level = pf.max_level
+        if max_level == -1: max_level = pf.base_pf.h.max_level
         self.max_level = min(max_level, pf.base_pf.h.max_level)
         self.final_level = self.max_level - self.min_level
 
