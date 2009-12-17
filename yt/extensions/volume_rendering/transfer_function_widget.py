@@ -46,12 +46,12 @@ class TFGaussian(HasTraits):
     tf = Any
     
     width = Property
-    rwidth = Range(0.0, 2.0, 0.05)
+    rwidth = Range(0.0, 0.5, 0.05)
 
-    red = Range(0.0, 1.0, 0.2)
-    green = Range(0.0, 1.0, 0.2)
-    blue = Range(0.0, 1.0, 0.2)
-    alpha = Range(0.0, 1.0, 0.2)
+    red = Range(0.0, 1.0, 0.5)
+    green = Range(0.0, 1.0, 0.5)
+    blue = Range(0.0, 1.0, 0.5)
+    alpha = Range(0.0, 1.0, 1.0)
 
     traits_view = View(VGroup(
                          HGroup(
