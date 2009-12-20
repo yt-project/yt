@@ -425,7 +425,7 @@ class EnzoHierarchy(AMRHierarchy):
         if os.path.exists(self.hierarchy_filename[:-9] + "harrays"):
             if self._parse_binary_hierarchy(): return
         t1 = time.time()
-        pattern = r"Pointer: Grid\[(\d*)\]->NextGrid(Next|This)Level = (\d*)$"
+        pattern = r"Pointer: Grid\[(\d*)\]->NextGrid(Next|This)Level = (\d*)\s+$"
         patt = re.compile(pattern)
         f = open(self.hierarchy_filename, "rb")
         self.grids = [self.grid(1, self)]
