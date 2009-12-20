@@ -22,6 +22,7 @@ def configuration(parent_package='',top_path=None):
     config.add_extension("PointCombine", "yt/lagos/PointCombine.c", libraries=["m"])
     config.add_subpackage("hop")
     config.add_subpackage("fof")
+    config.add_subpackage("parallelHOP")
     H5dir = check_for_hdf5()
     if H5dir is not None:
         include_dirs=[os.path.join(H5dir,"include")]
