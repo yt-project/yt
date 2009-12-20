@@ -473,9 +473,7 @@ class EnzoGrid(AMRGridPatch):
         rf = self.pf["RefineBy"]
         my_ind = self.id - self._id_offset
         le = self.LeftEdge
-        self['dx'] = self.Parent['dx']/rf
-        self['dy'] = self.Parent['dy']/rf
-        self['dz'] = self.Parent['dz']/rf
+        self.dds = self.Parent.dds/rf
         ParentLeftIndex = na.rint((self.LeftEdge-self.Parent.LeftEdge)/self.Parent.dds)
         self.start_index = rf*(ParentLeftIndex + self.Parent.get_global_startindex()).astype('int64')
         self.LeftEdge = self.Parent.LeftEdge + self.Parent.dds * ParentLeftIndex
