@@ -32,7 +32,7 @@ class HaloMassFcn(object):
     def __init__(self, pf, halo_file=None, omega_matter0=None, omega_lambda0=None,
     omega_baryon0=0.05, hubble0=None, sigma8input=0.86, primordial_index=1.0,
     this_redshift=None, log_mass_min=None, log_mass_max=None, num_sigma_bins=360,
-    fitting_function=4):
+    fitting_function=4, mass_column=5):
         """
         Initalize a HaloMassFcn object to analyze the distribution of haloes
         as a function of mass.
@@ -71,6 +71,8 @@ class HaloMassFcn(object):
         :param fitting_function (int): Which fitting function to use.
         1 = Press-schechter, 2 = Jenkins, 3 = Sheth-Tormen, 4 = Warren fit
         Default=4.
+        :param mass_column (int): The column of halo_file that contains the
+        masses of the haloes. Default=4.
         """
         self.pf = pf
         self.halo_file = halo_file
@@ -85,6 +87,7 @@ class HaloMassFcn(object):
         self.log_mass_max = log_mass_max
         self.num_sigma_bins = num_sigma_bins
         self.fitting_function = fitting_function
+        self.mass_column = mass_column
         
         # Determine the run mode.
         if halo_file is None:
@@ -177,10 +180,9 @@ class HaloMassFcn(object):
         self.haloes = []
         while line:
             line = line.split()
-            # Mass is in the 6th column (ord. 5)
-            mass = float(line[5])
+            mass = float(line[self.mass_column])
             if mass > 0:
-                self.haloes.append(float(line[5]))
+                self.haloes.append(float(line[self.mass_column]))
             line = f.readline()
         f.close()
         self.haloes = na.array(self.haloes)
