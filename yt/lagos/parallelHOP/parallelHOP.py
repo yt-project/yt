@@ -33,9 +33,11 @@ from yt.performance_counters import yt_counters, time_function
 
 class RunParallelHOP(ParallelAnalysisInterface):
     def __init__(self,period, padding, num_neighbors, bounds,
-            xpos, ypos, zpos, index, mass, threshold=160.0, rearrange=True):
+            xpos, ypos, zpos, index, mass, threshold=160.0, rearrange=True,
+            premerge=True):
         self.threshold = threshold
         self.rearrange = rearrange
+        self.premerge = premerge
         self.saddlethresh = 2.5 * threshold
         self.peakthresh = 3 * threshold
         self.period = period
@@ -1417,7 +1419,8 @@ class RunParallelHOP(ParallelAnalysisInterface):
         # This array tracks whether or not relationships for this particle
         # need to be examined twice, in preconnect_chains and in connect_chains
         self.search_again = na.ones(self.size, dtype='bool')
-        chain_count = self._preconnect_chains(chain_count)
+        if self.premerge:
+            chain_count = self._preconnect_chains(chain_count)
         mylog.info('Gobally assigning chainIDs...')
         self._globally_assign_chainIDs(chain_count)
         mylog.info('Globally finding densest in chains...')

@@ -793,7 +793,7 @@ class parallelHOPHaloList(HaloList,ParallelAnalysisInterface):
               ["ParticleMassMsun", "particle_index"]
 
     def __init__(self, data_source, padding, num_neighbors, bounds, total_mass,
-        period, threshold=160.0, dm_only=True, rearrange=True):
+        period, threshold=160.0, dm_only=True, rearrange=True, premerge=True):
         """
         Run hop on *data_source* with a given density *threshold*.  If
         *dm_only* is set, only run it on the dark matter particles, otherwise
@@ -806,6 +806,7 @@ class parallelHOPHaloList(HaloList,ParallelAnalysisInterface):
         self.rearrange = rearrange
         self.period = period
         self._data_source = data_source
+        self.premerge = premerge
         mylog.info("Initializing HOP")
         HaloList.__init__(self, data_source, dm_only)
 
@@ -828,7 +829,7 @@ class parallelHOPHaloList(HaloList,ParallelAnalysisInterface):
             self.particle_fields["particle_position_z"],
             self.particle_fields["particle_index"],
             self.particle_fields["ParticleMassMsun"]/self.total_mass,
-            self.threshold, rearrange=self.rearrange)
+            self.threshold, rearrange=self.rearrange, premerge=self.premerge)
         self.densities, self.tags = obj.density, obj.chainID
         # I'm going to go ahead and delete self.densities because it's not
         # actually being used. I'm not going to remove it altogether because
@@ -1056,7 +1057,7 @@ class GenericHaloFinder(HaloList, ParallelAnalysisInterface):
 
 class parallelHF(GenericHaloFinder, parallelHOPHaloList):
     def __init__(self, pf, threshold=160, dm_only=True, resize=True, rearrange=True,\
-        fancy_padding=True, safety=1.5):
+        fancy_padding=True, safety=1.5, premerge=True):
         GenericHaloFinder.__init__(self, pf, dm_only, padding=0.0)
         self.padding = 0.0 
         self.num_neighbors = 65
@@ -1177,7 +1178,7 @@ class parallelHF(GenericHaloFinder, parallelHOPHaloList):
         (LE_padding, RE_padding) = self.padding
         parallelHOPHaloList.__init__(self, self._data_source, self.padding, \
         self.num_neighbors, self.bounds, total_mass, period, \
-        threshold=threshold, dm_only=dm_only, rearrange=rearrange)
+        threshold=threshold, dm_only=dm_only, rearrange=rearrange, premerge=premerge)
         self._join_halolists()
         yt_counters("Final Grouping")
 
