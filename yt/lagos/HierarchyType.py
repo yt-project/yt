@@ -1163,7 +1163,7 @@ class GadgetHierarchy(AMRHierarchy):
         LE = na.zeros(3, dtype='float64')
         RE = na.ones(3, dtype='float64')
         base_grid = ProtoGadgetGrid(0, LE, RE, self.pf.particles)
-        self.proto_grids = base_grid.refine()
+        self.proto_grids = base_grid.refine(8)
         self.num_grids = len(self.proto_grids)
         self.max_level = max( (g.level for g in self.proto_grids) )
 
