@@ -606,3 +606,25 @@ def _reconstruct_pf(*args, **kwargs):
     pfs = ParameterFileStore()
     pf = pfs.get_pf_hash(*args)
     return pf
+
+class GadgetStaticOutput(StaticOutput):
+    _hierarchy_class = GadgetHierarchy
+    def __init__(self, filename, particles, dimensions = None):
+        StaticOutput.__init__(self, filename, 'gadget_binary')
+        self.particles = particles
+        if "InitialTime" not in self.parameters:
+            self.parameters["InitialTime"] = 0.0
+        self.parameters["CurrentTimeIdentifier"] = \
+            int(os.stat(self.parameter_filename)[ST_CTIME])
+        if dimensions is None:
+            dimensions = na.ones((3,), dtype='int64') * 32
+        self.parameters['TopGridDimensions'] = dimensions
+        self.parameters['TopGridRank'] = 3
+        self.parameters['RefineBy'] = 2
+
+    def _parse_parameter_file(self):
+        pass
+
+    def _set_units(self):
+        self.units = {'1':1.0}
+        self.time_units = {}

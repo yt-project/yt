@@ -420,6 +420,10 @@ class IOHandlerPacked1D(IOHandlerPackedHDF5):
                         (grid.id, field))
         return t
 
+class IOHandlerGadget(BaseIOHandler):
+    _data_style = 'gadget_binary'
+    pass
+
 #
 # BoxLib/Orion data readers follow
 #

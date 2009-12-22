@@ -578,3 +578,72 @@ class OrionGrid(AMRGridPatch):
     def __repr__(self):
         return "OrionGrid_%04i" % (self.id)
 
+class ProtoGadgetGrid(object):
+    def __init__(self, level, left_edge, right_edge, particles, parent = None):
+        # generate the left/right edge from the octant and the level argument
+        self.level = level
+        self.left_edge = left_edge
+        self.right_edge = right_edge
+        self.particles = particles
+        self.parent = parent # We break convention here -- this is a protogrid
+        self.children = []
+
+    def split(self):
+        #split_axis = (self.left_edge + self.right_edge) / 2.0
+        W = 0.5 * (self.right_edge - self.left_edge) # This is the half-width
+        keep = na.ones(self.particles.shape[1], dtype='bool')
+        for i in xrange(2):
+            for j in xrange(2):
+                for k in xrange(2):
+                    LE = self.left_edge.copy()
+                    LE += na.array([i, j, k], dtype='float64') * W
+                    RE = LE + W
+                    pi = self.select_particles(LE, RE)
+                    keep &= (~pi)
+                    g = ProtoGadgetGrid(self.level + 1, LE, RE,
+                                        self.particles[:,pi], self)
+                    self.children.append(g)
+                    yield g
+        self.particles = self.particles[:,keep]
+
+    def select_particles(self, LE, RE):
+        pi = na.all( (self.particles >= LE[:,None])
+                   & (self.particles <  RE[:,None]), axis=0)
+        return pi
+
+    def refine(self, npart = 128):
+        gs = [self]
+        if self.particles.shape[1] < npart: return gs
+        for grid in self.split():
+            gs += grid.refine(npart)
+        return gs
+
+class GadgetGrid(AMRGridPatch):
+
+    _id_offset = 0
+
+    def __init__(self, id, hierarchy, proto_grid):
+        AMRGridPatch.__init__(self, id, hierarchy = hierarchy)
+        self.Children = []
+        if proto_grid.parent is None:
+            self.Parent = None
+        else:
+            self.Parent = proto_grid.parent.real_grid
+            self.Parent.Children.append(self)
+        self['particle_position_x'] = proto_grid.particles[0,:]
+        self['particle_position_y'] = proto_grid.particles[1,:]
+        self['particle_position_z'] = proto_grid.particles[2,:]
+        self.NumberOfParticles = proto_grid.particles.shape[1]
+        self.Level = proto_grid.level
+        self.LeftEdge = proto_grid.left_edge
+        self.RightEdge = proto_grid.right_edge
+        # Our dx is a bit fluid here, so we defer
+        dims = self.pf["TopGridDimensions"]
+        # Hard code to refineby 2
+        dds = 1.0 / (dims * 2**self.Level)
+        ad = na.rint((self.RightEdge - self.LeftEdge) / dds)
+        self.ActiveDimensions = ad.astype('int64')
+
+    def __repr__(self):
+        return "GadgetGrid_%04i" % (self.id)
+

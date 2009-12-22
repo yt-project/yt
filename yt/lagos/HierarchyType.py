@@ -1147,3 +1147,62 @@ class OrionLevel:
         self.ngrids = ngrids
         self.grids = []
     
+
+class GadgetHierarchy(AMRHierarchy):
+
+    grid = GadgetGrid
+
+    def __init__(self, pf, data_style):
+        self.directory = pf.fullpath
+        self.data_style = data_style
+        AMRHierarchy.__init__(self, pf, data_style)
+
+    def _count_grids(self):
+        # We actually construct our octree here!
+        # ...but we do read in our particles, it seems.
+        LE = na.zeros(3, dtype='float64')
+        RE = na.ones(3, dtype='float64')
+        base_grid = ProtoGadgetGrid(0, LE, RE, self.pf.particles)
+        self.proto_grids = base_grid.refine()
+        self.num_grids = len(self.proto_grids)
+        self.max_level = max( (g.level for g in self.proto_grids) )
+
+    def _setup_classes(self):
+        dd = self._get_data_reader_dict()
+        AMRHierarchy._setup_classes(self, dd)
+        self.object_types.sort()
+
+    def _parse_hierarchy(self):
+        grids = []
+        # We need to fill in dims, LE, RE, level, count
+        dims, LE, RE, levels, counts = [], [], [], [], []
+        self.proto_grids.sort(key = lambda a: a.level)
+        for i, pg in enumerate(self.proto_grids):
+            g = self.grid(i, self, pg)
+            pg.real_grid = g
+            grids.append(g)
+            dims.append(g.ActiveDimensions)
+            LE.append(g.LeftEdge)
+            RE.append(g.RightEdge)
+            levels.append(g.Level)
+            counts.append(g.NumberOfParticles)
+        del self.proto_grids
+        self.grids = na.array(grids, dtype='object')
+        self.grid_dimensions[:] = na.array(dims, dtype='int64')
+        self.grid_left_edge[:] = na.array(LE, dtype='float64')
+        self.grid_right_edge[:] = na.array(RE, dtype='float64')
+        self.grid_levels.flat[:] = na.array(levels, dtype='int32')
+        self.grid_particle_count.flat[:] = na.array(counts, dtype='int32')
+
+    def _populate_grid_objects(self):
+        # We don't need to do anything here
+        for g in self.grids: g._setup_dx()
+
+    def _detect_fields(self):
+        self.field_list = ['particle_position_%s' % ax for ax in 'xyz']
+
+    def _setup_unknown_fields(self):
+        pass
+
+    def _setup_derived_fields(self):
+        self.derived_field_list = []
