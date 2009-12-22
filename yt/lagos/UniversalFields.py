@@ -35,10 +35,7 @@ from math import pi
 from yt.funcs import *
 from FieldInfoContainer import *
 
-try:
-    import cic_deposit
-except ImportError:
-    pass
+from yt.amr_utils import CICDeposit_3
 
 mh = 1.67e-24 # g
 me = 9.11e-28 # g
@@ -759,3 +756,22 @@ def _JeansMassMsun(field,data):
             (data["Density"]**(-0.5)))
 add_field("JeansMassMsun",function=_JeansMassMsun,
           units=r"\rm{M_{\odot}}")
+
+def _convertDensity(data):
+    return data.convert("Density")
+def _pdensity_pyx(field, data):
+    blank = na.zeros(data.ActiveDimensions, dtype='float32')
+    if data.NumberOfParticles == 0: return blank
+    CICDeposit_3(data["particle_position_x"].astype(na.float64),
+                 data["particle_position_y"].astype(na.float64),
+                 data["particle_position_z"].astype(na.float64),
+                 data["particle_mass"].astype(na.float32),
+                 na.int64(data.NumberOfParticles),
+                 blank, na.array(data.LeftEdge).astype(na.float64),
+                 na.array(data.ActiveDimensions).astype(na.int32),
+                 na.float64(data['dx']))
+    return blank
+add_field("particle_density_pyx", function=_pdensity_pyx,
+          validators=[ValidateSpatial(0)], convert_function=_convertDensity,
+          display_name=r"\mathrm{Particle}\/\mathrm{Density})")
+

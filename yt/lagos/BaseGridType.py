@@ -630,13 +630,18 @@ class GadgetGrid(AMRGridPatch):
         else:
             self.Parent = proto_grid.parent.real_grid
             self.Parent.Children.append(self)
-        self['particle_position_x'] = proto_grid.particles[0,:]
-        self['particle_position_y'] = proto_grid.particles[1,:]
-        self['particle_position_z'] = proto_grid.particles[2,:]
-        self.NumberOfParticles = proto_grid.particles.shape[1]
         self.Level = proto_grid.level
         self.LeftEdge = proto_grid.left_edge
         self.RightEdge = proto_grid.right_edge
+        self.NumberOfParticles = proto_grid.particles.shape[1]
+        self._storage = {}
+        self._storage['particle_position_x'] = proto_grid.particles[0,:]
+        self._storage['particle_position_y'] = proto_grid.particles[1,:]
+        self._storage['particle_position_z'] = proto_grid.particles[2,:]
+        # Something should be done here for the volume change as you go down
+        # the hierarchy...
+        self._storage['particle_mass'] = na.ones(self.NumberOfParticles,
+                                           dtype='float64') * (8 ** self.Level)
         # Our dx is a bit fluid here, so we defer
         dims = self.pf["TopGridDimensions"]
         # Hard code to refineby 2

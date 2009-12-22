@@ -234,21 +234,6 @@ def _pdensity(field, data):
 add_field("particle_density", function=_pdensity,
           validators=[ValidateSpatial(0)], convert_function=_convertDensity)
 
-def _pdensity_pyx(field, data):
-    blank = na.zeros(data.ActiveDimensions, dtype='float32')
-    if data.NumberOfParticles == 0: return blank
-    CICDeposit_3(data["particle_position_x"].astype(na.float64),
-                 data["particle_position_y"].astype(na.float64),
-                 data["particle_position_z"].astype(na.float64),
-                 data["particle_mass"].astype(na.float32),
-                 na.int64(data.NumberOfParticles),
-                 blank, na.array(data.LeftEdge).astype(na.float64),
-                 na.array(data.ActiveDimensions).astype(na.int32),
-                 na.float64(data['dx']))
-    return blank
-add_field("particle_density_pyx", function=_pdensity_pyx,
-          validators=[ValidateSpatial(0)], convert_function=_convertDensity)
-
 def _spdensity_pyx(field, data):
     blank = na.zeros(data.ActiveDimensions, dtype='float32')
     if data.NumberOfParticles == 0: return blank
