@@ -382,3 +382,111 @@ cdef class PartitionedGrid:
                 dp[i] = fclip(fmod(cp[i], self.dds[i])/self.dds[i], 0, 1.0)
             dv = trilinear_interpolate(self.dims, ci, dp, self.data)
             tf.eval_transfer(dt, dv, rgba)
+
+cdef class GridFace:
+    cdef int direction
+    cdef public np.float64_t coord
+    cdef np.float64_t left_edge[3]
+    cdef np.float64_t right_edge[3]
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    def __init__(self, grid, int direction, int left):
+        self.direction = direction
+        if left == 1:
+            self.coord = grid.LeftEdge[direction]
+        else:
+            self.coord = grid.RightEdge[direction]
+        cdef int i
+        for i in range(3):
+            self.left_edge[i] = grid.LeftEdge[i]
+            self.right_edge[i] = grid.RightEdge[i]
+        self.left_edge[direction] = self.right_edge[direction] = self.coord
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    cdef int proj_overlap(self, np.float64_t *left_edge, np.float64_t *right_edge):
+        cdef int xax, yax
+        xax = (self.direction + 1) % 3
+        yax = (self.direction + 2) % 3
+        if left_edge[xax] >= self.right_edge[xax]: return 0
+        if right_edge[xax] <= self.left_edge[xax]: return 0
+        if left_edge[yax] >= self.right_edge[yax]: return 0
+        if right_edge[yax] <= self.left_edge[yax]: return 0
+        return 1
+
+cdef class ProtoPrism:
+    cdef np.float64_t left_edge[3]
+    cdef np.float64_t right_edge[3]
+    cdef public object LeftEdge
+    cdef public object RightEdge
+    cdef public object subgrid_faces
+    def __cinit__(self, np.ndarray[np.float64_t, ndim=1] left_edge,
+                       np.ndarray[np.float64_t, ndim=1] right_edge,
+                       subgrid_faces):
+        cdef int i
+        self.LeftEdge = left_edge
+        self.RightEdge = right_edge
+        for i in range(3):
+            self.left_edge[i] = left_edge[i]
+            self.right_edge[i] = right_edge[i]
+        self.subgrid_faces = subgrid_faces
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    def sweep(self, int direction = 0, int stack = 0):
+        cdef int i
+        cdef GridFace face
+        cdef np.float64_t proto_split[3]
+        for i in range(3): proto_split[i] = self.right_edge[i]
+        for face in self.subgrid_faces[direction]:
+            proto_split[direction] = face.coord
+            if proto_split[direction] <= self.left_edge[direction]:
+                continue
+            if proto_split[direction] == self.right_edge[direction]:
+                if stack == 2: return [self]
+                return self.sweep((direction + 1) % 3, stack + 1)
+            if face.proj_overlap(self.left_edge, proto_split) == 1:
+                left, right = self.split(proto_split, direction)
+                LC = left.sweep((direction + 1) % 3)
+                RC = right.sweep(direction)
+                return LC + RC
+        raise RuntimeError
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    cdef object split(self, np.float64_t *sp, int direction):
+        cdef int i
+        cdef np.ndarray split_left = self.LeftEdge.copy()
+        cdef np.ndarray split_right = self.RightEdge.copy()
+
+        for i in range(3): split_left[i] = self.right_edge[i]
+        split_left[direction] = sp[direction]
+        left = ProtoPrism(self.LeftEdge, split_left, self.subgrid_faces)
+
+        for i in range(3): split_right[i] = self.left_edge[i]
+        split_right[direction] = sp[direction]
+        right = ProtoPrism(split_right, self.RightEdge, self.subgrid_faces)
+
+        return (left, right)
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    def get_brick(self, np.ndarray[np.float64_t, ndim=1] grid_left_edge,
+                        np.ndarray[np.float64_t, ndim=1] grid_dds,
+                        np.ndarray[np.float64_t, ndim=3] data,
+                        child_mask):
+        # We get passed in the left edge, the dds (which gives dimensions) and
+        # the data, which is already vertex-centered.
+        if child_mask[0,0,0] == 0: return []
+        cdef PartitionedGrid PG
+        cdef int li[3], ri[3], i
+        cdef np.ndarray[np.float64_t, ndim=3] new_data
+        cdef np.ndarray[np.int64_t, ndim=1] dims = np.empty(3, dtype='int64')
+        for i in range(3):
+            li[i] = <int> ((self.left_edge[i] - grid_left_edge[i])/grid_dds[i])
+            ri[i] = <int> ((self.right_edge[i] - grid_left_edge[i])/grid_dds[i])
+            dims[i] = ri[i] - li[i] - 1
+        new_data = data[li[0]:ri[0]+1,li[1]:ri[1]+1,li[2]:ri[2]+1]
+        PG = PartitionedGrid(new_data, self.LeftEdge, self.RightEdge, dims)
+        return [PG]
