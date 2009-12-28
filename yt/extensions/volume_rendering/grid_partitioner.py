@@ -27,7 +27,20 @@ import numpy as na
 from yt.funcs import *
 import h5py
 
-from yt.amr_utils import PartitionedGrid
+from yt.amr_utils import PartitionedGrid, ProtoPrism, GridFace
+
+class GridFaces(object):
+    def __init__(self, grids):
+        self.faces = [ [], [], [] ]
+        for grid in grids:
+            for direction in range(3):
+                self.faces[direction].append( GridFace(grid, direction, 1) )
+                self.faces[direction].append( GridFace(grid, direction, 0) )
+        for f in self.faces:
+            f.sort(key = lambda a: a.coord)
+
+    def __getitem__(self, item):
+        return self.faces[item]
 
 def partition_grid(start_grid, field, log_field = True, threshold = None):
     if threshold is not None:
@@ -36,6 +49,13 @@ def partition_grid(start_grid, field, log_field = True, threshold = None):
     to_cut_up = start_grid.get_vertex_centered_data(field, smoothed=True).astype('float64')
 
     if log_field: to_cut_up = na.log10(to_cut_up)
+
+    GF = GridFaces(start_grid.Children + [start_grid])
+    PP = ProtoPrism(start_grid.LeftEdge, start_grid.RightEdge, GF)
+    pgs = []
+    for P in PP.sweep(0):
+        pgs += P.get_brick(start_grid.LeftEdge, start_grid.dds, to_cut_up, start_grid.child_mask)
+    return pgs
 
     if len(start_grid.Children) == 0:
         pg = PartitionedGrid(
