@@ -39,24 +39,17 @@ class GridFace(object):
         self.right_edge = grid.RightEdge.copy()
         self.left_edge[direction] = self.right_edge[direction] = self.coord
 
-    def __and__(self, other):
-        return self.intersect(other)
-
-    def intersect(self, *args):
+    def proj_overlap(self, left_edge, right_edge):
         """
         Returns a True or False based on intersection with either a set of
-        (direction, coord, left_edge, right_edge) or another GridFace object.
+        left_edge, right_edge
         """
-        if len(args) == 1:
-            face = args[0]
-            return self._intersect_coords(
-                    face.direction, face.coord,
-                    face.left_edge, face.right_edge)
-        return self._intersect_coords(*args)
-
-    def _intersect_coords(self, left_edge, right_edge):
-        return (na.all(left_edge < self.right_edge) and
-                na.all(right_edge > self.left_edge))
+        xax = (self.direction + 1) % 3
+        yax = (self.direction + 2) % 3
+        return (na.all(left_edge[xax] < self.right_edge[xax]) and
+                na.all(right_edge[xax] > self.left_edge[xax]) and
+                na.all(left_edge[yax] < self.right_edge[yax]) and
+                na.all(right_edge[yax] > self.left_edge[yax]))
 
 class GridFaces(object):
     def __init__(self, grids):
@@ -83,24 +76,24 @@ class ProtoPrism(object):
         # This is the sweep algorithm.  We sweep over a given direction, and if
         # we find an intersection, we have to sweep over another one in the
         # next direction.
-        split_location = self.left_edge.copy()
+        proto_split = self.right_edge.copy()
         for face in self.subgrid_faces[direction]:
-            split_location[direction] = face.coord
-            if split_location[direction] <= self.left_edge[direction]:
+            proto_split[direction] = face.coord
+            if proto_split[direction] <= self.left_edge[direction]:
                 continue
-            if split_location[direction] >= self.right_edge[direction]:
-                return [self]
-                # I thought this next line was necessary, but I am no longer
-                # certain.  It would only be used if stack < 2.
-                #return self.sweep((direction + 1) % 3, stack + 1)
-            if face.intersect(self.left_edge, split_location):
-                left, right = self.split(split_location)
+            if proto_split[direction] == self.right_edge[direction]:
+                if stack == 2: return [self]
+                return self.sweep((direction + 1) % 3, stack + 1)
+            if face.proj_overlap(self.left_edge, proto_split):
+                left, right = self.split(proto_split, direction)
                 LC = left.sweep((direction + 1) % 3)
                 RC = right.sweep(direction)
                 return LC + RC
         raise RuntimeError
 
-    def split(self, split_location):
+    def split(self, split_location, direction):
+        new_split = self.left_edge.copy()
+        new_split[direction] = split_location[direction]
         left = ProtoPrism(self.left_edge, split_location, self.subgrid_faces)
-        right = ProtoPrism(split_location, self.right_edge, self.subgrid_faces)
+        right = ProtoPrism(new_split, self.right_edge, self.subgrid_faces)
         return (left, right)
