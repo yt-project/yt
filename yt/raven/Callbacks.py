@@ -693,7 +693,7 @@ class CoordAxesCallback(PlotCallback):
     def __call__(self,plot):
         # 1. find out what the domain is
         # 2. pick a unit for it
-        # 3. run self._axes.set_xlabel & self._axes.set_ylabel to actually lay shit down.
+        # 3. run self._axes.set_xlabel & self._axes.set_ylabel to actually lay things down.
         # 4. adjust extent information to make sure labels are visable.
 
         # put the plot into data coordinates
