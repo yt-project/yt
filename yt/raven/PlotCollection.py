@@ -214,11 +214,18 @@ class PlotCollection(object):
 
     def add_particles(self, axis, width, p_size=1.0, col='k', stride=1.0,
                       data_source=None, figure=None, axes=None):
+        """
+        Create a particle plot, where particle positions have been projected
+        along *axis* from a slab of *width* (in code units).  *p_size* is the
+        point size, *col* is color, *stride* is the stride of concatenated
+        particle lists to plot.
+        """
         LE = self.pf["DomainLeftEdge"].copy()
         RE = self.pf["DomainRightEdge"].copy()
         LE[axis] = self.c[axis] - width/2.0
         RE[axis] = self.c[axis] + width/2.0
         if data_source is None: data_source = self.pf.h.region(self.c, LE, RE)
+        data_source.axis = axis
         p = self._add_plot(PlotTypes.ParticlePlot(data_source, axis,
                                         width, p_size, col, stride, figure,
                                         axes))

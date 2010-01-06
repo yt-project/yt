@@ -47,8 +47,8 @@ class PlotCallback(object):
         x0, x1 = plot.xlim
         y0, y1 = plot.ylim
         l, b, width, height = _get_bounds(plot._axes.bbox)
-        dx = plot.image._A.shape[0] / (x1-x0)
-        dy = plot.image._A.shape[1] / (y1-y0)
+        dx = width / (x1-x0)
+        dy = height / (y1-y0)
         return ((coord[0] - int(offset)*x0)*dx,
                 (coord[1] - int(offset)*y0)*dy)
 
