@@ -454,13 +454,8 @@ class EnzoStaticOutputInMemory(EnzoStaticOutput):
 
 class OrionStaticOutput(StaticOutput):
     """
-    This class is a stripped down class that simply reads and parses, without
-    looking at the Orion hierarchy.
-
-    @todo: 
-
-    @param filename: The filename of the parameterfile we want to load
-    @type filename: String
+    This class is a stripped down class that simply reads and parses
+    *filename*, without looking at the Orion hierarchy.
     """
     _hierarchy_class = OrionHierarchy
     _fieldinfo_class = OrionFieldContainer
@@ -473,9 +468,9 @@ class OrionStaticOutput(StaticOutput):
         and there may be a fortran inputs file usually called "probin"
         plotname here will be a directory name
         as per BoxLib, data_style will be one of
-          Native
-          IEEE (not implemented in yt)
-          ASCII (not implemented in yt)
+         * Native
+         * IEEE (not implemented in yt)
+         * ASCII (not implemented in yt)
 
         """
 
