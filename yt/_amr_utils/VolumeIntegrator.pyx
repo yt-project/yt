@@ -58,6 +58,7 @@ cdef extern from "math.h":
     double ceil(double x)
     double fmod(double x, double y)
     double log2(double x)
+    long int lrint(double x)
 
 cdef extern from "FixedInterpolator.h":
     np.float64_t fast_interpolate(int *ds, int *ci, np.float64_t *dp,
@@ -484,9 +485,9 @@ cdef class ProtoPrism:
         cdef np.ndarray[np.float64_t, ndim=3] new_data
         cdef np.ndarray[np.int64_t, ndim=1] dims = np.empty(3, dtype='int64')
         for i in range(3):
-            li[i] = <int> ((self.left_edge[i] - grid_left_edge[i])/grid_dds[i])
-            ri[i] = <int> ((self.right_edge[i] - grid_left_edge[i])/grid_dds[i])
-            dims[i] = ri[i] - li[i] - 1
-        new_data = data[li[0]:ri[0]+1,li[1]:ri[1]+1,li[2]:ri[2]+1]
+            li[i] = lrint((self.left_edge[i] - grid_left_edge[i])/grid_dds[i])
+            ri[i] = lrint((self.right_edge[i] - grid_left_edge[i])/grid_dds[i])
+            dims[i] = ri[i] - li[i]
+        new_data = data[li[0]:ri[0]+1,li[1]:ri[1]+1,li[2]:ri[2]+1].copy()
         PG = PartitionedGrid(new_data, self.LeftEdge, self.RightEdge, dims)
         return [PG]
