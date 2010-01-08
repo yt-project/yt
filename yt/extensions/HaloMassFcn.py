@@ -28,7 +28,7 @@ from yt.logger import lagosLogger as mylog
 import numpy as na
 import math, time
 
-class HaloMassFcn(object):
+class HaloMassFcn(lagos.ParallelAnalysisInterface):
     def __init__(self, pf, halo_file=None, omega_matter0=None, omega_lambda0=None,
     omega_baryon0=0.05, hubble0=None, sigma8input=0.86, primordial_index=1.0,
     this_redshift=None, log_mass_min=None, log_mass_max=None, num_sigma_bins=360,
@@ -140,12 +140,12 @@ class HaloMassFcn(object):
         # First the fit file.
         if fit:
             fitname = prefix + '-fit.dat'
-            fp = open(fitname, 'w')
+            fp = self._write_on_root(fitname)
             line = \
             """#Columns:
 #1. log10 of mass (Msolar, NOT Msolar/h)
 #2. mass (Msolar/h)
-#3. (dn/dM)*dM (differential number density of halos, per Mpc^3 (NOT h^3/Mpc^3)
+#3. (dn/dM)*dM (differential number density of haloes, per Mpc^3 (NOT h^3/Mpc^3)
 #4. cumulative number density of halos (per Mpc^3, NOT h^3/Mpc^3)
 """
             fp.write(line)
@@ -156,13 +156,14 @@ class HaloMassFcn(object):
             fp.close()
         if self.mode == 'haloes' and haloes:
             haloname = prefix + '-haloes.dat'
-            fp = open(haloname, 'w')
+            fp = self._write_on_root(haloname)
             line = \
             """#Columns:
 #1. log10 of mass (Msolar, NOT Msolar/h)
 #2. mass (Msolar/h)
-#3. cumulative number density of halos (per Mpc^3, NOT h^3/Mpc^3)\n
+#3. cumulative number density of haloes (per Mpc^3, NOT h^3/Mpc^3)
 """
+            fp.write(line)
             for i in xrange(self.logmassarray.size - 1):
                 line = "%e\t%e\t%e\n" % (self.logmassarray[i], self.massarray[i],
                 self.dis[i])
@@ -191,12 +192,10 @@ class HaloMassFcn(object):
         """
         With the list of virial masses, find the halo mass function.
         """
-        bins = na.logspace(math.pow(10.,self.log_mass_min),
-            math.pow(10.,log_mass_max),self.num_sigma_bins)
+        bins = na.logspace(self.log_mass_min,
+            self.log_mass_max,self.num_sigma_bins)
         avgs = (bins[1:]+bins[:-1])/2.
-        
         dis, bins = na.histogram(self.haloes,bins,new=True)
-        
         # add right to left
         for i,b in enumerate(dis):
             dis[self.num_sigma_bins-i-3] += dis[self.num_sigma_bins-i-2]
