@@ -494,7 +494,7 @@ class OrionStaticOutput(StaticOutput):
         self.parameters["EOSType"] = -1 # default
         if self.fparameters.has_key("mu"):
             self.parameters["mu"] = self.fparameters["mu"]
-
+        self.parameters["RefineBy"] = self.parameters["RefineBy"][0]
     def _localize(self, f, default):
         if f is None:
             return os.path.join(self.directory, default)

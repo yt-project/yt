@@ -52,7 +52,7 @@ def setup_package():
                         "Topic :: Scientific/Engineering :: Physics",
                         "Topic :: Scientific/Engineering :: Visualization", ],
         keywords='astronomy astrophysics visualization amr adaptivemeshrefinement',
-        install_requires = ['matplotlib', 'numpy','ipython'],
+        #install_requires = ['matplotlib', 'numpy','ipython'],
         extras_require = { 'GUI' : ['wxPython'],
                            'storage' : ['h5py'], 
                            'pdf' : ['pypdf']},
