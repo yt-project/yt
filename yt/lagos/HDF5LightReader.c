@@ -57,6 +57,8 @@ typedef struct particle_validation_ {
     int (*count_func_longdouble)(struct particle_validation_ *data);
     void *validation_reqs;
     void *particle_position[3];
+    hid_t file_id;
+    char filename[1024];
 } particle_validation;
 
 typedef struct region_validation_ {
@@ -745,6 +747,7 @@ Py_ReadParticles(PyObject *obj, PyObject *args)
     pv.particle_position[0] = pv.particle_position[1] = pv.particle_position[2] = NULL;
     pv.return_values = NULL;
     pv.npy_types = NULL;
+    pv.file_id = -1;
 
     /* Set initial values for pv */
     pv.stride_size = stride_size;
@@ -836,6 +839,11 @@ Py_ReadParticles(PyObject *obj, PyObject *args)
         goto _fail;
       }
     }
+    if(pv.file_id >= 0) {
+      H5Fclose(pv.file_id);
+      pv.file_id = -1;
+      strncpy(pv.filename, "Expired filename", 1023);
+    }
     /* Now we know how big to make our array, hooray. */
     pv.update_count = 0;
     
@@ -865,6 +873,7 @@ Py_ReadParticles(PyObject *obj, PyObject *args)
         goto _fail;
       }
     }
+    if(pv.file_id >= 0) {H5Fclose(pv.file_id); pv.file_id = -1;}
 
     /* Let's pack up our return values */
     PyObject *my_list = PyList_New(0);
@@ -1022,10 +1031,18 @@ int run_validators(particle_validation *pv, char *filename,
 
     /* First we open the file */
 
-    file_id = H5Fopen(filename, H5F_ACC_RDONLY, H5P_DEFAULT);
+
+    if(strncmp(filename, pv->filename, 1023) != 0) {
+      //fprintf(stderr, "Comparison failed: %s , %s\n", filename, pv->filename);
+      if(pv->file_id >= 0) H5Fclose(pv->file_id);
+      pv->file_id = H5Fopen(filename, H5F_ACC_RDONLY, H5P_DEFAULT);
+      strncpy(pv->filename, filename, 1023);
+      //fprintf(stderr, "Setting: %s , %s\n", filename, pv->filename);
+    }
+    file_id = pv->file_id;
     if (file_id < 0) {
         PyErr_Format(_hdf5ReadError,
-                 "ReadHDF5DataSet: Unable to open %s", filename);
+                 "run_validators: Unable to open %s (%d)", filename, read);
         goto _fail;
     }
 
@@ -1191,7 +1208,7 @@ int run_validators(particle_validation *pv, char *filename,
       free(dataset_read);
     }
 
-    H5Fclose(file_id);
+    //H5Fclose(file_id); // We don't do this here, because we cache out file_id
 
     return 1;
 
@@ -1212,7 +1229,7 @@ int run_validators(particle_validation *pv, char *filename,
       }
       free(dataset_read);
     }
-    if(!(file_id <= 0)&&(H5Iget_ref(file_id))) H5Fclose(file_id);
+    //if(!(file_id <= 0)&&(H5Iget_ref(file_id))) H5Fclose(file_id);
     
     return 0;
 }
