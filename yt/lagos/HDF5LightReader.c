@@ -51,6 +51,7 @@ typedef struct particle_validation_ {
     char **field_names;
     PyArrayObject *conv_factors;
     PyArrayObject **return_values;
+    int *npy_types;
     int (*count_func)(struct particle_validation_ *data);
     int (*count_func_float)(struct particle_validation_ *data);
     int (*count_func_double)(struct particle_validation_ *data);
@@ -67,8 +68,15 @@ typedef struct region_validation_ {
     int periodic;
 } region_validation;
 
+typedef struct sphere_validation_ {
+    /* These cannot contain any pointers */
+    npy_float64 center[3];
+    npy_float64 radius;
+} sphere_validation;
+
 /* Forward declarations */
 int setup_validator_region(particle_validation *data, PyObject *InputData);
+int setup_validator_sphere(particle_validation *data, PyObject *InputData);
 int run_validators(particle_validation *pv, char *filename, 
                    int grid_id, const int read, const int packed,
                    int grid_index);
@@ -77,6 +85,11 @@ int run_validators(particle_validation *pv, char *filename,
 
 int count_particles_region_FLOAT(particle_validation *data);
 int count_particles_region_DOUBLE(particle_validation *data);
+int count_particles_region_LONGDOUBLE(particle_validation *data);
+
+int count_particles_sphere_FLOAT(particle_validation *data);
+int count_particles_sphere_DOUBLE(particle_validation *data);
+int count_particles_sphere_LONGDOUBLE(particle_validation *data);
 
 int get_my_desc_type(hid_t native_type_id){
 
@@ -574,9 +587,6 @@ Py_ReadMultipleGrids(PyObject *obj, PyObject *args)
     /* Similar to the way Enzo does it, we're going to set the file access
        property to store bigger bits in RAM. */
 
-    int memory_increment = 1024*1024; /* in bytes */
-    int dump_flag = 0;
-
     file_id = H5Fopen (filename, H5F_ACC_RDONLY, H5P_DEFAULT); 
 
     if (file_id < 0) {
@@ -735,6 +745,7 @@ Py_ReadParticles(PyObject *obj, PyObject *args)
     pv.validation_reqs = NULL;
     pv.particle_position[0] = pv.particle_position[1] = pv.particle_position[2] = NULL;
     pv.return_values = NULL;
+    pv.npy_types = NULL;
 
     /* Set initial values for pv */
     pv.stride_size = stride_size;
@@ -798,6 +809,10 @@ Py_ReadParticles(PyObject *obj, PyObject *args)
             /* Region type */
             setup_validator_region(&pv, vargs);
             break;
+        case 1:
+            /* Sphere type */
+            setup_validator_sphere(&pv, vargs);
+            break;
         default:
             PyErr_Format(_hdf5ReadError,
                     "Unrecognized data source.\n");
@@ -827,10 +842,12 @@ Py_ReadParticles(PyObject *obj, PyObject *args)
     
     pv.return_values = (PyArrayObject**) malloc(
                         sizeof(PyArrayObject*) * nfields);
+    pv.npy_types = (int *) malloc(sizeof(int) * nfields);
     pv.field_names = (char **) malloc(
                         sizeof(char *) * nfields);
     for (ifield = 0; ifield < nfields; ifield++) {
         pv.return_values[ifield] = NULL;
+        pv.npy_types[ifield] = -999;
         pv.field_names[ifield] = PyString_AsString(PyList_GetItem(field_list, ifield));
     }
 
@@ -862,6 +879,7 @@ Py_ReadParticles(PyObject *obj, PyObject *args)
     free(pv.mask);
     free(pv.field_names);
     free(pv.return_values); /* Has to happen after packing our return value */
+    free(pv.npy_types);
     for (i = 0; i<3; i++) {
         free(pv.particle_position[i]);
     }
@@ -887,6 +905,7 @@ Py_ReadParticles(PyObject *obj, PyObject *args)
       }
       free(pv.return_values);
     }
+    if(pv.npy_types != NULL) free(pv.npy_types);
     for(i = 0; i < 3; i++) {
         if(pv.particle_position[i] != NULL) free(pv.particle_position[i]);
     }
@@ -929,8 +948,35 @@ int setup_validator_region(particle_validation *data, PyObject *InputData)
     data->count_func = NULL;
     data->count_func_float = count_particles_region_FLOAT;
     data->count_func_double = count_particles_region_DOUBLE;
+    data->count_func_longdouble = count_particles_region_LONGDOUBLE;
 
     /* We need to insert more periodic logic here */
+
+    return 1;
+}
+
+int setup_validator_sphere(particle_validation *data, PyObject *InputData)
+{
+    int i;
+    /* These are borrowed references */
+    PyArrayObject *center = (PyArrayObject *) PyTuple_GetItem(InputData, 0);
+    PyObject *radius = (PyObject *) PyTuple_GetItem(InputData, 1);
+
+    /* This will get freed in the finalization of particle validation */
+    sphere_validation *sv = (sphere_validation *)
+                malloc(sizeof(sphere_validation));
+    data->validation_reqs = (void *) sv;
+
+    for (i = 0; i < 3; i++){
+        sv->center[i] = *(npy_float64*) PyArray_GETPTR1(center, i);
+    }
+
+    sv->radius = (npy_float64) PyFloat_AsDouble(radius);
+
+    data->count_func = NULL;
+    data->count_func_float = count_particles_sphere_FLOAT;
+    data->count_func_double = count_particles_sphere_DOUBLE;
+    data->count_func_longdouble = count_particles_sphere_LONGDOUBLE;
 
     return 1;
 }
@@ -964,8 +1010,6 @@ int run_validators(particle_validation *pv, char *filename,
     file_id = dataset_x = dataset_y = dataset_z = -1;
     dataspace = memspace = datatype_id = native_type_id = -1;
     rdatatype_id = rnative_type_id = -1;
-
-    int npy_type;
 
     if (packed == 1) {
         snprintf(name_x, 254, "/Grid%08d/particle_position_x", grid_id);
@@ -1045,11 +1089,11 @@ int run_validators(particle_validation *pv, char *filename,
                 npy_intp dims = pv->total_valid_particles;
                 rdatatype_id = H5Dget_type(dataset_read[i]);
                 rnative_type_id = H5Tget_native_type(rdatatype_id, H5T_DIR_ASCEND);
-                npy_type = get_my_desc_type(rnative_type_id);
+                pv->npy_types[i] = get_my_desc_type(rnative_type_id);
                 //fprintf(stderr, "Allocating array of size %d\n", (int) dims);
                 pv->return_values[i] = (PyArrayObject *) 
                     PyArray_SimpleNewFromDescr(
-                        1, &dims, PyArray_DescrFromType(npy_type));
+                        1, &dims, PyArray_DescrFromType(pv->npy_types[i]));
                 H5Tclose(rnative_type_id);
                 H5Tclose(rdatatype_id);
             }
@@ -1103,12 +1147,24 @@ int run_validators(particle_validation *pv, char *filename,
               /* Now we multiply our fields by the appropriate conversion factor */
               if (cfactors[ifield] != 1.0) {
                 for(p_ind = 0; p_ind < read_here; p_ind++)
-                    if (npy_type == 11) { // floats
+                    if (pv->npy_types[ifield] == NPY_FLOAT) { // floats
                        *(npy_float32 *) PyArray_GETPTR1(
                                    pv->return_values[ifield], p_ind + pv->nread)
                        *= cfactors[ifield];
-                    } else { // doubles
+                    } else if (pv->npy_types[ifield] == NPY_DOUBLE) { // doubles
                        *(npy_float64 *) PyArray_GETPTR1(
+                                   pv->return_values[ifield], p_ind + pv->nread)
+                       *= cfactors[ifield];
+                    } else if (pv->npy_types[ifield] == NPY_LONGDOUBLE) {
+                       *(npy_float128 *) PyArray_GETPTR1 (
+                                   pv->return_values[ifield], p_ind + pv->nread)
+                       *= cfactors[ifield];
+                    } else if (pv->npy_types[ifield] == NPY_INT) {
+                       *(npy_int *) PyArray_GETPTR1 (
+                                   pv->return_values[ifield], p_ind + pv->nread)
+                       *= cfactors[ifield];
+                    } else if (pv->npy_types[ifield] == NPY_LONG) {
+                       *(npy_long *) PyArray_GETPTR1 (
                                    pv->return_values[ifield], p_ind + pv->nread)
                        *= cfactors[ifield];
                     }
@@ -1170,7 +1226,7 @@ int count_particles_region_FLOAT(particle_validation *data)
 
     /* First is our validation requirements, which are a set of three items: */
 
-    int ind, n;
+    int ind, n=0;
     region_validation *vdata;
 
     vdata = (region_validation*) data->validation_reqs;
@@ -1303,6 +1359,188 @@ int count_particles_region_DOUBLE(particle_validation *data)
     }
     return n;
 }
+
+int count_particles_region_LONGDOUBLE(particle_validation *data)
+{
+    /* Our data comes packed in a struct, off which our pointers all hang */
+
+    /* First is our validation requirements, which are a set of three items: */
+
+    int ind, n=0;
+    region_validation *vdata;
+
+    vdata = (region_validation*) data->validation_reqs;
+    
+    long double **particle_data = (long double **) data->particle_position;
+
+    long double *particle_position_x = particle_data[0];
+    long double *particle_position_y = particle_data[1];
+    long double *particle_position_z = particle_data[2];
+    long double tempx, tempy, tempz;
+
+    if (vdata->periodic == 0) {
+      for (ind = 0; ind < data->particles_to_check; ind++) {
+        if (   (particle_position_x[ind] >= vdata->left_edge[0])
+            && (particle_position_x[ind] <= vdata->right_edge[0])
+            && (particle_position_y[ind] >= vdata->left_edge[1])
+            && (particle_position_y[ind] <= vdata->right_edge[1])
+            && (particle_position_z[ind] >= vdata->left_edge[2])
+            && (particle_position_z[ind] <= vdata->right_edge[2])) {
+          if(data->update_count == 1) data->total_valid_particles++;
+          data->mask[ind] = 1;
+          n++;
+        } else {
+          data->mask[ind] = 0;
+        }
+      }
+    } else {
+      for (ind = 0; ind < data->particles_to_check; ind++) {
+        tempx = particle_position_x[ind];
+        tempy = particle_position_y[ind];
+        tempz = particle_position_z[ind];
+        if ( (tempx < vdata->left_edge[0]) && (tempx < vdata->right_edge[0]) ) {
+          tempx += vdata->period[0];
+        } else if ( (tempx > vdata->left_edge[0]) && (tempx > vdata->right_edge[0]) ) {
+          tempx -= vdata->period[0];
+        }
+        if ( (tempy < vdata->left_edge[1]) && (tempx < vdata->right_edge[1]) ) {
+          tempy += vdata->period[1];
+        } else if ( (tempy > vdata->left_edge[1]) && (tempx > vdata->right_edge[1]) ) {
+          tempy -= vdata->period[1];
+        }
+        if ( (tempz < vdata->left_edge[2]) && (tempx < vdata->right_edge[2]) ) {
+          tempz += vdata->period[2];
+        } else if ( (tempz > vdata->left_edge[2]) && (tempx > vdata->right_edge[2]) ) {
+          tempz -= vdata->period[2];
+        }
+        if (   (tempx >= vdata->left_edge[0])
+            && (tempx <= vdata->right_edge[0])
+            && (tempy >= vdata->left_edge[1])
+            && (tempy <= vdata->right_edge[1])
+            && (tempz >= vdata->left_edge[2])
+            && (tempz <= vdata->right_edge[2])) {
+          if(data->update_count == 1) data->total_valid_particles++;
+          data->mask[ind] = 1;
+          n++;
+        } else {
+          data->mask[ind] = 0;
+        }
+      }
+    }
+    return n;
+}
+
+int count_particles_sphere_FLOAT(particle_validation *data)
+{
+    /* Our data comes packed in a struct, off which our pointers all hang */
+
+    /* First is our validation requirements, which are a set of three items: */
+
+    int ind, n=0;
+    sphere_validation *vdata;
+
+    vdata = (sphere_validation*) data->validation_reqs;
+    
+    float **particle_data = (float **) data->particle_position;
+
+    float *particle_position_x = particle_data[0];
+    float *particle_position_y = particle_data[1];
+    float *particle_position_z = particle_data[2];
+    float tempr;
+
+    double pradius;
+
+      for (ind = 0; ind < data->particles_to_check; ind++) {
+        pradius = 0.0;
+        tempr = (particle_position_x[ind] - vdata->center[0]); pradius += tempr*tempr;
+        tempr = (particle_position_y[ind] - vdata->center[1]); pradius += tempr*tempr;
+        tempr = (particle_position_z[ind] - vdata->center[2]); pradius += tempr*tempr;
+        pradius = pow(pradius, 0.5);
+        if (pradius <= vdata->radius) {
+          if(data->update_count == 1) data->total_valid_particles++;
+          data->mask[ind] = 1;
+          n++;
+        } else {
+          data->mask[ind] = 0;
+        }
+      }
+    return n;
+}
+
+int count_particles_sphere_DOUBLE(particle_validation *data)
+{
+    /* Our data comes packed in a struct, off which our pointers all hang */
+
+    /* First is our validation requirements, which are a set of three items: */
+
+    int ind, n=0;
+    sphere_validation *vdata;
+
+    vdata = (sphere_validation*) data->validation_reqs;
+    
+    double **particle_data = (double **) data->particle_position;
+
+    double *particle_position_x = particle_data[0];
+    double *particle_position_y = particle_data[1];
+    double *particle_position_z = particle_data[2];
+    double tempr;
+
+    double pradius;
+
+      for (ind = 0; ind < data->particles_to_check; ind++) {
+        pradius = 0.0;
+        tempr = (particle_position_x[ind] - vdata->center[0]); pradius += tempr*tempr;
+        tempr = (particle_position_y[ind] - vdata->center[1]); pradius += tempr*tempr;
+        tempr = (particle_position_z[ind] - vdata->center[2]); pradius += tempr*tempr;
+        pradius = pow(pradius, 0.5);
+        if (pradius <= vdata->radius) {
+          if(data->update_count == 1) data->total_valid_particles++;
+          data->mask[ind] = 1;
+          n++;
+        } else {
+          data->mask[ind] = 0;
+        }
+      }
+    return n;
+}
+
+int count_particles_sphere_LONGDOUBLE(particle_validation *data)
+{
+    /* Our data comes packed in a struct, off which our pointers all hang */
+
+    /* First is our validation requirements, which are a set of three items: */
+
+    int ind, n=0;
+    sphere_validation *vdata;
+
+    vdata = (sphere_validation*) data->validation_reqs;
+    
+    long double **particle_data = (long double **) data->particle_position;
+
+    long double *particle_position_x = particle_data[0];
+    long double *particle_position_y = particle_data[1];
+    long double *particle_position_z = particle_data[2];
+    long double tempr;
+
+    long double pradius;
+
+      for (ind = 0; ind < data->particles_to_check; ind++) {
+        pradius = 0.0;
+        tempr = (particle_position_x[ind] - vdata->center[0]); pradius += tempr*tempr;
+        tempr = (particle_position_y[ind] - vdata->center[1]); pradius += tempr*tempr;
+        tempr = (particle_position_z[ind] - vdata->center[2]); pradius += tempr*tempr;
+        pradius = pow(pradius, 0.5);
+        if (pradius <= vdata->radius) {
+          if(data->update_count == 1) data->total_valid_particles++;
+          data->mask[ind] = 1;
+          n++;
+        } else {
+          data->mask[ind] = 0;
+        }
+      }
+    return n;
+}
+
 
 static PyMethodDef _hdf5LightReaderMethods[] = {
     {"ReadData", Py_ReadHDF5DataSet, METH_VARARGS},

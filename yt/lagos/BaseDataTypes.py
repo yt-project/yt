@@ -1609,7 +1609,7 @@ class AMR3DData(AMRData, GridPropertiesMixin):
                 dx, grid["GridIndices"][pointI].ravel()], 'float64').swapaxes(0,1)
         return tr
 
-    def get_data(self, fields=None, in_grids=False):
+    def get_data(self, fields=None, in_grids=False, force_particle_read = False):
         if self._grids == None:
             self._get_list_of_grids()
         points = []
@@ -1625,6 +1625,14 @@ class AMR3DData(AMRData, GridPropertiesMixin):
             if field not in self.hierarchy.field_list and not in_grids:
                 if self._generate_field(field):
                     continue # True means we already assigned it
+            # There are a lot of 'ands' here, but I think they are all
+            # necessary.
+            if force_particle_read == False and \
+               self.pf.field_info.has_key(field) and \
+               self.pf.field_info[field].particle_type and \
+               self.pf.h.io._particle_reader:
+                self[field] = self.particles[field]
+                continue
             self[field] = na.concatenate(
                 [self._get_data_from_grid(grid, field)
                  for grid in self._grids])
