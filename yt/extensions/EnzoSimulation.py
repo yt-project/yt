@@ -150,6 +150,8 @@ class EnzoSimulation(object):
         # Calculate times for redshift dumps.
         if self.enzoParameters['ComovingCoordinates'] and self.get_redshift_outputs:
             self._CalculateRedshiftDumpTimes()
+        else:
+            self.redshiftOutputs = []
 
         self.allOutputs = self.redshiftOutputs + self.timeOutputs
         self.allOutputs.sort(key=lambda obj:obj['time'])
