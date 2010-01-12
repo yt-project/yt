@@ -36,6 +36,7 @@ class ParticleIOHandler(object):
                 particle_handler_registry[cls._source_type] = cls
 
     _source_type = None
+
     def __init__(self, pf, source):
         self.pf = pf
         self.data = {}
@@ -57,31 +58,20 @@ class ParticleIOHandler(object):
 
     def get_data(self, fields):
         fields = ensure_list(fields)
-        self.source.get_data(fields)
+        self.source.get_data(fields, force_particle_read=True)
         for field in fields:
             self[field] = self.source[field]
 
 particle_handler_registry.default_factory = lambda: ParticleIOHandler
 
-class ParticleIOHandlerRegion(ParticleIOHandler):
-    periodic = False
-    _source_type = "region"
-    def __init__(self, pf, source):
-        self.left_edge = source.left_edge
-        self.right_edge = source.right_edge
-        ParticleIOHandler.__init__(self, pf, source)
-
+class ParticleIOHandlerImplemented(ParticleIOHandler):
     def get_data(self, fields):
         mylog.info("Getting %s using ParticleIO" % str(fields))
         fields = ensure_list(fields)
         if not self.pf.h.io._particle_reader:
             mylog.info("not self.pf.h.io._particle_reader")
             return self.source.get_data(fields)
-        rtype = 0
-        DLE = na.array(self.pf["DomainLeftEdge"], dtype='float64') 
-        DRE = na.array(self.pf["DomainRightEdge"], dtype='float64') 
-        args = (na.array(self.left_edge), na.array(self.right_edge), 
-                int(self.periodic), DLE, DRE)
+        rtype, args = self._get_args()
         count_list, grid_list = [], []
         for grid in self.source._grids:
             if grid.NumberOfParticles == 0: continue
@@ -113,6 +103,22 @@ class ParticleIOHandlerRegion(ParticleIOHandler):
             conv_factors)
         for field, v in zip(fields, rv): self[field] = v
 
+class ParticleIOHandlerRegion(ParticleIOHandlerImplemented):
+    periodic = False
+    _source_type = "region"
+
+    def __init__(self, pf, source):
+        self.left_edge = source.left_edge
+        self.right_edge = source.right_edge
+        ParticleIOHandler.__init__(self, pf, source)
+
+    def _get_args(self):
+        DLE = na.array(self.pf["DomainLeftEdge"], dtype='float64') 
+        DRE = na.array(self.pf["DomainRightEdge"], dtype='float64') 
+        args = (na.array(self.left_edge), na.array(self.right_edge), 
+                int(self.periodic), DLE, DRE)
+        return (0, args)
+
 class ParticleIOHandlerRegionStrict(ParticleIOHandlerRegion):
     _source_type = "region_strict"
 
@@ -122,3 +128,14 @@ class ParticleIOHandlerPeriodicRegion(ParticleIOHandlerRegion):
 
 class ParticleIOHandlerPeriodicRegionStrict(ParticleIOHandlerPeriodicRegion):
     _source_type = "periodic_region_strict"
+
+class ParticleIOHandlerSphere(ParticleIOHandlerImplemented):
+    _source_type = "sphere"
+
+    def __init__(self, pf, source):
+        self.center = source.center
+        self.radius = source.radius
+        ParticleIOHandler.__init__(self, pf, source)
+
+    def _get_args(self):
+        return (1, (na.array(self.center, dtype='float64'), self.radius))

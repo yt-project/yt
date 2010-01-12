@@ -588,26 +588,21 @@ class ParticlePlot(RavenPlot):
     _type_name = "ParticlePlot"
     def __init__(self, data, axis, width, p_size=1.0, col='k', stride=1.0,
                  figure = None, axes = None):
-        RavenPlot.__init__(self, data, [], figure, axes)
+        kwargs = {}
+        if figure is None: kwargs['size'] = (8,8)
+        RavenPlot.__init__(self, data, [], figure, axes, **kwargs)
         self._figure.subplots_adjust(hspace=0, wspace=0, bottom=0.0,
                                     top=1.0, left=0.0, right=1.0)
         self.axis = axis
         self.setup_domain_edges(axis)
         self.axis_names['Z'] = col
-        from Callbacks import ParticleCallback
-        self.add_callback(ParticleCallback(axis, width, p_size, col, stride))
+        self.modify["particles"](width, p_size, col, stride)
         self.set_width(1,'unitary')
 
     def _redraw_image(self, *args):
         self._axes.clear() # To help out the colorbar
         self._reset_image_parameters()
         self._run_callbacks()
-
-    def set_xlim(self, xmin, xmax):
-        self.xlim = (xmin,xmax)
-
-    def set_ylim(self, ymin, ymax):
-        self.ylim = (ymin,ymax)
 
     def _generate_prefix(self, prefix):
         self.prefix = "_".join([prefix, self._type_name, \
@@ -647,6 +642,9 @@ class ParticlePlot(RavenPlot):
         self._axes.set_yticks(())
         self._axes.set_ylabel("")
         self._axes.set_xlabel("")
+        l, b, width, height = _get_bounds(self._axes.bbox)
+        self._axes.set_xlim(0, width)
+        self._axes.set_ylim(0, height)
 
 class ProfilePlot(RavenPlot):
     _x_label = None

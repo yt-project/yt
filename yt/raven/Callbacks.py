@@ -47,8 +47,8 @@ class PlotCallback(object):
         x0, x1 = plot.xlim
         y0, y1 = plot.ylim
         l, b, width, height = _get_bounds(plot._axes.bbox)
-        dx = plot.image._A.shape[0] / (x1-x0)
-        dy = plot.image._A.shape[1] / (y1-y0)
+        dx = width / (x1-x0)
+        dy = height / (y1-y0)
         return ((coord[0] - int(offset)*x0)*dx,
                 (coord[1] - int(offset)*y0)*dy)
 
@@ -693,7 +693,7 @@ class CoordAxesCallback(PlotCallback):
     def __call__(self,plot):
         # 1. find out what the domain is
         # 2. pick a unit for it
-        # 3. run self._axes.set_xlabel & self._axes.set_ylabel to actually lay shit down.
+        # 3. run self._axes.set_xlabel & self._axes.set_ylabel to actually lay things down.
         # 4. adjust extent information to make sure labels are visable.
 
         # put the plot into data coordinates

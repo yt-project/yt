@@ -32,7 +32,7 @@ io_registry = {}
 class BaseIOHandler(object):
 
     _data_style = None
-    _particle_reader = True
+    _particle_reader = False
 
     class __metaclass__(type):
         def __init__(cls, name, b, d):
@@ -55,13 +55,6 @@ class BaseIOHandler(object):
         else:
             # We only read the one set and do not store it if it isn't pre-loaded
             return self._read_data_set(grid, field)
-
-    def _read_particles(self, fields, rtype, args, grid_list, enclosed,
-                        conv_factors):
-        filenames = [g.filename for g in grid_list]
-        ids = [g.id for g in grid_list]
-        return HDF5LightReader.ReadParticles(
-            rtype, fields, filenames, ids, conv_factors, args, 0)
 
     def peek(self, grid, field):
         return self.queue[grid.id].get(field, None)
@@ -147,6 +140,7 @@ class IOHandlerHDF4_2D(IOHandlerHDF4):
 class IOHandlerHDF5(BaseIOHandler):
 
     _data_style = "enzo_hdf5"
+    _particle_reader = True
 
     def _read_field_names(self, grid):
         """
@@ -180,6 +174,13 @@ class IOHandlerHDF5(BaseIOHandler):
     @property
     def _read_exception(self):
         return (exceptions.KeyError, HDF5LightReader.ReadingError)
+
+    def _read_particles(self, fields, rtype, args, grid_list, enclosed,
+                        conv_factors):
+        filenames = [g.filename for g in grid_list]
+        ids = [g.id for g in grid_list]
+        return HDF5LightReader.ReadParticles(
+            rtype, fields, filenames, ids, conv_factors, args, 0)
 
 class IOHandlerExtracted(BaseIOHandler):
 
@@ -390,6 +391,7 @@ class IOHandlerNative(BaseIOHandler):
 class IOHandlerPacked2D(IOHandlerPackedHDF5):
 
     _data_style = "enzo_packed_2d"
+    _particle_reader = False
 
     def _read_data_set(self, grid, field):
         return HDF5LightReader.ReadData(grid.filename,
@@ -407,6 +409,7 @@ class IOHandlerPacked2D(IOHandlerPackedHDF5):
 class IOHandlerPacked1D(IOHandlerPackedHDF5):
 
     _data_style = "enzo_packed_1d"
+    _particle_reader = False
 
     def _read_data_set(self, grid, field):
         return HDF5LightReader.ReadData(grid.filename,
