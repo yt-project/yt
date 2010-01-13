@@ -203,8 +203,9 @@ class IOHandlerPackedHDF5(BaseIOHandler):
                         conv_factors):
         filenames = [g.filename for g in grid_list]
         ids = [g.id for g in grid_list]
+        filenames, ids = zip(*sorted(zip(filenames,ids)))
         return HDF5LightReader.ReadParticles(
-            rtype, fields, filenames, ids, conv_factors, args, 1)
+            rtype, fields, list(filenames), list(ids), conv_factors, args, 1)
 
     def modify(self, field):
         return field.swapaxes(0,2)
