@@ -28,18 +28,22 @@ from yt.extensions.volume_rendering import *
 from yt.funcs import *
 
 def direct_ray_cast(pf, L, center, W, Nvec, tf, 
-                    partitioned_grids = None):
+                    partitioned_grids = None, field = 'Density', log_field = True, whole_box=False):
     center = na.array(center, dtype='float64')
 
     # This just helps us keep track of stuff, and it's cheap
     cp = pf.h.cutting(L, center)
-    back_center = center - cp._norm_vec * W
-    front_center = center + cp._norm_vec * W
-    cylinder = pf.h.disk(back_center, L, na.sqrt(2)*W, 2*W)
+    back_center = center - cp._norm_vec * na.sqrt(3) * W
+    front_center = center + cp._norm_vec * na.sqrt(3) *  W
+    if whole_box:
+        cylinder = pf.h.region([0.5]*3,[0.0]*3,[1.0]*3)
+    else:
+        cylinder = pf.h.disk(center, L, na.sqrt(3)*W, 2*W*na.sqrt(3))
 
     if partitioned_grids == None:
         partitioned_grids = partition_all_grids(cylinder._grids,
-                                    eval_func = lambda g: na.any(cylinder._get_point_indices(g)))
+                                    eval_func = lambda g: na.any(cylinder._get_point_indices(g)),
+                                                field = field, log_field = log_field)
     #partitioned_grids = partition_all_grids(pf.h.grids)
 
     LE = (na.array([grid.LeftEdge for grid in partitioned_grids]) - back_center) * cp._norm_vec
@@ -55,9 +59,9 @@ def direct_ray_cast(pf, L, center, W, Nvec, tf,
     # Now we need to generate regular x,y,z values in regular space for our vector
     # starting places.
     px, py = na.mgrid[-W:W:Nvec*1j,-W:W:Nvec*1j]
-    xv = cp._inv_mat[0,0]*px + cp._inv_mat[0,1]*py + cp.center[0]
-    yv = cp._inv_mat[1,0]*px + cp._inv_mat[1,1]*py + cp.center[1]
-    zv = cp._inv_mat[2,0]*px + cp._inv_mat[2,1]*py + cp.center[2]
+    xv = cp._inv_mat[0,0]*px + cp._inv_mat[0,1]*py + back_center[0]
+    yv = cp._inv_mat[1,0]*px + cp._inv_mat[1,1]*py + back_center[1]
+    zv = cp._inv_mat[2,0]*px + cp._inv_mat[2,1]*py + back_center[2]
     vectors = na.array([xv, yv, zv], dtype='float64').transpose()
     vectors = vectors.copy('F')
     xp0, xp1 = px.min(), px.max()
@@ -65,7 +69,7 @@ def direct_ray_cast(pf, L, center, W, Nvec, tf,
 
     ng = partitioned_grids.size
     norm_vec = cp._norm_vec
-    norm_vec = cp._norm_vec * (2.0*W)
+    norm_vec = cp._norm_vec * (2.0*W*na.sqrt(3))
     hit = 0
     tnow = time.time()
     every = na.ceil(len(partitioned_grids) / 100.0)
