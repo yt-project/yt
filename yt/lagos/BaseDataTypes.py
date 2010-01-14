@@ -2665,12 +2665,12 @@ class AMRIntSmoothedCoveringGridBase(AMRCoveringGridBase):
         for ax, v in zip('xyz', dx): self['cd%s'%ax] = v
         LL = self.left_edge - self.pf["DomainLeftEdge"]
         self._old_global_startindex = self.global_startindex
-        self.global_startindex = na.array(na.floor(1.000001*LL / dx) - 1, dtype='int64')
+        self.global_startindex = na.rint(LL / dx).astype('int64') - 1
         self.domain_width = na.rint((self.pf["DomainRightEdge"] -
                     self.pf["DomainLeftEdge"])/dx).astype('int64')
         if level == 0 and self.level > 0:
             # We use one grid cell at LEAST, plus one buffer on all sides
-            idims = na.ceil((self.right_edge-self.left_edge)/dx) + 2
+            idims = na.rint((self.right_edge-self.left_edge)/dx).astype('int64') + 2
             self[field] = na.zeros(idims,dtype='float64')-999
         elif level == 0 and self.level == 0:
             DLE = self.pf["DomainLeftEdge"]
@@ -2689,7 +2689,7 @@ class AMRIntSmoothedCoveringGridBase(AMRCoveringGridBase):
                       old_left[2], old_right[2]]
 
         dx = na.array([self['cd%s' % ax] for ax in 'xyz'], dtype='float64')
-        new_dims = na.ceil(0.999999999 * (self.right_edge-self.left_edge)/dx) + 2
+        new_dims = na.rint((self.right_edge-self.left_edge)/dx).astype('int64') + 2
 
         # x, y, z are the new bounds
         x,y,z = (na.mgrid[0:new_dims[0], 0:new_dims[1], 0:new_dims[2]]
@@ -2699,20 +2699,27 @@ class AMRIntSmoothedCoveringGridBase(AMRCoveringGridBase):
         z += self.global_startindex[2]
         fake_grid = {'x':x,'y':y,'z':z}
 
+        if field in self.pf.field_info and self.pf.field_info[field].take_log:
+            my_field = na.log10(self[field])
+        else:
+            my_field = self[field]
         interpolator = TrilinearFieldInterpolator(
-                        self[field], old_bounds, ['x','y','z'],
+                        my_field, old_bounds, ['x','y','z'],
                         truncate = True)
-        self[field] = interpolator(fake_grid)
+        if field in self.pf.field_info and self.pf.field_info[field].take_log:
+            self[field] = 10**interpolator(fake_grid)
+        else:
+            self[field] = interpolator(fake_grid)
 
     def _get_data_from_grid(self, grid, fields, level):
         fields = ensure_list(fields)
         g_fields = [grid[field] for field in fields]
         c_fields = [self[field] for field in fields]
+        dims = na.array(self[field].shape, dtype='int32')
         count = PointCombine.FillRegion(1,
             grid.get_global_startindex(), self.global_startindex,
             c_fields, g_fields, 
-            na.array(self[field].shape, dtype='int32'),
-            grid.ActiveDimensions,
+            dims, grid.ActiveDimensions,
             grid.child_mask, self.domain_width, 1, 0)
         return count
 
