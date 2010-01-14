@@ -85,7 +85,7 @@ def _partition(grid, grid_data, x_vert, y_vert, z_vert):
                 yield PartitionedGrid(
                     data, left_edge, right_edge, dims)
 
-def partition_all_grids(grid_list, field = "Density",
+def partition_all_grids(grid_list, field = "Density", log_field = True,
                         threshold = (-1e300, 1e300), eval_func = None):
     new_grids = []
     pbar = get_pbar("Partitioning ", len(grid_list))
@@ -95,7 +95,7 @@ def partition_all_grids(grid_list, field = "Density",
         if not eval_func(g): continue
         pbar.update(i)
         if g.dds[0] < dx: dx = g.dds[0]
-        to_add = partition_grid(g, field, True, threshold)
+        to_add = partition_grid(g, field, log_field, threshold)
         if to_add is not None: new_grids += to_add
     pbar.finish()
     for g in new_grids: g.min_dds = dx
