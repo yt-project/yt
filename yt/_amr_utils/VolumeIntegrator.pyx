@@ -479,15 +479,17 @@ cdef class ProtoPrism:
                         child_mask):
         # We get passed in the left edge, the dds (which gives dimensions) and
         # the data, which is already vertex-centered.
-        if child_mask[0,0,0] == 0: return []
         cdef PartitionedGrid PG
-        cdef int li[3], ri[3], i
-        cdef np.ndarray[np.float64_t, ndim=3] new_data
-        cdef np.ndarray[np.int64_t, ndim=1] dims = np.empty(3, dtype='int64')
+        cdef int li[3], ri[3], idims[3], i
         for i in range(3):
             li[i] = lrint((self.left_edge[i] - grid_left_edge[i])/grid_dds[i])
             ri[i] = lrint((self.right_edge[i] - grid_left_edge[i])/grid_dds[i])
-            dims[i] = ri[i] - li[i]
+            idims[i] = ri[i] - li[i]
+        if child_mask[li[0], li[1], li[2]] == 0: return []
+        cdef np.ndarray[np.int64_t, ndim=1] dims = np.empty(3, dtype='int64')
+        for i in range(3):
+            dims[i] = idims[i]
+        cdef np.ndarray[np.float64_t, ndim=3] new_data
         new_data = data[li[0]:ri[0]+1,li[1]:ri[1]+1,li[2]:ri[2]+1].copy()
         PG = PartitionedGrid(new_data, self.LeftEdge, self.RightEdge, dims)
         return [PG]
