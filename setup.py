@@ -68,6 +68,7 @@ def setup_package():
         data_files=DATA_FILES,
         options={'py2app':PY2APP_OPTIONS},
         zip_safe=False,
+        package_data = {'': ['*.so'], }
         )
     return
 
