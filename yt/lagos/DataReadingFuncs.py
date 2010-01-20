@@ -203,7 +203,7 @@ class IOHandlerPackedHDF5(BaseIOHandler):
                         conv_factors):
         filenames = [g.filename for g in grid_list]
         ids = [g.id for g in grid_list]
-        filenames, ids = zip(*sorted(zip(filenames,ids)))
+        ids, filenames = zip(*sorted(zip(ids, filenames)))
         return HDF5LightReader.ReadParticles(
             rtype, fields, list(filenames), list(ids), conv_factors, args, 1)
 
