@@ -77,6 +77,13 @@ def direct_ray_cast(pf, L, center, W, Nvec, tf,
     vp = VectorPlane(vectors, norm_vec, back_center,
                      (xp0, xp1, yp0, yp1), image, cp._x_vec, cp._y_vec)
 
+    tf.light_dir = cp._norm_vec + 0.5 * cp._x_vec + 0.5 * cp._y_vec
+    cx, cy, cz = 0.3, -0.3, 0.3
+    tf.light_dir = (cp._inv_mat[0,0]*cx + cp._inv_mat[0,1]*cy + cz,
+                    cp._inv_mat[1,0]*cx + cp._inv_mat[1,1]*cy + cz,
+                    cp._inv_mat[2,0]*cx + cp._inv_mat[2,1]*cy + cz)
+    print tf.light_dir
+    
     tfp = TransferFunctionProxy(tf)
 
     pbar = get_pbar("Ray casting ", len(partitioned_grids))
