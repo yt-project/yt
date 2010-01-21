@@ -66,6 +66,8 @@ cdef extern from "FixedInterpolator.h":
 cdef extern from "FixedInterpolator.h":
     np.float64_t trilinear_interpolate(int *ds, int *ci, np.float64_t *dp,
                                        np.float64_t *data)
+    np.float64_t eval_gradient(int *ds, int *ci, np.float64_t *dp,
+                                       np.float64_t *data, np.float64_t *grad)
 
 cdef class VectorPlane
 
@@ -74,6 +76,9 @@ cdef class TransferFunctionProxy:
     cdef np.float64_t *vs[4]
     cdef int nbins
     cdef np.float64_t dbin
+    cdef np.float64_t light_color[3]
+    cdef np.float64_t light_dir[3]
+    cdef int use_light
     cdef public object tf_obj
     def __cinit__(self, tf_obj):
         self.tf_obj = tf_obj
@@ -90,12 +95,23 @@ cdef class TransferFunctionProxy:
         self.x_bounds[1] = tf_obj.x_bounds[1]
         self.nbins = tf_obj.nbins
         self.dbin = (self.x_bounds[1] - self.x_bounds[0])/self.nbins
+        self.light_color[0] = tf_obj.light_color[0]
+        self.light_color[1] = tf_obj.light_color[1]
+        self.light_color[2] = tf_obj.light_color[2]
+        self.light_dir[0] = tf_obj.light_dir[0]
+        self.light_dir[1] = tf_obj.light_dir[1]
+        self.light_dir[2] = tf_obj.light_dir[2]
+        cdef np.float64_t normval = 0.0
+        for i in range(3): normval += self.light_dir[i]**2
+        normval = normval**0.5
+        for i in range(3): self.light_dir[i] /= normval
+        self.use_light = tf_obj.use_light
 
     cdef void eval_transfer(self, np.float64_t dt, np.float64_t dv,
-                                    np.float64_t *rgba):
+                                    np.float64_t *rgba, np.float64_t *grad):
         cdef int i
         cdef int bin_id
-        cdef np.float64_t tf, trgba[4], bv, dx, dy, dd,ta
+        cdef np.float64_t tf, trgba[4], bv, dx, dy, dd, ta, dot_prod
         dx = self.dbin
 
         # get source alpha first
@@ -109,18 +125,22 @@ cdef class TransferFunctionProxy:
             # This is our final value for transfer function on the entering face
         tf = bv+dd*(dy/dx) 
         ta = tf  # Store the source alpha
+        dot_prod = 0.0
+        for i in range(3):
+            dot_prod += self.light_dir[i] * grad[i]
+        #print dot_prod, grad[0], grad[1], grad[2]
+        dot_prod = fmax(0.0, dot_prod)
         for i in range(3):
             # Recall that linear interpolation is y0 + (x-x0) * dx/dy
             bv = self.vs[i][bin_id] # This is x0
             dy = self.vs[i][bin_id+1]-bv # dy
             dd = dv-(self.x_bounds[0] + bin_id * dx) # x - x0
             # This is our final value for transfer function on the entering face
-            tf = bv+dd*(dy/dx) 
+            tf = bv+dd*(dy/dx) + dot_prod * self.light_color[i]
             # alpha blending
             rgba[i] += (1. - rgba[3])*ta*tf*dt
         #update alpha
         rgba[3] += (1. - rgba[3])*ta*dt
-        
         # We should really do some alpha blending.
         # Front to back blending is defined as:
         #  dst.rgb = dst.rgb + (1 - dst.a) * src.a * src.rgb
@@ -374,6 +394,7 @@ cdef class PartitionedGrid:
                             np.float64_t *rgba,
                             TransferFunctionProxy tf):
         cdef np.float64_t cp[3], dp[3], temp, dt, t, dv
+        cdef np.float64_t grad[3]
         cdef int dti, i
         dt = (exit_t - enter_t) / (self.ns-1) # five samples, so divide by four
         for dti in range(self.ns - 1):
@@ -382,7 +403,9 @@ cdef class PartitionedGrid:
                 cp[i] = v_pos[i] + t * v_dir[i]
                 dp[i] = fclip(fmod(cp[i], self.dds[i])/self.dds[i], 0, 1.0)
             dv = trilinear_interpolate(self.dims, ci, dp, self.data)
-            tf.eval_transfer(dt, dv, rgba)
+            if tf.use_light == 1:
+                eval_gradient(self.dims, ci, dp, self.data, grad)
+            tf.eval_transfer(dt, dv, rgba, grad)
 
 cdef class GridFace:
     cdef int direction
