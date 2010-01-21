@@ -1672,9 +1672,11 @@ class AMR3DData(AMRData, GridPropertiesMixin):
         for grid in self._grids:
             pointI = self._get_point_indices(grid)
             np = pointI[0].ravel().size
-            new_field = na.ones(grid.ActiveDimensions, dtype=dtype) * default_val
+            if grid.has_key(field):
+                new_field = grid[field]
+            else:
+                new_field = na.ones(grid.ActiveDimensions, dtype=dtype) * default_val
             new_field[pointI] = self[field][i:i+np]
-            if grid.data.has_key(field): del grid.data[field]
             grid[field] = new_field
             i += np
 
