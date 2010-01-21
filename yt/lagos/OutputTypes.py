@@ -494,7 +494,7 @@ class OrionStaticOutput(StaticOutput):
         self.parameters["EOSType"] = -1 # default
         if self.fparameters.has_key("mu"):
             self.parameters["mu"] = self.fparameters["mu"]
-        self.parameters["RefineBy"] = self.parameters["RefineBy"][0]
+
     def _localize(self, f, default):
         if f is None:
             return os.path.join(self.directory, default)
@@ -541,7 +541,11 @@ class OrionStaticOutput(StaticOutput):
                 if len(t) == 1:
                     self.parameters[paramName] = t[0]
                 else:
-                    self.parameters[paramName] = t
+                    if paramName == "RefineBy":
+                        self.parameters[paramName] = t[0]
+                    else:
+                        self.parameters[paramName] = t
+                
             elif param.startswith("geometry.prob_hi"):
                 self.parameters["DomainRightEdge"] = \
                     na.array([float(i) for i in vals.split()])
