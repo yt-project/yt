@@ -287,7 +287,7 @@ class AMRData(object):
     def save_object(self, name, filename = None):
         """
         Save an object.  If *filename* is supplied, it will be stored in
-        a :module:`shelve` file of that name.  Otherwise, it will be stored via
+        a :mod:`shelve` file of that name.  Otherwise, it will be stored via
         :meth:`yt.lagos.AMRHierarchy.save_object`.
         """
         if filename is not None:
