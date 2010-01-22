@@ -1127,7 +1127,19 @@ class OrionHierarchy(AMRHierarchy):
         pass
 
     def _setup_unknown_fields(self):
-        pass
+        for field in self.field_list:
+            if field in self.parameter_file.field_info: continue
+            mylog.info("Adding %s to list of fields", field)
+            cf = None
+            if self.parameter_file.has_key(field):
+                def external_wrapper(f):
+                    def _convert_function(data):
+                        return data.convert(f)
+                    return _convert_function
+                cf = external_wrapper(field)
+            add_field(field, lambda a, b: None,
+                      convert_function=cf, take_log=False)
+
 
     def _setup_derived_fields(self):
         pass
