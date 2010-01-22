@@ -1871,6 +1871,11 @@ class ExtractedRegionBase(AMR3DData):
             return True
         return False
 
+    def _get_cut_mask(self, grid):
+        cm = na.zeros(grid.ActiveDimensions, dtype='bool')
+        cm[self._get_point_indices(grid, False)] = True
+        return cm
+
     __empty_array = na.array([], dtype='bool')
     def _get_point_indices(self, grid, use_child_mask=True):
         # Yeah, if it's not true, we don't care.

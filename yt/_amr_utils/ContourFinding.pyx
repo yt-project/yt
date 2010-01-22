@@ -39,7 +39,7 @@ cdef inline np.int64_t i64min(np.int64_t i0, np.int64_t i1):
 def construct_boundary_relationships(
         np.ndarray[dtype=np.int64_t, ndim=3] contour_ids):
     # We only look at the boundary and one cell in
-    cdef int i, j, nx, ny, nz
+    cdef int i, j, nx, ny, nz, offset_i, offset_j, oi, oj
     cdef np.int64_t c1, c2
     tree = []
     nx = contour_ids.shape[0]
@@ -48,33 +48,57 @@ def construct_boundary_relationships(
     # First x-pass
     for i in range(ny):
         for j in range(nz):
-            c1 = contour_ids[0, i, j]
-            c2 = contour_ids[1, i, j]
-            if c1 > -1 and c2 > -1:
-                tree.append((i64max(c1,c2), i64min(c1,c2)))
-            c1 = contour_ids[nx-1, i, j]
-            c2 = contour_ids[nx-2, i, j]
-            if c1 > -1 and c2 > -1:
-                tree.append((i64max(c1,c2), i64min(c1,c2)))
+            for offset_i in range(3):
+                oi = offset_i - 1
+                if i == 0 and oi == -1: continue
+                if i == ny - 1 and oj == 1: continue
+                for offset_j in range(3):
+                    oj = offset_j - 1
+                    if j == 0 and oj == -1: continue
+                    if j == nz - 1 and oj == 1: continue
+                    c1 = contour_ids[0, i, j]
+                    c2 = contour_ids[1, i + oi, j + oj]
+                    if c1 > -1 and c2 > -1:
+                        tree.append((i64max(c1,c2), i64min(c1,c2)))
+                    c1 = contour_ids[nx-1, i, j]
+                    c2 = contour_ids[nx-2, i + oi, j + oj]
+                    if c1 > -1 and c2 > -1:
+                        tree.append((i64max(c1,c2), i64min(c1,c2)))
     # Now y-pass
     for i in range(nx):
         for j in range(nz):
-            c1 = contour_ids[i, 0, j]
-            c2 = contour_ids[i, 1, j]
-            if c1 > -1 and c2 > -1:
-                tree.append((i64max(c1,c2), i64min(c1,c2)))
-            c1 = contour_ids[i, ny-1, j]
-            c2 = contour_ids[i, ny-2, j]
-            if c1 > -1 and c2 > -1:
-                tree.append((i64max(c1,c2), i64min(c1,c2)))
+            for offset_i in range(3):
+                oi = offset_i - 1
+                if i == 0 and oi == -1: continue
+                if i == nx - 1 and oj == 1: continue
+                for offset_j in range(3):
+                    oj = offset_j - 1
+                    if j == 0 and oj == -1: continue
+                    if j == nz - 1 and oj == 1: continue
+                    c1 = contour_ids[i, 0, j]
+                    c2 = contour_ids[i + oi, 1, j + oj]
+                    if c1 > -1 and c2 > -1:
+                        tree.append((i64max(c1,c2), i64min(c1,c2)))
+                    c1 = contour_ids[i, ny-1, j]
+                    c2 = contour_ids[i + oi, ny-2, j + oj]
+                    if c1 > -1 and c2 > -1:
+                        tree.append((i64max(c1,c2), i64min(c1,c2)))
     for i in range(nx):
         for j in range(ny):
-            c1 = contour_ids[i, j, 0]
-            c2 = contour_ids[i, j, 1]
-            if c1 > -1 and c2 > -1:
-                tree.append((i64max(c1,c2), i64min(c1,c2)))
-            c1 = contour_ids[i, j, nz-1]
-            c2 = contour_ids[i, j, nz-2]
-            if c1 > -1 and c2 > -1:
-                tree.append((i64max(c1,c2), i64min(c1,c2)))
+            for offset_i in range(3):
+                oi = offset_i - 1
+                if i == 0 and oi == -1: continue
+                if i == nx - 1 and oj == 1: continue
+                for offset_j in range(3):
+                    oj = offset_j - 1
+                    if j == 0 and oj == -1: continue
+                    if j == ny - 1 and oj == 1: continue
+                    c1 = contour_ids[i, j, 0]
+                    c2 = contour_ids[i + oi, j + oj, 1]
+                    if c1 > -1 and c2 > -1:
+                        tree.append((i64max(c1,c2), i64min(c1,c2)))
+                    c1 = contour_ids[i, j, nz-1]
+                    c2 = contour_ids[i + oi, j + oj, nz-2]
+                    if c1 > -1 and c2 > -1:
+                        tree.append((i64max(c1,c2), i64min(c1,c2)))
     return tree
