@@ -1762,6 +1762,7 @@ class AMR3DData(AMRData, GridPropertiesMixin):
         if cache: cached_fields = defaultdict(lambda: dict())
         else: cached_fields = None
         for level in range(num_levels):
+            self.clear_data()
             contours[level] = {}
             if cumulative:
                 mv = max_val
@@ -1870,6 +1871,11 @@ class ExtractedRegionBase(AMR3DData):
              grid.ActiveDimensions.prod()):
             return True
         return False
+
+    def _get_cut_mask(self, grid):
+        cm = na.zeros(grid.ActiveDimensions, dtype='bool')
+        cm[self._get_point_indices(grid, False)] = True
+        return cm
 
     __empty_array = na.array([], dtype='bool')
     def _get_point_indices(self, grid, use_child_mask=True):
