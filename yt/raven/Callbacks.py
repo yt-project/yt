@@ -315,7 +315,7 @@ class UnitBoundaryCallback(PlotCallback):
                    ( (right_edge_py < height) & (left_edge_py > 0) )
         verts=verts.transpose()[visible,:,:]
         grid_collection = matplotlib.collections.PolyCollection(
-                verts, facecolors=(0.0,0.0,0.0,0.0),
+                verts, facecolors="none",
                        edgecolors=(0.0,0.0,0.0,1.0),
                        linewidths=2.5)
         plot._axes.hold(True)
