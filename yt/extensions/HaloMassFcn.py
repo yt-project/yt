@@ -392,7 +392,7 @@ class HaloMassFcn(lagos.ParallelAnalysisInterface):
         
         if self.fitting_function==1:
             # Press-Schechter (This form from Jenkins et al. 2001, MNRAS 321, 372-384, eqtn. 5)
-            thismult = sqrt(2.0/math.pi) * nu * exp(-0.5*nu*nu);
+            thismult = math.sqrt(2.0/math.pi) * nu * exp(-0.5*nu*nu);
         
         elif self.fitting_function==2:
             # Jenkins et al. 2001, MNRAS 321, 372-384, eqtn. 9
