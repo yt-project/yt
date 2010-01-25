@@ -216,7 +216,7 @@ fi
 [ $INST_WXPYTHON -eq 1 ] && get_enzotools wxPython-src-2.8.9.1.tar.bz2
 get_enzotools Python-2.6.3.tgz
 get_enzotools numpy-1.3.0.tar.gz
-get_enzotools matplotlib-0.99.1.1.tar.gz
+get_enzotools matplotlib-0.99.1.2.tar.gz
 get_enzotools ipython-0.10.tar.gz
 get_enzotools h5py-1.2.0.tar.gz
 
@@ -317,7 +317,7 @@ then
     export LDFLAGS="${MPL_SUPP_LDFLAGS}"
     echo "Setting LDFLAGS ${LDFLAGS}"
 fi
-do_setup_py matplotlib-0.99.1.1
+do_setup_py matplotlib-0.99.1.2
 unset LDFLAGS
 do_setup_py ipython-0.10
 do_setup_py h5py-1.2.0
