@@ -103,7 +103,7 @@ class PlotCollection(object):
         for plot in self.plots:
             plot.set_ylim(ymin, ymax)
 
-    def set_zlim(self, zmin, zmax, **kwargs):
+    def set_zlim(self, zmin, zmax, *args, **kwargs):
         """
         Set the limits of the colorbar. 'min' or 'max' are possible inputs 
         when combined with dex=value, where value gives the maximum number of 
@@ -119,7 +119,7 @@ class PlotCollection(object):
         """
         for plot in self.plots:
             plot.set_autoscale(False)
-            plot.set_zlim(zmin, zmax, **kwargs)
+            plot.set_zlim(zmin, zmax, *args, **kwargs)
 
     def set_lim(self, lim):
         """
