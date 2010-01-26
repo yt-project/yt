@@ -94,7 +94,7 @@ class ParticleIOHandlerImplemented(ParticleIOHandler):
             else:
                 func = f.particle_convert
             conv_factors.append(
-              na.fromiter((f.particle_convert(g) for g in grid_list),
+              na.fromiter((func(g) for g in grid_list),
                           count=len(grid_list), dtype='float64'))
         conv_factors = na.array(conv_factors).transpose()
         self.conv_factors = conv_factors
