@@ -135,16 +135,19 @@ class AMRHierarchy(ObjectFindingMixin, ParallelAnalysisInterface):
 
     def _initialize_data_storage(self):
         if not ytcfg.getboolean('lagos','serialize'): return
-        if os.path.isfile(os.path.join(self.directory,
-                            "%s.yt" % self.pf["CurrentTimeIdentifier"])):
-            fn = os.path.join(self.directory,"%s.yt" % self.pf["CurrentTimeIdentifier"])
-        else:
-            fn = os.path.join(self.directory,
-                    "%s.yt" % self.parameter_file.basename)
+        fn = self.pf.storage_filename
+        if fn is None:
+            if os.path.isfile(os.path.join(self.directory,
+                                "%s.yt" % self.pf["CurrentTimeIdentifier"])):
+                fn = os.path.join(self.directory,"%s.yt" % self.pf["CurrentTimeIdentifier"])
+            else:
+                fn = os.path.join(self.directory,
+                        "%s.yt" % self.parameter_file.basename)
+        dir_to_check = os.path.dirname(fn)
         if os.path.isfile(fn):
             writable = os.access(fn, os.W_OK)
         else:
-            writable = os.access(self.directory, os.W_OK)
+            writable = os.access(dir_to_check, os.W_OK)
         if ytcfg.getboolean('lagos','onlydeserialize') or not writable:
             self._data_mode = mode = 'r'
         else:
@@ -349,8 +352,11 @@ class EnzoHierarchy(AMRHierarchy):
             "%s.hierarchy" % (pf.parameter_filename))
         harray_fn = self.hierarchy_filename[:-9] + "harrays"
         if os.path.exists(harray_fn):
-            harray_fp = h5py.File(harray_fn)
-            self.num_grids = harray_fp["/Level"].len()
+            try:
+                harray_fp = h5py.File(harray_fn)
+                self.num_grids = harray_fp["/Level"].len()
+            except h5py.h5.H5Error:
+                pass
         elif os.path.getsize(self.hierarchy_filename) == 0:
             raise IOError(-1,"File empty", self.hierarchy_filename)
         self.directory = os.path.dirname(self.hierarchy_filename)
@@ -489,7 +495,10 @@ class EnzoHierarchy(AMRHierarchy):
 
     def _parse_binary_hierarchy(self):
         mylog.info("Getting the binary hierarchy")
-        f = h5py.File(self.hierarchy_filename[:-9] + "harrays")
+        try:
+            f = h5py.File(self.hierarchy_filename[:-9] + "harrays")
+        except h5py.h5.H5Error:
+            return False
         self.grid_dimensions[:] = f["/ActiveDimensions"][:]
         self.grid_left_edge[:] = f["/LeftEdges"][:]
         self.grid_right_edge[:] = f["/RightEdges"][:]
@@ -522,7 +531,10 @@ class EnzoHierarchy(AMRHierarchy):
         if self._data_mode == 'r': return
         if self.data_style != "enzo_packed_3d": return
         mylog.info("Storing the binary hierarchy")
-        f = h5py.File(self.hierarchy_filename[:-9] + "harrays", "w")
+        try:
+            f = h5py.File(self.hierarchy_filename[:-9] + "harrays", "w")
+        except h5py.h5.FileError:
+            return
         f.create_dataset("/LeftEdges", data=self.grid_left_edge)
         f.create_dataset("/RightEdges", data=self.grid_right_edge)
         parents, procs, levels = [], [], []

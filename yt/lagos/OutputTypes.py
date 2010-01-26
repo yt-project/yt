@@ -168,7 +168,8 @@ class EnzoStaticOutput(StaticOutput):
     _fieldinfo_class = EnzoFieldContainer
     def __init__(self, filename, data_style=None,
                  parameter_override = None,
-                 conversion_override = None):
+                 conversion_override = None,
+                 storage_filename = None):
         """
         This class is a stripped down class that simply reads and parses
         *filename* without looking at the hierarchy.  *data_style* gets passed
@@ -182,6 +183,7 @@ class EnzoStaticOutput(StaticOutput):
         self.__parameter_override = parameter_override
         if conversion_override is None: conversion_override = {}
         self.__conversion_override = conversion_override
+        self.storage_filename = storage_filename
 
         StaticOutput.__init__(self, filename, data_style)
         if "InitialTime" not in self.parameters:
