@@ -355,7 +355,7 @@ class EnzoHierarchy(AMRHierarchy):
             try:
                 harray_fp = h5py.File(harray_fn)
                 self.num_grids = harray_fp["/Level"].len()
-            except h5py.h5.H5Error:
+            except IOError:
                 pass
         elif os.path.getsize(self.hierarchy_filename) == 0:
             raise IOError(-1,"File empty", self.hierarchy_filename)
@@ -533,7 +533,7 @@ class EnzoHierarchy(AMRHierarchy):
         mylog.info("Storing the binary hierarchy")
         try:
             f = h5py.File(self.hierarchy_filename[:-9] + "harrays", "w")
-        except h5py.h5.FileError:
+        except IOError:
             return
         f.create_dataset("/LeftEdges", data=self.grid_left_edge)
         f.create_dataset("/RightEdges", data=self.grid_right_edge)
