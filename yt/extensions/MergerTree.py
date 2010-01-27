@@ -253,7 +253,13 @@ class MergerTree(lagos.ParallelAnalysisInterface):
             child_IDs = []
             child_per = []
             for child in candidates[halo]:
-                child_IDs.append(child)
+                # We need to get the GlobalHaloID for this child.
+                line = 'SELECT GlobalHaloID FROM HALOS WHERE \
+                SnapCurrentTimeIdentifier=? AND SnapHaloID=?'
+                values = (child_currt, child)
+                self.cursor.execute(line, values)
+                child_globalID = self.cursor.fetchone()[0]
+                child_IDs.append(child_globalID)
                 child_per.append(child_percents[halo][child])
             # Sort by percentages, desending.
             child_per, child_IDs = zip(*sorted(zip(child_per, child_IDs), reverse=True))
