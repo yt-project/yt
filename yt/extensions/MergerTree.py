@@ -83,7 +83,7 @@ class MergerTree(lagos.ParallelAnalysisInterface):
             # Now add halo data to the db if it isn't already there by
             # checking the first halo.
             currt = pf['CurrentTimeIdentifier']
-            line = "SELECT GlobalHaloID from HALOS where SnapHaloID=0\
+            line = "SELECT GlobalHaloID from Halos where SnapHaloID=0\
             and SnapCurrentTimeIdentifier=%d;" % currt
             self.cursor.execute(line)
             result = self.cursor.fetchone()
@@ -106,7 +106,7 @@ class MergerTree(lagos.ParallelAnalysisInterface):
                 for i in range(23):
                     line += '?,'
                 # Pull off the last comma.
-                line = 'INSERT into HALOS VALUES (' + line[:-1] + ')'
+                line = 'INSERT into Halos VALUES (' + line[:-1] + ')'
                 self.cursor.execute(line, values)
             self.conn.commit()
             del hp
@@ -125,7 +125,7 @@ class MergerTree(lagos.ParallelAnalysisInterface):
         # Handle the error if it already exists.
         try:
             # Create the table that will store the halo data.
-            line = "CREATE TABLE HALOS (GlobalHaloID INTEGER PRIMARY KEY,\
+            line = "CREATE TABLE Halos (GlobalHaloID INTEGER PRIMARY KEY,\
                 SnapCurrentTimeIdentifier INTEGER, SnapZ FLOAT, SnapHaloID INTEGER, \
                 DarkMatterMass FLOAT,\
                 NumPart INTEGER, CenMassX FLOAT, CenMassY FLOAT,\
@@ -148,7 +148,7 @@ class MergerTree(lagos.ParallelAnalysisInterface):
         child_pf = lagos.EnzoStaticOutput(childfile)
         child_t = child_pf['CurrentTimeIdentifier']
         line = "SELECT SnapHaloID, CenMassX, CenMassY, CenMassZ FROM \
-        HALOS WHERE SnapCurrentTimeIdentifier = %d" % child_t
+        Halos WHERE SnapCurrentTimeIdentifier = %d" % child_t
         self.cursor.execute(line)
         
         # Build the kdtree for the children by looping over the fetched rows.
@@ -168,7 +168,7 @@ class MergerTree(lagos.ParallelAnalysisInterface):
         parent_pf = lagos.EnzoStaticOutput(parentfile)
         parent_t = parent_pf['CurrentTimeIdentifier']
         line = "SELECT SnapHaloID, CenMassX, CenMassY, CenMassZ FROM \
-        HALOS WHERE SnapCurrentTimeIdentifier = %d" % parent_t
+        Halos WHERE SnapCurrentTimeIdentifier = %d" % parent_t
         self.cursor.execute(line)
 
         # Loop over the returned rows, and find the likely neighbors for the
@@ -254,7 +254,7 @@ class MergerTree(lagos.ParallelAnalysisInterface):
             child_per = []
             for child in candidates[halo]:
                 # We need to get the GlobalHaloID for this child.
-                line = 'SELECT GlobalHaloID FROM HALOS WHERE \
+                line = 'SELECT GlobalHaloID FROM Halos WHERE \
                 SnapCurrentTimeIdentifier=? AND SnapHaloID=?'
                 values = (child_currt, child)
                 self.cursor.execute(line, values)
@@ -270,7 +270,7 @@ class MergerTree(lagos.ParallelAnalysisInterface):
             # This has the child ID, child percent listed five times, followed
             # by the currt and this parent halo ID (SnapHaloID).
             values = tuple(values)
-            line = 'UPDATE HALOS SET ChildHaloID0=?, ChildHaloFrac0=?,\
+            line = 'UPDATE Halos SET ChildHaloID0=?, ChildHaloFrac0=?,\
             ChildHaloID1=?, ChildHaloFrac1=?,\
             ChildHaloID2=?, ChildHaloFrac2=?,\
             ChildHaloID3=?, ChildHaloFrac3=?,\
@@ -278,4 +278,165 @@ class MergerTree(lagos.ParallelAnalysisInterface):
             WHERE SnapCurrentTimeIdentifier=? AND SnapHaloID=?;'
             self.cursor.execute(line, values)
         self.conn.commit()
+
+class Node(object):
+    def __init__(self, CoM, mass, parentIDs, z, color):
+        self.CoM = CoM
+        self.mass = mass
+        self.parentIDs = parentIDs # In descending order of contribution
+        self.z = z
+        self.color = color
+
+class Link(object):
+    def __init__(self):
+        self.childIDs = []
+        self.fractions = []
+
+class MergerTreeDotOutput(object):
+    def __init__(self, halos, database='halos.db',
+            dotfile='MergerTree.dot'):
+        if type(halos) == types.IntType:
+            halos = [halos]
+        newhalos = set(halos)
+        self.database = database
+        if len(newhalos) == 0:
+            mylog.error("Please provide at least one halo to start the tree. Exiting.")
+            return None
+        result = self._open_database()
+        if not result:
+            return None
+        # A key is the GlobalHaloID for this halo, and the content is a
+        # Node object.
+        self.nodes = {}
+        # A key is the GlobalHaloID for the parent in the relationship,
+        # and the content is a Link ojbect.
+        self.links = defaultdict(Link)
+        # Record which halos are at the same z level for convenience.
+        # They key is a z value, and the content a list of co-leveled halo IDs.
+        self.levels = defaultdict(list)
+        # For the first set of halos.
+        self._add_nodes(newhalos)
+        # Recurse over parents.
+        while len(newhalos) > 0:
+            newhalos = self._find_parents(newhalos)
+            self._add_nodes(newhalos)
+        self._open_dot(dotfile)
+        self._write_nodes()
+        self._write_links()
+        self._write_levels()
+        self._close_dot()
+        self._close_database()
+
+    def _open_database(self):
+        # open the database. Check to make sure the database file exists.
+        if not os.path.exists(self.database):
+            mylog.error("The database file %s cannot be found. Exiting." % \
+                self.database)
+            return False
+        self.conn = sql.connect(self.database)
+        self.cursor = self.conn.cursor()
+        return True
+    
+    def _close_database(self):
+        self.cursor.close()
+        
+    def _find_parents(self, halos):
+        # Given a set of halos, find their parents and add that to each of their
+        # node records. At the same time, make a link record for that
+        # relationship.
+        # This stores the newly discovered parent halos.
+        newhalos = set([])
+        for halo in halos:
+            line = 'SELECT GlobalHaloID, ChildHaloFrac0 from Halos\
+            where ChildHaloID0=? or ChildHaloID1=? or ChildHaloID2=?\
+            or ChildHaloID3=? or ChildHaloID4=?'
+            values = (halo,halo,halo,halo,halo)
+            self.cursor.execute(line, values)
+            result = self.cursor.fetchone()
+            while result:
+                pID = result[0]
+                pfrac = result[1]
+                # Store this.
+                self.nodes[halo].parentIDs.append(pID)
+                self.links[pID].childIDs.append(halo)
+                self.links[pID].fractions.append(pfrac)
+                newhalos.add(pID)
+                result = self.cursor.fetchone()
+        return newhalos
+    
+    def _add_nodes(self, newhalos):
+        # Each call of this function always happens for a set of newhalos that
+        # are at the same z. To give the halos color we will figure out how
+        # many halos total were found this z.
+        # There's probably a way to do this with only one SQL operation.
+        if len(newhalos) == 0:
+            return
+        ahalo = list(newhalos)[0]
+        line = 'SELECT SnapCurrentTimeIdentifier FROM Halos WHERE GlobalHaloID=?;'
+        values = (ahalo,)
+        self.cursor.execute(line, values)
+        result = self.cursor.fetchone()
+        # Use currt to get the number.
+        line = 'SELECT max(SnapHaloID) FROM Halos where SnapCurrentTimeIdentifier=?;'
+        values = (result[0],)
+        self.cursor.execute(line, values)
+        maxID = self.cursor.fetchone()[0]
+        # For the new halos, create nodes for them.
+        for halo in newhalos:
+            line = 'SELECT SnapZ, DarkMatterMass, CenMassX, CenMassY, CenMassZ,\
+            SnapHaloID FROM Halos WHERE GlobalHaloID=? limit 1;'
+            value = (halo,)
+            self.cursor.execute(line, value)
+            result = self.cursor.fetchone()
+            self.nodes[halo] = Node(na.array([result[2],result[3],result[4]]),
+                result[1], [], result[0], 1. - float(result[5])/maxID)
+            self.levels[result[0]].append(halo)
+
+    def _open_dot(self, dotfile):
+        # Write out the opening stuff in the dotfile.
+        self.dotfile=open(dotfile, 'w')
+        line = 'digraph galaxy {size="10, 10";\n'
+        line += 'node [style=bold, shape=record];\n'
+        self.dotfile.write(line)
+    
+    def _close_dot(self):
+        self.dotfile.write("\n};\n")
+        self.dotfile.close()
+    
+    def _write_nodes(self):
+        # Write out the nodes to the dot file.
+        self.dotfile.write("{\n")
+        for halo in self.nodes:
+            this = self.nodes[halo]
+            line = '"%d" [label="{%1.3e\\n(%1.3f,%1.3f,%1.3f)}", shape="record",' \
+                % (halo, this.mass, this.CoM[0], this.CoM[1], this.CoM[2])
+            line += ' color="%0.3f 1. %0.3f"];\n' % (this.color, this.color)
+            self.dotfile.write(line)
+        self.dotfile.write("};\n")
+    
+    def _write_links(self):
+        # Write out the links to the dot file.
+        self.dotfile.write("{\n")
+        for parent in self.links:
+            this = self.links[parent]
+            for child,frac in zip(this.childIDs, this.fractions):
+                if frac > 0.2:
+                    line = '"%d"->"%d" [label="%3.2f%%", color="blue", fontsize=10];\n' \
+                        % (parent, child, frac*100.)
+                    self.dotfile.write(line)
+        self.dotfile.write("};\n")
+
+    def _write_levels(self):
+        # Write out the co-leveled halos to the dot file.
+        for z in self.levels:
+            this = self.levels[z]
+            self.dotfile.write("{ rank = same;\n")
+            line = '"%1.5f"; ' % z
+            for halo in this:
+                line += '"%d"; ' % halo
+            line += "\n};\n"
+            self.dotfile.write(line)
+        # Also write out the unlinked boxes for the redshifts.
+        line = '{"%1.5f" [label="{%1.5f}", shape="record" color="green"];}\n' \
+            % (z, z)
         
