@@ -36,7 +36,6 @@ import types
 import sqlite3 as sql
 from collections import defaultdict
 
-
 class MergerTree(lagos.ParallelAnalysisInterface):
     def __init__(self, restart_files=[], database='halos.db',
             halo_finder_function=HaloFinder, halo_finder_threshold=80.0):
@@ -47,11 +46,16 @@ class MergerTree(lagos.ParallelAnalysisInterface):
         self._open_database()
         self._create_halo_table()
         self._run_halo_finder_add_to_db()
-#        self._close_database()
-#         self.halo_lists[0] = self._find_likely_children(self.halo_lists[0], self.halo_lists[1])
-#         self.halo_lists[0] = self._read_particle_ids(self.halo_lists[0], h5_txts[0])
-#         self.halo_lists[1] = self._read_particle_ids(self.halo_lists[1], h5_txts[1])
-#         self._find_child_fraction(self.halo_lists[0], self.halo_lists[1])
+        # Find the h5 file names for all the halos.
+        for snap in self.restart_files:
+            self._build_h5_refs(snap)
+        # Loop over the pairs of snapshots to locate likely neighbors, and
+        # then use those likely neighbors to compute fractional contributions.
+        for pair in zip(self.restart_files[:-1], self.restart_files[1:]):
+            candidates = self._find_likely_children(pair[0], pair[1])
+            self._compute_child_fraction(pair[0], pair[1], candidates)
+        self._close_database()
+        self._close_h5fp()
         
     def _read_halo_lists(self):
         self.halo_lists = []
@@ -205,6 +209,12 @@ class MergerTree(lagos.ParallelAnalysisInterface):
             self.h5fp = defaultdict(dict)
         for name in names:
             self.h5fp[currt][name] = h5py.File(name)
+
+    def _close_h5fp(self):
+        # Cleanly close the open h5 file pointers.
+        for currt in self.h5fp:
+            for name in self.h5fp[currt]:
+                self.h5fp[currt][name].close()
         
     def _compute_child_fraction(self, parentfile, childfile, candidates):
         # Given a parent and child snapshot, and a list of child candidates,
