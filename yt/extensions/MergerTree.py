@@ -47,7 +47,7 @@ class MergerTree(lagos.ParallelAnalysisInterface):
         self._open_database()
         self._create_halo_table()
         self._run_halo_finder_add_to_db()
-        self._close_database()
+#        self._close_database()
 #         self.halo_lists[0] = self._find_likely_children(self.halo_lists[0], self.halo_lists[1])
 #         self.halo_lists[0] = self._read_particle_ids(self.halo_lists[0], h5_txts[0])
 #         self.halo_lists[1] = self._read_particle_ids(self.halo_lists[1], h5_txts[1])
@@ -97,8 +97,13 @@ class MergerTree(lagos.ParallelAnalysisInterface):
                 halo['velocity'][0], halo['velocity'][1], halo['velocity'][2],
                 halo['r_max'],
                 -1,0.,-1,0.,-1,0.,-1,0.,-1,0.)
-                # 23 question marks.
-                self.cursor.execute('INSERT into HALOS VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)', values)
+                # 23 question marks for 23 data columns.
+                line = ''
+                for i in range(23):
+                    line += '?,'
+                # Pull off the last comma.
+                line = 'INSERT into HALOS VALUES (' + line[:-1] + ')'
+                self.cursor.execute(line, values)
             self.conn.commit()
             del hp
     
@@ -138,7 +143,7 @@ class MergerTree(lagos.ParallelAnalysisInterface):
         # First, read in the locations of the child halos.
         child_pf = lagos.EnzoStaticOutput(childfile)
         child_t = child_pf['CurrentTimeIdentifier']
-        line = "SELECT GlobalHaloID, CenMassX, CenMassY, CenMassZ FROM \
+        line = "SELECT SnapHaloID, CenMassX, CenMassY, CenMassZ FROM \
         HALOS WHERE SnapCurrentTimeIdentifier = %d" % child_t
         self.cursor.execute(line)
         
@@ -158,7 +163,7 @@ class MergerTree(lagos.ParallelAnalysisInterface):
         # Find the parent points from the database.
         parent_pf = lagos.EnzoStaticOutput(parentfile)
         parent_t = parent_pf['CurrentTimeIdentifier']
-        line = "SELECT GlobalHaloID, CenMassX, CenMassY, CenMassZ FROM \
+        line = "SELECT SnapHaloID, CenMassX, CenMassY, CenMassZ FROM \
         HALOS WHERE SnapCurrentTimeIdentifier = %d" % parent_t
         self.cursor.execute(line)
 
@@ -173,8 +178,6 @@ class MergerTree(lagos.ParallelAnalysisInterface):
             nIDs = []
             for n in neighbors.points:
                 nIDs.append(n[1].ID)
-            # Save this to the halo entry using the GlobalHaloID identifier.
-            # nIDs are also the GlobalHaloIDs.
             candidates[row[0]] = nIDs
         
         return candidates
@@ -212,59 +215,51 @@ class MergerTree(lagos.ParallelAnalysisInterface):
         parent_currt = parent_pf['CurrentTimeIdentifier']
         child_currt = child_pf['CurrentTimeIdentifier']
         
+        child_percents = {}
         for halo in candidates:
-            # Find the SnapHaloID for this parent
-            line = "SELECT SnapHaloID FROM HALOS WHERE GlobalHaloID=%d LIMIT 1;" \
-                % halo
-            self.cursor.execute(line)
-            SnapHaloID = self.cursor.fetchone()[0]
             # Read in its particle IDs
             parent_IDs = na.array([], dtype='int64')
-            for h5name in self.h5files[parent_currt][SnapHaloID]:
-                # get the right time dict entry, and then the right h5 file
+            for h5name in self.h5files[parent_currt][halo]:
+                # Get the correct time dict entry, and then the correct h5 file
                 # from that snapshot, and then choose this parent's halo
-                # group, and then the particle IDs.
-                new_IDs = self.h5fp[parent_currt][h5name]['Halo%08d' % SnapHaloID]['particle_index']
-                parent_IDs = na.concatenate(parent_IDs, new_IDs[:])
-    
-    def _read_particle_ids(self, halos, txt_file):
-        # Given a txt_file, read in the particles for each halo.
-        lines = file(txt_file)
-        names = set([])
-        for i,line in enumerate(lines):
-            # get rid of the carriage returns and turn it into a list
-            line = line.strip().split()
-            halos[i]['fnames'] = line[1:]
-            names.update(line[1:])
-        # Open the unique files only once.
-        fp_names = {}
-        for name in names:
-            fp_names[name] = h5py.File(os.path.join(os.path.dirname(txt_file), name))
-        # Now read in the indices for all the halos
-        for i,halo in enumerate(halos):
-            IDs = set([])
-            for fname in halo['fnames']:
-                tempids = fp_names[fname]['Halo%08d' % i]['particle_index']
-                IDs.update(tempids[:])
-            # Save the particle IDs
-            halos[i]['IDs'] = IDs
-        # Close all the various files.
-        lines.close()
-        for name in names:
-            fp_names[name].close()
-        return halos
-    
-    def _find_child_fraction(self, parents, children):
-        # Using the list of likely children, for each parent halo figure
-        # out the fraction of its particles in the children.
+                # group, and then the particle IDs. How's that for a long reach?
+                new_IDs = self.h5fp[parent_currt][h5name]['Halo%08d' % halo]['particle_index']
+                parent_IDs = na.concatenate((parent_IDs, new_IDs[:]))
+            # Loop over its children.
+            temp_percents = {}
+            for child in candidates[halo]:
+                child_IDs = na.array([], dtype='int64')
+                for h5name in self.h5files[child_currt][child]:
+                    new_IDs = self.h5fp[child_currt][h5name]['Halo%08d' % child]['particle_index']
+                    child_IDs = na.concatenate((child_IDs, new_IDs[:]))
+                # The IDs shared by both halos.
+                intersect = na.intersect1d(parent_IDs, child_IDs)
+                # The fraction shared from the parent halo.
+                temp_percents[child] = float(intersect.size) / parent_IDs.size
+            child_percents[halo] = temp_percents
         
-        for i,halo in enumerate(parents):
-            parents[i]['neighbors_frac'] = {}
-            #for neighbor in halo['neighbors']:
-            print i,halo['neighbors']
-            for j,child in enumerate(children):
-                frac = float(len(halo['IDs'] & child['IDs'])) / len(halo['IDs'])
-                if frac > 0.3:
-                    print 'parent halo ', i, ' has given ', frac,' to child ', j
-        return
+        # Now we write these percents to the existing entry already in the database.
+        for halo in candidates:
+            child_IDs = []
+            child_per = []
+            for child in candidates[halo]:
+                child_IDs.append(child)
+                child_per.append(child_percents[halo][child])
+            # Sort by percentages, desending.
+            child_per, child_IDs = zip(*sorted(zip(child_per, child_IDs), reverse=True))
+            values = []
+            for pair in zip(child_IDs, child_per):
+                values.extend(pair)
+            values.extend([parent_currt, halo])
+            # This has the child ID, child percent listed five times, followed
+            # by the currt and this parent halo ID (SnapHaloID).
+            values = tuple(values)
+            line = 'UPDATE HALOS SET ChildHaloID0=?, ChildHaloFrac0=?,\
+            ChildHaloID1=?, ChildHaloFrac1=?,\
+            ChildHaloID2=?, ChildHaloFrac2=?,\
+            ChildHaloID3=?, ChildHaloFrac3=?,\
+            ChildHaloID4=?, ChildHaloFrac4=?\
+            WHERE SnapCurrentTimeIdentifier=? AND SnapHaloID=?;'
+            self.cursor.execute(line, values)
+        self.conn.commit()
         
