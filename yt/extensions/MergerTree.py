@@ -328,7 +328,7 @@ class Link(object):
         self.childIDs = []
         self.fractions = []
 
-class MergerTreeDotOutput(object):
+class MergerTreeDotOutput(lagos.ParallelAnalysisInterface):
     def __init__(self, halos=None, database='halos.db',
             dotfile='MergerTree.dot', current_time=None, link_min=0.2):
         self.database = database
@@ -450,7 +450,7 @@ class MergerTreeDotOutput(object):
 
     def _open_dot(self, dotfile):
         # Write out the opening stuff in the dotfile.
-        self.dotfile=open(dotfile, 'w')
+        self.dotfile=self._write_on_root(dotfile)
         line = 'digraph galaxy {size="10, 10";\n'
         line += 'node [style=bold, shape=record];\n'
         self.dotfile.write(line)
