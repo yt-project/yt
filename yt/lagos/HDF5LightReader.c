@@ -949,7 +949,7 @@ int setup_validator_region(particle_validation *data, PyObject *InputData)
         DW = (*(npy_float64*) PyArray_GETPTR1(domain_right_edge, i))
            - (*(npy_float64*) PyArray_GETPTR1(domain_left_edge, i));
         rv->period[i] = DW;
-        fprintf(stderr, "Setting period equal to %lf\n", rv->period[i]);
+        //fprintf(stderr, "Setting period equal to %lf\n", rv->period[i]);
       }
     }
 

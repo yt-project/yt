@@ -265,8 +265,8 @@ def identify_contours(data_source, field, min_val, max_val,
         pbar.update(gi+1)
         cm = data_source._get_cut_mask(grid)
         if cm is True: cm = na.ones(grid.ActiveDimensions, dtype='bool')
-        local_ind = na.where( (min_val <= grid[field])
-                            & (grid[field] <= max_val) & cm )
+        local_ind = na.where( (grid[field] > min_val)
+                            & (grid[field] < max_val) & cm )
         if local_ind[0].size == 0: continue
         kk = na.arange(cur_max_id, cur_max_id-local_ind[0].size, -1)
         grid["tempContours"] = na.ones(grid.ActiveDimensions, dtype='int64') * -1
@@ -289,7 +289,7 @@ def identify_contours(data_source, field, min_val, max_val,
     for gi,grid in enumerate(grids):
         pbar.update(gi)
         cg = grid.retrieve_ghost_zones(1, "tempContours", smoothed=False)
-        set.update(set(cg._grids))
+        grid_set.update(set(cg._grids))
         fd = cg["tempContours"].astype('int64')
         tree += amr_utils.construct_boundary_relationships(fd)
     pbar.finish()
@@ -310,7 +310,8 @@ def identify_contours(data_source, field, min_val, max_val,
     del data_source.data["tempContours"] # Force a reload from the grids
     data_source.get_data("tempContours", in_grids=True)
     contour_ind = {}
-    for i,contour_id in enumerate(na.unique(data_source["tempContours"])):
+    i = 0
+    for contour_id in na.unique(data_source["tempContours"]):
         if contour_id == -1: continue
         contour_ind[i] = na.where(data_source["tempContours"] == contour_id)
         mylog.debug("Contour id %s has %s cells", i, contour_ind[i][0].size)

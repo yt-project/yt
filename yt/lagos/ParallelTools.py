@@ -280,7 +280,7 @@ class ParallelAnalysisInterface(object):
     def _partition_hierarchy_3d(self, padding=0.0):
         LE, RE = self.pf["DomainLeftEdge"].copy(), self.pf["DomainRightEdge"].copy()
         if not self._distributed:
-           return False, LE, RE, self.hierarchy.grid_collection(self.center, self.hierarchy.grids)
+           return False, LE, RE, self.hierarchy.all_data()
         elif ytcfg.getboolean("yt", "inline"):
             # At this point, we want to identify the root grid tile to which
             # this processor is assigned.

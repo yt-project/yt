@@ -214,9 +214,9 @@ fi
 
 [ $INST_ZLIB -eq 1 ] && get_enzotools zlib-1.2.3.tar.bz2 
 [ $INST_WXPYTHON -eq 1 ] && get_enzotools wxPython-src-2.8.9.1.tar.bz2
-get_enzotools Python-2.6.1.tgz
+get_enzotools Python-2.6.3.tgz
 get_enzotools numpy-1.3.0.tar.gz
-get_enzotools matplotlib-0.98.5.2.tar.gz
+get_enzotools matplotlib-0.99.1.2.tar.gz
 get_enzotools ipython-0.10.tar.gz
 get_enzotools h5py-1.2.0.tar.gz
 
@@ -272,11 +272,11 @@ then
 fi
 export HDF5_API=16
 
-if [ ! -e Python-2.6.1/done ]
+if [ ! -e Python-2.6.3/done ]
 then
     echo "Installing Python.  This may take a while, but don't worry.  YT loves you."
-    [ ! -e Python-2.6.1 ] && tar xfz Python-2.6.1.tgz
-    cd Python-2.6.1
+    [ ! -e Python-2.6.3 ] && tar xfz Python-2.6.3.tgz
+    cd Python-2.6.3
     ( ./configure --prefix=${DEST_DIR}/ 2>&1 ) 1>> ${LOG_FILE} || do_exit
 
     ( make 2>&1 ) 1>> ${LOG_FILE} || do_exit
@@ -317,7 +317,7 @@ then
     export LDFLAGS="${MPL_SUPP_LDFLAGS}"
     echo "Setting LDFLAGS ${LDFLAGS}"
 fi
-do_setup_py matplotlib-0.98.5.2
+do_setup_py matplotlib-0.99.1.2
 unset LDFLAGS
 do_setup_py ipython-0.10
 do_setup_py h5py-1.2.0

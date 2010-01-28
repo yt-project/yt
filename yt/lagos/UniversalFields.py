@@ -198,6 +198,10 @@ def _ParticleMass(field, data):
 
 def _convertParticleMass(data):
     return data.convert("Density")*(data.convert("cm")**3.0)
+def _IOLevelParticleMass(grid):
+    dd = dict(particle_mass = na.ones(1), CellVolumeCode=grid["CellVolumeCode"])
+    cf = (_ParticleMass(None, dd) * _convertParticleMass(grid))[0]
+    return cf
 def _convertParticleMassMsun(data):
     return data.convert("Density")*((data.convert("cm")**3.0)/1.989e33)
 def _IOLevelParticleMassMsun(grid):
@@ -206,7 +210,8 @@ def _IOLevelParticleMassMsun(grid):
     return cf
 add_field("ParticleMass",
           function=_ParticleMass, validators=[ValidateSpatial(0)],
-          particle_type=True, convert_function=_convertParticleMass)
+          particle_type=True, convert_function=_convertParticleMass,
+          particle_convert_function=_IOLevelParticleMass)
 add_field("ParticleMassMsun",
           function=_ParticleMass, validators=[ValidateSpatial(0)],
           particle_type=True, convert_function=_convertParticleMassMsun,

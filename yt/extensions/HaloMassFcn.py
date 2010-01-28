@@ -101,8 +101,10 @@ class HaloMassFcn(lagos.ParallelAnalysisInterface):
             self.hubble0 = self.pf['CosmologyHubbleConstantNow']
             self.this_redshift = self.pf['CosmologyCurrentRedshift']
             self.read_haloes()
-            self.log_mass_min = math.log10(min(self.haloes))
-            self.log_mass_max = math.log10(max(self.haloes))
+            if self.log_mass_min == None:
+                self.log_mass_min = math.log10(min(self.haloes))
+            if self.log_mass_max == None:
+                self.log_mass_max = math.log10(max(self.haloes))
 
         # Input error check.
         if self.mode == 'single':
@@ -392,7 +394,7 @@ class HaloMassFcn(lagos.ParallelAnalysisInterface):
         
         if self.fitting_function==1:
             # Press-Schechter (This form from Jenkins et al. 2001, MNRAS 321, 372-384, eqtn. 5)
-            thismult = sqrt(2.0/math.pi) * nu * exp(-0.5*nu*nu);
+            thismult = math.sqrt(2.0/math.pi) * nu * math.exp(-0.5*nu*nu);
         
         elif self.fitting_function==2:
             # Jenkins et al. 2001, MNRAS 321, 372-384, eqtn. 9

@@ -287,7 +287,7 @@ class AMRData(object):
     def save_object(self, name, filename = None):
         """
         Save an object.  If *filename* is supplied, it will be stored in
-        a :module:`shelve` file of that name.  Otherwise, it will be stored via
+        a :mod:`shelve` file of that name.  Otherwise, it will be stored via
         :meth:`yt.lagos.AMRHierarchy.save_object`.
         """
         if filename is not None:
@@ -1869,6 +1869,11 @@ class ExtractedRegionBase(AMR3DData):
              grid.ActiveDimensions.prod()):
             return True
         return False
+
+    def _get_cut_mask(self, grid):
+        cm = na.zeros(grid.ActiveDimensions, dtype='bool')
+        cm[self._get_point_indices(grid, False)] = True
+        return cm
 
     __empty_array = na.array([], dtype='bool')
     def _get_point_indices(self, grid, use_child_mask=True):
