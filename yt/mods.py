@@ -35,13 +35,15 @@ import yt.fido as fido
 import numpy as na
 import sys, types
 from logger import ytLogger as mylog
+from performance_counters import yt_counters, time_function
 
 # Now individual component imports from lagos
 from yt.lagos import EnzoStaticOutput, \
     BinnedProfile1D, BinnedProfile2D, BinnedProfile3D, \
+    derived_field, \
     add_field, FieldInfo, EnzoFieldInfo, Enzo2DFieldInfo, OrionFieldInfo, \
     Clump, write_clump_hierarchy, find_clumps, write_clumps, \
-    OrionStaticOutput, HaloFinder, HOPHaloFinder, FOFHaloFinder, \
+    OrionStaticOutput, HaloFinder, HOPHaloFinder, FOFHaloFinder, parallelHF, \
     axis_names, x_dict, y_dict
 
 # This is a temporary solution -- in the future, we will allow the user to
@@ -71,11 +73,6 @@ import yt.funcs
 
 from yt.convenience import all_pfs, max_spheres, load
 
-try:
-    from yt.sage import *
-except ImportError:
-    pass
-
 # Some convenience functions to ease our time running scripts
 # from the command line
 
@@ -85,4 +82,3 @@ def get_pf():
 def get_pc():
     return PlotCollection(EnzoStaticOutput(sys.argv[-1]))
 
-mylog.info("Welcome to YT.")

@@ -241,6 +241,7 @@ class YTCommands(cmdln.Cmdln):
     def do_halos(self, subcmd, opts, arg):
         """
         Run HaloProfiler on one dataset.
+
         ${cmd_option_list}
         """
         import yt.extensions.HaloProfiler as HP
@@ -455,6 +456,66 @@ class YTCommands(cmdln.Cmdln):
             open(opts.output, "a").write(
                 "%s (%0.5e years): %0.5e at %s\n" % (pf, t, v, c))
 
+    @add_cmd_options([])
+    def do_analyze(self, subcmd, opts, arg):
+        """
+        Produce a set of analysis for a given output.  This includes
+        HaloProfiler results with r200, as per the recipe file in the cookbook,
+        profiles of a number of fields, projections of average Density and
+        Temperature, and distribution functions for Density and Temperature.
+
+        ${cmd_option_list}
+        """
+        # We will do the following things:
+        #   Halo profiling (default parameters ONLY)
+        #   Projections: Density, Temperature
+        #   Full-box distribution functions
+        import yt.extensions.HaloProfiler as HP
+        hp = HP.HaloProfiler(arg)
+        # Add a filter to remove halos that have no profile points with overdensity
+        # above 200, and with virial masses less than 1e14 solar masses.
+        # Also, return the virial mass and radius to be written out to a file.
+        hp.add_halo_filter(HP.VirialFilter,must_be_virialized=True,
+                           overdensity_field='ActualOverdensity',
+                           virial_overdensity=200, virial_filters=[],
+                           virial_quantities=['TotalMassMsun','RadiusMpc'])
+
+        # Add profile fields.
+        hp.add_profile('CellVolume',weight_field=None,accumulation=True)
+        hp.add_profile('TotalMassMsun',weight_field=None,accumulation=True)
+        hp.add_profile('Density',weight_field=None,accumulation=False)
+        hp.add_profile('Temperature',weight_field='CellMassMsun',accumulation=False)
+        hp.make_profiles(filename="FilteredQuantities.out")
+
+        # Add projection fields.
+        hp.add_projection('Density',weight_field=None)
+        hp.add_projection('Temperature',weight_field='Density')
+        hp.add_projection('Metallicity',weight_field='Density')
+
+        # Make projections for all three axes using the filtered halo list and
+        # save data to hdf5 files.
+        hp.make_projections(save_cube=True,save_images=True,
+                            halo_list='filtered',axes=[0,1,2])
+
+        # Now we make full-box projections.
+        pf = EnzoStaticOutput(arg)
+        c = 0.5*(pf["DomainRightEdge"] + pf["DomainLeftEdge"])
+        pc = PlotCollection(pf, center=c)
+        for ax in range(3):
+            pc.add_projection("Density", ax, "Density")
+            pc.add_projection("Temperature", ax, "Density")
+            pc.plots[-1].set_cmap("hot")
+
+        # Time to add some phase plots
+        dd = pf.h.all_data()
+        ph = pc.add_phase_object(dd, ["Density", "Temperature", "CellMassMsun"],
+                            weight=None)
+        pc_dummy = PlotCollection(pf, center=c)
+        pr = pc_dummy.add_profile_object(dd, ["Density", "Temperature"],
+                            weight="CellMassMsun")
+        ph.modify["line"](pr.data["Density"], pr.data["Temperature"])
+        pc.save()
+    
 def run_main():
     for co in ["--parallel", "--paste"]:
         if co in sys.argv: del sys.argv[sys.argv.index(co)]

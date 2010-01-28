@@ -99,7 +99,7 @@ class TestHierarchy(LagosTestingBase, unittest.TestCase):
             self.assert_(child.Parent.id == self.hierarchy.grids[0].id)
 
     def testGetSelectLevels(self):
-        for level in range(self.hierarchy.maxLevel+1):
+        for level in range(self.hierarchy.max_level+1):
             for grid in self.hierarchy.select_grids(level):
                 self.assert_(grid.Level == level)
 
@@ -181,8 +181,8 @@ def _returnProfile1DFunction(field, weight, accumulation, lazy):
 def _returnProfile2DFunction(field, weight, accumulation, lazy):
     def add_field_function(self):
         self.data.set_field_parameter("center",[.5,.5,.5])
-        cv_min = self.hierarchy.gridDxs.min()**3.0
-        cv_max = self.hierarchy.gridDxs.max()**3.0
+        cv_min = self.hierarchy.get_smallest_dx()**3.0
+        cv_max = 1.0 / max(self.OutputFile["TopGridDimensions"])
         profile = yt.lagos.BinnedProfile2D(self.data,
                     8, "RadiusCode", 1e-3, 1.0, True,
                     8, "CellVolumeCode", cv_min, cv_max, True, lazy)
@@ -259,6 +259,7 @@ class Data3DBase:
         self.assertEqual(obj["CellMassMsun"].sum(), self.data["CellMassMsun"].sum())
 
 for field_name in yt.lagos.FieldInfo:
+    if field_name.startswith("PT"): continue
     field = yt.lagos.FieldInfo[field_name]
     setattr(DataTypeTestingBase, "test%s" % field.name, _returnFieldFunction(field))
 
@@ -312,18 +313,42 @@ class TestSmoothedCoveringGrid(LagosTestingBase, unittest.TestCase):
         self.assertFalse(na.any(na.isnan(cg["Temperature"])))
         self.assertFalse(na.any(cg["Temperature"]==-999))
 
-        
+class TestIntSmoothedCoveringGrid(LagosTestingBase, unittest.TestCase):
+    def setUp(self):        
+        LagosTestingBase.setUp(self)
+
+    def testCoordinates(self):
+        # We skip the first grid because it has ghost zones on all sides
+        for g in self.hierarchy.grids[1:]:
+            LE = g.LeftEdge - g.dds
+            level = g.Level
+            dims = g.ActiveDimensions + 2
+            g1 = self.hierarchy.si_covering_grid(level, LE, dims)
+            g2 = g.retrieve_ghost_zones(1, ["x","y","z"], smoothed=False)
+            for field in 'xyz':
+                diff = na.abs((g1[field] - g2[field])/(g1[field] + g2[field]))
+                self.assertAlmostEqual(diff.max(), 0.0, 1e-14)
 
 class TestDataCube(LagosTestingBase, unittest.TestCase):
     def setUp(self):
         LagosTestingBase.setUp(self)
 
     def testNoGhost(self):
+        DW = self.OutputFile["DomainRightEdge"] \
+           - self.OutputFile["DomainLeftEdge"]
         for g in self.hierarchy.grids:
             cube = g.retrieve_ghost_zones(0, "Density")
             self.assertTrue(na.all(cube["Density"] == g["Density"]))
             cube["Density"] = na.arange(cube["Density"].size).reshape(cube["Density"].shape)
             cube.flush_data(field="Density")
+            self.assertTrue(na.all(g["Density"] == cube["Density"]))
+
+    def testOffsetDomain(self):
+        DW = self.OutputFile["DomainRightEdge"] \
+           - self.OutputFile["DomainLeftEdge"]
+        for g in self.hierarchy.grids:
+            cube = self.hierarchy.covering_grid(g.Level,
+                g.LeftEdge+DW, g.ActiveDimensions)
             self.assertTrue(na.all(g["Density"] == cube["Density"]))
 
     def testTwoGhost(self):
@@ -342,7 +367,7 @@ class TestDataCube(LagosTestingBase, unittest.TestCase):
     
     def testFlushBackToGrids(self):
         ml = self.hierarchy.max_level
-        cg = self.hierarchy.covering_grid(3, [0.0]*3, [1.0]*3, [64,64,64])
+        cg = self.hierarchy.covering_grid(2, [0.0]*3, [64,64,64])
         cg["Ones"] *= 2.0
         cg.flush_data(field="Ones")
         for g in na.concatenate([self.hierarchy.select_grids(i) for i in range(3)]):
@@ -351,15 +376,15 @@ class TestDataCube(LagosTestingBase, unittest.TestCase):
 
     def testFlushBackToNewCover(self):
         ml = self.hierarchy.max_level
-        cg = self.hierarchy.covering_grid(3, [0.0]*3, [1.0]*3, [64,64,64])
+        cg = self.hierarchy.covering_grid(2, [0.0]*3, [64,64,64])
         cg["tempContours"] = cg["Ones"] * 2.0
         cg.flush_data(field="tempContours")
-        cg2 = self.hierarchy.covering_grid(3, [0.0]*3, [1.0]*3, [64,64,64])
+        cg2 = self.hierarchy.covering_grid(2, [0.0]*3, [64,64,64])
         self.assertTrue(na.all(cg["tempContours"] == cg2["tempContours"]))
 
     def testRawFlushBack(self):
         ml = self.hierarchy.max_level
-        cg = self.hierarchy.covering_grid(3, [0.0]*3, [1.0]*3, [64,64,64])
+        cg = self.hierarchy.covering_grid(2, [0.0]*3, [64,64,64])
         cg["DensityNew"] = cg["Density"] * 2.111
         cg.flush_data(field="DensityNew")
         for g in na.concatenate([self.hierarchy.select_grids(i) for i in range(3)]):
@@ -372,15 +397,18 @@ class TestDataCube(LagosTestingBase, unittest.TestCase):
             self.assertAlmostEqual(max_diff, 2.111, 5)
 
     def testAllCover(self):
-        cg = self.hierarchy.covering_grid(0, [0.0]*3, [1.0]*3, [32,32,32])
-        self.assertTrue(cg["Density"].max() \
-                     == self.hierarchy.grids[0]["Density"].max())
-        self.assertTrue(cg["Density"].min() \
-                     == self.hierarchy.grids[0]["Density"].min())
+        cg = self.hierarchy.covering_grid(1, [0.0]*3, [32,32,32])
+        mi, ma = 1e30, -1e30
+        for g in na.concatenate([self.hierarchy.select_grids(i) for i in range(2)]):
+            ma = max(ma, g["Density"].max())
+            mi = min(mi, g["Density"].min())
+        self.assertEqual(cg["Density"].max(), ma)
+        self.assertEqual(cg["Density"].min(), mi)
 
     def testCellVolume(self):
-        cg = self.hierarchy.covering_grid(2, [0.0]*3, [1.0]*3, [64,64,64])
+        cg = self.hierarchy.covering_grid(2, [0.0]*3, [64,64,64])
         self.assertEqual(na.unique(cg["CellVolume"]).size, 1)
+
 
 class TestDiskDataType(Data3DBase, DataTypeTestingBase, LagosTestingBase, unittest.TestCase):
     def setUp(self):
@@ -432,7 +460,7 @@ class TestPeriodicRegionStrictDataType(Data3DBase,
 class TestSphereDataType(Data3DBase, DataTypeTestingBase, LagosTestingBase, unittest.TestCase):
     def setUp(self):
         DataTypeTestingBase.setUp(self)
-        self.data=self.hierarchy.sphere([0.5,0.5,0.5],2.0)
+        self.data=self.hierarchy.sphere([0.5,0.5,0.5],1.0)
     def testVolume(self):
         vol = self.data["CellVolume"].sum() / self.data.convert("cm")**3.0
         self.assertAlmostEqual(vol,1.0,7)
@@ -440,7 +468,7 @@ class TestSphereDataType(Data3DBase, DataTypeTestingBase, LagosTestingBase, unit
 class TestSliceDataType(DataTypeTestingBase, LagosTestingBase, unittest.TestCase):
     def setUp(self):
         DataTypeTestingBase.setUp(self)
-        self.data = self.hierarchy.slice(0,0.5)
+        self.data = self.hierarchy.slice(0,0.5, center=[0.5, 0.5, 0.5])
 
 class TestCuttingPlane(DataTypeTestingBase, LagosTestingBase, unittest.TestCase):
     def setUp(self):
@@ -467,6 +495,7 @@ class TestExtractFromSphere(TestSphereDataType):
         self.region = self.data
         self.ind_to_get = na.where(self.region["Temperature"]>500)
         self.data = self.region.extract_region(self.ind_to_get)
+
     def testNumberOfEntries(self):
         self.assertEqual(self.ind_to_get[0].shape,
                         self.data["Density"].shape)
@@ -482,6 +511,38 @@ class TestExtractFromSphere(TestSphereDataType):
         joined_region = self.data.join(new_region)
         self.assertEqual(joined_region["CellMassMsun"].sum(),
                          self.region["CellMassMsun"].sum())
+
+    # I have verified that the *old* version of the code overconnected
+    # contours outside.  This are overridden to make sure this does not
+    # happen again!
+    def testContoursObtain(self):
+        cid = yt.lagos.identify_contours(self.data, "Density",
+                self.data["Density"].min()*2.00, self.data["Density"].max()*1.01)
+        self.assertEqual(len(cid), 10)
+
+    def testContoursCache(self):
+        cid = yt.lagos.identify_contours(self.data, "Density",
+                self.data["Density"].min()*2.00,
+                self.data["Density"].max()*1.01)
+        self.assertEqual(len(cid), 10)
+
+    def testExtractConnectedSetsNoCache(self):
+        mi = self.data["Density"].min() * 2.0
+        ma = self.data["Density"].max() * 0.99
+        cons, contours = self.data.extract_connected_sets(
+            "Density", 2, mi, ma)
+        self.assertEqual(len(contours), 2) # number of contour levels
+        self.assertEqual(len(contours[0]), 10)
+        self.assertEqual(len(contours[1]), 1)
+
+    def testExtractConnectedSetsCache(self):
+        mi = self.data["Density"].min() * 2.0
+        ma = self.data["Density"].max() * 0.99
+        cons, contours = self.data.extract_connected_sets(
+            "Density", 2, mi, ma, cache=True)
+        self.assertEqual(len(contours), 2) # number of contour levels
+        self.assertEqual(len(contours[0]), 10)
+        self.assertEqual(len(contours[1]), 1)
 
 class TestExtractFromRegion(TestRegionDataType):
     def setUp(self):
@@ -504,6 +565,38 @@ class TestExtractFromRegion(TestRegionDataType):
         joined_region = self.data.join(new_region)
         self.assertEqual(joined_region["CellMassMsun"].sum(),
                          self.region["CellMassMsun"].sum())
+
+    # I have verified that the *old* version of the code overconnected
+    # contours outside.  This are overridden to make sure this does not
+    # happen again!
+    def testContoursObtain(self):
+        cid = yt.lagos.identify_contours(self.data, "Density",
+                self.data["Density"].min()*2.00, self.data["Density"].max()*1.01)
+        self.assertEqual(len(cid), 10)
+
+    def testContoursCache(self):
+        cid = yt.lagos.identify_contours(self.data, "Density",
+                self.data["Density"].min()*2.00,
+                self.data["Density"].max()*1.01)
+        self.assertEqual(len(cid), 10)
+
+    def testExtractConnectedSetsNoCache(self):
+        mi = self.data["Density"].min() * 2.0
+        ma = self.data["Density"].max() * 0.99
+        cons, contours = self.data.extract_connected_sets(
+            "Density", 2, mi, ma)
+        self.assertEqual(len(contours), 2) # number of contour levels
+        self.assertEqual(len(contours[0]), 10)
+        self.assertEqual(len(contours[1]), 1)
+
+    def testExtractConnectedSetsCache(self):
+        mi = self.data["Density"].min() * 2.0
+        ma = self.data["Density"].max() * 0.99
+        cons, contours = self.data.extract_connected_sets(
+            "Density", 2, mi, ma, cache=True)
+        self.assertEqual(len(contours), 2) # number of contour levels
+        self.assertEqual(len(contours[0]), 10)
+        self.assertEqual(len(contours[1]), 1)
 
 
 class TestUnilinearInterpolator(unittest.TestCase):

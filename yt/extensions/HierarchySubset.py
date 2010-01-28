@@ -25,6 +25,7 @@ License:
 
 
 from yt.mods import *
+from yt.lagos import AMRGridPatch, StaticOutput, AMRHierarchy
 import h5py, os.path
 
 import yt.commands as commands
@@ -32,66 +33,62 @@ import yt.commands as commands
 class DummyHierarchy(object):
     pass
 
-class ConstructedRootGrid(object):
-    id = -1
-    def __init__(self, pf, level, left_edge, right_edge):
+class ConstructedRootGrid(AMRGridPatch):
+    __slots__ = ['base_grid', 'id', 'base_pf']
+    _id_offset = 1
+    def __init__(self, base_pf, pf, hierarchy, level, left_edge, right_edge):
         """
         This is a fake root grid, constructed by creating a
         :class:`yt.lagos.CoveringGridBase` at a given *level* between
         *left_edge* and *right_edge*.
         """
         self.pf = pf
-        self.hierarchy = DummyHierarchy()
-        self.hierarchy.data_style = -1
+        self.base_pf = base_pf
+        self.field_parameters = {}
+        self.NumberOfParticles = 0
+        self.id = 1
+        self.hierarchy = hierarchy
+        self._child_mask = self._child_indices = self._child_index_mask = None
         self.Level = level
         self.LeftEdge = left_edge
         self.RightEdge = right_edge
-        self.index = na.min([grid.get_global_startindex() for grid in
-                             pf.h.select_grids(level)], axis=0).astype('int64')
-        self.dds = pf.h.select_grids(level)[0].dds.copy()
+        self.start_index = na.min([grid.get_global_startindex() for grid in
+                             base_pf.h.select_grids(level)], axis=0).astype('int64')
+        self.dds = base_pf.h.select_grids(level)[0].dds.copy()
         dims = (self.RightEdge-self.LeftEdge)/self.dds
         self.ActiveDimensions = dims
         print "Constructing base grid of size %s" % (self.ActiveDimensions)
-        self.cg = pf.h.smoothed_covering_grid(level, self.LeftEdge,
+        self.base_grid = base_pf.h.smoothed_covering_grid(level, self.LeftEdge,
                         self.RightEdge, dims=dims)
-        self._calculate_child_masks()
-
-    def _calculate_child_masks(self):
-        # This might be slow
-        grids, grid_ind = self.pf.hierarchy.get_box_grids(
-                    self.LeftEdge, self.RightEdge)
-        self.Children = [g for g in grids if g.Level == self.Level + 1]
-        self.child_mask = na.ones(self.ActiveDimensions, dtype='int32')
-        for c in self.Children:
-            si = na.maximum(0, na.rint((c.LeftEdge - self.LeftEdge)/self.dds))
-            ei = na.minimum(self.ActiveDimensions,
-                    na.rint((c.RightEdge - self.LeftEdge)/self.dds))
-            self.child_mask[si[0]:ei[0], si[1]:ei[1], si[2]:ei[2]] = 0
-
-    def __getitem__(self, field):
-        return self.cg[field]
-
-    def get_global_startindex(self):
-        return self.index
+        self.base_grid.Level = self.base_grid.level
+        self.data = {}
+        #self._calculate_child_masks()
+        self.Parent = None
+        self.Children = []
 
     def get_vertex_centered_data(self, field, smoothed=True):
-        # We discard the 'smoothed' keyword argument here
-        cg = self.pf.h.smoothed_covering_grid(self.Level,
-                    self.LeftEdge - self.dds,
-                    self.RightEdge + self.dds,
-                    dims = self.ActiveDimensions + 2,
-                    num_ghost_zones = 1, fields=[field])
-        bds = na.array(zip(cg.left_edge+cg.dds/2.0, cg.right_edge-cg.dds/2.0)).ravel()
-        interp = lagos.TrilinearFieldInterpolator(cg[field], bds, ['x','y','z'])
-        ad = self.ActiveDimensions + 1
-        x,y,z = na.mgrid[self.LeftEdge[0]:self.RightEdge[0]:ad[0]*1j,
-                         self.LeftEdge[1]:self.RightEdge[1]:ad[1]*1j,
-                         self.LeftEdge[2]:self.RightEdge[2]:ad[2]*1j]
-        dd = {'x':x,'y':y,'z':z}
-        scalars = interp(dd)
-        return scalars
-        
-class ExtractedHierarchy(object):
+        vc = self.base_pf.h.smoothed_covering_grid(self.base_grid.Level,
+                self.base_grid.LeftEdge - self.base_grid.dds*0.5,
+                self.base_grid.RightEdge + self.base_grid.dds*0.5,
+                dims = self.ActiveDimensions + 1)
+        return vc[field]
+
+class AMRExtractedGridProxy(AMRGridPatch):
+    __slots__ = ['base_grid']
+    _id_offset = 1
+    def __init__(self, grid_id, base_grid, hierarchy):
+        # We make a little birdhouse in our soul for the base_grid
+        # (they're the only bee in our bonnet!)
+        self.base_grid = base_grid
+        AMRGridPatch.__init__(self, grid_id, filename = None, hierarchy=hierarchy)
+        self.Parent = None
+        self.Children = []
+        self.Level = -1
+
+    def get_vertex_centered_data(self, *args, **kwargs):
+        return self.base_grid.get_vertex_centered_data(*args, **kwargs)
+
+class OldExtractedHierarchy(object):
 
     def __init__(self, pf, min_level, max_level = -1, offset = None,
                  always_copy=False):
@@ -127,10 +124,6 @@ class ExtractedHierarchy(object):
         if level == 0 and self._base_grid is not None:
             return [self._base_grid]
         return self.pf.h.select_grids(self.min_level + level)
-
-    def get_levels(self):
-        for level in range(self.final_level+1):
-            yield self.select_level(level)
 
     def export_output(self, afile, n, field):
         # I prefer dict access, but tables doesn't.
@@ -196,3 +189,161 @@ class ExtractedHierarchy(object):
 
     def _convert_coords(self, val):
         return (val - self.left_edge_offset)*self.mult_factor
+
+class ExtractedHierarchy(AMRHierarchy):
+
+    grid = AMRExtractedGridProxy
+
+    def __init__(self, pf, data_style):
+        # First we set up our translation between original and extracted
+        self.data_style = data_style
+        self.min_level = pf.min_level
+        self.int_offset = na.min([grid.get_global_startindex() for grid in
+                           pf.base_pf.h.select_grids(pf.min_level)], axis=0).astype('float64')
+        min_left = na.min([grid.LeftEdge for grid in
+                           pf.base_pf.h.select_grids(pf.min_level)], axis=0).astype('float64')
+        max_right = na.max([grid.RightEdge for grid in 
+                           pf.base_pf.h.select_grids(pf.min_level)], axis=0).astype('float64')
+        level_dx = pf.base_pf.h.select_grids(pf.min_level)[0].dds[0]
+        dims = ((max_right-min_left)/level_dx)
+        max_right += (dims.max() - dims) * level_dx
+        offset = pf.offset
+        if offset is None: offset = min_left
+        self.left_edge_offset = offset
+        pf.offset = offset
+        self.mult_factor = 2**pf.min_level
+        self.min_left_edge = self._convert_coords(min_left)
+        self.max_right_edge = self._convert_coords(max_right)
+        self.min_left, self.max_right = min_left, max_right
+        max_level = pf.max_level
+        if max_level == -1: max_level = pf.base_pf.h.max_level
+        self.max_level = min(max_level, pf.base_pf.h.max_level)
+        self.final_level = self.max_level - self.min_level
+
+        # Now we utilize the existing machinery for generating the appropriate
+        # arrays of grids, etc etc.
+        self.base_pf = pf.base_pf
+        AMRHierarchy.__init__(self, pf, data_style)
+
+        # Now a few cleanups
+        self.pf.override["DomainRightEdge"] = self.max_right_edge
+        self.pf.override["DomainLeftEdge"] = self.min_left_edge
+        for u,v in self.base_pf.units.items():
+            self.pf.override[u] = v / self.mult_factor
+        self.pf.override['unitary'] = 1.0 / (self.pf["DomainRightEdge"] -
+                                             self.pf["DomainLeftEdge"]).max()
+
+    def _count_grids(self):
+        self.num_grids = 1 + sum( ( # 1 is the base grid
+            len(self.base_pf.h.select_grids(level)) 
+                for level in range(self.min_level+1, self.max_level)) )
+
+    def _parse_hierarchy(self):
+        # Here we need to set up the grid info, which for the Enzo hierarchy
+        # is done like:
+        # self.grid_dimensions.flat[:] = ei
+        # self.grid_dimensions -= na.array(si, self.float_type)
+        # self.grid_dimensions += 1
+        # self.grid_left_edge.flat[:] = LE
+        # self.grid_right_edge.flat[:] = RE
+        # self.grid_particle_count.flat[:] = np
+        # self.grids = na.array(self.grids, dtype='object')
+        #
+        # For now, we make the presupposition that all of our grids are
+        # strictly nested and we are not doing any cuts.  However, we do
+        # construct a root grid!
+        root_level_grids = self.base_pf.h.select_grids(self.min_level)
+        base_grid = ConstructedRootGrid(self.base_pf, self.pf, self,
+                        self.min_level, self.min_left, self.max_right)
+        self._fill_grid_arrays(base_grid, 0)
+        grids = [base_grid]
+        # We need to ensure we have the correct parentage relationships
+        # However, we want the parent/child to be to the new proxy grids
+        # so we need to map between the old ids and the new ids
+        self.id_map = {}
+        grid_id = 2 # id 0 is the base grid
+        for level in range(self.min_level+1, self.max_level):
+            for grid in self.base_pf.h.select_grids(level):
+                # This next little bit will have to be changed if we ever move to
+                # not-strictly-nested AMR hierarchies
+                parent = self.id_map.get(grid.Parent.id, base_grid)
+                grids.append(self.grid(grid_id, grid, self))
+                parent.Children.append(grids[-1])
+                grids[-1].Parent = parent
+                self.id_map[grid.id] = grids[-1]
+                # Now we fill in our arrays of values -- note that we
+                # are filling in values from the base grids, not the newly
+                # extracted grids.  We will perform bulk changes after we
+                # finish.
+                self._fill_grid_arrays(grid, grid_id-1)
+                grid_id += 1
+
+        self.grid_left_edge = self._convert_coords(self.grid_left_edge)
+        self.grid_right_edge = self._convert_coords(self.grid_right_edge)
+        self.grids = na.array(grids, dtype='object')
+
+    def _fill_grid_arrays(self, grid, i):
+        # This just fills in the grid arrays for a single grid --
+        # note that we presuppose here that we are being handed a grid object
+        # that has these defined; this means we are being handed the *base*
+        # grid, not the newly extracted one
+        self.grid_dimensions[i,:] = grid.ActiveDimensions
+        self.grid_left_edge[i,:] = grid.LeftEdge
+        self.grid_right_edge[i,:] = grid.RightEdge
+        self.grid_particle_count[i] = grid.NumberOfParticles
+
+    def _populate_grid_objects(self):
+        for grid in self.grids:
+            grid.Level = grid.base_grid.Level - self.pf.min_level
+            grid._prepare_grid()
+            grid._setup_dx()
+            grid.start_index = None
+        self.max_level -= self.pf.min_level
+        print "New max level:", self.max_level
+
+    def _convert_coords(self, val):
+        return (val - self.left_edge_offset)*self.mult_factor
+
+    def _detect_fields(self):
+        self.field_list = self.base_pf.h.field_list[:]
+
+    def _setup_unknown_fields(self):
+        pass # Done in the base_h
+
+    def _setup_derived_fields(self):
+        self.derived_field_list = self.base_pf.h.derived_field_list[:]
+
+    def _initialize_data_storage(self):
+        self._data_file = None
+
+    def _setup_classes(self):
+        dd = self._get_data_reader_dict()
+        AMRHierarchy._setup_classes(self, dd)
+        self.object_types.sort()
+
+class ExtractedParameterFile(StaticOutput):
+    _hierarchy_class = ExtractedHierarchy
+    data_style = "extracted"
+    
+    def __init__(self, base_pf, min_level, max_level = -1, offset = None):
+        self.base_pf = base_pf
+        self.min_level = min_level
+        self.max_level = max_level
+        self.offset = offset
+        self.override = {}
+
+    def __repr__(self):
+        return "extracted_%s" % self.base_pf
+
+    def __getattr__(self, name):
+        # This won't get called if 'name' is found already
+        # and we'd like it to raise AttributeError if it's not anywhere
+        if name in ['h', 'hierarchy']:
+            return StaticOutput._get_hierarchy(self)
+        return getattr(self.base_pf, name)
+
+    def __getitem__(self, key):
+        if key not in self.override:
+            return self.base_pf[key]
+        return self.override[key]
+

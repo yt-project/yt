@@ -52,6 +52,7 @@ mu = 1.22
 parameterDict = {"CosmologyCurrentRedshift": float,
                  "CosmologyComovingBoxSize": float,
                  "CosmologyOmegaMatterNow": float,
+                 "CosmologyOmegaLambdaNow": float,
                  "CosmologyHubbleConstantNow": float,
                  "CosmologyInitialRedshift": float,
                  "DualEnergyFormalismEta1": float,
@@ -77,6 +78,7 @@ parameterDict = {"CosmologyCurrentRedshift": float,
                  "TopGridDimensions": int,
                  "EOSSoundSpeed": float,
                  "EOSType": int,
+                 "NumberOfParticleAttributes": int,
                 }
 
 mpc_conversion = {'mpc'   : 1e0,

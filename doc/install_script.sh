@@ -28,11 +28,12 @@ DEST_DIR="`pwd`/${DEST_SUFFIX/ /}"   # Installation location
 # If you absolutely can't get the fortran to work, try this:
 #NUMPY_ARGS="--fcompiler=fake"
 
-INST_WXPYTHON=0 # If you 't want to install wxPython, set this to 1
+INST_WXPYTHON=1 # If you 't want to install wxPython, set this to 1
 INST_ZLIB=1     # On some systems (Kraken) matplotlib has issues with 
                 # the system zlib, which is compiled statically.
                 # If need be, you can turn this off.
-INST_HG=0       # Install Mercurial or not?
+INST_TRAITS=0   # Experimental TraitsUI installation
+INST_HG=1       # Install Mercurial or not?
 
 # If you've got YT some other place, set this to point to it.
 YT_DIR=""
@@ -125,6 +126,10 @@ printf "%-15s = %s so I " "INST_HG" "${INST_HG}"
 get_willwont ${INST_HG}
 echo "be installing Mercurial"
 
+printf "%-15s = %s so I " "INST_TRAITS" "${INST_TRAITS}"
+get_willwont ${INST_TRAITS}
+echo "be installing Traits"
+
 echo
 
 if [ -z "$HDF5_DIR" ]
@@ -204,16 +209,16 @@ cd ${DEST_DIR}/src
 if [ -z "$HDF5_DIR" ]
 then
     echo "Downloading HDF5"
-    get_enzotools hdf5-1.6.8.tar.gz
+    get_enzotools hdf5-1.6.9.tar.gz
 fi
 
 [ $INST_ZLIB -eq 1 ] && get_enzotools zlib-1.2.3.tar.bz2 
-[ $INST_WXPYTHON -eq 1 ] && get_enzotools wxPython-src-2.8.7.1.tar.bz2
-get_enzotools Python-2.6.1.tgz
-get_enzotools numpy-1.2.1.tar.gz
-get_enzotools matplotlib-0.98.5.2.tar.gz
-get_enzotools ipython-0.9.1.tar.gz
-get_enzotools h5py-1.1.0.tar.gz
+[ $INST_WXPYTHON -eq 1 ] && get_enzotools wxPython-src-2.8.9.1.tar.bz2
+get_enzotools Python-2.6.3.tgz
+get_enzotools numpy-1.3.0.tar.gz
+get_enzotools matplotlib-0.99.1.2.tar.gz
+get_enzotools ipython-0.10.tar.gz
+get_enzotools h5py-1.2.0.tar.gz
 
 if [ -z "$YT_DIR" ]
 then
@@ -223,13 +228,13 @@ then
     elif [ -e $ORIG_PWD/../yt/mods.py ]
     then
         YT_DIR=`dirname $ORIG_PWD`
-    elif [ ! -e yt-1.5 ] 
+    elif [ ! -e yt-trunk-svn ] 
     then
-        ( svn co http://svn.enzotools.org/yt/branches/yt-1.5/ ./yt-1.5 2>&1 ) 1>> ${LOG_FILE}
-        YT_DIR="$PWD/yt-1.5/"
-    elif [ -e yt-1.5 ] 
+        ( svn co http://svn.enzotools.org/yt/branches/yt-1.6 ./yt-1.6 2>&1 ) 1>> ${LOG_FILE}
+        YT_DIR="$PWD/yt-trunk-svn/"
+    elif [ -e yt-trunk-svn ] 
     then
-        YT_DIR="$PWD/yt-1.5/"
+        YT_DIR="$PWD/yt-trunk-svn/"
     fi
     echo Setting YT_DIR=${YT_DIR}
 fi
@@ -253,11 +258,11 @@ fi
 
 if [ -z "$HDF5_DIR" ]
 then
-    if [ ! -e hdf5-1.6.8/done ]
+    if [ ! -e hdf5-1.6.9/done ]
     then
-        [ ! -e hdf5-1.6.8 ] && tar xfz hdf5-1.6.8.tar.gz
+        [ ! -e hdf5-1.6.9 ] && tar xfz hdf5-1.6.9.tar.gz
         echo "Installing HDF5"
-        cd hdf5-1.6.8
+        cd hdf5-1.6.9
         ( ./configure --prefix=${DEST_DIR}/ --enable-shared 2>&1 ) 1>> ${LOG_FILE} || do_exit
         ( make install 2>&1 ) 1>> ${LOG_FILE} || do_exit
         touch done
@@ -267,11 +272,11 @@ then
 fi
 export HDF5_API=16
 
-if [ ! -e Python-2.6.1/done ]
+if [ ! -e Python-2.6.3/done ]
 then
     echo "Installing Python.  This may take a while, but don't worry.  YT loves you."
-    [ ! -e Python-2.6.1 ] && tar xfz Python-2.6.1.tgz
-    cd Python-2.6.1
+    [ ! -e Python-2.6.3 ] && tar xfz Python-2.6.3.tgz
+    cd Python-2.6.3
     ( ./configure --prefix=${DEST_DIR}/ 2>&1 ) 1>> ${LOG_FILE} || do_exit
 
     ( make 2>&1 ) 1>> ${LOG_FILE} || do_exit
@@ -282,11 +287,11 @@ fi
 
 export PYTHONPATH=${DEST_DIR}/lib/python2.6/site-packages/
 
-if [ $INST_WXPYTHON -eq 1 ] && [ ! -e wxPython-src-2.8.7.1/done ]
+if [ $INST_WXPYTHON -eq 1 ] && [ ! -e wxPython-src-2.8.9.1/done ]
 then
     echo "Installing wxPython.  This may take a while, but don't worry.  YT loves you."
-    [ ! -e wxPython-src-2.8.7.1 ] && tar xfj wxPython-src-2.8.7.1.tar.bz2
-    cd wxPython-src-2.8.7.1
+    [ ! -e wxPython-src-2.8.9.1 ] && tar xfj wxPython-src-2.8.9.1.tar.bz2
+    cd wxPython-src-2.8.9.1
 
     ( ./configure --prefix=${DEST_DIR}/ --with-opengl 2>&1 ) 1>> ${LOG_FILE} || do_exit
     ( make install 2>&1 ) 1>> ${LOG_FILE} || do_exit
@@ -305,17 +310,17 @@ unset LDFLAGS
 echo "Installing setuptools"
 ( ${DEST_DIR}/bin/python2.6 ${YT_DIR}/ez_setup.py 2>&1 ) 1>> ${LOG_FILE} || do_exit
 
-do_setup_py numpy-1.2.1 ${NUMPY_ARGS}
+do_setup_py numpy-1.3.0 ${NUMPY_ARGS}
 
 if [ -n "${MPL_SUPP_LDFLAGS}" ]
 then
     export LDFLAGS="${MPL_SUPP_LDFLAGS}"
     echo "Setting LDFLAGS ${LDFLAGS}"
 fi
-do_setup_py matplotlib-0.98.5.2
+do_setup_py matplotlib-0.99.1.2
 unset LDFLAGS
-do_setup_py ipython-0.9.1
-do_setup_py h5py-1.1.0
+do_setup_py ipython-0.10
+do_setup_py h5py-1.2.0
 
 echo "Doing yt update"
 MY_PWD=`pwd`
@@ -332,6 +337,12 @@ if [ $INST_HG -eq 1 ]
 then
     echo "Installing Mercurial."
     ( ${DEST_DIR}/bin/easy_install-2.6 mercurial 2>&1 ) 1>> ${LOG_FILE} || do_exit
+fi
+
+if [ $INST_WXPYTHON -eq 1 ] && [ $INST_TRAITS -eq 1 ]
+then
+    echo "Installing Traits"
+    ( ${DEST_DIR}/bin/easy_install-2.6 -U TraitsGUI TraitsBackendWX 2>&1 ) 1>> ${LOG_FILE} || do_exit
 fi
 
 echo

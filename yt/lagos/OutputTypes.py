@@ -44,6 +44,10 @@ class StaticOutput(object):
             mylog.debug("Registering: %s as %s", name, cls)
 
     def __new__(cls, filename=None, *args, **kwargs):
+        if not isinstance(filename, types.StringTypes): 
+            obj = object.__new__(cls)
+            obj.__init__(filename, *args, **kwargs)
+            return obj
         apath = os.path.abspath(filename)
         if not os.path.exists(apath): raise IOError(filename)
         if apath not in _cached_pfs:
@@ -359,6 +363,15 @@ class EnzoStaticOutput(StaticOutput):
         if not self.has_key("TimeUnits"):
             self.conversion_factors["Time"] = self["LengthUnits"] / self["x-velocity"]
 
+    def _setup_nounits_units(self):
+        z = 0
+        mylog.warning("Setting 1.0 in code units to be 1.0 cm")
+        if not self.has_key("TimeUnits"):
+            mylog.warning("No time units.  Setting 1.0 = 1 second.")
+            self.conversion_factors["Time"] = 1.0
+        for unit in mpc_conversion.keys():
+            self.units[unit] = mpc_conversion[unit] / mpc_conversion["cm"]
+
     def cosmology_get_units(self):
         """
         Return an Enzo-fortran style dictionary of units to feed into custom
@@ -397,7 +410,7 @@ output_type_registry[None] = EnzoStaticOutput
 
 class EnzoStaticOutputInMemory(EnzoStaticOutput):
     _hierarchy_class = EnzoHierarchyInMemory
-    _data_style = 8
+    _data_style = 'enzo_inline'
 
     def __new__(cls, *args, **kwargs):
         obj = object.__new__(cls)
@@ -441,27 +454,23 @@ class EnzoStaticOutputInMemory(EnzoStaticOutput):
 
 class OrionStaticOutput(StaticOutput):
     """
-    This class is a stripped down class that simply reads and parses, without
-    looking at the Orion hierarchy.
-
-    @todo: 
-
-    @param filename: The filename of the parameterfile we want to load
-    @type filename: String
+    This class is a stripped down class that simply reads and parses
+    *filename*, without looking at the Orion hierarchy.
     """
     _hierarchy_class = OrionHierarchy
     _fieldinfo_class = OrionFieldContainer
 
-    def __init__(self, plotname, paramFilename=None,fparamFilename=None,data_style=7,paranoia=False):
+    def __init__(self, plotname, paramFilename=None, fparamFilename=None,
+                 data_style='orion_native', paranoia=False):
         """need to override for Orion file structure.
 
         the paramfile is usually called "inputs"
         and there may be a fortran inputs file usually called "probin"
         plotname here will be a directory name
         as per BoxLib, data_style will be one of
-          Native
-          IEEE (not implemented in yt)
-          ASCII (not implemented in yt)
+         * Native
+         * IEEE (not implemented in yt)
+         * ASCII (not implemented in yt)
 
         """
 
@@ -472,7 +481,8 @@ class OrionStaticOutput(StaticOutput):
 
         self.fparameters = {}
 
-        StaticOutput.__init__(self, plotname.rstrip("/"), data_style=7)
+        StaticOutput.__init__(self, plotname.rstrip("/"),
+                              data_style='orion_native')
         self.field_info = self._fieldinfo_class()
 
         # self.directory is the directory ENCLOSING the pltNNNN directory
@@ -531,7 +541,11 @@ class OrionStaticOutput(StaticOutput):
                 if len(t) == 1:
                     self.parameters[paramName] = t[0]
                 else:
-                    self.parameters[paramName] = t
+                    if paramName == "RefineBy":
+                        self.parameters[paramName] = t[0]
+                    else:
+                        self.parameters[paramName] = t
+                
             elif param.startswith("geometry.prob_hi"):
                 self.parameters["DomainRightEdge"] = \
                     na.array([float(i) for i in vals.split()])

@@ -27,12 +27,15 @@ License:
 
 from enthought.tvtk.tools import ivtk
 from enthought.tvtk.api import tvtk 
-from enthought.traits.api import Float, HasTraits, Instance, Range, Any, \
-                                 Delegate, Tuple, File, Int, Str, CArray, \
-                                 List, Button, Bool
-from enthought.traits.ui.api import View, Item, HGroup, VGroup, TableEditor
-from enthought.traits.ui.menu import Action
+from enthought.traits.api import \
+    Float, HasTraits, Instance, Range, Any, Delegate, Tuple, File, Int, Str, \
+    CArray, List, Button, Bool, Property, cached_property
+from enthought.traits.ui.api import View, Item, HGroup, VGroup, TableEditor, \
+    Handler, Controller, RangeEditor, EnumEditor, InstanceEditor
+from enthought.traits.ui.menu import \
+    Menu, Action, Separator, OKCancelButtons, OKButton
 from enthought.traits.ui.table_column import ObjectColumn
+from enthought.tvtk.pyface.api import DecoratedScene
 
 import enthought.pyface.api as pyface
 
@@ -43,27 +46,53 @@ import time, pickle, os, os.path
 import yt.lagos as lagos
 from yt.funcs import *
 from yt.logger import ravenLogger as mylog
-from yt.extensions.HierarchySubset import ExtractedHierarchy
+from yt.extensions.HierarchySubset import \
+        ExtractedHierarchy, ExtractedParameterFile
 
-from enthought.tvtk.pyface.ui.wx.wxVTKRenderWindowInteractor \
-     import wxVTKRenderWindowInteractor
+#from enthought.tvtk.pyface.ui.wx.wxVTKRenderWindowInteractor \
+     #import wxVTKRenderWindowInteractor
+
+from enthought.mayavi.core.lut_manager import LUTManager
 
 #wxVTKRenderWindowInteractor.USE_STEREO = 1
 
 class TVTKMapperWidget(HasTraits):
-    lookup_table = Instance(tvtk.LookupTable)
-    alpha_range = Tuple(Float(1.0), Float(1.0))
+    alpha = Float(1.0)
     post_call = Any
+    lut_manager = Instance(LUTManager)
 
-    def _alpha_range_changed(self, old, new):
-        self.lookup_table.alpha_range = new
+    def _alpha_changed(self, old, new):
+        self.lut_manager.lut.alpha_range = (new, new)
         self.post_call()
 
 class MappingPlane(TVTKMapperWidget):
     plane = Instance(tvtk.Plane)
+    _coord_redit = editor=RangeEditor(
+                              low_name='vmin', high_name='vmax',
+                              auto_set=False, enter_set=True)
+    auto_set = Bool(False)
+    traits_view = View(Item('coord', editor=_coord_redit),
+                       Item('auto_set'),
+                       Item('alpha', editor=RangeEditor(
+                              low=0.0, high=1.0,
+                              enter_set=True, auto_set=False)),
+                       Item('lut_manager', show_label=False,
+                            editor=InstanceEditor(), style='custom'))
+    vmin = Float
+    vmax = Float
+
+    def _auto_set_changed(self, old, new):
+        if new is True:
+            self._coord_redit.auto_set = True
+            self._coord_redit.enter_set = False
+        else:
+            self._coord_redit.auto_set = False
+            self._coord_redit.enter_set = True
 
     def __init__(self, vmin, vmax, vdefault, **traits):
         HasTraits.__init__(self, **traits)
+        self.vmin = vmin
+        self.vmax = vmax
         trait = Range(float(vmin), float(vmax), value=vdefault)
         self.add_trait("coord", trait)
         self.coord = vdefault
@@ -75,18 +104,43 @@ class MappingPlane(TVTKMapperWidget):
         self.post_call()
 
 class MappingMarchingCubes(TVTKMapperWidget):
-    cubes = Instance(tvtk.MarchingCubes)
+    operator = Instance(tvtk.MarchingCubes)
     mapper = Instance(tvtk.HierarchicalPolyDataMapper)
+    vmin = Float
+    vmax = Float
+    auto_set = Bool(False)
+    _val_redit = RangeEditor(low_name='vmin', high_name='vmax',
+                             auto_set=False, enter_set=True)
+    traits_view = View(Item('value', editor=_val_redit),
+                       Item('auto_set'),
+                       Item('alpha', editor=RangeEditor(
+                            low=0.0, high=1.0,
+                            enter_set=True, auto_set=False,)),
+                       Item('lut_manager', show_label=False,
+                            editor=InstanceEditor(), style='custom'))
 
     def __init__(self, vmin, vmax, vdefault, **traits):
         HasTraits.__init__(self, **traits)
+        self.vmin = vmin
+        self.vmax = vmax
         trait = Range(float(vmin), float(vmax), value=vdefault)
         self.add_trait("value", trait)
         self.value = vdefault
 
+    def _auto_set_changed(self, old, new):
+        if new is True:
+            self._val_redit.auto_set = True
+            self._val_redit.enter_set = False
+        else:
+            self._val_redit.auto_set = False
+            self._val_redit.enter_set = True
+
     def _value_changed(self, old, new):
-        self.cubes.set_value(0, new)
+        self.operator.set_value(0, new)
         self.post_call()
+
+class MappingIsoContour(MappingMarchingCubes):
+    operator = Instance(tvtk.ContourFilter)
 
 class CameraPosition(HasTraits):
     position = CArray(shape=(3,), dtype='float64')
@@ -106,11 +160,13 @@ class CameraControl(HasTraits):
     camera = Instance(tvtk.OpenGLCamera)
     reset_position = Instance(CameraPosition)
     fps = Float(25.0)
+    export_filename = 'frames'
     periodic = Bool
 
     # UI elements
     snapshot = Button()
     play = Button()
+    export_frames = Button()
     reset_path = Button()
     recenter = Button()
     save_path = Button()
@@ -139,10 +195,12 @@ class CameraControl(HasTraits):
                   HGroup(
                     Item('snapshot', show_label=False),
                     Item('play', show_label=False),
+                    Item('export_frames',show_label=False),
                     Item('reset_path', show_label=False),
                     Item('save_path', show_label=False),
                     Item('load_path', show_label=False),
                     Item('export_path', show_label=False),
+                    Item('export_filename'),
                     Item('periodic'),
                     Item('fps'),
                     label='Playback'),
@@ -151,7 +209,7 @@ class CameraControl(HasTraits):
                         editor=table_def),
                     label='Camera Path'),
                  ),
-                resizable=True,
+                resizable=True, title="Camera Path Editor",
                        )
 
     def _reset_position_changed(self, old, new):
@@ -253,11 +311,15 @@ class CameraControl(HasTraits):
     def _play_fired(self):
         self.step_through()
 
+    def _export_frames_fired(self):
+        self.step_through(save_frames=True)
+
     def _reset_path_fired(self):
         self.positions = []
 
-    def step_through(self, pause = 1.0, callback=None):
+    def step_through(self, pause = 1.0, callback=None, save_frames=False):
         cam = self.scene.camera
+        frame_counter=0
         if self.periodic:
             cyclic_pos = self.positions + [self.positions[0]]
         else:
@@ -274,7 +336,11 @@ class CameraControl(HasTraits):
                 _set_cpos(cam, po, fp, vu, cr)
                 self.scene.render()
                 if callback is not None: callback(cam)
-                time.sleep(pause * 1.0/self.fps)
+                if save_frames:
+                    self.scene.save("%s_%0.5d.png" % (self.export_filename,frame_counter))
+                else:
+                    time.sleep(pause * 1.0/self.fps)
+                frame_counter += 1
 
 def _interpolate(q1, q2, p, r):
     return q1 + p*(q2 - q1)/float(r)
@@ -284,41 +350,85 @@ def _set_cpos(cam, po, fp, vu, cr):
     cam.focal_point = fp
     cam.view_up = vu
     cam.clipping_range = cr
-        
+
+class HierarchyImporter(HasTraits):
+    pf = Any
+    min_grid_level = Int(0)
+    max_level = Int(1)
+    number_of_levels = Range(0, 13)
+    max_import_levels = Property(depends_on='min_grid_level')
+    field = Str("Density")
+    field_list = List
+    center_on_max = Bool(True)
+    center = CArray(shape = (3,), dtype = 'float64')
+    cache = Bool(True)
+    smoothed = Bool(True)
+    show_grids = Bool(True)
+
+    def _field_list_default(self):
+        fl = self.pf.h.field_list
+        df = self.pf.h.derived_field_list
+        fl.sort(); df.sort()
+        return fl + df
+    
+    default_view = View(Item('min_grid_level',
+                              editor=RangeEditor(low=0,
+                                                 high_name='max_level')),
+                        Item('number_of_levels', 
+                              editor=RangeEditor(low=1,
+                                                 high_name='max_import_levels')),
+                        Item('field', editor=EnumEditor(name='field_list')),
+                        Item('center_on_max'),
+                        Item('center', enabled_when='not object.center_on_max'),
+                        Item('smoothed'),
+                        Item('cache', label='Pre-load data'),
+                        Item('show_grids'),
+                        buttons=OKCancelButtons)
+
+    def _center_default(self):
+        return [0.5,0.5,0.5]
+
+    @cached_property
+    def _get_max_import_levels(self):
+        return min(13, self.pf.h.max_level - self.min_grid_level + 1)
+
+class HierarchyImportHandler(Controller):
+    importer = Instance(HierarchyImporter)
+    
+
+    def close(self, info, is_ok):
+        if is_ok: 
+            yt_scene = YTScene(
+                importer=self.importer)
+        super(Controller, self).close(info, True)
+        return
+
+
 class YTScene(HasTraits):
 
     # Traits
-    camera_path = Instance(CameraControl)
-    parameter_fn = File(filter=["*.hierarchy"])
-    min_grid_level = Int(0)
-    max_grid_level = Int(-1)
-    field = Str("Density")
+    importer = Instance(HierarchyImporter)
+    pf = Delegate("importer")
+    min_grid_level = Delegate("importer")
+    number_of_levels = Delegate("importer")
+    field = Delegate("importer")
     center = CArray(shape = (3,), dtype = 'float64')
-    window = Instance(ivtk.IVTKWithCrustAndBrowser)
-    python_shell = Delegate('window')
-    scene = Delegate('window')
-    smoothed = Bool(True)
-    cache = Bool(True)
+    center_on_max = Delegate("importer")
+    smoothed = Delegate("importer")
+    cache = Delegate("importer")
+    show_grids = Delegate("importer")
 
-    # UI elements
-    import_hierarchy = Button()
+    camera_path = Instance(CameraControl)
+    #window = Instance(ivtk.IVTKWithCrustAndBrowser)
+    #python_shell = Delegate('window')
+    #scene = Delegate('window')
+    scene = Instance(HasTraits)
+    operators = List(HasTraits)
 
     # State variables
     _grid_boundaries_actor = None
 
     # Views
-    default_view = View(Item('min_grid_level'),
-                        Item('max_grid_level'),
-                        Item('parameter_fn'),
-                        Item('field'),
-                        Item('center'),
-                        Item('smoothed'),
-                        Item('cache', label='Pre-load data'),
-                        Item('import_hierarchy', show_label=False))
-    
-    def _center_default(self):
-        return [0.5,0.5,0.5]
-
     def _window_default(self):
         # Should experiment with passing in a pipeline browser
         # that has two root objects -- one for TVTKBases, i.e. the render
@@ -330,24 +440,16 @@ class YTScene(HasTraits):
 
     def __init__(self, **traits):
         HasTraits.__init__(self, **traits)
-        self.window.open()
-        self.scene = self.window.scene
-        self.python_shell.bind("ehds", self)
-
-    def _import_hierarchy_fired(self):
-        self.pf = lagos.EnzoStaticOutput(self.parameter_fn[:-10])
-        self.python_shell.bind("pf", self.pf)
-        self.extracted_hierarchy = ExtractedHierarchy(
-                        self.pf, self.min_grid_level, self.max_grid_level,
-                        offset=None)
-        self.operators = []
+        max_level = min(self.pf.h.max_level,
+                        self.min_grid_level + self.number_of_levels - 1)
+        self.extracted_pf = ExtractedParameterFile(self.pf,
+                             self.min_grid_level, max_level, offset=None)
+        self.extracted_hierarchy = self.extracted_pf.h
         self._hdata_set = tvtk.HierarchicalBoxDataSet()
         self._ugs = []
         self._grids = []
         self._min_val = 1e60
         self._max_val = -1e60
-        self.center = self.extracted_hierarchy._convert_coords(
-            self.pf.h.find_max("Density")[1])
         gid = 0
         if self.cache:
             for grid_set in self.extracted_hierarchy.get_levels():
@@ -355,11 +457,17 @@ class YTScene(HasTraits):
                     grid[self.field]
         for l, grid_set in enumerate(self.extracted_hierarchy.get_levels()):
             gid = self._add_level(grid_set, l, gid)
-        #self._hdata_set.generate_visibility_arrays()
-        self.toggle_grid_boundaries()
-        self.camera_path.edit_traits()
+        if self.show_grids:
+            self.toggle_grid_boundaries()
+            
+    def _center_default(self):
+        return self.extracted_hierarchy._convert_coords(
+                [0.5, 0.5, 0.5])
+
+    def do_center_on_max(self):
+        self.center = self.extracted_hierarchy._convert_coords(
+            self.pf.h.find_max("Density")[1])
         self.scene.camera.focal_point = self.center
-        self.scene.render()
 
     def _add_level(self, grid_set, level, gid):
         for grid in grid_set:
@@ -375,9 +483,10 @@ class YTScene(HasTraits):
 
         scalars = grid.get_vertex_centered_data(self.field, smoothed=self.smoothed)
 
-        io, left_index, origin, dds = \
-            self.extracted_hierarchy._convert_grid(grid)
-        right_index = left_index + scalars.shape - 2
+        left_index = grid.get_global_startindex()
+        origin = grid.LeftEdge
+        dds = grid.dds
+        right_index = left_index + scalars.shape - 1
         ug = tvtk.UniformGrid(origin=origin, spacing=dds,
                               dimensions=grid.ActiveDimensions+1)
         if self.field not in self.pf.field_info or \
@@ -385,9 +494,12 @@ class YTScene(HasTraits):
             scalars = na.log10(scalars)
         ug.point_data.scalars = scalars.transpose().ravel()
         ug.point_data.scalars.name = self.field
-        if grid.Level != self.max_grid_level:
+        if grid.Level != self.min_grid_level + self.number_of_levels - 1:
             ug.cell_visibility_array = grid.child_mask.transpose().ravel()
-        self._ugs.append(ug)
+        else:
+            ug.cell_visibility_array = na.ones(
+                    grid.ActiveDimensions, dtype='int').ravel()
+        self._ugs.append((grid,ug))
         self._hdata_set.set_data_set(level, gid, left_index, right_index, ug)
 
         self._min_val = min(self._min_val, scalars.min())
@@ -395,6 +507,12 @@ class YTScene(HasTraits):
 
         gid += 1
         return gid
+
+    def _add_data_to_ug(self, field):
+        for g, ug in self._ugs:
+            scalars_temp = grid.get_vertex_centered_data(field, smoothed=self.smoothed)
+            ii = ug.point_data.add_array(scalars_temp.transpose().ravel())
+            ug.point_data.get_array(ii).name = field
 
     def zoom(self, dist, unit='1'):
         vec = self.scene.camera.focal_point - \
@@ -411,27 +529,40 @@ class YTScene(HasTraits):
                     corner_factor = 0.5)
             ocf.input = self._hdata_set
             ocm = tvtk.HierarchicalPolyDataMapper(
-                    input_connection = ocf.output_port)
+                input_connection = ocf.output_port)
             self._grid_boundaries_actor = tvtk.Actor(mapper = ocm)
             self.scene.add_actor(self._grid_boundaries_actor)
         else:
             self._grid_boundaries_actor.visibility = \
             (not self._grid_boundaries_actor.visibility)
 
+    def _add_sphere(self, origin=(0.0,0.0,0.0), normal=(0,1,0)):
+        sphere = tvtk.Sphere(center=origin, radius=0.25)
+        cutter = tvtk.Cutter(executive = tvtk.CompositeDataPipeline(),
+                             cut_function = sphere)
+        cutter.input = self._hdata_set
+        lut_manager = LUTManager(data_name=self.field, scene=self.scene)
+        smap = tvtk.HierarchicalPolyDataMapper(
+                        scalar_range=(self._min_val, self._max_val),
+                        lookup_table=lut_manager.lut,
+                        input_connection = cutter.output_port)
+        sactor = tvtk.Actor(mapper=smap)
+        self.scene.add_actors(sactor)
+        return sphere, lut_manager
+
     def _add_plane(self, origin=(0.0,0.0,0.0), normal=(0,1,0)):
         plane = tvtk.Plane(origin=origin, normal=normal)
         cutter = tvtk.Cutter(executive = tvtk.CompositeDataPipeline(),
                              cut_function = plane)
         cutter.input = self._hdata_set
-        clut = tvtk.LookupTable(hue_range=(0.0,1.00))
-        clut.build()
+        lut_manager = LUTManager(data_name=self.field, scene=self.scene)
         smap = tvtk.HierarchicalPolyDataMapper(
                         scalar_range=(self._min_val, self._max_val),
-                        lookup_table=clut,
+                        lookup_table=lut_manager.lut,
                         input_connection = cutter.output_port)
         sactor = tvtk.Actor(mapper=smap)
         self.scene.add_actors(sactor)
-        return plane, clut
+        return plane, lut_manager
 
     def add_plane(self, origin=(0.0,0.0,0.0), normal=(0,1,0)):
         self.operators.append(self._add_plane(origin, normal))
@@ -440,7 +571,7 @@ class YTScene(HasTraits):
     def _add_axis_plane(self, axis):
         normal = [0,0,0]
         normal[axis] = 1
-        np, lookup_table = self._add_plane(self.center, normal=normal)
+        np, lut_manager = self._add_plane(self.center, normal=normal)
         LE = self.extracted_hierarchy.min_left_edge
         RE = self.extracted_hierarchy.max_right_edge
         self.operators.append(MappingPlane(
@@ -448,7 +579,8 @@ class YTScene(HasTraits):
                 vdefault = self.center[axis],
                 post_call = self.scene.render,
                 plane = np, axis=axis, coord=0.0,
-                lookup_table = lookup_table))
+                lut_manager = lut_manager,
+                scene=self.scene))
 
     def add_x_plane(self):
         self._add_axis_plane(0)
@@ -463,26 +595,54 @@ class YTScene(HasTraits):
         return self.operators[-1]
 
     def add_contour(self, val=None):
-        if val is None: val = (self._max_val+self._min_val) * 0.5
+        if val is None: 
+            if self._min_val != self._min_val:
+                self._min_val = 1.0
+            val = (self._max_val+self._min_val) * 0.5
         cubes = tvtk.MarchingCubes(
                     executive = tvtk.CompositeDataPipeline())
         cubes.input = self._hdata_set
         cubes.set_value(0, val)
-        cube_lut = tvtk.LookupTable(hue_range=(0.0,1.0))
-        cube_lut.build()
+        lut_manager = LUTManager(data_name=self.field, scene=self.scene)
         cube_mapper = tvtk.HierarchicalPolyDataMapper(
                                 input_connection = cubes.output_port,
-                                lookup_table=cube_lut)
+                                lookup_table=lut_manager.lut)
         cube_mapper.color_mode = 'map_scalars'
         cube_mapper.scalar_range = (self._min_val, self._max_val)
         cube_actor = tvtk.Actor(mapper=cube_mapper)
         self.scene.add_actors(cube_actor)
-        self.operators.append(MappingMarchingCubes(cubes=cubes,
+        self.operators.append(MappingMarchingCubes(operator=cubes,
                     vmin=self._min_val, vmax=self._max_val,
                     vdefault=val,
                     mapper = cube_mapper,
                     post_call = self.scene.render,
-                    lookup_table = cube_lut))
+                    lut_manager = lut_manager,
+                    scene=self.scene))
+        return self.operators[-1]
+
+    def add_isocontour(self, val=None):
+        if val is None: val = (self._max_val+self._min_val) * 0.5
+        isocontour = tvtk.ContourFilter(
+                    executive = tvtk.CompositeDataPipeline())
+        isocontour.input = self._hdata_set
+        isocontour.generate_values(1, (val, val))
+        lut_manager = LUTManager(data_name=self.field, scene=self.scene)
+        isocontour_normals = tvtk.PolyDataNormals(
+            executive=tvtk.CompositeDataPipeline())
+        isocontour_normals.input_connection = isocontour.output_port
+        iso_mapper = tvtk.HierarchicalPolyDataMapper(
+                                input_connection = isocontour_normals.output_port,
+                                lookup_table=lut_manager.lut)
+        iso_mapper.scalar_range = (self._min_val, self._max_val)
+        iso_actor = tvtk.Actor(mapper=iso_mapper)
+        self.scene.add_actors(iso_actor)
+        self.operators.append(MappingIsoContour(operator=isocontour,
+                    vmin=self._min_val, vmax=self._max_val,
+                    vdefault=val,
+                    mapper = iso_mapper,
+                    post_call = self.scene.render,
+                    lut_manager = lut_manager,
+                    scene=self.scene))
         return self.operators[-1]
 
 def get_all_parents(grid):
@@ -494,11 +654,13 @@ def get_all_parents(grid):
 def run_vtk():
     import yt.lagos as lagos
 
-    global gui, ehds
     gui = pyface.GUI()
-    ehds = YTScene()
-    ehds.edit_traits()
+    importer = HierarchyImporter()
+    importer.edit_traits(handler = HierarchyImportHandler(
+            importer = importer))
+    #ehds.edit_traits()
     gui.start_event_loop()
+
 
 if __name__=="__main__":
     print "This code probably won't work.  But if you want to give it a try,"
@@ -509,8 +671,4 @@ if __name__=="__main__":
     print
     print "If you have 'em, give it a try!"
     print
-    gui = pyface.GUI()
-    ehds = YTScene()
-    ehds.edit_traits()
-    gui.start_event_loop()
-
+    run_vtk()

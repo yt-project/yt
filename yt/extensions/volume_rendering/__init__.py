@@ -1,5 +1,5 @@
 """
-Convenience functions for operation inside a SAGE notebook
+Import the components of the volume rendering extension
 
 Author: Matthew Turk <matthewturk@gmail.com>
 Affiliation: KIPAC/SLAC/Stanford
@@ -23,34 +23,12 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-import os
+import numpy as na
 
-if "SAGE_ROOT" not in os.environ: raise ImportError
-
-from yt.config import ytcfg
-
-from sage.server.support import EMBEDDED_MODE
-if not EMBEDDED_MODE: raise ImportError
-
-ytcfg["yt","__insagenotebook"] = "True"
-
-def width_slider(plot_obj):
-    """
-    This function accepts a plot object (*plot_obj*) and generates a width
-    slider that will automatically save when released.
-    """
-    import sage.server.notebook.interact as interact
-
-    if hasattr(plot_obj, 'save'):
-        sfunc = plot_obj.save
-    elif hasattr(plot_obj, 'save_image'):
-        sfunc = plot_obj.save_image
-    else:
-        raise RuntimeError
-
-    @interact.interact
-    def do_slider(width=interact.slider(-3.0, 0.0, 
-        plot_obj.set_width(10**width, 'unitary')
-        sfunc("temp")
-
-
+from TransferFunction import TransferFunction, ColorTransferFunction
+from yt.amr_utils import PartitionedGrid, VectorPlane, \
+                             TransferFunctionProxy
+from grid_partitioner import partition_all_grids, partition_grid, \
+                             export_partitioned_grids, \
+                             import_partitioned_grids
+from software_sampler import direct_ray_cast

@@ -231,6 +231,7 @@ class HaloProfiler(lagos.ParallelAnalysisInterface):
 
         self.projection_fields.append({'field':field, 'weight_field':weight_field})
 
+    @lagos.parallel_blocking_call
     def make_profiles(self, filename=None, prefilters=None, **kwargs):
         "Make radial profiles for all halos on the list."
 
@@ -373,12 +374,8 @@ class HaloProfiler(lagos.ParallelAnalysisInterface):
             for hp in self.profile_fields:
                 profile.add_fields(hp['field'], weight=hp['weight_field'], accumulation=hp['accumulation'])
 
-#         profiledHalo = {}
         if virial_filter:
             self._add_actual_overdensity(profile)
-
-#         profiledHalo['center'] = halo['center']
-#         profiledHalo['id'] = halo['id']
 
         if newProfile:
             mylog.info("Writing halo %d" % halo['id'])
@@ -396,6 +393,7 @@ class HaloProfiler(lagos.ParallelAnalysisInterface):
 
         return profile
 
+    @lagos.parallel_blocking_call
     def make_projections(self, axes=[0, 1, 2], halo_list='filtered', save_images=False, save_cube=True, **kwargs):
         "Make projections of all halos using specified fields."
 
@@ -652,6 +650,7 @@ class HaloProfiler(lagos.ParallelAnalysisInterface):
         else:
             return None
 
+    @lagos.parallel_blocking_call
     def _run_hop(self, hopFile):
         "Run hop to get halos."
 
@@ -659,6 +658,7 @@ class HaloProfiler(lagos.ParallelAnalysisInterface):
         hop_results.write_out(hopFile)
 
         del hop_results
+        self.pf.h.clear_all_data()
 
     @lagos.parallel_root_only
     def _write_filtered_halo_list(self, filename, format="%s"):

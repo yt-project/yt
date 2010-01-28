@@ -23,7 +23,7 @@ PY_DIR="/Library/Frameworks/Python.framework/Versions/Current/"
 # and install it on its own
 #HDF5_DIR=
 
-INST_HG=0       # Install Mercurial or not?
+INST_HG=1       # Install Mercurial or not?
 # If you've got YT some other place, set this to point to it.
 YT_DIR=""
 
@@ -138,13 +138,13 @@ then
     elif [ -e $ORIG_PWD/../yt/mods.py ]
     then
         YT_DIR=`dirname $ORIG_PWD`
-    elif [ ! -e yt-1.5 ] 
+    elif [ ! -e yt-trunk-svn ] 
     then
-        ( svn co http://svn.enzotools.org/yt/branches/yt-1.5 ./yt-1.5 2>&1 ) 1>> ${LOG_FILE}
-        YT_DIR="$PWD/yt-1.5/"
-    elif [ -e yt-1.5 ] 
+        ( svn co http://svn.enzotools.org/yt/trunk/ ./yt-trunk-svn 2>&1 ) 1>> ${LOG_FILE}
+        YT_DIR="$PWD/yt-trunk-svn/"
+    elif [ -e yt-trunk-svn ] 
     then
-        YT_DIR="$PWD/yt-1.5/"
+        YT_DIR="$PWD/yt-trunk-svn/"
     fi
     echo Setting YT_DIR=${YT_DIR}
 fi
@@ -206,7 +206,7 @@ cd $MY_PWD
 if [ $INST_HG -eq 1 ]
 then
     echo "Installing Mercurial."
-    ( ${DEST_DIR}/bin/easy_install-2.6 mercurial 2>&1 ) 1>> ${LOG_FILE} || do_exit
+    ( sudo ${PY_DIR}/bin/easy_install-2.5 mercurial 2>&1 ) 1>> ${LOG_FILE} || do_exit
 fi
 
 echo

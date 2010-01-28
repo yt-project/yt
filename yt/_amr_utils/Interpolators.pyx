@@ -38,8 +38,9 @@ def UnilinearlyInterpolate(np.ndarray[np.float64_t, ndim=1] table,
     for i in range(x_vals.shape[0]):
         x_i = x_is[i]
         x = x_vals[i]
-        xp = (x - x_bins[x_i]) / (x_bins[x_i+1] - x_bins[x_i])
-        xm = (x_bins[x_i+1] - x) / (x_bins[x_i+1] - x_bins[x_i])
+        dx_inv = 1.0 / (x_bins[x_i+1] - x_bins[x_i])
+        xp = (x - x_bins[x_i]) * dx_inv
+        xm = (x_bins[x_i+1] - x) * dx_inv
         output[i]  = table[x_i  ] * (xm) \
                    + table[x_i+1] * (xp)
 
@@ -54,16 +55,19 @@ def BilinearlyInterpolate(np.ndarray[np.float64_t, ndim=2] table,
                           np.ndarray[np.float64_t, ndim=1] output):
     cdef double x, xp, xm
     cdef double y, yp, ym
+    cdef double dx_inv, dy_inv
     cdef int i, x_i, y_i
     for i in range(x_vals.shape[0]):
         x_i = x_is[i]
         y_i = y_is[i]
         x = x_vals[i]
         y = y_vals[i]
-        xp = (x - x_bins[x_i]) / (x_bins[x_i+1] - x_bins[x_i])
-        yp = (y - y_bins[y_i]) / (y_bins[y_i+1] - y_bins[y_i])
-        xm = (x_bins[x_i+1] - x) / (x_bins[x_i+1] - x_bins[x_i])
-        ym = (y_bins[y_i+1] - y) / (y_bins[y_i+1] - y_bins[y_i])
+        dx_inv = 1.0 / (x_bins[x_i+1] - x_bins[x_i])
+        dy_inv = 1.0 / (y_bins[y_i+1] - y_bins[y_i])
+        xp = (x - x_bins[x_i]) * dx_inv
+        yp = (y - y_bins[y_i]) * dy_inv
+        xm = (x_bins[x_i+1] - x) * dx_inv
+        ym = (y_bins[y_i+1] - y) * dy_inv
         output[i]  = table[x_i  , y_i  ] * (xm*ym) \
                    + table[x_i+1, y_i  ] * (xp*ym) \
                    + table[x_i  , y_i+1] * (xm*yp) \
@@ -84,6 +88,7 @@ def TrilinearlyInterpolate(np.ndarray[np.float64_t, ndim=3] table,
     cdef double x, xp, xm
     cdef double y, yp, ym
     cdef double z, zp, zm
+    cdef double dx_inv, dy_inv, dz_inv
     cdef int i, x_i, y_i, z_i
     for i in range(x_vals.shape[0]):
         x_i = x_is[i]
@@ -92,12 +97,15 @@ def TrilinearlyInterpolate(np.ndarray[np.float64_t, ndim=3] table,
         x = x_vals[i]
         y = y_vals[i]
         z = z_vals[i]
-        xp = (x - x_bins[x_i]) / (x_bins[x_i+1] - x_bins[x_i])
-        yp = (y - y_bins[y_i]) / (y_bins[y_i+1] - y_bins[y_i])
-        zp = (z - z_bins[z_i]) / (z_bins[z_i+1] - z_bins[z_i])
-        xm = (x_bins[x_i+1] - x) / (x_bins[x_i+1] - x_bins[x_i])
-        ym = (y_bins[y_i+1] - y) / (y_bins[y_i+1] - y_bins[y_i])
-        zm = (z_bins[z_i+1] - z) / (z_bins[z_i+1] - z_bins[z_i])
+        dx_inv = 1.0 / (x_bins[x_i+1] - x_bins[x_i])
+        dy_inv = 1.0 / (y_bins[y_i+1] - y_bins[y_i])
+        dz_inv = 1.0 / (z_bins[z_i+1] - z_bins[z_i])
+        xp = (x - x_bins[x_i]) * dx_inv
+        yp = (y - y_bins[y_i]) * dy_inv
+        zp = (z - z_bins[z_i]) * dz_inv
+        xm = (x_bins[x_i+1] - x) * dx_inv
+        ym = (y_bins[y_i+1] - y) * dy_inv
+        zm = (z_bins[z_i+1] - z) * dz_inv
         output[i]  = table[x_i  ,y_i  ,z_i  ] * (xm*ym*zm) \
                    + table[x_i+1,y_i  ,z_i  ] * (xp*ym*zm) \
                    + table[x_i  ,y_i+1,z_i  ] * (xm*yp*zm) \

@@ -67,7 +67,7 @@ class DerivedQuantity(ParallelAnalysisInterface):
             self.func(e, *args, **kwargs)
             mylog.debug("Preloading %s", e.requested)
             self._preload([g for g in self._get_grid_objs()], e.requested,
-                          self._data_source.pf.h.queue)
+                          self._data_source.pf.h.io)
         if lazy_reader and not self.force_unlazy:
             return self._call_func_lazy(args, kwargs)
         else:
@@ -316,6 +316,9 @@ def _cudaIsBound(data, truncate, ratio):
         int idx2 = blockIdx.y * blockDim.x;
         int offset = threadIdx.x;
 
+        /* Here we're just setting up convenience pointers to our
+           shared array */
+
         float* x_data1 = (float*) array;
         float* y_data1 = (float*) &x_data1[blockDim.x];
         float* z_data1 = (float*) &y_data1[blockDim.x];
@@ -370,21 +373,31 @@ def _cudaIsBound(data, truncate, ratio):
     if na.any(na.isnan(p)): raise ValueError
     return p1 * (length_scale_factor / (mass_scale_factor**2.0))
     
-def _Extrema(data, fields):
+def _Extrema(data, fields, filter=None):
     """
     This function returns the extrema of a set of fields
     
     :param fields: A field name, or a list of field names
+    :param filter: a string to be evaled to serve as a data filter.
     """
     fields = ensure_list(fields)
+    if filter is not None: this_filter = eval(filter)
     mins, maxs = [], []
     for field in fields:
         if data[field].size < 1:
             mins.append(1e90)
             maxs.append(-1e90)
             continue
-        mins.append(data[field].min())
-        maxs.append(data[field].max())
+        if filter is None:
+            mins.append(data[field].min())
+            maxs.append(data[field].max())
+        else:
+            if this_filter.any():
+                mins.append(data[field][this_filter].min())
+                maxs.append(data[field][this_filter].max())
+            else:
+                mins.append(1e90)
+                maxs.append(-1e90)
     return len(fields), mins, maxs
 def _combExtrema(data, n_fields, mins, maxs):
     mins, maxs = na.atleast_2d(mins, maxs)
@@ -392,6 +405,24 @@ def _combExtrema(data, n_fields, mins, maxs):
     return [(na.min(mins[:,i]), na.max(maxs[:,i])) for i in range(n_fields)]
 add_quantity("Extrema", function=_Extrema, combine_function=_combExtrema,
              n_ret=3)
+
+def _Action(data, action, combine_action, filter=None):
+    """
+    This function evals the string given by the action arg and uses 
+    the function thrown with the combine_action to combine the values.  
+    A filter can be thrown to be evaled to short-circuit the calculation 
+    if some criterion is not met.
+    :param action: a string containing the desired action to be evaled.
+    :param combine_action: the function used to combine the answers when done lazily.
+    :param filter: a string to be evaled to serve as a data filter.
+    """
+    if filter is not None:
+        if not eval(filter).any(): return 0, False, combine_action
+    value = eval(action)
+    return value, True, combine_action
+def _combAction(data, value, valid, combine_action):
+    return combine_action[0](value[valid])
+add_quantity("Action", function=_Action, combine_function=_combAction, n_ret=3)
 
 def _MaxLocation(data, field):
     """

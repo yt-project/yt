@@ -47,8 +47,8 @@ class PlotCallback(object):
         x0, x1 = plot.xlim
         y0, y1 = plot.ylim
         l, b, width, height = _get_bounds(plot._axes.bbox)
-        dx = plot.image._A.shape[0] / (x1-x0)
-        dy = plot.image._A.shape[1] / (y1-y0)
+        dx = width / (x1-x0)
+        dy = height / (y1-y0)
         return ((coord[0] - int(offset)*x0)*dx,
                 (coord[1] - int(offset)*y0)*dy)
 
@@ -116,70 +116,6 @@ class QuiverCallback(PlotCallback):
         plot._axes.set_ylim(yy0,yy1)
         plot._axes.hold(False)
 
-class ParticleCallback(PlotCallback):
-    _type_name = "particles"
-    def __init__(self, axis, width, p_size=1.0, col='k', stride=1.0):
-        """
-        Adds particle positions, based on a thick slab along *axis* with a
-        *width* along the line of sight.  *p_size* controls the number of
-        pixels per particle, and *col* governs the color.
-        """
-        PlotCallback.__init__(self)
-        self.axis = axis
-        self.width = width
-        self.p_size = p_size
-        self.color = col
-        if check_color(col):
-            self.color_field = False
-        else:
-            self.color_field = True
-        self.field_x = "particle_position_%s" % lagos.axis_names[lagos.x_dict[axis]]
-        self.field_y = "particle_position_%s" % lagos.axis_names[lagos.y_dict[axis]]
-        self.field_z = "particle_position_%s" % lagos.axis_names[axis]
-        self.stride = stride
-        self.particles_x = self.particles_y = self.particles_z = None
-
-    def _setup_particles(self, data):
-        if self.particles_x is not None: return
-        grids = data._grids
-        particles_x = []; particles_y = []; particles_z = [];
-        for g in grids:
-            particles_x.append(g[self.field_x][::self.stride])
-            particles_y.append(g[self.field_y][::self.stride])
-            particles_z.append(g[self.field_z][::self.stride])
-        self.particles_x = na.concatenate(particles_x); del particles_x
-        self.particles_y = na.concatenate(particles_y); del particles_y
-        self.particles_z = na.concatenate(particles_z); del particles_z
-        if not self.color_field: return
-        particles_c = []
-        for g in grids:
-            particles_c.append(g[self.color][::self.stride])
-        self.particles_c = na.log10(na.concatenate(particles_c)); del particles_c
-
-    def __call__(self, plot):
-        z0 = plot.data.center[self.axis] - self.width/2.0
-        z1 = plot.data.center[self.axis] + self.width/2.0
-        self._setup_particles(plot.data)
-        if len(self.particles_x) == 0: return
-        x0, x1 = plot.xlim
-        y0, y1 = plot.ylim
-        xx0, xx1 = plot._axes.get_xlim()
-        yy0, yy1 = plot._axes.get_ylim()
-        # Now we rescale because our axes limits != data limits
-        goodI = na.where( (self.particles_x < x1) & (self.particles_x > x0)
-                        & (self.particles_y < y1) & (self.particles_y > y0)
-                        & (self.particles_z < z1) & (self.particles_z > z0))
-        particles_x = (self.particles_x[goodI] - x0) * (xx1-xx0)/(x1-x0) + xx0
-        particles_y = (self.particles_y[goodI] - y0) * (yy1-yy0)/(y1-y0) + yy0
-        if not self.color_field: particles_c = self.color
-        else: particles_c = self.particles_c[goodI]
-        plot._axes.hold(True)
-        plot._axes.scatter(particles_x, particles_y, edgecolors='None',
-                           s=self.p_size, c=particles_c)
-        plot._axes.set_xlim(xx0,xx1)
-        plot._axes.set_ylim(yy0,yy1)
-        plot._axes.hold(False)
-
 class ContourCallback(PlotCallback):
     _type_name = "contour"
     def __init__(self, field, ncont=5, factor=4, take_log=False, clim=None,
@@ -231,6 +167,7 @@ class ContourCallback(PlotCallback):
                                   plot.data["px"] + shift <= x1)
             ylim = na.logical_and(plot.data["py"] + shift >= y0,
                                   plot.data["py"] + shift <= y1)
+
             XShifted[na.where(xlim)] += shift
             YShifted[na.where(ylim)] += shift
             AllX = na.logical_or(AllX, xlim)
@@ -243,6 +180,8 @@ class ContourCallback(PlotCallback):
         z = plot.data[self.field][wI]
         if self.take_log: z=na.log10(z)
         zi = self.de.Triangulation(x,y).nn_interpolator(z)(xi,yi)
+        print z.min(), z.max(), na.nanmin(z), na.nanmax(z)
+        print zi.min(), zi.max(), na.nanmin(zi), na.nanmax(zi)
         plot._axes.contour(xi,yi,zi,self.ncont, **self.plot_args)
         plot._axes.set_xlim(xx0,xx1)
         plot._axes.set_ylim(yy0,yy1)
@@ -250,14 +189,17 @@ class ContourCallback(PlotCallback):
 
 class GridBoundaryCallback(PlotCallback):
     _type_name = "grids"
-    def __init__(self, alpha=1.0, min_pix = 1):
+    def __init__(self, alpha=1.0, min_pix=1, annotate=False, periodic=True):
         """
         Adds grid boundaries to a plot, optionally with *alpha*-blending.
         Cuttoff for display is at *min_pix* wide.
+        *annotate* puts the grid id in the corner of the grid.  (Not so great in projections...)
         """
         PlotCallback.__init__(self)
         self.alpha = alpha
         self.min_pix = min_pix
+        self.annotate = annotate # put grid numbers in the corner.
+        self.periodic = periodic
 
     def __call__(self, plot):
         x0, x1 = plot.xlim
@@ -269,9 +211,12 @@ class GridBoundaryCallback(PlotCallback):
         px_index = lagos.x_dict[plot.data.axis]
         py_index = lagos.y_dict[plot.data.axis]
         dom = plot.data.pf["DomainRightEdge"] - plot.data.pf["DomainLeftEdge"]
-        pxs, pys = na.mgrid[-1:1:3j,-1:1:3j]
-        GLE = plot.data.gridLeftEdge
-        GRE = plot.data.gridRightEdge
+        if self.periodic:
+            pxs, pys = na.mgrid[-1:1:3j,-1:1:3j]
+        else:
+            pxs, pys = na.mgrid[0:0:1j,0:0:1j]
+        GLE = plot.data.grid_left_edge
+        GRE = plot.data.grid_right_edge
         for px_off, py_off in zip(pxs.ravel(), pys.ravel()):
             pxo = px_off * dom[px_index]
             pyo = py_off * dom[py_index]
@@ -292,6 +237,10 @@ class GridBoundaryCallback(PlotCallback):
                            edgecolors=edgecolors)
             plot._axes.hold(True)
             plot._axes.add_collection(grid_collection)
+            if self.annotate:
+                ids = [g.id for g in plot.data._grids]
+                for n in range(len(left_edge_px)):
+                    plot._axes.text(left_edge_px[n]+2,left_edge_py[n]+2,ids[n])
             plot._axes.hold(False)
 
 class LabelCallback(PlotCallback):
@@ -366,7 +315,7 @@ class UnitBoundaryCallback(PlotCallback):
                    ( (right_edge_py < height) & (left_edge_py > 0) )
         verts=verts.transpose()[visible,:,:]
         grid_collection = matplotlib.collections.PolyCollection(
-                verts, facecolors=(0.0,0.0,0.0,0.0),
+                verts, facecolors="none",
                        edgecolors=(0.0,0.0,0.0,1.0),
                        linewidths=2.5)
         plot._axes.hold(True)
@@ -556,6 +505,7 @@ class MarkerAnnotateCallback(PlotCallback):
                    self.pos[lagos.y_dict[plot.data.axis]])
         else: pos = self.pos
         x,y = self.convert_to_pixels(plot, pos)
+        print x, y
         plot._axes.hold(True)
         plot._axes.plot((x,),(y,),self.marker, **self.plot_args)
         plot._axes.hold(False)
@@ -743,7 +693,7 @@ class CoordAxesCallback(PlotCallback):
     def __call__(self,plot):
         # 1. find out what the domain is
         # 2. pick a unit for it
-        # 3. run self._axes.set_xlabel & self._axes.set_ylabel to actually lay shit down.
+        # 3. run self._axes.set_xlabel & self._axes.set_ylabel to actually lay things down.
         # 4. adjust extent information to make sure labels are visable.
 
         # put the plot into data coordinates
@@ -754,6 +704,7 @@ class CoordAxesCallback(PlotCallback):
         unit_conversion = plot.data.hierarchy[plot.im["Unit"]]
         aspect = (plot.xlim[1]-plot.xlim[0])/(plot.ylim[1]-plot.ylim[0])
 
+        print "aspect ratio = ", aspect
 
         # if coords is False, label axes relative to the center of the
         # display. if coords is True, label axes with the absolute
@@ -812,11 +763,11 @@ class TextLabelCallback(PlotCallback):
         y = plot.image._A.shape[1] * self.pos[1]
         plot._axes.text(x, y, self.text, **self.text_args)
 
-class NewParticleCallback(PlotCallback):
-    _type_name = "nparticles"
+class ParticleCallback(PlotCallback):
+    _type_name = "particles"
     region = None
     _descriptor = None
-    def __init__(self, width, p_size=1.0, col='k', stride=1.0, ptype=None):
+    def __init__(self, width, p_size=1.0, col='k', stride=1.0, ptype=None, stars_only=False, dm_only=False):
         """
         Adds particle positions, based on a thick slab along *axis* with a
         *width* along the line of sight.  *p_size* controls the number of
@@ -829,6 +780,8 @@ class NewParticleCallback(PlotCallback):
         self.color = col
         self.stride = stride
         self.ptype = ptype
+        self.stars_only = stars_only
+        self.dm_only = dm_only
 
     def __call__(self, plot):
         data = plot.data
@@ -844,6 +797,12 @@ class NewParticleCallback(PlotCallback):
            &   ( reg[field_y] >= y0 ) & ( reg[field_y] <= y1 ) )
         if self.ptype is not None:
             gg &= (reg["particle_type"] == self.ptype)
+            if gg.sum() == 0: return
+        if self.stars_only:
+            gg &= (reg["creation_time"] > 0.0)
+            if gg.sum() == 0: return
+        if self.dm_only:
+            gg &= (reg["creation_time"] <= 0.0)
             if gg.sum() == 0: return
         plot._axes.hold(True)
         px, py = self.convert_to_pixels(plot,

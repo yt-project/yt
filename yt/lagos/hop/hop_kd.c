@@ -47,6 +47,7 @@ int kdInit(KD *pkd,int nBucket)
 	kd = (KD)malloc(sizeof(struct kdContext));
 	assert(kd != NULL);
 	kd->nBucket = nBucket;
+    kd->kdNodes = NULL;
 	*pkd = kd;
 	return(1);
 	}
@@ -217,8 +218,8 @@ void kdOrder(KD kd)
  
 void kdFinish(KD kd)
 {
-	free(kd->p);
-	free(kd->kdNodes);
+	if(kd->p!=NULL)free(kd->p);
+	if(kd->kdNodes!=NULL)free(kd->kdNodes);
 	free(kd);
 	}
  

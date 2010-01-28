@@ -20,11 +20,9 @@ def configuration(parent_package='',top_path=None):
     config.make_config_py() # installs __config__.py
     config.make_svn_version_py()
     config.add_extension("PointCombine", "yt/lagos/PointCombine.c", libraries=["m"])
-    #config.add_extension("RTIntegrator", "yt/lagos/RTIntegrator.c")
-    config.add_extension("Interpolators", "yt/lagos/Interpolators.c")
-    #config.add_extension("DepthFirstOctree", "yt/lagos/DepthFirstOctree.c")
     config.add_subpackage("hop")
     config.add_subpackage("fof")
+    config.add_subpackage("parallelHOP")
     H5dir = check_for_hdf5()
     if H5dir is not None:
         include_dirs=[os.path.join(H5dir,"include")]
