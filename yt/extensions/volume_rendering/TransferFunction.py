@@ -64,7 +64,7 @@ class ColorTransferFunction(object):
         self.funcs = (self.red, self.green, self.blue, self.alpha)
         self.light_dir = (0.3,-0.2,0.5)
         self.light_color = (0.10, 0.10, 0.10)
-        self.use_light = 1
+        self.use_light = 0
 
     def add_gaussian(self, location, width, height):
         for tf, v in zip(self.funcs, height):
