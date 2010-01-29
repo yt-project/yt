@@ -213,7 +213,7 @@ then
 fi
 
 [ $INST_ZLIB -eq 1 ] && get_enzotools zlib-1.2.3.tar.bz2 
-[ $INST_WXPYTHON -eq 1 ] && get_enzotools wxPython-src-2.8.9.1.tar.bz2
+[ $INST_WXPYTHON -eq 1 ] && get_enzotools wxPython-src-2.8.10.1.tar.bz2
 get_enzotools Python-2.6.3.tgz
 get_enzotools numpy-1.3.0.tar.gz
 get_enzotools matplotlib-0.99.1.2.tar.gz
@@ -228,13 +228,13 @@ then
     elif [ -e $ORIG_PWD/../yt/mods.py ]
     then
         YT_DIR=`dirname $ORIG_PWD`
-    elif [ ! -e yt-trunk-svn ] 
+    elif [ ! -e yt-1.6 ] 
     then
         ( svn co http://svn.enzotools.org/yt/branches/yt-1.6 ./yt-1.6 2>&1 ) 1>> ${LOG_FILE}
-        YT_DIR="$PWD/yt-trunk-svn/"
-    elif [ -e yt-trunk-svn ] 
+        YT_DIR="$PWD/yt-1.6/"
+    elif [ -e yt-1.6 ] 
     then
-        YT_DIR="$PWD/yt-trunk-svn/"
+        YT_DIR="$PWD/yt-1.6/"
     fi
     echo Setting YT_DIR=${YT_DIR}
 fi
@@ -287,11 +287,11 @@ fi
 
 export PYTHONPATH=${DEST_DIR}/lib/python2.6/site-packages/
 
-if [ $INST_WXPYTHON -eq 1 ] && [ ! -e wxPython-src-2.8.9.1/done ]
+if [ $INST_WXPYTHON -eq 1 ] && [ ! -e wxPython-src-2.8.10.1/done ]
 then
     echo "Installing wxPython.  This may take a while, but don't worry.  YT loves you."
-    [ ! -e wxPython-src-2.8.9.1 ] && tar xfj wxPython-src-2.8.9.1.tar.bz2
-    cd wxPython-src-2.8.9.1
+    [ ! -e wxPython-src-2.8.10.1 ] && tar xfj wxPython-src-2.8.10.1.tar.bz2
+    cd wxPython-src-2.8.10.1
 
     ( ./configure --prefix=${DEST_DIR}/ --with-opengl 2>&1 ) 1>> ${LOG_FILE} || do_exit
     ( make install 2>&1 ) 1>> ${LOG_FILE} || do_exit
