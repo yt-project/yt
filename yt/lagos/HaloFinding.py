@@ -1231,7 +1231,7 @@ class HOPHaloFinder(GenericHaloFinder, HOPHaloList):
             select = self._get_dm_indices()
             sub_mass = self._data_source["ParticleMassMsun"][select].sum()
         else:
-        sub_mass = self._data_source["ParticleMassMsun"].sum()
+            sub_mass = self._data_source["ParticleMassMsun"].sum()
         HOPHaloList.__init__(self, self._data_source, threshold*total_mass/sub_mass, dm_only)
         self._parse_halolist(total_mass/sub_mass)
         self._join_halolists()
