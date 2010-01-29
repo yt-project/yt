@@ -59,18 +59,19 @@ class EnzoSimulation(object):
         # Check for sufficient starting/ending parameters.
         if self.InitialTime is None and self.InitialRedshift is None:
             if self.enzoParameters['ComovingCoordinates'] and \
-                    self.enzoParameters.has_key('CosmologyInitialRedshift'):
+               'CosmologyInitialRedshift' in self.enzoParameters:
                 self.InitialRedshift = self.enzoParameters['CosmologyInitialRedshift']
-            elif self.enzoParameters.has_key('InitialTime'):
+            elif 'InitialTime' in self.enzoParameters:
                 self.InitialTime = self.enzoParameters['InitialTime']
             else:
                 mylog.error("Couldn't find parameter for initial time or redshift from parameter file.")
                 return None
+
         if self.FinalTime is None and self.FinalRedshift is None:
             if self.enzoParameters['ComovingCoordinates'] and \
-                    self.enzoParameters.has_key('CosmologyFinalRedshift'):
+               'CosmologyFinalRedshift' in self.enzoParameters:
                 self.FinalRedshift = self.enzoParameters['CosmologyFinalRedshift']
-            elif self.enzoParameters.has_key('StopTime'):
+            elif 'StopTime' in self.enzoParameters:
                 self.FinalTime = self.enzoParameters['StopTime']
             else:
                 mylog.error("Couldn't find parameter for final time or redshift from parameter file.")
@@ -99,9 +100,9 @@ class EnzoSimulation(object):
 
         # Get initial time of simulation.
         if self.enzoParameters['ComovingCoordinates'] and \
-                self.enzoParameters.has_key('CosmologyInitialRedshift'):
+                'CosmologyInitialRedshift' in self.enzoParameters:
             self.SimulationInitialTime = self.enzo_cosmology.InitialTime / self.enzo_cosmology.TimeUnits
-        elif self.enzoParameters.has_key('InitialTime'):
+        elif 'InitialTime' in self.enzoParameters:
             self.SimulationInitialTime = self.enzoParameters['InitialTime']
         else:
             self.SimulationInitialTime = 0.0
