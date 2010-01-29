@@ -34,6 +34,7 @@
 
 #include "numpy/ndarrayobject.h"
 
+
 static PyObject *_hdf5ReadError;
 herr_t iterate_dataset(hid_t loc_id, const char *name, void *nodelist);
 
@@ -1279,14 +1280,14 @@ int count_particles_region_FLOAT(particle_validation *data)
         } else if ( (tempx > vdata->left_edge[0]) && (tempx > vdata->right_edge[0]) ) {
           tempx -= vdata->period[0];
         }
-        if ( (tempy < vdata->left_edge[1]) && (tempx < vdata->right_edge[1]) ) {
+        if ( (tempy < vdata->left_edge[1]) && (tempy < vdata->right_edge[1]) ) {
           tempy += vdata->period[1];
-        } else if ( (tempy > vdata->left_edge[1]) && (tempx > vdata->right_edge[1]) ) {
+        } else if ( (tempy > vdata->left_edge[1]) && (tempy > vdata->right_edge[1]) ) {
           tempy -= vdata->period[1];
         }
-        if ( (tempz < vdata->left_edge[2]) && (tempx < vdata->right_edge[2]) ) {
+        if ( (tempz < vdata->left_edge[2]) && (tempz < vdata->right_edge[2]) ) {
           tempz += vdata->period[2];
-        } else if ( (tempz > vdata->left_edge[2]) && (tempx > vdata->right_edge[2]) ) {
+        } else if ( (tempz > vdata->left_edge[2]) && (tempz > vdata->right_edge[2]) ) {
           tempz -= vdata->period[2];
         }
         if (   (tempx >= vdata->left_edge[0])
@@ -1349,14 +1350,14 @@ int count_particles_region_DOUBLE(particle_validation *data)
         } else if ( (tempx > vdata->left_edge[0]) && (tempx > vdata->right_edge[0]) ) {
           tempx -= vdata->period[0];
         }
-        if ( (tempy < vdata->left_edge[1]) && (tempx < vdata->right_edge[1]) ) {
+        if ( (tempy < vdata->left_edge[1]) && (tempy < vdata->right_edge[1]) ) {
           tempy += vdata->period[1];
-        } else if ( (tempy > vdata->left_edge[1]) && (tempx > vdata->right_edge[1]) ) {
+        } else if ( (tempy > vdata->left_edge[1]) && (tempy > vdata->right_edge[1]) ) {
           tempy -= vdata->period[1];
         }
-        if ( (tempz < vdata->left_edge[2]) && (tempx < vdata->right_edge[2]) ) {
+        if ( (tempz < vdata->left_edge[2]) && (tempz < vdata->right_edge[2]) ) {
           tempz += vdata->period[2];
-        } else if ( (tempz > vdata->left_edge[2]) && (tempx > vdata->right_edge[2]) ) {
+        } else if ( (tempz > vdata->left_edge[2]) && (tempz > vdata->right_edge[2]) ) {
           tempz -= vdata->period[2];
         }
         if (   (tempx >= vdata->left_edge[0])
@@ -1419,14 +1420,14 @@ int count_particles_region_LONGDOUBLE(particle_validation *data)
         } else if ( (tempx > vdata->left_edge[0]) && (tempx > vdata->right_edge[0]) ) {
           tempx -= vdata->period[0];
         }
-        if ( (tempy < vdata->left_edge[1]) && (tempx < vdata->right_edge[1]) ) {
+        if ( (tempy < vdata->left_edge[1]) && (tempy < vdata->right_edge[1]) ) {
           tempy += vdata->period[1];
-        } else if ( (tempy > vdata->left_edge[1]) && (tempx > vdata->right_edge[1]) ) {
+        } else if ( (tempy > vdata->left_edge[1]) && (tempy > vdata->right_edge[1]) ) {
           tempy -= vdata->period[1];
         }
-        if ( (tempz < vdata->left_edge[2]) && (tempx < vdata->right_edge[2]) ) {
+        if ( (tempz < vdata->left_edge[2]) && (tempz < vdata->right_edge[2]) ) {
           tempz += vdata->period[2];
-        } else if ( (tempz > vdata->left_edge[2]) && (tempx > vdata->right_edge[2]) ) {
+        } else if ( (tempz > vdata->left_edge[2]) && (tempz > vdata->right_edge[2]) ) {
           tempz -= vdata->period[2];
         }
         if (   (tempx >= vdata->left_edge[0])

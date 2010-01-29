@@ -837,6 +837,9 @@ class parallelHOPHaloList(HaloList,ParallelAnalysisInterface):
         del self.densities
         self.group_count = obj.group_count
         self.group_sizes = obj.group_sizes
+        if self.group_count == 0:
+            mylog.info("There are no halos found.")
+            return
         self.CoM = obj.CoM
         self.Tot_M = obj.Tot_M * self.total_mass
         self.max_dens_point = obj.max_dens_point
@@ -906,6 +909,9 @@ class parallelHOPHaloList(HaloList,ParallelAnalysisInterface):
         # We want arrays for parallel HOP
         self._groups = na.empty(self.group_count, dtype='object')
         self._max_dens = na.empty((self.group_count, 4), dtype='float64')
+        if self.group_count == 0:
+            mylog.info("There are no halos found.")
+            return
         for i in unique_ids:
             if i == -1:
                 cp += counts[i+1]
@@ -1183,6 +1189,9 @@ class parallelHF(GenericHaloFinder, parallelHOPHaloList):
         yt_counters("Final Grouping")
 
     def _join_halolists(self):
+        if self.group_count == 0:
+            mylog.info("There are no halos found.")
+            return
         ms = -self.Tot_M.copy()
         del self.Tot_M
         Cx = self.CoM[:,0].copy()
@@ -1207,10 +1216,8 @@ class HOPHaloFinder(GenericHaloFinder, HOPHaloList):
         if dm_only:
             select = self._get_dm_indices()
             total_mass = self._mpi_allsum((self._data_source["ParticleMassMsun"][select]).sum())
-            sub_mass = (self._data_source["ParticleMassMsun"][select]).sum()
         else:
             total_mass = self._mpi_allsum(self._data_source["ParticleMassMsun"].sum())
-            sub_mass = self._data_source["ParticleMassMsun"].sum()
         # MJT: Note that instead of this, if we are assuming that the particles
         # are all on different processors, we should instead construct an
         # object representing the entire domain and sum it "lazily" with
@@ -1220,6 +1227,10 @@ class HOPHaloFinder(GenericHaloFinder, HOPHaloList):
         self.bounds = (LE, RE)
         # reflect particles around the periodic boundary
         #self._reposition_particles((LE, RE))
+        if dm_only:
+            select = self._get_dm_indices()
+            sub_mass = self._data_source["ParticleMassMsun"][select].sum()
+        else:
         sub_mass = self._data_source["ParticleMassMsun"].sum()
         HOPHaloList.__init__(self, self._data_source, threshold*total_mass/sub_mass, dm_only)
         self._parse_halolist(total_mass/sub_mass)
