@@ -1762,7 +1762,6 @@ class AMR3DData(AMRData, GridPropertiesMixin):
         if cache: cached_fields = defaultdict(lambda: dict())
         else: cached_fields = None
         for level in range(num_levels):
-            self.clear_data()
             contours[level] = {}
             if cumulative:
                 mv = max_val
