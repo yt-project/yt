@@ -30,7 +30,7 @@ from yt.logger import lagosLogger as mylog
 import yt.extensions.HaloProfiler as HP
 
 import numpy as na
-import os, glob
+import os, glob, md5, time
 import h5py
 import types
 import sqlite3 as sql
@@ -134,6 +134,26 @@ class MergerTree(lagos.ParallelAnalysisInterface):
     def _close_database(self):
         # close the database cleanly.
         self.cursor.close()
+
+    def _ensure_db_sync(self):
+        # If the database becomes out of sync for each task, ostensibly due to
+        # parallel file system funniness, things will go bad very quickly.
+        # Therefore, just to be very, very careful, we will ensure that the
+        # md5 hash of the file is identical across all tasks before proceeding.
+        for i in range(5):
+            hash = md5.md5(self.database).hexdigest()
+            ignore, hashes = self._mpi_info_dict(hash)
+            hashes = set(hashes.values())
+            if len(hashes) == 1:
+                break
+            else:
+                # Wait a little bit for the file system to (hopefully) sync up.
+                time.sleep(5)
+        if len(hashes) == 1:
+            return
+        else:
+            mylog.error("The file system is not properly synchronizing the database.")
+            raise RunTimeError("Fatal error. Exiting.")
 
     def _create_halo_table(self):
         if self.mine == 0:
@@ -262,7 +282,7 @@ class MergerTree(lagos.ParallelAnalysisInterface):
                 parent_IDs = na.concatenate((parent_IDs, new_IDs[:]))
             # Loop over its children.
             temp_percents = {}
-            for child in candidates[halo]:
+            for child in self.candidates[halo]:
                 child_IDs = na.array([], dtype='int64')
                 for h5name in self.h5files[child_currt][child]:
                     new_IDs = self.h5fp[child_currt][h5name]['Halo%08d' % child]['particle_index']
@@ -280,7 +300,7 @@ class MergerTree(lagos.ParallelAnalysisInterface):
                 continue
             child_IDs = []
             child_per = []
-            for child in candidates[halo]:
+            for child in self.candidates[halo]:
                 # We need to get the GlobalHaloID for this child.
                 line = 'SELECT GlobalHaloID FROM Halos WHERE \
                 SnapCurrentTimeIdentifier=? AND SnapHaloID=?'
@@ -309,7 +329,10 @@ class MergerTree(lagos.ParallelAnalysisInterface):
         ChildHaloID4=?, ChildHaloFrac4=?\
         WHERE SnapCurrentTimeIdentifier=? AND SnapHaloID=?;'
         for i in range(self.size):
-            self._barrier()
+            # There's a _barrier inside _ensure_db_sync,
+            # so the loops are strictly sequential and only one task writes
+            # at a time.
+            self._ensure_db_sync()
             if i == self.mine:
                 for values in write_values:
                     self.cursor.execute(line, values)
