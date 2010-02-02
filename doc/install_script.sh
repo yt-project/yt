@@ -269,6 +269,8 @@ then
         cd ..
     fi
     export HDF5_DIR=${DEST_DIR}
+else
+    export HDF5_DIR=${HDF5_DIR}
 fi
 export HDF5_API=16
 
