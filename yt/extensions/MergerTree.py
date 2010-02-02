@@ -36,6 +36,41 @@ import types
 import sqlite3 as sql
 from collections import defaultdict
 
+column_types = {
+"GlobalHaloID":"INTEGER",
+"SnapCurrentTimeIdentifier":"INTEGER",
+"SnapZ":"FLOAT",
+"SnapHaloID":"INTEGER",
+"DarkMatterMass":"FLOAT",
+"NumPart":"INTEGER",
+"CenMassX":"FLOAT",
+"CenMassY":"FLOAT",
+"CenMassZ":"FLOAT",
+"BulkVelX":"FLOAT",
+"BulkVelY":"FLOAT",
+"BulkVelZ":"FLOAT",
+"MaxRad":"FLOAT",
+"ChildHaloID0":"INTEGER",
+"ChildHaloFrac0":"FLOAT",
+"ChildHaloID1":"INTEGER",
+"ChildHaloFrac1":"FLOAT",
+"ChildHaloID2":"INTEGER",
+"ChildHaloFrac2":"FLOAT",
+"ChildHaloID3":"INTEGER",
+"ChildHaloFrac3":"FLOAT",
+"ChildHaloID4":"INTEGER", 
+"ChildHaloFrac4":"FLOAT"}
+
+# In order.
+columns = ["GlobalHaloID", "SnapCurrentTimeIdentifier", "SnapZ", 
+"SnapHaloID", "DarkMatterMass", "NumPart", "CenMassX", "CenMassY",
+"CenMassZ", "BulkVelX", "BulkVelY", "BulkVelZ", "MaxRad",
+"ChildHaloID0", "ChildHaloFrac0",
+"ChildHaloID1", "ChildHaloFrac1",
+"ChildHaloID2", "ChildHaloFrac2",
+"ChildHaloID3", "ChildHaloFrac3",
+"ChildHaloID4", "ChildHaloFrac4"]
+
 class MergerTree(lagos.ParallelAnalysisInterface):
     def __init__(self, restart_files=[], database='halos.db',
             halo_finder_function=HaloFinder, halo_finder_threshold=80.0):
@@ -518,4 +553,57 @@ class MergerTreeDotOutput(lagos.ParallelAnalysisInterface):
         # Also write out the unlinked boxes for the redshifts.
         line = '{"%1.5f" [label="{%1.5f}", shape="record" color="green"];}\n' \
             % (z, z)
+
+class MergerTreeTextOutput(lagos.ParallelAnalysisInterface):
+    def __init__(self, database='halos.db', outfile='MergerTreeDB.txt'):
+        self.database = database
+        self.outfile = outfile
+        result = self._open_database()
+        if not result:
+            return None
+        self._close_database()
+
+    def _open_database(self):
+        # open the database. Check to make sure the database file exists.
+        if not os.path.exists(self.database):
+            mylog.error("The database file %s cannot be found. Exiting." % \
+                self.database)
+            return False
+        self.conn = sql.connect(self.database)
+        self.cursor = self.conn.cursor()
+        return True
+    
+    def _close_database(self):
+        self.cursor.close()
+    
+    def _write_out(self):
+        # Essentially dump the contents of the database into a text file.
+        fp = open(self.outfile, "w")
+        # Make the header line.
+        spacing = {}
+        for column in columns:
+            spacing[column] = (max(15,len(column)+1))
+        line = "# "
+        for column in columns:
+            line += "%s" % column.ljust(spacing[column])
+        line += "\n"
+        fp.write(line)
+        # Get the data.
+        line = "SELECT * FROM Halos ORDER BY SnapZ DESC, SnapHaloID ASC;"
+        self.cursor.execute(line)
+        results = self.cursor.fetchone()
+        # Write out the columns.
+        while results:
+            line = "  "
+            for i,column in enumerate(columns):
+                if column_types[column] == "FLOAT":
+                    this = "%1.6e" % results[i]
+                    line += this.ljust(spacing[column])
+                if column_types[column] == "INTEGER":
+                    this = "%d" % results[i]
+                    line += this.ljust(spacing[column])
+            line += "\n"
+            fp.write(line)
+            results = self.cursor.fetchone()
+        fp.close()
         
