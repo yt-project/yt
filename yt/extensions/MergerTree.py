@@ -561,6 +561,7 @@ class MergerTreeTextOutput(lagos.ParallelAnalysisInterface):
         result = self._open_database()
         if not result:
             return None
+        self._write_out()
         self._close_database()
 
     def _open_database(self):
