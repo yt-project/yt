@@ -89,11 +89,13 @@ class DatabaseFunctions(object):
 
 class MergerTree(DatabaseFunctions, lagos.ParallelAnalysisInterface):
     def __init__(self, restart_files=[], database='halos.db',
-            halo_finder_function=HaloFinder, halo_finder_threshold=80.0):
+            halo_finder_function=HaloFinder, halo_finder_threshold=80.0,
+            FOF_link_length=0.2):
         self.restart_files = restart_files # list of enzo restart files
         self.database = database # the sqlite database of haloes.
         self.halo_finder_function = halo_finder_function # which halo finder to use
         self.halo_finder_threshold = halo_finder_threshold # overdensity threshold
+        self.FOF_link_length= FOF_link_length # For FOF
         # MPI stuff
         self.mine = self._mpi_get_rank()
         if self.mine is None:
@@ -133,8 +135,12 @@ class MergerTree(DatabaseFunctions, lagos.ParallelAnalysisInterface):
                 pass
             else:
                 # Run the halo finder.
-                halos = self.halo_finder_function(pf,
-                    threshold=self.halo_finder_threshold, dm_only=True)
+                if self.halo_finder_function == yt.lagos.HaloFinding.FOFHaloFinder:
+                    halos = self.halo_finder_function(pf,
+                        link=self.FOF_link_length, dm_only=True)
+                else:
+                    halos = self.halo_finder_function(pf,
+                        threshold=self.halo_finder_threshold, dm_only=True)
                 halos.write_out(os.path.join(dir, 'MergerHalos.out'))
                 halos.write_particle_lists(os.path.join(dir, 'MergerHalos'))
                 halos.write_particle_lists_txt(os.path.join(dir, 'MergerHalos'))
@@ -188,7 +194,15 @@ class MergerTree(DatabaseFunctions, lagos.ParallelAnalysisInterface):
         # Therefore, just to be very, very careful, we will ensure that the
         # md5 hash of the file is identical across all tasks before proceeding.
         for i in range(5):
-            hash = md5.md5(self.database).hexdigest()
+            try:
+                file = open(self.database)
+            except IOError:
+                # This is to give a little bit of time for the database creation
+                # to replicate across the file system.
+                time.sleep(5)
+                file = open(self.database)
+            hash = md5.md5(file.read()).hexdigest()
+            file.close()
             ignore, hashes = self._mpi_info_dict(hash)
             hashes = set(hashes.values())
             if len(hashes) == 1:
@@ -269,6 +283,11 @@ class MergerTree(DatabaseFunctions, lagos.ParallelAnalysisInterface):
             nIDs = []
             for n in neighbors.points:
                 nIDs.append(n[1].ID)
+            if len(nIDs) < 5:
+                # We need to fill in fake halos if there aren't enough halos,
+                # which can happen at high redshifts.
+                while len(nIDs) < 5:
+                    nIDs.append(-1)
             candidates[row[0]] = nIDs
         
         self.candidates = candidates
@@ -333,6 +352,11 @@ class MergerTree(DatabaseFunctions, lagos.ParallelAnalysisInterface):
             # Loop over its children.
             temp_percents = {}
             for child in self.candidates[halo]:
+                if child == -1:
+                    # If this is a fake child, record zero contribution and move
+                    # on.
+                    temp_percents[-1] = 0.
+                    continue
                 child_IDs = na.array([], dtype='int64')
                 for h5name in self.h5files[child_currt][child]:
                     new_IDs = self.h5fp[child_currt][h5name]['Halo%08d' % child]['particle_index']
@@ -353,6 +377,11 @@ class MergerTree(DatabaseFunctions, lagos.ParallelAnalysisInterface):
             child_IDs = []
             child_per = []
             for child in self.candidates[halo]:
+                if child == -1:
+                    # Account for fake children.
+                    child_IDs.append(-1)
+                    child_per.append(0.)
+                    continue
                 # We need to get the GlobalHaloID for this child.
                 line = 'SELECT GlobalHaloID FROM Halos WHERE \
                 SnapCurrentTimeIdentifier=? AND SnapHaloID=?'
