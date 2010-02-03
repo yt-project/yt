@@ -71,7 +71,23 @@ columns = ["GlobalHaloID", "SnapCurrentTimeIdentifier", "SnapZ",
 "ChildHaloID3", "ChildHaloFrac3",
 "ChildHaloID4", "ChildHaloFrac4"]
 
-class MergerTree(lagos.ParallelAnalysisInterface):
+class DatabaseFunctions(object):
+    # Common database functions so it doesn't have to be repeated.
+    def _open_database(self):
+        # open the database. Check to make sure the database file exists.
+        if not os.path.exists(self.database):
+            mylog.error("The database file %s cannot be found. Exiting." % \
+                self.database)
+            return False
+        self.conn = sql.connect(self.database)
+        self.cursor = self.conn.cursor()
+        return True
+
+    def _close_database(self):
+        # close the database cleanly.
+        self.cursor.close()
+
+class MergerTree(DatabaseFunctions, lagos.ParallelAnalysisInterface):
     def __init__(self, restart_files=[], database='halos.db',
             halo_finder_function=HaloFinder, halo_finder_threshold=80.0):
         self.restart_files = restart_files # list of enzo restart files
@@ -86,7 +102,7 @@ class MergerTree(lagos.ParallelAnalysisInterface):
         if self.size is None:
             self.size = 1
         # Get to work.
-        self._open_database()
+        self._open_create_database()
         self._create_halo_table()
         self._run_halo_finder_add_to_db()
         # Find the h5 file names for all the halos.
@@ -156,19 +172,15 @@ class MergerTree(lagos.ParallelAnalysisInterface):
             self._barrier()
             del hp
     
-    def _open_database(self):
+    def _open_create_database(self):
         # open the database. This creates the database file on disk if it
         # doesn't already exist. Open it first on root, and then on the others.
         if self.mine == 0:
             self.conn = sql.connect(self.database)
-        self._barrier()
+        self._ensure_db_sync()
         if self.mine != 0:
             self.conn = sql.connect(self.database)
         self.cursor = self.conn.cursor()
-    
-    def _close_database(self):
-        # close the database cleanly.
-        self.cursor.close()
 
     def _ensure_db_sync(self):
         # If the database becomes out of sync for each task, ostensibly due to
@@ -309,12 +321,15 @@ class MergerTree(lagos.ParallelAnalysisInterface):
                 continue
             # Read in its particle IDs
             parent_IDs = na.array([], dtype='int64')
+            parent_masses = na.array([], dtype='float64')
             for h5name in self.h5files[parent_currt][halo]:
                 # Get the correct time dict entry, and then the correct h5 file
                 # from that snapshot, and then choose this parent's halo
                 # group, and then the particle IDs. How's that for a long reach?
                 new_IDs = self.h5fp[parent_currt][h5name]['Halo%08d' % halo]['particle_index']
+                new_masses = self.h5fp[parent_currt][h5name]['Halo%08d' % halo]['ParticleMassMsun']
                 parent_IDs = na.concatenate((parent_IDs, new_IDs[:]))
+                parent_masses = na.concatenate((parent_masses, new_masses[:]))
             # Loop over its children.
             temp_percents = {}
             for child in self.candidates[halo]:
@@ -324,8 +339,10 @@ class MergerTree(lagos.ParallelAnalysisInterface):
                     child_IDs = na.concatenate((child_IDs, new_IDs[:]))
                 # The IDs shared by both halos.
                 intersect = na.intersect1d(parent_IDs, child_IDs)
-                # The fraction shared from the parent halo.
-                temp_percents[child] = float(intersect.size) / parent_IDs.size
+                # Pick out the parent particles that go to the child.
+                select = na.in1d(parent_IDs, intersect)
+                # The fraction by mass of the parent that goes to the child.
+                temp_percents[child] = parent_masses[select].sum() / parent_masses.sum()
             child_percents[halo] = temp_percents
         
         # Now we prepare a big list of writes to put in the database.
@@ -373,6 +390,30 @@ class MergerTree(lagos.ParallelAnalysisInterface):
                     self.cursor.execute(line, values)
                 self.conn.commit()
 
+class MergerTreeConnect(DatabaseFunctions):
+    def __init__(self, database='halos.db'):
+        self.database = database
+        result = self._open_database()
+        if not result:
+            return None
+    
+    def close(self):
+        # To be more like typical Python open/close.
+        self._close_database()
+    
+    def query(self, string):
+        # Query the database and return a list of tuples.
+        if string is None:
+            mylog.error("You must enter a SQL query.")
+            return None
+        items = []
+        self.cursor.execute(string)
+        results = self.cursor.fetchone()
+        while results:
+            items.append(results)
+            results = self.cursor.fetchone()
+        return items
+
 class Node(object):
     def __init__(self, CoM, mass, parentIDs, z, color):
         self.CoM = CoM
@@ -386,9 +427,9 @@ class Link(object):
         self.childIDs = []
         self.fractions = []
 
-class MergerTreeDotOutput(lagos.ParallelAnalysisInterface):
+class MergerTreeDotOutput(DatabaseFunctions, lagos.ParallelAnalysisInterface):
     def __init__(self, halos=None, database='halos.db',
-            dotfile='MergerTree.dot', current_time=None, link_min=0.2):
+            dotfile='MergerTree.gv', current_time=None, link_min=0.2):
         self.database = database
         self.link_min = link_min
         if halos is None:
@@ -425,19 +466,6 @@ class MergerTreeDotOutput(lagos.ParallelAnalysisInterface):
         self._write_levels()
         self._close_dot()
         self._close_database()
-
-    def _open_database(self):
-        # open the database. Check to make sure the database file exists.
-        if not os.path.exists(self.database):
-            mylog.error("The database file %s cannot be found. Exiting." % \
-                self.database)
-            return False
-        self.conn = sql.connect(self.database)
-        self.cursor = self.conn.cursor()
-        return True
-    
-    def _close_database(self):
-        self.cursor.close()
 
     def _translate_haloIDs(self, halos, current_time):
         # If the input is in the haloID equivalent to SnapHaloID, translate them
@@ -554,7 +582,7 @@ class MergerTreeDotOutput(lagos.ParallelAnalysisInterface):
         line = '{"%1.5f" [label="{%1.5f}", shape="record" color="green"];}\n' \
             % (z, z)
 
-class MergerTreeTextOutput(lagos.ParallelAnalysisInterface):
+class MergerTreeTextOutput(DatabaseFunctions, lagos.ParallelAnalysisInterface):
     def __init__(self, database='halos.db', outfile='MergerTreeDB.txt'):
         self.database = database
         self.outfile = outfile
@@ -563,19 +591,6 @@ class MergerTreeTextOutput(lagos.ParallelAnalysisInterface):
             return None
         self._write_out()
         self._close_database()
-
-    def _open_database(self):
-        # open the database. Check to make sure the database file exists.
-        if not os.path.exists(self.database):
-            mylog.error("The database file %s cannot be found. Exiting." % \
-                self.database)
-            return False
-        self.conn = sql.connect(self.database)
-        self.cursor = self.conn.cursor()
-        return True
-    
-    def _close_database(self):
-        self.cursor.close()
     
     def _write_out(self):
         # Essentially dump the contents of the database into a text file.
