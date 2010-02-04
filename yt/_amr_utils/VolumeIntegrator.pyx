@@ -75,6 +75,7 @@ cdef class TransferFunctionProxy:
     cdef np.float64_t x_bounds[2]
     cdef np.float64_t *vs[4]
     cdef int nbins
+    cdef public int ns
     cdef np.float64_t dbin
     cdef np.float64_t light_color[3]
     cdef np.float64_t light_dir[3]
@@ -215,7 +216,6 @@ cdef class PartitionedGrid:
     cdef np.float64_t right_edge[3]
     cdef np.float64_t dds[3]
     cdef public np.float64_t min_dds
-    cdef int ns
     cdef int dims[3]
 
     @cython.boundscheck(False)
@@ -244,7 +244,6 @@ cdef class PartitionedGrid:
         # turn.  Might benefit from a more sophisticated intersection check,
         # like http://courses.csusm.edu/cs697exz/ray_box.htm
         cdef int vi, vj, hit, i, ni, nj, nn
-        self.ns = 5 #* (1 + <int> log2(self.dds[0] / self.min_dds))
         cdef int iter[4]
         cdef np.float64_t v_pos[3], v_dir[3], rgba[4], extrema[4]
         self.calculate_extent(vp, extrema)
@@ -396,8 +395,8 @@ cdef class PartitionedGrid:
         cdef np.float64_t cp[3], dp[3], temp, dt, t, dv
         cdef np.float64_t grad[3]
         cdef int dti, i
-        dt = (exit_t - enter_t) / (self.ns-1) # five samples, so divide by four
-        for dti in range(self.ns - 1):
+        dt = (exit_t - enter_t) / (tf.ns-1) # five samples, so divide by four
+        for dti in range(tf.ns - 1):
             t = enter_t + dt * dti
             for i in range(3):
                 cp[i] = v_pos[i] + t * v_dir[i]

@@ -28,7 +28,9 @@ from yt.extensions.volume_rendering import *
 from yt.funcs import *
 
 def direct_ray_cast(pf, L, center, W, Nvec, tf, 
-                    partitioned_grids = None, field = 'Density', log_field = True, whole_box=False):
+                    partitioned_grids = None, field = 'Density',
+                    log_field = True, whole_box=False,
+                    nsamples = 5):
     center = na.array(center, dtype='float64')
 
     # This just helps us keep track of stuff, and it's cheap
@@ -85,6 +87,7 @@ def direct_ray_cast(pf, L, center, W, Nvec, tf,
     print tf.light_dir
     
     tfp = TransferFunctionProxy(tf)
+    tfp.ns = nsamples
 
     pbar = get_pbar("Ray casting ", len(partitioned_grids))
     for i,g in enumerate(partitioned_grids[ind]):
