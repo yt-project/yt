@@ -34,6 +34,10 @@
 
 #include "numpy/ndarrayobject.h"
 
+#ifndef npy_float128
+#define npy_float128 npy_longdouble
+#endif
+
 
 static PyObject *_hdf5ReadError;
 herr_t iterate_dataset(hid_t loc_id, const char *name, void *nodelist);
