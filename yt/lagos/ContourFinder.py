@@ -262,7 +262,6 @@ def identify_contours(data_source, field, min_val, max_val,
     total_contours = 0
     tree = []
     for gi,grid in enumerate(grids):
-        grid.clear_data()
         pbar.update(gi+1)
         cm = data_source._get_cut_mask(grid)
         if cm is True: cm = na.ones(grid.ActiveDimensions, dtype='bool')
