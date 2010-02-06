@@ -342,6 +342,12 @@ add_field('StarAgeYears', units="\rm{yr}",
           function=_StarAge,
           projection_conversion="1")
 
+def _IsStarParticle(field, data):
+    is_star = (data['creation_time'] > 0).astype('float64')
+    return is_star
+add_field('IsStarParticle', function=_IsStarParticle,
+          particle_type = True)
+
 #
 # Now we do overrides for 2D fields
 #

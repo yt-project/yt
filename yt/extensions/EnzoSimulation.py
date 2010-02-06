@@ -154,7 +154,13 @@ class EnzoSimulation(object):
         else:
             self.redshiftOutputs = []
 
-        self.allOutputs = self.redshiftOutputs + self.timeOutputs
+        if self.get_time_outputs and self.get_redshift_outputs:
+            self.allOutputs = self.redshiftOutputs + self.timeOutputs
+        elif self.get_time_outputs and not self.get_redshift_outputs:
+            self.allOutputs = self.timeOutputs
+        elif not self.get_time_outputs and self.get_redshift_outputs:
+            self.allOutputs = self.redshiftOutputs
+
         self.allOutputs.sort(key=lambda obj:obj['time'])
 
         start_index = None
@@ -239,7 +245,7 @@ class EnzoSimulation(object):
         self.enzoParameters['GlobalDir'] = "."
         self.enzoParameters['RedshiftDumpName'] = "RD"
         self.enzoParameters['RedshiftDumpDir'] = "RD"
-        self.enzoParameters['DataDumpName'] = "DD"
+        self.enzoParameters['DataDumpName'] = "data"
         self.enzoParameters['DataDumpDir'] = "DD"
         self.enzoParameters['ComovingCoordinates'] = 0
 
