@@ -204,7 +204,7 @@ class HaloMassFcn(lagos.ParallelAnalysisInterface):
             dis[self.num_sigma_bins-i-3] += dis[self.num_sigma_bins-i-2]
             if i == (self.num_sigma_bins - 3): break
 
-        self.dis = dis / self.pf['CosmologyComovingBoxSize']**3.0
+        self.dis = dis  / self.pf['CosmologyComovingBoxSize']**3.0 * self.hubble0**3.0
 
     def sigmaM(self):
         """
