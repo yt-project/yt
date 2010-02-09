@@ -108,7 +108,9 @@ cdef class TransferFunctionProxy:
         for i in range(3): self.light_dir[i] /= normval
         self.use_light = tf_obj.use_light
 
-    cdef np.float64_t interpolate(self, dv, channel):
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    cdef np.float64_t interpolate(self, np.float64_t dv, int channel):
         cdef int bin_id
         cdef np.float64_t bv, dx, dy, dd, tf
         dx = self.dbin
@@ -122,6 +124,8 @@ cdef class TransferFunctionProxy:
         tf = bv+dd*(dy/dx) 
         return tf
 
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
     cdef void eval_transfer(self, np.float64_t dt, np.float64_t dv,
                                     np.float64_t *rgba, np.float64_t *grad):
         cdef int i
@@ -180,6 +184,8 @@ cdef class VectorPlane:
         self.pdx = (self.bounds[1] - self.bounds[0])/self.nv
         self.pdy = (self.bounds[3] - self.bounds[2])/self.nv
 
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
     cdef void get_start_stop(self, np.float64_t *ex, int *rv):
         # Extrema need to be re-centered
         cdef np.float64_t cx, cy
@@ -292,7 +298,7 @@ cdef class PartitionedGrid:
         cdef int cur_ind[3], step[3], x, y, i, n, flat_ind, hit, direction
         cdef np.float64_t intersect_t = 1.0
         cdef np.float64_t intersect[3], tmax[3], tdelta[3]
-        cdef np.float64_t enter_t, dist, alpha, dt
+        cdef np.float64_t enter_t, dist, alpha, dt, exit_t
         cdef np.float64_t tr, tl, temp_x, temp_y, dv
         for i in range(3):
             if (v_dir[i] < 0):
@@ -305,26 +311,26 @@ cdef class PartitionedGrid:
             tr = (self.right_edge[i] - v_pos[i])/v_dir[i]
             temp_x = (v_pos[x] + tl*v_dir[x])
             temp_y = (v_pos[y] + tl*v_dir[y])
-            if self.left_edge[x] < temp_x and temp_x <= self.right_edge[x] and \
-               self.left_edge[y] < temp_y and temp_y <= self.right_edge[y] and \
+            if self.left_edge[x] <= temp_x and temp_x <= self.right_edge[x] and \
+               self.left_edge[y] <= temp_y and temp_y <= self.right_edge[y] and \
                0.0 <= tl and tl < intersect_t:
                 direction = i
                 intersect_t = tl
             temp_x = (v_pos[x] + tr*v_dir[x])
             temp_y = (v_pos[y] + tr*v_dir[y])
-            if self.left_edge[x] < temp_x and temp_x <= self.right_edge[x] and \
-               self.left_edge[y] < temp_y and temp_y <= self.right_edge[y] and \
+            if self.left_edge[x] <= temp_x and temp_x <= self.right_edge[x] and \
+               self.left_edge[y] <= temp_y and temp_y <= self.right_edge[y] and \
                0.0 <= tr and tr < intersect_t:
                 direction = i
                 intersect_t = tr
-        if self.left_edge[0] < v_pos[0] and v_pos[0] <= self.right_edge[0] and \
-           self.left_edge[1] < v_pos[1] and v_pos[1] <= self.right_edge[1] and \
-           self.left_edge[2] < v_pos[2] and v_pos[2] <= self.right_edge[2]:
+        if self.left_edge[0] <= v_pos[0] and v_pos[0] <= self.right_edge[0] and \
+           self.left_edge[1] <= v_pos[1] and v_pos[1] <= self.right_edge[1] and \
+           self.left_edge[2] <= v_pos[2] and v_pos[2] <= self.right_edge[2]:
             intersect_t = 0.0
         if not ((0.0 <= intersect_t) and (intersect_t < 1.0)): return 0
         for i in range(3):
             intersect[i] = v_pos[i] + intersect_t * v_dir[i]
-            cur_ind[i] = <int> lrint((intersect[i] +
+            cur_ind[i] = <int> floor((intersect[i] +
                                       step[i]*1e-8*self.dds[i] -
                                       self.left_edge[i])/self.dds[i])
             tmax[i] = (((cur_ind[i]+step[i])*self.dds[i])+
@@ -355,32 +361,36 @@ cdef class PartitionedGrid:
             hit += 1
             if tmax[0] < tmax[1]:
                 if tmax[0] < tmax[2]:
-                    self.sample_values(v_pos, v_dir, enter_t, tmax[0], cur_ind,
+                    exit_t = fmin(tmax[0], 1.0)
+                    self.sample_values(v_pos, v_dir, enter_t, fmin(tmax[0], 1.0), cur_ind,
                                        rgba, tf)
                     cur_ind[0] += step[0]
-                    dt = fmin(tmax[0], 1.0) - enter_t
+                    dt = exit_t - enter_t
                     enter_t = tmax[0]
                     tmax[0] += tdelta[0]
                 else:
-                    self.sample_values(v_pos, v_dir, enter_t, tmax[2], cur_ind,
+                    exit_t = fmin(tmax[2], 1.0)
+                    self.sample_values(v_pos, v_dir, enter_t, exit_t, cur_ind,
                                        rgba, tf)
                     cur_ind[2] += step[2]
-                    dt = fmin(tmax[2], 1.0) - enter_t
+                    dt = exit_t - enter_t
                     enter_t = tmax[2]
                     tmax[2] += tdelta[2]
             else:
                 if tmax[1] < tmax[2]:
-                    self.sample_values(v_pos, v_dir, enter_t, tmax[1], cur_ind,
+                    exit_t = fmin(tmax[1], 1.0)
+                    self.sample_values(v_pos, v_dir, enter_t, exit_t, cur_ind,
                                        rgba, tf)
                     cur_ind[1] += step[1]
-                    dt = fmin(tmax[1], 1.0) - enter_t
+                    dt = exit_t - enter_t
                     enter_t = tmax[1]
                     tmax[1] += tdelta[1]
                 else:
-                    self.sample_values(v_pos, v_dir, enter_t, tmax[2], cur_ind,
+                    exit_t = fmin(tmax[2], 1.0)
+                    self.sample_values(v_pos, v_dir, enter_t, exit_t, cur_ind,
                                        rgba, tf)
                     cur_ind[2] += step[2]
-                    dt = fmin(tmax[2], 1.0) - enter_t
+                    dt = exit_t - enter_t
                     enter_t = tmax[2]
                     tmax[2] += tdelta[2]
             if enter_t > 1.0: break
@@ -396,10 +406,11 @@ cdef class PartitionedGrid:
                             TransferFunctionProxy tf):
         cdef np.float64_t cp[3], dp[3], temp, dt, t, dv
         cdef np.float64_t grad[3]
+        grad[0] = grad[2] = grad[3] = 0.0
         cdef int dti, i
-        dt = (exit_t - enter_t) / tf.ns
-        for dti in range(tf.ns):
-            t = enter_t + dt * dti
+        dt = (exit_t - enter_t) / (tf.ns) # 4 samples should be dt=0.25
+        for dti in range(tf.ns): 
+            t = enter_t + dt/2. + dt * dti # for 4 samples go at (.125, .375, .625, .875)
             for i in range(3):
                 cp[i] = v_pos[i] + t * v_dir[i]
                 dp[i] = fclip(fmod(cp[i], self.dds[i])/self.dds[i], 0.0, 1.0)
