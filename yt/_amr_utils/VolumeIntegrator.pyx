@@ -353,14 +353,14 @@ cdef class PartitionedGrid:
             hit += 1
             if tmax[0] < tmax[1]:
                 if tmax[0] < tmax[2]:
-                    self.sample_values(v_pos, v_dir, enter_t, tmax[0], cur_ind,
+                    self.sample_values(v_pos, v_dir, enter_t, fmin(tmax[0], 1.0), cur_ind,
                                        rgba, tf)
                     cur_ind[0] += step[0]
                     dt = fmin(tmax[0], 1.0) - enter_t
                     enter_t = tmax[0]
                     tmax[0] += tdelta[0]
                 else:
-                    self.sample_values(v_pos, v_dir, enter_t, tmax[2], cur_ind,
+                    self.sample_values(v_pos, v_dir, enter_t, fmin(tmax[2], 1.0), cur_ind,
                                        rgba, tf)
                     cur_ind[2] += step[2]
                     dt = fmin(tmax[2], 1.0) - enter_t
@@ -368,14 +368,14 @@ cdef class PartitionedGrid:
                     tmax[2] += tdelta[2]
             else:
                 if tmax[1] < tmax[2]:
-                    self.sample_values(v_pos, v_dir, enter_t, tmax[1], cur_ind,
+                    self.sample_values(v_pos, v_dir, enter_t, fmin(tmax[1], 1.0), cur_ind,
                                        rgba, tf)
                     cur_ind[1] += step[1]
                     dt = fmin(tmax[1], 1.0) - enter_t
                     enter_t = tmax[1]
                     tmax[1] += tdelta[1]
                 else:
-                    self.sample_values(v_pos, v_dir, enter_t, tmax[2], cur_ind,
+                    self.sample_values(v_pos, v_dir, enter_t, fmin(tmax[2], 1.0), cur_ind,
                                        rgba, tf)
                     cur_ind[2] += step[2]
                     dt = fmin(tmax[2], 1.0) - enter_t
@@ -394,10 +394,11 @@ cdef class PartitionedGrid:
                             TransferFunctionProxy tf):
         cdef np.float64_t cp[3], dp[3], temp, dt, t, dv
         cdef np.float64_t grad[3]
+        grad[0] = grad[2] = grad[3] = 0.0
         cdef int dti, i
-        dt = (exit_t - enter_t) / (tf.ns-1) # five samples, so divide by four
-        for dti in range(tf.ns - 1):
-            t = enter_t + dt * dti
+        dt = (exit_t - enter_t) / (tf.ns) # 4 samples should be dt=0.25
+        for dti in range(tf.ns): 
+            t = enter_t + dt/2. + dt * dti # for 4 samples go at (.125, .375, .625, .875)
             for i in range(3):
                 cp[i] = v_pos[i] + t * v_dir[i]
                 dp[i] = fclip(fmod(cp[i], self.dds[i])/self.dds[i], 0, 1.0)
