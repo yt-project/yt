@@ -108,38 +108,37 @@ cdef class TransferFunctionProxy:
         for i in range(3): self.light_dir[i] /= normval
         self.use_light = tf_obj.use_light
 
-    cdef void eval_transfer(self, np.float64_t dt, np.float64_t dv,
-                                    np.float64_t *rgba, np.float64_t *grad):
-        cdef int i
+    cdef np.float64_t interpolate(self, dv, channel):
         cdef int bin_id
-        cdef np.float64_t tf, trgba[4], bv, dx, dy, dd, ta, dot_prod
+        cdef np.float64_t bv, dx, dy, dd, tf
         dx = self.dbin
-
-        # get source alpha first
-        # First locate our points
         bin_id = iclip(<int> floor((dv - self.x_bounds[0]) / dx),
                         0, self.nbins-2)
             # Recall that linear interpolation is y0 + (x-x0) * dx/dy
-        bv = self.vs[3][bin_id] # This is x0
-        dy = self.vs[3][bin_id+1]-bv # dy
+        bv = self.vs[channel][bin_id] # This is x0
+        dy = self.vs[channel][bin_id+1]-bv # dy
         dd = dv-(self.x_bounds[0] + bin_id * dx) # x - x0
             # This is our final value for transfer function on the entering face
         tf = bv+dd*(dy/dx) 
-        ta = tf  # Store the source alpha
+        return tf
+
+    cdef void eval_transfer(self, np.float64_t dt, np.float64_t dv,
+                                    np.float64_t *rgba, np.float64_t *grad):
+        cdef int i
+        cdef np.float64_t ta, tf, trgba[4], dot_prod
+
+        # get source alpha first
+        # First locate our points
+        ta = self.interpolate(dv, 3)  # Store the source alpha
         dot_prod = 0.0
         for i in range(3):
             dot_prod += self.light_dir[i] * grad[i]
-        #print dot_prod, grad[0], grad[1], grad[2]
         dot_prod = fmax(0.0, dot_prod)
         for i in range(3):
-            # Recall that linear interpolation is y0 + (x-x0) * dx/dy
-            bv = self.vs[i][bin_id] # This is x0
-            dy = self.vs[i][bin_id+1]-bv # dy
-            dd = dv-(self.x_bounds[0] + bin_id * dx) # x - x0
-            # This is our final value for transfer function on the entering face
-            tf = bv+dd*(dy/dx) + dot_prod * self.light_color[i]
+            tf = self.interpolate(dv, i) + dot_prod * self.light_color[i]
             # alpha blending
             rgba[i] += (1. - rgba[3])*ta*tf*dt
+        rgba[3] = ta*dt + (1. - ta*dt)*rgba[3]
         #update alpha
         rgba[3] += (1. - rgba[3])*ta*dt
         # We should really do some alpha blending.
@@ -306,30 +305,33 @@ cdef class PartitionedGrid:
             tr = (self.right_edge[i] - v_pos[i])/v_dir[i]
             temp_x = (v_pos[x] + tl*v_dir[x])
             temp_y = (v_pos[y] + tl*v_dir[y])
-            if self.left_edge[x] <= temp_x and temp_x <= self.right_edge[x] and \
-               self.left_edge[y] <= temp_y and temp_y <= self.right_edge[y] and \
+            if self.left_edge[x] < temp_x and temp_x <= self.right_edge[x] and \
+               self.left_edge[y] < temp_y and temp_y <= self.right_edge[y] and \
                0.0 <= tl and tl < intersect_t:
                 direction = i
                 intersect_t = tl
             temp_x = (v_pos[x] + tr*v_dir[x])
             temp_y = (v_pos[y] + tr*v_dir[y])
-            if self.left_edge[x] <= temp_x and temp_x <= self.right_edge[x] and \
-               self.left_edge[y] <= temp_y and temp_y <= self.right_edge[y] and \
+            if self.left_edge[x] < temp_x and temp_x <= self.right_edge[x] and \
+               self.left_edge[y] < temp_y and temp_y <= self.right_edge[y] and \
                0.0 <= tr and tr < intersect_t:
                 direction = i
                 intersect_t = tr
-        if self.left_edge[0] <= v_pos[0] and v_pos[0] <= self.right_edge[0] and \
-           self.left_edge[1] <= v_pos[1] and v_pos[1] <= self.right_edge[1] and \
-           self.left_edge[2] <= v_pos[2] and v_pos[2] <= self.right_edge[2]:
+        if self.left_edge[0] < v_pos[0] and v_pos[0] <= self.right_edge[0] and \
+           self.left_edge[1] < v_pos[1] and v_pos[1] <= self.right_edge[1] and \
+           self.left_edge[2] < v_pos[2] and v_pos[2] <= self.right_edge[2]:
             intersect_t = 0.0
         if not ((0.0 <= intersect_t) and (intersect_t < 1.0)): return 0
         for i in range(3):
             intersect[i] = v_pos[i] + intersect_t * v_dir[i]
-            cur_ind[i] = <int> floor((intersect[i] +
+            cur_ind[i] = <int> lrint((intersect[i] +
                                       step[i]*1e-8*self.dds[i] -
                                       self.left_edge[i])/self.dds[i])
             tmax[i] = (((cur_ind[i]+step[i])*self.dds[i])+
                         self.left_edge[i]-v_pos[i])/v_dir[i]
+            # This deals with the asymmetry in having our indices refer to the
+            # left edge of a cell, but the right edge of the brick being one
+            # extra zone out.
             if cur_ind[i] == self.dims[i] and step[i] < 0:
                 cur_ind[i] = self.dims[i] - 1
             if cur_ind[i] < 0 or cur_ind[i] >= self.dims[i]: return 0
@@ -395,12 +397,12 @@ cdef class PartitionedGrid:
         cdef np.float64_t cp[3], dp[3], temp, dt, t, dv
         cdef np.float64_t grad[3]
         cdef int dti, i
-        dt = (exit_t - enter_t) / (tf.ns-1) # five samples, so divide by four
-        for dti in range(tf.ns - 1):
+        dt = (exit_t - enter_t) / tf.ns
+        for dti in range(tf.ns):
             t = enter_t + dt * dti
             for i in range(3):
                 cp[i] = v_pos[i] + t * v_dir[i]
-                dp[i] = fclip(fmod(cp[i], self.dds[i])/self.dds[i], 0, 1.0)
+                dp[i] = fclip(fmod(cp[i], self.dds[i])/self.dds[i], 0.0, 1.0)
             dv = trilinear_interpolate(self.dims, ci, dp, self.data)
             if tf.use_light == 1:
                 eval_gradient(self.dims, ci, dp, self.data, grad)
