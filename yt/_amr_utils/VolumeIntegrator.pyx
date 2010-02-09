@@ -189,6 +189,7 @@ cdef class VectorPlane:
     cdef void get_start_stop(self, np.float64_t *ex, int *rv):
         # Extrema need to be re-centered
         cdef np.float64_t cx, cy
+        cdef int i
         cx = cy = 0.0
         for i in range(3):
             cx += self.center[i] * self.x_vec[i]
