@@ -76,7 +76,7 @@ cdef class TransferFunctionProxy:
     cdef np.float64_t *vs[4]
     cdef int nbins
     cdef public int ns
-    cdef np.float64_t dbin
+    cdef np.float64_t dbin, idbin
     cdef np.float64_t light_color[3]
     cdef np.float64_t light_dir[3]
     cdef int use_light
@@ -96,6 +96,7 @@ cdef class TransferFunctionProxy:
         self.x_bounds[1] = tf_obj.x_bounds[1]
         self.nbins = tf_obj.nbins
         self.dbin = (self.x_bounds[1] - self.x_bounds[0])/self.nbins
+        self.idbin = 1.0/self.dbin
         self.light_color[0] = tf_obj.light_color[0]
         self.light_color[1] = tf_obj.light_color[1]
         self.light_color[2] = tf_obj.light_color[2]
@@ -110,19 +111,18 @@ cdef class TransferFunctionProxy:
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
-    cdef np.float64_t interpolate(self, np.float64_t dv, int channel):
-        cdef int bin_id
-        cdef np.float64_t bv, dx, dy, dd, tf
-        dx = self.dbin
-        bin_id = iclip(<int> floor((dv - self.x_bounds[0]) / dx),
+    cdef void interpolate(self, np.float64_t dv, np.float64_t *trgba):
+        cdef int bin_id, channel
+        cdef np.float64_t bv, dy, dd, tf
+        bin_id = iclip(<int> floor((dv - self.x_bounds[0]) * self.idbin),
                         0, self.nbins-2)
             # Recall that linear interpolation is y0 + (x-x0) * dx/dy
-        bv = self.vs[channel][bin_id] # This is x0
-        dy = self.vs[channel][bin_id+1]-bv # dy
-        dd = dv-(self.x_bounds[0] + bin_id * dx) # x - x0
-            # This is our final value for transfer function on the entering face
-        tf = bv+dd*(dy/dx) 
-        return tf
+        dd = dv-(self.x_bounds[0] + bin_id * self.dbin) # x - x0
+        for channel in range(4):
+            bv = self.vs[channel][bin_id] # This is x0
+            dy = self.vs[channel][bin_id+1]-bv # dy
+                # This is our final value for transfer function on the entering face
+            trgba[channel] = bv+dd*dy*self.idbin
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -130,21 +130,20 @@ cdef class TransferFunctionProxy:
                                     np.float64_t *rgba, np.float64_t *grad):
         cdef int i
         cdef np.float64_t ta, tf, trgba[4], dot_prod
-
+        self.interpolate(dv, trgba) 
         # get source alpha first
         # First locate our points
-        ta = self.interpolate(dv, 3)  # Store the source alpha
         dot_prod = 0.0
         for i in range(3):
             dot_prod += self.light_dir[i] * grad[i]
         dot_prod = fmax(0.0, dot_prod)
         for i in range(3):
-            tf = self.interpolate(dv, i) + dot_prod * self.light_color[i]
             # alpha blending
-            rgba[i] += (1. - rgba[3])*ta*tf*dt
-        rgba[3] = ta*dt + (1. - ta*dt)*rgba[3]
+            tf = trgba[i] + dot_prod * self.light_color[i]
+            rgba[i] += (1. - rgba[3])*trgba[3]*tf*dt
+        rgba[3] = trgba[3]*dt + (1. - trgba[3]*dt)*rgba[3]
         #update alpha
-        rgba[3] += (1. - rgba[3])*ta*dt
+        rgba[3] += (1. - rgba[3])*trgba[3]*dt
         # We should really do some alpha blending.
         # Front to back blending is defined as:
         #  dst.rgb = dst.rgb + (1 - dst.a) * src.a * src.rgb
@@ -363,10 +362,9 @@ cdef class PartitionedGrid:
             if tmax[0] < tmax[1]:
                 if tmax[0] < tmax[2]:
                     exit_t = fmin(tmax[0], 1.0)
-                    self.sample_values(v_pos, v_dir, enter_t, fmin(tmax[0], 1.0), cur_ind,
+                    self.sample_values(v_pos, v_dir, enter_t, exit_t, cur_ind,
                                        rgba, tf)
                     cur_ind[0] += step[0]
-                    dt = exit_t - enter_t
                     enter_t = tmax[0]
                     tmax[0] += tdelta[0]
                 else:
@@ -374,7 +372,6 @@ cdef class PartitionedGrid:
                     self.sample_values(v_pos, v_dir, enter_t, exit_t, cur_ind,
                                        rgba, tf)
                     cur_ind[2] += step[2]
-                    dt = exit_t - enter_t
                     enter_t = tmax[2]
                     tmax[2] += tdelta[2]
             else:
@@ -383,7 +380,6 @@ cdef class PartitionedGrid:
                     self.sample_values(v_pos, v_dir, enter_t, exit_t, cur_ind,
                                        rgba, tf)
                     cur_ind[1] += step[1]
-                    dt = exit_t - enter_t
                     enter_t = tmax[1]
                     tmax[1] += tdelta[1]
                 else:
@@ -391,12 +387,13 @@ cdef class PartitionedGrid:
                     self.sample_values(v_pos, v_dir, enter_t, exit_t, cur_ind,
                                        rgba, tf)
                     cur_ind[2] += step[2]
-                    dt = exit_t - enter_t
                     enter_t = tmax[2]
                     tmax[2] += tdelta[2]
             if enter_t > 1.0: break
         return hit
 
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
     cdef void sample_values(self,
                             np.float64_t v_pos[3],
                             np.float64_t v_dir[3],
@@ -407,7 +404,7 @@ cdef class PartitionedGrid:
                             TransferFunctionProxy tf):
         cdef np.float64_t cp[3], dp[3], temp, dt, t, dv
         cdef np.float64_t grad[3]
-        grad[0] = grad[2] = grad[3] = 0.0
+        grad[0] = grad[1] = grad[2] = 0.0
         cdef int dti, i
         dt = (exit_t - enter_t) / (tf.ns) # 4 samples should be dt=0.25
         for dti in range(tf.ns): 
