@@ -45,7 +45,9 @@ cdef inline np.float64_t fmin(np.float64_t f0, np.float64_t f1):
     return f1
 
 cdef inline int iclip(int i, int a, int b):
-    return imin(imax(i, a), b)
+    if i < a: return a
+    if i > b: return b
+    return i
 
 cdef inline np.float64_t fclip(np.float64_t f,
                       np.float64_t a, np.float64_t b):
@@ -114,8 +116,7 @@ cdef class TransferFunctionProxy:
     cdef void interpolate(self, np.float64_t dv, np.float64_t *trgba):
         cdef int bin_id, channel
         cdef np.float64_t bv, dy, dd, tf
-        bin_id = iclip(<int> floor((dv - self.x_bounds[0]) * self.idbin),
-                        0, self.nbins-2)
+        bin_id = <int> ((dv - self.x_bounds[0]) * self.idbin)
         # Recall that linear interpolation is y0 + (x-x0) * dx/dy
         dd = dv-(self.x_bounds[0] + bin_id * self.dbin) # x - x0
         for channel in range(4):
@@ -138,17 +139,12 @@ cdef class TransferFunctionProxy:
             for i in range(3):
                 dot_prod += self.light_dir[i] * grad[i]
             dot_prod = fmax(0.0, dot_prod)
-        for i in range(3):
-            # alpha blending
-            tf = trgba[i] + dot_prod * self.light_color[i]
-            rgba[i] += (1. - rgba[3])*trgba[3]*tf*dt
-        rgba[3] = trgba[3]*dt + (1. - trgba[3]*dt)*rgba[3]
-        #update alpha
-        rgba[3] += (1. - rgba[3])*trgba[3]*dt
-        # We should really do some alpha blending.
-        # Front to back blending is defined as:
-        #  dst.rgb = dst.rgb + (1 - dst.a) * src.a * src.rgb
-        #  dst.a   = dst.a   + (1 - dst.a) * src.a     
+            for i in range(3):
+                trgba[i] += dot_prod*self.light_color[i]
+        # alpha blending
+        ta = (1.0 - rgba[3])*dt*trgba[3]
+        for i in range(4):
+            rgba[i] += ta*trgba[i]
 
 cdef class VectorPlane:
     cdef public object avp_pos, avp_dir, acenter, aimage
@@ -221,6 +217,7 @@ cdef class PartitionedGrid:
     cdef np.float64_t left_edge[3]
     cdef np.float64_t right_edge[3]
     cdef np.float64_t dds[3]
+    cdef np.float64_t idds[3]
     cdef public np.float64_t min_dds
     cdef int dims[3]
 
@@ -240,6 +237,7 @@ cdef class PartitionedGrid:
             self.right_edge[i] = right_edge[i]
             self.dims[i] = dims[i]
             self.dds[i] = (self.right_edge[i] - self.left_edge[i])/dims[i]
+            self.idds[i] = 1.0/self.dds[i]
         self.my_data = data
         self.data = <np.float64_t*> data.data
 
@@ -333,7 +331,7 @@ cdef class PartitionedGrid:
             intersect[i] = v_pos[i] + intersect_t * v_dir[i]
             cur_ind[i] = <int> floor((intersect[i] +
                                       step[i]*1e-8*self.dds[i] -
-                                      self.left_edge[i])/self.dds[i])
+                                      self.left_edge[i])*self.idds[i])
             tmax[i] = (((cur_ind[i]+step[i])*self.dds[i])+
                         self.left_edge[i]-v_pos[i])/v_dir[i]
             # This deals with the asymmetry in having our indices refer to the
@@ -403,19 +401,22 @@ cdef class PartitionedGrid:
                             int ci[3],
                             np.float64_t *rgba,
                             TransferFunctionProxy tf):
-        cdef np.float64_t cp[3], dp[3], left[3], temp, dt, t, dv
-        cdef np.float64_t grad[3]
+        cdef np.float64_t cp[3], dp[3], temp, dt, t, dv
+        cdef np.float64_t grad[3], ds[3]
         grad[0] = grad[1] = grad[2] = 0.0
         cdef int dti, i
         dt = (exit_t - enter_t) / (tf.ns) # 4 samples should be dt=0.25
         for i in range(3):
-            left[i] = self.dds[i] * ci[i] + self.left_edge[i]
+            temp = ci[i] * self.dds[i] + self.left_edge[i]
+            dp[i] = (enter_t + 0.5 * dt) * v_dir[i] + v_pos[i] - temp
+            dp[i] *= self.idds[i]
+            ds[i] = v_dir[i] * self.idds[i] * dt
         for dti in range(tf.ns): 
-            t = enter_t + dt/2. + dt * dti # for 4 samples go at (.125, .375, .625, .875)
             for i in range(3):
-                cp[i] = v_pos[i] + t * v_dir[i]
-                dp[i] = fclip((cp[i] - left[i])/self.dds[i], 0.0, 1.0)
+                dp[i] += ds[i]
             dv = trilinear_interpolate(self.dims, ci, dp, self.data)
+            if not ((dv > tf.x_bounds[0]) and (dv < tf.x_bounds[1])):
+                continue
             if tf.use_light == 1:
                 eval_gradient(self.dims, ci, dp, self.data, grad)
             tf.eval_transfer(dt, dv, rgba, grad)
