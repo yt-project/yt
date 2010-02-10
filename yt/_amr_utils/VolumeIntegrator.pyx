@@ -116,7 +116,7 @@ cdef class TransferFunctionProxy:
         cdef np.float64_t bv, dy, dd, tf
         bin_id = iclip(<int> floor((dv - self.x_bounds[0]) * self.idbin),
                         0, self.nbins-2)
-            # Recall that linear interpolation is y0 + (x-x0) * dx/dy
+        # Recall that linear interpolation is y0 + (x-x0) * dx/dy
         dd = dv-(self.x_bounds[0] + bin_id * self.dbin) # x - x0
         for channel in range(4):
             bv = self.vs[channel][bin_id] # This is x0
@@ -134,9 +134,10 @@ cdef class TransferFunctionProxy:
         # get source alpha first
         # First locate our points
         dot_prod = 0.0
-        for i in range(3):
-            dot_prod += self.light_dir[i] * grad[i]
-        dot_prod = fmax(0.0, dot_prod)
+        if self.use_light:
+            for i in range(3):
+                dot_prod += self.light_dir[i] * grad[i]
+            dot_prod = fmax(0.0, dot_prod)
         for i in range(3):
             # alpha blending
             tf = trgba[i] + dot_prod * self.light_color[i]
@@ -402,16 +403,18 @@ cdef class PartitionedGrid:
                             int ci[3],
                             np.float64_t *rgba,
                             TransferFunctionProxy tf):
-        cdef np.float64_t cp[3], dp[3], temp, dt, t, dv
+        cdef np.float64_t cp[3], dp[3], left[3], temp, dt, t, dv
         cdef np.float64_t grad[3]
         grad[0] = grad[1] = grad[2] = 0.0
         cdef int dti, i
         dt = (exit_t - enter_t) / (tf.ns) # 4 samples should be dt=0.25
+        for i in range(3):
+            left[i] = self.dds[i] * ci[i] + self.left_edge[i]
         for dti in range(tf.ns): 
             t = enter_t + dt/2. + dt * dti # for 4 samples go at (.125, .375, .625, .875)
             for i in range(3):
                 cp[i] = v_pos[i] + t * v_dir[i]
-                dp[i] = fclip(fmod(cp[i], self.dds[i])/self.dds[i], 0.0, 1.0)
+                dp[i] = fclip((cp[i] - left[i])/self.dds[i], 0.0, 1.0)
             dv = trilinear_interpolate(self.dims, ci, dp, self.data)
             if tf.use_light == 1:
                 eval_gradient(self.dims, ci, dp, self.data, grad)
