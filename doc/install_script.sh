@@ -99,6 +99,17 @@ function host_specific
 		echo "variables to get this to work..."
 		MPL_SUPP_LDFLAGS="-L${DEST_DIR}/lib -L${DEST_DIR}/lib64 -L/usr/local/lib64 -L/usr/local/lib"
     fi
+    if [ "${MYHOST##steele}" != "${MYHOST}" ]
+    then
+        echo "Looks like you're on Steele."
+        echo
+        echo "NOTE: YOU MUST BE IN THE GNU PROGRAMMING ENVIRONMENT"
+        echo "These commands should take care of that for you:"
+        echo
+        echo "   $ module purge"
+        echo "   $ module load gcc"
+        echo
+    fi
 }
 
 
