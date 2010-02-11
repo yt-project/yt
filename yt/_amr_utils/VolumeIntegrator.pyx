@@ -45,7 +45,9 @@ cdef inline np.float64_t fmin(np.float64_t f0, np.float64_t f1):
     return f1
 
 cdef inline int iclip(int i, int a, int b):
-    return imin(imax(i, a), b)
+    if i < a: return a
+    if i > b: return b
+    return i
 
 cdef inline np.float64_t fclip(np.float64_t f,
                       np.float64_t a, np.float64_t b):
@@ -76,7 +78,7 @@ cdef class TransferFunctionProxy:
     cdef np.float64_t *vs[4]
     cdef int nbins
     cdef public int ns
-    cdef np.float64_t dbin
+    cdef np.float64_t dbin, idbin
     cdef np.float64_t light_color[3]
     cdef np.float64_t light_dir[3]
     cdef int use_light
@@ -96,6 +98,7 @@ cdef class TransferFunctionProxy:
         self.x_bounds[1] = tf_obj.x_bounds[1]
         self.nbins = tf_obj.nbins
         self.dbin = (self.x_bounds[1] - self.x_bounds[0])/self.nbins
+        self.idbin = 1.0/self.dbin
         self.light_color[0] = tf_obj.light_color[0]
         self.light_color[1] = tf_obj.light_color[1]
         self.light_color[2] = tf_obj.light_color[2]
@@ -108,44 +111,40 @@ cdef class TransferFunctionProxy:
         for i in range(3): self.light_dir[i] /= normval
         self.use_light = tf_obj.use_light
 
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    cdef void interpolate(self, np.float64_t dv, np.float64_t *trgba):
+        cdef int bin_id, channel
+        cdef np.float64_t bv, dy, dd, tf
+        bin_id = <int> ((dv - self.x_bounds[0]) * self.idbin)
+        # Recall that linear interpolation is y0 + (x-x0) * dx/dy
+        dd = dv-(self.x_bounds[0] + bin_id * self.dbin) # x - x0
+        for channel in range(4):
+            bv = self.vs[channel][bin_id] # This is x0
+            dy = self.vs[channel][bin_id+1]-bv # dy
+                # This is our final value for transfer function on the entering face
+            trgba[channel] = bv+dd*dy*self.idbin
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
     cdef void eval_transfer(self, np.float64_t dt, np.float64_t dv,
                                     np.float64_t *rgba, np.float64_t *grad):
         cdef int i
-        cdef int bin_id
-        cdef np.float64_t tf, trgba[4], bv, dx, dy, dd, ta, dot_prod
-        dx = self.dbin
-
+        cdef np.float64_t ta, tf, trgba[4], dot_prod
+        self.interpolate(dv, trgba) 
         # get source alpha first
         # First locate our points
-        bin_id = iclip(<int> floor((dv - self.x_bounds[0]) / dx),
-                        0, self.nbins-2)
-            # Recall that linear interpolation is y0 + (x-x0) * dx/dy
-        bv = self.vs[3][bin_id] # This is x0
-        dy = self.vs[3][bin_id+1]-bv # dy
-        dd = dv-(self.x_bounds[0] + bin_id * dx) # x - x0
-            # This is our final value for transfer function on the entering face
-        tf = bv+dd*(dy/dx) 
-        ta = tf  # Store the source alpha
         dot_prod = 0.0
-        for i in range(3):
-            dot_prod += self.light_dir[i] * grad[i]
-        #print dot_prod, grad[0], grad[1], grad[2]
-        dot_prod = fmax(0.0, dot_prod)
-        for i in range(3):
-            # Recall that linear interpolation is y0 + (x-x0) * dx/dy
-            bv = self.vs[i][bin_id] # This is x0
-            dy = self.vs[i][bin_id+1]-bv # dy
-            dd = dv-(self.x_bounds[0] + bin_id * dx) # x - x0
-            # This is our final value for transfer function on the entering face
-            tf = bv+dd*(dy/dx) + dot_prod * self.light_color[i]
-            # alpha blending
-            rgba[i] += (1. - rgba[3])*ta*tf*dt
-        #update alpha
-        rgba[3] += (1. - rgba[3])*ta*dt
-        # We should really do some alpha blending.
-        # Front to back blending is defined as:
-        #  dst.rgb = dst.rgb + (1 - dst.a) * src.a * src.rgb
-        #  dst.a   = dst.a   + (1 - dst.a) * src.a     
+        if self.use_light:
+            for i in range(3):
+                dot_prod += self.light_dir[i] * grad[i]
+            dot_prod = fmax(0.0, dot_prod)
+            for i in range(3):
+                trgba[i] += dot_prod*self.light_color[i]
+        # alpha blending
+        ta = (1.0 - rgba[3])*dt*trgba[3]
+        for i in range(4):
+            rgba[i] += ta*trgba[i]
 
 cdef class VectorPlane:
     cdef public object avp_pos, avp_dir, acenter, aimage
@@ -181,9 +180,12 @@ cdef class VectorPlane:
         self.pdx = (self.bounds[1] - self.bounds[0])/self.nv
         self.pdy = (self.bounds[3] - self.bounds[2])/self.nv
 
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
     cdef void get_start_stop(self, np.float64_t *ex, int *rv):
         # Extrema need to be re-centered
         cdef np.float64_t cx, cy
+        cdef int i
         cx = cy = 0.0
         for i in range(3):
             cx += self.center[i] * self.x_vec[i]
@@ -215,6 +217,7 @@ cdef class PartitionedGrid:
     cdef np.float64_t left_edge[3]
     cdef np.float64_t right_edge[3]
     cdef np.float64_t dds[3]
+    cdef np.float64_t idds[3]
     cdef public np.float64_t min_dds
     cdef int dims[3]
 
@@ -234,6 +237,7 @@ cdef class PartitionedGrid:
             self.right_edge[i] = right_edge[i]
             self.dims[i] = dims[i]
             self.dds[i] = (self.right_edge[i] - self.left_edge[i])/dims[i]
+            self.idds[i] = 1.0/self.dds[i]
         self.my_data = data
         self.data = <np.float64_t*> data.data
 
@@ -293,7 +297,7 @@ cdef class PartitionedGrid:
         cdef int cur_ind[3], step[3], x, y, i, n, flat_ind, hit, direction
         cdef np.float64_t intersect_t = 1.0
         cdef np.float64_t intersect[3], tmax[3], tdelta[3]
-        cdef np.float64_t enter_t, dist, alpha, dt
+        cdef np.float64_t enter_t, dist, alpha, dt, exit_t
         cdef np.float64_t tr, tl, temp_x, temp_y, dv
         for i in range(3):
             if (v_dir[i] < 0):
@@ -327,9 +331,12 @@ cdef class PartitionedGrid:
             intersect[i] = v_pos[i] + intersect_t * v_dir[i]
             cur_ind[i] = <int> floor((intersect[i] +
                                       step[i]*1e-8*self.dds[i] -
-                                      self.left_edge[i])/self.dds[i])
+                                      self.left_edge[i])*self.idds[i])
             tmax[i] = (((cur_ind[i]+step[i])*self.dds[i])+
                         self.left_edge[i]-v_pos[i])/v_dir[i]
+            # This deals with the asymmetry in having our indices refer to the
+            # left edge of a cell, but the right edge of the brick being one
+            # extra zone out.
             if cur_ind[i] == self.dims[i] and step[i] < 0:
                 cur_ind[i] = self.dims[i] - 1
             if cur_ind[i] < 0 or cur_ind[i] >= self.dims[i]: return 0
@@ -353,37 +360,39 @@ cdef class PartitionedGrid:
             hit += 1
             if tmax[0] < tmax[1]:
                 if tmax[0] < tmax[2]:
-                    self.sample_values(v_pos, v_dir, enter_t, tmax[0], cur_ind,
+                    exit_t = fmin(tmax[0], 1.0)
+                    self.sample_values(v_pos, v_dir, enter_t, exit_t, cur_ind,
                                        rgba, tf)
                     cur_ind[0] += step[0]
-                    dt = fmin(tmax[0], 1.0) - enter_t
                     enter_t = tmax[0]
                     tmax[0] += tdelta[0]
                 else:
-                    self.sample_values(v_pos, v_dir, enter_t, tmax[2], cur_ind,
+                    exit_t = fmin(tmax[2], 1.0)
+                    self.sample_values(v_pos, v_dir, enter_t, exit_t, cur_ind,
                                        rgba, tf)
                     cur_ind[2] += step[2]
-                    dt = fmin(tmax[2], 1.0) - enter_t
                     enter_t = tmax[2]
                     tmax[2] += tdelta[2]
             else:
                 if tmax[1] < tmax[2]:
-                    self.sample_values(v_pos, v_dir, enter_t, tmax[1], cur_ind,
+                    exit_t = fmin(tmax[1], 1.0)
+                    self.sample_values(v_pos, v_dir, enter_t, exit_t, cur_ind,
                                        rgba, tf)
                     cur_ind[1] += step[1]
-                    dt = fmin(tmax[1], 1.0) - enter_t
                     enter_t = tmax[1]
                     tmax[1] += tdelta[1]
                 else:
-                    self.sample_values(v_pos, v_dir, enter_t, tmax[2], cur_ind,
+                    exit_t = fmin(tmax[2], 1.0)
+                    self.sample_values(v_pos, v_dir, enter_t, exit_t, cur_ind,
                                        rgba, tf)
                     cur_ind[2] += step[2]
-                    dt = fmin(tmax[2], 1.0) - enter_t
                     enter_t = tmax[2]
                     tmax[2] += tdelta[2]
             if enter_t > 1.0: break
         return hit
 
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
     cdef void sample_values(self,
                             np.float64_t v_pos[3],
                             np.float64_t v_dir[3],
@@ -393,15 +402,21 @@ cdef class PartitionedGrid:
                             np.float64_t *rgba,
                             TransferFunctionProxy tf):
         cdef np.float64_t cp[3], dp[3], temp, dt, t, dv
-        cdef np.float64_t grad[3]
+        cdef np.float64_t grad[3], ds[3]
+        grad[0] = grad[1] = grad[2] = 0.0
         cdef int dti, i
-        dt = (exit_t - enter_t) / (tf.ns-1) # five samples, so divide by four
-        for dti in range(tf.ns - 1):
-            t = enter_t + dt * dti
+        dt = (exit_t - enter_t) / (tf.ns) # 4 samples should be dt=0.25
+        for i in range(3):
+            temp = ci[i] * self.dds[i] + self.left_edge[i]
+            dp[i] = (enter_t + 0.5 * dt) * v_dir[i] + v_pos[i] - temp
+            dp[i] *= self.idds[i]
+            ds[i] = v_dir[i] * self.idds[i] * dt
+        for dti in range(tf.ns): 
             for i in range(3):
-                cp[i] = v_pos[i] + t * v_dir[i]
-                dp[i] = fclip(fmod(cp[i], self.dds[i])/self.dds[i], 0, 1.0)
+                dp[i] += ds[i]
             dv = trilinear_interpolate(self.dims, ci, dp, self.data)
+            if not ((dv > tf.x_bounds[0]) and (dv < tf.x_bounds[1])):
+                continue
             if tf.use_light == 1:
                 eval_gradient(self.dims, ci, dp, self.data, grad)
             tf.eval_transfer(dt, dv, rgba, grad)

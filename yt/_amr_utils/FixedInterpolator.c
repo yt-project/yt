@@ -97,8 +97,12 @@ npy_float64 eval_gradient(int *ds, int *ci, npy_float64 *dp,
       dp[i] = backup;
       normval += grad[i]*grad[i];
     }
-    normval = sqrt(normval);
-    for (i = 0; i < 3; i++) grad[i] /= -normval;
-    //fprintf(stderr, "Normval: %0.3lf %0.3lf %0.3lf %0.3lf\n",
-    //        normval, grad[0], grad[1], grad[2]);
+    if (normval != 0.0){
+      normval = sqrt(normval);
+      for (i = 0; i < 3; i++) grad[i] /= -normval;
+      //fprintf(stderr, "Normval: %0.3lf %0.3lf %0.3lf %0.3lf\n",
+      //        normval, grad[0], grad[1], grad[2]);
+    }else{
+      grad[0]=grad[1]=grad[2]=0.0;
+    }
 }
