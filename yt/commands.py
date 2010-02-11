@@ -213,7 +213,7 @@ def _get_vcs_type(path):
     return None
 
 def _get_svn_version(path):
-    p = subprocess.Popen(["svnversion", path], stdout = subprocess.PIPE,
+    p = subprocess.Popen(["svn", "info", path], stdout = subprocess.PIPE,
                                                stderr = subprocess.STDOUT)
     stdout, stderr = p.communicate()
     return stdout
@@ -322,7 +322,11 @@ class YTCommands(cmdln.Cmdln):
             vstring = _vcs_identifier[vc_type](path)
             print
             print "The current version of the code is:"
-            print "     %s" % (vstring)
+            print
+            print "---"
+            print vstring
+            print "---"
+            print
             print "This installation CAN be automatically updated."
             if opts.update_source:  
                 _vcs_updater[vc_type](path)
