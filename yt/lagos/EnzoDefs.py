@@ -85,7 +85,7 @@ mpc_conversion = {'mpc'   : 1e0,
                   'kpc'   : 1e3,
                   'pc'    : 1e6,
                   'au'    : 2.063e11,
-                  'rsun'  : 2.2167e13,
+                  'rsun'  : 4.43664e13,
                   'cm'    : 3.0857e24,
                   'miles' : 1.917e19}
 

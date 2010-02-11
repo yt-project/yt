@@ -249,7 +249,10 @@ class AMRHierarchy(ObjectFindingMixin, ParallelAnalysisInterface):
             return None
 
         full_name = "%s/%s" % (node, name)
-        return self._data_file[full_name][:]
+        try:
+            return self._data_file[full_name][:]
+        except TypeError:
+            return self._data_file[full_name]
 
     def _close_data_file(self):
         if self._data_file:

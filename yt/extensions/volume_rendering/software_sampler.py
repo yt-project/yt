@@ -28,7 +28,9 @@ from yt.extensions.volume_rendering import *
 from yt.funcs import *
 
 def direct_ray_cast(pf, L, center, W, Nvec, tf, 
-                    partitioned_grids = None, field = 'Density', log_field = True, whole_box=False):
+                    partitioned_grids = None, field = 'Density',
+                    log_field = True, whole_box=False,
+                    nsamples = 5):
     center = na.array(center, dtype='float64')
 
     # This just helps us keep track of stuff, and it's cheap
@@ -72,7 +74,6 @@ def direct_ray_cast(pf, L, center, W, Nvec, tf,
     norm_vec = cp._norm_vec * (2.0*W*na.sqrt(3))
     hit = 0
     tnow = time.time()
-    every = na.ceil(len(partitioned_grids) / 100.0)
 
     vp = VectorPlane(vectors, norm_vec, back_center,
                      (xp0, xp1, yp0, yp1), image, cp._x_vec, cp._y_vec)
@@ -85,12 +86,16 @@ def direct_ray_cast(pf, L, center, W, Nvec, tf,
     print tf.light_dir
     
     tfp = TransferFunctionProxy(tf)
+    tfp.ns = nsamples
 
-    pbar = get_pbar("Ray casting ", len(partitioned_grids))
+
+    total_cells = sum(na.prod(g.my_data.shape) for g in partitioned_grids)
+    pbar = get_pbar("Ray casting ", total_cells)
+    total_cells = 0
     for i,g in enumerate(partitioned_grids[ind]):
-        if (i % every) == 0: 
-            pbar.update(i)
+        pbar.update(total_cells)
         pos = g.cast_plane(tfp, vp)
+        total_cells += na.prod(g.my_data.shape)
     pbar.finish()
 
     return partitioned_grids[ind], image, vectors, norm_vec, pos
