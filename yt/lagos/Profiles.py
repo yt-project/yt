@@ -166,9 +166,9 @@ class BinnedProfile(ParallelAnalysisInterface):
                 # is_fully_enclosed to baryon fields, because child cells get
                 # in the way.
                 if field in self.pf.field_info \
-                    and self.pf.field_info[field].particle_type \
-                    and not self._data_source._is_fully_enclosed(source):
-                    pointI = self._data_source._get_particle_indices(source)
+                    and self.pf.field_info[field].particle_type:
+                    if not self._data_source._is_fully_enclosed(source):
+                        pointI = self._data_source._get_particle_indices(source)
                 else:
                     pointI = self._data_source._get_point_indices(source)
             data.append(source[field][pointI].ravel().astype('float64'))

@@ -178,8 +178,9 @@ class HaloMassFcn(lagos.ParallelAnalysisInterface):
         """
         mylog.info("Reading halo masses from %s" % self.halo_file)
         f = open(self.halo_file,'r')
-        line = f.readline() # burn the top header line.
         line = f.readline()
+        while line[0] == '#':
+            line = f.readline()
         self.haloes = []
         while line:
             line = line.split()
@@ -203,7 +204,7 @@ class HaloMassFcn(lagos.ParallelAnalysisInterface):
             dis[self.num_sigma_bins-i-3] += dis[self.num_sigma_bins-i-2]
             if i == (self.num_sigma_bins - 3): break
 
-        self.dis = dis / self.pf['CosmologyComovingBoxSize']**3.0
+        self.dis = dis  / self.pf['CosmologyComovingBoxSize']**3.0 * self.hubble0**3.0
 
     def sigmaM(self):
         """
