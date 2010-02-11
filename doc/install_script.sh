@@ -309,8 +309,11 @@ fi
 # This fixes problems with gfortran linking.
 unset LDFLAGS 
 
-echo "Installing setuptools"
-( ${DEST_DIR}/bin/python2.6 ${YT_DIR}/ez_setup.py 2>&1 ) 1>> ${LOG_FILE} || do_exit
+echo "Installing distribute"
+( ${DEST_DIR}/bin/python2.6 ${YT_DIR}/distribute_setup.py 2>&1 ) 1>> ${LOG_FILE} || do_exit
+
+echo "Installing pip"
+( ${DEST_DIR}/bin/easy_install-2.6 pip 2>&1 ) 1>> ${LOG_FILE} || do_exit
 
 do_setup_py numpy-1.3.0 ${NUMPY_ARGS}
 
@@ -338,13 +341,13 @@ cd $MY_PWD
 if [ $INST_HG -eq 1 ]
 then
     echo "Installing Mercurial."
-    ( ${DEST_DIR}/bin/easy_install-2.6 mercurial 2>&1 ) 1>> ${LOG_FILE} || do_exit
+    ( ${DEST_DIR}/bin/pip install -U mercurial 2>&1 ) 1>> ${LOG_FILE} || do_exit
 fi
 
 if [ $INST_WXPYTHON -eq 1 ] && [ $INST_TRAITS -eq 1 ]
 then
     echo "Installing Traits"
-    ( ${DEST_DIR}/bin/easy_install-2.6 -U TraitsGUI TraitsBackendWX 2>&1 ) 1>> ${LOG_FILE} || do_exit
+    ( ${DEST_DIR}/bin/pip install -U TraitsGUI TraitsBackendWX 2>&1 ) 1>> ${LOG_FILE} || do_exit
 fi
 
 echo
