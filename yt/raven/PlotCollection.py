@@ -583,7 +583,7 @@ def get_multi_plot(nx, ny, colorbar = 'vertical', bw = 4, dpi=300):
                                wf*(1-0.20)*fudge_x, hf*fudge_y*0.05])
             cbars.append(ax)
     elif colorbar.lower() == 'vertical':
-        for j in range(nx):
+        for j in range(ny):
             ax = fig.add_axes([wf*(nx+0.05)*fudge_x, hf*fudge_y*(ny-(j+0.95)),
                                wf*fudge_x*0.05, hf*fudge_y*0.90])
             ax.clear()
