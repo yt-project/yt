@@ -309,10 +309,10 @@ fi
 # This fixes problems with gfortran linking.
 unset LDFLAGS 
 
-echo "Installing setuptools"
+echo "Installing distribute"
 ( ${DEST_DIR}/bin/python2.6 ${YT_DIR}/distribute_setup.py 2>&1 ) 1>> ${LOG_FILE} || do_exit
 
-echo "Installing Pip."
+echo "Installing pip"
 ( ${DEST_DIR}/bin/easy_install-2.6 pip 2>&1 ) 1>> ${LOG_FILE} || do_exit
 
 do_setup_py numpy-1.3.0 ${NUMPY_ARGS}
