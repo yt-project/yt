@@ -83,7 +83,6 @@ def direct_ray_cast(pf, L, center, W, Nvec, tf,
     tf.light_dir = (cp._inv_mat[0,0]*cx + cp._inv_mat[0,1]*cy + cz,
                     cp._inv_mat[1,0]*cx + cp._inv_mat[1,1]*cy + cz,
                     cp._inv_mat[2,0]*cx + cp._inv_mat[2,1]*cy + cz)
-    print tf.light_dir
     
     tfp = TransferFunctionProxy(tf)
     tfp.ns = nsamples
