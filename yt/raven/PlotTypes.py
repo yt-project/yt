@@ -134,7 +134,19 @@ class RavenPlot(object):
     def save_to_pdf(self, f):
         self._redraw_image()
         canvas = engineVals["canvas_pdf"](self._figure)
+        original_figure_alpha = self._figure.patch.get_alpha()
+        self._figure.patch.set_alpha(0.0)
+        original_axes_alpha = []
+        for ax in self._figure.axes:
+            patch = ax.patch
+            original_axes_alpha.append(patch.get_alpha())
+            patch.set_alpha(0.0)
+
         canvas.print_pdf(f)
+
+        self._figure.set_alpha(original_figure_alpha)
+        for ax, alpha in zip(self._figure.axes,original_axes_alpha):
+            ax.patch.set_alpha(alpha)
 
     def _redraw_image(self):
         pass
