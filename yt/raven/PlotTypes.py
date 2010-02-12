@@ -39,6 +39,12 @@ def Initialize(*args, **kwargs):
     else:
         from matplotlib.backends.backend_agg \
                 import FigureCanvasAgg as FigureCanvas
+    try:
+        from matplotlib.backends.backend_pdf \
+                import FigureCanvasPdf as FigureCanvasPDF
+        engineVals["canvas_pdf"] = FigureCanvasPDF
+    except ImportError:
+        pass
     engineVals["canvas"] = FigureCanvas
     return
 
@@ -124,6 +130,11 @@ class RavenPlot(object):
         self["Type"] = self._type_name
         self["GeneratedAt"] = self.data.pf["CurrentTimeIdentifier"]
         return fn
+
+    def save_to_pdf(self, f):
+        self._redraw_image()
+        canvas = engineVals["canvas_pdf"](self._figure)
+        canvas.print_pdf(f)
 
     def _redraw_image(self):
         pass
