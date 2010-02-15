@@ -188,6 +188,11 @@ function do_setup_py
     echo "Installing $1 (arguments: '$*')"
     [ ! -e $1 ] && tar xfz $1.tar.gz
     cd $1
+    if [ ! -z `echo $1 | grep h5py` ]
+    then
+	    echo "${PY_DIR}/bin/python2.6 setup.py configure --hdf5=${HDF5_DIR}"
+	    ( ${PY_DIR}/bin/python2.6 setup.py configure --hdf5=${HDF5_DIR} 2>&1 ) 1>> ${LOG_FILE} || do_exit
+    fi
     shift
     ( ${DEST_DIR}/bin/python2.6 setup.py build   $* 2>&1 ) 1>> ${LOG_FILE} || do_exit
     ( ${DEST_DIR}/bin/python2.6 setup.py install    2>&1 ) 1>> ${LOG_FILE} || do_exit
