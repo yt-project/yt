@@ -778,7 +778,7 @@ class PhasePlot(ProfilePlot):
         self.norm = matplotlib.colors.Normalize()
         self.image = self._axes.pcolormesh(self.x_bins, self.y_bins,
                                       temparray, shading='flat',
-                                      norm=self.norm)
+                                      norm=self.norm, cmap=self.cmap)
         self.colorbar = self._figure.colorbar(self.image,
                                     extend='neither', shrink=0.95,
                                     format="%0.2e" )
