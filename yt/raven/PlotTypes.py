@@ -39,6 +39,12 @@ def Initialize(*args, **kwargs):
     else:
         from matplotlib.backends.backend_agg \
                 import FigureCanvasAgg as FigureCanvas
+    try:
+        from matplotlib.backends.backend_pdf \
+                import FigureCanvasPdf as FigureCanvasPDF
+        engineVals["canvas_pdf"] = FigureCanvasPDF
+    except ImportError:
+        pass
     engineVals["canvas"] = FigureCanvas
     return
 
@@ -124,6 +130,23 @@ class RavenPlot(object):
         self["Type"] = self._type_name
         self["GeneratedAt"] = self.data.pf["CurrentTimeIdentifier"]
         return fn
+
+    def save_to_pdf(self, f):
+        self._redraw_image()
+        canvas = engineVals["canvas_pdf"](self._figure)
+        original_figure_alpha = self._figure.patch.get_alpha()
+        self._figure.patch.set_alpha(0.0)
+        original_axes_alpha = []
+        for ax in self._figure.axes:
+            patch = ax.patch
+            original_axes_alpha.append(patch.get_alpha())
+            patch.set_alpha(0.0)
+
+        canvas.print_pdf(f)
+
+        self._figure.set_alpha(original_figure_alpha)
+        for ax, alpha in zip(self._figure.axes,original_axes_alpha):
+            ax.patch.set_alpha(alpha)
 
     def _redraw_image(self):
         pass
@@ -778,7 +801,7 @@ class PhasePlot(ProfilePlot):
         self.norm = matplotlib.colors.Normalize()
         self.image = self._axes.pcolormesh(self.x_bins, self.y_bins,
                                       temparray, shading='flat',
-                                      norm=self.norm)
+                                      norm=self.norm, cmap=self.cmap)
         self.colorbar = self._figure.colorbar(self.image,
                                     extend='neither', shrink=0.95,
                                     format="%0.2e" )

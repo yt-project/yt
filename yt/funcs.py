@@ -388,7 +388,10 @@ def paste_traceback(exc_type, exc, tb):
 if "--paste" in sys.argv:
     sys.excepthook = paste_traceback
     del sys.argv[sys.argv.index("--paste")]
-if "--rpdb" in sys.argv:
+elif "--detailed" in sys.argv:
+    import cgitb; cgitb.enable(format="text")
+    del sys.argv[sys.argv.index("--detailed")]
+elif "--rpdb" in sys.argv:
     sys.excepthook = rpdb.rpdb_excepthook
     del sys.argv[sys.argv.index("--rpdb")]
 

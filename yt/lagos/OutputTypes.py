@@ -463,7 +463,8 @@ class OrionStaticOutput(StaticOutput):
     _fieldinfo_class = OrionFieldContainer
 
     def __init__(self, plotname, paramFilename=None, fparamFilename=None,
-                 data_style='orion_native', paranoia=False):
+                 data_style='orion_native', paranoia=False,
+                 storage_filename = None):
         """need to override for Orion file structure.
 
         the paramfile is usually called "inputs"
@@ -475,7 +476,7 @@ class OrionStaticOutput(StaticOutput):
          * ASCII (not implemented in yt)
 
         """
-
+        self.storage_filename = storage_filename
         self.paranoid_read = paranoia
         self.parameter_filename = paramFilename
         self.fparameter_filename = fparamFilename
