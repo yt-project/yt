@@ -46,6 +46,11 @@ class TransferFunction(object):
             slope * (self.x - x0) + y0
         self.y = na.clip(na.maximum(vals, self.y), 0.0, 1.0)
 
+    def add_step(self,start,stop,value):
+        vals = na.zeros(self.x.shape, 'float64')
+        vals[(self.x >= start) & (self.x <= stop)] = value
+        self.y = na.clip(na.maximum(vals, self.y), 0.0, 1.0)
+
     def plot(self, filename):
         import matplotlib;matplotlib.use("Agg");import pylab
         pylab.clf()
@@ -70,6 +75,10 @@ class ColorTransferFunction(object):
     def add_gaussian(self, location, width, height):
         for tf, v in zip(self.funcs, height):
             tf.add_gaussian(location, width, v)
+
+    def add_step(self, start, stop, height):
+        for tf, v in zip(self.funcs, height):
+            tf.add_step(start, stop, v)
 
     def plot(self, filename):
         import matplotlib;matplotlib.use("Agg");import pylab
