@@ -2222,7 +2222,7 @@ class AMRSphereBase(AMR3DData):
         """
         AMR3DData.__init__(self, center, fields, pf, **kwargs)
         if radius < self.hierarchy.get_smallest_dx():
-            raise SyntaxError("Your radius is smaller than your finest cell!")
+            raise YTSphereTooSmall(pf, radius, self.hierarchy.get_smallest_dx())
         self.set_field_parameter('radius',radius)
         self.radius = radius
         self.DW = self.pf["DomainRightEdge"] - self.pf["DomainLeftEdge"]
