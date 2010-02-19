@@ -42,14 +42,20 @@ class EnzoCosmology(object):
         self.TimeUnits = self.ComputeTimeUnits()
 
     def ComputeTimeUnits(self):
-        "Taken from CosmologyGetUnits.C in Enzo."
+        """
+        Taken from CosmologyGetUnits.C in Enzo.
+        """
         # Changed 2.52e17 to 2.52e19 because H_0 is in km/s/Mpc, 
         # instead of 100 km/s/Mpc.
         return 2.52e19 / na.sqrt(self.OmegaMatterNow) / \
             self.HubbleConstantNow / na.power(1 + self.InitialRedshift,1.5)
 
     def ComputeRedshiftFromTime(self,time):
-        "Compute the redshift from time after the big bang.  This is based on Enzo's CosmologyComputeExpansionFactor.C, but altered to use physical units."
+        """
+        Compute the redshift from time after the big bang.  This is based on
+        Enzo's CosmologyComputeExpansionFactor.C, but altered to use physical
+        units.
+        """
 
         OmegaCurvatureNow = 1.0 - self.OmegaMatterNow - self.OmegaLambdaNow
 
@@ -119,7 +125,10 @@ class EnzoCosmology(object):
         return redshift
 
     def ComputeTimeFromRedshift(self,z):
-        "Compute the time from redshift.  This is based on Enzo's CosmologyComputeTimeFromRedshift.C, but altered to use physical units."
+        """
+        Compute the time from redshift.  This is based on Enzo's
+        CosmologyComputeTimeFromRedshift.C, but altered to use physical units.
+        """
         OmegaCurvatureNow = 1.0 - self.OmegaMatterNow - self.OmegaLambdaNow
  
         # 1) For a flat universe with OmegaMatterNow = 1, things are easy.

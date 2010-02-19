@@ -103,7 +103,7 @@ class PlotCollection(object):
         for plot in self.plots:
             plot.set_ylim(ymin, ymax)
 
-    def set_zlim(self, zmin, zmax, **kwargs):
+    def set_zlim(self, zmin, zmax, *args, **kwargs):
         """
         Set the limits of the colorbar. 'min' or 'max' are possible inputs 
         when combined with dex=value, where value gives the maximum number of 
@@ -119,7 +119,7 @@ class PlotCollection(object):
         """
         for plot in self.plots:
             plot.set_autoscale(False)
-            plot.set_zlim(zmin, zmax, **kwargs)
+            plot.set_zlim(zmin, zmax, *args, **kwargs)
 
     def set_lim(self, lim):
         """
@@ -214,11 +214,18 @@ class PlotCollection(object):
 
     def add_particles(self, axis, width, p_size=1.0, col='k', stride=1.0,
                       data_source=None, figure=None, axes=None):
+        """
+        Create a particle plot, where particle positions have been projected
+        along *axis* from a slab of *width* (in code units).  *p_size* is the
+        point size, *col* is color, *stride* is the stride of concatenated
+        particle lists to plot.
+        """
         LE = self.pf["DomainLeftEdge"].copy()
         RE = self.pf["DomainRightEdge"].copy()
         LE[axis] = self.c[axis] - width/2.0
         RE[axis] = self.c[axis] + width/2.0
         if data_source is None: data_source = self.pf.h.region(self.c, LE, RE)
+        data_source.axis = axis
         p = self._add_plot(PlotTypes.ParticlePlot(data_source, axis,
                                         width, p_size, col, stride, figure,
                                         axes))
@@ -454,12 +461,21 @@ class PlotCollection(object):
             del self.plots[-1]
 
     @rootonly
-    def save_book(self, filename):
-        from pyPdf import PdfFileWriter, PdfFileReader
-        outfile = PdfFileWriter()
-        fns = self.save("__temp", format="pdf")
-        concatenate_pdfs(filename, fns)
-        for fn in fns: os.unlink(fn)
+    def save_book(self, filename, info = None):
+        """
+        This will save out a single PDF, where each page is a plot object.  The
+        *info* keyword can be a dictionary composed of the keys and values
+        "Author", "Title", "Subject", "Keywords", "Creator", "Producer" ad
+        "CreationDate".  Any keywords not filled in will be blank.  The default
+        is to use the current settings in Matplotlib for filling them in.
+        """
+        from matplotlib.backends.backend_pdf import PdfPages
+        outfile = PdfPages(filename)
+        for plot in self.plots:
+            plot.save_to_pdf(outfile)
+        if info is not None:
+            outfile._file.writeObject(outfile._file.infoObject, info)
+        outfile.close()
 
 def wrap_pylab_newplot(func):
     @wraps(func)
@@ -576,7 +592,7 @@ def get_multi_plot(nx, ny, colorbar = 'vertical', bw = 4, dpi=300):
                                wf*(1-0.20)*fudge_x, hf*fudge_y*0.05])
             cbars.append(ax)
     elif colorbar.lower() == 'vertical':
-        for j in range(nx):
+        for j in range(ny):
             ax = fig.add_axes([wf*(nx+0.05)*fudge_x, hf*fudge_y*(ny-(j+0.95)),
                                wf*fudge_x*0.05, hf*fudge_y*0.90])
             ax.clear()

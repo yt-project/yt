@@ -9,25 +9,33 @@ class TimeSeriesData(object):
         # We can make this fancier, but this works
         return self.outputs.__iter__()
 
-_enzo_header = "DATASET WRITTEN "
-
 class EnzoTimeSeries(TimeSeriesData):
-    def __init__(self, name, output_log = "OutputLog"):
+    _enzo_header = "DATASET WRITTEN "
+    def __init__(self, name, **kwargs):
         TimeSeriesData.__init__(self, name)
+        output_list = kwargs.pop('output_list', None)
+        output_log = kwargs.pop('output_log', None)
+        if output_list: self._populate_output_list(output_list)
+        if output_log: self._populate_output_log(output_log)
+        for type_name in data_object_registry:
+            setattr(self, type_name, functools.partial(
+                TimeSeriesDataObject, self, type_name))
+
+    def _populate_output_list(self, output_list):
+        for output in output_list:
+            self._insert(EnzoStaticOutput(fn))
+
+    def _populate_output_log(self, output_log):
         for line in open(output_log):
             if not line.startswith(_enzo_header): continue
             fn = line[len(_enzo_header):].strip()
             self._insert(EnzoStaticOutput(fn))
 
-        for type_name in data_object_registry:
-            setattr(self, type_name, functools.partial(
-                TimeSeriesDataObject, self, type_name))
-
     def __getitem__(self, key):
-        return self.outputs[key]
         if isinstance(key, types.SliceType):
             if isinstance(key.start, types.FloatType):
-                self.get_range(key.start, key.stop)
+                return self.get_range(key.start, key.stop)
+        return self.outputs[key]
         
     def _insert(self, pf):
         # We get handed an instantiated parameter file

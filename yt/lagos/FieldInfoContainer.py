@@ -165,6 +165,8 @@ class FieldDetector(defaultdict):
                     return self._read_data(field)
                 _read_exception = RuntimeError
             io = fake_io()
+            def get_smallest_dx(self):
+                return 1.0
         self.hierarchy = fake_hierarchy()
         self.requested = []
         self.requested_parameters = []

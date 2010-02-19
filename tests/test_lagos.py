@@ -313,7 +313,21 @@ class TestSmoothedCoveringGrid(LagosTestingBase, unittest.TestCase):
         self.assertFalse(na.any(na.isnan(cg["Temperature"])))
         self.assertFalse(na.any(cg["Temperature"]==-999))
 
-        
+class TestIntSmoothedCoveringGrid(LagosTestingBase, unittest.TestCase):
+    def setUp(self):        
+        LagosTestingBase.setUp(self)
+
+    def testCoordinates(self):
+        # We skip the first grid because it has ghost zones on all sides
+        for g in self.hierarchy.grids[1:]:
+            LE = g.LeftEdge - g.dds
+            level = g.Level
+            dims = g.ActiveDimensions + 2
+            g1 = self.hierarchy.si_covering_grid(level, LE, dims)
+            g2 = g.retrieve_ghost_zones(1, ["x","y","z"], smoothed=False)
+            for field in 'xyz':
+                diff = na.abs((g1[field] - g2[field])/(g1[field] + g2[field]))
+                self.assertAlmostEqual(diff.max(), 0.0, 1e-14)
 
 class TestDataCube(LagosTestingBase, unittest.TestCase):
     def setUp(self):
@@ -498,6 +512,38 @@ class TestExtractFromSphere(TestSphereDataType):
         self.assertEqual(joined_region["CellMassMsun"].sum(),
                          self.region["CellMassMsun"].sum())
 
+    # I have verified that the *old* version of the code overconnected
+    # contours outside.  This are overridden to make sure this does not
+    # happen again!
+    def testContoursObtain(self):
+        cid = yt.lagos.identify_contours(self.data, "Density",
+                self.data["Density"].min()*2.00, self.data["Density"].max()*1.01)
+        self.assertEqual(len(cid), 10)
+
+    def testContoursCache(self):
+        cid = yt.lagos.identify_contours(self.data, "Density",
+                self.data["Density"].min()*2.00,
+                self.data["Density"].max()*1.01)
+        self.assertEqual(len(cid), 10)
+
+    def testExtractConnectedSetsNoCache(self):
+        mi = self.data["Density"].min() * 2.0
+        ma = self.data["Density"].max() * 0.99
+        cons, contours = self.data.extract_connected_sets(
+            "Density", 2, mi, ma)
+        self.assertEqual(len(contours), 2) # number of contour levels
+        self.assertEqual(len(contours[0]), 10)
+        self.assertEqual(len(contours[1]), 1)
+
+    def testExtractConnectedSetsCache(self):
+        mi = self.data["Density"].min() * 2.0
+        ma = self.data["Density"].max() * 0.99
+        cons, contours = self.data.extract_connected_sets(
+            "Density", 2, mi, ma, cache=True)
+        self.assertEqual(len(contours), 2) # number of contour levels
+        self.assertEqual(len(contours[0]), 10)
+        self.assertEqual(len(contours[1]), 1)
+
 class TestExtractFromRegion(TestRegionDataType):
     def setUp(self):
         TestRegionDataType.setUp(self)
@@ -519,6 +565,38 @@ class TestExtractFromRegion(TestRegionDataType):
         joined_region = self.data.join(new_region)
         self.assertEqual(joined_region["CellMassMsun"].sum(),
                          self.region["CellMassMsun"].sum())
+
+    # I have verified that the *old* version of the code overconnected
+    # contours outside.  This are overridden to make sure this does not
+    # happen again!
+    def testContoursObtain(self):
+        cid = yt.lagos.identify_contours(self.data, "Density",
+                self.data["Density"].min()*2.00, self.data["Density"].max()*1.01)
+        self.assertEqual(len(cid), 10)
+
+    def testContoursCache(self):
+        cid = yt.lagos.identify_contours(self.data, "Density",
+                self.data["Density"].min()*2.00,
+                self.data["Density"].max()*1.01)
+        self.assertEqual(len(cid), 10)
+
+    def testExtractConnectedSetsNoCache(self):
+        mi = self.data["Density"].min() * 2.0
+        ma = self.data["Density"].max() * 0.99
+        cons, contours = self.data.extract_connected_sets(
+            "Density", 2, mi, ma)
+        self.assertEqual(len(contours), 2) # number of contour levels
+        self.assertEqual(len(contours[0]), 10)
+        self.assertEqual(len(contours[1]), 1)
+
+    def testExtractConnectedSetsCache(self):
+        mi = self.data["Density"].min() * 2.0
+        ma = self.data["Density"].max() * 0.99
+        cons, contours = self.data.extract_connected_sets(
+            "Density", 2, mi, ma, cache=True)
+        self.assertEqual(len(contours), 2) # number of contour levels
+        self.assertEqual(len(contours[0]), 10)
+        self.assertEqual(len(contours[1]), 1)
 
 
 class TestUnilinearInterpolator(unittest.TestCase):

@@ -884,7 +884,7 @@ static PyObject *Py_FillRegion(PyObject *obj, PyObject *args)
     npy_int64 cdx, cdy, cdz;
     npy_int64 dw[3];
     int i;
-    int ci, cj, ck, ri, rj, rk;
+    npy_int64 ci, cj, ck, ri, rj, rk;
     int total = 0;
     void (*to_call)(PyArrayObject* c_data, npy_int64 xc,
                          npy_int64 yc, npy_int64 zc,

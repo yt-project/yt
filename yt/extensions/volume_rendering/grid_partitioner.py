@@ -27,7 +27,20 @@ import numpy as na
 from yt.funcs import *
 import h5py
 
-from yt.utils import PartitionedGrid
+from yt.amr_utils import PartitionedGrid, ProtoPrism, GridFace
+
+class GridFaces(object):
+    def __init__(self, grids):
+        self.faces = [ [], [], [] ]
+        for grid in grids:
+            for direction in range(3):
+                self.faces[direction].append( GridFace(grid, direction, 1) )
+                self.faces[direction].append( GridFace(grid, direction, 0) )
+        for f in self.faces:
+            f.sort(key = lambda a: a.coord)
+
+    def __getitem__(self, item):
+        return self.faces[item]
 
 def partition_grid(start_grid, field, log_field = True, threshold = None):
     if threshold is not None:
@@ -36,6 +49,13 @@ def partition_grid(start_grid, field, log_field = True, threshold = None):
     to_cut_up = start_grid.get_vertex_centered_data(field, smoothed=True).astype('float64')
 
     if log_field: to_cut_up = na.log10(to_cut_up)
+
+    GF = GridFaces(start_grid.Children + [start_grid])
+    PP = ProtoPrism(start_grid.LeftEdge, start_grid.RightEdge, GF)
+    pgs = []
+    for P in PP.sweep(0):
+        pgs += P.get_brick(start_grid.LeftEdge, start_grid.dds, to_cut_up, start_grid.child_mask)
+    return pgs
 
     if len(start_grid.Children) == 0:
         pg = PartitionedGrid(
@@ -69,7 +89,7 @@ def _partition(grid, grid_data, x_vert, y_vert, z_vert):
     grids = []
     cim = grid.child_index_mask
     for xs, xe in zip(x_vert[:-1], x_vert[1:]):
-        for ys, ye in zip(y_vert[:-1:-1], y_vert[1::-1]):
+        for ys, ye in zip(y_vert[:-1], y_vert[1:]):
             for zs, ze in zip(z_vert[:-1], z_vert[1:]):
                 sl = (slice(xs, xe), slice(ys, ye), slice(zs, ze))
                 dd = cim[sl]
@@ -85,7 +105,7 @@ def _partition(grid, grid_data, x_vert, y_vert, z_vert):
                 yield PartitionedGrid(
                     data, left_edge, right_edge, dims)
 
-def partition_all_grids(grid_list, field = "Density",
+def partition_all_grids(grid_list, field = "Density", log_field = True,
                         threshold = (-1e300, 1e300), eval_func = None):
     new_grids = []
     pbar = get_pbar("Partitioning ", len(grid_list))
@@ -95,13 +115,13 @@ def partition_all_grids(grid_list, field = "Density",
         if not eval_func(g): continue
         pbar.update(i)
         if g.dds[0] < dx: dx = g.dds[0]
-        to_add = partition_grid(g, field, True, threshold)
+        to_add = partition_grid(g, field, log_field, threshold)
         if to_add is not None: new_grids += to_add
     pbar.finish()
     for g in new_grids: g.min_dds = dx
     return na.array(new_grids, dtype='object')
 
-def export_partitioned_grids(grid_list, fn):
+def export_partitioned_grids(grid_list, fn, int_type=na.int64, float_type=na.float64):
     f = h5py.File(fn, "w")
     pbar = get_pbar("Writing Grids", len(grid_list))
     nelem = sum((grid.my_data.size for grid in grid_list))
@@ -109,24 +129,24 @@ def export_partitioned_grids(grid_list, fn):
     group = f.create_group("/PGrids")
     group.attrs["min_dds"] = grid_list[0].min_dds
     left_edge = na.concatenate([[grid.LeftEdge,] for grid in grid_list])
-    f.create_dataset("/PGrids/LeftEdges", data=left_edge); del left_edge
+    f.create_dataset("/PGrids/LeftEdges", data=left_edge, dtype=float_type); del left_edge
     right_edge = na.concatenate([[grid.RightEdge,] for grid in grid_list])
-    f.create_dataset("/PGrids/RightEdges", data=right_edge); del right_edge
+    f.create_dataset("/PGrids/RightEdges", data=right_edge, dtype=float_type); del right_edge
     dims = na.concatenate([[grid.my_data.shape[:],] for grid in grid_list])
-    f.create_dataset("/PGrids/Dims", data=dims); del dims
+    f.create_dataset("/PGrids/Dims", data=dims, dtype=int_type); del dims
     data = na.concatenate([grid.my_data.ravel() for grid in grid_list])
-    f.create_dataset("/PGrids/Data", data=data); del data
+    f.create_dataset("/PGrids/Data", data=data, dtype=float_type); del data
     f.close()
     pbar.finish()
 
-def import_partitioned_grids(fn):
+def import_partitioned_grids(fn, int_type=na.int64, float_type=na.float64):
     f = h5py.File(fn, "r")
     n_groups = len(f.listnames())
     grid_list = []
-    dims = f["/PGrids/Dims"][:]
-    left_edges = f["/PGrids/LeftEdges"][:]
-    right_edges = f["/PGrids/RightEdges"][:]
-    data = f["/PGrids/Data"][:]
+    dims = f["/PGrids/Dims"][:].astype(int_type)
+    left_edges = f["/PGrids/LeftEdges"][:].astype(float_type)
+    right_edges = f["/PGrids/RightEdges"][:].astype(float_type)
+    data = f["/PGrids/Data"][:].astype(float_type)
     pbar = get_pbar("Reading Grids", dims.shape[0])
     curpos = 0
     dx = f["/PGrids"].attrs["min_dds"]
@@ -154,11 +174,13 @@ class PartitionRegion(object):
 
     @property
     def cim(self):
+        return self._cim[self.sl]
+
+    @property
+    def sl(self):
         sls = self.source_offset
         sle = self.source_offset + self.dims
-        return self._cim[sls[0]:sle[0],
-                         sls[1]:sle[1],
-                         sls[2]:sle[2]]
+        return tuple([slice(sls[i], sle[i]) for i in range(3)])
 
     def split(self, axis, coord):
         dims_left = self.dims.copy()

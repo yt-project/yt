@@ -24,6 +24,7 @@ License:
 """
 
 import numpy as na
+from matplotlib.cm import get_cmap
 
 class TransferFunction(object):
     def __init__(self, x_bounds, nbins=256):
@@ -45,6 +46,11 @@ class TransferFunction(object):
             slope * (self.x - x0) + y0
         self.y = na.clip(na.maximum(vals, self.y), 0.0, 1.0)
 
+    def add_step(self,start,stop,value):
+        vals = na.zeros(self.x.shape, 'float64')
+        vals[(self.x >= start) & (self.x <= stop)] = value
+        self.y = na.clip(na.maximum(vals, self.y), 0.0, 1.0)
+
     def plot(self, filename):
         import matplotlib;matplotlib.use("Agg");import pylab
         pylab.clf()
@@ -62,10 +68,17 @@ class ColorTransferFunction(object):
         self.blue = TransferFunction(x_bounds, nbins)
         self.alpha = TransferFunction(x_bounds, nbins)
         self.funcs = (self.red, self.green, self.blue, self.alpha)
+        self.light_dir = (0.3,-0.2,0.5)
+        self.light_color = (0.10, 0.10, 0.10)
+        self.use_light = 0
 
     def add_gaussian(self, location, width, height):
         for tf, v in zip(self.funcs, height):
             tf.add_gaussian(location, width, v)
+
+    def add_step(self, start, stop, height):
+        for tf, v in zip(self.funcs, height):
+            tf.add_step(start, stop, v)
 
     def plot(self, filename):
         import matplotlib;matplotlib.use("Agg");import pylab
@@ -80,6 +93,23 @@ class ColorTransferFunction(object):
         pylab.xlabel("Value")
         pylab.ylabel("Transmission")
         pylab.savefig(filename)
+
+    def sample_colormap(self, v, w, alpha=None, colormap="gist_stern"):
+        rel = (v - self.x_bounds[0])/(self.x_bounds[1] - self.x_bounds[0])
+        cmap = get_cmap(colormap)
+        r,g,b,a = cmap(rel)
+        if alpha is None: alpha = a
+        self.add_gaussian(v, w, [r,g,b,alpha])
+        print "Adding gaussian at %s with width %s and colors %s" % (
+                v, w, (r,g,b,alpha))
+
+    def add_layers(self, N, w=None, mi=None, ma=None, colormap="gist_stern"):
+        dist = (self.x_bounds[1] - self.x_bounds[0])
+        if mi is None: mi = self.x_bounds[0] + dist/(10.0*N)
+        if ma is None: ma = self.x_bounds[1] - dist/(10.0*N)
+        if w is None: w = 0.001 * (ma-mi)/N
+        for v, a in zip(na.mgrid[mi:ma:N*1j], na.logspace(-2.0, 0.0,N)):
+            self.sample_colormap(v, w, a, colormap=colormap)
 
 if __name__ == "__main__":
     tf = ColorTransferFunction((-20, -5))

@@ -1,0 +1,33 @@
+KDTREE 2: Fortran 95 and C++ software to efficiently search for near
+neighbors in a multi-dimensional Euclidean space.
+
+\author{Matthew B. Kennel}
+
+\affiliation{Institute for Nonlinear Science,
+             University of California, San Diego}
+
+             \begin{abstract}
+             Many data-based statistical algorithms require that one find \textit{near
+             or nearest neighbors} to a given vector among a set of points in that
+             vector space, usually with Euclidean topology. The k-d data structure
+             and search algorithms are the generalization of classical binary search
+             trees to higher dimensional spaces, so that one may locate near neighbors
+             to an example vector in $O(\log N)$ time instead of the brute-force
+             $O(N)$ time, with $N$ being the size of the data base. KDTREE2 is
+             a Fortran 95 module, and a parallel set of C++ classes which implement
+             tree construction and search routines to find either a set of $m$
+             nearest neighbors to an example, or all the neighbors within some
+             Euclidean distance $r.$ The two versions are independent and function
+             fully on their own. Considerable care has been taken in the implementation
+             of the search methods, resulting in substantially higher computational
+             efficiency (up to an order of magnitude faster) than the author's
+             previous Internet-distributed version. Architectural improvements
+             include rearrangement for memory cache-friendly performance, heap-based
+             priority queues for large $m$searches, and more effective pruning
+             of search paths by geometrical constraints to avoid wasted effort.
+             The improvements are the most potent in the more difficult and slowest
+             cases: larger data base sizes, higher dimensionality manifolds containing
+             the data set, and larger numbers of neighbors to search for. The C++
+             implementation requires the Standard Template Library as well as the
+             BOOST C++ library be installed. 
+             \end{abstract}

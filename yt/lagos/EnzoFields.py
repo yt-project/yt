@@ -69,16 +69,20 @@ for species in _speciesList:
                   validators=ValidateDataField("%s_Density" % species))
 
 def _Metallicity(field, data):
-    return data["Metal_Fraction"] / 0.0204
-add_field("Metallicity", units=r"Z_{\rm{Solar}}",
+    return data["Metal_Fraction"]
+def _ConvertMetallicity(data):
+    return 49.0196 # 1 / 0.0204
+add_field("Metallicity", units=r"Z_{\rm{\odot}}",
           function=_Metallicity,
+          convert_function=_ConvertMetallicity,
           validators=ValidateDataField("Metal_Density"),
           projection_conversion="1")
 
 def _Metallicity3(field, data):
-    return data["SN_Colour"] / 0.0204
-add_field("Metallicity3", units=r"Z_{\rm{Solar}}",
+    return data["SN_Colour"]
+add_field("Metallicity3", units=r"Z_{\rm{\odot}}",
           function=_Metallicity3,
+          convert_function=_ConvertMetallicity,
           validators=ValidateDataField("SN_Colour"),
           projection_conversion="1")
 
@@ -208,6 +212,7 @@ add_field("Dark_Matter_Density", function=lambda a,b: None,
           not_in_all = True)
 
 EnzoFieldInfo["Temperature"]._units = r"\rm{K}"
+EnzoFieldInfo["Temperature"].units = r"K"
 
 def _convertVelocity(data):
     return data.convert("x-velocity")
@@ -244,20 +249,6 @@ def _pdensity_pyx(field, data):
 add_field("particle_density_pyx", function=_pdensity_pyx,
           validators=[ValidateSpatial(0)], convert_function=_convertDensity)
 
-def _spdensity(field, data):
-    blank = na.zeros(data.ActiveDimensions, dtype='float32', order="FORTRAN")
-    if data.NumberOfParticles == 0: return blank
-    filter = data['creation_time'] > 0.0
-    if not filter.any(): return blank
-    cic_deposit.cic_deposit(data["particle_position_x"][filter],
-                            data["particle_position_y"][filter],
-                            data["particle_position_z"][filter], 3,
-                            data["particle_mass"][filter],
-                            blank, data.LeftEdge, data['dx'])
-    return blank
-add_field("star_density", function=_spdensity,
-          validators=[ValidateSpatial(0)], convert_function=_convertDensity)
-
 def _spdensity_pyx(field, data):
     blank = na.zeros(data.ActiveDimensions, dtype='float32')
     if data.NumberOfParticles == 0: return blank
@@ -275,7 +266,87 @@ def _spdensity_pyx(field, data):
 add_field("star_density_pyx", function=_spdensity_pyx,
           validators=[ValidateSpatial(0)], convert_function=_convertDensity)
 
-EnzoFieldInfo["Temperature"].units = r"K"
+def _star_field(field, data):
+    """
+    Create a grid field for star quantities, weighted by star mass.
+    """
+    particle_field = field.name[5:]
+    top = na.zeros(data.ActiveDimensions, dtype='float32')
+    if data.NumberOfParticles == 0: return top
+    filter = data['creation_time'] > 0.0
+    if not filter.any(): return top
+    particle_field_data = data[particle_field][filter] * data['particle_mass'][filter]
+    CICDeposit_3(data["particle_position_x"][filter].astype(na.float64),
+                 data["particle_position_y"][filter].astype(na.float64),
+                 data["particle_position_z"][filter].astype(na.float64),
+                 particle_field_data.astype(na.float32),
+                 na.int64(na.where(filter)[0].size),
+                 top, na.array(data.LeftEdge).astype(na.float64),
+                 na.array(data.ActiveDimensions).astype(na.int32), 
+                 na.float64(data['dx']))
+    del particle_field_data
+
+    bottom = na.zeros(data.ActiveDimensions, dtype='float32')
+    CICDeposit_3(data["particle_position_x"][filter].astype(na.float64),
+                 data["particle_position_y"][filter].astype(na.float64),
+                 data["particle_position_z"][filter].astype(na.float64),
+                 data["particle_mass"][filter].astype(na.float32),
+                 na.int64(na.where(filter)[0].size),
+                 bottom, na.array(data.LeftEdge).astype(na.float64),
+                 na.array(data.ActiveDimensions).astype(na.int32), 
+                 na.float64(data['dx']))
+
+    top[bottom == 0] = 0.0
+    bnz = bottom.nonzero()
+    top[bnz] /= bottom[bnz]
+    return top
+
+add_field('star_metallicity_fraction', function=_star_field,
+          validators=[ValidateSpatial(0)])
+add_field('star_creation_time', function=_star_field,
+          validators=[ValidateSpatial(0)])
+add_field('star_dynamical_time', function=_star_field,
+          validators=[ValidateSpatial(0)])
+
+def _StarMetallicity(field, data):
+    return data['star_metallicity_fraction']
+add_field('StarMetallicity', units=r"Z_{\rm{\odot}}",
+          function=_StarMetallicity,
+          convert_function=_ConvertMetallicity,
+          projection_conversion="1")
+
+def _StarCreationTime(field, data):
+    return data['star_creation_time']
+def _ConvertEnzoTimeYears(data):
+    return data.pf.time_units['years']
+add_field('StarCreationTimeYears', units="\rm{yr}",
+          function=_StarCreationTime,
+          convert_function=_ConvertEnzoTimeYears,
+          projection_conversion="1")
+
+def _StarDynamicalTime(field, data):
+    return data['star_dynamical_time']
+add_field('StarDynamicalTimeYears', units="\rm{yr}",
+          function=_StarDynamicalTime,
+          convert_function=_ConvertEnzoTimeYears,
+          projection_conversion="1")
+
+def _StarAge(field, data):
+    star_age = na.zeros(data['StarCreationTimeYears'].shape)
+    with_stars = data['StarCreationTimeYears'] > 0
+    star_age[with_stars] = data.pf.time_units['years'] * \
+        data.pf["InitialTime"] - \
+        data['StarCreationTimeYears'][with_stars]
+    return star_age
+add_field('StarAgeYears', units="\rm{yr}",
+          function=_StarAge,
+          projection_conversion="1")
+
+def _IsStarParticle(field, data):
+    is_star = (data['creation_time'] > 0).astype('float64')
+    return is_star
+add_field('IsStarParticle', function=_IsStarParticle,
+          particle_type = True)
 
 #
 # Now we do overrides for 2D fields

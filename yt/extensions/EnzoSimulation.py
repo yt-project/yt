@@ -59,18 +59,19 @@ class EnzoSimulation(object):
         # Check for sufficient starting/ending parameters.
         if self.InitialTime is None and self.InitialRedshift is None:
             if self.enzoParameters['ComovingCoordinates'] and \
-                    self.enzoParameters.has_key('CosmologyInitialRedshift'):
+               'CosmologyInitialRedshift' in self.enzoParameters:
                 self.InitialRedshift = self.enzoParameters['CosmologyInitialRedshift']
-            elif self.enzoParameters.has_key('InitialTime'):
+            elif 'InitialTime' in self.enzoParameters:
                 self.InitialTime = self.enzoParameters['InitialTime']
             else:
                 mylog.error("Couldn't find parameter for initial time or redshift from parameter file.")
                 return None
+
         if self.FinalTime is None and self.FinalRedshift is None:
             if self.enzoParameters['ComovingCoordinates'] and \
-                    self.enzoParameters.has_key('CosmologyFinalRedshift'):
+               'CosmologyFinalRedshift' in self.enzoParameters:
                 self.FinalRedshift = self.enzoParameters['CosmologyFinalRedshift']
-            elif self.enzoParameters.has_key('StopTime'):
+            elif 'StopTime' in self.enzoParameters:
                 self.FinalTime = self.enzoParameters['StopTime']
             else:
                 mylog.error("Couldn't find parameter for final time or redshift from parameter file.")
@@ -99,9 +100,9 @@ class EnzoSimulation(object):
 
         # Get initial time of simulation.
         if self.enzoParameters['ComovingCoordinates'] and \
-                self.enzoParameters.has_key('CosmologyInitialRedshift'):
+                'CosmologyInitialRedshift' in self.enzoParameters:
             self.SimulationInitialTime = self.enzo_cosmology.InitialTime / self.enzo_cosmology.TimeUnits
-        elif self.enzoParameters.has_key('InitialTime'):
+        elif 'InitialTime' in self.enzoParameters:
             self.SimulationInitialTime = self.enzoParameters['InitialTime']
         else:
             self.SimulationInitialTime = 0.0
@@ -150,8 +151,16 @@ class EnzoSimulation(object):
         # Calculate times for redshift dumps.
         if self.enzoParameters['ComovingCoordinates'] and self.get_redshift_outputs:
             self._CalculateRedshiftDumpTimes()
+        else:
+            self.redshiftOutputs = []
 
-        self.allOutputs = self.redshiftOutputs + self.timeOutputs
+        if self.get_time_outputs and self.get_redshift_outputs:
+            self.allOutputs = self.redshiftOutputs + self.timeOutputs
+        elif self.get_time_outputs and not self.get_redshift_outputs:
+            self.allOutputs = self.timeOutputs
+        elif not self.get_time_outputs and self.get_redshift_outputs:
+            self.allOutputs = self.redshiftOutputs
+
         self.allOutputs.sort(key=lambda obj:obj['time'])
 
         start_index = None
@@ -175,13 +184,14 @@ class EnzoSimulation(object):
                 if q == len(self.allOutputs) - 1:
                     end_index = q
 
+        for q in range(len(self.allOutputs)):
             if self.links and start_index is not None:
-                if q == start_index:
+                if q <= start_index:
                     self.allOutputs[q]['previous'] = None
                 else:
                     self.allOutputs[q]['previous'] = self.allOutputs[q-1]
 
-                if q == end_index:
+                if q >= end_index:
                     self.allOutputs[q]['next'] = None
                 else:
                     self.allOutputs[q]['next'] = self.allOutputs[q+1]
@@ -235,7 +245,7 @@ class EnzoSimulation(object):
         self.enzoParameters['GlobalDir'] = "."
         self.enzoParameters['RedshiftDumpName'] = "RD"
         self.enzoParameters['RedshiftDumpDir'] = "RD"
-        self.enzoParameters['DataDumpName'] = "DD"
+        self.enzoParameters['DataDumpName'] = "data"
         self.enzoParameters['DataDumpDir'] = "DD"
         self.enzoParameters['ComovingCoordinates'] = 0
 
@@ -261,6 +271,7 @@ class EnzoSimulation(object):
             if rounded - z < 0:
                 rounded += na.power(10.0,(-1.0*decimals))
             z = rounded
+
             deltaz_max = deltaz_forward(self.cosmology, z, self.enzoParameters['CosmologyComovingBoxSize'])
             outputs.append({'redshift': z, 'deltazMax': deltaz_max})
             z -= deltaz_max

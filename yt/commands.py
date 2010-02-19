@@ -27,7 +27,7 @@ from yt.mods import *
 from yt.funcs import *
 from yt.recipes import _fix_pf
 import yt.cmdln as cmdln
-import optparse, os, os.path, math, sys
+import optparse, os, os.path, math, sys, time, subprocess
 
 _common_options = dict(
     axis    = dict(short="-a", long="--axis",
@@ -205,6 +205,87 @@ def check_args(func):
             func(self, subcmd, opts, arg)
     return arg_iterate
 
+def _get_vcs_type(path):
+    if os.path.exists(os.path.join(path, ".hg")):
+        return "hg"
+    if os.path.exists(os.path.join(path, ".svn")):
+        return "svn"
+    return None
+
+def _get_svn_version(path):
+    p = subprocess.Popen(["svn", "info", path], stdout = subprocess.PIPE,
+                                               stderr = subprocess.STDOUT)
+    stdout, stderr = p.communicate()
+    return stdout
+
+def _update_svn(path):
+    f = open(os.path.join(path, "yt_updater.log"), "a")
+    f.write("\n\nUPDATE PROCESS: %s\n\n" % (time.asctime()))
+    p = subprocess.Popen(["svn", "up", path], stdout = subprocess.PIPE,
+                                              stderr = subprocess.STDOUT)
+    stdout, stderr = p.communicate()
+    f.write(stdout)
+    f.write("\n\n")
+    if p.returncode:
+        print "BROKEN: See %s" % (os.path.join(path, "yt_updater.log"))
+        sys.exit(1)
+    f.write("Rebuilding modules\n\n")
+    p = subprocess.Popen([sys.executable, "setup.py", "build_ext", "-i"], cwd=path,
+                        stdout = subprocess.PIPE, stderr = subprocess.STDOUT)
+    stdout, stderr = p.communicate()
+    f.write(stdout)
+    f.write("\n\n")
+    if p.returncode:
+        print "BROKEN: See %s" % (os.path.join(path, "yt_updater.log"))
+        sys.exit(1)
+    f.write("Successful!\n")
+
+def _update_hg(path):
+    from mercurial import hg, ui, commands
+    f = open(os.path.join(path, "yt_updater.log"), "a")
+    u = ui.ui()
+    u.pushbuffer()
+    config_fn = os.path.join(path, ".hg", "hgrc")
+    print "Reading configuration from ", config_fn
+    u.readconfig(config_fn)
+    repo = hg.repository(u, path)
+    commands.pull(u, repo)
+    f.write(u.popbuffer())
+    f.write("\n\n")
+    u.pushbuffer()
+    commands.identify(u, repo)
+    if "+" in u.popbuffer():
+        print "Can't rebuild modules by myself."
+        print "You will have to do this yourself.  Here's a sample commands:"
+        print
+        print "    $ cd %s" % (path)
+        print "    $ hg up"
+        print "    $ %s setup.py develop" % (sys.executable)
+        sys.exit(1)
+    f.write("Rebuilding modules\n\n")
+    p = subprocess.Popen([sys.executable, "setup.py", "build_ext", "-i"], cwd=path,
+                        stdout = subprocess.PIPE, stderr = subprocess.STDOUT)
+    stdout, stderr = p.communicate()
+    f.write(stdout)
+    f.write("\n\n")
+    if p.returncode:
+        print "BROKEN: See %s" % (os.path.join(path, "yt_updater.log"))
+        sys.exit(1)
+    f.write("Successful!\n")
+
+def _get_hg_version(path):
+    from mercurial import hg, ui, commands
+    u = ui.ui()
+    u.pushbuffer()
+    repo = hg.repository(u, path)
+    commands.identify(u, repo)
+    return u.popbuffer()
+
+_vcs_identifier = dict(svn = _get_svn_version,
+                        hg = _get_hg_version)
+_vcs_updater = dict(svn = _update_svn,
+                     hg = _update_hg)
+
 class YTCommands(cmdln.Cmdln):
     name="yt"
 
@@ -219,6 +300,37 @@ class YTCommands(cmdln.Cmdln):
         ${cmd_option_list}
         """
         self.cmdloop()
+
+    @cmdln.option("-u", "--update-source", action="store_true",
+                  default = False,
+                  help="Update the yt installation, if able")
+    def do_instinfo(self, subcmd, opts):
+        """
+        ${cmd_name}: Get some information about the yt installation
+
+        ${cmd_usage}
+        ${cmd_option_list}
+        """
+        import pkg_resources
+        yt_provider = pkg_resources.get_provider("yt")
+        path = os.path.dirname(yt_provider.module_path)
+        print
+        print "yt module located at:"
+        print "    %s" % (path)
+        if "site-packages" not in path:
+            vc_type = _get_vcs_type(path)
+            vstring = _vcs_identifier[vc_type](path)
+            print
+            print "The current version of the code is:"
+            print
+            print "---"
+            print vstring
+            print "---"
+            print
+            print "This installation CAN be automatically updated."
+            if opts.update_source:  
+                _vcs_updater[vc_type](path)
+            print "Updated successfully."
 
     @add_cmd_options(['outputfn','bn','thresh','dm_only','skip'])
     @check_args
@@ -455,116 +567,67 @@ class YTCommands(cmdln.Cmdln):
             t = pf["InitialTime"] * pf['years']
             open(opts.output, "a").write(
                 "%s (%0.5e years): %0.5e at %s\n" % (pf, t, v, c))
-    
-    # Normally the default comes from the .rc
-    @cmdln.option("-p", "--publish",
-                  dest="publish", action="store_true", default=False,
-                  help="publish the review request immediately after "
-                       "submitting")
-    @cmdln.option("-r", "--review-request-id",
-                  dest="rid", metavar="ID", default=None,
-                  help="existing review request ID to update")
-    # Normally the default comes from the .rc
-    @cmdln.option("-o", "--open",
-                  dest="open_browser", action="store_true",
-                  default=False,
-                  help="open a web browser to the review request page")
-    @cmdln.option("-n", "--output-diff",
-                  dest="output_diff_only", action="store_true",
-                  default=False,
-                  help="outputs a diff to the console and exits. "
-                       "Does not post")
-    # Normally the default comes from the .rc
-    @cmdln.option("", "--diff-only",
-                  dest="diff_only", action="store_true", default=False,
-                  help="uploads a new diff, but does not update "
-                       "info from changelist")
-    # Normally the default comes from the .rc
-    @cmdln.option("", "--target-groups",
-                  dest="target_groups", default="yt",
-                  help="names of the groups who will perform "
-                       "the review")
-    # Normally the default comes from the .rc
-    @cmdln.option("", "--target-people",
-                  dest="target_people", default="mturk",
-                  help="names of the people who will perform "
-                       "the review")
-    @cmdln.option("", "--summary",
-                  dest="summary", default=None,
-                  help="summary of the review ")
-    @cmdln.option("", "--description",
-                  dest="description", default=None,
-                  help="description of the review ")
-    @cmdln.option("", "--description-file",
-                  dest="description_file", default=None,
-                  help="text file containing a description of the review")
-    @cmdln.option("", "--testing-done",
-                  dest="testing_done", default=None,
-                  help="details of testing done ")
-    @cmdln.option("", "--testing-done-file",
-                  dest="testing_file", default=None,
-                  help="text file containing details of testing done ")
-    @cmdln.option("", "--branch",
-                  dest="branch", default=None,
-                  help="affected branch ")
-    @cmdln.option("", "--bugs-closed",
-                  dest="bugs_closed", default=None,
-                  help="list of bugs closed ")
-    @cmdln.option("", "--revision-range",
-                  dest="revision_range", default=None,
-                  help="generate the diff for review based on given "
-                       "revision range")
-    @cmdln.option("", "--label",
-                  dest="label", default=None,
-                  help="label (ClearCase Only) ")
-    # Normally the default comes from the .rc
-    @cmdln.option("", "--submit-as",
-                  dest="submit_as", default=None, metavar="USERNAME",
-                  help="user name to be recorded as the author of the "
-                       "review request, instead of the logged in user")
-    @cmdln.option("", "--username",
-                  dest="username", default=None, metavar="USERNAME",
-                  help="user name to be supplied to the reviewboard server")
-    @cmdln.option("", "--password",
-                  dest="password", default=None, metavar="PASSWORD",
-                  help="password to be supplied to the reviewboard server")
-    @cmdln.option("", "--change-only",
-                  dest="change_only", action="store_true",
-                  default=False,
-                  help="updates info from changelist, but does "
-                       "not upload a new diff (only available if your "
-                       "repository supports changesets)")
-    @cmdln.option("", "--parent",
-                  dest="parent_branch", default=None,
-                  metavar="PARENT_BRANCH",
-                  help="the parent branch this diff should be against "
-                       "(only available if your repository supports "
-                       "parent diffs)")
-    @cmdln.option("", "--repository-url",
-                  dest="repository_url", default=None,
-                  help="the url for a repository for creating a diff "
-                       "outside of a working copy (currently only supported "
-                       "by Subversion).  Requires --revision-range")
-    def do_review(self, subcmd, opts, *args):
+
+    @add_cmd_options([])
+    def do_analyze(self, subcmd, opts, arg):
         """
-        Submit a patch for review to review.enzotools.org
+        Produce a set of analysis for a given output.  This includes
+        HaloProfiler results with r200, as per the recipe file in the cookbook,
+        profiles of a number of fields, projections of average Density and
+        Temperature, and distribution functions for Density and Temperature.
 
         ${cmd_option_list}
         """
-        import yt.extensions.CodeReview as cr
-        if opts.summary is None:
-            summary = raw_input("Enter a summary of this patch: ")
-            if len(summary.strip()) == 0:
-                print "Refusing to upload patch without summary!"
-                sys.exit(1)
-            opts.summary = summary
-        cr.main(list(args), opts)
-        if opts.description is None and \
-           opts.description_file is None:
-            print "Your patch had an empty description."
-            print "It'd be awesome if you'd visit the review URL and add one."
-        
+        # We will do the following things:
+        #   Halo profiling (default parameters ONLY)
+        #   Projections: Density, Temperature
+        #   Full-box distribution functions
+        import yt.extensions.HaloProfiler as HP
+        hp = HP.HaloProfiler(arg)
+        # Add a filter to remove halos that have no profile points with overdensity
+        # above 200, and with virial masses less than 1e14 solar masses.
+        # Also, return the virial mass and radius to be written out to a file.
+        hp.add_halo_filter(HP.VirialFilter,must_be_virialized=True,
+                           overdensity_field='ActualOverdensity',
+                           virial_overdensity=200, virial_filters=[],
+                           virial_quantities=['TotalMassMsun','RadiusMpc'])
 
+        # Add profile fields.
+        hp.add_profile('CellVolume',weight_field=None,accumulation=True)
+        hp.add_profile('TotalMassMsun',weight_field=None,accumulation=True)
+        hp.add_profile('Density',weight_field=None,accumulation=False)
+        hp.add_profile('Temperature',weight_field='CellMassMsun',accumulation=False)
+        hp.make_profiles(filename="FilteredQuantities.out")
+
+        # Add projection fields.
+        hp.add_projection('Density',weight_field=None)
+        hp.add_projection('Temperature',weight_field='Density')
+        hp.add_projection('Metallicity',weight_field='Density')
+
+        # Make projections for all three axes using the filtered halo list and
+        # save data to hdf5 files.
+        hp.make_projections(save_cube=True,save_images=True,
+                            halo_list='filtered',axes=[0,1,2])
+
+        # Now we make full-box projections.
+        pf = EnzoStaticOutput(arg)
+        c = 0.5*(pf["DomainRightEdge"] + pf["DomainLeftEdge"])
+        pc = PlotCollection(pf, center=c)
+        for ax in range(3):
+            pc.add_projection("Density", ax, "Density")
+            pc.add_projection("Temperature", ax, "Density")
+            pc.plots[-1].set_cmap("hot")
+
+        # Time to add some phase plots
+        dd = pf.h.all_data()
+        ph = pc.add_phase_object(dd, ["Density", "Temperature", "CellMassMsun"],
+                            weight=None)
+        pc_dummy = PlotCollection(pf, center=c)
+        pr = pc_dummy.add_profile_object(dd, ["Density", "Temperature"],
+                            weight="CellMassMsun")
+        ph.modify["line"](pr.data["Density"], pr.data["Temperature"])
+        pc.save()
+    
 def run_main():
     for co in ["--parallel", "--paste"]:
         if co in sys.argv: del sys.argv[sys.argv.index(co)]

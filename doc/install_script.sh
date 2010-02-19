@@ -99,6 +99,17 @@ function host_specific
 		echo "variables to get this to work..."
 		MPL_SUPP_LDFLAGS="-L${DEST_DIR}/lib -L${DEST_DIR}/lib64 -L/usr/local/lib64 -L/usr/local/lib"
     fi
+    if [ "${MYHOST##steele}" != "${MYHOST}" ]
+    then
+        echo "Looks like you're on Steele."
+        echo
+        echo "NOTE: YOU MUST BE IN THE GNU PROGRAMMING ENVIRONMENT"
+        echo "These commands should take care of that for you:"
+        echo
+        echo "   $ module purge"
+        echo "   $ module load gcc"
+        echo
+    fi
 }
 
 
@@ -177,6 +188,11 @@ function do_setup_py
     echo "Installing $1 (arguments: '$*')"
     [ ! -e $1 ] && tar xfz $1.tar.gz
     cd $1
+    if [ ! -z `echo $1 | grep h5py` ]
+    then
+	    echo "${PY_DIR}/bin/python2.6 setup.py configure --hdf5=${HDF5_DIR}"
+	    ( ${PY_DIR}/bin/python2.6 setup.py configure --hdf5=${HDF5_DIR} 2>&1 ) 1>> ${LOG_FILE} || do_exit
+    fi
     shift
     ( ${DEST_DIR}/bin/python2.6 setup.py build   $* 2>&1 ) 1>> ${LOG_FILE} || do_exit
     ( ${DEST_DIR}/bin/python2.6 setup.py install    2>&1 ) 1>> ${LOG_FILE} || do_exit
@@ -213,10 +229,10 @@ then
 fi
 
 [ $INST_ZLIB -eq 1 ] && get_enzotools zlib-1.2.3.tar.bz2 
-[ $INST_WXPYTHON -eq 1 ] && get_enzotools wxPython-src-2.8.9.1.tar.bz2
-get_enzotools Python-2.6.1.tgz
+[ $INST_WXPYTHON -eq 1 ] && get_enzotools wxPython-src-2.8.10.1.tar.bz2
+get_enzotools Python-2.6.3.tgz
 get_enzotools numpy-1.3.0.tar.gz
-get_enzotools matplotlib-0.98.5.2.tar.gz
+get_enzotools matplotlib-0.99.1.2.tar.gz
 get_enzotools ipython-0.10.tar.gz
 get_enzotools h5py-1.2.0.tar.gz
 
@@ -269,14 +285,16 @@ then
         cd ..
     fi
     export HDF5_DIR=${DEST_DIR}
+else
+    export HDF5_DIR=${HDF5_DIR}
 fi
 export HDF5_API=16
 
-if [ ! -e Python-2.6.1/done ]
+if [ ! -e Python-2.6.3/done ]
 then
     echo "Installing Python.  This may take a while, but don't worry.  YT loves you."
-    [ ! -e Python-2.6.1 ] && tar xfz Python-2.6.1.tgz
-    cd Python-2.6.1
+    [ ! -e Python-2.6.3 ] && tar xfz Python-2.6.3.tgz
+    cd Python-2.6.3
     ( ./configure --prefix=${DEST_DIR}/ 2>&1 ) 1>> ${LOG_FILE} || do_exit
 
     ( make 2>&1 ) 1>> ${LOG_FILE} || do_exit
@@ -287,11 +305,11 @@ fi
 
 export PYTHONPATH=${DEST_DIR}/lib/python2.6/site-packages/
 
-if [ $INST_WXPYTHON -eq 1 ] && [ ! -e wxPython-src-2.8.9.1/done ]
+if [ $INST_WXPYTHON -eq 1 ] && [ ! -e wxPython-src-2.8.10.1/done ]
 then
     echo "Installing wxPython.  This may take a while, but don't worry.  YT loves you."
-    [ ! -e wxPython-src-2.8.9.1 ] && tar xfj wxPython-src-2.8.9.1.tar.bz2
-    cd wxPython-src-2.8.9.1
+    [ ! -e wxPython-src-2.8.10.1 ] && tar xfj wxPython-src-2.8.10.1.tar.bz2
+    cd wxPython-src-2.8.10.1
 
     ( ./configure --prefix=${DEST_DIR}/ --with-opengl 2>&1 ) 1>> ${LOG_FILE} || do_exit
     ( make install 2>&1 ) 1>> ${LOG_FILE} || do_exit
@@ -307,8 +325,11 @@ fi
 # This fixes problems with gfortran linking.
 unset LDFLAGS 
 
-echo "Installing setuptools"
-( ${DEST_DIR}/bin/python2.6 ${YT_DIR}/ez_setup.py 2>&1 ) 1>> ${LOG_FILE} || do_exit
+echo "Installing distribute"
+( ${DEST_DIR}/bin/python2.6 ${YT_DIR}/distribute_setup.py 2>&1 ) 1>> ${LOG_FILE} || do_exit
+
+echo "Installing pip"
+( ${DEST_DIR}/bin/easy_install-2.6 pip 2>&1 ) 1>> ${LOG_FILE} || do_exit
 
 do_setup_py numpy-1.3.0 ${NUMPY_ARGS}
 
@@ -317,7 +338,7 @@ then
     export LDFLAGS="${MPL_SUPP_LDFLAGS}"
     echo "Setting LDFLAGS ${LDFLAGS}"
 fi
-do_setup_py matplotlib-0.98.5.2
+do_setup_py matplotlib-0.99.1.2
 unset LDFLAGS
 do_setup_py ipython-0.10
 do_setup_py h5py-1.2.0
@@ -336,13 +357,13 @@ cd $MY_PWD
 if [ $INST_HG -eq 1 ]
 then
     echo "Installing Mercurial."
-    ( ${DEST_DIR}/bin/easy_install-2.6 mercurial 2>&1 ) 1>> ${LOG_FILE} || do_exit
+    ( ${DEST_DIR}/bin/pip install -U mercurial 2>&1 ) 1>> ${LOG_FILE} || do_exit
 fi
 
 if [ $INST_WXPYTHON -eq 1 ] && [ $INST_TRAITS -eq 1 ]
 then
     echo "Installing Traits"
-    ( ${DEST_DIR}/bin/easy_install-2.6 -U TraitsGUI TraitsBackendWX 2>&1 ) 1>> ${LOG_FILE} || do_exit
+    ( ${DEST_DIR}/bin/pip install -U TraitsGUI TraitsBackendWX 2>&1 ) 1>> ${LOG_FILE} || do_exit
 fi
 
 echo
