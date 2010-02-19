@@ -39,6 +39,12 @@ def Initialize(*args, **kwargs):
     else:
         from matplotlib.backends.backend_agg \
                 import FigureCanvasAgg as FigureCanvas
+    try:
+        from matplotlib.backends.backend_pdf \
+                import FigureCanvasPdf as FigureCanvasPDF
+        engineVals["canvas_pdf"] = FigureCanvasPDF
+    except ImportError:
+        pass
     engineVals["canvas"] = FigureCanvas
     return
 
@@ -71,57 +77,37 @@ class CallbackRegistryHandler(object):
     def keys(self):
         return self._callbacks.keys()
 
-class YTPlot(object):
+class RavenPlot(object):
+
+    datalabel = None
+    colorbar = None
+    xlim = None
+    ylim = None
     def __init__(self, data, fields, figure = None, axes=None, size=(10,8)):
         self.data = data
-        self.datalabels = {}
         self.fields = fields
-        self.fig_size = fig_size
-        self.autoscale = True # default to True
-        self.im = defaultdict(lambda: "") # the set of data describing our plot
+        self.size = size
+        self.set_autoscale(True)
+        self.im = defaultdict(lambda: "")
         self["ParameterFile"] = "%s" % self.data.pf
         self.pf = self.data.pf
         self.axis_names = {}
-        # We always set up a Figure for all our Plots
-        if figure is None:
-            self._figure = matplotlib.figure.Figure(fig_size)
+        if not figure:
+            self._figure = matplotlib.figure.Figure(size)
         else:
             self._figure = figure
-
-        # Add an axes onto the figure
-        if axes is None:
+        if not axes:
             self._axes = self._figure.add_subplot(1,1,1)
         else:
             self._axes = axes
-        
         self._callbacks = []
         self._setup_callback_registry()
-        self._invalidate_plot()
 
-    def __setitem__(self, item, val):
-        self.im[item] = val
+    def set_autoscale(self, val):
+        self.do_autoscale = val
 
     def __getitem__(self, item):
-        return self.im[item]
-
-
-    def _validate_plot(self):
-        if self._invalid:
-            self._redraw_image()
-            self._invalid = False
-        self._validate_colorbar()
-
-    def _validate_colorbar(self):
-        pass
-
-    def _invalidate_plot(self):
-        self._invalid = True
-
-    def _redraw_image(self):
-        pass
-
-    def _generate_prefix(self):
-        pass
+        return self.data[item] # Should be returned in CGS
 
     def save_image(self, prefix, format="png", submit=None, override=True, force_save=False):
         """
@@ -129,7 +115,7 @@ class YTPlot(object):
         *format*.  *submit* will govern the submission to the Deliverator and
         *override* will force no filename generation beyond the prefix.
         """
-        self._validate_plot()
+        self._redraw_image()
         if not override:
             self._generate_prefix(prefix)
             my_prefix = self.prefix
@@ -145,19 +131,41 @@ class YTPlot(object):
         self["GeneratedAt"] = self.data.pf["CurrentTimeIdentifier"]
         return fn
 
+    def save_to_pdf(self, f):
+        self._redraw_image()
+        canvas = engineVals["canvas_pdf"](self._figure)
+        original_figure_alpha = self._figure.patch.get_alpha()
+        self._figure.patch.set_alpha(0.0)
+        original_axes_alpha = []
+        for ax in self._figure.axes:
+            patch = ax.patch
+            original_axes_alpha.append(patch.get_alpha())
+            patch.set_alpha(0.0)
+
+        canvas.print_pdf(f)
+
+        self._figure.set_alpha(original_figure_alpha)
+        for ax, alpha in zip(self._figure.axes,original_axes_alpha):
+            ax.patch.set_alpha(alpha)
+
+    def _redraw_image(self):
+        pass
+
+    def _generate_prefix(self):
+        pass
+
     def set_xlim(self, xmin, xmax):
         """
         Set the x boundaries of this plot.
         """
-        self._axes.set_xlim(xmin, xmax)
-        self._invalidate_plot()
+        self.xlim = (xmin,xmax)
 
     def set_ylim(self, ymin, ymax):
         """
         Set the y boundaries of this plot.
         """
-        self._axes.set_ylim(ymin, ymax)
-        self._invalidate_plot()
+        self.ylim = (ymin,ymax)
+
 
     def set_zlim(self, zmin, zmax, dex=None, nticks=None, ticks=None, minmaxtick=False):
         """
@@ -170,6 +178,9 @@ class YTPlot(object):
             nticks - if ticks not specified, can automatically determine a
                number of ticks to be evenly spaced in log space
         """
+        # This next call fixes some things, but is slower...
+        self._redraw_image()
+        self.set_autoscale(False)
         if (zmin in (None,'min')) or (zmax in (None,'max')):    
             imbuff = self._axes.images[-1]._A
             if zmin == 'min':
@@ -210,25 +221,22 @@ class YTPlot(object):
                     self.colorbar.formatter = self._old_formatter
         self.norm.autoscale(na.array([zmin,zmax]))
         self.image.changed()
-
-    def set_label(self, axis, label):
-        """
-        Set the datalabel for *axis*, from x,y,z, to *label*.  (This has
-        different meanings based on the plot.)
-        """
-        self.datalabels[axis] = label
-        # This doesn't invalidate the plot
-        if axis is "z" and self.colorbar is not None:
-            self.colorbar.set_label(str(label))
+        if self.colorbar is not None:
+            _notify(self.image, self.colorbar)
 
     def set_cmap(self, cmap):
         """
         Change the colormap of this plot to *cmap*.
         """
         if isinstance(cmap, types.StringTypes):
-            cmap = matplotlib.cm.get_cmap(cmap)
+            if str(cmap) in raven_colormaps:
+                cmap = raven_colormaps[str(cmap)]
+            elif hasattr(matplotlib.cm, cmap):
+                cmap = getattr(matplotlib.cm, cmap)
         self.cmap = cmap
-        self._invalidate_colorbar()
+
+    def __setitem__(self, item, val):
+        self.im[item] = val
 
     def add_callback(self, func):
         """
@@ -237,7 +245,6 @@ class YTPlot(object):
         id of the callback (for use with :meth:`remove_callback`.)
         """
         self._callbacks.append(func)
-        self._invalidate_plot()
         return len(self._callbacks)-1
 
     def remove_callback(self, id):
@@ -245,47 +252,21 @@ class YTPlot(object):
         Given an *id*, remove that index in the callbacks list.
         """
         self._callbacks[id] = lambda a: None
-        self._invalidate_plot()
 
     def _run_callbacks(self):
-        # Clear out the patches and whatnot already on the axes object
         self._axes.patches = []
         self._axes.collections = []
         self._axes.texts = []
         for cb in self._callbacks:
             cb(self)
 
-    def _setup_callback_registry(self):
-        from yt.raven.Callbacks import callback_registry
-        self.modify = CallbackRegistryHandler(self)
-        for c in callback_registry.values():
-            if not hasattr(c, '_type_name'): continue
-            self.modify[c._type_name] = c
-
-class VMPlot(YTPlot):
-    _antialias = True
-    _period = (0.0, 0.0)
-    _frb_args = None
-    colorbar = None
-    def __init__(self, data, field, figure = None, axes = None,
-                 use_colorbar = True, fig_size=None, periodic = False):
-        fields = ['X', 'Y', field, 'X width', 'Y width']
-        if fig_size is None:
-            fig_size = (10,8)
-            if not use_colorbar: fig_size=(8,8)
-        YTPlot.__init__(self, data, fields, figure, axes, fig_size=fig_size)
-        # Initialize our dead datalabels:
-        self.datalabels["x"] = self.datalabels["y"] = ""
-        # We want our image to fill the entire bounding box
-        self._figure.subplots_adjust(hspace=0, wspace=0, bottom=0.0,
-                                    top=1.0, left=0.0, right=1.0)
-        self.setup_domain_edges(self.data.axis, periodic)
-        self.cmap = matplotlib.cm.get_cmap(
-                        ytcfg.get("raven","colormap"))
-        self.switch_z(field)
-        self._setup_image_plot(use_colorbar)
-        self.set_width(1, 'unitary')
-        self._invalidate_image()
+    def set_label(self, label):
+        """
+        Set the datalabel to *label*.  (This has different meanings based on
+        the plot.)
+        """
+        self.datalabel = label
+        if self.colorbar != None: self.colorbar.set_label(str(label))
 
     def setup_domain_edges(self, axis, periodic=False):
         DLE = self.data.pf["DomainLeftEdge"]
@@ -305,23 +286,35 @@ class VMPlot(YTPlot):
             self.xmin = self.ymin = 0.0
             self.xmax = self.ymax = 1.0
 
-    def _invalidate_colorbar(self):
-        mylog.debug("Invalidating colorbar for %s", self)
-        self._invalid_colorbar = True
+    def _setup_callback_registry(self):
+        from yt.raven.Callbacks import callback_registry
+        self.modify = CallbackRegistryHandler(self)
+        for c in callback_registry.values():
+            if not hasattr(c, '_type_name'): continue
+            self.modify[c._type_name] = c
 
-    def _validate_colorbar(self):
-        if self._invalid_colorbar:
-            self._update_colorbar()
-            self._invalid_colorbar = False
+class VMPlot(RavenPlot):
+    _antialias = True
+    _period = (0.0, 0.0)
+    def __init__(self, data, field, figure = None, axes = None,
+                 use_colorbar = True, size=None, periodic = False):
+        fields = ['X', 'Y', field, 'X width', 'Y width']
+        if not size:
+            size = (10,8)
+            if not use_colorbar: size=(8,8)
+        RavenPlot.__init__(self, data, fields, figure, axes, size=size)
+        self._figure.subplots_adjust(hspace=0, wspace=0, bottom=0.0,
+                                    top=1.0, left=0.0, right=1.0)
+        self.setup_domain_edges(self.data.axis, periodic)
+        self.cmap = None
+        self.label_kws = {}
+        self.__setup_from_field(field)
+        self.__init_temp_image(use_colorbar)
 
-    def _update_colorbar(self):
-        if self.colorbar is not None:
-            self.image.set_norm(self.norm) # Just in case
-            self.colorbar.set_cmap(self.cmap)
-            self.colorbar.set_norm(self.norm)
-            if self.autoscale: _notify(self.image, self.colorbar)
-            self.colorbar.set_label(self.datalabels["z"])
-        self._invalid_colorbar = False
+    def __setup_from_field(self, field):
+        self.set_log_field(field in lagos.log_fields
+                           or self.pf.field_info[field].take_log)
+        self.axis_names["Z"] = field
 
     def set_log_field(self, val):
         if val:
@@ -333,10 +326,10 @@ class VMPlot(YTPlot):
             self.norm = matplotlib.colors.Normalize()
             ttype = matplotlib.ticker.ScalarFormatter
         if self.colorbar:
+            self.colorbar.set_norm(self.norm)
             self.colorbar.formatter = ttype()
-        self._invalidate_colorbar()
 
-    def _setup_image_plot(self, setup_colorbar):
+    def __init_temp_image(self, setup_colorbar):
         temparray = na.ones(self.size)
         self.image = \
             self._axes.imshow(temparray, interpolation='nearest',
@@ -350,30 +343,38 @@ class VMPlot(YTPlot):
             self.colorbar = self._figure.colorbar(self._axes.images[-1], \
                                                   extend='neither', \
                                                   shrink=0.95)
-            self._orig_locator = self.colorbar.locator
-            self._orig_formatter = self.colorbar.formatter
+            self._old_locator = self.colorbar.locator
+            self._old_formatter = self.colorbar.formatter
         else:
             self.colorbar = None
+        self.set_width(1,'unitary')
 
-    def _get_buffer(self, width=None):
+    def _get_buff(self, width=None):
         x0, x1 = self.xlim
         y0, y1 = self.ylim
         if width is None:
             l, b, width, height = _get_bounds(self._axes.bbox)
         else:
             height = width
-        args = ((x0,x1,y0,y1), (width, height), self._antialias)
-        if self._frb_args == args: return
-        self._frb_args = args
-        self.buff = FixedResolutionBuffer(self.data, *self._frb_args)
+        self.pix = (width,height)
+        # 'px' == pixel x, or x in the plane of the slice
+        # 'x' == actual x
+        aa = int(self._antialias)
+        buff = _MPL.Pixelize(self.data['px'],
+                            self.data['py'],
+                            self.data['pdx'],
+                            self.data['pdy'],
+                            self[self.axis_names["Z"]],
+                            int(height), int(width),
+                            (x0, x1, y0, y1),aa,self._period).transpose()
+        return buff
 
     def _redraw_image(self, *args):
-        self._get_buffer()
-        buff = self.buffer[self.axis_names["z"]]
+        buff = self._get_buff()
         mylog.debug("Received buffer of min %s and max %s (data: %s %s)",
                     na.nanmin(buff), na.nanmax(buff),
-                    self.data[self.axis_names["z"]].min(),
-                    self.data[self.axis_names["z"]].max())
+                    self[self.axis_names["Z"]].min(),
+                    self[self.axis_names["Z"]].max())
         if self.log_field:
             bI = na.where(buff > 0)
             newmin = na.nanmin(buff[bI])
@@ -396,8 +397,17 @@ class VMPlot(YTPlot):
         self._run_callbacks()
 
     def _reset_image_parameters(self):
-        if self.colorbar is not None:
-             _notify(self.image, self.colorbar)
+        self._axes.set_xticks(())
+        self._axes.set_yticks(())
+        self._axes.set_ylabel("")
+        self._axes.set_xlabel("")
+        if self.cmap:
+            self.image.set_cmap(self.cmap)
+        if self.colorbar != None:
+            self.image.set_norm(self.norm)
+            self.colorbar.set_norm(self.norm)
+            if self.cmap: self.colorbar.set_cmap(self.cmap)
+            if self.do_autoscale: _notify(self.image, self.colorbar)
         self._autoset_label()
 
     def set_xlim(self, xmin, xmax):
@@ -451,12 +461,16 @@ class VMPlot(YTPlot):
         pass
 
     def switch_z(self, field):
-        self.set_log_field(self.pf.field_info[field].take_log)
+        self.set_log_field(field in lagos.log_fields
+                           or self.pf.field_info[field].take_log)
         self.axis_names["Z"] = field
-        self._invalidate_plot()
+        self._redraw_image()
+
+    def selfSetup(self):
+        pass
 
     def _autoset_label(self):
-        if "Z" not in self.datalabels is None:
+        if self.datalabel is None:
             field_name = self.axis_names["Z"]
             proj = "Proj" in self._type_name and \
                    self.data._weight is None
@@ -472,7 +486,7 @@ class FixedResolutionPlot(VMPlot):
 
     _type_name = "FixedResolution"
 
-    def _get_buffer(self, width=None):
+    def _get_buff(self, width=None):
         return self.data[self.axis_names["Z"]]
 
     def set_width(self, width, unit):
@@ -505,7 +519,7 @@ class SlicePlot(VMPlot):
         self.add_callback(QuiverCallback(xf, yf, factor))
 
 class NNVMPlot:
-    def _get_buffer(self, width=None):
+    def _get_buff(self, width=None):
         import delaunay as de
         x0, x1 = self.xlim
         y0, y1 = self.ylim
@@ -513,6 +527,7 @@ class NNVMPlot:
             l, b, width, height = _get_bounds(self._axes.bbox)
         else:
             height = width
+        self.pix = (width,height)
         numPoints_x = int(width)
         numPoints_y = int(width)
         dx = numPoints_x / (x1-x0)
@@ -554,13 +569,14 @@ class ProjectionPlotNaturalNeighbor(NNVMPlot, ProjectionPlot):
 class CuttingPlanePlot(SlicePlot):
 
     _type_name = "CuttingPlane"
-    def _get_buffer(self, width=None):
+    def _get_buff(self, width=None):
         px_min, px_max = self.xlim
         py_min, py_max = self.ylim
         if width is None:
             l, b, width, height = _get_bounds(self._axes.bbox)
         else:
             height = width
+        self.pix = (width,height)
         indices = na.argsort(self.data['dx'])[::-1]
         buff = _MPL.CPixelize( self.data['x'], self.data['y'], self.data['z'],
                                self.data['px'], self.data['py'],
@@ -572,6 +588,7 @@ class CuttingPlanePlot(SlicePlot):
         return buff
 
     def _refresh_display_width(self, width=None):
+        
         if width:
             self.width = width
         else:
@@ -587,33 +604,28 @@ class CuttingPlanePlot(SlicePlot):
         r_edge_y = +width_y/2.0
         self.set_xlim(l_edge_x, r_edge_x) # We have no real limits
         self.set_ylim(l_edge_y, r_edge_y) # At some point, perhaps calculate them?
-        self._invalidate()
+        self._redraw_image()
 
-class ParticlePlot(YTPlot):
+class ParticlePlot(RavenPlot):
 
     _type_name = "ParticlePlot"
     def __init__(self, data, axis, width, p_size=1.0, col='k', stride=1.0,
                  figure = None, axes = None):
-        YTPlot.__init__(self, data, [], figure, axes)
+        kwargs = {}
+        if figure is None: kwargs['size'] = (8,8)
+        RavenPlot.__init__(self, data, [], figure, axes, **kwargs)
         self._figure.subplots_adjust(hspace=0, wspace=0, bottom=0.0,
                                     top=1.0, left=0.0, right=1.0)
         self.axis = axis
         self.setup_domain_edges(axis)
         self.axis_names['Z'] = col
-        from Callbacks import ParticleCallback
-        self.add_callback(ParticleCallback(axis, width, p_size, col, stride))
+        self.modify["particles"](width, p_size, col, stride)
         self.set_width(1,'unitary')
 
     def _redraw_image(self, *args):
         self._axes.clear() # To help out the colorbar
         self._reset_image_parameters()
         self._run_callbacks()
-
-    def set_xlim(self, xmin, xmax):
-        self.xlim = (xmin,xmax)
-
-    def set_ylim(self, ymin, ymax):
-        self.ylim = (ymin,ymax)
 
     def _generate_prefix(self, prefix):
         self.prefix = "_".join([prefix, self._type_name, \
@@ -626,7 +638,7 @@ class ParticlePlot(YTPlot):
         self["Unit"] = str(unit)
         self["Width"] = float(width)
         if isinstance(unit, types.StringTypes):
-            unit = self.data.hierarchy[str(unit)]
+            unit = self.data.pf[str(unit)]
         self.width = width / unit
         self._refresh_display_width()
 
@@ -653,8 +665,11 @@ class ParticlePlot(YTPlot):
         self._axes.set_yticks(())
         self._axes.set_ylabel("")
         self._axes.set_xlabel("")
+        l, b, width, height = _get_bounds(self._axes.bbox)
+        self._axes.set_xlim(0, width)
+        self._axes.set_ylim(0, height)
 
-class ProfilePlot(YTPlot):
+class ProfilePlot(RavenPlot):
     _x_label = None
     _y_label = None
 
@@ -687,7 +702,7 @@ class Profile1DPlot(ProfilePlot):
     def __init__(self, data, fields, id, ticker=None, 
                  figure=None, axes=None, plot_options=None):
         self._semi_unique_id = id
-        YTPlot.__init__(self, data, fields, figure, axes)
+        RavenPlot.__init__(self, data, fields, figure, axes)
 
         self.axis_names["X"] = fields[0]
         self.axis_names["Y"] = fields[1]
@@ -756,7 +771,7 @@ class PhasePlot(ProfilePlot):
     def __init__(self, data, fields, id, ticker=None, cmap=None,
                  figure=None, axes=None):
         self._semi_unique_id = id
-        YTPlot.__init__(self, data, fields, figure, axes)
+        RavenPlot.__init__(self, data, fields, figure, axes)
         self.ticker = ticker
         self.image = None
         self.set_cmap(cmap)
@@ -786,13 +801,13 @@ class PhasePlot(ProfilePlot):
         self.norm = matplotlib.colors.Normalize()
         self.image = self._axes.pcolormesh(self.x_bins, self.y_bins,
                                       temparray, shading='flat',
-                                      norm=self.norm)
+                                      norm=self.norm, cmap=self.cmap)
         self.colorbar = self._figure.colorbar(self.image,
                                     extend='neither', shrink=0.95,
                                     format="%0.2e" )
 
     def set_cmap(self, cmap):
-        YTPlot.set_cmap(self, cmap)
+        RavenPlot.set_cmap(self, cmap)
         if self.image != None and self.cmap != None:
             self.image.set_cmap(self.cmap)
 
@@ -898,13 +913,13 @@ class PhasePlot(ProfilePlot):
         self.colorbar.set_label(label)
         self._z_label = label
 
-class LineQueryPlot(YTPlot):
+class LineQueryPlot(RavenPlot):
     _type_name = "LineQueryPlot"
 
     def __init__(self, data, fields, id, ticker=None,
                  figure=None, axes=None, plot_options=None):
         self._semi_unique_id = id
-        YTPlot.__init__(self, data, fields, figure, axes)
+        RavenPlot.__init__(self, data, fields, figure, axes)
 
         self.axis_names["X"] = fields[0]
         self.axis_names["Y"] = fields[1]

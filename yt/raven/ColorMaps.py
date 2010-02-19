@@ -38,9 +38,7 @@ raven_colormaps = {}
 def add_cmap(name, cdict):
     raven_colormaps[name] = \
         cc.LinearSegmentedColormap(name,cdict,256)
-    mcm.datad[name] = cdict
-    mcm.__dict__[name] = cdict
-    
+    mcm.register_cmap(name, raven_colormaps[name])
 
 # The format is as follows:
 #   First number is the number at which we are defining a color breakpoint
