@@ -2027,7 +2027,7 @@ class AMRInclinedBox(AMR3DData):
         self.origin = na.array(origin)
         self.box_vectors = na.array(box_vectors, dtype='float64')
         self.box_lengths = (self.box_vectors**2.0).sum(axis=1)**0.5
-        center = origin + 0.5*self.box_vectors.sum(axis=0)
+        center = origin + 0.5*self.box_vectors.sum(axis=1)
         AMR3DData.__init__(self, center, fields, pf, **kwargs)
         self._setup_rotation_parameters()
         self._refresh_data()

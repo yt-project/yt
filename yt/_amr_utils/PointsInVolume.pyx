@@ -182,14 +182,14 @@ def find_grids_in_inclined_box(
         # We have 6 principal axes we already know, which are the grid (domain)
         # principal axes and the box axes
         sep_ax[b_ax][0] = sep_ax[b_ax][1] = sep_ax[b_ax][2] = 0.0
-        sep_ax[b_ax][b_ax] = 1.0 # delta_ijk
+        sep_ax[b_ax][b_ax] = 1.0 # delta_ijk, for grid axes
         for g_ax in range(3):
-            b_vec[b_ax][g_ax] = box_vectors[b_ax,g_ax]
-            sep_ax[b_ax + 3][g_ax] = b_vec[b_ax][g_ax]
+            b_vec[b_ax][g_ax] = 0.5*box_vectors[b_ax,g_ax]
+            sep_ax[b_ax + 3][g_ax] = b_vec[b_ax][g_ax] # box axes
+        normalize_vector(sep_ax[b_ax + 3])
         for g_ax in range(3):
             get_cross_product(b_vec[b_ax], a_vec[g_ax], sep_ax[b_ax*3 + g_ax + 6])
-        normalize_vector(sep_ax[b_ax + 3])
-        normalize_vector(sep_ax[b_ax*3 + g_ax + 6])
+            normalize_vector(sep_ax[b_ax*3 + g_ax + 6])
 
     for gi in range(n):
         for g_ax in range(3):
@@ -197,8 +197,8 @@ def find_grids_in_inclined_box(
             sep_vec[g_ax] = grid_centers[gi, g_ax] - box_center[g_ax]
             # Calculate the grid axis lengths
             g_vec[g_ax][0] = g_vec[g_ax][1] = g_vec[g_ax][2] = 0.0
-            g_vec[g_ax][g_ax] = grid_right_edges[gi, g_ax] \
-                              - grid_left_edges[gi, g_ax]
+            g_vec[g_ax][g_ax] = 0.5 * (grid_right_edges[gi, g_ax]
+                                     - grid_left_edges[gi, g_ax])
         for b_ax in range(15):
             #print b_ax,
             if check_projected_overlap(
