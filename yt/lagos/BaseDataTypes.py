@@ -2048,13 +2048,15 @@ class AMRInclinedBox(AMR3DData):
         GRE = self.pf.h.grid_right_edge
         goodI = amr_utils.find_grids_in_inclined_box(
                     self.box_vectors, self.center, GLE, GRE)
-        self._grids = self.pf.h.grids[goodI.astype('bool')]
-        # This next condition unfortunately doesn't really work.  However,
-        # it serves to illustrate that we are, in fact, over-collecting: any
-        # grids that overlap with the box, even if that grid does not
-        # contribute to the grid, are selected.  I don't know how to get around
-        # this.
-        #self._grids = [g for g in grids if g.dds.prod() <= self.box_lengths.prod()]
+        cgrids = self.pf.h.grids[goodI.astype('bool')]
+        grids = []
+        for i,grid in enumerate(cgrids):
+            v = amr_utils.grid_points_in_volume(self.box_lengths, self.origin,
+                        self._rot_mat, grid.LeftEdge, grid.RightEdge, grid.dds,
+                        grid.child_mask, 1)
+            if v: grids.append(grid)
+        self._grids = na.array(grids, dtype='object')
+            
 
     def _is_fully_enclosed(self, grid):
         # This should be written at some point.
@@ -2067,7 +2069,7 @@ class AMRInclinedBox(AMR3DData):
             return True
         pm = na.zeros(grid.ActiveDimensions, dtype='int32')
         amr_utils.grid_points_in_volume(self.box_lengths, self.origin,
-                    self._rot_mat, grid.LeftEdge, grid.RightEdge, grid.dds, pm)
+                    self._rot_mat, grid.LeftEdge, grid.RightEdge, grid.dds, pm, 0)
         return pm
         
 

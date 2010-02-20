@@ -92,7 +92,8 @@ def grid_points_in_volume(
                    np.ndarray[np.float64_t, ndim=1] grid_left_edge,
                    np.ndarray[np.float64_t, ndim=1] grid_right_edge,
                    np.ndarray[np.float64_t, ndim=1] dds,
-                   np.ndarray[np.int32_t, ndim=3] mask):
+                   np.ndarray[np.int32_t, ndim=3] mask,
+                   int break_first):
     cdef int n[3], i, j, k, ax
     cdef np.float64_t rds[3][3], cur_pos[3], rorigin[3]
     for i in range(3):
@@ -118,7 +119,11 @@ def grid_points_in_volume(
                 if (cur_pos[0] < 0.0): continue
                 if (cur_pos[1] < 0.0): continue
                 if (cur_pos[2] < 0.0): continue
-                mask[i,j,k] = 1
+                if break_first:
+                    if mask[i,j,k]: return 1
+                else:
+                    mask[i,j,k] = 1
+    return 0
 
 cdef void normalize_vector(np.float64_t vec[3]):
     cdef int i
