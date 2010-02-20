@@ -1149,9 +1149,10 @@ class AMRFixedResCuttingPlaneBase(AMR2DData):
 
     def _get_point_indices(self, grid):
         if self._pixelmask.max() == 0: return []
-        k = amr_utils.PointsInVolume(self._coord, self._pixelmask,
-                                     grid.LeftEdge, grid.RightEdge,
-                                     grid.child_mask, just_one(grid['dx']))
+        k = amr_utils.planar_points_in_volume(
+                self._coord, self._pixelmask,
+                grid.LeftEdge, grid.RightEdge,
+                grid.child_mask, just_one(grid['dx']))
         return k
 
     def _gen_node_name(self):
@@ -2011,38 +2012,59 @@ class AMRCylinderBase(AMR3DData):
         return math.pi * (self._radius)**2. * self._height * pf[unit]**3
 
 class AMRInclinedBox(AMR3DData):
-    """
-    A rectangular prism with arbitrary alignment to the computational domain
-    """
     _type_name="inclined_box"
-    _con_args = ()
+    _con_args = ('origin','box_vectors')
 
-    def __init__(self, left_edge, right_edge, normal, fields=None,
+    def __init__(self, origin, box_vectors, fields=None,
                  pf=None, **kwargs):
-        self.left_edge = na.array(left_edge)
-        self.right_edge = na.array(right_edge)
-        center = (self.right_edge - self.left_edge)
+        """
+        A rectangular prism with arbitrary alignment to the computational
+        domain.  *origin* is the origin of the box, while *box_vectors* is an
+        array of ordering [ax, ijk] that describes the three vectors that
+        describe the box.  No checks are done to ensure that the box satisfies
+        a right-hand rule, but if it doesn't, behavior is undefined.
+        """
+        self.origin = na.array(origin)
+        self.box_vectors = na.array(box_vectors, dtype='float64')
+        self.box_lengths = (self.box_vectors**2.0).sum(axis=1)**0.5
+        center = origin + 0.5*self.box_vectors.sum(axis=0)
         AMR3DData.__init__(self, center, fields, pf, **kwargs)
-        self._norm_vec = na.array(normal)/na.sqrt(na.dot(normal,normal))
-        self.refresh_data()
+        self._setup_rotation_parameters()
+        self._refresh_data()
+
+    def _setup_rotation_parameters(self):
+        xv = self.box_vectors[0,:]
+        yv = self.box_vectors[1,:]
+        zv = self.box_vectors[2,:]
+        self._x_vec = xv / na.sqrt(na.dot(xv, xv))
+        self._y_vec = yv / na.sqrt(na.dot(yv, yv))
+        self._z_vec = zv / na.sqrt(na.dot(zv, zv))
+        self._rot_mat = na.array([self._x_vec,self._y_vec,self._z_vec])
+        self._inv_mat = na.linalg.pinv(self._rot_mat)
 
     def _get_list_of_grids(self):
-        pass
+        if self._grids is not None: return
+        GLE = self.pf.h.grid_left_edge
+        GRE = self.pf.h.grid_right_edge
+        goodI = amr_utils.find_grids_in_inclined_box(
+                    self.box_vectors, self.center, GLE, GRE)
+        self._grids = self.pf.h.grids[goodI.astype('bool')]
 
     def _is_fully_enclosed(self, grid):
-        pass
+        # We rotate all eight corners into the space of the box, then check to
+        # see if all are enclosed.
+        return False
+        rot_corners = (grid._corners * self._rot_mat).sum(axis=1)
+        if na.all(rot_corners >= 0.0) and na.all(rot_corners <= self.box_lengths):
+            return True
+        return False
 
     def _get_cut_mask(self, grid):
-        pass
-
-    def volume(self, unit = "unitary"):
-        """
-        Return the volume of the prism in units *unit*.
-        """
-        diff = na.array(self.right_edge) - na.array(self.left_edge)
-        # Find the full volume
-        vol = na.prod(diff * self.pf[unit])
-        return vol
+        pm = na.zeros(grid.ActiveDimensions, dtype='int32')
+        amr_utils.grid_points_in_volume(self.box_lengths, self.origin,
+                    self._rot_mat, grid.LeftEdge, grid.RightEdge, grid.dds, pm)
+        return pm
+        
 
 class AMRRegionBase(AMR3DData):
     """

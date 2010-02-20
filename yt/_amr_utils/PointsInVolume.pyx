@@ -33,7 +33,8 @@ cdef extern from "math.h":
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def PointsInVolume(np.ndarray[np.float64_t, ndim=2] points,
+def planar_points_in_volume(
+                   np.ndarray[np.float64_t, ndim=2] points,
                    np.ndarray[np.int8_t, ndim=1] pmask,  # pixel mask
                    np.ndarray[np.float64_t, ndim=1] left_edge,
                    np.ndarray[np.float64_t, ndim=1] right_edge,
@@ -72,6 +73,51 @@ def PointsInVolume(np.ndarray[np.float64_t, ndim=2] points,
         
     return result
 
+cdef inline void set_rotated_pos(
+            np.float64_t cp[3], np.float64_t rdds[3][3],
+            np.float64_t rorigin[3], int i, int j, int k):
+    cdef int oi
+    for oi in range(3):
+        cp[oi] = rdds[0][oi] * (0.5 + i) \
+               + rdds[1][oi] * (0.5 + j) \
+               + rdds[2][oi] * (0.5 + k) \
+               + rorigin[oi]
+
+#@cython.wraparound(False)
+#@cython.boundscheck(False)
+def grid_points_in_volume(
+                   np.ndarray[np.float64_t, ndim=1] box_lengths,
+                   np.ndarray[np.float64_t, ndim=1] box_origin,
+                   np.ndarray[np.float64_t, ndim=2] rot_mat,
+                   np.ndarray[np.float64_t, ndim=1] grid_left_edge,
+                   np.ndarray[np.float64_t, ndim=1] grid_right_edge,
+                   np.ndarray[np.float64_t, ndim=1] dds,
+                   np.ndarray[np.int32_t, ndim=3] mask):
+    cdef int n[3], i, j, k, ax
+    cdef np.float64_t ds[3], rds[3][3], cur_pos[3], rorigin[3]
+    for i in range(3):
+        n[i] = mask.shape[i]
+        ds[i] = dds[i]
+        rorigin[i] = 0.0
+        for j in range(3):
+            # Set up our transposed dx, which has a component in every
+            # direction
+            rds[i][j] = ds[i] * rot_mat[j,i]
+            rorigin[i] += (grid_left_edge[i] - box_origin[i]) * rot_mat[j,i]
+    # Set our origin, which should be our rotated origin plus 0.5 dds in every
+    # direction
+    for i in range(n[0]):
+        for j in range(n[1]):
+            for k in range(n[2]):
+                set_rotated_pos(cur_pos, rds, rorigin, i, j, k)
+                if (cur_pos[0] > box_lengths[0]): continue
+                if (cur_pos[1] > box_lengths[1]): continue
+                if (cur_pos[2] > box_lengths[2]): continue
+                if (cur_pos[0] < 0.0): continue
+                if (cur_pos[1] < 0.0): continue
+                if (cur_pos[2] < 0.0): continue
+                mask[i,j,k] = 1
+
 cdef void normalize_vector(np.float64_t vec[3]):
     cdef int i
     cdef np.float64_t norm = 0.0
@@ -109,11 +155,13 @@ cdef int check_projected_overlap(
     return (fabs(sep_dot) > ba+ga)
     # Now we do 
 
+@cython.wraparound(False)
+@cython.boundscheck(False)
 def find_grids_in_inclined_box(
         np.ndarray[np.float64_t, ndim=2] box_vectors,
         np.ndarray[np.float64_t, ndim=1] box_center,
-        np.ndarray[np.float64_t, ndim=2] grid_right_edges,
-        np.ndarray[np.float64_t, ndim=2] grid_left_edges):
+        np.ndarray[np.float64_t, ndim=2] grid_left_edges,
+        np.ndarray[np.float64_t, ndim=2] grid_right_edges):
 
     # http://www.gamasutra.com/view/feature/3383/simple_intersection_tests_for_games.php?page=5
     cdef int n = grid_right_edges.shape[0]
