@@ -146,7 +146,7 @@ class AMRData(object):
             self.pf = pf
             self.hierarchy = pf.hierarchy
         self.hierarchy.objects.append(weakref.proxy(self))
-        mylog.debug("Appending object to %s", self.pf)
+        mylog.debug("Appending object to %s (type: %s)", self.pf, type(self))
         if fields == None: fields = []
         self.fields = ensure_list(fields)[:]
         self.data = {}
@@ -2049,17 +2049,22 @@ class AMRInclinedBox(AMR3DData):
         goodI = amr_utils.find_grids_in_inclined_box(
                     self.box_vectors, self.center, GLE, GRE)
         self._grids = self.pf.h.grids[goodI.astype('bool')]
+        # This next condition unfortunately doesn't really work.  However,
+        # it serves to illustrate that we are, in fact, over-collecting: any
+        # grids that overlap with the box, even if that grid does not
+        # contribute to the grid, are selected.  I don't know how to get around
+        # this.
+        #self._grids = [g for g in grids if g.dds.prod() <= self.box_lengths.prod()]
 
     def _is_fully_enclosed(self, grid):
-        # We rotate all eight corners into the space of the box, then check to
+        # This should be written at some point.
+        # We'd rotate all eight corners into the space of the box, then check to
         # see if all are enclosed.
-        return False
-        rot_corners = (grid._corners * self._rot_mat).sum(axis=1)
-        if na.all(rot_corners >= 0.0) and na.all(rot_corners <= self.box_lengths):
-            return True
         return False
 
     def _get_cut_mask(self, grid):
+        if self._is_fully_enclosed(grid):
+            return True
         pm = na.zeros(grid.ActiveDimensions, dtype='int32')
         amr_utils.grid_points_in_volume(self.box_lengths, self.origin,
                     self._rot_mat, grid.LeftEdge, grid.RightEdge, grid.dds, pm)

@@ -94,18 +94,20 @@ def grid_points_in_volume(
                    np.ndarray[np.float64_t, ndim=1] dds,
                    np.ndarray[np.int32_t, ndim=3] mask):
     cdef int n[3], i, j, k, ax
-    cdef np.float64_t ds[3], rds[3][3], cur_pos[3], rorigin[3]
+    cdef np.float64_t rds[3][3], cur_pos[3], rorigin[3]
+    for i in range(3):
+        rorigin[i] = 0.0
     for i in range(3):
         n[i] = mask.shape[i]
-        ds[i] = dds[i]
-        rorigin[i] = 0.0
         for j in range(3):
             # Set up our transposed dx, which has a component in every
             # direction
-            rds[i][j] = ds[i] * rot_mat[j,i]
-            rorigin[i] += (grid_left_edge[i] - box_origin[i]) * rot_mat[j,i]
-    # Set our origin, which should be our rotated origin plus 0.5 dds in every
-    # direction
+            rds[i][j] = dds[i] * rot_mat[i,j]
+            # In our rotated coordinate system, the box origin is 0,0,0
+            # so we subtract the box_origin from the grid_origin and rotate
+            # that
+            rorigin[j] += (grid_left_edge[i] - box_origin[i]) * rot_mat[i,j]
+
     for i in range(n[0]):
         for j in range(n[1]):
             for k in range(n[2]):
