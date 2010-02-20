@@ -28,6 +28,9 @@ import numpy as np
 cimport numpy as np
 cimport cython
 
+cdef extern from "math.h":
+    double fabs(double x)
+
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def PointsInVolume(np.ndarray[np.float64_t, ndim=2] points,
@@ -69,5 +72,91 @@ def PointsInVolume(np.ndarray[np.float64_t, ndim=2] points,
         
     return result
 
-                
-                 
+cdef void normalize_vector(np.float64_t vec[3]):
+    cdef int i
+    cdef np.float64_t norm = 0.0
+    for i in range(3):
+        norm += vec[i]*vec[i]
+    norm = norm**0.5
+    for i in range(3):
+        vec[i] /= norm
+
+cdef void get_cross_product(np.float64_t v1[3],
+                            np.float64_t v2[3],
+                            np.float64_t cp[3]):
+    cp[0] = v1[1]*v2[2] - v1[2]*v2[1]
+    cp[1] = v1[3]*v2[0] - v1[0]*v2[3]
+    cp[2] = v1[0]*v2[1] - v1[1]*v2[0]
+    #print cp[0], cp[1], cp[2]
+
+cdef int check_projected_overlap(
+        np.float64_t sep_ax[3], np.float64_t sep_vec[3], int gi,
+        np.float64_t b_vec[3][3], np.float64_t g_vec[3][3]):
+    cdef int g_ax, b_ax
+    cdef np.float64_t tba, tga, ba, ga, sep_dot
+    ba = ga = sep_dot = 0.0
+    for g_ax in range(3):
+        # We need the grid vectors, which we'll precompute here
+        tba = tga = 0.0
+        for b_ax in range(3):
+            tba += b_vec[g_ax][b_ax] * sep_vec[b_ax]
+            tga += g_vec[g_ax][b_ax] * sep_vec[b_ax]
+        ba += fabs(tba)
+        ga += fabs(tga)
+        sep_dot += sep_vec[g_ax] * sep_ax[g_ax]
+    #print sep_vec[0], sep_vec[1], sep_vec[2],
+    #print sep_ax[0], sep_ax[1], sep_ax[2]
+    return (fabs(sep_dot) > ba+ga)
+    # Now we do 
+
+def find_grids_in_inclined_box(
+        np.ndarray[np.float64_t, ndim=2] box_vectors,
+        np.ndarray[np.float64_t, ndim=1] box_center,
+        np.ndarray[np.float64_t, ndim=2] grid_right_edges,
+        np.ndarray[np.float64_t, ndim=2] grid_left_edges):
+
+    # http://www.gamasutra.com/view/feature/3383/simple_intersection_tests_for_games.php?page=5
+    cdef int n = grid_right_edges.shape[0]
+    cdef int g_ax, b_ax, gi
+    cdef np.float64_t b_vec[3][3], g_vec[3][3], a_vec[3][3], sep_ax[15][3]
+    cdef np.float64_t sep_vec[3], norm
+    cdef np.ndarray[np.int32_t, ndim=1] good = np.zeros(n, dtype='int32')
+    cdef np.ndarray[np.float64_t, ndim=2] grid_centers
+    # Fill in our axis unit vectors
+    for b_ax in range(3):
+        for g_ax in range(3):
+            a_vec[b_ax][g_ax] = <np.float64_t> (b_ax == g_ax)
+    grid_centers = (grid_right_edges + grid_left_edges)/2.0
+
+    # Now we pre-compute our candidate separating axes, because the unit
+    # vectors for all the grids are identical
+    for b_ax in range(3):
+        # We have 6 principal axes we already know, which are the grid (domain)
+        # principal axes and the box axes
+        sep_ax[b_ax][0] = sep_ax[b_ax][1] = sep_ax[b_ax][2] = 0.0
+        sep_ax[b_ax][b_ax] = 1.0 # delta_ijk
+        for g_ax in range(3):
+            b_vec[b_ax][g_ax] = box_vectors[b_ax,g_ax]
+            sep_ax[b_ax + 3][g_ax] = b_vec[b_ax][g_ax]
+        for g_ax in range(3):
+            get_cross_product(b_vec[b_ax], a_vec[g_ax], sep_ax[b_ax*3 + g_ax + 6])
+        normalize_vector(sep_ax[b_ax + 3])
+        normalize_vector(sep_ax[b_ax*3 + g_ax + 6])
+
+    for gi in range(n):
+        for g_ax in range(3):
+            # Calculate the separation vector
+            sep_vec[g_ax] = grid_centers[gi, g_ax] - box_center[g_ax]
+            # Calculate the grid axis lengths
+            g_vec[g_ax][0] = g_vec[g_ax][1] = g_vec[g_ax][2] = 0.0
+            g_vec[g_ax][g_ax] = grid_right_edges[gi, g_ax] \
+                              - grid_left_edges[gi, g_ax]
+        for b_ax in range(15):
+            #print b_ax,
+            if check_projected_overlap(
+                        sep_ax[b_ax], sep_vec, gi,
+                        b_vec,  g_vec):
+                good[gi] = 1
+                break
+    return good
+
