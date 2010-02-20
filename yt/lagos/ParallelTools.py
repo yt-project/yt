@@ -277,6 +277,26 @@ class ParallelAnalysisInterface(object):
         reg = self.hierarchy.region_strict(self.center, LE, RE)
         return True, reg
 
+    def _partition_hierarchy_2d_inclined(self, unit_vectors, origin, widths,
+                                         box_vectors):
+        if not self._distributed:
+           return False, self.hierarchy.inclined_box(origin, box_vectors)
+        LEx, REx = origin[1], origin[1] + widths[1]
+        LEy, REy = origin[2], origin[2] + widths[2]
+        cc = MPI.Compute_dims(MPI.COMM_WORLD.size, 2)
+        mi = MPI.COMM_WORLD.rank
+        cx, cy = na.unravel_index(mi, cc)
+        px = na.mgrid[LEx:REx:(cc[0]+1)*1j][cx:cx+2]
+        py = na.mgrid[LEy:REy:(cc[1]+1)*1j][cy:cy+2]
+        nbox_vectors = na.array(
+                       [unit_vectors[0] * widths[0],
+                        unit_vectors[1] * (px[1] - px[0]),
+                        unit_vectors[2] * (py[1] - py[0])],
+                        dtype='float64')
+        norigin = na.array([origin[0], px[0], py[0]])
+        box = self.hierarchy.inclined_box(norigin, nbox_vectors)
+        return True, box
+        
     def _partition_hierarchy_3d(self, padding=0.0):
         LE, RE = self.pf["DomainLeftEdge"].copy(), self.pf["DomainRightEdge"].copy()
         if not self._distributed:

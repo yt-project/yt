@@ -31,4 +31,4 @@ from yt.amr_utils import PartitionedGrid, VectorPlane, \
 from grid_partitioner import partition_all_grids, partition_grid, \
                              export_partitioned_grids, \
                              import_partitioned_grids
-from software_sampler import direct_ray_cast
+from software_sampler import direct_ray_cast, VolumeRendering

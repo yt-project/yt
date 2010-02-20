@@ -26,6 +26,7 @@ License:
 import numpy as na
 from yt.extensions.volume_rendering import *
 from yt.funcs import *
+from yt.lagos import data_object_registry, ParallelAnalysisInterface
 
 def direct_ray_cast(pf, L, center, W, Nvec, tf, 
                     partitioned_grids = None, field = 'Density',
@@ -98,3 +99,59 @@ def direct_ray_cast(pf, L, center, W, Nvec, tf,
     pbar.finish()
 
     return partitioned_grids[ind], image, vectors, norm_vec, pos
+
+# We're going to register this class, but it does not directly inherit from
+# AMRData.
+
+class VolumeRendering(ParallelAnalysisInterface):
+
+    def __init__(self, pf, normal_vector, width, center,
+                 resolution, fields = None, whole_box = False,
+                 sub_samples = 5, north_vector = None):
+        self.pf = pf
+        self.hierarchy = pf.h
+        # Now we replicate some of the 'cutting plane' logic
+        if not iterable(resolution):
+            resolution = (resolution, resolution)
+        self.resolution = resolution
+        if not iterable(width):
+            width = (width, width, width) # front/back, left/right, top/bottom
+        self.width = width
+        self.center = center
+
+        # Now we set up our  various vectors
+        normal_vector /= na.sqrt( na.dot(normal_vector, normal_vector))
+        if north_vector is None:
+            vecs = na.identity(3)
+            t = na.cross(normal_vector, vecs).sum(axis=1)
+            ax = t.argmax()
+            north_vector = na.cross(vecs[ax,:], normal_vector).ravel()
+        north_vector /= na.sqrt(na.dot(north_vector, north_vector))
+        east_vector = na.cross(north_vector, normal_vector).ravel()
+        east_vector /= na.sqrt(na.dot(east_vector, east_vector))
+        self.unit_vectors = [normal_vector, east_vector, north_vector]
+        self.box_vectors = na.array([self.unit_vectors[0]*self.width[0],
+                                     self.unit_vectors[1]*self.width[1],
+                                     self.unit_vectors[2]*self.width[2]])
+
+        self.origin = center - 0.5*width[0]*self.unit_vectors[0] \
+                             - 0.5*width[1]*self.unit_vectors[1] \
+                             - 0.5*width[2]*self.unit_vectors[2]
+
+        self._initialize_source()
+
+    def _initialize_source(self):
+        check, source = self._partition_hierarchy_2d_inclined(
+                self.unit_vectors, self.origin, self.width, self.box_vectors)
+        self.source = source
+
+    def ray_cast(self):
+        pass
+
+    def partition_grids(self):
+        pass
+        
+    def _construct_vector_array(self):
+        pass
+
+data_object_registry["volume_rendering"] = VolumeRendering
