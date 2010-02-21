@@ -200,11 +200,13 @@ class VolumeRendering(ParallelAnalysisInterface):
         # the usage of on-the-fly generation in the VolumeIntegrator module
         self.image = na.zeros((self.resolution[0], self.resolution[1], 4),
                                dtype='float64', order='F')
-        
-        px = na.linspace(-self.width[0]/2.0, self.width[0]/2.0, self.resolution[0])
-        py = na.linspace(-self.width[1]/2.0, self.width[1]/2.0, self.resolution[1])
+        # We might have a different width and back_center
+        bl = self.source.box_lengths
+        px = na.linspace(-bl[0]/2.0, bl[0]/2.0, self.resolution[0])
+        py = na.linspace(-bl[1]/2.0, bl[1]/2.0, self.resolution[1])
         inv_mat = self.source._inv_mat
-        bc = self.back_center
+        bc = self.source.origin + 0.5*self.source.box_vectors[0] \
+                                + 0.5*self.source.box_vectors[1]
         vectors = na.zeros((self.resolution[0], self.resolution[1], 3),
                             dtype='float64', order='F')
         vectors[:,:,0] = inv_mat[0,0]*px[None,:] + inv_mat[0,1]*py[:,None] + bc[0]
@@ -212,8 +214,8 @@ class VolumeRendering(ParallelAnalysisInterface):
         vectors[:,:,2] = inv_mat[2,0]*px[None,:] + inv_mat[2,1]*py[:,None] + bc[2]
         bounds = (px.min(), px.max(), py.min(), py.max())
         self.vector_plane = VectorPlane(vectors, self.box_vectors[2],
-                                    self.back_center, bounds, self.image,
-                                    self.unit_vectors[0], self.unit_vectors[1])
+                                    bc, bounds, self.image,
+                                    self.source._x_vec, self.source._y_vec)
         self.vp_bounds = bounds
         self.vectors = vectors
 
