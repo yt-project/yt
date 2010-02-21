@@ -105,12 +105,11 @@ def direct_ray_cast(pf, L, center, W, Nvec, tf,
 
 class VolumeRendering(ParallelAnalysisInterface):
     bricks = None
-    def __init__(self, pf, normal_vector, width, center,
+    def __init__(self, normal_vector, width, center,
                  resolution, transfer_function,
                  fields = None, whole_box = False,
-                 sub_samples = 5, north_vector = None):
-        self.pf = pf
-        self.hierarchy = pf.h
+                 sub_samples = 5, north_vector = None,
+                 pf = None):
         # Now we replicate some of the 'cutting plane' logic
         if not iterable(resolution):
             resolution = (resolution, resolution)
@@ -132,9 +131,9 @@ class VolumeRendering(ParallelAnalysisInterface):
             ax = t.argmax()
             north_vector = na.cross(vecs[ax,:], normal_vector).ravel()
         north_vector /= na.sqrt(na.dot(north_vector, north_vector))
-        east_vector = na.cross(north_vector, normal_vector).ravel()
+        east_vector = -na.cross(north_vector, normal_vector).ravel()
         east_vector /= na.sqrt(na.dot(east_vector, east_vector))
-        self.unit_vectors = [normal_vector, east_vector, north_vector]
+        self.unit_vectors = [north_vector, east_vector, normal_vector]
         self.box_vectors = na.array([self.unit_vectors[0]*self.width[0],
                                      self.unit_vectors[1]*self.width[1],
                                      self.unit_vectors[2]*self.width[2]])
@@ -142,8 +141,8 @@ class VolumeRendering(ParallelAnalysisInterface):
         self.origin = center - 0.5*width[0]*self.unit_vectors[0] \
                              - 0.5*width[1]*self.unit_vectors[1] \
                              - 0.5*width[2]*self.unit_vectors[2]
-        self.back_center = center - 0.5*width[0]*self.unit_vectors[0]
-        self.front_center = center + 0.5*width[0]*self.unit_vectors[0]
+        self.back_center = center - 0.5*width[0]*self.unit_vectors[2]
+        self.front_center = center + 0.5*width[0]*self.unit_vectors[2]
 
         self._initialize_source()
         self._construct_vector_array()
@@ -162,8 +161,8 @@ class VolumeRendering(ParallelAnalysisInterface):
             RE.append(b.RightEdge - self.back_center)
             total_cells += na.prod(b.my_data.shape)
         LE, RE = na.array(LE), na.array(RE)
-        DL = na.sum(LE * self.unit_vectors[0], axis=1); del LE
-        DR = na.sum(RE * self.unit_vectors[0], axis=1); del RE
+        DL = na.sum(LE * self.unit_vectors[2], axis=1); del LE
+        DR = na.sum(RE * self.unit_vectors[2], axis=1); del RE
         dist = na.minimum(DL, DR)
         ind = na.argsort(dist)
         pbar = get_pbar("Ray casting ", total_cells)
@@ -195,17 +194,21 @@ class VolumeRendering(ParallelAnalysisInterface):
         # the usage of on-the-fly generation in the VolumeIntegrator module
         self.image = na.zeros((self.resolution[0], self.resolution[1], 4),
                                dtype='float64', order='F')
-        px = na.linspace(0, self.width[0], self.resolution[0])
-        py = na.linspace(0, self.width[1], self.resolution[1])
+        
+        px = na.linspace(-self.width[0]/2.0, self.width[0]/2.0, self.resolution[0])
+        py = na.linspace(-self.width[1]/2.0, self.width[1]/2.0, self.resolution[1])
         inv_mat = self.source._inv_mat
         bc = self.back_center
-        vectors = na.zeros((self.resolution[0], self.resolution[1], 3), dtype='float64')
+        vectors = na.zeros((self.resolution[0], self.resolution[1], 3),
+                            dtype='float64', order='F')
         vectors[:,:,0] = inv_mat[0,0]*px[:,None] + inv_mat[0,1]*py[None,:] + bc[0]
-        vectors[:,:,1] = inv_mat[0,0]*px[:,None] + inv_mat[0,1]*py[None,:] + bc[1]
+        vectors[:,:,1] = inv_mat[1,0]*px[:,None] + inv_mat[1,1]*py[None,:] + bc[1]
         vectors[:,:,2] = inv_mat[2,0]*px[:,None] + inv_mat[2,1]*py[None,:] + bc[2]
         bounds = (px.min(), px.max(), py.min(), py.max())
-        self.vector_plane = VectorPlane(vectors, self.box_vectors[0],
+        self.vector_plane = VectorPlane(vectors, self.box_vectors[2],
                                     self.back_center, bounds, self.image,
-                                    self.unit_vectors[1], self.unit_vectors[2])
+                                    self.unit_vectors[0], self.unit_vectors[1])
+        self.vp_bounds = bounds
+        self.vectors = vectors
 
 data_object_registry["volume_rendering"] = VolumeRendering

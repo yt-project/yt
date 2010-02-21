@@ -103,11 +103,11 @@ def grid_points_in_volume(
         for j in range(3):
             # Set up our transposed dx, which has a component in every
             # direction
-            rds[i][j] = dds[i] * rot_mat[i,j]
+            rds[i][j] = dds[i] * rot_mat[j,i]
             # In our rotated coordinate system, the box origin is 0,0,0
             # so we subtract the box_origin from the grid_origin and rotate
             # that
-            rorigin[j] += (grid_left_edge[i] - box_origin[i]) * rot_mat[i,j]
+            rorigin[j] += (grid_left_edge[i] - box_origin[i]) * rot_mat[j,i]
 
     for i in range(n[0]):
         for j in range(n[1]):
