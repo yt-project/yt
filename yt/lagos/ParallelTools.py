@@ -824,7 +824,7 @@ class ParallelAnalysisInterface(object):
             new_image = na.zeros((final[0], final[1], 4), dtype='float64')
             new_image[0:nsize[0],0:nsize[1],:] = data[:]
             for i in range(1,MPI.COMM_WORLD.size):
-                cx, cy = na.unravel_index(i, cc)
+                cy, cx = na.unravel_index(i, cc)
                 mylog.debug("Receiving image from % into bits %s:%s, %s:%s",
                     i, nsize[0]*cx,nsize[0]*(cx+1),
                        nsize[1]*cy,nsize[1]*(cy+1))

@@ -175,8 +175,8 @@ cdef class VectorPlane:
         self.image = <np.float64_t *> image.data
         self.x_vec = <np.float64_t *> x_vec.data
         self.y_vec = <np.float64_t *> y_vec.data
-        self.nv[0] = vp_pos.shape[1]
-        self.nv[1] = vp_pos.shape[0]
+        self.nv[0] = vp_pos.shape[0]
+        self.nv[1] = vp_pos.shape[1]
         for i in range(4): self.bounds[i] = bounds[i]
         self.pdx = (self.bounds[1] - self.bounds[0])/self.nv[0]
         self.pdy = (self.bounds[3] - self.bounds[2])/self.nv[1]
@@ -202,13 +202,13 @@ cdef class VectorPlane:
         # to-vector is flat and 'ni' long
         cdef int k
         for k in range(nk):
-            tv[k] = fv[(((k*self.nv[0])+j)*self.nv[1]+i)]
+            tv[k] = fv[(((k*self.nv[1])+j)*self.nv[0]+i)]
 
     cdef inline void copy_back(self, np.float64_t *fv, np.float64_t *tv,
                         int i, int j, int nk):
         cdef int k
         for k in range(nk):
-            tv[(((k*self.nv[0])+j)*self.nv[1]+i)] = fv[k]
+            tv[(((k*self.nv[1])+j)*self.nv[0]+i)] = fv[k]
 
 cdef class PartitionedGrid:
     cdef public object my_data
@@ -258,8 +258,8 @@ cdef class PartitionedGrid:
         iter[2] = iclip(iter[2], 0, vp.nv[1])
         iter[3] = iclip(iter[3], 0, vp.nv[1])
         hit = 0
-        for vj in range(iter[0], iter[1]):
-            for vi in range(iter[2], iter[3]):
+        for vi in range(iter[0], iter[1]):
+            for vj in range(iter[2], iter[3]):
                 vp.copy_into(vp.vp_pos, v_pos, vi, vj, 3)
                 vp.copy_into(vp.image, rgba, vi, vj, 4)
                 self.integrate_ray(v_pos, vp.vp_dir, rgba, tf)
