@@ -153,9 +153,10 @@ class VolumeRendering(ParallelAnalysisInterface):
         self._construct_vector_array()
 
     def _initialize_source(self):
-        check, source = self._partition_hierarchy_2d_inclined(
+        check, source, rf = self._partition_hierarchy_2d_inclined(
                 self.unit_vectors, self.origin, self.width, self.box_vectors)
         self.source = source
+        self.res_fac = rf
 
     def ray_cast(self):
         if self.bricks is None: self.partition_grids()
@@ -180,6 +181,12 @@ class VolumeRendering(ParallelAnalysisInterface):
             total_cells += na.prod(b.my_data.shape)
             pbar.update(total_cells)
         pbar.finish()
+        self._finalize()
+
+    def _finalize(self):
+        #im = self._mpi_catdict(dict(image=self.image)).pop('image')
+        im, f = self._mpi_catrgb((self.image, self.resolution))
+        self.image = im
 
     def load_bricks(self, fn):
         self.bricks = import_partitioned_grids(fn)
@@ -196,18 +203,19 @@ class VolumeRendering(ParallelAnalysisInterface):
                             log_field = log_field)
 
     def _construct_vector_array(self):
+        rx = self.resolution[0] * self.res_fac[0]
+        ry = self.resolution[1] * self.res_fac[1]
         # We should move away from pre-generation of vectors like this and into
         # the usage of on-the-fly generation in the VolumeIntegrator module
-        self.image = na.zeros((self.resolution[0], self.resolution[1], 4),
-                               dtype='float64', order='F')
+        self.image = na.zeros((rx,ry,4), dtype='float64', order='F')
         # We might have a different width and back_center
         bl = self.source.box_lengths
-        px = na.linspace(-bl[0]/2.0, bl[0]/2.0, self.resolution[0])
-        py = na.linspace(-bl[1]/2.0, bl[1]/2.0, self.resolution[1])
+        px = na.linspace(-bl[0]/2.0, bl[0]/2.0, rx)
+        py = na.linspace(-bl[1]/2.0, bl[1]/2.0, ry)
         inv_mat = self.source._inv_mat
         bc = self.source.origin + 0.5*self.source.box_vectors[0] \
                                 + 0.5*self.source.box_vectors[1]
-        vectors = na.zeros((self.resolution[0], self.resolution[1], 3),
+        vectors = na.zeros((rx, ry, 3),
                             dtype='float64', order='F')
         vectors[:,:,0] = inv_mat[0,0]*px[None,:] + inv_mat[0,1]*py[:,None] + bc[0]
         vectors[:,:,1] = inv_mat[1,0]*px[None,:] + inv_mat[1,1]*py[:,None] + bc[1]

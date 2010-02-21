@@ -278,9 +278,10 @@ class ParallelAnalysisInterface(object):
         return True, reg
 
     def _partition_hierarchy_2d_inclined(self, unit_vectors, origin, widths,
-                                         box_vectors):
+                                         box_vectors, resolution = (1.0, 1.0)):
         if not self._distributed:
-           return False, self.hierarchy.inclined_box(origin, box_vectors)
+            ib = self.hierarchy.inclined_box(origin, box_vectors)
+            return False, ib, resolution
         # We presuppose that unit_vectors is already unitary.  If it's not,
         # caveat emptor.
         uv = na.array(unit_vectors)
@@ -288,6 +289,7 @@ class ParallelAnalysisInterface(object):
         cc = MPI.Compute_dims(MPI.COMM_WORLD.size, 2)
         mi = MPI.COMM_WORLD.rank
         cx, cy = na.unravel_index(mi, cc)
+        resolution = (1.0/cc[0], 1.0/cc[1])
         # We are rotating with respect to the *origin*, not the back center,
         # so we go from 0 .. width.
         px = na.mgrid[0.0:widths[0]:(cc[0]+1)*1j][cx]
@@ -302,7 +304,7 @@ class ParallelAnalysisInterface(object):
                         dtype='float64')
         norigin = na.array([nxo, nyo, nzo])
         box = self.hierarchy.inclined_box(norigin, nbox_vectors)
-        return True, box
+        return True, box, resolution
         
     def _partition_hierarchy_3d(self, padding=0.0):
         LE, RE = self.pf["DomainLeftEdge"].copy(), self.pf["DomainRightEdge"].copy()
@@ -811,6 +813,30 @@ class ParallelAnalysisInterface(object):
         if True in statuses.values():
             raise RunTimeError("Fatal error. Exiting.")
         return None
+
+    @parallel_passthrough
+    def _mpi_catrgb(self, data):
+        self._barrier()
+        data, final = data
+        if MPI.COMM_WORLD.rank == 0:
+            cc = MPI.Compute_dims(MPI.COMM_WORLD.size, 2)
+            nsize = final[0]/cc[0], final[0]/cc[1]
+            new_image = na.zeros((final[0], final[1], 4), dtype='float64')
+            new_image[0:nsize[0],0:nsize[1],:] = data[:]
+            for i in range(1,MPI.COMM_WORLD.size):
+                cx, cy = na.unravel_index(i, cc)
+                mylog.debug("Receiving image from % into bits %s:%s, %s:%s",
+                    i, nsize[0]*cx,nsize[0]*(cx+1),
+                       nsize[1]*cy,nsize[1]*(cy+1))
+                buf = _recv_array(source=i, tag=0).reshape(
+                    (nsize[0],nsize[1],4))
+                new_image[nsize[0]*cy:nsize[0]*(cy+1),
+                          nsize[1]*cx:nsize[1]*(cx+1),:] = buf[:]
+            data = new_image
+        else:
+            _send_array(data.ravel(), dest=0, tag=0)
+        data = MPI.COMM_WORLD.bcast(data)
+        return (data, final)
 
     @parallel_passthrough
     def _mpi_catdict(self, data):
