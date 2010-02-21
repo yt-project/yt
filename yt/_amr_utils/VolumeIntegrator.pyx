@@ -150,7 +150,7 @@ cdef class VectorPlane:
     cdef public object avp_pos, avp_dir, acenter, aimage
     cdef np.float64_t *vp_pos, *vp_dir, *center, *image,
     cdef np.float64_t pdx, pdy, bounds[4]
-    cdef int nv
+    cdef int nv[2]
     cdef public object ax_vec, ay_vec
     cdef np.float64_t *x_vec, *y_vec
 
@@ -175,10 +175,11 @@ cdef class VectorPlane:
         self.image = <np.float64_t *> image.data
         self.x_vec = <np.float64_t *> x_vec.data
         self.y_vec = <np.float64_t *> y_vec.data
-        self.nv = vp_pos.shape[0]
+        self.nv[0] = vp_pos.shape[1]
+        self.nv[1] = vp_pos.shape[0]
         for i in range(4): self.bounds[i] = bounds[i]
-        self.pdx = (self.bounds[1] - self.bounds[0])/self.nv
-        self.pdy = (self.bounds[3] - self.bounds[2])/self.nv
+        self.pdx = (self.bounds[1] - self.bounds[0])/self.nv[0]
+        self.pdy = (self.bounds[3] - self.bounds[2])/self.nv[1]
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -201,13 +202,13 @@ cdef class VectorPlane:
         # to-vector is flat and 'ni' long
         cdef int k
         for k in range(nk):
-            tv[k] = fv[(((k*self.nv)+j)*self.nv+i)]
+            tv[k] = fv[(((k*self.nv[0])+j)*self.nv[1]+i)]
 
     cdef inline void copy_back(self, np.float64_t *fv, np.float64_t *tv,
                         int i, int j, int nk):
         cdef int k
         for k in range(nk):
-            tv[(((k*self.nv)+j)*self.nv+i)] = fv[k]
+            tv[(((k*self.nv[0])+j)*self.nv[1]+i)] = fv[k]
 
 cdef class PartitionedGrid:
     cdef public object my_data
@@ -252,7 +253,10 @@ cdef class PartitionedGrid:
         cdef np.float64_t v_pos[3], v_dir[3], rgba[4], extrema[4]
         self.calculate_extent(vp, extrema)
         vp.get_start_stop(extrema, iter)
-        for i in range(4): iter[i] = iclip(iter[i], 0, vp.nv)
+        iter[0] = iclip(iter[0], 0, vp.nv[0])
+        iter[1] = iclip(iter[1], 0, vp.nv[0])
+        iter[2] = iclip(iter[2], 0, vp.nv[1])
+        iter[3] = iclip(iter[3], 0, vp.nv[1])
         hit = 0
         for vj in range(iter[0], iter[1]):
             for vi in range(iter[2], iter[3]):
