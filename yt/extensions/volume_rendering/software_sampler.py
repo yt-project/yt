@@ -162,19 +162,20 @@ class VolumeRendering(ParallelAnalysisInterface):
         # Now we order our bricks
         total_cells, LE, RE = 0, [], []
         for b in self.bricks:
-            LE.append(b.LeftEdge - self.back_center)
-            RE.append(b.RightEdge - self.back_center)
+            LE.append(b.LeftEdge)
+            RE.append(b.RightEdge)
             total_cells += na.prod(b.my_data.shape)
-        LE, RE = na.array(LE), na.array(RE)
-        DL = na.sum(LE * self.unit_vectors[2], axis=1); del LE
-        DR = na.sum(RE * self.unit_vectors[2], axis=1); del RE
-        dist = na.minimum(DL, DR)
+        LE = na.array(LE) - self.back_center
+        RE = na.array(RE) - self.back_center
+        LE = na.sum(LE * self.unit_vectors[2], axis=1)
+        RE = na.sum(RE * self.unit_vectors[2], axis=1)
+        dist = na.minimum(LE, RE)
         ind = na.argsort(dist)
         pbar = get_pbar("Ray casting ", total_cells)
         total_cells = 0
         tfp = TransferFunctionProxy(self.transfer_function)
         tfp.ns = self.sub_samples
-        for i, b in enumerate(self.bricks):
+        for i, b in enumerate(self.bricks[ind]):
             pos = b.cast_plane(tfp, self.vector_plane)
             total_cells += na.prod(b.my_data.shape)
             pbar.update(total_cells)
@@ -206,9 +207,9 @@ class VolumeRendering(ParallelAnalysisInterface):
         bc = self.back_center
         vectors = na.zeros((self.resolution[0], self.resolution[1], 3),
                             dtype='float64', order='F')
-        vectors[:,:,0] = inv_mat[0,0]*px[:,None] + inv_mat[0,1]*py[None,:] + bc[0]
-        vectors[:,:,1] = inv_mat[1,0]*px[:,None] + inv_mat[1,1]*py[None,:] + bc[1]
-        vectors[:,:,2] = inv_mat[2,0]*px[:,None] + inv_mat[2,1]*py[None,:] + bc[2]
+        vectors[:,:,0] = inv_mat[0,0]*px[None,:] + inv_mat[0,1]*py[:,None] + bc[0]
+        vectors[:,:,1] = inv_mat[1,0]*px[None,:] + inv_mat[1,1]*py[:,None] + bc[1]
+        vectors[:,:,2] = inv_mat[2,0]*px[None,:] + inv_mat[2,1]*py[:,None] + bc[2]
         bounds = (px.min(), px.max(), py.min(), py.max())
         self.vector_plane = VectorPlane(vectors, self.box_vectors[2],
                                     self.back_center, bounds, self.image,
