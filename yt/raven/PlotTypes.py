@@ -999,10 +999,14 @@ _mpl9x_get_bounds = lambda bbox: bbox.get_bounds()
 _mpl98_notify = lambda im,cb: cb.update_bruteforce(im)
 _mpl9x_notify = lambda im,cb: cb.notify(im)
 
-# This next function hurts, because it relies on the fact that
-# we're only differentiating between 0.9[01] and 0.98.
+# This next function hurts, because it relies on the fact that we're
+# only differentiating between 0.9[01] and 0.98. And if happens to be
+# 1.0, or any version with only 3 values, this should catch it.
 
-_mpl_version = float(matplotlib.__version__[:4])
+try:
+    _mpl_version = float(matplotlib.__version__[:4])
+except:
+    _mpl_version = float(matplotlib.__version__[:3])
 
 if _mpl_version < 0.98:
     _prefix = '_mpl9x'

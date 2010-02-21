@@ -32,3 +32,5 @@ from grid_partitioner import partition_all_grids, partition_grid, \
                              export_partitioned_grids, \
                              import_partitioned_grids
 from software_sampler import direct_ray_cast, VolumeRendering
+from image_handling import export_rgba, import_rgba, \
+                           plot_channel, plot_rgb

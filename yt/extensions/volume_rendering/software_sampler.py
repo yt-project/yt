@@ -30,7 +30,7 @@ from yt.lagos import data_object_registry, ParallelAnalysisInterface
 
 def direct_ray_cast(pf, L, center, W, Nvec, tf, 
                     partitioned_grids = None, field = 'Density',
-                    log_field = True, whole_box=False,
+                    log_field = True, whole_box=False, region=None,
                     nsamples = 5):
     center = na.array(center, dtype='float64')
 
@@ -38,10 +38,15 @@ def direct_ray_cast(pf, L, center, W, Nvec, tf,
     cp = pf.h.cutting(L, center)
     back_center = center - cp._norm_vec * na.sqrt(3) * W
     front_center = center + cp._norm_vec * na.sqrt(3) *  W
-    if whole_box:
-        cylinder = pf.h.region([0.5]*3,[0.0]*3,[1.0]*3)
+    if region is None:
+        if whole_box:
+            cylinder = pf.h.region([0.5]*3,[0.0]*3,[1.0]*3)
+        else:
+            cylinder = pf.h.disk(center, L, na.sqrt(3)*W, 2*W*na.sqrt(3))
     else:
-        cylinder = pf.h.disk(center, L, na.sqrt(3)*W, 2*W*na.sqrt(3))
+        if whole_box:
+            print 'Warning, using region that you specified, not the whole box'
+        cylinder = pf.h.region(region[0],region[1],region[2])
 
     if partitioned_grids == None:
         partitioned_grids = partition_all_grids(cylinder._grids,
