@@ -292,8 +292,8 @@ class ParallelAnalysisInterface(object):
         resolution = (1.0/cc[0], 1.0/cc[1])
         # We are rotating with respect to the *origin*, not the back center,
         # so we go from 0 .. width.
-        px = na.mgrid[0.0:widths[0]:(cc[0]+1)*1j][cx]
-        py = na.mgrid[0.0:widths[1]:(cc[1]+1)*1j][cy]
+        px = na.mgrid[0.0:1.0:(cc[0]+1)*1j][cx] * widths[0]
+        py = na.mgrid[0.0:1.0:(cc[1]+1)*1j][cy] * widths[1]
         nxo = inv_mat[0,0]*px + inv_mat[0,1]*py + origin[0]
         nyo = inv_mat[1,0]*px + inv_mat[1,1]*py + origin[1]
         nzo = inv_mat[2,0]*px + inv_mat[2,1]*py + origin[2]

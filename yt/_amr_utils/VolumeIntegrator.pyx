@@ -191,10 +191,10 @@ cdef class VectorPlane:
         for i in range(3):
             cx += self.center[i] * self.x_vec[i]
             cy += self.center[i] * self.y_vec[i]
-        rv[0] = <int> floor((ex[0] - cx - self.bounds[0])/self.pdx)
-        rv[1] = rv[0] + <int> ceil((ex[1] - ex[0])/self.pdx)
-        rv[2] = <int> floor((ex[2] - cy - self.bounds[2])/self.pdy)
-        rv[3] = rv[2] + <int> ceil((ex[3] - ex[2])/self.pdy)
+        rv[0] = lrint((ex[0] - cx - self.bounds[0])/self.pdx)
+        rv[1] = rv[0] + lrint((ex[1] - ex[0])/self.pdx)
+        rv[2] = lrint((ex[2] - cy - self.bounds[2])/self.pdy)
+        rv[3] = rv[2] + lrint((ex[3] - ex[2])/self.pdy)
 
     cdef inline void copy_into(self, np.float64_t *fv, np.float64_t *tv,
                         int i, int j, int nk):
