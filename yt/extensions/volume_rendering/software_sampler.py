@@ -193,7 +193,7 @@ class VolumeRendering(ParallelAnalysisInterface):
         fn = "%s.h5" % (self._get_filename(prefix))
         mylog.info("Saving to %s", fn)
         f = h5py.File(fn, "w")
-        f.create_array("/image", data=self.image)
+        f.create_dataset("/image", data=self.image)
 
     def load_bricks(self, fn):
         self.bricks = import_partitioned_grids(fn)
