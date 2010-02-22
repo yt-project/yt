@@ -24,6 +24,7 @@ License:
 """
 
 import numpy as na
+import h5py
 from yt.extensions.volume_rendering import *
 from yt.funcs import *
 from yt.lagos import data_object_registry, ParallelAnalysisInterface
@@ -158,7 +159,7 @@ class VolumeRendering(ParallelAnalysisInterface):
         self.source = source
         self.res_fac = rf
 
-    def ray_cast(self):
+    def ray_cast(self, finalize=True):
         if self.bricks is None: self.partition_grids()
         # Now we order our bricks
         total_cells, LE, RE = 0, [], []
@@ -181,12 +182,18 @@ class VolumeRendering(ParallelAnalysisInterface):
             total_cells += na.prod(b.my_data.shape)
             pbar.update(total_cells)
         pbar.finish()
-        self._finalize()
+        if finalize: self._finalize()
 
     def _finalize(self):
         #im = self._mpi_catdict(dict(image=self.image)).pop('image')
         im, f = self._mpi_catrgb((self.image, self.resolution))
         self.image = im
+
+    def dump_image(self, prefix):
+        fn = "%s.h5" % (self._get_filename(prefix))
+        mylog.info("Saving to %s", fn)
+        f = h5py.File(fn, "w")
+        f.create_array("/image", data=self.image)
 
     def load_bricks(self, fn):
         self.bricks = import_partitioned_grids(fn)
