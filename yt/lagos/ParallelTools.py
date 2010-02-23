@@ -1299,25 +1299,30 @@ class ParallelAnalysisInterface(object):
     # Non-blocking stuff.
     ###
 
-    def _mpi_Irecv_long(self, data, source):
+    def _mpi_Irecv_long(self, data, source, tag=0):
         if not self._distributed: return -1
-        return MPI.COMM_WORLD.Irecv([data, MPI.LONG], source, 0)
+        return MPI.COMM_WORLD.Irecv([data, MPI.LONG], source, tag)
 
-    def _mpi_Irecv_double(self, data, source):
+    def _mpi_Irecv_double(self, data, source, tag=0):
         if not self._distributed: return -1
-        return MPI.COMM_WORLD.Irecv([data, MPI.DOUBLE], source, 0)
+        return MPI.COMM_WORLD.Irecv([data, MPI.DOUBLE], source, tag)
 
-    def _mpi_Isend_long(self, data, dest):
+    def _mpi_Isend_long(self, data, dest, tag=0):
         if not self._distributed: return -1
-        return MPI.COMM_WORLD.Isend([data, MPI.LONG], dest, 0)
+        return MPI.COMM_WORLD.Isend([data, MPI.LONG], dest, tag)
 
-    def _mpi_Isend_double(self, data, dest):
+    def _mpi_Isend_double(self, data, dest, tag=0):
         if not self._distributed: return -1
-        return MPI.COMM_WORLD.Isend([data, MPI.DOUBLE], dest, 0)
+        return MPI.COMM_WORLD.Isend([data, MPI.DOUBLE], dest, tag)
 
     def _mpi_Request_Waitall(self, hooks):
         if not self._distributed: return
         MPI.Request.Waitall(hooks)
+
+    def _mpi_Request_Waititer(self, hooks):
+        for i in xrange(len(hooks)):
+            req = MPI.Request.Waitany(hooks)
+            yield req
 
     ###
     # End non-blocking stuff.

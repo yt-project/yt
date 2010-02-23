@@ -127,6 +127,15 @@ class HomogenizedBrickCollection(ParallelAnalysisInterface):
         self.bricks[index] = PartitionedGrid(
                 pgi, data, LE, RE, dims)
 
+    def _create_buffer(self, ind_list):
+        pass
+
+    def _pack_buffer(self, ind_list):
+        pass
+
+    def _unpack_buffer(self, ind_list, buffer):
+        pass
+
     def _wipe_objects(self, indices):
         self.bricks[indices] = None
 
