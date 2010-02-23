@@ -219,18 +219,20 @@ cdef class PartitionedGrid:
     cdef np.float64_t right_edge[3]
     cdef np.float64_t dds[3]
     cdef np.float64_t idds[3]
-    cdef public np.float64_t min_dds
     cdef int dims[3]
+    cdef public int parent_grid_id
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
     def __cinit__(self,
+                  int parent_grid_id,
                   np.ndarray[np.float64_t, ndim=3] data,
                   np.ndarray[np.float64_t, ndim=1] left_edge,
                   np.ndarray[np.float64_t, ndim=1] right_edge,
                   np.ndarray[np.int64_t, ndim=1] dims):
         # The data is likely brought in via a slice, so we copy it
         cdef int i, j, k, size
+        self.parent_grid_id = parent_grid_id
         self.LeftEdge = left_edge
         self.RightEdge = right_edge
         for i in range(3):
@@ -463,9 +465,12 @@ cdef class ProtoPrism:
     cdef public object LeftEdge
     cdef public object RightEdge
     cdef public object subgrid_faces
-    def __cinit__(self, np.ndarray[np.float64_t, ndim=1] left_edge,
-                       np.ndarray[np.float64_t, ndim=1] right_edge,
-                       subgrid_faces):
+    cdef public int parent_grid_id
+    def __cinit__(self, int parent_grid_id,
+                  np.ndarray[np.float64_t, ndim=1] left_edge,
+                  np.ndarray[np.float64_t, ndim=1] right_edge,
+                  subgrid_faces):
+        self.parent_grid_id = parent_grid_id
         cdef int i
         self.LeftEdge = left_edge
         self.RightEdge = right_edge
@@ -532,5 +537,6 @@ cdef class ProtoPrism:
             dims[i] = idims[i]
         cdef np.ndarray[np.float64_t, ndim=3] new_data
         new_data = data[li[0]:ri[0]+1,li[1]:ri[1]+1,li[2]:ri[2]+1].copy()
-        PG = PartitionedGrid(new_data, self.LeftEdge, self.RightEdge, dims)
+        PG = PartitionedGrid(self.parent_grid_id, new_data,
+                             self.LeftEdge, self.RightEdge, dims)
         return [PG]

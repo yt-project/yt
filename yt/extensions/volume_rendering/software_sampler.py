@@ -29,83 +29,6 @@ from yt.extensions.volume_rendering import *
 from yt.funcs import *
 from yt.lagos import data_object_registry, ParallelAnalysisInterface
 
-def direct_ray_cast(pf, L, center, W, Nvec, tf, 
-                    partitioned_grids = None, field = 'Density',
-                    log_field = True, whole_box=False, region=None,
-                    nsamples = 5):
-    center = na.array(center, dtype='float64')
-
-    # This just helps us keep track of stuff, and it's cheap
-    cp = pf.h.cutting(L, center)
-    back_center = center - cp._norm_vec * na.sqrt(3) * W
-    front_center = center + cp._norm_vec * na.sqrt(3) *  W
-    if region is None:
-        if whole_box:
-            cylinder = pf.h.region([0.5]*3,[0.0]*3,[1.0]*3)
-        else:
-            cylinder = pf.h.disk(center, L, na.sqrt(3)*W, 2*W*na.sqrt(3))
-    else:
-        if whole_box:
-            print 'Warning, using region that you specified, not the whole box'
-        cylinder = pf.h.region(region[0],region[1],region[2])
-
-    if partitioned_grids == None:
-        partitioned_grids = partition_all_grids(cylinder._grids,
-                                    eval_func = lambda g: na.any(cylinder._get_point_indices(g)),
-                                                field = field, log_field = log_field)
-    #partitioned_grids = partition_all_grids(pf.h.grids)
-
-    LE = (na.array([grid.LeftEdge for grid in partitioned_grids]) - back_center) * cp._norm_vec
-    RE = (na.array([grid.RightEdge for grid in partitioned_grids]) - back_center) * cp._norm_vec
-    DL = na.sum(LE, axis=1); del LE
-    DR = na.sum(RE, axis=1); del RE
-    dist = na.minimum(DL, DR)
-    ind = na.argsort(dist)
-    
-    image = na.zeros((Nvec,Nvec,4), dtype='float64', order='F')
-    image[:,:,3] = 0.0
-
-    # Now we need to generate regular x,y,z values in regular space for our vector
-    # starting places.
-    px, py = na.mgrid[-W:W:Nvec*1j,-W:W:Nvec*1j]
-    xv = cp._inv_mat[0,0]*px + cp._inv_mat[0,1]*py + back_center[0]
-    yv = cp._inv_mat[1,0]*px + cp._inv_mat[1,1]*py + back_center[1]
-    zv = cp._inv_mat[2,0]*px + cp._inv_mat[2,1]*py + back_center[2]
-    vectors = na.array([xv, yv, zv], dtype='float64').transpose()
-    vectors = vectors.copy('F')
-    xp0, xp1 = px.min(), px.max()
-    yp0, yp1 = py.min(), py.max()
-
-    ng = partitioned_grids.size
-    norm_vec = cp._norm_vec
-    norm_vec = cp._norm_vec * (2.0*W*na.sqrt(3))
-    hit = 0
-    tnow = time.time()
-
-    vp = VectorPlane(vectors, norm_vec, back_center,
-                     (xp0, xp1, yp0, yp1), image, cp._x_vec, cp._y_vec)
-
-    tf.light_dir = cp._norm_vec + 0.5 * cp._x_vec + 0.5 * cp._y_vec
-    cx, cy, cz = 0.3, -0.3, 0.3
-    tf.light_dir = (cp._inv_mat[0,0]*cx + cp._inv_mat[0,1]*cy + cz,
-                    cp._inv_mat[1,0]*cx + cp._inv_mat[1,1]*cy + cz,
-                    cp._inv_mat[2,0]*cx + cp._inv_mat[2,1]*cy + cz)
-    
-    tfp = TransferFunctionProxy(tf)
-    tfp.ns = nsamples
-
-
-    total_cells = sum(na.prod(g.my_data.shape) for g in partitioned_grids)
-    pbar = get_pbar("Ray casting ", total_cells)
-    total_cells = 0
-    for i,g in enumerate(partitioned_grids[ind]):
-        pbar.update(total_cells)
-        pos = g.cast_plane(tfp, vp)
-        total_cells += na.prod(g.my_data.shape)
-    pbar.finish()
-
-    return partitioned_grids[ind], image, vectors, norm_vec, pos
-
 # We're going to register this class, but it does not directly inherit from
 # AMRData.
 
@@ -151,13 +74,21 @@ class VolumeRendering(ParallelAnalysisInterface):
         self.front_center = center + 0.5*width[0]*self.unit_vectors[2]
 
         self._initialize_source()
+        self._initialize_brick_collection()
         self._construct_vector_array()
 
     def _initialize_source(self):
         check, source, rf = self._partition_hierarchy_2d_inclined(
                 self.unit_vectors, self.origin, self.width, self.box_vectors)
+        if check:
+            self._base_source = self.pf.inclined_box(
+                self.origin, self.box_vectors)
+        else:
+            # To avoid doubling-up
+            self._base_source = source
         self.source = source
         self.res_fac = rf
+        self._brick_collection = HomogenizedBrickCollection(self._base_source)
 
     def ray_cast(self, finalize=True):
         if self.bricks is None: self.partition_grids()
@@ -205,6 +136,8 @@ class VolumeRendering(ParallelAnalysisInterface):
     def partition_grids(self):
         log_field = (self.fields[0] in self.pf.field_info and 
                      self.pf.field_info[self.fields[0]].take_log)
+        self._brick_collection._partition_local_grids(self.fields, log_field)
+        self._brick_collection._collect_bricks(self.source._grids)
         self.bricks = partition_all_grids(self.source._grids,
                             field = self.fields[0],
                             log_field = log_field)
