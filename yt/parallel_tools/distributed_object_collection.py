@@ -48,8 +48,21 @@ class DistributedObjectCollection(ParallelAnalysisInterface):
         requests = defaultdict(lambda: list)
         parents = self._object_parents[desired_indices]
         # Even if we have a million bricks, this should not take long.
+        s = self._mpi_get_size()
         for i, p in izip(desired_indices, parents):
             requests[p].append(i)
+        for p in sorted(requests):
+            requests[p] = na.array(requests[p], dtype='int64')
+            request_count.append(len(requests[p]))
+        request_count = na.array(request_count, dtype='int64').reshape((s,1))
+        # Now we distribute our requests to all the processors.
+        # This is two-pass.  One to get the length of the arrays.  The second
+        # pass is to get the actual indices themselves.
+        requests = self._mpi_catdict(dict(request_count=request_count))
+        # Now we have our final array of requests, with arrangement
+        # (Nproc,Nproc).  First index corresponds to requesting proc, second to
+        # sending.  So [them,us] = 5 means we owe 5, whereas [us, them] means
+        # we are owed.
 
     def _pack_object(self, index):
         pass

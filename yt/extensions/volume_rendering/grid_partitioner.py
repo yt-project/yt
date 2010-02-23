@@ -144,6 +144,8 @@ class HomogenizedBrickCollection(ParallelAnalysisInterface):
         needed_brick_i = find_grids_in_inclined_box(
             intersection_source.box_vectors, intersection_source.center,
             self.brick_left_edges, self.brick_right_edges)
+        needed_brick_i = na.where(needed_brick_i)[0]
+        self._collect_objects(needed_brick_i)
 
     def _initialize_parallel(self):
         pass
