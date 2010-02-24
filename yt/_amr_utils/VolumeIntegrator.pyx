@@ -509,11 +509,13 @@ cdef class ProtoPrism:
 
         for i in range(3): split_left[i] = self.right_edge[i]
         split_left[direction] = sp[direction]
-        left = ProtoPrism(self.LeftEdge, split_left, self.subgrid_faces)
+        left = ProtoPrism(self.parent_grid_id, self.LeftEdge, split_left,
+                          self.subgrid_faces)
 
         for i in range(3): split_right[i] = self.left_edge[i]
         split_right[direction] = sp[direction]
-        right = ProtoPrism(split_right, self.RightEdge, self.subgrid_faces)
+        right = ProtoPrism(self.parent_grid_id, split_right, self.RightEdge,
+                           self.subgrid_faces)
 
         return (left, right)
 

@@ -29,14 +29,16 @@ import h5py
 
 from yt.amr_utils import PartitionedGrid, ProtoPrism, GridFace, \
         grid_points_in_volume
-from yt.lagos import ParallelAnalysisInterface, only_on_root
+from yt.lagos import ParallelAnalysisInterface, only_on_root, parallel_root_only
+from yt.parallel_tools import DistributedObjectCollection
 
-class HomogenizedBrickCollection(ParallelAnalysisInterface):
+class HomogenizedBrickCollection(DistributedObjectCollection):
     def __init__(self, source):
         # The idea here is that we have two sources -- the global_domain
         # source, which would be a decomposition of the 3D domain, and a
         # local_domain source, which is the set of bricks we want at the end.
         self.source = source
+        self.pf = source.pf
 
     @classmethod
     def load_bricks(self, base_filename):
@@ -68,73 +70,79 @@ class HomogenizedBrickCollection(ParallelAnalysisInterface):
         fields = ensure_list(fields)
         bricks = []
         # We preload.
-        self._preload(self._get_grid_objs(), fields, self.pf.h.io)
+        grid_list = list(self._get_grid_objs())
+        self._preload(grid_list, fields, self.pf.h.io)
         pbar = get_pbar("Partitioning ", len(grid_list))
         for i, g in enumerate(self._get_grids()):
             pbar.update(i)
-            bricks += self._partition_grid(g, field, log_field, threshold)
+            bricks += self._partition_grid(g, fields[0], log_field)
         pbar.finish()
         bricks = na.array(bricks, dtype='object')
         NB = len(bricks)
         # Now we set up our (local for now) hierarchy.  Note that to calculate
         # intersection, we only need to do the left edge & right edge.
-        self.brick_left_edges = na.fromiter((b.LeftEdge.ravel()
-                                             for b in bricks),
-                                            dtype='float64', count = NB*3)
-        self.brick_left_edges = self.brick_left_edges.reshape((NB,3)
-        self.brick_right_edges = na.fromiter((b.RighttEdge.ravel()
-                                              for b in bricks),
-                                             dtype='float64', count = NB*3)
-        self.brick_right_edges = self.brick_right_edges.reshape((NB,3)
-        self.brick_parents = na.fromiter((b.parent_grid_id
-                                          for b in bricks),
-                                         dtype='int64', count = NB)
-        self.brick_dimensions = na.fromiter((na.ravel(b.my_data.shape)
-                                          for b in bricks),
-                                         dtype='int32', count = NB*3)
-        self.brick_dimensions = self.brick_dimensions.reshape((NB,3)
+        #
+        # We're going to double up a little bit here in memory.
+        self.brick_left_edges = na.zeros( (NB, 3), dtype='float64')
+        self.brick_right_edges = na.zeros( (NB, 3), dtype='float64')
+        self.brick_parents = na.zeros( NB, dtype='int64')
+        self.brick_dimensions = na.zeros( (NB, 3), dtype='int32')
         self.brick_owners = na.ones(NB, dtype='int32') * self._mpi_get_rank()
+        for i,b in enumerate(bricks):
+            self.brick_left_edges[i,:] = b.LeftEdge
+            self.brick_right_edges[i,:] = b.RightEdge
+            self.brick_parents[i] = b.parent_grid_id
+            self.brick_dimensions[i,:] = b.my_data.shape
+        # Vertex-centered means we subtract one from the shape
+        self.brick_dimensions -= 1
         self.bricks = na.array(bricks, dtype='object')
-        self._collect_hierarchy()
+        self.join_lists()
 
     def _get_object_info(self):
-        info_dict = dict(left_edges = self.brick_left_edges,
-                         right_edges = self.brick_right_edges,
+        # We transpose here for the catdict operation
+        info_dict = dict(left_edges = self.brick_left_edges.transpose(),
+                         right_edges = self.brick_right_edges.transpose(),
                          parents = self.brick_parents,
-                         dims = self.brick_dimensions,)
+                         owners = self.brick_owners,
+                         dimensions = self.brick_dimensions.transpose(),)
         return info_dict
 
     def _set_object_info(self, info_dict):
-        self.brick_left_edges = info_dict.pop("left_edges")
-        self.brick_right_edges = info_dict.pop("right_edges")
+        self.brick_left_edges = info_dict.pop("left_edges").transpose()
+        self.brick_right_edges = info_dict.pop("right_edges").transpose()
         self.brick_parents = info_dict.pop("parents")
+        self.brick_dimensions = info_dict.pop("dimensions").transpose()
         self._object_parents = self.brick_parents
         self.brick_owners = info_dict.pop("owners")
         bricks = self.bricks
         self.bricks = na.array([None] * self.brick_owners.size, dtype='object')
         # Copy our bricks back in
-        self.bricks[self.brick_owners = self._mpi_get_rank()] = bricks[:]
-
-    def _pack_object(self, index):
-        return self.bricks[index].my_data.ravel()
-
-    def _unpack_object(self, index, data):
-        pgi = self.brick_parents[index]
-        LE = self.brick_left_edges[index,:].copy()
-        RE = self.brick_right_edges[index,:].copy()
-        dims = self.brick_dimensions[index,:].copy()
-        data = data.reshape(dims)
-        self.bricks[index] = PartitionedGrid(
-                pgi, data, LE, RE, dims)
+        self.bricks[self.brick_owners == self._mpi_get_rank()] = bricks[:]
 
     def _create_buffer(self, ind_list):
-        pass
+        mylog.debug("Creating buffer for %s bricks", len(ind_list))
+        # Note that we have vertex-centered data, so we add one before taking
+        # the prod and the sum
+        total_size = (self.brick_dimensions[ind_list,:] + 1).prod(axis=1).sum()
+        buffer = na.zeros(total_size, dtype='float64')
+        return buffer
 
-    def _pack_buffer(self, ind_list):
-        pass
+    def _pack_buffer(self, ind_list, buffer):
+        si = 0
+        for index in ind_list:
+            d = self.bricks[index].my_data.ravel()
+            buffer[si:d.size] = d[:]
+            si += d.size
 
     def _unpack_buffer(self, ind_list, buffer):
-        pass
+        for index in ind_list:
+            pgi = self.brick_parents[index]
+            LE = self.brick_left_edges[index,:].copy()
+            RE = self.brick_right_edges[index,:].copy()
+            dims = self.brick_dimensions[index,:].copy()
+            data = data.reshape(dims)
+            self.bricks[index] = PartitionedGrid(
+                    pgi, data, LE, RE, dims)
 
     def _wipe_objects(self, indices):
         self.bricks[indices] = None

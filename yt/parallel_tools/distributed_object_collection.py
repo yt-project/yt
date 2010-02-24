@@ -38,8 +38,8 @@ class DistributedObjectCollection(ParallelAnalysisInterface):
         pass
 
     def join_lists(self):
-        info_dict = self._get_object_list_info()
-        info_dict = self._mpi_catdict()
+        info_dict = self._get_object_info()
+        info_dict = self._mpi_catdict(info_dict)
         self._set_object_info(info_dict)
 
     def _collect_objects(self, desired_indices):
@@ -70,17 +70,24 @@ class DistributedObjectCollection(ParallelAnalysisInterface):
         dsend_buffers, dsend_hooks = {}, []
         buffers = []
         drecv_buffers, drecv_hooks = {}, []
+        # We handle the receives from each processor.
         for p, size in enumerate(request_count[m,:]):
             if p == m: continue
             if size == 0: continue
             buffers.append(na.zeros(size, dtype='int64'))
             # Our index list goes on 0, our buffer goes on 1
             recv_hooks.append(self._mpi_Irecv_long(buffers[-1], p, 0))
+        # At this point, we have provided buffers and posted receives for all
+        # the index lists.
         for p, ind_list in requests.items():
             if p == m: continue
             if len(ind_list) == 0: continue
+            # Now, we actually send our index lists.  While we're at it,
+            # we also send the buffers.
             send_hooks.append(self._mpi_Isend_long(ind_list, p, 0))
-            dsend_buffers.append(self._create_buffer(ind_list))
+            buffer = self._create_buffer(ind_list)
+            self._pack_buffer(ind_list, buffer)
+            dsend_buffers.append(buffer)
             dsend_hooks.append(self._mpi_Isend_double(send_buffers[-1], p, 1))
         for send_list_id in self._mpi_Request_Waititer(recv_hooks):
             # We get back the index, which here is identical to the processor
@@ -93,13 +100,7 @@ class DistributedObjectCollection(ParallelAnalysisInterface):
             continue
         for i in self._mpi_Request_Waititer(drecv_hooks):
             # Now we have to unpack our buffers
-            self._unpack_buffer(drecv_buffers.pop(i))
-
-    def _pack_object(self, index):
-        pass
-
-    def _unpack_object(self, index):
-        pass
+            self._unpack_buffer(buffers[send_id_list], drecv_buffers.pop(i))
 
     def _create_buffer(self, ind_list):
         pass
