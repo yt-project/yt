@@ -5,7 +5,6 @@
 # Masses
 mass_hydrogen_cgs = 1.67e-24 # g
 mass_electron_cgs = 9.11e-28 # g
-print "poop"
 # Velocities
 speed_of_light_cgs = 2.99792458e10 # cm/s, exact
 
@@ -32,12 +31,16 @@ mpc_per_rsun  = 2.253e-14
 mpc_per_miles = 5.216e-20
 mpc_per_cm    = 3.24e-25
 km_per_pc     = 3.24e-14
+km_per_m      = 1e-3
+km_per_cm     = 1e-5
+
 m_per_fpc     = 0.0324077649
 
 au_per_mpc    = 2.063e11
 rsun_per_mpc  = 4.43664e13
 miles_per_mpc = 1.917e19
 cm_per_mpc    = 3.0857e24
+cm_per_km     = 1e5
 pc_per_km     = 1.3806504e13
 #Short cuts
 G = gravitational_constant_cgs
