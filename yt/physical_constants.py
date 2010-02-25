@@ -22,17 +22,23 @@ rho_crit_now = 1.8788e-29 # g times h^2 (critical mass for closure, Cosmology)
 mass_mean_atomic_cosmology = 1.22
 mass_mean_atomic_galactic = 2.3
 
-# Conversion Factors
+# Conversion Factors:  X au * mpc_per_au = Y au
 # length
-mpc_in_mpc = 1
-mpc_in_kpc = 1e3
-mpc_in_pc  = 1e6
-mpc_in_au  = 2.063e11
-mpc_in_rsun =4.43664e13
-mpc_in_miles =1.917e19
-mpc_in_cm  = 3.0857e24
+mpc_per_mpc   = 1
+mpc_per_kpc   = 1e-3
+mpc_per_pc    = 1e-6
+mpc_per_au    = 4.847e-12
+mpc_per_rsun  = 2.253e-14
+mpc_per_miles = 5.216e-20
+mpc_per_cm    = 3.24e-25
+km_per_pc     = 3.24e-14
+m_per_fpc     = 0.0324077649
 
-
+au_per_mpc    = 2.063e11
+rsun_per_mpc  = 4.43664e13
+miles_per_mpc = 1.917e19
+cm_per_mpc    = 3.0857e24
+pc_per_km     = 1.3806504e13
 #Short cuts
 G = gravitational_constant_cgs
 me = mass_electron_cgs
