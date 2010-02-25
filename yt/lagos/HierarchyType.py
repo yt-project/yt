@@ -496,6 +496,7 @@ class EnzoHierarchy(AMRHierarchy):
             second_grid.Level = first_grid.Level
         self.grid_levels[sgi] = second_grid.Level
 
+    _bn = "%s.cpu%%04i"
     def _parse_binary_hierarchy(self):
         mylog.info("Getting the binary hierarchy")
         try:
@@ -513,7 +514,7 @@ class EnzoHierarchy(AMRHierarchy):
         self.filenames = []
         grids = [self.grid(gi+1, self) for gi in xrange(self.num_grids)]
         giter = izip(grids, levels, procs, parents)
-        bn = "%s.cpu%%04i" % (self.pf)
+        bn = self._bn % (self.pf)
         pmap = [(bn % P,) for P in xrange(procs.max()+1)]
         for grid,L,P,Pid in giter:
             grid.Level = L
