@@ -30,11 +30,13 @@ from yt.funcs import *
 def direct_ray_cast(pf, L, center, W, Nvec, tf, 
                     partitioned_grids = None, field = 'Density',
                     log_field = True, whole_box=False,
-                    nsamples = 5):
+                    nsamples = 5, x_vec = None, y_vec = None):
     center = na.array(center, dtype='float64')
 
     # This just helps us keep track of stuff, and it's cheap
     cp = pf.h.cutting(L, center)
+    if x_vec is None: x_vec = cp._x_vec
+    if y_vec is None: y_vec = cp._y_vec
     back_center = center - cp._norm_vec * na.sqrt(3) * W
     front_center = center + cp._norm_vec * na.sqrt(3) *  W
     if whole_box:
@@ -76,9 +78,9 @@ def direct_ray_cast(pf, L, center, W, Nvec, tf,
     tnow = time.time()
 
     vp = VectorPlane(vectors, norm_vec, back_center,
-                     (xp0, xp1, yp0, yp1), image, cp._x_vec, cp._y_vec)
+                     (xp0, xp1, yp0, yp1), image, x_vec, y_vec)
 
-    tf.light_dir = cp._norm_vec + 0.5 * cp._x_vec + 0.5 * cp._y_vec
+    tf.light_dir = cp._norm_vec + 0.5 * x_vec + 0.5 * y_vec
     cx, cy, cz = 0.3, -0.3, 0.3
     tf.light_dir = (cp._inv_mat[0,0]*cx + cp._inv_mat[0,1]*cy + cz,
                     cp._inv_mat[1,0]*cx + cp._inv_mat[1,1]*cy + cz,
