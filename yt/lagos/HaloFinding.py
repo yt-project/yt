@@ -58,7 +58,7 @@ class Halo(object):
 
     def __init__(self, halo_list, id, indices = None, size=None, CoM=None,
         max_dens_point=None, group_total_mass=None, max_radius=None, bulk_vel=None,
-        tasks=None):
+        tasks=None, rms_vel=None):
         self.halo_list = halo_list
         self.id = id
         self.data = halo_list._data_source
@@ -75,6 +75,7 @@ class Halo(object):
         self.max_radius = max_radius
         self.bulk_vel = bulk_vel
         self.tasks = tasks
+        self.rms_vel = rms_vel
         self.bin_count = None
         self.overdensity = None
 
@@ -120,6 +121,18 @@ class Halo(object):
         vy = (self["particle_velocity_y"] * pm).sum()
         vz = (self["particle_velocity_z"] * pm).sum()
         return na.array([vx,vy,vz])/pm.sum()
+
+    def rms_velocity(self):
+        """
+        Returns the RMS velocity for the halo particles in code units.
+        """
+        bv = self.bulk_velocity()
+        vx = self["particle_velocity_x"] - bv[0]
+        vy = self["particle_velocity_y"] - bv[1]
+        vz = self["particle_velocity_z"] - bv[2]
+        s = vx**2 + vy**2 + vz**2
+        ms = na.mean(s)
+        return na.sqrt(ms)
 
     def maximum_radius(self, center_of_mass=True):
         """
@@ -271,7 +284,8 @@ class parallelHOPHalo(Halo,ParallelAnalysisInterface):
     dont_wrap = ["maximum_density","maximum_density_location",
         "center_of_mass","total_mass","bulk_velocity","maximum_radius",
         "get_size","get_sphere", "write_particle_list","__getitem__", 
-        "virial_info", "virial_bin", "virial_mass", "virial_radius"]
+        "virial_info", "virial_bin", "virial_mass", "virial_radius",
+        "rms_velocity"]
 
     def maximum_density(self):
         """
@@ -362,6 +376,27 @@ class parallelHOPHalo(Halo,ParallelAnalysisInterface):
         bv = na.array([vx,vy,vz,pm])
         global_bv = self._mpi_allsum(bv)
         return global_bv[:3]/global_bv[3]
+
+    def rms_velocity(self):
+        """
+        Returns the RMS velocity for the halo particles in code units.
+        """
+        if self.rms_vel is not None:
+            return self.rms_vel
+        bv = self.bulk_velocity()
+        if self.indices is not None:
+            vx = self["particle_velocity_x"] - bv[0]
+            vy = self["particle_velocity_y"] - bv[1]
+            vz = self["particle_velocity_z"] - bv[2]
+            s = vx**2 + vy**2 + vz**2
+            s = na.sum(s)
+            size = vx.size
+            ss = na.array([s, float(size)])
+        else:
+            ss = na.array([0.,0.])
+        global_ss = self._mpi_allsum(ss)
+        ms = global_ss[0] / global_ss[1]
+        return na.sqrt(ms)
 
     def maximum_radius(self, center_of_mass=True):
         """
@@ -695,7 +730,7 @@ class HaloList(object):
         f.write("\t".join(["# Group","Mass","# part","max dens"
                            "x","y","z", "center-of-mass",
                            "x","y","z",
-                           "vx","vy","vz","max_r","\n"]))
+                           "vx","vy","vz","max_r","rms_v","\n"]))
         for group in self:
             f.write("%10i\t" % group.id)
             f.write("%0.9e\t" % group.total_mass())
@@ -708,6 +743,7 @@ class HaloList(object):
             f.write("\t".join(["%0.9e" % v for v in group.bulk_velocity()]))
             f.write("\t")
             f.write("%0.9e\t" % group.maximum_radius())
+            f.write("%0.9e\t" % group.rms_velocity())
             f.write("\n")
             f.flush()
         f.close()
@@ -850,12 +886,9 @@ class parallelHOPHaloList(HaloList,ParallelAnalysisInterface):
         yt_counters("bulk vel. reading data")
         pm = self.particle_fields["ParticleMassMsun"]
         if ytcfg.getboolean("yt","inline") == False:
-            xv = self._data_source.particles["particle_velocity_x"][self._base_indices] * \
-                self._data_source.convert("x-velocity")
-            yv = self._data_source.particles["particle_velocity_y"][self._base_indices] * \
-                self._data_source.convert("y-velocity")
-            zv = self._data_source.particles["particle_velocity_z"][self._base_indices] * \
-                self._data_source.convert("z-velocity")
+            xv = self._data_source.particles["particle_velocity_x"][self._base_indices]
+            yv = self._data_source.particles["particle_velocity_y"][self._base_indices]
+            zv = self._data_source.particles["particle_velocity_z"][self._base_indices]
         else:
             xv = self._data_source["particle_velocity_x"][self._base_indices]
             yv = self._data_source["particle_velocity_y"][self._base_indices]
@@ -881,14 +914,39 @@ class parallelHOPHaloList(HaloList,ParallelAnalysisInterface):
             marks = na.concatenate(([0], marks, [calc]))
             for i, u in enumerate(uniq_subchain):
                 self.bulk_vel[u] = na.sum(vel[marks[i]:marks[i+1]], axis=0)
-            del select, vel, ms, subchain, sort, sort_subchain, uniq_subchain
-            del diff_subchain, marks
+            del vel, ms, subchain, sort_subchain
+            del diff_subchain
         # Bring it together, and divide by the previously computed total mass
         # of each halo.
         self.bulk_vel = self._mpi_Allsum_double(self.bulk_vel)
         for groupID in xrange(self.group_count):
             self.bulk_vel[groupID] = self.bulk_vel[groupID] / self.Tot_M[groupID]
         yt_counters("bulk vel. computing")
+        # Now calculate the RMS velocity of the groups in parallel, very
+        # similarly to the bulk velocity and re-using some of the arrays.
+        yt_counters("rms vel computing")
+        rms_vel_temp = na.zeros((self.group_count,2), dtype='float64')
+        if calc:
+            vel = na.empty((calc, 3), dtype='float64')
+            vel[:,0] = xv[select]
+            vel[:,1] = yv[select]
+            vel[:,2] = zv[select]
+            vel = vel[sort]
+            vel = vel**2 # Squared
+            for i, u in enumerate(uniq_subchain):
+                # This finds the Mean
+                rms_vel_temp[u][0] = na.sum(vel[marks[i]:marks[i+1]] - self.bulk_vel[u])
+                rms_vel_temp[u][1] = marks[i+1] - marks[i]
+            del vel, marks, uniq_subchain
+        # Bring it together.
+        rms_vel_temp = self._mpi_Allsum_double(rms_vel_temp)
+        self.rms_vel = na.empty(self.group_count, dtype='float64')
+        for groupID in xrange(self.group_count):
+            # Here we do the Root.
+            self.rms_vel[groupID] = \
+                na.sqrt(rms_vel_temp[groupID][0] / rms_vel_temp[groupID][1])
+        del rms_vel_temp
+        yt_counters("rms vel computing")
         self.taskID = obj.mine
         self.halo_taskmap = obj.halo_taskmap # A defaultdict.
         del obj
@@ -923,7 +981,8 @@ class parallelHOPHaloList(HaloList,ParallelAnalysisInterface):
                     size=self.group_sizes[index], CoM=self.CoM[index], \
                     max_dens_point=self.max_dens_point[index], \
                     group_total_mass=self.Tot_M[index], max_radius=self.max_radius[index],
-                    bulk_vel=self.bulk_vel[index], tasks=self.halo_taskmap[index])
+                    bulk_vel=self.bulk_vel[index], tasks=self.halo_taskmap[index],
+                    rms_vel=self.rms_vel[index])
                 # I don't own this halo
                 self._do_not_claim_object(self._groups[index])
                 self._max_dens[index] = [self.max_dens_point[index][0], self.max_dens_point[index][1], \
@@ -935,7 +994,8 @@ class parallelHOPHaloList(HaloList,ParallelAnalysisInterface):
                 size=self.group_sizes[i], CoM=self.CoM[i], \
                 max_dens_point=self.max_dens_point[i], \
                 group_total_mass=self.Tot_M[i], max_radius=self.max_radius[i],
-                bulk_vel=self.bulk_vel[i], tasks=self.halo_taskmap[index])
+                bulk_vel=self.bulk_vel[i], tasks=self.halo_taskmap[index],
+                rms_vel=self.rms_vel[i])
             # This halo may be owned by many, including this task
             self._claim_object(self._groups[index])
             self._max_dens[index] = [self.max_dens_point[i][0], self.max_dens_point[i][1], \
@@ -948,14 +1008,15 @@ class parallelHOPHaloList(HaloList,ParallelAnalysisInterface):
                 size=self.group_sizes[index], CoM=self.CoM[index], \
                 max_dens_point=self.max_dens_point[i], \
                 group_total_mass=self.Tot_M[index], max_radius=self.max_radius[index],
-                bulk_vel=self.bulk_vel[index], tasks=self.halo_taskmap[index])
+                bulk_vel=self.bulk_vel[index], tasks=self.halo_taskmap[index],
+                rms_vel=self.rms_vel[index])
             self._do_not_claim_object(self._groups[index])
             self._max_dens[index] = [self.max_dens_point[index][0], self.max_dens_point[index][1], \
                 self.max_dens_point[index][2], self.max_dens_point[index][3]]
             index += 1
         # Clean up
         del self.max_dens_point, self.max_radius, self.bulk_vel
-        del self.halo_taskmap, self.tags
+        del self.halo_taskmap, self.tags, self.rms_vel
 
     def __len__(self):
         return self.group_count
