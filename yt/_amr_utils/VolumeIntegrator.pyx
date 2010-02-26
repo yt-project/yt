@@ -119,6 +119,9 @@ cdef class TransferFunctionProxy:
         bin_id = <int> ((dv - self.x_bounds[0]) * self.idbin)
         # Recall that linear interpolation is y0 + (x-x0) * dx/dy
         dd = dv-(self.x_bounds[0] + bin_id * self.dbin) # x - x0
+        if bin_id > self.nbins - 2 or bin_id < 0:
+            for channel in range(4): trgba[channel] = 0.0
+            return
         for channel in range(4):
             bv = self.vs[channel][bin_id] # This is x0
             dy = self.vs[channel][bin_id+1]-bv # dy
@@ -419,7 +422,7 @@ cdef class PartitionedGrid:
             for i in range(3):
                 dp[i] += ds[i]
             dv = trilinear_interpolate(self.dims, ci, dp, self.data)
-            if not ((dv > tf.x_bounds[0]) and (dv < tf.x_bounds[1])):
+            if (dv < tf.x_bounds[0]) or (dv > tf.x_bounds[1]):
                 continue
             if tf.use_light == 1:
                 eval_gradient(self.dims, ci, dp, self.data, grad)
