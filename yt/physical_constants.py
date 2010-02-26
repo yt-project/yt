@@ -30,7 +30,7 @@ mpc_per_au    = 4.847e-12
 mpc_per_rsun  = 2.253e-14
 mpc_per_miles = 5.216e-20
 mpc_per_cm    = 3.24e-25
-km_per_pc     = 3.24e-14
+km_per_pc     = 1.3806504e13 
 km_per_m      = 1e-3
 km_per_cm     = 1e-5
 
@@ -41,7 +41,8 @@ rsun_per_mpc  = 4.43664e13
 miles_per_mpc = 1.917e19
 cm_per_mpc    = 3.0857e24
 cm_per_km     = 1e5
-pc_per_km     = 1.3806504e13
+pc_per_km     = 3.24e-14
+pc_per_cm     = 3.24e-19
 #Short cuts
 G = gravitational_constant_cgs
 me = mass_electron_cgs
