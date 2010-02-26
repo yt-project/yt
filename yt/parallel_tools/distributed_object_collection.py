@@ -24,6 +24,7 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
+import numpy as na
 from yt.funcs import *
 from yt.parallel_tools import ParallelAnalysisInterface
 from itertools import izip
@@ -45,62 +46,79 @@ class DistributedObjectCollection(ParallelAnalysisInterface):
     def _collect_objects(self, desired_indices):
         # We figure out which indices belong to which processor,
         # then we pack them up, and we send a list to each processor.
-        requests = defaultdict(lambda: list)
-        parents = self._object_parents[desired_indices]
+        requests = defaultdict(lambda: list())
+        request_count = []
+        owners = self._object_owners[desired_indices]
+        mylog.debug("Owner list: %s", na.unique1d(owners))
         # Even if we have a million bricks, this should not take long.
         s = self._mpi_get_size()
         m = self._mpi_get_rank()
-        for i, p in izip(desired_indices, parents):
+        for i, p in izip(desired_indices, owners):
             requests[p].append(i)
         for p in sorted(requests):
             requests[p] = na.array(requests[p], dtype='int64')
             request_count.append(len(requests[p]))
-        request_count = na.array(request_count, dtype='int64').reshape((s,1))
+        size = len(request_count)
+        mylog.debug("Requesting: %s", request_count)
+        request_count = na.array(request_count, dtype='int64')
         # Now we distribute our requests to all the processors.
         # This is two-pass.  One to get the length of the arrays.  The second
         # pass is to get the actual indices themselves.
-        request_count = self._mpi_catdict(dict(request_count=request_count))
-        # Funkiness with the catdict method requires this
-        request_count = request_count['request_count']
+        request_count = self._mpi_joindict({m : request_count})
         # Now we have our final array of requests, with arrangement
         # (Nproc,Nproc).  First index corresponds to requesting proc, second to
         # sending.  So [them,us] = 5 means we owe 5, whereas [us, them] means
         # we are owed.
-        recv_hooks, send_hooks = [], []
-        dsend_buffers, dsend_hooks = {}, []
-        buffers = []
-        drecv_buffers, drecv_hooks = {}, []
-        # We handle the receives from each processor.
-        for p, size in enumerate(request_count[m,:]):
+        send_hooks = []
+        dsend_buffers, dsend_hooks = [], []
+        recv_hooks, recv_buffers = [], []
+        drecv_buffers, drecv_hooks = [], []
+        # We post our index-list and data receives from each processor.
+        mylog.debug("Posting data buffer receives")
+        proc_hooks = {}
+        for p, size in sorted(request_count.items()):
             if p == m: continue
+            # We post receives of the grids we *asked* for.
+            # Note that indices into this are not necessarily processor ids.
+            # So we store.  This has to go before the appends or it's an
+            # off-by-one.
+            proc_hooks[len(drecv_buffers)] = p
+            drecv_buffers.append(self._create_buffer(requests[p]))
+            drecv_hooks.append(self._mpi_Irecv_double(drecv_buffers[-1], p, 1))
             if size == 0: continue
-            buffers.append(na.zeros(size, dtype='int64'))
-            # Our index list goes on 0, our buffer goes on 1
-            recv_hooks.append(self._mpi_Irecv_long(buffers[-1], p, 0))
-        # At this point, we have provided buffers and posted receives for all
-        # the index lists.
+            recv_buffers.append(na.zeros(size, dtype='int64'))
+            # Our index list goes on 0, our buffer goes on 1.  We know how big
+            # the index list will be, now.
+            recv_hooks.append(self._mpi_Irecv_long(recv_buffers[-1], p, 0))
+        # Send our index lists into hte waiting buffers
+        mylog.debug("Sending index lists")
         for p, ind_list in requests.items():
             if p == m: continue
             if len(ind_list) == 0: continue
-            # Now, we actually send our index lists.  While we're at it,
-            # we also send the buffers.
+            # Now, we actually send our index lists.
             send_hooks.append(self._mpi_Isend_long(ind_list, p, 0))
-            buffer = self._create_buffer(ind_list)
-            self._pack_buffer(ind_list, buffer)
-            dsend_buffers.append(buffer)
-            dsend_hooks.append(self._mpi_Isend_double(send_buffers[-1], p, 1))
-        for send_list_id in self._mpi_Request_Waititer(recv_hooks):
+        # Now we post receives for all of the data buffers.
+        mylog.debug("Sending data")
+        for i in self._mpi_Request_Waititer(recv_hooks):
             # We get back the index, which here is identical to the processor
             # number doing the send.  At this point, we can post our receives.
-            ind_list = buffers[send_list_id]
-            drecv_buffers[send_list_id] = self._create_buffer(ind_list)
-            drecv_hooks.append(self._mpi_Irecv_double(
-                drecv_buffers[send_list_id], send_list_id, 1))
-        for i in self._mpi_Request_Waititer(send_hooks):
-            continue
+            p = proc_hooks[i]
+            ind_list = recv_buffers[i]
+            dsend_buffers.append(self._create_buffer(ind_list))
+            self._pack_buffer(ind_list, dsend_buffers[-1])
+            dsend_hooks.append(self._mpi_Isend_double(
+                dsend_buffers[-1], p, 1))
+        mylog.debug("Waiting on data receives: %s", len(drecv_hooks))
         for i in self._mpi_Request_Waititer(drecv_hooks):
+            mylog.debug("Unpacking from %s", proc_hooks[i])
             # Now we have to unpack our buffers
-            self._unpack_buffer(buffers[send_id_list], drecv_buffers.pop(i))
+            # Our key into this is actually the request for the processor
+            # number.
+            p = proc_hooks[i]
+            self._unpack_buffer(requests[p], drecv_buffers[i])
+        mylog.debug("Finalizing sends: %s", len(dsend_hooks))
+        for i in self._mpi_Request_Waititer(dsend_hooks):
+            continue
 
     def _create_buffer(self, ind_list):
         pass
@@ -108,6 +126,6 @@ class DistributedObjectCollection(ParallelAnalysisInterface):
     def _pack_buffer(self, ind_list):
         pass
 
-    def _unpack_buffer(self, ind_list, buffer):
+    def _unpack_buffer(self, ind_list, my_buffer):
         pass
 

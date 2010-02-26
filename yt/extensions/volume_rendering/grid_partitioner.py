@@ -86,8 +86,9 @@ class HomogenizedBrickCollection(DistributedObjectCollection):
         self.brick_left_edges = na.zeros( (NB, 3), dtype='float64')
         self.brick_right_edges = na.zeros( (NB, 3), dtype='float64')
         self.brick_parents = na.zeros( NB, dtype='int64')
-        self.brick_dimensions = na.zeros( (NB, 3), dtype='int32')
+        self.brick_dimensions = na.zeros( (NB, 3), dtype='int64')
         self.brick_owners = na.ones(NB, dtype='int32') * self._mpi_get_rank()
+        self._object_owners = self.brick_owners
         for i,b in enumerate(bricks):
             self.brick_left_edges[i,:] = b.LeftEdge
             self.brick_right_edges[i,:] = b.RightEdge
@@ -112,8 +113,8 @@ class HomogenizedBrickCollection(DistributedObjectCollection):
         self.brick_right_edges = info_dict.pop("right_edges").transpose()
         self.brick_parents = info_dict.pop("parents")
         self.brick_dimensions = info_dict.pop("dimensions").transpose()
-        self._object_parents = self.brick_parents
         self.brick_owners = info_dict.pop("owners")
+        self._object_owners = self.brick_owners
         bricks = self.bricks
         self.bricks = na.array([None] * self.brick_owners.size, dtype='object')
         # Copy our bricks back in
@@ -124,25 +125,28 @@ class HomogenizedBrickCollection(DistributedObjectCollection):
         # Note that we have vertex-centered data, so we add one before taking
         # the prod and the sum
         total_size = (self.brick_dimensions[ind_list,:] + 1).prod(axis=1).sum()
-        buffer = na.zeros(total_size, dtype='float64')
-        return buffer
+        my_buffer = na.zeros(total_size, dtype='float64')
+        return my_buffer
 
-    def _pack_buffer(self, ind_list, buffer):
+    def _pack_buffer(self, ind_list, my_buffer):
         si = 0
         for index in ind_list:
             d = self.bricks[index].my_data.ravel()
-            buffer[si:d.size] = d[:]
+            my_buffer[si:si+d.size] = d[:]
             si += d.size
 
-    def _unpack_buffer(self, ind_list, buffer):
+    def _unpack_buffer(self, ind_list, my_buffer):
+        si = 0
         for index in ind_list:
             pgi = self.brick_parents[index]
             LE = self.brick_left_edges[index,:].copy()
             RE = self.brick_right_edges[index,:].copy()
             dims = self.brick_dimensions[index,:].copy()
-            data = data.reshape(dims)
+            size = (dims + 1).prod()
+            data = my_buffer[si:si+size].reshape(dims + 1)
             self.bricks[index] = PartitionedGrid(
                     pgi, data, LE, RE, dims)
+            si += size
 
     def _wipe_objects(self, indices):
         self.bricks[indices] = None
