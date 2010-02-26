@@ -124,15 +124,18 @@ class Halo(object):
 
     def rms_velocity(self):
         """
-        Returns the RMS velocity for the halo particles in code units.
+        Returns the mass-weighted RMS velocity for the halo
+        particles in code units.
         """
         bv = self.bulk_velocity()
-        vx = self["particle_velocity_x"] - bv[0]
-        vy = self["particle_velocity_y"] - bv[1]
-        vz = self["particle_velocity_z"] - bv[2]
-        s = vx**2 + vy**2 + vz**2
+        pm = self["ParticleMassMsun"]
+        sm = pm.sum()
+        vx = (self["particle_velocity_x"] - bv[0]) * pm/sm
+        vy = (self["particle_velocity_y"] - bv[1]) * pm/sm
+        vz = (self["particle_velocity_z"] - bv[2]) * pm/sm
+        s = vx**2. + vy**2. + vz**2.
         ms = na.mean(s)
-        return na.sqrt(ms)
+        return na.sqrt(ms) * pm.size
 
     def maximum_radius(self, center_of_mass=True):
         """
@@ -384,10 +387,12 @@ class parallelHOPHalo(Halo,ParallelAnalysisInterface):
         if self.rms_vel is not None:
             return self.rms_vel
         bv = self.bulk_velocity()
+        pm = self["ParticleMassMsun"]
+        sm = pm.sum()
         if self.indices is not None:
-            vx = self["particle_velocity_x"] - bv[0]
-            vy = self["particle_velocity_y"] - bv[1]
-            vz = self["particle_velocity_z"] - bv[2]
+            vx = (self["particle_velocity_x"] - bv[0]) * pm/sm
+            vy = (self["particle_velocity_y"] - bv[1]) * pm/sm
+            vz = (self["particle_velocity_z"] - bv[2]) * pm/sm
             s = vx**2 + vy**2 + vz**2
             s = na.sum(s)
             size = vx.size
@@ -396,7 +401,7 @@ class parallelHOPHalo(Halo,ParallelAnalysisInterface):
             ss = na.array([0.,0.])
         global_ss = self._mpi_allsum(ss)
         ms = global_ss[0] / global_ss[1]
-        return na.sqrt(ms)
+        return na.sqrt(ms) * global_ss[1]
 
     def maximum_radius(self, center_of_mass=True):
         """
@@ -914,7 +919,7 @@ class parallelHOPHaloList(HaloList,ParallelAnalysisInterface):
             marks = na.concatenate(([0], marks, [calc]))
             for i, u in enumerate(uniq_subchain):
                 self.bulk_vel[u] = na.sum(vel[marks[i]:marks[i+1]], axis=0)
-            del vel, ms, subchain, sort_subchain
+            del vel, subchain, sort_subchain
             del diff_subchain
         # Bring it together, and divide by the previously computed total mass
         # of each halo.
@@ -928,24 +933,26 @@ class parallelHOPHaloList(HaloList,ParallelAnalysisInterface):
         rms_vel_temp = na.zeros((self.group_count,2), dtype='float64')
         if calc:
             vel = na.empty((calc, 3), dtype='float64')
-            vel[:,0] = xv[select]
-            vel[:,1] = yv[select]
-            vel[:,2] = zv[select]
+            vel[:,0] = xv[select] * ms
+            vel[:,1] = yv[select] * ms
+            vel[:,2] = zv[select] * ms
             vel = vel[sort]
-            vel = vel**2 # Squared
             for i, u in enumerate(uniq_subchain):
-                # This finds the Mean
-                rms_vel_temp[u][0] = na.sum(vel[marks[i]:marks[i+1]] - self.bulk_vel[u])
+                # This finds the sum locally.
+                rms_vel_temp[u][0] = na.sum(((vel[marks[i]:marks[i+1]] - \
+                    self.bulk_vel[u]) / self.Tot_M[u])**2.)
+                # I could use self.group_sizes...
                 rms_vel_temp[u][1] = marks[i+1] - marks[i]
             del vel, marks, uniq_subchain
         # Bring it together.
         rms_vel_temp = self._mpi_Allsum_double(rms_vel_temp)
         self.rms_vel = na.empty(self.group_count, dtype='float64')
         for groupID in xrange(self.group_count):
-            # Here we do the Root.
+            # Here we do the Mean and the Root.
             self.rms_vel[groupID] = \
-                na.sqrt(rms_vel_temp[groupID][0] / rms_vel_temp[groupID][1])
-        del rms_vel_temp
+                na.sqrt(rms_vel_temp[groupID][0] / rms_vel_temp[groupID][1]) * \
+                self.group_sizes[groupID]
+        del rms_vel_temp, ms
         yt_counters("rms vel computing")
         self.taskID = obj.mine
         self.halo_taskmap = obj.halo_taskmap # A defaultdict.
