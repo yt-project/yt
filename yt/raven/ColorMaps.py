@@ -40,7 +40,10 @@ def add_cmap(name, cdict):
         cc.LinearSegmentedColormap(name,cdict,256)
     mcm.datad[name] = cdict
     mcm.__dict__[name] = cdict
-    mcm.register_cmap(name, raven_colormaps[name])
+    try: # API compatibility
+        mcm.register_cmap(name, raven_colormaps[name])
+    except AttributeError:
+        pass
     
 
 # The format is as follows:
