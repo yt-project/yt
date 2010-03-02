@@ -1329,11 +1329,11 @@ class ParallelAnalysisInterface(object):
     ###
 
     def _mpi_get_size(self):
-        if not self._distributed: return None
+        if not self._distributed: return 1
         return MPI.COMM_WORLD.size
 
     def _mpi_get_rank(self):
-        if not self._distributed: return None
+        if not self._distributed: return 0
         return MPI.COMM_WORLD.rank
 
     def _mpi_info_dict(self, info):
