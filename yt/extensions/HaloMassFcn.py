@@ -179,6 +179,9 @@ class HaloMassFcn(lagos.ParallelAnalysisInterface):
         mylog.info("Reading halo masses from %s" % self.halo_file)
         f = open(self.halo_file,'r')
         line = f.readline()
+        if line == "":
+            self.haloes = na.array([])
+            return
         while line[0] == '#':
             line = f.readline()
         self.haloes = []
