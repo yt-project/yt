@@ -40,6 +40,7 @@ def add_cmap(name, cdict):
         cc.LinearSegmentedColormap(name,cdict,256)
     mcm.datad[name] = cdict
     mcm.__dict__[name] = cdict
+    mcm.register_cmap(name, raven_colormaps[name])
     
 
 # The format is as follows:
@@ -68,6 +69,7 @@ cdict = {'red':   ((0.0, 80/256., 80/256.),
                    (1.0, 0.0, 0.0))}
 
 add_cmap('bds_highcontrast', cdict)
+add_cmap('algae', cdict)
 
 
 # This next colormap was designed by Tune Kamae and converted here by Matt
