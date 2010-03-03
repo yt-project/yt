@@ -723,6 +723,9 @@ add_field("RadialVelocityABS", function=_RadialVelocityABS,
 add_field("RadialVelocityKMS", function=_RadialVelocity,
           convert_function=_ConvertRadialVelocityKMS, units=r"\rm{km}/\rm{s}",
           validators=[ValidateParameter("center")])
+add_field("RadialVelocityKMSABS", function=_RadialVelocityABS,
+          convert_function=_ConvertRadialVelocityKMS, units=r"\rm{km}/\rm{s}",
+          validators=[ValidateParameter("center")])
 
 def _CuttingPlaneVelocityX(field, data):
     x_vec, y_vec, z_vec = [data.get_field_parameter("cp_%s_vec" % (ax))
