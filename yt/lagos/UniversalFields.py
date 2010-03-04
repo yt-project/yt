@@ -195,6 +195,7 @@ def _ParticleMass(field, data):
                 just_one(data["CellVolumeCode"].ravel())
     # Note that we mandate grid-type here, so this is okay
     return particles
+
 def _convertParticleMass(data):
     return data.convert("Density")*(data.convert("cm")**3.0)
 def _IOLevelParticleMass(grid):
@@ -636,7 +637,8 @@ def _ConvertRadiusCGS(data):
 add_field("ParticleRadius", function=_ParticleRadius,
           validators=[ValidateParameter("center")],
           convert_function = _ConvertRadiusCGS, units=r"\rm{cm}",
-          particle_type = True)
+          particle_type = True,
+          display_name = "Particle Radius")
 add_field("Radius", function=_Radius,
           validators=[ValidateParameter("center")],
           convert_function = _ConvertRadiusCGS, units=r"\rm{cm}")
@@ -645,57 +647,69 @@ def _ConvertRadiusMpc(data):
     return data.convert("mpc")
 add_field("RadiusMpc", function=_Radius,
           validators=[ValidateParameter("center")],
-          convert_function = _ConvertRadiusMpc, units=r"\rm{Mpc}")
+          convert_function = _ConvertRadiusMpc, units=r"\rm{Mpc}",
+          display_name = "Radius")
 add_field("ParticleRadiusMpc", function=_ParticleRadius,
           validators=[ValidateParameter("center")],
           convert_function = _ConvertRadiusMpc, units=r"\rm{Mpc}",
-          particle_type=True)
+          particle_type=True,
+          display_name = "Particle Radius")
 
 def _ConvertRadiuskpc(data):
     return data.convert("kpc")
 add_field("ParticleRadiuskpc", function=_ParticleRadius,
           validators=[ValidateParameter("center")],
           convert_function = _ConvertRadiuskpc, units=r"\rm{kpc}",
-          particle_type=True)
+          particle_type=True,
+          display_name = "Particle Radius")
 add_field("Radiuskpc", function=_Radius,
           validators=[ValidateParameter("center")],
-          convert_function = _ConvertRadiuskpc, units=r"\rm{kpc}")
+          convert_function = _ConvertRadiuskpc, units=r"\rm{kpc}",
+          display_name = "Radius")
 
 def _ConvertRadiuskpch(data):
     return data.convert("kpch")
 add_field("ParticleRadiuskpch", function=_ParticleRadius,
           validators=[ValidateParameter("center")],
           convert_function = _ConvertRadiuskpc, units=r"\rm{kpc}/\rm{h}",
-          particle_type=True)
+          particle_type=True,
+          display_name = "Particle Radius")
 add_field("Radiuskpch", function=_Radius,
           validators=[ValidateParameter("center")],
-          convert_function = _ConvertRadiuskpc, units=r"\rm{kpc}/\rm{h}")
+          convert_function = _ConvertRadiuskpc, units=r"\rm{kpc}/\rm{h}",
+          display_name = "Radius")
 
 def _ConvertRadiuspc(data):
     return data.convert("pc")
 add_field("ParticleRadiuspc", function=_ParticleRadius,
           validators=[ValidateParameter("center")],
           convert_function = _ConvertRadiuspc, units=r"\rm{pc}",
-          particle_type=True)
+          particle_type=True,
+          display_name = "Particle Radius")
 add_field("Radiuspc", function=_Radius,
           validators=[ValidateParameter("center")],
-          convert_function = _ConvertRadiuspc, units=r"\rm{pc}")
+          convert_function = _ConvertRadiuspc, units=r"\rm{pc}",
+          display_name="Radius")
 
 def _ConvertRadiusAU(data):
     return data.convert("au")
 add_field("ParticleRadiusAU", function=_ParticleRadius,
           validators=[ValidateParameter("center")],
           convert_function = _ConvertRadiusAU, units=r"\rm{AU}",
-          particle_type=True)
+          particle_type=True,
+          display_name = "Particle Radius")
 add_field("RadiusAU", function=_Radius,
           validators=[ValidateParameter("center")],
-          convert_function = _ConvertRadiusAU, units=r"\rm{AU}")
+          convert_function = _ConvertRadiusAU, units=r"\rm{AU}",
+          display_name = "Radius")
 
 add_field("ParticleRadiusCode", function=_ParticleRadius,
           validators=[ValidateParameter("center")],
-          particle_type=True)
+          particle_type=True,
+          display_name = "Particle Radius (code)")
 add_field("RadiusCode", function=_Radius,
-          validators=[ValidateParameter("center")])
+          validators=[ValidateParameter("center")],
+          display_name = "Radius (code)")
 
 def _RadialVelocity(field, data):
     center = data.get_field_parameter("center")
