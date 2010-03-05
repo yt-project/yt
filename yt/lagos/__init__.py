@@ -33,7 +33,7 @@ try:
     from pyhdf_np import SD # NumPy
     import pyhdf_np.error   # NumPy
 except:
-    mylog.info("No HDF4 support")
+    mylog.debug("No HDF4 support")
 
 import warnings
 try:
@@ -54,6 +54,8 @@ from stat import ST_CTIME
 import shelve
 
 import time
+
+import yt.amr_utils as amr_utils
 
 from Cosmology import *
 from EnzoCosmology import *

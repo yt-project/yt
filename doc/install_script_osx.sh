@@ -206,7 +206,7 @@ cd $MY_PWD
 if [ $INST_HG -eq 1 ]
 then
     echo "Installing Mercurial."
-    ( ${DEST_DIR}/bin/easy_install-2.6 mercurial 2>&1 ) 1>> ${LOG_FILE} || do_exit
+    ( sudo ${PY_DIR}/bin/easy_install-2.5 mercurial 2>&1 ) 1>> ${LOG_FILE} || do_exit
 fi
 
 echo

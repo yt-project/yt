@@ -277,10 +277,39 @@ class ParallelAnalysisInterface(object):
         reg = self.hierarchy.region_strict(self.center, LE, RE)
         return True, reg
 
+    def _partition_hierarchy_2d_inclined(self, unit_vectors, origin, widths,
+                                         box_vectors, resolution = (1.0, 1.0)):
+        if not self._distributed:
+            ib = self.hierarchy.inclined_box(origin, box_vectors)
+            return False, ib, resolution
+        # We presuppose that unit_vectors is already unitary.  If it's not,
+        # caveat emptor.
+        uv = na.array(unit_vectors)
+        inv_mat = na.linalg.pinv(uv)
+        cc = MPI.Compute_dims(MPI.COMM_WORLD.size, 2)
+        mi = MPI.COMM_WORLD.rank
+        cx, cy = na.unravel_index(mi, cc)
+        resolution = (1.0/cc[0], 1.0/cc[1])
+        # We are rotating with respect to the *origin*, not the back center,
+        # so we go from 0 .. width.
+        px = na.mgrid[0.0:1.0:(cc[0]+1)*1j][cx] * widths[0]
+        py = na.mgrid[0.0:1.0:(cc[1]+1)*1j][cy] * widths[1]
+        nxo = inv_mat[0,0]*px + inv_mat[0,1]*py + origin[0]
+        nyo = inv_mat[1,0]*px + inv_mat[1,1]*py + origin[1]
+        nzo = inv_mat[2,0]*px + inv_mat[2,1]*py + origin[2]
+        nbox_vectors = na.array(
+                       [unit_vectors[0] * widths[0]/cc[0],
+                        unit_vectors[1] * widths[1]/cc[1],
+                        unit_vectors[2] * widths[2]],
+                        dtype='float64')
+        norigin = na.array([nxo, nyo, nzo])
+        box = self.hierarchy.inclined_box(norigin, nbox_vectors)
+        return True, box, resolution
+        
     def _partition_hierarchy_3d(self, padding=0.0):
         LE, RE = self.pf["DomainLeftEdge"].copy(), self.pf["DomainRightEdge"].copy()
         if not self._distributed:
-           return False, LE, RE, self.hierarchy.grid_collection(self.center, self.hierarchy.grids)
+           return False, LE, RE, self.hierarchy.all_data()
         elif ytcfg.getboolean("yt", "inline"):
             # At this point, we want to identify the root grid tile to which
             # this processor is assigned.
@@ -778,27 +807,50 @@ class ParallelAnalysisInterface(object):
         mylog.debug("Opening MPI Barrier on %s", MPI.COMM_WORLD.rank)
         MPI.COMM_WORLD.Barrier()
 
+    def _mpi_exit_test(self, data=False):
+        # data==True -> exit. data==False -> no exit
+        mine, statuses = self._mpi_info_dict(data)
+        if True in statuses.values():
+            raise RunTimeError("Fatal error. Exiting.")
+        return None
+
+    @parallel_passthrough
+    def _mpi_catrgb(self, data):
+        self._barrier()
+        data, final = data
+        if MPI.COMM_WORLD.rank == 0:
+            cc = MPI.Compute_dims(MPI.COMM_WORLD.size, 2)
+            nsize = final[0]/cc[0], final[1]/cc[1]
+            new_image = na.zeros((final[0], final[1], 4), dtype='float64')
+            new_image[0:nsize[0],0:nsize[1],:] = data[:]
+            for i in range(1,MPI.COMM_WORLD.size):
+                cy, cx = na.unravel_index(i, cc)
+                mylog.debug("Receiving image from % into bits %s:%s, %s:%s",
+                    i, nsize[0]*cx,nsize[0]*(cx+1),
+                       nsize[1]*cy,nsize[1]*(cy+1))
+                buf = _recv_array(source=i, tag=0).reshape(
+                    (nsize[0],nsize[1],4))
+                new_image[nsize[0]*cy:nsize[0]*(cy+1),
+                          nsize[1]*cx:nsize[1]*(cx+1),:] = buf[:]
+            data = new_image
+        else:
+            _send_array(data.ravel(), dest=0, tag=0)
+        data = MPI.COMM_WORLD.bcast(data)
+        return (data, final)
+
     @parallel_passthrough
     def _mpi_catdict(self, data):
-        self._barrier()
         field_keys = data.keys()
         field_keys.sort()
-        np = MPI.COMM_WORLD.size
+        size = data[field_keys[0]].shape[-1]
+        # MPI_Scan is an inclusive scan
+        sizes = MPI.COMM_WORLD.alltoall( [size]*MPI.COMM_WORLD.size )
+        offsets = na.add.accumulate([0] + sizes)[:-1]
+        arr_size = MPI.COMM_WORLD.allreduce(size, op=MPI.SUM)
         for key in field_keys:
-            mylog.debug("Joining %s (%s) on %s", key, type(data[key]),
-                        MPI.COMM_WORLD.rank)
-            if MPI.COMM_WORLD.rank == 0:
-                temp_data = []
-                if data[key] is not None: temp_data.append(data[key])
-                for i in range(1,np):
-                    buf = _recv_array(source=i, tag=0)
-                    if buf is not None: temp_data.append(buf)
-                data[key] = na.concatenate(temp_data, axis=-1)
-            else:
-                _send_array(data[key], dest=0, tag=0)
-            self._barrier()
-            data[key] = _bcast_array(data[key])
-        self._barrier()
+            dd = data[key]
+            rv = _alltoallv_array(dd, arr_size, offsets, sizes)
+            data[key] = rv
         return data
 
     @parallel_passthrough
@@ -1187,6 +1239,7 @@ class ParallelAnalysisInterface(object):
     def _preload(self, grids, fields, io_handler):
         # This will preload if it detects we are parallel capable and
         # if so, we load *everything* that we need.  Use with some care.
+        mylog.debug("Preloading %s from %s grids", fields, len(grids))
         if not self._distributed: return
         io_handler.preload(grids, fields)
 
@@ -1246,36 +1299,41 @@ class ParallelAnalysisInterface(object):
     # Non-blocking stuff.
     ###
 
-    def _mpi_Irecv_long(self, data, source):
+    def _mpi_Irecv_long(self, data, source, tag=0):
         if not self._distributed: return -1
-        return MPI.COMM_WORLD.Irecv([data, MPI.LONG], source, 0)
+        return MPI.COMM_WORLD.Irecv([data, MPI.LONG], source, tag)
 
-    def _mpi_Irecv_double(self, data, source):
+    def _mpi_Irecv_double(self, data, source, tag=0):
         if not self._distributed: return -1
-        return MPI.COMM_WORLD.Irecv([data, MPI.DOUBLE], source, 0)
+        return MPI.COMM_WORLD.Irecv([data, MPI.DOUBLE], source, tag)
 
-    def _mpi_Isend_long(self, data, dest):
+    def _mpi_Isend_long(self, data, dest, tag=0):
         if not self._distributed: return -1
-        return MPI.COMM_WORLD.Isend([data, MPI.LONG], dest, 0)
+        return MPI.COMM_WORLD.Isend([data, MPI.LONG], dest, tag)
 
-    def _mpi_Isend_double(self, data, dest):
+    def _mpi_Isend_double(self, data, dest, tag=0):
         if not self._distributed: return -1
-        return MPI.COMM_WORLD.Isend([data, MPI.DOUBLE], dest, 0)
+        return MPI.COMM_WORLD.Isend([data, MPI.DOUBLE], dest, tag)
 
     def _mpi_Request_Waitall(self, hooks):
         if not self._distributed: return
         MPI.Request.Waitall(hooks)
+
+    def _mpi_Request_Waititer(self, hooks):
+        for i in xrange(len(hooks)):
+            req = MPI.Request.Waitany(hooks)
+            yield req
 
     ###
     # End non-blocking stuff.
     ###
 
     def _mpi_get_size(self):
-        if not self._distributed: return None
+        if not self._distributed: return 1
         return MPI.COMM_WORLD.size
 
     def _mpi_get_rank(self):
-        if not self._distributed: return None
+        if not self._distributed: return 0
         return MPI.COMM_WORLD.rank
 
     def _mpi_info_dict(self, info):
@@ -1360,3 +1418,25 @@ def _bcast_array(arr, root = 0):
         tmp = arr.view(__tocast)
     MPI.COMM_WORLD.Bcast([tmp, MPI.CHAR], root=root)
     return arr
+
+def _alltoallv_array(send, total_size, offsets, sizes):
+    if len(send.shape) > 1:
+        recv = []
+        for i in range(send.shape[0]):
+            recv.append(_alltoallv_array(send[i,:].copy(), total_size, offsets, sizes))
+        recv = na.array(recv)
+        return recv
+    offset = offsets[MPI.COMM_WORLD.rank]
+    tmp_send = send.view(__tocast)
+    recv = na.empty(total_size, dtype=send.dtype)
+    recv[offset:offset+send.size] = send[:]
+    dtr = send.dtype.itemsize / tmp_send.dtype.itemsize # > 1
+    soff = [0] * MPI.COMM_WORLD.size
+    ssize = [tmp_send.size] * MPI.COMM_WORLD.size
+    roff = [off * dtr for off in offsets]
+    rsize = [siz * dtr for siz in sizes]
+    tmp_recv = recv.view(__tocast)
+    MPI.COMM_WORLD.Alltoallv((tmp_send, (ssize, soff), MPI.CHAR),
+                             (tmp_recv, (rsize, roff), MPI.CHAR))
+    return recv
+    

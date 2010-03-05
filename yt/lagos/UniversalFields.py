@@ -95,7 +95,7 @@ add_field('z', function=_coordZ, display_field=False,
           validators=[ValidateSpatial(0)])
 
 def _GridLevel(field, data):
-    return na.ones(data["Ones"].shape)*(data.Level)
+    return na.ones(data.ActiveDimensions)*(data.Level)
 add_field("GridLevel", function=_GridLevel,
           validators=[ValidateGridType(),
                       ValidateSpatial(0)])
@@ -195,8 +195,13 @@ def _ParticleMass(field, data):
                 just_one(data["CellVolumeCode"].ravel())
     # Note that we mandate grid-type here, so this is okay
     return particles
+
 def _convertParticleMass(data):
     return data.convert("Density")*(data.convert("cm")**3.0)
+def _IOLevelParticleMass(grid):
+    dd = dict(particle_mass = na.ones(1), CellVolumeCode=grid["CellVolumeCode"])
+    cf = (_ParticleMass(None, dd) * _convertParticleMass(grid))[0]
+    return cf
 def _convertParticleMassMsun(data):
     return data.convert("Density")*((data.convert("cm")**3.0)/1.989e33)
 def _IOLevelParticleMassMsun(grid):
@@ -205,7 +210,8 @@ def _IOLevelParticleMassMsun(grid):
     return cf
 add_field("ParticleMass",
           function=_ParticleMass, validators=[ValidateSpatial(0)],
-          particle_type=True, convert_function=_convertParticleMass)
+          particle_type=True, convert_function=_convertParticleMass,
+          particle_convert_function=_IOLevelParticleMass)
 add_field("ParticleMassMsun",
           function=_ParticleMass, validators=[ValidateSpatial(0)],
           particle_type=True, convert_function=_convertParticleMassMsun,
@@ -372,7 +378,7 @@ add_field("TotalMassMsun", units=r"M_{\odot}",
           convert_function=_convertCellMassMsun)
 
 def _StarMass(field,data):
-    return data["star_density"] * data["CellVolume"]
+    return data["star_density_pyx"] * data["CellVolume"]
 add_field("StarMassMsun", units=r"M_{\odot}",
           function=_StarMass,
           convert_function=_convertCellMassMsun)
@@ -457,17 +463,17 @@ def _DivV(field, data):
         sl_left = slice(None,-2,None)
         sl_right = slice(2,None,None)
         div_fac = 2.0
-    div_x = (data["x-velocity"][sl_right,1:-1,1:-1] -
-             data["x-velocity"][sl_left,1:-1,1:-1]) \
-          / (div_fac*data["dx"].flat[0])
-    div_y = (data["y-velocity"][1:-1,sl_right,1:-1] -
-             data["y-velocity"][1:-1,sl_left,1:-1]) \
-          / (div_fac*data["dy"].flat[0])
-    div_z = (data["z-velocity"][1:-1,1:-1,sl_right] -
-             data["z-velocity"][1:-1,1:-1,sl_left]) \
-          / (div_fac*data["dz"].flat[0])
-    new_field = na.zeros(data["x-velocity"].shape)
-    new_field[1:-1,1:-1,1:-1] = div_x+div_y+div_z
+    ds = div_fac * data['dx'].flat[0]
+    f  = data["x-velocity"][sl_right,1:-1,1:-1]/ds
+    f -= data["x-velocity"][sl_left ,1:-1,1:-1]/ds
+    ds = div_fac * data['dy'].flat[0]
+    f += data["y-velocity"][1:-1,sl_right,1:-1]/ds
+    f -= data["y-velocity"][1:-1,sl_left ,1:-1]/ds
+    ds = div_fac * data['dz'].flat[0]
+    f += data["z-velocity"][1:-1,1:-1,sl_right]/ds
+    f -= data["z-velocity"][1:-1,1:-1,sl_left ]/ds
+    new_field = na.zeros(data["x-velocity"].shape, dtype='float64')
+    new_field[1:-1,1:-1,1:-1] = f
     return na.abs(new_field)
 def _convertDivV(data):
     return data.convert("cm")**-1.0
@@ -715,6 +721,9 @@ add_field("RadialVelocityABS", function=_RadialVelocityABS,
           units=r"\rm{cm}/\rm{s}",
           validators=[ValidateParameter("center")])
 add_field("RadialVelocityKMS", function=_RadialVelocity,
+          convert_function=_ConvertRadialVelocityKMS, units=r"\rm{km}/\rm{s}",
+          validators=[ValidateParameter("center")])
+add_field("RadialVelocityKMSABS", function=_RadialVelocityABS,
           convert_function=_ConvertRadialVelocityKMS, units=r"\rm{km}/\rm{s}",
           validators=[ValidateParameter("center")])
 

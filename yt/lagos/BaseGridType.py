@@ -37,15 +37,15 @@ class AMRGridPatch(object):
     _skip_add = True
     _con_args = ('id', 'filename')
 
-    __slots__ = ['data', 'field_parameters', 'fields', 'id', 'hierarchy', 'pf',
+    __slots__ = ['data', 'field_parameters', 'id', 'hierarchy', 'pf',
                  'ActiveDimensions', 'LeftEdge', 'RightEdge', 'Level',
                  'NumberOfParticles', 'Children', 'Parent',
                  'start_index', 'filename', '__weakref__', 'dds',
-                 '_child_mask', '_child_indices', '_child_index_mask']
+                 '_child_mask', '_child_indices', '_child_index_mask',
+                 '_parent_id', '_children_ids']
     def __init__(self, id, filename = None, hierarchy = None):
         self.data = {}
         self.field_parameters = {}
-        self.fields = []
         self.id = id
         if hierarchy: self.hierarchy = weakref.proxy(hierarchy)
         self.pf = self.hierarchy.parameter_file # weakref already
@@ -115,7 +115,7 @@ class AMRGridPatch(object):
                 # This is only going to be raised if n_gz > 0
                 n_gz = ngt_exception.ghost_zones
                 f_gz = ngt_exception.fields
-                gz_grid = self.retrieve_ghost_zones(n_gz, f_gz, smoothed=False)
+                gz_grid = self.retrieve_ghost_zones(n_gz, f_gz, smoothed=True)
                 temp_array = self.pf.field_info[field](gz_grid)
                 sl = [slice(n_gz,-n_gz)] * 3
                 self[field] = temp_array[sl]
@@ -132,8 +132,6 @@ class AMRGridPatch(object):
         Returns a single field.  Will add if necessary.
         """
         if not self.data.has_key(key):
-            if key not in self.fields:
-                self.fields.append(key)
             self.get_data(key)
         return self.data[key]
 
@@ -141,19 +139,16 @@ class AMRGridPatch(object):
         """
         Sets a field to be some other value.
         """
-        if key not in self.fields: self.fields.append(key)
         self.data[key] = val
 
     def __delitem__(self, key):
         """
         Deletes a field
         """
-        try:
-            del self.fields[self.fields.index(key)]
-        except ValueError:
-            pass
         del self.data[key]
 
+    def keys(self):
+        return self.data.keys()
     
     def get_data(self, field):
         """
@@ -187,9 +182,14 @@ class AMRGridPatch(object):
         # So first we figure out what the index is.  We don't assume
         # that dx=dy=dz , at least here.  We probably do elsewhere.
         id = self.id - self._id_offset
-        LE, RE = self.hierarchy.grid_left_edge[id,:], \
-                 self.hierarchy.grid_right_edge[id,:]
-        self.dds = na.array((RE-LE)/self.ActiveDimensions)
+        if self.Parent is not None:
+            self.dds = self.Parent.dds / self.pf["RefineBy"]
+        else:
+            LE, RE = self.hierarchy.grid_left_edge[id,:], \
+                     self.hierarchy.grid_right_edge[id,:]
+            self.dds = na.array((RE-LE)/self.ActiveDimensions)
+        if self.pf["TopGridRank"] < 2: self.dds[1] = 1.0
+        if self.pf["TopGridRank"] < 3: self.dds[2] = 1.0
         self.data['dx'], self.data['dy'], self.data['dz'] = self.dds
 
     @property
@@ -232,10 +232,6 @@ class AMRGridPatch(object):
         """
         self._del_child_mask()
         self._del_child_indices()
-        if hasattr(self, 'coarseData'):
-            del self.coarseData
-        if hasattr(self, 'retVal'):
-            del self.retVal
         self.data.clear()
         self._setup_dx()
 
@@ -356,12 +352,12 @@ class AMRGridPatch(object):
 
     #@time_execution
     def __fill_child_mask(self, child, mask, tofill):
-        startIndex = na.maximum(0, na.rint(
-                    (child.LeftEdge - self.LeftEdge)/self.dds))
-        endIndex = na.minimum(na.rint(
-                    (child.RightEdge - self.LeftEdge)/self.dds),
+        rf = self.pf["RefineBy"]
+        gi, cgi = self.get_global_startindex(), child.get_global_startindex()
+        startIndex = na.maximum(0, cgi/rf - gi)
+        endIndex = na.minimum( (cgi+child.ActiveDimensions)/rf - gi,
                               self.ActiveDimensions)
-        startIndex = na.maximum(0, startIndex)
+        endIndex += (startIndex == endIndex)
         mask[startIndex[0]:endIndex[0],
              startIndex[1]:endIndex[1],
              startIndex[2]:endIndex[2]] = tofill
@@ -418,8 +414,8 @@ class AMRGridPatch(object):
         # than the grid by nZones*dx in each direction
         nl = self.get_global_startindex() - n_zones
         nr = nl + self.ActiveDimensions + 2*n_zones
-        new_left_edge = nl * self.dds
-        new_right_edge = nr * self.dds
+        new_left_edge = nl * self.dds + self.pf["DomainLeftEdge"]
+        new_right_edge = nr * self.dds + self.pf["DomainLeftEdge"]
         # Something different needs to be done for the root grid, though
         level = self.Level
         if all_levels:
@@ -429,8 +425,10 @@ class AMRGridPatch(object):
                   'num_ghost_zones':n_zones,
                   'use_pbar':False, 'fields':fields}
         if smoothed:
-            cube = self.hierarchy.smoothed_covering_grid(
-                level, new_left_edge, new_right_edge, **kwargs)
+            #cube = self.hierarchy.smoothed_covering_grid(
+            #    level, new_left_edge, new_right_edge, **kwargs)
+            cube = self.hierarchy.si_covering_grid(
+                level, new_left_edge, **kwargs)
         else:
             cube = self.hierarchy.covering_grid(
                 level, new_left_edge, **kwargs)
@@ -438,16 +436,24 @@ class AMRGridPatch(object):
 
     def get_vertex_centered_data(self, field, smoothed=True):
         cg = self.retrieve_ghost_zones(1, field, smoothed=smoothed)
-        # Bounds should be cell-centered
-        bds = na.array(zip(cg.left_edge+cg.dds/2.0, cg.right_edge-cg.dds/2.0)).ravel()
-        interp = TrilinearFieldInterpolator(na.log10(cg[field]), bds, ['x','y','z'])
-        ad = self.ActiveDimensions + 1
-        x,y,z = na.mgrid[self.LeftEdge[0]:self.RightEdge[0]:ad[0]*1j,
-                         self.LeftEdge[1]:self.RightEdge[1]:ad[1]*1j,
-                         self.LeftEdge[2]:self.RightEdge[2]:ad[2]*1j]
-        dd = {'x':x,'y':y,'z':z}
-        scalars = 10**interp(dict(x=x,y=y,z=z))
-        return scalars
+        # We have two extra zones in every direction
+        if field in self.pf.field_info and self.pf.field_info[field].take_log:
+            cf = na.log10(cg[field])
+        else:
+            cf = cg[field]
+        new_field = na.zeros(self.ActiveDimensions + 1, dtype='float64')
+        na.add(new_field, cf[1: ,1: ,1: ], new_field)
+        na.add(new_field, cf[:-1,1: ,1: ], new_field)
+        na.add(new_field, cf[1: ,:-1,1: ], new_field)
+        na.add(new_field, cf[1: ,1: ,:-1], new_field)
+        na.add(new_field, cf[:-1,1: ,:-1], new_field)
+        na.add(new_field, cf[1: ,:-1,:-1], new_field)
+        na.add(new_field, cf[:-1,:-1,1: ], new_field)
+        na.add(new_field, cf[:-1,:-1,:-1], new_field)
+        na.multiply(new_field, 0.125, new_field)
+        if field in self.pf.field_info and self.pf.field_info[field].take_log:
+            na.power(10.0, new_field, new_field)
+        return new_field
 
 class EnzoGrid(AMRGridPatch):
     """
@@ -462,8 +468,8 @@ class EnzoGrid(AMRGridPatch):
         """
         #All of the field parameters will be passed to us as needed.
         AMRGridPatch.__init__(self, id, filename = None, hierarchy = hierarchy)
-        self.Parent = None
-        self.Children = []
+        self._children_ids = []
+        self._parent_id = -1
         self.Level = -1
 
     def _guess_properties_from_parent(self):
@@ -477,28 +483,13 @@ class EnzoGrid(AMRGridPatch):
         rf = self.pf["RefineBy"]
         my_ind = self.id - self._id_offset
         le = self.LeftEdge
-        self['dx'] = self.Parent['dx']/rf
-        self['dy'] = self.Parent['dy']/rf
-        self['dz'] = self.Parent['dz']/rf
+        self.dds = self.Parent.dds/rf
         ParentLeftIndex = na.rint((self.LeftEdge-self.Parent.LeftEdge)/self.Parent.dds)
         self.start_index = rf*(ParentLeftIndex + self.Parent.get_global_startindex()).astype('int64')
         self.LeftEdge = self.Parent.LeftEdge + self.Parent.dds * ParentLeftIndex
         self.RightEdge = self.LeftEdge + self.ActiveDimensions*self.dds
-        self.hierarchy.gridDxs[my_ind,0] = self['dx']
-        self.hierarchy.gridDys[my_ind,0] = self['dy']
-        self.hierarchy.gridDzs[my_ind,0] = self['dz']
         self.hierarchy.grid_left_edge[my_ind,:] = self.LeftEdge
         self.hierarchy.grid_right_edge[my_ind,:] = self.RightEdge
-        self.hierarchy.gridCorners[:,:,my_ind] = na.array([ # Unroll!
-            [self.LeftEdge[0], self.LeftEdge[1], self.LeftEdge[2]],
-            [self.RightEdge[0], self.LeftEdge[1], self.LeftEdge[2]],
-            [self.RightEdge[0], self.RightEdge[1], self.LeftEdge[2]],
-            [self.RightEdge[0], self.RightEdge[1], self.RightEdge[2]],
-            [self.LeftEdge[0], self.RightEdge[1], self.RightEdge[2]],
-            [self.LeftEdge[0], self.LeftEdge[1], self.RightEdge[2]],
-            [self.RightEdge[0], self.LeftEdge[1], self.RightEdge[2]],
-            [self.LeftEdge[0], self.RightEdge[1], self.LeftEdge[2]],
-            ], dtype='float64')
         self._child_mask = None
         self._child_index_mask = None
         self._child_indices = None
@@ -520,6 +511,16 @@ class EnzoGrid(AMRGridPatch):
     def __repr__(self):
         return "EnzoGrid_%04i" % (self.id)
 
+    @property
+    def Parent(self):
+        if self._parent_id == -1: return None
+        return self.hierarchy.grids[self._parent_id - self._id_offset]
+
+    @property
+    def Children(self):
+        return [self.hierarchy.grids[cid - self._id_offset]
+                for cid in self._children_ids]
+
 class EnzoGridInMemory(EnzoGrid):
     __slots__ = ['proc_num']
     def set_filename(self, filename):
@@ -527,23 +528,23 @@ class EnzoGridInMemory(EnzoGrid):
 
 class OrionGrid(AMRGridPatch):
     _id_offset = 0
-    def __init__(self, LeftEdge, RightEdge, index, level, filename, offset, dimensions,start,stop,paranoia=False):
-        AMRGridPatch.__init__(self, index)
+    def __init__(self, LeftEdge, RightEdge, index, level, filename, offset, dimensions,start,stop,paranoia=False,**kwargs):
+        AMRGridPatch.__init__(self, index,**kwargs)
         self.filename = filename
         self._offset = offset
         self._paranoid = paranoia
         
         # should error check this
         self.ActiveDimensions = (dimensions.copy()).astype('int32')#.transpose()
-        self.start = start.copy()#.transpose()
-        self.stop = stop.copy()#.transpose()
+        self.start_index = start.copy()#.transpose()
+        self.stop_index = stop.copy()#.transpose()
         self.LeftEdge  = LeftEdge.copy()
         self.RightEdge = RightEdge.copy()
         self.index = index
         self.Level = level
 
     def get_global_startindex(self):
-        return self.start
+        return self.start_index
 
     def _prepare_grid(self):
         """
@@ -553,19 +554,34 @@ class OrionGrid(AMRGridPatch):
         # Now we give it pointers to all of its attributes
         # Note that to keep in line with Enzo, we have broken PEP-8
         h = self.hierarchy # cache it
-        self.StartIndices = h.gridStartIndices[self.id]
-        self.EndIndices = h.gridEndIndices[self.id]
-        h.gridLevels[self.id,0] = self.Level
+        #self.StartIndices = h.gridStartIndices[self.id]
+        #self.EndIndices = h.gridEndIndices[self.id]
+        h.grid_levels[self.id,0] = self.Level
         h.grid_left_edge[self.id,:] = self.LeftEdge[:]
         h.grid_right_edge[self.id,:] = self.RightEdge[:]
-        self.Time = h.gridTimes[self.id,0]
-        self.NumberOfParticles = h.gridNumberOfParticles[self.id,0]
+        #self.Time = h.gridTimes[self.id,0]
+        #self.NumberOfParticles = h.gridNumberOfParticles[self.id,0]
+        self.field_indexes = h.field_indexes
         self.Children = h.gridTree[self.id]
         pIDs = h.gridReverseTree[self.id]
         if len(pIDs) > 0:
             self.Parent = [weakref.proxy(h.grids[pID]) for pID in pIDs]
         else:
-            self.Parent = []
+            self.Parent = None
+
+    def _setup_dx(self):
+        # So first we figure out what the index is.  We don't assume
+        # that dx=dy=dz , at least here.  We probably do elsewhere.
+        id = self.id - self._id_offset
+        if self.Parent is not None:
+            self.dds = self.Parent[0].dds / self.pf["RefineBy"]
+        else:
+            LE, RE = self.hierarchy.grid_left_edge[id,:], \
+                     self.hierarchy.grid_right_edge[id,:]
+            self.dds = na.array((RE-LE)/self.ActiveDimensions)
+        if self.pf["TopGridRank"] < 2: self.dds[1] = 1.0
+        if self.pf["TopGridRank"] < 3: self.dds[2] = 1.0
+        self.data['dx'], self.data['dy'], self.data['dz'] = self.dds
 
     def __repr__(self):
         return "OrionGrid_%04i" % (self.id)

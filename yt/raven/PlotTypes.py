@@ -39,6 +39,12 @@ def Initialize(*args, **kwargs):
     else:
         from matplotlib.backends.backend_agg \
                 import FigureCanvasAgg as FigureCanvas
+    try:
+        from matplotlib.backends.backend_pdf \
+                import FigureCanvasPdf as FigureCanvasPDF
+        engineVals["canvas_pdf"] = FigureCanvasPDF
+    except ImportError:
+        pass
     engineVals["canvas"] = FigureCanvas
     return
 
@@ -125,6 +131,23 @@ class RavenPlot(object):
         self["GeneratedAt"] = self.data.pf["CurrentTimeIdentifier"]
         return fn
 
+    def save_to_pdf(self, f):
+        self._redraw_image()
+        canvas = engineVals["canvas_pdf"](self._figure)
+        original_figure_alpha = self._figure.patch.get_alpha()
+        self._figure.patch.set_alpha(0.0)
+        original_axes_alpha = []
+        for ax in self._figure.axes:
+            patch = ax.patch
+            original_axes_alpha.append(patch.get_alpha())
+            patch.set_alpha(0.0)
+
+        canvas.print_pdf(f)
+
+        self._figure.set_alpha(original_figure_alpha)
+        for ax, alpha in zip(self._figure.axes,original_axes_alpha):
+            ax.patch.set_alpha(alpha)
+
     def _redraw_image(self):
         pass
 
@@ -157,6 +180,7 @@ class RavenPlot(object):
         """
         # This next call fixes some things, but is slower...
         self._redraw_image()
+        self.set_autoscale(False)
         if (zmin in (None,'min')) or (zmax in (None,'max')):    
             imbuff = self._axes.images[-1]._A
             if zmin == 'min':
@@ -587,26 +611,21 @@ class ParticlePlot(RavenPlot):
     _type_name = "ParticlePlot"
     def __init__(self, data, axis, width, p_size=1.0, col='k', stride=1.0,
                  figure = None, axes = None):
-        RavenPlot.__init__(self, data, [], figure, axes)
+        kwargs = {}
+        if figure is None: kwargs['size'] = (8,8)
+        RavenPlot.__init__(self, data, [], figure, axes, **kwargs)
         self._figure.subplots_adjust(hspace=0, wspace=0, bottom=0.0,
                                     top=1.0, left=0.0, right=1.0)
         self.axis = axis
         self.setup_domain_edges(axis)
         self.axis_names['Z'] = col
-        from Callbacks import ParticleCallback
-        self.add_callback(ParticleCallback(axis, width, p_size, col, stride))
+        self.modify["particles"](width, p_size, col, stride)
         self.set_width(1,'unitary')
 
     def _redraw_image(self, *args):
         self._axes.clear() # To help out the colorbar
         self._reset_image_parameters()
         self._run_callbacks()
-
-    def set_xlim(self, xmin, xmax):
-        self.xlim = (xmin,xmax)
-
-    def set_ylim(self, ymin, ymax):
-        self.ylim = (ymin,ymax)
 
     def _generate_prefix(self, prefix):
         self.prefix = "_".join([prefix, self._type_name, \
@@ -619,7 +638,7 @@ class ParticlePlot(RavenPlot):
         self["Unit"] = str(unit)
         self["Width"] = float(width)
         if isinstance(unit, types.StringTypes):
-            unit = self.data.hierarchy[str(unit)]
+            unit = self.data.pf[str(unit)]
         self.width = width / unit
         self._refresh_display_width()
 
@@ -646,6 +665,9 @@ class ParticlePlot(RavenPlot):
         self._axes.set_yticks(())
         self._axes.set_ylabel("")
         self._axes.set_xlabel("")
+        l, b, width, height = _get_bounds(self._axes.bbox)
+        self._axes.set_xlim(0, width)
+        self._axes.set_ylim(0, height)
 
 class ProfilePlot(RavenPlot):
     _x_label = None
@@ -779,7 +801,7 @@ class PhasePlot(ProfilePlot):
         self.norm = matplotlib.colors.Normalize()
         self.image = self._axes.pcolormesh(self.x_bins, self.y_bins,
                                       temparray, shading='flat',
-                                      norm=self.norm)
+                                      norm=self.norm, cmap=self.cmap)
         self.colorbar = self._figure.colorbar(self.image,
                                     extend='neither', shrink=0.95,
                                     format="%0.2e" )
@@ -977,10 +999,14 @@ _mpl9x_get_bounds = lambda bbox: bbox.get_bounds()
 _mpl98_notify = lambda im,cb: cb.update_bruteforce(im)
 _mpl9x_notify = lambda im,cb: cb.notify(im)
 
-# This next function hurts, because it relies on the fact that
-# we're only differentiating between 0.9[01] and 0.98.
+# This next function hurts, because it relies on the fact that we're
+# only differentiating between 0.9[01] and 0.98. And if happens to be
+# 1.0, or any version with only 3 values, this should catch it.
 
-_mpl_version = float(matplotlib.__version__[:4])
+try:
+    _mpl_version = float(matplotlib.__version__[:4])
+except:
+    _mpl_version = float(matplotlib.__version__[:3])
 
 if _mpl_version < 0.98:
     _prefix = '_mpl9x'

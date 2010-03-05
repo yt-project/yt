@@ -47,8 +47,8 @@ class PlotCallback(object):
         x0, x1 = plot.xlim
         y0, y1 = plot.ylim
         l, b, width, height = _get_bounds(plot._axes.bbox)
-        dx = plot.image._A.shape[0] / (x1-x0)
-        dy = plot.image._A.shape[1] / (y1-y0)
+        dx = width / (x1-x0)
+        dy = height / (y1-y0)
         return ((coord[0] - int(offset)*x0)*dx,
                 (coord[1] - int(offset)*y0)*dy)
 
@@ -163,10 +163,10 @@ class ContourCallback(PlotCallback):
         XShifted = copy.copy(plot.data["px"])
         YShifted = copy.copy(plot.data["py"])
         for shift in na.mgrid[-1:1:3j]*DomainWidth:
-            xlim = na.logical_and(plot.data["px"] + shift >= x0*0.9,
-                                  plot.data["px"] + shift <= x1*1.1)
-            ylim = na.logical_and(plot.data["py"] + shift >= y0*0.9,
-                                  plot.data["py"] + shift <= y1*1.1)
+            xlim = na.logical_and(plot.data["px"] + shift >= x0,
+                                  plot.data["px"] + shift <= x1)
+            ylim = na.logical_and(plot.data["py"] + shift >= y0,
+                                  plot.data["py"] + shift <= y1)
 
             XShifted[na.where(xlim)] += shift
             YShifted[na.where(ylim)] += shift
@@ -189,7 +189,7 @@ class ContourCallback(PlotCallback):
 
 class GridBoundaryCallback(PlotCallback):
     _type_name = "grids"
-    def __init__(self, alpha=1.0, min_pix = 1,annotate=False):
+    def __init__(self, alpha=1.0, min_pix=1, annotate=False, periodic=True):
         """
         Adds grid boundaries to a plot, optionally with *alpha*-blending.
         Cuttoff for display is at *min_pix* wide.
@@ -198,7 +198,9 @@ class GridBoundaryCallback(PlotCallback):
         PlotCallback.__init__(self)
         self.alpha = alpha
         self.min_pix = min_pix
-        self.annotate=annotate # put grid numbers in the corner.        
+        self.annotate = annotate # put grid numbers in the corner.
+        self.periodic = periodic
+
     def __call__(self, plot):
         x0, x1 = plot.xlim
         y0, y1 = plot.ylim
@@ -209,7 +211,10 @@ class GridBoundaryCallback(PlotCallback):
         px_index = lagos.x_dict[plot.data.axis]
         py_index = lagos.y_dict[plot.data.axis]
         dom = plot.data.pf["DomainRightEdge"] - plot.data.pf["DomainLeftEdge"]
-        pxs, pys = na.mgrid[-1:1:3j,-1:1:3j]
+        if self.periodic:
+            pxs, pys = na.mgrid[-1:1:3j,-1:1:3j]
+        else:
+            pxs, pys = na.mgrid[0:0:1j,0:0:1j]
         GLE = plot.data.grid_left_edge
         GRE = plot.data.grid_right_edge
         for px_off, py_off in zip(pxs.ravel(), pys.ravel()):
@@ -310,7 +315,7 @@ class UnitBoundaryCallback(PlotCallback):
                    ( (right_edge_py < height) & (left_edge_py > 0) )
         verts=verts.transpose()[visible,:,:]
         grid_collection = matplotlib.collections.PolyCollection(
-                verts, facecolors=(0.0,0.0,0.0,0.0),
+                verts, facecolors="none",
                        edgecolors=(0.0,0.0,0.0,1.0),
                        linewidths=2.5)
         plot._axes.hold(True)
@@ -342,7 +347,7 @@ class LinePlotCallback(PlotCallback):
         plot._axes.hold(False)
 
 class CuttingQuiverCallback(PlotCallback):
-    _type_name = "quiver"
+    _type_name = "cquiver"
     def __init__(self, field_x, field_y, factor):
         """
         Get a quiver plot on top of a cutting plane, using *field_x* and
@@ -688,7 +693,7 @@ class CoordAxesCallback(PlotCallback):
     def __call__(self,plot):
         # 1. find out what the domain is
         # 2. pick a unit for it
-        # 3. run self._axes.set_xlabel & self._axes.set_ylabel to actually lay shit down.
+        # 3. run self._axes.set_xlabel & self._axes.set_ylabel to actually lay things down.
         # 4. adjust extent information to make sure labels are visable.
 
         # put the plot into data coordinates

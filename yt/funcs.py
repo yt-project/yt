@@ -28,6 +28,7 @@ import warnings
 import progressbar as pb
 from math import floor, ceil
 from yt.logger import ytLogger as mylog
+from yt.exceptions import *
 
 # Some compatibility functions.  In the long run, these *should* disappear as
 # we move toward newer python versions.  Most were implemented to get things
@@ -118,7 +119,7 @@ def get_memory_usage():
     pid = os.getpid()
     status_file = "/proc/%s/statm" % (pid)
     if not os.path.isfile(status_file):
-        return None
+        return 0.0
     line = open(status_file).read()
     size, resident, share, text, library, data, dt = [int(i) for i in line.split()]
     return resident * pagesize / (1024 * 1024) # return in megs
@@ -320,6 +321,8 @@ def get_pbar(title, maxval):
             if EMBEDDED_MODE: return DummyProgressBar()
         except:
             pass
+    elif "CODENODE" in os.environ:
+        return DummyProgressBar()
     widgets = [ title,
             pb.Percentage(), ' ',
             pb.Bar(marker=pb.RotatingMarker()),
@@ -386,7 +389,10 @@ def paste_traceback(exc_type, exc, tb):
 if "--paste" in sys.argv:
     sys.excepthook = paste_traceback
     del sys.argv[sys.argv.index("--paste")]
-if "--rpdb" in sys.argv:
+elif "--detailed" in sys.argv:
+    import cgitb; cgitb.enable(format="text")
+    del sys.argv[sys.argv.index("--detailed")]
+elif "--rpdb" in sys.argv:
     sys.excepthook = rpdb.rpdb_excepthook
     del sys.argv[sys.argv.index("--rpdb")]
 
