@@ -1234,3 +1234,94 @@ class GadgetHierarchy(AMRHierarchy):
 
     def _setup_derived_fields(self):
         self.derived_field_list = []
+
+class ChomboHierarchy(AMRHierarchy):
+
+    grid = ChomboGrid
+    
+    def __init__(self,pf,data_style='chombo_hdf5'):
+        self.data_style = data_style
+        self.field_info = ChomboFieldContainer()
+        self.field_indexes = {}
+        self.parameter_file = weakref.proxy(pf)
+        # for now, the hierarchy file is the parameter file!
+        self.hierarchy_filename = self.parameter_file.parameter_filename
+        self.directory = os.path.dirname(self.hierarchy_filename)
+        self._fhandle = h5py.File(self.hierarchy_filename)
+
+        self.float_type = self._fhandle['/level_0']['data:datatype=0'].dtype.name
+        self._levels = self._fhandle.listnames()[1:]
+        AMRHierarchy.__init__(self,pf,data_style)
+
+        self._fhandle.close()
+
+    def _initialize_data_storage(self):
+        pass
+
+    def _detect_fields(self):
+        ncomp = int(self._fhandle['/'].attrs['num_components'])
+        self.field_list = [c[1] for c in self._fhandle['/'].attrs.listitems()[-ncomp:]]
+    
+    def _setup_classes(self):
+        dd = self._get_data_reader_dict()
+        AMRHierarchy._setup_classes(self, dd)
+        self.object_types.sort()
+
+    def _count_grids(self):
+        self.num_grids = 0
+        for lev in self._levels:
+            self.num_grids += self._fhandle[lev]['Processors'].len()
+        
+    def _parse_hierarchy(self):
+        f = self._fhandle # shortcut
+        
+        # this relies on the first Group in the H5 file being
+        # 'Chombo_global'
+        levels = f.listnames()[1:]
+        self.grids = []
+        i = 0
+        for lev in levels:
+            level_number = int(re.match('level_(\d+)',lev).groups()[0])
+            boxes = f[lev]['boxes'].value
+            dx = f[lev].attrs['dx']
+            for level_id, box in enumerate(boxes):
+                self.grids.append(self.grid(len(self.grids),self,level=level_number))
+                self.grids[-1]._level_id = level_id
+                self.grid_left_edge[i] = dx*na.array([box['lo_i'],
+                                                      box['lo_j'],
+                                                      box['lo_k']],
+                                                     dtype=self.float_type)
+                self.grid_right_edge[i] = dx*(na.array([box['hi_i'],
+                                                        box['hi_j'],
+                                                        box['hi_k']],
+                                                       dtype=self.float_type) + 1)
+                self.grid_particle_count[i] = 0
+                self.grid_dimensions[i] = na.array([box['hi_i']-box['lo_i'],
+                                                    box['hi_j']-box['lo_j'],
+                                                    box['hi_k']-box['lo_k']]) + 1
+                i += 1
+        self.grids = na.array(self.grids, dtype='object')
+
+    def _populate_grid_objects(self):
+        for g in self.grids:
+            g._prepare_grid()
+            g._setup_dx()
+
+        for g in self.grids:
+            g.Children = self._get_grid_children(g)
+            for g1 in g.Children:
+                g1.Parent.append(g)
+        self.max_level = self.grid_levels.max()
+
+    def _setup_unknown_fields(self):
+        pass
+
+    def _setup_derived_fields(self):
+        self.derived_field_list = []
+
+    def _get_grid_children(self, grid):
+        mask = na.zeros(self.num_grids, dtype='bool')
+        grids, grid_ind = self.get_box_grids(grid.LeftEdge, grid.RightEdge)
+        mask[grid_ind] = True
+        return [g for g in self.grids[mask] if g.Level == grid.Level + 1]
+
