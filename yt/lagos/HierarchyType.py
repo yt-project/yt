@@ -781,12 +781,12 @@ class EnzoHierarchy1D(EnzoHierarchy):
         self.grid_dimensions[:,:1] = ei
         self.grid_dimensions[:,:1] -= na.array(si, self.float_type)
         self.grid_dimensions += 1
-        self.grid_left_edge[:,:2] = LE
-        self.grid_right_edge[:,:2] = RE
+        self.grid_left_edge[:,:1] = LE
+        self.grid_right_edge[:,:1] = RE
         self.grid_particle_count.flat[:] = np
-        self.grid_left_edge[:,1:2] = 0.0
-        self.grid_right_edge[:,1:2] = 1.0
-        self.grid_dimensions[:,1:2] = 1
+        self.grid_left_edge[:,1:] = 0.0
+        self.grid_right_edge[:,1:] = 1.0
+        self.grid_dimensions[:,1:] = 1
 
 class EnzoHierarchy2D(EnzoHierarchy):
 

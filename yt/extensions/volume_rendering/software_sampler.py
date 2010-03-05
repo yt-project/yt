@@ -31,7 +31,6 @@ from yt.lagos import data_object_registry, ParallelAnalysisInterface
 
 # We're going to register this class, but it does not directly inherit from
 # AMRData.
-
 class VolumeRendering(ParallelAnalysisInterface):
     bricks = None
     def __init__(self, normal_vector, width, center,

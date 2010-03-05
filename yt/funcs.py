@@ -305,6 +305,7 @@ def get_pbar(title, maxval):
     This returns a progressbar of the most appropriate type, given a *title*
     and a *maxval*.
     """
+    maxval = max(maxval, 1)
     from yt.config import ytcfg
     if ytcfg.getboolean("yt","inGui"):
         if maxval > ytcfg.getint("reason","minpbar"): # Arbitrary number

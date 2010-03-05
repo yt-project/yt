@@ -190,8 +190,8 @@ function do_setup_py
     cd $1
     if [ ! -z `echo $1 | grep h5py` ]
     then
-	    echo "${PY_DIR}/bin/python2.6 setup.py configure --hdf5=${HDF5_DIR}"
-	    ( ${PY_DIR}/bin/python2.6 setup.py configure --hdf5=${HDF5_DIR} 2>&1 ) 1>> ${LOG_FILE} || do_exit
+	    echo "${DEST_DIR}/bin/python2.6 setup.py configure --hdf5=${HDF5_DIR}"
+	    ( ${DEST_DIR}/bin/python2.6 setup.py configure --hdf5=${HDF5_DIR} 2>&1 ) 1>> ${LOG_FILE} || do_exit
     fi
     shift
     ( ${DEST_DIR}/bin/python2.6 setup.py build   $* 2>&1 ) 1>> ${LOG_FILE} || do_exit
