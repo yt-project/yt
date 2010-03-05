@@ -424,6 +424,11 @@ class IOHandlerPacked1D(IOHandlerPackedHDF5):
                         (grid.id, field))
         return t
 
+class IOHandlerGadget(BaseIOHandler):
+    _data_style = 'gadget_binary'
+    def _read_data_set(self, grid, field):
+        return grid._storage[field]
+
 #
 # BoxLib/Orion data readers follow
 #
