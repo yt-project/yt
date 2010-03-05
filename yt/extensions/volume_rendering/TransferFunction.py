@@ -103,12 +103,14 @@ class ColorTransferFunction(object):
         print "Adding gaussian at %s with width %s and colors %s" % (
                 v, w, (r,g,b,alpha))
 
-    def add_layers(self, N, w=None, mi=None, ma=None, colormap="gist_stern"):
+    def add_layers(self, N, w=None, mi=None, ma=None, alpha = None,
+                   colormap="gist_stern"):
         dist = (self.x_bounds[1] - self.x_bounds[0])
         if mi is None: mi = self.x_bounds[0] + dist/(10.0*N)
         if ma is None: ma = self.x_bounds[1] - dist/(10.0*N)
         if w is None: w = 0.001 * (ma-mi)/N
-        for v, a in zip(na.mgrid[mi:ma:N*1j], na.logspace(-2.0, 0.0,N)):
+        if alpha is None: alpha = na.logspace(-2.0, 0.0, N)
+        for v, a in zip(na.mgrid[mi:ma:N*1j], alpha):
             self.sample_colormap(v, w, a, colormap=colormap)
 
 if __name__ == "__main__":

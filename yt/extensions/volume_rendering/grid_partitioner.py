@@ -28,7 +28,7 @@ from yt.funcs import *
 import h5py
 
 from yt.amr_utils import PartitionedGrid, ProtoPrism, GridFace, \
-        grid_points_in_volume
+        grid_points_in_volume, find_grids_in_inclined_box
 from yt.lagos import ParallelAnalysisInterface, only_on_root, parallel_root_only
 from yt.parallel_tools import DistributedObjectCollection
 
@@ -226,7 +226,7 @@ def import_partitioned_grids(fn, int_type=na.int64, float_type=na.float64):
         gle, gre = left_edges[i,:], right_edges[i,:]
         gdata = data[curpos:curpos+gd.prod()].reshape(gd)
         # Vertex -> Grid, so we -1 from dims in this
-        rid_list.append(PartitionedGrid(gdata, gle, gre, gd - 1))
+        grid_list.append(PartitionedGrid(-1, gdata, gle, gre, gd - 1))
         curpos += gd.prod()
         pbar.update(i)
     pbar.finish()

@@ -74,14 +74,13 @@ class VolumeRendering(ParallelAnalysisInterface):
         self.front_center = center + 0.5*width[0]*self.unit_vectors[2]
 
         self._initialize_source()
-        self._initialize_brick_collection()
         self._construct_vector_array()
 
     def _initialize_source(self):
         check, source, rf = self._partition_hierarchy_2d_inclined(
                 self.unit_vectors, self.origin, self.width, self.box_vectors)
         if check:
-            self._base_source = self.pf.inclined_box(
+            self._base_source = self.pf.h.inclined_box(
                 self.origin, self.box_vectors)
         else:
             # To avoid doubling-up
@@ -138,9 +137,7 @@ class VolumeRendering(ParallelAnalysisInterface):
                      self.pf.field_info[self.fields[0]].take_log)
         self._brick_collection._partition_local_grids(self.fields, log_field)
         self._brick_collection._collect_bricks(self.source._grids)
-        self.bricks = partition_all_grids(self.source._grids,
-                            field = self.fields[0],
-                            log_field = log_field)
+        self.bricks = self._brick_collection.bricks
 
     def _construct_vector_array(self):
         rx = self.resolution[0] * self.res_fac[0]
