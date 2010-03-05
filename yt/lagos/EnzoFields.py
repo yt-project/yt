@@ -48,6 +48,10 @@ _speciesMass = {"HI":1.0,"HII":1.0,"Electron":1.0,
                 "H2I":2.0,"H2II":2.0,"HM":1.0,
                 "DI":2.0,"DII":2.0,"HDI":3.0}
 
+def _SpeciesComovingDensity(field, data):
+    sp = field.name.split("_")[0] + "_Density"
+    ef = (1.0 + data.pf["CosmologyCurrentRedshift"])**3.0
+    return data[sp]/ef
 def _SpeciesFraction(field, data):
     sp = field.name.split("_")[0] + "_Density"
     return data[sp]/data["Density"]
@@ -61,6 +65,9 @@ def _ConvertNumberDensity(data):
 for species in _speciesList:
     add_field("%s_Fraction" % species,
              function=_SpeciesFraction,
+             validators=ValidateDataField("%s_Density" % species))
+    add_field("Comoving_%s_Density" % species,
+             function=_SpeciesComovingDensity,
              validators=ValidateDataField("%s_Density" % species))
     if _speciesMass.has_key(species):
         add_field("%s_NumberDensity" % species,
@@ -169,6 +176,11 @@ def _NumberDensity(field, data):
 add_field("NumberDensity", units=r"\rm{cm}^{-3}",
           function=_NumberDensity,
           convert_function=_ConvertNumberDensity)
+
+def _ComovingDensity(field,data):
+    ef = (1.0 + data.pf["CosmologyCurrentRedshift"])**3.0
+    return data["Density"]/ef
+add_field("ComovingDensity", function=_ComovingDensity, units=r"\rm{g}/\rm{cm}^3")
 
 def Overdensity(field,data):
     return (data['Density'] + data['Dark_Matter_Density']) / \
@@ -326,6 +338,12 @@ def _StarAge(field, data):
 add_field('StarAgeYears', units="\rm{yr}",
           function=_StarAge,
           projection_conversion="1")
+
+def _IsStarParticle(field, data):
+    is_star = (data['creation_time'] > 0).astype('float64')
+    return is_star
+add_field('IsStarParticle', function=_IsStarParticle,
+          particle_type = True)
 
 #
 # Now we do overrides for 2D fields

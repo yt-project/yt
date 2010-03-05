@@ -28,11 +28,11 @@ from yt.logger import lagosLogger as mylog
 import numpy as na
 import math, time
 
-class HaloMassFcn(object):
+class HaloMassFcn(lagos.ParallelAnalysisInterface):
     def __init__(self, pf, halo_file=None, omega_matter0=None, omega_lambda0=None,
     omega_baryon0=0.05, hubble0=None, sigma8input=0.86, primordial_index=1.0,
     this_redshift=None, log_mass_min=None, log_mass_max=None, num_sigma_bins=360,
-    fitting_function=4):
+    fitting_function=4, mass_column=5):
         """
         Initalize a HaloMassFcn object to analyze the distribution of haloes
         as a function of mass.
@@ -71,6 +71,8 @@ class HaloMassFcn(object):
         :param fitting_function (int): Which fitting function to use.
         1 = Press-schechter, 2 = Jenkins, 3 = Sheth-Tormen, 4 = Warren fit
         Default=4.
+        :param mass_column (int): The column of halo_file that contains the
+        masses of the haloes. Default=4.
         """
         self.pf = pf
         self.halo_file = halo_file
@@ -85,6 +87,7 @@ class HaloMassFcn(object):
         self.log_mass_max = log_mass_max
         self.num_sigma_bins = num_sigma_bins
         self.fitting_function = fitting_function
+        self.mass_column = mass_column
         
         # Determine the run mode.
         if halo_file is None:
@@ -98,8 +101,10 @@ class HaloMassFcn(object):
             self.hubble0 = self.pf['CosmologyHubbleConstantNow']
             self.this_redshift = self.pf['CosmologyCurrentRedshift']
             self.read_haloes()
-            self.log_mass_min = math.log10(min(self.haloes))
-            self.log_mass_max = math.log10(max(self.haloes))
+            if self.log_mass_min == None:
+                self.log_mass_min = math.log10(min(self.haloes))
+            if self.log_mass_max == None:
+                self.log_mass_max = math.log10(max(self.haloes))
 
         # Input error check.
         if self.mode == 'single':
@@ -137,12 +142,12 @@ class HaloMassFcn(object):
         # First the fit file.
         if fit:
             fitname = prefix + '-fit.dat'
-            fp = open(fitname, 'w')
+            fp = self._write_on_root(fitname)
             line = \
             """#Columns:
 #1. log10 of mass (Msolar, NOT Msolar/h)
 #2. mass (Msolar/h)
-#3. (dn/dM)*dM (differential number density of halos, per Mpc^3 (NOT h^3/Mpc^3)
+#3. (dn/dM)*dM (differential number density of haloes, per Mpc^3 (NOT h^3/Mpc^3)
 #4. cumulative number density of halos (per Mpc^3, NOT h^3/Mpc^3)
 """
             fp.write(line)
@@ -153,13 +158,14 @@ class HaloMassFcn(object):
             fp.close()
         if self.mode == 'haloes' and haloes:
             haloname = prefix + '-haloes.dat'
-            fp = open(haloname, 'w')
+            fp = self._write_on_root(haloname)
             line = \
             """#Columns:
 #1. log10 of mass (Msolar, NOT Msolar/h)
 #2. mass (Msolar/h)
-#3. cumulative number density of halos (per Mpc^3, NOT h^3/Mpc^3)\n
+#3. cumulative number density of haloes (per Mpc^3, NOT h^3/Mpc^3)
 """
+            fp.write(line)
             for i in xrange(self.logmassarray.size - 1):
                 line = "%e\t%e\t%e\n" % (self.logmassarray[i], self.massarray[i],
                 self.dis[i])
@@ -172,15 +178,18 @@ class HaloMassFcn(object):
         """
         mylog.info("Reading halo masses from %s" % self.halo_file)
         f = open(self.halo_file,'r')
-        line = f.readline() # burn the top header line.
         line = f.readline()
+        if line == "":
+            self.haloes = na.array([])
+            return
+        while line[0] == '#':
+            line = f.readline()
         self.haloes = []
         while line:
             line = line.split()
-            # Mass is in the 6th column (ord. 5)
-            mass = float(line[5])
+            mass = float(line[self.mass_column])
             if mass > 0:
-                self.haloes.append(float(line[5]))
+                self.haloes.append(float(line[self.mass_column]))
             line = f.readline()
         f.close()
         self.haloes = na.array(self.haloes)
@@ -189,18 +198,16 @@ class HaloMassFcn(object):
         """
         With the list of virial masses, find the halo mass function.
         """
-        bins = na.logspace(math.pow(10.,self.log_mass_min),
-            math.pow(10.,log_mass_max),self.num_sigma_bins)
+        bins = na.logspace(self.log_mass_min,
+            self.log_mass_max,self.num_sigma_bins)
         avgs = (bins[1:]+bins[:-1])/2.
-        
         dis, bins = na.histogram(self.haloes,bins,new=True)
-        
         # add right to left
         for i,b in enumerate(dis):
             dis[self.num_sigma_bins-i-3] += dis[self.num_sigma_bins-i-2]
             if i == (self.num_sigma_bins - 3): break
 
-        self.dis = dis / self.pf['CosmologyComovingBoxSize']**3.0
+        self.dis = dis  / self.pf['CosmologyComovingBoxSize']**3.0 * self.hubble0**3.0
 
     def sigmaM(self):
         """
@@ -391,7 +398,7 @@ class HaloMassFcn(object):
         
         if self.fitting_function==1:
             # Press-Schechter (This form from Jenkins et al. 2001, MNRAS 321, 372-384, eqtn. 5)
-            thismult = sqrt(2.0/math.pi) * nu * exp(-0.5*nu*nu);
+            thismult = math.sqrt(2.0/math.pi) * nu * math.exp(-0.5*nu*nu);
         
         elif self.fitting_function==2:
             # Jenkins et al. 2001, MNRAS 321, 372-384, eqtn. 9

@@ -27,7 +27,7 @@ from yt.mods import *
 from yt.funcs import *
 from yt.recipes import _fix_pf
 import yt.cmdln as cmdln
-import optparse, os, os.path, math, sys
+import optparse, os, os.path, math, sys, time, subprocess
 
 _common_options = dict(
     axis    = dict(short="-a", long="--axis",
@@ -205,6 +205,87 @@ def check_args(func):
             func(self, subcmd, opts, arg)
     return arg_iterate
 
+def _get_vcs_type(path):
+    if os.path.exists(os.path.join(path, ".hg")):
+        return "hg"
+    if os.path.exists(os.path.join(path, ".svn")):
+        return "svn"
+    return None
+
+def _get_svn_version(path):
+    p = subprocess.Popen(["svn", "info", path], stdout = subprocess.PIPE,
+                                               stderr = subprocess.STDOUT)
+    stdout, stderr = p.communicate()
+    return stdout
+
+def _update_svn(path):
+    f = open(os.path.join(path, "yt_updater.log"), "a")
+    f.write("\n\nUPDATE PROCESS: %s\n\n" % (time.asctime()))
+    p = subprocess.Popen(["svn", "up", path], stdout = subprocess.PIPE,
+                                              stderr = subprocess.STDOUT)
+    stdout, stderr = p.communicate()
+    f.write(stdout)
+    f.write("\n\n")
+    if p.returncode:
+        print "BROKEN: See %s" % (os.path.join(path, "yt_updater.log"))
+        sys.exit(1)
+    f.write("Rebuilding modules\n\n")
+    p = subprocess.Popen([sys.executable, "setup.py", "build_ext", "-i"], cwd=path,
+                        stdout = subprocess.PIPE, stderr = subprocess.STDOUT)
+    stdout, stderr = p.communicate()
+    f.write(stdout)
+    f.write("\n\n")
+    if p.returncode:
+        print "BROKEN: See %s" % (os.path.join(path, "yt_updater.log"))
+        sys.exit(1)
+    f.write("Successful!\n")
+
+def _update_hg(path):
+    from mercurial import hg, ui, commands
+    f = open(os.path.join(path, "yt_updater.log"), "a")
+    u = ui.ui()
+    u.pushbuffer()
+    config_fn = os.path.join(path, ".hg", "hgrc")
+    print "Reading configuration from ", config_fn
+    u.readconfig(config_fn)
+    repo = hg.repository(u, path)
+    commands.pull(u, repo)
+    f.write(u.popbuffer())
+    f.write("\n\n")
+    u.pushbuffer()
+    commands.identify(u, repo)
+    if "+" in u.popbuffer():
+        print "Can't rebuild modules by myself."
+        print "You will have to do this yourself.  Here's a sample commands:"
+        print
+        print "    $ cd %s" % (path)
+        print "    $ hg up"
+        print "    $ %s setup.py develop" % (sys.executable)
+        sys.exit(1)
+    f.write("Rebuilding modules\n\n")
+    p = subprocess.Popen([sys.executable, "setup.py", "build_ext", "-i"], cwd=path,
+                        stdout = subprocess.PIPE, stderr = subprocess.STDOUT)
+    stdout, stderr = p.communicate()
+    f.write(stdout)
+    f.write("\n\n")
+    if p.returncode:
+        print "BROKEN: See %s" % (os.path.join(path, "yt_updater.log"))
+        sys.exit(1)
+    f.write("Successful!\n")
+
+def _get_hg_version(path):
+    from mercurial import hg, ui, commands
+    u = ui.ui()
+    u.pushbuffer()
+    repo = hg.repository(u, path)
+    commands.identify(u, repo)
+    return u.popbuffer()
+
+_vcs_identifier = dict(svn = _get_svn_version,
+                        hg = _get_hg_version)
+_vcs_updater = dict(svn = _update_svn,
+                     hg = _update_hg)
+
 class YTCommands(cmdln.Cmdln):
     name="yt"
 
@@ -219,6 +300,37 @@ class YTCommands(cmdln.Cmdln):
         ${cmd_option_list}
         """
         self.cmdloop()
+
+    @cmdln.option("-u", "--update-source", action="store_true",
+                  default = False,
+                  help="Update the yt installation, if able")
+    def do_instinfo(self, subcmd, opts):
+        """
+        ${cmd_name}: Get some information about the yt installation
+
+        ${cmd_usage}
+        ${cmd_option_list}
+        """
+        import pkg_resources
+        yt_provider = pkg_resources.get_provider("yt")
+        path = os.path.dirname(yt_provider.module_path)
+        print
+        print "yt module located at:"
+        print "    %s" % (path)
+        if "site-packages" not in path:
+            vc_type = _get_vcs_type(path)
+            vstring = _vcs_identifier[vc_type](path)
+            print
+            print "The current version of the code is:"
+            print
+            print "---"
+            print vstring
+            print "---"
+            print
+            print "This installation CAN be automatically updated."
+            if opts.update_source:  
+                _vcs_updater[vc_type](path)
+            print "Updated successfully."
 
     @add_cmd_options(['outputfn','bn','thresh','dm_only','skip'])
     @check_args

@@ -67,7 +67,7 @@ class TVTKMapperWidget(HasTraits):
 
 class MappingPlane(TVTKMapperWidget):
     plane = Instance(tvtk.Plane)
-    _coord_redit = editor=RangeEditor(
+    _coord_redit = editor=RangeEditor(format="%0.2e",
                               low_name='vmin', high_name='vmax',
                               auto_set=False, enter_set=True)
     auto_set = Bool(False)
@@ -109,7 +109,8 @@ class MappingMarchingCubes(TVTKMapperWidget):
     vmin = Float
     vmax = Float
     auto_set = Bool(False)
-    _val_redit = RangeEditor(low_name='vmin', high_name='vmax',
+    _val_redit = RangeEditor(format="%0.2f",
+                             low_name='vmin', high_name='vmax',
                              auto_set=False, enter_set=True)
     traits_view = View(Item('value', editor=_val_redit),
                        Item('auto_set'),

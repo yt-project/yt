@@ -32,7 +32,7 @@ from enthought.traits.api import \
         DelegatesTo, Property, Any, Code, Callable
 from enthought.traits.ui.api import \
     View, Item, HSplit, VSplit, ListEditor, InstanceEditor, ValueEditor, \
-    HGroup, VGroup, CodeEditor, TextEditor
+    HGroup, VGroup, CodeEditor, TextEditor, RangeEditor
 from enthought.chaco.api import Plot, ArrayPlotData
 from enthought.enable.component_editor import ComponentEditor
 import enthought.pyface.api as pyface
@@ -55,16 +55,17 @@ class TFGaussian(HasTraits):
 
     traits_view = View(VGroup(
                          HGroup(
-                    Item('center'),
-                    Item('rwidth', label='Width')
-                               ),
+                    Item('center', editor=RangeEditor(format='%0.4f')),
+                    Item('rwidth', label='Width',
+                               editor=RangeEditor(format='%0.4f')),
+                         ),
                          HGroup(
-                    Item('red'),
-                    Item('green'),
-                    Item('blue'),
-                    Item('alpha')
+                    Item('red', editor=RangeEditor(format='%0.4f')),
+                    Item('green', editor=RangeEditor(format='%0.4f')),
+                    Item('blue', editor=RangeEditor(format='%0.4f')),
+                    Item('alpha', editor=RangeEditor(format='%0.4f'))
                                ),
-                             ),
+                       show_border=True,),
                        )
 
     def _get_width(self):
@@ -127,8 +128,8 @@ class TFColors(HasTraits):
                          Item('plot', editor=ComponentEditor(),
                                       show_label=False, resizable=True),
                              ),
-                         Item('vr_image_plot', editor=ComponentEditor(),
-                                      show_label=False, resizable=True,
+                         Item('vr_image_plot', editor=ComponentEditor(size=(512,512)),
+                                      show_label=False, resizable=False,
                                       width=512, height=512)),
                          Item("gaussians", style='custom',
                               editor=ListEditor(style='custom'),
@@ -176,7 +177,9 @@ class TFColors(HasTraits):
         return plot
 
     def _vr_image_plot_default(self):
-        plot = Plot(self.vr_image_data, default_origin="top left")
+        plot = Plot(self.vr_image_data, default_origin="top left",
+                    size=(512,512))
+        plot.aspect_ratio = 1.0
         #plot.x_axis.orientation = "top"
         img_plot = plot.img_plot("vr_image_data")[0]
 

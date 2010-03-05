@@ -2,15 +2,15 @@ import os, os.path
 import sys
 import time
 import subprocess
-import ez_setup
-ez_setup.use_setuptools()
+import distribute_setup
+distribute_setup.use_setuptools()
 
 import setuptools
 
 APP = ['reason.py']
 DATA_FILES = []
 PY2APP_OPTIONS = {'argv_emulation': True}
-VERSION = "1.6dev"
+VERSION = "2.0dev"
 
 if os.path.exists('MANIFEST'): os.remove('MANIFEST')
 
@@ -52,7 +52,7 @@ def setup_package():
                         "Topic :: Scientific/Engineering :: Physics",
                         "Topic :: Scientific/Engineering :: Visualization", ],
         keywords='astronomy astrophysics visualization amr adaptivemeshrefinement',
-        install_requires = ['matplotlib', 'numpy','ipython'],
+        #install_requires = ['matplotlib', 'numpy','ipython'],
         extras_require = { 'GUI' : ['wxPython'],
                            'storage' : ['h5py'], 
                            'pdf' : ['pypdf']},
@@ -68,6 +68,7 @@ def setup_package():
         data_files=DATA_FILES,
         options={'py2app':PY2APP_OPTIONS},
         zip_safe=False,
+        package_data = {'': ['*.so'], }
         )
     return
 

@@ -146,7 +146,7 @@ class AMRData(object):
             self.pf = pf
             self.hierarchy = pf.hierarchy
         self.hierarchy.objects.append(weakref.proxy(self))
-        mylog.debug("Appending object to %s", self.pf)
+        mylog.debug("Appending object to %s (type: %s)", self.pf, type(self))
         if fields == None: fields = []
         self.fields = ensure_list(fields)[:]
         self.data = {}
@@ -287,7 +287,7 @@ class AMRData(object):
     def save_object(self, name, filename = None):
         """
         Save an object.  If *filename* is supplied, it will be stored in
-        a :module:`shelve` file of that name.  Otherwise, it will be stored via
+        a :mod:`shelve` file of that name.  Otherwise, it will be stored via
         :meth:`yt.lagos.AMRHierarchy.save_object`.
         """
         if filename is not None:
@@ -1149,9 +1149,10 @@ class AMRFixedResCuttingPlaneBase(AMR2DData):
 
     def _get_point_indices(self, grid):
         if self._pixelmask.max() == 0: return []
-        k = amr_utils.PointsInVolume(self._coord, self._pixelmask,
-                                     grid.LeftEdge, grid.RightEdge,
-                                     grid.child_mask, just_one(grid['dx']))
+        k = amr_utils.planar_points_in_volume(
+                self._coord, self._pixelmask,
+                grid.LeftEdge, grid.RightEdge,
+                grid.child_mask, just_one(grid['dx']))
         return k
 
     def _gen_node_name(self):
@@ -1608,7 +1609,7 @@ class AMR3DData(AMRData, GridPropertiesMixin):
                 dx, grid["GridIndices"][pointI].ravel()], 'float64').swapaxes(0,1)
         return tr
 
-    def get_data(self, fields=None, in_grids=False):
+    def get_data(self, fields=None, in_grids=False, force_particle_read = False):
         if self._grids == None:
             self._get_list_of_grids()
         points = []
@@ -1624,6 +1625,14 @@ class AMR3DData(AMRData, GridPropertiesMixin):
             if field not in self.hierarchy.field_list and not in_grids:
                 if self._generate_field(field):
                     continue # True means we already assigned it
+            # There are a lot of 'ands' here, but I think they are all
+            # necessary.
+            if force_particle_read == False and \
+               self.pf.field_info.has_key(field) and \
+               self.pf.field_info[field].particle_type and \
+               self.pf.h.io._particle_reader:
+                self[field] = self.particles[field]
+                continue
             self[field] = na.concatenate(
                 [self._get_data_from_grid(grid, field)
                  for grid in self._grids])
@@ -1664,9 +1673,11 @@ class AMR3DData(AMRData, GridPropertiesMixin):
         for grid in self._grids:
             pointI = self._get_point_indices(grid)
             np = pointI[0].ravel().size
-            new_field = na.ones(grid.ActiveDimensions, dtype=dtype) * default_val
+            if grid.has_key(field):
+                new_field = grid[field]
+            else:
+                new_field = na.ones(grid.ActiveDimensions, dtype=dtype) * default_val
             new_field[pointI] = self[field][i:i+np]
-            if grid.data.has_key(field): del grid.data[field]
             grid[field] = new_field
             i += np
 
@@ -1860,6 +1871,11 @@ class ExtractedRegionBase(AMR3DData):
             return True
         return False
 
+    def _get_cut_mask(self, grid):
+        cm = na.zeros(grid.ActiveDimensions, dtype='bool')
+        cm[self._get_point_indices(grid, False)] = True
+        return cm
+
     __empty_array = na.array([], dtype='bool')
     def _get_point_indices(self, grid, use_child_mask=True):
         # Yeah, if it's not true, we don't care.
@@ -1996,38 +2012,66 @@ class AMRCylinderBase(AMR3DData):
         return math.pi * (self._radius)**2. * self._height * pf[unit]**3
 
 class AMRInclinedBox(AMR3DData):
-    """
-    A rectangular prism with arbitrary alignment to the computational domain
-    """
     _type_name="inclined_box"
-    _con_args = ()
+    _con_args = ('origin','box_vectors')
 
-    def __init__(self, left_edge, right_edge, normal, fields=None,
+    def __init__(self, origin, box_vectors, fields=None,
                  pf=None, **kwargs):
-        self.left_edge = na.array(left_edge)
-        self.right_edge = na.array(right_edge)
-        center = (self.right_edge - self.left_edge)
+        """
+        A rectangular prism with arbitrary alignment to the computational
+        domain.  *origin* is the origin of the box, while *box_vectors* is an
+        array of ordering [ax, ijk] that describes the three vectors that
+        describe the box.  No checks are done to ensure that the box satisfies
+        a right-hand rule, but if it doesn't, behavior is undefined.
+        """
+        self.origin = na.array(origin)
+        self.box_vectors = na.array(box_vectors, dtype='float64')
+        self.box_lengths = (self.box_vectors**2.0).sum(axis=1)**0.5
+        center = origin + 0.5*self.box_vectors.sum(axis=1)
         AMR3DData.__init__(self, center, fields, pf, **kwargs)
-        self._norm_vec = na.array(normal)/na.sqrt(na.dot(normal,normal))
-        self.refresh_data()
+        self._setup_rotation_parameters()
+        self._refresh_data()
+
+    def _setup_rotation_parameters(self):
+        xv = self.box_vectors[0,:]
+        yv = self.box_vectors[1,:]
+        zv = self.box_vectors[2,:]
+        self._x_vec = xv / na.sqrt(na.dot(xv, xv))
+        self._y_vec = yv / na.sqrt(na.dot(yv, yv))
+        self._z_vec = zv / na.sqrt(na.dot(zv, zv))
+        self._rot_mat = na.array([self._x_vec,self._y_vec,self._z_vec])
+        self._inv_mat = na.linalg.pinv(self._rot_mat)
 
     def _get_list_of_grids(self):
-        pass
+        if self._grids is not None: return
+        GLE = self.pf.h.grid_left_edge
+        GRE = self.pf.h.grid_right_edge
+        goodI = amr_utils.find_grids_in_inclined_box(
+                    self.box_vectors, self.center, GLE, GRE)
+        cgrids = self.pf.h.grids[goodI.astype('bool')]
+        grids = []
+        for i,grid in enumerate(cgrids):
+            v = amr_utils.grid_points_in_volume(self.box_lengths, self.origin,
+                        self._rot_mat, grid.LeftEdge, grid.RightEdge, grid.dds,
+                        grid.child_mask, 1)
+            if v: grids.append(grid)
+        self._grids = na.array(grids, dtype='object')
+            
 
     def _is_fully_enclosed(self, grid):
-        pass
+        # This should be written at some point.
+        # We'd rotate all eight corners into the space of the box, then check to
+        # see if all are enclosed.
+        return False
 
     def _get_cut_mask(self, grid):
-        pass
-
-    def volume(self, unit = "unitary"):
-        """
-        Return the volume of the prism in units *unit*.
-        """
-        diff = na.array(self.right_edge) - na.array(self.left_edge)
-        # Find the full volume
-        vol = na.prod(diff * self.pf[unit])
-        return vol
+        if self._is_fully_enclosed(grid):
+            return True
+        pm = na.zeros(grid.ActiveDimensions, dtype='int32')
+        amr_utils.grid_points_in_volume(self.box_lengths, self.origin,
+                    self._rot_mat, grid.LeftEdge, grid.RightEdge, grid.dds, pm, 0)
+        return pm
+        
 
 class AMRRegionBase(AMR3DData):
     """
@@ -2207,7 +2251,7 @@ class AMRSphereBase(AMR3DData):
         """
         AMR3DData.__init__(self, center, fields, pf, **kwargs)
         if radius < self.hierarchy.get_smallest_dx():
-            raise SyntaxError("Your radius is smaller than your finest cell!")
+            raise YTSphereTooSmall(pf, radius, self.hierarchy.get_smallest_dx())
         self.set_field_parameter('radius',radius)
         self.radius = radius
         self.DW = self.pf["DomainRightEdge"] - self.pf["DomainLeftEdge"]
@@ -2690,12 +2734,12 @@ class AMRIntSmoothedCoveringGridBase(AMRCoveringGridBase):
         for ax, v in zip('xyz', dx): self['cd%s'%ax] = v
         LL = self.left_edge - self.pf["DomainLeftEdge"]
         self._old_global_startindex = self.global_startindex
-        self.global_startindex = na.array(na.floor(1.000001*LL / dx) - 1, dtype='int64')
+        self.global_startindex = na.rint(LL / dx).astype('int64') - 1
         self.domain_width = na.rint((self.pf["DomainRightEdge"] -
                     self.pf["DomainLeftEdge"])/dx).astype('int64')
         if level == 0 and self.level > 0:
             # We use one grid cell at LEAST, plus one buffer on all sides
-            idims = na.ceil((self.right_edge-self.left_edge)/dx) + 2
+            idims = na.rint((self.right_edge-self.left_edge)/dx).astype('int64') + 2
             self[field] = na.zeros(idims,dtype='float64')-999
         elif level == 0 and self.level == 0:
             DLE = self.pf["DomainLeftEdge"]
@@ -2714,7 +2758,7 @@ class AMRIntSmoothedCoveringGridBase(AMRCoveringGridBase):
                       old_left[2], old_right[2]]
 
         dx = na.array([self['cd%s' % ax] for ax in 'xyz'], dtype='float64')
-        new_dims = na.ceil(0.999999999 * (self.right_edge-self.left_edge)/dx) + 2
+        new_dims = na.rint((self.right_edge-self.left_edge)/dx).astype('int64') + 2
 
         # x, y, z are the new bounds
         x,y,z = (na.mgrid[0:new_dims[0], 0:new_dims[1], 0:new_dims[2]]
@@ -2724,20 +2768,27 @@ class AMRIntSmoothedCoveringGridBase(AMRCoveringGridBase):
         z += self.global_startindex[2]
         fake_grid = {'x':x,'y':y,'z':z}
 
+        if field in self.pf.field_info and self.pf.field_info[field].take_log:
+            my_field = na.log10(self[field])
+        else:
+            my_field = self[field]
         interpolator = TrilinearFieldInterpolator(
-                        self[field], old_bounds, ['x','y','z'],
+                        my_field, old_bounds, ['x','y','z'],
                         truncate = True)
-        self[field] = interpolator(fake_grid)
+        if field in self.pf.field_info and self.pf.field_info[field].take_log:
+            self[field] = 10**interpolator(fake_grid)
+        else:
+            self[field] = interpolator(fake_grid)
 
     def _get_data_from_grid(self, grid, fields, level):
         fields = ensure_list(fields)
         g_fields = [grid[field] for field in fields]
         c_fields = [self[field] for field in fields]
+        dims = na.array(self[field].shape, dtype='int32')
         count = PointCombine.FillRegion(1,
             grid.get_global_startindex(), self.global_startindex,
             c_fields, g_fields, 
-            na.array(self[field].shape, dtype='int32'),
-            grid.ActiveDimensions,
+            dims, grid.ActiveDimensions,
             grid.child_mask, self.domain_width, 1, 0)
         return count
 
