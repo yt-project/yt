@@ -81,18 +81,31 @@ class ColorTransferFunction(object):
             tf.add_step(start, stop, v)
 
     def plot(self, filename):
-        import matplotlib;matplotlib.use("Agg");import pylab
-        pylab.clf()
-        for c,tf in zip(['r','g','b'], self.funcs):
-            pylab.plot(tf.x, tf.y, '-' + c)
-            pylab.fill(tf.x, tf.y, c, alpha=0.2)
-        pylab.plot(self.alpha.x, self.alpha.y, '-k')
-        pylab.fill(self.alpha.x, self.alpha.y, 'k', alpha=0.1)
-        pylab.xlim(*self.x_bounds)
-        pylab.ylim(0.0, 1.0)
-        pylab.xlabel("Value")
-        pylab.ylabel("Transmission")
-        pylab.savefig(filename)
+        from matplotlib import pyplot
+        from matplotlib.ticker import FuncFormatter
+        pyplot.clf()
+        ax = pyplot.axes()
+        i_data = na.zeros((self.alpha.x.size, self.funcs[0].y.size, 3))
+        i_data[:,:,0] = na.outer(na.ones(self.alpha.x.size), self.funcs[0].y)
+        i_data[:,:,1] = na.outer(na.ones(self.alpha.x.size), self.funcs[1].y)
+        i_data[:,:,2] = na.outer(na.ones(self.alpha.x.size), self.funcs[2].y)
+        ax.imshow(i_data, origin='lower')
+        ax.fill_between(na.arange(self.alpha.y.size), self.alpha.x.size * self.alpha.y, y2=self.alpha.x.size, color='white')
+        ax.set_xlim(0, self.alpha.x.size)
+        xticks = na.arange(na.ceil(self.alpha.x[0]), na.floor(self.alpha.x[-1]) + 1, 1) - self.alpha.x[0]
+        xticks *= self.alpha.x.size / (self.alpha.x[-1] - self.alpha.x[0])
+        ax.xaxis.set_ticks(xticks)
+        def x_format(x, pos):
+            return "%.1f" % (x * (self.alpha.x[-1] - self.alpha.x[0]) / (self.alpha.x.size) + self.alpha.x[0])
+        ax.xaxis.set_major_formatter(FuncFormatter(x_format))
+        yticks = na.linspace(0,1,5) * self.alpha.y.size
+        ax.yaxis.set_ticks(yticks)
+        def y_format(y, pos):
+            return (y / self.alpha.y.size)
+        ax.yaxis.set_major_formatter(FuncFormatter(y_format))
+        ax.set_ylabel("Transmission")
+        ax.set_xlabel("Value")
+        pyplot.savefig(filename)
 
     def sample_colormap(self, v, w, alpha=None, colormap="gist_stern"):
         rel = (v - self.x_bounds[0])/(self.x_bounds[1] - self.x_bounds[0])
