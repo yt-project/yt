@@ -126,6 +126,10 @@ class ColorTransferFunction(object):
         for v, a in zip(na.mgrid[mi:ma:N*1j], alpha):
             self.sample_colormap(v, w, a, colormap=colormap)
 
+    class PlanckFunction(object):
+        def __init__(self):
+            pass
+
 if __name__ == "__main__":
     tf = ColorTransferFunction((-20, -5))
     tf.add_gaussian(-16.0, 0.4, [0.2, 0.3, 0.1])
