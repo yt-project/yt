@@ -126,9 +126,9 @@ class ColorTransferFunction(object):
         for v, a in zip(na.mgrid[mi:ma:N*1j], alpha):
             self.sample_colormap(v, w, a, colormap=colormap)
 
-    class PlanckFunction(object):
-        def __init__(self):
-            pass
+class PlanckFunction(ColorTransferFunction):
+    def __init__(self):
+        pass
 
 if __name__ == "__main__":
     tf = ColorTransferFunction((-20, -5))
