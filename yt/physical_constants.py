@@ -14,7 +14,7 @@ cross_section_thompson_cgs = 6.65e-25 # cm^2
 # Physical Constants
 boltzmann_constant_cgs = 1.3806504e-16 # erg K^-1
 gravitational_constant_cgs  = 6.67428e-8 # cm^3 g^-1 s^-2
-
+planck_constant_cgs   = 6.62606896e−27 # erg s
 rho_crit_now = 1.8788e-29 # g times h^2 (critical mass for closure, Cosmology)
 
 # Misc. Approximations
@@ -49,4 +49,5 @@ me = mass_electron_cgs
 mp = mass_hydrogen_cgs
 clight = speed_of_light_cgs
 kboltz = boltzmann_constant_cgs
+hcgs = planck_constant_cgs
 sigma_thompson = cross_section_thompson_cgs
