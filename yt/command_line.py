@@ -342,6 +342,7 @@ class YTCommands(cmdln.Cmdln):
             pf = _fix_pf(arg)
         except IOError:
             print "Could not load file."
+            sys.exit()
         import yt.mods
         from IPython.Shell import IPShellEmbed
         local_ns = yt.mods.__dict__.copy()
