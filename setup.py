@@ -57,7 +57,7 @@ def setup_package():
                            'storage' : ['h5py'], 
                            'pdf' : ['pypdf']},
         entry_points = { 'console_scripts' : [
-                            'yt = yt.commands:run_main',
+                            'yt = yt.command_line:run_main',
                        ]},
         author="Matthew J. Turk",
         author_email="matthewturk@gmail.com",
