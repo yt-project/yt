@@ -332,6 +332,26 @@ class YTCommands(cmdln.Cmdln):
                 _vcs_updater[vc_type](path)
             print "Updated successfully."
 
+    def do_load(self, subcmd, opts, arg):
+        """
+        Load a single dataset into an IPython instance.
+
+        ${cmd_option_list}
+        """
+        try:
+            pf = _fix_pf(arg)
+        except IOError:
+            print "Could not load file."
+        import yt.mods
+        from IPython.Shell import IPShellEmbed
+        local_ns = yt.mods.__dict__.copy()
+        local_ns['pf'] = pf
+        shell = IPShellEmbed()
+        shell(local_ns = local_ns,
+              header =
+            "\nHi there!  Welcome to yt.\n\nWe've loaded your parameter file as 'pf'.  Enjoy!"
+             )
+
     @add_cmd_options(['outputfn','bn','thresh','dm_only','skip'])
     @check_args
     def do_hop(self, subcmd, opts, arg):
