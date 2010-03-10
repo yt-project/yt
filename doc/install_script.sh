@@ -99,6 +99,17 @@ function host_specific
 		echo "variables to get this to work..."
 		MPL_SUPP_LDFLAGS="-L${DEST_DIR}/lib -L${DEST_DIR}/lib64 -L/usr/local/lib64 -L/usr/local/lib"
     fi
+    if [ "${MYHOST##steele}" != "${MYHOST}" ]
+    then
+        echo "Looks like you're on Steele."
+        echo
+        echo "NOTE: YOU MUST BE IN THE GNU PROGRAMMING ENVIRONMENT"
+        echo "These commands should take care of that for you:"
+        echo
+        echo "   $ module purge"
+        echo "   $ module load gcc"
+        echo
+    fi
 }
 
 
@@ -177,6 +188,11 @@ function do_setup_py
     echo "Installing $1 (arguments: '$*')"
     [ ! -e $1 ] && tar xfz $1.tar.gz
     cd $1
+    if [ ! -z `echo $1 | grep h5py` ]
+    then
+	    echo "${PY_DIR}/bin/python2.6 setup.py configure --hdf5=${HDF5_DIR}"
+	    ( ${PY_DIR}/bin/python2.6 setup.py configure --hdf5=${HDF5_DIR} 2>&1 ) 1>> ${LOG_FILE} || do_exit
+    fi
     shift
     ( ${DEST_DIR}/bin/python2.6 setup.py build   $* 2>&1 ) 1>> ${LOG_FILE} || do_exit
     ( ${DEST_DIR}/bin/python2.6 setup.py install    2>&1 ) 1>> ${LOG_FILE} || do_exit
