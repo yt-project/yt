@@ -121,10 +121,11 @@ class HomogenizedBrickCollection(DistributedObjectCollection):
         self.bricks[self.brick_owners == self._mpi_get_rank()] = bricks[:]
 
     def _create_buffer(self, ind_list):
-        mylog.debug("Creating buffer for %s bricks", len(ind_list))
         # Note that we have vertex-centered data, so we add one before taking
         # the prod and the sum
         total_size = (self.brick_dimensions[ind_list,:] + 1).prod(axis=1).sum()
+        mylog.debug("Creating buffer for %s bricks (%s)",
+                    len(ind_list), total_size)
         my_buffer = na.zeros(total_size, dtype='float64')
         return my_buffer
 
