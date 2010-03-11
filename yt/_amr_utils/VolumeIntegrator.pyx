@@ -245,7 +245,10 @@ cdef class PartitionedGrid:
             self.dds[i] = (self.right_edge[i] - self.left_edge[i])/dims[i]
             self.idds[i] = 1.0/self.dds[i]
         self.my_data = data
-        self.data = <np.float64_t*> data.data
+        #self.data = <np.float64_t*> data.data
+
+    def __dealloc__(self):
+        pass
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -526,7 +529,6 @@ cdef class ProtoPrism:
     @cython.wraparound(False)
     def get_brick(self, np.ndarray[np.float64_t, ndim=1] grid_left_edge,
                         np.ndarray[np.float64_t, ndim=1] grid_dds,
-                        np.ndarray[np.float64_t, ndim=3] data,
                         child_mask):
         # We get passed in the left edge, the dds (which gives dimensions) and
         # the data, which is already vertex-centered.
@@ -540,8 +542,8 @@ cdef class ProtoPrism:
         cdef np.ndarray[np.int64_t, ndim=1] dims = np.empty(3, dtype='int64')
         for i in range(3):
             dims[i] = idims[i]
-        cdef np.ndarray[np.float64_t, ndim=3] new_data
-        new_data = data[li[0]:ri[0]+1,li[1]:ri[1]+1,li[2]:ri[2]+1].copy()
-        PG = PartitionedGrid(self.parent_grid_id, new_data,
-                             self.LeftEdge, self.RightEdge, dims)
-        return [PG]
+        #cdef np.ndarray[np.float64_t, ndim=3] new_data
+        #new_data = data[li[0]:ri[0]+1,li[1]:ri[1]+1,li[2]:ri[2]+1].copy()
+        #PG = PartitionedGrid(self.parent_grid_id, new_data,
+        #                     self.LeftEdge, self.RightEdge, dims)
+        return [((li[0], ri[0]), (li[1], ri[1]), (li[2], ri[2]))]

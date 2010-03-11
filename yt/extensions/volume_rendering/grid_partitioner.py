@@ -55,15 +55,15 @@ class HomogenizedBrickCollection(DistributedObjectCollection):
         pass
     
     def _partition_grid(self, grid, field, log_field = True):
-        vcd = grid.get_vertex_centered_data(field).astype('float64')
-        if log_field: vcd = na.log10(vcd)
+        #vcd = grid.get_vertex_centered_data(field).astype('float64')
+        #if log_field: vcd = na.log10(vcd)
 
         GF = GridFaces(grid.Children + [grid])
         PP = ProtoPrism(grid.id, grid.LeftEdge, grid.RightEdge, GF)
 
         pgs = []
         for P in PP.sweep(0):
-            pgs += P.get_brick(grid.LeftEdge, grid.dds, vcd, grid.child_mask)
+            pgs += P.get_brick(grid.LeftEdge, grid.dds, grid.child_mask)
         return pgs
 
     def _partition_local_grids(self, fields = "Density", log_field = True):
