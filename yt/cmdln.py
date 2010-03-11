@@ -35,7 +35,7 @@ See the README.txt or <http://trentm.com/projects/cmdln/> for more
 details.
 """
 
-__version_info__ = (1, 1, 1)
+__version_info__ = (1, 1, 2)
 __version__ = '.'.join(map(str, __version_info__))
 
 import os
@@ -272,8 +272,8 @@ class RawCmdln(cmd.Cmd):
 
         Returns the return value from the command handler.
         """
-        assert (isinstance(argv, (list, tuple)), 
-                "'argv' is not a sequence: %r" % argv)
+        assert isinstance(argv, (list, tuple)), \
+                "'argv' is not a sequence: %r" % argv
         retval = None
         try:
             argv = self.precmd(argv)
@@ -327,8 +327,8 @@ class RawCmdln(cmd.Cmd):
             while not self.stop:
                 if self.cmdqueue:
                     argv = self.cmdqueue.pop(0)
-                    assert (isinstance(argv, (list, tuple)), 
-                            "item on 'cmdqueue' is not a sequence: %r" % argv)
+                    assert isinstance(argv, (list, tuple)), \
+                            "item on 'cmdqueue' is not a sequence: %r" % argv
                 else:
                     if self.use_rawinput:
                         try:

@@ -135,7 +135,7 @@ class VolumeRendering(ParallelAnalysisInterface):
         log_field = (self.fields[0] in self.pf.field_info and 
                      self.pf.field_info[self.fields[0]].take_log)
         self._brick_collection._partition_local_grids(self.fields, log_field)
-        self._brick_collection._collect_bricks(self.source._grids)
+        self._brick_collection._collect_bricks(self.source)
         self.bricks = self._brick_collection.bricks
 
     def _construct_vector_array(self):

@@ -46,13 +46,13 @@ class DistributedObjectCollection(ParallelAnalysisInterface):
     def _collect_objects(self, desired_indices):
         # We figure out which indices belong to which processor,
         # then we pack them up, and we send a list to each processor.
-        requests = defaultdict(lambda: list())
         request_count = []
         owners = self._object_owners[desired_indices]
         mylog.debug("Owner list: %s", na.unique1d(owners))
         # Even if we have a million bricks, this should not take long.
         s = self._mpi_get_size()
         m = self._mpi_get_rank()
+        requests = dict( ( (i, []) for i in xrange(s) ) )
         for i, p in izip(desired_indices, owners):
             requests[p].append(i)
         for p in sorted(requests):
@@ -76,16 +76,19 @@ class DistributedObjectCollection(ParallelAnalysisInterface):
         # We post our index-list and data receives from each processor.
         mylog.debug("Posting data buffer receives")
         proc_hooks = {}
-        for p, size in sorted(request_count.items()):
+        for p, request_from in request_count.items():
             if p == m: continue
+            size = request_from[m]
+            #if size == 0: continue
             # We post receives of the grids we *asked* for.
             # Note that indices into this are not necessarily processor ids.
             # So we store.  This has to go before the appends or it's an
             # off-by-one.
+            mylog.debug("Setting up index buffer of size %s for receive from %s",
+                        size, p)
             proc_hooks[len(drecv_buffers)] = p
             drecv_buffers.append(self._create_buffer(requests[p]))
             drecv_hooks.append(self._mpi_Irecv_double(drecv_buffers[-1], p, 1))
-            if size == 0: continue
             recv_buffers.append(na.zeros(size, dtype='int64'))
             # Our index list goes on 0, our buffer goes on 1.  We know how big
             # the index list will be, now.
@@ -103,6 +106,7 @@ class DistributedObjectCollection(ParallelAnalysisInterface):
             # We get back the index, which here is identical to the processor
             # number doing the send.  At this point, we can post our receives.
             p = proc_hooks[i]
+            mylog.debug("Processing from %s", p)
             ind_list = recv_buffers[i]
             dsend_buffers.append(self._create_buffer(ind_list))
             self._pack_buffer(ind_list, dsend_buffers[-1])
