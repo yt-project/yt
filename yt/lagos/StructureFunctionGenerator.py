@@ -64,6 +64,7 @@ class StructFcnGen(ParallelAnalysisInterface):
         # For communication.
         self.recv_hooks = []
         self.send_hooks = []
+        self.done_hooks = []
         self.comm_size = comm_size
         self.pf = pf
         self.period = self.pf['DomainRightEdge'] - self.pf['DomainLeftEdge']
@@ -99,8 +100,14 @@ class StructFcnGen(ParallelAnalysisInterface):
         else:
             self.left_edge = left_edge
             self.right_edge = right_edge
-            padded, self.LE, self.RE, self.ds = self._partition_region_3d(left_edge,
-                right_edge, padding=self.lengths[-1])
+            # We do this twice, first with no 'buffer' to get the unbuffered
+            # self.LE/RE, and then second to get a buffered self.ds.
+            padded, self.LE, self.RE, temp = \
+                self._partition_region_3d(left_edge, right_edge)
+            padded, temp, temp, self.ds = \
+                self._partition_region_3d(left_edge - self.lengths[-1], \
+                right_edge + self.lengths[-1])
+        mylog.info("LE %s RE %s %s" % (str(self.LE), str(self.RE), str(self.ds)))
         random.seed(-1 * self.mine)
     
     def add_function(self, function, fields, out_labels):
@@ -130,16 +137,20 @@ class StructFcnGen(ParallelAnalysisInterface):
         self._init_kd_tree()
         self._build_fields_vals()
         self._build_points_array()
-        for length in self.lengths:
-            mylog.info("Doing length %1.5e" % length)
+        for bigloop, length in enumerate(self.lengths):
+            #mylog.info("Doing length %1.5e" % length)
             # Things stop when this value below equals total_values.
             self.generated_points = 0
             self.gen_array = na.zeros(self.size, dtype='int64')
             self.comm_cycle_count = 0
+            self.final_comm_cycle_count = 0
+            self.sent_done = False
+            self._setup_done_hooks()
             # While everyone else isn't done or I'm not done, we loop.
             # self.points[0][1] = -0.3 * (self.mine + 1) # for testing.
             uni = na.unique(self.points)
-            while (self.gen_array < self.total_values).any() or uni.size > 1:
+            #while (self.gen_array < self.total_values).any() or uni.size > 1:
+            while self._should_cycle():
                 self._setup_recv_arrays()
                 self._send_arrays()
                 self._mpi_Request_Waitall(self.send_hooks)
@@ -160,10 +171,12 @@ class StructFcnGen(ParallelAnalysisInterface):
                 uni = na.unique(self.points)
                 #print 'yy', self.mine, uni.size, self.gen_array, self.comm_cycle_count
                 self.comm_cycle_count += 1
+                if self.generated_points == self.total_values:
+                    self._send_done_toall()
             #print 'done!', self.mine
             #self._barrier()
-            mylog.info("Length %1.5e took %d communication cycles to complete." % \
-                (length, self.comm_cycle_count))
+            mylog.info("Length (%d of %d) %1.5e took %d communication cycles to complete." % \
+                (bigloop+1, len(self.lengths), length, self.comm_cycle_count))
         self._allsum_bin_hits()
     
     def _init_kd_tree(self):
@@ -205,6 +218,61 @@ class StructFcnGen(ParallelAnalysisInterface):
         """
         self.points = na.ones((self.comm_size, 6), dtype='float64') * -1.0
 
+    def _setup_done_hooks(self):
+        """
+        Opens non-blocking receives pointing to all the other tasks.
+        """
+        self.recv_done = {}
+        for task in xrange(self.size):
+            if task == self.mine: continue
+            self.recv_done[task] = na.zeros(1, dtype='int64')
+            self.done_hooks.append(self._mpi_Irecv_long(self.recv_done[task], \
+                task, tag=15))
+
+    def _send_done_toall(self):
+        """
+        Signal all the other tasks that this task has created all the points
+        it needs to.
+        """
+        # If I've already done this, don't do it again.
+        if self.sent_done: return
+        self.send_done = {}
+        for task in xrange(self.size):
+            if task == self.mine: continue
+            # We'll send the cycle at which I think things should stop.
+            self.send_done[task] = na.ones(1, dtype='int64') * (self.size-1) + \
+                self.comm_cycle_count
+            self.done_hooks.append(self._mpi_Isend_long(self.send_done[task], \
+                task, tag=15))
+        # I need to mark my *own*, too!
+        self.recv_done[self.mine] = (self.size-1) + self.comm_cycle_count
+        self.sent_done = True
+
+    def _should_cycle(self):
+        """
+        Depending on several factors, it returns whether or not the
+        communication cycle should continue.
+        """
+        # We need to continue if:
+        # We haven't seen that all the points have been created.
+        #if (self.gen_array < self.total_values).any(): return True
+        # We own unprocessed points.
+        #if uni.size > 1: return True
+        # If I'm not finished.
+        if self.generated_points < self.total_values: return True
+        # If other tasks aren't finished
+        if not self._mpi_Request_Testall(self.done_hooks): return True
+        # If they are all finished, meaning Testall returns True, we find
+        # the biggest value in self.recv_done and stop there.
+        #if self.final_comm_cycle_count==0: # For testing.
+        #    print self.mine, "its cycle",self.comm_cycle_count,"and I think everyone is done",self.recv_done
+        stop = max(self.recv_done.values())
+        if self.comm_cycle_count < stop:
+            self.final_comm_cycle_count += 1
+            return True
+        # If we've come this far, we're done.
+        return False
+
     def _setup_recv_arrays(self):
         """
         Creates the recv buffers and calls a non-blocking MPI receive pointing
@@ -236,6 +304,7 @@ class StructFcnGen(ParallelAnalysisInterface):
         """
         Add up the hits to all the bins globally for all functions.
         """
+        print 'here'
         for fset in self.fsets:
             fset.too_low = self._mpi_allsum(fset.too_low)
             fset.too_high = self._mpi_allsum(fset.too_high)
@@ -326,7 +395,6 @@ class StructFcnGen(ParallelAnalysisInterface):
                         self.fields_vals[i, col] = r1_results[field]
                     # if r2 is not local, we can skip out of this while loop
                     # now.
-                    #if (r2 < self.LE).any() or (r2 >= self.RE).any():
                     if (r2 < self.ds.left_edge).any() or (r2 >= self.ds.right_edge).any():
                         broken += 1
                         self.points[i][:3] = r1
@@ -342,7 +410,6 @@ class StructFcnGen(ParallelAnalysisInterface):
             else:
                 # Now we've come to a point I've received and we'll attempt
                 # to evaluate it.
-                #if (points[3:] < self.LE).any() or (points[3:] >= self.RE).any():
                 if (points[3:] < self.ds.left_edge).any() or (points[3:] >= self.ds.right_edge).any():
                     # I don't own this r2 point, move on.
                     #print 'moving on', points, self.LE, self.RE
@@ -370,7 +437,6 @@ class StructFcnGen(ParallelAnalysisInterface):
                         self.fields_vals[i, col] = r1_results[field]
                     # if r2 is not local, we can skip out of this while loop
                     # now.
-                    #if (r2 < self.LE).any() or (r2 >= self.RE).any():
                     if (r2 < self.ds.left_edge).any() or (r2 >= self.ds.left_edge).any():
                         broken += 1
                         self.points[i][:3] = r1
@@ -386,20 +452,30 @@ class StructFcnGen(ParallelAnalysisInterface):
         #print 'done here',self.mine, self.generated_points, broken, evaled
 
     @parallel_blocking_call
-    def write_out_avgs(self):
+    def write_out_avgs(self, sqrt=False):
         """
         Writes out the weighted-average value for each structure function for
         each dimension for each ruler length to a text file. The data is written
         to files of the name 'function_name.txt' in the current working
         directory.
+        *sqrt* (bool) Sets whether or not to square-root the averages. For
+        example, for RMS velocity differences set this to True, otherwise the
+        output will be just MS velocity. Default: False.
         """
         for fset in self.fsets:
             fp = self._write_on_root("%s.txt" % fset.function.__name__)
             fset._avg_bin_hits()
+            line = "#length\t"
+            for dim in fset.dims:
+                line += "\t%s" % fset.out_labels[dim]
+            fp.write(line + "\n")
             for length in self.lengths:
                 line = "%1.5e" % length
                 for dim in fset.dims:
-                    line += "\t%1.5e" % fset.length_avgs[length][dim]
+                    if sqrt:
+                        line += "\t%1.5e" % math.sqrt(fset.length_avgs[length][dim])
+                    else:
+                        line += "\t%1.5e" % fset.length_avgs[length][dim]
                 line += "\n"
                 fp.write(line)
             fp.close()
@@ -426,8 +502,9 @@ class StructFcnGen(ParallelAnalysisInterface):
                     f.create_dataset("/prob_bins_%1.5e" % length, \
                         data=fset.length_bin_hits[length])
                     prob_names.append("/prob_bins_%1.5e" % length)
-                f.create_dataset("/bin_names", data=bin_names)
+                f.create_dataset("/prob_bin_names", data=bin_names)
                 f.create_dataset("/prob_names", data=prob_names)
+                f.create_dataset("/lengths", data=self.lengths)
                 f.close()
 
 class StructSet(StructFcnGen):

@@ -1351,6 +1351,10 @@ class ParallelAnalysisInterface(object):
             yield req
 
     def _mpi_Request_Testall(self, hooks):
+        """
+        This returns False if any of the request hooks are un-finished,
+        and True if they are all finished.
+        """
         if not self._distributed: return True
         return MPI.Request.Testall(hooks)
 
