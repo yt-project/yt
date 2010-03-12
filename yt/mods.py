@@ -46,7 +46,7 @@ from yt.lagos import EnzoStaticOutput, \
     GadgetFieldInfo, \
     Clump, write_clump_hierarchy, find_clumps, write_clumps, \
     OrionStaticOutput, HaloFinder, HOPHaloFinder, FOFHaloFinder, parallelHF, \
-    axis_names, x_dict, y_dict
+    axis_names, x_dict, y_dict, StructFcnGen, StructSet
 
 # This is a temporary solution -- in the future, we will allow the user to
 # select this via ytcfg.
