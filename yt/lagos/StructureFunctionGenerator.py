@@ -116,10 +116,17 @@ class StructFcnGen(ParallelAnalysisInterface):
         generated pairs of points.
         """
         fargs = inspect.getargspec(function)
-        if len(fargs.args) != 2:
-            raise SyntaxError("The structure function needs two arguments.")
+        if len(fargs.args) != 4:
+            raise SyntaxError("The structure function %s needs four arguments." %\
+                function.__name__)
+        fields = list(fields)
         if len(fields) < 1:
-            raise SyntaxError("Please specify at least one field.")
+            raise SyntaxError("Please specify at least one field for function %s." %\
+                function.__name__)
+        out_labels = list(out_labels)
+        if len(out_labels) < 1:
+            raise SyntaxError("Please specify at least one out_labels for function %s." %\
+                function.__name__)
         self.fsets.append(StructSet(self, function, self.min_edge, fields,
             out_labels))
         self.fields.update(fields)
@@ -404,7 +411,7 @@ class StructFcnGen(ParallelAnalysisInterface):
                     # Evaluate the functions and bin the results.
                     for fcn_set in self.fsets:
                         fcn_results = fcn_set._eval_st_fcn(self.fields_vals[i],
-                            r2_results)
+                            r2_results, r1, r2)
                         fcn_set._bin_results(length, fcn_results)
                         evaled += 1
             else:
@@ -418,7 +425,7 @@ class StructFcnGen(ParallelAnalysisInterface):
                 r2_results = self._get_fields_vals(r2)
                 for fcn_set in self.fsets:
                     fcn_results = fcn_set._eval_st_fcn(self.fields_vals[i],
-                        r2_results)
+                        r2_results, points[:3], r2)
                     fcn_set._bin_results(length, fcn_results)
                     evaled += 1
                 # reset points
@@ -446,7 +453,7 @@ class StructFcnGen(ParallelAnalysisInterface):
                     # Evaluate the functions and bin the results.
                     for fcn_set in self.fsets:
                         fcn_results = fcn_set._eval_st_fcn(self.fields_vals[i],
-                            r2_results)
+                            r2_results, r1, r2)
                         fcn_set._bin_results(length, fcn_results)
                         evaled += 1
         #print 'done here',self.mine, self.generated_points, broken, evaled
@@ -593,7 +600,7 @@ class StructSet(StructFcnGen):
             else:
                 raise SyntaxError("bin_edges is either \"lin\" or \"log\".")
 
-    def _eval_st_fcn(self, r1_results, r2_results):
+    def _eval_st_fcn(self, r1_results, r2_results, r1, r2):
         """
         Return the value of the structure function using the provided results.
         """
@@ -605,7 +612,7 @@ class StructSet(StructFcnGen):
         for field in self.function_fields:
             fcn_r1_res.append(r1_results[self.sfg.fields_columns[field]])
             fcn_r2_res.append(r2_results[field])
-        return self.function(fcn_r1_res, fcn_r2_res)
+        return self.function(fcn_r1_res, fcn_r2_res, r1, r2)
         """
         NOTE - A function looks like:
         def stuff(a,b):
