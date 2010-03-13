@@ -459,7 +459,7 @@ class StructFcnGen(ParallelAnalysisInterface):
         #print 'done here',self.mine, self.generated_points, broken, evaled
 
     @parallel_blocking_call
-    def write_out_avgs(self, sqrt=False):
+    def write_out_means(self, sqrt=False):
         """
         Writes out the weighted-average value for each structure function for
         each dimension for each ruler length to a text file. The data is written
@@ -469,17 +469,18 @@ class StructFcnGen(ParallelAnalysisInterface):
         example, for RMS velocity differences set this to True, otherwise the
         output will be just MS velocity. Default: False.
         """
+        sqrt = list(sqrt)
         for fset in self.fsets:
             fp = self._write_on_root("%s.txt" % fset.function.__name__)
             fset._avg_bin_hits()
-            line = "#length\t"
+            line = "# length\t"
             for dim in fset.dims:
                 line += "\t%s" % fset.out_labels[dim]
             fp.write(line + "\n")
             for length in self.lengths:
                 line = "%1.5e" % length
                 for dim in fset.dims:
-                    if sqrt:
+                    if sqrt[dim]:
                         line += "\t%1.5e" % math.sqrt(fset.length_avgs[length][dim])
                     else:
                         line += "\t%1.5e" % fset.length_avgs[length][dim]
@@ -500,17 +501,17 @@ class StructFcnGen(ParallelAnalysisInterface):
                 bin_names = []
                 prob_names = []
                 for dim in fset.dims:
-                    f.create_dataset("/%02d_%s_bin_edges" % \
+                    f.create_dataset("/bin_edges_%02d_%s" % \
                         (dim, fset.out_labels[dim]), \
                         data=fset.bin_edges[dim])
-                    bin_names.append("/%02d_%s_bin_edges" % \
+                    bin_names.append("/bin_edges_%02d_%s" % \
                     (dim, fset.out_labels[dim]))
-                for length in self.lengths:
-                    f.create_dataset("/prob_bins_%1.5e" % length, \
+                for i,length in enumerate(self.lengths):
+                    f.create_dataset("/prob_bins_%05d" % i, \
                         data=fset.length_bin_hits[length])
-                    prob_names.append("/prob_bins_%1.5e" % length)
-                f.create_dataset("/prob_bin_names", data=bin_names)
-                f.create_dataset("/prob_names", data=prob_names)
+                    prob_names.append("/prob_bins_%05d" % i)
+                f.create_dataset("/bin_edges_names", data=bin_names)
+                #f.create_dataset("/prob_names", data=prob_names)
                 f.create_dataset("/lengths", data=self.lengths)
                 f.close()
 
@@ -538,7 +539,7 @@ class StructSet(StructFcnGen):
         parameter.
         A single integer, or a list of integers for N-dim binning. Default: 1000
         *bin_range* (float) A pair of values giving the range for the bins.
-        A pair of floats (a list or array), or a list of pairs for N-dim binning.
+        A pair of floats (a list), or a list of pairs for N-dim binning.
         Default: None.
         """
         # This should be called after setSearchParams.
@@ -572,14 +573,14 @@ class StructSet(StructFcnGen):
             bin_type, bin_number = [bin_type], [bin_number]
             bin_range = [bin_range]
         self.bin_type = bin_type
-        self.bin_number = bin_number
+        self.bin_number = na.array(bin_number) - 1
         self.dims = range(len(bin_type))
         # Create the dict that stores the arrays to store the bin hits, and
         # the arrays themselves.
         self.length_bin_hits = {}
         for length in self.sfg.lengths:
             # It's easier to index flattened, but will be unflattened later.
-            self.length_bin_hits[length] = na.zeros(bin_number,
+            self.length_bin_hits[length] = na.zeros(self.bin_number,
                 dtype='int64').flatten()
         # Create the bin edges for each dimension.
         # self.bins is indexed by dimension
@@ -635,9 +636,12 @@ class StructSet(StructFcnGen):
             if res < self.bin_edges[dim][0]:
                 self.too_low += 1
                 return
+            if res >= self.bin_edges[dim][-1]:
+                self.too_high += 1
+                return
             for d1 in range(dim):
                 multi *= self.bin_edges[d1].size
-            hit_bin += na.digitize([res], self.bin_edges[dim])[0] * multi
+            hit_bin += (na.digitize([res], self.bin_edges[dim])[0] - 1) * multi
             if hit_bin >= self.length_bin_hits[length].size:
                 self.too_high += 1
                 return
@@ -666,4 +670,4 @@ class StructSet(StructFcnGen):
             for dim in self.dims:
                 self.length_avgs[length][dim] = \
                     (self._dim_sum(self.length_bin_hits[length], dim) * \
-                    self.bin_edges[dim]).sum()
+                    ((self.bin_edges[dim][:-1] + self.bin_edges[dim][1:]) / 2.)).sum()
