@@ -125,7 +125,7 @@ class Halo(object):
     def rms_velocity(self):
         """
         Returns the mass-weighted RMS velocity for the halo
-        particles in code units.
+        particles in cgs units.
         """
         bv = self.bulk_velocity()
         pm = self["ParticleMassMsun"]
@@ -382,7 +382,7 @@ class parallelHOPHalo(Halo,ParallelAnalysisInterface):
 
     def rms_velocity(self):
         """
-        Returns the RMS velocity for the halo particles in code units.
+        Returns the RMS velocity for the halo particles in cgs units.
         """
         if self.rms_vel is not None:
             return self.rms_vel
