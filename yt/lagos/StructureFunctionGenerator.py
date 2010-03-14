@@ -36,7 +36,7 @@ from collections import defaultdict
 class StructFcnGen(ParallelAnalysisInterface):
     def __init__(self, pf, left_edge=None, right_edge=None,
             total_values=1000000, comm_size=10000, length_type="lin",
-            length_number=10, length_range=None):
+            length_number=10, length_range=None, vol_ratio = 1):
         """
         *total_values* (int) How many total (global) pair calculations to run
         for each of the structure functions specified.
@@ -60,6 +60,7 @@ class StructFcnGen(ParallelAnalysisInterface):
         # MPI stuff.
         self.size = self._mpi_get_size()
         self.mine = self._mpi_get_rank()
+        self.vol_ratio = vol_ratio
         self.total_values = total_values / self.size
         # For communication.
         self.recv_hooks = []
@@ -96,17 +97,19 @@ class StructFcnGen(ParallelAnalysisInterface):
         if not left_edge or not right_edge:
             self.left_edge = self.pf['DomainLeftEdge']
             self.right_edge = self.pf['DomainRightEdge']
-            padded, self.LE, self.RE, self.ds = self._partition_hierarchy_3d(padding=0.)
+            padded, self.LE, self.RE, self.ds = self._partition_hierarchy_3d(padding=0.,
+                rank_ratio = self.vol_ratio)
         else:
             self.left_edge = left_edge
             self.right_edge = right_edge
             # We do this twice, first with no 'buffer' to get the unbuffered
             # self.LE/RE, and then second to get a buffered self.ds.
             padded, self.LE, self.RE, temp = \
-                self._partition_region_3d(left_edge, right_edge)
+                self._partition_region_3d(left_edge, right_edge,
+                    rank_ratio=self.vol_ratio)
             padded, temp, temp, self.ds = \
                 self._partition_region_3d(left_edge - self.lengths[-1], \
-                right_edge + self.lengths[-1])
+                right_edge + self.lengths[-1], rank_ratio=self.vol_ratio)
         mylog.info("LE %s RE %s %s" % (str(self.LE), str(self.RE), str(self.ds)))
         random.seed(-1 * self.mine)
     
@@ -247,12 +250,13 @@ class StructFcnGen(ParallelAnalysisInterface):
         for task in xrange(self.size):
             if task == self.mine: continue
             # We'll send the cycle at which I think things should stop.
-            self.send_done[task] = na.ones(1, dtype='int64') * (self.size-1) + \
-                self.comm_cycle_count
+            self.send_done[task] = na.ones(1, dtype='int64') * \
+                (self.size / self.vol_ratio -1) + self.comm_cycle_count
             self.done_hooks.append(self._mpi_Isend_long(self.send_done[task], \
                 task, tag=15))
         # I need to mark my *own*, too!
-        self.recv_done[self.mine] = (self.size-1) + self.comm_cycle_count
+        self.recv_done[self.mine] = (self.size / self.vol_ratio -1) + \
+            self.comm_cycle_count
         self.sent_done = True
 
     def _should_cycle(self):
