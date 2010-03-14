@@ -25,6 +25,7 @@ License:
 
 import numpy as na
 from matplotlib.cm import get_cmap
+from yt.physical_constants import *
 
 class TransferFunction(object):
     def __init__(self, x_bounds, nbins=256):
@@ -50,6 +51,19 @@ class TransferFunction(object):
         vals = na.zeros(self.x.shape, 'float64')
         vals[(self.x >= start) & (self.x <= stop)] = value
         self.y = na.clip(na.maximum(vals, self.y), 0.0, 1.0)
+
+    def add_filtered_planck(self,wavelength,trans):
+        vals = na.zeros(self.x.shape, 'float64')
+        nu = clight/(wavelength*1e-8)
+        nu = nu[::-1]
+
+        for i,temp in enumerate(self.x):
+            f = 2.*hcgs*nu**3/clight**2*1./(na.exp(hcgs * nu/(kboltz*temp)) - 1.)*trans[::-1]
+            vals[i] = na.trapz(f,nu)
+
+        # normalize by total transmission over filter
+        self.y = vals/trans.sum() #/na.trapz(trans[::-1],nu)
+        #self.y = na.clip(na.maximum(vals, self.y), 0.0, 1.0)
 
     def plot(self, filename):
         import matplotlib;matplotlib.use("Agg");import pylab
@@ -126,9 +140,29 @@ class ColorTransferFunction(object):
         for v, a in zip(na.mgrid[mi:ma:N*1j], alpha):
             self.sample_colormap(v, w, a, colormap=colormap)
 
-class PlanckFunction(ColorTransferFunction):
-    def __init__(self):
-        pass
+class PlanckTransferFunction(ColorTransferFunction):
+    def __init__(self, x_bounds, nbins=256, red='R', green='V', blue='B'):
+        from UBVRI import johnson_filters
+        f_red = johnson_filters[red]
+        f_blue = johnson_filters[blue]
+        f_green = johnson_filters[green]
+        ColorTransferFunction.__init__(self, x_bounds, nbins)
+        self.red.add_filtered_planck(f_red['wavelen'], \
+                                         f_red['trans'])
+        self.blue.add_filtered_planck(f_blue['wavelen'], \
+                                          f_blue['trans'])
+        self.green.add_filtered_planck(f_green['wavelen'], \
+                                           f_green['trans'])
+        self.alpha.add_step(x_bounds[0],x_bounds[1],1.)
+        self._normalize()
+
+
+    def _normalize(self):
+        fmax  = na.array([f.y for f in self.funcs[:-1]])
+        normal = fmax.max(axis=0)
+
+        for f in self.funcs[:-1]:
+            f.y = f.y/normal
 
 if __name__ == "__main__":
     tf = ColorTransferFunction((-20, -5))
