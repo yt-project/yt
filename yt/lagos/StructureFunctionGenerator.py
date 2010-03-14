@@ -315,16 +315,19 @@ class StructFcnGen(ParallelAnalysisInterface):
         for fset in self.fsets:
             fset.too_low = self._mpi_allsum(fset.too_low)
             fset.too_high = self._mpi_allsum(fset.too_high)
+            fset.binned = {}
             if self.mine == 0:
                 mylog.info("Function %s had %d values too high and %d too low that were not binned." % \
                     (fset.function.__name__, fset.too_high, fset.too_low))
             for length in self.lengths:
                 fset.length_bin_hits[length] = \
                     self._mpi_Allsum_long(fset.length_bin_hits[length])
-                # Normalize this.
+                # Find out how many were successfully binned.
+                fset.binned[length] = fset.length_bin_hits[length].sum()
+                # Normalize the counts.
                 fset.length_bin_hits[length] = \
                     fset.length_bin_hits[length].astype('float64') / \
-                    fset.length_bin_hits[length].sum()
+                    fset.binned[length]
                 # Return it to its original shape.
                 fset.length_bin_hits[length] = \
                     fset.length_bin_hits[length].reshape(fset.bin_number)
@@ -469,21 +472,27 @@ class StructFcnGen(ParallelAnalysisInterface):
         example, for RMS velocity differences set this to True, otherwise the
         output will be just MS velocity. Default: False.
         """
-        sqrt = list(sqrt)
+        sep = 12
+        if type(sqrt) != types.ListType:
+            sqrt = [sqrt]
         for fset in self.fsets:
             fp = self._write_on_root("%s.txt" % fset.function.__name__)
             fset._avg_bin_hits()
-            line = "# length\t"
+            line = "# length".ljust(sep)
+            line += "count".ljust(sep)
             for dim in fset.dims:
-                line += "\t%s" % fset.out_labels[dim]
+                line += ("%s" % fset.out_labels[dim]).ljust(sep)
             fp.write(line + "\n")
             for length in self.lengths:
-                line = "%1.5e" % length
+                line = ("%1.5e" % length).ljust(sep)
+                line += ("%d" % fset.binned[length]).ljust(sep)
                 for dim in fset.dims:
                     if sqrt[dim]:
-                        line += "\t%1.5e" % math.sqrt(fset.length_avgs[length][dim])
+                        line += ("%1.5e" % \
+                            math.sqrt(fset.length_avgs[length][dim])).ljust(sep)
                     else:
-                        line += "\t%1.5e" % fset.length_avgs[length][dim]
+                        line += ("%1.5e" % \
+                            fset.length_avgs[length][dim]).ljust(sep)
                 line += "\n"
                 fp.write(line)
             fp.close()
@@ -500,6 +509,7 @@ class StructFcnGen(ParallelAnalysisInterface):
                 f = h5py.File("%s.h5" % fset.function.__name__, "w")
                 bin_names = []
                 prob_names = []
+                bin_counts = []
                 for dim in fset.dims:
                     f.create_dataset("/bin_edges_%02d_%s" % \
                         (dim, fset.out_labels[dim]), \
@@ -510,9 +520,11 @@ class StructFcnGen(ParallelAnalysisInterface):
                     f.create_dataset("/prob_bins_%05d" % i, \
                         data=fset.length_bin_hits[length])
                     prob_names.append("/prob_bins_%05d" % i)
+                    bin_counts.append(fset.binned[length])
                 f.create_dataset("/bin_edges_names", data=bin_names)
                 #f.create_dataset("/prob_names", data=prob_names)
                 f.create_dataset("/lengths", data=self.lengths)
+                f.create_dataset("/counts", data=bin_counts)
                 f.close()
 
 class StructSet(StructFcnGen):
