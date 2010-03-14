@@ -26,7 +26,8 @@ License:
 import numpy as na
 
 from TransferFunction import TransferFunction, ColorTransferFunction, \
-                             PlanckTransferFunction
+                             PlanckTransferFunction, \
+                             MultiVariateTransferFunction
 from yt.amr_utils import PartitionedGrid, VectorPlane, \
                              TransferFunctionProxy
 from grid_partitioner import HomogenizedBrickCollection, \

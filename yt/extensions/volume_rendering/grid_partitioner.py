@@ -54,16 +54,29 @@ class HomogenizedBrickCollection(DistributedObjectCollection):
     def write_hierarchy(self, base_filename):
         pass
     
-    def _partition_grid(self, grid, field, log_field = True):
-        vcd = grid.get_vertex_centered_data(field).astype('float64')
-        if log_field: vcd = na.log10(vcd)
+    def _partition_grid(self, grid, fields, log_field = True):
+        fields = ensure_list(fields)
+
+        # This is not super efficient, as it re-fills the regions once for each
+        # field.
+        vcds = []
+        for field in fields:
+            vcd = grid.get_vertex_centered_data(field).astype('float64')
+            if log_field: vcd = na.log10(vcd)
+            vcds.append(vcd)
 
         GF = GridFaces(grid.Children + [grid])
         PP = ProtoPrism(grid.id, grid.LeftEdge, grid.RightEdge, GF)
 
         pgs = []
         for P in PP.sweep(0):
-            pgs += P.get_brick(grid.LeftEdge, grid.dds, vcd, grid.child_mask)
+            sl = P.get_brick(grid.LeftEdge, grid.dds, grid.child_mask)
+            if len(sl) == 0: continue
+            dd = [d[sl[0][0]:sl[0][1]+1,
+                    sl[1][0]:sl[1][1]+1,
+                    sl[2][0]:sl[2][1]+1].copy() for d in vcds]
+            pgs.append(PartitionedGrid(grid.id, len(fields), dd,
+                        P.LeftEdge, P.RightEdge, sl[-1]))
         return pgs
 
     def _partition_local_grids(self, fields = "Density", log_field = True):
@@ -75,7 +88,7 @@ class HomogenizedBrickCollection(DistributedObjectCollection):
         pbar = get_pbar("Partitioning ", len(grid_list))
         for i, g in enumerate(self._get_grids()):
             pbar.update(i)
-            bricks += self._partition_grid(g, fields[0], log_field)
+            bricks += self._partition_grid(g, fields, log_field)
         pbar.finish()
         bricks = na.array(bricks, dtype='object')
         NB = len(bricks)
@@ -93,7 +106,7 @@ class HomogenizedBrickCollection(DistributedObjectCollection):
             self.brick_left_edges[i,:] = b.LeftEdge
             self.brick_right_edges[i,:] = b.RightEdge
             self.brick_parents[i] = b.parent_grid_id
-            self.brick_dimensions[i,:] = b.my_data.shape
+            self.brick_dimensions[i,:] = b.my_data[0].shape
         # Vertex-centered means we subtract one from the shape
         self.brick_dimensions -= 1
         self.bricks = na.array(bricks, dtype='object')
@@ -121,10 +134,11 @@ class HomogenizedBrickCollection(DistributedObjectCollection):
         self.bricks[self.brick_owners == self._mpi_get_rank()] = bricks[:]
 
     def _create_buffer(self, ind_list):
-        mylog.debug("Creating buffer for %s bricks", len(ind_list))
         # Note that we have vertex-centered data, so we add one before taking
         # the prod and the sum
         total_size = (self.brick_dimensions[ind_list,:] + 1).prod(axis=1).sum()
+        mylog.debug("Creating buffer for %s bricks (%s)",
+                    len(ind_list), total_size)
         my_buffer = na.zeros(total_size, dtype='float64')
         return my_buffer
 

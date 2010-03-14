@@ -73,81 +73,118 @@ cdef extern from "FixedInterpolator.h":
 
 cdef class VectorPlane
 
+cdef struct FieldInterpolationTable:
+    # Note that we make an assumption about retaining a reference to values
+    # externally.
+    np.float64_t *values 
+    np.float64_t bounds[2]
+    np.float64_t dbin
+    np.float64_t idbin
+    int nbins
+
+cdef void FIT_initialize_table(FieldInterpolationTable *fit, int nbins,
+              np.float64_t *values, np.float64_t bounds1, np.float64_t bounds2):
+    fit.bounds[0] = bounds1; fit.bounds[1] = bounds2
+    fit.nbins = nbins
+    fit.dbin = (fit.bounds[1] - fit.bounds[0])/fit.nbins
+    fit.idbin = 1.0/fit.dbin
+    # Better not pull this out from under us, yo
+    fit.values = values
+
+cdef np.float64_t FIT_get_value(FieldInterpolationTable *fit,
+                            np.float64_t dv):
+    cdef np.float64_t bv, dy, dd, tf
+    cdef int bin_id
+    bin_id = <int> ((dv - fit.bounds[0]) * fit.idbin)
+    dd = dv - (fit.bounds[0] + bin_id * fit.dbin) # x - x0
+    if bin_id > fit.nbins - 2 or bin_id < 0: return 0.0
+    bv = fit.values[bin_id]
+    dy = fit.values[bin_id + 1] - bv
+    return (bv + dd*dy*fit.idbin)
+
 cdef class TransferFunctionProxy:
-    cdef np.float64_t x_bounds[2]
-    cdef np.float64_t *vs[4]
-    cdef int nbins
+    cdef int n_fields
+    cdef int n_field_tables
     cdef public int ns
-    cdef np.float64_t dbin, idbin
-    cdef np.float64_t light_color[3]
-    cdef np.float64_t light_dir[3]
-    cdef int use_light
+
+    # These are the field tables and their affiliated storage.
+    # We have one field_id for every table.  Note that a single field can
+    # correspond to multiple tables, and each field table will only have
+    # interpolate called once.
+    cdef FieldInterpolationTable field_tables[6]
+    cdef int field_ids[6]
+    cdef np.float64_t istorage[6]
+
+    # Here are the field tables that correspond to each of the six channels.
+    # We have three emission channels, three absorption channels.
+    cdef int field_table_ids[6]
+
+    # We store a reference to the transfer function object and to the field
+    # interpolation tables
     cdef public object tf_obj
+    cdef public object my_field_tables
+
     def __cinit__(self, tf_obj):
-        self.tf_obj = tf_obj
-        cdef np.ndarray[np.float64_t, ndim=1] temp
-        temp = tf_obj.red.y
-        self.vs[0] = <np.float64_t *> temp.data
-        temp = tf_obj.green.y
-        self.vs[1] = <np.float64_t *> temp.data
-        temp = tf_obj.blue.y
-        self.vs[2] = <np.float64_t *> temp.data
-        temp = tf_obj.alpha.y
-        self.vs[3] = <np.float64_t *> temp.data
-        self.x_bounds[0] = tf_obj.x_bounds[0]
-        self.x_bounds[1] = tf_obj.x_bounds[1]
-        self.nbins = tf_obj.nbins
-        self.dbin = (self.x_bounds[1] - self.x_bounds[0])/self.nbins
-        self.idbin = 1.0/self.dbin
-        self.light_color[0] = tf_obj.light_color[0]
-        self.light_color[1] = tf_obj.light_color[1]
-        self.light_color[2] = tf_obj.light_color[2]
-        self.light_dir[0] = tf_obj.light_dir[0]
-        self.light_dir[1] = tf_obj.light_dir[1]
-        self.light_dir[2] = tf_obj.light_dir[2]
-        cdef np.float64_t normval = 0.0
-        for i in range(3): normval += self.light_dir[i]**2
-        normval = normval**0.5
-        for i in range(3): self.light_dir[i] /= normval
-        self.use_light = tf_obj.use_light
-
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    cdef void interpolate(self, np.float64_t dv, np.float64_t *trgba):
-        cdef int bin_id, channel
-        cdef np.float64_t bv, dy, dd, tf
-        bin_id = <int> ((dv - self.x_bounds[0]) * self.idbin)
-        # Recall that linear interpolation is y0 + (x-x0) * dx/dy
-        dd = dv-(self.x_bounds[0] + bin_id * self.dbin) # x - x0
-        if bin_id > self.nbins - 2 or bin_id < 0:
-            for channel in range(4): trgba[channel] = 0.0
-            return
-        for channel in range(4):
-            bv = self.vs[channel][bin_id] # This is x0
-            dy = self.vs[channel][bin_id+1]-bv # dy
-                # This is our final value for transfer function on the entering face
-            trgba[channel] = bv+dd*dy*self.idbin
-
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    cdef void eval_transfer(self, np.float64_t dt, np.float64_t dv,
-                                    np.float64_t *rgba, np.float64_t *grad):
+        # We have N fields.  We have 6 channels.  We have M field tables.
+        # The idea is that we can have multiple channels corresponding to the
+        # same field table.  So, we create storage for the outputs from all the
+        # field tables.  We need to know which field value to pass in to the
+        # field table, and we need to know which table to use for each of the
+        # six channels.
         cdef int i
-        cdef np.float64_t ta, tf, trgba[4], dot_prod
-        self.interpolate(dv, trgba) 
-        # get source alpha first
-        # First locate our points
-        dot_prod = 0.0
-        if self.use_light:
-            for i in range(3):
-                dot_prod += self.light_dir[i] * grad[i]
-            dot_prod = fmax(0.0, dot_prod)
-            for i in range(3):
-                trgba[i] += dot_prod*self.light_color[i]
+        cdef np.ndarray[np.float64_t, ndim=1] temp
+        cdef FieldInterpolationTable fit
+
+        self.tf_obj = tf_obj
+
+        self.n_field_tables = tf_obj.n_field_tables
+
+        self.my_field_tables = []
+        for i in range(self.n_field_tables):
+            temp = tf_obj.tables[i].y
+            FIT_initialize_table(&self.field_tables[i],
+                      temp.shape[0],
+                      <np.float64_t *> temp.data,
+                      tf_obj.tables[i].x_bounds[0],
+                      tf_obj.tables[i].x_bounds[1])
+            self.my_field_tables.append((tf_obj.tables[i],
+                                         tf_obj.tables[i].y))
+            self.field_ids[i] = tf_obj.field_ids[i]
+            print "Field table", i, "corresponds to", self.field_ids[i]
+
+        for i in range(6):
+            self.field_ids[i] = tf_obj.field_ids[i]
+            self.field_table_ids[i] = tf_obj.field_table_ids[i]
+            print "Channel", i, "corresponds to", self.field_table_ids[i]
+            
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    cdef void eval_transfer(self, np.float64_t dt, np.float64_t *dvs,
+                                    np.float64_t *rgba, np.float64_t *grad):
+        cdef int i, fid, use
+        cdef np.float64_t ta, tf, trgba[6], dot_prod
+        # This very quick pass doesn't hurt us too badly, and it helps for
+        # early-cutoff.  We check all the field tables, because we want to be
+        # able to attenuate even in the presence of no emissivity.
+        use = 0
+        for i in range(self.n_field_tables):
+            fid = self.field_ids[i]
+            if (dvs[fid] >= self.field_tables[i].bounds[0]) and \
+               (dvs[fid] <= self.field_tables[i].bounds[1]):
+                use = 1
+                break
+        for i in range(self.n_field_tables):
+            fid = self.field_ids[i]
+            self.istorage[i] = FIT_get_value(&self.field_tables[i], dvs[fid])
+        for i in range(6):
+            trgba[i] = self.istorage[self.field_table_ids[i]]
+            #print i, trgba[i],
+        #print
         # alpha blending
-        ta = (1.0 - rgba[3])*dt*trgba[3]
-        for i in range(4):
+        for i in range(3):
+            ta = (1.0 - rgba[3+i])*dt*trgba[3+i]
             rgba[i] += ta*trgba[i]
+            rgba[3+i] += ta*trgba[3+i]
 
 cdef class VectorPlane:
     cdef public object avp_pos, avp_dir, acenter, aimage
@@ -217,24 +254,26 @@ cdef class PartitionedGrid:
     cdef public object my_data
     cdef public object LeftEdge
     cdef public object RightEdge
-    cdef np.float64_t *data
+    cdef np.float64_t *data[6]
+    cdef np.float64_t dvs[6]
     cdef np.float64_t left_edge[3]
     cdef np.float64_t right_edge[3]
     cdef np.float64_t dds[3]
     cdef np.float64_t idds[3]
     cdef int dims[3]
     cdef public int parent_grid_id
+    cdef public int n_fields
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
     def __cinit__(self,
-                  int parent_grid_id,
-                  np.ndarray[np.float64_t, ndim=3] data,
+                  int parent_grid_id, int n_fields, data,
                   np.ndarray[np.float64_t, ndim=1] left_edge,
                   np.ndarray[np.float64_t, ndim=1] right_edge,
                   np.ndarray[np.int64_t, ndim=1] dims):
         # The data is likely brought in via a slice, so we copy it
         cdef int i, j, k, size
+        cdef np.ndarray[np.float64_t, ndim=3] tdata
         self.parent_grid_id = parent_grid_id
         self.LeftEdge = left_edge
         self.RightEdge = right_edge
@@ -245,7 +284,10 @@ cdef class PartitionedGrid:
             self.dds[i] = (self.right_edge[i] - self.left_edge[i])/dims[i]
             self.idds[i] = 1.0/self.dds[i]
         self.my_data = data
-        self.data = <np.float64_t*> data.data
+        self.n_fields = n_fields
+        for i in range(n_fields):
+            tdata = data[i]
+            self.data[i] = <np.float64_t *> tdata.data
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -255,7 +297,7 @@ cdef class PartitionedGrid:
         # like http://courses.csusm.edu/cs697exz/ray_box.htm
         cdef int vi, vj, hit, i, ni, nj, nn
         cdef int iter[4]
-        cdef np.float64_t v_pos[3], v_dir[3], rgba[4], extrema[4]
+        cdef np.float64_t v_pos[3], v_dir[3], rgba[6], extrema[4]
         self.calculate_extent(vp, extrema)
         vp.get_start_stop(extrema, iter)
         iter[0] = iclip(iter[0], 0, vp.nv[0])
@@ -266,9 +308,9 @@ cdef class PartitionedGrid:
         for vi in range(iter[0], iter[1]):
             for vj in range(iter[2], iter[3]):
                 vp.copy_into(vp.vp_pos, v_pos, vi, vj, 3)
-                vp.copy_into(vp.image, rgba, vi, vj, 4)
+                vp.copy_into(vp.image, rgba, vi, vj, 6)
                 self.integrate_ray(v_pos, vp.vp_dir, rgba, tf)
-                vp.copy_back(rgba, vp.image, vi, vj, 4)
+                vp.copy_back(rgba, vp.image, vi, vj, 6)
         return hit
 
     @cython.boundscheck(False)
@@ -423,12 +465,11 @@ cdef class PartitionedGrid:
         for dti in range(tf.ns): 
             for i in range(3):
                 dp[i] += ds[i]
-            dv = trilinear_interpolate(self.dims, ci, dp, self.data)
-            if (dv < tf.x_bounds[0]) or (dv > tf.x_bounds[1]):
-                continue
-            if tf.use_light == 1:
-                eval_gradient(self.dims, ci, dp, self.data, grad)
-            tf.eval_transfer(dt, dv, rgba, grad)
+            for i in range(self.n_fields):
+                self.dvs[i] = trilinear_interpolate(self.dims, ci, dp, self.data[i])
+            #if (dv < tf.x_bounds[0]) or (dv > tf.x_bounds[1]):
+            #    continue
+            tf.eval_transfer(dt, self.dvs, rgba, grad)
 
 cdef class GridFace:
     cdef int direction
@@ -526,7 +567,6 @@ cdef class ProtoPrism:
     @cython.wraparound(False)
     def get_brick(self, np.ndarray[np.float64_t, ndim=1] grid_left_edge,
                         np.ndarray[np.float64_t, ndim=1] grid_dds,
-                        np.ndarray[np.float64_t, ndim=3] data,
                         child_mask):
         # We get passed in the left edge, the dds (which gives dimensions) and
         # the data, which is already vertex-centered.
@@ -540,8 +580,8 @@ cdef class ProtoPrism:
         cdef np.ndarray[np.int64_t, ndim=1] dims = np.empty(3, dtype='int64')
         for i in range(3):
             dims[i] = idims[i]
-        cdef np.ndarray[np.float64_t, ndim=3] new_data
-        new_data = data[li[0]:ri[0]+1,li[1]:ri[1]+1,li[2]:ri[2]+1].copy()
-        PG = PartitionedGrid(self.parent_grid_id, new_data,
-                             self.LeftEdge, self.RightEdge, dims)
-        return [PG]
+        #cdef np.ndarray[np.float64_t, ndim=3] new_data
+        #new_data = data[li[0]:ri[0]+1,li[1]:ri[1]+1,li[2]:ri[2]+1].copy()
+        #PG = PartitionedGrid(self.parent_grid_id, new_data,
+        #                     self.LeftEdge, self.RightEdge, dims)
+        return ((li[0], ri[0]), (li[1], ri[1]), (li[2], ri[2]), dims)

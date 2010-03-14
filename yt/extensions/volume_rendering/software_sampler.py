@@ -95,7 +95,7 @@ class VolumeRendering(ParallelAnalysisInterface):
         for b in self.bricks:
             LE.append(b.LeftEdge)
             RE.append(b.RightEdge)
-            total_cells += na.prod(b.my_data.shape)
+            total_cells += na.prod(b.my_data[0].shape)
         LE = na.array(LE) - self.back_center
         RE = na.array(RE) - self.back_center
         LE = na.sum(LE * self.unit_vectors[2], axis=1)
@@ -108,7 +108,7 @@ class VolumeRendering(ParallelAnalysisInterface):
         tfp.ns = self.sub_samples
         for i, b in enumerate(self.bricks[ind]):
             pos = b.cast_plane(tfp, self.vector_plane)
-            total_cells += na.prod(b.my_data.shape)
+            total_cells += na.prod(b.my_data[0].shape)
             pbar.update(total_cells)
         pbar.finish()
         if finalize: self._finalize()
@@ -135,7 +135,7 @@ class VolumeRendering(ParallelAnalysisInterface):
         log_field = (self.fields[0] in self.pf.field_info and 
                      self.pf.field_info[self.fields[0]].take_log)
         self._brick_collection._partition_local_grids(self.fields, log_field)
-        self._brick_collection._collect_bricks(self.source._grids)
+        self._brick_collection._collect_bricks(self.source)
         self.bricks = self._brick_collection.bricks
 
     def _construct_vector_array(self):
@@ -143,7 +143,7 @@ class VolumeRendering(ParallelAnalysisInterface):
         ry = self.resolution[1] * self.res_fac[1]
         # We should move away from pre-generation of vectors like this and into
         # the usage of on-the-fly generation in the VolumeIntegrator module
-        self.image = na.zeros((rx,ry,4), dtype='float64', order='F')
+        self.image = na.zeros((rx,ry,6), dtype='float64', order='F')
         # We might have a different width and back_center
         bl = self.source.box_lengths
         px = na.linspace(-bl[0]/2.0, bl[0]/2.0, rx)[:,None]

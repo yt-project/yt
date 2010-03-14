@@ -25,6 +25,7 @@ License:
 
 import numpy as na
 from matplotlib.cm import get_cmap
+from yt.funcs import *
 from yt.physical_constants import *
 
 class TransferFunction(object):
@@ -156,13 +157,28 @@ class PlanckTransferFunction(ColorTransferFunction):
         self.alpha.add_step(x_bounds[0],x_bounds[1],1.)
         self._normalize()
 
-
     def _normalize(self):
         fmax  = na.array([f.y for f in self.funcs[:-1]])
         normal = fmax.max(axis=0)
-
         for f in self.funcs[:-1]:
             f.y = f.y/normal
+
+class MultiVariateTransferFunction(object):
+    def __init__(self):
+        self.n_field_tables = 0
+        self.tables = []
+        self.field_ids = [0]*6
+        self.field_table_ids = [0]*6
+
+    def add_field_table(self, table, field_id):
+        self.tables.append(table)
+        self.field_ids[self.n_field_tables] = field_id
+        self.n_field_tables += 1
+
+    def link_channels(self, table_id, channels = 0):
+        channels = ensure_list(channels)
+        for c in channels:
+            self.field_table_ids[c] = table_id
 
 if __name__ == "__main__":
     tf = ColorTransferFunction((-20, -5))

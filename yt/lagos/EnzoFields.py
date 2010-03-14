@@ -316,14 +316,14 @@ def _StarCreationTime(field, data):
     return data['star_creation_time']
 def _ConvertEnzoTimeYears(data):
     return data.pf.time_units['years']
-add_field('StarCreationTimeYears', units="\rm{yr}",
+add_field('StarCreationTimeYears', units=r"\mathrm{yr}",
           function=_StarCreationTime,
           convert_function=_ConvertEnzoTimeYears,
           projection_conversion="1")
 
 def _StarDynamicalTime(field, data):
     return data['star_dynamical_time']
-add_field('StarDynamicalTimeYears', units="\rm{yr}",
+add_field('StarDynamicalTimeYears', units=r"\mathrm{yr}",
           function=_StarDynamicalTime,
           convert_function=_ConvertEnzoTimeYears,
           projection_conversion="1")
@@ -335,7 +335,7 @@ def _StarAge(field, data):
         data.pf["InitialTime"] - \
         data['StarCreationTimeYears'][with_stars]
     return star_age
-add_field('StarAgeYears', units="\rm{yr}",
+add_field('StarAgeYears', units=r"\mathrm{yr}",
           function=_StarAge,
           projection_conversion="1")
 
