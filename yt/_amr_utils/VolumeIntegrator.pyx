@@ -82,7 +82,7 @@ cdef struct FieldInterpolationTable:
     np.float64_t idbin
     int nbins
 
-cdef void FIT_initialize_table(FieldInterpolationTable fit, int nbins,
+cdef void FIT_initialize_table(FieldInterpolationTable *fit, int nbins,
               np.float64_t *values, np.float64_t bounds1, np.float64_t bounds2):
     fit.bounds[0] = bounds1; fit.bounds[1] = bounds2
     fit.nbins = nbins
@@ -91,7 +91,7 @@ cdef void FIT_initialize_table(FieldInterpolationTable fit, int nbins,
     # Better not pull this out from under us, yo
     fit.values = values
 
-cdef np.float64_t FIT_get_value(FieldInterpolationTable fit,
+cdef np.float64_t FIT_get_value(FieldInterpolationTable *fit,
                             np.float64_t dv):
     cdef np.float64_t bv, dy, dd, tf
     cdef int bin_id
@@ -104,15 +104,16 @@ cdef np.float64_t FIT_get_value(FieldInterpolationTable fit,
 
 cdef class TransferFunctionProxy:
     cdef int n_fields
+    cdef int n_field_tables
     cdef public int ns
 
     # These are the field tables and their affiliated storage.
     # We have one field_id for every table.  Note that a single field can
     # correspond to multiple tables, and each field table will only have
     # interpolate called once.
-    cdef FieldInterpolationTable *field_tables
-    cdef int *field_ids
-    cdef np.float64_t *istorage
+    cdef FieldInterpolationTable field_tables[6]
+    cdef int field_ids[6]
+    cdef np.float64_t istorage[6]
 
     # Here are the field tables that correspond to each of the six channels.
     # We have three emission channels, three absorption channels.
@@ -137,32 +138,25 @@ cdef class TransferFunctionProxy:
         self.tf_obj = tf_obj
 
         self.n_field_tables = tf_obj.n_field_tables
-        self.field_tables = <FieldInterpolationTable*> \
-            malloc(sizeof(FieldInterpolationTable)*self.n_field_tables)
-        self.field_ids = <int*> malloc(sizeof(int)*self.n_field_tables)
-        self.istorage = <np.float64_t*> \
-            malloc(sizeof(np.float64_t)*self.n_field_tables)
 
         self.my_field_tables = []
         for i in range(self.n_field_tables):
-            temp = tf_obj.fields[i].y
-            FIT_initialize_table(self.field_tables[i],
+            temp = tf_obj.tables[i].y
+            FIT_initialize_table(&self.field_tables[i],
                       temp.shape[0],
                       <np.float64_t *> temp.data,
-                      tf_obj.fields[i].x_bounds[0],
-                      tf_obj.fields[i].x_bounds[1])
-            
+                      tf_obj.tables[i].x_bounds[0],
+                      tf_obj.tables[i].x_bounds[1])
+            self.my_field_tables.append((tf_obj.tables[i],
+                                         tf_obj.tables[i].y))
             self.field_ids[i] = tf_obj.field_ids[i]
+            print "Field table", i, "corresponds to", self.field_ids[i]
 
         for i in range(6):
             self.field_ids[i] = tf_obj.field_ids[i]
             self.field_table_ids[i] = tf_obj.field_table_ids[i]
+            print "Channel", i, "corresponds to", self.field_table_ids[i]
             
-    def __dealloc__(self):
-        free(self.field_tables)
-        free(self.field_ids)
-        free(self.istorage)
-
     @cython.boundscheck(False)
     @cython.wraparound(False)
     cdef void eval_transfer(self, np.float64_t dt, np.float64_t *dvs,
@@ -179,13 +173,13 @@ cdef class TransferFunctionProxy:
                (dvs[fid] <= self.field_tables[i].bounds[1]):
                 use = 1
                 break
-        if use == 0:
-            return
         for i in range(self.n_field_tables):
             fid = self.field_ids[i]
-            self.istorage[i] = FIT_get_value(self.field_tables[i], dvs[fid])
+            self.istorage[i] = FIT_get_value(&self.field_tables[i], dvs[fid])
         for i in range(6):
             trgba[i] = self.istorage[self.field_table_ids[i]]
+            #print i, trgba[i],
+        #print
         # alpha blending
         for i in range(3):
             ta = (1.0 - rgba[3+i])*dt*trgba[3+i]
@@ -260,15 +254,15 @@ cdef class PartitionedGrid:
     cdef public object my_data
     cdef public object LeftEdge
     cdef public object RightEdge
-    cdef np.float64_t **data
-    cdef np.float64_t *dvs
+    cdef np.float64_t *data[6]
+    cdef np.float64_t dvs[6]
     cdef np.float64_t left_edge[3]
     cdef np.float64_t right_edge[3]
     cdef np.float64_t dds[3]
     cdef np.float64_t idds[3]
     cdef int dims[3]
     cdef public int parent_grid_id
-    cdef public int nfields
+    cdef public int n_fields
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -279,6 +273,7 @@ cdef class PartitionedGrid:
                   np.ndarray[np.int64_t, ndim=1] dims):
         # The data is likely brought in via a slice, so we copy it
         cdef int i, j, k, size
+        cdef np.ndarray[np.float64_t, ndim=3] tdata
         self.parent_grid_id = parent_grid_id
         self.LeftEdge = left_edge
         self.RightEdge = right_edge
@@ -289,17 +284,10 @@ cdef class PartitionedGrid:
             self.dds[i] = (self.right_edge[i] - self.left_edge[i])/dims[i]
             self.idds[i] = 1.0/self.dds[i]
         self.my_data = data
-        cdef np.ndarray[np.float64_t, ndim=3] tdata
         self.n_fields = n_fields
-        self.data = <np.float64_t **> malloc(sizeof(np.float64_t*) * self.n_fields)
-        self.dvs = <np.float64_t *> malloc(sizeof(np.float64_t) * self.n_fields)
         for i in range(n_fields):
             tdata = data[i]
             self.data[i] = <np.float64_t *> tdata.data
-
-    def __dealloc__(self):
-        free(self.data)
-        free(self.dvs)
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -479,8 +467,8 @@ cdef class PartitionedGrid:
                 dp[i] += ds[i]
             for i in range(self.n_fields):
                 self.dvs[i] = trilinear_interpolate(self.dims, ci, dp, self.data[i])
-            if (dv < tf.x_bounds[0]) or (dv > tf.x_bounds[1]):
-                continue
+            #if (dv < tf.x_bounds[0]) or (dv > tf.x_bounds[1]):
+            #    continue
             tf.eval_transfer(dt, self.dvs, rgba, grad)
 
 cdef class GridFace:
@@ -596,4 +584,4 @@ cdef class ProtoPrism:
         #new_data = data[li[0]:ri[0]+1,li[1]:ri[1]+1,li[2]:ri[2]+1].copy()
         #PG = PartitionedGrid(self.parent_grid_id, new_data,
         #                     self.LeftEdge, self.RightEdge, dims)
-        return [((li[0], ri[0]), (li[1], ri[1]), (li[2], ri[2]))]
+        return ((li[0], ri[0]), (li[1], ri[1]), (li[2], ri[2]), dims)

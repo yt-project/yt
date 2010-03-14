@@ -25,6 +25,7 @@ License:
 
 import numpy as na
 from matplotlib.cm import get_cmap
+from yt.funcs import *
 
 class TransferFunction(object):
     def __init__(self, x_bounds, nbins=256):
@@ -125,6 +126,23 @@ class ColorTransferFunction(object):
         if alpha is None: alpha = na.logspace(-2.0, 0.0, N)
         for v, a in zip(na.mgrid[mi:ma:N*1j], alpha):
             self.sample_colormap(v, w, a, colormap=colormap)
+
+class MultiVariateTransferFunction(object):
+    def __init__(self):
+        self.n_field_tables = 0
+        self.tables = []
+        self.field_ids = [0]*6
+        self.field_table_ids = [0]*6
+
+    def add_field_table(self, table, field_id):
+        self.tables.append(table)
+        self.field_ids[self.n_field_tables] = field_id
+        self.n_field_tables += 1
+
+    def link_channels(self, table_id, channels = 0):
+        channels = ensure_list(channels)
+        for c in channels:
+            self.field_table_ids[c] = table_id
 
 class PlanckFunction(ColorTransferFunction):
     def __init__(self):
