@@ -178,13 +178,17 @@ cdef class TransferFunctionProxy:
             self.istorage[i] = FIT_get_value(&self.field_tables[i], dvs[fid])
         for i in range(6):
             trgba[i] = self.istorage[self.field_table_ids[i]]
-            #print i, trgba[i],
-        #print
-        # alpha blending
+        # A few words on opacity.  We're going to be integrating equation 1.23
+        # from Rybicki & Lightman.  dI_\nu / ds = -\alpha_\nu I_\nu + j_\nu
+        # \alpha_nu = \kappa \rho , but we leave that up to the input
+        # transfer function.
+        # SOoooooOOOooo, the upshot is that we are doing a rectangular
+        # integration here:
+        #   I_{i+1} = ds * C_i + (1.0 - ds*alpha_i) * I_i
         for i in range(3):
-            ta = (1.0 - rgba[3+i])*dt*trgba[3+i]
-            rgba[i] += ta*trgba[i]
-            rgba[3+i] += ta*trgba[3+i]
+            ta = (1.0 - dt*trgba[i+3])
+            rgba[i  ] = dt*trgba[i  ] + ta * rgba[i  ]
+            rgba[i+3] = dt*trgba[i+3] + ta * rgba[i+3]
 
 cdef class VectorPlane:
     cdef public object avp_pos, avp_dir, acenter, aimage
