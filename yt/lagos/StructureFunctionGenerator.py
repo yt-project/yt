@@ -28,7 +28,7 @@ from yt.math_utils import *
 try:
     from yt.extensions.kdtree import *
 except ImportError:
-    raise RuntimeError("The Fortran kD-Tree did not import correctly.")
+    mylog.info("The Fortran kD-Tree did not import correctly. The structure function generator will not work correctly.")
 
 import math, sys, itertools, inspect, types, random
 from collections import defaultdict
