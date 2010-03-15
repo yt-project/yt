@@ -50,7 +50,7 @@ class UnilinearFieldInterpolator:
 
         my_vals = na.zeros(x_vals.shape, dtype='float64')
         amr_utils.UnilinearlyInterpolate(self.table, x_vals, self.x_bins, x_i, my_vals)
-        return my_vals
+        return my_vals.reshape(orig_shape)
 
 class BilinearFieldInterpolator:
     def __init__(self, table, boundaries, field_names, truncate=False):
