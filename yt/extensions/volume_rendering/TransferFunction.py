@@ -53,13 +53,19 @@ class TransferFunction(object):
         vals[(self.x >= start) & (self.x <= stop)] = value
         self.y = na.clip(na.maximum(vals, self.y), 0.0, 1.0)
 
-    def add_filtered_planck(self,wavelength,trans):
+    def add_filtered_planck(self, wavelength, trans):
         vals = na.zeros(self.x.shape, 'float64')
         nu = clight/(wavelength*1e-8)
         nu = nu[::-1]
 
-        for i,temp in enumerate(self.x):
-            f = 2.*hcgs*nu**3/clight**2*1./(na.exp(hcgs * nu/(kboltz*temp)) - 1.)*trans[::-1]
+        for i,logT in enumerate(self.x):
+            T = 10**logT
+            # Black body at this nu, T
+            Bnu = ((2.0 * hcgs * nu**3) / clight**2.0) / \
+                    (na.exp(hcgs * nu / (kboltz * T)) - 1.0)
+            # transmission
+            f = Bnu * trans[::-1]
+            # integrate transmission over nu
             vals[i] = na.trapz(f,nu)
 
         # normalize by total transmission over filter
@@ -141,28 +147,6 @@ class ColorTransferFunction(object):
         for v, a in zip(na.mgrid[mi:ma:N*1j], alpha):
             self.sample_colormap(v, w, a, colormap=colormap)
 
-class PlanckTransferFunction(ColorTransferFunction):
-    def __init__(self, x_bounds, nbins=256, red='R', green='V', blue='B'):
-        from UBVRI import johnson_filters
-        f_red = johnson_filters[red]
-        f_blue = johnson_filters[blue]
-        f_green = johnson_filters[green]
-        ColorTransferFunction.__init__(self, x_bounds, nbins)
-        self.red.add_filtered_planck(f_red['wavelen'], \
-                                         f_red['trans'])
-        self.blue.add_filtered_planck(f_blue['wavelen'], \
-                                          f_blue['trans'])
-        self.green.add_filtered_planck(f_green['wavelen'], \
-                                           f_green['trans'])
-        self.alpha.add_step(x_bounds[0],x_bounds[1],1.)
-        self._normalize()
-
-    def _normalize(self):
-        fmax  = na.array([f.y for f in self.funcs[:-1]])
-        normal = fmax.max(axis=0)
-        for f in self.funcs[:-1]:
-            f.y = f.y/normal
-
 class MultiVariateTransferFunction(object):
     def __init__(self):
         self.n_field_tables = 0
@@ -179,6 +163,29 @@ class MultiVariateTransferFunction(object):
         channels = ensure_list(channels)
         for c in channels:
             self.field_table_ids[c] = table_id
+
+class PlanckTransferFunction(MultiVariateTransferFunction):
+    def __init__(self, T_bounds, rho_bounds, nbins=256,
+                 red='R', green='V', blue='B'):
+        MultiVariateTransferFunction.__init__(self)
+        from UBVRI import johnson_filters
+        for i, f in enumerate([red, green, blue]):
+            jf = johnson_filters[f]
+            tf = TransferFunction(T_bounds)
+            tf.add_filtered_planck(jf['wavelen'], jf['trans'])
+            self.add_field_table(tf, 0)
+            self.link_channels(i, i) # 0 => 0, 1 => 1, 2 => 2
+        tf = TransferFunction(rho_bounds)
+        tf.add_step(rho_bounds[0], rho_bounds[1], 1.00)
+        self.add_field_table(tf, 1)
+        self.link_channels(3, [3,4,5])
+        self._normalize()
+
+    def _normalize(self):
+        fmax  = na.array([f.y for f in self.tables[:-1]])
+        normal = fmax.max(axis=0)
+        for f in self.tables[:-1]:
+            f.y = f.y/normal
 
 if __name__ == "__main__":
     tf = ColorTransferFunction((-20, -5))
