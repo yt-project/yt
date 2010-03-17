@@ -152,11 +152,13 @@ class MultiVariateTransferFunction(object):
         self.n_field_tables = 0
         self.tables = []
         self.field_ids = [0]*6
+        self.weight_field_ids = [-1]*6
         self.field_table_ids = [0]*6
 
-    def add_field_table(self, table, field_id):
+    def add_field_table(self, table, field_id, weight_field_id = -1):
         self.tables.append(table)
         self.field_ids[self.n_field_tables] = field_id
+        self.weight_field_ids[self.n_field_tables] = weight_field_id
         self.n_field_tables += 1
 
     def link_channels(self, table_id, channels = 0):
@@ -173,18 +175,34 @@ class PlanckTransferFunction(MultiVariateTransferFunction):
             jf = johnson_filters[f]
             tf = TransferFunction(T_bounds)
             tf.add_filtered_planck(jf['wavelen'], jf['trans'])
-            self.add_field_table(tf, 0)
+            self.add_field_table(tf, 0, 2)
             self.link_channels(i, i) # 0 => 0, 1 => 1, 2 => 2
+
+        dr = (rho_bounds[1]-rho_bounds[0])/5
+
         tf = TransferFunction(rho_bounds)
-        tf.add_step(rho_bounds[0], rho_bounds[1], 1.00)
+        #tf.add_gaussian(rho_bounds[0] + 2.0*dr, 2*dr, 1.0)
+        tf.add_line( (rho_bounds[0], 1.0), (rho_bounds[1], 1.0) )
         self.add_field_table(tf, 1)
-        self.link_channels(3, [3,4,5])
+        self.link_channels(3, 3)
+
+        tf = TransferFunction(rho_bounds)
+        tf.add_gaussian(rho_bounds[0] + 3.0*dr, 2*dr, 1.0)
+        self.add_field_table(tf, 1)
+        self.link_channels(4, 4)
+
+        tf = TransferFunction(rho_bounds)
+        dr = (rho_bounds[1]-rho_bounds[0])/5
+        tf.add_gaussian(rho_bounds[0] + 4.0*dr, 2*dr, 1.0)
+        self.add_field_table(tf, 1)
+        self.link_channels(5, 5)
+
         self._normalize()
 
     def _normalize(self):
-        fmax  = na.array([f.y for f in self.tables[:-1]])
+        fmax  = na.array([f.y for f in self.tables[:3]])
         normal = fmax.max(axis=0)
-        for f in self.tables[:-1]:
+        for f in self.tables[:3]:
             f.y = f.y/normal
 
 if __name__ == "__main__":

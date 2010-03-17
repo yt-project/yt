@@ -132,8 +132,10 @@ class VolumeRendering(ParallelAnalysisInterface):
         export_partitioned_grids(self.bricks, fn)
 
     def partition_grids(self):
-        log_field = (self.fields[0] in self.pf.field_info and 
-                     self.pf.field_info[self.fields[0]].take_log)
+        log_field = []
+        for field in self.fields:
+            log_field.append(field in self.pf.field_info and 
+                             self.pf.field_info[field].take_log)
         self._brick_collection._partition_local_grids(self.fields, log_field)
         self._brick_collection._collect_bricks(self.source)
         self.bricks = self._brick_collection.bricks

@@ -80,26 +80,33 @@ cdef struct FieldInterpolationTable:
     np.float64_t bounds[2]
     np.float64_t dbin
     np.float64_t idbin
+    int field_id
+    int weight_field_id
     int nbins
 
 cdef void FIT_initialize_table(FieldInterpolationTable *fit, int nbins,
-              np.float64_t *values, np.float64_t bounds1, np.float64_t bounds2):
+              np.float64_t *values, np.float64_t bounds1, np.float64_t bounds2,
+              int field_id, int weight_field_id = -1):
     fit.bounds[0] = bounds1; fit.bounds[1] = bounds2
     fit.nbins = nbins
     fit.dbin = (fit.bounds[1] - fit.bounds[0])/fit.nbins
     fit.idbin = 1.0/fit.dbin
     # Better not pull this out from under us, yo
     fit.values = values
+    fit.field_id = field_id
+    fit.weight_field_id = weight_field_id
 
 cdef np.float64_t FIT_get_value(FieldInterpolationTable *fit,
-                            np.float64_t dv):
+                            np.float64_t *dvs):
     cdef np.float64_t bv, dy, dd, tf
     cdef int bin_id
-    bin_id = <int> ((dv - fit.bounds[0]) * fit.idbin)
-    dd = dv - (fit.bounds[0] + bin_id * fit.dbin) # x - x0
+    bin_id = <int> ((dvs[fit.field_id] - fit.bounds[0]) * fit.idbin)
+    dd = dvs[fit.field_id] - (fit.bounds[0] + bin_id * fit.dbin) # x - x0
     if bin_id > fit.nbins - 2 or bin_id < 0: return 0.0
     bv = fit.values[bin_id]
     dy = fit.values[bin_id + 1] - bv
+    if fit.weight_field_id != -1:
+        return dvs[fit.weight_field_id] * (bv + dd*dy*fit.idbin)
     return (bv + dd*dy*fit.idbin)
 
 cdef class TransferFunctionProxy:
@@ -112,7 +119,6 @@ cdef class TransferFunctionProxy:
     # correspond to multiple tables, and each field table will only have
     # interpolate called once.
     cdef FieldInterpolationTable field_tables[6]
-    cdef int field_ids[6]
     cdef np.float64_t istorage[6]
 
     # Here are the field tables that correspond to each of the six channels.
@@ -146,21 +152,25 @@ cdef class TransferFunctionProxy:
                       temp.shape[0],
                       <np.float64_t *> temp.data,
                       tf_obj.tables[i].x_bounds[0],
-                      tf_obj.tables[i].x_bounds[1])
+                      tf_obj.tables[i].x_bounds[1],
+                      tf_obj.field_ids[i], tf_obj.weight_field_ids[i])
             self.my_field_tables.append((tf_obj.tables[i],
                                          tf_obj.tables[i].y))
-            self.field_ids[i] = tf_obj.field_ids[i]
-            print "Field table", i, "corresponds to", self.field_ids[i]
+            self.field_tables[i].field_id = tf_obj.field_ids[i]
+            self.field_tables[i].weight_field_id = tf_obj.weight_field_ids[i]
+            print "Field table", i, "corresponds to",
+            print self.field_tables[i].field_id,
+            print "(Weighted with ", self.field_tables[i].weight_field_id,
+            print ")"
 
         for i in range(6):
-            self.field_ids[i] = tf_obj.field_ids[i]
             self.field_table_ids[i] = tf_obj.field_table_ids[i]
             print "Channel", i, "corresponds to", self.field_table_ids[i]
             
     @cython.boundscheck(False)
     @cython.wraparound(False)
     cdef void eval_transfer(self, np.float64_t dt, np.float64_t *dvs,
-                                    np.float64_t *rgba, np.float64_t *grad):
+                                  np.float64_t *rgba, np.float64_t *grad):
         cdef int i, fid, use
         cdef np.float64_t ta, tf, trgba[6], dot_prod
         # This very quick pass doesn't hurt us too badly, and it helps for
@@ -168,14 +178,13 @@ cdef class TransferFunctionProxy:
         # able to attenuate even in the presence of no emissivity.
         use = 0
         for i in range(self.n_field_tables):
-            fid = self.field_ids[i]
+            fid = self.field_tables[i].field_id
             if (dvs[fid] >= self.field_tables[i].bounds[0]) and \
                (dvs[fid] <= self.field_tables[i].bounds[1]):
                 use = 1
                 break
         for i in range(self.n_field_tables):
-            fid = self.field_ids[i]
-            self.istorage[i] = FIT_get_value(&self.field_tables[i], dvs[fid])
+            self.istorage[i] = FIT_get_value(&self.field_tables[i], dvs)
         for i in range(6):
             trgba[i] = self.istorage[self.field_table_ids[i]]
         # A few words on opacity.  We're going to be integrating equation 1.23

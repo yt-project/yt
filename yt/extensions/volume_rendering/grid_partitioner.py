@@ -54,15 +54,16 @@ class HomogenizedBrickCollection(DistributedObjectCollection):
     def write_hierarchy(self, base_filename):
         pass
     
-    def _partition_grid(self, grid, fields, log_field = True):
+    def _partition_grid(self, grid, fields, log_field = None):
         fields = ensure_list(fields)
+        if log_field is None: log_field = [True] * len(fields)
 
         # This is not super efficient, as it re-fills the regions once for each
         # field.
         vcds = []
-        for field in fields:
+        for i,field in enumerate(fields):
             vcd = grid.get_vertex_centered_data(field).astype('float64')
-            if log_field: vcd = na.log10(vcd)
+            if log_field[i]: vcd = na.log10(vcd)
             vcds.append(vcd)
 
         GF = GridFaces(grid.Children + [grid])
@@ -79,7 +80,7 @@ class HomogenizedBrickCollection(DistributedObjectCollection):
                         P.LeftEdge, P.RightEdge, sl[-1]))
         return pgs
 
-    def _partition_local_grids(self, fields = "Density", log_field = True):
+    def _partition_local_grids(self, fields = "Density", log_field = None):
         fields = ensure_list(fields)
         bricks = []
         # We preload.
