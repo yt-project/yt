@@ -33,7 +33,7 @@ class ParameterValue(AnalysisTask):
         self.cast = cast
 
     def eval(self, pf):
-        return self.cast(pf.get_parameter(parameter))
+        return self.cast(pf.get_parameter(self.parameter))
 
 class CurrentTimeYears(AnalysisTask):
     _params = []
