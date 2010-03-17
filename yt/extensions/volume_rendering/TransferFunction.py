@@ -175,25 +175,23 @@ class PlanckTransferFunction(MultiVariateTransferFunction):
             jf = johnson_filters[f]
             tf = TransferFunction(T_bounds)
             tf.add_filtered_planck(jf['wavelen'], jf['trans'])
-            self.add_field_table(tf, 0, 2)
+            self.add_field_table(tf, 0, 1)
             self.link_channels(i, i) # 0 => 0, 1 => 1, 2 => 2
 
         dr = (rho_bounds[1]-rho_bounds[0])/5
 
         tf = TransferFunction(rho_bounds)
-        #tf.add_gaussian(rho_bounds[0] + 2.0*dr, 2*dr, 1.0)
-        tf.add_line( (rho_bounds[0], 1.0), (rho_bounds[1], 1.0) )
+        tf.add_line( (rho_bounds[0], 0.1), (rho_bounds[1], 0.1) )
         self.add_field_table(tf, 1)
         self.link_channels(3, 3)
 
         tf = TransferFunction(rho_bounds)
-        tf.add_gaussian(rho_bounds[0] + 3.0*dr, 2*dr, 1.0)
+        tf.add_line( (rho_bounds[0], 0.1), (rho_bounds[1], 0.1) )
         self.add_field_table(tf, 1)
         self.link_channels(4, 4)
 
         tf = TransferFunction(rho_bounds)
-        dr = (rho_bounds[1]-rho_bounds[0])/5
-        tf.add_gaussian(rho_bounds[0] + 4.0*dr, 2*dr, 1.0)
+        tf.add_line( (rho_bounds[0], 0.1), (rho_bounds[1], 0.1) )
         self.add_field_table(tf, 1)
         self.link_channels(5, 5)
 
