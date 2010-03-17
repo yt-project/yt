@@ -280,6 +280,7 @@ class RavenPlot(object):
             self.ymin = DLE[yax] - DD[yax]
             self.ymax = DRE[yax] + DD[yax]
             self._period = (DD[xax], DD[yax])
+            self._edges = ( (DLE[xax], DRE[xax]), (DLE[yax], DRE[yax]) )
         else:
             # Not quite sure how to deal with this, particularly
             # in the Orion case.  Cutting planes are tricky.
@@ -296,6 +297,7 @@ class RavenPlot(object):
 class VMPlot(RavenPlot):
     _antialias = True
     _period = (0.0, 0.0)
+    _edges = True
     def __init__(self, data, field, figure = None, axes = None,
                  use_colorbar = True, size=None, periodic = False):
         fields = ['X', 'Y', field, 'X width', 'Y width']
@@ -360,13 +362,20 @@ class VMPlot(RavenPlot):
         # 'px' == pixel x, or x in the plane of the slice
         # 'x' == actual x
         aa = int(self._antialias)
+        if self._edges is True or \
+           x0 < self._edges[0][0] or x1 > self._edges[0][1] or \
+           y0 < self._edges[1][0] or y1 > self._edges[1][1]:
+            check_period = 1
+        else:
+            check_period = 0
         buff = _MPL.Pixelize(self.data['px'],
                             self.data['py'],
                             self.data['pdx'],
                             self.data['pdy'],
                             self[self.axis_names["Z"]],
                             int(height), int(width),
-                            (x0, x1, y0, y1),aa,self._period).transpose()
+                            (x0, x1, y0, y1),aa,self._period,
+                            check_period).transpose()
         return buff
 
     def _redraw_image(self, *args):
