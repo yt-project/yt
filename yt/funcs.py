@@ -28,6 +28,7 @@ import warnings
 import progressbar as pb
 from math import floor, ceil
 from yt.logger import ytLogger as mylog
+from yt.exceptions import *
 
 # Some compatibility functions.  In the long run, these *should* disappear as
 # we move toward newer python versions.  Most were implemented to get things

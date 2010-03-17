@@ -114,6 +114,15 @@ class OrionFieldContainer(CodeFieldInfoContainer):
 OrionFieldInfo = OrionFieldContainer()
 add_orion_field = OrionFieldInfo.add_field
 
+class GadgetFieldContainer(CodeFieldInfoContainer):
+    """
+    This is a container for Gadget-specific fields.
+    """
+    _shared_state = {}
+    _field_list = {}
+GadgetFieldInfo = GadgetFieldContainer()
+add_gadget_field = GadgetFieldInfo.add_field
+
 class ValidationException(Exception):
     pass
 

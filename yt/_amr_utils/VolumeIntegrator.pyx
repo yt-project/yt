@@ -119,6 +119,9 @@ cdef class TransferFunctionProxy:
         bin_id = <int> ((dv - self.x_bounds[0]) * self.idbin)
         # Recall that linear interpolation is y0 + (x-x0) * dx/dy
         dd = dv-(self.x_bounds[0] + bin_id * self.dbin) # x - x0
+        if bin_id > self.nbins - 2 or bin_id < 0:
+            for channel in range(4): trgba[channel] = 0.0
+            return
         for channel in range(4):
             bv = self.vs[channel][bin_id] # This is x0
             dy = self.vs[channel][bin_id+1]-bv # dy
@@ -150,7 +153,7 @@ cdef class VectorPlane:
     cdef public object avp_pos, avp_dir, acenter, aimage
     cdef np.float64_t *vp_pos, *vp_dir, *center, *image,
     cdef np.float64_t pdx, pdy, bounds[4]
-    cdef int nv
+    cdef int nv[2]
     cdef public object ax_vec, ay_vec
     cdef np.float64_t *x_vec, *y_vec
 
@@ -175,10 +178,11 @@ cdef class VectorPlane:
         self.image = <np.float64_t *> image.data
         self.x_vec = <np.float64_t *> x_vec.data
         self.y_vec = <np.float64_t *> y_vec.data
-        self.nv = vp_pos.shape[0]
+        self.nv[0] = vp_pos.shape[0]
+        self.nv[1] = vp_pos.shape[1]
         for i in range(4): self.bounds[i] = bounds[i]
-        self.pdx = (self.bounds[1] - self.bounds[0])/self.nv
-        self.pdy = (self.bounds[3] - self.bounds[2])/self.nv
+        self.pdx = (self.bounds[1] - self.bounds[0])/self.nv[0]
+        self.pdy = (self.bounds[3] - self.bounds[2])/self.nv[1]
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -190,10 +194,10 @@ cdef class VectorPlane:
         for i in range(3):
             cx += self.center[i] * self.x_vec[i]
             cy += self.center[i] * self.y_vec[i]
-        rv[0] = <int> floor((ex[0] - cx - self.bounds[0])/self.pdx)
-        rv[1] = rv[0] + <int> ceil((ex[1] - ex[0])/self.pdx)
-        rv[2] = <int> floor((ex[2] - cy - self.bounds[2])/self.pdy)
-        rv[3] = rv[2] + <int> ceil((ex[3] - ex[2])/self.pdy)
+        rv[0] = lrint((ex[0] - cx - self.bounds[0])/self.pdx)
+        rv[1] = rv[0] + lrint((ex[1] - ex[0])/self.pdx)
+        rv[2] = lrint((ex[2] - cy - self.bounds[2])/self.pdy)
+        rv[3] = rv[2] + lrint((ex[3] - ex[2])/self.pdy)
 
     cdef inline void copy_into(self, np.float64_t *fv, np.float64_t *tv,
                         int i, int j, int nk):
@@ -201,13 +205,13 @@ cdef class VectorPlane:
         # to-vector is flat and 'ni' long
         cdef int k
         for k in range(nk):
-            tv[k] = fv[(((k*self.nv)+j)*self.nv+i)]
+            tv[k] = fv[(((k*self.nv[1])+j)*self.nv[0]+i)]
 
     cdef inline void copy_back(self, np.float64_t *fv, np.float64_t *tv,
                         int i, int j, int nk):
         cdef int k
         for k in range(nk):
-            tv[(((k*self.nv)+j)*self.nv+i)] = fv[k]
+            tv[(((k*self.nv[1])+j)*self.nv[0]+i)] = fv[k]
 
 cdef class PartitionedGrid:
     cdef public object my_data
@@ -218,18 +222,20 @@ cdef class PartitionedGrid:
     cdef np.float64_t right_edge[3]
     cdef np.float64_t dds[3]
     cdef np.float64_t idds[3]
-    cdef public np.float64_t min_dds
     cdef int dims[3]
+    cdef public int parent_grid_id
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
     def __cinit__(self,
+                  int parent_grid_id,
                   np.ndarray[np.float64_t, ndim=3] data,
                   np.ndarray[np.float64_t, ndim=1] left_edge,
                   np.ndarray[np.float64_t, ndim=1] right_edge,
                   np.ndarray[np.int64_t, ndim=1] dims):
         # The data is likely brought in via a slice, so we copy it
         cdef int i, j, k, size
+        self.parent_grid_id = parent_grid_id
         self.LeftEdge = left_edge
         self.RightEdge = right_edge
         for i in range(3):
@@ -252,10 +258,13 @@ cdef class PartitionedGrid:
         cdef np.float64_t v_pos[3], v_dir[3], rgba[4], extrema[4]
         self.calculate_extent(vp, extrema)
         vp.get_start_stop(extrema, iter)
-        for i in range(4): iter[i] = iclip(iter[i], 0, vp.nv)
+        iter[0] = iclip(iter[0], 0, vp.nv[0])
+        iter[1] = iclip(iter[1], 0, vp.nv[0])
+        iter[2] = iclip(iter[2], 0, vp.nv[1])
+        iter[3] = iclip(iter[3], 0, vp.nv[1])
         hit = 0
-        for vj in range(iter[0], iter[1]):
-            for vi in range(iter[2], iter[3]):
+        for vi in range(iter[0], iter[1]):
+            for vj in range(iter[2], iter[3]):
                 vp.copy_into(vp.vp_pos, v_pos, vi, vj, 3)
                 vp.copy_into(vp.image, rgba, vi, vj, 4)
                 self.integrate_ray(v_pos, vp.vp_dir, rgba, tf)
@@ -415,7 +424,7 @@ cdef class PartitionedGrid:
             for i in range(3):
                 dp[i] += ds[i]
             dv = trilinear_interpolate(self.dims, ci, dp, self.data)
-            if not ((dv > tf.x_bounds[0]) and (dv < tf.x_bounds[1])):
+            if (dv < tf.x_bounds[0]) or (dv > tf.x_bounds[1]):
                 continue
             if tf.use_light == 1:
                 eval_gradient(self.dims, ci, dp, self.data, grad)
@@ -459,9 +468,12 @@ cdef class ProtoPrism:
     cdef public object LeftEdge
     cdef public object RightEdge
     cdef public object subgrid_faces
-    def __cinit__(self, np.ndarray[np.float64_t, ndim=1] left_edge,
-                       np.ndarray[np.float64_t, ndim=1] right_edge,
-                       subgrid_faces):
+    cdef public int parent_grid_id
+    def __cinit__(self, int parent_grid_id,
+                  np.ndarray[np.float64_t, ndim=1] left_edge,
+                  np.ndarray[np.float64_t, ndim=1] right_edge,
+                  subgrid_faces):
+        self.parent_grid_id = parent_grid_id
         cdef int i
         self.LeftEdge = left_edge
         self.RightEdge = right_edge
@@ -500,11 +512,13 @@ cdef class ProtoPrism:
 
         for i in range(3): split_left[i] = self.right_edge[i]
         split_left[direction] = sp[direction]
-        left = ProtoPrism(self.LeftEdge, split_left, self.subgrid_faces)
+        left = ProtoPrism(self.parent_grid_id, self.LeftEdge, split_left,
+                          self.subgrid_faces)
 
         for i in range(3): split_right[i] = self.left_edge[i]
         split_right[direction] = sp[direction]
-        right = ProtoPrism(split_right, self.RightEdge, self.subgrid_faces)
+        right = ProtoPrism(self.parent_grid_id, split_right, self.RightEdge,
+                           self.subgrid_faces)
 
         return (left, right)
 
@@ -528,5 +542,6 @@ cdef class ProtoPrism:
             dims[i] = idims[i]
         cdef np.ndarray[np.float64_t, ndim=3] new_data
         new_data = data[li[0]:ri[0]+1,li[1]:ri[1]+1,li[2]:ri[2]+1].copy()
-        PG = PartitionedGrid(new_data, self.LeftEdge, self.RightEdge, dims)
+        PG = PartitionedGrid(self.parent_grid_id, new_data,
+                             self.LeftEdge, self.RightEdge, dims)
         return [PG]
