@@ -69,7 +69,7 @@ ytcfgDefaults = {
     "raven":{
         'ImagePath':".",
         'ImageSkel': '%(bn)s_%(width)010i_%(unit)s',
-        'colormap': 'jet',
+        'colormap': 'algae',
         }
     }
 

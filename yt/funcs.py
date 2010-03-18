@@ -28,6 +28,7 @@ import warnings
 import progressbar as pb
 from math import floor, ceil
 from yt.logger import ytLogger as mylog
+from yt.exceptions import *
 
 # Some compatibility functions.  In the long run, these *should* disappear as
 # we move toward newer python versions.  Most were implemented to get things
@@ -304,6 +305,7 @@ def get_pbar(title, maxval):
     This returns a progressbar of the most appropriate type, given a *title*
     and a *maxval*.
     """
+    maxval = max(maxval, 1)
     from yt.config import ytcfg
     if ytcfg.getboolean("yt","inGui"):
         if maxval > ytcfg.getint("reason","minpbar"): # Arbitrary number
@@ -388,7 +390,10 @@ def paste_traceback(exc_type, exc, tb):
 if "--paste" in sys.argv:
     sys.excepthook = paste_traceback
     del sys.argv[sys.argv.index("--paste")]
-if "--rpdb" in sys.argv:
+elif "--detailed" in sys.argv:
+    import cgitb; cgitb.enable(format="text")
+    del sys.argv[sys.argv.index("--detailed")]
+elif "--rpdb" in sys.argv:
     sys.excepthook = rpdb.rpdb_excepthook
     del sys.argv[sys.argv.index("--rpdb")]
 

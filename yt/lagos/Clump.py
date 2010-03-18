@@ -32,8 +32,8 @@ class Clump(object):
         self.parent = parent
         self.data = data
         self.field = field
-        self.min = self.data[field].min()
-        self.max = self.data[field].max()
+        self.min_val = self.data[field].min()
+        self.max_val = self.data[field].max()
         self.cached_fields = cached_fields
 
         # List containing characteristics about clumps that are to be written 
@@ -106,12 +106,12 @@ class Clump(object):
             f_ptr.write("%s%s" % ('\t'*level,output))
             f_ptr.write("\n")
 
-    def find_children(self, min, max = None):
+    def find_children(self, min_val, max_val = None):
         if self.children is not None:
             print "Wiping out existing children clumps."
         self.children = []
-        if max is None: max = self.max
-        contour_info = identify_contours(self.data, self.field, min, max,
+        if max_val is None: max_val = self.max_val
+        contour_info = identify_contours(self.data, self.field, min_val, max_val,
                                          self.cached_fields)
         for cid in contour_info:
             new_clump = self.data.extract_region(contour_info[cid])
@@ -142,7 +142,7 @@ class Clump(object):
 
     def __reduce__(self):
         return (_reconstruct_clump, 
-                (self.parent, self.field, self.min, self.max,
+                (self.parent, self.field, self.min_val, self.max_val,
                  self.function_value, self.children, self.data, self.clump_info, self.function))
 
     def __getitem__(self,request):
@@ -153,7 +153,7 @@ def _reconstruct_clump(parent, field, mi, ma, function_value, children, data, cl
     obj = object.__new__(Clump)
     if iterable(parent): parent = parent[1]
     if children is None: children = []
-    obj.parent, obj.field, obj.min, obj.max, obj.function_value, obj.children, obj.clump_info, obj.function = \
+    obj.parent, obj.field, obj.min_val, obj.max_val, obj.function_value, obj.children, obj.clump_info, obj.function = \
         parent, field, mi, ma, function_value, children, clump_info, function
     # Now we override, because the parent/child relationship seems a bit
     # unreliable in the unpickling
@@ -162,19 +162,19 @@ def _reconstruct_clump(parent, field, mi, ma, function_value, children, data, cl
     if obj.parent is None: return (data[0], obj)
     return obj
 
-def find_clumps(clump, min, max, d_clump):
-    print "Finding clumps: min: %e, max: %e, step: %f" % (min, max, d_clump)
-    if min >= max: return
-    clump.find_children(min)
+def find_clumps(clump, min_val, max_val, d_clump):
+    print "Finding clumps: min: %e, max: %e, step: %f" % (min_val, max_val, d_clump)
+    if min_val >= max_val: return
+    clump.find_children(min_val)
 
     if (len(clump.children) == 1):
-        find_clumps(clump, min*d_clump, max, d_clump)
+        find_clumps(clump, min_val*d_clump, max_val, d_clump)
 
     elif (len(clump.children) > 0):
         these_children = []
         print "Investigating %d children." % len(clump.children)
         for child in clump.children:
-            find_clumps(child, min*d_clump, max, d_clump)
+            find_clumps(child, min_val*d_clump, max_val, d_clump)
             if ((child.children is not None) and (len(child.children) > 0)):
                 these_children.append(child)
             elif (child._isValid()):

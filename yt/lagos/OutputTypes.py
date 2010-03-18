@@ -168,7 +168,8 @@ class EnzoStaticOutput(StaticOutput):
     _fieldinfo_class = EnzoFieldContainer
     def __init__(self, filename, data_style=None,
                  parameter_override = None,
-                 conversion_override = None):
+                 conversion_override = None,
+                 storage_filename = None):
         """
         This class is a stripped down class that simply reads and parses
         *filename* without looking at the hierarchy.  *data_style* gets passed
@@ -182,6 +183,7 @@ class EnzoStaticOutput(StaticOutput):
         self.__parameter_override = parameter_override
         if conversion_override is None: conversion_override = {}
         self.__conversion_override = conversion_override
+        self.storage_filename = storage_filename
 
         StaticOutput.__init__(self, filename, data_style)
         if "InitialTime" not in self.parameters:
@@ -454,31 +456,27 @@ class EnzoStaticOutputInMemory(EnzoStaticOutput):
 
 class OrionStaticOutput(StaticOutput):
     """
-    This class is a stripped down class that simply reads and parses, without
-    looking at the Orion hierarchy.
-
-    @todo: 
-
-    @param filename: The filename of the parameterfile we want to load
-    @type filename: String
+    This class is a stripped down class that simply reads and parses
+    *filename*, without looking at the Orion hierarchy.
     """
     _hierarchy_class = OrionHierarchy
     _fieldinfo_class = OrionFieldContainer
 
     def __init__(self, plotname, paramFilename=None, fparamFilename=None,
-                 data_style='orion_native', paranoia=False):
+                 data_style='orion_native', paranoia=False,
+                 storage_filename = None):
         """need to override for Orion file structure.
 
         the paramfile is usually called "inputs"
         and there may be a fortran inputs file usually called "probin"
         plotname here will be a directory name
         as per BoxLib, data_style will be one of
-          Native
-          IEEE (not implemented in yt)
-          ASCII (not implemented in yt)
+         * Native
+         * IEEE (not implemented in yt)
+         * ASCII (not implemented in yt)
 
         """
-
+        self.storage_filename = storage_filename
         self.paranoid_read = paranoia
         self.parameter_filename = paramFilename
         self.fparameter_filename = fparamFilename
@@ -499,7 +497,7 @@ class OrionStaticOutput(StaticOutput):
         self.parameters["EOSType"] = -1 # default
         if self.fparameters.has_key("mu"):
             self.parameters["mu"] = self.fparameters["mu"]
-        self.parameters["RefineBy"] = self.parameters["RefineBy"][0]
+
     def _localize(self, f, default):
         if f is None:
             return os.path.join(self.directory, default)
@@ -546,7 +544,11 @@ class OrionStaticOutput(StaticOutput):
                 if len(t) == 1:
                     self.parameters[paramName] = t[0]
                 else:
-                    self.parameters[paramName] = t
+                    if paramName == "RefineBy":
+                        self.parameters[paramName] = t[0]
+                    else:
+                        self.parameters[paramName] = t
+                
             elif param.startswith("geometry.prob_hi"):
                 self.parameters["DomainRightEdge"] = \
                     na.array([float(i) for i in vals.split()])
@@ -606,3 +608,96 @@ def _reconstruct_pf(*args, **kwargs):
     pfs = ParameterFileStore()
     pf = pfs.get_pf_hash(*args)
     return pf
+
+class GadgetStaticOutput(StaticOutput):
+    _hierarchy_class = GadgetHierarchy
+    _fieldinfo_class = GadgetFieldContainer
+    def __init__(self, filename, particles, dimensions = None):
+        StaticOutput.__init__(self, filename, 'gadget_binary')
+        self.particles = particles
+        if "InitialTime" not in self.parameters:
+            self.parameters["InitialTime"] = 0.0
+        self.parameters["CurrentTimeIdentifier"] = \
+            int(os.stat(self.parameter_filename)[ST_CTIME])
+        if dimensions is None:
+            dimensions = na.ones((3,), dtype='int64') * 32
+        self.parameters['TopGridDimensions'] = dimensions
+        self.parameters['DomainLeftEdge'] = na.zeros(3, dtype='float64')
+        self.parameters['DomainRightEdge'] = na.ones(3, dtype='float64')
+        self.parameters['TopGridRank'] = 3
+        self.parameters['RefineBy'] = 2
+        self.field_info = self._fieldinfo_class()
+        self.units["Density"] = 1.0
+
+    def _parse_parameter_file(self):
+        pass
+
+    def _set_units(self):
+        self.units = {'1':1.0, 'unitary':1.0, 'cm':1.0}
+        self.time_units = {}
+
+class ChomboStaticOutput(StaticOutput):
+    _hierarchy_class = ChomboHierarchy
+    _fieldinfo_class = ChomboFieldContainer
+    
+    def __init__(self,filename,data_style='chombo_hdf5'):
+        StaticOutput.__init__(self,filename,data_style)
+
+        self.field_info = self._fieldinfo_class()
+        # hardcoded for now
+        self.parameters["InitialTime"] = 0.0
+        
+    def _set_units(self):
+        """
+        Generates the conversion to various physical _units based on the parameter file
+        """
+        self.units = {}
+        self.time_units = {}
+        if len(self.parameters) == 0:
+            self._parse_parameter_file()
+        self._setup_nounits_units()
+        self.conversion_factors = defaultdict(lambda: 1.0)
+        self.time_units['1'] = 1
+        self.units['1'] = 1.0
+        self.units['unitary'] = 1.0 / (self["DomainRightEdge"] - self["DomainLeftEdge"]).max()
+        seconds = 1 #self["Time"]
+        self.time_units['years'] = seconds / (365*3600*24.0)
+        self.time_units['days']  = seconds / (3600*24.0)
+        for key in yt2orionFieldsDict:
+            self.conversion_factors[key] = 1.0
+
+    def _setup_nounits_units(self):
+        z = 0
+        mylog.warning("Setting 1.0 in code units to be 1.0 cm")
+        if not self.has_key("TimeUnits"):
+            mylog.warning("No time units.  Setting 1.0 = 1 second.")
+            self.conversion_factors["Time"] = 1.0
+        for unit in mpc_conversion.keys():
+            self.units[unit] = mpc_conversion[unit] / mpc_conversion["cm"]
+
+
+    def _parse_parameter_file(self):
+        self.parameters["CurrentTimeIdentifier"] = \
+            int(os.stat(self.parameter_filename)[ST_CTIME])
+        self.parameters["DomainLeftEdge"] = na.array([0.,0.,0.])
+        self.parameters["DomainRightEdge"] = self.__calc_right_edge()
+        
+
+    def __calc_right_edge(self):
+        fileh = h5py.File(self.parameter_filename,'r')
+        dx0 = fileh['/level_0'].attrs['dx']
+        RE = dx0*((na.array(fileh['/level_0'].attrs['prob_domain']))[3:] + 1)
+        fileh.close()
+        return RE
+                   
+    @classmethod
+    def _is_valid(self, *args, **kwargs):
+        try:
+            fileh = h5py.File(args[0],'r')
+            if (fileh.listnames())[0] == 'Chombo_global':
+                return True
+        except:
+            pass
+        return False
+
+    

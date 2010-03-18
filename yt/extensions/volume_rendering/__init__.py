@@ -28,7 +28,9 @@ import numpy as na
 from TransferFunction import TransferFunction, ColorTransferFunction
 from yt.amr_utils import PartitionedGrid, VectorPlane, \
                              TransferFunctionProxy
-from grid_partitioner import partition_all_grids, partition_grid, \
+from grid_partitioner import HomogenizedBrickCollection, \
                              export_partitioned_grids, \
                              import_partitioned_grids
-from software_sampler import direct_ray_cast
+from software_sampler import VolumeRendering
+from image_handling import export_rgba, import_rgba, \
+                           plot_channel, plot_rgb

@@ -1,12 +1,11 @@
 """
-This module contains all of the mechanisms for parallel communication,
-and analysis in yt.
+Tools for parallelism.
 
 Author: Matthew Turk <matthewturk@gmail.com>
 Affiliation: KIPAC/SLAC/Stanford
 Homepage: http://yt.enzotools.org/
 License:
-  Copyright (C) 2008-2009 Matthew Turk.  All Rights Reserved.
+  Copyright (C) 2010 Matthew Turk.  All Rights Reserved.
 
   This file is part of yt.
 
@@ -28,6 +27,8 @@ from yt.funcs import *
 import yt.logger
 import logging
 import sys
+from yt.lagos.ParallelTools import ParallelAnalysisInterface
+from distributed_object_collection import DistributedObjectCollection
 
 exe_name = os.path.basename(sys.executable)
 # At import time, we determined whether or not we're being run in parallel.
@@ -64,4 +65,3 @@ if exe_name in __exe_names \
           "Log Level is set low -- this could affect parallel performance!")
 else:
     parallel_capable = False
-

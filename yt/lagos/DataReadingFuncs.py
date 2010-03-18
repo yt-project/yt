@@ -32,7 +32,7 @@ io_registry = {}
 class BaseIOHandler(object):
 
     _data_style = None
-    _particle_reader = True
+    _particle_reader = False
 
     class __metaclass__(type):
         def __init__(cls, name, b, d):
@@ -56,13 +56,6 @@ class BaseIOHandler(object):
             # We only read the one set and do not store it if it isn't pre-loaded
             return self._read_data_set(grid, field)
 
-    def _read_particles(self, fields, rtype, args, grid_list, enclosed,
-                        conv_factors):
-        filenames = [g.filename for g in grid_list]
-        ids = [g.id for g in grid_list]
-        return HDF5LightReader.ReadParticles(
-            rtype, fields, filenames, ids, conv_factors, args, 0)
-
     def peek(self, grid, field):
         return self.queue[grid.id].get(field, None)
 
@@ -85,7 +78,7 @@ class BaseIOHandler(object):
     def _read_exception(self):
         return None
 
-class IOHandlerHDF4(BaseIOHandler):
+class IOHandlerEnzoHDF4(BaseIOHandler):
 
     _data_style = "enzo_hdf4"
 
@@ -129,7 +122,7 @@ class IOHandlerHDF4(BaseIOHandler):
     def _read_exception(self):
         return SD.HDF4Error
 
-class IOHandlerHDF4_2D(IOHandlerHDF4):
+class IOHandlerEnzoHDF4_2D(IOHandlerEnzoHDF4):
 
     _data_style = "enzo_hdf4_2d"
 
@@ -144,9 +137,10 @@ class IOHandlerHDF4_2D(IOHandlerHDF4):
     def modify(self, field):
         return field
 
-class IOHandlerHDF5(BaseIOHandler):
+class IOHandlerEnzoHDF5(BaseIOHandler):
 
     _data_style = "enzo_hdf5"
+    _particle_reader = True
 
     def _read_field_names(self, grid):
         """
@@ -181,6 +175,13 @@ class IOHandlerHDF5(BaseIOHandler):
     def _read_exception(self):
         return (exceptions.KeyError, HDF5LightReader.ReadingError)
 
+    def _read_particles(self, fields, rtype, args, grid_list, enclosed,
+                        conv_factors):
+        filenames = [g.filename for g in grid_list]
+        ids = [g.id for g in grid_list]
+        return HDF5LightReader.ReadParticles(
+            rtype, fields, filenames, ids, conv_factors, args, 0)
+
 class IOHandlerExtracted(BaseIOHandler):
 
     _data_style = 'extracted'
@@ -202,8 +203,9 @@ class IOHandlerPackedHDF5(BaseIOHandler):
                         conv_factors):
         filenames = [g.filename for g in grid_list]
         ids = [g.id for g in grid_list]
+        filenames, ids, conv_factors = zip(*sorted(zip(filenames, ids, conv_factors)))
         return HDF5LightReader.ReadParticles(
-            rtype, fields, filenames, ids, conv_factors, args, 1)
+            rtype, fields, list(filenames), list(ids), conv_factors, args, 1)
 
     def modify(self, field):
         return field.swapaxes(0,2)
@@ -390,6 +392,7 @@ class IOHandlerNative(BaseIOHandler):
 class IOHandlerPacked2D(IOHandlerPackedHDF5):
 
     _data_style = "enzo_packed_2d"
+    _particle_reader = False
 
     def _read_data_set(self, grid, field):
         return HDF5LightReader.ReadData(grid.filename,
@@ -407,6 +410,7 @@ class IOHandlerPacked2D(IOHandlerPackedHDF5):
 class IOHandlerPacked1D(IOHandlerPackedHDF5):
 
     _data_style = "enzo_packed_1d"
+    _particle_reader = False
 
     def _read_data_set(self, grid, field):
         return HDF5LightReader.ReadData(grid.filename,
@@ -420,7 +424,52 @@ class IOHandlerPacked1D(IOHandlerPackedHDF5):
                         (grid.id, field))
         return t
 
+class IOHandlerGadget(BaseIOHandler):
+    _data_style = 'gadget_binary'
+    def _read_data_set(self, grid, field):
+        return grid._storage[field]
+
 #
-# BoxLib/Orion data readers follow
+# Chombo readers
 #
+
+class IOHandlerChomboHDF5(BaseIOHandler):
+    _data_style = "chombo_hdf5"
+    _offset_string = 'data:offsets=0'
+    _data_string = 'data:datatype=0'
+
+    def _field_dict(self,fhandle):
+        ncomp = int(fhandle['/'].attrs['num_components'])
+        temp =  fhandle['/'].attrs.listitems()[-ncomp:]
+        val, keys = zip(*temp)
+        val = [int(re.match('component_(\d+)',v).groups()[0]) for v in val]
+        return dict(zip(keys,val))
+        
+    def _read_field_names(self,grid):
+        fhandle = h5py.File(grid.filename,'r')
+        ncomp = int(fhandle['/'].attrs['num_components'])
+
+        return [c[1] for c in f['/'].attrs.listitems()[-ncomp:]]
     
+    def _read_data_set(self,grid,field):
+        fhandle = h5py.File(grid.hierarchy.hierarchy_filename,'r')
+
+        field_dict = self._field_dict(fhandle)
+        lstring = 'level_%i' % grid.Level
+        lev = fhandle[lstring]
+        dims = grid.ActiveDimensions
+        boxsize = dims.prod()
+        
+        grid_offset = lev[self._offset_string][grid._level_id]
+        start = grid_offset+field_dict[field]*boxsize
+        stop = start + boxsize
+        data = lev[self._data_string][start:stop]
+
+        return data.reshape(dims, order='F')
+                                          
+
+    def _read_data_slice(self, grid, field, axis, coord):
+        sl = [slice(None), slice(None), slice(None)]
+        sl[axis] = slice(coord, coord + 1)
+        return self._read_data_set(grid,field)[sl]
+

@@ -33,7 +33,8 @@ import yt.lagos as lagos
 import yt.raven as raven
 import yt.fido as fido
 import numpy as na
-import sys, types
+# We do a bunch of standard imports
+import sys, types, os, glob, cPickle
 from logger import ytLogger as mylog
 from performance_counters import yt_counters, time_function
 
@@ -42,9 +43,10 @@ from yt.lagos import EnzoStaticOutput, \
     BinnedProfile1D, BinnedProfile2D, BinnedProfile3D, \
     derived_field, \
     add_field, FieldInfo, EnzoFieldInfo, Enzo2DFieldInfo, OrionFieldInfo, \
+    GadgetFieldInfo, \
     Clump, write_clump_hierarchy, find_clumps, write_clumps, \
-    OrionStaticOutput, HaloFinder, HOPHaloFinder, FOFHaloFinder, \
-    axis_names, x_dict, y_dict
+    OrionStaticOutput, HaloFinder, HOPHaloFinder, FOFHaloFinder, parallelHF, \
+    axis_names, x_dict, y_dict, StructFcnGen, StructSet
 
 # This is a temporary solution -- in the future, we will allow the user to
 # select this via ytcfg.

@@ -33,7 +33,7 @@ try:
     from pyhdf_np import SD # NumPy
     import pyhdf_np.error   # NumPy
 except:
-    mylog.info("No HDF4 support")
+    mylog.debug("No HDF4 support")
 
 import warnings
 try:
@@ -75,6 +75,7 @@ from FieldInfoContainer import *
 from UniversalFields import *
 from EnzoFields import *
 from OrionFields import *
+from ChomboFields import *
 fieldInfo = EnzoFieldInfo
 
 # NOT the same as fieldInfo.add_field
@@ -98,6 +99,8 @@ from OutputTypes import *
 from Profiles import *
 
 from HaloFinding import *
+
+from StructureFunctionGenerator import *
 
 # We load plugins.  Keep in mind, this can be fairly dangerous -
 # the primary purpose is to allow people to have a set of functions

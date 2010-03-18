@@ -114,6 +114,15 @@ class OrionFieldContainer(CodeFieldInfoContainer):
 OrionFieldInfo = OrionFieldContainer()
 add_orion_field = OrionFieldInfo.add_field
 
+class GadgetFieldContainer(CodeFieldInfoContainer):
+    """
+    This is a container for Gadget-specific fields.
+    """
+    _shared_state = {}
+    _field_list = {}
+GadgetFieldInfo = GadgetFieldContainer()
+add_gadget_field = GadgetFieldInfo.add_field
+
 class ValidationException(Exception):
     pass
 
@@ -165,6 +174,8 @@ class FieldDetector(defaultdict):
                     return self._read_data(field)
                 _read_exception = RuntimeError
             io = fake_io()
+            def get_smallest_dx(self):
+                return 1.0
         self.hierarchy = fake_hierarchy()
         self.requested = []
         self.requested_parameters = []

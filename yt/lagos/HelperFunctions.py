@@ -27,8 +27,9 @@ License:
 from yt.lagos import *
 
 class UnilinearFieldInterpolator:
-    def __init__(self, table, boundaries, field_names):
+    def __init__(self, table, boundaries, field_names, truncate=False):
         self.table = table.astype('float64')
+        self.truncate = truncate
         x0, x1 = boundaries
         self.x_name = field_names
         self.x_bins = na.linspace(x0, x1, table.shape[0]).astype('float64')
@@ -39,14 +40,17 @@ class UnilinearFieldInterpolator:
 
         x_i = (na.digitize(x_vals, self.x_bins) - 1).astype('int32')
         if na.any((x_i == -1) | (x_i == len(self.x_bins)-1)):
-            mylog.error("Sorry, but your values are outside" + \
-                        " the table!  Dunno what to do, so dying.")
-            mylog.error("Error was in: %s", data_object)
-            raise ValueError
+            if not self.truncate:
+                mylog.error("Sorry, but your values are outside" + \
+                            " the table!  Dunno what to do, so dying.")
+                mylog.error("Error was in: %s", data_object)
+                raise ValueError
+            else:
+                x_i = na.minimum(na.maximum(x_i,0), len(self.x_bins)-2)
 
         my_vals = na.zeros(x_vals.shape, dtype='float64')
         amr_utils.UnilinearlyInterpolate(self.table, x_vals, self.x_bins, x_i, my_vals)
-        return my_vals
+        return my_vals.reshape(orig_shape)
 
 class BilinearFieldInterpolator:
     def __init__(self, table, boundaries, field_names, truncate=False):

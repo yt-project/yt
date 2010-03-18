@@ -72,7 +72,7 @@ class GridConsiderationQueue:
 # We want an algorithm that deals with growing a given contour to *all* the
 # cells in a grid.
 
-def identify_contours(data_source, field, min_val, max_val, cached_fields=None):
+def old_identify_contours(data_source, field, min_val, max_val, cached_fields=None):
     """
     Given a *data_source*, we will search for topologically connected sets
     in *field* between *min_val* and *max_val*.
@@ -221,3 +221,104 @@ for(i=0;i<mp;i++){
 }
 n_bad(0) += k;
 """
+
+def coalesce_join_tree(jtree1):
+    joins = defaultdict(set)
+    nj = jtree1.shape[0]
+    for i1 in range(nj):
+        current_new = jtree1[i1, 0]
+        current_old = jtree1[i1, 1]
+        for i2 in range(nj):
+            if jtree1[i2, 1] == current_new:
+                current_new = max(current_new, jtree1[i2, 0])
+        jtree1[i1, 0] = current_new
+    for i1 in range(nj):
+        joins[jtree1[i1, 0]].update([jtree1[i1, 1], jtree1[i1, 0]])
+    updated = -1
+    while updated != 0:
+        keys = list(reversed(sorted(joins.keys())))
+        updated = 0
+        for k1 in keys + keys[::-1]:
+            if k1 not in joins: continue
+            s1 = joins[k1]
+            for k2 in keys + keys[::-1]:
+                if k2 >= k1: continue
+                if k2 not in joins: continue
+                s2 = joins[k2]
+                if k2 in s1:
+                    s1.update(joins.pop(k2))
+                    updated += 1
+                elif not s1.isdisjoint(s2):
+                    s1.update(joins.pop(k2))
+                    s1.update([k2])
+                    updated += 1
+    return joins
+
+def identify_contours(data_source, field, min_val, max_val,
+                          cached_fields=None):
+    cur_max_id = na.sum([g.ActiveDimensions.prod() for g in data_source._grids])
+    pbar = get_pbar("First pass", len(data_source._grids))
+    grids = sorted(data_source._grids, key=lambda g: -g.Level)
+    total_contours = 0
+    tree = []
+    for gi,grid in enumerate(grids):
+        pbar.update(gi+1)
+        cm = data_source._get_cut_mask(grid)
+        if cm is True: cm = na.ones(grid.ActiveDimensions, dtype='bool')
+        local_ind = na.where( (grid[field] > min_val)
+                            & (grid[field] < max_val) & cm )
+        if local_ind[0].size == 0: continue
+        kk = na.arange(cur_max_id, cur_max_id-local_ind[0].size, -1)
+        grid["tempContours"] = na.ones(grid.ActiveDimensions, dtype='int64') * -1
+        grid["tempContours"][local_ind] = kk[:]
+        cur_max_id -= local_ind[0].size
+        xi_u,yi_u,zi_u = na.where(grid["tempContours"] > -1)
+        cor_order = na.argsort(-1*grid["tempContours"][(xi_u,yi_u,zi_u)])
+        fd_orig = grid["tempContours"].copy()
+        xi = xi_u[cor_order]
+        yi = yi_u[cor_order]
+        zi = zi_u[cor_order]
+        while PointCombine.FindContours(grid["tempContours"], xi, yi, zi) < 0:
+            pass
+        total_contours += na.unique(grid["tempContours"][grid["tempContours"] > -1]).size
+        new_contours = na.unique(grid["tempContours"][grid["tempContours"] > -1]).tolist()
+        tree += zip(new_contours, new_contours)
+    pbar.finish()
+    pbar = get_pbar("Calculating joins ", len(data_source._grids))
+    grid_set = set()
+    for gi,grid in enumerate(grids):
+        pbar.update(gi)
+        cg = grid.retrieve_ghost_zones(1, "tempContours", smoothed=False)
+        grid_set.update(set(cg._grids))
+        fd = cg["tempContours"].astype('int64')
+        tree += amr_utils.construct_boundary_relationships(fd)
+    pbar.finish()
+    sort_new = na.array(list(set(tree)), dtype='int64')
+    mylog.info("Coalescing %s joins", sort_new.shape[0])
+    joins = coalesce_join_tree(sort_new)
+    pbar = get_pbar("Joining ", len(joins))
+    # This process could and should be done faster
+    for i, new in enumerate(sorted(joins.keys())):
+        pbar.update(i)
+        old_set = joins[new]
+        for old in old_set:
+            if old == new: continue
+            i1 = (data_source["tempContours"] == old)
+            data_source["tempContours"][i1] = new
+    pbar.finish()
+    data_source._flush_data_to_grids("tempContours", -1, dtype='int64')
+    del data_source.data["tempContours"] # Force a reload from the grids
+    data_source.get_data("tempContours", in_grids=True)
+    contour_ind = {}
+    i = 0
+    for contour_id in na.unique(data_source["tempContours"]):
+        if contour_id == -1: continue
+        contour_ind[i] = na.where(data_source["tempContours"] == contour_id)
+        mylog.debug("Contour id %s has %s cells", i, contour_ind[i][0].size)
+        i += 1
+    mylog.info("Identified %s contours between %0.5e and %0.5e",
+               len(contour_ind.keys()),min_val,max_val)
+    for grid in chain(grid_set):
+        grid.data.pop("tempContours", None)
+    del data_source.data["tempContours"]
+    return contour_ind

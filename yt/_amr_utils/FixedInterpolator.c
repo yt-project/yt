@@ -72,3 +72,37 @@ npy_float64 trilinear_interpolate(int *ds, int *ci, npy_float64 *dp,
     /*assert(dv < -20);*/
     return vz[0];
 }
+
+npy_float64 eval_gradient(int *ds, int *ci, npy_float64 *dp,
+				  npy_float64 *data, npy_float64 *grad)
+{
+    // We just take some small value
+
+    int i;
+    npy_float64 denom, plus, minus, backup, normval;
+    
+    normval = 0.0;
+    for (i = 0; i < 3; i++) {
+      backup = dp[i];
+      grad[i] = 0.0;
+      if (dp[i] >= 0.95) {plus = dp[i]; minus = dp[i] - 0.05;}
+      else if (dp[i] <= 0.05) {plus = dp[i] + 0.05; minus = 0.0;}
+      else {plus = dp[i] + 0.05; minus = dp[i] - 0.05;}
+      //fprintf(stderr, "DIM: %d %0.3lf %0.3lf\n", i, plus, minus);
+      denom = plus - minus;
+      dp[i] = plus;
+      grad[i] += trilinear_interpolate(ds, ci, dp, data) / denom;
+      dp[i] = minus;
+      grad[i] -= trilinear_interpolate(ds, ci, dp, data) / denom;
+      dp[i] = backup;
+      normval += grad[i]*grad[i];
+    }
+    if (normval != 0.0){
+      normval = sqrt(normval);
+      for (i = 0; i < 3; i++) grad[i] /= -normval;
+      //fprintf(stderr, "Normval: %0.3lf %0.3lf %0.3lf %0.3lf\n",
+      //        normval, grad[0], grad[1], grad[2]);
+    }else{
+      grad[0]=grad[1]=grad[2]=0.0;
+    }
+}

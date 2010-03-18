@@ -35,10 +35,7 @@ from math import pi
 from yt.funcs import *
 from FieldInfoContainer import *
 
-try:
-    import cic_deposit
-except ImportError:
-    pass
+from yt.amr_utils import CICDeposit_3
 
 mh = 1.67e-24 # g
 me = 9.11e-28 # g
@@ -101,13 +98,13 @@ add_field("GridLevel", function=_GridLevel,
                       ValidateSpatial(0)])
 
 def _GridIndices(field, data):
-    return na.ones(data["Density"].shape)*(data.id-data._id_offset)
+    return na.ones(data["Ones"].shape)*(data.id-data._id_offset)
 add_field("GridIndices", function=_GridIndices,
           validators=[ValidateGridType(),
                       ValidateSpatial(0)], take_log=False)
 
 def _OnesOverDx(field, data):
-    return na.ones(data["Density"].shape,
+    return na.ones(data["Ones"].shape,
                    dtype=data["Density"].dtype)/data['dx']
 add_field("OnesOverDx", function=_OnesOverDx,
           display_field=False)
@@ -195,8 +192,13 @@ def _ParticleMass(field, data):
                 just_one(data["CellVolumeCode"].ravel())
     # Note that we mandate grid-type here, so this is okay
     return particles
+
 def _convertParticleMass(data):
     return data.convert("Density")*(data.convert("cm")**3.0)
+def _IOLevelParticleMass(grid):
+    dd = dict(particle_mass = na.ones(1), CellVolumeCode=grid["CellVolumeCode"])
+    cf = (_ParticleMass(None, dd) * _convertParticleMass(grid))[0]
+    return cf
 def _convertParticleMassMsun(data):
     return data.convert("Density")*((data.convert("cm")**3.0)/1.989e33)
 def _IOLevelParticleMassMsun(grid):
@@ -205,7 +207,8 @@ def _IOLevelParticleMassMsun(grid):
     return cf
 add_field("ParticleMass",
           function=_ParticleMass, validators=[ValidateSpatial(0)],
-          particle_type=True, convert_function=_convertParticleMass)
+          particle_type=True, convert_function=_convertParticleMass,
+          particle_convert_function=_IOLevelParticleMass)
 add_field("ParticleMassMsun",
           function=_ParticleMass, validators=[ValidateSpatial(0)],
           particle_type=True, convert_function=_convertParticleMassMsun,
@@ -631,7 +634,8 @@ def _ConvertRadiusCGS(data):
 add_field("ParticleRadius", function=_ParticleRadius,
           validators=[ValidateParameter("center")],
           convert_function = _ConvertRadiusCGS, units=r"\rm{cm}",
-          particle_type = True)
+          particle_type = True,
+          display_name = "Particle Radius")
 add_field("Radius", function=_Radius,
           validators=[ValidateParameter("center")],
           convert_function = _ConvertRadiusCGS, units=r"\rm{cm}")
@@ -640,57 +644,69 @@ def _ConvertRadiusMpc(data):
     return data.convert("mpc")
 add_field("RadiusMpc", function=_Radius,
           validators=[ValidateParameter("center")],
-          convert_function = _ConvertRadiusMpc, units=r"\rm{Mpc}")
+          convert_function = _ConvertRadiusMpc, units=r"\rm{Mpc}",
+          display_name = "Radius")
 add_field("ParticleRadiusMpc", function=_ParticleRadius,
           validators=[ValidateParameter("center")],
           convert_function = _ConvertRadiusMpc, units=r"\rm{Mpc}",
-          particle_type=True)
+          particle_type=True,
+          display_name = "Particle Radius")
 
 def _ConvertRadiuskpc(data):
     return data.convert("kpc")
 add_field("ParticleRadiuskpc", function=_ParticleRadius,
           validators=[ValidateParameter("center")],
           convert_function = _ConvertRadiuskpc, units=r"\rm{kpc}",
-          particle_type=True)
+          particle_type=True,
+          display_name = "Particle Radius")
 add_field("Radiuskpc", function=_Radius,
           validators=[ValidateParameter("center")],
-          convert_function = _ConvertRadiuskpc, units=r"\rm{kpc}")
+          convert_function = _ConvertRadiuskpc, units=r"\rm{kpc}",
+          display_name = "Radius")
 
 def _ConvertRadiuskpch(data):
     return data.convert("kpch")
 add_field("ParticleRadiuskpch", function=_ParticleRadius,
           validators=[ValidateParameter("center")],
           convert_function = _ConvertRadiuskpc, units=r"\rm{kpc}/\rm{h}",
-          particle_type=True)
+          particle_type=True,
+          display_name = "Particle Radius")
 add_field("Radiuskpch", function=_Radius,
           validators=[ValidateParameter("center")],
-          convert_function = _ConvertRadiuskpc, units=r"\rm{kpc}/\rm{h}")
+          convert_function = _ConvertRadiuskpc, units=r"\rm{kpc}/\rm{h}",
+          display_name = "Radius")
 
 def _ConvertRadiuspc(data):
     return data.convert("pc")
 add_field("ParticleRadiuspc", function=_ParticleRadius,
           validators=[ValidateParameter("center")],
           convert_function = _ConvertRadiuspc, units=r"\rm{pc}",
-          particle_type=True)
+          particle_type=True,
+          display_name = "Particle Radius")
 add_field("Radiuspc", function=_Radius,
           validators=[ValidateParameter("center")],
-          convert_function = _ConvertRadiuspc, units=r"\rm{pc}")
+          convert_function = _ConvertRadiuspc, units=r"\rm{pc}",
+          display_name="Radius")
 
 def _ConvertRadiusAU(data):
     return data.convert("au")
 add_field("ParticleRadiusAU", function=_ParticleRadius,
           validators=[ValidateParameter("center")],
           convert_function = _ConvertRadiusAU, units=r"\rm{AU}",
-          particle_type=True)
+          particle_type=True,
+          display_name = "Particle Radius")
 add_field("RadiusAU", function=_Radius,
           validators=[ValidateParameter("center")],
-          convert_function = _ConvertRadiusAU, units=r"\rm{AU}")
+          convert_function = _ConvertRadiusAU, units=r"\rm{AU}",
+          display_name = "Radius")
 
 add_field("ParticleRadiusCode", function=_ParticleRadius,
           validators=[ValidateParameter("center")],
-          particle_type=True)
+          particle_type=True,
+          display_name = "Particle Radius (code)")
 add_field("RadiusCode", function=_Radius,
-          validators=[ValidateParameter("center")])
+          validators=[ValidateParameter("center")],
+          display_name = "Radius (code)")
 
 def _RadialVelocity(field, data):
     center = data.get_field_parameter("center")
@@ -715,6 +731,9 @@ add_field("RadialVelocityABS", function=_RadialVelocityABS,
           units=r"\rm{cm}/\rm{s}",
           validators=[ValidateParameter("center")])
 add_field("RadialVelocityKMS", function=_RadialVelocity,
+          convert_function=_ConvertRadialVelocityKMS, units=r"\rm{km}/\rm{s}",
+          validators=[ValidateParameter("center")])
+add_field("RadialVelocityKMSABS", function=_RadialVelocityABS,
           convert_function=_ConvertRadialVelocityKMS, units=r"\rm{km}/\rm{s}",
           validators=[ValidateParameter("center")])
 
@@ -758,3 +777,22 @@ def _JeansMassMsun(field,data):
             (data["Density"]**(-0.5)))
 add_field("JeansMassMsun",function=_JeansMassMsun,
           units=r"\rm{M_{\odot}}")
+
+def _convertDensity(data):
+    return data.convert("Density")
+def _pdensity_pyx(field, data):
+    blank = na.zeros(data.ActiveDimensions, dtype='float32')
+    if data.NumberOfParticles == 0: return blank
+    CICDeposit_3(data["particle_position_x"].astype(na.float64),
+                 data["particle_position_y"].astype(na.float64),
+                 data["particle_position_z"].astype(na.float64),
+                 data["particle_mass"].astype(na.float32),
+                 na.int64(data.NumberOfParticles),
+                 blank, na.array(data.LeftEdge).astype(na.float64),
+                 na.array(data.ActiveDimensions).astype(na.int32),
+                 na.float64(data['dx']))
+    return blank
+add_field("particle_density_pyx", function=_pdensity_pyx,
+          validators=[ValidateSpatial(0)], convert_function=_convertDensity,
+          display_name=r"\mathrm{Particle}\/\mathrm{Density})")
+

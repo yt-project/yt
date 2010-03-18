@@ -24,62 +24,147 @@ License:
 """
 
 import numpy as na
+import h5py
 from yt.extensions.volume_rendering import *
 from yt.funcs import *
+from yt.lagos import data_object_registry, ParallelAnalysisInterface
 
-def direct_ray_cast(pf, L, center, W, Nvec, tf, 
-                    partitioned_grids = None):
-    center = na.array(center, dtype='float64')
+# We're going to register this class, but it does not directly inherit from
+# AMRData.
+class VolumeRendering(ParallelAnalysisInterface):
+    bricks = None
+    def __init__(self, normal_vector, width, center,
+                 resolution, transfer_function,
+                 fields = None, whole_box = False,
+                 sub_samples = 5, north_vector = None,
+                 pf = None):
+        # Now we replicate some of the 'cutting plane' logic
+        if not iterable(resolution):
+            resolution = (resolution, resolution)
+        self.resolution = resolution
+        self.sub_samples = sub_samples
+        if not iterable(width):
+            width = (width, width, width) # front/back, left/right, top/bottom
+        self.width = width
+        self.center = center
+        if fields is None: fields = ["Density"]
+        self.fields = fields
+        self.transfer_function = transfer_function
 
-    # This just helps us keep track of stuff, and it's cheap
-    cp = pf.h.cutting(L, center)
-    back_center = center - cp._norm_vec * W
-    front_center = center + cp._norm_vec * W
-    cylinder = pf.h.disk(back_center, L, na.sqrt(2)*W, 2*W)
+        # Now we set up our  various vectors
+        normal_vector /= na.sqrt( na.dot(normal_vector, normal_vector))
+        if north_vector is None:
+            vecs = na.identity(3)
+            t = na.cross(normal_vector, vecs).sum(axis=1)
+            ax = t.argmax()
+            north_vector = na.cross(vecs[ax,:], normal_vector).ravel()
+        north_vector /= na.sqrt(na.dot(north_vector, north_vector))
+        east_vector = -na.cross(north_vector, normal_vector).ravel()
+        east_vector /= na.sqrt(na.dot(east_vector, east_vector))
+        self.unit_vectors = [north_vector, east_vector, normal_vector]
+        self.box_vectors = na.array([self.unit_vectors[0]*self.width[0],
+                                     self.unit_vectors[1]*self.width[1],
+                                     self.unit_vectors[2]*self.width[2]])
 
-    if partitioned_grids == None:
-        partitioned_grids = partition_all_grids(cylinder._grids,
-                                    eval_func = lambda g: na.any(cylinder._get_point_indices(g)))
-    #partitioned_grids = partition_all_grids(pf.h.grids)
+        self.origin = center - 0.5*width[0]*self.unit_vectors[0] \
+                             - 0.5*width[1]*self.unit_vectors[1] \
+                             - 0.5*width[2]*self.unit_vectors[2]
+        self.back_center = center - 0.5*width[0]*self.unit_vectors[2]
+        self.front_center = center + 0.5*width[0]*self.unit_vectors[2]
 
-    LE = (na.array([grid.LeftEdge for grid in partitioned_grids]) - back_center) * cp._norm_vec
-    RE = (na.array([grid.RightEdge for grid in partitioned_grids]) - back_center) * cp._norm_vec
-    DL = na.sum(LE, axis=1); del LE
-    DR = na.sum(RE, axis=1); del RE
-    dist = na.minimum(DL, DR)
-    ind = na.argsort(dist)
-    
-    image = na.zeros((Nvec,Nvec,4), dtype='float64', order='F')
-    image[:,:,3] = 0.0
+        self._initialize_source()
+        self._construct_vector_array()
 
-    # Now we need to generate regular x,y,z values in regular space for our vector
-    # starting places.
-    px, py = na.mgrid[-W:W:Nvec*1j,-W:W:Nvec*1j]
-    xv = cp._inv_mat[0,0]*px + cp._inv_mat[0,1]*py + cp.center[0]
-    yv = cp._inv_mat[1,0]*px + cp._inv_mat[1,1]*py + cp.center[1]
-    zv = cp._inv_mat[2,0]*px + cp._inv_mat[2,1]*py + cp.center[2]
-    vectors = na.array([xv, yv, zv], dtype='float64').transpose()
-    vectors = vectors.copy('F')
-    xp0, xp1 = px.min(), px.max()
-    yp0, yp1 = py.min(), py.max()
+    def _initialize_source(self):
+        check, source, rf = self._partition_hierarchy_2d_inclined(
+                self.unit_vectors, self.origin, self.width, self.box_vectors)
+        if check:
+            self._base_source = self.pf.h.inclined_box(
+                self.origin, self.box_vectors)
+        else:
+            # To avoid doubling-up
+            self._base_source = source
+        self.source = source
+        self.res_fac = rf
+        # Note that if we want to do this in parallel, with 3D domain decomp
+        # for the grid/bricks, we can supply self._base_source here.  But,
+        # _distributed can't be overridden in that case.
+        self._brick_collection = HomogenizedBrickCollection(self.source)
 
-    ng = partitioned_grids.size
-    norm_vec = cp._norm_vec
-    norm_vec = cp._norm_vec * (2.0*W)
-    hit = 0
-    tnow = time.time()
-    every = na.ceil(len(partitioned_grids) / 100.0)
+    def ray_cast(self, finalize=True):
+        if self.bricks is None: self.partition_grids()
+        # Now we order our bricks
+        total_cells, LE, RE = 0, [], []
+        for b in self.bricks:
+            LE.append(b.LeftEdge)
+            RE.append(b.RightEdge)
+            total_cells += na.prod(b.my_data.shape)
+        LE = na.array(LE) - self.back_center
+        RE = na.array(RE) - self.back_center
+        LE = na.sum(LE * self.unit_vectors[2], axis=1)
+        RE = na.sum(RE * self.unit_vectors[2], axis=1)
+        dist = na.minimum(LE, RE)
+        ind = na.argsort(dist)
+        pbar = get_pbar("Ray casting ", total_cells)
+        total_cells = 0
+        tfp = TransferFunctionProxy(self.transfer_function)
+        tfp.ns = self.sub_samples
+        for i, b in enumerate(self.bricks[ind]):
+            pos = b.cast_plane(tfp, self.vector_plane)
+            total_cells += na.prod(b.my_data.shape)
+            pbar.update(total_cells)
+        pbar.finish()
+        if finalize: self._finalize()
 
-    vp = VectorPlane(vectors, norm_vec, back_center,
-                     (xp0, xp1, yp0, yp1), image, cp._x_vec, cp._y_vec)
+    def _finalize(self):
+        #im = self._mpi_catdict(dict(image=self.image)).pop('image')
+        im, f = self._mpi_catrgb((self.image, self.resolution))
+        self.image = im
 
-    tfp = TransferFunctionProxy(tf)
+    def dump_image(self, prefix):
+        fn = "%s.h5" % (self._get_filename(prefix))
+        mylog.info("Saving to %s", fn)
+        f = h5py.File(fn, "w")
+        f.create_dataset("/image", data=self.image)
 
-    pbar = get_pbar("Ray casting ", len(partitioned_grids))
-    for i,g in enumerate(partitioned_grids[ind]):
-        if (i % every) == 0: 
-            pbar.update(i)
-        pos = g.cast_plane(tfp, vp)
-    pbar.finish()
+    def load_bricks(self, fn):
+        self.bricks = import_partitioned_grids(fn)
 
-    return partitioned_grids[ind], image, vectors, norm_vec, pos
+    def save_bricks(self, fn):
+        # This will need to be modified for parallel
+        export_partitioned_grids(self.bricks, fn)
+
+    def partition_grids(self):
+        log_field = (self.fields[0] in self.pf.field_info and 
+                     self.pf.field_info[self.fields[0]].take_log)
+        self._brick_collection._partition_local_grids(self.fields, log_field)
+        # UNCOMMENT FOR PARALLELISM
+        #self._brick_collection._collect_bricks(self.source)
+        self.bricks = self._brick_collection.bricks
+
+    def _construct_vector_array(self):
+        rx = self.resolution[0] * self.res_fac[0]
+        ry = self.resolution[1] * self.res_fac[1]
+        # We should move away from pre-generation of vectors like this and into
+        # the usage of on-the-fly generation in the VolumeIntegrator module
+        self.image = na.zeros((rx,ry,4), dtype='float64', order='F')
+        # We might have a different width and back_center
+        bl = self.source.box_lengths
+        px = na.linspace(-bl[0]/2.0, bl[0]/2.0, rx)[:,None]
+        py = na.linspace(-bl[1]/2.0, bl[1]/2.0, ry)[None,:]
+        inv_mat = self.source._inv_mat
+        bc = self.source.origin + 0.5*self.source.box_vectors[0] \
+                                + 0.5*self.source.box_vectors[1]
+        vectors = na.zeros((rx, ry, 3),
+                            dtype='float64', order='F')
+        vectors[:,:,0] = inv_mat[0,0]*px + inv_mat[0,1]*py + bc[0]
+        vectors[:,:,1] = inv_mat[1,0]*px + inv_mat[1,1]*py + bc[1]
+        vectors[:,:,2] = inv_mat[2,0]*px + inv_mat[2,1]*py + bc[2]
+        bounds = (px.min(), px.max(), py.min(), py.max())
+        self.vector_plane = VectorPlane(vectors, self.box_vectors[2],
+                                    bc, bounds, self.image,
+                                    self.source._x_vec, self.source._y_vec)
+        self.vp_bounds = bounds
+        self.vectors = vectors
+
+data_object_registry["volume_rendering"] = VolumeRendering

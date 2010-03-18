@@ -33,9 +33,11 @@ from yt.performance_counters import yt_counters, time_function
 
 class RunParallelHOP(ParallelAnalysisInterface):
     def __init__(self,period, padding, num_neighbors, bounds,
-            xpos, ypos, zpos, index, mass, threshold=160.0, rearrange=True):
+            xpos, ypos, zpos, index, mass, threshold=160.0, rearrange=True,
+            premerge=True):
         self.threshold = threshold
         self.rearrange = rearrange
+        self.premerge = premerge
         self.saddlethresh = 2.5 * threshold
         self.peakthresh = 3 * threshold
         self.period = period
@@ -102,12 +104,12 @@ class RunParallelHOP(ParallelAnalysisInterface):
                 # Also test to see if the distance to this corner is within
                 # max_padding, which is more likely the case with load-balancing
                 # turned on.
-                dx = na.min( na.abs(my_vertex[0] - vertex[0]), \
-                    self.period[0] - na.abs(my_vertex[0] - vertex[0]))
-                dy = na.min( na.abs(my_vertex[1] - vertex[1]), \
-                    self.period[1] - na.abs(my_vertex[1] - vertex[1]))
-                dz = na.min( na.abs(my_vertex[2] - vertex[2]), \
-                    self.period[2] - na.abs(my_vertex[2] - vertex[2]))
+                dx = min( na.fabs(my_vertex[0] - vertex[0]), \
+                    self.period[0] - na.fabs(my_vertex[0] - vertex[0]))
+                dy = min( na.fabs(my_vertex[1] - vertex[1]), \
+                    self.period[1] - na.fabs(my_vertex[1] - vertex[1]))
+                dz = min( na.fabs(my_vertex[2] - vertex[2]), \
+                    self.period[2] - na.fabs(my_vertex[2] - vertex[2]))
                 d = na.sqrt(dx*dx + dy*dy + dz*dz)
                 if d <= self.max_padding:
                     self.neighbors.add(int(vertex[3]))
@@ -540,7 +542,6 @@ class RunParallelHOP(ParallelAnalysisInterface):
         del map
         yt_counters("local chain sorting.")
         mylog.info("Preconnecting %d chains..." % chain_count)
-        self.search_again = na.empty(self.size, dtype='bool')
         chain_map = defaultdict(set)
         for i in xrange(max(self.chainID)+1):
             chain_map[i].add(i)
@@ -557,8 +558,6 @@ class RunParallelHOP(ParallelAnalysisInterface):
             chainID_i = self.chainID[i]
             # If this particle is in the padding, don't make a connection.
             if not self.is_inside[i]: continue
-            # If we've made it this far mark it to be searched again.
-            self.search_again[i] = True
             # Find this particle's chain max_dens.
             part_max_dens = self.densest_in_chain[chainID_i]
             # We're only connecting >= peakthresh chains now.
@@ -1208,7 +1207,7 @@ class RunParallelHOP(ParallelAnalysisInterface):
                 # neighbors, and we can skip neighbors we're already assigned to.
                 if dens >= densestbound[chain_low] and \
                         densestbound[chain_high] > densestbound[chain_low] and \
-                        self.reverse_map[chain_high] != 1 and \
+                        self.reverse_map[chain_high] != -1 and \
                         self.reverse_map[chain_low] != self.reverse_map[chain_high]:
                     changes += 1
                     if dens < densestbound[chain_high]:
@@ -1375,7 +1374,7 @@ class RunParallelHOP(ParallelAnalysisInterface):
         max_radius = na.zeros(self.group_count, dtype='float64')
         if calc:
             com = self.CoM[subchain]
-            rad = na.abs(com - loc)
+            rad = na.fabs(com - loc)
             dist = (na.minimum(rad, self.period - rad)**2.).sum(axis=1)
             dist = dist[sort]
             for i, u in enumerate(uniq_subchain):
@@ -1417,7 +1416,11 @@ class RunParallelHOP(ParallelAnalysisInterface):
         # Build the chain of links.
         mylog.info('Building particle chains...')
         chain_count = self._build_chains()
-        chain_count = self._preconnect_chains(chain_count)
+        # This array tracks whether or not relationships for this particle
+        # need to be examined twice, in preconnect_chains and in connect_chains
+        self.search_again = na.ones(self.size, dtype='bool')
+        if self.premerge:
+            chain_count = self._preconnect_chains(chain_count)
         mylog.info('Gobally assigning chainIDs...')
         self._globally_assign_chainIDs(chain_count)
         mylog.info('Globally finding densest in chains...')

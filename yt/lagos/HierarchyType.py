@@ -82,6 +82,10 @@ class AMRHierarchy(ObjectFindingMixin, ParallelAnalysisInterface):
         """
         return self.grids[self.grid_levels.flat == level]
 
+    def get_levels(self):
+        for level in range(self.max_level+1):
+            yield self.select_grids(level)
+
     def _initialize_state_variables(self):
         self._parallel_locking = False
         self._data_file = None
@@ -131,16 +135,19 @@ class AMRHierarchy(ObjectFindingMixin, ParallelAnalysisInterface):
 
     def _initialize_data_storage(self):
         if not ytcfg.getboolean('lagos','serialize'): return
-        if os.path.isfile(os.path.join(self.directory,
-                            "%s.yt" % self.pf["CurrentTimeIdentifier"])):
-            fn = os.path.join(self.directory,"%s.yt" % self.pf["CurrentTimeIdentifier"])
-        else:
-            fn = os.path.join(self.directory,
-                    "%s.yt" % self.parameter_file.basename)
+        fn = self.pf.storage_filename
+        if fn is None:
+            if os.path.isfile(os.path.join(self.directory,
+                                "%s.yt" % self.pf["CurrentTimeIdentifier"])):
+                fn = os.path.join(self.directory,"%s.yt" % self.pf["CurrentTimeIdentifier"])
+            else:
+                fn = os.path.join(self.directory,
+                        "%s.yt" % self.parameter_file.basename)
+        dir_to_check = os.path.dirname(fn)
         if os.path.isfile(fn):
             writable = os.access(fn, os.W_OK)
         else:
-            writable = os.access(self.directory, os.W_OK)
+            writable = os.access(dir_to_check, os.W_OK)
         if ytcfg.getboolean('lagos','onlydeserialize') or not writable:
             self._data_mode = mode = 'r'
         else:
@@ -242,7 +249,10 @@ class AMRHierarchy(ObjectFindingMixin, ParallelAnalysisInterface):
             return None
 
         full_name = "%s/%s" % (node, name)
-        return self._data_file[full_name][:]
+        try:
+            return self._data_file[full_name][:]
+        except TypeError:
+            return self._data_file[full_name]
 
     def _close_data_file(self):
         if self._data_file:
@@ -345,8 +355,11 @@ class EnzoHierarchy(AMRHierarchy):
             "%s.hierarchy" % (pf.parameter_filename))
         harray_fn = self.hierarchy_filename[:-9] + "harrays"
         if os.path.exists(harray_fn):
-            harray_fp = h5py.File(harray_fn)
-            self.num_grids = harray_fp["/Level"].len()
+            try:
+                harray_fp = h5py.File(harray_fn)
+                self.num_grids = harray_fp["/Level"].len()
+            except IOError:
+                pass
         elif os.path.getsize(self.hierarchy_filename) == 0:
             raise IOError(-1,"File empty", self.hierarchy_filename)
         self.directory = os.path.dirname(self.hierarchy_filename)
@@ -421,7 +434,7 @@ class EnzoHierarchy(AMRHierarchy):
         if os.path.exists(self.hierarchy_filename[:-9] + "harrays"):
             if self._parse_binary_hierarchy(): return
         t1 = time.time()
-        pattern = r"Pointer: Grid\[(\d*)\]->NextGrid(Next|This)Level = (\d*)$"
+        pattern = r"Pointer: Grid\[(\d*)\]->NextGrid(Next|This)Level = (\d*)\s+$"
         patt = re.compile(pattern)
         f = open(self.hierarchy_filename, "rb")
         self.grids = [self.grid(1, self)]
@@ -483,9 +496,13 @@ class EnzoHierarchy(AMRHierarchy):
             second_grid.Level = first_grid.Level
         self.grid_levels[sgi] = second_grid.Level
 
+    _bn = "%s.cpu%%04i"
     def _parse_binary_hierarchy(self):
         mylog.info("Getting the binary hierarchy")
-        f = h5py.File(self.hierarchy_filename[:-9] + "harrays")
+        try:
+            f = h5py.File(self.hierarchy_filename[:-9] + "harrays")
+        except h5py.h5.H5Error:
+            return False
         self.grid_dimensions[:] = f["/ActiveDimensions"][:]
         self.grid_left_edge[:] = f["/LeftEdges"][:]
         self.grid_right_edge[:] = f["/RightEdges"][:]
@@ -497,7 +514,7 @@ class EnzoHierarchy(AMRHierarchy):
         self.filenames = []
         grids = [self.grid(gi+1, self) for gi in xrange(self.num_grids)]
         giter = izip(grids, levels, procs, parents)
-        bn = "%s.cpu%%04i" % (self.pf)
+        bn = self._bn % (self.pf)
         pmap = [(bn % P,) for P in xrange(procs.max()+1)]
         for grid,L,P,Pid in giter:
             grid.Level = L
@@ -515,9 +532,13 @@ class EnzoHierarchy(AMRHierarchy):
         # We don't do any of the logic here, we just check if the data file
         # is open...
         if self._data_file is None: return
+        if self._data_mode == 'r': return
         if self.data_style != "enzo_packed_3d": return
         mylog.info("Storing the binary hierarchy")
-        f = h5py.File(self.hierarchy_filename[:-9] + "harrays", "w")
+        try:
+            f = h5py.File(self.hierarchy_filename[:-9] + "harrays", "w")
+        except IOError:
+            return
         f.create_dataset("/LeftEdges", data=self.grid_left_edge)
         f.create_dataset("/RightEdges", data=self.grid_right_edge)
         parents, procs, levels = [], [], []
@@ -760,12 +781,12 @@ class EnzoHierarchy1D(EnzoHierarchy):
         self.grid_dimensions[:,:1] = ei
         self.grid_dimensions[:,:1] -= na.array(si, self.float_type)
         self.grid_dimensions += 1
-        self.grid_left_edge[:,:2] = LE
-        self.grid_right_edge[:,:2] = RE
+        self.grid_left_edge[:,:1] = LE
+        self.grid_right_edge[:,:1] = RE
         self.grid_particle_count.flat[:] = np
-        self.grid_left_edge[:,1:2] = 0.0
-        self.grid_right_edge[:,1:2] = 1.0
-        self.grid_dimensions[:,1:2] = 1
+        self.grid_left_edge[:,1:] = 0.0
+        self.grid_right_edge[:,1:] = 1.0
+        self.grid_dimensions[:,1:] = 1
 
 class EnzoHierarchy2D(EnzoHierarchy):
 
@@ -1122,7 +1143,19 @@ class OrionHierarchy(AMRHierarchy):
         pass
 
     def _setup_unknown_fields(self):
-        pass
+        for field in self.field_list:
+            if field in self.parameter_file.field_info: continue
+            mylog.info("Adding %s to list of fields", field)
+            cf = None
+            if self.parameter_file.has_key(field):
+                def external_wrapper(f):
+                    def _convert_function(data):
+                        return data.convert(f)
+                    return _convert_function
+                cf = external_wrapper(field)
+            add_field(field, lambda a, b: None,
+                      convert_function=cf, take_log=False)
+
 
     def _setup_derived_fields(self):
         pass
@@ -1142,3 +1175,153 @@ class OrionLevel:
         self.ngrids = ngrids
         self.grids = []
     
+
+class GadgetHierarchy(AMRHierarchy):
+
+    grid = GadgetGrid
+
+    def __init__(self, pf, data_style):
+        self.directory = pf.fullpath
+        self.data_style = data_style
+        AMRHierarchy.__init__(self, pf, data_style)
+
+    def _count_grids(self):
+        # We actually construct our octree here!
+        # ...but we do read in our particles, it seems.
+        LE = na.zeros(3, dtype='float64')
+        RE = na.ones(3, dtype='float64')
+        base_grid = ProtoGadgetGrid(0, LE, RE, self.pf.particles)
+        self.proto_grids = base_grid.refine(8)
+        self.num_grids = len(self.proto_grids)
+        self.max_level = max( (g.level for g in self.proto_grids) )
+
+    def _setup_classes(self):
+        dd = self._get_data_reader_dict()
+        AMRHierarchy._setup_classes(self, dd)
+        self.object_types.sort()
+
+    def _parse_hierarchy(self):
+        grids = []
+        # We need to fill in dims, LE, RE, level, count
+        dims, LE, RE, levels, counts = [], [], [], [], []
+        self.proto_grids.sort(key = lambda a: a.level)
+        for i, pg in enumerate(self.proto_grids):
+            g = self.grid(i, self, pg)
+            pg.real_grid = g
+            grids.append(g)
+            dims.append(g.ActiveDimensions)
+            LE.append(g.LeftEdge)
+            RE.append(g.RightEdge)
+            levels.append(g.Level)
+            counts.append(g.NumberOfParticles)
+        del self.proto_grids
+        self.grids = na.array(grids, dtype='object')
+        self.grid_dimensions[:] = na.array(dims, dtype='int64')
+        self.grid_left_edge[:] = na.array(LE, dtype='float64')
+        self.grid_right_edge[:] = na.array(RE, dtype='float64')
+        self.grid_levels.flat[:] = na.array(levels, dtype='int32')
+        self.grid_particle_count.flat[:] = na.array(counts, dtype='int32')
+
+    def _populate_grid_objects(self):
+        # We don't need to do anything here
+        for g in self.grids: g._setup_dx()
+
+    def _detect_fields(self):
+        self.field_list = ['particle_position_%s' % ax for ax in 'xyz']
+
+    def _setup_unknown_fields(self):
+        pass
+
+    def _setup_derived_fields(self):
+        self.derived_field_list = []
+
+class ChomboHierarchy(AMRHierarchy):
+
+    grid = ChomboGrid
+    
+    def __init__(self,pf,data_style='chombo_hdf5'):
+        self.data_style = data_style
+        self.field_info = ChomboFieldContainer()
+        self.field_indexes = {}
+        self.parameter_file = weakref.proxy(pf)
+        # for now, the hierarchy file is the parameter file!
+        self.hierarchy_filename = self.parameter_file.parameter_filename
+        self.directory = os.path.dirname(self.hierarchy_filename)
+        self._fhandle = h5py.File(self.hierarchy_filename)
+
+        self.float_type = self._fhandle['/level_0']['data:datatype=0'].dtype.name
+        self._levels = self._fhandle.listnames()[1:]
+        AMRHierarchy.__init__(self,pf,data_style)
+
+        self._fhandle.close()
+
+    def _initialize_data_storage(self):
+        pass
+
+    def _detect_fields(self):
+        ncomp = int(self._fhandle['/'].attrs['num_components'])
+        self.field_list = [c[1] for c in self._fhandle['/'].attrs.listitems()[-ncomp:]]
+    
+    def _setup_classes(self):
+        dd = self._get_data_reader_dict()
+        AMRHierarchy._setup_classes(self, dd)
+        self.object_types.sort()
+
+    def _count_grids(self):
+        self.num_grids = 0
+        for lev in self._levels:
+            self.num_grids += self._fhandle[lev]['Processors'].len()
+        
+    def _parse_hierarchy(self):
+        f = self._fhandle # shortcut
+        
+        # this relies on the first Group in the H5 file being
+        # 'Chombo_global'
+        levels = f.listnames()[1:]
+        self.grids = []
+        i = 0
+        for lev in levels:
+            level_number = int(re.match('level_(\d+)',lev).groups()[0])
+            boxes = f[lev]['boxes'].value
+            dx = f[lev].attrs['dx']
+            for level_id, box in enumerate(boxes):
+                self.grids.append(self.grid(len(self.grids),self,level=level_number))
+                self.grids[-1]._level_id = level_id
+                self.grid_left_edge[i] = dx*na.array([box['lo_i'],
+                                                      box['lo_j'],
+                                                      box['lo_k']],
+                                                     dtype=self.float_type)
+                self.grid_right_edge[i] = dx*(na.array([box['hi_i'],
+                                                        box['hi_j'],
+                                                        box['hi_k']],
+                                                       dtype=self.float_type) + 1)
+                self.grid_particle_count[i] = 0
+                self.grid_dimensions[i] = na.array([box['hi_i']-box['lo_i'],
+                                                    box['hi_j']-box['lo_j'],
+                                                    box['hi_k']-box['lo_k']]) + 1
+                i += 1
+        self.grids = na.array(self.grids, dtype='object')
+
+    def _populate_grid_objects(self):
+        for g in self.grids:
+            g._prepare_grid()
+            g._setup_dx()
+
+        for g in self.grids:
+            g.Children = self._get_grid_children(g)
+            for g1 in g.Children:
+                g1.Parent.append(g)
+        self.max_level = self.grid_levels.max()
+
+    def _setup_unknown_fields(self):
+        pass
+
+    def _setup_derived_fields(self):
+        self.derived_field_list = []
+
+    def _get_grid_children(self, grid):
+        mask = na.zeros(self.num_grids, dtype='bool')
+        grids, grid_ind = self.get_box_grids(grid.LeftEdge, grid.RightEdge)
+        mask[grid_ind] = True
+        return [g for g in self.grids[mask] if g.Level == grid.Level + 1]
+

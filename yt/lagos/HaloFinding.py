@@ -26,6 +26,7 @@ License:
 """
 
 from yt.lagos import *
+from yt.math_utils import *
 from yt.lagos.hop.EnzoHop import RunHOP
 try:
     from yt.lagos.parallelHOP.parallelHOP import *
@@ -39,7 +40,7 @@ except ImportError:
 from yt.performance_counters import yt_counters, time_function
 
 from kd import *
-import math, sys
+import math, sys, itertools
 from collections import defaultdict
 
 class Halo(object):
@@ -57,11 +58,14 @@ class Halo(object):
 
     def __init__(self, halo_list, id, indices = None, size=None, CoM=None,
         max_dens_point=None, group_total_mass=None, max_radius=None, bulk_vel=None,
-        tasks=None):
+        tasks=None, rms_vel=None):
         self.halo_list = halo_list
         self.id = id
         self.data = halo_list._data_source
-        if indices is not None: self.indices = halo_list._base_indices[indices]
+        if indices is not None:
+            self.indices = halo_list._base_indices[indices]
+        else:
+            self.indices = None
         # We assume that if indices = None, the instantiator has OTHER plans
         # for us -- i.e., setting it somehow else
         self.size = size
@@ -71,6 +75,9 @@ class Halo(object):
         self.max_radius = max_radius
         self.bulk_vel = bulk_vel
         self.tasks = tasks
+        self.rms_vel = rms_vel
+        self.bin_count = None
+        self.overdensity = None
 
     def center_of_mass(self):
         """
@@ -114,6 +121,21 @@ class Halo(object):
         vy = (self["particle_velocity_y"] * pm).sum()
         vz = (self["particle_velocity_z"] * pm).sum()
         return na.array([vx,vy,vz])/pm.sum()
+
+    def rms_velocity(self):
+        """
+        Returns the mass-weighted RMS velocity for the halo
+        particles in cgs units.
+        """
+        bv = self.bulk_velocity()
+        pm = self["ParticleMassMsun"]
+        sm = pm.sum()
+        vx = (self["particle_velocity_x"] - bv[0]) * pm/sm
+        vy = (self["particle_velocity_y"] - bv[1]) * pm/sm
+        vz = (self["particle_velocity_z"] - bv[2]) * pm/sm
+        s = vx**2. + vy**2. + vz**2.
+        ms = na.mean(s)
+        return na.sqrt(ms) * pm.size
 
     def maximum_radius(self, center_of_mass=True):
         """
@@ -165,13 +187,108 @@ class Halo(object):
         # set attributes on n
         self._processing = False
 
+    def virial_mass(self, virial_overdensity=200., bins=300):
+        """
+        Return the virial mass of the halo in Msun, using only the particles
+        in the halo (no baryonic information used).
+        Calculate using *bins* number of bins and *virial_overdensity* density
+        threshold. Returns -1 if the halo is not virialized.
+        """
+        self.virial_info(bins=bins)
+        vir_bin = self.virial_bin(virial_overdensity=virial_overdensity, bins=bins)
+        if vir_bin != -1:
+            return self.mass_bins[vir_bin]
+        else:
+            return -1
+        
+    
+    def virial_radius(self, virial_overdensity=200., bins=300):
+        """
+        Return the virial radius of the halo in code units, using only the
+        particles in the halo (no baryonic information used).
+        Calculate using *bins* number of bins and *virial_overdensity* density
+        threshold. Returns -1 if the halo is not virialized.
+        """
+        self.virial_info(bins=bins)
+        vir_bin = self.virial_bin(virial_overdensity=virial_overdensity, bins=bins)
+        if vir_bin != -1:
+            return self.radial_bins[vir_bin]
+        else:
+            return -1
+
+    def virial_bin(self, virial_overdensity=200., bins=300):
+        """
+        Return the bin index for the virial radius for the given halo.
+        Returns -1 if the halo is not virialized to the set
+        *virial_overdensity*. 
+        """
+        self.virial_info(bins=bins)
+        over = (self.overdensity > virial_overdensity)
+        if (over == True).any():
+            vir_bin = max(na.arange(bins+1)[over])
+            return vir_bin
+        else:
+            return -1
+    
+    def virial_info(self, bins=300):
+        """
+        Calculate the virial profile bins for this halo, using only the particles
+        in the halo (no baryonic information used).
+        Calculate using *bins* number of bins.
+        """
+        # Skip if we've already calculated for this number of bins.
+        if self.bin_count == bins and self.overdensity is not None:
+            return None
+        self.bin_count = bins
+        # Cosmology
+        h = self.halo_list._data_source.pf['CosmologyHubbleConstantNow']
+        Om_matter = self.halo_list._data_source.pf['CosmologyOmegaMatterNow']
+        z = self.halo_list._data_source.pf['CosmologyCurrentRedshift']
+        rho_crit_now = 1.8788e-29 * h**2.0 * Om_matter # g cm^-3
+        Msun2g = 1.989e33
+        rho_crit = rho_crit_now * ((1.0 + z)**3.0)
+        
+        # Get some pertinent information about the halo.
+        self.mass_bins = na.zeros(self.bin_count+1, dtype='float64')
+        dist = na.empty(self.indices.size, dtype='float64')
+        cen = self.center_of_mass()
+        period = self.halo_list._data_source.pf["DomainRightEdge"] - \
+            self.halo_list._data_source.pf["DomainLeftEdge"]
+        mark = 0
+        # Find the distances to the particles. I don't like this much, but I
+        # can't see a way to eliminate a loop like this, either here or in
+        # yt.math.
+        for pos in izip(self["particle_position_x"], self["particle_position_y"],
+                self["particle_position_z"]):
+            dist[mark] = periodic_dist(cen, pos, period)
+            mark += 1
+        # Set up the radial bins.
+        # Multiply min and max to prevent issues with digitize below.
+        self.radial_bins = na.logspace(math.log10(min(dist)*.99), 
+            math.log10(max(dist)*1.01), num=self.bin_count+1)
+        # Find out which bin each particle goes into, and add the particle
+        # mass to that bin.
+        inds = na.digitize(dist, self.radial_bins) - 1
+        for index in na.unique(inds):
+            self.mass_bins[index] += sum(self["ParticleMassMsun"][inds==index])
+        # Now forward sum the masses in the bins.
+        for i in xrange(self.bin_count):
+            self.mass_bins[i+1] += self.mass_bins[i]
+        # Calculate the over densities in the bins.
+        self.overdensity = self.mass_bins * Msun2g / \
+        (4./3. * math.pi * rho_crit * \
+        (self.radial_bins * self.halo_list._data_source.pf["cm"])**3.0)
+        
+
 class HOPHalo(Halo):
     pass
 
 class parallelHOPHalo(Halo,ParallelAnalysisInterface):
     dont_wrap = ["maximum_density","maximum_density_location",
         "center_of_mass","total_mass","bulk_velocity","maximum_radius",
-        "get_size","get_sphere", "write_particle_list","__getitem__"]
+        "get_size","get_sphere", "write_particle_list","__getitem__", 
+        "virial_info", "virial_bin", "virial_mass", "virial_radius",
+        "rms_velocity"]
 
     def maximum_density(self):
         """
@@ -263,6 +380,29 @@ class parallelHOPHalo(Halo,ParallelAnalysisInterface):
         global_bv = self._mpi_allsum(bv)
         return global_bv[:3]/global_bv[3]
 
+    def rms_velocity(self):
+        """
+        Returns the RMS velocity for the halo particles in cgs units.
+        """
+        if self.rms_vel is not None:
+            return self.rms_vel
+        bv = self.bulk_velocity()
+        pm = self["ParticleMassMsun"]
+        sm = pm.sum()
+        if self.indices is not None:
+            vx = (self["particle_velocity_x"] - bv[0]) * pm/sm
+            vy = (self["particle_velocity_y"] - bv[1]) * pm/sm
+            vz = (self["particle_velocity_z"] - bv[2]) * pm/sm
+            s = vx**2 + vy**2 + vz**2
+            s = na.sum(s)
+            size = vx.size
+            ss = na.array([s, float(size)])
+        else:
+            ss = na.array([0.,0.])
+        global_ss = self._mpi_allsum(ss)
+        ms = global_ss[0] / global_ss[1]
+        return na.sqrt(ms) * global_ss[1]
+
     def maximum_radius(self, center_of_mass=True):
         """
         Returns the maximum radius in the halo for all particles,
@@ -295,6 +435,118 @@ class parallelHOPHalo(Halo,ParallelAnalysisInterface):
             my_size = 0
         global_size = self._mpi_allsum(my_size)
         return global_size
+
+    def __getitem__(self, key):
+        if ytcfg.getboolean("yt","inline") == False:
+            return self.data.particles[key][self.indices]
+        else:
+            return self.data[key][self.indices]
+
+    def virial_mass(self, virial_overdensity=200., bins=300):
+        """
+        Return the virial mass of the halo in Msun, using only the particles
+        in the halo (no baryonic information used).
+        Calculate using *bins* number of bins and *virial_overdensity* density
+        threshold. Returns -1 if the halo is not virialized.
+        """
+        self.virial_info(bins=bins)
+        vir_bin = self.virial_bin(virial_overdensity=virial_overdensity, bins=bins)
+        if vir_bin != -1:
+            return self.mass_bins[vir_bin]
+        else:
+            return -1
+        
+    
+    def virial_radius(self, virial_overdensity=200., bins=300):
+        """
+        Return the virial radius of the halo in code units, using only the
+        particles in the halo (no baryonic information used).
+        Calculate using *bins* number of bins and *virial_overdensity* density
+        threshold. Returns -1 if the halo is not virialized.
+        """
+        self.virial_info(bins=bins)
+        vir_bin = self.virial_bin(virial_overdensity=virial_overdensity, bins=bins)
+        if vir_bin != -1:
+            return self.radial_bins[vir_bin]
+        else:
+            return -1
+
+    def virial_bin(self, virial_overdensity=200., bins=300):
+        """
+        Return the bin index for the virial radius for the given halo.
+        Returns -1 if the halo is not virialized to the set
+        *virial_overdensity*. 
+        """
+        self.virial_info(bins=bins)
+        over = (self.overdensity > virial_overdensity)
+        if (over == True).any():
+            vir_bin = max(na.arange(bins+1)[over])
+            return vir_bin
+        else:
+            return -1
+
+    def virial_info(self, bins=300):
+        """
+        Calculate the virial profile bins for this halo, using only the particles
+        in the halo (no baryonic information used).
+        Calculate using *bins* number of bins.
+        """
+        # Skip if we've already calculated for this number of bins.
+        if self.bin_count == bins and self.overdensity is not None:
+            return None
+        # Do this for all because all will use it.
+        self.bin_count = bins
+        period = self.halo_list._data_source.pf["DomainRightEdge"] - \
+            self.halo_list._data_source.pf["DomainLeftEdge"]
+        self.mass_bins = na.zeros(self.bin_count+1, dtype='float64')
+        cen = self.center_of_mass()
+        # Cosmology
+        h = self.halo_list._data_source.pf['CosmologyHubbleConstantNow']
+        Om_matter = self.halo_list._data_source.pf['CosmologyOmegaMatterNow']
+        z = self.halo_list._data_source.pf['CosmologyCurrentRedshift']
+        rho_crit_now = 1.8788e-29 * h**2.0 * Om_matter # g cm^-3
+        Msun2g = 1.989e33
+        rho_crit = rho_crit_now * ((1.0 + z)**3.0)
+        # If I own some of this halo operate on the particles.
+        if self.indices is not None:
+            # Get some pertinent information about the halo.
+            dist = na.empty(self.indices.size, dtype='float64')
+            mark = 0
+            # Find the distances to the particles. I don't like this much, but I
+            # can't see a way to eliminate a loop like this, either here or in
+            # yt.math.
+            for pos in izip(self["particle_position_x"], self["particle_position_y"],
+                    self["particle_position_z"]):
+                dist[mark] = periodic_dist(cen, pos, period)
+                mark += 1
+            dist_min, dist_max = min(dist), max(dist)
+        # If I don't have this halo, make some dummy values.
+        else:
+            dist_min = max(period)
+            dist_max = 0.0
+        # In this parallel case, we're going to find the global dist extrema
+        # and built identical bins on all tasks.
+        dist_min = self._mpi_allmin(dist_min)
+        dist_max = self._mpi_allmax(dist_max)
+        # Set up the radial bins.
+        # Multiply min and max to prevent issues with digitize below.
+        self.radial_bins = na.logspace(math.log10(dist_min*.99), 
+            math.log10(dist_max*1.01), num=self.bin_count+1)
+        if self.indices is not None:
+            # Find out which bin each particle goes into, and add the particle
+            # mass to that bin.
+            inds = na.digitize(dist, self.radial_bins) - 1
+            for index in na.unique(inds):
+                self.mass_bins[index] += sum(self["ParticleMassMsun"][inds==index])
+            # Now forward sum the masses in the bins.
+            for i in xrange(self.bin_count):
+                self.mass_bins[i+1] += self.mass_bins[i]
+        # Sum up the mass_bins globally
+        self.mass_bins = self._mpi_Allsum_double(self.mass_bins)
+        # Calculate the over densities in the bins.
+        self.overdensity = self.mass_bins * Msun2g / \
+        (4./3. * math.pi * rho_crit * \
+        (self.radial_bins * self.halo_list._data_source.pf["cm"])**3.0)
 
 
 class FOFHalo(Halo):
@@ -483,7 +735,7 @@ class HaloList(object):
         f.write("\t".join(["# Group","Mass","# part","max dens"
                            "x","y","z", "center-of-mass",
                            "x","y","z",
-                           "vx","vy","vz","max_r","\n"]))
+                           "vx","vy","vz","max_r","rms_v","\n"]))
         for group in self:
             f.write("%10i\t" % group.id)
             f.write("%0.9e\t" % group.total_mass())
@@ -496,6 +748,7 @@ class HaloList(object):
             f.write("\t".join(["%0.9e" % v for v in group.bulk_velocity()]))
             f.write("\t")
             f.write("%0.9e\t" % group.maximum_radius())
+            f.write("%0.9e\t" % group.rms_velocity())
             f.write("\n")
             f.flush()
         f.close()
@@ -581,7 +834,7 @@ class parallelHOPHaloList(HaloList,ParallelAnalysisInterface):
               ["ParticleMassMsun", "particle_index"]
 
     def __init__(self, data_source, padding, num_neighbors, bounds, total_mass,
-        period, threshold=160.0, dm_only=True, rearrange=True):
+        period, threshold=160.0, dm_only=True, rearrange=True, premerge=True):
         """
         Run hop on *data_source* with a given density *threshold*.  If
         *dm_only* is set, only run it on the dark matter particles, otherwise
@@ -594,6 +847,7 @@ class parallelHOPHaloList(HaloList,ParallelAnalysisInterface):
         self.rearrange = rearrange
         self.period = period
         self._data_source = data_source
+        self.premerge = premerge
         mylog.info("Initializing HOP")
         HaloList.__init__(self, data_source, dm_only)
 
@@ -616,7 +870,7 @@ class parallelHOPHaloList(HaloList,ParallelAnalysisInterface):
             self.particle_fields["particle_position_z"],
             self.particle_fields["particle_index"],
             self.particle_fields["ParticleMassMsun"]/self.total_mass,
-            self.threshold, rearrange=self.rearrange)
+            self.threshold, rearrange=self.rearrange, premerge=self.premerge)
         self.densities, self.tags = obj.density, obj.chainID
         # I'm going to go ahead and delete self.densities because it's not
         # actually being used. I'm not going to remove it altogether because
@@ -624,6 +878,9 @@ class parallelHOPHaloList(HaloList,ParallelAnalysisInterface):
         del self.densities
         self.group_count = obj.group_count
         self.group_sizes = obj.group_sizes
+        if self.group_count == 0:
+            mylog.info("There are no halos found.")
+            return
         self.CoM = obj.CoM
         self.Tot_M = obj.Tot_M * self.total_mass
         self.max_dens_point = obj.max_dens_point
@@ -634,12 +891,9 @@ class parallelHOPHaloList(HaloList,ParallelAnalysisInterface):
         yt_counters("bulk vel. reading data")
         pm = self.particle_fields["ParticleMassMsun"]
         if ytcfg.getboolean("yt","inline") == False:
-            xv = self._data_source.particles["particle_velocity_x"][self._base_indices] * \
-                self._data_source.convert("x-velocity")
-            yv = self._data_source.particles["particle_velocity_y"][self._base_indices] * \
-                self._data_source.convert("y-velocity")
-            zv = self._data_source.particles["particle_velocity_z"][self._base_indices] * \
-                self._data_source.convert("z-velocity")
+            xv = self._data_source.particles["particle_velocity_x"][self._base_indices]
+            yv = self._data_source.particles["particle_velocity_y"][self._base_indices]
+            zv = self._data_source.particles["particle_velocity_z"][self._base_indices]
         else:
             xv = self._data_source["particle_velocity_x"][self._base_indices]
             yv = self._data_source["particle_velocity_y"][self._base_indices]
@@ -665,14 +919,41 @@ class parallelHOPHaloList(HaloList,ParallelAnalysisInterface):
             marks = na.concatenate(([0], marks, [calc]))
             for i, u in enumerate(uniq_subchain):
                 self.bulk_vel[u] = na.sum(vel[marks[i]:marks[i+1]], axis=0)
-            del select, vel, ms, subchain, sort, sort_subchain, uniq_subchain
-            del diff_subchain, marks
+            del vel, subchain, sort_subchain
+            del diff_subchain
         # Bring it together, and divide by the previously computed total mass
         # of each halo.
         self.bulk_vel = self._mpi_Allsum_double(self.bulk_vel)
         for groupID in xrange(self.group_count):
             self.bulk_vel[groupID] = self.bulk_vel[groupID] / self.Tot_M[groupID]
         yt_counters("bulk vel. computing")
+        # Now calculate the RMS velocity of the groups in parallel, very
+        # similarly to the bulk velocity and re-using some of the arrays.
+        yt_counters("rms vel computing")
+        rms_vel_temp = na.zeros((self.group_count,2), dtype='float64')
+        if calc:
+            vel = na.empty((calc, 3), dtype='float64')
+            vel[:,0] = xv[select] * ms
+            vel[:,1] = yv[select] * ms
+            vel[:,2] = zv[select] * ms
+            vel = vel[sort]
+            for i, u in enumerate(uniq_subchain):
+                # This finds the sum locally.
+                rms_vel_temp[u][0] = na.sum(((vel[marks[i]:marks[i+1]] - \
+                    self.bulk_vel[u]) / self.Tot_M[u])**2.)
+                # I could use self.group_sizes...
+                rms_vel_temp[u][1] = marks[i+1] - marks[i]
+            del vel, marks, uniq_subchain
+        # Bring it together.
+        rms_vel_temp = self._mpi_Allsum_double(rms_vel_temp)
+        self.rms_vel = na.empty(self.group_count, dtype='float64')
+        for groupID in xrange(self.group_count):
+            # Here we do the Mean and the Root.
+            self.rms_vel[groupID] = \
+                na.sqrt(rms_vel_temp[groupID][0] / rms_vel_temp[groupID][1]) * \
+                self.group_sizes[groupID]
+        del rms_vel_temp, ms
+        yt_counters("rms vel computing")
         self.taskID = obj.mine
         self.halo_taskmap = obj.halo_taskmap # A defaultdict.
         del obj
@@ -693,6 +974,9 @@ class parallelHOPHaloList(HaloList,ParallelAnalysisInterface):
         # We want arrays for parallel HOP
         self._groups = na.empty(self.group_count, dtype='object')
         self._max_dens = na.empty((self.group_count, 4), dtype='float64')
+        if self.group_count == 0:
+            mylog.info("There are no halos found.")
+            return
         for i in unique_ids:
             if i == -1:
                 cp += counts[i+1]
@@ -704,7 +988,8 @@ class parallelHOPHaloList(HaloList,ParallelAnalysisInterface):
                     size=self.group_sizes[index], CoM=self.CoM[index], \
                     max_dens_point=self.max_dens_point[index], \
                     group_total_mass=self.Tot_M[index], max_radius=self.max_radius[index],
-                    bulk_vel=self.bulk_vel[index], tasks=self.halo_taskmap[index])
+                    bulk_vel=self.bulk_vel[index], tasks=self.halo_taskmap[index],
+                    rms_vel=self.rms_vel[index])
                 # I don't own this halo
                 self._do_not_claim_object(self._groups[index])
                 self._max_dens[index] = [self.max_dens_point[index][0], self.max_dens_point[index][1], \
@@ -716,7 +1001,8 @@ class parallelHOPHaloList(HaloList,ParallelAnalysisInterface):
                 size=self.group_sizes[i], CoM=self.CoM[i], \
                 max_dens_point=self.max_dens_point[i], \
                 group_total_mass=self.Tot_M[i], max_radius=self.max_radius[i],
-                bulk_vel=self.bulk_vel[i], tasks=self.halo_taskmap[index])
+                bulk_vel=self.bulk_vel[i], tasks=self.halo_taskmap[index],
+                rms_vel=self.rms_vel[i])
             # This halo may be owned by many, including this task
             self._claim_object(self._groups[index])
             self._max_dens[index] = [self.max_dens_point[i][0], self.max_dens_point[i][1], \
@@ -729,14 +1015,15 @@ class parallelHOPHaloList(HaloList,ParallelAnalysisInterface):
                 size=self.group_sizes[index], CoM=self.CoM[index], \
                 max_dens_point=self.max_dens_point[i], \
                 group_total_mass=self.Tot_M[index], max_radius=self.max_radius[index],
-                bulk_vel=self.bulk_vel[index], tasks=self.halo_taskmap[index])
+                bulk_vel=self.bulk_vel[index], tasks=self.halo_taskmap[index],
+                rms_vel=self.rms_vel[index])
             self._do_not_claim_object(self._groups[index])
             self._max_dens[index] = [self.max_dens_point[index][0], self.max_dens_point[index][1], \
                 self.max_dens_point[index][2], self.max_dens_point[index][3]]
             index += 1
         # Clean up
-        del self.max_dens_point, self.Tot_M, self.max_radius, self.bulk_vel
-        del self.halo_taskmap, self.tags
+        del self.max_dens_point, self.max_radius, self.bulk_vel
+        del self.halo_taskmap, self.tags, self.rms_vel
 
     def __len__(self):
         return self.group_count
@@ -802,7 +1089,7 @@ class GenericHaloFinder(HaloList, ParallelAnalysisInterface):
                 halo._owner = proc
                 id += 1
         def haloCmp(h1,h2):
-            c = cmp(h1.get_size(),h2.get_size())
+            c = cmp(h1.total_mass(),h2.total_mass())
             if c != 0:
                 return -1 * c
             if c == 0:
@@ -844,7 +1131,7 @@ class GenericHaloFinder(HaloList, ParallelAnalysisInterface):
 
 class parallelHF(GenericHaloFinder, parallelHOPHaloList):
     def __init__(self, pf, threshold=160, dm_only=True, resize=True, rearrange=True,\
-        fancy_padding=True, safety=1.5):
+        fancy_padding=True, safety=1.5, premerge=True):
         GenericHaloFinder.__init__(self, pf, dm_only, padding=0.0)
         self.padding = 0.0 
         self.num_neighbors = 65
@@ -965,16 +1252,20 @@ class parallelHF(GenericHaloFinder, parallelHOPHaloList):
         (LE_padding, RE_padding) = self.padding
         parallelHOPHaloList.__init__(self, self._data_source, self.padding, \
         self.num_neighbors, self.bounds, total_mass, period, \
-        threshold=threshold, dm_only=dm_only, rearrange=rearrange)
+        threshold=threshold, dm_only=dm_only, rearrange=rearrange, premerge=premerge)
         self._join_halolists()
         yt_counters("Final Grouping")
 
     def _join_halolists(self):
-        gs = -self.group_sizes.copy()
+        if self.group_count == 0:
+            mylog.info("There are no halos found.")
+            return
+        ms = -self.Tot_M.copy()
+        del self.Tot_M
         Cx = self.CoM[:,0].copy()
         indexes = na.arange(self.group_count)
-        sorted = na.asarray([indexes[i] for i in na.lexsort([indexes, Cx, gs])])
-        del indexes, Cx, gs
+        sorted = na.asarray([indexes[i] for i in na.lexsort([indexes, Cx, ms])])
+        del indexes, Cx, ms
         self._groups = self._groups[sorted]
         self._max_dens = self._max_dens[sorted]
         for i in xrange(self.group_count):
@@ -993,10 +1284,8 @@ class HOPHaloFinder(GenericHaloFinder, HOPHaloList):
         if dm_only:
             select = self._get_dm_indices()
             total_mass = self._mpi_allsum((self._data_source["ParticleMassMsun"][select]).sum())
-            sub_mass = (self._data_source["ParticleMassMsun"][select]).sum()
         else:
             total_mass = self._mpi_allsum(self._data_source["ParticleMassMsun"].sum())
-            sub_mass = self._data_source["ParticleMassMsun"].sum()
         # MJT: Note that instead of this, if we are assuming that the particles
         # are all on different processors, we should instead construct an
         # object representing the entire domain and sum it "lazily" with
@@ -1006,7 +1295,11 @@ class HOPHaloFinder(GenericHaloFinder, HOPHaloList):
         self.bounds = (LE, RE)
         # reflect particles around the periodic boundary
         #self._reposition_particles((LE, RE))
-        #sub_mass = self._data_source["ParticleMassMsun"].sum()
+        if dm_only:
+            select = self._get_dm_indices()
+            sub_mass = self._data_source["ParticleMassMsun"][select].sum()
+        else:
+            sub_mass = self._data_source["ParticleMassMsun"].sum()
         HOPHaloList.__init__(self, self._data_source, threshold*total_mass/sub_mass, dm_only)
         self._parse_halolist(total_mass/sub_mass)
         self._join_halolists()

@@ -46,7 +46,8 @@ import time, pickle, os, os.path
 import yt.lagos as lagos
 from yt.funcs import *
 from yt.logger import ravenLogger as mylog
-from yt.extensions.HierarchySubset import ExtractedHierarchy
+from yt.extensions.HierarchySubset import \
+        ExtractedHierarchy, ExtractedParameterFile
 
 #from enthought.tvtk.pyface.ui.wx.wxVTKRenderWindowInteractor \
      #import wxVTKRenderWindowInteractor
@@ -66,7 +67,7 @@ class TVTKMapperWidget(HasTraits):
 
 class MappingPlane(TVTKMapperWidget):
     plane = Instance(tvtk.Plane)
-    _coord_redit = editor=RangeEditor(
+    _coord_redit = editor=RangeEditor(format="%0.2e",
                               low_name='vmin', high_name='vmax',
                               auto_set=False, enter_set=True)
     auto_set = Bool(False)
@@ -108,7 +109,8 @@ class MappingMarchingCubes(TVTKMapperWidget):
     vmin = Float
     vmax = Float
     auto_set = Bool(False)
-    _val_redit = RangeEditor(low_name='vmin', high_name='vmax',
+    _val_redit = RangeEditor(format="%0.2f",
+                             low_name='vmin', high_name='vmax',
                              auto_set=False, enter_set=True)
     traits_view = View(Item('value', editor=_val_redit),
                        Item('auto_set'),
@@ -441,9 +443,9 @@ class YTScene(HasTraits):
         HasTraits.__init__(self, **traits)
         max_level = min(self.pf.h.max_level,
                         self.min_grid_level + self.number_of_levels - 1)
-        self.extracted_hierarchy = ExtractedHierarchy(
-                        self.pf, self.min_grid_level, max_level,
-                        offset=None)
+        self.extracted_pf = ExtractedParameterFile(self.pf,
+                             self.min_grid_level, max_level, offset=None)
+        self.extracted_hierarchy = self.extracted_pf.h
         self._hdata_set = tvtk.HierarchicalBoxDataSet()
         self._ugs = []
         self._grids = []
@@ -482,8 +484,9 @@ class YTScene(HasTraits):
 
         scalars = grid.get_vertex_centered_data(self.field, smoothed=self.smoothed)
 
-        io, left_index, origin, dds = \
-            self.extracted_hierarchy._convert_grid(grid)
+        left_index = grid.get_global_startindex()
+        origin = grid.LeftEdge
+        dds = grid.dds
         right_index = left_index + scalars.shape - 1
         ug = tvtk.UniformGrid(origin=origin, spacing=dds,
                               dimensions=grid.ActiveDimensions+1)
