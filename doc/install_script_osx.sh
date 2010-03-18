@@ -180,7 +180,7 @@ touch ${DEST_DIR}/src/wx_done
 
 echo "Installing setuptools (needs sudo)"
 echo
-( sudo ${PY_DIR}/bin/python2.5 ${YT_DIR}/ez_setup.py 2>&1 ) 1>> ${LOG_FILE} || do_exit
+( sudo ${PY_DIR}/bin/python2.5 ${YT_DIR}/distribute_setup.py 2>&1 ) 1>> ${LOG_FILE} || do_exit
 
 [ ! -e ${DEST_DIR}/src/np_done ] && self_install \
     numpy-1.2.1-py2.5-macosx10.5.dmg
