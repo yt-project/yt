@@ -21,6 +21,7 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
+import numpy as na
 from yt.raven import FixedResolutionBuffer, ObliqueFixedResolutionBuffer
 from yt.lagos import data_object_registry, AMRProjBase, AMRSliceBase, \
                      x_dict, y_dict
@@ -37,12 +38,16 @@ class VariableMeshPanner(object):
         self.size = size
         self.source = source
         self.field = field
-        if pf is None: pf = self.pf
-        DLE, DRE = pf["DomainLeftEdge"], pf["DomainRightEdge"]
-        ax = source.axis
+        self.xlim, self.ylim = self.bounds
+
+    @property
+    def bounds(self):
+        DLE, DRE = self.pf["DomainLeftEdge"], self.pf["DomainRightEdge"]
+        ax = self.source.axis
         xax, yax = x_dict[ax], y_dict[ax]
-        self.xlim = DLE[xax], DRE[xax]
-        self.ylim = DLE[yax], DRE[yax]
+        xbounds = DLE[xax], DRE[xax]
+        ybounds = DLE[yax], DRE[yax]
+        return (xbounds, ybounds)
 
     @property
     def width(self):
@@ -97,5 +102,16 @@ class VariableMeshPanner(object):
             self.source, self.xlim + self.ylim,
             self.size)
         self._buffer = new_buffer
+
+    def set_low_high(self, low, high):
+        print "Setting low, high", low, high
+        self.xlim = (low[0], high[0])
+        self.ylim = (low[1], high[1])
+        b = na.log10(self.buffer)
+        mi, ma = b.min(), b.max()
+        print "Returning buffer with extrema",
+        print mi, ma
+        b = (b - mi)/(ma - mi)
+        return b
 
 data_object_registry["image_panner"] = VariableMeshPanner
