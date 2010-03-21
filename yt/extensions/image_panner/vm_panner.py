@@ -29,7 +29,7 @@ from yt.lagos import data_object_registry, AMRProjBase, AMRSliceBase, \
 class VariableMeshPanner(object):
     _buffer = None
 
-    def __init__(self, source, size, field, callback = None, pf = None):
+    def __init__(self, source, size, field, callback = None):
         if not isinstance(source, (AMRProjBase, AMRSliceBase)):
             raise RuntimeError
         if callback is None:
@@ -115,3 +115,48 @@ class VariableMeshPanner(object):
         return b
 
 data_object_registry["image_panner"] = VariableMeshPanner
+
+class WindowedVariableMeshPanner(VariableMeshPanner):
+
+    def __init__(self, source, full_size, my_size, start_indices,
+                 field, callback = None):
+        self.my_size = my_size
+        self.start_indices = start_indices
+        VariableMeshPanner.__init__(self, source, full_size, field, callback)
+
+    def _regenerate_buffer(self):
+        dx = (self.xlim[1] - self.xlim[0])/self.size[0]
+        dy = (self.ylim[1] - self.ylim[0])/self.size[1]
+        my_lim = (self.xlim[0] + dx*self.start_indices[0],
+                  self.xlim[0] + dx*(self.start_indices[0] + self.my_size[0]),
+                  self.ylim[0] + dx*self.start_indices[1],
+                  self.ylim[0] + dx*(self.start_indices[1] + self.my_size[1]))
+        new_buffer = FixedResolutionBuffer(self.source, my_lim, self.my_size)
+        self._buffer = new_buffer
+
+data_object_registry["windowed_image_panner"] = WindowedVariableMeshPanner
+
+class MultipleWindowVariableMeshPanner(object):
+    def __init__(self, windows):
+        self.windows = windows
+
+    def zoom(self, factor):
+        for w in self.windows: w.zoom(factor)
+
+    def pan(self, deltas):
+        for w in self.windows: w.pan(factor)
+
+    def pan_x(self, delta):
+        for w in self.windows: w.pan_x(delta)
+
+    def pan_y(self, delta):
+        for w in self.windows: w.pan_y(delta)
+
+    def pan_rel(self, deltas):
+        for w in self.windows: w.pan_rel(deltas)
+
+    def pan_rel_x(self, delta):
+        for w in self.windows: w.pan_rel_x(delta)
+
+    def pan_rel_y(self, delta):
+        for w in self.windows: w.pan_rel_y(delta)
