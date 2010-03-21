@@ -1144,7 +1144,7 @@ class parallelHF(GenericHaloFinder, parallelHOPHaloList):
         # Adaptive subregions by bisection.
         ds_names = ["particle_position_x","particle_position_y","particle_position_z"]
         if ytcfg.getboolean("yt","inline") == False and \
-           resize and self._mpi_get_size() is not None:
+           resize and self._mpi_get_size() != 1:
             cut_list = self._partition_hierarchy_3d_bisection_list()
             for i,cut in enumerate(cut_list):
                 dim = cut[0]
@@ -1180,7 +1180,7 @@ class parallelHF(GenericHaloFinder, parallelHOPHaloList):
             del bins, counts
         # If this isn't parallel, define the region as an AMRRegionStrict so
         # particle IO works.
-        if self._mpi_get_size() == None or self._mpi_get_size() == 1:
+        if self._mpi_get_size() == 1:
             self._data_source = self.hierarchy.periodic_region_strict([0.5]*3, LE, RE)
         # get the average spacing between particles for this region
         # The except is for the serial case, where the full box is what we want.

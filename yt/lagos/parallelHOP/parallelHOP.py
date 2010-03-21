@@ -1131,10 +1131,7 @@ class RunParallelHOP(ParallelAnalysisInterface):
         Set_list = []
         # We only want the holes that are modulo mine.
         keys = na.arange(groupID, dtype='int64')
-        if self._mpi_get_size() == None:
-            size = 1
-        else:
-            size = self._mpi_get_size()
+        size = self._mpi_get_size()
         select = (keys % size == self.mine)
         groupIDs = keys[select]
         mine_groupIDs = set([]) # Records only ones modulo mine.
