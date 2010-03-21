@@ -30,7 +30,7 @@ from yt.logger import lagosLogger as mylog
 import yt.extensions.HaloProfiler as HP
 
 import numpy as na
-import os, glob, md5, time
+import os, glob, md5, time, gc
 import h5py
 import types
 import sqlite3 as sql
@@ -90,12 +90,14 @@ class DatabaseFunctions(object):
 class MergerTree(DatabaseFunctions, lagos.ParallelAnalysisInterface):
     def __init__(self, restart_files=[], database='halos.db',
             halo_finder_function=HaloFinder, halo_finder_threshold=80.0,
-            FOF_link_length=0.2):
+            FOF_link_length=0.2, dm_only=False, refresh=False):
         self.restart_files = restart_files # list of enzo restart files
         self.database = database # the sqlite database of haloes.
         self.halo_finder_function = halo_finder_function # which halo finder to use
         self.halo_finder_threshold = halo_finder_threshold # overdensity threshold
         self.FOF_link_length= FOF_link_length # For FOF
+        self.dm_only = dm_only
+        self.refresh = refresh
         # MPI stuff
         self.mine = self._mpi_get_rank()
         if self.mine is None:
@@ -104,6 +106,12 @@ class MergerTree(DatabaseFunctions, lagos.ParallelAnalysisInterface):
         if self.size is None:
             self.size = 1
         # Get to work.
+        if self.refresh and self.mine == 0:
+            try:
+                os.unlink(self.database)
+            except:
+                pass
+        self._barrier()
         self._open_create_database()
         self._create_halo_table()
         self._run_halo_finder_add_to_db()
@@ -126,21 +134,24 @@ class MergerTree(DatabaseFunctions, lagos.ParallelAnalysisInterface):
 
     def _run_halo_finder_add_to_db(self):
         for file in self.restart_files:
+            gc.collect()
             pf = lagos.EnzoStaticOutput(file)
-            # If the halos are already found, skip this one.
+            # If the halos are already found, skip this data step, unless
+            # refresh is True.
             dir = os.path.dirname(file)
             if os.path.exists(os.path.join(dir, 'MergerHalos.out')) and \
                     os.path.exists(os.path.join(dir, 'MergerHalos.txt')) and \
-                    glob.glob(os.path.join(dir, 'MergerHalos*h5')) is not []:
+                    glob.glob(os.path.join(dir, 'MergerHalos*h5')) is not [] and \
+                    not self.refresh:
                 pass
             else:
                 # Run the halo finder.
                 if self.halo_finder_function == yt.lagos.HaloFinding.FOFHaloFinder:
                     halos = self.halo_finder_function(pf,
-                        link=self.FOF_link_length, dm_only=True)
+                        link=self.FOF_link_length, dm_only=self.dm_only)
                 else:
                     halos = self.halo_finder_function(pf,
-                        threshold=self.halo_finder_threshold, dm_only=True)
+                        threshold=self.halo_finder_threshold, dm_only=self.dm_only)
                 halos.write_out(os.path.join(dir, 'MergerHalos.out'))
                 halos.write_particle_lists(os.path.join(dir, 'MergerHalos'))
                 halos.write_particle_lists_txt(os.path.join(dir, 'MergerHalos'))
@@ -183,6 +194,7 @@ class MergerTree(DatabaseFunctions, lagos.ParallelAnalysisInterface):
         # doesn't already exist. Open it first on root, and then on the others.
         if self.mine == 0:
             self.conn = sql.connect(self.database)
+        self._barrier()
         self._ensure_db_sync()
         if self.mine != 0:
             self.conn = sql.connect(self.database)
