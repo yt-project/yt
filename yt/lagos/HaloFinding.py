@@ -952,7 +952,7 @@ class parallelHOPHaloList(HaloList,ParallelAnalysisInterface):
             self.rms_vel[groupID] = \
                 na.sqrt(rms_vel_temp[groupID][0] / rms_vel_temp[groupID][1]) * \
                 self.group_sizes[groupID]
-        del rms_vel_temp, ms
+        del rms_vel_temp
         yt_counters("rms vel computing")
         self.taskID = obj.mine
         self.halo_taskmap = obj.halo_taskmap # A defaultdict.

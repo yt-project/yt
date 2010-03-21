@@ -152,9 +152,10 @@ class StructFcnGen(ParallelAnalysisInterface):
         # Do all the startup tasks.
         self._init_kd_tree()
         self._build_fields_vals()
-        self._build_points_array()
         for bigloop, length in enumerate(self.lengths):
-            #mylog.info("Doing length %1.5e" % length)
+            self._build_points_array()
+            if self.mine == 0:
+                mylog.info("Doing length %1.5e" % length)
             # Things stop when this value below equals total_values.
             self.generated_points = 0
             self.gen_array = na.zeros(self.size, dtype='int64')
@@ -191,7 +192,8 @@ class StructFcnGen(ParallelAnalysisInterface):
                     self._send_done_toall()
             #print 'done!', self.mine
             #self._barrier()
-            mylog.info("Length (%d of %d) %1.5e took %d communication cycles to complete." % \
+            if self.mine == 0:
+                mylog.info("Length (%d of %d) %1.5e took %d communication cycles to complete." % \
                 (bigloop+1, len(self.lengths), length, self.comm_cycle_count))
         self._allsum_bin_hits()
     
@@ -321,7 +323,6 @@ class StructFcnGen(ParallelAnalysisInterface):
         """
         Add up the hits to all the bins globally for all functions.
         """
-        print 'here'
         for fset in self.fsets:
             fset.too_low = self._mpi_allsum(fset.too_low)
             fset.too_high = self._mpi_allsum(fset.too_high)
