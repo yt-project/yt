@@ -291,11 +291,12 @@ class ImageSaver(object):
 class PanningCeleritasStreamer(object):
     _initialized = False
     def __init__(self, tile_id, cmap = "algae", port = 9988,
-                 zlim = (0.0, 1.0)):
+                 zlim = (0.0, 1.0), take_log = True):
         self.tile_id = tile_id
         self._port = port
         self.cmap = cmap
         self.zlim = zlim
+        self.take_log = True
 
     def initialize(self, shape):
         if isinstance(self.cmap, types.StringTypes):
@@ -313,10 +314,13 @@ class PanningCeleritasStreamer(object):
 
     def __call__(self, val):
         if not self._initialized: self.initialize(val.shape)
-        vv = val.copy()
+        if self.take_log:
+            vv = na.log10(val)
+        else:
+            vv = val.copy()
         na.subtract(vv, self.zlim[0], vv)
         na.divide(vv, (self.zlim[1]-self.zlim[0]), vv)
-        new_buf = self.cmap(vv)
+        new_buf = self.cmap(vv)[:,:,:3]
         na.multiply(new_buf, 255.0, new_buf)
-        new_buf = new_buf[:,:,:3].astype('uint8')
+        new_buf = new_buf.astype('uint8')
         self.cs.readFromRGBMemAndSend(new_buf)
