@@ -556,7 +556,7 @@ class AMR2DData(AMRData, GridPropertiesMixin, ParallelAnalysisInterface):
         """
         self.axis = axis
         AMRData.__init__(self, pf, fields, **kwargs)
-        self.field = field
+        self.field = ensure_list(fields)[0]
         self.set_field_parameter("axis",axis)
         
     def _convert_field_name(self, field):
