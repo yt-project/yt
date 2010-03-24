@@ -22,4 +22,4 @@ License:
 """
 
 from vm_panner import VariableMeshPanner, WindowedVariableMeshPanner, \
-                MultipleWindowVariableMeshPanner
+                MultipleWindowVariableMeshPanner, ImageSaver

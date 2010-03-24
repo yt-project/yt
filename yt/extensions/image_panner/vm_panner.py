@@ -26,12 +26,19 @@ from yt.raven import FixedResolutionBuffer, ObliqueFixedResolutionBuffer
 from yt.lagos import data_object_registry, AMRProjBase, AMRSliceBase, \
                      x_dict, y_dict
 
+class SourceTypeException(Exception):
+    def __init__(self, source):
+        self.source = source
+
+    def __repr__(self):
+        return "Wrong type: %s, %s" % (self.source, type(self.source))
+
 class VariableMeshPanner(object):
     _buffer = None
 
     def __init__(self, source, size, field, callback = None):
         if not isinstance(source, (AMRProjBase, AMRSliceBase)):
-            raise RuntimeError
+            print "PROBLEM WITH SOURCE", source, type(source)
         if callback is None:
             callback = lambda a: None
         self.callback = callback
@@ -160,3 +167,114 @@ class MultipleWindowVariableMeshPanner(object):
 
     def pan_rel_y(self, delta):
         for w in self.windows: w.pan_rel_y(delta)
+
+class RemoteWindowedVariableMeshController(MultipleWindowVariableMeshPanner):
+    def __init__(self, source, mec = None):
+        if mec is None:
+            from IPython.kernel.client import get_multiengine_client
+            mec = get_multiengine_client()
+        self.mec = mec
+        self.mec.execute("import yt.extensions.image_panner")
+        self._var_name = "_image_panner_%s" % (id(self))
+        self._pf_name = "_pf_%s" % (id(self))
+        self._source_name = "_source_%s" % (id(self))
+        self.source = source
+        self.mec.execute("from yt.mods import *")
+        self.mec.execute("from yt.funcs import iterable")
+        self.mec.push({self._pf_name: self.pf})
+        self.mec.execute("%s.h" % self._pf_name)
+        self.mec.push({self._source_name: self.source})
+        # Now, because the double pickling tosses a PF hash reference inside
+        # the unpickled object, we work around it a little
+        self.mec.execute("while iterable(%s): %s = %s[1]" % (
+            self._source_name, self._source_name, self._source_name))
+        self.windows = []
+
+    def add_window(self, *args, **kwargs):
+        engine_id = len(self.windows)
+        an = "_args_%s" % id(self)
+        kn = "_kwargs_%s" % id(self)
+        kwargs['callback'] = ImageSaver(engine_id)
+        self.mec.push({an: args, kn: kwargs}, engine_id)
+        exec_string = "%s = %s.h.windowed_image_panner(%s, *%s, **%s)" % (
+            self._var_name, self._pf_name, self._source_name, an, kn)
+        self.mec.execute(exec_string, engine_id)
+        self.windows.append(WindowedVariableMeshPannerProxy(
+            self.mec, engine_id, self._var_name, id(self)))
+
+data_object_registry["remote_image_panner"] = RemoteWindowedVariableMeshController
+
+_wrapped_methods = ["zoom", "pan", "pan_x", "pan_y", "pan_rel",
+                     "pan_rel_x", "pan_rel_y", "set_low_high"]
+
+class WindowedVariableMeshPannerProxy(object):
+    class __metaclass__(type):
+        def __new__(cls, name, b, d):
+            # We add on a bunch of proxy functions
+            def return_proxy(fname):
+                def func(self, *args, **kwargs):
+                    vn = "_ret_%s" % self._cid
+                    an = "_args_%s" % self._cid
+                    kn = "_kwargs_%s" % self._cid
+                    self.mec.push({an: args, kn: kwargs}, self.engine_id)
+                    self.mec.execute("%s = %s.%s(*%s, **%s)" % (
+                        vn, self._var_name, fname, an, kn), self.engine_id)
+                    return self.mec.pull(vn, self.engine_id)
+                return func
+            new_dict = {}
+            new_dict.update(d)
+            for f in _wrapped_methods:
+                print "Constructing proxy for", f
+                new_dict[f] = return_proxy(f)
+            return type.__new__(cls, name, b, new_dict)
+
+    def __init__(self, mec, engine_id, var_name, cid):
+        # mec here is, optionally, an instance of MultiEngineClient
+        self._var_name = var_name
+        self._cid = cid
+        self.engine_id = engine_id
+        self.mec = mec
+
+    @property
+    def bounds(self):
+        vn = "_ret_%s" % self._cid
+        self.mec.execute("%s = %s.bounds" % (vn, self._var_name),
+                         self.engine_id)
+        return self.mec.pull(vn, self.engine_id)
+
+    @property
+    def width(self):
+        vn = "_ret_%s" % self._cid
+        self.mec.execute("%s = %s.width" % (vn, self._var_name),
+                         self.engine_id)
+        return self.mec.pull(vn, self.engine_id)
+
+    @property
+    def buffer(self):
+        vn = "_ret_%s" % self._cid
+        self.mec.execute("%s = %s.buffer" % (vn, self._var_name),
+                         self.engine_id)
+        return self.mec.pull(vn, self.engine_id)
+
+    def _regenerate_buffer(self):
+        return
+
+class ImageSaver(object):
+    def __init__(self, tile_id):
+        self.tile_id = tile_id
+
+        import matplotlib;matplotlib.use("Agg");import pylab
+        self.pylab = pylab
+        self.pylab.clf()
+        fig = pylab.gcf()
+        fig.subplots_adjust(left=0.0, bottom=0.0,
+                            right=1.0, top=1.0,
+                            wspace=0.0, hspace=0.0)
+        fig.set_dpi(100.0)
+        fig.set_size_inches((5.12, 5.12))
+
+    def __call__(self, val):
+        self.pylab.clf()
+        self.pylab.imshow(na.log10(val), interpolation='nearest')
+        self.pylab.savefig("wimage_%03i.png" % self.tile_id)
+

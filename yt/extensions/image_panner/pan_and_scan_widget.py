@@ -41,6 +41,7 @@ from enthought.chaco.function_data_source import FunctionDataSource
 class VariableMeshPannerView(HasTraits):
 
     plot = Instance(Plot)
+    pd = Instance(ArrayPlotData)
     panner = Instance(VariableMeshPanner)
     fid = Instance(FunctionImageData)
     limits = Button
@@ -59,6 +60,7 @@ class VariableMeshPannerView(HasTraits):
         super(VariableMeshPannerView, self).__init__(**kwargs)
         # Create the plot
         pd = ArrayPlotData()
+        self.pd = pd
         fid = FunctionImageData(func = self.panner.set_low_high)
         self.fid = fid
         bounds = self.panner.bounds
@@ -84,4 +86,5 @@ class VariableMeshPannerView(HasTraits):
         self.plot = plot
 
     def _limits_fired(self):
+        print self.pd["imagedata"].min(), self.pd["imagedata"].max(),
         print self.fid.data.min(), self.fid.data.max()
