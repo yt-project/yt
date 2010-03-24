@@ -22,6 +22,7 @@ License:
 """
 
 import numpy as na
+import types, os
 from yt.raven import FixedResolutionBuffer, ObliqueFixedResolutionBuffer
 from yt.lagos import data_object_registry, AMRProjBase, AMRSliceBase, \
                      x_dict, y_dict
@@ -194,7 +195,8 @@ class RemoteWindowedVariableMeshController(MultipleWindowVariableMeshPanner):
         engine_id = len(self.windows)
         an = "_args_%s" % id(self)
         kn = "_kwargs_%s" % id(self)
-        kwargs['callback'] = ImageSaver(engine_id)
+        if 'callback' not in kwargs:
+            kwargs['callback'] = ImageSaver(engine_id)
         self.mec.push({an: args, kn: kwargs}, engine_id)
         exec_string = "%s = %s.h.windowed_image_panner(%s, *%s, **%s)" % (
             self._var_name, self._pf_name, self._source_name, an, kn)
@@ -217,8 +219,10 @@ class WindowedVariableMeshPannerProxy(object):
                     an = "_args_%s" % self._cid
                     kn = "_kwargs_%s" % self._cid
                     self.mec.push({an: args, kn: kwargs}, self.engine_id)
-                    self.mec.execute("%s = %s.%s(*%s, **%s)" % (
-                        vn, self._var_name, fname, an, kn), self.engine_id)
+                    exec_string = "%s = %s.%s(*%s, **%s)" % (
+                        vn, self._var_name, fname, an, kn)
+                    print "Executing %s on %s" % (exec_string, self.engine_id)
+                    self.mec.execute(exec_string, self.engine_id)
                     return self.mec.pull(vn, self.engine_id)
                 return func
             new_dict = {}
@@ -259,6 +263,12 @@ class WindowedVariableMeshPannerProxy(object):
     def _regenerate_buffer(self):
         return
 
+    def _run_callback(self):
+        self.mec.execute("%s._regenerate_buffer()" % self._var_name,
+                         self.engine_id)
+        self.mec.execute("%s.callback(%s.buffer)" % (
+            self._var_name, self._var_name), self.engine_id)
+
 class ImageSaver(object):
     def __init__(self, tile_id):
         self.tile_id = tile_id
@@ -278,3 +288,35 @@ class ImageSaver(object):
         self.pylab.imshow(na.log10(val), interpolation='nearest')
         self.pylab.savefig("wimage_%03i.png" % self.tile_id)
 
+class PanningCeleritasStreamer(object):
+    _initialized = False
+    def __init__(self, tile_id, cmap = "algae", port = 9988,
+                 zlim = (0.0, 1.0)):
+        self.tile_id = tile_id
+        self._port = port
+        self.cmap = cmap
+        self.zlim = zlim
+
+    def initialize(self, shape):
+        if isinstance(self.cmap, types.StringTypes):
+            import matplotlib.cm
+            self.cmap = matplotlib.cm.get_cmap(self.cmap)
+
+        import celeritas_streamer
+        self.cs = celeritas_streamer.CeleritasStream()
+        #print "Setting shape: %s and port: %s in %s" % (
+        #    shape, self._port, os.getpid())
+        self.cs.setSize(*shape)
+        self.cs.setLocalPort(self._port)
+        self.cs.initialize()
+        self._initialized = True
+
+    def __call__(self, val):
+        if not self._initialized: self.initialize(val.shape)
+        vv = val.copy()
+        na.subtract(vv, self.zlim[0], vv)
+        na.divide(vv, (self.zlim[1]-self.zlim[0]), vv)
+        new_buf = self.cmap(vv)
+        na.multiply(new_buf, 255.0, new_buf)
+        new_buf = new_buf[:,:,:3].astype('uint8')
+        self.cs.readFromRGBMemAndSend(new_buf)
