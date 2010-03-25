@@ -71,7 +71,7 @@ class VariableMeshPanner(object):
         nWx, nWy = Wx/factor, Wy/factor
         self.xlim = (centerx - nWx*0.5, centerx + nWx*0.5)
         self.ylim = (centery - nWy*0.5, centery + nWy*0.5)
-        self._run_callbacks(self.buffer)
+        self._run_callbacks()
 
     def pan(self, deltas):
         self.xlim = (self.xlim[0] + deltas[0], self.xlim[1] + deltas[0])
@@ -113,16 +113,9 @@ class VariableMeshPanner(object):
         self._buffer = new_buffer
 
     def set_low_high(self, low, high):
-        print "Setting low, high", low, high
         self.xlim = (low[0], high[0])
         self.ylim = (low[1], high[1])
-        b = na.log10(self.buffer)
-        mi, ma = b.min(), b.max()
-        print "Returning buffer with extrema",
-        print mi, ma
-        b = (b - mi)/(ma - mi)
-        self._run_callbacks()
-        return b
+        return na.log10(self.buffer)
 
     def set_limits(self, xlim, ylim):
         self.xlim = xlim
