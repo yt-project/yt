@@ -27,26 +27,27 @@ from yt.raven import FixedResolutionBuffer, ObliqueFixedResolutionBuffer
 from yt.lagos import data_object_registry, AMRProjBase, AMRSliceBase, \
                      x_dict, y_dict
 
-class SourceTypeException(Exception):
-    def __init__(self, source):
-        self.source = source
-
-    def __repr__(self):
-        return "Wrong type: %s, %s" % (self.source, type(self.source))
-
 class VariableMeshPanner(object):
     _buffer = None
 
-    def __init__(self, source, size, field, callback = None):
+    def __init__(self, source, size, field, callback = None,
+                 viewport_callback = None):
         if not isinstance(source, (AMRProjBase, AMRSliceBase)):
-            print "PROBLEM WITH SOURCE", source, type(source)
+            raise RuntimeError
         if callback is None:
             callback = lambda a: None
         self.callback = callback
+        if viewport_callback is None:
+            viewport_callback = lambda a, b: None
+        self.viewport_callback = viewport_callback
         self.size = size
         self.source = source
         self.field = field
         self.xlim, self.ylim = self.bounds
+
+    def _run_callbacks(self):
+        self.callback(self.buffer)
+        self.viewport_callback(self.xlim, self.ylim)
 
     @property
     def bounds(self):
@@ -70,12 +71,12 @@ class VariableMeshPanner(object):
         nWx, nWy = Wx/factor, Wy/factor
         self.xlim = (centerx - nWx*0.5, centerx + nWx*0.5)
         self.ylim = (centery - nWy*0.5, centery + nWy*0.5)
-        self.callback(self.buffer)
+        self._run_callbacks(self.buffer)
 
     def pan(self, deltas):
         self.xlim = (self.xlim[0] + deltas[0], self.xlim[1] + deltas[0])
         self.ylim = (self.ylim[0] + deltas[1], self.ylim[1] + deltas[1])
-        self.callback(self.buffer)
+        self._run_callbacks()
 
     def pan_x(self, delta):
         self.pan( (delta, 0.0) )
@@ -120,7 +121,13 @@ class VariableMeshPanner(object):
         print "Returning buffer with extrema",
         print mi, ma
         b = (b - mi)/(ma - mi)
+        self._run_callbacks()
         return b
+
+    def set_limits(self, xlim, ylim):
+        self.xlim = xlim
+        self.ylim = ylim
+        self._run_callbacks()
 
 data_object_registry["image_panner"] = VariableMeshPanner
 
@@ -169,6 +176,9 @@ class MultipleWindowVariableMeshPanner(object):
     def pan_rel_y(self, delta):
         for w in self.windows: w.pan_rel_y(delta)
 
+    def set_limits(self, xlim, ylim):
+        for w in self.windows: w.set_limits(xlim, ylim)
+
 class RemoteWindowedVariableMeshController(MultipleWindowVariableMeshPanner):
     def __init__(self, source, mec = None):
         if mec is None:
@@ -207,7 +217,7 @@ class RemoteWindowedVariableMeshController(MultipleWindowVariableMeshPanner):
 data_object_registry["remote_image_panner"] = RemoteWindowedVariableMeshController
 
 _wrapped_methods = ["zoom", "pan", "pan_x", "pan_y", "pan_rel",
-                     "pan_rel_x", "pan_rel_y", "set_low_high"]
+                     "pan_rel_x", "pan_rel_y", "set_limits"]
 
 class WindowedVariableMeshPannerProxy(object):
     class __metaclass__(type):
