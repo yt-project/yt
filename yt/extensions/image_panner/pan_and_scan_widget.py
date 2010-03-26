@@ -23,20 +23,65 @@ License:
 
 # Major library imports
 from vm_panner import VariableMeshPanner
-from numpy import linspace, meshgrid, pi, sin, mgrid
+from numpy import linspace, meshgrid, pi, sin, mgrid, zeros
 
 # Enthought library imports
 from enthought.enable.api import Component, ComponentEditor, Window
-from enthought.traits.api import HasTraits, Instance, Button, Any
+from enthought.traits.api import HasTraits, Instance, Button, Any, Callable, \
+        on_trait_change
 from enthought.traits.ui.api import Item, Group, View
 
 # Chaco imports
-from enthought.chaco.api import ArrayPlotData, jet, Plot
-from enthought.chaco.image_data import FunctionImageData
-from enthought.chaco.tools.api import PanTool, ZoomTool
+from enthought.chaco.api import ArrayPlotData, jet, Plot, HPlotContainer, \
+        ColorBar, DataRange1D, DataRange2D, LinearMapper, ImageData
+from enthought.chaco.tools.api import PanTool, ZoomTool, RangeSelection, \
+        RangeSelectionOverlay
 from enthought.chaco.tools.image_inspector_tool import ImageInspectorTool, \
      ImageInspectorOverlay
-from enthought.chaco.function_data_source import FunctionDataSource
+
+if not hasattr(DataRange2D, "_subranges_updated"):
+    print "You'll need to add _subranges updated to enthought/chaco/data_range_2d.py"
+    print 'Add this at the correct indentation level:'
+    print
+    print '    @on_trait_change("_xrange.updated,_yrange.updated")'
+    print '    def _subranges_updated(self):'
+    print '        self.updated = True'
+    print
+    raise RuntimeError
+
+class FunctionImageData(ImageData):
+    # The function to call with the low and high values of the range.
+    # It should return an array of values.
+    func = Callable
+
+    # A reference to a datarange
+    data_range = Instance(DataRange2D)
+
+    def __init__(self, **kw):
+        # Explicitly call the AbstractDataSource constructor because
+        # the ArrayDataSource ctor wants a data array
+        ImageData.__init__(self, **kw)
+        self.recalculate()
+
+    @on_trait_change('data_range.updated')
+    def recalculate(self):
+        if self.func is not None and self.data_range is not None:
+            newarray = self.func(self.data_range.low, self.data_range.high)
+            ImageData.set_data(self, newarray)
+        else:
+            self._data = zeros((512,512),dtype=float)
+
+    def set_data(self, *args, **kw):
+        raise RuntimeError("Cannot set numerical data on a FunctionDataSource")
+
+    def set_mask(self, mask):
+        # This would be REALLY FREAKING SLICK, but it's current unimplemented
+        raise NotImplementedError
+
+    def remove_mask(self):
+        raise NotImplementedError
+
+
 
 class ImagePixelizerHelper(object):
     index = None
@@ -64,7 +109,7 @@ class VariableMeshPannerView(HasTraits):
     
     traits_view = View(
                     Group(
-                        Item('plot', editor=ComponentEditor(size=(512,512)), 
+                        Item('container', editor=ComponentEditor(size=(512,512)), 
                              show_label=False),
                         Item('limits', show_label=False),
                         orientation = "vertical"),
@@ -104,6 +149,36 @@ class VariableMeshPannerView(HasTraits):
 
         img_plot.overlays.append(overlay)
         self.plot = plot
+
+        image_value_range = DataRange1D(fid)
+        cbar_index_mapper = LinearMapper(range=image_value_range)
+        self.colorbar = ColorBar(index_mapper=cbar_index_mapper,
+                                 plot=img_plot,
+                                 padding_right=40,
+                                 resizable='v',
+                                 width=30)
+
+        self.colorbar.tools.append(
+            PanTool(self.colorbar, constrain_direction="y", constrain=True))
+        zoom_overlay = ZoomTool(self.colorbar, axis="index", tool_mode="range",
+                                always_on=True, drag_button="right")
+        self.colorbar.overlays.append(zoom_overlay)
+
+        # create a range selection for the colorbar
+        range_selection = RangeSelection(component=self.colorbar)
+        self.colorbar.tools.append(range_selection)
+        self.colorbar.overlays.append(
+                RangeSelectionOverlay(component=self.colorbar,
+                                      border_color="white",
+                                      alpha=0.8, fill_color="lightgray"))
+
+        # we also want to the range selection to inform the cmap plot of
+        # the selection, so set that up as well
+        range_selection.listeners.append(img_plot)
+
+        self.container = HPlotContainer(padding=30)
+        self.container.add(self.colorbar)
+        self.container.add(self.plot)
 
     def _limits_fired(self):
         print self.pd["imagedata"].min(), self.pd["imagedata"].max(),
