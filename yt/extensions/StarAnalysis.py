@@ -114,11 +114,18 @@ class StarFormationRate(object):
         """
         fp = open(name, "w")
         if self.mode == 'data_source':
-            vol = self._data_source.volume('mpc')
+            try:
+                vol = self._data_source.volume('mpc')
+            except AttributeError:
+                # If we're here, this is probably a HOPHalo object, and we
+                # can get the volume this way.
+                ds = self._data_source.get_sphere()
+                vol = ds.volume('mpc')
         elif self.mode == 'provided':
             vol = self.volume
         tc = self._pf["Time"]
         # Use the center of the time_bin, not the left edge.
+        fp.write("#time\tlookback\tredshift\tMsol/yr\tMsol/yr/Mpc3\tMsol\tcumMsol\t\n")
         for i, time in enumerate((self.time_bins[1:] + self.time_bins[:-1])/2.):
             line = "%1.5e\t%1.5e\t%1.5e\t%1.5e\t%1.5e\t%1.5e\t%1.5e\n" % \
             (time * tc / YEAR, # Time
