@@ -27,7 +27,7 @@ from numpy import linspace, meshgrid, pi, sin, mgrid
 
 # Enthought library imports
 from enthought.enable.api import Component, ComponentEditor, Window
-from enthought.traits.api import HasTraits, Instance, Button
+from enthought.traits.api import HasTraits, Instance, Button, Any
 from enthought.traits.ui.api import Item, Group, View
 
 # Chaco imports
@@ -38,6 +38,21 @@ from enthought.chaco.tools.image_inspector_tool import ImageInspectorTool, \
      ImageInspectorOverlay
 from enthought.chaco.function_data_source import FunctionDataSource
 
+class ImagePixelizerHelper(object):
+    index = None
+    def __init__(self, panner):
+        self.panner = panner
+
+    def __call__(self, low, high):
+        b = self.panner.set_low_high(low, high)
+        if self.index is not None:
+            num_x_ticks = b.shape[0] + 1
+            num_y_ticks = b.shape[1] + 1
+            xs = mgrid[low[0]:high[0]:num_x_ticks*1j]
+            ys = mgrid[low[1]:high[1]:num_y_ticks*1j]
+            self.index.set_data( xs, ys )
+        return b
+
 class VariableMeshPannerView(HasTraits):
 
     plot = Instance(Plot)
@@ -45,6 +60,7 @@ class VariableMeshPannerView(HasTraits):
     panner = Instance(VariableMeshPanner)
     fid = Instance(FunctionImageData)
     limits = Button
+    helper = Any
     
     traits_view = View(
                     Group(
@@ -60,17 +76,21 @@ class VariableMeshPannerView(HasTraits):
         super(VariableMeshPannerView, self).__init__(**kwargs)
         # Create the plot
         pd = ArrayPlotData()
+        plot = Plot(pd)
         self.pd = pd
-        fid = FunctionImageData(func = self.panner.set_low_high)
+        helper = ImagePixelizerHelper(self.panner)
+        fid = FunctionImageData(func = helper)
+        fid._data = self.panner.buffer
         self.fid = fid
         bounds = self.panner.bounds
         pd.set_data("imagedata", fid)
 
-        plot = Plot(pd)
-        img_plot = plot.img_plot("imagedata", colormap=jet)[0]
-
-        xlim, ylim = self.panner.bounds
-        plot.range2d.set_bounds( (xlim[0], ylim[0]), (xlim[1], ylim[1]) )
+        img_plot = plot.img_plot("imagedata", colormap=jet,
+                                 interpolation='nearest',
+                                 xbounds=(0.0, 1.0),
+                                 ybounds=(0.0, 1.0))[0]
+        helper.index = img_plot.index
+        self.helper = helper
 
         fid.data_range = plot.range2d
 
