@@ -28,14 +28,16 @@ from numpy import linspace, meshgrid, pi, sin, mgrid, zeros
 # Enthought library imports
 from enthought.enable.api import Component, ComponentEditor, Window
 from enthought.traits.api import HasTraits, Instance, Button, Any, Callable, \
-        on_trait_change
+        on_trait_change, Bool
 from enthought.traits.ui.api import Item, Group, View
 
 # Chaco imports
 from enthought.chaco.api import ArrayPlotData, jet, Plot, HPlotContainer, \
-        ColorBar, DataRange1D, DataRange2D, LinearMapper, ImageData
+        ColorBar, DataRange1D, DataRange2D, LinearMapper, ImageData, \
+        CMapImagePlot
 from enthought.chaco.tools.api import PanTool, ZoomTool, RangeSelection, \
-        RangeSelectionOverlay
+        RangeSelectionOverlay, RangeSelection
+from zoom_overlay import ZoomOverlay
 from enthought.chaco.tools.image_inspector_tool import ImageInspectorTool, \
      ImageInspectorOverlay
 
@@ -75,13 +77,10 @@ class FunctionImageData(ImageData):
         raise RuntimeError("Cannot set numerical data on a FunctionDataSource")
 
     def set_mask(self, mask):
-        # This would be REALLY FREAKING SLICK, but it's current unimplemented
         raise NotImplementedError
 
     def remove_mask(self):
         raise NotImplementedError
-
-
 
 class ImagePixelizerHelper(object):
     index = None
@@ -98,59 +97,74 @@ class ImagePixelizerHelper(object):
             self.index.set_data( xs, ys )
         return b
 
-class VariableMeshPannerView(HasTraits):
-
+class VMImagePlot(HasTraits):
     plot = Instance(Plot)
-    pd = Instance(ArrayPlotData)
-    panner = Instance(VariableMeshPanner)
     fid = Instance(FunctionImageData)
-    limits = Button
-    helper = Any
-    
-    traits_view = View(
-                    Group(
-                        Item('container', editor=ComponentEditor(size=(512,512)), 
-                             show_label=False),
-                        Item('limits', show_label=False),
-                        orientation = "vertical"),
-                    width = 800, height=800,
-                    resizable=True, title="Pan and Scan",
-                    )
-    
-    def __init__(self, **kwargs):
-        super(VariableMeshPannerView, self).__init__(**kwargs)
-        # Create the plot
+    img_plot = Instance(CMapImagePlot)
+    panner = Instance(VariableMeshPanner)
+    helper = Instance(ImagePixelizerHelper)
+
+    def _plot_default(self):
         pd = ArrayPlotData()
         plot = Plot(pd)
-        self.pd = pd
-        helper = ImagePixelizerHelper(self.panner)
-        fid = FunctionImageData(func = helper)
-        fid._data = self.panner.buffer
-        self.fid = fid
-        bounds = self.panner.bounds
-        pd.set_data("imagedata", fid)
+        self.fid._data = self.panner.buffer
+
+        pd.set_data("imagedata", self.fid)
 
         img_plot = plot.img_plot("imagedata", colormap=jet,
                                  interpolation='nearest',
                                  xbounds=(0.0, 1.0),
                                  ybounds=(0.0, 1.0))[0]
-        helper.index = img_plot.index
-        self.helper = helper
+        self.fid.data_range = plot.range2d
+        self.helper.index = img_plot.index
+        self.img_plot = img_plot
+        return plot
 
-        fid.data_range = plot.range2d
+    def _fid_default(self):
+        return FunctionImageData(func = self.helper)
 
-        plot.tools.append(PanTool(img_plot))
-        zoom = ZoomTool(component=img_plot, tool_mode="box", always_on=False)
-        plot.overlays.append(zoom)
-        imgtool = ImageInspectorTool(img_plot)
-        img_plot.tools.append(imgtool)
-        overlay = ImageInspectorOverlay(component=img_plot, image_inspector=imgtool,
-                                        bgcolor="white", border_visible=True)
+    def _helper_default(self):
+        return ImagePixelizerHelper(self.panner)
 
-        img_plot.overlays.append(overlay)
-        self.plot = plot
+class VariableMeshPannerView(HasTraits):
 
-        image_value_range = DataRange1D(fid)
+    plot = Instance(Plot)
+    spawn_zoom = Button
+    vm_plot = Instance(VMImagePlot)
+    use_tools = Bool(True)
+    
+    traits_view = View(
+                    Group(
+                        Item('container', editor=ComponentEditor(size=(512,512)), 
+                             show_label=False),
+                        Item('spawn_zoom', show_label=False),
+                        orientation = "vertical"),
+                    width = 800, height=800,
+                    resizable=True, title="Pan and Scan",
+                    )
+
+    def _vm_plot_default(self):
+        return VMImagePlot(panner=self.panner)
+    
+    def __init__(self, **kwargs):
+        super(VariableMeshPannerView, self).__init__(**kwargs)
+        # Create the plot
+
+        plot = self.vm_plot.plot
+        img_plot = self.vm_plot.img_plot
+
+        if self.use_tools:
+            plot.tools.append(PanTool(img_plot))
+            zoom = ZoomTool(component=img_plot, tool_mode="box", always_on=False)
+            plot.overlays.append(zoom)
+            imgtool = ImageInspectorTool(img_plot)
+            img_plot.tools.append(imgtool)
+            overlay = ImageInspectorOverlay(component=img_plot, image_inspector=imgtool,
+                                            bgcolor="white", border_visible=True)
+            img_plot.overlays.append(overlay)
+
+
+        image_value_range = DataRange1D(self.vm_plot.fid)
         cbar_index_mapper = LinearMapper(range=image_value_range)
         self.colorbar = ColorBar(index_mapper=cbar_index_mapper,
                                  plot=img_plot,
@@ -178,8 +192,9 @@ class VariableMeshPannerView(HasTraits):
 
         self.container = HPlotContainer(padding=30)
         self.container.add(self.colorbar)
-        self.container.add(self.plot)
+        self.container.add(self.vm_plot.plot)
 
-    def _limits_fired(self):
-        print self.pd["imagedata"].min(), self.pd["imagedata"].max(),
-        print self.fid.data.min(), self.fid.data.max()
+    def _spawn_zoom_fired(self):
+        np = self.panner.source.pf.h.image_panner(
+                self.panner.source, self.panner.size, self.panner.field)
+        new_window = VariableMeshPannerView(panner = np)
