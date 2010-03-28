@@ -32,6 +32,16 @@ class VariableMeshPanner(object):
 
     def __init__(self, source, size, field, callback = None,
                  viewport_callback = None):
+        """
+        This class describes a meta-view onto a 2D data interface.  You provide
+        it with a slice or a projection (*source*), a tuple of the x and y
+        resolution of the final image you want (*size) and a *field* to
+        display, and then it will generate a new buffer each time you call its
+        methods for moving the window around and changing its size.  *callback*
+        is a routine called with the new buffer each time the buffer changes
+        and *viewport_callback* is called with the new *xlim* and *ylim* values
+        each time the viewport changes.
+        """
         if not isinstance(source, (AMRProjBase, AMRSliceBase)):
             raise RuntimeError
         if callback is None:
@@ -65,6 +75,9 @@ class VariableMeshPanner(object):
         return (Wx, Wy)
 
     def zoom(self, factor):
+        """
+        This zooms the window by *factor*.
+        """
         Wx, Wy = self.width
         centerx = self.xlim[0] + Wx*0.5
         centery = self.ylim[0] + Wy*0.5
@@ -74,26 +87,49 @@ class VariableMeshPanner(object):
         self._run_callbacks()
 
     def pan(self, deltas):
+        """
+        This accepts a tuple of *deltas*, composed of (delta_x, delta_y) that
+        will pan the window by those values in absolute coordinates.
+        """
         self.xlim = (self.xlim[0] + deltas[0], self.xlim[1] + deltas[0])
         self.ylim = (self.ylim[0] + deltas[1], self.ylim[1] + deltas[1])
         self._run_callbacks()
 
     def pan_x(self, delta):
+        """
+        This pans the window by *delta* in the x direction.
+        """
         self.pan( (delta, 0.0) )
 
     def pan_y(self, delta):
+        """
+        This pans the window by *delta* in the y direction.
+        """
         self.pan( (0.0, delta) )
 
     def pan_rel(self, deltas):
+        """
+        This accepts a tuple of *deltas*, composed of (delta_x, delta_y) that
+        will pan the window by those values in relative values, relative to the
+        current window view.
+        """
         Wx, Wy = self.width
         px = deltas[0] * Wx
         py = deltas[1] * Wy
         self.pan( (px, py) )
 
     def pan_rel_x(self, delta):
+        """
+        This pans the window by *delta* in the x direction, where *delta* is
+        relative to the current window view.
+        """
         self.pan_rel( (delta, 0.0) )
 
     def pan_rel_y(self, delta):
+        """
+        This pans the window by *delta* in the y direction, where *delta* is
+        relative to the current window view.
+        """
         self.pan_rel( (0.0, delta) )
 
     @property
@@ -113,11 +149,19 @@ class VariableMeshPanner(object):
         self._buffer = new_buffer
 
     def set_low_high(self, low, high):
+        """
+        This accepts *low* in the format (x_min, y_min) and *high* in the
+        format (x_max, y_max) and changes the viewport appropriately.  In
+        breaking from tradition, it also returns the buffer.
+        """
         self.xlim = (low[0], high[0])
         self.ylim = (low[1], high[1])
         return na.log10(self.buffer)
 
     def set_limits(self, xlim, ylim):
+        """
+        This accepts a new *xlim* and *ylim*.
+        """
         self.xlim = xlim
         self.ylim = ylim
         self._run_callbacks()
@@ -128,6 +172,13 @@ class WindowedVariableMeshPanner(VariableMeshPanner):
 
     def __init__(self, source, full_size, my_size, start_indices,
                  field, callback = None):
+        """
+        This image panner accepts a *full_size*, which describes the full size
+        of the image which it will be displaying a portion of.  *my_size* is
+        the size that this window will be responsible for, and *start_indices*
+        is a tuple of indices that this window begins at.  *field* and
+        *callback* function as in the vanilla image panner.
+        """
         self.my_size = my_size
         self.start_indices = start_indices
         VariableMeshPanner.__init__(self, source, full_size, field, callback)
@@ -146,6 +197,11 @@ data_object_registry["windowed_image_panner"] = WindowedVariableMeshPanner
 
 class MultipleWindowVariableMeshPanner(object):
     def __init__(self, windows):
+        """
+        This panner is exclusively a controller.  It accepts a list of
+        *windows*, to which it will issue commands.  It knows nothing other
+        than their interfaces.
+        """
         self.windows = windows
 
     def zoom(self, factor):
@@ -174,6 +230,12 @@ class MultipleWindowVariableMeshPanner(object):
 
 class RemoteWindowedVariableMeshController(MultipleWindowVariableMeshPanner):
     def __init__(self, source, mec = None):
+        """
+        This panner controls remote windowed panners.  It requires a *source*,
+        which will be pickled and sent to the remote panners, which it will
+        create as requested.  If not supplied with a *mec* (an IPython
+        MultiEngineClient) it will create one itself.
+        """
         if mec is None:
             from IPython.kernel.client import get_multiengine_client
             mec = get_multiengine_client()
@@ -195,6 +257,11 @@ class RemoteWindowedVariableMeshController(MultipleWindowVariableMeshPanner):
         self.windows = []
 
     def add_window(self, *args, **kwargs):
+        """
+        This will create a new remote WindowedVariableMeshImagePanner.  The
+        *args* and *kwargs* supplied here will be passed over, but the *source*
+        argument is implicitly handled by this routine.
+        """
         engine_id = len(self.windows)
         an = "_args_%s" % id(self)
         kn = "_kwargs_%s" % id(self)
@@ -274,6 +341,11 @@ class WindowedVariableMeshPannerProxy(object):
 
 class ImageSaver(object):
     def __init__(self, tile_id):
+        """
+        This is a sample callback for an image panner that will save to a file
+        named ``wimage_%03i.png`` where the final variable is specified here as
+        *tile_id*.
+        """
         self.tile_id = tile_id
 
         import matplotlib;matplotlib.use("Agg");import pylab
@@ -295,6 +367,10 @@ class PanningCeleritasStreamer(object):
     _initialized = False
     def __init__(self, tile_id, cmap = "algae", port = 9988,
                  zlim = (0.0, 1.0), take_log = True):
+        """
+        This is an in-development mechanism for supplying buffers to a
+        Celeritas server.
+        """
         self.tile_id = tile_id
         self._port = port
         self.cmap = cmap
