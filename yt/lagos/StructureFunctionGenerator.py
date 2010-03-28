@@ -36,7 +36,8 @@ from collections import defaultdict
 class StructFcnGen(ParallelAnalysisInterface):
     def __init__(self, pf, left_edge=None, right_edge=None,
             total_values=1000000, comm_size=10000, length_type="lin",
-            length_number=10, length_range=None, vol_ratio = 1):
+            length_number=10, length_range=None, vol_ratio = 1,
+            salt=0):
         """
         *total_values* (int) How many total (global) pair calculations to run
         for each of the structure functions specified.
@@ -55,6 +56,11 @@ class StructFcnGen(ParallelAnalysisInterface):
         the simulational volume.
         A single pair (a list or array). Default: [sqrt(3)dx, 1/2*shortest box edge],
         where dx is the smallest grid cell size.
+        *salt* (int) a number that will be added to the random number generator
+        seed. Use this if a different random series of numbers is desired when
+        keeping everything else constant from this set: (MPI task count, 
+        number of ruler lengths, ruler min/max, number of structure functions,
+        number of point pairs per ruler length). Default: 0.
         """
         self.fsets = []
         self.fields = set([])
@@ -117,7 +123,7 @@ class StructFcnGen(ParallelAnalysisInterface):
                 self._partition_region_3d(left_edge - self.lengths[-1], \
                 right_edge + self.lengths[-1], rank_ratio=self.vol_ratio)
         mylog.info("LE %s RE %s %s" % (str(self.LE), str(self.RE), str(self.ds)))
-        random.seed(-1 * self.mine)
+        random.seed(-1 * self.mine + salt)
     
     def add_function(self, function, fields, out_labels):
         """
@@ -328,8 +334,11 @@ class StructFcnGen(ParallelAnalysisInterface):
             fset.too_high = self._mpi_allsum(fset.too_high)
             fset.binned = {}
             if self.mine == 0:
-                mylog.info("Function %s had %d values too high and %d too low that were not binned." % \
-                    (fset.function.__name__, fset.too_high, fset.too_low))
+                mylog.info("Function %s had values out of range for these fields:" % \
+                    fset.function.__name__)
+                for i,field in enumerate(fset.out_labels):
+                    mylog.info("Field %s had %d values too high and %d too low that were not binned." % \
+                    (field, fset.too_high[i], fset.too_low[i]))
             for length in self.lengths:
                 fset.length_bin_hits[length] = \
                     self._mpi_Allsum_long(fset.length_bin_hits[length])
@@ -547,8 +556,11 @@ class StructSet(StructFcnGen):
         self.out_labels = out_labels # For output.
         # These below are used to track how many times the function returns
         # unbinned results.
-        self.too_low = 0
-        self.too_high = 0
+        self.too_low = {}
+        self.too_high = {}
+        for i,field in enumerate(self.out_labels):
+            self.too_low[i] = 0
+            self.too_high[i] = 0
         
     def set_pdf_params(self, bin_type="lin", bin_number=1000, bin_range=None):
         """
@@ -657,16 +669,16 @@ class StructSet(StructFcnGen):
         multi = 1
         for dim, res in enumerate(results):
             if res < self.bin_edges[dim][0]:
-                self.too_low += 1
+                self.too_low[dim] += 1
                 return
             if res >= self.bin_edges[dim][-1]:
-                self.too_high += 1
+                self.too_high[dim] += 1
                 return
             for d1 in range(dim):
                 multi *= self.bin_edges[d1].size
             hit_bin += (na.digitize([res], self.bin_edges[dim])[0] - 1) * multi
             if hit_bin >= self.length_bin_hits[length].size:
-                self.too_high += 1
+                self.too_high[dim] += 1
                 return
         self.length_bin_hits[length][hit_bin] += 1
 
@@ -694,3 +706,4 @@ class StructSet(StructFcnGen):
                 self.length_avgs[length][dim] = \
                     (self._dim_sum(self.length_bin_hits[length], dim) * \
                     ((self.bin_edges[dim][:-1] + self.bin_edges[dim][1:]) / 2.)).sum()
+
