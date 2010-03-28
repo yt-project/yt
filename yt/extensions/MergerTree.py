@@ -86,11 +86,12 @@ class DatabaseFunctions(object):
     def _close_database(self):
         # close the database cleanly.
         self.cursor.close()
+        self.conn.close()
 
 class MergerTree(DatabaseFunctions, lagos.ParallelAnalysisInterface):
     def __init__(self, restart_files=[], database='halos.db',
             halo_finder_function=HaloFinder, halo_finder_threshold=80.0,
-            FOF_link_length=0.2, dm_only=False, refresh=False):
+            FOF_link_length=0.2, dm_only=False, refresh=False, sleep=5):
         self.restart_files = restart_files # list of enzo restart files
         self.database = database # the sqlite database of haloes.
         self.halo_finder_function = halo_finder_function # which halo finder to use
@@ -98,6 +99,9 @@ class MergerTree(DatabaseFunctions, lagos.ParallelAnalysisInterface):
         self.FOF_link_length= FOF_link_length # For FOF
         self.dm_only = dm_only
         self.refresh = refresh
+        self.sleep = sleep # How long to wait between db sync checks.
+        if self.sleep <= 0.:
+            self.sleep = 5
         # MPI stuff
         self.mine = self._mpi_get_rank()
         if self.mine is None:
@@ -211,7 +215,7 @@ class MergerTree(DatabaseFunctions, lagos.ParallelAnalysisInterface):
             except IOError:
                 # This is to give a little bit of time for the database creation
                 # to replicate across the file system.
-                time.sleep(5)
+                time.sleep(self.sleep)
                 file = open(self.database)
             hash = md5.md5(file.read()).hexdigest()
             file.close()
@@ -221,7 +225,7 @@ class MergerTree(DatabaseFunctions, lagos.ParallelAnalysisInterface):
                 break
             else:
                 # Wait a little bit for the file system to (hopefully) sync up.
-                time.sleep(5)
+                time.sleep(self.sleep)
         if len(hashes) == 1:
             return
         else:
