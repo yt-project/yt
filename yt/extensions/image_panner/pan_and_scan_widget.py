@@ -28,7 +28,7 @@ from numpy import linspace, meshgrid, pi, sin, mgrid, zeros
 # Enthought library imports
 from enthought.enable.api import Component, ComponentEditor, Window
 from enthought.traits.api import HasTraits, Instance, Button, Any, Callable, \
-        on_trait_change, Bool
+        on_trait_change, Bool, DelegatesTo, List, Enum
 from enthought.traits.ui.api import Item, Group, View
 
 # Chaco imports
@@ -103,6 +103,12 @@ class VMImagePlot(HasTraits):
     img_plot = Instance(CMapImagePlot)
     panner = Instance(VariableMeshPanner)
     helper = Instance(ImagePixelizerHelper)
+    fields = List
+
+    def __init__(self, *args, **kwargs):
+        super(VMImagePlot, self).__init__(**kwargs)
+        self.add_trait("field", Enum(*self.fields))
+        self.field = self.panner.field
 
     def _plot_default(self):
         pd = ArrayPlotData()
@@ -120,11 +126,23 @@ class VMImagePlot(HasTraits):
         self.img_plot = img_plot
         return plot
 
+    def _field_changed(self, old, new):
+        self.panner.field = new
+        self.fid.recalculate()
+
     def _fid_default(self):
         return FunctionImageData(func = self.helper)
 
     def _helper_default(self):
         return ImagePixelizerHelper(self.panner)
+
+    def _fields_default(self):
+        keys = []
+        for field in self.panner.source.data:
+            if field not in ['px','py','pdx','pdy',
+                             'pz','pdz','weight_field']:
+                keys.append(field)
+        return keys
 
 class VariableMeshPannerView(HasTraits):
 
@@ -137,7 +155,7 @@ class VariableMeshPannerView(HasTraits):
                     Group(
                         Item('container', editor=ComponentEditor(size=(512,512)), 
                              show_label=False),
-                        Item('spawn_zoom', show_label=False),
+                        Item('field', show_label=False),
                         orientation = "vertical"),
                     width = 800, height=800,
                     resizable=True, title="Pan and Scan",
@@ -149,6 +167,7 @@ class VariableMeshPannerView(HasTraits):
     def __init__(self, **kwargs):
         super(VariableMeshPannerView, self).__init__(**kwargs)
         # Create the plot
+        self.add_trait("field", DelegatesTo("vm_plot"))
 
         plot = self.vm_plot.plot
         img_plot = self.vm_plot.img_plot
