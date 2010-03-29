@@ -34,7 +34,7 @@ from enthought.traits.ui.api import Item, Group, View
 # Chaco imports
 from enthought.chaco.api import ArrayPlotData, jet, Plot, HPlotContainer, \
         ColorBar, DataRange1D, DataRange2D, LinearMapper, ImageData, \
-        CMapImagePlot
+        CMapImagePlot, OverlayPlotContainer
 from enthought.chaco.tools.api import PanTool, ZoomTool, RangeSelection, \
         RangeSelectionOverlay, RangeSelection
 from zoom_overlay import ZoomOverlay
@@ -84,11 +84,14 @@ class FunctionImageData(ImageData):
 
 class ImagePixelizerHelper(object):
     index = None
-    def __init__(self, panner):
+    def __init__(self, panner, run_callbacks = False):
         self.panner = panner
+        self.run_callbacks = run_callbacks
 
     def __call__(self, low, high):
         b = self.panner.set_low_high(low, high)
+        if self.run_callbacks:
+            self.panner._run_callbacks()
         if self.index is not None:
             num_x_ticks = b.shape[0] + 1
             num_y_ticks = b.shape[1] + 1
@@ -96,6 +99,29 @@ class ImagePixelizerHelper(object):
             ys = mgrid[low[1]:high[1]:num_y_ticks*1j]
             self.index.set_data( xs, ys )
         return b
+
+class ZoomedPlotUpdater(object):
+    fid = None
+    def __init__(self, panner, zoom_factor=4):
+        """
+        Supply this an a viewport_callback argument to a panner if you want to
+        update a second panner in a smaller portion at higher resolution.  If
+        you then set the *fid* property, you can also have it update a
+        FunctionImageData datarange.  *panner* is the panner to update (not the
+        one this is a callback to) and *zoom_factor* is how much to zoom in by.
+        """
+        self.panner = panner
+        self.zoom_factor = zoom_factor
+
+    def __call__(self, xlim, ylim):
+        self.panner.xlim = xlim
+        self.panner.ylim = ylim
+        self.panner.zoom(self.zoom_factor)
+        nxlim = self.panner.xlim
+        nylim = self.panner.ylim
+        if self.fid is not None:
+            self.fid.data_range.set_bounds(
+                (nxlim[0], nylim[0]), (nxlim[1], nylim[1]))
 
 class VMImagePlot(HasTraits):
     plot = Instance(Plot)
@@ -112,7 +138,7 @@ class VMImagePlot(HasTraits):
 
     def _plot_default(self):
         pd = ArrayPlotData()
-        plot = Plot(pd)
+        plot = Plot(pd, padding = 0)
         self.fid._data = self.panner.buffer
 
         pd.set_data("imagedata", self.fid)
@@ -150,10 +176,13 @@ class VariableMeshPannerView(HasTraits):
     spawn_zoom = Button
     vm_plot = Instance(VMImagePlot)
     use_tools = Bool(True)
+    full_container = Instance(HPlotContainer)
+    container = Instance(OverlayPlotContainer)
     
     traits_view = View(
                     Group(
-                        Item('container', editor=ComponentEditor(size=(512,512)), 
+                        Item('full_container',
+                             editor=ComponentEditor(size=(512,512)), 
                              show_label=False),
                         Item('field', show_label=False),
                         orientation = "vertical"),
@@ -209,8 +238,10 @@ class VariableMeshPannerView(HasTraits):
         # the selection, so set that up as well
         range_selection.listeners.append(img_plot)
 
-        self.container = HPlotContainer(padding=30)
-        self.container.add(self.colorbar)
+        self.full_container = HPlotContainer(padding=30)
+        self.container = OverlayPlotContainer(padding=0)
+        self.full_container.add(self.colorbar)
+        self.full_container.add(self.container)
         self.container.add(self.vm_plot.plot)
 
     def _spawn_zoom_fired(self):

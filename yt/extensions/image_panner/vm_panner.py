@@ -29,6 +29,7 @@ from yt.lagos import data_object_registry, AMRProjBase, AMRSliceBase, \
 
 class VariableMeshPanner(object):
     _buffer = None
+    _hold = False
 
     def __init__(self, source, size, field, callback = None,
                  viewport_callback = None):
@@ -56,6 +57,7 @@ class VariableMeshPanner(object):
         self.xlim, self.ylim = self.bounds
 
     def _run_callbacks(self):
+        if self._hold: return
         self.callback(self.buffer)
         self.viewport_callback(self.xlim, self.ylim)
 
