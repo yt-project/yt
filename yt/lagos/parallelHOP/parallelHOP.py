@@ -1405,7 +1405,7 @@ class RunParallelHOP(ParallelAnalysisInterface):
         yt_counters("chainHOP_tags_dens")
         chainHOP_tags_dens()
         yt_counters("chainHOP_tags_dens")
-        self.density = fKD.dens
+        self.density = fKD.dens.copy()
         # Now each particle has NNtags, and a local self density.
         # Let's find densest NN
         mylog.info('Finding densest nearest neighbors...')

@@ -30,7 +30,7 @@ from yt.logger import lagosLogger as mylog
 import yt.extensions.HaloProfiler as HP
 
 import numpy as na
-import os, glob, md5, time, gc
+import os, glob, md5, time, gc, sys
 import h5py
 import types
 import sqlite3 as sql
@@ -91,7 +91,8 @@ class DatabaseFunctions(object):
 class MergerTree(DatabaseFunctions, lagos.ParallelAnalysisInterface):
     def __init__(self, restart_files=[], database='halos.db',
             halo_finder_function=HaloFinder, halo_finder_threshold=80.0,
-            FOF_link_length=0.2, dm_only=False, refresh=False, sleep=5):
+            FOF_link_length=0.2, dm_only=False, refresh=False, sleep=1,
+            index=True):
         self.restart_files = restart_files # list of enzo restart files
         self.database = database # the sqlite database of haloes.
         self.halo_finder_function = halo_finder_function # which halo finder to use
@@ -120,13 +121,24 @@ class MergerTree(DatabaseFunctions, lagos.ParallelAnalysisInterface):
         self._create_halo_table()
         self._run_halo_finder_add_to_db()
         # Find the h5 file names for all the halos.
+        mylog.info("Opening HDF5 files.")
         for snap in self.restart_files:
             self._build_h5_refs(snap)
         # Loop over the pairs of snapshots to locate likely neighbors, and
         # then use those likely neighbors to compute fractional contributions.
         for pair in zip(self.restart_files[:-1], self.restart_files[1:]):
+            self._build_h5_refs(pair[0])
+            self._build_h5_refs(pair[1])
             self._find_likely_children(pair[0], pair[1])
             self._compute_child_fraction(pair[0], pair[1])
+        if self.mine == 0 and index:
+            mylog.info("Creating database index.")
+            line = "CREATE INDEX IF NOT EXISTS HalosIndex ON Halos ("
+            for name in columns:
+                line += name +","
+            line = line[:-1] + ");"
+            self.cursor.execute(line)
+        self._barrier()
         self._close_database()
         self._close_h5fp()
         
@@ -180,7 +192,7 @@ class MergerTree(DatabaseFunctions, lagos.ParallelAnalysisInterface):
                     values = (None, currt, red, ID, halo['mass'], numpart,
                     halo['center'][0], halo['center'][1], halo['center'][2],
                     halo['velocity'][0], halo['velocity'][1], halo['velocity'][2],
-                    halo['r_max'],
+                    halo['r_max'] / pf['mpc'],
                     -1,0.,-1,0.,-1,0.,-1,0.,-1,0.)
                     # 23 question marks for 23 data columns.
                     line = ''
@@ -209,6 +221,7 @@ class MergerTree(DatabaseFunctions, lagos.ParallelAnalysisInterface):
         # parallel file system funniness, things will go bad very quickly.
         # Therefore, just to be very, very careful, we will ensure that the
         # md5 hash of the file is identical across all tasks before proceeding.
+        self._barrier()
         for i in range(5):
             try:
                 file = open(self.database)
