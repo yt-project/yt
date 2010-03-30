@@ -176,11 +176,6 @@ for pf in ["creation_time", "dynamical_time", "metallicity_fraction"]:
 add_field("particle_mass", function=particle_func("particle_mass"),
           validators=[ValidateSpatial(0)], particle_type=True)
 
-add_field("Dark matter density", function=lambda a,b: None,
-          validators=[ValidateDataField("Dark matter density"),
-                      ValidateSpatial(0)],
-          not_in_all = True)
-
 def _ParticleAge(field, data):
     current_time = data.pf["InitialTime"]
     return (current_time - data["creation_time"])
