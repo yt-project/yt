@@ -2027,7 +2027,7 @@ class AMRInclinedBox(AMR3DData):
         self.origin = na.array(origin)
         self.box_vectors = na.array(box_vectors, dtype='float64')
         self.box_lengths = (self.box_vectors**2.0).sum(axis=1)**0.5
-        center = origin + 0.5*self.box_vectors.sum(axis=1)
+        center = origin + 0.5*self.box_vectors.sum(axis=0)
         AMR3DData.__init__(self, center, fields, pf, **kwargs)
         self._setup_rotation_parameters()
         self._refresh_data()
@@ -2049,6 +2049,8 @@ class AMRInclinedBox(AMR3DData):
         goodI = amr_utils.find_grids_in_inclined_box(
                     self.box_vectors, self.center, GLE, GRE)
         cgrids = self.pf.h.grids[goodI.astype('bool')]
+        # find_grids_in_inclined_box seems to be broken.
+        cgrids = self.pf.h.grids[:]
         grids = []
         for i,grid in enumerate(cgrids):
             v = amr_utils.grid_points_in_volume(self.box_lengths, self.origin,
