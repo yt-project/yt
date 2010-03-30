@@ -593,7 +593,8 @@ class AMR2DData(AMRData, GridPropertiesMixin, ParallelAnalysisInterface):
             # Now the next field can use this field
             self[field] = temp_data[field] 
         # We finalize
-        temp_data = self._mpi_catdict(temp_data)
+        if temp_data != {}:
+            temp_data = self._mpi_catdict(temp_data)
         # And set, for the next group
         for field in temp_data.keys():
             self[field] = temp_data[field]
