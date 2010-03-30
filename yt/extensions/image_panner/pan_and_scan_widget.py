@@ -162,6 +162,11 @@ class VMImagePlot(HasTraits):
     def _helper_default(self):
         return ImagePixelizerHelper(self.panner)
 
+    def _panner_changed(self, old, new):
+        self.helper = ImagePixelizerHelper(new)
+        self.fid.func = self.helper
+        self.fid.recalculate()
+
     def _fields_default(self):
         keys = []
         for field in self.panner.source.data:
