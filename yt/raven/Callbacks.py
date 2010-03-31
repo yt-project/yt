@@ -145,34 +145,34 @@ class ContourCallback(PlotCallback):
     def __call__(self, plot):
         x0, x1 = plot.xlim
         y0, y1 = plot.ylim
+        print x0, x1, y0, y1
         xx0, xx1 = plot._axes.get_xlim()
         yy0, yy1 = plot._axes.get_ylim()
         plot._axes.hold(True)
         numPoints_x = plot.image._A.shape[0]
         numPoints_y = plot.image._A.shape[1]
-        dx = plot.image._A.shape[0] / (x1-x0)
-        dy = plot.image._A.shape[1] / (y1-y0)
+        dy = plot.image._A.shape[0] / (x1-x0)
+        dx = plot.image._A.shape[1] / (y1-y0)
         #dcollins Jan 11 2009.  Improved to allow for periodic shifts in the plot.
         #Now makes a copy of the position fields "px" and "py" and adds the
         #appropriate shift to the coppied field.  
-        DomainWidth = plot.data.pf["DomainRightEdge"] - plot.data.pf["DomainLeftEdge"]
 
         #set the cumulative arrays for the periodic shifting.
-        AllX = na.array([False]*plot.data["px"].size)
-        AllY = na.array([False]*plot.data["py"].size)
-        XShifted = copy.copy(plot.data["px"])
-        YShifted = copy.copy(plot.data["py"])
-        for shift in na.mgrid[-1:1:3j]*DomainWidth:
-            xlim = na.logical_and(plot.data["px"] + shift >= x0,
-                                  plot.data["px"] + shift <= x1)
-            ylim = na.logical_and(plot.data["py"] + shift >= y0,
-                                  plot.data["py"] + shift <= y1)
-
-            XShifted[na.where(xlim)] += shift
-            YShifted[na.where(ylim)] += shift
-            AllX = na.logical_or(AllX, xlim)
-            AllY = na.logical_or(AllY, ylim)
-        wI = na.where(na.logical_and(AllX,AllY))
+        AllX = na.zeros(plot.data["px"].size, dtype='bool')
+        AllY = na.zeros(plot.data["py"].size, dtype='bool')
+        XShifted = plot.data["px"].copy()
+        YShifted = plot.data["py"].copy()
+        dom_x, dom_y = plot._period
+        for shift in na.mgrid[-1:1:3j]:
+            xlim = ((plot.data["px"] + shift*dom_x >= x0)
+                 &  (plot.data["px"] + shift*dom_x <= x1))
+            ylim = ((plot.data["py"] + shift*dom_y >= y0)
+                 &  (plot.data["py"] + shift*dom_y <= y1))
+            XShifted[xlim] += shift * dom_x
+            YShifted[ylim] += shift * dom_y
+            AllX |= xlim
+            AllY |= ylim
+        wI = (AllX & AllY)
         xi, yi = na.mgrid[0:numPoints_x:numPoints_x/(self.factor*1j),\
                           0:numPoints_y:numPoints_y/(self.factor*1j)]
         x = (XShifted[wI]-x0)*dx 
