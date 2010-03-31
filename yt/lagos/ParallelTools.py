@@ -1031,6 +1031,51 @@ class ParallelAnalysisInterface(object):
         return data
 
     @parallel_passthrough
+    def _mpi_concatenate_array_on_root_double(self, data):
+        self._barrier()
+        size = 0
+        if MPI.COMM_WORLD.rank == 0:
+            for i in range(1, MPI.COMM_WORLD.size):
+                size = MPI.COMM_WORLD.recv(source=i, tag=0)
+                new_data = na.empty(size, dtype='float64')
+                MPI.COMM_WORLD.Recv([new_data, MPI.DOUBLE], i, 0)
+                data = na.concatenate((data, new_data))
+        else:
+            MPI.COMM_WORLD.send(data.size, 0, 0)
+            MPI.COMM_WORLD.Send([data, MPI.DOUBLE], 0, 0)
+        return data
+
+    @parallel_passthrough
+    def _mpi_concatenate_array_on_root_int(self, data):
+        self._barrier()
+        size = 0
+        if MPI.COMM_WORLD.rank == 0:
+            for i in range(1, MPI.COMM_WORLD.size):
+                size = MPI.COMM_WORLD.recv(source=i, tag=0)
+                new_data = na.empty(size, dtype='int32')
+                MPI.COMM_WORLD.Recv([new_data, MPI.INT], i, 0)
+                data = na.concatenate((data, new_data))
+        else:
+            MPI.COMM_WORLD.send(data.size, 0, 0)
+            MPI.COMM_WORLD.Send([data, MPI.INT], 0, 0)
+        return data
+
+    @parallel_passthrough
+    def _mpi_concatenate_array_on_root_long(self, data):
+        self._barrier()
+        size = 0
+        if MPI.COMM_WORLD.rank == 0:
+            for i in range(1, MPI.COMM_WORLD.size):
+                size = MPI.COMM_WORLD.recv(source=i, tag=0)
+                new_data = na.empty(size, dtype='int64')
+                MPI.COMM_WORLD.Recv([new_data, MPI.LONG], i, 0)
+                data = na.concatenate((data, new_data))
+        else:
+            MPI.COMM_WORLD.send(data.size, 0, 0)
+            MPI.COMM_WORLD.Send([data, MPI.LONG], 0, 0)
+        return data
+
+    @parallel_passthrough
     def _mpi_minimum_array_long(self, data):
         """
         Specifically for parallelHOP. For the identical array on each task,
