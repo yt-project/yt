@@ -2050,7 +2050,7 @@ class AMRInclinedBox(AMR3DData):
         goodI = amr_utils.find_grids_in_inclined_box(
                     self.box_vectors, self.center, GLE, GRE)
         cgrids = self.pf.h.grids[goodI.astype('bool')]
-        # find_grids_in_inclined_box seems to be broken.
+       # find_grids_in_inclined_box seems to be broken.
         cgrids = self.pf.h.grids[:]
         grids = []
         for i,grid in enumerate(cgrids):

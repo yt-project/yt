@@ -221,6 +221,7 @@ add_field("Dark_Matter_Density", function=lambda a,b: None,
           convert_function=_convertDensity,
           validators=[ValidateDataField("Dark_Matter_Density"),
                       ValidateSpatial(0)],
+          display_name = "Dark\ Matter\ Density",
           not_in_all = True)
 
 EnzoFieldInfo["Temperature"]._units = r"\rm{K}"
