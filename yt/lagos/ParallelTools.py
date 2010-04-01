@@ -848,7 +848,7 @@ class ParallelAnalysisInterface(object):
         if MPI.COMM_WORLD.rank == 0:
             cc = MPI.Compute_dims(MPI.COMM_WORLD.size, 2)
             nsize = final[0]/cc[0], final[1]/cc[1]
-            new_image = na.zeros((final[0], final[1], 4), dtype='float64')
+            new_image = na.zeros((final[0], final[1], 6), dtype='float64')
             new_image[0:nsize[0],0:nsize[1],:] = data[:]
             for i in range(1,MPI.COMM_WORLD.size):
                 cy, cx = na.unravel_index(i, cc)
@@ -856,7 +856,7 @@ class ParallelAnalysisInterface(object):
                     i, nsize[0]*cx,nsize[0]*(cx+1),
                        nsize[1]*cy,nsize[1]*(cy+1))
                 buf = _recv_array(source=i, tag=0).reshape(
-                    (nsize[0],nsize[1],4))
+                    (nsize[0],nsize[1],6))
                 new_image[nsize[0]*cy:nsize[0]*(cy+1),
                           nsize[1]*cx:nsize[1]*(cx+1),:] = buf[:]
             data = new_image
