@@ -110,23 +110,13 @@ class ColorTransferFunction(MultiVariateTransferFunction):
         self.blue = TransferFunction(x_bounds, nbins)
         self.alpha = TransferFunction(x_bounds, nbins)
         self.funcs = (self.red, self.green, self.blue, self.alpha)
-        self.light_dir = (0.3,-0.2,0.5)
-        self.light_color = (0.10, 0.10, 0.10)
-        self.use_light = 0
 
         # Now we do the multivariate stuff
         # We assign to Density, but do not weight
-        self.add_field_table(self.funcs[0], 0)
-        self.add_field_table(self.funcs[1], 1)
-        self.add_field_table(self.funcs[2], 2)
-        self.add_field_table(self.funcs[3], 3)
-
-        # Now we link our channels with our tables:
-        self.link_channels(0, 0)
-        self.link_channels(1, 1)
-        self.link_channels(2, 2)
-        # Alpha channels all go to table ID 3
-        self.link_channels(3, [3,4,5])
+        for i,tf in enumerate(self.funcs[:-1]):
+            self.add_field_table(tf, 0)
+            self.link_channels(i, i)
+            self.link_channels(i, i+3)
 
     def add_gaussian(self, location, width, height):
         for tf, v in zip(self.funcs, height):

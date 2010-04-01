@@ -195,9 +195,15 @@ cdef class TransferFunctionProxy:
         # integration here:
         #   I_{i+1} = ds * C_i + (1.0 - ds*alpha_i) * I_i
         for i in range(3):
+            # This is the new way: alpha corresponds to opacity of a given
+            # slice.  Previously it was ill-defined, but represented some
+            # measure of emissivity.
             ta = (1.0 - dt*trgba[i+3])
             rgba[i  ] = dt*trgba[i  ] + ta * rgba[i  ]
             rgba[i+3] = dt*trgba[i+3] + ta * rgba[i+3]
+            # This is the old way:
+            #rgba[i  ] += trgba[i] * (1.0 - rgba[i+3])*dt*trgba[i+3]
+            #rgba[i+3] += trgba[i] * (1.0 - rgba[i+3])*dt*trgba[i+3]
 
 cdef class VectorPlane:
     cdef public object avp_pos, avp_dir, acenter, aimage
