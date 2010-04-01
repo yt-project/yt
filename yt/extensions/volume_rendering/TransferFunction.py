@@ -87,11 +87,14 @@ class MultiVariateTransferFunction(object):
         self.field_ids = [0] * 6 # This correlates fields with tables
         self.weight_field_ids = [-1] * 6 # This correlates 
         self.field_table_ids = [0] * 6
+        self.weight_table_ids = [-1] * 6
 
-    def add_field_table(self, table, field_id, weight_field_id = -1):
+    def add_field_table(self, table, field_id, weight_field_id = -1,
+                        weight_table_id = -1):
         self.tables.append(table)
         self.field_ids[self.n_field_tables] = field_id
         self.weight_field_ids[self.n_field_tables] = weight_field_id
+        self.weight_table_ids[self.n_field_tables] = weight_table_id
         self.n_field_tables += 1
 
     def link_channels(self, table_id, channels = 0):
@@ -113,10 +116,13 @@ class ColorTransferFunction(MultiVariateTransferFunction):
 
         # Now we do the multivariate stuff
         # We assign to Density, but do not weight
-        for i,tf in enumerate(self.funcs[:-1]):
-            self.add_field_table(tf, 0)
+        for i,tf in enumerate(self.funcs):
+            self.add_field_table(tf, 0, weight_table_id = 3)
             self.link_channels(i, i)
-            self.link_channels(i, i+3)
+
+        self.alpha_two = TransferFunction(x_bounds, nbins)
+        self.add_field_table(self.alpha_two, 0)
+        self.link_channels(4, [3,4,5])
 
     def add_gaussian(self, location, width, height):
         for tf, v in zip(self.funcs, height):

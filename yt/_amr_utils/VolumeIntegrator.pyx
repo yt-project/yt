@@ -82,11 +82,12 @@ cdef struct FieldInterpolationTable:
     np.float64_t idbin
     int field_id
     int weight_field_id
+    int weight_table_id
     int nbins
 
 cdef void FIT_initialize_table(FieldInterpolationTable *fit, int nbins,
               np.float64_t *values, np.float64_t bounds1, np.float64_t bounds2,
-              int field_id, int weight_field_id = -1):
+              int field_id, int weight_field_id = -1, int weight_table_id = -1):
     fit.bounds[0] = bounds1; fit.bounds[1] = bounds2
     fit.nbins = nbins
     fit.dbin = (fit.bounds[1] - fit.bounds[0])/fit.nbins
@@ -95,6 +96,7 @@ cdef void FIT_initialize_table(FieldInterpolationTable *fit, int nbins,
     fit.values = values
     fit.field_id = field_id
     fit.weight_field_id = weight_field_id
+    fit.weight_table_id = weight_table_id
 
 cdef np.float64_t FIT_get_value(FieldInterpolationTable *fit,
                             np.float64_t *dvs):
@@ -153,7 +155,8 @@ cdef class TransferFunctionProxy:
                       <np.float64_t *> temp.data,
                       tf_obj.tables[i].x_bounds[0],
                       tf_obj.tables[i].x_bounds[1],
-                      tf_obj.field_ids[i], tf_obj.weight_field_ids[i])
+                      tf_obj.field_ids[i], tf_obj.weight_field_ids[i],
+                      tf_obj.weight_table_ids[i])
             self.my_field_tables.append((tf_obj.tables[i],
                                          tf_obj.tables[i].y))
             self.field_tables[i].field_id = tf_obj.field_ids[i]
@@ -185,6 +188,10 @@ cdef class TransferFunctionProxy:
                 break
         for i in range(self.n_field_tables):
             self.istorage[i] = FIT_get_value(&self.field_tables[i], dvs)
+        # We have to do this after the interpolation
+        for i in range(self.n_field_tables):
+            fid = self.field_tables[i].weight_table_id
+            if fid != -1: self.istorage[i] *= self.istorage[fid]
         for i in range(6):
             trgba[i] = self.istorage[self.field_table_ids[i]]
         # A few words on opacity.  We're going to be integrating equation 1.23
