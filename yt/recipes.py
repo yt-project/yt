@@ -48,7 +48,9 @@ def _fix_pf(pf):
         return lagos.EnzoStaticOutput("%s.dir/%s" % (pf,pf))
     elif pf.endswith(".hierarchy"):
         return lagos.EnzoStaticOutput(pf[:-10])
-    # JS will have to implement the Orion one
+    elif os.path.isdir("%s" % pf) and \
+         os.path.exists("%s/Header" % pf):
+        return lagos.OrionStaticOutput(pf)
     else:
         raise IOError(pf)
 

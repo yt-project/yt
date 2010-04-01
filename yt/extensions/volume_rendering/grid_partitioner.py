@@ -84,10 +84,15 @@ class HomogenizedBrickCollection(DistributedObjectCollection):
         fields = ensure_list(fields)
         bricks = []
         # We preload.
-        grid_list = list(self._get_grid_objs())
+        # UNCOMMENT FOR PARALLELISM
+        #grid_list = list(self._get_grid_objs())
+        grid_list = list(self.source._grids)
         self._preload(grid_list, fields, self.pf.h.io)
         pbar = get_pbar("Partitioning ", len(grid_list))
-        for i, g in enumerate(self._get_grids()):
+        # UNCOMMENT FOR PARALLELISM
+        #for i, g in enumerate(self._get_grids()):
+        print "THIS MANY GRIDS!", len(grid_list)
+        for i, g in enumerate(self.source._grids):
             pbar.update(i)
             bricks += self._partition_grid(g, fields, log_field)
         pbar.finish()
@@ -111,7 +116,8 @@ class HomogenizedBrickCollection(DistributedObjectCollection):
         # Vertex-centered means we subtract one from the shape
         self.brick_dimensions -= 1
         self.bricks = na.array(bricks, dtype='object')
-        self.join_lists()
+        # UNCOMMENT FOR PARALLELISM
+        #self.join_lists()
 
     def _get_object_info(self):
         # We transpose here for the catdict operation

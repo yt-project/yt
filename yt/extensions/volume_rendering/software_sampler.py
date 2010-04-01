@@ -86,7 +86,10 @@ class VolumeRendering(ParallelAnalysisInterface):
             self._base_source = source
         self.source = source
         self.res_fac = rf
-        self._brick_collection = HomogenizedBrickCollection(self._base_source)
+        # Note that if we want to do this in parallel, with 3D domain decomp
+        # for the grid/bricks, we can supply self._base_source here.  But,
+        # _distributed can't be overridden in that case.
+        self._brick_collection = HomogenizedBrickCollection(self.source)
 
     def ray_cast(self, finalize=True):
         if self.bricks is None: self.partition_grids()
@@ -137,7 +140,8 @@ class VolumeRendering(ParallelAnalysisInterface):
             log_field.append(field in self.pf.field_info and 
                              self.pf.field_info[field].take_log)
         self._brick_collection._partition_local_grids(self.fields, log_field)
-        self._brick_collection._collect_bricks(self.source)
+        # UNCOMMENT FOR PARALLELISM
+        #self._brick_collection._collect_bricks(self.source)
         self.bricks = self._brick_collection.bricks
 
     def _construct_vector_array(self):

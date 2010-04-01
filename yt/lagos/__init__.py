@@ -100,6 +100,8 @@ from Profiles import *
 
 from HaloFinding import *
 
+from StructureFunctionGenerator import *
+
 # We load plugins.  Keep in mind, this can be fairly dangerous -
 # the primary purpose is to allow people to have a set of functions
 # that get used every time that they don't have to *define* every time.

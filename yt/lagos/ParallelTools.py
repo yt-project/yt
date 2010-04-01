@@ -306,7 +306,7 @@ class ParallelAnalysisInterface(object):
         box = self.hierarchy.inclined_box(norigin, nbox_vectors)
         return True, box, resolution
         
-    def _partition_hierarchy_3d(self, padding=0.0):
+    def _partition_hierarchy_3d(self, padding=0.0, rank_ratio = 1):
         LE, RE = self.pf["DomainLeftEdge"].copy(), self.pf["DomainRightEdge"].copy()
         if not self._distributed:
            return False, LE, RE, self.hierarchy.all_data()
@@ -324,8 +324,8 @@ class ParallelAnalysisInterface(object):
             RE = root_grids[0].RightEdge
             return True, LE, RE, self.hierarchy.region(self.center, LE, RE)
 
-        cc = MPI.Compute_dims(MPI.COMM_WORLD.size, 3)
-        mi = MPI.COMM_WORLD.rank
+        cc = MPI.Compute_dims(MPI.COMM_WORLD.size / rank_ratio, 3)
+        mi = MPI.COMM_WORLD.rank % (MPI.COMM_WORLD.size / rank_ratio)
         cx, cy, cz = na.unravel_index(mi, cc)
         x = na.mgrid[LE[0]:RE[0]:(cc[0]+1)*1j][cx:cx+2]
         y = na.mgrid[LE[1]:RE[1]:(cc[1]+1)*1j][cy:cy+2]
@@ -339,6 +339,33 @@ class ParallelAnalysisInterface(object):
                 LE, RE, self.hierarchy.periodic_region_strict(self.center, LE-padding, RE+padding)
 
         return False, LE, RE, self.hierarchy.region_strict(self.center, LE, RE)
+
+    def _partition_region_3d(self, left_edge, right_edge, padding=0.0,
+            rank_ratio = 1):
+        """
+        Given a region, it subdivides it into smaller regions for parallel
+        analysis.
+        """
+        LE, RE = left_edge[:], right_edge[:]
+        if not self._distributed:
+            return LE, RE, re
+        
+        cc = MPI.Compute_dims(MPI.COMM_WORLD.size / rank_ratio, 3)
+        mi = MPI.COMM_WORLD.rank % (MPI.COMM_WORLD.size / rank_ratio)
+        cx, cy, cz = na.unravel_index(mi, cc)
+        x = na.mgrid[LE[0]:RE[0]:(cc[0]+1)*1j][cx:cx+2]
+        y = na.mgrid[LE[1]:RE[1]:(cc[1]+1)*1j][cy:cy+2]
+        z = na.mgrid[LE[2]:RE[2]:(cc[2]+1)*1j][cz:cz+2]
+
+        LE = na.array([x[0], y[0], z[0]], dtype='float64')
+        RE = na.array([x[1], y[1], z[1]], dtype='float64')
+
+        if padding > 0:
+            return True, \
+                LE, RE, self.hierarchy.periodic_region(self.center, LE-padding,
+                    RE+padding)
+
+        return False, LE, RE, self.hierarchy.region(self.center, LE, RE)
 
     def _partition_hierarchy_3d_bisection_list(self):
         """
@@ -1323,6 +1350,14 @@ class ParallelAnalysisInterface(object):
         for i in xrange(len(hooks)):
             req = MPI.Request.Waitany(hooks)
             yield req
+
+    def _mpi_Request_Testall(self, hooks):
+        """
+        This returns False if any of the request hooks are un-finished,
+        and True if they are all finished.
+        """
+        if not self._distributed: return True
+        return MPI.Request.Testall(hooks)
 
     ###
     # End non-blocking stuff.

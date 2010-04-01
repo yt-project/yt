@@ -10,6 +10,7 @@ def configuration(parent_package='', top_path=None):
     config.add_subpackage('reason')
     config.add_subpackage('extensions')
     config.add_subpackage('parallel_tools')
+    config.add_subpackage('data_objects')
     config.add_extension("amr_utils", 
         ["yt/amr_utils.c", "yt/_amr_utils/FixedInterpolator.c"], 
         include_dirs=["yt/_amr_utils/"],
