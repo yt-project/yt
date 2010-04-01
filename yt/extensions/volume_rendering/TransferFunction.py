@@ -80,10 +80,31 @@ class TransferFunction(object):
         pylab.ylim(0.0, 1.0)
         pylab.savefig(filename)
 
-class ColorTransferFunction(object):
+class MultiVariateTransferFunction(object):
+    def __init__(self):
+        self.n_field_tables = 0
+        self.tables = [] # Tables are interpolation tables
+        self.field_ids = [0] * 6 # This correlates fields with tables
+        self.weight_field_ids = [-1] * 6 # This correlates 
+        self.field_table_ids = [0] * 6
+
+    def add_field_table(self, table, field_id, weight_field_id = -1):
+        self.tables.append(table)
+        self.field_ids[self.n_field_tables] = field_id
+        self.weight_field_ids[self.n_field_tables] = weight_field_id
+        self.n_field_tables += 1
+
+    def link_channels(self, table_id, channels = 0):
+        channels = ensure_list(channels)
+        for c in channels:
+            self.field_table_ids[c] = table_id
+
+class ColorTransferFunction(MultiVariateTransferFunction):
     def __init__(self, x_bounds, nbins=256):
+        MultiVariateTransferFunction.__init__(self)
         self.x_bounds = x_bounds
         self.nbins = nbins
+        # This is all compatibility and convenience.
         self.red = TransferFunction(x_bounds, nbins)
         self.green = TransferFunction(x_bounds, nbins)
         self.blue = TransferFunction(x_bounds, nbins)
@@ -92,6 +113,20 @@ class ColorTransferFunction(object):
         self.light_dir = (0.3,-0.2,0.5)
         self.light_color = (0.10, 0.10, 0.10)
         self.use_light = 0
+
+        # Now we do the multivariate stuff
+        # We assign to Density, but do not weight
+        self.add_field_table(self.funcs[0], 0)
+        self.add_field_table(self.funcs[1], 1)
+        self.add_field_table(self.funcs[2], 2)
+        self.add_field_table(self.funcs[3], 3)
+
+        # Now we link our channels with our tables:
+        self.link_channels(0, 0)
+        self.link_channels(1, 1)
+        self.link_channels(2, 2)
+        # Alpha channels all go to table ID 3
+        self.link_channels(3, [3,4,5])
 
     def add_gaussian(self, location, width, height):
         for tf, v in zip(self.funcs, height):
@@ -147,25 +182,6 @@ class ColorTransferFunction(object):
         for v, a in zip(na.mgrid[mi:ma:N*1j], alpha):
             self.sample_colormap(v, w, a, colormap=colormap)
 
-class MultiVariateTransferFunction(object):
-    def __init__(self):
-        self.n_field_tables = 0
-        self.tables = []
-        self.field_ids = [0]*6
-        self.weight_field_ids = [-1]*6
-        self.field_table_ids = [0]*6
-
-    def add_field_table(self, table, field_id, weight_field_id = -1):
-        self.tables.append(table)
-        self.field_ids[self.n_field_tables] = field_id
-        self.weight_field_ids[self.n_field_tables] = weight_field_id
-        self.n_field_tables += 1
-
-    def link_channels(self, table_id, channels = 0):
-        channels = ensure_list(channels)
-        for c in channels:
-            self.field_table_ids[c] = table_id
-
 class PlanckTransferFunction(MultiVariateTransferFunction):
     def __init__(self, T_bounds, rho_bounds, nbins=256,
                  red='R', green='V', blue='B'):
@@ -178,18 +194,19 @@ class PlanckTransferFunction(MultiVariateTransferFunction):
             self.add_field_table(tf, 0, 1)
             self.link_channels(i, i) # 0 => 0, 1 => 1, 2 => 2
 
-        dr = (rho_bounds[1]-rho_bounds[0])/5
-
+        # These are the alpha: r_alpha
         tf = TransferFunction(rho_bounds)
         tf.add_line( (rho_bounds[0], 0.1), (rho_bounds[1], 0.1) )
         self.add_field_table(tf, 1)
         self.link_channels(3, 3)
 
+        # These are the alpha: g_alpha
         tf = TransferFunction(rho_bounds)
         tf.add_line( (rho_bounds[0], 0.1), (rho_bounds[1], 0.1) )
         self.add_field_table(tf, 1)
         self.link_channels(4, 4)
 
+        # These are the alpha: b_alpha
         tf = TransferFunction(rho_bounds)
         tf.add_line( (rho_bounds[0], 0.1), (rho_bounds[1], 0.1) )
         self.add_field_table(tf, 1)
