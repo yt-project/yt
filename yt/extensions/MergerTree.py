@@ -694,24 +694,30 @@ class MergerTreeDotOutput(DatabaseFunctions, lagos.ParallelAnalysisInterface):
         # This stores the newly discovered parent halos.
         newhalos = set([])
         for halo in halos:
-            for i in range(5):
-                line = 'SELECT GlobalHaloID, ChildHaloFrac%d from Halos\
-                where ChildHaloID%d=?;' % (i, i)
-                values = (halo,)
-                self.cursor.execute(line, values)
-                result = self.cursor.fetchone()
-                while result:
-                    pID = result[0]
-                    pfrac = result[1]
-                    if pfrac <= self.link_min:
-                        result = self.cursor.fetchone()
+            line = "SELECT GlobalHaloID, ChildHaloFrac0,\
+                ChildHaloFrac1, ChildHaloFrac2,ChildHaloFrac3, ChildHaloFrac4,\
+                ChildHaloID0, ChildHaloID1, ChildHaloID2, \
+                ChildHaloID3, ChildHaloID4 \
+                FROM Halos WHERE\
+                ChildHaloID0=? or ChildHaloID1=? or ChildHaloID2=? or\
+                ChildHaloID3=? or ChildHaloID4=?;"
+            values = (halo, halo, halo, halo, halo)
+            self.cursor.execute(line, values)
+            result = self.cursor.fetchone()
+            while result:
+                res = list(result)
+                pID = result[0]
+                pfracs = res[1:6]
+                cIDs = res[6:11]
+                for pair in zip(cIDs, pfracs):
+                    if pair[1] <= self.link_min or pair[0] != halo:
                         continue
-                    # Store this.
-                    self.nodes[halo].parentIDs.append(pID)
-                    self.links[pID].childIDs.append(halo)
-                    self.links[pID].fractions.append(pfrac)
-                    newhalos.add(pID)
-                    result = self.cursor.fetchone()
+                    else:
+                        self.nodes[halo].parentIDs.append(pID)
+                        self.links[pID].childIDs.append(halo)
+                        self.links[pID].fractions.append(pair[1])
+                        newhalos.add(pID)
+                result = self.cursor.fetchone()
         return newhalos
     
     def _add_nodes(self, newhalos):
