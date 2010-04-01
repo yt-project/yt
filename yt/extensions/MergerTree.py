@@ -24,7 +24,7 @@ License:
 """
 
 import yt.lagos as lagos
-from yt.lagos.kd import *
+from yt.extensions.kdtree import *
 from yt.lagos.HaloFinding import HaloFinder
 from yt.logger import lagosLogger as mylog
 import yt.extensions.HaloProfiler as HP
@@ -41,7 +41,7 @@ column_types = {
 "SnapCurrentTimeIdentifier":"INTEGER",
 "SnapZ":"FLOAT",
 "SnapHaloID":"INTEGER",
-"DarkMatterMass":"FLOAT",
+"HaloMass":"FLOAT",
 "NumPart":"INTEGER",
 "CenMassX":"FLOAT",
 "CenMassY":"FLOAT",
@@ -63,7 +63,7 @@ column_types = {
 
 # In order.
 columns = ["GlobalHaloID", "SnapCurrentTimeIdentifier", "SnapZ", 
-"SnapHaloID", "DarkMatterMass", "NumPart", "CenMassX", "CenMassY",
+"SnapHaloID", "HaloMass", "NumPart", "CenMassX", "CenMassY",
 "CenMassZ", "BulkVelX", "BulkVelY", "BulkVelZ", "MaxRad",
 "ChildHaloID0", "ChildHaloFrac0",
 "ChildHaloID1", "ChildHaloFrac1",
@@ -94,6 +94,7 @@ class MergerTree(DatabaseFunctions, lagos.ParallelAnalysisInterface):
             FOF_link_length=0.2, dm_only=False, refresh=False, sleep=1,
             index=True):
         self.restart_files = restart_files # list of enzo restart files
+        self.with_halos = na.ones(len(restart_files), dtype='bool')
         self.database = database # the sqlite database of haloes.
         self.halo_finder_function = halo_finder_function # which halo finder to use
         self.halo_finder_threshold = halo_finder_threshold # overdensity threshold
@@ -121,16 +122,19 @@ class MergerTree(DatabaseFunctions, lagos.ParallelAnalysisInterface):
         self._create_halo_table()
         self._run_halo_finder_add_to_db()
         # Find the h5 file names for all the halos.
-        mylog.info("Opening HDF5 files.")
         for snap in self.restart_files:
             self._build_h5_refs(snap)
         # Loop over the pairs of snapshots to locate likely neighbors, and
         # then use those likely neighbors to compute fractional contributions.
-        for pair in zip(self.restart_files[:-1], self.restart_files[1:]):
-            self._build_h5_refs(pair[0])
-            self._build_h5_refs(pair[1])
+        last = None
+        for snap, pair in enumerate(zip(self.restart_files[:-1], self.restart_files[1:])):
+            if not self.with_halos[snap] or not self.with_halos[snap+1]:
+                continue
             self._find_likely_children(pair[0], pair[1])
-            self._compute_child_fraction(pair[0], pair[1])
+            # last is the data for the parent dataset, which can be supplied
+            # as the child from the previous round for all but the first loop.
+            last = self._compute_child_fraction(pair[0], pair[1], last)
+        del last
         if self.mine == 0 and index:
             mylog.info("Creating database index.")
             line = "CREATE INDEX IF NOT EXISTS HalosIndex ON Halos ("
@@ -140,7 +144,7 @@ class MergerTree(DatabaseFunctions, lagos.ParallelAnalysisInterface):
             self.cursor.execute(line)
         self._barrier()
         self._close_database()
-        self._close_h5fp()
+        mylog.info("Done!")
         
     def _read_halo_lists(self):
         self.halo_lists = []
@@ -149,7 +153,7 @@ class MergerTree(DatabaseFunctions, lagos.ParallelAnalysisInterface):
             self.halo_lists.append(hp.all_halos)
 
     def _run_halo_finder_add_to_db(self):
-        for file in self.restart_files:
+        for cycle, file in enumerate(self.restart_files):
             gc.collect()
             pf = lagos.EnzoStaticOutput(file)
             # If the halos are already found, skip this data step, unless
@@ -171,6 +175,10 @@ class MergerTree(DatabaseFunctions, lagos.ParallelAnalysisInterface):
                 halos.write_out(os.path.join(dir, 'MergerHalos.out'))
                 halos.write_particle_lists(os.path.join(dir, 'MergerHalos'))
                 halos.write_particle_lists_txt(os.path.join(dir, 'MergerHalos'))
+                if len(halos) == 0:
+                    mylog.info("Dataset %s has no halos." % file)
+                    self.with_halos[cycle] = False
+                    continue
                 del halos
             # Now add halo data to the db if it isn't already there by
             # checking the first halo.
@@ -185,6 +193,10 @@ class MergerTree(DatabaseFunctions, lagos.ParallelAnalysisInterface):
             # Read the halos off the disk using the Halo Profiler tools.
             hp = HP.HaloProfiler(file, halo_list_file='MergerHalos.out',
             halo_list_format={'id':0, 'mass':1, 'numpart':2, 'center':[7, 8, 9], 'velocity':[10, 11, 12], 'r_max':13})
+            if len(hp.all_halos) == 0:
+                mylog.info("Dataset %s has no halos." % file)
+                self.with_halos[cycle] = False
+                continue
             mylog.info("Entering halos into database for z=%f" % red)
             if self.mine == 0:
                 for ID,halo in enumerate(hp.all_halos):
@@ -252,7 +264,7 @@ class MergerTree(DatabaseFunctions, lagos.ParallelAnalysisInterface):
                 # Create the table that will store the halo data.
                 line = "CREATE TABLE Halos (GlobalHaloID INTEGER PRIMARY KEY,\
                     SnapCurrentTimeIdentifier INTEGER, SnapZ FLOAT, SnapHaloID INTEGER, \
-                    DarkMatterMass FLOAT,\
+                    HaloMass FLOAT,\
                     NumPart INTEGER, CenMassX FLOAT, CenMassY FLOAT,\
                     CenMassZ FLOAT, BulkVelX FLOAT, BulkVelY FLOAT, BulkVelZ FLOAT,\
                     MaxRad FLOAT,\
@@ -284,15 +296,17 @@ class MergerTree(DatabaseFunctions, lagos.ParallelAnalysisInterface):
         # Build the kdtree for the children by looping over the fetched rows.
         child_points = []
         for row in self.cursor:
-            p = Point()
-            p.data = [row[1], row[2], row[3]]
-            p.ID = row[0]
-            child_points.append(p)
-        child_kd = buildKdHyperRectTree(child_points[:],10)
-
-        # Make these just once.
-        neighbors = Neighbors()
-        neighbors.k = 5
+            child_points.append([row[1], row[2], row[3]])
+        # Turn it into fortran.
+        child_points = na.array(child_points)
+        fKD.pos = na.asfortranarray(child_points.T)
+        fKD.qv = na.empty(3, dtype='float64')
+        fKD.dist = na.empty(5, dtype='float64')
+        fKD.tags = na.empty(5, dtype='int64')
+        fKD.nn = 5
+        fKD.sort = True
+        fKD.rearrange = True
+        create_tree()
 
         # Find the parent points from the database.
         parent_pf = lagos.EnzoStaticOutput(parentfile)
@@ -305,13 +319,12 @@ class MergerTree(DatabaseFunctions, lagos.ParallelAnalysisInterface):
         # parents.
         candidates = {}
         for row in self.cursor:
-            neighbors.points = []
-            neighbors.minDistanceSquared = 100. # should make this a function of the simulation
-            cm = [row[1], row[2], row[3]]
-            getKNN(cm, child_kd, neighbors, 0., [1.]*3)
+            fKD.qv = na.array([row[1], row[2], row[3]])
+            find_nn_nearest_neighbors()
+            NNtags = fKD.tags[:] - 1
             nIDs = []
-            for n in neighbors.points:
-                nIDs.append(n[1].ID)
+            for n in NNtags:
+                nIDs.append(n)
             if len(nIDs) < 5:
                 # We need to fill in fake halos if there aren't enough halos,
                 # which can happen at high redshifts.
@@ -319,13 +332,26 @@ class MergerTree(DatabaseFunctions, lagos.ParallelAnalysisInterface):
                     nIDs.append(-1)
             candidates[row[0]] = nIDs
         
+        del fKD.pos, fKD.tags, fKD.dist
+        free_tree() # Frees the kdtree object.
+        
         self.candidates = candidates
+        
+        # This stores the masses contributed to each child candidate.
+        self.child_mass_arr = na.zeros(len(candidates)*5, dtype='float64')
+        # Records where to put the entries in the above array.
+        self.child_mass_loc = defaultdict(dict)
+        for i,halo in enumerate(sorted(candidates)):
+            for j, child in enumerate(candidates[halo]):
+                self.child_mass_loc[halo][child] = i*5 + j
 
     def _build_h5_refs(self, filename):
         # For this snapshot, add lists of file names that contain the
         # particle info for each halo.
         if not hasattr(self, 'h5files'):
             self.h5files = defaultdict(dict)
+        if not hasattr(self, 'names'):
+            self.names = defaultdict(set)
         file_pf = lagos.EnzoStaticOutput(filename)
         currt = file_pf['CurrentTimeIdentifier']
         dir = os.path.dirname(filename)
@@ -337,21 +363,10 @@ class MergerTree(DatabaseFunctions, lagos.ParallelAnalysisInterface):
             line = line.strip().split()
             self.h5files[currt][i] = line[1:]
             names.update(line[1:])
+            self.names[currt].update(line[1:])
         lines.close()
-        # As long as we're here, open each of the h5 files and store the
-        # pointer in a persistent dict.
-        if not hasattr(self, 'h5fp'):
-            self.h5fp = defaultdict(dict)
-        for name in names:
-            self.h5fp[currt][name] = h5py.File(name)
 
-    def _close_h5fp(self):
-        # Cleanly close the open h5 file pointers.
-        for currt in self.h5fp:
-            for name in self.h5fp[currt]:
-                self.h5fp[currt][name].close()
-        
-    def _compute_child_fraction(self, parentfile, childfile):
+    def _compute_child_fraction(self, parentfile, childfile, last):
         # Given a parent and child snapshot, and a list of child candidates,
         # compute what fraction of the parent halo goes to each of the children.
         
@@ -363,90 +378,224 @@ class MergerTree(DatabaseFunctions, lagos.ParallelAnalysisInterface):
         mylog.info("Computing fractional contribututions of particles to z=%1.5f halos." % \
             child_pf['CosmologyCurrentRedshift'])
         
-        child_percents = {}
-        for i,halo in enumerate(self.candidates):
-            if i%self.size != self.mine:
-                continue
-            # Read in its particle IDs
+        if last == None:
+            # First we're going to read in the particles, haloIDs and masses from
+            # the parent dataset.
+            parent_names = list(self.names[parent_currt])
+            parent_names.sort()
             parent_IDs = na.array([], dtype='int64')
             parent_masses = na.array([], dtype='float64')
-            for h5name in self.h5files[parent_currt][halo]:
-                # Get the correct time dict entry, and then the correct h5 file
-                # from that snapshot, and then choose this parent's halo
-                # group, and then the particle IDs. How's that for a long reach?
-                new_IDs = self.h5fp[parent_currt][h5name]['Halo%08d' % halo]['particle_index']
-                new_masses = self.h5fp[parent_currt][h5name]['Halo%08d' % halo]['ParticleMassMsun']
-                parent_IDs = na.concatenate((parent_IDs, new_IDs[:]))
-                parent_masses = na.concatenate((parent_masses, new_masses[:]))
-            # Loop over its children.
-            temp_percents = {}
-            for child in self.candidates[halo]:
-                if child == -1:
-                    # If this is a fake child, record zero contribution and move
-                    # on.
-                    temp_percents[-1] = 0.
+            parent_halos = na.array([], dtype='int32')
+            for i,pname in enumerate(parent_names):
+                if i>=self.mine and i%self.size==self.mine:
+                    h5fp = h5py.File(pname)
+                    for group in h5fp:
+                        gID = int(group[4:])
+                        thisIDs = h5fp[group]['particle_index'][:]
+                        thisMasses = h5fp[group]['ParticleMassMsun'][:]
+                        parent_IDs = na.concatenate((parent_IDs, thisIDs))
+                        parent_masses = na.concatenate((parent_masses, thisMasses))
+                        parent_halos = na.concatenate((parent_halos, 
+                            na.ones(thisIDs.size, dtype='int32') * gID))
+                    h5fp.close()
+            
+            # Sort the arrays by particle index in ascending order.
+            sort = parent_IDs.argsort()
+            parent_IDs = parent_IDs[sort]
+            parent_masses = parent_masses[sort]
+            parent_halos = parent_halos[sort]
+            del sort
+        else:
+            # We can use old data and save disk reading.
+            (parent_IDs, parent_masses, parent_halos) = last
+        # Used to communicate un-matched particles.
+        parent_send = na.ones(parent_IDs.size, dtype='bool')
+        
+        # Now get the child halo data.
+        child_names = list(self.names[child_currt])
+        child_names.sort()
+        child_IDs = na.array([], dtype='int64')
+        child_masses = na.array([], dtype='float64')
+        child_halos = na.array([], dtype='int32')
+        for i,cname in enumerate(child_names):
+            if i>=self.mine and i%self.size==self.mine:
+                h5fp = h5py.File(cname)
+                for group in h5fp:
+                    gID = int(group[4:])
+                    thisIDs = h5fp[group]['particle_index'][:]
+                    thisMasses = h5fp[group]['ParticleMassMsun'][:]
+                    child_IDs = na.concatenate((child_IDs, thisIDs))
+                    child_masses = na.concatenate((child_masses, thisMasses))
+                    child_halos = na.concatenate((child_halos, 
+                        na.ones(thisIDs.size, dtype='int32') * gID))
+                h5fp.close()
+        
+        # Sort the arrays by particle index.
+        sort = child_IDs.argsort()
+        child_IDs = child_IDs[sort]
+        child_masses = child_masses[sort]
+        child_halos = child_halos[sort]
+        child_send = na.ones(child_IDs.size, dtype='bool')
+        del sort
+        
+        # Parent IDs on the left, child IDs on the right. We skip down both
+        # columns matching IDs. If they are out of synch, the index(es) is/are
+        # advanced until they match up again.
+        left = 0
+        right = 0
+        while left < parent_IDs.size and right < child_IDs.size:
+            if parent_IDs[left] == child_IDs[right]:
+                # They match up, add this relationship.
+                try:
+                    loc = self.child_mass_loc[parent_halos[left]][child_halos[right]]
+                except KeyError:
+                    # This happens when a child halo contains a particle from
+                    # a parent halo, but the child is not identified as a 
+                    # candidate child halo. So we do nothing and move on with
+                    # our lives.
+                    left += 1
+                    right += 1
                     continue
-                child_IDs = na.array([], dtype='int64')
-                for h5name in self.h5files[child_currt][child]:
-                    new_IDs = self.h5fp[child_currt][h5name]['Halo%08d' % child]['particle_index']
-                    child_IDs = na.concatenate((child_IDs, new_IDs[:]))
-                # The IDs shared by both halos.
-                intersect = na.intersect1d(parent_IDs, child_IDs)
-                # Pick out the parent particles that go to the child.
-                select = na.in1d(parent_IDs, intersect)
-                # The fraction by mass of the parent that goes to the child.
-                temp_percents[child] = parent_masses[select].sum() / parent_masses.sum()
-            child_percents[halo] = temp_percents
+                self.child_mass_arr[loc] += parent_masses[left]
+                # Mark this pair so we don't send them later.
+                parent_send[left] = False
+                child_send[right] = False
+                left += 1
+                right += 1
+                continue
+            if parent_IDs[left] < child_IDs[right]:
+                # The left is too small, so we need to increase it.
+                left += 1
+                continue
+            if parent_IDs[left] > child_IDs[right]:
+                # Right too small.
+                right += 1
+                continue
+
+        # Now we send all the un-matched particles to the root task for one more
+        # pass. This depends on the assumption that most of the particles do
+        # not move very much between data dumps, so that not too many particles
+        # will be dumped on the single task.
+        parent_IDs_tosend = parent_IDs[parent_send]
+        parent_masses_tosend = parent_masses[parent_send]
+        parent_halos_tosend = parent_halos[parent_send]
+        child_IDs_tosend = child_IDs[child_send]
+        child_halos_tosend = child_halos[child_send]
+        
+        parent_IDs_tosend = self._mpi_concatenate_array_on_root_long(parent_IDs_tosend)
+        parent_masses_tosend = self._mpi_concatenate_array_on_root_double(parent_masses_tosend)
+        parent_halos_tosend = self._mpi_concatenate_array_on_root_int(parent_halos_tosend)
+        child_IDs_tosend = self._mpi_concatenate_array_on_root_long(child_IDs_tosend)
+        child_halos_tosend = self._mpi_concatenate_array_on_root_int(child_halos_tosend)
+
+        # Resort the received particles.
+        Psort = parent_IDs_tosend.argsort()
+        parent_IDs_tosend = parent_IDs_tosend[Psort]
+        parent_masses_tosend = parent_masses_tosend[Psort]
+        parent_halos_tosend = parent_halos_tosend[Psort]
+        Csort = child_IDs_tosend.argsort()
+        child_IDs_tosend = child_IDs_tosend[Csort]
+        child_halos_tosend = child_halos_tosend[Csort]
+        del Psort, Csort
+
+        # Now Again.
+        if self.mine == 0:
+            matched = 0
+            left = 0
+            right = 0
+            while left < parent_IDs_tosend.size and right < child_IDs_tosend.size:
+                if parent_IDs_tosend[left] == child_IDs_tosend[right]:
+                    # They match up, add this relationship.
+                    try:
+                        loc = self.child_mass_loc[parent_halos_tosend[left]][child_halos_tosend[right]]
+                    except KeyError:
+                        # This happens when a child halo contains a particle from
+                        # a parent halo, but the child is not identified as a 
+                        # candidate child halo. So we do nothing and move on with
+                        # our lives.
+                        left += 1
+                        right += 1
+                        continue
+                    self.child_mass_arr[loc] += parent_masses_tosend[left]
+                    matched += 1
+                    left += 1
+                    right += 1
+                    continue
+                if parent_IDs_tosend[left] < child_IDs_tosend[right]:
+                    # The left is too small, so we need to increase it.
+                    left += 1
+                    continue
+                if parent_IDs_tosend[left] > child_IDs_tosend[right]:
+                    # Right too small.
+                    right += 1
+                    continue
+            mylog.info("Clean-up round matched %d of %d parents and %d children." % \
+            (matched, parent_IDs_tosend.size, child_IDs_tosend.size))
+
+        # Now we sum up the contributions globally.
+        self.child_mass_arr = self._mpi_Allsum_double(self.child_mass_arr)
+        
+        # Turn these Msol masses into percentages of the parent.
+        line = "SELECT HaloMass FROM Halos WHERE SnapCurrentTimeIdentifier=%d \
+        ORDER BY SnapHaloID ASC;" % parent_currt
+        self.cursor.execute(line)
+        mark = 0
+        result = self.cursor.fetchone()
+        while result:
+            mass = result[0]
+            self.child_mass_arr[mark:mark+5] /= mass
+            mark += 5
+            result = self.cursor.fetchone()
+        
+        # Get the global ID for the SnapHaloID=0 from the child, this will
+        # be used to prevent unnecessary SQL reads.
+        line = "SELECT GlobalHaloID FROM Halos WHERE SnapCurrentTimeIdentifier=%d \
+        AND SnapHaloID=0;" % child_currt
+        self.cursor.execute(line)
+        baseChildID = self.cursor.fetchone()[0]
         
         # Now we prepare a big list of writes to put in the database.
         write_values = []
-        for i,halo in enumerate(self.candidates):
-            if i%self.size != self.mine:
-                continue
-            child_IDs = []
+        for i,parent_halo in enumerate(sorted(self.candidates)):
+            child_indexes = []
             child_per = []
-            for child in self.candidates[halo]:
+            for j,child in enumerate(self.candidates[parent_halo]):
                 if child == -1:
                     # Account for fake children.
-                    child_IDs.append(-1)
+                    child_indexes.append(-1)
                     child_per.append(0.)
                     continue
                 # We need to get the GlobalHaloID for this child.
-                line = 'SELECT GlobalHaloID FROM Halos WHERE \
-                SnapCurrentTimeIdentifier=? AND SnapHaloID=?'
-                values = (child_currt, child)
-                self.cursor.execute(line, values)
-                child_globalID = self.cursor.fetchone()[0]
-                child_IDs.append(child_globalID)
-                child_per.append(child_percents[halo][child])
+                child_globalID = baseChildID + child
+                child_indexes.append(child_globalID)
+                child_per.append(self.child_mass_arr[i*5 + j])
             # Sort by percentages, desending.
-            child_per, child_IDs = zip(*sorted(zip(child_per, child_IDs), reverse=True))
+            child_per, child_indexes = zip(*sorted(zip(child_per, child_indexes), reverse=True))
             values = []
-            for pair in zip(child_IDs, child_per):
-                values.extend(pair)
-            values.extend([parent_currt, halo])
+            for pair in zip(child_indexes, child_per):
+                values.extend([int(pair[0]), float(pair[1])])
+            values.extend([parent_currt, parent_halo])
             # This has the child ID, child percent listed five times, followed
             # by the currt and this parent halo ID (SnapHaloID).
             values = tuple(values)
             write_values.append(values)
-
-        # Now we do the actual writing, but making sure that parallel tasks
-        # don't try to write at the same time.
+        
+        # Now we do the actual writing, but only by task 0.
         line = 'UPDATE Halos SET ChildHaloID0=?, ChildHaloFrac0=?,\
         ChildHaloID1=?, ChildHaloFrac1=?,\
         ChildHaloID2=?, ChildHaloFrac2=?,\
         ChildHaloID3=?, ChildHaloFrac3=?,\
         ChildHaloID4=?, ChildHaloFrac4=?\
         WHERE SnapCurrentTimeIdentifier=? AND SnapHaloID=?;'
-        for i in range(self.size):
-            # There's a _barrier inside _ensure_db_sync,
-            # so the loops are strictly sequential and only one task writes
-            # at a time.
-            self._ensure_db_sync()
-            if i == self.mine:
-                for values in write_values:
-                    self.cursor.execute(line, values)
-                self.conn.commit()
+        if self.mine == 0:
+            for values in write_values:
+                self.cursor.execute(line, values)
+            self.conn.commit()
+        
+        # This has a barrier in it, which ensures the disk isn't lagging.
+        self._ensure_db_sync()
+        
+        return (child_IDs, child_masses, child_halos)
 
 class MergerTreeConnect(DatabaseFunctions):
     def __init__(self, database='halos.db'):
@@ -517,13 +666,14 @@ class MergerTreeDotOutput(DatabaseFunctions, lagos.ParallelAnalysisInterface):
             mylog.info("Finding parents for %d children." % len(newhalos))
             newhalos = self._find_parents(newhalos)
             self._add_nodes(newhalos)
-        mylog.info("Writing out to disk.")
+        mylog.info("Writing out %s to disk." % dotfile)
         self._open_dot(dotfile)
         self._write_nodes()
         self._write_links()
         self._write_levels()
         self._close_dot()
         self._close_database()
+        return None
 
     def _translate_haloIDs(self, halos, current_time):
         # If the input is in the haloID equivalent to SnapHaloID, translate them
@@ -544,24 +694,30 @@ class MergerTreeDotOutput(DatabaseFunctions, lagos.ParallelAnalysisInterface):
         # This stores the newly discovered parent halos.
         newhalos = set([])
         for halo in halos:
-            for i in range(5):
-                line = 'SELECT GlobalHaloID, ChildHaloFrac%d from Halos\
-                where ChildHaloID%d=?;' % (i, i)
-                values = (halo,)
-                self.cursor.execute(line, values)
-                result = self.cursor.fetchone()
-                while result:
-                    pID = result[0]
-                    pfrac = result[1]
-                    if pfrac <= self.link_min:
-                        result = self.cursor.fetchone()
+            line = "SELECT GlobalHaloID, ChildHaloFrac0,\
+                ChildHaloFrac1, ChildHaloFrac2,ChildHaloFrac3, ChildHaloFrac4,\
+                ChildHaloID0, ChildHaloID1, ChildHaloID2, \
+                ChildHaloID3, ChildHaloID4 \
+                FROM Halos WHERE\
+                ChildHaloID0=? or ChildHaloID1=? or ChildHaloID2=? or\
+                ChildHaloID3=? or ChildHaloID4=?;"
+            values = (halo, halo, halo, halo, halo)
+            self.cursor.execute(line, values)
+            result = self.cursor.fetchone()
+            while result:
+                res = list(result)
+                pID = result[0]
+                pfracs = res[1:6]
+                cIDs = res[6:11]
+                for pair in zip(cIDs, pfracs):
+                    if pair[1] <= self.link_min or pair[0] != halo:
                         continue
-                    # Store this.
-                    self.nodes[halo].parentIDs.append(pID)
-                    self.links[pID].childIDs.append(halo)
-                    self.links[pID].fractions.append(pfrac)
-                    newhalos.add(pID)
-                    result = self.cursor.fetchone()
+                    else:
+                        self.nodes[halo].parentIDs.append(pID)
+                        self.links[pID].childIDs.append(halo)
+                        self.links[pID].fractions.append(pair[1])
+                        newhalos.add(pID)
+                result = self.cursor.fetchone()
         return newhalos
     
     def _add_nodes(self, newhalos):
@@ -583,7 +739,7 @@ class MergerTreeDotOutput(DatabaseFunctions, lagos.ParallelAnalysisInterface):
         maxID = self.cursor.fetchone()[0]
         # For the new halos, create nodes for them.
         for halo in newhalos:
-            line = 'SELECT SnapZ, DarkMatterMass, CenMassX, CenMassY, CenMassZ,\
+            line = 'SELECT SnapZ, HaloMass, CenMassX, CenMassY, CenMassZ,\
             SnapHaloID FROM Halos WHERE GlobalHaloID=? limit 1;'
             value = (halo,)
             self.cursor.execute(line, value)
@@ -649,6 +805,7 @@ class MergerTreeTextOutput(DatabaseFunctions, lagos.ParallelAnalysisInterface):
             return None
         self._write_out()
         self._close_database()
+        return None
     
     def _write_out(self):
         # Essentially dump the contents of the database into a text file.

@@ -155,7 +155,7 @@ class Halo(object):
 
     def __getitem__(self, key):
         if ytcfg.getboolean("yt","inline") == False:
-            return self.data.particles[key][self.indices]
+            return self.data[key][self.indices]
         else:
             return self.data[key][self.indices]
 
@@ -438,7 +438,7 @@ class parallelHOPHalo(Halo,ParallelAnalysisInterface):
 
     def __getitem__(self, key):
         if ytcfg.getboolean("yt","inline") == False:
-            return self.data.particles[key][self.indices]
+            return self.data[key][self.indices]
         else:
             return self.data[key][self.indices]
 
@@ -599,11 +599,11 @@ class HaloList(object):
         self.particle_fields = {}
         for field in self._fields:
             if ytcfg.getboolean("yt","inline") == False:
-                tot_part = self._data_source.particles[field].size
+                tot_part = self._data_source[field].size
                 if field == "particle_index":
-                    self.particle_fields[field] = self._data_source.particles[field][ii].astype('int64')
+                    self.particle_fields[field] = self._data_source[field][ii].astype('int64')
                 else:
-                    self.particle_fields[field] = self._data_source.particles[field][ii].astype('float64')
+                    self.particle_fields[field] = self._data_source[field][ii].astype('float64')
             else:
                 tot_part = self._data_source[field].size
                 if field == "particle_index":
@@ -891,9 +891,9 @@ class parallelHOPHaloList(HaloList,ParallelAnalysisInterface):
         yt_counters("bulk vel. reading data")
         pm = self.particle_fields["ParticleMassMsun"]
         if ytcfg.getboolean("yt","inline") == False:
-            xv = self._data_source.particles["particle_velocity_x"][self._base_indices]
-            yv = self._data_source.particles["particle_velocity_y"][self._base_indices]
-            zv = self._data_source.particles["particle_velocity_z"][self._base_indices]
+            xv = self._data_source["particle_velocity_x"][self._base_indices]
+            yv = self._data_source["particle_velocity_y"][self._base_indices]
+            zv = self._data_source["particle_velocity_z"][self._base_indices]
         else:
             xv = self._data_source["particle_velocity_x"][self._base_indices]
             yv = self._data_source["particle_velocity_y"][self._base_indices]
@@ -1155,7 +1155,7 @@ class parallelHF(GenericHaloFinder, parallelHOPHaloList):
                     new_LE, new_RE = new_top_bounds
                     width = new_RE[dim] - new_LE[dim]
                 if ytcfg.getboolean("yt","inline") == False:
-                    data = self._data_source.particles[ds_names[dim]]
+                    data = self._data_source[ds_names[dim]]
                 else:
                     data = self._data_source[ds_names[dim]]
                 if i == 0:
@@ -1185,7 +1185,7 @@ class parallelHF(GenericHaloFinder, parallelHOPHaloList):
         # get the average spacing between particles for this region
         # The except is for the serial case, where the full box is what we want.
         if ytcfg.getboolean("yt","inline") == False:
-            data = self._data_source.particles["particle_position_x"]
+            data = self._data_source["particle_position_x"]
         else:
             data = self._data_source["particle_position_x"]
         try:
@@ -1207,7 +1207,7 @@ class parallelHF(GenericHaloFinder, parallelHOPHaloList):
             LE_padding, RE_padding = na.empty(3,dtype='float64'), na.empty(3,dtype='float64')
             for dim in xrange(3):
                 if ytcfg.getboolean("yt","inline") == False:
-                    data = self._data_source.particles[ds_names[dim]]
+                    data = self._data_source[ds_names[dim]]
                 else:
                     data = self._data_source[ds_names[dim]]
                 num_bins = 1000
@@ -1243,7 +1243,7 @@ class parallelHF(GenericHaloFinder, parallelHOPHaloList):
         # Now we get the full box mass after we have the final composition of
         # subvolumes.
         if ytcfg.getboolean("yt","inline") == False:
-            total_mass = self._mpi_allsum((self._data_source.particles["ParticleMassMsun"].astype('float64')).sum())
+            total_mass = self._mpi_allsum((self._data_source["ParticleMassMsun"].astype('float64')).sum())
         else:
             total_mass = self._mpi_allsum((self._data_source["ParticleMassMsun"].astype('float64')).sum())
         if not self._distributed:

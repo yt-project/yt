@@ -1429,8 +1429,9 @@ class RunParallelHOP(ParallelAnalysisInterface):
         self._communicate_annulus_chainIDs()
         mylog.info('Connecting %d chains into groups...' % self.nchains)
         self._connect_chains()
-        del fKD.dens, fKD.mass, fKD.dens
+        del fKD.dens, fKD.mass
         del fKD.pos, fKD.chunk_tags
+        del fKD.tags, fKD.dist
         free_tree() # Frees the kdtree object.
         del self.densestNN
         mylog.info('Communicating group links globally...')
