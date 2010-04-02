@@ -98,3 +98,8 @@ johnson_filters = dict(
         dtype='float64'),
       ),
     )
+
+for filter, vals in johnson_filters.items():
+    wavelen = vals["wavelen"]
+    trans = vals["trans"]
+    vals["Lchar"] = wavelen[na.argmax(trans)]

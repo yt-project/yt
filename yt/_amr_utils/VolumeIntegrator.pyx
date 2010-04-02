@@ -195,6 +195,8 @@ cdef class TransferFunctionProxy:
             if fid != -1: self.istorage[i] *= self.istorage[fid]
         for i in range(6):
             trgba[i] = self.istorage[self.field_table_ids[i]]
+            #print i, trgba[i],
+        #print
         # A few words on opacity.  We're going to be integrating equation 1.23
         # from Rybicki & Lightman.  dI_\nu / ds = -\alpha_\nu I_\nu + j_\nu
         # \alpha_nu = \kappa \rho , but we leave that up to the input
@@ -206,7 +208,7 @@ cdef class TransferFunctionProxy:
             # This is the new way: alpha corresponds to opacity of a given
             # slice.  Previously it was ill-defined, but represented some
             # measure of emissivity.
-            ta = (1.0 - dt*trgba[i+3])
+            ta = fmax((1.0 - dt*trgba[i+3]), 0.0)
             rgba[i  ] = dt*trgba[i  ] + ta * rgba[i  ]
             rgba[i+3] = dt*trgba[i+3] + ta * rgba[i+3]
             # This is the old way:

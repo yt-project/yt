@@ -179,8 +179,22 @@ class ColorTransferFunction(MultiVariateTransferFunction):
 
 class PlanckTransferFunction(MultiVariateTransferFunction):
     def __init__(self, T_bounds, rho_bounds, nbins=256,
-                 red='R', green='V', blue='B'):
+                 red='R', green='V', blue='B',
+                 anorm = 1e6):
+        """
+        This sets up a planck function for multivariate emission and
+        absorption.  We assume that the emission is black body, which is then
+        convolved with appropriate Johnson filters for *red*, *green* and
+        *blue*.  *T_bounds* and *rho_bounds* define the limits of tabulated
+        emission and absorption functions.  *anorm* is a "fudge factor" that
+        defines the somewhat arbitrary normalization to the scattering
+        approximation: because everything is done largely unit-free, and is
+        really not terribly accurate anyway, feel free to adjust this to change
+        the relative amount of reddenning.  Maybe in some future version this
+        will be unitful.
+        """
         MultiVariateTransferFunction.__init__(self)
+        mscat = -1
         from UBVRI import johnson_filters
         for i, f in enumerate([red, green, blue]):
             jf = johnson_filters[f]
@@ -188,24 +202,16 @@ class PlanckTransferFunction(MultiVariateTransferFunction):
             tf.add_filtered_planck(jf['wavelen'], jf['trans'])
             self.add_field_table(tf, 0, 1)
             self.link_channels(i, i) # 0 => 0, 1 => 1, 2 => 2
+            mscat = max(mscat, jf["Lchar"]**-4)
 
-        # These are the alpha: r_alpha
-        tf = TransferFunction(rho_bounds)
-        tf.add_line( (rho_bounds[0], 0.1), (rho_bounds[1], 0.1) )
-        self.add_field_table(tf, 1)
-        self.link_channels(3, 3)
-
-        # These are the alpha: g_alpha
-        tf = TransferFunction(rho_bounds)
-        tf.add_line( (rho_bounds[0], 0.1), (rho_bounds[1], 0.1) )
-        self.add_field_table(tf, 1)
-        self.link_channels(4, 4)
-
-        # These are the alpha: b_alpha
-        tf = TransferFunction(rho_bounds)
-        tf.add_line( (rho_bounds[0], 0.1), (rho_bounds[1], 0.1) )
-        self.add_field_table(tf, 1)
-        self.link_channels(5, 5)
+        for i, f in enumerate([red, green, blue]):
+            # Now we set up the scattering
+            scat = (johnson_filters[f]["Lchar"]**-4 / mscat)*1e6
+            tf = TransferFunction(rho_bounds)
+            print "Adding: %s with relative scattering %s" % (f, scat)
+            tf.y *= 0.0; tf.y += scat
+            self.add_field_table(tf, 1, weight_field_id = 1)
+            self.link_channels(i+3, i+3)
 
         self._normalize()
 
