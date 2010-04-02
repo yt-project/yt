@@ -206,7 +206,7 @@ class PlanckTransferFunction(MultiVariateTransferFunction):
 
         for i, f in enumerate([red, green, blue]):
             # Now we set up the scattering
-            scat = (johnson_filters[f]["Lchar"]**-4 / mscat)*1e6
+            scat = (johnson_filters[f]["Lchar"]**-4 / mscat)*anorm
             tf = TransferFunction(rho_bounds)
             print "Adding: %s with relative scattering %s" % (f, scat)
             tf.y *= 0.0; tf.y += scat
