@@ -146,6 +146,7 @@ cdef class TransferFunctionProxy:
         self.tf_obj = tf_obj
 
         self.n_field_tables = tf_obj.n_field_tables
+        for i in range(6): self.istorage[i] = 0.0
 
         self.my_field_tables = []
         for i in range(self.n_field_tables):
