@@ -43,8 +43,8 @@ class VariableMeshPanner(object):
         and *viewport_callback* is called with the new *xlim* and *ylim* values
         each time the viewport changes.
         """
-        if not isinstance(source, (AMRProjBase, AMRSliceBase)):
-            raise RuntimeError
+        #if not isinstance(source, (AMRProjBase, AMRSliceBase)):
+        #    raise RuntimeError
         if callback is None:
             callback = lambda a: None
         self.callback = callback
