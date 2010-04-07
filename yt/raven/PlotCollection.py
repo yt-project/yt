@@ -340,7 +340,8 @@ class PlotCollection(object):
         """
         if x_bounds is None:
             x_min, x_max = data_source.quantities["Extrema"](
-                            fields[0], lazy_reader=lazy_reader)[0]
+                            fields[0], non_zero = x_log,
+                            lazy_reader=lazy_reader)[0]
         else:
             x_min, x_max = x_bounds
         profile = lagos.BinnedProfile1D(data_source,
@@ -389,12 +390,14 @@ class PlotCollection(object):
         """
         if x_bounds is None:
             x_min, x_max = data_source.quantities["Extrema"](
-                                    fields[0], lazy_reader=lazy_reader)[0]
+                                    fields[0], non_zero = x_log,
+                                    lazy_reader=lazy_reader)[0]
         else:
             x_min, x_max = x_bounds
         if y_bounds is None:
             y_min, y_max = data_source.quantities["Extrema"](
-                                    fields[1], lazy_reader=lazy_reader)[0]
+                                    fields[1], non_zero = y_log,
+                                    lazy_reader=lazy_reader)[0]
         else:
             y_min, y_max = y_bounds
         profile = lagos.BinnedProfile2D(data_source,
