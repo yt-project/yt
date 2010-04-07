@@ -163,13 +163,15 @@ class VMImagePlot(HasTraits):
         return ImagePixelizerHelper(self.panner)
 
     def _panner_changed(self, old, new):
+        index = self.helper.index
         self.helper = ImagePixelizerHelper(new)
+        self.helper.index = index
         self.fid.func = self.helper
         self.fid.recalculate()
 
     def _fields_default(self):
         keys = []
-        for field in self.panner.source.data:
+        for field in self.panner.source.keys():
             if field not in ['px','py','pdx','pdy',
                              'pz','pdz','weight_field']:
                 keys.append(field)
@@ -248,8 +250,3 @@ class VariableMeshPannerView(HasTraits):
         self.full_container.add(self.colorbar)
         self.full_container.add(self.container)
         self.container.add(self.vm_plot.plot)
-
-    def _spawn_zoom_fired(self):
-        np = self.panner.source.pf.h.image_panner(
-                self.panner.source, self.panner.size, self.panner.field)
-        new_window = VariableMeshPannerView(panner = np)
