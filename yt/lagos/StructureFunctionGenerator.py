@@ -62,7 +62,7 @@ class StructFcnGen(ParallelAnalysisInterface):
         number of ruler lengths, ruler min/max, number of structure functions,
         number of point pairs per ruler length). Default: 0.
         """
-        self.fsets = []
+        self._fsets = []
         self.fields = set([])
         # MPI stuff.
         self.size = self._mpi_get_size()
@@ -75,6 +75,7 @@ class StructFcnGen(ParallelAnalysisInterface):
         self.done_hooks = []
         self.comm_size = comm_size
         self.pf = pf
+        self.nlevels = na.unique(self.pf.h.grid_levels).size
         self.period = self.pf['DomainRightEdge'] - self.pf['DomainLeftEdge']
         self.min_edge = min(self.period)
         self.hierarchy = pf.h
@@ -123,9 +124,10 @@ class StructFcnGen(ParallelAnalysisInterface):
                 self._partition_region_3d(left_edge - self.lengths[-1], \
                 right_edge + self.lengths[-1], rank_ratio=self.vol_ratio)
         mylog.info("LE %s RE %s %s" % (str(self.LE), str(self.RE), str(self.ds)))
+        self.width = self.ds.right_edge - self.ds.left_edge
         random.seed(-1 * self.mine + salt)
     
-    def add_function(self, function, fields, out_labels):
+    def add_function(self, function, fields, out_labels, sqrt):
         """
         Add a structure function to the list that will be evaluated at the
         generated pairs of points.
@@ -142,21 +144,44 @@ class StructFcnGen(ParallelAnalysisInterface):
         if len(out_labels) < 1:
             raise SyntaxError("Please specify at least one out_labels for function %s." %\
                 function.__name__)
-        self.fsets.append(StructSet(self, function, self.min_edge, fields,
-            out_labels))
+        sqrt = list(sqrt)
+        if len(sqrt) != len(out_labels):
+            raise SyntaxError("Please have the same number of elements in out_labels as in sqrt for function %s." %\
+                function.__name__)
+        self._fsets.append(StructSet(self, function, self.min_edge, fields,
+            out_labels, sqrt))
         self.fields.update(fields)
-        return self.fsets[-1]
+        return self._fsets[-1]
+
+    def __getitem__(self, key):
+        return self._fsets[key]
     
     def run_generator(self):
         """
         After all the structure functions have been added, run the generator.
         """
         # We need a function!
-        if len(self.fsets) == 0:
+        if len(self._fsets) == 0:
             mylog.error("You need to add at least one structure function!")
             return None
-        # Do all the startup tasks.
-        self._init_kd_tree()
+        # Do all the startup tasks to get the grid points.
+        if self.nlevels == 1:
+            self._build_sort_array()
+            self.sort_done = False
+        else:
+            self._init_kd_tree()
+            self.sort_done = True
+        # Store the fields.
+        self.stored_fields = {}
+        for field in self.fields:
+            self.stored_fields[field] = self.ds[field].copy()
+            self.ds.clear_data()
+        # If the arrays haven't been sorted yet and need to be, do that.
+        if not self.sort_done:
+            for field in self.fields:
+                self.stored_fields[field] = self.stored_fields[field][self.sort]
+            del self.sort
+            self.sort_done = True
         self._build_fields_vals()
         for bigloop, length in enumerate(self.lengths):
             self._build_points_array()
@@ -208,7 +233,7 @@ class StructFcnGen(ParallelAnalysisInterface):
         Builds the kd tree of grid center points.
         """
         # Grid cell centers.
-        mylog.info("Building kD-Tree.")
+        mylog.info("Multigrid: Building kD-Tree.")
         xp = self.ds["x"]
         yp = self.ds["y"]
         zp = self.ds["z"]
@@ -224,6 +249,22 @@ class StructFcnGen(ParallelAnalysisInterface):
         fKD.dist = na.empty(1, dtype='float64')
         create_tree()
 
+    def _build_sort_array(self):
+        """
+        When running on a unigrid simulation, the kD tree isn't necessary.
+        But we need to ensure that the points are sorted in the usual manner
+        allowing values to be found via array indices.
+        """
+        mylog.info("Unigrid: finding cell centers.")
+        xp = self.ds["x"]
+        yp = self.ds["y"]
+        zp = self.ds["z"]
+        self.sizes = [na.unique(xp).size, na.unique(yp).size, na.unique(zp).size]
+        indices = na.arange(xp.size)
+        self.sort = na.asarray([indices[i] for i in na.lexsort([indices, zp, yp, xp])])
+        del xp, yp, zp
+        self.ds.clear_data()
+    
     def _build_fields_vals(self):
         """
         Builds an array to store the field values array.
@@ -329,7 +370,7 @@ class StructFcnGen(ParallelAnalysisInterface):
         """
         Add up the hits to all the bins globally for all functions.
         """
-        for fset in self.fsets:
+        for fset in self._fsets:
             fset.too_low = self._mpi_allsum(fset.too_low)
             fset.too_high = self._mpi_allsum(fset.too_high)
             fset.binned = {}
@@ -375,11 +416,17 @@ class StructFcnGen(ParallelAnalysisInterface):
         """
         Perform the search for the closest 'grid' point.
         """
-        fKD.qv = r
-        find_nn_nearest_neighbors()
-        # The -1 is because the kdtree is using fortran ordering which starts
-        # at 1
-        n = fKD.tags[0] - 1
+        if self.nlevels == 1:
+            pos = r - self.left_edge / self.width
+            n = int(self.sizes[2] * pos[2])
+            n += self.sizes[2] * (int(self.sizes[1] * pos[1]))
+            n += self.sizes[2] * self.sizes[1] * (int(self.sizes[0] * pos[0]))
+        else:
+            fKD.qv = r
+            find_nn_nearest_neighbors()
+            # The -1 is because the kdtree is using fortran ordering which starts
+            # at 1
+            n = fKD.tags[0] - 1
         return n
 
     def _get_fields_vals(self, r):
@@ -391,7 +438,7 @@ class StructFcnGen(ParallelAnalysisInterface):
         index = self._find_nearest_cell(r)
         results = {}
         for field in self.fields:
-            results[field] = self.ds[field][index]
+            results[field] = self.stored_fields[field][index]
         return results
 
     def _eval_points(self, length):
@@ -432,7 +479,7 @@ class StructFcnGen(ParallelAnalysisInterface):
                         break
                     r2_results = self._get_fields_vals(r2)
                     # Evaluate the functions and bin the results.
-                    for fcn_set in self.fsets:
+                    for fcn_set in self._fsets:
                         fcn_results = fcn_set._eval_st_fcn(self.fields_vals[i],
                             r2_results, r1, r2)
                         fcn_set._bin_results(length, fcn_results)
@@ -446,7 +493,7 @@ class StructFcnGen(ParallelAnalysisInterface):
                     continue
                 r2 = points[3:]
                 r2_results = self._get_fields_vals(r2)
-                for fcn_set in self.fsets:
+                for fcn_set in self._fsets:
                     fcn_results = fcn_set._eval_st_fcn(self.fields_vals[i],
                         r2_results, points[:3], r2)
                     fcn_set._bin_results(length, fcn_results)
@@ -474,7 +521,7 @@ class StructFcnGen(ParallelAnalysisInterface):
                         break
                     r2_results = self._get_fields_vals(r2)
                     # Evaluate the functions and bin the results.
-                    for fcn_set in self.fsets:
+                    for fcn_set in self._fsets:
                         fcn_results = fcn_set._eval_st_fcn(self.fields_vals[i],
                             r2_results, r1, r2)
                         fcn_set._bin_results(length, fcn_results)
@@ -482,20 +529,15 @@ class StructFcnGen(ParallelAnalysisInterface):
         #print 'done here',self.mine, self.generated_points, broken, evaled
 
     @parallel_blocking_call
-    def write_out_means(self, sqrt=False):
+    def write_out_means(self):
         """
         Writes out the weighted-average value for each structure function for
         each dimension for each ruler length to a text file. The data is written
         to files of the name 'function_name.txt' in the current working
         directory.
-        *sqrt* (bool) Sets whether or not to square-root the averages. For
-        example, for RMS velocity differences set this to True, otherwise the
-        output will be just MS velocity. Default: False.
         """
         sep = 12
-        if type(sqrt) != types.ListType:
-            sqrt = [sqrt]
-        for fset in self.fsets:
+        for fset in self._fsets:
             fp = self._write_on_root("%s.txt" % fset.function.__name__)
             fset._avg_bin_hits()
             line = "# length".ljust(sep)
@@ -507,7 +549,7 @@ class StructFcnGen(ParallelAnalysisInterface):
                 line = ("%1.5e" % length).ljust(sep)
                 line += ("%d" % fset.binned[length]).ljust(sep)
                 for dim in fset.dims:
-                    if sqrt[dim]:
+                    if fset.sqrt[dim]:
                         line += ("%1.5e" % \
                             math.sqrt(fset.length_avgs[length][dim])).ljust(sep)
                     else:
@@ -525,7 +567,7 @@ class StructFcnGen(ParallelAnalysisInterface):
         'function_name.txt' and saved in the current working directory.
         """
         if self.mine == 0:
-            for fset in self.fsets:
+            for fset in self._fsets:
                 f = h5py.File("%s.h5" % fset.function.__name__, "w")
                 bin_names = []
                 prob_names = []
@@ -548,19 +590,17 @@ class StructFcnGen(ParallelAnalysisInterface):
                 f.close()
 
 class StructSet(StructFcnGen):
-    def __init__(self,sfg, function, min_edge, fields, out_labels):
+    def __init__(self,sfg, function, min_edge, fields, out_labels, sqrt):
         self.sfg = sfg # The overarching SFG class
         self.function = function # Function to eval between the two points.
         self.min_edge = min_edge # The length of the minimum edge of the box.
         self.function_fields = fields # The fields for this fcn in order.
         self.out_labels = out_labels # For output.
+        self.sqrt = sqrt # which columns to sqrt on output.
         # These below are used to track how many times the function returns
         # unbinned results.
-        self.too_low = {}
-        self.too_high = {}
-        for i,field in enumerate(self.out_labels):
-            self.too_low[i] = 0
-            self.too_high[i] = 0
+        self.too_low = na.zeros(len(self.out_labels), dtype='int32')
+        self.too_high = na.zeros(len(self.out_labels), dtype='int32')
         
     def set_pdf_params(self, bin_type="lin", bin_number=1000, bin_range=None):
         """
