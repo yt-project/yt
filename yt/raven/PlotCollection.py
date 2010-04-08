@@ -49,6 +49,8 @@ class PlotCollection(object):
         self.pf = pf
         if center == None:
             v,self.c = pf.h.find_max("Density") # @todo: ensure no caching
+        elif center == "center" or center == "c":
+            self.c = (pf["DomainRightEdge"] + pf["DomainLeftEdge"])/2.0
         else:
             self.c = na.array(center, dtype='float64')
         if deliverator_id > 0:
