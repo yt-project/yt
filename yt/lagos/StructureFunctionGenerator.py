@@ -25,6 +25,7 @@ License:
 
 from yt.lagos import *
 from yt.math_utils import *
+from yt.performance_counters import yt_counters, time_function
 try:
     from yt.extensions.kdtree import *
 except ImportError:
@@ -133,8 +134,8 @@ class StructFcnGen(ParallelAnalysisInterface):
         generated pairs of points.
         """
         fargs = inspect.getargspec(function)
-        if len(fargs.args) != 4:
-            raise SyntaxError("The structure function %s needs four arguments." %\
+        if len(fargs.args) != 5:
+            raise SyntaxError("The structure function %s needs five arguments." %\
                 function.__name__)
         fields = list(fields)
         if len(fields) < 1:
@@ -479,9 +480,14 @@ class StructFcnGen(ParallelAnalysisInterface):
                         break
                     r2_results = self._get_fields_vals(r2)
                     # Evaluate the functions and bin the results.
+                    vec = na.empty(3, dtype='float64')
+                    for i in range(3):
+                        vec[i] = min( abs(r1[i] - r2[i]), 1. - abs(r1[i] - r2[i]))
+                    # Normalize
+                    vec /= na.sqrt(na.dot(vec,vec))
                     for fcn_set in self._fsets:
                         fcn_results = fcn_set._eval_st_fcn(self.fields_vals[i],
-                            r2_results, r1, r2)
+                            r2_results, r1, r2, vec)
                         fcn_set._bin_results(length, fcn_results)
                         evaled += 1
             else:
@@ -491,11 +497,18 @@ class StructFcnGen(ParallelAnalysisInterface):
                     # I don't own this r2 point, move on.
                     #print 'moving on', points, self.LE, self.RE
                     continue
+                r1 = points[:3]
                 r2 = points[3:]
                 r2_results = self._get_fields_vals(r2)
+                # Evaluate the functions and bin the results.
+                vec = na.empty(3, dtype='float64')
+                for i in range(3):
+                    vec[i] = min( abs(r1[i] - r2[i]), 1. - abs(r1[i] - r2[i]))
+                # Normalize
+                vec /= na.sqrt(na.dot(vec,vec))
                 for fcn_set in self._fsets:
                     fcn_results = fcn_set._eval_st_fcn(self.fields_vals[i],
-                        r2_results, points[:3], r2)
+                        r2_results, r1, r2, vec)
                     fcn_set._bin_results(length, fcn_results)
                     evaled += 1
                 # reset points
@@ -521,9 +534,14 @@ class StructFcnGen(ParallelAnalysisInterface):
                         break
                     r2_results = self._get_fields_vals(r2)
                     # Evaluate the functions and bin the results.
+                    vec = na.empty(3, dtype='float64')
+                    for i in range(3):
+                        vec[i] = min( abs(r1[i] - r2[i]), 1. - abs(r1[i] - r2[i]))
+                    # Normalize
+                    vec /= na.sqrt(na.dot(vec,vec))
                     for fcn_set in self._fsets:
                         fcn_results = fcn_set._eval_st_fcn(self.fields_vals[i],
-                            r2_results, r1, r2)
+                            r2_results, r1, r2, vec)
                         fcn_set._bin_results(length, fcn_results)
                         evaled += 1
         #print 'done here',self.mine, self.generated_points, broken, evaled
@@ -582,7 +600,8 @@ class StructFcnGen(ParallelAnalysisInterface):
                     f.create_dataset("/prob_bins_%05d" % i, \
                         data=fset.length_bin_hits[length])
                     prob_names.append("/prob_bins_%05d" % i)
-                    bin_counts.append(fset.binned[length])
+                    bin_counts.append([fset.too_low.sum(), fset.binned[length],
+                        fset.too_high.sum()])
                 f.create_dataset("/bin_edges_names", data=bin_names)
                 #f.create_dataset("/prob_names", data=prob_names)
                 f.create_dataset("/lengths", data=self.lengths)
@@ -676,7 +695,7 @@ class StructSet(StructFcnGen):
             else:
                 raise SyntaxError("bin_edges is either \"lin\" or \"log\".")
 
-    def _eval_st_fcn(self, r1_results, r2_results, r1, r2):
+    def _eval_st_fcn(self, r1_results, r2_results, r1, r2, vec):
         """
         Return the value of the structure function using the provided results.
         """
@@ -688,10 +707,10 @@ class StructSet(StructFcnGen):
         for field in self.function_fields:
             fcn_r1_res.append(r1_results[self.sfg.fields_columns[field]])
             fcn_r2_res.append(r2_results[field])
-        return self.function(fcn_r1_res, fcn_r2_res, r1, r2)
+        return self.function(fcn_r1_res, fcn_r2_res, r1, r2, vec)
         """
         NOTE - A function looks like:
-        def stuff(a,b):
+        def stuff(a,b,r1,r2, vec):
             return [(a[0] - b[0])/(a[1] + b[1])]
         where a and b refer to different points in space and the indices
         are for the different fields, which are given when the function is
