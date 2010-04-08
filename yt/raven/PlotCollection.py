@@ -452,6 +452,14 @@ class PlotCollection(object):
                 figure, axes, plot_options=kwargs))
         return p
 
+    def add_ray(self, start_point, end_point, field, axes = None,
+                figure = None, **kwargs):
+        data_source = self.pf.h.ray(start_point, end_point, field)
+        p = self._add_plot(PlotTypes.LineQueryPlot(data_source,
+                ['t', field], self._get_new_id(),
+                figure, axes, plot_options=kwargs))
+        return p
+
     def _get_new_id(self):
         self.__id_counter += 1
         return self.__id_counter-1
