@@ -390,9 +390,10 @@ def _Extrema(data, fields, non_zero = False, filter=None):
             continue
         if filter is None:
             # Note that we're hijacking an argument here
-            if non_zero: filter = data[field]>0.0
-            mins.append(data[field][filter].min())
-            maxs.append(data[field][filter].max())
+            if non_zero: nz_filter = data[field]>0.0
+            else: nz_filter = None
+            mins.append(data[field][nz_filter].min())
+            maxs.append(data[field][nz_filter].max())
         else:
             if this_filter.any():
                 if non_zero:
