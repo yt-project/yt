@@ -209,24 +209,19 @@ class MultipleTexture(vv.Wobject):
         # and can easily be made undone in the raycaster.
         # The -0.5 offset is to center pixels/voxels. This works correctly
         # for anisotropic data.
-        x0,x1 = -0.5, tex._shape[2]-0.5
-        y0,y1 = -0.5, tex._shape[1]-0.5
-        z0,z1 = -0.5, tex._shape[0]-0.5
 
-        x0 *= tex._dataRef.sampling[2] * self._global_size[2]
-        x0 += tex._dataRef.origin[2] * self._global_size[2]
-        x1 *= tex._dataRef.sampling[2] * self._global_size[2]
-        x1 += tex._dataRef.origin[2] * self._global_size[2]
-        
-        y0 *= tex._dataRef.sampling[1] * self._global_size[1]
-        y0 += tex._dataRef.origin[1] * self._global_size[1]
-        y1 *= tex._dataRef.sampling[1] * self._global_size[1]
-        y1 += tex._dataRef.origin[1] * self._global_size[1]
-        
-        z0 *= tex._dataRef.sampling[0] * self._global_size[0]
-        z0 += tex._dataRef.origin[0] * self._global_size[0]
-        z1 *= tex._dataRef.sampling[0] * self._global_size[0]
-        z1 += tex._dataRef.origin[0] * self._global_size[0]
+        dr = tex._dataRef
+
+        ss = [s - 1 for s in tex._shape]
+
+        x0 = dr.origin[2] * self._global_size[2] - 0.5
+        x1 = x0 + ss[2] * dr.sampling[2] * self._global_size[2]
+
+        y0 = dr.origin[1] * self._global_size[1]
+        y1 = y0 + ss[1] * dr.sampling[1] * self._global_size[1]
+
+        z0 = dr.origin[0] * self._global_size[0]
+        z1 = z0 + ss[0] * dr.sampling[0] * self._global_size[0]
         
         # prepare texture coordinates
         t0, t1 = 0, 1
@@ -285,10 +280,11 @@ def visvis_plot(vp):
     ax = vv.gca()
 
     for i,g in enumerate(gs):
-        ss = ((g.RightEdge - g.LeftEdge) / (na.array(g.my_data[0].shape))).tolist()
+        ss = ((g.RightEdge - g.LeftEdge) / (na.array(g.my_data[0].shape)-1)).tolist()
         origin = g.LeftEdge.astype("float32").tolist()
         dd = (g.my_data[0].astype("float32") - mi)/(ma - mi)
         dd = na.clip(dd, 0.0, 1.0)
+        print ss
         texes.append(vv.Aarray(dd, origin = origin, sampling = ss))
 
     mtex = MultipleTexture(ax, texes, global_size=vp.pf["TopGridDimensions"])
@@ -303,4 +299,4 @@ def visvis_plot(vp):
     # done
     ax.Draw()
 
-    return ax
+    return mtex, ax
