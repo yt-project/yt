@@ -340,7 +340,8 @@ class PlotCollection(object):
         """
         if x_bounds is None:
             x_min, x_max = data_source.quantities["Extrema"](
-                            fields[0], lazy_reader=lazy_reader)[0]
+                            fields[0], non_zero = x_log,
+                            lazy_reader=lazy_reader)[0]
         else:
             x_min, x_max = x_bounds
         profile = lagos.BinnedProfile1D(data_source,
@@ -389,12 +390,14 @@ class PlotCollection(object):
         """
         if x_bounds is None:
             x_min, x_max = data_source.quantities["Extrema"](
-                                    fields[0], lazy_reader=lazy_reader)[0]
+                                    fields[0], non_zero = x_log,
+                                    lazy_reader=lazy_reader)[0]
         else:
             x_min, x_max = x_bounds
         if y_bounds is None:
             y_min, y_max = data_source.quantities["Extrema"](
-                                    fields[1], lazy_reader=lazy_reader)[0]
+                                    fields[1], non_zero = y_log,
+                                    lazy_reader=lazy_reader)[0]
         else:
             y_min, y_max = y_bounds
         profile = lagos.BinnedProfile2D(data_source,
@@ -461,12 +464,21 @@ class PlotCollection(object):
             del self.plots[-1]
 
     @rootonly
-    def save_book(self, filename):
-        from pyPdf import PdfFileWriter, PdfFileReader
-        outfile = PdfFileWriter()
-        fns = self.save("__temp", format="pdf")
-        concatenate_pdfs(filename, fns)
-        for fn in fns: os.unlink(fn)
+    def save_book(self, filename, info = None):
+        """
+        This will save out a single PDF, where each page is a plot object.  The
+        *info* keyword can be a dictionary composed of the keys and values
+        "Author", "Title", "Subject", "Keywords", "Creator", "Producer" ad
+        "CreationDate".  Any keywords not filled in will be blank.  The default
+        is to use the current settings in Matplotlib for filling them in.
+        """
+        from matplotlib.backends.backend_pdf import PdfPages
+        outfile = PdfPages(filename)
+        for plot in self.plots:
+            plot.save_to_pdf(outfile)
+        if info is not None:
+            outfile._file.writeObject(outfile._file.infoObject, info)
+        outfile.close()
 
 def wrap_pylab_newplot(func):
     @wraps(func)
