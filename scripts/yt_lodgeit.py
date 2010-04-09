@@ -222,6 +222,7 @@ def compile_paste(filenames, langopt):
         data = read_file(sys.stdin)
         if not langopt:
             mime = get_mimetype(data, '') or ''
+        fname = ""
     elif len(filenames) == 1:
         fname = filenames[0]
         data = read_file(open(filenames[0], 'rb'))

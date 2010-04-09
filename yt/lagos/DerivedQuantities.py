@@ -372,8 +372,8 @@ def _cudaIsBound(data, truncate, ratio):
     p1 = p.sum()
     if na.any(na.isnan(p)): raise ValueError
     return p1 * (length_scale_factor / (mass_scale_factor**2.0))
-    
-def _Extrema(data, fields, filter=None):
+
+def _Extrema(data, fields, non_zero = False, filter=None):
     """
     This function returns the extrema of a set of fields
     
@@ -389,12 +389,18 @@ def _Extrema(data, fields, filter=None):
             maxs.append(-1e90)
             continue
         if filter is None:
-            mins.append(data[field].min())
-            maxs.append(data[field].max())
+            # Note that we're hijacking an argument here
+            if non_zero: filter = data[field]>0.0
+            mins.append(data[field][filter].min())
+            maxs.append(data[field][filter].max())
         else:
             if this_filter.any():
-                mins.append(data[field][this_filter].min())
-                maxs.append(data[field][this_filter].max())
+                if non_zero:
+                    nz_filter = ((this_filter) &
+                                 (data[field][this_filter] > 0.0))
+                else: nz_filter = this_filter
+                mins.append(data[field][nz_filter].min())
+                maxs.append(data[field][nz_filter].max())
             else:
                 mins.append(1e90)
                 maxs.append(-1e90)
