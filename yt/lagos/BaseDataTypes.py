@@ -2747,7 +2747,7 @@ class AMRIntSmoothedCoveringGridBase(AMRCoveringGridBase):
         elif level == 0 and self.level == 0:
             DLE = self.pf["DomainLeftEdge"]
             self.global_startindex = na.array(na.floor(LL/ dx), dtype='int64')
-            idims = na.ceil((self.right_edge-self.left_edge)/dx)
+            idims = na.rint((self.right_edge-self.left_edge)/dx).astype('int64')
             self[field] = na.zeros(idims,dtype='float64')-999
 
     def _refine(self, dlevel, field):
