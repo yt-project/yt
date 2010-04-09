@@ -974,11 +974,11 @@ class LineQueryPlot(RavenPlot):
         else:
             self._log_y = False
 
-    def switch_x(self, field, weight="CellMassMsun", accumulation=False):
+    def switch_x(self, field):
         self.fields[0] = field
         self.axis_names["X"] = field
     
-    def switch_z(self, field, weight="CellMassMsun", accumulation=False):
+    def switch_z(self, field):
         self.fields[1] = field
         self.axis_names["Y"] = field
 
@@ -994,6 +994,29 @@ class LineQueryPlot(RavenPlot):
 
 
     switch_y = switch_z # Compatibility...
+
+class ScatterPlot(LineQueryPlot):
+    _type_name = "ScatterPlot"
+
+    def _redraw_image(self):
+        self._axes.clear()
+        self._axes.scatter(
+             self.data[self.fields[0]], self.data[self.fields[1]],
+             **self.plot_options)
+        xscale = {True: "log", False: "linear"}.get(self._log_x)
+        yscale = {True: "log", False: "linear"}.get(self._log_y)
+        self._axes.set_xscale(xscale)
+        self._axes.set_yscale(yscale)
+        self._autoset_label(self.fields[0], self._axes.set_xlabel)
+        self._autoset_label(self.fields[1], self._axes.set_ylabel)
+        self._run_callbacks()
+
+    # We override because we don't want to ditch our collections
+    def _run_callbacks(self):
+        self._axes.patches = []
+        self._axes.texts = []
+        for cb in self._callbacks:
+            cb(self)
 
 # Now we provide some convenience functions to get information about plots.
 # With Matplotlib 0.98.x, the 'transforms' branch broke backwards
