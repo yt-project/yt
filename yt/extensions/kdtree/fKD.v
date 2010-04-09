@@ -12,6 +12,7 @@ pos(3,:) _real
 dens(:) _real
 mass(:) _real
 qv(3) real
+qv_many(3,:) _real
 nparts integer
 nn integer
 nMerge integer # number of nearest neighbors used in chain merging
@@ -97,5 +98,6 @@ find_nn_nearest_neighbors subroutine
 create_tree() subroutine
 free_tree() subroutine
 find_all_nn_nearest_neighbors subroutine
+find_many_nn_nearest_neighbors subroutine
 find_chunk_nearest_neighbors subroutine
 chainHOP_tags_dens subroutine

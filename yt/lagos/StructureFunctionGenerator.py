@@ -31,11 +31,11 @@ try:
 except ImportError:
     mylog.info("The Fortran kD-Tree did not import correctly. The structure function generator will not work correctly.")
 
-import math, sys, itertools, inspect, types, random
+import math, sys, itertools, inspect, types
 from collections import defaultdict
 
 class StructFcnGen(ParallelAnalysisInterface):
-    def __init__(self, pf, left_edge=None, right_edge=None,
+    def __init__(self, pf, fields, left_edge=None, right_edge=None,
             total_values=1000000, comm_size=10000, length_type="lin",
             length_number=10, length_range=None, vol_ratio = 1,
             salt=0):
@@ -64,7 +64,7 @@ class StructFcnGen(ParallelAnalysisInterface):
         number of point pairs per ruler length). Default: 0.
         """
         self._fsets = []
-        self.fields = set([])
+        self.fields = fields
         # MPI stuff.
         self.size = self._mpi_get_size()
         self.mine = self._mpi_get_rank()
@@ -126,9 +126,9 @@ class StructFcnGen(ParallelAnalysisInterface):
                 right_edge + self.lengths[-1], rank_ratio=self.vol_ratio)
         mylog.info("LE %s RE %s %s" % (str(self.LE), str(self.RE), str(self.ds)))
         self.width = self.ds.right_edge - self.ds.left_edge
-        random.seed(-1 * self.mine + salt)
+        self.mt = na.random.mtrand.RandomState(seed = 1234 * self.mine + salt)
     
-    def add_function(self, function, fields, out_labels, sqrt):
+    def add_function(self, function, out_labels, sqrt):
         """
         Add a structure function to the list that will be evaluated at the
         generated pairs of points.
@@ -136,10 +136,6 @@ class StructFcnGen(ParallelAnalysisInterface):
         fargs = inspect.getargspec(function)
         if len(fargs.args) != 5:
             raise SyntaxError("The structure function %s needs five arguments." %\
-                function.__name__)
-        fields = list(fields)
-        if len(fields) < 1:
-            raise SyntaxError("Please specify at least one field for function %s." %\
                 function.__name__)
         out_labels = list(out_labels)
         if len(out_labels) < 1:
@@ -149,9 +145,8 @@ class StructFcnGen(ParallelAnalysisInterface):
         if len(sqrt) != len(out_labels):
             raise SyntaxError("Please have the same number of elements in out_labels as in sqrt for function %s." %\
                 function.__name__)
-        self._fsets.append(StructSet(self, function, self.min_edge, fields,
+        self._fsets.append(StructSet(self, function, self.min_edge,
             out_labels, sqrt))
-        self.fields.update(fields)
         return self._fsets[-1]
 
     def __getitem__(self, key):
@@ -227,6 +222,9 @@ class StructFcnGen(ParallelAnalysisInterface):
             if self.mine == 0:
                 mylog.info("Length (%d of %d) %1.5e took %d communication cycles to complete." % \
                 (bigloop+1, len(self.lengths), length, self.comm_cycle_count))
+        if self.nlevels > 1:
+            del fKD.pos, fKD.qv_many, fKD.nn_tags
+            free_tree() # Frees the kdtree object.
         self._allsum_bin_hits()
     
     def _init_kd_tree(self):
@@ -242,12 +240,9 @@ class StructFcnGen(ParallelAnalysisInterface):
         fKD.pos[0, :] = xp[:]
         fKD.pos[1, :] = yp[:]
         fKD.pos[2, :] = zp[:]
-        fKD.qv = na.empty(3, dtype='float64')
         fKD.nn = 1
         fKD.sort = False
         fKD.rearrange = True
-        fKD.tags = na.empty(1, dtype='int64')
-        fKD.dist = na.empty(1, dtype='float64')
         create_tree()
 
     def _build_sort_array(self):
@@ -260,9 +255,8 @@ class StructFcnGen(ParallelAnalysisInterface):
         xp = self.ds["x"]
         yp = self.ds["y"]
         zp = self.ds["z"]
-        self.sizes = [na.unique(xp).size, na.unique(yp).size, na.unique(zp).size]
-        indices = na.arange(xp.size)
-        self.sort = na.asarray([indices[i] for i in na.lexsort([indices, zp, yp, xp])])
+        self.sizes = [na.unique(xp).size, na.unique(yp).size, na.unique(zp).size]        
+        self.sort = na.lexsort([zp, yp, xp])
         del xp, yp, zp
         self.ds.clear_data()
     
@@ -270,7 +264,7 @@ class StructFcnGen(ParallelAnalysisInterface):
         """
         Builds an array to store the field values array.
         """
-        self.fields_vals = na.empty((self.comm_size, len(self.fields)), \
+        self.fields_vals = na.empty((self.comm_size, len(self.fields)*2), \
             dtype='float64')
         # At the same time build a dict to label the columns.
         self.fields_columns = {}
@@ -346,7 +340,7 @@ class StructFcnGen(ParallelAnalysisInterface):
         to the left-hand neighbor.
         """
         self.recv_points = na.ones((self.comm_size, 6), dtype='float64') * -1.
-        self.recv_fields_vals = na.zeros((self.comm_size, len(self.fields)), \
+        self.recv_fields_vals = na.zeros((self.comm_size, len(self.fields)*2), \
             dtype='float64')
         self.recv_gen_array = na.zeros(self.size, dtype='int64')
         self.recv_hooks.append(self._mpi_Irecv_double(self.recv_points, \
@@ -394,157 +388,140 @@ class StructFcnGen(ParallelAnalysisInterface):
                 fset.length_bin_hits[length] = \
                     fset.length_bin_hits[length].reshape(fset.bin_number)
     
-    def _pick_random_points(self, length):
+    def _pick_random_points(self, length, size):
         """
-        Picks out two random points separated by *length*.
+        Picks out size random pairs separated by length *length*.
         """
-        # A random point inside this subvolume.
-        r1 = na.empty(3, dtype='float64')
-        for i in xrange(3):
-            r1[i] = random.uniform(self.LE[i], self.RE[i]) # 3 randoms.
-        # Pick our theta, phi random pair.
-        theta = random.uniform(0, 2.*math.pi) # 1 random.
-        phi = random.uniform(-math.pi/2., math.pi/2.) # 1 random.
-        # Find our second point.
-        r2 = na.array([r1[0] + length * math.cos(theta) * math.cos(phi),
-            r1[1] + length * math.sin(theta) * math.cos(phi),
-            r1[2] + length * math.sin(phi)], dtype='float64')
-        # Reflect it so it's inside the (full) volume.
-        r2 = r2 % self.period
-        return (r1, na.array(r2))
+        # First make random points inside this subvolume.
+        r1 = na.empty((size,3), dtype='float64')
+        for dim in range(3):
+            r1[:,dim] = self.mt.uniform(low=self.ds.left_edge[dim],
+                high=self.ds.right_edge[dim], size=size)
+        # Next we find the second point, determined by a random
+        # theta, phi angle.
+        theta = self.mt.uniform(low=0, high=2.*math.pi, size=size)
+        phi = self.mt.uniform(low=-math.pi/2., high=math.pi/2., size=size)
+        r2 = na.empty((size,3), dtype='float64')
+        r2[:,0] = r1[:,0] + length * na.cos(theta) * na.cos(phi)
+        r2[:,1] = r1[:,1] + length * na.sin(theta) * na.cos(phi)
+        r2[:,2] = r1[:,2] + length * na.sin(phi)
+        # Reflect so it's inside the (full) volume.
+        r2 %= self.period
+        return (r1, r2)
 
-    def _find_nearest_cell(self, r):
+    def _find_nearest_cell(self, points):
         """
-        Perform the search for the closest 'grid' point.
+        Finds the closest grid cell for each point in a vectorized manner.
         """
         if self.nlevels == 1:
-            pos = r - self.left_edge / self.width
-            n = int(self.sizes[2] * pos[2])
-            n += self.sizes[2] * (int(self.sizes[1] * pos[1]))
-            n += self.sizes[2] * self.sizes[1] * (int(self.sizes[0] * pos[0]))
+            pos = (points - self.ds.left_edge) / self.width
+            n = (self.sizes[2] * pos[:,2]).astype('int32')
+            n += self.sizes[2] * (self.sizes[1] * pos[:,1]).astype('int32')
+            n += self.sizes[2] * self.sizes[1] * (self.sizes[0] * pos[:,0]).astype('int32')
         else:
-            fKD.qv = r
-            find_nn_nearest_neighbors()
-            # The -1 is because the kdtree is using fortran ordering which starts
-            # at 1
-            n = fKD.tags[0] - 1
+            fKD.qv_many = points.T
+            fKD.nn_tags = na.asfortranarray(na.empty((1, points.shape[0]), dtype='int64'))
+            find_many_nn_nearest_neighbors()
+            # The -1 is for fortran counting.
+            n = fKD.nn_tags[0,:] - 1
         return n
 
-    def _get_fields_vals(self, r):
+    def _get_fields_vals(self, points):
         """
-        Given a point r, return the values for the fields we need for that
-        point.
+        Given points, return the values for the fields we need for those
+        points.
         """
         # First find the grid data index field.
-        index = self._find_nearest_cell(r)
-        results = {}
+        indices = self._find_nearest_cell(points)
+        results = na.empty((len(indices), len(self.fields)), dtype='float64')
+        # Put the field values into the columns of results.
         for field in self.fields:
-            results[field] = self.stored_fields[field][index]
+            col = self.fields_columns[field]
+            results[:, col] = self.stored_fields[field][indices]
         return results
 
+
     def _eval_points(self, length):
-        """
-        The main work loop. This loops over the self.points array. It attempts
-        to evaluate the structure functions at the points, and if it can't,
-        moves on. If it comes upon an empty (negative entries) entry, it 
-        creates a new pair of random points, and attempts to evaluate them.
-        If this pair are both local, the structure function results are binned
-        and the loop over self.points is not advanced. If it cannot, we do
-        advance. Things stop when we reach the end of the self.points array, 
-        meaning it's full of points this task cannot evaluate. Things also
-        stop when this task reaches self.total_values, and it doesn't have to
-        make any more points.
-        """
-        #print 'starting',self.mine, self.generated_points
-        broken = 0
-        evaled = 0
-        for i, points in enumerate(self.points):
-            if (points < 0).any():
-                # Make new points for this slot and don't advance the points
-                # array as long as they are local.
-                while self.generated_points < self.total_values:
-                    r1, r2 = self._pick_random_points(length)
-                    self.generated_points += 1
-                    # Get the values for r1 because it's always local.
-                    r1_results = self._get_fields_vals(r1)
-                    # Store them.
-                    for field in r1_results:
-                        col = self.fields_columns[field]
-                        self.fields_vals[i, col] = r1_results[field]
-                    # if r2 is not local, we can skip out of this while loop
-                    # now.
-                    if (r2 < self.ds.left_edge).any() or (r2 >= self.ds.right_edge).any():
-                        broken += 1
-                        self.points[i][:3] = r1
-                        self.points[i][3:] = r2
-                        break
-                    r2_results = self._get_fields_vals(r2)
-                    # Evaluate the functions and bin the results.
-                    vec = na.empty(3, dtype='float64')
-                    for i in range(3):
-                        vec[i] = min( abs(r1[i] - r2[i]), 1. - abs(r1[i] - r2[i]))
-                    # Normalize
-                    vec /= na.sqrt(na.dot(vec,vec))
-                    for fcn_set in self._fsets:
-                        fcn_results = fcn_set._eval_st_fcn(self.fields_vals[i],
-                            r2_results, r1, r2, vec)
-                        fcn_set._bin_results(length, fcn_results)
-                        evaled += 1
+        # We need to loop over the points array at least once. Further
+        # iterations only happen if we have added new points to the array,
+        # but not as many as we want to, so we need to check again to see if
+        # we can put more points into the buffer.
+        added_points = True
+        while added_points:
+            # If we need to, add more points to the points array.
+            if self.generated_points < self.total_values:
+                # Look for 'empty' slots to put in new pairs.
+                select = (self.points[:,0] < 0)
+                ssum = select.sum()
+                # We'll generate only as many points as we need to/can.
+                size = min(ssum, self.total_values - self.generated_points)
+                (new_r1,new_r2) = self._pick_random_points(length, size)
+                self.generated_points += size
+                # If size != select.sum(), we need to pad the end of new_r1/r2
+                # which is what is effectively happening below.
+                newpoints = na.ones((ssum, 6), dtype='float64') * -1.
+                newpoints[:size,:3] = new_r1
+                newpoints[:size,3:] = new_r2
+                # Now we insert them into self.points.
+                self.points[select] = newpoints
             else:
-                # Now we've come to a point I've received and we'll attempt
-                # to evaluate it.
-                if (points[3:] < self.ds.left_edge).any() or (points[3:] >= self.ds.right_edge).any():
-                    # I don't own this r2 point, move on.
-                    #print 'moving on', points, self.LE, self.RE
-                    continue
-                r1 = points[:3]
-                r2 = points[3:]
-                r2_results = self._get_fields_vals(r2)
-                # Evaluate the functions and bin the results.
-                vec = na.empty(3, dtype='float64')
-                for i in range(3):
-                    vec[i] = min( abs(r1[i] - r2[i]), 1. - abs(r1[i] - r2[i]))
-                # Normalize
-                vec /= na.sqrt(na.dot(vec,vec))
+                added_points = False
+            
+            # If we have an empty buffer here, we can skip everything below.
+            if (self.points < 0).all():
+                added_points = False # Not strictly required, but clearer.
+                break
+            
+            # Now we have a points array that is either full of unevaluated points,
+            # or I don't need to make any new points and I'm just processing the
+            # array. Start by finding the indices of the points I own.
+            self.points.shape = (self.comm_size*2, 3) # Doesn't make a copy - fast!
+            select = na.bitwise_or((self.points < self.ds.left_edge).any(axis=1),
+                (self.points >= self.ds.right_edge).any(axis=1))
+            select = na.invert(select)
+            mypoints = self.points[select]
+            if mypoints.size > 0:
+                # Get the fields values.
+                results = self._get_fields_vals(mypoints)
+                # Put this into self.fields_vals.
+                self.fields_vals.shape = (self.comm_size*2, 3)
+                self.fields_vals[select] = results
+            
+            # Put our arrays back into their original shapes cheaply!
+            if mypoints.size > 0:
+                self.fields_vals.shape = (self.comm_size, 6)
+            self.points.shape = (self.comm_size, 6)
+            
+            # To run the structure functions, what is key is that the
+            # second point in the pair is ours.
+            second_points = self.points[:,3:]
+            select = na.bitwise_or((second_points < self.ds.left_edge).any(axis=1),
+                (second_points >= self.ds.right_edge).any(axis=1))
+            select = na.invert(select)
+            if select.any():
+                points_to_eval = self.points[select]
+                fields_to_eval = self.fields_vals[select]
+                
+                # Find the normal vector between our points.
+                vec = na.abs(points_to_eval[:,:3] - points_to_eval[:,3:])
+                norm = na.sqrt(na.sum(na.multiply(vec,vec), axis=1))
+                # I wish there was a better way to do this, but I can't find it.
+                for i, n in enumerate(norm):
+                    vec[i] = na.divide(vec[i], n)
+                
+                # Now evaluate the functions.
                 for fcn_set in self._fsets:
-                    fcn_results = fcn_set._eval_st_fcn(self.fields_vals[i],
-                        r2_results, r1, r2, vec)
+                    fcn_results = fcn_set._eval_st_fcn(fields_to_eval,points_to_eval,
+                        vec)
                     fcn_set._bin_results(length, fcn_results)
-                    evaled += 1
-                # reset points
-                self.points[i] = na.array([-1.]*6)
-                # If we need to, we add our own points here as long as we can.
-                while self.generated_points < self.total_values:
-                    r1, r2 = self._pick_random_points(length)
-                    #self.points[i][:3] = r1
-                    #self.points[i][3:] = r2
-                    self.generated_points += 1
-                    # Get the values for r1 because it's always local.
-                    r1_results = self._get_fields_vals(r1)
-                    # Store them.
-                    for field in r1_results:
-                        col = self.fields_columns[field]
-                        self.fields_vals[i, col] = r1_results[field]
-                    # if r2 is not local, we can skip out of this while loop
-                    # now.
-                    if (r2 < self.ds.left_edge).any() or (r2 >= self.ds.left_edge).any():
-                        broken += 1
-                        self.points[i][:3] = r1
-                        self.points[i][3:] = r2
-                        break
-                    r2_results = self._get_fields_vals(r2)
-                    # Evaluate the functions and bin the results.
-                    vec = na.empty(3, dtype='float64')
-                    for i in range(3):
-                        vec[i] = min( abs(r1[i] - r2[i]), 1. - abs(r1[i] - r2[i]))
-                    # Normalize
-                    vec /= na.sqrt(na.dot(vec,vec))
-                    for fcn_set in self._fsets:
-                        fcn_results = fcn_set._eval_st_fcn(self.fields_vals[i],
-                            r2_results, r1, r2, vec)
-                        fcn_set._bin_results(length, fcn_results)
-                        evaled += 1
-        #print 'done here',self.mine, self.generated_points, broken, evaled
+                
+                # Now clear the buffers at the processed points.
+                self.points[select] = na.array([-1.]*6, dtype='float64')
+                
+            else:
+                # We didn't clear any points, so we should move on with our
+                # lives and pass this buffer along.
+                added_points = False
 
     @parallel_blocking_call
     def write_out_means(self):
@@ -609,11 +586,10 @@ class StructFcnGen(ParallelAnalysisInterface):
                 f.close()
 
 class StructSet(StructFcnGen):
-    def __init__(self,sfg, function, min_edge, fields, out_labels, sqrt):
+    def __init__(self,sfg, function, min_edge, out_labels, sqrt):
         self.sfg = sfg # The overarching SFG class
         self.function = function # Function to eval between the two points.
         self.min_edge = min_edge # The length of the minimum edge of the box.
-        self.function_fields = fields # The fields for this fcn in order.
         self.out_labels = out_labels # For output.
         self.sqrt = sqrt # which columns to sqrt on output.
         # These below are used to track how many times the function returns
@@ -695,19 +671,12 @@ class StructSet(StructFcnGen):
             else:
                 raise SyntaxError("bin_edges is either \"lin\" or \"log\".")
 
-    def _eval_st_fcn(self, r1_results, r2_results, r1, r2, vec):
+    def _eval_st_fcn(self, results, points, vec):
         """
         Return the value of the structure function using the provided results.
         """
-        # We need to pick out the field values this function needs and put them in
-        # correct order. r1_results is an array, and r2_results is a dict,
-        # which although it's a bit confusing, is actually the simplest way
-        # to go.
-        fcn_r1_res, fcn_r2_res = [], []
-        for field in self.function_fields:
-            fcn_r1_res.append(r1_results[self.sfg.fields_columns[field]])
-            fcn_r2_res.append(r2_results[field])
-        return self.function(fcn_r1_res, fcn_r2_res, r1, r2, vec)
+        return self.function(results[:,:len(self.sfg.fields)],
+            results[:,len(self.sfg.fields):], points[:,:3], points[:,3:], vec)
         """
         NOTE - A function looks like:
         def stuff(a,b,r1,r2, vec):
@@ -724,22 +693,26 @@ class StructSet(StructFcnGen):
         is flattened, so we need to figure out the offset for this hit by
         factoring the sizes of the other dimensions.
         """
-        hit_bin = 0
+        hit_bin = na.zeros(results.shape[0], dtype='int64')
         multi = 1
-        for dim, res in enumerate(results):
-            if res < self.bin_edges[dim][0]:
-                self.too_low[dim] += 1
-                return
-            if res >= self.bin_edges[dim][-1]:
-                self.too_high[dim] += 1
-                return
+        good = na.ones(results.shape[0], dtype='bool')
+        for dim in range(len(self.out_labels)):
             for d1 in range(dim):
                 multi *= self.bin_edges[d1].size
-            hit_bin += (na.digitize([res], self.bin_edges[dim])[0] - 1) * multi
-            if hit_bin >= self.length_bin_hits[length].size:
-                self.too_high[dim] += 1
-                return
-        self.length_bin_hits[length][hit_bin] += 1
+            if dim == 0 and len(self.out_labels)==1:
+                digi = na.digitize(results, self.bin_edges[dim])
+            else:
+                digi = na.digitize(results[:,dim], self.bin_edges[dim])
+            too_low = (digi == 0)
+            too_high = (digi == self.bin_edges[dim].size)
+            self.too_low[dim] += (too_low).sum()
+            self.too_high[dim] += (too_high).sum()
+            newgood = na.bitwise_and(na.invert(too_low), na.invert(too_high))
+            good = na.bitwise_and(good, newgood)
+            hit_bin += na.multiply((digi - 1), multi)
+        digi_bins = na.arange(self.length_bin_hits[length].size+1)
+        hist, digi_bins = na.histogram(hit_bin[good], digi_bins)
+        self.length_bin_hits[length] += hist
 
     def _dim_sum(self, a, dim):
         """
