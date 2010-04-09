@@ -37,7 +37,6 @@ from enthought.chaco.api import ArrayPlotData, jet, Plot, HPlotContainer, \
         CMapImagePlot
 from enthought.chaco.tools.api import PanTool, ZoomTool, RangeSelection, \
         RangeSelectionOverlay, RangeSelection
-from zoom_overlay import ZoomOverlay
 from enthought.chaco.tools.image_inspector_tool import ImageInspectorTool, \
      ImageInspectorOverlay
 
