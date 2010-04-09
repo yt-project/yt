@@ -436,6 +436,19 @@ class PlotCollection(object):
         p["Axis"] = None
         return p
 
+    def add_scatter_source(self, data_source, fields, id=None,
+                    axes = None, figure = None, plot_options = None):
+        """
+        Given a *data_source*, and *fields*, plot a scatter plot.
+        *plot_options* are sent to the scatter command.
+        """
+        if id is None: id = self._get_new_id()
+        sp = PlotTypes.ScatterPlot(data_source, fields, id,
+                                   plot_options = plot_options,
+                                   figure=figure, axes=axes)
+        p = self._add_plot(sp)
+        return p
+
     def add_fixed_resolution_plot(self, frb, field, center=None, use_colorbar=True,
                       figure = None, axes = None, fig_size=None, **kwargs):
         p = self._add_plot(PlotTypes.FixedResolutionPlot(frb, field,
