@@ -380,6 +380,8 @@ def _Extrema(data, fields, non_zero = False, filter=None):
     :param fields: A field name, or a list of field names
     :param filter: a string to be evaled to serve as a data filter.
     """
+    # There is a heck of a lot of logic in this.  I really wish it were more
+    # elegant.
     fields = ensure_list(fields)
     if filter is not None: this_filter = eval(filter)
     mins, maxs = [], []
@@ -389,9 +391,14 @@ def _Extrema(data, fields, non_zero = False, filter=None):
             maxs.append(-1e90)
             continue
         if filter is None:
-            # Note that we're hijacking an argument here
-            if non_zero: nz_filter = data[field]>0.0
-            else: nz_filter = None
+            if non_zero:
+                nz_filter = data[field]>0.0
+                if not nz_filter.any():
+                    mins.append(1e90)
+                    maxs.append(-1e90)
+                    continue
+            else:
+                nz_filter = None
             mins.append(data[field][nz_filter].min())
             maxs.append(data[field][nz_filter].max())
         else:
