@@ -28,13 +28,13 @@ from numpy import linspace, meshgrid, pi, sin, mgrid, zeros
 # Enthought library imports
 from enthought.enable.api import Component, ComponentEditor, Window
 from enthought.traits.api import HasTraits, Instance, Button, Any, Callable, \
-        on_trait_change, Bool
+        on_trait_change, Bool, DelegatesTo, List, Enum
 from enthought.traits.ui.api import Item, Group, View
 
 # Chaco imports
 from enthought.chaco.api import ArrayPlotData, jet, Plot, HPlotContainer, \
         ColorBar, DataRange1D, DataRange2D, LinearMapper, ImageData, \
-        CMapImagePlot
+        CMapImagePlot, OverlayPlotContainer
 from enthought.chaco.tools.api import PanTool, ZoomTool, RangeSelection, \
         RangeSelectionOverlay, RangeSelection
 from enthought.chaco.tools.image_inspector_tool import ImageInspectorTool, \
@@ -83,11 +83,14 @@ class FunctionImageData(ImageData):
 
 class ImagePixelizerHelper(object):
     index = None
-    def __init__(self, panner):
+    def __init__(self, panner, run_callbacks = False):
         self.panner = panner
+        self.run_callbacks = run_callbacks
 
     def __call__(self, low, high):
         b = self.panner.set_low_high(low, high)
+        if self.run_callbacks:
+            self.panner._run_callbacks()
         if self.index is not None:
             num_x_ticks = b.shape[0] + 1
             num_y_ticks = b.shape[1] + 1
@@ -96,16 +99,45 @@ class ImagePixelizerHelper(object):
             self.index.set_data( xs, ys )
         return b
 
+class ZoomedPlotUpdater(object):
+    fid = None
+    def __init__(self, panner, zoom_factor=4):
+        """
+        Supply this an a viewport_callback argument to a panner if you want to
+        update a second panner in a smaller portion at higher resolution.  If
+        you then set the *fid* property, you can also have it update a
+        FunctionImageData datarange.  *panner* is the panner to update (not the
+        one this is a callback to) and *zoom_factor* is how much to zoom in by.
+        """
+        self.panner = panner
+        self.zoom_factor = zoom_factor
+
+    def __call__(self, xlim, ylim):
+        self.panner.xlim = xlim
+        self.panner.ylim = ylim
+        self.panner.zoom(self.zoom_factor)
+        nxlim = self.panner.xlim
+        nylim = self.panner.ylim
+        if self.fid is not None:
+            self.fid.data_range.set_bounds(
+                (nxlim[0], nylim[0]), (nxlim[1], nylim[1]))
+
 class VMImagePlot(HasTraits):
     plot = Instance(Plot)
     fid = Instance(FunctionImageData)
     img_plot = Instance(CMapImagePlot)
     panner = Instance(VariableMeshPanner)
     helper = Instance(ImagePixelizerHelper)
+    fields = List
+
+    def __init__(self, *args, **kwargs):
+        super(VMImagePlot, self).__init__(**kwargs)
+        self.add_trait("field", Enum(*self.fields))
+        self.field = self.panner.field
 
     def _plot_default(self):
         pd = ArrayPlotData()
-        plot = Plot(pd)
+        plot = Plot(pd, padding = 0)
         self.fid._data = self.panner.buffer
 
         pd.set_data("imagedata", self.fid)
@@ -119,11 +151,30 @@ class VMImagePlot(HasTraits):
         self.img_plot = img_plot
         return plot
 
+    def _field_changed(self, old, new):
+        self.panner.field = new
+        self.fid.recalculate()
+
     def _fid_default(self):
         return FunctionImageData(func = self.helper)
 
     def _helper_default(self):
         return ImagePixelizerHelper(self.panner)
+
+    def _panner_changed(self, old, new):
+        index = self.helper.index
+        self.helper = ImagePixelizerHelper(new)
+        self.helper.index = index
+        self.fid.func = self.helper
+        self.fid.recalculate()
+
+    def _fields_default(self):
+        keys = []
+        for field in self.panner.source.keys():
+            if field not in ['px','py','pdx','pdy',
+                             'pz','pdz','weight_field']:
+                keys.append(field)
+        return keys
 
 class VariableMeshPannerView(HasTraits):
 
@@ -131,12 +182,15 @@ class VariableMeshPannerView(HasTraits):
     spawn_zoom = Button
     vm_plot = Instance(VMImagePlot)
     use_tools = Bool(True)
+    full_container = Instance(HPlotContainer)
+    container = Instance(OverlayPlotContainer)
     
     traits_view = View(
                     Group(
-                        Item('container', editor=ComponentEditor(size=(512,512)), 
+                        Item('full_container',
+                             editor=ComponentEditor(size=(512,512)), 
                              show_label=False),
-                        Item('spawn_zoom', show_label=False),
+                        Item('field', show_label=False),
                         orientation = "vertical"),
                     width = 800, height=800,
                     resizable=True, title="Pan and Scan",
@@ -148,6 +202,7 @@ class VariableMeshPannerView(HasTraits):
     def __init__(self, **kwargs):
         super(VariableMeshPannerView, self).__init__(**kwargs)
         # Create the plot
+        self.add_trait("field", DelegatesTo("vm_plot"))
 
         plot = self.vm_plot.plot
         img_plot = self.vm_plot.img_plot
@@ -189,11 +244,8 @@ class VariableMeshPannerView(HasTraits):
         # the selection, so set that up as well
         range_selection.listeners.append(img_plot)
 
-        self.container = HPlotContainer(padding=30)
-        self.container.add(self.colorbar)
+        self.full_container = HPlotContainer(padding=30)
+        self.container = OverlayPlotContainer(padding=0)
+        self.full_container.add(self.colorbar)
+        self.full_container.add(self.container)
         self.container.add(self.vm_plot.plot)
-
-    def _spawn_zoom_fired(self):
-        np = self.panner.source.pf.h.image_panner(
-                self.panner.source, self.panner.size, self.panner.field)
-        new_window = VariableMeshPannerView(panner = np)

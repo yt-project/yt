@@ -72,7 +72,7 @@ from yt.fido import GrabCollections, OutputCollection
 
 import yt.funcs
 
-from yt.convenience import all_pfs, max_spheres, load
+from yt.convenience import all_pfs, max_spheres, load, projload
 
 # Some convenience functions to ease our time running scripts
 # from the command line

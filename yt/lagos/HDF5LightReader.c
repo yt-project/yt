@@ -881,10 +881,9 @@ Py_ReadParticles(PyObject *obj, PyObject *args)
     if(pv.file_id >= 0) {H5Fclose(pv.file_id); pv.file_id = -1;}
 
     /* Let's pack up our return values */
-    PyObject *my_list = PyList_New(0);
+    PyObject *my_list = PyList_New(pv.nfields);
     for (i = 0; i < pv.nfields ; i++){
-        PyList_Append(my_list, (PyObject *) pv.return_values[i]);
-        Py_DECREF(pv.return_values[i]);
+        PyList_SET_ITEM(my_list, i, (PyObject *) pv.return_values[i]);
     }
     PyObject *return_value = Py_BuildValue("N", my_list);
 
@@ -899,6 +898,7 @@ Py_ReadParticles(PyObject *obj, PyObject *args)
     Py_DECREF(conv_factors);
     free(pv.validation_reqs);
     /* We don't need to free pv */
+    if(!(pv.file_id <= 0)&&(H5Iget_ref(pv.file_id))) H5Fclose(pv.file_id);
 
     return return_value;
 
@@ -923,6 +923,7 @@ Py_ReadParticles(PyObject *obj, PyObject *args)
         if(pv.particle_position[i] != NULL) free(pv.particle_position[i]);
     }
     if(pv.validation_reqs != NULL) free(pv.validation_reqs);
+    if(!(pv.file_id <= 0)&&(H5Iget_ref(pv.file_id))) H5Fclose(pv.file_id);
 
     return NULL;
 }
