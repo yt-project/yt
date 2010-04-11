@@ -171,7 +171,7 @@ class StructFcnGen(ParallelAnalysisInterface):
         self.stored_fields = {}
         for field in self.fields:
             self.stored_fields[field] = self.ds[field].copy()
-            self.ds.clear_data()
+        self.ds.clear_data()
         # If the arrays haven't been sorted yet and need to be, do that.
         if not self.sort_done:
             for field in self.fields:
@@ -484,12 +484,12 @@ class StructFcnGen(ParallelAnalysisInterface):
                 # Get the fields values.
                 results = self._get_fields_vals(mypoints)
                 # Put this into self.fields_vals.
-                self.fields_vals.shape = (self.comm_size*2, 3)
+                self.fields_vals.shape = (self.comm_size*2, len(self.fields))
                 self.fields_vals[select] = results
             
             # Put our arrays back into their original shapes cheaply!
             if mypoints.size > 0:
-                self.fields_vals.shape = (self.comm_size, 6)
+                self.fields_vals.shape = (self.comm_size, len(self.fields)*2)
             self.points.shape = (self.comm_size, 6)
             
             # To run the structure functions, what is key is that the
