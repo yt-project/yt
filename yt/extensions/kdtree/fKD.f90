@@ -43,6 +43,33 @@ subroutine find_nn_nearest_neighbors()
 
 end subroutine find_nn_nearest_neighbors
 
+subroutine find_many_nn_nearest_neighbors()
+    ! Given an input array of query vectors (qv_many), find their
+    ! nearest neighbors.
+    use kdtree2_module
+    use fKD_module
+    use kdtree2module
+    use tree_nodemodule
+    use intervalmodule
+    
+    integer :: k, number
+    type(kdtree2_result),allocatable :: results(:)
+    
+    allocate(results(nn))
+
+    number = size(qv_many,2)
+
+    do k=1, number
+        qv(:) = qv_many(:,k)
+        call kdtree2_n_nearest(tp=tree2,qv=qv,nn=nn,results=results)
+        nn_tags(:, k) = results%idx
+    end do
+    
+    deallocate(results)
+    return
+
+end subroutine find_many_nn_nearest_neighbors
+
 subroutine find_all_nn_nearest_neighbors()
     ! for all particles in pos, find their nearest neighbors and return the
     ! indexes and distances as big arrays
