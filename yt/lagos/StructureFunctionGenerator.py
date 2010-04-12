@@ -31,7 +31,7 @@ try:
 except ImportError:
     mylog.info("The Fortran kD-Tree did not import correctly. The structure function generator will not work correctly.")
 
-import math, sys, itertools, inspect, types
+import math, sys, itertools, inspect, types, time
 from collections import defaultdict
 
 class StructFcnGen(ParallelAnalysisInterface):
@@ -156,19 +156,25 @@ class StructFcnGen(ParallelAnalysisInterface):
         """
         After all the structure functions have been added, run the generator.
         """
+        yt_counters("run_generator")
         # We need a function!
         if len(self._fsets) == 0:
             mylog.error("You need to add at least one structure function!")
             return None
         # Do all the startup tasks to get the grid points.
         if self.nlevels == 1:
+            yt_counters("build_sort")
             self._build_sort_array()
             self.sort_done = False
+            yt_counters("build_sort")
         else:
+            yt_counters("init_kd_tree")
             self._init_kd_tree()
             self.sort_done = True
+            yt_counters("init_kd_tree")
         # Store the fields.
         self.stored_fields = {}
+        yt_counters("getting data")
         for field in self.fields:
             self.stored_fields[field] = self.ds[field].copy()
         self.ds.clear_data()
@@ -178,7 +184,10 @@ class StructFcnGen(ParallelAnalysisInterface):
                 self.stored_fields[field] = self.stored_fields[field][self.sort]
             del self.sort
             self.sort_done = True
+        yt_counters("getting data")
         self._build_fields_vals()
+        yt_counters("big loop over lengths")
+        t_waiting = 0.
         for bigloop, length in enumerate(self.lengths):
             self._build_points_array()
             if self.mine == 0:
@@ -191,19 +200,14 @@ class StructFcnGen(ParallelAnalysisInterface):
             self.sent_done = False
             self._setup_done_hooks()
             # While everyone else isn't done or I'm not done, we loop.
-            # self.points[0][1] = -0.3 * (self.mine + 1) # for testing.
-            uni = na.unique(self.points)
-            #while (self.gen_array < self.total_values).any() or uni.size > 1:
             while self._should_cycle():
                 self._setup_recv_arrays()
                 self._send_arrays()
+                t0 = time.time()
                 self._mpi_Request_Waitall(self.send_hooks)
                 self._mpi_Request_Waitall(self.recv_hooks)
-                #self._barrier()
-                # print self.mine, 'p', self.points
-                #self._barrier()
-                # print self.mine, 'r', self.recv_points
-                #self._barrier()
+                t1 = time.time()
+                t_waiting += (t1-t0)
                 if (self.recv_points < -1.).any() or (self.recv_points > 1.).any(): # or \
                         #(na.abs(na.log10(na.abs(self.recv_points))) > 20).any():
                     raise ValueError("self.recv_points is no good!")
@@ -212,20 +216,21 @@ class StructFcnGen(ParallelAnalysisInterface):
                 self.gen_array = self.recv_gen_array.copy()
                 self._eval_points(length)
                 self.gen_array[self.mine] = self.generated_points
-                uni = na.unique(self.points)
-                #print 'yy', self.mine, uni.size, self.gen_array, self.comm_cycle_count
                 self.comm_cycle_count += 1
                 if self.generated_points == self.total_values:
                     self._send_done_toall()
-            #print 'done!', self.mine
-            #self._barrier()
             if self.mine == 0:
                 mylog.info("Length (%d of %d) %1.5e took %d communication cycles to complete." % \
                 (bigloop+1, len(self.lengths), length, self.comm_cycle_count))
+        yt_counters("big loop over lengths")
         if self.nlevels > 1:
             del fKD.pos, fKD.qv_many, fKD.nn_tags
             free_tree() # Frees the kdtree object.
+        yt_counters("allsum")
         self._allsum_bin_hits()
+        mylog.info("Spent %f seconds waiting for communication." % t_waiting)
+        yt_counters("allsum")
+        yt_counters("run_generator")
     
     def _init_kd_tree(self):
         """
@@ -315,18 +320,12 @@ class StructFcnGen(ParallelAnalysisInterface):
         communication cycle should continue.
         """
         # We need to continue if:
-        # We haven't seen that all the points have been created.
-        #if (self.gen_array < self.total_values).any(): return True
-        # We own unprocessed points.
-        #if uni.size > 1: return True
         # If I'm not finished.
         if self.generated_points < self.total_values: return True
         # If other tasks aren't finished
         if not self._mpi_Request_Testall(self.done_hooks): return True
         # If they are all finished, meaning Testall returns True, we find
         # the biggest value in self.recv_done and stop there.
-        #if self.final_comm_cycle_count==0: # For testing.
-        #    print self.mine, "its cycle",self.comm_cycle_count,"and I think everyone is done",self.recv_done
         stop = max(self.recv_done.values())
         if self.comm_cycle_count < stop:
             self.final_comm_cycle_count += 1
