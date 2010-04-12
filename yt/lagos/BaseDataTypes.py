@@ -165,7 +165,7 @@ class AMRData(object):
     def _set_center(self, center):
         if center is None:
             pass
-        elif isinstance(center, (types.ListType, na.ndarray)):
+        elif isinstance(center, (types.ListType, types.TupleType, na.ndarray)):
             center = na.array(center)
         elif center == ("max"): # is this dangerous for race conditions?
             center = pf.h.find_max("Density")
