@@ -22,6 +22,7 @@ PY_DIR="/Library/Frameworks/Python.framework/Versions/Current/"
 HDF5_DIR=
 
 INST_HG=1       # Install Mercurial or not?
+INST_GUI=0      # Install the necessary bits for the GUI?
 # If you've got YT some other place, set this to point to it.
 YT_DIR=""
 
@@ -215,6 +216,70 @@ then
     ( sudo ${PY_DIR}/bin/pip install -U mercurial 2>&1 ) 1>> ${LOG_FILE} || do_exit
 fi
 
+
+if [ $INST_GUI -eq 1 ]
+then
+    # This is a long, long list.
+    get_enzotools qt-mac-cocoa-opensource-4.6.2.dmg 
+    get_enzotools VTK-5.5.0-Darwin.dmg
+    get_enzotools VTK-5.5-Darwin-Python.dmg
+    get_enzotools ETS-20100316.tar.gz
+    get_enzotools sip-4.9.1.tar.gz
+    get_enzotools PyQt-mac-gpl-4.6.1.tar.gz
+
+    # We do these in order!  Hooray!
+    [ ! -e ${DEST_DIR}/src/qt_done ] && self_install \
+        qt-mac-cocoa-opensource-4.6.2.dmg 
+    touch ${DEST_DIR}/src/qt_done
+
+    [ ! -e ${DEST_DIR}/src/vtk_done ] && self_install \
+        VTK-5.5.0-Darwin.dmg
+    touch ${DEST_DIR}/src/vtk_done
+
+    [ ! -e ${DEST_DIR}/src/pyvtk_done ] && self_install \
+        VTK-5.5-Darwin-Python.dmg
+    touch ${DEST_DIR}/src/pyvtk_done
+
+    if [ ! -e ${DEST_DIR}/src/sip-4.9.1/done ]
+    then
+        [ ! -e sip-4.9.1 ] && tar xvfz sip-4.9.1.tar.gz
+        echo "Installing SIP."
+        echo "You may be asked to accept a license, and this may require sudo."
+        cd sip-4.9.1
+        ( ${PY_DIR}/bin/python2.6 configure.py 0>&0 2>&1 ) 1>> ${LOG_FILE} || do_exit
+        ( make 2>&1 ) 1>> ${LOG_FILE} || do_exit
+        ( sudo make install 2>&1 ) 1>> ${LOG_FILE} || do_exit
+        touch done
+        cd ..
+    fi
+
+    if [ ! -e ${DEST_DIR}/src/PyQt-mac-gpl-4.6.1/done ]
+    then
+        [ ! -e PyQt-mac-gpl-4.6.1 ] && tar xvfz PyQt-mac-gpl-4.6.1.tar.gz
+        echo
+        echo "Installing PyQt4."
+        echo "You may be asked to accept a license, and this may require sudo."
+        echo "Once you've answered, the compilation may take a while.  You could get a sandwich."
+        echo
+        cd PyQt-mac-gpl-4.6.1
+        ( ${PY_DIR}/bin/python2.6 configure.py 0>&0 2>&1 ) | tee -a ${LOG_FILE} || do_exit
+        ( make 2>&1 ) 1>> ${LOG_FILE} || do_exit
+        ( sudo make install 2>&1 ) 1>> ${LOG_FILE} || do_exit
+        touch done
+        cd ..
+    fi
+
+    if [ ! -e ${DEST_DIR}/src/ets_done ] 
+    then
+        echo "Installing ETS (needs sudo)"
+        tar xvfz ETS-20100316.tar.gz
+        sudo easy_install -N ETS_3.3.1/dist/*.egg
+    fi
+    touch ${DEST_DIR}/src/ets_done
+
+    echo "GUI installed successfully."
+fi
+
 echo
 echo
 echo "========================================================================"
@@ -246,6 +311,12 @@ then
   echo "$DEST_DIR/bin/hg"
   echo
 fi
+if [ $INST_GUI -eq 1 ]
+then
+  echo "The GUI toolkit dependencies have also been installed."
+  echo "You will need to add /usr/lib/vtk-5.5/ to your DYLD_LIBRARY_PATH ."
+  echo "Additionally, set ETS_TOOLKIT to 'qt4' in your environment."
+fi
 echo
 echo "For support, see one of the following websites:"
 echo
@@ -255,5 +326,9 @@ echo
 echo "Or join the mailing list:"
 echo 
 echo "    http://lists.spacepope.org/listinfo.cgi/yt-users-spacepope.org"
+echo
+echo "========================================================================"
+echo
+echo "      Everything is fine.  Nothing is ruined."
 echo
 echo "========================================================================"
