@@ -28,12 +28,12 @@ DEST_DIR="`pwd`/${DEST_SUFFIX/ /}"   # Installation location
 # If you absolutely can't get the fortran to work, try this:
 #NUMPY_ARGS="--fcompiler=fake"
 
-INST_WXPYTHON=1 # If you 't want to install wxPython, set this to 1
+INST_WXPYTHON=0 # If you want to install wxPython, set this to 1
 INST_ZLIB=1     # On some systems (Kraken) matplotlib has issues with 
                 # the system zlib, which is compiled statically.
                 # If need be, you can turn this off.
 INST_PNG=0      # Install a local libpng?  Same things apply as with zlib.
-INST_TRAITS=1   # Experimental TraitsUI installation
+INST_TRAITS=0   # Experimental TraitsUI installation
 INST_HG=1       # Install Mercurial or not?
 
 # If you've got YT some other place, set this to point to it.
@@ -278,7 +278,7 @@ if [ $INST_PNG -eq 1 ]
 then
     if [ ! -e libpng-1.2.43/done ]
     then
-        [ ! -e libpng-1.2.43 ] && tar xfj libpng-1.2.43.tar.bz2
+        [ ! -e libpng-1.2.43 ] && tar xfz libpng-1.2.43.tar.gz
         echo "Installing PNG"
         cd libpng-1.2.43
         ( ./configure --prefix=${DEST_DIR}/ 2>&1 ) 1>> ${LOG_FILE} || do_exit
