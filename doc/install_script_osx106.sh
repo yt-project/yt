@@ -19,12 +19,12 @@ PY_DIR="/Library/Frameworks/Python.framework/Versions/Current/"
 
 # Here's where you put the HDF5 path if you like; otherwise it'll download it
 # and install it on its own
-HDF5_DIR=/usr/local/hdf5/1.8.3s_conly
+HDF5_DIR=
 
-INST_HG=0       # Install Mercurial or not?
+INST_HG=1       # Install Mercurial or not?
 INST_GUI=1      # Install the necessary bits for the GUI?
 # If you've got YT some other place, set this to point to it.
-YT_DIR="/Users/jwise/codes/yt"
+YT_DIR=
 
 #------------------------------------------------------------------------------#
 #                                                                              #
