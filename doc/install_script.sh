@@ -32,6 +32,7 @@ INST_WXPYTHON=1 # If you 't want to install wxPython, set this to 1
 INST_ZLIB=1     # On some systems (Kraken) matplotlib has issues with 
                 # the system zlib, which is compiled statically.
                 # If need be, you can turn this off.
+INST_PNG=0      # Install a local libpng?  Same things apply as with zlib.
 INST_TRAITS=1   # Experimental TraitsUI installation
 INST_HG=1       # Install Mercurial or not?
 
@@ -229,6 +230,7 @@ then
 fi
 
 [ $INST_ZLIB -eq 1 ] && get_enzotools zlib-1.2.3.tar.bz2 
+[ $INST_PNG -eq 1 ] && get_enzotools libpng-1.2.43.tar.gz
 [ $INST_WXPYTHON -eq 1 ] && get_enzotools wxPython-src-2.8.10.1.tar.bz2
 get_enzotools Python-2.6.3.tgz
 get_enzotools numpy-1.3.0.tar.gz
@@ -270,6 +272,23 @@ then
     ZLIB_DIR=${DEST_DIR}
     export LDFLAGS="${LDFLAGS} -L${ZLIB_DIR}/lib/ -L${ZLIB_DIR}/lib64/"
     LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:${ZLIB_DIR}/lib/"
+fi
+
+if [ $INST_PNG -eq 1 ]
+then
+    if [ ! -e libpng-1.2.43/done ]
+    then
+        [ ! -e libpng-1.2.43 ] && tar xfj libpng-1.2.43.tar.bz2
+        echo "Installing PNG"
+        cd libpng-1.2.43
+        ( ./configure --prefix=${DEST_DIR}/ 2>&1 ) 1>> ${LOG_FILE} || do_exit
+        ( make install 2>&1 ) 1>> ${LOG_FILE} || do_exit
+        touch done
+        cd ..
+    fi
+    PNG_DIR=${DEST_DIR}
+    export LDFLAGS="${LDFLAGS} -L${PNG_DIR}/lib/ -L${PNG_DIR}/lib64/"
+    LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:${PNG_DIR}/lib/"
 fi
 
 if [ -z "$HDF5_DIR" ]
@@ -350,6 +369,7 @@ cd $YT_DIR
 
 echo "Installing yt"
 echo $HDF5_DIR > hdf5.cfg
+[ $INST_PNG -eq 1 ] && echo $PNG_DIR > png.cfg
 ( ${DEST_DIR}/bin/python2.6 setup.py develop 2>&1 ) 1>> ${LOG_FILE} || do_exit
 touch done
 cd $MY_PWD
