@@ -19,12 +19,12 @@ PY_DIR="/Library/Frameworks/Python.framework/Versions/Current/"
 
 # Here's where you put the HDF5 path if you like; otherwise it'll download it
 # and install it on its own
-HDF5_DIR=
+HDF5_DIR=/usr/local/hdf5/1.8.3s_conly
 
-INST_HG=1       # Install Mercurial or not?
-INST_GUI=0      # Install the necessary bits for the GUI?
+INST_HG=0       # Install Mercurial or not?
+INST_GUI=1      # Install the necessary bits for the GUI?
 # If you've got YT some other place, set this to point to it.
-YT_DIR=""
+YT_DIR="/Users/jwise/codes/yt"
 
 #------------------------------------------------------------------------------#
 #                                                                              #
@@ -262,7 +262,7 @@ then
         echo "Once you've answered, the compilation may take a while.  You could get a sandwich."
         echo
         cd PyQt-mac-gpl-4.6.1
-        ( ${PY_DIR}/bin/python2.6 configure.py 0>&0 2>&1 ) | tee -a ${LOG_FILE} || do_exit
+        ( ${PY_DIR}/bin/python2.6 configure.py --qmake=/usr/bin/qmake 0>&0 2>&1 ) | tee -a ${LOG_FILE} || do_exit
         ( make 2>&1 ) 1>> ${LOG_FILE} || do_exit
         ( sudo make install 2>&1 ) 1>> ${LOG_FILE} || do_exit
         touch done
