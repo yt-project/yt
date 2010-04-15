@@ -1269,9 +1269,8 @@ class parallelHF(GenericHaloFinder, parallelHOPHaloList):
         ms = -self.Tot_M.copy()
         del self.Tot_M
         Cx = self.CoM[:,0].copy()
-        indexes = na.arange(self.group_count)
-        sorted = na.asarray([indexes[i] for i in na.lexsort([indexes, Cx, ms])])
-        del indexes, Cx, ms
+        sorted = na.lexsort([Cx, ms])
+        del Cx, ms
         self._groups = self._groups[sorted]
         self._max_dens = self._max_dens[sorted]
         for i in xrange(self.group_count):

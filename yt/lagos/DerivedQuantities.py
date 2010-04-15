@@ -372,14 +372,16 @@ def _cudaIsBound(data, truncate, ratio):
     p1 = p.sum()
     if na.any(na.isnan(p)): raise ValueError
     return p1 * (length_scale_factor / (mass_scale_factor**2.0))
-    
-def _Extrema(data, fields, filter=None):
+
+def _Extrema(data, fields, non_zero = False, filter=None):
     """
     This function returns the extrema of a set of fields
     
     :param fields: A field name, or a list of field names
     :param filter: a string to be evaled to serve as a data filter.
     """
+    # There is a heck of a lot of logic in this.  I really wish it were more
+    # elegant.
     fields = ensure_list(fields)
     if filter is not None: this_filter = eval(filter)
     mins, maxs = [], []
@@ -389,12 +391,24 @@ def _Extrema(data, fields, filter=None):
             maxs.append(-1e90)
             continue
         if filter is None:
-            mins.append(data[field].min())
-            maxs.append(data[field].max())
+            if non_zero:
+                nz_filter = data[field]>0.0
+                if not nz_filter.any():
+                    mins.append(1e90)
+                    maxs.append(-1e90)
+                    continue
+            else:
+                nz_filter = None
+            mins.append(data[field][nz_filter].min())
+            maxs.append(data[field][nz_filter].max())
         else:
             if this_filter.any():
-                mins.append(data[field][this_filter].min())
-                maxs.append(data[field][this_filter].max())
+                if non_zero:
+                    nz_filter = ((this_filter) &
+                                 (data[field][this_filter] > 0.0))
+                else: nz_filter = this_filter
+                mins.append(data[field][nz_filter].min())
+                maxs.append(data[field][nz_filter].max())
             else:
                 mins.append(1e90)
                 maxs.append(-1e90)

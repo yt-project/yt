@@ -49,6 +49,8 @@ class PlotCollection(object):
         self.pf = pf
         if center == None:
             v,self.c = pf.h.find_max("Density") # @todo: ensure no caching
+        elif center == "center" or center == "c":
+            self.c = (pf["DomainRightEdge"] + pf["DomainLeftEdge"])/2.0
         else:
             self.c = na.array(center, dtype='float64')
         if deliverator_id > 0:
@@ -340,7 +342,8 @@ class PlotCollection(object):
         """
         if x_bounds is None:
             x_min, x_max = data_source.quantities["Extrema"](
-                            fields[0], lazy_reader=lazy_reader)[0]
+                            fields[0], non_zero = x_log,
+                            lazy_reader=lazy_reader)[0]
         else:
             x_min, x_max = x_bounds
         profile = lagos.BinnedProfile1D(data_source,
@@ -389,12 +392,14 @@ class PlotCollection(object):
         """
         if x_bounds is None:
             x_min, x_max = data_source.quantities["Extrema"](
-                                    fields[0], lazy_reader=lazy_reader)[0]
+                                    fields[0], non_zero = x_log,
+                                    lazy_reader=lazy_reader)[0]
         else:
             x_min, x_max = x_bounds
         if y_bounds is None:
             y_min, y_max = data_source.quantities["Extrema"](
-                                    fields[1], lazy_reader=lazy_reader)[0]
+                                    fields[1], non_zero = y_log,
+                                    lazy_reader=lazy_reader)[0]
         else:
             y_min, y_max = y_bounds
         profile = lagos.BinnedProfile2D(data_source,
@@ -431,6 +436,19 @@ class PlotCollection(object):
         p["Axis"] = None
         return p
 
+    def add_scatter_source(self, data_source, fields, id=None,
+                    axes = None, figure = None, plot_options = None):
+        """
+        Given a *data_source*, and *fields*, plot a scatter plot.
+        *plot_options* are sent to the scatter command.
+        """
+        if id is None: id = self._get_new_id()
+        sp = PlotTypes.ScatterPlot(data_source, fields, id,
+                                   plot_options = plot_options,
+                                   figure=figure, axes=axes)
+        p = self._add_plot(sp)
+        return p
+
     def add_fixed_resolution_plot(self, frb, field, center=None, use_colorbar=True,
                       figure = None, axes = None, fig_size=None, **kwargs):
         p = self._add_plot(PlotTypes.FixedResolutionPlot(frb, field,
@@ -444,6 +462,14 @@ class PlotCollection(object):
         data_source = self.pf.h.ortho_ray(axis, coords, field)
         p = self._add_plot(PlotTypes.LineQueryPlot(data_source,
                 [axis_names[axis], field], self._get_new_id(),
+                figure, axes, plot_options=kwargs))
+        return p
+
+    def add_ray(self, start_point, end_point, field, axes = None,
+                figure = None, **kwargs):
+        data_source = self.pf.h.ray(start_point, end_point, field)
+        p = self._add_plot(PlotTypes.LineQueryPlot(data_source,
+                ['t', field], self._get_new_id(),
                 figure, axes, plot_options=kwargs))
         return p
 

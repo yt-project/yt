@@ -165,7 +165,7 @@ class AMRData(object):
     def _set_center(self, center):
         if center is None:
             pass
-        elif isinstance(center, (types.ListType, na.ndarray)):
+        elif isinstance(center, (types.ListType, types.TupleType, na.ndarray)):
             center = na.array(center)
         elif center == ("max"): # is this dangerous for race conditions?
             center = pf.h.find_max("Density")
@@ -2747,7 +2747,7 @@ class AMRIntSmoothedCoveringGridBase(AMRCoveringGridBase):
         elif level == 0 and self.level == 0:
             DLE = self.pf["DomainLeftEdge"]
             self.global_startindex = na.array(na.floor(LL/ dx), dtype='int64')
-            idims = na.ceil((self.right_edge-self.left_edge)/dx)
+            idims = na.rint((self.right_edge-self.left_edge)/dx).astype('int64')
             self[field] = na.zeros(idims,dtype='float64')-999
 
     def _refine(self, dlevel, field):
