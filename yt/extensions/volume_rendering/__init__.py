@@ -27,7 +27,8 @@ import numpy as na
 
 from TransferFunction import TransferFunction, ColorTransferFunction, \
                              PlanckTransferFunction, \
-                             MultiVariateTransferFunction
+                             MultiVariateTransferFunction, \
+                             ProjectionTransferFunction
 from yt.amr_utils import PartitionedGrid, VectorPlane, \
                              TransferFunctionProxy
 from grid_partitioner import HomogenizedBrickCollection, \

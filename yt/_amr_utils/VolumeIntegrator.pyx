@@ -84,10 +84,12 @@ cdef struct FieldInterpolationTable:
     int weight_field_id
     int weight_table_id
     int nbins
+    int pass_through
 
 cdef void FIT_initialize_table(FieldInterpolationTable *fit, int nbins,
               np.float64_t *values, np.float64_t bounds1, np.float64_t bounds2,
-              int field_id, int weight_field_id = -1, int weight_table_id = -1):
+              int field_id, int weight_field_id = -1, int weight_table_id = -1,
+              int pass_through = 0):
     fit.bounds[0] = bounds1; fit.bounds[1] = bounds2
     fit.nbins = nbins
     fit.dbin = (fit.bounds[1] - fit.bounds[0])/fit.nbins
@@ -97,11 +99,13 @@ cdef void FIT_initialize_table(FieldInterpolationTable *fit, int nbins,
     fit.field_id = field_id
     fit.weight_field_id = weight_field_id
     fit.weight_table_id = weight_table_id
+    fit.pass_through = pass_through
 
 cdef np.float64_t FIT_get_value(FieldInterpolationTable *fit,
                             np.float64_t *dvs):
     cdef np.float64_t bv, dy, dd, tf
     cdef int bin_id
+    if fit.pass_through == 1: return dvs[fit.field_id]
     bin_id = <int> ((dvs[fit.field_id] - fit.bounds[0]) * fit.idbin)
     dd = dvs[fit.field_id] - (fit.bounds[0] + bin_id * fit.dbin) # x - x0
     if bin_id > fit.nbins - 2 or bin_id < 0: return 0.0
@@ -157,7 +161,8 @@ cdef class TransferFunctionProxy:
                       tf_obj.tables[i].x_bounds[0],
                       tf_obj.tables[i].x_bounds[1],
                       tf_obj.field_ids[i], tf_obj.weight_field_ids[i],
-                      tf_obj.weight_table_ids[i])
+                      tf_obj.weight_table_ids[i],
+                      tf_obj.tables[i].pass_through)
             self.my_field_tables.append((tf_obj.tables[i],
                                          tf_obj.tables[i].y))
             self.field_tables[i].field_id = tf_obj.field_ids[i]

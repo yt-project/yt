@@ -30,6 +30,7 @@ from yt.physical_constants import *
 
 class TransferFunction(object):
     def __init__(self, x_bounds, nbins=256):
+        self.pass_through = 0
         self.nbins = nbins
         self.x_bounds = x_bounds
         self.x = na.linspace(x_bounds[0], x_bounds[1], nbins).astype('float64')
@@ -176,6 +177,21 @@ class ColorTransferFunction(MultiVariateTransferFunction):
         if alpha is None: alpha = na.logspace(-2.0, 0.0, N)
         for v, a in zip(na.mgrid[mi:ma:N*1j], alpha):
             self.sample_colormap(v, w, a, colormap=colormap)
+
+class ProjectionTransferFunction(MultiVariateTransferFunction):
+    def __init__(self, x_bounds = (-1e30, 1e30)):
+        MultiVariateTransferFunction.__init__(self)
+        self.x_bounds = x_bounds
+        self.nbins = 2
+        self.linear_mapping = TransferFunction(x_bounds, 2)
+        self.linear_mapping.pass_through = 1
+        self.add_field_table(self.linear_mapping, 0)
+        self.alpha = TransferFunction(x_bounds, 2)
+        self.alpha.y *= 0.0
+        self.alpha.y += 1.0
+        self.add_field_table(self.alpha, 0)
+        self.link_channels(0, [0,1,2]) # same emission for all rgb
+        self.link_channels(2, [3,4,5]) # this will remove absorption
 
 class PlanckTransferFunction(MultiVariateTransferFunction):
     def __init__(self, T_bounds, rho_bounds, nbins=256,
