@@ -76,8 +76,7 @@ class StructFcnGen(ParallelAnalysisInterface):
         self.done_hooks = []
         self.comm_size = min(int(comm_size), self.total_values)
         self.pf = pf
-        self.nlevels = na.unique(self.pf.h.grid_levels).size
-        self.nlevels = 10
+        self.nlevels = pf.h.max_level
         self.period = self.pf['DomainRightEdge'] - self.pf['DomainLeftEdge']
         self.min_edge = min(self.period)
         self.hierarchy = pf.h
