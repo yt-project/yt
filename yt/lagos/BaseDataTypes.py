@@ -410,7 +410,7 @@ class AMR1DData(AMRData, GridPropertiesMixin):
             fields_to_get = ensure_list(fields)
         if not self.sort_by in fields_to_get and \
             self.sort_by not in self.data:
-            fields_to_get.append(self.sort_by)
+            fields_to_get.insert(0, self.sort_by)
         mylog.debug("Going to obtain %s", fields_to_get)
         for field in fields_to_get:
             if self.data.has_key(field):
