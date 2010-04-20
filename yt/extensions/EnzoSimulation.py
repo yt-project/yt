@@ -1,5 +1,6 @@
-import yt.lagos as lagos
 from yt.logger import lagosLogger as mylog
+import yt.lagos as lagos
+import yt.funcs as funcs
 import numpy as na
 import os
 
@@ -368,7 +369,48 @@ class EnzoSimulation(object):
         mylog.info("create_cosmology_splice: Used %d data dumps to get from z = %f to %f." % 
                    (len(cosmology_splice),initial_redshift,final_redshift))
 
+        self.allOutputs.sort(key=lambda obj: obj['time'])
         return cosmology_splice
+
+    def get_data_by_redshift(self, redshifts, tolerance=None):
+        """
+        : param redshifts: a list of redshifts.
+        : tolerance: if not None, do not return a dataset unless the redshift is within the tolerance value.
+        Get datasets for a list of redshifts.
+        """
+
+        redshifts = funcs.ensure_list(redshifts)
+        my_datasets = []
+        for redshift in redshifts:
+            self.allOutputs.sort(key=lambda obj:na.fabs(redshift - obj['redshift']))
+            if (tolerance is None or na.abs(redshift - self.allOutputs[0]['redshift']) <= tolerance) \
+                    and self.allOutputs[0] not in my_datasets:
+                my_datasets.append(self.allOutputs[0])
+            else:
+                mylog.error("No dataset added for z = %f." % redshift)
+
+        self.allOutputs.sort(key=lambda obj: obj['time'])
+        return my_datasets
+
+    def get_data_by_time(self, times, tolerance=None):
+        """
+        : param redshifts: a list of times.
+        : tolerance: if not None, do not return a dataset unless the redshift is within the tolerance value.
+        Get datasets for a list of times.
+        """
+
+        times = funcs.ensure_list(times)
+        my_datasets = []
+        for my_time in times:
+            self.allOutputs.sort(key=lambda obj:na.fabs(my_time - obj['time']))
+            if (tolerance is None or na.abs(my_time - self.allOutputs[0]['time']) <= tolerance) \
+                    and self.allOutputs[0] not in my_datasets:
+                my_datasets.append(self.allOutputs[0])
+            else:
+                mylog.error("No dataset added for z = %f." % my_time)
+
+        self.allOutputs.sort(key=lambda obj: obj['time'])
+        return my_datasets
 
     def _calculate_deltaz_max(self):
         "Calculate delta z that corresponds to full box length going from z to (z - delta z)."
