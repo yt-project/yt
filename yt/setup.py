@@ -63,8 +63,13 @@ def configuration(parent_package='', top_path=None):
     png_inc, png_lib = check_for_png()
     include_dirs=[png_inc]
     library_dirs=[png_lib]
+    # Because setjmp.h is included by lots of things, and because libpng hasn't
+    # always properly checked its header files (see
+    # https://bugzilla.redhat.com/show_bug.cgi?id=494579 ) we simply disable
+    # support for setjmp.
     config.add_extension("amr_utils", 
         ["yt/amr_utils.c", "yt/_amr_utils/FixedInterpolator.c"], 
+        define_macros=[("PNG_SETJMP_NOT_SUPPORTED", True)],
         include_dirs=["yt/_amr_utils/", png_inc],
         library_dirs=[png_lib],
         libraries=["m", "png"])

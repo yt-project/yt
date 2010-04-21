@@ -330,6 +330,8 @@ then
     [ ! -e wxPython-src-2.8.10.1 ] && tar xfj wxPython-src-2.8.10.1.tar.bz2
     cd wxPython-src-2.8.10.1
 
+    get_enzotools wxpython28101_gdiwrap.diff
+    patch -p0 < wxpython28101_gdiwrap.diff
     ( ./configure --prefix=${DEST_DIR}/ --with-opengl 2>&1 ) 1>> ${LOG_FILE} || do_exit
     ( make install 2>&1 ) 1>> ${LOG_FILE} || do_exit
     cd contrib
