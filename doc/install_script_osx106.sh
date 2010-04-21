@@ -205,6 +205,7 @@ cd $YT_DIR
 
 echo "Installing yt (may need sudo)"
 echo $HDF5_DIR > hdf5.cfg
+echo /usr/X11 > png.cfg # I think this should work everywhere
 ( ${PY_DIR}/bin/python2.6 setup.py build_ext -i 2>&1 ) 1>> ${LOG_FILE} || do_exit
 ( sudo ${PY_DIR}/bin/python2.6 setup.py develop 2>&1 ) 1>> ${LOG_FILE} || do_exit
 touch done

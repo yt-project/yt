@@ -165,7 +165,7 @@ class AMRData(object):
     def _set_center(self, center):
         if center is None:
             pass
-        elif isinstance(center, (types.ListType, na.ndarray)):
+        elif isinstance(center, (types.ListType, types.TupleType, na.ndarray)):
             center = na.array(center)
         elif center == ("max"): # is this dangerous for race conditions?
             center = pf.h.find_max("Density")
@@ -405,12 +405,12 @@ class AMR1DData(AMRData, GridPropertiesMixin):
             self._get_list_of_grids()
         points = []
         if not fields:
-            fields_to_get = self.fields
+            fields_to_get = self.fields[:]
         else:
             fields_to_get = ensure_list(fields)
         if not self.sort_by in fields_to_get and \
             self.sort_by not in self.data:
-            fields_to_get.append(self.sort_by)
+            fields_to_get.insert(0, self.sort_by)
         mylog.debug("Going to obtain %s", fields_to_get)
         for field in fields_to_get:
             if self.data.has_key(field):
@@ -574,7 +574,7 @@ class AMR2DData(AMRData, GridPropertiesMixin, ParallelAnalysisInterface):
         if not self.has_key('pdx'):
             self._generate_coords()
         if fields == None:
-            fields_to_get = self.fields
+            fields_to_get = self.fields[:]
         else:
             fields_to_get = ensure_list(fields)
         temp_data = {}
@@ -1616,7 +1616,7 @@ class AMR3DData(AMRData, GridPropertiesMixin):
             self._get_list_of_grids()
         points = []
         if not fields:
-            fields_to_get = self.fields
+            fields_to_get = self.fields[:]
         else:
             fields_to_get = ensure_list(fields)
         mylog.debug("Going to obtain %s", fields_to_get)
@@ -2402,7 +2402,7 @@ class AMRFloatCoveringGridBase(AMR3DData):
         self._get_list_of_grids()
         # We don't generate coordinates here.
         if field == None:
-            fields_to_get = self.fields
+            fields_to_get = self.fields[:]
         else:
             fields_to_get = ensure_list(field)
         for grid in self._grids:
@@ -2504,7 +2504,7 @@ class AMRSmoothedCoveringGridBase(AMRFloatCoveringGridBase):
         self._get_list_of_grids()
         # We don't generate coordinates here.
         if field == None:
-            fields_to_get = self.fields
+            fields_to_get = self.fields[:]
         else:
             fields_to_get = ensure_list(field)
         for field in fields_to_get:
@@ -2641,7 +2641,7 @@ class AMRCoveringGridBase(AMR3DData):
         self._get_list_of_grids()
         # We don't generate coordinates here.
         if field == None:
-            fields_to_get = self.fields
+            fields_to_get = self.fields[:]
         else:
             fields_to_get = ensure_list(field)
         for grid in self._grids:
@@ -2700,7 +2700,7 @@ class AMRIntSmoothedCoveringGridBase(AMRCoveringGridBase):
         self._get_list_of_grids()
         # We don't generate coordinates here.
         if field == None:
-            fields_to_get = self.fields
+            fields_to_get = self.fields[:]
         else:
             fields_to_get = ensure_list(field)
         for field in fields_to_get:

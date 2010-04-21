@@ -134,6 +134,16 @@ class VolumeRendering(ParallelAnalysisInterface):
         # This will need to be modified for parallel
         export_partitioned_grids(self.bricks, fn)
 
+    def save_image(self, prefix = None, norm = 1.0):
+        if norm is not None:
+            mi, ma = self.image.min(), norm*self.image.max()
+            print "Normalizing with ", mi, ma
+            image = (na.clip(self.image, mi, ma) - mi)/(ma - mi)
+        else:
+            image = self.image
+        if prefix is None: prefix = "%s_volume_rendering" % (self.pf)
+        plot_rgb(image, prefix)
+
     def partition_grids(self):
         log_field = (self.fields[0] in self.pf.field_info and 
                      self.pf.field_info[self.fields[0]].take_log)
