@@ -27,7 +27,9 @@ import yt.amr_utils as au
 
 def write_image(image, filename, color_bounds = None, cmap = "algae"):
     if color_bounds is None:
-        color_bounds = image.min(), image.max()
+        mi = na.nanmin(image[~na.isinf(image)])
+        ma = na.nanmax(image[~na.isinf(image)])
+        color_bounds = mi, ma
     image = (image - color_bounds[0])/(color_bounds[1] - color_bounds[0])
     if cmap not in cmd.color_map_luts:
         print "Your color map was not found in the extracted colormap file."
