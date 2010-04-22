@@ -1507,13 +1507,15 @@ class AMRFixedResProjectionBase(AMR2DData):
     def _generate_coords(self):
         xi, yi, zi = self.left_edge + self.dds*0.5
         xf, yf, zf = self.left_edge + self.dds*(self.ActiveDimensions-0.5)
-        coords = na.mgrid[xi:xf:self.ActiveDimensions[0]*1j,
+        coords = na.ogrid[xi:xf:self.ActiveDimensions[0]*1j,
                           yi:yf:self.ActiveDimensions[1]*1j,
                           zi:zf:self.ActiveDimensions[2]*1j]
         xax = x_dict[self.axis]
         yax = y_dict[self.axis]
-        self['px'] = coords[xax]
-        self['py'] = coords[yax]
+        blank = na.ones( (self.ActiveDimensions[xax],
+                          self.ActiveDimensions[yax]), dtype='float64')
+        self['px'] = coords[xax] * blank
+        self['py'] = coords[yax] * blank
         self['pdx'] = self.dds[xax]
         self['pdy'] = self.dds[yax]
 
