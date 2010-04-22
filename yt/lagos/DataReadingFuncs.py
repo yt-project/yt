@@ -487,7 +487,7 @@ class IOHandlerTiger(BaseIOHandler):
         LD = na.array(grid.left_dims, dtype='int64')
         SS = na.array(grid.ActiveDimensions, dtype='int64')
         RS = na.array(grid.pf.root_size, dtype='int64')
-        data = au.read_tiger_section(fn, LD, SS, RS)
+        data = au.read_tiger_section(fn, LD, SS, RS).astype("float64")
         return data
 
     def _read_data_slice(self, grid, field, axis, coord):
@@ -497,5 +497,5 @@ class IOHandlerTiger(BaseIOHandler):
         RS = na.array(grid.pf.root_size, dtype='int64').copy()
         LD[axis] += coord
         SS[axis] = 1
-        data = au.read_tiger_section(fn, LD, SS, RS)
+        data = au.read_tiger_section(fn, LD, SS, RS).astype("float64")
         return data

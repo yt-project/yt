@@ -754,6 +754,7 @@ class TigerStaticOutput(StaticOutput):
         self.parameters['TopGridDimensions'] = root_size
         self.parameters['TopGridRank'] = 3
         self.units["Density"] = 1.0
+        self.parameters['RefineBy'] = 2
 
     def _set_units(self):
         self.parameters["DomainLeftEdge"] = na.zeros(3, dtype='float64')
@@ -762,6 +763,7 @@ class TigerStaticOutput(StaticOutput):
         self.time_units = {}
         self.time_units['1'] = 1
         self.units['1'] = 1.0
+        self.units['cm'] = 1.0 # This is just plain false
         self.units['unitary'] = 1.0 / (self["DomainRightEdge"] - self["DomainLeftEdge"]).max()
 
     def _parse_parameter_file(self):

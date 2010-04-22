@@ -679,9 +679,9 @@ class TigerGrid(AMRGridPatch):
         self.RightEdge = right_edge
         self.Level = 0
         self.NumberOfParticles = 0
-        self.left_dims = left_dims
-        self.right_dims = right_dims
-        self.ActiveDimensions = na.array(right_dims) - left_dims
+        self.left_dims = na.array(left_dims, dtype='int32')
+        self.right_dims = na.array(right_dims, dtype='int32')
+        self.ActiveDimensions = self.right_dims - self.left_dims
 
         self.Parent = None
         self.Children = []
