@@ -473,3 +473,49 @@ class IOHandlerChomboHDF5(BaseIOHandler):
         sl[axis] = slice(coord, coord + 1)
         return self._read_data_set(grid,field)[sl]
 
+class IOHandlerTiger(BaseIOHandler):
+    _data_style = "tiger"
+    _offset = 36
+
+    def __init__(self, *args, **kwargs):
+        BaseIOHandler.__init__(self, *args, **kwargs)
+        self._memmaps = {}
+
+    def _get_memmap(self, fn, size):
+        if fn + "dummy" not in self._memmaps:
+            data = \
+                na.memmap(fn, dtype='float32', mode="r",
+                          shape=size, order='f', 
+                          offset = self._offset)
+            data.strides = [data.strides[0],
+                            data.strides[1],
+                            data.strides[2] + 8]
+            self._memmaps[fn] = data
+        return self._memmaps[fn]
+
+    def _read_data_set(self, grid, field):
+        fn = grid.pf.basename + grid.hierarchy.file_mapping[field]
+        data = self._get_memmap(fn, grid.pf.root_size)
+
+        print "Reading %s from %s" % (field, grid)
+        tr = data[grid.left_dims[0]:grid.right_dims[0],
+                  grid.left_dims[1]:grid.right_dims[1],
+                  grid.left_dims[2]:grid.right_dims[2]]
+        return na.array(tr)
+
+    def _read_data_slice(self, grid, field, axis, coord):
+        
+        print "Reading slice of %s from %s" % (field, grid)
+        sl = [slice(i,i+j) for i,j in 
+              zip(grid.left_dims, grid.ActiveDimensions)]
+        sl[axis] = slice(coord + grid.left_dims[axis],
+                         coord + grid.left_dims[axis] + 1)
+        sl = tuple(sl)
+        fn = grid.pf.basename + grid.hierarchy.file_mapping[field]
+
+        data = self._get_memmap(fn, grid.pf.root_size)
+
+        tr = na.array(data[sl])
+        print "READ SLICE"
+        print tr.shape, sl, type(tr)
+        return tr

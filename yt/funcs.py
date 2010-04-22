@@ -24,7 +24,7 @@ License:
 """
 
 import time, types, signal, inspect, traceback, sys, pdb, rpdb, os
-import warnings
+import warnings, struct
 import progressbar as pb
 from math import floor, ceil
 from yt.logger import ytLogger as mylog
@@ -81,6 +81,13 @@ def ensure_list(obj):
     if not isinstance(obj, types.ListType):
         return [obj]
     return obj
+
+def read_struct(f, fmt):
+    """
+    This reads a struct, and only that struct, from an open file.
+    """
+    s = f.read(struct.calcsize(fmt))
+    return struct.unpack(fmt, s)
 
 def just_one(obj):
     # If we have an iterable, sometimes we only want one item

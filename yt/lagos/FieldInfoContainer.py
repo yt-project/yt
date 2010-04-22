@@ -123,6 +123,15 @@ class GadgetFieldContainer(CodeFieldInfoContainer):
 GadgetFieldInfo = GadgetFieldContainer()
 add_gadget_field = GadgetFieldInfo.add_field
 
+class TigerFieldContainer(CodeFieldInfoContainer):
+    """
+    This is a container for Tiger-specific fields.
+    """
+    _shared_state = {}
+    _field_list = {}
+TigerFieldInfo = TigerFieldContainer()
+add_tiger_field = TigerFieldInfo.add_field
+
 class ValidationException(Exception):
     pass
 

@@ -43,7 +43,7 @@ from yt.lagos import EnzoStaticOutput, \
     BinnedProfile1D, BinnedProfile2D, BinnedProfile3D, \
     derived_field, \
     add_field, FieldInfo, EnzoFieldInfo, Enzo2DFieldInfo, OrionFieldInfo, \
-    GadgetFieldInfo, \
+    GadgetFieldInfo, TigerFieldInfo, \
     Clump, write_clump_hierarchy, find_clumps, write_clumps, \
     OrionStaticOutput, HaloFinder, HOPHaloFinder, FOFHaloFinder, parallelHF, \
     axis_names, x_dict, y_dict, StructFcnGen, StructSet
