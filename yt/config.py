@@ -54,6 +54,7 @@ ytcfgDefaults = {
         'time_functions': 'False',
         'LogFile': 'False',
         'LogFileName': 'yt.log',
+        'coloredlogs': 'True',
         'suppressStreamLogging': 'False',
         'LogLevel': '20',
         'timefunctions':'False',
