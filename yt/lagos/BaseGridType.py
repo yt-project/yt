@@ -688,7 +688,7 @@ class TigerGrid(AMRGridPatch):
 
     @property
     def child_mask(self):
-        return na.ones(self.ActiveDimensions)
+        return na.ones(self.ActiveDimensions, dtype='int32')
 
     def __repr__(self):
         return "TigerGrid_%04i (%s)" % (self.id, self.ActiveDimensions)
