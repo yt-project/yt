@@ -215,7 +215,7 @@ cdef class TransferFunctionProxy:
             # measure of emissivity.
             ta = fmax((1.0 - dt*trgba[i+3]), 0.0)
             rgba[i  ] = dt*trgba[i  ] + ta * rgba[i  ]
-            rgba[i+3] = dt*trgba[i+3] + ta * rgba[i+3]
+            #rgba[i+3] = dt*trgba[i+3] + ta * rgba[i+3]
             # This is the old way:
             #rgba[i  ] += trgba[i] * (1.0 - rgba[i+3])*dt*trgba[i+3]
             #rgba[i+3] += trgba[i] * (1.0 - rgba[i+3])*dt*trgba[i+3]
@@ -225,6 +225,8 @@ cdef class VectorPlane:
     cdef np.float64_t *vp_pos, *vp_dir, *center, *image,
     cdef np.float64_t pdx, pdy, bounds[4]
     cdef int nv[2]
+    cdef int vp_strides[3]
+    cdef int im_strides[3]
     cdef public object ax_vec, ay_vec
     cdef np.float64_t *x_vec, *y_vec
 
@@ -254,6 +256,9 @@ cdef class VectorPlane:
         for i in range(4): self.bounds[i] = bounds[i]
         self.pdx = (self.bounds[1] - self.bounds[0])/self.nv[0]
         self.pdy = (self.bounds[3] - self.bounds[2])/self.nv[1]
+        for i in range(3):
+            self.vp_strides[i] = vp_pos.strides[i] / 8
+            self.im_strides[i] = image.strides[i] / 8
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -271,18 +276,20 @@ cdef class VectorPlane:
         rv[3] = rv[2] + lrint((ex[3] - ex[2])/self.pdy)
 
     cdef inline void copy_into(self, np.float64_t *fv, np.float64_t *tv,
-                        int i, int j, int nk):
+                        int i, int j, int nk, int strides[3]):
         # We know the first two dimensions of our from-vector, and our
         # to-vector is flat and 'ni' long
         cdef int k
+        cdef int offset = strides[0] * i + strides[1] * j
         for k in range(nk):
-            tv[k] = fv[(((k*self.nv[1])+j)*self.nv[0]+i)]
+            tv[k] = fv[offset + k]
 
     cdef inline void copy_back(self, np.float64_t *fv, np.float64_t *tv,
-                        int i, int j, int nk):
+                        int i, int j, int nk, int strides[3]):
         cdef int k
+        cdef int offset = strides[0] * i + strides[1] * j
         for k in range(nk):
-            tv[(((k*self.nv[1])+j)*self.nv[0]+i)] = fv[k]
+            tv[offset + k] = fv[k]
 
 cdef class PartitionedGrid:
     cdef public object my_data
@@ -341,10 +348,10 @@ cdef class PartitionedGrid:
         hit = 0
         for vi in range(iter[0], iter[1]):
             for vj in range(iter[2], iter[3]):
-                vp.copy_into(vp.vp_pos, v_pos, vi, vj, 3)
-                vp.copy_into(vp.image, rgba, vi, vj, 6)
+                vp.copy_into(vp.vp_pos, v_pos, vi, vj, 3, vp.vp_strides)
+                vp.copy_into(vp.image, rgba, vi, vj, 3, vp.im_strides)
                 self.integrate_ray(v_pos, vp.vp_dir, rgba, tf)
-                vp.copy_back(rgba, vp.image, vi, vj, 6)
+                vp.copy_back(rgba, vp.image, vi, vj, 3, vp.im_strides)
         return hit
 
     @cython.boundscheck(False)
