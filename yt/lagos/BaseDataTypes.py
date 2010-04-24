@@ -426,8 +426,10 @@ class AMR1DData(AMRData, GridPropertiesMixin):
                 continue
             if self._sortkey is None:
                 self._sortkey = na.argsort(self[self.sort_by])
-            if (field in self.hierarchy.field_list or field == self.sort_by):
-                self[field] = self[field][self._sortkey]
+            # We *always* sort the field here if we have not successfully
+            # generated it above.  This way, fields that are grabbed from the
+            # grids are sorted properly.
+            self[field] = self[field][self._sortkey]
        
 class AMROrthoRayBase(AMR1DData):
     _key_fields = ['x','y','z','dx','dy','dz']
