@@ -152,7 +152,7 @@ name_rgb.png
 def plot_rgb(image, name, label=None, label_color='w', label_size='large'):
     Nvec = image.shape[0]
     image[na.isnan(image)] = 0.0
-    if image.shape[2] == 4:
+    if image.shape[2] >= 4:
         image = image[:,:,:3]
     pylab.clf()
     pylab.gcf().set_dpi(100)

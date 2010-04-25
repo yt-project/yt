@@ -23,6 +23,7 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 from yt.lagos import *
+import yt.amr_utils as au
 import exceptions
 
 _axis_ids = {0:2,1:1,2:0}
@@ -473,3 +474,28 @@ class IOHandlerChomboHDF5(BaseIOHandler):
         sl[axis] = slice(coord, coord + 1)
         return self._read_data_set(grid,field)[sl]
 
+class IOHandlerTiger(BaseIOHandler):
+    _data_style = "tiger"
+    _offset = 36
+
+    def __init__(self, *args, **kwargs):
+        BaseIOHandler.__init__(self, *args, **kwargs)
+        self._memmaps = {}
+
+    def _read_data_set(self, grid, field):
+        fn = grid.pf.basename + grid.hierarchy.file_mapping[field]
+        LD = na.array(grid.left_dims, dtype='int64')
+        SS = na.array(grid.ActiveDimensions, dtype='int64')
+        RS = na.array(grid.pf.root_size, dtype='int64')
+        data = au.read_tiger_section(fn, LD, SS, RS).astype("float64")
+        return data
+
+    def _read_data_slice(self, grid, field, axis, coord):
+        fn = grid.pf.basename + grid.hierarchy.file_mapping[field]
+        LD = na.array(grid.left_dims, dtype='int64').copy()
+        SS = na.array(grid.ActiveDimensions, dtype='int64').copy()
+        RS = na.array(grid.pf.root_size, dtype='int64').copy()
+        LD[axis] += coord
+        SS[axis] = 1
+        data = au.read_tiger_section(fn, LD, SS, RS).astype("float64")
+        return data

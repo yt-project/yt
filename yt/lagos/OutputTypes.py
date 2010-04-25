@@ -612,8 +612,10 @@ def _reconstruct_pf(*args, **kwargs):
 class GadgetStaticOutput(StaticOutput):
     _hierarchy_class = GadgetHierarchy
     _fieldinfo_class = GadgetFieldContainer
-    def __init__(self, filename, particles, dimensions = None):
+    def __init__(self, filename, particles, dimensions = None,
+                 storage_filename = None):
         StaticOutput.__init__(self, filename, 'gadget_binary')
+        self.storage_filename = storage_filename
         self.particles = particles
         if "InitialTime" not in self.parameters:
             self.parameters["InitialTime"] = 0.0
@@ -640,8 +642,10 @@ class ChomboStaticOutput(StaticOutput):
     _hierarchy_class = ChomboHierarchy
     _fieldinfo_class = ChomboFieldContainer
     
-    def __init__(self,filename,data_style='chombo_hdf5'):
+    def __init__(self, filename, data_style='chombo_hdf5',
+                 storage_filename = None):
         StaticOutput.__init__(self,filename,data_style)
+        self.storage_filename = storage_filename
 
         self.field_info = self._fieldinfo_class()
         # hardcoded for now
@@ -700,4 +704,71 @@ class ChomboStaticOutput(StaticOutput):
             pass
         return False
 
-    
+class TigerStaticOutput(StaticOutput):
+    _hierarchy_class = TigerHierarchy
+    _fieldinfo_class = TigerFieldContainer
+
+    def __init__(self, rhobname, root_size, max_grid_size=128,
+                 data_style='tiger', storage_filename = None):
+        StaticOutput.__init__(self, rhobname, data_style)
+        self.storage_filename = storage_filename
+        self.basename = rhobname[:-4]
+        if not os.path.exists(self.basename + "rhob"):
+            print "%s doesn't exist, don't know how to handle this!" % (
+                        self.basename + "rhob")
+            raise IOError
+        if not iterable(root_size): root_size = (root_size,) * 3
+        self.root_size = root_size
+        if not iterable(max_grid_size): max_grid_size = (max_grid_size,) * 3
+        self.max_grid_size = max_grid_size
+
+        self.field_info = self._fieldinfo_class()
+
+        # We assume that we have basename + "rhob" and basename + "temp"
+        # to get at our various parameters.
+
+        # First we get our our header:
+        
+        header = [
+            ('i', 'dummy0'),
+            ('f', 'ZR'),
+            ('f', 'OMEGA0'),
+            ('f', 'FLAM0'),
+            ('f', 'OMEGAB'),
+            ('f', 'H0'),
+            ('f', 'BOXL0'),
+            ('i', 'dummy1'),
+            ]
+
+        h_fmt, h_key = zip(*header)
+        header_string = "".join(h_fmt)
+
+        fs = open(self.basename + "rhob")
+        header_raw = read_struct(fs, header_string)
+        self.parameters.update(dict(zip(h_key, header_raw)))
+
+        if "InitialTime" not in self.parameters:
+            self.parameters["InitialTime"] = 0.0
+        self.parameters["CurrentTimeIdentifier"] = \
+            int(os.stat(self.parameter_filename)[ST_CTIME])
+        self.parameters['TopGridDimensions'] = root_size
+        self.parameters['TopGridRank'] = 3
+        self.units["Density"] = 1.0
+        self.parameters['RefineBy'] = 2
+
+    def _set_units(self):
+        self.parameters["DomainLeftEdge"] = na.zeros(3, dtype='float64')
+        self.parameters["DomainRightEdge"] = na.ones(3, dtype='float64')
+        self.units = {}
+        self.time_units = {}
+        self.time_units['1'] = 1
+        self.units['1'] = 1.0
+        self.units['cm'] = 1.0 # This is just plain false
+        self.units['unitary'] = 1.0 / (self["DomainRightEdge"] - self["DomainLeftEdge"]).max()
+
+    def _parse_parameter_file(self):
+        pass
+
+    @classmethod
+    def _is_valid(self, *args, **kwargs):
+        return os.path.exists(args[0] + "rhob")

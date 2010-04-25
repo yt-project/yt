@@ -1508,15 +1508,16 @@ class AMRFixedResProjectionBase(AMR2DData):
         self._grids = self.pf.hierarchy.grids[ind][level_ind][(sort_ind,)][::-1]
 
     def _generate_coords(self):
-        xi, yi, zi = self.left_edge + self.dds*0.5
-        xf, yf, zf = self.left_edge + self.dds*(self.ActiveDimensions-0.5)
-        coords = na.mgrid[xi:xf:self.ActiveDimensions[0]*1j,
-                          yi:yf:self.ActiveDimensions[1]*1j,
-                          zi:zf:self.ActiveDimensions[2]*1j]
         xax = x_dict[self.axis]
         yax = y_dict[self.axis]
-        self['px'] = coords[xax]
-        self['py'] = coords[yax]
+        ci = self.left_edge + self.dds*0.5
+        cf = self.left_edge + self.dds*(self.ActiveDimensions-0.5)
+        cx = na.mgrid[ci[xax]:cf[xax]:self.ActiveDimensions[xax]*1j]
+        cy = na.mgrid[ci[yax]:cf[yax]:self.ActiveDimensions[yax]*1j]
+        blank = na.ones( (self.ActiveDimensions[xax],
+                          self.ActiveDimensions[yax]), dtype='float64')
+        self['px'] = cx[None,:] * blank
+        self['py'] = cx[:,None] * blank
         self['pdx'] = self.dds[xax]
         self['pdy'] = self.dds[yax]
 
@@ -1536,10 +1537,11 @@ class AMRFixedResProjectionBase(AMR2DData):
         for field in fields_to_get:
             self[field] = na.zeros(self.dims, dtype='float64')
         dls = self.__setup_dls(fields_to_get)
-        for grid in self._get_grids():
+        for i,grid in enumerate(self._get_grids()):
+            mylog.debug("Getting fields from %s", i)
             self._get_data_from_grid(grid, fields_to_get, dls)
         for field in fields_to_get:
-            self[field] = self._mpi_allsum(self[field])
+            self[field] = self._mpi_Allsum_double(self[field])
             conv = self.pf.units[self.pf.field_info[field].projection_conversion]
             self[field] *= conv
 

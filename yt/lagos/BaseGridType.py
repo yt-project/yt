@@ -669,3 +669,27 @@ class ChomboGrid(AMRGridPatch):
         self.Parent = []
         self.Children = []
         self.Level = level
+
+class TigerGrid(AMRGridPatch):
+    _id_offset = 0
+
+    def __init__(self, id, hierarchy, left_edge, right_edge, left_dims, right_dims):
+        AMRGridPatch.__init__(self, id, hierarchy = hierarchy)
+        self.LeftEdge = left_edge
+        self.RightEdge = right_edge
+        self.Level = 0
+        self.NumberOfParticles = 0
+        self.left_dims = na.array(left_dims, dtype='int32')
+        self.right_dims = na.array(right_dims, dtype='int32')
+        self.ActiveDimensions = self.right_dims - self.left_dims
+
+        self.Parent = None
+        self.Children = []
+
+    @property
+    def child_mask(self):
+        return na.ones(self.ActiveDimensions, dtype='int32')
+
+    def __repr__(self):
+        return "TigerGrid_%04i (%s)" % (self.id, self.ActiveDimensions)
+
