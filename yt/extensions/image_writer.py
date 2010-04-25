@@ -63,3 +63,15 @@ def strip_colormap_data(fn = "color_map_data.py",
             f.write(",\n")
         f.write("   )\n\n")
     f.close()
+
+def splat_points(image, points_x, points_y,
+                 contribution = None, transposed = False):
+    if contribution is None:
+        contribution = 100.0
+    val = contribution * 1.0/points_x.size
+    if transposed:
+        points_y = 1.0 - points_y
+        points_x = 1.0 - points_x
+    im = image.copy()
+    au.add_points_to_image(im, points_x, points_y, val)
+    return im
