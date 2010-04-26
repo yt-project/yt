@@ -300,7 +300,6 @@ class WindowedVariableMeshPannerProxy(object):
             new_dict = {}
             new_dict.update(d)
             for f in _wrapped_methods:
-                print "Constructing proxy for", f
                 new_dict[f] = return_proxy(f)
             return type.__new__(cls, name, b, new_dict)
 
