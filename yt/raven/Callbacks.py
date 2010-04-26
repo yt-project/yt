@@ -346,6 +346,39 @@ class LinePlotCallback(PlotCallback):
         plot._axes.plot(self.x, self.y, **self.plot_args)
         plot._axes.hold(False)
 
+class ImageLineCallback(LinePlotCallback):
+    _type_name = "image_line"
+
+    def __init__(self, p1, p2, plot_args = None):
+        """
+        Plot from *p1* to *p2* (image plane coordinates)
+        with *plot_args* fed into the plot.
+        """
+        PlotCallback.__init__(self)
+        self.p1 = p1
+        self.p2 = p2
+        if plot_args is None: plot_args = {}
+        self.plot_args = plot_args
+        self._ids = []
+
+    def __call__(self, plot):
+        # We manually clear out any previous calls to this callback:
+        plot._axes.lines = [l for l in plot._axes.lines if id(l) not in self._ids]
+        p1 = self.convert_to_pixels(plot, self.p1)
+        p2 = self.convert_to_pixels(plot, self.p2)
+        print p1, p2
+
+        # Save state
+        xx0, xx1 = plot._axes.get_xlim()
+        yy0, yy1 = plot._axes.get_ylim()
+        plot._axes.hold(True)
+        ii = plot._axes.plot(p1, p2, **self.plot_args)
+        self._ids.append(id(ii[0]))
+        # Reset state
+        plot._axes.set_xlim(xx0,xx1)
+        plot._axes.set_ylim(yy0,yy1)
+        plot._axes.hold(False)
+
 class CuttingQuiverCallback(PlotCallback):
     _type_name = "cquiver"
     def __init__(self, field_x, field_y, factor):
