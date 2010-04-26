@@ -1,5 +1,6 @@
-import yt.lagos as lagos
 from yt.logger import lagosLogger as mylog
+import yt.lagos as lagos
+import yt.funcs as funcs
 import numpy as na
 import os
 
@@ -59,18 +60,19 @@ class EnzoSimulation(object):
         # Check for sufficient starting/ending parameters.
         if self.InitialTime is None and self.InitialRedshift is None:
             if self.enzoParameters['ComovingCoordinates'] and \
-                    self.enzoParameters.has_key('CosmologyInitialRedshift'):
+               'CosmologyInitialRedshift' in self.enzoParameters:
                 self.InitialRedshift = self.enzoParameters['CosmologyInitialRedshift']
-            elif self.enzoParameters.has_key('InitialTime'):
+            elif 'InitialTime' in self.enzoParameters:
                 self.InitialTime = self.enzoParameters['InitialTime']
             else:
                 mylog.error("Couldn't find parameter for initial time or redshift from parameter file.")
                 return None
+
         if self.FinalTime is None and self.FinalRedshift is None:
             if self.enzoParameters['ComovingCoordinates'] and \
-                    self.enzoParameters.has_key('CosmologyFinalRedshift'):
+               'CosmologyFinalRedshift' in self.enzoParameters:
                 self.FinalRedshift = self.enzoParameters['CosmologyFinalRedshift']
-            elif self.enzoParameters.has_key('StopTime'):
+            elif 'StopTime' in self.enzoParameters:
                 self.FinalTime = self.enzoParameters['StopTime']
             else:
                 mylog.error("Couldn't find parameter for final time or redshift from parameter file.")
@@ -99,9 +101,9 @@ class EnzoSimulation(object):
 
         # Get initial time of simulation.
         if self.enzoParameters['ComovingCoordinates'] and \
-                self.enzoParameters.has_key('CosmologyInitialRedshift'):
+                'CosmologyInitialRedshift' in self.enzoParameters:
             self.SimulationInitialTime = self.enzo_cosmology.InitialTime / self.enzo_cosmology.TimeUnits
-        elif self.enzoParameters.has_key('InitialTime'):
+        elif 'InitialTime' in self.enzoParameters:
             self.SimulationInitialTime = self.enzoParameters['InitialTime']
         else:
             self.SimulationInitialTime = 0.0
@@ -150,6 +152,8 @@ class EnzoSimulation(object):
         # Calculate times for redshift dumps.
         if self.enzoParameters['ComovingCoordinates'] and self.get_redshift_outputs:
             self._CalculateRedshiftDumpTimes()
+        else:
+            self.redshiftOutputs = []
 
         if self.get_time_outputs and self.get_redshift_outputs:
             self.allOutputs = self.redshiftOutputs + self.timeOutputs
@@ -181,13 +185,14 @@ class EnzoSimulation(object):
                 if q == len(self.allOutputs) - 1:
                     end_index = q
 
+        for q in range(len(self.allOutputs)):
             if self.links and start_index is not None:
-                if q == start_index:
+                if q <= start_index:
                     self.allOutputs[q]['previous'] = None
                 else:
                     self.allOutputs[q]['previous'] = self.allOutputs[q-1]
 
-                if q == end_index:
+                if q >= end_index:
                     self.allOutputs[q]['next'] = None
                 else:
                     self.allOutputs[q]['next'] = self.allOutputs[q+1]
@@ -267,6 +272,7 @@ class EnzoSimulation(object):
             if rounded - z < 0:
                 rounded += na.power(10.0,(-1.0*decimals))
             z = rounded
+
             deltaz_max = deltaz_forward(self.cosmology, z, self.enzoParameters['CosmologyComovingBoxSize'])
             outputs.append({'redshift': z, 'deltazMax': deltaz_max})
             z -= deltaz_max
@@ -363,7 +369,48 @@ class EnzoSimulation(object):
         mylog.info("create_cosmology_splice: Used %d data dumps to get from z = %f to %f." % 
                    (len(cosmology_splice),initial_redshift,final_redshift))
 
+        self.allOutputs.sort(key=lambda obj: obj['time'])
         return cosmology_splice
+
+    def get_data_by_redshift(self, redshifts, tolerance=None):
+        """
+        : param redshifts: a list of redshifts.
+        : tolerance: if not None, do not return a dataset unless the redshift is within the tolerance value.
+        Get datasets for a list of redshifts.
+        """
+
+        redshifts = funcs.ensure_list(redshifts)
+        my_datasets = []
+        for redshift in redshifts:
+            self.allOutputs.sort(key=lambda obj:na.fabs(redshift - obj['redshift']))
+            if (tolerance is None or na.abs(redshift - self.allOutputs[0]['redshift']) <= tolerance) \
+                    and self.allOutputs[0] not in my_datasets:
+                my_datasets.append(self.allOutputs[0])
+            else:
+                mylog.error("No dataset added for z = %f." % redshift)
+
+        self.allOutputs.sort(key=lambda obj: obj['time'])
+        return my_datasets
+
+    def get_data_by_time(self, times, tolerance=None):
+        """
+        : param redshifts: a list of times.
+        : tolerance: if not None, do not return a dataset unless the redshift is within the tolerance value.
+        Get datasets for a list of times.
+        """
+
+        times = funcs.ensure_list(times)
+        my_datasets = []
+        for my_time in times:
+            self.allOutputs.sort(key=lambda obj:na.fabs(my_time - obj['time']))
+            if (tolerance is None or na.abs(my_time - self.allOutputs[0]['time']) <= tolerance) \
+                    and self.allOutputs[0] not in my_datasets:
+                my_datasets.append(self.allOutputs[0])
+            else:
+                mylog.error("No dataset added for z = %f." % my_time)
+
+        self.allOutputs.sort(key=lambda obj: obj['time'])
+        return my_datasets
 
     def _calculate_deltaz_max(self):
         "Calculate delta z that corresponds to full box length going from z to (z - delta z)."
