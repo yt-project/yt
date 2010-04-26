@@ -82,6 +82,15 @@ cdef QuadTreeNode *QTN_initialize(np.int64_t pos[2], int nvals,
     node.level = level
     return node
 
+cdef void QTN_free(QuadTreeNode *node):
+    cdef int i, j
+    for i in range(2):
+        for j in range(2):
+            if node.children[i][j] == NULL: continue
+            QTN_free(node.children[i][j])
+    free(node.val)
+    free(node)
+
 cdef class QuadTree:
     cdef int nvals
     cdef np.int64_t po2[80]
@@ -184,3 +193,11 @@ cdef class QuadTree:
             for j in range(2):
                 count += self.count_at_level(node.children[i][j], level)
         return count
+
+    def __dealloc__(self):
+        cdef int i, j
+        for i in range(self.top_grid_dims[0]):
+            for j in range(self.top_grid_dims[1]):
+                QTN_free(self.root_nodes[i][j])
+            free(self.root_nodes[i])
+        free(self.root_nodes)
