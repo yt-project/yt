@@ -279,8 +279,9 @@ class OutputSelector(HasTraits):
 
     def _output_changed(self, old, new):
         # We get a string here
-        self.pf = load(new)
-        self.source = projload(self.pf, self.axis, "Density")
+        import yt.mods
+        self.pf = yt.mods.load(new, data_style="enzo_packed_3d")
+        self.source = yt.mods.projload(self.pf, self.axis, "Density")
         self.main_panner.field = self.main_plot.vm_plot.field
         self.main_plot.panner = self.main_plot.vm_plot.panner = \
             self.main_plot.vm_plot.helper.panner = self.main_panner
