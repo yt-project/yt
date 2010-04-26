@@ -64,6 +64,8 @@ cdef void QTN_refine(QuadTreeNode *self):
                         npos,
                         self.nvals, self.val, self.weight_val,
                         self.level + 1)
+    for i in range(self.nvals): self.val[i] = 0.0
+    self.weight_val = 0.0
 
 cdef QuadTreeNode *QTN_initialize(np.int64_t pos[2], int nvals,
                         np.float64_t *val, np.float64_t weight_val,
@@ -76,6 +78,9 @@ cdef QuadTreeNode *QTN_initialize(np.int64_t pos[2], int nvals,
     node.nvals = nvals
     node.val = <np.float64_t *> malloc(
                 nvals * sizeof(np.float64_t))
+    for i in range(nvals):
+        node.val[i] = val[i]
+    node.weight_val = weight_val
     for i in range(2):
         for j in range(2):
             node.children[i][j] = NULL
@@ -100,13 +105,14 @@ cdef class QuadTree:
     def __cinit__(self, np.ndarray[np.int64_t, ndim=1] top_grid_dims,
                   int nvals):
         cdef int i, j
+        cdef QuadTreeNode *node
         cdef np.int64_t pos[2]
         cdef np.float64_t *vals = <np.float64_t *> alloca(
                 sizeof(np.float64_t)*nvals)
         cdef np.float64_t weight_val = 0.0
-
-        cdef QuadTreeNode *node
+        self.nvals = nvals
         for i in range(nvals): vals[i] = 0.0
+
         self.top_grid_dims[0] = top_grid_dims[0]
         self.top_grid_dims[1] = top_grid_dims[1]
 
@@ -135,12 +141,12 @@ cdef class QuadTree:
         node = self.find_on_root_level(pos, level)
         cdef np.int64_t fac
         for L in range(level):
+            if node.children[0][0] == NULL:
+                QTN_refine(node)
             # Maybe we should use bitwise operators?
             fac = self.po2[level - L - 1]
             i = (pos[0] >= fac*(2*node.pos[0]+1))
             j = (pos[1] >= fac*(2*node.pos[1]+1))
-            if node.children[i][j] is NULL:
-                QTN_refine(node)
             node = node.children[i][j]
         QTN_add_value(node, val, weight_val)
             
@@ -175,15 +181,30 @@ cdef class QuadTree:
                          np.ndarray[np.int32_t, ndim=2] cm):
         pass
 
-    def get_all_from_level(self, int level):
+    def get_all_from_level(self, int level, int count_only = 0):
         cdef int i, j
         cdef int total = 0
         vals = []
         for i in range(self.top_grid_dims[0]):
             for j in range(self.top_grid_dims[1]):
                 total += self.count_at_level(self.root_nodes[i][j], level)
+        if count_only: return total
         # Allocate our array
-        return total
+        cdef np.ndarray[np.int64_t, ndim=2] npos
+        cdef np.ndarray[np.float64_t, ndim=2] nvals
+        cdef np.ndarray[np.float64_t, ndim=1] nwvals
+        npos = np.zeros( (total, 2), dtype='int64')
+        nvals = np.zeros( (total, self.nvals), dtype='float64')
+        nwvals = np.zeros( total, dtype='float64')
+        cdef np.int64_t curpos = 0
+        cdef np.int64_t *pdata = <np.int64_t *> npos.data
+        cdef np.float64_t *vdata = <np.float64_t *> nvals.data
+        cdef np.float64_t *wdata = <np.float64_t *> nwvals.data
+        for i in range(self.top_grid_dims[0]):
+            for j in range(self.top_grid_dims[1]):
+                curpos += self.fill_from_level(self.root_nodes[i][j],
+                    level, curpos, pdata, vdata, wdata)
+        return npos, nvals, nwvals
 
     cdef int count_at_level(self, QuadTreeNode *node, int level):
         cdef int i, j
@@ -199,6 +220,29 @@ cdef class QuadTree:
             for j in range(2):
                 count += self.count_at_level(node.children[i][j], level)
         return count
+
+    cdef int fill_from_level(self, QuadTreeNode *node, int level,
+                              np.int64_t curpos,
+                              np.int64_t *pdata,
+                              np.float64_t *vdata,
+                              np.float64_t *wdata):
+        cdef int i, j
+        if node.level > level: return 0
+        if node.level == level:
+            if node.children[0][0] != NULL: return 0
+            for i in range(self.nvals):
+                vdata[self.nvals * curpos + i] = node.val[i]
+            wdata[curpos] = node.weight_val
+            pdata[curpos * 2] = node.pos[0]
+            pdata[curpos * 2 + 1] = node.pos[1]
+            return 1
+        if node.children[0][0] == NULL: return 0
+        cdef np.int64_t added = 0
+        for i in range(2):
+            for j in range(2):
+                added += self.fill_from_level(node.children[i][j],
+                        level, curpos + added, pdata, vdata, wdata)
+        return added
 
     def __dealloc__(self):
         cdef int i, j
