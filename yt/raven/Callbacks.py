@@ -366,13 +366,13 @@ class ImageLineCallback(LinePlotCallback):
         plot._axes.lines = [l for l in plot._axes.lines if id(l) not in self._ids]
         p1 = self.convert_to_pixels(plot, self.p1)
         p2 = self.convert_to_pixels(plot, self.p2)
-        print p1, p2
+        px, py = (p1[0], p2[0]), (p1[1], p2[1])
 
         # Save state
         xx0, xx1 = plot._axes.get_xlim()
         yy0, yy1 = plot._axes.get_ylim()
         plot._axes.hold(True)
-        ii = plot._axes.plot(p1, p2, **self.plot_args)
+        ii = plot._axes.plot(px, py, **self.plot_args)
         self._ids.append(id(ii[0]))
         # Reset state
         plot._axes.set_xlim(xx0,xx1)
