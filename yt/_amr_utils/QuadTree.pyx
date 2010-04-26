@@ -134,11 +134,11 @@ cdef class QuadTree:
         cdef QuadTreeNode *node
         node = self.find_on_root_level(pos, level)
         cdef np.int64_t fac
-        for L in range(1, level + 1):
+        for L in range(level):
             # Maybe we should use bitwise operators?
-            fac = self.po2[level - L]
-            i = (pos[0] > fac*(2*node.pos[0]+1))
-            j = (pos[1] > fac*(2*node.pos[1]+1))
+            fac = self.po2[level - L - 1]
+            i = (pos[0] >= fac*(2*node.pos[0]+1))
+            j = (pos[1] >= fac*(2*node.pos[1]+1))
             if node.children[i][j] is NULL:
                 QTN_refine(node)
             node = node.children[i][j]
@@ -182,11 +182,17 @@ cdef class QuadTree:
         for i in range(self.top_grid_dims[0]):
             for j in range(self.top_grid_dims[1]):
                 total += self.count_at_level(self.root_nodes[i][j], level)
+        # Allocate our array
         return total
 
     cdef int count_at_level(self, QuadTreeNode *node, int level):
         cdef int i, j
-        if node.level == level: return 1
+        # We only really return a non-zero, calculated value if we are at the
+        # level in question.
+        if node.level == level:
+            # We return 1 if there are no finer points at this level and zero
+            # if there are
+            return (node.children[0][0] == NULL)
         if node.children[0][0] == NULL: return 0
         cdef int count = 0
         for i in range(2):
