@@ -158,6 +158,9 @@ cdef class QuadTree:
         j = <np.int64_t> (pos[1] / self.po2[level])
         return self.root_nodes[i][j]
         
+    
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
     def add_array_to_tree(self, int level,
             np.ndarray[np.int64_t, ndim=1] pxs,
             np.ndarray[np.int64_t, ndim=1] pys,
@@ -181,6 +184,8 @@ cdef class QuadTree:
                          np.ndarray[np.int32_t, ndim=2] cm):
         pass
 
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
     def get_all_from_level(self, int level, int count_only = 0):
         cdef int i, j
         cdef int total = 0
@@ -227,7 +232,6 @@ cdef class QuadTree:
                               np.float64_t *vdata,
                               np.float64_t *wdata):
         cdef int i, j
-        if node.level > level: return 0
         if node.level == level:
             if node.children[0][0] != NULL: return 0
             for i in range(self.nvals):
