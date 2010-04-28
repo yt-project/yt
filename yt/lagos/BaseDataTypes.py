@@ -1336,8 +1336,11 @@ class AMRProjBase(AMR2DData):
                     args = []
                     args += self.__retval_coords[grid2.id] + [self.__retval_fields[grid2.id]]
                     args += self.__retval_coords[grid1.id] + [self.__retval_fields[grid1.id]]
-                    # Refinement factor, which is same in all directions
-                    args.append(int(grid2.dds[0] / grid1.dds[0])) 
+                    # Refinement factor, which is same in all directions.  Note
+                    # that this complicated rounding is because sometimes
+                    # epsilon differences in dds between the grids causes this
+                    # to round to up or down from the expected value.
+                    args.append(int(na.rint(grid2.dds / grid1.dds)[0]))
                     args.append(na.ones(args[0].shape, dtype='int64'))
                     kk = PointCombine.CombineGrids(*args)
                     goodI = args[-1].astype('bool')
@@ -1396,8 +1399,10 @@ class AMRProjBase(AMR2DData):
         # We now convert to half-widths and center-points
         data = {}
         data['pdx'] = dxs
-        data['px'] = (coord_data[0,:]+0.5) * data['pdx']
-        data['py'] = (coord_data[1,:]+0.5) * data['pdx']
+        ox = self.pf["DomainLeftEdge"][x_dict[self.axis]]
+        oy = self.pf["DomainLeftEdge"][y_dict[self.axis]]
+        data['px'] = (coord_data[0,:]+0.5) * data['pdx'] + ox
+        data['py'] = (coord_data[1,:]+0.5) * data['pdx'] + oy
         data['weight_field'] = coord_data[3,:].copy()
         del coord_data
         data['pdx'] *= 0.5
