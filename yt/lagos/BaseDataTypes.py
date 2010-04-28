@@ -1337,8 +1337,11 @@ class AMRProjBase(AMR2DData):
                     args = []
                     args += self.__retval_coords[grid2.id] + [self.__retval_fields[grid2.id]]
                     args += self.__retval_coords[grid1.id] + [self.__retval_fields[grid1.id]]
-                    # Refinement factor, which is same in all directions
-                    args.append(int(grid2.dds[0] / grid1.dds[0])) 
+                    # Refinement factor, which is same in all directions.  Note
+                    # that this complicated rounding is because sometimes
+                    # epsilon differences in dds between the grids causes this
+                    # to round to up or down from the expected value.
+                    args.append(int(na.rint(grid2.dds / grid1.dds)[0]))
                     args.append(na.ones(args[0].shape, dtype='int64'))
                     kk = PointCombine.CombineGrids(*args)
                     goodI = args[-1].astype('bool')
