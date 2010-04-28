@@ -114,11 +114,18 @@ class StarFormationRate(object):
         """
         fp = open(name, "w")
         if self.mode == 'data_source':
-            vol = self._data_source.volume('mpc')
+            try:
+                vol = self._data_source.volume('mpc')
+            except AttributeError:
+                # If we're here, this is probably a HOPHalo object, and we
+                # can get the volume this way.
+                ds = self._data_source.get_sphere()
+                vol = ds.volume('mpc')
         elif self.mode == 'provided':
             vol = self.volume
         tc = self._pf["Time"]
         # Use the center of the time_bin, not the left edge.
+        fp.write("#time\tlookback\tredshift\tMsol/yr\tMsol/yr/Mpc3\tMsol\tcumMsol\t\n")
         for i, time in enumerate((self.time_bins[1:] + self.time_bins[:-1])/2.):
             line = "%1.5e\t%1.5e\t%1.5e\t%1.5e\t%1.5e\t%1.5e\t%1.5e\n" % \
             (time * tc / YEAR, # Time
@@ -215,7 +222,7 @@ class SpectrumBuilder(object):
     
     def calculate_spectrum(self, data_source=None, star_mass=None,
             star_creation_time=None, star_metallicity_fraction=None,
-            star_metallicity_constant=None):
+            star_metallicity_constant=None, min_age=0.):
         """
         For the set of stars, calculate the collective spectrum.
         Attached to the output are several useful objects:
@@ -233,6 +240,8 @@ class SpectrumBuilder(object):
         metallicity fractions, in code units (which is not Z/Zsun).
         :param star_metallicity_constant (float): If desired, override the star
         metallicity fraction of all the stars to the given value.
+        :param min_age (float): Removes young stars below this number (in years
+        from the spectrum. Default: 0 (all stars).
         """
         # Initialize values
         self.final_spec = na.zeros(self.wavelength.size, dtype='float64')
@@ -240,6 +249,7 @@ class SpectrumBuilder(object):
         self.star_mass = star_mass
         self.star_creation_time = star_creation_time
         self.star_metal = star_metallicity_fraction
+        self.min_age = min_age
         
         # Check to make sure we have the right set of data.
         if data_source is None:
@@ -273,8 +283,13 @@ class SpectrumBuilder(object):
         self.star_metal /= Zsun
         # Age of star in years.
         dt = (self.time_now - self.star_creation_time * self._pf['Time']) / YEAR
+        # Remove young stars
+        sub = dt > self.min_age
+        self.star_metal = self.star_metal[sub]
+        dt = dt[sub]
+        self.star_creation_time = self.star_creation_time[sub]
         # Figure out which METALS bin the star goes into.
-        Mindex = na.digitize(dt, METALS)
+        Mindex = na.digitize(self.star_metal, METALS)
         # Replace the indices with strings.
         Mname = MtoD[Mindex]
         # Figure out which age bin this star goes into.
@@ -284,7 +299,8 @@ class SpectrumBuilder(object):
         ratio2 = (self.age[Aindex] - dt) / (self.age[Aindex] - self.age[Aindex-1])
         # Sort the stars by metallicity and then by age, which should reduce
         # memory access time by a little bit in the loop.
-        sort = na.lexsort((Aindex, Mname))
+        indexes = na.arange(self.star_metal.size)
+        sort = na.asarray([indexes[i] for i in na.lexsort([indexes, Aindex, Mname])])
         Mname = Mname[sort]
         Aindex = Aindex[sort]
         ratio1 = ratio1[sort]

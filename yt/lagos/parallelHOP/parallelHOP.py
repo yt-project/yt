@@ -256,6 +256,7 @@ class RunParallelHOP(ParallelAnalysisInterface):
         yt_counters("Picking padding data to send.")
         # Communicate the sizes to send.
         self.mine, global_send_count = self._mpi_info_dict(send_size)
+        del send_size
         # Initialize the arrays to receive data.
         yt_counters("Initalizing recv arrays.")
         recv_real_indices = {}
@@ -392,6 +393,7 @@ class RunParallelHOP(ParallelAnalysisInterface):
         # inside the real region, but within one padding of the boundary,
         # and this will do it.
         self.is_inside_annulus = na.bitwise_and(self.is_inside, inner)
+        del inner
         # Below we make a mapping of real particle index->local ID
         # Unf. this has to be a dict, because any task can have
         # particles of any particle_index, which means that if it were an
@@ -594,6 +596,10 @@ class RunParallelHOP(ParallelAnalysisInterface):
                 # All our neighbors are in the same chain already, so 
                 # we don't need to search again.
                 self.search_again[i] = False
+        try:
+            del NNtags
+        except UnboundLocalError:
+            pass
         yt_counters("preconnect kd tree search.")
         # Recursively jump links until we get to a chain whose densest
         # link is to itself. At that point we've found the densest chain
@@ -632,7 +638,9 @@ class RunParallelHOP(ParallelAnalysisInterface):
                 self.chainID[i] = map[self.chainID[i]]
         del map
         self.densest_in_chain = dic_new.copy()
+        del dic_new
         self.densest_in_chain_real_index = dicri_new.copy()
+        del dicri_new
         self.__max_memory()
         yt_counters("preconnect pregrouping.")
         mylog.info("Preconnected %d chains." % removed)
@@ -731,6 +739,7 @@ class RunParallelHOP(ParallelAnalysisInterface):
                     continue
                 self.chainID[i] = new
             del tolink, fix_map
+        del uniq
         yt_counters("global chain hand-linking.")
         yt_counters("create_global_densest_in_chain")
 
@@ -821,6 +830,7 @@ class RunParallelHOP(ParallelAnalysisInterface):
         self.global_padded_count = self._mpi_joindict(self.global_padded_count)
         # Send/receive 'em.
         self._communicate_uphill_info()
+        del self.global_padded_count
         self.__max_memory()
         # Fix the IDs to localIDs.
         for i,real_index in enumerate(self.recv_real_indices):
@@ -951,7 +961,7 @@ class RunParallelHOP(ParallelAnalysisInterface):
                     continue
         # Clean up.
         del recv_real_indices, recv_chainIDs, real_indices, chainIDs, select
-        del hooks
+        del hooks, global_annulus_count
         # We're done with this here.
         del self.rev_index
         yt_counters("communicate_annulus_chainIDs")
@@ -1027,6 +1037,10 @@ class RunParallelHOP(ParallelAnalysisInterface):
                             boundary_density
                 else:
                     continue
+        try:
+            del point, NNtags, results
+        except UnboundLocalError:
+            pass
         self.__max_memory()
         yt_counters("connect_chains")
 
@@ -1131,10 +1145,7 @@ class RunParallelHOP(ParallelAnalysisInterface):
         Set_list = []
         # We only want the holes that are modulo mine.
         keys = na.arange(groupID, dtype='int64')
-        if self._mpi_get_size() == None:
-            size = 1
-        else:
-            size = self._mpi_get_size()
+        size = self._mpi_get_size()
         select = (keys % size == self.mine)
         groupIDs = keys[select]
         mine_groupIDs = set([]) # Records only ones modulo mine.
@@ -1272,7 +1283,8 @@ class RunParallelHOP(ParallelAnalysisInterface):
             if self.densest_in_group[groupID] < max_dens:
                 self.densest_in_group[groupID] = max_dens
                 self.densest_in_group_real_index[groupID] = self.densest_in_chain_real_index[chainID]
-        del self.densest_in_chain, self.densest_in_chain_real_index
+        del self.densest_in_chain, self.densest_in_chain_real_index, self.reverse_map
+        del self.densest_in_group
         yt_counters("translate_groupIDs")
 
     def _precompute_group_info(self):
@@ -1309,6 +1321,7 @@ class RunParallelHOP(ParallelAnalysisInterface):
         # some groups are on multiple tasks, there is only one densest_in_chain
         # and only that task contributed above.
         self.max_dens_point = self._mpi_Allsum_double(max_dens_point)
+        del max_dens_point
         yt_counters("max dens point")
         # Now CoM.
         yt_counters("CoM")
@@ -1334,6 +1347,7 @@ class RunParallelHOP(ParallelAnalysisInterface):
             if ms_u.size == 1:
                 single = True
                 Tot_M = size.astype('float64') * ms_u
+                del ms_u
             else:
                 single = False
                 del ms_u
@@ -1386,8 +1400,9 @@ class RunParallelHOP(ParallelAnalysisInterface):
         yt_counters("max radius")
         yt_counters("Precomp.")
         self.__max_memory()
+        del select, loc, subchain, CoM_M, Tot_M, size, max_radius
         if calc:
-            del loc, subchain, CoM_M, Tot_M, c_vec, max_radius, select
+            del c_vec
             del sort_subchain, uniq_subchain, diff_subchain, marks, dist, sort
             del rad, com
 
@@ -1408,7 +1423,7 @@ class RunParallelHOP(ParallelAnalysisInterface):
         yt_counters("chainHOP_tags_dens")
         chainHOP_tags_dens()
         yt_counters("chainHOP_tags_dens")
-        self.density = fKD.dens
+        self.density = fKD.dens.copy()
         # Now each particle has NNtags, and a local self density.
         # Let's find densest NN
         mylog.info('Finding densest nearest neighbors...')

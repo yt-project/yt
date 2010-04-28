@@ -223,7 +223,7 @@ def getKNN(query,node, neighbors,distanceSquared,period):
     
     # if this node is close enough (the distances are calculated in the previous
     # iteration), or if the query point is inside the node, continue on
-    if (neighbors.minDistanceSquared > distanceSquared) or inside:
+    if True or inside:
         # leafs don't have children, so this tests to see if this node
         # is a leaf, and if it is a leaf, calculate distances to the query point
         if (node.leftChild is None):
