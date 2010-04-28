@@ -1400,8 +1400,10 @@ class AMRProjBase(AMR2DData):
         # We now convert to half-widths and center-points
         data = {}
         data['pdx'] = dxs
-        data['px'] = (coord_data[0,:]+0.5) * data['pdx']
-        data['py'] = (coord_data[1,:]+0.5) * data['pdx']
+        ox = self.pf["DomainLeftEdge"][x_dict[self.axis]]
+        oy = self.pf["DomainLeftEdge"][y_dict[self.axis]]
+        data['px'] = (coord_data[0,:]+0.5) * data['pdx'] + ox
+        data['py'] = (coord_data[1,:]+0.5) * data['pdx'] + oy
         data['weight_field'] = coord_data[3,:].copy()
         del coord_data
         data['pdx'] *= 0.5
