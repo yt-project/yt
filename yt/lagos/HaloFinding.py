@@ -40,7 +40,8 @@ except ImportError:
 from yt.performance_counters import yt_counters, time_function
 
 from kd import *
-import math, sys, itertools
+from yt.funcs import *
+import math, sys, itertools, gc
 from collections import defaultdict
 
 class Halo(object):
@@ -59,7 +60,7 @@ class Halo(object):
     def __init__(self, halo_list, id, indices = None, size=None, CoM=None,
         max_dens_point=None, group_total_mass=None, max_radius=None, bulk_vel=None,
         tasks=None, rms_vel=None):
-        self.halo_list = halo_list
+        self._max_dens = halo_list._max_dens
         self.id = id
         self.data = halo_list._data_source
         if indices is not None:
@@ -95,16 +96,16 @@ class Halo(object):
         """
         Return the HOP-identified maximum density.
         """
-        return self.halo_list._max_dens[self.id][0]
+        return self._max_dens[self.id][0]
 
     def maximum_density_location(self):
         """
         Return the location HOP identified as maximally dense.
         """
         return na.array([
-                self.halo_list._max_dens[self.id][1],
-                self.halo_list._max_dens[self.id][2],
-                self.halo_list._max_dens[self.id][3]])
+                self._max_dens[self.id][1],
+                self._max_dens[self.id][2],
+                self._max_dens[self.id][3]])
 
     def total_mass(self):
         """
@@ -155,7 +156,7 @@ class Halo(object):
 
     def __getitem__(self, key):
         if ytcfg.getboolean("yt","inline") == False:
-            return self.data.particles[key][self.indices]
+            return self.data[key][self.indices]
         else:
             return self.data[key][self.indices]
 
@@ -168,7 +169,7 @@ class Halo(object):
         else: center = self.maximum_density_location()
         radius = self.maximum_radius()
         # A bit of a long-reach here...
-        sphere = self.halo_list._data_source.hierarchy.sphere(
+        sphere = self.data.hierarchy.sphere(
                         center, radius=radius)
         return sphere
 
@@ -241,9 +242,9 @@ class Halo(object):
             return None
         self.bin_count = bins
         # Cosmology
-        h = self.halo_list._data_source.pf['CosmologyHubbleConstantNow']
-        Om_matter = self.halo_list._data_source.pf['CosmologyOmegaMatterNow']
-        z = self.halo_list._data_source.pf['CosmologyCurrentRedshift']
+        h = self.data.pf['CosmologyHubbleConstantNow']
+        Om_matter = self.data.pf['CosmologyOmegaMatterNow']
+        z = self.data.pf['CosmologyCurrentRedshift']
         rho_crit_now = 1.8788e-29 * h**2.0 * Om_matter # g cm^-3
         Msun2g = 1.989e33
         rho_crit = rho_crit_now * ((1.0 + z)**3.0)
@@ -252,8 +253,8 @@ class Halo(object):
         self.mass_bins = na.zeros(self.bin_count+1, dtype='float64')
         dist = na.empty(self.indices.size, dtype='float64')
         cen = self.center_of_mass()
-        period = self.halo_list._data_source.pf["DomainRightEdge"] - \
-            self.halo_list._data_source.pf["DomainLeftEdge"]
+        period = self.data.pf["DomainRightEdge"] - \
+            self.data.pf["DomainLeftEdge"]
         mark = 0
         # Find the distances to the particles. I don't like this much, but I
         # can't see a way to eliminate a loop like this, either here or in
@@ -277,7 +278,7 @@ class Halo(object):
         # Calculate the over densities in the bins.
         self.overdensity = self.mass_bins * Msun2g / \
         (4./3. * math.pi * rho_crit * \
-        (self.radial_bins * self.halo_list._data_source.pf["cm"])**3.0)
+        (self.radial_bins * self.data.pf["cm"])**3.0)
         
 
 class HOPHalo(Halo):
@@ -295,8 +296,8 @@ class parallelHOPHalo(Halo,ParallelAnalysisInterface):
         Return the HOP-identified maximum density.
         """
         if self.max_dens_point is not None:
-            return self.halo_list._max_dens[self.id][0]
-        max = self._mpi_allmax(self.halo_list._max_dens[self.id][0])
+            return self._max_dens[self.id][0]
+        max = self._mpi_allmax(self._max_dens[self.id][0])
         return max
 
     def maximum_density_location(self):
@@ -304,15 +305,15 @@ class parallelHOPHalo(Halo,ParallelAnalysisInterface):
         Return the location HOP identified as maximally dense.
         """
         if self.max_dens_point is not None:
-            return na.array([self.halo_list._max_dens[self.id][1], self.halo_list._max_dens[self.id][2],
-                self.halo_list._max_dens[self.id][3]])
+            return na.array([self._max_dens[self.id][1], self._max_dens[self.id][2],
+                self._max_dens[self.id][3]])
         # If I own the maximum density, my location is globally correct.
         max_dens = self.maximum_density()
-        if self.halo_list._max_dens[self.id][0] == max_dens:
+        if self._max_dens[self.id][0] == max_dens:
             value = na.array([
-                self.halo_list._max_dens[self.id][1],
-                self.halo_list._max_dens[self.id][2],
-                self.halo_list._max_dens[self.id][3]])
+                self._max_dens[self.id][1],
+                self._max_dens[self.id][2],
+                self._max_dens[self.id][3]])
         else:
             value = na.array([0,0,0])
         # This works, and isn't appropriate but for now will be fine...
@@ -438,7 +439,7 @@ class parallelHOPHalo(Halo,ParallelAnalysisInterface):
 
     def __getitem__(self, key):
         if ytcfg.getboolean("yt","inline") == False:
-            return self.data.particles[key][self.indices]
+            return self.data[key][self.indices]
         else:
             return self.data[key][self.indices]
 
@@ -496,14 +497,14 @@ class parallelHOPHalo(Halo,ParallelAnalysisInterface):
             return None
         # Do this for all because all will use it.
         self.bin_count = bins
-        period = self.halo_list._data_source.pf["DomainRightEdge"] - \
-            self.halo_list._data_source.pf["DomainLeftEdge"]
+        period = self.data.pf["DomainRightEdge"] - \
+            self.data.pf["DomainLeftEdge"]
         self.mass_bins = na.zeros(self.bin_count+1, dtype='float64')
         cen = self.center_of_mass()
         # Cosmology
-        h = self.halo_list._data_source.pf['CosmologyHubbleConstantNow']
-        Om_matter = self.halo_list._data_source.pf['CosmologyOmegaMatterNow']
-        z = self.halo_list._data_source.pf['CosmologyCurrentRedshift']
+        h = self.data.pf['CosmologyHubbleConstantNow']
+        Om_matter = self.data.pf['CosmologyOmegaMatterNow']
+        z = self.data.pf['CosmologyCurrentRedshift']
         rho_crit_now = 1.8788e-29 * h**2.0 * Om_matter # g cm^-3
         Msun2g = 1.989e33
         rho_crit = rho_crit_now * ((1.0 + z)**3.0)
@@ -546,7 +547,7 @@ class parallelHOPHalo(Halo,ParallelAnalysisInterface):
         # Calculate the over densities in the bins.
         self.overdensity = self.mass_bins * Msun2g / \
         (4./3. * math.pi * rho_crit * \
-        (self.radial_bins * self.halo_list._data_source.pf["cm"])**3.0)
+        (self.radial_bins * self.data.pf["cm"])**3.0)
 
 
 class FOFHalo(Halo):
@@ -599,11 +600,11 @@ class HaloList(object):
         self.particle_fields = {}
         for field in self._fields:
             if ytcfg.getboolean("yt","inline") == False:
-                tot_part = self._data_source.particles[field].size
+                tot_part = self._data_source[field].size
                 if field == "particle_index":
-                    self.particle_fields[field] = self._data_source.particles[field][ii].astype('int64')
+                    self.particle_fields[field] = self._data_source[field][ii].astype('int64')
                 else:
-                    self.particle_fields[field] = self._data_source.particles[field][ii].astype('float64')
+                    self.particle_fields[field] = self._data_source[field][ii].astype('float64')
             else:
                 tot_part = self._data_source[field].size
                 if field == "particle_index":
@@ -891,9 +892,9 @@ class parallelHOPHaloList(HaloList,ParallelAnalysisInterface):
         yt_counters("bulk vel. reading data")
         pm = self.particle_fields["ParticleMassMsun"]
         if ytcfg.getboolean("yt","inline") == False:
-            xv = self._data_source.particles["particle_velocity_x"][self._base_indices]
-            yv = self._data_source.particles["particle_velocity_y"][self._base_indices]
-            zv = self._data_source.particles["particle_velocity_z"][self._base_indices]
+            xv = self._data_source["particle_velocity_x"][self._base_indices]
+            yv = self._data_source["particle_velocity_y"][self._base_indices]
+            zv = self._data_source["particle_velocity_z"][self._base_indices]
         else:
             xv = self._data_source["particle_velocity_x"][self._base_indices]
             yv = self._data_source["particle_velocity_y"][self._base_indices]
@@ -1024,6 +1025,11 @@ class parallelHOPHaloList(HaloList,ParallelAnalysisInterface):
         # Clean up
         del self.max_dens_point, self.max_radius, self.bulk_vel
         del self.halo_taskmap, self.tags, self.rms_vel
+        del grab_indices, unique_ids, counts
+        try:
+            del group_indices
+        except UnboundLocalError:
+            pass
 
     def __len__(self):
         return self.group_count
@@ -1144,7 +1150,7 @@ class parallelHF(GenericHaloFinder, parallelHOPHaloList):
         # Adaptive subregions by bisection.
         ds_names = ["particle_position_x","particle_position_y","particle_position_z"]
         if ytcfg.getboolean("yt","inline") == False and \
-           resize and self._mpi_get_size() is not None:
+           resize and self._mpi_get_size() != 1:
             cut_list = self._partition_hierarchy_3d_bisection_list()
             for i,cut in enumerate(cut_list):
                 dim = cut[0]
@@ -1155,7 +1161,7 @@ class parallelHF(GenericHaloFinder, parallelHOPHaloList):
                     new_LE, new_RE = new_top_bounds
                     width = new_RE[dim] - new_LE[dim]
                 if ytcfg.getboolean("yt","inline") == False:
-                    data = self._data_source.particles[ds_names[dim]]
+                    data = self._data_source[ds_names[dim]]
                 else:
                     data = self._data_source[ds_names[dim]]
                 if i == 0:
@@ -1180,12 +1186,12 @@ class parallelHF(GenericHaloFinder, parallelHOPHaloList):
             del bins, counts
         # If this isn't parallel, define the region as an AMRRegionStrict so
         # particle IO works.
-        if self._mpi_get_size() == None or self._mpi_get_size() == 1:
+        if self._mpi_get_size() == 1:
             self._data_source = self.hierarchy.periodic_region_strict([0.5]*3, LE, RE)
         # get the average spacing between particles for this region
         # The except is for the serial case, where the full box is what we want.
         if ytcfg.getboolean("yt","inline") == False:
-            data = self._data_source.particles["particle_position_x"]
+            data = self._data_source["particle_position_x"]
         else:
             data = self._data_source["particle_position_x"]
         try:
@@ -1207,7 +1213,7 @@ class parallelHF(GenericHaloFinder, parallelHOPHaloList):
             LE_padding, RE_padding = na.empty(3,dtype='float64'), na.empty(3,dtype='float64')
             for dim in xrange(3):
                 if ytcfg.getboolean("yt","inline") == False:
-                    data = self._data_source.particles[ds_names[dim]]
+                    data = self._data_source[ds_names[dim]]
                 else:
                     data = self._data_source[ds_names[dim]]
                 num_bins = 1000
@@ -1243,7 +1249,7 @@ class parallelHF(GenericHaloFinder, parallelHOPHaloList):
         # Now we get the full box mass after we have the final composition of
         # subvolumes.
         if ytcfg.getboolean("yt","inline") == False:
-            total_mass = self._mpi_allsum((self._data_source.particles["ParticleMassMsun"].astype('float64')).sum())
+            total_mass = self._mpi_allsum((self._data_source["ParticleMassMsun"].astype('float64')).sum())
         else:
             total_mass = self._mpi_allsum((self._data_source["ParticleMassMsun"].astype('float64')).sum())
         if not self._distributed:
@@ -1263,9 +1269,8 @@ class parallelHF(GenericHaloFinder, parallelHOPHaloList):
         ms = -self.Tot_M.copy()
         del self.Tot_M
         Cx = self.CoM[:,0].copy()
-        indexes = na.arange(self.group_count)
-        sorted = na.asarray([indexes[i] for i in na.lexsort([indexes, Cx, ms])])
-        del indexes, Cx, ms
+        sorted = na.lexsort([Cx, ms])
+        del Cx, ms
         self._groups = self._groups[sorted]
         self._max_dens = self._max_dens[sorted]
         for i in xrange(self.group_count):
