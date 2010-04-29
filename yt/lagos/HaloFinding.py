@@ -44,6 +44,8 @@ from yt.funcs import *
 import math, sys, itertools, gc
 from collections import defaultdict
 
+TINY = 1.e-40
+
 class Halo(object):
     """
     A data source that returns particle information about the members of a
@@ -265,13 +267,14 @@ class Halo(object):
             mark += 1
         # Set up the radial bins.
         # Multiply min and max to prevent issues with digitize below.
-        self.radial_bins = na.logspace(math.log10(min(dist)*.99), 
-            math.log10(max(dist)*1.01), num=self.bin_count+1)
+        self.radial_bins = na.logspace(math.log10(min(dist)*.99 + TINY), 
+            math.log10(max(dist)*1.01 + 2*TINY), num=self.bin_count+1)
         # Find out which bin each particle goes into, and add the particle
         # mass to that bin.
         inds = na.digitize(dist, self.radial_bins) - 1
-        for index in na.unique(inds):
-            self.mass_bins[index] += sum(self["ParticleMassMsun"][inds==index])
+        if self["particle_position_x"].size > 1:
+            for index in na.unique(inds):
+                self.mass_bins[index] += sum(self["ParticleMassMsun"][inds==index])
         # Now forward sum the masses in the bins.
         for i in xrange(self.bin_count):
             self.mass_bins[i+1] += self.mass_bins[i]
@@ -531,9 +534,9 @@ class parallelHOPHalo(Halo,ParallelAnalysisInterface):
         dist_max = self._mpi_allmax(dist_max)
         # Set up the radial bins.
         # Multiply min and max to prevent issues with digitize below.
-        self.radial_bins = na.logspace(math.log10(dist_min*.99), 
-            math.log10(dist_max*1.01), num=self.bin_count+1)
-        if self.indices is not None:
+        self.radial_bins = na.logspace(math.log10(dist_min*.99 + TINY), 
+            math.log10(dist_max*1.01 + 2*TINY), num=self.bin_count+1)
+        if self.indices is not None and self.indices.size > 1:
             # Find out which bin each particle goes into, and add the particle
             # mass to that bin.
             inds = na.digitize(dist, self.radial_bins) - 1
