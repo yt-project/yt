@@ -295,3 +295,10 @@ class OutputSelector(HasTraits):
     @cached_property
     def _get_main_panner(self):
         return self.pf.h.image_panner(self.source, (512, 512), "Density")
+
+def pan_and_scan_directory(dir_name):
+    import glob, os
+    fns = [ fn[:-10] for fn in
+            glob.glob(os.path.join(dir_name, "**", "*.hierarchy")) ]
+    selector = OutputSelector(outputs = fns)
+    return selector

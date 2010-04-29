@@ -23,4 +23,4 @@ License:
 
 from vm_panner import VariableMeshPanner, WindowedVariableMeshPanner, \
                 MultipleWindowVariableMeshPanner, ImageSaver, \
-                PanningCeleritasStreamer
+                PanningCeleritasStreamer, NonLocalDataImagePanner

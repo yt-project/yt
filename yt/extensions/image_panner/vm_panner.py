@@ -63,6 +63,7 @@ class VariableMeshPanner(object):
 
     @property
     def bounds(self):
+        if not hasattr(self, 'pf'): self.pf = self.source.pf
         DLE, DRE = self.pf["DomainLeftEdge"], self.pf["DomainRightEdge"]
         ax = self.source.axis
         xax, yax = x_dict[ax], y_dict[ax]
@@ -300,7 +301,6 @@ class WindowedVariableMeshPannerProxy(object):
             new_dict = {}
             new_dict.update(d)
             for f in _wrapped_methods:
-                print "Constructing proxy for", f
                 new_dict[f] = return_proxy(f)
             return type.__new__(cls, name, b, new_dict)
 
@@ -340,6 +340,64 @@ class WindowedVariableMeshPannerProxy(object):
                          self.engine_id)
         self.mec.execute("%s.callback(%s.buffer)" % (
             self._var_name, self._var_name), self.engine_id)
+
+class ProxySource(object):
+    # This proxies only the things we know we need
+    # Note that we assume we will only have a single engine.
+    def __init__(self, mec, idnum, source_varname):
+        self.mec = mec
+        self.idnum = idnum
+        self.source_varname = source_varname
+        self.mec.execute("_tmp_%s = %s.axis" % (
+            self.idnum, self.source_varname))
+        self.axis = self.mec.pull("_tmp_%s" % self.idnum)[0]
+
+    def keys(self):
+        self.mec.execute("_tmp_%s = %s.keys()" % (
+            self.idnum, self.source_varname))
+        keys = self.mec.pull("_tmp_%s" % self.idnum)[0]
+        dd = dict( (k, None) for k in keys )
+        return dd
+
+    @property
+    def pf(self):
+        self.mec.execute("_tmp_%s = %s.pf['DomainLeftEdge']" % (
+            self.idnum, self.source_varname))
+        DLE = self.mec.pull("_tmp_%s" % self.idnum)[0]
+        self.mec.execute("_tmp_%s = %s.pf['DomainRightEdge']" % (
+            self.idnum, self.source_varname))
+        DRE = self.mec.pull("_tmp_%s" % self.idnum)[0]
+        return dict(DomainLeftEdge = DLE, DomainRightEdge = DRE)
+
+class ProxyFixedResolutionBuffer(dict):
+    pass
+
+class NonLocalDataImagePanner(VariableMeshPanner):
+    def __init__(self, mec, source_varname, size, field,
+                 callback = None, viewport_callback = None):
+        self.source_varname = source_varname
+        self._var_name = "_image_panner_%s" % (id(self))
+        self.mec = mec
+        self.mec.execute("import yt.extensions.image_panner")
+        self.mec.execute("%s = yt.extensions.image_panner.VariableMeshPanner(" % (
+                        self._var_name) +
+                          "%s, (%s, %s), '%s')" % (
+                        source_varname, size[0], size[1], field))
+
+        ps = ProxySource(mec, id(self), source_varname)
+        self._prfb = ProxyFixedResolutionBuffer()
+
+        VariableMeshPanner.__init__(self, ps, size, field,
+                        callback, viewport_callback)
+
+    def _regenerate_buffer(self):
+        args = (self.xlim, self.ylim)
+        self.mec.push({'_tmp_%s' % id(self) : args})
+        self.mec.execute("%s.set_limits(*_tmp_%s)" % (self._var_name, id(self)))
+        self.mec.execute("_tmp_%s = %s.buffer" % (id(self), self._var_name))
+        self._prfb[self.field] = self.mec.pull("_tmp_%s" % (id(self)))[0]
+        self._prfb.bounds = self.xlim + self.ylim
+        self._buffer = self._prfb
 
 class ImageSaver(object):
     def __init__(self, tile_id):
