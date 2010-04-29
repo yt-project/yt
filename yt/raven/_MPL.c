@@ -178,7 +178,7 @@ static PyObject* Py_Pixelize(PyObject *obj, PyObject *args) {
             if (overlap1 < 0.0 || overlap2 < 0.0) continue;
             if (antialias == 1)
               *(npy_float64*) PyArray_GETPTR2(my_array, j, i) +=
-                    (dsp*overlap1)*overlap2);
+                    (dsp*overlap1)*overlap2;
             else *(npy_float64*) PyArray_GETPTR2(my_array, j, i) = dsp;
           }
         }
