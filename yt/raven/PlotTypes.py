@@ -197,8 +197,8 @@ class RavenPlot(object):
                 self.colorbar.locator = matplotlib.ticker.FixedLocator(ticks)
                 self.colorbar.formatter = matplotlib.ticker.FixedFormatter(["%0.2e" % (x) for x in ticks])
             elif minmaxtick:
-                if not self.log_field: 
-                    ticks = na.array(self.colorbar._ticker()[0],dtype='float')
+                if self.log_field: 
+                    ticks = na.array(self.colorbar._ticker()[1],dtype='float')
                     ticks = [zmin] + ticks.tolist() + [zmax]
                     self.colorbar.locator = matplotlib.ticker.FixedLocator(ticks)
                     self.colorbar.formatter = matplotlib.ticker.FixedFormatter(["%0.2e" % (x) for x in ticks])

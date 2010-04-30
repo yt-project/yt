@@ -308,8 +308,7 @@ class parallelHOPHalo(Halo,ParallelAnalysisInterface):
         Return the location HOP identified as maximally dense.
         """
         if self.max_dens_point is not None:
-            return na.array([self._max_dens[self.id][1], self._max_dens[self.id][2],
-                self._max_dens[self.id][3]])
+            return self.max_dens_point[1:]
         # If I own the maximum density, my location is globally correct.
         max_dens = self.maximum_density()
         if self._max_dens[self.id][0] == max_dens:
@@ -1110,6 +1109,8 @@ class GenericHaloFinder(HaloList, ParallelAnalysisInterface):
                 sorted_max_dens[i] = self._max_dens[halo.id]
             halo.id = i
         self._max_dens = sorted_max_dens
+        for i, halo in enumerate(self._groups):
+            halo._max_dens = self._max_dens
         
     def _reposition_particles(self, bounds):
         # This only does periodicity.  We do NOT want to deal with anything
