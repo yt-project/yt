@@ -791,7 +791,7 @@ class MergerTreeDotOutput(DatabaseFunctions, lagos.ParallelAnalysisInterface):
             self.cursor.execute(line, value)
             result = self.cursor.fetchone()
             self.nodes[halo] = Node(na.array([result[2],result[3],result[4]]),
-                result[1], [], result[0], 1. - float(result[5])/maxID)
+                result[1], [], result[0], 1. - float(result[5])/(maxID+1)) #+1 to prevent /0
             self.levels[result[0]].append(halo)
 
     def _open_dot(self, dotfile):
