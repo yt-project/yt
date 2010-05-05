@@ -156,7 +156,7 @@ class VolumeRendering(ParallelAnalysisInterface):
                     while( self.my_storage*len(self.fields)*8 >= self.memory_per_process*self.memory_factor ):
                         self.my_storage -= len(self.fields)*8*na.prod(self.current_saved_grids[0].ActiveDimensions)
                         del self.current_saved_grids[0]
-                        del self.curren_vcds[0]
+                        del self.current_vcds[0]
                 
                 data = [d[node.li[0]:node.ri[0]+1,
                           node.li[1]:node.ri[1]+1,

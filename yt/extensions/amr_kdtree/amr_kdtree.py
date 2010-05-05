@@ -1,3 +1,29 @@
+"""
+AMR kD-Tree Framework
+
+Authors: Samuel Skillman <samskillman@gmail.com>
+         Wil St. Charles <fallen751@gmail.com>
+Affiliation: University of Colorado at Boulder
+Homepage: http://yt.enzotools.org/
+License:
+  Copyright (C) 2009 Samuel Skillman.  All Rights Reserved.
+
+  This file is part of yt.
+
+  yt is free software; you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation; either version 3 of the License, or
+  (at your option) any later version.
+
+  This program is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details.
+
+  You should have received a copy of the GNU General Public License
+  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+"""
+
 import numpy as np
 from copy import * 
 from yt.mods import *
@@ -19,7 +45,6 @@ class AMRKDTree(object):
         print 'Making kd tree from le ', self.domain_left_edge, 'to ', self.domain_right_edge
 
         self.root_grids = pf.hierarchy.get_levels().next()
-
         self.leaf_count = 0
         self.current_parent = -1
         self.dim = 0
@@ -55,13 +80,15 @@ class AMRKDTree(object):
             self.split_pos = split_pos
             self.left_children = left_children
             self.right_children = right_children
-            
+            self.cost = 0.0
+
     def count_cost(self,node):
         if isinstance(node,AMRKDTree.leafnode):
             return node.cost
         else:
-            return self.count_cost(node.left_children) + self.count_cost(node.right_children)
-
+            node.cost = self.count_cost(node.left_children) + self.count_cost(node.right_children)
+            return node.cost
+        
     def __build(self, grids, parent, l_corner, r_corner):
         if len(grids) == 0:
             self.leaf_count += 1
