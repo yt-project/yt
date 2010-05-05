@@ -841,6 +841,36 @@ class ParallelAnalysisInterface(object):
             raise RunTimeError("Fatal error. Exiting.")
         return None
 
+    def _binary_tree_reduce(self, arr, root = 0):
+        myrank = self._mpi_get_rank()
+        nprocs = self._mpi_get_size()
+        depth = 0
+        procs_with_images = range(0,nprocs,2**depth)
+        
+        while(len(procs_with_images) > 1):
+            if not myrank in procs_with_images:
+                break
+            # Even - receive then composite
+            if procs_with_images.index(myrank)%2 == 0:
+                arr2 = _recv_array(myrank+2**depth, tag=myrank+2**depth).reshape(
+                    (arr.shape[0],arr.shape[1],arr.shape[2]))
+
+                for i in range(3):
+                    # This is the new way: alpha corresponds to opacity of a given
+                    # slice.  Previously it was ill-defined, but represented some
+                    # measure of emissivity.
+                    ta = (1.0 - arr2[:,:,i+3])
+                    ta[ta<0.0] = 0.0 
+                    arr[:,:,i  ] = arr2[:,:,i  ] + ta * arr[:,:,i  ]
+                    arr[:,:,i+3] = arr2[:,:,i+3] + ta * arr[:,:,i+3]
+                    del ta
+            # Odd - send
+            else:
+                _send_array(arr.ravel(), myrank-2**depth, tag=myrank)
+            depth += 1
+            procs_with_images = range(0,nprocs,2**depth) 
+        return arr
+
     @parallel_passthrough
     def _mpi_catrgb(self, data):
         self._barrier()

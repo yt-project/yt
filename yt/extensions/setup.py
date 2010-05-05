@@ -9,5 +9,6 @@ def configuration(parent_package='',top_path=None):
     config.add_subpackage("lightcone")
     config.add_subpackage("volume_rendering")
     config.add_subpackage("kdtree")
+    config.add_subpackage("amr_kdtree")
     config.add_subpackage("image_panner")
     return config

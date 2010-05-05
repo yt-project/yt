@@ -28,6 +28,10 @@ import h5py
 from yt.extensions.volume_rendering import *
 from yt.funcs import *
 from yt.lagos import data_object_registry, ParallelAnalysisInterface
+from yt.extensions.amr_kdtree import *
+from yt.lagos.ParallelTools import *
+import time
+from copy import deepcopy
 
 # We're going to register this class, but it does not directly inherit from
 # AMRData.
@@ -37,7 +41,8 @@ class VolumeRendering(ParallelAnalysisInterface):
                  resolution, transfer_function,
                  fields = None, whole_box = False,
                  sub_samples = 5, north_vector = None,
-                 pf = None):
+                 pf = None, kd=False, l_max = None, kd_tree=None,
+                 memory_factor=0.5, le=None, re=None):
         # Now we replicate some of the 'cutting plane' logic
         if not iterable(resolution):
             resolution = (resolution, resolution)
@@ -50,6 +55,19 @@ class VolumeRendering(ParallelAnalysisInterface):
         if fields is None: fields = ["Density"]
         self.fields = fields
         self.transfer_function = transfer_function
+        self.pf = pf
+        self.l_max = l_max
+        self.total_cells = 0
+        self.total_cost = 0
+        self.time_in_vertex = 0.0
+        self.current_saved_grids = []
+        self.current_vcds = []
+        self.memory_per_process = 0.0
+        self.my_total = 0
+        self.my_storage = 0.
+        self.memory_factor = memory_factor
+        self.le = le
+        self.re = re
 
         # Now we set up our  various vectors
         normal_vector /= na.sqrt( na.dot(normal_vector, normal_vector))
@@ -58,6 +76,8 @@ class VolumeRendering(ParallelAnalysisInterface):
             t = na.cross(normal_vector, vecs).sum(axis=1)
             ax = t.argmax()
             north_vector = na.cross(vecs[ax,:], normal_vector).ravel()
+        else:
+            north_vector = north_vector - na.dot(north_vector,normal_vector)*normal_vector
         north_vector /= na.sqrt(na.dot(north_vector, north_vector))
         east_vector = -na.cross(north_vector, normal_vector).ravel()
         east_vector /= na.sqrt(na.dot(east_vector, east_vector))
@@ -72,8 +92,23 @@ class VolumeRendering(ParallelAnalysisInterface):
         self.back_center = center - 0.5*width[0]*self.unit_vectors[2]
         self.front_center = center + 0.5*width[0]*self.unit_vectors[2]
 
-        self._initialize_source()
+        if kd: self._kd_initialize_source(l_max=self.l_max, kd_tree=kd_tree)
+        else: self._initialize_source()
+
         self._construct_vector_array()
+
+    def _kd_initialize_source(self,l_max=None, kd_tree=None):
+        self._kd_brick_tree = None
+        if self.pf is not None:
+            if kd_tree is None:
+                self._kd_brick_tree = AMRKDTree(self.pf,L_MAX=l_max, le=self.le, re=self.re)
+            else:
+                self._kd_brick_tree = kd_tree
+        self.total_cost = self._kd_brick_tree.total_cost
+        source = self.pf.hierarchy.inclined_box(self.origin, self.box_vectors)
+        self.source = source
+        self._base_source = source
+        self.res_fac = (1.0,1.0)
 
     def _initialize_source(self):
         check, source, rf = self._partition_hierarchy_2d_inclined(
@@ -91,6 +126,79 @@ class VolumeRendering(ParallelAnalysisInterface):
         # _distributed can't be overridden in that case.
         self._brick_collection = HomogenizedBrickCollection(self.source)
 
+    def cast_tree(self,tfp, node,viewpoint,pbar=None,up_every=10000):
+        if isinstance(node,AMRKDTree.leafnode):
+            my_rank = self._mpi_get_rank()
+            nprocs = self._mpi_get_size()
+            if ((self.total_cells >= 1.0*my_rank*self.total_cost/nprocs) and
+                (self.total_cells < 1.0*(my_rank+1)*self.total_cost/nprocs)):
+                #node_time = time.time()
+                if node.grid in self.current_saved_grids:
+                    dd = self.current_vcds[self.current_saved_grids.index(node.grid)]
+                else:
+                    #print 'Casting leaf %d, grid %s' % (node.leaf_id, node.grid)
+                    t1 = time.time()
+                    dd = node.grid.get_vertex_centered_data('Density',smoothed=False)
+                    #dd = node.grid['Density'].astype('float64')
+                    self.time_in_vertex += time.time()-t1
+                    self.current_saved_grids.append(node.grid)
+                    self.current_vcds.append(dd)
+                    self.my_storage += na.prod(node.grid.ActiveDimensions)*len(self.fields)*8
+                    
+                    while( self.my_storage*len(self.fields)*8 >= self.memory_per_process*self.memory_factor ):
+                        self.my_storage -= len(self.fields)*8*na.prod(self.current_saved_grids[0].ActiveDimensions)
+                        del self.current_saved_grids[0]
+                        del self.curren_vcds[0]
+                
+#                 dd = node.grid['Density'][node.li[0]:node.ri[0]+1,
+#                                           node.li[1]:node.ri[1]+1,
+#                                           node.li[2]:node.ri[2]+1].astype('float64')
+
+                data = np.array([dd[node.li[0]:node.ri[0]+1,
+                                    node.li[1]:node.ri[1]+1,
+                                    node.li[2]:node.ri[2]+1]])
+#                data = np.array([dd])
+                data = np.log10(data)
+                b = PartitionedGrid(node.grid.id, 1, data,
+                                    node.leaf_l_corner.copy(), 
+                                    node.leaf_r_corner.copy(), 
+                                    node.dims.astype('int64'))
+                b.cast_plane(tfp, self.vector_plane)
+                #if my_rank == 0:
+                #    print '[%04i] node_level: %d node_cost: %e node_time: %e'%(my_rank, node.grid.Level, node.cost, time.time()-node_time)
+                del data, b
+                self.my_total += node.cost
+            self.total_cells += node.cost
+            if pbar is not None:
+                pbar.update(self.total_cells)
+        else:
+            if viewpoint[node.split_ax] <= node.split_pos:
+                self.cast_tree(tfp,node.right_children,viewpoint,pbar=pbar)
+                self.cast_tree(tfp,node.left_children,viewpoint,pbar=pbar)
+            else:
+                self.cast_tree(tfp,node.left_children,viewpoint,pbar=pbar)
+                self.cast_tree(tfp,node.right_children,viewpoint,pbar=pbar)
+
+    def kd_ray_cast(self, finalize=False, pbar=None,up_every=100, memory_per_process=2**28):
+        self.memory_per_process = memory_per_process
+        if self._kd_brick_tree is None: 
+            print 'No KD Tree Exists'
+            return
+        tfp = TransferFunctionProxy(self.transfer_function)
+        tfp.ns = self.sub_samples
+        self.total_cells = 0
+        pbar = get_pbar("Ray casting ", self._kd_brick_tree.total_cost)
+        rt1 = time.time()
+        self.cast_tree(tfp,self._kd_brick_tree.tree,self.front_center,
+                       pbar=pbar, up_every=up_every)
+        pbar.finish()
+        my_rank = self._mpi_get_rank()
+        print '[%04d] I am done with my rendering after %e seconds' % (my_rank, time.time()-rt1) 
+        del self.current_saved_grids[:], self.current_vcds[:]
+        im = self._binary_tree_reduce(self.image)
+        self.image = im
+        print 'Done in kd_ray_cast' 
+        
     def ray_cast(self, finalize=True):
         if self.bricks is None: self.partition_grids()
         # Now we order our bricks
