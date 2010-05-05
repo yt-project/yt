@@ -68,6 +68,11 @@ class VolumeRendering(ParallelAnalysisInterface):
         self.memory_factor = memory_factor
         self.le = le
         self.re = re
+        self.log_field=[]
+        for field in self.fields:
+            self.log_field.append(field in self.pf.field_info and 
+                                  self.pf.field_info[field].take_log)
+
 
         # Now we set up our  various vectors
         normal_vector /= na.sqrt( na.dot(normal_vector, normal_vector))
@@ -134,15 +139,18 @@ class VolumeRendering(ParallelAnalysisInterface):
                 (self.total_cells < 1.0*(my_rank+1)*self.total_cost/nprocs)):
                 #node_time = time.time()
                 if node.grid in self.current_saved_grids:
-                    dd = self.current_vcds[self.current_saved_grids.index(node.grid)]
+                    dds = self.current_vcds[self.current_saved_grids.index(node.grid)]
                 else:
                     #print 'Casting leaf %d, grid %s' % (node.leaf_id, node.grid)
                     t1 = time.time()
-                    dd = node.grid.get_vertex_centered_data('Density',smoothed=False)
-                    #dd = node.grid['Density'].astype('float64')
+                    dds = []
+                    for i,field in enumerate(self.fields):
+                        vcd = node.grid.get_vertex_centered_data(field).astype('float64')
+                        if self.log_field[i]: vcd = na.log10(vcd)
+                        dds.append(vcd)
                     self.time_in_vertex += time.time()-t1
                     self.current_saved_grids.append(node.grid)
-                    self.current_vcds.append(dd)
+                    self.current_vcds.append(dds)
                     self.my_storage += na.prod(node.grid.ActiveDimensions)*len(self.fields)*8
                     
                     while( self.my_storage*len(self.fields)*8 >= self.memory_per_process*self.memory_factor ):
@@ -150,16 +158,11 @@ class VolumeRendering(ParallelAnalysisInterface):
                         del self.current_saved_grids[0]
                         del self.curren_vcds[0]
                 
-#                 dd = node.grid['Density'][node.li[0]:node.ri[0]+1,
-#                                           node.li[1]:node.ri[1]+1,
-#                                           node.li[2]:node.ri[2]+1].astype('float64')
+                data = [d[node.li[0]:node.ri[0]+1,
+                          node.li[1]:node.ri[1]+1,
+                          node.li[2]:node.ri[2]+1].copy() for d in dds]
 
-                data = np.array([dd[node.li[0]:node.ri[0]+1,
-                                    node.li[1]:node.ri[1]+1,
-                                    node.li[2]:node.ri[2]+1]])
-#                data = np.array([dd])
-                data = np.log10(data)
-                b = PartitionedGrid(node.grid.id, 1, data,
+                b = PartitionedGrid(node.grid.id, len(self.fields), data,
                                     node.leaf_l_corner.copy(), 
                                     node.leaf_r_corner.copy(), 
                                     node.dims.astype('int64'))
