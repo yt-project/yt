@@ -240,6 +240,12 @@ class VolumeRendering(ParallelAnalysisInterface):
             new_costs.insert(expensive_tree,leaf_cost)
         return new_trees, new_costs
 
+    def clean_owners(self,node):
+        node.owner = -1
+        if isinstance(node, AMRKDTree.dividing_node):
+            self.clean_owners(node.left_children)
+            self.clean_owners(node.right_children)
+        
     def kd_breadth_ray_cast(self, finalize=False, pbar=None,up_every=100, memory_per_process=2**28):
         self.memory_per_process = memory_per_process
         if self._kd_brick_tree is None: 
@@ -252,6 +258,7 @@ class VolumeRendering(ParallelAnalysisInterface):
 
         my_rank = self._mpi_get_rank()
         nprocs = self._mpi_get_size()
+        self.clean_owners(self._kd_brick_tree.tree)
         rt1 = time.time()
         trees = [self._kd_brick_tree.tree]
         costs = [self._kd_brick_tree.tree.cost]
