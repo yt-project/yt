@@ -72,6 +72,7 @@ class AMRKDTree(object):
             self.cost = (np.prod(self.dims)/4.**self.grid.Level).astype('int64')
             # Here is the old way
             # self.cost = np.prod(self.dims).astype('int64')
+            self.owner = -1
             del dds, gle, gre
             
     class dividing_node(node):
@@ -81,6 +82,7 @@ class AMRKDTree(object):
             self.left_children = left_children
             self.right_children = right_children
             self.cost = 0.0
+            self.owner = -1
 
     def count_cost(self,node):
         if isinstance(node,AMRKDTree.leafnode):
@@ -88,7 +90,7 @@ class AMRKDTree(object):
         else:
             node.cost = self.count_cost(node.left_children) + self.count_cost(node.right_children)
             return node.cost
-        
+
     def __build(self, grids, parent, l_corner, r_corner):
         if len(grids) == 0:
             self.leaf_count += 1

@@ -30,6 +30,7 @@ from yt.funcs import *
 from yt.lagos import data_object_registry, ParallelAnalysisInterface
 from yt.extensions.amr_kdtree import *
 from yt.lagos.ParallelTools import *
+import yt.lagos.ParallelTools as PT
 import time
 from copy import deepcopy
 
@@ -131,12 +132,12 @@ class VolumeRendering(ParallelAnalysisInterface):
         # _distributed can't be overridden in that case.
         self._brick_collection = HomogenizedBrickCollection(self.source)
 
-    def cast_tree(self,tfp, node,viewpoint,pbar=None,up_every=10000):
+    def cast_tree(self,tfp, node,viewpoint,pbar=None,up_every=10000,cast_all=False):
         if isinstance(node,AMRKDTree.leafnode):
             my_rank = self._mpi_get_rank()
             nprocs = self._mpi_get_size()
-            if ((self.total_cells >= 1.0*my_rank*self.total_cost/nprocs) and
-                (self.total_cells < 1.0*(my_rank+1)*self.total_cost/nprocs)):
+            if (((self.total_cells >= 1.0*my_rank*self.total_cost/nprocs) and
+                 (self.total_cells < 1.0*(my_rank+1)*self.total_cost/nprocs)) or cast_all):
                 #node_time = time.time()
                 if node.grid in self.current_saved_grids:
                     dds = self.current_vcds[self.current_saved_grids.index(node.grid)]
@@ -176,12 +177,103 @@ class VolumeRendering(ParallelAnalysisInterface):
                 pbar.update(self.total_cells)
         else:
             if viewpoint[node.split_ax] <= node.split_pos:
-                self.cast_tree(tfp,node.right_children,viewpoint,pbar=pbar)
-                self.cast_tree(tfp,node.left_children,viewpoint,pbar=pbar)
+                self.cast_tree(tfp,node.right_children,viewpoint,pbar=pbar, cast_all=cast_all)
+                self.cast_tree(tfp,node.left_children,viewpoint,pbar=pbar, cast_all=cast_all)
             else:
-                self.cast_tree(tfp,node.left_children,viewpoint,pbar=pbar)
-                self.cast_tree(tfp,node.right_children,viewpoint,pbar=pbar)
+                self.cast_tree(tfp,node.left_children,viewpoint,pbar=pbar, cast_all=cast_all)
+                self.cast_tree(tfp,node.right_children,viewpoint,pbar=pbar, cast_all=cast_all)
 
+    def reduce_tree(self,node, viewpoint):
+        my_rank = self._mpi_get_rank()
+        if node.owner == my_rank:
+            return
+        if viewpoint[node.split_ax] <= node.split_pos:
+            # Stuff on the right is further away than left, reduce left on top of right.
+            front = node.left_children
+            back = node.right_children
+        else:
+            # Stuff on the right is closer than left, reduce right on top of left.
+            front = node.right_children
+            back = node.left_children
+
+        # reduce the children first
+        if back.owner == -1:
+            self.reduce_tree(back, viewpoint)
+        if front.owner == -1:
+            self.reduce_tree(front,viewpoint)
+
+        # Send the images around
+        if front.owner == my_rank:
+            PT._send_array(self.image.ravel(), back.owner, tag=my_rank)
+        if back.owner == my_rank:
+            arr2 = PT._recv_array(front.owner, tag=front.owner).reshape(
+                (self.image.shape[0],self.image.shape[1],self.image.shape[2]))
+            for i in range(3):
+                # This is the new way: alpha corresponds to opacity of a given
+                # slice.  Previously it was ill-defined, but represented some
+                # measure of emissivity.
+                ta = (1.0 - arr2[:,:,i+3])
+                ta[ta<0.0] = 0.0 
+                self.image[:,:,i  ] = arr2[:,:,i  ] + ta * self.image[:,:,i  ]
+                self.image[:,:,i+3] = arr2[:,:,i+3] + ta * self.image[:,:,i+3]
+        # Set parent owner to back owner
+        node.owner = back.owner
+        return
+
+    def split_tree(self,trees, costs, n_trees):
+        if len(trees) == n_trees:
+            return trees, costs
+        expensive_tree = np.argmax(costs)
+        if isinstance(trees[expensive_tree], AMRKDTree.dividing_node):
+            to_split = trees.pop(expensive_tree)
+            del costs[expensive_tree]
+            trees.append(to_split.left_children)
+            costs.append(to_split.left_children.cost)
+            trees.append(to_split.right_children)
+            costs.append(to_split.right_children.cost)
+            new_trees, new_costs = self.split_tree(trees, costs, n_trees)
+        else:
+            expensive_leaf = trees.pop(expensive_tree)
+            leaf_cost = costs.pop(expensive_tree)
+            new_trees, new_costs = self.split_tree(trees, costs, n_trees-1)
+            new_trees.insert(expensive_tree,expensive_leaf)
+            new_costs.insert(expensive_tree,leaf_cost)
+        return new_trees, new_costs
+
+    def kd_breadth_ray_cast(self, finalize=False, pbar=None,up_every=100, memory_per_process=2**28):
+        self.memory_per_process = memory_per_process
+        if self._kd_brick_tree is None: 
+            print 'No KD Tree Exists'
+            return
+        tfp = TransferFunctionProxy(self.transfer_function)
+        tfp.ns = self.sub_samples
+        self.total_cells = 0
+        pbar = get_pbar("Ray casting ", self._kd_brick_tree.total_cost)
+
+        my_rank = self._mpi_get_rank()
+        nprocs = self._mpi_get_size()
+        rt1 = time.time()
+        trees = [self._kd_brick_tree.tree]
+        costs = [self._kd_brick_tree.tree.cost]
+        new_trees, new_costs = self.split_tree(trees,costs,nprocs)
+        for i,tree in enumerate(new_trees):
+            tree.owner = i
+            if my_rank == tree.owner:
+                print 'myrank %d is casting'%my_rank, tree
+                self.cast_tree(tfp,tree,self.front_center,
+                               pbar=pbar, up_every=up_every,cast_all=True)
+        pbar.finish()
+        print '[%04d] I am done with my rendering after %e seconds' % (my_rank, time.time()-rt1) 
+        self.reduce_tree(self._kd_brick_tree.tree,self.front_center)
+        final_owner = self._kd_brick_tree.tree.owner
+        if final_owner != 0:
+            if final_owner == my_rank:
+                PT._send_array(self.image.ravel(), 0, tag=final_owner)
+            if my_rank == 0:
+                self.image = PT._recv_array(final_owner, tag=final_owner).reshape(
+                    (self.image.shape[0],self.image.shape[1],self.image.shape[2]))
+        print 'Done in kd_ray_cast' 
+        
     def kd_ray_cast(self, finalize=False, pbar=None,up_every=100, memory_per_process=2**28):
         self.memory_per_process = memory_per_process
         if self._kd_brick_tree is None: 
