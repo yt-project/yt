@@ -392,9 +392,11 @@ class NonLocalDataImagePanner(VariableMeshPanner):
 
     def _regenerate_buffer(self):
         args = (self.xlim, self.ylim)
-        self.mec.push({'_tmp_%s' % id(self) : args})
-        self.mec.execute("%s.set_limits(*_tmp_%s)" % (self._var_name, id(self)))
-        self.mec.execute("_tmp_%s = %s.buffer" % (id(self), self._var_name))
+        self.mec.push({'_tmp_%s' % id(self) : args}, block=False)
+        self.mec.execute("%s.set_limits(*_tmp_%s)" % (self._var_name, id(self)),
+                         block=False)
+        self.mec.execute("_tmp_%s = %s.buffer" % (id(self), self._var_name),
+                         block=False)
         self._prfb[self.field] = self.mec.pull("_tmp_%s" % (id(self)))[0]
         self._prfb.bounds = self.xlim + self.ylim
         self._buffer = self._prfb

@@ -1,8 +1,6 @@
 #!/usr/bin/env python
 import setuptools
-import os, sys, os.path
-
-import os.path
+import os, sys
 
 def check_for_hdf5():
     # First up: HDF5_DIR in environment

@@ -52,6 +52,34 @@ if not hasattr(DataRange2D, "_subranges_updated"):
     print
     raise RuntimeError
 
+# We like the algae colormap; for now we re-implement it here.
+
+from enthought.chaco.api import \
+    ColorMapper, \
+    color_map_functions, color_map_dict, color_map_name_dict
+
+def algae(range, **traits):
+    _data = {'red':   ((0.0, 80/256., 80/256.),
+                       (0.2, 0.0, 0.0),
+                       (0.4, 0.0, 0.0),
+                       (0.6, 256/256., 256/256.),
+                       (0.95, 256/256., 256/256.),
+                       (1.0, 150/256., 150/256.)),
+             'green': ((0.0, 0/256., 0/256.),
+                       (0.2, 0/256., 0/256.),
+                       (0.4, 130/256., 130/256.),
+                       (0.6, 256/256., 256/256.),
+                       (1.0, 0.0, 0.0)),
+             'blue':  ((0.0, 80/256., 80/256.),
+                       (0.2, 220/256., 220/256.),
+                       (0.4, 0.0, 0.0),
+                       (0.6, 20/256., 20/256.),
+                       (1.0, 0.0, 0.0))}
+    return ColorMapper.from_segment_map(_data, range=range, **traits)
+color_map_functions.append(algae)
+color_map_dict[algae] = "algae"
+color_map_name_dict["algae"] = algae
+
 class FunctionImageData(ImageData):
     # The function to call with the low and high values of the range.
     # It should return an array of values.
@@ -144,7 +172,7 @@ class VMImagePlot(HasTraits):
 
         pd.set_data("imagedata", self.fid)
 
-        img_plot = plot.img_plot("imagedata", colormap=jet,
+        img_plot = plot.img_plot("imagedata", colormap=algae,
                                  interpolation='nearest',
                                  xbounds=(0.0, 1.0),
                                  ybounds=(0.0, 1.0))[0]
