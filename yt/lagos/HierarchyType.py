@@ -1285,20 +1285,16 @@ class ChomboHierarchy(AMRHierarchy):
             boxes = f[lev]['boxes'].value
             dx = f[lev].attrs['dx']
             for level_id, box in enumerate(boxes):
-                self.grids.append(self.grid(len(self.grids),self,level=level_number))
+                si = na.array([box['lo_%s' % ax] for ax in 'ijk'])
+                ei = na.array([box['hi_%s' % ax] for ax in 'ijk'])
+                pg = self.grid(len(self.grids),self,level=level_number,
+                               start = si, stop = ei)
+                self.grids.append(pg)
                 self.grids[-1]._level_id = level_id
-                self.grid_left_edge[i] = dx*na.array([box['lo_i'],
-                                                      box['lo_j'],
-                                                      box['lo_k']],
-                                                     dtype=self.float_type)
-                self.grid_right_edge[i] = dx*(na.array([box['hi_i'],
-                                                        box['hi_j'],
-                                                        box['hi_k']],
-                                                       dtype=self.float_type) + 1)
+                self.grid_left_edge[i] = dx*si.astype(self.float_type)
+                self.grid_right_edge[i] = dx*(ei.astype(self.float_type) + 1)
                 self.grid_particle_count[i] = 0
-                self.grid_dimensions[i] = na.array([box['hi_i']-box['lo_i'],
-                                                    box['hi_j']-box['lo_j'],
-                                                    box['hi_k']-box['lo_k']]) + 1
+                self.grid_dimensions[i] = ei - si + 1
                 i += 1
         self.grids = na.array(self.grids, dtype='object')
 
