@@ -128,7 +128,7 @@ class AMRKDTree(object):
 
         less_ids = np.nonzero(l_data[:,best_dim] < split)
         greater_ids = np.nonzero(split < r_data[:,best_dim])
-        return AMRKDTree.dividing_node(d, split, 
+        return AMRKDTree.dividing_node(best_dim, split, 
                                        self.__build(grids[less_ids], parent,
                                                     l_corner, self.__corner_bounds(best_dim, split, current_right=r_corner)),
                                        self.__build(grids[greater_ids], parent,
