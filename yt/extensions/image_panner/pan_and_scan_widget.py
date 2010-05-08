@@ -28,8 +28,10 @@ from numpy import linspace, meshgrid, pi, sin, mgrid, zeros
 # Enthought library imports
 from enthought.enable.api import Component, ComponentEditor, Window
 from enthought.traits.api import HasTraits, Instance, Button, Any, Callable, \
-        on_trait_change, Bool, DelegatesTo, List, Enum
-from enthought.traits.ui.api import Item, Group, View
+        on_trait_change, Bool, DelegatesTo, List, Enum, Int, Property, Str, \
+        cached_property
+from enthought.traits.ui.api import \
+        Group, View, Item, VGroup, InstanceEditor
 
 # Chaco imports
 from enthought.chaco.api import ArrayPlotData, jet, Plot, HPlotContainer, \
@@ -49,6 +51,34 @@ if not hasattr(DataRange2D, "_subranges_updated"):
     print '        self.updated = True'
     print
     raise RuntimeError
+
+# We like the algae colormap; for now we re-implement it here.
+
+from enthought.chaco.api import \
+    ColorMapper, \
+    color_map_functions, color_map_dict, color_map_name_dict
+
+def algae(range, **traits):
+    _data = {'red':   ((0.0, 80/256., 80/256.),
+                       (0.2, 0.0, 0.0),
+                       (0.4, 0.0, 0.0),
+                       (0.6, 256/256., 256/256.),
+                       (0.95, 256/256., 256/256.),
+                       (1.0, 150/256., 150/256.)),
+             'green': ((0.0, 0/256., 0/256.),
+                       (0.2, 0/256., 0/256.),
+                       (0.4, 130/256., 130/256.),
+                       (0.6, 256/256., 256/256.),
+                       (1.0, 0.0, 0.0)),
+             'blue':  ((0.0, 80/256., 80/256.),
+                       (0.2, 220/256., 220/256.),
+                       (0.4, 0.0, 0.0),
+                       (0.6, 20/256., 20/256.),
+                       (1.0, 0.0, 0.0))}
+    return ColorMapper.from_segment_map(_data, range=range, **traits)
+color_map_functions.append(algae)
+color_map_dict[algae] = "algae"
+color_map_name_dict["algae"] = algae
 
 class FunctionImageData(ImageData):
     # The function to call with the low and high values of the range.
@@ -142,7 +172,7 @@ class VMImagePlot(HasTraits):
 
         pd.set_data("imagedata", self.fid)
 
-        img_plot = plot.img_plot("imagedata", colormap=jet,
+        img_plot = plot.img_plot("imagedata", colormap=algae,
                                  interpolation='nearest',
                                  xbounds=(0.0, 1.0),
                                  ybounds=(0.0, 1.0))[0]
@@ -249,3 +279,54 @@ class VariableMeshPannerView(HasTraits):
         self.full_container.add(self.colorbar)
         self.full_container.add(self.container)
         self.container.add(self.vm_plot.plot)
+
+class OutputSelector(HasTraits):
+    outputs = List
+    main_plot = Instance(VariableMeshPannerView)
+    main_panner = Property(depends_on = "pf")
+    weight_field = Str("Density")
+
+    pf = Any
+    source = Any
+    axis = Int(0)
+
+    traits_view = View(VGroup(
+                        Item('output'),
+                        Item('main_plot'),
+                        )
+                      )
+
+    def __init__(self, **kwargs):
+        super(OutputSelector, self).__init__(**kwargs)
+        self.add_trait("output", Enum(*self.outputs))
+        self.output = self.outputs[-1]
+        self.main_plot
+
+    def _output_default(self):
+        return self.outputs[0]
+
+    def _output_changed(self, old, new):
+        # We get a string here
+        import yt.mods
+        self.pf = yt.mods.load(new, data_style="enzo_packed_3d")
+        self.source = yt.mods.projload(self.pf, self.axis, "Density")
+        self.main_panner.field = self.main_plot.vm_plot.field
+        self.main_plot.panner = self.main_plot.vm_plot.panner = \
+            self.main_plot.vm_plot.helper.panner = self.main_panner
+        self.main_plot.vm_plot.field = self.main_panner.field
+
+    def _main_plot_default(self):
+        vmpv = VariableMeshPannerView(panner = self.main_panner)
+        vmpv.vm_plot.helper.run_callbacks = True
+        return vmpv
+
+    @cached_property
+    def _get_main_panner(self):
+        return self.pf.h.image_panner(self.source, (512, 512), "Density")
+
+def pan_and_scan_directory(dir_name):
+    import glob, os
+    fns = [ fn[:-10] for fn in
+            glob.glob(os.path.join(dir_name, "**", "*.hierarchy")) ]
+    selector = OutputSelector(outputs = fns)
+    return selector

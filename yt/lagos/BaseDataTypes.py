@@ -1336,8 +1336,11 @@ class AMRProjBase(AMR2DData):
                     args = []
                     args += self.__retval_coords[grid2.id] + [self.__retval_fields[grid2.id]]
                     args += self.__retval_coords[grid1.id] + [self.__retval_fields[grid1.id]]
-                    # Refinement factor, which is same in all directions
-                    args.append(int(grid2.dds[0] / grid1.dds[0])) 
+                    # Refinement factor, which is same in all directions.  Note
+                    # that this complicated rounding is because sometimes
+                    # epsilon differences in dds between the grids causes this
+                    # to round to up or down from the expected value.
+                    args.append(int(na.rint(grid2.dds / grid1.dds)[0]))
                     args.append(na.ones(args[0].shape, dtype='int64'))
                     kk = PointCombine.CombineGrids(*args)
                     goodI = args[-1].astype('bool')
@@ -1396,8 +1399,10 @@ class AMRProjBase(AMR2DData):
         # We now convert to half-widths and center-points
         data = {}
         data['pdx'] = dxs
-        data['px'] = (coord_data[0,:]+0.5) * data['pdx']
-        data['py'] = (coord_data[1,:]+0.5) * data['pdx']
+        ox = self.pf["DomainLeftEdge"][x_dict[self.axis]]
+        oy = self.pf["DomainLeftEdge"][y_dict[self.axis]]
+        data['px'] = (coord_data[0,:]+0.5) * data['pdx'] + ox
+        data['py'] = (coord_data[1,:]+0.5) * data['pdx'] + oy
         data['weight_field'] = coord_data[3,:].copy()
         del coord_data
         data['pdx'] *= 0.5
@@ -1416,16 +1421,27 @@ class AMRProjBase(AMR2DData):
         pass
 
     def _project_grid(self, grid, fields, zero_out):
+        # We split this next bit into two sections to try to limit the IO load
+        # on the system.  This way, we perserve grid state (@restore_grid_state
+        # in _get_data_from_grid *and* we attempt not to load weight data
+        # independently of the standard field data.
         if self._weight is None:
             weight_data = na.ones(grid.ActiveDimensions, dtype='float64')
+            if zero_out: weight_data[grid.child_indices] = 0
+            masked_data = [fd.astype('float64') * weight_data
+                           for fd in self._get_data_from_grid(grid, fields)]
         else:
-            weight_data = self._get_data_from_grid(grid, self._weight).astype('float64')
-        if zero_out: weight_data[grid.child_indices] = 0
+            fields_to_get = list(set(fields + [self._weight]))
+            field_data = dict(zip(
+                fields_to_get, self._get_data_from_grid(grid, fields_to_get)))
+            weight_data = field_data[self._weight].copy().astype('float64')
+            if zero_out: weight_data[grid.child_indices] = 0
+            masked_data  = [field_data[field].copy().astype('float64') * weight_data
+                                for field in fields]
+            del field_data
         # if we zero it out here, then we only have to zero out the weight!
-        masked_data = [self._get_data_from_grid(grid, field) * weight_data
-                       for field in fields]
-        full_proj = [self.func(field,axis=self.axis) for field in masked_data]
-        weight_proj = self.func(weight_data,axis=self.axis)
+        full_proj = [self.func(field, axis=self.axis) for field in masked_data]
+        weight_proj = self.func(weight_data, axis=self.axis)
         if (self._check_region and not self.source._is_fully_enclosed(grid)) or self._field_cuts is not None:
             used_data = self._get_points_in_region(grid).astype('bool')
             used_points = na.where(na.logical_or.reduce(used_data, self.axis))
@@ -1458,12 +1474,13 @@ class AMRProjBase(AMR2DData):
         return point_mask
 
     @restore_grid_state
-    def _get_data_from_grid(self, grid, field):
+    def _get_data_from_grid(self, grid, fields):
+        fields = ensure_list(fields)
         if self._check_region:
             bad_points = self._get_points_in_region(grid)
         else:
             bad_points = 1.0
-        return grid[field] * bad_points
+        return [grid[field] * bad_points for field in fields]
 
     def _gen_node_name(self):
         return  "%s/%s" % \

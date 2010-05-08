@@ -86,7 +86,7 @@ add_field("Metallicity", units=r"Z_{\rm{\odot}}",
           projection_conversion="1")
 
 def _Metallicity3(field, data):
-    return data["SN_Colour"]
+    return data["SN_Colour"]/data["Density"]
 add_field("Metallicity3", units=r"Z_{\rm{\odot}}",
           function=_Metallicity3,
           convert_function=_ConvertMetallicity,

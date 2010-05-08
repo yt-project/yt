@@ -29,7 +29,7 @@ from yt.performance_counters import yt_counters, time_function
 try:
     from yt.extensions.kdtree import *
 except ImportError:
-    mylog.info("The Fortran kD-Tree did not import correctly. The structure function generator will not work correctly.")
+    mylog.debug("The Fortran kD-Tree did not import correctly. The structure function generator will not work correctly.")
 
 import math, sys, itertools, inspect, types, time
 from collections import defaultdict
@@ -63,6 +63,10 @@ class StructFcnGen(ParallelAnalysisInterface):
         number of ruler lengths, ruler min/max, number of structure functions,
         number of point pairs per ruler length). Default: 0.
         """
+        try:
+            fKD
+        except NameError:
+            raise ImportError("You need to install the Forthon kD-Tree")
         self._fsets = []
         self.fields = fields
         # MPI stuff.

@@ -68,7 +68,7 @@ else:
     color_maps = matplotlib.cm._cmapnames + raven_colormaps.keys()
 default_cmap = ytcfg.get("raven", "colormap")
 if default_cmap != "jet":
-    mylog.info("Setting default colormap to %s", default_cmap)
+    mylog.debug("Setting default colormap to %s", default_cmap)
     matplotlib.rc('image', cmap=default_cmap)
 
 from PlotCollection import *
