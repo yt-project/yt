@@ -589,6 +589,10 @@ class MergerTree(DatabaseFunctions, lagos.ParallelAnalysisInterface):
         if self.mine == 0:
             to_write = []
             # Open the temporary database.
+            try:
+                os.remove(temp_name)
+            except OSError:
+                pass
             temp_conn = sql.connect(temp_name)
             temp_cursor = temp_conn.cursor()
             line = "CREATE TABLE Halos (GlobalHaloID INTEGER PRIMARY KEY,\
