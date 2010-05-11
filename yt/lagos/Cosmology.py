@@ -116,6 +116,12 @@ class Cosmology(object):
     def InverseExpansionFactor(self,z):
         return 1 / self.ExpansionFactor(z)
 
+    def PathLengthFunction(self,z):
+        return ((1 + z)**2) * self.InverseExpansionFactor(z)
+
+    def PathLength(self, z_i, z_f):
+        return romberg(self.PathLengthFunction, z_i, z_f)
+
 def sqr(x):
     return (x**2.0)
 
