@@ -1248,8 +1248,6 @@ class parallelHF(GenericHaloFinder, parallelHOPHaloList):
         # Read in a random subset of the points in each domain, and then
         # collect them on the root task.
         xp = self._data_source["particle_position_x"]
-        yp = self._data_source["particle_position_y"]
-        zp = self._data_source["particle_position_z"]
         n_parts = self._mpi_allsum(xp.size)
         local_parts = xp.size
         random_points = int(self.sample * n_parts)
@@ -1263,8 +1261,13 @@ class parallelHF(GenericHaloFinder, parallelHOPHaloList):
         uni = na.array(random.sample(xrange(xp.size), n_random))
         uni = uni[uni.argsort()]
         my_points[:,0] = xp[uni]
-        my_points[:,1] = yp[uni]
-        my_points[:,2] = zp[uni]
+        del xp
+        self._data_source.clear_data()
+        my_points[:,1] = self._data_source["particle_position_y"][uni]
+        self._data_source.clear_data()
+        my_points[:,2] = self._data_source["particle_position_z"][uni]
+        self._data_source.clear_data()
+        del uni
         # Collect them on the root task.
         mine, sizes = self._mpi_info_dict(n_random)
         if mine == 0:
@@ -1275,6 +1278,7 @@ class parallelHF(GenericHaloFinder, parallelHOPHaloList):
             root_points = na.empty([])
         my_points.shape = (1, n_random*3)
         root_points = self._mpi_concatenate_array_on_root_double(my_points[0])
+        del my_points
         if mine == 0:
             root_points.shape = (tot_random, 3)
         return root_points
