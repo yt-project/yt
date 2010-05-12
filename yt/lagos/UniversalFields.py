@@ -478,10 +478,7 @@ add_field("DivV", function=_DivV,
 def _AbsDivV(field, data):
     return na.abs(data['DivV'])
 add_field("AbsDivV", function=_AbsDivV,
-            validators=[ValidateSpatial(1,
-            ["x-velocity","y-velocity","z-velocity"])],
-          units=r"\rm{s}^{-1}",
-          convert_function=_convertDivV)
+          units=r"\rm{s}^{-1}")
 
 def _Contours(field, data):
     return na.ones(data["Density"].shape)*-1
