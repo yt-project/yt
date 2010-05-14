@@ -32,6 +32,92 @@ from yt.amr_utils import PartitionedGrid, ProtoPrism, GridFace, \
 from yt.lagos import ParallelAnalysisInterface, only_on_root, parallel_root_only
 from yt.parallel_tools import DistributedObjectCollection
 
+# HISTORICAL NOTE OF SOME IMPORT:
+#   The homogenized brick class should and will be removed.  The more general,
+#   and less fancy-parallel, HomogenizedVolume is the way to go.  The HBC is a
+#   complicated mechanism that was designed for back when we were going to be
+#   passing bricks all around between processors.
+
+class HomogenizedVolume(ParallelAnalysisInterface):
+    bricks = None
+    def __init__(self, fields = "Density", source = None, pf = None,
+                 log_fields = None):
+        # Typically, initialized as hanging off a hierarchy.  But, not always.
+        if pf is not None: self.pf = pf
+        if source is None: source = self.pf.h.all_data()
+        self.source = source
+        self.fields = ensure_list(fields)
+        if log_fields is not None:
+            log_fields = ensure_list(log_fields)
+        else:
+            log_fields = [self.pf.field_info[field].take_log
+                         for field in self.fields]
+        self.log_fields = log_fields
+
+    def traverse(self, back_point, front_point):
+        if self.bricks is None: self.initialize_source()
+        vec = front_point - back_point
+        dist = na.minimum(
+             na.sum((self.brick_left_edges - back_point) * vec, axis=1),
+             na.sum((self.brick_right_edges - back_point) * vec, axis=1))
+        ind = na.argsort(dist)
+        for b in self.bricks[ind]: yield b
+
+    def _partition_grid(self, grid):
+
+        # This is not super efficient, as it re-fills the regions once for each
+        # field.
+        vcds = []
+        for field, log_field in zip(self.fields, self.log_fields):
+            vcd = grid.get_vertex_centered_data(field).astype('float64')
+            if log_field: vcd = na.log10(vcd)
+            vcds.append(vcd)
+
+        GF = GridFaces(grid.Children + [grid])
+        PP = ProtoPrism(grid.id, grid.LeftEdge, grid.RightEdge, GF)
+
+        pgs = []
+        for P in PP.sweep(0):
+            sl = P.get_brick(grid.LeftEdge, grid.dds, grid.child_mask)
+            if len(sl) == 0: continue
+            dd = [d[sl[0][0]:sl[0][1]+1,
+                    sl[1][0]:sl[1][1]+1,
+                    sl[2][0]:sl[2][1]+1].copy() for d in vcds]
+            pgs.append(PartitionedGrid(grid.id, len(self.fields), dd,
+                        P.LeftEdge, P.RightEdge, sl[-1]))
+        return pgs
+
+    def initialize_source(self, source = None):
+        if self.bricks is not None and source is not None:
+            raise NotImplementedError("Sorry, dynamic shuffling of bricks is" + 
+                                      " not yet supported")
+        if self.bricks is not None and source is None: return
+        bricks = []
+        self._preload(self.source._grids, self.fields, self.pf.h.io)
+        pbar = get_pbar("Partitioning ", len(self.source._grids))
+        for i, g in enumerate(self.source._grids):
+            pbar.update(i)
+            bricks += self._partition_grid(g)
+        pbar.finish()
+        bricks = na.array(bricks, dtype='object')
+        NB = len(bricks)
+        # Now we set up our (local for now) hierarchy.  Note that to calculate
+        # intersection, we only need to do the left edge & right edge.
+        #
+        # We're going to double up a little bit here in memory.
+        self.brick_left_edges = na.zeros( (NB, 3), dtype='float64')
+        self.brick_right_edges = na.zeros( (NB, 3), dtype='float64')
+        self.brick_parents = na.zeros( NB, dtype='int64')
+        self.brick_dimensions = na.zeros( (NB, 3), dtype='int64')
+        for i,b in enumerate(bricks):
+            self.brick_left_edges[i,:] = b.LeftEdge
+            self.brick_right_edges[i,:] = b.RightEdge
+            self.brick_parents[i] = b.parent_grid_id
+            self.brick_dimensions[i,:] = b.my_data[0].shape
+        # Vertex-centered means we subtract one from the shape
+        self.brick_dimensions -= 1
+        self.bricks = na.array(bricks, dtype='object')
+
 class HomogenizedBrickCollection(DistributedObjectCollection):
     def __init__(self, source):
         # The idea here is that we have two sources -- the global_domain
