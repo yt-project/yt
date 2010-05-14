@@ -97,8 +97,8 @@ class Camera(object):
         bounds = (px.min(), px.max(), py.min(), py.max())
         vector_plane = au.VectorPlane(vectors, self.box_vectors[2],
                                       self.back_center, bounds, image,
-                                      self.unit_vectors[1],
-                                      self.unit_vectors[0])
+                                      self.unit_vectors[0],
+                                      self.unit_vectors[1])
         return vector_plane
 
     def snapshot(self):
