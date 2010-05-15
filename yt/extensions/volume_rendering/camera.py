@@ -145,14 +145,14 @@ class StereoPairCamera(Camera):
         c = oc.center
         wx = oc.width[0]
         wy = oc.width[1]
-        left_center = c + uv[0] * 0.5*self.relative_separation * wx 
-        right_center = c - uv[0] * 0.5*self.relative_separation * wx
+        left_center = c + uv[1] * 0.5*self.relative_separation * wx 
+        right_center = c - uv[1] * 0.5*self.relative_separation * wx
         left_camera = Camera(left_center, uv[2], oc.width,
-                             oc.resolution, oc.transfer_function, uv[1],
+                             oc.resolution, oc.transfer_function, uv[0],
                              oc.volume, oc.fields, oc.log_fields,
                              oc.sub_samples, oc.pf)
         right_camera = Camera(right_center, uv[2], oc.width,
-                             oc.resolution, oc.transfer_function, uv[1],
+                             oc.resolution, oc.transfer_function, uv[0],
                              oc.volume, oc.fields, oc.log_fields,
                              oc.sub_samples, oc.pf)
         return (left_camera, right_camera)
