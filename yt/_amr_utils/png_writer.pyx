@@ -157,7 +157,6 @@ def add_points_to_image(
     cdef int ys = buffer.shape[1]
     cdef int v 
     v = iclip(<int>(pv * 255), 0, 255)
-    print "VALUE CONTRIBUTION", v
     for pi in range(np):
         j = <int> (xs * px[pi])
         i = <int> (ys * py[pi])

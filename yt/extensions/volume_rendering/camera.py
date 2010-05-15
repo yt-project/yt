@@ -117,3 +117,14 @@ class Camera(object):
             pbar.update(total_cells)
         pbar.finish()
         return image
+
+    def zoom(self, factor):
+        self.width = [w / factor for w in self.width]
+        self._setup_normalized_vectors(
+                self.unit_vectors[2], self.unit_vectors[0])
+
+    def zoomin(self, final, n_steps):
+        f = final**(1.0/n_steps)
+        for i in xrange(n_steps):
+            self.zoom(f)
+            yield self.snapshot()
