@@ -51,6 +51,7 @@ class Camera(object):
             transfer_function = ProjectionTransferFunction()
         self.transfer_function = transfer_function
         self._setup_normalized_vectors(normal_vector, north_vector)
+        self.log_fields = log_fields
         if volume is None:
             volume = HomogenizedVolume(fields, pf = self.pf,
                                        log_fields = log_fields)
@@ -78,6 +79,10 @@ class Camera(object):
         self.back_center = self.center - 0.5*self.width[0]*self.unit_vectors[2]
         self.front_center = self.center + 0.5*self.width[0]*self.unit_vectors[2]
         self.inv_mat = na.linalg.pinv(self.unit_vectors)
+
+    def look_at(self, new_center, north_vector = None):
+        normal_vector = self.front_center - new_center
+        self._setup_normalized_vectors(normal_vector, north_vector)
 
     def get_vector_plane(self, image):
         # We should move away from pre-generation of vectors like this and into
@@ -128,3 +133,26 @@ class Camera(object):
         for i in xrange(n_steps):
             self.zoom(f)
             yield self.snapshot()
+
+class StereoPairCamera(Camera):
+    def __init__(self, original_camera, relative_separation):
+        self.original_camera = original_camera
+        self.relative_separation = relative_separation
+
+    def split(self):
+        oc = self.original_camera
+        uv = oc.unit_vectors
+        c = oc.center
+        wx = oc.width[0]
+        wy = oc.width[1]
+        left_center = c + uv[0] * 0.5*self.relative_separation * wx 
+        right_center = c - uv[0] * 0.5*self.relative_separation * wx
+        left_camera = Camera(left_center, uv[2], oc.width,
+                             oc.resolution, oc.transfer_function, uv[1],
+                             oc.volume, oc.fields, oc.log_fields,
+                             oc.sub_samples, oc.pf)
+        right_camera = Camera(right_center, uv[2], oc.width,
+                             oc.resolution, oc.transfer_function, uv[1],
+                             oc.volume, oc.fields, oc.log_fields,
+                             oc.sub_samples, oc.pf)
+        return (left_camera, right_camera)
