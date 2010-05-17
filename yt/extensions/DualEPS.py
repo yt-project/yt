@@ -395,9 +395,12 @@ class DualEPS:
             proj = "Proj" in plot._type_name and \
                    plot.data._weight is None
             _zlabel = plot.pf.field_info[plot.axis_names["Z"]].get_label(proj)
+            print _zlabel
+            _zlabel = _zlabel.replace("_","\;")
+            print _zlabel
             _zlog = plot.log_field
         else:
-            _zlabel = plot._z_label
+            _zlabel = plot._z_label.replace("_","\;")
             _zlog = plot._log_z
         _zrange = (plot.norm.vmin, plot.norm.vmax)
         self.colorbar(_cmap, zrange=_zrange, label=_zlabel, log=_zlog, **kwargs)
