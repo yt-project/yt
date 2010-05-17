@@ -734,7 +734,7 @@ class CoordAxesCallback(PlotCallback):
         dx = (plot.xlim[1] - plot.xlim[0])/nx
         dy = (plot.ylim[1] - plot.ylim[0])/ny
 
-        unit_conversion = plot.data.hierarchy[plot.im["Unit"]]
+        unit_conversion = plot.pf[plot.im["Unit"]]
         aspect = (plot.xlim[1]-plot.xlim[0])/(plot.ylim[1]-plot.ylim[0])
 
         print "aspect ratio = ", aspect
