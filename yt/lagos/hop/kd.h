@@ -91,9 +91,9 @@ typedef struct kdContext {
 	KDN *kdNodes;
 	int uSecond;
 	int uMicro;
-    PyArrayObject *np_densities;
-    PyArrayObject *np_pos[3];
-    PyArrayObject *np_masses;
+    npy_float64 *np_densities;
+    npy_float64 *np_pos[3];
+    npy_float64 *np_masses;
     float totalmass;
 	} * KD;
 

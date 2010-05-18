@@ -41,7 +41,7 @@ from yt.performance_counters import yt_counters, time_function
 
 from kd import *
 from yt.funcs import *
-import math, sys, itertools, gc
+import math, sys, itertools, gc, random
 from collections import defaultdict
 
 TINY = 1.e-40
@@ -299,7 +299,7 @@ class parallelHOPHalo(Halo,ParallelAnalysisInterface):
         Return the HOP-identified maximum density.
         """
         if self.max_dens_point is not None:
-            return self._max_dens[self.id][0]
+            return self.max_dens_point[0]
         max = self._mpi_allmax(self._max_dens[self.id][0])
         return max
 
