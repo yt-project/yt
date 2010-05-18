@@ -299,7 +299,7 @@ class parallelHOPHalo(Halo,ParallelAnalysisInterface):
         Return the HOP-identified maximum density.
         """
         if self.max_dens_point is not None:
-            return self._max_dens[self.id][0]
+            return self.max_dens_point[0]
         max = self._mpi_allmax(self._max_dens[self.id][0])
         return max
 
