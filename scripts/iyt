@@ -19,9 +19,16 @@ except:
     sys.exit()
 
 if "DISPLAY" in os.environ:
+    from matplotlib import rcParams
+    ipbackends = dict(Qt4 = IPython.Shell.IPShellMatplotlibQt4,
+                      WX  = IPython.Shell.IPShellMatplotlibWX,
+                      GTK = IPython.Shell.IPShellMatplotlibGTK,
+                      Qt  = IPython.Shell.IPShellMatplotlibQt)
+    bend = (rcParams["backend"]).rstrip('Agg')
+
     try:
-        ip_shell = IPython.Shell.IPShellMatplotlibWX(user_ns=namespace)
-    except ImportError:
+        ip_shell = ipbackends[bend](user_ns=namespace)
+    except KeyError:
         ip_shell = IPython.Shell.IPShellMatplotlib(user_ns=namespace)
 else:
     ip_shell = IPython.Shell.IPShellMatplotlib(user_ns=namespace)
