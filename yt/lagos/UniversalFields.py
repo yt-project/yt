@@ -466,14 +466,19 @@ def _DivV(field, data):
     f -= data["z-velocity"][1:-1,1:-1,sl_left ]/ds
     new_field = na.zeros(data["x-velocity"].shape, dtype='float64')
     new_field[1:-1,1:-1,1:-1] = f
-    return na.abs(new_field)
+    return new_field
 def _convertDivV(data):
     return data.convert("cm")**-1.0
 add_field("DivV", function=_DivV,
             validators=[ValidateSpatial(1,
             ["x-velocity","y-velocity","z-velocity"])],
-          units=r"\rm{s}^{-1}",
+          units=r"\rm{s}^{-1}", take_log=False,
           convert_function=_convertDivV)
+
+def _AbsDivV(field, data):
+    return na.abs(data['DivV'])
+add_field("AbsDivV", function=_AbsDivV,
+          units=r"\rm{s}^{-1}")
 
 def _Contours(field, data):
     return na.ones(data["Density"].shape)*-1
