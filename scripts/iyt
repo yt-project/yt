@@ -25,7 +25,7 @@ if "DISPLAY" in os.environ:
                       GTK = IPython.Shell.IPShellMatplotlibGTK,
                       Qt  = IPython.Shell.IPShellMatplotlibQt)
     bend = (rcParams["backend"]).rstrip('Agg')
-    
+
     try:
         ip_shell = ipbackends[bend](user_ns=namespace)
     except KeyError:

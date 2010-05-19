@@ -142,17 +142,16 @@ class StereoPairCamera(Camera):
     def split(self):
         oc = self.original_camera
         uv = oc.unit_vectors
-        c = oc.back_center
+        c = oc.center
+        fc = oc.front_center
         wx, wy, wz = oc.width
-        left_center = c + uv[1] * 0.5*self.relative_separation * wx \
-                        + uv[2] * 0.5*wz
-        right_center = c - uv[1] * 0.5*self.relative_separation * wx \
-                        + uv[2] * 0.5*wz
-        left_camera = Camera(left_center, uv[2], oc.width,
+        left_normal = fc + uv[1] * 0.5*self.relative_separation * wx - c
+        right_normal = fc - uv[1] * 0.5*self.relative_separation * wx - c
+        left_camera = Camera(c, left_normal, oc.width,
                              oc.resolution, oc.transfer_function, uv[0],
                              oc.volume, oc.fields, oc.log_fields,
                              oc.sub_samples, oc.pf)
-        right_camera = Camera(right_center, uv[2], oc.width,
+        right_camera = Camera(c, right_normal, oc.width,
                              oc.resolution, oc.transfer_function, uv[0],
                              oc.volume, oc.fields, oc.log_fields,
                              oc.sub_samples, oc.pf)
