@@ -135,7 +135,7 @@ class Camera(object):
             yield self.snapshot()
 
 class StereoPairCamera(Camera):
-    def __init__(self, original_camera, relative_separation):
+    def __init__(self, original_camera, relative_separation = 0.005):
         self.original_camera = original_camera
         self.relative_separation = relative_separation
 
