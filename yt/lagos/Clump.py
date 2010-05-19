@@ -195,9 +195,9 @@ def get_lowest_clumps(clump, clump_list=None):
     "Return a list of all clumps at the bottom of the hierarchy."
 
     if clump_list is None: clump_list = []
-    if ((clump.children is None) or (len(clump.children) == 0)):
+    if clump.children is None or len(clump.children) == 0:
         clump_list.append(clump)
-    if ((clump.children is not None) and (len(clump.children) > 0)):
+    if clump.children is not None and len(clump.children) > 0:
         for child in clump.children:
             get_lowest_clumps(child, clump_list=clump_list)
 
