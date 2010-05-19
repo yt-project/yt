@@ -25,23 +25,26 @@ from yt.funcs import *
 import _colormap_data as cmd
 import yt.amr_utils as au
 
-def write_image(image, filename, color_bounds = None, cmap = "algae"):
+def write_image(image, filename, color_bounds = None, cmap_name = "algae"):
     if color_bounds is None:
         mi = na.nanmin(image[~na.isinf(image)])
         ma = na.nanmax(image[~na.isinf(image)])
         color_bounds = mi, ma
     image = (image - color_bounds[0])/(color_bounds[1] - color_bounds[0])
-    if cmap not in cmd.color_map_luts:
-        print "Your color map was not found in the extracted colormap file."
-        raise KeyError(cmap)
-    lut = cmd.color_map_luts[cmap]
-    x = na.mgrid[0.0:1.0:lut[0].shape[0]*1j]
-    shape = image.shape
-    to_plot = na.dstack(
-            [(na.interp(image, x, v)*255) for v in lut ]).astype("uint8")
-    to_plot = to_plot.copy()
+    to_plot = map_to_colors(image, cmap_name)
     au.write_png(to_plot, filename)
     return to_plot
+
+def map_to_colors(buff, cmap_name):
+    if cmap_name not in cmd.color_map_luts:
+        print "Your color map was not found in the extracted colormap file."
+        raise KeyError(cmap_name)
+    lut = cmd.color_map_luts[cmap_name]
+    x = na.mgrid[0.0:1.0:lut[0].shape[0]*1j]
+    shape = buff.shape
+    mapped = na.dstack(
+            [(na.interp(buff, x, v)*255) for v in lut ]).astype("uint8")
+    return mapped.copy("C")
 
 def strip_colormap_data(fn = "color_map_data.py",
             cmaps = ("jet", "algae", "hot", "gist_stern")):
