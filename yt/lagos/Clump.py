@@ -191,6 +191,18 @@ def find_clumps(clump, min_val, max_val, d_clump):
             print "%d of %d children survived, erasing children." % (len(these_children),len(clump.children))
             clump.children = []
 
+def get_lowest_clumps(clump, clump_list=None):
+    "Return a list of all clumps at the bottom of the hierarchy."
+
+    if clump_list is None: clump_list = []
+    if clump.children is None or len(clump.children) == 0:
+        clump_list.append(clump)
+    if clump.children is not None and len(clump.children) > 0:
+        for child in clump.children:
+            get_lowest_clumps(child, clump_list=clump_list)
+
+    return clump_list
+
 def write_clump_hierarchy(clump,level,f_ptr):
     for q in range(level):
         f_ptr.write("\t")

@@ -26,6 +26,7 @@ import sys
 import OpenGL.GL as GL
 import OpenGL.GLUT as GLUT
 import OpenGL.GLU as GLU
+from OpenGL.arrays import vbo, ArrayDatatype
 import Image
 import glob
 import numpy as na
@@ -33,30 +34,35 @@ import time
 
 ESCAPE = '\033'
 
-class MultiImageDisplayScene(object):
-    _display_mode = (GLUT.GLUT_RGBA | GLUT.GLUT_DOUBLE | GLUT.GLUT_DEPTH)
-
-    def __init__(self):
-        self._frames = []
-        self._current = -1
-        self.init_glut(512, 512)
-        self.init_opengl(512, 512)
-
-    def add_image(self, obj):
-        self._frames.append(obj)
+class GenericGLUTScene(object):
+    
+    def __init__(self, width, height):
+        self.init_glut(width, height)
+        self.init_opengl(width, height)
 
     def init_glut(self, width, height):
         GLUT.glutInit([]) # drop sys.argv
         GLUT.glutInitDisplayMode(self._display_mode)
         GLUT.glutInitWindowSize(width, height)
         GLUT.glutInitWindowPosition(0, 0)
-        window = GLUT.glutCreateWindow("Image Display")
+        self.window = GLUT.glutCreateWindow(self._title)
         GLUT.glutDisplayFunc(self.draw)
         GLUT.glutIdleFunc(self.draw)
         GLUT.glutKeyboardFunc(self.keypress_handler)
 
     def run(self):
         GLUT.glutMainLoop()
+
+class MultiImageDisplayScene(object):
+    _display_mode = (GLUT.GLUT_RGBA | GLUT.GLUT_DOUBLE | GLUT.GLUT_DEPTH)
+    _title = "Image Display"
+    def __init__(self):
+        GenericGLUTScene(512, 512)
+        self._frames = []
+        self._current = -1
+
+    def add_image(self, obj):
+        self._frames.append(obj)
 
     def init_opengl(self, width, height):
         GL.glClearColor(0.0, 0.0, 0.0, 0.0)
@@ -228,11 +234,131 @@ class StereoImagePair(FlatImage):
         obj.right_image.upload_image(right_buffer)
         return obj
 
-if __name__ == "__main__":
-    fn_list = glob.glob("frames/*.png")
+_verts = ( (0,0,0), (1,0,0), (1,1,0), (0,1,0),
+           (0,0,0), (1,0,0), (1,0,1), (0,0,1),
+           (0,0,0), (0,0,1), (0,1,1), (0,1,0),
+           (0,1,0), (1,1,0), (1,1,1), (0,1,1),
+           (1,1,0), (1,0,0), (1,0,1), (1,1,1),
+           (0,0,1), (0,1,1), (1,1,1), (1,0,1) )
 
-    main_scene = MultiImageDisplayScene()
-    for fn in sorted(fn_list):
-        main_scene.add_image(FlatImage.from_image_file(fn))
-    main_scene._current = 0
+class GridObject3DScene(GenericGLUTScene):
+    _display_mode = (GLUT.GLUT_RGBA | GLUT.GLUT_DOUBLE | GLUT.GLUT_DEPTH)
+    _title = "Grids"
+
+    def _get_grid_vertices(self, offset):
+        for g in self.pf.h.grids:
+            vs = (g.LeftEdge, g.RightEdge)
+            for vert in _verts:
+                for i,v in enumerate(vert):
+                    yield vs[v][i] - offset
+
+    def __init__(self, pf, offset = 0.5):
+        self.pf = pf
+        GenericGLUTScene.__init__(self, 800, 800)
+
+        num = len(pf.h.grids) * 6 * 4
+        self.v = na.fromiter(self._get_grid_vertices(offset),
+                             dtype = 'float32', count = num * 3)
+
+        self.vertices = vbo.VBO(self.v)
+        self.ng = len(pf.h.grids)
+        self.ox = self.oy = self.rx = self.ry = self.rz = 0
+        self.oz = -4
+
+    def init_opengl(self, width, height):
+        # One-time GL setup
+        GL.glClearColor(1, 1, 1, 1)
+        GL.glColor3f(1, 0, 0)
+        GL.glEnable(GL.GL_DEPTH_TEST)
+        #glEnable(GL_CULL_FACE)
+
+        # Uncomment this line for a wireframe view
+        GL.glPolygonMode(GL.GL_FRONT_AND_BACK, GL.GL_LINE)
+
+        # Simple light setup.  On Windows GL_LIGHT0 is enabled by default,
+        # but this is not the case on Linux or Mac, so remember to always 
+        # include it.
+        GL.glEnable(GL.GL_LIGHTING)
+
+        def vec(*args):
+            return (GL.GLfloat * len(args))(*args)
+
+        GL.glLightfv(GL.GL_LIGHT0, GL.GL_POSITION, vec(.5, .5, 1, 0))
+        GL.glLightfv(GL.GL_LIGHT0, GL.GL_SPECULAR, vec(.5, .5, 1, 1))
+        GL.glLightfv(GL.GL_LIGHT0, GL.GL_DIFFUSE, vec(1, 1, 1, 1))
+        GL.glLightfv(GL.GL_LIGHT1, GL.GL_POSITION, vec(1, 0, .5, 0))
+        GL.glLightfv(GL.GL_LIGHT1, GL.GL_DIFFUSE, vec(.5, .5, .5, 1))
+        GL.glLightfv(GL.GL_LIGHT1, GL.GL_SPECULAR, vec(1, 1, 1, 1))
+
+        GL.glMaterialfv(GL.GL_FRONT_AND_BACK, GL.GL_AMBIENT_AND_DIFFUSE, vec(0.5, 0, 0.3, 1))
+        GL.glMaterialfv(GL.GL_FRONT_AND_BACK, GL.GL_SPECULAR, vec(1, 1, 1, 1))
+        GL.glMaterialf(GL.GL_FRONT_AND_BACK, GL.GL_SHININESS, 50)
+
+        GL.glViewport(0, 0, width, height)
+        GL.glMatrixMode(GL.GL_PROJECTION)
+        GL.glLoadIdentity()
+        GLU.gluPerspective(60., width / float(height), 1e-3, 10.)
+        GL.glMatrixMode(GL.GL_MODELVIEW)
+        
+    def draw(self):
+
+        GL.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT)
+        GL.glLoadIdentity()
+        GL.glTranslatef(self.ox, self.oy, self.oz)
+        GL.glRotatef(self.rx, 0, 0, 1)
+        GL.glRotatef(self.ry, 0, 1, 0)
+        GL.glRotatef(self.rz, 1, 0, 0)
+
+        self.vertices.bind()
+        GL.glEnableClientState(GL.GL_VERTEX_ARRAY)
+        GL.glVertexPointer( 3, GL.GL_FLOAT, 0, self.vertices)
+        GL.glDrawArrays(GL.GL_QUADS, 0, 4*6*self.ng)
+        
+        GL.glDisableClientState(GL.GL_VERTEX_ARRAY)
+        self.vertices.unbind()
+        GLUT.glutSwapBuffers()
+        
+    def keypress_handler(self, *args):
+        tfac = 25.0
+        rfac = 0.5
+        if args[0] == ESCAPE:
+            sys.exit()
+        elif args[0] == 'a':
+            self.ox += 1.0/tfac
+        elif args[0] == 'd':
+            self.ox -= 1.0/tfac
+        elif args[0] == 's':
+            self.oz -= 1.0/tfac
+        elif args[0] == 'w':
+            self.oz += 1.0/tfac
+        elif args[0] == 'q':
+            self.oy -= 1.0/tfac
+        elif args[0] == 'e':
+            self.oy += 1.0/tfac
+        # Now, rotations
+        elif args[0] == 'A':
+            self.rx -= 1.0/rfac
+        elif args[0] == 'D':
+            self.rx += 1.0/rfac
+        elif args[0] == 'S':
+            self.rz -= 1.0/rfac
+        elif args[0] == 'W':
+            self.rz += 1.0/rfac
+        elif args[0] == 'Q':
+            self.ry -= 1.0/rfac
+        elif args[0] == 'E':
+            self.ry += 1.0/rfac
+
+if __name__ == "__main__":
+    if sys.argv[-2] == '-g':
+        import yt.mods
+        pf = yt.mods.load(sys.argv[-1])
+        main_scene = GridObject3DScene(pf)
+    else:
+        fn_list = glob.glob("frames/*.png")
+
+        main_scene = MultiImageDisplayScene()
+        for fn in sorted(fn_list):
+            main_scene.add_image(FlatImage.from_image_file(fn))
+        main_scene._current = 0
     main_scene.run()
