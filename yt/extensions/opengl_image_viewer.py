@@ -244,18 +244,22 @@ _verts = ( (0,0,0), (1,0,0), (1,1,0), (0,1,0),
 class GridObject3DScene(GenericGLUTScene):
     _display_mode = (GLUT.GLUT_RGBA | GLUT.GLUT_DOUBLE | GLUT.GLUT_DEPTH)
     _title = "Grids"
-    def __init__(self, pf):
-        self.pf = pf
-        GenericGLUTScene.__init__(self, 800, 800)
 
-        vertices = []
-        for g in pf.h.grids:
+    def _get_grid_vertices(self, offset):
+        for g in self.pf.h.grids:
             vs = (g.LeftEdge, g.RightEdge)
             for vert in _verts:
                 for i,v in enumerate(vert):
-                    vertices.append(vs[v][i])
+                    yield vs[v][i] - offset
+
+    def __init__(self, pf, offset = 0.5):
+        self.pf = pf
+        GenericGLUTScene.__init__(self, 800, 800)
+
         num = len(pf.h.grids) * 6 * 4
-        self.v = na.array(vertices, 'f').ravel()
+        self.v = na.fromiter(self._get_grid_vertices(offset),
+                             dtype = 'float32', count = num * 3)
+
         self.vertices = vbo.VBO(self.v)
         self.ng = len(pf.h.grids)
         self.ox = self.oy = self.rx = self.ry = self.rz = 0
@@ -316,7 +320,7 @@ class GridObject3DScene(GenericGLUTScene):
         
     def keypress_handler(self, *args):
         tfac = 25.0
-        rfac = 2.0
+        rfac = 0.5
         if args[0] == ESCAPE:
             sys.exit()
         elif args[0] == 'a':
