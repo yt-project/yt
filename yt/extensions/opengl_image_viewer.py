@@ -120,6 +120,43 @@ class StereoMultiImageDisplayScene(MultiImageDisplayScene):
     _display_mode = (GLUT.GLUT_RGBA | GLUT.GLUT_DOUBLE | GLUT.GLUT_DEPTH |
                      GLUT.GLUT_STEREO)
 
+    def draw(self):
+        GL.glDrawBuffer(GL.GL_BACK_LEFT)
+
+        GL.glMatrixMode(GL.GL_MODELVIEW)
+        GL.glLoadIdentity()
+
+        GL.glMatrixMode(GL.GL_PROJECTION)
+        GL.glLoadIdentity()
+
+        GL.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT)
+
+        if self._current >= 0:
+            self._draw_current_left()
+
+        GLUT.glutSwapBuffers()
+
+        GL.glDrawBuffer(GL.GL_BACK_RIGHT)
+
+        GL.glMatrixMode(GL.GL_MODELVIEW)
+        GL.glLoadIdentity()
+
+        GL.glMatrixMode(GL.GL_PROJECTION)
+        GL.glLoadIdentity()
+
+        GL.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT)
+
+        if self._current >= 0:
+            self._draw_current_right()
+
+        GLUT.glutSwapBuffers()
+
+    def _draw_current_left(self):
+        self._frames[self._current].draw_left()
+
+    def _draw_current_right(self):
+        self._frames[self._current].draw_right()
+
 class FlatImage(object):
     def __init__(self, tex_unit = GL.GL_TEXTURE0):
         self.tex_unit = tex_unit
@@ -177,12 +214,10 @@ class StereoImagePair(FlatImage):
         self.left_image = FlatImage(tex_unit)
         self.right_image = FlatImage(tex_unit)
 
-    def draw(self):
-        # Look left
-        GL.glDrawBuffer(GL.GL_BACK_LEFT)
+    def draw_left(self):
         self.left_image.draw()
-        # Look right
-        GL.glDrawBuffer(GL.GL_BACK_RIGHT)
+
+    def draw_right(self):
         self.right_image.draw()
 
     def upload_images(self, buffer_left, buffer_right):
