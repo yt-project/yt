@@ -308,7 +308,7 @@ class GridObject3DScene(GenericGLUTScene):
         self.vertices.bind()
         GL.glEnableClientState(GL.GL_VERTEX_ARRAY)
         GL.glVertexPointer( 3, GL.GL_FLOAT, 0, self.vertices)
-        GL.glDrawArrays(GL.GL_QUADS, 0, 6*self.ng)
+        GL.glDrawArrays(GL.GL_QUADS, 0, 4*6*self.ng)
         
         GL.glDisableClientState(GL.GL_VERTEX_ARRAY)
         self.vertices.unbind()
