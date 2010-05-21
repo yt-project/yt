@@ -48,7 +48,7 @@ class GenericGLUTScene(object):
         GLUT.glutInitWindowPosition(0, 0)
         self.window = GLUT.glutCreateWindow(self._title)
         GLUT.glutDisplayFunc(self.draw)
-        GLUT.glutIdleFunc(self.draw)
+        #GLUT.glutIdleFunc(self.draw)
         GLUT.glutKeyboardFunc(self.keypress_handler)
 
     def run(self):
@@ -116,6 +116,7 @@ class MultiImageDisplayScene(object):
                 time.sleep(0.05)
                 self.draw()
                 self._current -= 1
+        self.draw() # Once more for good measure
 
 class StereoMultiImageDisplayScene(MultiImageDisplayScene):
     _display_mode = (GLUT.GLUT_RGBA | GLUT.GLUT_DOUBLE | GLUT.GLUT_DEPTH |
@@ -353,6 +354,7 @@ class GridObject3DScene(GenericGLUTScene):
             self.ry -= 1.0/rfac
         elif args[0] == 'E':
             self.ry += 1.0/rfac
+        self.draw()
 
 class GridSlice3DScene(GenericGLUTScene):
     _display_mode = (GLUT.GLUT_RGBA | GLUT.GLUT_DOUBLE | GLUT.GLUT_DEPTH)
@@ -513,7 +515,6 @@ class GridSlice3DScene(GenericGLUTScene):
             LE = g.LeftEdge - self.offset
             RE = g.RightEdge - self.offset
             off = (self.coord - LE[1]) / (RE[1] - LE[1])
-            print self.mi, self.ma
 
             GL.glActiveTexture(GL.GL_TEXTURE0)
             GL.glBindTexture(GL.GL_TEXTURE_3D, self._grid_textures[g.id][0])
@@ -584,6 +585,9 @@ class GridSlice3DScene(GenericGLUTScene):
             self.move_slice(0.05)
         elif args[0] == 'h':
             self.move_slice(-0.05)
+        else:
+            return
+        self.draw()
 
 if __name__ == "__main__":
     if sys.argv[-2] == '-g':
