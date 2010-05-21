@@ -45,6 +45,7 @@ from yt.lagos import EnzoStaticOutput, \
     add_field, FieldInfo, EnzoFieldInfo, Enzo2DFieldInfo, OrionFieldInfo, \
     GadgetFieldInfo, TigerFieldInfo, \
     Clump, write_clump_hierarchy, find_clumps, write_clumps, \
+    get_lowest_clumps, \
     OrionStaticOutput, HaloFinder, HOPHaloFinder, FOFHaloFinder, parallelHF, \
     axis_names, x_dict, y_dict, StructFcnGen, StructSet
 
