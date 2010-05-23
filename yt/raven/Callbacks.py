@@ -800,12 +800,16 @@ class ParticleCallback(PlotCallback):
     _type_name = "particles"
     region = None
     _descriptor = None
-    def __init__(self, width, p_size=1.0, col='k', marker='o', stride=1.0, ptype=None, stars_only=False, dm_only=False):
+    def __init__(self, width, p_size=1.0, col='k', marker='o', stride=1.0,
+                 ptype=None, stars_only=False, dm_only=False,
+                 minimum_mass=None):
         """
         Adds particle positions, based on a thick slab along *axis* with a
         *width* along the line of sight.  *p_size* controls the number of
         pixels per particle, and *col* governs the color.  *ptype* will
         restrict plotted particles to only those that are of a given type.
+        *minimum_mass* will require that the particles be of a given mass,
+        calculated via ParticleMassMsun, to be plotted.
         """
         PlotCallback.__init__(self)
         self.width = width
@@ -816,6 +820,7 @@ class ParticleCallback(PlotCallback):
         self.ptype = ptype
         self.stars_only = stars_only
         self.dm_only = dm_only
+        self.minimum_mass = minimum_mass
 
     def __call__(self, plot):
         data = plot.data
@@ -837,6 +842,9 @@ class ParticleCallback(PlotCallback):
             if gg.sum() == 0: return
         if self.dm_only:
             gg &= (reg["creation_time"] <= 0.0)
+            if gg.sum() == 0: return
+        if self.minimum_mass is not None:
+            gg &= (reg["ParticleMassMsun"] >= self.minimum_mass)
             if gg.sum() == 0: return
         plot._axes.hold(True)
         px, py = self.convert_to_pixels(plot,
