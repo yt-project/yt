@@ -118,6 +118,39 @@ class HomogenizedVolume(ParallelAnalysisInterface):
         self.brick_dimensions -= 1
         self.bricks = na.array(bricks, dtype='object')
 
+    def store_bricks(self, fn):
+        import h5py, cPickle
+        f = h5py.File(fn, "w")
+        f.create_dataset("/left_edges", data=self.brick_left_edges)
+        f.create_dataset("/right_edges", data=self.brick_right_edges)
+        f.create_dataset("/parents", data=self.brick_parents)
+        f.create_dataset("/dimensions", data=self.brick_dimensions)
+        f.create_group("/bricks")
+        for i,b in enumerate(self.bricks):
+            f.create_group("/bricks/brick_%08i" % i)
+            for fi,field in enumerate(self.fields):
+                f.create_dataset("/bricks/brick_%08i/%s" % (i, field),
+                                 data=b.my_data[fi])
+        f.close()
+
+    def load_bricks(self, fn):
+        import h5py
+        f = h5py.File(fn, "r")
+        self.brick_left_edges = f["/left_edges"][:]
+        self.brick_right_edges = f["/right_edges"][:]
+        self.brick_parents = f["/parents"][:]
+        self.brick_dimensions= f["/dimensions"][:]
+        bricks = []
+        for i,ds in enumerate(sorted(f["/bricks"])):
+            td = [f["/bricks/%s/%s" % (ds, field)][:] for field in self.fields]
+            bricks.append(PartitionedGrid(
+                                self.brick_parents[i], len(td), td,
+                                self.brick_left_edges[i,:],
+                                self.brick_right_edges[i,:],
+                                self.brick_dimensions[i,:],
+                                ))
+        self.bricks = na.array(bricks, dtype='object')
+
 class HomogenizedBrickCollection(DistributedObjectCollection):
     def __init__(self, source):
         # The idea here is that we have two sources -- the global_domain
