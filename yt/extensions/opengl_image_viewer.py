@@ -35,6 +35,37 @@ import time
 
 ESCAPE = '\033'
 
+class ViewHandler3D(object):
+    def __init__(self, scene):
+        # We 
+        self.scene = scene
+        self.dispatch_table = dict(
+            q = (scene.translate, (1,  1.0)),
+            e = (scene.translate, (1, -1.0)),
+            w = (scene.translate, (2,  1.0)),
+            s = (scene.translate, (2, -1.0)),
+            a = (scene.translate, (0,  1.0)),
+            d = (scene.translate, (0, -1.0)),
+
+            Q = (scene.rotate, (1,  1.0)),
+            E = (scene.rotate, (1, -1.0)),
+            W = (scene.rotate, (2,  1.0)),
+            S = (scene.rotate, (2, -1.0)),
+            A = (scene.rotate, (0,  1.0)),
+            D = (scene.rotate, (0, -1.0)),
+
+            ESCAPE = (sys.exit, (0,))
+        )
+
+    def __call__(self, *args):
+        # We set up our standard handlers, and then anything additional can get
+        # called if none of our dispatch mechanisms work.
+        if args[0] in self.dispatch_table:
+            func, args = self.dispatch_table[args[0]]
+            func(*args)
+        # always draw when handling a keypress, even if it's one time too many
+        self.scene.draw() 
+
 class GenericGLUTScene(object):
     
     def __init__(self, width, height):
@@ -415,6 +446,9 @@ class GridSlice3DScene(GenericGLUTScene):
         self.mi, self.ma = 1e30, -1e30
         self.pf = pf
         self.coord = 0.0
+        self.tfac = 10.0
+        self.rfac = 0.5
+        self._setup_keypress_handler()
         GenericGLUTScene.__init__(self, 800, 800)
 
         num = len(pf.h.grids) * 6 * 4
@@ -423,8 +457,9 @@ class GridSlice3DScene(GenericGLUTScene):
 
         self.vertices = vbo.VBO(self.v)
         self.ng = len(pf.h.grids)
-        self.ox = self.oy = self.rx = self.ry = self.rz = 0
-        self.oz = -2
+        self.position = na.zeros(3, dtype='float')
+        self.rotation = na.zeros(3, dtype='float')
+        self.position[2] = -2 # Offset backwards a bit
 
         self._setup_grids()
 
@@ -486,10 +521,10 @@ class GridSlice3DScene(GenericGLUTScene):
         GL.glPolygonMode(GL.GL_FRONT_AND_BACK, GL.GL_LINE)
 
         GL.glLoadIdentity()
-        GL.glTranslatef(self.ox, self.oy, self.oz)
-        GL.glRotatef(self.rx, 0, 0, 1)
-        GL.glRotatef(self.ry, 0, 1, 0)
-        GL.glRotatef(self.rz, 1, 0, 0)
+        GL.glTranslatef(*self.position)
+        GL.glRotatef(self.rotation[0], 0, 0, 1)
+        GL.glRotatef(self.rotation[1], 0, 1, 0)
+        GL.glRotatef(self.rotation[2], 1, 0, 0)
 
         self.vertices.bind()
         GL.glColor3f(0.0, 0.0, 0.0)
@@ -550,44 +585,19 @@ class GridSlice3DScene(GenericGLUTScene):
 
     def move_slice(self, value):
         self.coord += value
+
+    def rotate(self, axis, value):
+        self.rotation[axis] += value/self.rfac
+
+    def translate(self, axis, value):
+        self.position[axis] += value/self.tfac
         
-    def keypress_handler(self, *args):
-        tfac = 10.0
-        rfac = 0.5
-        if args[0] == ESCAPE:
-            sys.exit()
-        elif args[0] == 'a':
-            self.ox += 1.0/tfac
-        elif args[0] == 'd':
-            self.ox -= 1.0/tfac
-        elif args[0] == 's':
-            self.oz -= 1.0/tfac
-        elif args[0] == 'w':
-            self.oz += 1.0/tfac
-        elif args[0] == 'q':
-            self.oy -= 1.0/tfac
-        elif args[0] == 'e':
-            self.oy += 1.0/tfac
-        # Now, rotations
-        elif args[0] == 'A':
-            self.rx -= 1.0/rfac
-        elif args[0] == 'D':
-            self.rx += 1.0/rfac
-        elif args[0] == 'S':
-            self.rz -= 1.0/rfac
-        elif args[0] == 'W':
-            self.rz += 1.0/rfac
-        elif args[0] == 'Q':
-            self.ry -= 1.0/rfac
-        elif args[0] == 'E':
-            self.ry += 1.0/rfac
-        elif args[0] == 'y':
-            self.move_slice(0.05)
-        elif args[0] == 'h':
-            self.move_slice(-0.05)
-        else:
-            return
-        self.draw()
+    def _setup_keypress_handler(self):
+        self.keypress_handler = ViewHandler3D(self)
+        self.keypress_handler.dispatch_table.update(dict(
+            y = (self.move_slice, ( 0.05,)),
+            h = (self.move_slice, (-0.05,))
+            ))
 
 if __name__ == "__main__":
     if sys.argv[-2] == '-g':
