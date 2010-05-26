@@ -30,19 +30,12 @@ import h5py
 try: import pyfits
 except: pass
 
-'''
-export_rgba:
-args: 
-image - rgba numpy array of dimension NxNx4 
-fn - file basename for exported files
-
-kwargs:
-h5 [True]: Use hdf5 to export the rgba channels, creates fn.h5 file.
-fits [False]: Export to fits format (requires pyfits), creates fn_[r,g,b,a].fits files
-
-output: None
-'''
 def export_rgba(image, fn, h5=True, fits=False, ):
+    """
+    This function accepts an *image*, of shape (N,M,4) corresponding to r,g,b,a,
+    and saves to *fn*.  If *h5* is True, then it will save in hdf5 format.  If
+    *fits* is True, it will save in fits format.
+    """
     if h5:
         f = h5py.File('%s.h5'%fn, "w")
         f.create_dataset("R", data=image[:,:,0])
@@ -66,18 +59,12 @@ def export_rgba(image, fn, h5=True, fits=False, ):
             hdulist.writeto('%s_a.fits'%fn,clobber=True)
         except: print 'You do not have pyfits, install before attempting to use fits exporter'
 
-'''
-import_rgba:
-args: 
-name of hdf5 file containing R,G,B,A arrays
-
-kwargs:
-h5 [True]: Use hdf5 to input the rgba channels.
-
-returns: 
-a Numpy array of shape NxNx4
-'''
 def import_rgba(name, h5=True):
+    """
+    This function will read back in an HDF5 file, as saved by export_rgba, and
+    return the frames to the user.  *name* is the name of the file to be read
+    in.
+    """
     if h5:
         f = h5py.File(name, "r")
         r = f['R'].value
@@ -88,29 +75,18 @@ def import_rgba(name, h5=True):
         print 'No support for fits import.'
     return na.array([r,g,b,a]).swapaxes(0,2).swapaxes(0,1)
 
-'''
-plot_channel:
-args: 
-image - single channel of an image, of shape NxN
-name - prefix for image output 
-
-kwargs:
-cmap ['gist_stern'] - name of colormap to use
-log [True] - use a log scale
-dex [3] - Scale the image between image.max()/10**dex and image.max()
-zero_factor [1.0e-10] - Set all zero values to zero_factor
-label [None] - Label in upper left corner of image
-label_color ['w'] - Color of label
-label_size ['large'] - Size of label
-
-returns: 
-None
-
-output:
-name_cmap.png
-'''
 def plot_channel(image, name, cmap='gist_heat', log=True, dex=3, zero_factor=1.0e-10, 
                  label=None, label_color='w', label_size='large'):
+    """
+    This function will plot a single channel. *image* is an array shaped like
+    (N,M), *name* is the pefix for the output filename.  *cmap* is the name of
+    the colormap to apply, *log* is whether or not the channel should be
+    logged.  Additionally, you may optionally specify the minimum-value cutoff
+    for scaling as *dex*, which is taken with respect to the minimum value of
+    the image.  *zero_factor* applies a minimum value to all zero-valued
+    elements.  Optionally, *label*, *label_color* and *label_size* may be
+    specified.
+    """
     Nvec = image.shape[0]
     image[na.isnan(image)] = 0.0
     ma = image[image>0.0].max()
@@ -132,24 +108,13 @@ def plot_channel(image, name, cmap='gist_heat', log=True, dex=3, zero_factor=1.0
     pylab.savefig("%s_%s.png" % (name,cmap))
     pylab.clf()
 
-'''
-plot_rgb:
-args: 
-image - rgb channels of an image, of shape NxNx3 or NxNx4.  Values must be normalized from 0.0-1.0
-name - prefix for image output 
-
-kwargs:
-label [None] - Label in upper left corner of image
-label_color ['w'] - Color of label
-label_size ['large'] - Size of label
-
-returns: 
-None
-
-output:
-name_rgb.png
-'''
 def plot_rgb(image, name, label=None, label_color='w', label_size='large'):
+    """
+    This will plot the r,g,b channels of an *image* of shape (N,M,3) or
+    (N,M,4).  *name* is the prefix of the file name, which will be supplemented
+    with "_rgb.png."  *label*, *label_color* and *label_size* may also be
+    specified.
+    """
     Nvec = image.shape[0]
     image[na.isnan(image)] = 0.0
     if image.shape[2] >= 4:

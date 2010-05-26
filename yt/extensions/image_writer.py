@@ -60,6 +60,32 @@ def multi_image_composite(fn, red_channel, blue_channel,
     image = image.transpose().copy() # Have to make sure it's contiguous 
     au.write_png(image, fn)
 
+def write_bitmap(bitmap_array, filename, max_val = None):
+    """
+    This accepts a three- or four-channel *bitmap_array*.  If the image is not
+    already uint8, it will be scaled and converted.  If it is not four channel,
+    a fourth alpha channel will be added and set to fully opaque.  The
+    resultant image will be directly written to *filename* as a PNG with no
+    colormap applied.  *max_val* is a value used if the array is passed in as
+    anything other than uint8; it will be the value used for scaling and
+    clipping when the array is converted.
+
+    Additionally, the minimum is assumed to be zero; this makes it primarily
+    suited for the results of volume rendered images, rather than misaligned
+    projections.
+    """
+    if bitmap_array.dtype != na.uint8:
+        if max_val is None: max_val = bitmap_array.max()
+        bitmap_array = na.clip(bitmap_array / max_val, 0.0, 1.0) * 255
+        bitmap_array = bitmap_array.astype("uint8")
+    if len(bitmap_array.shape) != 3 or bitmap_array.shape[-1] not in (3,4):
+        raise RuntimeError
+    if bitmap_array.shape[-1] == 3:
+        s1, s2 = bitmap_array.shape[:2]
+        alpha_channel = 255*na.ones((s1,s2,1), dtype='uint8')
+        bitmap_array = na.concatenate([bitmap_array, alpha_channel], axis=-1)
+    au.write_png(bitmap_array.copy(), filename)
+
 def write_image(image, filename, color_bounds = None, cmap_name = "algae"):
     if color_bounds is None:
         mi = na.nanmin(image[~na.isinf(image)])
