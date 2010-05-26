@@ -26,6 +26,7 @@ import sys
 import OpenGL.GL as GL
 import OpenGL.GLUT as GLUT
 import OpenGL.GLU as GLU
+import OpenGL.GL.shaders as shaders
 from OpenGL.arrays import vbo, ArrayDatatype
 import Image
 import glob
@@ -33,6 +34,37 @@ import numpy as na
 import time
 
 ESCAPE = '\033'
+
+class ViewHandler3D(object):
+    def __init__(self, scene):
+        # We 
+        self.scene = scene
+        self.dispatch_table = dict(
+            q = (scene.translate, (1,  1.0)),
+            e = (scene.translate, (1, -1.0)),
+            w = (scene.translate, (2,  1.0)),
+            s = (scene.translate, (2, -1.0)),
+            a = (scene.translate, (0,  1.0)),
+            d = (scene.translate, (0, -1.0)),
+
+            Q = (scene.rotate, (1,  1.0)),
+            E = (scene.rotate, (1, -1.0)),
+            W = (scene.rotate, (2,  1.0)),
+            S = (scene.rotate, (2, -1.0)),
+            A = (scene.rotate, (0,  1.0)),
+            D = (scene.rotate, (0, -1.0)),
+
+            ESCAPE = (sys.exit, (0,))
+        )
+
+    def __call__(self, *args):
+        # We set up our standard handlers, and then anything additional can get
+        # called if none of our dispatch mechanisms work.
+        if args[0] in self.dispatch_table:
+            func, args = self.dispatch_table[args[0]]
+            func(*args)
+        # always draw when handling a keypress, even if it's one time too many
+        self.scene.draw() 
 
 class GenericGLUTScene(object):
     
@@ -47,7 +79,7 @@ class GenericGLUTScene(object):
         GLUT.glutInitWindowPosition(0, 0)
         self.window = GLUT.glutCreateWindow(self._title)
         GLUT.glutDisplayFunc(self.draw)
-        GLUT.glutIdleFunc(self.draw)
+        #GLUT.glutIdleFunc(self.draw)
         GLUT.glutKeyboardFunc(self.keypress_handler)
 
     def run(self):
@@ -115,6 +147,7 @@ class MultiImageDisplayScene(object):
                 time.sleep(0.05)
                 self.draw()
                 self._current -= 1
+        self.draw() # Once more for good measure
 
 class StereoMultiImageDisplayScene(MultiImageDisplayScene):
     _display_mode = (GLUT.GLUT_RGBA | GLUT.GLUT_DOUBLE | GLUT.GLUT_DEPTH |
@@ -246,11 +279,15 @@ class GridObject3DScene(GenericGLUTScene):
     _title = "Grids"
 
     def _get_grid_vertices(self, offset):
+        k = 0
+        self._grid_offsets = {}
         for g in self.pf.h.grids:
             vs = (g.LeftEdge, g.RightEdge)
+            self._grid_offsets[g.id] = k
             for vert in _verts:
                 for i,v in enumerate(vert):
                     yield vs[v][i] - offset
+                    k += 1
 
     def __init__(self, pf, offset = 0.5):
         self.pf = pf
@@ -348,12 +385,229 @@ class GridObject3DScene(GenericGLUTScene):
             self.ry -= 1.0/rfac
         elif args[0] == 'E':
             self.ry += 1.0/rfac
+        self.draw()
+
+class GridSlice3DScene(GenericGLUTScene):
+    _display_mode = (GLUT.GLUT_RGBA | GLUT.GLUT_DOUBLE | GLUT.GLUT_DEPTH)
+    _title = "Grids"
+
+    def _get_grid_vertices(self, offset):
+        for g in self.pf.h.grids:
+            vs = (g.LeftEdge, g.RightEdge)
+            for vert in _verts:
+                for i,v in enumerate(vert):
+                    yield vs[v][i] - offset
+
+    def _setup_grids(self):
+        self._grid_textures = {}
+        for g in self.pf.h.grids:
+            self._upload_grid_textures(g)
+
+    def _upload_grid_textures(self, grid):
+        ix, iy, iz = grid.ActiveDimensions
+
+        GL.glActiveTexture(GL.GL_TEXTURE0)
+        id_field = GL.glGenTextures(1)
+        upload = na.log10(grid["Density"].astype("float32")).copy()
+        self.mi = min(upload.min(), self.mi)
+        self.ma = max(upload.max(), self.ma)
+        #upload = (255*(upload - -31.0) / (-25.0 - -31.0)).astype("uint8")
+        
+        GL.glBindTexture(GL.GL_TEXTURE_3D, id_field)
+        GL.glPixelStorei(GL.GL_UNPACK_ALIGNMENT, 1)
+        GL.glTexParameterf(GL.GL_TEXTURE_3D, GL.GL_TEXTURE_WRAP_S, GL.GL_CLAMP)
+        GL.glTexParameterf(GL.GL_TEXTURE_3D, GL.GL_TEXTURE_WRAP_T, GL.GL_CLAMP)
+        GL.glTexParameterf(GL.GL_TEXTURE_3D, GL.GL_TEXTURE_WRAP_R, GL.GL_CLAMP)
+        GL.glTexParameterf(GL.GL_TEXTURE_3D, GL.GL_TEXTURE_MAG_FILTER, GL.GL_NEAREST)
+        GL.glTexParameterf(GL.GL_TEXTURE_3D, GL.GL_TEXTURE_MIN_FILTER, GL.GL_NEAREST)
+        GL.glTexImage3D(GL.GL_TEXTURE_3D, 0, GL.GL_LUMINANCE32F_ARB, iz, iy, ix, 0,
+                        GL.GL_LUMINANCE, GL.GL_FLOAT, upload)
+
+        GL.glActiveTexture(GL.GL_TEXTURE1)
+        id_mask  = GL.glGenTextures(1)
+        upload = grid.child_mask.astype("float32").copy()
+
+        GL.glBindTexture(GL.GL_TEXTURE_3D, id_mask)
+        GL.glPixelStorei(GL.GL_UNPACK_ALIGNMENT, 1)
+        GL.glTexParameterf(GL.GL_TEXTURE_3D, GL.GL_TEXTURE_WRAP_S, GL.GL_CLAMP)
+        GL.glTexParameterf(GL.GL_TEXTURE_3D, GL.GL_TEXTURE_WRAP_T, GL.GL_CLAMP)
+        GL.glTexParameterf(GL.GL_TEXTURE_3D, GL.GL_TEXTURE_WRAP_R, GL.GL_CLAMP)
+        GL.glTexParameterf(GL.GL_TEXTURE_3D, GL.GL_TEXTURE_MAG_FILTER, GL.GL_NEAREST)
+        GL.glTexParameterf(GL.GL_TEXTURE_3D, GL.GL_TEXTURE_MIN_FILTER, GL.GL_NEAREST)
+        GL.glTexImage3D(GL.GL_TEXTURE_3D, 0, GL.GL_LUMINANCE, iz, iy, ix, 0,
+                        GL.GL_LUMINANCE, GL.GL_FLOAT, upload)
+
+        self._grid_textures[grid.id] = (id_field, id_mask)
+
+        print "Uploaded", grid.id
+
+    def __init__(self, pf, offset = 0.5):
+        self.offset = offset
+        self.mi, self.ma = 1e30, -1e30
+        self.pf = pf
+        self.coord = 0.0
+        self.tfac = 10.0
+        self.rfac = 0.5
+        self._setup_keypress_handler()
+        GenericGLUTScene.__init__(self, 800, 800)
+
+        num = len(pf.h.grids) * 6 * 4
+        self.v = na.fromiter(self._get_grid_vertices(offset),
+                             dtype = 'float32', count = num * 3)
+
+        self.vertices = vbo.VBO(self.v)
+        self.ng = len(pf.h.grids)
+        self.position = na.zeros(3, dtype='float')
+        self.rotation = na.zeros(3, dtype='float')
+        self.position[2] = -2 # Offset backwards a bit
+
+        self._setup_grids()
+
+    def init_opengl(self, width, height):
+        # One-time GL setup
+        GL.glClearColor(1, 1, 1, 1)
+        GL.glColor3f(1, 0, 0)
+        GL.glEnable(GL.GL_DEPTH_TEST)
+
+        GL.glViewport(0, 0, width, height)
+        GL.glMatrixMode(GL.GL_PROJECTION)
+        GL.glLoadIdentity()
+        GLU.gluPerspective(60., width / float(height), 1e-3, 10.)
+        GL.glMatrixMode(GL.GL_MODELVIEW)
+
+        # Now we compile our shaders
+
+        self.program = shaders.compileProgram(
+            shaders.compileShader('''
+                void main() {
+                    gl_TexCoord[0]=gl_TextureMatrix[0] * gl_MultiTexCoord0;
+                    gl_TexCoord[1]=gl_TextureMatrix[1] * gl_MultiTexCoord1;
+                    gl_Position = gl_ModelViewProjectionMatrix * gl_Vertex;
+                }
+            ''',GL.GL_VERTEX_SHADER),
+            shaders.compileShader('''
+                uniform float ma;
+                uniform float mi;
+                uniform sampler3D field;
+                uniform sampler3D mask;
+
+                void main() {
+                    vec3 pos;
+                    float val;
+
+                    pos = vec3(gl_TexCoord[1].xyz);
+                    val = texture3D( mask, pos )[0];
+                    if(val == 0.0) discard;
+
+                    pos = vec3(gl_TexCoord[0].xyz);
+                    val = texture3D( field, pos )[0];
+
+                    float color = (val - mi) / (ma - mi);
+                
+                    //gl_FragColor = vec4(pos.x, pos.y, pos.z, 1.0);
+                    gl_FragColor = vec4(color, color, color, 1.0);
+                }
+        ''',GL.GL_FRAGMENT_SHADER),)
+
+        self.uniform_locations = dict( (
+                (v, GL.glGetUniformLocation(self.program, v)) for v in
+                ['mi','ma','field','mask']
+            ) )
+            
+    def draw(self):
+
+        GL.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT)
+
+        GL.glPolygonMode(GL.GL_FRONT_AND_BACK, GL.GL_LINE)
+
+        GL.glLoadIdentity()
+        GL.glTranslatef(*self.position)
+        GL.glRotatef(self.rotation[0], 0, 0, 1)
+        GL.glRotatef(self.rotation[1], 0, 1, 0)
+        GL.glRotatef(self.rotation[2], 1, 0, 0)
+
+        self.vertices.bind()
+        GL.glColor3f(0.0, 0.0, 0.0)
+        GL.glEnableClientState(GL.GL_VERTEX_ARRAY)
+        GL.glVertexPointer( 3, GL.GL_FLOAT, 0, self.vertices)
+        GL.glDrawArrays(GL.GL_QUADS, 0, 4*6*self.ng)
+        GL.glDisableClientState(GL.GL_VERTEX_ARRAY)
+        self.vertices.unbind()
+
+        # Now, we just want to draw 
+        GL.glPolygonMode(GL.GL_FRONT_AND_BACK, GL.GL_FILL)
+
+        # We can just draw a single quad for now
+        GL.glUseProgram(self.program)
+        GL.glUniform1i(self.uniform_locations["field"], 0)
+        GL.glUniform1i(self.uniform_locations["mask"], 1)
+        GL.glUniform1f(self.uniform_locations["mi"], self.mi)
+        GL.glUniform1f(self.uniform_locations["ma"], self.ma)
+        GL.glEnable(GL.GL_TEXTURE_3D)
+
+        t0, t1 = 0.0, 1.0
+        for g in self.pf.h.find_slice_grids(self.coord + 0.5, 1)[0]:
+            LE = g.LeftEdge - self.offset
+            RE = g.RightEdge - self.offset
+            off = (self.coord - LE[1]) / (RE[1] - LE[1])
+
+            GL.glActiveTexture(GL.GL_TEXTURE0)
+            GL.glBindTexture(GL.GL_TEXTURE_3D, self._grid_textures[g.id][0])
+            GL.glEnable(GL.GL_TEXTURE_3D)
+
+            GL.glActiveTexture(GL.GL_TEXTURE1)
+            GL.glBindTexture(GL.GL_TEXTURE_3D, self._grid_textures[g.id][1])
+            GL.glEnable(GL.GL_TEXTURE_3D)
+
+            GL.glBegin(GL.GL_QUADS)
+
+            GL.glMultiTexCoord3f(GL.GL_TEXTURE0, t0, off, t0)
+            GL.glMultiTexCoord3f(GL.GL_TEXTURE1, t0, off, t0)
+            GL.glVertex3f(LE[0], self.coord, LE[2])
+
+            GL.glMultiTexCoord3f(GL.GL_TEXTURE0, t0, off, t1)
+            GL.glMultiTexCoord3f(GL.GL_TEXTURE1, t0, off, t1)
+            GL.glVertex3f(RE[0], self.coord, LE[2])
+
+            GL.glMultiTexCoord3f(GL.GL_TEXTURE0, t1, off, t1)
+            GL.glMultiTexCoord3f(GL.GL_TEXTURE1, t1, off, t1)
+            GL.glVertex3f(RE[0], self.coord, RE[2])
+
+            GL.glMultiTexCoord3f(GL.GL_TEXTURE0, t1, off, t0)
+            GL.glMultiTexCoord3f(GL.GL_TEXTURE1, t1, off, t0)
+            GL.glVertex3f(LE[0], self.coord, RE[2])
+
+            GL.glEnd()
+
+        GL.glUseProgram(0)
+
+        GLUT.glutSwapBuffers()
+
+    def move_slice(self, value):
+        self.coord += value
+
+    def rotate(self, axis, value):
+        self.rotation[axis] += value/self.rfac
+
+    def translate(self, axis, value):
+        self.position[axis] += value/self.tfac
+        
+    def _setup_keypress_handler(self):
+        self.keypress_handler = ViewHandler3D(self)
+        self.keypress_handler.dispatch_table.update(dict(
+            y = (self.move_slice, ( 0.05,)),
+            h = (self.move_slice, (-0.05,))
+            ))
 
 if __name__ == "__main__":
     if sys.argv[-2] == '-g':
         import yt.mods
         pf = yt.mods.load(sys.argv[-1])
         main_scene = GridObject3DScene(pf)
+    elif sys.argv[-2] == '-s':
+        import yt.mods
+        pf = yt.mods.load(sys.argv[-1])
+        main_scene = GridSlice3DScene(pf)
     else:
         fn_list = glob.glob("frames/*.png")
 

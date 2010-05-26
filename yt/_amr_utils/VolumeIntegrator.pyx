@@ -497,19 +497,21 @@ cdef class PartitionedGrid:
         cdef np.float64_t grad[3], ds[3]
         grad[0] = grad[1] = grad[2] = 0.0
         cdef int dti, i
-        dt = (exit_t - enter_t) / (tf.ns) # 4 samples should be dt=0.25
+        dt = (exit_t - enter_t) / tf.ns # 4 samples should be dt=0.25
         for i in range(3):
+            # temp is the left edge of the current cell
             temp = ci[i] * self.dds[i] + self.left_edge[i]
+            # this gets us dp as the current first sample position
             dp[i] = (enter_t + 0.5 * dt) * v_dir[i] + v_pos[i] - temp
             dp[i] *= self.idds[i]
             ds[i] = v_dir[i] * self.idds[i] * dt
         for dti in range(tf.ns): 
-            for i in range(3):
-                dp[i] += ds[i]
             for i in range(self.n_fields):
                 self.dvs[i] = trilinear_interpolate(self.dims, ci, dp, self.data[i])
             #if (dv < tf.x_bounds[0]) or (dv > tf.x_bounds[1]):
             #    continue
+            for i in range(3):
+                dp[i] += ds[i]
             tf.eval_transfer(dt, self.dvs, rgba, grad)
 
 cdef class GridFace:
