@@ -24,6 +24,41 @@ import numpy as na
 from yt.funcs import *
 import _colormap_data as cmd
 import yt.amr_utils as au
+import types
+
+def _scale_image(image):
+    if isinstance(image, na.ndarray) and image.dtype == na.uint8:
+        return image
+    if isinstance(image, (types.TupleType, types.ListType)):
+        image, mi, ma = image
+    else:
+        mi, ma = image.min(), image.max()
+    image = (na.clip((image-mi)/(ma-mi) * 255, 0, 255)).astype('uint8')
+    return image
+
+def multi_image_composite(fn, red_channel, blue_channel,
+                          green_channel = None, alpha_channel = None):
+    """
+    Accepts at least a red and a blue array, of shape (N,N) each, that are
+    optionally scaled and composited into a final image, written into *fn*.
+    Can also accept green and alpha.  For instance:
+
+        >>> red_channel = na.log10(frb["Temperature"])
+        >>> blue_channel = na.log10(frb["Density"])
+        >>> iw.multi_image_composite("multi_channel1.png", red_channel, blue_channel)
+
+    Optionally, you can also specify a tuple that includes scaling information,
+    in the form of (array_to_plot, min_value_to_scale, max_value_to_scale).
+    """
+    red_channel = _scale_image(red_channel)
+    blue_channel = _scale_image(blue_channel)
+    if green_channel is None:
+        green_channel = na.zeros(red_channel.shape, dtype='uint8')
+    if alpha_channel is None:
+        alpha_channel = na.zeros(red_channel.shape, dtype='uint8') + 255
+    image = na.array([red_channel, green_channel, blue_channel, alpha_channel])
+    image = image.transpose().copy() # Have to make sure it's contiguous 
+    au.write_png(image, fn)
 
 def write_image(image, filename, color_bounds = None, cmap_name = "algae"):
     if color_bounds is None:
