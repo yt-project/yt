@@ -36,6 +36,8 @@
 npy_float64 fast_interpolate(int ds[3], int ci[3], npy_float64 dp[3],
                              npy_float64 *data);
 
+npy_float64 offset_interpolate(int ds[3], npy_float64 dp[3], npy_float64 *data);
+
 npy_float64 trilinear_interpolate(int ds[3], int ci[3], npy_float64 dp[3],
 				  npy_float64 *data);
 

@@ -63,10 +63,10 @@ cdef extern from "math.h":
     long int lrint(double x)
 
 cdef extern from "FixedInterpolator.h":
-    np.float64_t fast_interpolate(int *ds, int *ci, np.float64_t *dp,
+    np.float64_t fast_interpolate(int ds[3], int ci[3], np.float64_t dp[3],
                                   np.float64_t *data)
-cdef extern from "FixedInterpolator.h":
-    np.float64_t trilinear_interpolate(int *ds, int *ci, np.float64_t *dp,
+    np.float64_t offset_interpolate(int ds[3], np.float64_t dp[3], np.float64_t *data)
+    np.float64_t trilinear_interpolate(int ds[3], int ci[3], np.float64_t dp[3],
                                        np.float64_t *data)
     np.float64_t eval_gradient(int *ds, int *ci, np.float64_t *dp,
                                        np.float64_t *data, np.float64_t *grad)
@@ -498,6 +498,8 @@ cdef class PartitionedGrid:
         grad[0] = grad[1] = grad[2] = 0.0
         cdef int dti, i
         dt = (exit_t - enter_t) / tf.ns # 4 samples should be dt=0.25
+        cdef int offset = ci[0] * (self.dims[1] + 1) * (self.dims[2] + 1) \
+                        + ci[1] * (self.dims[2] + 1) + ci[2]
         for i in range(3):
             # temp is the left edge of the current cell
             temp = ci[i] * self.dds[i] + self.left_edge[i]
@@ -507,7 +509,7 @@ cdef class PartitionedGrid:
             ds[i] = v_dir[i] * self.idds[i] * dt
         for dti in range(tf.ns): 
             for i in range(self.n_fields):
-                self.dvs[i] = trilinear_interpolate(self.dims, ci, dp, self.data[i])
+                self.dvs[i] = offset_interpolate(self.dims, dp, self.data[i] + offset)
             #if (dv < tf.x_bounds[0]) or (dv > tf.x_bounds[1]):
             #    continue
             for i in range(3):
