@@ -437,22 +437,16 @@ class AMRGridPatch(object):
     def get_vertex_centered_data(self, field, smoothed=True):
         cg = self.retrieve_ghost_zones(1, field, smoothed=smoothed)
         # We have two extra zones in every direction
-        if field in self.pf.field_info and self.pf.field_info[field].take_log:
-            cf = na.log10(cg[field])
-        else:
-            cf = cg[field]
         new_field = na.zeros(self.ActiveDimensions + 1, dtype='float64')
-        na.add(new_field, cf[1: ,1: ,1: ], new_field)
-        na.add(new_field, cf[:-1,1: ,1: ], new_field)
-        na.add(new_field, cf[1: ,:-1,1: ], new_field)
-        na.add(new_field, cf[1: ,1: ,:-1], new_field)
-        na.add(new_field, cf[:-1,1: ,:-1], new_field)
-        na.add(new_field, cf[1: ,:-1,:-1], new_field)
-        na.add(new_field, cf[:-1,:-1,1: ], new_field)
-        na.add(new_field, cf[:-1,:-1,:-1], new_field)
+        na.add(new_field, cg[field][1: ,1: ,1: ], new_field)
+        na.add(new_field, cg[field][:-1,1: ,1: ], new_field)
+        na.add(new_field, cg[field][1: ,:-1,1: ], new_field)
+        na.add(new_field, cg[field][1: ,1: ,:-1], new_field)
+        na.add(new_field, cg[field][:-1,1: ,:-1], new_field)
+        na.add(new_field, cg[field][1: ,:-1,:-1], new_field)
+        na.add(new_field, cg[field][:-1,:-1,1: ], new_field)
+        na.add(new_field, cg[field][:-1,:-1,:-1], new_field)
         na.multiply(new_field, 0.125, new_field)
-        if field in self.pf.field_info and self.pf.field_info[field].take_log:
-            na.power(10.0, new_field, new_field)
         return new_field
 
 class EnzoGrid(AMRGridPatch):

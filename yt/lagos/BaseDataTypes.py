@@ -1066,8 +1066,7 @@ class AMRFixedResCuttingPlaneBase(AMR2DData):
             vc = self._calc_vertex_centered_data(grid, field)
             bds = na.array(zip(grid.LeftEdge,
                                grid.RightEdge)).ravel()
-            interp = TrilinearFieldInterpolator(vc, bds,
-                                                ['x', 'y', 'z'])
+            interp = TrilinearFieldInterpolator(vc, bds, ['x', 'y', 'z'])
             self[field][pointI] = interp( \
                 dict(x=self._coord[pointI,0],
                      y=self._coord[pointI,1],
@@ -2508,16 +2507,10 @@ class AMRSmoothedCoveringGridBase(AMRFloatCoveringGridBase):
         for ax in 'xyz': self['cd%s'%ax] = fake_grid['d%s'%ax]
         for field in fields:
             # Generate the new grid field
-            if field in self.pf.field_info and self.pf.field_info[field].take_log:
-                interpolator = TrilinearFieldInterpolator(
-                                na.log10(self[field]), bounds, ['x','y','z'],
-                                truncate = True)
-                self[field] = 10**interpolator(fake_grid)
-            else:
-                interpolator = TrilinearFieldInterpolator(
-                                self[field], bounds, ['x','y','z'],
-                                truncate = True)
-                self[field] = interpolator(fake_grid)
+            interpolator = TrilinearFieldInterpolator(
+                            self[field], bounds, ['x','y','z'],
+                            truncate = True)
+            self[field] = interpolator(fake_grid)
         return fake_grid
 
     def get_data(self, field=None):
@@ -2792,17 +2785,10 @@ class AMRIntSmoothedCoveringGridBase(AMRCoveringGridBase):
         z += self.global_startindex[2]
         fake_grid = {'x':x,'y':y,'z':z}
 
-        if field in self.pf.field_info and self.pf.field_info[field].take_log:
-            my_field = na.log10(self[field])
-        else:
-            my_field = self[field]
         interpolator = TrilinearFieldInterpolator(
-                        my_field, old_bounds, ['x','y','z'],
+                        self[field], old_bounds, ['x','y','z'],
                         truncate = True)
-        if field in self.pf.field_info and self.pf.field_info[field].take_log:
-            self[field] = 10**interpolator(fake_grid)
-        else:
-            self[field] = interpolator(fake_grid)
+        self[field] = interpolator(fake_grid)
 
     def _get_data_from_grid(self, grid, fields, level):
         fields = ensure_list(fields)
