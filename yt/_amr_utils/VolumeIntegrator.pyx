@@ -182,16 +182,15 @@ cdef class TransferFunctionProxy:
                                   np.float64_t *rgba, np.float64_t *grad):
         cdef int i, fid, use
         cdef np.float64_t ta, tf, trgba[6], dot_prod
-        # This very quick pass doesn't hurt us too badly, and it helps for
-        # early-cutoff.  We check all the field tables, because we want to be
-        # able to attenuate even in the presence of no emissivity.
-        use = 0
-        for i in range(self.n_field_tables):
-            fid = self.field_tables[i].field_id
-            if (dvs[fid] >= self.field_tables[i].bounds[0]) and \
-               (dvs[fid] <= self.field_tables[i].bounds[1]):
-                use = 1
-                break
+        # NOTE: We now disable this.  I have left it to ease the process of
+        # potentially, one day, re-including it.
+        #use = 0
+        #for i in range(self.n_field_tables):
+        #    fid = self.field_tables[i].field_id
+        #    if (dvs[fid] >= self.field_tables[i].bounds[0]) and \
+        #       (dvs[fid] <= self.field_tables[i].bounds[1]):
+        #        use = 1
+        #        break
         for i in range(self.n_field_tables):
             self.istorage[i] = FIT_get_value(&self.field_tables[i], dvs)
         # We have to do this after the interpolation
@@ -388,6 +387,7 @@ cdef class PartitionedGrid:
                                  TransferFunctionProxy tf):
         cdef int cur_ind[3], step[3], x, y, i, n, flat_ind, hit, direction
         cdef np.float64_t intersect_t = 1.0
+        cdef np.float64_t iv_dir[3]
         cdef np.float64_t intersect[3], tmax[3], tdelta[3]
         cdef np.float64_t enter_t, dist, alpha, dt, exit_t
         cdef np.float64_t tr, tl, temp_x, temp_y, dv
@@ -398,8 +398,8 @@ cdef class PartitionedGrid:
                 step[i] = 1
             x = (i+1) % 3
             y = (i+2) % 3
-            tl = (self.left_edge[i] - v_pos[i])/v_dir[i]
-            tr = (self.right_edge[i] - v_pos[i])/v_dir[i]
+            iv_dir[i] = 1.0/v_dir[0]
+            tl = (self.left_edge[i] - v_pos[i])*iv_dir[i]
             temp_x = (v_pos[x] + tl*v_dir[x])
             temp_y = (v_pos[y] + tl*v_dir[y])
             if self.left_edge[x] <= temp_x and temp_x <= self.right_edge[x] and \
@@ -407,6 +407,7 @@ cdef class PartitionedGrid:
                0.0 <= tl and tl < intersect_t:
                 direction = i
                 intersect_t = tl
+            tr = (self.right_edge[i] - v_pos[i])*iv_dir[i]
             temp_x = (v_pos[x] + tr*v_dir[x])
             temp_y = (v_pos[y] + tr*v_dir[y])
             if self.left_edge[x] <= temp_x and temp_x <= self.right_edge[x] and \
@@ -425,7 +426,7 @@ cdef class PartitionedGrid:
                                       step[i]*1e-8*self.dds[i] -
                                       self.left_edge[i])*self.idds[i])
             tmax[i] = (((cur_ind[i]+step[i])*self.dds[i])+
-                        self.left_edge[i]-v_pos[i])/v_dir[i]
+                        self.left_edge[i]-v_pos[i])*iv_dir[i]
             # This deals with the asymmetry in having our indices refer to the
             # left edge of a cell, but the right edge of the brick being one
             # extra zone out.
@@ -434,11 +435,11 @@ cdef class PartitionedGrid:
             if cur_ind[i] < 0 or cur_ind[i] >= self.dims[i]: return 0
             if step[i] > 0:
                 tmax[i] = (((cur_ind[i]+1)*self.dds[i])
-                            +self.left_edge[i]-v_pos[i])/v_dir[i]
+                            +self.left_edge[i]-v_pos[i])*iv_dir[i]
             if step[i] < 0:
                 tmax[i] = (((cur_ind[i]+0)*self.dds[i])
-                            +self.left_edge[i]-v_pos[i])/v_dir[i]
-            tdelta[i] = (self.dds[i]/v_dir[i])
+                            +self.left_edge[i]-v_pos[i])*iv_dir[i]
+            tdelta[i] = (self.dds[i]*iv_dir[i])
             if tdelta[i] < 0: tdelta[i] *= -1
         # We have to jumpstart our calculation
         enter_t = intersect_t
