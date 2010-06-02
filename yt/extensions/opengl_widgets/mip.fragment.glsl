@@ -41,6 +41,12 @@ vec4 getRayAndSteps(vec3 edgeLoc)
     
     // Check for all six planes how many rays fit from the start point.
     // Take the minimum value (not counting negative and 0).
+
+    vec3 result1 = vec3(edgeLoc - gl_ModelViewMatrixInverse[3].xyz);
+    result1 = normalize(result1);
+    
+    return vec4(result1, 10.0);
+
     float smallest = 9999999.0;
     smallest = min(smallest, d2P(edgeLoc, ray, vec4(1.0, 0.0, 0.0, 0.0)));
     smallest = min(smallest, d2P(edgeLoc, ray, vec4(0.0, 1.0, 0.0, 0.0)));

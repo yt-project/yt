@@ -22,7 +22,7 @@ License:
 
 # A simple image viewer, soon to be useful for stereo images, using OpenGL.
 
-import sys
+import sys, os
 import OpenGL.GL as GL
 import OpenGL.GLUT as GLUT
 import OpenGL.GLU as GLU
@@ -121,7 +121,6 @@ class MIPScene(GenericGLUTScene):
         print "Uploaded", len(self._brick_textures)
 
     def _setup_colormap(self):
-        create_fbo(self.gl_state)
 
         buffer = na.mgrid[0.0:1.0:256j]
         colors = map_to_colors(buffer, "algae")
@@ -167,6 +166,7 @@ class MIPScene(GenericGLUTScene):
         self.position[2] = -2 # Offset backwards a bit
 
         self._setup_bricks()
+        create_fbo(self.gl_state)
         self._setup_colormap()
 
     def init_opengl(self, width, height):
@@ -195,12 +195,13 @@ class MIPScene(GenericGLUTScene):
         GL.glMatrixMode(GL.GL_MODELVIEW)
 
     def recompile(self):
+        base = os.path.dirname(__file__) + "/"
         self.program = compileProgram(
             shaders.compileShader(
-                open("calculateRay.vertex.glsl").read(),
+                open(base+"calculateRay.vertex.glsl").read(),
                 GL.GL_VERTEX_SHADER),
             shaders.compileShader(
-                open("mip.fragment.glsl").read(),
+                open(base+"mip.fragment.glsl").read(),
                 GL.GL_FRAGMENT_SHADER))
 
         def _set_simple_uniform(prog):
@@ -213,10 +214,10 @@ class MIPScene(GenericGLUTScene):
 
         self.fbo_program = compileProgram(
             shaders.compileShader(
-                open("framebuffer.vertex.glsl").read(),
+                open(base+"framebuffer.vertex.glsl").read(),
                 GL.GL_VERTEX_SHADER),
             shaders.compileShader(
-                open("colormap.fragment.glsl").read(),
+                open(base+"colormap.fragment.glsl").read(),
                 GL.GL_FRAGMENT_SHADER),
             callback = _set_simple_uniform)
 
@@ -245,8 +246,8 @@ class MIPScene(GenericGLUTScene):
             GL.glDisable(GL.GL_LINE_SMOOTH)
             GL.glDisable(GL.GL_POINT_SMOOTH)
             GL.glEnable(GL.GL_CULL_FACE)
-            #GL.glCullFace(GL.GL_FRONT)
-            GL.glCullFace(GL.GL_BACK)
+            GL.glCullFace(GL.GL_FRONT)
+            #GL.glCullFace(GL.GL_BACK)
 
         GL.glLoadIdentity()
         GL.glTranslatef(*self.position)
