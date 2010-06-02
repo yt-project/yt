@@ -13,8 +13,6 @@ uniform float stepRatio;
 
 // varyings to pass to fragment shader
 varying vec3 ray;
-varying vec3 L;
-varying vec3 V;
 
 void main()
 {    
@@ -60,6 +58,6 @@ void main()
     ray = ray * 0.58; // 1 over root of three = 0.577
     
     // Scale ray to take smaller steps.
-    ray = -ray / stepRatio;
+    ray = ray / stepRatio;
     
 }

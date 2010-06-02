@@ -64,6 +64,8 @@ class MIPScene(GenericGLUTScene):
     _display_mode = (GLUT.GLUT_RGBA | GLUT.GLUT_DOUBLE | GLUT.GLUT_DEPTH)
     _title = "MIP"
 
+    gl_state = None
+
     def _get_brick_vertices(self, offset):
         for b in self.hv.bricks:
             s = [ [-0.5, -0.5, -0.5],
@@ -119,35 +121,7 @@ class MIPScene(GenericGLUTScene):
         print "Uploaded", len(self._brick_textures)
 
     def _setup_colormap(self):
-        GL.glActiveTexture(GL.GL_TEXTURE0)
-        id_fbo = GL.glGenTextures(1)
-        id_depth = GL_fbo.glGenRenderbuffers(1)
-        self.id_fbo = id_fbo, id_depth, GL_fbo.glGenFramebuffers(1)
-
-        GL.glBindTexture(GL.GL_TEXTURE_2D, id_fbo)
-        GL.glPixelStorei(GL.GL_UNPACK_ALIGNMENT, 1)
-        GL.glTexParameterf(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_WRAP_S, GL.GL_CLAMP_TO_EDGE)
-        GL.glTexParameterf(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_WRAP_T, GL.GL_CLAMP_TO_EDGE)
-        GL.glTexParameterf(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_MAG_FILTER, GL.GL_NEAREST)
-        GL.glTexParameterf(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_MIN_FILTER, GL.GL_NEAREST)
-        GL.glTexImage2D(GL.GL_TEXTURE_2D, 0, GL.GL_RGBA8,
-                        self.width, self.height, 0,
-                        GL.GL_RGBA, GL.GL_UNSIGNED_BYTE, None)
-
-        GL_fbo.glBindFramebuffer(GL_fbo.GL_FRAMEBUFFER, self.id_fbo[2])
-        GL_fbo.glFramebufferTexture2D(GL_fbo.GL_FRAMEBUFFER,
-            GL_fbo.GL_COLOR_ATTACHMENT0, GL.GL_TEXTURE_2D, self.id_fbo[0], 0)
-
-        GL_fbo.glBindRenderbuffer(GL_fbo.GL_RENDERBUFFER, id_depth)
-        GL_fbo.glRenderbufferStorage(GL_fbo.GL_RENDERBUFFER,
-            GL.GL_DEPTH_COMPONENT, self.width, self.height)
-        GL_fbo.glFramebufferRenderbuffer(
-            GL_fbo.GL_FRAMEBUFFER, GL_fbo.GL_DEPTH_ATTACHMENT,
-            GL_fbo.GL_RENDERBUFFER, id_depth)
-
-        GL_fbo.glBindFramebuffer(GL_fbo.GL_FRAMEBUFFER, 0)
-        GL_fbo.glBindRenderbuffer(GL_fbo.GL_RENDERBUFFER, 0)
-
+        create_fbo(self.gl_state)
 
         buffer = na.mgrid[0.0:1.0:256j]
         colors = map_to_colors(buffer, "algae")
@@ -163,7 +137,7 @@ class MIPScene(GenericGLUTScene):
         GL.glTexImage1D(GL.GL_TEXTURE_1D, 0, GL.GL_RGBA, 256, 0,
                         GL.GL_RGBA, GL.GL_UNSIGNED_BYTE, colors)
 
-        self.id_cmap = id_cmap
+        self.gl_state["cmap_tex"] = id_cmap
 
     def __init__(self, hv, offset = 0.5):
         self.offset = offset
@@ -175,6 +149,7 @@ class MIPScene(GenericGLUTScene):
         self.wireframe = False
         self.glda = True
         self._setup_keypress_handler()
+        self.gl_state = {}
         GenericGLUTScene.__init__(self, 800, 800)
 
         num = len(hv.bricks) * 6 * 4
@@ -197,8 +172,8 @@ class MIPScene(GenericGLUTScene):
     def init_opengl(self, width, height):
         # One-time GL setup
 
-        self.width = width
-        self.height = height
+        self.gl_state["width"] = width
+        self.gl_state["height"] = height
 
         self.set_viewport()
 
@@ -213,10 +188,10 @@ class MIPScene(GenericGLUTScene):
         GL.glColor3f(1, 0, 0)
         GL.glEnable(GL.GL_DEPTH_TEST)
 
-        GL.glViewport(0, 0, self.width, self.height)
+        GL.glViewport(0, 0, self.gl_state["width"], self.gl_state["height"])
         GL.glMatrixMode(GL.GL_PROJECTION)
         GL.glLoadIdentity()
-        GLU.gluPerspective(60., self.width / float(self.height), 1e-3, 10.)
+        GLU.gluPerspective(60., self.gl_state["width"] / float(self.gl_state["height"]), 1e-3, 10.)
         GL.glMatrixMode(GL.GL_MODELVIEW)
 
     def recompile(self):
@@ -231,10 +206,8 @@ class MIPScene(GenericGLUTScene):
         def _set_simple_uniform(prog):
             GL.glUseProgram(prog)
             loc = GL.glGetUniformLocation(prog, 'buffer')
-            print "texture", loc
             GL.glUniform1i(loc, 0)
             loc = GL.glGetUniformLocation(prog, 'colormap')
-            print "colormap", loc
             GL.glUniform1i(loc, 1)
             GL.glUseProgram(0)
 
@@ -258,14 +231,8 @@ class MIPScene(GenericGLUTScene):
 
         print self.uniform_locations, self.fbo_uniform_locations
 
-    def draw(self):
-        GL_fbo.glBindFramebuffer(GL_fbo.GL_FRAMEBUFFER, self.id_fbo[2])
-        GL_fbo.glBindRenderbuffer(GL_fbo.GL_RENDERBUFFER, self.id_fbo[1])
-        self.set_viewport()
-        GL.glPushAttrib(GL.GL_VIEWPORT_BIT)
-        GL.glViewport(0,0,self.width, self.height)
-        status = GL_fbo.glCheckFramebufferStatus(GL_fbo.GL_FRAMEBUFFER)
-        assert(status == GL_fbo.GL_FRAMEBUFFER_COMPLETE)
+    @render_fbo
+    def _draw_boxes(self):
         GL.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT)
         GL.glDisable(GL.GL_DEPTH_TEST)
         GL.glEnable(GL.GL_BLEND)
@@ -288,11 +255,9 @@ class MIPScene(GenericGLUTScene):
         GL.glRotatef(self.rotation[2], 1, 0, 0)
 
         GL.glColor3f(0.0, 0.0, 0.0)
-        # We can just draw a single quad for now
         GL.glUseProgram(self.program)
         scalebias = ( 1.0/(self.ma - self.mi), -self.mi)
         GL.glUniform1i(self.uniform_locations["texture"], 0)
-        #GL.glUniform1i(self.uniform_locations["colormap"], 1)
         GL.glUniform2f(self.uniform_locations["scaleBias"], scalebias[0], scalebias[1])
         GL.glUniform1f(self.uniform_locations["stepRatio"], 1.0)
 
@@ -339,13 +304,12 @@ class MIPScene(GenericGLUTScene):
         GL.glDisableClientState(GL.GL_TEXTURE_COORD_ARRAY_EXT)
         self.vertices.unbind()
         self.tvertices.unbind()
-        print self.ma, self.mi
-        GL.glPopAttrib(GL.GL_VIEWPORT_BIT)
         GL.glDisable(GL.GL_CULL_FACE)
 
-        # Now, we just want to draw 
+    def draw(self):
 
-        GL_fbo.glBindFramebuffer(GL_fbo.GL_FRAMEBUFFER, 0)
+        self._draw_boxes()
+
         GL.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT)
         GL.glUseProgram(self.fbo_program)
 
@@ -357,11 +321,11 @@ class MIPScene(GenericGLUTScene):
 
         GL.glActiveTexture(GL.GL_TEXTURE0)
         GL.glEnable(GL.GL_TEXTURE_2D)
-        GL.glBindTexture(GL.GL_TEXTURE_2D, self.id_fbo[0])
+        GL.glBindTexture(GL.GL_TEXTURE_2D, self.gl_state["fbo_tex"])
 
         GL.glActiveTexture(GL.GL_TEXTURE1)
         GL.glEnable(GL.GL_TEXTURE_1D)
-        GL.glBindTexture(GL.GL_TEXTURE_1D, self.id_cmap)
+        GL.glBindTexture(GL.GL_TEXTURE_1D, self.gl_state["cmap_tex"])
 
         GL.glUniform1i(self.fbo_uniform_locations["buffer"], 0)
         GL.glUniform1i(self.fbo_uniform_locations["colormap"], 1)

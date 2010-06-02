@@ -69,7 +69,7 @@ void main()
 {    
     
     // Get current pixel location.
-    vec3 edgeLoc = vec3(gl_TexCoord[0]).zyx;
+    vec3 edgeLoc = vec3(gl_TexCoord[0]);
     
     // Get ray and steps.
     vec4 tmp4 = getRayAndSteps(edgeLoc);
