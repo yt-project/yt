@@ -17,6 +17,7 @@ uniform vec2 scaleBias;
 varying vec3 ray;
 
 uniform vec3 shape;
+uniform vec3 position;
 
 float d2P(vec3 p, vec3 d, vec4 P)
 {
@@ -41,11 +42,6 @@ vec4 getRayAndSteps(vec3 edgeLoc)
     
     // Check for all six planes how many rays fit from the start point.
     // Take the minimum value (not counting negative and 0).
-
-    vec3 result1 = vec3(edgeLoc - gl_ModelViewMatrixInverse[3].xyz);
-    result1 = normalize(result1);
-    
-    return vec4(result1, 10.0);
 
     float smallest = 9999999.0;
     smallest = min(smallest, d2P(edgeLoc, ray, vec4(1.0, 0.0, 0.0, 0.0)));
@@ -84,7 +80,8 @@ void main()
     
     // Init. Remember that we made sure that the total range of the data is 
     // mapped between 0 and 1 (also for signed data types).
-    float maxval = texture3D(texture, edgeLoc + 1.0*ray2.xyz)[0];
+    //float maxval = texture3D(texture, edgeLoc + 1.0*ray2.xyz)[0];
+    float maxval = -1e30;
     
     // Cast ray. For some reason the inner loop is not iterated the whole
     // way for large datasets. Thus this ugly hack. If you know how to do

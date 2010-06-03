@@ -60,6 +60,14 @@ _corner_list = [0,1,2,3, 4,5,6,7, 3,2,6,5, 0,4,7,1, 0,3,5,4, 1,7,6,2]
 _corner_vals = [ (0,0,0), (1,0,0), (1,1,0), (0,1,0),
                  (0,0,1), (0,1,1), (1,1,1), (1,0,1) ]
 
+_reversed = {2:0,1:1,0:2}
+
+def _compress(lr, s, i):
+    
+    if lr == 0: return 0.5/s[_reversed[i]]
+    else: return -0.5/s[_reversed[i]]
+    
+
 class MIPScene(GenericGLUTScene):
     _display_mode = (GLUT.GLUT_RGBA | GLUT.GLUT_DOUBLE | GLUT.GLUT_DEPTH)
     _title = "MIP"
@@ -69,7 +77,7 @@ class MIPScene(GenericGLUTScene):
     def _get_brick_vertices(self, offset):
         for b in self.hv.bricks:
             s = [ [-0.5, -0.5, -0.5],
-                  [b.my_data[0].shape[i] - 0.5 for i in xrange(3)] ]
+                  [b.my_data[0].shape[i] - 1.5 for i in reversed(xrange(3))] ]
             for corner in _corner_list:
                 for i, v in enumerate(_corner_vals[corner]):
                     yield s[v][i]
@@ -79,9 +87,10 @@ class MIPScene(GenericGLUTScene):
               na.ones(3, dtype='float32')]
         #vs.reverse()
         for b in self.hv.bricks:
+            shape = b.my_data[0].shape
             for corner in _corner_list:
                 for i,v in enumerate(_corner_vals[corner]):
-                    yield vs[v][i]
+                    yield vs[v][i] + _compress(v, shape, i)
 
     def _setup_bricks(self):
         self._brick_textures = []
@@ -93,7 +102,7 @@ class MIPScene(GenericGLUTScene):
 
         GL.glActiveTexture(GL.GL_TEXTURE0)
         id_field = GL.glGenTextures(1)
-        upload = brick.my_data[0].astype("float32").ravel("C")
+        upload = brick.my_data[0].astype("float32")
         #upload = (upload - -31.847) / ( -25.948 - -31.847 )
         #mi, ma = -31.847, -25.948
         #mi, ma = -27.2062, -20.9649 
@@ -116,7 +125,7 @@ class MIPScene(GenericGLUTScene):
         dds = ((brick.RightEdge - brick.LeftEdge) /
                (na.array([ix,iy,iz], dtype='float32')-1))
         self._brick_textures.append(
-            (id_field, (iz-1,iy-1,ix-1), dds, brick.LeftEdge - 0.5))
+            (id_field, (ix-1,iy-1,iz-1), dds, brick.LeftEdge - 0.5))
 
         print "Uploaded", len(self._brick_textures)
 
@@ -223,7 +232,7 @@ class MIPScene(GenericGLUTScene):
 
         self.uniform_locations = dict( (
                 (v, GL.glGetUniformLocation(self.program, v)) for v in
-                ['texture','shape','scaleBias','stepRatio']
+                ['texture','shape','scaleBias','stepRatio','position']
             ) )
         self.fbo_uniform_locations = dict( (
                 (v, GL.glGetUniformLocation(self.fbo_program, v)) for v in
@@ -246,8 +255,8 @@ class MIPScene(GenericGLUTScene):
             GL.glDisable(GL.GL_LINE_SMOOTH)
             GL.glDisable(GL.GL_POINT_SMOOTH)
             GL.glEnable(GL.GL_CULL_FACE)
-            GL.glCullFace(GL.GL_FRONT)
-            #GL.glCullFace(GL.GL_BACK)
+            #GL.glCullFace(GL.GL_FRONT)
+            GL.glCullFace(GL.GL_BACK)
 
         GL.glLoadIdentity()
         GL.glTranslatef(*self.position)
@@ -261,6 +270,7 @@ class MIPScene(GenericGLUTScene):
         GL.glUniform1i(self.uniform_locations["texture"], 0)
         GL.glUniform2f(self.uniform_locations["scaleBias"], scalebias[0], scalebias[1])
         GL.glUniform1f(self.uniform_locations["stepRatio"], 1.0)
+        GL.glUniform3f(self.uniform_locations["position"], *self.position)
 
         GL.glEnableClientState(GL.GL_VERTEX_ARRAY)
         GL.glEnableClientState(GL.GL_TEXTURE_COORD_ARRAY)
@@ -282,10 +292,10 @@ class MIPScene(GenericGLUTScene):
             GL.glBindTexture(GL.GL_TEXTURE_3D, tex)
             GL.glUniform1f(self.uniform_locations["stepRatio"], 0.1)
             GL.glUniform3f(self.uniform_locations["shape"],
-                shape[0], shape[1], shape[2])
+                shape[2], shape[1], shape[0])
             GL.glPushMatrix()
-            GL.glTranslate(LE[0], LE[1], LE[2])
-            GL.glScale(width[0], width[1], width[2])
+            GL.glTranslate(LE[2], LE[1], LE[0])
+            GL.glScale(width[2], width[1], width[0])
             if self.glda:
                 GL.glDrawArrays(GL.GL_QUADS, 24*i, 24)
             else:
