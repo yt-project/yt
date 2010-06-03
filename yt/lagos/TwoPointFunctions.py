@@ -1,5 +1,5 @@
 """
-Structure Function Generator
+Two Point Functions Framework.
 
 Author: Stephen Skory <stephenskory@yahoo.com>
 Affiliation: UCSD Physics/CASS
@@ -29,19 +29,19 @@ from yt.performance_counters import yt_counters, time_function
 try:
     from yt.extensions.kdtree import *
 except ImportError:
-    mylog.debug("The Fortran kD-Tree did not import correctly. The structure function generator will not work correctly.")
+    mylog.debug("The Fortran kD-Tree did not import correctly. TwoPointFunctions will not work correctly.")
 
 import math, sys, itertools, inspect, types, time
 from collections import defaultdict
 
-class StructFcnGen(ParallelAnalysisInterface):
+class TwoPointFunction(ParallelAnalysisInterface):
     def __init__(self, pf, fields, left_edge=None, right_edge=None,
             total_values=1000000, comm_size=10000, length_type="lin",
             length_number=10, length_range=None, vol_ratio = 1,
             salt=0):
         """
         *total_values* (int) How many total (global) pair calculations to run
-        for each of the structure functions specified.
+        for each of the functions specified.
         A single integer. Default: 1,000,000.
         *comm_size* (int) How entries are sent during communication.
         Default: 10,000.
@@ -60,7 +60,7 @@ class StructFcnGen(ParallelAnalysisInterface):
         *salt* (int) a number that will be added to the random number generator
         seed. Use this if a different random series of numbers is desired when
         keeping everything else constant from this set: (MPI task count, 
-        number of ruler lengths, ruler min/max, number of structure functions,
+        number of ruler lengths, ruler min/max, number of functions,
         number of point pairs per ruler length). Default: 0.
         """
         try:
@@ -134,12 +134,12 @@ class StructFcnGen(ParallelAnalysisInterface):
     
     def add_function(self, function, out_labels, sqrt):
         """
-        Add a structure function to the list that will be evaluated at the
+        Add a function to the list that will be evaluated at the
         generated pairs of points.
         """
         fargs = inspect.getargspec(function)
         if len(fargs.args) != 5:
-            raise SyntaxError("The structure function %s needs five arguments." %\
+            raise SyntaxError("The function %s needs five arguments." %\
                 function.__name__)
         out_labels = list(out_labels)
         if len(out_labels) < 1:
@@ -149,7 +149,7 @@ class StructFcnGen(ParallelAnalysisInterface):
         if len(sqrt) != len(out_labels):
             raise SyntaxError("Please have the same number of elements in out_labels as in sqrt for function %s." %\
                 function.__name__)
-        self._fsets.append(StructSet(self, function, self.min_edge,
+        self._fsets.append(FcnSet(self, function, self.min_edge,
             out_labels, sqrt))
         return self._fsets[-1]
 
@@ -158,12 +158,12 @@ class StructFcnGen(ParallelAnalysisInterface):
     
     def run_generator(self):
         """
-        After all the structure functions have been added, run the generator.
+        After all the functions have been added, run the generator.
         """
         yt_counters("run_generator")
         # We need a function!
         if len(self._fsets) == 0:
-            mylog.error("You need to add at least one structure function!")
+            mylog.error("You need to add at least one function!")
             return None
         # Do all the startup tasks to get the grid points.
         if self.nlevels == 1:
@@ -501,7 +501,7 @@ class StructFcnGen(ParallelAnalysisInterface):
                 self.fields_vals.shape = (self.comm_size, len(self.fields)*2)
             self.points.shape = (self.comm_size, 6)
             
-            # To run the structure functions, what is key is that the
+            # To run the functions, what is key is that the
             # second point in the pair is ours.
             second_points = self.points[:,3:]
             select = na.bitwise_or((second_points < self.ds.left_edge).any(axis=1),
@@ -535,7 +535,7 @@ class StructFcnGen(ParallelAnalysisInterface):
     @parallel_blocking_call
     def write_out_means(self):
         """
-        Writes out the weighted-average value for each structure function for
+        Writes out the weighted-average value for each function for
         each dimension for each ruler length to a text file. The data is written
         to files of the name 'function_name.txt' in the current working
         directory.
@@ -567,7 +567,7 @@ class StructFcnGen(ParallelAnalysisInterface):
     def write_out_arrays(self):
         """
         Writes out the raw probability bins and the bin edges to an HDF5 file
-        for each of the structure functions. The files are named 
+        for each of the functions. The files are named 
         'function_name.txt' and saved in the current working directory.
         """
         if self.mine == 0:
@@ -594,7 +594,7 @@ class StructFcnGen(ParallelAnalysisInterface):
                 f.create_dataset("/counts", data=bin_counts)
                 f.close()
 
-class StructSet(StructFcnGen):
+class FcnSet(TwoPointFunction):
     def __init__(self,sfg, function, min_edge, out_labels, sqrt):
         self.sfg = sfg # The overarching SFG class
         self.function = function # Function to eval between the two points.
@@ -682,7 +682,7 @@ class StructSet(StructFcnGen):
 
     def _eval_st_fcn(self, results, points, vec):
         """
-        Return the value of the structure function using the provided results.
+        Return the value of the function using the provided results.
         """
         return self.function(results[:,:len(self.sfg.fields)],
             results[:,len(self.sfg.fields):], points[:,:3], points[:,3:], vec)
