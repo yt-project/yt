@@ -34,7 +34,7 @@ except ImportError:
 import math, sys, itertools, inspect, types, time
 from collections import defaultdict
 
-class TwoPointFunction(ParallelAnalysisInterface):
+class TwoPointFunctions(ParallelAnalysisInterface):
     def __init__(self, pf, fields, left_edge=None, right_edge=None,
             total_values=1000000, comm_size=10000, length_type="lin",
             length_number=10, length_range=None, vol_ratio = 1,
@@ -594,7 +594,7 @@ class TwoPointFunction(ParallelAnalysisInterface):
                 f.create_dataset("/counts", data=bin_counts)
                 f.close()
 
-class FcnSet(TwoPointFunction):
+class FcnSet(TwoPointFunctions):
     def __init__(self,sfg, function, min_edge, out_labels, sqrt):
         self.sfg = sfg # The overarching SFG class
         self.function = function # Function to eval between the two points.
