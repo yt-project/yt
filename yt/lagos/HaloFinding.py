@@ -1156,7 +1156,8 @@ class parallelHF(GenericHaloFinder, parallelHOPHaloList):
         # Adaptive subregions by bisection.
         ds_names = ["particle_position_x","particle_position_y","particle_position_z"]
         if ytcfg.getboolean("yt","inline") == False and \
-           resize and self._mpi_get_size() != 1:
+            resize and self._mpi_get_size() != 1:
+            random.seed(self._mpi_get_rank())
             cut_list = self._partition_hierarchy_3d_bisection_list()
             root_points = self._subsample_points()
             self.bucket_bounds = []
@@ -1193,6 +1194,8 @@ class parallelHF(GenericHaloFinder, parallelHOPHaloList):
         # Another approach to padding, perhaps more accurate.
         elif fancy_padding and self._distributed:
             LE_padding, RE_padding = na.empty(3,dtype='float64'), na.empty(3,dtype='float64')
+            avg_spacing = (float(vol) / data.size)**(1./3.)
+            base_padding = (self.num_neighbors)**(1./3.) * self.safety * avg_spacing
             for dim in xrange(3):
                 if ytcfg.getboolean("yt","inline") == False:
                     data = self._data_source[ds_names[dim]]
@@ -1202,7 +1205,8 @@ class parallelHF(GenericHaloFinder, parallelHOPHaloList):
                 width = self._data_source.right_edge[dim] - self._data_source.left_edge[dim]
                 area = (self._data_source.right_edge[(dim+1)%3] - self._data_source.left_edge[(dim+1)%3]) * \
                     (self._data_source.right_edge[(dim+2)%3] - self._data_source.left_edge[(dim+2)%3])
-                bin_width = float(width)/float(num_bins)
+                bin_width = base_padding
+                num_bins = int(math.ceil(width / bin_width))
                 bins = na.arange(num_bins+1, dtype='float64') * bin_width + self._data_source.left_edge[dim]
                 counts, bins = na.histogram(data, bins, new=True)
                 # left side.
