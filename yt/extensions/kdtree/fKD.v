@@ -1,7 +1,7 @@
 fKD
 
 ****** fKD_module vars:
-# Not all of these are being used, but they only take memory
+# Not all of these are being used all the time, but they only take memory
 # if they're initialized in python.
 tags(:) _integer # particle ID tags
 dist(:) _real # interparticle spacings
@@ -21,6 +21,10 @@ finish integer
 tree2 _kdtree2
 sort logical /.false./
 rearrange logical /.true./
+radius real # the unsquared radius for radius searches
+radius_n integer # the number of results to return
+nfound integer # number of neighbors within radius
+nfound_many(:) _integer # an array of number of neighbors within radius
 
 %%%% interval:
 lower real
@@ -98,6 +102,8 @@ find_nn_nearest_neighbors subroutine
 create_tree() subroutine
 free_tree() subroutine
 find_all_nn_nearest_neighbors subroutine
+find_r_nearest subroutine
+find_many_r_nearest subroutine
 find_many_nn_nearest_neighbors subroutine
 find_chunk_nearest_neighbors subroutine
 chainHOP_tags_dens subroutine

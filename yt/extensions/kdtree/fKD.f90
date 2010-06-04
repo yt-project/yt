@@ -70,6 +70,70 @@ subroutine find_many_nn_nearest_neighbors()
 
 end subroutine find_many_nn_nearest_neighbors
 
+subroutine find_r_nearest()
+    ! Given an input array of a point (qv), find the number, fortran indices and
+    ! squared distances to all neighbors within (radius) of (qv).
+    ! The number of neighbors with indices and radius returned is set by
+    ! (radius_n), and if this is smaller than (nfound) when returned,
+    ! there are neighbors missing from the results.
+    ! Store the results in (dist) and (tags).
+    use kdtree2_module
+    use fKD_module
+    use kdtree2module
+    use tree_nodemodule
+    use intervalmodule
+    
+    integer :: k
+    type(kdtree2_result),allocatable :: results(:) ! nearest neighbors
+    
+    allocate(results(radius_n))
+    nfound = 0
+    
+    ! do it.
+    call kdtree2_r_nearest(tp=tree2,qv=qv,r2=radius,nfound=nfound,nalloc=radius_n,results=results)
+    
+    tags(:) = results%idx
+    dist(:) = results%dis
+    
+    deallocate(results)
+    return
+
+end subroutine find_r_nearest
+
+subroutine find_many_r_nearest()
+    ! Given an input array of a points (qv_many), find the number, fortran indices and
+    ! squared distances to all neighbors within (radius) of (qv).
+    ! The number of neighbors with indices and radius returned is set by
+    ! (radius_n), and if this is smaller than (nfound) when returned,
+    ! there are neighbors missing from the results.
+    ! Store the results in (dist) and (tags).
+    use kdtree2_module
+    use fKD_module
+    use kdtree2module
+    use tree_nodemodule
+    use intervalmodule
+    
+    integer :: k, number
+    type(kdtree2_result),allocatable :: results(:) ! nearest neighbors
+    
+    allocate(results(radius_n))
+    
+    number = size(qv_many,2)
+    
+    do k=1, number
+        qv(:) = qv_many(:,k)
+        nfound = nfound_many(k)
+        call kdtree2_r_nearest(tp=tree2,qv=qv,r2=radius,nfound=nfound,nalloc=radius_n,results=results)
+        nfound_many(k) = nfound
+        nn_tags(:, k) = results%idx
+        nn_dist(:, k) = results%dis
+    end do
+    
+    deallocate(results)
+    return
+
+end subroutine find_many_r_nearest
+
 subroutine find_all_nn_nearest_neighbors()
     ! for all particles in pos, find their nearest neighbors and return the
     ! indexes and distances as big arrays
