@@ -24,10 +24,13 @@ License:
 """
 
 import yt.lagos as lagos
-from yt.extensions.kdtree import *
 from yt.lagos.HaloFinding import HaloFinder
 from yt.logger import lagosLogger as mylog
 import yt.extensions.HaloProfiler as HP
+try:
+    from yt.extensions.kdtree import *
+except ImportError:
+    mylog.debug("The Fortran kD-Tree did not import correctly.")
 
 import numpy as na
 import os, glob, md5, time, gc, sys
@@ -303,7 +306,7 @@ class MergerTree(DatabaseFunctions, lagos.ParallelAnalysisInterface):
         fKD.nn = 5
         fKD.sort = True
         fKD.rearrange = True
-        create_tree()
+        create_tree(0)
 
         # Find the parent points from the database.
         parent_pf = lagos.EnzoStaticOutput(parentfile)
@@ -330,7 +333,7 @@ class MergerTree(DatabaseFunctions, lagos.ParallelAnalysisInterface):
             candidates[row[0]] = nIDs
         
         del fKD.pos, fKD.tags, fKD.dist
-        free_tree() # Frees the kdtree object.
+        free_tree(0) # Frees the kdtree object.
         
         self.candidates = candidates
         

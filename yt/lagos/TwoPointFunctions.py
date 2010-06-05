@@ -29,10 +29,12 @@ from yt.performance_counters import yt_counters, time_function
 try:
     from yt.extensions.kdtree import *
 except ImportError:
-    mylog.debug("The Fortran kD-Tree did not import correctly. TwoPointFunctions will not work correctly.")
+    mylog.debug("The Fortran kD-Tree did not import correctly.")
 
 import math, sys, itertools, inspect, types, time
 from collections import defaultdict
+
+sep = 12
 
 class TwoPointFunctions(ParallelAnalysisInterface):
     def __init__(self, pf, fields, left_edge=None, right_edge=None,
@@ -57,6 +59,17 @@ class TwoPointFunctions(ParallelAnalysisInterface):
         the simulational volume.
         A single pair (a list or array). Default: [sqrt(3)dx, 1/2*shortest box edge],
         where dx is the smallest grid cell size.
+        *vol_ratio* (int) How to multiply-assign subvolumes to the parallel
+        tasks. This number must be an integer factor of the total number of tasks or
+        very bad things will happen. The default value of 1 will assign one task
+        to each subvolume, and there will be an equal number of subvolumes as tasks.
+        A value of 2 will assign two tasks to each subvolume and there will be
+        one-half as many subvolumes as tasks.
+        A value equal to the number of parallel tasks will result in each task
+        owning a complete copy of all the fields data, meaning each task will be
+        operating on the identical full volume.
+        Setting it to -1 will automatically adjust it such that each task
+        owns the entire volume.
         *salt* (int) a number that will be added to the random number generator
         seed. Use this if a different random series of numbers is desired when
         keeping everything else constant from this set: (MPI task count, 
@@ -73,6 +86,8 @@ class TwoPointFunctions(ParallelAnalysisInterface):
         self.size = self._mpi_get_size()
         self.mine = self._mpi_get_rank()
         self.vol_ratio = vol_ratio
+        if self.vol_ratio == -1:
+            self.vol_ratio = self.size
         self.total_values = int(total_values / self.size)
         # For communication.
         self.recv_hooks = []
@@ -132,7 +147,7 @@ class TwoPointFunctions(ParallelAnalysisInterface):
         self.width = self.ds.right_edge - self.ds.left_edge
         self.mt = na.random.mtrand.RandomState(seed = 1234 * self.mine + salt)
     
-    def add_function(self, function, out_labels, sqrt):
+    def add_function(self, function, out_labels, sqrt, corr_norm=None):
         """
         Add a function to the list that will be evaluated at the
         generated pairs of points.
@@ -150,7 +165,7 @@ class TwoPointFunctions(ParallelAnalysisInterface):
             raise SyntaxError("Please have the same number of elements in out_labels as in sqrt for function %s." %\
                 function.__name__)
         self._fsets.append(FcnSet(self, function, self.min_edge,
-            out_labels, sqrt))
+            out_labels, sqrt,corr_norm))
         return self._fsets[-1]
 
     def __getitem__(self, key):
@@ -166,7 +181,7 @@ class TwoPointFunctions(ParallelAnalysisInterface):
             mylog.error("You need to add at least one function!")
             return None
         # Do all the startup tasks to get the grid points.
-        if self.nlevels == 1:
+        if self.nlevels == 0:
             yt_counters("build_sort")
             self._build_sort_array()
             self.sort_done = False
@@ -227,9 +242,9 @@ class TwoPointFunctions(ParallelAnalysisInterface):
                 mylog.info("Length (%d of %d) %1.5e took %d communication cycles to complete." % \
                 (bigloop+1, len(self.lengths), length, self.comm_cycle_count))
         yt_counters("big loop over lengths")
-        if self.nlevels > 1:
+        if self.nlevels >= 1:
             del fKD.pos, fKD.qv_many, fKD.nn_tags
-            free_tree() # Frees the kdtree object.
+            free_tree(0) # Frees the kdtree object.
         yt_counters("allsum")
         self._allsum_bin_hits()
         mylog.info("Spent %f seconds waiting for communication." % t_waiting)
@@ -252,7 +267,7 @@ class TwoPointFunctions(ParallelAnalysisInterface):
         fKD.nn = 1
         fKD.sort = False
         fKD.rearrange = True
-        create_tree()
+        create_tree(0)
 
     def _build_sort_array(self):
         """
@@ -422,7 +437,7 @@ class TwoPointFunctions(ParallelAnalysisInterface):
         """
         Finds the closest grid cell for each point in a vectorized manner.
         """
-        if self.nlevels == 1:
+        if self.nlevels == 0:
             pos = (points - self.ds.left_edge) / self.width
             n = (self.sizes[2] * pos[:,2]).astype('int32')
             n += self.sizes[2] * (self.sizes[1] * pos[:,1]).astype('int32')
@@ -540,7 +555,6 @@ class TwoPointFunctions(ParallelAnalysisInterface):
         to files of the name 'function_name.txt' in the current working
         directory.
         """
-        sep = 12
         for fset in self._fsets:
             fp = self._write_on_root("%s.txt" % fset.function.__name__)
             fset._avg_bin_hits()
@@ -594,13 +608,35 @@ class TwoPointFunctions(ParallelAnalysisInterface):
                 f.create_dataset("/counts", data=bin_counts)
                 f.close()
 
+    @parallel_root_only
+    def write_out_correlation(self):
+        """
+        A special output function for doing two point correlation functions.
+        Outputs the correlation function xi(r) in a text file
+        'function_name_corr.txt' in the current working directory.
+        """
+        for fset in self._fsets:
+            # Only operate on correlation functions.
+            if fset.corr_norm == None: continue
+            fp = self._write_on_root("%s_correlation.txt" % fset.function.__name__)
+            line = "# length".ljust(sep)
+            line += "\\xi".ljust(sep)
+            fp.write(line + "\n")
+            xi = fset._corr_sum_norm()
+            for length in self.lengths:
+                line = ("%1.5e" % length).ljust(sep)
+                line += ("%1.5e" % xi[length]).ljust(sep)
+                fp.write(line + "\n")
+            fp.close()
+
 class FcnSet(TwoPointFunctions):
-    def __init__(self,sfg, function, min_edge, out_labels, sqrt):
-        self.sfg = sfg # The overarching SFG class
+    def __init__(self,tpf, function, min_edge, out_labels, sqrt, corr_norm):
+        self.tpf = tpf # The overarching TPF class
         self.function = function # Function to eval between the two points.
         self.min_edge = min_edge # The length of the minimum edge of the box.
         self.out_labels = out_labels # For output.
         self.sqrt = sqrt # which columns to sqrt on output.
+        self.corr_norm = corr_norm # A number used to normalize a correlation function.
         # These below are used to track how many times the function returns
         # unbinned results.
         self.too_low = na.zeros(len(self.out_labels), dtype='int32')
@@ -622,7 +658,7 @@ class FcnSet(TwoPointFunctions):
         Default: None.
         """
         # This should be called after setSearchParams.
-        if not hasattr(self.sfg, "lengths"):
+        if not hasattr(self.tpf, "lengths"):
             mylog.error("Please call setSearchParams() before calling setPDFParams().")
             return None
         # Make sure they're either all lists or only one is.
@@ -657,7 +693,7 @@ class FcnSet(TwoPointFunctions):
         # Create the dict that stores the arrays to store the bin hits, and
         # the arrays themselves.
         self.length_bin_hits = {}
-        for length in self.sfg.lengths:
+        for length in self.tpf.lengths:
             # It's easier to index flattened, but will be unflattened later.
             self.length_bin_hits[length] = na.zeros(self.bin_number,
                 dtype='int64').flatten()
@@ -684,8 +720,8 @@ class FcnSet(TwoPointFunctions):
         """
         Return the value of the function using the provided results.
         """
-        return self.function(results[:,:len(self.sfg.fields)],
-            results[:,len(self.sfg.fields):], points[:,:3], points[:,3:], vec)
+        return self.function(results[:,:len(self.tpf.fields)],
+            results[:,len(self.tpf.fields):], points[:,:3], points[:,3:], vec)
         """
         NOTE - A function looks like:
         def stuff(a,b,r1,r2, vec):
@@ -742,9 +778,19 @@ class FcnSet(TwoPointFunctions):
         For each dimension and length of bin_hits return the weighted average.
         """
         self.length_avgs = defaultdict(dict)
-        for length in self.sfg.lengths:
+        for length in self.tpf.lengths:
             for dim in self.dims:
                 self.length_avgs[length][dim] = \
                     (self._dim_sum(self.length_bin_hits[length], dim) * \
                     ((self.bin_edges[dim][:-1] + self.bin_edges[dim][1:]) / 2.)).sum()
 
+    def _corr_sum_norm(self):
+        """
+        Return the correlations xi for this function. We are tacitly assuming
+        that all correlation functions are one dimensional.
+        """
+        xi = {}
+        for length in self.tpf.lengths:
+            xi[length] = -1 + na.sum(self.length_bin_hits[length] * \
+                self.bin_edges[0][:-1]) / self.corr_norm
+        return xi
