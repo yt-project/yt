@@ -55,7 +55,9 @@ from yt.lagos import EnzoStaticOutput, \
 fieldInfo = EnzoFieldInfo
 
 # Now individual component imports from raven
-from yt.raven import PlotCollection, PlotCollectionInteractive, get_multi_plot
+from yt.raven import PlotCollection, PlotCollectionInteractive, \
+        get_multi_plot, FixedResolutionBuffer, ObliqueFixedResolutionBuffer, \
+        AnnuliProfiler
 from yt.raven.Callbacks import callback_registry
 for name, cls in callback_registry.items():
     exec("%s = cls" % name)

@@ -395,7 +395,6 @@ class EnzoHierarchy(AMRHierarchy):
         self._guess_data_style(self.pf["TopGridRank"], test_grid, test_grid_id)
 
     def _guess_data_style(self, rank, test_grid, test_grid_id):
-        if self.data_style is not None: return
         if test_grid[0] != os.path.sep:
             test_grid = os.path.join(self.directory, test_grid)
         if not os.path.exists(test_grid):
@@ -403,6 +402,7 @@ class EnzoHierarchy(AMRHierarchy):
                                     os.path.basename(test_grid))
             mylog.debug("Your data uses the annoying hardcoded path.")
             self._strip_path = True
+        if self.data_style is not None: return
         try:
             a = SD.SD(test_grid)
             self.data_style = 'enzo_hdf4'

@@ -54,8 +54,12 @@ def multi_image_composite(fn, red_channel, blue_channel,
     blue_channel = _scale_image(blue_channel)
     if green_channel is None:
         green_channel = na.zeros(red_channel.shape, dtype='uint8')
+    else:
+        green_channel = _scale_image(green_channel)
     if alpha_channel is None:
         alpha_channel = na.zeros(red_channel.shape, dtype='uint8') + 255
+    else:
+        alpha_channel = _scale_image(alpha_channel) 
     image = na.array([red_channel, green_channel, blue_channel, alpha_channel])
     image = image.transpose().copy() # Have to make sure it's contiguous 
     au.write_png(image, fn)
