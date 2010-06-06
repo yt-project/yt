@@ -33,7 +33,7 @@ import copy
 from math import pi
 
 from yt.funcs import *
-from FieldInfoContainer import *
+from field_info_container import *
 
 from yt.amr_utils import CICDeposit_3
 
