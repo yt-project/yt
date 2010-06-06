@@ -487,9 +487,8 @@ class OrionStaticOutput(StaticOutput):
         StaticOutput.__init__(self, plotname.rstrip("/"),
                               data_style='orion_native')
         self.field_info = self._fieldinfo_class()
+        self._parse_header_file()
 
-        # self.directory is the directory ENCLOSING the pltNNNN directory
-        
         # These should maybe not be hardcoded?
         self.parameters["HydroMethod"] = 'orion' # always PPM DE
         self.parameters["InitialTime"] = 0. # FIX ME!!!
@@ -574,7 +573,21 @@ class OrionStaticOutput(StaticOutput):
                     self.fparameters[param] = t[0]
                 else:
                     self.fparameters[param] = t
-                
+
+    def _parse_header_file(self):
+        """
+        Parses the BoxLib header file to get any parameters stored
+        there. Hierarchy information is read out of this file in
+        OrionHierarchy. 
+
+        Currently, only Time is read here.
+        """
+        header_file = open(os.path.join(self.fullplotdir,'Header'))
+        lines = header_file.readlines()
+        header_file.close()
+        n_fields = int(lines[1])
+        self.parameters["Time"] = float(lines[3+n_fields])
+
                 
     def _set_units(self):
         """

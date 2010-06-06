@@ -1166,11 +1166,11 @@ contains
        call kdtree2_sort_results(nfound, results)
     endif
 
-    if (sr%overflow) then
-       write (*,*) 'KD_TREE_TRANS: warning! return from kdtree2_r_nearest found more neighbors'
-       write (*,*) 'KD_TREE_TRANS: than storage was provided for.  Answer is NOT smallest ball'
-       write (*,*) 'KD_TREE_TRANS: with that number of neighbors!  I.e. it is wrong.'
-    endif
+    !if (sr%overflow) then
+    !   write (*,*) 'KD_TREE_TRANS: warning! return from kdtree2_r_nearest found more neighbors'
+    !   write (*,*) 'KD_TREE_TRANS: than storage was provided for.  Answer is NOT smallest ball'
+    !   write (*,*) 'KD_TREE_TRANS: with that number of neighbors!  I.e. it is wrong.'
+    !endif
 
     return
   end subroutine kdtree2_r_nearest
