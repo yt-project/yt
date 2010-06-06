@@ -71,13 +71,4 @@ if default_cmap != "jet":
     mylog.debug("Setting default colormap to %s", default_cmap)
     matplotlib.rc('image', cmap=default_cmap)
 
-from PlotCollection import *
-try:
-    from PlotConfig import *
-except ImportError:
-    mylog.warn("No automated plotting.  Thanks, elementtree!")
-
-try:
-    from Plot3DInterface import *
-except ImportError:
-    mylog.debug("S2PLOT interface not available")
+from plot_collection import *

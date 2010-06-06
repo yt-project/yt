@@ -385,6 +385,7 @@ class EnzoHierarchy(AMRHierarchy):
         self.num_stars = 0
         for line in rlines(open(self.hierarchy_filename, "rb")):
             if line.startswith("BaryonFileName") or \
+               line.startswith("ParticleFileName") or \
                line.startswith("FileName "):
                 test_grid = line.split("=")[-1].strip().rstrip()
             if line.startswith("NumberOfStarParticles"):

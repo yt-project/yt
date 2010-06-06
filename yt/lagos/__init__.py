@@ -71,7 +71,7 @@ from OrionDefs import *
 from ParallelTools import *
 # Now our fields
 #from DerivedFields import *
-from FieldInfoContainer import *
+from field_info_container import *
 from UniversalFields import *
 from EnzoFields import *
 from OrionFields import *
@@ -93,7 +93,7 @@ from ParticleIO import *
 from BaseDataTypes import *
 from BaseGridType import *
 from EnzoRateData import *
-from ObjectFindingMixin import *
+from object_finding_mixin import *
 from HierarchyType import *
 from OutputTypes import *
 from Profiles import *
