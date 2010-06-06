@@ -339,8 +339,8 @@ class PlotCollection(object):
 
         See Also
         --------
-        `yt.lagos.AMRSliceBase` : This is the type created by this function and 
-                                  passed to the plot created here.
+        yt.lagos.AMRSliceBase : This is the type created by this function and 
+                                passed to the plot created here.
 
         Notes
         -----
@@ -480,7 +480,7 @@ class PlotCollection(object):
             This parameter can act as a proxy for the manual creation of a
             figure.  By specifying it, you can create plots with an arbitrarily
             large or small size.  It is in inches, defaulting to 100 dpi.
-        obj : `yt.lagos.AMRCuttingPlaneBase`, optional
+        obj : `AMRCuttingPlaneBase`, optional
             If you would like to use an existing cutting plane, you may specify
             it here, in which case a new cutting plane will not be created.
         field_parameters : dict, optional
@@ -495,8 +495,7 @@ class PlotCollection(object):
 
         See Also
         --------
-        `yt.lagos.AMRCuttingPLaneBase` : This is the type created by this function and 
-                                         passed to the plot created here.
+        yt.lagos.AMRCuttingPlaneBase : This is the type created by this function.
 
         Notes
         -----
