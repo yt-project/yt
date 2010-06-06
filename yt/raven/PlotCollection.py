@@ -200,80 +200,174 @@ class PlotCollection(object):
             plot.set_ylim(*lim[2:])
 
     def autoscale(self):
-        """
-        Turn back on autoscaling.
+        r"""Turn on autoscaling on all plots.
+
+        This has the same effect as:
+
+        >>> for p in pc: p.set_autoscale(True)
+
+        By default, all plots are autoscaled until the colorbar is set
+        manually.  This turns autoscaling back on.  The colors may not be
+        updated unless _redraw_image is called on the plots, which should occur
+        with a change in the width or saving of images.
         """
         for plot in self.plots:
             plot.set_autoscale(True)
 
     def set_width(self, width, unit):
-        """
-        Set the witdh of the slices, cutting planes and projections to be
-        *width* *units*
+        r"""Change the width of all image plots.
+
+        This function changes all the widths of the image plots (but notably
+        not any phase plots or profile plots) to be a given physical extent.
+
+        Parameters
+        ----------
+        width : float
+            The numeric value of the new width.
+        unit : string
+            The unit corresponding to the width given.
         """
         for plot in self.plots:
             plot.set_width(width, unit)
 
     def set_cmap(self, cmap):
-        """
-        Change the colormap of all plots to *cmap*.
+        r"""Change the colormap of all plots.
+
+        This function will update the colormap on all plots for which a
+        colormap makes sense.  The colors may not be updated unless
+        _redraw_image is called on the plots, which should occur with a change
+        in the width or saving of images.
+
+        Parameters
+        ----------
+        cmap : string
+            An acceptable colormap.  See either raven.color_maps or
+            http://www.scipy.org/Cookbook/Matplotlib/Show_colormaps .
         """
         for plot in self.plots:
             plot.set_cmap(cmap)
 
     def switch_field(self, field):
-        """
-        Change all the fields displayed to be *field*
+        r"""Change the displayed of all image plots.
+
+        All images that display a field -- slices, cutting planes, projections
+        -- will be switched to display the specified field.  For projections,
+        this will re-generate the projection, if it is unable to load the
+        projected field off-disk.
+
+        Parameters
+        ----------
+        field : string
+            Any field that can be generated or read from disk.
         """
         for plot in self.plots:
             plot.switch_z(field)
     switch_z = switch_field
 
     def _add_plot(self, plot):
-        """
-        Accept some *plot* instance that's already been created.
-        Handy for the subplot stuff that matplotlib is good at.
-        And, as long as the 'plot' object is duck-typed, we should be fine
-        with it, right?
+        r"""This function adds a plot to the plot collection.
+
+        This function is typically used internally to add a plot on to the
+        current list of plots.  However, if you choose to manually create a
+        plot, this can be used to add it to a collection for convenient
+        modification.
+
+        Parameters
+        ----------
+        plot : `yt.raven.RavenPlot`
+            A plot, which will be appended to the list of plots handled by this
+            plot collection.
+
+        Returns
+        -------
+        plot : `yt.raven.RavenPlot`
+            The plot handed to the function is passed back through.  This is
+            unnecessary, but is done for historical reasons.
         """
         self.plots.append(plot)
         return plot
 
-    def add_slice(self, *args, **kwargs):
-        """
-        Generate a slice through *field* along *axis*, optionally at
-        [axis]=*coord*, with the *center* attribute given (some 
-        degeneracy with *coord*, but not complete), with *use_colorbar*
-        specifying whether the plot is naked or not and optionally
-        providing pre-existing Matplotlib *figure* and *axes* objects.
-        *fig_size* in (height_inches, width_inches)
-        """
-        return self.__add_slice(PlotTypes.SlicePlot, *args, **kwargs)
-
-    def add_slice_interpolated(self, *args, **kwargs):
-        """
-        Generate a slice through *field* along *axis*, optionally at
-        [axis]=*coord*, with the *center* attribute given (some 
-        degeneracy with *coord*, but not complete), with *use_colorbar*
-        specifying whether the plot is naked or not and optionally
-        providing pre-existing Matplotlib *figure* and *axes* objects.
-        *fig_size* in (height_inches, width_inches)
-
-        The slice will be interpolated using the delaunay module, with natural
-        neighbor interpolation.
-        """
-        return self.__add_slice(PlotTypes.SlicePlotNaturalNeighbor, *args, **kwargs)
-
-    def __add_slice(self, ptype, field, axis, coord=None, center=None,
+    def add_slice(self, field, axis, coord=None, center=None,
                  use_colorbar=True, figure = None, axes = None, fig_size=None,
-                 periodic = True, data_source = None, **kwargs):
+                 periodic = True, data_source = None, field_parameters = None):
+        r"""Create a slice, from that a slice plot, and add it to the current
+        collection.
+
+        This function will generate a `yt.lagos.AMRSliceBase` from the given
+        parameters.  This slice then gets passed to a `yt.raven.SlicePlot`, and
+        the resultant plot is added to the current collection.  Various
+        parameters allow control of the way the slice is displayed, as well as
+        how the slice is generated.
+
+        Parameters
+        ----------
+        field : string
+            The initial field to slice and display.
+        axis : int
+            The axis along which to slice.  Can be 0, 1, or 2 for x, y, z.
+        coord : float, optional
+            The coordinate to place the slice at, along the slicing axis.
+        center : array_like, optional
+            The center to be used for things like radius and radial velocity.
+            Defaults to the center of the plot collection.
+        use_colorbar : bool, optional
+            Whether we should leave room for and create a colorbar.
+        figure : `matplotlib.figure.Figure`, optional
+            The figure onto which the axes will be placed.  Typically not used
+            unless *axes* is also specified.
+        axes : `matplotlib.axes.Axes`, optional
+            The axes object which will be used to create the image plot.
+            Typically used for things like multiplots and the like.
+        fig_size : tuple of floats
+            This parameter can act as a proxy for the manual creation of a
+            figure.  By specifying it, you can create plots with an arbitrarily
+            large or small size.  It is in inches, defaulting to 100 dpi.
+        periodic : boolean, optional
+            By default, the slices are assumed to be periodic, and they will
+            wrap around the edges.
+        data_source : `yt.lagos.AMRSliceBase`, optional
+            If you would like to use an existing slice, you may specify it
+            here, in which case a new slice will not be created.
+        field_parameters : dict, optional
+            This set of parameters will be passed to the slice upon creation,
+            which can be used for passing variables to derived fields.
+
+        Returns
+        -------
+        plot : `yt.raven.SlicePlot`
+            The plot that has been added to the PlotCollection.
+
+        See Also
+        --------
+        `yt.lagos.AMRSliceBase` : This is the type created by this function and 
+                                  passed to the plot created here.
+
+        Notes
+        -----
+        This is the primary mechanism for creating slice plots, and generating
+        slice plots along multiple axes was the original purpose of the
+        PlotCollection.
+
+        Note that all plots can be modified.  See `callback_list` for more
+        information.
+
+        Examples
+        --------
+
+        >>> pf = load("RD0005-mine/RedshiftOutput0005")
+        >>> pc = PlotCollection(pf, [0.5, 0.5, 0.5])
+        >>> p = pc.add_slice("Density", 0)
+        """
         if center == None:
             center = self.c
         if coord == None:
             coord = center[axis]
         if data_source is None:
-            data_source = self.pf.hierarchy.slice(axis, coord, field, center=center, **kwargs)
-        p = self._add_plot(ptype(data_source, field, use_colorbar=use_colorbar,
+            if field_parameters == None: field_parameters = {}
+            data_source = self.pf.hierarchy.slice(axis, coord, field,
+                            center=center, **field_parameters)
+        p = self._add_plot(PlotTypes.SlicePlot(
+                         data_source, field, use_colorbar=use_colorbar,
                          axes=axes, figure=figure,
                          size=fig_size, periodic=periodic))
         mylog.info("Added slice of %s at %s = %s with 'center' = %s", field,
@@ -283,11 +377,58 @@ class PlotCollection(object):
 
     def add_particles(self, axis, width, p_size=1.0, col='k', stride=1.0,
                       data_source=None, figure=None, axes=None):
-        """
-        Create a particle plot, where particle positions have been projected
-        along *axis* from a slab of *width* (in code units).  *p_size* is the
-        point size, *col* is color, *stride* is the stride of concatenated
-        particle lists to plot.
+        r"""Create a plot of a thick slab of particles.
+
+        This function will generate a `yt.lagos.AMRRegionBase` from the given
+        parameters, and all particles which are within that region will be
+        plotted.
+
+        Parameters
+        ----------
+        axis : int
+            The axis along which to create the thick slab.  Can be 0, 1, or 2
+            for x, y, z.
+        width : float
+            The width of the thick slab, in code units, from which particles
+            will be plotted.
+        p_size : float, optional
+            The size of the points to be used to represent the particles, in
+            pixels.
+        col : color, optional
+            Specified in matplotlib color specifications, the color that
+            particles should be.
+        stride : float, optional
+            The stride through the particles to plot.  Used to plot every
+            fifth, every tenth, etc.  Note that the sorted order of particles
+            may result in a biased selection of particles.
+        data_source : `yt.lagos.AMRData`, optional
+            If specified, this will be the data source used for obtaining
+            particles.
+        figure : `matplotlib.figure.Figure`, optional
+            The figure onto which the axes will be placed.  Typically not used
+            unless *axes* is also specified.
+        axes : `matplotlib.axes.Axes`, optional
+            The axes object which will be used to create the image plot.
+            Typically used for things like multiplots and the like.
+
+        Returns
+        -------
+        plot : `yt.raven.ParticlePlot`
+            The plot that has been added to the PlotCollection.
+
+        Notes
+        -----
+        This plot type can be very expensive, and does not necessarily produce
+        the best visual results.  Plotting a large number of particles can be
+        very tricky, and often it's much better to instead use a slice or a
+        (thin) projection of deposited density, like particle_density_pyx.
+
+        Examples
+        --------
+
+        >>> pf = load("RD0005-mine/RedshiftOutput0005")
+        >>> pc = PlotCollection(pf, [0.5, 0.5, 0.5])
+        >>> p = pc.add_particles(0, 1.0)
         """
         LE = self.pf["DomainLeftEdge"].copy()
         RE = self.pf["DomainRightEdge"].copy()
@@ -304,14 +445,81 @@ class PlotCollection(object):
     def add_cutting_plane(self, field, normal,
                           center=None, use_colorbar=True,
                           figure = None, axes = None, fig_size=None, obj=None,
-                           **kwargs):
-        """
-        Generate a cutting plane of *field* with *normal*, centered at *center*
-        (defaults to PlotCollection center) with *use_colorbar*
-        specifying whether the plot is naked or not and optionally
-        providing pre-existing Matplotlib *figure* and *axes* objects.
-        *fig_size* in (height_inches, width_inches).  If so desired,
-        *obj* is a pre-existing cutting plane object.
+                           field_parameters = None):
+        r"""Create a cutting plane, from that a plot, and add it to the current
+        collection.
+
+        A cutting plane is an oblique slice through the simulation volume,
+        oriented by a specified normal vector that is perpendicular to the
+        image plane.  This function will generate a
+        `yt.lagos.AMRCuttingPlaneBase` from the given parameters.  This cutting
+        plane then gets passed to a `yt.raven.CuttingPlanePlot`, and the
+        resultant plot is added to the current collection.  Various parameters
+        allow control of the way the slice is displayed, as well as how the
+        plane is generated.
+
+        Parameters
+        ----------
+        field : string
+            The initial field to slice and display.
+        normal : array_like
+            The vector that defines the desired plane.  For instance, the
+            angular momentum of a sphere.
+        center : array_like, optional
+            The center to be used for things like radius and radial velocity.
+            Defaults to the center of the plot collection.
+        use_colorbar : bool, optional
+            Whether we should leave room for and create a colorbar.
+        figure : `matplotlib.figure.Figure`, optional
+            The figure onto which the axes will be placed.  Typically not used
+            unless *axes* is also specified.
+        axes : `matplotlib.axes.Axes`, optional
+            The axes object which will be used to create the image plot.
+            Typically used for things like multiplots and the like.
+        fig_size : tuple of floats
+            This parameter can act as a proxy for the manual creation of a
+            figure.  By specifying it, you can create plots with an arbitrarily
+            large or small size.  It is in inches, defaulting to 100 dpi.
+        obj : `yt.lagos.AMRCuttingPlaneBase`, optional
+            If you would like to use an existing cutting plane, you may specify
+            it here, in which case a new cutting plane will not be created.
+        field_parameters : dict, optional
+            This set of parameters will be passed to the cutting plane upon
+            creation, which can be used for passing variables to derived
+            fields.
+
+        Returns
+        -------
+        plot : `yt.raven.CuttingPlanePlot`
+            The plot that has been added to the PlotCollection.
+
+        See Also
+        --------
+        `yt.lagos.AMRCuttingPLaneBase` : This is the type created by this function and 
+                                         passed to the plot created here.
+
+        Notes
+        -----
+        This is the primary mechanism for creating cutting plane plots.  Note
+        that they are somewhat slow, but useful to orient the image in an
+        arbitrary direction.
+
+        Note that all plots can be modified.  See `callback_list` for more
+        information.
+
+        Examples
+        --------
+
+        Here's a simple mechanism for getting the angular momentum of a
+        collapsing cloud and generating a cutting plane aligned with the
+        angular momentum vector.
+
+        >>> pf = load("RD0005-mine/RedshiftOutput0005")
+        >>> v, c = pf.h.find_max("Density")
+        >>> sp = pf.h.sphere(c, 1000.0/pf['au'])
+        >>> L = sp.quantities["AngularMomentumVector"]()
+        >>> pc = PlotCollection(pf)
+        >>> p = pc.add_cutting_plane("Density", L)
         """
         if center == None:
             center = self.c
@@ -327,9 +535,9 @@ class PlotCollection(object):
         p["Axis"] = "CuttingPlane"
         return p
 
-    def add_fixed_res_cutting_plane \
-            (self, field, normal, width, res=512, center=None, use_colorbar=True,
-             figure = None, axes = None, fig_size=None, obj=None, **kwargs):
+    def add_fixed_res_cutting_plane(self, field, normal, width, res=512,
+             center=None, use_colorbar=True, figure = None, axes = None,
+             fig_size=None, obj=None, **kwargs):
         """
         Generate a fixed resolution, interpolated cutting plane of
         *field* with *normal*, centered at *center* (defaults to
