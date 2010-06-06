@@ -36,16 +36,48 @@ def concatenate_pdfs(output_fn, input_fns):
 
 class PlotCollection(object):
     __id_counter = 0
-    def __init__(self, pf, center=None, deliverator_id=-1):
-        """
-        Generate a collection of linked plots using *pf* as a source,
-        optionally submitting to the deliverator with *deliverator_id*
-        and with *center*, which will otherwise be taken to be the point of
-        maximum density.
+    def __init__(self, pf, center=None):
+        r"""The primary interface for creating plots.
+
+        The PlotCollection object was created to ease the creation of multiple
+        slices, projections and so forth made from a single parameter file.
+        The concept is that when the width on one image changes, it should
+        change on all the others.  The PlotCollection can create all plot types
+        available in yt.
+
+        Parameters
+        ----------
+        pf : `StaticOutput`
+            The parameter file from which all the plots will be created.
+        center : array_like, optional
+            The 'center' supplied to plots like sphere plots, slices, and so
+            on.  Should be 3 elements.  Defaults to the point of maximum
+            density.
+        Long_variable_name : {'hi', 'ho'}, optional
+            Choices in brackets, default first when optional.
+
+        Notes
+        -----
+        This class is the primary entry point to creating plots, but it is not
+        the only entry point.  Additionally, creating a PlotCollection should
+        be a "cheap" operation.
+
+        You may iterate over the plots in the PlotCollection, via something
+        like:
+
+        >>> pc = PlotCollection(pf)
+        >>> for p in pc: print p
+
+        Examples
+        --------
+
+        >>> pc = PlotCollection(pf, center=[0.5, 0.5, 0.5])
+        >>> pc.add_slice("Density", 0)
+        >>> pc.save()
+
         """
         PlotTypes.Initialize()
         self.plots = []
-        self._run_id = deliverator_id
         self.pf = pf
         if center == None:
             v,self.c = pf.h.find_max("Density") # @todo: ensure no caching
@@ -53,15 +85,6 @@ class PlotCollection(object):
             self.c = (pf["DomainRightEdge"] + pf["DomainLeftEdge"])/2.0
         else:
             self.c = na.array(center, dtype='float64')
-        if deliverator_id > 0:
-            self.submit = True
-            self._run_id = deliverator_id
-            r=deliveration.SubmitParameterFile(\
-                deliverator_id, self.pf)
-            mylog.debug("Received response '%s'", r)
-            self._http_prefix = ytcfg["raven","httpPrefix"] % self.pf
-        else:
-            self.submit = False
         mylog.info("Created plot collection with default plot-center = %s",
                     list(self.c))
 
@@ -70,37 +93,75 @@ class PlotCollection(object):
             yield p
 
     def save(self, basename=None, format="png", override=False, force_save=False):
-        """
-        Same plots with automatically generated names, prefixed with *basename*
-        (including directory path) unless *override* is specified, and in
-        *format*.
+        r"""Save out all the plots hanging off this plot collection, using
+        generated names.
+
+        This function will create names for every plot that belongs to the
+        PlotCollection and save them out.  The names will, by default, be
+        prefixed with the name of the affiliate parameter file, and the file
+        names should indicate clearly what each plot represents.
+
+        Parameters
+        ----------
+        basename : string, optional
+            The prefix for all of the plot filenames.
+        format : string, optional
+            The plot file format.  Can be 'png', 'pdf', 'eps', 'jpg', or
+            anything else that matplotlib understands.
+        override : boolean
+            If this is true, then no generated filenames will be appended to
+            the base name.  You probably don't want this.
+        force_save : boolean
+            In parallel, only the root task (proc 0) saves an image, unless
+            this is set to True.
+
+        Returns
+        -------
+        items : string
+            This function returns a list of the filenames created.
+
+        Examples
+        --------
+
+        >>> fns = pc.save()
+        >>> for fn in fns: print "Saved", fn
         """
         if basename is None: basename = str(self.pf)
         fn = []
         for plot in self.plots:
-            fn.append(plot.save_image(basename, \
-                      format=format, submit=self._run_id,
+            fn.append(plot.save_image(basename, format=format, 
                       override=override, force_save=force_save))
-            if self.submit:
-                im = plot.im.copy()
-                im["Filename"] = self._http_prefix + "/" \
-                                + os.path.basename(fn[-1])
-                im["RunID"] = self._run_id
-                deliveration.SubmitImage(\
-                      self.pf.hierarchy, im)
             mylog.info("Saved %s", fn[-1])
         return fn
 
     def set_xlim(self, xmin, xmax):
-        """
-        Set the x boundaries of all plots.
+        r"""Set the x-limits of all plots.
+
+        set_xlim on all plots is called with the parameters passed to this
+        function.
+
+        Parameters
+        ----------
+        xmin : float
+            The left boundary for the x axis.
+        xmax : float
+            The right boundary for the x axis.
         """
         for plot in self.plots:
             plot.set_xlim(xmin, xmax)
 
     def set_ylim(self, ymin, ymax):
-        """
-        Set the y boundaries of all plots.
+        r"""Set the y-limits of all plots.
+
+        set_ylim on all plots is called with the parameters passed to this
+        function.
+
+        Parameters
+        ----------
+        ymin : float
+            The left boundary for the x axis.
+        ymax : float
+            The right boundary for the x axis.
         """
         for plot in self.plots:
             plot.set_ylim(ymin, ymax)
@@ -124,9 +185,15 @@ class PlotCollection(object):
             plot.set_zlim(zmin, zmax, *args, **kwargs)
 
     def set_lim(self, lim):
-        """
-        Shorthand for setting x,y at same time.
-        *lim* should be formatted as (xmin,xmax,ymin,ymax)
+        r"""Set the x- and y-limits of all plots.
+
+        set_xlim on all plots is called with the parameters passed to this
+        function, and then set_ylim is called.
+
+        Parameters
+        ----------
+        lim : tuple of floats
+            (xmin, xmax, ymin, ymax)
         """
         for plot in self.plots:
             plot.set_xlim(*lim[:2])

@@ -109,11 +109,11 @@ class RavenPlot(object):
     def __getitem__(self, item):
         return self.data[item] # Should be returned in CGS
 
-    def save_image(self, prefix, format="png", submit=None, override=True, force_save=False):
+    def save_image(self, prefix, format="png", override=True, force_save=False):
         """
         Save this plot image.  Will generate a filename based on the *prefix*,
-        *format*.  *submit* will govern the submission to the Deliverator and
-        *override* will force no filename generation beyond the prefix.
+        *format*.  *override* will force no filename generation beyond the
+        prefix.
         """
         self._redraw_image()
         if not override:
