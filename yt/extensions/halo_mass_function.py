@@ -1,5 +1,5 @@
 """
-HaloMassFcn - Halo Mass Function and supporting functions.
+halo_mass_function - Halo Mass Function and supporting functions.
 
 Author: Stephen Skory <sskory@physics.ucsd.edu>
 Affiliation: UC San Diego / CASS
