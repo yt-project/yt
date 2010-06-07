@@ -28,7 +28,7 @@ License:
 #
 
 # First module imports
-import HaloProfiler as HP
+import halo_profiler as HP
 import lightcone as LC
 import SpectralIntegrator as SI
 import RayTracer as RT
@@ -39,7 +39,7 @@ import disk_analysis
 import coordinate_transforms
 
 # Now individual component imports
-from HaloProfiler import HaloProfiler
+from halo_profiler import HaloProfiler
 from lightcone import LightCone
 from SpectralIntegrator import create_table_from_textfiles, \
                                SpectralFrequencyIntegrator
