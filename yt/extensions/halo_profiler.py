@@ -27,7 +27,7 @@ import yt.lagos as lagos
 from yt.lagos.HaloFinding import HaloFinder
 from yt.logger import lagosLogger as mylog
 import yt.raven as raven
-from HaloFilters import *
+from halo_filters import *
 import numpy as na
 import os
 import h5py

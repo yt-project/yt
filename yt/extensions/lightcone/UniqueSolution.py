@@ -23,7 +23,7 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-from LightCone import *
+from light_cone import *
 from Common_nVolume import *
 from yt.logger import lagosLogger as mylog
 import numpy as na

@@ -24,7 +24,7 @@ License:
 """
 
 from yt.extensions.lightcone import *
-from yt.extensions.EnzoSimulation import *
+from yt.extensions.enzo_simulation import *
 from yt.logger import lagosLogger as mylog
 from yt.config import ytcfg
 from yt.funcs import *

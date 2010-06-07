@@ -23,7 +23,7 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-from yt.extensions.HaloProfiler import *
+from yt.extensions.halo_profiler import *
 from yt.logger import lagosLogger as mylog
 from yt.config import ytcfg
 import yt.lagos as lagos
