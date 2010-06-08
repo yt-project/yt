@@ -1355,23 +1355,58 @@ class PlotCollection(object):
         self.__id_counter += 1
         return self.__id_counter-1
 
-
-    def clear_plots(self):
-        """
-        Delete all plots and their attendant data.
-        """
-        for i in range(len(self.plots)):
-            del self.plots[-1].data
-            del self.plots[-1]
-
     @rootonly
-    def save_book(self, filename, info = None):
-        """
-        This will save out a single PDF, where each page is a plot object.  The
-        *info* keyword can be a dictionary composed of the keys and values
-        "Author", "Title", "Subject", "Keywords", "Creator", "Producer" ad
-        "CreationDate".  Any keywords not filled in will be blank.  The default
-        is to use the current settings in Matplotlib for filling them in.
+    def save_book(self, filename, author = None, title = None, keywords = None,
+                  subject = None, creator = None, producer = None,
+                  creation_data = None):
+        r"""Save a multipage PDF of all the current plots, rather than
+        individual image files.
+
+        This function will utilize the matplotlib PDF backend to create a new
+        PDF, and for every plot that the PlotCollection currently has, it will
+        render a new page into that PDF.  The pages will be in the order of the
+        current plots.
+
+        Parameters
+        ----------
+        filename : string
+            The name of the PDF file to generate.  Note that it will be
+            overwritten, and '.pdf' will not be appended.
+        author : string, optional
+            The string to place in the metadata value of the PDF for 'author'.
+        title : string, optional
+            The string to place in the metadata value of the PDF for 'title'.
+        keywords : string, optional
+            The string to place in the metadata value of the PDF for 'keywords'.
+        subject : string, optional
+            The string to place in the metadata value of the PDF for 'subject'.
+        creator : string, optional
+            The string to place in the metadata value of the PDF for 'creator'.
+        producer : string, optional
+            The string to place in the metadata value of the PDF for 'producer'.
+        creation_date : string, optional
+            The string to place in the metadata value of the PDF for
+            'creation_date'.
+
+        Returns
+        -------
+        Nothing
+
+        Examples
+        --------
+        This will set up a new PlotCollection, add some plots, and then save it
+        as a PDF.
+
+        >>> pc = PlotCollection(pf, [0.5, 0.5, 0.5])
+        >>> pc.add_projection("Density", 0)
+        >>> pc.add_projection("Density", 1)
+        >>> pc.add_projection("Density", 2)
+        >>> pc.set_width(0.5, 'pc')
+        >>> dd = pf.h.all_data()
+        >>> pc.add_phase_object(dd, ["Density", "Temperature", "CellMassMsun"],
+        ...                     weight = None)
+        >>> pc.save_book("my_plots.pdf", author="Matthew Turk", 
+        ...              title="Fun plots")
         """
         from matplotlib.backends.backend_pdf import PdfPages
         outfile = PdfPages(filename)
