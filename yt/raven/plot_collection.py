@@ -1166,6 +1166,7 @@ class PlotCollection(object):
         >>>                     plot_options = {'color':'b'})
         """
         if id is None: id = self._get_new_id()
+        if plot_options is None: plot_options = {}
         sp = PlotTypes.ScatterPlot(data_source, fields, id,
                                    plot_options = plot_options,
                                    figure=figure, axes=axes)
@@ -1226,20 +1227,128 @@ class PlotCollection(object):
         p["Axis"] = "na"
         return p
 
-    def add_ortho_ray(self, axis, coords, field, axes = None,
-                      figure = None, **kwargs):
-        data_source = self.pf.h.ortho_ray(axis, coords, field)
+    def add_ortho_ray(self, axis, coords, field, figure = None,
+                      axes = None, field_parameters = None,
+                      plot_options = None):
+        r"""Create a ray parallel to some axis, from that a line plot, and add
+        it to the current collection.
+
+        This function will generate a `yt.lagos.AMROrthoRayBase` from the given
+        parameters.  This ray then gets passed to a `yt.raven.LineQueryPLot`, and
+        the resultant plot is added to the current collection.  Various
+        parameters allow control of the way the line plot is displayed, as well as
+        how the ray is generated.
+
+        Parameters
+        ----------
+        axis : int
+            The axis along which to cast the ray.  Can be 0, 1, or 2 for x, y,
+            z.
+        coords : tuple of floats
+            The coordinates to place the ray at.  Note that the axes are in the
+            form of x_dict[axis] and y_dict[axis] for some axis.
+        field : string
+            The initial field to slice and display.
+        figure : `matplotlib.figure.Figure`, optional
+            The figure onto which the axes will be placed.  Typically not used
+            unless *axes* is also specified.
+        axes : `matplotlib.axes.Axes`, optional
+            The axes object which will be used to create the image plot.
+            Typically used for things like multiplots and the like.
+        field_parameters : dict, optional
+            This set of parameters will be passed to the slice upon creation,
+            which can be used for passing variables to derived fields.
+        plot_options : dict
+            These options will be given to `matplotlib.axes.Axes.plot`
+
+        Returns
+        -------
+        plot : `yt.raven.LineQueryPlot`
+            The plot that has been added to the PlotCollection.
+
+        See Also
+        --------
+        yt.lagos.AMROrthoRayBase : This is the type created by this function and 
+                                   passed to the plot created here.
+
+        Examples
+        --------
+
+        This will cast a ray from (0.0, 0.5, 0.5) to (1.0, 0.5, 0.5) and plot
+        it.
+
+        >>> pf = load("RD0005-mine/RedshiftOutput0005")
+        >>> pc = PlotCollection(pf, [0.5, 0.5, 0.5])
+        >>> p = pc.add_ortho_ray(0, (0.5, 0.5), "Density")
+        """
+
+        if field_parameters is None: field_parameters = {}
+        if plot_options is None: plot_options = {}
+        data_source = self.pf.h.ortho_ray(axis, coords, field,
+                        **field_parameters)
         p = self._add_plot(PlotTypes.LineQueryPlot(data_source,
                 [axis_names[axis], field], self._get_new_id(),
-                figure, axes, plot_options=kwargs))
+                figure, axes, plot_options=plot_options))
         return p
 
-    def add_ray(self, start_point, end_point, field, axes = None,
-                figure = None, **kwargs):
-        data_source = self.pf.h.ray(start_point, end_point, field)
+    def add_ray(self, start_point, end_point, field, figure = None,
+                axes = None, plot_options = None):
+        r"""Create a ray between two points, from that a line plot, and add
+        it to the current collection.
+
+        This function will generate a `yt.lagos.AMRRayBase` from the given
+        parameters.  This ray then gets passed to a `yt.raven.LineQueryPLot`, and
+        the resultant plot is added to the current collection.  Various
+        parameters allow control of the way the line plot is displayed, as well as
+        how the ray is generated.
+
+        Parameters
+        ----------
+        start_point : array_like
+            The starting point of the ray.
+        end_point : array_like
+            The ending point of the ray.
+        field : string
+            The initial field to slice and display.
+        figure : `matplotlib.figure.Figure`, optional
+            The figure onto which the axes will be placed.  Typically not used
+            unless *axes* is also specified.
+        axes : `matplotlib.axes.Axes`, optional
+            The axes object which will be used to create the image plot.
+            Typically used for things like multiplots and the like.
+        field_parameters : dict, optional
+            This set of parameters will be passed to the slice upon creation,
+            which can be used for passing variables to derived fields.
+        plot_options : dict
+            These options will be given to `matplotlib.axes.Axes.plot`
+
+        Returns
+        -------
+        plot : `yt.raven.LineQueryPlot`
+            The plot that has been added to the PlotCollection.
+
+        See Also
+        --------
+        yt.lagos.AMRRayBase : This is the type created by this function and 
+                              passed to the plot created here.
+
+        Examples
+        --------
+
+        This will cast a ray from (0.1, 0.2, 0.3) to (0.9, 0.7, 0.4) and plot
+        it.
+
+        >>> pf = load("RD0005-mine/RedshiftOutput0005")
+        >>> pc = PlotCollection(pf, [0.5, 0.5, 0.5])
+        >>> p = pc.add_ray((0.1, 0.2, 0.3), (0.9, 0.7, 0.4), "Density")
+        """
+        if field_parameters is None: field_parameters = {}
+        if plot_options is None: plot_options = {}
+        data_source = self.pf.h.ray(start_point, end_point, field,
+                                    **field_parameters)
         p = self._add_plot(PlotTypes.LineQueryPlot(data_source,
                 ['t', field], self._get_new_id(),
-                figure, axes, plot_options=kwargs))
+                figure, axes, plot_options=plot_options))
         return p
 
     def _get_new_id(self):
