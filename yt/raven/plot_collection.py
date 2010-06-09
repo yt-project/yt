@@ -1477,21 +1477,59 @@ class PlotCollectionInteractive(PlotCollection):
         super(PlotCollectionInteractive, self).__init__(*args, **kwargs)
 
     def redraw(self):
+        r"""Redraw all affiliated plots.
+
+        To ensure that any interactive windows are up to date, this function
+        can be called to redraw all images into them.
+        """
         for plot in self.plots:
             plot._redraw_image()
         self.pylab.show()
 
-    def clear_plots(self):
+    def clear_figures(self):
+        r"""Clear all interactive figures affiliated with this collection.
+
+        Because reusing figures between plot collections can be tricky,
+        occasionally they must be manually cleared to re-obtain empty figures
+        for future plotting.  This will clear all figures.
+        """
         for plot in self.plots:
             self.pylab.figure(plot._fig_num)
             self.pylab.clf()
-        PlotCollection.clear_plots(self)
 
 def get_multi_plot(nx, ny, colorbar = 'vertical', bw = 4, dpi=300):
-    """
-    This returns *nx* and *ny* axes on a single figure, set up so that the
-    *colorbar* can be placed either vertically or horizontally in a bonus
-    column or row, respectively.  The axes all have base width of *bw* inches.
+    r"""Construct a multiple axes plot object, with or without a colorbar, into
+    which multiple plots may be inserted.
+
+    This will create a set of `matplotlib.axes.Axes`, all lined up into a grid,
+    which are then returned to the user and which can be used to plot multiple
+    plots on a single figure.
+
+    Parameters
+    ----------
+    nx : int
+        Number of axes to create along the x-direction
+    ny : int
+        Number of axes to create along the y-direction
+    colorbar : {'vertical', 'horizontal', None}, optional
+        Should Axes objects for colorbars be allocated, and if so, should they
+        correspond to the horizontal or vertical set of axes?
+
+    Returns
+    -------
+    fig : `matplotlib.figure.Figure
+        The figure created inside which the axes reside
+    tr : list of list of `matplotlib.axes.Axes` objects
+        This is a list, where the inner list is along the x-axis and the outer
+        is along the y-axis
+    cbars : list of `matplotlib.axes.Axes` objects
+        Each of these is an axes onto which a colorbar can be placed.
+
+    Notes
+    -----
+    This is a simple implementation for a common use case.  Viewing the source
+    can be instructure, and is encouraged to see how to generate more
+    complicated or more specific sets of multiplots for your own purposes.
     """
     PlotTypes.Initialize()
     hf, wf = 1.0/ny, 1.0/nx
