@@ -226,12 +226,13 @@ cdef class VectorPlane:
     cdef int nv[2]
     cdef int vp_strides[3]
     cdef int im_strides[3]
+    cdef int vd_strides[3]
     cdef public object ax_vec, ay_vec
     cdef np.float64_t *x_vec, *y_vec
 
     def __cinit__(self, 
                   np.ndarray[np.float64_t, ndim=3] vp_pos,
-                  np.ndarray[np.float64_t, ndim=1] vp_dir,
+                  np.ndarray vp_dir,
                   np.ndarray[np.float64_t, ndim=1] center,
                   bounds,
                   np.ndarray[np.float64_t, ndim=3] image,
@@ -258,6 +259,11 @@ cdef class VectorPlane:
         for i in range(3):
             self.vp_strides[i] = vp_pos.strides[i] / 8
             self.im_strides[i] = image.strides[i] / 8
+        if vp_dir.ndim > 1:
+            for i in range(3):
+                self.vd_strides[i] = vp_dir.strides[i] / 8
+        else:
+            self.vd_strides[0] = self.vd_strides[1] = self.vd_strides[2] = -1
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -338,19 +344,30 @@ cdef class PartitionedGrid:
         cdef int vi, vj, hit, i, ni, nj, nn
         cdef int iter[4]
         cdef np.float64_t v_pos[3], v_dir[3], rgba[6], extrema[4]
+        hit = 0
         self.calculate_extent(vp, extrema)
         vp.get_start_stop(extrema, iter)
         iter[0] = iclip(iter[0], 0, vp.nv[0])
         iter[1] = iclip(iter[1], 0, vp.nv[0])
         iter[2] = iclip(iter[2], 0, vp.nv[1])
         iter[3] = iclip(iter[3], 0, vp.nv[1])
-        hit = 0
-        for vi in range(iter[0], iter[1]):
-            for vj in range(iter[2], iter[3]):
-                vp.copy_into(vp.vp_pos, v_pos, vi, vj, 3, vp.vp_strides)
-                vp.copy_into(vp.image, rgba, vi, vj, 3, vp.im_strides)
-                self.integrate_ray(v_pos, vp.vp_dir, rgba, tf)
-                vp.copy_back(rgba, vp.image, vi, vj, 3, vp.im_strides)
+        if vp.vd_strides[0] == -1:
+            for vi in range(iter[0], iter[1]):
+                for vj in range(iter[2], iter[3]):
+                    vp.copy_into(vp.vp_pos, v_pos, vi, vj, 3, vp.vp_strides)
+                    vp.copy_into(vp.image, rgba, vi, vj, 3, vp.im_strides)
+                    self.integrate_ray(v_pos, vp.vp_dir, rgba, tf)
+                    vp.copy_back(rgba, vp.image, vi, vj, 3, vp.im_strides)
+        else:
+            # If we do not have an orthographic projection, we have to cast all
+            # our rays (until we can get an extrema calculation...)
+            for vi in range(vp.nv[0]):
+                for vj in range(vp.nv[1]):
+                    vp.copy_into(vp.vp_pos, v_pos, vi, vj, 3, vp.vp_strides)
+                    vp.copy_into(vp.image, rgba, vi, vj, 3, vp.im_strides)
+                    vp.copy_into(vp.vp_dir, v_dir, vi, vj, 3, vp.vd_strides)
+                    self.integrate_ray(v_pos, v_dir, rgba, tf)
+                    vp.copy_back(rgba, vp.image, vi, vj, 3, vp.im_strides)
         return hit
 
     @cython.boundscheck(False)

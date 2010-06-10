@@ -94,13 +94,13 @@ class Camera(object):
                          self.resolution[1])[None,:]
         inv_mat = self.inv_mat
         bc = self.back_center
-        vectors = na.zeros((self.resolution[0], self.resolution[1], 3),
+        positions = na.zeros((self.resolution[0], self.resolution[1], 3),
                           dtype='float64', order='C')
-        vectors[:,:,0] = inv_mat[0,0]*px+inv_mat[0,1]*py+self.back_center[0]
-        vectors[:,:,1] = inv_mat[1,0]*px+inv_mat[1,1]*py+self.back_center[1]
-        vectors[:,:,2] = inv_mat[2,0]*px+inv_mat[2,1]*py+self.back_center[2]
+        positions[:,:,0] = inv_mat[0,0]*px+inv_mat[0,1]*py+self.back_center[0]
+        positions[:,:,1] = inv_mat[1,0]*px+inv_mat[1,1]*py+self.back_center[1]
+        positions[:,:,2] = inv_mat[2,0]*px+inv_mat[2,1]*py+self.back_center[2]
         bounds = (px.min(), px.max(), py.min(), py.max())
-        vector_plane = au.VectorPlane(vectors, self.box_vectors[2],
+        vector_plane = au.VectorPlane(positions, self.box_vectors[2],
                                       self.back_center, bounds, image,
                                       self.unit_vectors[0],
                                       self.unit_vectors[1])
@@ -133,6 +133,38 @@ class Camera(object):
         for i in xrange(n_steps):
             self.zoom(f)
             yield self.snapshot()
+
+
+class PerspectiveCamera(Camera):
+    def get_vector_plane(self, image):
+        # We should move away from pre-generation of vectors like this and into
+        # the usage of on-the-fly generation in the VolumeIntegrator module
+        # We might have a different width and back_center
+        px = na.linspace(-self.width[0]/2.0, self.width[0]/2.0,
+                         self.resolution[0])[:,None]
+        py = na.linspace(-self.width[1]/2.0, self.width[1]/2.0,
+                         self.resolution[1])[None,:]
+        inv_mat = self.inv_mat
+        bc = self.back_center
+        positions = na.zeros((self.resolution[0], self.resolution[1], 3),
+                          dtype='float64', order='C')
+        positions[:,:,0] = inv_mat[0,0]*px+inv_mat[0,1]*py+self.back_center[0]
+        positions[:,:,1] = inv_mat[1,0]*px+inv_mat[1,1]*py+self.back_center[1]
+        positions[:,:,2] = inv_mat[2,0]*px+inv_mat[2,1]*py+self.back_center[2]
+        bounds = (px.min(), px.max(), py.min(), py.max())
+        
+        # We are likely adding on an odd cutting condition here
+        vectors = self.front_center - positions
+        n = vectors * vectors
+        n = na.sum(n, axis=2)**0.5
+        vectors /= n[:,:,None]
+        print vectors.shape, vectors.dtype, vectors.flags
+
+        vector_plane = au.VectorPlane(positions, vectors,
+                                      self.back_center, bounds, image,
+                                      self.unit_vectors[0],
+                                      self.unit_vectors[1])
+        return vector_plane
 
 class StereoPairCamera(Camera):
     def __init__(self, original_camera, relative_separation = 0.005):
