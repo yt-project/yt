@@ -662,7 +662,7 @@ class EnzoHierarchy(AMRHierarchy):
         them in **additional_fields**.
         """
         # Not sure whether this routine should be in the general HierarchyType.
-        if self.gridNumberOfParticles.sum() == 0:
+        if self.grid_particle_count.sum() == 0:
             mylog.info("Data contains no particles.");
             return None
         if additional_fields is None:
