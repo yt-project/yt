@@ -627,7 +627,7 @@ class PlotCollection(object):
         p["Axis"] = "CuttingPlane"
         return p
 
-    def add_projection(self, field, axis, weight_field=None,
+    def add_projection(self, field, axis, data_source = None, weight_field=None,
                        center=None, use_colorbar=True,
                        figure = None, axes = None, fig_size=None,
                        periodic = True, obj = None, field_parameters = None):
@@ -646,6 +646,10 @@ class PlotCollection(object):
             The initial field to slice and display.
         axis : int
             The axis along which to slice.  Can be 0, 1, or 2 for x, y, z.
+        data_source : `yt.lagos.AMRData`
+            This is a data source respecting the `AMRData` protocol (i.e., it
+            has grids and so forth) that will be used as input to the profile
+            generation.
         weight_field : string
             If specified, this will be the weighting field and the resultant
             projection will be a line-of-sight average, defined as sum( f_i *
@@ -705,7 +709,7 @@ class PlotCollection(object):
             center = self.c
         if data_source is None:
             data_source = self.pf.hierarchy.proj(axis, field, weight_field,
-                                center=center, **kwargs)
+                                center=center)
         p = self._add_plot(PlotTypes.ProjectionPlot(data_source, field,
                          use_colorbar=use_colorbar, axes=axes, figure=figure,
                          size=fig_size, periodic=periodic))
