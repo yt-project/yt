@@ -394,7 +394,7 @@ class HaloProfiler(lagos.ParallelAnalysisInterface):
         return profile
 
     @lagos.parallel_blocking_call
-    def make_projections(self, axes=[0, 1, 2], halo_list='filtered', save_images=False, save_cube=True, **kwargs):
+    def make_projections(self, axes=[0, 1, 2], halo_list='filtered', save_images=False, save_cube=True):
         "Make projections of all halos using specified fields."
 
         # Get list of halos for projecting.
@@ -468,8 +468,8 @@ class HaloProfiler(lagos.ParallelAnalysisInterface):
                 y_axis = coords[1]
 
                 for hp in self.projection_fields:
-                    pc.add_projection(hp['field'], w, weight_field=hp['weight_field'], source=region, lazy_reader=False,
-                                      serialize=False, **kwargs)
+                    pc.add_projection(hp['field'], w, weight_field=hp['weight_field'], data_source=region, lazy_reader=False,
+                                      serialize=False)
                 
                 # Set x and y limits, shift image if it overlaps domain boundary.
                 if need_per:
