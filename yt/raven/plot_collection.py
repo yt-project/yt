@@ -648,8 +648,8 @@ class PlotCollection(object):
             The axis along which to slice.  Can be 0, 1, or 2 for x, y, z.
         data_source : `yt.lagos.AMRData`
             This is a data source respecting the `AMRData` protocol (i.e., it
-            has grids and so forth) that will be used as input to the profile
-            generation.
+            has grids and so forth) that will be used as input to the
+            projection.
         weight_field : string
             If specified, this will be the weighting field and the resultant
             projection will be a line-of-sight average, defined as sum( f_i *
@@ -674,7 +674,9 @@ class PlotCollection(object):
             wrap around the edges.
         obj : `yt.lagos.AMRProjBase`, optional
             If you would like to use an existing projection, you may specify it
-            here, in which case a new projection will not be created.
+            here, in which case a new projection will not be created.  If this
+            option is specified the options data_source, weight_field and
+            field_parameters will be ignored.
         field_parameters : dict, optional
             This set of parameters will be passed to the slice upon creation,
             which can be used for passing variables to derived fields.
@@ -707,10 +709,11 @@ class PlotCollection(object):
         """
         if center == None:
             center = self.c
-        if data_source is None:
-            data_source = self.pf.hierarchy.proj(axis, field, weight_field,
-                                center=center)
-        p = self._add_plot(PlotTypes.ProjectionPlot(data_source, field,
+        if obj is None:
+            obj = self.pf.hierarchy.proj(axis, field, weight_field,
+                                         source = data_source, center=center,
+                                         **field_parameters)
+        p = self._add_plot(PlotTypes.ProjectionPlot(obj, field,
                          use_colorbar=use_colorbar, axes=axes, figure=figure,
                          size=fig_size, periodic=periodic))
         p["Axis"] = lagos.axis_names[axis]
