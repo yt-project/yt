@@ -1071,11 +1071,14 @@ class OrionHierarchy(AMRHierarchy):
         self.grid_dzs = grid_dcs[:,2].reshape((self.num_grids,1))
         left_edges = []
         right_edges = []
+        dims = []
         for level in self.levels:
             left_edges += [g.LeftEdge for g in level.grids]
             right_edges += [g.RightEdge for g in level.grids]
+            dims += [g.ActiveDimensions for g in level.grids]
         self.grid_left_edge = na.array(left_edges)
         self.grid_right_edge = na.array(right_edges)
+        self.grid_dimensions = na.array(dims)
         self.gridReverseTree = [] * self.num_grids
         self.gridReverseTree = [ [] for i in range(self.num_grids)]
         self.gridTree = [ [] for i in range(self.num_grids)]
