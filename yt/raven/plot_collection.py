@@ -707,6 +707,7 @@ class PlotCollection(object):
         >>> pc = PlotCollection(pf, [0.5, 0.5, 0.5])
         >>> p = pc.add_projection("Density", 0, "Density")
         """
+        if field_parameters is None: field_parameters = {}
         if center == None:
             center = self.c
         if obj is None:
