@@ -266,6 +266,23 @@ def _spdensity_pyx(field, data):
 add_field("star_density_pyx", function=_spdensity_pyx,
           validators=[ValidateSpatial(0)], convert_function=_convertDensity)
 
+def _dmpdensity_pyx(field, data):
+    blank = na.zeros(data.ActiveDimensions, dtype='float32')
+    if data.NumberOfParticles == 0: return blank
+    filter = data['creation_time'] <= 0.0
+    if not filter.any(): return blank
+    CICDeposit_3(data["particle_position_x"][filter].astype(na.float64),
+                 data["particle_position_y"][filter].astype(na.float64),
+                 data["particle_position_z"][filter].astype(na.float64),
+                 data["particle_mass"][filter].astype(na.float32),
+                 na.int64(na.where(filter)[0].size),
+                 blank, na.array(data.LeftEdge).astype(na.float64),
+                 na.array(data.ActiveDimensions).astype(na.int32), 
+                 na.float64(data['dx']))
+    return blank
+add_field("dm_density_pyx", function=_dmpdensity_pyx,
+          validators=[ValidateSpatial(0)], convert_function=_convertDensity)
+
 def _star_field(field, data):
     """
     Create a grid field for star quantities, weighted by star mass.
