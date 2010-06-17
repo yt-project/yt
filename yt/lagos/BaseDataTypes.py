@@ -2023,8 +2023,8 @@ class AMRCylinderBase(AMR3DData):
               + (grid['z'] - self.center[2])**2.0
                 )
             r = na.sqrt(d**2.0-h**2.0)
-            cm = ( (na.abs(h) < self._height)
-                 & (r < self._radius))
+            cm = ( (na.abs(h) <= self._height)
+                 & (r <= self._radius))
         return cm
 
     def volume(self, unit="unitary"):
