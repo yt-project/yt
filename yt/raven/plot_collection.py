@@ -627,7 +627,8 @@ class PlotCollection(object):
         p["Axis"] = "CuttingPlane"
         return p
 
-    def add_projection(self, field, axis, data_source = None, weight_field=None,
+    def add_projection(self, field, axis,  weight_field=None,
+                       data_source = None,
                        center=None, use_colorbar=True,
                        figure = None, axes = None, fig_size=None,
                        periodic = True, obj = None, field_parameters = None):
