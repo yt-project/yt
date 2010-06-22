@@ -646,6 +646,26 @@ class YTScene(HasTraits):
                     scene=self.scene))
         return self.operators[-1]
 
+    def display_points(self):
+        dd = self.pf.h.all_data()
+        points = tvtk.Points()
+        points.data = na.array([ dd["particle_position_%s" % ax] for ax in 'xyz' ]).transpose()
+        mass = na.log10(dd["ParticleMassMsun"])
+        self.conn = tvtk.CellArray()
+        for i in range(mass.shape[0]):
+            self.conn.insert_next_cell(1)
+            self.conn.insert_cell_point(i)
+        self.points = points
+        self.pd = tvtk.PolyData(points = self.points, verts = self.conn)
+        self.pd.point_data.scalars = mass
+        lut = tvtk.LookupTable()
+        self.pdm = tvtk.PolyDataMapper(input = self.pd,
+                                       lookup_table = lut)
+        self.pdm.scalar_range = (mass.min(), mass.max())
+        self.pdm.scalar_mode = 'use_point_data'
+        self.point_actor = tvtk.Actor(mapper = self.pdm)
+        self.scene.add_actor(self.point_actor)
+
 def get_all_parents(grid):
     parents = []
     if len(grid.Parents) == 0: return grid
