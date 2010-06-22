@@ -472,5 +472,5 @@ class event_mock(object):
 
 dol = DataObjectList()
 mw = MainWindow(plot_frame_tabs = [])
-mw.configure_traits()
+mw.edit_traits()
 #mw.edit_traits()
