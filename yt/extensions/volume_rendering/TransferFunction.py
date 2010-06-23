@@ -397,7 +397,7 @@ class ColorTransferFunction(MultiVariateTransferFunction):
         >>> tf = ColorTransferFunction( (-10.0, -5.0) )
         >>> tf.add_step(-6.0, -5.0, [1.0, 1.0, 1.0, 1.0])
         """
-        for tf, v in zip(self.funcs, height):
+        for tf, v in zip(self.funcs, value):
             tf.add_step(start, stop, v)
 
     def plot(self, filename):
