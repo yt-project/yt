@@ -401,6 +401,23 @@ class ColorTransferFunction(MultiVariateTransferFunction):
             tf.add_step(start, stop, v)
 
     def plot(self, filename):
+        r"""Save an image file of the transfer function.
+
+        This function loads up matplotlib, plots all of the constituent
+        transfer functions and saves.
+
+        Parameters
+        ----------
+        filename : string
+            The file to save out the plot as.
+
+        Examples
+        --------
+
+        >>> tf = ColorTransferFunction( (-10.0, -5.0) )
+        >>> tf.add_layers(8)
+        >>> tf.plot("sample.png")
+        """
         from matplotlib import pyplot
         from matplotlib.ticker import FuncFormatter
         pyplot.clf()
@@ -428,6 +445,37 @@ class ColorTransferFunction(MultiVariateTransferFunction):
         pyplot.savefig(filename)
 
     def sample_colormap(self, v, w, alpha=None, colormap="gist_stern"):
+        r"""Add a Gaussian based on an existing colormap.
+
+        Constructing pleasing Gaussians in a transfer function can pose some
+        challenges, so this function will add a single Gaussian whose colors
+        are taken from a colormap scaled between the bounds of the transfer
+        function.  As with `TransferFunction.add_gaussian`, the value is
+        calculated as :math:`f(x) = h \exp{-(x-x_0)^2 / w)` but with the height
+        for each color calculated from the colormap.
+
+        Parameters
+        ----------
+        v : float
+            The value at which the Gaussian is to be added.
+        w : float
+            The relative width (:math:`w` in the above equation.)
+        alpha : float, optional
+            The alpha value height for the Gaussian
+        colormap : string, optional
+            An acceptable colormap.  See either raven.color_maps or
+            http://www.scipy.org/Cookbook/Matplotlib/Show_colormaps .
+
+        See Also
+        --------
+        ColorTransferFunction.add_layers : Many-at-a-time adder
+
+        Examples
+        --------
+
+        >>> tf = ColorTransferFunction( (-10.0, -5.0) )
+        >>> tf.sample_colormap(-7.0, 0.01, 'algae')
+        """
         rel = (v - self.x_bounds[0])/(self.x_bounds[1] - self.x_bounds[0])
         cmap = get_cmap(colormap)
         r,g,b,a = cmap(rel)
@@ -438,6 +486,44 @@ class ColorTransferFunction(MultiVariateTransferFunction):
 
     def add_layers(self, N, w=None, mi=None, ma=None, alpha = None,
                    colormap="gist_stern"):
+        r"""Add a set of Gaussians based on an existing colormap.
+
+        Constructing pleasing Gaussians in a transfer function can pose some
+        challenges, so this function will add several evenly-spaced Gaussians
+        whose colors are taken from a colormap scaled between the bounds of the
+        transfer function.   For each Gaussian to be added,
+        `ColorTransferFunction.sample_colormap` is called.
+
+        Parameters
+        ----------
+        N : int
+            How many Gaussians to add
+        w : float
+            The relative width of each Gaussian.  If not included, it is
+            calculated as 0.001 * (max_val - min_val) / N
+        mi : float, optional
+            If only a subset of the data range is to have the Gaussians added,
+            this is the minimum for that subset
+        ma : float, optional
+            If only a subset of the data range is to have the Gaussians added,
+            this is the maximum for that subset
+        alpha : list of floats, optional
+            The alpha value height for each Gaussian.  If not supplied, it is
+            calculated as the logspace between -2.0 and 0.0.
+        colormap : string, optional
+            An acceptable colormap.  See either raven.color_maps or
+            http://www.scipy.org/Cookbook/Matplotlib/Show_colormaps .
+
+        See Also
+        --------
+        ColorTransferFunction.sample_colormap : Single Gaussian adder
+
+        Examples
+        --------
+
+        >>> tf = ColorTransferFunction( (-10.0, -5.0) )
+        >>> tf.add_layers(8)
+        """
         dist = (self.x_bounds[1] - self.x_bounds[0])
         if mi is None: mi = self.x_bounds[0] + dist/(10.0*N)
         if ma is None: ma = self.x_bounds[1] - dist/(10.0*N)
@@ -447,7 +533,27 @@ class ColorTransferFunction(MultiVariateTransferFunction):
             self.sample_colormap(v, w, a, colormap=colormap)
 
 class ProjectionTransferFunction(MultiVariateTransferFunction):
-    def __init__(self, x_bounds = (-1e30, 1e30)):
+    def __init__(self, x_bounds = (-1e60, 1e60)):
+        r"""A transfer function that defines a simple projection.
+
+        To generate an interpolated, off-axis projection through a dataset,
+        this transfer function should be used.  It will create a very simple
+        table that merely sums along each ray.  Note that the end product will
+        need to be scaled by the total width through which the rays were cast,
+        a piece of information inacessible to the transfer function.
+
+        Parameters
+        ----------
+        x_boudns : tuple of floats, optional
+            If any of your values lie outside this range, they will be
+            truncated.
+
+        Notes
+        -----
+        When you use this transfer function, you may need to explicitly disable
+        logging of fields.
+
+        """
         MultiVariateTransferFunction.__init__(self)
         self.x_bounds = x_bounds
         self.nbins = 2
