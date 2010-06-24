@@ -1300,7 +1300,7 @@ class PlotCollection(object):
                         **field_parameters)
         p = self._add_plot(PlotTypes.LineQueryPlot(data_source,
                 [axis_names[axis], field], self._get_new_id(),
-                figure, axes, plot_options=plot_options))
+                figure=figure, axes=axes, plot_options=plot_options))
         return p
 
     def add_ray(self, start_point, end_point, field, figure = None,
