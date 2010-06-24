@@ -30,6 +30,30 @@ from yt.physical_constants import *
 
 class TransferFunction(object):
     def __init__(self, x_bounds, nbins=256):
+        r"""A transfer function governs the transmission of emission and
+        absorption through a volume.
+
+        Transfer functions are defined by boundaries, bins, and the value that
+        governs transmission through that bin.  This is scaled between 0 and 1.
+        When integrating through a volume. the value through a given cell is
+        defined by the value calculated in the transfer function.
+
+        Parameters
+        ----------
+        x_bounds : tuple of floats
+            The min and max for the transfer function.  Values below or above
+            these values are discarded.
+        nbins : int
+            How many bins to calculate; in betwee, linear interpolation is
+            used, so low values are typically fine.
+
+        Notes
+        -----
+        Typically, raw transfer functions are not generated unless particular
+        and specific control over the integration is desired.  Usually either
+        color transfer functions, where the color values are calculated from
+        color tables, or multivariate transfer functions are used.
+        """
         self.pass_through = 0
         self.nbins = nbins
         self.x_bounds = x_bounds
@@ -37,10 +61,56 @@ class TransferFunction(object):
         self.y = na.zeros(nbins, dtype='float64')
 
     def add_gaussian(self, location, width, height):
+        r"""Add a Gaussian distribution to the transfer function.
+
+        Typically, when rendering isocontours, a Guassian distribution is the
+        easiest way to draw out features.  The spread provides a softness.
+        The values are calculated as :math:`f(x) = h \exp{-(x-x_0)^2 / w)`.
+
+        Parameters
+        ----------
+        location : float
+            The centroid of the Gaussian (:math:`x_0` in the above equation.)
+        width : float
+            The relative width (:math:`w` in the above equation.)
+        height : float
+            The peak height (:math:`h` in the above equation.)  Note that while
+            values greater 1.0 will be accepted, the values of the transmission
+            function are clipped at 1.0.
+
+        Examples
+        --------
+
+        >>> tf = TransferFunction( (-10.0, -5.0) )
+        >>> tf.add_gaussian(-9.0, 0.01, 1.0)
+        """
         vals = height * na.exp(-(self.x - location)**2.0/width)
         self.y = na.clip(na.maximum(vals, self.y), 0.0, 1.0)
 
     def add_line(self, start, stop):
+        r"""Add a line between two points to the transmission function.
+
+        This will accept a starting point in (x,y) and an ending point in (x,y)
+        and set the values of the transmission function between those x-values
+        to be along the line connecting the y values.
+
+        Parameters
+        ----------
+        start : tuple of floats
+            (x0, y0), the starting point.  x0 is between the bounds of the
+            transfer function and y0 must be between 0.0 and 1.0.
+        stop : tuple of floats
+            (x1, y1), the ending point.  x1 is between the bounds of the
+            transfer function and y1 must be between 0.0 and 1.0.
+
+        Examples
+        --------
+        This will set the transfer function to be linear from 0.0 to 1.0,
+        across the bounds of the function.
+
+        >>> tf = TransferFunction( (-10.0, -5.0) )
+        >>> tf.add_line( (-10.0, 0.0), (-5.0, 1.0) )
+        """
         x0, y0 = start
         x1, y1 = stop
         slope = (y1-y0)/(x1-x0)
@@ -49,7 +119,36 @@ class TransferFunction(object):
             slope * (self.x - x0) + y0
         self.y = na.clip(na.maximum(vals, self.y), 0.0, 1.0)
 
-    def add_step(self,start,stop,value):
+    def add_step(self, start, stop, value):
+        r"""Adds a step function to the transfer function.
+
+        This accepts a `start` and a `stop`, and then in between those points the
+        transfer function is set to the maximum of the transfer function and
+        the `value`.
+
+        Parameters
+        ----------
+        start : float
+            This is the beginning of the step function; must be within domain
+            of the transfer function.
+        stop : float
+            This is the ending of the step function; must be within domain
+            of the transfer function.
+        value : float
+            The value the transfer function will be set to between `start` and
+            `stop`.  Note that the transfer function will *actually* be set to
+            max(y, value) where y is the existing value of the transfer
+            function.
+
+        Examples
+        --------
+        Note that in this example, we have added a step function, but the
+        Gaussian that already exists will "win" where it exceeds 0.5.
+
+        >>> tf = TransferFunction( (-10.0, -5.0) )
+        >>> tf.add_gaussian(-7.0, 0.01, 1.0)
+        >>> tf.add_step(-8.0, -6.0, 0.5)
+        """
         vals = na.zeros(self.x.shape, 'float64')
         vals[(self.x >= start) & (self.x <= stop)] = value
         self.y = na.clip(na.maximum(vals, self.y), 0.0, 1.0)
@@ -74,6 +173,22 @@ class TransferFunction(object):
         #self.y = na.clip(na.maximum(vals, self.y), 0.0, 1.0)
 
     def plot(self, filename):
+        r"""Save an image file of the transfer function.
+
+        This function loads up matplotlib, plots the transfer function and saves.
+
+        Parameters
+        ----------
+        filename : string
+            The file to save out the plot as.
+
+        Examples
+        --------
+
+        >>> tf = TransferFunction( (-10.0, -5.0) )
+        >>> tf.add_gaussian(-9.0, 0.01, 1.0)
+        >>> tf.plot("sample.png")
+        """
         import matplotlib;matplotlib.use("Agg");import pylab
         pylab.clf()
         pylab.plot(self.x, self.y, 'xk-')
@@ -83,6 +198,16 @@ class TransferFunction(object):
 
 class MultiVariateTransferFunction(object):
     def __init__(self):
+        r"""This object constructs a set of field tables that allow for
+        multiple field variables to control the integration through a volme.
+
+        The integration through a volume typically only utilizes a single field
+        variable (for instance, Density) to set up and control the values
+        returned at the end of the integration.  For things like isocontours,
+        this is fine.  However, more complicated schema are possible by using
+        this object.  For instance, density-weighted emission that produces
+        colors based on the temperature of the fluid.
+        """
         self.n_field_tables = 0
         self.tables = [] # Tables are interpolation tables
         self.field_ids = [0] * 6 # This correlates fields with tables
@@ -92,6 +217,50 @@ class MultiVariateTransferFunction(object):
 
     def add_field_table(self, table, field_id, weight_field_id = -1,
                         weight_table_id = -1):
+        r"""This accepts a table describing integration.
+
+        A "field table" is a tabulated set of values that govern the
+        integration through a given field.  These are defined not only by the
+        transmission coefficient, interpolated from the table itself, but the
+        `field_id` that describes which of several fields the integration
+        coefficient is to be calculated from.
+
+        Parameters
+        ----------
+        table : `TransferFunction`
+            The integration table to be added to the set of tables used during
+            the integration.
+        field_id : int
+            Each volume has an associated set of fields.  This identifies which
+            of those fields will be used to calculate the integration
+            coefficient from this table.
+        weight_field_id : int, optional
+            If specified, the value of the field this identifies will be
+            multiplied against the integration coefficient.
+        weight_table_id : int, optional
+            If specified, the value from the *table* this identifies will be
+            multiplied against the integration coefficient.
+
+        Notes
+        -----
+        This can be rather complicated.  It's recommended that if you are
+        interested in manipulating this in detail that you examine the source
+        code, specifically the function FIT_get_value in
+        yt/_amr_utils/VolumeIntegrator.pyx.
+
+        Examples
+        --------
+        This example shows how to link a new transfer function against field 0.
+        Note that this by itself does not link a *channel* for integration
+        against a field.  This is because the weighting system does not mandate
+        that all tables contribute to a channel, only that they contribute a
+        value which may be used by other field tables.
+
+        >>> mv = MultiVariateTransferFunction()
+        >>> tf = TransferFunction( (-10.0, -5.0) )
+        >>> tf.add_gaussian( -7.0, 0.01, 1.0)
+        >>> mv.add_field_table(tf, 0)
+        """
         self.tables.append(table)
         self.field_ids[self.n_field_tables] = field_id
         self.weight_field_ids[self.n_field_tables] = weight_field_id
@@ -99,12 +268,57 @@ class MultiVariateTransferFunction(object):
         self.n_field_tables += 1
 
     def link_channels(self, table_id, channels = 0):
+        r"""Link an image channel to a field table.
+
+        Once a field table has been added, it can be linked against a channel (any
+        one of the six -- red, green, blue, red absorption, green absorption, blue
+        absorption) and then the value calculated for that field table will be
+        added to the integration for that channel.  Not all tables must be linked
+        against channels.
+
+        Parameters
+        ----------
+        table_id : int
+            The 0-indexed table to link.
+        channels : int or list of ints
+            The channel or channels to link with this table's calculated value.
+
+
+        Examples
+        --------
+        This example shows how to link a new transfer function against field 0, and
+        then link that table against all three RGB channels.  Typically an
+        absorption (or 'alpha') channel is also linked.
+
+        >>> mv = MultiVariateTransferFunction()
+        >>> tf = TransferFunction( (-10.0, -5.0) )
+        >>> tf.add_gaussian( -7.0, 0.01, 1.0)
+        >>> mv.add_field_table(tf, 0)
+        >>> mv.link_channels(0, [0,1,2])
+        """
         channels = ensure_list(channels)
         for c in channels:
             self.field_table_ids[c] = table_id
 
 class ColorTransferFunction(MultiVariateTransferFunction):
     def __init__(self, x_bounds, nbins=256):
+        r"""A complete set of transfer functions for standard color-mapping.
+
+        This is the best and easiest way to set up volume rendering.  It
+        creates field tables for all three colors, their alphas, and has
+        support for sampling color maps and adding independent color values at
+        all locations.  It will correctly set up the
+        `MultiVariateTransferFunction`.
+
+        Parameters
+        ----------
+        x_bounds : tuple of floats
+            The min and max for the transfer function.  Values below or above
+            these values are discarded.
+        nbins : int
+            How many bins to calculate; in betwee, linear interpolation is
+            used, so low values are typically fine.
+        """
         MultiVariateTransferFunction.__init__(self)
         self.x_bounds = x_bounds
         self.nbins = nbins
@@ -125,14 +339,85 @@ class ColorTransferFunction(MultiVariateTransferFunction):
         self.link_channels(4, [3,4,5])
 
     def add_gaussian(self, location, width, height):
+        r"""Add a Gaussian distribution to the transfer function.
+
+        Typically, when rendering isocontours, a Guassian distribution is the
+        easiest way to draw out features.  The spread provides a softness.
+        The values are calculated as :math:`f(x) = h \exp{-(x-x_0)^2 / w)`.
+
+        Parameters
+        ----------
+        location : float
+            The centroid of the Gaussian (:math:`x_0` in the above equation.)
+        width : float
+            The relative width (:math:`w` in the above equation.)
+        height : list of 4 float
+            The peak height (:math:`h` in the above equation.)  Note that while
+            values greater 1.0 will be accepted, the values of the transmission
+            function are clipped at 1.0.  This must be a list, and it is in the
+            order of (red, green, blue, alpha).
+
+        Examples
+        --------
+        This adds a red spike.
+
+        >>> tf = ColorTransferFunction( (-10.0, -5.0) )
+        >>> tf.add_gaussian(-9.0, 0.01, [1.0, 0.0, 0.0, 1.0])
+        """
         for tf, v in zip(self.funcs, height):
             tf.add_gaussian(location, width, v)
 
-    def add_step(self, start, stop, height):
-        for tf, v in zip(self.funcs, height):
+    def add_step(self, start, stop, value):
+        r"""Adds a step function to the transfer function.
+
+        This accepts a `start` and a `stop`, and then in between those points the
+        transfer function is set to the maximum of the transfer function and
+        the `value`.
+
+        Parameters
+        ----------
+        start : float
+            This is the beginning of the step function; must be within domain
+            of the transfer function.
+        stop : float
+            This is the ending of the step function; must be within domain
+            of the transfer function.
+        value : list of 4 floats
+            The value the transfer function will be set to between `start` and
+            `stop`.  Note that the transfer function will *actually* be set to
+            max(y, value) where y is the existing value of the transfer
+            function.  This must be a list, and it is in the order of (red,
+            green, blue, alpha).
+
+
+        Examples
+        --------
+        This adds a step function that will produce a white value at > -6.0.
+
+        >>> tf = ColorTransferFunction( (-10.0, -5.0) )
+        >>> tf.add_step(-6.0, -5.0, [1.0, 1.0, 1.0, 1.0])
+        """
+        for tf, v in zip(self.funcs, value):
             tf.add_step(start, stop, v)
 
     def plot(self, filename):
+        r"""Save an image file of the transfer function.
+
+        This function loads up matplotlib, plots all of the constituent
+        transfer functions and saves.
+
+        Parameters
+        ----------
+        filename : string
+            The file to save out the plot as.
+
+        Examples
+        --------
+
+        >>> tf = ColorTransferFunction( (-10.0, -5.0) )
+        >>> tf.add_layers(8)
+        >>> tf.plot("sample.png")
+        """
         from matplotlib import pyplot
         from matplotlib.ticker import FuncFormatter
         pyplot.clf()
@@ -160,6 +445,37 @@ class ColorTransferFunction(MultiVariateTransferFunction):
         pyplot.savefig(filename)
 
     def sample_colormap(self, v, w, alpha=None, colormap="gist_stern"):
+        r"""Add a Gaussian based on an existing colormap.
+
+        Constructing pleasing Gaussians in a transfer function can pose some
+        challenges, so this function will add a single Gaussian whose colors
+        are taken from a colormap scaled between the bounds of the transfer
+        function.  As with `TransferFunction.add_gaussian`, the value is
+        calculated as :math:`f(x) = h \exp{-(x-x_0)^2 / w)` but with the height
+        for each color calculated from the colormap.
+
+        Parameters
+        ----------
+        v : float
+            The value at which the Gaussian is to be added.
+        w : float
+            The relative width (:math:`w` in the above equation.)
+        alpha : float, optional
+            The alpha value height for the Gaussian
+        colormap : string, optional
+            An acceptable colormap.  See either raven.color_maps or
+            http://www.scipy.org/Cookbook/Matplotlib/Show_colormaps .
+
+        See Also
+        --------
+        ColorTransferFunction.add_layers : Many-at-a-time adder
+
+        Examples
+        --------
+
+        >>> tf = ColorTransferFunction( (-10.0, -5.0) )
+        >>> tf.sample_colormap(-7.0, 0.01, 'algae')
+        """
         rel = (v - self.x_bounds[0])/(self.x_bounds[1] - self.x_bounds[0])
         cmap = get_cmap(colormap)
         r,g,b,a = cmap(rel)
@@ -170,6 +486,44 @@ class ColorTransferFunction(MultiVariateTransferFunction):
 
     def add_layers(self, N, w=None, mi=None, ma=None, alpha = None,
                    colormap="gist_stern"):
+        r"""Add a set of Gaussians based on an existing colormap.
+
+        Constructing pleasing Gaussians in a transfer function can pose some
+        challenges, so this function will add several evenly-spaced Gaussians
+        whose colors are taken from a colormap scaled between the bounds of the
+        transfer function.   For each Gaussian to be added,
+        `ColorTransferFunction.sample_colormap` is called.
+
+        Parameters
+        ----------
+        N : int
+            How many Gaussians to add
+        w : float
+            The relative width of each Gaussian.  If not included, it is
+            calculated as 0.001 * (max_val - min_val) / N
+        mi : float, optional
+            If only a subset of the data range is to have the Gaussians added,
+            this is the minimum for that subset
+        ma : float, optional
+            If only a subset of the data range is to have the Gaussians added,
+            this is the maximum for that subset
+        alpha : list of floats, optional
+            The alpha value height for each Gaussian.  If not supplied, it is
+            calculated as the logspace between -2.0 and 0.0.
+        colormap : string, optional
+            An acceptable colormap.  See either raven.color_maps or
+            http://www.scipy.org/Cookbook/Matplotlib/Show_colormaps .
+
+        See Also
+        --------
+        ColorTransferFunction.sample_colormap : Single Gaussian adder
+
+        Examples
+        --------
+
+        >>> tf = ColorTransferFunction( (-10.0, -5.0) )
+        >>> tf.add_layers(8)
+        """
         dist = (self.x_bounds[1] - self.x_bounds[0])
         if mi is None: mi = self.x_bounds[0] + dist/(10.0*N)
         if ma is None: ma = self.x_bounds[1] - dist/(10.0*N)
@@ -179,7 +533,27 @@ class ColorTransferFunction(MultiVariateTransferFunction):
             self.sample_colormap(v, w, a, colormap=colormap)
 
 class ProjectionTransferFunction(MultiVariateTransferFunction):
-    def __init__(self, x_bounds = (-1e30, 1e30)):
+    def __init__(self, x_bounds = (-1e60, 1e60)):
+        r"""A transfer function that defines a simple projection.
+
+        To generate an interpolated, off-axis projection through a dataset,
+        this transfer function should be used.  It will create a very simple
+        table that merely sums along each ray.  Note that the end product will
+        need to be scaled by the total width through which the rays were cast,
+        a piece of information inacessible to the transfer function.
+
+        Parameters
+        ----------
+        x_boudns : tuple of floats, optional
+            If any of your values lie outside this range, they will be
+            truncated.
+
+        Notes
+        -----
+        When you use this transfer function, you may need to explicitly disable
+        logging of fields.
+
+        """
         MultiVariateTransferFunction.__init__(self)
         self.x_bounds = x_bounds
         self.nbins = 2

@@ -104,8 +104,8 @@ def write_png(np.ndarray[np.uint8_t, ndim=3] buffer,
 
     # This is something of a translation of the matplotlib _png module
     cdef png_byte *pix_buffer = <png_byte *> buffer.data
-    cdef int width = buffer.shape[0]
-    cdef int height = buffer.shape[1]
+    cdef int width = buffer.shape[1]
+    cdef int height = buffer.shape[0]
 
     cdef FILE* fileobj = fopen(filename, "wb")
     cdef png_bytep *row_pointers

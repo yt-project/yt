@@ -28,8 +28,9 @@
 
 #define VINDEX(A,B,C) data[((((A)+ci[0])*(ds[1]+1)+((B)+ci[1]))*(ds[2]+1)+ci[2]+(C))]
 //  (((C*ds[1])+B)*ds[0]+A)
+#define OINDEX(A,B,C) data[(A)*(ds[1]+1)*(ds[2]+1)+(B)*ds[2]+(B)+(C)]
 
-npy_float64 fast_interpolate(int *ds, int *ci, npy_float64 *dp,
+npy_float64 fast_interpolate(int ds[3], int ci[3], npy_float64 dp[3],
                              npy_float64 *data)
 {
     int i;
@@ -48,7 +49,28 @@ npy_float64 fast_interpolate(int *ds, int *ci, npy_float64 *dp,
     return dv;
 }
 
-npy_float64 trilinear_interpolate(int *ds, int *ci, npy_float64 *dp,
+npy_float64 offset_interpolate(int ds[3], npy_float64 dp[3], npy_float64 *data)
+{
+    int i;
+    npy_float64 dv, vz[4];
+
+    dv = 1.0 - dp[2];
+    vz[0] = dv*OINDEX(0,0,0) + dp[2]*OINDEX(0,0,1);
+    vz[1] = dv*OINDEX(0,1,0) + dp[2]*OINDEX(0,1,1);
+    vz[2] = dv*OINDEX(1,0,0) + dp[2]*OINDEX(1,0,1);
+    vz[3] = dv*OINDEX(1,1,0) + dp[2]*OINDEX(1,1,1);
+
+    dv = 1.0 - dp[1];
+    vz[0] = dv*vz[0] + dp[1]*vz[1];
+    vz[1] = dv*vz[2] + dp[1]*vz[3];
+
+    dv = 1.0 - dp[0];
+    vz[0] = dv*vz[0] + dp[0]*vz[1];
+
+    return vz[0];
+}
+
+npy_float64 trilinear_interpolate(int ds[3], int ci[3], npy_float64 dp[3],
 				  npy_float64 *data)
 {
     /* dims is one less than the dimensions of the array */
