@@ -649,10 +649,11 @@ class YTScene(HasTraits):
     def display_points(self):
         dd = self.pf.h.all_data()
         points = tvtk.Points()
-        points.data = na.array([ dd["particle_position_%s" % ax] for ax in 'xyz' ]).transpose()
-        mass = na.log10(dd["ParticleMassMsun"])
+        good = (dd["creation_time"] > 0.0)
+        points.data = na.array([ dd["particle_position_%s" % ax][good] for ax in 'xyz' ]).transpose()
+        mass = na.log10(dd["ParticleAge"][good])
         self.conn = tvtk.CellArray()
-        for i in range(mass.shape[0]):
+        for i in xrange(mass.shape[0]):
             self.conn.insert_next_cell(1)
             self.conn.insert_cell_point(i)
         self.points = points
