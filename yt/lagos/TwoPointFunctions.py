@@ -41,40 +41,51 @@ class TwoPointFunctions(ParallelAnalysisInterface):
             total_values=1000000, comm_size=10000, length_type="lin",
             length_number=10, length_range=None, vol_ratio = 1,
             salt=0):
-        """
-        *total_values* (int) How many total (global) pair calculations to run
-        for each of the functions specified.
-        A single integer. Default: 1,000,000.
-        *comm_size* (int) How entries are sent during communication.
-        Default: 10,000.
-        Set the parameters used to search the simulational volume with randomly
-        placed 'rulers'.
-        *length_type* (str) controls the even spacing of the rulers lengths in
-        logarithmic or linear space, set by "log" or "lin", respectively.
-        A single string. Default: "lin"
-        *length_number* (int) sets how many lengths to create, evenly spaced by the above
-        parameter.
-        A single integer. Default: "10"
-        *length_range* (float) a min/max pair for the range of values to search the over
-        the simulational volume.
-        A single pair (a list or array). Default: [sqrt(3)dx, 1/2*shortest box edge],
-        where dx is the smallest grid cell size.
-        *vol_ratio* (int) How to multiply-assign subvolumes to the parallel
-        tasks. This number must be an integer factor of the total number of tasks or
-        very bad things will happen. The default value of 1 will assign one task
-        to each subvolume, and there will be an equal number of subvolumes as tasks.
-        A value of 2 will assign two tasks to each subvolume and there will be
-        one-half as many subvolumes as tasks.
-        A value equal to the number of parallel tasks will result in each task
-        owning a complete copy of all the fields data, meaning each task will be
-        operating on the identical full volume.
-        Setting it to -1 will automatically adjust it such that each task
-        owns the entire volume.
-        *salt* (int) a number that will be added to the random number generator
-        seed. Use this if a different random series of numbers is desired when
-        keeping everything else constant from this set: (MPI task count, 
-        number of ruler lengths, ruler min/max, number of functions,
-        number of point pairs per ruler length). Default: 0.
+        r""" Initialize a two point functions object.
+        
+        Parameters
+        ----------
+        total_values : Integer
+            How many total (global) pair calculations to run for each of the
+            functions specified. Default: 1000000.
+        comm_size : Integer
+            How entries are sent during communication. Default: 10000.
+        length_type : String
+            Controls the even spacing of the rulers lengths in
+            logarithmic or linear space, set by "log" or "lin", respectively.
+            Default: "lin".
+        length_number : Integer
+            Sets how many lengths to create, evenly spaced by the above
+            parameter. Default: 10.
+        length_range : Float
+            A min/max pair for the range of values to search the over
+            the simulational volume. Default: [sqrt(3)dx, 1/2*shortest box edge],
+            where dx is the smallest grid cell size.
+        vol_ratio : Integer
+            How to multiply-assign subvolumes to the parallel
+            tasks. This number must be an integer factor of the total number of tasks or
+            very bad things will happen. The default value of 1 will assign one task
+            to each subvolume, and there will be an equal number of subvolumes as tasks.
+            A value of 2 will assign two tasks to each subvolume and there will be
+            one-half as many subvolumes as tasks.
+            A value equal to the number of parallel tasks will result in each task
+            owning a complete copy of all the fields data, meaning each task will be
+            operating on the identical full volume.
+            Setting it to -1 will automatically adjust it such that each task
+            owns the entire volume. Default = 1.
+        salt : Integer
+            A number that will be added to the random number generator
+            seed. Use this if a different random series of numbers is desired when
+            keeping everything else constant from this set: (MPI task count, 
+            number of ruler lengths, ruler min/max, number of functions,
+            number of point pairs per ruler length). Default = 0.
+        
+        Examples
+        --------
+        >>> tpf = TwoPointFunctions(pf, ["x-velocity", "y-velocity", "z-velocity"],
+        ... total_values=1e5, comm_size=10000, 
+        ... length_number=10, length_range=[1./128, .5],
+        ... length_type="log")
         """
         try:
             fKD
@@ -148,9 +159,26 @@ class TwoPointFunctions(ParallelAnalysisInterface):
         self.mt = na.random.mtrand.RandomState(seed = 1234 * self.mine + salt)
     
     def add_function(self, function, out_labels, sqrt, corr_norm=None):
-        """
-        Add a function to the list that will be evaluated at the
+        r"""Add a function to the list that will be evaluated at the
         generated pairs of points.
+        
+        Parameters
+        ----------
+        function : Function
+            The two point function of the form fcn(a, b, r1, r2, vec).
+        out_labels : List of strings
+            A list of strings labeling the outputs of the function.
+        sqrt : List of booleans
+            A list of booleans which when True will square-root the corresponding
+            element of the output in the text output (write_out_means()).
+        corr_norm : Float
+            Used when calculating two point correlations. If set, the output
+            of the function is divided by this number. Default = None.
+        
+        Examples
+        --------
+        >>> f1 = tpf.add_function(function=rms_vel, out_labels=['RMSvdiff'],
+        ... sqrt=[True])
         """
         fargs = inspect.getargspec(function)
         if len(fargs.args) != 5:
@@ -172,8 +200,11 @@ class TwoPointFunctions(ParallelAnalysisInterface):
         return self._fsets[key]
     
     def run_generator(self):
-        """
-        After all the functions have been added, run the generator.
+        r"""After all the functions have been added, run the generator.
+        
+        Examples
+        --------
+        >>> tpf.run_generator()
         """
         yt_counters("run_generator")
         # We need a function!
@@ -549,11 +580,14 @@ class TwoPointFunctions(ParallelAnalysisInterface):
 
     @parallel_blocking_call
     def write_out_means(self):
-        """
-        Writes out the weighted-average value for each function for
+        r"""Writes out the weighted-average value for each function for
         each dimension for each ruler length to a text file. The data is written
         to files of the name 'function_name.txt' in the current working
         directory.
+        
+        Examples
+        -------
+        >>> tpf.write_out_means()
         """
         for fset in self._fsets:
             fp = self._write_on_root("%s.txt" % fset.function.__name__)
@@ -579,10 +613,13 @@ class TwoPointFunctions(ParallelAnalysisInterface):
     
     @parallel_root_only
     def write_out_arrays(self):
-        """
-        Writes out the raw probability bins and the bin edges to an HDF5 file
+        r"""Writes out the raw probability bins and the bin edges to an HDF5 file
         for each of the functions. The files are named 
         'function_name.txt' and saved in the current working directory.
+        
+        Examples
+        -------
+        >>> tpf.write_out_arrays()
         """
         if self.mine == 0:
             for fset in self._fsets:
@@ -610,10 +647,13 @@ class TwoPointFunctions(ParallelAnalysisInterface):
 
     @parallel_root_only
     def write_out_correlation(self):
-        """
-        A special output function for doing two point correlation functions.
+        r"""A special output function for doing two point correlation functions.
         Outputs the correlation function xi(r) in a text file
         'function_name_corr.txt' in the current working directory.
+        
+        Examples
+        --------
+        >>> tpf.write_out_correlation()
         """
         for fset in self._fsets:
             # Only operate on correlation functions.
@@ -643,19 +683,29 @@ class FcnSet(TwoPointFunctions):
         self.too_high = na.zeros(len(self.out_labels), dtype='int32')
         
     def set_pdf_params(self, bin_type="lin", bin_number=1000, bin_range=None):
-        """
-        Set the parameters used to build the Probability Distribution Function
+        r"""Set the parameters used to build the Probability Distribution Function
         for each ruler length for this function. The values output by the
         function are slotted into the bins described here.
-        *bin_type* (str) controls the edges of the bins spaced evenly in
-        logarithmic or linear space, set by "log" or "lin", respectively.
-        A single string, or list of strings for N-dim binning. Default: "lin".
-        *bin_number* (int) sets how many bins to create, evenly spaced by the above
-        parameter.
-        A single integer, or a list of integers for N-dim binning. Default: 1000
-        *bin_range* (float) A pair of values giving the range for the bins.
-        A pair of floats (a list), or a list of pairs for N-dim binning.
-        Default: None.
+        
+        Parameters
+        ----------
+        bin_type : String
+            Controls the edges of the bins spaced evenly in
+            logarithmic or linear space, set by "log" or "lin", respectively.
+            A single string, or list of strings for N-dim binning.
+            Default = "lin".
+        bin_number : Integer
+            Sets how many bins to create, evenly spaced by the above
+            parameter. A single integer, or a list of integers for N-dim
+            binning. Default = 1000.
+        bin_range : Float
+            A pair of values giving the range for the bins.
+            A pair of floats (a list), or a list of pairs for N-dim binning.
+            Default = None.
+        Examples
+        --------
+        >>> f1.set_pdf_params(bin_type='log', bin_range=[5e4, 5.5e13],
+        ... bin_number=1000)
         """
         # This should be called after setSearchParams.
         if not hasattr(self.tpf, "lengths"):
