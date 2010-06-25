@@ -491,7 +491,7 @@ class OrionStaticOutput(StaticOutput):
 
         # These should maybe not be hardcoded?
         self.parameters["HydroMethod"] = 'orion' # always PPM DE
-        self.parameters["InitialTime"] = 0. # FIX ME!!!
+        self.parameters["Time"] = 1. # default unit is 1...
         self.parameters["DualEnergyFormalism"] = 0 # always off.
         self.parameters["EOSType"] = -1 # default
         if self.fparameters.has_key("mu"):
@@ -586,7 +586,7 @@ class OrionStaticOutput(StaticOutput):
         lines = header_file.readlines()
         header_file.close()
         n_fields = int(lines[1])
-        self.parameters["Time"] = float(lines[3+n_fields])
+        self.parameters["InitialTime"] = float(lines[3+n_fields])
 
                 
     def _set_units(self):
