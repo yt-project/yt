@@ -37,6 +37,32 @@ LIGHT = 2.997925e10 # cm / s
 class StarFormationRate(object):
     def __init__(self, pf, data_source=None, star_mass=None,
             star_creation_time=None, volume=None, bins=300):
+        r"""Calculates the star formation rate for a given population of
+        star particles.
+        
+        Parameters
+        ----------
+        pf : EnzoStaticOutput object
+        data_source : AMRRegion object, optional
+            The region from which stars are extracted for analysis. If this
+            is not supplied, the next three must be, otherwise the next
+            three do not need to be specified.
+        star_mass : Ordered array or list of floats
+            The mass of the stars to be analyzed in units of Msun.
+        star_creation_time : Ordered array or list of floats
+            The creation time for the stars in code units.
+        volume : Float
+            The volume of the region for the specified list of stars.
+        bins : Integer
+            The number of time bins used for binning the stars. Default = 300.
+        
+        Examples
+        --------
+        
+        >>> pf = load("RedshiftOutput0000")
+        >>> sp = pf.h.sphere([0.5,0.5,0.5], [.1])
+        >>> sfr = StarFormationRate(pf, sp)
+        """
         self._pf = pf
         self._data_source = data_source
         self.star_mass = star_mass
@@ -101,8 +127,7 @@ class StarFormationRate(object):
         self.time_bins_dt = self.time_bins[1:] - self.time_bins[:-1]
     
     def write_out(self, name="StarFormationRate.out"):
-        """
-        Write out the star analysis to a text file *name*. The columns are in
+        r"""Write out the star analysis to a text file *name*. The columns are in
         order:
         1) Time (yrs)
         2) Look-back time (yrs)
@@ -111,6 +136,15 @@ class StarFormationRate(object):
         5) Star formation rate in this bin per year per Mpc**3 (Msol/yr/Mpc**3)
         6) Stars formed in this time bin (Msol)
         7) Cumulative stars formed up to this time bin (Msol)
+        
+        Parameters
+        ---------
+        name : String
+            The name of the file to write to. Default = StarFormationRate.out.
+        
+        Examples
+        -------
+        >>> sfr.write_out("stars-SFR.out")
         """
         fp = open(name, "w")
         if self.mode == 'data_source':
@@ -177,14 +211,24 @@ for faster memory access.
 
 class SpectrumBuilder(object):
     def __init__(self, pf, bcdir="", model="chabrier"):
-        """
-        Initialize the data to build a summed flux spectrum for a
+        r"""Initialize the data to build a summed flux spectrum for a
         collection of stars using the models of Bruzual & Charlot (2003).
-        :param pf (object): Yt pf object.
-        :param bcdir (string): Path to directory containing Bruzual &
-        Charlot h5 fit files.
-        :param model (string): Choice of Initial Metalicity Function model,
-        'chabrier' or 'salpeter'.
+        This function loads the necessary data tables into memory and
+        must be called before analyzing any star particles.
+        
+        Parameters
+        ----------
+        pf : EnzoStaticOutput object
+        bcdir : String
+            Path to directory containing Bruzual & Charlot h5 fit files.
+        model : String
+            Choice of Initial Metalicity Function model, 'chabrier' or
+            'salpeter'. Default = 'chabrier'.
+        
+        Examples
+        -------
+        >>> pf = load("RedshiftOutput0000")
+        >>> spec = SpectrumBuilder(pf, "/home/user/bc/", model="salpeter")
         """
         self._pf = pf
         self.bcdir = bcdir
@@ -223,25 +267,37 @@ class SpectrumBuilder(object):
     def calculate_spectrum(self, data_source=None, star_mass=None,
             star_creation_time=None, star_metallicity_fraction=None,
             star_metallicity_constant=None, min_age=0.):
-        """
-        For the set of stars, calculate the collective spectrum.
+        r"""For the set of stars, calculate the collective spectrum.
         Attached to the output are several useful objects:
         final_spec: The collective spectrum in units of flux binned in wavelength.
         wavelength: The wavelength for the spectrum bins, in Angstroms.
         total_mass: Total mass of all the stars.
         avg_mass: Average mass of all the stars.
         avg_metal: Average metallicity of all the stars.
-        :param data_source (object): A yt data_source that defines a portion
-        of the volume from which to extract stars.
-        :param star_mass (array, float): An array of star masses in Msun units.
-        :param star_creation_time (array, float): An array of star creation
-        times in code units.
-        :param star_metallicity_fraction (array, float): An array of star
-        metallicity fractions, in code units (which is not Z/Zsun).
-        :param star_metallicity_constant (float): If desired, override the star
-        metallicity fraction of all the stars to the given value.
-        :param min_age (float): Removes young stars below this number (in years
-        from the spectrum. Default: 0 (all stars).
+        
+        Parameters
+        ---------
+        data_source : AMRRegion object, optional
+            The region from which stars are extracted for analysis. If this is
+            not specified, the next three parameters must be supplied.
+        star_mass : Array or list of floats
+            An array of star masses in Msun units.
+        star_creation_time : Array or list of floats
+            An array of star creation times in code units.
+        star_metallicity_fraction : Array or list of floats
+            An array of star metallicity fractions, in code
+                units (which is not Z/Zsun, rather just Z).
+        star_metallicity_constant : Float
+            If desired, override the star
+            metallicity fraction of all the stars to the given value.
+        min_age : Float
+            Removes young stars younger than this number (in years)
+            from the spectrum. Default: 0 (all stars).
+        
+        Examples
+        --------
+        >>> sp = pf.h.sphere([0.5,0.5,0.5], [.1])
+        >>> spec.calculate_spectrum(data_source=sp, min_age = 1.e6)
         """
         # Initialize values
         self.final_spec = na.zeros(self.wavelength.size, dtype='float64')
@@ -364,12 +420,19 @@ class SpectrumBuilder(object):
 
     
     def write_out(self, name="sum_flux.out"):
-        """
-        Write out the summed flux to a file. The file has two columns:
+        r"""Write out the summed flux to a file. The file has two columns:
         1) Wavelength (Angstrom)
         2) Flux (Luminosity per unit wavelength, L_sun Ang^-1,
         L_sun = 3.826 * 10^33 ergs s^-1.)
-        :param name (string): Name of file to write to.
+
+        Parameters
+        ----------
+        name : String
+            Name of file to write to. Default = "sum_flux.out"
+        
+        Examples
+        -------
+        >>> spec.write_out("spec.out")
         """
         fp = open(name, 'w')
         for i, wave in enumerate(self.wavelength):
@@ -377,15 +440,24 @@ class SpectrumBuilder(object):
         fp.close()
 
     def write_out_SED(self, name="sum_SED.out", flux_norm=5200.):
-        """
-        Write out the summed SED to a file. The file has two columns:
+        r"""Write out the summed SED to a file. The file has two columns:
         1) Wavelength (Angstrom)
         2) Relative flux normalized to the flux at *flux_norm*.
-        It also will attach an array *f_nu* which is the normalized flux,
+        It also will attach to the SpectrumBuilder object 
+        an array *f_nu* which is the normalized flux,
         identical to the disk output.
-        :param name (string): Name of file to write to.
-        :param flux_norm (float): Wavelength of the flux to normalize the
-        distribution against.
+        
+        Parameters
+        ---------
+        name : String
+            Name of file to write to. Default = "sum_SED.out"
+        flux_norm : Float
+            Wavelength of the flux to normalize the distribution against.
+            Default = 5200 Ang.
+        
+        Examples
+        -------
+        >>> spec.write_out_SED(name = "SED.out", flux_norm = 6000.)
         """
         # find the f_nu closest to flux_norm
         fn_wavelength = na.argmin(abs(self.wavelength - flux_norm))
