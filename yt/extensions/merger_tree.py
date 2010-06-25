@@ -700,17 +700,17 @@ class MergerTree(DatabaseFunctions, lagos.ParallelAnalysisInterface):
 
 class MergerTreeConnect(DatabaseFunctions):
     def __init__(self, database='halos.db'):
-    r"""Create a convenience object for accessing data from the halo database.
-    
-    Parameters
-    ----------
-    database : String
-        The name of the halo database to access. Default = 'halos.db'.
-    
-    Examples
-    -------
-    >>> mtc = MergerTreeConnect('/home/user/sim1-halos.db')
-    """
+        r"""Create a convenience object for accessing data from the halo database.
+        
+        Parameters
+        ----------
+        database : String
+            The name of the halo database to access. Default = 'halos.db'.
+        
+        Examples
+        -------
+        >>> mtc = MergerTreeConnect('/home/user/sim1-halos.db')
+        """
         self.database = database
         result = self._open_database()
         if not result:
@@ -960,21 +960,21 @@ class MergerTreeDotOutput(DatabaseFunctions, lagos.ParallelAnalysisInterface):
 
 class MergerTreeTextOutput(DatabaseFunctions, lagos.ParallelAnalysisInterface):
     def __init__(self, database='halos.db', outfile='MergerTreeDB.txt'):
-    r"""Dump the contents of the merger tree database to a text file.
-    This is generally not recommended.
-    
-    Parameters
-    ----------
-    database : String
-        Name of the database to access. Default = 'halos.db'.
-    outfile : String
-        Name of the file to write to. Default = 'MergerTreeDB.txt'.
-    
-    Examples
-    --------
-    >>> MergerTreeTextOutput(database='/home/user/sim1-halos.db',
-    ... outfile='halos-db.txt')
-    """
+        r"""Dump the contents of the merger tree database to a text file.
+        This is generally not recommended.
+        
+        Parameters
+        ----------
+        database : String
+            Name of the database to access. Default = 'halos.db'.
+        outfile : String
+            Name of the file to write to. Default = 'MergerTreeDB.txt'.
+        
+        Examples
+        --------
+        >>> MergerTreeTextOutput(database='/home/user/sim1-halos.db',
+        ... outfile='halos-db.txt')
+        """
         self.database = database
         self.outfile = outfile
         result = self._open_database()
