@@ -361,6 +361,9 @@ def signal_print_traceback(signo, frame):
 def signal_problem(signo, frame):
     raise RuntimeError()
 
+def signal_ipython(signo, frame):
+    insert_ipython(2)
+
 # We use two signals, SIGUSR1 and SIGUSR2.  In a non-threaded environment,
 # we set up handlers to process these by printing the current stack and to
 # raise a RuntimeError.  The latter can be used, inside pdb, to catch an error
@@ -368,8 +371,8 @@ def signal_problem(signo, frame):
 try:
     signal.signal(signal.SIGUSR1, signal_print_traceback)
     mylog.debug("SIGUSR1 registered for traceback printing")
-    signal.signal(signal.SIGUSR2, signal_problem)
-    mylog.debug("SIGUSR2 registered for RuntimeError")
+    signal.signal(signal.SIGUSR2, signal_ipython)
+    mylog.debug("SIGUSR2 registered for IPython Insertion")
 except ValueError:  # Not in main thread
     pass
 
