@@ -70,6 +70,7 @@ class HaloMassFcn(lagos.ParallelAnalysisInterface):
         the calculations and generated fit. Default=360.
         :param fitting_function (int): Which fitting function to use.
         1 = Press-schechter, 2 = Jenkins, 3 = Sheth-Tormen, 4 = Warren fit
+        5 = Tinker
         Default=4.
         :param mass_column (int): The column of halo_file that contains the
         masses of the haloes. Default=4.
@@ -419,6 +420,15 @@ class HaloMassFcn(lagos.ParallelAnalysisInterface):
             b=0.2538; 
             c=1.1982;
             thismult = A*( math.pow(sigma, -1.0*a) + b)*math.exp(-1.0*c / sigma / sigma );
+
+        elif self.fitting_function==5:
+            # Tinker et al. 2008, eqn 3, \Delta=300 # \Delta=200
+            A = 0.2 #0.186
+            a = 1.52 #1.47
+            b = 2.25 #2.57
+            c = 1.27 #1.19
+            thismult = A * ( math.pow((sigma / b), -a) + 1) * \
+                math.exp(-1 * c / sigma / sigma)
         
         else:
             mylog.error("Don't understand this.  Fitting function requested is %d\n",

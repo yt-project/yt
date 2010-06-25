@@ -100,7 +100,7 @@ from Profiles import *
 
 from HaloFinding import *
 
-from StructureFunctionGenerator import *
+from TwoPointFunctions import *
 
 # We load plugins.  Keep in mind, this can be fairly dangerous -
 # the primary purpose is to allow people to have a set of functions

@@ -127,7 +127,7 @@ class StarFormationRate(object):
         # Use the center of the time_bin, not the left edge.
         fp.write("#time\tlookback\tredshift\tMsol/yr\tMsol/yr/Mpc3\tMsol\tcumMsol\t\n")
         for i, time in enumerate((self.time_bins[1:] + self.time_bins[:-1])/2.):
-            line = "%1.5e\t%1.5e\t%1.5e\t%1.5e\t%1.5e\t%1.5e\t%1.5e\n" % \
+            line = "%1.5e %1.5e %1.5e %1.5e %1.5e %1.5e %1.5e\n" % \
             (time * tc / YEAR, # Time
             (self.time_now - time * tc)/YEAR, # Lookback time
             self.cosm.ComputeRedshiftFromTime(time * tc), # Redshift
@@ -320,7 +320,7 @@ class SpectrumBuilder(object):
             # Add this flux to the total, weighted by mass.
             self.final_spec += na.power(10., int_flux) * star[4]
         # Normalize.
-        self.total_mass = sum(self.star_mass)
+        self.total_mass = na.sum(self.star_mass)
         self.avg_mass = na.mean(self.star_mass)
         tot_metal = sum(self.star_metal * self.star_mass)
         self.avg_metal = math.log10(tot_metal / self.total_mass / Zsun)

@@ -28,8 +28,11 @@ import itertools, sys
 
 from yt.lagos import *
 from yt.funcs import *
-from yt.extensions.kdtree import *
 from yt.performance_counters import yt_counters, time_function
+try:
+    from yt.extensions.kdtree import *
+except ImportError:
+    mylog.debug("The Fortran kD-Tree did not import correctly.")
 
 class RunParallelHOP(ParallelAnalysisInterface):
     def __init__(self,period, padding, num_neighbors, bounds,
@@ -348,7 +351,7 @@ class RunParallelHOP(ParallelAnalysisInterface):
         fKD.sort = True # Slower, but needed in _connect_chains
         fKD.rearrange = self.rearrange # True is faster, but uses more memory
         # Now call the fortran.
-        create_tree()
+        create_tree(0)
         self.__max_memory()
         yt_counters("init kd tree")
 
@@ -1449,7 +1452,7 @@ class RunParallelHOP(ParallelAnalysisInterface):
         self._connect_chains()
         del fKD.dens, fKD.mass, fKD.dens
         del fKD.pos, fKD.chunk_tags
-        free_tree() # Frees the kdtree object.
+        free_tree(0) # Frees the kdtree object.
         del self.densestNN
         mylog.info('Communicating group links globally...')
         self._make_global_chain_densest_n()

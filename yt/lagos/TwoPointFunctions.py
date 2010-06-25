@@ -1,5 +1,5 @@
 """
-Structure Function Generator
+Two Point Functions Framework.
 
 Author: Stephen Skory <stephenskory@yahoo.com>
 Affiliation: UCSD Physics/CASS
@@ -29,19 +29,21 @@ from yt.performance_counters import yt_counters, time_function
 try:
     from yt.extensions.kdtree import *
 except ImportError:
-    mylog.debug("The Fortran kD-Tree did not import correctly. The structure function generator will not work correctly.")
+    mylog.debug("The Fortran kD-Tree did not import correctly.")
 
 import math, sys, itertools, inspect, types, time
 from collections import defaultdict
 
-class StructFcnGen(ParallelAnalysisInterface):
+sep = 12
+
+class TwoPointFunctions(ParallelAnalysisInterface):
     def __init__(self, pf, fields, left_edge=None, right_edge=None,
             total_values=1000000, comm_size=10000, length_type="lin",
             length_number=10, length_range=None, vol_ratio = 1,
             salt=0):
         """
         *total_values* (int) How many total (global) pair calculations to run
-        for each of the structure functions specified.
+        for each of the functions specified.
         A single integer. Default: 1,000,000.
         *comm_size* (int) How entries are sent during communication.
         Default: 10,000.
@@ -57,10 +59,21 @@ class StructFcnGen(ParallelAnalysisInterface):
         the simulational volume.
         A single pair (a list or array). Default: [sqrt(3)dx, 1/2*shortest box edge],
         where dx is the smallest grid cell size.
+        *vol_ratio* (int) How to multiply-assign subvolumes to the parallel
+        tasks. This number must be an integer factor of the total number of tasks or
+        very bad things will happen. The default value of 1 will assign one task
+        to each subvolume, and there will be an equal number of subvolumes as tasks.
+        A value of 2 will assign two tasks to each subvolume and there will be
+        one-half as many subvolumes as tasks.
+        A value equal to the number of parallel tasks will result in each task
+        owning a complete copy of all the fields data, meaning each task will be
+        operating on the identical full volume.
+        Setting it to -1 will automatically adjust it such that each task
+        owns the entire volume.
         *salt* (int) a number that will be added to the random number generator
         seed. Use this if a different random series of numbers is desired when
         keeping everything else constant from this set: (MPI task count, 
-        number of ruler lengths, ruler min/max, number of structure functions,
+        number of ruler lengths, ruler min/max, number of functions,
         number of point pairs per ruler length). Default: 0.
         """
         try:
@@ -73,6 +86,8 @@ class StructFcnGen(ParallelAnalysisInterface):
         self.size = self._mpi_get_size()
         self.mine = self._mpi_get_rank()
         self.vol_ratio = vol_ratio
+        if self.vol_ratio == -1:
+            self.vol_ratio = self.size
         self.total_values = int(total_values / self.size)
         # For communication.
         self.recv_hooks = []
@@ -132,14 +147,14 @@ class StructFcnGen(ParallelAnalysisInterface):
         self.width = self.ds.right_edge - self.ds.left_edge
         self.mt = na.random.mtrand.RandomState(seed = 1234 * self.mine + salt)
     
-    def add_function(self, function, out_labels, sqrt):
+    def add_function(self, function, out_labels, sqrt, corr_norm=None):
         """
-        Add a structure function to the list that will be evaluated at the
+        Add a function to the list that will be evaluated at the
         generated pairs of points.
         """
         fargs = inspect.getargspec(function)
         if len(fargs.args) != 5:
-            raise SyntaxError("The structure function %s needs five arguments." %\
+            raise SyntaxError("The function %s needs five arguments." %\
                 function.__name__)
         out_labels = list(out_labels)
         if len(out_labels) < 1:
@@ -149,8 +164,8 @@ class StructFcnGen(ParallelAnalysisInterface):
         if len(sqrt) != len(out_labels):
             raise SyntaxError("Please have the same number of elements in out_labels as in sqrt for function %s." %\
                 function.__name__)
-        self._fsets.append(StructSet(self, function, self.min_edge,
-            out_labels, sqrt))
+        self._fsets.append(FcnSet(self, function, self.min_edge,
+            out_labels, sqrt,corr_norm))
         return self._fsets[-1]
 
     def __getitem__(self, key):
@@ -158,15 +173,15 @@ class StructFcnGen(ParallelAnalysisInterface):
     
     def run_generator(self):
         """
-        After all the structure functions have been added, run the generator.
+        After all the functions have been added, run the generator.
         """
         yt_counters("run_generator")
         # We need a function!
         if len(self._fsets) == 0:
-            mylog.error("You need to add at least one structure function!")
+            mylog.error("You need to add at least one function!")
             return None
         # Do all the startup tasks to get the grid points.
-        if self.nlevels == 1:
+        if self.nlevels == 0:
             yt_counters("build_sort")
             self._build_sort_array()
             self.sort_done = False
@@ -227,9 +242,9 @@ class StructFcnGen(ParallelAnalysisInterface):
                 mylog.info("Length (%d of %d) %1.5e took %d communication cycles to complete." % \
                 (bigloop+1, len(self.lengths), length, self.comm_cycle_count))
         yt_counters("big loop over lengths")
-        if self.nlevels > 1:
+        if self.nlevels >= 1:
             del fKD.pos, fKD.qv_many, fKD.nn_tags
-            free_tree() # Frees the kdtree object.
+            free_tree(0) # Frees the kdtree object.
         yt_counters("allsum")
         self._allsum_bin_hits()
         mylog.info("Spent %f seconds waiting for communication." % t_waiting)
@@ -252,7 +267,7 @@ class StructFcnGen(ParallelAnalysisInterface):
         fKD.nn = 1
         fKD.sort = False
         fKD.rearrange = True
-        create_tree()
+        create_tree(0)
 
     def _build_sort_array(self):
         """
@@ -422,7 +437,7 @@ class StructFcnGen(ParallelAnalysisInterface):
         """
         Finds the closest grid cell for each point in a vectorized manner.
         """
-        if self.nlevels == 1:
+        if self.nlevels == 0:
             pos = (points - self.ds.left_edge) / self.width
             n = (self.sizes[2] * pos[:,2]).astype('int32')
             n += self.sizes[2] * (self.sizes[1] * pos[:,1]).astype('int32')
@@ -501,7 +516,7 @@ class StructFcnGen(ParallelAnalysisInterface):
                 self.fields_vals.shape = (self.comm_size, len(self.fields)*2)
             self.points.shape = (self.comm_size, 6)
             
-            # To run the structure functions, what is key is that the
+            # To run the functions, what is key is that the
             # second point in the pair is ours.
             second_points = self.points[:,3:]
             select = na.bitwise_or((second_points < self.ds.left_edge).any(axis=1),
@@ -535,12 +550,11 @@ class StructFcnGen(ParallelAnalysisInterface):
     @parallel_blocking_call
     def write_out_means(self):
         """
-        Writes out the weighted-average value for each structure function for
+        Writes out the weighted-average value for each function for
         each dimension for each ruler length to a text file. The data is written
         to files of the name 'function_name.txt' in the current working
         directory.
         """
-        sep = 12
         for fset in self._fsets:
             fp = self._write_on_root("%s.txt" % fset.function.__name__)
             fset._avg_bin_hits()
@@ -567,7 +581,7 @@ class StructFcnGen(ParallelAnalysisInterface):
     def write_out_arrays(self):
         """
         Writes out the raw probability bins and the bin edges to an HDF5 file
-        for each of the structure functions. The files are named 
+        for each of the functions. The files are named 
         'function_name.txt' and saved in the current working directory.
         """
         if self.mine == 0:
@@ -594,13 +608,35 @@ class StructFcnGen(ParallelAnalysisInterface):
                 f.create_dataset("/counts", data=bin_counts)
                 f.close()
 
-class StructSet(StructFcnGen):
-    def __init__(self,sfg, function, min_edge, out_labels, sqrt):
-        self.sfg = sfg # The overarching SFG class
+    @parallel_root_only
+    def write_out_correlation(self):
+        """
+        A special output function for doing two point correlation functions.
+        Outputs the correlation function xi(r) in a text file
+        'function_name_corr.txt' in the current working directory.
+        """
+        for fset in self._fsets:
+            # Only operate on correlation functions.
+            if fset.corr_norm == None: continue
+            fp = self._write_on_root("%s_correlation.txt" % fset.function.__name__)
+            line = "# length".ljust(sep)
+            line += "\\xi".ljust(sep)
+            fp.write(line + "\n")
+            xi = fset._corr_sum_norm()
+            for length in self.lengths:
+                line = ("%1.5e" % length).ljust(sep)
+                line += ("%1.5e" % xi[length]).ljust(sep)
+                fp.write(line + "\n")
+            fp.close()
+
+class FcnSet(TwoPointFunctions):
+    def __init__(self,tpf, function, min_edge, out_labels, sqrt, corr_norm):
+        self.tpf = tpf # The overarching TPF class
         self.function = function # Function to eval between the two points.
         self.min_edge = min_edge # The length of the minimum edge of the box.
         self.out_labels = out_labels # For output.
         self.sqrt = sqrt # which columns to sqrt on output.
+        self.corr_norm = corr_norm # A number used to normalize a correlation function.
         # These below are used to track how many times the function returns
         # unbinned results.
         self.too_low = na.zeros(len(self.out_labels), dtype='int32')
@@ -622,7 +658,7 @@ class StructSet(StructFcnGen):
         Default: None.
         """
         # This should be called after setSearchParams.
-        if not hasattr(self.sfg, "lengths"):
+        if not hasattr(self.tpf, "lengths"):
             mylog.error("Please call setSearchParams() before calling setPDFParams().")
             return None
         # Make sure they're either all lists or only one is.
@@ -657,7 +693,7 @@ class StructSet(StructFcnGen):
         # Create the dict that stores the arrays to store the bin hits, and
         # the arrays themselves.
         self.length_bin_hits = {}
-        for length in self.sfg.lengths:
+        for length in self.tpf.lengths:
             # It's easier to index flattened, but will be unflattened later.
             self.length_bin_hits[length] = na.zeros(self.bin_number,
                 dtype='int64').flatten()
@@ -682,10 +718,10 @@ class StructSet(StructFcnGen):
 
     def _eval_st_fcn(self, results, points, vec):
         """
-        Return the value of the structure function using the provided results.
+        Return the value of the function using the provided results.
         """
-        return self.function(results[:,:len(self.sfg.fields)],
-            results[:,len(self.sfg.fields):], points[:,:3], points[:,3:], vec)
+        return self.function(results[:,:len(self.tpf.fields)],
+            results[:,len(self.tpf.fields):], points[:,:3], points[:,3:], vec)
         """
         NOTE - A function looks like:
         def stuff(a,b,r1,r2, vec):
@@ -742,9 +778,19 @@ class StructSet(StructFcnGen):
         For each dimension and length of bin_hits return the weighted average.
         """
         self.length_avgs = defaultdict(dict)
-        for length in self.sfg.lengths:
+        for length in self.tpf.lengths:
             for dim in self.dims:
                 self.length_avgs[length][dim] = \
                     (self._dim_sum(self.length_bin_hits[length], dim) * \
                     ((self.bin_edges[dim][:-1] + self.bin_edges[dim][1:]) / 2.)).sum()
 
+    def _corr_sum_norm(self):
+        """
+        Return the correlations xi for this function. We are tacitly assuming
+        that all correlation functions are one dimensional.
+        """
+        xi = {}
+        for length in self.tpf.lengths:
+            xi[length] = -1 + na.sum(self.length_bin_hits[length] * \
+                self.bin_edges[0][:-1]) / self.corr_norm
+        return xi
