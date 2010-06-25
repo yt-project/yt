@@ -787,6 +787,7 @@ class PlotCollection(object):
         yt.lagos.BinnedProfile1D : This is the object that does the
                                    transformation of raw data into a 1D
                                    profile.
+
         Examples
         --------
 
@@ -977,7 +978,7 @@ class PlotCollection(object):
 
         Returns
         -------
-        plot : `yt.raven.PhasePlot`
+        plot : `yt.raven.PlotTypes.PhasePlot`
             The plot that has been added to the PlotCollection.
 
         See Also
@@ -985,15 +986,16 @@ class PlotCollection(object):
         yt.lagos.BinnedProfile2D : This is the object that does the
                                    transformation of raw data into a 1D
                                    profile.
+        
         Examples
         --------
-
         This will show the mass-distribution in the Density-Temperature plane.
-
+        
+        >>> pf = load("RD0005-mine/RedshiftOutput0005")
         >>> reg = pf.h.region([0.1, 0.2, 0.3], [0.0, 0.1, 0.2],
-                              [0.2, 0.3, 0.4])
+        ...                   [0.2, 0.3, 0.4])
         >>> pc.add_phase_object(reg, ["Density", "Temperature", "CellMassMsun"],
-                                weight = None)
+        ...                     weight = None)
         """
         if x_bounds is None:
             x_min, x_max = data_source.quantities["Extrema"](
@@ -1108,6 +1110,7 @@ class PlotCollection(object):
         yt.lagos.BinnedProfile2D : This is the object that does the
                                    transformation of raw data into a 1D
                                    profile.
+
         Examples
         --------
 
@@ -1297,7 +1300,7 @@ class PlotCollection(object):
                         **field_parameters)
         p = self._add_plot(PlotTypes.LineQueryPlot(data_source,
                 [axis_names[axis], field], self._get_new_id(),
-                figure, axes, plot_options=plot_options))
+                figure=figure, axes=axes, plot_options=plot_options))
         return p
 
     def add_ray(self, start_point, end_point, field, figure = None,

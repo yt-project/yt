@@ -33,9 +33,13 @@ from matplotlib import cm
 
 class DualEPS:
     def __init__(self, figsize=(12,12)):
-        """
-        Initializes the DualEPS class with a figure size of *figsize*
-        centimeters for a single plot.
+        r"""Initializes the DualEPS class to which we can progressively add layers
+        of vector graphics and compressed bitmaps.
+
+        Parameters
+        ----------
+        figsize : tuple of floats
+            The width and height of a single figure in centimeters.
         """
         pyx.unit.set(xscale=1.4)
         self.figsize = figsize
@@ -44,8 +48,7 @@ class DualEPS:
         self.axes_drawn = False
 
     def hello_world(self):
-        """
-        A simple test.
+        r"""A simple test.
         """
         if self.canvas is None:
             self.canvas = pyx.canvas.canvas()
@@ -58,13 +61,41 @@ class DualEPS:
     def axis_box(self, xrange=(0,1), yrange=(0,1), xlabel="", ylabel="",
                  xlog=False, ylog=False, tickcolor=None, bare_axes=False,
                  pos=(0,0), xaxis_side=0, yaxis_side=0):
-        """
-        Draws an axis box at position *pos* with a range of *xrange*
-        and *yrange*, labels *xlabel* and *ylabel*.  The colors of the
-        tickmarks can be specified with *tickcolor*.  For no tick
-        labels or marks, set *bare_axes* to True.  For the x-axis
-        (y-axis) labels to be on the right (top), set *xaxis_side*
-        (*yaxis_side*) to 1.
+        r"""Draws an axis box in the figure.
+
+        Parameters
+        ----------
+        xrange : tuple of floats
+            The min and max of the x-axis
+        yrange : tuple of floats
+            The min and max of the y-axis
+        xlabel : string
+            Label for the x-axis
+        ylabel : string
+            Label for the y-axis
+        xlog : boolean
+            Flag to use a logarithmic x-axis
+        ylog : boolean
+            Flag to use a logarithmic y-axis
+        tickcolor : `pyx.color.*.*`
+            Color for the tickmarks.  Example: pyx.color.cmyk.black
+        bare_axes : boolean
+            Set to true to have no annotations or tick marks on all of the
+            axes.
+        pos : tuple of floats
+            (x,y) position in centimeters of the origin in the figure
+        xaxis_side : integer
+            Set to 0 for the x-axis annotations to be on the left.  Set
+            to 1 to print them on the right side.
+        yaxis_side : integer
+            Set to 0 for the y-axis annotations to be on the bottom.  Set
+            to 1 to print them on the top.
+
+        Examples
+        --------
+        >>> d = DualEPS()
+        >>> d.axis_box(xrange=(0,100), yrange=(1e-3,1), ylog=True)
+        >>> d.save_fig()
         """
         if tickcolor is None:
             c1 = pyx.graph.axis.painter.regular\
@@ -205,6 +236,29 @@ class DualEPS:
 #=============================================================================
 
     def axis_box_yt(self, plot, units=None, bare_axes=False, **kwargs):
+        r"""Wrapper around DualEPS.axis_box to automatically fill in the
+        axis ranges and labels from a yt plot.
+
+        This also accepts any parameters that DualEPS.axis_box takes.
+
+        Parameters
+        ----------
+        plot : `yt.raven.RavenPlot`
+            yt plot on which the axes are based.
+        units : string
+            Unit description that overrides yt's unit description.  Only
+            affects the axis label.
+        bare_axes : boolean
+            Set to true to have no annotations or tick marks on all of the
+            axes.
+
+        Examples
+        --------
+        >>> p = pc.add_slice('Density', 0, use_colorbar=False)
+        >>> d = DualEPS()
+        >>> d.axis_box_yt(p)
+        >>> d.save_fig()
+        """
         plot._redraw_image()
         if isinstance(plot, raven.PlotTypes.VMPlot):
             if units == None:
@@ -245,8 +299,21 @@ class DualEPS:
 #=============================================================================
 
     def insert_image(self, filename, pos=(0,0)):
-        """
-        Inserts a JPEG file *filename* at *pos*.
+        r"""Inserts a JPEG file in the figure.
+
+        Parameters
+        ----------
+        filename : string
+            Name of the JPEG file
+        pos : tuple of floats
+            Position of the origin of the image in centimeters
+
+        Examples
+        --------
+        >>> d = DualEPS()
+        >>> d.axis_box(xrange=(0,100), yrange=(1e-3,1), ylog=True)
+        >>> d.insert_image("image.jpg")
+        >>> d.save_fig()
         """
         image = pyx.bitmap.jpegimage(filename)
         self.canvas.insert(pyx.bitmap.bitmap(pos[0], pos[1], image,
@@ -257,9 +324,27 @@ class DualEPS:
 #=============================================================================
 
     def insert_image_yt(self, plot, pos=(0,0)):
-        """
-        Inserts a bitmap taken from a yt plot.  For best results, set
-        use_colorbar=False when creating the yt image.
+        r"""Inserts a bitmap taken from a yt plot.
+
+        Parameters
+        ----------
+        plot : `yt.raven.VMPlot`
+            yt plot that provides the image
+        pos : tuple of floats
+            Position of the origin of the image in centimeters.
+
+        Examples
+        --------
+        >>> p = pc.add_slice('Density', 0, use_colorbar=False)
+        >>> d = DualEPS()
+        >>> d.axis_box_yt(p)
+        >>> d.insert_image_yt(p)
+        >>> d.save_fig()
+
+        Notes
+        -----
+        For best results, set use_colorbar=False when creating the yt
+        image.
         """
         # We need to remove the colorbar (if necessary), remove the
         # axes, and resize the figure to span the entire figure
@@ -293,13 +378,37 @@ class DualEPS:
 
     def colorbar(self, name, zrange=(0,1), label="", log=False, tickcolor=None,
                  orientation="right", pos=[0,0], shrink=1.0):
-        """
-        Places a colorbar with a colormap *name* and a value range
-        *zrange*, labelled with *label*.  The axis may be logged by
-        setting *log*, and the tick colors are changed with
-        *tickcolor*.  The *orientation* can be left, right, top, or
-        bottom.  The position can be manually adjusted with *pos* and
-        scaled with *shrink*.
+        r"""Places a colorbar adjacent to the current figure.
+
+        Parameters
+        ----------
+        name : string
+            name of the (matplotlib) colormap to use
+        zrange : tuple of floats
+            min and max of the colorbar's range
+        label : string
+            colorbar label
+        log : boolean
+            Flag to use a logarithmic scale
+        tickcolor : `pyx.color.*.*`
+            Color for the tickmarks.  Example: pyx.color.cmyk.black
+        orientation : string
+            Placement of the colorbar.  Can be "left", "right", "top",
+            or "bottom".
+        pos : list of floats
+            (x,y) position of the origin of the colorbar in centimeters.
+        shrink : float
+            Factor to shrink the colorbar's size.  A value of 1 means the
+            colorbar will have a height / width of the figure.
+
+        Examples
+        --------
+        >>> d = DualEPS()
+        >>> d.axis_box(xrange=(0,100), yrange=(1e-3,1), ylog=True)
+        >>> d.insert_image("image.jpg")
+        >>> d.colorbar("hot", xrange=(1e-2, 1e-4), log=True,
+                       label="Density [cm$^{-3}$]")
+        >>> d.save_fig()
         """
         if orientation == "right":
             origin = (pos[0]+self.figsize[0]+0.5, pos[1])
@@ -386,6 +495,24 @@ class DualEPS:
 #=============================================================================
 
     def colorbar_yt(self, plot, **kwargs):
+        r"""Wrapper around DualEPS.colorbar to take information from a yt plot.
+
+        Accepts all parameters that DualEPS.colorbar takes.
+
+        Parameters
+        ----------
+        plot : `yt.raven.VMPlot`
+            yt plot from which the information is taken.
+
+        Examples
+        --------
+        >>> p = pc.add_slice('Density', 0, use_colorbar=False)
+        >>> d = DualEPS()
+        >>> d.axis_box_yt(p)
+        >>> d.insert_image_yt(p)
+        >>> d.colorbar_yt(p)
+        >>> d.save_fig()
+        """
         if plot.cmap != None:
             _cmap = plot.cmap.name
         else:
@@ -410,9 +537,27 @@ class DualEPS:
     def circle(self, radius=0.2, loc=(0.5,0.5),
                color=pyx.color.cmyk.white,
                linewidth=pyx.style.linewidth.normal):
-        """
-        Draws a circle with a *radius* at *loc* with a *color* and
-        *linewidth*.
+        r"""Draws a circle in the current figure.
+
+        Parameters
+        ----------
+        radius : float
+            Radius of the circle in units of figsize
+        loc : tuple of floats
+            Location of the circle's center in units of figsize
+        color : `pyx.color.*.*`
+            Color of the circle stroke.  Example: pyx.color.cmyk.white
+        linewidth : `pyx.style.linewidth.*`
+            Width of the circle stroke width. Example:
+            pyx.style.linewidth.normal
+
+        Examples
+        --------
+        >>> d = DualEPS()
+        >>> d.axis_box(xrange=(0,100), yrange=(1e-3,1), ylog=True)
+        >>> d.insert_image("image.jpg")
+        >>> d.circle(radius=0.1, color=pyx.color.cmyk.Red)
+        >>> d.save_fig()
         """
         circle = pyx.path.circle(self.figsize[0]*loc[0],
                                  self.figsize[1]*loc[1],
@@ -424,10 +569,32 @@ class DualEPS:
     def scale_line(self, size=0.2, label="", loc=(0.05,0.08), labelloc="top",
                    color=pyx.color.cmyk.white,
                    linewidth=pyx.style.linewidth.normal):
-        """
-        Draws a scale line with a *size*, *label* at position *loc*.
-        The label position is specified with *labelloc* and can be top
-        or bottom.  The *color* and *linewidth* can also be specified.
+        r"""Draws a scale line in the current figure.
+
+        Parameters
+        ----------
+        size : float
+            Length of the scale line in units of the figure size.
+        label : string
+            Annotation label of the scale line.
+        loc : tuple of floats
+            Location of the left hand side of the scale line in units of
+            the figure size.
+        labelloc : string
+            Location of the label with respect to the line.  Can be
+            "top" or "bottom"
+        color : `pyx.color.*.*`
+            Color of the scale line.  Example: pyx.color.cymk.white
+        linewidth : `pyx.style.linewidth.*`
+            Width of the scale line.  Example: pyx.style.linewidth.normal
+
+        Examples
+        --------
+        >>> d = DualEPS()
+        >>> d.axis_box(xrange=(0,100), yrange=(1e-3,1), ylog=True)
+        >>> d.insert_image("image.jpg")
+        >>> d.scale_line(size=0.2, label="1 kpc", loc=(0.05, 0.1))
+        >>> d.save_fig()
         """
         line = pyx.path.line(self.figsize[0]*loc[0],
                              self.figsize[1]*loc[1],
@@ -462,10 +629,30 @@ class DualEPS:
                   bgcolor=pyx.color.cmyk.white, loc=(0.02,0.98),
                   halign=pyx.text.halign.left,
                   valign=pyx.text.valign.top):
-        """
-        Inserts a *text* box at *loc* with a text color *color* and
-        background color of *bgcolor*.  The text is aligned with
-        *halign* and *valign*.
+        r"""Inserts a box with text in the current figure.
+
+        Parameters
+        ----------
+        text : string
+            String to insert in the textbox.
+        color : `pyx.color.*.*`
+            Color of the text.  Example: pyx.color.cmyk.black
+        bgcolor : `pyx.color.*.*`
+            Color of the textbox background.  Example: pyx.color.cmyk.white
+        loc : tuple of floats
+            Location of the textbox origin in units of the figure size.
+        halign : `pyx.text.halign.*`
+            Horizontal alignment of the text.  Example: pyx.text.halign.left
+        valign : `pyx.text.valign.*`
+            Vertical alignment of the text.  Example: pyx.text.valign.top
+
+        Examples
+        --------
+        >>> d = DualEPS()
+        >>> d.axis_box(xrange=(0,100), yrange=(1e-3,1), ylog=True)
+        >>> d.insert_image("image.jpg")
+        >>> d.title_box("Halo 1", loc=(0.05,0.95))
+        >>> d.save_fig()
         """
         tbox = self.canvas.text(self.figsize[0]*loc[0],
                                 self.figsize[1]*loc[1],
@@ -479,9 +666,20 @@ class DualEPS:
 #=============================================================================
 
     def save_fig(self, filename="test", format="eps"):
-        """
-        Saves current figure to *filename* in *format*, which can be
-        eps or pdf.
+        r"""Saves current figure to a file.
+
+        Parameters
+        ----------
+        filename : string
+            Name of the saved file without the extension.
+        format : string
+            Format type.  Can be "eps" or "pdf"
+
+        Examples
+        --------
+        >>> d = DualEPS()
+        >>> d.axis_box(xrange=(0,100), yrange=(1e-3,1), ylog=True)
+        >>> d.save_fig("image1", format="pdf")
         """
         if format =="eps":
             self.canvas.writeEPSfile(filename)
@@ -498,6 +696,68 @@ def multiplot(ncol, nrow, yt_plots=None, images=None, xranges=None,
               yranges=None, xlabels=None, ylabels=None, colorbars=None,
               shrink_cb=0.95, figsize=(8,8), margins=(0,0), titles=None,
               savefig=None, yt_nocbar=False, bare_axes=False):
+    r"""Convenience routine to create a multi-panel figure from yt plots or
+    JPEGs.  The images are first placed from the origin, and then
+    bottom-to-top and left-to-right.
+
+    Parameters
+    ----------
+    ncol : integer
+        Number of columns in the figure.
+    nrow : integer
+        Number of rows in the figure.
+    yt_plots : list of `yt.raven.VMPlot`
+        yt plots to include in the figure.
+    images : list of strings
+        JPEG filenames to include in the figure.
+    xranges : list of tuples
+        The min and max of the x-axes
+    yranges : list of tuples
+        The min and max of the y-axes
+    xlabels : list of strings
+        Labels for the x-axes
+    ylabels : list of strings
+        Labels for the y-axes
+    colorbars : list of dicts
+        Dicts that describe the type of colorbar to be used in each
+        figure.  Use the function return_cmap() to create these dicts.
+    shrink_cb : float
+        Factor by which the colorbar is shrunk.
+    figsize : tuple of floats
+        The width and height of a single figure in centimeters.
+    margins : tuple of floats
+        The horizontal and vertical margins between panels in centimeters.
+    titles : list of strings
+        Titles that are placed in textboxes in each panel.
+    savefig : string
+        Name of the saved file without the extension.
+    yt_nocbar : boolean
+        Flag to indicate whether or not colorbars are created.
+    bare_axes : boolean
+        Set to true to have no annotations or tick marks on all of the
+        axes.
+
+    Examples
+    --------
+    >>> images = ["density.jpg", "hi_density.jpg", "entropy.jpg",
+    >>>           "special.jpg"]
+    >>> cbs=[]
+    >>> cbs.append(return_cmap("algae", "Density [cm$^{-3}$]", (0,10), False))
+    >>> cbs.append(return_cmap("jet", "HI Density", (0,5), False))
+    >>> cbs.append(return_cmap("hot", r"Entropy [K cm$^2$]", (1e-2,1e6), True))
+    >>> cbs.append(return_cmap("Spectral", "Stuff$_x$!", (1,300), True))
+    >>> 
+    >>> mp = multiplot(images,2,2, margins=(0.1,0.1), titles=["1","2","3","4"],
+    >>>                xlabels=["one","two"], ylabels=None, colorbars=cbs,
+    >>>                shrink_cb=0.95)
+    >>> mp.scale_line(label="$r_{vir}$", labelloc="top")
+    >>> mp.save_fig("multiplot")
+
+    Notes
+    -----
+    If given both yt_plots and images, this will get preference to the
+    yt plots.
+    """
     # Error check
     if images != None:
         if len(images) != ncol*nrow:
@@ -622,6 +882,36 @@ def multiplot(ncol, nrow, yt_plots=None, images=None, xranges=None,
 #=============================================================================
 
 def multiplot_yt(ncol, nrow, plot_col, **kwargs):
+    r"""Wrapper for multiplot that takes a yt PlotCollection.
+
+    Accepts all parameters used in multiplot.
+
+    Parameters
+    ----------
+    ncol : integer
+        Number of columns in the figure.
+    nrow : integer
+        Number of rows in the figure.
+    plot_col : `PlotCollection`
+        yt PlotCollection that has the plots to be used.
+
+    Examples
+    --------
+    >>> pc = PlotCollection(pf)
+    >>> p = pc.add_slice('Density',0,use_colorbar=False)
+    >>> p.set_width(0.1,'kpc')
+    >>> p1 = pc.add_slice('Temperature',0,use_colorbar=False)
+    >>> p1.set_width(0.1,'kpc')
+    >>> p1.set_cmap('hot')
+    >>> p1 = pc.add_phase_sphere(0.1, 'kpc', ['Radius', 'Density', 'H2I_Fraction'],
+    >>>                         weight='CellMassMsun')
+    >>> p1.set_xlim(1e18,3e20)
+    >>> p1 = pc.add_phase_sphere(0.1, 'kpc', ['Radius', 'Density', 'Temperature'],
+    >>>                         weight='CellMassMsun')
+    >>> p1.set_xlim(1e18,3e20)
+    >>> mp = multiplot_yt(2,2,pc,savefig="yt",shrink_cb=0.9, bare_axes=False,
+    >>>                   yt_nocbar=False, margins=(0.5,0.5))
+    """
     if len(plot_col.plots) < nrow*ncol:
         print "Number of plots in PlotCollection is less than nrow(%d) "\
               "x ncol(%d)." % (len(plot_col.plots), nrow, ncol)
@@ -633,6 +923,31 @@ def multiplot_yt(ncol, nrow, plot_col, **kwargs):
 
 def single_plot(plot, figsize=(12,12), cb_orient="right", bare_axes=False,
                 savefig=None, file_format='eps'):
+    r"""Wrapper for DualEPS routines to create a figure directy from a yt
+    plot.  Calls insert_image_yt, axis_box_yt, and colorbar_yt.
+
+    Parameters
+    ----------
+    plot : `yt.raven.VMPlot`
+        yt plot that provides the image and metadata
+    figsize : tuple of floats
+        Size of the figure in centimeters.
+    cb_orient : string
+        Placement of the colorbar.  Can be "left", "right", "top", or
+        "bottom".
+    bare_axes : boolean
+        Set to true to have no annotations or tick marks on all of the axes.
+    savefig : string
+        Name of the saved file without the extension.
+    file_format : string
+        Format type.  Can be "eps" or "pdf"
+
+    Examples
+    --------
+    >>> p = pc.add_slice('Density',0,use_colorbar=False)
+    >>> p.set_width(0.1,'kpc')
+    >>> single_plot(p, savefig="figure1")
+    """
     d = DualEPS(figsize=figsize)
     d.insert_image_yt(plot)
     d.axis_box_yt(plot, bare_axes=bare_axes)
@@ -643,6 +958,24 @@ def single_plot(plot, figsize=(12,12), cb_orient="right", bare_axes=False,
 
 #=============================================================================
 def return_cmap(cmap="algae", label="", range=(0,1), log=False):
+    r"""Returns a dict that describes a colorbar.  Exclusively for use with
+    multiplot.
+
+    Parameters
+    ----------
+    cmap : string
+        name of the (matplotlib) colormap to use
+    label : string
+        colorbar label
+    range : tuple of floats
+        min and max of the colorbar's range
+    log : boolean
+        Flag to use a logarithmic scale
+
+    Examples
+    --------
+    >>> cb = return_cmap("algae", "Density [cm$^{-3}$]", (0,10), False)
+    """
     return {'cmap': cmap, 'name': label, 'range': range, 'log': log}
     
 #=============================================================================
