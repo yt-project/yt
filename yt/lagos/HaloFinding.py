@@ -83,8 +83,11 @@ class Halo(object):
         self.overdensity = None
 
     def center_of_mass(self):
-        """
-        Calculate and return the center of mass.
+        r"""Calculate and return the center of mass.
+        
+        Examples
+        -------
+        >>> com = halos[0].center_of_mass()
         """
         c_vec = self.maximum_density_location() - na.array([0.5,0.5,0.5])
         pm = self["ParticleMassMsun"]
@@ -95,14 +98,22 @@ class Halo(object):
         return (com*pm).sum(axis=1)/pm.sum() + c_vec
 
     def maximum_density(self):
-        """
-        Return the HOP-identified maximum density.
+        r"""Return the HOP-identified maximum density. Not applicable to
+        FOF halos.
+        
+        Examples
+        -------
+        >>> max_dens = halos[0].maximum_density()
         """
         return self._max_dens[self.id][0]
 
     def maximum_density_location(self):
-        """
-        Return the location HOP identified as maximally dense.
+        r"""Return the location HOP identified as maximally dense. Not
+        applicable to FOF halos.
+        
+        Examples
+        -------
+        >>> max_dens_loc = halos[0].maximum_density_location()
         """
         return na.array([
                 self._max_dens[self.id][1],
@@ -110,14 +121,20 @@ class Halo(object):
                 self._max_dens[self.id][3]])
 
     def total_mass(self):
-        """
-        Returns the total mass in solar masses of the halo.
+        r"""Returns the total mass in solar masses of the halo.
+        
+        Examples
+        -------
+        >>> halos[0].total_mass()
         """
         return self["ParticleMassMsun"].sum()
 
     def bulk_velocity(self):
-        """
-        Returns the mass-weighted average velocity.
+        r"""Returns the mass-weighted average velocity in cm/s.
+        
+        Examples
+        --------
+        >>> bv = halos[0].bulk_velocity()
         """
         pm = self["ParticleMassMsun"]
         vx = (self["particle_velocity_x"] * pm).sum()
@@ -126,9 +143,12 @@ class Halo(object):
         return na.array([vx,vy,vz])/pm.sum()
 
     def rms_velocity(self):
-        """
-        Returns the mass-weighted RMS velocity for the halo
+        r"""Returns the mass-weighted RMS velocity for the halo
         particles in cgs units.
+        
+        Examples
+        --------
+        >>> rms_vel = halos[0].rms_velocity()
         """
         bv = self.bulk_velocity()
         pm = self["ParticleMassMsun"]
@@ -141,10 +161,21 @@ class Halo(object):
         return na.sqrt(ms) * pm.size
 
     def maximum_radius(self, center_of_mass=True):
-        """
-        Returns the maximum radius in the halo for all particles,
-        either from the point of maximum density or from the (default)
-        *center_of_mass*.
+        r"""Returns the maximum radius in the halo for all particles,
+        either from the point of maximum density or from the
+        center of mass.
+        
+        Parameters
+        ---------
+        center_of_mass : Boolean
+            True chooses the center of mass when calculating the maximum radius.
+            False chooses from the maximum density location for HOP halos
+            (it has no effect for FOF halos).
+            Default = True.
+        
+        Examples
+        --------
+        >>> radius = halos[0].maximum_radius()
         """
         if center_of_mass: center = self.center_of_mass()
         else: center = self.maximum_density_location()
@@ -163,9 +194,20 @@ class Halo(object):
             return self.data[key][self.indices]
 
     def get_sphere(self, center_of_mass=True):
-        """
-        Returns an EnzoSphere centered on either the point of maximum density
-        or the *center_of_mass*, with the maximum radius of the halo.
+        r"""Returns an EnzoSphere centered on either the point of maximum density
+        or the center of mass, with the maximum radius of the halo.
+        
+        Parameters
+        ----------
+        center_of_mass : Boolean
+            True chooses the center of mass when calculating the maximum radius.
+            False chooses from the maximum density location for HOP halos
+            (it has no effect for FOF halos).
+            Default = True.
+        
+        Examples
+        --------
+        >>> sp = halos[0].get_sphere()
         """
         if center_of_mass: center = self.center_of_mass()
         else: center = self.maximum_density_location()
@@ -191,11 +233,22 @@ class Halo(object):
         self._processing = False
 
     def virial_mass(self, virial_overdensity=200., bins=300):
-        """
-        Return the virial mass of the halo in Msun, using only the particles
-        in the halo (no baryonic information used).
-        Calculate using *bins* number of bins and *virial_overdensity* density
-        threshold. Returns -1 if the halo is not virialized.
+        r"""Return the virial mass of the halo in Msun, using only the particles
+        in the halo (no baryonic information used). Returns -1 if the halo is
+        not virialized.
+        
+        Parameters
+        ----------
+        virial_overdensity : Float
+            The overdensity threshold compared to the universal average when
+            calculating the virial mass. Default = 200.
+        bins : Integer
+            The number of spherical bins used to calculate overdensities.
+            Default = 300.
+        
+        Examples
+        --------
+        >>> vm = halos[0].virial_mass()
         """
         self.virial_info(bins=bins)
         vir_bin = self.virial_bin(virial_overdensity=virial_overdensity, bins=bins)
@@ -206,11 +259,22 @@ class Halo(object):
         
     
     def virial_radius(self, virial_overdensity=200., bins=300):
-        """
-        Return the virial radius of the halo in code units, using only the
-        particles in the halo (no baryonic information used).
-        Calculate using *bins* number of bins and *virial_overdensity* density
-        threshold. Returns -1 if the halo is not virialized.
+        r"""Return the virial radius of the halo in code units, using only the
+        particles in the halo (no baryonic information used). Returns -1 if the
+        halo is not virialized.
+
+        Parameters
+        ----------
+        virial_overdensity : Float
+            The overdensity threshold compared to the universal average when
+            calculating the virial radius. Default = 200.
+        bins : Integer
+            The number of spherical bins used to calculate overdensities.
+            Default = 300.
+        
+        Examples
+        --------
+        >>> vr = halos[0].virial_radius()
         """
         self.virial_info(bins=bins)
         vir_bin = self.virial_bin(virial_overdensity=virial_overdensity, bins=bins)
@@ -220,10 +284,9 @@ class Halo(object):
             return -1
 
     def virial_bin(self, virial_overdensity=200., bins=300):
-        """
-        Return the bin index for the virial radius for the given halo.
-        Returns -1 if the halo is not virialized to the set
-        *virial_overdensity*. 
+        r"""Returns the bin index of the virial radius of the halo. Generally,
+        it is better to call virial_radius instead, which calls this function
+        automatically.
         """
         self.virial_info(bins=bins)
         over = (self.overdensity > virial_overdensity)
@@ -234,10 +297,9 @@ class Halo(object):
             return -1
     
     def virial_info(self, bins=300):
-        """
-        Calculate the virial profile bins for this halo, using only the particles
-        in the halo (no baryonic information used).
-        Calculate using *bins* number of bins.
+        r"""Calculates the virial information for the halo. Generally, it is
+        better to call virial_radius or virial_mass instead, which calls this
+        function automatically.
         """
         # Skip if we've already calculated for this number of bins.
         if self.bin_count == bins and self.overdensity is not None:
@@ -295,8 +357,11 @@ class parallelHOPHalo(Halo,ParallelAnalysisInterface):
         "rms_velocity"]
 
     def maximum_density(self):
-        """
-        Return the HOP-identified maximum density.
+        r"""Return the HOP-identified maximum density.
+        
+        Examples
+        -------
+        >>> max_dens = halos[0].maximum_density()
         """
         if self.max_dens_point is not None:
             return self.max_dens_point[0]
@@ -304,8 +369,11 @@ class parallelHOPHalo(Halo,ParallelAnalysisInterface):
         return max
 
     def maximum_density_location(self):
-        """
-        Return the location HOP identified as maximally dense.
+        r"""Return the location HOP identified as maximally dense.
+        
+        Examples
+        -------
+        >>> max_dens_loc = halos[0].maximum_density_location()
         """
         if self.max_dens_point is not None:
             return self.max_dens_point[1:]
@@ -323,8 +391,11 @@ class parallelHOPHalo(Halo,ParallelAnalysisInterface):
         return value
 
     def center_of_mass(self):
-        """
-        Calculate and return the center of mass.
+        r"""Calculate and return the center of mass.
+        
+        Examples
+        -------
+        >>> com = halos[0].center_of_mass()
         """
         # If it's precomputed, we save time!
         if self.CoM is not None:
@@ -348,8 +419,11 @@ class parallelHOPHalo(Halo,ParallelAnalysisInterface):
         return global_com / global_mass
 
     def total_mass(self):
-        """
-        Returns the total mass in solar masses of the halo.
+        r"""Returns the total mass in solar masses of the halo.
+        
+        Examples
+        -------
+        >>> halos[0].total_mass()
         """
         if self.group_total_mass is not None:
             return self.group_total_mass
@@ -361,8 +435,11 @@ class parallelHOPHalo(Halo,ParallelAnalysisInterface):
         return global_mass
 
     def bulk_velocity(self):
-        """
-        Returns the mass-weighted average velocity.
+        r"""Returns the mass-weighted average velocity in cm/s.
+        
+        Examples
+        --------
+        >>> bv = halos[0].bulk_velocity()
         """
         if self.bulk_vel is not None:
             return self.bulk_vel
@@ -384,8 +461,12 @@ class parallelHOPHalo(Halo,ParallelAnalysisInterface):
         return global_bv[:3]/global_bv[3]
 
     def rms_velocity(self):
-        """
-        Returns the RMS velocity for the halo particles in cgs units.
+        r"""Returns the mass-weighted RMS velocity for the halo
+        particles in cgs units.
+        
+        Examples
+        --------
+        >>> rms_vel = halos[0].rms_velocity()
         """
         if self.rms_vel is not None:
             return self.rms_vel
@@ -407,10 +488,21 @@ class parallelHOPHalo(Halo,ParallelAnalysisInterface):
         return na.sqrt(ms) * global_ss[1]
 
     def maximum_radius(self, center_of_mass=True):
-        """
-        Returns the maximum radius in the halo for all particles,
-        either from the point of maximum density or from the (default)
-        *center_of_mass*.
+        r"""Returns the maximum radius in the halo for all particles,
+        either from the point of maximum density or from the
+        center of mass.
+        
+        Parameters
+        ---------
+        center_of_mass : Boolean
+            True chooses the center of mass when calculating the maximum radius.
+            False chooses from the maximum density location for HOP halos
+            (it has no effect for FOF halos).
+            Default = True.
+        
+        Examples
+        --------
+        >>> radius = halos[0].maximum_radius()
         """
         if self.max_radius is not None:
             return self.max_radius
@@ -446,11 +538,22 @@ class parallelHOPHalo(Halo,ParallelAnalysisInterface):
             return self.data[key][self.indices]
 
     def virial_mass(self, virial_overdensity=200., bins=300):
-        """
-        Return the virial mass of the halo in Msun, using only the particles
-        in the halo (no baryonic information used).
-        Calculate using *bins* number of bins and *virial_overdensity* density
-        threshold. Returns -1 if the halo is not virialized.
+        r"""Return the virial mass of the halo in Msun, using only the particles
+        in the halo (no baryonic information used). Returns -1 if the halo is
+        not virialized.
+        
+        Parameters
+        ----------
+        virial_overdensity : Float
+            The overdensity threshold compared to the universal average when
+            calculating the virial mass. Default = 200.
+        bins : Integer
+            The number of spherical bins used to calculate overdensities.
+            Default = 300.
+        
+        Examples
+        --------
+        >>> vm = halos[0].virial_mass()
         """
         self.virial_info(bins=bins)
         vir_bin = self.virial_bin(virial_overdensity=virial_overdensity, bins=bins)
@@ -461,11 +564,22 @@ class parallelHOPHalo(Halo,ParallelAnalysisInterface):
         
     
     def virial_radius(self, virial_overdensity=200., bins=300):
-        """
-        Return the virial radius of the halo in code units, using only the
-        particles in the halo (no baryonic information used).
-        Calculate using *bins* number of bins and *virial_overdensity* density
-        threshold. Returns -1 if the halo is not virialized.
+        r"""Return the virial radius of the halo in code units, using only the
+        particles in the halo (no baryonic information used). Returns -1 if the
+        halo is not virialized.
+
+        Parameters
+        ----------
+        virial_overdensity : Float
+            The overdensity threshold compared to the universal average when
+            calculating the virial radius. Default = 200.
+        bins : Integer
+            The number of spherical bins used to calculate overdensities.
+            Default = 300.
+        
+        Examples
+        --------
+        >>> vr = halos[0].virial_radius()
         """
         self.virial_info(bins=bins)
         vir_bin = self.virial_bin(virial_overdensity=virial_overdensity, bins=bins)
@@ -475,10 +589,9 @@ class parallelHOPHalo(Halo,ParallelAnalysisInterface):
             return -1
 
     def virial_bin(self, virial_overdensity=200., bins=300):
-        """
-        Return the bin index for the virial radius for the given halo.
-        Returns -1 if the halo is not virialized to the set
-        *virial_overdensity*. 
+        r"""Returns the bin index of the virial radius of the halo. Generally,
+        it is better to call virial_radius instead, which calls this function
+        automatically.
         """
         self.virial_info(bins=bins)
         over = (self.overdensity > virial_overdensity)
@@ -489,10 +602,9 @@ class parallelHOPHalo(Halo,ParallelAnalysisInterface):
             return -1
 
     def virial_info(self, bins=300):
-        """
-        Calculate the virial profile bins for this halo, using only the particles
-        in the halo (no baryonic information used).
-        Calculate using *bins* number of bins.
+        r"""Calculates the virial information for the halo. Generally, it is
+        better to call virial_radius or virial_mass instead, which calls this
+        function automatically.
         """
         # Skip if we've already calculated for this number of bins.
         if self.bin_count == bins and self.overdensity is not None:
@@ -555,8 +667,11 @@ class parallelHOPHalo(Halo,ParallelAnalysisInterface):
 class FOFHalo(Halo):
 
     def center_of_mass(self):
-        """
-        Calculate and return the center of mass.
+        r"""Calculate and return the center of mass.
+        
+        Examples
+        -------
+        >>> com = halos[0].center_of_mass()
         """
         pm = self["ParticleMassMsun"]
         cx = self["particle_position_x"]
@@ -571,9 +686,23 @@ class FOFHalo(Halo):
         return com
 
     def maximum_density(self):
+        r"""Return the HOP-identified maximum density. Not applicable to
+        FOF halos.
+        
+        Examples
+        -------
+        >>> max_dens = halos[0].maximum_density()
+        """
         return -1
 
     def maximum_density_location(self):
+        r"""Return the location HOP identified as maximally dense. Not
+        applicable to FOF halos.
+        
+        Examples
+        -------
+        >>> max_dens_loc = halos[0].maximum_density_location()
+        """
         return self.center_of_mass()
 
 class HaloList(object):
@@ -657,11 +786,22 @@ class HaloList(object):
         return self._groups[key]
 
     def nearest_neighbors_3D(self, haloID, num_neighbors=7, search_radius=.2):
-        """
-        for halo *haloID*, find up to *num_neighbors* nearest neighbors in 3D
-        using the kd tree. Search over *search_radius* in code units.
-        Returns a list of the neighbors distances and ID with format
-        [distance,haloID].
+        r"""For a halo its nearest neighbors in 3D
+        using the kd tree. Returns a list of the neighbors distances and ID
+        with format [distance,haloID].
+        
+        Parameters
+        ----------
+        haloID : Integer
+            The halo to find neighbors for.
+        num_neighbors : Integer
+            How many neighbors to search for. Default = 7.
+        search_radius : Float
+            How far away to look for neighbors in code units. Default = 0.2.
+        
+        Examples
+        --------
+        >>> neighbors = halos.nearest_neighbors_3D(0)
         """
         period = self.pf['DomainRightEdge'] - self.pf['DomainLeftEdge']
         # Initialize the dataset of points from all the haloes
@@ -689,12 +829,25 @@ class HaloList(object):
 
     def nearest_neighbors_2D(self, haloID, num_neighbors=7, search_radius=.2,
         proj_dim=0):
-        """
-        for halo *haloID*, find up to *num_neighbors* nearest neighbors in 2D
-        using the kd tree. Search over *search_radius* in code units.
-        The halo positions are projected along dimension *proj_dim*.
-        Returns a list of the neighbors distances and ID with format
-        [distance,haloID].
+        r"""For a halo its nearest neighbors in 2D
+        using the kd tree. Returns a list of the neighbors distances and ID
+        with format [distance,haloID].
+        
+        Parameters
+        ----------
+        haloID : Integer
+            The halo to find neighbors for.
+        num_neighbors : Integer
+            How many neighbors to search for. Default = 7.
+        search_radius : Float
+            How far away to look for neighbors in code units. Default = 0.2.
+        proj_dim : Integer
+            Which dimension (0, 1, or 2) to project the halos into 2D.
+            Default = 0.
+        
+        Examples
+        --------
+        >>> neighbors = halos.nearest_neighbors_2D(0)
         """
         # Set up a vector to multiply other vectors by to project along proj_dim
         vec = na.array([1.,1.,1.])
@@ -727,8 +880,16 @@ class HaloList(object):
         return n_points
 
     def write_out(self, filename):
-        """
-        Write out standard HOP information to *filename*.
+        r"""Write out standard halo information to a text file.
+        
+        Parameters
+        ----------
+        filename : String
+            The name of the file to write to.
+        
+        Examples
+        --------
+        >>> halos.write_out("HopAnalysis.out")
         """
         if hasattr(filename, 'write'):
             f = filename
@@ -757,8 +918,17 @@ class HaloList(object):
         f.close()
 
     def write_particle_lists_txt(self, prefix, fp=None):
-        """
-        Write out the location of halo data in hdf5 files to *prefix*.
+        r"""Write out the names of the HDF5 files containing halo particle data
+        to a text file. Needed in particular for parallel analysis output.
+        
+        Parameters
+        ---------
+        prefix : String
+            The prefix for the name of the file.
+        
+        Examples
+        --------
+        >>> halos.write_particle_lists_txt("halo-parts")
         """
         if hasattr(fp, 'write'):
             f = fp
@@ -806,6 +976,17 @@ class HOPHaloList(HaloList):
         self.particle_fields["tags"] = self.tags
 
     def write_out(self, filename="HopAnalysis.out"):
+        r"""Write out standard halo information to a text file.
+        
+        Parameters
+        ----------
+        filename : String
+            The name of the file to write to. Default = "HopAnalysis.out".
+        
+        Examples
+        --------
+        >>> halos.write_out("HopAnalysis.out")
+        """
         HaloList.write_out(self, filename)
 
 class FOFHaloList(HaloList):
@@ -828,6 +1009,17 @@ class FOFHaloList(HaloList):
         self.particle_fields["tags"] = self.tags
 
     def write_out(self, filename="FOFAnalysis.out"):
+        r"""Write out standard halo information to a text file.
+        
+        Parameters
+        ----------
+        filename : String
+            The name of the file to write to. Default = "FOFAnalysis.out".
+        
+        Examples
+        --------
+        >>> halos.write_out("FOFAnalysis.out")
+        """
         HaloList.write_out(self, filename)
 
 class parallelHOPHaloList(HaloList,ParallelAnalysisInterface):
@@ -1037,6 +1229,18 @@ class parallelHOPHaloList(HaloList,ParallelAnalysisInterface):
         return self.group_count
 
     def write_out(self, filename="parallelHopAnalysis.out"):
+        r"""Write out standard halo information to a text file.
+        
+        Parameters
+        ----------
+        filename : String
+            The name of the file to write to.
+            Default = "parallelHopAnalysis.out".
+        
+        Examples
+        --------
+        >>> halos.write_out("parallelHopAnalysis.out")
+        """
         HaloList.write_out(self, filename)
 
 class GenericHaloFinder(HaloList, ParallelAnalysisInterface):
@@ -1123,16 +1327,49 @@ class GenericHaloFinder(HaloList, ParallelAnalysisInterface):
             arr[arr > RE[i]+self.padding] -= dw[i]
 
     def write_out(self, filename):
-        #self._data_source.get_data(["particle_velocity_%s" % ax for ax in 'xyz'])
+        r"""Write out standard halo information to a text file.
+        
+        Parameters
+        ----------
+        filename : String
+            The name of the file to write to.
+        
+        Examples
+        --------
+        >>> halos.write_out("HopAnalysis.out")
+        """
         f = self._write_on_root(filename)
         HaloList.write_out(self, f)
 
     def write_particle_lists_txt(self, prefix):
+        r"""Write out the names of the HDF5 files containing halo particle data
+        to a text file. Needed in particular for parallel analysis output.
+        
+        Parameters
+        ---------
+        prefix : String
+            The prefix for the name of the file.
+        
+        Examples
+        --------
+        >>> halos.write_particle_lists_txt("halo-parts")
+        """
         f = self._write_on_root("%s.txt" % prefix)
         HaloList.write_particle_lists_txt(self, prefix, fp=f)
 
     @parallel_blocking_call
     def write_particle_lists(self, prefix):
+        r"""Write out the particle data for halos to HDF5 files.
+        
+        Parameters
+        ----------
+        prefix : String
+            The prefix for the name(s) of the HDF5 files.
+        
+        Examples
+        --------
+        >>> halos.write_particle_lists("halo-parts")
+        """
         fn = "%s.h5" % self._get_filename(prefix)
         f = h5py.File(fn, "w")
         for halo in self._groups:
@@ -1142,6 +1379,43 @@ class GenericHaloFinder(HaloList, ParallelAnalysisInterface):
 class parallelHF(GenericHaloFinder, parallelHOPHaloList):
     def __init__(self, pf, threshold=160, dm_only=True, resize=True, rearrange=True,\
         fancy_padding=True, safety=1.5, premerge=True, sample=0.03):
+        r"""Parallel HOP halo finder.
+        
+        Parameters
+        ----------
+        pf : EnzoStaticOutput object
+        threshold : Float
+            The density threshold used when building halos. Default = 160.0.
+        dm_only : Boolean
+            If True, only dark matter particles are used when building halos.
+            Default = False.
+        resize : Boolean
+            Turns load-balancing on or off. Default = True.
+        rearrange : Boolean
+            Turns on faster nearest neighbor searches at the cost of increased
+            memory usage. Default = True.
+        fancy_padding : Boolean
+            True calculates padding independently for each face of each
+            subvolume. Default = True.
+        safety : Float
+            Due to variances in inter-particle spacing in the volume, the
+            padding may need to be increased above the raw calculation.
+            This number is multiplied to the calculated padding, and values
+            >1 increase the padding. Default = 1.5.
+        premerge : Boolean
+            True merges chains in two steps (rather than one with False), which
+            can speed up halo finding by 25% or more. However, True can result
+            in small (<<1%) variations in the final halo masses when compared
+            to False. Default = True.
+        sample : Float
+            The fraction of the full dataset on which load-balancing is
+            performed. Default = 0.03.
+        
+        Examples
+        -------
+        >>> pf = load("RedshiftOutput0000")
+        >>> halos = parallelHF(pf)
+        """
         GenericHaloFinder.__init__(self, pf, dm_only, padding=0.0)
         self.padding = 0.0
         self.num_neighbors = 65
@@ -1349,6 +1623,27 @@ class parallelHF(GenericHaloFinder, parallelHOPHaloList):
 
 class HOPHaloFinder(GenericHaloFinder, HOPHaloList):
     def __init__(self, pf, threshold=160, dm_only=True, padding=0.02):
+        r"""HOP halo finder.
+        
+        Parameters
+        ----------
+        pf : EnzoStaticOutput object
+        threshold : Float
+            The density threshold used when building halos. Default = 160.0.
+        dm_only : Boolean
+            If True, only dark matter particles are used when building halos.
+            Default = False.
+        padding : Float
+            When run in parallel, the finder needs to surround each subvolume
+            with duplicated particles for halo finidng to work. This number
+            must be no smaller than the radius of the largest halo in the box
+            in code units. Default = 0.02.
+        
+        Examples
+        -------
+        >>> pf = load("RedshiftOutput0000")
+        >>> halos = HaloFinder(pf)
+        """
         GenericHaloFinder.__init__(self, pf, dm_only, padding)
         
         # do it once with no padding so the total_mass is correct (no duplicated particles)
@@ -1380,6 +1675,28 @@ class HOPHaloFinder(GenericHaloFinder, HOPHaloList):
 
 class FOFHaloFinder(GenericHaloFinder, FOFHaloList):
     def __init__(self, pf, link=0.2, dm_only=True, padding=0.02):
+        r"""Friends-of-friends halo finder.
+        
+        Parameters
+        ----------
+        pf : EnzoStaticOutput object
+        link : Float
+            The interparticle distance (compared to the overall average)
+            used to build the halos. Default = 0.2.
+        dm_only : Boolean
+            If True, only dark matter particles are used when building halos.
+            Default = False.
+        padding : Float
+            When run in parallel, the finder needs to surround each subvolume
+            with duplicated particles for halo finidng to work. This number
+            must be no smaller than the radius of the largest halo in the box
+            in code units. Default = 0.02.
+        
+        Examples
+        -------
+        >>> pf = load("RedshiftOutput0000")
+        >>> halos = FOFHaloFinder(pf)
+        """
         self.pf = pf
         self.hierarchy = pf.h
         self.center = (pf["DomainRightEdge"] + pf["DomainLeftEdge"])/2.0
