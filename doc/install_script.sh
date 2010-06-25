@@ -233,8 +233,8 @@ fi
 [ $INST_PNG -eq 1 ] && get_enzotools libpng-1.2.43.tar.gz
 [ $INST_WXPYTHON -eq 1 ] && get_enzotools wxPython-src-2.8.10.1.tar.bz2
 get_enzotools Python-2.6.3.tgz
-get_enzotools numpy-1.3.0.tar.gz
-get_enzotools matplotlib-0.99.1.2.tar.gz
+get_enzotools numpy-1.4.1.tar.gz
+get_enzotools matplotlib-0.99.3.tar.gz
 get_enzotools ipython-0.10.tar.gz
 get_enzotools h5py-1.2.0.tar.gz
 
@@ -352,14 +352,14 @@ echo "Installing distribute"
 echo "Installing pip"
 ( ${DEST_DIR}/bin/easy_install-2.6 pip 2>&1 ) 1>> ${LOG_FILE} || do_exit
 
-do_setup_py numpy-1.3.0 ${NUMPY_ARGS}
+do_setup_py numpy-1.4.1 ${NUMPY_ARGS}
 
 if [ -n "${MPL_SUPP_LDFLAGS}" ]
 then
     export LDFLAGS="${MPL_SUPP_LDFLAGS}"
     echo "Setting LDFLAGS ${LDFLAGS}"
 fi
-do_setup_py matplotlib-0.99.1.2
+do_setup_py matplotlib-0.99.3
 unset LDFLAGS
 do_setup_py ipython-0.10
 do_setup_py h5py-1.2.0
