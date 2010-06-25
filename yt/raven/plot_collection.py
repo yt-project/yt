@@ -1304,7 +1304,7 @@ class PlotCollection(object):
         return p
 
     def add_ray(self, start_point, end_point, field, figure = None,
-                axes = None, plot_options = None):
+                axes = None, field_parameters = None, plot_options = None):
         r"""Create a ray between two points, from that a line plot, and add
         it to the current collection.
 
@@ -1360,7 +1360,7 @@ class PlotCollection(object):
                                     **field_parameters)
         p = self._add_plot(PlotTypes.LineQueryPlot(data_source,
                 ['t', field], self._get_new_id(),
-                figure, axes, plot_options=plot_options))
+                figure=figure, axes=axes, plot_options=plot_options))
         return p
 
     def _get_new_id(self):
