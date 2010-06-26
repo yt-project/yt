@@ -1464,6 +1464,22 @@ class parallelHF(GenericHaloFinder, parallelHOPHaloList):
         fancy_padding=True, safety=1.5, premerge=True, sample=0.03):
         r"""Parallel HOP halo finder.
         
+        Halos are built by:
+        1. Calculating a density for each particle based on a smoothing kernel.
+        2. Recursively linking particles to other particles from lower density
+        particles to higher.
+        3. Geometrically proximate chains are identified and
+        4. merged into final halos following merging rules.
+        
+        Lower thresholds generally produce more halos, and the largest halos
+        become larger. Also, halos become more filamentary and over-connected.
+        
+        This is very similar to HOP, but it does not produce precisely the
+        same halos due to unavoidable numerical differences.
+        
+        Skory et al. "Parallel HOP: A Scalable Halo Finder for Massive
+        Cosmological Data Sets." arXiv (2010) 1001.3411
+        
         Parameters
         ----------
         pf : EnzoStaticOutput object
@@ -1708,6 +1724,19 @@ class HOPHaloFinder(GenericHaloFinder, HOPHaloList):
     def __init__(self, pf, threshold=160, dm_only=True, padding=0.02):
         r"""HOP halo finder.
         
+        Halos are built by:
+        1. Calculating a density for each particle based on a smoothing kernel.
+        2. Recursively linking particles to other particles from lower density
+        particles to higher.
+        3. Geometrically proximate chains are identified and
+        4. merged into final halos following merging rules.
+        
+        Lower thresholds generally produce more halos, and the largest halos
+        become larger. Also, halos become more filamentary and over-connected.
+        
+        Eisenstein and Hut. "HOP: A New Group-Finding Algorithm for N-Body
+        Simulations." ApJ (1998) vol. 498 pp. 137-142
+        
         Parameters
         ----------
         pf : EnzoStaticOutput object
@@ -1759,6 +1788,16 @@ class HOPHaloFinder(GenericHaloFinder, HOPHaloList):
 class FOFHaloFinder(GenericHaloFinder, FOFHaloList):
     def __init__(self, pf, link=0.2, dm_only=True, padding=0.02):
         r"""Friends-of-friends halo finder.
+        
+        Halos are found by linking together all pairs of particles closer than
+        some distance from each other. Particles may have multiple links,
+        and halos are found by recursively linking together all such pairs.
+        
+        Larger linking lengths produce more halos, and the largest halos
+        become larger. Also, halos become more filamentary and over-connected.
+        
+        Davis et al. "The evolution of large-scale structure in a universe
+        dominated by cold dark matter." ApJ (1985) vol. 292 pp. 371-394
         
         Parameters
         ----------
