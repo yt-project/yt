@@ -36,47 +36,47 @@ class Camera(object):
                  volume = None, fields = None,
                  log_fields = None,
                  sub_samples = 5, pf = None):
-    r"""A viewpoint into a volume, for volume rendering.
+        r"""A viewpoint into a volume, for volume rendering.
 
-    The camera represents the eye of an observer, which will be used to
-    generate ray-cast volume renderings of the domain.
+        The camera represents the eye of an observer, which will be used to
+        generate ray-cast volume renderings of the domain.
 
-    Parameters
-    ----------
-    center : array_like
-        The current "center" of the view port -- the focal point for the
-        camera.
-    normal_vector : array_like
-        The vector between the camera position and the center.
-    width : float or list of floats
-        The current width of the image.  If a single float, the volume is
-        cubical, but if not, it is front/back, left/right, top/bottom.
-    resolution : int or list of ints
-        The number of pixels in each direction.
-    north_vector : array_like, optional
-        The "up" direction for the plane of rays.  If not specific, calculated
-        automatically.
-    volume : `yt.extensions.volume_rendering.HomogenizedVolume`, optional
-        The volume to ray cast through.  Can be specified for finer-grained
-        control, but otherwise will be automatically generated.
-    fields : list of fields, optional
-        This is the list of fields we want to volume render; defaults to
-        Density.
-    log_fields : list of bool, optional
-        Whether we should take the log of the fields before supplying them to
-        the volume rendering mechanism.
-    sub_samples : int, optional
-        The number of samples to take inside every cell per ray.
-    pf : `~yt.lagos.StaticOutput`
-        For now, this is a require parameter!  But in the future it will become
-        optional.  This is the parameter file to volume render.
+        Parameters
+        ----------
+        center : array_like
+            The current "center" of the view port -- the focal point for the
+            camera.
+        normal_vector : array_like
+            The vector between the camera position and the center.
+        width : float or list of floats
+            The current width of the image.  If a single float, the volume is
+            cubical, but if not, it is front/back, left/right, top/bottom.
+        resolution : int or list of ints
+            The number of pixels in each direction.
+        north_vector : array_like, optional
+            The "up" direction for the plane of rays.  If not specific, calculated
+            automatically.
+        volume : `yt.extensions.volume_rendering.HomogenizedVolume`, optional
+            The volume to ray cast through.  Can be specified for finer-grained
+            control, but otherwise will be automatically generated.
+        fields : list of fields, optional
+            This is the list of fields we want to volume render; defaults to
+            Density.
+        log_fields : list of bool, optional
+            Whether we should take the log of the fields before supplying them to
+            the volume rendering mechanism.
+        sub_samples : int, optional
+            The number of samples to take inside every cell per ray.
+        pf : `~yt.lagos.StaticOutput`
+            For now, this is a require parameter!  But in the future it will become
+            optional.  This is the parameter file to volume render.
 
-    Examples
-    --------
+        Examples
+        --------
 
-    >>> cam = vr.Camera(c, L, W, (N,N), transfer_function = tf, pf = pf)
-    >>> image = cam.snapshot()
-    """
+        >>> cam = vr.Camera(c, L, W, (N,N), transfer_function = tf, pf = pf)
+        >>> image = cam.snapshot()
+        """
         if pf is not None: self.pf = pf
         if not iterable(resolution):
             resolution = (resolution, resolution)
