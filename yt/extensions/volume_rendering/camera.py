@@ -36,6 +36,47 @@ class Camera(object):
                  volume = None, fields = None,
                  log_fields = None,
                  sub_samples = 5, pf = None):
+    r"""A viewpoint into a volume, for volume rendering.
+
+    The camera represents the eye of an observer, which will be used to
+    generate ray-cast volume renderings of the domain.
+
+    Parameters
+    ----------
+    center : array_like
+        The current "center" of the view port -- the focal point for the
+        camera.
+    normal_vector : array_like
+        The vector between the camera position and the center.
+    width : float or list of floats
+        The current width of the image.  If a single float, the volume is
+        cubical, but if not, it is front/back, left/right, top/bottom.
+    resolution : int or list of ints
+        The number of pixels in each direction.
+    north_vector : array_like, optional
+        The "up" direction for the plane of rays.  If not specific, calculated
+        automatically.
+    volume : `yt.extensions.volume_rendering.HomogenizedVolume`, optional
+        The volume to ray cast through.  Can be specified for finer-grained
+        control, but otherwise will be automatically generated.
+    fields : list of fields, optional
+        This is the list of fields we want to volume render; defaults to
+        Density.
+    log_fields : list of bool, optional
+        Whether we should take the log of the fields before supplying them to
+        the volume rendering mechanism.
+    sub_samples : int, optional
+        The number of samples to take inside every cell per ray.
+    pf : `~yt.lagos.StaticOutput`
+        For now, this is a require parameter!  But in the future it will become
+        optional.  This is the parameter file to volume render.
+
+    Examples
+    --------
+
+    >>> cam = vr.Camera(c, L, W, (N,N), transfer_function = tf, pf = pf)
+    >>> image = cam.snapshot()
+    """
         if pf is not None: self.pf = pf
         if not iterable(resolution):
             resolution = (resolution, resolution)
@@ -81,6 +122,20 @@ class Camera(object):
         self.inv_mat = na.linalg.pinv(self.unit_vectors)
 
     def look_at(self, new_center, north_vector = None):
+        r"""Change the view direction based on a new focal point.
+
+        This will recalculate all the necessary vectors and vector planes related
+        to a camera to point at a new location.
+
+        Parameters
+        ----------
+        new_center : array_like
+            The new "center" of the view port -- the focal point for the
+            camera.
+        north_vector : array_like, optional
+            The "up" direction for the plane of rays.  If not specific,
+            calculated automatically.
+        """
         normal_vector = self.front_center - new_center
         self._setup_normalized_vectors(normal_vector, north_vector)
 
@@ -107,6 +162,16 @@ class Camera(object):
         return vector_plane
 
     def snapshot(self):
+        r"""Ray-cast the camera.
+
+        This method instructs the camera to take a snapshot -- i.e., call the ray
+        caster -- based on its current settings.
+
+        Returns
+        -------
+        image : array
+            An (N,M,3) array of the final returned values, in float64 form.
+        """
         image = na.zeros((self.resolution[0], self.resolution[1], 3),
                          dtype='float64', order='C')
         vector_plane = self.get_vector_plane(image)
@@ -124,11 +189,49 @@ class Camera(object):
         return image
 
     def zoom(self, factor):
+        r"""Change the distance to the focal point.
+
+        This will zoom the camera in by some `factor` toward the focal point,
+        along the current view direction, modifying the left/right and up/down
+        extents as well.
+
+        Parameters
+        ----------
+        factor : float
+            The factor by which to reduce the distance to the focal point.
+
+
+        Notes
+        -----
+
+        You will need to call snapshot() again to get a new image.
+
+        """
         self.width = [w / factor for w in self.width]
         self._setup_normalized_vectors(
                 self.unit_vectors[2], self.unit_vectors[0])
 
     def zoomin(self, final, n_steps):
+        r"""Loop over a zoomin and return snapshots along the way.
+
+        This will yield `n_steps` snapshots until the current view has been
+        zooming in to a final factor of `final`.
+
+        Parameters
+        ----------
+        final : float
+            The zoom factor, with respect to current, desired at the end of the
+            sequence.
+        n_steps : int
+            The number of zoom snapshots to make.
+
+
+        Examples
+        --------
+
+        >>> for i, snapshot in enumerate(cam.zoomin(100.0, 10)):
+        ...     iw.write_bitmap(snapshot, "zoom_%04i.png" % i)
+        """
         f = final**(1.0/n_steps)
         for i in xrange(n_steps):
             self.zoom(f)

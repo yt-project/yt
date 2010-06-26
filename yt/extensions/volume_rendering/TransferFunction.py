@@ -65,7 +65,7 @@ class TransferFunction(object):
 
         Typically, when rendering isocontours, a Guassian distribution is the
         easiest way to draw out features.  The spread provides a softness.
-        The values are calculated as :math:`f(x) = h \exp{-(x-x_0)^2 / w)`.
+        The values are calculated as :math:`f(x) = h \exp{-(x-x_0)^2 / w}`.
 
         Parameters
         ----------
@@ -343,7 +343,7 @@ class ColorTransferFunction(MultiVariateTransferFunction):
 
         Typically, when rendering isocontours, a Guassian distribution is the
         easiest way to draw out features.  The spread provides a softness.
-        The values are calculated as :math:`f(x) = h \exp{-(x-x_0)^2 / w)`.
+        The values are calculated as :math:`f(x) = h \exp{-(x-x_0)^2 / w}`.
 
         Parameters
         ----------
@@ -451,7 +451,7 @@ class ColorTransferFunction(MultiVariateTransferFunction):
         challenges, so this function will add a single Gaussian whose colors
         are taken from a colormap scaled between the bounds of the transfer
         function.  As with `TransferFunction.add_gaussian`, the value is
-        calculated as :math:`f(x) = h \exp{-(x-x_0)^2 / w)` but with the height
+        calculated as :math:`f(x) = h \exp{-(x-x_0)^2 / w}` but with the height
         for each color calculated from the colormap.
 
         Parameters
