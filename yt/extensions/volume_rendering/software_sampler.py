@@ -159,7 +159,7 @@ class VolumeRendering(ParallelAnalysisInterface):
         ry = self.resolution[1] * self.res_fac[1]
         # We should move away from pre-generation of vectors like this and into
         # the usage of on-the-fly generation in the VolumeIntegrator module
-        self.image = na.zeros((rx,ry,6), dtype='float64', order='C')
+        self.image = na.zeros((rx,ry,3), dtype='float64', order='C')
         # We might have a different width and back_center
         bl = self.source.box_lengths
         px = na.linspace(-bl[0]/2.0, bl[0]/2.0, rx)[:,None]

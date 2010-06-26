@@ -38,17 +38,50 @@ def _scale_image(image):
 
 def multi_image_composite(fn, red_channel, blue_channel,
                           green_channel = None, alpha_channel = None):
-    """
+    r"""Write an image with different color channels corresponding to different
+    quantities.
+
     Accepts at least a red and a blue array, of shape (N,N) each, that are
-    optionally scaled and composited into a final image, written into *fn*.
-    Can also accept green and alpha.  For instance:
+    optionally scaled and composited into a final image, written into `fn`.
+    Can also accept green and alpha.
+
+    Parameters
+    ----------
+    fn : string
+        Filename to save
+    red_channel : array_like or tuple of image info
+        Array, of shape (N,N), to be written into the red channel of the output
+        image.  If not already uint8, will be converted (and scaled) into
+        uint8.  Optionally, you can also specify a tuple that includes scaling
+        information, in the form of (array_to_plot, min_value_to_scale,
+        max_value_to_scale).
+    blue_channel : array_like or tuple of image info
+        Array, of shape (N,N), to be written into the blue channel of the output
+        image.  If not already uint8, will be converted (and scaled) into
+        uint8.  Optionally, you can also specify a tuple that includes scaling
+        information, in the form of (array_to_plot, min_value_to_scale,
+        max_value_to_scale).
+    green_channel : array_like or tuple of image info, optional
+        Array, of shape (N,N), to be written into the green channel of the
+        output image.  If not already uint8, will be converted (and scaled)
+        into uint8.  If not supplied, will be left empty.  Optionally, you can
+        also specify a tuple that includes scaling information, in the form of
+        (array_to_plot, min_value_to_scale, max_value_to_scale).
+
+    alpha_channel : array_like or tuple of image info, optional
+        Array, of shape (N,N), to be written into the alpha channel of the output
+        image.  If not already uint8, will be converted (and scaled) into uint8.
+        If not supplied, will be made fully opaque.  Optionally, you can also
+        specify a tuple that includes scaling information, in the form of
+        (array_to_plot, min_value_to_scale, max_value_to_scale).
+
+    Examples
+    --------
 
         >>> red_channel = na.log10(frb["Temperature"])
         >>> blue_channel = na.log10(frb["Density"])
-        >>> iw.multi_image_composite("multi_channel1.png", red_channel, blue_channel)
+        >>> multi_image_composite("multi_channel1.png", red_channel, blue_channel)
 
-    Optionally, you can also specify a tuple that includes scaling information,
-    in the form of (array_to_plot, min_value_to_scale, max_value_to_scale).
     """
     red_channel = _scale_image(red_channel)
     blue_channel = _scale_image(blue_channel)
@@ -65,18 +98,28 @@ def multi_image_composite(fn, red_channel, blue_channel,
     au.write_png(image, fn)
 
 def write_bitmap(bitmap_array, filename, max_val = None):
-    """
-    This accepts a three- or four-channel *bitmap_array*.  If the image is not
-    already uint8, it will be scaled and converted.  If it is not four channel,
-    a fourth alpha channel will be added and set to fully opaque.  The
-    resultant image will be directly written to *filename* as a PNG with no
-    colormap applied.  *max_val* is a value used if the array is passed in as
-    anything other than uint8; it will be the value used for scaling and
-    clipping when the array is converted.
+    r"""Write out a bitmapped image directly to a PNG file.
 
-    Additionally, the minimum is assumed to be zero; this makes it primarily
-    suited for the results of volume rendered images, rather than misaligned
-    projections.
+    This accepts a three- or four-channel `bitmap_array`.  If the image is not
+    already uint8, it will be scaled and converted.  If it is not four channel, a
+    fourth alpha channel will be added and set to fully opaque.  The resultant
+    image will be directly written to `filename` as a PNG with no colormap
+    applied.  `max_val` is a value used if the array is passed in as anything
+    other than uint8; it will be the value used for scaling and clipping when the
+    array is converted.  Additionally, the minimum is assumed to be zero; this
+    makes it primarily suited for the results of volume rendered images, rather
+    than misaligned projections.
+
+    Parameters
+    ----------
+    bitmap_array : array_like
+        Array of shape (N,M,3) or (N,M,4), to be written.  If it is not already
+        a uint8 array, it will be scaled and converted to uint8.
+    filename : string
+        Filename to save to
+    max_val : float, optional
+        The upper limit to clip values to in the output, if converting to uint8.
+        If `bitmap_array` is already uint8, this will be ignore.
     """
     if bitmap_array.dtype != na.uint8:
         if max_val is None: max_val = bitmap_array.max()
@@ -91,12 +134,45 @@ def write_bitmap(bitmap_array, filename, max_val = None):
     au.write_png(bitmap_array.copy(), filename)
 
 def write_image(image, filename, color_bounds = None, cmap_name = "algae"):
+    r"""Write out a floating point array directly to a PNG file, scaling it and
+    applying a colormap.
+
+    This function will scale an image and directly call libpng to write out a
+    colormapped version of that image.  It is designed for rapid-fire saving of
+    image buffers generated using `yt.raven.FixedResolutionBuffers` and the like.
+
+    Parameters
+    ----------
+    image : array_like
+        This is an (unscaled) array of floating point values, shape (N,N,) to
+        save in a PNG file.
+    filename : string
+        Filename to save as.
+    color_bounds : tuple of floats, optional
+        The min and max to scale between.  Outlying values will be clipped.
+    cmap_name : string, optional
+        An acceptable colormap.  See either raven.color_maps or
+        http://www.scipy.org/Cookbook/Matplotlib/Show_colormaps .
+        
+    Returns
+    -------
+    scaled_image : uint8 image that has been saved
+
+    Examples
+    --------
+
+    >>> proj = pf.h.slice(0, "Density")
+    >>> frb1 = FixedResolutionBuffer(proj, (0.2, 0.3, 0.4, 0.5),
+                    (1024, 1024))
+    >>> write_image(frb1, "saved.png")
+    """
     if color_bounds is None:
         mi = na.nanmin(image[~na.isinf(image)])
         ma = na.nanmax(image[~na.isinf(image)])
         color_bounds = mi, ma
     image = (image - color_bounds[0])/(color_bounds[1] - color_bounds[0])
     to_plot = map_to_colors(image, cmap_name)
+    to_plot = na.clip(to_plot, 0, 255)
     au.write_png(to_plot, filename)
     return to_plot
 
