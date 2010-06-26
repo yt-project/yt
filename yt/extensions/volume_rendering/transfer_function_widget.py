@@ -25,7 +25,7 @@ License:
 
 import numpy as na
 import cPickle
-from TransferFunction import ColorTransferFunction
+from transfer_functions import ColorTransferFunction
 
 from enthought.traits.api import \
         HasTraits, Float, List, Instance, Button, Array, CArray, Range, \

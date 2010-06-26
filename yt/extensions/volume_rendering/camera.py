@@ -25,7 +25,7 @@ License:
 
 import numpy as na
 from grid_partitioner import HomogenizedVolume
-from TransferFunction import ProjectionTransferFunction
+from transfer_functions import ProjectionTransferFunction
 from yt.funcs import *
 import yt.amr_utils as au
 
