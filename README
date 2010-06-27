@@ -1,4 +1,4 @@
-Hi there!  You've just downloaded yt, an analysis tool for 3D Enzo adaptive
+Hi there!  You've just downloaded yt, an analysis tool for Enzo adaptive
 mesh refinement datasets.  It's written in python and based on the NumPy and
 Matplotlib components.
 
