@@ -586,7 +586,7 @@ class TwoPointFunctions(ParallelAnalysisInterface):
         directory.
         
         Examples
-        -------
+        --------
         >>> tpf.write_out_means()
         """
         for fset in self._fsets:
@@ -618,7 +618,7 @@ class TwoPointFunctions(ParallelAnalysisInterface):
         'function_name.txt' and saved in the current working directory.
         
         Examples
-        -------
+        --------
         >>> tpf.write_out_arrays()
         """
         if self.mine == 0:
@@ -702,6 +702,7 @@ class FcnSet(TwoPointFunctions):
             A pair of values giving the range for the bins.
             A pair of floats (a list), or a list of pairs for N-dim binning.
             Default = None.
+
         Examples
         --------
         >>> f1.set_pdf_params(bin_type='log', bin_range=[5e4, 5.5e13],
@@ -795,7 +796,14 @@ class FcnSet(TwoPointFunctions):
             for d1 in range(dim):
                 multi *= self.bin_edges[d1].size
             if dim == 0 and len(self.out_labels)==1:
-                digi = na.digitize(results, self.bin_edges[dim])
+                try:
+                    digi = na.digitize(results, self.bin_edges[dim])
+                except ValueError:
+                    # The user probably did something like 
+                    # return a * b rather than
+                    # return a[0] * b[0], which will only happen
+                    # for single field functions.
+                    digi = na.digitize(results[0], self.bin_edges[dim])
             else:
                 digi = na.digitize(results[:,dim], self.bin_edges[dim])
             too_low = (digi == 0)
