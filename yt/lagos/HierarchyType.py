@@ -144,17 +144,26 @@ class AMRHierarchy(ObjectFindingMixin, ParallelAnalysisInterface):
                 fn = os.path.join(self.directory,
                         "%s.yt" % self.parameter_file.basename)
         dir_to_check = os.path.dirname(fn)
-        if os.path.isfile(fn):
-            writable = os.access(fn, os.W_OK)
+        # We have four options:
+        #    Writeable, does not exist      : create, open as append
+        #    Writeable, does exist          : open as append
+        #    Not writeable, does not exist  : do not attempt to open
+        #    Not writeable, does exist      : open as read-only
+        exists = os.path.isfile(fn)
+        if not exists:
+            writeable = os.access(dir_to_check, os.W_OK)
         else:
-            writable = os.access(dir_to_check, os.W_OK)
-        if ytcfg.getboolean('lagos','onlydeserialize') or not writable:
-            self._data_mode = mode = 'r'
+            writeable = os.access(fn, os.W_OK)
+        writeable = writeable and not ytcfg.getboolean('lagos','onlydeserialize')
+        # We now have our conditional stuff
+        if not writeable and not exists: return
+        if writeable:
+            self._data_mode = 'a'
+            if not exists: self.__create_data_file(fn)
         else:
-            self._data_mode = mode = 'a'
-            self.__create_data_file(fn)
-            self.__data_filename = fn
-            self._data_file = h5py.File(fn, self._data_mode)
+            self._data_mode = 'r'
+        self.__data_filename = fn
+        self._data_file = h5py.File(fn, self._data_mode)
 
     @parallel_root_only
     def __create_data_file(self, fn):
