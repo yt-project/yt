@@ -128,22 +128,24 @@ class StarFormationRate(object):
     
     def write_out(self, name="StarFormationRate.out"):
         r"""Write out the star analysis to a text file *name*. The columns are in
-        order:
-        1) Time (yrs)
-        2) Look-back time (yrs)
-        3) Redshift
-        4) Star formation rate in this bin per year (Msol/yr)
-        5) Star formation rate in this bin per year per Mpc**3 (Msol/yr/Mpc**3)
-        6) Stars formed in this time bin (Msol)
-        7) Cumulative stars formed up to this time bin (Msol)
+        order.
+
+        The columns in the output file are:
+           1. Time (yrs)
+           2. Look-back time (yrs)
+           3. Redshift
+           4. Star formation rate in this bin per year (Msol/yr)
+           5. Star formation rate in this bin per year per Mpc**3 (Msol/yr/Mpc**3)
+           6. Stars formed in this time bin (Msol)
+           7. Cumulative stars formed up to this time bin (Msol)
         
         Parameters
-        ---------
+        ----------
         name : String
             The name of the file to write to. Default = StarFormationRate.out.
         
         Examples
-        -------
+        --------
         >>> sfr.write_out("stars-SFR.out")
         """
         fp = open(name, "w")
@@ -226,7 +228,7 @@ class SpectrumBuilder(object):
             'salpeter'. Default = 'chabrier'.
         
         Examples
-        -------
+        --------
         >>> pf = load("RedshiftOutput0000")
         >>> spec = SpectrumBuilder(pf, "/home/user/bc/", model="salpeter")
         """
@@ -276,7 +278,7 @@ class SpectrumBuilder(object):
         avg_metal: Average metallicity of all the stars.
         
         Parameters
-        ---------
+        ----------
         data_source : AMRRegion object, optional
             The region from which stars are extracted for analysis. If this is
             not specified, the next three parameters must be supplied.
@@ -420,10 +422,11 @@ class SpectrumBuilder(object):
 
     
     def write_out(self, name="sum_flux.out"):
-        r"""Write out the summed flux to a file. The file has two columns:
-        1) Wavelength (Angstrom)
-        2) Flux (Luminosity per unit wavelength, L_sun Ang^-1,
-        L_sun = 3.826 * 10^33 ergs s^-1.)
+        r"""Write out the summed flux to a file. 
+
+        The output file from this function has two columns: Wavelength
+        (Angstrom) and Flux (Luminosity per unit wavelength, L_sun Ang^-1,
+        L_sun = 3.826 * 10^33 ergs s^-1.).
 
         Parameters
         ----------
@@ -431,7 +434,7 @@ class SpectrumBuilder(object):
             Name of file to write to. Default = "sum_flux.out"
         
         Examples
-        -------
+        --------
         >>> spec.write_out("spec.out")
         """
         fp = open(name, 'w')
@@ -448,7 +451,7 @@ class SpectrumBuilder(object):
         identical to the disk output.
         
         Parameters
-        ---------
+        ----------
         name : String
             Name of file to write to. Default = "sum_SED.out"
         flux_norm : Float
@@ -456,7 +459,7 @@ class SpectrumBuilder(object):
             Default = 5200 Ang.
         
         Examples
-        -------
+        --------
         >>> spec.write_out_SED(name = "SED.out", flux_norm = 6000.)
         """
         # find the f_nu closest to flux_norm
