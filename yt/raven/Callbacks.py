@@ -74,6 +74,26 @@ class VelocityCallback(PlotCallback):
             qcb = QuiverCallback(xv, yv, self.factor)
         return qcb(plot)
 
+class MagFieldCallback(PlotCallback):
+    _type_name = "magnetic_field"
+    def __init__(self, factor=16):
+        """
+        Adds a 'quiver' plot of magnetic field to the plot, skipping all but
+        every *factor* datapoint
+        """
+        PlotCallback.__init__(self)
+        self.factor = factor
+
+    def __call__(self, plot):
+        # Instantiation of these is cheap
+        if plot._type_name == "CuttingPlane":
+            print "WARNING: Magnetic field on Cutting Plane Not implemented."
+        else:
+            xv = "B%s" % (lagos.x_names[plot.data.axis])
+            yv = "B%s" % (lagos.y_names[plot.data.axis])
+            qcb = QuiverCallback(xv, yv, self.factor)
+        return qcb(plot)
+
 class QuiverCallback(PlotCallback):
     _type_name = "quiver"
     def __init__(self, field_x, field_y, factor):
