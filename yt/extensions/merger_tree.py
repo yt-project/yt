@@ -752,6 +752,118 @@ class MergerTreeConnect(DatabaseFunctions):
             results = self.cursor.fetchone()
         return items
 
+    def get_GlobalHaloID(self, SnapHaloID, z):
+        r"""Returns the GlobalHaloID for the given halo.
+        
+        Parameters
+        ---------
+        SnapHaloID : Integer
+            The index label for the halo of interest, equivalent to
+            the first column of the halo finder text output file.
+        z : Float
+            The redshift for the halo of interest. The value returned will be
+            for the halo with SnapHaloID equal to ID (above) with redshift
+            closest to this value.
+        
+        Examples
+        --------
+        >>> this_halo = mtc.get_GlobalHaloID(0, 0.)
+        """
+        string = "SELECT GlobalHaloID,SnapZ FROM Halos WHERE SnapHaloID = %d;" \
+            % SnapHaloID
+        minz = 99999.
+        # If -1 is returned, something went wrong.
+        this_halo = -1
+        self.cursor.execute(string)
+        results = self.cursor.fetchone()
+        while results:
+            if results[1] < minz:
+                minz = results[1]
+                this_halo = results[0]
+            results = self.cursor.fetchone()
+        return this_halo
+
+    def get_halo_parents(self, GlobalHaloID):
+        r"""Returns a list of the parent halos to the given halo, along with
+        the contribution fractions from parent to child.
+        
+        This function returns a list of lists, where each entry in the top list
+        is [GlobalHaloID, ChildHaloFrac] of the parent halo in relationship
+        to the given child halo.
+        
+        Parameters
+        ----------
+        GlobalHaloID : Integer
+            The GlobalHaloID of the halo of interest.
+        
+        Examples
+        --------
+        >>> parents = mtc.get_halo_parents(1688)
+        >>> print parents
+        [[1544, 0.9642857141249418],
+         [1613, 0.0],
+         [1614, 0.0],
+         [1489, 0.0],
+         [1512, 0.0],
+         [1519, 0.0],
+         [1609, 0.0]]
+        """
+        parents = []
+        for i in range(5):
+            string = "SELECT GlobalHaloID, ChildHaloFrac%d FROM Halos\
+            WHERE ChildHaloID%d=%d;" % (i, i, GlobalHaloID)
+            self.cursor.execute(string)
+            results = self.cursor.fetchone()
+            while results:
+                parents.append([results[0], results[1]])
+                results = self.cursor.fetchone()
+        return parents
+
+    def get_halo_info(self, GlobalHaloID):
+        r"""Returns all available information for the given GlobalHaloID
+        in the form of a dict.
+        
+        Parameters
+        ----------
+        GlobalHaloID : Integer
+            The unique index for the halo of interest.
+        
+        Examples
+        --------
+        >>> info = mtc.get_halo_info(1544)
+        >>> print info
+        {'BulkVelX': -32759799.359999999,
+         'BulkVelY': -28740239.109999999,
+         'BulkVelZ': -20066000.690000001,
+         'CenMassX': 0.23059111360000001,
+         'CenMassY': 0.4061139809,
+         'CenMassZ': 0.80882763749999997,
+         'ChildHaloFrac0': 0.9642857141249418,
+         'ChildHaloFrac1': 0.0,
+         'ChildHaloFrac2': 0.0,
+         'ChildHaloFrac3': 0.0,
+         'ChildHaloFrac4': 0.0,
+         'ChildHaloID0': 1688,
+         'ChildHaloID1': 1712,
+         'ChildHaloID2': 1664,
+         'ChildHaloID3': 1657,
+         'ChildHaloID4': 1634,
+         'GlobalHaloID': 1544,
+         'HaloMass': 20934692770000.0,
+         'MaxRad': 0.01531299899,
+         'NumPart': 196,
+         'SnapCurrentTimeIdentifier': 1275946788,
+         'SnapHaloID': 56,
+         'SnapZ': 0.024169713061444002}
+        """
+        string = "SELECT * FROM Halos WHERE GlobalHaloID=%d;" % GlobalHaloID
+        d = {}
+        self.cursor.execute(string)
+        results = self.cursor.fetchone()
+        for pair in zip(columns, results):
+            d[pair[0]] = pair[1]
+        return d
+
 class Node(object):
     def __init__(self, CoM, mass, parentIDs, z, color):
         self.CoM = CoM
