@@ -1123,7 +1123,7 @@ class PlotCollection(object):
         if center is None: center = self.c
         r = radius/self.pf[unit]
         data_source = self.pf.hierarchy.sphere(center, r)
-        p = add_phase_object(self, data_source, fields, cmap,
+        p = self.add_phase_object(self, data_source, fields, cmap,
                              weight, accumulation,
                              x_bins, x_log, x_bounds,
                              y_bins, y_log, y_bounds,
