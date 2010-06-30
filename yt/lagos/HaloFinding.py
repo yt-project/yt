@@ -1358,6 +1358,8 @@ class GenericHaloFinder(HaloList, ParallelAnalysisInterface):
         max_dens = {}
         for i,m in self._max_dens.items(): max_dens[i+my_first_id] = m
         self._max_dens = max_dens
+        for halo in self._groups:
+            halo._max_dens = self._max_dens
         # sort the list by the size of the groups
         # Now we add ghost halos and reassign all the IDs
         # Note: we already know which halos we own!
