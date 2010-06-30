@@ -487,9 +487,8 @@ class OrionStaticOutput(StaticOutput):
         StaticOutput.__init__(self, plotname.rstrip("/"),
                               data_style='orion_native')
         self.field_info = self._fieldinfo_class()
+        self._parse_header_file()
 
-        # self.directory is the directory ENCLOSING the pltNNNN directory
-        
         # These should maybe not be hardcoded?
         self.parameters["HydroMethod"] = 'orion' # always PPM DE
         self.parameters["InitialTime"] = 0. # FIX ME!!!
@@ -574,7 +573,21 @@ class OrionStaticOutput(StaticOutput):
                     self.fparameters[param] = t[0]
                 else:
                     self.fparameters[param] = t
-                
+
+    def _parse_header_file(self):
+        """
+        Parses the BoxLib header file to get any parameters stored
+        there. Hierarchy information is read out of this file in
+        OrionHierarchy. 
+
+        Currently, only Time is read here.
+        """
+        header_file = open(os.path.join(self.fullplotdir,'Header'))
+        lines = header_file.readlines()
+        header_file.close()
+        n_fields = int(lines[1])
+        self.parameters["Time"] = float(lines[3+n_fields])
+
                 
     def _set_units(self):
         """
@@ -608,3 +621,172 @@ def _reconstruct_pf(*args, **kwargs):
     pfs = ParameterFileStore()
     pf = pfs.get_pf_hash(*args)
     return pf
+
+class GadgetStaticOutput(StaticOutput):
+    _hierarchy_class = GadgetHierarchy
+    _fieldinfo_class = GadgetFieldContainer
+    def __init__(self, filename, particles, dimensions = None,
+                 storage_filename = None):
+        StaticOutput.__init__(self, filename, 'gadget_binary')
+        self.storage_filename = storage_filename
+        self.particles = particles
+        if "InitialTime" not in self.parameters:
+            self.parameters["InitialTime"] = 0.0
+        self.parameters["CurrentTimeIdentifier"] = \
+            int(os.stat(self.parameter_filename)[ST_CTIME])
+        if dimensions is None:
+            dimensions = na.ones((3,), dtype='int64') * 32
+        self.parameters['TopGridDimensions'] = dimensions
+        self.parameters['DomainLeftEdge'] = na.zeros(3, dtype='float64')
+        self.parameters['DomainRightEdge'] = na.ones(3, dtype='float64')
+        self.parameters['TopGridRank'] = 3
+        self.parameters['RefineBy'] = 2
+        self.field_info = self._fieldinfo_class()
+        self.units["Density"] = 1.0
+
+    def _parse_parameter_file(self):
+        pass
+
+    def _set_units(self):
+        self.units = {'1':1.0, 'unitary':1.0, 'cm':1.0}
+        self.time_units = {}
+
+class ChomboStaticOutput(StaticOutput):
+    _hierarchy_class = ChomboHierarchy
+    _fieldinfo_class = ChomboFieldContainer
+    
+    def __init__(self, filename, data_style='chombo_hdf5',
+                 storage_filename = None):
+        StaticOutput.__init__(self,filename,data_style)
+        self.storage_filename = storage_filename
+
+        self.field_info = self._fieldinfo_class()
+        # hardcoded for now
+        self.parameters["InitialTime"] = 0.0
+        # These should be explicitly obtained from the file, but for now that
+        # will wait until a reorganization of the source tree and better
+        # generalization.
+        self.parameters["TopGridRank"] = 3
+        self.parameters["RefineBy"] = 2
+        
+    def _set_units(self):
+        """
+        Generates the conversion to various physical _units based on the parameter file
+        """
+        self.units = {}
+        self.time_units = {}
+        if len(self.parameters) == 0:
+            self._parse_parameter_file()
+        self._setup_nounits_units()
+        self.conversion_factors = defaultdict(lambda: 1.0)
+        self.time_units['1'] = 1
+        self.units['1'] = 1.0
+        self.units['unitary'] = 1.0 / (self["DomainRightEdge"] - self["DomainLeftEdge"]).max()
+        seconds = 1 #self["Time"]
+        self.time_units['years'] = seconds / (365*3600*24.0)
+        self.time_units['days']  = seconds / (3600*24.0)
+        for key in yt2orionFieldsDict:
+            self.conversion_factors[key] = 1.0
+
+    def _setup_nounits_units(self):
+        z = 0
+        mylog.warning("Setting 1.0 in code units to be 1.0 cm")
+        if not self.has_key("TimeUnits"):
+            mylog.warning("No time units.  Setting 1.0 = 1 second.")
+            self.conversion_factors["Time"] = 1.0
+        for unit in mpc_conversion.keys():
+            self.units[unit] = mpc_conversion[unit] / mpc_conversion["cm"]
+
+
+    def _parse_parameter_file(self):
+        self.parameters["CurrentTimeIdentifier"] = \
+            int(os.stat(self.parameter_filename)[ST_CTIME])
+        self.parameters["DomainLeftEdge"] = na.array([0.,0.,0.])
+        self.parameters["DomainRightEdge"] = self.__calc_right_edge()
+        
+
+    def __calc_right_edge(self):
+        fileh = h5py.File(self.parameter_filename,'r')
+        dx0 = fileh['/level_0'].attrs['dx']
+        RE = dx0*((na.array(fileh['/level_0'].attrs['prob_domain']))[3:] + 1)
+        fileh.close()
+        return RE
+                   
+    @classmethod
+    def _is_valid(self, *args, **kwargs):
+        try:
+            fileh = h5py.File(args[0],'r')
+            if (fileh.listnames())[0] == 'Chombo_global':
+                return True
+        except:
+            pass
+        return False
+
+class TigerStaticOutput(StaticOutput):
+    _hierarchy_class = TigerHierarchy
+    _fieldinfo_class = TigerFieldContainer
+
+    def __init__(self, rhobname, root_size, max_grid_size=128,
+                 data_style='tiger', storage_filename = None):
+        StaticOutput.__init__(self, rhobname, data_style)
+        self.storage_filename = storage_filename
+        self.basename = rhobname[:-4]
+        if not os.path.exists(self.basename + "rhob"):
+            print "%s doesn't exist, don't know how to handle this!" % (
+                        self.basename + "rhob")
+            raise IOError
+        if not iterable(root_size): root_size = (root_size,) * 3
+        self.root_size = root_size
+        if not iterable(max_grid_size): max_grid_size = (max_grid_size,) * 3
+        self.max_grid_size = max_grid_size
+
+        self.field_info = self._fieldinfo_class()
+
+        # We assume that we have basename + "rhob" and basename + "temp"
+        # to get at our various parameters.
+
+        # First we get our our header:
+        
+        header = [
+            ('i', 'dummy0'),
+            ('f', 'ZR'),
+            ('f', 'OMEGA0'),
+            ('f', 'FLAM0'),
+            ('f', 'OMEGAB'),
+            ('f', 'H0'),
+            ('f', 'BOXL0'),
+            ('i', 'dummy1'),
+            ]
+
+        h_fmt, h_key = zip(*header)
+        header_string = "".join(h_fmt)
+
+        fs = open(self.basename + "rhob")
+        header_raw = read_struct(fs, header_string)
+        self.parameters.update(dict(zip(h_key, header_raw)))
+
+        if "InitialTime" not in self.parameters:
+            self.parameters["InitialTime"] = 0.0
+        self.parameters["CurrentTimeIdentifier"] = \
+            int(os.stat(self.parameter_filename)[ST_CTIME])
+        self.parameters['TopGridDimensions'] = root_size
+        self.parameters['TopGridRank'] = 3
+        self.units["Density"] = 1.0
+        self.parameters['RefineBy'] = 2
+
+    def _set_units(self):
+        self.parameters["DomainLeftEdge"] = na.zeros(3, dtype='float64')
+        self.parameters["DomainRightEdge"] = na.ones(3, dtype='float64')
+        self.units = {}
+        self.time_units = {}
+        self.time_units['1'] = 1
+        self.units['1'] = 1.0
+        self.units['cm'] = 1.0 # This is just plain false
+        self.units['unitary'] = 1.0 / (self["DomainRightEdge"] - self["DomainLeftEdge"]).max()
+
+    def _parse_parameter_file(self):
+        pass
+
+    @classmethod
+    def _is_valid(self, *args, **kwargs):
+        return os.path.exists(args[0] + "rhob")

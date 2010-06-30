@@ -101,3 +101,12 @@ cdict = {'red':   ((0.0, 0.0, 0.0),
                    (1.0, 0.0, 0.0))}
 
 add_cmap('black_green', cdict)
+
+def _extract_lookup_table(cmap_name):
+    cmap = mcm.get_cmap(cmap_name)
+    if not cmap._isinit: cmap._init()
+    r = cmap._lut[:-3, 0]
+    g = cmap._lut[:-3, 1]
+    b = cmap._lut[:-3, 2]
+    a = na.ones(b.shape)
+    return [r, g, b, a]

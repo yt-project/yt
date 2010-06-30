@@ -1,0 +1,37 @@
+Style Guide for Coding in yt
+============================
+
+ * In general, follow PEP-8 guidelines.
+ * Classes are ConjoinedCapitals, methods and functions are
+   lowercase_with_underscores.
+ * Use 4 spaces, not tabs, to represent indentation.
+ * Avoid at all costs importing "*" from a function or a module unless that
+   module is "yt.funcs" or "yt.arraytypes".  "yt.mods" may be a special case,
+   but if at all possible avoid importing it.
+ * Numpy is to be imported as "na" not "np".  While this may change in the
+   future, for now this is the correct idiom.
+ * Do not use too many keyword arguments.  If you have a lot of keyword
+   arguments, then you are doing too much in __init__ and not enough via
+   parameter setting.
+ * Line widths should not be more than 80 characters.
+ * Do not use unecessary parenthesis in conditionals.  if((something) and
+   (something_else)) should be rewritten as if something and something_else.
+   Python is more forgiving than C.
+ * In function arguments, place spaces before commas.  def something(a,b,c)
+   should be def something(a, b, c).
+ * Do not use nested classes unless you have a very good reason to, such as
+   requiring a namespace or class-definition modification.  Classes should live
+   at the top level.  __metaclass__ is exempt from this.
+ * Don't create a new class to replicate the functionality of an old class --
+   replace the old class.  Too many options makes for a confusing user
+   experience.
+ * Parameter files are a last resort.
+ * Avoid copying memory when possible. For example, don't do 
+   "a = a.reshape(3,4)" when "a.shape = (3,4)" will do, and "a = a * 3" should
+   be "na.multiply(a, 3, a)".
+ * The usage of the **kwargs construction should be avoided.  If they cannoted
+   be avoided, they must be explained, even if they are only to be passed on to
+   a nested function.
+ * Doc strings should describe input, output, behavior, and any state changes
+   that occur on an object.  See the file `doc/docstring_example.txt` for a
+   fiducial example of a docstring.

@@ -58,17 +58,20 @@ static PyObject* Py_Pixelize(PyObject *obj, PyObject *args) {
   double x_min, x_max, y_min, y_max;
   double period_x, period_y;
   period_x = period_y = 0;
+  int check_period = 1;
 
-  if (!PyArg_ParseTuple(args, "OOOOOII(dddd)|i(dd)",
+  if (!PyArg_ParseTuple(args, "OOOOOII(dddd)|i(dd)i",
       &xp, &yp, &dxp, &dyp, &dp, &cols, &rows,
       &x_min, &x_max, &y_min, &y_max,
-      &antialias, &period_x, &period_y))
+      &antialias, &period_x, &period_y, &check_period))
       return PyErr_Format(_pixelizeError, "Pixelize: Invalid Parameters.");
 
   double width = x_max - x_min;
   double height = y_max - y_min;
   double px_dx = width / ((double) rows);
   double px_dy = height / ((double) cols);
+  double ipx_dx = 1.0 / px_dx;
+  double ipx_dy = 1.0 / px_dy;
 
   // Check we have something to output to
   if (rows == 0 || cols ==0)
@@ -121,6 +124,9 @@ static PyObject* Py_Pixelize(PyObject *obj, PyObject *args) {
   double lypx, rypx, lxpx, rxpx, overlap1, overlap2;
   npy_float64 oxsp, oysp, xsp, ysp, dxsp, dysp, dsp;
   int xiter[2], yiter[2];
+  double xiterv[2], yiterv[2];
+
+  
 
   npy_intp dims[] = {rows, cols};
   PyArrayObject *my_array =
@@ -129,6 +135,7 @@ static PyObject* Py_Pixelize(PyObject *obj, PyObject *args) {
   //npy_float64 *gridded = (npy_float64 *) my_array->data;
 
   xiter[0] = yiter[0] = 0;
+  xiterv[0] = yiterv[0] = 0.0;
 
   for(i=0;i<rows;i++)for(j=0;j<cols;j++)
       *(npy_float64*) PyArray_GETPTR2(my_array, i, j) = 0.0;
@@ -142,33 +149,36 @@ static PyObject* Py_Pixelize(PyObject *obj, PyObject *args) {
     dysp = *((npy_float64 *)PyArray_GETPTR1(dy, p));
     dsp = *((npy_float64 *)PyArray_GETPTR1(d, p));
     xiter[1] = yiter[1] = 999;
-    if (oxsp < x_min) {xiter[1] = +1;}
-    else if (oxsp > x_max) {xiter[1] = -1;}
-    if (oysp < y_min) {yiter[1] = +1;}
-    else if (oysp > y_max) {yiter[1] = -1;}
+    if(check_period == 1) {
+      if (oxsp < x_min) {xiter[1] = +1; xiterv[1] = period_x;}
+      else if (oxsp > x_max) {xiter[1] = -1; xiterv[1] = -period_x;}
+      if (oysp < y_min) {yiter[1] = +1; yiterv[1] = period_y;}
+      else if (oysp > y_max) {yiter[1] = -1; yiterv[1] = -period_y;}
+    }
     for(xi = 0; xi < 2; xi++) {
       if(xiter[xi] == 999)continue;
-      xsp = oxsp + xiter[xi]*period_x;
+      xsp = oxsp + xiterv[xi];
+      if((xsp+dxsp<x_min) || (xsp-dxsp>x_max)) continue;
       for(yi = 0; yi < 2; yi++) {
         if(yiter[yi] == 999)continue;
-        ysp = oysp + yiter[yi]*period_y;
-        if(((xsp+dxsp<x_min) || (xsp-dxsp>x_max)) ||
-            ((ysp+dysp<y_min) || (ysp-dysp>y_max))) continue;
-        lc = max(((xsp-dxsp-x_min)/px_dx),0);
-        lr = max(((ysp-dysp-y_min)/px_dy),0);
-        rc = min(((xsp+dxsp-x_min)/px_dx), rows);
-        rr = min(((ysp+dysp-y_min)/px_dy), cols);
+        ysp = oysp + yiterv[yi];
+        if((ysp+dysp<y_min) || (ysp-dysp>y_max)) continue;
+        lc = max(((xsp-dxsp-x_min)*ipx_dx),0);
+        lr = max(((ysp-dysp-y_min)*ipx_dy),0);
+        rc = min(((xsp+dxsp-x_min)*ipx_dx), rows);
+        rr = min(((ysp+dysp-y_min)*ipx_dy), cols);
         for (i=lr;i<rr;i++) {
           lypx = px_dy * i + y_min;
           rypx = px_dy * (i+1) + y_min;
-          overlap2 = ((min(rypx, ysp+dysp) - max(lypx, (ysp-dysp)))/px_dy);
+          overlap2 = ((min(rypx, ysp+dysp) - max(lypx, (ysp-dysp)))*ipx_dy);
           for (j=lc;j<rc;j++) {
             lxpx = px_dx * j + x_min;
             rxpx = px_dx * (j+1) + x_min;
-            overlap1 = ((min(rxpx, xsp+dxsp) - max(lxpx, (xsp-dxsp)))/px_dx);
+            overlap1 = ((min(rxpx, xsp+dxsp) - max(lxpx, (xsp-dxsp)))*ipx_dx);
             if (overlap1 < 0.0 || overlap2 < 0.0) continue;
             if (antialias == 1)
-              *(npy_float64*) PyArray_GETPTR2(my_array, j, i) += (dsp*overlap1)*overlap2;
+              *(npy_float64*) PyArray_GETPTR2(my_array, j, i) +=
+                    (dsp*overlap1)*overlap2;
             else *(npy_float64*) PyArray_GETPTR2(my_array, j, i) = dsp;
           }
         }

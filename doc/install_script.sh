@@ -28,10 +28,11 @@ DEST_DIR="`pwd`/${DEST_SUFFIX/ /}"   # Installation location
 # If you absolutely can't get the fortran to work, try this:
 #NUMPY_ARGS="--fcompiler=fake"
 
-INST_WXPYTHON=1 # If you 't want to install wxPython, set this to 1
+INST_WXPYTHON=0 # If you want to install wxPython, set this to 1
 INST_ZLIB=1     # On some systems (Kraken) matplotlib has issues with 
                 # the system zlib, which is compiled statically.
                 # If need be, you can turn this off.
+INST_PNG=0      # Install a local libpng?  Same things apply as with zlib.
 INST_TRAITS=0   # Experimental TraitsUI installation
 INST_HG=1       # Install Mercurial or not?
 
@@ -229,10 +230,11 @@ then
 fi
 
 [ $INST_ZLIB -eq 1 ] && get_enzotools zlib-1.2.3.tar.bz2 
+[ $INST_PNG -eq 1 ] && get_enzotools libpng-1.2.43.tar.gz
 [ $INST_WXPYTHON -eq 1 ] && get_enzotools wxPython-src-2.8.10.1.tar.bz2
 get_enzotools Python-2.6.3.tgz
-get_enzotools numpy-1.3.0.tar.gz
-get_enzotools matplotlib-0.99.1.2.tar.gz
+get_enzotools numpy-1.4.1.tar.gz
+get_enzotools matplotlib-0.99.3.tar.gz
 get_enzotools ipython-0.10.tar.gz
 get_enzotools h5py-1.2.0.tar.gz
 
@@ -244,13 +246,13 @@ then
     elif [ -e $ORIG_PWD/../yt/mods.py ]
     then
         YT_DIR=`dirname $ORIG_PWD`
-    elif [ ! -e yt-1.6 ] 
+    elif [ ! -e yt-1.7-svn ] 
     then
-        ( svn co http://svn.enzotools.org/yt/branches/yt-1.6 ./yt-1.6 2>&1 ) 1>> ${LOG_FILE}
-        YT_DIR="$PWD/yt-1.6/"
-    elif [ -e yt-1.6 ] 
+        ( svn co http://svn.enzotools.org/yt/branches/yt-1.7/ ./yt-1.7-svn 2>&1 ) 1>> ${LOG_FILE}
+        YT_DIR="$PWD/yt-1.7-svn/"
+    elif [ -e yt-1.7-svn ] 
     then
-        YT_DIR="$PWD/yt-1.6/"
+        YT_DIR="$PWD/yt-1.7-svn/"
     fi
     echo Setting YT_DIR=${YT_DIR}
 fi
@@ -270,6 +272,23 @@ then
     ZLIB_DIR=${DEST_DIR}
     export LDFLAGS="${LDFLAGS} -L${ZLIB_DIR}/lib/ -L${ZLIB_DIR}/lib64/"
     LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:${ZLIB_DIR}/lib/"
+fi
+
+if [ $INST_PNG -eq 1 ]
+then
+    if [ ! -e libpng-1.2.43/done ]
+    then
+        [ ! -e libpng-1.2.43 ] && tar xfz libpng-1.2.43.tar.gz
+        echo "Installing PNG"
+        cd libpng-1.2.43
+        ( ./configure --prefix=${DEST_DIR}/ 2>&1 ) 1>> ${LOG_FILE} || do_exit
+        ( make install 2>&1 ) 1>> ${LOG_FILE} || do_exit
+        touch done
+        cd ..
+    fi
+    PNG_DIR=${DEST_DIR}
+    export LDFLAGS="${LDFLAGS} -L${PNG_DIR}/lib/ -L${PNG_DIR}/lib64/"
+    LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:${PNG_DIR}/lib/"
 fi
 
 if [ -z "$HDF5_DIR" ]
@@ -311,6 +330,8 @@ then
     [ ! -e wxPython-src-2.8.10.1 ] && tar xfj wxPython-src-2.8.10.1.tar.bz2
     cd wxPython-src-2.8.10.1
 
+    get_enzotools wxpython28101_gdiwrap.diff
+    patch -p0 < wxpython28101_gdiwrap.diff
     ( ./configure --prefix=${DEST_DIR}/ --with-opengl 2>&1 ) 1>> ${LOG_FILE} || do_exit
     ( make install 2>&1 ) 1>> ${LOG_FILE} || do_exit
     cd contrib
@@ -325,17 +346,20 @@ fi
 # This fixes problems with gfortran linking.
 unset LDFLAGS 
 
-echo "Installing setuptools"
-( ${DEST_DIR}/bin/python2.6 ${YT_DIR}/ez_setup.py 2>&1 ) 1>> ${LOG_FILE} || do_exit
+echo "Installing distribute"
+( ${DEST_DIR}/bin/python2.6 ${YT_DIR}/distribute_setup.py 2>&1 ) 1>> ${LOG_FILE} || do_exit
 
-do_setup_py numpy-1.3.0 ${NUMPY_ARGS}
+echo "Installing pip"
+( ${DEST_DIR}/bin/easy_install-2.6 pip 2>&1 ) 1>> ${LOG_FILE} || do_exit
+
+do_setup_py numpy-1.4.1 ${NUMPY_ARGS}
 
 if [ -n "${MPL_SUPP_LDFLAGS}" ]
 then
     export LDFLAGS="${MPL_SUPP_LDFLAGS}"
     echo "Setting LDFLAGS ${LDFLAGS}"
 fi
-do_setup_py matplotlib-0.99.1.2
+do_setup_py matplotlib-0.99.3
 unset LDFLAGS
 do_setup_py ipython-0.10
 do_setup_py h5py-1.2.0
@@ -347,6 +371,7 @@ cd $YT_DIR
 
 echo "Installing yt"
 echo $HDF5_DIR > hdf5.cfg
+[ $INST_PNG -eq 1 ] && echo $PNG_DIR > png.cfg
 ( ${DEST_DIR}/bin/python2.6 setup.py develop 2>&1 ) 1>> ${LOG_FILE} || do_exit
 touch done
 cd $MY_PWD
@@ -354,13 +379,13 @@ cd $MY_PWD
 if [ $INST_HG -eq 1 ]
 then
     echo "Installing Mercurial."
-    ( ${DEST_DIR}/bin/easy_install-2.6 mercurial 2>&1 ) 1>> ${LOG_FILE} || do_exit
+    ( ${DEST_DIR}/bin/pip install -U mercurial 2>&1 ) 1>> ${LOG_FILE} || do_exit
 fi
 
 if [ $INST_WXPYTHON -eq 1 ] && [ $INST_TRAITS -eq 1 ]
 then
     echo "Installing Traits"
-    ( ${DEST_DIR}/bin/easy_install-2.6 -U TraitsGUI TraitsBackendWX 2>&1 ) 1>> ${LOG_FILE} || do_exit
+    ( ${DEST_DIR}/bin/pip install -U TraitsGUI TraitsBackendWX 2>&1 ) 1>> ${LOG_FILE} || do_exit
 fi
 
 echo

@@ -24,10 +24,11 @@ License:
 """
 
 import time, types, signal, inspect, traceback, sys, pdb, rpdb, os
-import warnings
+import warnings, struct
 import progressbar as pb
 from math import floor, ceil
 from yt.logger import ytLogger as mylog
+from yt.exceptions import *
 
 # Some compatibility functions.  In the long run, these *should* disappear as
 # we move toward newer python versions.  Most were implemented to get things
@@ -80,6 +81,13 @@ def ensure_list(obj):
     if not isinstance(obj, types.ListType):
         return [obj]
     return obj
+
+def read_struct(f, fmt):
+    """
+    This reads a struct, and only that struct, from an open file.
+    """
+    s = f.read(struct.calcsize(fmt))
+    return struct.unpack(fmt, s)
 
 def just_one(obj):
     # If we have an iterable, sometimes we only want one item
@@ -304,6 +312,7 @@ def get_pbar(title, maxval):
     This returns a progressbar of the most appropriate type, given a *title*
     and a *maxval*.
     """
+    maxval = max(maxval, 1)
     from yt.config import ytcfg
     if ytcfg.getboolean("yt","inGui"):
         if maxval > ytcfg.getint("reason","minpbar"): # Arbitrary number
@@ -352,6 +361,9 @@ def signal_print_traceback(signo, frame):
 def signal_problem(signo, frame):
     raise RuntimeError()
 
+def signal_ipython(signo, frame):
+    insert_ipython(2)
+
 # We use two signals, SIGUSR1 and SIGUSR2.  In a non-threaded environment,
 # we set up handlers to process these by printing the current stack and to
 # raise a RuntimeError.  The latter can be used, inside pdb, to catch an error
@@ -359,8 +371,8 @@ def signal_problem(signo, frame):
 try:
     signal.signal(signal.SIGUSR1, signal_print_traceback)
     mylog.debug("SIGUSR1 registered for traceback printing")
-    signal.signal(signal.SIGUSR2, signal_problem)
-    mylog.debug("SIGUSR2 registered for RuntimeError")
+    signal.signal(signal.SIGUSR2, signal_ipython)
+    mylog.debug("SIGUSR2 registered for IPython Insertion")
 except ValueError:  # Not in main thread
     pass
 

@@ -48,6 +48,10 @@ _speciesMass = {"HI":1.0,"HII":1.0,"Electron":1.0,
                 "H2I":2.0,"H2II":2.0,"HM":1.0,
                 "DI":2.0,"DII":2.0,"HDI":3.0}
 
+def _SpeciesComovingDensity(field, data):
+    sp = field.name.split("_")[0] + "_Density"
+    ef = (1.0 + data.pf["CosmologyCurrentRedshift"])**3.0
+    return data[sp]/ef
 def _SpeciesFraction(field, data):
     sp = field.name.split("_")[0] + "_Density"
     return data[sp]/data["Density"]
@@ -61,6 +65,9 @@ def _ConvertNumberDensity(data):
 for species in _speciesList:
     add_field("%s_Fraction" % species,
              function=_SpeciesFraction,
+             validators=ValidateDataField("%s_Density" % species))
+    add_field("Comoving_%s_Density" % species,
+             function=_SpeciesComovingDensity,
              validators=ValidateDataField("%s_Density" % species))
     if _speciesMass.has_key(species):
         add_field("%s_NumberDensity" % species,
@@ -79,7 +86,7 @@ add_field("Metallicity", units=r"Z_{\rm{\odot}}",
           projection_conversion="1")
 
 def _Metallicity3(field, data):
-    return data["SN_Colour"]
+    return data["SN_Colour"]/data["Density"]
 add_field("Metallicity3", units=r"Z_{\rm{\odot}}",
           function=_Metallicity3,
           convert_function=_ConvertMetallicity,
@@ -131,11 +138,13 @@ add_field("Gas_Energy", function=_Gas_Energy,
 def _TotalEnergy(field, data):
     return data["Total_Energy"] / _convertEnergy(data)
 add_field("TotalEnergy", function=_TotalEnergy,
+          display_name = "\mathrm{Total}\/\mathrm{Energy}",
           units=r"\rm{ergs}/\rm{g}", convert_function=_convertEnergy)
 
 def _Total_Energy(field, data):
     return data["TotalEnergy"] / _convertEnergy(data)
 add_field("Total_Energy", function=_Total_Energy,
+          display_name = "\mathrm{Total}\/\mathrm{Energy}",
           units=r"\rm{ergs}/\rm{g}", convert_function=_convertEnergy)
 
 def _NumberDensity(field, data):
@@ -169,6 +178,11 @@ def _NumberDensity(field, data):
 add_field("NumberDensity", units=r"\rm{cm}^{-3}",
           function=_NumberDensity,
           convert_function=_ConvertNumberDensity)
+
+def _ComovingDensity(field,data):
+    ef = (1.0 + data.pf["CosmologyCurrentRedshift"])**3.0
+    return data["Density"]/ef
+add_field("ComovingDensity", function=_ComovingDensity, units=r"\rm{g}/\rm{cm}^3")
 
 def Overdensity(field,data):
     return (data['Density'] + data['Dark_Matter_Density']) / \
@@ -235,21 +249,6 @@ def _pdensity(field, data):
 add_field("particle_density", function=_pdensity,
           validators=[ValidateSpatial(0)], convert_function=_convertDensity)
 
-def _pdensity_pyx(field, data):
-    blank = na.zeros(data.ActiveDimensions, dtype='float32')
-    if data.NumberOfParticles == 0: return blank
-    CICDeposit_3(data["particle_position_x"].astype(na.float64),
-                 data["particle_position_y"].astype(na.float64),
-                 data["particle_position_z"].astype(na.float64),
-                 data["particle_mass"].astype(na.float32),
-                 na.int64(data.NumberOfParticles),
-                 blank, na.array(data.LeftEdge).astype(na.float64),
-                 na.array(data.ActiveDimensions).astype(na.int32),
-                 na.float64(data['dx']))
-    return blank
-add_field("particle_density_pyx", function=_pdensity_pyx,
-          validators=[ValidateSpatial(0)], convert_function=_convertDensity)
-
 def _spdensity_pyx(field, data):
     blank = na.zeros(data.ActiveDimensions, dtype='float32')
     if data.NumberOfParticles == 0: return blank
@@ -265,6 +264,23 @@ def _spdensity_pyx(field, data):
                  na.float64(data['dx']))
     return blank
 add_field("star_density_pyx", function=_spdensity_pyx,
+          validators=[ValidateSpatial(0)], convert_function=_convertDensity)
+
+def _dmpdensity_pyx(field, data):
+    blank = na.zeros(data.ActiveDimensions, dtype='float32')
+    if data.NumberOfParticles == 0: return blank
+    filter = data['creation_time'] <= 0.0
+    if not filter.any(): return blank
+    CICDeposit_3(data["particle_position_x"][filter].astype(na.float64),
+                 data["particle_position_y"][filter].astype(na.float64),
+                 data["particle_position_z"][filter].astype(na.float64),
+                 data["particle_mass"][filter].astype(na.float32),
+                 na.int64(na.where(filter)[0].size),
+                 blank, na.array(data.LeftEdge).astype(na.float64),
+                 na.array(data.ActiveDimensions).astype(na.int32), 
+                 na.float64(data['dx']))
+    return blank
+add_field("dm_density_pyx", function=_dmpdensity_pyx,
           validators=[ValidateSpatial(0)], convert_function=_convertDensity)
 
 def _star_field(field, data):
@@ -320,14 +336,14 @@ def _StarCreationTime(field, data):
     return data['star_creation_time']
 def _ConvertEnzoTimeYears(data):
     return data.pf.time_units['years']
-add_field('StarCreationTimeYears', units="\rm{yr}",
+add_field('StarCreationTimeYears', units=r"\mathrm{yr}",
           function=_StarCreationTime,
           convert_function=_ConvertEnzoTimeYears,
           projection_conversion="1")
 
 def _StarDynamicalTime(field, data):
     return data['star_dynamical_time']
-add_field('StarDynamicalTimeYears', units="\rm{yr}",
+add_field('StarDynamicalTimeYears', units=r"\mathrm{yr}",
           function=_StarDynamicalTime,
           convert_function=_ConvertEnzoTimeYears,
           projection_conversion="1")
@@ -339,7 +355,7 @@ def _StarAge(field, data):
         data.pf["InitialTime"] - \
         data['StarCreationTimeYears'][with_stars]
     return star_age
-add_field('StarAgeYears', units="\rm{yr}",
+add_field('StarAgeYears', units=r"\mathrm{yr}",
           function=_StarAge,
           projection_conversion="1")
 

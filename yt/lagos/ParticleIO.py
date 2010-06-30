@@ -39,28 +39,16 @@ class ParticleIOHandler(object):
 
     def __init__(self, pf, source):
         self.pf = pf
-        self.data = {}
         self.source = source
 
     def __getitem__(self, key):
-        if key not in self.data:
-            self.get_data(key)
-        return self.data[key]
-
-    def __setitem__(self, key, val):
-        self.data[key] = val
-
-    def __delitem__(self, key):
-        del self.data[key]
-
-    def iter(self):
-        for val in self.data.keys(): yield val
+        return self.get_data(key)
 
     def get_data(self, fields):
         fields = ensure_list(fields)
-        self.source.get_data(fields, force_particle_read=True)
-        for field in fields:
-            self[field] = self.source[field]
+        rvs = self.source.get_data(fields, force_particle_read=True)
+        if len(fields) == 1: return rvs[0]
+        return rvs
 
 particle_handler_registry.default_factory = lambda: ParticleIOHandler
 
@@ -98,10 +86,11 @@ class ParticleIOHandlerImplemented(ParticleIOHandler):
                           count=len(grid_list), dtype='float64'))
         conv_factors = na.array(conv_factors).transpose()
         self.conv_factors = conv_factors
-        rv = self.pf.h.io._read_particles(
+        rvs = self.pf.h.io._read_particles(
             fields_to_read, rtype, args, grid_list, count_list,
             conv_factors)
-        for field, v in zip(fields, rv): self[field] = v
+        if len(fields) == 1: return rvs[0]
+        return rvs
 
 class ParticleIOHandlerRegion(ParticleIOHandlerImplemented):
     periodic = False
@@ -139,3 +128,20 @@ class ParticleIOHandlerSphere(ParticleIOHandlerImplemented):
 
     def _get_args(self):
         return (1, (na.array(self.center, dtype='float64'), self.radius))
+
+class ParticleIOHandlerDisk(ParticleIOHandlerImplemented):
+    _source_type = "disk"
+    
+    def __init__(self, pf, source):
+        self.center = source.center
+        self.normal = source._norm_vec
+        self.radius = source._radius
+        self.height = source._height
+        ParticleIOHandler.__init__(self, pf, source)
+    
+    def _get_args(self):
+        args = (na.array(self.center, dtype='float64'),
+                na.array(self.normal, dtype='float64'),
+                self.radius, self.height)
+        return (2, args)
+        

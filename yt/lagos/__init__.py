@@ -71,10 +71,11 @@ from OrionDefs import *
 from ParallelTools import *
 # Now our fields
 #from DerivedFields import *
-from FieldInfoContainer import *
+from field_info_container import *
 from UniversalFields import *
 from EnzoFields import *
 from OrionFields import *
+from ChomboFields import *
 fieldInfo = EnzoFieldInfo
 
 # NOT the same as fieldInfo.add_field
@@ -87,17 +88,19 @@ from DerivedQuantities import DerivedQuantityCollection, GridChildMaskWrapper
 from DataReadingFuncs import *
 from ClusterFiles import *
 from ContourFinder import *
-from Clump import *
+from clump_handling import *
 from ParticleIO import *
 from BaseDataTypes import *
 from BaseGridType import *
 from EnzoRateData import *
-from ObjectFindingMixin import *
+from object_finding_mixin import *
 from HierarchyType import *
 from OutputTypes import *
 from Profiles import *
 
 from HaloFinding import *
+
+from TwoPointFunctions import *
 
 # We load plugins.  Keep in mind, this can be fairly dangerous -
 # the primary purpose is to allow people to have a set of functions

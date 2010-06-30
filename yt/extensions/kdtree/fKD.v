@@ -1,7 +1,10 @@
 fKD
 
 ****** fKD_module vars:
-# Not all of these are being used, but they only take memory
+t1 _tree_set
+t2 _tree_set
+# This contains the objects that any given kD tree might wish to use.
+# Not all of these are being used all the time, but they only take memory
 # if they're initialized in python.
 tags(:) _integer # particle ID tags
 dist(:) _real # interparticle spacings
@@ -12,6 +15,7 @@ pos(3,:) _real
 dens(:) _real
 mass(:) _real
 qv(3) real
+qv_many(3,:) _real
 nparts integer
 nn integer
 nMerge integer # number of nearest neighbors used in chain merging
@@ -20,6 +24,10 @@ finish integer
 tree2 _kdtree2
 sort logical /.false./
 rearrange logical /.true./
+radius real # the unsquared radius for radius searches
+radius_n integer # the number of results to return
+nfound integer # number of neighbors within radius
+nfound_many(:) _integer # an array of number of neighbors within radius
 
 %%%% interval:
 lower real
@@ -91,11 +99,41 @@ root _tree_node
 # root pointer of the tree
 
 
+%%%% tree_set:
+# This contains the objects that any given kD tree might wish to use.
+# Not all of these are being used all the time, but they only take memory
+# if they're initialized in python.
+tags(:) _integer # particle ID tags
+dist(:) _real # interparticle spacings
+nn_tags(:,:) _integer # for all particles at once, [nth neighbor, index]
+chunk_tags(:,:) _integer # for finding only a chunk of the nearest neighbors
+nn_dist(:,:) _real 
+pos(3,:) _real
+dens(:) _real
+mass(:) _real
+qv(3) real
+qv_many(3,:) _real
+nparts integer
+nn integer
+nMerge integer # number of nearest neighbors used in chain merging
+start integer
+finish integer
+tree2 _kdtree2
+sort logical /.false./
+rearrange logical /.true./
+radius real # the unsquared radius for radius searches
+radius_n integer # the number of results to return
+nfound integer # number of neighbors within radius
+nfound_many(:) _integer # an array of number of neighbors within radius
 
 ***** Subroutines:
 find_nn_nearest_neighbors subroutine
-create_tree() subroutine
-free_tree() subroutine
+create_tree(treeID:integer) subroutine
+add_tree(treeID:integer) subroutine
+free_tree(treeID:integer) subroutine
 find_all_nn_nearest_neighbors subroutine
+find_r_nearest subroutine
+find_many_r_nearest(treeID:integer) subroutine
+find_many_nn_nearest_neighbors subroutine
 find_chunk_nearest_neighbors subroutine
 chainHOP_tags_dens subroutine

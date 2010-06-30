@@ -54,6 +54,7 @@ ytcfgDefaults = {
         'time_functions': 'False',
         'LogFile': 'False',
         'LogFileName': 'yt.log',
+        'coloredlogs': 'False',
         'suppressStreamLogging': 'False',
         'LogLevel': '20',
         'timefunctions':'False',
@@ -69,7 +70,7 @@ ytcfgDefaults = {
     "raven":{
         'ImagePath':".",
         'ImageSkel': '%(bn)s_%(width)010i_%(unit)s',
-        'colormap': 'jet',
+        'colormap': 'algae',
         }
     }
 

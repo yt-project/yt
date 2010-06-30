@@ -137,11 +137,11 @@ Py_EnzoHop(PyObject *obj, PyObject *args)
                     PyArray_DescrFromType(NPY_FLOAT64));
 
     fprintf(stdout, "Copying arrays for %d particles\n", num_particles);
-    kd->np_masses = mass;
-    kd->np_pos[0] = xpos;
-    kd->np_pos[1] = ypos;
-    kd->np_pos[2] = zpos;
-    kd->np_densities = particle_density;
+    kd->np_masses = (npy_float64*) mass->data;
+    kd->np_pos[0] = (npy_float64*) xpos->data;
+    kd->np_pos[1] = (npy_float64*) ypos->data;
+    kd->np_pos[2] = (npy_float64*) zpos->data;
+    kd->np_densities = (npy_float64*) particle_density->data;
     kd->totalmass = totalmass;
 	for (i = 0; i < num_particles; i++) kd->p[i].np_index = i;
 
@@ -274,11 +274,11 @@ kDTreeType_init(kDTreeType *self, PyObject *args, PyObject *kwds)
     totalmass /= normalize_to;
 
 
-    self->kd->np_masses = self->mass;
-    self->kd->np_pos[0] = self->xpos;
-    self->kd->np_pos[1] = self->ypos;
-    self->kd->np_pos[2] = self->zpos;
-    self->kd->np_densities = self->densities;
+    self->kd->np_masses = (npy_float64 *)self->mass->data;
+    self->kd->np_pos[0] = (npy_float64 *)self->xpos->data;
+    self->kd->np_pos[1] = (npy_float64 *)self->ypos->data;
+    self->kd->np_pos[2] = (npy_float64 *)self->zpos->data;
+    self->kd->np_densities = (npy_float64 *)self->densities->data;
     self->kd->totalmass = totalmass;
 
     PrepareKD(self->kd);

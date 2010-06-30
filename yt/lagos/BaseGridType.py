@@ -436,16 +436,18 @@ class AMRGridPatch(object):
 
     def get_vertex_centered_data(self, field, smoothed=True):
         cg = self.retrieve_ghost_zones(1, field, smoothed=smoothed)
-        # Bounds should be cell-centered
-        bds = na.array(zip(cg.left_edge+cg.dds/2.0, cg.right_edge-cg.dds/2.0)).ravel()
-        interp = TrilinearFieldInterpolator(na.log10(cg[field]), bds, ['x','y','z'])
-        ad = self.ActiveDimensions + 1
-        x,y,z = na.mgrid[self.LeftEdge[0]:self.RightEdge[0]:ad[0]*1j,
-                         self.LeftEdge[1]:self.RightEdge[1]:ad[1]*1j,
-                         self.LeftEdge[2]:self.RightEdge[2]:ad[2]*1j]
-        dd = {'x':x,'y':y,'z':z}
-        scalars = 10**interp(dict(x=x,y=y,z=z))
-        return scalars
+        # We have two extra zones in every direction
+        new_field = na.zeros(self.ActiveDimensions + 1, dtype='float64')
+        na.add(new_field, cg[field][1: ,1: ,1: ], new_field)
+        na.add(new_field, cg[field][:-1,1: ,1: ], new_field)
+        na.add(new_field, cg[field][1: ,:-1,1: ], new_field)
+        na.add(new_field, cg[field][1: ,1: ,:-1], new_field)
+        na.add(new_field, cg[field][:-1,1: ,:-1], new_field)
+        na.add(new_field, cg[field][1: ,:-1,:-1], new_field)
+        na.add(new_field, cg[field][:-1,:-1,1: ], new_field)
+        na.add(new_field, cg[field][:-1,:-1,:-1], new_field)
+        na.multiply(new_field, 0.125, new_field)
+        return new_field
 
 class EnzoGrid(AMRGridPatch):
     """
@@ -577,4 +579,129 @@ class OrionGrid(AMRGridPatch):
 
     def __repr__(self):
         return "OrionGrid_%04i" % (self.id)
+
+class ProtoGadgetGrid(object):
+    def __init__(self, level, left_edge, right_edge, particles, parent = None):
+        # generate the left/right edge from the octant and the level argument
+        self.level = level
+        self.left_edge = left_edge
+        self.right_edge = right_edge
+        self.particles = particles
+        self.parent = parent # We break convention here -- this is a protogrid
+        self.children = []
+
+    def split(self):
+        #split_axis = (self.left_edge + self.right_edge) / 2.0
+        W = 0.5 * (self.right_edge - self.left_edge) # This is the half-width
+        keep = na.ones(self.particles.shape[1], dtype='bool')
+        for i in xrange(2):
+            for j in xrange(2):
+                for k in xrange(2):
+                    LE = self.left_edge.copy()
+                    LE += na.array([i, j, k], dtype='float64') * W
+                    RE = LE + W
+                    pi = self.select_particles(LE, RE)
+                    keep &= (~pi)
+                    g = ProtoGadgetGrid(self.level + 1, LE, RE,
+                                        self.particles[:,pi], self)
+                    self.children.append(g)
+                    yield g
+        self.particles = self.particles[:,keep]
+
+    def select_particles(self, LE, RE):
+        pi = na.all( (self.particles >= LE[:,None])
+                   & (self.particles <  RE[:,None]), axis=0)
+        return pi
+
+    def refine(self, npart = 128):
+        gs = [self]
+        if self.particles.shape[1] < npart: return gs
+        for grid in self.split():
+            gs += grid.refine(npart)
+        return gs
+
+class GadgetGrid(AMRGridPatch):
+
+    _id_offset = 0
+
+    def __init__(self, id, hierarchy, proto_grid):
+        AMRGridPatch.__init__(self, id, hierarchy = hierarchy)
+        self.Children = []
+        if proto_grid.parent is None:
+            self.Parent = None
+        else:
+            self.Parent = proto_grid.parent.real_grid
+            self.Parent.Children.append(self)
+        self.Level = proto_grid.level
+        self.LeftEdge = proto_grid.left_edge
+        self.RightEdge = proto_grid.right_edge
+        self.NumberOfParticles = proto_grid.particles.shape[1]
+        self._storage = {}
+        self._storage['particle_position_x'] = proto_grid.particles[0,:]
+        self._storage['particle_position_y'] = proto_grid.particles[1,:]
+        self._storage['particle_position_z'] = proto_grid.particles[2,:]
+        # Something should be done here for the volume change as you go down
+        # the hierarchy...
+        self._storage['particle_mass'] = na.ones(self.NumberOfParticles,
+                                           dtype='float64') * (8 ** self.Level)
+        # Our dx is a bit fluid here, so we defer
+        dims = self.pf["TopGridDimensions"]
+        # Hard code to refineby 2
+        dds = 1.0 / (dims * 2**self.Level)
+        ad = na.rint((self.RightEdge - self.LeftEdge) / dds)
+        self.ActiveDimensions = ad.astype('int64')
+
+    def __repr__(self):
+        return "GadgetGrid_%04i" % (self.id)
+
+class ChomboGrid(AMRGridPatch):
+    _id_offset = 0
+    __slots__ = ["_level_id", "stop_index"]
+    def __init__(self, id, hierarchy, level, start, stop):
+        AMRGridPatch.__init__(self, id, filename = hierarchy.hierarchy_filename,
+                              hierarchy = hierarchy)
+        self.Parent = []
+        self.Children = []
+        self.Level = level
+        self.start_index = start.copy()#.transpose()
+        self.stop_index = stop.copy()#.transpose()
+        self.ActiveDimensions = stop - start + 1
+
+    def _setup_dx(self):
+        # So first we figure out what the index is.  We don't assume
+        # that dx=dy=dz , at least here.  We probably do elsewhere.
+        id = self.id - self._id_offset
+        if len(self.Parent) > 0:
+            self.dds = self.Parent[0].dds / self.pf["RefineBy"]
+        else:
+            LE, RE = self.hierarchy.grid_left_edge[id,:], \
+                     self.hierarchy.grid_right_edge[id,:]
+            self.dds = na.array((RE-LE)/self.ActiveDimensions)
+        if self.pf["TopGridRank"] < 2: self.dds[1] = 1.0
+        if self.pf["TopGridRank"] < 3: self.dds[2] = 1.0
+        self.data['dx'], self.data['dy'], self.data['dz'] = self.dds
+
+
+class TigerGrid(AMRGridPatch):
+    _id_offset = 0
+
+    def __init__(self, id, hierarchy, left_edge, right_edge, left_dims, right_dims):
+        AMRGridPatch.__init__(self, id, hierarchy = hierarchy)
+        self.LeftEdge = left_edge
+        self.RightEdge = right_edge
+        self.Level = 0
+        self.NumberOfParticles = 0
+        self.left_dims = na.array(left_dims, dtype='int32')
+        self.right_dims = na.array(right_dims, dtype='int32')
+        self.ActiveDimensions = self.right_dims - self.left_dims
+
+        self.Parent = None
+        self.Children = []
+
+    @property
+    def child_mask(self):
+        return na.ones(self.ActiveDimensions, dtype='int32')
+
+    def __repr__(self):
+        return "TigerGrid_%04i (%s)" % (self.id, self.ActiveDimensions)
 

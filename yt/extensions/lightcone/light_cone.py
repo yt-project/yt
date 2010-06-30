@@ -24,7 +24,7 @@ License:
 """
 
 from yt.extensions.lightcone import *
-from yt.extensions.EnzoSimulation import *
+from yt.extensions.enzo_simulation import *
 from yt.logger import lagosLogger as mylog
 from yt.config import ytcfg
 from yt.funcs import *
@@ -38,7 +38,7 @@ class LightCone(EnzoSimulation):
     def __init__(self, EnzoParameterFile, initial_redshift=1.0, final_redshift=0.0, observer_redshift=0.0,
                  field_of_view_in_arcminutes=600.0, image_resolution_in_arcseconds=60.0, 
                  use_minimum_datasets=True, deltaz_min=0.0, minimum_coherent_box_fraction=0.0,
-                 output_dir='LC', output_prefix='LightCone'):
+                 output_dir='LC', output_prefix='LightCone', **kwargs):
         """
         Initialize a LightCone object.
         :param initial_redshift (float): the initial (highest) redshift for the light cone.  Default: 1.0.
@@ -88,7 +88,7 @@ class LightCone(EnzoSimulation):
         # Initialize EnzoSimulation machinery for getting dataset list.
         EnzoSimulation.__init__(self, EnzoParameterFile, initial_redshift=self.initial_redshift,
                                 final_redshift=self.final_redshift, links=True,
-                                enzo_parameters={'CosmologyComovingBoxSize':float})
+                                enzo_parameters={'CosmologyComovingBoxSize':float}, **kwargs)
 
         # Calculate number of pixels.
         self.pixels = int(self.field_of_view_in_arcminutes * 60.0 / \

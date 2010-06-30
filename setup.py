@@ -2,15 +2,15 @@ import os, os.path
 import sys
 import time
 import subprocess
-import ez_setup
-ez_setup.use_setuptools()
+import distribute_setup
+distribute_setup.use_setuptools()
 
 import setuptools
 
 APP = ['reason.py']
 DATA_FILES = []
 PY2APP_OPTIONS = {'argv_emulation': True}
-VERSION = "1.6"
+VERSION = "1.7"
 
 if os.path.exists('MANIFEST'): os.remove('MANIFEST')
 
@@ -52,8 +52,12 @@ def setup_package():
                         "Topic :: Scientific/Engineering :: Physics",
                         "Topic :: Scientific/Engineering :: Visualization", ],
         keywords='astronomy astrophysics visualization amr adaptivemeshrefinement',
+        #install_requires = ['matplotlib', 'numpy','ipython'],
+        extras_require = { 'GUI' : ['wxPython'],
+                           'storage' : ['h5py'], 
+                           'pdf' : ['pypdf']},
         entry_points = { 'console_scripts' : [
-                            'yt = yt.commands:run_main',
+                            'yt = yt.command_line:run_main',
                        ]},
         author="Matthew J. Turk",
         author_email="matthewturk@gmail.com",

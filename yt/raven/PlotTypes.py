@@ -109,11 +109,11 @@ class RavenPlot(object):
     def __getitem__(self, item):
         return self.data[item] # Should be returned in CGS
 
-    def save_image(self, prefix, format="png", submit=None, override=True, force_save=False):
+    def save_image(self, prefix, format="png", override=True, force_save=False):
         """
         Save this plot image.  Will generate a filename based on the *prefix*,
-        *format*.  *submit* will govern the submission to the Deliverator and
-        *override* will force no filename generation beyond the prefix.
+        *format*.  *override* will force no filename generation beyond the
+        prefix.
         """
         self._redraw_image()
         if not override:
@@ -197,8 +197,8 @@ class RavenPlot(object):
                 self.colorbar.locator = matplotlib.ticker.FixedLocator(ticks)
                 self.colorbar.formatter = matplotlib.ticker.FixedFormatter(["%0.2e" % (x) for x in ticks])
             elif minmaxtick:
-                if not self.log_field: 
-                    ticks = na.array(self.colorbar._ticker()[0],dtype='float')
+                if self.log_field: 
+                    ticks = na.array(self.colorbar._ticker()[1],dtype='float')
                     ticks = [zmin] + ticks.tolist() + [zmax]
                     self.colorbar.locator = matplotlib.ticker.FixedLocator(ticks)
                     self.colorbar.formatter = matplotlib.ticker.FixedFormatter(["%0.2e" % (x) for x in ticks])
@@ -280,6 +280,7 @@ class RavenPlot(object):
             self.ymin = DLE[yax] - DD[yax]
             self.ymax = DRE[yax] + DD[yax]
             self._period = (DD[xax], DD[yax])
+            self._edges = ( (DLE[xax], DRE[xax]), (DLE[yax], DRE[yax]) )
         else:
             # Not quite sure how to deal with this, particularly
             # in the Orion case.  Cutting planes are tricky.
@@ -296,6 +297,7 @@ class RavenPlot(object):
 class VMPlot(RavenPlot):
     _antialias = True
     _period = (0.0, 0.0)
+    _edges = True
     def __init__(self, data, field, figure = None, axes = None,
                  use_colorbar = True, size=None, periodic = False):
         fields = ['X', 'Y', field, 'X width', 'Y width']
@@ -360,13 +362,20 @@ class VMPlot(RavenPlot):
         # 'px' == pixel x, or x in the plane of the slice
         # 'x' == actual x
         aa = int(self._antialias)
+        if self._edges is True or \
+           x0 < self._edges[0][0] or x1 > self._edges[0][1] or \
+           y0 < self._edges[1][0] or y1 > self._edges[1][1]:
+            check_period = 1
+        else:
+            check_period = 0
         buff = _MPL.Pixelize(self.data['px'],
                             self.data['py'],
                             self.data['pdx'],
                             self.data['pdy'],
                             self[self.axis_names["Z"]],
                             int(height), int(width),
-                            (x0, x1, y0, y1),aa,self._period).transpose()
+                            (x0, x1, y0, y1),aa,self._period,
+                            check_period).transpose()
         return buff
 
     def _redraw_image(self, *args):
@@ -965,11 +974,11 @@ class LineQueryPlot(RavenPlot):
         else:
             self._log_y = False
 
-    def switch_x(self, field, weight="CellMassMsun", accumulation=False):
+    def switch_x(self, field):
         self.fields[0] = field
         self.axis_names["X"] = field
     
-    def switch_z(self, field, weight="CellMassMsun", accumulation=False):
+    def switch_z(self, field):
         self.fields[1] = field
         self.axis_names["Y"] = field
 
@@ -986,6 +995,29 @@ class LineQueryPlot(RavenPlot):
 
     switch_y = switch_z # Compatibility...
 
+class ScatterPlot(LineQueryPlot):
+    _type_name = "ScatterPlot"
+
+    def _redraw_image(self):
+        self._axes.clear()
+        self._axes.scatter(
+             self.data[self.fields[0]], self.data[self.fields[1]],
+             **self.plot_options)
+        xscale = {True: "log", False: "linear"}.get(self._log_x)
+        yscale = {True: "log", False: "linear"}.get(self._log_y)
+        self._axes.set_xscale(xscale)
+        self._axes.set_yscale(yscale)
+        self._autoset_label(self.fields[0], self._axes.set_xlabel)
+        self._autoset_label(self.fields[1], self._axes.set_ylabel)
+        self._run_callbacks()
+
+    # We override because we don't want to ditch our collections
+    def _run_callbacks(self):
+        self._axes.patches = []
+        self._axes.texts = []
+        for cb in self._callbacks:
+            cb(self)
+
 # Now we provide some convenience functions to get information about plots.
 # With Matplotlib 0.98.x, the 'transforms' branch broke backwards
 # compatibility.  Despite that, the various packagers are plowing ahead with
@@ -999,10 +1031,14 @@ _mpl9x_get_bounds = lambda bbox: bbox.get_bounds()
 _mpl98_notify = lambda im,cb: cb.update_bruteforce(im)
 _mpl9x_notify = lambda im,cb: cb.notify(im)
 
-# This next function hurts, because it relies on the fact that
-# we're only differentiating between 0.9[01] and 0.98.
+# This next function hurts, because it relies on the fact that we're
+# only differentiating between 0.9[01] and 0.98. And if happens to be
+# 1.0, or any version with only 3 values, this should catch it.
 
-_mpl_version = float(matplotlib.__version__[:4])
+try:
+    _mpl_version = float(matplotlib.__version__[:4])
+except:
+    _mpl_version = float(matplotlib.__version__[:3])
 
 if _mpl_version < 0.98:
     _prefix = '_mpl9x'

@@ -235,7 +235,7 @@ class BinnedProfile1D(BinnedProfile):
         if weight: weight_data = self._get_field(source, weight, check_cut)[mi]
         binned_field = self._get_empty_field()
         weight_field = self._get_empty_field()
-        used_field = na.ones(weight_field.shape, dtype='bool')
+        used_field = self._get_empty_field()
         # Now we perform the actual binning
         for bin in inv_bin_indices.keys():
             # temp_field is *all* the points from source that go into this bin
@@ -245,13 +245,15 @@ class BinnedProfile1D(BinnedProfile):
                 weight_field[bin] = weight_data[inv_bin_indices[bin]].sum()
                 temp_field *= weight_data[inv_bin_indices[bin]]
             binned_field[bin] = temp_field.sum()
+            # inv_bin_indices is a tuple of indices
+            if inv_bin_indices[bin][0].size > 0: used_field[bin] = 1
         # Fix for laziness, because at the *end* we will be
         # summing up all of the histograms and dividing by the
         # weights.  Accumulation likely doesn't work with weighted
         # average fields.
         if accumulation: 
             binned_field = na.add.accumulate(binned_field)
-        return binned_field, weight_field, na.ones(binned_field.shape,dtype='bool')
+        return binned_field, weight_field, used_field.astype("bool")
 
     @preserve_source_parameters
     def _get_bins(self, source, check_cut=False):

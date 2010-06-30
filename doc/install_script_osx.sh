@@ -50,6 +50,11 @@ function do_setup_py
     echo
     [ ! -e $1 ] && tar xfz $1.tar.gz
     cd $1
+    if [ ! -z `echo $1 | grep h5py` ]
+    then
+	echo "${PY_DIR}/bin/python2.5 setup.py configure --hdf5=${HDF5_DIR}"
+	( ${PY_DIR}/bin/python2.5 setup.py configure --hdf5=${HDF5_DIR} 2>&1 ) 1>> ${LOG_FILE} || do_exit
+    fi
     shift
     ( sudo ${PY_DIR}/bin/python2.5 setup.py install $* 2>&1 ) 1>> ${LOG_FILE} || do_exit
     touch done
@@ -127,8 +132,8 @@ get_enzotools python-2.5.4-macosx.dmg
 get_enzotools wxPython2.8-osx-unicode-2.8.9.2-universal-py2.5.dmg
 get_enzotools numpy-1.2.1-py2.5-macosx10.5.dmg
 get_enzotools matplotlib-0.98.5.2-py2.5-mpkg.zip
-get_enzotools ipython-0.9.1.tar.gz
-get_enzotools h5py-1.1.0.tar.gz
+get_enzotools ipython-0.10.tar.gz
+get_enzotools h5py-1.2.0.tar.gz
 
 if [ -z "$YT_DIR" ]
 then
@@ -138,13 +143,13 @@ then
     elif [ -e $ORIG_PWD/../yt/mods.py ]
     then
         YT_DIR=`dirname $ORIG_PWD`
-    elif [ ! -e yt-trunk-svn ] 
+    elif [ ! -e yt-1.7-svn ] 
     then
-        ( svn co http://svn.enzotools.org/yt/trunk/ ./yt-trunk-svn 2>&1 ) 1>> ${LOG_FILE}
-        YT_DIR="$PWD/yt-trunk-svn/"
-    elif [ -e yt-trunk-svn ] 
+        ( svn co http://svn.enzotools.org/yt/branches/yt-1.7/ ./yt-1.7-svn 2>&1 ) 1>> ${LOG_FILE}
+        YT_DIR="$PWD/yt-1.7-svn/"
+    elif [ -e yt-1.7-svn ] 
     then
-        YT_DIR="$PWD/yt-trunk-svn/"
+        YT_DIR="$PWD/yt-1.7-svn/"
     fi
     echo Setting YT_DIR=${YT_DIR}
 fi
@@ -175,7 +180,7 @@ touch ${DEST_DIR}/src/wx_done
 
 echo "Installing setuptools (needs sudo)"
 echo
-( sudo ${PY_DIR}/bin/python2.5 ${YT_DIR}/ez_setup.py 2>&1 ) 1>> ${LOG_FILE} || do_exit
+( sudo ${PY_DIR}/bin/python2.5 ${YT_DIR}/distribute_setup.py 2>&1 ) 1>> ${LOG_FILE} || do_exit
 
 [ ! -e ${DEST_DIR}/src/np_done ] && self_install \
     numpy-1.2.1-py2.5-macosx10.5.dmg
@@ -188,8 +193,8 @@ then
     touch ${DEST_DIR}/src/mp_done
 fi
 
-do_setup_py ipython-0.9.1
-do_setup_py h5py-1.1.0
+do_setup_py ipython-0.10
+do_setup_py h5py-1.2.0
 
 echo "Doing yt update"
 MY_PWD=`pwd`
@@ -198,6 +203,7 @@ cd $YT_DIR
 
 echo "Installing yt (may need sudo)"
 echo $HDF5_DIR > hdf5.cfg
+echo /usr/X11 > png.cfg # I think this should work everywhere
 ( ${PY_DIR}/bin/python2.5 setup.py build_ext -i 2>&1 ) 1>> ${LOG_FILE} || do_exit
 ( sudo ${PY_DIR}/bin/python2.5 setup.py develop 2>&1 ) 1>> ${LOG_FILE} || do_exit
 touch done

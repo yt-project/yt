@@ -277,7 +277,36 @@ class ParallelAnalysisInterface(object):
         reg = self.hierarchy.region_strict(self.center, LE, RE)
         return True, reg
 
-    def _partition_hierarchy_3d(self, padding=0.0):
+    def _partition_hierarchy_2d_inclined(self, unit_vectors, origin, widths,
+                                         box_vectors, resolution = (1.0, 1.0)):
+        if not self._distributed:
+            ib = self.hierarchy.inclined_box(origin, box_vectors)
+            return False, ib, resolution
+        # We presuppose that unit_vectors is already unitary.  If it's not,
+        # caveat emptor.
+        uv = na.array(unit_vectors)
+        inv_mat = na.linalg.pinv(uv)
+        cc = MPI.Compute_dims(MPI.COMM_WORLD.size, 2)
+        mi = MPI.COMM_WORLD.rank
+        cx, cy = na.unravel_index(mi, cc)
+        resolution = (1.0/cc[0], 1.0/cc[1])
+        # We are rotating with respect to the *origin*, not the back center,
+        # so we go from 0 .. width.
+        px = na.mgrid[0.0:1.0:(cc[0]+1)*1j][cx] * widths[0]
+        py = na.mgrid[0.0:1.0:(cc[1]+1)*1j][cy] * widths[1]
+        nxo = inv_mat[0,0]*px + inv_mat[0,1]*py + origin[0]
+        nyo = inv_mat[1,0]*px + inv_mat[1,1]*py + origin[1]
+        nzo = inv_mat[2,0]*px + inv_mat[2,1]*py + origin[2]
+        nbox_vectors = na.array(
+                       [unit_vectors[0] * widths[0]/cc[0],
+                        unit_vectors[1] * widths[1]/cc[1],
+                        unit_vectors[2] * widths[2]],
+                        dtype='float64')
+        norigin = na.array([nxo, nyo, nzo])
+        box = self.hierarchy.inclined_box(norigin, nbox_vectors)
+        return True, box, resolution
+        
+    def _partition_hierarchy_3d(self, padding=0.0, rank_ratio = 1):
         LE, RE = self.pf["DomainLeftEdge"].copy(), self.pf["DomainRightEdge"].copy()
         if not self._distributed:
            return False, LE, RE, self.hierarchy.all_data()
@@ -295,8 +324,8 @@ class ParallelAnalysisInterface(object):
             RE = root_grids[0].RightEdge
             return True, LE, RE, self.hierarchy.region(self.center, LE, RE)
 
-        cc = MPI.Compute_dims(MPI.COMM_WORLD.size, 3)
-        mi = MPI.COMM_WORLD.rank
+        cc = MPI.Compute_dims(MPI.COMM_WORLD.size / rank_ratio, 3)
+        mi = MPI.COMM_WORLD.rank % (MPI.COMM_WORLD.size / rank_ratio)
         cx, cy, cz = na.unravel_index(mi, cc)
         x = na.mgrid[LE[0]:RE[0]:(cc[0]+1)*1j][cx:cx+2]
         y = na.mgrid[LE[1]:RE[1]:(cc[1]+1)*1j][cy:cy+2]
@@ -310,6 +339,33 @@ class ParallelAnalysisInterface(object):
                 LE, RE, self.hierarchy.periodic_region_strict(self.center, LE-padding, RE+padding)
 
         return False, LE, RE, self.hierarchy.region_strict(self.center, LE, RE)
+
+    def _partition_region_3d(self, left_edge, right_edge, padding=0.0,
+            rank_ratio = 1):
+        """
+        Given a region, it subdivides it into smaller regions for parallel
+        analysis.
+        """
+        LE, RE = left_edge[:], right_edge[:]
+        if not self._distributed:
+            return LE, RE, re
+        
+        cc = MPI.Compute_dims(MPI.COMM_WORLD.size / rank_ratio, 3)
+        mi = MPI.COMM_WORLD.rank % (MPI.COMM_WORLD.size / rank_ratio)
+        cx, cy, cz = na.unravel_index(mi, cc)
+        x = na.mgrid[LE[0]:RE[0]:(cc[0]+1)*1j][cx:cx+2]
+        y = na.mgrid[LE[1]:RE[1]:(cc[1]+1)*1j][cy:cy+2]
+        z = na.mgrid[LE[2]:RE[2]:(cc[2]+1)*1j][cz:cz+2]
+
+        LE = na.array([x[0], y[0], z[0]], dtype='float64')
+        RE = na.array([x[1], y[1], z[1]], dtype='float64')
+
+        if padding > 0:
+            return True, \
+                LE, RE, self.hierarchy.periodic_region(self.center, LE-padding,
+                    RE+padding)
+
+        return False, LE, RE, self.hierarchy.region(self.center, LE, RE)
 
     def _partition_hierarchy_3d_bisection_list(self):
         """
@@ -786,6 +842,30 @@ class ParallelAnalysisInterface(object):
         return None
 
     @parallel_passthrough
+    def _mpi_catrgb(self, data):
+        self._barrier()
+        data, final = data
+        if MPI.COMM_WORLD.rank == 0:
+            cc = MPI.Compute_dims(MPI.COMM_WORLD.size, 2)
+            nsize = final[0]/cc[0], final[1]/cc[1]
+            new_image = na.zeros((final[0], final[1], 6), dtype='float64')
+            new_image[0:nsize[0],0:nsize[1],:] = data[:]
+            for i in range(1,MPI.COMM_WORLD.size):
+                cy, cx = na.unravel_index(i, cc)
+                mylog.debug("Receiving image from % into bits %s:%s, %s:%s",
+                    i, nsize[0]*cx,nsize[0]*(cx+1),
+                       nsize[1]*cy,nsize[1]*(cy+1))
+                buf = _recv_array(source=i, tag=0).reshape(
+                    (nsize[0],nsize[1],6))
+                new_image[nsize[0]*cy:nsize[0]*(cy+1),
+                          nsize[1]*cx:nsize[1]*(cx+1),:] = buf[:]
+            data = new_image
+        else:
+            _send_array(data.ravel(), dest=0, tag=0)
+        data = MPI.COMM_WORLD.bcast(data)
+        return (data, final)
+
+    @parallel_passthrough
     def _mpi_catdict(self, data):
         field_keys = data.keys()
         field_keys.sort()
@@ -948,6 +1028,51 @@ class ParallelAnalysisInterface(object):
             del data
             data = na.empty(size, dtype='float64')
         MPI.COMM_WORLD.Bcast([data, MPI.DOUBLE], root=0)
+        return data
+
+    @parallel_passthrough
+    def _mpi_concatenate_array_on_root_double(self, data):
+        self._barrier()
+        size = 0
+        if MPI.COMM_WORLD.rank == 0:
+            for i in range(1, MPI.COMM_WORLD.size):
+                size = MPI.COMM_WORLD.recv(source=i, tag=0)
+                new_data = na.empty(size, dtype='float64')
+                MPI.COMM_WORLD.Recv([new_data, MPI.DOUBLE], i, 0)
+                data = na.concatenate((data, new_data))
+        else:
+            MPI.COMM_WORLD.send(data.size, 0, 0)
+            MPI.COMM_WORLD.Send([data, MPI.DOUBLE], 0, 0)
+        return data
+
+    @parallel_passthrough
+    def _mpi_concatenate_array_on_root_int(self, data):
+        self._barrier()
+        size = 0
+        if MPI.COMM_WORLD.rank == 0:
+            for i in range(1, MPI.COMM_WORLD.size):
+                size = MPI.COMM_WORLD.recv(source=i, tag=0)
+                new_data = na.empty(size, dtype='int32')
+                MPI.COMM_WORLD.Recv([new_data, MPI.INT], i, 0)
+                data = na.concatenate((data, new_data))
+        else:
+            MPI.COMM_WORLD.send(data.size, 0, 0)
+            MPI.COMM_WORLD.Send([data, MPI.INT], 0, 0)
+        return data
+
+    @parallel_passthrough
+    def _mpi_concatenate_array_on_root_long(self, data):
+        self._barrier()
+        size = 0
+        if MPI.COMM_WORLD.rank == 0:
+            for i in range(1, MPI.COMM_WORLD.size):
+                size = MPI.COMM_WORLD.recv(source=i, tag=0)
+                new_data = na.empty(size, dtype='int64')
+                MPI.COMM_WORLD.Recv([new_data, MPI.LONG], i, 0)
+                data = na.concatenate((data, new_data))
+        else:
+            MPI.COMM_WORLD.send(data.size, 0, 0)
+            MPI.COMM_WORLD.Send([data, MPI.LONG], 0, 0)
         return data
 
     @parallel_passthrough
@@ -1246,36 +1371,49 @@ class ParallelAnalysisInterface(object):
     # Non-blocking stuff.
     ###
 
-    def _mpi_Irecv_long(self, data, source):
+    def _mpi_Irecv_long(self, data, source, tag=0):
         if not self._distributed: return -1
-        return MPI.COMM_WORLD.Irecv([data, MPI.LONG], source, 0)
+        return MPI.COMM_WORLD.Irecv([data, MPI.LONG], source, tag)
 
-    def _mpi_Irecv_double(self, data, source):
+    def _mpi_Irecv_double(self, data, source, tag=0):
         if not self._distributed: return -1
-        return MPI.COMM_WORLD.Irecv([data, MPI.DOUBLE], source, 0)
+        return MPI.COMM_WORLD.Irecv([data, MPI.DOUBLE], source, tag)
 
-    def _mpi_Isend_long(self, data, dest):
+    def _mpi_Isend_long(self, data, dest, tag=0):
         if not self._distributed: return -1
-        return MPI.COMM_WORLD.Isend([data, MPI.LONG], dest, 0)
+        return MPI.COMM_WORLD.Isend([data, MPI.LONG], dest, tag)
 
-    def _mpi_Isend_double(self, data, dest):
+    def _mpi_Isend_double(self, data, dest, tag=0):
         if not self._distributed: return -1
-        return MPI.COMM_WORLD.Isend([data, MPI.DOUBLE], dest, 0)
+        return MPI.COMM_WORLD.Isend([data, MPI.DOUBLE], dest, tag)
 
     def _mpi_Request_Waitall(self, hooks):
         if not self._distributed: return
         MPI.Request.Waitall(hooks)
+
+    def _mpi_Request_Waititer(self, hooks):
+        for i in xrange(len(hooks)):
+            req = MPI.Request.Waitany(hooks)
+            yield req
+
+    def _mpi_Request_Testall(self, hooks):
+        """
+        This returns False if any of the request hooks are un-finished,
+        and True if they are all finished.
+        """
+        if not self._distributed: return True
+        return MPI.Request.Testall(hooks)
 
     ###
     # End non-blocking stuff.
     ###
 
     def _mpi_get_size(self):
-        if not self._distributed: return None
+        if not self._distributed: return 1
         return MPI.COMM_WORLD.size
 
     def _mpi_get_rank(self):
-        if not self._distributed: return None
+        if not self._distributed: return 0
         return MPI.COMM_WORLD.rank
 
     def _mpi_info_dict(self, info):

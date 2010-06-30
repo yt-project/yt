@@ -33,12 +33,9 @@ import copy
 from math import pi
 
 from yt.funcs import *
-from FieldInfoContainer import *
+from field_info_container import *
 
-try:
-    import cic_deposit
-except ImportError:
-    pass
+from yt.amr_utils import CICDeposit_3
 
 mh = 1.67e-24 # g
 me = 9.11e-28 # g
@@ -101,13 +98,13 @@ add_field("GridLevel", function=_GridLevel,
                       ValidateSpatial(0)])
 
 def _GridIndices(field, data):
-    return na.ones(data["Density"].shape)*(data.id-data._id_offset)
+    return na.ones(data["Ones"].shape)*(data.id-data._id_offset)
 add_field("GridIndices", function=_GridIndices,
           validators=[ValidateGridType(),
                       ValidateSpatial(0)], take_log=False)
 
 def _OnesOverDx(field, data):
-    return na.ones(data["Density"].shape,
+    return na.ones(data["Ones"].shape,
                    dtype=data["Density"].dtype)/data['dx']
 add_field("OnesOverDx", function=_OnesOverDx,
           display_field=False)
@@ -469,14 +466,19 @@ def _DivV(field, data):
     f -= data["z-velocity"][1:-1,1:-1,sl_left ]/ds
     new_field = na.zeros(data["x-velocity"].shape, dtype='float64')
     new_field[1:-1,1:-1,1:-1] = f
-    return na.abs(new_field)
+    return new_field
 def _convertDivV(data):
     return data.convert("cm")**-1.0
 add_field("DivV", function=_DivV,
             validators=[ValidateSpatial(1,
             ["x-velocity","y-velocity","z-velocity"])],
-          units=r"\rm{s}^{-1}",
+          units=r"\rm{s}^{-1}", take_log=False,
           convert_function=_convertDivV)
+
+def _AbsDivV(field, data):
+    return na.abs(data['DivV'])
+add_field("AbsDivV", function=_AbsDivV,
+          units=r"\rm{s}^{-1}")
 
 def _Contours(field, data):
     return na.ones(data["Density"].shape)*-1
@@ -731,6 +733,9 @@ add_field("RadialVelocityABS", function=_RadialVelocityABS,
 add_field("RadialVelocityKMS", function=_RadialVelocity,
           convert_function=_ConvertRadialVelocityKMS, units=r"\rm{km}/\rm{s}",
           validators=[ValidateParameter("center")])
+add_field("RadialVelocityKMSABS", function=_RadialVelocityABS,
+          convert_function=_ConvertRadialVelocityKMS, units=r"\rm{km}/\rm{s}",
+          validators=[ValidateParameter("center")])
 
 def _CuttingPlaneVelocityX(field, data):
     x_vec, y_vec, z_vec = [data.get_field_parameter("cp_%s_vec" % (ax))
@@ -772,3 +777,22 @@ def _JeansMassMsun(field,data):
             (data["Density"]**(-0.5)))
 add_field("JeansMassMsun",function=_JeansMassMsun,
           units=r"\rm{M_{\odot}}")
+
+def _convertDensity(data):
+    return data.convert("Density")
+def _pdensity_pyx(field, data):
+    blank = na.zeros(data.ActiveDimensions, dtype='float32')
+    if data.NumberOfParticles == 0: return blank
+    CICDeposit_3(data["particle_position_x"].astype(na.float64),
+                 data["particle_position_y"].astype(na.float64),
+                 data["particle_position_z"].astype(na.float64),
+                 data["particle_mass"].astype(na.float32),
+                 na.int64(data.NumberOfParticles),
+                 blank, na.array(data.LeftEdge).astype(na.float64),
+                 na.array(data.ActiveDimensions).astype(na.int32),
+                 na.float64(data['dx']))
+    return blank
+add_field("particle_density_pyx", function=_pdensity_pyx,
+          validators=[ValidateSpatial(0)], convert_function=_convertDensity,
+          display_name=r"\mathrm{Particle}\/\mathrm{Density})")
+

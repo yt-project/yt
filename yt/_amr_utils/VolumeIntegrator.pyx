@@ -63,100 +63,176 @@ cdef extern from "math.h":
     long int lrint(double x)
 
 cdef extern from "FixedInterpolator.h":
-    np.float64_t fast_interpolate(int *ds, int *ci, np.float64_t *dp,
+    np.float64_t fast_interpolate(int ds[3], int ci[3], np.float64_t dp[3],
                                   np.float64_t *data)
-cdef extern from "FixedInterpolator.h":
-    np.float64_t trilinear_interpolate(int *ds, int *ci, np.float64_t *dp,
+    np.float64_t offset_interpolate(int ds[3], np.float64_t dp[3], np.float64_t *data)
+    np.float64_t trilinear_interpolate(int ds[3], int ci[3], np.float64_t dp[3],
                                        np.float64_t *data)
     np.float64_t eval_gradient(int *ds, int *ci, np.float64_t *dp,
                                        np.float64_t *data, np.float64_t *grad)
 
 cdef class VectorPlane
 
+cdef struct FieldInterpolationTable:
+    # Note that we make an assumption about retaining a reference to values
+    # externally.
+    np.float64_t *values 
+    np.float64_t bounds[2]
+    np.float64_t dbin
+    np.float64_t idbin
+    int field_id
+    int weight_field_id
+    int weight_table_id
+    int nbins
+    int pass_through
+
+cdef void FIT_initialize_table(FieldInterpolationTable *fit, int nbins,
+              np.float64_t *values, np.float64_t bounds1, np.float64_t bounds2,
+              int field_id, int weight_field_id = -1, int weight_table_id = -1,
+              int pass_through = 0):
+    fit.bounds[0] = bounds1; fit.bounds[1] = bounds2
+    fit.nbins = nbins
+    fit.dbin = (fit.bounds[1] - fit.bounds[0])/fit.nbins
+    fit.idbin = 1.0/fit.dbin
+    # Better not pull this out from under us, yo
+    fit.values = values
+    fit.field_id = field_id
+    fit.weight_field_id = weight_field_id
+    fit.weight_table_id = weight_table_id
+    fit.pass_through = pass_through
+
+cdef np.float64_t FIT_get_value(FieldInterpolationTable *fit,
+                            np.float64_t *dvs):
+    cdef np.float64_t bv, dy, dd, tf
+    cdef int bin_id
+    if fit.pass_through == 1: return dvs[fit.field_id]
+    bin_id = <int> ((dvs[fit.field_id] - fit.bounds[0]) * fit.idbin)
+    dd = dvs[fit.field_id] - (fit.bounds[0] + bin_id * fit.dbin) # x - x0
+    if bin_id > fit.nbins - 2 or bin_id < 0: return 0.0
+    bv = fit.values[bin_id]
+    dy = fit.values[bin_id + 1] - bv
+    if fit.weight_field_id != -1:
+        return dvs[fit.weight_field_id] * (bv + dd*dy*fit.idbin)
+    return (bv + dd*dy*fit.idbin)
+
 cdef class TransferFunctionProxy:
-    cdef np.float64_t x_bounds[2]
-    cdef np.float64_t *vs[4]
-    cdef int nbins
+    cdef int n_fields
+    cdef int n_field_tables
     cdef public int ns
-    cdef np.float64_t dbin, idbin
-    cdef np.float64_t light_color[3]
-    cdef np.float64_t light_dir[3]
-    cdef int use_light
+
+    # These are the field tables and their affiliated storage.
+    # We have one field_id for every table.  Note that a single field can
+    # correspond to multiple tables, and each field table will only have
+    # interpolate called once.
+    cdef FieldInterpolationTable field_tables[6]
+    cdef np.float64_t istorage[6]
+
+    # Here are the field tables that correspond to each of the six channels.
+    # We have three emission channels, three absorption channels.
+    cdef int field_table_ids[6]
+
+    # We store a reference to the transfer function object and to the field
+    # interpolation tables
     cdef public object tf_obj
+    cdef public object my_field_tables
+
     def __cinit__(self, tf_obj):
-        self.tf_obj = tf_obj
-        cdef np.ndarray[np.float64_t, ndim=1] temp
-        temp = tf_obj.red.y
-        self.vs[0] = <np.float64_t *> temp.data
-        temp = tf_obj.green.y
-        self.vs[1] = <np.float64_t *> temp.data
-        temp = tf_obj.blue.y
-        self.vs[2] = <np.float64_t *> temp.data
-        temp = tf_obj.alpha.y
-        self.vs[3] = <np.float64_t *> temp.data
-        self.x_bounds[0] = tf_obj.x_bounds[0]
-        self.x_bounds[1] = tf_obj.x_bounds[1]
-        self.nbins = tf_obj.nbins
-        self.dbin = (self.x_bounds[1] - self.x_bounds[0])/self.nbins
-        self.idbin = 1.0/self.dbin
-        self.light_color[0] = tf_obj.light_color[0]
-        self.light_color[1] = tf_obj.light_color[1]
-        self.light_color[2] = tf_obj.light_color[2]
-        self.light_dir[0] = tf_obj.light_dir[0]
-        self.light_dir[1] = tf_obj.light_dir[1]
-        self.light_dir[2] = tf_obj.light_dir[2]
-        cdef np.float64_t normval = 0.0
-        for i in range(3): normval += self.light_dir[i]**2
-        normval = normval**0.5
-        for i in range(3): self.light_dir[i] /= normval
-        self.use_light = tf_obj.use_light
-
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    cdef void interpolate(self, np.float64_t dv, np.float64_t *trgba):
-        cdef int bin_id, channel
-        cdef np.float64_t bv, dy, dd, tf
-        bin_id = <int> ((dv - self.x_bounds[0]) * self.idbin)
-        # Recall that linear interpolation is y0 + (x-x0) * dx/dy
-        dd = dv-(self.x_bounds[0] + bin_id * self.dbin) # x - x0
-        for channel in range(4):
-            bv = self.vs[channel][bin_id] # This is x0
-            dy = self.vs[channel][bin_id+1]-bv # dy
-                # This is our final value for transfer function on the entering face
-            trgba[channel] = bv+dd*dy*self.idbin
-
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    cdef void eval_transfer(self, np.float64_t dt, np.float64_t dv,
-                                    np.float64_t *rgba, np.float64_t *grad):
+        # We have N fields.  We have 6 channels.  We have M field tables.
+        # The idea is that we can have multiple channels corresponding to the
+        # same field table.  So, we create storage for the outputs from all the
+        # field tables.  We need to know which field value to pass in to the
+        # field table, and we need to know which table to use for each of the
+        # six channels.
         cdef int i
-        cdef np.float64_t ta, tf, trgba[4], dot_prod
-        self.interpolate(dv, trgba) 
-        # get source alpha first
-        # First locate our points
-        dot_prod = 0.0
-        if self.use_light:
-            for i in range(3):
-                dot_prod += self.light_dir[i] * grad[i]
-            dot_prod = fmax(0.0, dot_prod)
-            for i in range(3):
-                trgba[i] += dot_prod*self.light_color[i]
-        # alpha blending
-        ta = (1.0 - rgba[3])*dt*trgba[3]
-        for i in range(4):
-            rgba[i] += ta*trgba[i]
+        cdef np.ndarray[np.float64_t, ndim=1] temp
+        cdef FieldInterpolationTable fit
+
+        self.tf_obj = tf_obj
+
+        self.n_field_tables = tf_obj.n_field_tables
+        for i in range(6): self.istorage[i] = 0.0
+
+        self.my_field_tables = []
+        for i in range(self.n_field_tables):
+            temp = tf_obj.tables[i].y
+            FIT_initialize_table(&self.field_tables[i],
+                      temp.shape[0],
+                      <np.float64_t *> temp.data,
+                      tf_obj.tables[i].x_bounds[0],
+                      tf_obj.tables[i].x_bounds[1],
+                      tf_obj.field_ids[i], tf_obj.weight_field_ids[i],
+                      tf_obj.weight_table_ids[i],
+                      tf_obj.tables[i].pass_through)
+            self.my_field_tables.append((tf_obj.tables[i],
+                                         tf_obj.tables[i].y))
+            self.field_tables[i].field_id = tf_obj.field_ids[i]
+            self.field_tables[i].weight_field_id = tf_obj.weight_field_ids[i]
+            print "Field table", i, "corresponds to",
+            print self.field_tables[i].field_id,
+            print "(Weighted with ", self.field_tables[i].weight_field_id,
+            print ")"
+
+        for i in range(6):
+            self.field_table_ids[i] = tf_obj.field_table_ids[i]
+            print "Channel", i, "corresponds to", self.field_table_ids[i]
+            
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    cdef void eval_transfer(self, np.float64_t dt, np.float64_t *dvs,
+                                  np.float64_t *rgba, np.float64_t *grad):
+        cdef int i, fid, use
+        cdef np.float64_t ta, tf, trgba[6], dot_prod
+        # NOTE: We now disable this.  I have left it to ease the process of
+        # potentially, one day, re-including it.
+        #use = 0
+        #for i in range(self.n_field_tables):
+        #    fid = self.field_tables[i].field_id
+        #    if (dvs[fid] >= self.field_tables[i].bounds[0]) and \
+        #       (dvs[fid] <= self.field_tables[i].bounds[1]):
+        #        use = 1
+        #        break
+        for i in range(self.n_field_tables):
+            self.istorage[i] = FIT_get_value(&self.field_tables[i], dvs)
+        # We have to do this after the interpolation
+        for i in range(self.n_field_tables):
+            fid = self.field_tables[i].weight_table_id
+            if fid != -1: self.istorage[i] *= self.istorage[fid]
+        for i in range(6):
+            trgba[i] = self.istorage[self.field_table_ids[i]]
+            #print i, trgba[i],
+        #print
+        # A few words on opacity.  We're going to be integrating equation 1.23
+        # from Rybicki & Lightman.  dI_\nu / ds = -\alpha_\nu I_\nu + j_\nu
+        # \alpha_nu = \kappa \rho , but we leave that up to the input
+        # transfer function.
+        # SOoooooOOOooo, the upshot is that we are doing a rectangular
+        # integration here:
+        #   I_{i+1} = ds * C_i + (1.0 - ds*alpha_i) * I_i
+        for i in range(3):
+            # This is the new way: alpha corresponds to opacity of a given
+            # slice.  Previously it was ill-defined, but represented some
+            # measure of emissivity.
+            ta = fmax((1.0 - dt*trgba[i+3]), 0.0)
+            rgba[i  ] = dt*trgba[i  ] + ta * rgba[i  ]
+            #rgba[i+3] = dt*trgba[i+3] + ta * rgba[i+3]
+            # This is the old way:
+            #rgba[i  ] += trgba[i] * (1.0 - rgba[i+3])*dt*trgba[i+3]
+            #rgba[i+3] += trgba[i] * (1.0 - rgba[i+3])*dt*trgba[i+3]
 
 cdef class VectorPlane:
     cdef public object avp_pos, avp_dir, acenter, aimage
     cdef np.float64_t *vp_pos, *vp_dir, *center, *image,
     cdef np.float64_t pdx, pdy, bounds[4]
-    cdef int nv
+    cdef int nv[2]
+    cdef int vp_strides[3]
+    cdef int im_strides[3]
+    cdef int vd_strides[3]
     cdef public object ax_vec, ay_vec
     cdef np.float64_t *x_vec, *y_vec
 
     def __cinit__(self, 
                   np.ndarray[np.float64_t, ndim=3] vp_pos,
-                  np.ndarray[np.float64_t, ndim=1] vp_dir,
+                  np.ndarray vp_dir,
                   np.ndarray[np.float64_t, ndim=1] center,
                   bounds,
                   np.ndarray[np.float64_t, ndim=3] image,
@@ -175,10 +251,19 @@ cdef class VectorPlane:
         self.image = <np.float64_t *> image.data
         self.x_vec = <np.float64_t *> x_vec.data
         self.y_vec = <np.float64_t *> y_vec.data
-        self.nv = vp_pos.shape[0]
+        self.nv[0] = vp_pos.shape[0]
+        self.nv[1] = vp_pos.shape[1]
         for i in range(4): self.bounds[i] = bounds[i]
-        self.pdx = (self.bounds[1] - self.bounds[0])/self.nv
-        self.pdy = (self.bounds[3] - self.bounds[2])/self.nv
+        self.pdx = (self.bounds[1] - self.bounds[0])/self.nv[0]
+        self.pdy = (self.bounds[3] - self.bounds[2])/self.nv[1]
+        for i in range(3):
+            self.vp_strides[i] = vp_pos.strides[i] / 8
+            self.im_strides[i] = image.strides[i] / 8
+        if vp_dir.ndim > 1:
+            for i in range(3):
+                self.vd_strides[i] = vp_dir.strides[i] / 8
+        else:
+            self.vd_strides[0] = self.vd_strides[1] = self.vd_strides[2] = -1
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -190,46 +275,52 @@ cdef class VectorPlane:
         for i in range(3):
             cx += self.center[i] * self.x_vec[i]
             cy += self.center[i] * self.y_vec[i]
-        rv[0] = <int> floor((ex[0] - cx - self.bounds[0])/self.pdx)
-        rv[1] = rv[0] + <int> ceil((ex[1] - ex[0])/self.pdx)
-        rv[2] = <int> floor((ex[2] - cy - self.bounds[2])/self.pdy)
-        rv[3] = rv[2] + <int> ceil((ex[3] - ex[2])/self.pdy)
+        rv[0] = lrint((ex[0] - cx - self.bounds[0])/self.pdx)
+        rv[1] = rv[0] + lrint((ex[1] - ex[0])/self.pdx)
+        rv[2] = lrint((ex[2] - cy - self.bounds[2])/self.pdy)
+        rv[3] = rv[2] + lrint((ex[3] - ex[2])/self.pdy)
 
     cdef inline void copy_into(self, np.float64_t *fv, np.float64_t *tv,
-                        int i, int j, int nk):
+                        int i, int j, int nk, int strides[3]):
         # We know the first two dimensions of our from-vector, and our
         # to-vector is flat and 'ni' long
         cdef int k
+        cdef int offset = strides[0] * i + strides[1] * j
         for k in range(nk):
-            tv[k] = fv[(((k*self.nv)+j)*self.nv+i)]
+            tv[k] = fv[offset + k]
 
     cdef inline void copy_back(self, np.float64_t *fv, np.float64_t *tv,
-                        int i, int j, int nk):
+                        int i, int j, int nk, int strides[3]):
         cdef int k
+        cdef int offset = strides[0] * i + strides[1] * j
         for k in range(nk):
-            tv[(((k*self.nv)+j)*self.nv+i)] = fv[k]
+            tv[offset + k] = fv[k]
 
 cdef class PartitionedGrid:
     cdef public object my_data
     cdef public object LeftEdge
     cdef public object RightEdge
-    cdef np.float64_t *data
+    cdef np.float64_t *data[6]
+    cdef np.float64_t dvs[6]
     cdef np.float64_t left_edge[3]
     cdef np.float64_t right_edge[3]
     cdef np.float64_t dds[3]
     cdef np.float64_t idds[3]
-    cdef public np.float64_t min_dds
     cdef int dims[3]
+    cdef public int parent_grid_id
+    cdef public int n_fields
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
     def __cinit__(self,
-                  np.ndarray[np.float64_t, ndim=3] data,
+                  int parent_grid_id, int n_fields, data,
                   np.ndarray[np.float64_t, ndim=1] left_edge,
                   np.ndarray[np.float64_t, ndim=1] right_edge,
                   np.ndarray[np.int64_t, ndim=1] dims):
         # The data is likely brought in via a slice, so we copy it
         cdef int i, j, k, size
+        cdef np.ndarray[np.float64_t, ndim=3] tdata
+        self.parent_grid_id = parent_grid_id
         self.LeftEdge = left_edge
         self.RightEdge = right_edge
         for i in range(3):
@@ -239,7 +330,10 @@ cdef class PartitionedGrid:
             self.dds[i] = (self.right_edge[i] - self.left_edge[i])/dims[i]
             self.idds[i] = 1.0/self.dds[i]
         self.my_data = data
-        self.data = <np.float64_t*> data.data
+        self.n_fields = n_fields
+        for i in range(n_fields):
+            tdata = data[i]
+            self.data[i] = <np.float64_t *> tdata.data
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -249,17 +343,31 @@ cdef class PartitionedGrid:
         # like http://courses.csusm.edu/cs697exz/ray_box.htm
         cdef int vi, vj, hit, i, ni, nj, nn
         cdef int iter[4]
-        cdef np.float64_t v_pos[3], v_dir[3], rgba[4], extrema[4]
+        cdef np.float64_t v_pos[3], v_dir[3], rgba[6], extrema[4]
+        hit = 0
         self.calculate_extent(vp, extrema)
         vp.get_start_stop(extrema, iter)
-        for i in range(4): iter[i] = iclip(iter[i], 0, vp.nv)
-        hit = 0
-        for vj in range(iter[0], iter[1]):
-            for vi in range(iter[2], iter[3]):
-                vp.copy_into(vp.vp_pos, v_pos, vi, vj, 3)
-                vp.copy_into(vp.image, rgba, vi, vj, 4)
-                self.integrate_ray(v_pos, vp.vp_dir, rgba, tf)
-                vp.copy_back(rgba, vp.image, vi, vj, 4)
+        iter[0] = iclip(iter[0], 0, vp.nv[0])
+        iter[1] = iclip(iter[1], 0, vp.nv[0])
+        iter[2] = iclip(iter[2], 0, vp.nv[1])
+        iter[3] = iclip(iter[3], 0, vp.nv[1])
+        if vp.vd_strides[0] == -1:
+            for vi in range(iter[0], iter[1]):
+                for vj in range(iter[2], iter[3]):
+                    vp.copy_into(vp.vp_pos, v_pos, vi, vj, 3, vp.vp_strides)
+                    vp.copy_into(vp.image, rgba, vi, vj, 3, vp.im_strides)
+                    self.integrate_ray(v_pos, vp.vp_dir, rgba, tf)
+                    vp.copy_back(rgba, vp.image, vi, vj, 3, vp.im_strides)
+        else:
+            # If we do not have an orthographic projection, we have to cast all
+            # our rays (until we can get an extrema calculation...)
+            for vi in range(vp.nv[0]):
+                for vj in range(vp.nv[1]):
+                    vp.copy_into(vp.vp_pos, v_pos, vi, vj, 3, vp.vp_strides)
+                    vp.copy_into(vp.image, rgba, vi, vj, 3, vp.im_strides)
+                    vp.copy_into(vp.vp_dir, v_dir, vi, vj, 3, vp.vd_strides)
+                    self.integrate_ray(v_pos, v_dir, rgba, tf)
+                    vp.copy_back(rgba, vp.image, vi, vj, 3, vp.im_strides)
         return hit
 
     @cython.boundscheck(False)
@@ -296,6 +404,7 @@ cdef class PartitionedGrid:
                                  TransferFunctionProxy tf):
         cdef int cur_ind[3], step[3], x, y, i, n, flat_ind, hit, direction
         cdef np.float64_t intersect_t = 1.0
+        cdef np.float64_t iv_dir[3]
         cdef np.float64_t intersect[3], tmax[3], tdelta[3]
         cdef np.float64_t enter_t, dist, alpha, dt, exit_t
         cdef np.float64_t tr, tl, temp_x, temp_y, dv
@@ -306,8 +415,8 @@ cdef class PartitionedGrid:
                 step[i] = 1
             x = (i+1) % 3
             y = (i+2) % 3
-            tl = (self.left_edge[i] - v_pos[i])/v_dir[i]
-            tr = (self.right_edge[i] - v_pos[i])/v_dir[i]
+            iv_dir[i] = 1.0/v_dir[0]
+            tl = (self.left_edge[i] - v_pos[i])*iv_dir[i]
             temp_x = (v_pos[x] + tl*v_dir[x])
             temp_y = (v_pos[y] + tl*v_dir[y])
             if self.left_edge[x] <= temp_x and temp_x <= self.right_edge[x] and \
@@ -315,6 +424,7 @@ cdef class PartitionedGrid:
                0.0 <= tl and tl < intersect_t:
                 direction = i
                 intersect_t = tl
+            tr = (self.right_edge[i] - v_pos[i])*iv_dir[i]
             temp_x = (v_pos[x] + tr*v_dir[x])
             temp_y = (v_pos[y] + tr*v_dir[y])
             if self.left_edge[x] <= temp_x and temp_x <= self.right_edge[x] and \
@@ -333,7 +443,7 @@ cdef class PartitionedGrid:
                                       step[i]*1e-8*self.dds[i] -
                                       self.left_edge[i])*self.idds[i])
             tmax[i] = (((cur_ind[i]+step[i])*self.dds[i])+
-                        self.left_edge[i]-v_pos[i])/v_dir[i]
+                        self.left_edge[i]-v_pos[i])*iv_dir[i]
             # This deals with the asymmetry in having our indices refer to the
             # left edge of a cell, but the right edge of the brick being one
             # extra zone out.
@@ -342,11 +452,11 @@ cdef class PartitionedGrid:
             if cur_ind[i] < 0 or cur_ind[i] >= self.dims[i]: return 0
             if step[i] > 0:
                 tmax[i] = (((cur_ind[i]+1)*self.dds[i])
-                            +self.left_edge[i]-v_pos[i])/v_dir[i]
+                            +self.left_edge[i]-v_pos[i])*iv_dir[i]
             if step[i] < 0:
                 tmax[i] = (((cur_ind[i]+0)*self.dds[i])
-                            +self.left_edge[i]-v_pos[i])/v_dir[i]
-            tdelta[i] = (self.dds[i]/v_dir[i])
+                            +self.left_edge[i]-v_pos[i])*iv_dir[i]
+            tdelta[i] = (self.dds[i]*iv_dir[i])
             if tdelta[i] < 0: tdelta[i] *= -1
         # We have to jumpstart our calculation
         enter_t = intersect_t
@@ -405,21 +515,24 @@ cdef class PartitionedGrid:
         cdef np.float64_t grad[3], ds[3]
         grad[0] = grad[1] = grad[2] = 0.0
         cdef int dti, i
-        dt = (exit_t - enter_t) / (tf.ns) # 4 samples should be dt=0.25
+        dt = (exit_t - enter_t) / tf.ns # 4 samples should be dt=0.25
+        cdef int offset = ci[0] * (self.dims[1] + 1) * (self.dims[2] + 1) \
+                        + ci[1] * (self.dims[2] + 1) + ci[2]
         for i in range(3):
+            # temp is the left edge of the current cell
             temp = ci[i] * self.dds[i] + self.left_edge[i]
+            # this gets us dp as the current first sample position
             dp[i] = (enter_t + 0.5 * dt) * v_dir[i] + v_pos[i] - temp
             dp[i] *= self.idds[i]
             ds[i] = v_dir[i] * self.idds[i] * dt
         for dti in range(tf.ns): 
+            for i in range(self.n_fields):
+                self.dvs[i] = offset_interpolate(self.dims, dp, self.data[i] + offset)
+            #if (dv < tf.x_bounds[0]) or (dv > tf.x_bounds[1]):
+            #    continue
             for i in range(3):
                 dp[i] += ds[i]
-            dv = trilinear_interpolate(self.dims, ci, dp, self.data)
-            if not ((dv > tf.x_bounds[0]) and (dv < tf.x_bounds[1])):
-                continue
-            if tf.use_light == 1:
-                eval_gradient(self.dims, ci, dp, self.data, grad)
-            tf.eval_transfer(dt, dv, rgba, grad)
+            tf.eval_transfer(dt, self.dvs, rgba, grad)
 
 cdef class GridFace:
     cdef int direction
@@ -459,9 +572,12 @@ cdef class ProtoPrism:
     cdef public object LeftEdge
     cdef public object RightEdge
     cdef public object subgrid_faces
-    def __cinit__(self, np.ndarray[np.float64_t, ndim=1] left_edge,
-                       np.ndarray[np.float64_t, ndim=1] right_edge,
-                       subgrid_faces):
+    cdef public int parent_grid_id
+    def __cinit__(self, int parent_grid_id,
+                  np.ndarray[np.float64_t, ndim=1] left_edge,
+                  np.ndarray[np.float64_t, ndim=1] right_edge,
+                  subgrid_faces):
+        self.parent_grid_id = parent_grid_id
         cdef int i
         self.LeftEdge = left_edge
         self.RightEdge = right_edge
@@ -500,11 +616,13 @@ cdef class ProtoPrism:
 
         for i in range(3): split_left[i] = self.right_edge[i]
         split_left[direction] = sp[direction]
-        left = ProtoPrism(self.LeftEdge, split_left, self.subgrid_faces)
+        left = ProtoPrism(self.parent_grid_id, self.LeftEdge, split_left,
+                          self.subgrid_faces)
 
         for i in range(3): split_right[i] = self.left_edge[i]
         split_right[direction] = sp[direction]
-        right = ProtoPrism(split_right, self.RightEdge, self.subgrid_faces)
+        right = ProtoPrism(self.parent_grid_id, split_right, self.RightEdge,
+                           self.subgrid_faces)
 
         return (left, right)
 
@@ -512,7 +630,6 @@ cdef class ProtoPrism:
     @cython.wraparound(False)
     def get_brick(self, np.ndarray[np.float64_t, ndim=1] grid_left_edge,
                         np.ndarray[np.float64_t, ndim=1] grid_dds,
-                        np.ndarray[np.float64_t, ndim=3] data,
                         child_mask):
         # We get passed in the left edge, the dds (which gives dimensions) and
         # the data, which is already vertex-centered.
@@ -526,7 +643,8 @@ cdef class ProtoPrism:
         cdef np.ndarray[np.int64_t, ndim=1] dims = np.empty(3, dtype='int64')
         for i in range(3):
             dims[i] = idims[i]
-        cdef np.ndarray[np.float64_t, ndim=3] new_data
-        new_data = data[li[0]:ri[0]+1,li[1]:ri[1]+1,li[2]:ri[2]+1].copy()
-        PG = PartitionedGrid(new_data, self.LeftEdge, self.RightEdge, dims)
-        return [PG]
+        #cdef np.ndarray[np.float64_t, ndim=3] new_data
+        #new_data = data[li[0]:ri[0]+1,li[1]:ri[1]+1,li[2]:ri[2]+1].copy()
+        #PG = PartitionedGrid(self.parent_grid_id, new_data,
+        #                     self.LeftEdge, self.RightEdge, dims)
+        return ((li[0], ri[0]), (li[1], ri[1]), (li[2], ri[2]), dims)

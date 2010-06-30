@@ -80,9 +80,18 @@ typedef struct sphere_validation_ {
     npy_float64 radius;
 } sphere_validation;
 
+typedef struct cylinder_validation_ {
+    /* These cannot contain any pointers */
+    npy_float64 center[3];
+    npy_float64 normal[3];
+    npy_float64 radius;
+    npy_float64 height;
+} cylinder_validation;
+
 /* Forward declarations */
 int setup_validator_region(particle_validation *data, PyObject *InputData);
 int setup_validator_sphere(particle_validation *data, PyObject *InputData);
+int setup_validator_cylinder(particle_validation *data, PyObject *InputData);
 int run_validators(particle_validation *pv, char *filename, 
                    int grid_id, const int read, const int packed,
                    int grid_index);
@@ -96,6 +105,10 @@ int count_particles_region_LONGDOUBLE(particle_validation *data);
 int count_particles_sphere_FLOAT(particle_validation *data);
 int count_particles_sphere_DOUBLE(particle_validation *data);
 int count_particles_sphere_LONGDOUBLE(particle_validation *data);
+
+int count_particles_cylinder_FLOAT(particle_validation *data);
+int count_particles_cylinder_DOUBLE(particle_validation *data);
+int count_particles_cylinder_LONGDOUBLE(particle_validation *data);
 
 int get_my_desc_type(hid_t native_type_id){
 
@@ -820,6 +833,10 @@ Py_ReadParticles(PyObject *obj, PyObject *args)
             /* Sphere type */
             setup_validator_sphere(&pv, vargs);
             break;
+        case 2:
+            /* Cylinder type */
+            setup_validator_cylinder(&pv, vargs);
+            break;
         default:
             PyErr_Format(_hdf5ReadError,
                     "Unrecognized data source.\n");
@@ -881,10 +898,9 @@ Py_ReadParticles(PyObject *obj, PyObject *args)
     if(pv.file_id >= 0) {H5Fclose(pv.file_id); pv.file_id = -1;}
 
     /* Let's pack up our return values */
-    PyObject *my_list = PyList_New(0);
+    PyObject *my_list = PyList_New(pv.nfields);
     for (i = 0; i < pv.nfields ; i++){
-        PyList_Append(my_list, (PyObject *) pv.return_values[i]);
-        Py_DECREF(pv.return_values[i]);
+        PyList_SET_ITEM(my_list, i, (PyObject *) pv.return_values[i]);
     }
     PyObject *return_value = Py_BuildValue("N", my_list);
 
@@ -899,6 +915,7 @@ Py_ReadParticles(PyObject *obj, PyObject *args)
     Py_DECREF(conv_factors);
     free(pv.validation_reqs);
     /* We don't need to free pv */
+    if(!(pv.file_id <= 0)&&(H5Iget_ref(pv.file_id))) H5Fclose(pv.file_id);
 
     return return_value;
 
@@ -923,6 +940,7 @@ Py_ReadParticles(PyObject *obj, PyObject *args)
         if(pv.particle_position[i] != NULL) free(pv.particle_position[i]);
     }
     if(pv.validation_reqs != NULL) free(pv.validation_reqs);
+    if(!(pv.file_id <= 0)&&(H5Iget_ref(pv.file_id))) H5Fclose(pv.file_id);
 
     return NULL;
 }
@@ -993,6 +1011,40 @@ int setup_validator_sphere(particle_validation *data, PyObject *InputData)
 
     return 1;
 }
+
+int setup_validator_cylinder(particle_validation *data, PyObject *InputData)
+{
+    int i;
+    /* These are borrowed references */
+    PyArrayObject *center = (PyArrayObject *) PyTuple_GetItem(InputData, 0);
+    PyArrayObject *normal = (PyArrayObject *) PyTuple_GetItem(InputData, 1);
+    PyObject *radius = (PyObject *) PyTuple_GetItem(InputData, 2);
+    PyObject *height = (PyObject *) PyTuple_GetItem(InputData, 3);
+
+    /* This will get freed in the finalization of particle validation */
+    cylinder_validation *cv = (cylinder_validation *)
+                malloc(sizeof(cylinder_validation));
+    data->validation_reqs = (void *) cv;
+
+    for (i = 0; i < 3; i++){
+        cv->center[i] = *(npy_float64*) PyArray_GETPTR1(center, i);
+    }
+
+    for (i = 0; i < 3; i++){
+        cv->normal[i] = *(npy_float64*) PyArray_GETPTR1(normal, i);
+    }
+
+    cv->radius = (npy_float64) PyFloat_AsDouble(radius);
+    cv->height = (npy_float64) PyFloat_AsDouble(height);
+
+    data->count_func = NULL;
+    data->count_func_float = count_particles_cylinder_FLOAT;
+    data->count_func_double = count_particles_cylinder_DOUBLE;
+    data->count_func_longdouble = count_particles_cylinder_LONGDOUBLE;
+
+    return 1;
+}
+
 
 int run_validators(particle_validation *pv, char *filename, 
                    int grid_id, const int read, const int packed,
@@ -1562,6 +1614,149 @@ int count_particles_sphere_LONGDOUBLE(particle_validation *data)
     return n;
 }
 
+int count_particles_cylinder_FLOAT(particle_validation *data)
+{
+    /* Our data comes packed in a struct, off which our pointers all hang */
+
+    /* First is our validation requirements, which are a set of three items: */
+
+    int ind, n=0;
+    cylinder_validation *vdata;
+
+    vdata = (cylinder_validation*) data->validation_reqs;
+    
+    float **particle_data = (float **) data->particle_position;
+
+    float *particle_position_x = particle_data[0];
+    float *particle_position_y = particle_data[1];
+    float *particle_position_z = particle_data[2];
+    float temph, tempd, d;
+    
+    d = -1. * (vdata->normal[0] * vdata->center[0] +
+               vdata->normal[1] * vdata->center[1] +
+               vdata->normal[2] * vdata->center[2]);
+
+    double pradius, ph, pd;
+
+      for (ind = 0; ind < data->particles_to_check; ind++) {
+        pradius = 0.0; ph = 0.0; pd = 0.0;
+        
+        temph = (particle_position_x[ind] * vdata->normal[0]); ph += temph;
+        temph = (particle_position_y[ind] * vdata->normal[1]); ph += temph;
+        temph = (particle_position_z[ind] * vdata->normal[2]); ph += temph;
+        ph += d;
+        
+        tempd = (particle_position_x[ind] - vdata->center[0]); pd += tempd*tempd;
+        tempd = (particle_position_y[ind] - vdata->center[1]); pd += tempd*tempd;
+        tempd = (particle_position_z[ind] - vdata->center[2]); pd += tempd*tempd;
+
+        pradius = pow(pd - ph*ph, 0.5);
+        if ((pradius <= vdata->radius) && (fabs(ph) <= vdata->height)) {
+          if(data->update_count == 1) data->total_valid_particles++;
+          data->mask[ind] = 1;
+          n++;
+        } else {
+          data->mask[ind] = 0;
+        }
+      }
+    return n;
+}
+
+int count_particles_cylinder_DOUBLE(particle_validation *data)
+{
+    /* Our data comes packed in a struct, off which our pointers all hang */
+
+    /* First is our validation requirements, which are a set of three items: */
+
+    int ind, n=0;
+    cylinder_validation *vdata;
+
+    vdata = (cylinder_validation*) data->validation_reqs;
+    
+    double **particle_data = (double **) data->particle_position;
+
+    double *particle_position_x = particle_data[0];
+    double *particle_position_y = particle_data[1];
+    double *particle_position_z = particle_data[2];
+    double temph, tempd, d;
+    
+    d = -1. * (vdata->normal[0] * vdata->center[0] +
+               vdata->normal[1] * vdata->center[1] +
+               vdata->normal[2] * vdata->center[2]);
+
+    double pradius, ph, pd;
+
+      for (ind = 0; ind < data->particles_to_check; ind++) {
+        pradius = 0.0; ph = 0.0; pd = 0.0;
+        
+        temph = (particle_position_x[ind] * vdata->normal[0]); ph += temph;
+        temph = (particle_position_y[ind] * vdata->normal[1]); ph += temph;
+        temph = (particle_position_z[ind] * vdata->normal[2]); ph += temph;
+        ph += d;
+        
+        tempd = (particle_position_x[ind] - vdata->center[0]); pd += tempd*tempd;
+        tempd = (particle_position_y[ind] - vdata->center[1]); pd += tempd*tempd;
+        tempd = (particle_position_z[ind] - vdata->center[2]); pd += tempd*tempd;
+
+        pradius = pow(pd - ph*ph, 0.5);
+        if ((pradius <= vdata->radius) && (fabs(ph) <= vdata->height)) {
+          if(data->update_count == 1) data->total_valid_particles++;
+          data->mask[ind] = 1;
+          n++;
+        } else {
+          data->mask[ind] = 0;
+        }
+    }
+    return n;
+}
+
+int count_particles_cylinder_LONGDOUBLE(particle_validation *data)
+{
+    /* Our data comes packed in a struct, off which our pointers all hang */
+
+    /* First is our validation requirements, which are a set of three items: */
+
+    int ind, n=0;
+    cylinder_validation *vdata;
+
+    vdata = (cylinder_validation*) data->validation_reqs;
+    
+    long double **particle_data = (long double **) data->particle_position;
+
+    long double *particle_position_x = particle_data[0];
+    long double *particle_position_y = particle_data[1];
+    long double *particle_position_z = particle_data[2];
+    long double temph, tempd, d;
+    
+    d = -1. * (vdata->normal[0] * vdata->center[0] +
+               vdata->normal[1] * vdata->center[1] +
+               vdata->normal[2] * vdata->center[2]);
+
+    long double pradius, ph, pd;
+
+      for (ind = 0; ind < data->particles_to_check; ind++) {
+        pradius = 0.0; ph = 0.0; pd = 0.0;
+        
+        temph = (particle_position_x[ind] * vdata->normal[0]); ph += temph;
+        temph = (particle_position_y[ind] * vdata->normal[1]); ph += temph;
+        temph = (particle_position_z[ind] * vdata->normal[2]); ph += temph;
+        ph += d;
+        
+        tempd = (particle_position_x[ind] - vdata->center[0]); pd += tempd*tempd;
+        tempd = (particle_position_y[ind] - vdata->center[1]); pd += tempd*tempd;
+        tempd = (particle_position_z[ind] - vdata->center[2]); pd += tempd*tempd;
+
+        pradius = pow(pd - ph*ph, 0.5);
+        if ((pradius <= vdata->radius) && (fabsl(ph) <= vdata->height)) {
+          if(data->update_count == 1) data->total_valid_particles++;
+          data->mask[ind] = 1;
+          n++;
+        } else {
+          data->mask[ind] = 0;
+        }
+      }
+    return n;
+}
 
 static PyMethodDef _hdf5LightReaderMethods[] = {
     {"ReadData", Py_ReadHDF5DataSet, METH_VARARGS},

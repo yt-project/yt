@@ -27,7 +27,7 @@ import yt.lagos as lagos
 from yt.lagos.HaloFinding import HaloFinder
 from yt.logger import lagosLogger as mylog
 import yt.raven as raven
-from HaloFilters import *
+from halo_filters import *
 import numpy as na
 import os
 import h5py
@@ -394,7 +394,7 @@ class HaloProfiler(lagos.ParallelAnalysisInterface):
         return profile
 
     @lagos.parallel_blocking_call
-    def make_projections(self, axes=[0, 1, 2], halo_list='filtered', save_images=False, save_cube=True, **kwargs):
+    def make_projections(self, axes=[0, 1, 2], halo_list='filtered', save_images=False, save_cube=True):
         "Make projections of all halos using specified fields."
 
         # Get list of halos for projecting.
@@ -430,9 +430,6 @@ class HaloProfiler(lagos.ParallelAnalysisInterface):
         center = [0.5 * (self.pf.parameters['DomainLeftEdge'][w] + self.pf.parameters['DomainRightEdge'][w])
                   for w in range(self.pf.parameters['TopGridRank'])]
 
-        # Create a plot collection.
-        pc = raven.PlotCollection(self.pf, center=center)
-
         for halo in self._get_objs('_halo_projection_list', round_robin=True):
             if halo is None:
                 continue
@@ -461,6 +458,8 @@ class HaloProfiler(lagos.ParallelAnalysisInterface):
             # Make projections.
             if not isinstance(axes, types.ListType): axes = list([axes])
             for w in axes:
+                # Create a plot collection.
+                pc = raven.PlotCollection(self.pf, center=center)
                 # YT projections do not follow the right-hand rule.
                 coords = range(3)
                 del coords[w]
@@ -468,8 +467,7 @@ class HaloProfiler(lagos.ParallelAnalysisInterface):
                 y_axis = coords[1]
 
                 for hp in self.projection_fields:
-                    pc.add_projection(hp['field'], w, weight_field=hp['weight_field'], source=region, lazy_reader=False,
-                                      serialize=False, **kwargs)
+                    pc.add_projection(hp['field'], w, weight_field=hp['weight_field'], data_source=region)
                 
                 # Set x and y limits, shift image if it overlaps domain boundary.
                 if need_per:
@@ -506,9 +504,7 @@ class HaloProfiler(lagos.ParallelAnalysisInterface):
                 if save_images:
                     pc.save("%s/Halo_%04d" % (outputDir, halo['id']), force_save=True)
 
-                pc.clear_plots()
             del region
-        del pc
 
     def _add_actual_overdensity(self, profile):
         "Calculate overdensity from TotalMassMsun and CellVolume fields."

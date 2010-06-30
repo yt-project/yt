@@ -28,8 +28,6 @@ from yt.mods import *
 from yt.lagos import AMRGridPatch, StaticOutput, AMRHierarchy
 import h5py, os.path
 
-import yt.commands as commands
-
 class DummyHierarchy(object):
     pass
 

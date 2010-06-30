@@ -346,6 +346,39 @@ class LinePlotCallback(PlotCallback):
         plot._axes.plot(self.x, self.y, **self.plot_args)
         plot._axes.hold(False)
 
+class ImageLineCallback(LinePlotCallback):
+    _type_name = "image_line"
+
+    def __init__(self, p1, p2, plot_args = None):
+        """
+        Plot from *p1* to *p2* (image plane coordinates)
+        with *plot_args* fed into the plot.
+        """
+        PlotCallback.__init__(self)
+        self.p1 = p1
+        self.p2 = p2
+        if plot_args is None: plot_args = {}
+        self.plot_args = plot_args
+        self._ids = []
+
+    def __call__(self, plot):
+        # We manually clear out any previous calls to this callback:
+        plot._axes.lines = [l for l in plot._axes.lines if id(l) not in self._ids]
+        p1 = self.convert_to_pixels(plot, self.p1)
+        p2 = self.convert_to_pixels(plot, self.p2)
+        px, py = (p1[0], p2[0]), (p1[1], p2[1])
+
+        # Save state
+        xx0, xx1 = plot._axes.get_xlim()
+        yy0, yy1 = plot._axes.get_ylim()
+        plot._axes.hold(True)
+        ii = plot._axes.plot(px, py, **self.plot_args)
+        self._ids.append(id(ii[0]))
+        # Reset state
+        plot._axes.set_xlim(xx0,xx1)
+        plot._axes.set_ylim(yy0,yy1)
+        plot._axes.hold(False)
+
 class CuttingQuiverCallback(PlotCallback):
     _type_name = "cquiver"
     def __init__(self, field_x, field_y, factor):
@@ -701,7 +734,7 @@ class CoordAxesCallback(PlotCallback):
         dx = (plot.xlim[1] - plot.xlim[0])/nx
         dy = (plot.ylim[1] - plot.ylim[0])/ny
 
-        unit_conversion = plot.data.hierarchy[plot.im["Unit"]]
+        unit_conversion = plot.pf[plot.im["Unit"]]
         aspect = (plot.xlim[1]-plot.xlim[0])/(plot.ylim[1]-plot.ylim[0])
 
         print "aspect ratio = ", aspect
@@ -767,21 +800,27 @@ class ParticleCallback(PlotCallback):
     _type_name = "particles"
     region = None
     _descriptor = None
-    def __init__(self, width, p_size=1.0, col='k', stride=1.0, ptype=None, stars_only=False, dm_only=False):
+    def __init__(self, width, p_size=1.0, col='k', marker='o', stride=1.0,
+                 ptype=None, stars_only=False, dm_only=False,
+                 minimum_mass=None):
         """
         Adds particle positions, based on a thick slab along *axis* with a
         *width* along the line of sight.  *p_size* controls the number of
         pixels per particle, and *col* governs the color.  *ptype* will
         restrict plotted particles to only those that are of a given type.
+        *minimum_mass* will require that the particles be of a given mass,
+        calculated via ParticleMassMsun, to be plotted.
         """
         PlotCallback.__init__(self)
         self.width = width
         self.p_size = p_size
         self.color = col
+        self.marker = marker
         self.stride = stride
         self.ptype = ptype
         self.stars_only = stars_only
         self.dm_only = dm_only
+        self.minimum_mass = minimum_mass
 
     def __call__(self, plot):
         data = plot.data
@@ -804,11 +843,14 @@ class ParticleCallback(PlotCallback):
         if self.dm_only:
             gg &= (reg["creation_time"] <= 0.0)
             if gg.sum() == 0: return
+        if self.minimum_mass is not None:
+            gg &= (reg["ParticleMassMsun"] >= self.minimum_mass)
+            if gg.sum() == 0: return
         plot._axes.hold(True)
         px, py = self.convert_to_pixels(plot,
                     [reg[field_x][gg][::self.stride],
                      reg[field_y][gg][::self.stride]])
-        plot._axes.scatter(px, py, edgecolors='None',
+        plot._axes.scatter(px, py, edgecolors='None', marker=self.marker,
                            s=self.p_size, c=self.color)
         plot._axes.set_xlim(xx0,xx1)
         plot._axes.set_ylim(yy0,yy1)

@@ -23,6 +23,7 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 from yt.lagos import *
+import yt.amr_utils as au
 import exceptions
 
 _axis_ids = {0:2,1:1,2:0}
@@ -78,7 +79,7 @@ class BaseIOHandler(object):
     def _read_exception(self):
         return None
 
-class IOHandlerHDF4(BaseIOHandler):
+class IOHandlerEnzoHDF4(BaseIOHandler):
 
     _data_style = "enzo_hdf4"
 
@@ -122,7 +123,7 @@ class IOHandlerHDF4(BaseIOHandler):
     def _read_exception(self):
         return SD.HDF4Error
 
-class IOHandlerHDF4_2D(IOHandlerHDF4):
+class IOHandlerEnzoHDF4_2D(IOHandlerEnzoHDF4):
 
     _data_style = "enzo_hdf4_2d"
 
@@ -137,7 +138,7 @@ class IOHandlerHDF4_2D(IOHandlerHDF4):
     def modify(self, field):
         return field
 
-class IOHandlerHDF5(BaseIOHandler):
+class IOHandlerEnzoHDF5(BaseIOHandler):
 
     _data_style = "enzo_hdf5"
     _particle_reader = True
@@ -424,7 +425,77 @@ class IOHandlerPacked1D(IOHandlerPackedHDF5):
                         (grid.id, field))
         return t
 
+class IOHandlerGadget(BaseIOHandler):
+    _data_style = 'gadget_binary'
+    def _read_data_set(self, grid, field):
+        return grid._storage[field]
+
 #
-# BoxLib/Orion data readers follow
+# Chombo readers
 #
+
+class IOHandlerChomboHDF5(BaseIOHandler):
+    _data_style = "chombo_hdf5"
+    _offset_string = 'data:offsets=0'
+    _data_string = 'data:datatype=0'
+
+    def _field_dict(self,fhandle):
+        ncomp = int(fhandle['/'].attrs['num_components'])
+        temp =  fhandle['/'].attrs.listitems()[-ncomp:]
+        val, keys = zip(*temp)
+        val = [int(re.match('component_(\d+)',v).groups()[0]) for v in val]
+        return dict(zip(keys,val))
+        
+    def _read_field_names(self,grid):
+        fhandle = h5py.File(grid.filename,'r')
+        ncomp = int(fhandle['/'].attrs['num_components'])
+
+        return [c[1] for c in f['/'].attrs.listitems()[-ncomp:]]
     
+    def _read_data_set(self,grid,field):
+        fhandle = h5py.File(grid.hierarchy.hierarchy_filename,'r')
+
+        field_dict = self._field_dict(fhandle)
+        lstring = 'level_%i' % grid.Level
+        lev = fhandle[lstring]
+        dims = grid.ActiveDimensions
+        boxsize = dims.prod()
+        
+        grid_offset = lev[self._offset_string][grid._level_id]
+        start = grid_offset+field_dict[field]*boxsize
+        stop = start + boxsize
+        data = lev[self._data_string][start:stop]
+
+        return data.reshape(dims, order='F')
+                                          
+
+    def _read_data_slice(self, grid, field, axis, coord):
+        sl = [slice(None), slice(None), slice(None)]
+        sl[axis] = slice(coord, coord + 1)
+        return self._read_data_set(grid,field)[sl]
+
+class IOHandlerTiger(BaseIOHandler):
+    _data_style = "tiger"
+    _offset = 36
+
+    def __init__(self, *args, **kwargs):
+        BaseIOHandler.__init__(self, *args, **kwargs)
+        self._memmaps = {}
+
+    def _read_data_set(self, grid, field):
+        fn = grid.pf.basename + grid.hierarchy.file_mapping[field]
+        LD = na.array(grid.left_dims, dtype='int64')
+        SS = na.array(grid.ActiveDimensions, dtype='int64')
+        RS = na.array(grid.pf.root_size, dtype='int64')
+        data = au.read_tiger_section(fn, LD, SS, RS).astype("float64")
+        return data
+
+    def _read_data_slice(self, grid, field, axis, coord):
+        fn = grid.pf.basename + grid.hierarchy.file_mapping[field]
+        LD = na.array(grid.left_dims, dtype='int64').copy()
+        SS = na.array(grid.ActiveDimensions, dtype='int64').copy()
+        RS = na.array(grid.pf.root_size, dtype='int64').copy()
+        LD[axis] += coord
+        SS[axis] = 1
+        data = au.read_tiger_section(fn, LD, SS, RS).astype("float64")
+        return data

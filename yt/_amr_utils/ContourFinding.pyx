@@ -27,6 +27,9 @@ import numpy as np
 cimport numpy as np
 cimport cython
 
+cdef extern from "math.h":
+    double fabs(double x)
+
 cdef inline np.int64_t i64max(np.int64_t i0, np.int64_t i1):
     if i0 > i1: return i0
     return i1
@@ -102,3 +105,72 @@ def construct_boundary_relationships(
                     if c1 > -1 and c2 > -1:
                         tree.append((i64max(c1,c2), i64min(c1,c2)))
     return tree
+
+cdef inline int are_neighbors(
+            np.float64_t x1, np.float64_t y1, np.float64_t z1,
+            np.float64_t dx1, np.float64_t dy1, np.float64_t dz1,
+            np.float64_t x2, np.float64_t y2, np.float64_t z2,
+            np.float64_t dx2, np.float64_t dy2, np.float64_t dz2,
+        ):
+    # We assume an epsilon of 1e-15
+    if fabs(x1-x2) > 0.5*(dx1+dx2): return 0
+    if fabs(y1-y2) > 0.5*(dy1+dy2): return 0
+    if fabs(z1-z2) > 0.5*(dz1+dz2): return 0
+    return 1
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def identify_field_neighbors(
+            np.ndarray[dtype=np.float64_t, ndim=1] field,
+            np.ndarray[dtype=np.float64_t, ndim=1] x,
+            np.ndarray[dtype=np.float64_t, ndim=1] y,
+            np.ndarray[dtype=np.float64_t, ndim=1] z,
+            np.ndarray[dtype=np.float64_t, ndim=1] dx,
+            np.ndarray[dtype=np.float64_t, ndim=1] dy,
+            np.ndarray[dtype=np.float64_t, ndim=1] dz,
+        ):
+    # We assume this field is pre-jittered; it has no identical values.
+    cdef int outer, inner, N, added
+    cdef np.float64_t x1, y1, z1, dx1, dy1, dz1
+    N = field.shape[0]
+    #cdef np.ndarray[dtype=np.object_t] joins
+    joins = [[] for outer in range(N)]
+    #joins = np.empty(N, dtype='object')
+    for outer in range(N):
+        if (outer % 10000) == 0: print outer, N
+        x1 = x[outer]
+        y1 = y[outer]
+        z1 = z[outer]
+        dx1 = dx[outer]
+        dy1 = dy[outer]
+        dz1 = dz[outer]
+        this_joins = joins[outer]
+        added = 0
+        # Go in reverse order
+        for inner in range(outer, 0, -1):
+            if not are_neighbors(x1, y1, z1, dx1, dy1, dz1,
+                                 x[inner], y[inner], z[inner],
+                                 dx[inner], dy[inner], dz[inner]):
+                continue
+            # Hot dog, we have a weiner!
+            this_joins.append(inner)
+            added += 1
+            if added == 26: break
+    return joins
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def extract_identified_contours(int max_ind, joins):
+    cdef int i
+    contours = []
+    for i in range(max_ind + 1): # +1 to get to the max_ind itself
+        contours.append(set([i]))
+        if len(joins[i]) == 0:
+            continue
+        proto_contour = [i]
+        for j in joins[i]:
+            proto_contour += contours[j]
+        proto_contour = set(proto_contour)
+        for j in proto_contour:
+            contours[j] = proto_contour
+    return contours
