@@ -165,8 +165,9 @@ class AMRHierarchy(ObjectFindingMixin, ParallelAnalysisInterface):
         self.__data_filename = fn
         self._data_file = h5py.File(fn, self._data_mode)
 
-    @parallel_root_only
     def __create_data_file(self, fn):
+        # Note that this used to be parallel_root_only; it no longer is,
+        # because we have better logic to decide who owns the file.
         f = h5py.File(fn, 'a')
         f.close()
 
