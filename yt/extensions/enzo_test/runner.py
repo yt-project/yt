@@ -85,7 +85,7 @@ class RegressionTestRunner(object):
         old_result = self.old_results[test.name]
         try:
             test.compare(old_result)
-        except RegressionTestException as exc:
+        except RegressionTestException, exc:
             return str(exc)
         return True
 
