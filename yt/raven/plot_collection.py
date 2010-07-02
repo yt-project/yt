@@ -926,7 +926,7 @@ class PlotCollection(object):
             generation.
         fields : list of strings
             The first element of this list is the field by which we will bin
-            into the y-axis, the second is the field by which we will bin onto
+            into the x-axis, the second is the field by which we will bin onto
             the y-axis.  All subsequent fields will be binned and their
             profiles added to the underlying `BinnedProfile2D`.
         cmap : string, optional

@@ -142,6 +142,10 @@ _common_options = dict(
                    action="store_true",
                    dest="grids", default=False,
                    help="Show the grid boundaries"),
+    time    = dict(short="", long="--time",
+                   action="store_true",
+                   dest="time", default=False,
+                   help="Print time in years on image"),
     halos   = dict(short="", long="--halos",
                    action="store", type="string",
                    dest="halos",default="multiple",
@@ -440,7 +444,7 @@ class YTCommands(cmdln.Cmdln):
 
     @add_cmd_options(["width", "unit", "bn", "proj", "center",
                       "zlim", "axis", "field", "weight", "skip",
-                      "cmap", "output", "grids"])
+                      "cmap", "output", "grids", "time"])
     @check_args
     def do_plot(self, subcmd, opts, arg):
         """
@@ -466,6 +470,9 @@ class YTCommands(cmdln.Cmdln):
                                     weight_field=opts.weight, center=center)
             else: pc.add_slice(opts.field, ax, center=center)
             if opts.grids: pc.plots[-1].modify["grids"]()
+            if opts.time: 
+                time = pf['InitialTime']*pf['Time']*pf['years']
+                pc.plots[-1].modify["text"]((0.2,0.8), 't = %5.2f yr'%time)
         pc.set_width(opts.width, opts.unit)
         pc.set_cmap(opts.cmap)
         if opts.zlim: pc.set_zlim(*opts.zlim)

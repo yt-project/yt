@@ -279,10 +279,12 @@ class GridObject3DScene(GenericGLUTScene):
     _title = "Grids"
 
     def _get_grid_vertices(self, offset):
+        DLE, DRE = self.pf['DomainLeftEdge'], pf['DomainRightEdge']
+        DW = DRE - DLE
         k = 0
         self._grid_offsets = {}
         for g in self.pf.h.grids:
-            vs = (g.LeftEdge, g.RightEdge)
+            vs = ((g.LeftEdge-DLE)/DW, (g.RightEdge-DLE)/DW)
             self._grid_offsets[g.id] = k
             for vert in _verts:
                 for i,v in enumerate(vert):
