@@ -26,7 +26,7 @@ License:
 import yt.lagos as lagos
 from yt.lagos.HaloFinding import HaloFinder
 from yt.logger import lagosLogger as mylog
-import yt.extensions.HaloProfiler as HP
+import yt.extensions.halo_profiler as HP
 try:
     from yt.extensions.kdtree import *
 except ImportError:
