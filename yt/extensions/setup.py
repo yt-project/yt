@@ -10,4 +10,5 @@ def configuration(parent_package='',top_path=None):
     config.add_subpackage("volume_rendering")
     config.add_subpackage("kdtree")
     config.add_subpackage("image_panner")
+    config.add_subpackage("enzo_test")
     return config
