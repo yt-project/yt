@@ -1,6 +1,10 @@
 from yt.mods import *
 
+# We first create our dictionary of tests to run.  This starts out empty, and
+# as tests are imported it will be filled.
 test_registry = {}
+
+# The exceptions we raise, related to the character of the failure.
 
 class RegressionTestException(Exception):
     pass
@@ -26,32 +30,61 @@ class RegressionTest(object):
 
     class __metaclass__(type):
         # This ensures that all the tests are auto-registered if they have a
-        # name.
-
+        # name.  If they do not have a name, they are considered to be base
+        # classes to be overridden and implemented by someone else.
         def __init__(cls, name, b, d):
             type.__init__(cls, name, b, d)
             if cls.name is not None:
                 test_registry[cls.name] = cls
 
     def setup(self):
+        """
+        This function must be defined if the problem requires additional setup.
+        Note that for the most part this will be defined in base classes where
+        subclasses will only implement 'run'.
+        """
         pass
 
     def run(self):
+        """
+        This function must generate a result value, of any type, and store it
+        in self.result.
+        """
         pass
 
     def compare(self, old_result):
+        """
+        This function must accept `old_result` and compare it somehow against
+        the value stored in `self.result`.  If the result is a failure, it must
+        raise an exception.  Otherwise it is considered to be a success.
+        """
         pass
 
     def plot(self):
+        """
+        This function can optionally plot the contents of `self.result`.
+        """
         pass
 
     def compare_array_delta(self, a1, a2, acceptable):
+        """
+        This is a helper function.  It accepts two numpy arrays and compares
+        the maximum relative difference.  If the maximum relative difference is
+        greater than `acceptable` it is considered a failure and an appropriate
+        exception is raised.
+        """
         delta = na.abs(a1 - a2)/(a1 + a2)
         if delta.max() > acceptable:
             raise ArrayDelta(delta, acceptable)
         return True
 
     def compare_value_delta(self, v1, v2, acceptable):
+        """
+        This is a helper function.  It accepts two floating point values and
+        calculates the maximum relative different.  If the maximum relative
+        difference is greater than `acceptable` it is considered a failure and
+        an appropriate exception is raised.
+        """
         delta = na.abs(v1 - v2)/(v1 + v2)
         if delta > acceptable:
             raise ValueDelta(delta, acceptable)
@@ -61,6 +94,10 @@ class SingleOutputTest(RegressionTest):
     output_type = 'single'
 
     def __init__(self, filename):
+        """
+        This test mechanism is designed to accept a single filename and
+        evaluate it, not necessarily utilizing yt's functionality to do so.
+        """
         self.filename = filename
 
 class MultipleOutputTest(RegressionTest):
@@ -69,6 +106,10 @@ class MultipleOutputTest(RegressionTest):
     io_log_header = "DATASET WRITTEN"
 
     def __init__(self, io_log):
+        """
+        This test mechanism is designed to accept an OutputLog file and then
+        iterate over it, evaluating every single dataset individually.
+        """
         self.io_log = io_log
 
     def __iter__(self):
@@ -76,6 +117,12 @@ class MultipleOutputTest(RegressionTest):
             yield line[len(self.io_log_header):].strip()
 
 def create_test(base, new_name, **attrs):
+    """
+    This function accepts a base class of a test, sets some attributes on it,
+    and then registers a new test.  It's a fast way of registering multiple
+    tests that share the same testing logic but that differ on a few parameters
+    or combinations of parameters.
+    """
     new_name = "%s_%s" % (base.__name__, new_name)
     attrs['name'] = new_name
     return type(new_name, (base,), attrs)
@@ -86,6 +133,10 @@ class YTStaticOutputTest(SingleOutputTest):
         self.pf = load(self.filename)
 
     def pixelize(self, data, field, edges = None, dims = (512, 512)):
+        """
+        This is a helper function that returns a 2D array of the specified
+        source, in the specified field, at the specified spatial extent.
+        """
         xax = lagos.x_dict[self.axis]
         yax = lagos.y_dict[self.axis]
         
@@ -99,19 +150,35 @@ class YTStaticOutputTest(SingleOutputTest):
         return frb
 
     def compare_data_arrays(self, d1, d2, tol = 1e-7):
+        """
+        This is a helper function.  It accepts two dictionaries of numpy arrays
+        and compares the maximum relative difference of every array.  If the
+        maximum relative difference is greater than `acceptable` it is
+        considered a failure and an appropriate exception is raised.
+        """
         for field in d1.keys():
             self.compare_array_delta(d1[field], d2[field], tol)
 
     @property
     def sim_center(self):
+        """
+        This returns the center of the domain.
+        """
         return 0.5*(self.pf["DomainRightEdge"] + self.pf["DomainLeftEdge"])
 
     @property
     def max_dens_location(self):
+        """
+        This is a helper function to return the location of the most dense
+        point.
+        """
         return self.pf.h.find_max("Density")[1]
 
     @property
     def entire_simulation(self):
+        """
+        Return an unsorted array of values that cover the entire domain.
+        """
         return self.pf.h.all_data()
         
 

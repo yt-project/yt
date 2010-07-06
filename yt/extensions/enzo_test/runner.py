@@ -1,4 +1,5 @@
 import os, shelve, cPickle, sys
+import yt.cmdln as cmdln
 from output_tests import test_registry, MultipleOutputTest, \
                          RegressionTestException
 
@@ -108,5 +109,28 @@ def run():
         second_runner = RegressionTestRunner("second", "first")
         second_runner.run_all_tests()
 
+class EnzoTestRunnerCommands(cmdln.Cmdln):
+    name = "enzo_tests"
+
+    def do_store(self, subcmd, opts, name):
+        """
+        Run and store a new dataset.
+
+        ${cmd_option_list}
+        """
+        test_runner = RegressionTestRunner(name)
+        test_runner.run_all_tests()
+
+    def do_compare(self, subcmd, opts, reference, comparison):
+        """
+        Compare a reference dataset against a new dataset.  The new dataset
+        will be run regardless of whether it exists or not.
+
+        ${cmd_option_list}
+        """
+        test_runner = RegressionTestRunner(comparison, reference)
+        test_runner.run_all_tests()
+
 if __name__ == "__main__":
-    run()
+    etrc = EnzoTestRunnerCommands()
+    sys.exit(etrc.main())
