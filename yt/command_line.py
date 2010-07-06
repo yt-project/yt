@@ -472,7 +472,7 @@ class YTCommands(cmdln.Cmdln):
             if opts.grids: pc.plots[-1].modify["grids"]()
             if opts.time: 
                 time = pf['InitialTime']*pf['Time']*pf['years']
-                pc.plots[-1].modify["text"]((0.2,0.8), 't = %5.2f yr'%time)
+                pc.plots[-1].modify["text"]((0.2,0.8), 't = %5.2e yr'%time)
         pc.set_width(opts.width, opts.unit)
         pc.set_cmap(opts.cmap)
         if opts.zlim: pc.set_zlim(*opts.zlim)
