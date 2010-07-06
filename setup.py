@@ -58,6 +58,7 @@ def setup_package():
                            'pdf' : ['pypdf']},
         entry_points = { 'console_scripts' : [
                             'yt = yt.command_line:run_main',
+                            'enzo_test = yt.extensions.enzo_test:run_main',
                        ]},
         author="Matthew J. Turk",
         author_email="matthewturk@gmail.com",

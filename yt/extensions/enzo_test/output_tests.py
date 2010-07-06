@@ -2,7 +2,13 @@ from yt.mods import *
 
 # We first create our dictionary of tests to run.  This starts out empty, and
 # as tests are imported it will be filled.
-test_registry = {}
+class TestRegistry(dict):
+    def __new__(cls, *p, **k):
+        if not '_the_instance' in cls.__dict__:
+            cls._the_instance = dict.__new__(cls)
+            return cls._the_instance
+    
+test_registry = TestRegistry()
 
 # The exceptions we raise, related to the character of the failure.
 

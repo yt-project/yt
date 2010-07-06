@@ -100,37 +100,43 @@ class RegressionTestRunner(object):
             print "Running '%s'" % (test_name)
             self.run_test(line.strip())
 
-def run():
-    # This should be made to work with the optparse library
-    if sys.argv[-1] == "-f":
-        first_runner = RegressionTestRunner("first")
-        first_runner.run_all_tests()
-    else:
-        second_runner = RegressionTestRunner("second", "first")
-        second_runner.run_all_tests()
-
 class EnzoTestRunnerCommands(cmdln.Cmdln):
     name = "enzo_tests"
 
-    def do_store(self, subcmd, opts, name):
+    def do_store(self, subcmd, opts, name, *test_modules):
         """
-        Run and store a new dataset.
+        ${cmd_name}: Run and store a new dataset.
 
+        ${cmd_usage}
         ${cmd_option_list}
         """
+        sys.path.insert(0, ".")
+        for fn in test_modules:
+            if fn.endswith(".py"): fn = fn[:-3]
+            print "Loading module %s" % (fn)
+            __import__(fn)
         test_runner = RegressionTestRunner(name)
         test_runner.run_all_tests()
 
-    def do_compare(self, subcmd, opts, reference, comparison):
+    def do_compare(self, subcmd, opts, reference, comparison, *test_modules):
         """
-        Compare a reference dataset against a new dataset.  The new dataset
-        will be run regardless of whether it exists or not.
+        ${cmd_name}: Compare a reference dataset against a new dataset.  The
+        new dataset will be run regardless of whether it exists or not.
 
+        ${cmd_usage}
         ${cmd_option_list}
         """
+        sys.path.insert(0, ".")
+        for fn in test_filenames:
+            if fn.endswith(".py"): fn = fn[:-3]
+            print "Loading module %s" % (fn)
+            __import__(fn)
         test_runner = RegressionTestRunner(comparison, reference)
         test_runner.run_all_tests()
 
-if __name__ == "__main__":
+def run_main():
     etrc = EnzoTestRunnerCommands()
     sys.exit(etrc.main())
+
+if __name__ == "__main__":
+    run_main()
