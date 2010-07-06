@@ -127,7 +127,7 @@ class EnzoTestRunnerCommands(cmdln.Cmdln):
         ${cmd_option_list}
         """
         sys.path.insert(0, ".")
-        for fn in test_filenames:
+        for fn in test_modules:
             if fn.endswith(".py"): fn = fn[:-3]
             print "Loading module %s" % (fn)
             __import__(fn)
