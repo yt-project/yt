@@ -589,7 +589,7 @@ class AMR2DData(AMRData, GridPropertiesMixin, ParallelAnalysisInterface):
             # we're going to have to set the same thing several times
             data = [self._get_data_from_grid(grid, field)
                     for grid in self._get_grids()]
-            if len(data) == 0: data = None
+            if len(data) == 0: data = na.array([])
             else: data = na.concatenate(data)
             temp_data[field] = data
             # Now the next field can use this field
