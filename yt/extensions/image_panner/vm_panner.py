@@ -169,6 +169,19 @@ class VariableMeshPanner(object):
         self.ylim = ylim
         self._run_callbacks()
 
+    def set_center(self, center):
+        if len(center) == 2:
+            centerx, centery = center
+        elif len(center) == 3:
+            centerx = center[x_dict[self.source.axis]]
+            centery = center[y_dict[self.source.axis]]
+        else:
+            raise RuntimeError
+        Wx, Wy = self.width
+        self.xlim = (centerx - Wx*0.5, centerx + Wx*0.5)
+        self.ylim = (centery - Wy*0.5, centery + Wy*0.5)
+        self._run_callbacks()
+
 data_object_registry["image_panner"] = VariableMeshPanner
 
 class WindowedVariableMeshPanner(VariableMeshPanner):
