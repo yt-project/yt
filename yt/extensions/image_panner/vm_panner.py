@@ -26,6 +26,7 @@ import types, os
 from yt.raven import FixedResolutionBuffer, ObliqueFixedResolutionBuffer
 from yt.lagos import data_object_registry, AMRProjBase, AMRSliceBase, \
                      x_dict, y_dict
+from yt.funcs import *
 
 class VariableMeshPanner(object):
     _buffer = None
@@ -160,6 +161,20 @@ class VariableMeshPanner(object):
         self.xlim = (low[0], high[0])
         self.ylim = (low[1], high[1])
         return na.log10(self.buffer)
+
+    def set_width(self, width):
+        """
+        This sets the width based on the current center.
+        """
+        if not iterable(width): width = (width, width)
+        Wx, Wy = self.width
+        centerx = self.xlim[0] + Wx*0.5
+        centery = self.ylim[0] + Wy*0.5
+        self.xlim = (centerx - width[0]/2.0,
+                     centerx + width[0]/2.0)
+        self.ylim = (centery - width[1]/2.0,
+                     centery + width[1]/2.0)
+        self._run_callbacks()
 
     def set_limits(self, xlim, ylim):
         """
