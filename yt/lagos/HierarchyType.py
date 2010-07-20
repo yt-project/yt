@@ -156,12 +156,14 @@ class AMRHierarchy(ObjectFindingMixin, ParallelAnalysisInterface):
             writeable = os.access(fn, os.W_OK)
         writeable = writeable and not ytcfg.getboolean('lagos','onlydeserialize')
         # We now have our conditional stuff
+        self._barrier()
         if not writeable and not exists: return
         if writeable:
             self._data_mode = 'a'
             if not exists: self.__create_data_file(fn)
         else:
             self._data_mode = 'r'
+
         self.__data_filename = fn
         self._data_file = h5py.File(fn, self._data_mode)
 
