@@ -29,6 +29,15 @@ class ArrayDelta(ValueDelta):
         return "ArrayDelta: Delta %0.5e, max of %0.5e" % (
             self.delta, self.acceptable)
 
+class ShapeMismatch(RegressionTestException):
+    def __init__(self, old_shape, current_shape):
+        self.old_shape = old_shape
+        self.current_shape = current_shape
+
+    def __repr__(self):
+        return "Shape Mismatch: old_buffer %s, current_buffer %0.5e" % (
+            self.old_shape, self.current_shape)
+
 class RegressionTest(object):
     name = None
     result = None
@@ -79,6 +88,8 @@ class RegressionTest(object):
         greater than `acceptable` it is considered a failure and an appropriate
         exception is raised.
         """
+        if a1.shape != a2.shape:
+            raise ShapeMismatch(a1, a2)
         delta = na.abs(a1 - a2)/(a1 + a2)
         if delta.max() > acceptable:
             raise ArrayDelta(delta, acceptable)
