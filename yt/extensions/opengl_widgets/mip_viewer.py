@@ -122,10 +122,12 @@ class MIPScene(GenericGLUTScene):
         GL.glTexImage3D(GL.GL_TEXTURE_3D, 0, GL.GL_LUMINANCE32F_ARB, iz, iy, ix, 0,
                         GL.GL_LUMINANCE, GL.GL_FLOAT, upload)
 
+        DW = self.hv.pf["DomainRightEdge"] - self.hv.pf["DomainLeftEdge"]
         dds = ((brick.RightEdge - brick.LeftEdge) /
-               (na.array([ix,iy,iz], dtype='float32')-1))
+               (na.array([ix,iy,iz], dtype='float32')-1)) / DW
+        BLE = brick.LeftEdge / DW - 0.5
         self._brick_textures.append(
-            (id_field, (ix-1,iy-1,iz-1), dds, brick.LeftEdge - 0.5))
+            (id_field, (ix-1,iy-1,iz-1), dds, BLE))
 
         print "Uploaded", len(self._brick_textures)
 
