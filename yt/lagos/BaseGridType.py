@@ -705,3 +705,32 @@ class TigerGrid(AMRGridPatch):
     def __repr__(self):
         return "TigerGrid_%04i (%s)" % (self.id, self.ActiveDimensions)
 
+
+class FLASHGrid(AMRGridPatch):
+    _id_offset = 0
+    #__slots__ = ["_level_id", "stop_index"]
+    def __init__(self, id, hierarchy, level, start, stop):
+        AMRGridPatch.__init__(self, id, filename = hierarchy.hierarchy_filename,
+                              hierarchy = hierarchy)
+        self.Parent = []
+        self.Children = []
+        self.Level = level
+        self.start_index = start.copy()#.transpose()
+        self.stop_index = stop.copy()#.transpose()
+        self.ActiveDimensions = stop - start + 1
+
+    def _setup_dx(self):
+        # So first we figure out what the index is.  We don't assume
+        # that dx=dy=dz , at least here.  We probably do elsewhere.
+        id = self.id - self._id_offset
+        if len(self.Parent) > 0:
+            self.dds = self.Parent[0].dds / self.pf["RefineBy"]
+        else:
+            LE, RE = self.hierarchy.grid_left_edge[id,:], \
+                     self.hierarchy.grid_right_edge[id,:]
+            self.dds = na.array((RE-LE)/self.ActiveDimensions)
+        if self.pf["TopGridRank"] < 2: self.dds[1] = 1.0
+        if self.pf["TopGridRank"] < 3: self.dds[2] = 1.0
+        self.data['dx'], self.data['dy'], self.data['dz'] = self.dds
+
+

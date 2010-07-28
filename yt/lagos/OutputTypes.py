@@ -790,3 +790,83 @@ class TigerStaticOutput(StaticOutput):
     @classmethod
     def _is_valid(self, *args, **kwargs):
         return os.path.exists(args[0] + "rhob")
+
+class FLASHStaticOutput(StaticOutput):
+    _hierarchy_class = FLASHHierarchy
+    _fieldinfo_class = FLASHFieldContainer
+    _handle = None
+    
+    def __init__(self, filename, data_style='flash_unsplit_hdf5',
+                 storage_filename = None):
+        StaticOutput.__init__(self, filename, data_style)
+        self.storage_filename = storage_filename
+
+        self.field_info = self._fieldinfo_class()
+        # hardcoded for now
+        self.parameters["InitialTime"] = 0.0
+        # These should be explicitly obtained from the file, but for now that
+        # will wait until a reorganization of the source tree and better
+        # generalization.
+        self.parameters["TopGridRank"] = 3
+        self.parameters["RefineBy"] = 2
+        
+    def _set_units(self):
+        """
+        Generates the conversion to various physical _units based on the parameter file
+        """
+        self.units = {}
+        self.time_units = {}
+        if len(self.parameters) == 0:
+            self._parse_parameter_file()
+        self._setup_nounits_units()
+        self.conversion_factors = defaultdict(lambda: 1.0)
+        self.time_units['1'] = 1
+        self.units['1'] = 1.0
+        self.units['unitary'] = 1.0 / (self["DomainRightEdge"] - self["DomainLeftEdge"]).max()
+        seconds = 1 #self["Time"]
+        self.time_units['years'] = seconds / (365*3600*24.0)
+        self.time_units['days']  = seconds / (3600*24.0)
+        for key in yt2orionFieldsDict:
+            self.conversion_factors[key] = 1.0
+
+    def _setup_nounits_units(self):
+        z = 0
+        mylog.warning("Setting 1.0 in code units to be 1.0 cm")
+        if not self.has_key("TimeUnits"):
+            mylog.warning("No time units.  Setting 1.0 = 1 second.")
+            self.conversion_factors["Time"] = 1.0
+        for unit in mpc_conversion.keys():
+            self.units[unit] = mpc_conversion[unit] / mpc_conversion["cm"]
+
+    def _find_parameter(self, ptype, pname, scalar = False):
+        # We're going to implement handle caching eventually
+        handle = self._handle
+        if handle is None:
+            handle = h5py.File(self.parameter_filename, "r")
+        nn = "/%s %s" % (ptype,
+                {False: "runtime parameters", True: "scalars"}[scalar])
+        for tpname, pval in handle[nn][:]:
+            if tpname.strip() == pname:
+                return pval
+        raise KeyError(pname)
+
+    def _parse_parameter_file(self):
+        self.parameters["CurrentTimeIdentifier"] = \
+            int(os.stat(self.parameter_filename)[ST_CTIME])
+        self._handle = h5py.File(self.parameter_filename, "r")
+        self.parameters["DomainLeftEdge"] = na.array(
+            [self._find_parameter("real", "%smin" % ax) for ax in 'xyz'])
+        self.parameters["DomainRightEdge"] = na.array(
+            [self._find_parameter("real", "%smax" % ax) for ax in 'xyz'])
+        self._handle.close()
+
+    @classmethod
+    def _is_valid(self, *args, **kwargs):
+        try:
+            fileh = h5py.File(args[0],'r')
+            if (fileh.listnames())[0] == 'Chombo_global':
+                return True
+        except:
+            pass
+        return False
+

@@ -39,14 +39,16 @@ from logger import ytLogger as mylog
 from performance_counters import yt_counters, time_function
 
 # Now individual component imports from lagos
-from yt.lagos import EnzoStaticOutput, \
+from yt.lagos import \
+    EnzoStaticOutput, OrionStaticOutput, TigerStaticOutput, \
+    FLASHStaticOutput, \
     BinnedProfile1D, BinnedProfile2D, BinnedProfile3D, \
     derived_field, \
     add_field, FieldInfo, EnzoFieldInfo, Enzo2DFieldInfo, OrionFieldInfo, \
-    GadgetFieldInfo, TigerFieldInfo, \
+    GadgetFieldInfo, TigerFieldInfo, ChomboFieldInfo, FLASHFieldInfo, \
     Clump, write_clump_hierarchy, find_clumps, write_clumps, \
     get_lowest_clumps, \
-    OrionStaticOutput, HaloFinder, HOPHaloFinder, FOFHaloFinder, parallelHF, \
+    HaloFinder, HOPHaloFinder, FOFHaloFinder, parallelHF, \
     axis_names, x_dict, y_dict, TwoPointFunctions, FcnSet
 
 # This is a temporary solution -- in the future, we will allow the user to
