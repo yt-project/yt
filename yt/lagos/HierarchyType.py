@@ -1469,8 +1469,8 @@ class FLASHHierarchy(AMRHierarchy):
         # This will become redundant, as _prepare_grid will reset it to its
         # current value.  Note that FLASH uses 1-based indexing for refinement
         # levels, but we do not, so we reduce the level by 1.
-        self.grid_levels[:] = f["/refine level"][:][:,None] - 1
-        g = [self.grid(i+1, self, self.grid_levels[i])
+        self.grid_levels.flat[:] = f["/refine level"][:][:] - 1
+        g = [self.grid(i+1, self, self.grid_levels[i,0])
                 for i in xrange(self.num_grids)]
         self.grids = na.array(g, dtype='object')
 

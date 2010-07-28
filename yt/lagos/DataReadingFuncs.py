@@ -508,7 +508,7 @@ class IOHandlerFLASH(BaseIOHandler):
 
     def _read_data_set(self, grid, field):
         f = h5py.File(grid.pf.parameter_filename, "r")
-        return f["/%s" % field][grid.id - grid._id_offset,:,:,:]
+        return f["/%s" % field][grid.id - grid._id_offset,:,:,:].transpose()
 
     def _read_data_slice(self, grid, field, axis, coord):
         sl = [slice(None), slice(None), slice(None)]

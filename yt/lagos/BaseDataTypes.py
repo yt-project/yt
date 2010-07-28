@@ -2243,6 +2243,7 @@ class AMRGridCollectionBase(AMR3DData):
         """
         AMR3DData.__init__(self, center, fields, pf, **kwargs)
         self._grids = na.array(grid_list)
+        self.grid_list = self._grids
 
     def _get_list_of_grids(self):
         pass
