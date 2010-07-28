@@ -499,3 +499,20 @@ class IOHandlerTiger(BaseIOHandler):
         SS[axis] = 1
         data = au.read_tiger_section(fn, LD, SS, RS).astype("float64")
         return data
+
+class IOHandlerFLASH(BaseIOHandler):
+    _data_style = "flash_hdf5"
+
+    def __init__(self, *args, **kwargs):
+        BaseIOHandler.__init__(self, *args, **kwargs)
+
+    def _read_data_set(self, grid, field):
+        f = h5py.File(grid.pf.parameter_filename, "r")
+        return f["/%s" % field][grid.id - grid._id_offset,:,:,:]
+
+    def _read_data_slice(self, grid, field, axis, coord):
+        sl = [slice(None), slice(None), slice(None)]
+        sl[axis] = slice(coord, coord + 1)
+        f = h5py.File(grid.pf.parameter_filename, "r")
+        dd = f["/%s" % field][grid.id - grid._id_offset][sl].transpose()
+        return dd

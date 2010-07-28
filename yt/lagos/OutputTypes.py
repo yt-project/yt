@@ -796,7 +796,7 @@ class FLASHStaticOutput(StaticOutput):
     _fieldinfo_class = FLASHFieldContainer
     _handle = None
     
-    def __init__(self, filename, data_style='flash_unsplit_hdf5',
+    def __init__(self, filename, data_style='flash_hdf5',
                  storage_filename = None):
         StaticOutput.__init__(self, filename, data_style)
         self.storage_filename = storage_filename
@@ -809,6 +809,8 @@ class FLASHStaticOutput(StaticOutput):
         # generalization.
         self.parameters["TopGridRank"] = 3
         self.parameters["RefineBy"] = 2
+        self.parameters["HydroMethod"] = 'flash' # always PPM DE
+        self.parameters["Time"] = 1. # default unit is 1...
         
     def _set_units(self):
         """
@@ -838,9 +840,9 @@ class FLASHStaticOutput(StaticOutput):
         for unit in mpc_conversion.keys():
             self.units[unit] = mpc_conversion[unit] / mpc_conversion["cm"]
 
-    def _find_parameter(self, ptype, pname, scalar = False):
+    def _find_parameter(self, ptype, pname, scalar = False, handle = None):
         # We're going to implement handle caching eventually
-        handle = self._handle
+        if handle is None: handle = self._handle
         if handle is None:
             handle = h5py.File(self.parameter_filename, "r")
         nn = "/%s %s" % (ptype,
@@ -864,7 +866,7 @@ class FLASHStaticOutput(StaticOutput):
     def _is_valid(self, *args, **kwargs):
         try:
             fileh = h5py.File(args[0],'r')
-            if (fileh.listnames())[0] == 'Chombo_global':
+            if "real runtime parameters" in fileh["/"].keys():
                 return True
         except:
             pass

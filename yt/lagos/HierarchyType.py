@@ -1416,29 +1416,30 @@ class TigerHierarchy(AMRHierarchy):
 class FLASHHierarchy(AMRHierarchy):
 
     grid = FLASHGrid
+    _handle = None
     
     def __init__(self,pf,data_style='chombo_hdf5'):
         self.data_style = data_style
-        self.field_info = ChomboFieldContainer()
+        self.field_info = FLASHFieldContainer()
         self.field_indexes = {}
         self.parameter_file = weakref.proxy(pf)
         # for now, the hierarchy file is the parameter file!
         self.hierarchy_filename = self.parameter_file.parameter_filename
         self.directory = os.path.dirname(self.hierarchy_filename)
-        self._fhandle = h5py.File(self.hierarchy_filename)
+        self._handle = h5py.File(self.hierarchy_filename)
 
-        self.float_type = self._fhandle['/level_0']['data:datatype=0'].dtype.name
-        self._levels = self._fhandle.listnames()[1:]
+        self.float_type = na.float64
         AMRHierarchy.__init__(self,pf,data_style)
 
-        self._fhandle.close()
+        self._handle.close()
+        self._handle = None
 
     def _initialize_data_storage(self):
         pass
 
     def _detect_fields(self):
-        ncomp = int(self._fhandle['/'].attrs['num_components'])
-        self.field_list = [c[1] for c in self._fhandle['/'].attrs.listitems()[-ncomp:]]
+        ncomp = self._handle["/unknown names"].shape[0]
+        self.field_list = [s.strip() for s in self._handle["/unknown names"][:].flat]
     
     def _setup_classes(self):
         dd = self._get_data_reader_dict()
@@ -1446,56 +1447,62 @@ class FLASHHierarchy(AMRHierarchy):
         self.object_types.sort()
 
     def _count_grids(self):
-        self.num_grids = 0
-        for lev in self._levels:
-            self.num_grids += self._fhandle[lev]['Processors'].len()
+        self.num_grids = self.parameter_file._find_parameter(
+            "integer", "globalnumblocks", True, self._handle)
         
     def _parse_hierarchy(self):
-        f = self._fhandle # shortcut
+        f = self._handle # shortcut
+        pf = self.parameter_file # shortcut
         
-        # this relies on the first Group in the H5 file being
-        # 'Chombo_global'
-        levels = f.listnames()[1:]
-        self.grids = []
-        i = 0
-        for lev in levels:
-            level_number = int(re.match('level_(\d+)',lev).groups()[0])
-            boxes = f[lev]['boxes'].value
-            dx = f[lev].attrs['dx']
-            for level_id, box in enumerate(boxes):
-                si = na.array([box['lo_%s' % ax] for ax in 'ijk'])
-                ei = na.array([box['hi_%s' % ax] for ax in 'ijk'])
-                pg = self.grid(len(self.grids),self,level=level_number,
-                               start = si, stop = ei)
-                self.grids.append(pg)
-                self.grids[-1]._level_id = level_id
-                self.grid_left_edge[i] = dx*si.astype(self.float_type)
-                self.grid_right_edge[i] = dx*(ei.astype(self.float_type) + 1)
-                self.grid_particle_count[i] = 0
-                self.grid_dimensions[i] = ei - si + 1
-                i += 1
-        self.grids = na.array(self.grids, dtype='object')
+        self.grid_left_edge[:] = f["/bounding box"][:,:,0]
+        self.grid_right_edge[:] = f["/bounding box"][:,:,1]
+        # Move this to the parameter file
+        nxb = pf._find_parameter("integer", "nxb", True, f)
+        nyb = pf._find_parameter("integer", "nyb", True, f)
+        nzb = pf._find_parameter("integer", "nzb", True, f)
+        self.grid_dimensions[:] *= (nxb, nyb, nzb)
+        # particle count will need to be fixed somehow:
+        #   by getting access to the particle file we can get the number of
+        #   particles in each brick.  but how do we handle accessing the
+        #   particle file?
+
+        # This will become redundant, as _prepare_grid will reset it to its
+        # current value.  Note that FLASH uses 1-based indexing for refinement
+        # levels, but we do not, so we reduce the level by 1.
+        self.grid_levels[:] = f["/refine level"][:][:,None] - 1
+        g = [self.grid(i+1, self, self.grid_levels[i])
+                for i in xrange(self.num_grids)]
+        self.grids = na.array(g, dtype='object')
+
 
     def _populate_grid_objects(self):
-        for g in self.grids:
+        # We only handle 3D data, so offset is 7 (nfaces+1)
+        offset = 7
+        ii = na.argsort(self.grid_levels.flat)
+        gid = self._handle["/gid"][:]
+        for g in self.grids[ii].flat:
+            gi = g.id - g._id_offset
+            # FLASH uses 1-indexed group info
+            g.Children = [self.grids[i - 1] for i in gid[gi,7:] if i > -1]
+            for g1 in g.Children:
+                g1.Parent = g
             g._prepare_grid()
             g._setup_dx()
-
-        for g in self.grids:
-            g.Children = self._get_grid_children(g)
-            for g1 in g.Children:
-                g1.Parent.append(g)
         self.max_level = self.grid_levels.max()
 
     def _setup_unknown_fields(self):
-        pass
+        for field in self.field_list:
+            if field in self.parameter_file.field_info: continue
+            mylog.info("Adding %s to list of fields", field)
+            cf = None
+            if self.parameter_file.has_key(field):
+                def external_wrapper(f):
+                    def _convert_function(data):
+                        return data.convert(f)
+                    return _convert_function
+                cf = external_wrapper(field)
+            add_field(field, lambda a, b: None,
+                      convert_function=cf, take_log=False)
 
     def _setup_derived_fields(self):
         self.derived_field_list = []
-
-    def _get_grid_children(self, grid):
-        mask = na.zeros(self.num_grids, dtype='bool')
-        grids, grid_ind = self.get_box_grids(grid.LeftEdge, grid.RightEdge)
-        mask[grid_ind] = True
-        return [g for g in self.grids[mask] if g.Level == grid.Level + 1]
-
