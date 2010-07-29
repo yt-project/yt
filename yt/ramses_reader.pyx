@@ -348,58 +348,101 @@ cdef extern from "RAMSES_amr_data.hh" namespace "RAMSES::HYDRO":
         #_OutputIterator get_var_names[_OutputIterator](_OutputIterator names)
         void read(string varname)
 
-def get_file_info(char *fn):
-    cdef string *sfn = new string(fn)
-    cdef snapshot *rsnap = new snapshot(deref(sfn), version3)
-    header_info = {}
-    header_info["ncpu"] = rsnap.m_header.ncpu
-    header_info["ndim"] = rsnap.m_header.ndim
-    header_info["levelmin"] = rsnap.m_header.levelmin
-    header_info["levelmax"] = rsnap.m_header.levelmax
-    header_info["ngridmax"] = rsnap.m_header.ngridmax
-    header_info["nstep_coarse"] = rsnap.m_header.nstep_coarse
-    header_info["boxlen"] = rsnap.m_header.boxlen
-    header_info["time"] = rsnap.m_header.time
-    header_info["aexp"] = rsnap.m_header.aexp
-    header_info["H0"] = rsnap.m_header.H0
-    header_info["omega_m"] = rsnap.m_header.omega_m
-    header_info["omega_l"] = rsnap.m_header.omega_l
-    header_info["omega_k"] = rsnap.m_header.omega_k
-    header_info["omega_b"] = rsnap.m_header.omega_b
-    header_info["unit_l"] = rsnap.m_header.unit_l
-    header_info["unit_d"] = rsnap.m_header.unit_d
-    header_info["unit_t"] = rsnap.m_header.unit_t
+cdef class RAMSES_tree_proxy:
+    cdef string *snapshot_name
+    cdef snapshot *rsnap
+    
+    def __cinit__(self, char *fn):
+        self.snapshot_name = new string(fn)
+        self.rsnap = new snapshot(deref(self.snapshot_name), version3)
 
-    del rsnap
-    del sfn
-    return header_info
+    def __dealloc__(self):
+        if self.snapshot_name != NULL: del self.snapshot_name
+        if self.rsnap != NULL: del self.rsnap
+        
+    def count_zones(self):
+        # We need to do simulation domains here
 
-def count_zones(char *fn, unsigned minlvl, unsigned maxlvl):
-    cdef string *sfn = new string(fn)
-    cdef snapshot *rsnap = new snapshot(deref(sfn), version3)
-    # We need to do simulation domains here
+        cdef unsigned idomain, ilevel
+        cdef RAMSES_tree *local_tree
+        cdef RAMSES_hydro_data *local_hydro_data
+        cdef RAMSES_level *local_level
 
-    cdef unsigned idomain, ilevel
-    cdef int i
+        # All the loop-local pointers must be declared up here
 
-    # All the loop-local pointers must be declared up here
-    cdef RAMSES_tree *local_tree
-    cdef RAMSES_hydro_data *local_hydro_data
-    cdef RAMSES_level *local_level
+        cell_count = []
+        for idomain in range(1, self.rsnap.m_header.ncpu + 1):
+            local_tree = new RAMSES_tree(deref(self.rsnap), idomain,
+                                         self.rsnap.m_header.levelmax,
+                                         self.rsnap.m_header.levelmin)
+            local_tree.read()
+            local_hydro_data = new RAMSES_hydro_data(deref(local_tree))
+            for ilevel in range(local_tree.m_minlevel, local_tree.m_maxlevel + 1):
+                local_level = &local_tree.m_AMR_levels[ilevel]
+                cell_count.append(local_level.size())
+            del local_tree, local_hydro_data
 
-    cdef tree_iterator grid_it, grid_end
-    cdef vec[double] cvec
+        return cell_count
 
-    cell_count = []
-    for idomain in range(1, rsnap.m_header.ncpu + 1):
-        local_tree = new RAMSES_tree(deref(rsnap), idomain, maxlvl, minlvl)
-        local_tree.read()
-        local_hydro_data = new RAMSES_hydro_data(deref(local_tree))
-        for ilevel in range(local_tree.m_minlevel, local_tree.m_maxlevel + 1):
-            local_level = &local_tree.m_AMR_levels[ilevel]
-            cell_count.append(local_level.size())
-        del local_tree, local_hydro_data
+    def get_file_info(self):
+        header_info = {}
+        header_info["ncpu"] = self.rsnap.m_header.ncpu
+        header_info["ndim"] = self.rsnap.m_header.ndim
+        header_info["levelmin"] = self.rsnap.m_header.levelmin
+        header_info["levelmax"] = self.rsnap.m_header.levelmax
+        header_info["ngridmax"] = self.rsnap.m_header.ngridmax
+        header_info["nstep_coarse"] = self.rsnap.m_header.nstep_coarse
+        header_info["boxlen"] = self.rsnap.m_header.boxlen
+        header_info["time"] = self.rsnap.m_header.time
+        header_info["aexp"] = self.rsnap.m_header.aexp
+        header_info["H0"] = self.rsnap.m_header.H0
+        header_info["omega_m"] = self.rsnap.m_header.omega_m
+        header_info["omega_l"] = self.rsnap.m_header.omega_l
+        header_info["omega_k"] = self.rsnap.m_header.omega_k
+        header_info["omega_b"] = self.rsnap.m_header.omega_b
+        header_info["unit_l"] = self.rsnap.m_header.unit_l
+        header_info["unit_d"] = self.rsnap.m_header.unit_d
+        header_info["unit_t"] = self.rsnap.m_header.unit_t
+        return header_info
 
-    del rsnap
-    del sfn
-    return cell_count
+
+    def fill_hierarchy_arrays(self, 
+                              np.ndarray[np.float64_t, ndim=2] left_edges,
+                              np.ndarray[np.float64_t, ndim=2] right_edges):
+        # We need to do simulation domains here
+
+        cdef unsigned idomain, ilevel
+
+        # All the loop-local pointers must be declared up here
+        cdef RAMSES_tree *local_tree
+        cdef RAMSES_hydro_data *local_hydro_data
+        cdef RAMSES_level *local_level
+
+        cdef tree_iterator grid_it, grid_end
+        cdef vec[double] gvec
+        cdef int grid_ind = 0
+
+        cdef double grid_half_width 
+
+        cell_count = []
+        for idomain in range(1, self.rsnap.m_header.ncpu + 1):
+            local_tree = new RAMSES_tree(deref(self.rsnap), idomain,
+                                         self.rsnap.m_header.levelmax,
+                                         self.rsnap.m_header.levelmin)
+            local_tree.read()
+            local_hydro_data = new RAMSES_hydro_data(deref(local_tree))
+            for ilevel in range(local_tree.m_minlevel, local_tree.m_maxlevel + 1):
+                grid_half_width = self.rsnap.m_header.boxlen / (2**(ilevel + 1))
+                grid_it = local_tree.begin(ilevel)
+                grid_end = local_tree.end(ilevel)
+                while grid_it != grid_end:
+                    gvec = local_tree.grid_pos_double(grid_it)
+                    left_edges[grid_ind, 0] = gvec.x - grid_half_width
+                    left_edges[grid_ind, 1] = gvec.y - grid_half_width
+                    left_edges[grid_ind, 2] = gvec.z - grid_half_width
+                    right_edges[grid_ind, 0] = gvec.x + grid_half_width
+                    right_edges[grid_ind, 1] = gvec.y + grid_half_width
+                    right_edges[grid_ind, 2] = gvec.z + grid_half_width
+                    grid_ind += 1
+                    grid_it.next()
+            del local_tree, local_hydro_data
