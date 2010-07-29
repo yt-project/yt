@@ -123,7 +123,7 @@ cdef extern from "RAMSES_amr_data.hh" namespace "RAMSES::AMR":
         bool is_refined(int ison)
 
     cdef cppclass RAMSES_cell:
-        unsigned m_neighbor[6]
+        unsigned m_neighbour[6]
         unsigned m_father
         unsigned m_son[8]
         float m_xg[3]
@@ -229,10 +229,15 @@ cdef extern from "RAMSES_amr_data.hh" namespace "RAMSES::AMR":
 
     cppclass tree_iterator "RAMSES::AMR::RAMSES_tree::iterator":
         tree_iterator operator*()
+        RAMSES_cell operator*()
         tree_iterator begin()
         tree_iterator end()
+        tree_iterator to_parent()
+        tree_iterator get_parent()
         void next()
         bint operator!=(tree_iterator other)
+        unsigned get_cell_father()
+        int get_absolute_position()
 
     cdef cppclass RAMSES_tree:
         # This is, strictly speaking, not a header.  But, I believe it is
@@ -433,6 +438,8 @@ cdef class RAMSES_tree_proxy:
         # All the loop-local pointers must be declared up here
 
         cell_count = []
+        for ilevel in range(self.rsnap.m_header.levelmax + 1):
+            cell_count.append(0)
         for idomain in range(1, self.rsnap.m_header.ncpu + 1):
             local_tree = new RAMSES_tree(deref(self.rsnap), idomain,
                                          self.rsnap.m_header.levelmax, 0)
@@ -440,7 +447,7 @@ cdef class RAMSES_tree_proxy:
             local_hydro_data = new RAMSES_hydro_data(deref(local_tree))
             for ilevel in range(local_tree.m_maxlevel + 1):
                 local_level = &local_tree.m_AMR_levels[ilevel]
-                cell_count.append(local_level.size())
+                cell_count[ilevel] += local_level.size()
             del local_tree, local_hydro_data
 
         return cell_count
@@ -488,7 +495,8 @@ cdef class RAMSES_tree_proxy:
     def fill_hierarchy_arrays(self, 
                               np.ndarray[np.float64_t, ndim=2] left_edges,
                               np.ndarray[np.float64_t, ndim=2] right_edges,
-                              np.ndarray[np.int64_t, ndim=2] grid_levels):
+                              np.ndarray[np.int32_t, ndim=2] grid_levels,
+                              np.ndarray[np.int64_t, ndim=2] grid_file_locations):
         # We need to do simulation domains here
 
         cdef unsigned idomain, ilevel
@@ -497,14 +505,17 @@ cdef class RAMSES_tree_proxy:
         cdef RAMSES_tree *local_tree
         cdef RAMSES_hydro_data *local_hydro_data
         cdef RAMSES_level *local_level
+        cdef unsigned father
 
-        cdef tree_iterator grid_it, grid_end
+        cdef tree_iterator grid_it, grid_end, father_it
         cdef vec[double] gvec
-        cdef int grid_ind = 0
+        cdef int grid_ind, neighi
 
         cdef double grid_half_width 
 
         cell_count = []
+        local_cell_count = []
+        grid_ind = 0
         for idomain in range(1, self.rsnap.m_header.ncpu + 1):
             local_tree = new RAMSES_tree(deref(self.rsnap), idomain,
                                          self.rsnap.m_header.levelmax, 0)
@@ -523,6 +534,11 @@ cdef class RAMSES_tree_proxy:
                     right_edges[grid_ind, 1] = gvec.y + grid_half_width
                     right_edges[grid_ind, 2] = gvec.z + grid_half_width
                     grid_levels[grid_ind, 0] = ilevel # F->C notation
+                    # Now the harder part
+                    father_it = grid_it.get_parent()
+                    grid_file_locations[grid_ind, 0] = idomain
+                    grid_file_locations[grid_ind, 1] = grid_ind
+                    grid_file_locations[grid_ind, 2] = father_it.get_absolute_position()
                     grid_ind += 1
                     grid_it.next()
             del local_tree, local_hydro_data

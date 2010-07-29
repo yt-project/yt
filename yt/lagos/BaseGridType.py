@@ -719,9 +719,12 @@ class FLASHGrid(AMRGridPatch):
 class RAMSESGrid(AMRGridPatch):
     _id_offset = 1
     #__slots__ = ["_level_id", "stop_index"]
-    def __init__(self, id, hierarchy, level):
+    def __init__(self, id, hierarchy, level, domain, grid_offset, parent_id):
         AMRGridPatch.__init__(self, id, filename = hierarchy.hierarchy_filename,
                               hierarchy = hierarchy)
         self.Parent = None
         self.Children = []
         self.Level = level
+        self.domain = domain
+        self.grid_offset = grid_offset
+        self.parent_id = parent_id

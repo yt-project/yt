@@ -1521,7 +1521,6 @@ class RAMSESHierarchy(AMRHierarchy):
     def __init__(self,pf,data_style='ramses'):
         self.data_style = data_style
         self.field_info = RAMSESFieldContainer()
-        self.field_indexes = {}
         self.parameter_file = weakref.proxy(pf)
         # for now, the hierarchy file is the parameter file!
         self.hierarchy_filename = self.parameter_file.parameter_filename
@@ -1531,15 +1530,15 @@ class RAMSESHierarchy(AMRHierarchy):
         self.float_type = na.float64
         AMRHierarchy.__init__(self,pf,data_style)
 
-        self._handle.close()
-        self._handle = None
+    def _initialize_grid_arrays(self):
+        AMRHierarchy._initialize_grid_arrays(self)
+        self.grid_file_locations = na.zeros((self.num_grids,3), 'int64')
 
     def _initialize_data_storage(self):
         pass
 
     def _detect_fields(self):
-        ncomp = self._handle["/unknown names"].shape[0]
-        self.field_list = [s.strip() for s in self._handle["/unknown names"][:].flat]
+        self.field_list = self.tree_proxy.field_names[:]
     
     def _setup_classes(self):
         dd = self._get_data_reader_dict()
@@ -1547,43 +1546,27 @@ class RAMSESHierarchy(AMRHierarchy):
         self.object_types.sort()
 
     def _count_grids(self):
-        try:
-            self.num_grids = self.parameter_file._find_parameter(
-                "integer", "globalnumblocks", True, self._handle)
-        except KeyError:
-            self.num_grids = self._handle["/simulation parameters"][0][0]
+        self._level_info = self.tree_proxy.count_zones()
+        self.num_grids = sum(self._level_info)
         
     def _parse_hierarchy(self):
-        f = self._handle # shortcut
-        pf = self.parameter_file # shortcut
+        self.grid_dimensions.flat[:] = 2
+        self.tree_proxy.fill_hierarchy_arrays(
+            self.grid_left_edge, self.grid_right_edge,
+            self.grid_levels, self.grid_file_locations)
         
-        self.grid_left_edge[:] = f["/bounding box"][:,:,0]
-        self.grid_right_edge[:] = f["/bounding box"][:,:,1]
-        # Move this to the parameter file
-        try:
-            nxb = pf._find_parameter("integer", "nxb", True, f)
-            nyb = pf._find_parameter("integer", "nyb", True, f)
-            nzb = pf._find_parameter("integer", "nzb", True, f)
-        except KeyError:
-            nxb, nyb, nzb = [int(f["/simulation parameters"]['n%sb' % ax])
-                              for ax in 'xyz']
-        self.grid_dimensions[:] *= (nxb, nyb, nzb)
-        # particle count will need to be fixed somehow:
-        #   by getting access to the particle file we can get the number of
-        #   particles in each brick.  but how do we handle accessing the
-        #   particle file?
-
-        # This will become redundant, as _prepare_grid will reset it to its
-        # current value.  Note that FLASH uses 1-based indexing for refinement
-        # levels, but we do not, so we reduce the level by 1.
-        self.grid_levels.flat[:] = f["/refine level"][:][:] - 1
-        g = [self.grid(i+1, self, self.grid_levels[i,0])
-                for i in xrange(self.num_grids)]
-        self.grids = na.array(g, dtype='object')
+        ggi = 0
+        gs = []
+        for level in xrange(self.grid_levels.max()):
+            gs += [self.grid(ggi+gi, self, self.grid_levels[gi,0],
+                             *self.grid_file_locations[gi,:])
+                for gi in xrange(self._level_info[level])]
+            ggi += self._level_info[level]
+        self.grids = na.array(gs, dtype='object')
 
     def _populate_grid_objects(self):
-        # We only handle 3D data, so offset is 7 (nfaces+1)
-        offset = 7
+        self.max_level = self.grid_levels.max()
+        return
         ii = na.argsort(self.grid_levels.flat)
         gid = self._handle["/gid"][:]
         for g in self.grids[ii].flat:
@@ -1612,3 +1595,7 @@ class RAMSESHierarchy(AMRHierarchy):
 
     def _setup_derived_fields(self):
         self.derived_field_list = []
+
+    def _setup_data_io(self):
+        self.io = io_registry[self.data_style](self.tree_proxy)
+

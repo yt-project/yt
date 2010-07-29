@@ -934,6 +934,8 @@ class RAMSESStaticOutput(StaticOutput):
 
     @classmethod
     def _is_valid(self, *args, **kwargs):
+        if not os.path.basename(args[0]).startswith("info_"): return False
         fn = args[0].replace("info_", "amr_").replace(".txt", ".out00001")
+        print fn
         return os.path.exists(fn)
 
