@@ -27,6 +27,7 @@ License:
 
 # Cython wrapping code for Oliver Hahn's RAMSES reader
 from cython.operator cimport dereference as deref, preincrement as inc
+from libc.stdlib cimport malloc, free, abs
 
 import numpy as np
 cimport numpy as np
@@ -53,6 +54,8 @@ cdef extern from "<map>" namespace "std":
 cdef extern from "string" namespace "std":
     cdef cppclass string:
         string(char *cstr)
+        char *c_str()
+        string operator*()
 
 cdef extern from "RAMSES_typedefs.h":
     pass
@@ -338,7 +341,7 @@ cdef extern from "RAMSES_amr_data.hh" namespace "RAMSES::HYDRO":
         header m_header
 
         # I don't want to implement proto_data, so we put this here
-        double& cell_value(TreeTypeIterator[RAMSES_tree] &it, int ind)
+        double cell_value (tree_iterator &it, int ind)
 
         unsigned m_nvars
         vector[string] m_varnames
@@ -351,12 +354,71 @@ cdef extern from "RAMSES_amr_data.hh" namespace "RAMSES::HYDRO":
 cdef class RAMSES_tree_proxy:
     cdef string *snapshot_name
     cdef snapshot *rsnap
+
+    cdef RAMSES_tree** trees
+    cdef RAMSES_hydro_data*** hydro_datas
+
+    cdef int *loaded
+
+    cdef public object field_ind
+    cdef public object field_names
+
+    # We will store this here so that we have a record, independent of the
+    # header, of how many things we have allocated
+    cdef int ndomains, nfields
     
     def __cinit__(self, char *fn):
+        cdef int idomain, ifield, ii
+        cdef RAMSES_tree *local_tree
+        cdef RAMSES_hydro_data *local_hydro_data
         self.snapshot_name = new string(fn)
         self.rsnap = new snapshot(deref(self.snapshot_name), version3)
+        # We now have to get our field names to fill our array
+        self.trees = <RAMSES_tree**>\
+            malloc(sizeof(RAMSES_tree*) * self.rsnap.m_header.ncpu)
+        self.hydro_datas = <RAMSES_hydro_data ***>\
+                       malloc(sizeof(RAMSES_hydro_data**) * self.rsnap.m_header.ncpu)
+        self.ndomains = self.rsnap.m_header.ncpu
+        #for ii in range(self.ndomains): self.trees[ii] = NULL
+        for idomain in range(1, self.rsnap.m_header.ncpu + 1):
+            local_tree = new RAMSES_tree(deref(self.rsnap), idomain,
+                                         self.rsnap.m_header.levelmax, 0)
+            local_tree.read()
+            local_hydro_data = new RAMSES_hydro_data(deref(local_tree))
+            self.hydro_datas[idomain - 1] = <RAMSES_hydro_data **>\
+                malloc(sizeof(RAMSES_hydro_data*) * local_hydro_data.m_nvars)
+            del local_hydro_data
+            for ii in range(local_hydro_data.m_nvars):
+                self.hydro_datas[idomain - 1][ii] = \
+                    new RAMSES_hydro_data(deref(local_tree))
+            self.trees[idomain - 1] = local_tree
+            # We do not delete anything
+        # Only once, we read all the field names
+        self.nfields = local_hydro_data.m_nvars
+        cdef string *field_name
+        self.field_names = []
+        self.field_ind = {}
+        self.loaded = <int *> malloc(sizeof(int) * local_hydro_data.m_nvars)
+        for ifield in range(local_hydro_data.m_nvars):
+            field_name = &(local_hydro_data.m_varnames[ifield])
+            # Does this leak?
+            self.field_names.append(field_name.c_str())
+            self.field_ind[self.field_names[-1]] = ifield
+            self.loaded[ifield] = 0
+        # This all needs to be cleaned up in the deallocator
 
     def __dealloc__(self):
+        cdef int idomain, ifield
+        for idomain in range(self.ndomains):
+            for ifield in range(self.nfields):
+                if self.hydro_datas[idomain][ifield] != NULL:
+                    del self.hydro_datas[idomain][ifield]
+            if self.trees[idomain] != NULL:
+                del self.trees[idomain]
+            free(self.hydro_datas[idomain])
+        free(self.trees)
+        free(self.hydro_datas)
+        free(self.loaded)
         if self.snapshot_name != NULL: del self.snapshot_name
         if self.rsnap != NULL: del self.rsnap
         
@@ -373,16 +435,34 @@ cdef class RAMSES_tree_proxy:
         cell_count = []
         for idomain in range(1, self.rsnap.m_header.ncpu + 1):
             local_tree = new RAMSES_tree(deref(self.rsnap), idomain,
-                                         self.rsnap.m_header.levelmax,
-                                         self.rsnap.m_header.levelmin)
+                                         self.rsnap.m_header.levelmax, 0)
             local_tree.read()
             local_hydro_data = new RAMSES_hydro_data(deref(local_tree))
-            for ilevel in range(local_tree.m_minlevel, local_tree.m_maxlevel + 1):
+            for ilevel in range(local_tree.m_maxlevel + 1):
                 local_level = &local_tree.m_AMR_levels[ilevel]
                 cell_count.append(local_level.size())
             del local_tree, local_hydro_data
 
         return cell_count
+
+    def ensure_loaded(self, char *varname, int domain_index):
+        cdef int varindex = self.field_ind[varname]
+        cdef string *field_name = new string(varname)
+        if self.loaded[varindex] == 1: return
+        self.hydro_datas[domain_index][varindex].read(deref(field_name))
+        self.loaded[varindex] = 1
+        del field_name
+
+    def clear_tree(self, char *varname, int domain_index):
+        # We delete and re-create
+        cdef int varindex = self.field_ind[varname]
+        cdef string *field_name = new string(varname)
+        if self.loaded[varindex] == 0: return
+        del self.hydro_datas[domain_index][varindex]
+        self.hydro_datas[domain_index - 1][varindex] = \
+            new RAMSES_hydro_data(deref(self.trees[domain_index]))
+        self.loaded[varindex] = 0
+        del field_name
 
     def get_file_info(self):
         header_info = {}
@@ -405,10 +485,10 @@ cdef class RAMSES_tree_proxy:
         header_info["unit_t"] = self.rsnap.m_header.unit_t
         return header_info
 
-
     def fill_hierarchy_arrays(self, 
                               np.ndarray[np.float64_t, ndim=2] left_edges,
-                              np.ndarray[np.float64_t, ndim=2] right_edges):
+                              np.ndarray[np.float64_t, ndim=2] right_edges,
+                              np.ndarray[np.int64_t, ndim=2] grid_levels):
         # We need to do simulation domains here
 
         cdef unsigned idomain, ilevel
@@ -427,11 +507,10 @@ cdef class RAMSES_tree_proxy:
         cell_count = []
         for idomain in range(1, self.rsnap.m_header.ncpu + 1):
             local_tree = new RAMSES_tree(deref(self.rsnap), idomain,
-                                         self.rsnap.m_header.levelmax,
-                                         self.rsnap.m_header.levelmin)
+                                         self.rsnap.m_header.levelmax, 0)
             local_tree.read()
             local_hydro_data = new RAMSES_hydro_data(deref(local_tree))
-            for ilevel in range(local_tree.m_minlevel, local_tree.m_maxlevel + 1):
+            for ilevel in range(local_tree.m_maxlevel + 1):
                 grid_half_width = self.rsnap.m_header.boxlen / (2**(ilevel + 1))
                 grid_it = local_tree.begin(ilevel)
                 grid_end = local_tree.end(ilevel)
@@ -443,6 +522,31 @@ cdef class RAMSES_tree_proxy:
                     right_edges[grid_ind, 0] = gvec.x + grid_half_width
                     right_edges[grid_ind, 1] = gvec.y + grid_half_width
                     right_edges[grid_ind, 2] = gvec.z + grid_half_width
+                    grid_levels[grid_ind, 0] = ilevel # F->C notation
                     grid_ind += 1
                     grid_it.next()
             del local_tree, local_hydro_data
+
+    def read_grid(self, char *field, int level, int domain, int grid_id):
+
+        self.ensure_loaded(field, domain)
+        cdef int varindex = self.field_ind[field]
+        cdef int i
+
+        cdef np.ndarray[np.float64_t, ndim=3] tr = np.empty((2,2,2), dtype='float64')
+        cdef tree_iterator grid_it, grid_end
+        cdef double* data = <double*> tr.data
+
+        cdef RAMSES_tree *local_tree = self.trees[domain]
+        cdef RAMSES_hydro_data *local_hydro_data = self.hydro_datas[domain][varindex]
+        grid_it = local_tree.begin(level)
+        grid_end = local_tree.end(level)
+        
+        cur_id = 0
+
+        while grid_it != grid_end and cur_id < grid_id:
+            cur_id += 1
+            grid_it.next()
+        for i in range(8): 
+            data[i] = local_hydro_data.cell_value(grid_it, i)
+        return tr
