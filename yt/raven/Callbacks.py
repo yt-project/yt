@@ -263,6 +263,81 @@ class GridBoundaryCallback(PlotCallback):
                     plot._axes.text(left_edge_px[n]+2,left_edge_py[n]+2,ids[n])
             plot._axes.hold(False)
 
+class StreamlineCallback(PlotCallback):
+    _type_name = "streamlines"
+    def __init__(self, field_x, field_y, factor=1.0, nx=16, ny=16,
+                 xstart=(0,1), ystart=(0,1), nsample=256,
+                 start_at_xedge=False, start_at_yedge=False,
+                 plot_args=None):
+        """
+        Add streamlines to any plot, using the *field_x* and *field_y*
+        from the associated data, using *nx* and *ny* starting points
+        that are bounded by *xstart* and *ystart*.  To begin
+        streamlines from the left edge of the plot, set
+        *start_at_xedge* to True; for the bottom edge, use
+        *start_at_yedge*.  A line with the qmean vector magnitude will
+        cover 1.0/*factor* of the image.
+        """
+        PlotCallback.__init__(self)
+        self.field_x = field_x
+        self.field_y = field_y
+        self.xstart = xstart
+        self.ystart = ystart
+        self.nsample = nsample
+        self.factor = factor
+        if start_at_xedge:
+            self.data_size = (1,ny)
+        elif start_at_yedge:
+            self.data_size = (nx,1)
+        else:
+            self.data_size = (nx,ny)
+        if plot_args is None: plot_args = {'color':'k', 'linestyle':'-'}
+        self.plot_args = plot_args
+        
+    def __call__(self, plot):
+        x0, x1 = plot.xlim
+        y0, y1 = plot.ylim
+        xx0, xx1 = plot._axes.get_xlim()
+        yy0, yy1 = plot._axes.get_ylim()
+        plot._axes.hold(True)
+        nx = plot.image._A.shape[0]
+        ny = plot.image._A.shape[1]
+        pixX = _MPL.Pixelize(plot.data['px'],
+                             plot.data['py'],
+                             plot.data['pdx'],
+                             plot.data['pdy'],
+                             plot.data[self.field_x],
+                             int(nx), int(ny),
+                           (x0, x1, y0, y1),).transpose()
+        pixY = _MPL.Pixelize(plot.data['px'],
+                             plot.data['py'],
+                             plot.data['pdx'],
+                             plot.data['pdy'],
+                             plot.data[self.field_y],
+                             int(nx), int(ny),
+                           (x0, x1, y0, y1),).transpose()
+        r0 = na.mgrid[self.xstart[0]*nx:self.xstart[1]*nx:self.data_size[0]*1j,
+                      self.ystart[0]*ny:self.ystart[1]*ny:self.data_size[1]*1j]
+        lines = na.zeros((self.nsample, 2, self.data_size[0], self.data_size[1]))
+        lines[0,:,:,:] = r0
+        mag = na.sqrt(pixX**2 + pixY**2)
+        scale = na.sqrt(nx*ny) / (self.factor * mag.mean())
+        dt = 1.0 / (self.nsample-1)
+        for i in range(1,self.nsample):
+            xt = lines[i-1,0,:,:]
+            yt = lines[i-1,1,:,:]
+            ix = na.maximum(na.minimum((xt).astype('int'), nx-1), 0)
+            iy = na.maximum(na.minimum((yt).astype('int'), ny-1), 0)
+            lines[i,0,:,:] = xt + dt * pixX[ix,iy] * scale
+            lines[i,1,:,:] = yt + dt * pixY[ix,iy] * scale
+        for i in range(self.data_size[0]):
+            for j in range(self.data_size[1]):
+                plot._axes.plot(lines[:,0,i,j], lines[:,1,i,j],
+                                **self.plot_args)
+        plot._axes.set_xlim(xx0,xx1)
+        plot._axes.set_ylim(yy0,yy1)
+        plot._axes.hold(False)
+
 class LabelCallback(PlotCallback):
     _type_name = "axis_label"
     def __init__(self, label):
