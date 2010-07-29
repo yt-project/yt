@@ -517,3 +517,16 @@ class IOHandlerFLASH(BaseIOHandler):
         f = h5py.File(grid.pf.parameter_filename, "r")
         tr = f["/%s" % field][grid.id - grid._id_offset].transpose()[sl]
         return tr.astype("float64")
+
+class IOHandlerRAMSES(BaseIOHandler):
+    _data_style = "ramses"
+
+    def __init__(self, ramses_tree, *args, **kwargs):
+        self.ramses_tree = ramses_tree
+        BaseIOHandler.__init__(self, *args, **kwargs)
+
+    def _read_data_set(self, grid, field):
+        pass
+
+    def _read_data_slice(self, grid, field, axis, coord):
+        pass
