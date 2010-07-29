@@ -866,7 +866,7 @@ class FLASHStaticOutput(StaticOutput):
     def _is_valid(self, *args, **kwargs):
         try:
             fileh = h5py.File(args[0],'r')
-            if "real runtime parameters" in fileh["/"].keys():
+            if "bounding box" in fileh["/"].keys():
                 return True
         except:
             pass

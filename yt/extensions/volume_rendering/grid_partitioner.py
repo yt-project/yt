@@ -125,6 +125,23 @@ class HomogenizedVolume(ParallelAnalysisInterface):
         self.brick_dimensions -= 1
         self.bricks = na.array(bricks, dtype='object')
 
+    def reflect_across_boundaries(self):
+        mylog.warning("Note that this doesn't fix ghost zones, so there may be artifacts at domain boundaries!")
+        nb = []
+        # Simplest, clearest iteration ...
+        for i in [-1, 1]:
+            for j in [-1, 1]:
+                for k in [-1, 1]:
+                    for b in self.bricks:
+                        BB = na.array([b.LeftEdge * [i,j,k], b.RightEdge * [i,j,k]])
+                        LE, RE = na.min(BB, axis=0), na.max(BB, axis=0)
+                        nb.append(
+                            PartitionedGrid(b.parent_grid_id, len(b.my_data), 
+                                [md[::i,::j,::k].copy("C") for md in b.my_data],
+                                LE, RE, na.array(b.my_data[0].shape) - 1))
+        # Replace old bricks
+        self.initialize_bricks(nb)
+
     def store_bricks(self, fn):
         import h5py, cPickle
         f = h5py.File(fn, "w")
