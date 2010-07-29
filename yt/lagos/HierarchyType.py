@@ -1447,8 +1447,11 @@ class FLASHHierarchy(AMRHierarchy):
         self.object_types.sort()
 
     def _count_grids(self):
-        self.num_grids = self.parameter_file._find_parameter(
-            "integer", "globalnumblocks", True, self._handle)
+        try:
+            self.num_grids = self.parameter_file._find_parameter(
+                "integer", "globalnumblocks", True, self._handle)
+        except KeyError:
+            self.num_grids = self._handle["/simulation parameters"][0][0]
         
     def _parse_hierarchy(self):
         f = self._handle # shortcut
@@ -1457,9 +1460,13 @@ class FLASHHierarchy(AMRHierarchy):
         self.grid_left_edge[:] = f["/bounding box"][:,:,0]
         self.grid_right_edge[:] = f["/bounding box"][:,:,1]
         # Move this to the parameter file
-        nxb = pf._find_parameter("integer", "nxb", True, f)
-        nyb = pf._find_parameter("integer", "nyb", True, f)
-        nzb = pf._find_parameter("integer", "nzb", True, f)
+        try:
+            nxb = pf._find_parameter("integer", "nxb", True, f)
+            nyb = pf._find_parameter("integer", "nyb", True, f)
+            nzb = pf._find_parameter("integer", "nzb", True, f)
+        except KeyError:
+            nxb, nyb, nzb = [int(f["/simulation parameters"]['n%sb' % ax])
+                              for ax in 'xyz']
         self.grid_dimensions[:] *= (nxb, nyb, nzb)
         # particle count will need to be fixed somehow:
         #   by getting access to the particle file we can get the number of
@@ -1473,7 +1480,6 @@ class FLASHHierarchy(AMRHierarchy):
         g = [self.grid(i+1, self, self.grid_levels[i,0])
                 for i in xrange(self.num_grids)]
         self.grids = na.array(g, dtype='object')
-
 
     def _populate_grid_objects(self):
         # We only handle 3D data, so offset is 7 (nfaces+1)

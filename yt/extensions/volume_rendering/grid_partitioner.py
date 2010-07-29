@@ -55,13 +55,17 @@ class HomogenizedVolume(ParallelAnalysisInterface):
         self.log_fields = log_fields
 
     def traverse(self, back_point, front_point):
+        mylog.info("Traversing %s bricks between %s and %s",
+                   len(self.bricks), back_point, front_point)
         if self.bricks is None: self.initialize_source()
         vec = front_point - back_point
         dist = na.minimum(
              na.sum((self.brick_left_edges - back_point) * vec, axis=1),
              na.sum((self.brick_right_edges - back_point) * vec, axis=1))
         ind = na.argsort(dist)
-        for b in self.bricks[ind]: yield b
+        for b in self.bricks[ind]:
+            #print b.LeftEdge, b.RightEdge
+            yield b
 
     def _partition_grid(self, grid):
 
@@ -100,6 +104,9 @@ class HomogenizedVolume(ParallelAnalysisInterface):
             bricks += self._partition_grid(g)
         pbar.finish()
         bricks = na.array(bricks, dtype='object')
+        self.initialize_bricks(bricks)
+
+    def initialize_bricks(self, bricks):
         NB = len(bricks)
         # Now we set up our (local for now) hierarchy.  Note that to calculate
         # intersection, we only need to do the left edge & right edge.
