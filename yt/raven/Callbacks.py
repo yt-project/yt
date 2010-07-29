@@ -265,7 +265,7 @@ class GridBoundaryCallback(PlotCallback):
 
 class StreamlineCallback(PlotCallback):
     _type_name = "streamlines"
-    def __init__(self, field_x, field_y, factor=1.0, nx=16, ny=16,
+    def __init__(self, field_x, field_y, factor=6.0, nx=16, ny=16,
                  xstart=(0,1), ystart=(0,1), nsample=256,
                  start_at_xedge=False, start_at_yedge=False,
                  plot_args=None):
