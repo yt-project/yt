@@ -225,6 +225,7 @@ cdef extern from "RAMSES_amr_data.hh" namespace "RAMSES::AMR":
         tree (snapshot &snap, int cpu, int maxlevel, int minlevel = 1)
 
     cppclass tree_iterator "RAMSES::AMR::RAMSES_tree::iterator":
+        tree_iterator operator*()
         tree_iterator begin()
         tree_iterator end()
         void next()
@@ -277,6 +278,11 @@ cdef extern from "RAMSES_amr_data.hh" namespace "RAMSES::AMR":
 
         tree_iterator begin()
         tree_iterator end()
+
+        vec[double] cell_pos_double "cell_pos<double>" (tree_iterator it, unsigned ind) 
+        vec[double] grid_pos_double "grid_pos<double>" (tree_iterator it)
+        vec[float] cell_pos_float "cell_pos<float>" (tree_iterator it, unsigned ind) 
+        vec[float] grid_pos_float "grid_pos<float>" (tree_iterator it)
 
 cdef extern from "RAMSES_amr_data.hh" namespace "RAMSES::HYDRO":
     enum hydro_var:
@@ -368,54 +374,6 @@ def get_file_info(char *fn):
     del sfn
     return header_info
 
-def fill_buffer(char *fn, int image_levelmin, int image_levelmax,
-                unsigned minlvl, unsigned maxlvl,
-                double xmin, double xmax, double ymin, double ymax,
-                double zmin, double zmax):
-    cdef string *sfn = new string(fn)
-    cdef snapshot *rsnap = new snapshot(deref(sfn), version3)
-    # We need to do simulation domains here
-    cdef int nx = <int>( 2**image_levelmax + 0.5 )
-    cdef int ny = nx
-
-    cdef np.ndarray[np.int64_t, ndim=2] count
-    cdef np.ndarray[np.float64_t, ndim=2] image
-    count = np.zeros( (nx, ny), dtype='int64')
-    image = np.zeros( (nx, ny), dtype='float64')
-
-    cdef unsigned idomain, ilevel
-    cdef int cellsize, i
-
-    # All the loop-local pointers must be declared up here
-    cdef RAMSES_tree *local_tree
-    cdef RAMSES_hydro_data *local_hydro_data
-    cdef string *field_name = new string("density")
-
-    cdef tree_iterator grid_it, grid_end
-
-    print "idomain in range ", rsnap.m_header.ncpu
-    for idomain in range(1, rsnap.m_header.ncpu + 1):
-        print "Handling domain", idomain
-        local_tree = new RAMSES_tree(deref(rsnap), idomain, maxlvl, minlvl)
-        local_tree.read()
-        local_hydro_data = new RAMSES_hydro_data(deref(local_tree))
-        print "Reading"
-        local_hydro_data.read(deref(field_name))
-        print "Finished reading"
-        for ilevel in range(image_levelmin, image_levelmax + 1):
-            cellsize = <int>(nx/2**(ilevel+1))
-            grid_it = local_tree.begin(ilevel)
-            grid_end = local_tree.end(ilevel)
-            i = 0
-            while grid_it != grid_end:
-                i += 1
-                grid_it.next()
-            print "on level %s we have %s grids" % (ilevel, i)
-        del local_tree, local_hydro_data
-
-    del rsnap
-    del sfn
-
 def count_zones(char *fn, unsigned minlvl, unsigned maxlvl):
     cdef string *sfn = new string(fn)
     cdef snapshot *rsnap = new snapshot(deref(sfn), version3)
@@ -427,28 +385,21 @@ def count_zones(char *fn, unsigned minlvl, unsigned maxlvl):
     # All the loop-local pointers must be declared up here
     cdef RAMSES_tree *local_tree
     cdef RAMSES_hydro_data *local_hydro_data
-    cdef string *field_name = new string("density")
+    cdef RAMSES_level *local_level
 
     cdef tree_iterator grid_it, grid_end
+    cdef vec[double] cvec
 
-    print "idomain in range ", rsnap.m_header.ncpu
+    cell_count = []
     for idomain in range(1, rsnap.m_header.ncpu + 1):
-        print "Handling domain", idomain
         local_tree = new RAMSES_tree(deref(rsnap), idomain, maxlvl, minlvl)
         local_tree.read()
         local_hydro_data = new RAMSES_hydro_data(deref(local_tree))
-        print "Reading"
-        local_hydro_data.read(deref(field_name))
-        print "Finished reading"
-        for ilevel in range(minlvl, maxlvl + 1):
-            grid_it = local_tree.begin(ilevel)
-            grid_end = local_tree.end(ilevel)
-            i = 0
-            while grid_it != grid_end:
-                i += 1
-                grid_it.next()
-            print "on level %s we have %s grids" % (ilevel, i)
+        for ilevel in range(local_tree.m_minlevel, local_tree.m_maxlevel + 1):
+            local_level = &local_tree.m_AMR_levels[ilevel]
+            cell_count.append(local_level.size())
         del local_tree, local_hydro_data
 
     del rsnap
     del sfn
+    return cell_count
