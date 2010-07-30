@@ -733,6 +733,9 @@ class RAMSESGrid(AMRGridPatch):
         self._children_ids = []
         self._child_mask = cm.reshape((2,2,2))
 
+    def _del_child_mask(self):
+        return
+
     @property
     def Parent(self):
         if self._parent_id == -1: return None

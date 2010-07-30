@@ -357,6 +357,8 @@ cdef extern from "RAMSES_amr_data.hh" namespace "RAMSES::HYDRO":
         #_OutputIterator get_var_names[_OutputIterator](_OutputIterator names)
         void read(string varname)
 
+        vector[vector[double]] m_var_array
+
 cdef class RAMSES_tree_proxy:
     cdef string *snapshot_name
     cdef snapshot *rsnap
@@ -458,7 +460,7 @@ cdef class RAMSES_tree_proxy:
         cdef int varindex = self.field_ind[varname]
         cdef string *field_name = new string(varname)
         if self.loaded[varindex] == 1: return
-        print "READING FROM DISK"
+        print "READING FROM DISK", varname
         self.hydro_datas[domain_index][varindex].read(deref(field_name))
         self.loaded[varindex] = 1
         del field_name
@@ -572,14 +574,15 @@ cdef class RAMSES_tree_proxy:
 
         cdef RAMSES_tree *local_tree = self.trees[domain - 1]
         cdef RAMSES_hydro_data *local_hydro_data = self.hydro_datas[domain - 1][varindex]
-        grid_it = local_tree.begin(level)
-        grid_end = local_tree.end(level)
-        
-        cdef int cur_id = 0
 
-        while grid_it != grid_end and cur_id < grid_id:
-            cur_id += 1
-            grid_it.next()
+        #inline ValueType_& cell_value( const typename TreeType_::iterator& it,
+        #                               int ind )
+        #{
+        #   unsigned ipos   = it.get_absolute_position();
+        #   unsigned ilevel = it.get_level();//-m_minlevel;
+        #   return (m_var_array[ilevel])[m_twotondim*ipos+ind];
+        #}
+        
         for i in range(8): 
-            data[i] = local_hydro_data.cell_value(grid_it, i)
+            data[i] = local_hydro_data.m_var_array[level][8*grid_id+i]
         return tr
