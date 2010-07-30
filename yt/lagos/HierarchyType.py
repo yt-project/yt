@@ -1530,10 +1530,6 @@ class RAMSESHierarchy(AMRHierarchy):
         self.float_type = na.float64
         AMRHierarchy.__init__(self,pf,data_style)
 
-    def _initialize_grid_arrays(self):
-        AMRHierarchy._initialize_grid_arrays(self)
-        self.grid_file_locations = na.zeros((self.num_grids,3), 'int64')
-
     def _initialize_data_storage(self):
         pass
 
@@ -1551,30 +1547,25 @@ class RAMSESHierarchy(AMRHierarchy):
         
     def _parse_hierarchy(self):
         self.grid_dimensions.flat[:] = 2
+        grid_file_locations = na.zeros((self.num_grids, 3), dtype='int64')
+        child_masks = na.zeros((self.num_grids, 8), dtype='int32')
         self.tree_proxy.fill_hierarchy_arrays(
             self.grid_left_edge, self.grid_right_edge,
-            self.grid_levels, self.grid_file_locations)
-        
+            self.grid_levels, grid_file_locations, child_masks)
         ggi = 0
         gs = []
-        for level in xrange(self.grid_levels.max()):
-            gs += [self.grid(ggi+gi, self, self.grid_levels[gi,0],
-                             *self.grid_file_locations[gi,:])
-                for gi in xrange(self._level_info[level])]
-            ggi += self._level_info[level]
+        gs = [self.grid(i, self, self.grid_levels[i,0],
+                        grid_file_locations[i,0],
+                        grid_file_locations[i,1],
+                        grid_file_locations[i,2],
+                        child_masks[i,:])
+              for i in xrange(self.num_grids)]
         self.grids = na.array(gs, dtype='object')
 
     def _populate_grid_objects(self):
-        self.max_level = self.grid_levels.max()
-        return
-        ii = na.argsort(self.grid_levels.flat)
-        gid = self._handle["/gid"][:]
-        for g in self.grids[ii].flat:
-            gi = g.id - g._id_offset
-            # FLASH uses 1-indexed group info
-            g.Children = [self.grids[i - 1] for i in gid[gi,7:] if i > -1]
-            for g1 in g.Children:
-                g1.Parent = g
+        for gi,g in enumerate(self.grids):
+            if g.Parent is not None:
+                g.Parent._children_ids.append(gi)
             g._prepare_grid()
             g._setup_dx()
         self.max_level = self.grid_levels.max()

@@ -120,7 +120,7 @@ cdef extern from "RAMSES_amr_data.hh" namespace "RAMSES::AMR":
 
         cell_locally_essential()
 
-        bool is_refined(int ison)
+        bint is_refined(int ison)
 
     cdef cppclass RAMSES_cell:
         unsigned m_neighbour[6]
@@ -133,7 +133,7 @@ cdef extern from "RAMSES_amr_data.hh" namespace "RAMSES::AMR":
 
         RAMSES_cell()
 
-        bool is_refined(int ison)
+        bint is_refined(int ison)
 
     cdef cppclass cell_simple[id_t, real_t]:
         id_t m_son[1]
@@ -142,7 +142,7 @@ cdef extern from "RAMSES_amr_data.hh" namespace "RAMSES::AMR":
 
         char m_pos
         cell_simple()
-        bool is_refined(int ison)
+        bint is_refined(int ison)
 
     # AMR level implementation
 
@@ -237,6 +237,7 @@ cdef extern from "RAMSES_amr_data.hh" namespace "RAMSES::AMR":
         void next()
         bint operator!=(tree_iterator other)
         unsigned get_cell_father()
+        bint is_refined(int ison)
         int get_absolute_position()
 
     cdef cppclass RAMSES_tree:
@@ -453,14 +454,17 @@ cdef class RAMSES_tree_proxy:
         return cell_count
 
     def ensure_loaded(self, char *varname, int domain_index):
+        # this domain_index must be zero-indexed
         cdef int varindex = self.field_ind[varname]
         cdef string *field_name = new string(varname)
         if self.loaded[varindex] == 1: return
+        print "READING FROM DISK"
         self.hydro_datas[domain_index][varindex].read(deref(field_name))
         self.loaded[varindex] = 1
         del field_name
 
     def clear_tree(self, char *varname, int domain_index):
+        # this domain_index must be zero-indexed
         # We delete and re-create
         cdef int varindex = self.field_ind[varname]
         cdef string *field_name = new string(varname)
@@ -496,7 +500,8 @@ cdef class RAMSES_tree_proxy:
                               np.ndarray[np.float64_t, ndim=2] left_edges,
                               np.ndarray[np.float64_t, ndim=2] right_edges,
                               np.ndarray[np.int32_t, ndim=2] grid_levels,
-                              np.ndarray[np.int64_t, ndim=2] grid_file_locations):
+                              np.ndarray[np.int64_t, ndim=2] grid_file_locations,
+                              np.ndarray[np.int32_t, ndim=2] child_mask):
         # We need to do simulation domains here
 
         cdef unsigned idomain, ilevel
@@ -504,24 +509,27 @@ cdef class RAMSES_tree_proxy:
         # All the loop-local pointers must be declared up here
         cdef RAMSES_tree *local_tree
         cdef RAMSES_hydro_data *local_hydro_data
-        cdef RAMSES_level *local_level
         cdef unsigned father
 
         cdef tree_iterator grid_it, grid_end, father_it
         cdef vec[double] gvec
-        cdef int grid_ind, neighi
+        cdef int grid_ind = 0
+        cdef unsigned parent_ind
+        cdef bint ci
 
         cdef double grid_half_width 
 
+        cdef np.int32_t rr
         cell_count = []
-        local_cell_count = []
-        grid_ind = 0
+        level_cell_counts = {}
         for idomain in range(1, self.rsnap.m_header.ncpu + 1):
             local_tree = new RAMSES_tree(deref(self.rsnap), idomain,
                                          self.rsnap.m_header.levelmax, 0)
             local_tree.read()
             local_hydro_data = new RAMSES_hydro_data(deref(local_tree))
             for ilevel in range(local_tree.m_maxlevel + 1):
+                # this gets overwritten for every domain, which is okay
+                level_cell_counts[ilevel] = grid_ind 
                 grid_half_width = self.rsnap.m_header.boxlen / (2**(ilevel + 1))
                 grid_it = local_tree.begin(ilevel)
                 grid_end = local_tree.end(ilevel)
@@ -533,19 +541,28 @@ cdef class RAMSES_tree_proxy:
                     right_edges[grid_ind, 0] = gvec.x + grid_half_width
                     right_edges[grid_ind, 1] = gvec.y + grid_half_width
                     right_edges[grid_ind, 2] = gvec.z + grid_half_width
-                    grid_levels[grid_ind, 0] = ilevel # F->C notation
+                    grid_levels[grid_ind, 0] = ilevel
                     # Now the harder part
                     father_it = grid_it.get_parent()
                     grid_file_locations[grid_ind, 0] = idomain
-                    grid_file_locations[grid_ind, 1] = grid_ind
-                    grid_file_locations[grid_ind, 2] = father_it.get_absolute_position()
+                    grid_file_locations[grid_ind, 1] = grid_ind - level_cell_counts[ilevel]
+                    parent_ind = father_it.get_absolute_position()
+                    if ilevel > 0:
+                        # We calculate the REAL parent index
+                        grid_file_locations[grid_ind, 2] = \
+                            level_cell_counts[ilevel - 1] + parent_ind
+                    else:
+                        grid_file_locations[grid_ind, 2] = -1
+                    for ci in range(8):
+                        rr = <np.int32_t> grid_it.is_refined(ci)
+                        child_mask[grid_ind, ci] = rr
                     grid_ind += 1
                     grid_it.next()
             del local_tree, local_hydro_data
 
     def read_grid(self, char *field, int level, int domain, int grid_id):
 
-        self.ensure_loaded(field, domain)
+        self.ensure_loaded(field, domain - 1)
         cdef int varindex = self.field_ind[field]
         cdef int i
 
@@ -553,12 +570,12 @@ cdef class RAMSES_tree_proxy:
         cdef tree_iterator grid_it, grid_end
         cdef double* data = <double*> tr.data
 
-        cdef RAMSES_tree *local_tree = self.trees[domain]
-        cdef RAMSES_hydro_data *local_hydro_data = self.hydro_datas[domain][varindex]
+        cdef RAMSES_tree *local_tree = self.trees[domain - 1]
+        cdef RAMSES_hydro_data *local_hydro_data = self.hydro_datas[domain - 1][varindex]
         grid_it = local_tree.begin(level)
         grid_end = local_tree.end(level)
         
-        cur_id = 0
+        cdef int cur_id = 0
 
         while grid_it != grid_end and cur_id < grid_id:
             cur_id += 1

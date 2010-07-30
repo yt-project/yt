@@ -716,15 +716,32 @@ class FLASHGrid(AMRGridPatch):
         self.Children = []
         self.Level = level
 
+    def __repr__(self):
+        return "FLASHGrid_%04i (%s)" % (self.id, self.ActiveDimensions)
+
 class RAMSESGrid(AMRGridPatch):
-    _id_offset = 1
+    _id_offset = 0
     #__slots__ = ["_level_id", "stop_index"]
-    def __init__(self, id, hierarchy, level, domain, grid_offset, parent_id):
+    def __init__(self, id, hierarchy, level, domain, grid_offset, parent_id,
+                 cm):
         AMRGridPatch.__init__(self, id, filename = hierarchy.hierarchy_filename,
                               hierarchy = hierarchy)
-        self.Parent = None
-        self.Children = []
         self.Level = level
         self.domain = domain
         self.grid_offset = grid_offset
-        self.parent_id = parent_id
+        self._parent_id = parent_id
+        self._children_ids = []
+        self._child_mask = cm.reshape((2,2,2))
+
+    @property
+    def Parent(self):
+        if self._parent_id == -1: return None
+        return self.hierarchy.grids[self._parent_id - self._id_offset]
+
+    @property
+    def Children(self):
+        return [self.hierarchy.grids[cid - self._id_offset]
+                for cid in self._children_ids]
+
+    def __repr__(self):
+        return "RAMSESGrid_%04i (%s)" % (self.id, self.ActiveDimensions)

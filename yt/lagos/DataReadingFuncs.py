@@ -526,7 +526,11 @@ class IOHandlerRAMSES(BaseIOHandler):
         BaseIOHandler.__init__(self, *args, **kwargs)
 
     def _read_data_set(self, grid, field):
-        pass
+        d = self.ramses_tree.read_grid(field, grid.Level, grid.domain,
+                grid.grid_offset)
+        return d
 
     def _read_data_slice(self, grid, field, axis, coord):
-        pass
+        sl = [slice(None), slice(None), slice(None)]
+        sl[axis] = slice(coord, coord + 1)
+        return self._read_data_set(grid, field)[sl]
