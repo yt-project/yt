@@ -731,7 +731,7 @@ class RAMSESGrid(AMRGridPatch):
         self.grid_offset = grid_offset
         self._parent_id = parent_id
         self._children_ids = []
-        self._child_mask = cm.reshape((2,2,2))
+        self._child_mask = cm.reshape((2,2,2), order="F")
 
     def _del_child_mask(self):
         return

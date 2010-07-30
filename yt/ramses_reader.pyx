@@ -237,7 +237,7 @@ cdef extern from "RAMSES_amr_data.hh" namespace "RAMSES::AMR":
         void next()
         bint operator!=(tree_iterator other)
         unsigned get_cell_father()
-        bint is_refined(int ison)
+        bint is_finest(int ison)
         int get_absolute_position()
 
     cdef cppclass RAMSES_tree:
@@ -556,7 +556,7 @@ cdef class RAMSES_tree_proxy:
                     else:
                         grid_file_locations[grid_ind, 2] = -1
                     for ci in range(8):
-                        rr = <np.int32_t> grid_it.is_refined(ci)
+                        rr = <np.int32_t> grid_it.is_finest(ci)
                         child_mask[grid_ind, ci] = rr
                     grid_ind += 1
                     grid_it.next()
@@ -568,7 +568,8 @@ cdef class RAMSES_tree_proxy:
         cdef int varindex = self.field_ind[field]
         cdef int i
 
-        cdef np.ndarray[np.float64_t, ndim=3] tr = np.empty((2,2,2), dtype='float64')
+        cdef np.ndarray[np.float64_t, ndim=3] tr = np.empty((2,2,2), dtype='float64',
+                                                   order='F")
         cdef tree_iterator grid_it, grid_end
         cdef double* data = <double*> tr.data
 
