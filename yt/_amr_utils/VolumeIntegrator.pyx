@@ -415,7 +415,7 @@ cdef class PartitionedGrid:
                 step[i] = 1
             x = (i+1) % 3
             y = (i+2) % 3
-            iv_dir[i] = 1.0/v_dir[0]
+            iv_dir[i] = 1.0/v_dir[i]
             tl = (self.left_edge[i] - v_pos[i])*iv_dir[i]
             temp_x = (v_pos[x] + tl*v_dir[x])
             temp_y = (v_pos[y] + tl*v_dir[y])
