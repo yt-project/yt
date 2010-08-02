@@ -411,6 +411,12 @@ cdef class PartitionedGrid:
         for i in range(3):
             if (v_dir[i] < 0):
                 step[i] = -1
+            elif (v_dir[i] == 0):
+                step[i] = 1
+                tmax[i] = 1e60
+                iv_dir[i] = 1e60
+                tdelta[i] = 1e-60
+                continue
             else:
                 step[i] = 1
             x = (i+1) % 3
