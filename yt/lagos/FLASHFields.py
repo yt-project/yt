@@ -69,29 +69,29 @@ for f,v in translation_dict.items():
     _generate_translation(v, f)
 
 add_field("gamc", function=lambda a,b: None, take_log=False,
-          validators = [ValidateDataField("gamc")]],
+          validators = [ValidateDataField("gamc")],
           units = r"\rm{ratio\/of\/specific\/heats}")
 
 add_field("game", function=lambda a,b: None, take_log=False,
-          validators = [ValidateDataField("game")]],
+          validators = [ValidateDataField("game")],
           units = r"\rm{ratio\/of\/specific\/heats}")
 
 add_field("gpot", function=lambda a,b: None, take_log=True,
-          validators = [ValidateDataField("gpot")]],
+          validators = [ValidateDataField("gpot")],
           units = r"\rm{ergs\//\/g}")
 
 add_field("gpot", function=lambda a,b: None, take_log=True,
-          validators = [ValidateDataField("gpol")]],
+          validators = [ValidateDataField("gpol")],
           units = r"\rm{ergs\//\/g}")
 
 add_field("grac", function=lambda a,b: None, take_log=True,
-          validators = [ValidateDataField("grac")]],
+          validators = [ValidateDataField("grac")],
           units = r"\rm{cm\/s^{-2}}")
 
 add_field("pden", function=lambda a,b: None, take_log=True,
-          validators = [ValidateDataField("pden")]],
+          validators = [ValidateDataField("pden")],
           units = r"\rm{g}\//\/\rm{cm}^{3}")
 
 add_field("pres", function=lambda a,b: None, take_log=True,
-          validators = [ValidateDataField("pres")]],
+          validators = [ValidateDataField("pres")],
           units = r"\rm{erg}\//\/\rm{cm}^{3}")
