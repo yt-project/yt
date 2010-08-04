@@ -27,11 +27,19 @@ License:
 
 # Cython wrapping code for Oliver Hahn's RAMSES reader
 from cython.operator cimport dereference as deref, preincrement as inc
-from libc.stdlib cimport malloc, free, abs
+from libc.stdlib cimport malloc, free, abs, calloc
 
 import numpy as np
 cimport numpy as np
 cimport cython
+
+cdef inline np.int64_t i64max(np.int64_t i0, np.int64_t i1):
+    if i0 > i1: return i0
+    return i1
+
+cdef inline np.int64_t i64min(np.int64_t i0, np.int64_t i1):
+    if i0 < i1: return i0
+    return i1
 
 cdef extern from "<vector>" namespace "std":
     cdef cppclass vector[T]:
@@ -569,7 +577,7 @@ cdef class RAMSES_tree_proxy:
         cdef int i
 
         cdef np.ndarray[np.float64_t, ndim=3] tr = np.empty((2,2,2), dtype='float64',
-                                                   order='F")
+                                                   order='F')
         cdef tree_iterator grid_it, grid_end
         cdef double* data = <double*> tr.data
 
@@ -587,3 +595,81 @@ cdef class RAMSES_tree_proxy:
         for i in range(8): 
             data[i] = local_hydro_data.m_var_array[level][8*grid_id+i]
         return tr
+
+def identify_new_subgrids_by_signature(
+        np.ndarray[np.int64_t, ndim=2] left_edges,  # In integer indices
+        np.ndarray[np.int64_t, ndim=2] right_edges, # In integer indices
+        np.ndarray[np.int64_t, ndim=2] grid_dimensions):
+    # We operate slightly differently than Enzo does.  We can't afford to store
+    # all the flagging fields in memory; so, we operate only on 1D signatures.
+    # So, we have a list of grids that we want to cluster, and then we pass
+    # that around and determine which grids are appropriate.
+    # We start with a proto subgrid that contains the entire domain.
+    #cdef ProtoSubgrid *psg = ProtoSubgrid()
+    pass
+
+cdef class ProtoSubgrid:
+    cdef np.int64_t *signature[3]
+    cdef np.int64_t left_edge[3]
+    cdef np.int64_t right_edge[3]
+    cdef np.int64_t dimensions[3]
+
+    def __cinit__(self, left_index, dimensions, 
+                  np.ndarray[np.int64_t, ndim=2] left_edges,
+                  np.ndarray[np.int64_t, ndim=2] right_edges,
+                  np.ndarray[np.int64_t, ndim=2] grid_dimensions):
+        # This also includes the shrinking step.
+        cdef int i, ci, ng = left_edges.shape[0]
+        cdef np.int64_t temp_l, temp_r, ncells
+        cdef np.float64_t efficiency
+        for i in range(3):
+            temp_l = left_index[i] + dimensions[i]
+            temp_r = left_index[i]
+            for gi in range(ng):
+                temp_l = i64min(left_edges[gi,i], temp_l)
+                temp_r = i64max(right_edges[gi,i], temp_r)
+            self.left_edge[i] = i64max(temp_l, left_index[i])
+            self.right_edge[i] = i64min(temp_r, left_index[i] + dimensions[i])
+            self.dimensions[i] = self.right_edge[i] - self.left_edge[i]
+            self.signature[i] = <np.int64_t *> \
+                malloc(self.dimensions[i] * sizeof(np.int64_t))
+        for i in range(3):
+            for ci in range(self.dimensions[i]): self.signature[i][ci] = 0
+            # Calculate signature here, too
+            for gi in range(ng):
+                temp_l = i64max(0, left_edges[gi, i] - self.left_edge[i])
+                temp_r = left_edges[gi, i] - self.left_edge[i] \
+                       + grid_dimensions[gi,i]
+                temp_r = i64min(self.dimensions[i], temp_r)
+                # This is not strictly correct; we should be iterating over
+                # every single cell and determining if it's in the bounding
+                # box.
+                d2 = i64min(left_edges[gi,(i+1)%3] + grid_dimensions[gi, (i+1)%3],
+                         self.right_edge[(i+1)%3]) - left_edges[gi, (i+1)%3]
+                d2 = i64max(0, d2)
+                d3 = i64min(left_edges[gi,(i+2)%3] + grid_dimensions[gi, (i+2)%3],
+                         self.right_edge[(i+2)%3]) - left_edges[gi, (i+2)%3]
+                d3 = i64max(0, d3)
+                ncells = d2 * d3
+                for ci in range(temp_l, temp_r):
+                    self.signature[i][ci] += ncells
+        ncells = 1
+        for i in range(3): ncells *= self.dimensions[i]
+        for i in range(3):
+            efficiency = 0.0
+            for ci in range(self.dimensions[i]):
+                efficiency += self.signature[0][ci]
+            print "Efficiency on axis %s is %0.3e" % (i, efficiency/ncells)
+
+    def __dealloc__(self):
+        cdef int i
+        for i in range(3):
+            free(self.signature[i])
+
+    def get_sig(self, int ax):
+        cdef np.ndarray[np.int64_t, ndim=1] trsig = np.empty(self.dimensions[ax], dtype='int64')
+        cdef int i
+        for i in range(self.dimensions[ax]):
+            trsig[i] = self.signature[ax][i]
+        return trsig
+
