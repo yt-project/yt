@@ -695,7 +695,8 @@ class DualEPS:
 def multiplot(ncol, nrow, yt_plots=None, images=None, xranges=None,
               yranges=None, xlabels=None, ylabels=None, colorbars=None,
               shrink_cb=0.95, figsize=(8,8), margins=(0,0), titles=None,
-              savefig=None, yt_nocbar=False, bare_axes=False):
+              savefig=None, yt_nocbar=False, bare_axes=False,
+              cb_flags=None):
     r"""Convenience routine to create a multi-panel figure from yt plots or
     JPEGs.  The images are first placed from the origin, and then
     bottom-to-top and left-to-right.
@@ -736,6 +737,8 @@ def multiplot(ncol, nrow, yt_plots=None, images=None, xranges=None,
     bare_axes : boolean
         Set to true to have no annotations or tick marks on all of the
         axes.
+    cb_flags : list of booleans
+        Flags for each plot to have a colorbar or not.
 
     Examples
     --------
@@ -835,6 +838,9 @@ def multiplot(ncol, nrow, yt_plots=None, images=None, xranges=None,
             xpos0 = i*(figsize[0] + margins[0])
             index = j*ncol + i
             if (not _yt and colorbars != None) or (_yt and not yt_nocbar):
+                if cb_flags != None:
+                    if cb_flags[index] == False:
+                        continue
                 if _yt or colorbars[index] != None:
                     if ncol == 1:
                         orientation = "right"
