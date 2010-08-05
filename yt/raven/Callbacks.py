@@ -308,14 +308,14 @@ class StreamlineCallback(PlotCallback):
                              plot.data['pdy'],
                              plot.data[self.field_x],
                              int(nx), int(ny),
-                           (x0, x1, y0, y1),).transpose()
+                           (x0, x1, y0, y1),)
         pixY = _MPL.Pixelize(plot.data['px'],
                              plot.data['py'],
                              plot.data['pdx'],
                              plot.data['pdy'],
                              plot.data[self.field_y],
                              int(nx), int(ny),
-                           (x0, x1, y0, y1),).transpose()
+                           (x0, x1, y0, y1),)
         r0 = na.mgrid[self.xstart[0]*nx:self.xstart[1]*nx:self.data_size[0]*1j,
                       self.ystart[0]*ny:self.ystart[1]*ny:self.data_size[1]*1j]
         lines = na.zeros((self.nsample, 2, self.data_size[0], self.data_size[1]))
