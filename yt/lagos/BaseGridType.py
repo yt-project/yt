@@ -60,7 +60,8 @@ class AMRGridPatch(object):
         if self.start_index != None:
             return self.start_index
         if self.Parent == None:
-            start_index = self.LeftEdge / self.dds
+            iLE = self.LeftEdge - self.pf["DomainLeftEdge"]
+            start_index = iLE / self.dds
             return na.rint(start_index).astype('int64').ravel()
         pdx = self.Parent.dds
         start_index = (self.Parent.get_global_startindex()) + \
