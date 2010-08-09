@@ -27,7 +27,7 @@ License:
 
 # Cython wrapping code for Oliver Hahn's RAMSES reader
 from cython.operator cimport dereference as deref, preincrement as inc
-from libc.stdlib cimport malloc, free, abs, calloc
+from libc.stdlib cimport malloc, free, abs, calloc, labs
 
 import numpy as np
 cimport numpy as np
@@ -614,12 +614,16 @@ cdef class ProtoSubgrid:
     cdef np.int64_t right_edge[3]
     cdef np.int64_t dimensions[3]
 
+        
+    #@cython.boundscheck(False)
+    #@cython.wraparound(False)
     def __cinit__(self, left_index, dimensions, 
-                  np.ndarray[np.int64_t, ndim=2] left_edges,
-                  np.ndarray[np.int64_t, ndim=2] right_edges,
-                  np.ndarray[np.int64_t, ndim=2] grid_dimensions):
+                   np.ndarray[np.int64_t, ndim=2] left_edges,
+                   np.ndarray[np.int64_t, ndim=2] right_edges,
+                   np.ndarray[np.int64_t, ndim=2] grid_dimensions):
         # This also includes the shrinking step.
         cdef int i, ci, ng = left_edges.shape[0]
+        cdef int l0, r0, l1, r1, l2, r2, i0, i1, i2
         cdef np.int64_t temp_l, temp_r, ncells
         cdef np.float64_t efficiency
         for i in range(3):
@@ -634,32 +638,62 @@ cdef class ProtoSubgrid:
             self.signature[i] = <np.int64_t *> \
                 malloc(self.dimensions[i] * sizeof(np.int64_t))
         for i in range(3):
-            for ci in range(self.dimensions[i]): self.signature[i][ci] = 0
-            # Calculate signature here, too
-            for gi in range(ng):
-                temp_l = i64max(0, left_edges[gi, i] - self.left_edge[i])
-                temp_r = left_edges[gi, i] - self.left_edge[i] \
-                       + grid_dimensions[gi,i]
-                temp_r = i64min(self.dimensions[i], temp_r)
-                # This is not strictly correct; we should be iterating over
-                # every single cell and determining if it's in the bounding
-                # box.
-                d2 = i64min(left_edges[gi,(i+1)%3] + grid_dimensions[gi, (i+1)%3],
-                         self.right_edge[(i+1)%3]) - left_edges[gi, (i+1)%3]
-                d2 = i64max(0, d2)
-                d3 = i64min(left_edges[gi,(i+2)%3] + grid_dimensions[gi, (i+2)%3],
-                         self.right_edge[(i+2)%3]) - left_edges[gi, (i+2)%3]
-                d3 = i64max(0, d3)
-                ncells = d2 * d3
-                for ci in range(temp_l, temp_r):
-                    self.signature[i][ci] += ncells
-        ncells = 1
-        for i in range(3): ncells *= self.dimensions[i]
-        for i in range(3):
-            efficiency = 0.0
-            for ci in range(self.dimensions[i]):
-                efficiency += self.signature[0][ci]
-            print "Efficiency on axis %s is %0.3e" % (i, efficiency/ncells)
+            for l0 in range(self.dimensions[i]): self.signature[i][l0] = 0
+        
+        # My guess is that this whole loop could be done more efficiently.
+        # However, this is clear and straightforward, so it is a good first
+        # pass.
+        efficiency = 0.0
+        for gi in range(ng):
+            nnn = 0
+            for l0 in range(grid_dimensions[gi, 0]):
+                i0 = left_edges[gi, 0] + l0
+                if i0 < self.left_edge[0]: continue
+                if i0 > self.right_edge[0]: break
+                for l1 in range(grid_dimensions[gi, 1]):
+                    i1 = left_edges[gi, 1] + l1
+                    if i1 < self.left_edge[1]: continue
+                    if i1 > self.right_edge[1]: break
+                    for l2 in range(grid_dimensions[gi, 2]):
+                        i2 = left_edges[gi, 2] + l2
+                        if i2 < self.left_edge[2]: continue
+                        if i2 > self.right_edge[2]: break
+                        i = i0 - self.left_edge[0]
+                        self.signature[0][i] += 1
+                        i = i1 - self.left_edge[1]
+                        self.signature[1][i] += 1
+                        i = i2 - self.left_edge[2]
+                        self.signature[2][i] += 1
+                        efficiency += 1
+         
+        for i in range(3): efficiency /= self.dimensions[i]
+        print "Efficiency is %0.3e" % (efficiency)
+
+    def find_split(self, int ax):
+        # First look for zeros
+        cdef int i, center
+        center = self.dimensions[i] / 2
+        cdef np.int64_t strength, zcstrength, zcp
+        for i in range(self.dimensions[ax]):
+            if self.signature[ax][i] == 0: return i
+        cdef np.int64_t *sig2d = <np.int64_t *> calloc(
+            sizeof(np.int64_t), self.dimensions[ax])
+        sig2d[0] = sig2d[self.dimensions[ax]-1] = 0
+        for i in range(1, self.dimensions[ax] - 1):
+            sig2d[i] = (self.signature[ax][i-1]
+                     -2*self.signature[ax][i  ]
+                     +  self.signature[ax][i+1])
+        zcstrength = 0
+        zcp = 0
+        for i in range(1, self.dimensions[ax] - 1):
+            if sig2d[i] * sig2d[i+1] <= 0:
+                strength = labs(sig2d[i] - sig2d[i+1])
+                if (strength > zcstrength) or \
+                   (strength == zcstrength and (abs(center - i) <
+                                                abs(center - zcp))):
+                    zcstrength = strength
+                    zcp = i
+        return zcp
 
     def __dealloc__(self):
         cdef int i
