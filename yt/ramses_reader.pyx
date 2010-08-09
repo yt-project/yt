@@ -613,76 +613,102 @@ cdef class ProtoSubgrid:
     cdef np.int64_t left_edge[3]
     cdef np.int64_t right_edge[3]
     cdef np.int64_t dimensions[3]
-
+    cdef np.float64_t efficiency
+    cdef public object sigs
         
     #@cython.boundscheck(False)
     #@cython.wraparound(False)
-    def __cinit__(self, left_index, dimensions, 
+    def __cinit__(self,
+                   np.ndarray[np.int64_t, ndim=1] left_index,
+                   np.ndarray[np.int64_t, ndim=1] dimensions, 
                    np.ndarray[np.int64_t, ndim=2] left_edges,
                    np.ndarray[np.int64_t, ndim=2] right_edges,
                    np.ndarray[np.int64_t, ndim=2] grid_dimensions):
         # This also includes the shrinking step.
         cdef int i, ci, ng = left_edges.shape[0]
+        cdef np.ndarray temp_arr
         cdef int l0, r0, l1, r1, l2, r2, i0, i1, i2
-        cdef np.int64_t temp_l, temp_r, ncells
+        cdef np.int64_t temp_l[3], temp_r[3], ncells
         cdef np.float64_t efficiency
+        self.sigs = []
         for i in range(3):
-            temp_l = left_index[i] + dimensions[i]
-            temp_r = left_index[i]
-            for gi in range(ng):
-                temp_l = i64min(left_edges[gi,i], temp_l)
-                temp_r = i64max(right_edges[gi,i], temp_r)
-            self.left_edge[i] = i64max(temp_l, left_index[i])
-            self.right_edge[i] = i64min(temp_r, left_index[i] + dimensions[i])
+            temp_l[i] = left_index[i] + dimensions[i]
+            temp_r[i] = left_index[i]
+            self.signature[i] = NULL
+        for gi in range(ng):
+            if left_edges[gi,0] > left_index[0]+dimensions[0] or \
+               right_edges[gi,0] < left_index[0] or \
+               left_edges[gi,1] > left_index[1]+dimensions[1] or \
+               right_edges[gi,1] < left_index[1] or \
+               left_edges[gi,2] > left_index[2]+dimensions[2] or \
+               right_edges[gi,2] < left_index[2]:
+               #print "Skipping grid", gi, "which lies outside out box"
+               continue
+            for i in range(3):
+                temp_l[i] = i64min(left_edges[gi,i], temp_l[i])
+                temp_r[i] = i64max(right_edges[gi,i], temp_r[i])
+        for i in range(3):
+            self.left_edge[i] = i64max(temp_l[i], left_index[i])
+            self.right_edge[i] = i64min(temp_r[i], left_index[i] + dimensions[i])
             self.dimensions[i] = self.right_edge[i] - self.left_edge[i]
-            self.signature[i] = <np.int64_t *> \
-                malloc(self.dimensions[i] * sizeof(np.int64_t))
-        for i in range(3):
-            for l0 in range(self.dimensions[i]): self.signature[i][l0] = 0
+            if self.dimensions[i] <= 0:
+                self.efficiency = -1.0
+                return
+            self.sigs.append(np.zeros(self.dimensions[i], 'int64'))
+        #print self.sigs[0].size, self.sigs[1].size, self.sigs[2].size
         
         # My guess is that this whole loop could be done more efficiently.
         # However, this is clear and straightforward, so it is a good first
         # pass.
+        cdef np.ndarray[np.int64_t, ndim=1] sig0, sig1, sig2
+        sig0 = self.sigs[0]
+        sig1 = self.sigs[1]
+        sig2 = self.sigs[2]
         efficiency = 0.0
         for gi in range(ng):
             nnn = 0
             for l0 in range(grid_dimensions[gi, 0]):
                 i0 = left_edges[gi, 0] + l0
                 if i0 < self.left_edge[0]: continue
-                if i0 > self.right_edge[0]: break
+                if i0 >= self.right_edge[0]: break
                 for l1 in range(grid_dimensions[gi, 1]):
                     i1 = left_edges[gi, 1] + l1
                     if i1 < self.left_edge[1]: continue
-                    if i1 > self.right_edge[1]: break
+                    if i1 >= self.right_edge[1]: break
                     for l2 in range(grid_dimensions[gi, 2]):
                         i2 = left_edges[gi, 2] + l2
                         if i2 < self.left_edge[2]: continue
-                        if i2 > self.right_edge[2]: break
+                        if i2 >= self.right_edge[2]: break
                         i = i0 - self.left_edge[0]
-                        self.signature[0][i] += 1
+                        sig0[i] += 1
                         i = i1 - self.left_edge[1]
-                        self.signature[1][i] += 1
+                        sig1[i] += 1
                         i = i2 - self.left_edge[2]
-                        self.signature[2][i] += 1
+                        sig2[i] += 1
                         efficiency += 1
          
         for i in range(3): efficiency /= self.dimensions[i]
-        print "Efficiency is %0.3e" % (efficiency)
+        #print "Efficiency is %0.3e" % (efficiency)
+        self.efficiency = efficiency
+
+    def get_efficiency(self):
+        return self.efficiency
 
     def find_split(self, int ax):
         # First look for zeros
         cdef int i, center
         center = self.dimensions[i] / 2
         cdef np.int64_t strength, zcstrength, zcp
+        cdef np.ndarray[np.int64_t] sig = self.sigs[ax]
         for i in range(self.dimensions[ax]):
-            if self.signature[ax][i] == 0: return i
+            if sig[i] == 0:
+                #print "zero: %s (%s)" % (i, self.dimensions[ax])
+                return i
         cdef np.int64_t *sig2d = <np.int64_t *> calloc(
             sizeof(np.int64_t), self.dimensions[ax])
         sig2d[0] = sig2d[self.dimensions[ax]-1] = 0
         for i in range(1, self.dimensions[ax] - 1):
-            sig2d[i] = (self.signature[ax][i-1]
-                     -2*self.signature[ax][i  ]
-                     +  self.signature[ax][i+1])
+            sig2d[i] = (sig[i-1] - 2*sig[i] + sig[i+1])
         zcstrength = 0
         zcp = 0
         for i in range(1, self.dimensions[ax] - 1):
@@ -693,17 +719,14 @@ cdef class ProtoSubgrid:
                                                 abs(center - zcp))):
                     zcstrength = strength
                     zcp = i
+        #print "zcp: %s (%s)" % (zcp, self.dimensions[ax])
         return zcp
 
-    def __dealloc__(self):
+    def get_properties(self):
+        cdef np.ndarray[np.int64_t, ndim=2] tr = np.empty((3,3), dtype='int64')
         cdef int i
         for i in range(3):
-            free(self.signature[i])
-
-    def get_sig(self, int ax):
-        cdef np.ndarray[np.int64_t, ndim=1] trsig = np.empty(self.dimensions[ax], dtype='int64')
-        cdef int i
-        for i in range(self.dimensions[ax]):
-            trsig[i] = self.signature[ax][i]
-        return trsig
-
+            tr[0,i] = self.left_edge[i]
+            tr[1,i] = self.right_edge[i]
+            tr[2,i] = self.dimensions[i]
+        return tr
