@@ -8,10 +8,15 @@ Developers:                     Matthew Turk (matthewturk@gmail.com)
                                 Devin Silvia (devin.silvia@gmail.com)
                                 John Wise (jwise@astro.princeton.edu)
                                 David Collins (dcollins@physics.ucsd.edu)
+                                Christopher Moody (cemoody@ucsc.edu)
+                                Oliver Hahn (ohahn@stanford.edu)
+                                John ZuHone (jzuhone@cfa.harvard.edu)
 
 We also include the Delaunay Triangulation module written by Robert Kern of
 Enthought, the cmdln.py module by Trent Mick, and the progressbar module by
 Nilton Volpato.  The PasteBin interface code (as well as the PasteBin itself)
-was written by the Pocoo collective (pocoo.org).
+was written by the Pocoo collective (pocoo.org).  The RamsesRead++ library was
+developed by Oliver Hahn.  Large parts of this code were guided by discussions
+with Tom Abel, Ralf Kaehler, Mike Norman and Greg Bryan.
 
 Thanks to everyone for all your contributions!
