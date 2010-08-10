@@ -316,6 +316,8 @@ class DualEPS:
         >>> d.save_fig()
         """
         image = pyx.bitmap.jpegimage(filename)
+        if self.canvas is None:
+            self.canvas = pyx.canvas.canvas()
         self.canvas.insert(pyx.bitmap.bitmap(pos[0], pos[1], image,
                                              compressmode=None,
                                              width=self.figsize[0],
@@ -750,7 +752,8 @@ def multiplot(ncol, nrow, yt_plots=None, images=None, xranges=None,
     >>> cbs.append(return_cmap("hot", r"Entropy [K cm$^2$]", (1e-2,1e6), True))
     >>> cbs.append(return_cmap("Spectral", "Stuff$_x$!", (1,300), True))
     >>> 
-    >>> mp = multiplot(images,2,2, margins=(0.1,0.1), titles=["1","2","3","4"],
+    >>> mp = multiplot(2,2, images=images, margins=(0.1,0.1),
+    >>>                titles=["1","2","3","4"],
     >>>                xlabels=["one","two"], ylabels=None, colorbars=cbs,
     >>>                shrink_cb=0.95)
     >>> mp.scale_line(label="$r_{vir}$", labelloc="top")
@@ -774,6 +777,8 @@ def multiplot(ncol, nrow, yt_plots=None, images=None, xranges=None,
         print "Given both images and yt plots.  Ignoring images."
     if yt_plots != None:
         _yt = True
+    else:
+        _yt = False
 
     # If no ranges or labels given and given only images, fill them in.
     if not _yt:
@@ -823,7 +828,7 @@ def multiplot(ncol, nrow, yt_plots=None, images=None, xranges=None,
             if titles != None:
                 if titles[index] != None:
                     d.title_box(titles[index],
-                                loc=(i+0.02+i*margins[0]/figsize[0],
+                                loc=(i+0.05+i*margins[0]/figsize[0],
                                      j+0.98+j*margins[1]/figsize[1]))
 
     # Insert colorbars after all axes are placed because we want to
