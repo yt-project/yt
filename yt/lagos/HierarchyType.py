@@ -1561,6 +1561,7 @@ class RAMSESHierarchy(AMRHierarchy):
                         child_masks[i,:])
               for i in xrange(self.num_grids)]
         self.grids = na.array(gs, dtype='object')
+        self.grid_file_locations = grid_file_locations
 
     def _populate_grid_objects(self):
         for gi,g in enumerate(self.grids):

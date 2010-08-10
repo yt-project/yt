@@ -596,18 +596,6 @@ cdef class RAMSES_tree_proxy:
             data[i] = local_hydro_data.m_var_array[level][8*grid_id+i]
         return tr
 
-def identify_new_subgrids_by_signature(
-        np.ndarray[np.int64_t, ndim=2] left_edges,  # In integer indices
-        np.ndarray[np.int64_t, ndim=2] right_edges, # In integer indices
-        np.ndarray[np.int64_t, ndim=2] grid_dimensions):
-    # We operate slightly differently than Enzo does.  We can't afford to store
-    # all the flagging fields in memory; so, we operate only on 1D signatures.
-    # So, we have a list of grids that we want to cluster, and then we pass
-    # that around and determine which grids are appropriate.
-    # We start with a proto subgrid that contains the entire domain.
-    #cdef ProtoSubgrid *psg = ProtoSubgrid()
-    pass
-
 cdef class ProtoSubgrid:
     cdef np.int64_t *signature[3]
     cdef np.int64_t left_edge[3]
@@ -615,6 +603,7 @@ cdef class ProtoSubgrid:
     cdef np.int64_t dimensions[3]
     cdef np.float64_t efficiency
     cdef public object sigs
+    cdef public object grid_file_locations
         
     #@cython.boundscheck(False)
     #@cython.wraparound(False)
@@ -623,7 +612,8 @@ cdef class ProtoSubgrid:
                    np.ndarray[np.int64_t, ndim=1] dimensions, 
                    np.ndarray[np.int64_t, ndim=2] left_edges,
                    np.ndarray[np.int64_t, ndim=2] right_edges,
-                   np.ndarray[np.int64_t, ndim=2] grid_dimensions):
+                   np.ndarray[np.int64_t, ndim=2] grid_dimensions,
+                   np.ndarray[np.int64_t, ndim=2] grid_file_locations):
         # This also includes the shrinking step.
         cdef int i, ci, ng = left_edges.shape[0]
         cdef np.ndarray temp_arr
@@ -665,7 +655,10 @@ cdef class ProtoSubgrid:
         sig1 = self.sigs[1]
         sig2 = self.sigs[2]
         efficiency = 0.0
+        cdef int used
+        self.grid_file_locations = []
         for gi in range(ng):
+            used = 0
             nnn = 0
             for l0 in range(grid_dimensions[gi, 0]):
                 i0 = left_edges[gi, 0] + l0
@@ -686,6 +679,9 @@ cdef class ProtoSubgrid:
                         i = i2 - self.left_edge[2]
                         sig2[i] += 1
                         efficiency += 1
+                        used = 1
+            if used == 1:
+                self.grid_file_locations.append(grid_file_locations[gi,:])
          
         for i in range(3): efficiency /= self.dimensions[i]
         #print "Efficiency is %0.3e" % (efficiency)
