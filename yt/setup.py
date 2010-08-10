@@ -76,11 +76,9 @@ def configuration(parent_package='', top_path=None):
         include_dirs=["yt/_amr_utils/", png_inc],
         library_dirs=[png_lib],
         libraries=["m", "png"])
-    RAMSES_READER = check_for_ramses()
-    if RAMSES_READER is not None:
-        config.add_extension("ramses_reader",
-            ["ramses_reader.cpp"],
-            include_dirs=[RAMSES_READER])
+    config.add_extension("ramses_reader",
+        ["yt/ramses_reader.cpp"],
+        include_dirs=["yt/ramses_headers/"])
     config.make_config_py()
     config.make_svn_version_py()
     return config
