@@ -32,7 +32,7 @@ import halo_profiler as HP
 import lightcone as LC
 import SpectralIntegrator as SI
 import RayTracer as RT
-import EnzoSimulation as ES
+import enzo_simulation as ES
 
 import HierarchySubset
 import disk_analysis
