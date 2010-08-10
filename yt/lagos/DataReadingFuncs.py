@@ -25,6 +25,7 @@ License:
 from yt.lagos import *
 import yt.amr_utils as au
 import exceptions
+import cPickle
 
 _axis_ids = {0:2,1:1,2:0}
 
@@ -426,10 +427,27 @@ class IOHandlerPacked1D(IOHandlerPackedHDF5):
         return t
 
 class IOHandlerGadget(BaseIOHandler):
-    _data_style = 'gadget_binary'
+    _data_style = 'gadget_hdf5'
     def _read_data_set(self, grid, field):
-        return grid._storage[field]
+        adr = grid.Address
+        fh = h5py.File(grid.filename,mode='r')
+        if 'particles' in fh[adr].keys():
+            adr2 = adr+'/particles'
+            return fh[adr2][field]
+        return None
+    def _read_field_names(self,grid): 
+        adr = grid.Address
+        fh = h5py.File(grid.filename,mode='r')
+        rets = cPickle.loads(fh['/root'].attrs['fieldnames'])
+        return rets
 
+    def _read_data_slice(self,grid, field, axis, coord):
+        adr = grid.Address
+        fh = h5py.File(grid.filename,mode='r')
+        if 'particles' in fh[adr].keys():
+            adr2 = adr+'/particles'
+            return fh[adr2][field][coord,axis]
+        return None
 #
 # Chombo readers
 #
@@ -517,20 +535,3 @@ class IOHandlerFLASH(BaseIOHandler):
         f = h5py.File(grid.pf.parameter_filename, "r")
         tr = f["/%s" % field][grid.id - grid._id_offset].transpose()[sl]
         return tr.astype("float64")
-
-class IOHandlerRAMSES(BaseIOHandler):
-    _data_style = "ramses"
-
-    def __init__(self, ramses_tree, *args, **kwargs):
-        self.ramses_tree = ramses_tree
-        BaseIOHandler.__init__(self, *args, **kwargs)
-
-    def _read_data_set(self, grid, field):
-        d = self.ramses_tree.read_grid(field, grid.Level, grid.domain,
-                grid.grid_offset)
-        return d
-
-    def _read_data_slice(self, grid, field, axis, coord):
-        sl = [slice(None), slice(None), slice(None)]
-        sl[axis] = slice(coord, coord + 1)
-        return self._read_data_set(grid, field)[sl]
