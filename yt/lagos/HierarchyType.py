@@ -1558,7 +1558,7 @@ class RAMSESHierarchy(AMRHierarchy):
             ogrid_left_edge, ogrid_right_edge,
             ogrid_levels, ogrid_file_locations, ochild_masks)
         # We now have enough information to run the patch coalescing 
-        self.proto_grids = {}
+        self.proto_grids = []
         for level in xrange(len(level_info)):
             if level_info[level] == 0: continue
             ggi = (ogrid_levels == level).ravel()
@@ -1572,15 +1572,15 @@ class RAMSESHierarchy(AMRHierarchy):
             #if level == 6: raise RuntimeError
             psg = ramses_reader.ProtoSubgrid(initial_left, idims,
                             left_index, right_index, dims, fl)
-            self.proto_grids[level] = self._recursive_patch_splitting(
+            self.proto_grids.append(self._recursive_patch_splitting(
                     psg, idims, initial_left, 0,
-                    left_index, right_index, dims, fl)
+                    left_index, right_index, dims, fl))
             sums = na.zeros(3, dtype='int64')
             if len(self.proto_grids[level]) == 1: continue
             for g in self.proto_grids[level]:
                 sums += [s.sum() for s in g.sigs]
             assert(na.all(sums == dims.prod(axis=1).sum()))
-        raise RuntimeError
+        self.num_grids = sum(len(l) for l in self.proto_grids)
 
     def _recursive_patch_splitting(self, psg, dims, ind, ax,
             left_index, right_index, gdims, fl):
@@ -1620,16 +1620,20 @@ class RAMSESHierarchy(AMRHierarchy):
         return L + R
         
     def _parse_hierarchy(self):
-        ggi = 0
-        gs = []
-        gs = [self.grid(i, self, self.grid_levels[i,0],
-                        grid_file_locations[i,0],
-                        grid_file_locations[i,1],
-                        grid_file_locations[i,2],
-                        child_masks[i,:])
-              for i in xrange(self.num_grids)]
-        self.grids = na.array(gs, dtype='object')
-        self.grid_file_locations = grid_file_locations
+        # We have important work to do
+        grids = []
+        gi = 0
+        for level, grid_list in enumerate(self.proto_grids):
+            for g in grid_list:
+                fl = g.grid_file_locations
+                props = g.get_properties()
+                self.grid_left_edge[gi,:] = props[0,:] / (2.0**(level+1))
+                self.grid_right_edge[gi,:] = props[1,:] / (2.0**(level+1))
+                self.grid_dimensions[gi,:] = props[2,:]
+                self.grid_levels[gi,:] = level
+                grids.append(self.grid(gi, self, level, fl))
+                gi += 1
+        self.grids = na.array(grids, dtype='object')
 
     def _populate_grid_objects(self):
         for gi,g in enumerate(self.grids):
