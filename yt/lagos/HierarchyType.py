@@ -33,6 +33,14 @@ try:
 except ImportError:
     mylog.warning("Ramses Reader not imported")
 
+def num_deep_inc(f):
+    def wrap(self, *args, **kwargs):
+        self.num_deep += 1
+        rv = f(self, *args, **kwargs)
+        self.num_deep -= 1
+        return rv
+    return wrap
+
 class AMRHierarchy(ObjectFindingMixin, ParallelAnalysisInterface):
     float_type = 'float64'
 
@@ -1573,7 +1581,7 @@ class RAMSESHierarchy(AMRHierarchy):
             psg = ramses_reader.ProtoSubgrid(initial_left, idims,
                             left_index, right_index, dims, fl)
             self.proto_grids.append(self._recursive_patch_splitting(
-                    psg, idims, initial_left, 0,
+                    psg, idims, initial_left, 
                     left_index, right_index, dims, fl))
             sums = na.zeros(3, dtype='int64')
             if len(self.proto_grids[level]) == 1: continue
@@ -1582,24 +1590,28 @@ class RAMSESHierarchy(AMRHierarchy):
             assert(na.all(sums == dims.prod(axis=1).sum()))
         self.num_grids = sum(len(l) for l in self.proto_grids)
 
-    def _recursive_patch_splitting(self, psg, dims, ind, ax,
+    #num_deep = 0
+
+    #@num_deep_inc
+    def _recursive_patch_splitting(self, psg, dims, ind,
             left_index, right_index, gdims, fl):
         min_eff = 0.2 # This isn't always respected.
         if psg.efficiency > min_eff or psg.efficiency < 0.0:
             return [psg]
-        fp = psg.find_split(ax)
+        tt, ax, fp = psg.find_split()
+        #print " " * self.num_deep + "Got ax", ax, "fp", fp
         dims_l = dims.copy()
         dims_l[ax] = fp
         li_l = ind.copy()
         if na.any(dims_l <= 0): return [psg]
         L = ramses_reader.ProtoSubgrid(
                 li_l, dims_l, left_index, right_index, gdims, fl)
+        #print " " * self.num_deep + "L", tt, L.efficiency
         if L.efficiency > 1.0: raise RuntimeError
         if L.efficiency <= 0.0: L = []
         elif L.efficiency < min_eff:
-            new_axes = na.argsort([s.size for s in L.sigs])[-1]
             L = self._recursive_patch_splitting(L, dims_l, li_l,
-                    new_axes, left_index, right_index, gdims, fl)
+                    left_index, right_index, gdims, fl)
         else:
             L = [L]
         dims_r = dims.copy()
@@ -1609,12 +1621,12 @@ class RAMSESHierarchy(AMRHierarchy):
         if na.any(dims_r <= 0): return [psg]
         R = ramses_reader.ProtoSubgrid(
                 li_r, dims_r, left_index, right_index, gdims, fl)
+        #print " " * self.num_deep + "R", tt, R.efficiency
         if R.efficiency > 1.0: raise RuntimeError
         if R.efficiency <= 0.0: R = []
         elif R.efficiency < min_eff:
-            new_axes = na.argsort([s.size for s in R.sigs])[-1]
             R = self._recursive_patch_splitting(R, dims_r, li_r,
-                    new_axes, left_index, right_index, gdims, fl)
+                    left_index, right_index, gdims, fl)
         else:
             R = [R]
         return L + R

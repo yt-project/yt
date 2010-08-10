@@ -604,6 +604,7 @@ cdef class ProtoSubgrid:
     cdef public np.float64_t efficiency
     cdef public object sigs
     cdef public object grid_file_locations
+    cdef public object dd
         
     #@cython.boundscheck(False)
     #@cython.wraparound(False)
@@ -683,37 +684,52 @@ cdef class ProtoSubgrid:
             if used == 1:
                 self.grid_file_locations.append(grid_file_locations[gi,:])
          
-        for i in range(3): efficiency /= self.dimensions[i]
+        self.dd = np.ones(3, dtype='int64')
+        for i in range(3):
+            efficiency /= self.dimensions[i]
+            self.dd[i] = self.dimensions[i]
         #print "Efficiency is %0.3e" % (efficiency)
         self.efficiency = efficiency
 
-    def find_split(self, int ax):
+    def find_split(self):
         # First look for zeros
-        cdef int i, center
-        center = self.dimensions[i] / 2
+        cdef int i, center, ax
+        cdef np.ndarray[ndim=1, dtype=np.int64_t] axes
         cdef np.int64_t strength, zcstrength, zcp
-        cdef np.ndarray[np.int64_t] sig = self.sigs[ax]
-        for i in range(self.dimensions[ax]):
-            if sig[i] == 0:
-                #print "zero: %s (%s)" % (i, self.dimensions[ax])
-                return i
-        cdef np.int64_t *sig2d = <np.int64_t *> calloc(
-            sizeof(np.int64_t), self.dimensions[ax])
-        sig2d[0] = sig2d[self.dimensions[ax]-1] = 0
-        for i in range(1, self.dimensions[ax] - 1):
-            sig2d[i] = (sig[i-1] - 2*sig[i] + sig[i+1])
+        axes = np.argsort(self.dd)[::-1]
+        cdef np.ndarray[np.int64_t] sig
+        for axi in range(3):
+            ax = axes[axi]
+            center = self.dimensions[ax] / 2
+            sig = self.sigs[ax]
+            for i in range(self.dimensions[ax]):
+                if sig[i] == 0 and i > 0 and i < self.dimensions[ax] - 1:
+                    #print "zero: %s (%s)" % (i, self.dimensions[ax])
+                    return 'zs', ax, i
         zcstrength = 0
         zcp = 0
-        for i in range(1, self.dimensions[ax] - 1):
-            if sig2d[i] * sig2d[i+1] <= 0:
-                strength = labs(sig2d[i] - sig2d[i+1])
-                if (strength > zcstrength) or \
-                   (strength == zcstrength and (abs(center - i) <
-                                                abs(center - zcp))):
-                    zcstrength = strength
-                    zcp = i
+        zca = -1
+        cdef int temp
+        cdef np.int64_t *sig2d
+        for axi in range(3):
+            ax = axes[axi]
+            sig = self.sigs[ax]
+            sig2d = <np.int64_t *> malloc(sizeof(np.int64_t) * self.dimensions[ax])
+            sig2d[0] = sig2d[self.dimensions[ax]-1] = 0
+            for i in range(1, self.dimensions[ax] - 1):
+                sig2d[i] = sig[i-1] - 2*sig[i] + sig[i+1]
+            for i in range(1, self.dimensions[ax] - 1):
+                if sig2d[i] * sig2d[i+1] <= 0:
+                    strength = labs(sig2d[i] - sig2d[i+1])
+                    if (strength > zcstrength) or \
+                       (strength == zcstrength and (abs(center - i) <
+                                                    abs(center - zcp))):
+                        zcstrength = strength
+                        zcp = i
+                        zca = ax
+            free(sig2d)
         #print "zcp: %s (%s)" % (zcp, self.dimensions[ax])
-        return zcp
+        return 'zc', ax, zcp
 
     def get_properties(self):
         cdef np.ndarray[np.int64_t, ndim=2] tr = np.empty((3,3), dtype='int64')
