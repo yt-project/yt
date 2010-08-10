@@ -1570,7 +1570,7 @@ class RAMSESHierarchy(AMRHierarchy):
         for level in xrange(len(level_info)):
             if level_info[level] == 0: continue
             ggi = (ogrid_levels == level).ravel()
-            left_index = ((ogrid_left_edge[ggi,:]) * (2.0**(level+1))).astype('int64')
+            left_index = na.rint((ogrid_left_edge[ggi,:]) * (2.0**(level+1))).astype('int64')
             right_index = left_index + 2
             dims = na.ones((ggi.sum(), 3), dtype='int64') * 2
             fl = ogrid_file_locations[ggi,:]
@@ -1599,6 +1599,11 @@ class RAMSESHierarchy(AMRHierarchy):
         if psg.efficiency > min_eff or psg.efficiency < 0.0:
             return [psg]
         tt, ax, fp = psg.find_split()
+        if (fp % 2) != 0:
+            if dims[ax] != fp + 1:
+                fp += 1
+            else:
+                fp -= 1
         #print " " * self.num_deep + "Got ax", ax, "fp", fp
         dims_l = dims.copy()
         dims_l[ax] = fp
@@ -1643,14 +1648,25 @@ class RAMSESHierarchy(AMRHierarchy):
                 self.grid_right_edge[gi,:] = props[1,:] / (2.0**(level+1))
                 self.grid_dimensions[gi,:] = props[2,:]
                 self.grid_levels[gi,:] = level
-                grids.append(self.grid(gi, self, level, fl))
+                grids.append(self.grid(gi, self, level, fl, props[0,:]))
                 gi += 1
         self.grids = na.array(grids, dtype='object')
 
+    def _get_grid_parents(self, grid, LE, RE):
+        mask = na.zeros(self.num_grids, dtype='bool')
+        grids, grid_ind = self.get_box_grids(LE, RE)
+        mask[grid_ind] = True
+        mask = na.logical_and(mask, (self.grid_levels == (grid.Level-1)).flat)
+        return self.grids[mask]
+
     def _populate_grid_objects(self):
         for gi,g in enumerate(self.grids):
-            if g.Parent is not None:
-                g.Parent._children_ids.append(gi)
+            parents = self._get_grid_parents(g,
+                            self.grid_left_edge[gi,:],
+                            self.grid_right_edge[gi,:])
+            if len(parents) > 0:
+                g.Parent.extend(parents.tolist())
+                for p in parents: p.Children.append(g)
             g._prepare_grid()
             g._setup_dx()
         self.max_level = self.grid_levels.max()

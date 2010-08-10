@@ -722,27 +722,44 @@ class FLASHGrid(AMRGridPatch):
 class RAMSESGrid(AMRGridPatch):
     _id_offset = 0
     #__slots__ = ["_level_id", "stop_index"]
-    def __init__(self, id, hierarchy, level, locations):
+    def __init__(self, id, hierarchy, level, locations, start_index):
         AMRGridPatch.__init__(self, id, filename = hierarchy.hierarchy_filename,
                               hierarchy = hierarchy)
         self.Level = level
-        self._parent_id = -1
-        self._children_ids = []
-        #self._child_mask = cm.reshape((2,2,2), order="F")
+        self.Parent = []
+        self.Children = []
         self.locations = locations
+        self.start_index = start_index.copy()
 
-    def _del_child_mask(self):
-        return
+    def _setup_dx(self):
+        # So first we figure out what the index is.  We don't assume
+        # that dx=dy=dz , at least here.  We probably do elsewhere.
+        id = self.id - self._id_offset
+        if len(self.Parent) > 0:
+            self.dds = self.Parent[0].dds / self.pf["RefineBy"]
+        else:
+            LE, RE = self.hierarchy.grid_left_edge[id,:], \
+                     self.hierarchy.grid_right_edge[id,:]
+            self.dds = na.array((RE-LE)/self.ActiveDimensions)
+        if self.pf["TopGridRank"] < 2: self.dds[1] = 1.0
+        if self.pf["TopGridRank"] < 3: self.dds[2] = 1.0
+        self.data['dx'], self.data['dy'], self.data['dz'] = self.dds
 
-    @property
-    def Parent(self):
-        if self._parent_id == -1: return None
-        return self.hierarchy.grids[self._parent_id - self._id_offset]
-
-    @property
-    def Children(self):
-        return [self.hierarchy.grids[cid - self._id_offset]
-                for cid in self._children_ids]
+    def get_global_startindex(self):
+        """
+        Return the integer starting index for each dimension at the current
+        level.
+        """
+        if self.start_index != None:
+            return self.start_index
+        if len(self.Parent) == 0:
+            start_index = self.LeftEdge / self.dds
+            return na.rint(start_index).astype('int64').ravel()
+        pdx = self.Parent[0].dds
+        start_index = (self.Parent[0].get_global_startindex()) + \
+                       na.rint((self.LeftEdge - self.Parent[0].LeftEdge)/pdx)
+        self.start_index = (start_index*self.pf["RefineBy"]).astype('int64').ravel()
+        return self.start_index
 
     def __repr__(self):
         return "RAMSESGrid_%04i (%s)" % (self.id, self.ActiveDimensions)
