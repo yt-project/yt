@@ -1,0 +1,9 @@
+These are Header Files written by Oliver Hahn for reading RAMSES data.  They do
+not need to be installed, as they full contain the entire RamsesRead++ library.
+
+The library may also be downloaded independently from:
+
+  http://www.exp-astro.phys.ethz.ch/hahn/RamsesTools/
+
+Author: Oliver Hahn <ohahn@stanford.edu>
+Minor Modifications: Matthew Turk <matthewturk@gmail.com>
