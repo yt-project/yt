@@ -601,7 +601,7 @@ cdef class ProtoSubgrid:
     cdef np.int64_t left_edge[3]
     cdef np.int64_t right_edge[3]
     cdef np.int64_t dimensions[3]
-    cdef np.float64_t efficiency
+    cdef public np.float64_t efficiency
     cdef public object sigs
     cdef public object grid_file_locations
         
@@ -686,9 +686,6 @@ cdef class ProtoSubgrid:
         for i in range(3): efficiency /= self.dimensions[i]
         #print "Efficiency is %0.3e" % (efficiency)
         self.efficiency = efficiency
-
-    def get_efficiency(self):
-        return self.efficiency
 
     def find_split(self, int ax):
         # First look for zeros
