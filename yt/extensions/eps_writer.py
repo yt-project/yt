@@ -316,6 +316,8 @@ class DualEPS:
         >>> d.save_fig()
         """
         image = pyx.bitmap.jpegimage(filename)
+        if self.canvas is None:
+            self.canvas = pyx.canvas.canvas()
         self.canvas.insert(pyx.bitmap.bitmap(pos[0], pos[1], image,
                                              compressmode=None,
                                              width=self.figsize[0],
@@ -695,7 +697,8 @@ class DualEPS:
 def multiplot(ncol, nrow, yt_plots=None, images=None, xranges=None,
               yranges=None, xlabels=None, ylabels=None, colorbars=None,
               shrink_cb=0.95, figsize=(8,8), margins=(0,0), titles=None,
-              savefig=None, yt_nocbar=False, bare_axes=False):
+              savefig=None, yt_nocbar=False, bare_axes=False,
+              cb_flags=None):
     r"""Convenience routine to create a multi-panel figure from yt plots or
     JPEGs.  The images are first placed from the origin, and then
     bottom-to-top and left-to-right.
@@ -736,6 +739,8 @@ def multiplot(ncol, nrow, yt_plots=None, images=None, xranges=None,
     bare_axes : boolean
         Set to true to have no annotations or tick marks on all of the
         axes.
+    cb_flags : list of booleans
+        Flags for each plot to have a colorbar or not.
 
     Examples
     --------
@@ -747,7 +752,8 @@ def multiplot(ncol, nrow, yt_plots=None, images=None, xranges=None,
     >>> cbs.append(return_cmap("hot", r"Entropy [K cm$^2$]", (1e-2,1e6), True))
     >>> cbs.append(return_cmap("Spectral", "Stuff$_x$!", (1,300), True))
     >>> 
-    >>> mp = multiplot(images,2,2, margins=(0.1,0.1), titles=["1","2","3","4"],
+    >>> mp = multiplot(2,2, images=images, margins=(0.1,0.1),
+    >>>                titles=["1","2","3","4"],
     >>>                xlabels=["one","two"], ylabels=None, colorbars=cbs,
     >>>                shrink_cb=0.95)
     >>> mp.scale_line(label="$r_{vir}$", labelloc="top")
@@ -771,6 +777,8 @@ def multiplot(ncol, nrow, yt_plots=None, images=None, xranges=None,
         print "Given both images and yt plots.  Ignoring images."
     if yt_plots != None:
         _yt = True
+    else:
+        _yt = False
 
     # If no ranges or labels given and given only images, fill them in.
     if not _yt:
@@ -820,7 +828,7 @@ def multiplot(ncol, nrow, yt_plots=None, images=None, xranges=None,
             if titles != None:
                 if titles[index] != None:
                     d.title_box(titles[index],
-                                loc=(i+0.02+i*margins[0]/figsize[0],
+                                loc=(i+0.05+i*margins[0]/figsize[0],
                                      j+0.98+j*margins[1]/figsize[1]))
 
     # Insert colorbars after all axes are placed because we want to
@@ -835,6 +843,9 @@ def multiplot(ncol, nrow, yt_plots=None, images=None, xranges=None,
             xpos0 = i*(figsize[0] + margins[0])
             index = j*ncol + i
             if (not _yt and colorbars != None) or (_yt and not yt_nocbar):
+                if cb_flags != None:
+                    if cb_flags[index] == False:
+                        continue
                 if _yt or colorbars[index] != None:
                     if ncol == 1:
                         orientation = "right"

@@ -106,9 +106,9 @@ cdef np.float64_t FIT_get_value(FieldInterpolationTable *fit,
     cdef np.float64_t bv, dy, dd, tf
     cdef int bin_id
     if fit.pass_through == 1: return dvs[fit.field_id]
+    if dvs[fit.field_id] > fit.bounds[1] or dvs[fit.field_id] < fit.bounds[0]: return 0.0
     bin_id = <int> ((dvs[fit.field_id] - fit.bounds[0]) * fit.idbin)
     dd = dvs[fit.field_id] - (fit.bounds[0] + bin_id * fit.dbin) # x - x0
-    if bin_id > fit.nbins - 2 or bin_id < 0: return 0.0
     bv = fit.values[bin_id]
     dy = fit.values[bin_id + 1] - bv
     if fit.weight_field_id != -1:
@@ -411,6 +411,12 @@ cdef class PartitionedGrid:
         for i in range(3):
             if (v_dir[i] < 0):
                 step[i] = -1
+            elif (v_dir[i] == 0):
+                step[i] = 1
+                tmax[i] = 1e60
+                iv_dir[i] = 1e60
+                tdelta[i] = 1e-60
+                continue
             else:
                 step[i] = 1
             x = (i+1) % 3

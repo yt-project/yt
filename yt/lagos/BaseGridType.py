@@ -60,7 +60,8 @@ class AMRGridPatch(object):
         if self.start_index != None:
             return self.start_index
         if self.Parent == None:
-            start_index = self.LeftEdge / self.dds
+            iLE = self.LeftEdge - self.pf["DomainLeftEdge"]
+            start_index = iLE / self.dds
             return na.rint(start_index).astype('int64').ravel()
         pdx = self.Parent.dds
         start_index = (self.Parent.get_global_startindex()) + \
@@ -580,79 +581,53 @@ class OrionGrid(AMRGridPatch):
     def __repr__(self):
         return "OrionGrid_%04i" % (self.id)
 
-class ProtoGadgetGrid(object):
-    def __init__(self, level, left_edge, right_edge, particles, parent = None):
-        # generate the left/right edge from the octant and the level argument
-        self.level = level
-        self.left_edge = left_edge
-        self.right_edge = right_edge
-        self.particles = particles
-        self.parent = parent # We break convention here -- this is a protogrid
-        self.children = []
-
-    def split(self):
-        #split_axis = (self.left_edge + self.right_edge) / 2.0
-        W = 0.5 * (self.right_edge - self.left_edge) # This is the half-width
-        keep = na.ones(self.particles.shape[1], dtype='bool')
-        for i in xrange(2):
-            for j in xrange(2):
-                for k in xrange(2):
-                    LE = self.left_edge.copy()
-                    LE += na.array([i, j, k], dtype='float64') * W
-                    RE = LE + W
-                    pi = self.select_particles(LE, RE)
-                    keep &= (~pi)
-                    g = ProtoGadgetGrid(self.level + 1, LE, RE,
-                                        self.particles[:,pi], self)
-                    self.children.append(g)
-                    yield g
-        self.particles = self.particles[:,keep]
-
-    def select_particles(self, LE, RE):
-        pi = na.all( (self.particles >= LE[:,None])
-                   & (self.particles <  RE[:,None]), axis=0)
-        return pi
-
-    def refine(self, npart = 128):
-        gs = [self]
-        if self.particles.shape[1] < npart: return gs
-        for grid in self.split():
-            gs += grid.refine(npart)
-        return gs
-
 class GadgetGrid(AMRGridPatch):
 
     _id_offset = 0
 
-    def __init__(self, id, hierarchy, proto_grid):
+    def __init__(self, id, filename, hierarchy, **kwargs):
         AMRGridPatch.__init__(self, id, hierarchy = hierarchy)
-        self.Children = []
-        if proto_grid.parent is None:
-            self.Parent = None
-        else:
-            self.Parent = proto_grid.parent.real_grid
-            self.Parent.Children.append(self)
-        self.Level = proto_grid.level
-        self.LeftEdge = proto_grid.left_edge
-        self.RightEdge = proto_grid.right_edge
-        self.NumberOfParticles = proto_grid.particles.shape[1]
-        self._storage = {}
-        self._storage['particle_position_x'] = proto_grid.particles[0,:]
-        self._storage['particle_position_y'] = proto_grid.particles[1,:]
-        self._storage['particle_position_z'] = proto_grid.particles[2,:]
-        # Something should be done here for the volume change as you go down
-        # the hierarchy...
-        self._storage['particle_mass'] = na.ones(self.NumberOfParticles,
-                                           dtype='float64') * (8 ** self.Level)
-        # Our dx is a bit fluid here, so we defer
-        dims = self.pf["TopGridDimensions"]
-        # Hard code to refineby 2
-        dds = 1.0 / (dims * 2**self.Level)
-        ad = na.rint((self.RightEdge - self.LeftEdge) / dds)
-        self.ActiveDimensions = ad.astype('int64')
+        self.id = id
+        self.filename = filename
+        self.Children = [] #grid objects
+        self.Parent = None
+        self.Level = 0
+        self.LeftEdge = [0,0,0]
+        self.RightEdge = [0,0,0]
+        self.IsLeaf = False
+        self.N = 0
+        self.Address = ''
+        self.NumberOfParticles = self.N
+        self.ActiveDimensions = [0,0,0]
+        self._id_offset = 0
+        
+        for key,val in kwargs.items():
+            if key in dir(self):
+                #if it's one of the predefined values
+                setattr(self,key,val)
+        
+    #def __repr__(self):
+    #    return "GadgetGrid_%04i" % (self.Address)
+    
+    def _prepare_grid(self):
+        #all of this info is already included in the snapshots
+        pass
+        #h = self.hierarchy
+        #h.grid_levels[self.Address,0]=self.Level
+        #h.grid_left_edge[self.Address,:]=self.LeftEdge[:]
+        #h.grid_right_edge[self.Address,:]=self.RightEdge[:]
+    
+    def _setup_dx(self):
+        # So first we figure out what the index is.  We don't assume
+        # that dx=dy=dz , at least here.  We probably do elsewhere.
+        id = self.id
+        LE, RE = self.hierarchy.grid_left_edge[id,:], \
+                     self.hierarchy.grid_right_edge[id,:]
+        self.dds = na.array((RE-LE)/self.ActiveDimensions)
+        if self.pf["TopGridRank"] < 2: self.dds[1] = 1.0
+        if self.pf["TopGridRank"] < 3: self.dds[2] = 1.0
+        self.data['dx'], self.data['dy'], self.data['dz'] = self.dds
 
-    def __repr__(self):
-        return "GadgetGrid_%04i" % (self.id)
 
 class ChomboGrid(AMRGridPatch):
     _id_offset = 0
@@ -705,3 +680,61 @@ class TigerGrid(AMRGridPatch):
     def __repr__(self):
         return "TigerGrid_%04i (%s)" % (self.id, self.ActiveDimensions)
 
+
+class FLASHGrid(AMRGridPatch):
+    _id_offset = 1
+    #__slots__ = ["_level_id", "stop_index"]
+    def __init__(self, id, hierarchy, level):
+        AMRGridPatch.__init__(self, id, filename = hierarchy.hierarchy_filename,
+                              hierarchy = hierarchy)
+        self.Parent = None
+        self.Children = []
+        self.Level = level
+
+    def __repr__(self):
+        return "FLASHGrid_%04i (%s)" % (self.id, self.ActiveDimensions)
+
+class RAMSESGrid(AMRGridPatch):
+    _id_offset = 0
+    #__slots__ = ["_level_id", "stop_index"]
+    def __init__(self, id, hierarchy, level, locations, start_index):
+        AMRGridPatch.__init__(self, id, filename = hierarchy.hierarchy_filename,
+                              hierarchy = hierarchy)
+        self.Level = level
+        self.Parent = []
+        self.Children = []
+        self.locations = locations
+        self.start_index = start_index.copy()
+
+    def _setup_dx(self):
+        # So first we figure out what the index is.  We don't assume
+        # that dx=dy=dz , at least here.  We probably do elsewhere.
+        id = self.id - self._id_offset
+        if len(self.Parent) > 0:
+            self.dds = self.Parent[0].dds / self.pf["RefineBy"]
+        else:
+            LE, RE = self.hierarchy.grid_left_edge[id,:], \
+                     self.hierarchy.grid_right_edge[id,:]
+            self.dds = na.array((RE-LE)/self.ActiveDimensions)
+        if self.pf["TopGridRank"] < 2: self.dds[1] = 1.0
+        if self.pf["TopGridRank"] < 3: self.dds[2] = 1.0
+        self.data['dx'], self.data['dy'], self.data['dz'] = self.dds
+
+    def get_global_startindex(self):
+        """
+        Return the integer starting index for each dimension at the current
+        level.
+        """
+        if self.start_index != None:
+            return self.start_index
+        if len(self.Parent) == 0:
+            start_index = self.LeftEdge / self.dds
+            return na.rint(start_index).astype('int64').ravel()
+        pdx = self.Parent[0].dds
+        start_index = (self.Parent[0].get_global_startindex()) + \
+                       na.rint((self.LeftEdge - self.Parent[0].LeftEdge)/pdx)
+        self.start_index = (start_index*self.pf["RefineBy"]).astype('int64').ravel()
+        return self.start_index
+
+    def __repr__(self):
+        return "RAMSESGrid_%04i (%s)" % (self.id, self.ActiveDimensions)

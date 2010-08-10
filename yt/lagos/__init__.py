@@ -76,6 +76,8 @@ from UniversalFields import *
 from EnzoFields import *
 from OrionFields import *
 from ChomboFields import *
+from FLASHFields import *
+from RAMSESFields import *
 fieldInfo = EnzoFieldInfo
 
 # NOT the same as fieldInfo.add_field

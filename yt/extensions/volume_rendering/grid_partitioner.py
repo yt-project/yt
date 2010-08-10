@@ -55,13 +55,17 @@ class HomogenizedVolume(ParallelAnalysisInterface):
         self.log_fields = log_fields
 
     def traverse(self, back_point, front_point):
+        mylog.info("Traversing %s bricks between %s and %s",
+                   len(self.bricks), back_point, front_point)
         if self.bricks is None: self.initialize_source()
         vec = front_point - back_point
         dist = na.minimum(
              na.sum((self.brick_left_edges - back_point) * vec, axis=1),
              na.sum((self.brick_right_edges - back_point) * vec, axis=1))
         ind = na.argsort(dist)
-        for b in self.bricks[ind]: yield b
+        for b in self.bricks[ind]:
+            #print b.LeftEdge, b.RightEdge
+            yield b
 
     def _partition_grid(self, grid):
 
@@ -100,6 +104,9 @@ class HomogenizedVolume(ParallelAnalysisInterface):
             bricks += self._partition_grid(g)
         pbar.finish()
         bricks = na.array(bricks, dtype='object')
+        self.initialize_bricks(bricks)
+
+    def initialize_bricks(self, bricks):
         NB = len(bricks)
         # Now we set up our (local for now) hierarchy.  Note that to calculate
         # intersection, we only need to do the left edge & right edge.
@@ -117,6 +124,23 @@ class HomogenizedVolume(ParallelAnalysisInterface):
         # Vertex-centered means we subtract one from the shape
         self.brick_dimensions -= 1
         self.bricks = na.array(bricks, dtype='object')
+
+    def reflect_across_boundaries(self):
+        mylog.warning("Note that this doesn't fix ghost zones, so there may be artifacts at domain boundaries!")
+        nb = []
+        # Simplest, clearest iteration ...
+        for i in [-1, 1]:
+            for j in [-1, 1]:
+                for k in [-1, 1]:
+                    for b in self.bricks:
+                        BB = na.array([b.LeftEdge * [i,j,k], b.RightEdge * [i,j,k]])
+                        LE, RE = na.min(BB, axis=0), na.max(BB, axis=0)
+                        nb.append(
+                            PartitionedGrid(b.parent_grid_id, len(b.my_data), 
+                                [md[::i,::j,::k].copy("C") for md in b.my_data],
+                                LE, RE, na.array(b.my_data[0].shape) - 1))
+        # Replace old bricks
+        self.initialize_bricks(nb)
 
     def store_bricks(self, fn):
         import h5py, cPickle
