@@ -1659,7 +1659,7 @@ class RAMSESHierarchy(AMRHierarchy):
         ogrid_left_edge = na.zeros((num_ogrids,3), dtype='float64')
         ogrid_right_edge = na.zeros((num_ogrids,3), dtype='float64')
         ogrid_levels = na.zeros((num_ogrids,1), dtype='int32')
-        ogrid_file_locations = na.zeros((num_ogrids,3), dtype='int64')
+        ogrid_file_locations = na.zeros((num_ogrids,6), dtype='int64')
         ochild_masks = na.zeros((num_ogrids, 8), dtype='int32')
         self.tree_proxy.fill_hierarchy_arrays(
             ogrid_left_edge, ogrid_right_edge,

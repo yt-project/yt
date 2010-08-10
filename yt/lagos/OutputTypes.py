@@ -935,6 +935,9 @@ class RAMSESStaticOutput(StaticOutput):
         self.parameters["RefineBy"] = 2
         self.parameters["HydroMethod"] = 'ramses'
         self.parameters["Time"] = 1. # default unit is 1...
+
+    def __repr__(self):
+        return self.basename.rsplit(".", 1)[0]
         
     def _set_units(self):
         """

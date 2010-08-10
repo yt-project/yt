@@ -554,7 +554,7 @@ cdef class RAMSES_tree_proxy:
                     grid_levels[grid_ind, 0] = ilevel
                     # Now the harder part
                     father_it = grid_it.get_parent()
-                    grid_file_locations[grid_ind, 0] = idomain
+                    grid_file_locations[grid_ind, 0] = <np.int64_t> idomain
                     grid_file_locations[grid_ind, 1] = grid_ind - level_cell_counts[ilevel]
                     parent_ind = father_it.get_absolute_position()
                     if ilevel > 0:
@@ -570,7 +570,7 @@ cdef class RAMSES_tree_proxy:
                     grid_it.next()
             del local_tree, local_hydro_data
 
-    def read_grid(self, char *field, int level, int domain, int grid_id):
+    def read_oct_grid(self, char *field, int level, int domain, int grid_id):
 
         self.ensure_loaded(field, domain - 1)
         cdef int varindex = self.field_ind[field]
@@ -595,6 +595,66 @@ cdef class RAMSES_tree_proxy:
         for i in range(8): 
             data[i] = local_hydro_data.m_var_array[level][8*grid_id+i]
         return tr
+
+    def read_grid(self, char *field, 
+                  np.ndarray[np.int64_t, ndim=1] start_index,
+                  np.ndarray[np.int32_t, ndim=1] grid_dims,
+                  np.ndarray[np.float64_t, ndim=3] data,
+                  np.ndarray[np.int32_t, ndim=3] filled,
+                  int level, int ref_factor,
+                  component_grid_info):
+        cdef int varindex = self.field_ind[field]
+        cdef RAMSES_tree *local_tree = NULL
+        cdef RAMSES_hydro_data *local_hydro_data = NULL
+
+        cdef int gi, i, j, k, domain, offset
+        cdef int ir, jr, kr
+        cdef int offi, offj, offk
+        cdef np.int64_t di, dj, dk
+        cdef np.ndarray[np.int64_t, ndim=1] ogrid_info
+        cdef np.ndarray[np.int64_t, ndim=1] og_start_index
+        cdef np.float64_t temp_data
+        cdef np.int64_t end_index[3]
+        cdef int to_fill = 0
+        # Note that indexing into a cell is:
+        #   (k*2 + j)*2 + i
+        for i in range(3):
+            end_index[i] = start_index[i] + grid_dims[i]
+        for gi in range(len(component_grid_info)):
+            ogrid_info = component_grid_info[gi]
+            domain = ogrid_info[0]
+            self.ensure_loaded(field, domain - 1)
+            local_tree = self.trees[domain - 1]
+            local_hydro_data = self.hydro_datas[domain - 1][varindex]
+            offset = ogrid_info[1]
+            og_start_index = ogrid_info[3:]
+            for i in range(2*ref_factor):
+                di = i + og_start_index[0] * ref_factor
+                if di < start_index[0] or di >= end_index[0]: continue
+                ir = <int> (i / ref_factor)
+                for j in range(2 * ref_factor):
+                    dj = j + og_start_index[1] * ref_factor
+                    if dj < start_index[1] or dj >= end_index[1]: continue
+                    jr = <int> (j / ref_factor)
+                    for k in range(2 * ref_factor):
+                        dk = k + og_start_index[2] * ref_factor
+                        if dk < start_index[2] or dk >= end_index[2]: continue
+                        kr = <int> (k / ref_factor)
+                        offi = di - start_index[0]
+                        offj = dj - start_index[1]
+                        offk = dk - start_index[2]
+                        #print offi, filled.shape[0],
+                        #print offj, filled.shape[1],
+                        #print offk, filled.shape[2]
+                        if filled[offi, offj, offk] == 1: continue
+
+                        odind = (kr*2 + jr)*2 + ir
+                        temp_data = local_hydro_data.m_var_array[
+                                level][8*offset + odind]
+                        data[offi, offj, offk] = temp_data
+                        filled[offi, offj, offk] = 1
+                        to_fill += 1
+        return to_fill
 
 cdef class ProtoSubgrid:
     cdef np.int64_t *signature[3]
@@ -682,6 +742,9 @@ cdef class ProtoSubgrid:
                         efficiency += 1
                         used = 1
             if used == 1:
+                grid_file_locations[gi,3] = left_edges[gi, 0]
+                grid_file_locations[gi,4] = left_edges[gi, 1]
+                grid_file_locations[gi,5] = left_edges[gi, 2]
                 self.grid_file_locations.append(grid_file_locations[gi,:])
          
         self.dd = np.ones(3, dtype='int64')

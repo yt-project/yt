@@ -31,3 +31,17 @@ RAMSESFieldInfo = RAMSESFieldContainer()
 add_ramses_field = RAMSESFieldInfo.add_field
 
 add_field = add_ramses_field
+
+translation_dict = {"Density":"density",
+                   }
+
+def _generate_translation(mine, theirs):
+    add_field(theirs, function=lambda a, b: b[mine], take_log=True)
+
+for f,v in translation_dict.items():
+    if v not in RAMSESFieldInfo:
+        add_field(v, function=lambda a,b: None, take_log=False,
+                  validators = [ValidateDataField(v)])
+    #print "Setting up translator from %s to %s" % (v, f)
+    _generate_translation(v, f)
+

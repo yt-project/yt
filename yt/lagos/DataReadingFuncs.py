@@ -544,9 +544,21 @@ class IOHandlerRAMSES(BaseIOHandler):
         BaseIOHandler.__init__(self, *args, **kwargs)
 
     def _read_data_set(self, grid, field):
-        d = self.ramses_tree.read_grid(field, grid.Level, grid.domain,
-                grid.grid_offset)
-        return d
+        tr = na.zeros(grid.ActiveDimensions, dtype='float64')
+        filled = na.zeros(grid.ActiveDimensions, dtype='int32')
+        to_fill = grid.ActiveDimensions.prod()
+        grids = [grid]
+        l_delta = 0
+        while to_fill > 0 and len(grids) > 0:
+            next_grids = []
+            for g in grids:
+                to_fill -= self.ramses_tree.read_grid(field,
+                        grid.get_global_startindex(), grid.ActiveDimensions,
+                        tr, filled, g.Level, 2**l_delta, g.locations)
+                next_grids += g.Parent
+            grids = next_grids
+            l_delta += 1
+        return tr
 
     def _read_data_slice(self, grid, field, axis, coord):
         sl = [slice(None), slice(None), slice(None)]
