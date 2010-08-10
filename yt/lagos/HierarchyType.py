@@ -25,8 +25,7 @@ License:
 
 from yt.lagos import *
 from yt.funcs import *
-import string, re, gc, time
-import cPickle
+import string, re, gc, time, cPickle, pdb
 from itertools import chain, izip
 try:
     import yt.ramses_reader as ramses_reader
@@ -1202,9 +1201,108 @@ class OrionLevel:
         self.ngrids = ngrids
         self.grids = []
     
-
 class GadgetHierarchy(AMRHierarchy):
+    grid = GadgetGrid
 
+    def __init__(self, pf, data_style='gadget_hdf5'):
+        self.field_info = GadgetFieldContainer()
+        self.directory = os.path.dirname(pf.parameter_filename)
+        self.data_style = data_style
+        self._handle = h5py.File(pf.parameter_filename)
+        AMRHierarchy.__init__(self, pf, data_style)
+        self._handle.close()
+
+    def _initialize_data_storage(self):
+        pass
+
+    def _detect_fields(self):
+        #example string:
+        #"(S'VEL'\np1\nS'ID'\np2\nS'MASS'\np3\ntp4\n."
+        #fields are surrounded with '
+        fields_string=self._handle['root'].attrs['names']
+        #splits=fields_string.split("'")
+        #pick out the odd fields
+        #fields= [splits[j] for j in range(1,len(splits),2)]
+        self.field_list = cPickle.loads(fields_string)
+    
+    def _setup_classes(self):
+        dd = self._get_data_reader_dict()
+        AMRHierarchy._setup_classes(self, dd)
+        self.object_types.sort()
+
+    def _count_grids(self):
+        fh = self._handle #shortcut
+        #nodes in the hdf5 file are the same as grids
+        #in yt
+        #the num of levels and total nodes is already saved
+        self._levels   = self.pf._get_param('maxlevel')
+        self.num_grids = self.pf._get_param('numnodes')
+        
+    def _parse_hierarchy(self):
+        #for every box, define a self.grid(level,edge1,edge2) 
+        #with particle counts, dimensions
+        f = self._handle #shortcut
+        
+        root = f['root']
+        grids,numnodes = self._walk_nodes(None,root,[])
+        dims = [self.pf.max_grid_size for grid in grids]
+        LE = [grid.LeftEdge for grid in grids]
+        RE = [grid.RightEdge for grid in grids]
+        levels = [grid.Level for grid in grids]
+        counts = [(grid.N if grid.IsLeaf else 0) for grid in grids]
+        self.grids = na.array(grids,dtype='object')
+        self.grid_dimensions[:] = na.array(dims, dtype='int64')
+        self.grid_left_edge[:] = na.array(LE, dtype='float64')
+        self.grid_right_edge[:] = na.array(RE, dtype='float64')
+        self.grid_levels.flat[:] = na.array(levels, dtype='int32')
+        self.grid_particle_count.flat[:] = na.array(counts, dtype='int32')
+            
+    def _walk_nodes(self,parent,node,grids,idx=0):
+        pi = cPickle.loads
+        loc = node.attrs['h5address']
+        
+        kwargs = {}
+        kwargs['Address'] = loc
+        kwargs['Children'] = [ch for ch in node.values()]
+        kwargs['Parent'] = parent
+        kwargs['Level']  = self.pf._get_param('level',location=loc)
+        kwargs['LeftEdge'] = self.pf._get_param('leftedge',location=loc) 
+        kwargs['RightEdge'] = self.pf._get_param('rightedge',location=loc)
+        kwargs['IsLeaf'] = self.pf._get_param('isleaf',location=loc)
+        kwargs['N'] = self.pf._get_param('n',location=loc)
+        kwargs['NumberOfParticles'] = self.pf._get_param('n',location=loc)
+        dx = self.pf._get_param('dx',location=loc)
+        dy = self.pf._get_param('dy',location=loc)
+        dz = self.pf._get_param('dz',location=loc)
+        kwargs['ActiveDimensions'] = (dx,dy,dz)
+        grid = self.grid(idx,self.pf.parameter_filename,self,**kwargs)
+        idx+=1
+        grids += [grid,]
+        #pdb.set_trace()
+        if kwargs['IsLeaf']:
+            return grids,idx
+        else:
+            for child in node.values():
+                grids,idx=self._walk_nodes(node,child,grids,idx=idx)
+        return grids,idx
+    
+    def _populate_grid_objects(self):
+        for g in self.grids:
+            g._prepare_grid()
+        self.max_level = self._handle['root'].attrs['maxlevel']
+    
+    def _setup_unknown_fields(self):
+        pass
+
+    def _setup_derived_fields(self):
+        self.derived_field_list = []
+
+    def _get_grid_children(self, grid):
+        #given a grid, use it's address to find subchildren
+        pass
+
+class GadgetHierarchyOld(AMRHierarchy):
+    #Kept here to compare for the time being
     grid = GadgetGrid
 
     def __init__(self, pf, data_style):
@@ -1495,6 +1593,7 @@ class FLASHHierarchy(AMRHierarchy):
 
     def _populate_grid_objects(self):
         # We only handle 3D data, so offset is 7 (nfaces+1)
+        
         offset = 7
         ii = na.argsort(self.grid_levels.flat)
         gid = self._handle["/gid"][:]

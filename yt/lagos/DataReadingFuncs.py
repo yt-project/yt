@@ -25,6 +25,7 @@ License:
 from yt.lagos import *
 import yt.amr_utils as au
 import exceptions
+import cPickle
 
 _axis_ids = {0:2,1:1,2:0}
 
@@ -426,10 +427,27 @@ class IOHandlerPacked1D(IOHandlerPackedHDF5):
         return t
 
 class IOHandlerGadget(BaseIOHandler):
-    _data_style = 'gadget_binary'
+    _data_style = 'gadget_hdf5'
     def _read_data_set(self, grid, field):
-        return grid._storage[field]
+        adr = grid.Address
+        fh = h5py.File(grid.filename,mode='r')
+        if 'particles' in fh[adr].keys():
+            adr2 = adr+'/particles'
+            return fh[adr2][field]
+        return None
+    def _read_field_names(self,grid): 
+        adr = grid.Address
+        fh = h5py.File(grid.filename,mode='r')
+        rets = cPickle.loads(fh['/root'].attrs['fieldnames'])
+        return rets
 
+    def _read_data_slice(self,grid, field, axis, coord):
+        adr = grid.Address
+        fh = h5py.File(grid.filename,mode='r')
+        if 'particles' in fh[adr].keys():
+            adr2 = adr+'/particles'
+            return fh[adr2][field][coord,axis]
+        return None
 #
 # Chombo readers
 #

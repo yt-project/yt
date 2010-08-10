@@ -625,31 +625,74 @@ def _reconstruct_pf(*args, **kwargs):
 class GadgetStaticOutput(StaticOutput):
     _hierarchy_class = GadgetHierarchy
     _fieldinfo_class = GadgetFieldContainer
-    def __init__(self, filename, particles, dimensions = None,
-                 storage_filename = None):
-        StaticOutput.__init__(self, filename, 'gadget_binary')
-        self.storage_filename = storage_filename
-        self.particles = particles
-        if "InitialTime" not in self.parameters:
-            self.parameters["InitialTime"] = 0.0
-        self.parameters["CurrentTimeIdentifier"] = \
-            int(os.stat(self.parameter_filename)[ST_CTIME])
-        if dimensions is None:
-            dimensions = na.ones((3,), dtype='int64') * 32
-        self.parameters['TopGridDimensions'] = dimensions
-        self.parameters['DomainLeftEdge'] = na.zeros(3, dtype='float64')
-        self.parameters['DomainRightEdge'] = na.ones(3, dtype='float64')
-        self.parameters['TopGridRank'] = 3
-        self.parameters['RefineBy'] = 2
+    def __init__(self, h5filename,storage_filename=None) :
+        StaticOutput.__init__(self, h5filename, 'gadget_hdf5')
+        self.storage_filename = storage_filename #Don't know what this is
         self.field_info = self._fieldinfo_class()
-        self.units["Density"] = 1.0
-
+        x = self._get_param('maxlevel')**2
+        self.max_grid_size = (x,x,x)
+        self.parameters["InitialTime"] = 0.0
+        # These should be explicitly obtained from the file, but for now that
+        # will wait until a reorganization of the source tree and better
+        # generalization.
+        self.parameters["TopGridRank"] = 3
+        self.parameters["RefineBy"] = 2
+        
+        
     def _parse_parameter_file(self):
-        pass
-
+        # read the units in from the hdf5 file 
+        #fill in self.units dict
+        #fill in self.time_units dict (keys: 'days','years', '1')
+        
+        #import all of the parameter file params 
+        #this is NOT originally from the gadget snapshot but instead
+        #from the paramfile starting the sim
+        skips = ('TITLE','CLASS','VERSION') #these are just hdf5 crap
+        fh = h5py.File(self.parameter_filename)
+        for kw in fh['root'].attrs.keys():
+            if any([skip in kw for skip in skips]):
+                continue
+            val = fh['root'].attrs[kw]
+            if type(val)==type(''):
+                try:    val = cPickle.load(val)
+                except: pass
+            #also, includes unit info
+            setattr(self,kw,val)
+            
+    def _get_param(self,kw,location='/root'):
+        fh = h5py.File(self.parameter_filename)
+        val = fh[location].attrs[kw]
+        if type(val)==type(''):
+            try:    val = cPickle.load(val)
+            except: pass
+        return val
+            
     def _set_units(self):
-        self.units = {'1':1.0, 'unitary':1.0, 'cm':1.0}
+        #check out the unit params from _parse_parameter_file and use them
+        #code below is all filler
+        self.units = {}
         self.time_units = {}
+        self.conversion_factors = defaultdict(lambda: 1.0)
+        self.time_units['1'] = 1
+        self.units['1'] = 1.0
+        self.units['unitary'] = 1.0
+        seconds = 1 #self["Time"]
+        self.time_units['years'] = seconds / (365*3600*24.0)
+        self.time_units['days']  = seconds / (3600*24.0)
+        for key in yt2orionFieldsDict:
+            self.conversion_factors[key] = 1.0
+        
+        
+    def _is_valid(self):
+        # check for a /root to exist in the h5 file
+        try:
+            h5f=h5py.File(self.h5filename)
+            valid = 'root' in h5f.items()[0]
+            h5f.close()
+            return valid
+        except:
+            pass
+        return False
 
 class ChomboStaticOutput(StaticOutput):
     _hierarchy_class = ChomboHierarchy

@@ -31,3 +31,67 @@ FLASHFieldInfo = FLASHFieldContainer()
 add_flash_field = FLASHFieldInfo.add_field
 
 add_field = add_flash_field
+
+# Common fields in FLASH: (Thanks to John ZuHone for this list)
+#
+# dens gas mass density (g/cc) --
+# eint internal energy (ergs/g) --
+# ener total energy (ergs/g), with 0.5*v^2 --
+# gamc gamma defined as ratio of specific heats, no units
+# game gamma defined as in , no units
+# gpol gravitational potential from the last timestep (ergs/g)
+# gpot gravitational potential from the current timestep (ergs/g)
+# grac gravitational acceleration from the current timestep (cm s^-2)
+# pden particle mass density (usually dark matter) (g/cc)
+# pres pressure (erg/cc)
+# temp temperature (K) --
+# velx velocity x (cm/s) --
+# vely velocity y (cm/s) --
+# velz velocity z (cm/s) --
+
+translation_dict = {"x-velocity": "velx",
+                    "y-velocity": "vely",
+                    "z-velocity": "velz",
+                    "Density": "dens",
+                    "Total_Energy": "ener",
+                    "Gas_Energy": "eint",
+                    "Temperature": "temp",
+                   }
+
+def _generate_translation(mine, theirs):
+    add_field(theirs, function=lambda a, b: b[mine], take_log=True)
+
+for f,v in translation_dict.items():
+    if v not in FLASHFieldInfo:
+        add_field(v, function=lambda a,b: None, take_log=False,
+                  validators = [ValidateDataField(v)])
+    #print "Setting up translator from %s to %s" % (v, f)
+    _generate_translation(v, f)
+
+add_field("gamc", function=lambda a,b: None, take_log=False,
+          validators = [ValidateDataField("gamc")],
+          units = r"\rm{ratio\/of\/specific\/heats}")
+
+add_field("game", function=lambda a,b: None, take_log=False,
+          validators = [ValidateDataField("game")],
+          units = r"\rm{ratio\/of\/specific\/heats}")
+
+add_field("gpot", function=lambda a,b: None, take_log=True,
+          validators = [ValidateDataField("gpot")],
+          units = r"\rm{ergs\//\/g}")
+
+add_field("gpot", function=lambda a,b: None, take_log=True,
+          validators = [ValidateDataField("gpol")],
+          units = r"\rm{ergs\//\/g}")
+
+add_field("grac", function=lambda a,b: None, take_log=True,
+          validators = [ValidateDataField("grac")],
+          units = r"\rm{cm\/s^{-2}}")
+
+add_field("pden", function=lambda a,b: None, take_log=True,
+          validators = [ValidateDataField("pden")],
+          units = r"\rm{g}\//\/\rm{cm}^{3}")
+
+add_field("pres", function=lambda a,b: None, take_log=True,
+          validators = [ValidateDataField("pres")],
+          units = r"\rm{erg}\//\/\rm{cm}^{3}")
