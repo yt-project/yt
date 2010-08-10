@@ -503,7 +503,7 @@ class OrionStaticOutput(StaticOutput):
         return f
 
     @classmethod
-    def _is_valid(self, *args, **kwargs):
+    def _is_valid(cls, *args, **kwargs):
         # fill our args
         pname = args[0].rstrip("/")
         dn = os.path.dirname(pname)
@@ -683,7 +683,8 @@ class GadgetStaticOutput(StaticOutput):
             self.conversion_factors[key] = 1.0
         
         
-    def _is_valid(self):
+    @classmethod
+    def _is_valid(cls, *args, **kwargs):
         # check for a /root to exist in the h5 file
         try:
             h5f=h5py.File(self.h5filename)
