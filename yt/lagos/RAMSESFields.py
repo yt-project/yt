@@ -33,6 +33,11 @@ add_ramses_field = RAMSESFieldInfo.add_field
 add_field = add_ramses_field
 
 translation_dict = {"Density":"density",
+                    "x-velocity":"velocity_x",
+                    "y-velocity":"velocity_y",
+                    "z-velocity":"velocity_z",
+                    "Pressure":"pressure",
+                    "Metallicity":"metallicity",
                    }
 
 def _generate_translation(mine, theirs):
