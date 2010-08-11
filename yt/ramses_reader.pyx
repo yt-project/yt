@@ -403,12 +403,12 @@ cdef class RAMSES_tree_proxy:
             local_hydro_data = new RAMSES_hydro_data(deref(local_tree))
             self.hydro_datas[idomain - 1] = <RAMSES_hydro_data **>\
                 malloc(sizeof(RAMSES_hydro_data*) * local_hydro_data.m_nvars)
-            del local_hydro_data
             for ii in range(local_hydro_data.m_nvars):
                 self.hydro_datas[idomain - 1][ii] = \
                     new RAMSES_hydro_data(deref(local_tree))
             self.trees[idomain - 1] = local_tree
             # We do not delete anything
+            if idomain < self.rsnap.m_header.ncpu: del local_hydro_data
         # Only once, we read all the field names
         self.nfields = local_hydro_data.m_nvars
         cdef string *field_name
@@ -422,6 +422,7 @@ cdef class RAMSES_tree_proxy:
             self.field_ind[self.field_names[-1]] = ifield
             self.loaded[ifield] = 0
         # This all needs to be cleaned up in the deallocator
+        del local_hydro_data
 
     def __dealloc__(self):
         cdef int idomain, ifield
@@ -504,9 +505,18 @@ cdef class RAMSES_tree_proxy:
         header_info["unit_l"] = self.rsnap.m_header.unit_l
         header_info["unit_d"] = self.rsnap.m_header.unit_d
         header_info["unit_t"] = self.rsnap.m_header.unit_t
+
+        # Now we grab some from the trees
+        cdef np.ndarray[np.int32_t, ndim=1] top_grid_dims = np.zeros(3, "int32")
+        cdef int i
+        for i in range(3):
+            top_grid_dims[i] = self.trees[0].m_header.nx[i]
+        header_info["nx"] = top_grid_dims
+
         return header_info
 
     def fill_hierarchy_arrays(self, 
+                              np.ndarray[np.int32_t, ndim=1] top_grid_dims,
                               np.ndarray[np.float64_t, ndim=2] left_edges,
                               np.ndarray[np.float64_t, ndim=2] right_edges,
                               np.ndarray[np.int32_t, ndim=2] grid_levels,
@@ -540,7 +550,8 @@ cdef class RAMSES_tree_proxy:
             for ilevel in range(local_tree.m_maxlevel + 1):
                 # this gets overwritten for every domain, which is okay
                 level_cell_counts[ilevel] = grid_ind 
-                grid_half_width = self.rsnap.m_header.boxlen / (2**(ilevel + 1))
+                grid_half_width = self.rsnap.m_header.boxlen / \
+                    (2**(ilevel) * top_grid_dims[0])
                 grid_it = local_tree.begin(ilevel)
                 grid_end = local_tree.end(ilevel)
                 while grid_it != grid_end:

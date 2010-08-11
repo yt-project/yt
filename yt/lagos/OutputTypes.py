@@ -978,7 +978,7 @@ class RAMSESStaticOutput(StaticOutput):
         self.parameters["DomainRightEdge"] = na.ones(3, dtype='float64') \
                                            * rheader['boxlen']
         self.parameters["DomainLeftEdge"] = na.zeros(3, dtype='float64')
-        self.parameters["TopGridDimensions"] = na.zeros(3, dtype='int64') + 2
+        self.parameters["TopGridDimensions"] = rheader["nx"]
 
     @classmethod
     def _is_valid(self, *args, **kwargs):

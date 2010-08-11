@@ -1662,20 +1662,24 @@ class RAMSESHierarchy(AMRHierarchy):
         ogrid_file_locations = na.zeros((num_ogrids,6), dtype='int64')
         ochild_masks = na.zeros((num_ogrids, 8), dtype='int32')
         self.tree_proxy.fill_hierarchy_arrays(
+            self.pf["TopGridDimensions"],
             ogrid_left_edge, ogrid_right_edge,
             ogrid_levels, ogrid_file_locations, ochild_masks)
+        import pdb;pdb.set_trace()
         # We now have enough information to run the patch coalescing 
         self.proto_grids = []
         for level in xrange(len(level_info)):
             if level_info[level] == 0: continue
             ggi = (ogrid_levels == level).ravel()
-            left_index = na.rint((ogrid_left_edge[ggi,:]) * (2.0**(level+1))).astype('int64')
+            mylog.info("Re-gridding level %s: %s octree grids", level, ggi.sum())
+            nd = self.pf["TopGridDimensions"] * 2**level
+            left_index = na.rint((ogrid_left_edge[ggi,:]) * nd).astype('int64')
             right_index = left_index + 2
             dims = na.ones((ggi.sum(), 3), dtype='int64') * 2
             fl = ogrid_file_locations[ggi,:]
             # Now our initial protosubgrid
             initial_left = na.zeros(3, dtype='int64')
-            idims = na.ones(3, dtype='int64') * (2**(level+1))
+            idims = na.ones(3, dtype='int64') * nd
             #if level == 6: raise RuntimeError
             psg = ramses_reader.ProtoSubgrid(initial_left, idims,
                             left_index, right_index, dims, fl)
@@ -1683,6 +1687,7 @@ class RAMSESHierarchy(AMRHierarchy):
                     psg, idims, initial_left, 
                     left_index, right_index, dims, fl))
             sums = na.zeros(3, dtype='int64')
+            mylog.info("Final grid count: %s", len(self.proto_grids[level]))
             if len(self.proto_grids[level]) == 1: continue
             for g in self.proto_grids[level]:
                 sums += [s.sum() for s in g.sigs]
