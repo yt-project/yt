@@ -27,6 +27,8 @@ from yt.lagos import *
 #import yt.enki, gc
 from yt.funcs import *
 
+import pdb
+
 class AMRGridPatch(object):
     _spatial = True
     _num_ghost_zones = 0
@@ -362,7 +364,7 @@ class AMRGridPatch(object):
         mask[startIndex[0]:endIndex[0],
              startIndex[1]:endIndex[1],
              startIndex[2]:endIndex[2]] = tofill
-
+        
     def __generate_child_mask(self):
         """
         Generates self.child_mask, which is zero where child grids exist (and
@@ -598,8 +600,9 @@ class GadgetGrid(AMRGridPatch):
         self.N = 0
         self.Address = ''
         self.NumberOfParticles = self.N
-        self.ActiveDimensions = [0,0,0]
+        self.ActiveDimensions = na.array([0,0,0])
         self._id_offset = 0
+        self.start_index = na.array([0,0,0])
         
         for key,val in kwargs.items():
             if key in dir(self):
@@ -609,6 +612,9 @@ class GadgetGrid(AMRGridPatch):
     #def __repr__(self):
     #    return "GadgetGrid_%04i" % (self.Address)
     
+    def get_global_startindex(self):
+        return self.start_index
+        
     def _prepare_grid(self):
         #all of this info is already included in the snapshots
         pass
@@ -621,12 +627,13 @@ class GadgetGrid(AMRGridPatch):
         # So first we figure out what the index is.  We don't assume
         # that dx=dy=dz , at least here.  We probably do elsewhere.
         id = self.id
-        LE, RE = self.hierarchy.grid_left_edge[id,:], \
-                     self.hierarchy.grid_right_edge[id,:]
+        LE, RE = self.LeftEdge,self.RightEdge
         self.dds = na.array((RE-LE)/self.ActiveDimensions)
         if self.pf["TopGridRank"] < 2: self.dds[1] = 1.0
         if self.pf["TopGridRank"] < 3: self.dds[2] = 1.0
         self.data['dx'], self.data['dy'], self.data['dz'] = self.dds
+    
+        
 
 
 class ChomboGrid(AMRGridPatch):

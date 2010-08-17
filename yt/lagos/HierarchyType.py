@@ -1201,6 +1201,7 @@ class OrionLevel:
         self.ngrids = ngrids
         self.grids = []
     
+
 class GadgetHierarchy(AMRHierarchy):
     grid = GadgetGrid
 
@@ -1219,7 +1220,7 @@ class GadgetHierarchy(AMRHierarchy):
         #example string:
         #"(S'VEL'\np1\nS'ID'\np2\nS'MASS'\np3\ntp4\n."
         #fields are surrounded with '
-        fields_string=self._handle['root'].attrs['names']
+        fields_string=self._handle['root'].attrs['fieldnames']
         #splits=fields_string.split("'")
         #pick out the odd fields
         #fields= [splits[j] for j in range(1,len(splits),2)]
@@ -1263,8 +1264,8 @@ class GadgetHierarchy(AMRHierarchy):
         
         kwargs = {}
         kwargs['Address'] = loc
-        kwargs['Children'] = [ch for ch in node.values()]
         kwargs['Parent'] = parent
+        kwargs['Axis']  = self.pf._get_param('divideaxis',location=loc)
         kwargs['Level']  = self.pf._get_param('level',location=loc)
         kwargs['LeftEdge'] = self.pf._get_param('leftedge',location=loc) 
         kwargs['RightEdge'] = self.pf._get_param('rightedge',location=loc)
@@ -1274,22 +1275,31 @@ class GadgetHierarchy(AMRHierarchy):
         dx = self.pf._get_param('dx',location=loc)
         dy = self.pf._get_param('dy',location=loc)
         dz = self.pf._get_param('dz',location=loc)
-        kwargs['ActiveDimensions'] = (dx,dy,dz)
-        grid = self.grid(idx,self.pf.parameter_filename,self,**kwargs)
+        divdims = na.array([1,1,1]
+        if not kwargs['IsLeaf']: 
+            divdims[kwargs['Axis']] = 2
+        kwargs['ActiveDimensions'] = divdims
+        #Active dimensions:
+        #This is the number of childnodes, along with dimensiolaity
+        #ie, binary tree can be (2,1,1) but octree is (2,2,2)
+        
         idx+=1
-        grids += [grid,]
         #pdb.set_trace()
-        if kwargs['IsLeaf']:
-            return grids,idx
-        else:
+        children = []
+        if not kwargs['IsLeaf']:
             for child in node.values():
-                grids,idx=self._walk_nodes(node,child,grids,idx=idx)
+                children,idx=self._walk_nodes(node,child,children,idx=idx)
+        
+        kwargs['Children'] = children
+        grid = self.grid(idx,self.pf.parameter_filename,self,**kwargs)
+        grids += children
+        grids += [grid,]
         return grids,idx
-    
+
     def _populate_grid_objects(self):
         for g in self.grids:
             g._prepare_grid()
-        self.max_level = self._handle['root'].attrs['maxlevel']
+        self.max_level = cPickle.loads(self._handle['root'].attrs['maxlevel'])
     
     def _setup_unknown_fields(self):
         pass
