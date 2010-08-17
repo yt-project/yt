@@ -247,6 +247,7 @@ cdef extern from "RAMSES_amr_data.hh" namespace "RAMSES::AMR":
         unsigned get_cell_father()
         bint is_finest(int ison)
         int get_absolute_position()
+        int get_domain()
 
     cdef cppclass RAMSES_tree:
         # This is, strictly speaking, not a header.  But, I believe it is
@@ -374,7 +375,7 @@ cdef class RAMSES_tree_proxy:
     cdef RAMSES_tree** trees
     cdef RAMSES_hydro_data*** hydro_datas
 
-    cdef int *loaded
+    cdef int **loaded
 
     cdef public object field_ind
     cdef public object field_names
@@ -414,25 +415,30 @@ cdef class RAMSES_tree_proxy:
         cdef string *field_name
         self.field_names = []
         self.field_ind = {}
-        self.loaded = <int *> malloc(sizeof(int) * local_hydro_data.m_nvars)
+        self.loaded = <int **> malloc(sizeof(int) * local_hydro_data.m_nvars)
+        for idomain in range(self.ndomains):
+            self.loaded[idomain] = <int *> malloc(
+                sizeof(int) * local_hydro_data.m_nvars)
+            for ifield in range(local_hydro_data.m_nvars):
+                self.loaded[idomain][ifield] = 0
         for ifield in range(local_hydro_data.m_nvars):
             field_name = &(local_hydro_data.m_varnames[ifield])
             # Does this leak?
             self.field_names.append(field_name.c_str())
             self.field_ind[self.field_names[-1]] = ifield
-            self.loaded[ifield] = 0
         # This all needs to be cleaned up in the deallocator
         del local_hydro_data
 
     def __dealloc__(self):
         cdef int idomain, ifield
         for idomain in range(self.ndomains):
-            for ifield in range(self.nfields):
-                if self.hydro_datas[idomain][ifield] != NULL:
-                    del self.hydro_datas[idomain][ifield]
+            #for ifield in range(self.nfields):
+            #    if self.hydro_datas[idomain][ifield] != NULL:
+            #        del self.hydro_datas[idomain][ifield]
             if self.trees[idomain] != NULL:
                 del self.trees[idomain]
             free(self.hydro_datas[idomain])
+            free(self.loaded[idomain])
         free(self.trees)
         free(self.hydro_datas)
         free(self.loaded)
@@ -446,10 +452,12 @@ cdef class RAMSES_tree_proxy:
         cdef RAMSES_tree *local_tree
         cdef RAMSES_hydro_data *local_hydro_data
         cdef RAMSES_level *local_level
+        cdef tree_iterator grid_it, grid_end
 
         # All the loop-local pointers must be declared up here
 
         cell_count = []
+        cdef int local_count = 0
         for ilevel in range(self.rsnap.m_header.levelmax + 1):
             cell_count.append(0)
         for idomain in range(1, self.rsnap.m_header.ncpu + 1):
@@ -458,8 +466,14 @@ cdef class RAMSES_tree_proxy:
             local_tree.read()
             local_hydro_data = new RAMSES_hydro_data(deref(local_tree))
             for ilevel in range(local_tree.m_maxlevel + 1):
+                local_count = 0
                 local_level = &local_tree.m_AMR_levels[ilevel]
-                cell_count[ilevel] += local_level.size()
+                grid_it = local_tree.begin(ilevel)
+                grid_end = local_tree.end(ilevel)
+                while grid_it != grid_end:
+                    local_count += (grid_it.get_domain() == idomain)
+                    grid_it.next()
+                cell_count[ilevel] += local_count
             del local_tree, local_hydro_data
 
         return cell_count
@@ -468,10 +482,11 @@ cdef class RAMSES_tree_proxy:
         # this domain_index must be zero-indexed
         cdef int varindex = self.field_ind[varname]
         cdef string *field_name = new string(varname)
-        if self.loaded[varindex] == 1: return
-        print "READING FROM DISK", varname
+        if self.loaded[domain_index][varindex] == 1:
+            return
+        print "READING FROM DISK", varname, domain_index, varindex
         self.hydro_datas[domain_index][varindex].read(deref(field_name))
-        self.loaded[varindex] = 1
+        self.loaded[domain_index][varindex] = 1
         del field_name
 
     def clear_tree(self, char *varname, int domain_index):
@@ -479,11 +494,11 @@ cdef class RAMSES_tree_proxy:
         # We delete and re-create
         cdef int varindex = self.field_ind[varname]
         cdef string *field_name = new string(varname)
-        if self.loaded[varindex] == 0: return
+        if self.loaded[domain_index][varindex] == 0: return
         del self.hydro_datas[domain_index][varindex]
         self.hydro_datas[domain_index - 1][varindex] = \
             new RAMSES_hydro_data(deref(self.trees[domain_index]))
-        self.loaded[varindex] = 0
+        self.loaded[domain_index][varindex] = 0
         del field_name
 
     def get_file_info(self):
@@ -510,7 +525,9 @@ cdef class RAMSES_tree_proxy:
         cdef np.ndarray[np.int32_t, ndim=1] top_grid_dims = np.zeros(3, "int32")
         cdef int i
         for i in range(3):
+            # Note that nx is really boundary conditions.  We always have 2.
             top_grid_dims[i] = self.trees[0].m_header.nx[i]
+            top_grid_dims[i] = 2
         header_info["nx"] = top_grid_dims
 
         return header_info
@@ -533,7 +550,7 @@ cdef class RAMSES_tree_proxy:
 
         cdef tree_iterator grid_it, grid_end, father_it
         cdef vec[double] gvec
-        cdef int grid_ind = 0
+        cdef int grid_ind = 0, grid_aind = 0
         cdef unsigned parent_ind
         cdef bint ci
 
@@ -550,34 +567,40 @@ cdef class RAMSES_tree_proxy:
             for ilevel in range(local_tree.m_maxlevel + 1):
                 # this gets overwritten for every domain, which is okay
                 level_cell_counts[ilevel] = grid_ind 
-                grid_half_width = self.rsnap.m_header.boxlen / \
+                #grid_half_width = self.rsnap.m_header.boxlen / \
+                grid_half_width = 1.0 / \
                     (2**(ilevel) * top_grid_dims[0])
                 grid_it = local_tree.begin(ilevel)
                 grid_end = local_tree.end(ilevel)
                 while grid_it != grid_end:
+                    if grid_it.get_domain() != idomain:
+                        grid_ind += 1
+                        grid_it.next()
+                        continue
                     gvec = local_tree.grid_pos_double(grid_it)
-                    left_edges[grid_ind, 0] = gvec.x - grid_half_width
-                    left_edges[grid_ind, 1] = gvec.y - grid_half_width
-                    left_edges[grid_ind, 2] = gvec.z - grid_half_width
-                    right_edges[grid_ind, 0] = gvec.x + grid_half_width
-                    right_edges[grid_ind, 1] = gvec.y + grid_half_width
-                    right_edges[grid_ind, 2] = gvec.z + grid_half_width
-                    grid_levels[grid_ind, 0] = ilevel
+                    left_edges[grid_aind, 0] = gvec.x - grid_half_width
+                    left_edges[grid_aind, 1] = gvec.y - grid_half_width
+                    left_edges[grid_aind, 2] = gvec.z - grid_half_width
+                    right_edges[grid_aind, 0] = gvec.x + grid_half_width
+                    right_edges[grid_aind, 1] = gvec.y + grid_half_width
+                    right_edges[grid_aind, 2] = gvec.z + grid_half_width
+                    grid_levels[grid_aind, 0] = ilevel
                     # Now the harder part
                     father_it = grid_it.get_parent()
-                    grid_file_locations[grid_ind, 0] = <np.int64_t> idomain
-                    grid_file_locations[grid_ind, 1] = grid_ind - level_cell_counts[ilevel]
+                    grid_file_locations[grid_aind, 0] = <np.int64_t> idomain
+                    grid_file_locations[grid_aind, 1] = grid_ind - level_cell_counts[ilevel]
                     parent_ind = father_it.get_absolute_position()
                     if ilevel > 0:
                         # We calculate the REAL parent index
-                        grid_file_locations[grid_ind, 2] = \
+                        grid_file_locations[grid_aind, 2] = \
                             level_cell_counts[ilevel - 1] + parent_ind
                     else:
-                        grid_file_locations[grid_ind, 2] = -1
+                        grid_file_locations[grid_aind, 2] = -1
                     for ci in range(8):
                         rr = <np.int32_t> grid_it.is_finest(ci)
-                        child_mask[grid_ind, ci] = rr
+                        child_mask[grid_aind, ci] = rr
                     grid_ind += 1
+                    grid_aind += 1
                     grid_it.next()
             del local_tree, local_hydro_data
 
@@ -620,7 +643,7 @@ cdef class RAMSES_tree_proxy:
 
         cdef int gi, i, j, k, domain, offset
         cdef int ir, jr, kr
-        cdef int offi, offj, offk
+        cdef int offi, offj, offk, odind
         cdef np.int64_t di, dj, dk
         cdef np.ndarray[np.int64_t, ndim=1] ogrid_info
         cdef np.ndarray[np.int64_t, ndim=1] og_start_index
@@ -634,6 +657,7 @@ cdef class RAMSES_tree_proxy:
         for gi in range(len(component_grid_info)):
             ogrid_info = component_grid_info[gi]
             domain = ogrid_info[0]
+            #print "Loading", domain, ogrid_info
             self.ensure_loaded(field, domain - 1)
             local_tree = self.trees[domain - 1]
             local_hydro_data = self.hydro_datas[domain - 1][varindex]
@@ -677,8 +701,8 @@ cdef class ProtoSubgrid:
     cdef public object grid_file_locations
     cdef public object dd
         
-    #@cython.boundscheck(False)
-    #@cython.wraparound(False)
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
     def __cinit__(self,
                    np.ndarray[np.int64_t, ndim=1] left_index,
                    np.ndarray[np.int64_t, ndim=1] dimensions, 
@@ -765,6 +789,8 @@ cdef class ProtoSubgrid:
         #print "Efficiency is %0.3e" % (efficiency)
         self.efficiency = efficiency
 
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
     def find_split(self):
         # First look for zeros
         cdef int i, center, ax
@@ -779,7 +805,7 @@ cdef class ProtoSubgrid:
             for i in range(self.dimensions[ax]):
                 if sig[i] == 0 and i > 0 and i < self.dimensions[ax] - 1:
                     #print "zero: %s (%s)" % (i, self.dimensions[ax])
-                    return 'zs', ax, i
+                    return 0, ax, i
         zcstrength = 0
         zcp = 0
         zca = -1
@@ -803,8 +829,10 @@ cdef class ProtoSubgrid:
                         zca = ax
             free(sig2d)
         #print "zcp: %s (%s)" % (zcp, self.dimensions[ax])
-        return 'zc', ax, zcp
+        return 1, ax, zcp
 
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
     def get_properties(self):
         cdef np.ndarray[np.int64_t, ndim=2] tr = np.empty((3,3), dtype='int64')
         cdef int i
