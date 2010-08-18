@@ -1275,7 +1275,7 @@ class GadgetHierarchy(AMRHierarchy):
         dx = self.pf._get_param('dx',location=loc)
         dy = self.pf._get_param('dy',location=loc)
         dz = self.pf._get_param('dz',location=loc)
-        divdims = na.array([1,1,1]
+        divdims = na.array([1,1,1])
         if not kwargs['IsLeaf']: 
             divdims[kwargs['Axis']] = 2
         kwargs['ActiveDimensions'] = divdims
