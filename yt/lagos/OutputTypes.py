@@ -439,6 +439,9 @@ class EnzoStaticOutputInMemory(EnzoStaticOutput):
         for i in self.parameters:
             if isinstance(self.parameters[i], types.TupleType):
                 self.parameters[i] = na.array(self.parameters[i])
+            if i.endswith("Units") and not i.startswith("Temperature"):
+                dataType = i[:-5]
+                self.conversion_factors[dataType] = self.parameters[i]
         for i in self.conversion_factors:
             if isinstance(self.conversion_factors[i], types.TupleType):
                 self.conversion_factors[i] = na.array(self.conversion_factors[i])
