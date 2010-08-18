@@ -819,6 +819,34 @@ class MergerTreeConnect(DatabaseFunctions):
                 results = self.cursor.fetchone()
         return parents
 
+    def get_direct_parent(self, GlobalHaloID):
+        r"""Returns the GlobalHaloID of the direct parent of the given halo.
+        
+        This is accomplished by identifying the most massive parent halo
+        that contributes at least 50% of its mass to the given halo.
+        
+        Parameters
+        ----------
+        GlobalHaloID : Integer
+            The GlobalHaloID of the halo of interest.
+        
+        Examples
+        --------
+        >>> parent = mtc.get_direct_parent(1688)
+        >>> print parent
+        1544
+        """
+        parents = self.get_halo_parents(GlobalHaloID)
+        mass = 0
+        ID = None
+        for parent in parents:
+            if parent[1] < 0.5: continue
+            info = self.get_halo_info(parent[0])
+            if info['HaloMass'] > mass:
+                mass = info['HaloMass']
+                ID = parent[0]
+        return ID
+
     def get_halo_info(self, GlobalHaloID):
         r"""Returns all available information for the given GlobalHaloID
         in the form of a dict.

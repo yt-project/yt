@@ -1201,6 +1201,7 @@ class OrionLevel:
         self.ngrids = ngrids
         self.grids = []
     
+
 class GadgetHierarchy(AMRHierarchy):
     grid = GadgetGrid
 
@@ -1219,7 +1220,7 @@ class GadgetHierarchy(AMRHierarchy):
         #example string:
         #"(S'VEL'\np1\nS'ID'\np2\nS'MASS'\np3\ntp4\n."
         #fields are surrounded with '
-        fields_string=self._handle['root'].attrs['names']
+        fields_string=self._handle['root'].attrs['fieldnames']
         #splits=fields_string.split("'")
         #pick out the odd fields
         #fields= [splits[j] for j in range(1,len(splits),2)]
@@ -1263,8 +1264,8 @@ class GadgetHierarchy(AMRHierarchy):
         
         kwargs = {}
         kwargs['Address'] = loc
-        kwargs['Children'] = [ch for ch in node.values()]
         kwargs['Parent'] = parent
+        kwargs['Axis']  = self.pf._get_param('divideaxis',location=loc)
         kwargs['Level']  = self.pf._get_param('level',location=loc)
         kwargs['LeftEdge'] = self.pf._get_param('leftedge',location=loc) 
         kwargs['RightEdge'] = self.pf._get_param('rightedge',location=loc)
@@ -1274,22 +1275,31 @@ class GadgetHierarchy(AMRHierarchy):
         dx = self.pf._get_param('dx',location=loc)
         dy = self.pf._get_param('dy',location=loc)
         dz = self.pf._get_param('dz',location=loc)
-        kwargs['ActiveDimensions'] = (dx,dy,dz)
-        grid = self.grid(idx,self.pf.parameter_filename,self,**kwargs)
+        divdims = na.array([1,1,1])
+        if not kwargs['IsLeaf']: 
+            divdims[kwargs['Axis']] = 2
+        kwargs['ActiveDimensions'] = divdims
+        #Active dimensions:
+        #This is the number of childnodes, along with dimensiolaity
+        #ie, binary tree can be (2,1,1) but octree is (2,2,2)
+        
         idx+=1
-        grids += [grid,]
         #pdb.set_trace()
-        if kwargs['IsLeaf']:
-            return grids,idx
-        else:
+        children = []
+        if not kwargs['IsLeaf']:
             for child in node.values():
-                grids,idx=self._walk_nodes(node,child,grids,idx=idx)
+                children,idx=self._walk_nodes(node,child,children,idx=idx)
+        
+        kwargs['Children'] = children
+        grid = self.grid(idx,self.pf.parameter_filename,self,**kwargs)
+        grids += children
+        grids += [grid,]
         return grids,idx
-    
+
     def _populate_grid_objects(self):
         for g in self.grids:
             g._prepare_grid()
-        self.max_level = self._handle['root'].attrs['maxlevel']
+        self.max_level = cPickle.loads(self._handle['root'].attrs['maxlevel'])
     
     def _setup_unknown_fields(self):
         pass
@@ -1662,39 +1672,100 @@ class RAMSESHierarchy(AMRHierarchy):
         ogrid_file_locations = na.zeros((num_ogrids,6), dtype='int64')
         ochild_masks = na.zeros((num_ogrids, 8), dtype='int32')
         self.tree_proxy.fill_hierarchy_arrays(
+            self.pf["TopGridDimensions"],
             ogrid_left_edge, ogrid_right_edge,
             ogrid_levels, ogrid_file_locations, ochild_masks)
+        # Now we can rescale
+        mi, ma = ogrid_left_edge.min(), ogrid_right_edge.max()
+        DL = self.pf["DomainLeftEdge"]
+        DR = self.pf["DomainRightEdge"]
+        ogrid_left_edge = (ogrid_left_edge - mi)/(ma - mi) * (DR - DL) + DL
+        ogrid_right_edge = (ogrid_right_edge - mi)/(ma - mi) * (DR - DL) + DL
+        #import pdb;pdb.set_trace()
         # We now have enough information to run the patch coalescing 
         self.proto_grids = []
         for level in xrange(len(level_info)):
             if level_info[level] == 0: continue
             ggi = (ogrid_levels == level).ravel()
-            left_index = na.rint((ogrid_left_edge[ggi,:]) * (2.0**(level+1))).astype('int64')
-            right_index = left_index + 2
+            mylog.info("Re-gridding level %s: %s octree grids", level, ggi.sum())
+            nd = self.pf["TopGridDimensions"] * 2**level
             dims = na.ones((ggi.sum(), 3), dtype='int64') * 2
             fl = ogrid_file_locations[ggi,:]
             # Now our initial protosubgrid
-            initial_left = na.zeros(3, dtype='int64')
-            idims = na.ones(3, dtype='int64') * (2**(level+1))
             #if level == 6: raise RuntimeError
-            psg = ramses_reader.ProtoSubgrid(initial_left, idims,
-                            left_index, right_index, dims, fl)
-            self.proto_grids.append(self._recursive_patch_splitting(
-                    psg, idims, initial_left, 
-                    left_index, right_index, dims, fl))
+            # We want grids that cover no more than MAX_EDGE cells in every direction
+            MAX_EDGE = 128
+            psgs = []
+            left_index = na.rint((ogrid_left_edge[ggi,:]) * nd).astype('int64')
+            right_index = left_index + 2
+            lefts = [na.mgrid[0:nd[i]:MAX_EDGE] for i in range(3)]
+            #lefts = zip(*[l.ravel() for l in lefts])
+            pbar = get_pbar("Re-gridding ", lefts[0].size)
+            min_ind = na.min(left_index, axis=0)
+            max_ind = na.max(right_index, axis=0)
+            for i,dli in enumerate(lefts[0]):
+                pbar.update(i)
+                if min_ind[0] > dli + nd[0]: continue
+                if max_ind[0] < dli: continue
+                idim = min(nd[0] - dli, MAX_EDGE)
+                gdi = ((dli  <= right_index[:,0])
+                     & (dli + idim >= left_index[:,0]))
+                if not na.any(gdi): continue
+                for dlj in lefts[1]:
+                    if min_ind[1] > dlj + nd[1]: continue
+                    if max_ind[1] < dlj: continue
+                    idim = min(nd[1] - dlj, MAX_EDGE)
+                    gdj = ((dlj  <= right_index[:,1])
+                         & (dlj + idim >= left_index[:,1])
+                         & (gdi))
+                    if not na.any(gdj): continue
+                    for dlk in lefts[2]:
+                        if min_ind[2] > dlk + nd[2]: continue
+                        if max_ind[2] < dlk: continue
+                        idim = min(nd[2] - dlk, MAX_EDGE)
+                        gdk = ((dlk  <= right_index[:,2])
+                             & (dlk + idim >= left_index[:,2])
+                             & (gdj))
+                        if not na.any(gdk): continue
+                        left = na.array([dli, dlj, dlk])
+                        domain_left = left.ravel()
+                        initial_left = na.zeros(3, dtype='int64') + domain_left
+                        idims = na.ones(3, dtype='int64') * na.minimum(nd - domain_left, MAX_EDGE)
+                        # We want to find how many grids are inside.
+                        dleft_index = left_index[gdk,:]
+                        dright_index = right_index[gdk,:]
+                        ddims = dims[gdk,:]
+                        dfl = fl[gdk,:]
+                        psg = ramses_reader.ProtoSubgrid(initial_left, idims,
+                                        dleft_index, dright_index, ddims, dfl)
+                        #print "Gridding from %s to %s + %s" % (
+                        #    initial_left, initial_left, idims)
+                        if psg.efficiency <= 0: continue
+                        self.num_deep = 0
+                        psgs.extend(self._recursive_patch_splitting(
+                            psg, idims, initial_left, 
+                            dleft_index, dright_index, ddims, dfl))
+                        #psgs.extend([psg])
+            pbar.finish()
+            self.proto_grids.append(psgs)
             sums = na.zeros(3, dtype='int64')
+            mylog.info("Final grid count: %s", len(self.proto_grids[level]))
             if len(self.proto_grids[level]) == 1: continue
             for g in self.proto_grids[level]:
                 sums += [s.sum() for s in g.sigs]
             assert(na.all(sums == dims.prod(axis=1).sum()))
         self.num_grids = sum(len(l) for l in self.proto_grids)
 
-    #num_deep = 0
+    num_deep = 0
 
-    #@num_deep_inc
+    @num_deep_inc
     def _recursive_patch_splitting(self, psg, dims, ind,
             left_index, right_index, gdims, fl):
-        min_eff = 0.2 # This isn't always respected.
+        min_eff = 0.1 # This isn't always respected.
+        if self.num_deep > 40:
+            # If we've recursed more than 100 times, we give up.
+            psg.efficiency = min_eff
+            return [psg]
         if psg.efficiency > min_eff or psg.efficiency < 0.0:
             return [psg]
         tt, ax, fp = psg.find_split()
