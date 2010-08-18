@@ -906,6 +906,8 @@ class FLASHStaticOutput(StaticOutput):
             [self._find_parameter("real", "%smin" % ax) for ax in 'xyz'])
         self.parameters["DomainRightEdge"] = na.array(
             [self._find_parameter("real", "%smax" % ax) for ax in 'xyz'])
+        self.parameters["InitialTime"] = \
+            float(self._find_parameter("real", "time", scalar=True)
         self._handle.close()
 
     @classmethod
