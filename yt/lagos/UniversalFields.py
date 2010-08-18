@@ -796,3 +796,12 @@ add_field("particle_density_pyx", function=_pdensity_pyx,
           validators=[ValidateSpatial(0)], convert_function=_convertDensity,
           display_name=r"\mathrm{Particle}\/\mathrm{Density})")
 
+def _MagneticEnergy(field,data):
+    """WARNING WARNING WARNING: Units are not yet known to be
+    correct. Trust the magnitude of this quantity at your own
+    risk. However, it should just be a multiplicative offset from
+    reality...
+    """
+    return (data["Bx"]**2 + data["By"]**2 + data["Bz"]**2)/2.
+add_field("MagneticEnergy",function=_MagneticEnergy,
+          units=r"")
