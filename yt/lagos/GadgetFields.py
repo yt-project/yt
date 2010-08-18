@@ -38,11 +38,14 @@ translation_dict = {"Position": "POS",
                     "Mass":"MASS"
                    }
 
-for f,v in translation_dict.items():
-    if v not in GadgetFieldInfo:
-        add_field(f, function=lambda a,b: None, take_log=True,
-          validators = [ValidateDataField("POS")],
-          units=r"\rm{cm}")
+#for f,v in translation_dict.items():
+#    add_field(f, function=lambda a,b: None, take_log=True,
+#        validators = [ValidateDataField(v)],
+#        units=r"\rm{cm}")
+#    add_field(v, function=lambda a,b: None, take_log=True,
+#        validators = [ValidateDataField(v)],
+#        units=r"\rm{cm}")
+          
           
 add_field("Density", function=lambda a,b: None, take_log=True,
           validators = [ValidateDataField("POS")],
@@ -50,7 +53,7 @@ add_field("Density", function=lambda a,b: None, take_log=True,
 
 add_field("VEL", function=lambda a,b: None, take_log=True,
           validators = [ValidateDataField("VEL")],
-          units=r"\rm{cm}/\rm{s}")
+          units=r"")
 
 add_field("ID", function=lambda a,b: None, take_log=True,
           validators = [ValidateDataField("ID")],

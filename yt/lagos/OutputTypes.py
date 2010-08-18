@@ -637,6 +637,8 @@ class GadgetStaticOutput(StaticOutput):
         # generalization.
         self.parameters["TopGridRank"] = 3
         self.parameters["RefineBy"] = 2
+        self.parameters["DomainLeftEdge"] = self.leftedge
+        self.parameters["DomainRightEdge"] = self.rightedge
         
         
     def _parse_parameter_file(self):
@@ -654,7 +656,7 @@ class GadgetStaticOutput(StaticOutput):
                 continue
             val = fh['root'].attrs[kw]
             if type(val)==type(''):
-                try:    val = cPickle.load(val)
+                try:    val = cPickle.loads(val)
                 except: pass
             #also, includes unit info
             setattr(self,kw,val)
@@ -662,9 +664,8 @@ class GadgetStaticOutput(StaticOutput):
     def _get_param(self,kw,location='/root'):
         fh = h5py.File(self.parameter_filename)
         val = fh[location].attrs[kw]
-        if type(val)==type(''):
-            try:    val = cPickle.load(val)
-            except: pass
+        try:    val = cPickle.loads(val)
+        except: pass
         return val
             
     def _set_units(self):
@@ -676,6 +677,7 @@ class GadgetStaticOutput(StaticOutput):
         self.time_units['1'] = 1
         self.units['1'] = 1.0
         self.units['unitary'] = 1.0
+        self.units['cm'] = 1.0
         seconds = 1 #self["Time"]
         self.time_units['years'] = seconds / (365*3600*24.0)
         self.time_units['days']  = seconds / (3600*24.0)
