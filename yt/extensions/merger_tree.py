@@ -838,7 +838,7 @@ class MergerTreeConnect(DatabaseFunctions):
         """
         parents = self.get_halo_parents(GlobalHaloID)
         mass = 0
-        ID = -1
+        ID = None
         for parent in parents:
             if parent[1] < 0.5: continue
             info = self.get_halo_info(parent[0])
