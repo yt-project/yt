@@ -856,7 +856,6 @@ class FLASHStaticOutput(StaticOutput):
         self.parameters["HydroMethod"] = 'flash' # always PPM DE
         self.parameters["Time"] = 1. # default unit is 1...
         self._set_units()
-        print self.parameters
         
     def _set_units(self):
         """
