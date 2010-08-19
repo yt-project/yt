@@ -857,6 +857,8 @@ class FLASHStaticOutput(StaticOutput):
         self.parameters["RefineBy"] = 2
         self.parameters["HydroMethod"] = 'flash' # always PPM DE
         self.parameters["Time"] = 1. # default unit is 1...
+        self._set_units()
+        print self.parameters
         
     def _set_units(self):
         """
@@ -907,7 +909,7 @@ class FLASHStaticOutput(StaticOutput):
         self.parameters["DomainRightEdge"] = na.array(
             [self._find_parameter("real", "%smax" % ax) for ax in 'xyz'])
         self.parameters["InitialTime"] = \
-            float(self._find_parameter("real", "time", scalar=True)
+            float(self._find_parameter("real", "time", scalar=True))
         self._handle.close()
 
     @classmethod
