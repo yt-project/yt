@@ -95,3 +95,23 @@ add_field("pden", function=lambda a,b: None, take_log=True,
 add_field("pres", function=lambda a,b: None, take_log=True,
           validators = [ValidateDataField("pres")],
           units = r"\rm{erg}\//\/\rm{cm}^{3}")
+
+add_field("magx", function=lambda a,b: None, take_log=False,
+          validators = [ValidateDataField("magx")],
+          units = r"\rm{G}")
+
+add_field("magy", function=lambda a,b: None, take_log=False,
+          validators = [ValidateDataField("magy")],
+          units = r"\rm{G}")
+
+add_field("magz", function=lambda a,b: None, take_log=False,
+          validators = [ValidateDataField("magz")],
+          units = r"\rm{G}")
+
+add_field("magp", function=lambda a,b: None, take_log=True,
+          validators = [ValidateDataField("magp")],
+          units = r"\rm{erg}\//\/\rm{cm}^{3}")
+
+add_field("divb", function=lambda a,b: None, take_log=False,
+          validators = [ValidateDataField("divb")],
+          units = r"\rm{G}\/\rm{cm}")
