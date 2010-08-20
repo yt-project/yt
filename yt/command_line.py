@@ -479,16 +479,6 @@ class YTCommands(cmdln.Cmdln):
         if not os.path.isdir(opts.output): os.makedirs(opts.output)
         pc.save(os.path.join(opts.output,"%s" % (pf)))
 
-    def do_vtk(self, subcmd, opts):
-        """
-        Start the VTK interface (if installed)
-
-        ${cmd_usage}
-        ${cmd_option_list}
-        """
-        import yt.raven.VTKInterface
-        yt.raven.VTKInterface.run_vtk()
-
     def do_rpdb(self, subcmd, opts, task):
         """
         Connect to a currently running (on localhost) rpd session.
@@ -502,83 +492,6 @@ class YTCommands(cmdln.Cmdln):
         import rpdb
         rpdb.run_rpdb(int(task))
 
-
-    @cmdln.option("-o", "--output", action="store", type="string",
-                  dest="output", default="movie.a5",
-                  help="Name of our output file")
-    @cmdln.option("", "--always-copy", action="store_true", 
-                  dest="always_copy", default=False,
-                  help="Should we always copy the data to the new file")
-    @cmdln.option("", "--minlevel", action="store", type="int",
-                  dest="min_level", default=0,
-                  help="The minimum level to extract (chooses first grid at that level)")
-    @cmdln.option("", "--maxlevel", action="store", type="int",
-                  dest="max_level", default=-1,
-                  help="The maximum level to extract (chooses first grid at that level)")
-    @cmdln.option("-d","--subtract-time", action="store_true",
-                  dest="subtract_time", help="Subtract the physical time of " + \
-                  "the first timestep (useful for small delta t)", default=False)
-    @cmdln.option("-r","--recenter", action="store_true",
-                  dest="recenter", help="Recenter on maximum density in final output")
-    @add_cmd_options(["bn","field","skip"])
-    def do_amira(self, subcmd, opts, start, stop):
-        """
-        Export multiple data sets in amira format
-
-        ${cmd_usage} 
-        ${cmd_option_list}
-        """
-        from yt.extensions.HierarchySubset import ExtractedHierarchy
-        import h5py
-
-        first = int(start)
-        last = int(stop)
-
-        # Set up our global metadata
-        afile = h5py.File(opts.output, "w")
-        md = afile.create_group("/globalMetaData")
-        md.attrs['datatype'] = 0
-        md.attrs['staggering'] = 1
-        md.attrs['fieldtype'] = 1
-
-        md.attrs['minTimeStep'] = first
-        md.attrs['maxTimeStep'] = last
-
-        times = []
-        # Get our staggering correct based on skip
-        timesteps = na.arange(first, last+1, opts.skip, dtype='int32')
-        time_offset = None
-        t2 = []
-
-        offset = None
-        if opts.recenter:
-            tpf = _fix_pf("%s%04i" % (opts.basename, timesteps[-1]))
-            offset = tpf.h.find_max("Density")[1]
-            del tpf
-
-        for n in timesteps:
-            # Try super hard to get the right parameter file
-            pf = _fix_pf("%s%04i" % (opts.basename, n))
-            hh = pf.h
-            times.append(pf["InitialTime"] * pf["years"])
-            eh = ExtractedHierarchy(pf, opts.min_level, max_level = opts.max_level,
-                        offset=offset, always_copy=opts.always_copy)
-            eh.export_output(afile, n, opts.field)
-            t2.append(pf["InitialTime"])
-
-        # This should be the same
-        md.attrs['rootDelta'] = (pf["unitary"]/pf["TopGridDimensions"]).astype('float64')
-        md.attrs['minTime'] = times[0]
-        md.attrs['maxTime'] = times[-1]
-        md.attrs['numTimeSteps'] = len(timesteps)
-
-        # I think we just want one value here
-        rel_times = na.array(times, dtype='float64') - int(opts.subtract_time)*times[0]
-        md.create_dataset("sorted_times", data=na.array(rel_times))
-        md.create_dataset("sorted_timesteps", data=timesteps)
-
-        afile.close()
-        
     @add_cmd_options(['outputfn','bn','skip'])
     @check_args
     def do_stats(self, subcmd, opts, arg):
