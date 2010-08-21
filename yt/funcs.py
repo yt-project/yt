@@ -394,18 +394,43 @@ def paste_traceback(exc_type, exc, tb):
     print "Traceback pasted to http://paste.enzotools.org/show/%s" % (ret)
     print
 
+def paste_traceback_detailed(exc_type, exc, tb):
+    """
+    This is a traceback handler that knows how to paste to the pastebin.
+    Should only be used in sys.excepthook.
+    """
+    import xmlrpclib, cStringIO, cgitb
+    s = cStringIO.StringIO()
+    handler = cgitb.Hook(format="text", file = s)
+    handler(exc_type, exc, tb)
+    s = s.getvalue()
+    print s
+    p = xmlrpclib.ServerProxy(
+            "http://paste.enzotools.org/xmlrpc/",
+            allow_none=True)
+    ret = p.pastes.newPaste('text', s, None, '', '', True)
+    print
+    print "Traceback pasted to http://paste.enzotools.org/show/%s" % (ret)
+    print
+
 # If we recognize one of the arguments on the command line as indicating a
 # different mechanism for handling tracebacks, we attach one of those handlers
 # and remove the argument from sys.argv.
 if "--paste" in sys.argv:
     sys.excepthook = paste_traceback
     del sys.argv[sys.argv.index("--paste")]
+elif "--paste-detailed" in sys.argv:
+    sys.excepthook = paste_traceback_detailed
+    del sys.argv[sys.argv.index("--paste-detailed")]
 elif "--detailed" in sys.argv:
     import cgitb; cgitb.enable(format="text")
     del sys.argv[sys.argv.index("--detailed")]
 elif "--rpdb" in sys.argv:
     sys.excepthook = rpdb.rpdb_excepthook
     del sys.argv[sys.argv.index("--rpdb")]
+elif "--detailed" in sys.argv:
+    import cgitb; cgitb.enable(format="text")
+    del sys.argv[sys.argv.index("--detailed")]
 
 #
 # Some exceptions
