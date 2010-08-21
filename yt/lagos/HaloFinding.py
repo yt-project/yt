@@ -255,6 +255,9 @@ class Halo(object):
                    + ["particle_velocity_%s" % ax for ax in 'xyz'] \
                    + ["particle_index"] + ["ParticleMassMsun"]:
             handle.create_dataset("/%s/%s" % (gn, field), data=self[field])
+        if 'creation_time' in self.data.pf.h.field_list:
+            handle.create_dataset("/%s/creation_time" % gn,
+                data=self['creation_time'])
         n = handle["/%s" % gn]
         # set attributes on n
         self._processing = False
