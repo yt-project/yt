@@ -556,16 +556,3 @@ class TigerGrid(AMRGridPatch):
         return "TigerGrid_%04i (%s)" % (self.id, self.ActiveDimensions)
 
 
-class FLASHGrid(AMRGridPatch):
-    _id_offset = 1
-    #__slots__ = ["_level_id", "stop_index"]
-    def __init__(self, id, hierarchy, level):
-        AMRGridPatch.__init__(self, id, filename = hierarchy.hierarchy_filename,
-                              hierarchy = hierarchy)
-        self.Parent = None
-        self.Children = []
-        self.Level = level
-
-    def __repr__(self):
-        return "FLASHGrid_%04i (%s)" % (self.id, self.ActiveDimensions)
-
