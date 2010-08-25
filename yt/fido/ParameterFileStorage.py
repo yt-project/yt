@@ -1,5 +1,5 @@
 """
-A simple SQLite interface to grabbing and storing parameter files
+A simple CSV database for grabbing and storing parameter files
 
 Author: Matthew Turk <matthewturk@gmail.com>
 Affiliation: KIPAC/SLAC/Stanford
