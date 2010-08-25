@@ -103,7 +103,7 @@ from Profiles import *
 
 from HaloFinding import *
 
-from TwoPointFunctions import *
+from two_point_functions import *
 
 # We load plugins.  Keep in mind, this can be fairly dangerous -
 # the primary purpose is to allow people to have a set of functions
