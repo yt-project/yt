@@ -523,7 +523,9 @@ class PlotCollection(object):
         if center == None:
             center = self.c
         if not obj:
-            cp = self.pf.hierarchy.cutting(normal, center, field, **kwargs)
+            if field_parameters is None: field_parameters = {}
+            cp = self.pf.hierarchy.cutting(normal, center, field,
+                    **field_parameters)
         else:
             cp = obj
         p = self._add_plot(PlotTypes.CuttingPlanePlot(cp, field,
