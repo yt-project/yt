@@ -1,5 +1,5 @@
 """
-The data-file handling functions
+Orion data-file handling functions
 
 Author: Matthew Turk <matthewturk@gmail.com>
 Author: J. S. Oishi <jsoishi@gmail.com>
