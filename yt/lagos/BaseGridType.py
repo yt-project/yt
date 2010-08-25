@@ -452,56 +452,6 @@ class AMRGridPatch(object):
         na.multiply(new_field, 0.125, new_field)
         return new_field
 
-class GadgetGrid(AMRGridPatch):
-
-    _id_offset = 0
-
-    def __init__(self, id, filename, hierarchy, **kwargs):
-        AMRGridPatch.__init__(self, id, hierarchy = hierarchy)
-        self.id = id
-        self.filename = filename
-        self.Children = [] #grid objects
-        self.Parent = None
-        self.Level = 0
-        self.LeftEdge = [0,0,0]
-        self.RightEdge = [0,0,0]
-        self.IsLeaf = False
-        self.N = 0
-        self.Address = ''
-        self.NumberOfParticles = self.N
-        self.ActiveDimensions = na.array([0,0,0])
-        self._id_offset = 0
-        self.start_index = na.array([0,0,0])
-        
-        for key,val in kwargs.items():
-            if key in dir(self):
-                #if it's one of the predefined values
-                setattr(self,key,val)
-        
-    #def __repr__(self):
-    #    return "GadgetGrid_%04i" % (self.Address)
-    
-    def get_global_startindex(self):
-        return self.start_index
-        
-    def _prepare_grid(self):
-        #all of this info is already included in the snapshots
-        pass
-        #h = self.hierarchy
-        #h.grid_levels[self.Address,0]=self.Level
-        #h.grid_left_edge[self.Address,:]=self.LeftEdge[:]
-        #h.grid_right_edge[self.Address,:]=self.RightEdge[:]
-    
-    def _setup_dx(self):
-        # So first we figure out what the index is.  We don't assume
-        # that dx=dy=dz , at least here.  We probably do elsewhere.
-        id = self.id
-        LE, RE = self.LeftEdge,self.RightEdge
-        self.dds = na.array((RE-LE)/self.ActiveDimensions)
-        if self.pf["TopGridRank"] < 2: self.dds[1] = 1.0
-        if self.pf["TopGridRank"] < 3: self.dds[2] = 1.0
-        self.data['dx'], self.data['dy'], self.data['dz'] = self.dds
-
 class TigerGrid(AMRGridPatch):
     _id_offset = 0
 

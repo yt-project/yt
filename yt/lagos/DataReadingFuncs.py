@@ -92,29 +92,6 @@ class IOHandlerExtracted(BaseIOHandler):
         sl[axis] = slice(coord, coord + 1)
         return grid.base_grid[field][tuple(sl)] / grid.base_grid.convert(field)
 
-class IOHandlerGadget(BaseIOHandler):
-    _data_style = 'gadget_hdf5'
-    def _read_data_set(self, grid, field):
-        adr = grid.Address
-        fh = h5py.File(grid.filename,mode='r')
-        if 'particles' in fh[adr].keys():
-            adr2 = adr+'/particles'
-            return fh[adr2][field]
-        return None
-    def _read_field_names(self,grid): 
-        adr = grid.Address
-        fh = h5py.File(grid.filename,mode='r')
-        rets = cPickle.loads(fh['/root'].attrs['fieldnames'])
-        return rets
-
-    def _read_data_slice(self,grid, field, axis, coord):
-        adr = grid.Address
-        fh = h5py.File(grid.filename,mode='r')
-        if 'particles' in fh[adr].keys():
-            adr2 = adr+'/particles'
-            return fh[adr2][field][coord,axis]
-        return None
-
 class IOHandlerTiger(BaseIOHandler):
     _data_style = "tiger"
     _offset = 36
