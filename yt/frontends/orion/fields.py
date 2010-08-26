@@ -26,6 +26,16 @@ License:
 
 from UniversalFields import *
 
+class OrionFieldContainer(CodeFieldInfoContainer):
+    """
+    All Orion-specific fields are stored in here.
+    """
+    _shared_state = {}
+    _field_list = {}
+OrionFieldInfo = OrionFieldContainer()
+add_orion_field = OrionFieldInfo.add_field
+
+
 add_field = add_orion_field
 
 # def _convertDensity(data):
