@@ -23,13 +23,23 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
+import h5py
+import numpy as na
+import os
+import stat
+import string
+
 from yt.data_objects.grid_patch import \
     AMRGridPatch
 from yt.data_objects.hierarchy import \
     AMRHierarchy
 from yt.data_objects.static_output import \
     StaticOutput
+from yt.utilities.definitions import mpc_conversion
+from yt.utilities import hdf5_light_reader
+from yt.utilities.logger import ytLogger as mylog
 
+from .definitions import parameterDict
 from .fields import EnzoFieldContainer
 
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
@@ -172,7 +182,7 @@ class EnzoHierarchy(AMRHierarchy):
             self.data_style = 'enzo_hdf4'
             mylog.debug("Detected HDF4")
         except:
-            list_of_sets = HDF5LightReader.ReadListOfDatasets(test_grid, "/")
+            list_of_sets = hdf5_light_reader.ReadListOfDatasets(test_grid, "/")
             if len(list_of_sets) == 0 and rank == 3:
                 mylog.debug("Detected packed HDF5")
                 self.data_style = 'enzo_packed_3d'
@@ -638,7 +648,7 @@ class EnzoStaticOutput(StaticOutput):
 
         # Let's read the file
         self.parameters["CurrentTimeIdentifier"] = \
-            int(os.stat(self.parameter_filename)[ST_CTIME])
+            int(os.stat(self.parameter_filename)[stat.ST_CTIME])
         lines = open(self.parameter_filename).readlines()
         for lineI, line in enumerate(lines):
             if line.find("#") >= 1: # Keep the commented lines
@@ -647,7 +657,8 @@ class EnzoStaticOutput(StaticOutput):
             if len(line) < 2:
                 continue
             try:
-                param, vals = map(strip,map(rstrip,line.split("=")))
+                param, vals = map(string.strip,map(string.rstrip,
+                                                   line.split("=")))
             except ValueError:
                 mylog.error("ValueError: '%s'", line)
             if parameter == param:
@@ -673,7 +684,7 @@ class EnzoStaticOutput(StaticOutput):
         """
         # Let's read the file
         self.parameters["CurrentTimeIdentifier"] = \
-            int(os.stat(self.parameter_filename)[ST_CTIME])
+            int(os.stat(self.parameter_filename)[stat.ST_CTIME])
         lines = open(self.parameter_filename).readlines()
         for lineI, line in enumerate(lines):
             if line.find("#") >= 1: # Keep the commented lines
@@ -682,7 +693,8 @@ class EnzoStaticOutput(StaticOutput):
             if len(line) < 2:
                 continue
             try:
-                param, vals = map(strip,map(rstrip,line.split("=")))
+                param, vals = map(string.strip,map(string.rstrip,
+                                                   line.split("=")))
             except ValueError:
                 mylog.error("ValueError: '%s'", line)
             if parameterDict.has_key(param):
@@ -857,4 +869,47 @@ class EnzoStaticOutputInMemory(EnzoStaticOutput):
     @classmethod
     def _is_valid(cls, *args, **kwargs):
         return False
+
+# These next two functions are taken from
+# http://www.reddit.com/r/Python/comments/6hj75/reverse_file_iterator/c03vms4
+# Credit goes to "Brian" on Reddit
+
+def rblocks(f, blocksize=4096):
+    """Read file as series of blocks from end of file to start.
+
+    The data itself is in normal order, only the order of the blocks is reversed.
+    ie. "hello world" -> ["ld","wor", "lo ", "hel"]
+    Note that the file must be opened in binary mode.
+    """
+    if 'b' not in f.mode.lower():
+        raise Exception("File must be opened using binary mode.")
+    size = os.stat(f.name).st_size
+    fullblocks, lastblock = divmod(size, blocksize)
+
+    # The first(end of file) block will be short, since this leaves 
+    # the rest aligned on a blocksize boundary.  This may be more 
+    # efficient than having the last (first in file) block be short
+    f.seek(-lastblock,2)
+    yield f.read(lastblock)
+
+    for i in range(fullblocks-1,-1, -1):
+        f.seek(i * blocksize)
+        yield f.read(blocksize)
+
+def rlines(f, keepends=False):
+    """Iterate through the lines of a file in reverse order.
+
+    If keepends is true, line endings are kept as part of the line.
+    """
+    buf = ''
+    for block in rblocks(f):
+        buf = block + buf
+        lines = buf.splitlines(keepends)
+        # Return all lines except the first (since may be partial)
+        if lines:
+            lines.reverse()
+            buf = lines.pop() # Last line becomes end of new first line.
+            for line in lines:
+                yield line
+    yield buf  # First line.
 

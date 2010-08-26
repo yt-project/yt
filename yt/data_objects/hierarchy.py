@@ -24,14 +24,18 @@ License:
 """
 
 import string, re, gc, time, cPickle, pdb
+import weakref
 from itertools import chain, izip
 
 from yt.funcs import *
 
+from yt.config import ytcfg
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     ParallelAnalysisInterface, parallel_splitter
 from object_finding_mixin import \
     ObjectFindingMixin
+
+from .data_containers import data_object_registry
 
 class AMRHierarchy(ObjectFindingMixin, ParallelAnalysisInterface):
     float_type = 'float64'
@@ -378,47 +382,4 @@ def constructRegularExpressions(param, toReadTypes):
         rs += "(%s)\s*" % (scanf_regex[t])
     rs +="$"
     return re.compile(rs,re.M)
-
-# These next two functions are taken from
-# http://www.reddit.com/r/Python/comments/6hj75/reverse_file_iterator/c03vms4
-# Credit goes to "Brian" on Reddit
-
-def rblocks(f, blocksize=4096):
-    """Read file as series of blocks from end of file to start.
-
-    The data itself is in normal order, only the order of the blocks is reversed.
-    ie. "hello world" -> ["ld","wor", "lo ", "hel"]
-    Note that the file must be opened in binary mode.
-    """
-    if 'b' not in f.mode.lower():
-        raise Exception("File must be opened using binary mode.")
-    size = os.stat(f.name).st_size
-    fullblocks, lastblock = divmod(size, blocksize)
-
-    # The first(end of file) block will be short, since this leaves 
-    # the rest aligned on a blocksize boundary.  This may be more 
-    # efficient than having the last (first in file) block be short
-    f.seek(-lastblock,2)
-    yield f.read(lastblock)
-
-    for i in range(fullblocks-1,-1, -1):
-        f.seek(i * blocksize)
-        yield f.read(blocksize)
-
-def rlines(f, keepends=False):
-    """Iterate through the lines of a file in reverse order.
-
-    If keepends is true, line endings are kept as part of the line.
-    """
-    buf = ''
-    for block in rblocks(f):
-        buf = block + buf
-        lines = buf.splitlines(keepends)
-        # Return all lines except the first (since may be partial)
-        if lines:
-            lines.reverse()
-            buf = lines.pop() # Last line becomes end of new first line.
-            for line in lines:
-                yield line
-    yield buf  # First line.
 
