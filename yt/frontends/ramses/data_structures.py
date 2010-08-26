@@ -31,6 +31,14 @@ from yt.data_objects.static_output import \
       StaticOutput
 import _ramses_reader
 
+def num_deep_inc(f):
+    def wrap(self, *args, **kwargs):
+        self.num_deep += 1
+        rv = f(self, *args, **kwargs)
+        self.num_deep -= 1
+        return rv
+    return wrap
+
 class RAMSESGrid(AMRGridPatch):
     _id_offset = 0
     #__slots__ = ["_level_id", "stop_index"]

@@ -32,14 +32,6 @@ try:
 except ImportError:
     mylog.warning("Ramses Reader not imported")
 
-def num_deep_inc(f):
-    def wrap(self, *args, **kwargs):
-        self.num_deep += 1
-        rv = f(self, *args, **kwargs)
-        self.num_deep -= 1
-        return rv
-    return wrap
-
 class AMRHierarchy(ObjectFindingMixin, ParallelAnalysisInterface):
     float_type = 'float64'
 

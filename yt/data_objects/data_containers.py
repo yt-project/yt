@@ -27,7 +27,7 @@ License:
 
 data_object_registry = {}
 
-from yt.lagos import *
+import numpy as na
 import math
 
 def restore_grid_state(func):
