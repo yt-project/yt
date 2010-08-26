@@ -90,8 +90,8 @@ from .level_sets.api import \
     recursive_bottom_clumps, \
     clump_list_sort
 
-from .light_ray.api import \
-    LightRay
+#from .light_ray.api import \
+#    LightRay
 
 from .lightcone.api import \
     commonNVolume, \
