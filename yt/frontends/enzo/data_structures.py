@@ -24,11 +24,11 @@ License:
 """
 
 from yt.data_objects.grid_patch import \
-      AMRGridPatch
+    AMRGridPatch
 from yt.data_objects.hierarchy import \
-      AMRHierarchy
+    AMRHierarchy
 from yt.data_objects.static_output import \
-      StaticOutput
+    StaticOutput
 
 class EnzoGrid(AMRGridPatch):
     """

@@ -24,7 +24,7 @@ License:
 """
 
 from yt.data_objects.field_info_container import \
-      CodeFieldInfoContainer
+    CodeFieldInfoContainer
 
 class EnzoFieldContainer(CodeFieldInfoContainer):
     """

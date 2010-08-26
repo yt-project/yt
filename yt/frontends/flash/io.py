@@ -23,6 +23,9 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
+from yt.utilities.io_handler import \
+    BaseIOHandler
+
 class IOHandlerFLASH(BaseIOHandler):
     _data_style = "flash_hdf5"
 
