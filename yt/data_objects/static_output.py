@@ -24,10 +24,13 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-from yt.lagos import *
-from yt.fido import ParameterFileStore, NoParameterShelf
+import string, re, gc, time, os, os.path, weakref
+
 from yt.funcs import *
-import string, re, gc, time, os, os.path
+from yt.utilities.parameter_file_storage import \
+    ParameterFileStore, \
+    NoParameterShelf, \
+    output_type_registry
 
 # We want to support the movie format in the future.
 # When such a thing comes to pass, I'll move all the stuff that is contant up

@@ -25,7 +25,8 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-from yt.lagos import *
+from yt.utilities.parallel_tools.parallel_analysis_interface import \
+    ParallelAnalysisInterface
 
 _field_mapping = {
     "total_mass": ("CellMassMsun", "ParticleMassMsun"),

@@ -24,7 +24,6 @@ License:
 """
 
 from yt.funcs import *
-from yt.lagos import *
 
 particle_handler_registry = defaultdict()
 
