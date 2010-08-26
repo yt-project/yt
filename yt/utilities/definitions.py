@@ -44,9 +44,6 @@ y_dict = [2,2,1]
 x_names = ['y','x','x']
 y_names = ['z','z','y']
 
-mh = 1.67e-24
-mu = 1.22
-
 # All the parameters we read from the parameter file, along with how to convert
 # them from a string
 mpc_conversion = {'mpc'   : 1e0,

@@ -26,9 +26,11 @@ License:
 from yt.data_objects.grid_patch import \
            AMRGridPatch
 from yt.data_objects.hierarchy import \
-           AMRHierarchyPatch
+           AMRHierarchy
 from yt.data_objects.static_output import \
            StaticOutput
+
+from fields import OrionFieldContainer
 
 class OrionGrid(AMRGridPatch):
     _id_offset = 0

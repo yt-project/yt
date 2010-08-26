@@ -28,14 +28,15 @@ License:
 
 """
 
-from data_structures import \
+from .data_structures import \
       GadgetGrid, \
       GadgetHierarchy, \
       GadgetStaticOutput
 
-from fields import \
+from .fields import \
       GadgetFieldContainer, \
+      GadgetFieldInfo, \
       add_gadget_field
 
-from io import \
+from .io import \
       IOHandlerGadget

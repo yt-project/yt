@@ -28,14 +28,15 @@ License:
 
 """
 
-from data_structures import \
+from .data_structures import \
       TigerGrid, \
       TigerHierarchy, \
       TigerStaticOutput
 
-from fields import \
+from .fields import \
       TigerFieldContainer, \
+      TigerFieldInfo, \
       add_tiger_field
 
-from io import \
+from .io import \
       IOHandlerTiger

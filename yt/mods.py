@@ -24,37 +24,51 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
+from __future__ import absolute_import
+
 #
 # ALL IMPORTS GO HERE
 #
 
 # First module imports
-import yt.lagos as lagos
-import yt.raven as raven
-import yt.fido as fido
 import numpy as na
-# We do a bunch of standard imports
 import sys, types, os, glob, cPickle
-from logger import ytLogger as mylog
-from performance_counters import yt_counters, time_function
+
+from yt.utilities.logger import ytLogger as mylog
+from yt.utilities.performance_counters import yt_counters, time_function
+
+from yt.data_objects.api import \
+    BinnedProfile1D, BinnedProfile2D, BinnedProfile3D, \
+    data_object_registry, \
+    derived_field, add_field, FieldInfo, \
+    ValidateParameter, ValidateDataField, ValidateProperty, \
+    ValidateSpatial, ValidateGridType
+
+from yt.frontends.enzo.api import \
+    EnzoStaticOutput, EnzoStaticOutputInMemory, EnzoFieldInfo, \
+    add_enzo_field, add_enzo_1d_field, add_enzo_2d_field
+
+from yt.frontends.orion.api import \
+    OrionStaticOutput, OrionFieldInfo, add_orion_field
+
+from yt.frontends.flash.api import \
+    FLASHStaticOutput, FLASHFieldInfo, add_flash_field
+
+from yt.frontends.tiger.api import \
+    TigerStaticOutput, TigerFieldInfo, add_tiger_field
+
+from yt.frontends.ramses.api import \
+    RAMSESStaticOutput, RAMSESFieldInfo, add_ramses_field
+
+from yt.frontends.chombo.api import \
+    ChomboStaticOutput, ChomboFieldInfo, add_chombo_field
 
 # Now individual component imports from lagos
 from yt.lagos import \
-    EnzoStaticOutput, OrionStaticOutput, TigerStaticOutput, \
-    FLASHStaticOutput, \
-    BinnedProfile1D, BinnedProfile2D, BinnedProfile3D, \
-    derived_field, \
-    add_field, FieldInfo, EnzoFieldInfo, Enzo2DFieldInfo, OrionFieldInfo, \
-    GadgetFieldInfo, TigerFieldInfo, ChomboFieldInfo, FLASHFieldInfo, \
     Clump, write_clump_hierarchy, find_clumps, write_clumps, \
     get_lowest_clumps, \
     HaloFinder, HOPHaloFinder, FOFHaloFinder, parallelHF, \
     axis_names, x_dict, y_dict, TwoPointFunctions, FcnSet
-
-# This is a temporary solution -- in the future, we will allow the user to
-# select this via ytcfg.
-
-fieldInfo = EnzoFieldInfo
 
 # Now individual component imports from raven
 from yt.raven import PlotCollection, PlotCollectionInteractive, \

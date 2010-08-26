@@ -32,6 +32,8 @@ from yt.data_objects.hierarchy import \
 from yt.data_objects.static_output import \
     StaticOutput
 
+from .fields import GadgetFieldContainer
+
 class GadgetGrid(AMRGridPatch):
 
     _id_offset = 0

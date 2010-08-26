@@ -30,6 +30,11 @@ from yt.data_objects.hierarchy import \
 from yt.data_objects.static_output import \
     StaticOutput
 
+from .fields import EnzoFieldContainer
+
+from yt.utilities.parallel_tools.parallel_analysis_interface import \
+    parallel_blocking_call
+
 class EnzoGrid(AMRGridPatch):
     """
     Class representing a single Enzo Grid instance.
@@ -805,10 +810,6 @@ class EnzoStaticOutput(StaticOutput):
     @classmethod
     def _is_valid(cls, *args, **kwargs):
         return os.path.exists("%s.hierarchy" % args[0])
-
-# We set our default output type to EnzoStaticOutput
-
-output_type_registry[None] = EnzoStaticOutput
 
 class EnzoStaticOutputInMemory(EnzoStaticOutput):
     _hierarchy_class = EnzoHierarchyInMemory
