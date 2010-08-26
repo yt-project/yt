@@ -1,3 +1,7 @@
+build
+yt.egg-info
+__config__.py
 syntax: glob
 *.pyc
 .*.swp
+*.so
