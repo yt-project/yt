@@ -23,8 +23,8 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-
-from UniversalFields import *
+from yt.data_objects.field_info_container import \
+           CodeFieldInfoContainer
 
 class OrionFieldContainer(CodeFieldInfoContainer):
     """

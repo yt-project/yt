@@ -23,6 +23,13 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
+from yt.data_objects.grid_patch import \
+           AMRGridPatch
+from yt.data_objects.hierarchy import \
+           AMRHierarchyPatch
+from yt.data_objects.static_output import \
+           StaticOutput
+
 class OrionGrid(AMRGridPatch):
     _id_offset = 0
     def __init__(self, LeftEdge, RightEdge, index, level, filename, offset, dimensions,start,stop,paranoia=False,**kwargs):
