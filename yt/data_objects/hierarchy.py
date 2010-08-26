@@ -23,14 +23,15 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-from yt.lagos import *
-from yt.funcs import *
 import string, re, gc, time, cPickle, pdb
 from itertools import chain, izip
-try:
-    import yt.ramses_reader as ramses_reader
-except ImportError:
-    mylog.warning("Ramses Reader not imported")
+
+from yt.funcs import *
+
+from yt.utilities.parallel_tools.parallel_analysis_interface import \
+    ParallelAnalysisInterface
+from object_finding_mixin import \
+    ObjectFindingMixin
 
 class AMRHierarchy(ObjectFindingMixin, ParallelAnalysisInterface):
     float_type = 'float64'
