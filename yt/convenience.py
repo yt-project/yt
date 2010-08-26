@@ -24,16 +24,14 @@ License:
 """
 
 import glob
-
-# Named imports
-import yt.lagos as lagos
-import yt.raven as raven
-from yt.funcs import *
 import numpy as na
 import os.path, inspect, types
 from functools import wraps
-from yt.logger import ytLogger as mylog
-from yt.fido import output_type_registry
+
+# Named imports
+from yt.funcs import *
+from yt.utilities.parameter_file_storage import \
+    output_type_registry
 
 def all_pfs(max_depth=1, name_spec="*.hierarchy", **kwargs):
     """
@@ -48,7 +46,7 @@ def all_pfs(max_depth=1, name_spec="*.hierarchy", **kwargs):
         list_of_names += glob.glob(os.path.join(*bb))
     list_of_names.sort(key=lambda b: os.path.basename(b))
     for fn in list_of_names:
-        yield lagos.EnzoStaticOutput(fn[:-10], **kwargs)
+        yield load(fn[:-10], **kwargs)
 
 def max_spheres(width, unit, **kwargs):
     """

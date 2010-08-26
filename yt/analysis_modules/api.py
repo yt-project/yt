@@ -43,7 +43,8 @@ from .halo_finding.api import \
     GenericHaloFinder, \
     parallelHF, \
     HOPHaloFinder, \
-    FOFHaloFinder
+    FOFHaloFinder, \
+    HaloFinder
 
 from .halo_mass_function.api import \
     HaloMassFcn, \

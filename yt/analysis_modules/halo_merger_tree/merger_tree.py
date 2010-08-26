@@ -23,21 +23,26 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-import yt.lagos as lagos
-from yt.lagos.HaloFinding import HaloFinder
-from yt.logger import lagosLogger as mylog
-import yt.extensions.halo_profiler as HP
-try:
-    from yt.extensions.kdtree import *
-except ImportError:
-    mylog.debug("The Fortran kD-Tree did not import correctly.")
-
 import numpy as na
 import os, glob, md5, time, gc, sys
 import h5py
 import types
 import sqlite3 as sql
-from collections import defaultdict
+from yt.funcs import *
+
+from yt.utilities.parallel_tools.parallel_analysis_interface import \
+    ParallelDummy, \
+    ParallelAnalysisInterface, \
+    parallel_blocking_call
+from yt.analysis_modules.halo_finding.api import HaloFinder
+import yt.analysis_modules.halo_finding.api as halo_finding
+from yt.convenience import load
+import yt.analysis_modules.halo_profiler as HP
+try:
+    from yt.utilities.kdtree import *
+except ImportError:
+    mylog.debug("The Fortran kD-Tree did not import correctly.")
+
 
 column_types = {
 "GlobalHaloID":"INTEGER",
@@ -91,7 +96,7 @@ class DatabaseFunctions(object):
         self.cursor.close()
         self.conn.close()
 
-class MergerTree(DatabaseFunctions, lagos.ParallelAnalysisInterface):
+class MergerTree(DatabaseFunctions, ParallelAnalysisInterface):
     def __init__(self, restart_files=[], database='halos.db',
             halo_finder_function=HaloFinder, halo_finder_threshold=80.0,
             FOF_link_length=0.2, dm_only=False, refresh=False, sleep=1,
@@ -203,7 +208,7 @@ class MergerTree(DatabaseFunctions, lagos.ParallelAnalysisInterface):
     def _run_halo_finder_add_to_db(self):
         for cycle, file in enumerate(self.restart_files):
             gc.collect()
-            pf = lagos.EnzoStaticOutput(file)
+            pf = load(file)
             # If the halos are already found, skip this data step, unless
             # refresh is True.
             dir = os.path.dirname(file)
@@ -214,7 +219,7 @@ class MergerTree(DatabaseFunctions, lagos.ParallelAnalysisInterface):
                 pass
             else:
                 # Run the halo finder.
-                if self.halo_finder_function == yt.lagos.HaloFinding.FOFHaloFinder:
+                if self.halo_finder_function == halo_finding.FOFHaloFinder:
                     halos = self.halo_finder_function(pf,
                         link=self.FOF_link_length, dm_only=self.dm_only)
                 else:
@@ -332,7 +337,7 @@ class MergerTree(DatabaseFunctions, lagos.ParallelAnalysisInterface):
         # list of children.
         
         # First, read in the locations of the child halos.
-        child_pf = lagos.EnzoStaticOutput(childfile)
+        child_pf = load(childfile)
         child_t = child_pf['CurrentTimeIdentifier']
         line = "SELECT SnapHaloID, CenMassX, CenMassY, CenMassZ FROM \
         Halos WHERE SnapCurrentTimeIdentifier = %d" % child_t
@@ -357,7 +362,7 @@ class MergerTree(DatabaseFunctions, lagos.ParallelAnalysisInterface):
         create_tree(0)
 
         # Find the parent points from the database.
-        parent_pf = lagos.EnzoStaticOutput(parentfile)
+        parent_pf = load(parentfile)
         parent_t = parent_pf['CurrentTimeIdentifier']
         line = "SELECT SnapHaloID, CenMassX, CenMassY, CenMassZ FROM \
         Halos WHERE SnapCurrentTimeIdentifier = %d" % parent_t
@@ -400,7 +405,7 @@ class MergerTree(DatabaseFunctions, lagos.ParallelAnalysisInterface):
             self.h5files = defaultdict(dict)
         if not hasattr(self, 'names'):
             self.names = defaultdict(set)
-        file_pf = lagos.EnzoStaticOutput(filename)
+        file_pf = load(filename)
         currt = file_pf['CurrentTimeIdentifier']
         dir = os.path.dirname(filename)
         h5txt = os.path.join(dir, 'MergerHalos.txt')
@@ -418,8 +423,8 @@ class MergerTree(DatabaseFunctions, lagos.ParallelAnalysisInterface):
         # Given a parent and child snapshot, and a list of child candidates,
         # compute what fraction of the parent halo goes to each of the children.
         
-        parent_pf = lagos.EnzoStaticOutput(parentfile)
-        child_pf = lagos.EnzoStaticOutput(childfile)
+        parent_pf = load(parentfile)
+        child_pf = load(childfile)
         parent_currt = parent_pf['CurrentTimeIdentifier']
         child_currt = child_pf['CurrentTimeIdentifier']
         
@@ -905,7 +910,7 @@ class Link(object):
         self.childIDs = []
         self.fractions = []
 
-class MergerTreeDotOutput(DatabaseFunctions, lagos.ParallelAnalysisInterface):
+class MergerTreeDotOutput(DatabaseFunctions, ParallelAnalysisInterface):
     def __init__(self, halos=None, database='halos.db',
             dotfile='MergerTree.gv', current_time=None, link_min=0.2):
         r"""Output the merger tree history for a given set of halo(s) in Graphviz
@@ -1098,7 +1103,7 @@ class MergerTreeDotOutput(DatabaseFunctions, lagos.ParallelAnalysisInterface):
         line = '{"%1.5f" [label="{%1.5f}", shape="record" color="green"];}\n' \
             % (z, z)
 
-class MergerTreeTextOutput(DatabaseFunctions, lagos.ParallelAnalysisInterface):
+class MergerTreeTextOutput(DatabaseFunctions, ParallelAnalysisInterface):
     def __init__(self, database='halos.db', outfile='MergerTreeDB.txt'):
         r"""Dump the contents of the merger tree database to a text file.
         This is generally not recommended.

@@ -40,4 +40,5 @@ from halo_objects import \
     GenericHaloFinder, \
     parallelHF, \
     HOPHaloFinder, \
-    FOFHaloFinder
+    FOFHaloFinder, \
+    HaloFinder
