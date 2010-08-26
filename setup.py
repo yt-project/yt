@@ -8,7 +8,6 @@ distribute_setup.use_setuptools()
 import setuptools
 
 DATA_FILES = []
-PY2APP_OPTIONS = {'argv_emulation': True}
 VERSION = "2.0dev"
 
 if os.path.exists('MANIFEST'): os.remove('MANIFEST')
@@ -64,9 +63,7 @@ def setup_package():
         url = "http://yt.enzotools.org/",
         license="GPL-3",
         configuration=configuration,
-        app=APP, # for py2app
         data_files=DATA_FILES,
-        options={'py2app':PY2APP_OPTIONS},
         zip_safe=False,
         package_data = {'': ['*.so'], }
         )

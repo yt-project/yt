@@ -23,12 +23,14 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-import time, types, signal, inspect, traceback, sys, pdb, rpdb, os
+import time, types, signal, inspect, traceback, sys, pdb, os
 import warnings, struct
-import progressbar as pb
 from math import floor, ceil
-from yt.logger import ytLogger as mylog
-from yt.exceptions import *
+
+from yt.utilities.exceptions import *
+from yt.utilities.logger import ytLogger as mylog
+import yt.utilities.progressbar as pb
+import yt.utilities.rpdb as rpdb
 
 # Some compatibility functions.  In the long run, these *should* disappear as
 # we move toward newer python versions.  Most were implemented to get things
