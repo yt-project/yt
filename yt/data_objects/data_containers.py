@@ -33,6 +33,8 @@ import weakref
 
 from yt.funcs import *
 
+from yt.utilities.data_point_utilities import CombineGrids, \
+    DataCubeRefine, DataCubeReplace, FillRegion
 from yt.utilities.definitions import axis_names, x_dict, y_dict
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     ParallelAnalysisInterface
@@ -1320,7 +1322,7 @@ class AMRProjBase(AMR2DData):
                 args += self.__retval_coords[grid1.id] + [self.__retval_fields[grid1.id]]
                 args.append(1) # Refinement factor
                 args.append(na.ones(args[0].shape, dtype='int64'))
-                kk = PointCombine.CombineGrids(*args)
+                kk = CombineGrids(*args)
                 goodI = args[-1].astype('bool')
                 self.__retval_coords[grid2.id] = \
                     [coords[goodI] for coords in self.__retval_coords[grid2.id]]
@@ -1348,7 +1350,7 @@ class AMRProjBase(AMR2DData):
                     # to round to up or down from the expected value.
                     args.append(int(na.rint(grid2.dds / grid1.dds)[0]))
                     args.append(na.ones(args[0].shape, dtype='int64'))
-                    kk = PointCombine.CombineGrids(*args)
+                    kk = CombineGrids(*args)
                     goodI = args[-1].astype('bool')
                     self.__retval_coords[grid2.id] = \
                         [coords[goodI] for coords in self.__retval_coords[grid2.id]]
@@ -1581,7 +1583,7 @@ class AMRFixedResProjectionBase(AMR2DData):
         g_fields = [grid[field] for field in fields]
         c_fields = [self[field] for field in fields]
         ref_ratio = self.pf["RefineBy"]**(self.level - grid.Level)
-        PointCombine.FillBuffer(ref_ratio,
+        FillBuffer(ref_ratio,
             grid.get_global_startindex(), self.global_startindex,
             c_fields, g_fields, 
             self.ActiveDimensions, grid.ActiveDimensions,
@@ -2442,7 +2444,7 @@ class AMRFloatCoveringGridBase(AMR3DData):
         c_dx = self.dds.ravel()
         g_fields = [grid[field] for field in ensure_list(fields)]
         c_fields = [self[field] for field in ensure_list(fields)]
-        PointCombine.DataCubeRefine(
+        DataCubeRefine(
             grid.LeftEdge, g_dx, g_fields, grid.child_mask,
             self.left_edge, self.right_edge, c_dx, c_fields,
             ll, self.pf["DomainLeftEdge"], self.pf["DomainRightEdge"])
@@ -2457,7 +2459,7 @@ class AMRFloatCoveringGridBase(AMR3DData):
                na.zeros(grid.ActiveDimensions, dtype=self[field].dtype)
             g_fields.append(grid[field])
         c_fields = [self[field] for field in ensure_list(fields)]
-        PointCombine.DataCubeReplace(
+        DataCubeReplace(
             grid.LeftEdge, g_dx, g_fields, grid.child_mask,
             self.left_edge, self.right_edge, c_dx, c_fields,
             ll, self.pf["DomainLeftEdge"], self.pf["DomainRightEdge"])
@@ -2559,7 +2561,7 @@ class AMRSmoothedCoveringGridBase(AMRFloatCoveringGridBase):
         c_dx = na.array([self['cdx'],self['cdy'],self['cdz']])
         g_fields = [grid[field] for field in fields]
         c_fields = [self[field] for field in fields]
-        total = PointCombine.DataCubeRefine(
+        total = DataCubeRefine(
             grid.LeftEdge, g_dx, g_fields, grid.child_mask,
             self.left_edge-c_dx, self.right_edge+c_dx,
             c_dx, c_fields,
@@ -2674,7 +2676,7 @@ class AMRCoveringGridBase(AMR3DData):
         ref_ratio = self.pf["RefineBy"]**(self.level - grid.Level)
         g_fields = [grid[field] for field in fields]
         c_fields = [self[field] for field in fields]
-        count = PointCombine.FillRegion(ref_ratio,
+        count = FillRegion(ref_ratio,
             grid.get_global_startindex(), self.global_startindex,
             c_fields, g_fields, 
             self.ActiveDimensions, grid.ActiveDimensions,
@@ -2690,7 +2692,7 @@ class AMRCoveringGridBase(AMR3DData):
                na.zeros(grid.ActiveDimensions, dtype=self[field].dtype)
             g_fields.append(grid[field])
         c_fields = [self[field] for field in fields]
-        PointCombine.FillRegion(ref_ratio,
+        FillRegion(ref_ratio,
             grid.get_global_startindex(), self.global_startindex,
             c_fields, g_fields, 
             self.ActiveDimensions, grid.ActiveDimensions,
@@ -2803,7 +2805,7 @@ class AMRIntSmoothedCoveringGridBase(AMRCoveringGridBase):
         g_fields = [grid[field] for field in fields]
         c_fields = [self[field] for field in fields]
         dims = na.array(self[field].shape, dtype='int32')
-        count = PointCombine.FillRegion(1,
+        count = FillRegion(1,
             grid.get_global_startindex(), self.global_startindex,
             c_fields, g_fields, 
             dims, grid.ActiveDimensions,
