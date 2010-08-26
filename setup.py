@@ -7,7 +7,6 @@ distribute_setup.use_setuptools()
 
 import setuptools
 
-APP = ['reason.py']
 DATA_FILES = []
 PY2APP_OPTIONS = {'argv_emulation': True}
 VERSION = "2.0dev"
