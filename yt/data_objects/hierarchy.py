@@ -29,7 +29,7 @@ from itertools import chain, izip
 from yt.funcs import *
 
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
-    ParallelAnalysisInterface, parallel_splitter, parallel_blocking_call
+    ParallelAnalysisInterface, parallel_splitter
 from object_finding_mixin import \
     ObjectFindingMixin
 
