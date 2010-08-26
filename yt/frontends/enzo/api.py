@@ -40,6 +40,7 @@ from data_structures import \
 
 from fields import \
       EnzoFieldContainer, \
+      EnzoFieldInfo, \
       add_enzo_field, \
       add_enzo_1d_field, \
       add_enzo_2d_field

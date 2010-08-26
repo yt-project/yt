@@ -23,7 +23,7 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-import yt.utilites.amr_utils as au
+import yt.utilities.amr_utils as au
 import exceptions
 import cPickle
 
