@@ -105,33 +105,6 @@ class CodeFieldInfoContainer(FieldInfoContainer):
             return self._universal_field_list[key]
         raise KeyError(key)
 
-class OrionFieldContainer(CodeFieldInfoContainer):
-    """
-    All Orion-specific fields are stored in here.
-    """
-    _shared_state = {}
-    _field_list = {}
-OrionFieldInfo = OrionFieldContainer()
-add_orion_field = OrionFieldInfo.add_field
-
-class GadgetFieldContainer(CodeFieldInfoContainer):
-    """
-    This is a container for Gadget-specific fields.
-    """
-    _shared_state = {}
-    _field_list = {}
-GadgetFieldInfo = GadgetFieldContainer()
-add_gadget_field = GadgetFieldInfo.add_field
-
-class TigerFieldContainer(CodeFieldInfoContainer):
-    """
-    This is a container for Tiger-specific fields.
-    """
-    _shared_state = {}
-    _field_list = {}
-TigerFieldInfo = TigerFieldContainer()
-add_tiger_field = TigerFieldInfo.add_field
-
 class ValidationException(Exception):
     pass
 
