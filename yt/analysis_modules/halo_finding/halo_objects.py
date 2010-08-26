@@ -41,6 +41,11 @@ try:
 except ImportError:
     mylog.debug("ParallelHOP not imported.")
 
+from yt.utilities.parallel_tools.parallel_analysis_interface import \
+    ParallelDummy, \
+    ParallelAnalysisInterface, \
+    parallel_blocking_call
+
 TINY = 1.e-40
 
 class Halo(object):
