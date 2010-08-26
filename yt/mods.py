@@ -63,12 +63,15 @@ from yt.frontends.ramses.api import \
 from yt.frontends.chombo.api import \
     ChomboStaticOutput, ChomboFieldInfo, add_chombo_field
 
-# Now individual component imports from lagos
-from yt.lagos import \
+# Import our analysis modules
+from yt.analysis_modules.api import \
     Clump, write_clump_hierarchy, find_clumps, write_clumps, \
     get_lowest_clumps, \
     HaloFinder, HOPHaloFinder, FOFHaloFinder, parallelHF, \
-    axis_names, x_dict, y_dict, TwoPointFunctions, FcnSet
+    TwoPointFunctions, FcnSet
+
+from yt.utilities.definitions import \
+    axis_names, x_dict, y_dict
 
 # Now individual component imports from raven
 from yt.raven import PlotCollection, PlotCollectionInteractive, \
