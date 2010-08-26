@@ -1,5 +1,6 @@
 import os, shelve, cPickle, sys
-import yt.cmdln as cmdln
+import yt.utilities.cmdln as cmdln
+
 from output_tests import test_registry, MultipleOutputTest, \
                          RegressionTestException
 
