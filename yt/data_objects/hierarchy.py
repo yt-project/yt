@@ -23,6 +23,7 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
+import h5py
 import numpy as na
 import string, re, gc, time, cPickle, pdb
 import weakref

@@ -23,6 +23,7 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
+import exceptions
 import pdb
 import numpy as na
 import weakref
