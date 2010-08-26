@@ -39,6 +39,8 @@ from yt.utilities.definitions import axis_names, x_dict, y_dict
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     ParallelAnalysisInterface
 
+from .derived_quantities import DerivedQuantityCollection
+
 def restore_grid_state(func):
     """
     A decorator that takes a function with the API of (self, grid, field)

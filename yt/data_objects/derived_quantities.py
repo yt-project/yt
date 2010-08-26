@@ -25,11 +25,14 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
+import numpy as na
+
+from yt.funcs import *
+
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     ParallelAnalysisInterface
 from yt.funcs import \
     get_pbar, wraps
-import math
 
 __CUDA_BLOCK_SIZE = 256
 
@@ -287,7 +290,7 @@ def _cudaIsBound(data, truncate, ratio):
     m = (data['CellMass'] * mass_scale_factor).astype('float32')
     assert(m.size > bsize)
 
-    gsize=int(math.ceil(float(m.size)/bsize))
+    gsize=int(na.ceil(float(m.size)/bsize))
     assert(gsize > 16)
 
     # Now the tedious process of rescaling our values...

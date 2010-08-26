@@ -25,6 +25,10 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
+import numpy as na
+
+from yt.funcs import *
+
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     ParallelAnalysisInterface
 

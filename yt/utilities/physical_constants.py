@@ -47,6 +47,7 @@ pc_per_cm     = 3.24e-19
 G = gravitational_constant_cgs
 me = mass_electron_cgs
 mp = mass_hydrogen_cgs
+mh = mp
 clight = speed_of_light_cgs
 kboltz = boltzmann_constant_cgs
 hcgs = planck_constant_cgs
