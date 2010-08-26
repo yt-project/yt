@@ -25,8 +25,10 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-from yt.lagos import *
-from yt.funcs import get_pbar, wraps
+from yt.utilities.parallel_tools.parallel_analysis_interface import \
+    ParallelAnalysisInterface
+from yt.funcs import \
+    get_pbar, wraps
 import math
 
 __CUDA_BLOCK_SIZE = 256

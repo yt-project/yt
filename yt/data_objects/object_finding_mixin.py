@@ -23,9 +23,10 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-from yt.arraytypes import *
-from yt.logger import lagosLogger as mylog
-from EnzoDefs import NUMTOCHECK
+
+from yt.utilities.logger import lagosLogger as mylog
+from yt.utilities.definitions import \
+    NUMTOCHECK
 
 class ObjectFindingMixin(object):
 
