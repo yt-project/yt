@@ -31,6 +31,7 @@ import string
 
 from itertools import izip
 
+from yt.funcs import *
 from yt.data_objects.grid_patch import \
     AMRGridPatch
 from yt.data_objects.hierarchy import \

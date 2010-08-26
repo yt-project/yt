@@ -36,6 +36,7 @@ from string import \
 from stat import \
     ST_CTIME
 
+from yt.funcs import *
 from yt.data_objects.grid_patch import \
            AMRGridPatch
 from yt.data_objects.hierarchy import \

@@ -25,7 +25,7 @@ License:
 
 import glob
 import numpy as na
-import os.path, inspect, types
+import os, os.path, inspect, types
 from functools import wraps
 
 # Named imports
