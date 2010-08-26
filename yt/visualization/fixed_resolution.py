@@ -23,8 +23,6 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-from yt.raven import *
-
 import _MPL
 class FixedResolutionBuffer(object):
     def __init__(self, data_source, bounds, buff_size, antialias = True):

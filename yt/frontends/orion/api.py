@@ -28,15 +28,15 @@ License:
 
 """
 
-from data_structures import \
+from .data_structures import \
       OrionGrid, \
       OrionHierarchy, \
       OrionStaticOutput
 
-from fields import \
+from .fields import \
       OrionFieldContainer, \
       OrionFieldInfo, \
       add_orion_field
 
-from io import \
+from .io import \
       IOHandlerNative

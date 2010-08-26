@@ -30,6 +30,8 @@ from yt.data_objects.hierarchy import \
 from yt.data_objects.static_output import \
     StaticOutput
 
+from .fields import FLASHFieldContainer
+
 class FLASHGrid(AMRGridPatch):
     _id_offset = 1
     #__slots__ = ["_level_id", "stop_index"]

@@ -27,11 +27,14 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-from yt.raven import *
-from PlotTypes import _get_bounds
-
+from _mpl_imports import *
+from yt.utilities.definitions import \
+    axis_labels
 import _MPL
-import copy
+from plot_types import \
+    _get_bounds
+
+
 callback_registry = {}
 
 class PlotCallback(object):
@@ -549,8 +552,8 @@ class ClumpContourCallback(PlotCallback):
             mylog.debug("Pixelizing contour %s", i)
 
 
-            xf_copy = copy.copy(clump[xf])
-            yf_copy = copy.copy(clump[yf])
+            xf_copy = clump[xf].copy()
+            yf_copy = clump[yf].copy()
 
             #Shift zones that belong shifted, both directions in X and Y.
             shifted = na.logical_and( xf_copy + DomainWidth[px_index] >= DomainRight[px_index],
@@ -863,8 +866,8 @@ class CoordAxesCallback(PlotCallback):
         plot._axes.xaxis.set_major_formatter(xticker)
         plot._axes.yaxis.set_major_formatter(yticker)
         
-        xlabel = '%s (%s)' % (lagos.axis_labels[plot.data.axis][0],plot.im["Unit"])
-        ylabel = '%s (%s)' % (lagos.axis_labels[plot.data.axis][1],plot.im["Unit"])
+        xlabel = '%s (%s)' % (axis_labels[plot.data.axis][0],plot.im["Unit"])
+        ylabel = '%s (%s)' % (axis_labels[plot.data.axis][1],plot.im["Unit"])
         xticksize = nx/4.
         yticksize = ny/4.
         plot._axes.xaxis.set_major_locator(matplotlib.ticker.FixedLocator([i*xticksize for i in range(0,5)]))

@@ -30,6 +30,7 @@ from yt.data_objects.hierarchy import \
 from yt.data_objects.static_output import \
       StaticOutput
 import _ramses_reader
+from .fields import RAMSESFieldContainer
 
 def num_deep_inc(f):
     def wrap(self, *args, **kwargs):
@@ -186,7 +187,7 @@ class RAMSESHierarchy(AMRHierarchy):
                         dright_index = right_index[gdk,:]
                         ddims = dims[gdk,:]
                         dfl = fl[gdk,:]
-                        psg = ramses_reader.ProtoSubgrid(initial_left, idims,
+                        psg = _ramses_reader.ProtoSubgrid(initial_left, idims,
                                         dleft_index, dright_index, ddims, dfl)
                         #print "Gridding from %s to %s + %s" % (
                         #    initial_left, initial_left, idims)
@@ -229,7 +230,7 @@ class RAMSESHierarchy(AMRHierarchy):
         dims_l[ax] = fp
         li_l = ind.copy()
         if na.any(dims_l <= 0): return [psg]
-        L = ramses_reader.ProtoSubgrid(
+        L = _ramses_reader.ProtoSubgrid(
                 li_l, dims_l, left_index, right_index, gdims, fl)
         #print " " * self.num_deep + "L", tt, L.efficiency
         if L.efficiency > 1.0: raise RuntimeError
@@ -244,7 +245,7 @@ class RAMSESHierarchy(AMRHierarchy):
         li_r = ind.copy()
         li_r[ax] += fp
         if na.any(dims_r <= 0): return [psg]
-        R = ramses_reader.ProtoSubgrid(
+        R = _ramses_reader.ProtoSubgrid(
                 li_r, dims_r, left_index, right_index, gdims, fl)
         #print " " * self.num_deep + "R", tt, R.efficiency
         if R.efficiency > 1.0: raise RuntimeError
@@ -366,8 +367,7 @@ class RAMSESStaticOutput(StaticOutput):
     def _parse_parameter_file(self):
         self.parameters["CurrentTimeIdentifier"] = \
             int(os.stat(self.parameter_filename)[ST_CTIME])
-        import yt.ramses_reader as rr
-        self.ramses_tree = rr.RAMSES_tree_proxy(self.parameter_filename)
+        self.ramses_tree = _ramses_reader.RAMSES_tree_proxy(self.parameter_filename)
         rheader = self.ramses_tree.get_file_info()
         self.parameters.update(rheader)
         self.parameters["DomainRightEdge"] = na.ones(3, dtype='float64') \

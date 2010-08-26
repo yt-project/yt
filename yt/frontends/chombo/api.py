@@ -7,7 +7,7 @@ Author: J.S. Oishi <jsoishi@gmail.com>
 Affiliation: KIPAC/SLAC/Stanford
 Author: Britton Smith <brittonsmith@gmail.com>
 Affiliation: MSU
-Homepage: http://yt.enzotools.org/
+Homepage: http://yt.Chombotools.org/
 License:
   Copyright (C) 2010 Matthew Turk.  All Rights Reserved.
 
@@ -27,3 +27,16 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 """
+
+from .data_structures import \
+      ChomboGrid, \
+      ChomboHierarchy, \
+      ChomboStaticOutput
+
+from .fields import \
+      ChomboFieldContainer, \
+      ChomboFieldInfo, \
+      add_chombo_field
+
+from .io import \
+      IOHandlerChomboHDF5
