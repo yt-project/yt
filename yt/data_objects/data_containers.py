@@ -40,6 +40,12 @@ from yt.utilities.parallel_tools.parallel_analysis_interface import \
     ParallelAnalysisInterface
 
 from .derived_quantities import DerivedQuantityCollection
+from .field_info_container import \
+    NeedsGridType, \
+    NeedsOriginalGrid, \
+    NeedsDataField, \
+    NeedsProperty, \
+    NeedsParameter
 
 def restore_grid_state(func):
     """

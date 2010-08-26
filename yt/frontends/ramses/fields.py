@@ -30,6 +30,7 @@ from yt.data_objects.field_info_container import \
     ValidateProperty, \
     ValidateSpatial, \
     ValidateGridType
+import yt.data_objects.universal_fields
 
 class RAMSESFieldContainer(CodeFieldInfoContainer):
     _shared_state = {}
