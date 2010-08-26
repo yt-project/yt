@@ -33,9 +33,10 @@ import copy
 from math import pi
 
 from yt.funcs import *
-from field_info_container import *
 
-from yt.amr_utils import CICDeposit_3
+from yt.utilities.amr_utils import CICDeposit_3
+from field_info_container import add_field, ValidateDataField, \
+    ValidateGridType, ValidateParameter, ValidateSpatial
 
 mh = 1.67e-24 # g
 me = 9.11e-28 # g
@@ -370,7 +371,7 @@ add_field("TotalMassMsun", units=r"M_{\odot}",
           convert_function=_convertCellMassMsun)
 
 def _StarMass(field,data):
-    return data["star_density_pyx"] * data["CellVolume"]
+    return data["star_density"] * data["CellVolume"]
 add_field("StarMassMsun", units=r"M_{\odot}",
           function=_StarMass,
           convert_function=_convertCellMassMsun)
@@ -780,7 +781,7 @@ add_field("JeansMassMsun",function=_JeansMassMsun,
 
 def _convertDensity(data):
     return data.convert("Density")
-def _pdensity_pyx(field, data):
+def _pdensity(field, data):
     blank = na.zeros(data.ActiveDimensions, dtype='float32')
     if data.NumberOfParticles == 0: return blank
     CICDeposit_3(data["particle_position_x"].astype(na.float64),
@@ -792,7 +793,7 @@ def _pdensity_pyx(field, data):
                  na.array(data.ActiveDimensions).astype(na.int32),
                  na.float64(data['dx']))
     return blank
-add_field("particle_density_pyx", function=_pdensity_pyx,
+add_field("particle_density", function=_pdensity,
           validators=[ValidateSpatial(0)], convert_function=_convertDensity,
           display_name=r"\mathrm{Particle}\/\mathrm{Density})")
 
