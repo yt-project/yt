@@ -23,6 +23,7 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
+import numpy as na
 
 from yt.utilities.logger import lagosLogger as mylog
 from yt.utilities.definitions import \

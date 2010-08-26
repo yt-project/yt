@@ -24,8 +24,13 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
+import os
+import numpy as na
 from yt.utilities.io_handler import \
            BaseIOHandler
+
+from definitions import \
+    yt2orionFieldsDict
 
 class IOHandlerNative(BaseIOHandler):
 
