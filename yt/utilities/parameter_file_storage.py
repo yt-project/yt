@@ -23,13 +23,14 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-from yt.config import ytcfg
-from yt.fido import *
-from yt.funcs import *
-from yt.lagos.ParallelTools import parallel_simple_proxy
 import csv
 import os.path
 from itertools import islice
+
+from yt.config import ytcfg
+from yt.funcs import *
+from yt.utilities.parallel_tools.parallel_analysis_interface import \
+    parallel_simple_proxy
 
 output_type_registry = {}
 _field_names = ('hash','bn','fp','tt','ctid','class_name','last_seen')
