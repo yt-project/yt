@@ -23,6 +23,9 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
+from yt.utilities.io_handler import \
+    BaseIOHandler
+
 class IOHandlerGadget(BaseIOHandler):
     _data_style = 'gadget_hdf5'
     def _read_data_set(self, grid, field):
