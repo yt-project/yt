@@ -27,3 +27,17 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 """
+
+from halo_objects import \
+    Halo, \
+    HOPHalo, \
+    parallelHOPHalo, \
+    FOFHalo, \
+    HaloList, \
+    HOPHaloList, \
+    FOFHaloList, \
+    parallelHOPHaloList, \
+    GenericHaloFinder, \
+    parallelHF, \
+    HOPHaloFinder, \
+    FOFHaloFinder

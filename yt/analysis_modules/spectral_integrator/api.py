@@ -27,3 +27,7 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 """
+
+from .spectral_frequency_integrator import \
+    SpectralFrequencyIntegrator, \
+    create_table_from_textfiles

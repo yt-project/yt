@@ -27,3 +27,7 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 """
+
+from .two_point_functions import \
+    TwoPointFunctions, \
+    FcnSet

@@ -27,3 +27,12 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 """
+
+from .merger_tree import \
+    DatabaseFunctions, \
+    MergerTree, \
+    MergerTreeConnect, \
+    Node, \
+    Link, \
+    MergerTreeDotOutput, \
+    MergerTreeTextOutput

@@ -27,3 +27,11 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 """
+
+from .halo_filters import \
+    VirialFilter
+
+from .multi_halo_profiler import \
+    HaloProfiler, \
+    FakeProfile, \
+    shift_projections

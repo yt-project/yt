@@ -27,3 +27,8 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 """
+
+from .halo_mass_function import \
+    HaloMassFcn, \
+    TransferFunction, \
+    integrate_inf

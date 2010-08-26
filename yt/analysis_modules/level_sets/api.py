@@ -27,3 +27,26 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 """
+
+from .contour_finder import \
+    GridConsiderationQueue, \
+    coalesce_join_tree, \
+    identify_contours
+
+from .clump_handling import \
+    Clump, \
+    find_clumps, \
+    get_lowest_clumps, \
+    write_clump_hierarchy, \
+    write_clumps, \
+    write_old_clump_hierarchy, \
+    write_old_clumps, \
+    write_old_clump_info, \
+    _DistanceToMainClump
+
+from .clump_tools import \
+    recursive_all_clumps, \
+    return_all_clumps, \
+    return_bottom_clumps, \
+    recursive_bottom_clumps, \
+    clump_list_sort
