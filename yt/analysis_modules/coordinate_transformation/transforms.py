@@ -25,8 +25,11 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-from yt.mods import *
+import numpy as na
 from yt.funcs import *
+
+from yt.utilities.linear_interpolators import \
+    TrilinearFieldInterpolator
 
 def spherical_regrid(pf, nr, ntheta, nphi, rmax, fields,
                      center=None, smoothed=True):
@@ -93,7 +96,7 @@ def arbitrary_regrid(new_grid, data_source, fields, smoothed=True):
 
         # Now we know which of the points in new_grid are inside this grid
         for field in fields:
-            interpolator = lagos.TrilinearFieldInterpolator(
+            interpolator = TrilinearFieldInterpolator(
                 cg[field],bounds,['x','y','z'])
             new_grid[field][point_ind] = interpolator(point_grid)
 
