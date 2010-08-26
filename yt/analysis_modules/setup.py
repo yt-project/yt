@@ -6,10 +6,8 @@ def configuration(parent_package='',top_path=None):
     config = Configuration('extensions',parent_package,top_path)
     config.make_config_py() # installs __config__.py
     config.make_svn_version_py()
-    config.add_subpackage("lightcone")
-    config.add_subpackage("volume_rendering")
-    config.add_subpackage("kdtree")
-    config.add_subpackage("image_panner")
     config.add_subpackage("enzo_test")
-    config.add_subpackage("opengl_widgets")
+    config.add_subpackage("hierarchy_subset")
+    config.add_subpackage("lightcone")
+    config.add_subpackage("kdtree")
     return config
