@@ -35,6 +35,7 @@ from .data_structures import \
 
 from .fields import \
       RAMSESFieldContainer, \
+      RAMSESFieldInfo, \
       add_ramses_field
 
 from .io import \

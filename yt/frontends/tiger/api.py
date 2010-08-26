@@ -35,6 +35,7 @@ from .data_structures import \
 
 from .fields import \
       TigerFieldContainer, \
+      TigerFieldInfo, \
       add_tiger_field
 
 from .io import \

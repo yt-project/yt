@@ -35,6 +35,7 @@ from .data_structures import \
 
 from .fields import \
       GadgetFieldContainer, \
+      GadgetFieldInfo, \
       add_gadget_field
 
 from .io import \
