@@ -23,6 +23,9 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
+from yt.data_objects.field_info_container import \
+    CodeFieldInfoContainer
+
 class EnzoFieldContainer(CodeFieldInfoContainer):
     """
     This is a container for Enzo-specific fields.

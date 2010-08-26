@@ -1,5 +1,5 @@
 """
-API for yt.frontends.ramses
+API for yt.frontends.orion
 
 Author: Matthew Turk <matthewturk@gmail.com>
 Affiliation: UCSD
@@ -27,15 +27,3 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 """
-
-from data_structures import \
-      RAMSESGrid, \
-      RAMSESHierarchy, \
-      RAMSESStaticOutput
-
-from fields import \
-      RAMSESFieldContainer, \
-      add_ramses_field
-
-from io import \
-      IOHandlerRAMSES

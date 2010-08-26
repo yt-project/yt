@@ -23,6 +23,13 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
+from yt.data_objects.grid_patch import \
+    AMRGridPatch
+from yt.data_objects.hierarchy import \
+    AMRHierarchy
+from yt.data_objects.static_output import \
+    StaticOutput
+
 class EnzoGrid(AMRGridPatch):
     """
     Class representing a single Enzo Grid instance.
