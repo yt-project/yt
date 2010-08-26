@@ -23,9 +23,13 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
+import pdb
+import numpy as na
+import weakref
+
 from yt.funcs import *
 
-import pdb
+from yt.utilities.definitions import x_dict, y_dict
 
 class AMRGridPatch(object):
     _spatial = True

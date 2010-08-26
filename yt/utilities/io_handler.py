@@ -23,6 +23,8 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
+from collections import defaultdict
+
 import yt.utilities.amr_utils as au
 import exceptions
 import cPickle

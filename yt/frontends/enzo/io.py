@@ -23,6 +23,9 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
+import exceptions
+
+from yt.utilities import hdf5_light_reader
 from yt.utilities.io_handler import \
     BaseIOHandler
 
@@ -95,10 +98,10 @@ class IOHandlerEnzoHDF5(BaseIOHandler):
         Returns a list of fields associated with the filename
         Should *only* be called as EnzoGridInstance.getFields, never as getFields(object)
         """
-        return HDF5LightReader.ReadListOfDatasets(grid.filename, "/")
+        return hdf5_light_reader.ReadListOfDatasets(grid.filename, "/")
 
     def _read_data_set(self, grid, field):
-        return HDF5LightReader.ReadData(grid.filename, "/%s" % field).swapaxes(0,2)
+        return hdf5_light_reader.ReadData(grid.filename, "/%s" % field).swapaxes(0,2)
 
     def _read_data_slice(self, grid, field, axis, coord):
         """
@@ -112,7 +115,7 @@ class IOHandlerEnzoHDF5(BaseIOHandler):
         @param coord: coord to slice at
         """
         axis = {0:2,1:1,2:0}[axis]
-        t = HDF5LightReader.ReadDataSlice(grid.filename, "/%s" %
+        t = hdf5_light_reader.ReadDataSlice(grid.filename, "/%s" %
                         (field), axis, coord).transpose()
         return t
 
@@ -121,13 +124,13 @@ class IOHandlerEnzoHDF5(BaseIOHandler):
 
     @property
     def _read_exception(self):
-        return (exceptions.KeyError, HDF5LightReader.ReadingError)
+        return (exceptions.KeyError, hdf5_light_reader.ReadingError)
 
     def _read_particles(self, fields, rtype, args, grid_list, enclosed,
                         conv_factors):
         filenames = [g.filename for g in grid_list]
         ids = [g.id for g in grid_list]
-        return HDF5LightReader.ReadParticles(
+        return hdf5_light_reader.ReadParticles(
             rtype, fields, filenames, ids, conv_factors, args, 0)
 
 class IOHandlerPackedHDF5(BaseIOHandler):
@@ -140,7 +143,7 @@ class IOHandlerPackedHDF5(BaseIOHandler):
         filenames = [g.filename for g in grid_list]
         ids = [g.id for g in grid_list]
         filenames, ids, conv_factors = zip(*sorted(zip(filenames, ids, conv_factors)))
-        return HDF5LightReader.ReadParticles(
+        return hdf5_light_reader.ReadParticles(
             rtype, fields, list(filenames), list(ids), conv_factors, args, 1)
 
     def modify(self, field):
@@ -160,27 +163,27 @@ class IOHandlerPackedHDF5(BaseIOHandler):
             # We want to pass on any error we might expect -- the preload
             # phase should be non-fatal in all cases, and instead dump back to
             # the grids.
-            data = HDF5LightReader.ReadMultipleGrids(file, nodes, sets)
+            data = hdf5_light_reader.ReadMultipleGrids(file, nodes, sets)
             mylog.debug("Read %s items from %s", len(data), os.path.basename(file))
             for gid in data: self.queue[gid].update(data[gid])
         mylog.debug("Finished read of %s", sets)
 
     def _read_data_set(self, grid, field):
-        return HDF5LightReader.ReadData(grid.filename,
+        return hdf5_light_reader.ReadData(grid.filename,
                 "/Grid%08i/%s" % (grid.id, field)).swapaxes(0,2)
 
     def _read_data_slice(self, grid, field, axis, coord):
         axis = _axis_ids[axis]
-        return HDF5LightReader.ReadDataSlice(grid.filename, "/Grid%08i/%s" %
+        return hdf5_light_reader.ReadDataSlice(grid.filename, "/Grid%08i/%s" %
                         (grid.id, field), axis, coord).transpose()
 
     def _read_field_names(self, grid):
-        return HDF5LightReader.ReadListOfDatasets(
+        return hdf5_light_reader.ReadListOfDatasets(
                     grid.filename, "/Grid%08i" % grid.id)
 
     @property
     def _read_exception(self):
-        return (exceptions.KeyError, HDF5LightReader.ReadingError)
+        return (exceptions.KeyError, hdf5_light_reader.ReadingError)
 
 class IOHandlerInMemory(BaseIOHandler):
 
@@ -236,14 +239,14 @@ class IOHandlerPacked2D(IOHandlerPackedHDF5):
     _particle_reader = False
 
     def _read_data_set(self, grid, field):
-        return HDF5LightReader.ReadData(grid.filename,
+        return hdf5_light_reader.ReadData(grid.filename,
             "/Grid%08i/%s" % (grid.id, field)).transpose()[:,:,None]
 
     def modify(self, field):
         pass
 
     def _read_data_slice(self, grid, field, axis, coord):
-        t = HDF5LightReader.ReadData(grid.filename, "/Grid%08i/%s" %
+        t = hdf5_light_reader.ReadData(grid.filename, "/Grid%08i/%s" %
                         (grid.id, field)).transpose()
         return t
 
@@ -254,14 +257,14 @@ class IOHandlerPacked1D(IOHandlerPackedHDF5):
     _particle_reader = False
 
     def _read_data_set(self, grid, field):
-        return HDF5LightReader.ReadData(grid.filename,
+        return hdf5_light_reader.ReadData(grid.filename,
             "/Grid%08i/%s" % (grid.id, field)).transpose()[:,None,None]
 
     def modify(self, field):
         pass
 
     def _read_data_slice(self, grid, field, axis, coord):
-        t = HDF5LightReader.ReadData(grid.filename, "/Grid%08i/%s" %
+        t = hdf5_light_reader.ReadData(grid.filename, "/Grid%08i/%s" %
                         (grid.id, field))
         return t
 

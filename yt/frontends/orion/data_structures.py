@@ -23,14 +23,40 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
+import re
+import os
+import weakref
+import numpy as na
+
+from collections import \
+    defaultdict
+from string import \
+    strip, \
+    rstrip
+from stat import \
+    ST_CTIME
+
 from yt.data_objects.grid_patch import \
            AMRGridPatch
 from yt.data_objects.hierarchy import \
            AMRHierarchy
 from yt.data_objects.static_output import \
            StaticOutput
+from yt.utilities.logger import \
+    lagosLogger as mylog
+from yt.utilities.definitions import \
+    mpc_conversion
 
-from fields import OrionFieldContainer
+from definitions import \
+    orion2enzoDict, \
+    parameterDict, \
+    yt2orionFieldsDict, \
+    orion_FAB_header_pattern
+
+from fields import \
+    OrionFieldContainer, \
+    add_field
+
 
 class OrionGrid(AMRGridPatch):
     _id_offset = 0

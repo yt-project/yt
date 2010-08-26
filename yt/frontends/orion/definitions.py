@@ -24,7 +24,40 @@ License:
 
 """
 from yt.funcs import *
-### this assumes EnzoDefs.py has *already* been imported
+
+# TODO: get rid of enzo parameters we do not need
+parameterDict = {"CosmologyCurrentRedshift": float,
+                 "CosmologyComovingBoxSize": float,
+                 "CosmologyOmegaMatterNow": float,
+                 "CosmologyOmegaLambdaNow": float,
+                 "CosmologyHubbleConstantNow": float,
+                 "CosmologyInitialRedshift": float,
+                 "DualEnergyFormalismEta1": float,
+                 "DualEnergyFormalismEta2": float,
+                 "MetaDataString": str,
+                 "HydroMethod": int,
+                 "DualEnergyFormalism": int,
+                 "InitialTime": float,
+                 "ComovingCoordinates": int,
+                 "DensityUnits": float,
+                 "LengthUnits": float,
+                 "LengthUnit": float,
+                 "TemperatureUnits": float,
+                 "TimeUnits": float,
+                 "GravitationalConstant": float,
+                 "Gamma": float,
+                 "MultiSpecies": int,
+                 "CompilerPrecision": str,
+                 "CurrentTimeIdentifier": int,
+                 "RefineBy": int,
+                 "BoundaryConditionName": str,
+                 "TopGridRank": int,
+                 "TopGridDimensions": int,
+                 "EOSSoundSpeed": float,
+                 "EOSType": int,
+                 "NumberOfParticleAttributes": int,
+                }
+
 
 # converts the Orion inputs file name to the Enzo/yt name expected
 # throughout the code. key is Orion name, value is Enzo/yt equivalent
