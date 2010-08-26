@@ -28,14 +28,15 @@ License:
 
 """
 
-from data_structures import \
+from .data_structures import \
       FLASHGrid, \
       FLASHHierarchy, \
       FLASHStaticOutput
 
-from fields import \
-      FlashFieldContainer, \
+from .fields import \
+      FLASHFieldContainer, \
+      FLASHFieldInfo, \
       add_flash_field
 
-from io import \
-      IOHandlerFlash
+from .io import \
+      IOHandlerFLASH

@@ -28,14 +28,14 @@ License:
 
 """
 
-from data_structures import \
+from .data_structures import \
       RAMSESGrid, \
       RAMSESHierarchy, \
       RAMSESStaticOutput
 
-from fields import \
+from .fields import \
       RAMSESFieldContainer, \
       add_ramses_field
 
-from io import \
+from .io import \
       IOHandlerRAMSES
