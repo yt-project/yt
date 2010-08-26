@@ -30,9 +30,9 @@ data_object_registry = {}
 import numpy as na
 import math
 
+from yt.funcs import *
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     ParallelAnalysisInterface
-from yt.funcs import *
 
 def restore_grid_state(func):
     """
