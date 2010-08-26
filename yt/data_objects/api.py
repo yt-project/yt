@@ -29,7 +29,7 @@ License:
 """
 
 from grid_patch import \
-    AMRGridPatch, \
+    AMRGridPatch
 
 from hierarchy import \
     AMRHierarchy
