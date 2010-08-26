@@ -1,4 +1,4 @@
-ss = r"""\"\"\"
+ss = """\"\"\"
 API for %s
 
 Author: Matthew Turk <matthewturk@gmail.com>
@@ -33,8 +33,8 @@ import sys, os
 n = sys.argv[-1]
 
 fn = os.path.join(os.path.abspath(n), "api.py")
-if os.path.exists(fn):
-    print "%s exists!  Not overwriting." % fn
+#if os.path.exists(fn):
+    #print "%s exists!  Not overwriting." % fn
 bn = n.replace("/",".")
 
 print "%s -> %s" % (bn, fn)
