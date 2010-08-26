@@ -29,6 +29,8 @@ import os
 import stat
 import string
 
+from itertools import izip
+
 from yt.data_objects.grid_patch import \
     AMRGridPatch
 from yt.data_objects.hierarchy import \
@@ -40,7 +42,7 @@ from yt.utilities import hdf5_light_reader
 from yt.utilities.logger import ytLogger as mylog
 
 from .definitions import parameterDict
-from .fields import EnzoFieldContainer
+from .fields import EnzoFieldContainer, add_enzo_field
 
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     parallel_blocking_call
@@ -400,8 +402,8 @@ class EnzoHierarchy(AMRHierarchy):
                         return data.convert(f)
                     return _convert_function
                 cf = external_wrapper(field)
-            add_field(field, lambda a, b: None,
-                      convert_function=cf, take_log=False)
+            add_enzo_field(field, lambda a, b: None,
+                           convert_function=cf, take_log=False)
 
     def _setup_derived_fields(self):
         self.derived_field_list = []

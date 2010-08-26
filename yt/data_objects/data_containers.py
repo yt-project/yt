@@ -29,8 +29,11 @@ data_object_registry = {}
 
 import numpy as na
 import math
+import weakref
 
 from yt.funcs import *
+
+from yt.utilities.definitions import axis_names, x_dict, y_dict
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     ParallelAnalysisInterface
 
