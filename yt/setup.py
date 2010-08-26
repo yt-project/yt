@@ -56,13 +56,11 @@ def check_for_png():
 def configuration(parent_package='', top_path=None):
     from numpy.distutils.misc_util import Configuration
     config = Configuration('yt', parent_package, top_path)
-    config.add_subpackage('lagos')
-    config.add_subpackage('raven')
-    config.add_subpackage('fido')
-    config.add_subpackage('reason')
-    config.add_subpackage('extensions')
-    config.add_subpackage('parallel_tools')
+    config.add_subpackage('analysis_modules')
     config.add_subpackage('data_objects')
+    config.add_subpackage('frontends')
+    config.add_subpackage('utilities')
+    config.add_subpackage('visualization')
     png_inc, png_lib = check_for_png()
     include_dirs=[png_inc]
     library_dirs=[png_lib]
