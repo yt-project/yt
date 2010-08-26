@@ -23,6 +23,9 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
+from yt.utilities.io import \
+      BaseIOHandler
+
 class IOHandlerEnzoHDF4(BaseIOHandler):
 
     _data_style = "enzo_hdf4"
