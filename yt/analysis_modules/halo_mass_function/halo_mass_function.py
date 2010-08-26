@@ -23,12 +23,16 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-import yt.lagos as lagos
-from yt.logger import lagosLogger as mylog
 import numpy as na
 import math, time
 
-class HaloMassFcn(lagos.ParallelAnalysisInterface):
+from yt.funcs import *
+from yt.utilities.parallel_tools.parallel_analysis_interface import \
+    ParallelDummy, \
+    ParallelAnalysisInterface, \
+    parallel_blocking_call
+
+class HaloMassFcn(ParallelAnalysisInterface):
     def __init__(self, pf, halo_file=None, omega_matter0=None, omega_lambda0=None,
     omega_baryon0=0.05, hubble0=None, sigma8input=0.86, primordial_index=1.0,
     this_redshift=None, log_mass_min=None, log_mass_max=None, num_sigma_bins=360,
