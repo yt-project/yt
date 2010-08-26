@@ -23,7 +23,7 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-from yt.logger import lagosLogger as mylog
+from yt.utilities.logger import lagosLogger as mylog
 from yt.funcs import *
 from mpi4py import MPI
 import yt.extensions.EnzoSimulation as ES

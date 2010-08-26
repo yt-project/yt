@@ -23,9 +23,3 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-import yt.lagos as lagos
-
-from LightConeProjection import *
-from light_cone import *
-from HaloMask import *
-from UniqueSolution import *
