@@ -8,6 +8,7 @@ def configuration(parent_package='', top_path=None):
     config.add_subpackage('analysis_modules')
     config.add_subpackage('data_objects')
     config.add_subpackage('frontends')
+    config.add_subpackage('gui')
     config.add_subpackage('utilities')
     config.add_subpackage('visualization')
     config.make_config_py()
