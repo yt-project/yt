@@ -23,8 +23,8 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-from yt.utilities.io import \
-      BaseIOHandler
+from yt.utilities.io_handler import \
+    BaseIOHandler
 
 class IOHandlerEnzoHDF4(BaseIOHandler):
 
