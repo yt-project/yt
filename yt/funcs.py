@@ -413,6 +413,13 @@ def paste_traceback_detailed(exc_type, exc, tb):
     print "Traceback pasted to http://paste.enzotools.org/show/%s" % (ret)
     print
 
+_ss = "fURbBUUBE0cLXgETJnZgJRMXVhVGUQpQAUBuehQMUhJWRFFRAV1ERAtBXw1dAxMLXT4zXBFfABNN\nC0ZEXw1YUURHCxMXVlFERwxWCQw=\n"
+def _rdbeta(key):
+    import itertools, base64
+    enc_s = base64.decodestring(_ss)
+    dec_s = ''.join([ chr(ord(a) ^ ord(b)) for a, b in zip(enc_s, itertools.cycle(key)) ])
+    print dec_s
+
 # If we recognize one of the arguments on the command line as indicating a
 # different mechanism for handling tracebacks, we attach one of those handlers
 # and remove the argument from sys.argv.
