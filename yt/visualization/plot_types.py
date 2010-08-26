@@ -25,9 +25,8 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-from yt.raven import *
 from yt.funcs import *
-
+from _mpl_imports import *
 import _MPL
 
 engineVals = {}

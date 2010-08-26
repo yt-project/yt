@@ -23,7 +23,8 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-from yt.raven import *
+from yt.funcs import *
+from yt.utilities.definitions import axis_names
 
 # No better place to put this
 def concatenate_pdfs(output_fn, input_fns):
@@ -372,7 +373,7 @@ class PlotCollection(object):
                          size=fig_size, periodic=periodic))
         mylog.info("Added slice of %s at %s = %s with 'center' = %s", field,
                     axis_names[axis], coord, list(center))
-        p["Axis"] = lagos.axis_names[axis]
+        p["Axis"] = axis_names[axis]
         return p
 
     def add_particles(self, axis, width, p_size=1.0, col='k', stride=1.0,
@@ -439,7 +440,7 @@ class PlotCollection(object):
         p = self._add_plot(PlotTypes.ParticlePlot(data_source, axis,
                                         width, p_size, col, stride, figure,
                                         axes))
-        p["Axis"] = lagos.axis_names[axis]
+        p["Axis"] = axis_names[axis]
         return p
 
     def add_cutting_plane(self, field, normal,
@@ -720,7 +721,7 @@ class PlotCollection(object):
         p = self._add_plot(PlotTypes.ProjectionPlot(obj, field,
                          use_colorbar=use_colorbar, axes=axes, figure=figure,
                          size=fig_size, periodic=periodic))
-        p["Axis"] = lagos.axis_names[axis]
+        p["Axis"] = axis_names[axis]
         return p
 
     def add_profile_object(self, data_source, fields,

@@ -27,6 +27,8 @@ License:
 import string, re, gc, time, os, os.path, weakref
 
 from yt.funcs import *
+
+from yt.config import ytcfg
 from yt.utilities.parameter_file_storage import \
     ParameterFileStore, \
     NoParameterShelf, \
