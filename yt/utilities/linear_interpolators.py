@@ -24,7 +24,10 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-from yt.lagos import *
+import numpy as na
+
+from yt.funcs import *
+import amr_utils
 
 class UnilinearFieldInterpolator:
     def __init__(self, table, boundaries, field_names, truncate=False):

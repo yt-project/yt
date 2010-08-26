@@ -97,7 +97,7 @@ from .lightcone.api import \
     commonNVolume, \
     commonSegment, \
     light_cone_halo_mask, \
-    light_cone_halo_map
+    light_cone_halo_map, \
     LightConeProjection, \
     project_unique_light_cones, \
     find_unique_solutions

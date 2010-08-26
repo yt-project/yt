@@ -16,8 +16,6 @@ def configuration(parent_package='',top_path=None):
     config.add_subpackage("level_sets")
     config.add_subpackage("light_ray")
     config.add_subpackage("lightcone")
-    config.add_subpackage("setup.py")
-    config.add_subpackage("setup.pyc")
     config.add_subpackage("simulation_handler")
     config.add_subpackage("spectral_integrator")
     config.add_subpackage("star_analysis")

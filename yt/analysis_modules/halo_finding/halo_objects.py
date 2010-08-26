@@ -25,24 +25,21 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-from yt.lagos import *
-from yt.math_utils import *
-from yt.lagos.hop.EnzoHop import RunHOP
+import math, sys, itertools, gc, random
+
+import numpy as na
+
+from yt.funcs import *
+from yt.utilities.performance_counters import \
+    yt_counters, time_function
+
+from .hop.EnzoHop import RunHOP
+from .fof.EnzoFOF import RunFOF
 try:
-    from yt.lagos.parallelHOP.parallelHOP import *
+    from .parallelHOP.parallelHOP import \
+        RunParallelHOP 
 except ImportError:
     mylog.debug("ParallelHOP not imported.")
-
-try:
-    from yt.lagos.fof.EnzoFOF import RunFOF
-except ImportError:
-    pass
-from yt.performance_counters import yt_counters, time_function
-
-from kd import *
-from yt.funcs import *
-import math, sys, itertools, gc, random
-from collections import defaultdict
 
 TINY = 1.e-40
 
