@@ -29,6 +29,8 @@ import numpy as na
 
 from yt.funcs import *
 
+from yt.utilities.data_point_utilities import Bin2DProfile, \
+    Bin3DProfile
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     ParallelAnalysisInterface
 
@@ -427,7 +429,7 @@ class BinnedProfile2D(BinnedProfile):
         weight_data = weight_data[mi]
         nx = bin_indices_x.size
         #mylog.debug("Binning %s / %s times", source_data.size, nx)
-        PointCombine.Bin2DProfile(bin_indices_x, bin_indices_y, weight_data, source_data,
+        Bin2DProfile(bin_indices_x, bin_indices_y, weight_data, source_data,
                      weight_field, binned_field, used_field)
         if accumulation: # Fix for laziness
             if not iterable(accumulation):
@@ -637,10 +639,10 @@ class BinnedProfile3D(BinnedProfile):
         bin_indices_z = args[3].ravel().astype('int64')
         source_data = source_data[mi]
         weight_data = weight_data[mi]
-        PointCombine.Bin3DProfile(
-                     bin_indices_x, bin_indices_y, bin_indices_z,
-                     weight_data, source_data,
-                     weight_field, binned_field, used_field)
+        Bin3DProfile(
+            bin_indices_x, bin_indices_y, bin_indices_z,
+            weight_data, source_data,
+            weight_field, binned_field, used_field)
         if accumulation: # Fix for laziness
             if not iterable(accumulation):
                 raise SyntaxError("Accumulation needs to have length 2")
