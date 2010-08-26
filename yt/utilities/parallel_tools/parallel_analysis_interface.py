@@ -23,9 +23,8 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-from yt.lagos import *
 from yt.funcs import *
-import yt.logger, logging
+import yt.utilities.logger, logging
 import itertools, sys, cStringIO, cPickle
 
 exe_name = os.path.basename(sys.executable)
@@ -52,7 +51,7 @@ if exe_name in \
                 ytcfg["lagos","onlydeserialize"] = "True"
             if ytcfg.getboolean("yt","LogFile"):
                 ytcfg["yt","LogFile"] = "False"
-                yt.logger.disable_file_logging()
+                yt.utilities.logger.disable_file_logging()
         f = logging.Formatter("P%03i %s" % (MPI.COMM_WORLD.rank,
                                             yt.logger.fstring))
         yt.logger.rootLogger.handlers[0].setFormatter(f)
