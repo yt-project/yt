@@ -36,7 +36,7 @@ from data_structures import \
       EnzoHierarchy1D, \
       EnzoHierarchy2D, \
       EnzoStaticOutput, \
-      EnzoStaticOutputInMemory, \
+      EnzoStaticOutputInMemory
 
 from fields import \
       EnzoFieldContainer, \
