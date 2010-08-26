@@ -47,9 +47,9 @@ from particle_io import \
 from profiles import \
     EmptyProfileData, \
     BinnedProfile, \
-    Binned1DProfile, \
-    Binned2DProfile, \
-    Binned3DProfile
+    BinnedProfile1D, \
+    BinnedProfile2D, \
+    BinnedProfile3D
 
 # Disabled for now
 #from time_series import \
@@ -69,6 +69,7 @@ from derived_quantities import \
 
 from field_info_container import \
     FieldInfoContainer, \
+    FieldInfo, \
     CodeFieldInfoContainer, \
     NeedsGridType, \
     NeedsOriginalGrid, \
@@ -77,8 +78,10 @@ from field_info_container import \
     NeedsParameter, \
     FieldDetector, \
     DerivedField, \
-    ValidateParameters, \
+    ValidateParameter, \
     ValidateDataField, \
     ValidateProperty, \
     ValidateSpatial, \
-    ValidateGridType
+    ValidateGridType, \
+    add_field, \
+    derived_field

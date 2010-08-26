@@ -24,6 +24,8 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
+from __future__ import absolute_import
+
 #
 # ALL IMPORTS GO HERE
 #
@@ -39,7 +41,7 @@ from yt.data_objects.api import \
     BinnedProfile1D, BinnedProfile2D, BinnedProfile3D, \
     data_object_registry, \
     derived_field, add_field, FieldInfo, \
-    ValidateParameters, ValidateDataField, ValidateProperty, \
+    ValidateParameter, ValidateDataField, ValidateProperty, \
     ValidateSpatial, ValidateGridType
 
 from yt.frontends.enzo.api import \
