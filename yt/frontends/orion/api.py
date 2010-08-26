@@ -35,6 +35,7 @@ from data_structures import \
 
 from fields import \
       OrionFieldContainer, \
+      OrionFieldInfo, \
       add_orion_field
 
 from io import \
