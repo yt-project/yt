@@ -9,8 +9,4 @@ def configuration(parent_package='',top_path=None):
     config = Configuration('fof',parent_package,top_path)
     config.make_config_py() # installs __config__.py
     config.make_svn_version_py()
-    config.add_extension("EnzoFOF", sources=
-                                    ["EnzoFOF.c",
-                                     "kd.c"],
-                                    libraries=["m"])
     return config

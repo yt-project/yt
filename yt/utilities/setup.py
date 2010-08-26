@@ -96,6 +96,7 @@ def configuration(parent_package='',top_path=None):
     # always properly checked its header files (see
     # https://bugzilla.redhat.com/show_bug.cgi?id=494579 ) we simply disable
     # support for setjmp.
+    config.add_subpackage("kdtree")
     config.add_subpackage("parallel_tools")
     config.add_extension("data_point_utilities",
                 "yt/utilities/data_point_utilities.c", libraries=["m"])

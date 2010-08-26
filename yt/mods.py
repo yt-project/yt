@@ -64,6 +64,7 @@ from yt.frontends.chombo.api import \
     ChomboStaticOutput, ChomboFieldInfo, add_chombo_field
 
 # Import our analysis modules
+import yt.analysis_modules.api as analysis
 from yt.analysis_modules.api import \
     Clump, write_clump_hierarchy, find_clumps, write_clumps, \
     get_lowest_clumps, \

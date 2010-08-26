@@ -13,7 +13,6 @@ def configuration(parent_package='',top_path=None):
     config.add_subpackage("halo_merger_tree")
     config.add_subpackage("halo_profiler")
     config.add_subpackage("hierarchy_subset")
-    config.add_subpackage("kdtree")
     config.add_subpackage("level_sets")
     config.add_subpackage("light_ray")
     config.add_subpackage("lightcone")
