@@ -20,7 +20,7 @@
 
 
 //
-// PointCombine
+// data_point_utilities
 //   A module for merging points from different grids, in various ways.
 //   Used for projections, interpolations, and binning profiles.
 //
@@ -1690,24 +1690,24 @@ static PyMethodDef _combineMethods[] = {
 __declspec(dllexport)
 #endif
 
-void initPointCombine(void)
+void initdata_point_utilities(void)
 {
     PyObject *m, *d;
-    m = Py_InitModule("PointCombine", _combineMethods);
+    m = Py_InitModule("data_point_utilities", _combineMethods);
     d = PyModule_GetDict(m);
-    _combineGridsError = PyErr_NewException("PointCombine.CombineGridsError", NULL, NULL);
+    _combineGridsError = PyErr_NewException("data_point_utilities.CombineGridsError", NULL, NULL);
     PyDict_SetItemString(d, "error", _combineGridsError);
-    _interpolateError = PyErr_NewException("PointCombine.InterpolateError", NULL, NULL);
+    _interpolateError = PyErr_NewException("data_point_utilities.InterpolateError", NULL, NULL);
     PyDict_SetItemString(d, "error", _interpolateError);
-    _dataCubeError = PyErr_NewException("PointCombine.DataCubeError", NULL, NULL);
+    _dataCubeError = PyErr_NewException("data_point_utilities.DataCubeError", NULL, NULL);
     PyDict_SetItemString(d, "error", _dataCubeError);
-    _profile2DError = PyErr_NewException("PointCombine.Profile2DError", NULL, NULL);
+    _profile2DError = PyErr_NewException("data_point_utilities.Profile2DError", NULL, NULL);
     PyDict_SetItemString(d, "error", _profile2DError);
-    _profile3DError = PyErr_NewException("PointCombine.Profile3DError", NULL, NULL);
+    _profile3DError = PyErr_NewException("data_point_utilities.Profile3DError", NULL, NULL);
     PyDict_SetItemString(d, "error", _profile3DError);
-    _findContoursError = PyErr_NewException("PointCombine.FindContoursError", NULL, NULL);
+    _findContoursError = PyErr_NewException("data_point_utilities.FindContoursError", NULL, NULL);
     PyDict_SetItemString(d, "error", _findContoursError);
-    _outputFloatsToFileError = PyErr_NewException("PointCombine.OutputFloatsToFileError", NULL, NULL);
+    _outputFloatsToFileError = PyErr_NewException("data_point_utilities.OutputFloatsToFileError", NULL, NULL);
     PyDict_SetItemString(d, "error", _outputFloatsToFileError);
     import_array();
 }

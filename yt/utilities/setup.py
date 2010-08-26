@@ -97,13 +97,12 @@ def configuration(parent_package='',top_path=None):
     # https://bugzilla.redhat.com/show_bug.cgi?id=494579 ) we simply disable
     # support for setjmp.
     config.add_subpackage("parallel_tools")
-    config.add_subpackage("")
     config.add_extension("data_point_utilities",
-                "yt/lagos/data_point_utilities.c", libraries=["m"])
+                "yt/utilities/data_point_utilities.c", libraries=["m"])
     hdf5_inc, hdf5_lib = check_for_hdf5()
     include_dirs=[hdf5_inc]
     library_dirs=[hdf5_lib]
-    config.add_extension("hdf5_light_reader", "yt/lagos/hdf5_light_reader.c",
+    config.add_extension("hdf5_light_reader", "yt/utilities/hdf5_light_reader.c",
                          define_macros=[("H5_USE_16_API",True)],
                          libraries=["m","hdf5"],
                          library_dirs=library_dirs, include_dirs=include_dirs)

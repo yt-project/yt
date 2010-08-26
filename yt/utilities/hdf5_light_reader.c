@@ -1771,12 +1771,12 @@ static PyMethodDef _hdf5LightReaderMethods[] = {
 __declspec(dllexport)
 #endif
 
-void initHDF5LightReader(void)
+void inithdf5_light_reader(void)
 {
     PyObject *m, *d;
-    m = Py_InitModule("HDF5LightReader", _hdf5LightReaderMethods);
+    m = Py_InitModule("hdf5_light_reader", _hdf5LightReaderMethods);
     d = PyModule_GetDict(m);
-    _hdf5ReadError = PyErr_NewException("HDF5LightReader.ReadingError", NULL, NULL);
+    _hdf5ReadError = PyErr_NewException("hdf5_light_reader.ReadingError", NULL, NULL);
     PyDict_SetItemString(d, "ReadingError", _hdf5ReadError);
     import_array();
 }
