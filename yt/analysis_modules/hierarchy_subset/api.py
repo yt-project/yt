@@ -1,5 +1,5 @@
 """
-API for yt.analysis_modules
+API for hierarchy_subset
 
 Author: Matthew Turk <matthewturk@gmail.com>
 Affiliation: UCSD
@@ -27,5 +27,3 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 """
-
-
