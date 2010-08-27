@@ -94,12 +94,12 @@ from .level_sets.api import \
 #from .light_ray.api import \
 #    LightRay
 
-from .lightcone.api import \
+from .light_cone.api import \
     commonNVolume, \
     commonSegment, \
     light_cone_halo_mask, \
     light_cone_halo_map, \
-    LightConeProjection, \
+    light_cone_projection, \
     project_unique_light_cones, \
     find_unique_solutions
 

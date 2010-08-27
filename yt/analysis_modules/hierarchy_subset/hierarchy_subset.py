@@ -23,10 +23,16 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-
-from yt.mods import *
-from yt.lagos import AMRGridPatch, StaticOutput, AMRHierarchy
 import h5py, os.path
+import numpy as na
+
+from yt.funcs import *
+from yt.data_objects.grid_patch import \
+    AMRGridPatch
+from yt.data_objects.static_output import \
+    StaticOutput
+from yt.data_objects.hierarchy import \
+    AMRHierarchy
 
 class DummyHierarchy(object):
     pass
