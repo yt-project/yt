@@ -27,10 +27,12 @@ import numpy as na
 from yt.funcs import *
 import h5py
 
-from yt.amr_utils import PartitionedGrid, ProtoPrism, GridFace, \
-        grid_points_in_volume, find_grids_in_inclined_box
-from yt.lagos import ParallelAnalysisInterface, only_on_root, parallel_root_only
-from yt.parallel_tools import DistributedObjectCollection
+from yt.utilities.amr_utils import PartitionedGrid, ProtoPrism, GridFace, \
+    grid_points_in_volume, find_grids_in_inclined_box
+from yt.utilities.parallel_tools.distributed_object_collection import \
+    DistributedObjectCollection
+from yt.utilities.parallel_tools.parallel_analysis_interface import \
+    ParallelAnalysisInterface, parallel_root_only
 
 # HISTORICAL NOTE OF SOME IMPORT:
 #   The homogenized brick class should and will be removed.  The more general,

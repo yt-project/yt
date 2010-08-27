@@ -22,13 +22,13 @@ License:
   You should have received a copy of the GNU General Public License
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
-import numpy as na
-import matplotlib; from matplotlib import pylab
-from yt.extensions.volume_rendering import *
-from yt.funcs import *
 import h5py
 try: import pyfits
 except: pass
+import numpy as na
+import matplotlib; from matplotlib import pylab
+
+from yt.funcs import *
 
 def export_rgba(image, fn, h5=True, fits=False, ):
     """
