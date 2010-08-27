@@ -31,9 +31,6 @@ from _mpl_imports import *
 from yt.utilities.definitions import \
     axis_labels
 import _MPL
-from plot_types import \
-    _get_bounds
-
 
 callback_registry = {}
 
@@ -49,7 +46,7 @@ class PlotCallback(object):
     def convert_to_pixels(self, plot, coord, offset = True):
         x0, x1 = plot.xlim
         y0, y1 = plot.ylim
-        l, b, width, height = _get_bounds(plot._axes.bbox)
+        l, b, width, height = mpl_get_bounds(plot._axes.bbox)
         dx = width / (x1-x0)
         dy = height / (y1-y0)
         return ((coord[0] - int(offset)*x0)*dx,
@@ -383,7 +380,7 @@ class UnitBoundaryCallback(PlotCallback):
     def __call__(self, plot):
         x0, x1 = plot.xlim
         y0, y1 = plot.ylim
-        l, b, width, height = _get_bounds(plot._axes.bbox)
+        l, b, width, height = mpl_get_bounds(plot._axes.bbox)
         xi = lagos.x_dict[plot.data.axis]
         yi = lagos.y_dict[plot.data.axis]
         dx = plot.image._A.shape[0] / (x1-x0)
@@ -662,7 +659,7 @@ class SphereCallback(PlotCallback):
         from matplotlib.patches import Circle
         x0, x1 = plot.xlim
         y0, y1 = plot.ylim
-        l, b, width, height = _get_bounds(plot._axes.bbox)
+        l, b, width, height = mpl_get_bounds(plot._axes.bbox)
         xi = lagos.x_dict[plot.data.axis]
         yi = lagos.y_dict[plot.data.axis]
         dx = plot.image._A.shape[0] / (x1-x0)
@@ -701,7 +698,7 @@ class HopCircleCallback(PlotCallback):
         from matplotlib.patches import Circle
         x0, x1 = plot.xlim
         y0, y1 = plot.ylim
-        l, b, width, height = _get_bounds(plot._axes.bbox)
+        l, b, width, height = mpl_get_bounds(plot._axes.bbox)
         xi = lagos.x_dict[plot.data.axis]
         yi = lagos.y_dict[plot.data.axis]
         dx = plot.image._A.shape[0] / (x1-x0)
@@ -787,7 +784,7 @@ class VobozCircleCallback(PlotCallback):
         from matplotlib.patches import Circle
         x0, x1 = plot.xlim
         y0, y1 = plot.ylim
-        l, b, width, height = _get_bounds(plot._axes.bbox)
+        l, b, width, height = mpl_get_bounds(plot._axes.bbox)
         xi = lagos.x_dict[plot.data.axis]
         yi = lagos.y_dict[plot.data.axis]
         dx = plot.image._A.shape[0] / (x1-x0)

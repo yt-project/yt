@@ -47,3 +47,7 @@ from image_writer import \
     write_image, \
     map_to_colors, \
     splat_points
+
+from plot_modifications import \
+    PlotCallback, \
+    callback_registry

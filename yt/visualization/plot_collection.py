@@ -22,9 +22,23 @@ License:
   You should have received a copy of the GNU General Public License
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
+import numpy as na
 
 from yt.funcs import *
 from yt.utilities.definitions import axis_names
+from .plot_types import \
+    FixedResolutionPlot, \
+    SlicePlot, \
+    SlicePlotNaturalNeighbor, \
+    ProjectionPlot, \
+    ProjectionPlotNaturalNeighbor, \
+    CuttingPlanePlot, \
+    ParticlePlot, \
+    ProfilePlot, \
+    Profile1DPlot, \
+    PhasePlot, \
+    LineQueryPlot, \
+    ScatterPlot
 
 # No better place to put this
 def concatenate_pdfs(output_fn, input_fns):
@@ -77,7 +91,6 @@ class PlotCollection(object):
         >>> pc.save()
 
         """
-        PlotTypes.Initialize()
         self.plots = []
         self.pf = pf
         if center == None:
@@ -367,7 +380,7 @@ class PlotCollection(object):
             if field_parameters == None: field_parameters = {}
             obj = self.pf.hierarchy.slice(axis, coord, field,
                             center=center, **field_parameters)
-        p = self._add_plot(PlotTypes.SlicePlot(
+        p = self._add_plot(SlicePlot(
                          obj, field, use_colorbar=use_colorbar,
                          axes=axes, figure=figure,
                          size=fig_size, periodic=periodic))
@@ -437,7 +450,7 @@ class PlotCollection(object):
         RE[axis] = self.c[axis] + width/2.0
         if data_source is None: data_source = self.pf.h.region(self.c, LE, RE)
         data_source.axis = axis
-        p = self._add_plot(PlotTypes.ParticlePlot(data_source, axis,
+        p = self._add_plot(ParticlePlot(data_source, axis,
                                         width, p_size, col, stride, figure,
                                         axes))
         p["Axis"] = axis_names[axis]
@@ -529,7 +542,7 @@ class PlotCollection(object):
                     **field_parameters)
         else:
             cp = obj
-        p = self._add_plot(PlotTypes.CuttingPlanePlot(cp, field,
+        p = self._add_plot(CuttingPlanePlot(cp, field,
                          use_colorbar=use_colorbar, axes=axes, figure=figure,
                          size=fig_size))
         mylog.info("Added plane of %s with 'center' = %s and normal = %s", field,
@@ -622,7 +635,7 @@ class PlotCollection(object):
             #data = frc[field]
         else:
             data = obj
-        p = self._add_plot(PlotTypes.FixedResolutionPlot(data, field,
+        p = self._add_plot(FixedResolutionPlot(data, field,
                          use_colorbar=use_colorbar, axes=axes, figure=figure,
                          size=fig_size))
         mylog.info("Added fixed-res plane of %s with 'center' = %s and "
@@ -718,7 +731,7 @@ class PlotCollection(object):
             obj = self.pf.hierarchy.proj(axis, field, weight_field,
                                          source = data_source, center=center,
                                          **field_parameters)
-        p = self._add_plot(PlotTypes.ProjectionPlot(obj, field,
+        p = self._add_plot(ProjectionPlot(obj, field,
                          use_colorbar=use_colorbar, axes=axes, figure=figure,
                          size=fig_size, periodic=periodic))
         p["Axis"] = axis_names[axis]
@@ -810,7 +823,7 @@ class PlotCollection(object):
         if len(fields) > 1:
             profile.add_fields(fields[1], weight=weight, accumulation=accumulation)
         if id is None: id = self._get_new_id()
-        p = self._add_plot(PlotTypes.Profile1DPlot(profile, fields, id,
+        p = self._add_plot(Profile1DPlot(profile, fields, id,
                                                    axes=axes, figure=figure))
         return p
 
@@ -1017,7 +1030,7 @@ class PlotCollection(object):
                                      y_bins, fields[1], y_min, y_max, y_log,
                                      lazy_reader)
         if id is None: id = self._get_new_id()
-        p = self._add_plot(PlotTypes.PhasePlot(profile, fields, 
+        p = self._add_plot(PhasePlot(profile, fields, 
                                                id, cmap=cmap,
                                                figure=figure, axes=axes))
         if len(fields) > 2:
@@ -1182,7 +1195,7 @@ class PlotCollection(object):
         """
         if id is None: id = self._get_new_id()
         if plot_options is None: plot_options = {}
-        sp = PlotTypes.ScatterPlot(data_source, fields, id,
+        sp = ScatterPlot(data_source, fields, id,
                                    plot_options = plot_options,
                                    figure=figure, axes=axes)
         p = self._add_plot(sp)
@@ -1236,7 +1249,7 @@ class PlotCollection(object):
         >>> frb = FixedResolutionBuffer(proj, (0.2, 0.3, 0.4, 0.5), (512, 512))
         >>> p = pc.add_fixed_resolution_plot(frb, "Density")
         """
-        p = self._add_plot(PlotTypes.FixedResolutionPlot(frb, field,
+        p = self._add_plot(FixedResolutionPlot(frb, field,
                          use_colorbar=use_colorbar, axes=axes, figure=figure,
                          size=fig_size))
         p["Axis"] = "na"
@@ -1301,7 +1314,7 @@ class PlotCollection(object):
         if plot_options is None: plot_options = {}
         data_source = self.pf.h.ortho_ray(axis, coords, field,
                         **field_parameters)
-        p = self._add_plot(PlotTypes.LineQueryPlot(data_source,
+        p = self._add_plot(LineQueryPlot(data_source,
                 [axis_names[axis], field], self._get_new_id(),
                 figure=figure, axes=axes, plot_options=plot_options))
         return p
@@ -1361,7 +1374,7 @@ class PlotCollection(object):
         if plot_options is None: plot_options = {}
         data_source = self.pf.h.ray(start_point, end_point, field,
                                     **field_parameters)
-        p = self._add_plot(PlotTypes.LineQueryPlot(data_source,
+        p = self._add_plot(LineQueryPlot(data_source,
                 ['t', field], self._get_new_id(),
                 figure=figure, axes=axes, plot_options=plot_options))
         return p
@@ -1546,7 +1559,6 @@ def get_multi_plot(nx, ny, colorbar = 'vertical', bw = 4, dpi=300):
     can be instructure, and is encouraged to see how to generate more
     complicated or more specific sets of multiplots for your own purposes.
     """
-    PlotTypes.Initialize()
     hf, wf = 1.0/ny, 1.0/nx
     fudge_x = fudge_y = 1.0
     if colorbar is None:

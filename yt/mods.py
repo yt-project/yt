@@ -71,11 +71,11 @@ from yt.utilities.definitions import \
     axis_names, x_dict, y_dict
 
 # Now individual component imports from raven
-#from yt.visualization.api import \
-#    PlotCollection, PlotCollectionInteractive, \
-#    get_multi_plot, FixedResolutionBuffer, ObliqueFixedResolutionBuffer, \
-#    AnnuliProfiler, callback_registry
-#for name, cls in callback_registry.items():
-#    exec("%s = cls" % name)
+from yt.visualization.api import \
+    PlotCollection, PlotCollectionInteractive, \
+    get_multi_plot, FixedResolutionBuffer, ObliqueFixedResolutionBuffer, \
+    callback_registry
+for name, cls in callback_registry.items():
+    exec("%s = cls" % name)
 
 from yt.convenience import all_pfs, max_spheres, load, projload
