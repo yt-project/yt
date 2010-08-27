@@ -23,16 +23,19 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
+import copy
+import os
+import numpy as na
+
 from yt.extensions.lightcone import *
 from yt.extensions.enzo_simulation import *
 from yt.logger import lagosLogger as mylog
 from yt.config import ytcfg
 from yt.funcs import *
-from common_n_volume import *
-from halo_mask import *
-import copy
-import os
-import numpy as na
+from .common_n_volume import *
+from .halo_mask import *
+from yt.visualization.plot_collection import \
+    PlotCollection
 
 class LightCone(EnzoSimulation):
     def __init__(self, EnzoParameterFile, initial_redshift=1.0, final_redshift=0.0, observer_redshift=0.0,
@@ -334,7 +337,7 @@ class LightCone(EnzoSimulation):
             center = [0.5 * (self.light_cone_solution[-1]['object'].parameters['DomainLeftEdge'][w] + 
                              self.light_cone_solution[-1]['object'].parameters['DomainRightEdge'][w])
                       for w in range(self.light_cone_solution[-1]['object'].parameters['TopGridRank'])]
-            pc = raven.PlotCollection(self.light_cone_solution[-1]['object'], center=center)
+            pc = PlotCollection(self.light_cone_solution[-1]['object'], center=center)
             pc.add_fixed_resolution_plot(frb, field, **kwargs)
             pc.save(filename)
 

@@ -44,6 +44,10 @@ from yt.utilities.parallel_tools.parallel_analysis_interface import \
     ParallelAnalysisInterface, \
     parallel_blocking_call, \
     parallel_root_only
+from yt.visualization.fixed_resolution import \
+    FixedResolutionBuffer
+from yt.visualization.plot_collection import \
+    PlotCollection
 
 PROFILE_RADIUS_THRESHOLD = 2
 
@@ -471,7 +475,7 @@ class HaloProfiler(ParallelAnalysisInterface):
             if not isinstance(axes, types.ListType): axes = list([axes])
             for w in axes:
                 # Create a plot collection.
-                pc = raven.PlotCollection(self.pf, center=center)
+                pc = PlotCollection(self.pf, center=center)
                 # YT projections do not follow the right-hand rule.
                 coords = range(3)
                 del coords[w]
@@ -505,7 +509,7 @@ class HaloProfiler(ParallelAnalysisInterface):
                     output = h5py.File(dataFilename, "a")
                     # Create fixed resolution buffer for each projection and write them out.
                     for e, hp in enumerate(self.projection_fields):
-                        frb = raven.FixedResolutionBuffer(pc.plots[e].data, (proj_left[0], proj_right[0], proj_left[1], proj_right[1]),
+                        frb = FixedResolutionBuffer(pc.plots[e].data, (proj_left[0], proj_right[0], proj_left[1], proj_right[1]),
                                                           (projectionResolution, projectionResolution),
                                                           antialias=False)
                         dataset_name = "%s_%s" % (hp['field'], hp['weight_field'])
