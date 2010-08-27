@@ -23,8 +23,7 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-import yt.lagos as lagos
-from yt.logger import lagosLogger as mylog
+from yt.utilities.logger import lagosLogger as mylog
 
 import numpy as na
 import h5py
