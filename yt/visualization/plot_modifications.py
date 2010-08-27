@@ -157,12 +157,8 @@ class ContourCallback(PlotCallback):
         self.field = field
         self.factor = factor
         self.take_log = take_log
-        try:
-            import delaunay as de
-            self.de = de
-        except ImportError:
-            mylog.warning("Callback failed; no delaunay module")
-            self.__call__ = lambda a: None
+        from yt.utilities.delaunay.triangulate import Triangulation as triang
+        self.triang = triang
         if self.take_log and clim is not None: clim = (na.log10(clim[0]), na.log10(clim[1]))
         if clim is not None: self.ncont = na.linspace(clim[0], clim[1], ncont)
         if plot_args is None: plot_args = {'colors':'k'}
@@ -205,7 +201,7 @@ class ContourCallback(PlotCallback):
         y = (YShifted[wI]-y0)*dy
         z = plot.data[self.field][wI]
         if self.take_log: z=na.log10(z)
-        zi = self.de.Triangulation(x,y).nn_interpolator(z)(xi,yi)
+        zi = self.triang(x,y).nn_interpolator(z)(xi,yi)
         print z.min(), z.max(), na.nanmin(z), na.nanmax(z)
         print zi.min(), zi.max(), na.nanmin(zi), na.nanmax(zi)
         plot._axes.contour(xi,yi,zi,self.ncont, **self.plot_args)
