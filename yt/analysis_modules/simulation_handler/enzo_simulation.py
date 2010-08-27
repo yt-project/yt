@@ -1,6 +1,8 @@
-from yt.logger import lagosLogger as mylog
-import yt.lagos as lagos
-import yt.funcs as funcs
+
+from yt.funcs import *
+
+from yt.utilities.logger import lagosLogger as mylog
+
 import numpy as na
 import glob
 import os
@@ -424,7 +426,7 @@ class EnzoSimulation(object):
         Get datasets for a list of redshifts.
         """
 
-        redshifts = funcs.ensure_list(redshifts)
+        redshifts = ensure_list(redshifts)
         my_datasets = []
         for redshift in redshifts:
             self.allOutputs.sort(key=lambda obj:na.fabs(redshift - obj['redshift']))
@@ -444,7 +446,7 @@ class EnzoSimulation(object):
         Get datasets for a list of times.
         """
 
-        times = funcs.ensure_list(times)
+        times = ensure_list(times)
         my_datasets = []
         for my_time in times:
             self.allOutputs.sort(key=lambda obj:na.fabs(my_time - obj['time']))
