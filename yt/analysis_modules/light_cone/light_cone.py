@@ -29,7 +29,7 @@ from yt.logger import lagosLogger as mylog
 from yt.config import ytcfg
 from yt.funcs import *
 from Common_nVolume import *
-from HaloMask import *
+from halo_mask import *
 import copy
 import os
 import numpy as na
