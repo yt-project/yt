@@ -1664,6 +1664,9 @@ class AMR3DData(AMRData, GridPropertiesMixin):
         for field in fields_to_get:
             if self.data.has_key(field):
                 continue
+            if field not in self.hierarchy.field_list and not in_grids:
+                if self._generate_field(field):
+                    continue # True means we already assigned it
             # There are a lot of 'ands' here, but I think they are all
             # necessary.
             if force_particle_read == False and \
@@ -1673,9 +1676,6 @@ class AMR3DData(AMRData, GridPropertiesMixin):
                 self[field] = self.particles[field]
                 continue
             mylog.info("Getting field %s from %s", field, len(self._grids))
-            if field not in self.hierarchy.field_list and not in_grids:
-                if self._generate_field(field):
-                    continue # True means we already assigned it
             self[field] = na.concatenate(
                 [self._get_data_from_grid(grid, field)
                  for grid in self._grids])
