@@ -34,6 +34,8 @@ import weakref
 from yt.funcs import *
 
 from yt.data_objects.particle_io import particle_handler_registry
+from yt.utilities.amr_utils import find_grids_in_inclined_box, \
+    grid_points_in_volume, planar_points_in_volume, VoxelTraversal
 from yt.utilities.data_point_utilities import CombineGrids, \
     DataCubeRefine, DataCubeReplace, FillRegion
 from yt.utilities.definitions import axis_names, x_dict, y_dict
@@ -559,7 +561,6 @@ class AMRRayBase(AMR1DData):
         mask = na.zeros(grid.ActiveDimensions, dtype='int')
         dts = na.zeros(grid.ActiveDimensions, dtype='float64')
         ts = na.zeros(grid.ActiveDimensions, dtype='float64')
-        from yt.amr_utils import VoxelTraversal
         VoxelTraversal(mask, ts, dts, grid.LeftEdge, grid.RightEdge,
                        grid.dds, self.center, self.vec)
         self._dts[grid.id] = na.abs(dts)
@@ -1161,7 +1162,8 @@ class AMRFixedResCuttingPlaneBase(AMR2DData):
             self[field] = na.zeros(_size, dtype='float64')
             for grid in self._get_grids():
                 self._get_data_from_grid(grid, field)
-            self[field] = self._mpi_allsum(self[field]).reshape([self.dims]*2).transpose()
+            self[field] = self._mpi_allsum(\
+                self[field]).reshape([self.dims]*2).transpose()
 
     def interpolate_discretize(self, *args, **kwargs):
         pass
@@ -1173,10 +1175,9 @@ class AMRFixedResCuttingPlaneBase(AMR2DData):
 
     def _get_point_indices(self, grid):
         if self._pixelmask.max() == 0: return []
-        k = amr_utils.planar_points_in_volume(
-                self._coord, self._pixelmask,
-                grid.LeftEdge, grid.RightEdge,
-                grid.child_mask, just_one(grid['dx']))
+        k = planar_points_in_volume(self._coord, self._pixelmask,
+                                    grid.LeftEdge, grid.RightEdge,
+                                    grid.child_mask, just_one(grid['dx']))
         return k
 
     def _gen_node_name(self):
@@ -2090,16 +2091,17 @@ class AMRInclinedBox(AMR3DData):
         if self._grids is not None: return
         GLE = self.pf.h.grid_left_edge
         GRE = self.pf.h.grid_right_edge
-        goodI = amr_utils.find_grids_in_inclined_box(
-                    self.box_vectors, self.center, GLE, GRE)
+        goodI = find_grids_in_inclined_box(self.box_vectors, self.center, 
+                                           GLE, GRE)
         cgrids = self.pf.h.grids[goodI.astype('bool')]
        # find_grids_in_inclined_box seems to be broken.
         cgrids = self.pf.h.grids[:]
         grids = []
         for i,grid in enumerate(cgrids):
-            v = amr_utils.grid_points_in_volume(self.box_lengths, self.origin,
-                        self._rot_mat, grid.LeftEdge, grid.RightEdge, grid.dds,
-                        grid.child_mask, 1)
+            v = grid_points_in_volume(self.box_lengths, self.origin,
+                                      self._rot_mat, grid.LeftEdge, 
+                                      grid.RightEdge, grid.dds,
+                                      grid.child_mask, 1)
             if v: grids.append(grid)
         self._grids = na.array(grids, dtype='object')
             
@@ -2114,8 +2116,9 @@ class AMRInclinedBox(AMR3DData):
         if self._is_fully_enclosed(grid):
             return True
         pm = na.zeros(grid.ActiveDimensions, dtype='int32')
-        amr_utils.grid_points_in_volume(self.box_lengths, self.origin,
-                    self._rot_mat, grid.LeftEdge, grid.RightEdge, grid.dds, pm, 0)
+        grid_points_in_volume(self.box_lengths, self.origin,
+                              self._rot_mat, grid.LeftEdge, 
+                              grid.RightEdge, grid.dds, pm, 0)
         return pm
         
 
