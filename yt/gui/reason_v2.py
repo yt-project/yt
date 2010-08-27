@@ -24,6 +24,9 @@ License:
 """
 
 from yt.mods import *
+from yt.utilities.definitions import \
+    x_dict, \
+    y_dict
 #pf = EnzoStaticOutput("/Users/matthewturk/Research/data/galaxy1200.dir/galaxy1200")
 
 from enthought.traits.api import \
@@ -327,8 +330,8 @@ class VMPlotTab(PlotFrameTab):
         dy = abs(self.plot.ylim[0] - self.plot.ylim[1])/self.plot.pix[1]
         x = (dx * xp) + self.plot.xlim[0]
         y = (dy * yp) + self.plot.ylim[0]
-        xi = lagos.x_dict[self.axis]
-        yi = lagos.y_dict[self.axis]
+        xi = x_dict[self.axis]
+        yi = y_dict[self.axis]
         cc = self.center[:]
         cc[xi] = x; cc[yi] = y
         self.plot.data.center = cc[:]

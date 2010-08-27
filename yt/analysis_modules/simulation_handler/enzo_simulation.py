@@ -25,13 +25,18 @@ License:
 
 from yt.funcs import *
 
-from yt.utilities.logger import lagosLogger as mylog
-
 import numpy as na
 import glob
 import os
 
 dt_Tolerance = 1e-3
+
+from yt.utilities.cosmology import \
+    Cosmology
+    EnzoCosmology
+
+from yt.convenience import \
+    load
 
 class EnzoSimulation(object):
     """
@@ -217,17 +222,17 @@ class EnzoSimulation(object):
         # Convert initial/final redshifts to times.
         if self.enzoParameters['ComovingCoordinates']:
             # Instantiate a cosmology calculator.
-            self.cosmology = lagos.Cosmology(HubbleConstantNow = 
-                                             (100.0 * self.enzoParameters['CosmologyHubbleConstantNow']),
-                                             OmegaMatterNow = self.enzoParameters['CosmologyOmegaMatterNow'],
-                                             OmegaLambdaNow = self.enzoParameters['CosmologyOmegaLambdaNow'])
+            self.cosmology = Cosmology(HubbleConstantNow = 
+                                       (100.0 * self.enzoParameters['CosmologyHubbleConstantNow']),
+                                       OmegaMatterNow = self.enzoParameters['CosmologyOmegaMatterNow'],
+                                       OmegaLambdaNow = self.enzoParameters['CosmologyOmegaLambdaNow'])
 
             # Instantiate EnzoCosmology object for units and time conversions.
-            self.enzo_cosmology = lagos.EnzoCosmology(HubbleConstantNow = 
-                                                 (100.0 * self.enzoParameters['CosmologyHubbleConstantNow']),
-                                                 OmegaMatterNow = self.enzoParameters['CosmologyOmegaMatterNow'],
-                                                 OmegaLambdaNow = self.enzoParameters['CosmologyOmegaLambdaNow'],
-                                                 InitialRedshift = self.enzoParameters['CosmologyInitialRedshift'])
+            self.enzo_cosmology = EnzoCosmology(HubbleConstantNow = 
+                                                (100.0 * self.enzoParameters['CosmologyHubbleConstantNow']),
+                                                OmegaMatterNow = self.enzoParameters['CosmologyOmegaMatterNow'],
+                                                OmegaLambdaNow = self.enzoParameters['CosmologyOmegaLambdaNow'],
+                                                InitialRedshift = self.enzoParameters['CosmologyInitialRedshift'])
             if self.InitialRedshift is not None:
                 self.InitialTime = self.enzo_cosmology.ComputeTimeFromRedshift(self.InitialRedshift) / \
                     self.enzo_cosmology.TimeUnits
@@ -267,7 +272,7 @@ class EnzoSimulation(object):
                                          self.enzoParameters['DataDumpDir'], index,
                                          self.enzoParameters['DataDumpName'], index)
             if os.path.exists(filename):
-                pf = lagos.EnzoStaticOutput(filename)
+                pf = load(filename)
                 if pf is not None:
                     time_outputs.append({'filename': filename, 'time': pf['InitialTime']})
                     if self.enzoParameters['ComovingCoordinates']:

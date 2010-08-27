@@ -43,7 +43,7 @@ class ConstructedRootGrid(AMRGridPatch):
     def __init__(self, base_pf, pf, hierarchy, level, left_edge, right_edge):
         """
         This is a fake root grid, constructed by creating a
-        :class:`yt.lagos.CoveringGridBase` at a given *level* between
+        :class:`yt.data_objects.api.CoveringGridBase` at a given *level* between
         *left_edge* and *right_edge*.
         """
         self.pf = pf

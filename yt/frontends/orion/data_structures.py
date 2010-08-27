@@ -43,8 +43,6 @@ from yt.data_objects.hierarchy import \
            AMRHierarchy
 from yt.data_objects.static_output import \
            StaticOutput
-from yt.utilities.logger import \
-    lagosLogger as mylog
 from yt.utilities.definitions import \
     mpc_conversion
 

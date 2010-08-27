@@ -23,12 +23,14 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-from yt.utilities.logger import lagosLogger as mylog
-
 import numpy as na
 import h5py
-
 import math, itertools
+
+from yt.funcs import *
+from yt.utilities.cosmology import \
+    Cosmology, \
+    EnzoCosmology
 
 YEAR = 3.155693e7 # sec / year
 LIGHT = 2.997925e10 # cm / s
@@ -84,7 +86,7 @@ class StarFormationRate(object):
         else:
             self.mode = 'data_source'
         # Set up for time conversion.
-        self.cosm = lagos.EnzoCosmology(HubbleConstantNow = 
+        self.cosm = EnzoCosmology(HubbleConstantNow = 
              (100.0 * self._pf['CosmologyHubbleConstantNow']),
              OmegaMatterNow = self._pf['CosmologyOmegaMatterNow'],
              OmegaLambdaNow = self._pf['CosmologyOmegaLambdaNow'],
@@ -239,7 +241,7 @@ class SpectrumBuilder(object):
         elif model == "salpeter":
             self.model = SALPETER
         # Set up for time conversion.
-        self.cosm = lagos.EnzoCosmology(HubbleConstantNow = 
+        self.cosm = EnzoCosmology(HubbleConstantNow = 
              (100.0 * self._pf['CosmologyHubbleConstantNow']),
              OmegaMatterNow = self._pf['CosmologyOmegaMatterNow'],
              OmegaLambdaNow = self._pf['CosmologyOmegaLambdaNow'],

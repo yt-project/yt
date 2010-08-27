@@ -837,7 +837,7 @@ class ParallelAnalysisInterface(object):
         # data==True -> exit. data==False -> no exit
         mine, statuses = self._mpi_info_dict(data)
         if True in statuses.values():
-            raise RunTimeError("Fatal error. Exiting.")
+            raise RuntimeError("Fatal error. Exiting.")
         return None
 
     @parallel_passthrough

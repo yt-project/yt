@@ -160,7 +160,7 @@ class AMRData(object):
     def __init__(self, pf, fields, **kwargs):
         """
         Typically this is never called directly, but only due to inheritance.
-        It associates a :class:`~yt.lagos.StaticOutput` with the class,
+        It associates a :class:`~yt.data_objects.api.StaticOutput` with the class,
         sets its initial set of fields, and the remainder of the arguments
         are passed as field_parameters.
         """
@@ -310,7 +310,7 @@ class AMRData(object):
         """
         Save an object.  If *filename* is supplied, it will be stored in
         a :mod:`shelve` file of that name.  Otherwise, it will be stored via
-        :meth:`yt.lagos.AMRHierarchy.save_object`.
+        :meth:`yt.data_objects.api.AMRHierarchy.save_object`.
         """
         if filename is not None:
             ds = shelve.open(filename, protocol=-1)
@@ -649,7 +649,7 @@ class AMR2DData(AMRData, GridPropertiesMixin, ParallelAnalysisInterface):
         interpolated using the nearest neighbor method, with *side* points on a
         side.
         """
-        import yt.raven.delaunay as de
+        import yt.utilities.delaunay as de
         if log_spacing:
             zz = na.log10(self[field])
         else:

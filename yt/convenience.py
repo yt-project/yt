@@ -51,7 +51,7 @@ def all_pfs(max_depth=1, name_spec="*.hierarchy", **kwargs):
 def max_spheres(width, unit, **kwargs):
     """
     This calls :func:`~yt.convenience.all_pfs` and then for each parameter file
-    creates a :class:`~yt.lagos.AMRSphereBase` for each one,
+    creates a :class:`~yt.data_objects.api.AMRSphereBase` for each one,
     centered on the point of highest density, with radius *width* in units of
     *unit*.
     """
@@ -63,9 +63,9 @@ def load(*args ,**kwargs):
     """
     This function attempts to determine the base data type of a filename or
     other set of arguments by calling
-    :meth:`yt.lagos.StaticOutput._is_valid` until it finds a
+    :meth:`yt.data_objects.api.StaticOutput._is_valid` until it finds a
     match, at which point it returns an instance of the appropriate
-    :class:`yt.lagos.StaticOutput` subclass.
+    :class:`yt.data_objects.api.StaticOutput` subclass.
     """
     candidates = []
     for n, c in output_type_registry.items():

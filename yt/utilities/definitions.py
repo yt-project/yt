@@ -28,9 +28,6 @@ License:
 # The number of levels we expect to have at most
 MAXLEVEL=48
 
-# Number of levels to toss back to check for maximum
-NUMTOCHECK=2
-
 axis_labels = [('y','z'),('x','z'),('x','y')]
 axis_names = {0: 'x', 1: 'y', 2: 'z', 4:''}
 inv_axis_names = {'x':0,'y':1,'z':2}

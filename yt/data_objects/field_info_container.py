@@ -65,7 +65,8 @@ class FieldInfoContainer(object): # We are all Borg.
         """
         Add a new field, along with supplemental metadata, to the list of
         available fields.  This respects a number of arguments, all of which
-        are passed on to the constructor for :class:`~yt.lagos.DerivedField`.
+        are passed on to the constructor for
+        :class:`~yt.data_objects.api.DerivedField`.
         """
         if function == None:
             if kwargs.has_key("function"):

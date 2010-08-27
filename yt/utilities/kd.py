@@ -28,8 +28,6 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-from yt.lagos import *
-
 from bisect import insort
 
 class Point:pass
