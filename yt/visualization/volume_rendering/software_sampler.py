@@ -28,7 +28,7 @@ import numpy as na
 
 from yt.funcs import *
 
-from yt.data_objects.data_containers.import data_object_registry
+from yt.data_objects.data_containers import data_object_registry
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     ParallelAnalysisInterface
 
