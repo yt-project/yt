@@ -25,27 +25,16 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
+import numpy as na
+
 from yt.funcs import *
 from _mpl_imports import *
 import _MPL
-
-engineVals = {}
-
-def Initialize(*args, **kwargs):
-    engineVals["initialized"] = True
-    if 'canvas' in kwargs:
-        FigureCanvas = kwargs["canvas"]
-    else:
-        from matplotlib.backends.backend_agg \
-                import FigureCanvasAgg as FigureCanvas
-    try:
-        from matplotlib.backends.backend_pdf \
-                import FigureCanvasPdf as FigureCanvasPDF
-        engineVals["canvas_pdf"] = FigureCanvasPDF
-    except ImportError:
-        pass
-    engineVals["canvas"] = FigureCanvas
-    return
+from .plot_modifications import callback_registry
+from yt.utilities.definitions import \
+    x_dict, \
+    y_dict, \
+    axis_names
 
 class CallbackRegistryHandler(object):
     def __init__(self, plot):
@@ -108,7 +97,8 @@ class RavenPlot(object):
     def __getitem__(self, item):
         return self.data[item] # Should be returned in CGS
 
-    def save_image(self, prefix, format="png", override=True, force_save=False):
+    def save_image(self, prefix, format="png", override=True, force_save=False,
+                   figure_canvas = None):
         """
         Save this plot image.  Will generate a filename based on the *prefix*,
         *format*.  *override* will force no filename generation beyond the
@@ -121,7 +111,9 @@ class RavenPlot(object):
         else:
             my_prefix = prefix
         fn = ".".join([my_prefix, format])
-        canvas = engineVals["canvas"](self._figure)
+        if figure_canvas is None:
+            figure_canvas = FigureCanvasAgg
+        canvas = figure_canvas(self._figure)
         if force_save:
             canvas.print_figure(fn)
         else:
@@ -132,7 +124,7 @@ class RavenPlot(object):
 
     def save_to_pdf(self, f):
         self._redraw_image()
-        canvas = engineVals["canvas_pdf"](self._figure)
+        canvas = FigureCanvasPdf(self._figure)
         original_figure_alpha = self._figure.patch.get_alpha()
         self._figure.patch.set_alpha(0.0)
         original_axes_alpha = []
@@ -221,7 +213,7 @@ class RavenPlot(object):
         self.norm.autoscale(na.array([zmin,zmax]))
         self.image.changed()
         if self.colorbar is not None:
-            _notify(self.image, self.colorbar)
+            mpl_notify(self.image, self.colorbar)
 
     def set_cmap(self, cmap):
         """
@@ -272,8 +264,8 @@ class RavenPlot(object):
         DRE = self.data.pf["DomainRightEdge"]
         DD = float(periodic)*(DRE - DLE)
         if axis < 3:
-            xax = lagos.x_dict[axis]
-            yax = lagos.y_dict[axis]
+            xax = x_dict[axis]
+            yax = y_dict[axis]
             self.xmin = DLE[xax] - DD[xax]
             self.xmax = DRE[xax] + DD[xax]
             self.ymin = DLE[yax] - DD[yax]
@@ -287,7 +279,6 @@ class RavenPlot(object):
             self.xmax = self.ymax = 1.0
 
     def _setup_callback_registry(self):
-        from yt.raven.Callbacks import callback_registry
         self.modify = CallbackRegistryHandler(self)
         for c in callback_registry.values():
             if not hasattr(c, '_type_name'): continue
@@ -313,8 +304,7 @@ class VMPlot(RavenPlot):
         self.__init_temp_image(use_colorbar)
 
     def __setup_from_field(self, field):
-        self.set_log_field(field in lagos.log_fields
-                           or self.pf.field_info[field].take_log)
+        self.set_log_field(self.pf.field_info[field].take_log)
         self.axis_names["Z"] = field
 
     def set_log_field(self, val):
@@ -354,7 +344,7 @@ class VMPlot(RavenPlot):
         x0, x1 = self.xlim
         y0, y1 = self.ylim
         if width is None:
-            l, b, width, height = _get_bounds(self._axes.bbox)
+            l, b, width, height = mpl_get_bounds(self._axes.bbox)
         else:
             height = width
         self.pix = (width,height)
@@ -415,7 +405,7 @@ class VMPlot(RavenPlot):
             self.image.set_norm(self.norm)
             self.colorbar.set_norm(self.norm)
             if self.cmap: self.colorbar.set_cmap(self.cmap)
-            if self.do_autoscale: _notify(self.image, self.colorbar)
+            if self.do_autoscale: mpl_notify(self.image, self.colorbar)
         self._autoset_label()
 
     def set_xlim(self, xmin, xmax):
@@ -426,7 +416,7 @@ class VMPlot(RavenPlot):
 
     def _generate_prefix(self, prefix):
         self.prefix = "_".join([prefix, self._type_name, \
-            lagos.axis_names[self.data.axis], self.axis_names['Z']])
+            axis_names[self.data.axis], self.axis_names['Z']])
         self["Field1"] = self.axis_names["Z"]
         self["Field2"] = None
         self["Field3"] = None
@@ -449,10 +439,10 @@ class VMPlot(RavenPlot):
         else:
             width_x = width
             width_y = width
-        l_edge_x = self.data.center[lagos.x_dict[self.data.axis]] - width_x/2.0
-        r_edge_x = self.data.center[lagos.x_dict[self.data.axis]] + width_x/2.0
-        l_edge_y = self.data.center[lagos.y_dict[self.data.axis]] - width_y/2.0
-        r_edge_y = self.data.center[lagos.y_dict[self.data.axis]] + width_y/2.0
+        l_edge_x = self.data.center[x_dict[self.data.axis]] - width_x/2.0
+        r_edge_x = self.data.center[x_dict[self.data.axis]] + width_x/2.0
+        l_edge_y = self.data.center[y_dict[self.data.axis]] - width_y/2.0
+        r_edge_y = self.data.center[y_dict[self.data.axis]] + width_y/2.0
         self.set_xlim(max(l_edge_x,self.xmin), min(r_edge_x,self.xmax))
         self.set_ylim(max(l_edge_y,self.ymin), min(r_edge_y,self.ymax))
         self._redraw_image()
@@ -469,8 +459,7 @@ class VMPlot(RavenPlot):
         pass
 
     def switch_z(self, field):
-        self.set_log_field(field in lagos.log_fields
-                           or self.pf.field_info[field].take_log)
+        self.set_log_field(self.pf.field_info[field].take_log)
         self.axis_names["Z"] = field
         self._redraw_image()
 
@@ -513,10 +502,10 @@ class SlicePlot(VMPlot):
     _type_name = "Slice"
 
     def show_velocity(self, factor = 16, bv_radius = None):
-        xax = lagos.x_dict[self.data.axis]
-        yax = lagos.y_dict[self.data.axis]
-        xf = "%s-velocity" % (lagos.axis_names[xax])
-        yf = "%s-velocity" % (lagos.axis_names[yax])
+        xax = x_dict[self.data.axis]
+        yax = y_dict[self.data.axis]
+        xf = "%s-velocity" % (axis_names[xax])
+        yf = "%s-velocity" % (axis_names[yax])
         if bv_radius is not None:
             sp = self.data.pf.h.sphere(self.data.center, bv_radius)
             bv = sp.quantities["BulkVelocity"]()
@@ -532,7 +521,7 @@ class NNVMPlot:
         x0, x1 = self.xlim
         y0, y1 = self.ylim
         if width is None:
-            l, b, width, height = _get_bounds(self._axes.bbox)
+            l, b, width, height = mpl_get_bounds(self._axes.bbox)
         else:
             height = width
         self.pix = (width,height)
@@ -581,7 +570,7 @@ class CuttingPlanePlot(SlicePlot):
         px_min, px_max = self.xlim
         py_min, py_max = self.ylim
         if width is None:
-            l, b, width, height = _get_bounds(self._axes.bbox)
+            l, b, width, height = mpl_get_bounds(self._axes.bbox)
         else:
             height = width
         self.pix = (width,height)
@@ -637,7 +626,7 @@ class ParticlePlot(RavenPlot):
 
     def _generate_prefix(self, prefix):
         self.prefix = "_".join([prefix, self._type_name, \
-            lagos.axis_names[self.axis], self.axis_names['Z']])
+            axis_names[self.axis], self.axis_names['Z']])
         self["Field1"] = self.axis_names["Z"]
         self["Field2"] = None
         self["Field3"] = None
@@ -660,10 +649,10 @@ class ParticlePlot(RavenPlot):
         else:
             width_x = width
             width_y = width
-        l_edge_x = self.data.center[lagos.x_dict[self.axis]] - width_x/2.0
-        r_edge_x = self.data.center[lagos.x_dict[self.axis]] + width_x/2.0
-        l_edge_y = self.data.center[lagos.y_dict[self.axis]] - width_y/2.0
-        r_edge_y = self.data.center[lagos.y_dict[self.axis]] + width_y/2.0
+        l_edge_x = self.data.center[x_dict[self.axis]] - width_x/2.0
+        r_edge_x = self.data.center[x_dict[self.axis]] + width_x/2.0
+        l_edge_y = self.data.center[y_dict[self.axis]] - width_y/2.0
+        r_edge_y = self.data.center[y_dict[self.axis]] + width_y/2.0
         self.set_xlim(max(l_edge_x,self.xmin), min(r_edge_x,self.xmax))
         self.set_ylim(max(l_edge_y,self.ymin), min(r_edge_y,self.ymax))
         self._redraw_image()
@@ -673,7 +662,7 @@ class ParticlePlot(RavenPlot):
         self._axes.set_yticks(())
         self._axes.set_ylabel("")
         self._axes.set_xlabel("")
-        l, b, width, height = _get_bounds(self._axes.bbox)
+        l, b, width, height = mpl_get_bounds(self._axes.bbox)
         self._axes.set_xlim(0, width)
         self._axes.set_ylim(0, height)
 
@@ -899,7 +888,7 @@ class PhasePlot(ProfilePlot):
         if self._ylim is not None: self._axes.set_ylim(*self._ylim)
         self.vals = vals
 
-        _notify(self.image, self.colorbar)
+        mpl_notify(self.image, self.colorbar)
         self._autoset_label(self.fields[0], self.set_x_label, 'x')
         self._autoset_label(self.fields[1], self.set_y_label, 'y')
         self._autoset_label(self.fields[2], self.set_z_label, 'z')
@@ -1017,36 +1006,3 @@ class ScatterPlot(LineQueryPlot):
         for cb in self._callbacks:
             cb(self)
 
-# Now we provide some convenience functions to get information about plots.
-# With Matplotlib 0.98.x, the 'transforms' branch broke backwards
-# compatibility.  Despite that, the various packagers are plowing ahead with
-# packaging 0.98.x with new distributions of python software.  So I guess
-# we have to support it.
-
-_compatibility_functions = ["_get_bounds","_notify"]
-
-_mpl98_get_bounds = lambda bbox: bbox.bounds
-_mpl9x_get_bounds = lambda bbox: bbox.get_bounds()
-_mpl98_notify = lambda im,cb: cb.update_bruteforce(im)
-_mpl9x_notify = lambda im,cb: cb.notify(im)
-
-# This next function hurts, because it relies on the fact that we're
-# only differentiating between 0.9[01] and 0.98. And if happens to be
-# 1.0, or any version with only 3 values, this should catch it.
-
-try:
-    _mpl_version = float(matplotlib.__version__[:4])
-except:
-    _mpl_version = float(matplotlib.__version__[:3])
-
-if _mpl_version < 0.98:
-    _prefix = '_mpl9x'
-    mylog.debug("Turning on matplotlib 0.9X compat (%s)",
-                matplotlib.__version__)
-else:
-    _prefix = '_mpl98'
-    mylog.debug("Turning on matplotlib 0.98 compat (%s)",
-                matplotlib.__version__)
-
-for fn in _compatibility_functions:
-    exec("%s = %s%s" % (fn, _prefix, fn))

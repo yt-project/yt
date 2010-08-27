@@ -27,13 +27,16 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
+import numpy as na
+
+from yt.funcs import *
 from _mpl_imports import *
 from yt.utilities.definitions import \
+    x_dict, \
+    y_dict, \
+    axis_names, \
     axis_labels
 import _MPL
-from plot_types import \
-    _get_bounds
-
 
 callback_registry = {}
 
@@ -49,7 +52,7 @@ class PlotCallback(object):
     def convert_to_pixels(self, plot, coord, offset = True):
         x0, x1 = plot.xlim
         y0, y1 = plot.ylim
-        l, b, width, height = _get_bounds(plot._axes.bbox)
+        l, b, width, height = mpl_get_bounds(plot._axes.bbox)
         dx = width / (x1-x0)
         dy = height / (y1-y0)
         return ((coord[0] - int(offset)*x0)*dx,
@@ -72,8 +75,8 @@ class VelocityCallback(PlotCallback):
                                         "CuttingPlaneVelocityY",
                                         self.factor)
         else:
-            xv = "%s-velocity" % (lagos.x_names[plot.data.axis])
-            yv = "%s-velocity" % (lagos.y_names[plot.data.axis])
+            xv = "%s-velocity" % (x_names[plot.data.axis])
+            yv = "%s-velocity" % (y_names[plot.data.axis])
             qcb = QuiverCallback(xv, yv, self.factor)
         return qcb(plot)
 
@@ -92,8 +95,8 @@ class MagFieldCallback(PlotCallback):
         if plot._type_name == "CuttingPlane":
             print "WARNING: Magnetic field on Cutting Plane Not implemented."
         else:
-            xv = "B%s" % (lagos.x_names[plot.data.axis])
-            yv = "B%s" % (lagos.y_names[plot.data.axis])
+            xv = "B%s" % (x_names[plot.data.axis])
+            yv = "B%s" % (y_names[plot.data.axis])
             qcb = QuiverCallback(xv, yv, self.factor)
         return qcb(plot)
 
@@ -231,8 +234,8 @@ class GridBoundaryCallback(PlotCallback):
         yy0, yy1 = plot._axes.get_ylim()
         dx = (xx1-xx0)/(x1-x0)
         dy = (yy1-yy0)/(y1-y0)
-        px_index = lagos.x_dict[plot.data.axis]
-        py_index = lagos.y_dict[plot.data.axis]
+        px_index = x_dict[plot.data.axis]
+        py_index = y_dict[plot.data.axis]
         dom = plot.data.pf["DomainRightEdge"] - plot.data.pf["DomainLeftEdge"]
         if self.periodic:
             pxs, pys = na.mgrid[-1:1:3j,-1:1:3j]
@@ -383,9 +386,9 @@ class UnitBoundaryCallback(PlotCallback):
     def __call__(self, plot):
         x0, x1 = plot.xlim
         y0, y1 = plot.ylim
-        l, b, width, height = _get_bounds(plot._axes.bbox)
-        xi = lagos.x_dict[plot.data.axis]
-        yi = lagos.y_dict[plot.data.axis]
+        l, b, width, height = mpl_get_bounds(plot._axes.bbox)
+        xi = x_dict[plot.data.axis]
+        yi = y_dict[plot.data.axis]
         dx = plot.image._A.shape[0] / (x1-x0)
         dy = plot.image._A.shape[1] / (y1-y0)
         center = plot.data.center
@@ -536,11 +539,11 @@ class ClumpContourCallback(PlotCallback):
         yy0, yy1 = plot._axes.get_ylim()
         plot._axes.hold(True)
 
-        px_index = lagos.x_dict[plot.data.axis]
-        py_index = lagos.y_dict[plot.data.axis]
+        px_index = x_dict[plot.data.axis]
+        py_index = y_dict[plot.data.axis]
 
-        xf = lagos.axis_names[px_index]
-        yf = lagos.axis_names[py_index]
+        xf = axis_names[px_index]
+        yf = axis_names[py_index]
 
         DomainRight = plot.data.pf["DomainRightEdge"]
         DomainLeft = plot.data.pf["DomainLeftEdge"]
@@ -632,8 +635,8 @@ class MarkerAnnotateCallback(PlotCallback):
 
     def __call__(self, plot):
         if len(self.pos) == 3:
-            pos = (self.pos[lagos.x_dict[plot.data.axis]],
-                   self.pos[lagos.y_dict[plot.data.axis]])
+            pos = (self.pos[x_dict[plot.data.axis]],
+                   self.pos[y_dict[plot.data.axis]])
         else: pos = self.pos
         x,y = self.convert_to_pixels(plot, pos)
         print x, y
@@ -662,9 +665,9 @@ class SphereCallback(PlotCallback):
         from matplotlib.patches import Circle
         x0, x1 = plot.xlim
         y0, y1 = plot.ylim
-        l, b, width, height = _get_bounds(plot._axes.bbox)
-        xi = lagos.x_dict[plot.data.axis]
-        yi = lagos.y_dict[plot.data.axis]
+        l, b, width, height = mpl_get_bounds(plot._axes.bbox)
+        xi = x_dict[plot.data.axis]
+        yi = y_dict[plot.data.axis]
         dx = plot.image._A.shape[0] / (x1-x0)
         dy = plot.image._A.shape[1] / (y1-y0)
         radius = self.radius * dx
@@ -701,9 +704,9 @@ class HopCircleCallback(PlotCallback):
         from matplotlib.patches import Circle
         x0, x1 = plot.xlim
         y0, y1 = plot.ylim
-        l, b, width, height = _get_bounds(plot._axes.bbox)
-        xi = lagos.x_dict[plot.data.axis]
-        yi = lagos.y_dict[plot.data.axis]
+        l, b, width, height = mpl_get_bounds(plot._axes.bbox)
+        xi = x_dict[plot.data.axis]
+        yi = y_dict[plot.data.axis]
         dx = plot.image._A.shape[0] / (x1-x0)
         dy = plot.image._A.shape[1] / (y1-y0)
         for halo in self.hop_output[:self.max_number]:
@@ -754,8 +757,8 @@ class HopParticleCallback(PlotCallback):
         y0, y1 = plot.ylim
         xx0, xx1 = plot._axes.get_xlim()
         yy0, yy1 = plot._axes.get_ylim()
-        xf = lagos.axis_names[lagos.x_dict[plot.data.axis]]
-        yf = lagos.axis_names[lagos.y_dict[plot.data.axis]]
+        xf = axis_names[x_dict[plot.data.axis]]
+        yf = axis_names[y_dict[plot.data.axis]]
         dx = plot.image._A.shape[0] / (x1-x0)
         dy = plot.image._A.shape[1] / (y1-y0)
         # now we loop over the haloes
@@ -787,9 +790,9 @@ class VobozCircleCallback(PlotCallback):
         from matplotlib.patches import Circle
         x0, x1 = plot.xlim
         y0, y1 = plot.ylim
-        l, b, width, height = _get_bounds(plot._axes.bbox)
-        xi = lagos.x_dict[plot.data.axis]
-        yi = lagos.y_dict[plot.data.axis]
+        l, b, width, height = mpl_get_bounds(plot._axes.bbox)
+        xi = x_dict[plot.data.axis]
+        yi = y_dict[plot.data.axis]
         dx = plot.image._A.shape[0] / (x1-x0)
         dy = plot.image._A.shape[1] / (y1-y0)
         for i,halo in enumerate(self.voboz_output[:self.max_number]):
@@ -928,8 +931,8 @@ class ParticleCallback(PlotCallback):
         xx0, xx1 = plot._axes.get_xlim()
         yy0, yy1 = plot._axes.get_ylim()
         reg = self._get_region((x0,x1), (y0,y1), plot.data.axis, data)
-        field_x = "particle_position_%s" % lagos.axis_names[lagos.x_dict[data.axis]]
-        field_y = "particle_position_%s" % lagos.axis_names[lagos.y_dict[data.axis]]
+        field_x = "particle_position_%s" % axis_names[x_dict[data.axis]]
+        field_y = "particle_position_%s" % axis_names[y_dict[data.axis]]
         gg = ( ( reg[field_x] >= x0 ) & ( reg[field_x] <= x1 )
            &   ( reg[field_y] >= y0 ) & ( reg[field_y] <= y1 ) )
         if self.ptype is not None:
@@ -957,8 +960,8 @@ class ParticleCallback(PlotCallback):
 
     def _get_region(self, xlim, ylim, axis, data):
         LE, RE = [None]*3, [None]*3
-        xax = lagos.x_dict[axis]
-        yax = lagos.y_dict[axis]
+        xax = x_dict[axis]
+        yax = y_dict[axis]
         zax = axis
         LE[xax], RE[xax] = xlim
         LE[yax], RE[yax] = ylim

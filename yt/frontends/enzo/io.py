@@ -27,7 +27,7 @@ import exceptions
 
 from yt.utilities import hdf5_light_reader
 from yt.utilities.io_handler import \
-    BaseIOHandler
+    BaseIOHandler, _axis_ids
 
 class IOHandlerEnzoHDF4(BaseIOHandler):
 
