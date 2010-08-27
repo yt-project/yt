@@ -20,11 +20,12 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
+import types
 import numpy as na
+
 from yt.funcs import *
 import _colormap_data as cmd
-import yt.amr_utils as au
-import types
+import yt.utilities.amr_utils as au
 
 def _scale_image(image):
     if isinstance(image, na.ndarray) and image.dtype == na.uint8:

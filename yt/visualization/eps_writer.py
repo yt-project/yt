@@ -28,10 +28,8 @@ License:
 """
 import pyx
 from yt.mods import *
-from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
-from matplotlib import cm
 
-class DualEPS:
+class DualEPS(object):
     def __init__(self, figsize=(12,12)):
         r"""Initializes the DualEPS class to which we can progressively add layers
         of vector graphics and compressed bitmaps.
