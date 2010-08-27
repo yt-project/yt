@@ -26,7 +26,7 @@ License:
 from yt.utilities.logger import lagosLogger as mylog
 from yt.funcs import *
 from mpi4py import MPI
-import yt.extensions.EnzoSimulation as ES
+import yt.extensions.enzo_simulation as ES
 import yt.extensions.halo_profiler as HP
 import yt.lagos as lagos
 import numpy as na
