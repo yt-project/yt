@@ -23,10 +23,9 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-from yt.extensions.halo_profiler import *
-from yt.logger import lagosLogger as mylog
+from yt.analysis_modules.halo_profiler.api import HaloProfiler
+from yt.utilities.logger import lagosLogger as mylog
 from yt.config import ytcfg
-import yt.lagos as lagos
 import copy
 import numpy as na
 import h5py
