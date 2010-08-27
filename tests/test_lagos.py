@@ -16,10 +16,16 @@ ytcfg["yt","suppressStreamLogging"] = "True"
 ytcfg["lagos","serialize"] = "False"
 
 import cPickle
-import yt.lagos
-import yt.lagos.OutputTypes
 import numpy as na
-from yt.fido import ParameterFileStore
+#from yt.utilities.exceptions import *
+from yt.data_objects.field_info_container import \
+    ValidationException
+from yt.mods import *
+from yt.analysis_modules.level_sets.api import *
+from yt.utilities.linear_interpolators import \
+    UnilinearFieldInterpolator, \
+    BilinearFieldInterpolator, \
+    TrilinearFieldInterpolator
 
 # The dataset used is located at:
 # http://yt.spacepope.org/DD0018.zip
@@ -28,7 +34,7 @@ fn = os.path.join(os.path.dirname(__file__), fn)
 
 class LagosTestingBase:
     def setUp(self):
-        self.OutputFile = yt.lagos.EnzoStaticOutput(fn)
+        self.OutputFile = load(fn)
         self.hierarchy = self.OutputFile.hierarchy
         self.v, self.c = self.hierarchy.find_max("Density")
         gp = os.path.join(os.path.dirname(fn),"*.yt")
@@ -54,19 +60,19 @@ class TestParameterFileStore(unittest.TestCase):
         ytcfg['lagos', 'serialize'] = "True"
 
     def testCacheFile(self):
-        pf1 = yt.lagos.EnzoStaticOutput(fn)
+        pf1 = load(fn)
         pf2 = self.pfs.get_pf_hash(pf1._hash())
         self.assertTrue(pf1 is pf2)
 
     def testGrabFile(self):
-        pf1 = yt.lagos.EnzoStaticOutput(fn)
+        pf1 = load(fn)
         hash = pf1._hash()
         del pf1
         pf2 = self.pfs.get_pf_hash(hash)
         self.assertTrue(hash == pf2._hash())
 
     def testGetCurrentTimeID(self):
-        pf1 = yt.lagos.EnzoStaticOutput(fn)
+        pf1 = load(fn)
         hash = pf1._hash()
         ctid = pf1["CurrentTimeIdentifier"]
         del pf1
@@ -166,14 +172,14 @@ def _returnFieldFunction(field):
                 self.assertEqual(na.product(self.data["Density"].shape),
                                  na.product(self.data[field.name].shape))
             del self.data[field.name]
-        except yt.lagos.ValidationException:
+        except ValidationException:
             pass
     return field_function
 
 def _returnProfile1DFunction(field, weight, accumulation, lazy):
     def add_field_function(self):
         self.data.set_field_parameter("center",[.5,.5,.5])
-        profile = yt.lagos.BinnedProfile1D(
+        profile = BinnedProfile1D(
             self.data, 8, "RadiusCode", 0, 1.0, False, lazy)
         profile.add_fields(field, weight=weight, accumulation=accumulation)
     return add_field_function
@@ -183,7 +189,7 @@ def _returnProfile2DFunction(field, weight, accumulation, lazy):
         self.data.set_field_parameter("center",[.5,.5,.5])
         cv_min = self.hierarchy.get_smallest_dx()**3.0
         cv_max = 1.0 / max(self.OutputFile["TopGridDimensions"])
-        profile = yt.lagos.BinnedProfile2D(self.data,
+        profile = BinnedProfile2D(self.data,
                     8, "RadiusCode", 1e-3, 1.0, True,
                     8, "CellVolumeCode", cv_min, cv_max, True, lazy)
         profile.add_fields(field, weight=weight, accumulation=accumulation)
@@ -200,7 +206,7 @@ class DataTypeTestingBase:
 class Data3DBase:
     def testProfileAccumulateMass(self):
         self.data.set_field_parameter("center",[0.5]*3)
-        profile = yt.lagos.BinnedProfile1D(self.data, 8, "RadiusCode", 0, 1.0,
+        profile = BinnedProfile1D(self.data, 8, "RadiusCode", 0, 1.0,
                                            False, True)
         profile.add_fields("CellMassMsun", weight=None, accumulation=True)
         v1 = profile["CellMassMsun"].max()
@@ -227,20 +233,20 @@ class Data3DBase:
         self.assertEqual(len(contours[1]), 1)
 
     def testContoursCache(self):
-        cid = yt.lagos.identify_contours(self.data, "Density",
+        cid = identify_contours(self.data, "Density",
                 self.data["Density"].min()*2.00,
                 self.data["Density"].max()*1.01)
         self.assertEqual(len(cid), 2)
 
     def testContoursObtain(self):
-        cid = yt.lagos.identify_contours(self.data, "Density",
+        cid = identify_contours(self.data, "Density",
                 self.data["Density"].min()*2.00, self.data["Density"].max()*1.01)
         self.assertEqual(len(cid), 2)
 
     def testContoursValidityMax(self):
         v1 = self.data["Density"].max()*0.99
         v2 = self.data["Density"].max()*1.01
-        cid = yt.lagos.identify_contours(self.data, "Density", v1, v2)
+        cid = identify_contours(self.data, "Density", v1, v2)
         self.assertTrue(na.all(v1 < self.data["Density"][cid[0]])
                     and na.all(v2 > self.data["Density"][cid[0]]))
         self.assertEqual(len(cid), 1)
@@ -248,7 +254,7 @@ class Data3DBase:
     def testContoursValidityMin(self):
         v1 = self.data["Density"].min()*0.99
         v2 = self.data["Density"].min()*1.01
-        cid = yt.lagos.identify_contours(self.data, "Density", v1, v2)
+        cid = identify_contours(self.data, "Density", v1, v2)
         self.assertTrue(na.all(v1 < self.data["Density"][cid[0]])
                     and na.all(v2 > self.data["Density"][cid[0]]))
         self.assertEqual(len(cid), 3)
@@ -258,9 +264,9 @@ class Data3DBase:
         pf, obj = cPickle.loads(ps)
         self.assertEqual(obj["CellMassMsun"].sum(), self.data["CellMassMsun"].sum())
 
-for field_name in yt.lagos.FieldInfo:
+for field_name in FieldInfo:
     if field_name.startswith("PT"): continue
-    field = yt.lagos.FieldInfo[field_name]
+    field = FieldInfo[field_name]
     setattr(DataTypeTestingBase, "test%s" % field.name, _returnFieldFunction(field))
 
 field = "Temperature"
@@ -516,12 +522,12 @@ class TestExtractFromSphere(TestSphereDataType):
     # contours outside.  This are overridden to make sure this does not
     # happen again!
     def testContoursObtain(self):
-        cid = yt.lagos.identify_contours(self.data, "Density",
+        cid = identify_contours(self.data, "Density",
                 self.data["Density"].min()*2.00, self.data["Density"].max()*1.01)
         self.assertEqual(len(cid), 10)
 
     def testContoursCache(self):
-        cid = yt.lagos.identify_contours(self.data, "Density",
+        cid = identify_contours(self.data, "Density",
                 self.data["Density"].min()*2.00,
                 self.data["Density"].max()*1.01)
         self.assertEqual(len(cid), 10)
@@ -570,12 +576,12 @@ class TestExtractFromRegion(TestRegionDataType):
     # contours outside.  This are overridden to make sure this does not
     # happen again!
     def testContoursObtain(self):
-        cid = yt.lagos.identify_contours(self.data, "Density",
+        cid = identify_contours(self.data, "Density",
                 self.data["Density"].min()*2.00, self.data["Density"].max()*1.01)
         self.assertEqual(len(cid), 10)
 
     def testContoursCache(self):
-        cid = yt.lagos.identify_contours(self.data, "Density",
+        cid = identify_contours(self.data, "Density",
                 self.data["Density"].min()*2.00,
                 self.data["Density"].max()*1.01)
         self.assertEqual(len(cid), 10)
@@ -607,7 +613,7 @@ class TestUnilinearInterpolator(unittest.TestCase):
 
         table = na.mgrid[x0:x1:nstep_x*1j]
 
-        self.ufi_x = yt.lagos.UnilinearFieldInterpolator(table,
+        self.ufi_x = UnilinearFieldInterpolator(table,
                       (x0,x1),'x')
         self.my_dict = {}
         self.my_dict['x'] = na.random.uniform(x0,x1,nvals)
@@ -628,9 +634,9 @@ class TestBilinearInterpolator(unittest.TestCase):
         table = na.mgrid[x0:x1:nstep_x*1j,
                          y0:y1:nstep_y*1j]
 
-        self.bfi_x = yt.lagos.BilinearFieldInterpolator(table[0,...],
+        self.bfi_x = BilinearFieldInterpolator(table[0,...],
                       (x0,x1,y0,y1),['x','y'])
-        self.bfi_y = yt.lagos.BilinearFieldInterpolator(table[1,...],
+        self.bfi_y = BilinearFieldInterpolator(table[1,...],
                       (x0,x1,y0,y1),['x','y'])
         self.my_dict = {}
         self.my_dict['x'] = na.random.uniform(x0,x1,nvals)
@@ -660,11 +666,11 @@ class TestTrilinearInterpolator(unittest.TestCase):
                          y0:y1:nstep_y*1j,
                          z0:z1:nstep_z*1j]
 
-        self.tfi_x = yt.lagos.TrilinearFieldInterpolator(table[0,...],
+        self.tfi_x = TrilinearFieldInterpolator(table[0,...],
                       (x0,x1,y0,y1,z0,z1),['x','y','z'])
-        self.tfi_y = yt.lagos.TrilinearFieldInterpolator(table[1,...],
+        self.tfi_y = TrilinearFieldInterpolator(table[1,...],
                       (x0,x1,y0,y1,z0,z1),['x','y','z'])
-        self.tfi_z = yt.lagos.TrilinearFieldInterpolator(table[2,...],
+        self.tfi_z = TrilinearFieldInterpolator(table[2,...],
                       (x0,x1,y0,y1,z0,z1),['x','y','z'])
         self.my_dict = {}
         self.my_dict['x'] = na.random.uniform(x0,x1,nvals)

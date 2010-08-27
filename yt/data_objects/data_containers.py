@@ -39,6 +39,10 @@ from yt.utilities.data_point_utilities import CombineGrids, \
 from yt.utilities.definitions import axis_names, x_dict, y_dict
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     ParallelAnalysisInterface
+from yt.utilities.linear_interpolators import \
+    UnilinearFieldInterpolator, \
+    BilinearFieldInterpolator, \
+    TrilinearFieldInterpolator
 
 from .derived_quantities import DerivedQuantityCollection
 from .field_info_container import \
@@ -416,7 +420,7 @@ class AMR1DData(AMRData, GridPropertiesMixin):
                 self[field] = self.pf.field_info[field](self)
                 return True
         else: # Can't find the field, try as it might
-            raise exceptions.KeyError(field)
+            raise KeyError(field)
 
     def get_data(self, fields=None, in_grids=False):
         if self._grids == None:
@@ -633,7 +637,7 @@ class AMR2DData(AMRData, GridPropertiesMixin, ParallelAnalysisInterface):
                 self[field] = self.pf.field_info[field](self)
                 return True
         else: # Can't find the field, try as it might
-            raise exceptions.KeyError(field)
+            raise KeyError(field)
 
     def _generate_field_in_grids(self, field, num_ghost_zones=0):
         for grid in self._grids:
@@ -1733,7 +1737,7 @@ class AMR3DData(AMRData, GridPropertiesMixin):
                 self[field] = self.pf.field_info[field](self)
                 return True
         else: # Can't find the field, try as it might
-            raise exceptions.KeyError(field)
+            raise KeyError(field)
 
     def _generate_field_in_grids(self, field, num_ghost_zones=0):
         for grid in self._grids:
@@ -2429,7 +2433,7 @@ class AMRFloatCoveringGridBase(AMR3DData):
             self.pf.field_info[field].check_available(self)
             self[field] = self.pf.field_info[field](self)
         else: # Can't find the field, try as it might
-            raise exceptions.KeyError(field)
+            raise KeyError(field)
 
     def flush_data(self, field=None):
         """
@@ -2662,7 +2666,7 @@ class AMRCoveringGridBase(AMR3DData):
             self.pf.field_info[field].check_available(self)
             self[field] = self.pf.field_info[field](self)
         else: # Can't find the field, try as it might
-            raise exceptions.KeyError(field)
+            raise KeyError(field)
 
     def flush_data(self, field=None):
         """

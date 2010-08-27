@@ -31,6 +31,12 @@ import weakref
 from yt.funcs import *
 
 from yt.utilities.definitions import x_dict, y_dict
+from .field_info_container import \
+    NeedsGridType, \
+    NeedsOriginalGrid, \
+    NeedsDataField, \
+    NeedsProperty, \
+    NeedsParameter
 
 class AMRGridPatch(object):
     _spatial = True

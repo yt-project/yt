@@ -35,8 +35,17 @@ from math import pi
 from yt.funcs import *
 
 from yt.utilities.amr_utils import CICDeposit_3
-from field_info_container import add_field, ValidateDataField, \
-    ValidateGridType, ValidateParameter, ValidateSpatial
+from field_info_container import \
+    add_field, \
+    ValidateDataField, \
+    ValidateGridType, \
+    ValidateParameter, \
+    ValidateSpatial, \
+    NeedsGridType, \
+    NeedsOriginalGrid, \
+    NeedsDataField, \
+    NeedsProperty, \
+    NeedsParameter
 
 mh = 1.67e-24 # g
 me = 9.11e-28 # g
@@ -805,4 +814,8 @@ def _MagneticEnergy(field,data):
     """
     return (data["Bx"]**2 + data["By"]**2 + data["Bz"]**2)/2.
 add_field("MagneticEnergy",function=_MagneticEnergy,
-          units=r"")
+          units=r"",
+          validators = [ValidateDataField("Bx"),
+                        ValidateDataField("By"),
+                        ValidateDataField("Bz")])
+
