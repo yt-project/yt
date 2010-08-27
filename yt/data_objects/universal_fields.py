@@ -189,7 +189,8 @@ def _ParticleAge(field, data):
 def _convertParticleAge(data):
     return data.convert("years")
 add_field("ParticleAge",
-          function=_ParticleAge, validators=[ValidateSpatial(0)],
+          function=_ParticleAge,
+          validators=[ValidateSpatial(0)],
           particle_type=True, convert_function=_convertParticleAge)
 
 def _ParticleMass(field, data):

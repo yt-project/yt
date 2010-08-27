@@ -1810,6 +1810,7 @@ class AMR3DData(AMRData, GridPropertiesMixin):
                 mv = max_val
             else:
                 mv = cons[level+1]
+            from yt.analysis_modules.level_sets.api import identify_contours
             cids = identify_contours(self, field, cons[level], mv,
                                      cached_fields)
             for cid, cid_ind in cids.items():
