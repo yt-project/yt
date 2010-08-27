@@ -23,9 +23,11 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-from yt.lagos import *
-from yt.math_utils import *
-from yt.performance_counters import yt_counters, time_function
+from yt.mods import *
+#from yt.utilities.math_utils import *
+from yt.utilities.performance_counters import yt_counters, time_function
+from yt.utilities.parallel_tools.parallel_analysis_interface import ParallelAnalysisInterface, parallel_blocking_call, parallel_root_only
+
 try:
     from yt.extensions.kdtree import *
 except ImportError:
