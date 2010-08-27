@@ -23,13 +23,17 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-from light_cone import *
-from common_n_volume import *
-from yt.logger import lagosLogger as mylog
+import copy
 import numpy as na
 import random as rand
-import copy
 import sys
+
+from yt.utilities.logger import ytLogger as mylog
+from yt.utilities.parallel_tools.parallel_analysis_interface import \
+    parallel_root_only
+
+from .light_cone import LightCone
+from .common_n_volume import commonNVolume
 
 def project_unique_light_cones(lightcone, seed_file, field, **kwargs):
     "Make light cone projections using list of random seeds in a file."
@@ -205,7 +209,7 @@ def _read_seed_file(filename):
 
     return seedList
 
-@rootonly
+@parallel_root_only
 def _write_seed_file(seedList, filename):
     "Write list of random seeds to a file."
 

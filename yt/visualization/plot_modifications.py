@@ -32,8 +32,8 @@ import numpy as na
 from yt.funcs import *
 from _mpl_imports import *
 from yt.utilities.definitions import \
-    x_dict, \
-    y_dict, \
+    x_dict, x_names, \
+    y_dict, y_names, \
     axis_names, \
     axis_labels
 import _MPL

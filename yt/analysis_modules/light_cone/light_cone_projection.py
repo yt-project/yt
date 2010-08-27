@@ -23,12 +23,14 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-from yt.utilities.logger import lagosLogger as mylog
+from yt.utilities.logger import ytLogger as mylog
+from yt.utilities.parallel_tools.parallel_analysis_interface \
+    import parallel_blocking_call
 from yt.config import ytcfg
 import numpy as na
 import copy
 
-@lagos.parallel_blocking_call
+@parallel_blocking_call
 def LightConeProjection(lightConeSlice, field, pixels, weight_field=None, save_image=False, name="", node=None, field_cuts=None,
                         add_redshift_label=False, **kwargs):
     "Create a single projection to be added into the light cone stack."

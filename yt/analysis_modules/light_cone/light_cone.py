@@ -23,16 +23,20 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-from yt.extensions.lightcone import *
-from yt.extensions.enzo_simulation import *
-from yt.logger import lagosLogger as mylog
-from yt.config import ytcfg
-from yt.funcs import *
-from common_n_volume import *
-from halo_mask import *
 import copy
-import os
 import numpy as na
+import os
+
+from yt.funcs import *
+
+from yt.config import ytcfg
+from yt.utilities.logger import ytLogger as mylog
+
+from yt.analysis_modules.simulation_handler.enzo_simulation \
+    import EnzoSimulation
+from yt.utilities.cosmology import Cosmology
+
+from .common_n_volume import commonNVolume
 
 class LightCone(EnzoSimulation):
     def __init__(self, EnzoParameterFile, initial_redshift=1.0, final_redshift=0.0, observer_redshift=0.0,
@@ -257,7 +261,7 @@ class LightCone(EnzoSimulation):
             else:
                 name = "%s%s_%s_%04d_%04d" % (self.output_dir, self.output_prefix,
                                               node, q, len(self.light_cone_solution))
-            output['object'] = lagos.EnzoStaticOutput(output['filename'])
+            output['object'] = load(output['filename'])
             frb = LightConeProjection(output, field, self.pixels, weight_field=weight_field,
                                       save_image=save_slice_images,
                                       name=name, node=node, **kwargs)

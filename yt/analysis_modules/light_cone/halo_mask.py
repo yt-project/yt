@@ -24,7 +24,7 @@ License:
 """
 
 from yt.analysis_modules.halo_profiler.api import HaloProfiler
-from yt.utilities.logger import lagosLogger as mylog
+from yt.utilities.logger import ytLogger as mylog
 from yt.config import ytcfg
 import copy
 import numpy as na

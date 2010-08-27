@@ -32,7 +32,7 @@ import os
 dt_Tolerance = 1e-3
 
 from yt.utilities.cosmology import \
-    Cosmology
+    Cosmology, \
     EnzoCosmology
 
 from yt.convenience import \
