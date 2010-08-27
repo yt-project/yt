@@ -140,7 +140,7 @@ def write_image(image, filename, color_bounds = None, cmap_name = "algae"):
 
     This function will scale an image and directly call libpng to write out a
     colormapped version of that image.  It is designed for rapid-fire saving of
-    image buffers generated using `yt.raven.FixedResolutionBuffers` and the like.
+    image buffers generated using `yt.visualization.api.FixedResolutionBuffers` and the like.
 
     Parameters
     ----------
@@ -152,7 +152,7 @@ def write_image(image, filename, color_bounds = None, cmap_name = "algae"):
     color_bounds : tuple of floats, optional
         The min and max to scale between.  Outlying values will be clipped.
     cmap_name : string, optional
-        An acceptable colormap.  See either raven.color_maps or
+        An acceptable colormap.  See either yt.visualization.color_maps or
         http://www.scipy.org/Cookbook/Matplotlib/Show_colormaps .
         
     Returns
@@ -190,13 +190,13 @@ def map_to_colors(buff, cmap_name):
 
 def strip_colormap_data(fn = "color_map_data.py",
             cmaps = ("jet", "algae", "hot", "gist_stern")):
-    import yt.raven, pprint
-    import yt.raven.ColorMaps as rcm
+    import pprint
+    import ._colormap_data as rcm
     f = open(fn, "w")
     f.write("### Auto-generated colormap tables, taken from Matplotlib ###\n\n")
     f.write("from numpy import array\n")
     f.write("color_map_luts = {}\n\n\n")
-    if cmaps is None: cmaps = yt.raven.ColorMaps
+    if cmaps is None: cmaps = rcm.ColorMaps
     for cmap_name in sorted(cmaps):
         print "Stripping", cmap_name
         vals = rcm._extract_lookup_table(cmap_name)

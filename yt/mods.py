@@ -72,7 +72,7 @@ from yt.analysis_modules.halo_finding.api import \
 from yt.utilities.definitions import \
     axis_names, x_dict, y_dict
 
-# Now individual component imports from raven
+# Now individual component imports from the visualization API
 from yt.visualization.api import \
     PlotCollection, PlotCollectionInteractive, \
     get_multi_plot, FixedResolutionBuffer, ObliqueFixedResolutionBuffer, \
