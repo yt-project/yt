@@ -23,19 +23,31 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-import yt.lagos as lagos
-from yt.lagos.HaloFinding import HaloFinder
-from yt.logger import lagosLogger as mylog
-import yt.raven as raven
-from halo_filters import *
 import numpy as na
 import os
 import h5py
 import types
 
+from yt.funcs import *
+from yt.convenience import \
+    load
+from yt.data_objects.profiles import \
+    BinnedProfile1D
+from yt.analysis_modules.halo_finding.api import \
+    HaloFinder
+from .halo_filters import \
+    VirialFilter
+from yt.data_objects.field_info_container import \
+    add_field
+
+from yt.utilities.parallel_tools.parallel_analysis_interface import \
+    ParallelAnalysisInterface, \
+    parallel_blocking_call, \
+    parallel_root_only
+
 PROFILE_RADIUS_THRESHOLD = 2
 
-class HaloProfiler(lagos.ParallelAnalysisInterface):
+class HaloProfiler(ParallelAnalysisInterface):
     "Radial profiling, filtering, and projections for halos in cosmological simulations."
     def __init__(self, dataset, halos='multiple', halo_list_file='HopAnalysis.out', halo_list_format='yt_hop',
                  halo_finder_function=HaloFinder, halo_finder_args=None, halo_finder_kwargs=None,
@@ -152,7 +164,7 @@ class HaloProfiler(lagos.ParallelAnalysisInterface):
                 return na.power((data['Matter_Density'] * data['TotalMassMsun']), self.density_center_exponent)
             def _Convert_MatterDensityXTotalMass(data):
                 return 1
-            lagos.add_field("MatterDensityXTotalMass", units=r"",
+            add_field("MatterDensityXTotalMass", units=r"",
                       function=_MatterDensityXTotalMass,
                       convert_function=_Convert_MatterDensityXTotalMass)
 
@@ -193,7 +205,7 @@ class HaloProfiler(lagos.ParallelAnalysisInterface):
             return None
 
         # Create dataset object.
-        self.pf = lagos.EnzoStaticOutput(self.dataset)
+        self.pf = load(self.dataset)
         self.pf.h
         if self.halos is 'single' or not 'r_max' in self.halo_list_format:
             self.halo_radius = halo_radius / self.pf[radius_units]
@@ -231,7 +243,7 @@ class HaloProfiler(lagos.ParallelAnalysisInterface):
 
         self.projection_fields.append({'field':field, 'weight_field':weight_field})
 
-    @lagos.parallel_blocking_call
+    @parallel_blocking_call
     def make_profiles(self, filename=None, prefilters=None, **kwargs):
         "Make radial profiles for all halos on the list."
 
@@ -368,7 +380,7 @@ class HaloProfiler(lagos.ParallelAnalysisInterface):
                                                                  max_grid['y-velocity'][max_cell],
                                                                  max_grid['z-velocity'][max_cell]])
 
-            profile = lagos.BinnedProfile1D(sphere, self.n_profile_bins, "RadiusMpc",
+            profile = BinnedProfile1D(sphere, self.n_profile_bins, "RadiusMpc",
                                             r_min, halo['r_max'],
                                             log_space=True, lazy_reader=False)
             for hp in self.profile_fields:
@@ -393,7 +405,7 @@ class HaloProfiler(lagos.ParallelAnalysisInterface):
 
         return profile
 
-    @lagos.parallel_blocking_call
+    @parallel_blocking_call
     def make_projections(self, axes=[0, 1, 2], halo_list='filtered', save_images=False, save_cube=True):
         "Make projections of all halos using specified fields."
 
@@ -646,7 +658,7 @@ class HaloProfiler(lagos.ParallelAnalysisInterface):
         else:
             return None
 
-    @lagos.parallel_blocking_call
+    @parallel_blocking_call
     def _run_hop(self, hopFile):
         "Run hop to get halos."
 
@@ -656,7 +668,7 @@ class HaloProfiler(lagos.ParallelAnalysisInterface):
         del hop_results
         self.pf.h.clear_all_data()
 
-    @lagos.parallel_root_only
+    @parallel_root_only
     def _write_filtered_halo_list(self, filename, format="%s"):
         """
         Write out list of filtered halos along with any quantities 
@@ -713,7 +725,7 @@ class HaloProfiler(lagos.ParallelAnalysisInterface):
             fid.write("\n")
         fid.close()
 
-    @lagos.parallel_root_only
+    @parallel_root_only
     def __check_directory(self, outputDir):
         if (os.path.exists(outputDir)):
             if not(os.path.isdir(outputDir)):
@@ -807,7 +819,7 @@ def shift_projections(pf, pc, oldCenter, newCenter, axis):
         del add_x_field, add_y_field, add2_x_field, add2_y_field
         del add_x_weight_field, add_y_weight_field, add2_x_weight_field, add2_y_weight_field
 
-class FakeProfile(lagos.ParallelAnalysisInterface):
+class FakeProfile(ParallelAnalysisInterface):
     """
     This is used to mimic a profile object when reading profile data from disk.
     """
