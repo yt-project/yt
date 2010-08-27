@@ -1,11 +1,15 @@
 """
-Import the components of the volume rendering extension
+API for yt.visualization.volume_rendering
 
 Author: Matthew Turk <matthewturk@gmail.com>
+Affiliation: UCSD
+Author: J.S. Oishi <jsoishi@gmail.com>
 Affiliation: KIPAC/SLAC/Stanford
+Author: Britton Smith <brittonsmith@gmail.com>
+Affiliation: MSU
 Homepage: http://yt.enzotools.org/
 License:
-  Copyright (C) 2009 Matthew Turk.  All Rights Reserved.
+  Copyright (C) 2010 Matthew Turk.  All Rights Reserved.
 
   This file is part of yt.
 
@@ -21,21 +25,6 @@ License:
 
   You should have received a copy of the GNU General Public License
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
 """
 
-import numpy as na
-
-from transfer_functions import TransferFunction, ColorTransferFunction, \
-                             PlanckTransferFunction, \
-                             MultiVariateTransferFunction, \
-                             ProjectionTransferFunction
-from yt.amr_utils import PartitionedGrid, VectorPlane, \
-                             TransferFunctionProxy
-from grid_partitioner import HomogenizedVolume, \
-                             HomogenizedBrickCollection, \
-                             export_partitioned_grids, \
-                             import_partitioned_grids
-from image_handling import export_rgba, import_rgba, \
-                           plot_channel, plot_rgb
-from software_sampler import VolumeRendering
-from camera import Camera, PerspectiveCamera, StereoPairCamera

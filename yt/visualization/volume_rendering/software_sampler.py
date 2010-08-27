@@ -23,11 +23,17 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-import numpy as na
 import h5py
-from yt.extensions.volume_rendering import *
+import numpy as na
+
 from yt.funcs import *
-from yt.lagos import data_object_registry, ParallelAnalysisInterface
+
+from yt.data_objects.data_containers import data_object_registry
+from yt.utilities.amr_utils import TransferFunctionProxy, VectorPlane
+from yt.utilities.parallel_tools.parallel_analysis_interface import \
+    ParallelAnalysisInterface
+from yt.visualization.volume_rendering.grid_partitioner import \
+    HomogenizedBrickCollection
 
 # We're going to register this class, but it does not directly inherit from
 # AMRData.

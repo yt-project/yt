@@ -24,10 +24,13 @@ License:
 """
 
 import numpy as na
-from grid_partitioner import HomogenizedVolume
-from transfer_functions import ProjectionTransferFunction
+
 from yt.funcs import *
-import yt.amr_utils as au
+
+from .grid_partitioner import HomogenizedVolume
+from .transfer_functions import ProjectionTransferFunction
+
+from yt.utilities.amr_utils import TransferFunctionProxy, VectorPlane
 
 class Camera(object):
     def __init__(self, center, normal_vector, width,
@@ -155,7 +158,7 @@ class Camera(object):
         positions[:,:,1] = inv_mat[1,0]*px+inv_mat[1,1]*py+self.back_center[1]
         positions[:,:,2] = inv_mat[2,0]*px+inv_mat[2,1]*py+self.back_center[2]
         bounds = (px.min(), px.max(), py.min(), py.max())
-        vector_plane = au.VectorPlane(positions, self.box_vectors[2],
+        vector_plane = VectorPlane(positions, self.box_vectors[2],
                                       self.back_center, bounds, image,
                                       self.unit_vectors[0],
                                       self.unit_vectors[1])
@@ -175,7 +178,7 @@ class Camera(object):
         image = na.zeros((self.resolution[0], self.resolution[1], 3),
                          dtype='float64', order='C')
         vector_plane = self.get_vector_plane(image)
-        tfp = au.TransferFunctionProxy(self.transfer_function) # Reset it every time
+        tfp = TransferFunctionProxy(self.transfer_function) # Reset it every time
         tfp.ns = self.sub_samples
         self.volume.initialize_source()
         pbar = get_pbar("Ray casting",
@@ -263,7 +266,7 @@ class PerspectiveCamera(Camera):
         vectors /= n[:,:,None]
         print vectors.shape, vectors.dtype, vectors.flags
 
-        vector_plane = au.VectorPlane(positions, vectors,
+        vector_plane = VectorPlane(positions, vectors,
                                       self.back_center, bounds, image,
                                       self.unit_vectors[0],
                                       self.unit_vectors[1])
