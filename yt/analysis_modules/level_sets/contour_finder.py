@@ -24,6 +24,11 @@ License:
 """
 
 from itertools import chain
+import numpy as na
+
+from yt.funcs import *
+import yt.utilities.data_point_utilities as data_point_utilities
+import yt.utilities.amr_utils as amr_utils
 
 class GridConsiderationQueue:
     def __init__(self, white_list, priority_func=None):
@@ -125,7 +130,7 @@ def old_identify_contours(data_source, field, min_val, max_val, cached_fields=No
             xi = xi_u[cor_order]
             yi = yi_u[cor_order]
             zi = zi_u[cor_order]
-            while PointCombine.FindContours(fd, xi, yi, zi) < 0: pass
+            while data_point_utilities.FindContours(fd, xi, yi, zi) < 0: pass
         cg["tempContours"] = fd.copy().astype('float64')
         cg.flush_data("tempContours")
         my_queue.add(cg._grids)
@@ -277,7 +282,7 @@ def identify_contours(data_source, field, min_val, max_val,
         xi = xi_u[cor_order]
         yi = yi_u[cor_order]
         zi = zi_u[cor_order]
-        while PointCombine.FindContours(grid["tempContours"], xi, yi, zi) < 0:
+        while data_point_utilities.FindContours(grid["tempContours"], xi, yi, zi) < 0:
             pass
         total_contours += na.unique(grid["tempContours"][grid["tempContours"] > -1]).size
         new_contours = na.unique(grid["tempContours"][grid["tempContours"] > -1]).tolist()
