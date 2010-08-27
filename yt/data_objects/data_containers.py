@@ -33,6 +33,7 @@ import weakref
 
 from yt.funcs import *
 
+from yt.data_objects.particle_io import particle_handler_registry
 from yt.utilities.data_point_utilities import CombineGrids, \
     DataCubeRefine, DataCubeReplace, FillRegion
 from yt.utilities.definitions import axis_names, x_dict, y_dict

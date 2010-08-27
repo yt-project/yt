@@ -30,6 +30,8 @@ import math, sys, itertools, gc, random
 import numpy as na
 
 from yt.funcs import *
+
+from yt.config import ytcfg
 from yt.utilities.performance_counters import \
     yt_counters, time_function
 
