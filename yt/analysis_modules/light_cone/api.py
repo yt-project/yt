@@ -28,17 +28,17 @@ License:
 
 """
 
-from .Common_nVolume import \
+from .common_nvolume import \
     commonNVolume, \
     commonSegment
 
-from .HaloMask import \
+from .halo_mask import \
     light_cone_halo_mask, \
     light_cone_halo_map
 
 from .light_cone_projection import \
     LightConeProjection
 
-from .UniqueSolution import \
+from .unique_solution import \
     project_unique_light_cones, \
     find_unique_solutions
