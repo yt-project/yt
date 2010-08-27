@@ -24,19 +24,20 @@ License:
 """
 
 import copy
-import numpy as na
 import os
+import numpy as na
 
 from yt.funcs import *
 
 from yt.config import ytcfg
-from yt.utilities.logger import ytLogger as mylog
 
 from yt.analysis_modules.simulation_handler.enzo_simulation \
     import EnzoSimulation
 from yt.utilities.cosmology import Cosmology
 
 from .common_n_volume import commonNVolume
+from yt.visualization.plot_collection import \
+    PlotCollection
 
 class LightCone(EnzoSimulation):
     def __init__(self, EnzoParameterFile, initial_redshift=1.0, final_redshift=0.0, observer_redshift=0.0,
@@ -52,7 +53,7 @@ class LightCone(EnzoSimulation):
                Default: 600.0.
         :param image_resolution_in_arcseconds (float): the size of each image pixel in units of arcseconds.  
                Default: 60.0.
-        :param use_minimum_datasets (bool): if True, the minimum number of datasets is used to connect the 
+                             :param use_minimum_datasets (bool): if True, the minimum number of datasets is used to connect the 
                initial and final redshift.  If false, the light cone solution will contain as many entries 
                as possible within the redshift interval.  Default: True.
         :param deltaz_min (float): specifies the minimum :math:`\Delta z` between consecutive datasets in 
@@ -338,7 +339,7 @@ class LightCone(EnzoSimulation):
             center = [0.5 * (self.light_cone_solution[-1]['object'].parameters['DomainLeftEdge'][w] + 
                              self.light_cone_solution[-1]['object'].parameters['DomainRightEdge'][w])
                       for w in range(self.light_cone_solution[-1]['object'].parameters['TopGridRank'])]
-            pc = raven.PlotCollection(self.light_cone_solution[-1]['object'], center=center)
+            pc = PlotCollection(self.light_cone_solution[-1]['object'], center=center)
             pc.add_fixed_resolution_plot(frb, field, **kwargs)
             pc.save(filename)
 

@@ -84,8 +84,9 @@ def recursive_bottom_clumps(clump,clump_list, dbg = 0,level=0):
             recursive_bottom_clumps(child,clump_list,dbg=dbg,level=level+1)
 
 def clump_list_sort(clump_list):
-    """Returns a copy of clump_list, sorted by ascending minimum density.
-    This eliminates overlap when passing to yt.raven.ClumpContourCallback"""
+    """Returns a copy of clump_list, sorted by ascending minimum density.  This
+    eliminates overlap when passing to
+    yt.visualization.plot_modification.ClumpContourCallback"""
     minDensity = [c['Density'].min() for c in clump_list]
     
     args = na.argsort(minDensity)

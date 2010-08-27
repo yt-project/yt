@@ -23,12 +23,15 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-from yt.utilities.logger import ytLogger as mylog
-from yt.utilities.parallel_tools.parallel_analysis_interface \
-    import parallel_blocking_call
-from yt.config import ytcfg
 import numpy as na
 import copy
+
+from yt.funcs import *
+from yt.config import ytcfg
+from yt.visualization.plot_collection import \
+    PlotCollection
+from yt.utilities.parallel_tools.parallel_analysis_interface import \
+    parallel_blocking_call
 
 @parallel_blocking_call
 def LightConeProjection(lightConeSlice, field, pixels, weight_field=None, save_image=False, name="", node=None, field_cuts=None,
@@ -57,7 +60,7 @@ def LightConeProjection(lightConeSlice, field, pixels, weight_field=None, save_i
 
     # Make the plot collection and put it in the slice so we can delete it cleanly in the same scope 
     # as where the frb will be deleted.
-    lightConeSlice['pc'] = raven.PlotCollection(lightConeSlice['object'], center=region_center)
+    lightConeSlice['pc'] = PlotCollection(lightConeSlice['object'], center=region_center)
 
     # 1. The Depth Problem
     # Use coordinate field cut in line of sight to cut projection to proper depth.
@@ -229,7 +232,7 @@ def LightConeProjection(lightConeSlice, field, pixels, weight_field=None, save_i
 
         # Create fixed resolution buffer to return back to the light cone object.
         # These buffers will be stacked together to make the light cone.
-        frb = raven.FixedResolutionBuffer(lightConeSlice['pc'].plots[0].data, (0, lightConeSlice['WidthBoxFraction'], 0, lightConeSlice['WidthBoxFraction']),
+        frb = FixedResolutionBuffer(lightConeSlice['pc'].plots[0].data, (0, lightConeSlice['WidthBoxFraction'], 0, lightConeSlice['WidthBoxFraction']),
                                           (pixels, pixels), antialias=False)
 
         return frb
