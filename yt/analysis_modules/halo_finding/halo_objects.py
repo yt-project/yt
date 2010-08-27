@@ -37,11 +37,11 @@ from yt.utilities.performance_counters import \
 
 from .hop.EnzoHop import RunHOP
 from .fof.EnzoFOF import RunFOF
-try:
-    from .parallelHOP.parallelHOP import \
-        RunParallelHOP 
-except ImportError:
-    mylog.debug("ParallelHOP not imported.")
+#try:
+from parallel_hop.parallel_hop_interface import \
+    ParallelHOPHaloFinder
+#except ImportError:
+#    mylog.debug("ParallelHOP not imported.")
 
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     ParallelDummy, \

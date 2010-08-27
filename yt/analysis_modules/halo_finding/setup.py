@@ -9,7 +9,7 @@ def configuration(parent_package='',top_path=None):
     config = Configuration('halo_finding',parent_package,top_path)
     config.add_subpackage("fof")
     config.add_subpackage("hop")
-    config.add_subpackage("parallelHOP")
+    config.add_subpackage("parallel_hop")
     config.make_config_py() # installs __config__.py
     config.make_svn_version_py()
     return config

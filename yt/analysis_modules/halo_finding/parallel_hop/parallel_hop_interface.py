@@ -35,7 +35,7 @@ try:
 except ImportError:
     mylog.debug("The Fortran kD-Tree did not import correctly.")
 
-class RunParallelHOP(ParallelAnalysisInterface):
+class ParallelHOPHaloFinder(ParallelAnalysisInterface):
     def __init__(self,period, padding, num_neighbors, bounds,
             xpos, ypos, zpos, index, mass, threshold=160.0, rearrange=True,
             premerge=True):
