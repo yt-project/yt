@@ -27,7 +27,10 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 import pyx
-from yt.mods import *
+
+from .plot_types import \
+    VMPlot, \
+    ProfilePlot, \
 
 class DualEPS(object):
     def __init__(self, figsize=(12,12)):
@@ -241,7 +244,7 @@ class DualEPS(object):
 
         Parameters
         ----------
-        plot : `yt.raven.RavenPlot`
+        plot : `yt.visualization.plot_types.RavenPlot`
             yt plot on which the axes are based.
         units : string
             Unit description that overrides yt's unit description.  Only
@@ -258,7 +261,7 @@ class DualEPS(object):
         >>> d.save_fig()
         """
         plot._redraw_image()
-        if isinstance(plot, raven.PlotTypes.VMPlot):
+        if isinstance(plot, VMPlot):
             if units == None:
                 # Determine the best units
                 astro_units = ['cm', 'rsun', 'au', 'pc', 'kpc', 'Mpc']
@@ -328,7 +331,7 @@ class DualEPS(object):
 
         Parameters
         ----------
-        plot : `yt.raven.VMPlot`
+        plot : `yt.visualization.plot_types.VMPlot`
             yt plot that provides the image
         pos : tuple of floats
             Position of the origin of the image in centimeters.
@@ -349,7 +352,7 @@ class DualEPS(object):
         # We need to remove the colorbar (if necessary), remove the
         # axes, and resize the figure to span the entire figure
         if plot.colorbar != None and \
-               isinstance(plot, raven.PlotTypes.VMPlot):
+               isinstance(plot, VMPlot):
             print "WARNING: Image (slices, projections, etc.) plots must not"\
                   "have a colorbar."
             print "Removing it."
@@ -358,7 +361,7 @@ class DualEPS(object):
             self.canvas = pyx.canvas.canvas()
         plot._redraw_image()
         _p1 = plot._figure
-        if isinstance(plot, raven.PlotTypes.ProfilePlot):
+        if isinstance(plot, ProfilePlot):
             # Remove colorbar
             _p1.delaxes(_p1.axes[1])
         _p1.axes[0].set_axis_off()  # remove axes
@@ -501,7 +504,7 @@ class DualEPS(object):
 
         Parameters
         ----------
-        plot : `yt.raven.VMPlot`
+        plot : `yt.visualization.plot_types.VMPlot`
             yt plot from which the information is taken.
 
         Examples
@@ -517,7 +520,7 @@ class DualEPS(object):
             _cmap = plot.cmap.name
         else:
             _cmap = 'algae'
-        if isinstance(plot, raven.PlotTypes.VMPlot):
+        if isinstance(plot, VMPlot):
             # Taken from yt
             proj = "Proj" in plot._type_name and \
                    plot.data._weight is None
@@ -707,7 +710,7 @@ def multiplot(ncol, nrow, yt_plots=None, images=None, xranges=None,
         Number of columns in the figure.
     nrow : integer
         Number of rows in the figure.
-    yt_plots : list of `yt.raven.VMPlot`
+    yt_plots : list of `yt.visualization.plot_types.VMPlot`
         yt plots to include in the figure.
     images : list of strings
         JPEG filenames to include in the figure.
@@ -937,7 +940,7 @@ def single_plot(plot, figsize=(12,12), cb_orient="right", bare_axes=False,
 
     Parameters
     ----------
-    plot : `yt.raven.VMPlot`
+    plot : `yt.visualization.plot_types.VMPlot`
         yt plot that provides the image and metadata
     figsize : tuple of floats
         Size of the figure in centimeters.

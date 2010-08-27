@@ -51,11 +51,11 @@ class SlicePlotDataset(AnalysisTask):
     _params = ['field', 'axis', 'center']
 
     def __init__(self, *args, **kwargs):
-        import yt.raven
-        self.raven = yt.raven
+        from yt.visualization.api import PlotCollection
+        self.PlotCollection = PlotCollection
         AnalysisTask.__init__(self, *args, **kwargs)
 
     def eval(self, pf):
-        pc = self.raven.PlotCollection(pf, center = self.center)
+        pc = self.PlotCollection(pf, center = self.center)
         pc.add_slice(self.field, self.axis)
         return pc.save()[0]

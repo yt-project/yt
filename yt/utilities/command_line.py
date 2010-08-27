@@ -25,9 +25,23 @@ License:
 
 from yt.mods import *
 from yt.funcs import *
-from yt.recipes import _fix_pf
 import yt.cmdln as cmdln
 import optparse, os, os.path, math, sys, time, subprocess
+
+def _fix_pf(arg):
+    if os.path.isdir("%s" % arg) and \
+        os.path.exists("%s/%s" % (arg,arg)):
+        pf = load("%s/%s" % (arg,arg))
+    elif os.path.isdir("%s.dir" % arg) and \
+        os.path.exists("%s.dir/%s" % (arg,arg)):
+        pf = load("%s.dir/%s" % (arg,arg))
+    elif arg.endswith(".hierarchy"):
+        pf = load(arg[:-10])
+    else:
+        pf = load(arg)
+    if pf is None:
+        raise IOError
+
 
 _common_options = dict(
     axis    = dict(short="-a", long="--axis",
@@ -460,7 +474,7 @@ class YTCommands(cmdln.Cmdln):
             mylog.info("No center fed in; seeking.")
             v, center = pf.h.find_max("Density")
         center = na.array(center)
-        pc=raven.PlotCollection(pf, center=center)
+        pc=PlotCollection(pf, center=center)
         if opts.axis == 4:
             axes = range(3)
         else:

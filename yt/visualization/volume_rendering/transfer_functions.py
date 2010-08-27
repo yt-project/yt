@@ -465,7 +465,7 @@ class ColorTransferFunction(MultiVariateTransferFunction):
         alpha : float, optional
             The alpha value height for the Gaussian
         colormap : string, optional
-            An acceptable colormap.  See either raven.color_maps or
+            An acceptable colormap.  See either yt.visualization.color_maps or
             http://www.scipy.org/Cookbook/Matplotlib/Show_colormaps .
 
         See Also
@@ -513,7 +513,7 @@ class ColorTransferFunction(MultiVariateTransferFunction):
             The alpha value height for each Gaussian.  If not supplied, it is
             calculated as the logspace between -2.0 and 0.0.
         colormap : string, optional
-            An acceptable colormap.  See either raven.color_maps or
+            An acceptable colormap.  See either yt.visualization.color_maps or
             http://www.scipy.org/Cookbook/Matplotlib/Show_colormaps .
 
         See Also

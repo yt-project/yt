@@ -46,7 +46,7 @@ class FixedResolutionBuffer(object):
         data_source : :class:`yt.lagos.AMRProjBase` or :class:`yt.lagos.AMRSliceBase`
             This is the source to be pixelized, which can be a projection or a
             slice.  (For cutting planes, see
-            `yt.raven.ObliqueFixedResolutionBuffer`.)
+            `yt.visualization.fixed_resolution.ObliqueFixedResolutionBuffer`.)
         bounds : sequence of floats
             Bounds are the min and max in the image plane that we want our
             image to cover.  It's in the order of (xmin, xmax, ymin, ymax),
@@ -59,7 +59,7 @@ class FixedResolutionBuffer(object):
 
         See Also
         --------
-        :class:`yt.raven.ObliqueFixedResolutionBuffer` : A similar object,
+        :class:`yt.visualization.fixed_resolution.ObliqueFixedResolutionBuffer` : A similar object,
                                                          used for cutting
                                                          planes.
 
@@ -248,7 +248,7 @@ class FixedResolutionBuffer(object):
 
 class ObliqueFixedResolutionBuffer(FixedResolutionBuffer):
     """
-    This object is a subclass of :class:`yt.raven.FixedResolution.FixedResolutionBuffer`
+    This object is a subclass of :class:`yt.visualization.fixed_resolution.FixedResolutionBuffer`
     that supports non-aligned input data objects, primarily cutting planes.
     """
     def __getitem__(self, item):

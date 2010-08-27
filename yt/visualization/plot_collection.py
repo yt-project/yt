@@ -261,7 +261,7 @@ class PlotCollection(object):
         Parameters
         ----------
         cmap : string
-            An acceptable colormap.  See either raven.color_maps or
+            An acceptable colormap.  See either yt.visualization.color_maps or
             http://www.scipy.org/Cookbook/Matplotlib/Show_colormaps .
         """
         for plot in self.plots:
@@ -294,13 +294,13 @@ class PlotCollection(object):
 
         Parameters
         ----------
-        plot : `yt.raven.RavenPlot`
+        plot : `yt.visualization.plot_types.RavenPlot`
             A plot, which will be appended to the list of plots handled by this
             plot collection.
 
         Returns
         -------
-        plot : `yt.raven.RavenPlot`
+        plot : `yt.visualization.plot_types.RavenPlot`
             The plot handed to the function is passed back through.  This is
             unnecessary, but is done for historical reasons.
         """

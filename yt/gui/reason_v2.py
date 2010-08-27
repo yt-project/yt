@@ -48,7 +48,7 @@ from enthought.tvtk.pyface.scene_model import SceneModel
 
 from plot_editors import Figure, MPLFigureEditor, MPLVMPlotEditor, Axes
 
-from yt.raven.PlotTypes import VMPlot, ProjectionPlot, SlicePlot
+from yt.visualization.plot_types import VMPlot, ProjectionPlot, SlicePlot
 
 import traceback
 from tvtk_interface import \

@@ -35,6 +35,7 @@ from yt.utilities.definitions import \
     x_dict, \
     y_dict, \
     axis_names
+from .color_maps import raven_colormaps
 
 class CallbackRegistryHandler(object):
     def __init__(self, plot):

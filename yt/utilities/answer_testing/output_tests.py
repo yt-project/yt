@@ -162,7 +162,7 @@ class YTStaticOutputTest(SingleOutputTest):
                      self.pf["DomainRightEdge"][xax],
                      self.pf["DomainLeftEdge"][yax],
                      self.pf["DomainRightEdge"][yax])
-        frb = raven.FixedResolutionBuffer( data, edges, dims)
+        frb = FixedResolutionBuffer( data, edges, dims)
         frb[field] # To make the pixelization
         return frb
 
