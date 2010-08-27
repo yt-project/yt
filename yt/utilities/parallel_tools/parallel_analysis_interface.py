@@ -119,7 +119,8 @@ def parallel_simple_proxy(func):
     This is a decorator that broadcasts the result of computation on a single
     processor to all other processors.  To do so, it uses the _processing and
     _distributed flags in the object to check for blocks.  Meant only to be
-    used on objects that subclass :class:`~yt.lagos.ParallelAnalysisInterface`.
+    used on objects that subclass
+    :class:`~yt.utilities.parallel_tools.parallel_analysis_interface.ParallelAnalysisInterface`.
     """
     if not parallel_capable: return func
     @wraps(func)
@@ -139,7 +140,8 @@ def parallel_simple_proxy(func):
 class ParallelDummy(type):
     """
     This is a base class that, on instantiation, replaces all attributes that
-    don't start with ``_`` with :func:`~yt.lagos.parallel_simple_proxy`-wrapped
+    don't start with ``_`` with
+    :func:`~yt.utilities.parallel_tools.parallel_analysis_interface.parallel_simple_proxy`-wrapped
     attributes.  Used as a metaclass.
     """
     def __init__(cls, name, bases, d):

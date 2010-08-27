@@ -154,8 +154,8 @@ class YTStaticOutputTest(SingleOutputTest):
         This is a helper function that returns a 2D array of the specified
         source, in the specified field, at the specified spatial extent.
         """
-        xax = lagos.x_dict[self.axis]
-        yax = lagos.y_dict[self.axis]
+        xax = x_dict[self.axis]
+        yax = y_dict[self.axis]
         
         if edges is None:
             edges = (self.pf["DomainLeftEdge"][xax],
