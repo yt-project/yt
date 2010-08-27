@@ -361,3 +361,51 @@ def compute_radial_velocity(CoM, L, P, V):
         res[i] = na.dot(temp, temp)**0.5
     return res
 
+def compute_cylindrical_radius(CoM, L, P, V):
+    r"""Compute the radius for some data around an axis in cylindrical
+    coordinates.
+    
+    This is primarily for halo computations.
+    Given some data, this computes the cylindrical radius for each point.
+    This is accomplished by converting the reference frame of the center of
+    mass of the halo.
+    
+    Parameters
+    ----------
+    CoM : array
+        The center of mass in 3D.
+    
+    L : array
+        The angular momentum vector.
+    
+    P : array
+        The positions of the data to be modified (i.e. particle or grid cell
+        postions). The array should be Nx3.
+    
+    V : array
+        The velocities of the data to be modified (i.e. particle or grid cell
+        velocities). The array should be Nx3.
+    
+    Returns
+    -------
+    cyl_r : array
+        An array N elements long that gives the radial velocity for
+        each datum (particle).
+    
+    Examples
+    --------
+    >>> CoM = na.array([0, 0, 0])
+    >>> L = na.array([0, 0, 1])
+    >>> P = na.array([[1, 0, 0], [1, 1, 1], [0, 0, 1], [1, 1, 0]])
+    >>> V = na.array([[0, 1, 10], [-1, -1, -1], [1, 1, 1], [1, -1, -1]])
+    >>> cyl_r = compute_cylindrical_radius(CoM, L, P, V)
+    >>> cyl_r
+    array([ 1.        ,  1.41421356,  0.        ,  1.41421356])
+    """
+    # First we translate into the simple coordinates.
+    L, P, V = modify_reference_frame(CoM, L, P, V)
+    # Demote all the positions to the z=0 plane, which makes the distance
+    # calculation very easy.
+    P[:,2] = 0
+    return na.sqrt((P * P).sum(axis=1))
+    

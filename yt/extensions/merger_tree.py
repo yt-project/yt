@@ -777,8 +777,8 @@ class MergerTreeConnect(DatabaseFunctions):
         self.cursor.execute(string)
         results = self.cursor.fetchone()
         while results:
-            if results[1] < minz:
-                minz = results[1]
+            if abs(results[1] - z) < minz:
+                minz = abs(results[1] - z)
                 this_halo = results[0]
             results = self.cursor.fetchone()
         return this_halo
