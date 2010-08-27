@@ -7,7 +7,6 @@ def configuration(parent_package='',top_path=None):
     config.make_config_py() # installs __config__.py
     config.make_svn_version_py()
     config.add_subpackage("coordinate_transformation")
-    config.add_subpackage("enzo_test")
     config.add_subpackage("halo_finding")
     config.add_subpackage("halo_mass_function")
     config.add_subpackage("halo_merger_tree")
