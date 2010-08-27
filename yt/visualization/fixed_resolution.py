@@ -65,10 +65,10 @@ class FixedResolutionBuffer(object):
 
         Examples
         --------
-        To make a projection and then several images, you can generate multiple
-        images.
+        To make a projection and then several images, you can generate a
+        single FRB and then access multiple fields:
 
-        >>> proj = pf.h.slice(0, "Density")
+        >>> proj = pf.h.proj(0, "Density")
         >>> frb1 = FixedResolutionBuffer(proj, (0.2, 0.3, 0.4, 0.5),
                         (1024, 1024))
         >>> print frb1["Density"].max()
@@ -98,6 +98,12 @@ class FixedResolutionBuffer(object):
 
     def __setitem__(self, item, val):
         self.data[item] = val
+
+    def _get_data_source_fields(self):
+        exclude = self.data_source._key_fields + ['pz','pdz','x','y','z']
+        for f in self.data_source.fields:
+            if f not in exclude:
+                self[f]
 
     def convert_to_pixel(self, coords):
         r"""This function converts coordinates in code-space to pixel-space.
@@ -238,7 +244,7 @@ class FixedResolutionBuffer(object):
         numdisplay.open()
         if take_log: data=na.log10(self[field])
         else: data=self[field]
-        numdisplay.display(data)
+        numdisplay.display(data)    
 
 class ObliqueFixedResolutionBuffer(FixedResolutionBuffer):
     """
