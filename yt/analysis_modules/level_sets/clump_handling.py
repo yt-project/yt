@@ -25,9 +25,12 @@ License:
 import numpy as na
 import copy
 
+from .contour_finder import identify_contours
+
 class Clump(object):
     children = None
-    def __init__(self, data, parent, field, cached_fields = None, function=None, clump_info=None):
+    def __init__(self, data, parent, field, cached_fields = None, 
+                 function=None, clump_info=None):
         self.parent = parent
         self.data = data
         self.field = field
