@@ -30,6 +30,7 @@ data_object_registry = {}
 import numpy as na
 import math
 import weakref
+import exceptions
 
 from yt.funcs import *
 
