@@ -34,7 +34,7 @@ from _mpl_imports import *
 from yt.utilities.definitions import \
     x_dict, \
     y_dict, \
-    axis_names
+    axis_names, \
     axis_labels
 import _MPL
 
