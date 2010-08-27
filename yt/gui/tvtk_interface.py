@@ -43,7 +43,6 @@ import enthought.pyface.api as pyface
 import sys
 import numpy as na
 import time, pickle, os, os.path
-import yt.lagos as lagos
 from yt.funcs import *
 from yt.logger import ravenLogger as mylog
 from yt.extensions.HierarchySubset import \
@@ -674,8 +673,6 @@ def get_all_parents(grid):
     return list(set(parents))
 
 def run_vtk():
-    import yt.lagos as lagos
-
     gui = pyface.GUI()
     importer = HierarchyImporter()
     importer.edit_traits(handler = HierarchyImportHandler(

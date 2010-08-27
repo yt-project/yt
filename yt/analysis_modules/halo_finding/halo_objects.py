@@ -233,7 +233,7 @@ class Halo(object):
         
         Returns
         -------
-        sphere : `yt.lagos.AMRSphereBase`
+        sphere : `yt.data_objects.api.AMRSphereBase`
             The empty data source.
 
         Examples

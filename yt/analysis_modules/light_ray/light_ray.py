@@ -23,26 +23,27 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-from yt.utilities.logger import lagosLogger as mylog
-from yt.funcs import *
 from mpi4py import MPI
-import yt.extensions.enzo_simulation as ES
-import yt.extensions.halo_profiler as HP
-import yt.lagos as lagos
+
 import numpy as na
 import copy
 import h5py
 
+from yt.utilities.logger import lagosLogger as mylog
+from yt.funcs import *
+from yt.analysis_modules.enzo_simulation.api import EnzoSimulation
+from yt.analysis_modules.halo_profiler import HaloProfiler
+
 my_rank = MPI.COMM_WORLD.rank
 my_size = MPI.COMM_WORLD.size
 
-class LightRay(ES.EnzoSimulation):
+class LightRay(EnzoSimulation):
     def __init__(self, EnzoParameterFile, FinalRedshift, InitialRedshift, deltaz_min=0.0,
                  use_minimum_datasets=True, minimum_coherent_box_fraction=0.0, **kwargs):
 
-        ES.EnzoSimulation.__init__(self, EnzoParameterFile, initial_redshift=InitialRedshift,
-                                   final_redshift=FinalRedshift, links=True,
-                                   enzo_parameters={'CosmologyComovingBoxSize':float}, **kwargs)
+        EnzoSimulation.__init__(self, EnzoParameterFile, initial_redshift=InitialRedshift,
+                                final_redshift=FinalRedshift, links=True,
+                                enzo_parameters={'CosmologyComovingBoxSize':float}, **kwargs)
 
         self.deltaz_min = deltaz_min
         self.use_minimum_datasets = use_minimum_datasets
@@ -79,7 +80,8 @@ class LightRay(ES.EnzoSimulation):
                 z_next = self.light_ray_solution[q+1]['redshift']
 
             # Calculate fraction of box required for a depth of delta z
-            self.light_ray_solution[q]['TraversalBoxFraction'] = self.cosmology.ComovingRadialDistance(z_next, self.light_ray_solution[q]['redshift']) * \
+            self.light_ray_solution[q]['TraversalBoxFraction'] = self.cosmology.ComovingRadialDistance(\
+                z_next, self.light_ray_solution[q]['redshift']) * \
                 self.enzoParameters['CosmologyHubbleConstantNow'] / self.enzoParameters['CosmologyComovingBoxSize']
 
             # Simple error check to make sure more than 100% of box depth is never required.
@@ -113,8 +115,10 @@ class LightRay(ES.EnzoSimulation):
             boxFractionUsed += self.light_ray_solution[q]['TraversalBoxFraction']
 
         if filename is not None:
-            self._write_light_ray_solution(filename, extra_info={'EnzoParameterFile':self.EnzoParameterFile, 'RandomSeed':seed,
-                                                                 'InitialRedshift':self.InitialRedshift, 'FinalRedshift':self.FinalRedshift})
+            self._write_light_ray_solution(filename, extra_info={'EnzoParameterFile':self.EnzoParameterFile, 
+                                                                 'RandomSeed':seed,
+                                                                 'InitialRedshift':self.InitialRedshift, 
+                                                                 'FinalRedshift':self.FinalRedshift})
 
     def make_light_ray(self, seed=None, fields=None, solution_filename=None, data_filename=None,
                        get_nearest_galaxy=False, **kwargs):
@@ -239,7 +243,7 @@ class LightRay(ES.EnzoSimulation):
         if halo_profiler_kwargs is None: halo_profiler_kwargs = {}
         if halo_profiler_actions is None: halo_profiler_actions = []
 
-        hp = HP.HaloProfiler(dataset, **halo_profiler_kwargs)
+        hp = HaloProfiler(dataset, **halo_profiler_kwargs)
         for action in halo_profiler_actions:
             if not action.has_key('args'): action['args'] = ()
             if not action.has_key('kwargs'): action['kwargs'] = {}

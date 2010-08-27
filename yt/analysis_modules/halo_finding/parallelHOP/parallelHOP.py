@@ -25,12 +25,13 @@ License:
 
 from collections import defaultdict
 import itertools, sys
+import numpy as na
 
-from yt.lagos import *
 from yt.funcs import *
 from yt.performance_counters import yt_counters, time_function
 try:
-    from yt.extensions.kdtree import *
+    from yt.utilities.kdtree import \
+        fKD, find_nn_nearest_neighbors
 except ImportError:
     mylog.debug("The Fortran kD-Tree did not import correctly.")
 

@@ -2,7 +2,11 @@
 Tools for parallelism.
 
 Author: Matthew Turk <matthewturk@gmail.com>
+Affiliation: UCSD
+Author: J.S. Oishi <jsoishi@gmail.com>
 Affiliation: KIPAC/SLAC/Stanford
+Author: Britton Smith <brittonsmith@gmail.com>
+Affiliation: MSU
 Homepage: http://yt.enzotools.org/
 License:
   Copyright (C) 2010 Matthew Turk.  All Rights Reserved.
@@ -21,4 +25,5 @@ License:
 
   You should have received a copy of the GNU General Public License
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
 """

@@ -28,6 +28,7 @@ import numpy as na
 import os
 import stat
 import string
+import re
 
 from itertools import izip
 

@@ -25,9 +25,7 @@ License:
 
 import numpy as na
 
-from yt.utilities.logger import lagosLogger as mylog
-from yt.utilities.definitions import \
-    NUMTOCHECK
+from yt.funcs import *
 
 class ObjectFindingMixin(object):
 
@@ -48,7 +46,7 @@ class ObjectFindingMixin(object):
         ind = na.where(mask == 1)
         return self.grids[ind], ind
 
-    def find_max(self, field, finest_levels = True):
+    def find_max(self, field, finest_levels = 3):
         """
         Returns (value, center) of location of maximum for a given field.
         """
@@ -58,9 +56,9 @@ class ObjectFindingMixin(object):
         self._max_locations[(field, finest_levels)] = (mv, pos)
         return mv, pos
 
-    def find_max_cell_location(self, field, finest_levels = True):
-        if finest_levels is True:
-            gi = (self.grid_levels >= self.max_level - NUMTOCHECK).ravel()
+    def find_max_cell_location(self, field, finest_levels = 3):
+        if finest_levels is not False:
+            gi = (self.grid_levels >= self.max_level - finest_levels).ravel()
             source = self.grid_collection([0.0]*3, self.grids[gi])
         else:
             source = self.all_data()

@@ -24,10 +24,13 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-import numpy as na
-from yt.funcs import *
-from yt.parallel_tools import ParallelAnalysisInterface
 from itertools import izip
+
+import numpy as na
+
+from yt.funcs import *
+
+from .parallel_analysis_interface import ParallelAnalysisInterface
 
 class DistributedObjectCollection(ParallelAnalysisInterface):
     valid = True

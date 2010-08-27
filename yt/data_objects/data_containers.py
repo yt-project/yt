@@ -34,12 +34,19 @@ import exceptions
 
 from yt.funcs import *
 
+from yt.data_objects.derived_quantities import GridChildMaskWrapper
 from yt.data_objects.particle_io import particle_handler_registry
+from yt.utilities.amr_utils import find_grids_in_inclined_box, \
+    grid_points_in_volume, planar_points_in_volume, VoxelTraversal
 from yt.utilities.data_point_utilities import CombineGrids, \
     DataCubeRefine, DataCubeReplace, FillRegion
 from yt.utilities.definitions import axis_names, x_dict, y_dict
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     ParallelAnalysisInterface
+from yt.utilities.linear_interpolators import \
+    UnilinearFieldInterpolator, \
+    BilinearFieldInterpolator, \
+    TrilinearFieldInterpolator
 
 from .derived_quantities import DerivedQuantityCollection
 from .field_info_container import \
@@ -157,7 +164,7 @@ class AMRData(object):
     def __init__(self, pf, fields, **kwargs):
         """
         Typically this is never called directly, but only due to inheritance.
-        It associates a :class:`~yt.lagos.StaticOutput` with the class,
+        It associates a :class:`~yt.data_objects.api.StaticOutput` with the class,
         sets its initial set of fields, and the remainder of the arguments
         are passed as field_parameters.
         """
@@ -307,7 +314,7 @@ class AMRData(object):
         """
         Save an object.  If *filename* is supplied, it will be stored in
         a :mod:`shelve` file of that name.  Otherwise, it will be stored via
-        :meth:`yt.lagos.AMRHierarchy.save_object`.
+        :meth:`yt.data_objects.api.AMRHierarchy.save_object`.
         """
         if filename is not None:
             ds = shelve.open(filename, protocol=-1)
@@ -417,7 +424,7 @@ class AMR1DData(AMRData, GridPropertiesMixin):
                 self[field] = self.pf.field_info[field](self)
                 return True
         else: # Can't find the field, try as it might
-            raise exceptions.KeyError(field)
+            raise KeyError(field)
 
     def get_data(self, fields=None, in_grids=False):
         if self._grids == None:
@@ -556,7 +563,6 @@ class AMRRayBase(AMR1DData):
         mask = na.zeros(grid.ActiveDimensions, dtype='int')
         dts = na.zeros(grid.ActiveDimensions, dtype='float64')
         ts = na.zeros(grid.ActiveDimensions, dtype='float64')
-        from yt.amr_utils import VoxelTraversal
         VoxelTraversal(mask, ts, dts, grid.LeftEdge, grid.RightEdge,
                        grid.dds, self.center, self.vec)
         self._dts[grid.id] = na.abs(dts)
@@ -634,7 +640,7 @@ class AMR2DData(AMRData, GridPropertiesMixin, ParallelAnalysisInterface):
                 self[field] = self.pf.field_info[field](self)
                 return True
         else: # Can't find the field, try as it might
-            raise exceptions.KeyError(field)
+            raise KeyError(field)
 
     def _generate_field_in_grids(self, field, num_ghost_zones=0):
         for grid in self._grids:
@@ -646,7 +652,7 @@ class AMR2DData(AMRData, GridPropertiesMixin, ParallelAnalysisInterface):
         interpolated using the nearest neighbor method, with *side* points on a
         side.
         """
-        import yt.raven.delaunay as de
+        import yt.utilities.delaunay as de
         if log_spacing:
             zz = na.log10(self[field])
         else:
@@ -1158,7 +1164,8 @@ class AMRFixedResCuttingPlaneBase(AMR2DData):
             self[field] = na.zeros(_size, dtype='float64')
             for grid in self._get_grids():
                 self._get_data_from_grid(grid, field)
-            self[field] = self._mpi_allsum(self[field]).reshape([self.dims]*2).transpose()
+            self[field] = self._mpi_allsum(\
+                self[field]).reshape([self.dims]*2).transpose()
 
     def interpolate_discretize(self, *args, **kwargs):
         pass
@@ -1170,10 +1177,9 @@ class AMRFixedResCuttingPlaneBase(AMR2DData):
 
     def _get_point_indices(self, grid):
         if self._pixelmask.max() == 0: return []
-        k = amr_utils.planar_points_in_volume(
-                self._coord, self._pixelmask,
-                grid.LeftEdge, grid.RightEdge,
-                grid.child_mask, just_one(grid['dx']))
+        k = planar_points_in_volume(self._coord, self._pixelmask,
+                                    grid.LeftEdge, grid.RightEdge,
+                                    grid.child_mask, just_one(grid['dx']))
         return k
 
     def _gen_node_name(self):
@@ -1661,6 +1667,9 @@ class AMR3DData(AMRData, GridPropertiesMixin):
         for field in fields_to_get:
             if self.data.has_key(field):
                 continue
+            if field not in self.hierarchy.field_list and not in_grids:
+                if self._generate_field(field):
+                    continue # True means we already assigned it
             # There are a lot of 'ands' here, but I think they are all
             # necessary.
             if force_particle_read == False and \
@@ -1670,9 +1679,6 @@ class AMR3DData(AMRData, GridPropertiesMixin):
                 self[field] = self.particles[field]
                 continue
             mylog.info("Getting field %s from %s", field, len(self._grids))
-            if field not in self.hierarchy.field_list and not in_grids:
-                if self._generate_field(field):
-                    continue # True means we already assigned it
             self[field] = na.concatenate(
                 [self._get_data_from_grid(grid, field)
                  for grid in self._grids])
@@ -1734,7 +1740,7 @@ class AMR3DData(AMRData, GridPropertiesMixin):
                 self[field] = self.pf.field_info[field](self)
                 return True
         else: # Can't find the field, try as it might
-            raise exceptions.KeyError(field)
+            raise KeyError(field)
 
     def _generate_field_in_grids(self, field, num_ghost_zones=0):
         for grid in self._grids:
@@ -1807,6 +1813,7 @@ class AMR3DData(AMRData, GridPropertiesMixin):
                 mv = max_val
             else:
                 mv = cons[level+1]
+            from yt.analysis_modules.level_sets.api import identify_contours
             cids = identify_contours(self, field, cons[level], mv,
                                      cached_fields)
             for cid, cid_ind in cids.items():
@@ -2086,16 +2093,17 @@ class AMRInclinedBox(AMR3DData):
         if self._grids is not None: return
         GLE = self.pf.h.grid_left_edge
         GRE = self.pf.h.grid_right_edge
-        goodI = amr_utils.find_grids_in_inclined_box(
-                    self.box_vectors, self.center, GLE, GRE)
+        goodI = find_grids_in_inclined_box(self.box_vectors, self.center, 
+                                           GLE, GRE)
         cgrids = self.pf.h.grids[goodI.astype('bool')]
        # find_grids_in_inclined_box seems to be broken.
         cgrids = self.pf.h.grids[:]
         grids = []
         for i,grid in enumerate(cgrids):
-            v = amr_utils.grid_points_in_volume(self.box_lengths, self.origin,
-                        self._rot_mat, grid.LeftEdge, grid.RightEdge, grid.dds,
-                        grid.child_mask, 1)
+            v = grid_points_in_volume(self.box_lengths, self.origin,
+                                      self._rot_mat, grid.LeftEdge, 
+                                      grid.RightEdge, grid.dds,
+                                      grid.child_mask, 1)
             if v: grids.append(grid)
         self._grids = na.array(grids, dtype='object')
             
@@ -2110,8 +2118,9 @@ class AMRInclinedBox(AMR3DData):
         if self._is_fully_enclosed(grid):
             return True
         pm = na.zeros(grid.ActiveDimensions, dtype='int32')
-        amr_utils.grid_points_in_volume(self.box_lengths, self.origin,
-                    self._rot_mat, grid.LeftEdge, grid.RightEdge, grid.dds, pm, 0)
+        grid_points_in_volume(self.box_lengths, self.origin,
+                              self._rot_mat, grid.LeftEdge, 
+                              grid.RightEdge, grid.dds, pm, 0)
         return pm
         
 
@@ -2430,7 +2439,7 @@ class AMRFloatCoveringGridBase(AMR3DData):
             self.pf.field_info[field].check_available(self)
             self[field] = self.pf.field_info[field](self)
         else: # Can't find the field, try as it might
-            raise exceptions.KeyError(field)
+            raise KeyError(field)
 
     def flush_data(self, field=None):
         """
@@ -2663,7 +2672,7 @@ class AMRCoveringGridBase(AMR3DData):
             self.pf.field_info[field].check_available(self)
             self[field] = self.pf.field_info[field](self)
         else: # Can't find the field, try as it might
-            raise exceptions.KeyError(field)
+            raise KeyError(field)
 
     def flush_data(self, field=None):
         """

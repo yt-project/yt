@@ -25,8 +25,10 @@ License:
 
 import numpy as na
 from matplotlib.cm import get_cmap
+
 from yt.funcs import *
-from yt.physical_constants import *
+
+from yt.utilities.physical_constants import *
 
 class TransferFunction(object):
     def __init__(self, x_bounds, nbins=256):
