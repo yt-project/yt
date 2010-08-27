@@ -28,7 +28,7 @@ License:
 
 """
 
-from .common_nvolume import \
+from .common_n_volume import \
     commonNVolume, \
     commonSegment
 

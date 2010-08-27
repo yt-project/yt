@@ -24,7 +24,7 @@ License:
 """
 
 from light_cone import *
-from Common_nVolume import *
+from common_n_volume import *
 from yt.logger import lagosLogger as mylog
 import numpy as na
 import random as rand

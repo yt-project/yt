@@ -23,11 +23,8 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-from yt.extensions.lightcone import *
-from yt.logger import lagosLogger as mylog
+from yt.utilities.logger import lagosLogger as mylog
 from yt.config import ytcfg
-import yt.lagos as lagos
-import yt.raven as raven
 import numpy as na
 import copy
 
