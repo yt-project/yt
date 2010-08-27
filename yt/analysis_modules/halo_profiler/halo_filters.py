@@ -23,9 +23,10 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-from yt.logger import lagosLogger as mylog
 from copy import deepcopy
 import numpy as na
+
+from yt.funcs import *
 
 def VirialFilter(profile,overdensity_field='ActualOverdensity',
                  virial_overdensity=200.,must_be_virialized=True,
