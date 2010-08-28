@@ -725,14 +725,21 @@ class EnzoStaticOutput(StaticOutput):
                 self.conversion_factors[dataType] = convFactor
             elif param.startswith("DomainLeftEdge"):
                 self.domain_left_edge = \
+                self.parameters["DomainLeftEdge"] = \
                     na.array([float(i) for i in vals.split()])
             elif param.startswith("DomainRightEdge"):
                 self.domain_right_edge = \
+                self.parameters["DomainRightEdge"] = \
                     na.array([float(i) for i in vals.split()])
         for p, v in self.__parameter_override.items():
             self.parameters[p] = v
         for p, v in self.__conversion_override.items():
             self.conversion_factors[p] = v
+        self.refine_by = self.parameters["RefineBy"]
+        self.dimensionality = self.parameters["TopGridRank"]
+        self.domain_dimensions = self.parameters["TopGridDimensions"]
+        self.current_time = self.parameters["InitialTime"]
+        self.unique_identifier = self.parameters["CurrentTimeIdentifier"]
 
     def _set_units(self):
         """
