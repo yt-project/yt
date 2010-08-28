@@ -818,22 +818,22 @@ class EnzoStaticOutput(StaticOutput):
         with fortran code.
         """
         k = {}
-        k["utim"] = 2.52e17/na.sqrt(self.parameters["CosmologyOmegaMatterNow"])\
-                       / self.parameters["CosmologyHubbleConstantNow"] \
+        k["utim"] = 2.52e17/na.sqrt(self.omega_matter)\
+                       / self.hubble_constant \
                        / (1+self.parameters["CosmologyInitialRedshift"])**1.5
-        k["urho"] = 1.88e-29 * self.parameters["CosmologyOmegaMatterNow"] \
-                        * self.parameters["CosmologyHubbleConstantNow"]**2 \
+        k["urho"] = 1.88e-29 * self.omega_matter \
+                        * self.hubble_constant**2 \
                         * (1.0 + self.current_redshift)**3
         k["uxyz"] = 3.086e24 * \
                self.parameters["CosmologyComovingBoxSize"] / \
-               self.parameters["CosmologyHubbleConstantNow"] / \
+               self.hubble_constant / \
                (1.0 + self.current_redshift)
         k["uaye"] = 1.0/(1.0 + self.parameters["CosmologyInitialRedshift"])
         k["uvel"] = 1.225e7*self.parameters["CosmologyComovingBoxSize"] \
-                      *na.sqrt(self.parameters["CosmologyOmegaMatterNow"]) \
+                      *na.sqrt(self.omega_matter) \
                       *na.sqrt(1+ self.parameters["CosmologyInitialRedshift"])
         k["utem"] = 1.88e6 * (self.parameters["CosmologyComovingBoxSize"]**2) \
-                      * self.parameters["CosmologyOmegaMatterNow"] \
+                      * self.omega_matter \
                       * (1.0 + self.parameters["CosmologyInitialRedshift"])
         k["aye"]  = (1.0 + self.parameters["CosmologyInitialRedshift"]) / \
                (1.0 + self.current_redshift)
