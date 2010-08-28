@@ -740,6 +740,15 @@ class EnzoStaticOutput(StaticOutput):
         self.domain_dimensions = self.parameters["TopGridDimensions"]
         self.current_time = self.parameters["InitialTime"]
         self.unique_identifier = self.parameters["CurrentTimeIdentifier"]
+        if self.parameters["ComovingCoordinates"]:
+            self.cosmological_simulation = 0
+            self.current_redshift = self.parameters["CosmologyCurrentRedshift"]
+            self.omega_lambda = self.parameters["CosmologyOmegaLambdaNow"]
+            self.omega_matter = self.parameters["CosmologyOmegaMatterNow"]
+            self.hubble_constant = self.parameters["CosmologyHubbleConstantNow"]
+        else:
+            self.current_redshift = self.omega_lambda = self.omega_matter = \
+                self.hubble_constant = self.cosmological_simulation = 0.0
 
     def _set_units(self):
         """
