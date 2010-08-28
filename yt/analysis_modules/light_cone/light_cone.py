@@ -38,10 +38,13 @@ from yt.visualization.plot_collection import \
     PlotCollection
 
 from .common_n_volume import commonNVolume
+from .halo_mask import light_cone_halo_map, \
+    light_cone_halo_mask
 from .light_cone_projection import LightConeProjection
 
 class LightCone(EnzoSimulation):
-    def __init__(self, EnzoParameterFile, initial_redshift=1.0, final_redshift=0.0, observer_redshift=0.0,
+    def __init__(self, EnzoParameterFile, initial_redshift=1.0, 
+                 final_redshift=0.0, observer_redshift=0.0,
                  field_of_view_in_arcminutes=600.0, image_resolution_in_arcseconds=60.0, 
                  use_minimum_datasets=True, deltaz_min=0.0, minimum_coherent_box_fraction=0.0,
                  output_dir='LC', output_prefix='LightCone', **kwargs):
@@ -144,8 +147,8 @@ class LightCone(EnzoSimulation):
         boxFractionUsed = 0.0
 
         for q in range(len(self.light_cone_solution)):
-            del self.light_cone_solution[q]['previous']
-            del self.light_cone_solution[q]['next']
+            if self.light_cone_solution[q].has_key('previous'): del self.light_cone_solution[q]['previous']
+            if self.light_cone_solution[q].has_key('next'): del self.light_cone_solution[q]['next']
             if (q == len(self.light_cone_solution) - 1):
                 z_next = self.final_redshift
             else:

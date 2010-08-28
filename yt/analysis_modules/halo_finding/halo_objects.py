@@ -25,9 +25,13 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-import math, sys, itertools, gc, random
-
+import gc
+import h5py
+import itertools
+import math
 import numpy as na
+import random
+import sys
 
 from yt.funcs import *
 
