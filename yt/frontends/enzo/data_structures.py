@@ -74,7 +74,7 @@ class EnzoGrid(AMRGridPatch):
         space-filling tiling of grids, possibly due to the finite accuracy in a
         standard Enzo hierarchy file.
         """
-        rf = self.pf["RefineBy"]
+        rf = self.pf.refine_by
         my_ind = self.id - self._id_offset
         le = self.LeftEdge
         self.dds = self.Parent.dds/rf
@@ -170,7 +170,7 @@ class EnzoHierarchy(AMRHierarchy):
             if line.startswith("Grid "):
                 self.num_grids = test_grid_id = int(line.split("=")[-1])
                 break
-        self._guess_data_style(self.pf["TopGridRank"], test_grid, test_grid_id)
+        self._guess_data_style(self.pf.dimensionality, test_grid, test_grid_id)
 
     def _guess_data_style(self, rank, test_grid, test_grid_id):
         if test_grid[0] != os.path.sep:
@@ -606,7 +606,7 @@ class EnzoStaticOutput(StaticOutput):
 
         StaticOutput.__init__(self, filename, data_style)
         if "InitialTime" not in self.parameters:
-            self.parameters["InitialTime"] = 0.0
+            self.current_time = 0.0
         rp = os.path.join(self.directory, "rates.out")
         if os.path.exists(rp):
             try:
@@ -630,17 +630,17 @@ class EnzoStaticOutput(StaticOutput):
     def _setup_1d(self):
         self._hierarchy_class = EnzoHierarchy1D
         self._fieldinfo_class = Enzo1DFieldContainer
-        self.parameters["DomainLeftEdge"] = \
+        self.domain_left_edge = \
             na.concatenate([self["DomainLeftEdge"], [0.0, 0.0]])
-        self.parameters["DomainRightEdge"] = \
+        self.domain_right_edge = \
             na.concatenate([self["DomainRightEdge"], [1.0, 1.0]])
 
     def _setup_2d(self):
         self._hierarchy_class = EnzoHierarchy2D
         self._fieldinfo_class = Enzo2DFieldContainer
-        self.parameters["DomainLeftEdge"] = \
+        self.domain_left_edge = \
             na.concatenate([self["DomainLeftEdge"], [0.0]])
-        self.parameters["DomainRightEdge"] = \
+        self.domain_right_edge = \
             na.concatenate([self["DomainRightEdge"], [1.0]])
 
     def get_parameter(self,parameter,type=None):
@@ -651,7 +651,7 @@ class EnzoStaticOutput(StaticOutput):
             return self.parameters[parameter]
 
         # Let's read the file
-        self.parameters["CurrentTimeIdentifier"] = \
+        self.unique_identifier = \
             int(os.stat(self.parameter_filename)[stat.ST_CTIME])
         lines = open(self.parameter_filename).readlines()
         for lineI, line in enumerate(lines):
@@ -687,7 +687,7 @@ class EnzoStaticOutput(StaticOutput):
         dictionaries.
         """
         # Let's read the file
-        self.parameters["CurrentTimeIdentifier"] = \
+        self.unique_identifier = \
             int(os.stat(self.parameter_filename)[stat.ST_CTIME])
         lines = open(self.parameter_filename).readlines()
         for lineI, line in enumerate(lines):
@@ -724,10 +724,10 @@ class EnzoStaticOutput(StaticOutput):
                 convFactor = float(line.split("=")[-1])
                 self.conversion_factors[dataType] = convFactor
             elif param.startswith("DomainLeftEdge"):
-                self.parameters["DomainLeftEdge"] = \
+                self.domain_left_edge = \
                     na.array([float(i) for i in vals.split()])
             elif param.startswith("DomainRightEdge"):
-                self.parameters["DomainRightEdge"] = \
+                self.domain_right_edge = \
                     na.array([float(i) for i in vals.split()])
         for p, v in self.__parameter_override.items():
             self.parameters[p] = v
@@ -807,11 +807,11 @@ class EnzoStaticOutput(StaticOutput):
                        / (1+self.parameters["CosmologyInitialRedshift"])**1.5
         k["urho"] = 1.88e-29 * self.parameters["CosmologyOmegaMatterNow"] \
                         * self.parameters["CosmologyHubbleConstantNow"]**2 \
-                        * (1.0 + self.parameters["CosmologyCurrentRedshift"])**3
+                        * (1.0 + self.current_redshift)**3
         k["uxyz"] = 3.086e24 * \
                self.parameters["CosmologyComovingBoxSize"] / \
                self.parameters["CosmologyHubbleConstantNow"] / \
-               (1.0 + self.parameters["CosmologyCurrentRedshift"])
+               (1.0 + self.current_redshift)
         k["uaye"] = 1.0/(1.0 + self.parameters["CosmologyInitialRedshift"])
         k["uvel"] = 1.225e7*self.parameters["CosmologyComovingBoxSize"] \
                       *na.sqrt(self.parameters["CosmologyOmegaMatterNow"]) \
@@ -820,7 +820,7 @@ class EnzoStaticOutput(StaticOutput):
                       * self.parameters["CosmologyOmegaMatterNow"] \
                       * (1.0 + self.parameters["CosmologyInitialRedshift"])
         k["aye"]  = (1.0 + self.parameters["CosmologyInitialRedshift"]) / \
-               (1.0 + self.parameters["CosmologyCurrentRedshift"])
+               (1.0 + self.current_redshift)
         return k
 
     @classmethod

@@ -161,8 +161,8 @@ class FLASHStaticOutput(StaticOutput):
         # These should be explicitly obtained from the file, but for now that
         # will wait until a reorganization of the source tree and better
         # generalization.
-        self.parameters["TopGridRank"] = 3
-        self.parameters["RefineBy"] = 2
+        self.dimensionality = 3
+        self.refine_by = 2
         self.parameters["HydroMethod"] = 'flash' # always PPM DE
         self.parameters["Time"] = 1. # default unit is 1...
         self._set_units()
@@ -208,14 +208,14 @@ class FLASHStaticOutput(StaticOutput):
         raise KeyError(pname)
 
     def _parse_parameter_file(self):
-        self.parameters["CurrentTimeIdentifier"] = \
+        self.unique_identifier = \
             int(os.stat(self.parameter_filename)[ST_CTIME])
         self._handle = h5py.File(self.parameter_filename, "r")
-        self.parameters["DomainLeftEdge"] = na.array(
+        self.domain_left_edge = na.array(
             [self._find_parameter("real", "%smin" % ax) for ax in 'xyz'])
-        self.parameters["DomainRightEdge"] = na.array(
+        self.domain_right_edge = na.array(
             [self._find_parameter("real", "%smax" % ax) for ax in 'xyz'])
-        self.parameters["InitialTime"] = \
+        self.current_time = \
             float(self._find_parameter("real", "time", scalar=True))
         self._handle.close()
 

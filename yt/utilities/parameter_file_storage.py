@@ -117,8 +117,8 @@ class ParameterFileStore(object):
         """
         return dict(bn=pf.basename,
                     fp=pf.fullpath,
-                    tt=pf["InitialTime"],
-                    ctid=pf["CurrentTimeIdentifier"],
+                    tt=pf.current_time,
+                    ctid=pf.unique_identifier,
                     class_name=pf.__class__.__name__,
                     last_seen=pf._instantiated)
 

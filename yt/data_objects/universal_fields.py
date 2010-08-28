@@ -184,7 +184,7 @@ add_field("particle_mass", function=particle_func("particle_mass"),
           validators=[ValidateSpatial(0)], particle_type=True)
 
 def _ParticleAge(field, data):
-    current_time = data.pf["InitialTime"]
+    current_time = data.pf.current_time
     return (current_time - data["creation_time"])
 def _convertParticleAge(data):
     return data.convert("years")
@@ -624,7 +624,7 @@ add_field("ParticleAngularMomentumMSUNKMSMPC",
 
 def _ParticleRadius(field, data):
     center = data.get_field_parameter("center")
-    DW = data.pf["DomainRightEdge"] - data.pf["DomainLeftEdge"]
+    DW = data.pf.domain_right_edge - data.pf.domain_left_edge
     radius = na.zeros(data["particle_position_x"].shape, dtype='float64')
     for i, ax in enumerate('xyz'):
         r = na.abs(data["particle_position_%s" % ax] - center[i])
@@ -633,7 +633,7 @@ def _ParticleRadius(field, data):
     return radius
 def _Radius(field, data):
     center = data.get_field_parameter("center")
-    DW = data.pf["DomainRightEdge"] - data.pf["DomainLeftEdge"]
+    DW = data.pf.domain_right_edge - data.pf.domain_left_edge
     radius = na.zeros(data["x"].shape, dtype='float64')
     for i, ax in enumerate('xyz'):
         r = na.abs(data[ax] - center[i])

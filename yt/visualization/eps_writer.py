@@ -30,7 +30,7 @@ import pyx
 
 from .plot_types import \
     VMPlot, \
-    ProfilePlot, \
+    ProfilePlot
 
 class DualEPS(object):
     def __init__(self, figsize=(12,12)):

@@ -39,7 +39,7 @@ class CurrentTimeYears(AnalysisTask):
     _params = []
 
     def eval(self, pf):
-        return pf["InitialTime"] * pf["years"]
+        return pf.current_time * pf["years"]
 
 class SliceDataset(AnalysisTask):
     _params = ['field', 'axis']

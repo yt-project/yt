@@ -1250,8 +1250,8 @@ class AMRQuadTreeProjBase(AMR2DData):
             self._okay_to_serialize = True
 
     def _get_tree(self, nvals):
-        xd = self.pf["TopGridDimensions"][x_dict[self.axis]]
-        yd = self.pf["TopGridDimensions"][y_dict[self.axis]]
+        xd = self.pf.domain_dimensions[x_dict[self.axis]]
+        yd = self.pf.domain_dimensions[y_dict[self.axis]]
         return QuadTree(na.array([xd,yd]), nvals)
 
     def _get_dls(self, grid, fields):
@@ -1315,8 +1315,8 @@ class AMRQuadTreeProjBase(AMR2DData):
         # We now convert to half-widths and center-points
         data = {}
         data['pdx'] = dxs
-        ox = self.pf["DomainLeftEdge"][x_dict[self.axis]]
-        oy = self.pf["DomainLeftEdge"][y_dict[self.axis]]
+        ox = self.pf.domain_left_edge[x_dict[self.axis]]
+        oy = self.pf.domain_left_edge[y_dict[self.axis]]
         data['px'] = (coord_data[0,:]+0.5) * data['pdx'] + ox
         data['py'] = (coord_data[1,:]+0.5) * data['pdx'] + oy
         data['weight_field'] = weight_data
@@ -1648,8 +1648,8 @@ class AMRProjBase(AMR2DData):
         # We now convert to half-widths and center-points
         data = {}
         data['pdx'] = dxs
-        ox = self.pf["DomainLeftEdge"][x_dict[self.axis]]
-        oy = self.pf["DomainLeftEdge"][y_dict[self.axis]]
+        ox = self.pf.domain_left_edge[x_dict[self.axis]]
+        oy = self.pf.domain_left_edge[y_dict[self.axis]]
         data['px'] = (coord_data[0,:]+0.5) * data['pdx'] + ox
         data['py'] = (coord_data[1,:]+0.5) * data['pdx'] + oy
         data['weight_field'] = coord_data[3,:].copy()
@@ -1752,16 +1752,16 @@ class AMRFixedResProjectionBase(AMR2DData):
         self.dims = na.array([dims]*2)
         self.ActiveDimensions = na.array([dims]*3, dtype='int32')
         self.right_edge = self.left_edge + self.ActiveDimensions*self.dds
-        self.global_startindex = na.rint((self.left_edge - self.pf["DomainLeftEdge"])
+        self.global_startindex = na.rint((self.left_edge - self.pf.domain_left_edge)
                                          /self.dds).astype('int64')
         self._dls = {}
-        self.domain_width = na.rint((self.pf["DomainRightEdge"] -
-                    self.pf["DomainLeftEdge"])/self.dds).astype('int64')
+        self.domain_width = na.rint((self.pf.domain_right_edge -
+                    self.pf.domain_left_edge)/self.dds).astype('int64')
 
     def _get_list_of_grids(self):
         if self._grids is not None: return
-        if na.any(self.left_edge < self.pf["DomainLeftEdge"]) or \
-           na.any(self.right_edge > self.pf["DomainRightEdge"]):
+        if na.any(self.left_edge < self.pf.domain_left_edge) or \
+           na.any(self.right_edge > self.pf.domain_right_edge):
             grids,ind = self.pf.hierarchy.get_periodic_box_grids(
                             self.left_edge, self.right_edge)
             ind = slice(None)
@@ -1823,7 +1823,7 @@ class AMRFixedResProjectionBase(AMR2DData):
     def _get_data_from_grid(self, grid, fields, dls):
         g_fields = [grid[field] for field in fields]
         c_fields = [self[field] for field in fields]
-        ref_ratio = self.pf["RefineBy"]**(self.level - grid.Level)
+        ref_ratio = self.pf.refine_by**(self.level - grid.Level)
         FillBuffer(ref_ratio,
             grid.get_global_startindex(), self.global_startindex,
             c_fields, g_fields, 
@@ -2425,8 +2425,8 @@ class AMRPeriodicRegionBase(AMR3DData):
         self.right_edge = na.array(right_edge)
         self._refresh_data()
         self.offsets = (na.mgrid[-1:1:3j,-1:1:3j,-1:1:3j] * \
-                        (self.pf["DomainRightEdge"] -
-                         self.pf["DomainLeftEdge"])[:,None,None,None])\
+                        (self.pf.domain_right_edge -
+                         self.pf.domain_left_edge)[:,None,None,None])\
                        .transpose().reshape(27,3) # cached and in order
 
     def _get_list_of_grids(self):
@@ -2464,7 +2464,7 @@ class AMRPeriodicRegionBase(AMR3DData):
         """
         Return the volume of the region in units *unit*.
         """
-        period = self.pf["DomainRightEdge"] - self.pf["DomainLeftEdge"]
+        period = self.pf.domain_right_edge - self.pf.domain_left_edge
         diff = na.array(self.right_edge) - na.array(self.left_edge)
         # Correct for wrap-arounds.
         tofix = (diff < 0)
@@ -2531,7 +2531,7 @@ class AMRSphereBase(AMR3DData):
             raise YTSphereTooSmall(pf, radius, self.hierarchy.get_smallest_dx())
         self.set_field_parameter('radius',radius)
         self.radius = radius
-        self.DW = self.pf["DomainRightEdge"] - self.pf["DomainLeftEdge"]
+        self.DW = self.pf.domain_right_edge - self.pf.domain_left_edge
         self._refresh_data()
 
     def _get_list_of_grids(self, field = None):
@@ -2602,8 +2602,8 @@ class AMRFloatCoveringGridBase(AMR3DData):
 
     def _get_list_of_grids(self):
         if self._grids is not None: return
-        if na.any(self.left_edge < self.pf["DomainLeftEdge"]) or \
-           na.any(self.right_edge > self.pf["DomainRightEdge"]):
+        if na.any(self.left_edge < self.pf.domain_left_edge) or \
+           na.any(self.right_edge > self.pf.domain_right_edge):
             grids,ind = self.pf.hierarchy.get_periodic_box_grids(
                             self.left_edge, self.right_edge)
             ind = slice(None)
@@ -2691,7 +2691,7 @@ class AMRFloatCoveringGridBase(AMR3DData):
         DataCubeRefine(
             grid.LeftEdge, g_dx, g_fields, grid.child_mask,
             self.left_edge, self.right_edge, c_dx, c_fields,
-            ll, self.pf["DomainLeftEdge"], self.pf["DomainRightEdge"])
+            ll, self.pf.domain_left_edge, self.pf.domain_right_edge)
 
     def _flush_data_to_grid(self, grid, fields):
         ll = int(grid.Level == self.level)
@@ -2706,7 +2706,7 @@ class AMRFloatCoveringGridBase(AMR3DData):
         DataCubeReplace(
             grid.LeftEdge, g_dx, g_fields, grid.child_mask,
             self.left_edge, self.right_edge, c_dx, c_fields,
-            ll, self.pf["DomainLeftEdge"], self.pf["DomainRightEdge"])
+            ll, self.pf.domain_left_edge, self.pf.domain_right_edge)
 
     @property
     def LeftEdge(self):
@@ -2728,8 +2728,8 @@ class AMRSmoothedCoveringGridBase(AMRFloatCoveringGridBase):
         AMRFloatCoveringGridBase.__init__(self, *args, **kwargs)
 
     def _get_list_of_grids(self):
-        if na.any(self.left_edge - self.dds < self.pf["DomainLeftEdge"]) or \
-           na.any(self.right_edge + self.dds > self.pf["DomainRightEdge"]):
+        if na.any(self.left_edge - self.dds < self.pf.domain_left_edge) or \
+           na.any(self.right_edge + self.dds > self.pf.domain_right_edge):
             grids,ind = self.pf.hierarchy.get_periodic_box_grids(
                             self.left_edge - self.dds,
                             self.right_edge + self.dds)
@@ -2745,7 +2745,7 @@ class AMRSmoothedCoveringGridBase(AMRFloatCoveringGridBase):
     def _get_level_array(self, level, fields):
         fields = ensure_list(fields)
         # We assume refinement by a factor of two
-        rf = self.pf["RefineBy"]**(self.level - level)
+        rf = self.pf.refine_by**(self.level - level)
         dims = na.maximum(1,self.ActiveDimensions/rf) + 2
         dx = (self.right_edge-self.left_edge)/(dims-2)
         x,y,z = (na.mgrid[0:dims[0],0:dims[1],0:dims[2]].astype('float64')-0.5)\
@@ -2809,7 +2809,7 @@ class AMRSmoothedCoveringGridBase(AMRFloatCoveringGridBase):
             grid.LeftEdge, g_dx, g_fields, grid.child_mask,
             self.left_edge-c_dx, self.right_edge+c_dx,
             c_dx, c_fields,
-            1, self.pf["DomainLeftEdge"], self.pf["DomainRightEdge"])
+            1, self.pf.domain_left_edge, self.pf.domain_right_edge)
 
     def flush_data(self, *args, **kwargs):
         raise KeyError("Can't do this")
@@ -2828,15 +2828,15 @@ class AMRCoveringGridBase(AMR3DData):
         self.right_edge = self.left_edge + self.ActiveDimensions*self.dds
         self._num_ghost_zones = num_ghost_zones
         self._use_pbar = use_pbar
-        self.global_startindex = na.rint((self.left_edge-self.pf["DomainLeftEdge"])/self.dds).astype('int64')
-        self.domain_width = na.rint((self.pf["DomainRightEdge"] -
-                    self.pf["DomainLeftEdge"])/self.dds).astype('int64')
+        self.global_startindex = na.rint((self.left_edge-self.pf.domain_left_edge)/self.dds).astype('int64')
+        self.domain_width = na.rint((self.pf.domain_right_edge -
+                    self.pf.domain_left_edge)/self.dds).astype('int64')
         self._refresh_data()
 
     def _get_list_of_grids(self, buffer = 0.0):
         if self._grids is not None: return
-        if na.any(self.left_edge - buffer < self.pf["DomainLeftEdge"]) or \
-           na.any(self.right_edge + buffer > self.pf["DomainRightEdge"]):
+        if na.any(self.left_edge - buffer < self.pf.domain_left_edge) or \
+           na.any(self.right_edge + buffer > self.pf.domain_right_edge):
             grids,ind = self.pf.hierarchy.get_periodic_box_grids(
                             self.left_edge - buffer,
                             self.right_edge + buffer)
@@ -2917,7 +2917,7 @@ class AMRCoveringGridBase(AMR3DData):
     @restore_grid_state
     def _get_data_from_grid(self, grid, fields):
         ll = int(grid.Level == self.level)
-        ref_ratio = self.pf["RefineBy"]**(self.level - grid.Level)
+        ref_ratio = self.pf.refine_by**(self.level - grid.Level)
         g_fields = [grid[field] for field in fields]
         c_fields = [self[field] for field in fields]
         count = FillRegion(ref_ratio,
@@ -2929,7 +2929,7 @@ class AMRCoveringGridBase(AMR3DData):
 
     def _flush_data_to_grid(self, grid, fields):
         ll = int(grid.Level == self.level)
-        ref_ratio = self.pf["RefineBy"]**(self.level - grid.Level)
+        ref_ratio = self.pf.refine_by**(self.level - grid.Level)
         g_fields = []
         for field in fields:
             if not grid.has_key(field): grid[field] = \
@@ -3003,23 +3003,23 @@ class AMRIntSmoothedCoveringGridBase(AMRCoveringGridBase):
     def _update_level_state(self, level, field = None):
         dx = self.pf.h.select_grids(level)[0].dds
         for ax, v in zip('xyz', dx): self['cd%s'%ax] = v
-        LL = self.left_edge - self.pf["DomainLeftEdge"]
+        LL = self.left_edge - self.pf.domain_left_edge
         self._old_global_startindex = self.global_startindex
         self.global_startindex = na.rint(LL / dx).astype('int64') - 1
-        self.domain_width = na.rint((self.pf["DomainRightEdge"] -
-                    self.pf["DomainLeftEdge"])/dx).astype('int64')
+        self.domain_width = na.rint((self.pf.domain_right_edge -
+                    self.pf.domain_left_edge)/dx).astype('int64')
         if level == 0 and self.level > 0:
             # We use one grid cell at LEAST, plus one buffer on all sides
             idims = na.rint((self.right_edge-self.left_edge)/dx).astype('int64') + 2
             self[field] = na.zeros(idims,dtype='float64')-999
         elif level == 0 and self.level == 0:
-            DLE = self.pf["DomainLeftEdge"]
+            DLE = self.pf.domain_left_edge
             self.global_startindex = na.array(na.floor(LL/ dx), dtype='int64')
             idims = na.rint((self.right_edge-self.left_edge)/dx).astype('int64')
             self[field] = na.zeros(idims,dtype='float64')-999
 
     def _refine(self, dlevel, field):
-        rf = float(self.pf["RefineBy"]**dlevel)
+        rf = float(self.pf.refine_by**dlevel)
 
         old_dims = na.array(self[field].shape) - 1
         old_left = (self._old_global_startindex + 0.5) * rf 

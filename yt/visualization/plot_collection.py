@@ -102,7 +102,7 @@ class PlotCollection(object):
         if center == None:
             v,self.c = pf.h.find_max("Density") # @todo: ensure no caching
         elif center == "center" or center == "c":
-            self.c = (pf["DomainRightEdge"] + pf["DomainLeftEdge"])/2.0
+            self.c = (pf.domain_right_edge + pf.domain_left_edge)/2.0
         else:
             self.c = na.array(center, dtype='float64')
         mylog.info("Created plot collection with default plot-center = %s",
@@ -450,8 +450,8 @@ class PlotCollection(object):
         >>> pc = PlotCollection(pf, [0.5, 0.5, 0.5])
         >>> p = pc.add_particles(0, 1.0)
         """
-        LE = self.pf["DomainLeftEdge"].copy()
-        RE = self.pf["DomainRightEdge"].copy()
+        LE = self.pf.domain_left_edge.copy()
+        RE = self.pf.domain_right_edge.copy()
         LE[axis] = self.c[axis] - width/2.0
         RE[axis] = self.c[axis] + width/2.0
         if data_source is None: data_source = self.pf.h.region(self.c, LE, RE)

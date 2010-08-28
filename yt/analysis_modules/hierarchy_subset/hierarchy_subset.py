@@ -133,7 +133,7 @@ class OldExtractedHierarchy(object):
         # I prefer dict access, but tables doesn't.
         # But h5py does!
         time_node = afile.create_group("/time-%s" % n)
-        time_node.attrs['time'] = self.pf["InitialTime"]
+        time_node.attrs['time'] = self.pf.current_time
         time_node.attrs['numLevels'] = self.pf.h.max_level+1-self.min_level
         # Can take a while, so let's get a progressbar
         self._export_all_levels(afile, time_node, field)
@@ -234,8 +234,8 @@ class ExtractedHierarchy(AMRHierarchy):
         self.pf.override["DomainLeftEdge"] = self.min_left_edge
         for u,v in self.base_pf.units.items():
             self.pf.override[u] = v / self.mult_factor
-        self.pf.override['unitary'] = 1.0 / (self.pf["DomainRightEdge"] -
-                                             self.pf["DomainLeftEdge"]).max()
+        self.pf.override['unitary'] = 1.0 / (self.pf.domain_right_edge -
+                                             self.pf.domain_left_edge).max()
 
     def _count_grids(self):
         self.num_grids = 1 + sum( ( # 1 is the base grid
