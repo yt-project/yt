@@ -141,6 +141,9 @@ class EnzoSimulation(object):
         elif self.enzoParameters.has_key('dtDataDump') and self.get_time_outputs:
             time_outputs = self._calculate_time_dumps()
 
+        else:
+            time_outputs =[]
+
         # Calculate times for redshift dumps.
         if self.enzoParameters['ComovingCoordinates'] and self.get_redshift_outputs:
             self._calculate_redshift_dump_times()
