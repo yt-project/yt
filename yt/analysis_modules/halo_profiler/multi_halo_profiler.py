@@ -529,10 +529,10 @@ class HaloProfiler(ParallelAnalysisInterface):
         if 'ActualOverdensity' in profile.keys():
             return
 
-        rho_crit_now = 1.8788e-29 * self.pf['CosmologyHubbleConstantNow']**2.0 * \
-            self.pf['CosmologyOmegaMatterNow'] # g cm^-3
+        rho_crit_now = 1.8788e-29 * self.pf.hubble_constant**2.0 * \
+            self.pf.omega_matter # g cm^-3
         Msun2g = 1.989e33
-        rho_crit = rho_crit_now * ((1.0 + self.pf['CosmologyCurrentRedshift'])**3.0)
+        rho_crit = rho_crit_now * ((1.0 + self.pf.current_redshift)**3.0)
 
         profile['ActualOverdensity'] = (Msun2g * profile['TotalMassMsun']) / \
             profile['CellVolume'] / rho_crit

@@ -109,7 +109,7 @@ class TwoPointFunctions(ParallelAnalysisInterface):
         self.comm_size = min(int(comm_size), self.total_values)
         self.pf = pf
         self.nlevels = pf.h.max_level
-        self.period = self.pf['DomainRightEdge'] - self.pf['DomainLeftEdge']
+        self.period = self.pf.domain_right_edge - self.pf.domain_left_edge
         self.min_edge = min(self.period)
         self.hierarchy = pf.h
         self.center = (pf.domain_right_edge + pf.domain_left_edge)/2.0
@@ -141,8 +141,8 @@ class TwoPointFunctions(ParallelAnalysisInterface):
             raise SyntaxError("length_type is either \"lin\" or \"log\".")
         # Subdivide the volume.
         if not left_edge or not right_edge:
-            self.left_edge = self.pf['DomainLeftEdge']
-            self.right_edge = self.pf['DomainRightEdge']
+            self.left_edge = self.pf.domain_left_edge
+            self.right_edge = self.pf.domain_right_edge
             padded, self.LE, self.RE, self.ds = self._partition_hierarchy_3d(padding=0.,
                 rank_ratio = self.vol_ratio)
         else:

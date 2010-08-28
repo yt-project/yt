@@ -279,7 +279,7 @@ class GridObject3DScene(GenericGLUTScene):
     _title = "Grids"
 
     def _get_grid_vertices(self, offset):
-        DLE, DRE = self.pf['DomainLeftEdge'], pf['DomainRightEdge']
+        DLE, DRE = self.pf.domain_left_edge, pf.domain_right_edge
         DW = DRE - DLE
         k = 0
         for g in self.pf.h.grids:

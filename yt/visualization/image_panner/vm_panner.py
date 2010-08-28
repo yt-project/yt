@@ -389,10 +389,10 @@ class ProxySource(object):
 
     @property
     def pf(self):
-        self.mec.execute("_tmp_%s = %s.pf['DomainLeftEdge']" % (
+        self.mec.execute("_tmp_%s = %s.pf.domain_left_edge" % (
             self.idnum, self.source_varname))
         DLE = self.mec.pull("_tmp_%s" % self.idnum)[0]
-        self.mec.execute("_tmp_%s = %s.pf['DomainRightEdge']" % (
+        self.mec.execute("_tmp_%s = %s.pf.domain_right_edge" % (
             self.idnum, self.source_varname))
         DRE = self.mec.pull("_tmp_%s" % self.idnum)[0]
         return dict(DomainLeftEdge = DLE, DomainRightEdge = DRE)

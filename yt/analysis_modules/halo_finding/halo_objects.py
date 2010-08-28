@@ -356,9 +356,9 @@ class Halo(object):
             return None
         self.bin_count = bins
         # Cosmology
-        h = self.data.pf['CosmologyHubbleConstantNow']
-        Om_matter = self.data.pf['CosmologyOmegaMatterNow']
-        z = self.data.pf['CosmologyCurrentRedshift']
+        h = self.data.pf.hubble_constant
+        Om_matter = self.data.pf.omega_matter
+        z = self.data.pf.current_redshift
         rho_crit_now = 1.8788e-29 * h**2.0 * Om_matter # g cm^-3
         Msun2g = 1.989e33
         rho_crit = rho_crit_now * ((1.0 + z)**3.0)
@@ -702,9 +702,9 @@ class parallelHOPHalo(Halo,ParallelAnalysisInterface):
         self.mass_bins = na.zeros(self.bin_count+1, dtype='float64')
         cen = self.center_of_mass()
         # Cosmology
-        h = self.data.pf['CosmologyHubbleConstantNow']
-        Om_matter = self.data.pf['CosmologyOmegaMatterNow']
-        z = self.data.pf['CosmologyCurrentRedshift']
+        h = self.data.pf.hubble_constant
+        Om_matter = self.data.pf.omega_matter
+        z = self.data.pf.current_redshift
         rho_crit_now = 1.8788e-29 * h**2.0 * Om_matter # g cm^-3
         Msun2g = 1.989e33
         rho_crit = rho_crit_now * ((1.0 + z)**3.0)
@@ -881,7 +881,7 @@ class HaloList(object):
         --------
         >>> neighbors = halos.nearest_neighbors_3D(0)
         """
-        period = self.pf['DomainRightEdge'] - self.pf['DomainLeftEdge']
+        period = self.pf.domain_right_edge - self.pf.domain_left_edge
         # Initialize the dataset of points from all the haloes
         dataset = []
         for group in self:
@@ -932,7 +932,7 @@ class HaloList(object):
         # Set up a vector to multiply other vectors by to project along proj_dim
         vec = na.array([1.,1.,1.])
         vec[proj_dim] = 0.
-        period = self.pf['DomainRightEdge'] - self.pf['DomainLeftEdge']
+        period = self.pf.domain_right_edge - self.pf.domain_left_edge
         period = period * vec
         # Initialize the dataset of points from all the haloes
         dataset = []
