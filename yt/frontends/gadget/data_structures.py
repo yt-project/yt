@@ -262,14 +262,14 @@ class GadgetStaticOutput(StaticOutput):
         self.field_info = self._fieldinfo_class()
         x = self._get_param('maxlevel')**2
         self.max_grid_size = (x,x,x)
-        self.parameters["InitialTime"] = 0.0
+        self.current_time = 0.0
         # These should be explicitly obtained from the file, but for now that
         # will wait until a reorganization of the source tree and better
         # generalization.
-        self.parameters["TopGridRank"] = 3
-        self.parameters["RefineBy"] = 2
-        self.parameters["DomainLeftEdge"] = self.leftedge
-        self.parameters["DomainRightEdge"] = self.rightedge
+        self.dimensionality = 3
+        self.refine_by = 2
+        self.domain_left_edge = self.leftedge
+        self.domain_right_edge = self.rightedge
         
         
     def _parse_parameter_file(self):

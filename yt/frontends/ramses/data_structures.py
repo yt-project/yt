@@ -124,7 +124,7 @@ class RAMSESHierarchy(AMRHierarchy):
         ogrid_file_locations = na.zeros((num_ogrids,6), dtype='int64')
         ochild_masks = na.zeros((num_ogrids, 8), dtype='int32')
         self.tree_proxy.fill_hierarchy_arrays(
-            self.pf["TopGridDimensions"],
+            self.pf.domain_dimensions,
             ogrid_left_edge, ogrid_right_edge,
             ogrid_levels, ogrid_file_locations, ochild_masks)
         # Now we can rescale
@@ -140,7 +140,7 @@ class RAMSESHierarchy(AMRHierarchy):
             if level_info[level] == 0: continue
             ggi = (ogrid_levels == level).ravel()
             mylog.info("Re-gridding level %s: %s octree grids", level, ggi.sum())
-            nd = self.pf["TopGridDimensions"] * 2**level
+            nd = self.pf.domain_dimensions * 2**level
             dims = na.ones((ggi.sum(), 3), dtype='int64') * 2
             fl = ogrid_file_locations[ggi,:]
             # Now our initial protosubgrid
@@ -325,12 +325,12 @@ class RAMSESStaticOutput(StaticOutput):
 
         self.field_info = self._fieldinfo_class()
         # hardcoded for now
-        self.parameters["InitialTime"] = 0.0
+        self.current_time = 0.0
         # These should be explicitly obtained from the file, but for now that
         # will wait until a reorganization of the source tree and better
         # generalization.
-        self.parameters["TopGridRank"] = 3
-        self.parameters["RefineBy"] = 2
+        self.dimensionality = 3
+        self.refine_by = 2
         self.parameters["HydroMethod"] = 'ramses'
         self.parameters["Time"] = 1. # default unit is 1...
 
@@ -366,15 +366,15 @@ class RAMSESStaticOutput(StaticOutput):
             self.units[unit] = mpc_conversion[unit] / mpc_conversion["cm"]
 
     def _parse_parameter_file(self):
-        self.parameters["CurrentTimeIdentifier"] = \
+        self.unique_identifier = \
             int(os.stat(self.parameter_filename)[ST_CTIME])
         self.ramses_tree = _ramses_reader.RAMSES_tree_proxy(self.parameter_filename)
         rheader = self.ramses_tree.get_file_info()
         self.parameters.update(rheader)
-        self.parameters["DomainRightEdge"] = na.ones(3, dtype='float64') \
+        self.domain_right_edge = na.ones(3, dtype='float64') \
                                            * rheader['boxlen']
-        self.parameters["DomainLeftEdge"] = na.zeros(3, dtype='float64')
-        self.parameters["TopGridDimensions"] = na.ones(3, dtype='int32') * 2
+        self.domain_left_edge = na.zeros(3, dtype='float64')
+        self.domain_dimensions = na.ones(3, dtype='int32') * 2
 
     @classmethod
     def _is_valid(self, *args, **kwargs):

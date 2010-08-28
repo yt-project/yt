@@ -1250,8 +1250,8 @@ class AMRQuadTreeProjBase(AMR2DData):
             self._okay_to_serialize = True
 
     def _get_tree(self, nvals):
-        xd = self.pf["TopGridDimensions"][x_dict[self.axis]]
-        yd = self.pf["TopGridDimensions"][y_dict[self.axis]]
+        xd = self.pf.domain_dimensions[x_dict[self.axis]]
+        yd = self.pf.domain_dimensions[y_dict[self.axis]]
         return QuadTree(na.array([xd,yd]), nvals)
 
     def _get_dls(self, grid, fields):

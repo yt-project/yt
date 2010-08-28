@@ -158,12 +158,12 @@ class ChomboStaticOutput(StaticOutput):
 
         self.field_info = self._fieldinfo_class()
         # hardcoded for now
-        self.parameters["InitialTime"] = 0.0
+        self.current_time = 0.0
         # These should be explicitly obtained from the file, but for now that
         # will wait until a reorganization of the source tree and better
         # generalization.
-        self.parameters["TopGridRank"] = 3
-        self.parameters["RefineBy"] = 2
+        self.dimensionality = 3
+        self.refine_by = 2
         
     def _set_units(self):
         """
@@ -195,10 +195,10 @@ class ChomboStaticOutput(StaticOutput):
 
 
     def _parse_parameter_file(self):
-        self.parameters["CurrentTimeIdentifier"] = \
+        self.unique_identifier = \
             int(os.stat(self.parameter_filename)[ST_CTIME])
-        self.parameters["DomainLeftEdge"] = na.array([0.,0.,0.])
-        self.parameters["DomainRightEdge"] = self.__calc_right_edge()
+        self.domain_left_edge = na.array([0.,0.,0.])
+        self.domain_right_edge = self.__calc_right_edge()
         
 
     def __calc_right_edge(self):

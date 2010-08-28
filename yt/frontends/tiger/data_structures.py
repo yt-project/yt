@@ -176,8 +176,8 @@ class TigerStaticOutput(StaticOutput):
         self.parameters.update(dict(zip(h_key, header_raw)))
 
         if "InitialTime" not in self.parameters:
-            self.parameters["InitialTime"] = 0.0
-        self.parameters["CurrentTimeIdentifier"] = \
+            self.current_time = 0.0
+        self.unique_identifier = \
             int(os.stat(self.parameter_filename)[ST_CTIME])
         self.parameters['TopGridDimensions'] = root_size
         self.parameters['TopGridRank'] = 3
@@ -185,8 +185,8 @@ class TigerStaticOutput(StaticOutput):
         self.parameters['RefineBy'] = 2
 
     def _set_units(self):
-        self.parameters["DomainLeftEdge"] = na.zeros(3, dtype='float64')
-        self.parameters["DomainRightEdge"] = na.ones(3, dtype='float64')
+        self.domain_left_edge = na.zeros(3, dtype='float64')
+        self.domain_right_edge = na.ones(3, dtype='float64')
         self.units = {}
         self.time_units = {}
         self.time_units['1'] = 1

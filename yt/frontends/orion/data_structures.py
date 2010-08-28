@@ -501,7 +501,7 @@ class OrionStaticOutput(StaticOutput):
         if os.path.isfile(self.fparameter_filename):
             self._parse_fparameter_file()
         # Let's read the file
-        self.parameters["CurrentTimeIdentifier"] = \
+        self.unique_identifier = \
             int(os.stat(self.parameter_filename)[ST_CTIME])
         lines = open(self.parameter_filename).readlines()
         for lineI, line in enumerate(lines):
@@ -526,10 +526,10 @@ class OrionStaticOutput(StaticOutput):
                         self.parameters[paramName] = t
                 
             elif param.startswith("geometry.prob_hi"):
-                self.parameters["DomainRightEdge"] = \
+                self.domain_right_edge = \
                     na.array([float(i) for i in vals.split()])
             elif param.startswith("geometry.prob_lo"):
-                self.parameters["DomainLeftEdge"] = \
+                self.domain_left_edge = \
                     na.array([float(i) for i in vals.split()])
 
     def _parse_fparameter_file(self):
@@ -563,7 +563,7 @@ class OrionStaticOutput(StaticOutput):
         lines = header_file.readlines()
         header_file.close()
         n_fields = int(lines[1])
-        self.parameters["InitialTime"] = float(lines[3+n_fields])
+        self.current_time = float(lines[3+n_fields])
 
                 
     def _set_units(self):
