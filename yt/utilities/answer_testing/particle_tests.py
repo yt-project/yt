@@ -48,8 +48,8 @@ class TestParticleExtrema(YTStaticOutputTest):
         self.compare_array_delta(min, old_min, 1e-7)
         self.compare_array_delta(max, old_max, 1e-7)
         # Also, the min/max shouldn't be outside the boundaries.
-        if (min < self.pf['DomainLeftEdge']).any(): return False
-        if (max > self.pf['DomainRightEdge']).any(): return False
+        if (min < self.pf.domain_left_edge).any(): return False
+        if (max > self.pf.domain_right_edge).any(): return False
         return True
     
     def plot(self):

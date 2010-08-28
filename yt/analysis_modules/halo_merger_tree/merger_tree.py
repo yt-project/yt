@@ -235,14 +235,14 @@ class MergerTree(DatabaseFunctions, ParallelAnalysisInterface):
                 del halos
             # Now add halo data to the db if it isn't already there by
             # checking the first halo.
-            currt = pf['CurrentTimeIdentifier']
+            currt = pf.unique_identifier
             line = "SELECT GlobalHaloID from Halos where SnapHaloID=0\
             and SnapCurrentTimeIdentifier=%d;" % currt
             self.cursor.execute(line)
             result = self.cursor.fetchone()
             if result != None:
                 continue
-            red = pf['CosmologyCurrentRedshift']
+            red = pf.current_redshift
             # Read the halos off the disk using the Halo Profiler tools.
             hp = HP.HaloProfiler(file, halo_list_file='MergerHalos.out',
             halo_list_format={'id':0, 'mass':1, 'numpart':2, 'center':[7, 8, 9], 'velocity':[10, 11, 12], 'r_max':13})
@@ -338,7 +338,7 @@ class MergerTree(DatabaseFunctions, ParallelAnalysisInterface):
         
         # First, read in the locations of the child halos.
         child_pf = load(childfile)
-        child_t = child_pf['CurrentTimeIdentifier']
+        child_t = child_pf.unique_identifier
         line = "SELECT SnapHaloID, CenMassX, CenMassY, CenMassZ FROM \
         Halos WHERE SnapCurrentTimeIdentifier = %d" % child_t
         self.cursor.execute(line)
@@ -363,7 +363,7 @@ class MergerTree(DatabaseFunctions, ParallelAnalysisInterface):
 
         # Find the parent points from the database.
         parent_pf = load(parentfile)
-        parent_t = parent_pf['CurrentTimeIdentifier']
+        parent_t = parent_pf.unique_identifier
         line = "SELECT SnapHaloID, CenMassX, CenMassY, CenMassZ FROM \
         Halos WHERE SnapCurrentTimeIdentifier = %d" % parent_t
         self.cursor.execute(line)
@@ -406,7 +406,7 @@ class MergerTree(DatabaseFunctions, ParallelAnalysisInterface):
         if not hasattr(self, 'names'):
             self.names = defaultdict(set)
         file_pf = load(filename)
-        currt = file_pf['CurrentTimeIdentifier']
+        currt = file_pf.unique_identifier
         dir = os.path.dirname(filename)
         h5txt = os.path.join(dir, 'MergerHalos.txt')
         lines = file(h5txt)
@@ -425,11 +425,11 @@ class MergerTree(DatabaseFunctions, ParallelAnalysisInterface):
         
         parent_pf = load(parentfile)
         child_pf = load(childfile)
-        parent_currt = parent_pf['CurrentTimeIdentifier']
-        child_currt = child_pf['CurrentTimeIdentifier']
+        parent_currt = parent_pf.unique_identifier
+        child_currt = child_pf.unique_identifier
         
         mylog.info("Computing fractional contribututions of particles to z=%1.5f halos." % \
-            child_pf['CosmologyCurrentRedshift'])
+            child_pf.current_redshift)
         
         if last == None:
             # First we're going to read in the particles, haloIDs and masses from

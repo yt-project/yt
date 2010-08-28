@@ -486,7 +486,7 @@ class YTCommands(cmdln.Cmdln):
             else: pc.add_slice(opts.field, ax, center=center)
             if opts.grids: pc.plots[-1].modify["grids"]()
             if opts.time: 
-                time = pf['InitialTime']*pf['Time']*pf['years']
+                time = pf.current_time*pf['Time']*pf['years']
                 pc.plots[-1].modify["text"]((0.2,0.8), 't = %5.2e yr'%time)
         pc.set_width(opts.width, opts.unit)
         pc.set_cmap(opts.cmap)

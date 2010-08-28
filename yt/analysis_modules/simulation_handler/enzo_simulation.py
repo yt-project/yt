@@ -277,9 +277,9 @@ class EnzoSimulation(object):
             if os.path.exists(filename):
                 pf = load(filename)
                 if pf is not None:
-                    time_outputs.append({'filename': filename, 'time': pf['InitialTime']})
+                    time_outputs.append({'filename': filename, 'time': pf.current_time})
                     if self.enzoParameters['ComovingCoordinates']:
-                        time_outputs[-1]['redshift'] = pf['CosmologyCurrentRedshift']
+                        time_outputs[-1]['redshift'] = pf.current_redshift
                 del pf
         mylog.info("Located %d time dumps." % len(time_outputs))
         return time_outputs
