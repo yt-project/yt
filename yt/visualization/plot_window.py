@@ -173,6 +173,10 @@ class Yt2DPlot(YtPlot):
         self.zmin = zmin
         self.zmax = zmax
 
+    @invalidate_plot
+    def set_cmap(self,cmap):
+        self.cmap = cmap
+
 class YtWindowPlot(Yt2DPlot):
     def __init__(self, data, size=(10,8)):
         YtPlot.__init__(self, data, size)
