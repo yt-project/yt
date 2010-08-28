@@ -24,6 +24,7 @@ License:
 """
 
 from yt.analysis_modules.halo_profiler.api import HaloProfiler
+from yt.convenience import load
 from yt.utilities.logger import ytLogger as mylog
 from yt.config import ytcfg
 import copy
@@ -136,7 +137,7 @@ def _make_slice_halo_map(slice, halo_list):
     "Make list of halos for one slice in light cone solution."
 
     # Get units to convert virial radii back to physical units.
-    dataset_object = lagos.EnzoStaticOutput(slice['filename'])
+    dataset_object = load(slice['filename'])
     Mpc_units = dataset_object.units['mpc']
     del dataset_object
 
@@ -171,7 +172,7 @@ def _make_slice_halo_list(slice, halo_list):
     halo_mass = []
 
     # Get units to convert virial radii to code units.
-    dataset_object = lagos.EnzoStaticOutput(slice['filename'])
+    dataset_object = load(slice['filename'])
     Mpc_units = dataset_object.units['mpc']
     del dataset_object
 

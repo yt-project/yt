@@ -38,6 +38,8 @@ from yt.visualization.plot_collection import \
     PlotCollection
 
 from .common_n_volume import commonNVolume
+from .halo_mask import light_cone_halo_map, \
+    light_cone_halo_mask
 from .light_cone_projection import LightConeProjection
 
 class LightCone(EnzoSimulation):
