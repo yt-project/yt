@@ -65,7 +65,7 @@ class VariableMeshPanner(object):
     @property
     def bounds(self):
         if not hasattr(self, 'pf'): self.pf = self.source.pf
-        DLE, DRE = self.pf["DomainLeftEdge"], self.pf["DomainRightEdge"]
+        DLE, DRE = self.pf.domain_left_edge, self.pf.domain_right_edge
         ax = self.source.axis
         xax, yax = x_dict[ax], y_dict[ax]
         xbounds = DLE[xax], DRE[xax]
@@ -389,10 +389,10 @@ class ProxySource(object):
 
     @property
     def pf(self):
-        self.mec.execute("_tmp_%s = %s.pf['DomainLeftEdge']" % (
+        self.mec.execute("_tmp_%s = %s.pf.domain_left_edge" % (
             self.idnum, self.source_varname))
         DLE = self.mec.pull("_tmp_%s" % self.idnum)[0]
-        self.mec.execute("_tmp_%s = %s.pf['DomainRightEdge']" % (
+        self.mec.execute("_tmp_%s = %s.pf.domain_right_edge" % (
             self.idnum, self.source_varname))
         DRE = self.mec.pull("_tmp_%s" % self.idnum)[0]
         return dict(DomainLeftEdge = DLE, DomainRightEdge = DRE)

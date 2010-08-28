@@ -35,6 +35,7 @@ from yt.utilities.definitions import \
     x_dict, \
     y_dict, \
     axis_names
+from .color_maps import raven_colormaps
 
 class CallbackRegistryHandler(object):
     def __init__(self, plot):
@@ -119,7 +120,7 @@ class RavenPlot(object):
         else:
             only_on_root(canvas.print_figure, fn)
         self["Type"] = self._type_name
-        self["GeneratedAt"] = self.data.pf["CurrentTimeIdentifier"]
+        self["GeneratedAt"] = self.data.pf.unique_identifier
         return fn
 
     def save_to_pdf(self, f):
@@ -260,8 +261,8 @@ class RavenPlot(object):
         if self.colorbar != None: self.colorbar.set_label(str(label))
 
     def setup_domain_edges(self, axis, periodic=False):
-        DLE = self.data.pf["DomainLeftEdge"]
-        DRE = self.data.pf["DomainRightEdge"]
+        DLE = self.data.pf.domain_left_edge
+        DRE = self.data.pf.domain_right_edge
         DD = float(periodic)*(DRE - DLE)
         if axis < 3:
             xax = x_dict[axis]

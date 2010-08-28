@@ -32,7 +32,7 @@ import os
 dt_Tolerance = 1e-3
 
 from yt.utilities.cosmology import \
-    Cosmology
+    Cosmology, \
     EnzoCosmology
 
 from yt.convenience import \
@@ -140,6 +140,9 @@ class EnzoSimulation(object):
         # Calculate time dumps based on dtDataDump
         elif self.enzoParameters.has_key('dtDataDump') and self.get_time_outputs:
             time_outputs = self._calculate_time_dumps()
+
+        else:
+            time_outputs =[]
 
         # Calculate times for redshift dumps.
         if self.enzoParameters['ComovingCoordinates'] and self.get_redshift_outputs:
@@ -274,9 +277,9 @@ class EnzoSimulation(object):
             if os.path.exists(filename):
                 pf = load(filename)
                 if pf is not None:
-                    time_outputs.append({'filename': filename, 'time': pf['InitialTime']})
+                    time_outputs.append({'filename': filename, 'time': pf.current_time})
                     if self.enzoParameters['ComovingCoordinates']:
-                        time_outputs[-1]['redshift'] = pf['CosmologyCurrentRedshift']
+                        time_outputs[-1]['redshift'] = pf.current_redshift
                 del pf
         mylog.info("Located %d time dumps." % len(time_outputs))
         return time_outputs

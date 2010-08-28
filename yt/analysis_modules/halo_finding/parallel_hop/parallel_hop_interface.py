@@ -28,14 +28,19 @@ import itertools, sys
 import numpy as na
 
 from yt.funcs import *
-from yt.performance_counters import yt_counters, time_function
+from yt.utilities.performance_counters import yt_counters, time_function
 try:
     from yt.utilities.kdtree import \
-        fKD, find_nn_nearest_neighbors
+        chainHOP_tags_dens, \
+        create_tree, fKD, find_nn_nearest_neighbors
 except ImportError:
     mylog.debug("The Fortran kD-Tree did not import correctly.")
 
-class RunParallelHOP(ParallelAnalysisInterface):
+from yt.utilities.parallel_tools.parallel_analysis_interface import \
+    parallel_blocking_call, \
+    ParallelAnalysisInterface
+
+class ParallelHOPHaloFinder(ParallelAnalysisInterface):
     def __init__(self,period, padding, num_neighbors, bounds,
             xpos, ypos, zpos, index, mass, threshold=160.0, rearrange=True,
             premerge=True):

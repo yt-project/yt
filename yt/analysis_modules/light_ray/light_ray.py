@@ -23,27 +23,39 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-from mpi4py import MPI
+try:
+    from mpi4py import MPI
+    parallel_light_ray = True
+    my_rank = MPI.COMM_WORLD.rank
+    my_size = MPI.COMM_WORLD.size
+except ImportError:
+    parallel_light_ray = False
+    my_rank = 0
+    my_size = 1
 
-import numpy as na
 import copy
 import h5py
+import numpy as na
 
-from yt.utilities.logger import lagosLogger as mylog
 from yt.funcs import *
-from yt.analysis_modules.enzo_simulation.api import EnzoSimulation
-from yt.analysis_modules.halo_profiler import HaloProfiler
 
-my_rank = MPI.COMM_WORLD.rank
-my_size = MPI.COMM_WORLD.size
+from yt.analysis_modules.simulation_handler.enzo_simulation import \
+    EnzoSimulation
+from yt.analysis_modules.halo_profiler.multi_halo_profiler import \
+    HaloProfiler
+from yt.convenience import load
+from yt.utilities.logger import lagosLogger as mylog
 
 class LightRay(EnzoSimulation):
-    def __init__(self, EnzoParameterFile, FinalRedshift, InitialRedshift, deltaz_min=0.0,
-                 use_minimum_datasets=True, minimum_coherent_box_fraction=0.0, **kwargs):
+    def __init__(self, EnzoParameterFile, FinalRedshift, InitialRedshift, 
+                 deltaz_min=0.0, use_minimum_datasets=True, 
+                 minimum_coherent_box_fraction=0.0, **kwargs):
 
-        EnzoSimulation.__init__(self, EnzoParameterFile, initial_redshift=InitialRedshift,
+        EnzoSimulation.__init__(self, EnzoParameterFile, 
+                                initial_redshift=InitialRedshift,
                                 final_redshift=FinalRedshift, links=True,
-                                enzo_parameters={'CosmologyComovingBoxSize':float}, **kwargs)
+                                enzo_parameters={'CosmologyComovingBoxSize':float}, 
+                                **kwargs)
 
         self.deltaz_min = deltaz_min
         self.use_minimum_datasets = use_minimum_datasets
@@ -59,8 +71,9 @@ class LightRay(EnzoSimulation):
             self.minimum_coherent_box_fraction = 0
 
         # Get list of datasets for light ray solution.
-        self.light_ray_solution = self.create_cosmology_splice(minimal=self.use_minimum_datasets,
-                                                               deltaz_min=self.deltaz_min)
+        self.light_ray_solution = \
+            self.create_cosmology_splice(minimal=self.use_minimum_datasets,
+                                         deltaz_min=self.deltaz_min)
 
     def _calculate_light_ray_solution(self, seed=None, filename=None):
         "Create list of datasets to be added together to make the light ray."
@@ -72,19 +85,20 @@ class LightRay(EnzoSimulation):
         boxFractionUsed = 0.0
 
         for q in range(len(self.light_ray_solution)):
-            #if self.light_ray_solution[q].has_key('previous'): del self.light_ray_solution[q]['previous']
-            #if self.light_ray_solution[q].has_key('next'): del self.light_ray_solution[q]['next']
             if (q == len(self.light_ray_solution) - 1):
                 z_next = self.FinalRedshift
             else:
                 z_next = self.light_ray_solution[q+1]['redshift']
 
             # Calculate fraction of box required for a depth of delta z
-            self.light_ray_solution[q]['TraversalBoxFraction'] = self.cosmology.ComovingRadialDistance(\
+            self.light_ray_solution[q]['TraversalBoxFraction'] = \
+                self.cosmology.ComovingRadialDistance(\
                 z_next, self.light_ray_solution[q]['redshift']) * \
-                self.enzoParameters['CosmologyHubbleConstantNow'] / self.enzoParameters['CosmologyComovingBoxSize']
+                self.enzoParameters['CosmologyHubbleConstantNow'] / \
+                self.enzoParameters['CosmologyComovingBoxSize']
 
-            # Simple error check to make sure more than 100% of box depth is never required.
+            # Simple error check to make sure more than 100% of box depth 
+            # is never required.
             if (self.light_ray_solution[q]['TraversalBoxFraction'] > 1.0):
                 mylog.error("Warning: box fraction required to go from z = %f to %f is %f" % 
                             (self.light_ray_solution[q]['redshift'], z_next,
@@ -94,7 +108,8 @@ class LightRay(EnzoSimulation):
                              self.light_ray_solution[q]['redshift']-z_next))
 
             # Get dataset axis and center.
-            # If using box coherence, only get start point and vector if enough of the box has been used, 
+            # If using box coherence, only get start point and vector if 
+            # enough of the box has been used, 
             # or if boxFractionUsed will be greater than 1 after this slice.
             if (q == 0) or (self.minimum_coherent_box_fraction == 0) or \
                     (boxFractionUsed > self.minimum_coherent_box_fraction) or \
@@ -109,18 +124,21 @@ class LightRay(EnzoSimulation):
                 self.light_ray_solution[q]['start'] = self.light_ray_solution[q-1]['end'][:]
 
             self.light_ray_solution[q]['end'] = self.light_ray_solution[q]['start'] + \
-                self.light_ray_solution[q]['TraversalBoxFraction'] * na.array([na.cos(phi) * na.sin(theta),
-                                                                               na.sin(phi) * na.sin(theta),
-                                                                               na.cos(theta)])
+                self.light_ray_solution[q]['TraversalBoxFraction'] * \
+                na.array([na.cos(phi) * na.sin(theta),
+                          na.sin(phi) * na.sin(theta),
+                          na.cos(theta)])
             boxFractionUsed += self.light_ray_solution[q]['TraversalBoxFraction']
 
         if filename is not None:
-            self._write_light_ray_solution(filename, extra_info={'EnzoParameterFile':self.EnzoParameterFile, 
-                                                                 'RandomSeed':seed,
-                                                                 'InitialRedshift':self.InitialRedshift, 
-                                                                 'FinalRedshift':self.FinalRedshift})
+            self._write_light_ray_solution(filename, \
+                                               extra_info={'EnzoParameterFile':self.EnzoParameterFile, 
+                                                           'RandomSeed':seed,
+                                                           'InitialRedshift':self.InitialRedshift, 
+                                                           'FinalRedshift':self.FinalRedshift})
 
-    def make_light_ray(self, seed=None, fields=None, solution_filename=None, data_filename=None,
+    def make_light_ray(self, seed=None, fields=None, 
+                       solution_filename=None, data_filename=None,
                        get_nearest_galaxy=False, **kwargs):
         "Create a light ray and get field values for each lixel."
 
@@ -140,7 +158,8 @@ class LightRay(EnzoSimulation):
         todo = na.arange(my_rank, len(self.light_ray_solution), my_size)
         for index in todo:
             segment = self.light_ray_solution[index]
-            mylog.info("Proc %04d: creating ray segment at z = %f." % (my_rank, segment['redshift']))
+            mylog.info("Proc %04d: creating ray segment at z = %f." % 
+                       (my_rank, segment['redshift']))
             if segment['next'] is None:
                 next_redshift = self.FinalRedshift
             else:
@@ -153,7 +172,7 @@ class LightRay(EnzoSimulation):
                 halo_list = self._get_halo_list(segment['filename'], **kwargs)
 
             # Load dataset for segment.
-            pf = lagos.EnzoStaticOutput(segment['filename'])
+            pf = load(segment['filename'])
 
             # Break periodic ray into non-periodic segments.
             sub_segments = periodic_ray(segment['start'], segment['end'])
@@ -166,12 +185,16 @@ class LightRay(EnzoSimulation):
 
             # Get data for all subsegments in segment.
             for sub_segment in sub_segments:
-                mylog.info("Getting subsegment: %s to %s." % (list(sub_segment[0]), list(sub_segment[1])))
+                mylog.info("Getting subsegment: %s to %s." % 
+                           (list(sub_segment[0]), list(sub_segment[1])))
                 sub_ray = pf.h.ray(sub_segment[0], sub_segment[1])
                 sub_data['dl'] = na.concatenate([sub_data['dl'], 
-                                                 (sub_ray['dts'] * vector_length(sub_segment[0], sub_segment[1]))])
+                                                 (sub_ray['dts'] * 
+                                                  vector_length(sub_segment[0], 
+                                                                sub_segment[1]))])
                 for field in fields:
-                    sub_data[field] = na.concatenate([sub_data[field], (sub_ray[field])])
+                    sub_data[field] = na.concatenate([sub_data[field], 
+                                                      (sub_ray[field])])
 
                 sub_ray.clear_data()
                 del sub_ray
@@ -179,7 +202,8 @@ class LightRay(EnzoSimulation):
             # Get redshift for each lixel.  Assume linear relation between l and z.
             sub_data['dredshift'] = (segment['redshift'] - next_redshift) * \
                 (sub_data['dl'] / vector_length(segment['start'], segment['end']))
-            sub_data['redshift'] = segment['redshift'] - sub_data['dredshift'].cumsum() + sub_data['dredshift']
+            sub_data['redshift'] = segment['redshift'] \
+                - sub_data['dredshift'].cumsum() + sub_data['dredshift']
 
             # Calculate distance to nearest object on halo list for each lixel.
             if get_nearest_galaxy:
@@ -202,15 +226,16 @@ class LightRay(EnzoSimulation):
             pf.h.clear_all_data()
             del pf
 
-        MPI.COMM_WORLD.Barrier()
-        if my_rank == 0:
-            for proc in range(1, my_size):
-                buf = MPI.COMM_WORLD.recv(source=proc, tag=0)
-                data += buf
-        else:
-            MPI.COMM_WORLD.send(data, dest=0, tag=0)
-            del data
-        MPI.COMM_WORLD.Barrier()
+        if parallel_light_ray:
+            MPI.COMM_WORLD.Barrier()
+            if my_rank == 0:
+                for proc in range(1, my_size):
+                    buf = MPI.COMM_WORLD.recv(source=proc, tag=0)
+                    data += buf
+            else:
+                MPI.COMM_WORLD.send(data, dest=0, tag=0)
+                del data
+            MPI.COMM_WORLD.Barrier()
 
         if my_rank == 0:
             data.sort(key=lambda a:a['segment_redshift'], reverse=True)
@@ -237,7 +262,8 @@ class LightRay(EnzoSimulation):
 
         return new_data                
 
-    def _get_halo_list(self, dataset, halo_profiler_kwargs=None, halo_profiler_actions=None, halo_list='all'):
+    def _get_halo_list(self, dataset, halo_profiler_kwargs=None, 
+                       halo_profiler_actions=None, halo_list='all'):
         "Load a list of halos for the dataset."
 
         if halo_profiler_kwargs is None: halo_profiler_kwargs = {}
@@ -273,10 +299,14 @@ class LightRay(EnzoSimulation):
         nearest_distance = na.zeros(data['x'].shape)
         nearest_mass = na.zeros(data['x'].shape)
         for index in xrange(nearest_distance.size):
-            nearest = na.argmin(periodic_distance(na.array([data['x'][index], data['y'][index],
-                                                            data['z'][index]]), halo_centers))
-            nearest_distance[index] = periodic_distance(na.array([data['x'][index], data['y'][index],
-                                                                  data['z'][index]]), halo_centers[nearest])
+            nearest = na.argmin(periodic_distance(na.array([data['x'][index], 
+                                                            data['y'][index],
+                                                            data['z'][index]]), 
+                                                  halo_centers))
+            nearest_distance[index] = periodic_distance(na.array([data['x'][index], 
+                                                                  data['y'][index],
+                                                                  data['z'][index]]), 
+                                                        halo_centers[nearest])
             nearest_mass[index] = halo_mass[nearest]
 
         return (nearest_distance, nearest_mass)
@@ -305,7 +335,8 @@ class LightRay(EnzoSimulation):
             f.write("%04d    %.6f %.6f % .10f % .10f % .10f % .10f % .10f % .10f %s\n" % \
                         (q, segment['redshift'], segment['TraversalBoxFraction'],
                          segment['start'][0], segment['start'][1], segment['start'][2],
-                         segment['end'][0], segment['end'][1], segment['end'][2], segment['filename']))
+                         segment['end'][0], segment['end'][1], segment['end'][2], 
+                         segment['filename']))
         f.close()
 
 def vector_length(start, end):
@@ -358,7 +389,8 @@ def periodic_ray(start, end, left=None, right=None):
     tolerance = 1e-6
 
     while t < 1.0 - tolerance:
-        nearest = na.array([close[q]([this_end[q], wall[q]]) for q in range(start.size)])
+        nearest = na.array([close[q]([this_end[q], wall[q]]) \
+                                for q in range(start.size)])
         dt = ((nearest - this_start) / vector)[bound].min()
         now = this_start + vector * dt
         segments.append([na.copy(this_start), na.copy(now)])

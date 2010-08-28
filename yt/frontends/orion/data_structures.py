@@ -105,13 +105,13 @@ class OrionGrid(AMRGridPatch):
         # that dx=dy=dz , at least here.  We probably do elsewhere.
         id = self.id - self._id_offset
         if self.Parent is not None:
-            self.dds = self.Parent[0].dds / self.pf["RefineBy"]
+            self.dds = self.Parent[0].dds / self.pf.refine_by
         else:
             LE, RE = self.hierarchy.grid_left_edge[id,:], \
                      self.hierarchy.grid_right_edge[id,:]
             self.dds = na.array((RE-LE)/self.ActiveDimensions)
-        if self.pf["TopGridRank"] < 2: self.dds[1] = 1.0
-        if self.pf["TopGridRank"] < 3: self.dds[2] = 1.0
+        if self.pf.dimensionality < 2: self.dds[1] = 1.0
+        if self.pf.dimensionality < 3: self.dds[2] = 1.0
         self.data['dx'], self.data['dy'], self.data['dz'] = self.dds
 
     def __repr__(self):
@@ -501,7 +501,7 @@ class OrionStaticOutput(StaticOutput):
         if os.path.isfile(self.fparameter_filename):
             self._parse_fparameter_file()
         # Let's read the file
-        self.parameters["CurrentTimeIdentifier"] = \
+        self.unique_identifier = \
             int(os.stat(self.parameter_filename)[ST_CTIME])
         lines = open(self.parameter_filename).readlines()
         for lineI, line in enumerate(lines):
@@ -526,10 +526,10 @@ class OrionStaticOutput(StaticOutput):
                         self.parameters[paramName] = t
                 
             elif param.startswith("geometry.prob_hi"):
-                self.parameters["DomainRightEdge"] = \
+                self.domain_right_edge = \
                     na.array([float(i) for i in vals.split()])
             elif param.startswith("geometry.prob_lo"):
-                self.parameters["DomainLeftEdge"] = \
+                self.domain_left_edge = \
                     na.array([float(i) for i in vals.split()])
 
     def _parse_fparameter_file(self):
@@ -563,7 +563,7 @@ class OrionStaticOutput(StaticOutput):
         lines = header_file.readlines()
         header_file.close()
         n_fields = int(lines[1])
-        self.parameters["InitialTime"] = float(lines[3+n_fields])
+        self.current_time = float(lines[3+n_fields])
 
                 
     def _set_units(self):

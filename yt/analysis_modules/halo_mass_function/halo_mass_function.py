@@ -101,10 +101,10 @@ class HaloMassFcn(ParallelAnalysisInterface):
         else:
             # Make the fit using the same cosmological parameters as the dataset.
             self.mode = 'haloes'
-            self.omega_matter0 = self.pf['CosmologyOmegaMatterNow']
-            self.omega_lambda0 = self.pf['CosmologyOmegaLambdaNow']
-            self.hubble0 = self.pf['CosmologyHubbleConstantNow']
-            self.this_redshift = self.pf['CosmologyCurrentRedshift']
+            self.omega_matter0 = self.pf.omega_matter
+            self.omega_lambda0 = self.pf.omega_lambda
+            self.hubble0 = self.pf.hubble_constant
+            self.this_redshift = self.pf.current_redshift
             self.read_haloes()
             if self.log_mass_min == None:
                 self.log_mass_min = math.log10(min(self.haloes))

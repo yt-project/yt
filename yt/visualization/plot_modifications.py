@@ -32,8 +32,8 @@ import numpy as na
 from yt.funcs import *
 from _mpl_imports import *
 from yt.utilities.definitions import \
-    x_dict, \
-    y_dict, \
+    x_dict, x_names, \
+    y_dict, y_names, \
     axis_names, \
     axis_labels
 import _MPL
@@ -232,7 +232,7 @@ class GridBoundaryCallback(PlotCallback):
         dy = (yy1-yy0)/(y1-y0)
         px_index = x_dict[plot.data.axis]
         py_index = y_dict[plot.data.axis]
-        dom = plot.data.pf["DomainRightEdge"] - plot.data.pf["DomainLeftEdge"]
+        dom = plot.data.pf.domain_right_edge - plot.data.pf.domain_left_edge
         if self.periodic:
             pxs, pys = na.mgrid[-1:1:3j,-1:1:3j]
         else:
@@ -541,8 +541,8 @@ class ClumpContourCallback(PlotCallback):
         xf = axis_names[px_index]
         yf = axis_names[py_index]
 
-        DomainRight = plot.data.pf["DomainRightEdge"]
-        DomainLeft = plot.data.pf["DomainLeftEdge"]
+        DomainRight = plot.data.pf.domain_right_edge
+        DomainLeft = plot.data.pf.domain_left_edge
         DomainWidth = DomainRight - DomainLeft
         
         nx, ny = plot.image._A.shape

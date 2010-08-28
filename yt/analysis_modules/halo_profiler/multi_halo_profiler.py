@@ -29,6 +29,7 @@ import h5py
 import types
 
 from yt.funcs import *
+
 from yt.convenience import \
     load
 from yt.data_objects.profiles import \
@@ -44,6 +45,10 @@ from yt.utilities.parallel_tools.parallel_analysis_interface import \
     ParallelAnalysisInterface, \
     parallel_blocking_call, \
     parallel_root_only
+from yt.visualization.fixed_resolution import \
+    FixedResolutionBuffer
+from yt.visualization.plot_collection import \
+    PlotCollection
 
 PROFILE_RADIUS_THRESHOLD = 2
 
@@ -471,7 +476,7 @@ class HaloProfiler(ParallelAnalysisInterface):
             if not isinstance(axes, types.ListType): axes = list([axes])
             for w in axes:
                 # Create a plot collection.
-                pc = raven.PlotCollection(self.pf, center=center)
+                pc = PlotCollection(self.pf, center=center)
                 # YT projections do not follow the right-hand rule.
                 coords = range(3)
                 del coords[w]
@@ -505,7 +510,7 @@ class HaloProfiler(ParallelAnalysisInterface):
                     output = h5py.File(dataFilename, "a")
                     # Create fixed resolution buffer for each projection and write them out.
                     for e, hp in enumerate(self.projection_fields):
-                        frb = raven.FixedResolutionBuffer(pc.plots[e].data, (proj_left[0], proj_right[0], proj_left[1], proj_right[1]),
+                        frb = FixedResolutionBuffer(pc.plots[e].data, (proj_left[0], proj_right[0], proj_left[1], proj_right[1]),
                                                           (projectionResolution, projectionResolution),
                                                           antialias=False)
                         dataset_name = "%s_%s" % (hp['field'], hp['weight_field'])
@@ -524,10 +529,10 @@ class HaloProfiler(ParallelAnalysisInterface):
         if 'ActualOverdensity' in profile.keys():
             return
 
-        rho_crit_now = 1.8788e-29 * self.pf['CosmologyHubbleConstantNow']**2.0 * \
-            self.pf['CosmologyOmegaMatterNow'] # g cm^-3
+        rho_crit_now = 1.8788e-29 * self.pf.hubble_constant**2.0 * \
+            self.pf.omega_matter # g cm^-3
         Msun2g = 1.989e33
-        rho_crit = rho_crit_now * ((1.0 + self.pf['CosmologyCurrentRedshift'])**3.0)
+        rho_crit = rho_crit_now * ((1.0 + self.pf.current_redshift)**3.0)
 
         profile['ActualOverdensity'] = (Msun2g * profile['TotalMassMsun']) / \
             profile['CellVolume'] / rho_crit

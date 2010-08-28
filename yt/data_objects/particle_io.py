@@ -103,8 +103,8 @@ class ParticleIOHandlerRegion(ParticleIOHandlerImplemented):
         ParticleIOHandler.__init__(self, pf, source)
 
     def _get_args(self):
-        DLE = na.array(self.pf["DomainLeftEdge"], dtype='float64') 
-        DRE = na.array(self.pf["DomainRightEdge"], dtype='float64') 
+        DLE = na.array(self.pf.domain_left_edge, dtype='float64') 
+        DRE = na.array(self.pf.domain_right_edge, dtype='float64') 
         args = (na.array(self.left_edge), na.array(self.right_edge), 
                 int(self.periodic), DLE, DRE)
         return (0, args)

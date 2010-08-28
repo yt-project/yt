@@ -36,8 +36,8 @@ from .halo_mask import \
     light_cone_halo_mask, \
     light_cone_halo_map
 
-from .light_cone_projection import \
-    LightConeProjection
+from .light_cone import \
+    LightCone
 
 from .unique_solution import \
     project_unique_light_cones, \

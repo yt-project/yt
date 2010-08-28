@@ -22,9 +22,15 @@ License:
   You should have received a copy of the GNU General Public License
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
+
+from matplotlib import figure
 import numpy as na
 
 from yt.funcs import *
+
+from yt.data_objects.profiles import \
+    BinnedProfile1D, \
+    BinnedProfile2D
 from yt.utilities.definitions import axis_names
 from .plot_types import \
     FixedResolutionPlot, \
@@ -96,7 +102,7 @@ class PlotCollection(object):
         if center == None:
             v,self.c = pf.h.find_max("Density") # @todo: ensure no caching
         elif center == "center" or center == "c":
-            self.c = (pf["DomainRightEdge"] + pf["DomainLeftEdge"])/2.0
+            self.c = (pf.domain_right_edge + pf.domain_left_edge)/2.0
         else:
             self.c = na.array(center, dtype='float64')
         mylog.info("Created plot collection with default plot-center = %s",
@@ -255,7 +261,7 @@ class PlotCollection(object):
         Parameters
         ----------
         cmap : string
-            An acceptable colormap.  See either raven.color_maps or
+            An acceptable colormap.  See either yt.visualization.color_maps or
             http://www.scipy.org/Cookbook/Matplotlib/Show_colormaps .
         """
         for plot in self.plots:
@@ -288,13 +294,13 @@ class PlotCollection(object):
 
         Parameters
         ----------
-        plot : `yt.raven.RavenPlot`
+        plot : `yt.visualization.plot_types.RavenPlot`
             A plot, which will be appended to the list of plots handled by this
             plot collection.
 
         Returns
         -------
-        plot : `yt.raven.RavenPlot`
+        plot : `yt.visualization.plot_types.RavenPlot`
             The plot handed to the function is passed back through.  This is
             unnecessary, but is done for historical reasons.
         """
@@ -444,8 +450,8 @@ class PlotCollection(object):
         >>> pc = PlotCollection(pf, [0.5, 0.5, 0.5])
         >>> p = pc.add_particles(0, 1.0)
         """
-        LE = self.pf["DomainLeftEdge"].copy()
-        RE = self.pf["DomainRightEdge"].copy()
+        LE = self.pf.domain_left_edge.copy()
+        RE = self.pf.domain_right_edge.copy()
         LE[axis] = self.c[axis] - width/2.0
         RE[axis] = self.c[axis] + width/2.0
         if data_source is None: data_source = self.pf.h.region(self.c, LE, RE)
@@ -817,9 +823,9 @@ class PlotCollection(object):
                             lazy_reader=lazy_reader)[0]
         else:
             x_min, x_max = x_bounds
-        profile = lagos.BinnedProfile1D(data_source,
-                                     x_bins, fields[0], x_min, x_max, x_log,
-                                     lazy_reader)
+        profile = BinnedProfile1D(data_source,
+                                  x_bins, fields[0], x_min, x_max, x_log,
+                                  lazy_reader)
         if len(fields) > 1:
             profile.add_fields(fields[1], weight=weight, accumulation=accumulation)
         if id is None: id = self._get_new_id()
@@ -1025,10 +1031,10 @@ class PlotCollection(object):
                                     lazy_reader=lazy_reader)[0]
         else:
             y_min, y_max = y_bounds
-        profile = lagos.BinnedProfile2D(data_source,
-                                     x_bins, fields[0], x_min, x_max, x_log,
-                                     y_bins, fields[1], y_min, y_max, y_log,
-                                     lazy_reader)
+        profile = BinnedProfile2D(data_source,
+                                  x_bins, fields[0], x_min, x_max, x_log,
+                                  y_bins, fields[1], y_min, y_max, y_log,
+                                  lazy_reader)
         if id is None: id = self._get_new_id()
         p = self._add_plot(PhasePlot(profile, fields, 
                                                id, cmap=cmap,
@@ -1569,7 +1575,7 @@ def get_multi_plot(nx, ny, colorbar = 'vertical', bw = 4, dpi=300):
     elif colorbar.lower() == 'horizontal':
         fudge_x = 1.0
         fudge_y = ny/(0.40+ny)
-    fig = matplotlib.figure.Figure((bw*nx/fudge_x, bw*ny/fudge_y), dpi=dpi)
+    fig = figure.Figure((bw*nx/fudge_x, bw*ny/fudge_y), dpi=dpi)
     fig.set_canvas(be.engineVals["canvas"](fig))
     fig.subplots_adjust(wspace=0.0, hspace=0.0,
                         top=1.0, bottom=0.0,

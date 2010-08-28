@@ -23,19 +23,28 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-from yt.extensions.lightcone import *
-from yt.extensions.enzo_simulation import *
-from yt.logger import lagosLogger as mylog
-from yt.config import ytcfg
-from yt.funcs import *
-from common_n_volume import *
-from halo_mask import *
 import copy
 import os
 import numpy as na
 
+from yt.funcs import *
+
+from yt.analysis_modules.simulation_handler.enzo_simulation \
+    import EnzoSimulation
+from yt.config import ytcfg
+from yt.convenience import load
+from yt.utilities.cosmology import Cosmology
+from yt.visualization.plot_collection import \
+    PlotCollection
+
+from .common_n_volume import commonNVolume
+from .halo_mask import light_cone_halo_map, \
+    light_cone_halo_mask
+from .light_cone_projection import LightConeProjection
+
 class LightCone(EnzoSimulation):
-    def __init__(self, EnzoParameterFile, initial_redshift=1.0, final_redshift=0.0, observer_redshift=0.0,
+    def __init__(self, EnzoParameterFile, initial_redshift=1.0, 
+                 final_redshift=0.0, observer_redshift=0.0,
                  field_of_view_in_arcminutes=600.0, image_resolution_in_arcseconds=60.0, 
                  use_minimum_datasets=True, deltaz_min=0.0, minimum_coherent_box_fraction=0.0,
                  output_dir='LC', output_prefix='LightCone', **kwargs):
@@ -48,7 +57,7 @@ class LightCone(EnzoSimulation):
                Default: 600.0.
         :param image_resolution_in_arcseconds (float): the size of each image pixel in units of arcseconds.  
                Default: 60.0.
-        :param use_minimum_datasets (bool): if True, the minimum number of datasets is used to connect the 
+                             :param use_minimum_datasets (bool): if True, the minimum number of datasets is used to connect the 
                initial and final redshift.  If false, the light cone solution will contain as many entries 
                as possible within the redshift interval.  Default: True.
         :param deltaz_min (float): specifies the minimum :math:`\Delta z` between consecutive datasets in 
@@ -138,15 +147,16 @@ class LightCone(EnzoSimulation):
         boxFractionUsed = 0.0
 
         for q in range(len(self.light_cone_solution)):
-            del self.light_cone_solution[q]['previous']
-            del self.light_cone_solution[q]['next']
+            if self.light_cone_solution[q].has_key('previous'): del self.light_cone_solution[q]['previous']
+            if self.light_cone_solution[q].has_key('next'): del self.light_cone_solution[q]['next']
             if (q == len(self.light_cone_solution) - 1):
                 z_next = self.final_redshift
             else:
                 z_next = self.light_cone_solution[q+1]['redshift']
 
             # Calculate fraction of box required for a depth of delta z
-            self.light_cone_solution[q]['DepthBoxFraction'] = self.cosmology.ComovingRadialDistance(z_next, self.light_cone_solution[q]['redshift']) * \
+            self.light_cone_solution[q]['DepthBoxFraction'] = \
+                self.cosmology.ComovingRadialDistance(z_next, self.light_cone_solution[q]['redshift']) * \
                 self.enzoParameters['CosmologyHubbleConstantNow'] / self.enzoParameters['CosmologyComovingBoxSize']
 
             # Simple error check to make sure more than 100% of box depth is never required.
@@ -223,7 +233,8 @@ class LightCone(EnzoSimulation):
             del halo_mask_cube
 
     def project_light_cone(self, field, weight_field=None, apply_halo_mask=False, node=None,
-                           save_stack=True, save_slice_images=False, flatten_stack=False, photon_field=False, **kwargs):
+                           save_stack=True, save_slice_images=False, flatten_stack=False, photon_field=False,
+                           add_redshift_label=False, **kwargs):
         """
         Create projections for light cone, then add them together.
         :param weight_field (str): the weight field of the projection.  This has the same meaning as in standard 
@@ -257,7 +268,7 @@ class LightCone(EnzoSimulation):
             else:
                 name = "%s%s_%s_%04d_%04d" % (self.output_dir, self.output_prefix,
                                               node, q, len(self.light_cone_solution))
-            output['object'] = lagos.EnzoStaticOutput(output['filename'])
+            output['object'] = load(output['filename'])
             frb = LightConeProjection(output, field, self.pixels, weight_field=weight_field,
                                       save_image=save_slice_images,
                                       name=name, node=node, **kwargs)
@@ -334,7 +345,7 @@ class LightCone(EnzoSimulation):
             center = [0.5 * (self.light_cone_solution[-1]['object'].parameters['DomainLeftEdge'][w] + 
                              self.light_cone_solution[-1]['object'].parameters['DomainRightEdge'][w])
                       for w in range(self.light_cone_solution[-1]['object'].parameters['TopGridRank'])]
-            pc = raven.PlotCollection(self.light_cone_solution[-1]['object'], center=center)
+            pc = PlotCollection(self.light_cone_solution[-1]['object'], center=center)
             pc.add_fixed_resolution_plot(frb, field, **kwargs)
             pc.save(filename)
 

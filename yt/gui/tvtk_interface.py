@@ -44,7 +44,6 @@ import sys
 import numpy as na
 import time, pickle, os, os.path
 from yt.funcs import *
-from yt.logger import ravenLogger as mylog
 from yt.extensions.HierarchySubset import \
         ExtractedHierarchy, ExtractedParameterFile
 

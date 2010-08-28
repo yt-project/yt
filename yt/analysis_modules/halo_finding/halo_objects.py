@@ -38,10 +38,10 @@ from yt.utilities.performance_counters import \
 from .hop.EnzoHop import RunHOP
 from .fof.EnzoFOF import RunFOF
 try:
-    from .parallelHOP.parallelHOP import \
-        RunParallelHOP 
+    from parallel_hop.parallel_hop_interface import \
+        ParallelHOPHaloFinder
 except ImportError:
-    mylog.debug("ParallelHOP not imported.")
+    mylog.debug("Parallel HOP not imported.")
 
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     ParallelDummy, \
@@ -205,7 +205,7 @@ class Halo(object):
         rx = na.abs(self["particle_position_x"]-center[0])
         ry = na.abs(self["particle_position_y"]-center[1])
         rz = na.abs(self["particle_position_z"]-center[2])
-        DW = self.data.pf["DomainRightEdge"] - self.data.pf["DomainLeftEdge"]
+        DW = self.data.pf.domain_right_edge - self.data.pf.domain_left_edge
         r = na.sqrt(na.minimum(rx, DW[0]-rx)**2.0
                 +   na.minimum(ry, DW[1]-ry)**2.0
                 +   na.minimum(rz, DW[2]-rz)**2.0)
@@ -356,9 +356,9 @@ class Halo(object):
             return None
         self.bin_count = bins
         # Cosmology
-        h = self.data.pf['CosmologyHubbleConstantNow']
-        Om_matter = self.data.pf['CosmologyOmegaMatterNow']
-        z = self.data.pf['CosmologyCurrentRedshift']
+        h = self.data.pf.hubble_constant
+        Om_matter = self.data.pf.omega_matter
+        z = self.data.pf.current_redshift
         rho_crit_now = 1.8788e-29 * h**2.0 * Om_matter # g cm^-3
         Msun2g = 1.989e33
         rho_crit = rho_crit_now * ((1.0 + z)**3.0)
@@ -367,8 +367,8 @@ class Halo(object):
         self.mass_bins = na.zeros(self.bin_count+1, dtype='float64')
         dist = na.empty(self.indices.size, dtype='float64')
         cen = self.center_of_mass()
-        period = self.data.pf["DomainRightEdge"] - \
-            self.data.pf["DomainLeftEdge"]
+        period = self.data.pf.domain_right_edge - \
+            self.data.pf.domain_left_edge
         mark = 0
         # Find the distances to the particles. I don't like this much, but I
         # can't see a way to eliminate a loop like this, either here or in
@@ -577,7 +577,7 @@ class parallelHOPHalo(Halo,ParallelAnalysisInterface):
             return self.max_radius
         if center_of_mass: center = self.center_of_mass()
         else: center = self.maximum_density_location()
-        DW = self.data.pf["DomainRightEdge"] - self.data.pf["DomainLeftEdge"]
+        DW = self.data.pf.domain_right_edge - self.data.pf.domain_left_edge
         if self.indices is not None:
             rx = na.abs(self["particle_position_x"]-center[0])
             ry = na.abs(self["particle_position_y"]-center[1])
@@ -697,14 +697,14 @@ class parallelHOPHalo(Halo,ParallelAnalysisInterface):
             return None
         # Do this for all because all will use it.
         self.bin_count = bins
-        period = self.data.pf["DomainRightEdge"] - \
-            self.data.pf["DomainLeftEdge"]
+        period = self.data.pf.domain_right_edge - \
+            self.data.pf.domain_left_edge
         self.mass_bins = na.zeros(self.bin_count+1, dtype='float64')
         cen = self.center_of_mass()
         # Cosmology
-        h = self.data.pf['CosmologyHubbleConstantNow']
-        Om_matter = self.data.pf['CosmologyOmegaMatterNow']
-        z = self.data.pf['CosmologyCurrentRedshift']
+        h = self.data.pf.hubble_constant
+        Om_matter = self.data.pf.omega_matter
+        z = self.data.pf.current_redshift
         rho_crit_now = 1.8788e-29 * h**2.0 * Om_matter # g cm^-3
         Msun2g = 1.989e33
         rho_crit = rho_crit_now * ((1.0 + z)**3.0)
@@ -881,7 +881,7 @@ class HaloList(object):
         --------
         >>> neighbors = halos.nearest_neighbors_3D(0)
         """
-        period = self.pf['DomainRightEdge'] - self.pf['DomainLeftEdge']
+        period = self.pf.domain_right_edge - self.pf.domain_left_edge
         # Initialize the dataset of points from all the haloes
         dataset = []
         for group in self:
@@ -932,7 +932,7 @@ class HaloList(object):
         # Set up a vector to multiply other vectors by to project along proj_dim
         vec = na.array([1.,1.,1.])
         vec[proj_dim] = 0.
-        period = self.pf['DomainRightEdge'] - self.pf['DomainLeftEdge']
+        period = self.pf.domain_right_edge - self.pf.domain_left_edge
         period = period * vec
         # Initialize the dataset of points from all the haloes
         dataset = []
@@ -1138,7 +1138,7 @@ class parallelHOPHaloList(HaloList,ParallelAnalysisInterface):
             mylog.error("Non-unique values in particle_index field. Parallel HOP will fail.")
             exit = True
         self._mpi_exit_test(exit)
-        obj = RunParallelHOP(self.period, self.padding,
+        obj = ParallelHOPHaloFinder(self.period, self.padding,
             self.num_neighbors, self.bounds,
             self.particle_fields["particle_position_x"],
             self.particle_fields["particle_position_y"],
@@ -1327,7 +1327,7 @@ class GenericHaloFinder(HaloList, ParallelAnalysisInterface):
     def __init__(self, pf, dm_only=True, padding=0.0):
         self.pf = pf
         self.hierarchy = pf.h
-        self.center = (pf["DomainRightEdge"] + pf["DomainLeftEdge"])/2.0
+        self.center = (pf.domain_right_edge + pf.domain_left_edge)/2.0
 
     def _parse_halolist(self, threshold_adjustment):
         groups, max_dens, hi  = [], {}, 0
@@ -1402,7 +1402,7 @@ class GenericHaloFinder(HaloList, ParallelAnalysisInterface):
         # This only does periodicity.  We do NOT want to deal with anything
         # else.  The only reason we even do periodicity is the 
         LE, RE = bounds
-        dw = self.pf["DomainRightEdge"] - self.pf["DomainLeftEdge"]
+        dw = self.pf.domain_right_edge - self.pf.domain_left_edge
         for i, ax in enumerate('xyz'):
             arr = self._data_source["particle_position_%s" % ax]
             arr[arr < LE[i]-self.padding] += dw[i]
@@ -1529,7 +1529,7 @@ class parallelHF(GenericHaloFinder, parallelHOPHaloList):
         self.num_neighbors = 65
         self.safety = safety
         self.sample = sample
-        period = pf["DomainRightEdge"] - pf["DomainLeftEdge"]
+        period = pf.domain_right_edge - pf.domain_left_edge
         topbounds = na.array([[0., 0., 0.], period])
         # Cut up the volume evenly initially, with no padding.
         padded, LE, RE, self._data_source = self._partition_hierarchy_3d(padding=self.padding)
@@ -1562,7 +1562,7 @@ class parallelHF(GenericHaloFinder, parallelHOPHaloList):
         try:
             l = self._data_source.right_edge - self._data_source.left_edge
         except AttributeError:
-            l = pf["DomainRightEdge"] - pf["DomainLeftEdge"]
+            l = pf.domain_right_edge - pf.domain_left_edge
         vol = l[0] * l[1] * l[2]
         full_vol = vol
         if not fancy_padding:
@@ -1830,13 +1830,13 @@ class FOFHaloFinder(GenericHaloFinder, FOFHaloList):
         """
         self.pf = pf
         self.hierarchy = pf.h
-        self.center = (pf["DomainRightEdge"] + pf["DomainLeftEdge"])/2.0
+        self.center = (pf.domain_right_edge + pf.domain_left_edge)/2.0
         self.padding = 0.0 #* pf["unitary"] # This should be clevererer
         # get the total number of particles across all procs, with no padding
         padded, LE, RE, self._data_source = self._partition_hierarchy_3d(padding=self.padding)
         n_parts = self._mpi_allsum(self._data_source["particle_position_x"].size)
         # get the average spacing between particles
-        l = pf["DomainRightEdge"] - pf["DomainLeftEdge"]
+        l = pf.domain_right_edge - pf.domain_left_edge
         vol = l[0] * l[1] * l[2]
         avg_spacing = (float(vol) / n_parts)**(1./3.)
         self.padding = padding

@@ -87,13 +87,13 @@ class StarFormationRate(object):
             self.mode = 'data_source'
         # Set up for time conversion.
         self.cosm = EnzoCosmology(HubbleConstantNow = 
-             (100.0 * self._pf['CosmologyHubbleConstantNow']),
-             OmegaMatterNow = self._pf['CosmologyOmegaMatterNow'],
-             OmegaLambdaNow = self._pf['CosmologyOmegaLambdaNow'],
+             (100.0 * self._pf.hubble_constant),
+             OmegaMatterNow = self._pf.omega_matter,
+             OmegaLambdaNow = self._pf.omega_lambda,
              InitialRedshift = self._pf['CosmologyInitialRedshift'])
         # Find the time right now.
         self.time_now = self.cosm.ComputeTimeFromRedshift(
-            self._pf["CosmologyCurrentRedshift"]) # seconds
+            self._pf.current_redshift) # seconds
         # Build the distribution.
         self.build_dist()
 
@@ -112,7 +112,7 @@ class StarFormationRate(object):
         # Find the oldest stars in units of code time.
         tmin= min(ct_stars)
         # Multiply the end to prevent numerical issues.
-        self.time_bins = na.linspace(tmin*0.99, self._pf['InitialTime'],
+        self.time_bins = na.linspace(tmin*0.99, self._pf.current_time,
             num = self.bin_count + 1)
         # Figure out which bins the stars go into.
         inds = na.digitize(ct_stars, self.time_bins) - 1
@@ -242,13 +242,13 @@ class SpectrumBuilder(object):
             self.model = SALPETER
         # Set up for time conversion.
         self.cosm = EnzoCosmology(HubbleConstantNow = 
-             (100.0 * self._pf['CosmologyHubbleConstantNow']),
-             OmegaMatterNow = self._pf['CosmologyOmegaMatterNow'],
-             OmegaLambdaNow = self._pf['CosmologyOmegaLambdaNow'],
+             (100.0 * self._pf.hubble_constant),
+             OmegaMatterNow = self._pf.omega_matter,
+             OmegaLambdaNow = self._pf.omega_lambda,
              InitialRedshift = self._pf['CosmologyInitialRedshift'])
         # Find the time right now.
         self.time_now = self.cosm.ComputeTimeFromRedshift(
-            self._pf["CosmologyCurrentRedshift"]) # seconds
+            self._pf.current_redshift) # seconds
         
         # Read the tables.
         self.read_bclib()

@@ -25,9 +25,23 @@ License:
 
 from yt.mods import *
 from yt.funcs import *
-from yt.recipes import _fix_pf
 import yt.cmdln as cmdln
 import optparse, os, os.path, math, sys, time, subprocess
+
+def _fix_pf(arg):
+    if os.path.isdir("%s" % arg) and \
+        os.path.exists("%s/%s" % (arg,arg)):
+        pf = load("%s/%s" % (arg,arg))
+    elif os.path.isdir("%s.dir" % arg) and \
+        os.path.exists("%s.dir/%s" % (arg,arg)):
+        pf = load("%s.dir/%s" % (arg,arg))
+    elif arg.endswith(".hierarchy"):
+        pf = load(arg[:-10])
+    else:
+        pf = load(arg)
+    if pf is None:
+        raise IOError
+
 
 _common_options = dict(
     axis    = dict(short="-a", long="--axis",
@@ -460,7 +474,7 @@ class YTCommands(cmdln.Cmdln):
             mylog.info("No center fed in; seeking.")
             v, center = pf.h.find_max("Density")
         center = na.array(center)
-        pc=raven.PlotCollection(pf, center=center)
+        pc=PlotCollection(pf, center=center)
         if opts.axis == 4:
             axes = range(3)
         else:
@@ -472,7 +486,7 @@ class YTCommands(cmdln.Cmdln):
             else: pc.add_slice(opts.field, ax, center=center)
             if opts.grids: pc.plots[-1].modify["grids"]()
             if opts.time: 
-                time = pf['InitialTime']*pf['Time']*pf['years']
+                time = pf.current_time*pf['Time']*pf['years']
                 pc.plots[-1].modify["text"]((0.2,0.8), 't = %5.2e yr'%time)
         pc.set_width(opts.width, opts.unit)
         pc.set_cmap(opts.cmap)
@@ -506,7 +520,7 @@ class YTCommands(cmdln.Cmdln):
         v, c = pf.h.find_max("Density")
         print "Maximum density: %0.5e at %s" % (v, c)
         if opts.output is not None:
-            t = pf["InitialTime"] * pf['years']
+            t = pf.current_time * pf['years']
             open(opts.output, "a").write(
                 "%s (%0.5e years): %0.5e at %s\n" % (pf, t, v, c))
 
@@ -553,7 +567,7 @@ class YTCommands(cmdln.Cmdln):
 
         # Now we make full-box projections.
         pf = EnzoStaticOutput(arg)
-        c = 0.5*(pf["DomainRightEdge"] + pf["DomainLeftEdge"])
+        c = 0.5*(pf.domain_right_edge + pf.domain_left_edge)
         pc = PlotCollection(pf, center=c)
         for ax in range(3):
             pc.add_projection("Density", ax, "Density")
