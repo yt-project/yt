@@ -34,11 +34,13 @@ import glob
 import numpy as na
 import time
 
-from yt.extensions.opengl_image_viewer import ViewHandler3D, GenericGLUTScene
-from yt.extensions.image_writer import map_to_colors
+from small_apps import ViewHandler3D, GenericGLUTScene
+from yt.visualization.image_writer import map_to_colors
 
 from rendering_contexts import render_fbo, create_fbo, identity_view, \
         translate_view
+from yt.visualization.volume_rendering.api import \
+    HomogenizedVolume
 
 ESCAPE = '\033'
 
@@ -450,3 +452,12 @@ def compileProgram(*my_shaders, **kwargs):
     for shader in my_shaders:
         GL.glDeleteShader(shader)
     return shaders.ShaderProgram( program )
+
+if __name__ == "__main__":
+    import yt.convenience, yt.frontends.enzo.api
+    pf = yt.convenience.load(sys.argv[-1])
+    print pf
+    hv = HomogenizedVolume(pf = pf, fields=["Density"], log_fields=[True])
+    hv.initialize_source()
+    mip = MIPScene(hv)
+    mip.run()

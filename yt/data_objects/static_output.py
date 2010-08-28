@@ -94,7 +94,7 @@ class StaticOutput(object):
 
     def _hash(self):
         s = "%s;%s;%s" % (self.basename,
-            self["InitialTime"], self["CurrentTimeIdentifier"])
+            self.current_time, self.unique_identifier)
         try:
             import hashlib
             return hashlib.md5(s).hexdigest()

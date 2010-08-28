@@ -739,7 +739,8 @@ class EnzoStaticOutput(StaticOutput):
         self.dimensionality = self.parameters["TopGridRank"]
         self.domain_dimensions = self.parameters["TopGridDimensions"]
         self.current_time = self.parameters["InitialTime"]
-        self.unique_identifier = self.parameters["CurrentTimeIdentifier"]
+        if "CurrentTimeIdentifier" in self.parameters:
+            self.unique_identifier = self.parameters["CurrentTimeIdentifier"]
         if self.parameters["ComovingCoordinates"]:
             self.cosmological_simulation = 0
             self.current_redshift = self.parameters["CosmologyCurrentRedshift"]
