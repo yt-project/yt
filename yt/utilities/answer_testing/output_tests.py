@@ -158,10 +158,10 @@ class YTStaticOutputTest(SingleOutputTest):
         yax = y_dict[self.axis]
         
         if edges is None:
-            edges = (self.pf["DomainLeftEdge"][xax],
-                     self.pf["DomainRightEdge"][xax],
-                     self.pf["DomainLeftEdge"][yax],
-                     self.pf["DomainRightEdge"][yax])
+            edges = (self.pf.domain_left_edge[xax],
+                     self.pf.domain_right_edge[xax],
+                     self.pf.domain_left_edge[yax],
+                     self.pf.domain_right_edge[yax])
         frb = FixedResolutionBuffer( data, edges, dims)
         frb[field] # To make the pixelization
         return frb
@@ -181,7 +181,7 @@ class YTStaticOutputTest(SingleOutputTest):
         """
         This returns the center of the domain.
         """
-        return 0.5*(self.pf["DomainRightEdge"] + self.pf["DomainLeftEdge"])
+        return 0.5*(self.pf.domain_right_edge + self.pf.domain_left_edge)
 
     @property
     def max_dens_location(self):

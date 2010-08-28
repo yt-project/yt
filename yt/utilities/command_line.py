@@ -520,7 +520,7 @@ class YTCommands(cmdln.Cmdln):
         v, c = pf.h.find_max("Density")
         print "Maximum density: %0.5e at %s" % (v, c)
         if opts.output is not None:
-            t = pf["InitialTime"] * pf['years']
+            t = pf.current_time * pf['years']
             open(opts.output, "a").write(
                 "%s (%0.5e years): %0.5e at %s\n" % (pf, t, v, c))
 
@@ -567,7 +567,7 @@ class YTCommands(cmdln.Cmdln):
 
         # Now we make full-box projections.
         pf = EnzoStaticOutput(arg)
-        c = 0.5*(pf["DomainRightEdge"] + pf["DomainLeftEdge"])
+        c = 0.5*(pf.domain_right_edge + pf.domain_left_edge)
         pc = PlotCollection(pf, center=c)
         for ax in range(3):
             pc.add_projection("Density", ax, "Density")

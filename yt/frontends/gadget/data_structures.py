@@ -81,8 +81,8 @@ class GadgetGrid(AMRGridPatch):
         id = self.id
         LE, RE = self.LeftEdge,self.RightEdge
         self.dds = na.array((RE-LE)/self.ActiveDimensions)
-        if self.pf["TopGridRank"] < 2: self.dds[1] = 1.0
-        if self.pf["TopGridRank"] < 3: self.dds[2] = 1.0
+        if self.pf.dimensionality < 2: self.dds[1] = 1.0
+        if self.pf.dimensionality < 3: self.dds[2] = 1.0
         self.data['dx'], self.data['dy'], self.data['dz'] = self.dds
 
 class GadgetHierarchy(AMRHierarchy):

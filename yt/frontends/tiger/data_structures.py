@@ -80,8 +80,8 @@ class TigerHierarchy(AMRHierarchy):
         grids = []
         # We need to fill in dims, LE, RE, level, count
         dims, LE, RE, levels, counts = [], [], [], [], []
-        DLE = self.pf["DomainLeftEdge"]
-        DRE = self.pf["DomainRightEdge"] 
+        DLE = self.pf.domain_left_edge
+        DRE = self.pf.domain_right_edge 
         DW = DRE - DLE
         gds = DW / self.ngdims
         rd = [self.pf.root_size[i]-self.pf.max_grid_size[i] for i in range(3)]

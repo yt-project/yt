@@ -112,7 +112,7 @@ class TwoPointFunctions(ParallelAnalysisInterface):
         self.period = self.pf['DomainRightEdge'] - self.pf['DomainLeftEdge']
         self.min_edge = min(self.period)
         self.hierarchy = pf.h
-        self.center = (pf["DomainRightEdge"] + pf["DomainLeftEdge"])/2.0
+        self.center = (pf.domain_right_edge + pf.domain_left_edge)/2.0
         # Figure out the range of ruler lengths.
         if length_range == None:
             length_range = [math.sqrt(3) * self.pf.h.get_smallest_dx(),

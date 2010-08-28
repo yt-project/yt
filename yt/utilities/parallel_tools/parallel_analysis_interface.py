@@ -266,7 +266,7 @@ class ParallelAnalysisInterface(object):
         x = na.mgrid[0:1:(cc[0]+1)*1j][cx:cx+2]
         y = na.mgrid[0:1:(cc[1]+1)*1j][cy:cy+2]
 
-        DLE, DRE = self.pf["DomainLeftEdge"].copy(), self.pf["DomainRightEdge"].copy()
+        DLE, DRE = self.pf.domain_left_edge.copy(), self.pf.domain_right_edge.copy()
         LE = na.ones(3, dtype='float64') * DLE
         RE = na.ones(3, dtype='float64') * DRE
         LE[xax] = x[0] * (DRE[xax]-DLE[xax]) + DLE[xax]
@@ -308,7 +308,7 @@ class ParallelAnalysisInterface(object):
         return True, box, resolution
         
     def _partition_hierarchy_3d(self, padding=0.0, rank_ratio = 1):
-        LE, RE = self.pf["DomainLeftEdge"].copy(), self.pf["DomainRightEdge"].copy()
+        LE, RE = self.pf.domain_left_edge.copy(), self.pf.domain_right_edge.copy()
         if not self._distributed:
            return False, LE, RE, self.hierarchy.all_data()
         elif ytcfg.getboolean("yt", "inline"):
@@ -422,7 +422,7 @@ class ParallelAnalysisInterface(object):
         """
         counts = counts.astype('int64')
         if not self._distributed:
-            LE, RE = self.pf["DomainLeftEdge"].copy(), self.pf["DomainRightEdge"].copy()
+            LE, RE = self.pf.domain_left_edge.copy(), self.pf.domain_right_edge.copy()
             return False, LE, RE, self.hierarchy.grid_collection(self.center, self.hierarchy.grids)
         
         # First time through the world is the current group.
@@ -438,7 +438,7 @@ class ParallelAnalysisInterface(object):
         cc[cut[0]] /= cut[1]
         # Set the boundaries of the full bounding box for this group.
         if top_bounds == None:
-            LE, RE = self.pf["DomainLeftEdge"].copy(), self.pf["DomainRightEdge"].copy()
+            LE, RE = self.pf.domain_left_edge.copy(), self.pf.domain_right_edge.copy()
         else:
             LE, RE = top_bounds
 
@@ -508,7 +508,7 @@ class ParallelAnalysisInterface(object):
             self.hierarchy.region_strict(self.center, my_LE, my_RE)
 
     def _partition_hierarchy_3d_weighted_1d(self, weight=None, bins=None, padding=0.0, axis=0, min_sep=.1):
-        LE, RE = self.pf["DomainLeftEdge"].copy(), self.pf["DomainRightEdge"].copy()
+        LE, RE = self.pf.domain_left_edge.copy(), self.pf.domain_right_edge.copy()
         if not self._distributed:
            return False, LE, RE, self.hierarchy.grid_collection(self.center, self.hierarchy.grids)
 
@@ -617,7 +617,7 @@ class ParallelAnalysisInterface(object):
 
 
     def _partition_hierarchy_3d_weighted(self, weight=None, padding=0.0, agg=8.):
-        LE, RE = self.pf["DomainLeftEdge"].copy(), self.pf["DomainRightEdge"].copy()
+        LE, RE = self.pf.domain_left_edge.copy(), self.pf.domain_right_edge.copy()
         if not self._distributed:
            return False, LE, RE, self.hierarchy.grid_collection(self.center, self.hierarchy.grids)
 

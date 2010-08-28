@@ -131,9 +131,9 @@ class AMRHierarchy(ObjectFindingMixin, ParallelAnalysisInterface):
     def all_data(self, find_max=False):
         pf = self.parameter_file
         if find_max: c = self.find_max("Density")[1]
-        else: c = (pf["DomainRightEdge"] + pf["DomainLeftEdge"])/2.0
+        else: c = (pf.domain_right_edge + pf.domain_left_edge)/2.0
         return self.region(c, 
-            pf["DomainLeftEdge"], pf["DomainRightEdge"])
+            pf.domain_left_edge, pf.domain_right_edge)
 
     def clear_all_data(self):
         """
@@ -153,8 +153,8 @@ class AMRHierarchy(ObjectFindingMixin, ParallelAnalysisInterface):
         fn = self.pf.storage_filename
         if fn is None:
             if os.path.isfile(os.path.join(self.directory,
-                                "%s.yt" % self.pf["CurrentTimeIdentifier"])):
-                fn = os.path.join(self.directory,"%s.yt" % self.pf["CurrentTimeIdentifier"])
+                                "%s.yt" % self.pf.unique_identifier)):
+                fn = os.path.join(self.directory,"%s.yt" % self.pf.unique_identifier)
             else:
                 fn = os.path.join(self.directory,
                         "%s.yt" % self.parameter_file.basename)
@@ -356,9 +356,9 @@ class AMRHierarchy(ObjectFindingMixin, ParallelAnalysisInterface):
             print "z = %0.8f" % (self["CosmologyCurrentRedshift"])
         except:
             pass
-        t_s = self.pf["InitialTime"] * self.pf["Time"]
+        t_s = self.pf.current_time * self.pf["Time"]
         print "t = %0.8e = %0.8e s = %0.8e years" % \
-            (self.pf["InitialTime"], \
+            (self.pf.current_time, \
              t_s, t_s / (365*24*3600.0) )
         print "\nSmallest Cell:"
         u=[]

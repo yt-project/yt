@@ -71,13 +71,13 @@ class AMRGridPatch(object):
         if self.start_index != None:
             return self.start_index
         if self.Parent == None:
-            iLE = self.LeftEdge - self.pf["DomainLeftEdge"]
+            iLE = self.LeftEdge - self.pf.domain_left_edge
             start_index = iLE / self.dds
             return na.rint(start_index).astype('int64').ravel()
         pdx = self.Parent.dds
         start_index = (self.Parent.get_global_startindex()) + \
                        na.rint((self.LeftEdge - self.Parent.LeftEdge)/pdx)
-        self.start_index = (start_index*self.pf["RefineBy"]).astype('int64').ravel()
+        self.start_index = (start_index*self.pf.refine_by).astype('int64').ravel()
         return self.start_index
 
 
@@ -195,13 +195,13 @@ class AMRGridPatch(object):
         # that dx=dy=dz , at least here.  We probably do elsewhere.
         id = self.id - self._id_offset
         if self.Parent is not None:
-            self.dds = self.Parent.dds / self.pf["RefineBy"]
+            self.dds = self.Parent.dds / self.pf.refine_by
         else:
             LE, RE = self.hierarchy.grid_left_edge[id,:], \
                      self.hierarchy.grid_right_edge[id,:]
             self.dds = na.array((RE-LE)/self.ActiveDimensions)
-        if self.pf["TopGridRank"] < 2: self.dds[1] = 1.0
-        if self.pf["TopGridRank"] < 3: self.dds[2] = 1.0
+        if self.pf.dimensionality < 2: self.dds[1] = 1.0
+        if self.pf.dimensionality < 3: self.dds[2] = 1.0
         self.data['dx'], self.data['dy'], self.data['dz'] = self.dds
 
     @property
@@ -364,7 +364,7 @@ class AMRGridPatch(object):
 
     #@time_execution
     def __fill_child_mask(self, child, mask, tofill):
-        rf = self.pf["RefineBy"]
+        rf = self.pf.refine_by
         gi, cgi = self.get_global_startindex(), child.get_global_startindex()
         startIndex = na.maximum(0, cgi/rf - gi)
         endIndex = na.minimum( (cgi+child.ActiveDimensions)/rf - gi,
@@ -426,8 +426,8 @@ class AMRGridPatch(object):
         # than the grid by nZones*dx in each direction
         nl = self.get_global_startindex() - n_zones
         nr = nl + self.ActiveDimensions + 2*n_zones
-        new_left_edge = nl * self.dds + self.pf["DomainLeftEdge"]
-        new_right_edge = nr * self.dds + self.pf["DomainLeftEdge"]
+        new_left_edge = nl * self.dds + self.pf.domain_left_edge
+        new_right_edge = nr * self.dds + self.pf.domain_left_edge
         # Something different needs to be done for the root grid, though
         level = self.Level
         if all_levels:

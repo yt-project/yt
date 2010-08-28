@@ -93,7 +93,7 @@ class StarFormationRate(object):
              InitialRedshift = self._pf['CosmologyInitialRedshift'])
         # Find the time right now.
         self.time_now = self.cosm.ComputeTimeFromRedshift(
-            self._pf["CosmologyCurrentRedshift"]) # seconds
+            self._pf.current_redshift) # seconds
         # Build the distribution.
         self.build_dist()
 
@@ -248,7 +248,7 @@ class SpectrumBuilder(object):
              InitialRedshift = self._pf['CosmologyInitialRedshift'])
         # Find the time right now.
         self.time_now = self.cosm.ComputeTimeFromRedshift(
-            self._pf["CosmologyCurrentRedshift"]) # seconds
+            self._pf.current_redshift) # seconds
         
         # Read the tables.
         self.read_bclib()

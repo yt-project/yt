@@ -59,7 +59,7 @@ _speciesMass = {"HI":1.0,"HII":1.0,"Electron":1.0,
 
 def _SpeciesComovingDensity(field, data):
     sp = field.name.split("_")[0] + "_Density"
-    ef = (1.0 + data.pf["CosmologyCurrentRedshift"])**3.0
+    ef = (1.0 + data.pf.current_redshift)**3.0
     return data[sp]/ef
 def _SpeciesFraction(field, data):
     sp = field.name.split("_")[0] + "_Density"
@@ -195,7 +195,7 @@ add_field("NumberDensity", units=r"\rm{cm}^{-3}",
           convert_function=_ConvertNumberDensity)
 
 def _ComovingDensity(field,data):
-    ef = (1.0 + data.pf["CosmologyCurrentRedshift"])**3.0
+    ef = (1.0 + data.pf.current_redshift)**3.0
     return data["Density"]/ef
 add_field("ComovingDensity", function=_ComovingDensity, units=r"\rm{g}/\rm{cm}^3")
 
@@ -369,7 +369,7 @@ def _StarAge(field, data):
     star_age = na.zeros(data['StarCreationTimeYears'].shape)
     with_stars = data['StarCreationTimeYears'] > 0
     star_age[with_stars] = data.pf.time_units['years'] * \
-        data.pf["InitialTime"] - \
+        data.pf.current_time - \
         data['StarCreationTimeYears'][with_stars]
     return star_age
 add_field('StarAgeYears', units=r"\mathrm{yr}",

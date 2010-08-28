@@ -344,7 +344,7 @@ class MergerTree(DatabaseFunctions, ParallelAnalysisInterface):
         self.cursor.execute(line)
         
         mylog.info("Finding likely parents for z=%1.5f child halos." % \
-            child_pf["CosmologyCurrentRedshift"])
+            child_pf.current_redshift)
         
         # Build the kdtree for the children by looping over the fetched rows.
         child_points = []

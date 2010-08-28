@@ -58,13 +58,13 @@ class RAMSESGrid(AMRGridPatch):
         # that dx=dy=dz , at least here.  We probably do elsewhere.
         id = self.id - self._id_offset
         if len(self.Parent) > 0:
-            self.dds = self.Parent[0].dds / self.pf["RefineBy"]
+            self.dds = self.Parent[0].dds / self.pf.refine_by
         else:
             LE, RE = self.hierarchy.grid_left_edge[id,:], \
                      self.hierarchy.grid_right_edge[id,:]
             self.dds = na.array((RE-LE)/self.ActiveDimensions)
-        if self.pf["TopGridRank"] < 2: self.dds[1] = 1.0
-        if self.pf["TopGridRank"] < 3: self.dds[2] = 1.0
+        if self.pf.dimensionality < 2: self.dds[1] = 1.0
+        if self.pf.dimensionality < 3: self.dds[2] = 1.0
         self.data['dx'], self.data['dy'], self.data['dz'] = self.dds
 
     def get_global_startindex(self):
@@ -80,7 +80,7 @@ class RAMSESGrid(AMRGridPatch):
         pdx = self.Parent[0].dds
         start_index = (self.Parent[0].get_global_startindex()) + \
                        na.rint((self.LeftEdge - self.Parent[0].LeftEdge)/pdx)
-        self.start_index = (start_index*self.pf["RefineBy"]).astype('int64').ravel()
+        self.start_index = (start_index*self.pf.refine_by).astype('int64').ravel()
         return self.start_index
 
     def __repr__(self):
@@ -129,8 +129,8 @@ class RAMSESHierarchy(AMRHierarchy):
             ogrid_levels, ogrid_file_locations, ochild_masks)
         # Now we can rescale
         mi, ma = ogrid_left_edge.min(), ogrid_right_edge.max()
-        DL = self.pf["DomainLeftEdge"]
-        DR = self.pf["DomainRightEdge"]
+        DL = self.pf.domain_left_edge
+        DR = self.pf.domain_right_edge
         ogrid_left_edge = (ogrid_left_edge - mi)/(ma - mi) * (DR - DL) + DL
         ogrid_right_edge = (ogrid_right_edge - mi)/(ma - mi) * (DR - DL) + DL
         #import pdb;pdb.set_trace()

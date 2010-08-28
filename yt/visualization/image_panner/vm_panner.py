@@ -65,7 +65,7 @@ class VariableMeshPanner(object):
     @property
     def bounds(self):
         if not hasattr(self, 'pf'): self.pf = self.source.pf
-        DLE, DRE = self.pf["DomainLeftEdge"], self.pf["DomainRightEdge"]
+        DLE, DRE = self.pf.domain_left_edge, self.pf.domain_right_edge
         ax = self.source.axis
         xax, yax = x_dict[ax], y_dict[ax]
         xbounds = DLE[xax], DRE[xax]

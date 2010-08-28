@@ -74,7 +74,7 @@ class EnzoGrid(AMRGridPatch):
         space-filling tiling of grids, possibly due to the finite accuracy in a
         standard Enzo hierarchy file.
         """
-        rf = self.pf["RefineBy"]
+        rf = self.pf.refine_by
         my_ind = self.id - self._id_offset
         le = self.LeftEdge
         self.dds = self.Parent.dds/rf
@@ -170,7 +170,7 @@ class EnzoHierarchy(AMRHierarchy):
             if line.startswith("Grid "):
                 self.num_grids = test_grid_id = int(line.split("=")[-1])
                 break
-        self._guess_data_style(self.pf["TopGridRank"], test_grid, test_grid_id)
+        self._guess_data_style(self.pf.dimensionality, test_grid, test_grid_id)
 
     def _guess_data_style(self, rank, test_grid, test_grid_id):
         if test_grid[0] != os.path.sep:

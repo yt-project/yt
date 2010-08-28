@@ -122,7 +122,7 @@ class MIPScene(GenericGLUTScene):
         GL.glTexImage3D(GL.GL_TEXTURE_3D, 0, GL.GL_LUMINANCE32F_ARB, iz, iy, ix, 0,
                         GL.GL_LUMINANCE, GL.GL_FLOAT, upload)
 
-        DW = self.hv.pf["DomainRightEdge"] - self.hv.pf["DomainLeftEdge"]
+        DW = self.hv.pf.domain_right_edge - self.hv.pf.domain_left_edge
         dds = ((brick.RightEdge - brick.LeftEdge) /
                (na.array([ix,iy,iz], dtype='float32')-1)) / DW
         BLE = brick.LeftEdge / DW - 0.5
