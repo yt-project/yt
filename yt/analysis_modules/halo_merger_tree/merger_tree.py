@@ -30,18 +30,19 @@ import types
 import sqlite3 as sql
 from yt.funcs import *
 
-from yt.utilities.parallel_tools.parallel_analysis_interface import \
-    ParallelDummy, \
-    ParallelAnalysisInterface, \
-    parallel_blocking_call
-from yt.analysis_modules.halo_finding.api import HaloFinder
-import yt.analysis_modules.halo_finding.api as halo_finding
+from yt.analysis_modules.halo_finding.halo_objects import \
+    FOFHaloFinder, HaloFinder
+from yt.analysis_modules.halo_profiler.multi_halo_profiler import \
+    HaloProfiler
 from yt.convenience import load
-import yt.analysis_modules.halo_profiler as HP
 try:
     from yt.utilities.kdtree import *
 except ImportError:
     mylog.debug("The Fortran kD-Tree did not import correctly.")
+from yt.utilities.parallel_tools.parallel_analysis_interface import \
+    ParallelDummy, \
+    ParallelAnalysisInterface, \
+    parallel_blocking_call
 
 
 column_types = {
@@ -202,7 +203,7 @@ class MergerTree(DatabaseFunctions, ParallelAnalysisInterface):
     def _read_halo_lists(self):
         self.halo_lists = []
         for i,file in enumerate(self.halo_files):
-            hp = HP.HaloProfiler(self.restart_files[i], halo_list_file=file)
+            hp = HaloProfiler(self.restart_files[i], halo_list_file=file)
             self.halo_lists.append(hp.all_halos)
 
     def _run_halo_finder_add_to_db(self):
@@ -219,7 +220,7 @@ class MergerTree(DatabaseFunctions, ParallelAnalysisInterface):
                 pass
             else:
                 # Run the halo finder.
-                if self.halo_finder_function == halo_finding.FOFHaloFinder:
+                if self.halo_finder_function == FOFHaloFinder:
                     halos = self.halo_finder_function(pf,
                         link=self.FOF_link_length, dm_only=self.dm_only)
                 else:
@@ -244,8 +245,8 @@ class MergerTree(DatabaseFunctions, ParallelAnalysisInterface):
                 continue
             red = pf.current_redshift
             # Read the halos off the disk using the Halo Profiler tools.
-            hp = HP.HaloProfiler(file, halo_list_file='MergerHalos.out',
-            halo_list_format={'id':0, 'mass':1, 'numpart':2, 'center':[7, 8, 9], 'velocity':[10, 11, 12], 'r_max':13})
+            hp = HaloProfiler(file, halo_list_file='MergerHalos.out',
+                              halo_list_format={'id':0, 'mass':1, 'numpart':2, 'center':[7, 8, 9], 'velocity':[10, 11, 12], 'r_max':13})
             if len(hp.all_halos) == 0:
                 mylog.info("Dataset %s has no halos." % file)
                 self.with_halos[cycle] = False
