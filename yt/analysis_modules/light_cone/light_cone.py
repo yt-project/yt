@@ -29,15 +29,16 @@ import numpy as na
 
 from yt.funcs import *
 
-from yt.config import ytcfg
-
 from yt.analysis_modules.simulation_handler.enzo_simulation \
     import EnzoSimulation
+from yt.config import ytcfg
+from yt.convenience import load
 from yt.utilities.cosmology import Cosmology
-
-from .common_n_volume import commonNVolume
 from yt.visualization.plot_collection import \
     PlotCollection
+
+from .common_n_volume import commonNVolume
+from .light_cone_projection import LightConeProjection
 
 class LightCone(EnzoSimulation):
     def __init__(self, EnzoParameterFile, initial_redshift=1.0, final_redshift=0.0, observer_redshift=0.0,
@@ -151,7 +152,8 @@ class LightCone(EnzoSimulation):
                 z_next = self.light_cone_solution[q+1]['redshift']
 
             # Calculate fraction of box required for a depth of delta z
-            self.light_cone_solution[q]['DepthBoxFraction'] = self.cosmology.ComovingRadialDistance(z_next, self.light_cone_solution[q]['redshift']) * \
+            self.light_cone_solution[q]['DepthBoxFraction'] = \
+                self.cosmology.ComovingRadialDistance(z_next, self.light_cone_solution[q]['redshift']) * \
                 self.enzoParameters['CosmologyHubbleConstantNow'] / self.enzoParameters['CosmologyComovingBoxSize']
 
             # Simple error check to make sure more than 100% of box depth is never required.
@@ -228,7 +230,8 @@ class LightCone(EnzoSimulation):
             del halo_mask_cube
 
     def project_light_cone(self, field, weight_field=None, apply_halo_mask=False, node=None,
-                           save_stack=True, save_slice_images=False, flatten_stack=False, photon_field=False, **kwargs):
+                           save_stack=True, save_slice_images=False, flatten_stack=False, photon_field=False,
+                           add_redshift_label=False, **kwargs):
         """
         Create projections for light cone, then add them together.
         :param weight_field (str): the weight field of the projection.  This has the same meaning as in standard 
