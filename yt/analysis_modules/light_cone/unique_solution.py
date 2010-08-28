@@ -220,5 +220,5 @@ def _write_seed_file(seedList, filename):
         if seed['recycle'] is None:
             f.write("%s\n" % seed['master'])
         else:
-            f.write("%s, %s\n" % (seed['master'], seed['recycle']))
+            f.write("%s,%s\n" % (seed['master'], seed['recycle']))
     f.close()
