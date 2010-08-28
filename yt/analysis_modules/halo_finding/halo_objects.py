@@ -37,11 +37,11 @@ from yt.utilities.performance_counters import \
 
 from .hop.EnzoHop import RunHOP
 from .fof.EnzoFOF import RunFOF
-#try:
-from parallel_hop.parallel_hop_interface import \
-    ParallelHOPHaloFinder
-#except ImportError:
-#    mylog.debug("ParallelHOP not imported.")
+try:
+    from parallel_hop.parallel_hop_interface import \
+        ParallelHOPHaloFinder
+except ImportError:
+    mylog.debug("Parallel HOP not imported.")
 
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     ParallelDummy, \
@@ -1138,7 +1138,7 @@ class parallelHOPHaloList(HaloList,ParallelAnalysisInterface):
             mylog.error("Non-unique values in particle_index field. Parallel HOP will fail.")
             exit = True
         self._mpi_exit_test(exit)
-        obj = RunParallelHOP(self.period, self.padding,
+        obj = ParallelHOPHaloFinder(self.period, self.padding,
             self.num_neighbors, self.bounds,
             self.particle_fields["particle_position_x"],
             self.particle_fields["particle_position_y"],

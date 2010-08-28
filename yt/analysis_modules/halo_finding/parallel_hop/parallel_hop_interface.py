@@ -31,7 +31,8 @@ from yt.funcs import *
 from yt.utilities.performance_counters import yt_counters, time_function
 try:
     from yt.utilities.kdtree import \
-        fKD, find_nn_nearest_neighbors
+        chainHOP_tags_dens, \
+        create_tree, fKD, find_nn_nearest_neighbors
 except ImportError:
     mylog.debug("The Fortran kD-Tree did not import correctly.")
 

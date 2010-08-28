@@ -23,11 +23,15 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
+from collections import defaultdict
+
 import exceptions
+import os
 
 from yt.utilities import hdf5_light_reader
 from yt.utilities.io_handler import \
     BaseIOHandler, _axis_ids
+from yt.utilities.logger import ytLogger as mylog
 
 class IOHandlerEnzoHDF4(BaseIOHandler):
 

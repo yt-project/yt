@@ -23,9 +23,19 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
+import cPickle
+import cStringIO
+import itertools
+import logging
+import numpy as na
+import sys
+
 from yt.funcs import *
-import yt.utilities.logger, logging
-import itertools, sys, cStringIO, cPickle
+
+from yt.config import ytcfg
+from yt.utilities.definitions import \
+    x_dict, y_dict
+import yt.utilities.logger
 
 exe_name = os.path.basename(sys.executable)
 # At import time, we determined whether or not we're being run in parallel.
@@ -53,10 +63,10 @@ if exe_name in \
                 ytcfg["yt","LogFile"] = "False"
                 yt.utilities.logger.disable_file_logging()
         f = logging.Formatter("P%03i %s" % (MPI.COMM_WORLD.rank,
-                                            yt.logger.fstring))
-        yt.logger.rootLogger.handlers[0].setFormatter(f)
+                                            yt.utilities.logger.fstring))
+        yt.utilities.logger.rootLogger.handlers[0].setFormatter(f)
     if ytcfg.getint("yt","LogLevel") < 20:
-        yt.logger.ytLogger.warning(
+        yt.utilities.logger.ytLogger.warning(
           "Log Level is set low -- this could affect parallel performance!")
 else:
     parallel_capable = False
