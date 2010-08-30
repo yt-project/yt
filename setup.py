@@ -55,7 +55,7 @@ def setup_package():
                            'storage' : ['h5py'], 
                            'pdf' : ['pypdf']},
         entry_points = { 'console_scripts' : [
-                            'yt = yt.command_line:run_main',
+                            'yt = yt.utilities.command_line:run_main',
                             'enzo_test = yt.extensions.enzo_test:run_main',
                        ]},
         author="Matthew J. Turk",

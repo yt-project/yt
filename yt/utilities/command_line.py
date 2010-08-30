@@ -25,7 +25,7 @@ License:
 
 from yt.mods import *
 from yt.funcs import *
-import yt.cmdln as cmdln
+import cmdln as cmdln
 import optparse, os, os.path, math, sys, time, subprocess
 
 def _fix_pf(arg):
