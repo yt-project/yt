@@ -33,6 +33,13 @@ cdef extern from "stdlib.h":
     # NOTE that size_t might not be int
     void *alloca(int)
 
+# Idiom for accessing Python files, from Cython FAQ
+# First, declare the Python macro to access files:
+cdef extern from "Python.h":
+    ctypedef struct FILE
+    FILE* PyFile_AsFile(object)
+    void  fprintf(FILE* f, char* s, char* s)
+
 cdef extern from "png.h":
     ctypedef unsigned long png_uint_32
     ctypedef long png_int_32
@@ -98,6 +105,54 @@ cdef extern from "png.h":
 
     void png_destroy_write_struct(
         png_structp *png_ptr_ptr, png_infop *info_ptr_ptr)
+
+def write_png_to_file(np.ndarray[np.uint8_t, ndim=3] buffer,
+                      object py_fileobj, int dpi=100,
+                      int close = 0):
+
+    # This is something of a translation of the matplotlib _png module
+    cdef png_byte *pix_buffer = <png_byte *> buffer.data
+    cdef int width = buffer.shape[1]
+    cdef int height = buffer.shape[0]
+    cdef FILE *fileobj = PyFile_AsFile(py_fileobj)
+
+    cdef png_bytep *row_pointers
+    cdef png_structp png_ptr
+    cdef png_infop info_ptr
+
+    cdef png_color_8 sig_bit
+    cdef png_uint_32 row
+
+    row_pointers = <png_bytep *> alloca(sizeof(png_bytep) * height)
+
+    for row in range(height):
+        row_pointers[row] = pix_buffer + row * width * 4
+    png_ptr = png_create_write_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL)
+    info_ptr = png_create_info_struct(png_ptr)
+    
+    # Um we are ignoring setjmp sorry guys
+
+    png_init_io(png_ptr, fileobj)
+
+    png_set_IHDR(png_ptr, info_ptr, width, height, 8,
+                 PNG_COLOR_TYPE_RGB_ALPHA, PNG_INTERLACE_NONE,
+                 PNG_COMPRESSION_TYPE_BASE, PNG_FILTER_TYPE_BASE)
+
+    cdef size_t dots_per_meter = <size_t> (dpi / (2.54 / 100.0))
+    png_set_pHYs(png_ptr, info_ptr, dots_per_meter, dots_per_meter,
+                 PNG_RESOLUTION_METER)
+
+    sig_bit.gray = 0
+    sig_bit.red = sig_bit.green = sig_bit.blue = sig_bit.alpha = 8
+
+    png_set_sBIT(png_ptr, info_ptr, &sig_bit)
+
+    png_write_info(png_ptr, info_ptr)
+    png_write_image(png_ptr, row_pointers)
+    png_write_end(png_ptr, info_ptr)
+
+    if close == 1: fclose(fileobj)
+    png_destroy_write_struct(&png_ptr, &info_ptr)
 
 def write_png(np.ndarray[np.uint8_t, ndim=3] buffer,
               char *filename, int dpi=100):

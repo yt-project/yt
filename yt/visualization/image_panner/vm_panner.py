@@ -23,9 +23,12 @@ License:
 
 import numpy as na
 import types, os
-from yt.raven import FixedResolutionBuffer, ObliqueFixedResolutionBuffer
-from yt.lagos import data_object_registry, AMRProjBase, AMRSliceBase, \
-                     x_dict, y_dict
+from yt.visualization.fixed_resolution import \
+    FixedResolutionBuffer, ObliqueFixedResolutionBuffer
+from yt.data_objects.data_containers import \
+    data_object_registry, AMRProjBase, AMRSliceBase
+from yt.utilities.definitions import \
+    x_dict, y_dict
 from yt.funcs import *
 
 class VariableMeshPanner(object):
