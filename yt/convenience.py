@@ -24,16 +24,14 @@ License:
 """
 
 import glob
+import numpy as na
+import os, os.path, inspect, types
+from functools import wraps
 
 # Named imports
-import yt.lagos as lagos
-import yt.raven as raven
 from yt.funcs import *
-import numpy as na
-import os.path, inspect, types
-from functools import wraps
-from yt.logger import ytLogger as mylog
-from yt.fido import output_type_registry
+from yt.utilities.parameter_file_storage import \
+    output_type_registry
 
 def all_pfs(max_depth=1, name_spec="*.hierarchy", **kwargs):
     """
@@ -48,12 +46,12 @@ def all_pfs(max_depth=1, name_spec="*.hierarchy", **kwargs):
         list_of_names += glob.glob(os.path.join(*bb))
     list_of_names.sort(key=lambda b: os.path.basename(b))
     for fn in list_of_names:
-        yield lagos.EnzoStaticOutput(fn[:-10], **kwargs)
+        yield load(fn[:-10], **kwargs)
 
 def max_spheres(width, unit, **kwargs):
     """
     This calls :func:`~yt.convenience.all_pfs` and then for each parameter file
-    creates a :class:`~yt.lagos.AMRSphereBase` for each one,
+    creates a :class:`~yt.data_objects.api.AMRSphereBase` for each one,
     centered on the point of highest density, with radius *width* in units of
     *unit*.
     """
@@ -65,9 +63,9 @@ def load(*args ,**kwargs):
     """
     This function attempts to determine the base data type of a filename or
     other set of arguments by calling
-    :meth:`yt.lagos.StaticOutput._is_valid` until it finds a
+    :meth:`yt.data_objects.api.StaticOutput._is_valid` until it finds a
     match, at which point it returns an instance of the appropriate
-    :class:`yt.lagos.StaticOutput` subclass.
+    :class:`yt.data_objects.api.StaticOutput` subclass.
     """
     candidates = []
     for n, c in output_type_registry.items():

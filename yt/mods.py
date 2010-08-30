@@ -24,68 +24,60 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
+from __future__ import absolute_import
+
 #
 # ALL IMPORTS GO HERE
 #
 
 # First module imports
-import yt.lagos as lagos
-import yt.raven as raven
-import yt.fido as fido
 import numpy as na
-# We do a bunch of standard imports
 import sys, types, os, glob, cPickle
-from logger import ytLogger as mylog
-from performance_counters import yt_counters, time_function
 
-# Now individual component imports from lagos
-from yt.lagos import \
-    EnzoStaticOutput, OrionStaticOutput, TigerStaticOutput, \
-    FLASHStaticOutput, \
+from yt.funcs import *
+from yt.utilities.logger import ytLogger as mylog
+from yt.utilities.performance_counters import yt_counters, time_function
+
+from yt.data_objects.api import \
     BinnedProfile1D, BinnedProfile2D, BinnedProfile3D, \
-    derived_field, \
-    add_field, FieldInfo, EnzoFieldInfo, Enzo2DFieldInfo, OrionFieldInfo, \
-    GadgetFieldInfo, TigerFieldInfo, ChomboFieldInfo, FLASHFieldInfo, \
-    Clump, write_clump_hierarchy, find_clumps, write_clumps, \
-    get_lowest_clumps, \
-    HaloFinder, HOPHaloFinder, FOFHaloFinder, parallelHF, \
-    axis_names, x_dict, y_dict, TwoPointFunctions, FcnSet
+    data_object_registry, \
+    derived_field, add_field, FieldInfo, \
+    ValidateParameter, ValidateDataField, ValidateProperty, \
+    ValidateSpatial, ValidateGridType
 
-# This is a temporary solution -- in the future, we will allow the user to
-# select this via ytcfg.
+from yt.frontends.enzo.api import \
+    EnzoStaticOutput, EnzoStaticOutputInMemory, EnzoFieldInfo, \
+    add_enzo_field, add_enzo_1d_field, add_enzo_2d_field
 
-fieldInfo = EnzoFieldInfo
+from yt.frontends.orion.api import \
+    OrionStaticOutput, OrionFieldInfo, add_orion_field
 
-# Now individual component imports from raven
-from yt.raven import PlotCollection, PlotCollectionInteractive, \
-        get_multi_plot, FixedResolutionBuffer, ObliqueFixedResolutionBuffer, \
-        AnnuliProfiler
-from yt.raven.Callbacks import callback_registry
+from yt.frontends.flash.api import \
+    FLASHStaticOutput, FLASHFieldInfo, add_flash_field
+
+from yt.frontends.tiger.api import \
+    TigerStaticOutput, TigerFieldInfo, add_tiger_field
+
+from yt.frontends.ramses.api import \
+    RAMSESStaticOutput, RAMSESFieldInfo, add_ramses_field
+
+from yt.frontends.chombo.api import \
+    ChomboStaticOutput, ChomboFieldInfo, add_chombo_field
+
+# Import our analysis modules
+#import yt.analysis_modules.api as analysis
+from yt.analysis_modules.halo_finding.api import \
+    HaloFinder
+
+from yt.utilities.definitions import \
+    axis_names, x_dict, y_dict
+
+# Now individual component imports from the visualization API
+from yt.visualization.api import \
+    PlotCollection, PlotCollectionInteractive, \
+    get_multi_plot, FixedResolutionBuffer, ObliqueFixedResolutionBuffer, \
+    callback_registry
 for name, cls in callback_registry.items():
     exec("%s = cls" % name)
 
-# Optional component imports from raven
-try:
-    from yt.raven import VolumeRenderingDataCube, \
-        VolumeRendering3DProfile, HaloMassesPositionPlot
-except ImportError:
-    pass
-
-import yt.raven.PlotInterface as plots
-
-# Individual imports from Fido
-from yt.fido import GrabCollections, OutputCollection
-
-import yt.funcs
-
 from yt.convenience import all_pfs, max_spheres, load, projload
-
-# Some convenience functions to ease our time running scripts
-# from the command line
-
-def get_pf():
-    return EnzoStaticOutput(sys.argv[-1])
-
-def get_pc():
-    return PlotCollection(EnzoStaticOutput(sys.argv[-1]))
-
