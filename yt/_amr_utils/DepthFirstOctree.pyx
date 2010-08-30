@@ -77,15 +77,15 @@ def RecurseOctreeDepthFirst(int i_i, int j_i, int k_i,
     cdef np.float64_t child_dx
     cdef np.ndarray[np.float64_t, ndim=1] child_leftedges
     cdef np.float64_t cx, cy, cz
-    for k_off in range(k_f):
-        k = k_off + k_i
-        cz = (leftedges[2] + k*dx)
+    for i_off in range(i_f):
+        i = i_off + i_i
+        cx = (leftedges[0] + i*dx)
         for j_off in range(j_f):
             j = j_off + j_i
             cy = (leftedges[1] + j*dx)
-            for i_off in range(i_f):
-                i = i_off + i_i
-                cx = (leftedges[0] + i*dx)
+            for k_off in range(k_f):
+                k = k_off + k_i
+                cz = (leftedges[2] + k*dx)
                 ci = grid.child_indices[i,j,k]
                 if ci == -1:
                     for fi in range(fields.shape[0]):

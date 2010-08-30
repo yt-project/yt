@@ -1,11 +1,11 @@
 """
-This is a definition of a class for defining problem verification.
+The components of the Enzo testing mechanism
 
 Author: Matthew Turk <matthewturk@gmail.com>
-Affiliation: KIPAC/SLAC/Stanford
+Affiliation: UCSD
 Homepage: http://yt.enzotools.org/
 License:
-  Copyright (C) 2007-2009 Matthew Turk.  All Rights Reserved.
+  Copyright (C) 2010 Matthew Turk.  All Rights Reserved.
 
   This file is part of yt.
 
@@ -23,7 +23,8 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-from ProblemVerification import *
-from DataProviders import *
-from SimulationTests import *
-from ProblemSetup import *
+import runner, output_tests
+from runner import RegressionTestRunner, run_main
+
+from output_tests import RegressionTest, SingleOutputTest, \
+    MultipleOutputTest, YTStaticOutputTest, create_test

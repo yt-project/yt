@@ -25,9 +25,20 @@ License:
 
 from yt.lagos import *
 from yt.funcs import *
-import string, re, gc, time
-import cPickle
+import string, re, gc, time, cPickle, pdb
 from itertools import chain, izip
+try:
+    import yt.ramses_reader as ramses_reader
+except ImportError:
+    mylog.warning("Ramses Reader not imported")
+
+def num_deep_inc(f):
+    def wrap(self, *args, **kwargs):
+        self.num_deep += 1
+        rv = f(self, *args, **kwargs)
+        self.num_deep -= 1
+        return rv
+    return wrap
 
 class AMRHierarchy(ObjectFindingMixin, ParallelAnalysisInterface):
     float_type = 'float64'
@@ -144,21 +155,32 @@ class AMRHierarchy(ObjectFindingMixin, ParallelAnalysisInterface):
                 fn = os.path.join(self.directory,
                         "%s.yt" % self.parameter_file.basename)
         dir_to_check = os.path.dirname(fn)
-        if os.path.isfile(fn):
-            writable = os.access(fn, os.W_OK)
+        # We have four options:
+        #    Writeable, does not exist      : create, open as append
+        #    Writeable, does exist          : open as append
+        #    Not writeable, does not exist  : do not attempt to open
+        #    Not writeable, does exist      : open as read-only
+        exists = os.path.isfile(fn)
+        if not exists:
+            writeable = os.access(dir_to_check, os.W_OK)
         else:
-            writable = os.access(dir_to_check, os.W_OK)
-        if ytcfg.getboolean('lagos','onlydeserialize') or not writable:
-            self._data_mode = mode = 'r'
+            writeable = os.access(fn, os.W_OK)
+        writeable = writeable and not ytcfg.getboolean('lagos','onlydeserialize')
+        # We now have our conditional stuff
+        self._barrier()
+        if not writeable and not exists: return
+        if writeable:
+            self._data_mode = 'a'
+            if not exists: self.__create_data_file(fn)
         else:
-            self._data_mode = mode = 'a'
+            self._data_mode = 'r'
 
-        self.__create_data_file(fn)
         self.__data_filename = fn
         self._data_file = h5py.File(fn, self._data_mode)
 
-    @parallel_root_only
     def __create_data_file(self, fn):
+        # Note that this used to be parallel_root_only; it no longer is,
+        # because we have better logic to decide who owns the file.
         f = h5py.File(fn, 'a')
         f.close()
 
@@ -1181,7 +1203,116 @@ class OrionLevel:
     
 
 class GadgetHierarchy(AMRHierarchy):
+    grid = GadgetGrid
 
+    def __init__(self, pf, data_style='gadget_hdf5'):
+        self.field_info = GadgetFieldContainer()
+        self.directory = os.path.dirname(pf.parameter_filename)
+        self.data_style = data_style
+        self._handle = h5py.File(pf.parameter_filename)
+        AMRHierarchy.__init__(self, pf, data_style)
+        self._handle.close()
+
+    def _initialize_data_storage(self):
+        pass
+
+    def _detect_fields(self):
+        #example string:
+        #"(S'VEL'\np1\nS'ID'\np2\nS'MASS'\np3\ntp4\n."
+        #fields are surrounded with '
+        fields_string=self._handle['root'].attrs['fieldnames']
+        #splits=fields_string.split("'")
+        #pick out the odd fields
+        #fields= [splits[j] for j in range(1,len(splits),2)]
+        self.field_list = cPickle.loads(fields_string)
+    
+    def _setup_classes(self):
+        dd = self._get_data_reader_dict()
+        AMRHierarchy._setup_classes(self, dd)
+        self.object_types.sort()
+
+    def _count_grids(self):
+        fh = self._handle #shortcut
+        #nodes in the hdf5 file are the same as grids
+        #in yt
+        #the num of levels and total nodes is already saved
+        self._levels   = self.pf._get_param('maxlevel')
+        self.num_grids = self.pf._get_param('numnodes')
+        
+    def _parse_hierarchy(self):
+        #for every box, define a self.grid(level,edge1,edge2) 
+        #with particle counts, dimensions
+        f = self._handle #shortcut
+        
+        root = f['root']
+        grids,numnodes = self._walk_nodes(None,root,[])
+        dims = [self.pf.max_grid_size for grid in grids]
+        LE = [grid.LeftEdge for grid in grids]
+        RE = [grid.RightEdge for grid in grids]
+        levels = [grid.Level for grid in grids]
+        counts = [(grid.N if grid.IsLeaf else 0) for grid in grids]
+        self.grids = na.array(grids,dtype='object')
+        self.grid_dimensions[:] = na.array(dims, dtype='int64')
+        self.grid_left_edge[:] = na.array(LE, dtype='float64')
+        self.grid_right_edge[:] = na.array(RE, dtype='float64')
+        self.grid_levels.flat[:] = na.array(levels, dtype='int32')
+        self.grid_particle_count.flat[:] = na.array(counts, dtype='int32')
+            
+    def _walk_nodes(self,parent,node,grids,idx=0):
+        pi = cPickle.loads
+        loc = node.attrs['h5address']
+        
+        kwargs = {}
+        kwargs['Address'] = loc
+        kwargs['Parent'] = parent
+        kwargs['Axis']  = self.pf._get_param('divideaxis',location=loc)
+        kwargs['Level']  = self.pf._get_param('level',location=loc)
+        kwargs['LeftEdge'] = self.pf._get_param('leftedge',location=loc) 
+        kwargs['RightEdge'] = self.pf._get_param('rightedge',location=loc)
+        kwargs['IsLeaf'] = self.pf._get_param('isleaf',location=loc)
+        kwargs['N'] = self.pf._get_param('n',location=loc)
+        kwargs['NumberOfParticles'] = self.pf._get_param('n',location=loc)
+        dx = self.pf._get_param('dx',location=loc)
+        dy = self.pf._get_param('dy',location=loc)
+        dz = self.pf._get_param('dz',location=loc)
+        divdims = na.array([1,1,1])
+        if not kwargs['IsLeaf']: 
+            divdims[kwargs['Axis']] = 2
+        kwargs['ActiveDimensions'] = divdims
+        #Active dimensions:
+        #This is the number of childnodes, along with dimensiolaity
+        #ie, binary tree can be (2,1,1) but octree is (2,2,2)
+        
+        idx+=1
+        #pdb.set_trace()
+        children = []
+        if not kwargs['IsLeaf']:
+            for child in node.values():
+                children,idx=self._walk_nodes(node,child,children,idx=idx)
+        
+        kwargs['Children'] = children
+        grid = self.grid(idx,self.pf.parameter_filename,self,**kwargs)
+        grids += children
+        grids += [grid,]
+        return grids,idx
+
+    def _populate_grid_objects(self):
+        for g in self.grids:
+            g._prepare_grid()
+        self.max_level = cPickle.loads(self._handle['root'].attrs['maxlevel'])
+    
+    def _setup_unknown_fields(self):
+        pass
+
+    def _setup_derived_fields(self):
+        self.derived_field_list = []
+
+    def _get_grid_children(self, grid):
+        #given a grid, use it's address to find subchildren
+        pass
+
+class GadgetHierarchyOld(AMRHierarchy):
+    #Kept here to compare for the time being
     grid = GadgetGrid
 
     def __init__(self, pf, data_style):
@@ -1401,3 +1532,332 @@ class TigerHierarchy(AMRHierarchy):
 
     def _setup_derived_fields(self):
         self.derived_field_list = []
+
+class FLASHHierarchy(AMRHierarchy):
+
+    grid = FLASHGrid
+    _handle = None
+    
+    def __init__(self,pf,data_style='chombo_hdf5'):
+        self.data_style = data_style
+        self.field_info = FLASHFieldContainer()
+        self.field_indexes = {}
+        self.parameter_file = weakref.proxy(pf)
+        # for now, the hierarchy file is the parameter file!
+        self.hierarchy_filename = self.parameter_file.parameter_filename
+        self.directory = os.path.dirname(self.hierarchy_filename)
+        self._handle = h5py.File(self.hierarchy_filename)
+
+        self.float_type = na.float64
+        AMRHierarchy.__init__(self,pf,data_style)
+
+        self._handle.close()
+        self._handle = None
+
+    def _initialize_data_storage(self):
+        pass
+
+    def _detect_fields(self):
+        ncomp = self._handle["/unknown names"].shape[0]
+        self.field_list = [s.strip() for s in self._handle["/unknown names"][:].flat]
+    
+    def _setup_classes(self):
+        dd = self._get_data_reader_dict()
+        AMRHierarchy._setup_classes(self, dd)
+        self.object_types.sort()
+
+    def _count_grids(self):
+        try:
+            self.num_grids = self.parameter_file._find_parameter(
+                "integer", "globalnumblocks", True, self._handle)
+        except KeyError:
+            self.num_grids = self._handle["/simulation parameters"][0][0]
+        
+    def _parse_hierarchy(self):
+        f = self._handle # shortcut
+        pf = self.parameter_file # shortcut
+        
+        self.grid_left_edge[:] = f["/bounding box"][:,:,0]
+        self.grid_right_edge[:] = f["/bounding box"][:,:,1]
+        # Move this to the parameter file
+        try:
+            nxb = pf._find_parameter("integer", "nxb", True, f)
+            nyb = pf._find_parameter("integer", "nyb", True, f)
+            nzb = pf._find_parameter("integer", "nzb", True, f)
+        except KeyError:
+            nxb, nyb, nzb = [int(f["/simulation parameters"]['n%sb' % ax])
+                              for ax in 'xyz']
+        self.grid_dimensions[:] *= (nxb, nyb, nzb)
+        # particle count will need to be fixed somehow:
+        #   by getting access to the particle file we can get the number of
+        #   particles in each brick.  but how do we handle accessing the
+        #   particle file?
+
+        # This will become redundant, as _prepare_grid will reset it to its
+        # current value.  Note that FLASH uses 1-based indexing for refinement
+        # levels, but we do not, so we reduce the level by 1.
+        self.grid_levels.flat[:] = f["/refine level"][:][:] - 1
+        g = [self.grid(i+1, self, self.grid_levels[i,0])
+                for i in xrange(self.num_grids)]
+        self.grids = na.array(g, dtype='object')
+
+    def _populate_grid_objects(self):
+        # We only handle 3D data, so offset is 7 (nfaces+1)
+        
+        offset = 7
+        ii = na.argsort(self.grid_levels.flat)
+        gid = self._handle["/gid"][:]
+        for g in self.grids[ii].flat:
+            gi = g.id - g._id_offset
+            # FLASH uses 1-indexed group info
+            g.Children = [self.grids[i - 1] for i in gid[gi,7:] if i > -1]
+            for g1 in g.Children:
+                g1.Parent = g
+            g._prepare_grid()
+            g._setup_dx()
+        self.max_level = self.grid_levels.max()
+
+    def _setup_unknown_fields(self):
+        for field in self.field_list:
+            if field in self.parameter_file.field_info: continue
+            mylog.info("Adding %s to list of fields", field)
+            cf = None
+            if self.parameter_file.has_key(field):
+                def external_wrapper(f):
+                    def _convert_function(data):
+                        return data.convert(f)
+                    return _convert_function
+                cf = external_wrapper(field)
+            add_field(field, lambda a, b: None,
+                      convert_function=cf, take_log=False)
+
+    def _setup_derived_fields(self):
+        self.derived_field_list = []
+
+class RAMSESHierarchy(AMRHierarchy):
+
+    grid = RAMSESGrid
+    _handle = None
+    
+    def __init__(self,pf,data_style='ramses'):
+        self.data_style = data_style
+        self.field_info = RAMSESFieldContainer()
+        self.parameter_file = weakref.proxy(pf)
+        # for now, the hierarchy file is the parameter file!
+        self.hierarchy_filename = self.parameter_file.parameter_filename
+        self.directory = os.path.dirname(self.hierarchy_filename)
+        self.tree_proxy = pf.ramses_tree
+
+        self.float_type = na.float64
+        AMRHierarchy.__init__(self,pf,data_style)
+
+    def _initialize_data_storage(self):
+        pass
+
+    def _detect_fields(self):
+        self.field_list = self.tree_proxy.field_names[:]
+    
+    def _setup_classes(self):
+        dd = self._get_data_reader_dict()
+        AMRHierarchy._setup_classes(self, dd)
+        self.object_types.sort()
+
+    def _count_grids(self):
+        # We have to do all the patch-coalescing here.
+        level_info = self.tree_proxy.count_zones()
+        num_ogrids = sum(level_info)
+        ogrid_left_edge = na.zeros((num_ogrids,3), dtype='float64')
+        ogrid_right_edge = na.zeros((num_ogrids,3), dtype='float64')
+        ogrid_levels = na.zeros((num_ogrids,1), dtype='int32')
+        ogrid_file_locations = na.zeros((num_ogrids,6), dtype='int64')
+        ochild_masks = na.zeros((num_ogrids, 8), dtype='int32')
+        self.tree_proxy.fill_hierarchy_arrays(
+            self.pf["TopGridDimensions"],
+            ogrid_left_edge, ogrid_right_edge,
+            ogrid_levels, ogrid_file_locations, ochild_masks)
+        # Now we can rescale
+        mi, ma = ogrid_left_edge.min(), ogrid_right_edge.max()
+        DL = self.pf["DomainLeftEdge"]
+        DR = self.pf["DomainRightEdge"]
+        ogrid_left_edge = (ogrid_left_edge - mi)/(ma - mi) * (DR - DL) + DL
+        ogrid_right_edge = (ogrid_right_edge - mi)/(ma - mi) * (DR - DL) + DL
+        #import pdb;pdb.set_trace()
+        # We now have enough information to run the patch coalescing 
+        self.proto_grids = []
+        for level in xrange(len(level_info)):
+            if level_info[level] == 0: continue
+            ggi = (ogrid_levels == level).ravel()
+            mylog.info("Re-gridding level %s: %s octree grids", level, ggi.sum())
+            nd = self.pf["TopGridDimensions"] * 2**level
+            dims = na.ones((ggi.sum(), 3), dtype='int64') * 2
+            fl = ogrid_file_locations[ggi,:]
+            # Now our initial protosubgrid
+            #if level == 6: raise RuntimeError
+            # We want grids that cover no more than MAX_EDGE cells in every direction
+            MAX_EDGE = 128
+            psgs = []
+            left_index = na.rint((ogrid_left_edge[ggi,:]) * nd).astype('int64')
+            right_index = left_index + 2
+            lefts = [na.mgrid[0:nd[i]:MAX_EDGE] for i in range(3)]
+            #lefts = zip(*[l.ravel() for l in lefts])
+            pbar = get_pbar("Re-gridding ", lefts[0].size)
+            min_ind = na.min(left_index, axis=0)
+            max_ind = na.max(right_index, axis=0)
+            for i,dli in enumerate(lefts[0]):
+                pbar.update(i)
+                if min_ind[0] > dli + nd[0]: continue
+                if max_ind[0] < dli: continue
+                idim = min(nd[0] - dli, MAX_EDGE)
+                gdi = ((dli  <= right_index[:,0])
+                     & (dli + idim >= left_index[:,0]))
+                if not na.any(gdi): continue
+                for dlj in lefts[1]:
+                    if min_ind[1] > dlj + nd[1]: continue
+                    if max_ind[1] < dlj: continue
+                    idim = min(nd[1] - dlj, MAX_EDGE)
+                    gdj = ((dlj  <= right_index[:,1])
+                         & (dlj + idim >= left_index[:,1])
+                         & (gdi))
+                    if not na.any(gdj): continue
+                    for dlk in lefts[2]:
+                        if min_ind[2] > dlk + nd[2]: continue
+                        if max_ind[2] < dlk: continue
+                        idim = min(nd[2] - dlk, MAX_EDGE)
+                        gdk = ((dlk  <= right_index[:,2])
+                             & (dlk + idim >= left_index[:,2])
+                             & (gdj))
+                        if not na.any(gdk): continue
+                        left = na.array([dli, dlj, dlk])
+                        domain_left = left.ravel()
+                        initial_left = na.zeros(3, dtype='int64') + domain_left
+                        idims = na.ones(3, dtype='int64') * na.minimum(nd - domain_left, MAX_EDGE)
+                        # We want to find how many grids are inside.
+                        dleft_index = left_index[gdk,:]
+                        dright_index = right_index[gdk,:]
+                        ddims = dims[gdk,:]
+                        dfl = fl[gdk,:]
+                        psg = ramses_reader.ProtoSubgrid(initial_left, idims,
+                                        dleft_index, dright_index, ddims, dfl)
+                        #print "Gridding from %s to %s + %s" % (
+                        #    initial_left, initial_left, idims)
+                        if psg.efficiency <= 0: continue
+                        self.num_deep = 0
+                        psgs.extend(self._recursive_patch_splitting(
+                            psg, idims, initial_left, 
+                            dleft_index, dright_index, ddims, dfl))
+                        #psgs.extend([psg])
+            pbar.finish()
+            self.proto_grids.append(psgs)
+            sums = na.zeros(3, dtype='int64')
+            mylog.info("Final grid count: %s", len(self.proto_grids[level]))
+            if len(self.proto_grids[level]) == 1: continue
+            for g in self.proto_grids[level]:
+                sums += [s.sum() for s in g.sigs]
+            assert(na.all(sums == dims.prod(axis=1).sum()))
+        self.num_grids = sum(len(l) for l in self.proto_grids)
+
+    num_deep = 0
+
+    @num_deep_inc
+    def _recursive_patch_splitting(self, psg, dims, ind,
+            left_index, right_index, gdims, fl):
+        min_eff = 0.1 # This isn't always respected.
+        if self.num_deep > 40:
+            # If we've recursed more than 100 times, we give up.
+            psg.efficiency = min_eff
+            return [psg]
+        if psg.efficiency > min_eff or psg.efficiency < 0.0:
+            return [psg]
+        tt, ax, fp = psg.find_split()
+        if (fp % 2) != 0:
+            if dims[ax] != fp + 1:
+                fp += 1
+            else:
+                fp -= 1
+        #print " " * self.num_deep + "Got ax", ax, "fp", fp
+        dims_l = dims.copy()
+        dims_l[ax] = fp
+        li_l = ind.copy()
+        if na.any(dims_l <= 0): return [psg]
+        L = ramses_reader.ProtoSubgrid(
+                li_l, dims_l, left_index, right_index, gdims, fl)
+        #print " " * self.num_deep + "L", tt, L.efficiency
+        if L.efficiency > 1.0: raise RuntimeError
+        if L.efficiency <= 0.0: L = []
+        elif L.efficiency < min_eff:
+            L = self._recursive_patch_splitting(L, dims_l, li_l,
+                    left_index, right_index, gdims, fl)
+        else:
+            L = [L]
+        dims_r = dims.copy()
+        dims_r[ax] -= fp
+        li_r = ind.copy()
+        li_r[ax] += fp
+        if na.any(dims_r <= 0): return [psg]
+        R = ramses_reader.ProtoSubgrid(
+                li_r, dims_r, left_index, right_index, gdims, fl)
+        #print " " * self.num_deep + "R", tt, R.efficiency
+        if R.efficiency > 1.0: raise RuntimeError
+        if R.efficiency <= 0.0: R = []
+        elif R.efficiency < min_eff:
+            R = self._recursive_patch_splitting(R, dims_r, li_r,
+                    left_index, right_index, gdims, fl)
+        else:
+            R = [R]
+        return L + R
+        
+    def _parse_hierarchy(self):
+        # We have important work to do
+        grids = []
+        gi = 0
+        for level, grid_list in enumerate(self.proto_grids):
+            for g in grid_list:
+                fl = g.grid_file_locations
+                props = g.get_properties()
+                self.grid_left_edge[gi,:] = props[0,:] / (2.0**(level+1))
+                self.grid_right_edge[gi,:] = props[1,:] / (2.0**(level+1))
+                self.grid_dimensions[gi,:] = props[2,:]
+                self.grid_levels[gi,:] = level
+                grids.append(self.grid(gi, self, level, fl, props[0,:]))
+                gi += 1
+        self.grids = na.array(grids, dtype='object')
+
+    def _get_grid_parents(self, grid, LE, RE):
+        mask = na.zeros(self.num_grids, dtype='bool')
+        grids, grid_ind = self.get_box_grids(LE, RE)
+        mask[grid_ind] = True
+        mask = na.logical_and(mask, (self.grid_levels == (grid.Level-1)).flat)
+        return self.grids[mask]
+
+    def _populate_grid_objects(self):
+        for gi,g in enumerate(self.grids):
+            parents = self._get_grid_parents(g,
+                            self.grid_left_edge[gi,:],
+                            self.grid_right_edge[gi,:])
+            if len(parents) > 0:
+                g.Parent.extend(parents.tolist())
+                for p in parents: p.Children.append(g)
+            g._prepare_grid()
+            g._setup_dx()
+        self.max_level = self.grid_levels.max()
+
+    def _setup_unknown_fields(self):
+        for field in self.field_list:
+            if field in self.parameter_file.field_info: continue
+            mylog.info("Adding %s to list of fields", field)
+            cf = None
+            if self.parameter_file.has_key(field):
+                def external_wrapper(f):
+                    def _convert_function(data):
+                        return data.convert(f)
+                    return _convert_function
+                cf = external_wrapper(field)
+            add_field(field, lambda a, b: None,
+                      convert_function=cf, take_log=False)
+
+    def _setup_derived_fields(self):
+        self.derived_field_list = []
+
+    def _setup_data_io(self):
+        self.io = io_registry[self.data_style](self.tree_proxy)
+

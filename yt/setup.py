@@ -2,6 +2,9 @@
 import setuptools
 import os, sys
 
+def check_for_ramses():
+    return os.environ.get("RAMSES", None)
+
 def check_for_png():
     # First up: HDF5_DIR in environment
     if "PNG_DIR" in os.environ:
@@ -73,6 +76,9 @@ def configuration(parent_package='', top_path=None):
         include_dirs=["yt/_amr_utils/", png_inc],
         library_dirs=[png_lib],
         libraries=["m", "png"])
+    config.add_extension("ramses_reader",
+        ["yt/ramses_reader.cpp"],
+        include_dirs=["yt/ramses_headers/"])
     config.make_config_py()
     config.make_svn_version_py()
     return config

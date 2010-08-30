@@ -1,0 +1,275 @@
+Enzo Regression Test Runner
+===========================
+
+This is an evolving sketch of how Enzo regression tests might work.  They will
+be based on a python test runner, called from LCA test, that will output images
+as well as success/failure for a set of tests.
+
+The interface is still evolving, but we're working on both creating something
+fun, easy to write tests for, and clear.
+
+This is still a work in progress!  Things might change without notice!
+
+What Is A Test And How To Write One
+-----------------------------------
+
+A test at its most fundamental level makes some value from one or multiple
+outputs from a simulation and then compares those outputs to the outputs from
+some previous simulation.
+
+Each test follows a fixed interface, but we're trying to provide a couple
+mechanisms to make test writing easier.  To implement a test, you have to
+define a python class that subclasses from a particular type of test case.
+
+Your new test must implement the following interface, or it will fail:
+
+    name
+        All tests have to have the variable "name" defined in the class
+        definition.  This is a unique key that identifies the test, and it is
+        used to self-register every test in a global registry.  This will play
+        into filenames, so it's for the best if it doesn't contain spaces or
+        other unacceptable filename characters.
+
+    setup(self)
+        If you subclass from the YT test case or another test case base
+        class that implements setup, this may not be necessary.  This is
+        where all the pre-testing operation occurs, and is useful if you
+        want to write a bunch of tests that have the same setup.  Not return
+        value is needed.
+
+    run(self)
+        This is where the testing occurs and some value generated -- this value
+        can be an array, a number, a string, any Python or NumPy base type.
+        (For various reasons, YT objects can't be considered results, only
+        their base components.)  When this value is prepared, it needs to be
+        stored as the property "result" on the object -- for example, you might
+        do self.result = some_time_average .  No return value is needed.
+
+    compare(self, old_result)
+        This routine compares an existing result against the value computed
+        from a previous run.  It can be assumed that the "old_result" was
+        constructed in an identical "run" function, so direct comparison can be
+        made.  No return value is needed, but instead it is assumed that in
+        case of failure an exception that subclasses from
+        RegressionTestException will be raised -- however, the usage of
+        operations like compare_array_delta and compare_value_delta is
+        encouraged because they will handle the appropriate exception raising.
+
+    plot(self)
+        This function is optional, but it is used to generate an image from a
+        test.  The return value is the filename of the created image.
+
+Helpful Functions For Test Writing
+----------------------------------
+
+All test cases supply several base sets of operations:
+
+  * compare_array_delta(array1, array2, tolerance)
+        This computes
+            max(abs(array1-array2)/(array1+array2))
+        and fails if that is greater than tolerance.  Set tolerance to 0.0 for
+        an exact comparison.
+            
+  * compare_value_delta(value1, value2, tolerance)
+        This computes
+            abs(value1-value2)/(value1+value2)
+        and fails if that is greater than tolerance.  Set tolerance to 0.0 for
+        an exact comparison.
+
+Currently, a few exist:
+
+    SingleOutputTest
+        This is a test case designed to handle a single test.
+
+        Additional Attributes:
+          * filename => The parameter file to test
+
+        Additional Methods:
+          * None
+        
+    MultipleOutputTest
+        This is a test case designed to handle multiple tests.
+
+        Additional Attributes:
+          * io_log => The IO log from the simulation
+
+        Additional Methods:
+          * __iter__ => You can iterate over the test case:
+                 for filename in self:
+                     ...
+                to have it return all the filenames in the IO log.
+        
+    YTStaticOutputTest
+        This test case is designed to work with YT, and provides a couple
+        additional things that YT can provide.
+
+        Additional Attributes:
+          * sim_center => The center of the simulation, from the domain left
+                          and right edges.
+          * max_dens_location => The point of highest density.
+
+          * entire_simulation => A data object containing the entire
+                                 simulation.
+
+        Additional Methods:
+          * pixelize(data_source, field, edges, dims) =>
+                This returns a (dims[0], dims[1]) array constructed from the
+                variable resolution (projection or slice) data object.  Edges
+                are in code units, (px_min, px_max, py_min, py_max) and default
+                to the entire domain.  dims is a tuple, (Nx, Ny).
+
+          * compare_data_arrays(d1, d2, tolerance) =>
+                yt often stores arrays hanging off dictionaries.  This accepts
+                d1 and d2, which are dictionarys with arrays as values, and
+                compares all the arrays using compare_array_delta, with
+                given tolerance.
+
+Sample Tests
+------------
+
+There are some example tests in the distribution.  But, a simple test case
+would also work well.  This is a test case using yt to find the maximum density
+in the simulation.  Note that we don't have to provide a setup function, as
+that's taken care of in the base class (YTStaticOutputTest.)
+
+    class TestMaximumDensity(YTStaticOutputTest):
+        name = "maximum_density"
+
+        def run(self):
+            # self.pf already exists
+            value, center = self.pf.h.find_max("Density")
+            self.result = (value, center)
+
+        def compare(self, old_result):
+            value, center = self.result
+            old_value, old_center = old_result
+
+            # We want our old max density to agree with our new max density to
+            # a relative difference of 1e-7.
+            self.compare_value_delta(value, old_value, 1e-7)
+
+            # Now we check if our center has moved.
+            self.compare_value_array(center, old_center, 1e-7)
+
+        def plot(self):
+            # There's not much to plot, so we just return an empty list.
+            return []
+
+Running Tests
+-------------
+
+Subclasses of RegressionTest are *self-registering*, which means they can be
+run.  Two classes are provided for running tests.  One is the test runner, and
+the other is a thin wrapper around a Shelve from the shelve module.  To run a
+series of tests, you need to instantiate a RegressionTestRunner and then tell
+it which tests to run.
+
+If the runner has a set of results against which to compare, it will do so.
+For every test, it will perform the following actions:
+
+    1. setup()
+    2. run()
+    3. plot(), store list of filenames in self.plot_list[test_name]
+    4. store test.results
+    5. test.compare(old_results), if a compare_id is supplied
+
+If a test is of type SingleOutputTest, or a subclass, this test will be run for
+every single output in the IO log.  If it is a MultipleOutputTest, only one for
+each test will be executed.
+
+The RegressionTestRunner has a public interface:
+
+    RegressionTestRunner:
+        __init__(id, compare_id, results_path, io_log)
+            The id is the unique id for this test case, which will be used for
+            the name of the results database.  The compare_id (optional) is the
+            id of the results database against which we will compare.  The
+            results_path is the path to the directory in which results sets are
+            stored, defaulting to the current directory.  io_log, defaulting to
+            "OutputLog", is the IO log from Enzo that lists all of the outputs.
+
+        run_test(name):
+            The test corresponding to that test name is run.
+
+        run_all_tests()
+            This runs all of the tests that have been registered.  Every time a
+            test is defined, it is registered -- so this list can get quite
+            long!  But, by selectively importing 'plugin' modules, the full
+            list of tests can be controlled.
+
+        run_tests_from_file(filename):
+            Every line in a filename is parsed, and if it matches a test name
+            in the test registry, it will be run.
+
+The included sample script run_tests.py will instantiate a test runner, run it
+once on a set of outputs, and then run it again comparing against the results
+from the first run.  This should always succeed, but it gives an idea of how to
+go about running tests.
+
+Test Creation Convenience Functions
+-----------------------------------
+
+Because of the self-registering nature of the tests, we can very conveniently
+create new ones just by subclassing.  But, subclassing a lot of tests can be a
+bit annoying!  So the create_test function has been created.
+
+Going back to our example of the maximum density location function, we could
+rewrite it slightly to make it work with the create_test function.  We remove
+the name and we make our parameter, field, known, but we don't set it.
+
+    class TestMaximumValue(YTStaticOutputTest):
+
+        field = None
+
+        def run(self):
+            # self.pf already exists
+            value, center = self.pf.h.find_max(self.field)
+            self.result = (value, center)
+
+        def compare(self, old_result):
+            value, center = self.result
+            old_value, old_center = old_result
+
+            # We want our old max density to agree with our new max density to
+            # a relative difference of 1e-7.
+            self.compare_value_delta(value, old_value, 1e-7)
+
+            # Now we check if our center has moved.
+            self.compare_value_array(center, old_center, 1e-7)
+
+        def plot(self):
+            # There's not much to plot, so we just return an empty list.
+            return []
+
+Note that it's mostly the same, but we are using self.field to find the maximum
+density instead of hard coding it to Density.  We also don't specify 'name' so
+that this base class won't be registered.  We can now use create_test to make a
+bunch, setting "field" to anything we want, and naming them anything we want:
+
+    for field in ["Temperature", "x-velocity", "y-velocity", "z-velocity"]:
+        create_test(TestMaximumValue, "maximum_%s_test" % field,
+                    field = field)
+
+This makes and then registers tests of the name format given, which are then
+accessible through the test runner.  See the projection and gas distribution
+test creations in hydro_tests.py for a few more examples of how to use this.
+
+TODO
+====
+
+This is still fairly bare bones!  There are some fun areas we can expand into:
+
+    * We need more tests!  More than that, we need tests that know something
+      about the different test *problems*.  We'll need lists of tests to run
+      for every single problem type.
+    * Sometimes the results database acts oddly and can't add a new value.
+    * The source tree needs to be re-organized and this README file turned into
+      documentation that includes every test in the main distribution.
+    * Doc strings need to be added to all functions and classes.  Comments for
+      all tests need to be included.
+    * More explicit test naming and running.
+    * Generation of HTML pages including all the pages and the results, along
+      with download links.  This should be done with LCA test.
+    * Plots should be zipped up and removed from the file system.  The zipfile
+      module would work great for this.
+    * And lots more ...

@@ -62,7 +62,6 @@ subroutine find_nn_nearest_neighbors()
      type(kdtree2_result),allocatable :: results(:) ! nearest neighbors
      !integer, parameter  :: nn ! number of nearest neighbors found
 
-
      allocate(results(nn)) 
 
      call kdtree2_n_nearest(tp=tree2,qv=qv,nn=nn,results=results) 
@@ -219,6 +218,7 @@ subroutine find_all_nn_nearest_neighbors()
     
     integer :: k
     type(kdtree2_result),allocatable :: results(:) ! nearest neighbors
+
     allocate(results(nn))
     
     do k=1,nparts

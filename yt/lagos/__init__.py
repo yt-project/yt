@@ -76,6 +76,9 @@ from UniversalFields import *
 from EnzoFields import *
 from OrionFields import *
 from ChomboFields import *
+from FLASHFields import *
+from RAMSESFields import *
+from GadgetFields import *
 fieldInfo = EnzoFieldInfo
 
 # NOT the same as fieldInfo.add_field
@@ -100,7 +103,7 @@ from Profiles import *
 
 from HaloFinding import *
 
-from TwoPointFunctions import *
+from two_point_functions import *
 
 # We load plugins.  Keep in mind, this can be fairly dangerous -
 # the primary purpose is to allow people to have a set of functions

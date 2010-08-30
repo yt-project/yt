@@ -114,6 +114,12 @@ def _ThermalEnergy(field, data):
 add_field("ThermalEnergy", function=_ThermalEnergy,
           units=r"\rm{ergs}/\rm{cm^3}")
 
+def _KineticEnergy(field, data):
+    return 0.5*data["Density"] * ( data["x-velocity"]**2.0
+                                   + data["y-velocity"]**2.0
+                                   + data["z-velocity"]**2.0 )
+add_field("KineticEnergy",function=_KineticEnergy,
+          units = r"\rm{ergs}/\rm{cm^3}")
 # This next section is the energy field section
 # Note that we have aliases that manually unconvert themselves.
 # This is because numerous code branches use Gas_Energy or GasEnergy

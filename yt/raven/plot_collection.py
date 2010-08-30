@@ -523,7 +523,9 @@ class PlotCollection(object):
         if center == None:
             center = self.c
         if not obj:
-            cp = self.pf.hierarchy.cutting(normal, center, field, **kwargs)
+            if field_parameters is None: field_parameters = {}
+            cp = self.pf.hierarchy.cutting(normal, center, field,
+                    **field_parameters)
         else:
             cp = obj
         p = self._add_plot(PlotTypes.CuttingPlanePlot(cp, field,
@@ -926,7 +928,7 @@ class PlotCollection(object):
             generation.
         fields : list of strings
             The first element of this list is the field by which we will bin
-            into the y-axis, the second is the field by which we will bin onto
+            into the x-axis, the second is the field by which we will bin onto
             the y-axis.  All subsequent fields will be binned and their
             profiles added to the underlying `BinnedProfile2D`.
         cmap : string, optional

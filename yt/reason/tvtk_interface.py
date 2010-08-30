@@ -67,7 +67,7 @@ class TVTKMapperWidget(HasTraits):
 
 class MappingPlane(TVTKMapperWidget):
     plane = Instance(tvtk.Plane)
-    _coord_redit = editor=RangeEditor(
+    _coord_redit = editor=RangeEditor(format="%0.2e",
                               low_name='vmin', high_name='vmax',
                               auto_set=False, enter_set=True)
     auto_set = Bool(False)
@@ -109,7 +109,8 @@ class MappingMarchingCubes(TVTKMapperWidget):
     vmin = Float
     vmax = Float
     auto_set = Bool(False)
-    _val_redit = RangeEditor(low_name='vmin', high_name='vmax',
+    _val_redit = RangeEditor(format="%0.2f",
+                             low_name='vmin', high_name='vmax',
                              auto_set=False, enter_set=True)
     traits_view = View(Item('value', editor=_val_redit),
                        Item('auto_set'),
@@ -644,6 +645,27 @@ class YTScene(HasTraits):
                     lut_manager = lut_manager,
                     scene=self.scene))
         return self.operators[-1]
+
+    def display_points(self):
+        dd = self.pf.h.all_data()
+        points = tvtk.Points()
+        good = (dd["creation_time"] > 0.0)
+        points.data = na.array([ dd["particle_position_%s" % ax][good] for ax in 'xyz' ]).transpose()
+        mass = na.log10(dd["ParticleAge"][good])
+        self.conn = tvtk.CellArray()
+        for i in xrange(mass.shape[0]):
+            self.conn.insert_next_cell(1)
+            self.conn.insert_cell_point(i)
+        self.points = points
+        self.pd = tvtk.PolyData(points = self.points, verts = self.conn)
+        self.pd.point_data.scalars = mass
+        lut = tvtk.LookupTable()
+        self.pdm = tvtk.PolyDataMapper(input = self.pd,
+                                       lookup_table = lut)
+        self.pdm.scalar_range = (mass.min(), mass.max())
+        self.pdm.scalar_mode = 'use_point_data'
+        self.point_actor = tvtk.Actor(mapper = self.pdm)
+        self.scene.add_actor(self.point_actor)
 
 def get_all_parents(grid):
     parents = []
