@@ -578,7 +578,7 @@ class OrionStaticOutput(StaticOutput):
         self.conversion_factors = defaultdict(lambda: 1.0)
         self.time_units['1'] = 1
         self.units['1'] = 1.0
-        self.units['unitary'] = 1.0 / (self["DomainRightEdge"] - self["DomainLeftEdge"]).max()
+        self.units['unitary'] = 1.0 / (self.domain_right_edge - self.domain_left_edge).max()
         seconds = 1 #self["Time"]
         self.time_units['years'] = seconds / (365*3600*24.0)
         self.time_units['days']  = seconds / (3600*24.0)
