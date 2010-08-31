@@ -123,6 +123,11 @@ class RavenPlot(object):
         self["GeneratedAt"] = self.data.pf.unique_identifier
         return fn
 
+    def open_in_webbrowser(self):
+        from mplh5canvas.backend_h5canvas import FigureCanvasH5Canvas
+        canv = FigureCanvasH5Canvas(self._figure)
+        canv.draw()
+
     def save_to_pdf(self, f):
         self._redraw_image()
         canvas = FigureCanvasPdf(self._figure)
