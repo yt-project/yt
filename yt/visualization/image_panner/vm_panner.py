@@ -456,6 +456,32 @@ class ImageSaver(object):
         self.pylab.imshow(na.log10(val), interpolation='nearest')
         self.pylab.savefig("wimage_%03i.png" % self.tile_id)
 
+class TransportAppender(object):
+    def __init__(self, transport):
+        """
+        This is a simple callback that appends the latest buffer to the
+        supplied *transport* object.
+        """
+        self.transport = transport
+
+    def __call__(self, val):
+        from yt.utilities.amr_utils import write_png_to_file
+        from yt.visualization.image_writer import map_to_colors
+        image = na.log10(val)
+        mi = na.nanmin(image[~na.isinf(image)])
+        ma = na.nanmax(image[~na.isinf(image)])
+        color_bounds = mi, ma
+        image = (image - color_bounds[0])/(color_bounds[1] - color_bounds[0])
+        to_plot = map_to_colors(image, "algae")
+        to_plot = na.clip(to_plot, 0, 255)
+        tf = tempfile.TemporaryFile()
+        write_png_to_file(to_plot, tf)
+        tf.seek(0)
+        s = tf.read()
+        response_body = "data:image/png;base64," + base64.encodestring(s)
+        tf.close()
+        self.transport.append(response_body)
+
 class PanningCeleritasStreamer(object):
     _initialized = False
     def __init__(self, tile_id, cmap = "algae", port = 9988,

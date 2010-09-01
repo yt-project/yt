@@ -53,7 +53,7 @@ How To Read The Source Code
 yt is organized into several sub-packages, each of which governs a different
 conceptual regime.
 
-  frontends
+   frontends
       This is where interfaces to codes are created.  Within each subdirectory of
       yt/frontends/ there must exist the following files, even if empty:
 

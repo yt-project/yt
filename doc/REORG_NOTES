@@ -1,7 +1,0 @@
-* creating yt/frontends for the front end to each code 
-  - created a uniform set of files for each:
-    data_structures.py
-    definitions.py
-    fields.py
-    io.py
-    misc.py

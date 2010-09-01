@@ -7,55 +7,58 @@ wide-variety of methods.
 
 An ever-growing collection of documentation is also available at
 http://yt.enzotools.org/doc/ . Additionally, there is a
-project site at http://yt.enzotools.org/ with recipes, a wiki, a subversion
-changelog and a bug-reporting system.
+project site at http://yt.enzotools.org/ with recipes, a wiki, a variety of
+ways of peering into the version control, and a bug-reporting system.
 
-YT is divided into several packages, all named after characters from Snow
-Crash.
+YT is divided into several packages.
 
-Lagos
-=====
+frontends
+---------
 
-Lagos deals with data structures. It defines things like EnzoGrid, EnzoData,
-Enzo2DData, EnzoSphere, etc. If you want to handle actual data, use Lagos.
+This is where interfaces to codes are created.  Within each subdirectory of
+yt/frontends/ there must exist the following files, even if empty:
 
-Raven
-=====
+* data_structures.py, where subclasses of AMRGridPatch, StaticOutput and
+  AMRHierarchy are defined.
+* io.py, where a subclass of IOHandler is defined.
+* misc.py, where any miscellaneous functions or classes are defined.
+* definitions.py, where any definitions specific to the frontend are
+  defined.  (i.e., header formats, etc.)
 
-Raven is the plotting interface.  All data plotting goes through
-Raven.
+visualization
+-------------
 
-Enki
-====
+This is where all visualization modules are stored.  This includes plot
+collections, the volume rendering interface, and pixelization frontends.
 
-Enki is the package used to create data, and instantiate runs. It supports
-creating Enzo Problems, and then using SWIG-interfaced Enzo calls to
-actually create the data for those problems. Additionally, facilities are
-being developed to use Enki to directly execute runs.
+data_objects
+------------
 
-Right now, Enki is still largely experimental.  It provides some primitive
-methods for interacting with Enzo, but more work needs to be done before
-it reaches its vision.
+All objects that handle data, processed or unprocessed, not explicitly
+defined as visualization are located in here.  This includes the base
+classes for data regions, covering grids, time series, and so on.  This
+also includes derived fields and derived quantities.
 
-Fido
-====
+analysis_modules
+----------------
 
-Fido is the messenger/protector of data.  It takes data outputs, puts them
-wherever you want, and then calls a function handler to deal with that data.
-Ultimately Fido will deal with all file-handling; submission of runs to a
-central (user-specific) database is in the works, and Fido will be the
-entity that moves the files in and out of storage.
+This is where all mechanisms for processing data live.  This includes
+things like clump finding, halo profiling, halo finding, and so on.  This
+is something of a catchall, but it serves as a level of greater
+abstraction that simply data selection and modification.
 
-Deliverator
-===========
+gui
+---
 
-The Deliverator is a TurboGears-based system for querying and displaying
-images. Images are dumped from Raven into local, web-accessible storage
-space, and then metadata about those images is submitted to The Deliverator.
-The user (you) then goes to the Deliverator website and views those plots.
+This is where all GUI components go.  Typically this will be some small
+tool used for one or two things, which contains a launching mechanism on
+the command line.
 
-The base package YT provides facilities for configuration files and logging (via
-the Python logger.)
+utilities
+---------
+
+All broadly useful code that doesn't clearly fit in one of the other
+categories goes here.
 
 Author: Matthew Turk <matthewturk@gmail.com>
 Affiliation: KIPAC/SLAC/Stanford
