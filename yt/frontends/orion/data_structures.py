@@ -46,13 +46,13 @@ from yt.data_objects.static_output import \
 from yt.utilities.definitions import \
     mpc_conversion
 
-from definitions import \
+from .definitions import \
     orion2enzoDict, \
     parameterDict, \
     yt2orionFieldsDict, \
     orion_FAB_header_pattern
 
-from fields import \
+from .fields import \
     OrionFieldContainer, \
     add_field
 

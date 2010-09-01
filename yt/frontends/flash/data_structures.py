@@ -23,6 +23,11 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
+import h5py
+import stat
+import numpy as na
+import weakref
+
 from yt.funcs import *
 from yt.data_objects.grid_patch import \
     AMRGridPatch
@@ -30,8 +35,11 @@ from yt.data_objects.hierarchy import \
     AMRHierarchy
 from yt.data_objects.static_output import \
     StaticOutput
+from yt.utilities.definitions import mpc_conversion
 
-from .fields import FLASHFieldContainer
+from .fields import \
+    FLASHFieldContainer, \
+    add_field
 
 class FLASHGrid(AMRGridPatch):
     _id_offset = 1
@@ -179,12 +187,11 @@ class FLASHStaticOutput(StaticOutput):
         self.conversion_factors = defaultdict(lambda: 1.0)
         self.time_units['1'] = 1
         self.units['1'] = 1.0
-        self.units['unitary'] = 1.0 / (self["DomainRightEdge"] - self["DomainLeftEdge"]).max()
+        self.units['unitary'] = 1.0 / \
+            (self.domain_right_edge - self.domain_left_edge).max()
         seconds = 1 #self["Time"]
         self.time_units['years'] = seconds / (365*3600*24.0)
         self.time_units['days']  = seconds / (3600*24.0)
-        for key in yt2orionFieldsDict:
-            self.conversion_factors[key] = 1.0
 
     def _setup_nounits_units(self):
         z = 0
@@ -209,7 +216,7 @@ class FLASHStaticOutput(StaticOutput):
 
     def _parse_parameter_file(self):
         self.unique_identifier = \
-            int(os.stat(self.parameter_filename)[ST_CTIME])
+            int(os.stat(self.parameter_filename)[stat.ST_CTIME])
         self._handle = h5py.File(self.parameter_filename, "r")
         self.domain_left_edge = na.array(
             [self._find_parameter("real", "%smin" % ax) for ax in 'xyz'])
