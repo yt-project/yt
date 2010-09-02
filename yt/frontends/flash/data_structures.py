@@ -114,21 +114,7 @@ class FLASHHierarchy(AMRHierarchy):
             nxb, nyb, nzb = [int(f["/simulation parameters"]['n%sb' % ax])
                               for ax in 'xyz']
         self.grid_dimensions[:] *= (nxb, nyb, nzb)
-        # particle_count is harder.  We stride over the particle file and count
-        # up per grid.
-        npart = f["/tracer particles"].shape[0]
-        blki = [s[0].strip() for s in f["/particle names"][:]].index("blk")
-        start = 0
-        stride = 1e6
-        while start < npart:
-            end = min(start + stride - 1, npart)
-            blks = f["/tracer particles"][start:end,blki].astype("int64")
-            ta = na.bincount(blks)
-            old_size = ta.size
-            ta = na.resize(ta, self.num_grids)
-            ta[old_size:] = 0
-            self.grid_particle_count += ta[:,None]
-            start = end
+        self.grid_particle_count[:] = f["/localnp"][:][:,None]
         # This will become redundant, as _prepare_grid will reset it to its
         # current value.  Note that FLASH uses 1-based indexing for refinement
         # levels, but we do not, so we reduce the level by 1.

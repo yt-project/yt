@@ -68,7 +68,10 @@ class IOHandlerFLASH(BaseIOHandler):
     def _read_data_set(self, grid, field):
         f = self._handle
         if field in self._particle_fields:
-            tr = self._select_particles(grid, field)
+            start = na.sum(self.pf.h.grid_particle_count[:grid.id-grid._id_offset])
+            end = start + grid.NumberOfParticles
+            fi = self._particle_fields[field]
+            tr = f["/tracer particles"][start:end, fi]
         else:
             tr = f["/%s" % field][grid.id - grid._id_offset,:,:,:].transpose()
         return tr.astype("float64")
