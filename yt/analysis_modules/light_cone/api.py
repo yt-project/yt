@@ -28,10 +28,6 @@ License:
 
 """
 
-from .common_n_volume import \
-    commonNVolume, \
-    commonSegment
-
 from .halo_mask import \
     light_cone_halo_mask, \
     light_cone_halo_map
