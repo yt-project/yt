@@ -91,17 +91,15 @@ from .level_sets.api import \
     recursive_bottom_clumps, \
     clump_list_sort
 
-#from .light_ray.api import \
-#    LightRay
+from .light_ray.api import \
+    LightRay
 
 from .light_cone.api import \
-    commonNVolume, \
-    commonSegment, \
+    LightCone, \
     light_cone_halo_mask, \
     light_cone_halo_map, \
-    light_cone_projection, \
-    project_unique_light_cones, \
-    find_unique_solutions
+    find_unique_solutions, \
+    project_unique_light_cones
 
 from .simulation_handler.api import \
     EnzoSimulation
