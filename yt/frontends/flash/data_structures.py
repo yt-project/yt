@@ -35,7 +35,10 @@ from yt.data_objects.hierarchy import \
     AMRHierarchy
 from yt.data_objects.static_output import \
     StaticOutput
-from yt.utilities.definitions import mpc_conversion
+from yt.utilities.definitions import \
+    mpc_conversion
+from yt.utilities.io_handler import \
+    io_registry
 
 from .fields import \
     FLASHFieldContainer, \
@@ -81,6 +84,8 @@ class FLASHHierarchy(AMRHierarchy):
     def _detect_fields(self):
         ncomp = self._handle["/unknown names"].shape[0]
         self.field_list = [s.strip() for s in self._handle["/unknown names"][:].flat]
+        self.field_list += ["particle_" + s[0].strip() for s
+                            in self._handle["/particle names"][:]]
     
     def _setup_classes(self):
         dd = self._get_data_reader_dict()
@@ -109,11 +114,21 @@ class FLASHHierarchy(AMRHierarchy):
             nxb, nyb, nzb = [int(f["/simulation parameters"]['n%sb' % ax])
                               for ax in 'xyz']
         self.grid_dimensions[:] *= (nxb, nyb, nzb)
-        # particle count will need to be fixed somehow:
-        #   by getting access to the particle file we can get the number of
-        #   particles in each brick.  but how do we handle accessing the
-        #   particle file?
-
+        # particle_count is harder.  We stride over the particle file and count
+        # up per grid.
+        npart = f["/tracer particles"].shape[0]
+        blki = [s[0].strip() for s in f["/particle names"][:]].index("blk")
+        start = 0
+        stride = 1e6
+        while start < npart:
+            end = min(start + stride - 1, npart)
+            blks = f["/tracer particles"][start:end,blki].astype("int64")
+            ta = na.bincount(blks)
+            old_size = ta.size
+            ta = na.resize(ta, self.num_grids)
+            ta[old_size:] = 0
+            self.grid_particle_count += ta[:,None]
+            start = end
         # This will become redundant, as _prepare_grid will reset it to its
         # current value.  Note that FLASH uses 1-based indexing for refinement
         # levels, but we do not, so we reduce the level by 1.
@@ -141,6 +156,7 @@ class FLASHHierarchy(AMRHierarchy):
     def _setup_unknown_fields(self):
         for field in self.field_list:
             if field in self.parameter_file.field_info: continue
+            pfield = field.startswith("particle_")
             mylog.info("Adding %s to list of fields", field)
             cf = None
             if self.parameter_file.has_key(field):
@@ -150,10 +166,14 @@ class FLASHHierarchy(AMRHierarchy):
                     return _convert_function
                 cf = external_wrapper(field)
             add_field(field, lambda a, b: None,
-                      convert_function=cf, take_log=False)
+                      convert_function=cf, take_log=False,
+                      particle_type=pfield)
 
     def _setup_derived_fields(self):
         self.derived_field_list = []
+
+    def _setup_data_io(self):
+        self.io = io_registry[self.data_style](self.parameter_file)
 
 class FLASHStaticOutput(StaticOutput):
     _hierarchy_class = FLASHHierarchy

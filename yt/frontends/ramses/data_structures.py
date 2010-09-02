@@ -32,6 +32,8 @@ from yt.data_objects.static_output import \
       StaticOutput
 import _ramses_reader
 from .fields import RAMSESFieldContainer
+from yt.utilities.io_handler import \
+    io_registry
 
 def num_deep_inc(f):
     def wrap(self, *args, **kwargs):
