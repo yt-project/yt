@@ -69,8 +69,8 @@ class IOHandlerFLASH(BaseIOHandler):
         f = self._handle
         if field in self._particle_fields:
             if grid.NumberOfParticles == 0: return na.array([], dtype='float64')
-            start = na.sum(self.pf.h.grid_particle_count[:grid.id-grid._id_offset])
-            end = start + grid.NumberOfParticles
+            start = self.pf.h._particle_indices[grid.id - grid._id_offset]
+            end = self.pf.h._particle_indices[grid.id - grid._id_offset + 1]
             fi = self._particle_fields[field]
             tr = f["/tracer particles"][start:end, fi]
         else:

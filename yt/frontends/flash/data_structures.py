@@ -115,6 +115,8 @@ class FLASHHierarchy(AMRHierarchy):
                               for ax in 'xyz']
         self.grid_dimensions[:] *= (nxb, nyb, nzb)
         self.grid_particle_count[:] = f["/localnp"][:][:,None]
+        self._particle_indices = na.zeros(self.num_grids + 1, dtype='int64')
+        na.add.accumulate(self.grid_particle_count, out=self._particle_indices[1:])
         # This will become redundant, as _prepare_grid will reset it to its
         # current value.  Note that FLASH uses 1-based indexing for refinement
         # levels, but we do not, so we reduce the level by 1.
