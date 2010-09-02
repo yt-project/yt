@@ -99,7 +99,7 @@ from .light_cone.api import \
     commonSegment, \
     light_cone_halo_mask, \
     light_cone_halo_map, \
-    light_cone_projection, \
+    LightConeProjection, \
     project_unique_light_cones, \
     find_unique_solutions
 
@@ -110,7 +110,7 @@ from .spectral_integrator.api import \
     SpectralFrequencyIntegrator, \
     create_table_from_textfiles
 
-from .sfr_spectrum.api import \
+from .star_analysis.api import \
     StarFormationRate, \
     SpectrumBuilder
 

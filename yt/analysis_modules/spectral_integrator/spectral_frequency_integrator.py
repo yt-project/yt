@@ -26,9 +26,9 @@ License:
 
 from yt.funcs import *
 from yt.utilities.linear_interpolators import \
-    UnilinearInterpolator, \
-    BilinearInterpolator, \
-    TrilinearInterpolator
+    UnilinearFieldInterpolator, \
+    BilinearFieldInterpolator, \
+    TrilinearFieldInterpolator
 
 class SpectralFrequencyIntegrator(object):
     def __init__(self, table, field_names,
