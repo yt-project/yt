@@ -64,15 +64,22 @@ translation_dict = {"x-velocity": "velx",
                     "Total_Energy": "ener",
                     "Gas_Energy": "eint",
                     "Temperature": "temp",
+                    "particle_position_x" : "particle_posx",
+                    "particle_position_y" : "particle_posy",
+                    "particle_position_z" : "particle_posz",
                    }
 
 def _generate_translation(mine, theirs):
-    add_field(theirs, function=lambda a, b: b[mine], take_log=True)
+    pfield = theirs.startswith("particle")
+    add_field(theirs, function=lambda a, b: b[mine], take_log=True,
+              particle_type = pfield)
 
 for f,v in translation_dict.items():
     if v not in FLASHFieldInfo:
+        pfield = v.startswith("particle")
         add_field(v, function=lambda a,b: None, take_log=False,
-                  validators = [ValidateDataField(v)])
+                  validators = [ValidateDataField(v)],
+                  particle_type = pfield)
     #print "Setting up translator from %s to %s" % (v, f)
     _generate_translation(v, f)
 

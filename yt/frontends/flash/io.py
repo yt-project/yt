@@ -68,6 +68,7 @@ class IOHandlerFLASH(BaseIOHandler):
     def _read_data_set(self, grid, field):
         f = self._handle
         if field in self._particle_fields:
+            if grid.NumberOfParticles == 0: return na.array([], dtype='float64')
             start = na.sum(self.pf.h.grid_particle_count[:grid.id-grid._id_offset])
             end = start + grid.NumberOfParticles
             fi = self._particle_fields[field]

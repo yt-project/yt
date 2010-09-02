@@ -131,8 +131,8 @@ class ObjectFindingMixin(object):
         centers = (self.grid_right_edge + self.grid_left_edge)/2.0
         long_axis = na.maximum.reduce(self.grid_right_edge - self.grid_left_edge, 1)
         t = na.abs(centers - center)
-        DW = self.parameter_file["DomainRightEdge"] \
-           - self.parameter_file["DomainLeftEdge"]
+        DW = self.parameter_file.domain_right_edge \
+           - self.parameter_file.domain_left_edge
         na.minimum(t, na.abs(DW-t), t)
         dist = na.sqrt(na.sum((t**2.0), axis=1))
         gridI = na.where(dist < (radius + long_axis))
@@ -150,8 +150,8 @@ class ObjectFindingMixin(object):
         left_edge = na.array(left_edge)
         right_edge = na.array(right_edge)
         mask = na.zeros(self.grids.shape, dtype='bool')
-        dl = self.parameters["DomainLeftEdge"]
-        dr = self.parameters["DomainRightEdge"]
+        dl = self.parameter_file.domain_left_edge
+        dr = self.parameter_file.domain_right_edge
         db = right_edge - left_edge
         for off_x in [-1, 0, 1]:
             nle = left_edge.copy()
