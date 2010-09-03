@@ -29,6 +29,7 @@ import numpy as na
 
 from yt.funcs import *
 
+from yt.utilities.data_point_utilities import FindBindingEnergy
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     ParallelAnalysisInterface
 from yt.funcs import \
@@ -267,10 +268,10 @@ def _IsBound(data, truncate = True, include_thermal_energy = False):
     try:
         pot = G*_cudaIsBound(data, truncate, kinetic/G)
     except (ImportError, AssertionError):
-        pot = G*PointCombine.FindBindingEnergy(data["CellMass"],
-                                               data['x'],data['y'],data['z'],
-                                               truncate, kinetic/G)
-    mylog.info("Boundedness check took %0.3e seconds", time.time()-t1)
+        pot = G*FindBindingEnergy(data["CellMass"],
+                                  data['x'],data['y'],data['z'],
+                                  truncate, kinetic/G)
+        mylog.info("Boundedness check took %0.3e seconds", time.time()-t1)
     return [(pot / kinetic)]
 def _combIsBound(data, bound):
     return bound
