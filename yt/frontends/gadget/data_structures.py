@@ -26,8 +26,8 @@ License:
 """
 
 import h5py
-import numpy as np
-import ipdb
+import numpy as na
+from itertools import izip
 
 from yt.funcs import *
 from yt.data_objects.grid_patch import \
@@ -42,40 +42,24 @@ from .fields import GadgetFieldContainer
 class GadgetGrid(AMRGridPatch):
     _id_offset = 0
     def __init__(self, hierarchy, id,dimensions,left_index,
-            level,parent_id,particle_count,Parent=[],Children=[]):
+                 level, parent_id, particle_count):
         AMRGridPatch.__init__(self, id, filename = hierarchy.filename,
                               hierarchy = hierarchy)
         self.id = id
-        self.address = '/data/grid_%010i'%id
-        self.dimensions = dimensions
-        self.left_index = left_index
-        self.level = level
+        self.ActiveDimensions = dimensions
+        self.start_index = left_index
         self.Level = level
-        self.parent_id = parent_id
-        self.particle_count = particle_count
+        self._parent_id = parent_id
+        self.Parent = None # Only one parent per grid
+        self.Children = []
+        self.NumberOfParticles = particle_count
         
         try:
-            padd =self.address+'/particles'
+            padd = '/data/grid_%010i/particles' % id
             self.particle_types = self.hierarchy._handle[padd].keys()
         except:
             self.particle_types =  ()
         self.filename = hierarchy.filename
-        
-        self.Parent = Parent
-        self.Children = Children
-        
-    def _setup_dx(self):
-        # So first we figure out what the index is.  We don't assume
-        # that dx=dy=dz , at least here.  We probably do elsewhere.
-        if len(self.Parent)>0:
-            self.dds = self.Parent[0].dds / self.pf.refine_by
-        else:
-            LE, RE = self.hierarchy.grid_left_edge[self.id,:], \
-                     self.hierarchy.grid_right_edge[self.id,:]
-            self.dds = np.array((RE-LE)/self.ActiveDimensions)
-        if self.pf.dimensionality < 2: self.dds[1] = 1.0
-        if self.pf.dimensionality < 3: self.dds[2] = 1.0
-        self.data['dx'], self.data['dy'], self.data['dz'] = self.dds
         
     def __repr__(self):
         return 'GadgetGrid_%05i'%self.id
@@ -116,30 +100,31 @@ class GadgetHierarchy(AMRHierarchy):
         
     def _parse_hierarchy(self):
         f = self._handle # shortcut
-        npa = np.array
+        npa = na.array
         
-        grid_levels = npa(f['/grid_level'],dtype='int')
-        self.grid_left_edge  = npa(f['/grid_left_index'],dtype='int')
-        self.grid_dimensions = npa(f['/grid_dimensions'],dtype='int')
-        self.grid_right_edge = self.grid_left_edge + self.grid_dimensions 
-        grid_particle_count = npa(f['/grid_particle_count'],dtype='int')
-        self.grid_parent_id = npa(f['/grid_parent_id'],dtype='int')
-        self.max_level = np.max(self.grid_levels)
+        self.grid_levels.flat[:] = f['/grid_level'][:].astype("int32")
+        self.grid_left_edge[:]  = f['/grid_left_index'][:]
+        self.grid_dimensions[:] = f['/grid_dimensions'][:]
+        self.grid_right_edge[:] = self.grid_left_edge + self.grid_dimensions 
+        self.grid_particle_count.flat[:] = f['/grid_particle_count'][:].astype("int32")
+        grid_parent_id = f['/grid_parent_id'][:]
+        self.max_level = na.max(self.grid_levels)
         
-        args = zip(range(self.num_grids),grid_levels,self.grid_parent_id,
-            self.grid_left_edge,self.grid_dimensions, grid_particle_count)
-        grids = [self.grid(self,j,d,le,lvl,p,n) for j,lvl,p, le, d, n in args]
-        self.grids = npa(grids,dtype='object')
+        args = izip(xrange(self.num_grids), self.grid_levels,
+                    grid_parent_id, self.grid_left_edge,
+                    self.grid_dimensions, self.grid_particle_count)
+        self.grids = na.array([self.grid(self,j,d,le,lvl,p,n)
+                               for j,lvl,p, le, d, n in args],
+                           dtype='object')
         
         
         
     def _populate_grid_objects(self):    
-        ipdb.set_trace()
         for g in self.grids:
-            if g.parent_id>=0:
-                parent = self.grids[g.parent_id]
-                g.Parent = g.Parent + [parent,]
-                parent.Children = parent.Children + [g,]
+            if g._parent_id >= 0:
+                parent = self.grids[g._parent_id]
+                g.Parent = parent
+                parent.Children.append(g)
         for g in self.grids:
             g._prepare_grid()
             g._setup_dx()

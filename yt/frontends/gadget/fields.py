@@ -40,6 +40,26 @@ add_gadget_field = GadgetFieldInfo.add_field
 
 add_field = add_gadget_field
 
+translation_dict = {"particle_position_x" : "position_x",
+                    "particle_position_y" : "position_y",
+                    "particle_position_z" : "position_z",
+                   }
+
+def _generate_translation(mine, theirs):
+    pfield = mine.startswith("particle")
+    add_field(theirs, function=lambda a, b: b[mine], take_log=True,
+              particle_type = pfield)
+
+for f,v in translation_dict.items():
+    if v not in GadgetFieldInfo:
+        # Note here that it's the yt field that we check for particle nature
+        pfield = f.startswith("particle")
+        add_field(v, function=lambda a,b: None, take_log=False,
+                  validators = [ValidateDataField(v)],
+                  particle_type = pfield)
+    print "Setting up translator from %s to %s" % (v, f)
+    _generate_translation(v, f)
+
 
 #for f,v in translation_dict.items():
 #    add_field(f, function=lambda a,b: None, take_log=True,
@@ -49,9 +69,21 @@ add_field = add_gadget_field
 #        validators = [ValidateDataField(v)],
 #        units=r"\rm{cm}")
           
+
           
 add_field("position_x", function=lambda a,b: None, take_log=True,
           validators = [ValidateDataField("position_x")],
+          particle_type = True,
+          units=r"\rm{cm}")
+
+add_field("position_y", function=lambda a,b: None, take_log=True,
+          validators = [ValidateDataField("position_y")],
+          particle_type = True,
+          units=r"\rm{cm}")
+
+add_field("position_z", function=lambda a,b: None, take_log=True,
+          validators = [ValidateDataField("position_z")],
+          particle_type = True,
           units=r"\rm{cm}")
 
 add_field("VEL", function=lambda a,b: None, take_log=True,
