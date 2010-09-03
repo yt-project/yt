@@ -23,18 +23,24 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
+import h5py
+import numpy as np
+
 from yt.utilities.io_handler import \
     BaseIOHandler
 
 class IOHandlerGadget(BaseIOHandler):
-    _data_style = 'gadget_hdf5'
+    _data_style = 'gadget_infrastructure'
     def _read_data_set(self, grid, field):
-        adr = grid.Address
+        data = ()
         fh = h5py.File(grid.filename,mode='r')
-        if 'particles' in fh[adr].keys():
-            adr2 = adr+'/particles'
-            return fh[adr2][field]
-        return None
+        for ptype in grid.particle_types:
+            address = '%s/particles/%s/%s'%(grid.address,field)
+            dat += fh[address].read(),
+        if len(data)>0:
+            data = np.vstack(data)
+        fh.close()
+        return np.array(data)
     def _read_field_names(self,grid): 
         adr = grid.Address
         fh = h5py.File(grid.filename,mode='r')
@@ -42,10 +48,7 @@ class IOHandlerGadget(BaseIOHandler):
         return rets
 
     def _read_data_slice(self,grid, field, axis, coord):
-        adr = grid.Address
-        fh = h5py.File(grid.filename,mode='r')
-        if 'particles' in fh[adr].keys():
-            adr2 = adr+'/particles'
-            return fh[adr2][field][coord,axis]
-        return None
+        #how would we implement axis here?
+        dat = self._read_data_set(grid,field)
+        return dat[coord]
 

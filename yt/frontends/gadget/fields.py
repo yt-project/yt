@@ -40,11 +40,6 @@ add_gadget_field = GadgetFieldInfo.add_field
 
 add_field = add_gadget_field
 
-translation_dict = {"Position": "POS",
-                    "Velocity": "VEL",
-                    "ID": "ID",
-                    "Mass":"MASS"
-                   }
 
 #for f,v in translation_dict.items():
 #    add_field(f, function=lambda a,b: None, take_log=True,
@@ -55,8 +50,8 @@ translation_dict = {"Position": "POS",
 #        units=r"\rm{cm}")
           
           
-add_field("Density", function=lambda a,b: None, take_log=True,
-          validators = [ValidateDataField("POS")],
+add_field("position_x", function=lambda a,b: None, take_log=True,
+          validators = [ValidateDataField("position_x")],
           units=r"\rm{cm}")
 
 add_field("VEL", function=lambda a,b: None, take_log=True,

@@ -25,6 +25,10 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
+import h5py
+import numpy as np
+import ipdb
+
 from yt.funcs import *
 from yt.data_objects.grid_patch import \
     AMRGridPatch
@@ -36,217 +40,111 @@ from yt.data_objects.static_output import \
 from .fields import GadgetFieldContainer
 
 class GadgetGrid(AMRGridPatch):
-
     _id_offset = 0
-
-    def __init__(self, id, filename, hierarchy, **kwargs):
-        AMRGridPatch.__init__(self, id, hierarchy = hierarchy)
+    def __init__(self, hierarchy, id,dimensions,left_index,
+            level,parent_id,particle_count,Parent=[],Children=[]):
+        AMRGridPatch.__init__(self, id, filename = hierarchy.filename,
+                              hierarchy = hierarchy)
         self.id = id
-        self.filename = filename
-        self.Children = [] #grid objects
-        self.Parent = None
-        self.Level = 0
-        self.LeftEdge = [0,0,0]
-        self.RightEdge = [0,0,0]
-        self.IsLeaf = False
-        self.N = 0
-        self.Address = ''
-        self.NumberOfParticles = self.N
-        self.ActiveDimensions = na.array([0,0,0])
-        self._id_offset = 0
-        self.start_index = na.array([0,0,0])
+        self.address = '/data/grid_%010i'%id
+        self.dimensions = dimensions
+        self.left_index = left_index
+        self.level = level
+        self.Level = level
+        self.parent_id = parent_id
+        self.particle_count = particle_count
         
-        for key,val in kwargs.items():
-            if key in dir(self):
-                #if it's one of the predefined values
-                setattr(self,key,val)
+        try:
+            padd =self.address+'/particles'
+            self.particle_types = self.hierarchy._handle[padd].keys()
+        except:
+            self.particle_types =  ()
+        self.filename = hierarchy.filename
         
-    #def __repr__(self):
-    #    return "GadgetGrid_%04i" % (self.Address)
-    
-    def get_global_startindex(self):
-        return self.start_index
+        self.Parent = Parent
+        self.Children = Children
         
-    def _prepare_grid(self):
-        #all of this info is already included in the snapshots
-        pass
-        #h = self.hierarchy
-        #h.grid_levels[self.Address,0]=self.Level
-        #h.grid_left_edge[self.Address,:]=self.LeftEdge[:]
-        #h.grid_right_edge[self.Address,:]=self.RightEdge[:]
-    
     def _setup_dx(self):
         # So first we figure out what the index is.  We don't assume
         # that dx=dy=dz , at least here.  We probably do elsewhere.
-        id = self.id
-        LE, RE = self.LeftEdge,self.RightEdge
-        self.dds = na.array((RE-LE)/self.ActiveDimensions)
+        if len(self.Parent)>0:
+            self.dds = self.Parent[0].dds / self.pf.refine_by
+        else:
+            LE, RE = self.hierarchy.grid_left_edge[self.id,:], \
+                     self.hierarchy.grid_right_edge[self.id,:]
+            self.dds = np.array((RE-LE)/self.ActiveDimensions)
         if self.pf.dimensionality < 2: self.dds[1] = 1.0
         if self.pf.dimensionality < 3: self.dds[2] = 1.0
         self.data['dx'], self.data['dy'], self.data['dz'] = self.dds
-
+        
+    def __repr__(self):
+        return 'GadgetGrid_%05i'%self.id
+        
 class GadgetHierarchy(AMRHierarchy):
     grid = GadgetGrid
 
     def __init__(self, pf, data_style='gadget_hdf5'):
         self.field_info = GadgetFieldContainer()
-        self.directory = os.path.dirname(pf.parameter_filename)
+        self.filename = pf.filename
+        self.directory = os.path.dirname(pf.filename)
         self.data_style = data_style
-        self._handle = h5py.File(pf.parameter_filename)
+        self._handle = h5py.File(pf.filename)
         AMRHierarchy.__init__(self, pf, data_style)
         self._handle.close()
+        self._handle = None
+        
 
     def _initialize_data_storage(self):
         pass
 
     def _detect_fields(self):
-        #example string:
-        #"(S'VEL'\np1\nS'ID'\np2\nS'MASS'\np3\ntp4\n."
-        #fields are surrounded with '
-        fields_string=self._handle['root'].attrs['fieldnames']
-        #splits=fields_string.split("'")
-        #pick out the odd fields
-        #fields= [splits[j] for j in range(1,len(splits),2)]
-        self.field_list = cPickle.loads(fields_string)
-    
+        #this adds all the fields in 
+        #/particle_types/{Gas/Stars/etc.}/{position_x, etc.}
+        self.field_list = []
+        for ptype in self._handle['particle_types'].keys():
+            for field in self._handle['particle_types'+'/'+ptype]:
+                if field not in self.field_list:
+                    self.field_list += field,
+        
     def _setup_classes(self):
         dd = self._get_data_reader_dict()
         AMRHierarchy._setup_classes(self, dd)
         self.object_types.sort()
 
     def _count_grids(self):
-        fh = self._handle #shortcut
-        #nodes in the hdf5 file are the same as grids
-        #in yt
-        #the num of levels and total nodes is already saved
-        self._levels   = self.pf._get_param('maxlevel')
-        self.num_grids = self.pf._get_param('numnodes')
+        self.num_grids = len(self._handle['/grid_dimensions'])
         
     def _parse_hierarchy(self):
-        #for every box, define a self.grid(level,edge1,edge2) 
-        #with particle counts, dimensions
-        f = self._handle #shortcut
+        f = self._handle # shortcut
+        npa = np.array
         
-        root = f['root']
-        grids,numnodes = self._walk_nodes(None,root,[])
-        dims = [self.pf.max_grid_size for grid in grids]
-        LE = [grid.LeftEdge for grid in grids]
-        RE = [grid.RightEdge for grid in grids]
-        levels = [grid.Level for grid in grids]
-        counts = [(grid.N if grid.IsLeaf else 0) for grid in grids]
-        self.grids = na.array(grids,dtype='object')
-        self.grid_dimensions[:] = na.array(dims, dtype='int64')
-        self.grid_left_edge[:] = na.array(LE, dtype='float64')
-        self.grid_right_edge[:] = na.array(RE, dtype='float64')
-        self.grid_levels.flat[:] = na.array(levels, dtype='int32')
-        self.grid_particle_count.flat[:] = na.array(counts, dtype='int32')
-            
-    def _walk_nodes(self,parent,node,grids,idx=0):
-        pi = cPickle.loads
-        loc = node.attrs['h5address']
+        grid_levels = npa(f['/grid_level'],dtype='int')
+        self.grid_left_edge  = npa(f['/grid_left_index'],dtype='int')
+        self.grid_dimensions = npa(f['/grid_dimensions'],dtype='int')
+        self.grid_right_edge = self.grid_left_edge + self.grid_dimensions 
+        grid_particle_count = npa(f['/grid_particle_count'],dtype='int')
+        self.grid_parent_id = npa(f['/grid_parent_id'],dtype='int')
+        self.max_level = np.max(self.grid_levels)
         
-        kwargs = {}
-        kwargs['Address'] = loc
-        kwargs['Parent'] = parent
-        kwargs['Axis']  = self.pf._get_param('divideaxis',location=loc)
-        kwargs['Level']  = self.pf._get_param('level',location=loc)
-        kwargs['LeftEdge'] = self.pf._get_param('leftedge',location=loc) 
-        kwargs['RightEdge'] = self.pf._get_param('rightedge',location=loc)
-        kwargs['IsLeaf'] = self.pf._get_param('isleaf',location=loc)
-        kwargs['N'] = self.pf._get_param('n',location=loc)
-        kwargs['NumberOfParticles'] = self.pf._get_param('n',location=loc)
-        dx = self.pf._get_param('dx',location=loc)
-        dy = self.pf._get_param('dy',location=loc)
-        dz = self.pf._get_param('dz',location=loc)
-        divdims = na.array([1,1,1])
-        if not kwargs['IsLeaf']: 
-            divdims[kwargs['Axis']] = 2
-        kwargs['ActiveDimensions'] = divdims
-        #Active dimensions:
-        #This is the number of childnodes, along with dimensiolaity
-        #ie, binary tree can be (2,1,1) but octree is (2,2,2)
+        args = zip(range(self.num_grids),grid_levels,self.grid_parent_id,
+            self.grid_left_edge,self.grid_dimensions, grid_particle_count)
+        grids = [self.grid(self,j,d,le,lvl,p,n) for j,lvl,p, le, d, n in args]
+        self.grids = npa(grids,dtype='object')
         
-        idx+=1
-        #pdb.set_trace()
-        children = []
-        if not kwargs['IsLeaf']:
-            for child in node.values():
-                children,idx=self._walk_nodes(node,child,children,idx=idx)
         
-        kwargs['Children'] = children
-        grid = self.grid(idx,self.pf.parameter_filename,self,**kwargs)
-        grids += children
-        grids += [grid,]
-        return grids,idx
-
-    def _populate_grid_objects(self):
+        
+    def _populate_grid_objects(self):    
+        ipdb.set_trace()
+        for g in self.grids:
+            if g.parent_id>=0:
+                parent = self.grids[g.parent_id]
+                g.Parent = g.Parent + [parent,]
+                parent.Children = parent.Children + [g,]
         for g in self.grids:
             g._prepare_grid()
-        self.max_level = cPickle.loads(self._handle['root'].attrs['maxlevel'])
-    
-    def _setup_unknown_fields(self):
-        pass
-
-    def _setup_derived_fields(self):
-        self.derived_field_list = []
-
-    def _get_grid_children(self, grid):
-        #given a grid, use it's address to find subchildren
-        pass
-
-class GadgetHierarchyOld(AMRHierarchy):
-    #Kept here to compare for the time being
-    grid = GadgetGrid
-
-    def __init__(self, pf, data_style):
-        self.directory = pf.fullpath
-        self.data_style = data_style
-        AMRHierarchy.__init__(self, pf, data_style)
-
-    def _count_grids(self):
-        # We actually construct our octree here!
-        # ...but we do read in our particles, it seems.
-        LE = na.zeros(3, dtype='float64')
-        RE = na.ones(3, dtype='float64')
-        base_grid = ProtoGadgetGrid(0, LE, RE, self.pf.particles)
-        self.proto_grids = base_grid.refine(8)
-        self.num_grids = len(self.proto_grids)
-        self.max_level = max( (g.level for g in self.proto_grids) )
-
-    def _setup_classes(self):
-        dd = self._get_data_reader_dict()
-        AMRHierarchy._setup_classes(self, dd)
-        self.object_types.sort()
-
-    def _parse_hierarchy(self):
-        grids = []
-        # We need to fill in dims, LE, RE, level, count
-        dims, LE, RE, levels, counts = [], [], [], [], []
-        self.proto_grids.sort(key = lambda a: a.level)
-        for i, pg in enumerate(self.proto_grids):
-            g = self.grid(i, self, pg)
-            pg.real_grid = g
-            grids.append(g)
-            dims.append(g.ActiveDimensions)
-            LE.append(g.LeftEdge)
-            RE.append(g.RightEdge)
-            levels.append(g.Level)
-            counts.append(g.NumberOfParticles)
-        del self.proto_grids
-        self.grids = na.array(grids, dtype='object')
-        self.grid_dimensions[:] = na.array(dims, dtype='int64')
-        self.grid_left_edge[:] = na.array(LE, dtype='float64')
-        self.grid_right_edge[:] = na.array(RE, dtype='float64')
-        self.grid_levels.flat[:] = na.array(levels, dtype='int32')
-        self.grid_particle_count.flat[:] = na.array(counts, dtype='int32')
-
-    def _populate_grid_objects(self):
-        # We don't need to do anything here
-        for g in self.grids: g._setup_dx()
-
-    def _detect_fields(self):
-        self.field_list = ['particle_position_%s' % ax for ax in 'xyz']
-
+            g._setup_dx()
+            
+        
     def _setup_unknown_fields(self):
         pass
 
@@ -256,75 +154,53 @@ class GadgetHierarchyOld(AMRHierarchy):
 class GadgetStaticOutput(StaticOutput):
     _hierarchy_class = GadgetHierarchy
     _fieldinfo_class = GadgetFieldContainer
-    def __init__(self, h5filename,storage_filename=None) :
-        StaticOutput.__init__(self, h5filename, 'gadget_hdf5')
-        self.storage_filename = storage_filename #Don't know what this is
+    def __init__(self, filename,storage_filename=None) :
+        self.storage_filename = storage_filename
         self.field_info = self._fieldinfo_class()
-        x = self._get_param('maxlevel')**2
-        self.max_grid_size = (x,x,x)
-        self.current_time = 0.0
-        # These should be explicitly obtained from the file, but for now that
-        # will wait until a reorganization of the source tree and better
-        # generalization.
-        self.dimensionality = 3
-        self.refine_by = 2
-        self.domain_left_edge = self.leftedge
-        self.domain_right_edge = self.rightedge
+        self.filename = filename
         
+        StaticOutput.__init__(self, filename, 'gadget_infrastructure')
+        self._set_units()
         
-    def _parse_parameter_file(self):
-        # read the units in from the hdf5 file 
-        #fill in self.units dict
-        #fill in self.time_units dict (keys: 'days','years', '1')
-        
-        #import all of the parameter file params 
-        #this is NOT originally from the gadget snapshot but instead
-        #from the paramfile starting the sim
-        skips = ('TITLE','CLASS','VERSION') #these are just hdf5 crap
-        fh = h5py.File(self.parameter_filename)
-        for kw in fh['root'].attrs.keys():
-            if any([skip in kw for skip in skips]):
-                continue
-            val = fh['root'].attrs[kw]
-            if type(val)==type(''):
-                try:    val = cPickle.loads(val)
-                except: pass
-            #also, includes unit info
-            setattr(self,kw,val)
-            
-    def _get_param(self,kw,location='/root'):
-        fh = h5py.File(self.parameter_filename)
-        val = fh[location].attrs[kw]
-        try:    val = cPickle.loads(val)
-        except: pass
-        return val
-            
     def _set_units(self):
-        #check out the unit params from _parse_parameter_file and use them
-        #code below is all filler
         self.units = {}
         self.time_units = {}
-        self.conversion_factors = defaultdict(lambda: 1.0)
         self.time_units['1'] = 1
         self.units['1'] = 1.0
-        self.units['unitary'] = 1.0
         self.units['cm'] = 1.0
+        self.units['unitary'] = 1.0 / \
+            (self.domain_right_edge - self.domain_left_edge).max()
         seconds = 1 #self["Time"]
         self.time_units['years'] = seconds / (365*3600*24.0)
         self.time_units['days']  = seconds / (3600*24.0)
-        for key in yt2orionFieldsDict:
-            self.conversion_factors[key] = 1.0
-        
-        
-    @classmethod
-    def _is_valid(cls, *args, **kwargs):
-        # check for a /root to exist in the h5 file
-        try:
-            h5f=h5py.File(self.h5filename)
-            valid = 'root' in h5f.items()[0]
-            h5f.close()
-            return valid
-        except:
-            pass
-        return False
 
+    def _parse_parameter_file(self):
+        fileh = h5py.File(self.filename)
+        sim_param = fileh['/simulation_parameters'].attrs
+        self.refine_by = sim_param['refine_by']
+        self.dimensionality = sim_param['dimensionality']
+        self.num_ghost_zones = sim_param['num_ghost_zones']
+        self.field_ordering = sim_param['field_ordering']
+        self.domain_dimensions = sim_param['domain_dimensions']
+        self.current_time = sim_param['current_time']
+        self.domain_left_edge = sim_param['domain_left_edge']
+        self.domain_right_edge = sim_param['domain_right_edge']
+        self.unique_identifier = sim_param['unique_identifier']
+        self.cosmological_simulation = sim_param['cosmological_simulation']
+        self.current_redshift = sim_param['current_redshift']
+        self.omega_lambda = sim_param['omega_lambda']
+        self.hubble_constant = sim_param['hubble_constant']
+        fileh.close()
+        
+         
+    @classmethod
+    def _is_valid(self, *args, **kwargs):
+        format = 'Gadget Infrastructure'
+        add1 = 'griddded_data_format'
+        add2 = 'data_software'
+        fileh = h5py.File(args[0],'r')
+        if add1 in fileh['/'].items():
+            if add2 in fileh['/'+add1].attrs.keys():
+                if fileh['/'+add1].attrs[add2] == format:
+                    return True
+        return False
