@@ -23,6 +23,10 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
+import numpy as na
+import stat
+import weakref
+
 from yt.funcs import *
 from yt.data_objects.grid_patch import \
       AMRGridPatch
@@ -32,6 +36,8 @@ from yt.data_objects.static_output import \
       StaticOutput
 import _ramses_reader
 from .fields import RAMSESFieldContainer
+from yt.utilities.definitions import \
+    mpc_conversion
 from yt.utilities.io_handler import \
     io_registry
 
@@ -351,12 +357,10 @@ class RAMSESStaticOutput(StaticOutput):
         self.conversion_factors = defaultdict(lambda: 1.0)
         self.time_units['1'] = 1
         self.units['1'] = 1.0
-        self.units['unitary'] = 1.0 / (self["DomainRightEdge"] - self["DomainLeftEdge"]).max()
+        self.units['unitary'] = 1.0 / (self.domain_right_edge - self.domain_left_edge).max()
         seconds = 1 #self["Time"]
         self.time_units['years'] = seconds / (365*3600*24.0)
         self.time_units['days']  = seconds / (3600*24.0)
-        for key in yt2orionFieldsDict:
-            self.conversion_factors[key] = 1.0
 
     def _setup_nounits_units(self):
         z = 0
@@ -369,7 +373,7 @@ class RAMSESStaticOutput(StaticOutput):
 
     def _parse_parameter_file(self):
         self.unique_identifier = \
-            int(os.stat(self.parameter_filename)[ST_CTIME])
+            int(os.stat(self.parameter_filename)[stat.ST_CTIME])
         self.ramses_tree = _ramses_reader.RAMSES_tree_proxy(self.parameter_filename)
         rheader = self.ramses_tree.get_file_info()
         self.parameters.update(rheader)
