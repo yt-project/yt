@@ -41,13 +41,13 @@ from .fields import GadgetFieldContainer
 
 class GadgetGrid(AMRGridPatch):
     _id_offset = 0
-    def __init__(self, hierarchy, id,dimensions,left_index,
+    def __init__(self, hierarchy, id, dimensions, left_index,
                  level, parent_id, particle_count):
         AMRGridPatch.__init__(self, id, filename = hierarchy.filename,
                               hierarchy = hierarchy)
         self.id = id
         self.ActiveDimensions = dimensions
-        self.start_index = left_index
+        self.start_index = left_index.astype("int64")
         self.Level = level
         self._parent_id = parent_id
         self.Parent = None # Only one parent per grid
@@ -101,23 +101,28 @@ class GadgetHierarchy(AMRHierarchy):
     def _parse_hierarchy(self):
         f = self._handle # shortcut
         npa = na.array
+        DLE = self.parameter_file.domain_left_edge
+        DRE = self.parameter_file.domain_right_edge
+        DW = (DRE - DLE)
         
         self.grid_levels.flat[:] = f['/grid_level'][:].astype("int32")
-        self.grid_left_edge[:]  = f['/grid_left_index'][:]
+        LI = f['/grid_left_index'][:]
+        print LI
         self.grid_dimensions[:] = f['/grid_dimensions'][:]
-        self.grid_right_edge[:] = self.grid_left_edge + self.grid_dimensions 
+        self.grid_left_edge[:]  = (LI * DW + DLE)
+        dxs = 1.0/(2**(self.grid_levels+1)) * DW
+        self.grid_right_edge[:] = self.grid_left_edge \
+                                + dxs *(1 + self.grid_dimensions)
         self.grid_particle_count.flat[:] = f['/grid_particle_count'][:].astype("int32")
         grid_parent_id = f['/grid_parent_id'][:]
         self.max_level = na.max(self.grid_levels)
         
-        args = izip(xrange(self.num_grids), self.grid_levels,
-                    grid_parent_id, self.grid_left_edge,
-                    self.grid_dimensions, self.grid_particle_count)
+        args = izip(xrange(self.num_grids), self.grid_levels.flat,
+                    grid_parent_id, LI,
+                    self.grid_dimensions, self.grid_particle_count.flat)
         self.grids = na.array([self.grid(self,j,d,le,lvl,p,n)
                                for j,lvl,p, le, d, n in args],
                            dtype='object')
-        
-        
         
     def _populate_grid_objects(self):    
         for g in self.grids:
@@ -183,9 +188,12 @@ class GadgetStaticOutput(StaticOutput):
         format = 'Gadget Infrastructure'
         add1 = 'griddded_data_format'
         add2 = 'data_software'
-        fileh = h5py.File(args[0],'r')
-        if add1 in fileh['/'].items():
-            if add2 in fileh['/'+add1].attrs.keys():
-                if fileh['/'+add1].attrs[add2] == format:
-                    return True
+        try:
+            fileh = h5py.File(args[0],'r')
+            if add1 in fileh['/'].items():
+                if add2 in fileh['/'+add1].attrs.keys():
+                    if fileh['/'+add1].attrs[add2] == format:
+                        return True
+        except h5py.h5e.LowLevelIOError:
+            pass
         return False

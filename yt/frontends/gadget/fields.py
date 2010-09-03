@@ -23,6 +23,9 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
+import numpy as na
+
+from yt.funcs import *
 from yt.data_objects.field_info_container import \
     CodeFieldInfoContainer, \
     ValidateParameter, \
@@ -90,13 +93,21 @@ add_field("VEL", function=lambda a,b: None, take_log=True,
           validators = [ValidateDataField("VEL")],
           units=r"")
 
-add_field("ID", function=lambda a,b: None, take_log=True,
+add_field("id", function=lambda a,b: None, take_log=True,
           validators = [ValidateDataField("ID")],
           units=r"")
 
-add_field("MASS", function=lambda a,b: None, take_log=True,
-          validators = [ValidateDataField("MASS")],
+add_field("mass", function=lambda a,b: None, take_log=True,
+          validators = [ValidateDataField("mass")],
           units=r"\rm{g}")
+def _particle_mass(field, data):
+    return data["mass"]/just_one(data["CellVolume"])
+def _convert_particle_mass(data):
+    return 1.0
+add_field("particle_mass", function=_particle_mass, take_log=True,
+          convert_function=_convert_particle_mass,
+          validators = [ValidateSpatial(0)],
+          units=r"\mathrm{g}\/\mathrm{cm}^{-3}")
 
 add_field("U", function=lambda a,b: None, take_log=True,
           validators = [ValidateDataField("U")],

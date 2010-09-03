@@ -38,7 +38,7 @@ class IOHandlerGadget(BaseIOHandler):
             address = '/data/grid_%010i/particles/%s/%s' % (grid.id, ptype, field)
             data.append(fh[address][:])
         if len(data) > 0:
-            data = na.vstack(data)
+            data = na.concatenate(data)
         fh.close()
         return na.array(data)
     def _read_field_names(self,grid): 
