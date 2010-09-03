@@ -342,6 +342,9 @@ class AMRHierarchy(ObjectFindingMixin, ParallelAnalysisInterface):
         """
         Prints out (stdout) relevant information about the simulation
         """
+        header = "%3s\t%6s\t%11s" % ("level","# grids", "# cells")
+        print header
+        print "%s" % (len(header.expandtabs())*"-")
         for level in xrange(MAXLEVEL):
             if (self.level_stats['numgrids'][level]) == 0:
                 break
