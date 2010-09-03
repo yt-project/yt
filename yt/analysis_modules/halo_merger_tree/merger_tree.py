@@ -27,7 +27,11 @@ import numpy as na
 import os, glob, md5, time, gc, sys
 import h5py
 import types
-import sqlite3 as sql
+try:
+    import sqlite3 as sql
+except ImportError:
+    mylog.error("sqlite3 not imported!")
+
 from yt.funcs import *
 
 from yt.analysis_modules.halo_finding.halo_objects import \
@@ -35,6 +39,7 @@ from yt.analysis_modules.halo_finding.halo_objects import \
 from yt.analysis_modules.halo_profiler.multi_halo_profiler import \
     HaloProfiler
 from yt.convenience import load
+from yt.utilities.logger import ytLogger as mylog
 try:
     from yt.utilities.kdtree import *
 except ImportError:
