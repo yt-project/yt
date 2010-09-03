@@ -1,4 +1,6 @@
+import matplotlib; matplotlib.use("Agg")
 import os, shelve, cPickle, sys
+from yt.config import ytcfg; ytcfg["yt","serialize"] = "False"
 import yt.utilities.cmdln as cmdln
 
 from output_tests import test_registry, MultipleOutputTest, \
@@ -56,6 +58,7 @@ class RegressionTestRunner(object):
         test = test_registry[name]
         plot_list = []
         if test.output_type == 'single':
+            print self.io_log
             mot = MultipleOutputTest(self.io_log)
             for i,fn in enumerate(mot):
                 # This next line is to keep the shelve module

@@ -1,5 +1,6 @@
 import matplotlib; matplotlib.use("Agg")
 import pylab
+from yt.mods import *
 from output_tests import SingleOutputTest, YTStaticOutputTest, create_test
 
 class TestProjection(YTStaticOutputTest):
