@@ -27,10 +27,6 @@ import numpy as na
 import os, glob, md5, time, gc, sys
 import h5py
 import types
-try:
-    import sqlite3 as sql
-except ImportError:
-    mylog.error("sqlite3 not imported!")
 
 from yt.funcs import *
 
@@ -49,6 +45,10 @@ from yt.utilities.parallel_tools.parallel_analysis_interface import \
     ParallelAnalysisInterface, \
     parallel_blocking_call
 
+try:
+    import sqlite3 as sql
+except ImportError:
+    mylog.error("sqlite3 not imported!")
 
 column_types = {
 "GlobalHaloID":"INTEGER",
