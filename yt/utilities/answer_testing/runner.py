@@ -50,7 +50,7 @@ class RegressionTestRunner(object):
         plot_list = []
         for i,name in enumerate(sorted(test_registry)):
             self.run_test(name)
-        return plot_list
+        return self.passed_tests
 
     def run_test(self, name):
         # We'll also need to call the "compare" operation,
@@ -122,6 +122,9 @@ class EnzoTestRunnerCommands(cmdln.Cmdln):
         test_runner = RegressionTestRunner(name)
         test_runner.run_all_tests()
 
+    @cmdln.option("-o", "--output", action="store",
+                  help="output results to file",
+                  dest="outputfile", default=None)
     def do_compare(self, subcmd, opts, reference, comparison, *test_modules):
         """
         ${cmd_name}: Compare a reference dataset against a new dataset.  The
@@ -136,7 +139,11 @@ class EnzoTestRunnerCommands(cmdln.Cmdln):
             print "Loading module %s" % (fn)
             __import__(fn)
         test_runner = RegressionTestRunner(comparison, reference)
-        test_runner.run_all_tests()
+        results = test_runner.run_all_tests()
+        if opts.outputfile is not None:
+            f = open(str(opts.outputfile), "w")
+            for testname, success in sorted(results.items()):
+                f.write("%s %s\n" % (testname.ljust(100), success))
 
 def run_main():
     etrc = EnzoTestRunnerCommands()
