@@ -323,6 +323,9 @@ class YTCommands(cmdln.Cmdln):
     @cmdln.option("-u", "--update-source", action="store_true",
                   default = False,
                   help="Update the yt installation, if able")
+    @cmdln.option("-o", "--output-version", action="store",
+                  default = None, dest="outputfile",
+                  help="File into which the current revision number will be stored")
     def do_instinfo(self, subcmd, opts):
         """
         ${cmd_name}: Get some information about the yt installation
@@ -350,6 +353,8 @@ class YTCommands(cmdln.Cmdln):
             if opts.update_source:  
                 _vcs_updater[vc_type](path)
             print "Updated successfully."
+        if vstring is not None and opts.outputfile is not None:
+            open(opts.outputfile, "w").write(vstring)
 
     def do_load(self, subcmd, opts, arg):
         """
