@@ -17,6 +17,7 @@
 
 DEST_SUFFIX="yt-`uname -p`"
 DEST_DIR="`pwd`/${DEST_SUFFIX/ /}"   # Installation location
+BRANCH="stable" # This is the branch to which we will forcibly update.
 
 # Here's where you put the HDF5 path if you like; otherwise it'll download it
 # and install it on its own
@@ -28,13 +29,14 @@ DEST_DIR="`pwd`/${DEST_SUFFIX/ /}"   # Installation location
 # If you absolutely can't get the fortran to work, try this:
 #NUMPY_ARGS="--fcompiler=fake"
 
-INST_WXPYTHON=0 # If you want to install wxPython, set this to 1
+INST_HG=1       # Install Mercurial or not?  If hg is not already
+                # installed, yt cannot be installed.
 INST_ZLIB=1     # On some systems (Kraken) matplotlib has issues with 
                 # the system zlib, which is compiled statically.
                 # If need be, you can turn this off.
-INST_PNG=0      # Install a local libpng?  Same things apply as with zlib.
-INST_TRAITS=0   # Experimental TraitsUI installation
-INST_HG=1       # Install Mercurial or not?
+INST_BZLIB=1    # On some systems, libbzip2 is missing.  This can
+                # lead to broken mercurial installations.
+INST_PNG=1      # Install a local libpng?  Same things apply as with zlib.
 
 # If you've got YT some other place, set this to point to it.
 YT_DIR=""
@@ -126,21 +128,17 @@ echo "Inside the installation script you can set a few variables.  Here's what"
 echo "they're currently set to -- you can hit Ctrl-C and edit the values in "
 echo "the script if you aren't such a fan."
 echo
-printf "%-15s = %s so I " "INST_WXPYTHON" "${INST_WXPYTHON}"
-get_willwont $INST_WXPYTHON
-echo "be installing wxPython"
-
 printf "%-15s = %s so I " "INST_ZLIB" "${INST_ZLIB}"
 get_willwont ${INST_ZLIB}
 echo "be installing zlib"
 
+printf "%-15s = %s so I " "INST_BZLIB" "${INST_BZLIB}"
+get_willwont ${INST_BZLIB}
+echo "be installing bzlib"
+
 printf "%-15s = %s so I " "INST_HG" "${INST_HG}"
 get_willwont ${INST_HG}
 echo "be installing Mercurial"
-
-printf "%-15s = %s so I " "INST_TRAITS" "${INST_TRAITS}"
-get_willwont ${INST_TRAITS}
-echo "be installing Traits"
 
 echo
 
@@ -149,13 +147,6 @@ then
     echo "HDF5_DIR is not set, so I will be installing HDF5"
 else
     echo "HDF5_DIR=${HDF5_DIR} , so I will not be installing HDF5"
-fi
-
-if [ -z "$YT_DIR" ]
-then
-    echo "YT_DIR is not set, so I will be checking out a fresh copy"
-else
-    echo "YT_DIR=${YT_DIR} , so I will use that for YT"
 fi
 
 echo
@@ -230,31 +221,31 @@ then
 fi
 
 [ $INST_ZLIB -eq 1 ] && get_enzotools zlib-1.2.3.tar.bz2 
+[ $INST_BZLIB -eq 1 ] && get_enzotools bzip2-1.0.5.tar.gz
 [ $INST_PNG -eq 1 ] && get_enzotools libpng-1.2.43.tar.gz
-[ $INST_WXPYTHON -eq 1 ] && get_enzotools wxPython-src-2.8.10.1.tar.bz2
 get_enzotools Python-2.6.3.tgz
 get_enzotools numpy-1.4.1.tar.gz
 get_enzotools matplotlib-0.99.3.tar.gz
+get_enzotools mercurial-1.6.3.tar.gz
 get_enzotools ipython-0.10.tar.gz
 get_enzotools h5py-1.2.0.tar.gz
 
-if [ -z "$YT_DIR" ]
+if [ $INST_BZLIB -eq 1 ]
 then
-    if [ -e $ORIG_PWD/yt/mods.py ]
+    if [ ! -e bzip2-1.0.5/done ]
     then
-        YT_DIR="$ORIG_PWD"
-    elif [ -e $ORIG_PWD/../yt/mods.py ]
-    then
-        YT_DIR=`dirname $ORIG_PWD`
-    elif [ ! -e yt-1.7-svn ] 
-    then
-        ( svn co http://svn.enzotools.org/yt/branches/yt-1.7/ ./yt-1.7-svn 2>&1 ) 1>> ${LOG_FILE}
-        YT_DIR="$PWD/yt-1.7-svn/"
-    elif [ -e yt-1.7-svn ] 
-    then
-        YT_DIR="$PWD/yt-1.7-svn/"
+        [ ! -e bzip2-1.0.5 ] && tar xfz bzip2-1.0.5.tar.gz
+        echo "Installing BZLIB"
+        cd bzip2-1.0.5
+        ( make install CFLAGS=-fPIC LDFLAGS=-fPIC PREFIX=${DEST_DIR} 2>&1 ) 1>> ${LOG_FILE} || do_exit
+        ( make -f Makefile-libbz2_so CFLAGS=-fPIC LDFLAGS=-fPIC PREFIX=${DEST_DIR} 2>&1 ) 1>> ${LOG_FILE} || do_exit
+        ( cp -v libbz2.so.1.0.4 ${DEST_DIR}/lib 2>&1 ) 1>> ${LOG_FILE} || do_exit
+        touch done
+        cd ..
     fi
-    echo Setting YT_DIR=${YT_DIR}
+    BZLIB_DIR=${DEST_DIR}
+    export LDFLAGS="${LDFLAGS} -L${BZLIB_DIR}/lib/ -L${BZLIB_DIR}/lib64/"
+    LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:${BZLIB_DIR}/lib/"
 fi
 
 if [ $INST_ZLIB -eq 1 ]
@@ -324,23 +315,29 @@ fi
 
 export PYTHONPATH=${DEST_DIR}/lib/python2.6/site-packages/
 
-if [ $INST_WXPYTHON -eq 1 ] && [ ! -e wxPython-src-2.8.10.1/done ]
+if [ $INST_HG -eq 1 ]
 then
-    echo "Installing wxPython.  This may take a while, but don't worry.  YT loves you."
-    [ ! -e wxPython-src-2.8.10.1 ] && tar xfj wxPython-src-2.8.10.1.tar.bz2
-    cd wxPython-src-2.8.10.1
+    echo "Installing Mercurial."
+    do_setup_py mercurial-1.6.3
+fi
 
-    get_enzotools wxpython28101_gdiwrap.diff
-    patch -p0 < wxpython28101_gdiwrap.diff
-    ( ./configure --prefix=${DEST_DIR}/ --with-opengl 2>&1 ) 1>> ${LOG_FILE} || do_exit
-    ( make install 2>&1 ) 1>> ${LOG_FILE} || do_exit
-    cd contrib
-    ( make install 2>&1 ) 1>> ${LOG_FILE} || do_exit
-    cd ../wxPython/
-    ( ${DEST_DIR}/bin/python2.6 setup.py WX_CONFIG=${DEST_DIR}/bin/wx-config install 2>&1 ) 1>> ${LOG_FILE} || do_exit
-
-    touch ../done
-    cd ../..
+if [ -z "$YT_DIR" ]
+then
+    if [ -e $ORIG_PWD/yt/mods.py ]
+    then
+        YT_DIR="$ORIG_PWD"
+    elif [ -e $ORIG_PWD/../yt/mods.py ]
+    then
+        YT_DIR=`dirname $ORIG_PWD`
+    elif [ ! -e yt-hg ] 
+    then
+        ( ${DEST_DIR}/bin/hg clone -r ${BRANCH} http://hg.enzotools.org/yt/ ./yt-hg 2>&1 ) 1>> ${LOG_FILE}
+        YT_DIR="$PWD/yt-hg/"
+    elif [ -e yt-hg ] 
+    then
+        YT_DIR="$PWD/yt-hg/"
+    fi
+    echo Setting YT_DIR=${YT_DIR}
 fi
 
 # This fixes problems with gfortran linking.
@@ -364,10 +361,10 @@ unset LDFLAGS
 do_setup_py ipython-0.10
 do_setup_py h5py-1.2.0
 
-echo "Doing yt update"
+echo "Doing yt update, wiping local changes and updating to branch ${BRANCH}"
 MY_PWD=`pwd`
 cd $YT_DIR
-( svn up 2>&1 ) 1>> ${LOG_FILE}
+( ${DEST_DIR}/bin/hg pull && ${DEST_DIR}/bin/hg up -C ${BRANCH} 2>&1 ) 1>> ${LOG_FILE}
 
 echo "Installing yt"
 echo $HDF5_DIR > hdf5.cfg
@@ -375,18 +372,6 @@ echo $HDF5_DIR > hdf5.cfg
 ( ${DEST_DIR}/bin/python2.6 setup.py develop 2>&1 ) 1>> ${LOG_FILE} || do_exit
 touch done
 cd $MY_PWD
-
-if [ $INST_HG -eq 1 ]
-then
-    echo "Installing Mercurial."
-    ( ${DEST_DIR}/bin/pip install -U mercurial 2>&1 ) 1>> ${LOG_FILE} || do_exit
-fi
-
-if [ $INST_WXPYTHON -eq 1 ] && [ $INST_TRAITS -eq 1 ]
-then
-    echo "Installing Traits"
-    ( ${DEST_DIR}/bin/pip install -U TraitsGUI TraitsBackendWX 2>&1 ) 1>> ${LOG_FILE} || do_exit
-fi
 
 echo
 echo
