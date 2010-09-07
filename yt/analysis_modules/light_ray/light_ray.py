@@ -44,7 +44,6 @@ from yt.analysis_modules.simulation_handler.enzo_simulation import \
 from yt.analysis_modules.halo_profiler.multi_halo_profiler import \
     HaloProfiler
 from yt.convenience import load
-from yt.utilities.logger import lagosLogger as mylog
 
 class LightRay(EnzoSimulation):
     def __init__(self, EnzoParameterFile, FinalRedshift, InitialRedshift, 

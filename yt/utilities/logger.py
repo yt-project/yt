@@ -51,9 +51,6 @@ def add_coloring_to_emit_ansi(fn):
         return fn(*args)
     return new
 
-if ytcfg.getboolean("yt","coloredlogs"):
-    logging.StreamHandler.emit = add_coloring_to_emit_ansi(logging.StreamHandler.emit)
-
 level = min(max(ytcfg.getint("yt", "loglevel"), 0), 50)
 fstring = "%(name)-10s %(levelname)-10s %(asctime)s %(message)s"
 logging.basicConfig(
@@ -68,41 +65,17 @@ rootLogger = logging.getLogger()
 ytLogger = logging.getLogger("yt")
 ytLogger.debug("Set log level to %s", level)
 
-fidoLogger = logging.getLogger("yt.fido")
-ravenLogger = logging.getLogger("yt.raven")
-lagosLogger = logging.getLogger("yt.lagos")
-enkiLogger = logging.getLogger("yt.enki")
-deliveratorLogger = logging.getLogger("yt.deliverator")
-reasonLogger = logging.getLogger("yt.reason")
-
-# Maybe some day we'll make this more configurable...  unfortunately, for now,
-# we preserve thread-safety by opening in the current directory.
-
-mb = 10*1024*1024
-bc = 10
-
-loggers = []
-file_handlers = []
-
-if ytcfg.getboolean("yt","logfile") and os.access(".", os.W_OK):
-    log_file_name = ytcfg.get("yt","LogFileName")
-    ytFileHandler = handlers.RotatingFileHandler(log_file_name,
-                                             maxBytes=mb, backupCount=bc)
-    k = logging.Formatter(fstring)
-    ytFileHandler.setFormatter(k)
-    ytLogger.addHandler(ytFileHandler)
-    loggers.append(ytLogger)
-    file_handlers.append(ytFileHandler)
-
 def disable_stream_logging():
     # We just remove the root logger's handlers
     for handler in rootLogger.handlers:
         if isinstance(handler, logging.StreamHandler):
             rootLogger.removeHandler(handler)
 
-def disable_file_logging():
-    for logger, handler in zip(loggers, file_handlers):
-        logger.removeHandler(handler)
+def colorize_logging():
+    logging.StreamHandler.emit = add_coloring_to_emit_ansi(logging.StreamHandler.emit)
+
+if ytcfg.getboolean("yt","coloredlogs"):
+    colorize_logging()
 
 if ytcfg.getboolean("yt","suppressStreamLogging"):
     disable_stream_logging()
