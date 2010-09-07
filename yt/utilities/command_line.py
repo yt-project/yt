@@ -29,7 +29,6 @@ import cmdln as cmdln
 import optparse, os, os.path, math, sys, time, subprocess
 
 def _fix_pf(arg):
-    print "_fix_pf arg = ", arg
     if os.path.isdir("%s" % arg) and \
         os.path.exists("%s/%s" % (arg,arg)):
         pf = load("%s/%s" % (arg,arg))
