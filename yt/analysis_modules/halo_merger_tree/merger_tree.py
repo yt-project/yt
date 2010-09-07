@@ -24,7 +24,7 @@ License:
 """
 
 import numpy as na
-import os, glob, md5, time, gc, sys
+import os, glob, time, gc, sys
 import h5py
 import types
 
@@ -44,6 +44,11 @@ from yt.utilities.parallel_tools.parallel_analysis_interface import \
     ParallelDummy, \
     ParallelAnalysisInterface, \
     parallel_blocking_call
+
+try:
+    import md5
+except ImportError:
+    mylog.error("md5 not imported!")
 
 try:
     import sqlite3 as sql
