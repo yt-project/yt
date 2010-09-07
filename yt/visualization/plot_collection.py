@@ -313,7 +313,7 @@ class PlotCollection(object):
         r"""Create a slice, from that a slice plot, and add it to the current
         collection.
 
-        This function will generate a `yt.lagos.AMRSliceBase` from the given
+        This function will generate a `yt.data_objects.api.AMRSliceBase` from the given
         parameters.  This slice then gets passed to a `yt.raven.SlicePlot`, and
         the resultant plot is added to the current collection.  Various
         parameters allow control of the way the slice is displayed, as well as
@@ -345,7 +345,7 @@ class PlotCollection(object):
         periodic : boolean, optional
             By default, the slices are assumed to be periodic, and they will
             wrap around the edges.
-        obj : `yt.lagos.AMRSliceBase`, optional
+        obj : `yt.data_objects.api.AMRSliceBase`, optional
             If you would like to use an existing slice, you may specify it
             here, in which case a new slice will not be created.
         field_parameters : dict, optional
@@ -359,7 +359,7 @@ class PlotCollection(object):
 
         See Also
         --------
-        yt.lagos.AMRSliceBase : This is the type created by this function and 
+        yt.data_objects.api.AMRSliceBase : This is the type created by this function and 
                                 passed to the plot created here.
 
         Notes
@@ -399,7 +399,7 @@ class PlotCollection(object):
                       data_source=None, figure=None, axes=None):
         r"""Create a plot of a thick slab of particles.
 
-        This function will generate a `yt.lagos.AMRRegionBase` from the given
+        This function will generate a `yt.data_objects.api.AMRRegionBase` from the given
         parameters, and all particles which are within that region will be
         plotted.
 
@@ -421,7 +421,7 @@ class PlotCollection(object):
             The stride through the particles to plot.  Used to plot every
             fifth, every tenth, etc.  Note that the sorted order of particles
             may result in a biased selection of particles.
-        data_source : `yt.lagos.AMRData`, optional
+        data_source : `yt.data_objects.api.AMRData`, optional
             If specified, this will be the data source used for obtaining
             particles.
         figure : `matplotlib.figure.Figure`, optional
@@ -472,7 +472,7 @@ class PlotCollection(object):
         A cutting plane is an oblique slice through the simulation volume,
         oriented by a specified normal vector that is perpendicular to the
         image plane.  This function will generate a
-        `yt.lagos.AMRCuttingPlaneBase` from the given parameters.  This cutting
+        `yt.data_objects.api.AMRCuttingPlaneBase` from the given parameters.  This cutting
         plane then gets passed to a `yt.raven.CuttingPlanePlot`, and the
         resultant plot is added to the current collection.  Various parameters
         allow control of the way the slice is displayed, as well as how the
@@ -515,7 +515,7 @@ class PlotCollection(object):
 
         See Also
         --------
-        yt.lagos.AMRCuttingPlaneBase : This is the type created by this function.
+        yt.data_objects.api.AMRCuttingPlaneBase : This is the type created by this function.
 
         Notes
         -----
@@ -567,7 +567,7 @@ class PlotCollection(object):
         image plane.  This function will slice through, but instead of
         retaining all the data necessary to rescale the cutting plane at any
         width, it only retains the pixels for a single width.  This function
-        will generate a `yt.lagos.AMRFixedResCuttingPlaneBase` from the given
+        will generate a `yt.data_objects.api.AMRFixedResCuttingPlaneBase` from the given
         parameters.  This image buffer then gets passed to a
         `yt.raven.FixedResolutionPlot`, and the resultant plot is added to the
         current collection.  Various parameters allow control of the way the
@@ -615,7 +615,7 @@ class PlotCollection(object):
 
         See Also
         --------
-        yt.lagos.AMRFixedResCuttingPlaneBase : This is the type created by this
+        yt.data_objects.api.AMRFixedResCuttingPlaneBase : This is the type created by this
                                                function.
 
         Examples
@@ -657,7 +657,7 @@ class PlotCollection(object):
         r"""Create a projection, from that a projection plot, and add it to the
         current collection.
 
-        This function will generate a `yt.lagos.AMRProjBase` from the given
+        This function will generate a `yt.data_objects.api.AMRProjBase` from the given
         parameters.  This projection then gets passed to a
         `yt.raven.ProjectionPlot`, and the resultant plot is added to the
         current collection.  Various parameters allow control of the way the
@@ -669,7 +669,7 @@ class PlotCollection(object):
             The initial field to slice and display.
         axis : int
             The axis along which to slice.  Can be 0, 1, or 2 for x, y, z.
-        data_source : `yt.lagos.AMRData`
+        data_source : `yt.data_objects.api.AMRData`
             This is a data source respecting the `AMRData` protocol (i.e., it
             has grids and so forth) that will be used as input to the
             projection.
@@ -695,7 +695,7 @@ class PlotCollection(object):
         periodic : boolean, optional
             By default, the slices are assumed to be periodic, and they will
             wrap around the edges.
-        obj : `yt.lagos.AMRProjBase`, optional
+        obj : `yt.data_objects.api.AMRProjBase`, optional
             If you would like to use an existing projection, you may specify it
             here, in which case a new projection will not be created.  If this
             option is specified the options data_source, weight_field and
@@ -711,7 +711,7 @@ class PlotCollection(object):
 
         See Also
         --------
-        yt.lagos.AMRProjBase : This is the type created by this function and 
+        yt.data_objects.api.AMRProjBase : This is the type created by this function and 
                                passed to the plot created here.
 
         Notes
@@ -743,6 +743,99 @@ class PlotCollection(object):
         p["Axis"] = axis_names[axis]
         return p
 
+    def add_thin_projection(self, field, axis, thickness,
+                       weight_field=None, center=None, use_colorbar=True,
+                       figure = None, axes = None, fig_size=None,
+                       periodic = True, field_parameters = None):
+        r"""Create a projection through a thin slice of the domain, from that a
+        projection plot, and add it to the current collection.
+
+        This function will generate a rectangular prism region and supply it to
+        a`yt.data_objects.api.AMRProjBase` from the given parameters.  This projection
+        then gets passed to a `yt.raven.ProjectionPlot`, and the resultant plot
+        is added to the current collection.  Various parameters allow control
+        of the way the slice is displayed, as well as how the slice is
+        generated.  The center is used as the center of the thin projection.
+
+        Parameters
+        ----------
+        field : string
+            The initial field to slice and display.
+        axis : int
+            The axis along which to slice.  Can be 0, 1, or 2 for x, y, z.
+        thickness : float
+            In 'code units' this is the thickness of the region to be
+            projected through.
+        weight_field : string
+            If specified, this will be the weighting field and the resultant
+            projection will be a line-of-sight average, defined as sum( f_i *
+            w_i * dl ) / sum( w_i * dl )
+        center : array_like, optional
+            The center to be used for things like radius and radial velocity.
+            Defaults to the center of the plot collection.
+        use_colorbar : bool, optional
+            Whether we should leave room for and create a colorbar.
+        figure : `matplotlib.figure.Figure`, optional
+            The figure onto which the axes will be placed.  Typically not used
+            unless *axes* is also specified.
+        axes : `matplotlib.axes.Axes`, optional
+            The axes object which will be used to create the image plot.
+            Typically used for things like multiplots and the like.
+        fig_size : tuple of floats
+            This parameter can act as a proxy for the manual creation of a
+            figure.  By specifying it, you can create plots with an arbitrarily
+            large or small size.  It is in inches, defaulting to 100 dpi.
+        periodic : boolean, optional
+            By default, the slices are assumed to be periodic, and they will
+            wrap around the edges.
+        field_parameters : dict, optional
+            This set of parameters will be passed to the slice upon creation,
+            which can be used for passing variables to derived fields.
+
+        Returns
+        -------
+        plot : `yt.raven.ProjectionPlot`
+            The plot that has been added to the PlotCollection.
+
+        See Also
+        --------
+        yt.data_objects.api.AMRProjBase : This is the type created by this function and 
+                               passed to the plot created here.
+
+        Notes
+        -----
+        This is the primary mechanism for creating projection plots, and
+        generating projection plots along multiple axes was the original
+        purpose of the PlotCollection.
+
+        Note that all plots can be modified.  See `callback_list` for more
+        information.
+
+        Examples
+        --------
+
+        >>> pf = load("RD0005-mine/RedshiftOutput0005")
+        >>> pc = PlotCollection(pf, [0.5, 0.5, 0.5])
+        >>> p = pc.add_thin_projection("Density", 0, 0.1, "Density")
+        """
+        if field_parameters is None: field_parameters = {}
+        if center == None:
+            center = self.c
+        LE = self.pf.domain_left_edge.copy()
+        RE = self.pf.domain_right_edge.copy()
+        LE[axis] = RE[axis] = center[axis]
+        LE[axis] -= thickness/2.0
+        RE[axis] += thickness/2.0
+        region = self.pf.h.region(center, LE, RE)
+        obj = self.pf.hierarchy.proj(axis, field, weight_field,
+                                     source = region, center=center,
+                                     **field_parameters)
+        p = self._add_plot(ProjectionPlot(obj, field,
+                         use_colorbar=use_colorbar, axes=axes, figure=figure,
+                         size=fig_size, periodic=periodic))
+        p["Axis"] = axis_names[axis]
+        return p
+
     def add_profile_object(self, data_source, fields,
                            weight="CellMassMsun", accumulation=False,
                            x_bins=64, x_log=True, x_bounds=None,
@@ -760,7 +853,7 @@ class PlotCollection(object):
 
         Parameters
         ----------
-        data_source : `yt.lagos.AMRData`
+        data_source : `yt.data_objects.api.AMRData`
             This is a data source respecting the `AMRData` protocol (i.e., it
             has grids and so forth) that will be used as input to the profile
             generation.
@@ -903,7 +996,7 @@ class PlotCollection(object):
         yt.lagos.BinnedProfile1D : This is the object that does the
                                    transformation of raw data into a 1D
                                    profile.
-        yt.lagos.AMRSphereBase : This is the object auto-generated by this
+        yt.data_objects.api.AMRSphereBase : This is the object auto-generated by this
                                  function.
 
         Examples
@@ -942,7 +1035,7 @@ class PlotCollection(object):
 
         Parameters
         ----------
-        data_source : `yt.lagos.AMRData`
+        data_source : `yt.data_objects.api.AMRData`
             This is a data source respecting the `AMRData` protocol (i.e., it
             has grids and so forth) that will be used as input to the profile
             generation.
@@ -1164,7 +1257,7 @@ class PlotCollection(object):
 
         Parameters
         ----------
-        data_source : `yt.lagos.AMRData`
+        data_source : `yt.data_objects.api.AMRData`
             This will be the data source from which field values will be
             obtained.
         fields : tuple of strings
@@ -1267,7 +1360,7 @@ class PlotCollection(object):
         r"""Create a ray parallel to some axis, from that a line plot, and add
         it to the current collection.
 
-        This function will generate a `yt.lagos.AMROrthoRayBase` from the given
+        This function will generate a `yt.data_objects.api.AMROrthoRayBase` from the given
         parameters.  This ray then gets passed to a `yt.raven.LineQueryPLot`, and
         the resultant plot is added to the current collection.  Various
         parameters allow control of the way the line plot is displayed, as well as
@@ -1302,7 +1395,7 @@ class PlotCollection(object):
 
         See Also
         --------
-        yt.lagos.AMROrthoRayBase : This is the type created by this function and 
+        yt.data_objects.api.AMROrthoRayBase : This is the type created by this function and 
                                    passed to the plot created here.
 
         Examples
@@ -1330,7 +1423,7 @@ class PlotCollection(object):
         r"""Create a ray between two points, from that a line plot, and add
         it to the current collection.
 
-        This function will generate a `yt.lagos.AMRRayBase` from the given
+        This function will generate a `yt.data_objects.api.AMRRayBase` from the given
         parameters.  This ray then gets passed to a `yt.raven.LineQueryPLot`, and
         the resultant plot is added to the current collection.  Various
         parameters allow control of the way the line plot is displayed, as well as
@@ -1363,7 +1456,7 @@ class PlotCollection(object):
 
         See Also
         --------
-        yt.lagos.AMRRayBase : This is the type created by this function and 
+        yt.data_objects.api.AMRRayBase : This is the type created by this function and 
                               passed to the plot created here.
 
         Examples

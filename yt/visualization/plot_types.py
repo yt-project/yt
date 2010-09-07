@@ -216,7 +216,7 @@ class RavenPlot(object):
                     self.colorbar.locator = self._old_locator
                 if hasattr(self,'_old_formatter'):
                     self.colorbar.formatter = self._old_formatter
-        self.norm.autoscale(na.array([zmin,zmax]))
+        self.norm.autoscale(na.array([zmin,zmax], dype='float64'))
         self.image.changed()
         if self.colorbar is not None:
             mpl_notify(self.image, self.colorbar)
@@ -396,7 +396,7 @@ class VMPlot(RavenPlot):
             self.image.set_data(buff)
         if self._axes.get_aspect() != aspect: self._axes.set_aspect(aspect)
         if self.do_autoscale:
-            self.norm.autoscale(na.array((newmin,newmax)))
+            self.norm.autoscale(na.array((newmin,newmax), dtype='float64'))
         self._reset_image_parameters()
         self._run_callbacks()
 
@@ -871,7 +871,7 @@ class PhasePlot(ProfilePlot):
                 vI = na.where(vals > 0)
                 vmin = vals[vI].min()
                 vmax = vals[vI].max()
-            self.norm.autoscale(na.array((vmin,vmax)))
+            self.norm.autoscale(na.array((vmin,vmax), dtype='float64'))
         else:
             self.norm=matplotlib.colors.Normalize(vmin=vmin, vmax=vmax,
                                                   clip=False)
