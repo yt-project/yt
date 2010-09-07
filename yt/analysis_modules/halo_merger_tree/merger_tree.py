@@ -24,7 +24,7 @@ License:
 """
 
 import numpy as na
-import os, glob, time, gc, m5d, sys
+import os, glob, time, gc, md5, sys
 import h5py
 import types
 
