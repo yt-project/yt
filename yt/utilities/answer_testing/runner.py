@@ -2,6 +2,7 @@ import matplotlib; matplotlib.use("Agg")
 import os, shelve, cPickle, sys
 from yt.config import ytcfg; ytcfg["yt","serialize"] = "False"
 import yt.utilities.cmdln as cmdln
+from .xunit import Xunit
 
 from output_tests import test_registry, MultipleOutputTest, \
                          RegressionTestException
@@ -73,26 +74,34 @@ class RegressionTestRunner(object):
             test_instance = test(self.io_log)
             self._run(test_instance)
 
+    watcher = None
     def _run(self, test):
+        if self.watcher is not None:
+            self.watcher.start()
         print self.id, "Running", test.name,
         test.setup()
         test.run()
         self.plot_list[test.name] = test.plot()
         self.results[test.name] = test.result
-        success = self._compare(test)
+        success, msg = self._compare(test)
         if success == True: print "SUCCEEDED"
         else: print "FAILED"
         self.passed_tests[test.name] = success
+        if self.watcher is not None:
+            if success == True:
+                self.watcher.addSuccess(test.name)
+            else:
+                self.watcher.addFailure(test.name, msg)
 
     def _compare(self, test):
         if self.old_results is None:
-            return True
+            return (True, "New Test")
         old_result = self.old_results[test.name]
         try:
             test.compare(old_result)
         except RegressionTestException, exc:
-            return str(exc)
-        return True
+            return (False, str(exc))
+        return (True, "Pass")
 
     def run_tests_from_file(self, filename):
         for line in open(filename):
@@ -125,6 +134,9 @@ class EnzoTestRunnerCommands(cmdln.Cmdln):
     @cmdln.option("-o", "--output", action="store",
                   help="output results to file",
                   dest="outputfile", default=None)
+    @cmdln.option("-n", "--nose", action="store_true",
+                  help="run through nose with xUnit testing",
+                  dest="run_nose", default=False)
     def do_compare(self, subcmd, opts, reference, comparison, *test_modules):
         """
         ${cmd_name}: Compare a reference dataset against a new dataset.  The
@@ -139,7 +151,11 @@ class EnzoTestRunnerCommands(cmdln.Cmdln):
             print "Loading module %s" % (fn)
             __import__(fn)
         test_runner = RegressionTestRunner(comparison, reference)
+        if opts.run_nose:
+            test_runner.watcher = Xunit()
         results = test_runner.run_all_tests()
+        if opts.run_nose:
+            test_runner.watcher.report()
         if opts.outputfile is not None:
             f = open(str(opts.outputfile), "w")
             for testname, success in sorted(results.items()):
