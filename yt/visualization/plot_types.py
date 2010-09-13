@@ -216,7 +216,7 @@ class RavenPlot(object):
                     self.colorbar.locator = self._old_locator
                 if hasattr(self,'_old_formatter'):
                     self.colorbar.formatter = self._old_formatter
-        self.norm.autoscale(na.array([zmin,zmax], dype='float64'))
+        self.norm.autoscale(na.array([zmin,zmax], dtype='float64'))
         self.image.changed()
         if self.colorbar is not None:
             mpl_notify(self.image, self.colorbar)
