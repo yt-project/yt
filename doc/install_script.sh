@@ -41,6 +41,11 @@ INST_PNG=1      # Install a local libpng?  Same things apply as with zlib.
 # If you've got YT some other place, set this to point to it.
 YT_DIR=""
 
+# If you need to pass anything to matplotlib, do so here:
+#MPL_SUPP_LDFLAGS=""
+#MPL_SUPP_CCFLAGS=""
+#MPL_SUPP_CXXFLAGS=""
+
 #------------------------------------------------------------------------------#
 #                                                                              #
 # Okay, the script starts here.  Feel free to play with it, but hopefully      #
@@ -100,7 +105,7 @@ function host_specific
         echo "Looks like you're on Abe."
         echo "We're going to have to set some supplemental environment"
 		echo "variables to get this to work..."
-		MPL_SUPP_LDFLAGS="-L${DEST_DIR}/lib -L${DEST_DIR}/lib64 -L/usr/local/lib64 -L/usr/local/lib"
+		MPL_SUPP_LDFLAGS="${MPL_SUPP_LDFLAGS} -L${DEST_DIR}/lib -L${DEST_DIR}/lib64 -L/usr/local/lib64 -L/usr/local/lib"
     fi
     if [ "${MYHOST##steele}" != "${MYHOST}" ]
     then
@@ -353,11 +358,30 @@ do_setup_py numpy-1.4.1 ${NUMPY_ARGS}
 
 if [ -n "${MPL_SUPP_LDFLAGS}" ]
 then
+    OLD_LDFLAGS=${LDFLAGS}
     export LDFLAGS="${MPL_SUPP_LDFLAGS}"
     echo "Setting LDFLAGS ${LDFLAGS}"
 fi
+if [ -n "${MPL_SUPP_CXXFLAGS}" ]
+then
+    OLD_CXXFLAGS=${CXXFLAGS}
+    export CXXFLAGS="${MPL_SUPP_CXXFLAGS}"
+    echo "Setting CXXFLAGS ${CXXFLAGS}"
+fi
+if [ -n "${MPL_SUPP_CCFLAGS}" ]
+then
+    OLD_CCFLAGS=${CCFLAGS}
+    export CCFLAGS="${MPL_SUPP_CCFLAGS}"
+    echo "Setting CCFLAGS ${CCFLAGS}"
+fi
 do_setup_py matplotlib-0.99.3
-unset LDFLAGS
+if [-n "${OLD_LDFLAGS}" ]
+then
+    export LDFLAG=${OLD_LDFLAGS}
+fi
+[-n "${OLD_LDFLAGS}" ] && export LDFLAGS=${OLD_LDFLAGS}
+[-n "${OLD_CXXFLAGS}" ] && export CXXFLAGS=${OLD_CXXFLAGS}
+[-n "${OLD_CCFLAGS}" ] && export CCFLAGS=${OLD_CCFLAGS}
 do_setup_py ipython-0.10
 do_setup_py h5py-1.2.0
 
@@ -417,3 +441,6 @@ echo
 echo "    http://lists.spacepope.org/listinfo.cgi/yt-users-spacepope.org"
 echo
 echo "========================================================================"
+echo
+echo "Oh, look at me, still talking when there's science to do!"
+echo "Good luck, and email the user list if you run into any problems."
