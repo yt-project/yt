@@ -41,3 +41,10 @@ class YTSphereTooSmall(YTException):
 
     def __str__(self):
         return "%0.5e < %0.5e" % (self.radius, self.smallest_cell)
+
+class YTAxesNotOrthogonalError(YTException):
+    def __init__(self, axes):
+        self.axes = axes
+
+    def __str__(self):
+        return "The supplied axes are not orthogonal.  %s" % (self.axes)

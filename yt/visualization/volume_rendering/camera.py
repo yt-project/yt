@@ -31,6 +31,8 @@ from .grid_partitioner import HomogenizedVolume
 from .transfer_functions import ProjectionTransferFunction
 
 from yt.utilities.amr_utils import TransferFunctionProxy, VectorPlane
+from yt.visualization.image_writer import write_bitmap
+from yt.data_objects.data_containers import data_object_registry
 
 class Camera(object):
     def __init__(self, center, normal_vector, width,
@@ -164,11 +166,17 @@ class Camera(object):
                                       self.unit_vectors[1])
         return vector_plane
 
-    def snapshot(self):
+    def snapshot(self, fn = None):
         r"""Ray-cast the camera.
 
         This method instructs the camera to take a snapshot -- i.e., call the ray
         caster -- based on its current settings.
+
+        Parameters
+        ----------
+        fn : string, optional
+            If supplied, the image will be saved out to this before being
+            returned.  The scaling supplied will 2.0*image.std().
 
         Returns
         -------
@@ -189,6 +197,9 @@ class Camera(object):
             total_cells += na.prod(brick.my_data[0].shape)
             pbar.update(total_cells)
         pbar.finish()
+        if fn is None:
+            return image
+        write_bitmap(image, fn, 4.0*image.std())
         return image
 
     def zoom(self, factor):
@@ -240,6 +251,7 @@ class Camera(object):
             self.zoom(f)
             yield self.snapshot()
 
+data_object_registry["camera"] = Camera
 
 class PerspectiveCamera(Camera):
     def get_vector_plane(self, image):
