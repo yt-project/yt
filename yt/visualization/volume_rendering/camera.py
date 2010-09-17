@@ -176,7 +176,7 @@ class Camera(object):
         ----------
         fn : string, optional
             If supplied, the image will be saved out to this before being
-            returned.  The scaling supplied will 2.0*image.std().
+            returned.  Scaling will be to the maximum value.
 
         Returns
         -------
@@ -199,7 +199,7 @@ class Camera(object):
         pbar.finish()
         if fn is None:
             return image
-        write_bitmap(image, fn, 4.0*image.std())
+        write_bitmap(image, fn)
         return image
 
     def zoom(self, factor):

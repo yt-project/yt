@@ -167,6 +167,9 @@ def write_image(image, filename, color_bounds = None, cmap_name = "algae"):
                     (1024, 1024))
     >>> write_image(frb1, "saved.png")
     """
+    if len(image.shape) == 3:
+        mylog.info("Using only channel 1 of supplied image")
+        image = image[:,:,0]
     if color_bounds is None:
         mi = na.nanmin(image[~na.isinf(image)])
         ma = na.nanmax(image[~na.isinf(image)])
