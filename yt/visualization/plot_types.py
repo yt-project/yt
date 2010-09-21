@@ -804,7 +804,8 @@ class PhasePlot(ProfilePlot):
         self.norm = matplotlib.colors.Normalize()
         self.image = self._axes.pcolormesh(self.x_bins, self.y_bins,
                                       temparray, shading='flat',
-                                      norm=self.norm, cmap=self.cmap)
+                                      norm=self.norm, cmap=self.cmap,
+                                      rasterized=True)
         self.colorbar = self._figure.colorbar(self.image,
                                     extend='neither', shrink=0.95,
                                     format="%0.2e" )
@@ -887,7 +888,8 @@ class PhasePlot(ProfilePlot):
         self._axes.set_yscale("linear")
         self.image = self._axes.pcolormesh(self.x_bins, self.y_bins, \
                                       vals, shading='flat', \
-                                      norm=self.norm, cmap=self.cmap)
+                                      norm=self.norm, cmap=self.cmap,
+                                      rasterized=True)
         self._axes.set_xscale({0:"linear",1:"log"}[int(self._log_x)])
         self._axes.set_yscale({0:"linear",1:"log"}[int(self._log_y)])
         if self._xlim is not None: self._axes.set_xlim(*self._xlim)
