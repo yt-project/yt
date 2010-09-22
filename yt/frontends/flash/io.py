@@ -39,11 +39,14 @@ class IOHandlerFLASH(BaseIOHandler):
         # Now we cache the particle fields
         self.pf = pf
         self._handle = h5py.File(self.pf.parameter_filename, "r")
-        particle_fields = [s[0].strip() for s in
-                           self._handle["/particle names"][:]]
-        self._particle_fields = dict([("particle_" + s, i) for i, s in
-                                     enumerate(particle_fields)])
-
+        try :
+            particle_fields = [s[0].strip() for s in
+                               self._handle["/particle names"][:]]
+            self._particle_fields = dict([("particle_" + s, i) for i, s in
+                                          enumerate(particle_fields)])
+        except KeyError:
+            self._particle_fields = {}
+            
     def _read_particles(self, fields_to_read, type, args, grid_list,
             count_list, conv_factors):
         pass

@@ -84,8 +84,9 @@ class FLASHHierarchy(AMRHierarchy):
     def _detect_fields(self):
         ncomp = self._handle["/unknown names"].shape[0]
         self.field_list = [s.strip() for s in self._handle["/unknown names"][:].flat]
-        self.field_list += ["particle_" + s[0].strip() for s
-                            in self._handle["/particle names"][:]]
+        if ("/particle names" in self._handle) :
+            self.field_list += ["particle_" + s[0].strip() for s
+                                in self._handle["/particle names"][:]]
     
     def _setup_classes(self):
         dd = self._get_data_reader_dict()
@@ -114,7 +115,10 @@ class FLASHHierarchy(AMRHierarchy):
             nxb, nyb, nzb = [int(f["/simulation parameters"]['n%sb' % ax])
                               for ax in 'xyz']
         self.grid_dimensions[:] *= (nxb, nyb, nzb)
-        self.grid_particle_count[:] = f["/localnp"][:][:,None]
+        try:
+            self.grid_particle_count[:] = f["/localnp"][:][:,None]
+        except KeyError:
+            self.grid_particle_count[:] = 0.0
         self._particle_indices = na.zeros(self.num_grids + 1, dtype='int64')
         na.add.accumulate(self.grid_particle_count, out=self._particle_indices[1:])
         # This will become redundant, as _prepare_grid will reset it to its
