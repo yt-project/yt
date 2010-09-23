@@ -23,7 +23,13 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-import inspect, functools
+import inspect, functools, weakref
+
+from yt.funcs import *
+from yt.convenience import load
+from .data_containers import data_object_registry
+from .analyzer_objects import create_quantity_proxy
+from .derived_quantities import quantity_info
 
 class TimeSeriesData(object):
     def __init__(self, name):
@@ -51,9 +57,9 @@ class EnzoTimeSeries(TimeSeriesData):
 
     def _populate_output_log(self, output_log):
         for line in open(output_log):
-            if not line.startswith(_enzo_header): continue
-            fn = line[len(_enzo_header):].strip()
-            self._insert(EnzoStaticOutput(fn))
+            if not line.startswith(self._enzo_header): continue
+            fn = line[len(self._enzo_header):].strip()
+            self._insert(load(fn))
 
     def __getitem__(self, key):
         if isinstance(key, types.SliceType):
@@ -80,12 +86,30 @@ class EnzoTimeSeries(TimeSeriesData):
                 return_values[-1].append(task.eval(arg))
         return return_values
 
+class TimeSeriesQuantitiesContainer(object):
+    def __init__(self, data_object, quantities):
+        self.data_object = data_object
+        self.quantities = quantities
+
+    def __getitem__(self, key):
+        if key not in self.quantities: raise KeyError(key)
+        q = self.quantities[key]
+        def run_quantity_wrapper(quantity, quantity_name):
+            @wraps(quantity_info[quantity_name][1])
+            def run_quantity(*args, **kwargs):
+                to_run = quantity(*args, **kwargs)
+                return self.data_object.eval(to_run)
+            return run_quantity
+        return run_quantity_wrapper(q, key)
+
 class TimeSeriesDataObject(object):
     def __init__(self, time_series, data_object_name, *args, **kwargs):
         self.time_series = weakref.proxy(time_series)
         self.data_object_name = data_object_name
         self._args = args
         self._kwargs = kwargs
+        qs = dict([(qn, create_quantity_proxy(qv)) for qn, qv in quantity_info.items()])
+        self.quantities = TimeSeriesQuantitiesContainer(self, qs)
 
     def eval(self, tasks):
         return self.time_series.eval(tasks, self)

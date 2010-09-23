@@ -1,3 +1,7 @@
+import inspect
+
+from yt.funcs import *
+
 class AnalysisTask(object):
 
     def __init__(self, *args, **kwargs):
@@ -10,7 +14,7 @@ class AnalysisTask(object):
 
     def __repr__(self):
         # Stolen from AMRData.__repr__
-        s = "%s: " % (self.__class__.__name__, self._analysis_type)
+        s = "%s: " % (self.__class__.__name__)
         s += ", ".join(["%s=%s" % (i, getattr(self,i))
                        for i in self._params])
         return s
@@ -59,3 +63,32 @@ class SlicePlotDataset(AnalysisTask):
         pc = self.PlotCollection(pf, center = self.center)
         pc.add_slice(self.field, self.axis)
         return pc.save()[0]
+
+class QuantityProxy(AnalysisTask):
+    _params = None
+    quantity_name = None
+
+    def __repr__(self):
+        # Stolen from AMRData.__repr__
+        s = "%s: " % (self.__class__.__name__)
+        s += ", ".join(["%s" % [arg for arg in self.args]])
+        s += ", ".join(["%s=%s" % (k,v) for k, v in self.kwargs.items()])
+        return s
+
+    def __init__(self, *args, **kwargs):
+        self.args = args
+        self.kwargs = kwargs
+
+    def eval(self, data_object):
+        rv = data_object.quantities[self.quantity_name](
+            *self.args, **self.kwargs)
+        return rv
+
+def create_quantity_proxy(quantity_object):
+    args, varargs, kwargs, defaults = inspect.getargspec(quantity_object[1])
+    # Strip off 'data' which is on every quantity function
+    params = args[1:] 
+    if kwargs is not None: params += kwargs
+    dd = dict(_params = params, quantity_name = quantity_object[0])
+    cls = type(quantity_object[0], (QuantityProxy,), dd)
+    return cls

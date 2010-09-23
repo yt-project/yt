@@ -195,9 +195,9 @@ class AMRData(object):
         elif isinstance(center, (types.ListType, types.TupleType, na.ndarray)):
             center = na.array(center)
         elif center == ("max"): # is this dangerous for race conditions?
-            center = pf.h.find_max("Density")
+            center = self.pf.h.find_max("Density")[1]
         elif center.startswith("max_"):
-            center = pf.h.find_max(center[4:])
+            center = self.pf.h.find_max(center[4:])[1]
         else:
             center = na.array(center, dtype='float64')
         self.center = center
@@ -1009,7 +1009,7 @@ class AMRFixedResCuttingPlaneBase(AMR2DData):
         # Taken from Cutting Plane
         #
         AMR2DData.__init__(self, 4, fields, **kwargs)
-        self.center = center
+        self._set_center(center)
         self.width = width
         self.dims = dims
         self.dds = self.width / self.dims
@@ -2069,8 +2069,7 @@ class AMR3DData(AMRData, GridPropertiesMixin):
         """
         AMRData.__init__(self, pf, fields, **kwargs)
         self._set_center(center)
-        self.set_field_parameter("center",center)
-        self.coords = None
+        self.coords = Noe
         self._grids = None
 
     def _generate_coords(self):

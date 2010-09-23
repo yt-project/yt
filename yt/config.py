@@ -45,8 +45,8 @@ ytcfgDefaults = {
         },
     "lagos":{
         'ReconstructHierarchy': 'True',
-        'serialize' : 'True',
-        'onlydeserialize' : 'False',
+        'serialize': 'True',
+        'onlydeserialize': 'False',
         'loadfieldplugins':'True',
         'pluginfilename':'my_plugins.py',
         },

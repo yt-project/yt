@@ -81,6 +81,7 @@ from yt.visualization.api import \
     PlotCollection, PlotCollectionInteractive, \
     get_multi_plot, FixedResolutionBuffer, ObliqueFixedResolutionBuffer, \
     callback_registry
+
 for name, cls in callback_registry.items():
     exec("%s = cls" % name)
 
