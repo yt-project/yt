@@ -2069,7 +2069,7 @@ class AMR3DData(AMRData, GridPropertiesMixin):
         """
         AMRData.__init__(self, pf, fields, **kwargs)
         self._set_center(center)
-        self.coords = Noe
+        self.coords = None
         self._grids = None
 
     def _generate_coords(self):
