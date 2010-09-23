@@ -24,6 +24,7 @@ License:
 """
 
 import h5py
+import weakref
 import numpy as na
 import os
 import stat
@@ -876,6 +877,8 @@ class EnzoStaticOutputInMemory(EnzoStaticOutput):
             if i.endswith("Units") and not i.startswith("Temperature"):
                 dataType = i[:-5]
                 self.conversion_factors[dataType] = self.parameters[i]
+        self.domain_left_edge = self.parameters["DomainLeftEdge"].copy()
+        self.domain_right_edge = self.parameters["DomainRightEdge"].copy()
         for i in self.conversion_factors:
             if isinstance(self.conversion_factors[i], types.TupleType):
                 self.conversion_factors[i] = na.array(self.conversion_factors[i])
@@ -883,6 +886,21 @@ class EnzoStaticOutputInMemory(EnzoStaticOutput):
             self.parameters[p] = v
         for p, v in self.__conversion_override.items():
             self.conversion_factors[p] = v
+        self.refine_by = self.parameters["RefineBy"]
+        self.dimensionality = self.parameters["TopGridRank"]
+        self.domain_dimensions = self.parameters["TopGridDimensions"]
+        self.current_time = self.parameters["InitialTime"]
+        if "CurrentTimeIdentifier" in self.parameters:
+            self.unique_identifier = self.parameters["CurrentTimeIdentifier"]
+        if self.parameters["ComovingCoordinates"]:
+            self.cosmological_simulation = 1
+            self.current_redshift = self.parameters["CosmologyCurrentRedshift"]
+            self.omega_lambda = self.parameters["CosmologyOmegaLambdaNow"]
+            self.omega_matter = self.parameters["CosmologyOmegaMatterNow"]
+            self.hubble_constant = self.parameters["CosmologyHubbleConstantNow"]
+        else:
+            self.current_redshift = self.omega_lambda = self.omega_matter = \
+                self.hubble_constant = self.cosmological_simulation = 0.0
 
     def _obtain_enzo(self):
         import enzo; return enzo
