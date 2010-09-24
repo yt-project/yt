@@ -319,6 +319,16 @@ if [ $INST_HG -eq 1 ]
 then
     echo "Installing Mercurial."
     do_setup_py mercurial-1.6.3
+    export HG_EXEC=${DEST_DIR}/bin/hg
+else
+    # We assume that hg can be found in the path.
+    if type -P hg &>/dev/null 
+    then
+        export HG_EXEC=hg
+    else
+        echo "Cannot find mercurial.  Please set INST_HG=1."
+        do_exit
+    fi
 fi
 
 if [ -z "$YT_DIR" ]
@@ -331,8 +341,11 @@ then
         YT_DIR=`dirname $ORIG_PWD`
     elif [ ! -e yt-hg ] 
     then
-        ( ${DEST_DIR}/bin/hg clone -r ${BRANCH} http://hg.enzotools.org/yt/ ./yt-hg 2>&1 ) 1>> ${LOG_FILE}
+        # Note that we clone the entire repository, not just the branch in
+        # question.  We update to the correct branch momentarily...
+        ( ${HG_EXEC} clone http://hg.enzotools.org/yt/ ./yt-hg 2>&1 ) 1>> ${LOG_FILE}
         YT_DIR="$PWD/yt-hg/"
+        ( ${HG_EXEC} up -R ${YT_DIR} -C ${BRANCH} 2>&1 ) 1>> ${LOG_FILE}
     elif [ -e yt-hg ] 
     then
         YT_DIR="$PWD/yt-hg/"
@@ -364,7 +377,7 @@ do_setup_py h5py-1.2.0
 echo "Doing yt update, wiping local changes and updating to branch ${BRANCH}"
 MY_PWD=`pwd`
 cd $YT_DIR
-( ${DEST_DIR}/bin/hg pull && ${DEST_DIR}/bin/hg up -C ${BRANCH} 2>&1 ) 1>> ${LOG_FILE}
+( ${HG_EXEC} pull && ${HG_EXEC} up -C ${BRANCH} 2>&1 ) 1>> ${LOG_FILE}
 
 echo "Installing yt"
 echo $HDF5_DIR > hdf5.cfg
