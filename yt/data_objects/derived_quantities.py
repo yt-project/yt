@@ -29,11 +29,12 @@ import numpy as na
 
 from yt.funcs import *
 
+from yt.config import ytcfg
+from yt.data_objects.field_info_container import \
+    FieldDetector
 from yt.utilities.data_point_utilities import FindBindingEnergy
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     ParallelAnalysisInterface
-from yt.funcs import \
-    get_pbar, wraps
 
 __CUDA_BLOCK_SIZE = 256
 
@@ -43,10 +44,21 @@ class GridChildMaskWrapper:
     def __init__(self, grid, data_source):
         self.grid = grid
         self.data_source = data_source
+        # We have a local cache so that *within* a call to the DerivedQuantity
+        # function, we only read each field once.  Otherwise, when preloading
+        # the field will be popped and removed and lost if the underlying data
+        # source's _get_data_from_grid method is wrapped by restore_state.
+        # This is common.  So, if data[something] is accessed multiple times by
+        # a single quantity, the second time will re-read the data the slow
+        # way.
+        self.local_cache = {}
     def __getattr__(self, attr):
         return getattr(self.grid, attr)
     def __getitem__(self, item):
-        return self.data_source._get_data_from_grid(self.grid, item)
+        if item not in self.local_cache:
+            data = self.data_source._get_data_from_grid(self.grid, item)
+            self.local_cache[item] = data
+        return self.local_cache[item]
 
 class DerivedQuantity(ParallelAnalysisInterface):
     def __init__(self, collection, name, function,
@@ -64,7 +76,7 @@ class DerivedQuantity(ParallelAnalysisInterface):
 
     def __call__(self, *args, **kwargs):
         lazy_reader = kwargs.pop('lazy_reader', True)
-        preload = kwargs.pop('preload', False)
+        preload = kwargs.pop('preload', ytcfg.getboolean("yt","__parallel"))
         if preload:
             if not lazy_reader: mylog.debug("Turning on lazy_reader because of preload")
             lazy_reader = True
@@ -89,7 +101,15 @@ class DerivedQuantity(ParallelAnalysisInterface):
         return self.c_func(self._data_source, *self.retvals)
 
     def _finalize_parallel(self):
-        self.retvals = [na.array(self._mpi_catlist(my_list)) for my_list in self.retvals]
+        # Note that we do some fancy footwork here.
+        # _mpi_catarray and its affiliated alltoall function
+        # assume that the *long* axis is the last one.  However,
+        # our long axis is the first one!
+        rv = []
+        for my_list in self.retvals:
+            data = na.array(my_list).transpose()
+            rv.append(self._mpi_catarray(data).transpose())
+        self.retvals = rv
         
     def _call_func_unlazy(self, args, kwargs):
         retval = self.func(self._data_source, *args, **kwargs)

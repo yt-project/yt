@@ -882,8 +882,13 @@ class ParallelAnalysisInterface(object):
         field_keys.sort()
         size = data[field_keys[0]].shape[-1]
         # MPI_Scan is an inclusive scan
-        sizes = MPI.COMM_WORLD.alltoall( [size]*MPI.COMM_WORLD.size )
-        offsets = na.add.accumulate([0] + sizes)[:-1]
+        outsizes = na.array([size] * MPI.COMM_WORLD.size, dtype='int64')
+        sizes = outsizes.copy()
+        MPI.COMM_WORLD.Alltoall( [outsizes, MPI.LONG], [sizes, MPI.LONG] )
+        # This nested concatenate is to get the shapes to work out correctly;
+        # if we just add [0] to sizes, it will broadcast a summation, not a
+        # concatenation.
+        offsets = na.add.accumulate(na.concatenate([[0], sizes]))[:-1]
         arr_size = MPI.COMM_WORLD.allreduce(size, op=MPI.SUM)
         for key in field_keys:
             dd = data[key]
@@ -1299,14 +1304,16 @@ class ParallelAnalysisInterface(object):
 
     @parallel_passthrough
     def _mpi_catarray(self, data):
-        self._barrier()
-        if MPI.COMM_WORLD.rank == 0:
-            data = self.__mpi_recvarrays(data)
-        else:
-            _send_array(data, dest=0, tag=0)
-        mylog.debug("Opening MPI Broadcast on %s", MPI.COMM_WORLD.rank)
-        data = _bcast_array(data, root=0)
-        self._barrier()
+        size = data.shape[-1]
+        outsizes = na.array([size] * MPI.COMM_WORLD.size, dtype='int64')
+        sizes = outsizes.copy()
+        MPI.COMM_WORLD.Alltoall( [outsizes, MPI.LONG], [sizes, MPI.LONG] )
+        # This nested concatenate is to get the shapes to work out correctly;
+        # if we just add [0] to sizes, it will broadcast a summation, not a
+        # concatenation.
+        offsets = na.add.accumulate(na.concatenate([[0], sizes]))[:-1]
+        arr_size = MPI.COMM_WORLD.allreduce(size, op=MPI.SUM)
+        data = _alltoallv_array(data, arr_size, offsets, sizes)
         return data
 
     @parallel_passthrough
