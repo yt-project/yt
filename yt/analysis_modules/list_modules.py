@@ -49,4 +49,10 @@ class AnalysisModuleLoader(object):
             raise AttributeError(attr)
         return getattr(self, attr)
 
+    def __dir__(self):
+        # This is a badly behaving object.  I was unable to get this line:
+        #return super(AnalysisModuleLoader, self).__dir__() + self.available_modules
+        # to work, so we simply return only the methods we know about.
+        return ["available_modules"] + self.available_modules
+
 amods = AnalysisModuleLoader()
