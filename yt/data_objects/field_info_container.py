@@ -142,6 +142,7 @@ class FieldDetector(defaultdict):
     Level = 1
     NumberOfParticles = 1
     _read_exception = None
+    _id_offset = 0
     def __init__(self, nd = 16, pf = None):
         self.nd = nd
         self.ActiveDimensions = [nd,nd,nd]

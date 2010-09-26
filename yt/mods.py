@@ -65,7 +65,7 @@ from yt.frontends.chombo.api import \
     ChomboStaticOutput, ChomboFieldInfo, add_chombo_field
 
 from yt.analysis_modules.list_modules import \
-    get_available_modules
+    get_available_modules, amods
 available_analysis_modules = get_available_modules()
 
 # Import our analysis modules
