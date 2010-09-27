@@ -45,7 +45,8 @@ from yt.utilities import hdf5_light_reader
 from yt.utilities.logger import ytLogger as mylog
 
 from .definitions import parameterDict
-from .fields import EnzoFieldContainer, add_enzo_field
+from .fields import EnzoFieldContainer, Enzo1DFieldContainer, \
+    Enzo2DFieldContainer, add_enzo_field
 
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     parallel_blocking_call
