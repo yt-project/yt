@@ -764,20 +764,22 @@ class AMRSliceBase(AMR2DData):
             points.append(self._generate_grid_coords(grid))
         if len(points) == 0: points = None
         else: points = na.concatenate(points)
-        t = self._mpi_catarray(points)
-        self['px'] = t[:,0]
-        self['py'] = t[:,1]
-        self['pz'] = t[:,2]
-        self['pdx'] = t[:,3]
-        self['pdy'] = t[:,4]
-        self['pdz'] = t[:,3] # Does not matter!
+        # We have to transpose here so that _mpi_catarray works properly, as
+        # it and the alltoall assume the long axis is the last one.
+        t = self._mpi_catarray(points.transpose())
+        self['px'] = t[0,:]
+        self['py'] = t[1,:]
+        self['pz'] = t[2,:]
+        self['pdx'] = t[3,:]
+        self['pdy'] = t[4,:]
+        self['pdz'] = t[3,:] # Does not matter!
 
         # Now we set the *actual* coordinates
-        self[axis_names[x_dict[self.axis]]] = t[:,0]
-        self[axis_names[y_dict[self.axis]]] = t[:,1]
-        self[axis_names[self.axis]] = t[:,2]
+        self[axis_names[x_dict[self.axis]]] = t[0,:]
+        self[axis_names[y_dict[self.axis]]] = t[1,:]
+        self[axis_names[self.axis]] = t[2,:]
 
-        self.ActiveDimensions = (t.shape[0], 1, 1)
+        self.ActiveDimensions = (t.shape[1], 1, 1)
 
     def _get_list_of_grids(self):
         goodI = ((self.pf.h.grid_right_edge[:,self.axis] > self.coord)

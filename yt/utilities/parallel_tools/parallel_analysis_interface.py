@@ -881,9 +881,14 @@ class ParallelAnalysisInterface(object):
         field_keys = data.keys()
         field_keys.sort()
         size = data[field_keys[0]].shape[-1]
-        # MPI_Scan is an inclusive scan
-        sizes = MPI.COMM_WORLD.alltoall( [size]*MPI.COMM_WORLD.size )
-        offsets = na.add.accumulate([0] + sizes)[:-1]
+        sizes = na.zeros(MPI.COMM_WORLD.size, dtype='int64')
+        outsize = na.array(size, dtype='int64')
+        MPI.COMM_WORLD.Allgather([outsize, 1, MPI.LONG],
+                                 [sizes, 1, MPI.LONG] )
+        # This nested concatenate is to get the shapes to work out correctly;
+        # if we just add [0] to sizes, it will broadcast a summation, not a
+        # concatenation.
+        offsets = na.add.accumulate(na.concatenate([[0], sizes]))[:-1]
         arr_size = MPI.COMM_WORLD.allreduce(size, op=MPI.SUM)
         for key in field_keys:
             dd = data[key]
@@ -1299,14 +1304,17 @@ class ParallelAnalysisInterface(object):
 
     @parallel_passthrough
     def _mpi_catarray(self, data):
-        self._barrier()
-        if MPI.COMM_WORLD.rank == 0:
-            data = self.__mpi_recvarrays(data)
-        else:
-            _send_array(data, dest=0, tag=0)
-        mylog.debug("Opening MPI Broadcast on %s", MPI.COMM_WORLD.rank)
-        data = _bcast_array(data, root=0)
-        self._barrier()
+        size = data.shape[-1]
+        sizes = na.zeros(MPI.COMM_WORLD.size, dtype='int64')
+        outsize = na.array(size, dtype='int64')
+        MPI.COMM_WORLD.Allgather([outsize, 1, MPI.LONG],
+                                 [sizes, 1, MPI.LONG] )
+        # This nested concatenate is to get the shapes to work out correctly;
+        # if we just add [0] to sizes, it will broadcast a summation, not a
+        # concatenation.
+        offsets = na.add.accumulate(na.concatenate([[0], sizes]))[:-1]
+        arr_size = MPI.COMM_WORLD.allreduce(size, op=MPI.SUM)
+        data = _alltoallv_array(data, arr_size, offsets, sizes)
         return data
 
     @parallel_passthrough
@@ -1522,12 +1530,10 @@ def _alltoallv_array(send, total_size, offsets, sizes):
     recv = na.empty(total_size, dtype=send.dtype)
     recv[offset:offset+send.size] = send[:]
     dtr = send.dtype.itemsize / tmp_send.dtype.itemsize # > 1
-    soff = [0] * MPI.COMM_WORLD.size
-    ssize = [tmp_send.size] * MPI.COMM_WORLD.size
     roff = [off * dtr for off in offsets]
     rsize = [siz * dtr for siz in sizes]
     tmp_recv = recv.view(__tocast)
-    MPI.COMM_WORLD.Alltoallv((tmp_send, (ssize, soff), MPI.CHAR),
-                             (tmp_recv, (rsize, roff), MPI.CHAR))
+    MPI.COMM_WORLD.Allgatherv((tmp_send, tmp_send.size, MPI.CHAR),
+                              (tmp_recv, (rsize, roff), MPI.CHAR))
     return recv
     
