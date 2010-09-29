@@ -57,23 +57,26 @@ if os.path.exists(__fn):
         # This is of the old format
         cp = ConfigParser.ConfigParser()
         cp.read(__fn)
-        new_cp = ConfigParser.ConfigParser(ytcfgDefaults)
+        # NOTE: To avoid having the 'DEFAULT' section here,
+        # we are not passing in ytcfgDefaults to the constructor.
+        new_cp = ConfigParser.ConfigParser()
+        new_cp.add_section("yt")
         for section in cp.sections():
             for option in cp.options(section):
                 # We changed them all to lowercase
                 if option.lower() in ytcfgDefaults:
-                    new_cp.set("DEFAULT", option, cp.get(section, option))
+                    new_cp.set("yt", option, cp.get(section, option))
                     print "Setting %s to %s" % (option, cp.get(section, option))
         open(__fn + ".old", "w").write(f)
         new_cp.write(open(__fn, "w"))
 # Pathological check for Kraken
-elif os.path.exists("~/"):
-    if not os.path.exists("~/.yt"):
-            print "yt is creating a new directory, ~/.yt ."
-            os.mkdir(os.path.exists("~/.yt/"))
-    # Now we can read in and write out ...
-    new_cp = Configparser.ConfigParser(ytcfgDefaults)
-    new_cp.write(__fn)
+#elif os.path.exists("~/"):
+#    if not os.path.exists("~/.yt"):
+#            print "yt is creating a new directory, ~/.yt ."
+#            os.mkdir(os.path.exists("~/.yt/"))
+#    # Now we can read in and write out ...
+#    new_cp = Configparser.ConfigParser(ytcfgDefaults)
+#    new_cp.write(__fn)
 
 if os.path.exists(os.path.expanduser("~/.yt/config")):
     ytcfg = ConfigParser.ConfigParser(ytcfgDefaults)
