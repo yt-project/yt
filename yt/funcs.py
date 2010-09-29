@@ -316,12 +316,7 @@ def get_pbar(title, maxval):
     """
     maxval = max(maxval, 1)
     from yt.config import ytcfg
-    if ytcfg.getboolean("yt","inGui"):
-        if maxval > ytcfg.getint("reason","minpbar"): # Arbitrary number
-            return GUIProgressBar(title, maxval)
-        else:
-            return DummyProgressBar()
-    elif ytcfg.getboolean("yt","suppressStreamLogging"):
+    if ytcfg.getboolean("yt","suppressStreamLogging"):
         return DummyProgressBar()
     elif ytcfg.getboolean("yt", "__parallel"):
         return ParallelProgressBar(title, maxval)
