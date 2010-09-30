@@ -30,7 +30,9 @@ except ImportError:
     # We silently fail here
     pass
 
+from yt.funcs import *
 import numpy as na
+import yt.utilities.amr_utils as amr_utils
 
 def export_to_sunrise(pf, fn):
     r"""Convert the contents of a dataset to a FITS file format that Sunrise
@@ -74,34 +76,35 @@ def export_to_sunrise(pf, fn):
     #			L_lambda_unit );
     #	output->addKey("logflux", true, "Column L_lambda values are log (L_lambda)");
 
-    col_list = []
-    DLE, DRE = pf["DomainLeftEdge"], pf["DomainRightEdge"]
-    reg = pf.h.region((DRE+DLE)/2.0, DLE, DRE)
-    pi = reg["particle_type"] == 2
+    if 0:
+        col_list = []
+        DLE, DRE = pf.domain_left_edge, pf.domain_right_edge
+        reg = pf.h.region((DRE+DLE)/2.0, DLE, DRE)
+        pi = reg["particle_type"] == 2
 
-    pmass = reg["ParticleMassMsun"][pi]
-    col_list.append(pyfits.Column(
-        "ID", format="I", array=na.arange(pmass.size)))
-    pos = na.array([reg["particle_position_%s" % ax][pi]*pf['kpc']
-                        for ax in 'xyz']).transpose()
-    col_list.append(pyfits.Column("position", format="3D",
-        array=pos))
-    col_list.append(pyfits.Column("mass_stars", format="D",
-        array=pmass))
-    age = pf["years"] * (pf["InitialTime"] - reg["creation_time"][pi])
-    col_list.append(pyfits.Column("age_m", format="D", array=age))
-    col_list.append(pyfits.Column("age_l", format="D", array=age))
-    col_list.append(pyfits.Column("mass_stellar_metals", format="D",
-        array=0.02*pmass*reg["metallicity_fraction"][pi])) # wrong?
-    col_list.append(pyfits.Column("L_bol", format="D",
-        array=na.zeros(pmass.size)))
+        pmass = reg["ParticleMassMsun"][pi]
+        col_list.append(pyfits.Column(
+            "ID", format="I", array=na.arange(pmass.size)))
+        pos = na.array([reg["particle_position_%s" % ax][pi]*pf['kpc']
+                            for ax in 'xyz']).transpose()
+        col_list.append(pyfits.Column("position", format="3D",
+            array=pos))
+        col_list.append(pyfits.Column("mass_stars", format="D",
+            array=pmass))
+        age = pf["years"] * (pf["InitialTime"] - reg["creation_time"][pi])
+        col_list.append(pyfits.Column("age_m", format="D", array=age))
+        col_list.append(pyfits.Column("age_l", format="D", array=age))
+        col_list.append(pyfits.Column("mass_stellar_metals", format="D",
+            array=0.02*pmass*reg["metallicity_fraction"][pi])) # wrong?
+        col_list.append(pyfits.Column("L_bol", format="D",
+            array=na.zeros(pmass.size)))
 
-    # Still missing: L_bol, L_lambda, stellar_radius
-    cols = pyfits.ColDefs(col_list)
-    pd_table = pyfits.new_table(cols)
-    pd_table.name = "PARTICLEDATA"
+        # Still missing: L_bol, L_lambda, stellar_radius
+        cols = pyfits.ColDefs(col_list)
+        pd_table = pyfits.new_table(cols)
+        pd_table.name = "PARTICLEDATA"
 
-    output, refined = pf.h._generate_flat_octree(
+    output, refined = generate_flat_octree(pf,
             ["CellMassMsun","Temperature", "Metal_Density",
              "CellVolumeCode"])
     cvcgs = output["CellVolumeCode"].astype('float64') * pf['cm']**3.0
@@ -130,9 +133,9 @@ def export_to_sunrise(pf, fn):
 
     st_table.header.update("hierarch lengthunit", 1.0, comment="Length unit for grid")
     for i,a in enumerate('xyz'):
-        st_table.header.update("min%s" % a, pf["DomainLeftEdge"][i] * pf['kpc'])
-        st_table.header.update("max%s" % a, pf["DomainRightEdge"][i] * pf['kpc'])
-        st_table.header.update("n%s" % a, pf["TopGridDimensions"][i])
+        st_table.header.update("min%s" % a, pf.domain_left_edge[i] * pf['kpc'])
+        st_table.header.update("max%s" % a, pf.domain_right_edge[i] * pf['kpc'])
+        st_table.header.update("n%s" % a, pf.domain_dimensions[i])
         st_table.header.update("subdiv%s" % a, 2)
     st_table.header.update("subdivtp", "UNIFORM", "Type of grid subdivision")
 
@@ -176,3 +179,66 @@ def export_to_sunrise(pf, fn):
     # Add a dummy Primary; might be a better way to do this!
     hdus = pyfits.HDUList([pyfits.PrimaryHDU(), st_table, mg_table, pd_table])
     hdus.writeto(fn, clobber=True)
+
+def initialize_octree_list(pf, fields):
+    o_length = r_length = 0
+    grids = []
+    levels_finest, levels_all = defaultdict(lambda: 0), defaultdict(lambda: 0)
+    for g in pf.h.grids:
+        ff = na.array([g[f] for f in fields])
+        grids.append(amr_utils.OctreeGrid(
+                        g.child_index_mask.astype('int32'),
+                        ff.astype("float64"),
+                        g.LeftEdge.astype('float64'),
+                        g.ActiveDimensions.astype('int32'),
+                        na.ones(1,dtype='float64') * g.dds[0], g.Level))
+        levels_all[g.Level] += g.ActiveDimensions.prod()
+        levels_finest[g.Level] += g.child_mask.ravel().sum()
+        g.clear_data()
+    ogl = amr_utils.OctreeGridList(grids)
+    return ogl, levels_finest, levels_all
+
+def generate_flat_octree(pf, fields):
+    """
+    Generates two arrays, one of the actual values in a depth-first flat
+    octree array, and the other of the values describing the refinement.
+    This allows for export to a code that understands this.  *field* is the
+    field used in the data array.
+    """
+    fields = ensure_list(fields)
+    ogl, levels_finest, levels_all = initialize_octree_list(pf, fields)
+    o_length = na.sum(levels_finest.values())
+    r_length = na.sum(levels_all.values())
+    output = na.zeros((o_length,len(fields)), dtype='float64')
+    refined = na.zeros(r_length, dtype='int32')
+    position = amr_utils.position()
+    amr_utils.RecurseOctreeDepthFirst(0, 0, 0,
+               ogl[0].dimensions[0],
+               ogl[0].dimensions[1],
+               ogl[0].dimensions[2],
+               position, 1,
+               output, refined, ogl)
+    dd = {}
+    for i,field in enumerate(fields): dd[field] = output[:,i]
+    return dd, refined
+
+def generate_levels_octree(pf, fields):
+    fields = ensure_list(fields) + ["Ones", "Ones"]
+    ogl, levels_finest, levels_all = initialize_octree_list(fields)
+    o_length = na.sum(levels_finest.values())
+    r_length = na.sum(levels_all.values())
+    output = na.zeros((r_length,len(fields)), dtype='float64')
+    genealogy = na.zeros((r_length, 3), dtype='int32') - 1 # init to -1
+    corners = na.zeros((r_length, 3), dtype='float64')
+    position = na.add.accumulate(
+                na.array([0] + [levels_all[v] for v in
+                    sorted(levels_all)[:-1]], dtype='int32'))
+    pp = position.copy()
+    amr_utils.RecurseOctreeByLevels(0, 0, 0,
+               ogl[0].dimensions[0],
+               ogl[0].dimensions[1],
+               ogl[0].dimensions[2],
+               position.astype('int32'), 1,
+               output, genealogy, corners, ogl)
+    return output, genealogy, levels_all, levels_finest, pp, corners
+
