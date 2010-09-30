@@ -76,33 +76,32 @@ def export_to_sunrise(pf, fn):
     #			L_lambda_unit );
     #	output->addKey("logflux", true, "Column L_lambda values are log (L_lambda)");
 
-    if 0:
-        col_list = []
-        DLE, DRE = pf.domain_left_edge, pf.domain_right_edge
-        reg = pf.h.region((DRE+DLE)/2.0, DLE, DRE)
-        pi = reg["particle_type"] == 2
+    col_list = []
+    DLE, DRE = pf.domain_left_edge, pf.domain_right_edge
+    reg = pf.h.region((DRE+DLE)/2.0, DLE, DRE)
+    pi = reg["particle_type"] == 2
 
-        pmass = reg["ParticleMassMsun"][pi]
-        col_list.append(pyfits.Column(
-            "ID", format="I", array=na.arange(pmass.size)))
-        pos = na.array([reg["particle_position_%s" % ax][pi]*pf['kpc']
-                            for ax in 'xyz']).transpose()
-        col_list.append(pyfits.Column("position", format="3D",
-            array=pos))
-        col_list.append(pyfits.Column("mass_stars", format="D",
-            array=pmass))
-        age = pf["years"] * (pf["InitialTime"] - reg["creation_time"][pi])
-        col_list.append(pyfits.Column("age_m", format="D", array=age))
-        col_list.append(pyfits.Column("age_l", format="D", array=age))
-        col_list.append(pyfits.Column("mass_stellar_metals", format="D",
-            array=0.02*pmass*reg["metallicity_fraction"][pi])) # wrong?
-        col_list.append(pyfits.Column("L_bol", format="D",
-            array=na.zeros(pmass.size)))
+    pmass = reg["ParticleMassMsun"][pi]
+    col_list.append(pyfits.Column(
+        "ID", format="I", array=na.arange(pmass.size)))
+    pos = na.array([reg["particle_position_%s" % ax][pi]*pf['kpc']
+                        for ax in 'xyz']).transpose()
+    col_list.append(pyfits.Column("position", format="3D",
+        array=pos))
+    col_list.append(pyfits.Column("mass_stars", format="D",
+        array=pmass))
+    age = pf["years"] * (pf["InitialTime"] - reg["creation_time"][pi])
+    col_list.append(pyfits.Column("age_m", format="D", array=age))
+    col_list.append(pyfits.Column("age_l", format="D", array=age))
+    col_list.append(pyfits.Column("mass_stellar_metals", format="D",
+        array=0.02*pmass*reg["metallicity_fraction"][pi])) # wrong?
+    col_list.append(pyfits.Column("L_bol", format="D",
+        array=na.zeros(pmass.size)))
 
-        # Still missing: L_bol, L_lambda, stellar_radius
-        cols = pyfits.ColDefs(col_list)
-        pd_table = pyfits.new_table(cols)
-        pd_table.name = "PARTICLEDATA"
+    # Still missing: L_bol, L_lambda, stellar_radius
+    cols = pyfits.ColDefs(col_list)
+    pd_table = pyfits.new_table(cols)
+    pd_table.name = "PARTICLEDATA"
 
     output, refined = generate_flat_octree(pf,
             ["CellMassMsun","Temperature", "Metal_Density",
@@ -191,7 +190,8 @@ def initialize_octree_list(pf, fields):
                         ff.astype("float64"),
                         g.LeftEdge.astype('float64'),
                         g.ActiveDimensions.astype('int32'),
-                        na.ones(1,dtype='float64') * g.dds[0], g.Level))
+                        na.ones(1,dtype='float64') * g.dds[0], g.Level,
+                        g._id_offset))
         levels_all[g.Level] += g.ActiveDimensions.prod()
         levels_finest[g.Level] += g.child_mask.ravel().sum()
         g.clear_data()

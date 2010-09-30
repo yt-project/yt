@@ -35,20 +35,21 @@ cdef class position:
 
 cdef class OctreeGrid:
     cdef public object child_indices, fields, left_edges, dimensions, dx
-    cdef public int level
+    cdef public int level, offset
     def __cinit__(self,
                   np.ndarray[np.int32_t, ndim=3] child_indices,
                   np.ndarray[np.float64_t, ndim=4] fields,
                   np.ndarray[np.float64_t, ndim=1] left_edges,
                   np.ndarray[np.int32_t, ndim=1] dimensions,
                   np.ndarray[np.float64_t, ndim=1] dx,
-                  int level):
+                  int level, int offset):
         self.child_indices = child_indices
         self.fields = fields
         self.left_edges = left_edges
         self.dimensions = dimensions
         self.dx = dx
         self.level = level
+        self.offset = offset
 
 cdef class OctreeGridList:
     cdef public object grids
@@ -68,7 +69,7 @@ def RecurseOctreeDepthFirst(int i_i, int j_i, int k_i,
     cdef int i, i_off, j, j_off, k, k_off, ci, fi
     cdef int child_i, child_j, child_k
     cdef OctreeGrid child_grid
-    cdef OctreeGrid grid = grids[gi-1]
+    cdef OctreeGrid grid = grids[gi]
     cdef np.ndarray[np.int32_t, ndim=3] child_indices = grid.child_indices
     cdef np.ndarray[np.int32_t, ndim=1] dimensions = grid.dimensions
     cdef np.ndarray[np.float64_t, ndim=4] fields = grid.fields
@@ -96,14 +97,14 @@ def RecurseOctreeDepthFirst(int i_i, int j_i, int k_i,
                 else:
                     refined[curpos.refined_pos] = 1
                     curpos.refined_pos += 1
-                    child_grid = grids[ci-1]
+                    child_grid = grids[ci-grid.offset]
                     child_dx = child_grid.dx[0]
                     child_leftedges = child_grid.left_edges
                     child_i = int((cx - child_leftedges[0])/child_dx)
                     child_j = int((cy - child_leftedges[1])/child_dx)
                     child_k = int((cz - child_leftedges[2])/child_dx)
                     s = RecurseOctreeDepthFirst(child_i, child_j, child_k, 2, 2, 2,
-                                        curpos, ci, output, refined, grids)
+                                        curpos, ci - grid.offset, output, refined, grids)
     return s
 
 @cython.boundscheck(False)
