@@ -1010,7 +1010,7 @@ class PlotCollection(object):
         sphere = self.pf.hierarchy.sphere(center, r)
         p = self.add_profile_object(sphere, fields, weight, accumulation,
                            x_bins, x_log, x_bounds, lazy_reader, id,
-                           figure, axes)
+                           figure=figure, axes=axes)
         p["Width"] = radius
         p["Unit"] = unit
         p["Axis"] = None
@@ -1242,7 +1242,7 @@ class PlotCollection(object):
                              weight, accumulation,
                              x_bins, x_log, x_bounds,
                              y_bins, y_log, y_bounds,
-                             lazy_reader, id, axes, figure, fractional)
+                             lazy_reader, id, axes=axes, figure=figure, fractional=fractional)
         p["Width"] = radius
         p["Unit"] = unit
         p["Axis"] = None
@@ -1553,8 +1553,8 @@ def wrap_pylab_newplot(func):
             new_fig.canvas.set_window_title("%s" % (self.pf))
         except AttributeError:
             pass
-        kwargs['axes'] = self.pylab.gca()
-        kwargs['figure'] = self.pylab.gcf()
+        if 'axes' not in kwargs: kwargs['axes'] = self.pylab.gca()
+        if 'figure' not in kwargs: kwargs['figure'] = self.pylab.gcf()
         retval = func(self, *args, **kwargs)
         retval._redraw_image()
         retval._fig_num = new_fig.number
