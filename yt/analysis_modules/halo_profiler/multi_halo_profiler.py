@@ -255,6 +255,10 @@ class HaloProfiler(ParallelAnalysisInterface):
     def make_profiles(self, filename=None, prefilters=None, **kwargs):
         "Make radial profiles for all halos on the list."
 
+        if len(self.all_halos) == 0:
+            mylog.error("Halo list is empty, returning.")
+            return None
+
         # Reset filtered halo list.
         self.filtered_halos = []
 
