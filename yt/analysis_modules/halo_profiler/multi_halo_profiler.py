@@ -70,7 +70,8 @@ class HaloProfiler(ParallelAnalysisInterface):
         :param halo_list_file (str): name of file containing the list of halos.  The HaloProfiler will 
                look for this file in the data directory.  Default: "HopAnalysis.out".
         :param halo_list_format (str or dict): the format of the halo list file.  "yt_hop" for the format 
-               given by yt's halo finders.  "enzo_hop" for the format written by enzo_hop.  This keyword 
+               given by yt's halo finders.  "enzo_hop" for the format written by enzo_hop.  "p-groupfinder" 
+               for P-Groupfinder.  This keyword 
                can also be given in the form of a dictionary specifying the column in which various 
                properties can be found.  For example, {"id": 0, "center": [1, 2, 3], "mass": 4, "radius": 5}.  
                Default: "yt_hop".
@@ -155,10 +156,12 @@ class HaloProfiler(ParallelAnalysisInterface):
             self.halo_list_format = {'id':0, 'mass':1, 'center':[7, 8, 9], 'velocity':[10, 11, 12], 'r_max':13}
         elif halo_list_format == 'enzo_hop':
             self.halo_list_format = {'id':0, 'center':[4, 5, 6]}
+        elif halo_list_format == 'p-groupfinder':
+            self.halo_list_format = {'id':3, 'mass':5, 'center':[0, 1, 2], 'r200kpc':8}
         elif isinstance(halo_list_format, types.DictType):
             self.halo_list_format = halo_list_format
         else:
-            mylog.error("Keyword, halo_list_format, must be 'yt_hop', 'enzo_hop', or a dictionary of custom settings.")
+            mylog.error("Keyword, halo_list_format, must be 'yt_hop', 'enzo_hop', 'p-groupfinder', or a dictionary of custom settings.")
             return None
 
         # Option to recenter sphere on density center.
@@ -589,11 +592,12 @@ class HaloProfiler(ParallelAnalysisInterface):
 
         fields = self.halo_list_format.keys()
         getID = not 'id' in fields
-        getR_max = not 'r_max' in fields
+        has_rmax = 'r_max' in fields
+        has_r200kpc = 'r200kpc' in fields
 
         for line in listLines:
             line = line.strip()
-            if not(line.startswith('#')):
+            if len(line) > 0 and not line.startswith('#') and not line[0].isalpha():
                 halo = {}
                 onLine = line.split()
                 for field in fields:
@@ -602,10 +606,14 @@ class HaloProfiler(ParallelAnalysisInterface):
                     else:
                         halo[field] = __get_num(onLine[self.halo_list_format[field]])
                 if getID: halo['id'] = len(haloList)
-                if getR_max: 
-                    halo['r_max'] = self.halo_radius * self.pf.units['mpc']
-                else:
+                if has_rmax:
                     halo['r_max'] *= self.pf.units['mpc']
+                elif has_r200kpc:
+                    # If P-Groupfinder used, r_200 [kpc] is calculated.
+                    # set r_max as 50% past r_200.
+                    halo['r_max'] = 1.5 * halo['r200kpc'] / 1000.
+                else:
+                    halo['r_max'] = self.halo_radius * self.pf.units['mpc']
                 haloList.append(halo)
 
         mylog.info("Loaded %d halos." % (len(haloList)))
