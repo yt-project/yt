@@ -33,7 +33,7 @@ from yt.funcs import *
 from yt.convenience import \
     load
 from yt.data_objects.profiles import \
-    BinnedProfile1D
+    BinnedProfile1D, EmptyProfileData
 from yt.analysis_modules.halo_finding.api import \
     HaloFinder
 from .halo_filters import \
@@ -392,9 +392,13 @@ class HaloProfiler(ParallelAnalysisInterface):
                                                                  max_grid['y-velocity'][max_cell],
                                                                  max_grid['z-velocity'][max_cell]])
 
-            profile = BinnedProfile1D(sphere, self.n_profile_bins, "RadiusMpc",
-                                            r_min, halo['r_max'],
-                                            log_space=True, lazy_reader=False)
+            try:
+                profile = BinnedProfile1D(sphere, self.n_profile_bins, "RadiusMpc",
+                                                r_min, halo['r_max'],
+                                                log_space=True, lazy_reader=False)
+            except EmptyProfileData:
+                mylog.error("Caught EmptyProfileData exception, returning None for this halo.")
+                return None
             for hp in self.profile_fields:
                 profile.add_fields(hp['field'], weight=hp['weight_field'], accumulation=hp['accumulation'])
 
