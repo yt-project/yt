@@ -27,6 +27,8 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 import pyx
+import numpy as na
+from matplotlib import cm
 
 from .plot_types import \
     VMPlot, \
