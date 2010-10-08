@@ -102,7 +102,7 @@ class IOHandlerEnzoHDF4(BaseIOHandler):
         @param field: field to read
         @type field: string
         """
-        return SD.SD(grid.filename).select(field).get()
+        return SD.SD(grid.filename).select(field).get().swapaxes(0,2)
 
     def _read_data_slice(self, grid, field, axis, coord):
         """
