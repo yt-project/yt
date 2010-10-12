@@ -1542,8 +1542,9 @@ class AMRProjBase(AMR2DData):
             field_data *= convs[...,na.newaxis]
         mylog.info("Level %s done: %s final", \
                    level, coord_data.shape[1])
-        dx = grids_to_project[0].dds[self.axis] # this is our dl
-        return coord_data, dx, field_data
+        pdx = grids_to_project[0].dds[x_dict[self.axis]] # this is our dl
+        pdy = grids_to_project[0].dds[y_dict[self.axis]] # this is our dl
+        return coord_data, pdx, pdy, field_data
 
     def __combine_grids_on_level(self, level):
         grids = self.source.select_grids(level)
@@ -1615,7 +1616,8 @@ class AMRProjBase(AMR2DData):
         if len(fields) == 0: return
         coord_data = []
         field_data = []
-        dxs = []
+        pdxs = []
+        pdys = []
         # We do this here, but I am not convinced it should be done here
         # It is probably faster, as it consolidates IO, but if we did it in
         # _project_level, then it would be more memory conservative
@@ -1629,10 +1631,12 @@ class AMRProjBase(AMR2DData):
                 self._preload(self.source.select_grids(level),
                               self._get_dependencies(fields), self.hierarchy.io)
             self.__calculate_overlap(level)
-            my_coords, my_dx, my_fields = self.__project_level(level, fields)
+            my_coords, my_pdx, my_pdy, my_fields = \
+                self.__project_level(level, fields)
             coord_data.append(my_coords)
             field_data.append(my_fields)
-            dxs.append(my_dx * na.ones(my_coords.shape[1], dtype='float64'))
+            pdxs.append(my_pdx * na.ones(my_coords.shape[1], dtype='float64'))
+            pdys.append(my_pdx * na.ones(my_coords.shape[1], dtype='float64'))
             if self._check_region and False:
                 check=self.__cleanup_level(level - 1)
                 if len(check) > 0: all_data.append(check)
@@ -1645,10 +1649,12 @@ class AMRProjBase(AMR2DData):
                         level, get_memory_usage()/1024.)
         coord_data = na.concatenate(coord_data, axis=1)
         field_data = na.concatenate(field_data, axis=1)
-        dxs = na.concatenate(dxs, axis=1)
+        pdxs = na.concatenate(pdxs, axis=1)
+        pdys = na.concatenate(pdys, axis=1)
         # We now convert to half-widths and center-points
         data = {}
-        data['pdx'] = dxs
+        data['pdx'] = pdxs; del pdxs
+        data['pdy'] = pdys; del pdys
         ox = self.pf.domain_left_edge[x_dict[self.axis]]
         oy = self.pf.domain_left_edge[y_dict[self.axis]]
         data['px'] = (coord_data[0,:]+0.5) * data['pdx'] + ox
@@ -1656,7 +1662,7 @@ class AMRProjBase(AMR2DData):
         data['weight_field'] = coord_data[3,:].copy()
         del coord_data
         data['pdx'] *= 0.5
-        data['pdy'] = data['pdx'] # generalization is out the window!
+        data['pdy'] *= 0.5
         data['fields'] = field_data
         # Now we run the finalizer, which is ignored if we don't need it
         data = self._mpi_catdict(data)
