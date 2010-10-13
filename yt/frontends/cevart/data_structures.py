@@ -1,5 +1,5 @@
 """
-Daniel Ceverino ART-specific data structures
+Cevart-specific data structures
 
 Author: Matthew Turk <matthewturk@gmail.com>
 Affiliation: UCSD
@@ -34,12 +34,13 @@ from yt.data_objects.hierarchy import \
       AMRHierarchy
 from yt.data_objects.static_output import \
       StaticOutput
-import _cevart_reader
 from .fields import CevartFieldContainer
 from yt.utilities.definitions import \
     mpc_conversion
 from yt.utilities.io_handler import \
     io_registry
+
+import ceverinoreader
 
 def num_deep_inc(f):
     def wrap(self, *args, **kwargs):
@@ -52,10 +53,13 @@ def num_deep_inc(f):
 class CevartGrid(AMRGridPatch):
     _id_offset = 0
     #__slots__ = ["_level_id", "stop_index"]
-    def __init__(self, id, hierarchy, level, start_index):
+    def __init__(self, id, hierarchy, level, locations, start_index):
         AMRGridPatch.__init__(self, id, filename = hierarchy.hierarchy_filename,
                               hierarchy = hierarchy)
         self.Level = level
+        self.Parent = []
+        self.Children = []
+        self.locations = locations
         self.start_index = start_index.copy()
 
     def _setup_dx(self):
@@ -103,9 +107,19 @@ class CevartHierarchy(AMRHierarchy):
         # for now, the hierarchy file is the parameter file!
         self.hierarchy_filename = self.parameter_file.parameter_filename
         self.directory = os.path.dirname(self.hierarchy_filename)
-        self.tree_proxy = pf.cevart_tree
-
+        
         self.float_type = na.float64
+        
+        self.data = ceverinoreader.read(self.hierarchy_filename)
+        self.left_edge = na.array((self.data['left_edge_x'], \
+        	self.data['left_edge_y'],self.data['left_edge_x'])).transpose()
+        
+        self.right_edge = na.array((self.data['right_edge_x'], \
+        	self.data['right_edge_y'],self.data['right_edge_z'])).transpose()
+        
+        self.levels = self.data['level']
+        
+        
         AMRHierarchy.__init__(self,pf,data_style)
 
     def _initialize_data_storage(self):
@@ -121,17 +135,24 @@ class CevartHierarchy(AMRHierarchy):
 
     def _count_grids(self):
         # We have to do all the patch-coalescing here.
-        level_info = self.tree_proxy.count_zones()
+        level_info = na.unique(self.levels)
         num_ogrids = sum(level_info)
-        ogrid_left_edge = na.zeros((num_ogrids,3), dtype='float64')
-        ogrid_right_edge = na.zeros((num_ogrids,3), dtype='float64')
-        ogrid_levels = na.zeros((num_ogrids,1), dtype='int32')
+        #ogrid_left_edge = na.zeros((num_ogrids,3), dtype='float64')
+        #ogrid_right_edge = na.zeros((num_ogrids,3), dtype='float64')
+        #ogrid_levels = na.zeros((num_ogrids,1), dtype='int32')
+        #ogrid_file_locations = na.zeros((num_ogrids,6), dtype='int64')
+        #ochild_masks = na.zeros((num_ogrids, 8), dtype='int32')
+        #self.tree_proxy.fill_hierarchy_arrays(
+        #    self.pf.domain_dimensions,
+        #    ogrid_left_edge, ogrid_right_edge,
+        #    ogrid_levels, ogrid_file_locations, ochild_masks)
+        
+        ogrid_left_edge = self.left_edge
+        ogrid_right_edge = self.right_edge
+        ogrid_levels = self.levels
         ogrid_file_locations = na.zeros((num_ogrids,6), dtype='int64')
-        ochild_masks = na.zeros((num_ogrids, 8), dtype='int32')
-        self.tree_proxy.fill_hierarchy_arrays(
-            self.pf.domain_dimensions,
-            ogrid_left_edge, ogrid_right_edge,
-            ogrid_levels, ogrid_file_locations, ochild_masks)
+        
+        
         # Now we can rescale
         mi, ma = ogrid_left_edge.min(), ogrid_right_edge.max()
         DL = self.pf.domain_left_edge
@@ -192,7 +213,7 @@ class CevartHierarchy(AMRHierarchy):
                         dleft_index = left_index[gdk,:]
                         dright_index = right_index[gdk,:]
                         ddims = dims[gdk,:]
-                        dfl = fl[gdk,:]
+                        d2 = fl[gdk,:]
                         psg = _cevart_reader.ProtoSubgrid(initial_left, idims,
                                         dleft_index, dright_index, ddims, dfl)
                         #print "Gridding from %s to %s + %s" % (
@@ -371,18 +392,14 @@ class CevartStaticOutput(StaticOutput):
     def _parse_parameter_file(self):
         self.unique_identifier = \
             int(os.stat(self.parameter_filename)[stat.ST_CTIME])
-        self.cevart_tree = _cevart_reader.Cevart_tree_proxy(self.parameter_filename)
-        rheader = self.cevart_tree.get_file_info()
-        self.parameters.update(rheader)
-        self.domain_right_edge = na.ones(3, dtype='float64') \
-                                           * rheader['boxlen']
+       # self.cevart_tree = _cevart_reader.Cevart_tree_proxy(self.parameter_filename)
+        #rheader = self.cevart_tree.get_file_info()
+        #self.parameters.update(rheader)
+        self.domain_right_edge = na.ones(3, dtype='float64')
         self.domain_left_edge = na.zeros(3, dtype='float64')
         self.domain_dimensions = na.ones(3, dtype='int32') * 2
 
     @classmethod
     def _is_valid(self, *args, **kwargs):
-        if not os.path.basename(args[0]).startswith("info_"): return False
-        fn = args[0].replace("info_", "amr_").replace(".txt", ".out00001")
-        print fn
-        return os.path.exists(fn)
+        return ceverinoreader.check_file(args[0])
 

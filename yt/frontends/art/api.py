@@ -1,5 +1,5 @@
 """
-API for yt.frontends.cevart
+API for yt.frontends.art
 
 Author: Matthew Turk <matthewturk@gmail.com>
 Affiliation: UCSD
@@ -29,14 +29,14 @@ License:
 """
 
 from .data_structures import \
-      CevartGrid, \
-      CevartHierarchy, \
-      CevartStaticOutput
+      ARTGrid, \
+      ARTHierarchy, \
+      ARTStaticOutput
 
 from .fields import \
-      CevartFieldContainer, \
-      CevartFieldInfo, \
-      add_cevart_field
+      ARTFieldContainer, \
+      ARTFieldInfo, \
+      add_art_field
 
 from .io import \
-      IOHandlerCevart
+      IOHandlerART

@@ -1,5 +1,5 @@
 """
-Cevart-specific fields
+ART-specific fields
 
 Author: Matthew Turk <matthewturk@gmail.com>
 Affiliation: UCSD
@@ -32,13 +32,13 @@ from yt.data_objects.field_info_container import \
     ValidateGridType
 import yt.data_objects.universal_fields
 
-class CevartFieldContainer(CodeFieldInfoContainer):
+class ARTFieldContainer(CodeFieldInfoContainer):
     _shared_state = {}
     _field_list = {}
-CevartFieldInfo = CevartFieldContainer()
-add_cevart_field = CevartFieldInfo.add_field
+ARTFieldInfo = RAMSESFieldContainer()
+add_art_field = ARTFieldInfo.add_field
 
-add_field = add_cevart_field
+add_field = add_art_field
 
 translation_dict = {"Density":"density",
                     "x-velocity":"velocity_x",
@@ -52,7 +52,7 @@ def _generate_translation(mine, theirs):
     add_field(theirs, function=lambda a, b: b[mine], take_log=True)
 
 for f,v in translation_dict.items():
-    if v not in CevartFieldInfo:
+    if v not in ARTFieldInfo:
         add_field(v, function=lambda a,b: None, take_log=False,
                   validators = [ValidateDataField(v)])
     #print "Setting up translator from %s to %s" % (v, f)

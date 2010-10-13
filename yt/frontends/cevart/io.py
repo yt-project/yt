@@ -1,5 +1,5 @@
 """
-RAMSES-specific IO
+Cevart-specific IO
 
 Author: Matthew Turk <matthewturk@gmail.com>
 Affiliation: KIPAC/SLAC/Stanford
@@ -28,11 +28,11 @@ import numpy as na
 from yt.utilities.io_handler import \
     BaseIOHandler
 
-class IOHandlerRAMSES(BaseIOHandler):
-    _data_style = "ramses"
+class IOHandlerCevart(BaseIOHandler):
+    _data_style = "cevart"
 
-    def __init__(self, ramses_tree, *args, **kwargs):
-        self.ramses_tree = ramses_tree
+    def __init__(self, cevart_tree, *args, **kwargs):
+        self.cevart_tree = cevart_tree
         BaseIOHandler.__init__(self, *args, **kwargs)
 
     def _read_data_set(self, grid, field):
@@ -44,7 +44,7 @@ class IOHandlerRAMSES(BaseIOHandler):
         while to_fill > 0 and len(grids) > 0:
             next_grids = []
             for g in grids:
-                to_fill -= self.ramses_tree.read_grid(field,
+                to_fill -= self.cevart_tree.read_grid(field,
                         grid.get_global_startindex(), grid.ActiveDimensions,
                         tr, filled, g.Level, 2**l_delta, g.locations)
                 next_grids += g.Parent

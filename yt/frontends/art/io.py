@@ -1,15 +1,11 @@
 """
-API for yt.frontends.cevart
+ART-specific IO
 
 Author: Matthew Turk <matthewturk@gmail.com>
-Affiliation: UCSD
-Author: J.S. Oishi <jsoishi@gmail.com>
 Affiliation: KIPAC/SLAC/Stanford
-Author: Britton Smith <brittonsmith@gmail.com>
-Affiliation: MSU
 Homepage: http://yt.enzotools.org/
 License:
-  Copyright (C) 2010 Matthew Turk.  All Rights Reserved.
+  Copyright (C) 2007-2009 Matthew Turk.  All Rights Reserved.
 
   This file is part of yt.
 
@@ -25,18 +21,22 @@ License:
 
   You should have received a copy of the GNU General Public License
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
 """
 
-from .data_structures import \
-      CevartGrid, \
-      CevartHierarchy, \
-      CevartStaticOutput
+import numpy as na
 
-from .fields import \
-      CevartFieldContainer, \
-      CevartFieldInfo, \
-      add_cevart_field
+from yt.utilities.io_handler import \
+    BaseIOHandler
 
-from .io import \
-      IOHandlerCevart
+class IOHandlerART(BaseIOHandler):
+    _data_style = "art"
+
+    def __init__(self, art_tree, *args, **kwargs):
+        self.art_tree = ramses_tree
+        BaseIOHandler.__init__(self, *args, **kwargs)
+
+
+    def _read_data_set(self, grid, field):
+        fullfieldname = 'grid_fluid_'+field
+        return self.hierarchy.pf.art[fullfieldname][grid.id]
+
