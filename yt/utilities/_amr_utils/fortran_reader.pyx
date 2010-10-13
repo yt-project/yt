@@ -29,6 +29,14 @@ cimport cython
 
 from stdio cimport fopen, fclose, FILE
 
+cdef extern from "endian_swap.h":
+    void FIX_SHORT( unsigned short )
+    void FIX_LONG( unsigned )
+    void FIX_FLOAT( float )
+
+cdef extern from "alloca.h":
+    void *alloca(int)
+
 cdef extern from "stdio.h":
     cdef int SEEK_SET
     cdef int SEEK_CUR
@@ -68,3 +76,56 @@ def read_tiger_section(
             fread(<void *> (data + pos), 4, slab_size[0], f)
             pos += slab_size[0]
     return buffer
+
+def read_art_tree(char *fn, long offset,
+                  int min_level, int max_level,
+                  np.ndarray[np.int64_t, ndim=2] oct_indices,
+                  np.ndarray[np.int64_t, ndim=1] oct_levels,
+                  np.ndarray[np.int64_t, ndim=1] oct_parents
+                  ):
+    # This accepts the filename of the ART header and an integer offset that
+    # points to the start of the record *following* the reading of iOctFree and
+    # nOct.  For those following along at home, we only need to read:
+    #   iOctPr, iOctLv
+    cdef int nchild = 8
+    cdef int i, Lev, cell_ind, iOct, nLevel, nLevCells, ic1, next_record
+    cdef int iOctPs[3]
+    cdef int dummy_records[9]
+    cdef int readin
+    cdef FILE *f = fopen(fn, "rb")
+    fseek(f, offset, SEEK_SET)
+    cdef int * Level = <int *> alloca(sizeof(int)*(max_level-min_level+1))
+    cdef int * iNOLL = <int *> alloca(sizeof(int)*(max_level-min_level+1))
+    cdef int * iHOLL = <int *> alloca(sizeof(int)*(max_level-min_level+1))
+    cell_ind = 0
+    for Lev in xrange(min_level + 1, max_level + 1):
+        fread(&readin, sizeof(int), 1, f); FIX_LONG(readin)
+        print "Reading Hierarchy for Level"
+        fread(&Level[Lev], sizeof(int), 1, f); FIX_LONG(Level[Lev])
+        fread(&iNOLL[Lev], sizeof(int), 1, f); FIX_LONG(iNOLL[Lev])
+        fread(&iHOLL[Lev], sizeof(int), 1, f); FIX_LONG(iHOLL[Lev])
+        fread(&readin, sizeof(int), 1, f); FIX_LONG(readin)
+        iOct = iHOLL[Lev] - 1
+        nLevel = iNOLL[Lev]
+        for ic1 in xrange(nLevel):
+            #print readin, iOct, nLevel, sizeof(int) 
+            next_record = ftell(f)
+            fread(&readin, sizeof(int), 1, f); FIX_LONG(readin)
+            next_record += readin + 2*sizeof(int)
+            fread(iOctPs, sizeof(int), 3, f)
+            FIX_LONG(iOctPs[0]); FIX_LONG(iOctPs[1]); FIX_LONG(iOctPs[2])
+            oct_indices[iOct, 0] = iOctPs[0]
+            oct_indices[iOct, 1] = iOctPs[1]
+            oct_indices[iOct, 2] = iOctPs[2]
+            fread(dummy_records, sizeof(int), 6, f) # skip Nb
+            fread(&readin, sizeof(int), 1, f); FIX_LONG(readin)
+            oct_parents[iOct] = readin
+            fread(&readin, sizeof(int), 1, f); FIX_LONG(readin)
+            oct_levels[iOct] = readin
+            fread(&iOct, sizeof(int), 1, f); FIX_LONG(iOct);
+            iOct -= 1
+            fseek(f, next_record, SEEK_SET)
+        fread(&readin, sizeof(int), 1, f); FIX_LONG(readin)
+        next_record = (2*sizeof(int) + readin) * (nLevel * nchild)
+        next_record -= sizeof(int)
+        fseek(f, next_record, SEEK_CUR)
