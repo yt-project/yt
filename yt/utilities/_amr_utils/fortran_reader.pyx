@@ -29,6 +29,10 @@ cimport cython
 
 from stdio cimport fopen, fclose, FILE
 
+#cdef inline int imax(int i0, int i1):
+    #if i0 > i1: return i0
+    #return i1
+
 cdef extern from "endian_swap.h":
     void FIX_SHORT( unsigned short )
     void FIX_LONG( unsigned )
@@ -94,20 +98,24 @@ def read_art_tree(char *fn, long offset,
     cdef int readin
     cdef FILE *f = fopen(fn, "rb")
     fseek(f, offset, SEEK_SET)
-    cdef int * Level = <int *> alloca(sizeof(int)*(max_level-min_level+1))
+    cdef int Level
     cdef int * iNOLL = <int *> alloca(sizeof(int)*(max_level-min_level+1))
     cdef int * iHOLL = <int *> alloca(sizeof(int)*(max_level-min_level+1))
     cell_ind = 0
-    for Lev in xrange(min_level + 1, max_level + 1):
+    cdef int total_cells = 0
+    cdef int iOctMax = 0
+    for Lev in range(min_level + 1, max_level + 1):
         fread(&readin, sizeof(int), 1, f); FIX_LONG(readin)
-        print "Reading Hierarchy for Level"
-        fread(&Level[Lev], sizeof(int), 1, f); FIX_LONG(Level[Lev])
-        fread(&iNOLL[Lev], sizeof(int), 1, f); FIX_LONG(iNOLL[Lev])
-        fread(&iHOLL[Lev], sizeof(int), 1, f); FIX_LONG(iHOLL[Lev])
+        fread(&Level, sizeof(int), 1, f); FIX_LONG(Level)
+        fread(&iNOLL[Level], sizeof(int), 1, f); FIX_LONG(iNOLL[Level])
+        fread(&iHOLL[Level], sizeof(int), 1, f); FIX_LONG(iHOLL[Level])
         fread(&readin, sizeof(int), 1, f); FIX_LONG(readin)
-        iOct = iHOLL[Lev] - 1
-        nLevel = iNOLL[Lev]
-        for ic1 in xrange(nLevel):
+        iOct = iHOLL[Level] - 1
+        nLevel = iNOLL[Level]
+        print "Reading Hierarchy for Level", Lev, Level, nLevel, iOct
+        total_cells += nLevel
+        for ic1 in range(nLevel):
+            iOctMax = imax(iOctMax, iOct)
             #print readin, iOct, nLevel, sizeof(int) 
             next_record = ftell(f)
             fread(&readin, sizeof(int), 1, f); FIX_LONG(readin)
@@ -119,7 +127,7 @@ def read_art_tree(char *fn, long offset,
             oct_indices[iOct, 2] = iOctPs[2]
             fread(dummy_records, sizeof(int), 6, f) # skip Nb
             fread(&readin, sizeof(int), 1, f); FIX_LONG(readin)
-            oct_parents[iOct] = readin
+            oct_parents[iOct] = readin - 1
             fread(&readin, sizeof(int), 1, f); FIX_LONG(readin)
             oct_levels[iOct] = readin
             fread(&iOct, sizeof(int), 1, f); FIX_LONG(iOct);
@@ -129,3 +137,4 @@ def read_art_tree(char *fn, long offset,
         next_record = (2*sizeof(int) + readin) * (nLevel * nchild)
         next_record -= sizeof(int)
         fseek(f, next_record, SEEK_CUR)
+    print "Read this many cells", total_cells, iOctMax
