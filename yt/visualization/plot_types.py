@@ -523,7 +523,7 @@ class SlicePlot(VMPlot):
 
 class NNVMPlot:
     def _get_buff(self, width=None):
-        import delaunay as de
+        import yt.utilities.delaunay as de
         x0, x1 = self.xlim
         y0, y1 = self.ylim
         if width is None:
