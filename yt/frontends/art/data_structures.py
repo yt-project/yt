@@ -27,7 +27,6 @@ import numpy as na
 import stat
 import weakref
 import cPickle
-import art_reader
 
 from yt.funcs import *
 from yt.data_objects.grid_patch import \
@@ -41,18 +40,57 @@ from yt.utilities.definitions import \
     mpc_conversion
 from yt.utilities.io_handler import \
     io_registry
+import yt.utilities.amr_utils as amr_utils
+
+def num_deep_inc(f):
+    def wrap(self, *args, **kwargs):
+        self.num_deep += 1
+        rv = f(self, *args, **kwargs)
+        self.num_deep -= 1
+        return rv
+    return wrap
 
 class ARTGrid(AMRGridPatch):
     _id_offset = 0
-    #__slots__ = ["_level_id", "stop_index"]
-    def __init__(self, id, hierarchy, LE,RE,Dim,Level,Parent ):
+
+    def __init__(self, id, hierarchy, level, locations, start_index):
         AMRGridPatch.__init__(self, id, filename = hierarchy.hierarchy_filename,
                               hierarchy = hierarchy)
-        self.id = id
-        self.LE,self.RE = LE,RE
-        self.Level = Level
-        self.Parent = Parent
+        self.Level = level
+        self.Parent = []
         self.Children = []
+        self.locations = locations
+        self.start_index = start_index.copy()
+
+    def _setup_dx(self):
+        # So first we figure out what the index is.  We don't assume
+        # that dx=dy=dz , at least here.  We probably do elsewhere.
+        id = self.id - self._id_offset
+        if len(self.Parent) > 0:
+            self.dds = self.Parent[0].dds / self.pf.refine_by
+        else:
+            LE, RE = self.hierarchy.grid_left_edge[id,:], \
+                     self.hierarchy.grid_right_edge[id,:]
+            self.dds = na.array((RE-LE)/self.ActiveDimensions)
+        if self.pf.dimensionality < 2: self.dds[1] = 1.0
+        if self.pf.dimensionality < 3: self.dds[2] = 1.0
+        self.data['dx'], self.data['dy'], self.data['dz'] = self.dds
+
+    def get_global_startindex(self):
+        """
+        Return the integer starting index for each dimension at the current
+        level.
+        """
+        if self.start_index != None:
+            return self.start_index
+        if len(self.Parent) == 0:
+            start_index = self.LeftEdge / self.dds
+            return na.rint(start_index).astype('int64').ravel()
+        pdx = self.Parent[0].dds
+        start_index = (self.Parent[0].get_global_startindex()) + \
+                       na.rint((self.LeftEdge - self.Parent[0].LeftEdge)/pdx)
+        self.start_index = (start_index*self.pf.refine_by).astype('int64').ravel()
+        return self.start_index
 
     def __repr__(self):
         return "ARTGrid_%04i (%s)" % (self.id, self.ActiveDimensions)
@@ -62,79 +100,247 @@ class ARTHierarchy(AMRHierarchy):
     grid = ARTGrid
     _handle = None
     
-    def __init__(self,pf,data_style='art'):
+    def __init__(self, pf, data_style='ramses'):
+        self.data_style = data_style
+        self.field_info = ARTFieldContainer()
+        self.parameter_file = weakref.proxy(pf)
+        # for now, the hierarchy file is the parameter file!
+        self.hierarchy_filename = self.parameter_file.parameter_filename
+        self.directory = os.path.dirname(self.hierarchy_filename)
+
+        self.float_type = na.float64
         AMRHierarchy.__init__(self,pf,data_style)
 
+    def _initialize_data_storage(self):
+        pass
+
     def _detect_fields(self):
-        self.field_list = ['gas_density','total_density','px','py','pz'
-            'energy','pressure','gamma','internale','pot_new','pot_old']
-        
+        self.field_list = self.tree_proxy.field_names[:]
+    
     def _setup_classes(self):
         dd = self._get_data_reader_dict()
         AMRHierarchy._setup_classes(self, dd)
         self.object_types.sort()
-        
+
     def _count_grids(self):
-        self.num_grids = len(self.pf.art.grid_level)
-        #the length of any grid array should suffice
+        # We have to do all the patch-coalescing here.
+        level_info = [128**3]
+        level_info = amr_utils.count_art_octs(
+                self.pf.filename, self.pf.offset, self.pf.min_level,
+                self.pf.max_level, level_info)
+        num_ogrids = sum(level_info)
+        ogrid_left_indices = na.zeros((num_ogrids,3), dtype='int64')
+        ogrid_levels = na.zeros((num_ogrids,1), dtype='int64')
+        ogrid_file_locations = na.zeros((num_ogrids,6), dtype='int64')
+        ochild_masks = na.zeros((num_ogrids, 8), dtype='int32')
+        amr_utils.read_art_tree(self.pf.filename self.pf.offset,
+                                self.pf.min_level, self.pf.max_level,
+                                ogrid_left_edge, 
+        self.tree_proxy.fill_hierarchy_arrays(
+            self.pf.domain_dimensions,
+            ogrid_left_edge, ogrid_right_edge,
+            ogrid_levels, ogrid_file_locations, ochild_masks)
+        # Now we can rescale
+        mi, ma = ogrid_left_edge.min(), ogrid_right_edge.max()
+        DL = self.pf.domain_left_edge
+        DR = self.pf.domain_right_edge
+        ogrid_left_edge = (ogrid_left_edge - mi)/(ma - mi) * (DR - DL) + DL
+        ogrid_right_edge = (ogrid_right_edge - mi)/(ma - mi) * (DR - DL) + DL
+        #import pdb;pdb.set_trace()
+        # We now have enough information to run the patch coalescing 
+        self.proto_grids = []
+        for level in xrange(len(level_info)):
+            if level_info[level] == 0: continue
+            ggi = (ogrid_levels == level).ravel()
+            mylog.info("Re-gridding level %s: %s octree grids", level, ggi.sum())
+            nd = self.pf.domain_dimensions * 2**level
+            dims = na.ones((ggi.sum(), 3), dtype='int64') * 2
+            fl = ogrid_file_locations[ggi,:]
+            # Now our initial protosubgrid
+            #if level == 6: raise RuntimeError
+            # We want grids that cover no more than MAX_EDGE cells in every direction
+            MAX_EDGE = 128
+            psgs = []
+            left_index = na.rint((ogrid_left_edge[ggi,:]) * nd).astype('int64')
+            right_index = left_index + 2
+            lefts = [na.mgrid[0:nd[i]:MAX_EDGE] for i in range(3)]
+            #lefts = zip(*[l.ravel() for l in lefts])
+            pbar = get_pbar("Re-gridding ", lefts[0].size)
+            min_ind = na.min(left_index, axis=0)
+            max_ind = na.max(right_index, axis=0)
+            for i,dli in enumerate(lefts[0]):
+                pbar.update(i)
+                if min_ind[0] > dli + nd[0]: continue
+                if max_ind[0] < dli: continue
+                idim = min(nd[0] - dli, MAX_EDGE)
+                gdi = ((dli  <= right_index[:,0])
+                     & (dli + idim >= left_index[:,0]))
+                if not na.any(gdi): continue
+                for dlj in lefts[1]:
+                    if min_ind[1] > dlj + nd[1]: continue
+                    if max_ind[1] < dlj: continue
+                    idim = min(nd[1] - dlj, MAX_EDGE)
+                    gdj = ((dlj  <= right_index[:,1])
+                         & (dlj + idim >= left_index[:,1])
+                         & (gdi))
+                    if not na.any(gdj): continue
+                    for dlk in lefts[2]:
+                        if min_ind[2] > dlk + nd[2]: continue
+                        if max_ind[2] < dlk: continue
+                        idim = min(nd[2] - dlk, MAX_EDGE)
+                        gdk = ((dlk  <= right_index[:,2])
+                             & (dlk + idim >= left_index[:,2])
+                             & (gdj))
+                        if not na.any(gdk): continue
+                        left = na.array([dli, dlj, dlk])
+                        domain_left = left.ravel()
+                        initial_left = na.zeros(3, dtype='int64') + domain_left
+                        idims = na.ones(3, dtype='int64') * na.minimum(nd - domain_left, MAX_EDGE)
+                        # We want to find how many grids are inside.
+                        dleft_index = left_index[gdk,:]
+                        dright_index = right_index[gdk,:]
+                        ddims = dims[gdk,:]
+                        dfl = fl[gdk,:]
+                        psg = _ramses_reader.ProtoSubgrid(initial_left, idims,
+                                        dleft_index, dright_index, ddims, dfl)
+                        #print "Gridding from %s to %s + %s" % (
+                        #    initial_left, initial_left, idims)
+                        if psg.efficiency <= 0: continue
+                        self.num_deep = 0
+                        psgs.extend(self._recursive_patch_splitting(
+                            psg, idims, initial_left, 
+                            dleft_index, dright_index, ddims, dfl))
+                        #psgs.extend([psg])
+            pbar.finish()
+            self.proto_grids.append(psgs)
+            sums = na.zeros(3, dtype='int64')
+            mylog.info("Final grid count: %s", len(self.proto_grids[level]))
+            if len(self.proto_grids[level]) == 1: continue
+            for g in self.proto_grids[level]:
+                sums += [s.sum() for s in g.sigs]
+            assert(na.all(sums == dims.prod(axis=1).sum()))
+        self.num_grids = sum(len(l) for l in self.proto_grids)
+
+    num_deep = 0
+
+    @num_deep_inc
+    def _recursive_patch_splitting(self, psg, dims, ind,
+            left_index, right_index, gdims, fl):
+        min_eff = 0.1 # This isn't always respected.
+        if self.num_deep > 40:
+            # If we've recursed more than 100 times, we give up.
+            psg.efficiency = min_eff
+            return [psg]
+        if psg.efficiency > min_eff or psg.efficiency < 0.0:
+            return [psg]
+        tt, ax, fp = psg.find_split()
+        if (fp % 2) != 0:
+            if dims[ax] != fp + 1:
+                fp += 1
+            else:
+                fp -= 1
+        #print " " * self.num_deep + "Got ax", ax, "fp", fp
+        dims_l = dims.copy()
+        dims_l[ax] = fp
+        li_l = ind.copy()
+        if na.any(dims_l <= 0): return [psg]
+        L = _ramses_reader.ProtoSubgrid(
+                li_l, dims_l, left_index, right_index, gdims, fl)
+        #print " " * self.num_deep + "L", tt, L.efficiency
+        if L.efficiency > 1.0: raise RuntimeError
+        if L.efficiency <= 0.0: L = []
+        elif L.efficiency < min_eff:
+            L = self._recursive_patch_splitting(L, dims_l, li_l,
+                    left_index, right_index, gdims, fl)
+        else:
+            L = [L]
+        dims_r = dims.copy()
+        dims_r[ax] -= fp
+        li_r = ind.copy()
+        li_r[ax] += fp
+        if na.any(dims_r <= 0): return [psg]
+        R = _ramses_reader.ProtoSubgrid(
+                li_r, dims_r, left_index, right_index, gdims, fl)
+        #print " " * self.num_deep + "R", tt, R.efficiency
+        if R.efficiency > 1.0: raise RuntimeError
+        if R.efficiency <= 0.0: R = []
+        elif R.efficiency < min_eff:
+            R = self._recursive_patch_splitting(R, dims_r, li_r,
+                    left_index, right_index, gdims, fl)
+        else:
+            R = [R]
+        return L + R
         
     def _parse_hierarchy(self):
-        #all of the grid edges=indices are defined on the finest Level
-        #what ART calls the root grid. To transform indices and dimensionality
-        #to the relative level of a cell/grid, divide by the dimensions of the 
-        # grid. Because ART is totally octree, and every cell on a level is the 
-        #same size, there are no 'colaseced' regions 
-        art = self.pf.art #alias
-        
-        self.grid_left_edge  = art.grid_left_index / art.grid_dimensions
-        self.grid_right_edge = (art.grid_left_index + \
-                               art.grid_dimensions) / art.grid_dimensions
-        self.grid_dimensions = art.grid_dimensions
-        self.grid_levels = art.grid_level
-        self.grid_particle_count = art.grid_level*0
-        self.grid_parents = art.grid_parents
-        
-        
-    def _populate_grid_objects(self):
-        iters = zip(range(self.num_grids),self.grid_left_edge,
-                self.grid_right_edge,self.grid_dimensions,self.grid_levels,
-                self.grid_parents)
+        # We have important work to do
         grids = []
-        for idx,LE,RE,Dim,Level,Parent in iters:
-            g = self.grid(idx,self,LE,RE,Dim,Level,Parent)
+        gi = 0
+        for level, grid_list in enumerate(self.proto_grids):
+            for g in grid_list:
+                fl = g.grid_file_locations
+                props = g.get_properties()
+                self.grid_left_edge[gi,:] = props[0,:] / (2.0**(level+1))
+                self.grid_right_edge[gi,:] = props[1,:] / (2.0**(level+1))
+                self.grid_dimensions[gi,:] = props[2,:]
+                self.grid_levels[gi,:] = level
+                grids.append(self.grid(gi, self, level, fl, props[0,:]))
+                gi += 1
+        self.grids = na.array(grids, dtype='object')
+
+    def _get_grid_parents(self, grid, LE, RE):
+        mask = na.zeros(self.num_grids, dtype='bool')
+        grids, grid_ind = self.get_box_grids(LE, RE)
+        mask[grid_ind] = True
+        mask = na.logical_and(mask, (self.grid_levels == (grid.Level-1)).flat)
+        return self.grids[mask]
+
+    def _populate_grid_objects(self):
+        for gi,g in enumerate(self.grids):
+            parents = self._get_grid_parents(g,
+                            self.grid_left_edge[gi,:],
+                            self.grid_right_edge[gi,:])
+            if len(parents) > 0:
+                g.Parent.extend(parents.tolist())
+                for p in parents: p.Children.append(g)
             g._prepare_grid()
             g._setup_dx()
-            grids.append(g)
-        self.grids = na.array(grids,dtype='object')
-      
+        self.max_level = self.grid_levels.max()
+
     def _setup_unknown_fields(self):
-        pass
+        for field in self.field_list:
+            if field in self.parameter_file.field_info: continue
+            mylog.info("Adding %s to list of fields", field)
+            cf = None
+            if self.parameter_file.has_key(field):
+                def external_wrapper(f):
+                    def _convert_function(data):
+                        return data.convert(f)
+                    return _convert_function
+                cf = external_wrapper(field)
+            add_field(field, lambda a, b: None,
+                      convert_function=cf, take_log=False)
 
     def _setup_derived_fields(self):
-        pass
-        
+        self.derived_field_list = []
+
+    def _setup_data_io(self):
+        self.io = io_registry[self.data_style](self.tree_proxy)
+
 class ARTStaticOutput(StaticOutput):
     _hierarchy_class = ARTHierarchy
     _fieldinfo_class = ARTFieldContainer
     _handle = None
     
-    def __init__(self, filename, data_style='art',
+    def __init__(self, filename, data_style='ramses',
                  storage_filename = None):
-        from art_reader import *                 
         StaticOutput.__init__(self, filename, data_style)
         self.storage_filename = storage_filename
-        self.art = cPickle.load(open(filename,'rb'))
-        #This is Grid class from the art_reader file
+
         self.field_info = self._fieldinfo_class()
-        # hardcoded for now
-        
         self.current_time = 0.0
-        # These should be explicitly obtained from the file, but for now that
-        # will wait until a reorganization of the source tree and better
-        # generalization.
         self.dimensionality = 3
         self.refine_by = 2
-        self.parameters["HydroMethod"] = 'art'
+        self.parameters["HydroMethod"] = 'ramses'
         self.parameters["Time"] = 1. # default unit is 1...
 
     def __repr__(self):
@@ -166,7 +372,13 @@ class ARTStaticOutput(StaticOutput):
         for unit in mpc_conversion.keys():
             self.units[unit] = mpc_conversion[unit] / mpc_conversion["cm"]
 
+    def _parse_parameter_file(self):
+        pass
+
     @classmethod
     def _is_valid(self, *args, **kwargs):
+        if not os.path.basename(args[0]).startswith("info_"): return False
+        fn = args[0].replace("info_", "amr_").replace(".txt", ".out00001")
+        print fn
         return os.path.exists(fn)
 

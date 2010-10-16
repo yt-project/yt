@@ -81,18 +81,45 @@ def read_tiger_section(
             pos += slab_size[0]
     return buffer
 
+def count_art_octs(char *fn, long offset,
+                   int min_level, int max_level,
+                   level_info):
+    cdef int nchild = 8
+    cdef int i, Lev, next_record, nLevel
+    cdef int dummy_records[9]
+    cdef int readin
+    cdef FILE *f = fopen(fn, "rb")
+    fseek(f, offset, SEEK_SET)
+    for Lev in range(min_level + 1, max_level + 1):
+        fread(dummy_records, sizeof(int), 2, f);
+        fread(&nLevel, sizeof(int), 1, f); FIX_LONG(nLevel)
+        level_info.append(nLevel)
+        fread(dummy_records, sizeof(int), 2, f);
+        fread(&next_record, sizeof(int), 1, f); FIX_LONG(next_record)
+        print "Record size is:", next_record
+        # Offset for one record header we just read
+        next_record = (nLevel * (next_record + 2*sizeof(int))) - sizeof(int)
+        fseek(f, next_record, SEEK_CUR)
+        # Now we skip the second section 
+        fread(&readin, sizeof(int), 1, f); FIX_LONG(readin)
+        next_record = (2*sizeof(int) + readin) * (nLevel * nchild)
+        next_record -= sizeof(int)
+        fseek(f, next_record, SEEK_CUR)
+    fclose(f)
+
 def read_art_tree(char *fn, long offset,
                   int min_level, int max_level,
                   np.ndarray[np.int64_t, ndim=2] oct_indices,
                   np.ndarray[np.int64_t, ndim=1] oct_levels,
-                  np.ndarray[np.int64_t, ndim=1] oct_parents
-                  ):
+                  np.ndarray[np.int64_t, ndim=1] oct_parents,
+                  np.ndarray[np.int64_t, ndim=1] oct_mask):
     # This accepts the filename of the ART header and an integer offset that
     # points to the start of the record *following* the reading of iOctFree and
     # nOct.  For those following along at home, we only need to read:
     #   iOctPr, iOctLv
     cdef int nchild = 8
     cdef int i, Lev, cell_ind, iOct, nLevel, nLevCells, ic1, next_record
+    cdef int idc, cm
     cdef int iOctPs[3]
     cdef int dummy_records[9]
     cdef int readin
@@ -102,8 +129,9 @@ def read_art_tree(char *fn, long offset,
     cdef int * iNOLL = <int *> alloca(sizeof(int)*(max_level-min_level+1))
     cdef int * iHOLL = <int *> alloca(sizeof(int)*(max_level-min_level+1))
     cell_ind = 0
-    cdef int total_cells = 0
+    cdef int total_cells = 0, total_masked
     cdef int iOctMax = 0
+    idc = 0
     for Lev in range(min_level + 1, max_level + 1):
         fread(&readin, sizeof(int), 1, f); FIX_LONG(readin)
         fread(&Level, sizeof(int), 1, f); FIX_LONG(Level)
@@ -133,8 +161,14 @@ def read_art_tree(char *fn, long offset,
             fread(&iOct, sizeof(int), 1, f); FIX_LONG(iOct);
             iOct -= 1
             fseek(f, next_record, SEEK_SET)
-        fread(&readin, sizeof(int), 1, f); FIX_LONG(readin)
-        next_record = (2*sizeof(int) + readin) * (nLevel * nchild)
-        next_record -= sizeof(int)
-        fseek(f, next_record, SEEK_CUR)
+        total_masked = 0
+        for ic1 in range(nLevel * nchild):
+            fread(&next_record, sizeof(int), 1, f); FIX_LONG(next_record)
+            fread(&idc, sizeof(int), 1, f); FIX_LONG(idc); idc -= 1 + (128**3)
+            fread(&cm, sizeof(int), 1, f); FIX_LONG(cm)
+            if cm == 0: oct_mask[idc] = 1
+            else: total_masked += 1
+            fseek(f, next_record - sizeof(int), SEEK_CUR)
+        print "Masked cells", total_masked
+    fclose(f)
     print "Read this many cells", total_cells, iOctMax
