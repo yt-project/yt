@@ -35,7 +35,6 @@ class IOHandlerART(BaseIOHandler):
         self.art_tree = ramses_tree
         BaseIOHandler.__init__(self, *args, **kwargs)
 
-
     def _read_data_set(self, grid, field):
         fullfieldname = 'grid_fluid_'+field
         return self.hierarchy.pf.art[fullfieldname][grid.id]

@@ -27,6 +27,8 @@ import numpy as na
 import stat
 import weakref
 import cPickle
+import os
+import struct
 
 from yt.funcs import *
 from yt.data_objects.grid_patch import \
@@ -126,17 +128,18 @@ class ARTHierarchy(AMRHierarchy):
 
     def _count_grids(self):
         # We have to do all the patch-coalescing here.
-        level_info = [0] # skip root grid for now
+        level_info = [self.pf.ncell] # skip root grid for now
         amr_utils.count_art_octs(
-                self.pf.parameter_filename, self.pf.offset,
+                self.pf.parameter_filename, self.pf.child_grid_offset,
                 self.pf.min_level, self.pf.max_level, level_info)
-        num_ogrids = sum(level_info) + 1000
+        num_ogrids = sum(level_info) + self.pf.iOctFree
         ogrid_left_indices = na.zeros((num_ogrids,3), dtype='int64') - 999
         ogrid_levels = na.zeros(num_ogrids, dtype='int64')
         ogrid_file_locations = na.zeros((num_ogrids,6), dtype='int64')
         ogrid_parents = na.zeros(num_ogrids, dtype="int64")
         ochild_masks = na.zeros((num_ogrids, 8), dtype='int64').ravel()
-        amr_utils.read_art_tree(self.pf.parameter_filename, self.pf.offset,
+        amr_utils.read_art_tree(self.pf.parameter_filename, 
+                                self.pf.child_grid_offset,
                                 self.pf.min_level, self.pf.max_level,
                                 ogrid_left_indices, ogrid_levels,
                                 ogrid_parents, ochild_masks)
@@ -379,11 +382,92 @@ class ARTStaticOutput(StaticOutput):
             self.units[unit] = mpc_conversion[unit] / mpc_conversion["cm"]
 
     def _parse_parameter_file(self):
+        # We set our domain to run from 0 .. 1 since we are otherwise
+        # unconstrained.
         self.domain_left_edge = na.zeros(3, dtype="float64")
         self.domain_right_edge = na.ones(3, dtype="float64")
-        self.domain_dimensions = na.ones(3, dtype='int64')*128
-        import uuid
-        self.unique_identifier = str(uuid.uuid4())
+        self.unique_identifier = \
+            int(os.stat(self.parameter_filename)[stat.ST_CTIME])
+        self.parameters = {}
+
+        header_struct = [
+            ('>i','pad byte'),
+            ('>256s','jname'),
+            ('>i','pad byte'),
+            
+            ('>i','pad byte'),
+            ('>i','istep'),
+            ('>d','t'),
+            ('>d','dt'),
+            ('>f','aexpn'),
+            ('>f','ainit'),
+            ('>i','pad byte'),
+            
+            ('>i','pad byte'),
+            ('>f','boxh'),
+            ('>f','Om0'),
+            ('>f','Oml0'),
+            ('>f','Omb0'),
+            ('>f','hubble'),
+            ('>i','pad byte'),
+            
+            ('>i','pad byte'),
+            ('>i','nextras'),
+            ('>i','pad byte'),
+
+            ('>i','pad byte'),
+            ('>f','extra1'),
+            ('>f','extra2'),
+            ('>i','pad byte'),
+
+            ('>i','pad byte'),
+            ('>256s','lextra'),
+            ('>256s','lextra'),
+            ('>i','pad byte'),
+            
+            ('>i', 'pad byte'),
+            ('>i', 'min_level'),
+            ('>i', 'max_level'),
+            ('>i', 'pad byte'),
+            ]
+        
+        f = open(self.parameter_filename, "rb")
+        header_vals = {}
+        for format, name in header_struct:
+            size = struct.calcsize(format)
+            # We parse single values at a time, so this will
+            # always need to be indexed with 0
+            output = struct.unpack(format, f.read(size))[0]
+            header_vals[name] = output
+        self.dimensionality = 3 # We only support three
+        self.refine_by = 2 # Octree
+        self.data_comment = header_vals['jname']
+        self.current_time = header_vals['t']
+        self.omega_lambda = header_vals['Oml0']
+        self.omega_matter = header_vals['Om0'] - header_vals['Oml0']
+        self.hubble_constant = header_vals['hubble']
+        self.min_level = header_vals['min_level']
+        self.max_level = header_vals['max_level']
+
+        for to_skip in ['tl','dtl','tlold','dtlold','iSO']:
+            _skip_record(f)
+
+        self.ncell = struct.unpack('>l', _read_record(f))
+        # Try to figure out the root grid dimensions
+        est = na.log2(self.ncell) / 3
+        if int(est) != est: raise RuntimeError
+        # Note here: this is the number of *cells* on the root grid.
+        # This is not the same as the number of Octs.
+        self.domain_dimensions = na.ones(3, dtype='int64') * int(2**est)
+
+        self.root_grid_offset = f.tell()
+        for to_skip in ['iOctCh', 'hvar', 'var']:
+            _skip_record(f)
+
+        self.iOctFree, self.nOct = struct.unpack('>ii', _read_record(f))
+        self.child_grid_offset = f.tell()
+
+        f.close()
 
     @classmethod
     def _is_valid(self, *args, **kwargs):
@@ -391,4 +475,15 @@ class ARTStaticOutput(StaticOutput):
         fn = args[0].replace("info_", "amr_").replace(".txt", ".out00001")
         print fn
         return os.path.exists(fn)
+
+def _skip_record(f):
+    s = struct.unpack('>i', f.read(struct.calcsize('>i')))
+    f.seek(s[0], 1)
+    s = struct.unpack('>i', f.read(struct.calcsize('>i')))
+
+def _read_record(f):
+    s = struct.unpack('>i', f.read(struct.calcsize('>i')))[0]
+    ss = f.read(s)
+    s = struct.unpack('>i', f.read(struct.calcsize('>i')))
+    return ss
 
