@@ -133,6 +133,7 @@ def write_bitmap(bitmap_array, filename, max_val = None):
         alpha_channel = 255*na.ones((s1,s2,1), dtype='uint8')
         bitmap_array = na.concatenate([bitmap_array, alpha_channel], axis=-1)
     au.write_png(bitmap_array.copy(), filename)
+    return bitmap_array
 
 def write_image(image, filename, color_bounds = None, cmap_name = "algae"):
     r"""Write out a floating point array directly to a PNG file, scaling it and

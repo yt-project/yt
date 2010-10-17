@@ -534,6 +534,16 @@ class ColorTransferFunction(MultiVariateTransferFunction):
         for v, a in zip(na.mgrid[mi:ma:N*1j], alpha):
             self.sample_colormap(v, w, a, colormap=colormap)
 
+    def get_colormap_image(self, height, width):
+        image = na.zeros((height, width, 3), dtype='uint8')
+        hvals = na.mgrid[self.x_bounds[0]:self.x_bounds[1]:height * 1j]
+        for i,f in enumerate(self.funcs[:3]):
+            vals = na.interp(hvals, f.x, f.y)
+            image[:,:,i] = (vals[:,None] * 255).astype('uint8')
+        image = image[::-1,:,:]
+        import pdb; pdb.set_trace()
+        return image
+
 class ProjectionTransferFunction(MultiVariateTransferFunction):
     def __init__(self, x_bounds = (-1e60, 1e60)):
         r"""A transfer function that defines a simple projection.
