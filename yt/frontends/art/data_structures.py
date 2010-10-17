@@ -42,6 +42,8 @@ from yt.utilities.io_handler import \
     io_registry
 import yt.utilities.amr_utils as amr_utils
 
+import yt.frontends.ramses._ramses_reader as _ramses_reader
+
 def num_deep_inc(f):
     def wrap(self, *args, **kwargs):
         self.num_deep += 1
@@ -100,7 +102,7 @@ class ARTHierarchy(AMRHierarchy):
     grid = ARTGrid
     _handle = None
     
-    def __init__(self, pf, data_style='ramses'):
+    def __init__(self, pf, data_style='art'):
         self.data_style = data_style
         self.field_info = ARTFieldContainer()
         self.parameter_file = weakref.proxy(pf)
@@ -124,33 +126,36 @@ class ARTHierarchy(AMRHierarchy):
 
     def _count_grids(self):
         # We have to do all the patch-coalescing here.
-        level_info = [128**3]
-        level_info = amr_utils.count_art_octs(
-                self.pf.filename, self.pf.offset, self.pf.min_level,
-                self.pf.max_level, level_info)
-        num_ogrids = sum(level_info)
-        ogrid_left_indices = na.zeros((num_ogrids,3), dtype='int64')
-        ogrid_levels = na.zeros((num_ogrids,1), dtype='int64')
+        level_info = [0] # skip root grid for now
+        amr_utils.count_art_octs(
+                self.pf.parameter_filename, self.pf.offset,
+                self.pf.min_level, self.pf.max_level, level_info)
+        num_ogrids = sum(level_info) + 1000
+        ogrid_left_indices = na.zeros((num_ogrids,3), dtype='int64') - 999
+        ogrid_levels = na.zeros(num_ogrids, dtype='int64')
         ogrid_file_locations = na.zeros((num_ogrids,6), dtype='int64')
-        ochild_masks = na.zeros((num_ogrids, 8), dtype='int32')
-        amr_utils.read_art_tree(self.pf.filename self.pf.offset,
+        ogrid_parents = na.zeros(num_ogrids, dtype="int64")
+        ochild_masks = na.zeros((num_ogrids, 8), dtype='int64').ravel()
+        amr_utils.read_art_tree(self.pf.parameter_filename, self.pf.offset,
                                 self.pf.min_level, self.pf.max_level,
-                                ogrid_left_edge, 
-        self.tree_proxy.fill_hierarchy_arrays(
-            self.pf.domain_dimensions,
-            ogrid_left_edge, ogrid_right_edge,
-            ogrid_levels, ogrid_file_locations, ochild_masks)
+                                ogrid_left_indices, ogrid_levels,
+                                ogrid_parents, ochild_masks)
+        ochild_masks.reshape((num_ogrids, 8), order="F")
+        ogrid_levels[ogrid_left_indices[:,0] == -999] = -1
+        # This bit of code comes from Chris, and I'm still not sure I have a
+        # handle on what it does.
+        final_indices =  ogrid_left_indices[na.where(ogrid_levels==self.pf.max_level)[0]]
+        divisible=[na.all((final_indices%2**(level))==0) 
+            for level in xrange(self.pf.max_level*2)]
+        root_level = self.pf.max_level+na.where(na.logical_not(divisible))[0][0] 
+        ogrid_dimension = na.zeros(final_indices.shape,dtype='int')+2
+        ogrid_left_indices = ogrid_left_indices/2**(root_level - ogrid_levels[:,None]) - 1
         # Now we can rescale
-        mi, ma = ogrid_left_edge.min(), ogrid_right_edge.max()
-        DL = self.pf.domain_left_edge
-        DR = self.pf.domain_right_edge
-        ogrid_left_edge = (ogrid_left_edge - mi)/(ma - mi) * (DR - DL) + DL
-        ogrid_right_edge = (ogrid_right_edge - mi)/(ma - mi) * (DR - DL) + DL
-        #import pdb;pdb.set_trace()
-        # We now have enough information to run the patch coalescing 
         self.proto_grids = []
         for level in xrange(len(level_info)):
-            if level_info[level] == 0: continue
+            if level_info[level] == 0:
+                self.proto_grids.append([])
+                continue
             ggi = (ogrid_levels == level).ravel()
             mylog.info("Re-gridding level %s: %s octree grids", level, ggi.sum())
             nd = self.pf.domain_dimensions * 2**level
@@ -161,7 +166,7 @@ class ARTHierarchy(AMRHierarchy):
             # We want grids that cover no more than MAX_EDGE cells in every direction
             MAX_EDGE = 128
             psgs = []
-            left_index = na.rint((ogrid_left_edge[ggi,:]) * nd).astype('int64')
+            left_index = ogrid_left_indices[ggi,:]
             right_index = left_index + 2
             lefts = [na.mgrid[0:nd[i]:MAX_EDGE] for i in range(3)]
             #lefts = zip(*[l.ravel() for l in lefts])
@@ -247,7 +252,7 @@ class ARTHierarchy(AMRHierarchy):
         L = _ramses_reader.ProtoSubgrid(
                 li_l, dims_l, left_index, right_index, gdims, fl)
         #print " " * self.num_deep + "L", tt, L.efficiency
-        if L.efficiency > 1.0: raise RuntimeError
+        #if L.efficiency > 1.0: raise RuntimeError
         if L.efficiency <= 0.0: L = []
         elif L.efficiency < min_eff:
             L = self._recursive_patch_splitting(L, dims_l, li_l,
@@ -262,7 +267,7 @@ class ARTHierarchy(AMRHierarchy):
         R = _ramses_reader.ProtoSubgrid(
                 li_r, dims_r, left_index, right_index, gdims, fl)
         #print " " * self.num_deep + "R", tt, R.efficiency
-        if R.efficiency > 1.0: raise RuntimeError
+        #if R.efficiency > 1.0: raise RuntimeError
         if R.efficiency <= 0.0: R = []
         elif R.efficiency < min_eff:
             R = self._recursive_patch_splitting(R, dims_r, li_r,
@@ -324,7 +329,8 @@ class ARTHierarchy(AMRHierarchy):
         self.derived_field_list = []
 
     def _setup_data_io(self):
-        self.io = io_registry[self.data_style](self.tree_proxy)
+        pass
+        #self.io = io_registry[self.data_style](self.tree_proxy)
 
 class ARTStaticOutput(StaticOutput):
     _hierarchy_class = ARTHierarchy
@@ -373,7 +379,11 @@ class ARTStaticOutput(StaticOutput):
             self.units[unit] = mpc_conversion[unit] / mpc_conversion["cm"]
 
     def _parse_parameter_file(self):
-        pass
+        self.domain_left_edge = na.zeros(3, dtype="float64")
+        self.domain_right_edge = na.ones(3, dtype="float64")
+        self.domain_dimensions = na.ones(3, dtype='int64')*128
+        import uuid
+        self.unique_identifier = str(uuid.uuid4())
 
     @classmethod
     def _is_valid(self, *args, **kwargs):

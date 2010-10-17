@@ -35,7 +35,7 @@ import yt.data_objects.universal_fields
 class ARTFieldContainer(CodeFieldInfoContainer):
     _shared_state = {}
     _field_list = {}
-ARTFieldInfo = RAMSESFieldContainer()
+ARTFieldInfo = ARTFieldContainer()
 add_art_field = ARTFieldInfo.add_field
 
 add_field = add_art_field
