@@ -37,6 +37,7 @@ import sys, types, os, glob, cPickle
 from yt.funcs import *
 from yt.utilities.logger import ytLogger as mylog
 from yt.utilities.performance_counters import yt_counters, time_function
+from yt.config import ytcfg
 
 from yt.data_objects.api import \
     BinnedProfile1D, BinnedProfile2D, BinnedProfile3D, \
@@ -86,3 +87,17 @@ for name, cls in callback_registry.items():
     exec("%s = cls" % name)
 
 from yt.convenience import all_pfs, max_spheres, load, projload
+
+# We load plugins.  Keep in mind, this can be fairly dangerous -
+# the primary purpose is to allow people to have a set of functions
+# that get used every time that they don't have to *define* every time.
+# This way, other command-line tools can be used very simply.
+# Unfortunately, for now, I think the easiest and simplest way of doing
+# this is also the most dangerous way.
+if ytcfg.getboolean("lagos","loadfieldplugins"):
+    my_plugin_name = ytcfg.get("lagos","pluginfilename")
+    # We assume that it is with respect to the $HOME/.yt directory
+    fn = os.path.expanduser("~/.yt/%s" % my_plugin_name)
+    if os.path.isfile(fn):
+        mylog.info("Loading plugins from %s", fn)
+        execfile(fn)
