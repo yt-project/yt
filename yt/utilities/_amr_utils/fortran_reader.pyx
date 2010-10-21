@@ -190,12 +190,12 @@ def read_art_vars(char *fn,
     # nhydro_vars is the number of columns- 3 (adjusting for vars)
     # this is normally 10=(8+2chem species)
     cdef FILE *f = fopen(fn, "rb")
-    cdef long offset
+    cdef long offset,ioctch
     cdef long nocts,nc #number of octs/children in previous levels
     cdef int  j,lev
     
     #parameters
-    cdef int record_size = 2+1+nhydro_vars+3
+    cdef int record_size = 2+1+1+nhydro_vars+2
     
     #record values
     cdef int pada,padb
@@ -228,7 +228,8 @@ def read_art_vars(char *fn,
     offset += 4*15*nocts
     # after the oct section is the child section.
     # there are 2 pads, 1 integer child ID (idc)
-    # then #nhydro_vars of floats + 3 vars 
+    #  1 integer ioctch
+    # then #nhydro_vars of floats + 2 vars 
     offset += + 4*(record_size)*nc
     
     #now we read in the first idc, then make our 
@@ -245,6 +246,7 @@ def read_art_vars(char *fn,
     while j<100:
         fread(&pada, sizeof(int), 1, f); FIX_LONG(pada)
         fread(&idc_readin, sizeof(int), 1, f); FIX_LONG(idc_readin)
+        fread(&ioctch, sizeof(int), 1, f); FIX_LONG(ioctch)
         if grid_idc != idc_readin:
             # in the next iteration we'll read the previous record
             # so  rewind one further record
@@ -256,10 +258,10 @@ def read_art_vars(char *fn,
         fread(&temp, sizeof(float), 1, f); 
         FIX_FLOAT(temp)
         hvars[j] = temp
-    for j in range(3):
+    for j in range(2):
         fread(&temp, sizeof(float), 1, f); 
         FIX_FLOAT(temp)
-        var[j] = temp
+        var[j+1] = temp
     fclose(f)
     
     
