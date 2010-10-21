@@ -128,10 +128,14 @@ class ARTHierarchy(AMRHierarchy):
 
     def _count_grids(self):
         # We have to do all the patch-coalescing here.
-        level_info = [self.pf.ncell] # skip root grid for now
+        #level_info is used by the IO so promoting it to the static
+        # output class
+        self.pf.level_info = [self.pf.ncell] # skip root grid for now
+        #leve_info = []
         amr_utils.count_art_octs(
                 self.pf.parameter_filename, self.pf.child_grid_offset,
-                self.pf.min_level, self.pf.max_level, level_info)
+                self.pf.min_level, self.pf.max_level, self.pf.nhydro_vars,
+                self.pf.level_info)
         num_ogrids = sum(level_info) + self.pf.iOctFree
         ogrid_left_indices = na.zeros((num_ogrids,3), dtype='int64') - 999
         ogrid_levels = na.zeros(num_ogrids, dtype='int64')
@@ -144,7 +148,7 @@ class ARTHierarchy(AMRHierarchy):
                                 ogrid_left_indices, ogrid_levels,
                                 ogrid_parents, ochild_masks)
         ochild_masks.reshape((num_ogrids, 8), order="F")
-        ogrid_levels[ogrid_left_indices[:,0] == -999] = -1
+        ogrid_levels[ogrid_left_indices[:,0] == -999] = 0
         # This bit of code comes from Chris, and I'm still not sure I have a
         # handle on what it does.
         final_indices =  ogrid_left_indices[na.where(ogrid_levels==self.pf.max_level)[0]]
@@ -344,14 +348,15 @@ class ARTStaticOutput(StaticOutput):
                  storage_filename = None):
         StaticOutput.__init__(self, filename, data_style)
         self.storage_filename = storage_filename
-
+        
         self.field_info = self._fieldinfo_class()
         self.current_time = 0.0
         self.dimensionality = 3
         self.refine_by = 2
         self.parameters["HydroMethod"] = 'ramses'
         self.parameters["Time"] = 1. # default unit is 1...
-
+        self.fh = open(storage_filename,'rb') #used by the io
+        
     def __repr__(self):
         return self.basename.rsplit(".", 1)[0]
         
@@ -448,11 +453,13 @@ class ARTStaticOutput(StaticOutput):
         self.hubble_constant = header_vals['hubble']
         self.min_level = header_vals['min_level']
         self.max_level = header_vals['max_level']
-
+        self.nhydro_vars = 10 #this gets updated later, but we'll default to this
+        #nchem is nhydrovars-8, so we typically have 2 extra chem species 
+        
         for to_skip in ['tl','dtl','tlold','dtlold','iSO']:
             _skip_record(f)
 
-        self.ncell = struct.unpack('>l', _read_record(f))
+        (self.ncell,) = struct.unpack('>l', _read_record(f))
         # Try to figure out the root grid dimensions
         est = na.log2(self.ncell) / 3
         if int(est) != est: raise RuntimeError

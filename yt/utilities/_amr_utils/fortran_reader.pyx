@@ -83,6 +83,7 @@ def read_tiger_section(
 
 def count_art_octs(char *fn, long offset,
                    int min_level, int max_level,
+                   int nhydro_vars,                   
                    level_info):
     cdef int nchild = 8
     cdef int i, Lev, next_record, nLevel
@@ -93,6 +94,7 @@ def count_art_octs(char *fn, long offset,
     for Lev in range(min_level + 1, max_level + 1):
         fread(dummy_records, sizeof(int), 2, f);
         fread(&nLevel, sizeof(int), 1, f); FIX_LONG(nLevel)
+        print level_info
         level_info.append(nLevel)
         fread(dummy_records, sizeof(int), 2, f);
         fread(&next_record, sizeof(int), 1, f); FIX_LONG(next_record)
@@ -102,17 +104,23 @@ def count_art_octs(char *fn, long offset,
         fseek(f, next_record, SEEK_CUR)
         # Now we skip the second section 
         fread(&readin, sizeof(int), 1, f); FIX_LONG(readin)
+        nhydro_vars = next_record/4-2-3 #nhvar in daniel's code
+        #record length is normally 2 pad bytes, 8 + 2 hvars (the 2 is nchem)
+        # and then 3 vars, but we can find nhvars only here and not in other
+        # file headers 
         next_record = (2*sizeof(int) + readin) * (nLevel * nchild)
         next_record -= sizeof(int)
         fseek(f, next_record, SEEK_CUR)
+    print "nhvars",nhydro_vars
     fclose(f)
 
 def read_art_tree(char *fn, long offset,
-                  int min_level, int max_level,
+                  int min_level, int max_level, int nhydro_vars,
                   np.ndarray[np.int64_t, ndim=2] oct_indices,
                   np.ndarray[np.int64_t, ndim=1] oct_levels,
                   np.ndarray[np.int64_t, ndim=1] oct_parents,
-                  np.ndarray[np.int64_t, ndim=1] oct_mask):
+                  np.ndarray[np.int64_t, ndim=1] oct_mask
+                  ):
     # This accepts the filename of the ART header and an integer offset that
     # points to the start of the record *following* the reading of iOctFree and
     # nOct.  For those following along at home, we only need to read:
@@ -143,7 +151,7 @@ def read_art_tree(char *fn, long offset,
         print "Reading Hierarchy for Level", Lev, Level, nLevel, iOct
         total_cells += nLevel
         for ic1 in range(nLevel):
-            iOctMax = imax(iOctMax, iOct)
+            iOctMax = max(iOctMax, iOct)
             #print readin, iOct, nLevel, sizeof(int) 
             next_record = ftell(f)
             fread(&readin, sizeof(int), 1, f); FIX_LONG(readin)
@@ -172,3 +180,95 @@ def read_art_tree(char *fn, long offset,
         print "Masked cells", total_masked
     fclose(f)
     print "Read this many cells", total_cells, iOctMax
+
+def read_art_vars(char *fn, 
+                    int min_level, int max_level, int nhydro_vars, 
+                    int grid_level,long grid_idc,long header_offset, 
+                    np.ndarray[np.int64_t, ndim=1] level_info,
+                    np.ndarray[np.float64_t, ndim=1] hvars,
+                    np.ndarray[np.float64_t, ndim=1] var):
+    # nhydro_vars is the number of columns- 3 (adjusting for vars)
+    # this is normally 10=(8+2chem species)
+    cdef FILE *f = fopen(fn, "rb")
+    cdef long offset
+    cdef long nocts,nc #number of octs/children in previous levels
+    cdef int  j,lev
+    
+    #parameters
+    cdef int record_size = 2+1+nhydro_vars+3
+    
+    #record values
+    cdef int pada,padb
+    cdef int idc,idc_readin
+    cdef float temp
+    offset = 0
+    
+    #total number of octs in previous levels
+    # including current level  
+    nocts=0
+    for lev in range(min_level-1,grid_level):
+        #print lev
+        nocts += level_info[lev]
+    #total number of children in prev levels
+    # not including the current level
+    # there are 8 children for every oct
+    nc=0
+    for lev in range(min_level-1,grid_level-1):
+        #print lev
+        nc += 8*level_info[lev]
+    
+    
+    #skip the header 
+    offset += header_offset
+    #per level:
+    # 4 bytes per integer, float or pad
+    # first section has three integers + 2 pads
+    offset += 4*5*grid_level   
+    # second section has 13 floats +2 pads per oct 
+    offset += 4*15*nocts
+    # after the oct section is the child section.
+    # there are 2 pads, 1 integer child ID (idc)
+    # then #nhydro_vars of floats + 3 vars 
+    offset += + 4*(record_size)*nc
+    
+    #now we read in the first idc, then make our 
+    #seek guess
+    #print 'entry',offset
+    fseek(f, offset, SEEK_SET)
+    fread(&pada, sizeof(int), 1, f); FIX_LONG(pada)
+    fread(&idc_readin, sizeof(int), 1, f); FIX_LONG(idc_readin)
+    
+    offset += (grid_idc - idc_readin)*record_size*4
+    fseek(f, offset, SEEK_SET)    
+    j=0
+    
+    while j<100:
+        fread(&pada, sizeof(int), 1, f); FIX_LONG(pada)
+        fread(&idc_readin, sizeof(int), 1, f); FIX_LONG(idc_readin)
+        if grid_idc != idc_readin:
+            # in the next iteration we'll read the previous record
+            # so  rewind one further record
+            j+=1
+            offset = offset - record_size*4
+            fseek(f, offset, SEEK_SET)    
+        else: break
+    for j in range(nhydro_vars):
+        fread(&temp, sizeof(float), 1, f); 
+        FIX_FLOAT(temp)
+        hvars[j] = temp
+    for j in range(3):
+        fread(&temp, sizeof(float), 1, f); 
+        FIX_FLOAT(temp)
+        var[j] = temp
+    fclose(f)
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
