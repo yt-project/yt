@@ -41,9 +41,10 @@ def all_pfs(max_depth=1, name_spec="*.hierarchy", **kwargs):
     passed on to the EnzoStaticOutput constructor.
     """
     list_of_names = []
+    basedir = os.path.expanduser(basedir)
     for i in range(max_depth):
         bb = list('*' * i) + [name_spec]
-        list_of_names += glob.glob(os.path.join(*bb))
+        list_of_names += glob.glob(os.path.join(basedir,*bb))
     list_of_names.sort(key=lambda b: os.path.basename(b))
     for fn in list_of_names:
         yield load(fn[:-10], **kwargs)
