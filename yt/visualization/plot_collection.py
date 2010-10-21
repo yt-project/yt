@@ -1669,7 +1669,8 @@ def get_multi_plot(nx, ny, colorbar = 'vertical', bw = 4, dpi=300):
         fudge_x = 1.0
         fudge_y = ny/(0.40+ny)
     fig = figure.Figure((bw*nx/fudge_x, bw*ny/fudge_y), dpi=dpi)
-    fig.set_canvas(be.engineVals["canvas"](fig))
+    from _mpl_imports import FigureCanvasAgg
+    fig.set_canvas(FigureCanvasAgg(fig))
     fig.subplots_adjust(wspace=0.0, hspace=0.0,
                         top=1.0, bottom=0.0,
                         left=0.0, right=1.0)
