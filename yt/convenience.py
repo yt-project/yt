@@ -33,7 +33,7 @@ from yt.funcs import *
 from yt.utilities.parameter_file_storage import \
     output_type_registry
 
-def all_pfs(max_depth=1, name_spec="*.hierarchy", **kwargs):
+def all_pfs(basedir='.',max_depth=1, name_spec="*.hierarchy", **kwargs):
     """
     This function searchs a directory and its sub-directories, up to a depth of
     *max_depth*, for parameter files.  It looks for the *name_spec* and then
@@ -41,9 +41,10 @@ def all_pfs(max_depth=1, name_spec="*.hierarchy", **kwargs):
     passed on to the EnzoStaticOutput constructor.
     """
     list_of_names = []
+    basedir = os.path.expanduser(basedir)
     for i in range(max_depth):
         bb = list('*' * i) + [name_spec]
-        list_of_names += glob.glob(os.path.join(*bb))
+        list_of_names += glob.glob(os.path.join(basedir,*bb))
     list_of_names.sort(key=lambda b: os.path.basename(b))
     for fn in list_of_names:
         yield load(fn[:-10], **kwargs)
