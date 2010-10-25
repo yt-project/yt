@@ -119,7 +119,7 @@ class ARTHierarchy(AMRHierarchy):
         pass
 
     def _detect_fields(self):
-        self.field_list = self.tree_proxy.field_names[:]
+        self.field_list = ['Density',]
     
     def _setup_classes(self):
         dd = self._get_data_reader_dict()
@@ -136,7 +136,7 @@ class ARTHierarchy(AMRHierarchy):
                 self.pf.parameter_filename, self.pf.child_grid_offset,
                 self.pf.min_level, self.pf.max_level, self.pf.nhydro_vars,
                 self.pf.level_info)
-        num_ogrids = sum(level_info) + self.pf.iOctFree
+        num_ogrids = sum(self.pf.level_info) + self.pf.iOctFree
         ogrid_left_indices = na.zeros((num_ogrids,3), dtype='int64') - 999
         ogrid_levels = na.zeros(num_ogrids, dtype='int64')
         ogrid_file_locations = na.zeros((num_ogrids,6), dtype='int64')
@@ -158,9 +158,9 @@ class ARTHierarchy(AMRHierarchy):
         ogrid_dimension = na.zeros(final_indices.shape,dtype='int')+2
         ogrid_left_indices = ogrid_left_indices/2**(root_level - ogrid_levels[:,None]) - 1
         # Now we can rescale
-        self.proto_grids = []
-        for level in xrange(len(level_info)):
-            if level_info[level] == 0:
+        self.proto_grids = [[],]
+        for level in xrange(1, len(self.pf.level_info)):
+            if self.pf.level_info[level] == 0:
                 self.proto_grids.append([])
                 continue
             ggi = (ogrid_levels == level).ravel()
@@ -355,7 +355,6 @@ class ARTStaticOutput(StaticOutput):
         self.refine_by = 2
         self.parameters["HydroMethod"] = 'ramses'
         self.parameters["Time"] = 1. # default unit is 1...
-        self.fh = open(storage_filename,'rb') #used by the io
         
     def __repr__(self):
         return self.basename.rsplit(".", 1)[0]

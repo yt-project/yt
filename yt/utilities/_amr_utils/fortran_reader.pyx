@@ -115,7 +115,7 @@ def count_art_octs(char *fn, long offset,
     fclose(f)
 
 def read_art_tree(char *fn, long offset,
-                  int min_level, int max_level, int nhydro_vars,
+                  int min_level, int max_level, 
                   np.ndarray[np.int64_t, ndim=2] oct_indices,
                   np.ndarray[np.int64_t, ndim=1] oct_levels,
                   np.ndarray[np.int64_t, ndim=1] oct_parents,
