@@ -63,7 +63,7 @@ class DualEPS(object):
 
     def axis_box(self, xrange=(0,1), yrange=(0,1), xlabel="", ylabel="",
                  xlog=False, ylog=False, tickcolor=None, bare_axes=False,
-                 pos=(0,0), xaxis_side=0, yaxis_side=0):
+                 pos=(0,0), xaxis_side=0, yaxis_side=0, size=None):
         r"""Draws an axis box in the figure.
 
         Parameters
@@ -93,6 +93,8 @@ class DualEPS(object):
         yaxis_side : integer
             Set to 0 for the y-axis annotations to be on the bottom.  Set
             to 1 to print them on the top.
+        size : tuple of floats
+            Size of axis box in units of figsize
 
         Examples
         --------
@@ -109,6 +111,11 @@ class DualEPS(object):
             c1 = pyx.graph.axis.painter.regular(tickattrs=[tickcolor])
             c2 = pyx.graph.axis.painter.regular\
                  (tickattrs=[tickcolor], labelattrs=None)
+
+        if size is None:
+            psize = self.figsize
+        else:
+            psize = (size[0]*self.figsize[0], size[1]*self.figsize[1])
 
         xticklabels = True
         yticklabels = True
@@ -220,16 +227,16 @@ class DualEPS(object):
                 xaxis2 = pyx.graph.axis.lin(min=xrange[0], max=xrange[1],
                                             title=xrightlabel, parter=None)
 
-        blank_data = pyx.graph.data.points([(-1,-1),(-0.99,-0.99)], x=1,y=2)
+        blank_data = pyx.graph.data.points([(-10,-10),(-9.99,-9.99)], x=1,y=2)
         if self.canvas is None:
             self.canvas = pyx.graph.graphxy \
-                          (width=self.figsize[0], height=self.figsize[1],
+                          (width=psize[0], height=psize[1],
                            x=xaxis, y=yaxis, x2=xaxis2, y2=yaxis2,
                            xpos=pos[0], ypos=pos[1])
             self.canvas.plot(blank_data)
         else:
             plot = pyx.graph.graphxy \
-                   (width=self.figsize[0], height=self.figsize[1],
+                   (width=psize[0], height=psize[1],
                     x=xaxis, y=yaxis, x2=xaxis2, y2=yaxis2,
                     xpos=pos[0], ypos=pos[1])
             plot.plot(blank_data)
@@ -301,7 +308,7 @@ class DualEPS(object):
 
 #=============================================================================
 
-    def insert_image(self, filename, pos=(0,0)):
+    def insert_image(self, filename, pos=(0,0), size=None):
         r"""Inserts a JPEG file in the figure.
 
         Parameters
@@ -310,6 +317,8 @@ class DualEPS(object):
             Name of the JPEG file
         pos : tuple of floats
             Position of the origin of the image in centimeters
+        size : tuple of flots
+            Size of image in units of figsize
 
         Examples
         --------
@@ -318,13 +327,19 @@ class DualEPS(object):
         >>> d.insert_image("image.jpg")
         >>> d.save_fig()
         """
+        if size != None:
+            width = size[0]*self.figsize[0]
+            height = size[1]*self.figsize[1]
+        else:
+            width = self.figsize[0]
+            height = self.figsize[1]
         image = pyx.bitmap.jpegimage(filename)
         if self.canvas is None:
             self.canvas = pyx.canvas.canvas()
         self.canvas.insert(pyx.bitmap.bitmap(pos[0], pos[1], image,
                                              compressmode=None,
-                                             width=self.figsize[0],
-                                             height=self.figsize[1]))
+                                             width=width,
+                                             height=height))
 
 #=============================================================================
 
