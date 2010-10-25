@@ -181,45 +181,57 @@ def read_art_tree(char *fn, long offset,
     fclose(f)
     print "Read this many cells", total_cells, iOctMax
 
+def read_art_root_vars(char *fn, long grid_id, long ncell,
+                    long root_grid_offset,
+                    fields,
+                    np.ndarray[np.int64_t, ndim=1] level_info,
+                    np.ndarray[np.float64_t, ndim=2] var):
+
+    cdef FILE *f = fopen(fn, "rb")
+    cdef long offset
+
+    offset += root_grid_offset
+    offset += ncell*sizeof(int) #skip iOctCh
+    offset += ncell*sizeof(int) #skip iOctCh
+    
+
 def read_art_vars(char *fn, 
                     int min_level, int max_level, int nhydro_vars, 
-                    int grid_level,long grid_idc,long header_offset, 
+                    int grid_level,long grid_id,long child_offset,
+                    fields,
                     np.ndarray[np.int64_t, ndim=1] level_info,
-                    np.ndarray[np.float64_t, ndim=1] hvars,
-                    np.ndarray[np.float64_t, ndim=1] var):
+                    np.ndarray[np.float64_t, ndim=2] var):
     # nhydro_vars is the number of columns- 3 (adjusting for vars)
     # this is normally 10=(8+2chem species)
     cdef FILE *f = fopen(fn, "rb")
-    cdef long offset,ioctch
+    cdef long offset,ioctch, local_index, nprev_octs
     cdef long nocts,nc #number of octs/children in previous levels
-    cdef int  j,lev
-    
+    cdef int  j,k,lev
+
     #parameters
     cdef int record_size = 2+1+1+nhydro_vars+2
-    
+
     #record values
     cdef int pada,padb
-    cdef int idc,idc_readin
     cdef float temp
-    offset = 0
-    
     #total number of octs in previous levels
     # including current level  
     nocts=0
-    for lev in range(min_level-1,grid_level):
+    for lev in range(min_level,grid_level):
         #print lev
         nocts += level_info[lev]
+    nprev_octs = nocts - level_info[lev]
     #total number of children in prev levels
     # not including the current level
     # there are 8 children for every oct
     nc=0
-    for lev in range(min_level-1,grid_level-1):
+    for lev in range(min_level,grid_level-1):
         #print lev
         nc += 8*level_info[lev]
-    
-    
+
     #skip the header 
-    offset += header_offset
+    offset = 0
+    offset += child_offset
     #per level:
     # 4 bytes per integer, float or pad
     # first section has three integers + 2 pads
@@ -231,41 +243,21 @@ def read_art_vars(char *fn,
     #  1 integer ioctch
     # then #nhydro_vars of floats + 2 vars 
     offset += + 4*(record_size)*nc
-    
-    #now we read in the first idc, then make our 
-    #seek guess
-    #print 'entry',offset
-    fseek(f, offset, SEEK_SET)
-    fread(&pada, sizeof(int), 1, f); FIX_LONG(pada)
-    fread(&idc_readin, sizeof(int), 1, f); FIX_LONG(idc_readin)
-    
-    offset += (grid_idc - idc_readin)*record_size*4
-    fseek(f, offset, SEEK_SET)    
-    j=0
-    
-    while j<100:
-        fread(&pada, sizeof(int), 1, f); FIX_LONG(pada)
-        fread(&idc_readin, sizeof(int), 1, f); FIX_LONG(idc_readin)
-        fread(&ioctch, sizeof(int), 1, f); FIX_LONG(ioctch)
-        if grid_idc != idc_readin:
-            # in the next iteration we'll read the previous record
-            # so  rewind one further record
-            j+=1
-            offset = offset - record_size*4
-            fseek(f, offset, SEEK_SET)    
-        else: break
-    for j in range(nhydro_vars):
-        fread(&temp, sizeof(float), 1, f); 
-        FIX_FLOAT(temp)
-        hvars[j] = temp
-    for j in range(2):
-        fread(&temp, sizeof(float), 1, f); 
-        FIX_FLOAT(temp)
-        var[j+1] = temp
+    #now offset is at the beginning of the ch arrays
+    local_index = grid_id - nprev_octs
+    offset += 8*local_index*record_size
+
+    fseek(f,offset,SEEK_SET)
+    var = np.zeros(8,len(fields))
+    for j in range(8): #iterate over the children
+        for k in range(record_size): #iterate over the record
+            fread(&temp, sizeof(float), 1, f); 
+            if k+3 in fields:
+                FIX_FLOAT(temp)
+                var[j,k] = temp
     fclose(f)
-    
-    
-    
+
+
     
     
     
