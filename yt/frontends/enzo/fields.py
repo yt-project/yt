@@ -34,7 +34,7 @@ from yt.data_objects.field_info_container import \
     ValidateGridType
 import yt.data_objects.universal_fields
 from yt.utilities.physical_constants import \
-    mh
+    mh, rho_crit_now
 import yt.utilities.amr_utils as amr_utils
 
 class EnzoFieldContainer(CodeFieldInfoContainer):
