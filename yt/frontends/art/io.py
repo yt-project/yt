@@ -31,9 +31,9 @@ from yt.utilities.io_handler import \
 class IOHandlerART(BaseIOHandler):
     _data_style = "art"
     #at which position in the child record does the field occur
-    field_dict = {'gas density':0} 
+    field_dict = {'Density':0} 
     
-    def __init__(self, art_tree, *args, **kwargs):
+    def __init__(self, *args, **kwargs):
         BaseIOHandler.__init__(self, *args, **kwargs)
 
 
