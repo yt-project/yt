@@ -281,6 +281,9 @@ def _update_hg(path):
         print "    $ hg up"
         print "    $ %s setup.py develop" % (sys.executable)
         sys.exit(1)
+    print "Updating the repository"
+    f.write("Updating the repository\n\n")
+    commands.update(u, repo, check=True)
     f.write("Rebuilding modules\n\n")
     p = subprocess.Popen([sys.executable, "setup.py", "build_ext", "-i"], cwd=path,
                         stdout = subprocess.PIPE, stderr = subprocess.STDOUT)
