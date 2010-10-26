@@ -38,7 +38,12 @@ class IOHandlerART(BaseIOHandler):
 
     def __init__(self, *args, **kwargs):
         BaseIOHandler.__init__(self, *args, **kwargs)
-
+        self.offset_root   = self.pf.root_grid_offset
+        self.offset_levels = self.pf.child_grid_offset 
+        self.nhydro_vars = self.pf.nhydro_vars
+        self.ncell       = self.pf.ncell
+        
+        
     def _read_data_set(self, grid, field):
         tr = na.zeros(grid.ActiveDimensions, dtype='float64')
         filled = na.zeros(grid.ActiveDimensions, dtype='int32')

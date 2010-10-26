@@ -307,13 +307,20 @@ def read_art_vars(char *fn,
                 l+=1
     fclose(f)
 
-def read_art_grid(int varindex,
+def read_art_grid(int varindex, long ncell,
               np.ndarray[np.int64_t, ndim=1] start_index,
               np.ndarray[np.int32_t, ndim=1] grid_dims,
               np.ndarray[np.float64_t, ndim=3] data,
               np.ndarray[np.int32_t, ndim=3] filled,
               int level, int ref_factor,
-              component_grid_info):
+              component_grid_info
+              char *fn,                                       
+              int min_level, int max_level, int nhydro_vars,
+              long grid_id,long child_offset,
+              fields,
+              np.ndarray[np.int64_t, ndim=1] level_info,):
+
+
 
     cdef int gi, i, j, k, domain, offset
     cdef int ir, jr, kr
@@ -332,7 +339,7 @@ def read_art_grid(int varindex,
         ogrid_info = component_grid_info[gi]
         domain = ogrid_info[0]
         #print "Loading", domain, ogrid_info
-        offset = ogrid_info[1]
+        grid_id = ogrid_info[1]
         og_start_index = ogrid_info[3:]
         for i in range(2*ref_factor):
             di = i + og_start_index[0] * ref_factor
@@ -358,6 +365,16 @@ def read_art_grid(int varindex,
                     # Replace with an ART-specific reader
                     #temp_data = local_hydro_data.m_var_array[
                     #        level][8*offset + odind]
+                    
+                    hvars = object
+                    if level ==0 :
+                        read_art_vars(fn,min_level,max_level,nhydro_vars,
+                            level,grid_id,child_offset,fields,level_info,hvars)
+                        temp_data = hvars[odind]
+                    else:
+                        temp_data = read_art_root_vars(fn,grid_id,ncell,root_grid_offset,nhydro_vars,fields,
+                            level_info,hvars)
+                        temp_data = hvars[odind]
                     data[offi, offj, offk] = temp_data
                     filled[offi, offj, offk] = 1
                     to_fill += 1
