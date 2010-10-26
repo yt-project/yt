@@ -119,7 +119,10 @@ class ARTHierarchy(AMRHierarchy):
         pass
 
     def _detect_fields(self):
-        self.field_list = ['Density',]
+        self.field_list = [ 'Density','Gas_Energy',
+                            'x-momentum','y-momentum','z-momentum',
+                            'Pressure','Gamma','Total_Energy','Potential_New'
+                            'Potential_Old']
     
     def _setup_classes(self):
         dd = self._get_data_reader_dict()
