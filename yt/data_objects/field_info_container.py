@@ -148,6 +148,7 @@ class FieldDetector(defaultdict):
         self.ActiveDimensions = [nd,nd,nd]
         self.LeftEdge = [0.0,0.0,0.0]
         self.RightEdge = [1.0,1.0,1.0]
+        self.dds = na.ones(3, "float64")
         self['dx'] = self['dy'] = self['dz'] = na.array([1.0])
         if pf is None:
             pf = defaultdict(lambda: 1)
