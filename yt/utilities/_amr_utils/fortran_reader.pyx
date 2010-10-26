@@ -317,7 +317,6 @@ def read_art_grid(int varindex, long ncell,
               char *fn,                                       
               int min_level, int max_level, int nhydro_vars,
               long grid_id,long child_offset,
-              fields,
               np.ndarray[np.int64_t, ndim=1] level_info,):
 
 
@@ -372,7 +371,8 @@ def read_art_grid(int varindex, long ncell,
                             level,grid_id,child_offset,fields,level_info,hvars)
                         temp_data = hvars[odind]
                     else:
-                        temp_data = read_art_root_vars(fn,grid_id,ncell,root_grid_offset,nhydro_vars,fields,
+                        temp_data = read_art_root_vars(fn,grid_id,ncell,
+                            root_grid_offset,nhydro_vars,[varindex],
                             level_info,hvars)
                         temp_data = hvars[odind]
                     data[offi, offj, offk] = temp_data
