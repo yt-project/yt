@@ -907,7 +907,7 @@ class PhasePlot(ProfilePlot):
         self._run_callbacks()
 
     def _generate_prefix(self, prefix):
-        self.prefix = "_".join([prefix, self._type_name,
+        self.prefix = "_".join([str(prefix), self._type_name,
             str(self._semi_unique_id),
             self.axis_names['X'], self.axis_names['Y'],
             self.axis_names['Z'], ])
