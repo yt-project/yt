@@ -243,18 +243,6 @@ for ax in ['x','y','z']:
     f._convert_function = _convertVelocity
     f.take_log = False
 
-def _pdensity(field, data):
-    blank = na.zeros(data.ActiveDimensions, dtype='float32', order="FORTRAN")
-    if data.NumberOfParticles == 0: return blank
-    cic_deposit.cic_deposit(data["particle_position_x"],
-                            data["particle_position_y"],
-                            data["particle_position_z"], 3,
-                            data["particle_mass"],
-                            blank, data.LeftEdge, data['dx'])
-    return blank
-add_field("particle_density", function=_pdensity,
-          validators=[ValidateSpatial(0)], convert_function=_convertDensity)
-
 def _spdensity_pyx(field, data):
     blank = na.zeros(data.ActiveDimensions, dtype='float32')
     if data.NumberOfParticles == 0: return blank
