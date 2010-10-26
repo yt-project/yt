@@ -185,7 +185,7 @@ def read_art_root_vars(char *fn, long grid_id, long ncell,
                     long root_grid_offset, int nhydro_vars,
                     fields,
                     np.ndarray[np.int64_t, ndim=1] level_info,
-                    np.ndarray[np.float64_t, ndim=1] var):
+                    var):
 
     cdef FILE *f = fopen(fn, "rb")
     cdef long offset,offset_hvars,offset_var
@@ -194,23 +194,29 @@ def read_art_root_vars(char *fn, long grid_id, long ncell,
     offset=0
     offset_hvars=0
     offset_var= 0
-    var = np.zeros(len(fields))
-    
+    #var = np.zeros(len(fields))
+    #print 'blah'
     offset += root_grid_offset
     offset += sizeof(int) #pad
     offset += ncell*sizeof(int) #skip iOctCh
     offset += sizeof(int) #pad
+    #print 'blah'
 
+    l=0
     offset_hvars += sizeof(int) #pad
     offset_hvars += nhydro_vars*grid_id*sizeof(int) #skip to right before our hvar
     fseek(f,offset+offset_hvars,SEEK_SET)    
     for j in range(nhydro_vars):
         fread(&temp, sizeof(float), 1, f); 
         if j in fields:
+            #print 'j',j,'l',l
             FIX_FLOAT(temp)
+            #print temp
+            #print var
             var[l]=temp
             l+=1
     
+    l=0
     offset_var += sizeof(int) #pad
     offset_var += nhydro_vars*ncell*sizeof(int) #skip hvars
     offset_var += sizeof(int) #pad
@@ -220,6 +226,7 @@ def read_art_root_vars(char *fn, long grid_id, long ncell,
     for j in range(2):
         fread(&temp, sizeof(float), 1, f); 
         if j+nhydro_vars in fields:
+            #print 'blah',j
             FIX_FLOAT(temp)
             var[l]=temp
             l+=1
@@ -252,7 +259,7 @@ def read_art_vars(char *fn,
     #total number of octs in previous levels
     # including current level  
     nocts=0
-    for lev in range(min_level,grid_level):
+    for lev in range(min_level+1,grid_level):
         nocts += level_info[lev]
     
     #total number of children in prev levels
@@ -260,7 +267,7 @@ def read_art_vars(char *fn,
     # there are 8 children for every oct
     nc=0
     nprev_octs = 0
-    for lev in range(min_level,grid_level-1):
+    for lev in range(min_level+1,grid_level-1):
         nc += 8*level_info[lev]
         nprev_octs += level_info[lev]
         
@@ -274,7 +281,7 @@ def read_art_vars(char *fn,
     offset += 4*5*grid_level   
     # second section has 13 floats +2 pads per oct 
     offset += 4*15*nocts
-    print 'offset',offset
+    #print 'offset',offset
     # after the oct section is the child section.
     # there are 2 pads, 1 integer child ID (idc)
     #  1 integer ioctch
@@ -286,7 +293,7 @@ def read_art_vars(char *fn,
     assert local_index > 0
     
     offset += 8*local_index*record_size*sizeof(float)
-    print 'offset',offset,'nc',nc,'nocts',nocts,'local_index',local_index
+    #print 'offset',offset,'nc',nc,'nocts',nocts,'local_index',local_index
     #print fields
     
     fseek(f,offset,SEEK_SET)

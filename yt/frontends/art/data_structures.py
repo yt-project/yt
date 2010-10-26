@@ -478,6 +478,7 @@ class ARTStaticOutput(StaticOutput):
         self.domain_dimensions = na.ones(3, dtype='int64') * int(2**est)
 
         self.root_grid_offset = f.tell()
+        print 'root_grid',f.tell()
         for to_skip in ['iOctCh', 'hvar', 'var']:
             _skip_record(f)
 
