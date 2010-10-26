@@ -53,7 +53,7 @@ class IOHandlerART(BaseIOHandler):
         while to_fill > 0 and len(grids) > 0:
             next_grids = []
             for g in grids:
-                to_fill -= au.read_grid(field_id,
+                to_fill -= au.read_art_grid(field_id,
                         grid.get_global_startindex(), grid.ActiveDimensions,
                         tr, filled, g.Level, 2**l_delta, g.locations)
                 next_grids += g.Parent

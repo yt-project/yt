@@ -158,7 +158,7 @@ class ARTHierarchy(AMRHierarchy):
             for level in xrange(self.pf.max_level*2)]
         root_level = self.pf.max_level+na.where(na.logical_not(divisible))[0][0] 
         ogrid_dimension = na.zeros(final_indices.shape,dtype='int')+2
-        ogrid_left_indices = ogrid_left_indices/2**(root_level - ogrid_levels[:,None] - 01) - 1
+        ogrid_left_indices = ogrid_left_indices/2**(root_level - ogrid_levels[:,None] - 1) - 1
 
         # Now we can rescale
         root_psg = _ramses_reader.ProtoSubgrid(
@@ -302,8 +302,9 @@ class ARTHierarchy(AMRHierarchy):
             for g in grid_list:
                 fl = g.grid_file_locations
                 props = g.get_properties()
-                self.grid_left_edge[gi,:] = props[0,:] / (2.0**(level+1))
-                self.grid_right_edge[gi,:] = props[1,:] / (2.0**(level+1))
+                dds = ((2**level) * self.pf.domain_dimensions).astype("float64")
+                self.grid_left_edge[gi,:] = props[0,:] / dds
+                self.grid_right_edge[gi,:] = props[1,:] / dds
                 self.grid_dimensions[gi,:] = props[2,:]
                 self.grid_levels[gi,:] = level
                 grids.append(self.grid(gi, self, level, fl, props[0,:]))
@@ -347,8 +348,7 @@ class ARTHierarchy(AMRHierarchy):
         self.derived_field_list = []
 
     def _setup_data_io(self):
-        pass
-        #self.io = io_registry[self.data_style](self.tree_proxy)
+        self.io = io_registry[self.data_style]
 
 class ARTStaticOutput(StaticOutput):
     _hierarchy_class = ARTHierarchy
