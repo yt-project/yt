@@ -348,14 +348,18 @@ class ARTHierarchy(AMRHierarchy):
         self.derived_field_list = []
 
     def _setup_data_io(self):
-        self.io = io_registry[self.data_style]
+        self.io = io_registry[self.data_style](
+            self.pf.root_grid_offset,
+            self.pf.child_grid_offset,
+            self.pf.nhydro_vars,
+            self.pf.ncell)
 
 class ARTStaticOutput(StaticOutput):
     _hierarchy_class = ARTHierarchy
     _fieldinfo_class = ARTFieldContainer
     _handle = None
     
-    def __init__(self, filename, data_style='ramses',
+    def __init__(self, filename, data_style='art',
                  storage_filename = None):
         StaticOutput.__init__(self, filename, data_style)
         self.storage_filename = storage_filename
@@ -364,7 +368,7 @@ class ARTStaticOutput(StaticOutput):
         self.current_time = 0.0
         self.dimensionality = 3
         self.refine_by = 2
-        self.parameters["HydroMethod"] = 'ramses'
+        self.parameters["HydroMethod"] = 'art'
         self.parameters["Time"] = 1. # default unit is 1...
         
     def __repr__(self):

@@ -36,13 +36,13 @@ import yt.utilities.amr_utils as au
 class IOHandlerART(BaseIOHandler):
     _data_style = "art"
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, offset_root, offset_levels, nhydro_vars, ncell,
+                 *args, **kwargs):
         BaseIOHandler.__init__(self, *args, **kwargs)
-        self.offset_root   = self.pf.root_grid_offset
-        self.offset_levels = self.pf.child_grid_offset 
-        self.nhydro_vars = self.pf.nhydro_vars
-        self.ncell       = self.pf.ncell
-        
+        self.offset_root = offset_root
+        self.offset_levels = offset_levels
+        self.nhydro_vars = nhydro_vars
+        self.ncell= ncell
         
     def _read_data_set(self, grid, field):
         tr = na.zeros(grid.ActiveDimensions, dtype='float64')
