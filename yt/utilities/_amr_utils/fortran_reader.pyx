@@ -306,13 +306,3 @@ def read_art_vars(char *fn,
                 var[j,l] = temp
                 l+=1
     fclose(f)
-
-
-    
-    
-    
-    
-    
-    
-    
-    
