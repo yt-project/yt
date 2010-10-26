@@ -188,18 +188,48 @@ def read_art_tree(char *fn, long offset,
     return level_offsets
 
 def read_art_root_vars(char *fn, long grid_id, long ncell,
-                    long root_grid_offset,
+                    long root_grid_offset, int nhydro_vars,
                     fields,
                     np.ndarray[np.int64_t, ndim=1] level_info,
-                    np.ndarray[np.float64_t, ndim=2] var):
+                    np.ndarray[np.float64_t, ndim=1] var):
 
     cdef FILE *f = fopen(fn, "rb")
-    cdef long offset
-
-    offset += root_grid_offset
-    offset += ncell*sizeof(int) #skip iOctCh
-    offset += ncell*sizeof(int) #skip iOctCh
+    cdef long offset,offset_hvars,offset_var
+    cdef int j,l
+    cdef float temp
+    offset=0
+    offset_hvars=0
+    offset_var= 0
+    var = np.zeros(len(fields))
     
+    offset += root_grid_offset
+    offset += sizeof(int) #pad
+    offset += ncell*sizeof(int) #skip iOctCh
+    offset += sizeof(int) #pad
+
+    offset_hvars += sizeof(int) #pad
+    offset_hvars += nhydro_vars*grid_id*sizeof(int) #skip to right before our hvar
+    fseek(f,offset+offset_hvars,SEEK_SET)    
+    for j in range(nhydro_vars):
+        fread(&temp, sizeof(float), 1, f); 
+        if j in fields:
+            FIX_FLOAT(temp)
+            var[l]=temp
+            l+=1
+    
+    offset_var += sizeof(int) #pad
+    offset_var += nhydro_vars*ncell*sizeof(int) #skip hvars
+    offset_var += sizeof(int) #pad
+    offset_var += sizeof(int) #pad
+    offset_var += 2*grid_id*sizeof(int) #skip to right before our var
+    fseek(f,offset+offset_var,SEEK_SET)    
+    for j in range(2):
+        fread(&temp, sizeof(float), 1, f); 
+        if j+nhydro_vars in fields:
+            FIX_FLOAT(temp)
+            var[l]=temp
+            l+=1
+    fclose(f)
 
 def read_art_vars(char *fn, 
                     int min_level, int max_level, int nhydro_vars, 
@@ -212,8 +242,11 @@ def read_art_vars(char *fn,
     cdef FILE *f = fopen(fn, "rb")
     cdef long offset,ioctch, local_index, nprev_octs
     cdef long nocts,nc #number of octs/children in previous levels
-    cdef int  j,k,lev
-
+    cdef int  j,k,l,lev
+    j=0
+    k=0
+    l=0
+    
     #parameters
     cdef int record_size = 2+1+1+nhydro_vars+2
 
@@ -256,11 +289,13 @@ def read_art_vars(char *fn,
     fseek(f,offset,SEEK_SET)
     var = np.zeros(8,len(fields))
     for j in range(8): #iterate over the children
+        l=0
         for k in range(record_size): #iterate over the record
             fread(&temp, sizeof(float), 1, f); 
             if k+3 in fields:
                 FIX_FLOAT(temp)
-                var[j,k] = temp
+                var[j,l] = temp
+                l+=1
     fclose(f)
 
 def read_art_grid(int varindex,
