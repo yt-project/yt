@@ -365,12 +365,13 @@ def read_art_grid(int varindex, long ncell,
                     #temp_data = local_hydro_data.m_var_array[
                     #        level][8*offset + odind]
                     
-                    hvars = object
                     if level ==0 :
+                        hvars = np.zeros((1,1))
                         read_art_vars(fn,min_level,max_level,nhydro_vars,
                             level,grid_id,child_offset,fields,level_info,hvars)
-                        temp_data = hvars[odind]
+                        temp_data = hvars[odind][0]
                     else:
+                        hvars = np.zeros((1))
                         temp_data = read_art_root_vars(fn,grid_id,ncell,
                             root_grid_offset,nhydro_vars,[varindex],
                             level_info,hvars)
