@@ -119,8 +119,7 @@ def read_art_tree(char *fn, long offset,
                   np.ndarray[np.int64_t, ndim=2] oct_indices,
                   np.ndarray[np.int64_t, ndim=1] oct_levels,
                   np.ndarray[np.int64_t, ndim=1] oct_parents,
-                  np.ndarray[np.int64_t, ndim=1] oct_mask,
-                  np.ndarray[np.int64_t, ndim=2] oct_info
+                  np.ndarray[np.int64_t, ndim=1] oct_mask
                   ):
     # This accepts the filename of the ART header and an integer offset that
     # points to the start of the record *following* the reading of iOctFree and
@@ -140,7 +139,6 @@ def read_art_tree(char *fn, long offset,
     cell_ind = 0
     cdef int total_cells = 0, total_masked
     cdef int iOctMax = 0
-    level_offsets = [0]
     idc = 0
     for Lev in range(min_level + 1, max_level + 1):
         fread(&readin, sizeof(int), 1, f); FIX_LONG(readin)
@@ -163,8 +161,6 @@ def read_art_tree(char *fn, long offset,
             oct_indices[iOct, 0] = iOctPs[0]
             oct_indices[iOct, 1] = iOctPs[1]
             oct_indices[iOct, 2] = iOctPs[2]
-            oct_info[iOct, 1] = ic1
-            #grid_info[iOct, 2] = iOctPr # we don't seem to need this
             fread(dummy_records, sizeof(int), 6, f) # skip Nb
             fread(&readin, sizeof(int), 1, f); FIX_LONG(readin)
             oct_parents[iOct] = readin - 1
@@ -174,7 +170,6 @@ def read_art_tree(char *fn, long offset,
             iOct -= 1
             fseek(f, next_record, SEEK_SET)
         total_masked = 0
-        level_offsets.append(ftell(f))
         for ic1 in range(nLevel * nchild):
             fread(&next_record, sizeof(int), 1, f); FIX_LONG(next_record)
             fread(&idc, sizeof(int), 1, f); FIX_LONG(idc); idc -= 1 + (128**3)
@@ -185,7 +180,6 @@ def read_art_tree(char *fn, long offset,
         print "Masked cells", total_masked
     fclose(f)
     print "Read this many cells", total_cells, iOctMax
-    return level_offsets
 
 def read_art_root_vars(char *fn, long grid_id, long ncell,
                     long root_grid_offset, int nhydro_vars,
@@ -236,13 +230,15 @@ def read_art_vars(char *fn,
                     int grid_level,long grid_id,long child_offset,
                     fields,
                     np.ndarray[np.int64_t, ndim=1] level_info,
-                    np.ndarray[np.float64_t, ndim=2] var):
+                    var):
     # nhydro_vars is the number of columns- 3 (adjusting for vars)
     # this is normally 10=(8+2chem species)
     cdef FILE *f = fopen(fn, "rb")
     cdef long offset,ioctch, local_index, nprev_octs
     cdef long nocts,nc #number of octs/children in previous levels
     cdef int  j,k,l,lev
+    #var = np.zeros((8,len(fields)))
+    
     j=0
     k=0
     l=0
@@ -257,16 +253,17 @@ def read_art_vars(char *fn,
     # including current level  
     nocts=0
     for lev in range(min_level,grid_level):
-        #print lev
         nocts += level_info[lev]
-    nprev_octs = nocts - level_info[lev]
+    
     #total number of children in prev levels
     # not including the current level
     # there are 8 children for every oct
     nc=0
+    nprev_octs = 0
     for lev in range(min_level,grid_level-1):
-        #print lev
         nc += 8*level_info[lev]
+        nprev_octs += level_info[lev]
+        
 
     #skip the header 
     offset = 0
@@ -277,79 +274,38 @@ def read_art_vars(char *fn,
     offset += 4*5*grid_level   
     # second section has 13 floats +2 pads per oct 
     offset += 4*15*nocts
+    print 'offset',offset
     # after the oct section is the child section.
     # there are 2 pads, 1 integer child ID (idc)
     #  1 integer ioctch
     # then #nhydro_vars of floats + 2 vars 
-    offset += + 4*(record_size)*nc
+    offset += 4*(record_size)*nc
     #now offset is at the beginning of the ch arrays
     local_index = grid_id - nprev_octs
-    offset += 8*local_index*record_size
-
+    
+    assert local_index > 0
+    
+    offset += 8*local_index*record_size*sizeof(float)
+    print 'offset',offset,'nc',nc,'nocts',nocts,'local_index',local_index
+    #print fields
+    
     fseek(f,offset,SEEK_SET)
-    var = np.zeros(8,len(fields))
     for j in range(8): #iterate over the children
         l=0
         for k in range(record_size): #iterate over the record
             fread(&temp, sizeof(float), 1, f); 
-            if k+3 in fields:
+            if k-3 in fields:
                 FIX_FLOAT(temp)
                 var[j,l] = temp
                 l+=1
     fclose(f)
 
-def read_art_grid(int varindex,
-              np.ndarray[np.int64_t, ndim=1] start_index,
-              np.ndarray[np.int32_t, ndim=1] grid_dims,
-              np.ndarray[np.float64_t, ndim=3] data,
-              np.ndarray[np.int32_t, ndim=3] filled,
-              int level, int ref_factor,
-              component_grid_info):
 
-    cdef int gi, i, j, k, domain, offset
-    cdef int ir, jr, kr
-    cdef int offi, offj, offk, odind
-    cdef np.int64_t di, dj, dk
-    cdef np.ndarray[np.int64_t, ndim=1] ogrid_info
-    cdef np.ndarray[np.int64_t, ndim=1] og_start_index
-    cdef np.float64_t temp_data
-    cdef np.int64_t end_index[3]
-    cdef int to_fill = 0
-    # Note that indexing into a cell is:
-    #   (k*2 + j)*2 + i
-    for i in range(3):
-        end_index[i] = start_index[i] + grid_dims[i]
-    for gi in range(len(component_grid_info)):
-        ogrid_info = component_grid_info[gi]
-        domain = ogrid_info[0]
-        #print "Loading", domain, ogrid_info
-        offset = ogrid_info[1]
-        og_start_index = ogrid_info[3:]
-        for i in range(2*ref_factor):
-            di = i + og_start_index[0] * ref_factor
-            if di < start_index[0] or di >= end_index[0]: continue
-            ir = <int> (i / ref_factor)
-            for j in range(2 * ref_factor):
-                dj = j + og_start_index[1] * ref_factor
-                if dj < start_index[1] or dj >= end_index[1]: continue
-                jr = <int> (j / ref_factor)
-                for k in range(2 * ref_factor):
-                    dk = k + og_start_index[2] * ref_factor
-                    if dk < start_index[2] or dk >= end_index[2]: continue
-                    kr = <int> (k / ref_factor)
-                    offi = di - start_index[0]
-                    offj = dj - start_index[1]
-                    offk = dk - start_index[2]
-                    #print offi, filled.shape[0],
-                    #print offj, filled.shape[1],
-                    #print offk, filled.shape[2]
-                    if filled[offi, offj, offk] == 1: continue
-
-                    odind = (kr*2 + jr)*2 + ir
-                    # Replace with an ART-specific reader
-                    #temp_data = local_hydro_data.m_var_array[
-                    #        level][8*offset + odind]
-                    data[offi, offj, offk] = temp_data
-                    filled[offi, offj, offk] = 1
-                    to_fill += 1
-    return to_fill
+    
+    
+    
+    
+    
+    
+    
+    
