@@ -150,7 +150,7 @@ class ARTHierarchy(AMRHierarchy):
                                 ogrid_parents, ochild_masks,
                                 ogrid_file_locations)
         ochild_masks.reshape((num_ogrids, 8), order="F")
-        ogrid_levels[ogrid_left_indices[:,0] == -999] = 0
+        ogrid_levels[ogrid_left_indices[:,0] == -999] = -1
         # This bit of code comes from Chris, and I'm still not sure I have a
         # handle on what it does.
         final_indices =  ogrid_left_indices[na.where(ogrid_levels==self.pf.max_level)[0]]
@@ -158,9 +158,18 @@ class ARTHierarchy(AMRHierarchy):
             for level in xrange(self.pf.max_level*2)]
         root_level = self.pf.max_level+na.where(na.logical_not(divisible))[0][0] 
         ogrid_dimension = na.zeros(final_indices.shape,dtype='int')+2
-        ogrid_left_indices = ogrid_left_indices/2**(root_level - ogrid_levels[:,None]) - 1
+        ogrid_left_indices = ogrid_left_indices/2**(root_level - ogrid_levels[:,None] - 01) - 1
+
         # Now we can rescale
-        self.proto_grids = [[],]
+        root_psg = _ramses_reader.ProtoSubgrid(
+                        na.zeros(3, dtype='int64'), # left index of PSG
+                        self.pf.domain_dimensions, # dim of PSG
+                        na.zeros((1,3), dtype='int64'), # left edges of grids
+                        self.pf.domain_dimensions[None,:], # right edges of grids
+                        self.pf.domain_dimensions[None,:], # dims of grids
+                        na.zeros((1,6), dtype='int64') # empty
+                        )
+        self.proto_grids = [[root_psg],]
         for level in xrange(1, len(self.pf.level_info)):
             if self.pf.level_info[level] == 0:
                 self.proto_grids.append([])
