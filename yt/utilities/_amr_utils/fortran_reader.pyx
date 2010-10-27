@@ -245,14 +245,14 @@ def read_art_vars(char *fn,
     # this is normally 10=(8+2chem species)
     cdef FILE *f = fopen(fn, "rb")
     cdef int record_size = 2+1+1+nhydro_vars+2
-    cdef float temp
+    cdef float temp, varpad[2]
     cdef int padding[3], new_padding
     cdef long offset = 8*grid_id*record_size*sizeof(float)
     fseek(f, level_offsets[grid_level] + offset, SEEK_SET)
     for j in range(8): #iterate over the children
         l = 0
         fread(padding, sizeof(int), 3, f); FIX_LONG(padding[0])
-        print "Record Size", padding[0]
+        #print "Record Size", padding[0]
         # This should be replaced by an fread of nhydro_vars length
         for k in range(nhydro_vars): #iterate over the record
             fread(&temp, sizeof(float), 1, f); FIX_FLOAT(temp)
@@ -260,6 +260,7 @@ def read_art_vars(char *fn,
             if k in fields:
                 var[j,l] = temp
                 l += 1
+        fread(varpad, sizeof(float), 2, f)
         fread(&new_padding, sizeof(int), 1, f); FIX_LONG(new_padding)
         assert(padding[0] == new_padding)
     fclose(f)
