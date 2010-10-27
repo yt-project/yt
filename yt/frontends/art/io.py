@@ -61,25 +61,35 @@ class IOHandlerART(BaseIOHandler):
         self.level_data[level] = arr
 
     def preload_root_level(self):
-        pass
+        f = open(self.filename, 'rb')
+        f.seek(self.level_offsets[0] + 4) # Ditch the header
+        ncells = self.level_info[0]
+        nvals = ncells * (self.nhydro_vars) # 0 vars, 0 pads
+        arr = na.fromfile(f, dtype='>f', count=nvals).astype("float64")
+        arr = arr.reshape((self.nhydro_vars, ncells), order="F")
+        self.level_data[0] = arr
 
     def clear_level(self, level):
         self.level_data.pop(level, None)
         
     def _read_data_set(self, grid, field):
         pf = grid.pf
+        field_id = grid.pf.h.field_list.index(field)
+        if grid.Level == 0: # We only have one root grid
+            self.preload_level(0)
+            tr = self.level_data[0][field_id,:].reshape(
+                    pf.domain_dimensions, order="F")
+            return tr.swapaxes(0, 2)
         tr = na.zeros(grid.ActiveDimensions, dtype='float64')
         filled = na.zeros(grid.ActiveDimensions, dtype='int32')
         to_fill = grid.ActiveDimensions.prod()
         grids = [grid]
         l_delta = 0
-        field_id = grid.pf.h.field_list.index(field)
         while to_fill > 0 and len(grids) > 0:
             next_grids = []
             for g in grids:
-                if g.Level == 0: continue
                 self.preload_level(g.Level)
-                print "Filling %s from %s (%s)" % (grid, g, g.Level)
+                #print "Filling %s from %s (%s)" % (grid, g, g.Level)
                 to_fill -= au.read_art_grid(field_id, 
                         grid.get_global_startindex(), grid.ActiveDimensions,
                         tr, filled, self.level_data[g.Level],

@@ -251,6 +251,7 @@ def read_art_grid(int varindex,
     cdef np.float64_t temp_data
     cdef np.int64_t end_index[3]
     cdef int to_fill = 0
+    cdef ir_offset, jr_offset, kr_offset
     # Note that indexing into a cell is:
     #   (k*2 + j)*2 + i
     for i in range(3):
@@ -280,12 +281,18 @@ def read_art_grid(int varindex,
                     #print offj, filled.shape[1],
                     #print offk, filled.shape[2]
                     if filled[offi, offj, offk] == 1: continue
-
-                    odind = (kr*2 + jr)*2 + ir
-                    # Replace with an ART-specific reader
-                    #temp_data = local_hydro_data.m_var_array[
-                    #        level][8*offset + odind]
-                    temp_data = level_data[varindex, 8*grid_id + odind]
+                    if level > 0:
+                        odind = (kr*2 + jr)*2 + ir
+                        # Replace with an ART-specific reader
+                        #temp_data = local_hydro_data.m_var_array[
+                        #        level][8*offset + odind]
+                        temp_data = level_data[varindex, 8*grid_id + odind]
+                    else:
+                        kr_offset = kr + <int> (start_index[0] / ref_factor)
+                        jr_offset = jr + <int> (start_index[1] / ref_factor)
+                        ir_offset = ir + <int> (start_index[2] / ref_factor)
+                        odind = (kr_offset * grid_dims[0] + jr_offset)*grid_dims[1] + ir_offset
+                        temp_data = level_data[varindex, odind]
                     data[offi, offj, offk] = temp_data
                     filled[offi, offj, offk] = 1
                     to_fill += 1

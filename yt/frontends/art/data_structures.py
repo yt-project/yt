@@ -155,6 +155,7 @@ class ARTHierarchy(AMRHierarchy):
                                 ogrid_parents, ochild_masks,
                                 ogrid_file_locations)
         self.pf.level_offsets = na.array(self.pf.level_offsets, dtype='int64')
+        self.pf.level_offsets[0] = self.pf.root_grid_offset
         ochild_masks.reshape((num_ogrids, 8), order="F")
         ogrid_levels[ogrid_left_indices[:,0] == -999] = -1
         # This bit of code comes from Chris, and I'm still not sure I have a
