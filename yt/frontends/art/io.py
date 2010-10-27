@@ -45,17 +45,22 @@ class IOHandlerART(BaseIOHandler):
         self.ncell= ncell
         
     def _read_data_set(self, grid, field):
+        pf = grid.pf
         tr = na.zeros(grid.ActiveDimensions, dtype='float64')
         filled = na.zeros(grid.ActiveDimensions, dtype='int32')
         to_fill = grid.ActiveDimensions.prod()
         grids = [grid]
         l_delta = 0
+        field_id = grid.pf.h.field_list.index(field)
         while to_fill > 0 and len(grids) > 0:
             next_grids = []
             for g in grids:
-                to_fill -= au.read_art_grid(field_id,
+                to_fill -= au.read_art_grid(field_id, pf.ncell,
                         grid.get_global_startindex(), grid.ActiveDimensions,
-                        tr, filled, g.Level, 2**l_delta, g.locations)
+                        tr, filled, g.Level, 2**l_delta, g.locations,
+                        pf.parameter_filename, pf.min_level, pf.max_level,
+                        self.nhydro_vars, self.offset_root, self.offset_levels,
+                        pf.level_info)
                 next_grids += g.Parent
             grids = next_grids
             l_delta += 1

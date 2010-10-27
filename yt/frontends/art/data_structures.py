@@ -38,6 +38,7 @@ from yt.data_objects.hierarchy import \
 from yt.data_objects.static_output import \
       StaticOutput
 from .fields import ARTFieldContainer
+from .fields import add_field
 from yt.utilities.definitions import \
     mpc_conversion
 from yt.utilities.io_handler import \
@@ -139,6 +140,7 @@ class ARTHierarchy(AMRHierarchy):
                 self.pf.parameter_filename, self.pf.child_grid_offset,
                 self.pf.min_level, self.pf.max_level, self.pf.nhydro_vars,
                 self.pf.level_info)
+        self.pf.level_info = na.array(self.pf.level_info)
         num_ogrids = sum(self.pf.level_info) + self.pf.iOctFree
         ogrid_left_indices = na.zeros((num_ogrids,3), dtype='int64') - 999
         ogrid_levels = na.zeros(num_ogrids, dtype='int64')

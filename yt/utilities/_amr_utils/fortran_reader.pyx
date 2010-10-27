@@ -119,8 +119,8 @@ def read_art_tree(char *fn, long offset,
                   np.ndarray[np.int64_t, ndim=2] oct_indices,
                   np.ndarray[np.int64_t, ndim=1] oct_levels,
                   np.ndarray[np.int64_t, ndim=1] oct_parents,
-                  np.ndarray[np.int64_t, ndim=1] oct_mask
-                  ):
+                  np.ndarray[np.int64_t, ndim=1] oct_mask,
+                  np.ndarray[np.int64_t, ndim=2] oct_info):
     # This accepts the filename of the ART header and an integer offset that
     # points to the start of the record *following* the reading of iOctFree and
     # nOct.  For those following along at home, we only need to read:
@@ -139,6 +139,7 @@ def read_art_tree(char *fn, long offset,
     cell_ind = 0
     cdef int total_cells = 0, total_masked
     cdef int iOctMax = 0
+    level_offsets = [0]
     idc = 0
     for Lev in range(min_level + 1, max_level + 1):
         fread(&readin, sizeof(int), 1, f); FIX_LONG(readin)
@@ -161,6 +162,8 @@ def read_art_tree(char *fn, long offset,
             oct_indices[iOct, 0] = iOctPs[0]
             oct_indices[iOct, 1] = iOctPs[1]
             oct_indices[iOct, 2] = iOctPs[2]
+            oct_info[iOct, 1] = ic1
+            #grid_info[iOct, 2] = iOctPr # we don't seem to need this
             fread(dummy_records, sizeof(int), 6, f) # skip Nb
             fread(&readin, sizeof(int), 1, f); FIX_LONG(readin)
             oct_parents[iOct] = readin - 1
@@ -170,6 +173,7 @@ def read_art_tree(char *fn, long offset,
             iOct -= 1
             fseek(f, next_record, SEEK_SET)
         total_masked = 0
+        level_offsets.append(ftell(f))
         for ic1 in range(nLevel * nchild):
             fread(&next_record, sizeof(int), 1, f); FIX_LONG(next_record)
             fread(&idc, sizeof(int), 1, f); FIX_LONG(idc); idc -= 1 + (128**3)
@@ -177,9 +181,8 @@ def read_art_tree(char *fn, long offset,
             if cm == 0: oct_mask[idc] = 1
             else: total_masked += 1
             fseek(f, next_record - sizeof(int), SEEK_CUR)
-        print "Masked cells", total_masked
     fclose(f)
-    print "Read this many cells", total_cells, iOctMax
+    return level_offsets
 
 def read_art_root_vars(char *fn, long grid_id, long ncell,
                     long root_grid_offset, int nhydro_vars,
@@ -300,9 +303,8 @@ def read_art_vars(char *fn,
     for j in range(8): #iterate over the children
         l=0
         for k in range(record_size): #iterate over the record
-            fread(&temp, sizeof(float), 1, f); 
+            fread(&temp, sizeof(float), 1, f); FIX_FLOAT(temp)
             if k-3 in fields:
-                FIX_FLOAT(temp)
                 var[j,l] = temp
                 l+=1
     fclose(f)
@@ -313,15 +315,12 @@ def read_art_grid(int varindex, long ncell,
               np.ndarray[np.float64_t, ndim=3] data,
               np.ndarray[np.int32_t, ndim=3] filled,
               int level, int ref_factor,
-              component_grid_info
+              component_grid_info,
               char *fn,                                       
               int min_level, int max_level, int nhydro_vars,
-              long grid_id,long child_offset,
-              np.ndarray[np.int64_t, ndim=1] level_info,):
-
-
-
-    cdef int gi, i, j, k, domain, offset
+              long root_grid_offset, long child_offset, 
+              np.ndarray[np.int64_t, ndim=1] level_info):
+    cdef int gi, i, j, k, domain, offset, grid_id
     cdef int ir, jr, kr
     cdef int offi, offj, offk, odind
     cdef np.int64_t di, dj, dk
@@ -365,17 +364,18 @@ def read_art_grid(int varindex, long ncell,
                     #temp_data = local_hydro_data.m_var_array[
                     #        level][8*offset + odind]
                     
-                    if level ==0 :
-                        hvars = np.zeros((1,1))
-                        read_art_vars(fn,min_level,max_level,nhydro_vars,
-                            level,grid_id,child_offset,fields,level_info,hvars)
+                    if level > 0:
+                        hvars = np.zeros((8,1))
+                        read_art_vars(fn, min_level, max_level, nhydro_vars, 
+                            level, grid_id, child_offset, [varindex], level_info, hvars)
                         temp_data = hvars[odind][0]
                     else:
                         hvars = np.zeros((1))
-                        temp_data = read_art_root_vars(fn,grid_id,ncell,
-                            root_grid_offset,nhydro_vars,[varindex],
-                            level_info,hvars)
+                        read_art_root_vars(fn, grid_id, ncell, 
+                            root_grid_offset, nhydro_vars, [varindex], 
+                            level_info, hvars)
                         temp_data = hvars[odind]
+                    print temp_data
                     data[offi, offj, offk] = temp_data
                     filled[offi, offj, offk] = 1
                     to_fill += 1
