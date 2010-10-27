@@ -487,10 +487,11 @@ class ARTStaticOutput(StaticOutput):
         # This is not the same as the number of Octs.
         self.domain_dimensions = na.ones(3, dtype='int64') * int(2**est)
 
+        self.root_grid_mask_offset = f.tell()
+        _skip_record(f) # iOctCh
         self.root_grid_offset = f.tell()
-        print 'root_grid',f.tell()
-        for to_skip in ['iOctCh', 'hvar', 'var']:
-            _skip_record(f)
+        _skip_record(f) # hvar
+        _skip_record(f) # var
 
         self.iOctFree, self.nOct = struct.unpack('>ii', _read_record(f))
         self.child_grid_offset = f.tell()

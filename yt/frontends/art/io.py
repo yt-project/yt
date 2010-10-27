@@ -55,7 +55,7 @@ class IOHandlerART(BaseIOHandler):
         while to_fill > 0 and len(grids) > 0:
             next_grids = []
             for g in grids:
-                print "Filling %s from %s" % (grid, g)
+                print "Filling %s from %s (%s)" % (grid, g, g.Level)
                 to_fill -= au.read_art_grid(field_id, pf.ncell,
                         grid.get_global_startindex(), grid.ActiveDimensions,
                         tr, filled, g.Level, 2**l_delta, g.locations,
