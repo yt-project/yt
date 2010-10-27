@@ -24,6 +24,7 @@ License:
 """
 
 import numpy as na
+import struct
 
 from yt.utilities.io_handler import \
     BaseIOHandler
@@ -36,13 +37,34 @@ import yt.utilities.amr_utils as au
 class IOHandlerART(BaseIOHandler):
     _data_style = "art"
 
-    def __init__(self, offset_root, offset_levels, nhydro_vars, ncell,
+    def __init__(self, filename, nhydro_vars, level_info, level_offsets,
                  *args, **kwargs):
         BaseIOHandler.__init__(self, *args, **kwargs)
-        self.offset_root = offset_root
-        self.offset_levels = offset_levels
+        self.filename = filename
         self.nhydro_vars = nhydro_vars
-        self.ncell= ncell
+        self.level_info = level_info
+        self.level_offsets = level_offsets
+        self.level_data = {}
+
+    def preload_level(self, level):
+        if level in self.level_data: return
+        if level == 0:
+            self.preload_root_level()
+            return
+        f = open(self.filename, 'rb')
+        f.seek(self.level_offsets[level])
+        ncells = 8*self.level_info[level]
+        nvals = ncells * (self.nhydro_vars + 6) # 2 vars, 2 pads
+        arr = na.fromfile(f, dtype='>f', count=nvals)
+        arr = arr.reshape((self.nhydro_vars+6, ncells), order="F")
+        arr = arr[3:-3,:].astype("float64")
+        self.level_data[level] = arr
+
+    def preload_root_level(self):
+        pass
+
+    def clear_level(self, level):
+        self.level_data.pop(level, None)
         
     def _read_data_set(self, grid, field):
         pf = grid.pf
@@ -55,13 +77,13 @@ class IOHandlerART(BaseIOHandler):
         while to_fill > 0 and len(grids) > 0:
             next_grids = []
             for g in grids:
+                if g.Level == 0: continue
+                self.preload_level(g.Level)
                 print "Filling %s from %s (%s)" % (grid, g, g.Level)
-                to_fill -= au.read_art_grid(field_id, pf.ncell,
+                to_fill -= au.read_art_grid(field_id, 
                         grid.get_global_startindex(), grid.ActiveDimensions,
-                        tr, filled, g.Level, 2**l_delta, g.locations,
-                        pf.parameter_filename, pf.min_level, pf.max_level,
-                        self.nhydro_vars, self.offset_root, self.offset_levels,
-                        pf.level_offsets)
+                        tr, filled, self.level_data[g.Level],
+                        g.Level, 2**l_delta, g.locations)
                 next_grids += g.Parent
             grids = next_grids
             l_delta += 1

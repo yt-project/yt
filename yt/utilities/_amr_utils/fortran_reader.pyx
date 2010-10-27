@@ -234,18 +234,14 @@ cdef void read_art_vars(FILE *f,
         fread(&new_padding, sizeof(int), 1, f); FIX_LONG(new_padding)
         assert(padding[0] == new_padding)
 
-def read_art_grid(int varindex, long ncell,
+def read_art_grid(int varindex, 
               np.ndarray[np.int64_t, ndim=1] start_index,
               np.ndarray[np.int32_t, ndim=1] grid_dims,
               np.ndarray[np.float64_t, ndim=3] data,
               np.ndarray[np.int32_t, ndim=3] filled,
+              np.ndarray[np.float64_t, ndim=2] level_data,
               int level, int ref_factor,
-              component_grid_info,
-              char *fn,                                       
-              int min_level, int max_level, int nhydro_vars,
-              long root_grid_offset, long child_offset, 
-              np.ndarray[np.int64_t, ndim=1] level_offsets):
-    cdef FILE *f = fopen(fn, 'rb')
+              component_grid_info):
     cdef int gi, i, j, k, domain, offset, grid_id
     cdef int ir, jr, kr
     cdef int offi, offj, offk, odind
@@ -289,21 +285,7 @@ def read_art_grid(int varindex, long ncell,
                     # Replace with an ART-specific reader
                     #temp_data = local_hydro_data.m_var_array[
                     #        level][8*offset + odind]
-                    if level > 0:
-                        hvars = np.zeros((8,1))
-                        read_art_vars(f, min_level, max_level, nhydro_vars, 
-                            level, grid_id, child_offset, [varindex],
-                            level_offsets, hvars)
-                        temp_data = hvars[odind][0]
-                    else:
-                        continue
-                        hvars = np.zeros((1))
-                        print odind
-                        read_art_root_vars(fn, grid_id, ncell, 
-                            root_grid_offset, nhydro_vars, [varindex], 
-                            level_offsets, hvars)
-                        #temp_data = hvars[odind]
-                    #print temp_data
+                    temp_data = level_data[varindex, 8*grid_id + odind]
                     data[offi, offj, offk] = temp_data
                     filled[offi, offj, offk] = 1
                     to_fill += 1

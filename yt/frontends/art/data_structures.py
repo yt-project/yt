@@ -355,10 +355,10 @@ class ARTHierarchy(AMRHierarchy):
 
     def _setup_data_io(self):
         self.io = io_registry[self.data_style](
-            self.pf.root_grid_offset,
-            self.pf.child_grid_offset,
+            self.pf.parameter_filename,
             self.pf.nhydro_vars,
-            self.pf.ncell)
+            self.pf.level_info,
+            self.pf.level_offsets)
 
 class ARTStaticOutput(StaticOutput):
     _hierarchy_class = ARTHierarchy
