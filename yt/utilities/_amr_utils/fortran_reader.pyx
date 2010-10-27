@@ -239,74 +239,27 @@ def read_art_vars(char *fn,
                     int min_level, int max_level, int nhydro_vars, 
                     int grid_level,long grid_id,long child_offset,
                     fields,
-                    np.ndarray[np.int64_t, ndim=1] level_info,
+                    np.ndarray[np.int64_t, ndim=1] level_offsets,
                     var):
     # nhydro_vars is the number of columns- 3 (adjusting for vars)
     # this is normally 10=(8+2chem species)
     cdef FILE *f = fopen(fn, "rb")
-    cdef long offset,ioctch, local_index, nprev_octs
-    cdef long nocts,nc #number of octs/children in previous levels
-    cdef int  j,k,l,lev
-    #var = np.zeros((8,len(fields)))
-    
-    j=0
-    k=0
-    l=0
-    
-    #parameters
     cdef int record_size = 2+1+1+nhydro_vars+2
-
-    #record values
-    cdef int pada,padb
     cdef float temp
-    #total number of octs in previous levels
-    # including current level  
-    nocts=0
-    for lev in range(min_level+1,grid_level):
-        nocts += level_info[lev]
-    
-    #total number of children in prev levels
-    # not including the current level
-    # there are 8 children for every oct
-    nc=0
-    nprev_octs = 0
-    for lev in range(min_level+1,grid_level-1):
-        nc += 8*level_info[lev]
-        nprev_octs += level_info[lev]
-        
-
-    #skip the header 
-    offset = 0
-    offset += child_offset
-    #per level:
-    # 4 bytes per integer, float or pad
-    # first section has three integers + 2 pads
-    offset += 4*5*grid_level   
-    # second section has 13 floats +2 pads per oct 
-    offset += 4*15*nocts
-    #print 'offset',offset
-    # after the oct section is the child section.
-    # there are 2 pads, 1 integer child ID (idc)
-    #  1 integer ioctch
-    # then #nhydro_vars of floats + 2 vars 
-    offset += 4*(record_size)*nc
-    #now offset is at the beginning of the ch arrays
-    local_index = grid_id - nprev_octs
-    
-    assert local_index > 0
-    
-    offset += 8*local_index*record_size*sizeof(float)
-    #print 'offset',offset,'nc',nc,'nocts',nocts,'local_index',local_index
-    #print fields
-    
-    fseek(f,offset,SEEK_SET)
+    cdef int padding[3]
+    cdef long offset = 8*grid_id*record_size*sizeof(float)
+    fseek(f, level_offsets[grid_level] + offset, SEEK_SET)
     for j in range(8): #iterate over the children
-        l=0
-        for k in range(record_size): #iterate over the record
+        l = 0
+        fread(padding, sizeof(int), 3, f);
+        FIX_LONG(padding[0])
+        #print "Record Size", padding[0]
+        for k in range(nhydro_vars): #iterate over the record
             fread(&temp, sizeof(float), 1, f); FIX_FLOAT(temp)
-            if k-3 in fields:
+            #print k, temp
+            if k in fields:
                 var[j,l] = temp
-                l+=1
+                l += 1
     fclose(f)
 
 def read_art_grid(int varindex, long ncell,
@@ -319,7 +272,7 @@ def read_art_grid(int varindex, long ncell,
               char *fn,                                       
               int min_level, int max_level, int nhydro_vars,
               long root_grid_offset, long child_offset, 
-              np.ndarray[np.int64_t, ndim=1] level_info):
+              np.ndarray[np.int64_t, ndim=1] level_offsets):
     cdef int gi, i, j, k, domain, offset, grid_id
     cdef int ir, jr, kr
     cdef int offi, offj, offk, odind
@@ -367,15 +320,16 @@ def read_art_grid(int varindex, long ncell,
                     if level > 0:
                         hvars = np.zeros((8,1))
                         read_art_vars(fn, min_level, max_level, nhydro_vars, 
-                            level, grid_id, child_offset, [varindex], level_info, hvars)
+                            level, grid_id, child_offset, [varindex],
+                            level_offsets, hvars)
                         temp_data = hvars[odind][0]
                     else:
                         hvars = np.zeros((1))
                         read_art_root_vars(fn, grid_id, ncell, 
                             root_grid_offset, nhydro_vars, [varindex], 
-                            level_info, hvars)
+                            level_offsets, hvars)
                         temp_data = hvars[odind]
-                    print temp_data
+                    #print temp_data
                     data[offi, offj, offk] = temp_data
                     filled[offi, offj, offk] = 1
                     to_fill += 1

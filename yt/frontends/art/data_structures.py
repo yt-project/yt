@@ -147,13 +147,14 @@ class ARTHierarchy(AMRHierarchy):
         ogrid_file_locations = na.zeros((num_ogrids,6), dtype='int64')
         ogrid_parents = na.zeros(num_ogrids, dtype="int64")
         ochild_masks = na.zeros((num_ogrids, 8), dtype='int64').ravel()
-        self.level_offsets = amr_utils.read_art_tree(
+        self.pf.level_offsets = amr_utils.read_art_tree(
                                 self.pf.parameter_filename, 
                                 self.pf.child_grid_offset,
                                 self.pf.min_level, self.pf.max_level,
                                 ogrid_left_indices, ogrid_levels,
                                 ogrid_parents, ochild_masks,
                                 ogrid_file_locations)
+        self.pf.level_offsets = na.array(self.pf.level_offsets, dtype='int64')
         ochild_masks.reshape((num_ogrids, 8), order="F")
         ogrid_levels[ogrid_left_indices[:,0] == -999] = -1
         # This bit of code comes from Chris, and I'm still not sure I have a
