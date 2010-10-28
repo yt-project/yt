@@ -34,7 +34,7 @@ from yt.funcs import *
 import numpy as na
 import yt.utilities.amr_utils as amr_utils
 
-def export_to_sunrise(pf, fn):
+def export_to_sunrise(pf, fn, write_particles = True):
     r"""Convert the contents of a dataset to a FITS file format that Sunrise
     understands.
 
@@ -51,6 +51,8 @@ def export_to_sunrise(pf, fn):
         The parameter file to convert.
     fn : string
         The filename of the FITS file.
+    write_particles : bool, default is True
+        Whether to write out the star particles or not
 
     Notes
     -----
@@ -79,29 +81,31 @@ def export_to_sunrise(pf, fn):
     col_list = []
     DLE, DRE = pf.domain_left_edge, pf.domain_right_edge
     reg = pf.h.region((DRE+DLE)/2.0, DLE, DRE)
-    pi = reg["particle_type"] == 2
 
-    pmass = reg["ParticleMassMsun"][pi]
-    col_list.append(pyfits.Column(
-        "ID", format="I", array=na.arange(pmass.size)))
-    pos = na.array([reg["particle_position_%s" % ax][pi]*pf['kpc']
-                        for ax in 'xyz']).transpose()
-    col_list.append(pyfits.Column("position", format="3D",
-        array=pos))
-    col_list.append(pyfits.Column("mass_stars", format="D",
-        array=pmass))
-    age = pf["years"] * (pf["InitialTime"] - reg["creation_time"][pi])
-    col_list.append(pyfits.Column("age_m", format="D", array=age))
-    col_list.append(pyfits.Column("age_l", format="D", array=age))
-    col_list.append(pyfits.Column("mass_stellar_metals", format="D",
-        array=0.02*pmass*reg["metallicity_fraction"][pi])) # wrong?
-    col_list.append(pyfits.Column("L_bol", format="D",
-        array=na.zeros(pmass.size)))
+    if write_particles:
+        pi = reg["particle_type"] == 2
 
-    # Still missing: L_bol, L_lambda, stellar_radius
-    cols = pyfits.ColDefs(col_list)
-    pd_table = pyfits.new_table(cols)
-    pd_table.name = "PARTICLEDATA"
+        pmass = reg["ParticleMassMsun"][pi]
+        col_list.append(pyfits.Column(
+            "ID", format="I", array=na.arange(pmass.size)))
+        pos = na.array([reg["particle_position_%s" % ax][pi]*pf['kpc']
+                            for ax in 'xyz']).transpose()
+        col_list.append(pyfits.Column("position", format="3D",
+            array=pos))
+        col_list.append(pyfits.Column("mass_stars", format="D",
+            array=pmass))
+        age = pf["years"] * (pf["InitialTime"] - reg["creation_time"][pi])
+        col_list.append(pyfits.Column("age_m", format="D", array=age))
+        col_list.append(pyfits.Column("age_l", format="D", array=age))
+        col_list.append(pyfits.Column("mass_stellar_metals", format="D",
+            array=0.02*pmass*reg["metallicity_fraction"][pi])) # wrong?
+        col_list.append(pyfits.Column("L_bol", format="D",
+            array=na.zeros(pmass.size)))
+
+        # Still missing: L_bol, L_lambda, stellar_radius
+        cols = pyfits.ColDefs(col_list)
+        pd_table = pyfits.new_table(cols)
+        pd_table.name = "PARTICLEDATA"
 
     output, refined = generate_flat_octree(pf,
             ["CellMassMsun","Temperature", "Metal_Density",
@@ -176,7 +180,9 @@ def export_to_sunrise(pf, fn):
     mg_table.name = "GRIDDATA"
 
     # Add a dummy Primary; might be a better way to do this!
-    hdus = pyfits.HDUList([pyfits.PrimaryHDU(), st_table, mg_table, pd_table])
+    hls = [pyfits.PrimaryHDU(), st_table, mg_table]
+    if write_particles: hls.append(pd_table)
+    hdus = pyfits.HDUList(hls)
     hdus.writeto(fn, clobber=True)
 
 def initialize_octree_list(pf, fields):
@@ -216,7 +222,7 @@ def generate_flat_octree(pf, fields):
                ogl[0].dimensions[0],
                ogl[0].dimensions[1],
                ogl[0].dimensions[2],
-               position, 1,
+               position, ogl[0].offset,
                output, refined, ogl)
     dd = {}
     for i,field in enumerate(fields): dd[field] = output[:,i]
