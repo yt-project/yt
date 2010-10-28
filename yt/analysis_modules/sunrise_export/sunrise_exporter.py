@@ -30,11 +30,13 @@ except ImportError:
     # We silently fail here
     pass
 
-from yt.funcs import *
+import time
 import numpy as na
+
+from yt.funcs import *
 import yt.utilities.amr_utils as amr_utils
 
-def export_to_sunrise(pf, fn, write_particles = True):
+def export_to_sunrise(pf, fn, write_particles = True, subregion_bounds = None):
     r"""Convert the contents of a dataset to a FITS file format that Sunrise
     understands.
 
@@ -53,6 +55,12 @@ def export_to_sunrise(pf, fn, write_particles = True):
         The filename of the FITS file.
     write_particles : bool, default is True
         Whether to write out the star particles or not
+    subregion_bounds : list of tuples
+        This is a list of tuples describing the subregion of the top grid to
+        export.  This will only work when only *one* root grid exists.
+        It is of the format:
+        [ (start_index_x, nx), (start_index_y, ny), (start_index_z, nz) ]
+        where nx, ny, nz are the number of cells to extract.
 
     Notes
     -----
@@ -109,7 +117,7 @@ def export_to_sunrise(pf, fn, write_particles = True):
 
     output, refined = generate_flat_octree(pf,
             ["CellMassMsun","Temperature", "Metal_Density",
-             "CellVolumeCode"])
+             "CellVolumeCode"], subregion_bounds = subregion_bounds)
     cvcgs = output["CellVolumeCode"].astype('float64') * pf['cm']**3.0
 
     # First the structure
@@ -204,7 +212,7 @@ def initialize_octree_list(pf, fields):
     ogl = amr_utils.OctreeGridList(grids)
     return ogl, levels_finest, levels_all
 
-def generate_flat_octree(pf, fields):
+def generate_flat_octree(pf, fields, subregion_bounds = None):
     """
     Generates two arrays, one of the actual values in a depth-first flat
     octree array, and the other of the values describing the refinement.
@@ -218,14 +226,25 @@ def generate_flat_octree(pf, fields):
     output = na.zeros((o_length,len(fields)), dtype='float64')
     refined = na.zeros(r_length, dtype='int32')
     position = amr_utils.position()
-    amr_utils.RecurseOctreeDepthFirst(0, 0, 0,
-               ogl[0].dimensions[0],
-               ogl[0].dimensions[1],
-               ogl[0].dimensions[2],
+    if subregion_bounds is None:
+        sx, sy, sz = 0, 0, 0
+        nx, ny, nz = ogl[0].dimensions
+    else:
+        ss, ns = zip(*subregion_bounds)
+        sx, sy, sz = ss
+        nx, ny, nz = ns
+    print "Running from %s for %s cells" % (
+            (sx,sy,sz), (nx,ny,nz))
+    t1 = time.time()
+    amr_utils.RecurseOctreeDepthFirst(
+               sx, sy, sz, nx, ny, nz,
                position, ogl[0].offset,
                output, refined, ogl)
+    t2 = time.time()
+    print "Finished.  Took %0.3e seconds." % (t2-t1)
     dd = {}
-    for i,field in enumerate(fields): dd[field] = output[:,i]
+    for i, field in enumerate(fields):
+        dd[field] = output[:position.output_pos,i]
     return dd, refined
 
 def generate_levels_octree(pf, fields):
