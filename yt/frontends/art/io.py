@@ -78,7 +78,7 @@ class IOHandlerART(BaseIOHandler):
         if grid.Level == 0: # We only have one root grid
             self.preload_level(0)
             tr = self.level_data[0][field_id,:].reshape(
-                    pf.domain_dimensions, order="F")
+                    pf.domain_dimensions, order="F").copy()
             return tr.swapaxes(0, 2)
         tr = na.zeros(grid.ActiveDimensions, dtype='float64')
         filled = na.zeros(grid.ActiveDimensions, dtype='int32')

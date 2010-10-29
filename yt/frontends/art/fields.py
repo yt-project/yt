@@ -31,6 +31,8 @@ from yt.data_objects.field_info_container import \
     ValidateSpatial, \
     ValidateGridType
 import yt.data_objects.universal_fields
+from yt.utilities.physical_constants import \
+    boltzmann_constant_cgs, mass_hydrogen_cgs
 
 class ARTFieldContainer(CodeFieldInfoContainer):
     _shared_state = {}
@@ -46,6 +48,8 @@ translation_dict = {"Density":"density",
                     "z-velocity":"velocity_z",
                     "Pressure":"pressure",
                     "Metallicity":"metallicity",
+                    "Gas_Energy":"Gas_Energy",
+                    "Total_Energy":"Total_Energy",
                    }
 
 def _generate_translation(mine, theirs):
@@ -58,4 +62,19 @@ for f,v in translation_dict.items():
     #print "Setting up translator from %s to %s" % (v, f)
     _generate_translation(v, f)
 
+def _convertDensity(data):
+    return data.convert("Density")
+ARTFieldInfo["Density"]._units = r"\rm{g}/\rm{cm}^3"
+ARTFieldInfo["Density"]._projected_units = r"\rm{g}/\rm{cm}^2"
+ARTFieldInfo["Density"]._convert_function=_convertDensity
 
+def _convertEnergy(data):
+    return data.convert("Gas_Energy")
+ARTFieldInfo["Gas_Energy"]._units = r"\rm{ergs}/\rm{g}"
+ARTFieldInfo["Gas_Energy"]._convert_function=_convertEnergy
+
+def _Temperature(field, data):
+    tr = (data["Gamma"] - 1.0) * data["Gas_Energy"]
+    tr *= mass_hydrogen_cgs * data.pf["wmu"] / boltzmann_constant_cgs
+    return tr
+add_field("Temperature", function=_Temperature, units = r"\mathrm{K}")

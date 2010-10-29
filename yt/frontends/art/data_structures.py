@@ -47,6 +47,9 @@ import yt.utilities.amr_utils as amr_utils
 
 import yt.frontends.ramses._ramses_reader as _ramses_reader
 
+from yt.utilities.physical_constants import \
+    mass_hydrogen_cgs
+
 def num_deep_inc(f):
     def wrap(self, *args, **kwargs):
         self.num_deep += 1
@@ -120,10 +123,11 @@ class ARTHierarchy(AMRHierarchy):
         pass
 
     def _detect_fields(self):
-        self.field_list = [ 'Density','Gas_Energy',
+        # This will need to be generalized to be used elsewhere.
+        self.field_list = [ 'Density','Total_Energy',
                             'x-momentum','y-momentum','z-momentum',
-                            'Pressure','Gamma','Total_Energy','Potential_New'
-                            'Potential_Old']
+                            'Pressure','Gamma','Gas_Energy',
+                            'Metal_Density1', 'Metal_Density2']
     
     def _setup_classes(self):
         dd = self._get_data_reader_dict()
@@ -389,23 +393,40 @@ class ARTStaticOutput(StaticOutput):
         self.time_units = {}
         if len(self.parameters) == 0:
             self._parse_parameter_file()
-        self._setup_nounits_units()
         self.conversion_factors = defaultdict(lambda: 1.0)
-        self.time_units['1'] = 1
         self.units['1'] = 1.0
         self.units['unitary'] = 1.0 / (self.domain_right_edge - self.domain_left_edge).max()
-        seconds = 1 #self["Time"]
+
+        z = self.current_redshift
+        h = self.hubble_constant
+        boxcm_cal = self["boxh"]
+        boxcm_uncal = boxcm_cal / h
+        box_proper = boxcm_uncal/(1+z)
+        for unit in mpc_conversion:
+            self.units[unit] = mpc_conversion[unit] * box_proper
+            self.units[unit+'h'] = mpc_conversion[unit] * box_proper * h
+            self.units[unit+'cm'] = mpc_conversion[unit] * boxcm_uncal
+            self.units[unit+'hcm'] = mpc_conversion[unit] * boxcm_cal
+        # Variable names have been chosen to reflect primary reference
+        Om0 = self["Om0"]
+        boxh = self["boxh"]
+        aexpn = self["aexpn"]
+        wmu = self["wmu"]
+        ng = self.domain_dimensions[0]
+        r0 = self["cmh"]/ng # comoving cm h^-1
+        t0 = 6.17e17/(self.hubble_constant + na.sqrt(self.omega_matter))
+        v0 = r0 / t0
+        rho0 = 1.8791e-29 * self.hubble_constant**2.0 * self.omega_matter
+        e0 = v0**2.0
+        self.conversion_factors["Density"] = rho0 * aexpn**-3
+        self.conversion_factors["Gas_Energy"] = e0/aexpn**2
+        # Now our conversion factors
+        for ax in 'xyz':
+            # Add on the 1e5 to get to cm/s
+            self.conversion_factors["%s-velocity" % ax] = v0/aexpn
+        seconds = t0
         self.time_units['years'] = seconds / (365*3600*24.0)
         self.time_units['days']  = seconds / (3600*24.0)
-
-    def _setup_nounits_units(self):
-        z = 0
-        mylog.warning("Setting 1.0 in code units to be 1.0 cm")
-        if not self.has_key("TimeUnits"):
-            mylog.warning("No time units.  Setting 1.0 = 1 second.")
-            self.conversion_factors["Time"] = 1.0
-        for unit in mpc_conversion.keys():
-            self.units[unit] = mpc_conversion[unit] / mpc_conversion["cm"]
 
     def _parse_parameter_file(self):
         # We set our domain to run from 0 .. 1 since we are otherwise
@@ -467,10 +488,17 @@ class ARTStaticOutput(StaticOutput):
             header_vals[name] = output
         self.dimensionality = 3 # We only support three
         self.refine_by = 2 # Octree
+        # Update our parameters with the header and with some compile-time
+        # constants we will set permanently.
+        self.parameters.update(header_vals)
+        self.parameters["Y_p"] = 0.245
+        self.parameters["wmu"] = 4.0/(8.0-5.0*self.parameters["Y_p"])
+        self.parameters["gamma"] = 5./3.
+        self.current_redshift = self.parameters["aexpn"]**-1.0 - 1.0
         self.data_comment = header_vals['jname']
         self.current_time = header_vals['t']
         self.omega_lambda = header_vals['Oml0']
-        self.omega_matter = header_vals['Om0'] - header_vals['Oml0']
+        self.omega_matter = header_vals['Om0']
         self.hubble_constant = header_vals['hubble']
         self.min_level = header_vals['min_level']
         self.max_level = header_vals['max_level']
