@@ -317,10 +317,21 @@ class ParallelAnalysisInterface(object):
         box = self.hierarchy.inclined_box(norigin, nbox_vectors)
         return True, box, resolution
         
-    def _partition_hierarchy_3d(self, padding=0.0, rank_ratio = 1):
-        LE, RE = self.pf.domain_left_edge.copy(), self.pf.domain_right_edge.copy()
-        if not self._distributed:
-           return False, LE, RE, self.hierarchy.all_data()
+    def _partition_hierarchy_3d(self, ds, padding=0.0, rank_ratio = 1):
+        LE, RE = na.array(ds.left_edge), na.array(ds.right_edge)
+        # We need to establish if we're looking at a subvolume, in which case
+        # we *do* want to pad things.
+        if (LE == self.pf.domain_left_edge).all() and \
+                (RE == self.pf.domain_right_edge).all():
+            subvol = False
+        else:
+            subvol = True
+        if not self._distributed and not subvol:
+           return False, LE, RE, ds
+        if not self._distributed and subvol:
+            return True, LE, RE, \
+            self.hierarchy.periodic_region_strict(self.center,
+                LE-padding, RE+padding)
         elif ytcfg.getboolean("yt", "inline"):
             # At this point, we want to identify the root grid tile to which
             # this processor is assigned.
@@ -347,7 +358,8 @@ class ParallelAnalysisInterface(object):
 
         if padding > 0:
             return True, \
-                LE, RE, self.hierarchy.periodic_region_strict(self.center, LE-padding, RE+padding)
+                LE, RE, self.hierarchy.periodic_region_strict(self.center,
+                LE-padding, RE+padding)
 
         return False, LE, RE, self.hierarchy.region_strict(self.center, LE, RE)
 

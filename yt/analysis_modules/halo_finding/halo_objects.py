@@ -1328,10 +1328,10 @@ class parallelHOPHaloList(HaloList,ParallelAnalysisInterface):
         HaloList.write_out(self, filename)
 
 class GenericHaloFinder(HaloList, ParallelAnalysisInterface):
-    def __init__(self, pf, dm_only=True, padding=0.0):
+    def __init__(self, pf, ds, dm_only=True, padding=0.0):
         self.pf = pf
         self.hierarchy = pf.h
-        self.center = (pf.domain_right_edge + pf.domain_left_edge)/2.0
+        self.center = (na.array(ds.right_edge) + na.array(ds.left_edge))/2.0
 
     def _parse_halolist(self, threshold_adjustment):
         groups, max_dens, hi  = [], {}, 0
@@ -1734,7 +1734,7 @@ class parallelHF(GenericHaloFinder, parallelHOPHaloList):
 
 
 class HOPHaloFinder(GenericHaloFinder, HOPHaloList):
-    def __init__(self, pf, threshold=160, dm_only=True, padding=0.02):
+    def __init__(self, pf, ds=None, threshold=160, dm_only=True, padding=0.02):
         r"""HOP halo finder.
         
         Halos are built by:
@@ -1769,32 +1769,46 @@ class HOPHaloFinder(GenericHaloFinder, HOPHaloList):
         >>> pf = load("RedshiftOutput0000")
         >>> halos = HaloFinder(pf)
         """
-        GenericHaloFinder.__init__(self, pf, dm_only, padding)
+        if ds is not None:
+            ds_LE, ds_RE = na.array(ds.left_edge), na.array(ds.right_edge)
+        self._data_source = pf.h.all_data()
+        #else:
+        #    self._data_source = ds
+        GenericHaloFinder.__init__(self, pf, self._data_source, dm_only, padding)
         
-        # do it once with no padding so the total_mass is correct (no duplicated particles)
+        # do it once with no padding so the total_mass is correct
+        # (no duplicated particles), and on the entire volume, even if only
+        # a small part is actually going to be used.
         self.padding = 0.0
-        padded, LE, RE, self._data_source = self._partition_hierarchy_3d(padding=self.padding)
+        padded, LE, RE, self._data_source = \
+            self._partition_hierarchy_3d(ds = self._data_source, padding=self.padding)
         # For scaling the threshold, note that it's a passthrough
         if dm_only:
             select = self._get_dm_indices()
-            total_mass = self._mpi_allsum((self._data_source["ParticleMassMsun"][select]).sum())
+            total_mass = \
+                self._mpi_allsum((self._data_source["ParticleMassMsun"][select]).sum(dtype='float64'))
         else:
-            total_mass = self._mpi_allsum(self._data_source["ParticleMassMsun"].sum())
+            total_mass = self._mpi_allsum(self._data_source["ParticleMassMsun"].sum(dtype='float64'))
         # MJT: Note that instead of this, if we are assuming that the particles
         # are all on different processors, we should instead construct an
         # object representing the entire domain and sum it "lazily" with
         # Derived Quantities.
+        if ds is not None:
+            self._data_source = pf.h.periodic_region_strict([0.]*3, ds_LE, ds_RE)
         self.padding = padding #* pf["unitary"] # This should be clevererer
-        padded, LE, RE, self._data_source = self._partition_hierarchy_3d(padding=self.padding)
+        padded, LE, RE, self._data_source = \
+            self._partition_hierarchy_3d(ds = self._data_source,
+            padding=self.padding)
         self.bounds = (LE, RE)
         # reflect particles around the periodic boundary
         #self._reposition_particles((LE, RE))
         if dm_only:
             select = self._get_dm_indices()
-            sub_mass = self._data_source["ParticleMassMsun"][select].sum()
+            sub_mass = self._data_source["ParticleMassMsun"][select].sum(dtype='float64')
         else:
-            sub_mass = self._data_source["ParticleMassMsun"].sum()
-        HOPHaloList.__init__(self, self._data_source, threshold*total_mass/sub_mass, dm_only)
+            sub_mass = self._data_source["ParticleMassMsun"].sum(dtype='float64')
+        HOPHaloList.__init__(self, self._data_source,
+            threshold*total_mass/sub_mass, dm_only)
         self._parse_halolist(total_mass/sub_mass)
         self._join_halolists()
 
