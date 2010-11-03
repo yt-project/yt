@@ -1473,7 +1473,8 @@ class GenericHaloFinder(HaloList, ParallelAnalysisInterface):
             halo.write_particle_list(f)
 
 class parallelHF(GenericHaloFinder, parallelHOPHaloList):
-    def __init__(self, pf, threshold=160, dm_only=True, resize=True, rearrange=True,\
+    def __init__(self, pf, subvolume=None,threshold=160, dm_only=True, \
+        resize=True, rearrange=True,\
         fancy_padding=True, safety=1.5, premerge=True, sample=0.03):
         r"""Parallel HOP halo finder.
         
@@ -1528,7 +1529,12 @@ class parallelHF(GenericHaloFinder, parallelHOPHaloList):
         >>> pf = load("RedshiftOutput0000")
         >>> halos = parallelHF(pf)
         """
-        GenericHaloFinder.__init__(self, pf, dm_only, padding=0.0)
+        if subvolume is not None:
+            ds_LE = na.array(subvolume.left_edge)
+            ds_RE = na.array(subvolume.right_edge)
+        self._data_source = pf.h.all_data()
+        GenericHaloFinder.__init__(self, pf, self._data_source, dm_only,
+            padding=0.0)
         self.padding = 0.0
         self.num_neighbors = 65
         self.safety = safety
@@ -1536,13 +1542,16 @@ class parallelHF(GenericHaloFinder, parallelHOPHaloList):
         period = pf.domain_right_edge - pf.domain_left_edge
         topbounds = na.array([[0., 0., 0.], period])
         # Cut up the volume evenly initially, with no padding.
-        padded, LE, RE, self._data_source = self._partition_hierarchy_3d(padding=self.padding)
+        padded, LE, RE, self._data_source = \
+            self._partition_hierarchy_3d(ds=self._data_source,
+            padding=self.padding)
         # also get the total mass of particles
         yt_counters("Reading Data")
-        # Adaptive subregions by bisection.
+        # Adaptive subregions by bisection. We do not load balance if we are
+        # analyzing a subvolume.
         ds_names = ["particle_position_x","particle_position_y","particle_position_z"]
         if ytcfg.getboolean("yt","inline") == False and \
-            resize and self._mpi_get_size() != 1:
+            resize and self._mpi_get_size() != 1 and subvolume is None:
             random.seed(self._mpi_get_rank())
             cut_list = self._partition_hierarchy_3d_bisection_list()
             root_points = self._subsample_points()
@@ -1569,7 +1578,8 @@ class parallelHF(GenericHaloFinder, parallelHOPHaloList):
             l = pf.domain_right_edge - pf.domain_left_edge
         vol = l[0] * l[1] * l[2]
         full_vol = vol
-        if not fancy_padding:
+        # We will use symmetric padding when a subvolume is being used.
+        if not fancy_padding or subvolume is not None:
             avg_spacing = (float(vol) / data.size)**(1./3.)
             # padding is a function of inter-particle spacing, this is an
             # approximation, but it's OK with the safety factor
@@ -1626,6 +1636,13 @@ class parallelHF(GenericHaloFinder, parallelHOPHaloList):
             total_mass = self._mpi_allsum((self._data_source["ParticleMassMsun"].astype('float64')).sum())
         if not self._distributed:
             self.padding = (na.zeros(3,dtype='float64'), na.zeros(3,dtype='float64'))
+        # If we're using a subvolume, we now re-divide.
+        if subvolume is not None:
+            self._data_source = pf.h.periodic_region_strict([0.]*3, ds_LE, ds_RE)
+            # Cut up the volume.
+            padded, LE, RE, self._data_source = \
+                self._partition_hierarchy_3d(ds=self._data_source,
+                padding=0.)
         self.bounds = (LE, RE)
         (LE_padding, RE_padding) = self.padding
         parallelHOPHaloList.__init__(self, self._data_source, self.padding, \
