@@ -1328,10 +1328,10 @@ class parallelHOPHaloList(HaloList,ParallelAnalysisInterface):
         HaloList.write_out(self, filename)
 
 class GenericHaloFinder(HaloList, ParallelAnalysisInterface):
-    def __init__(self, pf, dm_only=True, padding=0.0):
+    def __init__(self, pf, ds, dm_only=True, padding=0.0):
         self.pf = pf
         self.hierarchy = pf.h
-        self.center = (pf.domain_right_edge + pf.domain_left_edge)/2.0
+        self.center = (na.array(ds.right_edge) + na.array(ds.left_edge))/2.0
 
     def _parse_halolist(self, threshold_adjustment):
         groups, max_dens, hi  = [], {}, 0
@@ -1473,7 +1473,8 @@ class GenericHaloFinder(HaloList, ParallelAnalysisInterface):
             halo.write_particle_list(f)
 
 class parallelHF(GenericHaloFinder, parallelHOPHaloList):
-    def __init__(self, pf, threshold=160, dm_only=True, resize=True, rearrange=True,\
+    def __init__(self, pf, subvolume=None,threshold=160, dm_only=True, \
+        resize=True, rearrange=True,\
         fancy_padding=True, safety=1.5, premerge=True, sample=0.03):
         r"""Parallel HOP halo finder.
         
@@ -1528,7 +1529,12 @@ class parallelHF(GenericHaloFinder, parallelHOPHaloList):
         >>> pf = load("RedshiftOutput0000")
         >>> halos = parallelHF(pf)
         """
-        GenericHaloFinder.__init__(self, pf, dm_only, padding=0.0)
+        if subvolume is not None:
+            ds_LE = na.array(subvolume.left_edge)
+            ds_RE = na.array(subvolume.right_edge)
+        self._data_source = pf.h.all_data()
+        GenericHaloFinder.__init__(self, pf, self._data_source, dm_only,
+            padding=0.0)
         self.padding = 0.0
         self.num_neighbors = 65
         self.safety = safety
@@ -1536,13 +1542,16 @@ class parallelHF(GenericHaloFinder, parallelHOPHaloList):
         period = pf.domain_right_edge - pf.domain_left_edge
         topbounds = na.array([[0., 0., 0.], period])
         # Cut up the volume evenly initially, with no padding.
-        padded, LE, RE, self._data_source = self._partition_hierarchy_3d(padding=self.padding)
+        padded, LE, RE, self._data_source = \
+            self._partition_hierarchy_3d(ds=self._data_source,
+            padding=self.padding)
         # also get the total mass of particles
         yt_counters("Reading Data")
-        # Adaptive subregions by bisection.
+        # Adaptive subregions by bisection. We do not load balance if we are
+        # analyzing a subvolume.
         ds_names = ["particle_position_x","particle_position_y","particle_position_z"]
         if ytcfg.getboolean("yt","inline") == False and \
-            resize and self._mpi_get_size() != 1:
+            resize and self._mpi_get_size() != 1 and subvolume is None:
             random.seed(self._mpi_get_rank())
             cut_list = self._partition_hierarchy_3d_bisection_list()
             root_points = self._subsample_points()
@@ -1569,7 +1578,8 @@ class parallelHF(GenericHaloFinder, parallelHOPHaloList):
             l = pf.domain_right_edge - pf.domain_left_edge
         vol = l[0] * l[1] * l[2]
         full_vol = vol
-        if not fancy_padding:
+        # We will use symmetric padding when a subvolume is being used.
+        if not fancy_padding or subvolume is not None:
             avg_spacing = (float(vol) / data.size)**(1./3.)
             # padding is a function of inter-particle spacing, this is an
             # approximation, but it's OK with the safety factor
@@ -1626,6 +1636,13 @@ class parallelHF(GenericHaloFinder, parallelHOPHaloList):
             total_mass = self._mpi_allsum((self._data_source["ParticleMassMsun"].astype('float64')).sum())
         if not self._distributed:
             self.padding = (na.zeros(3,dtype='float64'), na.zeros(3,dtype='float64'))
+        # If we're using a subvolume, we now re-divide.
+        if subvolume is not None:
+            self._data_source = pf.h.periodic_region_strict([0.]*3, ds_LE, ds_RE)
+            # Cut up the volume.
+            padded, LE, RE, self._data_source = \
+                self._partition_hierarchy_3d(ds=self._data_source,
+                padding=0.)
         self.bounds = (LE, RE)
         (LE_padding, RE_padding) = self.padding
         parallelHOPHaloList.__init__(self, self._data_source, self.padding, \
@@ -1734,7 +1751,8 @@ class parallelHF(GenericHaloFinder, parallelHOPHaloList):
 
 
 class HOPHaloFinder(GenericHaloFinder, HOPHaloList):
-    def __init__(self, pf, threshold=160, dm_only=True, padding=0.02):
+    def __init__(self, pf, subvolume=None, threshold=160, dm_only=True,
+            padding=0.02):
         r"""HOP halo finder.
         
         Halos are built by:
@@ -1753,6 +1771,9 @@ class HOPHaloFinder(GenericHaloFinder, HOPHaloList):
         Parameters
         ----------
         pf : EnzoStaticOutput object
+        subvolume : A region over which HOP will be run, which can be used
+            to run HOP on a subvolume of the full volume. Default = None,
+            which defaults to the full volume automatically.
         threshold : float
             The density threshold used when building halos. Default = 160.0.
         dm_only : bool
@@ -1769,37 +1790,49 @@ class HOPHaloFinder(GenericHaloFinder, HOPHaloList):
         >>> pf = load("RedshiftOutput0000")
         >>> halos = HaloFinder(pf)
         """
-        GenericHaloFinder.__init__(self, pf, dm_only, padding)
-        
-        # do it once with no padding so the total_mass is correct (no duplicated particles)
+        if subvolume is not None:
+            ds_LE = na.array(subvolume.left_edge)
+            ds_RE = na.array(subvolume.right_edge)
+        self._data_source = pf.h.all_data()
+        GenericHaloFinder.__init__(self, pf, self._data_source, dm_only, padding)
+        # do it once with no padding so the total_mass is correct
+        # (no duplicated particles), and on the entire volume, even if only
+        # a small part is actually going to be used.
         self.padding = 0.0
-        padded, LE, RE, self._data_source = self._partition_hierarchy_3d(padding=self.padding)
+        padded, LE, RE, self._data_source = \
+            self._partition_hierarchy_3d(ds = self._data_source, padding=self.padding)
         # For scaling the threshold, note that it's a passthrough
         if dm_only:
             select = self._get_dm_indices()
-            total_mass = self._mpi_allsum((self._data_source["ParticleMassMsun"][select]).sum())
+            total_mass = \
+                self._mpi_allsum((self._data_source["ParticleMassMsun"][select]).sum(dtype='float64'))
         else:
-            total_mass = self._mpi_allsum(self._data_source["ParticleMassMsun"].sum())
+            total_mass = self._mpi_allsum(self._data_source["ParticleMassMsun"].sum(dtype='float64'))
         # MJT: Note that instead of this, if we are assuming that the particles
         # are all on different processors, we should instead construct an
         # object representing the entire domain and sum it "lazily" with
         # Derived Quantities.
+        if subvolume is not None:
+            self._data_source = pf.h.periodic_region_strict([0.]*3, ds_LE, ds_RE)
         self.padding = padding #* pf["unitary"] # This should be clevererer
-        padded, LE, RE, self._data_source = self._partition_hierarchy_3d(padding=self.padding)
+        padded, LE, RE, self._data_source = \
+            self._partition_hierarchy_3d(ds = self._data_source,
+            padding=self.padding)
         self.bounds = (LE, RE)
         # reflect particles around the periodic boundary
         #self._reposition_particles((LE, RE))
         if dm_only:
             select = self._get_dm_indices()
-            sub_mass = self._data_source["ParticleMassMsun"][select].sum()
+            sub_mass = self._data_source["ParticleMassMsun"][select].sum(dtype='float64')
         else:
-            sub_mass = self._data_source["ParticleMassMsun"].sum()
-        HOPHaloList.__init__(self, self._data_source, threshold*total_mass/sub_mass, dm_only)
+            sub_mass = self._data_source["ParticleMassMsun"].sum(dtype='float64')
+        HOPHaloList.__init__(self, self._data_source,
+            threshold*total_mass/sub_mass, dm_only)
         self._parse_halolist(total_mass/sub_mass)
         self._join_halolists()
 
 class FOFHaloFinder(GenericHaloFinder, FOFHaloList):
-    def __init__(self, pf, link=0.2, dm_only=True, padding=0.02):
+    def __init__(self, pf, subvolume=None, link=0.2, dm_only=True, padding=0.02):
         r"""Friends-of-friends halo finder.
         
         Halos are found by linking together all pairs of particles closer than
@@ -1815,6 +1848,9 @@ class FOFHaloFinder(GenericHaloFinder, FOFHaloList):
         Parameters
         ----------
         pf : EnzoStaticOutput object
+        subvolume : A region over which FOF will be run, which can be used
+            to run FOF on a subvolume of the full volume. Default = None,
+            which defaults to the full volume automatically.
         link : float
             The interparticle distance (compared to the overall average)
             used to build the halos. Default = 0.2.
@@ -1832,19 +1868,30 @@ class FOFHaloFinder(GenericHaloFinder, FOFHaloList):
         >>> pf = load("RedshiftOutput0000")
         >>> halos = FOFHaloFinder(pf)
         """
+        if subvolume is not None:
+            ds_LE = na.array(subvolume.left_edge)
+            ds_RE = na.array(subvolume.right_edge)
         self.pf = pf
         self.hierarchy = pf.h
-        self.center = (pf.domain_right_edge + pf.domain_left_edge)/2.0
+        self._data_source = pf.h.all_data()
+        GenericHaloFinder.__init__(self, pf, self._data_source, dm_only,
+            padding)
         self.padding = 0.0 #* pf["unitary"] # This should be clevererer
         # get the total number of particles across all procs, with no padding
-        padded, LE, RE, self._data_source = self._partition_hierarchy_3d(padding=self.padding)
+        padded, LE, RE, self._data_source = \
+            self._partition_hierarchy_3d(ds=self._data_source,
+            padding=self.padding)
         n_parts = self._mpi_allsum(self._data_source["particle_position_x"].size)
         # get the average spacing between particles
         l = pf.domain_right_edge - pf.domain_left_edge
         vol = l[0] * l[1] * l[2]
         avg_spacing = (float(vol) / n_parts)**(1./3.)
         self.padding = padding
-        padded, LE, RE, self._data_source = self._partition_hierarchy_3d(padding=self.padding)
+        if subvolume is not None:
+            self._data_source = pf.h.periodic_region_strict([0.]*3, ds_LE, ds_RE)
+        padded, LE, RE, self._data_source = \
+            self._partition_hierarchy_3d(ds=self._data_source,
+            padding=self.padding)
         self.bounds = (LE, RE)
         # reflect particles around the periodic boundary
         #self._reposition_particles((LE, RE))
