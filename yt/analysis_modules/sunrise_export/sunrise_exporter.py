@@ -36,7 +36,8 @@ import numpy as na
 from yt.funcs import *
 import yt.utilities.amr_utils as amr_utils
 
-def export_to_sunrise(pf, fn, write_particles = True, subregion_bounds = None):
+def export_to_sunrise(pf, fn, write_particles = True, subregion_bounds = None,
+    particle_mass=None,particle_pos=None,particle_age=None,particle_metal=None):
     r"""Convert the contents of a dataset to a FITS file format that Sunrise
     understands.
 
@@ -91,24 +92,29 @@ def export_to_sunrise(pf, fn, write_particles = True, subregion_bounds = None):
     reg = pf.h.region((DRE+DLE)/2.0, DLE, DRE)
 
     if write_particles:
-        pi = reg["particle_type"] == 2
-
-        pmass = reg["ParticleMassMsun"][pi]
+        if particle_mass==None:
+            pi = reg["particle_type"] == 2
+            particle_mass = reg["ParticleMassMsun"][pi]
         col_list.append(pyfits.Column(
-            "ID", format="I", array=na.arange(pmass.size)))
-        pos = na.array([reg["particle_position_%s" % ax][pi]*pf['kpc']
-                            for ax in 'xyz']).transpose()
+            "ID", format="I", array=na.arange(particle_mass.size)))
+        if particle_pos==None:
+            particle_pos = \
+                na.array([reg["particle_position_%s" % ax][pi]*pf['kpc'] \
+                for ax in 'xyz']).transpose()
         col_list.append(pyfits.Column("position", format="3D",
-            array=pos))
+            array=particle_pos))
         col_list.append(pyfits.Column("mass_stars", format="D",
-            array=pmass))
-        age = pf["years"] * (pf["InitialTime"] - reg["creation_time"][pi])
-        col_list.append(pyfits.Column("age_m", format="D", array=age))
-        col_list.append(pyfits.Column("age_l", format="D", array=age))
+            array=particle_mass))
+        if particle_age == None:
+            particle_age = pf["years"] * (pf["InitialTime"] - reg["creation_time"][pi])
+        col_list.append(pyfits.Column("age_m", format="D", array=particle_age))
+        col_list.append(pyfits.Column("age_l", format="D", array=particle_age))
+        if particle_metal == None:
+            particle_metal = 0.02*particle_mass*reg["metallicity_fraction"][pi]
         col_list.append(pyfits.Column("mass_stellar_metals", format="D",
-            array=0.02*pmass*reg["metallicity_fraction"][pi])) # wrong?
+            array=particle_metal)) # wrong?
         col_list.append(pyfits.Column("L_bol", format="D",
-            array=na.zeros(pmass.size)))
+            array=na.zeros(particle_mass.size)))
 
         # Still missing: L_bol, L_lambda, stellar_radius
         cols = pyfits.ColDefs(col_list)
