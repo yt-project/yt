@@ -347,10 +347,10 @@ cdef class PartitionedGrid:
         hit = 0
         self.calculate_extent(vp, extrema)
         vp.get_start_stop(extrema, iter)
-        iter[0] = iclip(iter[0], 0, vp.nv[0])
-        iter[1] = iclip(iter[1], 0, vp.nv[0])
-        iter[2] = iclip(iter[2], 0, vp.nv[1])
-        iter[3] = iclip(iter[3], 0, vp.nv[1])
+        iter[0] = iclip(iter[0]-1, 0, vp.nv[0])
+        iter[1] = iclip(iter[1]+1, 0, vp.nv[0])
+        iter[2] = iclip(iter[2]-1, 0, vp.nv[1])
+        iter[3] = iclip(iter[3]+1, 0, vp.nv[1])
         if vp.vd_strides[0] == -1:
             for vi in range(iter[0], iter[1]):
                 for vj in range(iter[2], iter[3]):
