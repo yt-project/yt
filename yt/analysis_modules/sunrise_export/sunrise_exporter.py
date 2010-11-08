@@ -38,7 +38,7 @@ import yt.utilities.amr_utils as amr_utils
 from yt.data_objects.universal_fields import add_field
 
 def export_to_sunrise(pf, fn, write_particles = True, subregion_bounds = None,
-    particle_mass=None,particle_pos=None,particle_age=None,particle_metal=None):
+    particle_mass=None, particle_pos=None, particle_age=None, particle_metal=None):
     r"""Convert the contents of a dataset to a FITS file format that Sunrise
     understands.
 
@@ -55,8 +55,11 @@ def export_to_sunrise(pf, fn, write_particles = True, subregion_bounds = None,
         The parameter file to convert.
     fn : string
         The filename of the FITS file.
-    write_particles : bool, default is True
-        Whether to write out the star particles or not
+    write_particles : bool or pyfits.ColDefs instance, default is True
+        Whether to write out the star particles or not.  If this variable is an
+        instance of pyfits.ColDefs, then this will be used to create a pyfits
+        table named PARTICLEDATA which will be appended.  If this is true, the
+        routine will attempt to create this table from hand.
     subregion_bounds : list of tuples
         This is a list of tuples describing the subregion of the top grid to
         export.  This will only work when only *one* root grid exists.
@@ -92,30 +95,7 @@ def export_to_sunrise(pf, fn, write_particles = True, subregion_bounds = None,
     DLE, DRE = pf.domain_left_edge, pf.domain_right_edge
     reg = pf.h.region((DRE+DLE)/2.0, DLE, DRE)
 
-    if write_particles:
-<<<<<<< local
-        if particle_mass==None:
-            pi = reg["particle_type"] == 2
-            particle_mass = reg["ParticleMassMsun"][pi]
-        col_list.append(pyfits.Column(
-            "ID", format="I", array=na.arange(particle_mass.size)))
-        if particle_pos==None:
-            particle_pos = \
-                na.array([reg["particle_position_%s" % ax][pi]*pf['kpc'] \
-                for ax in 'xyz']).transpose()
-        col_list.append(pyfits.Column("position", format="3D",
-            array=particle_pos))
-        col_list.append(pyfits.Column("mass_stars", format="D",
-            array=particle_mass))
-        if particle_age == None:
-            particle_age = pf["years"] * (pf["InitialTime"] - reg["creation_time"][pi])
-        col_list.append(pyfits.Column("age_m", format="D", array=particle_age))
-        col_list.append(pyfits.Column("age_l", format="D", array=particle_age))
-        if particle_metal == None:
-            particle_metal = 0.02*particle_mass*reg["metallicity_fraction"][pi]
-        col_list.append(pyfits.Column("mass_stellar_metals", format="D",
-            array=particle_metal)) # wrong?
-=======
+    if write_particles is True:
         pi = reg["particle_type"] == 2
         pos = na.array([reg["particle_position_%s" % ax][pi]*pf['kpc']
                             for ax in 'xyz']).transpose()
@@ -146,6 +126,10 @@ def export_to_sunrise(pf, fn, write_particles = True, subregion_bounds = None,
         cols = pyfits.ColDefs(col_list)
         pd_table = pyfits.new_table(cols)
         pd_table.name = "PARTICLEDATA"
+    elif isinstance(write_particles, pyfits.ColDefs):
+        pd_table = pyfits.new_table(write_particles)
+        pd_table.name = "PARTICLEDATA"
+        write_particles = True
 
     def _MetalMass(field, data):
         return data["Metal_Density"] * data["CellVolume"]
@@ -292,7 +276,7 @@ def generate_flat_octree(pf, fields, subregion_bounds = None):
     dd = {}
     for i, field in enumerate(fields):
         dd[field] = output[:position.output_pos,i]
-    return dd, refined
+    return dd, refined[:position.refined_pos]
 
 def generate_levels_octree(pf, fields):
     fields = ensure_list(fields) + ["Ones", "Ones"]
