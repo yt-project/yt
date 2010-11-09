@@ -561,6 +561,47 @@ def fix_bounds(upper, lower, logit):
     if logit: return na.log10(upper), na.log10(lower)
     return upper, lower
 
+class BinnedProfile2DInlineCut(BinnedProfile2D):
+    def __init__(self, data_source,
+                 x_n_bins, x_bin_field, x_lower_bound, x_upper_bound, x_log,
+                 y_n_bins, y_bin_field, y_lower_bound, y_upper_bound, y_log,
+                 lazy_reader=False, end_collect=False):
+        lazy_reader = False
+        self.indices = data_source["Ones"].astype("bool")
+        BinnedProfile2D.__init__(self, data_source,
+                 x_n_bins, x_bin_field, x_lower_bound, x_upper_bound, x_log,
+                 y_n_bins, y_bin_field, y_lower_bound, y_upper_bound, y_log,
+                 lazy_reader, end_collect)
+
+    @preserve_source_parameters
+    def _bin_field(self, source, field, weight, accumulation,
+                   args, check_cut=False):
+        source_data = self._get_field(source, field, check_cut)
+        if weight: weight_data = self._get_field(source, weight, check_cut)
+        else: weight_data = na.ones(source_data.shape, dtype='float64')
+        self.total_stuff = source_data.sum()
+        binned_field = self._get_empty_field()
+        weight_field = self._get_empty_field()
+        used_field = self._get_empty_field()
+        mi = args[0]
+        bin_indices_x = args[1][self.indices].ravel().astype('int64')
+        bin_indices_y = args[2][self.indices].ravel().astype('int64')
+        source_data = source_data[mi][self.indices]
+        weight_data = weight_data[mi][self.indices]
+        nx = bin_indices_x.size
+        #mylog.debug("Binning %s / %s times", source_data.size, nx)
+        Bin2DProfile(bin_indices_x, bin_indices_y, weight_data, source_data,
+                     weight_field, binned_field, used_field)
+        if accumulation: # Fix for laziness
+            if not iterable(accumulation):
+                raise SyntaxError("Accumulation needs to have length 2")
+            if accumulation[0]:
+                binned_field = na.add.accumulate(binned_field, axis=0)
+            if accumulation[1]:
+                binned_field = na.add.accumulate(binned_field, axis=1)
+        return binned_field, weight_field, used_field.astype('bool')
+
+        
 class BinnedProfile3D(BinnedProfile):
     """
     A 'Profile' produces either a weighted (or unweighted) average

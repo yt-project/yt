@@ -127,7 +127,8 @@ class ARTHierarchy(AMRHierarchy):
         self.field_list = [ 'Density','Total_Energy',
                             'x-momentum','y-momentum','z-momentum',
                             'Pressure','Gamma','Gas_Energy',
-                            'Metal_Density1', 'Metal_Density2']
+                            'Metal_Density1', 'Metal_Density2',
+                            'Potential_New','Potential_Old']
     
     def _setup_classes(self):
         dd = self._get_data_reader_dict()
@@ -402,29 +403,50 @@ class ARTStaticOutput(StaticOutput):
         boxcm_cal = self["boxh"]
         boxcm_uncal = boxcm_cal / h
         box_proper = boxcm_uncal/(1+z)
+        aexpn = self["aexpn"]
         for unit in mpc_conversion:
             self.units[unit] = mpc_conversion[unit] * box_proper
             self.units[unit+'h'] = mpc_conversion[unit] * box_proper * h
             self.units[unit+'cm'] = mpc_conversion[unit] * boxcm_uncal
             self.units[unit+'hcm'] = mpc_conversion[unit] * boxcm_cal
         # Variable names have been chosen to reflect primary reference
-        Om0 = self["Om0"]
+        #Om0 = self["Om0"]
+        #boxh = self["boxh"]
+        wmu = self["wmu"]
+        #ng = self.domain_dimensions[0]
+        #r0 = self["cmh"]/ng # comoving cm h^-1
+        #t0 = 6.17e17/(self.hubble_constant + na.sqrt(self.omega_matter))
+        #v0 = r0 / t0
+        #rho0 = 1.8791e-29 * self.hubble_constant**2.0 * self.omega_matter
+        #e0 = v0**2.0
+        
+        wmu = self["wmu"]
         boxh = self["boxh"]
         aexpn = self["aexpn"]
-        wmu = self["wmu"]
+        hubble = self.hubble_constant
         ng = self.domain_dimensions[0]
-        r0 = self["cmh"]/ng # comoving cm h^-1
-        t0 = 6.17e17/(self.hubble_constant + na.sqrt(self.omega_matter))
-        v0 = r0 / t0
-        rho0 = 1.8791e-29 * self.hubble_constant**2.0 * self.omega_matter
-        e0 = v0**2.0
-        self.conversion_factors["Density"] = rho0 * aexpn**-3
-        self.conversion_factors["Gas_Energy"] = e0/aexpn**2
+        self.r0 = boxh/ng
+        self.v0 =  self.r0 * 50.0*1.0e5 * na.sqrt(self.omega_matter)  #cm/s
+        self.t0 = self.r0/self.v0
+        # this is 3H0^2 / (8pi*G) *h*Omega0 with H0=100km/s. 
+        # ie, critical density 
+        self.rho0 = 1.8791e-29 * hubble**2.0 * self.omega_matter
+        self.tr = 2./3. *(3.03e5*self.r0**2.0*wmu*self.omega_matter)*(1.0/(aexpn**2))      
+        self.conversion_factors["Density"] = \
+            self.rho0*(aexpn**-3.0)
+        self.conversion_factors["Gas_Energy"] = \
+            self.rho0*self.v0**2*(aexpn**-5.0)
+        tr  = self.tr
+        self.conversion_factors["Temperature"] = tr
+        self.conversion_factors["Metal_Density"] = 1
+        self.conversion_factors["Metal_Density1"] = 1
+        self.conversion_factors["Metal_Density2"] = 1
+                
         # Now our conversion factors
         for ax in 'xyz':
             # Add on the 1e5 to get to cm/s
-            self.conversion_factors["%s-velocity" % ax] = v0/aexpn
-        seconds = t0
+            self.conversion_factors["%s-velocity" % ax] = self.v0/aexpn
+        seconds = self.t0
         self.time_units['years'] = seconds / (365*3600*24.0)
         self.time_units['days']  = seconds / (3600*24.0)
 

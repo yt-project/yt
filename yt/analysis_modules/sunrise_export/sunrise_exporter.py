@@ -35,8 +35,10 @@ import numpy as na
 
 from yt.funcs import *
 import yt.utilities.amr_utils as amr_utils
+from yt.data_objects.universal_fields import add_field
 
-def export_to_sunrise(pf, fn, write_particles = True, subregion_bounds = None):
+def export_to_sunrise(pf, fn, write_particles = True, subregion_bounds = None,
+    particle_mass=None, particle_pos=None, particle_age=None, particle_metal=None):
     r"""Convert the contents of a dataset to a FITS file format that Sunrise
     understands.
 
@@ -53,8 +55,11 @@ def export_to_sunrise(pf, fn, write_particles = True, subregion_bounds = None):
         The parameter file to convert.
     fn : string
         The filename of the FITS file.
-    write_particles : bool, default is True
-        Whether to write out the star particles or not
+    write_particles : bool or pyfits.ColDefs instance, default is True
+        Whether to write out the star particles or not.  If this variable is an
+        instance of pyfits.ColDefs, then this will be used to create a pyfits
+        table named PARTICLEDATA which will be appended.  If this is true, the
+        routine will attempt to create this table from hand.
     subregion_bounds : list of tuples
         This is a list of tuples describing the subregion of the top grid to
         export.  This will only work when only *one* root grid exists.
@@ -90,33 +95,51 @@ def export_to_sunrise(pf, fn, write_particles = True, subregion_bounds = None):
     DLE, DRE = pf.domain_left_edge, pf.domain_right_edge
     reg = pf.h.region((DRE+DLE)/2.0, DLE, DRE)
 
-    if write_particles:
+    if write_particles is True:
         pi = reg["particle_type"] == 2
-
-        pmass = reg["ParticleMassMsun"][pi]
-        col_list.append(pyfits.Column(
-            "ID", format="I", array=na.arange(pmass.size)))
         pos = na.array([reg["particle_position_%s" % ax][pi]*pf['kpc']
                             for ax in 'xyz']).transpose()
-        col_list.append(pyfits.Column("position", format="3D",
-            array=pos))
-        col_list.append(pyfits.Column("mass_stars", format="D",
-            array=pmass))
+        vel = na.array([reg["particle_velocity_%s" % ax][pi]
+                            for ax in 'xyz']).transpose()
+        # Velocity is cm/s, we want it to be kpc/yr
+        vel *= (pf["kpc"]/pf["cm"]) / (365*24*3400.)
         age = pf["years"] * (pf["InitialTime"] - reg["creation_time"][pi])
+        creation_time = reg["creation_time"][pi] * pf["years"]
+
+        initial_mass = reg["InitialMassCenOstriker"][pi]
+        current_mass = reg["ParticleMassMsun"][pi]
+        col_list.append(pyfits.Column("ID", format="I", array=na.arange(current_mass.size)))
+        col_list.append(pyfits.Column("parent_ID", format="I", array=na.arange(current_mass.size)))
+        col_list.append(pyfits.Column("position", format="3D", array=pos, unit="kpc"))
+        col_list.append(pyfits.Column("velocity", format="3D", array=vel, unit="kpc/yr"))
+        col_list.append(pyfits.Column("creation_mass", format="D", array=initial_mass, unit="Msun"))
+        col_list.append(pyfits.Column("formation_time", format="D", array=creation_time, unit="yr"))
+        col_list.append(pyfits.Column("mass", format="D", array=current_mass, unit="Msun"))
         col_list.append(pyfits.Column("age_m", format="D", array=age))
         col_list.append(pyfits.Column("age_l", format="D", array=age))
-        col_list.append(pyfits.Column("mass_stellar_metals", format="D",
-            array=0.02*pmass*reg["metallicity_fraction"][pi])) # wrong?
+        col_list.append(pyfits.Column("metallicity", format="D",
+            array=0.02*current_mass*reg["metallicity_fraction"][pi],
+            unit="Msun")) # wrong?
         col_list.append(pyfits.Column("L_bol", format="D",
-            array=na.zeros(pmass.size)))
+            array=na.zeros(particle_mass.size)))
 
-        # Still missing: L_bol, L_lambda, stellar_radius
         cols = pyfits.ColDefs(col_list)
         pd_table = pyfits.new_table(cols)
         pd_table.name = "PARTICLEDATA"
+    elif isinstance(write_particles, pyfits.ColDefs):
+        pd_table = pyfits.new_table(write_particles)
+        pd_table.name = "PARTICLEDATA"
+        write_particles = True
+
+    def _MetalMass(field, data):
+        return data["Metal_Density"] * data["CellVolume"]
+    def _convMetalMass(data):
+        return 1.0/1.989e33
+    add_field("MetalMass", function=_MetalMass,
+              convert_function=_convMetalMass)
 
     output, refined = generate_flat_octree(pf,
-            ["CellMassMsun","Temperature", "Metal_Density",
+            ["CellMassMsun","TemperatureTimesCellMassMsun", "MetalMass",
              "CellVolumeCode"], subregion_bounds = subregion_bounds)
     cvcgs = output["CellVolumeCode"].astype('float64') * pf['cm']**3.0
 
@@ -124,7 +147,7 @@ def export_to_sunrise(pf, fn, write_particles = True, subregion_bounds = None):
     structure = pyfits.Column("structure", format="B", array=refined.astype("bool"))
     cols = pyfits.ColDefs([structure])
     st_table = pyfits.new_table(cols)
-    st_table.name = "STRUCTURE"
+    st_table.name = "GRIDSTRUCTURE"
 
     # Now we update our table with units
     # ("lengthunit", length_unit, "Length unit for grid");
@@ -142,7 +165,7 @@ def export_to_sunrise(pf, fn, write_particles = True, subregion_bounds = None):
     # ("subdivy", sub_div[1], "");
     # ("subdivz", sub_div[2], "");
 
-    st_table.header.update("hierarch lengthunit", 1.0, comment="Length unit for grid")
+    st_table.header.update("hierarch lengthunit", "kpc", comment="Length unit for grid")
     for i,a in enumerate('xyz'):
         st_table.header.update("min%s" % a, pf.domain_left_edge[i] * pf['kpc'])
         st_table.header.update("max%s" % a, pf.domain_right_edge[i] * pf['kpc'])
@@ -169,26 +192,34 @@ def export_to_sunrise(pf, fn, write_particles = True, subregion_bounds = None):
     size = output["CellMassMsun"].size
     tm = output["CellMassMsun"].sum()
     col_list.append(pyfits.Column("mass_gas", format='D',
-                    array=output.pop('CellMassMsun')))
+                    array=output.pop('CellMassMsun'), unit="Msun"))
     col_list.append(pyfits.Column("mass_metals", format='D',
-                    array=output.pop('Metal_Density')*cvcgs/1.989e33))
+                    array=output.pop('MetalMass')*cvcgs/1.989e33, unit="Msun"))
+    # Unit is set to K but it's really K*Msun
     col_list.append(pyfits.Column("gas_temp_m", format='D',
-                    array=output['Temperature']))
+                    array=output['TemperatureTimesCellMassMsun'], unit="K"))
     col_list.append(pyfits.Column("gas_teff_m", format='D',
-                    array=output.pop('Temperature')))
+                    array=output.pop('TemperatureTimesCellMassMsun'), unit="K"))
     col_list.append(pyfits.Column("cell_volume", format='D',
-                    array=output.pop('CellVolumeCode').astype('float64')*pf['kpc']**3.0))
+                    array=output.pop('CellVolumeCode').astype('float64')*pf['kpc']**3.0,
+                    unit="kpc^3"))
     col_list.append(pyfits.Column("SFR", format='D',
                     array=na.zeros(size, dtype='D')))
     cols = pyfits.ColDefs(col_list)
     mg_table = pyfits.new_table(cols)
     mg_table.header.update("M_g_tot", tm)
-    mg_table.header.update("timeunit", 1.0)
-    mg_table.header.update("tempunit", 1.0)
+    mg_table.header.update("timeunit", "yr")
+    mg_table.header.update("tempunit", "K")
     mg_table.name = "GRIDDATA"
 
     # Add a dummy Primary; might be a better way to do this!
     hls = [pyfits.PrimaryHDU(), st_table, mg_table]
+    col_list = [pyfits.Column("dummy", format="F", array=na.zeros(1, dtype='float32'))]
+    cols = pyfits.ColDefs(col_list)
+    md_table = pyfits.new_table(cols)
+    md_table.header.update("snaptime", pf.current_time*pf["years"])
+    md_table.name = "YT"
+
     if write_particles: hls.append(pd_table)
     hdus = pyfits.HDUList(hls)
     hdus.writeto(fn, clobber=True)
@@ -238,14 +269,14 @@ def generate_flat_octree(pf, fields, subregion_bounds = None):
     t1 = time.time()
     amr_utils.RecurseOctreeDepthFirst(
                sx, sy, sz, nx, ny, nz,
-               position, ogl[0].offset,
+               position, 0,
                output, refined, ogl)
     t2 = time.time()
     print "Finished.  Took %0.3e seconds." % (t2-t1)
     dd = {}
     for i, field in enumerate(fields):
         dd[field] = output[:position.output_pos,i]
-    return dd, refined
+    return dd, refined[:position.refined_pos]
 
 def generate_levels_octree(pf, fields):
     fields = ensure_list(fields) + ["Ones", "Ones"]
@@ -266,4 +297,23 @@ def generate_levels_octree(pf, fields):
                position.astype('int32'), 1,
                output, genealogy, corners, ogl)
     return output, genealogy, levels_all, levels_finest, pp, corners
+
+def _initial_mass_cen_ostriker(field, data):
+    # SFR in a cell. This assumes stars were created by the Cen & Ostriker algorithm
+    # Check Grid_AddToDiskProfile.C and star_maker7.src
+    star_mass_ejection_fraction = data.pf.get_parameter("StarMassEjectionFraction",float)
+    star_maker_minimum_dynamical_time = 3e6 # years, which will get divided out
+    dtForSFR = star_maker_minimum_dynamical_time / data.pf["years"]
+    xv1 = ((data.pf["InitialTime"] - data["creation_time"])
+            / data["dynamical_time"])
+    xv2 = ((data.pf["InitialTime"] + dtForSFR - data["creation_time"])
+            / data["dynamical_time"])
+    denom = (1.0 - star_mass_ejection_fraction * (1.0 - (1.0 + xv1)*na.exp(-xv1)))
+    minitial = data["ParticleMassMsun"] / denom
+    return minitial
+add_field("InitialMassCenOstriker", function=_initial_mass_cen_ostriker)
+
+def _temp_times_mass(field, data):
+    return data["Temperature"]*data["CellMassMsun"]
+add_field("TemperatureTimesCellMassMsun", function=_temp_times_mass)
 

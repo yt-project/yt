@@ -44,7 +44,7 @@ import sys
 import numpy as na
 import time, pickle, os, os.path
 from yt.funcs import *
-from yt.extensions.HierarchySubset import \
+from yt.analysis_modules.hierarchy_subset.api import \
         ExtractedHierarchy, ExtractedParameterFile
 
 #from enthought.tvtk.pyface.ui.wx.wxVTKRenderWindowInteractor \

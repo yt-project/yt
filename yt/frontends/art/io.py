@@ -25,6 +25,7 @@ License:
 
 import numpy as na
 import struct
+import pdb
 
 from yt.utilities.io_handler import \
     BaseIOHandler
@@ -57,16 +58,22 @@ class IOHandlerART(BaseIOHandler):
         nvals = ncells * (self.nhydro_vars + 6) # 2 vars, 2 pads
         arr = na.fromfile(f, dtype='>f', count=nvals)
         arr = arr.reshape((self.nhydro_vars+6, ncells), order="F")
-        arr = arr[3:-3,:].astype("float64")
+        arr = arr[3:-1,:].astype("float64")
         self.level_data[level] = arr
 
     def preload_root_level(self):
         f = open(self.filename, 'rb')
         f.seek(self.level_offsets[0] + 4) # Ditch the header
         ncells = self.level_info[0]
-        nvals = ncells * (self.nhydro_vars) # 0 vars, 0 pads
-        arr = na.fromfile(f, dtype='>f', count=nvals).astype("float64")
-        arr = arr.reshape((self.nhydro_vars, ncells), order="F")
+        #pdb.set_trace()
+        nhvals = ncells * (self.nhydro_vars) # 0 vars, 0 pads
+        hvar = na.fromfile(f, dtype='>f', count=nhvals).astype("float64")
+        hvar = hvar.reshape((self.nhydro_vars, ncells), order="F")
+        na.fromfile(f,dtype='>i',count=2) #throw away the pads
+        nvars = ncells * (2) # 0 vars, 0 pads
+        var = na.fromfile(f, dtype='>f', count=nvars).astype("float64")
+        var = var.reshape((2, ncells), order="F")
+        arr = na.concatenate((hvar,var))
         self.level_data[0] = arr
 
     def clear_level(self, level):
