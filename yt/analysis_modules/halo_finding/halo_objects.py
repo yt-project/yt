@@ -1594,7 +1594,7 @@ class parallelHF(GenericHaloFinder, parallelHOPHaloList):
                 bin_width = base_padding
                 num_bins = int(math.ceil(width / bin_width))
                 bins = na.arange(num_bins+1, dtype='float64') * bin_width + self._data_source.left_edge[dim]
-                counts, bins = na.histogram(data, bins, new=True)
+                counts, bins = na.histogram(data, bins)
                 # left side.
                 start = 0
                 count = counts[0]
