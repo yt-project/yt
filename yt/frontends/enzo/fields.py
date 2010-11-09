@@ -390,6 +390,14 @@ for field in ['Bx','By','Bz']:
     f._convert_function=_convertBfield
     f._units=r"\mathrm{Gau\ss}"
     f.take_log=False
+
+def _Bmag(field, data):
+    """ magnitude of bvec
+    """
+    return na.sqrt(data['Bx']**2 + data['By']**2 + data['Bz']**2)
+
+add_field("Bmag", function=_Bmag,display_name=r"|B|",units=r"\mathrm{Gau\ss}")
+
     
 #
 # Now we do overrides for 2D fields
