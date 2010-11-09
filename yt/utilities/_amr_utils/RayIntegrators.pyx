@@ -138,23 +138,29 @@ def VoxelTraversal(np.ndarray[np.int_t, ndim=3] grid_mask,
     # Do left edge then right edge in each dim
     cdef int i, x, y
     cdef np.float64_t tl, tr, intersect_t, enter_t, exit_t, dt_tolerance
-    cdef np.ndarray[np.int64_t,   ndim=1] step = np.empty((3,), dtype=np.int64)
-    cdef np.ndarray[np.int64_t,   ndim=1] cur_ind = np.empty((3,), dtype=np.int64)
-    cdef np.ndarray[np.float64_t, ndim=1] tdelta = np.empty((3,), dtype=np.float64)
-    cdef np.ndarray[np.float64_t, ndim=1] tmax = np.empty((3,), dtype=np.float64)
-    cdef np.ndarray[np.float64_t, ndim=1] intersect = np.empty((3,), dtype=np.float64)
+    cdef np.float64_t iv_dir[3], tdelta[3], tmax[3], intersect[3]
+    cdef np.int64_t step[3], cur_ind[3]
     intersect_t = 1
     dt_tolerance = 1e-6
     # recall p = v * t + u
     #  where p is position, v is our vector, u is the start point
     for i in range(3):
         # As long as we're iterating, set some other stuff, too
-        if(v[i] < 0): step[i] = -1
-        else: step[i] = 1
+        if(v[i] < 0):
+            step[i] = -1
+        elif (v[i] == 0):
+            step[i] = 1
+            tmax[i] = 1e60
+            iv_dir[i] = 1e60
+            tdelta[i] = 1e-60
+            continue
+        else:
+            step[i] = 1
         x = (i+1)%3
         y = (i+2)%3
-        tl = (left_edge[i] - u[i])/v[i]
-        tr = (right_edge[i] - u[i])/v[i]
+        iv_dir[i] = 1.0/v[i]
+        tl = (left_edge[i] - u[i])*iv_dir[i]
+        tr = (right_edge[i] - u[i])*iv_dir[i]
         if (left_edge[x] <= (u[x] + tl*v[x]) <= right_edge[x]) and \
            (left_edge[y] <= (u[y] + tl*v[y]) <= right_edge[y]) and \
            (0.0 <= tl < intersect_t):
@@ -170,15 +176,15 @@ def VoxelTraversal(np.ndarray[np.int_t, ndim=3] grid_mask,
         intersect_t = 0.0
     if not (0 <= intersect_t <= 1): return
     # Now get the indices of the intersection
-    intersect = u + intersect_t * v
     for i in range(3):
+        intersect[i] = u[i] + intersect_t * v[i]
         cur_ind[i] = np.floor((intersect[i] + 1e-8*dx[i] - left_edge[i])/dx[i])
-        tmax[i] = (((cur_ind[i]+step[i])*dx[i])+left_edge[i]-u[i])/v[i]
+        tmax[i] = (((cur_ind[i]+step[i])*dx[i])+left_edge[i]-u[i])*iv_dir[i]
         if cur_ind[i] == grid_mask.shape[i] and step[i] < 0:
             cur_ind[i] = grid_mask.shape[i] - 1
-        if step[i] > 0: tmax[i] = (((cur_ind[i]+1)*dx[i])+left_edge[i]-u[i])/v[i]
-        if step[i] < 0: tmax[i] = (((cur_ind[i]+0)*dx[i])+left_edge[i]-u[i])/v[i]
-        tdelta[i] = (dx[i]/v[i])
+        if step[i] > 0: tmax[i] = (((cur_ind[i]+1)*dx[i])+left_edge[i]-u[i])*iv_dir[i]
+        if step[i] < 0: tmax[i] = (((cur_ind[i]+0)*dx[i])+left_edge[i]-u[i])*iv_dir[i]
+        tdelta[i] = (dx[i]*iv_dir[i])
         if tdelta[i] < 0: tdelta[i] *= -1
     # The variable intersect contains the point we first pierce the grid
     enter_t = intersect_t
