@@ -92,7 +92,12 @@ def export_to_sunrise(pf, fn, write_particles = True, subregion_bounds = None,
     #	output->addKey("logflux", true, "Column L_lambda values are log (L_lambda)");
 
     col_list = []
-    DLE, DRE = pf.domain_left_edge, pf.domain_right_edge
+    if subregion_bounds == None:    
+        DLE, DRE = pf.domain_left_edge, pf.domain_right_edge
+    else:
+        DLE, DX = zip(*subregion_bounds)
+        DLE, DX = na.array(DLE), na.array(DX)
+        DRE = DLE + DX
     reg = pf.h.region((DRE+DLE)/2.0, DLE, DRE)
 
     if write_particles is True:
@@ -132,9 +137,9 @@ def export_to_sunrise(pf, fn, write_particles = True, subregion_bounds = None,
         write_particles = True
 
     def _MetalMass(field, data):
-        return data["Metal_Density"] * data["CellVolume"]
+        return data["Metallicity"] * data["CellMassMsun"]
     def _convMetalMass(data):
-        return 1.0/1.989e33
+        return 1.0
     add_field("MetalMass", function=_MetalMass,
               convert_function=_convMetalMass)
 
@@ -167,9 +172,9 @@ def export_to_sunrise(pf, fn, write_particles = True, subregion_bounds = None,
 
     st_table.header.update("hierarch lengthunit", "kpc", comment="Length unit for grid")
     for i,a in enumerate('xyz'):
-        st_table.header.update("min%s" % a, pf.domain_left_edge[i] * pf['kpc'])
-        st_table.header.update("max%s" % a, pf.domain_right_edge[i] * pf['kpc'])
-        st_table.header.update("n%s" % a, pf.domain_dimensions[i])
+        st_table.header.update("min%s" % a, DLE[i] * pf['kpc'])
+        st_table.header.update("max%s" % a, DRE[i] * pf['kpc'])
+        st_table.header.update("n%s" % a, DX[i])
         st_table.header.update("subdiv%s" % a, 2)
     st_table.header.update("subdivtp", "UNIFORM", "Type of grid subdivision")
 
@@ -194,12 +199,13 @@ def export_to_sunrise(pf, fn, write_particles = True, subregion_bounds = None,
     col_list.append(pyfits.Column("mass_gas", format='D',
                     array=output.pop('CellMassMsun'), unit="Msun"))
     col_list.append(pyfits.Column("mass_metals", format='D',
-                    array=output.pop('MetalMass')*cvcgs/1.989e33, unit="Msun"))
-    # Unit is set to K but it's really K*Msun
+                    array=output.pop('MetalMass'), unit="Msun"))
+    # The units for gas_temp are really K*Msun. For older Sunrise versions
+    # you must set the unit to just K  
     col_list.append(pyfits.Column("gas_temp_m", format='D',
-                    array=output['TemperatureTimesCellMassMsun'], unit="K"))
+                    array=output['TemperatureTimesCellMassMsun'], unit="K*Msun"))
     col_list.append(pyfits.Column("gas_teff_m", format='D',
-                    array=output.pop('TemperatureTimesCellMassMsun'), unit="K"))
+                    array=output.pop('TemperatureTimesCellMassMsun'), unit="K*Msun"))
     col_list.append(pyfits.Column("cell_volume", format='D',
                     array=output.pop('CellVolumeCode').astype('float64')*pf['kpc']**3.0,
                     unit="kpc^3"))
@@ -213,13 +219,13 @@ def export_to_sunrise(pf, fn, write_particles = True, subregion_bounds = None,
     mg_table.name = "GRIDDATA"
 
     # Add a dummy Primary; might be a better way to do this!
-    hls = [pyfits.PrimaryHDU(), st_table, mg_table]
     col_list = [pyfits.Column("dummy", format="F", array=na.zeros(1, dtype='float32'))]
     cols = pyfits.ColDefs(col_list)
     md_table = pyfits.new_table(cols)
     md_table.header.update("snaptime", pf.current_time*pf["years"])
     md_table.name = "YT"
 
+    hls = [pyfits.PrimaryHDU(), st_table, mg_table,md_table]
     if write_particles: hls.append(pd_table)
     hdus = pyfits.HDUList(hls)
     hdus.writeto(fn, clobber=True)

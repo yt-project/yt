@@ -127,7 +127,7 @@ class ARTHierarchy(AMRHierarchy):
         self.field_list = [ 'Density','Total_Energy',
                             'x-momentum','y-momentum','z-momentum',
                             'Pressure','Gamma','Gas_Energy',
-                            'Metal_Density1', 'Metal_Density2',
+                            'Metal_DensitySNII', 'Metal_DensitySNIa',
                             'Potential_New','Potential_Old']
     
     def _setup_classes(self):
@@ -377,11 +377,11 @@ class ARTStaticOutput(StaticOutput):
         self.storage_filename = storage_filename
         
         self.field_info = self._fieldinfo_class()
-        self.current_time = 0.0
         self.dimensionality = 3
         self.refine_by = 2
         self.parameters["HydroMethod"] = 'art'
         self.parameters["Time"] = 1. # default unit is 1...
+        self.parameters["InitialTime"]=self.current_time
         
     def __repr__(self):
         return self.basename.rsplit(".", 1)[0]
@@ -438,9 +438,9 @@ class ARTStaticOutput(StaticOutput):
             self.rho0*self.v0**2*(aexpn**-5.0)
         tr  = self.tr
         self.conversion_factors["Temperature"] = tr
-        self.conversion_factors["Metal_Density"] = 1
-        self.conversion_factors["Metal_Density1"] = 1
-        self.conversion_factors["Metal_Density2"] = 1
+        self.conversion_factors["Metallicity"] = 1
+        self.conversion_factors["MetallicitySNII"] = 1
+        self.conversion_factors["MetallicitySNIa"] = 1
                 
         # Now our conversion factors
         for ax in 'xyz':
@@ -526,6 +526,15 @@ class ARTStaticOutput(StaticOutput):
         self.max_level = header_vals['max_level']
         self.nhydro_vars = 10 #this gets updated later, but we'll default to this
         #nchem is nhydrovars-8, so we typically have 2 extra chem species 
+        
+        self.hubble_time  = 1.0/(self.hubble_constant*100/3.08568025e19)
+        #self.hubble_time /= 3.168876e7 #Gyr in s 
+        def integrand(x,oml=self.omega_lambda,omb=self.omega_matter):
+            return 1./(x*na.sqrt(oml+omb*x**-3.0))
+        spacings = na.logspace(-5,na.log10(self.parameters['aexpn']),1e5)
+        integrand_arr = integrand(spacings)
+        self.current_time = na.trapz(integrand_arr,dx=na.diff(spacings))
+        self.current_time *= self.hubble_time
         
         for to_skip in ['tl','dtl','tlold','dtlold','iSO']:
             _skip_record(f)

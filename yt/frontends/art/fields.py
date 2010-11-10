@@ -93,36 +93,39 @@ add_field("Temperature", function=_Temperature, units = r"\mathrm{K}")
 ARTFieldInfo["Temperature"]._units = r"\mathrm{K}"
 ARTFieldInfo["Temperature"]._convert_function=_convertTemperature
 
-def _Metal_DensitySNII(field, data):
-    tr  = data["Metal_Density1"] / data["Density"]
+def _MetallicitySNII(field, data):
+    #get the dimensionaless mass fraction
+    tr  = data["Metal_DensitySNII"] / data["Density"]
     tr *= data.pf.conversion_factors["Density"]    
     return tr
-def _convertMetal_DensitySNII(data):
-    return data.convert("Metal_Density1")
+def _convert_MetallicitySNII(data):
+    return data.convert("MetallicitySNII")
     
-add_field("Metal_DensitySNII", function=_Temperature, units = r"\mathrm{K}")
-ARTFieldInfo["Metal_DensitySNII"]._units = r"\mathrm{K}"
-ARTFieldInfo["Metal_DensitySNII"]._convert_function=_convertMetal_DensitySNII
+add_field("MetallicitySNII", function=_MetallicitySNII, units = r"\mathrm{K}")
+ARTFieldInfo["MetallicitySNII"]._units = r"\mathrm{K}"
+ARTFieldInfo["MetallicitySNII"]._convert_function=_convert_MetallicitySNII
 
-def _Metal_DensitySNIa(field, data):
-    tr  = data["Metal_Density2"] / data["Density"]
+def _MetallicitySNIa(field, data):
+    #get the dimensionaless mass fraction
+    tr  = data["Metal_DensitySNIa"] / data["Density"]
     tr *= data.pf.conversion_factors["Density"]    
     return tr
-def _convertMetal_DensitySNIa(data):
-    return data.convert("Metal_Density2")
+def _convert_MetallicitySNIa(data):
+    return data.convert("MetallicitySNIa")
     
-add_field("Metal_DensitySNIa", function=_Temperature, units = r"\mathrm{K}")
-ARTFieldInfo["Metal_DensitySNIa"]._units = r"\mathrm{K}"
-ARTFieldInfo["Metal_DensitySNIa"]._convert_function=_convertMetal_DensitySNIa
+add_field("MetallicitySNIa", function=_MetallicitySNIa, units = r"\mathrm{K}")
+ARTFieldInfo["MetallicitySNIa"]._units = r"\mathrm{K}"
+ARTFieldInfo["MetallicitySNIa"]._convert_function=_convert_MetallicitySNIa
 
-def _Metal_Density(field, data):
+def _Metallicity(field, data):
+    #get the dimensionaless mass fraction of the total metals
     tr  = data["Metal_Density2"] / data["Density"]
     tr += data["Metal_Density1"] / data["Density"]
     tr *= data.pf.conversion_factors["Density"]    
     return tr
-def _convertMetal_Density(data):
-    return data.convert("Metal_Density")
+def _convert_Metallicity(data):
+    return data.convert("Metallicity")
     
-add_field("Metal_Density", function=_Temperature, units = r"\mathrm{K}")
-ARTFieldInfo["Metal_Density"]._units = r"\mathrm{K}"
-ARTFieldInfo["Metal_Density"]._convert_function=_convertMetal_Density
+add_field("Metallicity", function=_Metallicity, units = r"\mathrm{K}")
+ARTFieldInfo["Metallicity"]._units = r"\mathrm{K}"
+ARTFieldInfo["Metallicity"]._convert_function=_convert_Metallicity
