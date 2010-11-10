@@ -35,7 +35,7 @@ from yt.visualization.image_writer import write_bitmap
 from yt.data_objects.data_containers import data_object_registry
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     ParallelAnalysisInterface
-from yt.utilities.amr_kdtree import *
+from yt.utilities.amr_kdtree.api import AMRKDTree
 
 class Camera(ParallelAnalysisInterface):
     def __init__(self, center, normal_vector, width,
@@ -176,6 +176,8 @@ class Camera(ParallelAnalysisInterface):
         self.steady_north = steady_north
         # This seems to be necessary for now.  Not sure what goes wrong when not true.
         if north_vector is not None: self.steady_north=True
+        self.north_vector = north_vector
+        self.rotation_vector = north_vector
         if fields is None: fields = ["Density"]
         self.fields = fields
         if transfer_function is None:
@@ -206,12 +208,15 @@ class Camera(ParallelAnalysisInterface):
             t = na.cross(normal_vector, vecs).sum(axis=1)
             ax = t.argmax()
             north_vector = na.cross(vecs[ax,:], normal_vector).ravel()
+            if self.rotation_vector is None:
+                self.rotation_vector=north_vector
         else:
             if self.steady_north:
                 north_vector = north_vector - na.dot(north_vector,normal_vector)*normal_vector
         north_vector /= na.sqrt(na.dot(north_vector, north_vector))
         east_vector = -na.cross(north_vector, normal_vector).ravel()
         east_vector /= na.sqrt(na.dot(east_vector, east_vector))
+        self.normal_vector = normal_vector
         self.unit_vectors = [north_vector, east_vector, normal_vector]
         self.box_vectors = na.array([self.unit_vectors[0]*self.width[0],
                                      self.unit_vectors[1]*self.width[1],
@@ -261,11 +266,15 @@ class Camera(ParallelAnalysisInterface):
             The 'up' direction for the plane of rays.  If not specific,
             calculated automatically.
         """
-        if width is None: width = self.width
+        if width is None:
+            width = self.width
         if not iterable(width):
             width = (width, width, width) # front/back, left/right, top/bottom
         self.width = width
-        if center is not None: self.center = center
+        if center is not None:
+            self.center = center
+        if north_vector is None:
+            north_vector = self.north_vector
         if normal_vector is None:
             normal_vector = self.front_center-self.center
         self._setup_normalized_vectors(normal_vector, north_vector)
@@ -381,6 +390,106 @@ class Camera(ParallelAnalysisInterface):
         f = final**(1.0/n_steps)
         for i in xrange(n_steps):
             self.zoom(f)
+            yield self.snapshot()
+
+    def move_to(self, final, n_steps, final_width=None):
+        r"""Loop over a look_at
+
+        This will yield `n_steps` snapshots until the current view has been
+        moved to a final center of `final` with a final width of final_width.
+
+        Parameters
+        ----------
+        final : array_like
+            The final center to move to after `n_steps`
+        n_steps : int
+            The number of look_at snapshots to make.
+        final_width: float or array_like, optional
+            Specifies the final width after `n_steps`.  Useful for
+            moving and zooming at the same time.
+            
+        Examples
+        --------
+
+        >>> for i, snapshot in enumerate(cam.move_to([0.2,0.3,0.6], 10)):
+        ...     iw.write_bitmap(snapshot, "move_%04i.png" % i)
+        """
+        self.center = na.array(self.center)
+        dW = None
+        if final_width is not None:
+            if not iterable(final_width):
+                width = na.array([final_width, final_width, final_width]) # front/back, left/right, top/bottom
+            dW = (1.0*final_width-na.array(self.width))/n_steps
+        dx = (na.array(final)-self.center)*1.0/n_steps
+        for i in xrange(n_steps):
+            self.switch_view(center=self.center+dx, width=self.width+dW)
+            yield self.snapshot()
+
+    def rotate(self, theta, rot_vector=None):
+        r"""Rotate by a given angle
+
+        Rotate the view.  If `rot_vector` is None, rotation will occur
+        around the `north_vector`.
+
+        Parameters
+        ----------
+        theta : float, in radians
+             Angle (in radians) by which to rotate the view.
+        rot_vector  : array_like, optional
+            Specify the rotation vector around which rotation will
+            occur.  Defaults to None, which sets rotation around
+            `north_vector`
+
+        Examples
+        --------
+
+        >>> cam.rotate(na.pi/4)
+        """
+        if rot_vector is None:
+            rot_vector = self.rotation_vector
+            
+        ux = rot_vector[0]
+        uy = rot_vector[1]
+        uz = rot_vector[2]
+        cost = na.cos(theta)
+        sint = na.sin(theta)
+        
+        R = na.array([[cost+ux**2*(1-cost), ux*uy*(1-cost)-uz*sint, ux*uz*(1-cost)+uy*sint],
+                      [uy*ux*(1-cost)+uz*sint, cost+uy**2*(1-cost), uy*uz*(1-cost)-ux*sint],
+                      [uz*ux*(1-cost)-uy*sint, uz*uy*(1-cost)+ux*sint, cost+uz**2*(1-cost)]])
+
+        normal_vector = self.front_center-self.center
+
+        self.switch_view(normal_vector=na.dot(R,normal_vector))
+
+
+    def rotation(self, theta, n_steps, rot_vector=None):
+        r"""Loop over rotate, creating a rotation
+
+        This will yield `n_steps` snapshots until the current view has been
+        rotated by an angle `theta`
+
+        Parameters
+        ----------
+        theta : float, in radians
+            Angle (in radians) by which to rotate the view.
+        n_steps : int
+            The number of look_at snapshots to make.
+        rot_vector  : array_like, optional
+            Specify the rotation vector around which rotation will
+            occur.  Defaults to None, which sets rotation around the
+            original `north_vector`
+
+        Examples
+        --------
+
+        >>> for i, snapshot in enumerate(cam.rotation(na.pi, 10)):
+        ...     iw.write_bitmap(snapshot, "rotation_%04i.png" % i)
+        """
+
+        dtheta = (1.0*theta)/n_steps
+        for i in xrange(n_steps):
+            self.rotate(dtheta, rot_vector=rot_vector)
             yield self.snapshot()
 
 data_object_registry["camera"] = Camera
