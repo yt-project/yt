@@ -33,14 +33,19 @@ from .transfer_functions import ProjectionTransferFunction
 from yt.utilities.amr_utils import TransferFunctionProxy, VectorPlane
 from yt.visualization.image_writer import write_bitmap
 from yt.data_objects.data_containers import data_object_registry
+from yt.utilities.parallel_tools.parallel_analysis_interface import \
+    ParallelAnalysisInterface
+from yt.utilities.amr_kdtree import *
 
-class Camera(object):
+class Camera(ParallelAnalysisInterface):
     def __init__(self, center, normal_vector, width,
                  resolution, transfer_function,
-                 north_vector = None,
+                 north_vector = None, steady_north=False,
                  volume = None, fields = None,
                  log_fields = None,
-                 sub_samples = 5, pf = None):
+                 sub_samples = 5, pf = None,
+                 use_kd=True, l_max=None, no_ghost=False,
+                 tree_type='domain'):
         r"""A viewpoint into a volume, for volume rendering.
 
         The camera represents the eye of an observer, which will be used to
@@ -59,8 +64,14 @@ class Camera(object):
         resolution : int or list of ints
             The number of pixels in each direction.
         north_vector : array_like, optional
-            The "up" direction for the plane of rays.  If not specific, calculated
+            The 'up' direction for the plane of rays.  If not specific, calculated
             automatically.
+        steady_north : bool, optional
+            Boolean to control whether to normalize the north_vector
+            by subtracting off the dot product of it and the normal
+            vector.  Makes it easier to do rotations along a single
+            axis.  If north_vector is specifies, is switched to
+            True. Default: False
         volume : `yt.extensions.volume_rendering.HomogenizedVolume`, optional
             The volume to ray cast through.  Can be specified for finer-grained
             control, but otherwise will be automatically generated.
@@ -75,6 +86,52 @@ class Camera(object):
         pf : `~yt.lagos.StaticOutput`
             For now, this is a require parameter!  But in the future it will become
             optional.  This is the parameter file to volume render.
+        use_kd: bool, optional
+            Specifies whether or not to use a kd-Tree framework for
+            the Homogenized Volume and ray-casting.  Default to True.
+        l_max: int, optional
+            Specifies the maximum level to be rendered.  Also
+            specifies the maximum level used in the kd-Tree
+            construction.  Defaults to None (all levels), and only
+            applies if use_kd=True.
+        no_ghost: bool, optional
+            Optimization option.  If True, homogenized bricks will
+            extrapolate out from grid instead of interpolating from
+            ghost zones that have to first be calculated.  This can
+            lead to large speed improvements, but at a loss of
+            accuracy/smoothness in resulting image.  The effects are
+            less notable when the transfer function is smooth and
+            broad. Default: False
+        tree_type: string, optional
+            Specifies the type of kd-Tree to be constructed/cast.
+            There are three options, the default being 'domain'. Only
+            affects parallel rendering.  'domain' is suggested.
+
+            'domain' - Tree construction/casting is load balanced by
+            splitting up the domain into the first N subtrees among N
+            processors (N must be a power of 2).  Casting then
+            proceeds with each processor rendering their subvolume,
+            and final image is composited on the root processor.  The
+            kd-Tree is never combined, reducing communication and
+            memory overhead. The viewpoint can be changed without
+            communication or re-partitioning of the data, making it
+            ideal for rotations/spins.
+
+            'breadth' - kd-Tree is first constructed as in 'domain',
+            but then combined among all the subtrees.  Rendering is
+            then split among N processors (again a power of 2), based
+            on the N most expensive branches of the tree.  As in
+            'domain', viewpoint can be changed without re-partitioning
+            or communication.
+
+            'depth' - kd-Tree is first constructed as in 'domain', but
+            then combined among all subtrees.  Rendering is then load
+            balanced in a back-to-front manner, splitting up the cost
+            as evenly as possible.  If the viewpoint changes,
+            additional data might have to be partitioned.  Is also
+            prone to longer data IO times.  If all the data can fit in
+            memory on each cpu, this can be the fastest option for
+            multiple ray casts on the same dataset.
 
         Examples
         --------
@@ -91,6 +148,9 @@ class Camera(object):
             width = (width, width, width) # front/back, left/right, top/bottom
         self.width = width
         self.center = center
+        self.steady_north = steady_north
+        # This seems to be necessary for now.  Not sure what goes wrong when not true.
+        if north_vector is not None: self.steady_north=True
         if fields is None: fields = ["Density"]
         self.fields = fields
         if transfer_function is None:
@@ -98,9 +158,17 @@ class Camera(object):
         self.transfer_function = transfer_function
         self._setup_normalized_vectors(normal_vector, north_vector)
         self.log_fields = log_fields
+        self.use_kd = use_kd
+        self.l_max = l_max
+        self.no_ghost = no_ghost
+        self.tree_type = tree_type
         if volume is None:
-            volume = HomogenizedVolume(fields, pf = self.pf,
-                                       log_fields = log_fields)
+            if self.use_kd:
+                volume = AMRKDTree(self.pf, l_max=l_max, fields=self.fields, no_ghost=no_ghost, tree_type=tree_type,
+                                   log_fields = log_fields)
+            else:
+                volume = HomogenizedVolume(fields, pf = self.pf,
+                                           log_fields = log_fields)
         self.volume = volume
 
     def _setup_normalized_vectors(self, normal_vector, north_vector):
@@ -111,6 +179,9 @@ class Camera(object):
             t = na.cross(normal_vector, vecs).sum(axis=1)
             ax = t.argmax()
             north_vector = na.cross(vecs[ax,:], normal_vector).ravel()
+        else:
+            if self.steady_north:
+                north_vector = north_vector - na.dot(north_vector,normal_vector)*normal_vector
         north_vector /= na.sqrt(na.dot(north_vector, north_vector))
         east_vector = -na.cross(north_vector, normal_vector).ravel()
         east_vector /= na.sqrt(na.dot(east_vector, east_vector))
@@ -144,6 +215,34 @@ class Camera(object):
         normal_vector = self.front_center - new_center
         self._setup_normalized_vectors(normal_vector, north_vector)
 
+    def switch_view(self, normal_vector=None, width=None, center=None, north_vector=None):
+        r"""Change the view direction based on any of the view parameters.
+
+        This will recalculate all the necessary vectors and vector planes related
+        to a camera with new normal vectors, widths, centers, or north vectors.
+
+        Parameters (All Optional)
+        ----------
+        normal_vector: array_like, optional
+            The new looking vector.
+        width: float or array of floats, optional
+            The new width.  Can be a single value W -> [W,W,W] or an
+            array [W1, W2, W3]
+        center: array_like, optional
+            Specifies the new center.
+        north_vector : array_like, optional
+            The 'up' direction for the plane of rays.  If not specific,
+            calculated automatically.
+        """
+        if width is None: width = self.width
+        if not iterable(width):
+            width = (width, width, width) # front/back, left/right, top/bottom
+        self.width = width
+        if center is not None: self.center = center
+        if normal_vector is None:
+            normal_vector = self.front_center-self.center
+        self._setup_normalized_vectors(normal_vector, north_vector)
+        
     def get_vector_plane(self, image):
         # We should move away from pre-generation of vectors like this and into
         # the usage of on-the-fly generation in the VolumeIntegrator module
@@ -189,17 +288,23 @@ class Camera(object):
         tfp = TransferFunctionProxy(self.transfer_function) # Reset it every time
         tfp.ns = self.sub_samples
         self.volume.initialize_source()
-        pbar = get_pbar("Ray casting",
-                        (self.volume.brick_dimensions + 1).prod(axis=-1).sum())
-        total_cells = 0
-        for brick in self.volume.traverse(self.back_center, self.front_center):
-            brick.cast_plane(tfp, vector_plane)
-            total_cells += na.prod(brick.my_data[0].shape)
-            pbar.update(total_cells)
-        pbar.finish()
-        if fn is None:
-            return image
-        write_bitmap(image, fn)
+        if self.use_kd:
+            self.volume.reset_cast()
+            image = self.volume.kd_ray_cast(image, tfp, vector_plane,
+                                            self.back_center, self.front_center)
+        else:
+            pbar = get_pbar("Ray casting",
+                            (self.volume.brick_dimensions + 1).prod(axis=-1).sum())
+            total_cells = 0
+            for brick in self.volume.traverse(self.back_center, self.front_center):
+                brick.cast_plane(tfp, vector_plane)
+                total_cells += na.prod(brick.my_data[0].shape)
+                pbar.update(total_cells)
+            pbar.finish()
+
+        if self._mpi_get_rank() is 0 and fn is not None:
+            write_bitmap(image, fn)
+            
         return image
 
     def zoom(self, factor):
