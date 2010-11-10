@@ -94,6 +94,7 @@ def export_to_sunrise(pf, fn, write_particles = True, subregion_bounds = None,
     col_list = []
     if subregion_bounds == None:    
         DLE, DRE = pf.domain_left_edge, pf.domain_right_edge
+        DX = pf.domain_dimensions
     else:
         DLE, DX = zip(*subregion_bounds)
         DLE, DX = na.array(DLE), na.array(DX)
@@ -122,9 +123,10 @@ def export_to_sunrise(pf, fn, write_particles = True, subregion_bounds = None,
         col_list.append(pyfits.Column("mass", format="D", array=current_mass, unit="Msun"))
         col_list.append(pyfits.Column("age_m", format="D", array=age))
         col_list.append(pyfits.Column("age_l", format="D", array=age))
+        #For particles, Sunrise takes 
+        #the dimensionless metallicity, not the mass of the metals
         col_list.append(pyfits.Column("metallicity", format="D",
-            array=0.02*current_mass*reg["metallicity_fraction"][pi],
-            unit="Msun")) # wrong?
+            array=reg["metallicity_fraction"][pi],unit="Msun")) # wrong?
         col_list.append(pyfits.Column("L_bol", format="D",
             array=na.zeros(particle_mass.size)))
 
@@ -137,9 +139,11 @@ def export_to_sunrise(pf, fn, write_particles = True, subregion_bounds = None,
         write_particles = True
 
     def _MetalMass(field, data):
-        return data["Metallicity"] * data["CellMassMsun"]
+        return data["Metal_Density"] * data["CellVolume"]
+        
     def _convMetalMass(data):
-        return 1.0
+        return 1.0/1.989e33
+        
     add_field("MetalMass", function=_MetalMass,
               convert_function=_convMetalMass)
 
@@ -172,8 +176,8 @@ def export_to_sunrise(pf, fn, write_particles = True, subregion_bounds = None,
 
     st_table.header.update("hierarch lengthunit", "kpc", comment="Length unit for grid")
     for i,a in enumerate('xyz'):
-        st_table.header.update("min%s" % a, DLE[i] * pf['kpc'])
-        st_table.header.update("max%s" % a, DRE[i] * pf['kpc'])
+        st_table.header.update("min%s" % a, DLE[i] * pf['kpc']/pf.domain_dimensions)
+        st_table.header.update("max%s" % a, DRE[i] * pf['kpc']/pf.domain_dimensions)
         st_table.header.update("n%s" % a, DX[i])
         st_table.header.update("subdiv%s" % a, 2)
     st_table.header.update("subdivtp", "UNIFORM", "Type of grid subdivision")
@@ -222,7 +226,7 @@ def export_to_sunrise(pf, fn, write_particles = True, subregion_bounds = None,
     col_list = [pyfits.Column("dummy", format="F", array=na.zeros(1, dtype='float32'))]
     cols = pyfits.ColDefs(col_list)
     md_table = pyfits.new_table(cols)
-    md_table.header.update("snaptime", pf.current_time*pf["years"])
+    md_table.header.update("snaptime", pf.current_time*pf['years'])
     md_table.name = "YT"
 
     hls = [pyfits.PrimaryHDU(), st_table, mg_table,md_table]

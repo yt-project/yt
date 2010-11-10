@@ -473,7 +473,8 @@ class AMRGridPatch(object):
             new_field[1:,1:,:-1] += of
             new_field[1:,1:,1:] += of
             na.multiply(new_field, 0.125, new_field)
-            new_field = na.log10(new_field)
+            if self.pf.field_info[field].take_log:
+                new_field = na.log10(new_field)
             
             new_field[:,:, -1] = 2.0*new_field[:,:,-2] - new_field[:,:,-3]
             new_field[:,:, 0]  = 2.0*new_field[:,:,1] - new_field[:,:,2]
@@ -483,6 +484,7 @@ class AMRGridPatch(object):
 
             new_field[-1,:,:] = 2.0*new_field[-2,:,:] - new_field[-3,:,:]
             new_field[0,:,:]  = 2.0*new_field[1,:,:] - new_field[2,:,:]
-            na.power(10.0,new_field,new_field)
+            if self.pf.field_info[field].take_log:
+                na.power(10.0, new_field, new_field)
         return new_field
 

@@ -438,10 +438,8 @@ class ARTStaticOutput(StaticOutput):
             self.rho0*self.v0**2*(aexpn**-5.0)
         tr  = self.tr
         self.conversion_factors["Temperature"] = tr
-        self.conversion_factors["Metallicity"] = 1
-        self.conversion_factors["MetallicitySNII"] = 1
-        self.conversion_factors["MetallicitySNIa"] = 1
-                
+        self.conversion_factors["Metal_Density"] = 1
+        
         # Now our conversion factors
         for ax in 'xyz':
             # Add on the 1e5 to get to cm/s
@@ -450,6 +448,10 @@ class ARTStaticOutput(StaticOutput):
         self.time_units['years'] = seconds / (365*3600*24.0)
         self.time_units['days']  = seconds / (3600*24.0)
 
+        #we were already in seconds, go back in to code units
+        self.current_time /= self.t0 
+        
+        
     def _parse_parameter_file(self):
         # We set our domain to run from 0 .. 1 since we are otherwise
         # unconstrained.
@@ -526,7 +528,6 @@ class ARTStaticOutput(StaticOutput):
         self.max_level = header_vals['max_level']
         self.nhydro_vars = 10 #this gets updated later, but we'll default to this
         #nchem is nhydrovars-8, so we typically have 2 extra chem species 
-        
         self.hubble_time  = 1.0/(self.hubble_constant*100/3.08568025e19)
         #self.hubble_time /= 3.168876e7 #Gyr in s 
         def integrand(x,oml=self.omega_lambda,omb=self.omega_matter):
@@ -535,7 +536,7 @@ class ARTStaticOutput(StaticOutput):
         integrand_arr = integrand(spacings)
         self.current_time = na.trapz(integrand_arr,dx=na.diff(spacings))
         self.current_time *= self.hubble_time
-        
+                
         for to_skip in ['tl','dtl','tlold','dtlold','iSO']:
             _skip_record(f)
 
