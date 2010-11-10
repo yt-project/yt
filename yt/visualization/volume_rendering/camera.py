@@ -138,6 +138,31 @@ class Camera(ParallelAnalysisInterface):
 
         >>> cam = vr.Camera(c, L, W, (N,N), transfer_function = tf, pf = pf)
         >>> image = cam.snapshot()
+
+        >>> from yt.mods import *
+        >>> import yt.visualization.volume_rendering.api as vr
+        
+        >>> pf = EnzoStaticOutput('DD1701') # Load pf
+        >>> c = [0.5]*3 # Center
+        >>> L = [1.0,1.0,1.0] # Viewpoint
+        >>> W = na.sqrt(3) # Width
+        >>> N = 1024 # Pixels (1024^2)
+
+        # Get density min, max
+        >>> mi, ma = pf.h.all_data().quantities['Extrema']('Density')[0]
+        >>> mi, ma = na.log10(mi), na.log10(ma)
+
+        # Construct transfer function
+        >>> tf = vr.ColorTransferFunction((mi-2, ma+2))
+        # Sample transfer function with 5 gaussians.  Use new col_bounds keyword.
+        >>> tf.add_layers(5,w=0.05, col_bounds = (mi+1,ma), colormap='spectral')
+        
+        # Create the camera object
+        >>> cam = vr.Camera(c, L, W, (N,N), transfer_function=tf, pf=pf) 
+        
+        # Ray cast, and save the image.
+        >>> image = cam.snapshot(fn='my_rendering.png')
+
         """
         if pf is not None: self.pf = pf
         if not iterable(resolution):
