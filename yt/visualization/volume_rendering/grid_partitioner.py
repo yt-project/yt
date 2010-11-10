@@ -43,8 +43,9 @@ from yt.utilities.parallel_tools.parallel_analysis_interface import \
 class HomogenizedVolume(ParallelAnalysisInterface):
     bricks = None
     def __init__(self, fields = "Density", source = None, pf = None,
-                 log_fields = None):
+                 log_fields = None, no_ghost = False):
         # Typically, initialized as hanging off a hierarchy.  But, not always.
+        self.no_ghost = no_ghost
         if pf is not None: self.pf = pf
         if source is None: source = self.pf.h.all_data()
         self.source = source
@@ -75,7 +76,8 @@ class HomogenizedVolume(ParallelAnalysisInterface):
         # field.
         vcds = []
         for field, log_field in zip(self.fields, self.log_fields):
-            vcd = grid.get_vertex_centered_data(field).astype('float64')
+            vcd = grid.get_vertex_centered_data(field, no_ghost = self.no_ghost)
+            vcd = vcd.astype("float64")
             if log_field: vcd = na.log10(vcd)
             vcds.append(vcd)
 
@@ -176,6 +178,9 @@ class HomogenizedVolume(ParallelAnalysisInterface):
                                 self.brick_dimensions[i,:],
                                 ))
         self.bricks = na.array(bricks, dtype='object')
+
+    def reset_cast(self):
+        pass
 
 class HomogenizedBrickCollection(DistributedObjectCollection):
     def __init__(self, source):

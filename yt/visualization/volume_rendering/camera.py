@@ -194,6 +194,8 @@ class Camera(ParallelAnalysisInterface):
             else:
                 volume = HomogenizedVolume(fields, pf = self.pf,
                                            log_fields = log_fields)
+        else:
+            self.use_kd = isinstance(volume, AMRKDTree)
         self.volume = volume
 
     def _setup_normalized_vectors(self, normal_vector, north_vector):
