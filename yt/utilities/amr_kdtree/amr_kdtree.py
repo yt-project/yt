@@ -26,18 +26,18 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 import numpy as na
+from mpi4py import MPI
 from yt.funcs import *
 from yt.visualization.volume_rendering.grid_partitioner import HomogenizedVolume
 from yt.utilities.amr_utils import PartitionedGrid
 from yt.utilities.performance_counters import yt_counters, time_function
 import yt.utilities.parallel_tools.parallel_analysis_interface as PT
 
-from yt.config import ytcfg
-
 from time import time
 import h5py
-my_rank = ytcfg.getint("yt", "__parallel_rank")
-nprocs = ytcfg.getint("yt", "__parallel_size")
+comm = MPI.COMM_WORLD
+my_rank = comm.rank
+nprocs = comm.size
 
 def corner_bounds(split_dim, split, current_left = None, current_right = None):
     r"""

@@ -234,9 +234,6 @@ cdef void read_art_vars(FILE *f,
         fread(&new_padding, sizeof(int), 1, f); FIX_LONG(new_padding)
         assert(padding[0] == new_padding)
 
-@cython.cdivision(True)
-@cython.boundscheck(False)
-@cython.wraparound(False)
 def read_art_grid(int varindex, 
               np.ndarray[np.int64_t, ndim=1] start_index,
               np.ndarray[np.int32_t, ndim=1] grid_dims,
@@ -253,8 +250,8 @@ def read_art_grid(int varindex,
     cdef np.ndarray[np.int64_t, ndim=1] og_start_index
     cdef np.float64_t temp_data
     cdef np.int64_t end_index[3]
-    cdef int kr_offset, jr_offset, ir_offset
     cdef int to_fill = 0
+    cdef ir_offset, jr_offset, kr_offset
     # Note that indexing into a cell is:
     #   (k*2 + j)*2 + i
     for i in range(3):
