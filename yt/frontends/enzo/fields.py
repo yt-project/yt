@@ -212,7 +212,8 @@ add_field("Overdensity",function=Overdensity,units=r"")
 
 _default_fields = ["Density","Temperature",
                    "x-velocity","y-velocity","z-velocity",
-                   "x-momentum","y-momentum","z-momentum"]
+                   "x-momentum","y-momentum","z-momentum",
+                   "Bx", "By", "Bz"]
 # else:
 #     _default_fields = ["Density","Temperature","Gas_Energy","Total_Energy",
 #                        "x-velocity","y-velocity","z-velocity"]
@@ -382,6 +383,22 @@ def _IsStarParticle(field, data):
 add_field('IsStarParticle', function=_IsStarParticle,
           particle_type = True)
 
+def _convertBfield(data): 
+    return na.sqrt(4*na.pi*data.convert("Density")*data.convert("x-velocity")**2)
+for field in ['Bx','By','Bz']:
+    f = EnzoFieldInfo[field]
+    f._convert_function=_convertBfield
+    f._units=r"\mathrm{Gau\ss}"
+    f.take_log=False
+
+def _Bmag(field, data):
+    """ magnitude of bvec
+    """
+    return na.sqrt(data['Bx']**2 + data['By']**2 + data['Bz']**2)
+
+add_field("Bmag", function=_Bmag,display_name=r"|B|",units=r"\mathrm{Gau\ss}")
+
+    
 #
 # Now we do overrides for 2D fields
 #
