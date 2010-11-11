@@ -30,6 +30,11 @@ import pyx
 import numpy as na
 from matplotlib import cm
 
+from yt.utilities.definitions import \
+    x_dict, x_names, \
+    y_dict, y_names, \
+    axis_names, \
+    axis_labels
 from .plot_types import \
     VMPlot, \
     ProfilePlot
