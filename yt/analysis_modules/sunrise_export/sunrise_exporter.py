@@ -176,8 +176,8 @@ def export_to_sunrise(pf, fn, write_particles = True, subregion_bounds = None,
 
     st_table.header.update("hierarch lengthunit", "kpc", comment="Length unit for grid")
     for i,a in enumerate('xyz'):
-        st_table.header.update("min%s" % a, DLE[i] * pf['kpc']/pf.domain_dimensions)
-        st_table.header.update("max%s" % a, DRE[i] * pf['kpc']/pf.domain_dimensions)
+        st_table.header.update("min%s" % a, DLE[i] * pf['kpc']/pf.domain_dimensions[i])
+        st_table.header.update("max%s" % a, DRE[i] * pf['kpc']/pf.domain_dimensions[i])
         st_table.header.update("n%s" % a, DX[i])
         st_table.header.update("subdiv%s" % a, 2)
     st_table.header.update("subdivtp", "UNIFORM", "Type of grid subdivision")
