@@ -25,6 +25,11 @@ License:
 
 from collections import defaultdict
 
+try:
+    from pyhdf_np import SD
+except ImportError:
+    pass
+
 import exceptions
 import os
 
