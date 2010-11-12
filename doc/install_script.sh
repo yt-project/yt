@@ -282,7 +282,7 @@ then
         [ ! -e libpng-1.2.43 ] && tar xfz libpng-1.2.43.tar.gz
         echo "Installing PNG"
         cd libpng-1.2.43
-        ( ./configure --prefix=${DEST_DIR}/ 2>&1 ) 1>> ${LOG_FILE} || do_exit
+        ( ./configure CFLAGS=-I${DEST_DIR}/include --prefix=${DEST_DIR}/ 2>&1 ) 1>> ${LOG_FILE} || do_exit
         ( make install 2>&1 ) 1>> ${LOG_FILE} || do_exit
         touch done
         cd ..
