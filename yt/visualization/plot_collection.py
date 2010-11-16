@@ -314,7 +314,7 @@ class PlotCollection(object):
         collection.
 
         This function will generate a `yt.data_objects.api.AMRSliceBase` from the given
-        parameters.  This slice then gets passed to a `yt.raven.SlicePlot`, and
+        parameters.  This slice then gets passed to a `yt.visualization.plot_types.SlicePlot`, and
         the resultant plot is added to the current collection.  Various
         parameters allow control of the way the slice is displayed, as well as
         how the slice is generated.
@@ -354,7 +354,7 @@ class PlotCollection(object):
 
         Returns
         -------
-        plot : `yt.raven.SlicePlot`
+        plot : `yt.visualization.plot_types.SlicePlot`
             The plot that has been added to the PlotCollection.
 
         See Also
@@ -433,7 +433,7 @@ class PlotCollection(object):
 
         Returns
         -------
-        plot : `yt.raven.ParticlePlot`
+        plot : `yt.visualization.plot_types.ParticlePlot`
             The plot that has been added to the PlotCollection.
 
         Notes
@@ -473,7 +473,7 @@ class PlotCollection(object):
         oriented by a specified normal vector that is perpendicular to the
         image plane.  This function will generate a
         `yt.data_objects.api.AMRCuttingPlaneBase` from the given parameters.  This cutting
-        plane then gets passed to a `yt.raven.CuttingPlanePlot`, and the
+        plane then gets passed to a `yt.visualization.plot_types.CuttingPlanePlot`, and the
         resultant plot is added to the current collection.  Various parameters
         allow control of the way the slice is displayed, as well as how the
         plane is generated.
@@ -510,7 +510,7 @@ class PlotCollection(object):
 
         Returns
         -------
-        plot : `yt.raven.CuttingPlanePlot`
+        plot : `yt.visualization.plot_types.CuttingPlanePlot`
             The plot that has been added to the PlotCollection.
 
         See Also
@@ -569,7 +569,7 @@ class PlotCollection(object):
         width, it only retains the pixels for a single width.  This function
         will generate a `yt.data_objects.api.AMRFixedResCuttingPlaneBase` from the given
         parameters.  This image buffer then gets passed to a
-        `yt.raven.FixedResolutionPlot`, and the resultant plot is added to the
+        `yt.visualization.plot_types.FixedResolutionPlot`, and the resultant plot is added to the
         current collection.  Various parameters allow control of the way the
         slice is displayed, as well as how the plane is generated.
 
@@ -610,7 +610,7 @@ class PlotCollection(object):
 
         Returns
         -------
-        plot : `yt.raven.FixedResolutionPlot`
+        plot : `yt.visualization.plot_types.FixedResolutionPlot`
             The plot that has been added to the PlotCollection.
 
         See Also
@@ -659,7 +659,7 @@ class PlotCollection(object):
 
         This function will generate a `yt.data_objects.api.AMRProjBase` from the given
         parameters.  This projection then gets passed to a
-        `yt.raven.ProjectionPlot`, and the resultant plot is added to the
+        `yt.visualization.plot_types.ProjectionPlot`, and the resultant plot is added to the
         current collection.  Various parameters allow control of the way the
         slice is displayed, as well as how the slice is generated.
 
@@ -706,7 +706,7 @@ class PlotCollection(object):
 
         Returns
         -------
-        plot : `yt.raven.ProjectionPlot`
+        plot : `yt.visualization.plot_types.ProjectionPlot`
             The plot that has been added to the PlotCollection.
 
         See Also
@@ -752,7 +752,7 @@ class PlotCollection(object):
 
         This function will generate a rectangular prism region and supply it to
         a`yt.data_objects.api.AMRProjBase` from the given parameters.  This projection
-        then gets passed to a `yt.raven.ProjectionPlot`, and the resultant plot
+        then gets passed to a `yt.visualization.plot_types.ProjectionPlot`, and the resultant plot
         is added to the current collection.  Various parameters allow control
         of the way the slice is displayed, as well as how the slice is
         generated.  The center is used as the center of the thin projection.
@@ -794,7 +794,7 @@ class PlotCollection(object):
 
         Returns
         -------
-        plot : `yt.raven.ProjectionPlot`
+        plot : `yt.visualization.plot_types.ProjectionPlot`
             The plot that has been added to the PlotCollection.
 
         See Also
@@ -894,12 +894,12 @@ class PlotCollection(object):
 
         Returns
         -------
-        plot : `yt.raven.ProfilePlot`
+        plot : `yt.visualization.plot_types.ProfilePlot`
             The plot that has been added to the PlotCollection.
 
         See Also
         --------
-        yt.lagos.BinnedProfile1D : This is the object that does the
+        yt.data_objects.profiles.BinnedProfile1D : This is the object that does the
                                    transformation of raw data into a 1D
                                    profile.
 
@@ -987,13 +987,13 @@ class PlotCollection(object):
 
         Returns
         -------
-        plot : `yt.raven.ProfilePlot`
+        plot : `yt.visualization.plot_types.ProfilePlot`
             The plot that has been added to the PlotCollection.  Note that the
             underlying sphere may be accessed as .data.data_source
 
         See Also
         --------
-        yt.lagos.BinnedProfile1D : This is the object that does the
+        yt.data_objects.profiles.BinnedProfile1D : This is the object that does the
                                    transformation of raw data into a 1D
                                    profile.
         yt.data_objects.api.AMRSphereBase : This is the object auto-generated by this
@@ -1093,12 +1093,12 @@ class PlotCollection(object):
 
         Returns
         -------
-        plot : `yt.raven.PlotTypes.PhasePlot`
+        plot : `yt.visualization.plot_types.PlotTypes.PhasePlot`
             The plot that has been added to the PlotCollection.
 
         See Also
         --------
-        yt.lagos.BinnedProfile2D : This is the object that does the
+        yt.data_objects.profiles.BinnedProfile2D : This is the object that does the
                                    transformation of raw data into a 1D
                                    profile.
         
@@ -1217,12 +1217,12 @@ class PlotCollection(object):
 
         Returns
         -------
-        plot : `yt.raven.PhasePlot`
+        plot : `yt.visualization.plot_types.PhasePlot`
             The plot that has been added to the PlotCollection.
 
         See Also
         --------
-        yt.lagos.BinnedProfile2D : This is the object that does the
+        yt.data_objects.profiles.BinnedProfile2D : This is the object that does the
                                    transformation of raw data into a 1D
                                    profile.
 
@@ -1276,7 +1276,7 @@ class PlotCollection(object):
         
         Returns
         -------
-        plot : `yt.raven.ScatterPlot`
+        plot : `yt.visualization.plot_types.ScatterPlot`
             The plot that has been added to the PlotCollection.
 
         Notes
@@ -1309,7 +1309,7 @@ class PlotCollection(object):
 
         Parameters
         ----------
-        frb : `yt.raven.FixedResolutionBuffer`
+        frb : `yt.visualization.plot_types.FixedResolutionBuffer`
             The buffer from which fields will be pulled.
         field : string
             The initial field to display.
@@ -1328,7 +1328,7 @@ class PlotCollection(object):
 
         Returns
         -------
-        plot : `yt.raven.FixedResolutionPlot`
+        plot : `yt.visualization.plot_types.FixedResolutionPlot`
             The plot that has been added to the PlotCollection.
 
         See Also
@@ -1361,7 +1361,7 @@ class PlotCollection(object):
         it to the current collection.
 
         This function will generate a `yt.data_objects.api.AMROrthoRayBase` from the given
-        parameters.  This ray then gets passed to a `yt.raven.LineQueryPLot`, and
+        parameters.  This ray then gets passed to a `yt.visualization.plot_types.LineQueryPLot`, and
         the resultant plot is added to the current collection.  Various
         parameters allow control of the way the line plot is displayed, as well as
         how the ray is generated.
@@ -1390,7 +1390,7 @@ class PlotCollection(object):
 
         Returns
         -------
-        plot : `yt.raven.LineQueryPlot`
+        plot : `yt.visualization.plot_types.LineQueryPlot`
             The plot that has been added to the PlotCollection.
 
         See Also
@@ -1424,7 +1424,7 @@ class PlotCollection(object):
         it to the current collection.
 
         This function will generate a `yt.data_objects.api.AMRRayBase` from the given
-        parameters.  This ray then gets passed to a `yt.raven.LineQueryPLot`, and
+        parameters.  This ray then gets passed to a `yt.visualization.plot_types.LineQueryPLot`, and
         the resultant plot is added to the current collection.  Various
         parameters allow control of the way the line plot is displayed, as well as
         how the ray is generated.
@@ -1451,7 +1451,7 @@ class PlotCollection(object):
 
         Returns
         -------
-        plot : `yt.raven.LineQueryPlot`
+        plot : `yt.visualization.plot_types.LineQueryPlot`
             The plot that has been added to the PlotCollection.
 
         See Also

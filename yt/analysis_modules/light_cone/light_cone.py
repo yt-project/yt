@@ -275,9 +275,9 @@ class LightCone(EnzoSimulation):
             if ytcfg.getint("yt", "__parallel_rank") == 0:
                 if photon_field:
                     # Decrement the flux by the luminosity distance. Assume field in frb is in erg/s/cm^2/Hz
-                    co = lagos.Cosmology(HubbleConstantNow = (100.0 * self.enzoParameters['CosmologyHubbleConstantNow']),
-                                         OmegaMatterNow = self.enzoParameters['CosmologyOmegaMatterNow'],
-                                         OmegaLambdaNow = self.enzoParameters['CosmologyOmegaLambdaNow'])
+                    co = Cosmology(HubbleConstantNow = (100.0 * self.enzoParameters['CosmologyHubbleConstantNow']),
+                                   OmegaMatterNow = self.enzoParameters['CosmologyOmegaMatterNow'],
+                                   OmegaLambdaNow = self.enzoParameters['CosmologyOmegaLambdaNow'])
                     dL = self.cosmology.LuminosityDistance(self.observer_redshift, output['redshift']) #in Mpc
                     boxSizeProper = self.enzoParameters['CosmologyComovingBoxSize'] / (self.enzoParameters['CosmologyHubbleConstantNow'] * 
                                                                                        (1.0 + output['redshift']))

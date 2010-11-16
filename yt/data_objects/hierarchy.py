@@ -149,7 +149,7 @@ class AMRHierarchy(ObjectFindingMixin, ParallelAnalysisInterface):
         return dd
 
     def _initialize_data_storage(self):
-        if not ytcfg.getboolean('lagos','serialize'): return
+        if not ytcfg.getboolean('yt','serialize'): return
         fn = self.pf.storage_filename
         if fn is None:
             if os.path.isfile(os.path.join(self.directory,
@@ -169,7 +169,7 @@ class AMRHierarchy(ObjectFindingMixin, ParallelAnalysisInterface):
             writeable = os.access(dir_to_check, os.W_OK)
         else:
             writeable = os.access(fn, os.W_OK)
-        writeable = writeable and not ytcfg.getboolean('lagos','onlydeserialize')
+        writeable = writeable and not ytcfg.getboolean('yt','onlydeserialize')
         # We now have our conditional stuff
         self._barrier()
         if not writeable and not exists: return

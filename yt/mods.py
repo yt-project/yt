@@ -94,8 +94,8 @@ from yt.convenience import all_pfs, max_spheres, load, projload
 # This way, other command-line tools can be used very simply.
 # Unfortunately, for now, I think the easiest and simplest way of doing
 # this is also the most dangerous way.
-if ytcfg.getboolean("lagos","loadfieldplugins"):
-    my_plugin_name = ytcfg.get("lagos","pluginfilename")
+if ytcfg.getboolean("yt","loadfieldplugins"):
+    my_plugin_name = ytcfg.get("yt","pluginfilename")
     # We assume that it is with respect to the $HOME/.yt directory
     fn = os.path.expanduser("~/.yt/%s" % my_plugin_name)
     if os.path.isfile(fn):

@@ -1603,7 +1603,7 @@ class AMRProjBase(AMR2DData):
             if not self._check_region and self.__retval_coords[grid1.id][0].size != 0:
                 mylog.error("Something messed up, and %s still has %s points of data",
                             grid1, self.__retval_coords[grid1.id][0].size)
-                mylog.error("You might try setting the ReconstructHierarchy option in [lagos]")
+                mylog.error("Please contact the yt-users mailing list.")
                 raise ValueError(grid1, self.__retval_coords[grid1.id])
         pbar.finish()
 
