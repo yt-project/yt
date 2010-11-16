@@ -97,7 +97,10 @@ from yt.convenience import all_pfs, max_spheres, load, projload
 if ytcfg.getboolean("yt","loadfieldplugins"):
     my_plugin_name = ytcfg.get("yt","pluginfilename")
     # We assume that it is with respect to the $HOME/.yt directory
-    fn = os.path.expanduser("~/.yt/%s" % my_plugin_name)
+    if os.path.isfile(my_plugin_name):
+        fn = my_plugin_name
+    else:
+        fn = os.path.expanduser("~/.yt/%s" % my_plugin_name)
     if os.path.isfile(fn):
         mylog.info("Loading plugins from %s", fn)
         execfile(fn)
