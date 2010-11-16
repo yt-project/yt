@@ -30,6 +30,10 @@ import os
 import stat
 import string
 import re
+try:
+    from pyhdf_np import SD
+except ImportError:
+    pass
 
 from itertools import izip
 
@@ -45,7 +49,8 @@ from yt.utilities import hdf5_light_reader
 from yt.utilities.logger import ytLogger as mylog
 
 from .definitions import parameterDict
-from .fields import EnzoFieldContainer, add_enzo_field
+from .fields import EnzoFieldContainer, Enzo1DFieldContainer, \
+    Enzo2DFieldContainer, add_enzo_field
 
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     parallel_blocking_call
@@ -600,9 +605,9 @@ class EnzoStaticOutput(StaticOutput):
         of {fieldname : conversion_to_cgs} that will override the #DataCGS.
         """
         if parameter_override is None: parameter_override = {}
-        self.__parameter_override = parameter_override
+        self._parameter_override = parameter_override
         if conversion_override is None: conversion_override = {}
-        self.__conversion_override = conversion_override
+        self._conversion_override = conversion_override
         self.storage_filename = storage_filename
 
         StaticOutput.__init__(self, filename, data_style)
@@ -732,9 +737,9 @@ class EnzoStaticOutput(StaticOutput):
                 self.domain_right_edge = \
                 self.parameters["DomainRightEdge"] = \
                     na.array([float(i) for i in vals.split()])
-        for p, v in self.__parameter_override.items():
+        for p, v in self._parameter_override.items():
             self.parameters[p] = v
-        for p, v in self.__conversion_override.items():
+        for p, v in self._conversion_override.items():
             self.conversion_factors[p] = v
         self.refine_by = self.parameters["RefineBy"]
         self.dimensionality = self.parameters["TopGridRank"]
@@ -856,9 +861,9 @@ class EnzoStaticOutputInMemory(EnzoStaticOutput):
 
     def __init__(self, parameter_override=None, conversion_override=None):
         if parameter_override is None: parameter_override = {}
-        self.__parameter_override = parameter_override
+        self._parameter_override = parameter_override
         if conversion_override is None: conversion_override = {}
-        self.__conversion_override = conversion_override
+        self._conversion_override = conversion_override
 
         StaticOutput.__init__(self, "InMemoryParameterFile", self._data_style)
 
@@ -882,9 +887,9 @@ class EnzoStaticOutputInMemory(EnzoStaticOutput):
         for i in self.conversion_factors:
             if isinstance(self.conversion_factors[i], types.TupleType):
                 self.conversion_factors[i] = na.array(self.conversion_factors[i])
-        for p, v in self.__parameter_override.items():
+        for p, v in self._parameter_override.items():
             self.parameters[p] = v
-        for p, v in self.__conversion_override.items():
+        for p, v in self._conversion_override.items():
             self.conversion_factors[p] = v
         self.refine_by = self.parameters["RefineBy"]
         self.dimensionality = self.parameters["TopGridRank"]

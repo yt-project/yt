@@ -1251,229 +1251,6 @@ class AMRQuadTreeProjBase(AMR2DData):
             self._okay_to_serialize = True
 
     def _get_tree(self, nvals):
-        xd = self.pf["TopGridDimensions"][x_dict[self.axis]]
-        yd = self.pf["TopGridDimensions"][y_dict[self.axis]]
-        return QuadTree(na.array([xd,yd]), nvals)
-
-    def _get_dls(self, grid, fields):
-        # Place holder for a time when maybe we will not be doing just
-        # a single dx for every field.
-        dls = []
-        convs = []
-        for field in fields + [self._weight]:
-            if field is None: continue
-            dls.append(just_one(grid['d%s' % axis_names[self.axis]]))
-            convs.append(self.pf.units[self.pf.field_info[field].projection_conversion])
-        return na.array(dls), na.array(convs)
-
-    def get_data(self, fields = None):
-        if fields is None: fields = ensure_list(self.fields)[:]
-        else: fields = ensure_list(fields)
-        # We need a new tree for every single set of fields we add
-        self._obtain_fields(fields, self._node_name)
-        fields = [f for f in fields if f not in self.data]
-        if len(fields) == 0: return
-        tree = self._get_tree(len(fields) + int(self._weight is not None))
-        coord_data = []
-        field_data = []
-        dxs = []
-        # We do this here, but I am not convinced it should be done here
-        # It is probably faster, as it consolidates IO, but if we did it in
-        # _project_level, then it would be more memory conservative
-        if self.preload_style == 'all':
-            print "Preloading %s grids and getting %s" % (
-                    len(self.source._grids), self._get_dependencies(fields))
-            self._preload(self.source._grids,
-                          self._get_dependencies(fields), self.hierarchy.io)
-        # By changing the remove-from-tree method to accumulate, we can avoid
-        # having to do this by level, and instead do it by CPU file
-        for level in range(0, self._max_level+1):
-            if self.preload_style == 'level':
-                self._preload(self.source.select_grids(level),
-                              self._get_dependencies(fields), self.hierarchy.io)
-            self._add_level_to_tree(tree, level, fields)
-            mylog.debug("End of projecting level level %s, memory usage %0.3e", 
-                        level, get_memory_usage()/1024.)
-        # Note that this will briefly double RAM usage
-        coord_data, field_data, weight_data, dxs = [], [], [], []
-        for level in range(0, self._max_level + 1):
-            npos, nvals, nwvals = tree.get_all_from_level(level, False)
-            coord_data.append(npos)
-            if self._weight is not None: nvals /= nwvals
-            field_data.append(nvals)
-            weight_data.append(nwvals)
-            gs = self.source.select_grids(level)
-            if len(gs) > 0:
-                ds = gs[0].dds[0]
-            else:
-                ds = 0.0
-            dxs.append(na.ones(nvals.shape[0], dtype='float64') * ds)
-        del tree
-        coord_data = na.concatenate(coord_data, axis=0).transpose()
-        field_data = na.concatenate(field_data, axis=0).transpose()
-        weight_data = na.concatenate(weight_data, axis=0).transpose()
-        dxs = na.concatenate(dxs, axis=0).transpose()
-        # We now convert to half-widths and center-points
-        data = {}
-        data['pdx'] = dxs
-        ox = self.pf["DomainLeftEdge"][x_dict[self.axis]]
-        oy = self.pf["DomainLeftEdge"][y_dict[self.axis]]
-        data['px'] = (coord_data[0,:]+0.5) * data['pdx'] + ox
-        data['py'] = (coord_data[1,:]+0.5) * data['pdx'] + oy
-        data['weight_field'] = weight_data
-        del coord_data
-        data['pdx'] *= 0.5
-        data['pdy'] = data['pdx'] # generalization is out the window!
-        data['fields'] = field_data
-        # Now we run the finalizer, which is ignored if we don't need it
-        data = self._mpi_catdict(data)
-        field_data = na.vsplit(data.pop('fields'), len(fields))
-        for fi, field in enumerate(fields):
-            self[field] = field_data[fi].ravel()
-            if self.serialize: self._store_fields(field, self._node_name)
-        for i in data.keys(): self[i] = data.pop(i)
-        mylog.info("Projection completed")
-
-    def _add_grid_to_tree(self, tree, grid, fields, zero_out, dls):
-        # We build up the fields to add
-        if self._weight is None:
-            weight_data = na.ones(grid.ActiveDimensions, dtype='float64')
-            if zero_out: weight_data[grid.child_indices] = 0
-            masked_data = [fd.astype('float64') * weight_data
-                           for fd in self._get_data_from_grid(grid, fields)]
-            wdl = 1.0
-        else:
-            fields_to_get = list(set(fields + [self._weight]))
-            field_data = dict(zip(
-                fields_to_get, self._get_data_from_grid(grid, fields_to_get)))
-            weight_data = field_data[self._weight].copy().astype('float64')
-            if zero_out: weight_data[grid.child_indices] = 0
-            masked_data  = [field_data[field].copy().astype('float64') * weight_data
-                                for field in fields]
-            del field_data
-            wdl = self.dls[-1]
-        full_proj = [self.func(field, axis=self.axis) * dl
-                     for field, dl in zip(masked_data, dls)]
-        weight_proj = self.func(weight_data, axis=self.axis) * wdl
-        if (self._check_region and not self.source._is_fully_enclosed(grid)) or self._field_cuts is not None:
-            used_data = self._get_points_in_region(grid).astype('bool')
-            used_points = na.where(na.logical_or.reduce(used_data, self.axis))
-        else:
-            used_data = na.array([1.0], dtype='bool')
-            used_points = slice(None)
-        xind, yind = [arr[used_points].ravel() for arr in na.indices(full_proj[0].shape)]
-        start_index = grid.get_global_startindex()
-        xpoints = (xind + (start_index[x_dict[self.axis]])).astype('int64')
-        ypoints = (yind + (start_index[y_dict[self.axis]])).astype('int64')
-        to_add = na.array([d[used_points].ravel() for d in full_proj])
-        tree.add_array_to_tree(grid.Level, xpoints, ypoints, 
-                    to_add, weight_proj[used_points].ravel())
-
-    def _add_level_to_tree(self, tree, level, fields):
-        grids_to_project = self.source.select_grids(level)
-        dls, convs = self._get_dls(grids_to_project[0], fields)
-        zero_out = (level != self._max_level)
-        pbar = get_pbar('Projecting  level % 2i / % 2i ' \
-                          % (level, self._max_level), len(grids_to_project))
-        for pi, grid in enumerate(grids_to_project):
-            self._add_grid_to_tree(tree, grid, fields, zero_out, dls)
-            pbar.update(pi)
-            grid.clear_data()
-        pbar.finish()
-        lt = tree.get_all_from_level(level, False)
-        return
-        if self._weight is not None:
-            field_data = field_data / coord_data[3,:].reshape((1,coord_data.shape[1]))
-        else:
-            field_data *= convs[...,na.newaxis]
-        mylog.info("Level %s done: %s final", \
-                   level, coord_data.shape[1])
-        dx = grids_to_project[0].dds[self.axis] # this is our dl
-        return coord_data, dx, field_data
-
-
-    def _get_points_in_region(self, grid):
-        pointI = self.source._get_point_indices(grid, use_child_mask=False)
-        point_mask = na.zeros(grid.ActiveDimensions)
-        point_mask[pointI] = 1.0
-        if self._field_cuts is not None:
-            for cut in self._field_cuts:
-                point_mask *= eval(cut)
-        return point_mask
-
-    @restore_grid_state
-    def _get_data_from_grid(self, grid, fields):
-        fields = ensure_list(fields)
-        if self._check_region:
-            bad_points = self._get_points_in_region(grid)
-        else:
-            bad_points = 1.0
-        return [grid[field] * bad_points for field in fields]
-
-    def _gen_node_name(self):
-        return  "%s/%s" % \
-            (self._top_node, self.axis)
-
-class AMRQuadTreeProjBase(AMR2DData):
-    _top_node = "/Projections"
-    _key_fields = AMR2DData._key_fields + ['weight_field']
-    _type_name = "quad_proj"
-    _con_args = ('axis', 'field', 'weight_field')
-    def __init__(self, axis, field, weight_field = None,
-                 max_level = None, center = None, pf = None,
-                 source=None, node_name = None, field_cuts = None,
-                 preload_style='level', serialize=True,**kwargs):
-        """
-        AMRProj is a projection of a *field* along an *axis*.  The field
-        can have an associated *weight_field*, in which case the values are
-        multiplied by a weight before being summed, and then divided by the sum
-        of that weight.
-        """
-        AMR2DData.__init__(self, axis, field, pf, node_name = None, **kwargs)
-        self.weight_field = weight_field
-        self._field_cuts = field_cuts
-        self.serialize = serialize
-        self._set_center(center)
-        if center is not None: self.set_field_parameter('center',center)
-        self._node_name = node_name
-        self._initialize_source(source)
-        self.func = na.sum # for the future
-        self._grids = self.source._grids
-        if max_level == None:
-            max_level = self.hierarchy.max_level
-        if self.source is not None:
-            max_level = min(max_level, self.source.grid_levels.max())
-        self._max_level = max_level
-        self._weight = weight_field
-        self.preload_style = preload_style
-        self._deserialize(node_name)
-        self._refresh_data()
-        if self._okay_to_serialize and self.serialize: self._serialize(node_name=self._node_name)
-
-    def _convert_field_name(self, field):
-        if field == "weight_field": return "weight_field_%s" % self._weight
-        if field in self._key_fields: return field
-        return "%s_%s" % (field, self._weight)
-
-    def _initialize_source(self, source = None):
-        if source is None:
-            check, source = self._partition_hierarchy_2d(self.axis)
-            self._check_region = check
-            #self._okay_to_serialize = (not check)
-        else:
-            self._distributed = False
-            self._okay_to_serialize = False
-            self._check_region = True
-        self.source = source
-        if self._field_cuts is not None:
-            # Override if field cuts are around; we don't want to serialize!
-            self._check_region = True
-            self._okay_to_serialize = False
-        if self._node_name is not None:
-            self._node_name = "%s/%s" % (self._top_node,self._node_name)
-            self._okay_to_serialize = True
-
-    def _get_tree(self, nvals):
         xd = self.pf.domain_dimensions[x_dict[self.axis]]
         yd = self.pf.domain_dimensions[y_dict[self.axis]]
         return QuadTree(na.array([xd,yd]), nvals)
@@ -1765,8 +1542,9 @@ class AMRProjBase(AMR2DData):
             field_data *= convs[...,na.newaxis]
         mylog.info("Level %s done: %s final", \
                    level, coord_data.shape[1])
-        dx = grids_to_project[0].dds[self.axis] # this is our dl
-        return coord_data, dx, field_data
+        pdx = grids_to_project[0].dds[x_dict[self.axis]] # this is our dl
+        pdy = grids_to_project[0].dds[y_dict[self.axis]] # this is our dl
+        return coord_data, pdx, pdy, field_data
 
     def __combine_grids_on_level(self, level):
         grids = self.source.select_grids(level)
@@ -1838,7 +1616,8 @@ class AMRProjBase(AMR2DData):
         if len(fields) == 0: return
         coord_data = []
         field_data = []
-        dxs = []
+        pdxs = []
+        pdys = []
         # We do this here, but I am not convinced it should be done here
         # It is probably faster, as it consolidates IO, but if we did it in
         # _project_level, then it would be more memory conservative
@@ -1852,10 +1631,12 @@ class AMRProjBase(AMR2DData):
                 self._preload(self.source.select_grids(level),
                               self._get_dependencies(fields), self.hierarchy.io)
             self.__calculate_overlap(level)
-            my_coords, my_dx, my_fields = self.__project_level(level, fields)
+            my_coords, my_pdx, my_pdy, my_fields = \
+                self.__project_level(level, fields)
             coord_data.append(my_coords)
             field_data.append(my_fields)
-            dxs.append(my_dx * na.ones(my_coords.shape[1], dtype='float64'))
+            pdxs.append(my_pdx * na.ones(my_coords.shape[1], dtype='float64'))
+            pdys.append(my_pdx * na.ones(my_coords.shape[1], dtype='float64'))
             if self._check_region and False:
                 check=self.__cleanup_level(level - 1)
                 if len(check) > 0: all_data.append(check)
@@ -1868,10 +1649,12 @@ class AMRProjBase(AMR2DData):
                         level, get_memory_usage()/1024.)
         coord_data = na.concatenate(coord_data, axis=1)
         field_data = na.concatenate(field_data, axis=1)
-        dxs = na.concatenate(dxs, axis=1)
+        pdxs = na.concatenate(pdxs, axis=1)
+        pdys = na.concatenate(pdys, axis=1)
         # We now convert to half-widths and center-points
         data = {}
-        data['pdx'] = dxs
+        data['pdx'] = pdxs; del pdxs
+        data['pdy'] = pdys; del pdys
         ox = self.pf.domain_left_edge[x_dict[self.axis]]
         oy = self.pf.domain_left_edge[y_dict[self.axis]]
         data['px'] = (coord_data[0,:]+0.5) * data['pdx'] + ox
@@ -1879,7 +1662,7 @@ class AMRProjBase(AMR2DData):
         data['weight_field'] = coord_data[3,:].copy()
         del coord_data
         data['pdx'] *= 0.5
-        data['pdy'] = data['pdx'] # generalization is out the window!
+        data['pdy'] *= 0.5
         data['fields'] = field_data
         # Now we run the finalizer, which is ignored if we don't need it
         data = self._mpi_catdict(data)
@@ -2345,7 +2128,7 @@ class ExtractedRegionBase(AMR3DData):
         xis, yis, zis = [na.array_split(aa, splits) for aa in [xi,yi,zi]]
         self._indices = {}
         h = self._base_region.pf.h
-        for grid_id, x, y, z in zip(grid_ids, xis, yis, zis):
+        for grid_id, x, y, z in izip(grid_ids, xis, yis, zis):
             # grid_id needs no offset
             ll = h.grids[grid_id].ActiveDimensions.prod() \
                - (na.logical_not(h.grids[grid_id].child_mask)).sum()

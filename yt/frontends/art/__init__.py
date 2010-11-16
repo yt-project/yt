@@ -1,5 +1,5 @@
 """
-API for yt.visualization
+API for yt.frontends.art
 
 Author: Matthew Turk <matthewturk@gmail.com>
 Affiliation: UCSD
@@ -27,30 +27,3 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 """
-
-from color_maps import \
-    add_cmap
-
-from plot_collection import \
-    PlotCollection, \
-    PlotCollectionInteractive, \
-    concatenate_pdfs, \
-    get_multi_plot
-
-from fixed_resolution import \
-    FixedResolutionBuffer, \
-    ObliqueFixedResolutionBuffer
-
-from image_writer import \
-    multi_image_composite, \
-    write_bitmap, \
-    write_image, \
-    map_to_colors, \
-    splat_points
-
-from plot_modifications import \
-    PlotCallback, \
-    callback_registry
-
-from easy_plots import \
-    plot_type_registry

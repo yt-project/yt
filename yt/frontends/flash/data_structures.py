@@ -173,7 +173,12 @@ class FLASHStaticOutput(StaticOutput):
     _handle = None
     
     def __init__(self, filename, data_style='flash_hdf5',
-                 storage_filename = None):
+                 storage_filename = None,
+                 conversion_override = None):
+
+        if conversion_override is None: conversion_override = {}
+        self._conversion_override = conversion_override
+
         StaticOutput.__init__(self, filename, data_style)
         self.storage_filename = storage_filename
 
@@ -204,6 +209,8 @@ class FLASHStaticOutput(StaticOutput):
         seconds = 1 #self["Time"]
         self.time_units['years'] = seconds / (365*3600*24.0)
         self.time_units['days']  = seconds / (3600*24.0)
+        for p, v in self._conversion_override.items():
+            self.conversion_factors[p] = v
 
     def _setup_nounits_units(self):
         z = 0

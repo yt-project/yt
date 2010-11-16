@@ -838,7 +838,7 @@ class PlotCollection(object):
 
     def add_profile_object(self, data_source, fields,
                            weight="CellMassMsun", accumulation=False,
-                           x_bins=64, x_log=True, x_bounds=None,
+                           x_bins=128, x_log=True, x_bounds=None,
                            lazy_reader=True, id=None,
                            figure=None, axes=None):
         r"""From an existing object, create a 1D, binned profile.
@@ -928,7 +928,7 @@ class PlotCollection(object):
 
     def add_profile_sphere(self, radius, unit, fields, center = None,
                            weight="CellMassMsun", accumulation=False,
-                           x_bins=64, x_log=True, x_bounds=None,
+                           x_bins=128, x_log=True, x_bounds=None,
                            lazy_reader=True, id=None,
                            figure=None, axes=None):
         r"""From a description of a sphere, create a 1D, binned profile.
@@ -1010,7 +1010,7 @@ class PlotCollection(object):
         sphere = self.pf.hierarchy.sphere(center, r)
         p = self.add_profile_object(sphere, fields, weight, accumulation,
                            x_bins, x_log, x_bounds, lazy_reader, id,
-                           figure, axes)
+                           figure=figure, axes=axes)
         p["Width"] = radius
         p["Unit"] = unit
         p["Axis"] = None
@@ -1018,8 +1018,8 @@ class PlotCollection(object):
 
     def add_phase_object(self, data_source, fields, cmap=None,
                                weight="CellMassMsun", accumulation=False,
-                               x_bins=64, x_log=True, x_bounds=None,
-                               y_bins=64, y_log=True, y_bounds=None,
+                               x_bins=128, x_log=True, x_bounds=None,
+                               y_bins=128, y_log=True, y_bounds=None,
                                lazy_reader=True, id=None,
                                axes = None, figure = None,
                                fractional=False):
@@ -1139,8 +1139,8 @@ class PlotCollection(object):
 
     def add_phase_sphere(self, radius, unit, fields, center = None, cmap=None,
                          weight="CellMassMsun", accumulation=False,
-                         x_bins=64, x_log=True, x_bounds=None,
-                         y_bins=64, y_log=True, y_bounds=None,
+                         x_bins=128, x_log=True, x_bounds=None,
+                         y_bins=128, y_log=True, y_bounds=None,
                          lazy_reader=True, id=None,
                          axes = None, figure = None,
                          fractional=False):
@@ -1242,7 +1242,7 @@ class PlotCollection(object):
                              weight, accumulation,
                              x_bins, x_log, x_bounds,
                              y_bins, y_log, y_bounds,
-                             lazy_reader, id, axes, figure, fractional)
+                             lazy_reader, id, axes=axes, figure=figure, fractional=fractional)
         p["Width"] = radius
         p["Unit"] = unit
         p["Axis"] = None
@@ -1553,8 +1553,8 @@ def wrap_pylab_newplot(func):
             new_fig.canvas.set_window_title("%s" % (self.pf))
         except AttributeError:
             pass
-        kwargs['axes'] = self.pylab.gca()
-        kwargs['figure'] = self.pylab.gcf()
+        if 'axes' not in kwargs: kwargs['axes'] = self.pylab.gca()
+        if 'figure' not in kwargs: kwargs['figure'] = self.pylab.gcf()
         retval = func(self, *args, **kwargs)
         retval._redraw_image()
         retval._fig_num = new_fig.number
@@ -1669,7 +1669,8 @@ def get_multi_plot(nx, ny, colorbar = 'vertical', bw = 4, dpi=300):
         fudge_x = 1.0
         fudge_y = ny/(0.40+ny)
     fig = figure.Figure((bw*nx/fudge_x, bw*ny/fudge_y), dpi=dpi)
-    fig.set_canvas(be.engineVals["canvas"](fig))
+    from _mpl_imports import FigureCanvasAgg
+    fig.set_canvas(FigureCanvasAgg(fig))
     fig.subplots_adjust(wspace=0.0, hspace=0.0,
                         top=1.0, bottom=0.0,
                         left=0.0, right=1.0)

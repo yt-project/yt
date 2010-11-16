@@ -317,10 +317,21 @@ class ParallelAnalysisInterface(object):
         box = self.hierarchy.inclined_box(norigin, nbox_vectors)
         return True, box, resolution
         
-    def _partition_hierarchy_3d(self, padding=0.0, rank_ratio = 1):
-        LE, RE = self.pf.domain_left_edge.copy(), self.pf.domain_right_edge.copy()
-        if not self._distributed:
-           return False, LE, RE, self.hierarchy.all_data()
+    def _partition_hierarchy_3d(self, ds, padding=0.0, rank_ratio = 1):
+        LE, RE = na.array(ds.left_edge), na.array(ds.right_edge)
+        # We need to establish if we're looking at a subvolume, in which case
+        # we *do* want to pad things.
+        if (LE == self.pf.domain_left_edge).all() and \
+                (RE == self.pf.domain_right_edge).all():
+            subvol = False
+        else:
+            subvol = True
+        if not self._distributed and not subvol:
+           return False, LE, RE, ds
+        if not self._distributed and subvol:
+            return True, LE, RE, \
+            self.hierarchy.periodic_region_strict(self.center,
+                LE-padding, RE+padding)
         elif ytcfg.getboolean("yt", "inline"):
             # At this point, we want to identify the root grid tile to which
             # this processor is assigned.
@@ -347,7 +358,8 @@ class ParallelAnalysisInterface(object):
 
         if padding > 0:
             return True, \
-                LE, RE, self.hierarchy.periodic_region_strict(self.center, LE-padding, RE+padding)
+                LE, RE, self.hierarchy.periodic_region_strict(self.center,
+                LE-padding, RE+padding)
 
         return False, LE, RE, self.hierarchy.region_strict(self.center, LE, RE)
 
@@ -516,293 +528,6 @@ class ParallelAnalysisInterface(object):
         # Return a new subvolume and associated stuff.
         return new_group, new_comm, my_LE, my_RE, new_top_bounds, cc,\
             self.hierarchy.region_strict(self.center, my_LE, my_RE)
-
-    def _partition_hierarchy_3d_weighted_1d(self, weight=None, bins=None, padding=0.0, axis=0, min_sep=.1):
-        LE, RE = self.pf.domain_left_edge.copy(), self.pf.domain_right_edge.copy()
-        if not self._distributed:
-           return False, LE, RE, self.hierarchy.grid_collection(self.center, self.hierarchy.grids)
-
-        cc = MPI.Compute_dims(MPI.COMM_WORLD.size, 3)
-        mi = MPI.COMM_WORLD.rank
-        si = MPI.COMM_WORLD.size
-        cx, cy, cz = na.unravel_index(mi, cc)
-
-        gridx = na.mgrid[LE[0]:RE[0]:(cc[0]+1)*1j]
-        gridy = na.mgrid[LE[1]:RE[1]:(cc[1]+1)*1j]
-        gridz = na.mgrid[LE[2]:RE[2]:(cc[2]+1)*1j]
-
-        x = gridx[cx:cx+2]
-        y = gridy[cy:cy+2]
-        z = gridz[cz:cz+2]
-
-        LE = na.array([x[0], y[0], z[0]], dtype='float64')
-        RE = na.array([x[1], y[1], z[1]], dtype='float64')
-
-        # Default to normal if we don't have a weight, or our subdivisions are
-        # not enough to warrant this procedure.
-        if weight is None or cc[axis] < 1:
-            if padding > 0:
-                return True, \
-                    LE, RE, self.hierarchy.periodic_region_strict(self.center, LE-padding, RE+padding)
-
-            return False, LE, RE, self.hierarchy.region_strict(self.center, LE, RE)
-
-        # Find the densest subvolumes globally
-        local_weight = na.zeros((si, weight.size),dtype='float64')
-        local_weight[mi,:] = weight
-        weights = self._mpi_allsum(local_weight)
-        avg_weight = weights.mean()
-        weights = weights.max(axis=0)
-        
-        moved_count = 0
-        moved = {}
-        w_copy = weights.copy()
-        
-        if mi == 0:
-            print 'w_copy',w_copy,'gridx',gridx
-        
-        while moved_count < (cc[axis]-1):
-            con = False
-            # Find the current peak
-            hi_mark = na.argmax(w_copy)
-            # If this peak isn't high enough, we're done
-            height = w_copy[hi_mark]
-            if height < 10.*avg_weight:
-                if mi == 0:
-                    print 'breaking',moved_count, height, avg_weight
-                break
-            # If this mark is too close to a previous one, avg this one out
-            # and restart a search.
-            new_cen = (bins[hi_mark] + bins[hi_mark+1])/2.
-            if mi==0:
-                print 'moved',moved
-            for source in moved:
-                if mi == 0:
-                    print 'moved',abs(moved[source] - new_cen)
-                if abs(moved[source] - new_cen) < min_sep:
-                    w_copy[hi_mark] = avg_weight
-                    if mi == 0:
-                        print 'continued'
-                    con = True
-            if con:
-                continue
-            # Find the lowest value entry
-            lo_mark = na.argmin(w_copy)
-            # Record this as a new mapping.
-            moved[(bins[lo_mark] + bins[lo_mark+1])/2.] = (bins[hi_mark] + bins[hi_mark+1])/2.
-            # Fix the values so they're not pulled again.
-            w_copy[hi_mark] = avg_weight
-            w_copy[lo_mark] = avg_weight
-            moved_count += 1
-        
-        # Now for each key in moved, we move the axis closest to that value to
-        # the value in the dict.
-        temp_gridx = []
-        for source in moved:
-            tomove = na.argmin(abs(gridx - source))
-            temp_gridx.append(moved[source])
-            gridx[tomove] = -1.
-        
-        for g in gridx:
-            if g >= 0.:
-                temp_gridx.append(g)
-        
-        temp_gridx.sort()
-        gridx = na.array(temp_gridx)
-        if mi == 0:
-            print 'gridx',gridx,'len=',len(gridx)
-        x = gridx[cx:cx+2]
-        y = gridy[cy:cy+2]
-        z = gridz[cz:cz+2]
-
-        LE = na.array([x[0], y[0], z[0]], dtype='float64')
-        RE = na.array([x[1], y[1], z[1]], dtype='float64')
-
-        if padding > 0:
-            return True, \
-                LE, RE, self.hierarchy.periodic_region_strict(self.center, LE-padding, RE+padding)
-
-        return False, LE, RE, self.hierarchy.region_strict(self.center, LE, RE)
-
-
-
-    def _partition_hierarchy_3d_weighted(self, weight=None, padding=0.0, agg=8.):
-        LE, RE = self.pf.domain_left_edge.copy(), self.pf.domain_right_edge.copy()
-        if not self._distributed:
-           return False, LE, RE, self.hierarchy.grid_collection(self.center, self.hierarchy.grids)
-
-        cc = MPI.Compute_dims(MPI.COMM_WORLD.size, 3)
-        mi = MPI.COMM_WORLD.rank
-        cx, cy, cz = na.unravel_index(mi, cc)
-
-        gridx = na.mgrid[LE[0]:RE[0]:(cc[0]+1)*1j]
-        gridy = na.mgrid[LE[1]:RE[1]:(cc[1]+1)*1j]
-        gridz = na.mgrid[LE[2]:RE[2]:(cc[2]+1)*1j]
-
-        x = gridx[cx:cx+2]
-        y = gridy[cy:cy+2]
-        z = gridz[cz:cz+2]
-
-        LE = na.array([x[0], y[0], z[0]], dtype='float64')
-        RE = na.array([x[1], y[1], z[1]], dtype='float64')
-        
-        old_vol = ((RE - LE)**2).sum()
-
-        # Default to normal if we don't have a weight, or our subdivisions are
-        # not enough to warrant this procedure.
-        if weight is None or cc[0] < 2 or cc[1] < 2 or cc[2] < 2:
-            if padding > 0:
-                return True, \
-                    LE, RE, self.hierarchy.periodic_region_strict(self.center, LE-padding, RE+padding)
-
-            return False, LE, RE, self.hierarchy.region_strict(self.center, LE, RE)
-
-        # Build the matrix of weights.
-        weights = na.zeros(cc, dtype='float64')
-        weights[cx,cy,cz] = weight
-        weights = self._mpi_allsum(weights)
-        weights = weights / weights.sum()
-
-        # Figure out the sums of weights along the axes
-        xface = weights.sum(axis=0)
-        yface = weights.sum(axis=1)
-        zface = weights.sum(axis=2)
-        
-        xedge = yface.sum(axis=1)
-        yedge = xface.sum(axis=1)
-        zedge = xface.sum(axis=0)
-
-        # Get a polynomial fit to each axis weight distribution
-        xcen = gridx[:-1]
-        xcen += xcen[1]/2.
-        ycen = gridy[:-1]
-        ycen += ycen[1]/2.
-        zcen = gridz[:-1]
-        zcen += zcen[1]/2.
-
-        xfit = na.polyfit(xcen, xedge, 3)
-        yfit = na.polyfit(ycen, yedge, 3)
-        zfit = na.polyfit(zcen, zedge, 3)
-        
-        # Find the normalized weights with trapizoidal integration
-        # We also apply an aggression factor to the values to make the
-        # boundaries shift more.
-        div_count = int(1. / padding)
-        divs = na.arange(div_count+1, dtype='float64') / div_count
-        xvals = na.polyval(xfit, divs)
-        for i,xv in enumerate(xvals):
-            if xv > xedge.mean(): xvals[i] *= agg
-        yvals = na.polyval(yfit, divs)
-        for i,yv in enumerate(yvals):
-            if yv > yedge.mean(): yvals[i] *= agg
-        zvals = na.polyval(zfit, divs)
-        for i,zv in enumerate(zvals):
-            if zv > zedge.mean(): zvals[i] *= agg
-        xnorm = na.trapz(xvals, x=divs)
-        ynorm = na.trapz(yvals, x=divs)
-        znorm = na.trapz(zvals, x=divs)
-
-        # We want to start the integration from the side of the axis where
-        # the highest density is, so that it gets small regions.
-        xstart = float(na.argmax(xedge))/2.
-        if xstart > 0.5: xstart = div_count
-        else: xstart = 0
-        
-        ystart = float(na.argmax(yedge))/2.
-        if ystart > 0.5: ystart = div_count
-        else: ystart = 0
-        
-        zstart = float(na.argmax(zedge))/2.
-        if zstart > 0.5: zstart = div_count
-        else: zstart = 0
-
-        
-        # Find the boundaries. We are assured that none of the boundaries are
-        # too small because each step of div is big enough because it's set
-        # by the padding.
-        nextx = 1./xedge.size
-        nexty = 1./yedge.size
-        nextz = 1./zedge.size
-        boundx = [0.]
-        boundy = [0.]
-        boundz = [0.]
-        donex, doney, donez = False, False, False
-        for i in xrange(div_count):
-            if xstart == 0:
-                xi = 0
-                xv = i
-                xa = i
-            else:
-                xi = div_count - i
-                xf = div_count
-                xa = xi
-            if (na.trapz(xvals[xi:xf], x=divs[xi:xf])/xnorm) >= nextx and not donex:
-                boundx.append(divs[xa])
-                if len(boundx) == cc[0]:
-                    donex = True
-                nextx += 1./xedge.size
-            if ystart == 0:
-                yi = 0
-                yf = i
-                ya = i
-            else:
-                yi = div_count - i
-                yf = div_count
-                ya = yi
-            if (na.trapz(yvals[yi:yf], x=divs[yi:yf])/ynorm) >= nexty and not doney:
-                boundy.append(divs[ya])
-                if len(boundy) == cc[1]:
-                    doney = True
-                nexty += 1./yedge.size
-            if zstart == 0:
-                zi = 0
-                zf = i
-                za = i
-            else:
-                zi = div_count - i
-                zf = div_count
-                za = zi
-            if (na.trapz(zvals[zi:zf], x=divs[zi:zf])/znorm) >= nextz and not donez:
-                boundz.append(divs[za])
-                if len(boundz) == cc[2]:
-                    donez = True
-                nextz += 1./zedge.size
-        
-        boundx.sort()
-        boundy.sort()
-        boundz.sort()
-        
-        # Check for problems, fatally for now because I'm the only one using this
-        # and I don't mind that, it will help me fix things.
-        if len(boundx) < cc[0] or len(boundy) < cc[1] or len(boundz) < cc[2]:
-            print 'weighted stuff broken.'
-            print 'cc', cc
-            print len(boundx), len(boundy), len(boundz)
-            sys.exit()
-        
-        boundx.append(1.)
-        boundy.append(1.)
-        boundz.append(1.)
-        
-        if mi == 0:
-           print 'x',boundx
-           print 'y',boundy
-           print 'z',boundz
-        
-        # Update the boundaries
-        new_LE = na.array([boundx[cx], boundy[cy], boundz[cz]], dtype='float64')
-        new_RE = na.array([boundx[cx+1], boundy[cy+1], boundz[cz+1]], dtype='float64')
-
-        new_vol = ((new_RE - new_LE) **2).sum()
-        print 'P%04d weight %f old_vol %f new_vol %f ratio %f' % \
-            (mi, weight, old_vol, new_vol, new_vol/old_vol)
-        
-        if padding > 0:
-            return True, \
-                new_LE, new_RE, self.hierarchy.periodic_region_strict(self.center, new_LE-padding, new_RE+padding)
-
-        return False, new_LE, new_RE, self.hierarchy.region_strict(self.center, new_LE, new_RE)
-
 
     def _mpi_find_neighbor_3d(self, shift):
         """ Given a shift array, 1x3 long, find the task ID

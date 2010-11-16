@@ -37,6 +37,7 @@ INST_ZLIB=1     # On some systems (Kraken) matplotlib has issues with
 INST_BZLIB=1    # On some systems, libbzip2 is missing.  This can
                 # lead to broken mercurial installations.
 INST_PNG=1      # Install a local libpng?  Same things apply as with zlib.
+INST_ENZO=0     # Clone a copy of Enzo?
 
 # If you've got YT some other place, set this to point to it.
 YT_DIR=""
@@ -145,6 +146,10 @@ printf "%-15s = %s so I " "INST_HG" "${INST_HG}"
 get_willwont ${INST_HG}
 echo "be installing Mercurial"
 
+printf "%-15s = %s so I " "INST_ENZO" "${INST_ENZO}"
+get_willwont ${INST_ENZO}
+echo "be checking out Enzo"
+
 echo
 
 if [ -z "$HDF5_DIR" ]
@@ -229,8 +234,8 @@ fi
 [ $INST_BZLIB -eq 1 ] && get_enzotools bzip2-1.0.5.tar.gz
 [ $INST_PNG -eq 1 ] && get_enzotools libpng-1.2.43.tar.gz
 get_enzotools Python-2.6.3.tgz
-get_enzotools numpy-1.4.1.tar.gz
-get_enzotools matplotlib-0.99.3.tar.gz
+get_enzotools numpy-1.5.0.tar.gz
+get_enzotools matplotlib-1.0.0.tar.gz
 get_enzotools mercurial-1.6.3.tar.gz
 get_enzotools ipython-0.10.tar.gz
 get_enzotools h5py-1.2.0.tar.gz
@@ -277,7 +282,7 @@ then
         [ ! -e libpng-1.2.43 ] && tar xfz libpng-1.2.43.tar.gz
         echo "Installing PNG"
         cd libpng-1.2.43
-        ( ./configure --prefix=${DEST_DIR}/ 2>&1 ) 1>> ${LOG_FILE} || do_exit
+        ( ./configure CFLAGS=-I${DEST_DIR}/include --prefix=${DEST_DIR}/ 2>&1 ) 1>> ${LOG_FILE} || do_exit
         ( make install 2>&1 ) 1>> ${LOG_FILE} || do_exit
         touch done
         cd ..
@@ -367,7 +372,7 @@ echo "Installing distribute"
 echo "Installing pip"
 ( ${DEST_DIR}/bin/easy_install-2.6 pip 2>&1 ) 1>> ${LOG_FILE} || do_exit
 
-do_setup_py numpy-1.4.1 ${NUMPY_ARGS}
+do_setup_py numpy-1.5.0 ${NUMPY_ARGS}
 
 if [ -n "${MPL_SUPP_LDFLAGS}" ]
 then
@@ -387,14 +392,14 @@ then
     export CCFLAGS="${MPL_SUPP_CCFLAGS}"
     echo "Setting CCFLAGS ${CCFLAGS}"
 fi
-do_setup_py matplotlib-0.99.3
-if [-n "${OLD_LDFLAGS}" ]
+do_setup_py matplotlib-1.0.0
+if [ -n "${OLD_LDFLAGS}" ]
 then
     export LDFLAG=${OLD_LDFLAGS}
 fi
-[-n "${OLD_LDFLAGS}" ] && export LDFLAGS=${OLD_LDFLAGS}
-[-n "${OLD_CXXFLAGS}" ] && export CXXFLAGS=${OLD_CXXFLAGS}
-[-n "${OLD_CCFLAGS}" ] && export CCFLAGS=${OLD_CCFLAGS}
+[ -n "${OLD_LDFLAGS}" ] && export LDFLAGS=${OLD_LDFLAGS}
+[ -n "${OLD_CXXFLAGS}" ] && export CXXFLAGS=${OLD_CXXFLAGS}
+[ -n "${OLD_CCFLAGS}" ] && export CCFLAGS=${OLD_CCFLAGS}
 do_setup_py ipython-0.10
 do_setup_py h5py-1.2.0
 
@@ -410,6 +415,14 @@ echo $HDF5_DIR > hdf5.cfg
 touch done
 cd $MY_PWD
 
+if [ $INST_ENZO -eq 1 ]
+then
+    echo "Cloning a copy of Enzo."
+    cd ${DEST_DIR}/src/
+    ${HG_EXEC} clone https://enzo.googlecode.com/hg/ ./enzo-hg-stable
+    cd $MY_PWD
+fi
+
 echo
 echo
 echo "========================================================================"
@@ -418,6 +431,7 @@ echo "yt is now installed in $DEST_DIR ."
 echo "To run from this new installation, the a few variables need to be"
 echo "prepended with the following information:"
 echo
+echo "YT_DEST         => $DEST_DIR"
 echo "PATH            => $DEST_DIR/bin/"
 echo "PYTHONPATH      => $DEST_DIR/lib/python2.6/site-packages/"
 echo "LD_LIBRARY_PATH => $DEST_DIR/lib/"
@@ -441,6 +455,16 @@ then
   echo "Mercurial has also been installed:"
   echo
   echo "$DEST_DIR/bin/hg"
+  echo
+fi
+if [ $INST_ENZO -eq 1 ]
+then
+  echo "Enzo has also been checked out, but not built."
+  echo
+  echo "$DEST_DIR/src/enzo-hg-stable"
+  echo
+  echo "The value of YT_DEST can be used as an HDF5 installation location."
+  echo "Questions about Enzo should be directed to the Enzo User List."
   echo
 fi
 echo

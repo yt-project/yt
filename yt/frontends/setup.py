@@ -12,4 +12,5 @@ def configuration(parent_package='',top_path=None):
     config.add_subpackage("orion")
     config.add_subpackage("ramses")
     config.add_subpackage("tiger")
+    config.add_subpackage("art")
     return config

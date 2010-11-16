@@ -41,18 +41,19 @@ from .fields import GadgetFieldContainer
 
 class GadgetGrid(AMRGridPatch):
     _id_offset = 0
-    def __init__(self, hierarchy, id, dimensions, left_index,
+    def __init__(self, hierarchy, id, dimensions, start,
                  level, parent_id, particle_count):
         AMRGridPatch.__init__(self, id, filename = hierarchy.filename,
                               hierarchy = hierarchy)
-        self.id = id
-        self.ActiveDimensions = dimensions
-        self.start_index = left_index.astype("int64")
-        self.Level = level
-        self._parent_id = parent_id
-        self.Parent = None # Only one parent per grid
+        self.Parent = [] # Only one parent per grid        
         self.Children = []
+        self.Level = level
+        self.ActiveDimensions = dimensions.copy()
         self.NumberOfParticles = particle_count
+        self.start_index = start.copy().astype("int64")
+        self.stop_index = self.start_index + dimensions.copy()
+        self.id = id
+        self._parent_id = parent_id
         
         try:
             padd = '/data/grid_%010i/particles' % id

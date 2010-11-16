@@ -4,3 +4,7 @@
 :Copyright: Copyright 2005 Robert Kern.
 :License: BSD-style license. See LICENSE.txt
 """
+
+from _delaunay import delaunay
+from triangulate import *
+from interpolate import *

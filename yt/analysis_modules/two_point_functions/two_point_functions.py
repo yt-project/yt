@@ -143,7 +143,13 @@ class TwoPointFunctions(ParallelAnalysisInterface):
         if not left_edge or not right_edge:
             self.left_edge = self.pf.domain_left_edge
             self.right_edge = self.pf.domain_right_edge
-            padded, self.LE, self.RE, self.ds = self._partition_hierarchy_3d(padding=0.,
+            # This ds business below has to do with changes made for halo
+            # finding on subvolumes and serves no purpose here except
+            # compatibility. This is not the best policy, if I'm honest.
+            ds = pf.h.periodic_region_strict([0.]*3, self.left_edge, 
+                self.right_edge)
+            padded, self.LE, self.RE, self.ds = \
+            self._partition_hierarchy_3d(ds = ds, padding=0.,
                 rank_ratio = self.vol_ratio)
         else:
             self.left_edge = left_edge
