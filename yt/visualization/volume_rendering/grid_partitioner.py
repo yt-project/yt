@@ -182,6 +182,25 @@ class HomogenizedVolume(ParallelAnalysisInterface):
     def reset_cast(self):
         pass
 
+class SingleBrickVolume(object):
+    bricks = None
+    def __init__(self, data_array):
+        self.bricks = [PartitionedGrid(-1, 1, 
+                       [data_array.astype("float64")],
+                       na.zeros(3, dtype='float64'),
+                       na.ones(3, dtype='float64'),
+                       na.array(data_array.shape, dtype='int64')-1)]
+        self.brick_dimensions = na.ones((1, 3), dtype='int64')*data_array.shape
+
+    def initialize_source(self):
+        pass
+
+    def traverse(self, back, front):
+        for b in self.bricks: yield b
+
+    def reset_cast(self):
+        pass
+
 class HomogenizedBrickCollection(DistributedObjectCollection):
     def __init__(self, source):
         # The idea here is that we have two sources -- the global_domain
