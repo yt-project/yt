@@ -65,6 +65,9 @@ from yt.frontends.ramses.api import \
 from yt.frontends.chombo.api import \
     ChomboStaticOutput, ChomboFieldInfo, add_chombo_field
 
+from yt.frontends.art.api import \
+    ARTStaticOutput, ARTFieldInfo, add_art_field
+
 from yt.analysis_modules.list_modules import \
     get_available_modules, amods
 available_analysis_modules = get_available_modules()
