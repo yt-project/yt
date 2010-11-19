@@ -237,12 +237,24 @@ class FLASHStaticOutput(StaticOutput):
         self.unique_identifier = \
             int(os.stat(self.parameter_filename)[stat.ST_CTIME])
         self._handle = h5py.File(self.parameter_filename, "r")
+        if "file format version" in self._handle:
+            self._flash_version = int(
+                self._handle["file format version"][:])
+        elif "sim info" in self._handle:
+            self._flash_version = int(
+                self._handle["sim info"][:]["file format version"])
+        else:
+            raise RuntimeError("Can't figure out FLASH file version.")
         self.domain_left_edge = na.array(
             [self._find_parameter("real", "%smin" % ax) for ax in 'xyz'])
         self.domain_right_edge = na.array(
             [self._find_parameter("real", "%smax" % ax) for ax in 'xyz'])
-        self.current_time = \
-            float(self._find_parameter("real", "time", scalar=True))
+        if self._flash_version == 7:
+            self.current_time = float(
+                self._handle["simulation parameters"][:]["time"])
+        else:
+            self.current_time = \
+                float(self._find_parameter("real", "time", scalar=True))
         self._handle.close()
 
     @classmethod
