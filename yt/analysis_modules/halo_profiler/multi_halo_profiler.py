@@ -277,10 +277,12 @@ class HaloProfiler(ParallelAnalysisInterface):
                 if 'TotalMassMsun' in all_vqFilters:
                     mass_filter = vFilter['kwargs']['virial_filters'][all_vqFilters.index('TotalMassMsun')]
                     if '>' in mass_filter[1]:
-                        virial_prefilter = "halo['mass'] %s %f * %s" % (mass_filter[1], virial_prefilter_safety_factor, mass_filter[2])
+                        virial_prefilter = "halo['mass'] %s %f * %s" % \
+                            (mass_filter[1], virial_prefilter_safety_factor, mass_filter[2])
                         prefilters.append(virial_prefilter)
                     elif '<' in mass_filter[1]:
-                        virial_prefilter = "halo['mass'] %s %f * %s" % (mass_filter[1], (1./virial_prefilter_safety_factor), mass_filter[2])
+                        virial_prefilter = "halo['mass'] %s %f * %s" % \
+                            (mass_filter[1], (1./virial_prefilter_safety_factor), mass_filter[2])
                         prefilters.append(virial_prefilter)
 
         # Add profile fields necessary for calculating virial quantities.
@@ -312,7 +314,8 @@ class HaloProfiler(ParallelAnalysisInterface):
 
                 # Apply filter and keep track of the quantities that are returned.
                 for hFilter in self._halo_filters:
-                    filter_result, filterQuantities = hFilter['function'](profiledHalo, *hFilter['args'], **hFilter['kwargs'])
+                    filter_result, filterQuantities = hFilter['function'](profiledHalo, *hFilter['args'], 
+                                                                          **hFilter['kwargs'])
 
                     if not filter_result: break
 
@@ -387,7 +390,8 @@ class HaloProfiler(ParallelAnalysisInterface):
                     else:
                         mylog.error("Invalid parameter: VelocityCenter.")
                 elif self.velocity_center[0] == 'max':
-                    max_grid, max_cell, max_value, max_location = self.pf.h.find_max_cell_location(self.velocity_center[1])
+                    max_grid, max_cell, max_value, max_location = \
+                        self.pf.h.find_max_cell_location(self.velocity_center[1])
                     sphere.set_field_parameter('bulk_velocity', [max_grid['x-velocity'][max_cell],
                                                                  max_grid['y-velocity'][max_cell],
                                                                  max_grid['z-velocity'][max_cell]])
@@ -521,7 +525,8 @@ class HaloProfiler(ParallelAnalysisInterface):
                     output = h5py.File(dataFilename, "a")
                     # Create fixed resolution buffer for each projection and write them out.
                     for e, hp in enumerate(self.projection_fields):
-                        frb = FixedResolutionBuffer(pc.plots[e].data, (proj_left[0], proj_right[0], proj_left[1], proj_right[1]),
+                        frb = FixedResolutionBuffer(pc.plots[e].data, (proj_left[0], proj_right[0], 
+                                                                       proj_left[1], proj_right[1]),
                                                           (projectionResolution, projectionResolution),
                                                           antialias=False)
                         dataset_name = "%s_%s" % (hp['field'], hp['weight_field'])
@@ -761,7 +766,8 @@ def shift_projections(pf, pc, oldCenter, newCenter, axis):
     This is necessary when projecting a preiodic region.
     """
     offset = [newCenter[q]-oldCenter[q] for q in range(len(oldCenter))]
-    width = [pf.parameters['DomainRightEdge'][q]-pf.parameters['DomainLeftEdge'][q] for q in range(len(oldCenter))]
+    width = [pf.parameters['DomainRightEdge'][q]-pf.parameters['DomainLeftEdge'][q] \
+                 for q in range(len(oldCenter))]
 
     del offset[axis]
     del width[axis]
@@ -830,7 +836,8 @@ def shift_projections(pf, pc, oldCenter, newCenter, axis):
         plot.data['pdy'] = na.concatenate([plot['pdy'], add_x_pdy, add_y_pdy, add2_x_pdy, add2_y_pdy])
         plot.data[field] = na.concatenate([plot[field], add_x_field, add_y_field, add2_x_field, add2_y_field])
         plot.data['weight_field'] = na.concatenate([plot['weight_field'],
-                                                    add_x_weight_field, add_y_weight_field, add2_x_weight_field, add2_y_weight_field])
+                                                    add_x_weight_field, add_y_weight_field, 
+                                                    add2_x_weight_field, add2_y_weight_field])
 
         # Delete original copies of hanging cells.
         del add_x_px, add_y_px, add2_x_px, add2_y_px
