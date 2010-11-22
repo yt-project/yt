@@ -59,7 +59,7 @@ class StaticOutput(object):
             obj = object.__new__(cls)
             obj.__init__(filename, *args, **kwargs)
             _cached_pfs[apath] = obj
-            if ytcfg.getboolean('lagos','serialize'):
+            if ytcfg.getboolean('yt','serialize'):
                 try:
                     _pf_store.check_pf(obj)
                 except NoParameterShelf:

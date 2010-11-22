@@ -65,6 +65,9 @@ from yt.frontends.ramses.api import \
 from yt.frontends.chombo.api import \
     ChomboStaticOutput, ChomboFieldInfo, add_chombo_field
 
+from yt.frontends.art.api import \
+    ARTStaticOutput, ARTFieldInfo, add_art_field
+
 from yt.analysis_modules.list_modules import \
     get_available_modules, amods
 available_analysis_modules = get_available_modules()
@@ -81,7 +84,10 @@ from yt.utilities.definitions import \
 from yt.visualization.api import \
     PlotCollection, PlotCollectionInteractive, \
     get_multi_plot, FixedResolutionBuffer, ObliqueFixedResolutionBuffer, \
-    callback_registry
+    callback_registry, write_bitmap, write_image
+
+from yt.visualization.volume_rendering.api import \
+    ColorTransferFunction, PlanckTransferFunction, ProjectionTransferFunction
 
 for name, cls in callback_registry.items():
     exec("%s = cls" % name)
@@ -94,10 +100,13 @@ from yt.convenience import all_pfs, max_spheres, load, projload
 # This way, other command-line tools can be used very simply.
 # Unfortunately, for now, I think the easiest and simplest way of doing
 # this is also the most dangerous way.
-if ytcfg.getboolean("lagos","loadfieldplugins"):
-    my_plugin_name = ytcfg.get("lagos","pluginfilename")
+if ytcfg.getboolean("yt","loadfieldplugins"):
+    my_plugin_name = ytcfg.get("yt","pluginfilename")
     # We assume that it is with respect to the $HOME/.yt directory
-    fn = os.path.expanduser("~/.yt/%s" % my_plugin_name)
+    if os.path.isfile(my_plugin_name):
+        fn = my_plugin_name
+    else:
+        fn = os.path.expanduser("~/.yt/%s" % my_plugin_name)
     if os.path.isfile(fn):
         mylog.info("Loading plugins from %s", fn)
         execfile(fn)

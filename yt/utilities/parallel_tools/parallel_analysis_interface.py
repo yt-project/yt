@@ -57,8 +57,8 @@ if exe_name in \
         #ytcfg["yt","StoreParameterFiles"] = "False"
         # Now let's make sure we have the right options set.
         if MPI.COMM_WORLD.rank > 0:
-            if ytcfg.getboolean("lagos","serialize"):
-                ytcfg["lagos","onlydeserialize"] = "True"
+            if ytcfg.getboolean("yt","serialize"):
+                ytcfg["yt","onlydeserialize"] = "True"
             if ytcfg.getboolean("yt","LogFile"):
                 ytcfg["yt","LogFile"] = "False"
                 yt.utilities.logger.disable_file_logging()
