@@ -86,6 +86,8 @@ if os.path.exists(os.path.expanduser("~/.yt/config")):
 else:
     ytcfg = ConfigParser.ConfigParser(ytcfgDefaults)
     ytcfg.read(['yt.cfg'])
+if not ytcfg.has_section("yt"):
+    ytcfg.add_section("yt")
 
 # Now we have parsed the config file.  Overrides come from the command line.
 
