@@ -87,7 +87,8 @@ from yt.visualization.api import \
     callback_registry, write_bitmap, write_image
 
 from yt.visualization.volume_rendering.api import \
-    ColorTransferFunction, PlanckTransferFunction, ProjectionTransferFunction
+    ColorTransferFunction, PlanckTransferFunction, ProjectionTransferFunction, \
+    HomogenizedVolume, Camera
 
 for name, cls in callback_registry.items():
     exec("%s = cls" % name)
