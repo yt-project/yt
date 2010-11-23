@@ -270,11 +270,11 @@ class AMRKDTree(HomogenizedVolume):
             self.l_max = na.min([l_max,self.pf.hierarchy.max_level+1])
 
         if le is None:
-            self.domain_left_edge = pf['DomainLeftEdge']
+            self.domain_left_edge = pf.domain_left_edge
         else:
             self.domain_left_edge = le
         if re is None:
-            self.domain_right_edge = pf['DomainRightEdge']
+            self.domain_right_edge = pf.domain_right_edge
         else:
             self.domain_right_edge = re
 
