@@ -353,7 +353,7 @@ then
     then
         # Note that we clone the entire repository, not just the branch in
         # question.  We update to the correct branch momentarily...
-        ( ${HG_EXEC} clone http://hg.enzotools.org/yt/ ./yt-hg 2>&1 ) 1>> ${LOG_FILE}
+        ( ${HG_EXEC} --debug clone --pull http://hg.enzotools.org/yt/ ./yt-hg 2>&1 ) 1>> ${LOG_FILE}
         YT_DIR="$PWD/yt-hg/"
         ( ${HG_EXEC} up -R ${YT_DIR} -C ${BRANCH} 2>&1 ) 1>> ${LOG_FILE}
     elif [ -e yt-hg ] 
