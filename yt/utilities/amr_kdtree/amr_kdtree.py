@@ -767,7 +767,6 @@ class AMRKDTree(HomogenizedVolume):
                     my_total += current_node['cost']
                 total_cells += current_node['cost']
                 current_node['cast_done'] = 1
-                current_id = _parent_id(current_id)
         return p_grids
 
     def initialize_source(self):
