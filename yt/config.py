@@ -80,11 +80,15 @@ if os.path.exists(__fn):
 #    new_cp = Configparser.ConfigParser(ytcfgDefaults)
 #    new_cp.write(__fn)
 
+class YTConfigParser(ConfigParser.ConfigParser):
+    def __setitem__(self, key, val):
+        self.set(key[0], key[1], val)
+
 if os.path.exists(os.path.expanduser("~/.yt/config")):
-    ytcfg = ConfigParser.ConfigParser(ytcfgDefaults)
+    ytcfg = YTConfigParser(ytcfgDefaults)
     ytcfg.read(['yt.cfg', os.path.expanduser('~/.yt/config')])
 else:
-    ytcfg = ConfigParser.ConfigParser(ytcfgDefaults)
+    ytcfg = YTConfigParser(ytcfgDefaults)
     ytcfg.read(['yt.cfg'])
 if not ytcfg.has_section("yt"):
     ytcfg.add_section("yt")
