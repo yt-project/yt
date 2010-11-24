@@ -251,19 +251,20 @@ class AMRKDTree(HomogenizedVolume):
             processors.  Reduce number of processors.')
             raise(KeyError)
         if fields is None: fields = ["Density"]
-        self.fields = fields
         self.no_ghost = no_ghost
         reduction_needed = {'domain':False,'depth':True,'breadth':True}
         self.tree_type = tree_type
         self.reduce_tree=reduction_needed[self.tree_type]
         self.bricks_loaded = False
+
+        self.fields = ensure_list(fields)
+        if log_fields is not None:
+            log_fields = ensure_list(log_fields)
+        else:
+            log_fields = [self.pf.field_info[field].take_log
+                         for field in self.fields]
         self.log_fields = log_fields
-        
-        if self.log_fields is None:
-            self.log_field=[]
-            for field in self.fields:
-                self.log_field.append(field in self.pf.field_info and 
-                                      self.pf.field_info[field].take_log)
+
         if l_max is None:
             self.l_max = self.pf.hierarchy.max_level+1
         else:
@@ -344,7 +345,7 @@ class AMRKDTree(HomogenizedVolume):
                 dds = []
                 for i,field in enumerate(self.fields):
                     vcd = current_node['grid'].get_vertex_centered_data(field,smoothed=True,no_ghost=self.no_ghost).astype('float64')
-                    if self.log_field[i]: vcd = na.log10(vcd)
+                    if self.log_fields[i]: vcd = na.log10(vcd)
                     dds.append(vcd)
                 current_saved_grids.append(current_node['grid'])
                 current_vcds.append(dds)
@@ -750,7 +751,7 @@ class AMRKDTree(HomogenizedVolume):
                             dds = []
                             for i,field in enumerate(self.fields):
                                 vcd = current_node['grid'].get_vertex_centered_data(field,no_ghost=self.no_ghost).astype('float64')
-                                if self.log_field[i]: vcd = na.log10(vcd)
+                                if self.log_fields[i]: vcd = na.log10(vcd)
                                 dds.append(vcd)
                             self.current_saved_grids.append(current_node['grid'])
                             self.current_vcds.append(dds)
