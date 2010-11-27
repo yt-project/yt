@@ -31,8 +31,9 @@ from __future__ import absolute_import
 #
 
 # First module imports
-import numpy as na
-import sys, types, os, glob, cPickle
+import sys, types, os, glob, cPickle, time
+import numpy as na # For historical reasons
+import numpy # In case anyone wishes to use it by name
 
 from yt.funcs import *
 from yt.utilities.logger import ytLogger as mylog

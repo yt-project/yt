@@ -561,10 +561,7 @@ class ARTStaticOutput(StaticOutput):
 
     @classmethod
     def _is_valid(self, *args, **kwargs):
-        if not os.path.basename(args[0]).startswith("info_"): return False
-        fn = args[0].replace("info_", "amr_").replace(".txt", ".out00001")
-        print fn
-        return os.path.exists(fn)
+        return False # We make no effort to auto-detect ART data
 
 def _skip_record(f):
     s = struct.unpack('>i', f.read(struct.calcsize('>i')))
