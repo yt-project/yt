@@ -139,6 +139,7 @@ class RAMSESHierarchy(AMRHierarchy):
         mi, ma = ogrid_left_edge.min(), ogrid_right_edge.max()
         DL = self.pf.domain_left_edge
         DR = self.pf.domain_right_edge
+        DW = DR - DL
         ogrid_left_edge = (ogrid_left_edge - mi)/(ma - mi) * (DR - DL) + DL
         ogrid_right_edge = (ogrid_right_edge - mi)/(ma - mi) * (DR - DL) + DL
         #import pdb;pdb.set_trace()
@@ -156,7 +157,7 @@ class RAMSESHierarchy(AMRHierarchy):
             # We want grids that cover no more than MAX_EDGE cells in every direction
             MAX_EDGE = 128
             psgs = []
-            left_index = na.rint((ogrid_left_edge[ggi,:]) * nd).astype('int64')
+            left_index = na.rint((ogrid_left_edge[ggi,:]) * nd / DW ).astype('int64')
             right_index = left_index + 2
             lefts = [na.mgrid[0:nd[i]:MAX_EDGE] for i in range(3)]
             #lefts = zip(*[l.ravel() for l in lefts])
@@ -270,12 +271,14 @@ class RAMSESHierarchy(AMRHierarchy):
         # We have important work to do
         grids = []
         gi = 0
+        DL, DR = self.pf.domain_left_edge, self.pf.domain_right_edge
+        DW = DR - DL
         for level, grid_list in enumerate(self.proto_grids):
             for g in grid_list:
                 fl = g.grid_file_locations
                 props = g.get_properties()
-                self.grid_left_edge[gi,:] = props[0,:] / (2.0**(level+1))
-                self.grid_right_edge[gi,:] = props[1,:] / (2.0**(level+1))
+                self.grid_left_edge[gi,:] = (props[0,:] / (2.0**(level+1))) * DW + DL
+                self.grid_right_edge[gi,:] = (props[1,:] / (2.0**(level+1))) * DW + DL
                 self.grid_dimensions[gi,:] = props[2,:]
                 self.grid_levels[gi,:] = level
                 grids.append(self.grid(gi, self, level, fl, props[0,:]))
@@ -332,15 +335,6 @@ class RAMSESStaticOutput(StaticOutput):
         self.storage_filename = storage_filename
 
         self.field_info = self._fieldinfo_class()
-        # hardcoded for now
-        self.current_time = 0.0
-        # These should be explicitly obtained from the file, but for now that
-        # will wait until a reorganization of the source tree and better
-        # generalization.
-        self.dimensionality = 3
-        self.refine_by = 2
-        self.parameters["HydroMethod"] = 'ramses'
-        self.parameters["Time"] = 1. # default unit is 1...
 
     def __repr__(self):
         return self.basename.rsplit(".", 1)[0]
@@ -358,25 +352,35 @@ class RAMSESStaticOutput(StaticOutput):
         self.time_units['1'] = 1
         self.units['1'] = 1.0
         self.units['unitary'] = 1.0 / (self.domain_right_edge - self.domain_left_edge).max()
-        seconds = 1 #self["Time"]
+        seconds = self.parameters['unit_t']
         self.time_units['years'] = seconds / (365*3600*24.0)
         self.time_units['days']  = seconds / (3600*24.0)
+        self.conversion_factors["Density"] = self.parameters['unit_d']
+        vel_u = self.parameters['unit_l'] / self.parameters['unit_t']
+        self.conversion_factors["x-velocity"] = vel_u
+        self.conversion_factors["y-velocity"] = vel_u
+        self.conversion_factors["z-velocity"] = vel_u
 
     def _setup_nounits_units(self):
-        z = 0
-        mylog.warning("Setting 1.0 in code units to be 1.0 cm")
-        if not self.has_key("TimeUnits"):
-            mylog.warning("No time units.  Setting 1.0 = 1 second.")
-            self.conversion_factors["Time"] = 1.0
         for unit in mpc_conversion.keys():
-            self.units[unit] = mpc_conversion[unit] / mpc_conversion["cm"]
+            self.units[unit] = self.parameters['unit_l'] * mpc_conversion[unit] / mpc_conversion["cm"]
 
     def _parse_parameter_file(self):
+        # hardcoded for now
+        # These should be explicitly obtained from the file, but for now that
+        # will wait until a reorganization of the source tree and better
+        # generalization.
+        self.dimensionality = 3
+        self.refine_by = 2
+        self.parameters["HydroMethod"] = 'ramses'
+        self.parameters["Time"] = 1. # default unit is 1...
+
         self.unique_identifier = \
             int(os.stat(self.parameter_filename)[stat.ST_CTIME])
         self.ramses_tree = _ramses_reader.RAMSES_tree_proxy(self.parameter_filename)
         rheader = self.ramses_tree.get_file_info()
         self.parameters.update(rheader)
+        self.current_time = self.parameters['time'] * self.parameters['unit_t']
         self.domain_right_edge = na.ones(3, dtype='float64') \
                                            * rheader['boxlen']
         self.domain_left_edge = na.zeros(3, dtype='float64')

@@ -40,22 +40,31 @@ add_ramses_field = RAMSESFieldInfo.add_field
 
 add_field = add_ramses_field
 
-translation_dict = {"Density":"density",
-                    "x-velocity":"velocity_x",
-                    "y-velocity":"velocity_y",
-                    "z-velocity":"velocity_z",
-                    "Pressure":"pressure",
-                    "Metallicity":"metallicity",
-                   }
+known_ramses_fields = [
+    "Density",
+    "x-velocity",
+    "y-velocity",
+    "z-velocity",
+    "Pressure",
+    "Metallicity",
+]
 
-def _generate_translation(mine, theirs):
-    add_field(theirs, function=lambda a, b: b[mine], take_log=True)
+for f in known_ramses_fields:
+    if f not in RAMSESFieldInfo:
+        add_field(f, function=lambda a,b: None, take_log=True,
+                  validators = [ValidateDataField(f)])
 
-for f,v in translation_dict.items():
-    if v not in RAMSESFieldInfo:
-        add_field(v, function=lambda a,b: None, take_log=False,
-                  validators = [ValidateDataField(v)])
-    #print "Setting up translator from %s to %s" % (v, f)
-    _generate_translation(v, f)
+def _convertDensity(data):
+    return data.convert("Density")
+RAMSESFieldInfo["Density"]._units = r"\rm{g}/\rm{cm}^3"
+RAMSESFieldInfo["Density"]._projected_units = r"\rm{g}/\rm{cm}^2"
+RAMSESFieldInfo["Density"]._convert_function=_convertDensity
 
+def _convertVelocity(data):
+    return data.convert("x-velocity")
+for ax in ['x','y','z']:
+    f = RAMSESFieldInfo["%s-velocity" % ax]
+    f._units = r"\rm{cm}/\rm{s}"
+    f._convert_function = _convertVelocity
+    f.take_log = False
 
