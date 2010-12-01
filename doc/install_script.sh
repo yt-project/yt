@@ -234,11 +234,12 @@ fi
 [ $INST_BZLIB -eq 1 ] && get_enzotools bzip2-1.0.5.tar.gz
 [ $INST_PNG -eq 1 ] && get_enzotools libpng-1.2.43.tar.gz
 get_enzotools Python-2.6.3.tgz
-get_enzotools numpy-1.5.0.tar.gz
+get_enzotools numpy-1.5.1.tar.gz
 get_enzotools matplotlib-1.0.0.tar.gz
-get_enzotools mercurial-1.6.3.tar.gz
+get_enzotools mercurial-1.7.1.tar.gz
 get_enzotools ipython-0.10.tar.gz
 get_enzotools h5py-1.2.0.tar.gz
+get_enzotools Cython-0.13.tar.gz
 
 if [ $INST_BZLIB -eq 1 ]
 then
@@ -328,7 +329,7 @@ export PYTHONPATH=${DEST_DIR}/lib/python2.6/site-packages/
 if [ $INST_HG -eq 1 ]
 then
     echo "Installing Mercurial."
-    do_setup_py mercurial-1.6.3
+    do_setup_py mercurial-1.7.1
     export HG_EXEC=${DEST_DIR}/bin/hg
 else
     # We assume that hg can be found in the path.
@@ -372,7 +373,7 @@ echo "Installing distribute"
 echo "Installing pip"
 ( ${DEST_DIR}/bin/easy_install-2.6 pip 2>&1 ) 1>> ${LOG_FILE} || do_exit
 
-do_setup_py numpy-1.5.0 ${NUMPY_ARGS}
+do_setup_py numpy-1.5.1 ${NUMPY_ARGS}
 
 if [ -n "${MPL_SUPP_LDFLAGS}" ]
 then
@@ -402,6 +403,7 @@ fi
 [ -n "${OLD_CCFLAGS}" ] && export CCFLAGS=${OLD_CCFLAGS}
 do_setup_py ipython-0.10
 do_setup_py h5py-1.2.0
+do_setup_py Cython-0.13
 
 echo "Doing yt update, wiping local changes and updating to branch ${BRANCH}"
 MY_PWD=`pwd`
@@ -445,13 +447,14 @@ echo "For command line analysis run:"
 echo
 echo "$DEST_DIR/bin/yt"
 echo
-echo "Note of interest: this installation will use the directory"
-echo "$YT_DIR"
+echo "Note of interest: this installation will use the directory:"
+echo "    $YT_DIR"
 echo "as the source for all the YT code.  This means you probably shouldn't"
 echo "delete it, but on the plus side, any changes you make there are"
 echo "automatically propagated."
 if [ $INST_HG -eq 1 ]
 then
+  echo
   echo "Mercurial has also been installed:"
   echo
   echo "$DEST_DIR/bin/hg"
@@ -473,7 +476,7 @@ echo
 echo "    http://yt.enzotools.org/wiki/"
 echo "    http://yt.enzotools.org/doc/"
 echo
-echo "Or join the mailing list:"
+echo "Please also join the mailing list:"
 echo 
 echo "    http://lists.spacepope.org/listinfo.cgi/yt-users-spacepope.org"
 echo
