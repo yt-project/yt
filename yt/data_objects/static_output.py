@@ -57,13 +57,7 @@ class StaticOutput(object):
         if not os.path.exists(apath): raise IOError(filename)
         if apath not in _cached_pfs:
             obj = object.__new__(cls)
-            obj.__init__(filename, *args, **kwargs)
             _cached_pfs[apath] = obj
-            if ytcfg.getboolean('yt','serialize'):
-                try:
-                    _pf_store.check_pf(obj)
-                except NoParameterShelf:
-                    pass
         return _cached_pfs[apath]
 
     def __init__(self, filename, data_style=None):
@@ -83,7 +77,14 @@ class StaticOutput(object):
         self.parameters = {}
         self._parse_parameter_file()
         self._set_units()
-        # These can be taken out if you so desire
+        # Because we need an instantiated class to check the pf's existence in
+        # the cache, we move that check to here from __new__.  This avoids
+        # double-instantiation.
+        if ytcfg.getboolean('yt','serialize'):
+            try:
+                _pf_store.check_pf(obj)
+            except NoParameterShelf:
+                pass
 
     def __reduce__(self):
         args = (self._hash(),)
