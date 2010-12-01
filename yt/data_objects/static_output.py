@@ -82,7 +82,7 @@ class StaticOutput(object):
         # double-instantiation.
         if ytcfg.getboolean('yt','serialize'):
             try:
-                _pf_store.check_pf(obj)
+                _pf_store.check_pf(self)
             except NoParameterShelf:
                 pass
 
