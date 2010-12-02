@@ -557,7 +557,6 @@ class ColorTransferFunction(MultiVariateTransferFunction):
             vals = na.interp(hvals, f.x, f.y)
             image[:,:,i] = (vals[:,None] * 255).astype('uint8')
         image = image[::-1,:,:]
-        import pdb; pdb.set_trace()
         return image
 
 class ProjectionTransferFunction(MultiVariateTransferFunction):
