@@ -404,7 +404,7 @@ class YTCommands(cmdln.Cmdln):
 
         ${cmd_option_list}
         """
-        import yt.extensions.HaloProfiler as HP
+        import yt.analysis_modules.halo_profiler.api as HP
         kwargs = {'halos': opts.halos,
                   'hop_style': opts.halo_hop_style,
                   'radius': opts.halo_radius,
@@ -546,7 +546,7 @@ class YTCommands(cmdln.Cmdln):
         #   Halo profiling (default parameters ONLY)
         #   Projections: Density, Temperature
         #   Full-box distribution functions
-        import yt.extensions.HaloProfiler as HP
+        import yt.analysis_modules.halo_profiler.api as HP
         hp = HP.HaloProfiler(arg)
         # Add a filter to remove halos that have no profile points with overdensity
         # above 200, and with virial masses less than 1e14 solar masses.
