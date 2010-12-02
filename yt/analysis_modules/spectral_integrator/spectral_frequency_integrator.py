@@ -25,6 +25,7 @@ License:
 """
 
 from yt.funcs import *
+from yt.mods import add_field
 import numpy as na
 from yt.utilities.linear_interpolators import \
     UnilinearFieldInterpolator, \
