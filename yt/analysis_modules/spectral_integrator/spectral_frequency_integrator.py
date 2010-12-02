@@ -25,6 +25,7 @@ License:
 """
 
 from yt.funcs import *
+import numpy as na
 from yt.utilities.linear_interpolators import \
     UnilinearFieldInterpolator, \
     BilinearFieldInterpolator, \
