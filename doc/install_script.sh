@@ -240,6 +240,7 @@ get_enzotools mercurial-1.7.1.tar.gz
 get_enzotools ipython-0.10.tar.gz
 get_enzotools h5py-1.2.0.tar.gz
 get_enzotools Cython-0.13.tar.gz
+get_enzotools yt.hg
 
 if [ $INST_BZLIB -eq 1 ]
 then
@@ -353,11 +354,19 @@ then
         YT_DIR=`dirname $ORIG_PWD`
     elif [ ! -e yt-hg ] 
     then
-        # Note that we clone the entire repository, not just the branch in
-        # question.  We update to the correct branch momentarily...
-        ( ${HG_EXEC} --debug clone --pull http://hg.enzotools.org/yt/ ./yt-hg 2>&1 ) 1>> ${LOG_FILE}
         YT_DIR="$PWD/yt-hg/"
-        ( ${HG_EXEC} up -R ${YT_DIR} -C ${BRANCH} 2>&1 ) 1>> ${LOG_FILE}
+        # Recently the hg server has had some issues with timeouts.  In lieu of
+        # a new webserver, we are now moving to a three-stage process.
+        # First we clone the repo, but only up to r0.
+        ( ${HG_EXEC} --debug clone -r0 http://hg.enzotools.org/yt/ ./yt-hg 2>&1 ) 1>> ${LOG_FILE}
+        # Now we unbundle our previously downloaded bundle of changesets.
+        # This bundle has been created to include most of the recent
+        # changesets, which should avoid any problematic timeouts.
+        ( ${HG_EXEC} -R ${YT_DIR} unbundle yt.hg 2>&1 ) 1>> ${LOG_FILE}
+        # Now we pull new changes
+        ( ${HG_EXEC} -R ${YT_DIR} pull 2>&1 ) 1>> ${LOG_FILE}
+        # Now we update to the branch we're interested in.
+        ( ${HG_EXEC} -R ${YT_DIR} up -C ${BRANCH} 2>&1 ) 1>> ${LOG_FILE}
     elif [ -e yt-hg ] 
     then
         YT_DIR="$PWD/yt-hg/"
