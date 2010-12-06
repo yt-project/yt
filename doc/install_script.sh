@@ -37,15 +37,16 @@ INST_ZLIB=1     # On some systems (Kraken) matplotlib has issues with
 INST_BZLIB=1    # On some systems, libbzip2 is missing.  This can
                 # lead to broken mercurial installations.
 INST_PNG=1      # Install a local libpng?  Same things apply as with zlib.
+INST_FTYPE=1    # Install FreeType2 locally?
 INST_ENZO=0     # Clone a copy of Enzo?
 
 # If you've got YT some other place, set this to point to it.
 YT_DIR=""
 
-# If you need to pass anything to matplotlib, do so here:
-#MPL_SUPP_LDFLAGS=""
-#MPL_SUPP_CCFLAGS=""
-#MPL_SUPP_CXXFLAGS=""
+# If you need to pass anything to matplotlib, do so here.
+MPL_SUPP_LDFLAGS=""
+MPL_SUPP_CFLAGS=""
+MPL_SUPP_CXXFLAGS=""
 
 #------------------------------------------------------------------------------#
 #                                                                              #
@@ -188,7 +189,8 @@ function do_setup_py
 {
     [ -e $1/done ] && return
     echo "Installing $1 (arguments: '$*')"
-    [ ! -e $1 ] && tar xfz $1.tar.gz
+    [ ! -e $1/extracted ] && tar xfz $1.tar.gz
+    touch $1/extracted
     cd $1
     if [ ! -z `echo $1 | grep h5py` ]
     then
@@ -233,6 +235,7 @@ fi
 [ $INST_ZLIB -eq 1 ] && get_enzotools zlib-1.2.3.tar.bz2 
 [ $INST_BZLIB -eq 1 ] && get_enzotools bzip2-1.0.5.tar.gz
 [ $INST_PNG -eq 1 ] && get_enzotools libpng-1.2.43.tar.gz
+[ $INST_FTYPE -eq 1 ] && get_enzotools freetype-2.4.4.tar.gz
 get_enzotools Python-2.6.3.tgz
 get_enzotools numpy-1.5.1.tar.gz
 get_enzotools matplotlib-1.0.0.tar.gz
@@ -293,6 +296,23 @@ then
     PNG_DIR=${DEST_DIR}
     export LDFLAGS="${LDFLAGS} -L${PNG_DIR}/lib/ -L${PNG_DIR}/lib64/"
     LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:${PNG_DIR}/lib/"
+fi
+
+if [ $INST_FTYPE -eq 1 ]
+then
+    if [ ! -e freetype-2.4.4/done ]
+    then
+        [ ! -e freetype-2.4.4 ] && tar xfz freetype-2.4.4.tar.gz
+        echo "Installing FreeType2"
+        cd freetype-2.4.4
+        ( ./configure CFLAGS=-I${DEST_DIR}/include --prefix=${DEST_DIR}/ 2>&1 ) 1>> ${LOG_FILE} || do_exit
+        ( make install 2>&1 ) 1>> ${LOG_FILE} || do_exit
+        touch done
+        cd ..
+    fi
+    FTYPE_DIR=${DEST_DIR}
+    export LDFLAGS="${LDFLAGS} -L${FTYPE_DIR}/lib/ -L${FTYPE_DIR}/lib64/"
+    LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:${FTYPE_DIR}/lib/"
 fi
 
 if [ -z "$HDF5_DIR" ]
@@ -397,12 +417,16 @@ then
     export CXXFLAGS="${MPL_SUPP_CXXFLAGS}"
     echo "Setting CXXFLAGS ${CXXFLAGS}"
 fi
-if [ -n "${MPL_SUPP_CCFLAGS}" ]
+if [ -n "${MPL_SUPP_CFLAGS}" ]
 then
-    OLD_CCFLAGS=${CCFLAGS}
-    export CCFLAGS="${MPL_SUPP_CCFLAGS}"
-    echo "Setting CCFLAGS ${CCFLAGS}"
+    OLD_CFLAGS=${CFLAGS}
+    export CFLAGS="${MPL_SUPP_CFLAGS}"
+    echo "Setting CFLAGS ${CFLAGS}"
 fi
+# Now we set up the basedir for matplotlib:
+mkdir -p ${DEST_DIR}/src/matplotlib-1.0.0
+echo "[directories]" >> ${DEST_DIR}/src/matplotlib-1.0.0/setup.cfg
+echo "basedirlist = ${DEST_DIR}" >> ${DEST_DIR}/src/matplotlib-1.0.0/setup.cfg
 do_setup_py matplotlib-1.0.0
 if [ -n "${OLD_LDFLAGS}" ]
 then
@@ -410,7 +434,7 @@ then
 fi
 [ -n "${OLD_LDFLAGS}" ] && export LDFLAGS=${OLD_LDFLAGS}
 [ -n "${OLD_CXXFLAGS}" ] && export CXXFLAGS=${OLD_CXXFLAGS}
-[ -n "${OLD_CCFLAGS}" ] && export CCFLAGS=${OLD_CCFLAGS}
+[ -n "${OLD_CFLAGS}" ] && export CFLAGS=${OLD_CFLAGS}
 do_setup_py ipython-0.10
 do_setup_py h5py-1.2.0
 do_setup_py Cython-0.13
@@ -423,6 +447,7 @@ cd $YT_DIR
 echo "Installing yt"
 echo $HDF5_DIR > hdf5.cfg
 [ $INST_PNG -eq 1 ] && echo $PNG_DIR > png.cfg
+[ $INST_FTYPE -eq 1 ] && echo $FTYPE_DIR > freetype.cfg
 ( ${DEST_DIR}/bin/python2.6 setup.py develop 2>&1 ) 1>> ${LOG_FILE} || do_exit
 touch done
 cd $MY_PWD
