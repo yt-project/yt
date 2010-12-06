@@ -143,6 +143,14 @@ printf "%-15s = %s so I " "INST_BZLIB" "${INST_BZLIB}"
 get_willwont ${INST_BZLIB}
 echo "be installing bzlib"
 
+printf "%-15s = %s so I " "INST_PNG" "${INST_PNG}"
+get_willwont ${INST_PNG}
+echo "be installing libpng"
+
+printf "%-15s = %s so I " "INST_FTYPE" "${INST_FTYPE}"
+get_willwont ${INST_FTYPE}
+echo "be installing freetype2"
+
 printf "%-15s = %s so I " "INST_HG" "${INST_HG}"
 get_willwont ${INST_HG}
 echo "be installing Mercurial"
