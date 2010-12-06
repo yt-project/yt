@@ -48,6 +48,8 @@ from yt.utilities.linear_interpolators import \
     UnilinearFieldInterpolator, \
     BilinearFieldInterpolator, \
     TrilinearFieldInterpolator
+from yt.utilities.parameter_file_storage import \
+    ParameterFileStore
 
 from .derived_quantities import DerivedQuantityCollection
 from .field_info_container import \
