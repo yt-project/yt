@@ -47,6 +47,9 @@ from yt.data_objects.api import \
     ValidateParameter, ValidateDataField, ValidateProperty, \
     ValidateSpatial, ValidateGridType
 
+from yt.data_objects.derived_quantities import \
+    add_quantity, quantity_info
+
 from yt.frontends.enzo.api import \
     EnzoStaticOutput, EnzoStaticOutputInMemory, EnzoFieldInfo, \
     add_enzo_field, add_enzo_1d_field, add_enzo_2d_field
