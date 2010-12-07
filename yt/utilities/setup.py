@@ -49,6 +49,54 @@ def check_for_png():
     print "(ex: \"echo '/usr/local/' > png.cfg\" )"
     sys.exit(1)
 
+def check_for_freetype():
+    # First up: environment
+    if "FTYPE_DIR" in os.environ:
+        freetype_dir = os.environ["FTYPE_DIR"]
+        freetype_inc = os.path.join(freetype_dir, "include")
+        freetype_lib = os.path.join(freetype_dir, "lib")
+        print "FTYPE_LOCATION: FTYPE_DIR: %s, %s" % (freetype_inc, freetype_lib)
+        return (freetype_inc, freetype_lib)
+    # Next up, we try freetype.cfg
+    elif os.path.exists("freetype.cfg"):
+        freetype_dir = open("freetype.cfg").read().strip()
+        freetype_inc = os.path.join(freetype_dir, "include")
+        freetype_lib = os.path.join(freetype_dir, "lib")
+        print "FTYPE_LOCATION: freetype.cfg: %s, %s" % (freetype_inc, freetype_lib)
+        return (freetype_inc, freetype_lib)
+    # Now we see if ctypes can help us:
+    try:
+        import ctypes.util
+        freetype_libfile = ctypes.util.find_library("freetype")
+        if freetype_libfile is not None and os.path.isfile(freetype_libfile):
+            # Now we've gotten a library, but we'll need to figure out the
+            # includes if this is going to work.  It feels like there is a
+            # better way to pull off two directory names.
+            freetype_dir = os.path.dirname(os.path.dirname(freetype_libfile))
+            if os.path.isdir(os.path.join(freetype_dir, "include")) and \
+               os.path.isfile(os.path.join(freetype_dir, "include", "ft2build.h")):
+                freetype_inc = os.path.join(freetype_dir, "include")
+                freetype_lib = os.path.join(freetype_dir, "lib")
+                print "FTYPE_LOCATION: freetype found in: %s, %s" % (freetype_inc, freetype_lib)
+                return freetype_inc, freetype_lib
+    except ImportError:
+        pass
+    # X11 is where it's located by default on OSX, although I am slightly
+    # reluctant to link against that one.
+    for freetype_dir in ["/usr/", "/usr/local/", "/usr/X11/"]:
+        if os.path.isfile(os.path.join(freetype_dir, "include", "ft2build.h")):
+            if os.path.isdir(os.path.join(freetype_dir, "include")) and \
+               os.path.isfile(os.path.join(freetype_dir, "include", "ft2build.h")):
+                freetype_inc = os.path.join(freetype_dir, "include")
+                freetype_lib = os.path.join(freetype_dir, "lib")
+                print "FTYPE_LOCATION: freetype found in: %s, %s" % (freetype_inc, freetype_lib)
+                return freetype_inc, freetype_lib
+    print "Reading freetype location from freetype.cfg failed."
+    print "Please place the base directory of your freetype install in freetype.cfg and restart."
+    print "(ex: \"echo '/usr/local/' > freetype.cfg\" )"
+    print "You can locate this by looking for the file ft2build.h"
+    sys.exit(1)
+
 def check_for_hdf5():
     # First up: HDF5_DIR in environment
     if "HDF5_DIR" in os.environ:
@@ -90,8 +138,7 @@ def configuration(parent_package='',top_path=None):
     from numpy.distutils.misc_util import Configuration
     config = Configuration('utilities',parent_package,top_path)
     png_inc, png_lib = check_for_png()
-    include_dirs=[png_inc]
-    library_dirs=[png_lib]
+    freetype_inc, freetype_lib = check_for_freetype()
     # Because setjmp.h is included by lots of things, and because libpng hasn't
     # always properly checked its header files (see
     # https://bugzilla.redhat.com/show_bug.cgi?id=494579 ) we simply disable
@@ -113,9 +160,10 @@ def configuration(parent_package='',top_path=None):
     config.add_extension("amr_utils", 
         ["yt/utilities/amr_utils.c", "yt/utilities/_amr_utils/FixedInterpolator.c"], 
         define_macros=[("PNG_SETJMP_NOT_SUPPORTED", True)],
-        include_dirs=["yt/utilities/_amr_utils/", png_inc],
-        library_dirs=[png_lib],
-        libraries=["m", "png"])
+        include_dirs=["yt/utilities/_amr_utils/", png_inc,
+                      freetype_inc, os.path.join(freetype_inc, "freetype2")],
+        library_dirs=[png_lib, freetype_lib],
+        libraries=["m", "png", "freetype"])
     config.make_config_py() # installs __config__.py
     config.make_svn_version_py()
     return config

@@ -46,7 +46,8 @@ from image_writer import \
     write_bitmap, \
     write_image, \
     map_to_colors, \
-    splat_points
+    splat_points, \
+    annotate_image
 
 from plot_modifications import \
     PlotCallback, \
