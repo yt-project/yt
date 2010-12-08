@@ -1766,6 +1766,7 @@ class AMRFixedResProjectionBase(AMR2DData):
         self._dls = {}
         self.domain_width = na.rint((self.pf.domain_right_edge -
                     self.pf.domain_left_edge)/self.dds).astype('int64')
+        self._refresh_data()
 
     def _get_list_of_grids(self):
         if self._grids is not None: return
@@ -1804,9 +1805,10 @@ class AMRFixedResProjectionBase(AMR2DData):
         if not self.has_key('pdx'):
             self._generate_coords()
         if fields == None:
-            fields_to_get = self.fields[:]
+            fields_to_get = [f for f in self.fields if f not in self._key_fields]
         else:
             fields_to_get = ensure_list(fields)
+        if len(fields_to_get) == 0: return
         temp_data = {}
         for field in fields_to_get:
             self[field] = na.zeros(self.dims, dtype='float64')
