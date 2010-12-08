@@ -230,6 +230,7 @@ class FLASHStaticOutput(StaticOutput):
         self.conversion_factors['dens'] = (1.0 + self.current_redshift)**3.0
         self.conversion_factors['pres'] = (1.0 + self.current_redshift)**1.0
         self.conversion_factors['eint'] = (1.0 + self.current_redshift)**-2.0
+        self.conversion_factors['ener'] = (1.0 + self.current_redshift)**-2.0
         self.conversion_factors['temp'] = (1.0 + self.current_redshift)**-2.0
         self.conversion_factors['velx'] = (1.0 + self.current_redshift)
         self.conversion_factors['vely'] = self.conversion_factors['velx']
@@ -244,6 +245,7 @@ class FLASHStaticOutput(StaticOutput):
         self.conversion_factors['dens'] = 1.0
         self.conversion_factors['pres'] = 1.0
         self.conversion_factors['eint'] = 1.0
+        self.conversion_factors['ener'] = 1.0
         self.conversion_factors['temp'] = 1.0
         self.conversion_factors['velx'] = 1.0
         self.conversion_factors['vely'] = 1.0
