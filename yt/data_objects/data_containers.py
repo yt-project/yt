@@ -768,7 +768,8 @@ class AMRSliceBase(AMR2DData):
         else: points = na.concatenate(points)
         # We have to transpose here so that _mpi_catarray works properly, as
         # it and the alltoall assume the long axis is the last one.
-        t = self._mpi_catarray(points.transpose())
+        if points is None: t = self._mpi_catarray(None)
+        else: t = self._mpi_catarray(points.transpose())
         self['px'] = t[0,:]
         self['py'] = t[1,:]
         self['pz'] = t[2,:]
