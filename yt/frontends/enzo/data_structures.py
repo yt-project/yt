@@ -527,7 +527,7 @@ class EnzoHierarchyInMemory(EnzoHierarchy):
         self.filenames = ["-1"] * self.num_grids
         for id,pid in enumerate(reverse_tree):
             self.grids.append(self.grid(id+1, self))
-            self.grids[-1].Level = self.grid_levels[id]
+            self.grids[-1].Level = self.grid_levels[id, 0]
             if pid > 0:
                 self.grids[-1]._parent_id = pid
                 self.grids[pid-1]._children_ids.append(self.grids[-1].id)
