@@ -78,7 +78,8 @@ translation_dict = {"x-velocity": "velx",
                     "H2I_Fraction": "htwo",
                     "H2II_Fraction": "htwp",
                     "DI_Fraction": "deut",
-                    "DII_Fraction": "dplu"}
+                    "DII_Fraction": "dplu",
+                    "ParticleMass": "particle_mass"}
 
 def _get_density(fname):
     def _dens(field, data):
@@ -180,3 +181,12 @@ add_field("magp", function=lambda a,b: None, take_log=True,
 add_field("divb", function=lambda a,b: None, take_log=False,
           validators = [ValidateDataField("divb")],
           units = r"\rm{G}\/\rm{cm}")
+
+def _convertParticleMassMsun(data):
+    return 1.0/1.989e33
+def _ParticleMassMsun(field, data):
+    return data["ParticleMass"]
+add_field("ParticleMassMsun",
+          function=_ParticleMassMsun, validators=[ValidateSpatial(0)],
+          particle_type=True, convert_function=_convertParticleMassMsun,
+          particle_convert_function=_ParticleMassMsun)
