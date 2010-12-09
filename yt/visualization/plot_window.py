@@ -72,7 +72,6 @@ class PlotWindow(object):
 
     def _recreate_frb(self):
         try:
-            print "recreating with bounds ", self.bounds
             bounds = self.bounds
             self._frb = FixedResolutionBuffer(self.data_source, 
                                               bounds, self.buff_size, 
@@ -96,15 +95,6 @@ class PlotWindow(object):
             n = "%s_%s" % (name, k)
             v.save(n)
 
-    # def save(self):
-    #     """
-    #     REPLACE THIS
-    #     """
-    #     for field in self._frb.data.keys():
-    #         name = "%s.png" % field
-    #         print "writing %s" % name
-    #         write_image(self._frb[field],name)
-    
     @invalidate_data
     def pan(self):
         pass
@@ -132,6 +122,15 @@ class PlotWindow(object):
         self.ylim = (centery - nWy*0.5, centery + nWy*0.5)
         #self._run_callbacks()
 
+    @invalidate_data
+    def pan(self, deltas):
+        """
+        This accepts a tuple of *deltas*, composed of (delta_x, delta_y) that
+        will pan the window by those values in absolute coordinates.
+        """
+        self.xlim = (self.xlim[0] + deltas[0], self.xlim[1] + deltas[0])
+        self.ylim = (self.ylim[0] + deltas[1], self.ylim[1] + deltas[1])
+
     @invalidate_plot
     def set_cmap(self):
         pass
@@ -148,6 +147,11 @@ class PlotWindow(object):
     @invalidate_data
     def set_width(self):
         pass
+    @property
+    def width(self):
+        Wx = self.xlim[1] - self.xlim[0]
+        Wy = self.ylim[1] - self.ylim[0]
+        return (Wx, Wy)
 
     # @invalidate_plot
     # def set_zlim(self):
