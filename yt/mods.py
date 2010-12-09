@@ -31,8 +31,9 @@ from __future__ import absolute_import
 #
 
 # First module imports
-import numpy as na
-import sys, types, os, glob, cPickle
+import sys, types, os, glob, cPickle, time
+import numpy as na # For historical reasons
+import numpy # In case anyone wishes to use it by name
 
 from yt.funcs import *
 from yt.utilities.logger import ytLogger as mylog
@@ -45,6 +46,9 @@ from yt.data_objects.api import \
     derived_field, add_field, FieldInfo, \
     ValidateParameter, ValidateDataField, ValidateProperty, \
     ValidateSpatial, ValidateGridType
+
+from yt.data_objects.derived_quantities import \
+    add_quantity, quantity_info
 
 from yt.frontends.enzo.api import \
     EnzoStaticOutput, EnzoStaticOutputInMemory, EnzoFieldInfo, \
@@ -65,6 +69,9 @@ from yt.frontends.ramses.api import \
 from yt.frontends.chombo.api import \
     ChomboStaticOutput, ChomboFieldInfo, add_chombo_field
 
+from yt.frontends.art.api import \
+    ARTStaticOutput, ARTFieldInfo, add_art_field
+
 from yt.analysis_modules.list_modules import \
     get_available_modules, amods
 available_analysis_modules = get_available_modules()
@@ -81,7 +88,11 @@ from yt.utilities.definitions import \
 from yt.visualization.api import \
     PlotCollection, PlotCollectionInteractive, \
     get_multi_plot, FixedResolutionBuffer, ObliqueFixedResolutionBuffer, \
-    callback_registry
+    callback_registry, write_bitmap, write_image
+
+from yt.visualization.volume_rendering.api import \
+    ColorTransferFunction, PlanckTransferFunction, ProjectionTransferFunction, \
+    HomogenizedVolume, Camera
 
 for name, cls in callback_registry.items():
     exec("%s = cls" % name)
@@ -94,10 +105,13 @@ from yt.convenience import all_pfs, max_spheres, load, projload
 # This way, other command-line tools can be used very simply.
 # Unfortunately, for now, I think the easiest and simplest way of doing
 # this is also the most dangerous way.
-if ytcfg.getboolean("lagos","loadfieldplugins"):
-    my_plugin_name = ytcfg.get("lagos","pluginfilename")
+if ytcfg.getboolean("yt","loadfieldplugins"):
+    my_plugin_name = ytcfg.get("yt","pluginfilename")
     # We assume that it is with respect to the $HOME/.yt directory
-    fn = os.path.expanduser("~/.yt/%s" % my_plugin_name)
+    if os.path.isfile(my_plugin_name):
+        fn = my_plugin_name
+    else:
+        fn = os.path.expanduser("~/.yt/%s" % my_plugin_name)
     if os.path.isfile(fn):
         mylog.info("Loading plugins from %s", fn)
         execfile(fn)

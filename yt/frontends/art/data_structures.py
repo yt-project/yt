@@ -38,6 +38,7 @@ from yt.data_objects.hierarchy import \
 from yt.data_objects.static_output import \
       StaticOutput
 from .fields import ARTFieldContainer
+from .fields import add_field
 from yt.utilities.definitions import \
     mpc_conversion
 from yt.utilities.io_handler import \
@@ -45,6 +46,9 @@ from yt.utilities.io_handler import \
 import yt.utilities.amr_utils as amr_utils
 
 import yt.frontends.ramses._ramses_reader as _ramses_reader
+
+from yt.utilities.physical_constants import \
+    mass_hydrogen_cgs
 
 def num_deep_inc(f):
     def wrap(self, *args, **kwargs):
@@ -119,7 +123,12 @@ class ARTHierarchy(AMRHierarchy):
         pass
 
     def _detect_fields(self):
-        self.field_list = self.tree_proxy.field_names[:]
+        # This will need to be generalized to be used elsewhere.
+        self.field_list = [ 'Density','Total_Energy',
+                            'x-momentum','y-momentum','z-momentum',
+                            'Pressure','Gamma','Gas_Energy',
+                            'Metal_DensitySNII', 'Metal_DensitySNIa',
+                            'Potential_New','Potential_Old']
     
     def _setup_classes(self):
         dd = self._get_data_reader_dict()
@@ -128,21 +137,30 @@ class ARTHierarchy(AMRHierarchy):
 
     def _count_grids(self):
         # We have to do all the patch-coalescing here.
-        level_info = [self.pf.ncell] # skip root grid for now
+        #level_info is used by the IO so promoting it to the static
+        # output class
+        self.pf.level_info = [self.pf.ncell] # skip root grid for now
+        #leve_info = []
         amr_utils.count_art_octs(
                 self.pf.parameter_filename, self.pf.child_grid_offset,
-                self.pf.min_level, self.pf.max_level, level_info)
-        num_ogrids = sum(level_info) + self.pf.iOctFree
+                self.pf.min_level, self.pf.max_level, self.pf.nhydro_vars,
+                self.pf.level_info)
+        self.pf.level_info = na.array(self.pf.level_info)
+        num_ogrids = sum(self.pf.level_info) + self.pf.iOctFree
         ogrid_left_indices = na.zeros((num_ogrids,3), dtype='int64') - 999
         ogrid_levels = na.zeros(num_ogrids, dtype='int64')
         ogrid_file_locations = na.zeros((num_ogrids,6), dtype='int64')
         ogrid_parents = na.zeros(num_ogrids, dtype="int64")
         ochild_masks = na.zeros((num_ogrids, 8), dtype='int64').ravel()
-        amr_utils.read_art_tree(self.pf.parameter_filename, 
+        self.pf.level_offsets = amr_utils.read_art_tree(
+                                self.pf.parameter_filename, 
                                 self.pf.child_grid_offset,
                                 self.pf.min_level, self.pf.max_level,
                                 ogrid_left_indices, ogrid_levels,
-                                ogrid_parents, ochild_masks)
+                                ogrid_parents, ochild_masks,
+                                ogrid_file_locations)
+        self.pf.level_offsets = na.array(self.pf.level_offsets, dtype='int64')
+        self.pf.level_offsets[0] = self.pf.root_grid_offset
         ochild_masks.reshape((num_ogrids, 8), order="F")
         ogrid_levels[ogrid_left_indices[:,0] == -999] = -1
         # This bit of code comes from Chris, and I'm still not sure I have a
@@ -152,11 +170,20 @@ class ARTHierarchy(AMRHierarchy):
             for level in xrange(self.pf.max_level*2)]
         root_level = self.pf.max_level+na.where(na.logical_not(divisible))[0][0] 
         ogrid_dimension = na.zeros(final_indices.shape,dtype='int')+2
-        ogrid_left_indices = ogrid_left_indices/2**(root_level - ogrid_levels[:,None]) - 1
+        ogrid_left_indices = ogrid_left_indices/2**(root_level - ogrid_levels[:,None] - 1) - 1
+
         # Now we can rescale
-        self.proto_grids = []
-        for level in xrange(len(level_info)):
-            if level_info[level] == 0:
+        root_psg = _ramses_reader.ProtoSubgrid(
+                        na.zeros(3, dtype='int64'), # left index of PSG
+                        self.pf.domain_dimensions, # dim of PSG
+                        na.zeros((1,3), dtype='int64'), # left edges of grids
+                        self.pf.domain_dimensions[None,:], # right edges of grids
+                        self.pf.domain_dimensions[None,:], # dims of grids
+                        na.zeros((1,6), dtype='int64') # empty
+                        )
+        self.proto_grids = [[root_psg],]
+        for level in xrange(1, len(self.pf.level_info)):
+            if self.pf.level_info[level] == 0:
                 self.proto_grids.append([])
                 continue
             ggi = (ogrid_levels == level).ravel()
@@ -287,8 +314,9 @@ class ARTHierarchy(AMRHierarchy):
             for g in grid_list:
                 fl = g.grid_file_locations
                 props = g.get_properties()
-                self.grid_left_edge[gi,:] = props[0,:] / (2.0**(level+1))
-                self.grid_right_edge[gi,:] = props[1,:] / (2.0**(level+1))
+                dds = ((2**level) * self.pf.domain_dimensions).astype("float64")
+                self.grid_left_edge[gi,:] = props[0,:] / dds
+                self.grid_right_edge[gi,:] = props[1,:] / dds
                 self.grid_dimensions[gi,:] = props[2,:]
                 self.grid_levels[gi,:] = level
                 grids.append(self.grid(gi, self, level, fl, props[0,:]))
@@ -332,26 +360,29 @@ class ARTHierarchy(AMRHierarchy):
         self.derived_field_list = []
 
     def _setup_data_io(self):
-        pass
-        #self.io = io_registry[self.data_style](self.tree_proxy)
+        self.io = io_registry[self.data_style](
+            self.pf.parameter_filename,
+            self.pf.nhydro_vars,
+            self.pf.level_info,
+            self.pf.level_offsets)
 
 class ARTStaticOutput(StaticOutput):
     _hierarchy_class = ARTHierarchy
     _fieldinfo_class = ARTFieldContainer
     _handle = None
     
-    def __init__(self, filename, data_style='ramses',
+    def __init__(self, filename, data_style='art',
                  storage_filename = None):
         StaticOutput.__init__(self, filename, data_style)
         self.storage_filename = storage_filename
-
+        
         self.field_info = self._fieldinfo_class()
-        self.current_time = 0.0
         self.dimensionality = 3
         self.refine_by = 2
-        self.parameters["HydroMethod"] = 'ramses'
+        self.parameters["HydroMethod"] = 'art'
         self.parameters["Time"] = 1. # default unit is 1...
-
+        self.parameters["InitialTime"]=self.current_time
+        
     def __repr__(self):
         return self.basename.rsplit(".", 1)[0]
         
@@ -363,24 +394,64 @@ class ARTStaticOutput(StaticOutput):
         self.time_units = {}
         if len(self.parameters) == 0:
             self._parse_parameter_file()
-        self._setup_nounits_units()
         self.conversion_factors = defaultdict(lambda: 1.0)
-        self.time_units['1'] = 1
         self.units['1'] = 1.0
         self.units['unitary'] = 1.0 / (self.domain_right_edge - self.domain_left_edge).max()
-        seconds = 1 #self["Time"]
+
+        z = self.current_redshift
+        h = self.hubble_constant
+        boxcm_cal = self["boxh"]
+        boxcm_uncal = boxcm_cal / h
+        box_proper = boxcm_uncal/(1+z)
+        aexpn = self["aexpn"]
+        for unit in mpc_conversion:
+            self.units[unit] = mpc_conversion[unit] * box_proper
+            self.units[unit+'h'] = mpc_conversion[unit] * box_proper * h
+            self.units[unit+'cm'] = mpc_conversion[unit] * boxcm_uncal
+            self.units[unit+'hcm'] = mpc_conversion[unit] * boxcm_cal
+        # Variable names have been chosen to reflect primary reference
+        #Om0 = self["Om0"]
+        #boxh = self["boxh"]
+        wmu = self["wmu"]
+        #ng = self.domain_dimensions[0]
+        #r0 = self["cmh"]/ng # comoving cm h^-1
+        #t0 = 6.17e17/(self.hubble_constant + na.sqrt(self.omega_matter))
+        #v0 = r0 / t0
+        #rho0 = 1.8791e-29 * self.hubble_constant**2.0 * self.omega_matter
+        #e0 = v0**2.0
+        
+        wmu = self["wmu"]
+        boxh = self["boxh"]
+        aexpn = self["aexpn"]
+        hubble = self.hubble_constant
+        ng = self.domain_dimensions[0]
+        self.r0 = boxh/ng
+        self.v0 =  self.r0 * 50.0*1.0e5 * na.sqrt(self.omega_matter)  #cm/s
+        self.t0 = self.r0/self.v0
+        # this is 3H0^2 / (8pi*G) *h*Omega0 with H0=100km/s. 
+        # ie, critical density 
+        self.rho0 = 1.8791e-29 * hubble**2.0 * self.omega_matter
+        self.tr = 2./3. *(3.03e5*self.r0**2.0*wmu*self.omega_matter)*(1.0/(aexpn**2))      
+        self.conversion_factors["Density"] = \
+            self.rho0*(aexpn**-3.0)
+        self.conversion_factors["Gas_Energy"] = \
+            self.rho0*self.v0**2*(aexpn**-5.0)
+        tr  = self.tr
+        self.conversion_factors["Temperature"] = tr
+        self.conversion_factors["Metal_Density"] = 1
+        
+        # Now our conversion factors
+        for ax in 'xyz':
+            # Add on the 1e5 to get to cm/s
+            self.conversion_factors["%s-velocity" % ax] = self.v0/aexpn
+        seconds = self.t0
         self.time_units['years'] = seconds / (365*3600*24.0)
         self.time_units['days']  = seconds / (3600*24.0)
 
-    def _setup_nounits_units(self):
-        z = 0
-        mylog.warning("Setting 1.0 in code units to be 1.0 cm")
-        if not self.has_key("TimeUnits"):
-            mylog.warning("No time units.  Setting 1.0 = 1 second.")
-            self.conversion_factors["Time"] = 1.0
-        for unit in mpc_conversion.keys():
-            self.units[unit] = mpc_conversion[unit] / mpc_conversion["cm"]
-
+        #we were already in seconds, go back in to code units
+        self.current_time /= self.t0 
+        
+        
     def _parse_parameter_file(self):
         # We set our domain to run from 0 .. 1 since we are otherwise
         # unconstrained.
@@ -441,18 +512,35 @@ class ARTStaticOutput(StaticOutput):
             header_vals[name] = output
         self.dimensionality = 3 # We only support three
         self.refine_by = 2 # Octree
+        # Update our parameters with the header and with some compile-time
+        # constants we will set permanently.
+        self.parameters.update(header_vals)
+        self.parameters["Y_p"] = 0.245
+        self.parameters["wmu"] = 4.0/(8.0-5.0*self.parameters["Y_p"])
+        self.parameters["gamma"] = 5./3.
+        self.current_redshift = self.parameters["aexpn"]**-1.0 - 1.0
         self.data_comment = header_vals['jname']
         self.current_time = header_vals['t']
         self.omega_lambda = header_vals['Oml0']
-        self.omega_matter = header_vals['Om0'] - header_vals['Oml0']
+        self.omega_matter = header_vals['Om0']
         self.hubble_constant = header_vals['hubble']
         self.min_level = header_vals['min_level']
         self.max_level = header_vals['max_level']
-
+        self.nhydro_vars = 10 #this gets updated later, but we'll default to this
+        #nchem is nhydrovars-8, so we typically have 2 extra chem species 
+        self.hubble_time  = 1.0/(self.hubble_constant*100/3.08568025e19)
+        #self.hubble_time /= 3.168876e7 #Gyr in s 
+        def integrand(x,oml=self.omega_lambda,omb=self.omega_matter):
+            return 1./(x*na.sqrt(oml+omb*x**-3.0))
+        spacings = na.logspace(-5,na.log10(self.parameters['aexpn']),1e5)
+        integrand_arr = integrand(spacings)
+        self.current_time = na.trapz(integrand_arr,dx=na.diff(spacings))
+        self.current_time *= self.hubble_time
+                
         for to_skip in ['tl','dtl','tlold','dtlold','iSO']:
             _skip_record(f)
 
-        self.ncell = struct.unpack('>l', _read_record(f))
+        (self.ncell,) = struct.unpack('>l', _read_record(f))
         # Try to figure out the root grid dimensions
         est = na.log2(self.ncell) / 3
         if int(est) != est: raise RuntimeError
@@ -460,9 +548,11 @@ class ARTStaticOutput(StaticOutput):
         # This is not the same as the number of Octs.
         self.domain_dimensions = na.ones(3, dtype='int64') * int(2**est)
 
+        self.root_grid_mask_offset = f.tell()
+        _skip_record(f) # iOctCh
         self.root_grid_offset = f.tell()
-        for to_skip in ['iOctCh', 'hvar', 'var']:
-            _skip_record(f)
+        _skip_record(f) # hvar
+        _skip_record(f) # var
 
         self.iOctFree, self.nOct = struct.unpack('>ii', _read_record(f))
         self.child_grid_offset = f.tell()
@@ -471,10 +561,7 @@ class ARTStaticOutput(StaticOutput):
 
     @classmethod
     def _is_valid(self, *args, **kwargs):
-        if not os.path.basename(args[0]).startswith("info_"): return False
-        fn = args[0].replace("info_", "amr_").replace(".txt", ".out00001")
-        print fn
-        return os.path.exists(fn)
+        return False # We make no effort to auto-detect ART data
 
 def _skip_record(f):
     s = struct.unpack('>i', f.read(struct.calcsize('>i')))

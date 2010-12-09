@@ -281,6 +281,9 @@ def _update_hg(path):
         print "    $ hg up"
         print "    $ %s setup.py develop" % (sys.executable)
         sys.exit(1)
+    print "Updating the repository"
+    f.write("Updating the repository\n\n")
+    commands.update(u, repo, check=True)
     f.write("Rebuilding modules\n\n")
     p = subprocess.Popen([sys.executable, "setup.py", "build_ext", "-i"], cwd=path,
                         stdout = subprocess.PIPE, stderr = subprocess.STDOUT)
@@ -401,7 +404,7 @@ class YTCommands(cmdln.Cmdln):
 
         ${cmd_option_list}
         """
-        import yt.extensions.HaloProfiler as HP
+        import yt.analysis_modules.halo_profiler.api as HP
         kwargs = {'halos': opts.halos,
                   'hop_style': opts.halo_hop_style,
                   'radius': opts.halo_radius,
@@ -543,7 +546,7 @@ class YTCommands(cmdln.Cmdln):
         #   Halo profiling (default parameters ONLY)
         #   Projections: Density, Temperature
         #   Full-box distribution functions
-        import yt.extensions.HaloProfiler as HP
+        import yt.analysis_modules.halo_profiler.api as HP
         hp = HP.HaloProfiler(arg)
         # Add a filter to remove halos that have no profile points with overdensity
         # above 200, and with virial masses less than 1e14 solar masses.

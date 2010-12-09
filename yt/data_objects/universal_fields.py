@@ -804,7 +804,7 @@ def _pdensity(field, data):
                  na.float64(data['dx']))
     return blank
 add_field("particle_density", function=_pdensity,
-          validators=[ValidateSpatial(0)], convert_function=_convertDensity,
+          validators=[ValidateGridType()], convert_function=_convertDensity,
           display_name=r"\mathrm{Particle}\/\mathrm{Density})")
 
 def _MagneticEnergy(field,data):

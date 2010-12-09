@@ -397,19 +397,22 @@ cdef class RAMSES_tree_proxy:
                        malloc(sizeof(RAMSES_hydro_data**) * self.rsnap.m_header.ncpu)
         self.ndomains = self.rsnap.m_header.ncpu
         #for ii in range(self.ndomains): self.trees[ii] = NULL
-        for idomain in range(1, self.rsnap.m_header.ncpu + 1):
-            local_tree = new RAMSES_tree(deref(self.rsnap), idomain,
+        # Note we don't do ncpu + 1
+        for idomain in range(self.rsnap.m_header.ncpu):
+            # we don't delete local_tree
+            local_tree = new RAMSES_tree(deref(self.rsnap), idomain + 1,
                                          self.rsnap.m_header.levelmax, 0)
             local_tree.read()
             local_hydro_data = new RAMSES_hydro_data(deref(local_tree))
-            self.hydro_datas[idomain - 1] = <RAMSES_hydro_data **>\
+            self.hydro_datas[idomain] = <RAMSES_hydro_data **>\
                 malloc(sizeof(RAMSES_hydro_data*) * local_hydro_data.m_nvars)
             for ii in range(local_hydro_data.m_nvars):
-                self.hydro_datas[idomain - 1][ii] = \
+                self.hydro_datas[idomain][ii] = \
                     new RAMSES_hydro_data(deref(local_tree))
-            self.trees[idomain - 1] = local_tree
-            # We do not delete anything
-            if idomain < self.rsnap.m_header.ncpu: del local_hydro_data
+            self.trees[idomain] = local_tree
+            # We do not delete the final snapshot, which we'll use later
+            if idomain + 1 < self.rsnap.m_header.ncpu:
+                del local_hydro_data
         # Only once, we read all the field names
         self.nfields = local_hydro_data.m_nvars
         cdef string *field_name
@@ -430,15 +433,20 @@ cdef class RAMSES_tree_proxy:
         del local_hydro_data
 
     def __dealloc__(self):
+        import traceback; traceback.print_stack()
         cdef int idomain, ifield
+        # To ensure that 'delete' is used, not 'free',
+        # we allocate temporary variables.
+        cdef RAMSES_tree *temp_tree
+        cdef RAMSES_hydro_data *temp_hdata
         for idomain in range(self.ndomains):
-            #for ifield in range(self.nfields):
-            #    if self.hydro_datas[idomain][ifield] != NULL:
-            #        del self.hydro_datas[idomain][ifield]
-            if self.trees[idomain] != NULL:
-                del self.trees[idomain]
-            free(self.hydro_datas[idomain])
+            for ifield in range(self.nfields):
+                temp_hdata = self.hydro_datas[idomain][ifield]
+                del temp_hdata
+            temp_tree = self.trees[idomain]
+            del temp_tree
             free(self.loaded[idomain])
+            free(self.hydro_datas[idomain])
         free(self.trees)
         free(self.hydro_datas)
         free(self.loaded)
@@ -495,7 +503,8 @@ cdef class RAMSES_tree_proxy:
         cdef int varindex = self.field_ind[varname]
         cdef string *field_name = new string(varname)
         if self.loaded[domain_index][varindex] == 0: return
-        del self.hydro_datas[domain_index][varindex]
+        cdef RAMSES_hydro_data *temp_hdata = self.hydro_datas[domain_index][varindex]
+        del temp_hdata
         self.hydro_datas[domain_index - 1][varindex] = \
             new RAMSES_hydro_data(deref(self.trees[domain_index]))
         self.loaded[domain_index][varindex] = 0

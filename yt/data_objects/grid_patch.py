@@ -446,18 +446,45 @@ class AMRGridPatch(object):
                 level, new_left_edge, **kwargs)
         return cube
 
-    def get_vertex_centered_data(self, field, smoothed=True):
-        cg = self.retrieve_ghost_zones(1, field, smoothed=smoothed)
-        # We have two extra zones in every direction
-        new_field = na.zeros(self.ActiveDimensions + 1, dtype='float64')
-        na.add(new_field, cg[field][1: ,1: ,1: ], new_field)
-        na.add(new_field, cg[field][:-1,1: ,1: ], new_field)
-        na.add(new_field, cg[field][1: ,:-1,1: ], new_field)
-        na.add(new_field, cg[field][1: ,1: ,:-1], new_field)
-        na.add(new_field, cg[field][:-1,1: ,:-1], new_field)
-        na.add(new_field, cg[field][1: ,:-1,:-1], new_field)
-        na.add(new_field, cg[field][:-1,:-1,1: ], new_field)
-        na.add(new_field, cg[field][:-1,:-1,:-1], new_field)
-        na.multiply(new_field, 0.125, new_field)
+    def get_vertex_centered_data(self, field, smoothed=True,
+                                 no_ghost=False):
+        if not no_ghost:
+            cg = self.retrieve_ghost_zones(1, field, smoothed=smoothed)
+            # We have two extra zones in every direction
+            new_field = na.zeros(self.ActiveDimensions + 1, dtype='float64')
+            na.add(new_field, cg[field][1: ,1: ,1: ], new_field)
+            na.add(new_field, cg[field][:-1,1: ,1: ], new_field)
+            na.add(new_field, cg[field][1: ,:-1,1: ], new_field)
+            na.add(new_field, cg[field][1: ,1: ,:-1], new_field)
+            na.add(new_field, cg[field][:-1,1: ,:-1], new_field)
+            na.add(new_field, cg[field][1: ,:-1,:-1], new_field)
+            na.add(new_field, cg[field][:-1,:-1,1: ], new_field)
+            na.add(new_field, cg[field][:-1,:-1,:-1], new_field)
+            na.multiply(new_field, 0.125, new_field)
+        else:
+            new_field = na.zeros(self.ActiveDimensions + 1, dtype='float64')
+            of = self[field]
+            new_field[:-1,:-1,:-1] += of
+            new_field[:-1,:-1,1:] += of
+            new_field[:-1,1:,:-1] += of
+            new_field[:-1,1:,1:] += of
+            new_field[1:,:-1,:-1] += of
+            new_field[1:,:-1,1:] += of
+            new_field[1:,1:,:-1] += of
+            new_field[1:,1:,1:] += of
+            na.multiply(new_field, 0.125, new_field)
+            if self.pf.field_info[field].take_log:
+                new_field = na.log10(new_field)
+            
+            new_field[:,:, -1] = 2.0*new_field[:,:,-2] - new_field[:,:,-3]
+            new_field[:,:, 0]  = 2.0*new_field[:,:,1] - new_field[:,:,2]
+
+            new_field[:,-1, :] = 2.0*new_field[:,-2,:] - new_field[:,-3,:]
+            new_field[:,0, :]  = 2.0*new_field[:,1,:] - new_field[:,2,:]
+
+            new_field[-1,:,:] = 2.0*new_field[-2,:,:] - new_field[-3,:,:]
+            new_field[0,:,:]  = 2.0*new_field[1,:,:] - new_field[2,:,:]
+            if self.pf.field_info[field].take_log:
+                na.power(10.0, new_field, new_field)
         return new_field
 

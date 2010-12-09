@@ -48,12 +48,12 @@ enum hydro_var
 
 //! names of possible variables stored in a RAMSES hydro file
 const char ramses_hydro_variables[][64] = {
-	{"density"},
-	{"velocity_x"},
-	{"velocity_y"},
-	{"velocity_z"},
-	{"pressure"},
-	{"metallicity"} };
+	{"Density"},
+	{"x-velocity"},
+	{"y-velocity"},
+	{"z-velocity"},
+	{"Pressure"},
+	{"Metallicity"} };
 
 
 /**************************************************************************************\
@@ -403,8 +403,9 @@ public:
 		//m_twotondim = (unsigned)(pow(2,m_header.ndim)+0.5);
 
 		for( unsigned i=0; i<m_nvars; ++i ){
-				m_var_name_map.insert( std::pair<std::string,unsigned>( ramses_hydro_variables[i], i+1 ) );
-				m_varnames.push_back( ramses_hydro_variables[i] );
+                std::string tmp(ramses_hydro_variables[i]);
+				m_var_name_map.insert( std::pair<std::string,unsigned>( tmp, i+1 ) );
+				m_varnames.push_back( tmp );
 			}
 	}
 

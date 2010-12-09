@@ -40,7 +40,7 @@ from yt.utilities.amr_utils import find_grids_in_inclined_box, \
     grid_points_in_volume, planar_points_in_volume, VoxelTraversal, \
     QuadTree
 from yt.utilities.data_point_utilities import CombineGrids, \
-    DataCubeRefine, DataCubeReplace, FillRegion
+    DataCubeRefine, DataCubeReplace, FillRegion, FillBuffer
 from yt.utilities.definitions import axis_names, x_dict, y_dict
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     ParallelAnalysisInterface
@@ -48,6 +48,8 @@ from yt.utilities.linear_interpolators import \
     UnilinearFieldInterpolator, \
     BilinearFieldInterpolator, \
     TrilinearFieldInterpolator
+from yt.utilities.parameter_file_storage import \
+    ParameterFileStore
 
 from .derived_quantities import DerivedQuantityCollection
 from .field_info_container import \
@@ -762,11 +764,14 @@ class AMRSliceBase(AMR2DData):
         points = []
         for grid in self._get_grids():
             points.append(self._generate_grid_coords(grid))
-        if len(points) == 0: points = None
-        else: points = na.concatenate(points)
-        # We have to transpose here so that _mpi_catarray works properly, as
-        # it and the alltoall assume the long axis is the last one.
-        t = self._mpi_catarray(points.transpose())
+        if len(points) == 0:
+            points = None
+            t = self._mpi_catarray(None)
+        else:
+            points = na.concatenate(points)
+            # We have to transpose here so that _mpi_catarray works properly, as
+            # it and the alltoall assume the long axis is the last one.
+            t = self._mpi_catarray(points.transpose())
         self['px'] = t[0,:]
         self['py'] = t[1,:]
         self['pz'] = t[2,:]
@@ -1603,7 +1608,7 @@ class AMRProjBase(AMR2DData):
             if not self._check_region and self.__retval_coords[grid1.id][0].size != 0:
                 mylog.error("Something messed up, and %s still has %s points of data",
                             grid1, self.__retval_coords[grid1.id][0].size)
-                mylog.error("You might try setting the ReconstructHierarchy option in [lagos]")
+                mylog.error("Please contact the yt-users mailing list.")
                 raise ValueError(grid1, self.__retval_coords[grid1.id])
         pbar.finish()
 
@@ -1764,6 +1769,7 @@ class AMRFixedResProjectionBase(AMR2DData):
         self._dls = {}
         self.domain_width = na.rint((self.pf.domain_right_edge -
                     self.pf.domain_left_edge)/self.dds).astype('int64')
+        self._refresh_data()
 
     def _get_list_of_grids(self):
         if self._grids is not None: return
@@ -1802,9 +1808,10 @@ class AMRFixedResProjectionBase(AMR2DData):
         if not self.has_key('pdx'):
             self._generate_coords()
         if fields == None:
-            fields_to_get = self.fields[:]
+            fields_to_get = [f for f in self.fields if f not in self._key_fields]
         else:
             fields_to_get = ensure_list(fields)
+        if len(fields_to_get) == 0: return
         temp_data = {}
         for field in fields_to_get:
             self[field] = na.zeros(self.dims, dtype='float64')
@@ -2128,7 +2135,7 @@ class ExtractedRegionBase(AMR3DData):
         xis, yis, zis = [na.array_split(aa, splits) for aa in [xi,yi,zi]]
         self._indices = {}
         h = self._base_region.pf.h
-        for grid_id, x, y, z in zip(grid_ids, xis, yis, zis):
+        for grid_id, x, y, z in izip(grid_ids, xis, yis, zis):
             # grid_id needs no offset
             ll = h.grids[grid_id].ActiveDimensions.prod() \
                - (na.logical_not(h.grids[grid_id].child_mask)).sum()

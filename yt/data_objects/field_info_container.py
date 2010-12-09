@@ -148,6 +148,7 @@ class FieldDetector(defaultdict):
         self.ActiveDimensions = [nd,nd,nd]
         self.LeftEdge = [0.0,0.0,0.0]
         self.RightEdge = [1.0,1.0,1.0]
+        self.dds = na.ones(3, "float64")
         self['dx'] = self['dy'] = self['dz'] = na.array([1.0])
         if pf is None:
             pf = defaultdict(lambda: 1)
@@ -163,7 +164,8 @@ class FieldDetector(defaultdict):
         self.hierarchy = fake_hierarchy()
         self.requested = []
         self.requested_parameters = []
-        defaultdict.__init__(self, lambda: na.ones((nd,nd,nd)))
+        defaultdict.__init__(self,
+            lambda: na.ones((nd,nd,nd), dtype='float64') + 1e-4*na.random.random((nd,nd,nd)))
     def __missing__(self, item):
         if FieldInfo.has_key(item) and \
             FieldInfo[item]._function.func_name != '<lambda>':
@@ -194,7 +196,7 @@ class FieldDetector(defaultdict):
     def get_field_parameter(self, param):
         self.requested_parameters.append(param)
         if param in ['bulk_velocity','center','height_vector']:
-            return na.array([0,0,0])
+            return na.random.random(3)*1e-2
         else:
             return 0.0
     _spatial = True

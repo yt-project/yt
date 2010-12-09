@@ -446,7 +446,7 @@ class ColorTransferFunction(MultiVariateTransferFunction):
         ax.set_xlabel("Value")
         pyplot.savefig(filename)
 
-    def sample_colormap(self, v, w, alpha=None, colormap="gist_stern"):
+    def sample_colormap(self, v, w, alpha=None, colormap="gist_stern", col_bounds=None):
         r"""Add a Gaussian based on an existing colormap.
 
         Constructing pleasing Gaussians in a transfer function can pose some
@@ -467,6 +467,10 @@ class ColorTransferFunction(MultiVariateTransferFunction):
         colormap : string, optional
             An acceptable colormap.  See either yt.visualization.color_maps or
             http://www.scipy.org/Cookbook/Matplotlib/Show_colormaps .
+        col_bounds: array_like [min, max], optional
+            Limits the values over which the colormap spans to these
+            values.  Useful for sampling an entire colormap over a
+            range smaller than the transfer function bounds.
 
         See Also
         --------
@@ -478,7 +482,10 @@ class ColorTransferFunction(MultiVariateTransferFunction):
         >>> tf = ColorTransferFunction( (-10.0, -5.0) )
         >>> tf.sample_colormap(-7.0, 0.01, 'algae')
         """
-        rel = (v - self.x_bounds[0])/(self.x_bounds[1] - self.x_bounds[0])
+        if col_bounds is None:
+            rel = (v - self.x_bounds[0])/(self.x_bounds[1] - self.x_bounds[0])
+        else:
+            rel = (v - col_bounds[0])/(col_bounds[1] - col_bounds[0])
         cmap = get_cmap(colormap)
         r,g,b,a = cmap(rel)
         if alpha is None: alpha = a
@@ -487,7 +494,7 @@ class ColorTransferFunction(MultiVariateTransferFunction):
                 v, w, (r,g,b,alpha))
 
     def add_layers(self, N, w=None, mi=None, ma=None, alpha = None,
-                   colormap="gist_stern"):
+                   colormap="gist_stern", col_bounds = None):
         r"""Add a set of Gaussians based on an existing colormap.
 
         Constructing pleasing Gaussians in a transfer function can pose some
@@ -515,6 +522,10 @@ class ColorTransferFunction(MultiVariateTransferFunction):
         colormap : string, optional
             An acceptable colormap.  See either yt.visualization.color_maps or
             http://www.scipy.org/Cookbook/Matplotlib/Show_colormaps .
+        col_bounds: array_like [min, max], optional
+            Limits the values over which the colormap spans to these
+            values.  Useful for sampling an entire colormap over a
+            range smaller than the transfer function bounds.
 
         See Also
         --------
@@ -526,13 +537,18 @@ class ColorTransferFunction(MultiVariateTransferFunction):
         >>> tf = ColorTransferFunction( (-10.0, -5.0) )
         >>> tf.add_layers(8)
         """
-        dist = (self.x_bounds[1] - self.x_bounds[0])
-        if mi is None: mi = self.x_bounds[0] + dist/(10.0*N)
-        if ma is None: ma = self.x_bounds[1] - dist/(10.0*N)
+        if col_bounds is None:
+            dist = (self.x_bounds[1] - self.x_bounds[0])
+            if mi is None: mi = self.x_bounds[0] + dist/(10.0*N)
+            if ma is None: ma = self.x_bounds[1] - dist/(10.0*N)
+        else:
+            dist = (col_bounds[1] - col_bounds[0])
+            if mi is None: mi = col_bounds[0] + dist/(10.0*N)
+            if ma is None: ma = col_bounds[1] - dist/(10.0*N)
         if w is None: w = 0.001 * (ma-mi)/N
         if alpha is None: alpha = na.logspace(-2.0, 0.0, N)
         for v, a in zip(na.mgrid[mi:ma:N*1j], alpha):
-            self.sample_colormap(v, w, a, colormap=colormap)
+            self.sample_colormap(v, w, a, colormap=colormap, col_bounds=col_bounds)
 
     def get_colormap_image(self, height, width):
         image = na.zeros((height, width, 3), dtype='uint8')
@@ -541,7 +557,6 @@ class ColorTransferFunction(MultiVariateTransferFunction):
             vals = na.interp(hvals, f.x, f.y)
             image[:,:,i] = (vals[:,None] * 255).astype('uint8')
         image = image[::-1,:,:]
-        import pdb; pdb.set_trace()
         return image
 
 class ProjectionTransferFunction(MultiVariateTransferFunction):
