@@ -1328,10 +1328,66 @@ class AMRQuadTreeProjBase(AMR2DData):
                  source=None, node_name = None, field_cuts = None,
                  preload_style='level', serialize=True,**kwargs):
         """
-        AMRProj is a projection of a *field* along an *axis*.  The field
-        can have an associated *weight_field*, in which case the values are
-        multiplied by a weight before being summed, and then divided by the sum
-        of that weight.
+        This is a data object corresponding to a line integral through the
+        simulation domain.
+
+        This object is typically accessed through the `quad_proj` object that
+        hangs off of hierarchy objects.  AMRQuadProj is a projection of a
+        `field` along an `axis`.  The field can have an associated
+        `weight_field`, in which case the values are multiplied by a weight
+        before being summed, and then divided by the sum of that weight; the
+        two fundamental modes of operating are direct line integral (no
+        weighting) and average along a line of sight (weighting.)  What makes
+        `quad_proj` different from the standard projection mechanism is that it
+        utilizes a quadtree data structure, rather than the old mechanism for
+        projections.  It will not run in parallel, but serial runs should be
+        substantially faster.  Note also that lines of sight are integrated at
+        every projected finest-level cell.
+
+        Parameters
+        ----------
+        axis : int
+            The axis along which to slice.  Can be 0, 1, or 2 for x, y, z.
+        field : string
+            This is the field which will be "projected" along the axis.  If
+            multiple are specified (in a list) they will all be projected in
+            the first pass.
+        weight_field : string
+            If supplied, the field being projected will be multiplied by this
+            weight value before being integrated, and at the conclusion of the
+            projection the resultant values will be divided by the projected
+            `weight_field`.
+        max_level : int
+            If supplied, only cells at or below this level will be projected.
+        center : array_like, optional
+            The 'center' supplied to fields that use it.  Note that this does
+            not have to have `coord` as one value.  Strictly optional.
+        source : `yt.data_objects.api.AMRData`, optional
+            If specified, this will be the data source used for selecting
+            regions to project.
+        node_name: string, optional
+            The node in the .yt file to find or store this slice at.  Should
+            probably not be used.
+        field_cuts : list of strings, optional
+            If supplied, each of these strings will be evaluated to cut a
+            region of a grid out.  They can be of the form "grid['Temperature']
+            > 100" for instance.
+        preload_style : string
+            Either 'level' (default) or 'all'.  Defines how grids are loaded --
+            either level by level, or all at once.  Only applicable during
+            parallel runs.
+        serialize : bool, optional
+            Whether we should store this projection in the .yt file or not.
+        kwargs : dict of items
+            Any additional values are passed as field parameters that can be
+            accessed by generated fields.
+
+        Examples
+        --------
+
+        >>> pf = load("RedshiftOutput0005")
+        >>> qproj = pf.h.quad_proj(0, "Density")
+        >>> print qproj["Density"]
         """
         AMR2DData.__init__(self, axis, field, pf, node_name = None, **kwargs)
         self.weight_field = weight_field
@@ -1552,10 +1608,62 @@ class AMRProjBase(AMR2DData):
                  source=None, node_name = None, field_cuts = None,
                  preload_style='level', serialize=True,**kwargs):
         """
-        AMRProj is a projection of a *field* along an *axis*.  The field
-        can have an associated *weight_field*, in which case the values are
-        multiplied by a weight before being summed, and then divided by the sum
-        of that weight.
+        This is a data object corresponding to a line integral through the
+        simulation domain.
+
+        This object is typically accessed through the `proj` object that
+        hangs off of hierarchy objects.  AMRProj is a projection of a `field`
+        along an `axis`.  The field can have an associated `weight_field`, in
+        which case the values are multiplied by a weight before being summed,
+        and then divided by the sum of that weight; the two fundamental modes
+        of operating are direct line integral (no weighting) and average along
+        a line of sight (weighting.)  Note also that lines of sight are
+        integrated at every projected finest-level cell
+
+        Parameters
+        ----------
+        axis : int
+            The axis along which to slice.  Can be 0, 1, or 2 for x, y, z.
+        field : string
+            This is the field which will be "projected" along the axis.  If
+            multiple are specified (in a list) they will all be projected in
+            the first pass.
+        weight_field : string
+            If supplied, the field being projected will be multiplied by this
+            weight value before being integrated, and at the conclusion of the
+            projection the resultant values will be divided by the projected
+            `weight_field`.
+        max_level : int
+            If supplied, only cells at or below this level will be projected.
+        center : array_like, optional
+            The 'center' supplied to fields that use it.  Note that this does
+            not have to have `coord` as one value.  Strictly optional.
+        source : `yt.data_objects.api.AMRData`, optional
+            If specified, this will be the data source used for selecting
+            regions to project.
+        node_name: string, optional
+            The node in the .yt file to find or store this slice at.  Should
+            probably not be used.
+        field_cuts : list of strings, optional
+            If supplied, each of these strings will be evaluated to cut a
+            region of a grid out.  They can be of the form "grid['Temperature']
+            > 100" for instance.
+        preload_style : string
+            Either 'level' (default) or 'all'.  Defines how grids are loaded --
+            either level by level, or all at once.  Only applicable during
+            parallel runs.
+        serialize : bool, optional
+            Whether we should store this projection in the .yt file or not.
+        kwargs : dict of items
+            Any additional values are passed as field parameters that can be
+            accessed by generated fields.
+
+        Examples
+        --------
+
+        >>> pf = load("RedshiftOutput0005")
+        >>> proj = pf.h.proj(0, "Density")
+        >>> print proj["Density"]
         """
         AMR2DData.__init__(self, axis, field, pf, node_name = None, **kwargs)
         self.weight_field = weight_field
@@ -1876,8 +1984,44 @@ class AMRFixedResProjectionBase(AMR2DData):
     def __init__(self, axis, level, left_edge, dims,
                  fields = None, pf=None, **kwargs):
         """
-        A projection that provides fixed resolution output,
-        operating in a grid-by-grid fashion.
+        This is a data structure that projects grids, but only to fixed (rather
+        than variable) resolution.
+
+        This object is typically accessed through the `fixed_res_proj` object
+        that hangs off of hierarchy objects.  This projection mechanism is much
+        simpler than the standard, variable-resolution projection.  Rather than
+        attempt to identify the highest-resolution element along every possible
+        line of sight, this data structure simply deposits every cell into one
+        of a fixed number of bins.  It is suitable for inline analysis, and it
+        should scale nicely.
+
+        Parameters
+        ----------
+        axis : int
+            The axis along which to project.  Can be 0, 1, or 2 for x, y, z.
+        level : int
+            This is the level to which values will be projected.  Note that
+            the pixel size in the projection will be identical to a cell at
+            this level of refinement in the simulation.
+        left_edge : array of ints
+            The left edge, in level-local integer coordinates, of the
+            projection
+        dims : array of ints
+            The dimensions of the projection (which, in concert with the
+            left_edge, serves to define its right edge.)
+        fields : list of strings, optional
+            If you want the object to pre-retrieve a set of fields, supply them
+            here.  This is not necessary.
+        kwargs : dict of items
+            Any additional values are passed as field parameters that can be
+            accessed by generated fields.
+
+        Examples
+        --------
+
+        >>> pf = load("RedshiftOutput0005")
+        >>> fproj = pf.h.fixed_res_proj(1, [0, 0, 0], [64, 64, 64], ["Density"])
+        >>> print fproj["Density"]
         """
         AMR2DData.__init__(self, axis, fields, pf, **kwargs)
         self.left_edge = na.array(left_edge)
