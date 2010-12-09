@@ -1233,7 +1233,7 @@ static PyObject *Py_FillBuffer(PyObject *obj, PyObject *args)
                 ck = (ck < 0) ? ck + dw[2] : ck;
                 if ( ck < gzs*refratio || ck >= gze*refratio) continue;
                 gzi = floor(ck / refratio) - gzs;
-                    if (*(npy_int32*)PyArray_GETPTR3(mask, gxi,gyi,gzi) > 0)
+                    if (refratio == 1 || *(npy_int32*)PyArray_GETPTR3(mask, gxi,gyi,gzi) > 0)
                 {
                 switch (axis) {
                   case 0: x_loc = cyi-cys; y_loc = czi-czs; break;

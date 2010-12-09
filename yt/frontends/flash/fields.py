@@ -67,12 +67,63 @@ translation_dict = {"x-velocity": "velx",
                     "particle_position_x" : "particle_posx",
                     "particle_position_y" : "particle_posy",
                     "particle_position_z" : "particle_posz",
-                   }
+                    "Electron_Fraction" : "elec",
+                    "HI_Fraction" : "h   ",
+                    "HD_Fraction" : "hd  ",
+                    "HeI_Fraction": "hel ",
+                    "HeII_Fraction": "hep ",
+                    "HeIII_Fraction": "hepp",
+                    "HM_Fraction": "hmin",
+                    "HII_Fraction": "hp  ",
+                    "H2I_Fraction": "htwo",
+                    "H2II_Fraction": "htwp",
+                    "DI_Fraction": "deut",
+                    "DII_Fraction": "dplu",
+                    "ParticleMass": "particle_mass"}
+
+def _get_density(fname):
+    def _dens(field, data):
+        return data[fname] * data['Density']
+    return _dens
+
+for fn1, fn2 in translation_dict.items():
+    if fn1.endswith("_Fraction"):
+        add_field(fn1.split("_")[0] + "_Density",
+                  function=_get_density(fn1), take_log=True)
+
+def _get_alias(alias):
+    def _alias(field, data):
+        return data[alias]
+    return _alias
 
 def _generate_translation(mine, theirs):
     pfield = theirs.startswith("particle")
-    add_field(theirs, function=lambda a, b: b[mine], take_log=True,
+    add_field(theirs, function=_get_alias(mine), take_log=True,
               particle_type = pfield)
+
+def _get_convert(fname):
+    def _conv(data):
+        return data.convert(fname)
+    return _conv
+
+add_field("dens", function=lambda a,b: None, take_log=True,
+          convert_function=_get_convert("dens"),
+          units=r"\rm{g}/\rm{cm}^3")
+add_field("xvel", function=lambda a,b: None, take_log=False,
+          convert_function=_get_convert("xvel"),
+          units=r"\rm{cm}/\rm{s}")
+add_field("yvel", function=lambda a,b: None, take_log=False,
+          convert_function=_get_convert("yvel"),
+          units=r"\rm{cm}/\rm{s}")
+add_field("zvel", function=lambda a,b: None, take_log=False,
+          convert_function=_get_convert("zvel"),
+          units=r"\rm{cm}/\rm{s}")
+add_field("temp", function=lambda a,b: None, take_log=True,
+          convert_function=_get_convert("temp"),
+          units=r"\rm{K}")
+add_field("pres", function=lambda a,b: None, take_log=True,
+          convert_function=_get_convert("pres"),
+          units=r"\rm{unknown}")
 
 for f,v in translation_dict.items():
     if v not in FLASHFieldInfo:
@@ -131,3 +182,11 @@ add_field("divb", function=lambda a,b: None, take_log=False,
           validators = [ValidateDataField("divb")],
           units = r"\rm{G}\/\rm{cm}")
 
+def _convertParticleMassMsun(data):
+    return 1.0/1.989e33
+def _ParticleMassMsun(field, data):
+    return data["ParticleMass"]
+add_field("ParticleMassMsun",
+          function=_ParticleMassMsun, validators=[ValidateSpatial(0)],
+          particle_type=True, convert_function=_convertParticleMassMsun,
+          particle_convert_function=_ParticleMassMsun)

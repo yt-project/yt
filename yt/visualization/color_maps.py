@@ -22,9 +22,10 @@ License:
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 import numpy as na
+
+import matplotlib
 import matplotlib.colors as cc
 import matplotlib.cm as mcm
-
 
 def check_color(name):
     try:
@@ -74,6 +75,8 @@ cdict = {'red':   ((0.0, 80/256., 80/256.),
 add_cmap('bds_highcontrast', cdict)
 add_cmap('algae', cdict)
 
+# Set the default colormap to be algae.
+matplotlib.rc('image', cmap="algae")
 
 # This next colormap was designed by Tune Kamae and converted here by Matt
 _vs = na.linspace(0,1,255)

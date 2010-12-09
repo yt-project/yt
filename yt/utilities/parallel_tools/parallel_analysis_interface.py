@@ -1029,6 +1029,14 @@ class ParallelAnalysisInterface(object):
 
     @parallel_passthrough
     def _mpi_catarray(self, data):
+        if data is None:
+            ncols = -1
+            size = 0
+        else:
+            ncols, size = data.shape
+        ncols = MPI.COMM_WORLD.allreduce(ncols, op=MPI.MAX)
+        if data is None:
+            data = na.empty((ncols,0), dtype='float64') # This only works for
         size = data.shape[-1]
         sizes = na.zeros(MPI.COMM_WORLD.size, dtype='int64')
         outsize = na.array(size, dtype='int64')

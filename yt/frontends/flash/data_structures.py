@@ -83,7 +83,7 @@ class FLASHHierarchy(AMRHierarchy):
 
     def _detect_fields(self):
         ncomp = self._handle["/unknown names"].shape[0]
-        self.field_list = [s.strip() for s in self._handle["/unknown names"][:].flat]
+        self.field_list = [s for s in self._handle["/unknown names"][:].flat]
         if ("/particle names" in self._handle) :
             self.field_list += ["particle_" + s[0].strip() for s
                                 in self._handle["/particle names"][:]]
@@ -163,6 +163,17 @@ class FLASHHierarchy(AMRHierarchy):
 
     def _setup_derived_fields(self):
         self.derived_field_list = []
+        for field in self.parameter_file.field_info:
+            try:
+                fd = self.parameter_file.field_info[field].get_dependencies(
+                            pf = self.parameter_file)
+            except:
+                continue
+            available = na.all([f in self.field_list for f in fd.requested])
+            if available: self.derived_field_list.append(field)
+        for field in self.field_list:
+            if field not in self.derived_field_list:
+                self.derived_field_list.append(field)
 
     def _setup_data_io(self):
         self.io = io_registry[self.data_style](self.parameter_file)
@@ -200,8 +211,11 @@ class FLASHStaticOutput(StaticOutput):
         self.time_units = {}
         if len(self.parameters) == 0:
             self._parse_parameter_file()
-        self._setup_nounits_units()
         self.conversion_factors = defaultdict(lambda: 1.0)
+        if self.cosmological_simulation == 1:
+            self._setup_comoving_units()
+        else:
+            self._setup_nounits_units()
         self.time_units['1'] = 1
         self.units['1'] = 1.0
         self.units['unitary'] = 1.0 / \
@@ -212,7 +226,30 @@ class FLASHStaticOutput(StaticOutput):
         for p, v in self._conversion_override.items():
             self.conversion_factors[p] = v
 
+    def _setup_comoving_units(self):
+        self.conversion_factors['dens'] = (1.0 + self.current_redshift)**3.0
+        self.conversion_factors['pres'] = (1.0 + self.current_redshift)**1.0
+        self.conversion_factors['eint'] = (1.0 + self.current_redshift)**-2.0
+        self.conversion_factors['ener'] = (1.0 + self.current_redshift)**-2.0
+        self.conversion_factors['temp'] = (1.0 + self.current_redshift)**-2.0
+        self.conversion_factors['velx'] = (1.0 + self.current_redshift)
+        self.conversion_factors['vely'] = self.conversion_factors['velx']
+        self.conversion_factors['velz'] = self.conversion_factors['velx']
+        if not self.has_key("TimeUnits"):
+            mylog.warning("No time units.  Setting 1.0 = 1 second.")
+            self.conversion_factors["Time"] = 1.0
+        for unit in mpc_conversion.keys():
+            self.units[unit] = mpc_conversion[unit] / mpc_conversion["cm"]
+
     def _setup_nounits_units(self):
+        self.conversion_factors['dens'] = 1.0
+        self.conversion_factors['pres'] = 1.0
+        self.conversion_factors['eint'] = 1.0
+        self.conversion_factors['ener'] = 1.0
+        self.conversion_factors['temp'] = 1.0
+        self.conversion_factors['velx'] = 1.0
+        self.conversion_factors['vely'] = 1.0
+        self.conversion_factors['velz'] = 1.0
         z = 0
         mylog.warning("Setting 1.0 in code units to be 1.0 cm")
         if not self.has_key("TimeUnits"):
@@ -255,6 +292,22 @@ class FLASHStaticOutput(StaticOutput):
         else:
             self.current_time = \
                 float(self._find_parameter("real", "time", scalar=True))
+
+        try:
+            use_cosmo = self._find_parameter("logical", "usecosmology") 
+        except KeyError:
+            use_cosmo = 0
+
+        if use_cosmo == 1:
+            self.cosmological_simulation = 1
+            self.current_redshift = self._find_parameter("real", "redshift",
+                                        scalar = True)
+            self.omega_lambda = self._find_parameter("real", "cosmologicalconstant")
+            self.omega_matter = self._find_parameter("real", "omegamatter")
+            self.hubble_constant = self._find_parameter("real", "hubbleconstant")
+        else:
+            self.current_redshift = self.omega_lambda = self.omega_matter = \
+                self.hubble_constant = self.cosmological_simulation = 0.0
         self._handle.close()
 
     @classmethod
