@@ -1558,7 +1558,6 @@ def wrap_pylab_newplot(func):
         retval = func(self, *args, **kwargs)
         retval._redraw_image()
         retval._fig_num = new_fig.number
-        self.pylab.show()
         self.pylab.draw()
         return retval
     return pylabify
@@ -1611,7 +1610,7 @@ class PlotCollectionInteractive(PlotCollection):
         """
         for plot in self.plots:
             plot._redraw_image()
-        self.pylab.show()
+        self.pylab.draw()
 
     def clear_figures(self):
         r"""Clear all interactive figures affiliated with this collection.
@@ -1623,6 +1622,47 @@ class PlotCollectionInteractive(PlotCollection):
         for plot in self.plots:
             self.pylab.figure(plot._fig_num)
             self.pylab.clf()
+
+    def interactive_zoom(self):
+        r"""Enter an interactive zooming session for all plots.
+
+        Use this to enter an interactive session where zoom factors
+        can be entered that are used to set the widths of the plot
+        collection.  This function has no arguments, but will return
+        the final width upon exit.
+
+        Caution: Tested and works with TkAgg and MacOSX backends.  Threaded
+        backends like Qt4Agg are likely to fail.
+
+        Controls:
+        Any numeric value: Zooms by this factor
+        0: Exit interactive zoom session
+        -1: Reset to width of 1.0 in code units
+        empty: zooms by previously entered factor.
+
+        Returns:
+        width: (float) The final width of the plot collection
+        """
+        print 'Enter Zoom Factor, 0 to exit, -1 to reset to width=1.0'
+        zfactor = 1.0
+        while(True):
+            new_zoom = raw_input('zoom:')
+            if new_zoom is not '':
+                try:
+                    zfactor = float(new_zoom)
+                except:
+                    print 'Please enter a valid number, or 0 to exit'
+                    continue
+            else:
+                print 'Using previous zoom value of %e' % zfactor
+            if zfactor == 0.0:
+                break
+            elif zfactor == -1.0:
+                self.set_width(1.0,'1')
+            else:
+                self.set_width(self.plots[0].__dict__['width']/zfactor,'1')
+        print 'Returning final width of %e' % self.plots[0].width
+        return self.plots[0].width
 
 def get_multi_plot(nx, ny, colorbar = 'vertical', bw = 4, dpi=300):
     r"""Construct a multiple axes plot object, with or without a colorbar, into

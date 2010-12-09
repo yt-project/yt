@@ -85,6 +85,7 @@ class StaticOutput(object):
                 _pf_store.check_pf(self)
             except NoParameterShelf:
                 pass
+        self.print_key_parameters()
 
     def __reduce__(self):
         args = (self._hash(),)
@@ -164,6 +165,24 @@ class StaticOutput(object):
     __hierarchy = None
     hierarchy = property(_get_hierarchy, _set_hierarchy)
     h = property(_get_hierarchy, _set_hierarchy)
+
+    def print_key_parameters(self):
+        for a in ["current_time", "domain_dimensions", "domain_left_edge",
+                 "domain_right_edge", "cosmological_simulation"]:
+            if not hasattr(self, a):
+                mylog.error("Missing %s in parameter file definition!", a)
+                continue
+            v = getattr(self, a)
+            mylog.info("Parameters: %-25s = %s", a, v)
+        if hasattr(self, "cosmological_simulation") and \
+            getattr(self, "cosmological_simulation"):
+            for a in ["current_redshift", "omega_lambda", "omega_matter",
+                      "hubble_constant"]:
+                if not hasattr(self, a):
+                    mylog.error("Missing %s in parameter file definition!", a)
+                    continue
+                v = getattr(self, a)
+                mylog.info("Parameters: %-25s = %s", a, v)
 
 def _reconstruct_pf(*args, **kwargs):
     pfs = ParameterFileStore()
