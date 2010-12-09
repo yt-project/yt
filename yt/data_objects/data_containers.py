@@ -186,6 +186,7 @@ class AMRData(object):
         self._point_indices = {}
         self._vc_data = {}
         for key, val in kwargs.items():
+            mylog.info("Setting %s to %s", key, val)
             self.set_field_parameter(key, val)
 
     def __set_default_field_parameters(self):
@@ -467,8 +468,36 @@ class AMROrthoRayBase(AMR1DData):
     _con_args = ('axis', 'coords')
     def __init__(self, axis, coords, fields=None, pf=None, **kwargs):
         """
-        Dimensionality is reduced to one, and an ordered list of points at an
-        (x,y) tuple along *axis* are available.
+        This is an orthogonal ray cast through the entire domain, at a specific
+        coordinate.
+
+        This object is typically accessed through the `ortho_ray` object that
+        hangs off of hierarchy objects.  The resulting arrays have their
+        dimensionality reduced to one, and an ordered list of points at an
+        (x,y) tuple along `axis` are available.
+
+        Parameters
+        ----------
+        axis : int
+            The axis along which to cast the ray.  Can be 0, 1, or 2 for x, y, z.
+        coords : tuple of floats
+            The (plane_x, plane_y) coordinates at which to cast the ray.  Note
+            that this is in the plane coordinates: so if you are casting along
+            x, this will be (y,z).  If you are casting along y, this will be
+            (x,z).  If you are casting along z, this will be (x,y).
+        fields : list of strings, optional
+            If you want the object to pre-retrieve a set of fields, supply them
+            here.  This is not necessary.
+        kwargs : dict of items
+            Any additional values are passed as field parameters that can be
+            accessed by generated fields.
+
+        Examples
+        --------
+
+        >>> pf = load("RedshiftOutput0005")
+        >>> oray = pf.h.ortho_ray(0, (0.2, 0.74))
+        >>> print oray["Density"]
         """
         AMR1DData.__init__(self, pf, fields, **kwargs)
         self.axis = axis
@@ -519,8 +548,35 @@ class AMRRayBase(AMR1DData):
     sort_by = 't'
     def __init__(self, start_point, end_point, fields=None, pf=None, **kwargs):
         """
-        We accept a start point and an end point and then get all the data
-        between those two.
+        This is an arbitrarily-aligned ray cast through the entire domain, at a
+        specific coordinate.
+
+        This object is typically accessed through the `ray` object that hangs
+        off of hierarchy objects.  The resulting arrays have their
+        dimensionality reduced to one, and an ordered list of points at an
+        (x,y) tuple along `axis` are available, as is the `t` field, which
+        corresponds to a unitless measurement along the ray from start to
+        end.
+
+        Parameters
+        ----------
+        start_point : array-like set of 3 floats
+            The place where the ray starts.
+        end_point : array-like set of 3 floats
+            The place where the ray ends.
+        fields : list of strings, optional
+            If you want the object to pre-retrieve a set of fields, supply them
+            here.  This is not necessary.
+        kwargs : dict of items
+            Any additional values are passed as field parameters that can be
+            accessed by generated fields.
+
+        Examples
+        --------
+
+        >>> pf = load("RedshiftOutput0005")
+        >>> ray = pf.h._ray((0.2, 0.74), (0.4, 0.91))
+        >>> print ray["Density"], ray["t"]
         """
         AMR1DData.__init__(self, pf, fields, **kwargs)
         self.start_point = na.array(start_point, dtype='float64')
@@ -712,13 +768,6 @@ class AMR2DData(AMRData, GridPropertiesMixin, ParallelAnalysisInterface):
         self._store_fields(self.fields, node_name, force)
 
 class AMRSliceBase(AMR2DData):
-    """
-    AMRSlice is an orthogonal slice through the data, taking all the points
-    at the finest resolution available and then indexing them.  It is more
-    appropriately thought of as a slice 'operator' than an object,
-    however, as its field and coordinate can both change.
-    """
-
     _top_node = "/Slices"
     _type_name = "slice"
     _con_args = ('axis', 'coord')
@@ -726,8 +775,42 @@ class AMRSliceBase(AMR2DData):
     def __init__(self, axis, coord, fields = None, center=None, pf=None,
                  node_name = False, **kwargs):
         """
-        Slice along *axis*:ref:`axis-specification`, at the coordinate *coord*.
-        Optionally supply fields.
+        This is a data object corresponding to a slice through the simulation
+        domain.
+
+        This object is typically accessed through the `slice` object that hangs
+        off of hierarchy objects.  AMRSlice is an orthogonal slice through the
+        data, taking all the points at the finest resolution available and then
+        indexing them.  It is more appropriately thought of as a slice
+        'operator' than an object, however, as its field and coordinate can
+        both change.
+
+        Parameters
+        ----------
+        axis : int
+            The axis along which to slice.  Can be 0, 1, or 2 for x, y, z.
+        coord : float
+            The coordinate along the axis at which to slice.  This is in
+            "domain" coordinates.
+        fields : list of strings, optional
+            If you want the object to pre-retrieve a set of fields, supply them
+            here.  This is not necessary.
+        center : array_like, optional
+            The 'center' supplied to fields that use it.  Note that this does
+            not have to have `coord` as one value.  Strictly optional.
+        node_name: string, optional
+            The node in the .yt file to find or store this slice at.  Should
+            probably not be used.
+        kwargs : dict of items
+            Any additional values are passed as field parameters that can be
+            accessed by generated fields.
+
+        Examples
+        --------
+
+        >>> pf = load("RedshiftOutput0005")
+        >>> slice = pf.h.slice(0, 0.25)
+        >>> print slice["Density"]
         """
         AMR2DData.__init__(self, axis, fields, pf, **kwargs)
         self._set_center(center)
@@ -866,12 +949,6 @@ class AMRSliceBase(AMR2DData):
     quantities = property(__get_quantities)
 
 class AMRCuttingPlaneBase(AMR2DData):
-    """
-    AMRCuttingPlane is an oblique plane through the data,
-    defined by a normal vector and a coordinate.  It attempts to guess
-    an 'up' vector, which cannot be overridden, and then it pixelizes
-    the appropriate data onto the plane without interpolation.
-    """
     _plane = None
     _top_node = "/CuttingPlanes"
     _key_fields = AMR2DData._key_fields + ['pz','pdz']
@@ -880,9 +957,47 @@ class AMRCuttingPlaneBase(AMR2DData):
     def __init__(self, normal, center, fields = None, node_name = None,
                  **kwargs):
         """
-        The Cutting Plane slices at an oblique angle, where we use
-        the *normal* vector and the *center* to define the viewing plane.
-        The 'up' direction is guessed at automatically.
+        This is a data object corresponding to an oblique slice through the
+        simulation domain.
+
+        This object is typically accessed through the `cutting` object
+        that hangs off of hierarchy objects.  AMRCuttingPlane is an oblique
+        plane through the data, defined by a normal vector and a coordinate.
+        It attempts to guess an 'up' vector, which cannot be overridden, and
+        then it pixelizes the appropriate data onto the plane without
+        interpolation.
+
+        Parameters
+        ----------
+        normal : array_like
+            The vector that defines the desired plane.  For instance, the
+            angular momentum of a sphere.
+        center : array_like, optional
+            The center of the cutting plane.
+        fields : list of strings, optional
+            If you want the object to pre-retrieve a set of fields, supply them
+            here.  This is not necessary.
+        node_name: string, optional
+            The node in the .yt file to find or store this slice at.  Should
+            probably not be used.
+        kwargs : dict of items
+            Any additional values are passed as field parameters that can be
+            accessed by generated fields.
+
+        Notes
+        -----
+
+        This data object in particular can be somewhat expensive to create.
+        It's also important to note that unlike the other 2D data objects, this
+        oject provides px, py, pz, as some cells may have a height from the
+        plane.
+
+        Examples
+        --------
+
+        >>> pf = load("RedshiftOutput0005")
+        >>> cp = pf.h.cutting([0.1, 0.2, -0.9], [0.5, 0.42, 0.6])
+        >>> print cp["Density"]
         """
         AMR2DData.__init__(self, 4, fields, **kwargs)
         self._set_center(center)
