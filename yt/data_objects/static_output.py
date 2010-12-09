@@ -29,6 +29,8 @@ import string, re, gc, time, os, os.path, weakref
 from yt.funcs import *
 
 from yt.config import ytcfg
+from yt.utilities.parallel_tools.parallel_analysis_interface import \
+    parallel_root_only
 from yt.utilities.parameter_file_storage import \
     ParameterFileStore, \
     NoParameterShelf, \
@@ -166,6 +168,7 @@ class StaticOutput(object):
     hierarchy = property(_get_hierarchy, _set_hierarchy)
     h = property(_get_hierarchy, _set_hierarchy)
 
+    @parallel_root_only
     def print_key_parameters(self):
         for a in ["current_time", "domain_dimensions", "domain_left_edge",
                  "domain_right_edge", "cosmological_simulation"]:
