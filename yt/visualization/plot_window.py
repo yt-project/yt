@@ -33,7 +33,8 @@ import matplotlib.pyplot
 def invalidate_data(f):
     def newfunc(*args, **kwargs):
         f(*args, **kwargs)
-        #args[0]._data_valid = False
+        args[0]._data_valid = False
+        args[0]._plot_valid = False
         args[0]._recreate_frb()
         args[0]._setup_plots()
 
@@ -41,8 +42,7 @@ def invalidate_data(f):
 
 def invalidate_plot(f):
     def newfunc(*args, **kwargs):
-        #args[0]._plot_valid = False
-        args[0]._recreate_frb()
+        args[0]._plot_valid = False
         args[0]._setup_plots()
         return f(*args, **kwargs)
     return newfunc
@@ -61,24 +61,21 @@ class PlotWindow(object):
         
         Data is handled by a FixedResolutionBuffer object.
         """
+        self.plots = {}
         self.data_source = data_source
-        self.bounds = bounds
         self.buff_size = buff_size
         self.antialias = True
-
-        self.plots = {}
-        self._recreate_frb()
-
-        self._setup_plots() # this should be some kind of user-provided callback
-        self._data_valid = True
+        self.set_window(bounds) # this automatically updates the data and plot
 
     def __getitem__(self, item):
         return self.plots[item]
 
     def _recreate_frb(self):
         try:
+            print "recreating with bounds ", self.bounds
+            bounds = self.bounds
             self._frb = FixedResolutionBuffer(self.data_source, 
-                                              self.bounds, self.buff_size, 
+                                              bounds, self.buff_size, 
                                               self.antialias)
         except:
             raise RuntimeError("Failed to repixelize.")
@@ -86,9 +83,9 @@ class PlotWindow(object):
         self._data_valid = True
 
     def _setup_plots(self):
-        self.plots = {}
         for f in self.fields:
             self.plots[f] = YtWindowPlot(self._frb[f])
+        self._plot_valid = True
 
     @property
     def fields(self):
@@ -112,6 +109,29 @@ class PlotWindow(object):
     def pan(self):
         pass
 
+    @property
+    def width(self):
+        Wx = self.xlim[1] - self.xlim[0]
+        Wy = self.ylim[1] - self.ylim[0]
+        return (Wx, Wy)
+
+    @property
+    def bounds(self):
+        return self.xlim+self.ylim
+
+    @invalidate_data
+    def zoom(self, factor):
+        """
+        This zooms the window by *factor*.
+        """
+        Wx, Wy = self.width
+        centerx = self.xlim[0] + Wx*0.5
+        centery = self.ylim[0] + Wy*0.5
+        nWx, nWy = Wx/factor, Wy/factor
+        self.xlim = (centerx - nWx*0.5, centerx + nWx*0.5)
+        self.ylim = (centery - nWy*0.5, centery + nWy*0.5)
+        #self._run_callbacks()
+
     @invalidate_plot
     def set_cmap(self):
         pass
@@ -122,7 +142,8 @@ class PlotWindow(object):
 
     @invalidate_data
     def set_window(self, bounds):
-        self.bounds = bounds
+        self.xlim = bounds[0:2]
+        self.ylim = bounds[2:]
 
     @invalidate_data
     def set_width(self):
