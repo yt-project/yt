@@ -32,13 +32,18 @@ import matplotlib.pyplot
 
 def invalidate_data(f):
     def newfunc(*args, **kwargs):
-        args[0]._data_valid = False
-        return f(*args, **kwargs)
+        f(*args, **kwargs)
+        #args[0]._data_valid = False
+        args[0]._recreate_frb()
+        args[0]._setup_plots()
+
     return newfunc
 
 def invalidate_plot(f):
     def newfunc(*args, **kwargs):
-        args[0]._plot_valid = False
+        #args[0]._plot_valid = False
+        args[0]._recreate_frb()
+        args[0]._setup_plots()
         return f(*args, **kwargs)
     return newfunc
 
@@ -63,8 +68,8 @@ class PlotWindow(object):
 
         self.plots = {}
         self._recreate_frb()
-        self._frb._get_data_source_fields()
-        self._setup_plots()
+
+        self._setup_plots() # this should be some kind of user-provided callback
         self._data_valid = True
 
     def __getitem__(self, item):
@@ -77,9 +82,11 @@ class PlotWindow(object):
                                               self.antialias)
         except:
             raise RuntimeError("Failed to repixelize.")
+        self._frb._get_data_source_fields()
         self._data_valid = True
 
     def _setup_plots(self):
+        self.plots = {}
         for f in self.fields:
             self.plots[f] = YtWindowPlot(self._frb[f])
 
@@ -87,9 +94,10 @@ class PlotWindow(object):
     def fields(self):
         return self._frb.data.keys()
 
-    def save(self):
-        for p in self.plots:
-            self.plots[p].save("blah")
+    def save(self,name):
+        for k,v in self.plots.iteritems():
+            n = "%s_%s" % (name, k)
+            v.save(n)
 
     # def save(self):
     #     """
@@ -113,8 +121,8 @@ class PlotWindow(object):
         pass
 
     @invalidate_data
-    def set_window(self):
-        pass
+    def set_window(self, bounds):
+        self.bounds = bounds
 
     @invalidate_data
     def set_width(self):
