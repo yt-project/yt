@@ -144,7 +144,7 @@ class AMRGridPatch(object):
         Returns a single field.  Will add if necessary.
         """
         if not self.data.has_key(key):
-            self.get_data(key)
+            self._get_data(key)
         return self.data[key]
 
     def __setitem__(self, key, val):
@@ -162,7 +162,7 @@ class AMRGridPatch(object):
     def keys(self):
         return self.data.keys()
     
-    def get_data(self, field):
+    def _get_data(self, field):
         """
         Returns a field or set of fields for a key or set of keys
         """

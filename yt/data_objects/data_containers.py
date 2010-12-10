@@ -264,7 +264,7 @@ class AMRData(object):
         Wipes data and rereads/regenerates it from the self.fields.
         """
         self.clear_data()
-        self.get_data()
+        self._get_data()
 
     def keys(self):
         return self.data.keys()
@@ -276,7 +276,7 @@ class AMRData(object):
         if not self.data.has_key(key):
             if key not in self.fields:
                 self.fields.append(key)
-            self.get_data(key)
+            self._get_data(key)
         return self.data[key]
 
     def __setitem__(self, key, val):
@@ -430,7 +430,7 @@ class AMR1DData(AMRData, GridPropertiesMixin):
         else: # Can't find the field, try as it might
             raise KeyError(field)
 
-    def get_data(self, fields=None, in_grids=False):
+    def _get_data(self, fields=None, in_grids=False):
         if self._grids == None:
             self._get_list_of_grids()
         points = []
@@ -649,7 +649,7 @@ class AMR2DData(AMRData, GridPropertiesMixin, ParallelAnalysisInterface):
         return field
 
     #@time_execution
-    def get_data(self, fields = None):
+    def _get_data(self, fields = None):
         """
         Iterates over the list of fields and generates/reads them all.
         """
@@ -1261,7 +1261,7 @@ class AMRFixedResCuttingPlaneBase(AMR2DData):
         return
 
     #@time_execution
-    def get_data(self, fields = None):
+    def _get_data(self, fields = None):
         """
         Iterates over the list of fields and generates/reads them all.
         """
@@ -1439,7 +1439,7 @@ class AMRQuadTreeProjBase(AMR2DData):
             convs.append(self.pf.units[self.pf.field_info[field].projection_conversion])
         return na.array(dls), na.array(convs)
 
-    def get_data(self, fields = None):
+    def _get_data(self, fields = None):
         if fields is None: fields = ensure_list(self.fields)[:]
         else: fields = ensure_list(fields)
         # We need a new tree for every single set of fields we add
@@ -1833,7 +1833,7 @@ class AMRProjBase(AMR2DData):
         pbar.finish()
 
     #@time_execution
-    def get_data(self, fields = None):
+    def _get_data(self, fields = None):
         if fields is None: fields = ensure_list(self.fields)[:]
         else: fields = ensure_list(fields)
         self._obtain_fields(fields, self._node_name)
@@ -2056,7 +2056,7 @@ class AMRFixedResProjectionBase(AMR2DData):
         self['pdy'] = self.dds[yax]
 
     #@time_execution
-    def get_data(self, fields = None):
+    def _get_data(self, fields = None):
         """
         Iterates over the list of fields and generates/reads them all.
         """
@@ -2149,7 +2149,7 @@ class AMR3DData(AMRData, GridPropertiesMixin):
                 dx, grid["GridIndices"][pointI].ravel()], 'float64').swapaxes(0,1)
         return tr
 
-    def get_data(self, fields=None, in_grids=False, force_particle_read = False):
+    def _get_data(self, fields=None, in_grids=False, force_particle_read = False):
         if self._grids == None:
             self._get_list_of_grids()
         points = []
@@ -2892,7 +2892,7 @@ class AMRFloatCoveringGridBase(AMR3DData):
         self['dy'] = self.dds[1] * na.ones(self.ActiveDimensions, dtype='float64')
         self['dz'] = self.dds[2] * na.ones(self.ActiveDimensions, dtype='float64')
 
-    def get_data(self, fields=None):
+    def _get_data(self, fields=None):
         if self._grids is None:
             self._get_list_of_grids()
         if fields is None:
@@ -3036,7 +3036,7 @@ class AMRSmoothedCoveringGridBase(AMRFloatCoveringGridBase):
             self[field] = interpolator(fake_grid)
         return fake_grid
 
-    def get_data(self, field=None):
+    def _get_data(self, field=None):
         self._get_list_of_grids()
         # We don't generate coordinates here.
         if field == None:
@@ -3124,7 +3124,7 @@ class AMRCoveringGridBase(AMR3DData):
         self['dy'] = self.dds[1] * na.ones(self.ActiveDimensions, dtype='float64')
         self['dz'] = self.dds[2] * na.ones(self.ActiveDimensions, dtype='float64')
 
-    def get_data(self, fields=None):
+    def _get_data(self, fields=None):
         if self._grids is None:
             self._get_list_of_grids()
         if fields is None:
@@ -3231,7 +3231,7 @@ class AMRIntSmoothedCoveringGridBase(AMRCoveringGridBase):
         AMRCoveringGridBase._get_list_of_grids(self, buffer)
         self._grids = self._grids[::-1]
 
-    def get_data(self, field=None):
+    def _get_data(self, field=None):
         dx = [self.pf.h.select_grids(l)[0].dds for l in range(self.level+1)]
         self._get_list_of_grids()
         # We don't generate coordinates here.
