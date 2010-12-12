@@ -409,3 +409,109 @@ def compute_cylindrical_radius(CoM, L, P, V):
     P[:,2] = 0
     return na.sqrt((P * P).sum(axis=1))
     
+def ortho_find(vec1):
+    r"""Find two complementary orthonormal vectors to a given vector.
+
+    For any given non-zero vector, there are infinite pairs of vectors 
+    orthonormal to it.  This function gives you one arbitrary pair from 
+    that set along with the normalized version of the original vector.
+
+    Parameters
+    ----------
+    vec1 : array_like
+           An array or list to represent a 3-vector.
+        
+    Returns
+    -------
+    vec1 : array
+           The original 3-vector array after having been normalized.
+
+    vec2 : array
+           A 3-vector array which is orthonormal to vec1.
+
+    vec3 : array
+           A 3-vector array which is orthonormal to vec1 and vec2.
+
+    Raises
+    ------
+    ValueError
+           If input vector is the zero vector.
+
+    Notes
+    -----
+    Our initial vector is `vec1` which consists of 3 components: `x1`, `y1`,
+    and `z1`.  ortho_find determines a vector, `vec2`, which is orthonormal
+    to `vec1` by finding a vector which has a zero-value dot-product with 
+    `vec1`.
+
+    .. math:: 
+
+       vec1 \cdot vec2 = x_1 x_2 + y_1 y_2 + z_1 z_2 = 0
+
+    As a starting point, we arbitrarily choose `vec2` to have `x2` = 1, 
+    `y2` = 0:
+
+    .. math:: 
+
+       vec1 \cdot vec2 = x_1 + (z_1 z_2) = 0 
+
+       \rightarrow z_2 = -(x_1 / z_1)
+
+    Of course, this will fail if `z1` = 0, in which case, let's say use 
+    `z2` = 1 and `x2` = 0:
+
+    .. math::
+    
+       \rightarrow y_2 = -(z_1 / y_1)
+
+    Similarly, if `y1` = 0, this case will fail, in which case we use 
+    `y2` = 1 and `z2` = 0:
+
+    .. math::
+
+       \rightarrow x_2 = -(y_1 / x_1)
+
+    Since we don't allow `vec1` to be zero, all cases are accounted for.
+
+    Producing `vec3`, the complementary orthonormal vector to `vec1` and `vec2`
+    is accomplished by simply taking the cross product of `vec1` and `vec2`.
+
+    Examples
+    --------
+    >>> a = [1.0, 2.0, 3.0]
+    >>> a, b, c = ortho_find(a)
+    >>> a
+    array([ 0.26726124,  0.53452248,  0.80178373])
+    >>> b
+    array([ 0.9486833 ,  0.        , -0.31622777])
+    >>> c
+    array([-0.16903085,  0.84515425, -0.50709255])
+    """
+    vec1 = na.array(vec1, dtype=na.float64)
+    # Normalize
+    norm = na.sqrt(na.vdot(vec1, vec1))
+    if norm == 0:
+        raise ValueError("Zero vector used as input.")
+    vec1 /= norm
+    x1 = vec1[0]
+    y1 = vec1[1]
+    z1 = vec1[2]
+    if z1 != 0:
+        x2 = 1.0
+        y2 = 0.0
+        z2 = -(x1 / z1)
+        norm2 = (1.0 + z2 ** 2.0) ** (0.5)
+    elif y1 != 0:
+        x2 = 0.0
+        z2 = 1.0
+        y2 = -(z1 / y1)
+        norm2 = (1.0 + y2 ** 2.0) ** (0.5)
+    else:
+        y2 = 1.0
+        z2 = 0.0
+        x2 = -(y1 / x1)
+        norm2 = (1.0 + z2 ** 2.0) ** (0.5)
+    vec2 = na.array([x2,y2,z2])
+    vec2 /= norm2
+    vec3 = na.cross(vec1, vec2)
+    return vec1, vec2, vec3
