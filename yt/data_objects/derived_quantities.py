@@ -176,6 +176,7 @@ def _WeightedAverageQuantity(data, field, weight):
     :param field: The field to average
     :param weight: The field to weight by
     """
+    print 'quantity', field, data.pf
     num = (data[field] * data[weight]).sum()
     den = data[weight].sum()
     return num, den
