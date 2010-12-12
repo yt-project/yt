@@ -232,7 +232,7 @@ def annotate_image(image, text, xpos, ypos, font_name = "Vera",
         mylog.error("Could not locate %s", font_path)
         raise IOError(font_path)
     # The hard-coded 0 is the font face index.
-    au.simple_writing(font_path, xpos, ypos, font_size, text, image, 0, dpi)
+    au.simple_writing(font_path, 0, dpi, font_size, text, image, xpos, ypos)
 
 def map_to_colors(buff, cmap_name):
     if cmap_name not in cmd.color_map_luts:
